@@ -1,0 +1,5 @@
+x11 Apps/Graphics idraw none "idraw" /usr/X11R6/bin/idraw
+x11 Apps/Graphics graphdraw none "graphdraw" /usr/X11R6/bin/graphdraw
+x11 Apps/Graphics graphtool none "graphtool" /usr/X11R6/bin/graphtool
+x11 Apps/Graphics flipbook none "flipbook" /usr/X11R6/bin/flipbook
+

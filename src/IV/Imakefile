@@ -265,7 +265,7 @@ g3states.h: $(TIFF)/mkg3states.c $(TIFF)/t4.h
 clean::
 	$(RM) mkg3states g3states.h
 
-InstallScriptAs(../InterViews.defaults,$(LIBALLDIR),InterViews)
+InstallScriptAs(../InterViews.defaults,$(LIBALLDIR),InterViews.default)
 
 IncludeDependencies()
 

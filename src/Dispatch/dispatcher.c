@@ -616,6 +616,10 @@ void Dispatcher::sigCLD(...) {
 #define SA_INTERRUPT 0
 #endif
 
+#ifndef SIGCLD   /* attempt to correct for glibc2 signal names */
+#define SIGCLD SIGCHLD
+#endif 
+
 int Dispatcher::waitFor(
     FdMask& rmaskret, FdMask& wmaskret, FdMask& emaskret, timeval* howlong
 ) {

@@ -5,11 +5,7 @@
 #undef DefaultCCOptions
 #define DefaultCCOptions /**/
 
-/* libg++ include directory -- usually does not change with new version of libg++ 
-Debian: a bad hack, uses own streambuf.h instead g++ (this is probably 
-temporary so try to change it 
-*/
-
+/* libg++ include directory -- usually does not change with new version of libg++ */
 #define GPlusPlusIncludeDir /usr/include/g++
 
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
@@ -17,37 +13,13 @@ temporary so try to change it
 
 /* link libraries for the above */
 #undef ExtraCCLdLibs
-#define ExtraCCLdLibs -lstdc++ -lm -lc
-
-/* DEBIAN link libraries for the above and include libc */
-#undef ExtraCCLdLibs
-#define ExtraCCLdLibs -lstdc++ -lm -lc
-
-/*
-Debian: a bad hack, uses own streambuf.h instead g++ (this is probably 
-temporary so try to change it 
-this is done because of an odity in egcs (Debians main compiler for Alpha)
-*/
-
-#define ExtraCCIncludes -nostdinc++ -I$(TOP)/debian-include -I /usr/include/g++ 
-
-/* this is needed in src/OverlayUnidraw/grayraster.c for the 'NAN' value
-    with libc6 math library */
-#define ExtraCCDefines -D_GNU_SOURCE
-
-/* the major version number */
-
-#define maj 0
-
+#define ExtraCCLdLibs -lstdc++ -lm
 
 /* command to create shared libraries */
-#define SharedLibraryCmd(ldobjs,libname) gcc -shared -Wl,-soname,Concat(lib,libname.so.maj) -o $@ ldobjs -lc
+#define SharedLibraryCmd(ldobjs,extra_flags) gcc -shared extra_flags -o $@ ldobjs
 
 /* use -rpath instead of -L to get slack developers shared libraries */
 #define UseRpath YES
-
-
-
 
 /*
  * Install a shared library on Linux.
@@ -59,47 +31,25 @@ install:: Concat(lib,libname.so.rev)					@@\
 	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
 	-@if [ -f dest/Concat(lib,libname.so) ]; then exit 0; else \    @@\
 	pushd dest; \                                                   @@\
-        $(LN) Concat(lib,libname.so.maj) Concat(lib,libname.so); popd; fi
+        $(LN) Concat(lib,libname.so.rev) Concat(lib,libname.so); popd; fi
 #endif
-
-#ifndef NormalDynamicSharedLibraryTarget
-#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
-AOUT = Concat(lib,libname.so.rev)					@@\
-SHARED_CCFLAGS = SharedCCFlags						@@\
-									@@\
-AllTarget(Concat(lib,libname.so.rev))					@@\
-									@@\
-Concat(lib,libname.so.rev): depobjs					@@\
-	@echo "building $@"						@@\
-	$(RM) $@							@@\
-	SharedLibraryCmd(ldobjs,libname)				@@\
-	$(RM) Concat(lib,libname.so)					@@\
-	$(LN) $@ Concat(lib,libname.so)					@@\
-									@@\
-clean::									@@\
-	$(RM) Concat(lib,libname.so.rev)  Concat(lib,libname.so)
-#endif
-
-
-
 
 /* 
  * Enable/disable relative InterViews-style installation of binaries
  */
 #undef InstallRelative
-#define InstallRelative NO
+#define InstallRelative YES
 
 /* 
 /* 
  * Where to put binaries, libraries, and data files when InstallRelative is NO
  */ 
-#if 0
+#if 1
 #define BinDir /usr/local/bin
 #define LibDir /usr/local/lib
 #define LibAllDir /usr/local/lib/ivtools
 #else
-/* for DEBIAN */
-#define InstalledRoot $(DESTDIR)/usr/X11R6 
+#define InstalledRoot $(DESTDIR)/usr/X11R6 // for Debian
 #endif
 
 /*

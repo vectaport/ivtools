@@ -1,0 +1,45 @@
+ivtools (0.6.2-4) frozen; urgency=low
+
+  * made links from /usr/doc/ivtool-dev adn -bin to ivtools
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Tue, 24 Mar 1998 11:00:00 +0100
+
+ivtools (0.6.2-3) unstable; urgency=low
+
+  * added missing information in copyright, updated mail address
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Thu, 12 Mar 1998 11:00:00 +0100
+
+ivtools (0.6.2-2) unstable; urgency=low
+
+  * correct the linking of shared libs
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Wed, 04 Mar 1998 11:45:00 +0100
+
+ivtools (0.6.2-1) unstable; urgency=low
+
+  * new upstream maintainers version
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Tue, 03 Mar 1998 17:00:00 +0100
+
+ivtools (0.6.1-3) unstable; urgency=low
+
+  * new upstream maintainers version
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Mon, 26 Jan 1998 15:00:00 +0100
+
+ivtools (0.5.9-1) unstable; urgency=low
+
+  * added manpages for binaries, adjusted verson number from 0.5 to 0.5.9
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Mon, 20 Jan 1998 15:00:00 +0100
+
+
+  * Initial Release.
+
+ -- Guenter Geiger <geiger@linux.mhsg.ac.at>  Tue, 11 Nov 1997 16:42:31 +0100
+
+Local variables:
+mode: debian-changelog
+add-log-mailing-address: "geiger@iem.mhsg.ac.at"
+End:

@@ -1,0 +1,30 @@
+Source: ivtools
+Section: devel
+Priority: extra
+Maintainer: Guenter Geiger <geiger@iem.mhsg.ac.at>
+Standards-Version: 2.1.2.2
+
+Package: ivtools-dev
+Architecture: any
+Depends: ivtools (= ${Source-Version}), libc6-dev
+Conflicts: ivtools-dev
+Description: Development files for the ivtools library.
+ See ivtools
+
+Package: ivtools-bin
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: Sample programs using the InterViews libraby. 
+ These consist out of several demos like dclock and idemo, a C++ 
+ class browser iclass and several vector drawing programs like 
+ idraw, drawtool and graphdraw. The animation tool flipbook is
+ also part of these programs.
+
+Package: ivtools
+Architecture: any
+Depends: ${shlibs:Depends}
+Conflicts:
+Description: Ivtools is a C++ GUI library. 
+ It was originally known as InterViews. It is written in C++ 
+ and portable to serveral different Unix platforms. 
+

@@ -30,13 +30,14 @@
 #include <OS/math.h>
 #include <OS/string.h>
 
+#include <OverlayUnidraw/ovdialog.h> // this works on Alpha/egcs
 #include <OverlayUnidraw/ovipcmds.h>
 
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovcomps.h>
-#include <OverlayUnidraw/ovdialog.h>
+//#include <OverlayUnidraw/ovdialog.h>
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovpage.h>
 #include <OverlayUnidraw/ovselection.h>
