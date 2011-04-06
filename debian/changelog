@@ -1,7 +1,8 @@
-ivtools (1.2.8-1~pre1) unstable; urgency=low
+ivtools (1.2.8-1) unstable; urgency=low
 
   * New upstream release
-  * Updated patches:
+  * New maintainer
+  * Updated patches (thanks to Yaroslav Halchenko):
     03_date_c.diff
     04_time_c.diff
     05_rcdialog_c.diff
@@ -10,8 +11,15 @@ ivtools (1.2.8-1~pre1) unstable; urgency=low
     46_comdraw_crash.diff      -- upstream
     49_string.c_constchar.diff -- partially adopted upstream
     48_gcc40_int_pointer_errors.diff -- refreshed
+  * New patches
+    50_configure_no_qt.diff
+    51_libTIFF_to_libtiff.diff
+  * Update patches:
+    18_timeglyph_c.diff -- refresh
+  * Bump policy, bump to dh 8, misc packaging updates
+  * Source format 3.0 (quilt)
 
- -- Yaroslav Halchenko <debian@onerussian.com>  Fri, 24 Sep 2010 10:33:20 -0400
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 12 Apr 2011 15:27:46 +0100
 
 ivtools (1.2.6-1+nmu3) unstable; urgency=low
 
