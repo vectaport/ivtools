@@ -1,15 +1,22 @@
 Source: ivtools
 Priority: optional
 Section: libs
-Build-Depends: debhelper (>> 5.0.0), quilt, x11-utils, xutils-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev, autotools-dev, libx11-dev, libxext-dev, libxmu-dev, libxt-dev, x11proto-core-dev
-Maintainer: Debian QA Group <packages@qa.debian.org>
-Standards-Version: 3.8.3
+Build-Depends: debhelper (>= 8), quilt,
+	autotools-dev,
+	zlib1g-dev,
+	x11-utils, xutils-dev, x11proto-core-dev,
+	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
+	libtiff4-dev, libjpeg62-dev, libace-dev
+Maintainer: Barak A. Pearlmutter <bap@debian.org>
+Standards-Version: 3.9.2.0
 Homepage: http://www.ivtools.org
+Vcs-Git: git://git.debian.org/git/collab-maint/ivtools.git
+Vcs-Browser: http://git.debian.org/?p=collab-maint/ivtools.git
 
 Package: ivtools-bin
 Section: graphics
 Architecture: any
-Depends: xterm | x-terminal-emulator, ${shlibs:Depends}
+Depends: xterm | x-terminal-emulator, ${shlibs:Depends}, ${misc:Depends}
 Suggests: netpbm, libjpeg-progs, pstoedit
 Description: Drawing Editors evolved from idraw
  The drawing editors in this package are idraw, a basic vector graphics
@@ -20,8 +27,9 @@ Package: ivtools-dev
 Section: devel
 Architecture: all
 Depends: libiv1 (>= ${source:Version}), libiv1 (<< ${source:Version}.1~),
- libiv-unidraw1 (>= ${source:Version}), libiv-unidraw1 (<< ${source:Version}.1~),
- libc6-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev, ${shlibs:Depends}
+	 libiv-unidraw1 (>= ${source:Version}), libiv-unidraw1 (<< ${source:Version}.1~),
+	 libc6-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev,
+	 ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools-bin (<< 0.7.2)
 Description: Development files for the InterViews library
  The ivmkmf program (similar to xmkmf) and all the include-files needed
@@ -30,7 +38,7 @@ Description: Development files for the InterViews library
 Package: libiv1
 Section: libs
 Architecture: any
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools
 Description: C++ GUI library with Motif Look and Feel
  This package contains the InterViews library. It is written in C++
@@ -43,7 +51,7 @@ Section: libs
 Architecture: any
 Conflicts: ivtools
 Replaces: ivtools
-Depends: ${shlibs:Depends}
+Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Application Frameworks layered on Unidraw
  The package includes the unidraw library plus extensions for frame and
  graph editing, needed by the ivtools vector graphics editors.
