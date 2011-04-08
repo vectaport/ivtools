@@ -1,4 +1,9 @@
-October 29th, 2002  ivtools-1.1.0
+November 16th, 2003  ivtools-1.1.1
+
+- add missing src/include/ivstd/strstream.h to MANIFEST file and tar file
+
+
+October 29th, 2003  ivtools-1.1.0
 
 - re-enable use of shared memory for X11 image rendering under MacOS X
 
