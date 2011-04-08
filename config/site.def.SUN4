@@ -1,0 +1,78 @@
+/* solaris workarounds */
+#ifdef SVR4
+#define SVR4Architecture YES
+#define HasGcc2 YES
+#define HasGcc HasGcc2
+#endif
+
+/* gcc command line with -V for version and -O for optimize */
+#define CCDriver gcc -O	
+
+/* libg++ include directory -- usually does not change with new version of libg++ */
+#define GPlusPlusIncludeDir /usr/local/lib/g++-include
+
+/* link libraries for the above */
+#undef ExtraCCLdLibs
+#ifndef SVR4Architecture
+#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -lm -Xlinker -Bdynamic -ldl -Xlinker -Bstatic
+#else
+#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -Xlinker -Bdynamic -lsocket -lnsl -lreadline -lSM -lICE -lm
+#endif
+
+/* statically link libX11 */
+#if HasDynamicSharedLibraries
+#undef Ld_libX11
+#ifndef SVR4Architecture
+#define Ld_libX11 -Xlinker -Bstatic -lX11 -Xlinker -Bdynamic
+#else
+#define Ld_libX11 -Xlinker -Bstatic -lX11 -lSM -lICE -Xlinker -Bdynamic
+#endif
+#endif
+
+/* link libraries for TIFF */
+#ifndef SVR4Architecture
+#undef TIFFExtraCLdLibs
+#define TIFFExtraCLdLibs -ldl
+#else
+#endif
+
+/* Use native linker for shared libraries */
+#undef LdCmd
+#ifndef SVR4Architecture
+#define LdCmd /bin/ld
+#else
+#define LdCmd /usr/ccs/bin/ld
+#endif
+
+/* 
+ * Enable/disable relative InterViews-style installation of binaries
+ */
+#undef InstallRelative
+#define InstallRelative YES
+
+/* 
+ * Where to put binaries, libraries, and data files when InstallRelative is NO
+ */ 
+#define BinDir /usr/local/bin
+#define LibDir /usr/local/lib
+#define LibAllDir /usr/local/lib/ivtools
+
+/*
+ * X11 directories -- remember to override XCONFIGDIR the
+ * first time you run "make World".
+ */
+#ifndef SVR4Architecture
+#define XConfigDir /usr/local/lib/X11/config
+#define XIncDir /usr/local/include
+#define XLibDir /usr/local/lib
+#else
+#define XConfigDir /usr/X11/lib/X11/config
+#define XIncDir /usr/X11/include
+#define XLibDir /usr/X11/lib
+#endif
+
+/* clippoly directory:  comment out if not available */
+/* #define ClipPolyDir /proj/clippoly */
+
+/* ACE directory: comment out if not available */
+/* #define AceDir /proj/ACE_wrappers */

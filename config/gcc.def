@@ -1,0 +1,26 @@
+/*
+ * Other definitions for gcc/g++.
+ */
+
+     GPLUSPLUS_INCLUDE_DIR = GPlusPlusIncludeDir
+          TOOL_INCLUDE_DIR = ToolIncludeDir
+
+#ifndef DependCCFlags
+#define DependCCFlags -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I$(GPLUSPLUS_INCLUDE_DIR) \
+		      -I$(TOOL_INCLUDE_DIR)
+#endif
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC 
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+#undef HasGcc2
+#define HasGcc2 YES
+
+#undef HasGcc
+#define HasGcc HasGcc2

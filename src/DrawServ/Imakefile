@@ -1,0 +1,34 @@
+XCOMM
+XCOMM DrawServ - comterp and Unidraw
+XCOMM
+
+PACKAGE = DrawServ
+
+#ifdef InObjectCodeDir
+
+LIB = DrawServ
+
+Use_libUnidraw()
+Use_2_6()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj26(file) MakeObjectFromSrcFlags(file,-xc++)
+
+Obj26(comcatalog)
+Obj26(comcreator)
+Obj26(comcomps)
+Obj26(comviews)
+
+
+#define Obj31(file) MakeObjectFromSrcFlags(file,-xc++ -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+Obj31(comkit)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

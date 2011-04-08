@@ -1,0 +1,9 @@
+------------- IVGlyph WishList -------------
+
+-- Sep 10 1996 -- johnston@vectaport.com -- 
+improve the Scrollable to be a real viewport
+
+-- May 25 1995 -- johnston@vectaport.com -- 
+automatically replace filename suffix for a given format in the
+various file choosers (PrintChooser, ExportChooser, ImportChooser)
+

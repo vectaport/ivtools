@@ -1,0 +1,14 @@
+XCOMM
+XCOMM "make CPU" prints the name you should assign to CPU.
+XCOMM "make World" builds everything.
+XCOMM "make install" installs everything.
+XCOMM
+
+PACKAGE = top_ivtools
+
+WORLDOPTS = -k
+SUBDIRS = src config
+
+MakeCPU()
+MakeWorld($(WORLDOPTS))
+MakeInSubdirs($(SUBDIRS))

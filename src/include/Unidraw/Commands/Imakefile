@@ -1,0 +1,7 @@
+XCOMM
+XCOMM Unidraw Commands include files
+XCOMM
+
+PACKAGE = include_commands
+
+CmscriptsTargets($(PACKAGE))

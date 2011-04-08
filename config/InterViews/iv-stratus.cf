@@ -1,0 +1,15 @@
+#include <stratus.cf>
+
+/* So makedepend knows where to find c++ header files */
+#define DependCCFlags -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I/usr/c++/include
+
+#define ExtraCCLdLibs -lsocket -lnsl
+
+/* Other architectures have these in TIFF.def, but this seems cleaner */
+#define TIFFStdCDefines \
+    -DCOLORIMETRY_SUPPORT -DJPEG_SUPPORT -DYCBCR_SUPPORT -DCMYK_SUPPORT \
+    -DHAVE_IEEEFP=1 -DUSE_VARARGS=0 -DUSE_PROTOTYPES=1 -DUSE_CONST=1
+
+#define TIFFExtraCDefines -DSYSV
+
+#include <InterViews/xparams.cf>

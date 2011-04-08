@@ -1,0 +1,1 @@
+../InterViews/resource.c

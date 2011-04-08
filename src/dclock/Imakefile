@@ -1,0 +1,28 @@
+XCOMM
+XCOMM dclock - scalable digital clock
+XCOMM
+
+PACKAGE = dclock
+
+#ifdef InObjectCodeDir
+
+Use_libInterViews()
+Use_2_6()
+ComplexProgramTarget(dclock)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+
+Obj(clocktime)
+Obj(data)
+Obj(dclock)
+Obj(dface)
+Obj(digit)
+Obj(segment)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

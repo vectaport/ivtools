@@ -1,0 +1,156 @@
+/*
+ * Copyright (c) 1994-1997 Vectaport Inc.
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and
+ * its documentation for any purpose is hereby granted without fee, provided
+ * that the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the names of the copyright holders not be used in
+ * advertising or publicity pertaining to distribution of the software
+ * without specific, written prior permission.  The copyright holders make
+ * no representations about the suitability of this software for any purpose.
+ * It is provided "as is" without express or implied warranty.
+ *
+ * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL,
+ * INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
+ * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * 
+ */
+
+#include <FrameUnidraw/frameclasses.h>
+#include <FrameUnidraw/framecomps.h>
+#include <FrameUnidraw/frameeditor.h>
+#include <FrameUnidraw/frameviews.h>
+
+#include <Unidraw/iterator.h>
+#include <Unidraw/viewer.h>
+
+/*****************************************************************************/
+
+FrameOverlaysView::FrameOverlaysView() : OverlaysView() {}
+
+ClassId FrameOverlaysView::GetClassId() { return FRAME_OVERLAYS_VIEW; }
+
+boolean FrameOverlaysView::IsA(ClassId id) {
+    return id == FRAME_OVERLAYS_VIEW || OverlaysView::IsA(id);
+}
+
+/*****************************************************************************/
+
+FrameView::FrameView() : OverlaysView() {}
+
+ClassId FrameView::GetClassId() { return FRAME_VIEW; }
+
+boolean FrameView::IsA(ClassId id) {
+    return id == FRAME_VIEW || OverlaysView::IsA(id);
+}
+
+/*****************************************************************************/
+
+
+FramesView::FramesView() : FrameView() {}
+
+ClassId FramesView::GetClassId() { return FRAMES_VIEW; }
+
+boolean FramesView::IsA(ClassId id) {
+    return id == FRAMES_VIEW || FrameView::IsA(id);
+}
+
+void FramesView::UpdateFrame(FrameView* curr, FrameView* prev,
+			     int curr_other, int prev_other)  {
+  Iterator i;
+  First(i);
+  FrameView* background = (FrameView*)GetView(i);
+  
+  if (curr != prev) {
+    if (prev) {		
+      if (prev != background) prev->Hide();
+      prev->Desensitize();
+      if (prev_other) {
+	SetView(prev, i);
+	if (prev_other>0) 
+	  for (int ii=0; ii<prev_other; ii++) Next(i);
+	else 
+	  for (int ii=0; ii>prev_other; ii--) Prev(i);
+	if (!Done(i)) {
+	  FrameView* frame = (FrameView*)GetView(i);
+	  if (frame != background) {
+	    frame->Hide();
+	    frame->Sensitize();
+	  }
+	}
+      }
+    }
+    if (curr) {
+      if (curr != background) curr->Show();
+      curr->Sensitize();
+      if (curr_other) {
+	SetView(curr, i);
+	if (curr_other>0) 
+	  for (int ii=0; ii<curr_other; ii++) Next(i);
+	else 
+	  for (int ii=0; ii>curr_other; ii--) Prev(i);
+	if (!Done(i)) {
+	  FrameView* frame = (FrameView*)GetView(i);
+	  if (frame != background) {
+	    frame->Show();
+	    frame->Desensitize();
+	  }
+	}
+      }
+    }
+  }
+}
+
+/*****************************************************************************/
+
+FrameIdrawView::FrameIdrawView() : FramesView() {}
+
+ClassId FrameIdrawView::GetClassId() { return FRAME_IDRAW_VIEW; }
+
+boolean FrameIdrawView::IsA(ClassId id) {
+    return id == FRAME_IDRAW_VIEW || FramesView::IsA(id);
+}
+
+GraphicView* FrameIdrawView::GetGraphicView (Component* c) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->GetGraphicView(c);
+}
+
+Selection* FrameIdrawView::SelectAll() {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->SelectAll();
+}
+Selection* FrameIdrawView::ViewContaining(Coord x, Coord y) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->ViewContaining(x, y);
+}
+
+Selection* FrameIdrawView::ViewsContaining(Coord x, Coord y) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->ViewsContaining(x, y);
+}
+
+Selection* FrameIdrawView::ViewIntersecting(Coord x0, Coord y0, Coord x1, Coord y1) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->ViewIntersecting(x0, y0, x1, y1);
+}
+
+Selection* FrameIdrawView::ViewsIntersecting(Coord x0, Coord y0, Coord x1, Coord y1) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->ViewsIntersecting(x0, y0, x1, y1);
+}
+Selection* FrameIdrawView::ViewsWithin(Coord x0, Coord y0, Coord x1, Coord y1) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->ViewsWithin(x0, y0, x1, y1);
+}
+ConnectorView* FrameIdrawView::ConnectorIntersecting(Coord x0, Coord y0, Coord x1, Coord y1) {
+    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame->ConnectorIntersecting(x0, y0, x1, y1);
+}
+
+

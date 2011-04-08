@@ -1,0 +1,24 @@
+XCOMM
+XCOMM source files for building the Unidraw-common library
+XCOMM
+
+PACKAGE = Unidraw-common
+
+#ifdef InObjectCodeDir
+
+LIB = Unidraw-common
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+
+Obj(iterator)
+Obj(ulist)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

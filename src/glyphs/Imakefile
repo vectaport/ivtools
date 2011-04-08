@@ -1,0 +1,19 @@
+XCOMM
+XCOMM example glyph programs
+XCOMM
+
+PACKAGE = glyphs_ivtools
+
+SUBDIRS = \
+	bdvtable \
+	formdemo \
+	gclock \
+	meter \
+	radiogroup \
+	scrollable \
+	scrollfield \
+	strchooser \
+	text-editor \
+	timestamp
+
+MakeInSubdirs($(SUBDIRS))

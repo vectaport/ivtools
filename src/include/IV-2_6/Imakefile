@@ -1,0 +1,13 @@
+XCOMM
+XCOMM internal include files for using old 2.6 classes' names without prefixes
+XCOMM
+
+PACKAGE = include_iv-2_6
+
+SUBDIRS = \
+	InterViews
+
+MakeInSubdirs($(SUBDIRS))
+
+InstallIncludes(IV-2_6)
+

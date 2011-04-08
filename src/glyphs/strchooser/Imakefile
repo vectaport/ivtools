@@ -1,0 +1,26 @@
+XCOMM
+XCOMM strchooser - StringChooser example program
+XCOMM
+
+PACKAGE = strchooser
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(strchooser)
+
+MakeObjectFromSrcFlags(main,-xc++)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

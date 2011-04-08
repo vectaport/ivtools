@@ -1,0 +1,27 @@
+XCOMM
+XCOMM meter - bounded value meter example
+XCOMM
+XCOMM
+
+PACKAGE = meter
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS =  $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(meter)
+
+MakeObjectFromSrcFlags(main,-xc++)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

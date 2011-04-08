@@ -1,0 +1,17 @@
+XCOMM
+XCOMM config files for building ivtools libraries and applications
+XCOMM
+
+PACKAGE = config_ivtools
+
+
+SUBDIRS = InterViews
+
+MakeInSubdirs($(SUBDIRS))
+
+#if !InstallRelative
+install::
+	MakeDir($(CONFIGDIR))
+	$(INSTALL) $(INSTINCFLAGS) *.def* template $(CONFIGDIR)
+#endif
+

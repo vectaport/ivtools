@@ -1,0 +1,18 @@
+XCOMM
+XCOMM include file directory
+XCOMM
+
+PACKAGE = include_ivtools
+
+SUBDIRS = \
+	Dispatch \
+	IV-2_6 \
+	IV-X11 \
+	IV-look \
+	InterViews \
+	OS \
+	TIFF \
+	Unidraw \
+	std
+
+MakeInSubdirs($(SUBDIRS))

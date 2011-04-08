@@ -1,0 +1,47 @@
+XCOMM
+XCOMM drawtool - drawing editor with overlays
+XCOMM
+
+PACKAGE = drawtool
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = \
+$(LIBOVERLAYUNIDRAW) \
+$(LIBCOMGLYPH) \
+$(LIBCOMTERP) \
+$(LIBATTRGLYPH) \
+$(LIBATTRIBUTE) \
+$(LIBCOMUTIL) \
+$(LIBUNIIDRAW) \
+$(LIBIVGLYPH) \
+$(LIBTOPOFACE)
+
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = \
+$(DEPOVERLAYUNIDRAW) \
+$(DEPCOMGLYPH) \
+$(DEPCOMTERP) \
+$(DEPATTRGLYPH) \
+$(DEPATTRIBUTE) \
+$(DEPCOMUTIL) \
+$(DEPUNIIDRAW) \
+$(DEPIVGLYPH) \
+$(DEPTOPOFACE)
+#endif
+
+Use_libUnidraw()
+Use_2_6()
+ComplexProgramTarget(drawtool)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,-xc++ -D__ACE_INLINE__)
+
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

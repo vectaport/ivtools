@@ -1,0 +1,51 @@
+/* DSPCOM function prototypes */
+/* SCANNER.C */
+#ifdef __cplusplus
+int scanner(void *infile,char *(*infunc)(char*,int,void*),
+	    int (*eoffunc)(void*),int (*errfunc)(void*),
+	    FILE *outfile,int (*outfunc)(const char*,void*),
+	    char *buffer,unsigned bufsiz,
+	    unsigned *bufptr,char *token,unsigned toksiz,unsigned *toklen,
+	    unsigned *toktype,unsigned *tokstart,unsigned *linenum );
+#else
+int scanner(void *infile,char *(*infunc)(),int (*eoffunc)(),int (*errfunc)(),
+	    FILE *outfile,int (*outfunc)(),char *buffer,unsigned bufsiz,
+	    unsigned *bufptr,char *token,unsigned toksiz,unsigned *toklen,
+	    unsigned *toktype,unsigned *tokstart,unsigned *linenum );
+#endif
+/* OPTABLE.C */
+int opr_tbl_create(unsigned maxop);
+int opr_tbl_insert(char *opstr,char *command,unsigned priority,BOOLEAN rtol,
+		   unsigned optype);
+int opr_tbl_print(FILE *outfile,unsigned by);
+int opr_tbl_entries(char *opstr,int *op_ids,unsigned nop_ids,unsigned *nchars);
+int opr_tbl_operid(unsigned opnum);
+int opr_tbl_commid(unsigned opnum);
+int opr_tbl_priority(unsigned opnum);
+int opr_tbl_rtol(unsigned opnum);
+int opr_tbl_optype(unsigned opnum);
+unsigned opr_tbl_maxprior();
+int opr_tbl_default();
+int opr_tbl_opstr(unsigned commid);
+int opr_tbl_topstr();
+/* PARSER.C */
+#ifdef __cplusplus
+int parser(void *infile,char *(*infunc)(char*,int,void*),
+	   int (*eoffunc)(void*),int (*errfunc)(void*),
+	   FILE *outfile,int (*outfunc)(const char*,void*),
+	   char *buffer,unsigned bufsiz,
+	   unsigned *bufptr,char *token,unsigned toksiz,unsigned *linenum,
+	   postfix_token **pfbuf,unsigned *pfsiz,unsigned *pfnum);
+#else
+int parser(void *infile,char *(*infunc)(),int (*eoffunc)(),int (*errfunc)(),
+	   FILE *outfile,int (*outfunc)(),char *buffer,unsigned bufsiz,
+	   unsigned *bufptr,char *token,unsigned toksiz,unsigned *linenum,
+	   postfix_token **pfbuf,unsigned *pfsiz,unsigned *pfnum);
+#endif
+int print_pfbuf(postfix_token *pfbuf,int index);
+/* TYPES.C */
+int type_add(int nids,int *idlist);
+int type_symid(int forwhat);
+int type_typeid(int forwhat);
+int type_find(int nids,int *idlist);
+int type_get(int which, int id);

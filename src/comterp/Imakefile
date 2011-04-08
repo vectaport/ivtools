@@ -1,0 +1,26 @@
+XCOMM
+XCOMM comterp - simple command interpreter
+XCOMM
+
+PACKAGE = comterp
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = $(LIBCOMTERP) $(LIBATTRIBUTE) $(LIBCOMUTIL) $(LIBUNIDRAWCOMMON) $(LIBIVCOMMON)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = $(DEPCOMTERP) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIDRAWCOMMON) $(DEPIVCOMMON)
+#endif
+
+ComplexProgramTarget(comterp)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,-xc++ -D__ACE_INLINE__)
+
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

@@ -1,0 +1,149 @@
+/*
+ * Copyright (c) 1993 Vectaport
+ * Copyright (c) 1989 Triple Vision, Inc.
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and its
+ * documentation for any purpose is hereby granted without fee, provided
+ * that the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the name of the authors not be used in advertising or
+ * publicity pertaining to distribution of the software without specific,
+ * written prior permission.  The authors make no representations about
+ * the suitability of this software for any purpose.  It is provided "as is"
+ * without express or implied warranty.
+ *
+ * THE AUTHORS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+ * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+ * IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+ * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+ * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ */
+
+#ifndef COMUTIL_CI
+
+/* External include file */
+#include <ComUtil/comutil.h>
+
+/* include files needed for macros; use ifdef's to speed things up */
+
+#if !defined(STDLIB_INCLUDED)
+#include	<stdlib.h>
+#endif
+
+#if !defined(MALLOC_INCLUDED)
+#include	<malloc.h>
+#endif
+
+#if !defined(STRING_INCLUDED)
+#include	<string.h>
+#endif
+
+#if defined(MSDOS) & !defined(DOS_INCLUDED)
+#include	<dos.h>
+#endif
+
+/* Definitions for DMM.C  */
+
+/* this one for pointer-to-abs and back conversion */
+/* these must be used before performing arithmetic on pointers */
+/* this is especially a problem in Microsoft C and DOS, not so much in OS9 */
+
+#if defined(MSDOS)
+typedef unsigned long  ABSPNTR;
+#define PNTR_TO_ABS(pntr,abs)  {  \
+  abs = (((unsigned long)FP_SEG(pntr)) << 4) + (unsigned long)FP_OFF(pntr); \
+			     }
+/* this puts pointer within 16 bytes of the start of the segment */
+#define ABS_TO_PNTR(abs,pntr)  { \
+  FP_SEG(pntr) = (unsigned) ((abs) >> 4); \
+  FP_OFF(pntr) = (unsigned) ((abs) & 0xf); \
+			     }
+/* this converts a huge address to a regular address */
+/* with an offset address less than 15 */
+#define ADDRALIGN(pntr) {\
+   ABSPNTR abs;\
+   PNTR_TO_ABS(pntr,abs);\
+   ABS_TO_PNTR(abs,pntr);   }
+#endif
+
+#if !defined(MSDOS)	/* no problem in OSK */
+typedef unsigned long  ABSPNTR;	
+#define PNTR_TO_ABS(pntr,abs)       { abs = (ABSPNTR) (pntr); }
+#define ABS_TO_PNTR(abs,pntr)       { ((ABSPNTR) (pntr)) = abs; }
+/* OSK has no problems with addressing; not like dumb Intel */
+#define ADDRALIGN(pntr) { /* does nothing to it */ }
+#endif
+
+/* Add single character to token */
+#define TOKEN_ADD( ch ) \
+{ if( *toklen < toksiz ) token[(*toklen)++]= ch; \
+  else { while( isident(CURR_CHAR) || isdigit(CURR_CHAR)) ADVANCE_CHAR;\
+     return ERR_TOKENLENGTH; }}
+
+/* Advance pointer in buffer */
+#define ADVANCE_CHAR (ch = buffer[++*bufptr])
+
+/* Get at current, previous, and next character in buffer */
+#define CURR_CHAR (ch)
+#define PREV_CHAR (buffer[*bufptr-1])
+#define NEXT_CHAR (buffer[*bufptr+1])
+
+/* Macros to convert octal and hex characters to internal representation */
+#define OCTVAL( ch ) ((ch) - 0x30)
+#define HEXVAL( ch ) ((ch) - (isdigit(ch) ? 0x30 : (isupper(ch) ? 0x37 : 0x57 )))
+
+/* Maximum values of data structures */
+#define SHINT_MAX_DIGITS	5
+#define SHINT_MAX_STRING	"32767"
+#define SHOCTS_MAX_DIGITS	5
+#define SHOCTS_MAX_STRING	"77777"
+#define SHOCTU_MAX_DIGITS       6
+#define SHOCTU_MAX_STRING	"177777"
+#define SHHEXS_MAX_DIGITS	4
+#define SHHEXS_MAX_STRING	"7FFF"
+#define SHHEXU_MAX_DIGITS	4
+#define SHHEXU_MAX_STRING	"FFFF"
+
+#define LNINT_MAX_DIGITS	10
+#define LNINT_MAX_STRING	"2147383547"
+#define LNOCTS_MAX_DIGITS	11
+#define LNOCTS_MAX_STRING	"17777777777"
+#define LNOCTU_MAX_DIGITS	11
+#define LNOCTU_MAX_STRING	"37777777777"
+#define LNHEXS_MAX_DIGITS	8
+#define LNHEXS_MAX_STRING	"7FFFFFFF"
+#define LNHEXU_MAX_DIGITS	8
+#define LNHEXU_MAX_STRING	"FFFFFFFF"
+
+#if defined(MSDOS)
+#define DFINT_MAX_DIGITS	SHINT_MAX_DIGITS
+#define DFINT_MAX_STRING	SHINT_MAX_STRING
+#define DFOCTS_MAX_DIGITS	SHOCTS_MAX_DIGITS
+#define DFOCTS_MAX_STRING	SHOCTS_MAX_STRING
+#define DFOCTU_MAX_DIGITS	SHOCTU_MAX_DIGITS
+#define DFOCTU_MAX_STRING	SHOCTU_MAX_STRING
+#define DFHEXS_MAX_DIGITS	SHHEXS_MAX_DIGITS
+#define DFHEXS_MAX_STRING	SHHEXS_MAX_STRING
+#define DFHEXU_MAX_DIGITS	SHHEXU_MAX_DIGITS
+#define DFHEXU_MAX_STRING	SHHEXU_MAX_STRING
+#endif
+
+#if !defined(MSDOS)
+#define DFINT_MAX_DIGITS	LNINT_MAX_DIGITS
+#define DFINT_MAX_STRING	LNINT_MAX_STRING
+#define DFOCTS_MAX_DIGITS	LNOCTS_MAX_DIGITS
+#define DFOCTS_MAX_STRING	LNOCTS_MAX_STRING
+#define DFOCTU_MAX_DIGITS	LNOCTU_MAX_DIGITS
+#define DFOCTU_MAX_STRING	LNOCTU_MAX_STRING
+#define DFHEXS_MAX_DIGITS	LNHEXS_MAX_DIGITS
+#define DFHEXS_MAX_STRING	LNHEXS_MAX_STRING
+#define DFHEXU_MAX_DIGITS	LNHEXU_MAX_DIGITS
+#define DFHEXU_MAX_STRING	LNHEXU_MAX_STRING
+#endif
+
+#define SHORT_INT_MACHINE (DFINT_MAX_DIGITS != LNINT_MAX_DIGITS)
+
+#endif /* !COMUTIL_CI */
+

@@ -1,0 +1,27 @@
+XCOMM
+XCOMM timestamp - TimeGlyph demo program
+XCOMM
+XCOMM
+
+PACKAGE = timestamp
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = $(LIBTIME) $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPTIME) $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(timestamp)
+
+MakeObjectFromSrcFlags(main,-xc++)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

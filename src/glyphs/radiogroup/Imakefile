@@ -1,0 +1,27 @@
+XCOMM
+XCOMM radiogroup - radio button group example
+XCOMM
+XCOMM
+
+PACKAGE = radiogroup
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS =  $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(radiogroup)
+
+MakeObjectFromSrcFlags(main,-xc++)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

@@ -1,0 +1,96 @@
+/* NUTIL function prototypes */ 
+/* MBLOCK.C */
+int mblock_open(unsigned nel,unsigned size);
+int mblock_close(int id);
+int mblock_resize(int id,unsigned nel);
+void *mblock_pntr(int id);
+int mblock_sizes(int id,unsigned *nel,unsigned *size,unsigned long *nbytes);
+/* SYMBOLS.C */
+int symbol_add(char *string);
+int symbol_find(char *string);
+int symbol_del (int id);
+int symbol_len (int id);
+char *symbol_pntr(int id);
+int symbol_instances(int id);
+/* DMM.C */ 
+int dmm_mblock_alloc(unsigned long nbytes);
+int dmm_mblock_free(void);
+int dmm_mblock_pack(int ipackflag);
+int dmm_mblock_stats(void * *mpntr,unsigned long *total,unsigned long *used,unsigned long *free,unsigned long *system);
+int dmm_malloc(void * *pntr,unsigned long nrecs,unsigned int nsize);
+int dmm_calloc(void * *pntr,unsigned long nrecs,unsigned int nsize);
+int dmm_realloc(void * *pntr,unsigned long nrecs);
+int dmm_realloc_size(int);
+int dmm_free(void * *pntr);
+int dmm_clear(void * *pntr);
+int dmm_pntr(int ptype,void * *pntr,unsigned long nrecs,unsigned int nsize,int (*cond)());
+int dmm_free_pntr(void * *pntr);
+int dmm_ichk(void);
+int dmm_walk(dmmwalk *ret);
+int dmm_movrecs(void **pntr,unsigned long dstrec,unsigned long srcrec,unsigned long nrecs);
+/* XDLL.C */ 
+int xdll_open(void *beg,int nlinks,int nsize);
+int xdll_reopen(int newflag,void *beg,int nlinks,int newhead);
+int xdll_use(int id);
+int xdll_in_use(void);
+int xdll_close(int allflag);
+void *xdll_curr(void);
+void *xdll_head(void);
+void *xdll_next(void);
+void *xdll_prev(void);
+void *xdll_tail(void);
+void *xdll_insert(int before);
+int xdll_delete(int flag);
+void *xdll_goto(void *pos);
+int xdll_clear(int flag,void (*userfunc)());
+int xdll_links_left(void);
+int xdll_links_num(void);
+/* ATOX.C */
+unsigned long atox(char *string);
+unsigned long atoo(char *string);
+/* FUNCPTRS.C */
+int ffeof(FILE *stream);
+int fferror(FILE *stream);
+/* LEXSCAN.C */
+#ifdef __cplusplus
+int lexscan(void *infile,char *(*infunc)(char*,int,void*),
+	    int (*eoffunc)(void*),int (*errfunc)(void*),
+	    void *outfile,int (*outfunc)(const char*,void*),
+	    char *begcmt,char *endcmt,
+	    char *buffer,unsigned bufsiz,unsigned *bufptr,char *token,
+	    unsigned toksiz,unsigned *toklen,unsigned *toktype,
+	    unsigned *tokstart,unsigned *linenum );
+#else
+int lexscan(void *infile,char *(*infunc)(),
+	    int (*eoffunc)(),int (*errfunc)(),
+	    void *outfile,int (*outfunc)(),char *begcmt,char *endcmt,
+	    char *buffer,unsigned bufsiz,unsigned *bufptr,char *token,
+	    unsigned toksiz,unsigned *toklen,unsigned *toktype,
+	    unsigned *tokstart,unsigned *linenum );
+#endif
+/* ERRFILE.C */
+char *err_readfile( FILE *errfile, unsigned errnum);
+/* ERRSYS.C */
+int err_open(char *errfile);
+char *err_read(int errid,unsigned errnum);
+void err_set(int errid,unsigned errnum,unsigned errlen);
+void err_get(int *errid,unsigned *errnum);
+void err_print(FILE *outstream,char *command);
+void err_str(char *errbuf,int bufsiz,char *command);
+void err_clear();
+void err_level(unsigned level);
+FILE *err_fileio();
+/* COMERR.C */
+char *comerr_read(unsigned errnum);
+void comerr_set(unsigned errnum,unsigned errlen);
+int comerr_get();
+BOOLEAN comerr_chk(unsigned errnum);
+/* TXTUTIL.C */
+unsigned int txtstore(int new_entry,char *txtstr);
+unsigned int txtread(unsigned int id,char *txtstr);
+unsigned int txtopenclose(int openclose);
+unsigned int txtkwsrch(char *keyword,int bol,char *rdstr);
+unsigned int txtprint(unsigned int id,char *ignorestr,unsigned int pause,unsigned int *nlines);
+/* TYPES.C */
+int print_type(FILE* fptr,unsigned dtype,char* dptr,int offset);
+

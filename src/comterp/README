@@ -1,0 +1,100 @@
+NAME
+     comterp - distributed command interpreter demonstrator
+
+SYNOPSIS
+     comterp
+     comterp server 'portnum'
+     comterp client 'host' 'portnum'
+     comterp telcat 'host' 'portnum' 'file'
+
+DESCRIPTION
+
+comterp demonstrates the command interpreter incorporated into
+ivtools. A user (or client program) can interact with comterp via
+stdin and stdout or telnet (when ACE is built in).  The command syntax
+is a semi-colon separated list of commands with arbitrary number of
+parameters enclosed in parenthesis, with support for optional
+parameters and keyword arguments, i.e:
+
+	command2(arg1 arg2 arg3 :key1 val1 :key2 val2);
+	command1(arg1 arg2 arg3 :key1 val1 :key2 val2)
+
+C-like binary expressions can be embedded anywhere in the command
+language, using the operators in the table below.  Variables can be
+created on the fly with an assignment operator (i.e "ball=1" creates a
+integer "ball" variable set to 1).  Unterminated expressions cause an
+automatic command line extension (until the parser determines the
+expression is complete).  "(), "{}", and "[]" can all be used
+interchangeably.
+
+COMMAND OPTIONS
+
+comterp
+
+Invoke a single command interpreter to interact with via stdin and
+stdout.
+
+comterp server 'portnum'
+
+Listens for and accept connections on portnum, then setup a command
+interpreter to wait for and process commands from that connection.
+
+
+comterp client 'host' 'portnum'
+
+Connect to a portnum on a host and send/receive new-line terminated
+text buffers.
+
+comterp telcat 'host' 'portnum' 'file'
+
+Connect to a portnum on a host, cat the file, then close the
+connection.
+
+
+OPERATOR TABLE
+
+    Operators     Command Name         Priority    Order       Type
+    ---------     ------------         --------    -----       ----
+    .             dot                  130         R-to-L      binary
+    ^             power                120         R-to-L      binary
+    !             negate               110         R-to-L      unary-prefix
+    ++            incr                 110         R-to-L      unary-prefix
+    ++            incr_after           110         R-to-L      unary-postfix
+    -             minus                110         R-to-L      unary-prefix
+    --            decr                 110         R-to-L      unary-prefix
+    --            decr_after           110         R-to-L      unary-postfix
+    **            repeat               90          L-to-R      binary
+    ..            iterate              80          L-to-R      binary
+    %             mod                  70          L-to-R      binary
+    *             mpy                  70          L-to-R      binary
+    /             div                  70          L-to-R      binary
+    +             add                  60          L-to-R      binary
+    -             sub                  60          L-to-R      binary
+    <             lt                   50          L-to-R      binary
+    <=            lt_or_eq             50          L-to-R      binary
+    >             gt                   50          L-to-R      binary
+    >=            gt_or_eq             50          L-to-R      binary
+    !=            not_eq               45          L-to-R      binary
+    ==            eq                   45          L-to-R      binary
+    &&            and                  41          L-to-R      binary
+    ||            or                   40          L-to-R      binary
+    %=            mod_assign           30          R-to-L      binary
+    *=            mpy_assign           30          R-to-L      binary
+    +=            add_assign           30          R-to-L      binary
+    -=            sub_assign           30          R-to-L      binary
+    /=            div_assign           30          R-to-L      binary
+    =             assign               30          R-to-L      binary
+    ,             stream               20          L-to-R      binary
+    ;             seq                  10          L-to-R      binary
+
+OTHER COMMANDS
+
+run(filename) -- run commands from file
+quit() -- quit this interpreter
+exit() -- exit entire application
+
+SEE ALSO  
+	comdraw
+
+WEB PAGES
+	 http://www.vectaport.com/ivtools/comterp.html

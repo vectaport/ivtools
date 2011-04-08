@@ -1,0 +1,207 @@
+February 26th 1998  ivtools-0.6.2
+
+Drawing Editor Changes
+
+	* conditionally adds a ConvexHull tool to drawtool if qhull from
+ 	the University of Minnesota Geometry Center can be found via your
+ 	PATH environment variable.  To acquire and build this separate
+ 	executable see
+ 	http://www.geom.umn.edu/software/download/qhull.html
+
+	* adds a "Compute Attributes" item to the Edit menu
+ 	(SetAttrByExprCmd).  This brings up a dialog box on the current
+ 	selection, and allows the user to enter an arbitrary attribute
+ 	value expression and evaluate it.  For example, if a component had
+ 	an attribute of "likelihood", a new attribute called
+ 	"likelihoodsquared" could be set with an expression of
+ 	"likelihoodsquared=likelihood*likelihood".  Keyboard shortcut in
+ 	drawtool is "#"
+	
+Interpreter Changes
+
+	* adds these mathematical functions:
+	acos, asin, atan, atan2, cos, sin, tan, pow, exp, log, log10
+
+	* adds a min and max function that promotes operands as needed,
+ 	similar to the other arithmetic operators.
+
+	* adds a cond operator that returns one of two values based on a
+ 	boolean test.  Pre-evaluates all parameters (like every other
+ 	current command except help).  In the future there can be "if",
+ 	"for", and "while" commands that use a lazy, post-evaluation
+ 	technique.
+
+	* adds a paste command to comdraw, for use in any derived
+ 	application that builds up a component that needs pasting in the
+ 	viewer.
+
+Library Changes
+
+	* TopoFace -- adds methods to construct and return a floating
+ 	point geomobj that reuses the points without duplicating them:
+
+	    FPointObj* TopoNode::point_obj();
+	    FMultiLineObj* TopoEdge::multiline();
+	    FFillPolygonObj* TopoFace::polygon()
+
+	* OverlayUnidraw --
+
+	- fixes linear scaling and logarithmic scaling of GrayRaster's
+
+	- fixes mechanism for embedding of a graylevel test strip in
+ 	GrayRaster's
+
+	- adds an edlauncher() mechanism to OverlayEditor to allow for the
+ 	inclusion of arbitrary editors into the main.c of one specific
+ 	editor. 
+
+	- adds a comterplist() mechanism to OverlayEditor to manage a
+ 	global list of registered interpreters.  Allows for one editor to
+ 	execute expressions on another editor's associated interpreter.
+
+	- adds more mouse documentation lines to OverlayKit
+
+	- adds OverlayViewer ::ScreenToGraphic and ::GraphicToScreen
+ 	methods, for converting between the x,y of mouse clicks and the
+ 	coordinate system of a graphic.  Useful for addressing individual
+ 	pixels of a raster.
+
+	- adds a boolean OverlayKit::bincheck to test for the presence of
+ 	an executable before relying on it.  Uses OverlayKit::bintest
+ 	under the hood.
+
+	- mixes in Observer and Observable as multiply inherited base
+ 	classes of OverlayComp.  Now other update/notify systems can be
+ 	constructed around and within the subject/view hierarchy of a
+ 	Unidraw editor.
+
+	* ComTerp -- 
+
+	- clones the above into a ComFunc::bincheck and ComFunc::bintest,
+ 	for use of generic ComFunc programmers
+
+	- add a new parameter to ComFunc::argcnts, nargskey (defaulted to
+ 	zero), which is used by ComTerp to inform the func of how many
+ 	arguments are associated with keywords.
+
+	- add a ComTerp::stack_height() method to tell the current size of
+ 	the stack.
+
+Configuration Changes
+
+	* sets up drawserv to link in FrameUnidraw as well as
+ 	GraphUnidraw, and then tests this with a new Editors menu that
+ 	allows for the launching of other GraphEditor's or FrameEditor's
+
+	* sets up drawserv to be installed with "make install"
+
+	* sets up comterp to use the original Iterator and UList objects
+ 	from Unidraw, instead of the ALIterator and AList in the Attribute
+ 	library.  But then, so raw comterp programs won't have to link in
+ 	all of Unidraw and InterViews, new libraries called
+ 	Unidraw-command and IV-common were set up to build with only
+ 	symbolic links to the necessary files:
+
+	IV-common:  listimpl.c, memory.c, regexp.c, resource.c, textbuffer.c
+
+	Unidraw-common:  iterator.c, ulist.c
+
+	* removes the RCS tags from the TIFF source
+
+Bug Fixes
+
+	* fixes a segfault when attempting to import an empty file
+
+	* fixes bug in the mechanism for managing absolute and relative
+ 	pathnames for drawtool and related documents.
+
+January 23rd 1998  ivtools-0.6.1
+
+Drawing Editor Changes
+	
+        * clear any error message on the import, export, open, and save-as
+ 	dialog boxes from previous attempts upon starting a new attempt.
+
+Interpreter Changes
+
+	* add help command that lists available commands by default, or
+ 	specific information about each command supplied as an argument.  
+
+	* to support the help command the interpreter was evolved to
+ 	support a lazy-eval command, one that gets invoked before its
+ 	arguments get computed.  The next release of ivtools should make
+ 	use of this with conditional and looping commands, the traditional
+ 	control constructs of procedural programming.
+	
+Library Changes
+
+	* TopoFace -- add separate methods to attach start and end nodes to
+	  an edge: 
+	
+	      TopoEdge::attach_start_node(TopoNode*);
+ 	      TopoEdge::attach_end_node(TopoNode*);
+
+	-- and methods to test if a edge starts or ends at this node:
+
+	      TopoEdge::starts_at(TopoNode*);
+	      TopoEdge::ends_at(TopoNode*);
+
+	* OS -- add a method to test the table iterator's current entry.
+  	helps avoid a nil pointer reference in case of an empty table:
+
+	      TableEntry(Table)* cur_entry();
+
+	* OverlayUnidraw -- fix bugs caught by ElectricFence, including
+ 	one to the gs-based selection highlighting mechanism of
+ 	OverlayUnidraw.  Also fix problem with flushing of
+ 	deferred-loading rasters and save/restore of arbitrary
+	numeric gray-level rasters (GrayRaster)
+
+	* ComTerp -- fix bugs caught by ElectricFence, like referencing
+ 	off the ComTerp stack.  Increase default buffer size on
+ 	ComTerpServ to 1k.  Change the ";" operator (SeqFunc) to return
+ 	the second argument on the ComTerp stack.  Add a
+ 	ComValue::unkval() to return a static ComValue of UnknownType.
+
+	* Attribute -- disable Attribute's call to symbol_del which
+ 	sometimes inadvertently removes a symbol from the symbol table
+ 	when an Attribute is destructed.  This needs to be evolved so that
+ 	either the symbols are never removed after being created, or there
+ 	is an accurate ref counting done when using ComUtil's symbol_add
+ 	and symbol_del.  This release also improves the overall memory
+ 	mgmt of Attribute's, AttributeList's, and AttributeValueList's.
+  	Finally, this release adds support for reading in comma-separated
+ 	list of AttributeValue's (into an AttributeValueList).
+
+Configuration Changes
+
+	* incorporate patches to iv-3.2a published by Randall C. O'Reilly
+ 	and others of the CMU Psychology Dept., part of the pdp++_1.2
+ 	distribution.  One thing this does is prefix all the globals in
+ 	InterViews/coord.h with "iv" (i.e. inch is ivinch, cm is ivcm) if
+ 	PDP_PLUS_PLUS is defined.  If PDP_PLUS_PLUS isn't defined (the
+ 	default), these global variables stay the same, but #define's are
+ 	included which prefix "iv".
+
+	* also incorporate Alpha and Stratus entries for config/arch.def
+ 	from the pdp++ distribution.  Still probably need the associate
+ 	iv-*.cf files.
+
+	* change the build order so that ComUnidraw (and comdraw) get
+ 	built before GraphUnidraw and FrameUnidraw, and then inherit
+ 	GraphEditor and FrameEditor from ComEditor.
+
+	* incorporate Doug Scott's iv-3.1 event handling patch that
+ 	enables use of the shift key.
+
+	* remove all explicit e-mail addresses from ivtools for spam
+ 	protection
+	
+
+December 23rd 1997  ivtools-0.6
+
+	* version change
+
+	* renamed Topology library to TopoFace to avoid conflict
+	with IUE and Target Jr class libraries of the same name.
+

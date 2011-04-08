@@ -1,0 +1,469 @@
+/*
+ * Copyright (c) 1996 Vectaport Inc.
+ * Copyright (c) 1994, 1995 Vectaport Inc., Cartoactive Systems
+ * Copyright (c) 1993 David B. Hollenbeck
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and
+ * its documentation for any purpose is hereby granted without fee, provided
+ * that the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the names of the copyright holders not be used in
+ * advertising or publicity pertaining to distribution of the software
+ * without specific, written prior permission.  The copyright holders make
+ * no representations about the suitability of this software for any purpose.
+ * It is provided "as is" without express or implied warranty.
+ *
+ * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL,
+ * INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
+ * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ * 
+ */
+
+/*
+ * FrameKit definitions
+ */
+
+
+#include <FrameUnidraw/framecmds.h>
+#include <FrameUnidraw/framecomps.h>
+#include <FrameUnidraw/frameeditor.h>
+#include <FrameUnidraw/framekit.h>
+#include <FrameUnidraw/framestates.h>
+#include <FrameUnidraw/frameviewer.h>
+
+#include <OverlayUnidraw/ovabout.h>
+#include <OverlayUnidraw/ovcamcmds.h>
+#include <OverlayUnidraw/ovcmds.h>
+#include <OverlayUnidraw/ovexport.h>
+#include <OverlayUnidraw/ovimport.h>
+#include <OverlayUnidraw/ovpage.h>
+#include <OverlayUnidraw/ovprint.h>
+#include <OverlayUnidraw/slctbyattr.h>
+
+#include <IVGlyph/exportchooser.h>
+#include <IVGlyph/saveaschooser.h>
+#include <IVGlyph/textform.h>
+
+#include <Unidraw/Commands/catcmds.h>
+#include <Unidraw/Commands/transforms.h>
+
+#include <Unidraw/catalog.h>
+#include <Unidraw/ctrlinfo.h>
+#include <Unidraw/grid.h>
+#include <Unidraw/keymap.h>
+#include <Unidraw/kybd.h>
+#include <Unidraw/statevars.h>
+#include <Unidraw/unidraw.h>
+#include <Unidraw/viewer.h>
+
+#include <UniIdraw/idkybd.h>
+
+#include <InterViews/frame.h>
+#include <InterViews/layout.h>
+#include <InterViews/session.h>
+#include <InterViews/style.h>
+#include <InterViews/target.h>
+#include <InterViews/window.h>
+#include <IV-look/kit.h>
+#include <IV-look/mf_kit.h>
+#include <IVGlyph/textedit.h>
+
+#include <OS/string.h>
+
+#include <stdlib.h>
+
+#undef None
+
+/******************************************************************************/
+
+static const char* page_width_attrib = "pagewidth";
+static const char* page_height_attrib = "pageheight";
+static const char* grid_x_incr = "gridxincr";
+static const char* grid_y_incr = "gridyincr";
+
+/******************************************************************************/
+
+FrameKit* FrameKit::_framekit = nil;
+
+FrameKit::FrameKit () {
+}
+
+FrameKit* FrameKit::Instance() {
+    if (!_framekit)
+	_framekit = new FrameKit();
+    return _framekit;
+}
+
+void FrameKit::InitViewer () {
+    Catalog* catalog = unidraw->GetCatalog();
+
+    const char* page_w = catalog->GetAttribute(page_width_attrib);
+    const char* page_h = catalog->GetAttribute(page_height_attrib);
+    const char* x_incr = catalog->GetAttribute(grid_x_incr);
+    const char* y_incr = catalog->GetAttribute(grid_y_incr);
+
+    GraphicView* view = (GraphicView*)((FrameEditor*)_ed)->_comp->Create(COMPONENT_VIEW);
+    ((FrameEditor*)_ed)->_comp->Attach(view);
+    view->Update();
+
+    Style* style = Session::instance()->style();
+    boolean bookgeom = style->value_is_on("bookgeom");
+
+    const float w = bookgeom ? 700 : round(atof(page_w) * ivinches);
+    const float h = bookgeom ? 906 : round(atof(page_h) * ivinches);
+
+    OverlayPage* page = new OverlayPage(w, h);
+    Grid* grid = new Grid(w, h, atof(x_incr), atof(y_incr));
+    grid->Visibility(false);
+
+    if (!bookgeom)
+	((FrameEditor*)_ed)->_viewer = new FrameViewer(_ed, view, page, grid);
+    else 
+	((FrameEditor*)_ed)->_viewer = new FrameViewer(_ed, view, page, grid, (int) h+1, (int) w+1, Rotated);
+}
+
+void FrameKit::InitLayout(const char* name) {
+    if (_ed->GetWindow() == nil) {
+        TextObserver* mousedoc_observer = new TextObserver(_ed->MouseDocObservable(), "");
+	WidgetKit& kit = *WidgetKit::instance();
+	const LayoutKit& layout = *LayoutKit::instance();
+	Glyph* menus = MakeMenus();
+	Glyph* states = MakeStates();
+	Glyph* toolbar = MakeToolbar();
+	if (states)
+	    menus->append(states);
+	Target* viewer = 
+	    new Target(new Frame(Interior()), TargetPrimitiveHit);
+	toolbar->append(layout.vcenter(viewer));
+	menus->append(toolbar);
+
+	
+	Style* style = Session::instance()->style();
+	boolean bookgeom = style->value_is_on("bookgeom");
+	
+	PolyGlyph* topbox = layout.vbox();
+	_ed->body(menus);
+	_ed->GetKeyMap()->Execute(CODE_SELECT);
+	topbox->append(_ed);
+	if (!bookgeom) {
+	    EivTextEditor* texteditor = new EivTextEditor(kit.style());
+	    ((FrameEditor*)_ed)->_texteditor = texteditor;
+	    Button* set = kit.push_button("Set", new ActionCallback(FrameEditor)(
+		(FrameEditor*)_ed, &FrameEditor::SetText
+	    ));
+	    Button* clear = kit.push_button("Clear", new ActionCallback(FrameEditor)(
+		(FrameEditor*)_ed, &FrameEditor::ClearText
+	    ));
+	    topbox->append(
+		kit.outset_frame(
+		    layout.hbox(
+			layout.vcenter(
+			    layout.margin(
+				layout.vbox(
+				    layout.hcenter(set),
+				    layout.vspace(10),
+				    layout.hcenter(clear)
+				),
+				10
+			    )
+			),
+			layout.vcenter(texteditor)
+		    )
+		)
+	    );
+	    topbox->append(
+		kit.outset_frame(
+		    layout.hbox(
+			layout.vcenter(mousedoc_observer)
+                    )
+                )
+            );
+	}
+
+	ManagedWindow* w = new ApplicationWindow(topbox);
+	_ed->SetWindow(w);
+	Style* s = new Style(Session::instance()->style());
+	s->alias(name);
+	w->style(s);
+    }
+}
+
+Glyph* FrameKit::MakeMenus()
+{
+    Menu* menubar_ = WidgetKit::instance()->menubar();
+    
+    menubar_->append_item(MakeFileMenu());
+    menubar_->append_item(MakeEditMenu());
+    menubar_->append_item(MakeStructureMenu());
+    menubar_->append_item(MakeFontMenu());
+    menubar_->append_item(MakeBrushMenu());
+    menubar_->append_item(MakePatternMenu());
+    menubar_->append_item(MakeFgColorMenu());
+    menubar_->append_item(MakeBgColorMenu());
+    menubar_->append_item(MakeAlignMenu());
+    menubar_->append_item(MakeViewMenu());
+    menubar_->append_item(MakeFrameMenu());
+    Resource::ref(menubar_);
+    return LayoutKit::instance()->vbox(menubar_);
+}
+
+MenuItem * FrameKit::MakeFileMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem *mbi = kit.menubar_item(kit.label("File"));
+    mbi->menu(kit.pulldown());
+
+    MakeMenu(mbi, new OvAboutCmd(new ControlInfo("About flipbook", "", "")),
+	     "About flipbook   ");
+    MakeMenu(mbi, new OvNewCompCmd(new ControlInfo("New", KLBL_NEWCOMP, CODE_NEWCOMP),
+				 new FrameIdrawComp),
+	     "New   ");
+    MakeMenu(mbi, new OvRevertCmd(new ControlInfo("Revert", KLBL_REVERT, CODE_REVERT)),
+	     "Revert   ");
+    MakeMenu(mbi, new OvOpenCmd(new ControlInfo("Open...", KLBL_VIEWCOMP, CODE_VIEWCOMP)),
+	     "Open...   ");
+    MakeMenu(mbi, new OvSaveCompCmd(new ControlInfo("Save", KLBL_SAVECOMP, CODE_SAVECOMP),
+				    new SaveAsChooser(".", &kit, kit.style())),
+	     "Save   ");
+    MakeMenu(mbi, new OvSaveCompAsCmd(new ControlInfo("Save As...",
+						      KLBL_SAVECOMPAS,
+						      CODE_SAVECOMPAS),
+				      new SaveAsChooser(".", &kit, kit.style())),
+	     "Save As...   ");
+    MakeMenu(mbi, new OvPrintCmd(new ControlInfo("Print...", KLBL_PRINT, CODE_PRINT)),
+	     "Print...   ");
+    MakeMenu(mbi, new OvImportCmd(new ControlInfo("Import Graphic...",
+						  KLBL_IMPORT,
+						  CODE_IMPORT)),
+	     "Import Graphic...   ");
+    MakeMenu(mbi, new OvExportCmd(new ControlInfo("Export Graphic...",
+						  "^X", "\030")),
+	     "Export Graphic...   ");
+    MakeMenu(mbi, new OvWindowDumpAsCmd(new ControlInfo("Dump Window As..."
+						  )),
+	     "Dump Window As...   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new OvQuitCmd(new ControlInfo("Quit", KLBL_QUIT, CODE_QUIT)),
+	     "Quit   ");
+    return mbi;
+}
+
+MenuItem* FrameKit::MakeFrameMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem *mbi = kit.menubar_item(kit.label("Frame"));
+    mbi->menu(kit.pulldown());
+
+    MakeMenu(mbi, new MoveFrameCmd(new ControlInfo("Move Forward","^F",""), +1),
+	     "Move Forward   ");
+    MakeMenu(mbi, new MoveFrameCmd(new ControlInfo("Move Backward","^B",""), -1),
+	     "Move Backward   ");
+    MakeMenu(mbi, new FrameBeginCmd(new ControlInfo("Goto First Frame")),
+	     "Goto First Frame");
+    MakeMenu(mbi, new FrameEndCmd(new ControlInfo("Goto Last Frame")),
+	     "Goto Last Frame ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new CreateMoveFrameCmd(new ControlInfo("New Forward","F","F")),
+	     "New Forward    ");
+    MakeMenu(mbi, new CreateMoveFrameCmd(new ControlInfo("New Backward","B","B"), false),
+	     "New Backward   ");
+    MakeMenu(mbi, new CopyMoveFrameCmd(new ControlInfo("Copy Forward","","")),
+	     "Copy Forward   ");
+    MakeMenu(mbi, new CopyMoveFrameCmd(new ControlInfo("Copy Backward","",""), false),
+	     "Copy Backward  ");
+    MakeMenu(mbi, new DeleteFrameCmd(new ControlInfo("Delete","D","D")),
+	     "Delete  ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new ShowOtherFrameCmd(new ControlInfo("Show Prev Frame","",""), -1),
+	     "Show Prev Frame");
+    MakeMenu(mbi, new ShowOtherFrameCmd(new ControlInfo("Hide Prev Frame","",""), 0),
+	     "Hide Prev Frame");
+    return mbi;
+}
+
+MenuItem* FrameKit::MakeStructureMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem *mbi = kit.menubar_item(kit.label("Structure"));
+    mbi->menu(kit.pulldown());
+
+    MakeMenu(mbi, new FrameGroupCmd(new ControlInfo("Group", KLBL_GROUP, CODE_GROUP)),
+	     "Group   ");
+    MakeMenu(mbi, new FrameUngroupCmd(new ControlInfo("Ungroup", KLBL_UNGROUP, CODE_UNGROUP)),
+	     "Ungroup   ");
+    MakeMenu(mbi, new FrameFrontCmd(new ControlInfo("Bring to Front",
+				       KLBL_FRONT, CODE_FRONT)),
+	     "Bring to Front   ");
+    MakeMenu(mbi, new FrameBackCmd(new ControlInfo("Send to Back",
+				      KLBL_BACK, CODE_BACK)),
+	     "Send to Back   ");
+
+    return mbi;
+}
+
+MenuItem* FrameKit::MakeEditMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem *mbi = kit.menubar_item(kit.label("Edit"));
+    mbi->menu(kit.pulldown());
+
+    MakeMenu(mbi, new UndoCmd(new ControlInfo("Undo", KLBL_UNDO, CODE_UNDO)),
+	     "Undo   ");
+    MakeMenu(mbi, new RedoCmd(new ControlInfo("Redo", KLBL_REDO, CODE_REDO)),
+	     "Redo   ");
+    MakeMenu(mbi, new CutCmd(new ControlInfo("Cut", KLBL_CUT, CODE_CUT)),
+	     "Cut   ");
+    MakeMenu(mbi, new FrameCopyCmd(new ControlInfo("Copy", KLBL_COPY, CODE_COPY)),
+	     "Copy   ");
+    MakeMenu(mbi, new PasteCmd(new ControlInfo("Paste", KLBL_PASTE, CODE_PASTE)),
+	     "Paste   ");
+    MakeMenu(mbi, new DupCmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
+	     "Duplicate   ");
+    MakeMenu(mbi, new OvDeleteCmd(new ControlInfo("Delete", KLBL_DEL, CODE_DEL)),
+	     "Delete   ");
+    MakeMenu(mbi, new OvSlctAllCmd(new ControlInfo("Select All", KLBL_SLCTALL, CODE_SLCTALL)),
+	     "Select All   ");
+    MakeMenu(mbi, new SlctByAttrCmd(new ControlInfo("Select by Attribute", "$", "$")),
+	     "Select by Attribute   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new ScaleCmd(new ControlInfo("Flip Horizontal",
+				       KLBL_HFLIP, CODE_HFLIP),
+		       -1.0, 1.0),
+	     "Flip Horizontal   ");
+    MakeMenu(mbi, new ScaleCmd(new ControlInfo("Flip Vertical",
+				       KLBL_VFLIP, CODE_VFLIP),
+		       1.0, -1.0),
+	     "Flip Vertical   ");
+    MakeMenu(mbi, new RotateCmd(new ControlInfo("90 Clockwise", KLBL_CW90, CODE_CW90),
+			-90.0),
+	     "90 Clockwise   ");
+    MakeMenu(mbi, new RotateCmd(new ControlInfo("90 CounterCW", KLBL_CCW90, CODE_CCW90),
+			90.0),
+	     "90 CounterCW   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new PreciseMoveCmd(new ControlInfo("Precise Move",
+					     KLBL_PMOVE, CODE_PMOVE)),
+	     "Precise Move   ");
+    MakeMenu(mbi, new PreciseScaleCmd(new ControlInfo("Precise Scale",
+					      KLBL_PSCALE, CODE_PSCALE)),
+	     "Precise Scale   ");
+    MakeMenu(mbi, new PreciseRotateCmd(new ControlInfo("Precise Rotate",
+					       KLBL_PROTATE, CODE_PROTATE)),
+	     "Precise Rotate   ");
+
+    return mbi;
+}
+
+MenuItem* FrameKit::MakeViewMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem* mbi = kit.menubar_item(kit.label("View"));
+    mbi->menu(kit.pulldown());
+
+#if 0
+    MakeMenu(mbi, new FrameNewViewCmd(new ControlInfo("New View", KLBL_NEWVIEW, CODE_NEWVIEW)),
+	     "New View   ");
+    MakeMenu(mbi, new OvCloseEditorCmd(new ControlInfo("Close View",
+					     KLBL_CLOSEEDITOR,
+					     CODE_CLOSEEDITOR)),
+	     "Close View   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+#endif
+    MakeMenu(mbi, new PageCmd(new ControlInfo("Page on/off",
+					      "p", "p")),
+	     "Page on/off   ");
+    MakeMenu(mbi, new NormSizeCmd(new ControlInfo("Normal Size",
+					  KLBL_NORMSIZE, CODE_NORMSIZE)),
+	     "Normal Size   ");
+    MakeMenu(mbi, new RedToFitCmd(new ControlInfo("Reduce to Fit",
+					  KLBL_REDTOFIT, CODE_REDTOFIT)),
+	     "Reduce to Fit   ");
+    MakeMenu(mbi, new CenterCmd(new ControlInfo("Center Page",
+					KLBL_CENTER, CODE_CENTER)),
+	     "Center Page   ");
+    MakeMenu(mbi, new OrientationCmd(new ControlInfo("Orientation",
+					     KLBL_ORIENTATION,
+					     CODE_ORIENTATION)),
+	     "Orientation   ");
+
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new GridCmd(new ControlInfo("Grid on/off",
+				      KLBL_GRID, CODE_GRID)),
+	     "Grid on/off   ");
+    MakeMenu(mbi, new GridSpacingCmd(new ControlInfo("Grid Spacing...",
+						     KLBL_GRIDSPC, CODE_GRIDSPC)),
+	     "Grid Spacing...   ");
+    MakeMenu(mbi, new GravityCmd(new ControlInfo("Gravity on/off",
+					 KLBL_GRAVITY, CODE_GRAVITY)),
+	     "Gravity on/off   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+
+    MenuItem* zoomi = kit.menu_item(kit.label("Zoom             "));
+    Menu* zoom = kit.pullright();
+    zoomi->menu(zoom);
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In"), 2.0),
+	     "Zoom In          ");
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out"), 0.5),
+	     "Zoom Out         ");
+    MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
+	     "Precise Zoom     ");
+    mbi->menu()->append_item(zoomi);
+
+    MenuItem* spani = kit.menu_item(kit.label("Small Pan        "));
+    Menu* span = kit.pullright();
+    spani->menu(span);
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Up"), NO_PAN, PLUS_SMALL_PAN),
+	     "Small Pan Up     ");
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Down"), NO_PAN, MINUS_SMALL_PAN),
+	     "Small Pan Down   ");
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Left"), MINUS_SMALL_PAN, NO_PAN),
+	     "Small Pan Left   ");
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Right"), PLUS_SMALL_PAN, NO_PAN),
+	     "Small Pan Right  ");
+    mbi->menu()->append_item(spani);
+
+    MenuItem* lpani = kit.menu_item(kit.label("Large Pan        "));
+    Menu* lpan = kit.pullright();
+    lpani->menu(lpan);
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Up"), NO_PAN, PLUS_LARGE_PAN),
+	     "Large Pan Up     ");
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Down"), NO_PAN, MINUS_LARGE_PAN),
+	     "Large Pan Down   ");
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Left"), MINUS_LARGE_PAN, NO_PAN),
+	     "Large Pan Left   ");
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Right"), PLUS_LARGE_PAN, NO_PAN),
+	     "Large Pan Right  ");
+    mbi->menu()->append_item(lpani);
+
+    MakeMenu(mbi, new PrecisePanCmd(new ControlInfo("Precise Pan")),
+	     "Precise Pan      ");
+
+    return mbi;
+}
+
+
+Glyph* FrameKit::MakeStates() {
+    ((FrameEditor*)_ed)->_framenumstate = new FrameNumberState();
+    ((FrameEditor*)_ed)->_frameliststate = new FrameListState();
+    NameView* fnumview = new NameView(((FrameEditor*)_ed)->framenumstate());
+    NameView* flistview = new NameView(((FrameEditor*)_ed)->frameliststate());
+
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    return kit.inset_frame(
+	lk.margin(
+	    lk.hbox(fnumview, lk.hspace(40), flistview, lk.hglue()),
+	    4, 2
+	    )
+    );
+		
+}

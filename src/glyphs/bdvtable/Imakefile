@@ -1,0 +1,27 @@
+XCOMM
+XCOMM bdvtable - bounded value table example
+XCOMM
+XCOMM
+
+PACKAGE = bdvtable
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS =  $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(bdvtable)
+
+MakeObjectFromSrcFlags(main,-xc++)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

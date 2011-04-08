@@ -1,0 +1,25 @@
+XCOMM
+XCOMM scrollfield - demo program
+XCOMM
+
+PACKAGE = scrollfield
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(scrollfield)
+
+MakeObjectFromSrcFlags(main,-xc++)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

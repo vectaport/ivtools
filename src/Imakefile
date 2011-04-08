@@ -1,0 +1,59 @@
+XCOMM
+XCOMM everything to be built or installed
+XCOMM
+
+PACKAGE = src_ivtools
+
+SUBDIRS = \
+	IV-common \
+	Unidraw-common \
+	\
+	ComUtil \
+	Attribute \
+	ComTerp \
+	comtest \
+	comterp \
+	\
+	IV \
+	InterViews \
+	IV-2_6 \
+	IV-X11 \
+	OS \
+	TIFF \
+	Dispatch \
+	dclock \
+	iclass \
+	idemo \
+	\
+	Time \
+	IVGlyph \
+	glyphs \
+	\
+	AttrGlyph \
+	ComGlyph \
+	glyphterp \
+	\
+	Unidraw \
+	UniIdraw \
+	idraw \
+	\
+	TopoFace \
+	OverlayUnidraw \
+	drawtool \
+	\
+	ComUnidraw \
+	comdraw \
+	\
+	GraphUnidraw \
+	graphdraw \
+	\
+	FrameUnidraw \
+	flipbook \
+	\
+	DrawServ \
+	drawserv \
+	\
+	include \
+	scripts
+
+MakeInSubdirs($(SUBDIRS))

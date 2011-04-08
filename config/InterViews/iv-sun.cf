@@ -1,0 +1,26 @@
+#include <sun.cf>
+#include <InterViews/xparams.cf>
+
+/*
+ * In case sun.cf defines HasSharedLibraries but not HasDynamicSharedLibraries.
+ */
+#if HasSharedLibraries
+#define HasDynamicSharedLibraries	YES
+#endif
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags -ztext -G
+
+#ifndef LnCmd
+#define LnCmd ln -s
+#endif
+
+/*
+ * A bug in SunOS 4.1 causes dbx to crash if it tries to load an
+ * application which uses a debuggable shared library, so we can't
+ * have both debuggable and shareable libraries.
+ */
+#if defined(UseDebug) && defined(InObjectCodeDir)
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries	NO
+#endif

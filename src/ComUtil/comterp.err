@@ -1,0 +1,184 @@
+/* COMTERP Error Messages */
+#define ERROR_FILE "comterp.err"
+
+#define ERR_MEMORY			1000
+/* "dmm:  Memory limits exceeded" */
+
+#define ERR_LINELENGTH			1100
+/* "scanner:  (%d) Line greater than %d characters long" */
+
+#define ERR_TOKENLENGTH 		1101
+/* "scanner:  (%d) Token longer than maximum length of %d" */
+
+#define ERR_EOFCOMMENT 			1102
+/* "scanner:  (%d) End of file encountered within comment" */
+
+#define ERR_EOFSTRING 			1103
+/* "scanner:  (%d) End of file encountered within string or character constant" */
+
+#define ERR_BADKEYWORD 			1104
+/* "scanner:  (%d) Illegal keyword" */
+
+#define ERR_BADCHAR 			1105
+/* "scanner:  (%d) Illegal character constant" */
+
+#define ERR_NOTOCTDIGIT			1106
+/* "scanner:  (%d) Non-octal digit in octal character constant" */
+
+#define ERR_NOTHEXDIGIT			1107
+/* "scanner:  (%d) Hexadecimal digit must follow \\x" */
+
+#define ERR_BADOCTCHAR			1108
+/* "scanner:  (%d) Octal character constant larger than one byte" */
+
+#define ERR_BADHEXCHAR			1109
+/* "scanner:  (%d) Hexadecimal character constant larger than one byte" */
+
+#define ERR_BADINT			1110
+/* "scanner:  (%d) Illegal integer constant" */
+
+#define ERR_BADOCT 			1111
+/* "scanner:  (%d) Illegal octal constant" */
+
+#define ERR_BADHEX			1112
+/* "scanner:  (%d) Illegal hexadecimal constant" */
+
+#define ERR_BADFLOAT 			1113
+/* "scanner:  (%d) Illegal floating-point constant" */
+
+#define ERR_TOOBIGINT 			1114
+/* "scanner:  (%d) Integer constant exceeds maximum possible size" */
+
+#define ERR_TOOBIGOCT 			1115
+/* "scanner:  (%d) Octal constant exceeds maximum possible size" */
+
+#define ERR_TOOBIGHEX 			1116
+/* "scanner:  (%d) Hexadecimal constant exceeds maximum possible size" */
+
+#define ERR_TOOBIGFLOAT 		1117
+/* "scanner:  (%d) Floating point constant exceeds maximum possible size" */
+
+#define ERR_TOOSMLFLOAT 		1118
+/* "scanner:  (%d) Floating point constant exceeds minimum possible size" */
+
+#define ERR_ILLEGALCHAR 		1119
+/* "scanner:  (%d) Illegal character (ASCII %d)" */
+
+#define ERR_NLINSTRING 			1120
+/* "scanner:  (%d) Unexpected newline in string constant" */
+
+#define ERR_NLINCHAR 			1121
+/* "scanner:  (%d) Unexpected newline in character constant" */
+
+#define ERR_CONSTSEP 			1122
+/* "scanner:  (%d) Insufficient separation from trailing constant" */
+
+#define ERR_OUTFILE			1123
+/* "scanner:  (%d) Error in writing to output file" */
+
+#define ERR_INFILE			1124
+/* "scanner:  (%d) Error in reading input file" */
+
+#define ERR_EOFNEWLINE			1125
+/* "scanner:  (%d) New-line expected before end-of-file" */
+
+#define ERR_ILLEGALOP			1200
+/* "optable:  Illegal operator (%c)" */
+
+#define ERR_OPRTBLMAXED			1201
+/* "optable:  Maximum number of operators exceeded (%d)" */
+
+#define ERR_NO_POSTFIX			1202
+/* "optable:  Postfix version of %s can't coexist with binary and prefix versions" */
+
+#define ERR_NO_BINARY			1203
+/* "optable:  Binary version of %s can't coexist with both unary versions" */
+
+#define	ERR_NO_POSTFIX_WITH_BINARY	1204
+/* "optable:  Postfix version of %s can't coexist with binary version" */
+
+#define	ERR_NO_BINARY_WITH_POSTFIX	1205
+/* "optable:  Binary version of %s can't coexist with postfix version" */
+
+#define ERR_NO_OPTABLE			1206
+/* "optable:  Operator table has not been created" */
+
+#define ERR_PRIORITY_RANGE		1207
+/* "optable:  Priority (%d) out of range" */
+
+#define ERR_UNEXPECTED_OPERATOR		1300
+/* "parser:  (%d) Unexpected operator (%s)" */
+
+#define ERR_UNEXPECTED_IDENTIFIER       1301
+/* "parser:  (%d) Unexpected identifier (%s)" */
+
+#define ERR_UNEXPECTED_LITERAL          1302
+/* "parser:  (%d) Unexpected literal constant (%s)" */
+
+#define ERR_UNEXPECTED_KEYWORD		1303
+/* "parser:  (%d) Unexpected keyword (%s)" */
+
+#define ERR_UNEXPECTED_EOF    		1304
+/* "parser:  (%d) Unexpected end-of-file" */
+
+#define ERR_UNEXPECTED_RPAREN		1305
+/* "parser:  (%d) Unexpected right parenthesis" */
+
+#define ERR_UNEXPECTED_RBRACKET		1306
+/* "parser:  (%d) Unexpected right bracket" */
+
+#define ERR_UNEXPECTED_RBRACE		1307
+/* "parser:  (%d) Unexpected right brace" */
+
+#define ERR_AMBIGUOUS_OPERATOR          1308
+/* "parser:  (%d) Ambiguous operator (%s)" */
+
+#define ERR_UNEXPECTED_LPAREN		1309
+/* "parser:  (%d) Unexpected left parenthesis" */
+
+#define ERR_UNEXPECTED_LBRACKET		1310
+/* "parser:  (%d) Unexpected left bracket" */
+
+#define ERR_UNEXPECTED_LBRACE		1311
+/* "parser:  (%d) Unexpected left brace" */
+
+#define ERR_TYPE_BADPARAMS		5201
+/* "types:  Bad parameters in function call" */
+
+#define ERR_TYPE_SYMIDBAD		5202
+/* "types:  Illegal symbol identifier in type list" */
+
+#define ERR_TYPE_BADSIMPLE		5203
+/* "types:  Illegal simple type in type identifier list" */
+
+#define ERR_TYPE_BADAGGREGATE		5204
+/* "types:  Illegal aggregate type; must be ARRAY or STREAM only" */
+
+#define ERR_TYPE_TYPEIDBAD		5205
+/* "types:  Type identifier is outside table limits" */
+
+#define ERR_TYPE_TYPEIDEMPTY		5206
+/* "types:  Type identifier is for an empty table entry" */
+
+#define ERR_TXTUT_FNOTOPEN		 6000
+/* "txtread/txtstore: Attempted read/write before file open\n" */
+
+#define ERR_TXTUT_DELIM			 6001
+/* "txtstore: Input string begins with internal delimeter: .!#ID#\n" */
+
+#define ERR_TXTUT_FOPEN			 6002
+/* "txtopenclose: Error during file open\n" */
+
+#define ERR_UNKNOWN_COMMAND     3000
+/* "Unknown command supplied to interpreter: %s" */
+
+#define ERR_DIV_BY_ZERO     3001
+/* "Divide by zero" */
+
+#define ERR_INCOMPLETE_EXPRESSION     3002
+/* "Incomplete expression" */
+
+#define ERR_MOD_BY_ZERO     3003
+/* "Mod by zero" */
+
+

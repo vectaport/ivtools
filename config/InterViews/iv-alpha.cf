@@ -1,0 +1,39 @@
+#include <osf1.cf>
+
+/*
+ * My osf1.cf (Major = 1, Minor = 0) defines DependCmd to be
+ * $(DEPENDSRC)/makedepend.
+ * We suppose makdepend is installed when building InterViews.
+ */
+#undef DependCmd
+#define DependCmd makedepend
+
+#undef ExtraCCDefines
+#define ExtraCCDefines -D__STDC__ -Ualpha
+#undef ExtraCCLdFlags
+#define ExtraCCLdLibs -ldnet_stub
+
+/*
+ * osf1.cf defines #define StandardIncludes -I$(CROSSBASE)/usr/include
+ * which expands here to -I/usr/include. Therefore, /usr/include is loaded
+ * prior to other defines.
+ * Remove it.
+ */
+#undef StandardIncludes
+
+/*
+ * ImakeCmd is supposed defined too. osf1.cf defines it as
+ * $(IMAKESRC)/imake.local
+ */
+#undef ImakeCmd
+#define ImakeCmd imake
+
+/*
+ * Same for the InstallCmd
+ */
+#undef InstallCmd
+#define InstallCmd /usr/bin/X11/install.sh
+
+#undef DefaultCCOptions
+
+#include <InterViews/xparams.cf>

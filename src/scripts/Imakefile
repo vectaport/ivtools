@@ -1,0 +1,19 @@
+XCOMM
+XCOMM scripts - miscellaneous shell scripts
+XCOMM
+
+PACKAGE = scripts_ivtools
+
+CmscriptsTargets($(PACKAGE))
+
+PROGRAMS = ivmkmf
+CONFIGDIRSPEC = -T IMAKE_TEMPLATE -I$(CONFIGDIR) -I$(XCONFIGDIR)
+
+AllTarget($(PROGRAMS))
+
+CppScriptTarget(ivmkmf,ivmkmf.cpp,-DCONFIGDIRSPEC='$(CONFIGDIRSPEC)',)
+
+InstallMultipleFlags($(PROGRAMS),$(BINDIR),$(INSTBINFLAGS))
+
+clean::
+	$(RM) $(PROGRAMS)
