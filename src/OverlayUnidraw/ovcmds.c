@@ -85,6 +85,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fstream.h>
+#include <iostream.h>
 
 /*****************************************************************************/
 
@@ -399,6 +400,7 @@ OvSaveCompCmd::~OvSaveCompCmd() {
 }
 
 void OvSaveCompCmd::Init (OpenFileChooser* f) {
+    comp_ = nil;
     chooser_ = f;
     Resource::ref(chooser_);
 }
@@ -415,23 +417,24 @@ void OvSaveCompCmd::Execute () {
     CompNameVar* compNameVar = (CompNameVar*) ed->GetState("CompNameVar");
     const char* name = (compNameVar == nil) ? nil : compNameVar->GetName();
 
+    comp_ = ed->GetComponent();
     if (name == nil) {
         OvSaveCompAsCmd saveCompAs(ed, chooser_);
         saveCompAs.Execute();
-
     } else if (modifVar == nil || modifVar->GetModifStatus()) {
         Catalog* catalog = unidraw->GetCatalog();
-        Component* comp;
 
-        if (catalog->Retrieve(name, comp) && catalog->Save(comp, name)) {
+        if (catalog->Retrieve(name, comp_) && catalog->Save(comp_, name)) {
             if (modifVar != nil) modifVar->SetModifStatus(false);
-            unidraw->ClearHistory(comp);
-
+            unidraw->ClearHistory(comp_);
         } else {
             OvSaveCompAsCmd saveCompAs(ed, chooser_);
             saveCompAs.Execute();
+	    comp_ = saveCompAs.component();
         }
-    }
+    } else
+      comp_ = nil;
+	
 }
 
 /*****************************************************************************/
@@ -455,6 +458,8 @@ OvSaveCompAsCmd::~OvSaveCompAsCmd() {
 }
 
 void OvSaveCompAsCmd::Init (OpenFileChooser* f) {
+    comp_ = nil;
+    path_ = nil;
     chooser_ = f;
     Resource::ref(chooser_);
 }
@@ -467,6 +472,7 @@ Command* OvSaveCompAsCmd::Copy () {
 
 void OvSaveCompAsCmd::Execute () {
     Editor* ed = GetEditor();
+    comp_ = nil;
 
     char buf[CHARBUFSIZE];
     const char* domain = unidraw->GetCatalog()->GetAttribute("domain");
@@ -477,7 +483,7 @@ void OvSaveCompAsCmd::Execute () {
     Style* style = new Style(Session::instance()->style());
     style->attribute("subcaption", buf);
     style->attribute("open", "Save");
-    if (chooser_ == nil) {
+    if (!path_ && chooser_ == nil) {
 	style = new Style(Session::instance()->style());
 	style->attribute("subcaption", "Save to file:");
 	style->attribute("open", "Save");
@@ -485,15 +491,22 @@ void OvSaveCompAsCmd::Execute () {
 	Resource::ref(chooser_);
     }
     boolean again;
-    while (again = chooser_->post_for(ed->GetWindow())) {
-	const String* str = chooser_->selected();
-	NullTerminatedString ns(*str);
-        const char* name = ns.string();
+    while (path_ || (again = chooser_->post_for(ed->GetWindow()))) {
+        const char* name;
+        if (path_) {
+          name = path_;
+        } else {       
+	  const String* str = chooser_->selected();
+	  NullTerminatedString ns(*str);
+	  name = ns.string();
+	}
         OverlayCatalog* catalog = (OverlayCatalog*)unidraw->GetCatalog();
         boolean ok = true;
-        style->attribute("caption", "                     " );
-	chooser_->twindow()->repair();
-	chooser_->twindow()->display()->sync();
+	if (!path_) {
+	  style->attribute("caption", "                     " );
+	  chooser_->twindow()->repair();
+	  chooser_->twindow()->display()->sync();
+	}
 
         if (catalog->Exists(name) && catalog->Writable(name)) {
             char buf[CHARBUFSIZE];
@@ -507,53 +520,63 @@ void OvSaveCompAsCmd::Execute () {
         if (ok) {
             CompNameVar* cnv = (CompNameVar*) ed->GetState("CompNameVar");
             const char* oldname = (cnv == nil) ? nil : cnv->GetName();
-            Component* comp = ed->GetComponent();
+            comp_ = ed->GetComponent();
 
             if (catalog->Exists(name) && !catalog->Writable(name)) {
 		style->attribute("caption", "Couldn't save to file!" );
             } else {
                 if (oldname == nil) {
-                    comp = comp->GetRoot();
+                    comp_ = comp_->GetRoot();
                 } else {
-                    catalog->Retrieve(oldname, comp);
-                    catalog->Forget(comp);
+                    catalog->Retrieve(oldname, comp_);
+                    catalog->Forget(comp_);
                 }
 
                 StateVar* sv = ed->GetState("ModifStatusVar");
                 ModifStatusVar* mv = (ModifStatusVar*) sv;
 
-		if (chooser_->saveas_chooser()) {
+		if (!path_ && chooser_->saveas_chooser()) {
 		    SaveAsChooser* sac = (SaveAsChooser*)chooser_;
 		    catalog->SetCompactions(sac->gs_compacted(), 
 					     sac->pts_compacted(),
 					     sac->pic_compacted());
 		}
 
-		ed->GetWindow()->cursor(hourglass);
-		chooser_->twindow()->cursor(hourglass);
-                if (catalog->Save(comp, name)) {
+		if (!path_) {
+		  ed->GetWindow()->cursor(hourglass);
+		  chooser_->twindow()->cursor(hourglass);
+		}
+                if (catalog->Save(comp_, name)) {
                     if (mv != nil) mv->SetModifStatus(false);
-                    unidraw->ClearHistory(comp);
+                    unidraw->ClearHistory(comp_);
                     UpdateCompNameVars();
 		    ed->GetWindow()->cursor(arrow);
 		    break;
                 } else {
                     if (mv != nil) mv->Notify();
                     UpdateCompNameVars();
-		    style->attribute("caption", "Couldn't save to file" );
-		    reset_caption = true;
-		    ed->GetWindow()->cursor(arrow);
-		    chooser_->twindow()->cursor(arrow);
+		    comp_ = nil;
+		    if (!path_) {
+		      style->attribute("caption", "Couldn't save to file" );
+		      reset_caption = true;
+		      ed->GetWindow()->cursor(arrow);
+		      chooser_->twindow()->cursor(arrow);
+		    }
                 }
             } 
         }
+	if (path_) break;
     }
-    chooser_->unmap();
+    if (!path_) chooser_->unmap();
     if (reset_caption) {
         style->attribute("caption", "                     " );
     }
     if (!again)
 	ed->GetWindow()->cursor(arrow);
+}
+
+void OvSaveCompAsCmd::pathname(const char* path) {
+  path_ = path ? strdup(path) : nil; 
 }
 
 /*****************************************************************************/

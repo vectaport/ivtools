@@ -181,7 +181,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     if (OverlayKit::bincheck("plotmtv"))
       comterp->add_command("barplot", new BarPlotFunc(comterp, this));
 
+    comterp->add_command("save", new SaveFileFunc(comterp, this));
     comterp->add_command("import", new ImportFunc(comterp, this));
+    comterp->add_command("export", new ExportFunc(comterp, this));
 
     comterp->add_command("dot", new GrDotFunc(comterp));
     comterp->add_command("attrlist", new GrAttrListFunc(comterp));
@@ -202,6 +204,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("paste", new PasteFunc(comterp, this));
     comterp->add_command("pastemode", new PasteModeFunc(comterp, this));
     comterp->add_command("addtool", new AddToolButtonFunc(comterp, this));
+
+    comterp->add_command("dtos", new DrawingToScreenFunc(comterp, this));
+    comterp->add_command("stod", new ScreenToDrawingFunc(comterp, this));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {

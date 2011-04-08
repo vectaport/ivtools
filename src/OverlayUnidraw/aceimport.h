@@ -27,8 +27,10 @@
 #define _unidraw_import_handler_
 
 #include <stdio.h>
+#if 0 /* does not work for ACE5.1 */
 #define __USE_GNU
 #include <sys/msg.h>
+#endif
 #include <signal.h>
 #include <ace/Acceptor.h>
 #include <ace/Reactor.h>

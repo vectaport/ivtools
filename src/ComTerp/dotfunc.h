@@ -37,7 +37,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return ". makes compound variables"; }
+      return "%s (.) makes compound variables"; }
 
     CLASS_SYMID("DotFunc");
 };

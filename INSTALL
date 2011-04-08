@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-0.9
 
-Instructions for building ivtools-0.9.2 from source:
+Instructions for building ivtools-0.9.3 from source:
 
 0. Compilation Environment
 
@@ -58,8 +58,12 @@ available from:
 
 http://www.cs.wustl.edu/%7Eschmidt/ACE.html
 
-We currently use ACE-5.1.  If you have problems with the ./configure
-script, consider using the latest beta version of ACE instead.
+We are currently using ACE-5.1 on Debian 2.4 (sid -- libace5.1-dev).
+With g++ in considerable flux it is currently problematic to build ACE
+from source yourself (so that it works with ivtools), so you might
+want to consider skipping this library if you are not using Debian.
+Hopefully these problems will go away once the migration to gcc-3.0 is
+done.
 
 0.f if you want to build the ivxt example program, which demonstrates
 the embedding of a ivtools drawing editor inside Motif widgets, you'll

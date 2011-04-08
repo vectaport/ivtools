@@ -90,12 +90,17 @@ graphical object assigned to an interpreter variable.
 
  update() -- update viewer
 
+ error=save([pathstr]) -- command to save document (to pathname)	
  compview=import(pathstr :popen) -- import graphic file from pathname or URL, or from a command if :popen
+ export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str) -- remote in drawtool (or other) format
  compview=paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer
  val=pastemode([val] :get) -- toggle or set paste mode, default is 0, always paste new graphics
 
  ncols() -- onscreen horizontal extent in pixels
  nrows() -- onscreen vertical extent in pixels
+
+ dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
+ sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
 
  handles(flag) --     
     enable/disable current selection tic marks 

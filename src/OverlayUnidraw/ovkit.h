@@ -141,6 +141,13 @@ public:
     static boolean bincheck(const char* name);
     // static method for testing for URL prefix on pathname.  Returns true if found.
 
+    virtual Glyph* appicon();
+    // glyph to use for application icon.
+    virtual const char* appname() { return _appname; }
+    // get name of application.
+    virtual void appname(const char* name) { _appname=name; }
+    // set name of application.
+
     void MouseDoc(const char*);
     // set current mouse documentation string on the editor.
 
@@ -229,6 +236,7 @@ protected:
     char* _otherdisplay;
     boolean _set_button_flag;
     boolean _clr_button_flag;
+    const char* _appname;
 
 protected:
     static OverlayKit* _overlaykit;

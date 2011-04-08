@@ -68,7 +68,7 @@ implementActionCallback(FrameEditor)
 FrameEditor::FrameEditor(OverlayComp* gc, OverlayKit* ok)
 : ComEditor(false, ok)
 {
-    Init(gc);
+    Init(gc, ok->appname());
 }
 
 FrameEditor::FrameEditor(const char* file, OverlayKit* ok)

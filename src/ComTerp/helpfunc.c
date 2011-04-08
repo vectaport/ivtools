@@ -30,6 +30,7 @@
 #include <Attribute/attrvalue.h>
 
 #include <iostream.h>
+#include <strstream.h>
 
 #define TITLE "HelpFunc"
 
@@ -115,12 +116,16 @@ void HelpFunc::execute() {
   reset_stack();
 
   filebuf fbuf;
+  strstreambuf sbuf;
   if (comterp()->handler()) {
     int fd = max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
-  } else
+  } 
+#if 0
+  else
     fbuf.attach(fileno(stdout));
-  ostream out(&fbuf);
+#endif
+  ostream out(comterp()->handler() ? &fbuf : &sbuf);
 
   if (noargs) {
 
@@ -179,6 +184,14 @@ void HelpFunc::execute() {
 	}
       }
     }
+  }
+
+
+  if (!comterp()->handler()) {
+    out << '\0';
+    int help_str_symid = symbol_add(sbuf.str());
+    ComValue retval(sbuf.str()); 
+    push_stack(retval);
   }
 
   delete command_ids;

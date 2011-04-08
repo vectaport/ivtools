@@ -8,8 +8,6 @@ PACKAGE = TopoFace
 
 LIB = TopoFace
 
-Use_libUnidraw()
-Use_2_6()
 
 MakeLibrary($(LIB),$(VERSION))
 

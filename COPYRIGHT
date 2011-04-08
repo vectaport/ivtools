@@ -3,7 +3,15 @@ Inc. holds the copyright is made available under the GPL as
 well as the following license.  See the file COPYING for details on
 the GPL.
 
+As of May 18th 2001 I realize that this approach to dual-licensing
+does not completely conform to a recently revised FSF description of
+how to dual-license with GPL.  So instead the above paragraph can be
+taken as a statement of the author's interest in collaborating with
+programmers who prefer GPL for their work, as well as a willingness to
+facilitate dual distributions.
+
 /*
+ * Copyright (c) 2001 Scott Johnston
  * Copyright (c) 2000  Vectaport Inc., IET Inc
  * Copyright (c) 1999  Vectaport Inc., IET Inc, R.B. Kissh and Associates
  * Copyright (c) 1998  Vectaport Inc., R.B. Kissh and Associates, Eric F. Kahler

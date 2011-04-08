@@ -26,6 +26,7 @@
 
 #ifdef HAVE_ACE
 
+#include <stdio.h>
 #include <signal.h> 
 #include <Dispatch/dispatcher.h>
 #include <Dispatch/iohandler.h>

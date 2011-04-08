@@ -37,7 +37,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(. makes compound variables, and gives access to ComponentView AttributeList's."; }
+      return "%s(.) makes compound variables, and gives access to ComponentView AttributeList's."; }
 
     CLASS_SYMID("GrDotFunc");
 };

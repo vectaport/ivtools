@@ -1,3 +1,58 @@
+May 18th 2001 ivtools-0.9.3
+
+Keyboard Commands:
+
+- add save func to comdraw:
+
+	error=save([path]) -- save editor document (to pathname) 
+
+With no argument it saves using the current document name.  If none is
+current the SaveAs dialog box pops up.  If the file already exists a
+warning dialog box pops up.  If the current document is unmodified the
+func returns zero without doing anything.
+
+With a pathname argument it always tries to save to the document to
+that file, returning zero if the save doesn't work (at least it will
+after a bug is fixed).  If the file already exists a warning dialog
+box pops up.
+
+- add export func to comdraw:
+
+with ACE:
+   export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str) -- export in drawtool format
+
+without ACE:
+   export(compview[,compview[,...compview]] [path] :string|:str) -- export in drawtool format ";
+
+- add comdraw funcs to convert between drawing and screen coordinates:
+
+	dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
+	sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
+
+- convert output of help func to a string, so it can be displayed in
+the keyboard command window on comdraw/graphdraw/flipbook/drawserv.
+
+Miscellaneous:
+
+- applied diffs by Guenter Geiger to generate ivtools-0.9.2-1 for
+latest Debian (sid).
+
+- attempt to upgrade to ACE 5.1
+
+- put an arbitrary glyph in the lower left of each drawing editor with
+a keyboard command window. Defaults to text describing the editor and
+how to get help on keyboard commands.
+
+- check that an AttributeValue is_object() or is_command() before
+returning the void* pointer associated with some C++ object.
+
+- change for building on Solaris 2.6.
+
+- bug fix in growgroup comdraw func.
+
+
+
+
 Apr 5th 2001 ivtools-0.9.2
 
 - set of changes to allow save/restore of graphics files internal to a

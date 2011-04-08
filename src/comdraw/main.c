@@ -223,7 +223,7 @@ static OptionDesc options[] = {
 static char* usage =
 "Usage: comdraw [any idraw parameter] [-comdraw port] [-color5] \n\
 [-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
 [-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stripped]\n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
@@ -232,7 +232,7 @@ static char* usage =
 static char* usage =
 "Usage: comdraw [any idraw parameter] [-color5] \n\
 [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
 [-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stripped]\n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\

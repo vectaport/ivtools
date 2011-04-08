@@ -126,7 +126,7 @@ libvar(LIBOVERLAYUNIDRAW,IVTOOLSSRC,OverlayUnidraw,libOverlayUnidraw,-lOverlayUn
 #ifdef IueDir
 libvar(LIBIUESERV,IVTOOLSSRC,IueServ,libIueServ,-lIueServ)
 #endif
-#ifdef AceDir
+#ifdef AceLibDir
 libvar(LIBACEDISPATCH,IVTOOLSSRC,AceDispatch,libAceDispatch,-lAceDispatch)
 #else
   LIBACEDISPATCH =
@@ -155,7 +155,7 @@ depvar(DEPOVERLAYUNIDRAW,IVTOOLSSRC,OverlayUnidraw,libOverlayUnidraw,$(VERSION))
 #ifdef IueDir
 depvar(DEPIUESERV,IVTOOLSSRC,IueServ,libIueServ,$(VERSION))
 #endif
-#ifdef AceDir
+#ifdef AceLibDir
 depvar(DEPACEDISPATCH,IVTOOLSSRC,AceDispatch,libAceDispatch,$(VERSION))
 #else
     DEPACEDISPATCH =

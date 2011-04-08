@@ -565,7 +565,7 @@ unsigned int AttributeValue::symbol_val() {
 }
 
 void* AttributeValue::obj_val() { 
-	return obj_ref();
+	return is_object()||is_command() ? obj_ref() : nil;
 }
 
 unsigned int AttributeValue::obj_type_val() { 

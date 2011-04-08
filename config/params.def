@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-0.9.2
+#define	Release ivtools-0.9.3
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 0.9.2
+#define	Version 0.9.3
 #endif
 
    VERSION = Version
@@ -561,6 +561,9 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
 #ifdef AceDir
              ACEDIR = AceDir
 #endif
+#ifdef AceLibDir
+          ACELIBDIR = AceLibDir
+#endif
 #ifdef IueDir
              IUEDIR = IueDir
 #endif
@@ -783,8 +786,8 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #endif
 
 #ifndef AceCCLdLibs
-#ifdef AceDir
-#define AceCCLdLibs -L$(ACEDIR)/ace -lACE
+#ifdef AceLibDir
+#define AceCCLdLibs -L$(ACELIBDIR) -lACE
 #else
 #define AceCCLdLibs /**/
 #endif

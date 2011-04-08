@@ -30,7 +30,9 @@
 
 class Command;
 class ComTerp;
+class OverlayComp;
 class OvImportCmd;
+class OvSaveCompCmd;
 class OverlayCatalog;
 
 //: base class for interpreter commands in comdraw.
@@ -107,6 +109,19 @@ public:
 
 };
 
+//: command to save document (to pathname)
+//error=save([path]) -- save editor document (to pathname). 
+class SaveFileFunc : public UnidrawFunc {
+public:
+    SaveFileFunc(ComTerp*,Editor*);
+    Command* save(const char* path);
+    // helper method to import from path
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "error=%s([path]) -- save editor document (to pathname)"; }
+
+};
+
 //: command to import a graphic file
 // compview=import(pathname :popen) -- import graphic file from pathname or URL, or from a command if :popen.
 class ImportFunc : public UnidrawFunc {
@@ -118,6 +133,25 @@ public:
     virtual const char* docstring() { 
 	return "compview=%s(pathname :popen) -- import graphic file from pathname or URL, or from a command if :popen"; }
 
+};
+
+//: command to export a graphic file
+// export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str) -- remote in drawtool (or other) format "; 
+class ExportFunc : public UnidrawFunc {
+public:
+  ExportFunc(ComTerp* c, Editor* e, const char* appname=nil);
+  virtual ~ExportFunc() { delete _docstring; }
+  virtual void execute();
+  virtual const char* docstring();
+  const char* appname() { return _appname ? _appname : "drawtool"; }
+  void appname(const char* name) 
+    { _appname = name; delete _docstring; _docstring=nil;}
+
+ protected:
+  void compout(OverlayComp*, ostream*);
+
+  const char* _appname;
+  char* _docstring;
 };
 
 //: command to set attributes on a graphic
@@ -161,6 +195,28 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "compview=%s(pathname) -- add button to toolbar based on zero-centered idraw drawing."; }
+
+};
+
+//: command to convert from screen to drawing coordinates
+// dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
+class ScreenToDrawingFunc : public UnidrawFunc {
+public:
+    ScreenToDrawingFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "dx,dy=%s(sx,sy) -- convert from screen to drawing coordinates."; }
+
+};
+
+//: command to convert from drawing to screen coordinates
+// sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
+class DrawingToScreenFunc : public UnidrawFunc {
+public:
+    DrawingToScreenFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "sx,sy=%s(dx,dy) -- convert from drawing to screen coordinates."; }
 
 };
 

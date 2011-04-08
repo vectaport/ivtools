@@ -210,7 +210,7 @@ static OptionDesc options[] = {
 static char* usage =
 "Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] \n\
 [-color5] [-color6] [-import port] [-gray5] [-gray6] [-gray7] \n\
-[-opaque_off|-opoff] [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-opaque_off|-opoff] [-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
 [-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
 [-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
@@ -219,7 +219,7 @@ static char* usage =
 static char* usage =
 "Usage: flipbook [any idraw parameter] [-bookgeom] \n\
 [-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
 [-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\

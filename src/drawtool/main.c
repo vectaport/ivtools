@@ -202,7 +202,7 @@ static OptionDesc options[] = {
 
 static char* usage =
 "Usage: drawtool [any idraw parameter] [-color5] [-gray5] [-gray6] [-gray7] \n\
-[-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols] [-pagerows|-nrows] \n\
+[-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] [-pagerows|-nrows n] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
 [-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] \n\
 [-slider_off|-soff] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";

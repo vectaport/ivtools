@@ -26,6 +26,7 @@
 #ifndef _unidraw_comterp_handler_
 #define _unidraw_comterp_handler_
 
+#include <stdio.h>
 #include <signal.h>
 #include <ComTerp/comhandler.h>
 

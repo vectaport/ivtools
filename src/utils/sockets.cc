@@ -98,7 +98,7 @@ int CSocket::Listen(){
   int data_fd;
   if ((data_fd = accept(Psocket_fd,
 			(struct sockaddr *)&Pclient_addr, 
-			(unsigned int *)&Palen)) < 0) {
+			(socklen_t *)&Palen)) < 0) {
     // we can break out of accept if the system call was interrupted
 #ifndef ERESTART	/* ERESTART not defined on some systems */
     if (errno != EINTR) {

@@ -55,13 +55,15 @@ void GrowGroupFunc::execute() {
 
     if (groupcomp && grcomp) {
 
-      /* first determine if group has non-zero members */
       Iterator i;
+#if 0
+      /* first determine if group has non-zero members */
       groupcomp->First(i);
       if (groupcomp->Done(i)) {
 	push_stack(ComValue::nullval());
 	return;
       }
+#endif
 
       MacroCmd* mcmd = new MacroCmd(GetEditor());
 
@@ -74,7 +76,7 @@ void GrowGroupFunc::execute() {
 
       /* regroup */
       Clipboard* gcb = new Clipboard();
-      for(; !groupcomp->Done(i); groupcomp->Next(i))
+      for(groupcomp->First(i); !groupcomp->Done(i); groupcomp->Next(i))
 	gcb->Append(groupcomp->GetComp(i));
       gcb->Append(grcomp);
       OvGroupCmd* gcmd = new OvGroupCmd(GetEditor());

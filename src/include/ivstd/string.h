@@ -3,7 +3,7 @@
 
 #if defined(__cplusplus)
 
-#if defined(sun) && !defined(solaris)
+#if defined(sun) && !defined(__svr4__)
 extern "C" {
 int strcasecmp(const char*, const char*);
 int strncasecmp(const char*, const char*,int);

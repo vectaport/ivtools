@@ -43,6 +43,7 @@
 class OpenFileChooser;
 class OverlayViewer;
 class PageDialog;
+class istream;
 class ostream;
 
 //: derived new command.
@@ -120,10 +121,15 @@ public:
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
+    Component* component() { return comp_; }
+    // return pointer to saved component.   
+
 protected:
     OpenFileChooser* chooser_;
 
     void Init(OpenFileChooser*);
+
+    Component* comp_;
 };
 
 //: derived save-as command.
@@ -140,11 +146,20 @@ public:
     virtual Command* Copy();
     virtual ClassId GetClassId();
 
-protected:
+    Component* component() { return comp_; }
+    // return pointer to saved component.   
+
+    void pathname(const char*);
+    // set pathname to save file to.
+
+ protected:
     OpenFileChooser* chooser_;
 
     void Init(OpenFileChooser*);
     virtual boolean IsA(ClassId);
+
+    char* path_;
+    Component* comp_;
 };
 
 //: derived quit command.

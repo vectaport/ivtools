@@ -201,6 +201,7 @@ OverlayKit::OverlayKit () {
     _clr_button_flag = false;
     _tg = nil;
     _toolbar_vbox = nil;
+    _appname = nil;
 }
 
 OverlayKit::~OverlayKit() {
@@ -279,6 +280,7 @@ void OverlayKit::InitLayout(const char* name) {
 }
 
 void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
+    kit->_appname = name; 
     OverlayEditor* ed = kit->GetEditor();
     Catalog* catalog = unidraw->GetCatalog();
     const char* stripped_string = catalog->GetAttribute("stripped");
@@ -347,6 +349,7 @@ void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
 		(OverlayEditor*)ed, &OverlayEditor::ClearText
 	    )) : nil;
 	    Glyph* buttonbox = nil;
+
 	    if (set && !clear) {
 	      buttonbox = 
 		lk.vbox(
@@ -384,11 +387,15 @@ void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
 			  lk.vcenter(
 			      lk.margin(
 				  lk.vbox(
+#if 0
  			              wk.label("type help"),
 			              lk.vspace(10),
 			              wk.label("to print"),
 			              lk.vspace(10),
 			              wk.label("info to stdout")
+#else
+				      kit->appicon()
+#endif
 			              ),
 				  10
 			      )
@@ -407,6 +414,18 @@ void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
       w->style(s);
 
     }
+ }
+
+
+Glyph* OverlayKit::appicon() {
+  const LayoutKit& lk = *LayoutKit::instance();
+  WidgetKit& wk = *WidgetKit::instance();
+  return lk.vbox(lk.hcenter(wk.label("ivtools")), 
+		 lk.hcenter(wk.label(this->appname())),
+		 lk.vspace(20),
+		 lk.hcenter(wk.label("type help for list of")),
+		 lk.hcenter(wk.label("keyboard commands"))
+		 );
 }
 
 Glyph* OverlayKit::MakeStates() {

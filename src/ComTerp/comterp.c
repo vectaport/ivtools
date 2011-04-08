@@ -1076,7 +1076,11 @@ void ComTerp::list_commands(ostream& out, boolean sorted) {
 	rowcnt = 0;
 	out << "\n";
       } else
+#if 0   
 	out << "\t";
+#else
+      for(int t=0; t<=tlen; t++) out << ' ';
+#endif
     }
     delete funcids;
   }
