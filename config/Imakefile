@@ -12,7 +12,7 @@ MakeInSubdirs($(SUBDIRS))
 #if !InstallRelative
 install::
 	MakeDir($(CONFIGDIR))
-	$(INSTALL) $(INSTINCFLAGS) *.def* template *.mk $(CONFIGDIR)
+	$(INSTALL) -c $(INSTINCFLAGS) *.def* template *.mk $(CONFIGDIR)
 
 uninstall::
 	(cd $(CONFIGDIR);$(RM) *.def* template *.mk)

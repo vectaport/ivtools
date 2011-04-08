@@ -53,6 +53,10 @@ PointObj ip(0,0);
 FPointObj fp(0.,0.);
 #endif
 
+#if __GNUG__>=3
+static char newline;
+#endif
+
 int main(int argc, char *argv[]) {
 
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;
@@ -122,12 +126,23 @@ int main(int argc, char *argv[]) {
 
     if (!telcat_flag) {
       
+#if __GNUG__<3
       filebuf obuf;
       obuf.attach(server.get_handle());
+#else
+      FILE* ofptr = nil;
+      filebuf obuf(ofptr = fdopen(server.get_handle(), "w"), ios_base::out);
+#endif
       ostream out(&obuf);
       
+#if __GNUG__<3
       filebuf ibuf;
       ibuf.attach(server.get_handle());
+#else
+      FILE* ifptr = nil;
+      filebuf ibuf(ifptr = fdopen(server.get_handle(), "r"), ios_base::in);
+#endif
+      
       istream in(&ibuf);
       
       for (;;) {
@@ -135,6 +150,7 @@ int main(int argc, char *argv[]) {
 	if (feof(inptr)) break;
 	out << buffer;
 	out.flush();
+#if __GNUG__<3
 	char* inbuf;
 	char ch;
 	ch = in.get();
@@ -146,16 +162,46 @@ int main(int argc, char *argv[]) {
 	  if (client_flag) 
 	    cout << inbuf << "\n";
 	}
+#else
+	char inbuf[BUFSIZ];
+	char ch;
+	ch = in.get();
+	if (ch == '>')
+	  ch = in.get(); // ' '
+	else {
+	  in.unget();
+	  in.get(inbuf, BUFSIZ);
+	  in.get(newline);
+	  if (client_flag) 
+	    cout << inbuf << "\n";
+	}
+#endif
       }
+
+#if __GNUG__>=3
+      if (ofptr) fclose(ofptr);
+      if (ifptr) fclose(ifptr);
+#endif
       
     } else if (inptr) {
 
+
+#if __GNUG__<3
       filebuf inbuf;
       inbuf.attach(fileno(inptr));
+#else
+      filebuf inbuf(inptr, ios_base::in);
+#endif
       istream in(&inbuf);
       
+
+#if __GNUG__<3
       filebuf obuf;
       obuf.attach(server.get_handle());
+#else
+      FILE* ofptr = nil;
+      filebuf obuf(fdopen(server.get_handle(), "w"), ios_base::out);
+#endif
       ostream out(&obuf);
 
       char buffer[BUFSIZ*BUFSIZ];
@@ -165,6 +211,9 @@ int main(int argc, char *argv[]) {
 	  out.write(buffer, in.gcount());
       }
       out.flush();
+#if __GNUG__>=3
+      if (ofptr) fclose(ofptr);
+#endif
     } else 
       cerr << "comterp: unable to open file:  " << argv[4] << "\n";
 

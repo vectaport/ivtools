@@ -12,7 +12,7 @@
 # -------------------------------------------------------------------------
 # from <local.def>:
 
-     GPLUSPLUS_INCLUDE_DIR = /usr/include/g++-2/
+     GPLUSPLUS_INCLUDE_DIR = /usr/local/include/g++-v3/backward/
           TOOL_INCLUDE_DIR = /usr/local/include
 
     NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../..  -I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include -I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES)
@@ -67,9 +67,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-0.9.2
+   RELEASE = ivtools-0.9.5
 
-   VERSION = 0.9.2
+   VERSION = 0.9.5
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -107,7 +107,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 	$(CCDEFINES)\
 	$(CCINCLUDES)
       DEBUG_CCFLAGS = -g
-   OPTIMIZE_CCFLAGS = -O6
+   OPTIMIZE_CCFLAGS = -O2
      SHARED_CCFLAGS =
       EXTRA_CCFLAGS =
 
@@ -118,7 +118,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
     EXTRA_CCDEFINES =
 
  CLIPPOLY_CCDEFINES =
-      ACE_CCDEFINES = -DHAVE_ACE
+      ACE_CCDEFINES = -DHAVE_ACE -DACE_MT_SAFE=0
       IUE_CCDEFINES =
 
          CCINCLUDES = $(APP_CCINCLUDES) $(OTHER_CCINCLUDES) $(EXTRA_CCINCLUDES)
@@ -133,6 +133,8 @@ CLIPPOLY_CCINCLUDES =
      IUE_CCINCLUDES =
 
              ACEDIR = /home/scott/src/ACE_wrappers
+
+          ACELIBDIR = /home/scott/src/ACE_wrappers/ace
 
              CFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 
@@ -171,7 +173,7 @@ NONSHARED_CCLDFLAGS =
   CLIPPOLY_CCLDLIBS =
      CLIPPOLYLIBDIR =
     CLIPPOLYLIBBASE = libclippoly.so
-       ACE_CCLDLIBS = -L$(ACEDIR)/ace -lACE
+       ACE_CCLDLIBS = -L$(ACELIBDIR) -lACE
           ACELIBDIR = /home/scott/src/ACE_wrappers/ace
          ACELIBBASE = libACE.so
        IUE_CCLDLIBS =
@@ -232,6 +234,8 @@ NONSHARED_CCLDFLAGS =
             XINCDIR = /usr/X11R6/include
             XLIBDIR = /usr/X11R6/lib
           PSFONTDIR = /usr/lib/ps
+
+  SOCKLEN_T_DEFINED = 1
 
 include $(RELTOP)/config/config.mk
 

@@ -57,6 +57,11 @@
 #include <fstream.h>
 #endif
 
+#ifdef HAVE_ACE
+#include <ComTerp/comhandler.h>
+#include <ace/SOCK_Connector.h>
+#endif
+
 #define TITLE "UnidrawFunc"
 
 /*****************************************************************************/
@@ -427,8 +432,8 @@ void ExportFunc::execute() {
 	ComterpHandler* handler = (ComterpHandler*)terp->handler();
 	if (handler) {
 	  ACE_SOCK_Stream peer = handler->peer();
-	  ofptr = fdopen(peer.get_handle());
-	  pfbuf = new fbuf(ofptr, output);
+	  ofptr = fdopen(peer.get_handle(), "r");
+	  pfbuf = new filebuf(ofptr, output);
 	}
 	else 
 #endif
@@ -452,7 +457,7 @@ void ExportFunc::execute() {
                 ACE_ERROR ((LM_ERROR, "%p\n", "open"));
             pfbuf = new filebuf(ofptr = fdopen(socket->get_handle(), "r"), output);
         } else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
-            pfbuf = new filebuf(ofptr = fdopen(comterp()->handler()->get_handle(), "r"), output);
+            pfbuf = new filebuf(comterp()->handler()->rdfptr(), output);
         } else
 #endif
             pfbuf = new filebuf(stdout, output);
@@ -530,7 +535,6 @@ void ExportFunc::execute() {
     delete out;
 
 #if __GNUG__>=3
-    if (ofptr) fclose(ofptr);
     delete pfbuf;
 #endif    
     

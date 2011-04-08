@@ -262,8 +262,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
       filebuf fbufout;
       fbufout.attach(handler() ? Math::max(1, handler()->get_handle()) : fileno(stdout));
 #else
-      FILE* ofptr = handler() ? fdopen(Math::max(1, handler()->get_handle()), "w") : stdout;
-      filebuf fbufout(ofptr, ios_base::out);
+      filebuf fbufout(handler() && handler()->wrfptr() 
+		      ? handler()->wrfptr() : stdout, 
+		      ios_base::out);
 #endif
       ostream out(&fbufout);
       out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
@@ -274,10 +275,6 @@ void ComTerp::eval_expr_internals(int pedepth) {
       stepfunc->execute();
       stepfunc->pop_funcstate();
       pop_stack();
-#if __GNUG__>=3
-      if (handler())
-	fclose(ofptr);
-#endif
     }
 
     func->execute();
@@ -813,10 +810,8 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   } else
     fbuf.attach(fileno(stdout));
 #else
-  FILE* ofptr = nil;
-  filebuf fbuf(handler() 
-	       ? (ofptr = fdopen(Math::max(1, handler()->get_handle()), "w"))
-	       : stdout,
+  filebuf fbuf(handler() && handler()->wrfptr() 
+	       ? handler()->wrfptr() : stdout, 
 	       ios_base::out);
 #endif
   ostream out(&fbuf);
@@ -861,9 +856,6 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   }
   if (status==1 && _pfnum==0) status=2;
   if (nested && status!=2) _stack_top--;
-#if __GNUG__>3
-  if (ofptr) fclose(ofptr);
-#endif
   return status;
 }
 

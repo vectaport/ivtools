@@ -288,7 +288,8 @@ int StencilScript::ReadStencil (istream& in, void* addr1, void* addr2, void* add
     
     else if (urlflag || 
 	     strcmp(creator, "JPEG") == 0 || 
-	     strcmp(creator, "GIF")==0) {
+	     strcmp(creator, "GIF") == 0 || 
+	     strcmp(creator, "PNG")==0) {
         OvImportCmd importcmd((Editor*)nil);
 	OverlayComp* tempcomp = (OverlayComp*)importcmd.Import(pathname);
 	if (tempcomp && tempcomp->IsA(OVSTENCIL_COMP)) {

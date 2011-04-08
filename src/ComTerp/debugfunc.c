@@ -25,7 +25,10 @@
 #include <ComTerp/debugfunc.h>
 #include <ComTerp/comterpserv.h>
 #include <strstream.h>
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+#else
 #include <vector.h>
+#endif
 #if __GNUG__>=3
 #include <fstream.h>
 #endif
@@ -91,12 +94,8 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   } else
     fbufin.attach(fileno(stdin));
 #else
-  FILE* ifptr;
-  if (comterp()->handler())
-    ifptr = fdopen(max(0, comterp()->handler()->get_handle()), "r");
-  else
-    ifptr = stdin;
-  filebuf fbufin(ifptr, ios_base::in);
+  filebuf fbufin(comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
+		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
 #endif
   istream in(&fbufin);
 #if __GNUG__<3
@@ -107,24 +106,37 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   } else
     fbufout.attach(fileno(stdout));
 #else
-  FILE* ofptr;
-  if (comterp()->handler())
-    ofptr = fdopen(max(1, comterp()->handler()->get_handle()), "w");
-  else
-    ofptr = stdout;
-  filebuf fbufout(ofptr, ios_base::out);
+  filebuf fbufout(comterp()->handler() && comterp()->handler()->wrfptr()
+		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #endif
   ostream out(&fbufout);
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+  char cvect[BUFSIZ];
+  int cvect_cnt = 0;
+#else
   vector<char> cvect;
+#endif
   ComValue retval;
   do {
     char ch;
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+    cvect[0] = '\0';
+#else
     cvect.erase(cvect.begin(), cvect.end());
+#endif
     /* need to handle embedded newlines differently */
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+    do {
+      ch = in.get();
+      cvect[cvect_cnt++] = ch;
+    } while (in.good() && ch != '\n' && cvect_cnt<BUFSIZ-1);
+    cvect[cvect_cnt]='\0';
+#else
     do {
       ch = in.get();
       cvect.push_back(ch);
     } while (in.good() && ch != '\n');
+#endif
     if (cvect[0] != '\n') {
       if (comterpserv()) {
 	retval.assignval(comterpserv()->run(&cvect[0]));
@@ -140,12 +152,6 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   sbuf_e.put('\0');
   cerr << sbuf_e.str();
   push_stack(retval);
-#if __GNUG__>=3
-  if (comterp()->handler()) {
-    fclose(ifptr);
-    fclose(ofptr);
-  }
-#endif
 }
 
 void ComterpPauseFunc::execute() {

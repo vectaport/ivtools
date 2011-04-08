@@ -50,6 +50,9 @@
 #undef LibStdCPlusPlusV3
 #define LibStdCPlusPlusV3 @LIBSTDCPLUSPLUS3@
 
+#undef Typedef_socklen_t
+#define Typedef_socklen_t @ac_cv_type_socklen_t@
+
 #undef InstallRelative
 #define InstallRelative @INSTALLRELATIVE@
 

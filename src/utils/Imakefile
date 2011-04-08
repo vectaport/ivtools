@@ -44,7 +44,7 @@ ivdl: ivdl.o downloader.o ftp.o http.o sockets.o thrower.o
 
 CCSUFFIX = cc
 
-#define Obj(file) MakeObjectFromSrcFlags(file,)
+#define Obj(file) MakeObjectFromSrcFlags(file,-DSOCKLEN_T_DEFINED=$(SOCKLEN_T_DEFINED))
 
 #if !LibStdCPlusPlusV3
 Obj(downloader)

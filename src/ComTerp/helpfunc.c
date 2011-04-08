@@ -127,18 +127,20 @@ void HelpFunc::execute() {
     int fd = Math::max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
   } 
+  ostream outs( comterp()->handler() ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
+  ostream *out = &outs;
 #else
-  FILE* ofptr;
-  ofptr = fdopen(Math::max(1, comterp()->handler() ? comterp()->handler()->get_handle() : 0), "w");
-  filebuf fbuf(ofptr, ios_base::out);
+  filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+  ostream outs(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);
+  ostream *out = &outs;
 #endif
-  ostream out(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);
 
   if (noargs) {
 
-    out << "help available on these commands:\n";
-    comterp()->list_commands(out, true);
-    out << "\n(provide any of the above, operators in quotes, as arguments to help,\ni.e. help(help) or help(\"++\"))\n";
+    *out << "help available on these commands:\n";
+    comterp()->list_commands(*out, true);
+    *out << "\n(provide any of the above, operators in quotes, as arguments to help,\ni.e. help(help) or help(\"++\"))\n";
 
   } else {
     boolean first=true;
@@ -151,15 +153,19 @@ void HelpFunc::execute() {
 	  if (first) 
 	    first = false;
 	  else
-	    out.put('\n');
+#if 0
+	    out->put('\n');
+#else
+	    *out << '\n';
+#endif
 #if __GNUG__<3
-	  out.form(comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
+	  out->form(comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
 #else
 	  {
 	    char buffer[BUFSIZ];
 	    snprintf(buffer, BUFSIZ, 
 		     comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
-	    out << buffer;
+	    *out << buffer;
 	  }
 #endif
 	  printed = true;
@@ -180,27 +186,19 @@ void HelpFunc::execute() {
 		if (first) 
 		  first = false;
 		else
-		  out.put('\n');
+		  out->put('\n');
 #if __GNUG__<3
-		out.form(comfunc->docstring(), symbol_pntr(value->command_symid()));
+		out->form(comfunc->docstring(), symbol_pntr(value->command_symid()));
 #else
 		{
 		  char buffer[BUFSIZ];
 		  snprintf(buffer, BUFSIZ, 
 			   comfunc->docstring(), symbol_pntr(value->command_symid()));
-		  out << buffer;
+		  *out << buffer;
 		}
 #endif
 	      } else 
-#if __GNUG__<3
-		out.form("unknown operator: %s\n", symbol_pntr(command_ids[i]));
-#else
-	      {
-		char buffer[BUFSIZ];
-		snprintf(buffer, BUFSIZ, "unknown operator: %s\n", symbol_pntr(command_ids[i]));
-		out << buffer;
-	      }
-#endif
+		out_form((*out), "unknown operator: %s\n", symbol_pntr(command_ids[i]));
 
 	    }
 	  }
@@ -208,11 +206,11 @@ void HelpFunc::execute() {
 	  if (first) 
 	    first = false;
 	  else
-	    out.put('\n');
-	  if (str_flags[i]) out.put('"');
-	  out << symbol_pntr(command_ids[i]);
-	  if (str_flags[i]) out.put('"');
-	  out << " unknown";
+	    out->put('\n');
+	  if (str_flags[i]) out->put('"');
+	  *out << symbol_pntr(command_ids[i]);
+	  if (str_flags[i]) out->put('"');
+	  *out << " unknown";
 	}
       }
     }
@@ -220,18 +218,16 @@ void HelpFunc::execute() {
 
 
   if (!comterp()->handler()) {
-    out << '\0';
+    *out << '\0';
     int help_str_symid = symbol_add(sbuf.str());
     ComValue retval(sbuf.str()); 
     push_stack(retval);
-  }
+  } else
+    out->flush();
 
   delete command_ids;
   delete comfuncs;
   delete str_flags;
 
-#if __GNUG__>=3
-  if (ofptr) fclose(ofptr);
-#endif
 }
 

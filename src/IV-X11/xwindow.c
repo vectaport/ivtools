@@ -2132,5 +2132,3 @@ void DisplayRep::remove(Window* w) {
 	}
     } while (!done);
 }
-
-

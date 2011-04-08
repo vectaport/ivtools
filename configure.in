@@ -292,6 +292,8 @@ AC_ARG_ENABLE(install-subdir,[ --enable-install-subdir[=ARG]	enable installation
 
 # AC_TRY_RUN(int access(); int main() { return access("/bin/bash", 1); },BIN_BASH=1,BIN_BASH=0,BIN_BASH=1)
 
+AC_TYPE_SOCKLEN_T
+
 AC_SUBST(prefix)
 #AC_SUBST(OPENGL)
 #AC_SUBST(XGL)
@@ -326,6 +328,7 @@ AC_SUBST(INSTALLRELATIVE)
 AC_SUBST(USERPATH)
 AC_SUBST(INSTALLSUBDIR)
 #AC_SUBST(BIN_BASH)
+AC_SUBST(ac_cv_type_socklen_t)
 
 #output to config-$host_fragd 
 PWD=`pwd`; export PWD

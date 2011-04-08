@@ -190,9 +190,13 @@ main()
   {
     if (sym_beg == NULL)	/* if NULL, allocate some space for symbol table */
     {
+#if !defined(DMM_OFF)
       dmm_mblock_stats(NULL,&nbytes,NULL,NULL,NULL);
       sym_alloc_num = (nbytes < LOTS_OF_MEM) ? SYM_ALLOC_NUM_LOW:
 					       SYM_ALLOC_NUM_HIGH;
+#else
+      sym_alloc_num = SYM_ALLOC_NUM_HIGH;
+#endif
       if ( dmm_calloc((void**)&sym_beg,(long) sym_alloc_num,sizeof(char)) != 0)
            goto error_return;	/* goto error return; INSUFFICIENT MEMORY */
       sym_nbytes = sym_alloc_num;

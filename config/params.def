@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-0.9.4
+#define	Release ivtools-0.9.5
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 0.9.4
+#define	Version 0.9.5
 #endif
 
    VERSION = Version
@@ -446,7 +446,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 
 #ifndef AceCCDefines
 #ifdef AceDir
-#define AceCCDefines -DHAVE_ACE
+#define AceCCDefines -DHAVE_ACE -DACE_MT_SAFE=0
 #else
 #define AceCCDefines /**/
 #endif
@@ -1277,3 +1277,8 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
             XLIBDIR = XLibDir           /* installed X libraries */
           PSFONTDIR = PSFontDir         /* installed PS font metrics (afm) */
 
+#if defined(Typedef_socklen_t)&&!Typedef_socklen_t
+  SOCKLEN_T_DEFINED = NO
+#else
+  SOCKLEN_T_DEFINED = YES
+#endif

@@ -1,3 +1,47 @@
+Jul 25th 2001 ivtools-0.9.5
+
+** Most of the outstanding problems with gcc-3.0 and libstdc++-v3 have
+** been resolved.  Only known problem is with incremental importing
+** (and display) of rasters from URL's.  This is a long-standing
+** stable feature of ivtools.  Perhaps newer versions of gcc-3.* and
+** libstdc++-v3 will fix the problem.
+
+- fixes a problem with importing files introduced when migrating away
+from the use of istream::gets (required for gcc-3.0 and libstdc++ v3).
+istream::gets would automatically skip the newline delimeter.  When
+using istream::get in libstdc++ v3 I needed to manually skip the
+newline delimeter.
+
+- globally change optimization from -O6 to -O2, which makes gcc-3.0
+compile time much more reasonable.
+
+- all the necessary changes to support ACE and gcc-3.0 at the same
+time.  The majority of the work is in deferring (or avoiding) an
+fclose on a fdopen'ed socket, by a) saving a FILE* in some class to be
+fclose'd later, or b) rewriting without iostreams.  Now there should
+no longer be any dangling FILE*'s to worry about.
+
+- adds built-in support for PNG rasters.  That means they can be
+imported and save/restored by pathname (like JPEG and GIF).  This
+requires that pngtopnm be available to be invoked by the ivtools
+drawing editors.
+
+- added test for whether socklen_t is typedef'ed to the configure
+script.  Seems older versions of FreeBSD doen't have this.
+
+- fix the test for whether the X11 Shared Memory extensions exists in
+the server, and whether it can be utilized (which requires co-resident
+client and server).
+
+- add a -c argument (copy instead of move) to every install command
+for the benefit of the BSD's.
+
+- use "r+" for fopen of files to be rewound, otherwise they never get
+rewound.  This is a recently introduced problem.  "r+" is supposed to
+mean opening for reading and writing, but it seems necessary for
+rewinding as well.
+
+
 Jun 15th 2001 ivtools-0.9.4
 
 - monstrous amount of changes required by forthcoming gcc-3.0.  The

@@ -586,7 +586,8 @@ int RasterScript::ReadRaster (istream& in, void* addr1, void* addr2, void* addr3
     } else if (!urlflag && strcmp(creator, "PPM") == 0) {
 	ovraster = OvImportCmd::PPM_Raster(pathname, delayed);
     } else if (!urlflag && 
-	       (strcmp(creator, "JPEG") == 0 || strcmp(creator, "GIF")==0)) {
+	       (strcmp(creator, "JPEG") == 0 || strcmp(creator, "GIF")==0 ||
+		strcmp(creator, "PNG")==0)) {
       OvImportCmd importcmd((Editor*)nil);
       OverlayComp* tempcomp = (OverlayComp*)importcmd.Import(pathname);
       if (tempcomp && tempcomp->IsA(OVRASTER_COMP)) {
@@ -1773,7 +1774,7 @@ void OverlayRaster::logscale
       if (byte > max) byte = max;
 #if 0
       unsigned int ival = 
-	(unsigned int)Math::Math::round(pow( mingray, ((n - byte) / float(n) ) ) * float(n));
+	(unsigned int)Math::round(pow( mingray, ((n - byte) / float(n) ) ) * float(n));
 #else
       double val = (byte-((double)min)) / nvals * (e - 1.0) + 1.0;
       unsigned int ival = (unsigned int) (log(val)*n);
@@ -1885,8 +1886,8 @@ void OverlayRaster::computeramp(
         }
     }
 
-    width = Math::Math::round(fw);
-    height = Math::Math::round(fh);
+    width = Math::round(fw);
+    height = Math::round(fh);
 }
 
 

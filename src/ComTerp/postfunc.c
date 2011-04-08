@@ -53,11 +53,8 @@ void PostFixFunc::execute() {
   } else
     fbuf.attach(fileno(stdout));
 #else
-  FILE* ofptr = nil;
-  filebuf fbuf(comterp()->handler() 
-	       ? (ofptr=fdopen(Math::max(1, comterp()->handler()->get_handle()), "w"))
-	       : stdout,
-	       ios_base::out);
+  filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #endif
   ostream out(&fbuf);
  
@@ -85,9 +82,6 @@ void PostFixFunc::execute() {
   }
   comterp()->brief(oldbrief);
   reset_stack();
-#if __GNUG__>=3
-  if (ofptr) fclose(ofptr);
-#endif
 }
 
 /*****************************************************************************/

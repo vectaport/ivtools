@@ -189,7 +189,7 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
 	    _valid = fbuf.attach(fileno(stdin)) != 0;
 	    name = nil;
 	} else {
-	    fptr = fopen(name, "r");
+	    fptr = fopen(name, "r+");
 	    fptr = OvImportCmd::CheckCompression(fptr, name, compressed);
 	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;
 	    if (compressed) {
@@ -201,7 +201,7 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
 #else
 	boolean stdin_flag = strcmp(name, "-")==0;
 	if (!stdin_flag) {
-	  fptr = fopen(name, "r");
+	  fptr = fopen(name, "r+");
 	  fptr = fptr ? OvImportCmd::CheckCompression(fptr, name, compressed) : nil;
 	  _valid = fptr != nil;
 	  if (compressed) {

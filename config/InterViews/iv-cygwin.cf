@@ -3,7 +3,11 @@
  * Set up to use gcc in local.def
  */
 
+#if LibStdCPlusPlusV3
+#define OptimizeCCFlags -O2
+#else
 #define OptimizeCCFlags -O6
+#endif
 #define TIFFOptimizeCFlags -O
 
 #include <InterViews/xparams.cf>

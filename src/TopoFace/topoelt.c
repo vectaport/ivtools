@@ -23,7 +23,9 @@
 #include <TopoFace/topoelt.h>
 
 #include <math.h>
+#ifndef MAXFLOAT
 #define MAXFLOAT HUGE_VAL
+#endif
 
 /****************************************************************************/
 

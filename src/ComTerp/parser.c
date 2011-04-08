@@ -29,6 +29,10 @@
 
 #define TITLE "Parser"
 
+#if __GNUG__>=3
+static char newline;
+#endif
+
 /*****************************************************************************/
 
 Parser::Parser() : ComTerpModule() 
@@ -136,7 +140,8 @@ char* Parser::istream_fgets(char* s, int n, void* instreamp) {
   in.gets(&instr);
 #else
   char instr[BUFSIZ];
-  in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
+  in.get(instr, BUFSIZ);  // needs to be generalized with <vector.h>
+  in.get(newline);
 #endif
   if (in.good()) {
     int i = 0;

@@ -1,15 +1,15 @@
 
 			INSTALL for ivtools-0.9
 
-Instructions for building ivtools-0.9.4 from source:
+Instructions for building ivtools-0.9.5 from source:
 
 0. Compilation Environment
 
 Things you will need (or might want) before building ivtools:
 
 0.a. a Unix machine.  We know it has been built on Linux, NetBSD,
-Solaris, Irix, Dec Alpha, HPUX, and SunOS.  Alternately it can be
-built on Windows NT with the Cygwin utilities from RedHat.  See
+FreeBSD, Solaris, Irix, Dec Alpha, HPUX, and SunOS.  Alternately it
+can be built on Windows NT with the Cygwin utilities from RedHat.  See
 README.cygwin for details.
 
 0.b. The gcc compiler.  Recently we've been building and testing with
@@ -17,14 +17,9 @@ egcs-1.0.3, gcc-2.95.*, and gcc-3.0.  gcc-2.8.1 would still work, as
 probably would gcc-2.7.2.  You will also need an equivalent copy of
 libstdc++.  The libstdc++ version numbers stay roughly in synch with
 the gcc version numbers.  If you have gcc-2.8.1 you'd want
-libstdc++-2.8.1, etc..
+libstdc++-2.8.1, etc..  libstdc++ comes bundled with gcc-3.0.
 
-Versions more recent than gcc-2.95.? are not approved by the gcc
-steering committee at this date.  But attempts have been made to get
-everything compiled with the forthcoming gcc-3.0 if you want to try it
-out.
-
-Also be aware that sometimes the include files for libstdc++ are in
+Be aware that sometimes the include files for libstdc++ are in
 /usr/local/include/g++-2, a place that cannot be auto-determined by
 the configure script.  Establishing a symbolic link to
 /usr/local/include/g++ will fix the problem.
@@ -59,17 +54,29 @@ available from:
 
 http://www.cs.wustl.edu/%7Eschmidt/ACE.html
 
-We are currently using ACE-5.1 on Debian 2.4 (sid -- libace5.1-dev).
-With g++ in considerable flux it is currently problematic to build ACE
-from source yourself (so that it works with ivtools), so you might
-want to consider skipping this library if you are not using Debian.
-Hopefully these problems will go away once the migration to gcc-3.0 is
-done.
+We are currently using ACE-5.1 (or the latest copy of ACE) built
+without threads support.  Follow these steps to build it from source,
+or use the Debian binary if you happen to be working on that platform
+(libace5.1-dev):
+
+	tar xvfz ACE-5.1.tar.gz
+	cd ACE_wrappers
+	export ACE_ROOT=`pwd`       # csh: setenv ACE_ROOT `pwd`
+	cd ace
+	cp config-linux.h config.h  # substitute appropriate OS name
+	cd ../include/makeinclude
+	cp platform_linux.GNU platform_macros.GNU  # substitute OS	
+	emacs platform_macros.GNU   # add "threads = 0" near top of file
+	cd ../../ace
+	make
+
+Then use "--with-ace=$ACE_ROOT" when running the configure script as
+described below.  
 
 0.f if you want to build the ivxt example program, which demonstrates
 the embedding of a ivtools drawing editor inside Motif widgets, you'll
 need some version of lesstif or Motif (libXm).  To enable the ivxt
-build change line 7 of src/Imakefile from "#if 0" to "#if 1".Without
+build, change line 7 of src/Imakefile from "#if 0" to "#if 1". Without
 these libraries and include files the build of ivxt will fail, which
 can be safely ignored.
 

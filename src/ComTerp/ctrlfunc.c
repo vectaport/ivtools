@@ -33,6 +33,10 @@
 
 #define TITLE "CtrlFunc"
 
+#if __GNUG__>=3
+static char newline;
+#endif
+
 /*****************************************************************************/
 
 QuitFunc::QuitFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -136,19 +140,32 @@ void RemoteFunc::execute() {
       return;
     }
 
+#if __GNUG__<3
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
+#else
+    filebuf ofbuf(comterp()->handler() && comterp()->handler()->wrfptr() 
+		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+#endif
     ostream out(&ofbuf);
     const char* cmdstr = cmdstrv.string_ptr();
     out << cmdstr;
     if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
     out.flush();
     if (nowaitv.is_false()) {
+#if __GNUG__<3
       filebuf ifbuf;
       ifbuf.attach(socket.get_handle());
       istream in(&ifbuf);
       char* buf;
       in.gets(&buf);
+#else
+      filebuf ifbuf(comterp()->handler()->rdfptr(), ios_base::in);
+      istream in(&ifbuf);
+      char buf[BUFSIZ];
+      in.get(buf, BUFSIZ);
+      in.get(newline);
+#endif
       ComValue& retval = comterpserv()->run(buf, true);
       push_stack(retval);
     }

@@ -86,6 +86,12 @@ public:
   static int logger_mode() { return _logger_mode; }
   // return flag that indicates comterp is in logging-only mode
 
+  FILE* wrfptr() { return _wrfptr; }
+  // file pointer for writing to handle
+
+  FILE* rdfptr() { return _rdfptr; }
+  // file pointer for reading from handle
+
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
@@ -105,6 +111,12 @@ protected:
 
   int _seconds;
   // timeout in seconds
+
+  FILE* _wrfptr;
+  // file pointer for writing to handle
+
+  FILE* _rdfptr;
+  // file pointer for reading from handle
 
   static int _logger_mode;
   // mode for logging commands: 0 = no log, 1 = log only

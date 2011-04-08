@@ -44,6 +44,7 @@ UnidrawImportHandler::UnidrawImportHandler ()
     _import_cmd = new OvImportCmd(unidraw->GetEditor(i), &ImportChooser::instance());
     _inptr = nil;
     _filebuf = nil;
+    _infptr = nil;
 }
 
 void
@@ -54,6 +55,10 @@ UnidrawImportHandler::destroy (void)
     IMPORT_REACTOR::instance ()->cancel_timer (this);
 #endif
     this->peer ().close ();
+    if (_infptr) {
+      fclose(_infptr);
+      _infptr = nil;
+    }
 }
 
 int
@@ -83,8 +88,13 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
     }
     return _inptr->good() ? 0 : -1;
 #else
+#if __GNUG__<3
     filebuf fbuf;
     if(fbuf.attach(fd)==0) return -1;
+#else
+    if (!_infptr) _infptr = fdopen(fd, "r");
+    filebuf fbuf(_infptr, ios_base::in);
+#endif
     istream in(&fbuf);
     int ch = in.get();
     if (ch != EOF && in.good()) {
@@ -92,7 +102,7 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
       _import_cmd->instream(&in);
       _import_cmd->Execute();
     }
-    return -1;
+    return -1;  /* only return -1, which indicates input handling is fini */
 #endif
 }
 

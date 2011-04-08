@@ -75,13 +75,12 @@ void PrintFunc::execute() {
   }
 #else
   streambuf* strmbuf = nil;
-  FILE* ofptr = nil;
   if (stringflag.is_false() && strflag.is_false() &&
       symbolflag.is_false() && symflag.is_false()) {
     filebuf * fbuf = nil;
     if (comterp()->handler()) {
-      int fd = Math::max(1, comterp()->handler()->get_handle());
-      fbuf = new filebuf(ofptr = fdopen(fd, "w"), ios_base::out);
+      fbuf = new filebuf(comterp()->handler() && comterp()->handler()->wrfptr() 
+			 ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
     } else
       fbuf = new filebuf(errflag.is_false() ? stdout : stderr, ios_base::out);
     strmbuf = fbuf;
@@ -186,8 +185,5 @@ void PrintFunc::execute() {
     push_stack(retval);
   }
   delete strmbuf;
-#if __GNUG__>=3
-  if (ofptr) fclose(ofptr);
-#endif
 }
 

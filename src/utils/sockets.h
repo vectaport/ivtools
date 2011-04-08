@@ -41,6 +41,10 @@
 #include "thrower.h"
 const int DownLoadAmount = 1024; // Amount per socket read.
 
+#if !defined(SOCKLEN_T_DEFINED) || !SOCKLEN_T_DEFINED
+typedef int socklen_t;
+#endif
+
 // Perhaps.. a value of 0 allows the system to choose a port.
 const int ListenPort = 20003; // Port for receiving FTP data.
 

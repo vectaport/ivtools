@@ -1767,6 +1767,43 @@ fi
 
 # AC_TRY_RUN(int access(); int main() { return access("/bin/bash", 1); },BIN_BASH=1,BIN_BASH=0,BIN_BASH=1)
 
+echo $ac_n "checking for socklen_t""... $ac_c" 1>&6
+echo "configure:1801: checking for socklen_t" >&5
+if eval "test \"`echo '$''{'ac_cv_type_socklen_t'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  
+  cat > conftest.$ac_ext <<EOF
+#line 1807 "configure"
+#include "confdefs.h"
+#include <sys/types.h>
+#include <sys/socket.h>
+int main() {
+socklen_t len = 42; return len;
+; return 0; }
+EOF
+if { (eval echo configure:1815: \"$ac_compile\") 1>&5; (eval $ac_compile) 2>&5; }; then
+  rm -rf conftest*
+  ac_cv_type_socklen_t=YES
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  ac_cv_type_socklen_t=NO
+fi
+rm -f conftest*
+
+fi
+
+echo "$ac_t""$ac_cv_type_socklen_t" 1>&6
+  if test $ac_cv_type_socklen_t != yes; then
+    cat >> confdefs.h <<\EOF
+#define socklen_t int
+EOF
+
+  fi
+
+
 
 #AC_SUBST(OPENGL)
 #AC_SUBST(XGL)
@@ -1801,6 +1838,7 @@ fi
 
 
 #AC_SUBST(BIN_BASH)
+
 
 #output to config-$host_fragd 
 PWD=`pwd`; export PWD
@@ -1983,6 +2021,7 @@ s%@PWD@%$PWD%g
 s%@INSTALLRELATIVE@%$INSTALLRELATIVE%g
 s%@USERPATH@%$USERPATH%g
 s%@INSTALLSUBDIR@%$INSTALLSUBDIR%g
+s%@ac_cv_type_socklen_t@%$ac_cv_type_socklen_t%g
 
 CEOF
 EOF

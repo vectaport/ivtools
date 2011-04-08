@@ -70,6 +70,7 @@ protected:
   OvImportCmd* _import_cmd; // associated import command
   filebuf* _filebuf;        // associated input buffer
   istream* _inptr;          // associated input stream
+  FILE* _infptr;            // associated FILE*
 };
 
 //: a Reactor Singleton.

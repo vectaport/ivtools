@@ -1064,7 +1064,7 @@ install::								@@\
 #define InstallIncludes(dir)						@@\
 install::								@@\
 	MakeDir($(INCDIR)/dir)						@@\
-	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/dir			@@\
+	$(INSTALL) -c $(INSTINCFLAGS) *.h $(INCDIR)/dir			@@\
 									@@\
 uninstall::								@@\
 	(cd $(INCDIR)/dir;$(RM) *.h)
@@ -1081,7 +1081,7 @@ install::								@@\
 #define InstallInclude(dir, file)					@@\
 install::								@@\
 	MakeDir($(INCDIR)/dir)						@@\
-	$(INSTALL) $(INSTINCFLAGS) file $(INCDIR)/dir		        @@\
+	$(INSTALL) -c $(INSTINCFLAGS) file $(INCDIR)/dir		@@\
 									@@\
 uninstall::								@@\
 	$(RM) $(INCDIR)/dir/file
