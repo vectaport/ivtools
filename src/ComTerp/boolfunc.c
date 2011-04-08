@@ -23,6 +23,7 @@
  * 
  */
 
+#include <Unidraw/Components/grview.h>
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
@@ -209,6 +210,9 @@ void EqualFunc::execute() {
     if (operand2.type()==ComValue::UnknownType && operand1.type()!=ComValue::UnknownType)
       result.boolean_ref() = 0;
     
+    else if (operand2.type()==ComValue::BlankType && operand1.type()!=ComValue::BlankType)
+      result.boolean_ref() = 0;
+    
     else {
       switch (operand1.type()) {
       case ComValue::CharType:
@@ -256,13 +260,21 @@ void EqualFunc::execute() {
 	  operand1.array_val() == operand2.array_val();
 	break;
       case ComValue::ObjectType:
-	result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
-	  operand1.obj_val() == operand2.obj_val() &&
-	  operand1.class_symid() == operand2.class_symid();
+	if (!operand1.object_compview())
+	  result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
+	    operand1.obj_val() == operand2.obj_val() &&
+	    operand1.class_symid() == operand2.class_symid();
+	else
+	  result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
+	    operand1.class_symid() == operand2.class_symid() &&
+	    operand2.object_compview() &&
+	    ((ComponentView*)operand1.obj_val())->GetSubject() == 
+	    ((ComponentView*)operand2.obj_val())->GetSubject();
 	break;
       default:
-        result.boolean_ref() = operand1.is_type(ComValue::UnknownType) && 
-	  operand2.is_type(ComValue::UnknownType);
+        result.boolean_ref() = 
+	  operand1.is_type(ComValue::UnknownType) && operand2.is_type(ComValue::UnknownType) ||
+	  operand1.is_type(ComValue::BlankType) && operand2.is_type(ComValue::BlankType);
 	break;
       }
     }
@@ -335,6 +347,18 @@ void NotEqualFunc::execute() {
       result.boolean_ref() = operand2.type() != ComValue::ArrayType || 
 	operand1.array_val() != operand2.array_val();
       break;
+      case ComValue::ObjectType:
+	if (!operand1.object_compview())
+	  result.boolean_ref() = operand2.type() != ComValue::ObjectType || 
+	    operand1.obj_val() != operand2.obj_val() ||
+	    operand1.class_symid() != operand2.class_symid();
+	else
+	  result.boolean_ref() = operand2.type() != ComValue::ObjectType || 
+	    operand1.class_symid() != operand2.class_symid() ||
+	    !operand2.object_compview() ||
+	    ((ComponentView*)operand1.obj_val())->GetSubject() != 
+	    ((ComponentView*)operand2.obj_val())->GetSubject();
+	break;
     case ComValue::UnknownType:
 	result.boolean_ref() = operand2.is_known();
 	break;

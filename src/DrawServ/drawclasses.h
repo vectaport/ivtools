@@ -25,6 +25,7 @@
 #define drawclasses_h
 
 #include <FrameUnidraw/frameclasses.h>
+#include <GraphUnidraw/graphclasses.h>
 
 #define DRAW_IDRAW_COMP     9801
 #define DRAW_IDRAW_VIEW     Combine(DRAW_IDRAW_COMP,COMPONENT_VIEW)
@@ -32,5 +33,9 @@
 #define DRAW_IDRAW_SCRIPT   Combine(DRAW_IDRAW_COMP, SCRIPT_VIEW)
 
 #define DRAWLINK_COMP       9802
+
+#define DRAWIMPORT_CMD      9803
+#define DRAWIMPORTPASTE_CMD 9804
+#define COPYMOVEGRAPHFRAME_CMD 9805
 
 #endif

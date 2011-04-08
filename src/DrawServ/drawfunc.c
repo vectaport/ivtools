@@ -150,8 +150,7 @@ void DrawLinkFunc::execute() {
   
   if (link) {
     DrawLinkComp* linkcomp = new DrawLinkComp(link);
-    ComValue result(DrawLinkComp::class_symid(), new OverlayView(linkcomp));
-    result.object_compview(true);
+    ComValue result(new OverlayViewRef(linkcomp), DrawLinkComp::class_symid());
     push_stack(result);
   }
   else

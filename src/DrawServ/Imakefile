@@ -24,6 +24,7 @@ Obj26A(ackback-handler)
 #endif
 Obj26(drawcatalog)
 Obj26(drawcreator)
+Obj26(drawcmds)
 Obj26(drawcomps)
 Obj26(draweditor)
 #ifdef AceEnabled
@@ -45,6 +46,7 @@ Obj26(sid)
 
 #define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
+Obj31(drawimport)
 Obj31(drawkit)
 #ifdef AceEnabled
 Obj31(rcdialog)

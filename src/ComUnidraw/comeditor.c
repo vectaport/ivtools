@@ -232,6 +232,16 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("trans", new TransformerFunc(comterp, this));
 
+    #ifdef LEAKCHECK
+    comterp->add_command("compleak", new CompLeakFunc(comterp));
+    comterp->add_command("viewleak", new ViewLeakFunc(comterp));
+    comterp->add_command("alistleak", new AlistLeakFunc(comterp));
+    comterp->add_command("attrvleak", new AttrvLeakFunc(comterp));
+    comterp->add_command("mlineleak", new MlineLeakFunc(comterp));
+    comterp->add_command("graphicleak", new GraphicLeakFunc(comterp));
+    comterp->add_command("commandleak", new CommandLeakFunc(comterp));
+    #endif
+
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {

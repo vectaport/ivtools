@@ -31,46 +31,46 @@
 
 #include <ComTerp/numfunc.h>
 
-//: & (bitwise-and) operator.
+//: & (bit_and) operator.
 class BitAndFunc : public NumFunc {
 public:
     BitAndFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "& is the bitwise-and operator"; }
+      return "& is the bit_and operator"; }
 };
 
-//: ^ (bitwise-xor) operator.
+//: ^ (bit_xor) operator.
 class BitXorFunc : public NumFunc {
 public:
     BitXorFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "^ is the bitwise-xor operator"; }
+      return "^ is the bit_xor operator"; }
 
 };
 
-//: | (bitwise-or) operator.
+//: | (bit_or) operator.
 class BitOrFunc : public NumFunc {
 public:
     BitOrFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "| is the bitwise-or operator"; }
+      return "| is the bit_or operator"; }
 
 };
 
-//: ~ (bitwise-not) operator.
+//: ~ (bit_not) operator.
 class BitNotFunc : public NumFunc {
 public:
     BitNotFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "~ is the bitwise-not operator"; }
+      return "~ is the bit_not operator"; }
 
 };
 

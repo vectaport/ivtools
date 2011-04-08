@@ -60,6 +60,10 @@
 #include <fstream.h>
 #include <strstream>
 #include <unistd.h>
+#include <iostream>
+
+using std::cout;
+using std::cerr;
 
 #ifdef HAVE_ACE
 implementTable(GraphicIdTable,int,void*)

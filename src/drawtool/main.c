@@ -32,7 +32,7 @@
 #ifdef HAVE_ACE
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
-#include <Comterp/comhandler.h>
+#include <ComTerp/comhandler.h>
 #endif
 
 #include <OverlayUnidraw/ovcatalog.h>

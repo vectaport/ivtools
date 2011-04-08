@@ -49,7 +49,7 @@ using std::cerr;
 static const int BUFSIZE = 10000;
 static char textbuf[BUFSIZE];
 
-static void GetLine (
+static void Get_Line (
     const char* s, int size, int begin, int& end, int& lineSize, int& nextBegin
 ) {
     int i = begin;
@@ -857,7 +857,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	out << "\"\"";
     else {
 	for (beg = 0; beg < len; ) {
-	    GetLine(text, len, beg, end, lineSize, nextBeg);
+	    Get_Line(text, len, beg, end, lineSize, nextBeg);
 	    const char* string = filter(&text[beg], end - beg + 1);
 	    out << "\"" << string << "\"";
 	    beg = nextBeg;

@@ -31,6 +31,7 @@
 #include <FrameUnidraw/framecmds.h>
 #include <FrameUnidraw/framecomps.h>
 #include <FrameUnidraw/frameeditor.h>
+#include <FrameUnidraw/frameimport.h>
 #include <FrameUnidraw/framekit.h>
 #include <FrameUnidraw/framestates.h>
 #include <FrameUnidraw/frameviewer.h>
@@ -40,7 +41,6 @@
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovexport.h>
 #include <OverlayUnidraw/ovfixview.h>
-#include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovpage.h>
 #include <OverlayUnidraw/ovprecise.h>
 #include <OverlayUnidraw/ovprint.h>
@@ -247,11 +247,15 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 		    layout.vcenter(
 		      layout.margin(
 			layout.vbox(
+#if 0
 			  wk.label("type help"),
 			  layout.vspace(10),
 			  wk.label("to print"),
 			  layout.vspace(10),
 		          wk.label("info to stdout")
+#else
+			  kit->appicon()
+#endif
 		        ),
 			10
 		      )
@@ -298,7 +302,7 @@ MenuItem * FrameKit::MakeFileMenu() {
 	     "Save As...   ");
     MakeMenu(mbi, new OvPrintCmd(new ControlInfo("Print...", KLBL_PRINT, CODE_PRINT)),
 	     "Print...   ");
-    MakeMenu(mbi, new OvImportCmd(new ControlInfo("Import Graphic...",
+    MakeMenu(mbi, new FrameImportCmd(new ControlInfo("Import Graphic...",
 						  KLBL_IMPORT,
 						  CODE_IMPORT)),
 	     "Import Graphic...   ");

@@ -45,6 +45,7 @@ public:
     virtual MenuItem *MakeFileMenu();
     virtual MenuItem *MakeEditMenu();
     virtual Glyph* MakeToolbar();
+    virtual MenuItem* MakeFrameMenu();
     virtual MenuItem* MakeToolsMenu();
     virtual MenuItem* MakeViewersMenu();
 

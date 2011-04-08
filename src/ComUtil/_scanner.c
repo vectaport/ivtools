@@ -197,12 +197,26 @@ int status;
                break;
 
             case '<' :
-               if (_angle_brackets) *toktype = TOK_LANGBRACK;
+	       if (_angle_brackets) {
+		   if (buffer[*bufptr]=='<') {
+		      (*bufptr)++;
+                      *toktype = TOK_LANGBRACK2;
+		      }
+                   else
+		      *toktype = TOK_LANGBRACK;
+	           }
                search_state = LOOK_DONE;
                break;
 
             case '>' :
-               if (_angle_brackets) *toktype = TOK_RANGBRACK;
+	       if (_angle_brackets) {
+		   if (buffer[*bufptr]=='>') {
+		      (*bufptr)++;
+                      *toktype = TOK_RANGBRACK2;
+		      }
+                   else
+		      *toktype = TOK_RANGBRACK;
+	           }
                search_state = LOOK_DONE;
                break;
 

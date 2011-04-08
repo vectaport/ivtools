@@ -59,6 +59,11 @@
 
 #include <stream.h>
 
+#ifdef LEAKCHECK
+#include <leakchecker.h>
+LeakChecker* OverlayView::_leakchecker = nil;
+#endif
+
 /*****************************************************************************/
 
 OverlayView::OverlayView(OverlayComp* subj) : GraphicView(subj) {
@@ -66,6 +71,16 @@ OverlayView::OverlayView(OverlayComp* subj) : GraphicView(subj) {
     UnfixSize();
     UnfixLocation();
     _hilite_gs = nil;
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayView");
+    _leakchecker->create();
+#endif
+}
+
+OverlayView::~OverlayView () {
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
 }
 
 ClassId OverlayView::GetClassId () { return OVERLAY_VIEW; }
@@ -352,6 +367,13 @@ Manipulator* OverlayView::CreateStretchManip (
 	v, rub, rel, tool, DragConstraint(dc | Gravity), r, t, GetGraphic()
     );
 }
+
+/*****************************************************************************/
+
+OverlayViewRef::OverlayViewRef (OverlayComp* subj) : OverlayView(subj) {
+}
+
+OverlayViewRef::~OverlayViewRef () {}
 
 /*****************************************************************************/
 

@@ -923,6 +923,7 @@ void EdgeScript::IndexNodes(int &start, int &end) {
 }
 
 int EdgeScript::IndexNode (NodeComp *comp) {
+#if 0
     GraphicComp* comps = (GraphicComp*)GetSubject()->GetParent();
     Iterator i;
     int index = -1;
@@ -935,6 +936,10 @@ int EdgeScript::IndexNode (NodeComp *comp) {
 	    return index;
     }
     return -1;
+#else
+    return comp->index();
+#endif
+ 
 }
 
 

@@ -33,8 +33,14 @@
 
 #include <Unidraw/Components/grview.h>
 #include <Unidraw/Components/psview.h>
+#include <InterViews/resource.h>
 
 #include <IV-2_6/_enter.h>
+
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
 
 class Canvas;
 class OverlayComp;
@@ -131,8 +137,11 @@ public:
     Manipulator* CreateStretchManip(Viewer*, Event&, Transformer*, Tool*);
     // specialized method to construct OpaqueDragManip instead of DragManip.
 
+    virtual ComponentView* Duplicate() { return new OverlayView(); }
+
+    virtual ~OverlayView();
+protected:    
     OverlayView(OverlayComp* = nil);
-protected:
 
     OverlayView* View(UList*);
     OverlayView* GetOverlayView(Graphic*);
@@ -143,6 +152,18 @@ protected:
     float _fixed_size_factor;
     boolean _fixed_location;
     Graphic* _hilite_gs;
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
+};
+
+//: OverlayView used as Resource
+class OverlayViewRef : public OverlayView {
+ public:
+  OverlayViewRef(OverlayComp* = nil);
+  virtual ~OverlayViewRef();
 };
 
 //: graphical view of OverlaysComp.

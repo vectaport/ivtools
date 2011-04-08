@@ -8,6 +8,8 @@
 #include <InterViews/window.h>
 #include <OS/string.h>
 #include <stdio.h>
+#include <cstdio> // for sprintf
+using namespace std;
 
 class App : public Observer {
 public:

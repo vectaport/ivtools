@@ -45,6 +45,11 @@
 
 #include <IV-2_6/_enter.h>
 
+#ifdef LEAKCHECK
+#include <leakchecker.h>
+LeakChecker* Command::_leakchecker = nil;
+#endif
+
 /*****************************************************************************/
 
 static const int DATACACHE_SIZE = 255;
@@ -117,6 +122,10 @@ ClassId Command::GetSubstId (const char*&) { return UNDEFINED_CLASS; }
 boolean Command::IsA (ClassId id) { return COMMAND == id; }
 
 Command::Command (ControlInfo* m, Clipboard* cb) {
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("Command");
+    _leakchecker->create();
+#endif
     Command::SetControlInfo(m);
     _editor = nil;
     _clipboard = cb;
@@ -124,6 +133,10 @@ Command::Command (ControlInfo* m, Clipboard* cb) {
 }
 
 Command::Command (Editor* ed, Clipboard* cb) {
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("Command");
+    _leakchecker->create();
+#endif
     _ctrlInfo = nil;
     _editor = ed;
     _clipboard = cb;
@@ -131,6 +144,9 @@ Command::Command (Editor* ed, Clipboard* cb) {
 }
 
 Command::~Command () { 
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
     if (_ctrlInfo != nil) {
         delete _ctrlInfo;
     }

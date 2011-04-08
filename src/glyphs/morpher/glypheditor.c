@@ -20,11 +20,14 @@
 #include <OS/string.h>
 #include <stdio.h>
 #include <string.h>
+#include <cstdio> // for sprintf
+using namespace std;
 #include <IVGlyph/figure.h>
 #include "morpher.h"
 #include "glypheditor.h"
 #include "glyphviewer.h"
 #include <IVGlyph/idraw.h>
+
 
 typedef void (GlyphViewer::*ToolSetter) (unsigned int);
 
@@ -208,7 +211,7 @@ void Importer::execute () {
         _chooser = DialogKit::instance()->file_chooser(".", style);
         Resource::ref(_chooser);
         char buf[256];
-        sprintf(buf, "Select an idraw drawing to import:");
+	std::sprintf(buf, "Select an idraw drawing to import:");
         style->attribute("caption", "");
         style->attribute("subcaption", buf);
     } else {

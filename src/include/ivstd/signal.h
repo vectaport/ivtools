@@ -3,6 +3,10 @@
 
 
 #if defined(__cplusplus)
+#if __linux
+#undef __need_sig_atomic_t
+#undef __need_sigset_t
+#endif
 #include_next <signal.h>
 #undef NULL
 #define NULL 0

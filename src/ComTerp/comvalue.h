@@ -32,6 +32,7 @@
 
 #include <ComTerp/_comterp.h>
 #include <Attribute/attrvalue.h>
+#include <Unidraw/Components/compview.h>
 
 class ComFunc;
 class ComTerp;
@@ -89,6 +90,8 @@ public:
     // StringType constructor.
     ComValue(ComFunc* func);
     // CommandType constructor.
+    ComValue(ComponentView* view, int compid);
+    // ComponentView constructor.
 
     void init();
     // initialize member variables.

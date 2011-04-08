@@ -81,13 +81,20 @@ void PostFixFunc::execute() {
 	if (func->post_eval()) out << "*";
       } else {
 	char ldelim, rdelim;
+	boolean dbldelim = 0;
 	if (val.nids()==TOK_RPAREN) {ldelim = '('; rdelim = ')'; }
 	else if (val.nids()==TOK_RBRACKET) {ldelim = '['; rdelim = ']'; }
 	else if (val.nids()==TOK_RBRACE) {ldelim = '{'; rdelim = '}'; }
 	else if (val.nids()==TOK_RANGBRACK) {ldelim = '<'; rdelim = '>'; }
+	else if (val.nids()==TOK_RANGBRACK2) {ldelim = '<'; rdelim = '>'; dbldelim=1;}
 	else {ldelim = ':'; rdelim = 0x0;};
-	out << ldelim << val.narg();
-	if (rdelim) out << rdelim;
+	out << ldelim;
+	if(dbldelim) out << ldelim;
+	out << val.narg();
+	if (rdelim) {
+	  out << rdelim;
+	  if(dbldelim) out << rdelim;
+	}
       }
     }
     else if (val.is_type(AttributeValue::SymbolType) && 

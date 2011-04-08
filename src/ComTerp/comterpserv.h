@@ -42,7 +42,7 @@
 //: extended ComTerp that works with buffered IO.
 class ComTerpServ : public ComTerp {
 public:
-    ComTerpServ(int bufsize = 1024*1024, int fd = -1);
+     ComTerpServ(int bufsize = 1024/* *1024 */, int fd = -1);
     // construct with optional 'bufsize', and on an optional 'fd'.
     ~ComTerpServ();
 

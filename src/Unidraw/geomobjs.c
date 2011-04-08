@@ -183,21 +183,37 @@ boolean BoxObj::Within (BoxObj& b) {
 
 /*****************************************************************************/
 
+#ifdef LEAKCHECK
+#include <leakchecker.h>
+LeakChecker* MultiLineObj::_leakchecker = nil;
+#endif
+
 UList** MultiLineObj::_pts_by_n = nil;
 int MultiLineObj::_pts_by_n_size = 1024;
 boolean MultiLineObj::_pts_by_n_enabled = false;
 
 MultiLineObj::MultiLineObj (Coord* x, Coord* y, int count) {
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("MultiLineObj");
+    _leakchecker->create();
+#endif
     _x = x; _y = y; _count = count;
     _ulist = nil;
+    _pts_made = 0;
 }
 
 MultiLineObj::~MultiLineObj() {
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
     if (_ulist) {
 	UList* head = _pts_by_n[count()];
 	head->Remove(_ulist);
 	delete _ulist;
 	delete _x;
+	delete _y;
+    } else if (_pts_made) {
+        delete _x;
 	delete _y;
     }
 }
@@ -458,6 +474,7 @@ MultiLineObj* MultiLineObj::make_pts (const Coord* x, const Coord* y, int npts) 
         Coord *copyx, *copyy;
 	ArrayDup(x, y, npts, copyx, copyy);
 	MultiLineObj* mlo = new MultiLineObj(copyx, copyy, npts);
+	mlo->_pts_made = 1;
 	return mlo;
     }
 

@@ -49,7 +49,7 @@ void NumFunc::promote(ComValue& op1, ComValue& op2) {
     }
 #endif
 
-    boolean op1bigger = op1.type() > op2.type();
+    boolean op1bigger = op1.type()!=ComValue::BooleanType ? op1.type() > op2.type() : false;
     ComValue* greater = op1bigger ? &op1 : &op2;
     ComValue* lesser =  op1bigger ? &op2 : &op1;
 
@@ -75,6 +75,10 @@ void NumFunc::promote(ComValue& op1, ComValue& op2) {
 	break;
     }
     switch (lesser->type()) {
+    case ComValue::BooleanType:
+	lesser->int_ref() =  lesser->boolean_val();
+	lesser->type(ComValue::IntType);
+	break;
     case ComValue::CharType:
 	lesser->int_ref() =  lesser->char_val();
 	lesser->type(ComValue::IntType);
@@ -192,6 +196,10 @@ void AddFunc::execute() {
     }
     
     switch (result.type()) {
+    case ComValue::BooleanType:
+	result.int_ref() = operand1.int_val() + operand2.int_val();
+	result.type(ComValue::IntType);
+	break;
     case ComValue::CharType:
 	result.char_ref() = operand1.char_val() + operand2.char_val();
 	break;

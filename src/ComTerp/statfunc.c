@@ -86,6 +86,7 @@ void VarFunc::execute() {
     MpyFunc mpyfunc(comterp());
     ComValue sqrsumval(ComValue::zeroval());
     ComValue sumval(ComValue::zeroval());
+    ComValue mnsquaresval;
     Iterator it;
     int count = 0;
     for (avl->First(it); !avl->Done(it); avl->Next(it)) {
@@ -106,10 +107,16 @@ void VarFunc::execute() {
       sumval = comterp()->pop_stack();
     }
 
-    /* compute mean squared */
+    /* compute mean of squares */
     DivFunc divfunc(comterp());
+    push_stack(sqrsumval);
+    ComValue countval((float)count);
+    push_stack(countval);
+    divfunc.exec(2,0);
+    mnsquaresval = comterp()->pop_stack();
+
+    /* compute mean squared */
     push_stack(sumval);
-    ComValue countval(count, ComValue::IntType);
     push_stack(countval);
     divfunc.exec(2,0);
     ComValue meanval(comterp()->pop_stack());
@@ -120,7 +127,7 @@ void VarFunc::execute() {
 
     /* subract mean squared from sum of squares to get variance */
     SubFunc subfunc(comterp());
-    push_stack(sqrsumval);
+    push_stack(mnsquaresval);
     push_stack(mnsquaredval);
     subfunc.exec(2,0);
 

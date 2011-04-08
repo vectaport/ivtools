@@ -42,6 +42,14 @@ public:
     // specialized method to ensure a FrameOverlaysComp gets constructed
     // whenever a composite-graphic is de-serialized (as opposed to
     // just a plain OverlaysComp).
+
+    void SetImport(boolean);
+    // set flag that indicates read is for import instead of an open.
+
+protected:
+    boolean _import;
 };
+
+inline void FrameCatalog::SetImport(boolean v) { _import = v; }
 
 #endif

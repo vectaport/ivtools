@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2009 Scott E. Johnston
  * Copyright (c) 1994, 1995, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and

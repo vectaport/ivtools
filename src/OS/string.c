@@ -465,7 +465,8 @@ void NullTerminatedString::free() {
 
 
 char* strnew (const char* s) {
-    char* dup = new char[strlen(s) + 1];
-    strcpy(dup, s);
-    return dup;
+  if (!s) return nil;
+  char* dup = new char[strlen(s) + 1];
+  strcpy(dup, s);
+  return dup;
 }

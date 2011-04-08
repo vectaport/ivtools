@@ -45,6 +45,7 @@
 FrameCatalog::FrameCatalog (
     const char* name, Creator* creator
 ) : OverlayCatalog(name, creator) {
+  _import = false;
 }
 
 boolean FrameCatalog::Retrieve (const char* pathname, Component*& comp) {

@@ -234,7 +234,8 @@ void ComTE_View::newline()
 #if 0
   ComValue result(comterp()->stack_top(1));
 #else
-  ComValue result(comterp()->pop_stack());
+  // don't evaluate
+  ComValue result(comterp()->pop_stack(false));
 #endif
   ostream* out = new std::strstream();
   if (*comterp()->errmsg()) {

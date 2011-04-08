@@ -29,6 +29,11 @@
 #ifndef attr_list_h
 #define attr_list_h
 
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
+
 #include <OS/enter-scope.h>
 #include <InterViews/resource.h>
 #include <Attribute/classid.h>
@@ -241,6 +246,11 @@ protected:
     AList* _alist;
     unsigned int _count;
     boolean _nested_insert;
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
 };
 
 #endif

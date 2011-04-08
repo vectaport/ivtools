@@ -87,7 +87,7 @@ void SymAddFunc::execute() {
   if (!numargs) return;
   int symbol_ids[numargs];
   for (int i=0; i<numargs; i++) {
-    ComValue& val = stack_arg(i, true);
+    ComValue& val = stack_arg(i);
     if (val.is_type(AttributeValue::CommandType))
       symbol_ids[i] = val.command_symid();
     else if (val.is_type(AttributeValue::StringType))
@@ -103,7 +103,8 @@ void SymAddFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
-      AttributeValue* av = new AttributeValue(symbol_ids[i], AttributeValue::SymbolType);
+      ComValue* av = new ComValue(symbol_ids[i], AttributeValue::SymbolType);
+      av->bquote(1);
       if (symbol_ids[i]<0) av->type(ComValue::UnknownType);
       avl->Append(av);
     }
@@ -111,6 +112,7 @@ void SymAddFunc::execute() {
   } else {
     ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
     if (symbol_ids[0]<0) retval.type(ComValue::UnknownType);
+    retval.bquote(1);
     push_stack(retval);
   }
 
@@ -139,11 +141,15 @@ void SymbolFunc::execute() {
   if (numargs>1) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    for (int i=0; i<numargs; i++)
-      avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::SymbolType));
+    for (int i=0; i<numargs; i++) {
+      ComValue* av = new ComValue(symbol_ids[i], AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
     push_stack(retval);
   } else {
     ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
+    retval.bquote(1);
     push_stack(retval);
   }
 
@@ -181,6 +187,19 @@ void SymValFunc::execute() {
     push_stack(retval);
   }
 }
+
+/*****************************************************************************/
+
+SymStrFunc::SymStrFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SymStrFunc::execute() {
+  ComValue symv(stack_arg(0));  // will only show up here if backquoted
+  reset_stack();
+  symv.type(ComValue::StringType);
+  push_stack(symv);
+}
+
 
 /*****************************************************************************/
 
@@ -261,9 +280,10 @@ void GlobalSymbolFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
-      AttributeValue* av = 
-	new AttributeValue(symbol_ids[i], AttributeValue::SymbolType);
+      ComValue* av = 
+	new ComValue(symbol_ids[i], AttributeValue::SymbolType);
       av->global_flag(true);
+      av->bquote(1);
       avl->Append(av);
     }
     push_stack(retval);
@@ -271,6 +291,7 @@ void GlobalSymbolFunc::execute() {
     
     ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
     retval.global_flag(true);
+    retval.bquote(1);
     push_stack(retval);
   }
 

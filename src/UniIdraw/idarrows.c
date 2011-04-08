@@ -236,6 +236,18 @@ void ArrowLine::SetArrows (boolean h, boolean t) {
 
 ClassId ArrowLine::CompId () { return ARROWLINE_COMP; }
 
+void ArrowLine::GetHead(float &x, float &y) {
+  FullGraphic gs;
+  totalGS(gs);
+  transform(float(_x0), float(_y0), x, y, &gs);
+}
+
+void ArrowLine::GetTail(float &x, float &y) {
+  FullGraphic gs;
+  totalGS(gs);
+  transform(float(_x1), float(_y1), x, y, &gs);
+}
+
 /****************************************************************************/
 
 ArrowMultiLine::ArrowMultiLine (

@@ -64,7 +64,8 @@ Log: Date.c,v
 #include <Time/Time.h>
 #include <OS/string.h>
 
-#include <iomanip.h>
+#include <iomanip>
+using namespace std;
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>

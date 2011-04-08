@@ -33,6 +33,10 @@
 #include <Unidraw/globals.h>
 #include <fstream.h>
 #include <unistd.h>
+#include <iostream>
+
+using std::cout;
+using std::cerr;
 
 int DrawLink::_linkcnt = 0;
 

@@ -71,6 +71,12 @@ extern "C"
 }
 #endif
 
+#ifdef LEAKCHECK
+#include <leakchecker.h>
+LeakChecker* OverlayComp::_leakchecker = nil;
+#endif
+
+
 /*****************************************************************************/
 
 static OverlayComp* Pred (OverlayComp* child) {
@@ -100,6 +106,10 @@ OverlayComp::OverlayComp (Graphic* g, OverlayComp* parent) : GraphicComp(g)
     _anno = nil;
     _attrlist = nil;
     _notify_deferred = 0;
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayComp");
+    _leakchecker->create();
+#endif
 }
 
 OverlayComp::OverlayComp (istream& in) { 
@@ -109,12 +119,19 @@ OverlayComp::OverlayComp (istream& in) {
     _attrlist = nil;
     _notify_deferred = 0;
     _valid = GetParamList()->read_args(in, this);
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayComp");
+    _leakchecker->create();
+#endif
 }
 
 OverlayComp::~OverlayComp () {
     if (_anno)
 	delete [] _anno;
     Unref(_attrlist);
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
 }
 
 AttributeList* OverlayComp::GetAttributeList() {
@@ -948,6 +965,17 @@ void OverlaysComp::Prev (Iterator& i) { i.SetValue(Elem(i)->Prev()); }
 boolean OverlaysComp::Done (Iterator i) { return Elem(i) == _comps->End(); }
 OverlayComp* OverlaysComp::Comp (UList* r) { return (OverlayComp*) (*r)(); }
 GraphicComp* OverlaysComp::GetComp (Iterator i) { return Comp(Elem(i)); }
+
+int OverlaysComp::Count() {
+  Iterator it;
+  int i=0;
+  First(it);
+  while (!Done(it)) {
+    i++;
+    Next(it);
+  }
+  return i;
+}
 
 void OverlaysComp::SetComp (GraphicComp* gc, Iterator& i) {
     i.SetValue(_comps->Find(gc));

@@ -26,6 +26,7 @@
 #if !defined(grfunc_h)
 #define _grfunc_h
 
+#define LEAKCHECK
 
 #include <ComUnidraw/unifunc.h>
 
@@ -200,7 +201,7 @@ public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([compview ...] :all :clear) -- make these graphics the current selection (dflt is current)"; }
+	return "%s([compview ... | compview,compview[,... compview]] :all :clear) -- make these graphics the current selection (dflt is current)"; }
 };
 
 //: command to delete graphics in comdraw.
@@ -382,5 +383,77 @@ public:
     virtual const char* docstring() { 
       return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic"; }
 };
+
+#ifdef LEAKCHECK
+//: command to return current number of OverlayComp's
+// compleak() -- current number of OverlayComp's
+class CompLeakFunc : public ComFunc {
+public:
+    CompLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of OverlayComp's"; }
+};
+
+//: command to return current number of OverlayView's
+// viewleak() -- current number of OverlayView's
+class ViewLeakFunc : public ComFunc {
+public:
+    ViewLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of OverlayView's"; }
+};
+
+//: command to return current number of AttributeValueList's
+// alistleak() -- current number of AttributeValueList's
+class AlistLeakFunc : public ComFunc {
+public:
+    AlistLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of AttributeValueList's"; }
+};
+
+//: command to return current number of AttributeValue's
+// attrvleak() -- current number of AttributeValue's
+class AttrvLeakFunc : public ComFunc {
+public:
+    AttrvLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of AttributeValue's"; }
+};
+
+//: command to return current number of MultiLineObj's
+// attrvleak() -- current number of MultiLineObj's
+class MlineLeakFunc : public ComFunc {
+public:
+    MlineLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of MultiLineObj's"; }
+};
+
+//: command to return current number of Graphic's
+// attrvleak() -- current number of Graphic's
+class GraphicLeakFunc : public ComFunc {
+public:
+    GraphicLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of Graphic's"; }
+};
+
+//: command to return current number of Command's
+// attrvleak() -- current number of Command's
+class CommandLeakFunc : public ComFunc {
+public:
+    CommandLeakFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- current number of Command's"; }
+};
+#endif
 
 #endif /* !defined(_grfunc_h) */

@@ -26,6 +26,7 @@
 #ifndef _ackback_handler_
 #define _ackback_handler_
 
+#include <iosfwd>
 #include <ace/Event_Handler.h>
 
 class DrawLink;
