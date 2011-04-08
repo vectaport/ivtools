@@ -85,7 +85,7 @@ public:
     void GraphicToScreen
       (Graphic* gr, float xgr, float ygr, float &xscreen, float& yscreen);    
     void GraphicToScreen
-      (Graphic* gr, float xgr, float ygr, Coord &xscreen, Coord& yscreen);    
+      (Graphic* gr, float xgr, float ygr, int &xscreen, int& yscreen);    
 
     virtual OverlayView* GetCurrent() { return GetOverlayView(); }
 
@@ -100,7 +100,7 @@ protected:
     virtual void Manipulate(Manipulator*, Event&); // direct manipulation loop
     void PrepareDoubleBuf();
 protected:
-    boolean _init;
+    boolean _needs_resize;
     boolean _pan_chain;
     boolean _zoom_chain;
     boolean _scribble_pointer;

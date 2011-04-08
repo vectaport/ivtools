@@ -126,7 +126,7 @@ private:
 
     void init(
 	const char*, int& argc, char** argv,
-	const OptionDesc*, const PropertyData*
+	const OptionDesc*, const PropertyData*, Display*
     );
     void parse_args(int& argc, char** argv, const OptionDesc*);
     boolean match(
@@ -153,7 +153,7 @@ private:
     );
     const char* home();
 
-    void init_display();
+    void init_display(Display* display = nil);
     void connect(Display*);
     void set_style(Display*);
     boolean check(Event&);
@@ -188,11 +188,11 @@ int SessionIOHandler::inputReady(int) {
 
 Session::Session(
     const char* classname, int& argc, char** argv,
-    const OptionDesc* opts, const PropertyData* initprops
+    const OptionDesc* opts, const PropertyData* initprops, Display* display
 ) {
     SessionRep::instance_ = this;
     rep_ = new SessionRep();
-    rep_->init(classname, argc, argv, opts, initprops);
+    rep_->init(classname, argc, argv, opts, initprops, display);
 }
 
 Session::~Session() {
@@ -419,7 +419,7 @@ SessionRep::~SessionRep() {
 
 void SessionRep::init(
     const char* name, int& argc, char** argv,
-    const OptionDesc* opts, const PropertyData* initprops
+    const OptionDesc* opts, const PropertyData* initprops, Display* display
 ) {
     argc_ = argc;
     argv_ = new char*[argc + 1];
@@ -433,7 +433,7 @@ void SessionRep::init(
 	parse_args(argc, argv, opts);
     }
     parse_args(argc, argv, defoptions);
-    init_display();
+    init_display(display);
 
     Cursor::init();
 
@@ -716,9 +716,12 @@ String* SessionRep::find_name() {
  * Open the default display and initialize its style information.
  */
 
-void SessionRep::init_display() {
+void SessionRep::init_display(Display* display) {
     String name;
-    if (style_->find_attribute(String("display"), name)) {
+
+    if (display != nil) {
+        default_ = display;
+    } else if (style_->find_attribute(String("display"), name)) {
 	default_ = Display::open(name);
     } else {
 	default_ = Display::open();

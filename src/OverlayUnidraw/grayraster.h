@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 Vectaport Inc.
  * Copyright (c) 1997 R.B. Kissh & Associates, Vectaport Inc.
  * Copyright (c) 1994-1996 Vectaport Inc.
  *
@@ -57,11 +58,13 @@ public:
     virtual void graypeek(unsigned long x, unsigned long y, unsigned long&);
     virtual void graypeek(unsigned long x, unsigned long y, float&);
     virtual void graypeek(unsigned long x, unsigned long y, double&);
+    virtual void graypeek(unsigned long x, unsigned long y, AttributeValue&);
 
     virtual void graypoke(unsigned long x, unsigned long y, unsigned int);
     virtual void graypoke(unsigned long x, unsigned long y, unsigned long);
     virtual void graypoke(unsigned long x, unsigned long y, float);
     virtual void graypoke(unsigned long x, unsigned long y, double);
+    virtual void graypoke(unsigned long x, unsigned long y, AttributeValue);
 
     virtual void highlight(unsigned long x, unsigned long y);
     virtual void unhighlight();
@@ -99,6 +102,8 @@ public:
         CopyString& cmd, IntCoord x, IntCoord y
     );
 
+    void set_minmax(double minval, double maxval, boolean fixminmax = false); 
+
 protected:
     void init(AttributeValue::ValueType=AttributeValue::UCharType,
 	      void* data=nil);
@@ -117,6 +122,10 @@ protected:
         ColorIntensity mingray, ColorIntensity maxgray
     );
 
+    virtual OverlayRaster* pseudocolor(
+        ColorIntensity mingray, ColorIntensity maxgray
+    );
+
     virtual void paintgrayramp(
         IntCoord left, IntCoord bottom, unsigned width, unsigned height,
 	boolean horiz
@@ -125,11 +134,16 @@ protected:
     void gainbias_minmax(double& gain, double& bias, 
 			 double& dmin, double& dmax) const;
 
+    virtual boolean grayraster() { return true; }
+
 protected:
     unsigned char* _pixel_map;
     void* _data;
     AttributeValue::ValueType _type;
     boolean _t2b;
+    double _minval;
+    double _maxval;
+    int _minmax_set;
 };
 
 

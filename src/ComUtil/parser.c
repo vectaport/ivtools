@@ -31,11 +31,15 @@ Summary:
 History:        Written by Scott E. Johnston, April 1989
 */
 
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
 
 #include "comterp.ci"
+
+int _continuation_prompt;
+infuncptr _oneshot_infunc;
 
 static int get_next_token(void *infile, char *(*infunc)(), int (*eoffunc)(),
 			  int (*errfunc)(), FILE *outfile, int (*outfunc)(),
@@ -645,6 +649,7 @@ int status;
 	    op_ids[index] = NextOp_ids[index];
 	 NextToklen = 0;
 	 }
+      _continuation_prompt = 1;
 
 
    /* --------------------------------------*/
@@ -1128,7 +1133,7 @@ int status;
    /*   4) If the next token is an operator, it is not a binary operator    */
       if( !done && TopOfParenStack < 0 && expecting == OPTYPE_BINARY ) {
 
-	 if( NextToklen == 0 )
+	 if( NextToklen == 0 ) 
 	    LOOK_AHEAD;
 
 	 if( NextToktype == TOK_KEYWORD ) {
@@ -1173,6 +1178,7 @@ int status;
 
       }
    while( !done );
+   _continuation_prompt = 0;
 
 /* ----------------------------------------------------------------------- */
 /* Done looping until an expression is finished                            */
@@ -1180,8 +1186,12 @@ int status;
 
 /* Raise exception if expression is incomplete */
    if (toktype == TOK_NONE) {
-       COMERR_SET( ERR_INCOMPLETE_EXPRESSION );
-       goto error_return;
+       if (infunc != _oneshot_infunc) {
+           COMERR_SET( ERR_INCOMPLETE_EXPRESSION );
+	   goto error_return;
+       } else {
+	   goto ok_return;
+       }
    }
 
 /* Put what remains on the operator stack onto the output */
@@ -1200,6 +1210,7 @@ int status;
       }
    }
 
+ok_return:
    return FUNCOK;
 
 error_return:

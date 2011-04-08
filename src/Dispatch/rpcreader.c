@@ -94,7 +94,9 @@ RpcReader::~RpcReader() {
 	Dispatcher::instance().unlink(_fd);
     }
     if (_delete) {
+#if !defined(_IO_NEW_STREAMS)
 	delete _client;
+#endif
     }
     delete[] _function;
 }

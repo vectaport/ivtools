@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Vectaport Inc.
+ * Copyright (c) 1996-1998 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1993 David B. Hollenbeck
  *
@@ -43,6 +43,7 @@
 #include <OverlayUnidraw/ovpage.h>
 #include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/slctbyattr.h>
+#include <OverlayUnidraw/setattrbyexpr.h>
 
 #include <IVGlyph/exportchooser.h>
 #include <IVGlyph/saveaschooser.h>
@@ -82,6 +83,8 @@
 
 static const char* page_width_attrib = "pagewidth";
 static const char* page_height_attrib = "pageheight";
+static const char* page_cols_attrib = "pagecols";
+static const char* page_rows_attrib = "pagerows";
 static const char* grid_x_incr = "gridxincr";
 static const char* grid_y_incr = "gridyincr";
 
@@ -103,6 +106,8 @@ void FrameKit::InitViewer () {
 
     const char* page_w = catalog->GetAttribute(page_width_attrib);
     const char* page_h = catalog->GetAttribute(page_height_attrib);
+    const char* page_cols = catalog->GetAttribute(page_cols_attrib);
+    const char* page_rows = catalog->GetAttribute(page_rows_attrib);
     const char* x_incr = catalog->GetAttribute(grid_x_incr);
     const char* y_incr = catalog->GetAttribute(grid_y_incr);
 
@@ -113,8 +118,16 @@ void FrameKit::InitViewer () {
     Style* style = Session::instance()->style();
     boolean bookgeom = style->value_is_on("bookgeom");
 
-    const float w = bookgeom ? 700 : round(atof(page_w) * ivinches);
-    const float h = bookgeom ? 906 : round(atof(page_h) * ivinches);
+    float w = bookgeom ? 700 : round(atof(page_w) * ivinches);
+    float h = bookgeom ? 906 : round(atof(page_h) * ivinches);
+    if (page_cols && page_rows) {
+      int ncols = atoi(page_cols);
+      int nrows = atoi(page_rows);
+      if (ncols>0 && nrows>0) {
+	w = ncols;
+	h = nrows;
+      }
+    }
 
     OverlayPage* page = new OverlayPage(w, h);
     Grid* grid = new Grid(w, h, atof(x_incr), atof(y_incr));
@@ -127,18 +140,30 @@ void FrameKit::InitViewer () {
 }
 
 void FrameKit::InitLayout(const char* name) {
-    if (_ed->GetWindow() == nil) {
-        TextObserver* mousedoc_observer = new TextObserver(_ed->MouseDocObservable(), "");
-	WidgetKit& kit = *WidgetKit::instance();
+  InitLayout(this, name);
+}
+
+void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
+    FrameEditor* ed = (FrameEditor*) kit->GetEditor();
+    if (ed->GetWindow() == nil) {
+        TextObserver* mousedoc_observer = new TextObserver(ed->MouseDocObservable(), "");
+	WidgetKit& wk = *WidgetKit::instance();
 	const LayoutKit& layout = *LayoutKit::instance();
-	Glyph* menus = MakeMenus();
-	Glyph* states = MakeStates();
-	Glyph* toolbar = MakeToolbar();
+	Glyph* menus = kit->MakeMenus();
+	Glyph* states = kit->MakeStates();
+	Glyph* toolbar = kit->MakeToolbar();
 	if (states)
 	    menus->append(states);
 	Target* viewer = 
-	    new Target(new Frame(Interior()), TargetPrimitiveHit);
-	toolbar->append(layout.vcenter(viewer));
+	    new Target(new Frame(kit->Interior()), TargetPrimitiveHit);
+	Catalog* catalog = unidraw->GetCatalog();
+	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
+	  if (strcmp(toolbarloca, "r") == 0) 
+	    toolbar->prepend(layout.vcenter(viewer));
+	  else /* if (strcmp(toolbarloca, "l") == 0) */
+	    toolbar->append(layout.vcenter(viewer));
+	} else 
+	  toolbar->append(layout.vcenter(viewer));
 	menus->append(toolbar);
 
 	
@@ -146,20 +171,20 @@ void FrameKit::InitLayout(const char* name) {
 	boolean bookgeom = style->value_is_on("bookgeom");
 	
 	PolyGlyph* topbox = layout.vbox();
-	_ed->body(menus);
-	_ed->GetKeyMap()->Execute(CODE_SELECT);
-	topbox->append(_ed);
+	ed->body(menus);
+	ed->GetKeyMap()->Execute(CODE_SELECT);
+	topbox->append(ed);
 	if (!bookgeom) {
-	    EivTextEditor* texteditor = new EivTextEditor(kit.style());
-	    ((FrameEditor*)_ed)->_texteditor = texteditor;
-	    Button* set = kit.push_button("Set", new ActionCallback(FrameEditor)(
-		(FrameEditor*)_ed, &FrameEditor::SetText
+	    EivTextEditor* texteditor = new EivTextEditor(wk.style());
+	    ((FrameEditor*)ed)->_texteditor = texteditor;
+	    Button* set = wk.push_button("Set", new ActionCallback(FrameEditor)(
+		(FrameEditor*)ed, &FrameEditor::SetText
 	    ));
-	    Button* clear = kit.push_button("Clear", new ActionCallback(FrameEditor)(
-		(FrameEditor*)_ed, &FrameEditor::ClearText
+	    Button* clear = wk.push_button("Clear", new ActionCallback(FrameEditor)(
+		(FrameEditor*)ed, &FrameEditor::ClearText
 	    ));
 	    topbox->append(
-		kit.outset_frame(
+		wk.outset_frame(
 		    layout.hbox(
 			layout.vcenter(
 			    layout.margin(
@@ -176,7 +201,7 @@ void FrameKit::InitLayout(const char* name) {
 		)
 	    );
 	    topbox->append(
-		kit.outset_frame(
+		wk.outset_frame(
 		    layout.hbox(
 			layout.vcenter(mousedoc_observer)
                     )
@@ -185,30 +210,11 @@ void FrameKit::InitLayout(const char* name) {
 	}
 
 	ManagedWindow* w = new ApplicationWindow(topbox);
-	_ed->SetWindow(w);
+	ed->SetWindow(w);
 	Style* s = new Style(Session::instance()->style());
 	s->alias(name);
 	w->style(s);
     }
-}
-
-Glyph* FrameKit::MakeMenus()
-{
-    Menu* menubar_ = WidgetKit::instance()->menubar();
-    
-    menubar_->append_item(MakeFileMenu());
-    menubar_->append_item(MakeEditMenu());
-    menubar_->append_item(MakeStructureMenu());
-    menubar_->append_item(MakeFontMenu());
-    menubar_->append_item(MakeBrushMenu());
-    menubar_->append_item(MakePatternMenu());
-    menubar_->append_item(MakeFgColorMenu());
-    menubar_->append_item(MakeBgColorMenu());
-    menubar_->append_item(MakeAlignMenu());
-    menubar_->append_item(MakeViewMenu());
-    menubar_->append_item(MakeFrameMenu());
-    Resource::ref(menubar_);
-    return LayoutKit::instance()->vbox(menubar_);
 }
 
 MenuItem * FrameKit::MakeFileMenu() {
@@ -260,8 +266,11 @@ MenuItem* FrameKit::MakeFrameMenu() {
     MenuItem *mbi = kit.menubar_item(kit.label("Frame"));
     mbi->menu(kit.pulldown());
 
-    MakeMenu(mbi, new MoveFrameCmd(new ControlInfo("Move Forward","^F",""), +1),
+    MoveFrameCmd::default_instance
+      (new MoveFrameCmd(new ControlInfo("Move Forward","^F",""), +1));
+    MakeMenu(mbi, MoveFrameCmd::default_instance(),
 	     "Move Forward   ");
+
     MakeMenu(mbi, new MoveFrameCmd(new ControlInfo("Move Backward","^B",""), -1),
 	     "Move Backward   ");
     MakeMenu(mbi, new FrameBeginCmd(new ControlInfo("Goto First Frame")),
@@ -273,9 +282,9 @@ MenuItem* FrameKit::MakeFrameMenu() {
 	     "New Forward    ");
     MakeMenu(mbi, new CreateMoveFrameCmd(new ControlInfo("New Backward","B","B"), false),
 	     "New Backward   ");
-    MakeMenu(mbi, new CopyMoveFrameCmd(new ControlInfo("Copy Forward","","")),
+    MakeMenu(mbi, new CopyMoveFrameCmd(new ControlInfo("Copy Forward","X","X")),
 	     "Copy Forward   ");
-    MakeMenu(mbi, new CopyMoveFrameCmd(new ControlInfo("Copy Backward","",""), false),
+    MakeMenu(mbi, new CopyMoveFrameCmd(new ControlInfo("Copy Backward","Y","Y"), false),
 	     "Copy Backward  ");
     MakeMenu(mbi, new DeleteFrameCmd(new ControlInfo("Delete","D","D")),
 	     "Delete  ");
@@ -284,6 +293,20 @@ MenuItem* FrameKit::MakeFrameMenu() {
 	     "Show Prev Frame");
     MakeMenu(mbi, new ShowOtherFrameCmd(new ControlInfo("Hide Prev Frame","",""), 0),
 	     "Hide Prev Frame");
+
+    MenuItem* menu_item;
+    menu_item = kit.menu_item(kit.label("Enable Looping"));
+    menu_item->action
+      (new ActionCallback(MoveFrameCmd)
+       (MoveFrameCmd::default_instance(), &MoveFrameCmd::set_wraparound));
+    mbi->menu()->append_item(menu_item);
+
+    menu_item = kit.menu_item(kit.label("Disable Looping"));
+    menu_item->action
+      (new ActionCallback(MoveFrameCmd)
+       (MoveFrameCmd::default_instance(), &MoveFrameCmd::clr_wraparound));
+    mbi->menu()->append_item(menu_item);
+
     return mbi;
 }
 
@@ -333,6 +356,8 @@ MenuItem* FrameKit::MakeEditMenu() {
 	     "Select All   ");
     MakeMenu(mbi, new SlctByAttrCmd(new ControlInfo("Select by Attribute", "$", "$")),
 	     "Select by Attribute   ");
+    MakeMenu(mbi, new SetAttrByExprCmd(new ControlInfo("Compute Attributes ", "#", "#")),
+	     "Compute Attributes ");
     mbi->menu()->append_item(kit.menu_item_separator());
     MakeMenu(mbi, new ScaleCmd(new ControlInfo("Flip Horizontal",
 				       KLBL_HFLIP, CODE_HFLIP),

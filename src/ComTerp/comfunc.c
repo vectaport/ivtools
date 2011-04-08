@@ -43,8 +43,9 @@ void ComFunc::argcnts(int narg, int nkey, int nargskey) {
 
 void ComFunc::reset_stack() {
     int count = _nargs + _nkeys - _npops;
-    for (int i=0; i<_npops; i++) 
+    for (int i=1; i<=_npops; i++) 
         _comterp->stack_top(i).AttributeValue::~AttributeValue();
+
     _comterp->decr_stack(count);
     _comterp->_just_reset = true;
     _npops = 0;
@@ -73,19 +74,25 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
     return dflt;
 }
 
-ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt) {
+ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt, boolean always) {
   int count = nargs() + nkeys() - _npops;
   for (int i=0; i<count; i++) {
     ComValue& keyref = _comterp->stack_top(-i);
     if( keyref.type() == ComValue::KeywordType) {
 	    if (keyref.symbol_val() == id) {
-	      if (i+1==count || keyref.narg() == 0) 
-		return dflt;
-	      else {
-		ComValue& valref = _comterp->stack_top(-i-1);
-		if (valref.type() == ComValue::KeywordType)
+	      if (i+1==count || keyref.narg() == 0) {
+		if (always) 
+		  return ComValue::trueval();
+		else
 		  return dflt;
-		else {
+	      } else {
+		ComValue& valref = _comterp->stack_top(-i-1);
+		if (valref.type() == ComValue::KeywordType) {
+		  if (always) 
+		    return ComValue::trueval();
+		  else
+		    return dflt;
+		} else {
 		  if (!symbol) 
 		    valref = _comterp->lookup_symval(valref);
 		  return valref;
@@ -94,7 +101,7 @@ ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt) {
 	    }
     }
   }
-  return ComValue::nullval();
+  return always ? dflt : ComValue::nullval();
 }
 
 ComValue& ComFunc::stack_dotname(int n) {

@@ -137,7 +137,7 @@ main()
 	id4 = symbol_add("symbol4");
 
 	/* find the third symbol */
-	if (symbol_find("symbol3") != 0)
+	if (symbol_find("symbol3") < 0)
 	   printf("ERROR: Can't find symbol3\n");
 	/* Print number of chars in symbol */
 	printf("symbol2 has %d characters\n",symbol_len(id2));
@@ -151,12 +151,12 @@ main()
 	/* two instances */
   	symbol_del(id4);
 	/* make sure you can find symbol 4 */
-	if (symbol_find("symbol4") != 0)
+	if (symbol_find("symbol4") < 0)
 	   printf("ERROR: Can't find symbol4\n");
         /* now delete symbol 4 id5 */
 	symbol_del(id5);
 	/* now symbol 4 should be gone */
-	if (symbol_find("symbol4") == 0)
+	if (symbol_find("symbol4") < 0)
 	   printf("ERROR: Symbol 4 should have been deleted but was found\n");
 
 }

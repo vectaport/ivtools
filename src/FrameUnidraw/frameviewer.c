@@ -82,7 +82,9 @@ void FrameViewer::Update () {
 	    if (newView->Done(first))
 		newView->First(first);
 	    ed->InitFrame();
+#if 0
 	    ed->SetFrame((FrameView*)newView->GetView(first));
+#endif
 	    ed->UpdateFrame(true);
 
 	    Draw();
@@ -98,8 +100,9 @@ void FrameViewer::Update () {
 	_damage->Repair();
         s->ShowHandles(this);
     }
-    GetEditor()->GetWindow()->cursor(arrow);
+    GetEditor()->GetWindow()->repair();
     GetEditor()->GetWindow()->display()->flush();
+    GetEditor()->GetWindow()->cursor(arrow);
 }
 
 

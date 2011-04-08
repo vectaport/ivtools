@@ -74,7 +74,6 @@ static PropertyData properties[] = {
     { "*pageheight", "11" },
     { "*gridxincr", "8" },
     { "*gridyincr", "8" },
-    { "*scribble_pointer", "false" },
     { "*font1", "-*-courier-medium-r-normal-*-8-*-*-*-*-*-*-* Courier 8" },
     { "*font2", "-*-courier-medium-r-normal-*-10-*-*-*-*-*-*-* Courier 10" },
     { "*font3", "-*-courier-bold-r-normal-*-12-*-*-*-*-*-*-* Courier-Bold 12" },
@@ -146,35 +145,68 @@ static PropertyData properties[] = {
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
     { "*history",	"20" },
-    { "*color6",        "false" },
+
     { "*color5",        "false" },
-    { "*gray7",         "false" },
-    { "*gray6",         "false" },
+    { "*nocolor6",      "false" },
     { "*gray5",         "false" },
-    { "*tile",          "false" },
-    { "*twidth",        "512" },
+    { "*gray6",         "false" },
+    { "*gray7",         "false" },
+    { "*pagecols",      "0" },
+    { "*pagerows",      "0" },
+    { "*panner_off",    "false"  },
+    { "*panner_align",    "br"  },
+    { "*scribble_pointer", "false" },
+    { "*slider_off",    "false"  },
     { "*theight",       "512" },
+    { "*tile",          "false" },
+    { "*toolbarloc",    "l"  },
+    { "*twidth",        "512" },
+    { "*zoomer_off",    "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
 #endif
+    { "*help",          "false"  },
+    { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
 
 static OptionDesc options[] = {
-    { "-color6", "*color6", OptionValueImplicit, "true" },
     { "-color5", "*color5", OptionValueImplicit, "true" },
-    { "-gray7", "*gray7", OptionValueImplicit, "true" },
-    { "-gray6", "*gray6", OptionValueImplicit, "true" },
+    { "-nocolor6", "*color6", OptionValueImplicit, "true" },
     { "-gray5", "*gray5", OptionValueImplicit, "true" },
-    { "-tile", "*tile", OptionValueImplicit, "true" },
-    { "-twidth", "*twidth", OptionValueNext },
-    { "-theight", "*theight", OptionValueNext },
+    { "-gray6", "*gray6", OptionValueImplicit, "true" },
+    { "-gray7", "*gray7", OptionValueImplicit, "true" },
+    { "-pagecols", "*pagecols", OptionValueNext },
+    { "-ncols", "*pagecols", OptionValueNext },
+    { "-pagerows", "*pagerows", OptionValueNext },
+    { "-nrows", "*pagerows", OptionValueNext },
+    { "-panner_off", "*panner_off", OptionValueImplicit, "true" },
+    { "-poff", "*panner_off", OptionValueImplicit, "true" },
+    { "-panner_align", "*panner_align", OptionValueNext },
+    { "-pal", "*panner_align", OptionValueNext },
     { "-scribble_pointer", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-scrpt", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-slider_off", "*slider_off", OptionValueImplicit, "true" },
+    { "-soff", "*slider_off", OptionValueImplicit, "true" },
+    { "-tile", "*tile", OptionValueImplicit, "true" },
+    { "-toolbarloc", "*toolbarloc", OptionValueNext },
+    { "-tbl", "*toolbarloc", OptionValueNext },
+    { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
 #endif
+    { "-help", "*help", OptionValueImplicit, "true" },
+    { "-font", "*font", OptionValueNext },
     { nil }
 };
+
+static char* usage =
+"Usage: drawtool [any idraw parameter] [-color5] [-gray5] [-gray6] [-gray7] \n\
+[-nocolor6] [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
+[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-toolbarloc|-tbl r|l ] \n\
+[-zoomer_off|-zoff] [file]";
 
 /*****************************************************************************/
 
@@ -189,18 +221,23 @@ int main (int argc, char** argv) {
         catalog, argc, argv, options, properties
     );
 
+    if (strcmp(catalog->GetAttribute("help"), "true")==0) {
+      cerr << usage << "\n";
+      return 0;
+    }
+    
 #ifdef HAVE_ACE
 
-    UnidrawImportAcceptor import_acceptor;
+    UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
     const char* importstr = catalog->GetAttribute("import");
     int importnum = atoi(importstr);
-    if (import_acceptor.open 
+    if (import_acceptor->open 
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "drawtool:  unable to open import port " << importnum << "\n";
 
     else if (IMPORT_REACTOR::instance ()->register_handler 
-	     (&import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawtool:  unable to register UnidrawImportAcceptor with ACE reactor\n";
 
     else
@@ -216,7 +253,7 @@ int main (int argc, char** argv) {
 #endif
 
     if (argc > 2) {
-	cerr << "Usage: drawtool [file]" << "\n";
+	cerr << usage << "\n";
 	exit_status = 1;
 
     } else {

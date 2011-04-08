@@ -51,7 +51,7 @@ const unsigned VERSION =2;
 
 #endif
 
-#if defined(BSD) || defined(hpux) || defined(linux) || defined(__sun)
+#if defined(BSD) || defined(hpux) || defined(linux) || defined(__sun) || defined(__alpha)
 
 #ifdef hpux
 #include <time.h>

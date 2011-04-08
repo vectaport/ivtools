@@ -62,7 +62,8 @@ public:
     boolean brief() const;
 
     int add_command(const char* name, ComFunc*);
-    void list_commands(ostream& out);
+    void list_commands(ostream& out, boolean sorted = false);
+    int* get_commands(int &ncommands, boolean sorted = false);
 
     ComValue& pop_stack();
     ComValue& lookup_symval(ComValue&);
@@ -113,6 +114,7 @@ protected:
     int _pfoff;
     boolean _brief;
     boolean _just_reset;
+    boolean _defaults_added;
 
     ComValueTable* _localtable;
     static ComValueTable* _globaltable;
@@ -122,7 +124,9 @@ protected:
 
     ComterpHandler* _handler;
 
-    friend ComFunc;
+    friend class ComFunc;
+    friend class ComterpHandler;
+    friend class ComTerpIOHandler;
 };
 
 #endif /* !defined(_comterp_h) */

@@ -70,6 +70,7 @@ ComEditor::ComEditor(const char* file, OverlayKit* kit)
 
 ComEditor::ComEditor(boolean initflag, OverlayKit* kit) 
 : OverlayEditor(initflag, kit) {
+  _terp = nil;
 }
 
 void ComEditor::Init (OverlayComp* comp, const char* name) {
@@ -83,7 +84,9 @@ void ComEditor::Init (OverlayComp* comp, const char* name) {
 void ComEditor::InitCommands() {
     if (!_terp) 
       _terp = new ComTerpServ();
-    if (!comterplist() || comterplist()->Number()==1) 
+    const char* comdraw_off_str = unidraw->GetCatalog()->GetAttribute("comdraw_off");
+    if ((!comterplist() || comterplist()->Number()==1) &&
+	(comdraw_off_str ? strcmp(comdraw_off_str, "false")==0 : true))
       _terp_iohandler = new ComTerpIOHandler(_terp, stdin);
     else
       _terp_iohandler = nil;
@@ -128,10 +131,10 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("tilefile", new TileFileFunc(comterp, this));
 
-    int handles_id = comterp->add_command("handles", new HandlesFunc(comterp, this));
-}
+    comterp->add_command("handles", new HandlesFunc(comterp, this));
 
-ComTerpServ* ComEditor::GetComTerp() { return _terp; }
+    comterp->add_command("barplot", new BarPlotFunc(comterp, this));
+}
 
 
 

@@ -73,6 +73,14 @@ void clippoly(ClipOperation op,
     cout << "a:\n" << *poly1;
     cout << "b:\n" << *poly2;
 #endif
+    if (poly1->area() == 0) {
+      npolys = 0;
+      return;
+    }
+    else if (poly2->area() == 0) {
+      npolys = 0;
+      return;
+    }
 
     PolyPList a_min_b, b_min_a, a_and_b;
     clip_poly(*poly1, *poly2, a_min_b, b_min_a, a_and_b);

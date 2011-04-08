@@ -69,7 +69,7 @@ ParamList* FrameOverlaysComp::GetParamList() {
 }
 
 void FrameOverlaysComp::GrowParamList(ParamList* pl) {
-    pl->add_param("kids", ParamStruct::required, &FrameScript::ReadChildren, this, this);
+    pl->add_param("kids", ParamStruct::optional, &FrameScript::ReadChildren, this, this);
     OverlaysComp::GrowParamList(pl);
     return;
 }
@@ -426,8 +426,8 @@ ParamList* FramesComp::GetParamList() {
 }
 
 void FramesComp::GrowParamList(ParamList* pl) {
-    pl->add_param("frames", ParamStruct::required, &FramesScript::ReadFrames, this, this);
-    FrameComp::GrowParamList(pl);
+    pl->add_param("frames", ParamStruct::optional, &FramesScript::ReadFrames, this, this);
+    OverlayComp::GrowParamList(pl);
     return;
 }
 
@@ -475,7 +475,7 @@ ParamList* FrameIdrawComp::_frame_idraw_params = nil;
 FrameIdrawComp::FrameIdrawComp(boolean add_bg, const char* pathname, OverlayComp* parent) 
 : FramesComp(parent) {
     _pathname = _basedir = nil;
-    _grlist = nil;
+    _gslist = nil;
     _ptsbuf = nil;
     SetPathName(pathname);
     if (add_bg)
@@ -485,11 +485,11 @@ FrameIdrawComp::FrameIdrawComp(boolean add_bg, const char* pathname, OverlayComp
 FrameIdrawComp::FrameIdrawComp (istream& in, const char* pathname, OverlayComp* parent) 
 : FramesComp(parent) {
     _pathname = _basedir = nil;
-    _grlist = nil;
+    _gslist = nil;
     _ptsbuf = nil;
     SetPathName(pathname);
     _valid = GetParamList()->read_args(in, this);
-    delete _grlist;
+    delete _gslist;
     if (_ptsbuf) {
 	for (int i=0; i<_ptsnum; i++) 
 	    Unref(_ptsbuf[i]);
@@ -546,7 +546,11 @@ void FrameIdrawComp::Interpret (Command* cmd) {
 	cmd->IsA(UNGROUP_CMD) ||
 	cmd->IsA(FRONT_CMD) ||
 	cmd->IsA(BACK_CMD)) {
-	ed->GetFrame()->GetGraphicComp()->Interpret(cmd);
+	if (OverlaysView* frameview = ed->GetFrame()) 
+	  frameview->GetGraphicComp()->Interpret(cmd);
+	else
+	  OverlaysComp::Interpret(cmd);
+
     }
     else if (cmd->IsA(CREATEFRAME_CMD)) {
 	boolean after = ((CreateFrameCmd*)cmd)->After();
@@ -713,15 +717,15 @@ const char* FrameIdrawComp::GetPathName() { return _pathname; }
 const char* FrameIdrawComp::GetBaseDir() { return _basedir; }
 
 void FrameIdrawComp::GrowIndexedGS(Graphic* gs) {
-    if (!_grlist) _grlist = new Picture();
-    _grlist->Append(gs);
+    if (!_gslist) _gslist = new Picture();
+    _gslist->Append(gs);
 }
 
 Graphic* FrameIdrawComp::GetIndexedGS(int index) {
-    if (_grlist) {
+    if (_gslist) {
 	Iterator i;
-	for (_grlist->First(i); !_grlist->Done(i); _grlist->Next(i)) {
-	    if (index==0) return _grlist->GetGraphic(i);
+	for (_gslist->First(i); !_gslist->Done(i); _gslist->Next(i)) {
+	    if (index==0) return _gslist->GetGraphic(i);
 	    index--;
 	}
 	return nil;
@@ -787,3 +791,8 @@ OverlaysComp* FrameIdrawComp::GetIndexedPic(int index) {
 	return nil;
 }
     
+void FrameIdrawComp::ResetIndexedGS() {
+  delete _gslist;
+  _gslist = nil;
+}
+

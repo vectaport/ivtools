@@ -471,7 +471,12 @@ Graphic* OverlaysView::GetGraphic () {
     Graphic* g = OverlayView::GetGraphic();
     
     if (g == nil) {
-        g = new Picture;
+        OverlaysComp* comp = GetOverlaysComp();
+	Graphic* compgr = comp->GetGraphic();
+	g = new Picture;
+	if (compgr && compgr->GetTransformer())
+	  g->SetTransformer(new Transformer(compgr->GetTransformer()));
+
         Iterator i;
 
         for (First(i); !Done(i); Next(i)) {

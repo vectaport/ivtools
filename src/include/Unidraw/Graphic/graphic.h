@@ -247,6 +247,8 @@ public:
     void Desensitize(boolean desensitize=true);
     void Sensitize(boolean sensitize=true);
     boolean Desensitized();
+    void ToggleHide();
+    void ToggleDesensitize();
 
 protected:
     unsigned int _flags;
@@ -342,6 +344,14 @@ inline void Graphic::Sensitize(boolean sensitize) {
 inline boolean Graphic::Desensitized(
 ) {
     return _flags & _desensitize_mask;
+}
+
+inline void Graphic::ToggleHide() {
+  if (Hidden()) Show(); else Hide();
+}
+
+inline void Graphic::ToggleDesensitize() {
+  if (Desensitized()) Sensitize(); else Desensitize();
 }
 
 inline void Graphic::drawGraphic (Graphic* g, Canvas* c, Graphic* gs) {

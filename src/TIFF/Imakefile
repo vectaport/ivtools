@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = src_tiff
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

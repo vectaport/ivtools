@@ -6,6 +6,8 @@ PACKAGE = idemo
 
 #ifdef InObjectCodeDir
 
+CLIPPOLY_CCLDLIBS =
+
 Use_libInterViews()
 ComplexProgramTarget(idemo)
 

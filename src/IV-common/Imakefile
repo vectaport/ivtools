@@ -3,6 +3,7 @@ XCOMM source files for building the IV-common library
 XCOMM
 
 PACKAGE = IV-common
+NO_IVMKCM = 1
 
 #ifdef InObjectCodeDir
 

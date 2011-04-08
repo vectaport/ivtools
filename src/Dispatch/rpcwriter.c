@@ -83,7 +83,9 @@ RpcWriter::RpcWriter(rpcstream* server) :
 
 RpcWriter::~RpcWriter() {
     if (_delete) {
+#if !defined(_IO_NEW_STREAMS)
 	delete _server;
+#endif
     }
     delete _host;
 }

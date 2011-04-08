@@ -4,7 +4,7 @@ XCOMM
 
 PACKAGE = include_x11
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(IV-X11)
 

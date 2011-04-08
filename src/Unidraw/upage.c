@@ -27,32 +27,11 @@
 #include <Unidraw/globals.h>
 #include <Unidraw/upage.h>
 
-#include <Unidraw/Graphic/graphic.h>
-
 #include <IV-2_6/InterViews/painter.h>
 
 #include <IV-2_6/_enter.h>
 
 /*****************************************************************************/
-
-class PageGraphic : public Graphic {
-public:
-    PageGraphic(float, float, Graphic* = nil);
-    virtual ~PageGraphic();
-
-    void GetOriginal(float&, float&);
-
-    virtual void SetBrush(PSBrush*);
-    virtual PSBrush* GetBrush();
-
-    virtual Graphic* Copy();
-protected:
-    virtual void getExtent(float&, float&, float&, float&, float&, Graphic*);
-    virtual void draw(Canvas*, Graphic*);
-private:
-    float _width, _height;
-    PSBrush* _br;
-};
 
 PageGraphic::PageGraphic (
     float width, float height, Graphic* gr

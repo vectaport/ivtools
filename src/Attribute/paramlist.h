@@ -92,6 +92,10 @@ public:
 	const char* name, ParamStruct::ParamFormat format, param_callback ifunc, 
 	void* base, void* offset, void* addr1, 
 	void* addr2 = nil, void* addr3 = nil, void* addr4 = nil);
+    void add_param_first(
+	const char* name, ParamStruct::ParamFormat format, param_callback ifunc, 
+	void* base = (void*)0x1, void* addr1 = (void*)0x1, 
+	void* addr2 = nil, void* addr3 = nil, void* addr4 = nil);
     boolean read_args(istream& in, void* base);
     
 
@@ -124,6 +128,7 @@ public:
 
 protected:
     void insert(ParamStruct*);
+    void insert_first(ParamStruct*);
 
     void First(ALIterator&);
     void Last(ALIterator&);

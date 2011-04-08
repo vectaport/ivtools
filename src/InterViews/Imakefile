@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = src_interviews
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

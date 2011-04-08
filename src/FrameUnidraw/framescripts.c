@@ -47,6 +47,10 @@
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
 
+#include <Attribute/attribute.h>
+#include <Attribute/attrlist.h>
+#include <Attribute/attrvalue.h>
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stream.h>
@@ -78,12 +82,23 @@ boolean FrameScript::Definition (ostream& out) {
 
     out << "frame(\n";
     
+    static int readonly_symval = symbol_add("readonly");
+    boolean outflag = false;
     for (First(i); status && !Done(i); ) {
 	OverlayScript* sv = (OverlayScript*)GetView(i);
-	Indent(out);
-	status = sv->Definition(out);
+	boolean readonly = false;
+	AttributeList* al;
+	if (al = sv->GetOverlayComp()->attrlist()) {
+	  AttributeValue* av = al->find(readonly_symval);
+	  if (av) readonly = av->is_true();
+	}
+	if (!readonly) {
+	  if (outflag) out << ",\n";
+	  Indent(out);
+	  status = sv->Definition(out);
+	  outflag = true;
+	} 
 	Next(i);
-	if (!Done(i)) out << ",\n";
     }
     
     out << "\n";
@@ -159,12 +174,23 @@ boolean FramesScript::Definition (ostream& out) {
 
 	out << "frames(\n";
 
+	static int readonly_symval = symbol_add("readonly");
+	boolean outflag = false;
 	for (First(i); status && !Done(i); ) {
 	    OverlayScript* sv = (OverlayScript*)GetView(i);
-	    Indent(out);
-	    status = sv->Definition(out);
+	    boolean readonly = false;
+	    AttributeList* al;
+	    if (al = sv->GetOverlayComp()->attrlist()) {
+	      AttributeValue* av = al->find(readonly_symval);
+	      if (av) readonly = av->is_true();
+	    }
+	    if (!readonly) {
+	      if (outflag) out << ",\n";
+	      Indent(out);
+	      status = sv->Definition(out);
+	      outflag = true;
+	    }
 	    Next(i);
-	    if (!Done(i)) out << ",\n";
 	}
     }
 	
@@ -183,12 +209,18 @@ boolean FramesScript::Definition (ostream& out) {
 int FramesScript::ReadFrames (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
   FrameComp* frame;
   FrameFileComp* framefile;
+  OverlayComp* child;
   FramesComp* comps = (FramesComp*)addr1;
-  char buf[BUFSIZ];
-  
+  char buf1[BUFSIZ];
+  char buf2[BUFSIZ];
+  char* buf = buf1;
+
+  FrameComp* bgframe = nil;
+
   while (in.good()) {
     frame = nil;
     framefile = nil;
+    child = nil;
 
     if (read_name(in, buf, BUFSIZ)) break;
 
@@ -196,12 +228,22 @@ int FramesScript::ReadFrames (istream& in, void* addr1, void* addr2, void* addr3
     if (status = read_gsptspic(buf, in, comps)) {
       if (status==-1) break;
     }
-    else if (strcmp(buf, "frame") == 0)             frame = new FrameComp(in, comps);
-    else if (strcmp(buf, "framefile") == 0) 	    framefile = new FrameFileComp(in, comps);
+
+    else if (strcmp(buf, "frame") == 0) {
+      frame = new FrameComp(in, comps);
+      if (!bgframe) bgframe = frame;
+
+    } else if (strcmp(buf, "framefile") == 0) 	    framefile = new FrameFileComp(in, comps);
+
     else {
-      fprintf(stderr, "unknown graphical object %s\n", buf);
-      return -1;
+      if (!bgframe) {
+	bgframe = new FrameComp(comps);
+	comps->Append(bgframe);
+      }
+      child = read_obj(buf, in, bgframe);
+      if (!child) return -1;
     }
+
     if (frame != nil) {
       if (in.good() && frame->valid()) {
 	comps->Append(frame);
@@ -229,6 +271,18 @@ int FramesScript::ReadFrames (istream& in, void* addr1, void* addr2, void* addr3
 	return -1;
       }
     }
+    if (child) {
+      if (in.good() && child->valid()) {
+	bgframe->Append(child);
+      } else {
+	/* report failure even if one child fails */
+	if (!*buf && (buf==buf1 ? *buf2 : *buf1)) 
+	  cerr << "Error after reading " << (buf==buf1 ? buf2 : buf1) << "\n";
+	delete child;
+	return -1;
+      }
+    }
+    buf = buf==buf1 ? buf2 : buf1;
   }
   return 0;
 }
@@ -295,12 +349,23 @@ boolean FrameIdrawScript::Emit (ostream& out) {
 	if (prevout) out << ",";
 	out << "\n";
     }
+    static int readonly_symval = symbol_add("readonly");
+    boolean outflag = false;
     for (; status && !Done(i); ) {
-	ExternView* ev = GetView(i);
-	Indent(out);
-        status = ev->Definition(out);
+	OverlayScript* ev = (OverlayScript*)GetView(i);
+	boolean readonly = false;
+	AttributeList* al;
+	if (al = ev->GetOverlayComp()->attrlist()) {
+	  AttributeValue* av = al->find(readonly_symval);
+	  if (av) readonly = av->is_true();
+	}
+	if (!readonly) {
+	  if (outflag) out << ",\n";
+	  Indent(out);
+	  status = ev->Definition(out);
+	  outflag = true;
+	}
 	Next(i);
-	if (!Done(i)) out << ",\n";
     }
 
     out << "\n";

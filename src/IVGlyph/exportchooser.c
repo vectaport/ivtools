@@ -220,7 +220,7 @@ void ExportChooserImpl::build() {
     if (_execute_flag_button || _by_pathname_flag_button) 
 	hbox->append(layout.hglue(5.0));
     if (_execute_flag_button) {
-	exec_bttn = kit.check_box("pipe to command", printer);
+	exec_bttn = kit.check_box("pipe to filter", printer);
 	exec_bttn->state()->set(_execute_flag ? 0xffff : 0x0000, _execute_flag);
 	hbox->append(layout.vcenter(exec_bttn));
 	hbox->append(layout.hglue(5.0));

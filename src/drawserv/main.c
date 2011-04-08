@@ -184,6 +184,7 @@ static PropertyData properties[] = {
     { "*import",        "20001" },
     { "*comdraw",          "20002" },
 #endif
+    { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
 
@@ -200,6 +201,7 @@ static OptionDesc options[] = {
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
 #endif
+    { "-font", "*font", OptionValueNext },
     { nil }
 };
 
@@ -217,32 +219,32 @@ int main (int argc, char** argv) {
 
 #ifdef HAVE_ACE
 
-    UnidrawImportAcceptor import_acceptor;
+    UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
     const char* importstr = catalog->GetAttribute("import");
     int importnum = atoi(importstr);
-    if (import_acceptor.open 
+    if (import_acceptor->open 
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "drawserv:  unable to open import port " << importnum << "\n";
 
     else if (COMTERP_REACTOR::instance ()->register_handler 
-	     (&import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawserv:  unable to register UnidrawImportAcceptor with ACE reactor\n";
     else
         cerr << "accepting import port (" << importnum << ") connections\n";
 
 
     // Acceptor factory.
-    UnidrawComterpAcceptor peer_acceptor;
+    UnidrawComterpAcceptor* peer_acceptor = new UnidrawComterpAcceptor();
 
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
-    if (peer_acceptor.open 
+    if (peer_acceptor->open 
 	(ACE_INET_Addr (portnum)) == -1)
         cerr << "drawserv:  unable to open port " << portnum << "\n";
 
     else if (COMTERP_REACTOR::instance ()->register_handler 
-	     (&peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawserv:  unable to register ComterpAcceptor with ACE reactor\n";
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";

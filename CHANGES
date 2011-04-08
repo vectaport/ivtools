@@ -1,3 +1,471 @@
+July 9th 1998  ivtools-0.6.7
+
+Drawing Editor Changes
+
+	* in drawtool add a "Graylevel Processing" sub-menu to the Edit
+ 	menu, with a Scale, LogScale, and PseudoColor options.
+
+	* group similar items on the View menu into a submenu for each:
+	    - graphic hide/show
+	    - viewer chain/unchain
+	    - graphic fix/unfix size
+
+	* add an "Enable Looping" and "Disable Looping" to the flipbook
+ 	Frame menu.  Only works in the forward direction at present.
+	
+Interpreter Changes	
+
+	* add a 'run' argument to comterp, to run a file of commands and
+ 	exit.
+
+	* add a createframe(:after) func to flipbook.
+
+Library Changes 
+
+	-- InterViews --
+
+	* add a nil-defaulted argument to the ApplicationWindow
+ 	constructor, a new X11 display name, i.e. "localhost:0.0".  Tested
+ 	with a "New Display" command on the View menu of drawtool that is
+ 	#if 0'd for now.
+
+	-- Attribute --
+
+	* add more type checking methods (both static and otherwise) to
+ 	AttributeValue (more generic is_integer and is_floatingpoint
+ 	methods)
+
+	-- Unidraw -- 
+
+	* increment the idraw format version number to 11 to accomodate
+ 	changes to work better with plotutil.  The only thing changed so
+ 	far is the addition of closepath's to the postscript output for a
+ 	circle or ellipse graphic.  Future plans are for adding capstyle,
+ 	joinstyle, and floating point line widths to the brush
+ 	description.
+
+	-- UniIdraw -- 
+
+	* fix bug in printing out idraw format version numbers when
+ 	reading in newer or older versions.
+
+	-- OverlayUnidraw --
+
+	* make the top-level GrayRaster::pseudocolor method calls
+ 	the lower level GrayRaster::pseudocolor method (instead of the
+ 	OverlayRaster one).
+
+	* change the low-level GrayRaster::pseudocolor method to do
+ 	something more reasonable for a floating point image.
+
+	* set up the use of a string-editor dialog box to enter the min
+ 	and max values for linear and log scaling of grayrasters, and
+ 	conversion of them to color rasters with a pseudocoloring
+ 	operation.
+
+	* add blue to the pseudocoloring, going from red to green to blue.
+
+	* create a do-nothing virtual void OverlayEditor::ResetStateVars
+ 	method that can be filled in by derived OverlayEditor's.
+
+	-- FrameUnidraw --
+
+	* change to support using with frames disabled, for programs
+ 	derived from FrameUnidraw that don't always need the mechanism.
+
+	-- IVGlyph --
+
+	* evolve the construction of GFieldEditor to be embedded into
+ 	Page's and boxes equally well.
+
+	* create a StrEditDialog for bringing up a single string editor
+	and having the result returned to the application.
+
+	-- OverlayUnidraw -- 
+	
+	* add a GraphicLoc tool to drawtool.  Displays the position of a
+ 	pointer click in the local coordinate system of the graphic.
+  	Gives the offset in pixels when clicked on a raster.
+
+Script Changes
+
+	* fix pnmtopgm shell script to avoid infinite loop on an empty
+	file.
+
+	* add example bash script, fgrab10, that grabs 10 jpeg files from
+ 	a series of 10 URL's using w3c, converts and dithers them with
+ 	djpeg, then transfers them to a newly created frame in a
+ 	separately running flipbook.
+
+	* add example bash script, cntsrcheng, that counts the number of
+ 	various search engine URL's found in a file of referring URL's,
+ 	and plots them as a bar plot in comdraw using plotmtv.
+
+Config Changes
+
+	* change the default on InstallRelative in site.def.$CPU to be
+	NO.
+
+	* add configuration changes for Alpha from Bruno Delfosse at
+	Thomson-CSF.
+
+	* move certain definitions from local.def to site.def.$CPU, so
+	that they can be customized in site.def.ALPHA:
+	HasDynamicSharedLibraries, SharedCCFlags, SharedCCLdFlags,
+	BuildRPCClasses
+	
+	* generalize ivxt Imakefile to use $CPU
+
+	* temporarily disable the default build and install of ivxt, the
+ 	example program that shows how to wrap Xt and Motif objects around
+ 	an InterViews application.  You can bring it back by changing a
+ 	#if 0 in src/Imakefile to #if 1 and remaking the Makefiles (make
+ 	Makefiles).
+
+June 5th 1998  ivtools-0.6.6
+
+Overall Changes
+
+	* test and fix rebuild with ACE-4.5 using egcs
+	
+Interpreter Changes	
+
+	* add a "shell" command to comterp, for executing arbitary Unix
+ 	commands via system(3).
+
+Library Changes 
+
+	-- TopoFace --
+
+	* add a TopoEdgeList::get_edge method that combines the ::elem and
+ 	::edge methods into one call.
+
+	* migrate const's from certain method return values in this
+ 	library to the method itself, which was probably the original
+ 	intent.
+
+	-- Unidraw --
+
+	* add two inline methods to Graphic, ::ToggleHide
+ 	::ToggleDesensitize, for programmer convenience.
+
+	-- IVGlyph --
+
+	* add blinkability to NameView text labels.
+
+	-- OverlayUnidraw -- 
+	
+	* add a public OverlayEditor::IsClean method, to work around the
+ 	protected Unidraw::IsClean(Editor*) method.
+
+	* fix bug in OvImportCmd::TIFF_Raster.  It was using the wrong
+ 	variable to construct the resultant OverlayRaster.
+
+	-- GraphUnidraw --
+	
+	* add the propogation of graphic state to EdgeView::Update, which
+ 	will include the hide/desensitize mask.
+
+
+May 19th 1998  ivtools-0.6.5
+
+Documentation	
+
+	* man pages generated from README's for drawtool, flipbook, and
+ 	graphdraw from Guenter Geiger, (came with the Debian
+ 	ivtools-0.6.2-4 diffs).
+
+	* set up src/man/man1 directory with dclock.1, iclass.1, idraw.1,
+ 	and ivmkf.1 copied directly from the corresponding original iv-3.1
+ 	file (iv/src/man/commands/*.n)
+
+Overall Changes
+	
+	* fixes required to build on redhat-5.0, glibc, egcs-1.0.2
+
+	* minor diffs gleaned from Debian ivtools-0.6.2-4
+
+Drawing Editor Changes 
+	
+	* makes -color6 the default for drawtool.
+
+	* change "pipe to command" in export dialog box to read "pipe to
+ 	filter" 
+
+	* add support for ASCII PGM and PPM files.
+
+Interpreter Changes	
+
+	* fix up the comterp client mode to interpret and
+ 	handle continuation prompts "> "
+
+	* fix up the comterp telcat mode to simply cat the file without
+	expectation of any response.
+
+Library Changes 
+
+	-- Attribute --
+
+	* add BooleanType to output of AttributeValue
+
+	* fix a warning in compiling a program that uses
+ 	ParamList::add_param_first
+
+	-- ComTerp --
+
+	* have ComTerp::read_expr return false when the parser or scanner
+ 	had a problem, to partially fix the output of parser/scanner error
+ 	messages.
+
+	* disable the restoration of _bufptr in a ComTerpServ::run call,
+ 	because any existing _buffer would be already fully converted to
+ 	postfix tokens before such a run call was made.
+
+	* fix up the ComterpHandler::handle_input to handle empty lines of
+ 	input by echoing a \n
+
+	-- OverlayUnidraw -- 
+	
+	* adds void GrayRaster::graypoke(unsigned long x, unsigned long y,
+ 	AttributeValue val)
+
+	* adds OverlayRaster* GrayRaster::pseudocolor( ColorIntensity
+ 	mingray, ColorIntensity maxgray )
+
+	* fixes reading of inlined gray floating point rasters, getting
+ 	the top2bottom flag right.
+
+	* fix bug in output of readonly components.
+
+	* fix raster import on Solaris
+
+	* changes the boolean function used to detect if a breakout of the
+ 	Session::read event loop is needed from one that checks only the
+ 	unidraw update flag, to one that checks both that flag and whether
+ 	there is anything appended to OverlayUnidraw::_cmdq, a MacroCmd.
+
+	* add a generic GetFrame method at the OverlayEditor level and
+ 	change EdgeView::InterpretManipulator to use it.
+
+	* make sure an OverlayViewer::Update doesn't get done before an
+ 	OverlayViewer::Resize
+
+	-- FrameUnidraw -- 
+
+	* take out what seems an unnecesary call to FrameEditor::SetFrame
+ 	in FrameViewer::Update, because the same thing is done in the
+ 	proceeding call to FrameEditor::InitFrame.
+
+	-- GraphUnidraw --
+
+	* notify nodes with outgoing edges during edge update
+
+	* fix EdgeUpdateCmd for subclasses of NodeComp.
+
+	-- ComUnidraw --
+
+	* add a BarPlotFunc using plotmtv and a patched pstoedit-2.60 
+    	(see http://www.vectaport.com/ivtools/comdraw.html for details).
+
+April 15th 1998  ivtools-0.6.4
+
+	* adds a pnmtopgm.sh script, to convert from pbm (binary) or ppm
+ 	(color) to pgm (gray-level) image formats.
+
+	* changes from streambuf.h to iostream.h in ComTerp/comterpserv.c
+	to fix-up a Debian ivtools work-around.
+
+	* remove bug in initialization of attribute expression dialog box.
+
+	* fix #define's in src/include/std/math.h to use __svr4__ instead
+ 	of solaris.
+
+	* define a Version 11 idraw PostScript format for the use of the
+ 	GNU Plotting Utilities (plotutils-2.0).  When finalized it would
+ 	add support for cap-styles, join-styles, and floating point line
+ 	widths, to the graphics library underlying idraw and drawtool.
+
+	* adds a GrayRaster::set_minmax method used to set the minimum and
+ 	maximum numeric value used when mapping onto the minimum (0) and
+ 	maximum (255) gray-level values.
+
+	* adds a static ParamList* RasterOvComp::get_param_list() to 
+	return the list of parameter parsing structures, and a
+	ParamList::add_param_first() method useful for overriding a
+	default parameter.
+ 
+April 8th 1998  ivtools-0.6.3
+
+New Programs
+
+	* adds an ivxt example program, which demonstrates the
+	newly developed embedabbility of an ivtools drawing editor in
+	a Motif or Xt applications that uses the Motif or Xt event loop.
+
+Drawing Editor Changes
+
+	* adds "X" as the keyboard shortcut for "Copy Forward" in
+ 	flipbook, and "Y" for "Copy Backward" (under the Frame menu).
+
+	* adds two bash scripts for generating GIF89A animations from the
+ 	Print dialog box on flipbook, mkgif89a and mkgif89ac.  See the
+ 	scripts in ivtools-0.6/src/scripts for more details, or look at
+ 	http://www.vectaport.com/ivtools/flipbook.html for instructions on
+ 	how to use them.
+
+	* adds an updated anytopnm sh script to ivtools, which gets
+ 	installed along with the rest of the binaries, which gets used by
+ 	the import dialog box when the new "auto convert" button is
+ 	selected.  Originally from Jef Poskanzer and pbmplus, it tries to
+ 	figure out what kind of image file has been selected, and convert
+ 	it to either pbm, pgm, or ppm format.  Doesn't work (yet) for
+ 	converting ASCII versions of the pbmplus formats to the necessary
+ 	binary ones.
+
+	* expanded usage documentation for drawtool, flipbook, and comdraw:
+
+	* added -panner_off, -zoomer_off, -slider_off arguments to all three.
+
+	* added -panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc to all three
+	* added -toolbarloc l|r to drawtool and flipbook
+
+	* added -help to all three
+	
+Interpreter Changes
+
+	* adds sorting for the output of the help command in any comterp.
+
+	* add a remote command to comterp, which can be tested by running
+ 	"comterp remote".  The documentation for this command is:
+	
+	remote(hoststr portnum cmdstr) -- remotely evaluate command string
+ 	then locally evaluate result string
+
+	This can be used to run an arbitrary (new-line terminated) command
+ 	on a remote server (it doesn't have to be a comterp), and read
+ 	back a (new-line terminated) result that is then evaluted within
+ 	the local interpreter and the result pushed on the stack.
+
+	* adds a continuation prompt to comterp "> ", for when expressions
+ 	are detected as incomplete by the parser.  Disabled when running
+ 	commands from a file.
+
+Glyph Example Changes
+
+	* reinstates the string chooser in the glyphterp example program
+ 	that lists all predefined commands in the associated interpreter,
+ 	including all the operators (i.e. "++") which are converted to
+ 	commands by the underlying scanner/parser (i.e. "incr_before" or
+ 	"incr_after").
+
+Library Changes
+
+	-- InterViews -- 
+
+	* extends the InterViews Session class to allow for something else
+ 	(like Motif) to create the Display object, by adding a
+ 	nil-defaulted Display* argument to Session::init.
+
+	-- Unidraw -- 
+	
+	* adds a reverse flag to Unidraw's DirtyCmd, to allow it to be
+ 	used as "CleanUpCmd", i.e. to clear the modified flag in a drawing
+ 	editor, which in turn causes the Save dialog box not to appear
+ 	when an editor is quit.
+
+	* moves the PageGraphic class definition from Unidraw/upage.c to
+ 	Unidraw/upage.h, so that other applications can get at the page
+ 	size after the page graphic is created.
+	
+	-- Attribute -- 
+
+	* adds dump method to AttributeList (Attribute/attrlist.h) for
+ 	debug purposes.  There is also a typedef class AttributeValue _AV;
+ 	in Attribute/attrvalue.h, to aid in casting in debugger to avoid
+ 	seeing static class members on ComTerp/comvalue.h when debugging
+	the use of ComValue's.
+
+	-- ComTerp -- 
+
+	* adds method to ComTerp to return a sorted list of commands
+	added to it.
+	
+	* makes ComTerpServ's run methods re-entrant by saving then
+ 	restoring more of the interpreter state,, so that a derived
+ 	ComFunc can call comterp()->run(...) in its execute() method.
+
+	*add more type test methods to AttributeValue:is_unknown()
+	(whether the type is UnknownType), is_known(), and an is_string()
+ 	which is true for string and symbol.
+
+	* adds a fourth boolean argument to ComFunc::stack_key to always
+ 	return the third argument as the default, not just as a default
+ 	for when the keyword is supplied without argument.  In this case a
+ 	value of true is returned whenever the keyword is supplied without
+ 	argument.  
+
+	-- OverlayUnidraw --
+
+	* adds these methods to OverlayComp, and the symid version to
+ 	OverlaysComp:
+
+	virtual AttributeValue* FindValue
+        (const char* name, boolean last = false, boolean breadth = false, 
+         boolean down = true, boolean up = false);
+	
+        virtual AttributeValue* FindValue
+        (int symid, boolean last = false, boolean breadth = false, 
+        boolean down = true, boolean up = false);
+
+	at present only depth-first downward search returning the first
+ 	value found (prefix) is fleshed out.
+
+	* sets up mixin classes for indexing gs's, point lists, and
+ 	pictures (compound graphics)
+
+	* uses those classes in OverlayIdrawComp to mix in the indices
+ 	formerly internal to the class.  
+
+	* creates an alternate to OverlayComp::GetAttributeList,
+ 	::attrlist(), which returns nil if it doesn't exist, as opposed to
+ 	creating one. Therefore attribute checking code can be written
+ 	that never creates an attribute list if one doesn't exist.
+
+	* used OverlayComp::attrlist to add a readonly attribute to a
+ 	comp.  
+	
+	* changed all the composite comp ::Definition methods to check for
+ 	the readonly attribute on their children, and suppress output if true.
+
+	-- FrameUnidraw --
+
+	* allows for the reading in of arbitrary graphics in
+ 	FramesScript::ReadChildren
+
+Configuration Changes
+
+	* adds an ProjectDir definition to config/site.def.$CPU and a
+ 	PROJECTDIR make variable to config/params.def.  Now the base
+ 	directory for all the source packages relied on for the build of
+ 	ivtools can be set in a single place.  The default is /proj
+
+	* configuration fixes for Solaris 2.6 compilation -- see
+ 	http://www.vectaport.com/vectaport/solaris-2.6-build.txt for more
+ 	details.
+
+Bug Fixes
+
+	* fixes bug in OverlayUnidraw (drawtool), whereby duplicated
+ 	groups (OverlaysComp's with Picture graphics) shared a Transformer
+ 	between the subject and the view, which effectively disabled the
+ 	damage repair mechanism whenever the only change to the group
+ 	graphic was described by a change to the Transformer (i.e. a
+ 	rotate, scale, move, or stretch).
+
+	* fixes a bug in the export of rasters by pathname in drawtool
+ 	documents
+	
+
 February 26th 1998  ivtools-0.6.2
 
 Drawing Editor Changes

@@ -173,6 +173,17 @@ void ParamList::add_param_indirect(
     insert(ps);
 }
 
+void ParamList::add_param_first(const char* name, ParamStruct::ParamFormat format, param_callback ifunc, 
+			  void* base, void* addr1, void* addr2, void* addr3, void* addr4) {
+    ParamStruct* ps = new ParamStruct(
+	name, format, ifunc, 
+	addr1 ? (char *) addr1 - (char *) base : -1,
+	addr2 ? (char *) addr2 - (char *) base : -1, 
+	addr3 ? (char *) addr3 - (char *) base : -1, 
+	addr4 ? (char *) addr4 - (char *) base : -1);
+    insert_first(ps);
+}
+
 void ParamList::insert(ParamStruct* ps) {
     ALIterator i;
     for (First(i); !Done(i); Next(i)) {
@@ -181,6 +192,23 @@ void ParamList::insert(ParamStruct* ps) {
 	if (ps->format() == ParamStruct::required &&
 	    ops->format() != ParamStruct::required) break;
 	if (ps->format() == ParamStruct::optional && 
+	    ops->format() == ParamStruct::keyword) break;
+    }
+    InsertBefore(i, ps);
+    _count++;
+    if (ps->format() == ParamStruct::required) _required_count++;
+    if (ps->format() == ParamStruct::optional) _optional_count++;
+    if (ps->format() == ParamStruct::keyword) _keyword_count++;
+    if (ps->format() == ParamStruct::other) _other_count++;
+}
+
+void ParamList::insert_first(ParamStruct* ps) {
+    ALIterator i;
+    for (First(i); !Done(i); Next(i)) {
+	ParamStruct* ops = GetStruct(i);
+	if (ps->format() == ParamStruct::other) break;
+	if (ps->format() == ParamStruct::required) break;
+	if (ps->format() == ParamStruct::keyword && 
 	    ops->format() == ParamStruct::keyword) break;
     }
     InsertBefore(i, ps);

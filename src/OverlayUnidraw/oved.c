@@ -69,6 +69,7 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -148,9 +149,11 @@ void OverlayEditor::Update () {
     for (int i = 0; (v = (OverlayViewer*)GetViewer(i)) != nil; ++i) {
         v->Update();
     }
+#if 0
     // make sure state views get updated right away (e.g. frame number)
     GetWindow()->repair();
     unidraw->GetWorld()->display()->flush();
+#endif
 }
 
 Interactor* OverlayEditor::Interior () {
@@ -179,12 +182,69 @@ Interactor* OverlayEditor::Interior () {
 
     _tray->VBox(_tray, indicators, hborder, _viewer, _tray);
     _tray->VBox(_tray, status, hborder, _viewer, _tray);
+    Alignment alignment = BottomRight;
 
-    _tray->Align(BottomRight, _viewer, new Frame(new OverlayPanner(_viewer)));
-
+    OverlayPanner* panner = make_panner();
+    if (panner) 
+      _tray->Align(panner_align(), _viewer, new Frame(panner));
     return _tray;
 }
 
+OverlayPanner* OverlayEditor::make_panner() {
+
+  Catalog* catalog = unidraw->GetCatalog();
+  
+  boolean panner_off = false;
+  if (const char* string = catalog->GetAttribute("panner_off"))
+    panner_off = strcmp(string, "true") == 0;
+  if (const char* string = catalog->GetAttribute("panner_on"))
+    panner_off = strcmp(string, "false") == 0;
+  boolean zoomer_off = false;
+  if (const char* string = catalog->GetAttribute("zoomer_off"))
+    zoomer_off = strcmp(string, "true") == 0;
+  if (const char* string = catalog->GetAttribute("zoomer_on"))
+    zoomer_off = strcmp(string, "false") == 0;
+  boolean slider_off = false;
+  if (const char* string = catalog->GetAttribute("slider_off"))
+    slider_off = strcmp(string, "true") == 0;
+  if (const char* string = catalog->GetAttribute("slider_on"))
+    slider_off = strcmp(string, "false") == 0;
+
+  if (!panner_off || !zoomer_off || !slider_off) {
+    OverlayPanner* panner = 
+      new OverlayPanner(_viewer, 0, !panner_off, !zoomer_off, !slider_off); 
+    return panner;
+  } else
+    return nil;
+}
+
+int OverlayEditor::panner_align() {
+  
+  Catalog* catalog = unidraw->GetCatalog();
+  
+  Alignment alignment = BottomRight;
+  if (const char* panner_align = catalog->GetAttribute("panner_align")) {
+    const int nalign = 15;
+    char *alignmentstr[nalign] = { 
+      "tl", "tc", "tr", "cl", "c", "cr", "cl", "bl", "br", 
+      "l", "r", "t", "b", "hc", "vc" 
+    };
+    if (isdigit(*panner_align))
+      alignment = atoi(panner_align); 
+    else {
+      int n=0;
+      while (n<nalign) {
+	if (strcmp(alignmentstr[n], panner_align)==0) {
+	  alignment = n;
+	  break;
+	}
+	n++;
+      }
+    }
+  }
+  return alignment;
+}
+    
 void OverlayEditor::InitCommands() { }
 
 Tool* OverlayEditor::GetCurTool() { return _curtool; }
@@ -278,5 +338,18 @@ ComTerpServ* OverlayEditor::comterp(int symid) {
     return av ? (ComTerpServ*) av->obj_val() : nil;
   } else
     return nil;
+}
+
+OverlaysView* OverlayEditor::GetFrame(int index) {
+  return (OverlaysView*)GetViewer()->GetGraphicView();
+}
+
+boolean OverlayEditor::IsClean() {
+  ModifStatusVar* mv = (ModifStatusVar*) GetState("ModifStatusVar");
+  return (mv != nil && !mv->GetModifStatus());
+}
+
+void OverlayEditor::ResetStateVars() {
+  return;
 }
 

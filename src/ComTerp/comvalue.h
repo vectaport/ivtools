@@ -81,6 +81,7 @@ public:
     static ComValue& falseval();
     static ComValue& blankval();
     static ComValue& unkval();
+    static ComValue& oneval();
 protected:
     int _narg;
     int _nkey;
@@ -92,6 +93,7 @@ protected:
     static ComValue _falseval;
     static ComValue _blankval;
     static ComValue _unkval;
+    static ComValue _oneval;
 };
 
 #endif /* !defined(_comvalue_h) */

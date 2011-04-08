@@ -46,8 +46,12 @@ public:
     virtual void Log(Command*, boolean dirty);
 
     void Append(Command*);
+
+    static boolean unidraw_updated();
+    static boolean unidraw_updated_or_command_pushed();
 protected:
-    MacroCmd* _cmdq;
+    static MacroCmd* _cmdq;
+    static boolean* _updated_ptr;
 };
 
 #endif

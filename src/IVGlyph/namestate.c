@@ -25,13 +25,19 @@
 #include <InterViews/layout.h>
 #include <InterViews/patch.h>
 #include <IV-look/kit.h>
+#include <Dispatch/dispatcher.h>
 #include <stdio.h>
 
 /*****************************************************************************/
 
+implementIOCallback(NameView)
+
 NameView::NameView(NameState* s1) :MonoGlyph(), Observer()
 {
     st1 = s1;
+    _blink_state = 0;
+    _blink_in = 0;
+    _blink_handler = new IOCallback(NameView)(this, &NameView::blink_view);
     LayoutKit& lk = *LayoutKit::instance();
     WidgetKit& kit = *WidgetKit::instance();
     int len = 1;
@@ -66,15 +72,42 @@ void NameView::update(Observable* obs) {
 	sprintf(str1,"%s", st1->name());
     else
 	sprintf(str1,"");
+    Glyph* text;
+    if (_blink_state) {
+      if (_blink_in)
+	text = kit.chiseled_label(str1);
+      else
+	text = kit.raised_label(str1);
+    }
+    else
+      text = kit.label(str1);
     _label->redraw();
     _label->body(
 	lk.hbox(
-	    kit.label(str1),
+	    text,
 	    lk.hglue()
 	)
     );
     _label->reallocate();
     _label->redraw();
+}
+
+void NameView::blink_view(long, long) {
+    if (_blink_in) {
+	_blink_in = 0;
+    } else {
+	_blink_in = 1;
+    }
+    _blink_state = 1;
+    update(nil);
+    long flash_rate = long(0.5 * 1000000);
+    Dispatcher::instance().startTimer(0, flash_rate, _blink_handler);
+}
+
+void NameView::stop_blinking() {
+  Dispatcher::instance().stopTimer(_blink_handler);
+  _blink_state = 0;
+  update(nil);
 }
 
 /*****************************************************************************/

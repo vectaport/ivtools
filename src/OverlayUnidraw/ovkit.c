@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 Vectaport Inc.
  * Copyright (c) 1994-1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1994 Cartoactive Systems
  * Copyright (c) 1993 David B. Hollenbeck
@@ -29,6 +30,7 @@
 
 #include <OverlayUnidraw/annotate.h>
 #include <OverlayUnidraw/attrtool.h>
+#include <OverlayUnidraw/grloctool.h>
 #include <OverlayUnidraw/ovabout.h>
 #include <OverlayUnidraw/ovarrow.h>
 #include <OverlayUnidraw/ovcamcmds.h>
@@ -45,6 +47,7 @@
 #include <OverlayUnidraw/ovgdialog.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovhull.h>
+#include <OverlayUnidraw/ovipcmds.h>
 #include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovline.h>
 #include <OverlayUnidraw/ovpage.h>
@@ -158,6 +161,8 @@ static const char* bgAttrib = "bgcolor";
 
 static const char* page_width_attrib = "pagewidth";
 static const char* page_height_attrib = "pageheight";
+static const char* page_cols_attrib = "pagecols";
+static const char* page_rows_attrib = "pagerows";
 static const char* grid_x_incr = "gridxincr";
 static const char* grid_y_incr = "gridyincr";
 static const char* scribble_pointer_attrib = "scribble_pointer";
@@ -183,6 +188,10 @@ OverlayKit* OverlayKit::_overlaykit = nil;
 OverlayKit::OverlayKit () {
     WidgetKit& kit = *WidgetKit::instance();
     _ed = nil;
+}
+
+OverlayKit::~OverlayKit() {
+  delete _otherdisplay;
 }
 
 void OverlayKit::SetEditor(OverlayEditor* editor) {
@@ -218,6 +227,8 @@ void OverlayKit::InitViewer () {
 
     const char* page_w = catalog->GetAttribute(page_width_attrib);
     const char* page_h = catalog->GetAttribute(page_height_attrib);
+    const char* page_cols = catalog->GetAttribute(page_cols_attrib);
+    const char* page_rows = catalog->GetAttribute(page_rows_attrib);
     const char* x_incr = catalog->GetAttribute(grid_x_incr);
     const char* y_incr = catalog->GetAttribute(grid_y_incr);
     const char* scribble_pointer = catalog->GetAttribute(scribble_pointer_attrib);
@@ -230,8 +241,16 @@ void OverlayKit::InitViewer () {
      * These statements had to be moved down here to workaround
      * a strange cfront 3.0 bug.
      */
-    const float w = round(atof(page_w) * ivinches);
-    const float h = round(atof(page_h) * ivinches);
+    float w = round(atof(page_w) * ivinches);
+    float h = round(atof(page_h) * ivinches);
+    if (page_cols && page_rows) {
+      int ncols = atoi(page_cols);
+      int nrows = atoi(page_rows);
+      if (ncols>0 && nrows>0) {
+	w = ncols;
+	h = nrows;
+      }
+    }
 
     OverlayPage* page = new OverlayPage(w, h);
     Grid* grid = new Grid(w, h, atof(x_incr), atof(y_incr));
@@ -254,7 +273,14 @@ void OverlayKit::InitLayout(const char* name) {
 	    menus->append(states);
 	Target* viewer = 
 	    new Target(new Frame(Interior()), TargetPrimitiveHit);
-	toolbar->append(lk.vcenter(viewer));
+	Catalog* catalog = unidraw->GetCatalog();
+	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
+	  if (strcmp(toolbarloca, "r") == 0) 
+	    toolbar->prepend(lk.vcenter(viewer));
+	  else /* if (strcmp(toolbarloca, "l") == 0) */
+	    toolbar->append(lk.vcenter(viewer));
+	} else 
+	  toolbar->append(lk.vcenter(viewer));
 	menus->append(toolbar);
 
 	PolyGlyph* topbox = lk.vbox();
@@ -269,7 +295,7 @@ void OverlayKit::InitLayout(const char* name) {
 		)
 	    );
 
-	ManagedWindow* w = new ApplicationWindow(topbox);
+	ManagedWindow* w = new ApplicationWindow(topbox, _otherdisplay);
 	_ed->SetWindow(w);
 	Style* s = new Style(Session::instance()->style());
 	s->alias(name);
@@ -333,6 +359,7 @@ Glyph* OverlayKit::MakeToolbar() {
     Glyph* clipr = kit.label("ClipRect");
     Glyph* clipp = kit.label("ClipPoly");
     Glyph* hull = kit.label("ConvexHull");
+    Glyph* grloc = kit.label("GraphicLoc");
 
     Coord maxwidth = 0;
     Requisition req;
@@ -375,6 +402,9 @@ Glyph* OverlayKit::MakeToolbar() {
     maxwidth = Math::max((clipp->request(req), req.x_requirement().natural()),
 			 maxwidth);
     maxwidth = Math::max((hull->request(req), req.x_requirement().natural()),
+			 maxwidth);
+
+    maxwidth = Math::max((grloc->request(req), req.x_requirement().natural()),
 			 maxwidth);
 
     vb->append(MakeTool(new SelectTool(new ControlInfo("Select", KLBL_SELECT, CODE_SELECT)),
@@ -479,6 +509,9 @@ Glyph* OverlayKit::MakeToolbar() {
 			  layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 					 layout.hcenter(hull)), tg, _ed->MouseDocObservable(), mouse_convexhull));
 #endif
+    vb->append(MakeTool(new GrLocTool(new ControlInfo("GraphicLoc", "", "")),
+			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+				       layout.hcenter(grloc)), tg, _ed->MouseDocObservable(), mouse_grloc));
 
     _toolbars->append(vb);
     _toolbars->flip_to(0);
@@ -493,7 +526,7 @@ Glyph* OverlayKit::MakeToolbar() {
 		    ),
 		    unidraw->GetCatalog()->FindColor("#aaaaaa")
 		),
-		550
+		580
 	    )
 	)
     );
@@ -520,6 +553,8 @@ Glyph* OverlayKit::MakeMenus() {
     m = MakeBgColorMenu();
     if (m) menubar_->append_item(m);
     m = MakeAlignMenu();
+    if (m) menubar_->append_item(m);
+    m = MakeFrameMenu();
     if (m) menubar_->append_item(m);
     m = MakeViewMenu();
     if (m) menubar_->append_item(m);
@@ -713,6 +748,9 @@ MenuItem * OverlayKit::MakeFileMenu() {
     MakeMenu(mbi, new OvWindowDumpAsCmd(new ControlInfo("Dump Window As..."
 						  )),
 	     "Dump Window As...   ");
+    MakeMenu(mbi, new OvImageMapCmd(new ControlInfo("Save ImageMap As..."
+						  )),
+	     "Save ImageMap As... ");
     mbi->menu()->append_item(kit.menu_item_separator());
     MakeMenu(mbi, new OvQuitCmd(new ControlInfo("Quit", KLBL_QUIT, CODE_QUIT)),
 	     "Quit   ");
@@ -771,6 +809,21 @@ MenuItem* OverlayKit::MakeEditMenu() {
     MakeMenu(mbi, new PreciseRotateCmd(new ControlInfo("Precise Rotate",
 					       KLBL_PROTATE, CODE_PROTATE)),
 	     "Precise Rotate   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+
+    MenuItem* graymenu = kit.menu_item(kit.label("Graylevel Processing   "));
+    graymenu->menu(kit.pullright());
+    mbi->menu()->append_item(graymenu);
+    
+    MakeMenu(graymenu, new ScaleGrayCmd(new ControlInfo("Scale GrayImage",
+					     "", "")),
+	     "Scale Gray Image   ");
+    MakeMenu(graymenu, new LogScaleCmd(new ControlInfo("LogScale GrayImage",
+					     "", "")),
+	     "Logscale Gray Image   ");
+    MakeMenu(graymenu, new PseudocolorCmd(new ControlInfo("PseudoColor GrayImage",
+					     "", "")),
+	     "Pseudocolor Gray Image   ");
 #ifdef CLIPPOLY
     mbi->menu()->append_item(kit.menu_item_separator());
     MakeMenu(mbi, new ClipPolyAMinusBCmd(new ControlInfo("ClipPoly A minus B")),
@@ -1024,7 +1077,7 @@ MenuItem* OverlayKit::MakeAlignMenu() {
     MakeMenu(mbi, new AlignCmd(new ControlInfo("Abut Down",
 				       KLBL_ABUTDOWN,
 				       CODE_ABUTDOWN), Bottom, Top),
-	     "Abut Left   ");
+	     "Abut Down   ");
     mbi->menu()->append_item(kit.menu_item_separator());
     MakeMenu(mbi, new AlignToGridCmd(new ControlInfo("Align to Grid",
 					     KLBL_ALGNTOGRID,
@@ -1034,6 +1087,10 @@ MenuItem* OverlayKit::MakeAlignMenu() {
     return mbi;
 }
 
+MenuItem* OverlayKit::MakeFrameMenu() {
+    return nil;
+}
+
 MenuItem* OverlayKit::MakeViewMenu() {
     LayoutKit& lk = *LayoutKit::instance();
     WidgetKit& kit = *WidgetKit::instance();
@@ -1041,12 +1098,25 @@ MenuItem* OverlayKit::MakeViewMenu() {
     MenuItem* mbi = kit.menubar_item(kit.label("View"));
     mbi->menu(kit.pulldown());
 
-    MakeMenu(mbi, new OvNewViewCmd(new ControlInfo("New View", KLBL_NEWVIEW, CODE_NEWVIEW)),
-	     "New View   ");
+    OvNewViewCmd::default_instance
+      (new OvNewViewCmd
+       (new ControlInfo("New View", KLBL_NEWVIEW, CODE_NEWVIEW), 
+       "localhost:0.0"));
+    MakeMenu(mbi, OvNewViewCmd::default_instance(), "New View   ");
+
     MakeMenu(mbi, new OvCloseEditorCmd(new ControlInfo("Close View",
 					     KLBL_CLOSEEDITOR,
 					     CODE_CLOSEEDITOR)),
 	     "Close View   ");
+#if 0
+    MenuItem* menu_item;
+    menu_item = kit.menu_item(kit.label("New Display"));
+    menu_item->action
+      (new ActionCallback(OvNewViewCmd)
+       (OvNewViewCmd::default_instance(), &OvNewViewCmd::set_display));
+    mbi->menu()->append_item(menu_item);
+    mbi->menu()->append_item(kit.menu_item_separator());
+#endif
 
     MakeMenu(mbi, new PageCmd(new ControlInfo("Page on/off",
 					      "p", "p")),
@@ -1124,30 +1194,44 @@ MenuItem* OverlayKit::MakeViewMenu() {
 	     "Precise Pan      ");
 
     mbi->menu()->append_item(kit.menu_item_separator());
-    MakeMenu(mbi, new HideViewCmd(_ed->GetViewer(), new ControlInfo("Hide Graphic Here", "H", "H")),
+
+    MenuItem* grmenu = kit.menu_item(kit.label("Hide/Show Graphics   "));
+    grmenu->menu(kit.pullright());
+    mbi->menu()->append_item(grmenu);
+    
+    MakeMenu(grmenu, new HideViewCmd(_ed->GetViewer(), new ControlInfo("Hide Graphic Here", "H", "H")),
 	     "Hide Graphic Here");
-    MakeMenu(mbi, new UnhideViewsCmd(new ControlInfo("Unhide Graphics There", "^H", "\010")),
+    MakeMenu(grmenu, new UnhideViewsCmd(new ControlInfo("Unhide Graphics There", "^H", "\010")),
 	     "Unhide Graphics There");
-    MakeMenu(mbi, new DesensitizeViewCmd(_ed->GetViewer(), new ControlInfo("Desensitize Graphic Here", "", "")),
+    MakeMenu(grmenu, new DesensitizeViewCmd(_ed->GetViewer(), new ControlInfo("Desensitize Graphic Here", "", "")),
 	     "Desensitize Graphic Here");
-    MakeMenu(mbi, new SensitizeViewsCmd(new ControlInfo("Sensitize Graphics There", "", "")),
+    MakeMenu(grmenu, new SensitizeViewsCmd(new ControlInfo("Sensitize Graphics There", "", "")),
 	     "Sensitize Graphics There");
-    MakeMenu(mbi, new FixViewCmd(new ControlInfo("Fix Size", " ", " "), true, false),
+
+    MenuItem* fixmenu = kit.menu_item(kit.label("Fix/Unfix Graphics   "));
+    fixmenu->menu(kit.pullright());
+    mbi->menu()->append_item(fixmenu);
+    
+    MakeMenu(fixmenu, new FixViewCmd(new ControlInfo("Fix Size", " ", " "), true, false),
 	     "Fix Size");
-    MakeMenu(mbi, new UnfixViewCmd(new ControlInfo("Unfix Size", " ", " "), true, false),
+    MakeMenu(fixmenu, new UnfixViewCmd(new ControlInfo("Unfix Size", " ", " "), true, false),
 	     "Unfix Size");
-    MakeMenu(mbi, new FixViewCmd(new ControlInfo("Fix Location", " ", " "), false, true),
+    MakeMenu(fixmenu, new FixViewCmd(new ControlInfo("Fix Location", " ", " "), false, true),
 	     "Fix Location");
-    MakeMenu(mbi, new UnfixViewCmd(new ControlInfo("Unfix Location", " ", " "), false, true),
+    MakeMenu(fixmenu, new UnfixViewCmd(new ControlInfo("Unfix Location", " ", " "), false, true),
 	     "Unfix Location");
-    mbi->menu()->append_item(kit.menu_item_separator());
-    MakeMenu(mbi, new ChainViewersCmd(_ed->GetViewer(), new ControlInfo("Chain Panning", " ", " "), true, false),
+
+    MenuItem* chainmenu = kit.menu_item(kit.label("Chain/Unchain Viewers   "));
+    chainmenu->menu(kit.pullright());
+    mbi->menu()->append_item(chainmenu);
+    
+    MakeMenu(chainmenu, new ChainViewersCmd(_ed->GetViewer(), new ControlInfo("Chain Panning", " ", " "), true, false),
 	     "Chain Panning");
-    MakeMenu(mbi, new UnchainViewersCmd(_ed->GetViewer(), new ControlInfo("Unchain Panning", " ", " "), true, false),
+    MakeMenu(chainmenu, new UnchainViewersCmd(_ed->GetViewer(), new ControlInfo("Unchain Panning", " ", " "), true, false),
 	     "Unchain Panning");
-    MakeMenu(mbi, new ChainViewersCmd(_ed->GetViewer(), new ControlInfo("Chain Zooming", " ", " "), false, true),
+    MakeMenu(chainmenu, new ChainViewersCmd(_ed->GetViewer(), new ControlInfo("Chain Zooming", " ", " "), false, true),
 	     "Chain Zooming");
-    MakeMenu(mbi, new UnchainViewersCmd(_ed->GetViewer(), new ControlInfo("Unchain Zooming", " ", " "), false, true),
+    MakeMenu(chainmenu, new UnchainViewersCmd(_ed->GetViewer(), new ControlInfo("Unchain Zooming", " ", " "), false, true),
 	     "Unchain Zooming");
     return mbi;
 }
@@ -1248,3 +1332,7 @@ boolean OverlayKit::bincheck(const char* command) {
   int status = bintest(command);
   return !status;
 }
+
+const char* OverlayKit::otherdisplay() { return _otherdisplay; }
+void OverlayKit::otherdisplay(const char* display) 
+{ delete _otherdisplay; _otherdisplay= strdup(display); }

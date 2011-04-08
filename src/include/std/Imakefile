@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = include_std
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

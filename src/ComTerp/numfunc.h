@@ -97,7 +97,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "% is the mod operator"; }
+      return "%s is the mod operator"; }
 
 };
 
@@ -107,7 +107,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(a b) -- return minimum of a and b"; }
+      return "n=%s(a b) -- return minimum of a and b"; }
 
 };
 
@@ -117,7 +117,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(a b) -- return maximum of a and b"; }
+      return "n=%s(a b) -- return maximum of a and b"; }
 
 };
 

@@ -77,14 +77,14 @@ void TopoEdge::attach_faces(TopoFace* left, TopoFace* right) {
     _right = right;
 }
 
-const TopoNode* TopoEdge::start_node() { return _start; }
-const TopoNode* TopoEdge::end_node() { return _end; }
+TopoNode* TopoEdge::start_node() const { return _start; }
+TopoNode* TopoEdge::end_node() const { return _end; }
 
-const TopoFace* TopoEdge::left_face() { return _left; }
-const TopoFace* TopoEdge::right_face() { return _right; }
+TopoFace* TopoEdge::left_face() const { return _left; }
+TopoFace* TopoEdge::right_face() const { return _right; }
 
-const boolean TopoEdge::starts_at(TopoNode* node) { return node==_start; }
-const boolean TopoEdge::ends_at(TopoNode* node) { return node==_end; }
+boolean TopoEdge::starts_at(TopoNode* node) const { return node==_start; }
+boolean TopoEdge::ends_at(TopoNode* node) const { return node==_end; }
 
 FMultiLineObj* TopoEdge::multiline() {
   int npt = npts();

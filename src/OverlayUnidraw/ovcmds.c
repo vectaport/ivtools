@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 Vectaport Inc.
  * Copyright (c) 1994-1995 Vectaport Inc.
  * Copyright (c) 1995 Cider Press
  *
@@ -26,6 +27,7 @@
  * Implementation of overlay specific commands.
  */
 
+#include <OverlayUnidraw/clippoly.h>
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcmds.h>
@@ -33,17 +35,22 @@
 #include <OverlayUnidraw/ovdialog.h>
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovpage.h>
+#include <OverlayUnidraw/ovpolygon.h>
+#include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovpsview.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/ovimport.h>
 
 #include <IVGlyph/saveaschooser.h>
 #include <IVGlyph/gdialogs.h>
+#include <IVGlyph/stredit.h>
 
 #include <Unidraw/Components/grview.h>
-
+#include <Unidraw/Graphic/geomobjs.h>
+#include <Unidraw/Graphic/polygons.h>
 #include <Unidraw/clipboard.h>
 #include <Unidraw/grid.h>
 #include <Unidraw/iterator.h>
@@ -54,9 +61,11 @@
 #include <IV-look/dialogs.h>
 #include <IV-look/kit.h>
 
+#include <InterViews/canvas.h>
 #include <InterViews/cursor.h>
 #include <InterViews/display.h>
 #include <InterViews/session.h>
+#include <InterViews/transformer.h>
 #include <InterViews/style.h>
 #include <InterViews/window.h>
 #include <IV-X11/xwindow.h>
@@ -67,10 +76,15 @@
 #include <OS/math.h>
 #include <OS/string.h>
 
+#include <Attribute/attribute.h>
+#include <Attribute/attrlist.h>
+#include <Attribute/attrvalue.h>
+#include <TopoFace/fgeomobjs.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stream.h>
+#include <fstream.h>
 
 /*****************************************************************************/
 
@@ -166,6 +180,7 @@ void OvNewCompCmd::Execute () {
     if (compNameVar != nil) compNameVar->SetComponent(comp);
     if (modifVar != nil) modifVar->SetComponent(comp);
 
+    ((OverlayEditor*)ed)->ResetStateVars();
     ed->SetComponent(comp);
     ed->Update();
 
@@ -714,30 +729,72 @@ OverlaysComp* OvGroupCmd::MakeOverlaysComp() {
 
 /*****************************************************************************/
 
+OvNewViewCmd* OvNewViewCmd::_default = nil;
+
 ClassId OvNewViewCmd::GetClassId () { return OVNEWVIEW_CMD; }
 
 boolean OvNewViewCmd::IsA (ClassId id) {
     return OVNEWVIEW_CMD == id || NewViewCmd::IsA(id);
 }
 
-OvNewViewCmd::OvNewViewCmd (ControlInfo* c) : NewViewCmd(c) { }
-OvNewViewCmd::OvNewViewCmd (Editor* ed) : NewViewCmd(ed) { }
+OvNewViewCmd::OvNewViewCmd (ControlInfo* c, const char* display) 
+: NewViewCmd(c) 
+{ 
+  _display = strdup(display); 
+}
+
+OvNewViewCmd::OvNewViewCmd (Editor* ed, const char* display) 
+: NewViewCmd(ed) 
+{ 
+  _display = strdup(display);
+}
+
+OvNewViewCmd::~OvNewViewCmd() { 
+  delete _display;
+}
+
 
 Command* OvNewViewCmd::Copy () {
-    Command* copy = new OvNewViewCmd(CopyControlInfo());
+    OvNewViewCmd* copy = new OvNewViewCmd(CopyControlInfo());
     InitCopy(copy);
+    copy->display(_display);
     return copy;
 }
 
 void OvNewViewCmd::Execute () {
     Editor* ed = GetEditor();
-    Editor* newEd = new OverlayEditor((OverlayComp*)GetGraphicComp());
+    OverlayKit kit;
+    if (_display) 
+      kit.otherdisplay(_display);
+    Editor* newEd = new OverlayEditor((OverlayComp*)GetGraphicComp(), &kit);
 
     *newEd->GetState("ModifStatusVar") = *ed->GetState("ModifStatusVar");
 
     ed->GetWindow()->cursor(hourglass);
     unidraw->Open(newEd);
+    ed->GetWindow()->cursor(arrow);
 }
+
+void OvNewViewCmd::clr_display() {
+  delete _display;
+  _display = nil;
+}
+
+void OvNewViewCmd::set_display() {
+  char* newdisplay =
+    StrEditDialog::post
+    (GetEditor()->GetWindow(), 
+     "Enter display name, i.e. \"hostname:0.0\"",  
+     _display ? _display : "localhost:0.0");
+  delete _display;
+  _display = newdisplay;
+}
+
+const char* OvNewViewCmd::display() { return _display; }
+void OvNewViewCmd::display(const char* display ) 
+{ delete _display; _display = strdup(display); }
+
+implementActionCallback(OvNewViewCmd)
 
 /*****************************************************************************/
 
@@ -1056,4 +1113,396 @@ void OvWindowDumpAsCmd::Execute () {
     }
     if (!again)
 	ed->GetWindow()->cursor(arrow);
+}
+
+/*****************************************************************************/
+
+OvImageMapCmd::OvImageMapCmd (ControlInfo* c, OpenFileChooser* fc) : SaveCompAsCmd(c) {
+    Init(fc);
+}
+
+OvImageMapCmd::OvImageMapCmd (Editor* ed, OpenFileChooser* fc) : SaveCompAsCmd(ed) {
+    Init(fc);
+}
+
+OvImageMapCmd::~OvImageMapCmd() {
+    Resource::unref(chooser_);
+}
+
+void OvImageMapCmd::Init (OpenFileChooser* f) {
+    chooser_ = f;
+    Resource::ref(chooser_);
+}
+
+Command* OvImageMapCmd::Copy () {
+    Command* copy = new OvImageMapCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}
+
+void OvImageMapCmd::Execute () {
+    Editor* ed = GetEditor();
+
+    char buf[CHARBUFSIZE];
+    sprintf(buf, "Save ImageMap template to file:");
+
+    boolean reset_caption = false;
+    Style* style = new Style(Session::instance()->style());
+    style->attribute("subcaption", buf);
+    style->attribute("open", "Save");
+    if (chooser_ == nil) {
+	style = new Style(Session::instance()->style());
+	style->attribute("title", "Save ImageMap");
+	style->attribute("subcaption", "Save ImageMap template to file:");
+	style->attribute("open", "Save");
+	chooser_ = new OpenFileChooser(".", WidgetKit::instance(), style);
+	Resource::ref(chooser_);
+    }
+    boolean again;
+    while (again = chooser_->post_for(ed->GetWindow())) {
+	const String* str = chooser_->selected();
+	NullTerminatedString ns(*str);
+        const char* name = ns.string();
+        OverlayCatalog* catalog = (OverlayCatalog*)unidraw->GetCatalog();
+        boolean ok = true;
+
+        if (catalog->Exists(name) && catalog->Writable(name)) {
+            char buf[CHARBUFSIZE];
+            sprintf(buf, "\"%s\" already exists.", name);
+	    GConfirmDialog* dialog = new GConfirmDialog(buf, "Overwrite?");
+	    Resource::ref(dialog);
+
+	    ok = dialog->post_for(ed->GetWindow());
+	    Resource::unref(dialog);
+        }
+        if (ok) {
+            CompNameVar* cnv = (CompNameVar*) ed->GetState("CompNameVar");
+            const char* oldname = (cnv == nil) ? nil : cnv->GetName();
+            Component* comp = ed->GetComponent();
+
+            if (catalog->Exists(name) && !catalog->Writable(name)) {
+		style->attribute("caption", "");
+		style->attribute("caption", "Couldn't save to file!" );
+            } else {
+	      OverlayViewer* viewer = (OverlayViewer*)ed->GetViewer();
+	      OverlaysView* views = (OverlaysView*)viewer->GetOverlayView();
+	      ofstream outfile(name);
+	      char* drname = new char[strlen(name)+20];
+	      strcpy(drname, name);
+	      strcat(drname, ".drawtool");
+	      ofstream drfile(drname);
+	      outfile << "# Default" << "\n";
+	      outfile << "default default_url" << "\n";
+	      drfile << "drawtool(\n";
+	      DumpViews(views, outfile, drfile);
+	      outfile.close();
+	      drfile << ")\n";
+	      drfile.close();
+	      break;
+            }
+        }
+    }
+    chooser_->unmap();
+    if (reset_caption) {
+	style->attribute("caption", "");
+    }
+    if (!again)
+	ed->GetWindow()->cursor(arrow);
+}
+
+void OvImageMapCmd::DumpViews(OverlayView* view, ostream& outs, ostream& drs) {
+  if (view->IsA(OVERLAYS_VIEW)) {
+    Iterator i;
+    OverlaysView* views = (OverlaysView*)view;
+    for (views->Last(i); !views->Done(i); views->Prev(i)) {
+      OverlayView* vi = (OverlayView*)views->GetView(i);
+      DumpViews(vi, outs, drs);
+    }
+  }
+  else if (view->IsA(OVRECT_VIEW)) {
+    AttributeList* al = view->GetOverlayComp()->GetAttributeList();
+    outs << "# " << *al << "\n";
+    outs << "rect ";
+    if (al->GetAttr("url")) {
+      AttributeValue* av = al->GetAttr("url")->Value();
+      if (av && av->type() == AttributeValue::StringType) {
+	outs << av->string_ptr();
+      }
+      else
+	outs << "null_url";
+    }
+    else {
+      outs << "null_url";
+    }
+    int x[4], y[4];
+    SF_Rect* rect = (SF_Rect*)view->GetGraphic();
+    int x1, y1, x2, y2;
+    rect->GetOriginal(x1, y1, x2, y2);
+    int sx1, sy1, sx2, sy2;
+    OverlayViewer* viewer = (OverlayViewer*)view->GetViewer();
+    viewer->GraphicToScreen(rect, x1, y1, sx1, sy1);
+    viewer->GraphicToScreen(rect, x2, y2, sx2, sy2);
+    Canvas* canvas = viewer->GetCanvas();
+    int ht = canvas->pheight();
+    outs << " " << sx1 << "," << int(ht-sy1-1);
+    outs << " " << sx2 << "," << int(ht-sy2-1) << "\n";
+  }
+  else if (view->IsA(OVPOLYGON_VIEW)) {
+    // 
+    OverlayViewer* viewer = (OverlayViewer*)view->GetViewer();
+    Canvas* canvas = viewer->GetCanvas();
+    int* x;
+    int* y;
+    int np;
+    SF_Polygon* poly = (SF_Polygon*)view->GetGraphic();
+    np = poly->GetOriginal(x, y);
+    float* fx = new float[np];
+    float* fy = new float[np];
+    for (int i = 0; i < np; i++) {
+      fx[i] = x[i];
+      fy[i] = y[i];
+    }
+
+    FFillPolygonObj fpo(fx, fy, np);
+
+    float xg0, yg0, xg1, yg1;
+#if 0
+    viewer->ScreenToGraphic(0, 0, poly, xg0, yg0);
+    viewer->ScreenToGraphic(canvas->pwidth(), canvas->pheight(),
+			    poly, xg1, yg1);
+#endif
+    // screen to graphic for regular graphics
+    float dx0, dy0, dx1, dy1;
+    viewer->ScreenToDrawing(0, 0, dx0, dy0);
+    poly->GetTransformer()->InvTransform(dx0, dy0, xg0, yg0);
+    viewer->ScreenToDrawing(canvas->pwidth(), canvas->pheight(), dx1, dy1);
+    poly->GetTransformer()->InvTransform(dx1, dy1, xg1, yg1);
+
+    FBoxObj viewbox(xg0, yg0, xg1, yg1);
+
+    if (fpo.Intersects(viewbox)) {
+      ((OverlayComp*)view->GetGraphicComp())->GetAttributeList()->dump();
+#ifdef CLIPPOLY
+      float vbx[4];
+      float vby[4];
+      vbx[0] = xg0;
+      vby[0] = yg0;
+      vbx[1] = xg0;
+      vby[1] = yg1;
+      vbx[2] = xg1;
+      vby[2] = yg1;
+      vbx[3] = xg1;
+      vby[3] = yg0;
+      float* px = new float[np];
+      float* py = new float[np];
+      for (int i = 0; i < np; i++) {
+	px[i] = x[i];
+	py[i] = y[i];
+      }
+      ClipOperation op = A_AND_B;
+      int npolys;
+      int* ni;
+      float** cx;
+      float** cy;
+      //clippoly(op, 4, vbx, vby, unp, px, py, npolys, ni, cx, cy);
+      clippoly(op, 4, vbx, vby, np, px, py, npolys, ni, cx, cy);
+      if (npolys > 0) {
+	for (int j = 0; j < npolys; j++) {
+	  DumpPolys(view, outs, drs, cx[j], cy[j], ni[j], canvas->pwidth(), canvas->pheight());
+	}
+	clippoly_delete(npolys, ni, cx, cy);
+      }
+      delete [] px;
+      delete [] py;
+#else
+      //DumpPolys(view, outs, drs, ux, uy, unp, canvas->pwidth(), canvas->pheight());
+#endif
+    }
+  }
+}
+
+void OvImageMapCmd::DumpPolys(OverlayView* view, ostream& outs, ostream& drs,
+				   float* ux, float* uy, int unp,
+				   int pwidth, int pheight)
+{
+  int ni;
+  int* ix;
+  int* iy;
+  GetScreenCoords((OverlayViewer*)view->GetViewer(), view->GetGraphic(),
+		  unp, ux, uy, ni, ix, iy);
+  if (ni > 2 && ni <= 100) {
+      AttributeList* al = view->GetOverlayComp()->GetAttributeList();
+      outs << "# ";
+      if (al)
+	outs << *al;
+      outs << "\n";
+      outs << "poly ";
+      if (al && al->GetAttr("url")) {
+	AttributeValue* av = al->GetAttr("url")->Value();
+	if (av && av->type() == AttributeValue::StringType) {
+	  outs << av->string_ptr();
+	}
+	else
+	  outs << "null_url";
+      }
+      else {
+	outs << "null_url";
+      }
+      drs << "polygon(";
+      for (int i = 0; i < ni; i++) {
+	outs << " " << ix[i] << "," << pheight-iy[i]-1;
+	if (i > 0)
+	  drs << ",";
+	drs << "(" << ix[i] << "," << /*pheight-iy[i]-1*/ iy[i] << ")";
+      }
+      outs << "\n";
+      drs << " :fillbg 0 :brush 65535,1 :fgcolor \"black\",0,0,0 :bgcolor \"black\",0,0,0 :graypat 0.75";
+      drs << *al << ")\n";
+      //}
+  }
+  else if (ni > 3) {
+#ifdef CLIPPOLY
+    // clip in half
+    FBoxObj bbox;
+    FFillPolygonObj fpo(ux, uy, unp);
+    fpo.GetBox(bbox);
+    FBoxObj box1, box2;
+    if ((bbox._right - bbox._left) > (bbox._top - bbox._bottom)) {
+      // clip left/right halves
+      box1._left = bbox._left;
+      box1._bottom = bbox._bottom;
+      box1._right = bbox._left+((bbox._right-bbox._left)/2);
+      box1._top = bbox._top;
+      box2._left = bbox._left+((bbox._right-bbox._left)/2);
+      box2._bottom = bbox._bottom;
+      box2._right = bbox._right;
+      box2._top = bbox._top;
+    }
+    else {
+      // clip bottom/top halves
+      box1._left = bbox._left;
+      box1._bottom = bbox._bottom;
+      box1._right = bbox._right;
+      box1._top = bbox._bottom+((bbox._top-bbox._bottom)/2);
+      box2._left = bbox._left;
+      box2._bottom = bbox._bottom+((bbox._top-bbox._bottom)/2);
+      box2._right = bbox._right;
+      box2._top = bbox._top;
+    }
+    int n1 = 4;
+    float* x1 = new float[n1];
+    float* y1 = new float[n1];
+    x1[0] = box1._left;
+    y1[0] = box1._bottom;
+    x1[1] = box1._left;
+    y1[1] = box1._top;
+    x1[2] = box1._right;
+    y1[2] = box1._top;
+    x1[3] = box1._right;
+    y1[3] = box1._bottom;
+    int n2 = unp;
+    ClipOperation op = A_AND_B;
+    int npolys;
+    int* ni;
+    float** cx;
+    float** cy;
+    clippoly(op, n1, x1, y1, n2, ux, uy, npolys, ni, cx, cy);
+    if (npolys > 0) {
+      for (int j = 0; j < npolys; j++) {
+	DumpPolys(view, outs, drs, cx[j], cy[j], ni[j], pwidth, pheight);
+      }
+      clippoly_delete(npolys, ni, cx, cy);
+    }
+      
+    x1[0] = box2._left;
+    y1[0] = box2._bottom;
+    x1[1] = box2._left;
+    y1[1] = box2._top;
+    x1[2] = box2._right;
+    y1[2] = box2._top;
+    x1[3] = box2._right;
+    y1[3] = box2._bottom;
+    clippoly(op, n1, x1, y1, n2, ux, uy, npolys, ni, cx, cy);
+    if (npolys > 0) {
+      for (int j = 0; j < npolys; j++) {
+	DumpPolys(view, outs, drs, cx[j], cy[j], ni[j], pwidth, pheight);
+      }
+      clippoly_delete(npolys, ni, cx, cy);
+    }
+    delete [] x1;
+    delete [] y1;
+#endif
+  }
+}
+
+void OvImageMapCmd::GetScreenCoords(OverlayViewer* viewer, Graphic* poly, int nf, float* fx, float* fy,
+				    int& ni, int*& ix, int*& iy)
+{
+    int lastx, lasty, lastlastx, lastlasty;
+    int unp = 0;
+    for (int i = 0; i < nf; i++) {
+      int sx, sy;
+      viewer->GraphicToScreen(poly, fx[i], fy[i], sx, sy);
+      if (i == 0) {
+	lastx = sx;
+	lasty = sy;
+	unp++;
+      }
+      else if (i == 1) {
+	if (sx == lastx && sy == lasty)
+	  continue;
+	lastlastx = lastx;
+	lastlasty = lasty;
+	lastx = sx;
+	lasty = sy;
+	unp++;
+      }
+      else {
+	if ((sx == lastx && sy == lasty) ||
+	    (sx == lastlastx && sy == lastlasty))
+	  continue;
+
+	lastlastx = lastx;
+	lastlasty = lasty;
+	lastx = sx;
+	lasty = sy;
+	unp++;
+      }
+    }
+    ni = unp;
+    ix = new int[unp];
+    iy = new int[unp];
+    unp = 0;
+    for (int i = 0; i < nf; i++) {
+      int sx, sy;
+      viewer->GraphicToScreen(poly, fx[i], fy[i], sx, sy);
+      if (i == 0) {
+	lastx = sx;
+	lasty = sy;
+	ix[unp] = sx;
+	iy[unp++] = sy;
+      }
+      else if (i == 1) {
+	if (sx == lastx && sy == lasty)
+	  continue;
+	lastlastx = lastx;
+	lastlasty = lasty;
+	lastx = sx;
+	lasty = sy;
+	ix[unp] = sx;
+	iy[unp++] = sy;
+      }
+      else {
+	if ((sx == lastx && sy == lasty) ||
+	    (sx == lastlastx && sy == lastlasty))
+	  continue;
+
+	lastlastx = lastx;
+	lastlasty = lasty;
+	lastx = sx;
+	lasty = sy;
+	ix[unp] = sx;
+	iy[unp++] = sy;
+      }
+    }
 }

@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = include_graphic
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

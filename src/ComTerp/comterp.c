@@ -36,6 +36,7 @@
 #include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 
+#include <ctype.h>
 #include <iostream.h>
 #include <strstream.h>
 #include <unistd.h>
@@ -89,11 +90,9 @@ void ComTerp::init() {
     _errbuf = new char[BUFSIZ];
 
     _alist = nil;
-
     _brief = true;
-
     _just_reset = false;
-
+    _defaults_added = false;
 }
 
 
@@ -112,12 +111,12 @@ const ComValue* ComTerp::stack(unsigned int &top) const {
 
 boolean ComTerp::read_expr() {
     unsigned int toklen, tokstart;
-    int status = parser (_inptr, _infunc, _eoffunc, _errfunc, NULL, NULL,
+    int status = parser (_inptr, _infunc, _eoffunc, _errfunc, (FILE*)_outptr, _outfunc,
 			 _buffer, _bufsiz, &_bufptr, _token, _toksiz, &_linenum,
 			 &_pfbuf, &_pfsiz, &_pfnum);
 
     _pfoff = 0;
-    return _pfbuf[_pfnum-1].type != TOK_EOF && _buffer[0] != '\0';
+    return _pfbuf[_pfnum-1].type != TOK_EOF && _buffer[0] != '\0' && status==0;
 }
 
 boolean ComTerp::eof() {
@@ -194,18 +193,27 @@ int ComTerp::load_sub_expr() {
 
     /* push tokens onto the stack until the last lazy_eval command is pushed */
     /* or if none, the first !lazy_eval command is pushed */
-    int nargs_after_key = 0;
+    boolean break_flag;
     while (_pfoff < _pfnum ) {
-        if (_pfbuf[_pfoff].type==TOK_KEYWORD) 
-	    nargs_after_key += _pfbuf[_pfoff].narg;
-
         push_stack(_pfbuf + _pfoff);
         _pfoff++;
-	
 	if (stack_top().type() == ComValue::CommandType && 
 	(top_lazy_eval<0 || top_lazy_eval == _pfnum) ) break;
     }
-    return nargs_after_key;
+
+    /* count down on stack to determine the number of */
+    /* args associated with keywords for this command */
+    if (stack_top().type() == ComValue::CommandType) {
+      int nargs_after_key = 0;
+      for (int i=0; i<_pfbuf[_pfoff-1].narg+_pfbuf[_pfoff-1].nkey; i++) {
+	ComValue& val = stack_top(-i-1);
+	if (val.is_type(ComValue::KeywordType))
+	  nargs_after_key += val.keynarg_val();
+      }
+      return nargs_after_key;
+    } else
+      return 0;
+    
 }
 
 int ComTerp::print_stack() const {
@@ -251,6 +259,8 @@ void ComTerp::push_stack(postfix_token* token) {
 	    sv->type(ComValue::CommandType);
 	    sv->command_symid(command_symid);
 	}
+    } else if (sv->type() == ComValue::KeywordType) {
+      sv->keynarg_ref() = token->narg;
     }
     _just_reset = false;
 }
@@ -267,6 +277,8 @@ void ComTerp::push_stack(ComValue& value) {
     _stack_top++;
     ComValue* sv = _stack + _stack_top;
     *sv  = ComValue(value);
+    if (sv->type() == ComValue::KeywordType)
+      sv->keynarg_ref() = value.keynarg_val();
     _just_reset = false;
 }
 
@@ -401,6 +413,9 @@ int ComTerp::run() {
 }
 
 void ComTerp::add_defaults() {
+  if (!_defaults_added) {
+    _defaults_added = true;
+
     add_command("add", new AddFunc(this));
     add_command("sub", new SubFunc(this));
     add_command("minus", new MinusFunc(this));
@@ -425,7 +440,7 @@ void ComTerp::add_defaults() {
     add_command("or", new OrFunc(this));
     add_command("negate", new NegFunc(this));
     add_command("eq", new EqualFunc(this));
-    add_command("not_eq", new EqualFunc(this));
+    add_command("not_eq", new NotEqualFunc(this));
     add_command("gt", new GreaterThanFunc(this));
     add_command("gt_or_eq", new GreaterThanOrEqualFunc(this));
     add_command("lt", new LessThanFunc(this));
@@ -456,9 +471,10 @@ void ComTerp::add_defaults() {
     add_command("symid", new SymIdFunc(this));
     add_command("symval", new SymValFunc(this));
 
+    add_command("shell", new ShellFunc(this));
     add_command("quit", new QuitFunc(this));
     add_command("exit", new ExitFunc(this));
-
+  }
 }
 
 void ComTerp::set_attributes(AttributeList* alist) { 
@@ -471,7 +487,6 @@ AttributeList* ComTerp::get_attributes() { return _alist;}
 
 
 int ComTerp::runfile(const char* filename) {
-
     /* save tokens to restore after the file has run */
     int toklen;
     postfix_token* tokbuf = copy_postfix_tokens(toklen);
@@ -480,8 +495,11 @@ int ComTerp::runfile(const char* filename) {
     /* swap in input pointer and function */
     void* save_inptr = _inptr;
     infuncptr save_infunc = _infunc;
+    outfuncptr save_outfunc = _outfunc;
     FILE* fptr = fopen(filename, "r");
     _inptr = fptr;
+    _outfunc = nil;
+    
 
     ComValue* retval = nil;
     int status = 0;
@@ -506,6 +524,7 @@ int ComTerp::runfile(const char* filename) {
 
     _inptr = save_inptr;
     _infunc = save_infunc;
+    _outfunc = save_outfunc;
 
     load_postfix(tokbuf, toklen, tokoff);
     delete tokbuf;
@@ -543,17 +562,13 @@ void ComTerp::load_postfix(postfix_token* tokens, int toklen, int tokoff) {
     _pfoff = tokoff;
 }
 
-void ComTerp::list_commands(ostream& out) {
-  TableIterator(ComValueTable) i(*localtable());
-  int rowcnt = 0;
-  while (i.more()) {
-    int key = i.cur_key();
-    ComValue* value = (ComValue*)i.cur_value();
-    if (value->is_type(AttributeValue::CommandType)) {
-      const char* command_name = symbol_pntr(key);
-      int opid = opr_tbl_opstr(key);
-      const char* operator_name = symbol_pntr(opr_tbl_operid(opid));
-      if (operator_name) command_name = operator_name;
+void ComTerp::list_commands(ostream& out, boolean sorted) {
+  int nfuncs = 0;
+  int* funcids = get_commands(nfuncs, sorted);
+  if (nfuncs) {
+    int rowcnt = 0;
+    for (int i=0; i<nfuncs; i++) {
+      char* command_name = symbol_pntr(funcids[i]);
       out << command_name;
       int slen = strlen(command_name);
       int tlen = 8-((slen+1)%8);
@@ -564,8 +579,71 @@ void ComTerp::list_commands(ostream& out) {
       } else
 	out << "\t";
     }
+    delete funcids;
+  }
+}
+
+int* ComTerp::get_commands(int& ncomm, boolean sort) {
+  TableIterator(ComValueTable) i(*localtable());
+  int bufsiz = 256;
+  int* buffer = new int[bufsiz];
+  ncomm = 0;
+  int opercnt = 0;
+  while (i.more()) {
+    int key = i.cur_key();
+    ComValue* value = (ComValue*)i.cur_value();
+    if (value->is_type(AttributeValue::CommandType)) {
+      const char* command_name = symbol_pntr(key);
+      int opid = opr_tbl_opstr(key);
+      const char* operator_name = symbol_pntr(opr_tbl_operid(opid));
+      if (operator_name) {
+	key = opr_tbl_operid(opid);
+	opercnt++;
+      }
+      if (ncomm==bufsiz) {
+	int* newbuf = new int[bufsiz*2];
+	for (int j=0; j<bufsiz; j++) 
+	  newbuf[j] = buffer[j];
+	bufsiz *= 2;
+      }
+      buffer[ncomm++] = key;
+    }
     i.next();
   }
+  if (sort) {
+    int* sortedbuffer = new int[ncomm];
+    int i = 0;  /* operators first */
+    for (int j=0; j< ncomm; j++) sortedbuffer[j] = -1;
+    for (int j=0; j< ncomm; j++)
+      if (!isalpha(*symbol_pntr(buffer[j])))
+	  sortedbuffer[i++] = buffer[j];
+    if (i != opercnt) cerr << "bad number of operators\n";
+      
+    for (int j=0; j<ncomm; j++) {
+      if (!isalpha(*symbol_pntr(buffer[j]))) continue;
+
+      /* count the number of strings greater than this one */
+      int count = opercnt;
+      for (int k=0; k<ncomm; k++) {
+	if (!isalpha(*symbol_pntr(buffer[k]))) continue;
+	count += (strcmp(symbol_pntr(buffer[j]), symbol_pntr(buffer[k])) > 0);
+      }
+      sortedbuffer[count] = buffer[j];
+    }
+    delete buffer;
+
+    /* one more pass over the sorted buffer to remove duplicates */
+    int copydist = 0;
+    for (int j=0; j<ncomm; j++) {
+      if (sortedbuffer[j]<0) 
+	copydist++;
+      else 
+	sortedbuffer[j-copydist] = sortedbuffer[j];
+    }
+    ncomm -= copydist;
+    return sortedbuffer;
+  } else
+    return buffer;
 }
 
 ComValue* ComTerp::localvalue(int symid) {

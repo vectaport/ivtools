@@ -310,10 +310,9 @@ Command* ClipRectTool::InterpretManipulator (Manipulator* m) {
 #else
 	    const char * message = "Only lines and multilines supported by this command without clippoly";
 #endif
-	    GAcknowledgeDialog* dialog = new GAcknowledgeDialog(message, "(groups are not supported yet either)");
-	    Resource::ref(dialog);
-	    dialog->post_for(viewer->GetEditor()->GetWindow());
-	    Resource::unref(dialog);
+	    GAcknowledgeDialog::post
+	      (viewer->GetEditor()->GetWindow(), message, 
+	       "(groups are not supported yet either)", "clippoly exception");
 	    return nil;
 	}
     }
@@ -631,10 +630,9 @@ Command* ClipPolyTool::InterpretManipulator (Manipulator* m) {
 #else
 	    const char * message = "Only lines and multilines supported by this command without clippoly";
 #endif
-	    GAcknowledgeDialog* dialog = new GAcknowledgeDialog(message, "(groups are not supported yet either)");
-	    Resource::ref(dialog);
-	    dialog->post_for(viewer->GetEditor()->GetWindow());
-	    Resource::unref(dialog);
+	    GAcknowledgeDialog::post
+	      (viewer->GetEditor()->GetWindow(), message, 
+	       "(groups are not supported yet either)", "clippoly exception");
 	    return nil;
 	}
     }

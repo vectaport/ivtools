@@ -30,10 +30,14 @@ class FrameNumberState : public NameState {
 public:
     FrameNumberState(int =0, const char* desc=nil, int usebg =1);
 
-    int framenumber();
+    int number();
+    void number(int, boolean notif =true);
+
+    // same as number methods
+    int framenumber(); 
     void framenumber(int, boolean notif =true);
 protected:
-    int _framenumber;
+    int _number;
     char* _desc;
     char buf[256];
     int _usebg;

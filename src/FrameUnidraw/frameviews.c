@@ -41,7 +41,7 @@ boolean FrameOverlaysView::IsA(ClassId id) {
 
 /*****************************************************************************/
 
-FrameView::FrameView() : OverlaysView() {}
+FrameView::FrameView(FrameComp* comp) : OverlaysView(comp) {}
 
 ClassId FrameView::GetClassId() { return FRAME_VIEW; }
 
@@ -52,7 +52,7 @@ boolean FrameView::IsA(ClassId id) {
 /*****************************************************************************/
 
 
-FramesView::FramesView() : FrameView() {}
+FramesView::FramesView(FramesComp* comp) : FrameView(comp) {}
 
 ClassId FramesView::GetClassId() { return FRAMES_VIEW; }
 
@@ -108,7 +108,7 @@ void FramesView::UpdateFrame(FrameView* curr, FrameView* prev,
 
 /*****************************************************************************/
 
-FrameIdrawView::FrameIdrawView() : FramesView() {}
+FrameIdrawView::FrameIdrawView(FrameIdrawComp* comp) : FramesView(comp) {}
 
 ClassId FrameIdrawView::GetClassId() { return FRAME_IDRAW_VIEW; }
 
@@ -117,40 +117,56 @@ boolean FrameIdrawView::IsA(ClassId id) {
 }
 
 GraphicView* FrameIdrawView::GetGraphicView (Component* c) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->GetGraphicView(c);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame 
+      ? frame->GetGraphicView(c) 
+      : OverlaysView::GetGraphicView(c);
 }
 
 Selection* FrameIdrawView::SelectAll() {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->SelectAll();
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame 
+      ? frame->SelectAll()
+      : OverlaysView::SelectAll();
 }
 Selection* FrameIdrawView::ViewContaining(Coord x, Coord y) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->ViewContaining(x, y);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame
+      ? frame->ViewContaining(x, y)
+      : OverlaysView::ViewContaining(x, y);
 }
 
 Selection* FrameIdrawView::ViewsContaining(Coord x, Coord y) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->ViewsContaining(x, y);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame
+      ? frame->ViewsContaining(x, y) 
+      : OverlaysView::ViewsContaining(x, y);
 }
 
 Selection* FrameIdrawView::ViewIntersecting(Coord x0, Coord y0, Coord x1, Coord y1) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->ViewIntersecting(x0, y0, x1, y1);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame
+      ? frame->ViewIntersecting(x0, y0, x1, y1)
+      : OverlaysView::ViewIntersecting(x0, y0, x1, y1);
 }
 
 Selection* FrameIdrawView::ViewsIntersecting(Coord x0, Coord y0, Coord x1, Coord y1) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->ViewsIntersecting(x0, y0, x1, y1);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame
+      ? frame->ViewsIntersecting(x0, y0, x1, y1)
+      : OverlaysView::ViewsIntersecting(x0, y0, x1, y1);
 }
 Selection* FrameIdrawView::ViewsWithin(Coord x0, Coord y0, Coord x1, Coord y1) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->ViewsWithin(x0, y0, x1, y1);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame
+      ? frame->ViewsWithin(x0, y0, x1, y1)
+      : OverlaysView::ViewsWithin(x0, y0, x1, y1);
 }
 ConnectorView* FrameIdrawView::ConnectorIntersecting(Coord x0, Coord y0, Coord x1, Coord y1) {
-    FrameView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
-    return frame->ConnectorIntersecting(x0, y0, x1, y1);
+    OverlaysView* frame = ((FrameEditor*)GetViewer()->GetEditor())->GetFrame();
+    return frame
+      ? frame->ConnectorIntersecting(x0, y0, x1, y1)
+      : OverlaysView::ConnectorIntersecting(x0, y0, x1, y1);
 }
 
 

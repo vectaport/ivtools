@@ -67,8 +67,17 @@ void OverlayUnidraw::Append(Command* cmd) {
     _cmdq->Append(cmd);
 }
 
-static boolean* update_ptr = nil;
-static boolean unidraw_updated() { return *update_ptr; }
+MacroCmd* OverlayUnidraw::_cmdq = nil;
+boolean* OverlayUnidraw::_updated_ptr = nil;
+boolean OverlayUnidraw::unidraw_updated() 
+{ return *_updated_ptr; }
+
+boolean OverlayUnidraw::unidraw_updated_or_command_pushed() 
+{ 
+  Iterator it;
+  _cmdq->First(it);
+  return !_cmdq->Done(it) || unidraw_updated();
+}
 
 void OverlayUnidraw::Run () {
     Session* session = GetWorld()->session();
@@ -79,8 +88,9 @@ void OverlayUnidraw::Run () {
     while (alive() && !session->done()) {
 	updated(false);
 
-	update_ptr = &_updated;
-	session->read(e, &unidraw_updated);
+	_updated_ptr = &_updated;
+//	session->read(e, &unidraw_updated);
+	session->read(e, &unidraw_updated_or_command_pushed);
 	if (!updated()) {
 	    e.handle();
 	    session->default_display()->flush();

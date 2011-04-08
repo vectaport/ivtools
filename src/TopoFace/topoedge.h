@@ -41,14 +41,14 @@ public:
     void attach_start_node(TopoNode* start);
     void attach_end_node(TopoNode* end);
 
-    const TopoNode* start_node();
-    const TopoNode* end_node();
+    TopoNode* start_node() const;
+    TopoNode* end_node() const;
 
-    const TopoFace* left_face();
-    const TopoFace* right_face();
+    TopoFace* left_face() const;
+    TopoFace* right_face() const;
 
-    const boolean starts_at(TopoNode*);
-    const boolean ends_at(TopoNode*);
+    boolean starts_at(TopoNode*) const;
+    boolean ends_at(TopoNode*) const;
 
     FMultiLineObj* multiline();
     FPointObj* point();

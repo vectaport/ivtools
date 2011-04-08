@@ -1,0 +1,180 @@
+XCOMM -------------------------------------------------------------------------
+XCOMM from <local.def>:
+
+/*
+ * Assume the use of gcc-2.3.3 or greater
+ */ 
+#undef LanguageCCDefines
+#define LanguageCCDefines -Dcplusplus_2_1
+#include <gcc.def>
+
+/*
+ * Default customization of kits.
+ * Possible flags to define:
+ *	sgi_motif_kit (SMFKit), motif_kit (MFKit),
+ *	openlook_kit (OLKit), bw_kit (MonoKit)
+ */
+#ifndef KitFlags
+#define KitFlags \
+-Dmotif_kit \
+-Dsgi_motif_kit \
+-Dopenlook_kit \
+-Dbw_kit \
+-Ddefault_kit=SMFKit
+#endif
+
+/*
+ * What you need to turn on debugging
+ */
+#undef TurnOnDebugging
+#define TurnOnDebugging YES
+
+/*
+ * To disable removal of programs if a "make install" is done"
+ */
+#undef RemoveAfterInstall
+#define RemoveAfterInstall NO
+
+/* 
+ * Where to look for config files.
+ */
+#undef ImakeIncludes
+#ifndef UseInstalled
+#define ImakeIncludes -I$(TOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config
+#else
+#define ImakeIncludes -I$(TOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config
+#endif
+
+/* 
+ * TIFF C Compiler
+ */ 
+#ifndef TIFFCDriver
+#define TIFFCDriver CCDriver
+#endif
+
+/* 
+ * Make variables for building local to these packages.
+ * APP_CCLDLIBS is defined in the Imakefile.
+ */
+    NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../.. -I$(TOP)/src \
+-I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include \
+-I$(IVTOOLSSRC)/include/std $(X_CCINCLUDES)
+    APP_CCINCLUDES = $(NORM_CCINCLUDES)
+#if !HasDynamicSharedLibraries
+     APP_CCDEPLIBS = $(APP_CCLDLIBS)
+#endif
+
+/*
+ * Set base of this package to $(TOP)
+ */
+#undef IvToolsSrcRoot
+#define IvToolsSrcRoot $(TOP)
+
+/*
+ * Location of ivtools libraries
+ */
+             IVTOOLSSRC = IvToolsSrcRoot/src
+
+#if HasDynamicSharedLibraries
+#if !UseRpath
+  LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
+       LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
+           LIBTIME = -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
+      LIBATTRIBUTE = -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
+        LIBCOMUTIL = -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
+        LIBCOMTERP = -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
+        LIBIVGLYPH = -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
+      LIBATTRGLYPH = -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
+       LIBCOMGLYPH = -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
+      LIBGLYPHTERP = -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
+       LIBUNIIDRAW = -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
+ LIBOVERLAYUNIDRAW = -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
+       LIBTOPOFACE = -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
+   LIBGRAPHUNIDRAW = -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
+   LIBFRAMEUNIDRAW = -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
+     LIBCOMUNIDRAW = -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
+       LIBDRAWSERV = -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
+#else
+  LIBUNIDRAWCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/Unidraw-common/$(CPU) -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
+       LIBIVCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/IV-common/$(CPU) -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
+           LIBTIME = -Wl,-rpath,$(IVTOOLSSRC)/Time/$(CPU) -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
+      LIBATTRIBUTE = -Wl,-rpath,$(IVTOOLSSRC)/Attribute/$(CPU) -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
+        LIBCOMUTIL = -Wl,-rpath,$(IVTOOLSSRC)/ComUtil/$(CPU) -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
+        LIBCOMTERP = -Wl,-rpath,$(IVTOOLSSRC)/ComTerp/$(CPU) -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
+        LIBIVGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/IVGlyph/$(CPU) -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
+      LIBATTRGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/AttrGlyph/$(CPU) -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
+       LIBCOMGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/ComGlyph/$(CPU) -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
+      LIBGLYPHTERP = -Wl,-rpath,$(IVTOOLSSRC)/GlyphTerp/$(CPU) -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
+       LIBUNIIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/UniIdraw/$(CPU) -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
+ LIBOVERLAYUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
+       LIBTOPOFACE = -Wl,-rpath,$(IVTOOLSSRC)/TopoFace/$(CPU) -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
+   LIBGRAPHUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
+   LIBFRAMEUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
+     LIBCOMUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/ComUnidraw/$(CPU) -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
+     LIBDRAWSERV = -Wl,-rpath,$(IVTOOLSSRC)/DrawServ/$(CPU) -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
+#endif
+#else
+  LIBUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.a
+       LIBIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.a
+           LIBTIME = $(IVTOOLSSRC)/Time/$(CPU)/libTime.a
+      LIBATTRIBUTE = $(IVTOOLSSRC)/Attribute/$(CPU)/libAttribute.a
+        LIBCOMUTIL = $(IVTOOLSSRC)/ComUtil/$(CPU)/libComUtil.a
+        LIBCOMTERP = $(IVTOOLSSRC)/ComTerp/$(CPU)/libComTerp.a
+        LIBIVGLYPH = $(IVTOOLSSRC)/IVGlyph/$(CPU)/libIVGlyph.a
+      LIBATTRGLYPH = $(IVTOOLSSRC)/AttrGlyph/$(CPU)/libAttrGlyph.a
+       LIBCOMGLYPH = $(IVTOOLSSRC)/ComGlyph/$(CPU)/libComGlyph.a
+      LIBGLYPHTERP = $(IVTOOLSSRC)/GlyphTerp/$(CPU)/libGlyphTerp.a
+       LIBUNIIDRAW = $(IVTOOLSSRC)/UniIdraw/$(CPU)/libUniIdraw.a
+ LIBOVERLAYUNIDRAW = $(IVTOOLSSRC)/OverlayUnidraw/$(CPU)/libOverlayUnidraw.a
+       LIBTOPOFACE = $(IVTOOLSSRC)/TopoFace/$(CPU)/libTopoFace.a
+   LIBGRAPHUNIDRAW = $(IVTOOLSSRC)/GraphUnidraw/$(CPU)/libGraphUnidraw.a
+   LIBFRAMEUNIDRAW = $(IVTOOLSSRC)/FrameUnidraw/$(CPU)/libFrameUnidraw.a
+     LIBCOMUNIDRAW = $(IVTOOLSSRC)/ComUnidraw/$(CPU)/libComUnidraw.a
+      LIBDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.a
+#endif
+
+#if defined(HPArchitecture)
+#define SO sl
+#else
+#define SO so
+#endif
+
+#if HasDynamicSharedLibraries
+  DEPUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.SO.$(VERSION)
+       DEPIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.SO.$(VERSION)
+           DEPTIME = $(IVTOOLSSRC)/Time/$(CPU)/libTime.SO.$(VERSION)
+      DEPATTRIBUTE = $(IVTOOLSSRC)/Attribute/$(CPU)/libAttribute.SO.$(VERSION)
+        DEPCOMUTIL = $(IVTOOLSSRC)/ComUtil/$(CPU)/libComUtil.SO.$(VERSION)
+        DEPCOMTERP = $(IVTOOLSSRC)/ComTerp/$(CPU)/libComTerp.SO.$(VERSION)
+        DEPIVGLYPH = $(IVTOOLSSRC)/IVGlyph/$(CPU)/libIVGlyph.SO.$(VERSION)
+      DEPATTRGLYPH = $(IVTOOLSSRC)/AttrGlyph/$(CPU)/libAttrGlyph.SO.$(VERSION)
+       DEPCOMGLYPH = $(IVTOOLSSRC)/ComGlyph/$(CPU)/libComGlyph.SO.$(VERSION)
+      DEPGLYPHTERP = $(IVTOOLSSRC)/GlyphTerp/$(CPU)/libGlyphTerp.SO.$(VERSION)
+       DEPUNIIDRAW = $(IVTOOLSSRC)/UniIdraw/$(CPU)/libUniIdraw.SO.$(VERSION)
+ DEPOVERLAYUNIDRAW = $(IVTOOLSSRC)/OverlayUnidraw/$(CPU)/libOverlayUnidraw.SO.$(VERSION)
+       DEPTOPOFACE = $(IVTOOLSSRC)/TopoFace/$(CPU)/libTopoFace.SO.$(VERSION)
+   DEPGRAPHUNIDRAW = $(IVTOOLSSRC)/GraphUnidraw/$(CPU)/libGraphUnidraw.SO.$(VERSION)
+   DEPFRAMEUNIDRAW = $(IVTOOLSSRC)/FrameUnidraw/$(CPU)/libFrameUnidraw.SO.$(VERSION)
+     DEPCOMUNIDRAW = $(IVTOOLSSRC)/ComUnidraw/$(CPU)/libComUnidraw.SO.$(VERSION)
+     DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.SO.$(VERSION)
+#endif
+
+/* local override of location of libUnidraw */
+#undef Ld_libUnidraw
+#if !UseRpath
+#define Ld_libUnidraw -L$(IVTOOLSSRC)/Unidraw/$(CPU) -lUnidraw
+#else
+#define Ld_libUnidraw -Wl,-rpath,$(IVTOOLSSRC)/Unidraw/$(CPU) -L$(IVTOOLSSRC)/Unidraw/$(CPU) -lUnidraw
+#endif
+#undef Dep_libUnidraw
+#if HasDynamicSharedLibraries
+#define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.SO.$(VERSION)
+#else
+#define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.a
+#endif
+
+/* actual shared library filename for install of symbolic link only */
+#undef ClipPolyLibBase
+#define ClipPolyLibBase libclippoly.SO
+
+XCOMM -------------------------------------------------------------------------

@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 1994, 1995 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University                              
@@ -35,6 +36,7 @@
 #include <InterViews/world.h>
 
 #ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <Dispatch/ace_dispatcher.h>
 #endif
@@ -149,9 +151,23 @@ static PropertyData properties[] = {
     { "*gray6",         "false" },
     { "*gray5",         "false" },
     { "*bookgeom",      "off" },
+    { "*pagecols",      "0" },
+    { "*pagerows",      "0" },
+    { "*panner_off",    "false"  },
+    { "*panner_align",    "br"  },
+    { "*scribble_pointer", "false" },
+    { "*slider_off",    "false"  },
+    { "*theight",       "512" },
+    { "*tile",          "false" },
+    { "*toolbarloc",    "l"  },
+    { "*twidth",        "512" },
+    { "*zoomer_off",    "false"  },
 #ifdef HAVE_ACE
+    { "*comdraw",       "20002" },
     { "*import",        "20003" },
 #endif
+    { "*help",          "false"  },
+    { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
 
@@ -162,12 +178,53 @@ static OptionDesc options[] = {
     { "-gray6", "*gray6", OptionValueImplicit, "true" },
     { "-gray5", "*gray5", OptionValueImplicit, "true" },
     { "-bookgeom", "*bookgeom", OptionValueImplicit, "on" },
+    { "-pagecols", "*pagecols", OptionValueNext },
+    { "-pagerows", "*pagerows", OptionValueNext },
+    { "-ncols", "*pagecols", OptionValueNext },
+    { "-nrows", "*pagerows", OptionValueNext },
+    { "-panner_off", "*panner_off", OptionValueImplicit, "true" },
+    { "-poff", "*panner_off", OptionValueImplicit, "true" },
+    { "-panner_align", "*panner_align", OptionValueNext },
+    { "-pal", "*panner_align", OptionValueNext },
+    { "-scribble_pointer", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-scrpt", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-slider_off", "*slider_off", OptionValueImplicit, "true" },
+    { "-soff", "*slider_off", OptionValueImplicit, "true" },
+    { "-theight", "*theight", OptionValueNext },
+    { "-tw", "*theight", OptionValueNext },
+    { "-tile", "*tile", OptionValueImplicit, "true" },
+    { "-toolbarloc", "*toolbarloc", OptionValueNext },
+    { "-tbl", "*toolbarloc", OptionValueNext },
+    { "-twidth", "*twidth", OptionValueNext },
+    { "-tw", "*twidth", OptionValueNext },
+    { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
+    { "-comdraw", "*port", OptionValueNext },
 #endif
+    { "-help", "*help", OptionValueImplicit, "true" },
+    { "-font", "*font", OptionValueNext },
     { nil }
 };
 
+#ifdef HAVE_ACE
+static char* usage =
+"Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] \n\
+[-color5] [-color6] [-import port] [-gray5] [-gray6] [-gray7] \n\
+[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
+[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-toolbarloc|-tbl r|l ] \n\
+[-theight|-th n] [-tile] [-twidth|-tw n] [-zoomer_off|-zoff] [file]";
+#else
+static char* usage =
+"Usage: flipbook [any idraw parameter] [-bookgeom] \n\
+[-color5] [-color6] [-gray5] [-gray6] [-gray7] \n\
+[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
+[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-toolbarloc|-tbl r|l ] \n\
+[-theight|-th n] [-tile] [-twidth|-tw n] [-zoomer_off|-zoff] [file]";
+#endif
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
@@ -176,27 +233,47 @@ int main (int argc, char** argv) {
 #endif
     int exit_status = 0;
     FrameCreator creator;
+    OverlayCatalog* catalog = new FrameCatalog("flipbook", &creator);
     OverlayUnidraw* unidraw = new OverlayUnidraw(
-        new FrameCatalog("flipbook", &creator), argc, argv, options, properties
+        catalog, argc, argv, options, properties
     );
+    if (strcmp(catalog->GetAttribute("help"), "true")==0) {
+      cerr << usage;
+      return 0;
+    }
 
 #ifdef HAVE_ACE
 
-    UnidrawImportAcceptor import_acceptor;
-    Catalog* catalog = unidraw->GetCatalog();
+    UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
     const char* importstr = catalog->GetAttribute("import");
     int importnum = atoi(importstr);
-    if (import_acceptor.open 
+    if (import_acceptor->open 
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "flipbook:  unable to open import port " << importnum << "\n";
 
     else if (IMPORT_REACTOR::instance ()->register_handler 
-	     (&import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "flipbook:  unable to register UnidrawImportAcceptor with ACE reactor\n";
 
     else
         cerr << "accepting import port (" << importnum << ") connections\n";
+
+    // Acceptor factory.
+    UnidrawComterpAcceptor* peer_acceptor = new UnidrawComterpAcceptor();
+
+    const char* portstr = catalog->GetAttribute("comdraw");
+    int portnum = atoi(portstr);
+    if (peer_acceptor->open 
+	(ACE_INET_Addr (portnum)) == -1)
+        cerr << "comdraw:  unable to open port " << portnum << "\n";
+
+    else if (COMTERP_REACTOR::instance ()->register_handler 
+	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+        cerr << "comdraw:  unable to register ComterpAcceptor with ACE reactor\n";
+    else
+        cerr << "accepting comdraw port (" << portnum << ") connections\n";
+
 
     // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
     // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
@@ -207,11 +284,11 @@ int main (int argc, char** argv) {
 
 #endif
     if (argc > 2) {
-	cerr << "Usage: flipbook [file]" << "\n";
+	cerr << usage << "\n";
 	exit_status = 1;
 
     } else {
-	const char* initial_file = (argc == 2) ? argv[1] : nil;
+	const char* initial_file = (argc >= 2) ? argv[1] : nil;
 	FrameEditor* ed = new FrameEditor(initial_file);
 
 	unidraw->Open(ed);

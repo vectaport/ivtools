@@ -830,12 +830,23 @@ boolean OverlaysScript::Definition (ostream& out) {
 
 	out << "picture(\n";
 
+	static int readonly_symval = symbol_add("readonly");
+	boolean outflag = false;
 	for (First(i); status && !Done(i); ) {
 	    OverlayScript* sv = (OverlayScript*)GetView(i);
-	    Indent(out);
-	    status = sv->Definition(out);
+	    AttributeList* al;
+	    boolean readonly = false;
+	    if (al = sv->GetOverlayComp()->attrlist()) {
+	      AttributeValue* av = al->find(readonly_symval);
+	      if (av) readonly = av->is_true();
+	    }
+	    if (!readonly) {
+	      if (outflag) out << "\n";
+	      Indent(out);
+	      status = sv->Definition(out);
+	      outflag = true;
+	    }
 	    Next(i);
-	    if (!Done(i)) out << ",\n";
 	}
     }
 
@@ -1149,12 +1160,22 @@ boolean OverlayIdrawScript::Emit (ostream& out) {
 	if (prevout) out << ",";
 	out << "\n";
     }
+
+    static int readonly_symval = symbol_add("readonly");
     for (; status && !Done(i); ) {
-	ExternView* ev = GetView(i);
-	Indent(out);
-        status = ev->Definition(out);
+	OverlayScript* ev = (OverlayScript*)GetView(i);
+	boolean readonly = false;
+	AttributeList *al;
+	if (al = ev->GetOverlayComp()->attrlist()) {
+	  AttributeValue* av = al->find(readonly_symval);
+	  if (av) readonly = av->is_true();
+	}
+	if (!readonly) {
+	  Indent(out);
+	  status = ev->Definition(out);
+	}
 	Next(i);
-	if (!Done(i)) out << ",\n";
+	if (!Done(i) && !readonly) out << ",\n";
     }
 
     out << "\n";

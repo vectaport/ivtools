@@ -62,10 +62,16 @@ ComTerpIOHandler::~ComTerpIOHandler() {
 int ComTerpIOHandler::inputReady(int i) 
 {
     /* invoke comterp to crank on one line */
+#if 1   
     fgets( _buffer, BUFSIZ, _fptr);
     if (feof(_fptr)) return -1;
-
     _comterp->load_string(_buffer);
+#else
+    _comterp->_infunc = (infuncptr)&ComTerpServ::fd_fgets;
+#endif
+    _comterp->_fd = i;
+    _comterp->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
+
     if (_comterp->read_expr()) {
 	if (_comterp->eval_expr())
 	    err_print( stderr, "comterp" );

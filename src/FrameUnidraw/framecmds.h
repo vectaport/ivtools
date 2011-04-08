@@ -32,6 +32,8 @@
 #include <Unidraw/Commands/macro.h>
 #include <Unidraw/Commands/struct.h>
 
+#include <InterViews/action.h>
+
 class CreateFrameCmd : public Command {
 public:
     CreateFrameCmd(ControlInfo*, boolean after = true);
@@ -74,6 +76,10 @@ class MoveFrameCmd : public Command {
 public:
     MoveFrameCmd(ControlInfo*, int motion = +1, boolean allowbg = true);
     MoveFrameCmd(Editor* =nil, int motion = +1, boolean allowbg = true);
+    void init(int motion, boolean allowbg);
+    
+    void wraparound(boolean flag) { _wraparound = flag; }
+    boolean wraparound() { return _wraparound; }
 
     virtual void Execute();
     virtual void Unexecute();
@@ -83,12 +89,40 @@ public:
     virtual boolean IsA(ClassId);
     virtual Command* Copy();
 
-  boolean AllowBg() { return _allowbg; }
-  void AllowBg(boolean abg) { _allowbg = abg; }
+    boolean AllowBg() { return _allowbg; }
+    void AllowBg(boolean abg) { _allowbg = abg; }
+
+    static const char* MoveFuncFormat(); 
+    static const char* AbsMoveFuncFormat(); 
+    static void FuncEnable(const char* movefunc=nil, const char* absmovefunc=nil); 
+    static void FuncDisable() { _func_on=false; }
+
+    int requestmotion() { return _requestmotion; }
+    int actualmotion() { return _actualmotion; }
+    int plannedmotion() { return _plannedmotion; }
+
+    void set_wraparound();
+    void clr_wraparound();
+
+    static MoveFrameCmd* default_instance() { return _default; }
+    static void MoveFrameCmd::default_instance(MoveFrameCmd* cmd)
+      { _default = cmd; }
+    
 protected:
-    int _motion, _actual;
-  boolean _allowbg;
+    int _requestmotion, _actualmotion, _plannedmotion;
+    boolean _allowbg;
+    boolean _wraparound;
+
+    static boolean _func_on;
+    static char* _move_func;
+    static char* _absmove_func;
+
+    static MoveFrameCmd* _default;
+
+friend class MoveFrameFunc;
 };
+
+declareActionCallback(MoveFrameCmd)
 
 class FrameBeginCmd : public MoveFrameCmd {
 public:
@@ -121,6 +155,9 @@ public:
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
     virtual Command* Copy();
+
+    CreateFrameCmd* createframecmd();
+    MoveFrameCmd* moveframecmd();
 protected:
     boolean _after;
 };

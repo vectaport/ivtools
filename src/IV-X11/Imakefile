@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = src_x11
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

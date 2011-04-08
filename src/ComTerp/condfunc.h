@@ -36,7 +36,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(test trueval falseval) -- if test is true, return trueval, otherwise return falseval"; }
+      return "val=%s(test trueval falseval) -- if test is true, return trueval, otherwise return falseval"; }
 
 };
 

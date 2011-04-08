@@ -4,6 +4,6 @@ XCOMM
 
 PACKAGE = include_dispatch
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(Dispatch)

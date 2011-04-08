@@ -40,6 +40,11 @@ public:
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
+
+    boolean& reverse() { return _reverse; }
+
+protected:
+    boolean _reverse;
 };
 
 #endif

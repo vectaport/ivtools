@@ -29,6 +29,9 @@
 
 #include <Unidraw/enter-scope.h>
 
+static const float PSV_PLOTUTIL      = 11; // Version 10 + capstyle/joinstyle
+                                           // + floating point line widths +
+                                           // closepath on ellipse and circle
 static const float PSV_UNIDRAW       = 10; // Unidraw-based version
 static const float PSV_ISOLATIN1     =  9; // removed '/' from PostScript fonts
                                            // (they're def'ed in IdrawDict now)
@@ -50,6 +53,6 @@ static const float PSV_NONREDUNDANT  =  3; // eliminated unnecessary text
 static const float PSV_FGCOLOR       =  2; // added foreground color
 static const float PSV_ORIGINAL      =  1; // original format
 
-#define PSV_LATEST PSV_UNIDRAW
+#define PSV_LATEST PSV_PLOTUTIL
 
 #endif

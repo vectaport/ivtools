@@ -314,6 +314,32 @@ void OverlayComp::Notify() {
   GraphicComp::Notify();
 }
 
+AttributeValue* OverlayComp::FindValue
+(const char* name, boolean last, boolean breadth, boolean down, boolean up) {
+  int symid = symbol_find((char*)name);
+  if (symid >= 0)
+    return FindValue(symid, last, breadth, down, up);
+  else
+    return nil;
+}
+
+AttributeValue* OverlayComp::FindValue
+(int symid, boolean last, boolean breadth, boolean down, boolean up) {
+  if (breadth) {
+    cerr << "breadth search not yet unsupported\n";
+    return nil;
+  } else if (up) {
+    cerr << "upward search not yet unsupported\n";
+    return nil;
+  } else if (last) {
+    cerr << "search for last value not yet unsupported\n";
+    return nil;
+  } else if (AttributeList* al = attrlist()) {
+    return  al->find(symid);
+  } else
+    return nil;
+}
+
 /*****************************************************************************/
 
 ParamList* OverlaysComp::_overlay_comps_params = nil;
@@ -338,7 +364,7 @@ ParamList* OverlaysComp::GetParamList() {
 }
 
 void OverlaysComp::GrowParamList(ParamList* pl) {
-    pl->add_param("kids", ParamStruct::required, &OverlaysScript::ReadChildren, this, this);
+    pl->add_param("kids", ParamStruct::optional, &OverlaysScript::ReadChildren, this, this);
     pl->add_param("pic", ParamStruct::keyword, &OverlaysScript::ReadPic,
 		  this, this, &_gr);
     OverlayComp::GrowParamList(pl);
@@ -1014,6 +1040,31 @@ void OverlaysComp::AdjustBaseDir(const char* olddir, const char* newdir) {
     ((OverlayComp*)GetComp(i))->AdjustBaseDir(olddir, newdir);
 }
 
+AttributeValue* OverlaysComp::FindValue
+(int symid, boolean last, boolean breadth, boolean down, boolean up) {
+  if (breadth) {
+    cerr << "breadth search not yet unsupported\n";
+    return nil;
+  } else if (up) {
+    cerr << "upward search not yet unsupported\n";
+    return nil;
+  } else if (last) {
+    cerr << "search for last value not yet unsupported\n";
+    return nil;
+  } else {
+    if (AttributeList* al = attrlist()) {
+      AttributeValue* av = al->find(symid);
+      if (av) return av;
+    } 
+    Iterator i;
+    for (First(i); !Done(i); Next(i)) {
+      AttributeValue* av = ((OverlayComp*)GetComp(i))->FindValue(symid);
+      if (av) return av;
+    }
+  }
+  return nil;
+}
+
 /*****************************************************************************/
 
 ParamList* OverlayIdrawComp::_overlay_idraw_params = nil;
@@ -1021,31 +1072,17 @@ ParamList* OverlayIdrawComp::_overlay_idraw_params = nil;
 OverlayIdrawComp::OverlayIdrawComp (const char* pathname, OverlayComp* parent)
 : OverlaysComp(parent) {
     _pathname = _basedir = nil;
-    _gslist = nil;
-    _ptsbuf = nil;
-    _picbuf = nil;
     SetPathName(pathname);
 }
 
 OverlayIdrawComp::OverlayIdrawComp (istream& in, const char* pathname, OverlayComp* parent) : 
 OverlaysComp(parent) {
     _pathname = _basedir = nil;
-    _gslist = nil;
-    _ptsbuf = nil;
-    _picbuf = nil;
     SetPathName(pathname);
     _valid = GetParamList()->read_args(in, this);
-    delete _gslist;
-    if (_ptsbuf) {
-	for (int i=0; i<_ptsnum; i++) 
-	    Unref(_ptsbuf[i]);
-	delete _ptsbuf;
-    }
-    if (_picbuf) {
-	for (int i=0; i<_picnum; i++) 
-	    delete _picbuf[i];
-	delete _picbuf;
-    }
+    ResetIndexedGS();
+    ResetIndexedPts();
+    ResetIndexedPic();
 }
 
 OverlayIdrawComp::~OverlayIdrawComp () {
@@ -1083,105 +1120,6 @@ boolean OverlayIdrawComp::IsA (ClassId id) {
     return OVERLAY_IDRAW_COMP == id || OverlaysComp::IsA(id);
 }
 
-void OverlayIdrawComp::GrowIndexedGS(Graphic* gs) {
-    if (!_gslist) _gslist = new Picture();
-    _gslist->Append(gs);
-}
-
-void OverlayIdrawComp::ResetIndexedGS() {
-  delete _gslist;
-  _gslist = nil;
-}
-
-Graphic* OverlayIdrawComp::GetIndexedGS(int index) {
-    if (_gslist) {
-	Iterator i;
-	for (_gslist->First(i); !_gslist->Done(i); _gslist->Next(i)) {
-	    if (index==0) return _gslist->GetGraphic(i);
-	    index--;
-	}
-	return nil;
-    }
-    return nil;
-}
-    
-void OverlayIdrawComp::GrowIndexedPts(MultiLineObj* mlo) {
-    if (!_ptsbuf) {
-	_ptslen = 64;
-	_ptsbuf = new MultiLineObj*[_ptslen];
-	_ptsnum = 0;
-	for (int i=0; i<_ptslen; i++) 
-	    _ptsbuf[i] = nil;
-    }
-    if (_ptsnum==_ptslen) {
-	MultiLineObj** newbuf = new MultiLineObj*[_ptslen*2];
-	int i;
-	for (i=0; i<_ptslen; i++) 
-	    newbuf[i] = _ptsbuf[i];
-	for (;i<_ptslen*2; i++)
-	    newbuf[i] = nil;
-	_ptslen *= 2;
-	delete _ptsbuf;
-	_ptsbuf = newbuf;
-    }
-    Resource::ref(mlo);
-    _ptsbuf[_ptsnum++] = mlo;
-}
-
-void OverlayIdrawComp::ResetIndexedPts() {
-  if (_ptsbuf) {
-    for (int i=0; i<_ptsnum; i++) 
-      Unref(_ptsbuf[i]);
-    delete _ptsbuf;
-    _ptsbuf = nil;
-  }
-}
-
-MultiLineObj* OverlayIdrawComp::GetIndexedPts(int index) {
-    if (index >= 0  && index < _ptsnum) 
-	return _ptsbuf[index];
-    else
-	return nil;
-}
-    
-void OverlayIdrawComp::GrowIndexedPic(OverlaysComp* pic) {
-    if (!_picbuf) {
-	_piclen = 64;
-	_picbuf = new OverlaysComp*[_piclen];
-	_picnum = 0;
-	for (int i=0; i<_piclen; i++) 
-	    _picbuf[i] = nil;
-    }
-    if (_picnum==_piclen) {
-	OverlaysComp** newbuf = new OverlaysComp*[_piclen*2];
-	int i;
-	for (i=0; i<_piclen; i++) 
-	    newbuf[i] = _picbuf[i];
-	for (;i<_piclen*2; i++)
-	    newbuf[i] = nil;
-	_piclen *= 2;
-	delete _picbuf;
-	_picbuf = newbuf;
-    }
-    _picbuf[_picnum++] = pic;
-}
-
-void OverlayIdrawComp::ResetIndexedPic() {
-    if (_picbuf) {
-      for (int i=0; i<_picnum; i++)
-	delete _picbuf[i];
-      delete _picbuf;
-      _picbuf = nil;
-    }
-}
-
-OverlaysComp* OverlayIdrawComp::GetIndexedPic(int index) {
-    if (index >= 0  && index < _picnum) 
-	return _picbuf[index];
-    else
-	return nil;
-}
-    
 void OverlayIdrawComp::SetPathName(const char* pathname) {
     delete _pathname;
     _pathname = pathname ? strdup(pathname) : nil;

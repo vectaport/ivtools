@@ -149,11 +149,12 @@ inline ManagedWindowRep* ManagedWindow::rep() const { return rep_; }
 
 class ApplicationWindow : public ManagedWindow {
 public:
-    ApplicationWindow(Glyph*);
+    ApplicationWindow(Glyph*, const char* display = nil);
     ~ApplicationWindow();
 protected:
     virtual void compute_geometry();
     virtual void set_props();
+    const char* _otherdisplay;
 };
 
 class TopLevelWindow : public ManagedWindow {

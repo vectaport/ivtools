@@ -143,6 +143,15 @@ static PropertyData properties[] = {
     { "*gray7",         "false" },
     { "*gray6",         "false" },
     { "*gray5",         "false" },
+    { "*pagecols",      "0" },
+    { "*pagerows",      "0" },
+    { "*panner_off",    "false"  },
+    { "*panner_align",    "br"  },
+    { "*scribble_pointer", "false" },
+    { "*slider_off",    "false"  },
+    { "*zoomer_off",    "false"  },
+    { "*help",          "false"  },
+    { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
 
@@ -152,29 +161,66 @@ static OptionDesc options[] = {
     { "-gray7", "*gray7", OptionValueImplicit, "true" },
     { "-gray6", "*gray6", OptionValueImplicit, "true" },
     { "-gray5", "*gray5", OptionValueImplicit, "true" },
+    { "-pagecols", "*pagecols", OptionValueNext },
+    { "-ncols", "*pagecols", OptionValueNext },
+    { "-pagerows", "*pagerows", OptionValueNext },
+    { "-nrows", "*pagerows", OptionValueNext },
+    { "-panner_off", "*panner_off", OptionValueImplicit, "true" },
+    { "-poff", "*panner_off", OptionValueImplicit, "true" },
+    { "-panner_align", "*panner_align", OptionValueNext },
+    { "-pal", "*panner_align", OptionValueNext },
+    { "-scribble_pointer", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-scrpt", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-slider_off", "*slider_off", OptionValueImplicit, "true" },
+    { "-soff", "*slider_off", OptionValueImplicit, "true" },
+    { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-help", "*help", OptionValueImplicit, "true" },
+    { "-font", "*font", OptionValueNext },
     { nil }
 };
+
+
+static char* usage =
+"Usage: graphdraw \
+[any idraw parameter] \
+[-color5] \
+[-color6] \
+[-gray5] \
+\n\
+[-gray6] \
+[-gray7] \
+[-pagecols|-ncols] \
+[-pagerows|-nrows] \
+[-panner_off|-poff] \
+\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \
+\n\
+[-scribble_pointer|-scrpt ] \
+[-slider_off|-soff] \
+[-zoomer_off|-zoff] \
+[file]";
 
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
     int exit_status = 0;
     GraphCreator creator;
+    GraphCatalog* catalog = new GraphCatalog("graphdraw", &creator);
     OverlayUnidraw* unidraw = new OverlayUnidraw(
-        new GraphCatalog("graphdraw", &creator), argc, argv, options, properties
+        catalog, argc, argv, options, properties
     );
 
-    if (argc > 2) {
-	cerr << "Usage: graphdraw [file]" << "\n";
-	exit_status = 1;
-
-    } else {
-	const char* initial_file = (argc == 2) ? argv[1] : nil;
-	GraphEditor* ed = new GraphEditor(initial_file);
-
-	unidraw->Open(ed);
-	unidraw->Run();
+    if (argc > 2 || strcmp(catalog->GetAttribute("help"), "true")==0) {
+      cerr << usage << "\n";
+      return argc > 2 ? 1 : 0;
     }
+
+    const char* initial_file = (argc == 2) ? argv[1] : nil;
+    GraphEditor* ed = new GraphEditor(initial_file);
+    
+    unidraw->Open(ed);
+    unidraw->Run();
 
     delete unidraw;
     return exit_status;

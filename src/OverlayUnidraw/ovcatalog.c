@@ -599,7 +599,8 @@ OverlayComp* OverlayCatalog::ReadComp(const char* name, istream& in, OverlayComp
 
   else if (strcmp(name, "textfile") == 0)       child = new TextFileComp(in, parent);
 
-  else if (strcmp(name, "ovfile") == 0)         child = new OverlayFileComp(in, parent);
+  else if (strcmp(name, "ovfile") == 0 || 
+	   strcmp(name, "drawtool") == 0)         child = new OverlayFileComp(in, parent);
   
   else {
     fprintf(stderr, "unknown graphical object %s\n", name);
@@ -611,16 +612,16 @@ OverlayComp* OverlayCatalog::ReadComp(const char* name, istream& in, OverlayComp
 OverlayCatalog* OverlayCatalog::_instance = nil;
 
 OverlayCatalog* OverlayCatalog::Instance() {
-  if (Component::use_unidraw()) 
-    return (OverlayCatalog*)unidraw->GetCatalog();
-  if (!_instance) 
-    _instance = new OverlayCatalog("OverlayCatalog", new OverlayCreator());
+  if (!_instance) {
+    if (Component::use_unidraw()) 
+      _instance = (OverlayCatalog*)unidraw->GetCatalog();
+    else
+      _instance = new OverlayCatalog("OverlayCatalog", new OverlayCreator());
+  }
   return _instance;
 }
 
 void OverlayCatalog::Instance(OverlayCatalog* catalog) {
-  if (_instance) 
-    delete _instance;
   _instance = catalog;
 }
 

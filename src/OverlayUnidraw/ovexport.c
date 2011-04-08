@@ -98,11 +98,9 @@ void OvExportCmd::Execute () {
 
     Selection* s = ed->GetSelection();
     if (s->IsEmpty()) {
-	GAcknowledgeDialog* dialog = new GAcknowledgeDialog("Nothing selected for export");
-    	Resource::ref(dialog);
-        dialog->post_for(ed->GetWindow());
-	Resource::unref(dialog);
-	return;
+      GAcknowledgeDialog::post
+	(ed->GetWindow(), "Nothing selected for export", nil, "no selection");
+      return;
     }
 
     Style* style;
@@ -194,6 +192,7 @@ boolean OvExportCmd::Export (const char* pathname) {
 		
 	    if (chooser_->to_printer()) {
 		tmpfilename = tmpnam(nil);
+		false_top->SetPathName(tmpfilename);
 		ok = fbuf.open(tmpfilename, output) != 0;
 	    } else {
 		ok = fbuf.open(pathname, output) != 0;

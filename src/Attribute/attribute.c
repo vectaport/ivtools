@@ -43,7 +43,6 @@ Attribute::Attribute(const Attribute& attr) {
     symbolid = attr.symbolid;
     if (symbolid != -1) // for reference count
 	symbol_add(symbol_pntr(symbolid));
-    //delete valueptr; // this makes it segfault
     valueptr = new AttributeValue(*attr.valueptr);
 }
 

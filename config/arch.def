@@ -430,12 +430,13 @@
 #define MacroFile InterViews/iv-stratus.cf
 #endif
 
-#ifdef __alpha
+#if defined(__alpha) && !defined(__linux__)
 #undef ALPHA
 #undef alpha
 #define AlphaArchitecture
 #define ArchitectureName ALPHA
 #define architectureName alpha
+#define SiteDefCpu <site.def.ALPHA>
 #define MacroIncludeFile <InterViews/iv-alpha.cf>
 #define MacroFile InterViews/iv-alpha.cf
 #endif /* __alpha */

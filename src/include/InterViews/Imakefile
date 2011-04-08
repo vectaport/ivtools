@@ -4,7 +4,7 @@ XCOMM
 
 PACKAGE = include_interviews
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(InterViews)
 

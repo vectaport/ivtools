@@ -1,0 +1,14 @@
+XCOMM
+XCOMM man pages for using ivtools applications (1)
+XCOMM
+
+PACKAGE = man1_ivtools
+
+TROFFSRCS	= *.1
+TROFFFLAGS 	= -man
+TROFFOUTPUT	= man1.PS
+DEST		= $(MANDIR)/man1
+
+TroffSources($(TROFFOUTPUT))
+InstallMultipleFlags($(TROFFSRCS),$(DEST),$(INSTMANFLAGS))
+IvmkcmTargets($(PACKAGE))

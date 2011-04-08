@@ -79,12 +79,22 @@ void GAcknowledgeDialog::keystroke(const Event& e) {
     }
 }
 
-void GAcknowledgeDialog::post(Window* window, const char* string) {
-  GAcknowledgeDialog* dialog = new GAcknowledgeDialog(string);
+void GAcknowledgeDialog::post(Window* window, const char* message, 
+			      const char* submsg, const char* title) {
+  WidgetKit& kit = *WidgetKit::instance();
+  if (title) {
+    Style* ts = new Style(kit.style());
+    ts->attribute("name", title);
+    kit.push_style(ts);
+  }
+  
+  GAcknowledgeDialog* dialog = new GAcknowledgeDialog(message, submsg);
   Resource::ref(dialog);
   dialog->post_for(window);
   Resource::unref(dialog);
   window->cursor(defaultCursor);
+  if (title)
+    kit.pop_style();
 }
 
 

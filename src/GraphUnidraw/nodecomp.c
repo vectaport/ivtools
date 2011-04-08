@@ -145,7 +145,7 @@ NodeComp::NodeComp(Picture* pic, boolean rl, OverlayComp* parent)
     _node = new TopoNode(this);
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->SetFont(GetText()->GetFont());
+    if (GetText()) pic->SetFont(GetText()->GetFont());
     _reqlabel = rl;
 }
 

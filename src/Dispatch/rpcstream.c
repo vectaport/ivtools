@@ -35,7 +35,9 @@ rpcstream::rpcstream() :
 //    init(&_buf);
 }
 
+#if !defined(_IO_NEW_STREAMS)
 rpcstream::~rpcstream() {}
+#endif
 
 // Provide operations on the rpcbuf.  Most change the stream's state
 // so radically that it's either cleared or failed.

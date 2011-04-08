@@ -1,0 +1,128 @@
+/* base directory for software projects */
+/* requires an IVDIR environment variable */
+#define ProjectDir $(IVDIR)
+
+#undef InstalledRoot
+#define InstalledRoot $(IVDIR)/ivtools-0.6
+
+#undef TroffCmd
+#define TroffCmd nroff -Tlpr
+
+#undef PSFontDir
+#define PSFontDir /usr/lib/X11/fonts/Type1Adobe/afm
+
+/* gcc command line with -V for version and -O for optimize */
+#undef CCDriver
+#define CCDriver gcc 
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses NO
+#define SOMAXCONN 5
+
+#undef TIFFCDriver
+#define TIFFCDriver CcCmd
+
+/* Don't need these for when TIFF built with gcc */
+#undef StandardIncludes
+#define StandardIncludes /**/
+#undef ExtraLibraries
+#define ExtraLibraries /**/
+
+/* libg++ include directory -- usually does not change with new version of libg++ */
+#define GPlusPlusIncludeDir /usr/cal/lib/g++-include
+
+/* machine-specific gcc include directory -- does not change with each new version of gcc */
+/* TAKE CARE TO PUT THIS VALUE ALSO IN ExtraCCLdLibs !!! */
+#define ToolIncludeDir /usr/cal/lib 
+
+#undef OtherCCLdFlags
+#define OtherCCLdFlags -Xlinker -so_archive
+
+/* link libraries for the above */
+/* override ./InterViews/iv-alpha.cf */
+#undef ExtraCCLdLibs
+#define ExtraCCLdLibs -L/usr/cal/lib -lstdc++ -lm -ldnet_stub
+#undef ExtraCCFlags
+#define ExtraCCFlags /**/
+#undef ExtraCCDefines
+#define ExtraCCDefines -D__STDC__ -Ualpha -D_IEEE
+
+
+#undef HasRanlibCmd
+#define HasRanlibCmd         YES  /* Needed because ar -s is not supported */
+
+
+/* command to create shared libraries */
+#define SharedLibraryCmd(ldobjs, extra_flags) gcc -shared -Xlinker -all -Xlinker /usr/cal/lib/libstdc++.a -Xlinker -none -lc -lm extra_flags -o $@ ldobjs
+
+/* 
+ * Enable/disable relative InterViews-style installation of binaries
+ */
+#undef InstallRelative
+#define InstallRelative YES
+
+/* use -rpath instead of -L to get slack developers shared libraries */
+#define UseRpath NO
+
+/* use symbolic links for relative install of libraries */
+#if !UseRpath
+#if InstallRelative
+#undef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)			@@\
+install:: Concat(lib,libname.so.rev)					@@\
+	MakeDir(dest)							@@\
+	if [ -f dest/Concat(lib,libname.so.rev) ]; then \		@@\
+	$(RM) dest/Concat(lib,libname.so.rev); else exit 0; fi		@@\
+	ln -s $(CURRENT_DIR)/Concat(lib,libname.so.rev) dest/
+#undef InstallNonSharedLibrary
+#define InstallNonSharedLibrary(libname,dest)				@@\
+install:: Concat(lib,libname.a)						@@\
+	MakeDir(dest)							@@\
+	if [ -f dest/Concat(lib,libname.a) ]; then \			@@\
+	$(RM) dest/Concat(lib,libname.a); else exit 0; fi		@@\
+	ln -s  $(CURRENT_DIR)/Concat(lib,libname.a) dest/
+#endif
+#endif
+
+/*
+ * Irix strip is broken
+ */
+#undef InstPgmFlags
+#define InstPgmFlags /**/
+
+/* override InterViews/iv-alpha.cf */
+#undef InstallCmd
+#define InstallCmd ${INSTALL_PATH}/install.sh
+
+/* 
+ * Where to put binaries, libraries, and data files when InstallRelative is NO
+ */ 
+#define BinDir /usr/local/bin
+#define LibDir /usr/local/lib
+#define LibAllDir /usr/local/lib/ivtools
+
+/*
+ * X11 directories -- remember to override XCONFIGDIR the
+ * first time you run "make World".
+ */
+#define XConfigDir /usr/lib/X11/config
+#define XIncDir /usr/include
+#define XLibDir /usr/lib
+
+/* clippoly directory:  comment out if not available */
+/* #define ClipPolyDir ProjectDir/clippoly */
+
+/* ACE directory: comment out if not available */
+/* #define AceDir ProjectDir/ACE_wrappers */

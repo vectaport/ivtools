@@ -52,14 +52,17 @@
 
 /*****************************************************************************/
 
-OverlayPanner::OverlayPanner (Interactor* i, int size) {
+OverlayPanner::OverlayPanner (Interactor* i, int size, boolean panner,
+			      boolean zoomer,  boolean slider) {
 
-    Init(i, size);
+    Init(i, size, panner, zoomer, slider);
 }
 
-OverlayPanner::OverlayPanner (const char* name, Interactor* i, int size) {
+OverlayPanner::OverlayPanner (const char* name, Interactor* i, int size,
+			      boolean panner, boolean zoomer,
+			      boolean slider) {
     SetInstance(name);
-    Init(i, size);
+    Init(i, size, panner, zoomer, slider);
 }
 
 OverlayPanner::~OverlayPanner() { }
@@ -67,40 +70,66 @@ OverlayPanner::~OverlayPanner() { }
 /* 0.3 second delay for auto-repeat */
 static int DELAY = 3;
 
-void OverlayPanner::Init (Interactor* i, int n) {
+void OverlayPanner::Init (Interactor* i, int n, boolean panner,
+			  boolean zoomer, boolean slider) {
+
+    panner_on() = panner;
+    zoomer_on() = zoomer;
+    slider_on() = slider;
+
     SetClassName("OverlayPanner");
     size = n;
-    adjusters = new HBox(
-        new HGlue,
+    
+    VBox* panner_vbox = nil;
+    if (panner_on())
+      panner_vbox = 
 	new VBox(
-            new VGlue,
-            new OvUpMover(i, DELAY),
-	    new HBox(
-                new HGlue,
-		new OvLeftMover(i, DELAY),
-		new HGlue,
-		new OvRightMover(i, DELAY),
-                new HGlue
-	    ),
-            new OvDownMover(i, DELAY),
-            new VGlue
-	),
-        new HGlue,
+		 new VGlue,
+		 new OvUpMover(i, DELAY),
+		 new HBox(
+			  new HGlue,
+			  new OvLeftMover(i, DELAY),
+			  new HGlue,
+			  new OvRightMover(i, DELAY),
+			  new HGlue
+			  ),
+		 new OvDownMover(i, DELAY),
+		 new VGlue
+		 );
+    
+    VBox* zoomer_vbox = nil;
+    if (zoomer_on())
+      zoomer_vbox = 
 	new VBox(
-            new VGlue(2),
-	    new Enlarger(i),
-            new VGlue(4),
-	    new Reducer(i),
-            new VGlue(2)
-	),
-        new HGlue
-    );
-    slider = new OverlaySlider(i);
-    Insert(
-	new VBox(adjusters, new HBorder, slider)
-    );
-}
+		 new VGlue(2),
+		 new Enlarger(i),
+		 new VGlue(4),
+		 new Reducer(i),
+		 new VGlue(2)
+		 );
 
+    
+    if (panner_vbox || zoomer_vbox) {
+      adjusters = new HBox();
+      adjusters->Insert(new HGlue());
+      if (panner_vbox) {
+	adjusters->Insert(panner_vbox);
+	adjusters->Insert(new HGlue);
+      }
+      if (zoomer_vbox) {
+	adjusters->Insert(zoomer_vbox);
+	adjusters->Insert(new HGlue);
+      }
+
+      if (slider_on()) {
+	islider = new OverlaySlider(i);
+	Insert(new VBox(adjusters, new HBorder, islider));
+      } else 
+	Insert(adjusters);
+    } 
+      
+}
+    
 void OverlayPanner::Reconfig () {
     MonoScene::Reconfig();
     Shape a = *adjusters->GetShape();
@@ -113,9 +142,10 @@ void OverlayPanner::Reconfig () {
         a.vshrink = a.height/3;
         adjusters->Reshape(a);
     }
-    Shape* s = slider->GetShape();
-    if (s->width != a.width) {
-        slider->Reshape(a);
+    if (slider_on()) { 
+      Shape* s = islider->GetShape();
+      if (s->width != a.width)
+        islider->Reshape(a);
     }
 }
 

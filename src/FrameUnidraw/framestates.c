@@ -33,26 +33,30 @@
 FrameNumberState::FrameNumberState(int fn, const char* desc, int usebg)
 :NameState(nil)
 {
-    _framenumber = fn;
+    _number = fn;
     _desc = strdup (desc ? desc : "Current Frame");
     _usebg = usebg;
     if (_usebg && fn == 0)
 	sprintf(buf, "%s: background", _desc);
     else
-        sprintf(buf, "%s: %d", _desc, _framenumber);
+        sprintf(buf, "%s: %d", _desc, _number);
     name(buf, false);
 }
 
-int FrameNumberState::framenumber() { return _framenumber; }
+int FrameNumberState::number() { return _number; }
 
-void FrameNumberState::framenumber(int fn, boolean notif) {
-    _framenumber = fn;
+void FrameNumberState::number(int fn, boolean notif) {
+    _number = fn;
     if (_usebg && fn == 0)
 	sprintf(buf, "%s: background", _desc);
     else
-        sprintf(buf, "%s: %d", _desc, _framenumber);
+        sprintf(buf, "%s: %d", _desc, _number);
     name(buf, notif);
 }
+
+int FrameNumberState::framenumber() { return number(); }
+void FrameNumberState::framenumber(int fn, boolean notif) 
+{ number(fn, notif); }
 
 /*****************************************************************************/
 

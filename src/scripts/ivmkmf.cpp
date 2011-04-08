@@ -3,7 +3,7 @@ XCOMM
 XCOMM generate a Makefile from an Imakefile outside of the source tree
 XCOMM 
 
-usage="usage: $0 [-a]"
+usage="usage: [-a]$0"
 do_all=
 
 case "$#" in
@@ -28,7 +28,8 @@ fi
 case "$do_all" in
 	yes)	set -x
 		imake CONFIGDIRSPEC -DUseInstalled &&
-		make Makefiles &&
+		make Makefile MAKEMAKESPEC &&
+		make Makefiles MAKEMAKESPEC &&
 		make depend
 		;;
 	*)	set -x
@@ -39,7 +40,8 @@ esac
 case "$do_all" in
 	yes)	set -x
 		imake CONFIGDIRSPEC &&
-		make Makefiles &&
+		make Makefile MAKEMAKESPEC &&
+		make Makefiles MAKEMAKESPEC &&
 		make depend
 		;;
 	*)	set -x

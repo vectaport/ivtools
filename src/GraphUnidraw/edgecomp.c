@@ -30,6 +30,7 @@
 
 #include <OverlayUnidraw/ovarrow.h>
 #include <OverlayUnidraw/ovcmds.h>
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/paramlist.h>
 
 #include <Unidraw/Commands/datas.h>
@@ -52,7 +53,6 @@
 #include <Unidraw/unidraw.h>
 
 #include <UniIdraw/idarrows.h>
-#include <UniIdraw/ided.h>
 
 #include <IV-2_6/InterViews/painter.h>
 #include <IV-2_6/InterViews/rubcurve.h>
@@ -282,36 +282,62 @@ void EdgeComp::Interpret(Command* cmd) {
 	if (Edge()->start_node()) {
 	    float fx, fy;
 	    ((NodeComp*)Edge()->start_node()->value())
-		->GetEllipse()->GetCenter(fx, fy);
+		->GetGraphic()->GetCenter(fx, fy);
 	    x0 = Math::round(fx);
 	    y0 = Math::round(fy);
 	}
 	if (Edge()->end_node()) {
 	    float fx, fy;
 	    ((NodeComp*)Edge()->end_node()->value())
-		->GetEllipse()->GetCenter(fx, fy);
+		->GetGraphic()->GetCenter(fx, fy);
 	    x1 = Math::round(fx);
 	    y1 = Math::round(fy);
 	}
 	Coord nx0, ny0;
 	if (Edge()->start_node()) {
-	    if (clipline(x0, y0, x1, y1,
-			 ((NodeComp*)Edge()->start_node()->value())
-			 ->GetEllipse(),
+	  SF_Ellipse* e1;
+	  boolean newe = false;
+	  if (((NodeComp*)Edge()->start_node()->value())->GetClassId() == NODE_COMP)
+	    e1 = ((NodeComp*)Edge()->start_node()->value())->GetEllipse();
+	  else {
+	    int ex0, ey0, ex1, ey1;
+	    ((NodeComp*)Edge()->start_node()->value())->GetGraphic()->
+	      GetBox(ex0, ey0, ex1, ey1);
+	    e1 = new SF_Ellipse(ex0+(ex1-ex0)/2, ey0+(ey1-ey0)/2,
+			     (ex1-ex0)/2, (ey1-ey0)/2);
+	    newe = true;
+	  }
+
+	    if (clipline(x0, y0, x1, y1, e1,
 			 nx0, ny0)) {
 		x0 = nx0;
 		y0 = ny0;
 	    }
+	    if (newe)
+	      delete e1;
+	    ((NodeComp*)Edge()->start_node()->value())->notify();
 	}
 	Coord nx1, ny1;
 	if (Edge()->end_node()) {
-	    if (clipline(x0, y0, x1, y1,
-			 ((NodeComp*)Edge()->end_node()->value())
-			 ->GetEllipse(),
+	  SF_Ellipse* e2;
+	  boolean newe = false;
+	  if (((NodeComp*)Edge()->end_node()->value())->GetClassId() == NODE_COMP)
+	    e2 = ((NodeComp*)Edge()->end_node()->value())->GetEllipse();
+	  else {
+	    int ex0, ey0, ex1, ey1;
+	    ((NodeComp*)Edge()->end_node()->value())->GetGraphic()->
+	      GetBox(ex0, ey0, ex1, ey1);
+	    e2 = new SF_Ellipse(ex0+(ex1-ex0)/2, ey0+(ey1-ey0)/2,
+			     (ex1-ex0)/2, (ey1-ey0)/2);
+	    newe = true;
+	  }
+	    if (clipline(x0, y0, x1, y1, e2,
 			 nx1, ny1)) {
 		x1 = nx1;
 		y1 = ny1;
 	    }
+	    if (newe)
+	      delete e2;
 	}
 	GetArrowLine()->SetOriginal(x0, y0, x1, y1);
 	Notify();
@@ -436,6 +462,7 @@ void EdgeView::Update () {
     Coord x0, y0, x1, y1;
     ((EdgeComp*)GetGraphicComp())->GetArrowLine()->GetOriginal(x0, y0, x1, y1);
     line->SetOriginal(x0, y0, x1, y1);
+    *line = *GetGraphicComp()->GetGraphic();
     IncurDamage(line);
     EraseHandles();
 }
@@ -551,8 +578,10 @@ Manipulator* EdgeView::CreateManipulator(
 
 Command* EdgeView::InterpretManipulator(Manipulator* m) {
     DragManip* dm = (DragManip*) m;
-    IdrawEditor* ed = (IdrawEditor*)dm->GetViewer()->GetEditor();
-    GraphicViews* views = (GraphicViews*)dm->GetViewer()->GetGraphicView();
+    //IdrawEditor* ed = (IdrawEditor*)dm->GetViewer()->GetEditor();
+    //GraphicViews* views = (GraphicViews*)dm->GetViewer()->GetGraphicView();
+    OverlayEditor* ed = (OverlayEditor*)dm->GetViewer()->GetEditor();
+    OverlaysView* views = ed->GetFrame();
     Tool* tool = dm->GetTool();
     Transformer* rel = dm->GetTransformer();
     Command* cmd = nil;

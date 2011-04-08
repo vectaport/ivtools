@@ -6,6 +6,8 @@ PACKAGE = idraw
 
 #ifdef InObjectCodeDir
 
+CLIPPOLY_CCLDLIBS = 
+
 APP_CCLDLIBS = $(LIBUNIIDRAW)
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS = $(DEPUNIIDRAW)

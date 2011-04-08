@@ -21,7 +21,7 @@
  * 
  */
 
-#if !defined(unifunc_h)
+#if !defined(_unifunc_h)
 #define _unifunc_h
 
 #include <Unidraw/editor.h>
@@ -29,6 +29,7 @@
 
 class Command;
 class ComTerp;
+class OverlayCatalog;
 
 class UnidrawFunc : public ComFunc {
 public:
@@ -36,6 +37,7 @@ public:
 
     void execute_log(Command*);
 
+    Editor* editor() { return _ed; }
 protected:
     Editor* _ed;
 
@@ -48,15 +50,42 @@ public:
     HandlesFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "handles(flag) -- enable/disable current selection tic marks and/or highlighting"; }
+	return "%s(flag) -- enable/disable current selection tic marks and/or highlighting"; }
 };
 
 class PasteFunc : public UnidrawFunc {
 public:
-    PasteFunc(ComTerp*,Editor*);
+    PasteFunc(ComTerp*,Editor*,OverlayCatalog* = nil);
     virtual void execute();
     virtual const char* docstring() { 
-	return "paste(grcomp) -- paste graphic component into the viewer"; }
+	return "%s(grcomp [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic component into the viewer"; }
+
+protected:
+    OverlayCatalog* _catalog;
+};
+
+class ReadOnlyFunc : public UnidrawFunc {
+public:
+    ReadOnlyFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s(grcomp :clear) -- set or clear the readonly attribute of a graphic component"; }
+
+protected:
+    int _clear_symid;
+};
+
+class BarPlotFunc : public UnidrawFunc {
+public:
+    BarPlotFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([var_str value_float] [...] :title title_str :xtitle xtitle_str :ytitle ytitle_str :valtitle valtitle_str) -- display a barplot"; }
+protected:
+  int _title_symid;
+  int _xtitle_symid;
+  int _ytitle_symid;
+  int _valtitle_symid;
 };
 
 #endif /* !defined(_unifunc_h) */

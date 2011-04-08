@@ -5,6 +5,8 @@ XCOMM
 
 PACKAGE = meter
 
+CLIPPOLY_CCLDLIBS =
+
 #ifdef InObjectCodeDir
 
 APP_CCLDLIBS =  $(LIBIVGLYPH)

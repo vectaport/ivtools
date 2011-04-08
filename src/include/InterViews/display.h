@@ -42,9 +42,8 @@ class Style;
 class Window;
 
 class Display {
-protected:
-    Display(DisplayRep*);
 public:
+    Display(DisplayRep*);
     static Display* open(const String&);
     static Display* open(const char*);
     static Display* open();

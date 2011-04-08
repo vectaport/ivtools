@@ -44,6 +44,7 @@ public:
     virtual void UpdateFrame(boolean txtupdate =true);
     virtual void InitFrame();
     virtual void Update();
+    virtual void AddCommands(ComTerp*);
 
     EivTextEditor* TextEditor() { return _texteditor; }
     void SetText();
@@ -51,7 +52,7 @@ public:
     void UpdateText(OverlayComp*, boolean update =true);
 
     void SetFrame(FrameView* f) { _prevframe = _currframe;_currframe = f; }
-    FrameView* GetFrame(int index=-1);
+    virtual OverlaysView* GetFrame(int index=-1);
 
     int OtherFrame(){ return _curr_other; }
     void OtherFrame(int other_frame) 

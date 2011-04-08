@@ -57,6 +57,7 @@ class ToolButton;
 class OverlayKit {
 public:
     OverlayKit();
+    virtual ~OverlayKit();
 
     void SetEditor(OverlayEditor*);
     OverlayEditor* GetEditor();
@@ -79,6 +80,7 @@ public:
     virtual MenuItem* MakeFgColorMenu();
     virtual MenuItem* MakeBgColorMenu();
     virtual MenuItem* MakeAlignMenu();
+    virtual MenuItem* MakeFrameMenu();
     virtual MenuItem* MakeViewMenu();
     virtual MenuItem* MakeToolsMenu();
     virtual MenuItem* MakeViewersMenu();
@@ -128,6 +130,9 @@ public:
     static const char mouse_imgscale[] = "l-drag: Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
     static const char mouse_logscale[] = "l-drag: Logarithmically Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
     static const char mouse_pseudocolor[] = "l-drag: Pseudocolor Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+    static const char mouse_grloc[] = "l-click: Location within Graphic; m-drag: Move; r-click/drag: Select";
+
+    void otherdisplay(const char* display);
 
 protected:
     Glyph* MenuLine(PSBrush*);
@@ -139,10 +144,13 @@ protected:
     ToolButton* MakeTool(Tool*, Glyph*, TelltaleGroup*, 
 	ObservableText* mousedoc = nil, const char* doc = "");
 
+    const char* otherdisplay();
 protected:
     OverlayEditor* _ed;
     Deck* _toolbars;
     Patch* _toolbar;
+
+    char* _otherdisplay;
 
 protected:
     static OverlayKit* _overlaykit;

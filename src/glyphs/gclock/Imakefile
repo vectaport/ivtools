@@ -5,6 +5,8 @@ XCOMM
 
 PACKAGE = gclock
 
+CLIPPOLY_CCLDLIBS =
+
 #ifdef InObjectCodeDir
 
 APP_CCLDLIBS = $(LIBTIME) $(LIBIVGLYPH)

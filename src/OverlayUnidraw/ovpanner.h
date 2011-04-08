@@ -35,18 +35,28 @@
 
 class OverlayPanner : public MonoScene {
 public:
-    OverlayPanner(Interactor*, int size = 0);
-    OverlayPanner(const char*, Interactor*, int size = 0);
+    OverlayPanner(Interactor*, int size = 0, boolean panner = true,
+		  boolean zoomer = true, boolean slider = true);
+    OverlayPanner(const char*, Interactor*, int size = 0, 
+		  boolean panner = true, boolean zoomer = true, 
+		  boolean slider = true);
     virtual ~OverlayPanner();
+
+    boolean& panner_on() { return _panner_on; }
+    boolean& zoomer_on() { return _zoomer_on; }
+    boolean& slider_on() { return _slider_on; }
 protected:
     int size;
+    boolean _panner_on;
+    boolean _zoomer_on;
+    boolean _slider_on;
 
     virtual void Reconfig();
 private:
-    Interactor* adjusters;
-    Interactor* slider;
+    Scene* adjusters;
+    Interactor* islider;
 
-    void Init(Interactor*, int);
+    void Init(Interactor*, int, boolean, boolean, boolean);
 };
 
 class OverlaySlider : public Interactor {

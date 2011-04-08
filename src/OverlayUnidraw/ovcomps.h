@@ -33,6 +33,7 @@
 #include <InterViews/observe.h>
 
 class AttributeList;
+class AttributeValue;
 class MultiLineObj;
 class OverlayCatalog;
 class OverlayView;
@@ -80,8 +81,15 @@ public:
     virtual boolean operator == (OverlayComp&);
     virtual boolean operator != (OverlayComp&);
 
-    AttributeList* GetAttributeList();
+    AttributeList* GetAttributeList(); // creates if necessary
     void SetAttributeList(AttributeList*);
+    AttributeList* attrlist() { return _attrlist; }
+    virtual AttributeValue* FindValue
+      (const char* name, boolean last = false, boolean breadth = false, 
+       boolean down = true, boolean up = false);
+    virtual AttributeValue* FindValue
+      (int symid, boolean last = false, boolean breadth = false, 
+       boolean down = true, boolean up = false);
 
     virtual void Configure(Editor*);
     OverlayComp* TopComp();
@@ -149,6 +157,10 @@ public:
 
     virtual void AdjustBaseDir(const char* oldpath, const char* newpath);
 
+    virtual AttributeValue* FindValue
+      (int symid, boolean last = false, boolean breadth = false, 
+       boolean down = true, boolean up = false);
+
 protected:
     OverlayComp* Comp(UList*);
     UList* Elem(Iterator);
@@ -174,7 +186,13 @@ protected:
 friend OverlaysScript;
 };
 
-class OverlayIdrawComp : public OverlaysComp {
+#include <OverlayUnidraw/indexmixins.h>
+
+class OverlayIdrawComp : public OverlaysComp, 
+			 public IndexedGsMixin,
+			 public IndexedPtsMixin,
+			 public IndexedPicMixin
+{
 public:
     OverlayIdrawComp(const char* pathname = nil, OverlayComp* parent = nil);
     OverlayIdrawComp(istream&, const char* pathname = nil, OverlayComp* parent = nil);
@@ -188,17 +206,17 @@ public:
     virtual void SetPathName(const char*);
     virtual const char* GetPathName();
 
-    virtual void GrowIndexedGS(Graphic*);
-    virtual void GrowIndexedPts(MultiLineObj*);
-    virtual void GrowIndexedPic(OverlaysComp*);
+    virtual void GrowIndexedGS(Graphic* gr) { grow_indexed_gs(gr); }
+    virtual void GrowIndexedPts(MultiLineObj* ml) { grow_indexed_pts(ml); }
+    virtual void GrowIndexedPic(OverlaysComp* comp) { grow_indexed_pic(comp); }
 
-    virtual void ResetIndexedGS();
-    virtual void ResetIndexedPts();
-    virtual void ResetIndexedPic();
+    virtual void ResetIndexedGS() { reset_indexed_gs(); }
+    virtual void ResetIndexedPts() { reset_indexed_pts(); }
+    virtual void ResetIndexedPic() { reset_indexed_pic(); }
 
-    virtual Graphic* GetIndexedGS(int);
-    virtual MultiLineObj* GetIndexedPts(int);
-    virtual OverlaysComp* GetIndexedPic(int);
+    virtual Graphic* GetIndexedGS(int i) { return get_indexed_gs(i); }
+    virtual MultiLineObj* GetIndexedPts(int i) { return get_indexed_pts(i); }
+    virtual OverlaysComp* GetIndexedPic(int i) { return get_indexed_pic(i); }
 
 protected:
     ParamList* GetParamList();
@@ -209,13 +227,6 @@ protected:
 
 protected:
     float _xincr, _yincr;    // anachronisms
-    Picture* _gslist;
-    MultiLineObj** _ptsbuf;
-    int _ptsnum;
-    int _ptslen;
-    OverlaysComp** _picbuf;
-    int _picnum;
-    int _piclen;
     char* _pathname;
     char* _basedir;
 

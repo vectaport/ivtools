@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = src_iv-2_6
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

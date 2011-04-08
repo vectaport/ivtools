@@ -41,7 +41,13 @@
 
 #include <Unidraw/Graphic/damage.h>
 
+#include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
+
 #include <OS/math.h>
+
+#include <stdio.h>
+#include <string.h>
 
 /*****************************************************************************/
 
@@ -119,20 +125,28 @@ void DeleteFrameCmd::Unexecute() {
 
 /*****************************************************************************/
 
+boolean MoveFrameCmd::_func_on= false;
+char* MoveFrameCmd::_move_func = nil;
+char* MoveFrameCmd::_absmove_func = nil;
+MoveFrameCmd* MoveFrameCmd::_default = nil;
+
 MoveFrameCmd::MoveFrameCmd(ControlInfo* i, int motion, boolean allowbg)
 : Command(i)
 {
-    _motion = motion;
-    _actual = 0;
-    _allowbg = allowbg;
+  init(motion, allowbg);
 }
 
 MoveFrameCmd::MoveFrameCmd(Editor* e, int motion, boolean allowbg)
 : Command(e)
 {
-    _motion = motion;
-    _actual = 0;
-    _allowbg = allowbg;
+  init(motion, allowbg);
+}
+
+void MoveFrameCmd::init(int motion, boolean allowbg) {
+  _requestmotion = motion;
+  _plannedmotion = _actualmotion = 0;
+  _allowbg = allowbg;
+  _wraparound = false;
 }
 
 ClassId MoveFrameCmd::GetClassId() { return MOVEFRAME_CMD; }
@@ -141,7 +155,8 @@ boolean MoveFrameCmd::IsA(ClassId id) {
 }
 
 Command* MoveFrameCmd::Copy() {
-    Command* copy = new MoveFrameCmd(CopyControlInfo(), _motion, _allowbg);
+    MoveFrameCmd* copy = new MoveFrameCmd(CopyControlInfo(), _requestmotion, _allowbg);
+    copy->wraparound(wraparound());
     InitCopy(copy);
     return copy;
 }
@@ -150,6 +165,29 @@ boolean MoveFrameCmd::Reversible() { return true; }
 
 void MoveFrameCmd::Log () { ((OverlayUnidraw*)unidraw)->Log(this, false); }
 
+const char* MoveFrameCmd::MoveFuncFormat() 
+{
+  return _func_on ? (_move_func ? _move_func : "timeframe(%d)" ) : nil; 
+}
+
+const char* MoveFrameCmd::AbsMoveFuncFormat() 
+{
+  return _func_on ? (_absmove_func ? _absmove_func : "timeframe(%d :abs)" ) : nil; 
+}
+
+void MoveFrameCmd::FuncEnable(const char* movefunc, const char* absmovefunc) 
+{ 
+  _func_on=true; 
+  if (movefunc) { 
+    delete _move_func; 
+    _move_func = strdup(movefunc);
+  } 
+  if (absmovefunc) { 
+    delete _absmove_func; 
+    _absmove_func = strdup(absmovefunc);
+  } 
+}
+
 void MoveFrameCmd::Execute() {
     FrameEditor* ed = (FrameEditor*) GetEditor();
     FrameIdrawComp *comp = ((FrameIdrawComp*)ed->GetComponent());
@@ -157,27 +195,36 @@ void MoveFrameCmd::Execute() {
     FramesView* fv = (FramesView*)ed->GetViewer()->GetGraphicView();
     Iterator frameptr;
     fv->SetView(ed->GetFrame(), frameptr);
-    FrameView* prev = ed->GetFrame();
-    _actual = 0;
+    OverlaysView* prev = ed->GetFrame();
+    _actualmotion = 0;
     FrameNumberState* fnumstate = ed->framenumstate();
     int ofnum = fnumstate->framenumber();
-    if (!_allowbg && ofnum + _motion <= 0)
-      _motion += Math::abs(ofnum + _motion) + 1;
-    for (int i = 0; i < Math::abs(_motion); i++) {
+    if (!_allowbg && ofnum + _requestmotion <= 0)
+      _plannedmotion = -ofnum + 1;
+    else
+      _plannedmotion = _requestmotion;
+    for (int i = 0; i < Math::abs(_plannedmotion); i++) {
 	if (!fv->Done(frameptr)) {
-	    if (_motion > 0)
+	    if (_plannedmotion > 0)
 		fv->Next(frameptr);
 	    else
 		fv->Prev(frameptr);
-	    _actual++;
+	    _actualmotion++;
 	}
     }
     if (fv->Done(frameptr)) {
-	if (_motion > 0)
+	if (plannedmotion() > 0)
 	    fv->Prev(frameptr);
 	else
 	    fv->Next(frameptr);
-	_actual--;
+	_actualmotion--;
+	if (wraparound()) {
+	  if (requestmotion() > 0) {
+	    fv->First(frameptr);
+	    fv->Next(frameptr);
+	  } else 
+	    fv->Last(frameptr);
+	}
     }
     ed->SetFrame((FrameView*)fv->GetView(frameptr));
     if (prev != ed->GetFrame()) {
@@ -188,6 +235,13 @@ void MoveFrameCmd::Execute() {
     ed->UpdateFrame(true);
     int fnum = fv->Index(frameptr);
     fnumstate->framenumber(fnum);
+    ComTerpServ* comterp = ed->GetComTerp();
+    const char* funcformat = MoveFuncFormat();
+    if (funcformat && comterp) {
+      char buf[BUFSIZ];
+      sprintf(buf, funcformat, _requestmotion);
+      ComValue& retval = comterp->run(buf);
+    }
     unidraw->Update();
 }
 
@@ -195,13 +249,13 @@ void MoveFrameCmd::Unexecute() {
     FrameEditor* ed = (FrameEditor*) GetEditor();
     FrameIdrawComp* comp = ((FrameIdrawComp*)ed->GetComponent());
     FramesView* fv = (FramesView*)ed->GetViewer()->GetGraphicView();
-    FrameView* prev = ed->GetFrame();
+    OverlaysView* prev = ed->GetFrame();
     Iterator frameptr;
     fv->SetView(ed->GetFrame(), frameptr);
     Damage* damage = ed->GetViewer()->GetDamage();
     damage->Incur(ed->GetFrame()->GetGraphic());
-    for (int i = 0; i < _actual; i++) {
-	if (_motion > 0)
+    for (int i = 0; i < _actualmotion; i++) {
+	if (_plannedmotion > 0)
 	    fv->Prev(frameptr);
 	else
 	    fv->Next(frameptr);
@@ -211,8 +265,25 @@ void MoveFrameCmd::Unexecute() {
     ed->UpdateFrame(true);
     FrameNumberState* fnumstate = ed->framenumstate();
     fnumstate->framenumber(fv->Index(frameptr));
+    ComTerpServ* comterp = ed->GetComTerp();
+    const char* funcformat = MoveFuncFormat();
+    if (funcformat && comterp) {
+      char buf[BUFSIZ];
+      sprintf(buf, funcformat, -_requestmotion);
+      ComValue& retval = comterp->run(buf);
+    }
     unidraw->Update();
 }
+
+void MoveFrameCmd::clr_wraparound() {
+  wraparound(false);
+}
+
+void MoveFrameCmd::set_wraparound() {
+  wraparound(true);
+}
+
+implementActionCallback(MoveFrameCmd)
 
 /*****************************************************************************/
 
@@ -258,8 +329,15 @@ void FrameBeginCmd::Execute() {
     FrameNumberState* fnumstate = ed->framenumstate();
     int fnum = fv->Index(frameptr);
     fnumstate->framenumber(fnum);
-    _motion = before-after;
-    _actual = Math::abs(_motion);
+    _requestmotion = before-after;
+    _actualmotion = Math::abs(_requestmotion);
+    const char* funcformat = AbsMoveFuncFormat();
+    ComTerpServ* comterp = ed->GetComTerp();
+    if (funcformat && comterp) {
+      char buf[BUFSIZ];
+      sprintf(buf, funcformat, _allowbg ? 0 : 1);
+      ComValue& retval = comterp->run(buf);
+    }
     unidraw->Update();
 }
 
@@ -304,8 +382,15 @@ void FrameEndCmd::Execute() {
     FrameNumberState* fnumstate = ed->framenumstate();
     int fnum = fv->Index(frameptr);
     fnumstate->framenumber(fnum);
-    _motion = after-before;
-    _actual = Math::abs(_motion);
+    _requestmotion = after-before;
+    _actualmotion = Math::abs(_requestmotion);
+    const char* funcformat = AbsMoveFuncFormat();
+    ComTerpServ* comterp = ed->GetComTerp();
+    if (funcformat && comterp) {
+      char buf[BUFSIZ];
+      sprintf(buf, funcformat, fnum);
+      ComValue& retval = comterp->run(buf);
+    }
     unidraw->Update();
 }
 
@@ -336,6 +421,14 @@ Command* CreateMoveFrameCmd::Copy() {
     Command* copy = new CreateMoveFrameCmd(CopyControlInfo(), _after);
     InitCopy(copy);
     return copy;
+}
+
+CreateFrameCmd* CreateMoveFrameCmd::createframecmd() {
+  Iterator i;  First(i);  return (CreateFrameCmd*)GetCommand(i);
+}
+
+MoveFrameCmd* CreateMoveFrameCmd::moveframecmd() {
+  Iterator i;  First(i);  Next(i); return (MoveFrameCmd*)GetCommand(i);
 }
 
 /*****************************************************************************/ 

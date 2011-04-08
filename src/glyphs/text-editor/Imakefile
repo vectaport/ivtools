@@ -6,6 +6,8 @@ PACKAGE = text-editor
 
 #ifdef InObjectCodeDir
 
+CLIPPOLY_CCLDLIBS =
+
 APP_CCLDLIBS = $(LIBIVGLYPH)
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS =  $(DEPIVGLYPH)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994,1995,1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -25,6 +25,10 @@
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterpserv.h>
+
+#ifdef HAVE_ACE
+#include <ace/SOCK_Connector.h>
+#endif
 
 #define TITLE "CtrlFunc"
 
@@ -103,5 +107,78 @@ void RunFunc::execute() {
         _comterp->runfile(runfilename.string_ptr());
     return;
 }
+
+RemoteFunc::RemoteFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void RemoteFunc::execute() {
+  ComValue hostv(stack_arg(0, true));
+  ComValue portv(stack_arg(1));
+  ComValue cmdstrv(stack_arg(2));
+  reset_stack();
+
+#ifdef HAVE_ACE
+  if (hostv.is_string() && portv.is_known() && cmdstrv.is_string()) {
+
+    const char* hoststr = hostv.string_ptr();
+    const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
+    u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
+    ACE_INET_Addr addr (portnum, hoststr);
+    ACE_SOCK_Stream socket;
+    ACE_SOCK_Connector conn;
+    if (conn.connect (socket, addr) == -1) {
+      ACE_ERROR ((LM_ERROR, "%p\n", "open"));
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    filebuf ofbuf;
+    ofbuf.attach(socket.get_handle());
+    ostream out(&ofbuf);
+    const char* cmdstr = cmdstrv.string_ptr();
+    out << cmdstr;
+    if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
+    out.flush();
+    filebuf ifbuf;
+    ifbuf.attach(socket.get_handle());
+    istream in(&ifbuf);
+    char* buf;
+    in.gets(&buf);
+    ComValue& retval = comterpserv()->run(buf, true);
+    push_stack(retval);
+
+    if (socket.close () == -1)
+        ACE_ERROR ((LM_ERROR, "%p\n", "close"));
+  } 
+    
+  return;
+
+#else
+
+  reset_stack();
+  cerr << "for the remote command to work rebuild comterp with ACE\n";
+  return;
+
+#endif
+
+}
+
+ShellFunc::ShellFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ShellFunc::execute() {
+    ComValue shellcmdstr(stack_arg(0));
+    reset_stack();
+
+    ComValue retval;
+    if (shellcmdstr.type() == ComValue::StringType) {
+        retval.int_ref() = system(shellcmdstr.string_ptr());
+	retval.type(ComValue::IntType);
+    }
+    push_stack(retval);
+    return;
+}
+
+
 
 

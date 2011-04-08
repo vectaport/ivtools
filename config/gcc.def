@@ -10,15 +10,6 @@
 		      -I$(TOOL_INCLUDE_DIR)
 #endif
 
-#undef HasDynamicSharedLibraries
-#define HasDynamicSharedLibraries YES
-
-#undef SharedCCFlags
-#define SharedCCFlags -fPIC 
-
-#undef SharedCCLdFlags
-#define SharedCCLdFlags
-
 #undef HasGcc2
 #define HasGcc2 YES
 

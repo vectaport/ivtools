@@ -94,6 +94,9 @@ static int hexmap[] = {
 const char PBM_MAGIC_BYTES[2] = {'P', '4'};
 const char PGM_MAGIC_BYTES[2] = {'P', '5'};
 const char PPM_MAGIC_BYTES[2] = {'P', '6'};
+const char PBMA_MAGIC_BYTES[2] = {'P', '1'};
+const char PGMA_MAGIC_BYTES[2] = {'P', '2'};
+const char PPMA_MAGIC_BYTES[2] = {'P', '3'};
 
 const char GZIP_MAGIC_BYTES[2] = {0x1f, 0x8b};
 const char COMPRESS_MAGIC_BYTES[2] = {0x1f, 0x9d};
@@ -238,6 +241,15 @@ const char* OvImportCmd::ReadCreator (const char* pathname) {
                 strncpy(creator, "PGM", creator_size);
 
 	    else if (CheckMagicBytes(PPM_MAGIC_BYTES, line)) 
+                strncpy(creator, "PPM", creator_size);
+
+	    else if (CheckMagicBytes(PBMA_MAGIC_BYTES, line)) 
+                strncpy(creator, "PBM", creator_size);
+
+	    else if (CheckMagicBytes(PGMA_MAGIC_BYTES, line)) 
+                strncpy(creator, "PGM", creator_size);
+
+	    else if (CheckMagicBytes(PPMA_MAGIC_BYTES, line)) 
                 strncpy(creator, "PPM", creator_size);
 
             /* One-byte Magic numbers */
@@ -429,17 +441,14 @@ void OvImportCmd::Execute () {
       if (!from_dialog) {
 	Window* w = GetEditor()->GetWindow();
 	w->cursor(defaultCursor);
-	GAcknowledgeDialog* dialog = new GAcknowledgeDialog("import failed");
-	Resource::ref(dialog);
-	dialog->post_for(w);
-	Resource::unref(dialog);
+	GAcknowledgeDialog::post(w, "import failed", nil, "import failed");
       }
     }
 }
 
 boolean OvImportCmd::Reversible () { return false; }
 
-Command* OvImportCmd::Copy () {
+::Command* OvImportCmd::Copy () {
     OvImportCmd* copy = new OvImportCmd(CopyControlInfo());
     InitCopy(copy);
     copy->preserve_selection(preserve_selection_);
@@ -503,8 +512,14 @@ GraphicComp* OvImportCmd::Import (const char* pathname) {
     boolean raster_import = false;
 
     /* pipe import from command */
-    if (chooser_->from_command()) {
-      FILE* fptr = popen(pathname, "r");
+    if (chooser_->from_command() || chooser_->auto_convert()) {
+      FILE* fptr = nil;
+      if (chooser_->auto_convert()) {
+	char buffer[BUFSIZ];
+	sprintf( buffer, "anytopnm %s", pathname );
+	fptr = popen(buffer, "r");
+      } else
+        fptr = popen(pathname, "r");
       if (fptr) {
 	filebuf fbuf;
 	fbuf.attach(fileno(fptr));
@@ -622,7 +637,7 @@ GraphicComp* OvImportCmd::TIFF_Image (const char* pathname) {
 
 OverlayRaster* OvImportCmd::TIFF_Raster (const char* pathname) {
     Raster* raster = TIFFRaster::load(pathname);
-    OverlayRaster* ovraster = new OverlayRaster(*ovraster);
+    OverlayRaster* ovraster = new OverlayRaster(*raster);
     delete raster;
     ovraster->flush();
     return ovraster;
@@ -653,16 +668,8 @@ boolean OvImportCmd::Tiling(int& width, int& height) {
 
 // --------------------------------------------------------------------------
 
-class PPM_Helper : public PortableImageHelper {
-public:
-    virtual boolean ppm();
-    virtual int bytes_per_pixel();
-    virtual void read_write_pixel( FILE* in, FILE* out );
-    virtual const char* magic();
-    virtual void read_poke( OverlayRaster*, FILE*, u_long x, u_long y );
-    virtual OverlayRaster* create_raster( u_long w, u_long h );
-};
-
+PPM_Helper::PPM_Helper(boolean is_ascii) : PortableImageHelper(is_ascii) {
+}
 
 boolean PPM_Helper::ppm() {
     return true;
@@ -673,28 +680,39 @@ int PPM_Helper::bytes_per_pixel() {
 }
 
 void PPM_Helper::read_write_pixel( FILE* infile, FILE* outfile ) {
-    int red = getc(infile);
+    int red, green, blue;
+    if (is_ascii()) fscanf(infile, "%d", &red); else red = getc(infile);
     putc(red, outfile);
-    int green = getc(infile);
+    if (is_ascii()) fscanf(infile, "%d", &green); else green = getc(infile);
     putc(green, outfile);
-    int blue = getc(infile);
+    if (is_ascii()) fscanf(infile, "%d", &blue); else blue = getc(infile);
     putc(blue, outfile);
 }
 
 const char* PPM_Helper::magic() {
-    return "P6\n";
+    return is_ascii() ? "P3" : "P6\n";
 }
 
 void PPM_Helper::read_poke(
     OverlayRaster* raster, FILE* file, u_long x, u_long y
 ) {
-    int red = getc(file);
-    int green = getc(file);
-    int blue = getc(file);
-    raster->poke(
-        x, y,
-	float(red)/0xff, float(green)/0xff, float(blue)/0xff, 1.0
-    );
+    int red, green, blue;
+    if (is_ascii()) { 
+      fscanf(file, "%d", &red); 
+      fscanf(file, "%d", &green); 
+      fscanf(file, "%d", &blue);  
+      raster->poke( x, y,
+		   float(red)/0xffff, float(green)/0xffff, float(blue)/0xffff, 
+		   1.0 );
+    } else {
+      red = getc(file);
+      green = getc(file);
+      blue = getc(file);
+      raster->poke(
+		   x, y,
+		   float(red)/0xff, float(green)/0xff, float(blue)/0xff, 
+		   1.0 );
+    }
 }
 
 OverlayRaster* PPM_Helper::create_raster( u_long w, u_long h ) {
@@ -704,15 +722,8 @@ OverlayRaster* PPM_Helper::create_raster( u_long w, u_long h ) {
 
 // --------------------------------------------------------------------------
 
-class PGM_Helper : public PortableImageHelper {
-public:
-    virtual boolean ppm();
-    virtual int bytes_per_pixel();
-    virtual void read_write_pixel( FILE* in, FILE* out );
-    virtual const char* magic();
-    virtual void read_poke( OverlayRaster*, FILE*, u_long x, u_long y );
-    virtual OverlayRaster* create_raster( u_long w, u_long h );
-};
+PGM_Helper::PGM_Helper(boolean is_ascii) : PortableImageHelper(is_ascii) {
+}
 
 boolean PGM_Helper::ppm() {
     return false;
@@ -723,18 +734,28 @@ int PGM_Helper::bytes_per_pixel() {
 }
 
 void PGM_Helper::read_write_pixel( FILE* infile, FILE* outfile ) {
-    int gray = getc(infile);
+    int gray;
+    if (is_ascii())
+        fscanf(infile, "%d", &gray);
+    else
+        gray = getc(infile);
     putc(gray, outfile);
 }
 
 const char* PGM_Helper::magic() {
-    return "P5\n";
+    return is_ascii() ? "P2" : "P5\n";
 }
 
 void PGM_Helper::read_poke(
     OverlayRaster* raster, FILE* file, u_long x, u_long y
 ) {
-    unsigned int gray = getc(file);
+    unsigned int gray;
+    if (is_ascii()) {
+        fscanf(file, "%d", &gray);
+	if (maxval()==65535) 
+	  gray = gray >> 8;
+    } else 
+        gray = getc(file);
     raster->graypoke( x, y, gray );
 }
 
@@ -751,9 +772,6 @@ OverlayRaster* PGM_Helper::create_raster( u_long w, u_long h ) {
 
 
 // --------------------------------------------------------------------------
-static PPM_Helper ppm_helper;
-static PGM_Helper pgm_helper;
-
 OverlayRaster* OvImportCmd::PGM_Raster (
     const char* pathname, boolean delayed, OverlayRaster* raster,
     IntCoord xbeg, IntCoord xend, IntCoord ybeg, IntCoord yend
@@ -1037,8 +1055,11 @@ FILE* OvImportCmd::Portable_Raster_Open(
         char buffer[BUFSIZ];
 	fgets(buffer, BUFSIZ, file);
 
-        int is_ppm = !strcmp("P6\n", buffer);
-        int is_pgm = !strcmp("P5\n", buffer);
+        int is_ppm = (!strcmp("P6\n", buffer) || !strcmp("P3\n", buffer));
+        int is_pgm = !strcmp("P5\n", buffer) || !strcmp("P2\n", buffer);
+        int is_ascii = !strcmp("P2\n", buffer) || !strcmp("P3\n", buffer);
+
+
 
 	if (
             ( !is_ppm && !is_pgm ) ||
@@ -1048,9 +1069,8 @@ FILE* OvImportCmd::Portable_Raster_Open(
             closef(file, compressed);
 	    return nil;
 	}
-        else {
-            pih = is_pgm ? &pgm_helper : &ppm_helper;
-        }
+        else 
+            pih = is_pgm ? new PGM_Helper(is_ascii) : new PPM_Helper(is_ascii);
 
 
 	fgets(buffer, BUFSIZ, file);                  // check for tiled file
@@ -1075,10 +1095,11 @@ FILE* OvImportCmd::Portable_Raster_Open(
         fgets(buffer, BUFSIZ, file);                 
         int maxval;
         sscanf(buffer, "%d", &maxval);
-        if (maxval != 255) {
+        if (maxval != 255 && maxval != 65535) {
             closef(file, compressed);
 	    return nil; 
         }
+        pih->maxval(maxval);
     }
 
     return file;
