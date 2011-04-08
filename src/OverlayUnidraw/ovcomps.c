@@ -122,9 +122,10 @@ AttributeList* OverlayComp::GetAttributeList() {
 #endif
 
 void OverlayComp::SetAttributeList(AttributeList* al) {
+  if (_attrlist) 
     Unref(_attrlist);
-    _attrlist = al;
-    Resource::ref(_attrlist);
+  _attrlist = al;
+  Resource::ref(_attrlist);
 
 #if 0 // experimentation with attribute changing
     if (al) {
@@ -194,6 +195,7 @@ void OverlayComp::GrowParamList(ParamList* pl) {
 }
 
 OverlayView* OverlayComp::FindView (Viewer* viewer) {
+    if (!_views) return nil;
     for (UList* u = _views->First(); u != _views->End(); u = u->Next()) {
 	ComponentView* compview = View(u);
 	if (compview->IsA(OVERLAY_VIEW) && 
@@ -917,8 +919,13 @@ void OverlaysComp::InsertBefore (Iterator i, GraphicComp* comp) {
 void OverlaysComp::InsertAfter (Iterator i, GraphicComp* comp) {
     Graphic* g = comp->GetGraphic();
     Graphic* parent;
-    
-    Elem(i)->Prepend(new UList(comp));
+
+    if (Elem(i))
+      Elem(i)->Prepend(new UList(comp));
+    else {
+      cerr << "OverlaysComp::InsertAfter -- Iterator has nil value\n";
+      return;
+    }
     
     if (g != nil) {
         Iterator j;

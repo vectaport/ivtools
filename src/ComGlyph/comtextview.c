@@ -146,6 +146,13 @@ void ComTE_View::newline()
   end_of_line();
   int dot =  text_editor_->Dot();
   int len = dot-mark;
+
+  /* zero-length input happens when only a C/R was entered, which means unpause */
+  /* if pause is active */
+  if (!len && comterp()->npause()) {
+    comterp()->npause()--;
+    return;
+  }
   char* buffer = new char [len+1];
   te_buffer_->Copy(mark, buffer, len);
   buffer[len] = '\0';
@@ -217,9 +224,13 @@ void ComTE_View::newline()
 
   /* load and interpret if expression closed */
   comterp()->load_string(bufptr);
-  int  status = comterp()->ComTerp::run(false /* !once */);
+  int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);
   comterp()->linenum()--;
+#if 1
   ComValue result(comterp()->stack_top(1));
+#else
+  ComValue result(comterp()->pop_stack());
+#endif
   ostream* out = new strstream();
   if (*comterp()->errmsg()) {
     *out << comterp()->errmsg() << "\n";

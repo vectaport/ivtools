@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1996 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -27,11 +28,14 @@
 #include <ComTerp/comterpserv.h>
 
 #include <iostream.h>
+#include <vector.h>
 
 #if BUFSIZ>1024
 #undef BUFSIZ
 #define BUFSIZ 1024
 #endif
+
+int ComterpHandler::_logger_mode = 0;
 
 /*****************************************************************************/
 
@@ -75,13 +79,16 @@ void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
 void
 ComterpHandler::destroy (void)
 {
-    ACE_DEBUG ((LM_DEBUG, 
-	      "(%P|%t) disconnected from %s\n", this->peer_name_));
+    if (ComterpHandler::logger_mode()==0)
+        ACE_DEBUG ((LM_DEBUG, 
+		    "(%P|%t) disconnected from %s\n", this->peer_name_));
 #if 0
     COMTERP_REACTOR::instance ()->cancel_timer (this);
 #endif
     this->peer ().close ();
-    delete comterp_;
+    if (_timeoutscriptid<0)
+      delete comterp_;
+    else /* timer could be still running */;
 }
 
 int
@@ -89,6 +96,7 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 				 const void *arg)
 {
     if (_timeoutscriptid<0) return 0;
+    comterp_->push_servstate();
     comterp_->load_string(symbol_pntr(_timeoutscriptid));
     if (comterp_->read_expr()) {
         if (comterp_->eval_expr()) {
@@ -99,99 +107,74 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 	    delete comterp_;
 #endif
 	    timeoutscriptid(-1);
+	    comterp_->pop_servstate();
 	    comterp_ = nil;
 	    return -1;
 	} else {
 	    if (!comterp_->stack_empty()) {
 	      filebuf obuf(1);
 	      ostream ostr(&obuf);
+	      ostr << "timeexpr result:  ";
 	      comterp_->print_stack_top(ostr);
 	      ostr << "\n";
 	      ostr.flush();
 	    }
 	}
     }
+    comterp_->pop_servstate();
     return 0;
 }
-
-// Perform the logging record receive. 
-static const unit = 15;
-
-// #define INPUT_BY_READ
 
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
-#if 1
-    const int bufsiz = BUFSIZ*BUFSIZ;
+#if 0
+    const int bufsiz = BUFSIZ; //*BUFSIZ;
     char inbuf[bufsiz];
-    char outbuf[bufsiz];
     inbuf[0] = '\0';
-#if !defined(INPUT_BY_READ)
     filebuf ibuf(fd);
     istream istr(&ibuf);
     istr.getline(inbuf, bufsiz);
+#else
+    vector<char> inv;
+    char ch;
+    filebuf ibuf(fd);
+    istream istr(&ibuf);
+
+    // problem handling new-lines embedded in character strings
+    while(istr.good() && istr.get(ch),ch!='\n'&&ch!='\0') 
+      inv.push_back(ch);
+    inv.push_back('\0');
+    char* inbuf = &inv[0];
+#endif
+
     if (!comterp_ || !istr.good())
       return -1; 
-    else if (!*inbuf) {
+    else if (!inbuf || !*inbuf) {
       filebuf obuf(fd ? fd : 1);
       ostream ostr(&obuf);
       ostr << "\n";
       ostr.flush();
       return 0;
     }
-#else
-    int len = 0;
-    while (len<bufsiz-2) {
-      int nread = read(fd, inbuf+len, 1);
-      if (nread!=1) {
-	cerr << "zero bytes read, connection closed\n";
-	return -1;
-      }
-      if (inbuf[len] == '\n') break;
-      len++;
-    }
-    inbuf[len] = '\0';
-#endif
-    comterp_->load_string(inbuf);
-    if (fd>0) 
-      cerr << "command via ACE -- " << inbuf << "\n";
-#else
-    comterp_->_infunc = (infuncptr)&ComTerpServ::fd_fgets;
-#endif
-    comterp_->_fd = fd;
-    comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
+    if (!ComterpHandler::logger_mode()) {
+      comterp_->load_string(inbuf);
+      if (fd>0) 
+	cerr << "command via ACE -- " << inbuf << "\n";
+      comterp_->_fd = fd;
+      comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
 
-#if 1
-    int  status = comterp_->ComTerp::run(false /* !once */);
-#else
-    if (comterp_->read_expr()) {
-        if (comterp_->eval_expr()) {
-	    err_print( stderr, "comterp" );
-	    filebuf obuf(fd ? fd : 1);
-	    ostream ostr(&obuf);
-	    ostr << "err\n";
-	    ostr.flush();
-        } else if (comterp_->quitflag()) {
-	    return -1;
-	} else {
-	    filebuf obuf(fd ? fd : 1);
-	    ostream ostr(&obuf);
-	    comterp_->print_stack_top(ostr);
-	    ostr << "\n";
-	    ostr.flush();
-	}
+      int  status = comterp_->ComTerp::run(false /* !once */, false /* !nested */);
+      return (istr.good() ? 0 : -1) && status;
+    } else {
+      if (inbuf[0]!='\004')
+	cout << inbuf << "\n";
+      filebuf obuf(fd ? fd : 1);
+      ostream ostr(&obuf);
+      ostr << "\n";
+      ostr.flush();
+      return (istr.good() && inbuf[0]!='\004') ? 0 : -1;
     }
-#endif
-#if 1
-#if !defined(INPUT_BY_READ)
-    return (istr.good() ? 0 : -1) && status;
-#else
-    return status;
-#endif
-#else
-    return comterp_->_instat ? 0 : -1;
-#endif
 }
 
 int
@@ -223,8 +206,9 @@ ComterpHandler::open (void *)
 			   "can'(%P|%t) t register with reactor\n"), -1);
 #endif
       else
-      	ACE_DEBUG ((LM_DEBUG, 
-		    "(%P|%t) connected with %s\n", this->peer_name_));
+	if (ComterpHandler::logger_mode()==0) 
+	  ACE_DEBUG ((LM_DEBUG, 
+		      "(%P|%t) connected with %s\n", this->peer_name_));
       return 0;
     }
 }

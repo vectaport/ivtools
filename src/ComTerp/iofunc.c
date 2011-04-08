@@ -45,6 +45,10 @@ void PrintFunc::execute() {
   ComValue strflag(stack_key(str_symid));
   static int string_symid = symbol_add("string");
   ComValue stringflag(stack_key(string_symid));
+  static int sym_symid = symbol_add("sym");
+  ComValue symflag(stack_key(sym_symid));
+  static int symbol_symid = symbol_add("symbol");
+  ComValue symbolflag(stack_key(symbol_symid));
   static int err_symid = symbol_add("err");
   ComValue errflag(stack_key(err_symid));
   reset_stack();
@@ -52,7 +56,8 @@ void PrintFunc::execute() {
   const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
 
   streambuf* strmbuf = nil;
-  if (stringflag.is_false() && strflag.is_false()) {
+  if (stringflag.is_false() && strflag.is_false() &&
+      symbolflag.is_false() && symflag.is_false()) {
     filebuf * fbuf = new filebuf();
     strmbuf = fbuf;
     if (comterp()->handler()) {
@@ -150,9 +155,14 @@ void PrintFunc::execute() {
   }
 
 
-  if (stringflag.is_true()) {
+  if (stringflag.is_true() || strflag.is_true()) {
     out << '\0';
     ComValue retval(((strstreambuf*)strmbuf)->str());
+    push_stack(retval);
+  } else if (symbolflag.is_true() || symflag.is_true()) {
+    out << '\0';
+    int symbol_id = symbol_add(((strstreambuf*)strmbuf)->str());
+    ComValue retval(symbol_id, ComValue::SymbolType);
     push_stack(retval);
   }
   delete strmbuf;

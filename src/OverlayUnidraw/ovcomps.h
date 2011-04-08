@@ -127,8 +127,8 @@ public:
       (const char* name, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
     // search component tree for specified attribute value by 'name'.  Only
-    // default argument mode implemented so far -- return first occurence found
-    // with a downward depth-first search.
+    // two modes supported so far:  the default argument mode which returns the
+    // first occurence found with a downward depth-first search, and upward search.
     virtual AttributeValue* FindValue
       (int symid, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
@@ -299,7 +299,7 @@ protected:
 
 friend OverlaysScript;
 
-    CLASS_SYMID("OverlayComp"); 
+    CLASS_SYMID("OverlaysComp"); 
 };
 
 #include <OverlayUnidraw/indexmixins.h>

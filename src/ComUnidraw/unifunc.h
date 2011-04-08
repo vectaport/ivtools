@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -115,4 +116,27 @@ public:
 
 };
 
+//: command to composite component for a frame, defaults to current
+// compview=frame([index]) -- return composite component for a frame, defaults to current
+class FrameFunc : public UnidrawFunc {
+public:
+    FrameFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s([index]) --  return composite component for a frame, defaults to current"; }
+
+};
+
+//: command to pause script execution until C/R
+// pause -- pause script execution until C/R
+class UnidrawPauseFunc : public UnidrawFunc {
+public:
+    UnidrawPauseFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "pause -- pause script execution until C/R"; }
+
+};
+
 #endif /* !defined(_unifunc_h) */
+

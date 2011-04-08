@@ -39,6 +39,13 @@ extern "C" {
 class AttributeValueList;
 class ostream;
 
+//: struct for symbol value, symid + global flag for symbol value
+// used in attr_value.
+typedef struct {
+       unsigned int symid;
+       boolean globalflag;
+} symval_struct;
+
 //: void* pointer plus object classid (see macro in OverlayUnidraw/ovcomps.h)
 // used in attr_value.
 typedef struct {
@@ -73,7 +80,7 @@ typedef union attr_value_union
       unsigned long     lnunsval;
       float             floatval;
       double            doublval;
-      unsigned int      symbolid;
+      symval_struct     symval;
       objval_struct     objval;
       arrayval_struct   arrayval;
       keyval_struct     keyval;
@@ -130,6 +137,9 @@ public:
 
     virtual ~AttributeValue();
     // set to UnknownType and unref pointer if ArrayType.
+
+    void clear(); 
+    // clear bytes of multi-value union
 
     AttributeValue& operator= (const AttributeValue&);
     // copy assignment operator.
@@ -192,7 +202,10 @@ public:
     const char* string_ptr();
     // lookup and return pointer to string associated with string.
     const char* symbol_ptr();
-    // lookup and return pointer to string associated with symbol.
+    boolean global_flag();
+    // return true if a symbol and the global flag is set.
+    void global_flag(boolean flag);
+    // set global flag of a symbol
     int array_len();
     // length of list of values when ArrayType.
 
@@ -203,7 +216,7 @@ public:
     boolean command_alias();
     // returns true if command is an alias, not the first name.
 
-    boolean object_compview() { return _object_compview; }
+    boolean object_compview() { return is_object() && _object_compview; }
     // true if object is wrapped with a ComponentView
     void object_compview(boolean flag) { _object_compview = flag; }
     // true if object is wrapped with a ComponentView
@@ -292,8 +305,8 @@ public:
     boolean is_attribute();
     // returns true if ObjectType with an Attribute object.
 
-    void* geta(int id); 
-    // get the class symbol id associated with an ObjectType.
+    void* geta(int type); 
+    // return a pointer if ObjectType matches
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.

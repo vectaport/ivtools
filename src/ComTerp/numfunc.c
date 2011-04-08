@@ -549,6 +549,9 @@ void MinFunc::execute() {
 	result.double_ref() =  operand1.double_val() < operand2.double_val() 
 	  ? operand1.double_val() : operand2.double_val();
 	break;
+    case ComValue::UnknownType:
+	result.assignval(operand2);
+	break;
     }
     reset_stack();
     push_stack(result);
@@ -604,6 +607,10 @@ void MaxFunc::execute() {
 	result.double_ref() =  operand1.double_val() > operand2.double_val() 
 	  ? operand1.double_val() : operand2.double_val();
 	break;
+    case ComValue::UnknownType:
+	result.assignval(operand2);
+	break;
+     
     }
     reset_stack();
     push_stack(result);

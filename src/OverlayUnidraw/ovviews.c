@@ -62,6 +62,7 @@ OverlayView::OverlayView(OverlayComp* subj) : GraphicView(subj) {
     _touched = false;
     UnfixSize();
     UnfixLocation();
+    _hilite_gs = nil;
 }
 
 ClassId OverlayView::GetClassId () { return OVERLAY_VIEW; }
@@ -114,7 +115,12 @@ boolean OverlayView::Highlighted () {
 }
 
 Graphic* OverlayView::HighlightGraphic() {
-    return nil;
+    return _hilite_gs;
+}
+
+void OverlayView::HighlightGraphic(Graphic* hilite_gs) {
+  delete _hilite_gs;
+  _hilite_gs = new FullGraphic(hilite_gs);
 }
 
 void OverlayView::Highlight() {
@@ -370,6 +376,7 @@ OverlaysView::~OverlaysView () {
         delete view;
     }
     delete _views;
+    delete _hilite_gs;
 }
 
 static OverlayView* GetLeaf (OverlayView* ov) {

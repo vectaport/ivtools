@@ -199,6 +199,30 @@ void GConfirmDialog::keystroke(const Event& e) {
     }
 }
 
+int GConfirmDialog::post(Window* window, const char* message, 
+			      const char* submsg, const char* title) {
+  WidgetKit& kit = *WidgetKit::instance();
+  if (title) {
+    Style* ts = new Style(kit.style());
+    ts->attribute("name", title);
+    kit.push_style(ts);
+  }
+  
+  GConfirmDialog* dialog = new GConfirmDialog(message, submsg);
+  Resource::ref(dialog);
+  dialog->post_for(window);
+  boolean accepted = dialog->accepted();
+  boolean cancelled = dialog->cancel();
+  Resource::unref(dialog);
+  window->cursor(defaultCursor);
+  if (title)
+    kit.pop_style();
+
+  if (cancelled) return -1;
+  return accepted!=0;
+}
+
+
 /** class GConfirmDialogImpl **/
 
 void GConfirmDialogImpl::init(GConfirmDialog* d, Style* s, const char* c1, const char* c2) {

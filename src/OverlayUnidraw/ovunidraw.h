@@ -31,6 +31,7 @@
 #include <Unidraw/unidraw.h>
 
 class Command;
+class ComTerpServ;
 class Event;
 class MacroCmd;
 class OverlayViewer;
@@ -53,16 +54,23 @@ public:
     void Append(Command*);
 
     static boolean unidraw_updated();
+    static boolean npause_lessened();
     static boolean unidraw_updated_or_command_pushed();
+    static boolean unidraw_updated_or_command_pushed_or_npause_lessened();
     static void pointer_tracker_func(Event&);
 
     void CurrentViewer(OverlayViewer* viewer) { _ovviewer = viewer; }
     OverlayViewer* CurrentViewer() { return _ovviewer; }
+
+    ComTerpServ* comterp() { return _comterp; }
+    void comterp(ComTerpServ* comterp) { _comterp = comterp; }
     
 protected:
     static MacroCmd* _cmdq;
     static boolean* _updated_ptr;
     OverlayViewer* _ovviewer;
+    static ComTerpServ* _comterp;
+    static int _npause;
 };
 
 #endif

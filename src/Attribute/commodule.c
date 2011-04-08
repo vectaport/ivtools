@@ -91,11 +91,7 @@ void ComTerpModule::init() {
 }
 
 void ComTerpModule::reset() {
-    delete _buffer;
-    delete _token;
-    _buffer = new char[BUFSIZ*BUFSIZ];
-    _bufsiz = BUFSIZ*BUFSIZ;
-    _token = new char[BUFSIZ*BUFSIZ];
-    _toksiz = BUFSIZ*BUFSIZ;
+    _buffer[0] = '\0';
+    _token[0] = '\0';
     _linenum = 0;
 }

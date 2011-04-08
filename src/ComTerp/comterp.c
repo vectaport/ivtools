@@ -103,9 +103,11 @@ void ComTerp::init() {
 
     /* Create ComValue symbol table */
     _localtable = new ComValueTable(100);
-    if (_globaltable) {
+#if 0  /* deferred until first use */
+    if (!_globaltable) {
       _globaltable = new ComValueTable(100);
     }
+#endif
 
     _errbuf = new char[BUFSIZ];
 
@@ -599,21 +601,24 @@ ComValue& ComTerp::pop_stack(boolean lookupsym) {
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
-	if (localtable()->find(vptr, comval.symbol_val())) {
+
+	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
 	  comval.assignval(*(ComValue*)vptr);
 	  return comval;
-	} else {
-	    if (_alist) {
-     	        int id = comval.symbol_val();
-	        AttributeValue* aval = _alist->find(id);  
-	        if (aval) {
-		    ComValue newval(*aval);
-		    *&comval = newval;
-		}
-		return comval;
-	    } else 
-	        return ComValue::nullval();
-	}
+	} else  if (_alist) {
+	  int id = comval.symbol_val();
+	  AttributeValue* aval = _alist->find(id);  
+	  if (aval) {
+	    ComValue newval(*aval);
+	    *&comval = newval;
+	  }
+	  return comval;
+	} else if (globaltable()->find(vptr, comval.symbol_val())) {
+	  comval.assignval(*(ComValue*)vptr);
+	  return comval;
+	} else
+	  return ComValue::nullval();
+
     } else if (comval.is_object(Attribute::class_symid())) {
 
       comval.assignval(*((Attribute*)comval.obj_val())->Value());
@@ -624,9 +629,10 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 
 ComValue& ComTerp::lookup_symval(int symid) {
   void* vptr = nil;
-  if (localtable()->find(vptr, symid)) 
-    return *(ComValue*)vptr;
-  else 
+  if (localtable()->find(vptr, symid)) {
+    ComValue* valptr = (ComValue*)vptr;
+    return *valptr;
+  } else 
     return ComValue::nullval();
 }
 
@@ -687,7 +693,7 @@ void ComTerp::quitflag(boolean flag) {
     _quitflag = flag;
 }
 
-int ComTerp::run(boolean one_expr) {
+int ComTerp::run(boolean one_expr, boolean nested) {
   int status = 1;
   _errbuf[0] = '\0';
   char errbuf_save[BUFSIZ];
@@ -707,7 +713,7 @@ int ComTerp::run(boolean one_expr) {
     if (read_expr()) {
       status = 0;
       int top_before = _stack_top;
-      eval_expr();
+      eval_expr(nested);
       if (top_before == _stack_top)
 	status = 2;
       err_str( _errbuf, BUFSIZ, "comterp" );
@@ -735,10 +741,12 @@ int ComTerp::run(boolean one_expr) {
         if (errbuf_save[0]) strcpy(_errbuf, errbuf_save);
       }
     }
-    _stack_top = -1;
+    if (!nested) 
+      _stack_top = -1;
     if (one_expr) break;
   }
   if (status==1 && _pfnum==0) status=2;
+  if (nested && status!=2) _stack_top--;
   return status;
 }
 
@@ -830,6 +838,10 @@ void ComTerp::add_defaults() {
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));
     add_command("symadd", new SymAddFunc(this));
+    add_command("global", new GlobalSymbolFunc(this));
+    add_command("split", new SplitStrFunc(this));
+    add_command("join", new JoinStrFunc(this));
+
     add_command("postfix", new PostFixFunc(this));
     add_command("posteval", new PostEvalFunc(this));
 

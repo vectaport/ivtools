@@ -149,11 +149,12 @@ public:
     virtual void exit(int status=0);
     // call _exit().
 
-    virtual int run(boolean one_expr=false);
+    virtual int run(boolean one_expr=false, boolean nested=false);
     // run interpreter until end-of-file or quit command, unless 
     // 'one_expr' is true.  Leave 'one_expr' false when using a ComTerpServ.
     // Return Value:  -1 if eof, 0 if normal operation, 1 if 
-    // partial expression parsed, 2 if no result computed
+    // partial expression parsed, 2 if no result computed.  'nested' indicates
+    // contents of stack should be preserved.
 
     virtual int runfile(const char* filename);
     // run interpreter on contents of 'filename'.
@@ -162,7 +163,8 @@ public:
 
     ComValueTable* localtable() const { return _localtable; }
     // local symbol table associated with an individual ComTerp.
-    ComValueTable* globaltable() const { return _globaltable; }
+    ComValueTable* globaltable() const 
+      { if (!_globaltable) _globaltable = new ComValueTable(100); return _globaltable; }
     // global symbol table associated with every ComTerp.
     ComValue* localvalue(int symid);
     // value associated with a symbol id in the local symbol table.

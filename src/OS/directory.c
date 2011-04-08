@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE.
  */
 
+#include <stdio.h>
 #include <OS/directory.h>
 #include <OS/memory.h>
 #include <OS/string.h>
@@ -41,7 +42,6 @@
 #endif
 #include <pwd.h>
 
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
 
@@ -51,7 +51,7 @@
  */
 
 extern "C" {
-#if Debian_Potato
+#if 0
     extern int sprintf __P ((char *__restrict __s,
                              __const char *__restrict __format, ...));
 #endif

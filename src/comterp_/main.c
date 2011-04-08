@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport, Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
@@ -55,14 +56,16 @@ FPointObj fp(0.,0.);
 int main(int argc, char *argv[]) {
 
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;
+    boolean logger_flag = argc>1 && strcmp(argv[1], "logger") == 0;
     boolean remote_flag = argc>1 && strcmp(argv[1], "remote") == 0;
     boolean client_flag = argc>1 && strcmp(argv[1], "client") == 0;
     boolean telcat_flag = argc>1 && strcmp(argv[1], "telcat") == 0;
     boolean run_flag = argc>1 && strcmp(argv[1], "run") == 0;
 
 #ifdef HAVE_ACE
-    if (server_flag) {
+    if (server_flag || logger_flag) {
         ComterpAcceptor* peer_acceptor = new ComterpAcceptor();
+	ComterpHandler::logger_mode(logger_flag);
 
         int portnum = argc > 2 ? atoi(argv[2]) : atoi(ACE_DEFAULT_SERVER_PORT_STR);
         if (peer_acceptor->open (ACE_INET_Addr (portnum)) == -1)
@@ -72,7 +75,7 @@ int main(int argc, char *argv[]) {
                   (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
           cerr << "comterp: error registering acceptor with ACE reactor\n";
 
-	else
+	else if (ComterpHandler::logger_mode()==0)
 	  cerr << "accepting comterp port (" << portnum << ") connections\n";
     
         // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
@@ -84,14 +87,12 @@ int main(int argc, char *argv[]) {
     			 "registering service with ACE_Reactor\n"), -1);
     
 	// Start up one on stdin
-	ComterpHandler* stdin_handler = new ComterpHandler();
-#if 0
-	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
-#else
-	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
-							  ACE_Event_Handler::READ_MASK)==-1)
-#endif
+	if (!logger_flag) {
+	  ComterpHandler* stdin_handler = new ComterpHandler();
+	  if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+							    ACE_Event_Handler::READ_MASK)==-1)
 	    cerr << "comterp: unable to open stdin with ACE\n";
+	}
 
         // Perform logging service until COMTERP_QUIT_HANDLER receives SIGINT.
         while (COMTERP_QUIT_HANDLER::instance ()->is_set () == 0)

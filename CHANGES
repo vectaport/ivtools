@@ -1,3 +1,202 @@
+June 12th 2000 ivtools-0.8.3
+
+- remove the output for a ComValue of BlankType in the related ostream
+operator.  This puts it back to the way it has long been.  The output
+of "<blank>" was just a temporary debugging thing.
+
+- add an "acknowledgebox" command (AcknowledgeBoxFunc) to command, to allow
+a script to pop-up a dialog box and require the user to press ok.
+
+- add a confirmbox command to comdraw that returns 1 for Yes, 0 for
+No, and -1 if Cancelled.
+
+- use a self-growing STL (Standard Template Library) vector<char> to
+read comterp commands from a socket.  This replaces the year-old hack
+of using a 1 megabyte input buffer (BUFSIZ*BUFSIZ), which was
+problematic in certain run-time environments, causing an inexplicable
+crash at the head of ComterpHandler::handle_input before any code of
+the method was executed.
+
+If this approach proves out, it should be migrated to all the other
+large input buffers spread around ivtools (where-ever the size is
+BUFSIZ*BUFSIZ), and would make for a significant reduction in the
+runtime footprint of some programs.
+
+- fix AttributeValue::geta(int classid) and add back a
+ComValue::geta(int classid)
+
+- fix the use of CLASS_SYMID macro in OverlaysComp class definition.
+It was missing the "s" from the class name string.
+
+- new comterp commands to "split" a string or symbol into a list of
+characters, and to "join" a list of characters into a string or
+symbol.
+
+- add -DUnidrawCommon to the compiler command line in the
+Unidraw-common library, and make judicious use of "#ifndef
+UnidrawCommon" in Unidraw/component.c and Unidraw/compview.c, so they
+only pull in stuff out of libUnidraw-common.
+
+- print "nil" instead of "Unknown type" when a ComValue is of
+UnknownType, since that is how UnknownType is used throughout comterp,
+as the nil value which means no value.
+
+- bug fixed in AttributeListEditor where a fixed buffer of length 1024
+was overflowed.  Replaced with a vector <char> instead.
+
+- change comterp eval command to return a single value if it has only one argument.
+
+- change the Dialog class so that a box put up with ::map_for or
+::map_for_aligned (as opposed to ::post_for or ::post_for_aligned) can
+unmap itself when cancelled or accepted.
+
+- add highlight command to comdraw interpreter:
+
+highlight(compview compviewgs) -- set the highlight graphic state for a graphic
+
+- changed ComTerpModule::reset to reuse buffers without reallocating them.
+
+- fixed equality comparisons in comterp against nil (which is
+ComValue::UnknownType under the hood).  Now nil!=0 is true (1) and
+nil==0 is false (0).
+
+- added base class method to set an OverlayView's HighlightGraphic and
+member variable _hilite_gs to hold it.
+
+- fixed bug in OverlayScript::ReadOther.  Now the attribute built from
+a keyword with no following value(followed by the closing paren) gets
+a value of true (1).
+
+- add a global variable capability to comterp.  Now you can:
+
+	global(v1)=100
+
+and the value v1 will be available in all other copies of the command
+interpreter running at the time.  If a local variable of the same name
+exists, you can access the global value by:
+
+	symval(global(v1))
+
+The "global" command returns a ComValue of SymbolType with a new
+global flag set to true.  This flag is subsequently checked when doing
+symbol lookup, and if true the values are taken from the global symbol
+table (a static class variable of ComTerp).
+
+- add a AttributeValue::clear() method to zero out all the bytes of
+the double sized multi-value union _v.
+
+- add "frame" command to comdraw (and flipbook) to return the current
+composite graphic.
+
+- make comdraw versions of the "at" and "size" commands that work on
+composite graphic objects (i.e. the list of sub-graphics gets used as
+the list).
+
+- add a static method ComValue::minusoneval to return a ComValue set
+to -1.
+
+- ensure a ComValue is really of ObjectType before returning the value
+of the ::object_compview() flag.
+
+- test for global symbol flag before doing local symbol table lookup
+in comterp.
+
+- ensure the global symbol flag is zeroed when constructing a ComValue
+from a postfix_token struct.
+
+- remove bug in comdraw "center" command.
+
+- fix bug in "mbr" and "points" commands of comdraw (same one that was
+in "center").
+
+- annotate (prefix) the result from a timeexpr command with "timeexpr
+result: ".  Otherwise it is kind of hard to tell where these things
+come from.
+
+- modify min and max commands of comterp so that max(num nil) is always num,
+and min(num nil) is always num as well.
+
+- preserve the ComTerp associated with a ComterpHandler if there is a timer evaluated expression still running.
+
+- define AttributeValue::boolean_val() to return true for any symbol
+or string value if the symbol id is greater than or equal to zero.
+
+- new "delete" command for comdraw.
+
+- new :clear flag on the "select" command of comdraw.
+
+- new :scrn flag on the "center" and "mbr" commands of comdraw (to
+return screen relative coordinates as opposed to drawing coordinates).
+
+- fix :str keyword of print command (shortcut for :string)
+
+- add :sym and :symbol keyword to print command, for generating
+symbols the same way :str and :string can generate strings.
+
+- fix a few cases in the execute method of a derived Comfunc where a
+reference is initialized to a ComValue on the interpreter stack
+(ComValue&), and then used after the stack has been reset for this
+command (ComFunc::reset_stack), which obliterates all the input
+arguments.  Instead a local copy of the ComValue is initialized.
+
+- add a comdraw "growgroup" command:
+
+	newgroup=growgroup(groupview compview) -- add graphic to existing group graphic
+
+This is implemented with a MacroCmd (macro command) that has two
+members, an UngroupCmd to break down the initial group into its
+constituent parts, and an (Ov)GroupCmd to build it back up to include
+the new graphic.
+
+- add comdraw "trimgroup" command, to reverse the effect of a "growgroup"
+command:
+
+	newgroup=trimgroup(groupview compview) -- remove graphic from existing group graphic
+
+Underneath the hood this a macro command (MacroCmd) with an ungroup
+command (UngroupCmd) followed by group command (OvGroupCmd) with the
+specified graphic removed from the list.  This does not delete that
+graphic, but that can be done with a "delete" command if so desired.
+
+- fix bug in comdraw "select" command, so that changes to the current
+selection are graphically represented in the viewer.
+
+- add pause command to comdraw.  Can be embedded in the middle of a
+script, and allows for arbitrary commands to be evaluated until a
+simple C/R is entered.
+
+- add a "logger" mode to comterp:
+
+comterp logger 'portnum'
+
+Listens for and accept connections on portnum, then simply forward
+the incoming messages to stdout, while ack'ing back with newlines. For
+debugging purposes, not really a use of the interpreter.
+
+- revise comdraw documentation, to make it more obvious that the
+"import" command requires a string for its pathname argument, and that
+a string has to be embedded in double-quotes.
+
+- upgrades to smoothly compile on RedHat 6.2
+
+- add a :n argument to the eq command (the command that underlies the
+"==" operator), so that it can be used for partial string comparison,
+i.e.:
+
+	eq("string1" "string2" :n 6) 
+
+returns true.
+
+- fix up the comdraw text command to work at other than 1x mag.
+
+- fix two bugs in the Attribute tool dialog box.  Make things work
+when there are no attributes defined (a problem that cropped up since
+using STL vector template to store the contents of the dialog buffer).
+And use a ComponentView to hold the pointer to a Component being
+examined by the dialog box, so that if the Component gets deleted in
+the drawing editor the Attribute tool dialog box won't be fooled into
+thinking it still has a good Component pointer.
+
 April 28th 2000 ivtools-0.8.2
 
 - Add a new version of a dot (".") func to comdraw, one that accesses

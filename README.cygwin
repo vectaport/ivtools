@@ -2,12 +2,16 @@ Steps to building ivtools on Windows NT using Cygwin and X11R6.4:
 
 1. Download and install Cygwin from:
 
-http://go.cygnus.com/pub/sourceware.cygnus.com/pub/cygwin/
+http://sourceware.cygnus.com/cygwin/
 
 Use "less" for more.  Use "type" for "which". Make a \bin (/bin) if
 necessary, and place a copy of sh.exe from the Cygwin distribrution
 there.  Now you can launch a window with a bash shell by using the
 cygnus.bat provided with Cygwin.
+
+There is a very useful FAQ for Cygwin you may want to look at as well:
+
+http://sourceware.cygnus.com/cygwin/faq/
 
 2. Download and install Xlib binaries for X11R6.4 from:
 

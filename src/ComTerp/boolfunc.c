@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -24,6 +25,7 @@
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <string.h>
 
 #define TITLE "BoolFunc"
 
@@ -190,6 +192,8 @@ EqualFunc::EqualFunc(ComTerp* comterp) : NumFunc(comterp) {
 void EqualFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
+    static int n_symid = symbol_add("n");
+    ComValue& nval =stack_key(n_symid); 
     promote(operand1, operand2);
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
@@ -230,10 +234,14 @@ void EqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() == operand2.double_val();
 	break;
       case ComValue::StringType:
-	result.boolean_ref() = operand1.string_val() == operand2.string_val();
-	break;
       case ComValue::SymbolType:
-	result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
+	if (nval.is_unknown()) 
+	  result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
+	else {
+	  const char* str1 = operand1.symbol_ptr();
+	  const char* str2 = operand2.symbol_ptr();
+	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())==0;
+	}
 	break;
       default:
         result.boolean_ref() = operand1.is_type(ComValue::UnknownType) && 
@@ -285,6 +293,9 @@ void NotEqualFunc::execute() {
 	break;
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() != operand2.double_val();
+	break;
+    case ComValue::UnknownType:
+	result.boolean_ref() = operand2.is_known();
 	break;
     }
     reset_stack();

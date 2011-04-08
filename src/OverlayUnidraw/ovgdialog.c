@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -22,9 +23,11 @@
  */
 
 #include <Attribute/attrlist.h>
-#include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovgdialog.h>
+#include <OverlayUnidraw/ovcomps.h>
 #include <Unidraw/unidraw.h>
+#include <Unidraw/statevars.h>
+#include <Unidraw/Components/compview.h>
 
 #include <AttrGlyph/attredit.h>
 #include <IVGlyph/textedit.h>
@@ -166,7 +169,7 @@ friend class AttributeDialog;
     Style* style_;
     AttributeDialog* dialog_;
     AttributeListEditor* editor_;
-    OverlayComp* comp_;
+    ComponentView* compview_;
     AttributeList* copylist_;
 
     void init(OverlayComp*, AttributeDialog*, Style*);
@@ -193,6 +196,7 @@ AttributeDialog::AttributeDialog(OverlayComp* oc, WidgetKit* kit, Style* s)
 
 AttributeDialog::~AttributeDialog() {
   impl_->free();
+  delete impl_->compview_;
   delete impl_;
 }
 
@@ -201,8 +205,9 @@ AttributeDialog::~AttributeDialog() {
 void AttributeDialogImpl::init(OverlayComp* oc, AttributeDialog* p, Style* s) {
   dialog_ = p;
   style_ = s;
-  comp_ = oc;
-  copylist_ = new AttributeList(comp_->GetAttributeList());
+  compview_ = new ComponentView(oc);
+  copylist_ = new AttributeList(oc->GetAttributeList());
+  Resource::ref(copylist_);
   build(copylist_);
 }
 
@@ -250,12 +255,16 @@ void AttributeDialogImpl::build(AttributeList* al) {
 
 void AttributeDialogImpl::accept() {
     editor_->add();    
-    comp_->SetAttributeList(copylist_);
+    // should set modified flag here if something happenns
+    // ((ModifStatusVar*)<Editor>->GetState("ModifStatusVar"))->SetModifStatus(true);	
+    OverlayComp* comp = (OverlayComp*)compview_->GetSubject();
+    if (comp) comp->SetAttributeList(copylist_);
+    Unref(copylist_);
     dialog_->dismiss(true);
     unidraw->Update();
 }
 
 void AttributeDialogImpl::cancel() {
-    delete copylist_;
+    Unref(copylist_);
     dialog_->dismiss(false);
 }

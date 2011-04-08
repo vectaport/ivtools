@@ -54,7 +54,9 @@ void AssignFunc::execute() {
 					    operand2);
 	    attrlist->add_attribute(attr);
 	    Unref(attrlist);
-	} else 
+	} else if (operand1.global_flag()) 
+	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
+	else
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
     } else if (operand1.is_object(Attribute::class_symid())) {
       Attribute* attr = (Attribute*)operand1.obj_val();

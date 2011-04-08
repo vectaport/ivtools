@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,7 +34,7 @@
 class ComTerp;
 
 //: symbol id command for ComTerp.
-// symid(symbol [symbol...]) -- return id(s) associated with symbol(s)
+// int|lst=symid(symbol [symbol ...]) -- return id(s) associated with symbol(s)
 class SymIdFunc : public ComFunc {
 public:
     SymIdFunc(ComTerp*);
@@ -41,34 +42,34 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s(symbol [symbol...]) -- return id(s) associated with symbol(s)"; }
+      return "int|lst=%s(symbol [symbol ...]) -- return id(s) associated with symbol(s)"; }
 };
 
 
 //: symbol command for ComTerp.
-// symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
+// sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 class SymbolFunc : public ComFunc {
 public:
     SymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "%s(symid [symid...]) -- return symbol(s) associated with integer id(s)"; }
+      return "sym|lst=%s(symid [symid ...]) -- return symbol(s) associated with integer id(s)"; }
 };
 
 //: lookup symbol value command for ComTerp.
-// symval(symbol_var [symbol_var ...]) -- return value(s) associated with symbol variable(s)
+// val|lst=symval(symbol_var [symbol_var ...]) -- return value(s) associated with symbol variable(s)
 class SymValFunc : public ComFunc {
 public:
     SymValFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "%s(symbol_var [symbol_var...]) -- return value(s) associated with symbol variables(s)"; }
+      return "val|lst=%s(symbol_var [symbol_var ...]) -- return value(s) associated with symbol variables(s)"; }
 };
 
-#//: create symbol command for ComTerp.
-// symadd(symbol [symbol...]) -- create symbol(s) and return without lookup
+//: create symbol command for ComTerp.
+// sym|lst=symadd(symbol [symbol ...]) -- create symbol(s) and return without lookup
 class SymAddFunc : public ComFunc {
 public:
     SymAddFunc(ComTerp*);
@@ -76,6 +77,42 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s(symbol [symbol...]) -- create symbol(s) and return without lookup"; }
+      return "sym|lst=%s(symbol [symbol ...]) -- create symbol(s) and return without lookup"; }
 };
+
+//: command to split a symbol or string into a list of character objects
+// lst=split(symbol|string) -- split symbol or string into list of characters.
+class SplitStrFunc : public ComFunc {
+public:
+    SplitStrFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "lst=%s(symbol|string) -- split symbol or string into list of characters"; }
+};
+
+//: command to join list of characters into a string object
+// str=join(clist) -- join list of characters into string
+class JoinStrFunc : public ComFunc {
+public:
+    JoinStrFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "str=%s(clist) -- join list of characters into string"; }
+};
+
+
+//: command to make assign a global variable
+// val=global(symbol)|global(symbol)=val -- make symbol global
+class GlobalSymbolFunc : public ComFunc {
+public:
+    GlobalSymbolFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "sym=%s(symbol)|global(symbol)=val -- make symbol global"; }
+};
+
+
 #endif /* !defined(_symbolfunc_h) */

@@ -37,10 +37,12 @@
 /*****************************************************************************/
 
 AttributeValue::AttributeValue(ValueType valtype) {
+    clear();
     type(valtype);
 }
 
 AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
+    clear();
     type(valtype);
     _v = value;
 }
@@ -52,62 +54,74 @@ AttributeValue::AttributeValue(AttributeValue& sv) {
 }
 
 AttributeValue::AttributeValue() {
+    clear();
     type(UnknownType);
     _aggregate_type = UnknownType;
 }
 
 AttributeValue::AttributeValue(unsigned char v) { 
+    clear();
     _type = AttributeValue::UCharType;
     _v.ucharval = v;
 }
 
 AttributeValue::AttributeValue(char v) { 
+    clear();
     _type = AttributeValue::CharType;
     _v.charval = v;
 }
 
 AttributeValue::AttributeValue(unsigned short v) { 
+    clear();
     _type = AttributeValue::UShortType;
     _v.ushortval = v;
 }
 
 AttributeValue::AttributeValue(short v) { 
+    clear();
     _type = AttributeValue::ShortType;
     _v.shortval = v;
 }
 
 AttributeValue::AttributeValue(unsigned int v, ValueType type) { 
+    clear();
     _type = type;
     _v.dfunsval = v;
 }
 
 AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type) { 
+    clear();
     _type = type;
     _v.keyval.keyid = kv;
     _v.keyval.keynarg = kn;
 }
 
 AttributeValue::AttributeValue(int v, ValueType type) { 
+    clear();
     _type = type;
     _v.dfintval = v;
 }
 
 AttributeValue::AttributeValue(unsigned long v) { 
+    clear();
     _type = AttributeValue::ULongType;
     _v.lnunsval = v;
 }
 
 AttributeValue::AttributeValue(long v) { 
+    clear();
     _type = AttributeValue::LongType;
     _v.lnintval = v;
 }
 
 AttributeValue::AttributeValue(float v) { 
+    clear();
     _type = AttributeValue::FloatType;
     _v.floatval = v;
 }
 
 AttributeValue::AttributeValue(double v) { 
+    clear();
     _type = AttributeValue::DoubleType;
     _v.doublval = v;
 }
@@ -140,6 +154,11 @@ AttributeValue::~AttributeValue() {
     if (_type == ArrayType && _v.arrayval.ptr)
         Unref(_v.arrayval.ptr);
     type(UnknownType);
+}
+
+void AttributeValue::clear() {
+    unsigned char* buf = (unsigned char*)(void*)&_v;
+    for (int i=0; i<sizeof(double); i++) buf[i] = '\0';
 }
 
 AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
@@ -176,14 +195,20 @@ unsigned long& AttributeValue::ulong_ref() { return _v.lnunsval; }
 long& AttributeValue::long_ref() { return _v.lnintval; }
 float& AttributeValue::float_ref() { return _v.floatval; }
 double& AttributeValue::double_ref() { return _v.doublval; }
-unsigned int& AttributeValue::string_ref() { return _v.symbolid; }
-unsigned int& AttributeValue::symbol_ref() { return _v.symbolid; }
+unsigned int& AttributeValue::string_ref() { return _v.symval.symid; }
+unsigned int& AttributeValue::symbol_ref() { return _v.symval.symid; }
 void*& AttributeValue::obj_ref() { return _v.objval.ptr; }
 unsigned int& AttributeValue::obj_type_ref() { return _v.objval.type; }
 AttributeValueList*& AttributeValue::array_ref() { return _v.arrayval.ptr; }
 unsigned int& AttributeValue::array_type_ref() { return _v.arrayval.type; }
 unsigned int& AttributeValue::keyid_ref() { return _v.keyval.keyid; }
 unsigned int& AttributeValue::keynarg_ref() { return _v.keyval.keynarg; }
+
+boolean AttributeValue::global_flag() { return is_symbol() && _v.symval.globalflag; }
+void AttributeValue::global_flag(boolean flag) 
+{ 
+  if (is_symbol()) _v.symval.globalflag = flag; 
+}
 
 boolean AttributeValue::boolean_val() {
     switch (type()) {
@@ -210,7 +235,8 @@ boolean AttributeValue::boolean_val() {
     case AttributeValue::BooleanType:
 	return boolean_ref();
     case AttributeValue::SymbolType:
-	return (boolean) int_val();
+    case AttributeValue::StringType:
+	return (boolean) int_val()!=-1;
     case AttributeValue::ObjectType:
 	return (boolean) obj_val();
     default:
@@ -768,7 +794,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 
 	default:
-	  out << "Unknown type";
+	  out << "nil";
 	  break;
 	}
 #endif
@@ -870,12 +896,9 @@ boolean AttributeValue::is_attribute() {
 }
 
 void* AttributeValue::geta(int id) {
-  if (is_object(id)) {
-    if (object_compview())
-      return nil;
-    else
-      return obj_val();
-  } else
+  if (is_object(id))
+    return obj_val();
+  else
     return nil;
 }
 

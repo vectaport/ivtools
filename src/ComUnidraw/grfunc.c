@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -301,9 +302,10 @@ void CreateTextFunc::execute() {
 	    text->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	if (fntVar != nil) text->SetFont(fntVar->GetFont());
-	text->SetTransformer(rel);
-	Unref(rel);
+	text->SetTransformer(new Transformer());
 	text->Translate(args[x0], args[y0]);
+	text->GetTransformer()->postmultiply(rel);
+	Unref(rel);
 	TextOvComp* comp = new TextOvComp(text);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
 	ComValue compval(symbol_add("TextComp"), new ComponentView(comp));
@@ -574,7 +576,7 @@ FontFunc::FontFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void FontFunc::execute() {
-    ComValue& fnum = stack_arg(0);
+    ComValue fnum(stack_arg(0));
     int fn = fnum.int_val();
     reset_stack();
 
@@ -596,7 +598,7 @@ BrushFunc::BrushFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void BrushFunc::execute() {
-    ComValue& bnum = stack_arg(0);
+    ComValue& bnum =stack_arg(0);
     int bn = bnum.int_val();
     reset_stack();
 
@@ -618,7 +620,7 @@ PatternFunc::PatternFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 }
 
 void PatternFunc::execute() {
-    ComValue& pnum = stack_arg(0);
+    ComValue pnum(stack_arg(0));
     int pn = pnum.int_val();
     reset_stack();
 
@@ -665,8 +667,17 @@ void SelectFunc::execute() {
     static int all_symid = symbol_add("all");
     ComValue all_flagv(stack_key(all_symid));
     boolean all_flag = all_flagv.is_true();
+    static int clear_symid = symbol_add("clear");
+    ComValue clear_flagv(stack_key(clear_symid));
+    boolean clear_flag = clear_flagv.is_true();
 
     Selection* sel = _ed->GetViewer()->GetSelection();
+    if (clear_flag) {
+      sel->Clear();
+      reset_stack();
+      return;
+    }
+      
     OverlaySelection* newSel = new OverlaySelection();
     
     Viewer* viewer = _ed->GetViewer();
@@ -719,14 +730,48 @@ void SelectFunc::execute() {
     }
 
     if (newSel){
+      sel->Clear();
       delete sel;
       _ed->SetSelection(newSel);
-      newSel->Update();
+      newSel->Update(viewer);
       unidraw->Update();
     }
     reset_stack();
     ComValue retval(avl);
     push_stack(retval);
+}
+
+/*****************************************************************************/
+
+DeleteFunc::DeleteFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void DeleteFunc::execute() {
+  Viewer* viewer = _ed->GetViewer();
+
+  int nf=nargsfixed();
+  if (nf==0) {
+    reset_stack();
+    return;
+  }
+
+  Clipboard* delcb = new Clipboard();
+
+  for (int i=0; i<nf; i++) {
+    ComValue& obj = stack_arg(i);
+    if (obj.object_compview()) {
+      ComponentView* comview = (ComponentView*)obj.obj_val();
+      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+      if (comp) delcb->Append(comp);
+    }
+  }
+
+  DeleteCmd* delcmd = new DeleteCmd(GetEditor(), delcb);
+  delcmd->Execute();
+  unidraw->Update();
+  delete delcmd;
+
+  reset_stack();
 }
 
 /*****************************************************************************/
@@ -951,11 +996,11 @@ TileFileFunc::TileFileFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, 
 }
 
 void TileFileFunc::execute() {
-    ComValue& ifilev = stack_arg(0);
-    ComValue& ofilev = stack_arg(1);
+    ComValue ifilev(stack_arg(0));
+    ComValue ofilev(stack_arg(1));
     ComValue five12(512);
-    ComValue& twidthv = stack_arg(2, false, five12);
-    ComValue& theightv = stack_arg(3, false, five12);
+    ComValue twidthv(stack_arg(2, false, five12));
+    ComValue theightv(stack_arg(3, false, five12));
     reset_stack();
 
     char* ifile = symbol_pntr(ifilev.symbol_ref());
@@ -982,6 +1027,54 @@ void TileFileFunc::execute() {
     else {
 	push_stack(ComValue::nullval());
     }
+}
+
+/*****************************************************************************/
+
+ReorderFunc::ReorderFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void ReorderFunc::execute() {
+    ComValue destval(stack_arg(0));
+    ComValue srcval(stack_arg(1));
+
+    reset_stack();
+#if 0
+    if (!destval.object_compview() && !srcval.object_compview()) return;
+
+    OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
+
+    ComponentView* destview = (ComponentView*)destval.obj_val();
+    OverlayComp* destcomp = destview ? (OverlayComp*)destview->GetSubject() : nil;
+    OverlayView* destview2 = destcomp ? destcomp->FindView(viewer) : nil;
+ 
+    ComponentView* srcview = (ComponentView*)srcval.obj_val();
+    OverlayComp* srccomp = srcview ? (OverlayComp*)srcview->GetSubject() : nil;
+    OverlayView* srcview2 = srccomp ? srccomp->FindView(viewer) : nil;
+
+    OverlaysView* topview = ((OverlayEditor*)GetEditor())->GetFrame();
+    if (topview && destview2 && srcview2) {
+
+      GraphicView* saveview = nil;
+      Iterator i;
+      for(topview->First(i); !topview->Done(i); topview->Next(i)) {
+	if (topview->GetView(i)==srcview2) {
+	  saveview = topview->Remove(i);
+	  break;
+	}
+      }
+
+      if (saveview) {
+	for(topview->First(i); !topview->Done(i); topview->Next(i)) {
+	  if (topview->GetView(i)==dstview2) {
+	    topview->InsertBefore(i, saveview);
+	    break;
+	  }
+	}
+      }
+
+    }
+#endif    
 }
 
 

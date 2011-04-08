@@ -31,11 +31,15 @@
 
 #include <Unidraw/globals.h>
 
+#ifndef UnidrawCommon
 class Command;
+#endif
 class ComponentView;
 class Iterator;
+#ifndef UnidrawCommon
 class StateVar;
 class TransferFunct;
+#endif
 class UList;
 class istream;
 class ostream;
@@ -46,13 +50,17 @@ class Component {
 public:
     virtual void Update();
     virtual void Notify();
+#ifndef UnidrawCommon
     virtual void Interpret(Command*);
     virtual void Uninterpret(Command*);
+#endif
 
     virtual Component* GetParent();
     virtual Component* GetRoot();
+#ifndef UnidrawCommon
     virtual StateVar* GetState(const char*);
     virtual TransferFunct* GetTransferFunct();
+#endif
 
     virtual void First(Iterator&);
     virtual void Last(Iterator&);
@@ -62,7 +70,9 @@ public:
 
     virtual void Attach(ComponentView*);
     virtual void Detach(ComponentView*);
+#ifndef UnidrawCommon
     ComponentView* Create(ClassId);
+#endif
 
     virtual ~Component();
     virtual Component* Copy();
@@ -74,10 +84,12 @@ public:
 
     static boolean use_unidraw() { return _use_unidraw; }
     static void use_unidraw(boolean flag) { _use_unidraw = flag; }
+
+    UList* ViewList() { return _views; }
+    ComponentView* View(UList*);
 protected:
     Component();
 
-    ComponentView* View(UList*);
     virtual void SetParent(Component* child, Component* parent);
 protected:
     UList* _views;

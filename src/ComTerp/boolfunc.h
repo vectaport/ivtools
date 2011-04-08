@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -65,13 +66,15 @@ public:
 
 
 //: == (equality) operator.
+// also useful for partial string comparison with :n keyword, i.e.
+// eq("string1" "string2" :n 6) returns true.
 class EqualFunc : public NumFunc {
 public:
     EqualFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "== is the equal operator"; }
+      return "== is the equal operator\nbool=eq(str1 str2 :n len) -- partial string comparison"; }
 
 };
 

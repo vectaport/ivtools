@@ -54,7 +54,14 @@
 #include <IV-X11/xevent.h>
 #include <IV-X11/xwindow.h>
 
+#include <ComTerp/comterpserv.h>
+
 #include <iostream.h>
+
+MacroCmd* OverlayUnidraw::_cmdq = nil;
+boolean* OverlayUnidraw::_updated_ptr = nil;
+ComTerpServ* OverlayUnidraw::_comterp = nil;
+int OverlayUnidraw::_npause = nil;
 
 /*****************************************************************************/
 
@@ -63,6 +70,8 @@ OverlayUnidraw::OverlayUnidraw (Catalog* c, int& argc, char** argv,
 : Unidraw(c, argc, argv, od, pd) {
     _cmdq = new MacroCmd();
     _ovviewer = nil;
+    _comterp = nil;
+    _npause = 0;
 
     /* replace default Painter with an OverlayPainter */
     OverlayGraphic::new_painter();
@@ -72,6 +81,8 @@ OverlayUnidraw::OverlayUnidraw (Catalog* c, World* w)
 : Unidraw(c, w) {
     _cmdq = new MacroCmd();
     _ovviewer = nil;
+    _comterp = nil;
+    _npause = 0;
 }
 
 OverlayUnidraw::~OverlayUnidraw () 
@@ -84,10 +95,10 @@ void OverlayUnidraw::Append(Command* cmd) {
     _cmdq->Append(cmd);
 }
 
-MacroCmd* OverlayUnidraw::_cmdq = nil;
-boolean* OverlayUnidraw::_updated_ptr = nil;
 boolean OverlayUnidraw::unidraw_updated() 
 { return *_updated_ptr; }
+boolean OverlayUnidraw::npause_lessened() 
+{ return _comterp && _npause > _comterp->npause(); }
 
 boolean OverlayUnidraw::unidraw_updated_or_command_pushed() 
 { 
@@ -96,18 +107,27 @@ boolean OverlayUnidraw::unidraw_updated_or_command_pushed()
   return !_cmdq->Done(it) || unidraw_updated();
 }
 
+boolean OverlayUnidraw::unidraw_updated_or_command_pushed_or_npause_lessened() 
+{ 
+  Iterator it;
+  _cmdq->First(it);
+  return !_cmdq->Done(it) || unidraw_updated() || npause_lessened();
+}
+
 void OverlayUnidraw::Run () {
     Session* session = GetWorld()->session();
     Event e;
     Iterator it;
     alive(true);
+    _npause = _comterp ? _comterp->npause() : 0;
 
-    while (alive() && !session->done()) {
+    while (alive() && !session->done() && !npause_lessened()) {
 	updated(false);
 
 	_updated_ptr = &_updated;
 //	session->read(e, &unidraw_updated);
-	session->read(e, &unidraw_updated_or_command_pushed);
+//	session->read(e, &unidraw_updated_or_command_pushed);
+	session->read(e, &unidraw_updated_or_command_pushed_or_npause_lessened);
 	if (!updated()) {
 	    e.handle();
 	    session->default_display()->flush();
@@ -126,6 +146,8 @@ void OverlayUnidraw::Run () {
 	    Update(true);
 	}
     }
+    _npause = _comterp ? _comterp->npause() : 0;
+
 }
 
 void OverlayUnidraw::Log (Command* cmd, boolean dirty) {
@@ -191,3 +213,11 @@ void OverlayUnidraw::Log (Command* cmd, boolean dirty) {
     }
   }
 }
+
+
+
+
+
+
+
+

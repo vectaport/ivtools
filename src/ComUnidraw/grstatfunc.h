@@ -27,23 +27,23 @@
 #include <ComUnidraw/unifunc.h>
 
 //: command to return center of graphics in comdraw.
-// xylist=center(compview :xy :yx :x :y) -- center of compview (dflt :xy)
+// xylist=center(compview :xy :yx :x :y :scrn) -- center of compview (dflt :xy)
 class CenterFunc : public UnidrawFunc {
 public:
     CenterFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-      return "xylist=%s(compview :xy :yx :x :y) -- center of compview (dflt :xy)"; }
+      return "xylist=%s(compview :xy :yx :x :y :scrn) -- center of compview (dflt :xy)"; }
 };
 
 //: command to return minimum-bounding rectangle of graphics in comdraw.
-// rectlist=mbr(compview :lbrt :lrbt) -- minimum-bounding rectangle of compview (dflt :lbrt)
+// rectlist=mbr(compview :lbrt :lrbt :scrn) -- minimum-bounding rectangle of compview (dflt :lbrt)
 class MbrFunc : public UnidrawFunc {
 public:
     MbrFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-      return "rectlist=%s(compview :lbrt :lrbt) -- minimum-bounding rectangle of compview (dflt :lbrt :lrbt)"; }
+      return "rectlist=%s(compview :lbrt :lrbt :scrn) -- minimum-bounding rectangle of compview (dflt :lbrt :lrbt)"; }
 };
 
 //: command to return point list associated with a graphic

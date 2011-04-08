@@ -74,6 +74,13 @@ public:
   ComTerpServ* comterp() { return comterp_; }
   // return associated ComTerpServ pointer.
 
+  static void logger_mode(int flag) { _logger_mode = flag; }
+  // set flag to put comterp in logging mode, where commands are echoed
+  // to stdout without executing
+  
+  static int logger_mode() { return _logger_mode; }
+  // return flag that indicates comterp is in logging-only mode
+
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
@@ -93,6 +100,9 @@ protected:
 
   int _seconds;
   // timeout in seconds
+
+  static int _logger_mode;
+  // mode for logging commands: 0 = no log, 1 = log only
 };
 
 //: A Reactor Singleton.

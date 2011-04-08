@@ -52,8 +52,10 @@ ComponentView::~ComponentView () {
 }
 
 void ComponentView::Update () { }
+#ifndef UnidrawCommon
 void ComponentView::Interpret (Command* c) { GetSubject()->Interpret(c); }
 void ComponentView::Uninterpret (Command* c) { GetSubject()->Uninterpret(c); }
+#endif
 
 ComponentView* ComponentView::GetParent () { return nil; }
 void ComponentView::SetSubject (Component* c) { _subject = c; }

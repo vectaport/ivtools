@@ -48,7 +48,7 @@ void DotFunc::execute() {
       return;
     }
     if (!after_part.is_symbol()) {
-      cerr << "expression after \".\" needs to be a symbol or evaluate to a syymbol\n";
+      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol\n";
       return;
     }
 
@@ -57,14 +57,23 @@ void DotFunc::execute() {
     AttributeList* al = nil;
     if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
-      comterp()->localtable()->find(vptr, before_symid);
+      boolean global = before_part.global_flag();
+      if (!global) {
+	comterp()->localtable()->find(vptr, before_symid);
+	if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
+      } else {
+	comterp()->globaltable()->find(vptr, before_symid);
+      }
       if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
 	al = (AttributeList*) ((ComValue*) vptr)->obj_val();
       } else {
 	al = new AttributeList();
 	Resource::ref(al);
 	ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
-	comterp()->localtable()->insert(before_symid, comval);
+	if (!global)
+	  comterp()->localtable()->insert(before_symid, comval);
+	else
+	  comterp()->globaltable()->insert(before_symid, comval);
       }
     } else if (!before_part.is_attributelist())
       al = (AttributeList*) ((Attribute*) before_part.obj_val())->Value()->obj_val();

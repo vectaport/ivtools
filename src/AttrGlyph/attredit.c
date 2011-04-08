@@ -43,6 +43,7 @@
 
 #include <strstream.h>
 #include <string.h>
+#include <vector.h>
 
 declareActionCallback(AttributeListEditor)
 implementActionCallback(AttributeListEditor)
@@ -101,31 +102,68 @@ void AttributeListEditor::remove() {
     }
 }
 
+#define STL_VECTOR
 void AttributeListEditor::update_text(boolean update) {
     ALIterator i;
+#ifndef STL_VECTOR
     char buf[1024];
     memset(buf, 0, 1024);
+#else
+    vector <char> vbuf;
+#endif
     for (_list->First(i); !_list->Done(i); _list->Next(i)) {
 	Attribute* attr = _list->GetAttr(i);
 	const char* name = attr->Name();
 	int namelen = name ? strlen(name) : 0;
 	if (name)
+#ifndef STL_VECTOR
 	    strcat(buf, name);
+#else
+	{
+	    const char* namep = name;
+	    while (*namep) { vbuf.push_back(*namep++); }
+	}
+#endif
 	int n;
 	for (n = 15; n > namelen-1; n--)
+#ifndef STL_VECTOR
 	    strcat(buf, " ");
+#else
+	    vbuf.push_back(' ');
+#endif
+#ifndef STL_VECTOR
 	strcat(buf, " ");
+#else
+        vbuf.push_back(' ');
+#endif
 	strstream valstr;
 	valstr << *attr->Value() << '\0';
 	const char* val = valstr.str();
 	int vallen = val ? strlen(val) : 0;
 	if (val)
+#ifndef STL_VECTOR
 	    strcat(buf, val);
+#else
+	{
+	    const char* valp = val;
+	    while (*valp)  { vbuf.push_back(*valp++); }
+	}
+#endif
 	for (n = 15; n > vallen; n--)
+#ifndef STL_VECTOR
 	    strcat(buf, " ");
 	strcat(buf, "\n");
+#else
+            vbuf.push_back(' ');
+	vbuf.push_back('\n');
+#endif
+
     }
+#ifndef STL_VECTOR
     _ete->text(buf, update);
+#else
+    _ete->text(&vbuf[0] ? &vbuf[0] : "", update);
+#endif
 }
 
 void AttributeListEditor::build() {

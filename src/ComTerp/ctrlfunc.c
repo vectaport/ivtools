@@ -178,30 +178,51 @@ void EvalFunc::execute() {
   static int symret_sym = symbol_add("symret");
   ComValue symretv(stack_key(symret_sym));
 
+  if (!comterp()->is_serv()) {
+    cerr << "need server mode comterp (or remote mode) for eval command\n";
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   // evaluate every string fixed argument on the stack and return in array
   int numargs = nargsfixed();
-  if (numargs) {
+  if (numargs>1) {
     AttributeValueList* avl = nil;
     for (int i=0; i<numargs; i++) {
       ComValue argstrv (stack_arg(i));
       if (argstrv.is_nil()) break;
       if (argstrv.is_string()) {
-	if (comterp()->is_serv()) {
-	  ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
-	  if (val->is_nil() && symretv.is_true()) {
-	    delete val;
-	    val = new ComValue(argstrv.symbol_val(), AttributeValue::SymbolType);
-	  }
-	  if (!avl) avl = new AttributeValueList();
-	  avl->Append(val);
-	} else 
-	  cerr << "need server (or remote) mode for eval(\"" << argstrv.string_ptr() << "\")\n";
+	ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
+	if (val->is_nil() && symretv.is_true()) {
+	  delete val;
+	  val = new ComValue(argstrv.symbol_val(), AttributeValue::SymbolType);
+	}
+	if (!avl) avl = new AttributeValueList();
+	avl->Append(val);
       }
     }
     reset_stack();
     if (avl) {
       ComValue retval(avl);
       push_stack(retval);
+    }
+
+  }
+  /* unless only single argument */
+  else if (numargs==1) {
+
+    ComValue argstrv (stack_arg(0));
+    reset_stack();
+    if (argstrv.is_nil()) {
+      push_stack(ComValue::nullval());
+    } else if (argstrv.is_string()) {
+	ComValue val(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
+	if (val.is_nil() && symretv.is_true()) {
+	  val.assignval(ComValue(argstrv.symbol_val(), AttributeValue::SymbolType));
+	}
+	push_stack(val);
+	
     }
   } else
     reset_stack();

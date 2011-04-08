@@ -46,25 +46,25 @@ public:
 };
 
 //: list member command for ComTerp.
-// val=at(list n) -- return the nth item in a list.
+// val=at(list|attrlist n) -- return the nth item in a list.
 class ListAtFunc : public ComFunc {
 public:
     ListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=at(list n) -- return the nth item in a list"; }
+      return "val=at(list|attrlist n) -- return the nth item in a list"; }
 };
 
 //: list size command for ComTerp.
-// num=size(list) -- return size of a list.
+// num=size(list|attrlist) -- return size of a list.
 class ListSizeFunc : public ComFunc {
 public:
     ListSizeFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=size(list -- return the size of the list"; }
+      return "val=size(list|attrlist) -- return the size of the list"; }
 };
 
 #endif /* !defined(_listfunc_h) */

@@ -45,8 +45,10 @@ Component* Component::Copy () { return nil; }
 void Component::Read (istream&) { }
 void Component::Write (ostream&) { }
 void Component::Update () { }
+#ifndef UnidrawCommon
 StateVar* Component::GetState (const char*) { return nil; }
 TransferFunct* Component::GetTransferFunct() { return nil; }
+#endif
 
 boolean Component::_use_unidraw = true;
 
@@ -60,8 +62,10 @@ Component::~Component () {
     delete _views;
 
     if (Component::use_unidraw()) {
+#ifndef UnidrawCommon
         unidraw->GetCatalog()->Forget(this);
         unidraw->ClearHistory(this);
+#endif
     }
 }    
 
@@ -75,6 +79,7 @@ void Component::Detach (ComponentView* view) {
     view->SetSubject(nil);
 }
 
+#ifndef UnidrawCommon
 ComponentView* Component::Create (ClassId viewId) {
     ClassId gv = Combine(GetClassId(), viewId);
 
@@ -83,6 +88,7 @@ ComponentView* Component::Create (ClassId viewId) {
     else
         return (ComponentView*) Creator::instance()->Create(gv);
 }
+#endif
 
 ComponentView* Component::View (UList* r) {
     return (ComponentView*) (*r)();
@@ -94,8 +100,10 @@ void Component::Notify () {
     }
 }
 
+#ifndef UnidrawCommon
 void Component::Interpret (Command*) { }
 void Component::Uninterpret (Command*) { }
+#endif
 Component* Component::GetParent () { return nil; }
 void Component::SetParent (Component*, Component*) { }
 void Component::First (Iterator&) { }

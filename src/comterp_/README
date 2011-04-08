@@ -5,6 +5,7 @@ SYNOPSIS
      comterp
      comterp remote
      comterp server 'portnum'
+     comterp logger 'portnum'
      comterp client 'host' 'portnum' ['file']
      comterp telcat 'host' 'portnum' ['file']
      comterp run 'file'	
@@ -46,6 +47,12 @@ comterp server 'portnum'
 
 Listens for and accept connections on portnum, then setup a command
 interpreter to wait for and process commands from that connection.
+
+comterp logger 'portnum'
+
+Listens for and accept connections on portnum, then simply forward
+the incoming messages to stdout, while ack'ing back with newlines. For
+debugging purposes, not really a use of the interpreter.
 
 comterp client 'host' 'portnum' ['file']
 
@@ -155,9 +162,9 @@ LIST COMMANDS:
 
 lst=list([olst]) -- create an empty list or copy existing one
 
-val=at(list n) -- return nth item in a list
+val=at(list|attrlist n) -- return nth item in a list
 
-num=size(list) -- return size of a list
+num=size(list|attrlist) -- return size of a list
 
 CONTROL COMMANDS (using post evaluation):
 
@@ -178,13 +185,19 @@ help(cmdname [cmdname ...]) -- help for commands
 [str]=print(fmtstr val :string|:str :err) -- print value with format string
 [str]=print(val :string|:str :err) -- print value with format string
 
-symid(symbol [symbol...]) -- return integer id(s) associated with symbol(s)
+int|lst=symid(symbol [symbol ...]) -- return integer id(s) associated with symbol(s)
 
-symbol(symid [symid...]) -- return symbol(s) associated with integer id(s)
+sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 
-symval(symbol [symbol...]) -- return value(s) associated with symbol variables(s)
+val|lst=symval(symbol [symbol ...]) -- return value(s) associated with symbol variables(s)
 
-symadd(symbol [symbol ...]) -- create symbol(s) and return without lookup.
+sym|lst=symadd(symbol [symbol ...]) -- create symbol(s) and return without lookup.
+
+lst=split(symbol|string) -- split symbol or string into list of characters.
+
+str=join(clist :sym) -- join list of characters into string
+
+bool=eq(str1 str2 :n len) -- partial string comparison
 
 postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments
 (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands,
@@ -204,7 +217,7 @@ val=run(filename) -- run commands from file
 val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then 
 locally evaluate result string
 
-val=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands, 
+val|lst=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands, 
 optionally return symbol instead of nil
 
 val=shell(cmdstr) -- evaluate command in shell

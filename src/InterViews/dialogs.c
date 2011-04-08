@@ -155,7 +155,10 @@ boolean DialogHandler::event(Event&) {
 
 /* class Dialog */
 
-Dialog::Dialog(Glyph* g, Style* s) : InputHandler(g, s) { t_ = nil;}
+Dialog::Dialog(Glyph* g, Style* s) : InputHandler(g, s) { 
+  t_ = nil; 
+  unmap_for_dismiss_=false;
+}
 Dialog::~Dialog() { }
 
 boolean Dialog::post_for_aligned(Window* w, float x_align, float y_align) {
@@ -198,6 +201,7 @@ void Dialog::map_for_aligned(Window* w, float x_align, float y_align) {
     t_->place(w->left() + 0.5 * w->width(), w->bottom() + 0.5 * w->height());
     t_->align(x_align, y_align);
     t_->map();
+    unmap_for_dismiss_=true;
 }
 
 void Dialog::map_at_aligned(
@@ -210,6 +214,7 @@ void Dialog::map_at_aligned(
     t_->place(x, y);
     t_->align(x_align, y_align);
     t_->map();
+    unmap_for_dismiss_=true;
 }
 
 void Dialog::unmap() {
@@ -219,6 +224,7 @@ void Dialog::unmap() {
     delete t_;
     t_ = nil;
   }
+  unmap_for_dismiss_=false;
 }
 
 boolean Dialog::mapped() {
@@ -253,4 +259,5 @@ boolean Dialog::run() {
 void Dialog::dismiss(boolean accept) {
     accepted_ = accept;
     done_ = true;
+    if (unmap_for_dismiss_) unmap();
 }

@@ -60,8 +60,16 @@ void GrDotFunc::execute() {
     if (before_part.is_object() && before_part.object_compview()) {
       ComponentView* compview = (ComponentView*)before_part.obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
-      ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
-      before_part.assignval(stuffval);
+      if (comp) {
+	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
+	before_part.assignval(stuffval);
+      } else {
+	cerr << "nil subject on compview value\n";
+	reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+
     }
     DotFunc::execute();
     
@@ -78,8 +86,11 @@ void GrAttrListFunc::execute() {
   if (compviewv.object_compview()) {
     ComponentView* compview = (ComponentView*)compviewv.obj_val();
     OverlayComp* comp = compview ? (OverlayComp*)compview->GetSubject() : nil;
-    ComValue retval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
-    push_stack(retval);
+    if (comp) {
+      ComValue retval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
+      push_stack(retval);
+    } else
+      push_stack(ComValue::nullval());
   }
 }
 

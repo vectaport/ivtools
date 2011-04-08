@@ -19,8 +19,9 @@ syntax of the conditional operator "?:".  See the comterp
 documentation for more details.  
 
 All arguments to commands documented below are integers unless
-indicated by a suffix of str or flt.  "compview" is a graphical object
-assigned to an interpreter variable.
+indicated by a suffix of str (which are strings embedded in quotes) or
+flt (which are conventional floating point numbers).  "compview" is a
+graphical object assigned to an interpreter variable.
 
 .SH DRAWING COMMANDS
 
@@ -45,8 +46,8 @@ assigned to an interpreter variable.
 
 .SH GRAPHIC STATS COMMANDS
 
- xylist=center(compview :xy :yx :x :y) -- center of compview (dflt :xy)
- rectlist=mbr(compview :lbrt :lrbt) -- minimum bounding rectangle of compview (dflt :lbrt)
+ xylist=center(compview :xy :yx :x :y :scrn) -- center of compview (dflt :xy)
+ rectlist=mbr(compview :lbrt :lrbt :scrn) -- minimum bounding rectangle of compview (dflt :lbrt)
  ptlist=points(compview) -- return point list from compview graphic
 
 .SH GRAPHIC STATE COMMANDS
@@ -65,22 +66,31 @@ assigned to an interpreter variable.
 
 .SH DIRECT MANIPULATION COMMANDS
 
- select(compview [compview ...] :all) -- 
+ select([compview ...] :all :clear) -- 
     make these graphics the current selection
+ delete(compview [compview ...]) -- delete graphic(s)
  move(dx dy) -- move current selection
  scale(xflt yflt) -- scale current selection
  rotate(degflt) -- rotate current selection
 
-.SH ATTRIBUTE COMMANDS
+.SH GROUP/UNGROUP COMMANDS
+
+ newgroup=growgroup(groupview compview) -- add graphic to existing group graphic
+ newgroup=trimgroup(groupview compview) -- remove graphic from existing group graphic
+
+.SH COMPONENT AND ATTRIBUTE COMMANDS
 
  compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
  attrlist(compview) -- return attribute list of component
+ compview=frame([index]) -- return composite component for a frame, defaults to current
+ val=at(list|attrlist|compview n) -- return the nth item in a list.
+ num=size(list|attrlist|compview) -- return size of a list.
 
 .SH VIEWER COMMANDS
 
  update() -- update viewer
 
- import(pathname) -- import graphic file from pathname or URL
+ import(pathstr) -- import graphic file from pathname or URL
 
  ncols() -- onscreen horizontal extent in pixels
  nrows() -- onscreen vertical extent in pixels
@@ -88,6 +98,7 @@ assigned to an interpreter variable.
  handles(flag) --     
     enable/disable current selection tic marks 
     and/or highlighting
+ highlight(compview compviewgs) -- set the highlight graphic state for a graphic
 
  zoom(zoomflt) -- zoom by factor
  zoomin() -- zoom-in by 2
@@ -115,9 +126,13 @@ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str
 
 .SH OTHER COMMANDS
 
+ acknowledgebox(msgstr) -- popup an acknowledge dialog box
+ confirmbox(msgstr) -- popup a confirmation dialog box, and return 1, 0, or -1 if cancelled
+
  run(filename) -- run commands from file
  quit() -- quit this interpreter
  exit() -- exit entire application
+ pause([msgstr]) -- pause script execution until C/R
 
 .SH OPTIONS
 

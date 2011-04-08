@@ -68,7 +68,7 @@ attr_value LexScan::get_next_token(unsigned int& toktype)
     attr_value retval;
     switch (toktype) {
     case TOK_IDENTIFIER:  
-    case TOK_STRING:      retval.symbolid = symbol_add(_token); break;
+    case TOK_STRING:      retval.symval.symid = symbol_add(_token); break;
     case TOK_CHAR:        retval.charval = *_token; break;
     case TOK_DFINT:       retval.dfintval = *(int*)_token; break;
     case TOK_DFUNS:       retval.dfunsval = *(unsigned int*)_token; break;
@@ -76,7 +76,7 @@ attr_value LexScan::get_next_token(unsigned int& toktype)
     case TOK_LNUNS:       retval.lnunsval = *(unsigned long*)_token; break;
     case TOK_FLOAT:       retval.floatval = *(float*)_token; break;
     case TOK_DOUBLE:      retval.doublval = *(double*)_token; break;
-    case TOK_OPERATOR:    retval.symbolid = symbol_add(_token); break;
+    case TOK_OPERATOR:    retval.symval.symid = symbol_add(_token); break;
     case TOK_EOF:         break;
     default:              break;
     }

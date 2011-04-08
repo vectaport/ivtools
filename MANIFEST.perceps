@@ -46,9 +46,13 @@ ComTerp/xformfunc.h
 ComUnidraw/comeditor.h
 ComUnidraw/comterp-acehandler.h
 ComUnidraw/comterp-iohandler.h
+ComUnidraw/dialogfunc.h
 ComUnidraw/grdotfunc.h
 ComUnidraw/grfunc.h
+ComUnidraw/grlistfunc.h
+ComUnidraw/groupfunc.h
 ComUnidraw/grstatfunc.h
+ComUnidraw/highlightfunc.h
 ComUnidraw/nfunc.h
 ComUnidraw/plotfunc.h
 ComUnidraw/unifunc.h

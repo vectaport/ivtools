@@ -22,6 +22,7 @@
  * 
  */
 
+#include <Unidraw/Components/compview.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
@@ -42,6 +43,7 @@ ComValue ComValue::_blankval(ComValue::BlankType);
 ComValue ComValue::_unkval(ComValue::UnknownType);
 ComValue ComValue::_oneval(1, ComValue::IntType);
 ComValue ComValue::_zeroval(0, ComValue::IntType);
+ComValue ComValue::_minusoneval(-1, ComValue::IntType);
 
 /*****************************************************************************/
 
@@ -92,6 +94,7 @@ ComValue::~ComValue() {
 }
 
 ComValue::ComValue(postfix_token* token) {
+    clear();
     void* v1 = &_v;
     void* v2 = &token->v;
     memcpy(v1, v2, sizeof(double));
@@ -105,7 +108,7 @@ ComValue::ComValue(postfix_token* token) {
     case TOK_FLOAT:   type(FloatType); break;
     case TOK_DOUBLE:  type(DoubleType); break;
     case TOK_EOF:     type(EofType); break;
-    case TOK_COMMAND: type(SymbolType); break;
+    case TOK_COMMAND: type(SymbolType); _v.symval.globalflag=0; break;
     case TOK_KEYWORD: type(KeywordType); break;
     case TOK_BLANK:   type(BlankType); break;
     default:          type(UnknownType); break;
@@ -147,9 +150,11 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::SymbolType:
-	  if (brief) 
+	  if (brief) {
+	    if (svp->global_flag()) out << "global(";
 	    out << symbol_pntr( svp->symbol_ref());
-	  else {
+	    if (svp->global_flag()) out << ")";
+	  } else {
 	    title = "symbol( ";
 	    symbol = symbol_pntr( svp->symbol_ref() );
 	    out << title << symbol;
@@ -292,7 +297,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::BlankType:
-	  cerr << "<blank>";
+	  // cerr << "<blank>";
 	  break;
 
 	case ComValue::ObjectType:
@@ -347,7 +352,23 @@ ComValue& ComValue::zeroval() {
   return _zeroval;
 }
 
+ComValue& ComValue::minusoneval() { 
+  *&_minusoneval = ComValue(-1, ComValue::IntType);
+  return _minusoneval;
+}
+
 boolean ComValue::is_comfunc(int func_classid) {
   return is_type(CommandType) && 
     func_classid==((ComFunc*)obj_val())->classid(); 
 }
+
+void* ComValue::geta(int id) {
+  if (is_object(id)) {
+    if (object_compview())
+      return ((ComponentView*)obj_val())->GetSubject();
+    else
+      return obj_val();
+  } else
+    return nil;
+}
+

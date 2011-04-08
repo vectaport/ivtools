@@ -1436,8 +1436,12 @@ void OverlayKit::AttrEdit(OverlayComp* comp) {
     WidgetKit& kit = *WidgetKit::instance();
     AttributeDialog* dlog = new AttributeDialog(comp, &kit, kit.style());
     dlog->ref();
+#if 0
     if (dlog->post_for(_ed->GetWindow()))
 	((ModifStatusVar*)_ed->GetState("ModifStatusVar"))->SetModifStatus(true);	
+#else
+    dlog->map_for(_ed->GetWindow());
+#endif
 }
 
 int OverlayKit::bintest(const char* command) {

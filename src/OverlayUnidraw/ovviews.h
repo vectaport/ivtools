@@ -87,6 +87,10 @@ public:
     // graphic used to highlight by changing graphic state.  
     // A nil returned from this method disables the mechanism.
 
+    virtual void HighlightGraphic(Graphic* hilite_gs);
+    // graphic used to highlight by changing graphic state.  
+    // A nil returned from this method disables the mechanism.
+
     virtual Selection* MakeSelection();
     // factor method to construct an OverlaySelection.
 
@@ -136,6 +140,7 @@ protected:
     boolean _fixed_size;
     float _fixed_size_factor;
     boolean _fixed_location;
+    Graphic* _hilite_gs;
 };
 
 //: graphical view of OverlaysComp.

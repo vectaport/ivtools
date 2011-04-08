@@ -551,15 +551,17 @@ int OverlayScript::ReadOther(istream& in, void* addr1, void* addr2, void* addr3,
     AttributeValue* val;
 
     do {
-    if (in.peek() == '\"') {
+    char ch;
+    if ((ch=in.peek()) == '\"') {
 	sbuf[0] = '\"';
 	ParamList::parse_string(in, sbuf+1, SBUFSIZE-1);
 	strcat(sbuf, "\"\n");
     }
-    else {
+    else if (ch!=')') {
 	ParamList::parse_token(in, sbuf, SBUFSIZE, " \t\n,");
 	strcat(sbuf, "\n");
-    }
+    } else
+      strcpy(sbuf, "1\n");
 
     if (!in.good() && attrlist && keyword) {
         return -1;

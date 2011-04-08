@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -151,14 +152,24 @@ public:
 };
 
 //: command to select graphics in comdraw.
-// select([compview ...] :all) -- make these graphics the current selection, 
+// select([compview ...] :all :clear) -- make these graphics the current selection, 
 // default returns current selection.
 class SelectFunc : public UnidrawFunc {
 public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([compview ...] :all) -- make these graphics the current selection (dflt is current)"; }
+	return "%s([compview ...] :all :clear) -- make these graphics the current selection (dflt is current)"; }
+};
+
+//: command to delete graphics in comdraw.
+// delete(compview [compview ...]) -- delete graphic(s)
+class DeleteFunc : public UnidrawFunc {
+public:
+    DeleteFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([compview ...]) -- delete graphic(s)"; }
 };
 
 //: command to move current selection in comdraw
@@ -319,6 +330,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file"; }
+};
+
+//: command to move graphic in front of another
+// reorder(destview srcview) -- move graphic to the front of another
+class ReorderFunc : public UnidrawFunc {
+public:
+    ReorderFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s(destview srcview) -- move graphic to the front of another"; }
 };
 
 #endif /* !defined(_grfunc_h) */

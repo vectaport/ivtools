@@ -52,7 +52,8 @@ class Style;
 class ComTextEditor : public EivTextEditor {
 public:
    ComTextEditor(Style*, ComTerpServ* comterp=nil, boolean active=true);
-   virtual ~ComTextEditor();   ComTE_View* comtextview();
+   virtual ~ComTextEditor();   
+   ComTE_View* comtextview();
 
 };
 
