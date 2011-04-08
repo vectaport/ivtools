@@ -687,8 +687,10 @@ Command* EdgeView::InterpretManipulator(Manipulator* m) {
             ArrowLine* line = new ArrowLine(x0, y0, x1, y1, false, true, 1.5, pg);
             if (brVar != nil) 
 		line->SetBrush(brVar->GetBrush());
-            if (colVar != nil)
+            if (colVar != nil) {
+	        line->FillBg(!colVar->GetBgColor()->None());
                 line->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
+	    }
 
 	    EdgeComp* newedge = new EdgeComp(line, nil, start_subedge, end_subedge);
 	    if (gv0 || gv1)

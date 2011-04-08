@@ -220,5 +220,27 @@ public:
 
 };
 
+//: command to convert from graphic to drawing coordinates
+// dx,dy=gtod(compview gx,gy) -- convert from graphic to drawing coordinates
+class GraphicToDrawingFunc : public UnidrawFunc {
+public:
+    GraphicToDrawingFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "dx,dy=%s(compview gx,gy) -- convert from graphic to drawing coordinates."; }
+
+};
+
+//: command to convert from drawing to graphic coordinates
+// gx,gy=dtog(compview dx,dy) -- convert from drawing to graphic coordinates
+class DrawingToGraphicFunc : public UnidrawFunc {
+public:
+    DrawingToGraphicFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "gx,gy=%s(compview dx,dy) -- convert from drawing to graphic coordinates."; }
+
+};
+
 #endif /* !defined(_unifunc_h) */
 

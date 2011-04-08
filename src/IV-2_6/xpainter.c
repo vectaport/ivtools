@@ -745,7 +745,7 @@ void Painter::Stencil(
 }
 
 void Painter::RasterRect(Canvas* c, IntCoord x, IntCoord y, Raster* r) {
-    if (c == nil) {
+    if (c == nil || r == nil) {
 	return;
     }
     Display* d = r->rep()->display_;
@@ -798,7 +798,7 @@ void Painter::RasterRect(Canvas* c, IntCoord x, IntCoord y, Raster* r) {
 }
 
 void Painter::Text(Canvas* c, const char* s, int len, IntCoord x, IntCoord y) {
-    if (c == nil) {
+    if (c == nil || s == nil || len == 0) {
 	return;
     }
     XDisplay* d = rep->display->rep()->display_;
@@ -906,7 +906,7 @@ void Painter::Point(Canvas* c, IntCoord x, IntCoord y) {
 }
 
 void Painter::MultiPoint(Canvas* c, IntCoord x[], IntCoord y[], int n) {
-    if (c == nil) {
+    if (c == nil || n == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1030,7 +1030,7 @@ void Painter::ClearRect(
 }
 
 void Painter::Circle(Canvas* c, IntCoord x, IntCoord y, int r) {
-    if (c == nil) {
+    if (c == nil || r == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1057,7 +1057,7 @@ void Painter::Circle(Canvas* c, IntCoord x, IntCoord y, int r) {
 }
 
 void Painter::FillCircle(Canvas* c, IntCoord x, IntCoord y, int r) {
-    if (c == nil) {
+    if (c == nil || r == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1084,7 +1084,7 @@ void Painter::FillCircle(Canvas* c, IntCoord x, IntCoord y, int r) {
 }
 
 void Painter::MultiLine(Canvas* c, IntCoord x[], IntCoord y[], int n) {
-    if (c == nil) {
+    if (c == nil || n == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1100,7 +1100,7 @@ void Painter::MultiLine(Canvas* c, IntCoord x[], IntCoord y[], int n) {
 }
 
 void Painter::MultiLineNoMap(Canvas* c, IntCoord x[], IntCoord y[], int n) {
-    if (c == nil) {
+    if (c == nil || n == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1117,7 +1117,7 @@ void Painter::MultiLineNoMap(Canvas* c, IntCoord x[], IntCoord y[], int n) {
 }
 
 void Painter::Polygon(Canvas* c, IntCoord x[], IntCoord y[], int n) {
-    if (c == nil) {
+    if (c == nil || n==0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1138,7 +1138,7 @@ void Painter::Polygon(Canvas* c, IntCoord x[], IntCoord y[], int n) {
 }
 
 void Painter::FillPolygonNoMap(Canvas* c, IntCoord x[], IntCoord y[], int n) {
-    if (c == nil) {
+    if (c == nil || n == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();
@@ -1157,7 +1157,7 @@ void Painter::FillPolygonNoMap(Canvas* c, IntCoord x[], IntCoord y[], int n) {
 }
 
 void Painter::FillPolygon(Canvas* c, IntCoord x[], IntCoord y[], int n) {
-    if (c == nil) {
+    if (c == nil || n == 0) {
 	return;
     }
     CanvasRep* cr = c->rep();

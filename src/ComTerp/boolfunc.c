@@ -251,6 +251,10 @@ void EqualFunc::execute() {
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())==0;
 	}
 	break;
+      case ComValue::ArrayType: 
+	result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
+	  operand1.array_val() == operand2.array_val();
+	break;
       default:
         result.boolean_ref() = operand1.is_type(ComValue::UnknownType) && 
 	  operand2.is_type(ComValue::UnknownType);
@@ -314,6 +318,10 @@ void NotEqualFunc::execute() {
 	const char* str2 = operand2.symbol_ptr();
 	result.boolean_ref() = strncmp(str1, str2, nval.int_val())!=0;
       }
+      break;
+    case ComValue::ArrayType: 
+      result.boolean_ref() = operand2.type() != ComValue::ArrayType || 
+	operand1.array_val() != operand2.array_val();
       break;
     case ComValue::UnknownType:
 	result.boolean_ref() = operand2.is_known();

@@ -202,6 +202,7 @@ public:
 
 };
 
+class MultiLineObj;
 class OverlayRaster;
 
 //: derived RasterRect Graphic for use with OverlayRaster and GrayRaster.
@@ -209,6 +210,13 @@ class OverlayRasterRect : public RasterRect {
 public:
     OverlayRasterRect(OverlayRaster* = nil, Graphic* = nil);
     virtual ~OverlayRasterRect();
+
+    void clippts(MultiLineObj*); 
+    // set polygon used for additional clipping 
+    void clippts(int* x, int* y, int n);
+    // set polygon used for additional clipping 
+    MultiLineObj* clippts(); 
+    // return polygon used for additional clipping 
 
     virtual Graphic* Copy();
 
@@ -272,6 +280,8 @@ protected:
     IntCoord _damage_b;
     IntCoord _damage_r;
     IntCoord _damage_t;
+    
+    MultiLineObj* _clippts;
 
 friend class RasterOvComp;
 friend class RasterOvView;

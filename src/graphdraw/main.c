@@ -39,6 +39,13 @@
 #include <math.h>
 #include <version.h>
 
+#ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
+
 /*****************************************************************************/
 
 static PropertyData properties[] = {
@@ -142,6 +149,10 @@ static PropertyData properties[] = {
     { "*slider_off",    "false"  },
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
+#ifdef HAVE_ACE
+    { "*comdraw",       "20002" },
+    { "*import",        "20003" },
+#endif
     { "*help",          "false"  },
     { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
@@ -169,22 +180,37 @@ static OptionDesc options[] = {
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+#ifdef HAVE_ACE
+    { "-import", "*import", OptionValueNext },
+    { "-comdraw", "*comdraw", OptionValueNext },
+#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
     { nil }
 };
 
 
+#ifdef HAVE_ACE
 static char* usage =
+"Usage: graphdraw [any idraw parameter] [-color5] [-color6] [-comdraw port] \n\
+[-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
+[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-zoomer_off|-zoff] [file]";
+#else
 "Usage: graphdraw [any idraw parameter] [-color5] [-color6] \n\
 [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
 [-pagerows|-nrows n] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
 [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-zoomer_off|-zoff] [file]";
+#endif
 
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
+#ifdef HAVE_ACE
+    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+#endif
     int exit_status = 0;
     GraphCreator creator;
     GraphCatalog* catalog = new GraphCatalog("graphdraw", &creator);
@@ -197,10 +223,66 @@ int main (int argc, char** argv) {
       return argc > 2 ? 1 : 0;
     }
 
+#ifdef HAVE_ACE
+
+    UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
+
+    const char* importstr = catalog->GetAttribute("import");
+    int importnum = atoi(importstr);
+    if (import_acceptor->open 
+	(ACE_INET_Addr (importnum)) == -1)
+        cerr << "flipbook:  unable to open import port " << importnum << "\n";
+
+    else if (IMPORT_REACTOR::instance ()->register_handler 
+	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+        cerr << "graphdraw:  unable to register UnidrawImportAcceptor with ACE reactor\n";
+
+    else
+        cerr << "accepting import port (" << importnum << ") connections\n";
+
+    // Acceptor factory.
+    UnidrawComterpAcceptor* peer_acceptor = new UnidrawComterpAcceptor();
+
+    const char* portstr = catalog->GetAttribute("comdraw");
+    int portnum = atoi(portstr);
+    if (peer_acceptor->open 
+	(ACE_INET_Addr (portnum)) == -1)
+        cerr << "graphdraw:  unable to open port " << portnum << "\n";
+
+    else if (COMTERP_REACTOR::instance ()->register_handler 
+	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+        cerr << "graphdraw:  unable to register ComterpAcceptor with ACE reactor\n";
+    else
+        cerr << "accepting comdraw port (" << portnum << ") connections\n";
+
+
+    // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
+    // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
+    // exit.
+    if (IMPORT_REACTOR::instance ()->register_handler 
+	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
+        cerr << "graphdraw:  unable to register quit handler with ACE reactor\n";
+
+#endif
+
     const char* initial_file = (argc == 2) ? argv[1] : nil;
     GraphEditor* ed = new GraphEditor(initial_file);
     
     unidraw->Open(ed);
+
+#ifdef HAVE_ACE
+	/*  Start up one on stdin */
+	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+#if 0
+	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+#else
+	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+							  ACE_Event_Handler::READ_MASK)==-1)
+#endif
+	  cerr << "graphdraw: unable to open stdin with ACE\n";
+	ed->SetComTerp(stdin_handler->comterp());
+#endif
+	
     cerr << "ivtools-" << VersionString 
 	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
     unidraw->Run();

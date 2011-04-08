@@ -909,9 +909,27 @@ OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect
 #endif
     _xbeg = _xend = _ybeg = _yend = -1;
     _damage_done = 0;
+    _clippts = nil;
 }
 
-OverlayRasterRect::~OverlayRasterRect () {}
+OverlayRasterRect::~OverlayRasterRect () { Unref(_clippts);}
+
+void OverlayRasterRect::clippts(MultiLineObj* pts) {
+  _clippts = pts;
+  Resource::ref(_clippts);
+}
+
+void OverlayRasterRect::clippts(int* x, int* y, int n) {
+  Resource::unref(_clippts);
+  if (x && y) {
+    _clippts = MultiLineObj::make_pts(x, y, n);
+    Resource::ref(_clippts);
+  }
+}
+
+MultiLineObj* OverlayRasterRect::clippts() {
+  return _clippts;
+}
 
 Graphic* OverlayRasterRect::Copy () {
     OverlayRasterRect* new_rr;
@@ -921,6 +939,7 @@ Graphic* OverlayRasterRect::Copy () {
     new_rr->xend(_xend);
     new_rr->ybeg(_ybeg);
     new_rr->yend(_yend);
+    new_rr->clippts(_clippts);
     return new_rr;
 }
 
@@ -1024,6 +1043,10 @@ OverlayRasterRect& OverlayRasterRect::operator = (OverlayRasterRect& rect) {
     Unref(_raster);
     _raster = rect._raster;
     Resource::ref(_raster);
+
+    Unref(_clippts);
+    _clippts = rect._clippts;
+    Resource::ref(_clippts);
 
     return *this;
 }

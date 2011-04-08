@@ -709,7 +709,7 @@ Iterator OverlayScript::MatchedPic(Clipboard* cb, int& count) {
 boolean OverlayScript::EmitPts(ostream& out, Clipboard* cb, boolean prevout) {
     if (GetGraphicComp()->IsA(OVVERTICES_COMP) && MatchedPts(cb)<0) {
 	MultiLineObj* pts = ((Vertices*)GetGraphicComp()->GetGraphic())->GetOriginal();
-	if (pts->count()>0) {
+	if (pts && pts->count()>0) {
 	  if (prevout) 
 	    out << ",\n    ";
 	  else

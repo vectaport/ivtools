@@ -221,6 +221,8 @@ ivtools-1.0/src/ComUnidraw/highlightfunc.c
 ivtools-1.0/src/ComUnidraw/highlightfunc.h
 ivtools-1.0/src/ComUnidraw/nfunc.c
 ivtools-1.0/src/ComUnidraw/nfunc.h
+ivtools-1.0/src/ComUnidraw/pixelfunc.c
+ivtools-1.0/src/ComUnidraw/pixelfunc.h
 ivtools-1.0/src/ComUnidraw/plotfunc.c
 ivtools-1.0/src/ComUnidraw/plotfunc.h
 ivtools-1.0/src/ComUnidraw/unifunc.c

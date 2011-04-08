@@ -714,3 +714,81 @@ void DrawingToScreenFunc::execute() {
   }
 }
 
+/*****************************************************************************/
+
+GraphicToDrawingFunc::GraphicToDrawingFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void GraphicToDrawingFunc::execute() {
+  ComValue viewval(stack_arg(0));
+  ComValue coordsv(stack_arg(1));
+  reset_stack();
+  if (!viewval.is_object()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  
+  ComponentView* view = (ComponentView*)viewval.obj_val();
+  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+  Graphic* gr = comp ? comp->GetGraphic() : nil;
+
+  OverlayEditor* ed = (OverlayEditor*)GetEditor();
+  OverlayViewer* viewer = ed ? (OverlayViewer*)ed->GetViewer() : nil;
+  if (gr && viewer && coordsv.is_array() && coordsv.array_len()==2) {
+    AttributeValueList *avl = coordsv.array_val();
+    Iterator i;
+    avl->First(i);
+    float gx = avl->GetAttrVal(i)->float_val();
+    avl->Next(i);
+    float gy = avl->GetAttrVal(i)->float_val();
+    float sx, sy, dx, dy;
+    viewer->GraphicToScreen(gr, gx, gy, sx, sy);
+    viewer->ScreenToDrawing(sx, sy, dx, dy);
+    AttributeValueList* navl = new AttributeValueList();
+    ComValue retval(navl);
+    navl->Append(new ComValue(dx));
+    navl->Append(new ComValue(dy));
+    push_stack(retval);
+  }
+}
+
+/*****************************************************************************/
+
+DrawingToGraphicFunc::DrawingToGraphicFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void DrawingToGraphicFunc::execute() {
+  ComValue viewval(stack_arg(0));
+  ComValue coordsv(stack_arg(1));
+  reset_stack();
+  if (!viewval.is_object()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  ComponentView* view = (ComponentView*)viewval.obj_val();
+  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+  Graphic* gr = comp ? comp->GetGraphic() : nil;
+  OverlayEditor* ed = (OverlayEditor*)GetEditor();
+  OverlayViewer* viewer = ed ? (OverlayViewer*)ed->GetViewer() : nil;
+  if (gr && viewer && coordsv.is_array() && coordsv.array_len()==2) {
+    AttributeValueList *avl = coordsv.array_val();
+    Iterator i;
+    avl->First(i);
+    float dx = avl->GetAttrVal(i)->float_val();
+    avl->Next(i);
+    float dy = avl->GetAttrVal(i)->float_val();
+    float sx, sy, gx, gy;
+    viewer->DrawingToScreen(dx, dy, sx, sy);
+    viewer->ScreenToGraphic(sx, sy, gr, gx, gy);
+    AttributeValueList* navl = new AttributeValueList();
+    ComValue retval(navl);
+    navl->Append(new ComValue(/* (int) */gx));
+    navl->Append(new ComValue(/* (int) */gy));
+    push_stack(retval);
+  }
+}
+
+
+
+

@@ -170,6 +170,7 @@ public:
     PSBrush* FindBrush(int, int);
     PSBrush* FindBrush(int, float);
     PSColor* FindColor(const char*, int = 0, int = 0, int = 0);
+    PSColor* FindNoneColor();
     PSFont* FindFont(const char*, const char* = "", const char* = "");
     PSPattern* FindNonePattern();
     PSPattern* FindGrayLevel(float);

@@ -155,6 +155,7 @@ void GraphicComp::Interpret (Command* cmd) {
         fg = (fg == nil) ? gr->GetFgColor() : fg;
         bg = (bg == nil) ? gr->GetBgColor() : bg;
         cmd->Store(this, new ColorData(gr->GetFgColor(), gr->GetBgColor()));
+	gr->FillBg(bg && !bg->None());
         gr->SetColors(fg, bg);
         Notify();
 
@@ -247,6 +248,7 @@ void GraphicComp::Uninterpret (Command* cmd) {
         ColorData* cd = (ColorData*) cmd->Recall(this);
 
         if (cd != nil) {
+	    gr->FillBg(!cd->_bg->None());
             gr->SetColors(cd->_fg, cd->_bg);
             Notify();
         }

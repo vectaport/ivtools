@@ -40,3 +40,4 @@ SUBDIRS = \
 MakeInSubdirs($(SUBDIRS))
 
 IvmkcmTargets($(PACKAGE))
+

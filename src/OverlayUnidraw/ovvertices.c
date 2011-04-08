@@ -238,7 +238,8 @@ int VerticesScript::ReadPts (istream& in, void* addr1, void* addr2, void* addr3,
     Vertices* vert = *(Vertices**)addr2;
     int id;
     in >> id;
-    vert->SetOriginal(comp->GetIndexedPts(id));
+    if (id>=0) 
+      vert->SetOriginal(comp->GetIndexedPts(id));
     return in.good() ? 0 : -1;
 }
 

@@ -93,7 +93,7 @@ public:
 
     static GraphicComp* DoImport(
         istream& instrm, boolean& empty, FileHelper& helper, Editor* ed, 
-        boolean is_strm, const char* pathname, int& pnmfd
+        boolean is_strm, const char* pathname, int& pnmfd, boolean cmdflag
     );
 
     static GraphicComp* TIFF_Image(const char*);

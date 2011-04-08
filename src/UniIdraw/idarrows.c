@@ -403,6 +403,8 @@ void ArrowMultiLine::ArrowheadDraw (Arrowhead* arrow, Canvas* c, Graphic* gs) {
 }
 
 void ArrowMultiLine::SetArrows (boolean h, boolean t) {
+    if (count()==0) return;
+
     delete _head;
     delete _tail;
 

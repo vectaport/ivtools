@@ -270,7 +270,7 @@ int main (int argc, char** argv) {
 
     else if (COMTERP_REACTOR::instance ()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
-        cerr << "comdraw:  unable to register ComterpAcceptor with ACE reactor\n";
+        cerr << "flipbook:  unable to register ComterpAcceptor with ACE reactor\n";
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 

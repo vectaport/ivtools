@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
@@ -35,6 +36,7 @@
 #include <OverlayUnidraw/ovellipse.h>
 #include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/ovpolygon.h>
+#include <OverlayUnidraw/ovraster.h>
 #include <OverlayUnidraw/ovspline.h>
 #include <OverlayUnidraw/ovtext.h>
 
@@ -113,6 +115,7 @@ void CreateRectFunc::execute() {
 	if (patVar != nil) rect->SetPattern(patVar->GetPattern());
 
 	if (colVar != nil) {
+	    rect->FillBg(!colVar->GetBgColor()->None());
 	    rect->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	rect->SetTransformer(rel);
@@ -177,6 +180,7 @@ void CreateLineFunc::execute() {
 	if (brVar != nil) line->SetBrush(brVar->GetBrush());
 
 	if (colVar != nil) {
+	    line->FillBg(!colVar->GetBgColor()->None());
 	    line->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	line->SetTransformer(rel);
@@ -240,6 +244,7 @@ void CreateEllipseFunc::execute() {
 	if (patVar != nil) ellipse->SetPattern(patVar->GetPattern());
 
 	if (colVar != nil) {
+	    ellipse->FillBg(!colVar->GetBgColor()->None());
 	    ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	ellipse->SetTransformer(rel);
@@ -302,6 +307,7 @@ void CreateTextFunc::execute() {
 	TextGraphic* text = new TextGraphic(txt, stdgraphic);
 
 	if (colVar != nil) {
+	    text->FillBg(!colVar->GetBgColor()->None());
 	    text->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	if (fntVar != nil) text->SetFont(fntVar->GetFont());
@@ -370,6 +376,7 @@ void CreateMultiLineFunc::execute() {
 	if (patVar != nil) multiline->SetPattern(patVar->GetPattern());
 
 	if (colVar != nil) {
+	    multiline->FillBg(!colVar->GetBgColor()->None());
 	    multiline->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	multiline->SetTransformer(rel);
@@ -435,6 +442,7 @@ void CreateOpenSplineFunc::execute() {
 	if (patVar != nil) openspline->SetPattern(patVar->GetPattern());
 
 	if (colVar != nil) {
+	    openspline->FillBg(!colVar->GetBgColor()->None());
 	    openspline->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	openspline->SetTransformer(rel);
@@ -498,6 +506,7 @@ void CreatePolygonFunc::execute() {
 	if (patVar != nil) polygon->SetPattern(patVar->GetPattern());
 
 	if (colVar != nil) {
+	    polygon->FillBg(!colVar->GetBgColor()->None());
 	    polygon->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	polygon->SetTransformer(rel);
@@ -562,6 +571,7 @@ void CreateClosedSplineFunc::execute() {
 	if (patVar != nil) closedspline->SetPattern(patVar->GetPattern());
 
 	if (colVar != nil) {
+	    closedspline->FillBg(!colVar->GetBgColor()->None());
 	    closedspline->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
 	closedspline->SetTransformer(rel);
@@ -570,6 +580,68 @@ void CreateClosedSplineFunc::execute() {
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
 	ComValue compval(symbol_add("ClosedSplineComp"), new ComponentView(comp));
+	compval.object_compview(true);
+	push_stack(compval);
+    } else 
+	push_stack(ComValue::nullval());
+
+    execute_log(cmd);
+}
+
+/*****************************************************************************/
+
+CreateRasterFunc::CreateRasterFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void CreateRasterFunc::execute() {
+    const int x0 = 0;  
+    const int y0 = 1;  
+    const int x1 = 2;  
+    const int y1 = 3;  
+    const int n = 4;
+    int coords[n];
+    ComValue& vect = stack_arg(0);
+    if (!vect.is_type(ComValue::ArrayType) || vect.array_len() != n) {
+        reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+    }
+
+    ALIterator i;
+    AttributeValueList* avl = vect.array_val();
+    avl->First(i);
+    for (int j=0; j<n && !avl->Done(i); j++) {
+        coords[j] = avl->GetAttrVal(i)->int_val();
+	avl->Next(i);
+    }
+    reset_stack();
+
+    PasteCmd* cmd = nil;
+
+    if (coords[x0] != coords[x1] || coords[y0] != coords[y1]) {
+
+	float dcoords[n];
+	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing
+	  (coords[x0], coords[y0], dcoords[x0], dcoords[y0]);
+	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing
+	  (coords[x1], coords[y1], dcoords[x1], dcoords[y1]);
+	
+	OverlayRaster* raster = 
+	  new OverlayRaster((int)(dcoords[x1]-dcoords[x0]+1), 
+			    (int)(dcoords[y1]-dcoords[y0]+1), 
+			    2 /* initialize with border of 2 */);
+
+	OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
+
+	Transformer* t = new Transformer();
+	t->Translate(dcoords[x0], dcoords[y0]);
+	rasterrect->SetTransformer(t);
+	Unref(t);
+
+	RasterOvComp* comp = new RasterOvComp(rasterrect);
+	if (PasteModeFunc::paste_mode()==0)
+	  cmd = new PasteCmd(_ed, new Clipboard(comp));
+	ComValue compval(symbol_add("RasterComp"), new ComponentView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
     } else 

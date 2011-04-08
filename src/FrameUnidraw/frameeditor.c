@@ -33,6 +33,7 @@
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/ovunidraw.h>
 
 #include <IVGlyph/textedit.h>
 
@@ -46,7 +47,6 @@
 #include <Unidraw/catalog.h>
 #include <Unidraw/ctrlinfo.h>
 #include <Unidraw/keymap.h>
-#include <Unidraw/unidraw.h>
 
 #include <InterViews/box.h>
 #include <InterViews/border.h>
@@ -116,6 +116,7 @@ void FrameEditor::Init (OverlayComp* comp, const char* name) {
   _autonewframe_tts = nil;
   if (!comp) comp = new FrameIdrawComp;
   _terp = new ComTerpServ();
+  ((OverlayUnidraw*)unidraw)->comterp(_terp);
   AddCommands(_terp);
   add_comterp("Flipbook", _terp);
   _overlay_kit->Init(comp, name);
@@ -123,6 +124,7 @@ void FrameEditor::Init (OverlayComp* comp, const char* name) {
 }
 
 void FrameEditor::InitCommands() {
+  ComEditor::InitCommands();
   int secs = 0;
   Catalog* catalog = unidraw->GetCatalog();
   const char* slideshow_str = catalog->GetAttribute("slideshow");

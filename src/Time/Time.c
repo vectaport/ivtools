@@ -51,22 +51,8 @@ const unsigned VERSION =2;
 
 #endif
 
-#if defined(BSD) || defined(hpux) || defined(linux) || defined(__sun) || defined(__alpha) || defined(__CYGWIN__) || defined(__FreeBSD__) || defined(__NetBSD__)
 
-#ifdef hpux
-#include <time.h>
-#else
-#include <sys/time.h>
-#if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
-extern "C" {
-    int gettimeofday(struct timeval *tp, struct timezone *tzp);
-}
-#endif
-#if defined(__NetBSD__)
-  #include </usr/include/sys/time.h>
-#endif
-#endif
-
+/************************ end of edits ************************************************/
 static long TIME_ZONE;          /* seconds west of GMT */
 static int DST_OBSERVED;        /* flags U.S. daylight saving time observed */
 
@@ -81,9 +67,6 @@ static void inittimezone() {
 #define BASE_CLASSES BASE::desc()
 #define MEMBER_CLASSES
 #define VIRTUAL_BASE_CLASSES Object::desc()
-
-
-#endif
 
 
 static const unsigned long seconds_in_day = 24*60*60;

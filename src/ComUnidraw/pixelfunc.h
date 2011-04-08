@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2001 Scott E. Johnston
- * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -22,75 +21,58 @@
  * 
  */
 
-#if !defined(_comunidraw_nfunc_h)
-#define _comunidraw_nfunc_h
+#if !defined(pixelfunc_h)
+#define _pixelfunc_h
 
 #include <ComUnidraw/unifunc.h>
 
-//: command to return number of onscreen columns in comdraw.
-// ncols() -- onscreen horizontal extent in pixels or 
-class NColsFunc : public UnidrawFunc {
+//: command to poke pixel values into raster
+// poke(compview x y val) -- poke pixel value into raster
+class PixelPokeFunc : public UnidrawFunc {
 public:
-    NColsFunc(ComTerp*,Editor*);
+    PixelPokeFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() -- onscreen horizontal extent in pixels"; }
-
+	return "%s(compview x y val) -- poke pixel value into raster"; }
 };
 
-//: command to return number of onscreen rows in comdraw.
-// nrows() -- onscreen vertical extent in pixels
-class NRowsFunc : public UnidrawFunc {
+//: command to return number of columns in a raster
+// pcols(compview) -- number of columns in a raster
+class PixelColsFunc : public UnidrawFunc {
 public:
-    NRowsFunc(ComTerp*,Editor*);
+    PixelColsFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() -- onscreen vertical extent in pixels"; }
-
+	return "%s(compview) -- number of columns in a raster"; }
 };
 
-//: command to return number of fonts in comdraw menu.
-// nfonts() -- return size of font menu
-class NFontsFunc : public UnidrawFunc {
+//: command to return number of rows in a raster
+// pcols(compview) -- number of rows in a raster
+class PixelRowsFunc : public UnidrawFunc {
 public:
-    NFontsFunc(ComTerp*,Editor*);
+    PixelRowsFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() -- return size of font menu"; }
-
+	return "%s(compview) -- number of rows in a raster"; }
 };
 
-//: command to return number of brushes in comdraw menu.
-// nbrushes() -- return size of brush menu
-class NBrushesFunc : public UnidrawFunc {
+//: command to flush pixels poked in a raster
+// pflush(compview) -- flush pixels poked into a raster
+class PixelFlushFunc : public UnidrawFunc {
 public:
-    NBrushesFunc(ComTerp*,Editor*);
+    PixelFlushFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() -- return size of brush menu"; }
-
+	return "%s(compview) -- flush pixels poked into a raster"; }
 };
 
-//: command to return number of patterns in comdraw menu.
-// npatterns() -- return size of pattern menu
-class NPatternsFunc : public UnidrawFunc {
+//: command to clip raster with polygon
+// pclip(compview x1,y1,x2,y2,x3,y3[,...,xn,yn]) -- clip raster with polygon
+class PixelClipFunc : public UnidrawFunc {
 public:
-    NPatternsFunc(ComTerp*,Editor*);
+    PixelClipFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() -- return size of pattern menu"; }
-
+	return "%s(compview x1,y1,x2,y2,x3,y3[,...,xn,yn]) -- clip raster with polygon"; }
 };
-
-//: command to return number of colors in comdraw menus.
-// ncolors() -- return size of color menus.
-class NColorsFunc : public UnidrawFunc {
-public:
-    NColorsFunc(ComTerp*,Editor*);
-    virtual void execute();
-    virtual const char* docstring() { 
-	return "%s() -- return size of color menus"; }
-
-};
-
-#endif /* !defined(_comunidraw_nfunc_h) */
+#endif /* !defined(_pixelfunc_h) */

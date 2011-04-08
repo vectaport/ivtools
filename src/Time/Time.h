@@ -1,8 +1,5 @@
-#ifndef	TIME_H
-#define	TIME_H
 
-/* Time.h -- declarations for class Time
-
+/* Time.h -- declarations for class Time 
 	THIS SOFTWARE FITS THE DESCRIPTION IN THE U.S. COPYRIGHT ACT OF A
 	"UNITED STATES GOVERNMENT WORK".  IT WAS WRITTEN AS A PART OF THE
 	AUTHOR'S OFFICIAL DUTIES AS A GOVERNMENT EMPLOYEE.  THIS MEANS IT
@@ -30,6 +27,52 @@ Author:
  * Release for 1st edition.
  * 
 */
+
+#ifndef	TIME_H
+#define	TIME_H
+
+
+#if defined(SYSV) && ! defined(hpux)
+
+#include <time.h>
+
+#define TIME_ZONE timezone
+#define DST_OBSERVED daylight
+#define BASE_CLASSES BASE::desc()
+#define MEMBER_CLASSES
+#define VIRTUAL_BASE_CLASSES Object::desc()
+
+#endif
+
+//moved from Time.c
+
+#if defined(BSD) || defined(__FreeBSD__) || defined(__NetBSD__)
+
+#include <sys/time.h>
+  #if defined(__NetBSD__)
+    #include </usr/include/sys/time.h>
+  #endif
+ 
+#endif
+
+
+#if defined(hpux)
+  #include <time.h>
+#endif
+
+
+#if defined(linux) || defined(__sun) || defined(__alpha) || defined(__CYGWIN__)
+#include <sys/time.h>
+
+  #if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
+    extern "C" {
+    int gettimeofday(struct timeval *tp, struct timezone *tzp);
+     }
+  #endif
+#endif 
+
+// END of edits
+
 
 /*
   Modified by Vectaport, Inc.

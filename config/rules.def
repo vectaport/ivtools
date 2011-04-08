@@ -434,7 +434,7 @@ all:: deps
 #ifndef DependTarget
 #define DependTarget()							 @@\
 depend::								 @@\
-	g++ -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
+	$(DEPEND) $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
 #endif
 
 /*

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1993-1995 Vectaport Inc.
  * Copyright (c) 1989 Triple Vision, Inc.
  *
@@ -28,7 +29,7 @@ Externals:      int err_open(), char * err_read(),
 		void err_set(), void err_get(),
 		void err_print(), void err_str(),
 		void err_clear(), void err_level(), 
-		FILE *err_fileio()
+		FILE *err_fileio(), int err_cnt()
 
 History:        Written by Scott E. Johnston, March 1989
 
@@ -105,7 +106,7 @@ to be supplied to other error system calls.
 
 
 See Also:  err_read, err_set, err_get, err_print, err_str, err_clear, 
-	   err_level, err_fileio
+	   err_level, err_fileio, err_cnt
 !*/
 
 #undef TITLE
@@ -207,7 +208,7 @@ of error messages that can be displayed to the user via `err_print and err_str`.
 
 
 See Also:  err_readfile, err_open, err_set, err_get, err_print, err_str,
-	   err_clear, err_level, err_fileio
+	   err_clear, err_level, err_fileio, err_cnt
 
 !*/
 
@@ -267,7 +268,7 @@ just printed by `fprintf` to a file pointer returned from `err_fileio`.
 
 
 See Also:  err_open, err_read, err_get, err_print, err_str, err_clear, 
-	   err_level, err_fileio
+	   err_level, err_fileio, err_cnt
 
 !*/
 
@@ -333,7 +334,7 @@ error system.  `errid` is the identifier used when `err_get` was called.
 
 
 See Also:  err_open, err_read, err_set, err_print, err_str, err_clear, 
-           err_level, err_fileio
+           err_level, err_fileio, err_cnt
 
 !*/
 
@@ -393,7 +394,7 @@ name followed by a colon and at least one space).
 
 
 See Also:  err_open, err_read, err_set, err_get, err_clear, err_level,
-	   err_fileio
+	   err_fileio, err_cnt
 
 !*/
 
@@ -402,14 +403,14 @@ int index;
 char *ptr;
 char buffer[BUFSIZ];
 
+/* Abort if no errors have occurred */
+   if( TopError == -1 )
+       return;
+
 /* Rewind error I/O file */
    if( ErrorIOFile == NULL )
       return;
    rewind( ErrorIOFile );
-
-/* Abort if no errors have occurred */
-   if( TopError == -1 )
-       return;
 
 /* Print overflow messages */
    if( TooManyErrors ) {
@@ -501,7 +502,7 @@ name followed by a colon and at least one space).
 
 
 See Also:  err_open, err_read, err_set, err_get, err_print, err_clear, 
-           err_level, err_fileio
+           err_level, err_fileio, err_cnt
 
 !*/
 
@@ -510,14 +511,14 @@ int index;
 char *ptr;
 char buffer[bufsiz];
 
+/* Abort if no errors have occurred */
+   if( TopError == -1 )
+       return;
+
 /* Rewind error I/O file */
    if( ErrorIOFile == NULL )
       return;
    rewind( ErrorIOFile );
-
-/* Abort if no errors have occurred */
-   if( TopError == -1 )
-       return;
 
 /* Print overflow messages */
    if( TooManyErrors ) {
@@ -600,7 +601,7 @@ it to an initial state.
 
 
 See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
-	   err_level, err_fileio
+	   err_level, err_fileio, err_cnt
 
 !*/
 
@@ -612,7 +613,9 @@ See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
    TooManyErrors = FALSE;
    fclose( ErrorIOFile );
    ErrorIOFile = NULL;
+#if 0
    unlink( ERROR_IO_FILE );
+#endif
    return;
 
 }
@@ -661,7 +664,7 @@ supplied to `err_level` (defined in "ComUtil/comutil.h"):
 
 
 See Also:  err_open, err_read, err_set, err_get, err_print, err_str, 
-	   err_clear, err_fileio
+	   err_clear, err_fileio, err_cnt
 
 !*/
 
@@ -707,11 +710,12 @@ arguments would be application specific.
  
 
 See Also:  err_open, err_read, err_set, err_get, err_print, err_str, 
-	   err_clear, err_level
+	   err_clear, err_level, err_cnt
 
 !*/
 
 {
+#if 0
    char *errpath;
    if( ErrorIOFile == NULL ) {
       errpath = tmpnam(nil);
@@ -720,7 +724,53 @@ See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
 	 KANIL1( "Unable to open error I/O file %s", errpath );
       }
    return ErrorIOFile;
+#else
+   if( ErrorIOFile == NULL ) {
+      ErrorIOFile = tmpfile();
+      if( ErrorIOFile == NULL )
+	 KANIL( "Unable to open error I/O file" );
+      }
+   return ErrorIOFile;
+#endif
 
+}
+
+
+
+/*! 
+
+err_cnt   Return current count of error messages
+
+
+Summary:
+
+#include <nsfcfg.h>
+#include <ComUtil/comutil.h>
+*/
+
+int err_cnt()
+
+
+/*!
+Return Value:  count of current error messages
+
+
+Parameters:  none
+
+
+/*!
+Description:
+
+`err_cnt` returns the number of error messages on the error message stack.
+ 
+
+See Also:  err_open, err_read, err_set, err_get, err_print, err_str, 
+	   err_clear, err_level, err_fileio
+
+!*/
+
+{
+   return TopError+1;
 }
 
 

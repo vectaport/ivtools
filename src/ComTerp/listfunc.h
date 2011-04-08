@@ -36,7 +36,7 @@ class ComTerp;
 class ComValue;
 
 //: create list command for ComTerp.
-// lst=list([olst|strm]) -- create list, copy list, or convert stream
+// lst=list([olst|strm] :strmlst) -- create list, copy list, or convert stream
 class ListFunc : public ComFunc {
 public:
     ListFunc(ComTerp*);
@@ -44,7 +44,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "lst=%s([olst|strm]) -- create list, copy list, or convert stream"; }
+      return "lst=%s([olst|strm] :strmlst) -- create list, copy list, or convert stream"; }
 };
 
 //: list member command for ComTerp.

@@ -80,7 +80,7 @@ public:
     void SetAnnotation(const char*);
     // set the annotation string for this component.
     OverlayView* FindView(Viewer*);
-    // return the view for this compoent (for this subject) in a specific viewer.
+    // return the view for this component (for this subject) in a specific viewer.
 
     virtual void SetPathName(const char*);
     // set pathname associated with this component.

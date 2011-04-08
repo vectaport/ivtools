@@ -187,4 +187,7 @@ depvar(DEPDRAWSERV,IVTOOLSSRC,DrawServ,libDrawServ,$(VERSION))
 #undef ClipPolyLibBase
 #define ClipPolyLibBase libclippoly.SO
 
+/* substitute C compiler for makedepend */
+#define DependCmd CCDriver -M 
+
 XCOMM -------------------------------------------------------------------------

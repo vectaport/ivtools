@@ -569,6 +569,8 @@ Command* ArrowMultiLineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) aml->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        aml->FillBg(!colVar->GetBgColor()->None());
+
                 aml->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             aml->SetTransformer(rel);
@@ -1008,6 +1010,7 @@ Command* ArrowSplineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) aml->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        aml->FillBg(!colVar->GetBgColor()->None());
                 aml->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             aml->SetTransformer(rel);

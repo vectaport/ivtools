@@ -43,6 +43,8 @@ graphical object assigned to an interpreter variable.
     create a polygon
  compview=closedspline(x0,y0[,x1,y1,...]) -- 
     create a closed spline
+ compview=raster(x0,y0,x1,y1) -- 
+    create an empty raster
 
 .SH GRAPHIC STATS COMMANDS
 
@@ -83,7 +85,7 @@ graphical object assigned to an interpreter variable.
  compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
  attrlist(compview) -- return attribute list of component
  compview=frame([index]) -- return composite component for a frame, defaults to current
- val=at(list|attrlist|compview n) -- return the nth item in a list.
+ val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list.
  num=size(list|attrlist|compview) -- return size of a list.
 
 .SH VIEWER COMMANDS
@@ -101,6 +103,8 @@ graphical object assigned to an interpreter variable.
 
  dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
  sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
+ dx,dy=gtod(compview gx,gy) -- convert from graphic to drawing coordinates
+ gx,gy=dtog(compview dx,dy) -- convert from drawing to graphic coordinates
 
  handles(flag) --     
     enable/disable current selection tic marks 
@@ -123,7 +127,12 @@ graphical object assigned to an interpreter variable.
 
 .SH IMAGING COMMANDS
 
-tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
+ tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
+ poke(compview x y val) -- poke pixel value into raster
+ pcols(compview) -- number of columns in a raster
+ pcols(compview) -- number of rows in a raster
+ pflush(compview) -- flush pixels poked into a raster
+ pclip(compview x1,y1,x2,y2,x3,y3[,...,xn,yn]) -- clip raster with polygon
 
 .SH PLOTTING COMMANDS
 

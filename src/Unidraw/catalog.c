@@ -302,6 +302,7 @@ void Catalog::Init (World* w) {
     pssolid = FindGrayLevel(0.0);
     psclear = FindGrayLevel(1.0);
     psnonepat = FindNonePattern();
+    psnonecolor = FindNoneColor();
 
     stdgraphic = new FullGraphic;
     stdgraphic->FillBg(true);
@@ -1226,7 +1227,10 @@ PSColor* Catalog::ReadColor (istream& in) {
             
             color = FindColor(name, ir, ig, ib);
         }
+    } else if (buf[0] == 'n' || buf[0] == 'N') {
+	color = FindNoneColor();
     }
+
     return color;
 }
 
@@ -1258,6 +1262,23 @@ PSColor* Catalog::FindColor (const char* name, int ir, int ig, int ib) {
     return color;
 }
 
+PSColor* Catalog::FindNoneColor () {
+    PSColor* color = nil;
+
+    for (UList* u = _colors->First(); u != _colors->End(); u = u->Next()) {
+        color = getcolor(u);
+
+        if (color->None()) {
+            return color;
+        }
+    }
+    color = new PSColor;
+    Ref(color);
+    _colors->Append(new UList(color));
+
+    return color;
+}    
+
 PSColor* Catalog::ReadColor (const char* n, int index) {
     const char* def = GetAttribute(Name(n, index));
 
@@ -1270,7 +1291,10 @@ PSColor* Catalog::ReadColor (const char* n, int index) {
     char name[CHARBUFSIZE];
     int r = 0, g = 0, b = 0;
 
-    if (sscanf(definition, "%s %d %d %d", name, &r, &g, &b) == 4) {
+    if (strcmp(definition, "none")==0) {
+        color = FindNoneColor();
+
+    } else if (sscanf(definition, "%s %d %d %d", name, &r, &g, &b) == 4) {
 	color = FindColor(name, r, g, b);
 
     } else if (sscanf(definition, "%s", name) == 1) {

@@ -111,6 +111,16 @@ public:
 	return "compview=%s(x0,y0[,x1,y1,...]) -- create a closed spline"; }
 };
 
+//: raster creation command for comdraw.
+// compview=raster(x0,y0,x1,y1) -- create an empty raster
+class CreateRasterFunc : public UnidrawFunc {
+public:
+    CreateRasterFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(x0,y0,x1,y1) -- create an empty raster"; }
+};
+
 //: command for setting font state variable in comdraw.
 // font(fontnum) -- set current font from menu order
 class FontFunc : public UnidrawFunc {

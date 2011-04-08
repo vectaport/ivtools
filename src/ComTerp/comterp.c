@@ -1018,6 +1018,7 @@ void ComTerp::add_defaults() {
     add_command("trace", new ComterpTraceFunc(this));
     add_command("pause", new ComterpPauseFunc(this));
     add_command("step", new ComterpStepFunc(this));
+    add_command("stackheight", new ComterpStackHeightFunc(this));
     add_command("symid", new SymIdFunc(this));
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));

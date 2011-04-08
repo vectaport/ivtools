@@ -54,6 +54,13 @@ uninstall::								@@\
 	$(RM) dest/Concat(lib,libname.so)	
 #endif
 
+#ifndef ImakeFlags
+#define ImakeFlags \							@@\
+		      -T IMAKE_TEMPLATE -U$(MACHINE_ARCH) \		@@\
+		      ImakeIncludes\					@@\
+		      $(SPECIAL_IMAKEFLAGS)
+#endif
+
 /* file output by configure script */
 #include "config-netbsd-gcc.defs"
 

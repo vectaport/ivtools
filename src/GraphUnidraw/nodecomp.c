@@ -116,7 +116,7 @@ NodeComp::NodeComp(SF_Ellipse* ellipse, TextGraphic* txt, boolean rl, OverlayCom
     SetGraphic(pic);
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled());
+    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
     pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
     pic->SetPattern(ellipse->GetPattern());
     pic->SetBrush(ellipse->GetBrush());
@@ -138,7 +138,7 @@ NodeComp::NodeComp(SF_Ellipse* ellipse, TextGraphic* txt, SF_Ellipse* ellipse2,
 
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled());
+    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
     pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
     pic->SetPattern(ellipse->GetPattern());
     pic->SetBrush(ellipse->GetBrush());
@@ -175,7 +175,7 @@ NodeComp::NodeComp(GraphComp* graph)
 
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled());
+    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
     pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
     pic->SetPattern(ellipse->GetPattern());
     pic->SetBrush(ellipse->GetBrush());
@@ -941,6 +941,7 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 	    else if (patVar != nil)
 		ellipse->SetPattern(patVar->GetPattern());
 	    if (colVar != nil) {
+	        ellipse->FillBg(!colVar->GetBgColor()->None());
 		ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
 	    }
 
@@ -979,6 +980,7 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 		else if (patVar != nil)
 		    ellipse->SetPattern(patVar->GetPattern());
 		if (colVar != nil) {
+		    ellipse->FillBg(!colVar->GetBgColor()->None());
 		    ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
 		}
 

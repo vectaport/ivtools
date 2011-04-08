@@ -2,7 +2,7 @@
 			README for ivtools 1.0
 
 
-This directory contains a release of ivtools 1.0.  You should read
+This directory contains a release of ivtools 1.0.1.  You should read
 the rest of this file for information on what ivtools is and the
 INSTALL file for instructions on how to build it.
 
@@ -132,11 +132,10 @@ You can find links to available binaries on the ivtools web page
 If you have a question about this software, desire to add code, found
 a bug, want to request a feature, or wonder how to get further
 assistance, please send e-mail to the general purpose ivtools mailing
-list, ivtools-user@lists.sourceforge.net, or (for last resort) this
-e-mail address: ivtools-info@vectaport.com.  To subcribe to the
-mailing list, visit
-http://lists.sourceforge.net/mailman/listinfo/ivtools-user.  Other ivtools
-related mailing lists can be found at:
+list, ivtools-user@lists.sourceforge.net.  To subcribe to the mailing
+list, visit
+http://lists.sourceforge.net/mailman/listinfo/ivtools-user.  Other
+ivtools related mailing lists can be found at:
 
 	http://www.ivtools.org/ivtools/mailinglists.html
 

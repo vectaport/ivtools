@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-1.0.0
+#define	Release ivtools-1.0.1
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 1.0.0
+#define	Version 1.0.1
 #endif
 
    VERSION = Version

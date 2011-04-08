@@ -190,6 +190,7 @@ Command* SplineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) spline->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        spline->FillBg(!colVar->GetBgColor()->None());
                 spline->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             spline->SetTransformer(rel);
@@ -415,6 +416,7 @@ Command* ClosedSplineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) cbs->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        cbs->FillBg(!colVar->GetBgColor()->None());
                 cbs->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             cbs->SetTransformer(rel);

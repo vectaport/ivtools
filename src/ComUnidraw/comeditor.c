@@ -32,6 +32,7 @@
 #include <ComUnidraw/comterp-iohandler.h>
 #include <ComUnidraw/dialogfunc.h>
 #include <ComUnidraw/nfunc.h>
+#include <ComUnidraw/pixelfunc.h>
 #include <ComUnidraw/plotfunc.h>
 
 #include <ComTerp/ctrlfunc.h>
@@ -108,10 +109,12 @@ void ComEditor::InitCommands() {
     if (!_terp) 
       _terp = new ComTerpServ();
       const char* comdraw_off_str = unidraw->GetCatalog()->GetAttribute("comdraw_off");
+#ifndef HAVE_ACE
     if ((!comterplist() || comterplist()->Number()==1) &&
 	(comdraw_off_str ? strcmp(comdraw_off_str, "false")==0 : true))
       _terp_iohandler = new ComTerpIOHandler(_terp, stdin);
     else
+#endif
       _terp_iohandler = nil;
 #if 0
     _terp->add_defaults();
@@ -134,6 +137,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("arrowspline", new CreateOpenSplineFunc(comterp, this));
     comterp->add_command("polygon", new CreatePolygonFunc(comterp, this));
     comterp->add_command("closedspline", new CreateClosedSplineFunc(comterp, this));
+    comterp->add_command("raster", new CreateRasterFunc(comterp, this));
+    comterp->add_command("pixmap", new CreateRasterFunc(comterp, this));
 
     comterp->add_command("center", new CenterFunc(comterp, this));
     comterp->add_command("mbr", new MbrFunc(comterp, this));
@@ -207,6 +212,14 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("dtos", new DrawingToScreenFunc(comterp, this));
     comterp->add_command("stod", new ScreenToDrawingFunc(comterp, this));
+    comterp->add_command("dtog", new DrawingToGraphicFunc(comterp, this));
+    comterp->add_command("gtod", new GraphicToDrawingFunc(comterp, this));
+
+    comterp->add_command("poke", new PixelPokeFunc(comterp, this));
+    comterp->add_command("pcols", new PixelColsFunc(comterp, this));
+    comterp->add_command("prows", new PixelRowsFunc(comterp, this));
+    comterp->add_command("pflush", new PixelFlushFunc(comterp, this));
+    comterp->add_command("pclip", new PixelClipFunc(comterp, this));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {

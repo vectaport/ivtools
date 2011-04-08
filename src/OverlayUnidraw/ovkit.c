@@ -848,14 +848,14 @@ Glyph* OverlayKit::MenuArrowLine(boolean tail, boolean head) {
 }
 
 
-Glyph* OverlayKit::MenuRect (Color * color) {
-    Brush * brush = new Brush(0.0);
+Glyph* OverlayKit::MenuRect (PSColor * color) {
+    Brush * brush = color->None() ? new Brush(0xaaaa, 0.0) : new Brush(0.0);
     Coord w = (MENU_WIDTH*ivcm);
     Coord h = (MENU_HEIGHT*ivcm);
     
     Resource::ref(brush);
     return new Fig31Rectangle(brush, WidgetKit::instance()->foreground(),
-			      color, 0, 0, w, h);
+			      color->None() ? nil : color, 0, 0, w, h);
 }
 
 
@@ -1219,16 +1219,20 @@ MenuItem* OverlayKit::MakeBgColorMenu() {
 	ControlInfo* ctrlInfo;
 	IntCoord w = Math::round(MENU_WIDTH*ivcm);
 	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
-	
-	SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
-	sfr->SetColors(color, color);
-	MakeMenu(mbi, new ColorCmd(new ControlInfo(new RectOvComp(sfr), color->GetName()),
-			   nil, color),
+
+	if (color->None()) {
+	  ctrlInfo = new ControlInfo("None");
+	} else {
+	  SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
+	  sfr->SetColors(color, color);
+	  ctrlInfo = new ControlInfo(new RectOvComp(sfr), color->GetName());
+	}
+	MakeMenu(mbi, new ColorCmd( ctrlInfo, nil, color),
 		 lk.hbox(MenuRect(color),
 			 kit.label("  "),
 			 kit.label(color->GetName()),
 			 lk.hglue())
-	     );
+		 );
 	color = catalog->ReadColor(bgAttrib, ++i);
     }
     

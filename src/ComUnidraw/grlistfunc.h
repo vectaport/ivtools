@@ -31,14 +31,14 @@
 #include <ComTerp/listfunc.h>
 
 //: list member command for ComUnidraw
-// val=at(list|attrlist|compview n) -- return the nth item in a list.
+// val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list.
 class GrListAtFunc : public ComFunc {
 public:
     GrListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=at(list|attrlist|compview n) -- return the nth item in a list"; }
+      return "val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list"; }
 };
 
 //: list size command for Unidraw

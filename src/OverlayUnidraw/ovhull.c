@@ -192,6 +192,7 @@ Command* ConvexHullTool::InterpretManipulator(Manipulator* m) {
     if (brVar != nil) cpoly->SetBrush(brVar->GetBrush());
     if (patVar != nil) cpoly->SetPattern(patVar->GetPattern());
     if (colVar != nil) {
+      cpoly->FillBg(!colVar->GetBgColor()->None());
       cpoly->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
     }
 

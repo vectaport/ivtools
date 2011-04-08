@@ -241,6 +241,7 @@ Command* LineView::InterpretManipulator (Manipulator* m) {
             if (brVar != nil) line->SetBrush(brVar->GetBrush());
 
             if (colVar != nil) {
+	        line->FillBg(!colVar->GetBgColor()->None());
                 line->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             line->SetTransformer(rel);
@@ -489,6 +490,7 @@ Command* MultiLineView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) polygon->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        polygon->FillBg(!colVar->GetBgColor()->None());
                 polygon->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             polygon->SetTransformer(rel);

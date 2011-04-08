@@ -58,6 +58,7 @@ ComUnidraw/groupfunc.h
 ComUnidraw/grstatfunc.h
 ComUnidraw/highlightfunc.h
 ComUnidraw/nfunc.h
+ComUnidraw/pixelfunc.h
 ComUnidraw/plotfunc.h
 ComUnidraw/unifunc.h
 ComUtil/comterp.h

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -178,6 +179,18 @@ void ComterpStepFunc::execute() {
     ComValue retval(comterp()->stepflag());
     push_stack(retval);
   }
+}
+
+
+/*****************************************************************************/
+
+ComterpStackHeightFunc::ComterpStackHeightFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ComterpStackHeightFunc::execute() {
+  reset_stack();
+  ComValue retval(comterp()->stack_height());
+  push_stack(retval);
 }
 
 

@@ -74,17 +74,21 @@ inline int PSBrush::GetDashOffset () { return _dashoffset; }
 // <a href=../man3.1/pspaint.html>man page</a>
 class PSColor : public Color {
 public:
+    PSColor();
     PSColor(ColorIntensity, ColorIntensity, ColorIntensity, const char*);
     virtual ~PSColor();
 
+    boolean None();
     const char* GetName();
     void GetIntensities(ColorIntensity&, ColorIntensity&, ColorIntensity&);
 protected:
+    boolean _none;
     char* _name;			// stores name passed into constructor
     ColorIntensity _r, _g, _b;		// stores intensities passed to ctor
 };
 
-inline const char* PSColor::GetName () { return _name; }
+inline boolean PSColor::None () { return _none; }
+inline const char* PSColor::GetName () { return _none ? "None" : _name; }
 
 //: "PostScript" font object
 // <a href=../man3.1/pspaint.html>man page</a>

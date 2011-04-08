@@ -35,7 +35,6 @@
 #include <Unidraw/enter-scope.h>
 #include <InterViews/_enter.h>
 
-class Color;
 class Command;
 class Deck;
 class Editor;
@@ -49,6 +48,7 @@ class OverlayEditor;
 class Patch;
 class UPage;
 class PSBrush;
+class PSColor;
 class PSPattern;
 class Viewer;
 class TelltaleGroup;
@@ -202,7 +202,7 @@ protected:
     // create line to put in a pulldown menu.
     Glyph* MenuArrowLine(boolean tail, boolean head);
     // create arrow line to put in a pulldown menu.
-    Glyph* MenuRect(Color*);
+    Glyph* MenuRect(PSColor*);
     // create color rectangle to put in a pulldown menu.
     Glyph* MenuPatRect(PSPattern*);
     // create patterned rectangle to put in a pulldown menu.

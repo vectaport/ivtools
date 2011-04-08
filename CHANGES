@@ -1,3 +1,82 @@
+January 9th, 2001  ivtools-1.0.1
+
+- add comdraw funcs to poke (grey-level) pixel values into a raster,
+and return the horizontal and vertical extent of the raster:
+
+	 poke(compview x y val) -- poke pixel value into raster
+	 pcols(compview) -- number of columns in a raster
+	 pcols(compview) -- number of rows in a raster
+
+- sometimes you can accidentally create a polygon with zero points (or
+a multi-line or spline).  Changes to safeguard against crashing
+whenever this happens.
+
+- fix bug in comterp stream traversal via NextFunc::execute_impl.  It
+was leaving an extra null-value on the stack, which confused the
+interpreter.
+
+- add an undocumented debug comterp func, stackheight
+
+- tweak of imake system to facilitate NetBSD packaging
+
+- add "None" color to background color menu, exposing the hidden
+fillbg flag (transparent background mechanism) for the first time in
+the history of this software.
+
+- fix drawing editor import's use of gunzip to decompress graphic
+files.
+
+- update config.guess and config.sub, support scripts for the
+configure script from the autoconf package.  May fix some known
+problems with HPUX, ALPHA, and ARM.
+
+- add a comdraw command to create white rasters initialized with a 2
+pixel wide black border:
+
+	compview=raster(x0,y0,x1,y1) -- create an empty raster
+
+- make equality and inequality operators work for list objects.  Note
+that the "," list concatenation operator always appends the second
+operand to the first operand if it is already a list, as illustrated
+by this example ("> " inserted for clarity):
+
+> l1=1,2,3
+{1,2,3}
+> l2=l1,4
+{1,2,3,4}
+> l1==l2
+1
+
+Alternately the "list" command can be used to create a distinct list:
+
+> l1=1,2,3
+{1,2,3}
+> l2=list(l1),4
+{1,2,3,4}
+> l1==l2
+0
+
+- fix up some more handling of nil by arithmetic operators.  The rule
+is nil in, nil out.
+
+- minor fixup in comterp error message system
+
+- pclip command for clipping of rasters via a polygonal point list:
+
+ pclip(compview x1,y1,x2,y2,x3,y3[,...,xn,yn]) -- clip raster with polygon
+
+- dtog and gtod commands for translating to/from graphic coordinates
+to drawing coordinates:
+
+ gx,gy=dtog(compview dx,dy) -- convert from drawing to graphic coordinates
+ dx,dy=gtod(compview gx,gy) -- convert from graphic to drawing coordinates
+
+- migration of conditional #define's from Time.c to Time.h by Todd Gruhn.
+
+- work on stdin handling for comdraw, flipbook, graphdraw, and drawserv
+
+
+
 November 2nd, 2001  ivtools-1.0
 
 See CHANGES-0.9 for recent major changes.

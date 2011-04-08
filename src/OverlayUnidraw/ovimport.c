@@ -611,9 +611,8 @@ int ReadImageHandler::inputReady(int fd) {
     boolean empty;
 
     int newfd;
-    GraphicComp* comp = OvImportCmd::DoImport(
-      *ifs, empty, _helper, _ed, true, _path, newfd
-    );
+    GraphicComp* comp = OvImportCmd::DoImport
+      (*ifs, empty, _helper, _ed, true,  _path , newfd, false);
 
 #if defined(OPEN_DRAWTOOL_URL)
     if (comp && comp->IsA(OVERLAY_IDRAW_COMP)) {
@@ -1338,6 +1337,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
     FILE* fptr = nil;
     boolean incremental_flag = false;
     static boolean use_anytopnm = OverlayKit::bincheck("anytopnm");
+    popen_ = false; 
     if (chooser_ && chooser_->auto_convert() && use_anytopnm) {
       char buffer[BUFSIZ];
       sprintf( buffer, "anytopnm %s", path );
@@ -1346,6 +1346,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       incremental_flag = false;  // will work for binary PPM if true
       cerr << "importing from command: " << path << "\n";
       fptr = popen(path, "r");
+      popen_ = true;
     } else if (ParamList::urltest(path)) {
       incremental_flag = true;
       char buffer[BUFSIZ];
@@ -1383,7 +1384,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       }
     } else
       fptr = fopen(path, "r");
-    pathname(path);
+    pathname(path, popen_);
     
 
     if (fptr) {
@@ -1417,7 +1418,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
 	}
       }
     }
-    pathname(nil);
+    pathname(nil, popen_);
 
     return comp;
 #endif
@@ -1434,9 +1435,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
   // ### this will fail for a continuously read stream
 
   int fd;
-  GraphicComp* comp = DoImport(
-    instrm, empty, *helper_, GetEditor(), false, pathname(), fd
-  );
+  GraphicComp* comp = DoImport
+    (instrm, empty, *helper_, GetEditor(), false, pathname(), fd, is_popen());
 
   return comp;
 }
@@ -1447,7 +1447,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 
 /* static */ GraphicComp* OvImportCmd::DoImport(
     istream& instrm, boolean& empty, FileHelper& helper, Editor* ed, 
-    boolean return_fd, const char* pathname, int& pnmfd
+    boolean return_fd, const char* pathname, int& pnmfd, boolean cmdflag
 ) {
     GraphicComp* comp = nil;
     pnmfd = -1;
@@ -1525,10 +1525,10 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (OverlayKit::bincheck("pstoedit")) {
 	  FILE* pptr = nil;
 	  int new_fd;
-	  if (pathname && !return_fd) {
+	  if (pathname && !return_fd && !cmdflag) {
 	    char buffer[BUFSIZ];
 	    if (compressed) 
-	      sprintf(buffer, "tf=`ivtmpnam`;gzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      sprintf(buffer, "tf=`ivtmpnam`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    else
 	      sprintf(buffer, "tf=`ivtmpnam`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    pptr = popen(buffer, "r");
@@ -1569,7 +1569,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
-	    sprintf(buffer, "gzip -c %s | giftopnm", pathname);
+	    sprintf(buffer, "gunzip -c %s | giftopnm", pathname);
 	  else
 	    sprintf(buffer, "giftopnm %s", pathname);
 	  FILE* pptr = popen(buffer, "r");
@@ -1624,12 +1624,12 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  char buffer[BUFSIZ];
 	  if (dithermap_flag) {
 	    if (compressed) 
-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
+	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
 	    else
 	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
 	  } else {
 	    if (compressed) 
-	      sprintf(buffer, "gzip -c %s | djpeg  -pnm", pathname);
+	      sprintf(buffer, "gunzip -c %s | djpeg  -pnm", pathname);
 	    else
 	      sprintf(buffer, "djpeg -pnm %s", pathname);
 	  }
@@ -1661,7 +1661,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
-	    sprintf(buffer, "gzip -c %s | pngtopnm", pathname);
+	    sprintf(buffer, "gunzip -c %s | pngtopnm", pathname);
 	  else
 	    sprintf(buffer, "pngtopnm %s", pathname);
 	  FILE* pptr = popen(buffer, "r");

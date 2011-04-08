@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -38,6 +39,9 @@ GrListAtFunc::GrListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 void GrListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1));
+  static int set_symid = symbol_add("set");
+  ComValue setv(stack_key(set_symid, false, ComValue::blankval(), true /* return blank if no :set */));
+  boolean setflag = !setv.is_blank();
 
   if (listv.object_compview()) {
     reset_stack();

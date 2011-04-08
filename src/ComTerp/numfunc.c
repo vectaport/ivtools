@@ -37,11 +37,13 @@ NumFunc::NumFunc(ComTerp* comterp) : ComFunc(comterp) {
 void NumFunc::promote(ComValue& op1, ComValue& op2) {
     if (op1.type() == op2.type()) return;
 
+#if 0
     if (op1.is_unknown() || op2.is_unknown()) {
       op1.type(ComValue::UnknownType);
       op2.type(ComValue::UnknownType);
       return;
     }
+#endif
 
     boolean op1bigger = op1.type() > op2.type();
     ComValue* greater = op1bigger ? &op1 : &op2;
@@ -179,6 +181,12 @@ void AddFunc::execute() {
     promote(operand1, operand2);
     ComValue result(operand1);
 
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	result.char_ref() = operand1.char_val() + operand2.char_val();
@@ -234,6 +242,12 @@ void SubFunc::execute() {
     promote(operand1, operand2);
     ComValue result(operand1);
 
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	result.char_ref() = operand1.char_val() - operand2.char_val();
@@ -276,6 +290,13 @@ MinusFunc::MinusFunc(ComTerp* comterp) : NumFunc(comterp) {
 void MinusFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue result(operand1);
+
+    if (operand1.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	result.char_ref() = - operand1.char_val();
@@ -320,6 +341,12 @@ void MpyFunc::execute() {
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
+
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
     
     switch (result.type()) {
     case ComValue::CharType:
@@ -365,6 +392,13 @@ void DivFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
+
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     ComValue result(operand1);
 
     switch (result.type()) {
@@ -442,6 +476,12 @@ void ModFunc::execute() {
     promote(operand1, operand2);
     ComValue result(operand1);
 
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	if (operand2.char_val()!=0)
@@ -517,6 +557,12 @@ void MinFunc::execute() {
     promote(operand1, operand2);
     ComValue result(operand1);
 
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	result.char_ref() =  operand1.char_val() < operand2.char_val() 
@@ -575,6 +621,12 @@ void MaxFunc::execute() {
     promote(operand1, operand2);
     ComValue result(operand1);
 
+    if (operand1.is_unknown() || operand2.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	result.char_ref() =  operand1.char_val() > operand2.char_val() 
@@ -632,6 +684,12 @@ void AbsFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue result(operand1);
 
+    if (operand1.is_unknown()) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    
     switch (result.type()) {
     case ComValue::CharType:
 	result.char_ref() =  operand1.char_val() < 0 

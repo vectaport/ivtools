@@ -308,6 +308,20 @@ int main (int argc, char** argv) {
 	ComEditor* ed = new ComEditor(initial_file);
 
 	unidraw->Open(ed);
+
+#ifdef HAVE_ACE
+	/*  Start up one on stdin */
+	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+#if 0
+	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+#else
+	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+							  ACE_Event_Handler::READ_MASK)==-1)
+#endif
+	  cerr << "comdraw: unable to open stdin with ACE\n";
+	ed->SetComTerp(stdin_handler->comterp());
+#endif
+
 	fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	unidraw->Run();
     }

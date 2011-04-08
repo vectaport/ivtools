@@ -80,6 +80,7 @@ void err_str(char *errbuf,int bufsiz,char *command);
 void err_clear();
 void err_level(unsigned level);
 FILE *err_fileio();
+int err_cnt();
 /* COMERR.C */
 char *comerr_read(unsigned errnum);
 void comerr_set(unsigned errnum,unsigned errlen);
