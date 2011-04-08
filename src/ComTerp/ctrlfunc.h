@@ -52,17 +52,6 @@ public:
 
 };
 
-//: ; (sequence) operator.
-class SeqFunc : public ComFunc {
-public:
-    SeqFunc(ComTerp*);
-
-    virtual void execute();
-    virtual const char* docstring() { 
-      return "; is the sequencing operator"; }
-
-};
-
 //: timer expression command for ComTerp.
 // timeexpr(comstr :sec n) -- command string to execute at intervals.
 class TimeExprFunc : public ComFunc {

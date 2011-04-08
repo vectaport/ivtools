@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
@@ -37,6 +38,7 @@ extern "C" {
 }
 
 class AttributeValueList;
+
 #include <iosfwd>
 
 //: struct for symbol value, symid + global flag for symbol value
@@ -59,6 +61,13 @@ typedef struct {
   AttributeValueList *ptr;
   unsigned int type;
 } arrayval_struct;
+
+//: void* pointer to ComFunc object plus optional type id
+// used in attr_value.
+typedef struct {
+       void *funcptr;
+       AttributeValueList *listptr;
+} streamval_struct;
 
 //: keyword symbol id, plus number of arguments that follow.
 // used in attr_value.
@@ -83,6 +92,7 @@ typedef union attr_value_union
       symval_struct     symval;
       objval_struct     objval;
       arrayval_struct   arrayval;
+      streamval_struct  streamval;
       keyval_struct     keyval;
 } attr_value;
 
@@ -94,7 +104,9 @@ public:
     enum ValueType { UnknownType, CharType, UCharType, ShortType, UShortType, 
 		     IntType, UIntType, LongType, ULongType, FloatType, DoubleType, 
                      StringType, SymbolType, ArrayType, StreamType, CommandType, KeywordType, 
-                     ObjectType, EofType, BooleanType, OperatorType, BlankType };
+                     ObjectType, EofType, BooleanType, OperatorType, BlankType,
+		     ListType = ArrayType
+};
     // enum for attribute value types.
 
     AttributeValue(ValueType type);
@@ -131,12 +143,14 @@ public:
     AttributeValue(int class_symid, void* objptr);
     // ObjectType constructor.
     AttributeValue(AttributeValueList* listptr);
-    // ArrayType constructor.
+    // ArrayType/ListType constructor.
+    AttributeValue(void* comfunc, AttributeValueList* vallist);
+    // StreamType constructor.
     AttributeValue(const char* val);
     // StringType constructor.
 
     virtual ~AttributeValue();
-    // set to UnknownType and unref pointer if ArrayType.
+    // set to UnknownType and unref pointer if ArrayType/ListType or StreamType.
 
     void clear(); 
     // clear bytes of multi-value union
@@ -148,8 +162,6 @@ public:
     // return type enum.
     void type(ValueType);
     // set type enum.
-    ValueType aggregate_type() const;
-    // set type used for aggregate values (ArrayType, StreamType).
     int type_size() { return type_size(type()); }
     // return sizeof of value of this type.
     static int type_size(ValueType);
@@ -177,6 +189,8 @@ public:
     unsigned int& obj_type_ref();     // classid of object by reference.
     AttributeValueList*& array_ref(); // values in list by reference.
     unsigned int& array_type_ref();   // type of values in list by reference
+    AttributeValueList*& list_ref();  // values in list by reference.
+    unsigned int& list_type_ref();    // type of values in list by reference
     unsigned int& keyid_ref();        // symbol id of keyword by reference.
     unsigned int& keynarg_ref();      // number of arguments after keyword by reference.
 
@@ -198,6 +212,8 @@ public:
     unsigned int& class_symid();       // classid of object by value.                
     AttributeValueList* array_val();  // values in list by value.                   
     unsigned int array_type_val();    // type of values in list by value            
+    AttributeValueList* list_val();   // values in list by value.                   
+    unsigned int list_type_val();     // type of values in list by value            
     unsigned int keyid_val();	      // symbol id of keyword by value.             
     unsigned int keynarg_val();	      // number of arguments after keyword by value.
 
@@ -209,11 +225,13 @@ public:
     void global_flag(boolean flag);
     // set global flag of a symbol
     int array_len();
-    // length of list of values when ArrayType.
+    // length of list of values when ArrayType/ListType.
+    int list_len();
+    // length of list of values when ArrayType/ListType.
 
-    unsigned int command_symid();
+    int command_symid();
     // symbol id of associated command name, for use with ComTerp.
-    void command_symid(unsigned int, boolean alias=false);
+    void command_symid(int, boolean alias=false);
     // set symbol id of associated command name, for use with ComTerp.
     boolean command_alias();
     // returns true if command is an alias, not the first name.
@@ -222,6 +240,19 @@ public:
     // true if object is wrapped with a ComponentView
     void object_compview(boolean flag) { _object_compview = flag; }
     // true if object is wrapped with a ComponentView
+
+    int stream_mode();
+    // 0 = disabled, negative = internal, positive = external
+    void stream_mode(int mode) { if (is_stream()) _stream_mode = mode; }
+    // 0 = disabled, negative = internal, positive = external
+    void* stream_func() { return is_stream() ? _v.streamval.funcptr : nil; }
+    // return function pointer associated with stream object
+    void stream_func(void* func) { if (is_stream()) _v.streamval.funcptr = func; }
+    // set function pointer associated with stream object
+    AttributeValueList* stream_list() { return is_stream() ? _v.streamval.listptr : nil; }
+    // return pointer to AttributeValueList associated with stream object
+    void stream_list(AttributeValueList* list); 
+    // set pointer to AttributeValueList associated with stream object
 
     void negate();
     // negate numeric values.
@@ -256,7 +287,13 @@ public:
     // same as AttributeValue::is_num().
 
     boolean is_array() { return is_type(ArrayType); }
-    // returns true if ArrayType.
+    // returns true if ArrayType/ListType.
+    boolean is_list() { return is_type(ArrayType); }
+    // returns true if ArrayType/ListType.
+    boolean is_stream() { return is_type(StreamType); }
+    // returns true if StreamType.
+    boolean is_key() { return is_type(KeywordType); }
+    // returns true if KeywordType.
     boolean is_unknown() { return is_type(UnknownType); }
     // returns true if UnknownType.
     boolean is_null() { return is_unknown(); }
@@ -317,12 +354,18 @@ public:
     // returns void* pointer to value struct.
 
 protected:
+
+    void ref_as_needed();
+    // increment ref counters as needed
+    void unref_as_needed();
+    // decrement ref counters as needed
+
     ValueType _type;
     attr_value _v;
     union { 
-      ValueType _aggregate_type; // used for ArrayType.
-      unsigned int _command_symid; // used for CommandType.
+      int _command_symid; // used for CommandType.
       boolean _object_compview; // used for ObjectType.
+      int _stream_mode; // used for StreamType
     };
     static int* _type_syms;
 

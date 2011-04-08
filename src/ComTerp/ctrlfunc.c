@@ -59,18 +59,6 @@ void ExitFunc::execute() {
 
 /*****************************************************************************/
 
-SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SeqFunc::execute() {
-    ComValue arg1(stack_arg(0));
-    ComValue arg2(stack_arg(1));
-    reset_stack();
-    push_stack(arg2);
-}
-
-/*****************************************************************************/
-
 TimeExprFunc::TimeExprFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

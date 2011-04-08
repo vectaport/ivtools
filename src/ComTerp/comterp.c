@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
@@ -63,6 +64,7 @@
 #endif
 
 #define TITLE "ComTerp"
+#define STREAM_MECH
 
 implementTable(ComValueTable,int,void*)
 
@@ -226,6 +228,32 @@ void ComTerp::eval_expr_internals(int pedepth) {
   
   if (sv.type() == ComValue::CommandType) {
 
+#ifdef STREAM_MECH
+    /* if func has StreamType ComValue's for arguments */
+    /* create another StreamType ComValue to hold all its */
+    /* arguments, along with a pointer to the func. */
+    boolean has_streams = false;
+    if (!((ComFunc*)sv.obj_val())->post_eval())
+      for(int i=0; i<sv.narg()+sv.nkey(); i++) {
+	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
+	  has_streams = stack_top(-i).is_stream();
+	else {
+	  AttributeValue* testval = 
+	    lookup_symval(&stack_top(-i));
+	  has_streams = testval ? testval->is_stream() : false;
+	}
+	if (has_streams) break;
+      }
+    if (has_streams) {
+      AttributeValueList* avl = new AttributeValueList();
+      for(int i=0; i<sv.narg()+sv.nkey(); i++)
+	avl->Prepend(new AttributeValue(pop_stack(true)));
+      ComValue val(sv.obj_val(), avl);
+      val.stream_mode(1); // for external use
+      push_stack(val);
+      return;
+    }
+#endif
 
     ComFunc* func = nil;
     if (_func_for_next_expr) {
@@ -730,6 +758,34 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
     return comval;
 }
 
+AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
+    if (comval->bquote()) return nil;
+
+    if (comval->type() == ComValue::SymbolType) {
+        void* vptr = nil;
+
+	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val()) ) {
+	  return (AttributeValue*)vptr;
+	} else  if (_alist) {
+	  int id = comval->symbol_val();
+	  AttributeValue* aval = _alist->find(id);  
+	  if (aval) {
+	    return aval;
+	  }
+	  return nil;
+	} else if (globaltable()->find(vptr, comval->symbol_val())) {
+	  return (AttributeValue*)vptr;
+	} else
+	  return nil;
+
+    } else if (comval->is_object(Attribute::class_symid())) {
+
+      return ((Attribute*)comval->obj_val())->Value();
+
+    }       
+    return nil;
+}
+
 ComValue& ComTerp::lookup_symval(int symid) {
   void* vptr = nil;
   if (localtable()->find(vptr, symid)) {
@@ -910,8 +966,10 @@ void ComTerp::add_defaults() {
     add_command("lt_or_eq", new LessThanOrEqualFunc(this));
 
     add_command("stream", new StreamFunc(this));
+    add_command("concat", new ConcatFunc(this));
     add_command("repeat", new RepeatFunc(this));
     add_command("iterate", new IterateFunc(this));
+    add_command("next", new NextFunc(this));
 
     add_command("dot", new DotFunc(this));
     add_command("attrname", new DotNameFunc(this));
@@ -920,6 +978,7 @@ void ComTerp::add_defaults() {
     add_command("list", new ListFunc(this));
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
+    add_command("tuple", new TupleFunc(this));
 
     add_command("sum", new SumFunc(this));
     add_command("mean", new MeanFunc(this));

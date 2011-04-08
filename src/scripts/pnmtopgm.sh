@@ -26,7 +26,7 @@ tmpfiles=""
     case "$filetype" in
 
 	*PBM* )
-	pbmtopgm "$file"
+	pnmdepth 255 "$file"
 	exit 0
 	;;
 

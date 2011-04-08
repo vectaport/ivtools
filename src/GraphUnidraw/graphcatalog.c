@@ -88,7 +88,7 @@ boolean GraphCatalog::Retrieve (const char* pathname, Component*& comp) {
 #endif
 	    name = nil;
 	} else {
-	    fptr = fopen(name, "r+");
+	    fptr = fopen(name, "r");
 	    fptr = OvImportCmd::CheckCompression(fptr, name, compressed);
 #if __GNUG__<3
 	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;

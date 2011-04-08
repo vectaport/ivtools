@@ -44,7 +44,11 @@ XCOMM from <local.def>:
  * Assume the use of gcc-2.3.3 or greater
  */ 
 #undef LanguageCCDefines
+#if LibStdCPlusPlusV3
 #define LanguageCCDefines -Dcplusplus_2_1 -Wno-deprecated
+#else
+#define LanguageCCDefines -Dcplusplus_2_1
+#endif
 #include <gcc.def>
 
 /* 

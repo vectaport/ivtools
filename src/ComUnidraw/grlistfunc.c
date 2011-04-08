@@ -64,9 +64,7 @@ void GrListAtFunc::execute() {
     }
   } else {
     ListAtFunc atfunc(comterp());
-    push_funcstate(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
-    atfunc.execute();
-    pop_funcstate();
+    atfunc.exec(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
     return;
   }
   push_stack(ComValue::nullval());
@@ -99,9 +97,7 @@ void GrListSizeFunc::execute() {
     }
   } else {
     ListSizeFunc atfunc(comterp());
-    push_funcstate(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
-    atfunc.execute();
-    pop_funcstate();
+    atfunc.exec(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
     return;
   }
   push_stack(ComValue::nullval());

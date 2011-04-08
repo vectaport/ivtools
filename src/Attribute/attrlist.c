@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -285,6 +286,15 @@ AttributeList* AttributeList::merge(AttributeList* al) {
   return this;
 }
 
+void AttributeList::clear() {
+  ALIterator it;
+  for( First(it); !Done(it); ) {
+    Attribute* attr = GetAttr(it);
+    Remove(it);
+    delete attr;
+  }
+}
+
 /*****************************************************************************/
 
 AttributeValueList::AttributeValueList (AttributeValueList* s) {
@@ -294,7 +304,7 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
         ALIterator i;
 
         for (s->First(i); !s->Done(i); s->Next(i)) {
-	    Append(s->GetAttrVal(i));
+	    Append(new AttributeValue(*s->GetAttrVal(i)));
 	}
     }
 }
@@ -426,4 +436,13 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
     return out;
 }
 
+
+void AttributeValueList::clear() {
+  ALIterator it;
+  for( First(it); !Done(it); ) {
+    AttributeValue* av = GetAttrVal(it);
+    Remove(it);
+    delete av;
+  }
+}
 

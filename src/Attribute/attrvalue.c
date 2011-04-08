@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
@@ -51,14 +52,13 @@ AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
 
 AttributeValue::AttributeValue(AttributeValue& sv) {
     *this = sv;
-    if (_type == AttributeValue::ArrayType)
-      Resource::ref(_v.arrayval.ptr);
+    ref_as_needed();
 }
 
 AttributeValue::AttributeValue() {
     clear();
     type(UnknownType);
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
 }
 
 AttributeValue::AttributeValue(unsigned char v) { 
@@ -142,6 +142,13 @@ AttributeValue::AttributeValue(AttributeValueList* ptr) {
     Resource::ref(ptr);
 }
 
+AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
+    _type = AttributeValue::StreamType;
+    _v.streamval.funcptr = comfuncptr;
+    _v.streamval.listptr = vallist;
+    Resource::ref(vallist);
+}
+
 AttributeValue::AttributeValue(const char* string) { 
     _type = AttributeValue::StringType;
     _v.dfintval = symbol_add((char*)string);
@@ -153,8 +160,7 @@ AttributeValue::~AttributeValue() {
         symbol_del(string_val());
     else 
 #endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Unref(_v.arrayval.ptr);
+    unref_as_needed();
     type(UnknownType);
 }
 
@@ -168,7 +174,7 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     const void* v2 = &sv._v;
     memcpy(v1, v2, sizeof(double));
     _type = sv._type;
-    _aggregate_type = sv._aggregate_type;
+    _command_symid = sv._command_symid;
 #if 0  // disable symbol reference counting
     if (_type == StringType || _type == SymbolType) {
         char* sptr = (char *)string_ptr();
@@ -176,15 +182,13 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     }
     else 
 #endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Resource::ref(_v.arrayval.ptr);
+    ref_as_needed();
     return *this;
 }
     
 
 AttributeValue::ValueType AttributeValue::type() const { return _type; }
 void AttributeValue::type(AttributeValue::ValueType type) { _type = type; }
-AttributeValue::ValueType AttributeValue::aggregate_type() const { return _aggregate_type; }
 
 unsigned char& AttributeValue::uchar_ref() { return _v.ucharval; }
 char& AttributeValue::char_ref() { return _v.charval; }
@@ -203,6 +207,8 @@ void*& AttributeValue::obj_ref() { return _v.objval.ptr; }
 unsigned int& AttributeValue::obj_type_ref() { return _v.objval.type; }
 AttributeValueList*& AttributeValue::array_ref() { return _v.arrayval.ptr; }
 unsigned int& AttributeValue::array_type_ref() { return _v.arrayval.type; }
+AttributeValueList*& AttributeValue::list_ref() { return _v.arrayval.ptr; }
+unsigned int& AttributeValue::list_type_ref() { return _v.arrayval.type; }
 unsigned int& AttributeValue::keyid_ref() { return _v.keyval.keyid; }
 unsigned int& AttributeValue::keynarg_ref() { return _v.keyval.keynarg; }
 
@@ -241,6 +247,8 @@ boolean AttributeValue::boolean_val() {
 	return (boolean) int_val()!=-1;
     case AttributeValue::ObjectType:
 	return (boolean) obj_val();
+    case AttributeValue::StreamType:
+	return stream_mode() != 0;
     default:
 	return 0;
     }
@@ -584,6 +592,14 @@ unsigned int AttributeValue::array_type_val() {
     return _v.arrayval.type; 
 }
 
+AttributeValueList* AttributeValue::list_val() { 
+	return list_ref();
+}
+
+unsigned int AttributeValue::list_type_val() { 
+    return _v.arrayval.type; 
+}
+
 unsigned int AttributeValue::keyid_val() { 
     return _v.keyval.keyid; 
 }
@@ -607,8 +623,15 @@ int AttributeValue::array_len() {
         return 0;
 }
 
-unsigned int AttributeValue::command_symid() { return _command_symid; }
-void AttributeValue::command_symid(unsigned int id, boolean alias) { 
+int AttributeValue::list_len() {
+    if (is_type(AttributeValue::ArrayType))
+        return array_val()->Number();
+    else
+        return 0;
+}
+
+int AttributeValue::command_symid() { return _command_symid; }
+void AttributeValue::command_symid(int id, boolean alias) { 
   _command_symid = (alias ? -1 : 1) * id; }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
@@ -684,7 +707,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	    
 	case AttributeValue::ArrayType:
 	  {
-	    out << "array of length " << svp->array_len();
+	    out << "list of length " << svp->array_len();
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
@@ -813,6 +836,10 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  out << "<" << symbol_pntr(svp->class_symid()) << ">";
 	  break;
 
+	case AttributeValue::StreamType:
+	  out << "<stream:" << svp->stream_mode() << ">";
+	  break;
+	    
 	default:
 	  out << "nil";
 	  break;
@@ -896,14 +923,13 @@ void AttributeValue::assignval (const AttributeValue& av) {
     const void* v2 = &av._v;
     memcpy(v1, v2, sizeof(double));
     _type = av._type;
-    _aggregate_type = av._aggregate_type;
+    _command_symid = av._command_symid;
 #if 0 // this end of reference counting disabled as well
     if (_type == StringType || _type == SymbolType) 
 	symbol_add((char *)string_ptr());
     else 
 #endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Resource::ref(_v.arrayval.ptr);
+    ref_as_needed();
 }
     
 
@@ -939,7 +965,7 @@ int AttributeValue::type_symid() const {
     _type_syms[i++] = symbol_add("DoubleType");
     _type_syms[i++] = symbol_add("StringType");
     _type_syms[i++] = symbol_add("SymbolType");
-    _type_syms[i++] = symbol_add("ArrayType");
+    _type_syms[i++] = symbol_add("ListType");
     _type_syms[i++] = symbol_add("StreamType");
     _type_syms[i++] = symbol_add("CommandType");
     _type_syms[i++] = symbol_add("KeywordType");
@@ -953,4 +979,41 @@ int AttributeValue::type_symid() const {
     return _type_syms[(int)type()];
   else
     return -1;
+}
+
+
+void AttributeValue::ref_as_needed() {
+    if (_type == AttributeValue::ArrayType)
+      Resource::ref(_v.arrayval.ptr);
+    else if (_type == AttributeValue::StreamType)
+      Resource::ref(_v.streamval.listptr);
+}
+
+void AttributeValue::unref_as_needed() {
+    if (_type == AttributeValue::ArrayType)
+      Resource::unref(_v.arrayval.ptr);
+    else if (_type == AttributeValue::StreamType)
+      Resource::unref(_v.streamval.listptr);
+}
+
+void AttributeValue::stream_list(AttributeValueList* list) 
+{ 
+  if (is_stream()) {
+    Resource::unref(_v.streamval.listptr); 
+    _v.streamval.listptr = list; 
+    if (!list) 
+      stream_mode(0);
+    else
+      Resource::ref(list); 
+  }
+}
+
+int AttributeValue::stream_mode() { 
+  if (is_stream()) {
+    if (!stream_list() || stream_list()->Number()==0)
+      return 0;
+    else
+      return _stream_mode;
+  } else
+    return 0;
 }

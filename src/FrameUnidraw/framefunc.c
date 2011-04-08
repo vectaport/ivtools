@@ -146,9 +146,7 @@ void ShowFramesFunc::execute() {
     push_stack(topval);
     push_stack(abskey);
     MoveFrameFunc moveframefunc(comterp(), ed);
-    moveframefunc.push_funcstate(1, 1, pedepth());
-    moveframefunc.execute();
-    moveframefunc.pop_funcstate();
+    moveframefunc.exec(1, 1, pedepth());
     pop_stack();
     const int otherslen=avl->Number()-1;
     int others[otherslen];

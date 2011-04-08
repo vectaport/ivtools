@@ -1,23 +1,31 @@
 
 			INSTALL for ivtools-0.9
 
-Instructions for building ivtools-0.9.6 from source:
+Instructions for building ivtools-0.9.7 from source, the short version:
+
+	./configure
+	make
+	su -c "make install"
+
+
+And if that doesn't work...
+
+Instructions for building ivtools-0.9.7 from source, the long version:
 
 0. Compilation Environment
 
 Things you will need (or might want) before building ivtools:
 
-0.a. a Unix machine.  We know it has been built on Linux, NetBSD,
-FreeBSD, Solaris, Irix, Dec Alpha, HPUX, and SunOS.  Alternately it
-can be built on Windows NT with the Cygwin utilities from RedHat.  See
-README.cygwin for details.
+0.a. a Unix machine (for Windows see README.cygwin).  We know it has
+been built on Linux, NetBSD, FreeBSD, Solaris, Irix, Dec Alpha, HPUX,
+and SunOS.  
 
 0.b. The gcc compiler.  Recently we've been building and testing with
-egcs-1.0.3, gcc-2.95.*, and gcc-3.0.  gcc-2.8.1 would still work, as
+egcs-1.0.3, gcc-2.95.*, and gcc-3.0.1.  gcc-2.8.1 would still work, as
 probably would gcc-2.7.2.  You will also need an equivalent copy of
-libstdc++.  The libstdc++ version numbers stay roughly in synch with
-the gcc version numbers.  If you have gcc-2.8.1 you'd want
-libstdc++-2.8.1, etc..  libstdc++ comes bundled with gcc-3.0.
+libstdc++.  libstdc++ comes bundled with gcc-3.0.  Before that the
+libstdc++ version numbers stay roughly in synch with the gcc version
+numbers.  If you have gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
 
 Be aware that sometimes the include files for libstdc++ are in
 /usr/local/include/g++-2, a place that cannot be auto-determined by
@@ -92,8 +100,10 @@ class libraries for image understanding application development.
 1.a. You no longer need to set your CPU environment variable to build
 ivtools, but you still need a CPU specific configuration file.
 Ready-made configurations that have been known to work exist for
-LINUX, SUN4 (and Solaris), SGI, HP800 (HPUX), ALPHA, NETSBD, and now
-CYGWIN (for Windows NT).
+LINUX, SUN4 (and Solaris), SGI, HP800 (HPUX), ALPHA, NETSBD, FREEBSD,
+and CYGWIN (for Windows NT).  HPUX config file is known to be out of
+quite out of date, the others will probably work with little or no
+tweaks.
 
 Use "make CPU" from the top directory to see the symbol ivtools will
 use for your OS (grep config/arch.def for ArchitectureName to get a

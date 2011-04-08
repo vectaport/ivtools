@@ -118,6 +118,10 @@ public:
     ComValue& lookup_symval(ComValue&);
     // look up a ComValue associated with a symbol (specified in the
     // input ComValue) in the local or global symbol tables.
+    AttributeValue* lookup_symval(ComValue*);
+    // look up a pointer to an AttributeValue associated with a symbol
+    // (specified in the input ComValue) in the local or global symbol
+    // tables.  Do not alter the input ComValue.
     ComValue& lookup_symval(int symid);
     // look up a ComValue associated with a symbol (specified with a
     // symbol id) in the local or global symbol tables.

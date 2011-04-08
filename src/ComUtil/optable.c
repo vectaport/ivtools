@@ -108,7 +108,8 @@ struct _opr_tbl_default_entry {
   {"|",          "bit_or",             42,         FALSE,      OPTYPE_BINARY },
   {"&&",         "and",                41,         FALSE,      OPTYPE_BINARY },
   {"||",         "or",                 40,         FALSE,      OPTYPE_BINARY },
-  {",",          "stream",             35,         FALSE,      OPTYPE_BINARY },
+  {",",          "tuple",              35,         FALSE,      OPTYPE_BINARY },
+  {",,",         "concat",             33,         FALSE,      OPTYPE_BINARY },
   {"%=",         "mod_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"*=",         "mpy_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"+=",         "add_assign",         30,         TRUE,       OPTYPE_BINARY },
@@ -929,7 +930,8 @@ Operator   Command            Priority   RtoL   Type
 |          bit_or             42         N      BINARY
 &&         and                41         N      BINARY
 ||         or                 40         N      BINARY
-,          stream             35         N      BINARY
+,          tuple              35         N      BINARY
+,,         concat             33         N      BINARY
 %=         mod_assign         30         Y      BINARY
 *=         mpy_assign         30         Y      BINARY
 +=         add_assign         30         Y      BINARY

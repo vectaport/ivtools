@@ -38,6 +38,7 @@
 #include <IV-X11/xdrag.h>
 #include <X11/Xatom.h>
 #include <OS/host.h>
+#include <OS/math.h>
 #include <OS/types.h>
 #include <string.h>
 #include <strstream.h>
@@ -135,7 +136,9 @@ static void setDragProperty(
 
 	XChangeProperty(
 	    display, destination, property, XA_STRING, 8,
-	    PropModePrepend, (unsigned char*)value, length
+	    PropModePrepend, 
+	    (unsigned char*)value + (length<0 ? length : 0), 
+	    Math::abs(length)
 	);
     }
 

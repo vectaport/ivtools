@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,14 +31,14 @@
 
 #include <ComTerp/numfunc.h>
 
-//: . (dot) operator, for compound variables.
+//: . (dot) operator, for compound variables | dotlst=dot(name) -- construct empty dottted pair list.
 class DotFunc : public ComFunc {
 public:
     DotFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s (.) makes compound variables"; }
+      return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list"; }
 
     CLASS_SYMID("DotFunc");
 };

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -40,14 +41,16 @@ void DotFunc::execute() {
     ComValue before_part(stack_arg(0, true));
     ComValue after_part(stack_arg(1, true));
     reset_stack();
+
     if (!before_part.is_symbol() && 
 	!(before_part.is_attribute() && 
-	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist()) &&
+	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
+	   ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
       cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList>\n";
       return;
     }
-    if (!after_part.is_symbol()) {
+    if (nargs()>1 && !after_part.is_symbol()) {
       cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol\n";
       return;
     }
@@ -75,19 +78,30 @@ void DotFunc::execute() {
 	else
 	  comterp()->globaltable()->insert(before_symid, comval);
       }
-    } else if (!before_part.is_attributelist())
-      al = (AttributeList*) ((Attribute*) before_part.obj_val())->Value()->obj_val();
-    else
+    } else if (!before_part.is_attributelist()) {
+      if (((Attribute*)before_part.obj_val())->Value()->is_attributelist()) 
+	al = (AttributeList*) ((Attribute*) before_part.obj_val())->Value()->obj_val();
+      else {
+	al = new AttributeList();
+	AttributeValue newval(AttributeList::class_symid(), (void*) al);
+	*((Attribute*)before_part.obj_val())->Value() = newval;
+      }
+    } else
       al = (AttributeList*) before_part.obj_val();
 
-    int after_symid = after_part.symbol_val();
-    Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
-    if (!attr) {
-      attr = new Attribute(after_symid, new AttributeValue());
-      al->add_attribute(attr);
+    if (nargs()>1) {
+      int after_symid = after_part.symbol_val();
+      Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
+      if (!attr) {
+	attr = new Attribute(after_symid, new AttributeValue());
+	al->add_attribute(attr);
+      }
+      ComValue retval(Attribute::class_symid(), attr);
+      push_stack(retval);
+    } else {
+      ComValue retval(AttributeList::class_symid(), al);
+      push_stack(retval);
     }
-    ComValue retval(Attribute::class_symid(), attr);
-    push_stack(retval);
 }
 
 /*****************************************************************************/

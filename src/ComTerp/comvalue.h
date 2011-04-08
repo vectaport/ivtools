@@ -79,7 +79,9 @@ public:
     ComValue(int class_symid, void* ptr);
     // ObjectType constructor.
     ComValue(AttributeValueList* listptr);
-    // ArrayType constructor.
+    // ArrayType/ListType constructor.
+    ComValue(void* funcptr, AttributeValueList* listptr);
+    // StreamType constructor.
     ComValue(const char* val);
     // StringType constructor.
     ComValue(ComFunc* func);

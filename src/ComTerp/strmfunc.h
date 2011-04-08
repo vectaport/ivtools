@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1994,1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -40,16 +41,43 @@ public:
 
 };
 
-//: , (stream) operator.
+//: stream command
 class StreamFunc : public StrmFunc {
 public:
     StreamFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return ", is the stream operator"; }
+      return "strm=%s(list) -- convert list to stream"; }
 
     CLASS_SYMID("StreamFunc");
+
+};
+
+//: ,, (concat) operator.
+class ConcatFunc : public StrmFunc {
+public:
+    ConcatFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return ",, is the concat operator"; }
+
+    CLASS_SYMID("ConcatFunc");
+
+};
+
+//: hidden func used by next command for ,, (concat) operator.
+class ConcatNextFunc : public StrmFunc {
+public:
+    ConcatNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "hidden func used by next command for ,, (concat) operator."; }
+
+    CLASS_SYMID("ConcatNextFunc");
 
 };
 
@@ -72,6 +100,19 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return ".. is the iterate operator"; }
+
+};
+
+//: next command from stream for ComTerp
+class NextFunc : public StrmFunc {
+public:
+    NextFunc(ComTerp*);
+
+    virtual void execute();
+    static  void execute_impl(ComTerp*, ComValue& strmv);
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return "val=%s(stream) -- return next value from stream"; }
 
 };
 

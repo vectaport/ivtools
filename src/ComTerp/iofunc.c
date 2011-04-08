@@ -151,9 +151,7 @@ void PrintFunc::execute() {
 	    ComValue val(*avl->GetAttrVal(i));
 	    push_stack(formatstr);
 	    push_stack(val);
-	    push_funcstate(2,0);
-	    execute();
-	    pop_funcstate();
+	    exec(2,0);
 	    avl->Next(i);
 	    if (!avl->Done(i)) out << "\n";
 	  }

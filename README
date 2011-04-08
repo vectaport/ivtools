@@ -2,7 +2,7 @@
 			README for ivtools 0.9
 
 
-This directory contains a release of ivtools 0.9.6.  You should read
+This directory contains a release of ivtools 0.9.7.  You should read
 the rest of this file for information on what ivtools is and the
 INSTALL file for instructions on how to build it.
 
@@ -11,6 +11,10 @@ in the COPYRIGHT file in this directory.  It is similar to the X11
 copyright, otherwise known as non-copylefted freeware.  
 
 * What is ivtools?:
+
+Online documentation (including an FAQ) is available for ivtools at:
+
+	http://www.ivtools.org/ivtools/doc/
 
 ivtools is a layered collection of application frameworks for building
 custom drawing editors and spatial data servers.  It incorporates a
@@ -115,29 +119,26 @@ ivmkcm-0.7.2 available through http://www.ivtools.org/ivmkcm/
 * More ivtools details
 
 ivtools is known to build with many versions of gcc (<= gcc-2.7.2, >=
-gcc-2.8.1, >= egcs-1.0.1, even gcc-3.0) and on a variety of Unix'es:
+gcc-2.8.1, >= egcs-1.0.1, gcc-3.0.1) and on a variety of Unix'es:
 SunOS 4.1 (MIT's X11R5), Solaris 2.6 (X11R6), Irix 5.2 (SGI's X11R5),
 Linux 1.2 (Slackware 3.0, XFree86 3.1), Linux 2.* (RedHat 4.0 thru
-6.0, Debian 2.*), NetBSD, and perhaps now FreeBSD.  There are
-contributed configs that are out of date for HPUX and Dec
-Alpha. Recently it has been built on Windows NT 4.0 using Cygwin from
-Cygnus Solutions (see README.cygwin).  You can pick up Linux-ELF
-binaries from the ivtools web page (http://www.ivtools.org).
+6.0, Debian 2.*), NetBSD, and FreeBSD.  There are contributed configs
+that are out of date for HPUX and Dec Alpha. It has been built on
+Windows NT 4.0 using Cygwin from Cygnus Solutions (see README.cygwin).
+You can find links to available binaries on the ivtools web page
+(http://www.ivtools.org) and ivtools download page
+(http://www.ivtools.org/ivtools/download.html)
 
 If you have a question about this software, desire to add code, found
 a bug, want to request a feature, or wonder how to get further
 assistance, please send e-mail to the general purpose ivtools mailing
-list, ivtools-discuss@lists.sourceforge.net, or this e-mail address:
+list, ivtools-user@lists.sourceforge.net, or this e-mail address:
 ivtools-info@vectaport.com.  To subcribe to the mailing list, visit
-http://lists.sourceforge.net/mailman/listinfo/ivtools-discuss or send
+http://lists.sourceforge.net/mailman/listinfo/ivtools-user or send
 an informal request to ivtools-request@vectaport.com.  Other ivtools
 related mailing lists can be found at:
 
 	http://www.ivtools.org/ivtools/mailinglists.html
-
-Online documentation (including an FAQ) is available for ivtools at:
-
-	http://www.ivtools.org/ivtools/doc/
 
 Read about finding and generating all this from inline documentation
 below.  A copy of the ivtools html documentation will be available for
@@ -157,7 +158,12 @@ Read about other vector graphic free software at:
 
 Extensive documentation is embedded within the ivtools source tree,
 including most all of the documentation originally available for
-InterViews 3.1 and Unidraw.  Here is a list:
+InterViews 3.1 and Unidraw.  You can find all of it pre-extracted
+here:
+
+        http://www.ivtools.org/ivtools/doc/
+
+Here is a list of documentation:
 
 	- README/man pages for executable programs
 
@@ -229,13 +235,10 @@ directories or files as appropriate.
 
 * Acknowledgements:
 
-ivtools programmers at Vectaport (http://www.vectaport.com):
+Roster of ivtools programmers:
 
 	Scott Johnston
 	Jorge Gautier
-
-ivtools programmers at large:
-
 	Brian Hogencamp
 	Rick Kissh
 	Eric Kahler

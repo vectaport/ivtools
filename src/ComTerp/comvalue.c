@@ -51,26 +51,24 @@ const ComTerp* ComValue::_comterp = nil;
 
 ComValue::ComValue(ComValue& sv) {
     *this = sv;
-    if (_type == AttributeValue::ArrayType)
-      Resource::ref(_v.arrayval.ptr);
+    ref_as_needed();
 }
 
 ComValue::ComValue(AttributeValue& sv) {
     *(AttributeValue*)this = sv;
-    if (_type == AttributeValue::ArrayType)
-      Resource::ref(_v.arrayval.ptr);
+    ref_as_needed();
     zero_vals();
 }
 
 ComValue::ComValue() {
     type(UnknownType);
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
     zero_vals();
 }
 
 ComValue::ComValue(ValueType valtype) {
     type(valtype);
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
     zero_vals();
 }
 
@@ -87,6 +85,7 @@ ComValue::ComValue(float v) : AttributeValue(v) {zero_vals();}
 ComValue::ComValue(double v) : AttributeValue(v) {zero_vals();}
 ComValue::ComValue(int classid, void* ptr) : AttributeValue(classid, ptr) {zero_vals();}
 ComValue::ComValue(AttributeValueList* avl) : AttributeValue(avl) {zero_vals();}
+ComValue::ComValue(void* funcptr, AttributeValueList* listptr) : AttributeValue(funcptr, listptr) {zero_vals();}
 ComValue::ComValue(const char* string) : AttributeValue(string) {zero_vals();}
 ComValue::ComValue(ComFunc* func) : AttributeValue(ComFunc::class_symid(), func) {zero_vals(); type(ComValue::CommandType); command_symid(func->funcid()); }
 
@@ -116,7 +115,7 @@ ComValue::ComValue(postfix_token* token) {
     _narg = token->narg;
     _nkey = token->nkey;
     _nids = token->nids;
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
     _pedepth = 0;
     _bquote = 0;
 }
@@ -264,29 +263,28 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-	    boolean first = true;
+	    out << "{";
 	    while (!avl->Done(i)) {
-	      if (first) {
-		out << "{";
-		first = false; 
-	      }
 	      ComValue val(*avl->GetAttrVal(i));
 	      out << val;
 	      avl->Next(i);
 	      if (!avl->Done(i)) out << ",";
-	    }
-	    if (!first) out << "}";
+	    };
+	    out << "}";
 	  } else {
-	    out << "array of length " << svp->array_len();
+	    out << "list of length " << svp->array_len();
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-	    boolean first = true;
 	    while (!avl->Done(i)) {
  	        out << "\n\t" << *avl->GetAttrVal(i);
 	        avl->Next(i);
 	    }
 	  }
+	  break;
+	    
+	case ComValue::StreamType:
+	  out << "<stream:" << svp->stream_mode() << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
 	  break;
 	    
 	case ComValue::CommandType:

@@ -61,13 +61,13 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
     for (int i=0; i<count; i++) {
         ComValue& argref = _comterp->stack_top(i-count+1);
         if( argref.type() == ComValue::KeywordType) 
-	    return ComValue::nullval();
+	    return dflt;
         if (i == n) {
   	    if (i+1 < count) {
 	      ComValue& keyref = _comterp->stack_top(i-count+2);
 	      if (keyref.is_type(ComValue::KeywordType) &&
 		  keyref.keynarg_val())
-		return ComValue::nullval();
+		return dflt;
 	    }
 	    if (!symbol)
 	        argref = _comterp->lookup_symval(argref);

@@ -657,12 +657,12 @@ void Graphic31::request(Requisition& req) const {
             corners(left, bottom, right, top, *_t);
         } 
         
-        rx.natural(right - left);
+        rx.natural(right - left + 1);
         rx.stretch(0.0);
         rx.shrink(0.0);
         rx.alignment(-left / rx.natural());
         
-        ry.natural(top - bottom);
+        ry.natural(top - bottom + 1);
         ry.stretch(0.0);
         ry.shrink(0.0);
         ry.alignment(-bottom / ry.natural());
@@ -1466,7 +1466,7 @@ void GraphicMaster::drawclipped_gs(
     Canvas* c, Coord l, Coord b, Coord r, Coord t, Graphic31* gs
 ) {
     c->push_clipping();
-    c->clip_rect(_a.left(), _a.bottom(), _a.right(), _a.top());
+    c->clip_rect(_a.left()-1, _a.bottom()-1, _a.right()+1, _a.top()+1);
     if (_bg != nil) {
         c->fill_rect(l, b, r, t, _bg);
     }

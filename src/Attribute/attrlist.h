@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -126,6 +127,9 @@ protected:
     // returning responsibility for freeing the associated memory.
     // This requires saving a pointer to the Attribute before calling this method.
 
+    void clear(); 
+    // empty AttributeList, deleting all Attributes.
+
 
 public:
     friend ostream& operator << (ostream& s, const AttributeList&);
@@ -208,6 +212,9 @@ public:
 
     friend ostream& operator << (ostream& s, const AttributeValueList&);
     // print list to ostream.
+
+    void clear(); 
+    // empty AttributeValueList, deleting all AttributeValue's.
 
 protected:
     void Remove(ALIterator&);

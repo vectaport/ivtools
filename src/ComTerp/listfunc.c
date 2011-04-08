@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1999 Vectaport Inc.
  *
@@ -23,6 +24,7 @@
  */
 
 #include <ComTerp/listfunc.h>
+#include <ComTerp/strmfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <Attribute/aliterator.h>
@@ -38,12 +40,44 @@ ListFunc::ListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ListFunc::execute() {
-  ComValue listv(stack_arg(0));
+  ComValue listv(stack_arg_post_eval(0));
+  static int strmlst_symid = symbol_add("strmlst"); // hidden debug keyword
+  ComValue strmlstv(stack_key_post_eval(strmlst_symid));
   reset_stack();
 
-  AttributeValueList* avl = listv.is_array() 
-    ? new AttributeValueList(listv.array_val())
-    : new AttributeValueList();
+  AttributeValueList* avl;
+
+  if (listv.is_array()) 
+    avl = new AttributeValueList(listv.array_val());
+  else {
+    avl = new AttributeValueList();
+    if (listv.is_stream()) {
+      if (strmlstv.is_false()) {
+
+	/* stream to list conversion */
+	boolean done = false;
+	while (!done) {
+	  NextFunc::execute_impl(comterp(), listv);
+	  AttributeValue* newval = new AttributeValue(comterp()->pop_stack());
+	  if (newval->is_unknown()) {
+	    done = true;
+	    delete newval;
+	  } else
+	    avl->Append(newval);
+	}
+
+      } else {
+	/* simply return stream's internal list for debug purposes */
+	if (listv.stream_list()) {
+	  ComValue retval(listv.stream_list());
+	  push_stack(retval);
+	} else	  
+	  push_stack(ComValue::nullval());
+	return;
+      }
+
+    }
+  }
   Resource::ref(avl);
   ComValue retval(avl);
   push_stack(retval);
@@ -56,16 +90,22 @@ ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
-  ComValue nv(stack_arg(1));
+  ComValue nv(stack_arg(1, false, ComValue::zeroval()));
+  static int set_symid = symbol_add("set");
+  ComValue setv(stack_key(set_symid, false, ComValue::blankval(), true /* return blank if no :set */));
+  boolean setflag = !setv.is_blank();
+
   reset_stack();
 
-  if (listv.is_type(ComValue::ArrayType) && nv.int_val()>=0) {
+  if (listv.is_type(ComValue::ArrayType) && !nv.is_nil() && nv.int_val()>=0) {
     AttributeValueList* avl = listv.array_val();
     if (avl && nv.int_val()<avl->Number()) {
       int count = 0;
       Iterator it;
       for (avl->First(it); !avl->Done(it); avl->Next(it)) {
 	if (count==nv.int_val()) {
+	  if (setflag) 
+	    *avl->GetAttrVal(it) = setv;
 	  push_stack(*avl->GetAttrVal(it));
 	  return;
 	}
@@ -80,6 +120,8 @@ void ListAtFunc::execute() {
       for (al->First(it); !al->Done(it); al->Next(it)) {
 	if (count==nv.int_val()) {
 	  ComValue retval(Attribute::class_symid(), (void*) al->GetAttr(it));
+	  if (setflag)
+	    *al->GetAttr(it)->Value() = setv;
 	  push_stack(retval);
 	  return;
 	}
@@ -117,4 +159,30 @@ void ListSizeFunc::execute() {
   push_stack(ComValue::nullval());
 }
 
+
+/*****************************************************************************/
+
+int TupleFunc::_symid;
+
+TupleFunc::TupleFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void TupleFunc::execute() {
+    ComValue* operand1 = new ComValue(stack_arg(0));
+    ComValue* operand2 = new ComValue(stack_arg(1));
+    reset_stack();
+
+    if (!operand1->is_type(ComValue::ArrayType)) {
+	AttributeValueList* avl = new AttributeValueList();
+	avl->Append(operand1);
+	avl->Append(operand2);
+	ComValue retval(avl);
+	push_stack(retval);
+    } else {
+        AttributeValueList* avl = operand1->array_val();
+	avl->Append(operand2);
+	push_stack(*operand1);
+	delete operand1;
+    }
+}
 

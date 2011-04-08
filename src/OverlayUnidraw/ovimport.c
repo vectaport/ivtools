@@ -208,9 +208,6 @@ void FileHelper::close_all() {
   }
 
   for (ListItr(StreamList) k(_sl); k.more(); k.next()) {
-#if __GNUG__>=3
-    delete k.cur()->rdbuf();
-#endif
     delete k.cur();
   }
 
@@ -761,7 +758,7 @@ FILE* OvImportCmd::CheckCompression(
 
 
 const char* OvImportCmd::ReadCreator (const char* pathname) {
-    FILE* file = fopen(pathname, "r+");
+    FILE* file = fopen(pathname, "r");
     const int creator_size = 32;
     static char creator[creator_size];
 
@@ -1531,15 +1528,15 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  if (pathname && !return_fd) {
 	    char buffer[BUFSIZ];
 	    if (compressed) 
-	      sprintf(buffer, "gzip -c %s | pstoedit -f idraw", pathname, "%d");
+	      sprintf(buffer, "tf=`ivtmpnam`;gzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    else
-	      sprintf(buffer, "pstoedit -f idraw %s", pathname, "%d");
+	      sprintf(buffer, "tf=`ivtmpnam`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    pptr = popen(buffer, "r");
 	    cerr << "input opened with " << buffer << "\n";
 	    if (pptr) 
 	      new_fd = fileno(pptr);
 	  } else 
-	    new_fd = Pipe_Filter(*in, "pstoedit -f idraw");
+	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
 #if __GNUG__<3
 	  ifstream new_in;
           new_in.rdbuf()->attach(new_fd);
@@ -1681,7 +1678,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    pclose(pptr);
 	  }
 	} else	
-	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "pnmtopng");
+	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "pngtopnm");
       } else 
 	cerr << "pnmtopgm not found (part of ivtools)\n";
     }
@@ -2194,7 +2191,7 @@ FILE* OvImportCmd::Portable_Raster_Open(
     int& ncols, int& nrows, boolean& compressed, boolean& tiled, int& twidth, 
     int& theight
 ) {
-    FILE* file = fopen(pathname, "r+");
+    FILE* file = fopen(pathname, "r");
     file = CheckCompression(file, pathname, compressed);
   
     tiled = false;
@@ -2617,7 +2614,7 @@ GraphicComp* OvImportCmd::PBM_Image (const char* pathname) {
 
 Bitmap* OvImportCmd::PBM_Bitmap (const char* pathname) {
     Bitmap* bitmap = nil;
-    FILE* file = fopen(pathname, "r+");
+    FILE* file = fopen(pathname, "r");
     boolean compressed;
     file = CheckCompression(file, pathname, compressed);
 
