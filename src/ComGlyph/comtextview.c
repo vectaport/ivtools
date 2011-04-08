@@ -50,6 +50,7 @@
 #include <ctype.h>
 #include <iostream.h>
 #include <strstream.h>
+#include <string.h>
 
 #define XK_MISCELLANY           /* to get the keysym's we need */
 #include <X11/keysymdef.h>

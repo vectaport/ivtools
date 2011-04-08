@@ -276,7 +276,7 @@ Catalog::Catalog (const char* domainName, Creator* creator, float version) {
     _curMap = nil;
     _substMap = new ObjectMap(nil, COMPONENT);
     _clipboard = new Clipboard;
-#ifdef __GNUG__
+#ifdef __GNUC__
     _tmpfile = nil;
 #endif
 
@@ -367,7 +367,7 @@ Catalog::~Catalog () {
     _clipboard->DeleteComps();
     delete _clipboard;
 
-#ifdef __GNUG__
+#ifdef __GNUC__
     if (_tmpfile != nil) {
         unlink(_tmpfile);
         delete _tmpfile;
@@ -668,7 +668,7 @@ void* Catalog::CopyObject (void* obj, ClassId base_id) {
     ObjectMap empty_subst_map(obj, base_id);    // copies
     _substMap = &empty_subst_map;
 
-#ifdef __GNUG__
+#ifdef __GNUC__
     filebuf obuf, ibuf;
     ObjectMap* prevMap = _curMap;
     char* prevTmp = _tmpfile;

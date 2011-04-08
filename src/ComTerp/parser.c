@@ -29,7 +29,7 @@
 
 #define TITLE "Parser"
 
-#if __GNUG__>=3
+#if __GNUC__>=3
 static char newline;
 #endif
 
@@ -135,7 +135,7 @@ boolean Parser::skip_matched_parens() {
 
 char* Parser::istream_fgets(char* s, int n, void* instreamp) {
   istream& in  = *(istream*)instreamp;
-#if __GNUG__<3
+#if __GNUC__<3
   char *instr;
   in.gets(&instr);
 #else

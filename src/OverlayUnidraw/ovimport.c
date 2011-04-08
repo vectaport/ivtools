@@ -116,7 +116,7 @@ implementPtrList(FileList,FILE)
 implementPtrList(StreamList,istream)
 implementPtrList(HandlerList,ReadImageHandler)
 
-#if __GNUG__>=3
+#if __GNUC__>=3
 static char newline;
 #endif
 
@@ -462,7 +462,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
 
     if (pos >= 0) { 
 
-#if __GNUG__<3
+#if __GNUC__<3
       char* buffer;
       in.gets(&buffer);
 #else
@@ -478,7 +478,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
 
       u_long width, height;
       do { 
-#if __GNUG__<3	
+#if __GNUC__<3	
         in.gets(&buffer);
 #else
 	in.get(buffer,BUFSIZ);
@@ -487,7 +487,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
       } while (buffer[0] == '#');
       sscanf(buffer, "%d %d", &width, &height);
 
-#if __GNUG__<3	
+#if __GNUC__<3	
       in.gets(&buffer);
 #else
       in.get(buffer,BUFSIZ);
@@ -599,7 +599,7 @@ int ReadImageHandler::inputReady(int fd) {
 
     clr_fl(_fd, O_NONBLOCK);
 
-#if __GNUG__<3
+#if __GNUC__<3
     ifstream* ifs = new ifstream;
     ifs->rdbuf()->attach(_fd);
 #else
@@ -608,7 +608,7 @@ int ReadImageHandler::inputReady(int fd) {
     istream* ifs = new istream(fbuf);
 #endif
     _helper.add_stream(ifs);
-#if __GNUG__>=3
+#if __GNUC__>=3
     _helper.add_file(ifptr);
 #endif
     boolean empty;
@@ -1093,7 +1093,7 @@ void OvImportCmd::Execute () {
       } else if (!is_url()) {
 	fptr = popen(path_, "r");
 	if (fptr) {
-#if __GNUG__<3
+#if __GNUC__<3
 	  ifstream* ifs = new ifstream;
           ifs->rdbuf()->attach(fileno(fptr));
 #else
@@ -1399,7 +1399,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
     
 
     if (fptr) {
-#if __GNUG__<3
+#if __GNUC__<3
       ifstream* in = new ifstream;
       in->rdbuf()->attach(fileno(fptr));
 #else
@@ -1488,7 +1488,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	gunzip_fptr = popen(buffer, "r");
         helper.add_pipe(gunzip_fptr);
 	if (gunzip_fptr) {
-#if __GNUG__<3
+#if __GNUC__<3
 	  ifstream* ifs = new ifstream;
           ifs->rdbuf()->attach(fileno(gunzip_fptr));
 #else
@@ -1501,7 +1501,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       } else {
 	int newfd = Pipe_Filter(instrm, "gunzip -c");
 	if (newfd != -1) {
-#if __GNUG__<3
+#if __GNUC__<3
 	  ifstream* ifs = new ifstream;
           ifs->rdbuf()->attach(newfd);
 #else
@@ -1548,7 +1548,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	      new_fd = fileno(pptr);
 	  } else 
 	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
-#if __GNUG__<3
+#if __GNUC__<3
 	  ifstream new_in;
           new_in.rdbuf()->attach(new_fd);
 #else
@@ -1586,7 +1586,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
-#if __GNUG__<3
+#if __GNUC__<3
 	    ifstream new_in;
             new_in.rdbuf()->attach(fileno(pptr));
 #else
@@ -1650,7 +1650,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
           helper.add_pipe(pptr);
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
-#if __GNUG__<3
+#if __GNUC__<3
 	    ifstream* new_in = new ifstream;
             new_in->rdbuf()->attach(fileno(pptr));
 #else
@@ -1680,7 +1680,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
-#if __GNUG__<3
+#if __GNUC__<3
 	    ifstream new_in;
             new_in.rdbuf()->attach(fileno(pptr));
 #else
@@ -1943,7 +1943,7 @@ GraphicComp* OvImportCmd::PGM_Image (istream& in, boolean ascii) {
 
 OverlayRaster* OvImportCmd::PGM_Raster (istream& in, boolean ascii) {
  
-#if __GNUG__<3 
+#if __GNUC__<3 
     char* buffer;
     in.gets(&buffer);
 #else
@@ -1953,7 +1953,7 @@ OverlayRaster* OvImportCmd::PGM_Raster (istream& in, boolean ascii) {
 #endif
 
     do {  // CREATOR and other comments
-#if __GNUG__<3 
+#if __GNUC__<3 
         in.gets(&buffer);
 #else
 	in.get(buffer, BUFSIZ);
@@ -1963,7 +1963,7 @@ OverlayRaster* OvImportCmd::PGM_Raster (istream& in, boolean ascii) {
 
     int nrows, ncols;
     if (sscanf(buffer, "%d %d", &ncols, &nrows)==1) {
-#if __GNUG__<3 
+#if __GNUC__<3 
           in.gets(&buffer);
 #else
 	  in.get(buffer, BUFSIZ);
@@ -1971,7 +1971,7 @@ OverlayRaster* OvImportCmd::PGM_Raster (istream& in, boolean ascii) {
 #endif
           sscanf(buffer, "%d", &nrows);
     }
-#if __GNUG__<3 
+#if __GNUC__<3 
     in.gets(&buffer);
 #else
     in.get(buffer, BUFSIZ, '\n');
@@ -2381,7 +2381,7 @@ GraphicComp* OvImportCmd::PPM_Image (istream& in, boolean ascii) {
 
 
 OverlayRaster* OvImportCmd::PPM_Raster (istream& in, boolean ascii) {
-#if __GNUG__<3
+#if __GNUC__<3
     char* buffer;
     in.gets(&buffer); // read magic number
 #else
@@ -2391,7 +2391,7 @@ OverlayRaster* OvImportCmd::PPM_Raster (istream& in, boolean ascii) {
 #endif
 
     do { // CREATOR and other comments
-#if __GNUG__<3
+#if __GNUC__<3
         in.gets(&buffer);
 #else
 	in.get(buffer,BUFSIZ);
@@ -2400,7 +2400,7 @@ OverlayRaster* OvImportCmd::PPM_Raster (istream& in, boolean ascii) {
     } while (buffer[0] == '#');
     int nrows, ncols;
     sscanf(buffer, "%d %d", &ncols, &nrows);
-#if __GNUG__<3
+#if __GNUC__<3
     in.gets(&buffer);
 #else
     in.get(buffer,BUFSIZ);
@@ -2450,7 +2450,7 @@ GraphicComp* OvImportCmd::PNM_Image_Filter (
     fd = outfd;
   }
   else {
-#if __GNUG__<3    
+#if __GNUC__<3    
     ifstream in2;
     in2.rdbuf()->attach(outfd);
 #else
@@ -2463,7 +2463,7 @@ GraphicComp* OvImportCmd::PNM_Image_Filter (
 
     if(close(outfd)==-1)
       cerr << "error in parent closing last end of the pipes\n";
-#if __GNUG__>=3
+#if __GNUC__>=3
     if (infptr) fclose(infptr);
 #endif
   }
@@ -2527,7 +2527,7 @@ int OvImportCmd::Pipe_Filter (istream& in, const char* filter)
     } else
       if(close(pipe1[0])==-1) 
 	cerr << "error in child close of front end of pipe\n";
-#if __GNUG__<3
+#if __GNUC__<3
     ofstream out;
     out.rdbuf()->attach(pipe1[1]);
     char buffer[BUFSIZ];
@@ -2708,7 +2708,7 @@ GraphicComp* OvImportCmd::PBM_Image (istream& in) {
 Bitmap* OvImportCmd::PBM_Bitmap (istream& in) {
     Bitmap* bitmap = nil;
   
-#if __GNUG__<3
+#if __GNUC__<3
     char* buffer;
     in.gets(&buffer);
 #else
@@ -2720,7 +2720,7 @@ Bitmap* OvImportCmd::PBM_Bitmap (istream& in) {
     boolean asciiflag = strncmp("P1", buffer, 2) == 0;
   
     do { // CREATOR and other comments
-#if __GNUG__<3
+#if __GNUC__<3
         in.gets(&buffer);
 #else
 	in.get(buffer,BUFSIZ);
@@ -2730,7 +2730,7 @@ Bitmap* OvImportCmd::PBM_Bitmap (istream& in) {
 
     int nrows, ncols;
     if (sscanf(buffer, "%d %d", &ncols, &nrows)==1) {
-#if __GNUG__<3
+#if __GNUC__<3
           in.gets(&buffer);
 #else
 	  in.get(buffer,BUFSIZ);

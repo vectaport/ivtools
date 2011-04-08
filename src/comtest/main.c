@@ -24,6 +24,7 @@
 #include <ComTerp/scanner.h>
 
 #include <iostream.h>
+#include <string.h>
 
 char* type_names[] = {
 	"None",

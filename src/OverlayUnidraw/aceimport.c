@@ -89,7 +89,7 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
     }
     return _inptr->good() ? 0 : -1;
 #else
-#if __GNUG__<3
+#if __GNUC__<3
     filebuf fbuf;
     if(fbuf.attach(fd)==0) return -1;
 #else

@@ -31,7 +31,7 @@
 #include <OS/math.h>
 #include <iostream.h>
 #include <strstream.h>
-#if __GNUG__>=3
+#if __GNUC__>=3
 #include <fstream.h>
 #endif
 
@@ -60,7 +60,7 @@ void PrintFunc::execute() {
   const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
   ComValue::comterp(comterp());
 
-#if __GNUG__<3
+#if __GNUC__<3
   streambuf* strmbuf = nil;
   if (stringflag.is_false() && strflag.is_false() &&
       symbolflag.is_false() && symflag.is_false()) {

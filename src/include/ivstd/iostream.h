@@ -3,7 +3,7 @@
 #include <iosfwd>
 #include_next <iostream.h>
 
-#if __GNUG__>=3
+#if __GNUC__>=3
 #if 0
 #include <unistd.h>
 

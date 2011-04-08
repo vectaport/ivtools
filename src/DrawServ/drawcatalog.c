@@ -37,7 +37,7 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
-#if __GNUG__>=3
+#if __GNUC__>=3
 #include <fstream.h>
 #endif
 
@@ -60,13 +60,13 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
         _valid = true;
 
     } else {
-#if __GNUG__<3
+#if __GNUC__<3
         filebuf fbuf;
 #else
         filebuf* pfbuf = nil;
 #endif
 	if (strcmp(name, "-") == 0) {
-#if __GNUG__<3
+#if __GNUC__<3
 	    _valid = fbuf.attach(fileno(stdin)) != 0;
 #else
 	    pfbuf = new fileptr_filebuf(stdin, input);
@@ -76,7 +76,7 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
 	} else {
 	    fptr = fopen(name, "r");
 	    fptr = OvImportCmd::CheckCompression(fptr, name, compressed);
-#if __GNUG__<3
+#if __GNUC__<3
 	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;
 #else
 	    pfbuf = new fileptr_filebuf(fptr, input);
@@ -90,7 +90,7 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
 	}
 	
         if (_valid) {
-#if __GNUG__<3
+#if __GNUC__<3
 	    istream in(&fbuf);
 #else
 	    istream in(pfbuf);
@@ -116,7 +116,7 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
 		comp = nil;
 	    }
         }
-#if __GNUG__>=3
+#if __GNUC__>=3
 	delete pfbuf;
 #endif
     }

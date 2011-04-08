@@ -64,7 +64,7 @@ protected:
   // host we are connected to.
 
   OvImportCmd* _import_cmd; // associated import command
-#if __GNUG__<3
+#if __GNUC__<3
   filebuf* _filebuf;
 #else				 
   fileptr_filebuf* _filebuf;        // associated input buffer#

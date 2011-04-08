@@ -60,7 +60,7 @@ extern "C" {
 #endif
 }
 
-#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2) && __GNUG__<3
+#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2) && __GNUC__<3
 #define fds_bits __fds_bits
 #endif
 
@@ -633,7 +633,7 @@ int Dispatcher::waitFor(
 ) {
     int nfound;
 #ifdef SV_INTERRUPT                   /* BSD-style */
-#if defined(sun) && defined(__GNUG__)
+#if defined(sun) && defined(__GNUC__)
     static struct sigaction sv, osv;
 #else
     static struct sigvec sv, osv;
@@ -648,7 +648,7 @@ int Dispatcher::waitFor(
 
     if (!_cqueue->isEmpty()) {
 #ifdef SV_INTERRUPT                   /* BSD-style */
-#if defined(sun) && defined(__GNUG__)
+#if defined(sun) && defined(__GNUC__)
 	sv.sa_handler = fxSIGVECHANDLER(&Dispatcher::sigCLD);
 	sv.sa_flags = SV_INTERRUPT;
 	sigaction(SIGCLD, &sv, &osv);
@@ -694,7 +694,7 @@ int Dispatcher::waitFor(
     } while (nfound < 0 && !handleError());
     if (!_cqueue->isEmpty()) {
 #ifdef SV_INTERRUPT                   /* BSD-style */
-#if defined(sun) && defined(__GNUG__)
+#if defined(sun) && defined(__GNUC__)
 	sigaction(SIGCLD, &osv, (struct sigaction*) 0);
 #else
 	sigvec(SIGCLD, &osv, (struct sigvec*) 0);

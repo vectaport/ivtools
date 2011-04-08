@@ -1,6 +1,8 @@
 #ifndef ivtools_stdio_h
 #define ivtools_stdio_h
 
+#include <string.h> /* to work-around RedHat 7.* problem */
+
 #if defined(__cplusplus)
 #include_next <stdio.h>
 #else

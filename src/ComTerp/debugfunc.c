@@ -30,7 +30,7 @@
 #else
 #include <vector.h>
 #endif
-#if __GNUG__>=3
+#if __GNUC__>=3
 #include <fstream.h>
 #endif
 
@@ -87,7 +87,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   cerr << sbuf2_s.str();
 
   comterp()->push_servstate();
-#if __GNUG__<3
+#if __GNUC__<3
   filebuf fbufin;
   if (comterp()->handler()) {
     int fd = max(0, comterp()->handler()->get_handle());
@@ -99,7 +99,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
 		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
 #endif
   istream in(&fbufin);
-#if __GNUG__<3
+#if __GNUC__<3
   filebuf fbufout;
   if (comterp()->handler()) {
     int fd = max(1, comterp()->handler()->get_handle());

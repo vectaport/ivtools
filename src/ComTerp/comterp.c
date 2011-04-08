@@ -59,7 +59,7 @@
 #include <string.h>
 #include <strstream.h>
 #include <unistd.h>
-#if __GNUG__>=3
+#if __GNUC__>=3
 #include <fstream.h>
 #endif
 
@@ -287,7 +287,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stepflag()) {
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf fbufout;
       fbufout.attach(handler() ? Math::max(1, handler()->get_handle()) : fileno(stdout));
 #else
@@ -876,7 +876,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   errbuf_save[0] = '\0';
   
 
-#if __GNUG__<3
+#if __GNUC__<3
   filebuf fbuf;
   if (handler()) {
     int fd = Math::max(1, handler()->get_handle());
@@ -1108,7 +1108,7 @@ int ComTerp::runfile(const char* filename) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
-#if __GNUG__<3
+#if __GNUC__<3
 	        filebuf obuf(1);
 #else
 	        fileptr_filebuf obuf(stdout, ios_base::out);

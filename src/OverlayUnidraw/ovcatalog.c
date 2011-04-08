@@ -181,7 +181,7 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
         _valid = true;
 
     } else {
-#if __GNUG__<3	  
+#if __GNUC__<3	  
         filebuf fbuf;
 	if (strcmp(name, "-") == 0) {
 	    _valid = fbuf.attach(fileno(stdin)) != 0;

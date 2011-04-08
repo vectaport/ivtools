@@ -34,7 +34,7 @@
 
 #define TITLE "CtrlFunc"
 
-#if __GNUG__>=3
+#if __GNUC__>=3
 static char newline;
 #endif
 
@@ -129,7 +129,7 @@ void RemoteFunc::execute() {
       return;
     }
 
-#if __GNUG__<3
+#if __GNUC__<3
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
 #else
@@ -142,7 +142,7 @@ void RemoteFunc::execute() {
     if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
     out.flush();
     if (nowaitv.is_false()) {
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf ifbuf;
       ifbuf.attach(socket.get_handle());
       istream in(&ifbuf);

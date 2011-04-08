@@ -55,7 +55,7 @@ PointObj ip(0,0);
 FPointObj fp(0.,0.);
 #endif
 
-#if __GNUG__>=3
+#if __GNUC__>=3
 static char newline;
 #endif
 
@@ -128,7 +128,7 @@ int main(int argc, char *argv[]) {
 
     if (!telcat_flag) {
       
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf obuf;
       obuf.attach(server.get_handle());
 #else
@@ -137,7 +137,7 @@ int main(int argc, char *argv[]) {
 #endif
       ostream out(&obuf);
       
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf ibuf;
       ibuf.attach(server.get_handle());
 #else
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
 	if (feof(inptr)) break;
 	out << buffer;
 	out.flush();
-#if __GNUG__<3
+#if __GNUC__<3
 	char* inbuf;
 	char ch;
 	ch = in.get();
@@ -180,7 +180,7 @@ int main(int argc, char *argv[]) {
 #endif
       }
 
-#if __GNUG__>=3
+#if __GNUC__>=3
       if (ofptr) fclose(ofptr);
       if (ifptr) fclose(ifptr);
 #endif
@@ -188,7 +188,7 @@ int main(int argc, char *argv[]) {
     } else if (inptr) {
 
 
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf inbuf;
       inbuf.attach(fileno(inptr));
 #else
@@ -197,7 +197,7 @@ int main(int argc, char *argv[]) {
       istream in(&inbuf);
       
 
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf obuf;
       obuf.attach(server.get_handle());
 #else
@@ -213,7 +213,7 @@ int main(int argc, char *argv[]) {
 	  out.write(buffer, in.gcount());
       }
       out.flush();
-#if __GNUG__>=3
+#if __GNUC__>=3
       if (ofptr) fclose(ofptr);
 #endif
     } else 

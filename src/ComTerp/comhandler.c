@@ -125,7 +125,7 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 	    return -1;
 	} else {
 	    if (!comterp_->stack_empty()) {
-#if __GNUG__<3
+#if __GNUC__<3
 	      filebuf obuf(1);
 #else
 	      fileptr_filebuf obuf(stdout, ios_base::out);
@@ -153,7 +153,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 #endif
     char ch;
 
-#if __GNUG__<3
+#if __GNUC__<3
     filebuf ibuf(fd);
     istream istr(&ibuf);
 
@@ -190,7 +190,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     if (!comterp_ || !input_good)
       return -1;
     else if (!inbuf || !*inbuf) {
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf obuf(fd ? fd : 1);
       ostream ostr(&obuf);
       ostr << "\n";
@@ -216,7 +216,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     } else {
       if (inbuf[0]!='\004')
 	cout << inbuf << "\n";
-#if __GNUG__<3
+#if __GNUC__<3
       filebuf obuf(fd ? fd : 1);
       ostream ostr(&obuf);
       ostr << "\n";

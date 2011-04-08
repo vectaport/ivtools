@@ -34,7 +34,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 
 #include <iostream.h>
 #include <strstream.h>
-#if __GNUG__>=3
+#if __GNUC__>=3
 #include <fstream.h>
 #endif
 
@@ -127,7 +127,7 @@ void HelpFunc::execute() {
   reset_stack();
 
   strstreambuf sbuf;
-#if __GNUG__<3
+#if __GNUC__<3
   filebuf fbuf;
   if (comterp()->handler()) {
     int fd = Math::max(1, comterp()->handler()->get_handle());
@@ -168,7 +168,7 @@ void HelpFunc::execute() {
 #else
 	    *out << '\n';
 #endif
-#if __GNUG__<3
+#if __GNUC__<3
 	  out->form(comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
 #else
 	  {
@@ -198,7 +198,7 @@ void HelpFunc::execute() {
 		  first = false;
 		else
 		  out->put('\n');
-#if __GNUG__<3
+#if __GNUC__<3
 		out->form(comfunc->docstring(), symbol_pntr(value->command_symid()));
 #else
 		{

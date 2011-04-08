@@ -337,7 +337,7 @@ String::operator const char*() const {
 };
 
 ostream& operator<< (ostream& out, const String& str) {
-#if defined(sun) && !defined(solaris) || __GNUG__>=3
+#if defined(sun) && !defined(solaris) || __GNUC__>=3
   out.write(str.string(), str.length());
 #else
   out.write(str.string(), (streamsize)str.length());

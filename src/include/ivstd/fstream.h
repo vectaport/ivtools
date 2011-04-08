@@ -1,10 +1,10 @@
 #ifndef _iv_fstream_
 #define _iv_fstream_
 #include_next <fstream.h>
-#if __GNUG__>=3
+#if __GNUC__>=3
 #define input ios_base::in
 #define output ios_base::out
-#if __GNUG__>3 || __GNUG__==3 && __GNUC_MINOR__>0
+#if __GNUC__>3 || __GNUC__==3 && __GNUC_MINOR__>0
 #include <ext/stdio_filebuf.h>
 #define fileptr_filebuf __gnu_cxx::stdio_filebuf<char>
 #else

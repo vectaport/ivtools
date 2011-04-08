@@ -60,7 +60,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#if __GNUG__<3
+#if __GNUC__<2 || __GNUC__==2 && __GNUC_MINOR__<96
 extern "C" 
 {
   char* realpath();

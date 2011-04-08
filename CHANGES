@@ -1,3 +1,8 @@
+August 2nd, 2002  ivtools-1.0.6
+
+- more changes for compiling with gcc-2.96 on RedHat 7.*
+
+
 August 1st, 2002  ivtools-1.0.5
 
 - various compile time fixes for Solaris and Cygwin.

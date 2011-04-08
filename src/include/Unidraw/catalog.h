@@ -227,7 +227,7 @@ protected:
     ObjectMap* _curMap;
     ObjectMap* _substMap;
     float _fileVersion;
-#ifdef __GNUG__
+#ifdef __GNUC__
     char* _tmpfile;
 #endif
 
