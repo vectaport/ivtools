@@ -134,7 +134,7 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
 		MAX_ERROR_OPENS );
     
     /* Attempt to open error file */
-    errpath = getenv( "COMTERP_PATH" );
+    errpath = (char*)getenv( "COMTERP_PATH" );
     if (errpath) {
 	strcpy( fullpath, errpath );
 	strcat( fullpath, "/" );

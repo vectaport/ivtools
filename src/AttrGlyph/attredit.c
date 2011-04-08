@@ -43,7 +43,8 @@
 
 #include <strstream.h>
 #include <string.h>
-#if defined(LibStdCPlusPlus2) || defined(LibStdCPlusPlus3)
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+#else
 #define STL_VECTOR
 #include <vector.h>
 #endif

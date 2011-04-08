@@ -44,7 +44,7 @@ extern "C" {
 #define SOMAXCONN 5
 #endif
 
-#if defined(__sun) || !defined(__svr4__)
+#if defined(__sun) && !defined(__svr4__)
 extern "C" {
     int accept();
     int bind();
@@ -53,6 +53,10 @@ extern "C" {
     int listen();
     int socket();
 }
+#endif
+
+#if !defined(SOCKLEN_T_DEFINED) || !SOCKLEN_T_DEFINED
+typedef int socklen_t;
 #endif
 
 // I need a pointer to an iostreamb so I can insert and extract values

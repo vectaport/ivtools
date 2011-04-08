@@ -95,7 +95,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   } else
     fbufin.attach(fileno(stdin));
 #else
-  filebuf fbufin(comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
+  fileptr_filebuf fbufin(comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
 		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
 #endif
   istream in(&fbufin);
@@ -107,7 +107,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   } else
     fbufout.attach(fileno(stdout));
 #else
-  filebuf fbufout(comterp()->handler() && comterp()->handler()->wrfptr()
+  fileptr_filebuf fbufout(comterp()->handler() && comterp()->handler()->wrfptr()
 		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #endif
   ostream out(&fbufout);

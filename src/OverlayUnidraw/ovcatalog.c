@@ -212,7 +212,7 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
 	  name = nil;
 	}
 	if (!_valid && !ParamList::urltest(name)) return false;
-        filebuf fbuf(stdin_flag ? stdin : fptr, ios_base::in);
+        fileptr_filebuf fbuf(stdin_flag ? stdin : fptr, ios_base::in);
 #endif
 	
         if (_valid || ParamList::urltest(name)) {

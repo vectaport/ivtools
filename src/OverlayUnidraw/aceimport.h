@@ -35,7 +35,7 @@
 #include <ace/SOCK_Acceptor.h>
 
 class OvImportCmd;
-class filebuf;
+#include <fstream.h>
 #include <iosfwd>
 
 //: handler for import by socket into OverlayUnidraw.
@@ -64,7 +64,11 @@ protected:
   // host we are connected to.
 
   OvImportCmd* _import_cmd; // associated import command
-  filebuf* _filebuf;        // associated input buffer
+#if __GNUG__<3
+  filebuf* _filebuf;
+#else				 
+  fileptr_filebuf* _filebuf;        // associated input buffer#
+#endif
   istream* _inptr;          // associated input stream
   FILE* _infptr;            // associated FILE*
 };

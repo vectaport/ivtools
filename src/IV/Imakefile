@@ -195,7 +195,7 @@ DispatchObjFlags(dispatcher,$(OPTIMIZE_CCFLAGS))
 DispatchObj(iohandler)
 #if BuildRPCClasses
 DispatchObj(iostreamb)
-DispatchObj(rpcbuf)
+DispatchObjFlags(rpcbuf,-DSOCKLEN_T_DEFINED=$(SOCKLEN_T_DEFINED))
 DispatchObj(rpchdr)
 DispatchObj(rpcpeer)
 DispatchObj(rpcreader)

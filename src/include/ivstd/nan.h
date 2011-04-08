@@ -8,13 +8,16 @@
 #else
 #include <math.h>
 #endif
+#if defined(__sun__) && defined(__svr4__)
+#include <ieeefp.h>
+#endif
 
 #if defined(__sun__) && defined(__svr4__) || defined(__CYGWIN__) || defined(__linux__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__APPLE__)
-#define isnanorinf(dval) (isnan(dval)||isinf(dval))
+#define isnanorinf(dval) (!finite(dval))
 #elif defined(__alpha)
 #define isnanorinf(dval) (IsNANorINF(dval))
 #else
-#define isnanorinf(dval) (dval==NAN /* || dval==INF */)
+#define isnanorinf(dval) (!finite(dval)) /* (dval==NAN || dval==INF ) */
 #endif
 
 

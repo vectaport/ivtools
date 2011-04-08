@@ -224,7 +224,7 @@ int OverlayFileScript::ReadPathName (istream& in, void* addr1, void* addr2, void
 	ifstream ifs;
 	ifs.rdbuf()->attach(fileno(fptr));
 #else
-	filebuf fbuf(fptr, ios_base::in);
+	fileptr_filebuf fbuf(fptr, ios_base::in);
 	istream ifs(&fbuf);
 #endif
 	OverlayComp* child = (OverlayComp*) impcmd.Import(ifs);

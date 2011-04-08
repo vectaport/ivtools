@@ -201,12 +201,12 @@ void MultiLineObj::AddLine (double x0, double y0, double x1, double y1) {
 	GrowBuf();
     } 
     if (mlcount == 0) {
-	mlx[mlcount] = round(x0);
-	mly[mlcount] = round(y0);
+	mlx[mlcount] = Math::round(x0);
+	mly[mlcount] = Math::round(y0);
 	++mlcount;
     }
-    mlx[mlcount] = round(x1);
-    mly[mlcount] = round(y1);
+    mlx[mlcount] = Math::round(x1);
+    mly[mlcount] = Math::round(y1);
     ++mlcount;
 }
 

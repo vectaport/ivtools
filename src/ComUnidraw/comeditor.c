@@ -59,6 +59,7 @@
 #include <Attribute/attrlist.h>
 
 #include <strstream.h>
+#include <string.h>
 
 /*****************************************************************************/
 

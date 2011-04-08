@@ -54,7 +54,7 @@ void PostFixFunc::execute() {
   } else
     fbuf.attach(fileno(stdout));
 #else
-  filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+  fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #endif
   ostream out(&fbuf);

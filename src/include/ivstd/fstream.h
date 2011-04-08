@@ -4,6 +4,12 @@
 #if __GNUG__>=3
 #define input ios_base::in
 #define output ios_base::out
+#if __GNUG__>3 || __GNUG__==3 && __GNUC_MINOR__>0
+#include <ext/stdio_filebuf.h>
+#define fileptr_filebuf __gnu_cxx::stdio_filebuf<char>
+#else
+#define fileptr_filebuf filebuf
+#endif
 #else
 #define input "r"
 #define output "w"

@@ -33,6 +33,7 @@
 #include <Unidraw/iterator.h>
 
 #include <iostream.h>
+#include <string.h>
 
 #define TITLE "SymbolFunc"
 

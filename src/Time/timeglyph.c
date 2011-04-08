@@ -37,6 +37,7 @@
 #include <OS/string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 declareActionCallback(ObservableTime)
 implementActionCallback(ObservableTime)
@@ -56,7 +57,6 @@ TimeGlyph::TimeGlyph(Style* s, ObservableTime* tm, boolean editable)
     time_->attach(this);
     WidgetKit& kit_ = *WidgetKit::instance();
     const LayoutKit& layout_ = *LayoutKit::instance();
-    Style* s = kit_.style();
 
     Date date(time_->time()->date());
     StringList* wdaylist = new StringList(7);

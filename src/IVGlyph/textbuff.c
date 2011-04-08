@@ -32,6 +32,7 @@ extern "C" {
 #include <OS/memory.h>
 #include <OS/string.h>
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 

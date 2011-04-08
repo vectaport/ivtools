@@ -58,6 +58,7 @@
 #include <string.h>
 #include <sys/param.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 #if __GNUG__<3
 extern "C" 

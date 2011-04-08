@@ -29,6 +29,9 @@
  */
 // #define OPEN_DRAWTOOL_URL // define for drawtool document loading from a URL
 
+// #define RASTER_INCREMENTAL_DISPLAY // enable incremental display when doing
+                                   // incremental download
+
 #include <OverlayUnidraw/grayraster.h>
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
@@ -93,6 +96,8 @@
 
 #include <Dispatch/iohandler.h>
 #include <Dispatch/dispatcher.h>
+
+#include <ctype.h>
 #include <fstream.h>
 #include <string.h>
 #include <strstream.h>
@@ -558,6 +563,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
     rr->GetOverlayRaster()->rep()->modified_ = true;
     OverlayPainter::Uncache(_itr->raster());
 
+#ifdef RASTER_INCREMENTAL_DISPLAY
     // sets the damage indicator on the view side raster graphic
     // in RasterOvView::Update
     
@@ -567,6 +573,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
     rr->damage_done(0); 
 
     unidraw->Update();
+#endif
   }
 
   _save.seekp(0);
@@ -597,7 +604,7 @@ int ReadImageHandler::inputReady(int fd) {
     ifs->rdbuf()->attach(_fd);
 #else
     FILE* ifptr = fdopen(_fd, "r");
-    filebuf* fbuf = new filebuf(ifptr, ios_base::in);
+    fileptr_filebuf* fbuf = new fileptr_filebuf(ifptr, ios_base::in);
     istream* ifs = new istream(fbuf);
 #endif
     _helper.add_stream(ifs);
@@ -652,6 +659,13 @@ int ReadImageHandler::inputReady(int fd) {
     }
     else if (stat == 0) {                         // eof
       // cerr << "im: " << _fd << ", EOF, closing" << endl;
+
+#ifndef RASTER_INCREMENTAL_DISPLAY
+      _comp->Notify();    
+      // rr->damage_done(0); 
+      unidraw->Update();
+#endif
+
       delete this;
       return -1;              // don't ever call me again (i.e., detach me)
     } 
@@ -971,14 +985,9 @@ const char* OvImportCmd::ReadCreator (istream& in, FileType& ftype) {
       if (ftype==UnknownFile) ftype = OvImportCmd::PostScriptFile;
     }
 
-    /* other PostScript files */
-    if (!*creator && strncmp(line, "%!PS", 4)==0) {
-      ftype = OvImportCmd::PostScriptFile;
-      strcpy(creator, "PostScript");
-    }
-    
     /* fullup idraw format */
     if (!*creator && line[0] == '%' && line[1] == '!' ) {
+      ftype = OvImportCmd::PostScriptFile;
       do {
 	if (sscanf(line, "%%%%Creator: %s", creator)) {
 	  break;
@@ -988,9 +997,8 @@ const char* OvImportCmd::ReadCreator (istream& in, FileType& ftype) {
 	}
       } while (in.getline(line, linesz) != NULL);
       chcnt = 0;
-      if (*creator && ftype==UnknownFile) ftype = OvImportCmd::PostScriptFile;
+      if (!*creator) strcpy(creator, "PostScript");
     }
-    
     
     if (!*creator) {
       char *ptr = line;
@@ -1089,7 +1097,7 @@ void OvImportCmd::Execute () {
 	  ifstream* ifs = new ifstream;
           ifs->rdbuf()->attach(fileno(fptr));
 #else
-	  filebuf* fbuf = new filebuf(fptr, ios_base::in);
+	  fileptr_filebuf* fbuf = new fileptr_filebuf(fptr, ios_base::in);
 	  istream* ifs = new istream(fbuf);
 #endif
 	  inptr_ = ifs;
@@ -1395,7 +1403,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       ifstream* in = new ifstream;
       in->rdbuf()->attach(fileno(fptr));
 #else
-      filebuf* fbuf = new filebuf(fptr, ios_base::in);
+      fileptr_filebuf* fbuf = new fileptr_filebuf(fptr, ios_base::in);
       istream* in = new istream(fbuf);
 #endif
       helper_->add_stream(in);
@@ -1484,7 +1492,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  ifstream* ifs = new ifstream;
           ifs->rdbuf()->attach(fileno(gunzip_fptr));
 #else
-	  filebuf* fbuf = new filebuf(gunzip_fptr, ios_base::in);
+	  fileptr_filebuf* fbuf = new fileptr_filebuf(gunzip_fptr, ios_base::in);
 	  istream* ifs = new istream(fbuf);
 #endif
           helper.add_stream(ifs);
@@ -1498,7 +1506,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
           ifs->rdbuf()->attach(newfd);
 #else
 	  FILE* ifptr = fdopen(newfd, "r");
-	  filebuf* fbuf = new filebuf(ifptr, ios_base::in);
+	  fileptr_filebuf* fbuf = new fileptr_filebuf(ifptr, ios_base::in);
 	  istream* ifs = new istream(fbuf);
 	  helper.add_file(ifptr);
 #endif
@@ -1546,7 +1554,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 #else
 	  FILE* ifptr = fdopen(new_fd, "r");
 	  helper.add_file(ifptr);
-	  filebuf fbuf(ifptr, ios_base::in);
+	  fileptr_filebuf fbuf(ifptr, ios_base::in);
 	  istream new_in(&fbuf);
 #endif
 	  comp = catalog->ReadPostScript(new_in);
@@ -1582,7 +1590,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    ifstream new_in;
             new_in.rdbuf()->attach(fileno(pptr));
 #else
-	    filebuf fbuf(pptr, ios_base::in);
+	    fileptr_filebuf fbuf(pptr, ios_base::in);
 	    istream new_in(&fbuf);
 #endif
 	    comp = PNM_Image(new_in);
@@ -1646,7 +1654,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    ifstream* new_in = new ifstream;
             new_in->rdbuf()->attach(fileno(pptr));
 #else
-	    filebuf* fbuf = new filebuf(pptr, ios_base::in);
+	    fileptr_filebuf* fbuf = new fileptr_filebuf(pptr, ios_base::in);
 	    istream* new_in = new istream(fbuf);
 #endif
             helper.add_stream(new_in);
@@ -1676,7 +1684,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    ifstream new_in;
             new_in.rdbuf()->attach(fileno(pptr));
 #else
-	    filebuf fbuf(pptr, ios_base::in);
+	    fileptr_filebuf fbuf(pptr, ios_base::in);
 	    istream new_in(&fbuf);
 #endif
 	    comp = PNM_Image(new_in);
@@ -2447,7 +2455,7 @@ GraphicComp* OvImportCmd::PNM_Image_Filter (
     in2.rdbuf()->attach(outfd);
 #else
     FILE* infptr = fdopen(outfd, "r");
-    filebuf fbuf(infptr, ios_base::in);
+    fileptr_filebuf fbuf(infptr, ios_base::in);
     istream in2(&fbuf);
 #endif
 

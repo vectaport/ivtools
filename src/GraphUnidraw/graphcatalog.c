@@ -48,6 +48,7 @@
 
 #include <InterViews/transformer.h>
 
+#include <ctype.h>
 #include <stdio.h>
 #include <stream.h>
 #include <string.h>
@@ -83,7 +84,7 @@ boolean GraphCatalog::Retrieve (const char* pathname, Component*& comp) {
 #if __GNUG__<3
 	    _valid = fbuf.attach(fileno(stdin)) != 0;
 #else
-	    pfbuf = new filebuf(stdin, input);
+	    pfbuf = new fileptr_filebuf(stdin, input);
 	    _valid = 1;
 #endif
 	    name = nil;
@@ -93,7 +94,7 @@ boolean GraphCatalog::Retrieve (const char* pathname, Component*& comp) {
 #if __GNUG__<3
 	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;
 #else
-	    pfbuf = new filebuf(fptr, input);
+	    pfbuf = new fileptr_filebuf(fptr, input);
 	    _valid = fptr ? 1 : 0;
 #endif
 	    if (compressed) {

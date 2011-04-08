@@ -291,7 +291,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
       filebuf fbufout;
       fbufout.attach(handler() ? Math::max(1, handler()->get_handle()) : fileno(stdout));
 #else
-      filebuf fbufout(handler() && handler()->wrfptr() 
+      fileptr_filebuf fbufout(handler() && handler()->wrfptr() 
 		      ? handler()->wrfptr() : stdout, 
 		      ios_base::out);
 #endif
@@ -884,7 +884,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   } else
     fbuf.attach(fileno(stdout));
 #else
-  filebuf fbuf(handler() && handler()->wrfptr() 
+  fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
 	       ? handler()->wrfptr() : stdout, 
 	       ios_base::out);
 #endif
@@ -1111,7 +1111,7 @@ int ComTerp::runfile(const char* filename) {
 #if __GNUG__<3
 	        filebuf obuf(1);
 #else
-	        filebuf obuf(stdout, ios_base::out);
+	        fileptr_filebuf obuf(stdout, ios_base::out);
 #endif
 		ostream ostr(&obuf);
 		ostr << "err\n";

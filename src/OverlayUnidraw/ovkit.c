@@ -294,8 +294,8 @@ void OverlayKit::InitViewer () {
      * These statements had to be moved down here to workaround
      * a strange cfront 3.0 bug.
      */
-    float w = round(atof(page_w) * ivinches);
-    float h = round(atof(page_h) * ivinches);
+    float w = Math::round(atof(page_w) * ivinches);
+    float h = Math::round(atof(page_h) * ivinches);
     if (page_cols && page_rows) {
       int ncols = atoi(page_cols);
       int nrows = atoi(page_rows);

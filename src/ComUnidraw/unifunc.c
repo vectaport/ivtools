@@ -460,11 +460,11 @@ void ExportFunc::execute() {
 	if (handler) {
 	  ACE_SOCK_Stream peer = handler->peer();
 	  ofptr = fdopen(peer.get_handle(), "r");
-	  pfbuf = new filebuf(ofptr, output);
+	  pfbuf = new fileptr_filebuf(ofptr, output);
 	}
 	else 
 #endif
-	  pfbuf = new filebuf(stdout, output);
+	  pfbuf = new fileptr_filebuf(stdout, output);
     }
 
     else {
@@ -482,12 +482,12 @@ void ExportFunc::execute() {
     
             if (conn.connect (*socket, addr) == -1)
                 ACE_ERROR ((LM_ERROR, "%p\n", "open"));
-            pfbuf = new filebuf(ofptr = fdopen(socket->get_handle(), "r"), output);
+            pfbuf = new fileptr_filebuf(ofptr = fdopen(socket->get_handle(), "r"), output);
         } else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
-            pfbuf = new filebuf(comterp()->handler()->rdfptr(), output);
+            pfbuf = new fileptr_filebuf(comterp()->handler()->rdfptr(), output);
         } else
 #endif
-            pfbuf = new filebuf(stdout, output);
+            pfbuf = new fileptr_filebuf(stdout, output);
     }
 
 #endif

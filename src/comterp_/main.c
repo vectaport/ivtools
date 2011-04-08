@@ -32,6 +32,8 @@ static u_short SERVER_PORT = 20000;
 static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #endif
 
+#include <fstream.h>
+
 #include <iostream.h>
 #include <string.h>
 
@@ -131,7 +133,7 @@ int main(int argc, char *argv[]) {
       obuf.attach(server.get_handle());
 #else
       FILE* ofptr = nil;
-      filebuf obuf(ofptr = fdopen(server.get_handle(), "w"), ios_base::out);
+      fileptr_filebuf obuf(ofptr = fdopen(server.get_handle(), "w"), ios_base::out);
 #endif
       ostream out(&obuf);
       
@@ -140,7 +142,7 @@ int main(int argc, char *argv[]) {
       ibuf.attach(server.get_handle());
 #else
       FILE* ifptr = nil;
-      filebuf ibuf(ifptr = fdopen(server.get_handle(), "r"), ios_base::in);
+      fileptr_filebuf ibuf(ifptr = fdopen(server.get_handle(), "r"), ios_base::in);
 #endif
       
       istream in(&ibuf);
@@ -190,7 +192,7 @@ int main(int argc, char *argv[]) {
       filebuf inbuf;
       inbuf.attach(fileno(inptr));
 #else
-      filebuf inbuf(inptr, ios_base::in);
+      fileptr_filebuf inbuf(inptr, ios_base::in);
 #endif
       istream in(&inbuf);
       
@@ -200,7 +202,7 @@ int main(int argc, char *argv[]) {
       obuf.attach(server.get_handle());
 #else
       FILE* ofptr = nil;
-      filebuf obuf(fdopen(server.get_handle(), "w"), ios_base::out);
+      fileptr_filebuf obuf(fdopen(server.get_handle(), "w"), ios_base::out);
 #endif
       ostream out(&obuf);
 

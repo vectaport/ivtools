@@ -1,3 +1,37 @@
+August 1st, 2002  ivtools-1.0.5
+
+- various compile time fixes for Solaris and Cygwin.
+
+- a proper fix for handling non-idraw PostScript.  An improper fix was
+introduced in ivtools-1.0.3 that made all idraw format files get
+filtered through pstoedit (if you had it).  Pointed out by Todd Gruhn.
+
+- changes required to compile ivtools with gcc-3.1.  Most all in the area
+of migrating from use of an fstream constructor that accepted a FILE*
+to use of a derivative class (__gnu_cxx::stdio_filebuf<char>) that does
+the same.  Wrapped up the difference between 3.0.* and 3.1 by 
+conditionally defining a fileptr_fstream in src/include/ivstd/fstream.h
+to filebuf for 3.0.* and __gnu_cxx::stdio_filebuf<char> for 3.1.
+
+** Constant evolution of the behavior and API of filebuf has been the
+single most challenging aspect of keeping ivtools compiling with gcc
+and working for the past decade.  I really hope things will be stable
+for the next decade. **
+
+- fixes for using ACE and ivtools with gcc-3.1
+
+- fix up compiling with ACE using less than gcc-3.*
+
+- disable incremental display while incrementally loading from a URL.
+A placeholder raster still gets inserted before the connection is
+established, and the rest of the download and display is asynchronous,
+which avoids hanging on a net connection.
+
+- compilation fixes based on feedback from Gregory Kriehn.  Mostly
+adding #include <string.h> where missing.  Don't know why this wasn't
+a problem in every environment.  Should improve support for RedHat 7.*.
+
+
 June 21st, 2002  ivtools-1.0.4
 
 - give special meaning to a set of parentheses that proceed the

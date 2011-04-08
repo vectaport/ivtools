@@ -136,7 +136,7 @@ void HelpFunc::execute() {
   ostream outs( comterp()->handler() ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
   ostream *out = &outs;
 #else
-  filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+  fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #if 1
   ostream outs(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);

@@ -30,6 +30,7 @@
 #include <IVGlyph/importchooser.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
+#include <fstream.h>
 #include <stdio.h>
 
 /*****************************************************************************/
@@ -93,7 +94,7 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
     if(fbuf.attach(fd)==0) return -1;
 #else
     if (!_infptr) _infptr = fdopen(fd, "r");
-    filebuf fbuf(_infptr, ios_base::in);
+    fileptr_filebuf fbuf(_infptr, ios_base::in);
 #endif
     istream in(&fbuf);
     int ch = in.get();

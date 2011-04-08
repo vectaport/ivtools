@@ -154,7 +154,7 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
 #else
     char instr[BUFSIZ];
     FILE* ifptr = fdopen(fd, "r");
-    filebuf fbuf(ifptr, ios_base::in);
+    fileptr_filebuf fbuf(ifptr, ios_base::in);
     istream in (&fbuf);
     in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
 #endif
@@ -198,7 +198,7 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
     fbuf.attach(fd);
 #else
     FILE* ofptr = fdopen(fd, "w");
-    filebuf fbuf(ofptr, ios_base::out);
+    fileptr_filebuf fbuf(ofptr, ios_base::out);
 #endif
     ostream out(&fbuf);
     for (; outpos < bufsize-1 && s[outpos]; outpos++)
@@ -290,7 +290,7 @@ int ComTerpServ::runfile(const char* filename) {
     filebuf ibuf;
     ibuf.open(filename, "r");
 #else
-    filebuf ibuf(fopen(filename, "r"), ios_base::in);
+    fileptr_filebuf ibuf(fopen(filename, "r"), ios_base::in);
 #endif
     istream istr(&ibuf);
     ComValue* retval = nil;
@@ -314,7 +314,7 @@ int ComTerpServ::runfile(const char* filename) {
 	        filebuf obuf(handler() ? handler()->get_handle() : 1);
 #else
                 FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
-	        filebuf obuf(ofptr, ios_base::out);
+	        fileptr_filebuf obuf(ofptr, ios_base::out);
 #endif
 		ostream ostr(&obuf);
 		ostr.flush();
@@ -335,7 +335,7 @@ int ComTerpServ::runfile(const char* filename) {
 	  filebuf obuf(handler() ? handler()->get_handle() : 1);
 #else
           FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
-	  filebuf obuf(ofptr, ios_base::out);
+	  fileptr_filebuf obuf(ofptr, ios_base::out);
 #endif
 	  ostream ostr(&obuf);
 	  ostr.flush();
