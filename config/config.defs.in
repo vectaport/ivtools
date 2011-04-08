@@ -47,6 +47,9 @@
 #undef GPlusPlusIncludeDir
 #define GPlusPlusIncludeDir @CXX_INCLUDE_DIR@
 
+#undef LibStdCPlusPlusV3
+#define LibStdCPlusPlusV3 @LIBSTDCPLUSPLUS3@
+
 #undef InstallRelative
 #define InstallRelative @INSTALLRELATIVE@
 

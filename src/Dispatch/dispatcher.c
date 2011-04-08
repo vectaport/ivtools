@@ -60,7 +60,7 @@ extern "C" {
 #endif
 }
 
-#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2)
+#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2) && __GNUG__<3
 #define fds_bits __fds_bits
 #endif
 
@@ -653,7 +653,7 @@ int Dispatcher::waitFor(
 	sv.sa_flags = SV_INTERRUPT;
 	sigaction(SIGCLD, &sv, &osv);
 #else
-	sv.sv_handler = fxSIGVECHANDLER(&Dispatcher::sigCLD);
+	sv.sv_handler = (void (*)(int)) fxSIGVECHANDLER(&Dispatcher::sigCLD);
 	sv.sv_flags = SV_INTERRUPT;
 	sigvec(SIGCLD, &sv, &osv);
 #endif

@@ -35,8 +35,7 @@
 class ALIterator;
 class LexScan;
 class AList;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: signature of static methods for reading parameter data from an istream.
 typedef int (*param_callback)(istream&, void*, void*, void*, void*);

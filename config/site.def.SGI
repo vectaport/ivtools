@@ -18,7 +18,7 @@
  * build RPC classes -- requires iostreams & TCP sockets
  */
 #undef BuildRPCClasses
-#define BuildRPCClasses YES
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
 #define SOMAXCONN 5
 
 /* Don't need these for when TIFF built with gcc */

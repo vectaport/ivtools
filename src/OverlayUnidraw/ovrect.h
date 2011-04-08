@@ -37,7 +37,7 @@
 #include <IV-2_6/_enter.h>
 
 class SF_Rect;
-class istream;
+#include <iosfwd>
 
 //: clone of RectComp derived from OverlayComp.
 class RectOvComp : public OverlayComp {
@@ -57,7 +57,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovrect_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
 
     CLASS_SYMID("RectComp");
 };

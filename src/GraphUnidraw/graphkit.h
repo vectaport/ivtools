@@ -53,10 +53,10 @@ public:
     static GraphKit* Instance();
     // return default instance of GraphKit.
 
-    static const char mouse_node[]  = "l-click: Add Node; m-drag: Move; r-click/drag: Select";
-    static const char mouse_lnode[]  = "l-click: Add Labeled Node; m-drag: Move; r-click/drag: Select";
-    static const char mouse_labl[]  = "l-click: Type In Label, l-,m-,r-click To Finish";
-    static const char mouse_edge[]  = "l-drag: Connect; m-drag: Move; r-click/drag: Select";
+    static const char* mouse_node;
+    static const char* mouse_lnode;
+    static const char* mouse_labl;
+    static const char* mouse_edge;
 
 protected:
     static GraphKit* _graphkit;

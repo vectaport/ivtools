@@ -50,7 +50,7 @@ ClassId RasterRect::CompId() { return RASTER_COMP; }
 
 void RasterRect::draw (Canvas *c, Graphic* gs) {
     update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef RasterRect
     _p->RasterRect(c, 0, 0, _raster);
 #define RasterRect _lib_iv(RasterRect)

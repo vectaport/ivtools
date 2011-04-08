@@ -37,7 +37,7 @@ extern "C" {
 }
 
 class AttributeValueList;
-class ostream;
+#include <iosfwd>
 
 //: struct for symbol value, symid + global flag for symbol value
 // used in attr_value.

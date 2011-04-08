@@ -41,6 +41,8 @@
 
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <stream.h>
 
 /*****************************************************************************/
@@ -99,6 +101,8 @@ static void CollectFontsFromGraphic (Graphic* gr, UList* fonts) {
 
 /*****************************************************************************/
 
+boolean OverlayPS::idraw_format = true;
+
 ClassId OverlayPS::GetClassId () { return OVERLAY_PS; }
 
 boolean OverlayPS::IsA (ClassId id) {
@@ -107,6 +111,10 @@ boolean OverlayPS::IsA (ClassId id) {
 
 OverlayPS::OverlayPS (OverlayComp* subj) : PostScriptView(subj) {
     _command = nil;
+}
+
+void OverlayPS::Creator (ostream& out) {
+    out << "%%Creator: " << (idraw_format ? "idraw" : "unidraw") << "\n";
 }
 
 UList* OverlayPS::GetPSFonts () {
@@ -299,10 +307,6 @@ boolean OverlayIdrawPS::IsA (ClassId id) {
     return OVERLAY_IDRAW_PS == id || OverlaysPS::IsA(id);
 }
 
-void OverlayIdrawPS::Creator (ostream& out) {
-    out << "%%Creator: idraw\n";
-}
-
 void OverlayIdrawPS::Prologue (ostream& out) {
     out << "%%BeginIdrawPrologue\n";
     ArrowHeader(out);
@@ -320,8 +324,8 @@ void OverlayIdrawPS::GridSpacing (ostream& out) {
 }
 
 void OverlayIdrawPS::ConstProcs (ostream& out) {
-    int arrowWidth = round(ARROWWIDTH*ivpoints);
-    int arrowHeight = round(ARROWHEIGHT*ivpoints);
+    int arrowWidth = Math::round(ARROWWIDTH*ivpoints);
+    int arrowHeight = Math::round(ARROWHEIGHT*ivpoints);
 
     out << "/arrowHeight " << arrowHeight << " def\n";
     out << "/arrowWidth " << arrowWidth << " def\n\n";

@@ -28,8 +28,12 @@
 #include <ComTerp/comterp.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
+#include <OS/math.h>
 #include <iostream.h>
 #include <strstream.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "IoFunc"
 
@@ -55,19 +59,35 @@ void PrintFunc::execute() {
 
   const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
 
+#if __GNUG__<3
   streambuf* strmbuf = nil;
   if (stringflag.is_false() && strflag.is_false() &&
       symbolflag.is_false() && symflag.is_false()) {
     filebuf * fbuf = new filebuf();
     strmbuf = fbuf;
     if (comterp()->handler()) {
-      int fd = max(1, comterp()->handler()->get_handle());
+      int fd = Math::max(1, comterp()->handler()->get_handle());
       fbuf->attach(fd);
     } else
       fbuf->attach(fileno(errflag.is_false() ? stdout : stderr));
   } else {
     strmbuf = new strstreambuf();
   }
+#else
+  streambuf* strmbuf = nil;
+  FILE* ofptr = nil;
+  if (stringflag.is_false() && strflag.is_false() &&
+      symbolflag.is_false() && symflag.is_false()) {
+    filebuf * fbuf = nil;
+    if (comterp()->handler()) {
+      int fd = Math::max(1, comterp()->handler()->get_handle());
+      fbuf = new filebuf(ofptr = fdopen(fd, "w"), ios_base::out);
+    } else
+      fbuf = new filebuf(errflag.is_false() ? stdout : stderr, ios_base::out);
+    strmbuf = fbuf;
+  } else
+    strmbuf = new strstreambuf();
+#endif
   ostream out(strmbuf);
 
   if (nargs()==1) {
@@ -82,43 +102,43 @@ void PrintFunc::execute() {
       {
       case ComValue::SymbolType:
       case ComValue::StringType:
-	out.form(fstr, symbol_pntr( printval.symbol_ref()));
+	out_form(out, fstr, symbol_pntr( printval.symbol_ref()));
 	break;
 	
       case ComValue::BooleanType:
-	out.form(fstr, printval.boolean_ref());
+	out_form(out, fstr, printval.boolean_ref());
 	break;
 	
       case ComValue::CharType:
-	out.form(fstr, printval.char_ref());
+	out_form(out, fstr, printval.char_ref());
 	break;	    
 	
       case ComValue::UCharType:
-	out.form(fstr, printval.uchar_ref());
+	out_form(out, fstr, printval.uchar_ref());
 	break;
 	
       case ComValue::IntType:
-	out.form(fstr, printval.int_ref());
+	out_form(out, fstr, printval.int_ref());
 	break;
 	
       case ComValue::UIntType:
-	out.form(fstr, printval.uint_ref());
+	out_form(out, fstr, printval.uint_ref());
 	break;
 	
       case ComValue::LongType:
-	out.form(fstr, printval.long_ref());
+	out_form(out, fstr, printval.long_ref());
 	break;
 	
       case ComValue::ULongType:
-	out.form(fstr, printval.ulong_ref());
+	out_form(out, fstr, printval.ulong_ref());
 	break;
 	
       case ComValue::FloatType:
-	out.form(fstr, printval.float_ref());
+	out_form(out, fstr, printval.float_ref());
 	break;
 	
       case ComValue::DoubleType:
-	out.form(fstr, printval.double_ref());
+	out_form(out, fstr, printval.double_ref());
 	break;
 	
       case ComValue::ArrayType: 
@@ -146,7 +166,7 @@ void PrintFunc::execute() {
 	break;
 	
       case ComValue::UnknownType:
-	out.form(fstr);
+	out_form(out, fstr, nil);
 	break;
 	
       default:
@@ -166,6 +186,8 @@ void PrintFunc::execute() {
     push_stack(retval);
   }
   delete strmbuf;
-    
+#if __GNUG__>=3
+  if (ofptr) fclose(ofptr);
+#endif
 }
 

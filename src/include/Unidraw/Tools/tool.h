@@ -35,8 +35,7 @@ class Viewer;
 class Event;
 class Manipulator;
 class Transformer;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: base class for tool objects.
 // <a href=../man3.1/Tool.html>man page</a>

@@ -37,7 +37,7 @@
 #define GEOMOBJS_DEFINED
 
 class UList;
-class ostream;
+#include <iosfwd>
 
 //: point geometric object
 // <a href=../man3.1/geomobjs.html>man page</a>

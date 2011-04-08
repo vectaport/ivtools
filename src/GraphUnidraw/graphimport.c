@@ -42,6 +42,8 @@
 #include <Unidraw/unidraw.h>
 #include <Unidraw/viewer.h>
 
+#include <string.h>
+
 /*****************************************************************************/
 
 ClassId GraphImportCmd::GetClassId () { return GRAPHIMPORT_CMD; }

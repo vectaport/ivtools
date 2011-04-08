@@ -102,7 +102,7 @@ protected:
     boolean _autonewframe;
     TelltaleState* _autonewframe_tts;
 
-friend FrameKit;
+friend class FrameKit;
 };
 
 declareActionCallback(FrameEditor)

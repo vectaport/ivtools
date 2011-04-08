@@ -37,7 +37,7 @@
 #include <IV-2_6/_enter.h>
 
 class SF_Ellipse;
-class istream;
+#include <iosfwd>
 
 //: clone of EllipseComp derived from OverlayComp.
 class EllipseOvComp : public OverlayComp {
@@ -59,7 +59,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovellipse_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
 
     CLASS_SYMID("EllipseComp"); 
 };

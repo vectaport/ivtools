@@ -58,6 +58,8 @@
 
 #include <Attribute/attrlist.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -216,7 +218,7 @@ Manipulator* TextOvView::CreateManipulator (
 ) {
     Manipulator* m = nil;
     Editor* ed = v->GetEditor();
-    int tabWidth = round(.5*ivinch);
+    int tabWidth = Math::round(.5*ivinch);
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
         FontVar* fontVar = (FontVar*) ed->GetState("FontVar");

@@ -95,6 +95,8 @@
 #include <InterViews/tray.h>
 #include <InterViews/window.h>
 
+#include <OS/math.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -134,7 +136,7 @@ inline void InsertSeparator (PulldownMenu* pdm) {
 inline PulldownMenu* MakePulldown (const char* name) {
     return new PulldownMenu(
         new HBox(
-            new Message(name, Center, round(.1*ivcm)),
+            new Message(name, Center, Math::round(.1*ivcm)),
             new HGlue(0, 5*strlen(name), 0)
         )
     );
@@ -300,7 +302,7 @@ Interactor* IdrawEditor::Interior () {
     Interactor* commands = new HBox(Commands(), new HGlue);
     HBorder* hborder = new HBorder;
     VBorder* vborder = new VBorder;
-    int gap = round(.1*ivcm);
+    int gap = Math::round(.1*ivcm);
 
     HBox* indicators = new HBox(
         new ArrowVarView(_arrows, _brush, _color),
@@ -494,8 +496,8 @@ void IdrawEditor::InitViewer () {
      * These statements had to be moved down here to workaround
      * a strange cfront 3.0 bug.
      */
-    const float w = round(atof(page_w) * ivinches);
-    const float h = round(atof(page_h) * ivinches);
+    const float w = Math::round(atof(page_w) * ivinches);
+    const float h = Math::round(atof(page_h) * ivinches);
 
     UPage* page = new UPage(w, h);
     Grid* grid = new Grid(w, h, atof(x_incr), atof(y_incr));
@@ -725,7 +727,7 @@ PulldownMenu* IdrawEditor::BrushMenu () {
 
         } else {
             line = new ArrowLine(
-		0, 0, round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic
+		0, 0, Math::round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic
 	    );
             line->SetBrush(br);
             ctrlInfo = new ControlInfo(new ArrowLineComp(line));
@@ -736,25 +738,25 @@ PulldownMenu* IdrawEditor::BrushMenu () {
     InsertSeparator(pdm);
 
     line = new ArrowLine(
-	0, 0, round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic
+	0, 0, Math::round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic
     );
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     Include(new ArrowCmd(ctrlInfo, false, false), pdm);
 
     line = new ArrowLine(
-	0, 0, round(MENU_WIDTH*ivcm), 0, true, false, 1., stdgraphic
+	0, 0, Math::round(MENU_WIDTH*ivcm), 0, true, false, 1., stdgraphic
     );
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     Include(new ArrowCmd(ctrlInfo, true, false), pdm);
 
     line = new ArrowLine(
-	0, 0, round(MENU_WIDTH*ivcm), 0, false, true, 1., stdgraphic
+	0, 0, Math::round(MENU_WIDTH*ivcm), 0, false, true, 1., stdgraphic
     );
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     Include(new ArrowCmd(ctrlInfo, false, true), pdm);
 
     line = new ArrowLine(
-	0, 0, round(MENU_WIDTH*ivcm), 0, true, true, 1., stdgraphic
+	0, 0, Math::round(MENU_WIDTH*ivcm), 0, true, true, 1., stdgraphic
     );
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     Include(new ArrowCmd(ctrlInfo, true, true), pdm);
@@ -777,7 +779,7 @@ PulldownMenu* IdrawEditor::PatternMenu () {
 
         } else {
             SF_Rect* sfr = new SF_Rect(
-                0, 0, round(MENU_WIDTH*ivcm), round(MENU_HEIGHT*ivcm), stdgraphic
+                0, 0, Math::round(MENU_WIDTH*ivcm), Math::round(MENU_HEIGHT*ivcm), stdgraphic
             );
             sfr->SetPattern(pat);
             ctrlInfo = new ControlInfo(new RectComp(sfr));
@@ -799,8 +801,8 @@ PulldownMenu* IdrawEditor::ColorMenu (const char* name, const char* attrib) {
     
     while (color != nil) {
         ControlInfo* ctrlInfo;
-        Coord w = round(MENU_WIDTH*ivcm);
-        Coord h = round(MENU_HEIGHT*ivcm);
+        Coord w = Math::round(MENU_WIDTH*ivcm);
+        Coord h = Math::round(MENU_HEIGHT*ivcm);
 
         SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
 	sfr->SetColors(color, color);

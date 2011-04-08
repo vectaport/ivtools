@@ -54,6 +54,8 @@
 #include <IV-2_6/InterViews/shape.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <IV-2_6/_enter.h>
 
 #include <math.h>
@@ -266,7 +268,7 @@ static void Correct (
 
     float x0 = 0, y0 = 0, x1 = length, y1 = 0;
     corr.TransformRect(x0, y0, x1, y1);
-    length = round(sqrt(square(x0-x1) + square(y0-y1)));
+    length = Math::round(sqrt(square(x0-x1) + square(y0-y1)));
 }
 
 Command* SlotView::InterpGraphicCompManip (Manipulator* m) {
@@ -413,7 +415,7 @@ void SlotGraphic::draw (Canvas* c, Graphic* gs) {
         Coord cy = (b+t)/2;
 
         _p->Rect(c, l, b, r, t);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
         _p->Line(c, l, cy, r, cy);
         _p->Line(c, cx, b, cx, t);

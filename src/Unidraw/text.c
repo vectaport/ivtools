@@ -48,6 +48,8 @@
 #include <IV-2_6/InterViews/textbuffer.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <IV-2_6/_enter.h>
 
 #include <ctype.h>
@@ -190,7 +192,7 @@ Manipulator* TextView::CreateManipulator (
 ) {
     Manipulator* m = nil;
     Editor* ed = v->GetEditor();
-    int tabWidth = round(.5*ivinch);
+    int tabWidth = Math::round(.5*ivinch);
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
         FontVar* fontVar = (FontVar*) ed->GetState("FontVar");

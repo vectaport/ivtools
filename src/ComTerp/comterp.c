@@ -50,12 +50,16 @@
 #include <ComTerp/xformfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
+#include <OS/math.h>
 
 #include <ctype.h>
 #include <iostream.h>
 #include <string.h>
 #include <strstream.h>
 #include <unistd.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "ComTerp"
 
@@ -254,8 +258,13 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stepflag()) {
+#if __GNUG__<3
       filebuf fbufout;
-      fbufout.attach(handler() ? max(1, handler()->get_handle()) : fileno(stdout));
+      fbufout.attach(handler() ? Math::max(1, handler()->get_handle()) : fileno(stdout));
+#else
+      FILE* ofptr = handler() ? fdopen(Math::max(1, handler()->get_handle()), "w") : stdout;
+      filebuf fbufout(ofptr, ios_base::out);
+#endif
       ostream out(&fbufout);
       out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
       static int pause_symid = symbol_add("pause");
@@ -265,6 +274,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
       stepfunc->execute();
       stepfunc->pop_funcstate();
       pop_stack();
+#if __GNUG__>=3
+      if (handler())
+	fclose(ofptr);
+#endif
     }
 
     func->execute();
@@ -791,12 +804,21 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   char errbuf_save[BUFSIZ];
   errbuf_save[0] = '\0';
   
+
+#if __GNUG__<3
   filebuf fbuf;
   if (handler()) {
-    int fd = max(1, handler()->get_handle());
+    int fd = Math::max(1, handler()->get_handle());
     fbuf.attach(fd);
   } else
     fbuf.attach(fileno(stdout));
+#else
+  FILE* ofptr = nil;
+  filebuf fbuf(handler() 
+	       ? (ofptr = fdopen(Math::max(1, handler()->get_handle()), "w"))
+	       : stdout,
+	       ios_base::out);
+#endif
   ostream out(&fbuf);
   boolean eolflag = false;
 
@@ -839,6 +861,9 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   }
   if (status==1 && _pfnum==0) status=2;
   if (nested && status!=2) _stack_top--;
+#if __GNUG__>3
+  if (ofptr) fclose(ofptr);
+#endif
   return status;
 }
 
@@ -1002,7 +1027,11 @@ int ComTerp::runfile(const char* filename) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
+#if __GNUG__<3
 	        filebuf obuf(1);
+#else
+	        filebuf obuf(stdout, ios_base::out);
+#endif
 		ostream ostr(&obuf);
 		ostr << "err\n";
 		ostr.flush();

@@ -37,7 +37,7 @@
 }
 
 class ObjectMap;
-class istream;
+#include <iosfwd>
 
 //: component factory class
 // <a href=../man3.1/Creator.html>man page</a>

@@ -136,6 +136,11 @@ static const int nOpen = 4;
 static Coord xhead[] = { unit, unit-4, unit-7 };
 static Coord yhead[] = { unit, unit-7, unit-4 };
 
+const char* GraphKit::mouse_node = "l-click: Add Node; m-drag: Move; r-click/drag: Select";
+const char* GraphKit::mouse_lnode = "l-click: Add Labeled Node; m-drag: Move; r-click/drag: Select";
+const char* GraphKit::mouse_labl = "l-click: Type In Label, l-,m-,r-click To Finish";
+const char* GraphKit::mouse_edge = "l-drag: Connect; m-drag: Move; r-click/drag: Select";
+
 /******************************************************************************/
 
 GraphKit* GraphKit::_graphkit = nil;

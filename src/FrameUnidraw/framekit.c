@@ -77,9 +77,11 @@
 #include <IV-look/mf_kit.h>
 #include <ComGlyph/comtextedit.h>
 
+#include <OS/math.h>
 #include <OS/string.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #undef None
 
@@ -122,8 +124,8 @@ void FrameKit::InitViewer () {
     Style* style = Session::instance()->style();
     boolean bookgeom = style->value_is_on("bookgeom");
 
-    float w = bookgeom ? 700 : round(atof(page_w) * ivinches);
-    float h = bookgeom ? 906 : round(atof(page_h) * ivinches);
+    float w = bookgeom ? 700 : Math::round(atof(page_w) * ivinches);
+    float h = bookgeom ? 906 : Math::round(atof(page_h) * ivinches);
     if (page_cols && page_rows) {
       int ncols = atoi(page_cols);
       int nrows = atoi(page_rows);

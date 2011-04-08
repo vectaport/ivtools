@@ -31,7 +31,7 @@
 
 #include <InterViews/canvas.h>
 
-class ostream;
+#include <iosfwd>
 class PrinterRep;
 
 class Printer : public Canvas {

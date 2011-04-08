@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-0.9
 
-Instructions for building ivtools-0.9.3 from source:
+Instructions for building ivtools-0.9.4 from source:
 
 0. Compilation Environment
 
@@ -13,15 +13,16 @@ built on Windows NT with the Cygwin utilities from RedHat.  See
 README.cygwin for details.
 
 0.b. The gcc compiler.  Recently we've been building and testing with
-egcs-1.0.3, gcc-2.8.1, and gcc-2.95.2.  gcc-2.7.2 would still work, as
-probably would gcc-2.6.3.  You will also need an equivalent copy of
+egcs-1.0.3, gcc-2.95.*, and gcc-3.0.  gcc-2.8.1 would still work, as
+probably would gcc-2.7.2.  You will also need an equivalent copy of
 libstdc++.  The libstdc++ version numbers stay roughly in synch with
 the gcc version numbers.  If you have gcc-2.8.1 you'd want
 libstdc++-2.8.1, etc..
 
 Versions more recent than gcc-2.95.? are not approved by the gcc
-steering committee at this date, so compilation support for them has
-not been integrated as of yet.
+steering committee at this date.  But attempts have been made to get
+everything compiled with the forthcoming gcc-3.0 if you want to try it
+out.
 
 Also be aware that sometimes the include files for libstdc++ are in
 /usr/local/include/g++-2, a place that cannot be auto-determined by

@@ -549,8 +549,8 @@ Transformer* Viewer::ComputeGravityRel() {
       float affine[6];
       rel->matrix(affine[0], affine[1], affine[2],
 		  affine[3], affine[4], affine[5]);
-      float xdelta = round(affine[4]) - affine[4];
-      float ydelta = round(affine[5]) - affine[5];
+      float xdelta = Math::round(affine[4]) - affine[4];
+      float ydelta = Math::round(affine[5]) - affine[5];
       rel->Translate(xdelta, ydelta);
 
     }

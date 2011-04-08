@@ -12,7 +12,7 @@
 # -------------------------------------------------------------------------
 # from <local.def>:
 
-     GPLUSPLUS_INCLUDE_DIR = /usr/include/g++-2/
+     GPLUSPLUS_INCLUDE_DIR = /usr/local/lib/gcc-lib/i686-pc-linux-gnu/2.95.3/../../../../include/g++-3/
           TOOL_INCLUDE_DIR = /usr/local/include
 
     NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../..  -I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include -I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES)
@@ -78,7 +78,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
               IMAKE = imake
          IMAKEFLAGS = \
 	-T "template"\
-	-I$(ABSTOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
+	-I$(ABSTOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 	$(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
              DEPEND = makedepend
@@ -214,13 +214,13 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = $(RELTOP)/bin/$(ARCH)
-          CONFIGDIR = $(TOP)/config
-             INCDIR = $(TOP)/include
-             LIBDIR = $(RELTOP)/lib/$(ARCH)
-          LIBABSDIR = $(TOP)/lib/$(ARCH)
-          LIBALLDIR = $(TOP)/lib/ivtools
-             MANDIR = $(TOP)/man
+             BINDIR = /usr/local/bin
+          CONFIGDIR = /usr/local/lib/ivtools/config
+             INCDIR = /usr/local/include
+             LIBDIR = /usr/local/lib
+          LIBABSDIR = /usr/local/lib
+          LIBALLDIR = /usr/local/lib/ivtools
+             MANDIR = /usr/local/man
 
        ABSCONFIGDIR = /usr/local/lib/ivtools/config
           ABSLIBDIR = /usr/local/lib

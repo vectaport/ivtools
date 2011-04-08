@@ -36,7 +36,7 @@
 
 class StencilScript;
 class UStencil;
-class istream;
+#include <iosfwd>
 
 //: clone of StencilComp derived from OverlayComp.
 class StencilOvComp : public OverlayComp {
@@ -71,7 +71,7 @@ protected:
     char* _pathname;
     boolean _by_pathname;
 
-friend StencilScript;
+friend class StencilScript;
 
     CLASS_SYMID("StencilComp"); 
 };

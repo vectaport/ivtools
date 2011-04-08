@@ -33,8 +33,7 @@ class Clipboard;
 class OverlayComp;
 class OverlaysComp;
 class OverlayIdrawComp;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: serialized view of OverlayComp.
 // the OverlayScript class hierarchy is a tree of ExternView classes

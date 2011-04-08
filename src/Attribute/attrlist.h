@@ -39,8 +39,7 @@
 
 class ALIterator;
 class AList;
-class istream;
-class ostream;
+#include <iosfwd>
 
 class Attribute;
 class AttributeValue;

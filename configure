@@ -1585,7 +1585,7 @@ if test "$ice_cv_cxx_include_dir" = ""; then
 ice_cv_cxx_include_dir="$prefix/include"
 for pfx in "$prefix" "$exec_prefix"; do
 for dir in "$pfx/lib/g++-include" "$pfx/include/CC" \
-    "$pfx/include" /usr/include /usr/local/include/g++-3 /usr/local/include/g++-2 ; do
+    "$pfx/include" /usr/include /usr/local/include/g++-v3 /usr/local/include/g++-3 /usr/local/include/g++-2 ; do
 if test -d "$dir"; then
 ice_cv_cxx_include_dir="$dir"
 break
@@ -1641,10 +1641,51 @@ LIBS="$ac_save_LIBS"
 fi
 if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
   echo "$ac_t""yes" 1>&6
-  LIBSTDCPLUSPLUS=1
+  LIBSTDCPLUSPLUS2=1
 else
   echo "$ac_t""no" 1>&6
-LIBSTDCPLUSPLUS=0
+LIBSTDCPLUSPLUS2=0
+fi
+
+echo $ac_n "checking for _ZNSi4peekEv in -lstdc++""... $ac_c" 1>&6
+echo "configure:1681: checking for _ZNSi4peekEv in -lstdc++" >&5
+ac_lib_var=`echo stdc++'_'_ZNSi4peekEv | sed 'y%./+-%__p_%'`
+if eval "test \"`echo '$''{'ac_cv_lib_$ac_lib_var'+set}'`\" = set"; then
+  echo $ac_n "(cached) $ac_c" 1>&6
+else
+  ac_save_LIBS="$LIBS"
+LIBS="-lstdc++  $LIBS"
+cat > conftest.$ac_ext <<EOF
+#line 1689 "configure"
+#include "confdefs.h"
+/* Override any gcc2 internal prototype to avoid an error.  */
+/* We use char because int might match the return type of a gcc2
+    builtin and then its argument prototype would still apply.  */
+char _ZNSi4peekEv();
+
+int main() {
+_ZNSi4peekEv()
+; return 0; }
+EOF
+if { (eval echo configure:1700: \"$ac_link\") 1>&5; (eval $ac_link) 2>&5; } && test -s conftest${ac_exeext}; then
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=yes"
+else
+  echo "configure: failed program was:" >&5
+  cat conftest.$ac_ext >&5
+  rm -rf conftest*
+  eval "ac_cv_lib_$ac_lib_var=no"
+fi
+rm -f conftest*
+LIBS="$ac_save_LIBS"
+
+fi
+if eval "test \"`echo '$ac_cv_lib_'$ac_lib_var`\" = yes"; then
+  echo "$ac_t""yes" 1>&6
+  LIBSTDCPLUSPLUS3=1
+else
+  echo "$ac_t""no" 1>&6
+LIBSTDCPLUSPLUS3=0
 fi
 
 
@@ -1731,6 +1772,8 @@ fi
 #AC_SUBST(XGL)
 #AC_SUBST(TCL)
 #AC_SUBST(CXX_HDRDIR)
+
+
 
  
 
@@ -1916,6 +1959,8 @@ s%@CXXCPP@%$CXXCPP%g
 s%@RANLIB@%$RANLIB%g
 s%@CPP@%$CPP%g
 s%@CXX_INCLUDE_DIR@%$CXX_INCLUDE_DIR%g
+s%@LIBSTDCPLUSPLUS2@%$LIBSTDCPLUSPLUS2%g
+s%@LIBSTDCPLUSPLUS3@%$LIBSTDCPLUSPLUS3%g
 s%@x_includes@%$x_includes%g
 s%@x_libraries@%$x_libraries%g
 s%@ACE@%$ACE%g
@@ -2128,8 +2173,10 @@ echo writing \"ABSTOP = `pwd`\"
 echo ABSTOP = `pwd` >>config/config.mk
 echo writing \"CPU = `make CPU`\"
 echo CPU = `make CPU` >>config/config.mk
-echo writing \"LIBSTDCPLUSPLUS = $LIBSTDCPLUSPLUS\"
-echo LIBSTDCPLUSPLUS = $LIBSTDCPLUSPLUS >>config/config.mk
+echo writing \"LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2\"
+echo LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2 >>config/config.mk
+echo writing \"LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3\"
+echo LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3 >>config/config.mk
 echo
 echo "now do a \"make\""
 echo

@@ -59,7 +59,9 @@ declare_4(double)
 
 #endif /* !defined(min) && !defined(max) */
 
+#if __GNUG__<3
 inline int round(double x) { return x > 0 ? int(x+0.5) : -int(-x+0.5); }
+#endif
 
 inline boolean equal(float x, float y, float e) {
     return x - y < e && y - x < e;

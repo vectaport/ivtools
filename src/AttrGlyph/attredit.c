@@ -43,7 +43,7 @@
 
 #include <strstream.h>
 #include <string.h>
-#if LibStdCPlusPlus
+#if defined(LibStdCPlusPlus2) || defined(LibStdCPlusPlus3)
 #define STL_VECTOR
 #include <vector.h>
 #endif

@@ -31,7 +31,7 @@
  * build RPC classes -- requires iostreams & TCP sockets
  */
 #undef BuildRPCClasses
-#define BuildRPCClasses NO
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
 #define SOMAXCONN 5
 
 #undef TIFFCDriver

@@ -43,6 +43,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <math.h>
 #include <stdlib.h>
@@ -425,7 +427,7 @@ boolean ConnectManip::Manipulating (Event& e) {
 
         } else {
             _target->GetGraphic()->GetCenter(cx, cy);
-            r->Track(round(cx), round(cy));
+            r->Track(Math::round(cx), Math::round(cy));
         }
 
     } else if (e.eventType == UpEvent) {

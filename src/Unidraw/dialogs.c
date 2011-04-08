@@ -44,6 +44,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <OS/math.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -139,7 +141,7 @@ void AcknowledgeDialog::Acknowledge () {
 }
 
 Interactor* AcknowledgeDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     return new MarginFrame(
         new VBox(
@@ -188,7 +190,7 @@ char ConfirmDialog::Confirm () {
 }
 
 Interactor* ConfirmDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     return new MarginFrame(
         new VBox(
@@ -284,7 +286,7 @@ Interactor* UChooser::AddScroller (Interactor* i) {
 }
 
 Interactor* UChooser::Interior (const char* acptlbl) {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),
         new HBox(_subtitle, new HGlue)
@@ -403,7 +405,7 @@ void PrintDialog::UpdateBrowser () {
 }
 
 Interactor* PrintDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
     VBox* titleblock = new VBox(
         new HBox(title, new HGlue),
         new HBox(subtitle, new HGlue)
@@ -485,7 +487,7 @@ void GridDialog::SelectMessage () {
 }
 
 Interactor* GridDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),

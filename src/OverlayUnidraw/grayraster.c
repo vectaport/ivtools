@@ -36,8 +36,12 @@
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovipcmds.h>
 #include <Attribute/attrvalue.h>
+#include <OS/math.h>
 #include <OS/memory.h>
 #include <IV-X11/xdisplay.h>
+
+#undef max
+#undef min
 
 /*****************************************************************************/
 
@@ -80,7 +84,7 @@ void GrayRaster::init(AttributeValue::ValueType type, void* data) {
   
   int size = AttributeValue::type_size(value_type());
   unsigned long nbytes = pwidth() * pheight() * size;
-  _data = (void *) new unsigned char[nbytes];
+  _data = new unsigned char[nbytes];
   
   if (data) {
     unsigned char* srcptr = (unsigned char*) data;
@@ -369,8 +373,8 @@ void GrayRaster::scale
   int min, max;
   fmin = mingray * 0xff;
   fmax = maxgray * 0xff;
-  min = round(mingray * 0xff);
-  max = round(maxgray * 0xff);
+  min = Math::round(mingray * 0xff);
+  max = Math::round(maxgray * 0xff);
 
   float ratio = ((fmax - fmin) == 0) ? 0. : (0xff / (fmax - fmin));
   
@@ -380,7 +384,7 @@ void GrayRaster::scale
     byte = _pixel_map[i];
     if (byte < min) byte = min;
     if (byte > max) byte = max;
-    _pixel_map[i] = round((byte - min) * ratio);
+    _pixel_map[i] = Math::round((byte - min) * ratio);
   }
 }
 
@@ -390,8 +394,8 @@ void GrayRaster::logscale
 {
   int n = 255;
   int min, max;
-  min = round(mingray * 0xff);
-  max = round(maxgray * 0xff);
+  min = Math::round(mingray * 0xff);
+  max = Math::round(maxgray * 0xff);
 
 #ifdef DEBUG
   cerr << "logscale between " << mingray << " and " << maxgray << "\n";
@@ -454,9 +458,10 @@ OverlayRaster* GrayRaster::pseudocolor(
 	    newr = grayfract < 0.5 ? 0.0 : (grayfract-.5)*2;
 	    newg = grayfract < 0.5 ? grayfract*2 : 1.0 - (grayfract-.5)*2;
 	    newb = grayfract < 0.5 ? 1.0 - (grayfract-.5)*2 : 0.0;
-	    newr = max(0.0, newr);
-	    newg = max(0.0, newg);
-	    newb = max(0.0, newb);
+	    
+	    newr = Math::max((float)0.0, newr);
+	    newg = Math::max((float)0.0, newg);
+	    newb = Math::max((float)0.0, newb);
 
 	    color->poke(w, h, newr, newg, newb, 1.0);
         }

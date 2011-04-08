@@ -65,6 +65,7 @@
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xraster.h>
 #include <IV-X11/xcolor.h>
+#include <OS/math.h>
 #include <OS/memory.h>
 
 #include <Attribute/attrlist.h>
@@ -360,8 +361,14 @@ boolean RasterPS::Definition (ostream& out) {
     Coord w = raster->Width();
     Coord h = raster->Height();
 
-    if (((OvPrintCmd*)GetCommand())->idraw_format()) {
-
+    boolean idraw_format = OverlayPS::idraw_format;
+    if (GetCommand() && GetCommand()->IsA(OV_EXPORT_CMD))
+      idraw_format = ((OvExportCmd*)GetCommand())->idraw_format();
+    else if (GetCommand() && GetCommand()->IsA(OVPRINT_CMD)) 
+      idraw_format = ((OvPrintCmd*)GetCommand())->idraw_format();
+    
+    if (idraw_format) {
+      
 	out << "Begin " << MARK << " " << "Rast\n";
 	Transformation(out);
 
@@ -1670,8 +1677,8 @@ void OverlayRaster::scale(
     RasterRep* rp = rep();
     float fmin = mingray * 0xff;
     float fmax = maxgray * 0xff;
-    int min = round(fmin);
-    int max = round(fmax);
+    int min = Math::round(fmin);
+    int max = Math::round(fmax);
 
     float ratio = ((fmax - fmin) == 0) ? 0. : (0xff / (max - min));
 
@@ -1685,7 +1692,7 @@ void OverlayRaster::scale(
             graypeek(w, h, byte);
             if (byte < min) byte = min;
             if (byte > max) byte = max;
-            unsigned int newval = round((byte - min) * ratio);
+            unsigned int newval = Math::round((byte - min) * ratio);
             graypoke(w, h, newval);
         }
     }
@@ -1731,9 +1738,9 @@ OverlayRaster* OverlayRaster::pseudocolor(
 	    newr = grayfract < 0.5 ? 0.0 : (grayfract-.5)*2;
 	    newg = grayfract < 0.5 ? grayfract*2 : 1.0 - (grayfract-.5)*2;
 	    newb = grayfract < 0.5 ? 1.0 - (grayfract-.5)*2 : 0.0;
-	    newr = max(0.0, newr);
-	    newg = max(0.0, newg);
-	    newb = max(0.0, newb);
+	    newr = max((float)0.0, newr);
+	    newg = max((float)0.0, newg);
+	    newb = max((float)0.0, newb);
 #endif
 
 	    color->poke(w, h, newr, newg, newb, 1.0);
@@ -1748,8 +1755,8 @@ void OverlayRaster::logscale
 {
   int n = 255;
   int min, max;
-  min = round(mingray * 0xff);
-  max = round(maxgray * 0xff);
+  min = Math::round(mingray * 0xff);
+  max = Math::round(maxgray * 0xff);
 
   RasterRep* rp = rep();
   unsigned int width = rp->pwidth_;
@@ -1766,7 +1773,7 @@ void OverlayRaster::logscale
       if (byte > max) byte = max;
 #if 0
       unsigned int ival = 
-	(unsigned int)Math::round(pow( mingray, ((n - byte) / float(n) ) ) * float(n));
+	(unsigned int)Math::Math::round(pow( mingray, ((n - byte) / float(n) ) ) * float(n));
 #else
       double val = (byte-((double)min)) / nvals * (e - 1.0) + 1.0;
       unsigned int ival = (unsigned int) (log(val)*n);
@@ -1878,8 +1885,8 @@ void OverlayRaster::computeramp(
         }
     }
 
-    width = Math::round(fw);
-    height = Math::round(fh);
+    width = Math::Math::round(fw);
+    height = Math::Math::round(fh);
 }
 
 

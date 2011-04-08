@@ -30,6 +30,7 @@
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovselection.h>
+#include <OverlayUnidraw/ovpsview.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
@@ -52,6 +53,9 @@
 #include <stdio.h>
 #include <strstream.h>
 #include <unistd.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "UnidrawFunc"
 
@@ -326,9 +330,9 @@ ExportFunc::ExportFunc(ComTerp* comterp, Editor* editor,
 const char* ExportFunc::docstring() { 
   const char* df = 
 #ifdef HAVE_ACE
-    "%s(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str) -- export in %s format ";
+    "%s(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- export in %s format ";
 #else
-  "%s(compview[,compview[,...compview]] [path] :string|:str) -- export in %s format ";
+  "%s(compview[,compview[,...compview]] [path] :string|:str :eps :idraw) -- export in %s format ";
 #endif
   if (!_docstring) {
     _docstring = new char[strlen(df)+strlen(appname())+1];
@@ -343,6 +347,8 @@ void ExportFunc::execute() {
     static int _sock_symid = symbol_add("socket");
     static int _string_symid = symbol_add("string");
     static int _str_symid = symbol_add("str");
+    static int _eps_symid = symbol_add("eps");
+    static int _idraw_symid = symbol_add("idraw");
     ComValue compviewv(stack_arg(0));
     ComValue file(stack_arg(1));
     ComValue host(stack_key(_host_symid));
@@ -350,6 +356,8 @@ void ExportFunc::execute() {
     ComValue sock(stack_key(_sock_symid));
     ComValue string(stack_key(_string_symid));
     ComValue str(stack_key(_str_symid));
+    ComValue eps_flag(stack_key(_eps_symid));
+    ComValue idraw_flag(stack_key(_idraw_symid));
     reset_stack();
     if (nargs()==0 || compviewv.null() 
 	|| compviewv.type() == ComValue::BlankType) {
@@ -361,6 +369,8 @@ void ExportFunc::execute() {
     ACE_SOCK_Stream* socket = nil;
 #endif
 
+
+#if __GNUG__<3
     filebuf fbuf;
     if (file.is_type(ComValue::StringType))
         fbuf.open(file.string_ptr(), "w");
@@ -401,35 +411,115 @@ void ExportFunc::execute() {
             fbuf.attach(fileno(stdout));
     }
 
+#else
+
+    filebuf* pfbuf;
+    FILE* ofptr = nil;
+
+    if (file.is_type(ComValue::StringType)) {
+      pfbuf = new filebuf();
+      pfbuf->open(file.string_ptr(), input);
+    }
+
+    else if (sock.is_true()) {
+#ifdef HAVE_ACE
+	ComTerpServ* terp = (ComTerpServ*)comterp();
+	ComterpHandler* handler = (ComterpHandler*)terp->handler();
+	if (handler) {
+	  ACE_SOCK_Stream peer = handler->peer();
+	  ofptr = fdopen(peer.get_handle());
+	  pfbuf = new fbuf(ofptr, output);
+	}
+	else 
+#endif
+	  pfbuf = new filebuf(stdout, output);
+    }
+
+    else {
+#ifdef HAVE_ACE
+        const char* hoststr = nil;
+        const char* portstr = nil;
+        hoststr = host.type()==ComValue::StringType ? host.string_ptr() : nil;
+        portstr = port.type()==ComValue::StringType ? port.string_ptr() : nil;
+        u_short portnum = portstr ? atoi(portstr) : port.ushort_val();
+    
+        if (portnum) {
+            socket = new ACE_SOCK_Stream;
+            ACE_SOCK_Connector conn;
+            ACE_INET_Addr addr (portnum, hoststr);
+    
+            if (conn.connect (*socket, addr) == -1)
+                ACE_ERROR ((LM_ERROR, "%p\n", "open"));
+            pfbuf = new filebuf(ofptr = fdopen(socket->get_handle(), "r"), output);
+        } else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
+            pfbuf = new filebuf(ofptr = fdopen(comterp()->handler()->get_handle(), "r"), output);
+        } else
+#endif
+            pfbuf = new filebuf(stdout, output);
+    }
+
+#endif
     ostream* out;
     if (string.is_true()||str.is_true())
       out = new strstream();
     else
+#if __GNUG__<3      
       out = new ostream(&fbuf);
+#else
+      out = new ostream(pfbuf);
+#endif
 
     if (!compviewv.is_array()) {
 
       ComponentView* view = (ComponentView*)compviewv.obj_val();
       OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
       if (!comp) return;
-      *out << appname() << "(\n";
-      compout(comp, out);
-      *out << ")\n";
+      if (!eps_flag.is_true() && !idraw_flag.is_true()) {
+	*out << appname() << "(\n";
+	compout(comp, out);
+	*out << ")\n";
+      } else {
+	OverlayPS::idraw_format = idraw_flag.is_true();
+	OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
+	comp->Attach(psv);
+	psv->Update();
+	psv->Emit(*out);
+	comp->Detach(psv);
+	delete psv;
+      }
       
     } else {
 
-      *out << appname() << "(\n";
-      AttributeValueList* avl = compviewv.array_val();
-      Iterator i;
-      for(avl->First(i);!avl->Done(i); ) {
-	ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
-	OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-	if (!comp) break;
-	compout(comp, out);
-	avl->Next(i);
-	if (!avl->Done(i)) *out << ",\n";
+      if (!eps_flag.is_true() && !idraw_flag.is_true()) {
+	*out << appname() << "(\n";
+	AttributeValueList* avl = compviewv.array_val();
+	Iterator i;
+	for(avl->First(i);!avl->Done(i); ) {
+	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
+	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+	  if (!comp) break;
+	  compout(comp, out);
+	  avl->Next(i);
+	  if (!avl->Done(i)) *out << ",\n";
+	}
+	*out << ")\n";
+      } else {
+	AttributeValueList* avl = compviewv.array_val();
+	Iterator i;
+	for(avl->First(i);!avl->Done(i); ) {
+	  ComponentView* view = (ComponentView*)avl->GetAttrVal(i)->obj_val();
+	  OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+	  if (!comp) break;
+	  OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
+	  comp->Attach(psv);
+	  psv->Update();
+	  psv->Emit(*out);
+	  comp->Detach(psv);
+	  delete psv;
+	  avl->Next(i);
+	}
       }
-      *out << ")\n";
+
     }
     
     if (string.is_true()||str.is_true()) {
@@ -438,6 +528,11 @@ void ExportFunc::execute() {
       push_stack(retval);
     }
     delete out;
+
+#if __GNUG__>=3
+    if (ofptr) fclose(ofptr);
+    delete pfbuf;
+#endif    
     
 #ifdef HAVE_ACE
     if (sock.is_false() && socket) {

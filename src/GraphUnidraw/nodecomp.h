@@ -42,8 +42,7 @@ class SF_Ellipse;
 class TextGraphic;
 class TopoNode;
 class Viewer;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: node component
 // component for a node in an edge-node directed graph.  Default appearance

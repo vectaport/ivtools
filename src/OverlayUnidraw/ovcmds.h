@@ -43,8 +43,7 @@
 class OpenFileChooser;
 class OverlayViewer;
 class PageDialog;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: derived new command.
 class OvNewCompCmd : public NewCompCmd {

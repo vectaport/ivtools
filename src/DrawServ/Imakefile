@@ -21,7 +21,7 @@ Obj26(drawcomps)
 Obj26(drawviews)
 
 
-#define Obj31(file) MakeObjectFromSrcFlags(file, -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
 Obj31(drawkit)
 

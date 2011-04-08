@@ -32,6 +32,8 @@
 #include <InterViews/matcheditor.h>
 #include <InterViews/sensor.h>
 
+#include <OS/math.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -77,7 +79,7 @@ void PanDialog::SelectMessage () {
 }
 
 Interactor* PanDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),
@@ -151,7 +153,7 @@ void ZoomDialog::SelectMessage () {
 }
 
 Interactor* ZoomDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),
@@ -225,7 +227,7 @@ void PageDialog::SelectMessage () {
 }
 
 Interactor* PageDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),

@@ -48,11 +48,14 @@
 #include <InterViews/textbuffer.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stream.h>
 #include <string.h>
+#include <fstream.h>
 
 /*****************************************************************************/
 
@@ -291,7 +294,7 @@ void IdrawCatalog::PSReadGridSpacing (istream& in, float& xincr, float& yincr){
     if (_psversion < PSV_GRIDSPACING) {
 	const int oldspacing = 8;
 	const double oldpoints = 72.07/ivinches;
-	xincr = yincr = oldpoints * round(oldspacing * oldpoints);
+	xincr = yincr = oldpoints * Math::round(oldspacing * oldpoints);
 
     } else {
 	in >> _buf;
@@ -508,9 +511,9 @@ void IdrawCatalog::PSReadFgColor (istream& in, Graphic* gs) {
 	    gs->SetColors(nil, gs->GetBgColor());
 
 	} else {
-	    int ir = round(r * float(0xffff));
-	    int ig = round(g * float(0xffff));
-	    int ib = round(b * float(0xffff));
+	    int ir = Math::round(r * float(0xffff));
+	    int ig = Math::round(g * float(0xffff));
+	    int ib = Math::round(b * float(0xffff));
 
 	    PSColor* fgcolor = FindColor(name, ir, ig, ib);
 	    gs->SetColors(fgcolor, gs->GetBgColor());
@@ -545,9 +548,9 @@ void IdrawCatalog::PSReadBgColor (istream& in, Graphic* gs) {
 	    gs->SetColors(gs->GetFgColor(), nil);
 
 	} else {
-	    int ir = round(r * float(0xffff));
-	    int ig = round(g * float(0xffff));
-	    int ib = round(b * float(0xffff));
+	    int ir = Math::round(r * float(0xffff));
+	    int ig = Math::round(g * float(0xffff));
+	    int ib = Math::round(b * float(0xffff));
 
 	    PSColor* bgcolor = FindColor(name, ir, ig, ib);
 	    gs->SetColors(gs->GetFgColor(), bgcolor);

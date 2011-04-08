@@ -52,7 +52,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovpolygon_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
 
     CLASS_SYMID("PolygonComp");
 };

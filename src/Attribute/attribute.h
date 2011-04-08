@@ -62,7 +62,7 @@ protected:
     int symbolid;
     AttributeValue* valueptr;
 
-friend AttributeList;
+friend class AttributeList;
 
     CLASS_SYMID("Attribute"); 
 };

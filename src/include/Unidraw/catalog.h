@@ -57,8 +57,7 @@ class Unidraw;
 class UList;
 class World;
 
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: stores and retrieves named objects.
 // <a href=../man3.1/Catalog.html>man page</a>

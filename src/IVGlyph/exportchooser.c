@@ -83,13 +83,13 @@ const char* ExportChooser::format() {
 
 boolean ExportChooser::idraw_format() { 
     return ((ExportChooserImpl*)impl_)->_obse 
-	? strcmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "idraw") == 0 
+	? strncmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "idraw", 5) == 0 
 	: false;
 }
 
 boolean ExportChooser::postscript_format() { 
     return ((ExportChooserImpl*)impl_)->_obse 
-	? strcmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "idraw") == 0  || strcasecmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "PostScript") == 0 
+	? strncmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "idraw", 5) == 0  || strcasecmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "EPS") == 0 
 	: false;
 }
 

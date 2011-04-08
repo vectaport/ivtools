@@ -606,7 +606,7 @@ void NodeComp::update(Observable*) {
       NodeComp* node;
       int incnt = 1;
       while (node = NodeIn(incnt)) {
-	outstr.form("in%d=", incnt);
+	out_form(outstr, "in%d=", incnt);
 	AttributeValue* av = node->FindValue(val_symid);
 	if (av) {
 	  ComValue inval(*av);
@@ -813,7 +813,7 @@ Manipulator* NodeView::CreateManipulator(Viewer* v, Event& e, Transformer* rel,
     Manipulator* m = nil;
     Coord l, r, b, t;
     Editor* ed = v->GetEditor();
-    int tabWidth = round(.5*ivinch);
+    int tabWidth = Math::round(.5*ivinch);
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
 	if (!((NodeComp*)GetGraphicComp())->RequireLabel()) {
@@ -891,7 +891,7 @@ Manipulator* NodeView::CreateManipulator(Viewer* v, Event& e, Transformer* rel,
 	painter->SetColors(textgr->GetFgColor(), nil);
         painter->SetTransformer(rel);
         Unref(rel);
-	int tabWidth = round(.5*ivinch);
+	int tabWidth = Math::round(.5*ivinch);
 
         m = new TextManip(
             v, text, size, xpos, ypos, painter, lineHt, tabWidth, tool

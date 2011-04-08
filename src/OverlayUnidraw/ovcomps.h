@@ -46,7 +46,7 @@ class OverlaysComp;
 class OverlayScript;
 class OverlaysScript;
 class Viewer;
-class istream;
+#include <iosfwd>
 
 enum { bypath_mask=0x1, fromcomm_mask=0x2, autoconv_mask=0x4 };
 
@@ -176,8 +176,8 @@ protected:
     OverlayComp* _parent;
     AttributeList* _attrlist;
 
-friend OverlayScript;
-friend OverlaysScript;
+friend class OverlayScript;
+friend class OverlaysScript;
 
     CLASS_SYMID("OverlayComp"); 
 };
@@ -304,7 +304,7 @@ protected:
 protected:
     UList* _comps;
 
-friend OverlaysScript;
+friend class OverlaysScript;
 
     CLASS_SYMID("OverlaysComp"); 
 };
@@ -370,7 +370,7 @@ protected:
     char* _pathname;
     char* _basedir;
 
-friend OverlayCatalog;
+friend class OverlayCatalog;
 
     CLASS_SYMID("OverlayIdrawComp"); 
 };

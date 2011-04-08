@@ -48,6 +48,7 @@
 
 #include <IVGlyph/bdvalue.h>
 #include <stdio.h>
+#include <string.h>
 
 /* class BoundedValue */
 

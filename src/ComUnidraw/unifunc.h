@@ -136,7 +136,7 @@ public:
 };
 
 //: command to export a graphic file
-// export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str) -- remote in drawtool (or other) format "; 
+// export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- export in drawtool (or other) format "; 
 class ExportFunc : public UnidrawFunc {
 public:
   ExportFunc(ComTerp* c, Editor* e, const char* appname=nil);

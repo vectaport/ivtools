@@ -130,7 +130,7 @@ static void setDragProperty(
 	char buffer[256];
 	ostrstream name(buffer, 256);
 	name << dragName << "_" << Host::name() << "_" << getpid() << "_"  <<
-	    dropUid++ << ends;
+	    dropUid++ << '\0';
 	property = XInternAtom(display, name.str(), False);
 
 	XChangeProperty(

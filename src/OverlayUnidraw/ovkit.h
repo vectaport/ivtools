@@ -151,40 +151,40 @@ public:
     void MouseDoc(const char*);
     // set current mouse documentation string on the editor.
 
-    static const char mouse_sel[]  = "l-click/drag: Select; m-drag: Move; r-click/drag: Select";
-    static const char mouse_mov[]  = "l-drag: Move; m-drag: Move; r-click/drag: Select";
-    static const char mouse_scl[]  = "l-drag: Scale; m-drag: Move; r-click/drag: Select";
-    static const char mouse_str[]  = "l-drag: Stretch; m-drag: Move; r-click/drag: Select";
-    static const char mouse_rot[]  = "l-drag: Rotate; m-drag: Move; r-click/drag: Select";
-    static const char mouse_alt[]  = "l-click: Alter; m-drag: Move; r-click/drag: Select";
-    static const char mouse_mag[]  = "l-drag: Magnify; m-drag: Move; r-click/drag: Select";
-    static const char mouse_txt[]  = "l-click: Text; m-drag: Move; r-click/drag: Select";
-    static const char mouse_lin[]  = "l-drag: Line; m-drag: Move; r-click/drag: Select";
-    static const char mouse_mlin[] = "l-click: Start Multi-Line; m-drag: Move; r-click/drag: Select";
-    static const char mouse_ospl[] = "l-click: Start Open Spline; m-drag: Move; r-click/drag: Select";
-    static const char mouse_rect[] = "l-drag: Rectangle; m-drag: Move; r-click/drag: Select";
-    static const char mouse_ellp[] = "l-drag: Ellipse; m-drag: Move; r-click/drag: Select";
-    static const char mouse_poly[] = "l-click: Start Polygon; m-drag: Move; r-click/drag: Select";
-    static const char mouse_cspl[] = "l-drag: Start Closed Spline; m-drag: Move; r-click/drag: Select";
-    static const char mouse_anno[] = "l-click: Annotate; m-drag: Move; r-click/drag: Select";
-    static const char mouse_attr[] = "l-click: Edit Attributes; m-drag: Move; r-click/drag: Select";
-    static const char mouse_tack[] = "l-click: Tack Down; m-click: Tack and Finish; r-click: Remove Last Tack";
+    static const char* mouse_sel;
+    static const char* mouse_mov;
+    static const char* mouse_scl;
+    static const char* mouse_str;
+    static const char* mouse_rot;
+    static const char* mouse_alt;
+    static const char* mouse_mag;
+    static const char* mouse_txt;
+    static const char* mouse_lin;
+    static const char* mouse_mlin;
+    static const char* mouse_ospl;
+    static const char* mouse_rect;
+    static const char* mouse_ellp;
+    static const char* mouse_poly;
+    static const char* mouse_cspl;
+    static const char* mouse_anno;
+    static const char* mouse_attr;
+    static const char* mouse_tack;
 #ifdef CLIPPOLY
-    static const char mouse_clipr[] = "l-drag: Clip MultiLines in Box; m-drag: Move; r-click/drag: Select";
+    static const char* mouse_clipr;
 #else
-    static const char mouse_clipr[] = "l-drag: Clip MultiLines and Polygons in Box; m-drag: Move; r-click/drag: Select";
+    static const char* mouse_clipr;
 #endif    
 #ifdef CLIPPOLY
-    static const char mouse_clipp[] = "l-drag: Clip MultiLines in Polygon; m-drag: Move; r-click/drag: Select";
+    static const char* mouse_clipp;
 #else
-    static const char mouse_clipp[] = "l-drag: Clip MultiLines and Polygons in Polygon; m-drag: Move; r-click/drag: Select";
+    static const char* mouse_clipp;
 #endif    
-    static const char mouse_convexhull[] = "l-click: Start Convex Hull; m-drag: Move; r-click/drag: Select";
-    static const char mouse_imgscale[] = "l-drag: Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
-    static const char mouse_logscale[] = "l-drag: Logarithmically Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
-    static const char mouse_pseudocolor[] = "l-drag: Pseudocolor Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
-    static const char mouse_grloc[] = "l-click: Location within Graphic; m-drag: Move; r-click/drag: Select";
-    static const char mouse_custom[] = "l-click: Drop icon; m-drag: Move; r-click/drag: Select";
+    static const char* mouse_convexhull;
+    static const char* mouse_imgscale;
+    static const char* mouse_logscale;
+    static const char* mouse_pseudocolor;
+    static const char* mouse_grloc;
+    static const char* mouse_custom;
 
     void otherdisplay(const char* display);
     // set possible alternate X display string for constructing viewer.  

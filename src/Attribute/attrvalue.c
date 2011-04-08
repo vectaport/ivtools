@@ -760,11 +760,29 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 	  
 	case AttributeValue::FloatType:
+#if __GNUG__<3
 	  out.form("%.6f", svp->float_val());
+#else
+          {
+	  const int bufsiz=256;
+	  char buffer[bufsiz];
+	  snprintf(buffer, bufsiz, "%.6f", svp->float_val());
+	  out << buffer;
+	  }
+#endif
 	  break;
 	  
 	case AttributeValue::DoubleType:
+#if __GNUG__<3
 	  out.form("%.6f", svp->double_val());
+#else
+	  {
+	  const int bufsiz=256;
+	  char buffer[bufsiz];
+	  snprintf(buffer, bufsiz, "%.6f", svp->double_val());
+	  out << buffer;
+	  }
+#endif
 	  break;
 
 	case AttributeValue::EofType:

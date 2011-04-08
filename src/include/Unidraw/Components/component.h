@@ -41,8 +41,7 @@ class StateVar;
 class TransferFunct;
 #endif
 class UList;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: base class for objects that model domain specific elements.
 // <a href=../man3.1/Component.html>man page</a>

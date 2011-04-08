@@ -20,7 +20,7 @@
  * build RPC classes -- requires iostreams & TCP sockets
  */
 #undef BuildRPCClasses
-#define BuildRPCClasses YES 
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3) 
 #define SOMAXCONN 5
 
 /* override -ansi -pedantic from xfree86.cf */

@@ -72,6 +72,8 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -94,7 +96,7 @@ inline void InsertSeparator (PulldownMenu* pdm) {
 inline PulldownMenu* MakePulldown (const char* name) {
     return new PulldownMenu(
         new HBox(
-            new Message(name, Center, round(.1*ivcm)),
+            new Message(name, Center, Math::round(.1*ivcm)),
             new HGlue(0, 5*strlen(name), 0)
         )
     );
@@ -174,7 +176,7 @@ void OverlayEditor::Update () {
 Interactor* OverlayEditor::Interior () {
     HBorder* hborder = new HBorder;
     VBorder* vborder = new VBorder;
-    int gap = round(.1*ivcm);
+    int gap = Math::round(.1*ivcm);
 
     HBox* indicators = new HBox(
         new ArrowVarView(_arrows, _brush, _color),

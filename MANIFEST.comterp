@@ -246,6 +246,8 @@ src/include/Unidraw/iterator.h
 src/include/Unidraw/leave-scope.h
 src/include/Unidraw/ulist.h
 src/include/ivstd/Imakefile
+src/include/ivstd/fstream.h
+src/include/ivstd/iosfwd
 src/include/ivstd/math.h
 src/include/ivstd/osfcn.h
 src/include/ivstd/signal.h

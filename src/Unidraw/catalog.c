@@ -52,6 +52,7 @@
 #include <InterViews/transformer.h>
 #include <IV-2_6/InterViews/world.h>
 
+#include <OS/math.h>
 #include <OS/memory.h>
 
 #include <IV-2_6/_enter.h>
@@ -68,6 +69,9 @@
 #include <unistd.h>
 #endif
 #include <sys/file.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #ifdef __DECCXX
 extern "C" {
@@ -104,9 +108,9 @@ static unsigned int hexintmap[] = {
 static const char* HexEncode (
     ColorIntensity ir, ColorIntensity ig, ColorIntensity ib
 ) {
-    unsigned int r = round(ir * color_base);
-    unsigned int g = round(ig * color_base);
-    unsigned int b = round(ib * color_base);
+    unsigned int r = Math::round(ir * color_base);
+    unsigned int g = Math::round(ig * color_base);
+    unsigned int b = Math::round(ib * color_base);
 
     static char enc[hex_encode+1];
     enc[hex_encode] = '\0';
@@ -143,7 +147,7 @@ static const char* HexGrayEncode (
     ColorIntensity ir, ColorIntensity ig, ColorIntensity ib
 ) {
     ColorIntensity igray = 0.30 * ir + 0.59 * ig + 0.11 * ib;
-    unsigned int gray = round(igray * color_base);
+    unsigned int gray = Math::round(igray * color_base);
 
     static char enc[hex_gray_encode+1];
     enc[hex_gray_encode] = '\0';
@@ -438,7 +442,6 @@ boolean Catalog::Retrieve (const char* name, EditorInfo*& edInfo) {
     if (edInfo == nil) {
         filebuf fbuf;
         ok = fbuf.open((char*) name, input) != 0;
-
         if (ok) {
             istream in(&fbuf);
             edInfo = ReadEditorInfo(in);
@@ -655,7 +658,7 @@ void Catalog::ReadExtraData (
     for (int i = 0; !in.eof() && !FoundDelim(delim, *extra_data); ++i) {
         char c;
         in.get(c);
-        extra_data->Insert((void*) c, i);
+        extra_data->Insert((void*)(unsigned int)c, i);
     }
 }
 
@@ -1217,9 +1220,9 @@ PSColor* Catalog::ReadColor (istream& in) {
         }
 
         if (defined && in.good()) {
-            int ir = round(r * float(0xffff));
-            int ig = round(g * float(0xffff));
-            int ib = round(b * float(0xffff));
+            int ir = Math::round(r * float(0xffff));
+            int ig = Math::round(g * float(0xffff));
+            int ib = Math::round(b * float(0xffff));
             
             color = FindColor(name, ir, ig, ib);
         }
@@ -1417,7 +1420,7 @@ static int CalcBitmap (float graylevel) {
 	0x0505, 0x0405, 0x0401, 0x0001,
 	0x0000
     };
-    return shades[round(graylevel * (SHADES - 1))];
+    return shades[Math::round(graylevel * (SHADES - 1))];
 }
 
 static const int* ExpandToFullSize (const int* orig_data, int size) {

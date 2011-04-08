@@ -40,7 +40,7 @@
 
 class OvImportCmd;
 class filebuf;
-class istream;
+#include <iosfwd>
 
 //: handler for import by socket into OverlayUnidraw.
 class UnidrawImportHandler : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>

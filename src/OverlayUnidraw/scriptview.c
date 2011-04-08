@@ -56,6 +56,8 @@
 #include <InterViews/textbuffer.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <stream.h>
 #include <stdio.h>
@@ -361,9 +363,9 @@ int OverlayScript::ReadFgColor (istream& in, void* addr1, void* addr2, void* add
 	    return -1;
         }                
 	else {
-	    int ir = round(r * float(0xffff));
-	    int ig = round(g * float(0xffff));
-	    int ib = round(b * float(0xffff));
+	    int ir = Math::round(r * float(0xffff));
+	    int ig = Math::round(g * float(0xffff));
+	    int ib = Math::round(b * float(0xffff));
 	    PSColor* fgcolor = OverlayCatalog::Instance()->FindColor(name_arg ? name : "no_name", ir, ig, ib);
 	    gs->SetColors(fgcolor, gs->GetBgColor());
             return 0;
@@ -405,9 +407,9 @@ int OverlayScript::ReadBgColor (istream& in, void* addr1, void* addr2, void* add
 	    return -1;
         }                
 	else {
-	    int ir = round(r * float(0xffff));
-	    int ig = round(g * float(0xffff));
-	    int ib = round(b * float(0xffff));
+	    int ir = Math::round(r * float(0xffff));
+	    int ig = Math::round(g * float(0xffff));
+	    int ib = Math::round(b * float(0xffff));
 
 	    PSColor* bgcolor = OverlayCatalog::Instance()->FindColor(name_arg ? name : "no_name", ir, ig, ib);
 	    gs->SetColors(gs->GetFgColor(), bgcolor);

@@ -59,10 +59,12 @@
 #include <sys/param.h>
 #include <unistd.h>
 
+#if __GNUG__<3
 extern "C" 
 {
   char* realpath();
 }
+#endif
 
 /*****************************************************************************/
 

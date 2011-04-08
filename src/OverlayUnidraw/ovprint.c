@@ -58,6 +58,9 @@
 #include <stdlib.h>
 #include <stream.h>
 #include <string.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 /*****************************************************************************/
 

@@ -31,8 +31,7 @@
 
 class Connector;
 class StateVarView;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: state variable
 // <a href=../man3.1/StateVar.html>man page</a>

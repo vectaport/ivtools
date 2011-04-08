@@ -1624,7 +1624,7 @@ inline unsigned int WindowVisual::MSB(unsigned long i) {
     return (i ^ (i>>1)) & i;
 }
 
-unsigned long WindowVisual::xor(const Style& s) const {
+unsigned long WindowVisual::x_or_(const Style& s) const {
   return x_or(s);
 }
 

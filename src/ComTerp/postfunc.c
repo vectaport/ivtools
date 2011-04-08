@@ -29,7 +29,12 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <OS/math.h>
+
 #include <iostream.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "PostFunc"
 
@@ -40,12 +45,20 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
+#if __GNUG__<3
   filebuf fbuf;
   if (comterp()->handler()) {
-    int fd = max(1, comterp()->handler()->get_handle());
+    int fd = Math::max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
   } else
     fbuf.attach(fileno(stdout));
+#else
+  FILE* ofptr = nil;
+  filebuf fbuf(comterp()->handler() 
+	       ? (ofptr=fdopen(Math::max(1, comterp()->handler()->get_handle()), "w"))
+	       : stdout,
+	       ios_base::out);
+#endif
   ostream out(&fbuf);
  
   boolean oldbrief = comterp()->brief();
@@ -72,6 +85,9 @@ void PostFixFunc::execute() {
   }
   comterp()->brief(oldbrief);
   reset_stack();
+#if __GNUG__>=3
+  if (ofptr) fclose(ofptr);
+#endif
 }
 
 /*****************************************************************************/

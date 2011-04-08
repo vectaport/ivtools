@@ -41,7 +41,7 @@ class ComFunc;
 class ComFuncState;
 class ComTerpState;
 class ComValue;
-class ostream;
+#include <iosfwd>
 
 class ComterpHandler;
 

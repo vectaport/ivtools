@@ -1051,7 +1051,7 @@ private:
 
 class OLKitImpl {
 private:
-    friend OLKit;
+    friend class OLKit;
     
     OLKitImpl(OLKit*);
     ~OLKitImpl();

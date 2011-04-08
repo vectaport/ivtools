@@ -38,7 +38,7 @@ class FrameOverlaysComp;
 class FrameComp;
 class FramesComp;
 class FrameIdrawComp;
-class ostream;
+#include <iosfwd>
 
 //: serialized view of FrameOverlaysComp.
 class FrameOverlaysScript : OverlaysScript {

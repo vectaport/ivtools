@@ -43,7 +43,7 @@ public:
     virtual void* id();
     virtual void* tag();
 private:
-    void* _idstring;
+    char* _idstring;
     char* _tagstring;
 };
 

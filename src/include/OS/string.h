@@ -31,7 +31,7 @@
 
 #include <OS/enter-scope.h>
 
-class ostream;
+#include <iosfwd>
 
 class String {
 public:

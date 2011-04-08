@@ -38,8 +38,7 @@ class FullGraphic;
 class NodeComp;
 class TopoEdge;
 class Viewer;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: edge component
 // component for an edge in an edge-node directed graph.  Default appearance

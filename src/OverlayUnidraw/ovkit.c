@@ -189,6 +189,41 @@ static Coord fxOpen[] = { 0, unit/2, unit/2, unit };
 static Coord fyOpen[] = { 0, unit/4, unit*3/4, unit };
 static const int nOpen = 4;
 
+const char* OverlayKit::mouse_sel  = "l-click/drag: Select; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_mov  = "l-drag: Move; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_scl  = "l-drag: Scale; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_str  = "l-drag: Stretch; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_rot  = "l-drag: Rotate; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_alt  = "l-click: Alter; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_mag  = "l-drag: Magnify; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_txt  = "l-click: Text; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_lin  = "l-drag: Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_mlin = "l-click: Start Multi-Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_ospl = "l-click: Start Open Spline; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_rect = "l-drag: Rectangle; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_ellp = "l-drag: Ellipse; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_poly = "l-click: Start Polygon; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_cspl = "l-drag: Start Closed Spline; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_anno = "l-click: Annotate; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_attr = "l-click: Edit Attributes; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_tack = "l-click: Tack Down; m-click: Tack and Finish; r-click: Remove Last Tack";
+#ifdef CLIPPOLY
+const char* OverlayKit::mouse_clipr = "l-drag: Clip MultiLines in Box; m-drag: Move; r-click/drag: Select";
+#else
+const char* OverlayKit::mouse_clipr = "l-drag: Clip MultiLines and Polygons in Box; m-drag: Move; r-click/drag: Select";
+#endif    
+#ifdef CLIPPOLY
+const char* OverlayKit::mouse_clipp = "l-drag: Clip MultiLines in Polygon; m-drag: Move; r-click/drag: Select";
+#else
+const char* OverlayKit::mouse_clipp = "l-drag: Clip MultiLines and Polygons in Polygon; m-drag: Move; r-click/drag: Select";
+#endif    
+const char* OverlayKit::mouse_convexhull = "l-click: Start Convex Hull; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_imgscale = "l-drag: Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_logscale = "l-drag: Logarithmically Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_pseudocolor = "l-drag: Pseudocolor Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_grloc = "l-click: Location within Graphic; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_custom = "l-click: Drop icon; m-drag: Move; r-click/drag: Select";
+
 /*****************************************************************************/
 
 OverlayKit* OverlayKit::_overlaykit = nil;
@@ -1078,7 +1113,7 @@ MenuItem* OverlayKit::MakeBrushMenu() {
 	    ctrlInfo = new ControlInfo("None");
 	    
 	} else {
-	    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic);
+	    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic);
 	    line->SetBrush(br);
 	    ctrlInfo = new ControlInfo(new ArrowLineComp(line));
 	}
@@ -1088,19 +1123,19 @@ MenuItem* OverlayKit::MakeBrushMenu() {
     
     mbi->menu()->append_item(kit.menu_item_separator());
     
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 false, false, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, false, false), MenuArrowLine(false, false));
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 true, false, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, true, false), MenuArrowLine(true, false));
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 false, true, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, false, true), MenuArrowLine(false, true));
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 true, true, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, true, true), MenuArrowLine(true, true));
@@ -1124,8 +1159,8 @@ MenuItem* OverlayKit::MakePatternMenu() {
     
     while (pat != nil) {
 	ControlInfo* ctrlInfo;
-	IntCoord w = round(MENU_WIDTH*ivcm);
-	IntCoord h = round(MENU_HEIGHT*ivcm);
+	IntCoord w = Math::round(MENU_WIDTH*ivcm);
+	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
 	
 	if (pat->None()) {
 	    ctrlInfo = new ControlInfo("None");
@@ -1151,8 +1186,8 @@ MenuItem* OverlayKit::MakeFgColorMenu() {
     PSColor* color = catalog->ReadColor(fgAttrib, i);
     
     while (color != nil) {
-	IntCoord w = round(MENU_WIDTH*ivcm);
-	IntCoord h = round(MENU_HEIGHT*ivcm);
+	IntCoord w = Math::round(MENU_WIDTH*ivcm);
+	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
 	
 	SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
 	sfr->SetColors(color, color);
@@ -1182,8 +1217,8 @@ MenuItem* OverlayKit::MakeBgColorMenu() {
     
     while (color != nil) {
 	ControlInfo* ctrlInfo;
-	IntCoord w = round(MENU_WIDTH*ivcm);
-	IntCoord h = round(MENU_HEIGHT*ivcm);
+	IntCoord w = Math::round(MENU_WIDTH*ivcm);
+	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
 	
 	SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
 	sfr->SetColors(color, color);

@@ -595,7 +595,7 @@ void SF_ClosedBSpline::draw (Canvas *c, Graphic* gs) {
         _p->FillBSpline(c, x(), y(), count());
     }
     if (!gs->GetBrush()->None()) {
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef ClosedBSpline
         _p->ClosedBSpline(c, x(), y(), count());
 #define ClosedBSpline _lib_iv(ClosedBSpline)

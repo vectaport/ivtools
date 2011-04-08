@@ -203,7 +203,7 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
 
 	    output->SetBrush(_brush);
             output->SetColors(_fg, _bg);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
 	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #define Line _lib_iv(Line)
@@ -222,7 +222,7 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
 		x[1] = xmax-HPAD;
 		y[1] = ymax/2;
 		y[2] = ymax/2 + ARROWY;
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
 		output->MultiLine(canvas, x, y, 3);
 #define MultiLine _lib_iv(MultiLine)
@@ -236,7 +236,7 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
 		x[1] = HPAD;
 		y[1] = ymax/2;
 		y[2] = ymax/2 + ARROWY;
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
 		output->MultiLine(canvas, x, y, 3);
 #define MultiLine _lib_iv(MultiLine)

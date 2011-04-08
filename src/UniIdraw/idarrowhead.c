@@ -29,6 +29,7 @@
 
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
 #include <math.h>
 
 /*****************************************************************************/
@@ -66,8 +67,8 @@ Coord Arrowhead::CorrectedHeight (float t) {
 
     if (c == 0) return 0;
 
-    Coord h1 = round((a + b) / c);
-    Coord h2 = round((a - b) / c);
+    Coord h1 = Math::round((a + b) / c);
+    Coord h2 = Math::round((a - b) / c);
 
     return (h1 < h && h1 > 0) ? h1 : h2;
 }

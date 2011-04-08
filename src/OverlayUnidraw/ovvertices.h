@@ -38,7 +38,7 @@
 #include <IV-2_6/_enter.h>
 
 class Vertices;
-class istream;
+#include <iosfwd>
 
 //: clone of VerticesComp derived from OverlayComp.
 // base class for all multi-point components.

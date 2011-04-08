@@ -37,6 +37,7 @@
 #include <InterViews/scrollbar.h>
 #include <InterViews/sensor.h>
 #include <InterViews/streditor.h>
+#include <OS/math.h>
 #include <OS/types.h>
 
 #include <stdlib.h>
@@ -108,7 +109,7 @@ boolean BasicDialog::KeyEquiv (Event& e) {
 /*****************************************************************************/
 
 AcknowledgeDialog::AcknowledgeDialog (const char* msg, const char* btnLbl) {
-    int space = round(fspace*ivcm);
+    int space = Math::round(fspace*ivcm);
 
     Insert(
         new MarginFrame(
@@ -177,7 +178,7 @@ char ConfirmDialog::Confirm () {
 }
 
 Interactor* ConfirmDialog::Interior (const char* msg) {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     return new MarginFrame(
         new VBox(
@@ -219,7 +220,7 @@ void StringDialog::Select (int pos) { _sedit->Select(pos); }
 void StringDialog::Select (int left, int right) { _sedit->Select(left, right);}
 
 void StringDialog::Init (const char* msg, const char* confirmLbl, int width) {
-    int space = round(fspace*ivcm);
+    int space = Math::round(fspace*ivcm);
     _sedit = new StringEditor(state, "");
     HBox* framedSedit = new HBox;
 
@@ -287,7 +288,7 @@ boolean StringDialog::Accept () {
 FileDialog::FileDialog (
     const char* msg, const char* dir, const char* confirmLbl
 ) {
-    int space = round(fspace*ivcm);
+    int space = Math::round(fspace*ivcm);
     _browser = new FileBrowser(state, dir, 20, 35, false, Reversed,"\000\007");
     _dirs = new FileBrowser(
         "dirBrowser", state, dir, 20, 24, true, Reversed,"d\007"

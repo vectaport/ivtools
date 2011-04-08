@@ -64,7 +64,7 @@ PainterRep::PainterRep() {
     dashgc = XCreateGC(d->display_, d->root_, 0, nil);
     fillbg = true;
     overwrite = false;
-    xor = false;
+    x_or = false;
     clipped = false;
 }
 
@@ -133,10 +133,10 @@ Painter::Painter(Painter* copy) {
     rep->fillbg = copy->rep->fillbg;
     rep->overwrite = copy->rep->overwrite;
     Copy(copy);
-    if (copy->rep->xor) {
+    if (copy->rep->x_or) {
 	Begin_xor();
     }
-    rep->xor = copy->rep->xor;
+    rep->x_or = copy->rep->x_or;
     if (rep->overwrite) {
 	XSetSubwindowMode(dpy, rep->fillgc, IncludeInferiors);
 	XSetSubwindowMode(dpy, rep->dashgc, IncludeInferiors);
@@ -155,7 +155,7 @@ Painter::~Painter() {
 
 void Painter::FillBg(boolean b) {
     if (rep->fillbg != b) {
-        if (rep->xor) {
+        if (rep->x_or) {
             End_xor();
         }
         rep->fillbg = b;
@@ -171,7 +171,7 @@ void Painter::FillBg(boolean b) {
 boolean Painter::BgFilled() const { return rep->fillbg; }
 
 void Painter::SetColors(const Color* f, const Color* b) {
-    if (rep->xor) {
+    if (rep->x_or) {
 	End_xor();
     }
 
@@ -205,7 +205,7 @@ void Painter::SetColors(const Color* f, const Color* b) {
 }
 
 void Painter::SetPattern(const Pattern* pat) {
-    if (rep->xor) {
+    if (rep->x_or) {
 	End_xor();
     }
     if (pattern != pat) {
@@ -219,7 +219,7 @@ void Painter::SetPattern(const Pattern* pat) {
 }
 
 void Painter::SetBrush(const Brush* b) {
-    if (rep->xor) {
+    if (rep->x_or) {
 	End_xor();
     }
     if (br != b) {
@@ -363,8 +363,8 @@ void Painter::MapList(
 }
 
 void Painter::Begin_xor() {
-    if (!rep->xor) {
-	rep->xor = true;
+    if (!rep->x_or) {
+	rep->x_or = true;
 	DisplayRep& d = *rep->display->rep();
 	XDisplay* dpy = d.display_;
 	unsigned long xor_pixel = d.default_visual_->x_or(*d.style_);
@@ -378,8 +378,8 @@ void Painter::Begin_xor() {
 }
 
 void Painter::End_xor() {
-    if (rep->xor) {
-	rep->xor = false;
+    if (rep->x_or) {
+	rep->x_or = false;
 	XDisplay* dpy = rep->display->rep()->display_;
 	XSetFunction(dpy, rep->fillgc, GXcopy);
 	unsigned long pixel = foreground->PixelValue();
@@ -664,7 +664,7 @@ void Painter::Stencil(
     if (xid == CanvasRep::unbound) {
 	return;
     }
-    if (rep->xor) {
+    if (rep->x_or) {
         End_xor();
     }
     int tx = TxKey(matrix, bitmap->pwidth(), bitmap->pheight());

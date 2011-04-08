@@ -232,7 +232,8 @@ ICE_CXX_INCLUDE_DIR
 # check for gettimeofday
 #AC_TWO_ARG_TIMEOFDAY
 # check for libstdc++
-AC_CHECK_LIB(stdc++,peek__7istream,LIBSTDCPLUSPLUS=1,LIBSTDCPLUSPLUS=0)
+AC_CHECK_LIB(stdc++,peek__7istream,LIBSTDCPLUSPLUS2=1,LIBSTDCPLUSPLUS2=0)
+AC_CHECK_LIB(stdc++,_ZNSi4peekEv,LIBSTDCPLUSPLUS3=1,LIBSTDCPLUSPLUS3=0)
 
 # check for bigendian
 #AC_C_BIGENDIAN
@@ -297,6 +298,8 @@ AC_SUBST(prefix)
 #AC_SUBST(TCL)
 #AC_SUBST(CXX_HDRDIR)
 AC_SUBST(CXX_INCLUDE_DIR)
+AC_SUBST(LIBSTDCPLUSPLUS2)
+AC_SUBST(LIBSTDCPLUSPLUS3)
 AC_SUBST(x_includes) 
 AC_SUBST(x_libraries)
 #AC_SUBST(BUILD_TREE)
@@ -410,8 +413,10 @@ echo writing \"ABSTOP = `pwd`\"
 echo ABSTOP = `pwd` >>config/config.mk
 echo writing \"CPU = `make CPU`\"
 echo CPU = `make CPU` >>config/config.mk
-echo writing \"LIBSTDCPLUSPLUS = $LIBSTDCPLUSPLUS\"
-echo LIBSTDCPLUSPLUS = $LIBSTDCPLUSPLUS >>config/config.mk
+echo writing \"LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2\"
+echo LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2 >>config/config.mk
+echo writing \"LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3\"
+echo LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3 >>config/config.mk
 echo
 echo "now do a \"make\""
 echo

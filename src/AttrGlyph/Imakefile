@@ -14,7 +14,7 @@ MakeLibrary($(LIB),$(VERSION))
 
 #define Obj(file,flags) MakeObjectFromSrcFlags(file,flags)
 
-Obj(attredit,-DLibStdCPlusPlus=$(LIBSTDCPLUSPLUS))
+Obj(attredit,-DLibStdCPlusPlus2=$(LIBSTDCPLUSPLUS2) -DLibStdCPlusPlus3=$(LIBSTDCPLUSPLUS3))
 
 IncludeDependencies()
 

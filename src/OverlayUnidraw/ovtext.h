@@ -39,7 +39,8 @@
 
 class TextGraphic;
 class TextManip;
-class istream;
+#include <iosfwd>
+
 
 //: clone of TextComp derived from OverlayComp.
 class TextOvComp : public OverlayComp {
@@ -64,7 +65,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovtext_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
 
     CLASS_SYMID("TextComp"); 
 };

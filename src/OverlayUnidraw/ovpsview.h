@@ -59,6 +59,11 @@ public:
     // of a tree of components or not.
 
     OverlayComp* GetOverlayComp();
+
+    virtual void Creator(ostream&);
+    // output idraw as creator
+
+    static boolean idraw_format;
 protected:
     OverlayPS(OverlayComp* = nil);
 
@@ -112,7 +117,6 @@ public:
 protected:
 
     virtual void MiscProcs(ostream&);
-    virtual void Creator(ostream&);
     virtual void ArrowHeader(ostream&);
     virtual void ConstProcs(ostream&);
     virtual void GridSpacing(ostream&);

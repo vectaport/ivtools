@@ -1,0 +1,21 @@
+#ifndef _iv_iosfwd_
+#define _iv_iosfwd_
+#if __GNUG__>=3
+#include_next <iosfwd>
+using std::ios_base;
+using std::filebuf;
+using std::istream;
+using std::ostream;
+#define out_form(ostr,format,value) \
+{ \
+char buffer[BUFSIZ]; \
+snprintf(buffer, BUFSIZ, format, value); \
+ostr << buffer; \
+}	
+#else
+class istream;
+class ostream;
+#define out_form(ostr,format,value) \
+ostr.form(format,value);
+#endif
+#endif

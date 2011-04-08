@@ -22,16 +22,16 @@
  * 
  */
 
-#include <OverlayUnidraw/ovabout.h>
-#include <OverlayUnidraw/ovclasses.h>
-#include <OverlayUnidraw/oved.h>
 #include <InterViews/action.h>
-#include <InterViews/dialog.h>
+#include <IV-3_1/InterViews/dialog.h>
 #include <InterViews/layout.h>
 #include <InterViews/polyglyph.h>
 #include <InterViews/session.h>
 #include <InterViews/window.h>
 #include <IV-look/kit.h>
+#include <OverlayUnidraw/ovabout.h>
+#include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/oved.h>
 #include <string.h>
 
 class OvAboutDialog : public Dialog {

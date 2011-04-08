@@ -207,7 +207,7 @@ protected:
     static AttributeList* _edlauncherlist;
     static AttributeList* _comterplist;
 
-friend OverlayKit;
+friend class OverlayKit;
 };
 
 declareActionCallback(OverlayEditor)

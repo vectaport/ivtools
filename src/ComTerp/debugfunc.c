@@ -26,6 +26,9 @@
 #include <ComTerp/comterpserv.h>
 #include <strstream.h>
 #include <vector.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "DebugFunc"
 
@@ -80,19 +83,37 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   cerr << sbuf2_s.str();
 
   comterp()->push_servstate();
+#if __GNUG__<3
   filebuf fbufin;
   if (comterp()->handler()) {
     int fd = max(0, comterp()->handler()->get_handle());
     fbufin.attach(fd);
   } else
     fbufin.attach(fileno(stdin));
+#else
+  FILE* ifptr;
+  if (comterp()->handler())
+    ifptr = fdopen(max(0, comterp()->handler()->get_handle()), "r");
+  else
+    ifptr = stdin;
+  filebuf fbufin(ifptr, ios_base::in);
+#endif
   istream in(&fbufin);
+#if __GNUG__<3
   filebuf fbufout;
   if (comterp()->handler()) {
     int fd = max(1, comterp()->handler()->get_handle());
     fbufout.attach(fd);
   } else
     fbufout.attach(fileno(stdout));
+#else
+  FILE* ofptr;
+  if (comterp()->handler())
+    ofptr = fdopen(max(1, comterp()->handler()->get_handle()), "w");
+  else
+    ofptr = stdout;
+  filebuf fbufout(ofptr, ios_base::out);
+#endif
   ostream out(&fbufout);
   vector<char> cvect;
   ComValue retval;
@@ -119,6 +140,12 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   sbuf_e.put('\0');
   cerr << sbuf_e.str();
   push_stack(retval);
+#if __GNUG__>=3
+  if (comterp()->handler()) {
+    fclose(ifptr);
+    fclose(ofptr);
+  }
+#endif
 }
 
 void ComterpPauseFunc::execute() {

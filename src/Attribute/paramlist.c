@@ -946,16 +946,9 @@ const char* ParamList::filter (const char* string, int len) {
 	    dot += text.Insert(dot, buf, sizeof(buf) - 1);
 
 	} else {
-	    switch (c) {
-	    case '\\':
-		dot += text.Insert(dot, "\\", 1);
-		// fall through
-	    case '"':
-		dot += text.Insert(dot, "\\", 1);	   
-		// fall through
-	    default:
-		dot += text.Insert(dot, string, 1);
-	    }
+	    if (c == '\\' || c == '"') 
+	      dot += text.Insert(dot, "\\", 1);
+	    dot += text.Insert(dot, string, 1);
 	}
     }
     text.Insert(dot, "", 1);

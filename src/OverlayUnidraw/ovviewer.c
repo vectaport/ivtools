@@ -398,8 +398,8 @@ void OverlayViewer::DrawingToScreen(float xdraw, float ydraw,
   DrawingToScreen(xdraw, ydraw, fxscreen, fyscreen);
 //  xscreen = int(fxscreen);
 //  yscreen = int(fyscreen);
-  xscreen = round(fxscreen);
-  yscreen = round(fyscreen);
+  xscreen = Math::round(fxscreen);
+  yscreen = Math::round(fyscreen);
   return;
   
 }

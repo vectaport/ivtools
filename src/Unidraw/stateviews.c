@@ -433,7 +433,7 @@ void BrushInteractor::Redraw (Coord, Coord, Coord, Coord) {
 
 	    output->SetBrush(_brush);
             output->SetColors(_fg, _bg);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
 	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #define Line _lib_iv(Line)

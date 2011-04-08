@@ -44,6 +44,8 @@
 
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <stream.h>
 
 #include <IV-2_6/_enter.h>
@@ -173,8 +175,8 @@ void AlignToGridCmd::Align (GraphicView* gv, float refx, float refy) {
         g->Parent()->TotalTransformation(t);
         t.Invert();
 
-        Coord cx = round(refx);
-        Coord cy = round(refy);
+        Coord cx = Math::round(refx);
+        Coord cy = Math::round(refy);
 
         grid->Constrain(cx, cy);
 

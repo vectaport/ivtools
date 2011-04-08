@@ -36,6 +36,7 @@
 #include <InterViews/transformer.h>
 #include <InterViews/painter.h>
 
+#include <OS/math.h>
 #include <math.h>
 
 /****************************************************************************/
@@ -158,7 +159,7 @@ void ArrowLine::draw (Canvas* c, Graphic* gs) {
         if (Tail()) _tail->CorrectedTip(x1, y1, br, gs->GetTransformer());
 
         update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
         _p->Line(c, x0, y0, x1, y1);
 #define Line _lib_iv(Line)
@@ -218,8 +219,8 @@ void ArrowLine::SetArrows (boolean h, boolean t) {
     delete _head;
     delete _tail;
 
-    Coord width = round(ARROWWIDTH*ivpoints);
-    Coord height = round(ARROWHEIGHT*ivpoints);
+    Coord width = Math::round(ARROWWIDTH*ivpoints);
+    Coord height = Math::round(ARROWHEIGHT*ivpoints);
 
     _head = h ? new Arrowhead(_x0, _y0, width, height) : nil;
     _tail = t ? new Arrowhead(_x1, _y1, width, height) : nil;
@@ -342,7 +343,7 @@ void ArrowMultiLine::draw (Canvas* c, Graphic* gs) {
         x()[l] = tx1; y()[l] = ty1;
 
         update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
         _p->MultiLine(c, x(), y(), count());
 #define MultiLine _lib_iv(MultiLine)
@@ -405,8 +406,8 @@ void ArrowMultiLine::SetArrows (boolean h, boolean t) {
     delete _head;
     delete _tail;
 
-    Coord width = round(ARROWWIDTH*ivpoints);
-    Coord height = round(ARROWHEIGHT*ivpoints);
+    Coord width = Math::round(ARROWWIDTH*ivpoints);
+    Coord height = Math::round(ARROWHEIGHT*ivpoints);
 
     int k = count()-2;
     int l = count()-1;
@@ -599,8 +600,8 @@ void ArrowOpenBSpline::SetArrows (boolean h, boolean t) {
     delete _head;
     delete _tail;
 
-    Coord width = round(ARROWWIDTH*ivpoints);
-    Coord height = round(ARROWHEIGHT*ivpoints);
+    Coord width = Math::round(ARROWWIDTH*ivpoints);
+    Coord height = Math::round(ARROWHEIGHT*ivpoints);
 
     int l = count()-1;
     int k = l-3;

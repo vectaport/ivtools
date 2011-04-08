@@ -29,8 +29,13 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <OS/math.h>
+
 #include <iostream.h>
 #include <strstream.h>
+#if __GNUG__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "HelpFunc"
 
@@ -115,17 +120,19 @@ void HelpFunc::execute() {
   
   reset_stack();
 
-  filebuf fbuf;
   strstreambuf sbuf;
+#if __GNUG__<3
+  filebuf fbuf;
   if (comterp()->handler()) {
-    int fd = max(1, comterp()->handler()->get_handle());
+    int fd = Math::max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
   } 
-#if 0
-  else
-    fbuf.attach(fileno(stdout));
+#else
+  FILE* ofptr;
+  ofptr = fdopen(Math::max(1, comterp()->handler() ? comterp()->handler()->get_handle() : 0), "w");
+  filebuf fbuf(ofptr, ios_base::out);
 #endif
-  ostream out(comterp()->handler() ? &fbuf : &sbuf);
+  ostream out(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);
 
   if (noargs) {
 
@@ -145,8 +152,16 @@ void HelpFunc::execute() {
 	    first = false;
 	  else
 	    out.put('\n');
-	  ;
+#if __GNUG__<3
 	  out.form(comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
+#else
+	  {
+	    char buffer[BUFSIZ];
+	    snprintf(buffer, BUFSIZ, 
+		     comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
+	    out << buffer;
+	  }
+#endif
 	  printed = true;
 	}
       }
@@ -166,9 +181,26 @@ void HelpFunc::execute() {
 		  first = false;
 		else
 		  out.put('\n');
+#if __GNUG__<3
 		out.form(comfunc->docstring(), symbol_pntr(value->command_symid()));
+#else
+		{
+		  char buffer[BUFSIZ];
+		  snprintf(buffer, BUFSIZ, 
+			   comfunc->docstring(), symbol_pntr(value->command_symid()));
+		  out << buffer;
+		}
+#endif
 	      } else 
+#if __GNUG__<3
 		out.form("unknown operator: %s\n", symbol_pntr(command_ids[i]));
+#else
+	      {
+		char buffer[BUFSIZ];
+		snprintf(buffer, BUFSIZ, "unknown operator: %s\n", symbol_pntr(command_ids[i]));
+		out << buffer;
+	      }
+#endif
 
 	    }
 	  }
@@ -198,5 +230,8 @@ void HelpFunc::execute() {
   delete comfuncs;
   delete str_flags;
 
+#if __GNUG__>=3
+  if (ofptr) fclose(ofptr);
+#endif
 }
 

@@ -50,7 +50,7 @@ class OvImportCmd;
 class OverlayRaster;
 class OverlayRasterRect;
 class RasterScript;
-class istream;
+#include <iosfwd>
 
 //: alignment of gray-level ramp when embbeded in a OverlayRaster.
 enum RampAlignment { R_LB, R_LT, R_TL, R_TR, R_RT, R_RB, R_BR, R_BL };
@@ -121,7 +121,7 @@ protected:
     static boolean _use_gray_raster;
     static boolean _warned;
 
-friend RasterScript;
+friend class RasterScript;
 
     CLASS_SYMID("RasterComp");
 };
@@ -273,8 +273,8 @@ protected:
     IntCoord _damage_r;
     IntCoord _damage_t;
 
-friend RasterOvComp;
-friend RasterOvView;
+friend class RasterOvComp;
+friend class RasterOvView;
 };
 
 #include <Attribute/attrvalue.h>
@@ -454,8 +454,8 @@ protected:
     boolean _grayflag;
     boolean _init;
 
-friend OvImportCmd;
-friend RasterOvComp;
+friend class OvImportCmd;
+friend class RasterOvComp;
 };
 
 

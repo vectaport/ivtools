@@ -39,6 +39,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <OS/math.h>
+
 #include <math.h>
 #include <stdlib.h>
 
@@ -263,19 +265,19 @@ void GraphicBlock::Normalize (Perspective& np) {
 
     if (p->width != np.width) {
 	hfactor = float(p->width) / float(np.width);
-	np.x0 = round(hfactor * float(np.x0));
+	np.x0 = Math::round(hfactor * float(np.x0));
 	np.width = p->width;
-	np.curx = round(hfactor * float(np.curx));
-	np.curwidth = round(hfactor * float(np.curwidth));
-	np.sx = round(hfactor * float(np.sx));
+	np.curx = Math::round(hfactor * float(np.curx));
+	np.curwidth = Math::round(hfactor * float(np.curwidth));
+	np.sx = Math::round(hfactor * float(np.sx));
     }
     if (p->height != np.height) {
 	vfactor = float(p->height) / float(np.height);
-	np.y0 = round(vfactor * float(np.y0));
+	np.y0 = Math::round(vfactor * float(np.y0));
 	np.height = p->height;
-	np.cury = round(vfactor * float(np.cury));
-	np.curheight = round(vfactor * float(np.curheight));
-	np.sy = round(vfactor * float(np.sy));
+	np.cury = Math::round(vfactor * float(np.cury));
+	np.curheight = Math::round(vfactor * float(np.curheight));
+	np.sy = Math::round(vfactor * float(np.sy));
     }
 }
 
@@ -328,12 +330,12 @@ void GraphicBlock::Zoom (Perspective& np) {
 	_graphic->Translate(dx, dy);
 	_graphic->Scale(factor, factor, float(halfw), float(halfh));
 
-	_x0 = round((_x0 + dx - halfw)*factor + halfw);
-	_y0 = round((_y0 + dy - halfh)*factor + halfh);
-	p->width = round(p->width * factor);
-	p->height = round(p->height * factor);
-	p->curx = round(float(cx) * factor) - halfw;
-	p->cury = round(float(cy) * factor) - halfh;
+	_x0 = Math::round((_x0 + dx - halfw)*factor + halfw);
+	_y0 = Math::round((_y0 + dy - halfh)*factor + halfh);
+	p->width = Math::round(p->width * factor);
+	p->height = Math::round(p->height * factor);
+	p->curx = Math::round(float(cx) * factor) - halfw;
+	p->cury = Math::round(float(cy) * factor) - halfh;
     }
     _mag *= factor;
 }
@@ -418,12 +420,12 @@ void GraphicBlock::SetMagnification (float m) {
 	cy = p->cury + halfh;
 	_graphic->Scale(factor, factor, float(halfw), float(halfh));
 
-	_x0 = round((_x0 - halfw)*factor + halfw);
-	_y0 = round((_y0 - halfh)*factor + halfh);
-	p->width = round(p->width * factor);
-	p->height = round(p->height * factor);
-	p->curx = round(float(cx) * factor) - halfw;
-	p->cury = round(float(cy) * factor) - halfh;
+	_x0 = Math::round((_x0 - halfw)*factor + halfw);
+	_y0 = Math::round((_y0 - halfh)*factor + halfh);
+	p->width = Math::round(p->width * factor);
+	p->height = Math::round(p->height * factor);
+	p->curx = Math::round(float(cx) * factor) - halfw;
+	p->cury = Math::round(float(cy) * factor) - halfh;
 
 	p->Update();
 	Draw();
