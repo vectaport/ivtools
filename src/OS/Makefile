@@ -12,35 +12,35 @@
 # -------------------------------------------------------------------------
 # from <local.def>:
 
-     GPLUSPLUS_INCLUDE_DIR = /usr/include/g++/
+     GPLUSPLUS_INCLUDE_DIR = /usr/lib/gcc-lib/1-linux/2.95.2/../../../../include/g++-3/
           TOOL_INCLUDE_DIR = /usr/local/include
 
     NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../..  -I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include -I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES)
 
     APP_CCINCLUDES = $(NORM_CCINCLUDES)
 
-             IVTOOLSSRC = /proj/ivtools-0.8/src
+             IVTOOLSSRC = /home/johnston/src/ivtools-0.9/src
 
-LIBUNIDRAWCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/Unidraw-common/$(CPU) -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
-LIBIVCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/IV-common/$(CPU) -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
-LIBTIME = -Wl,-rpath,$(IVTOOLSSRC)/Time/$(CPU) -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
-LIBATTRIBUTE = -Wl,-rpath,$(IVTOOLSSRC)/Attribute/$(CPU) -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
-LIBCOMUTIL = -Wl,-rpath,$(IVTOOLSSRC)/ComUtil/$(CPU) -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
-LIBCOMTERP = -Wl,-rpath,$(IVTOOLSSRC)/ComTerp/$(CPU) -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
-LIBIVGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/IVGlyph/$(CPU) -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
-LIBATTRGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/AttrGlyph/$(CPU) -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
-LIBCOMGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/ComGlyph/$(CPU) -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
-LIBGLYPHTERP = -Wl,-rpath,$(IVTOOLSSRC)/GlyphTerp/$(CPU) -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
-LIBUNIIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/UniIdraw/$(CPU) -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
-LIBTOPOFACE = -Wl,-rpath,$(IVTOOLSSRC)/TopoFace/$(CPU) -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
-LIBOVERLAYUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
+LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
+LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
+LIBTIME = -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
+LIBATTRIBUTE = -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
+LIBCOMUTIL = -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
+LIBCOMTERP = -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
+LIBIVGLYPH = -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
+LIBATTRGLYPH = -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
+LIBCOMGLYPH = -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
+LIBGLYPHTERP = -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
+LIBUNIIDRAW = -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
+LIBTOPOFACE = -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
+LIBOVERLAYUNIDRAW = -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
 
-LIBACEDISPATCH = -Wl,-rpath,$(IVTOOLSSRC)/AceDispatch/$(CPU) -L$(IVTOOLSSRC)/AceDispatch/$(CPU) -lAceDispatch
+  LIBACEDISPATCH =
 
-LIBCOMUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/ComUnidraw/$(CPU) -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
-LIBFRAMEUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
-LIBGRAPHUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
-LIBDRAWSERV = -Wl,-rpath,$(IVTOOLSSRC)/DrawServ/$(CPU) -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
+LIBCOMUNIDRAW = -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
+LIBFRAMEUNIDRAW = -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
+LIBGRAPHUNIDRAW = -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
+LIBDRAWSERV = -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
 
 DEPUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.so.$(VERSION)
 DEPIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.so.$(VERSION)
@@ -56,7 +56,7 @@ DEPUNIIDRAW = $(IVTOOLSSRC)/UniIdraw/$(CPU)/libUniIdraw.so.$(VERSION)
 DEPTOPOFACE = $(IVTOOLSSRC)/TopoFace/$(CPU)/libTopoFace.so.$(VERSION)
 DEPOVERLAYUNIDRAW = $(IVTOOLSSRC)/OverlayUnidraw/$(CPU)/libOverlayUnidraw.so.$(VERSION)
 
-DEPACEDISPATCH = $(IVTOOLSSRC)/AceDispatch/$(CPU)/libAceDispatch.so.$(VERSION)
+    DEPACEDISPATCH =
 
 DEPCOMUNIDRAW = $(IVTOOLSSRC)/ComUnidraw/$(CPU)/libComUnidraw.so.$(VERSION)
 DEPFRAMEUNIDRAW = $(IVTOOLSSRC)/FrameUnidraw/$(CPU)/libFrameUnidraw.so.$(VERSION)
@@ -67,9 +67,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-0.8
+   RELEASE = ivtools-0.9
 
-   VERSION = 0.8.4
+   VERSION = 0.9.0
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -78,7 +78,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
               IMAKE = imake
          IMAKEFLAGS = \
 	-T "template"\
-	-I$(ABSTOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
+	-I$(ABSTOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 	$(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
              DEPEND = makedepend
@@ -93,7 +93,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
            CCSUFFIX = c
             CDRIVER = gcc
             CSUFFIX = c
-                SRC = /proj/ivtools-0.8/src/OS/.
+                SRC = /home/johnston/src/ivtools-0.9/src/OS/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
@@ -118,7 +118,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
     EXTRA_CCDEFINES =
 
  CLIPPOLY_CCDEFINES =
-      ACE_CCDEFINES = -DHAVE_ACE
+      ACE_CCDEFINES =
       IUE_CCDEFINES =
 
          CCINCLUDES = $(APP_CCINCLUDES) $(OTHER_CCINCLUDES) $(EXTRA_CCINCLUDES)
@@ -129,10 +129,8 @@ BACKWARD_CCINCLUDES =
    EXTRA_CCINCLUDES =
 
 CLIPPOLY_CCINCLUDES =
-     ACE_CCINCLUDES = -I$(ACEDIR)
+     ACE_CCINCLUDES =
      IUE_CCINCLUDES =
-
-             ACEDIR = /proj/ACE_wrappers/
 
              CFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 
@@ -171,8 +169,8 @@ NONSHARED_CCLDFLAGS =
   CLIPPOLY_CCLDLIBS =
      CLIPPOLYLIBDIR =
     CLIPPOLYLIBBASE = libclippoly.so
-       ACE_CCLDLIBS = -L$(ACEDIR)/ace -lACE
-          ACELIBDIR = /proj/ACE_wrappers//ace
+       ACE_CCLDLIBS =
+          ACELIBDIR =
          ACELIBBASE = libACE.so
        IUE_CCLDLIBS =
           IUELIBDIR =
@@ -204,11 +202,11 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = groff
 
-                TOP = /proj/ivtools-0.8
+                TOP = /home/johnston/src/ivtools-0.9
              RELTOP = ../../.
-        CURRENT_DIR = /proj/ivtools-0.8/src/OS
+        CURRENT_DIR = /home/johnston/src/ivtools-0.9/src/OS
 
-              IVSRC = /proj/ivtools-0.8/src
+              IVSRC = /home/johnston/src/ivtools-0.9/src
              BINSRC = $(IVSRC)/bin
           CONFIGSRC = $(RELTOP)/config
              INCSRC = $(IVSRC)/include
@@ -216,13 +214,13 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = $(RELTOP)/bin/$(ARCH)
-          CONFIGDIR = $(TOP)/config
-             INCDIR = $(TOP)/include
-             LIBDIR = $(RELTOP)/lib/$(ARCH)
-          LIBABSDIR = $(TOP)/lib/$(ARCH)
-          LIBALLDIR = $(TOP)/lib/ivtools
-             MANDIR = $(TOP)/man
+             BINDIR = /usr/local/bin
+          CONFIGDIR = /usr/local/lib/ivtools/config
+             INCDIR = /usr/local/include
+             LIBDIR = /usr/local/lib
+          LIBABSDIR = /usr/local/lib
+          LIBALLDIR = /usr/local/lib/ivtools
+             MANDIR = /usr/local/man
 
        ABSCONFIGDIR = /usr/local/lib/ivtools/config
           ABSLIBDIR = /usr/local/lib

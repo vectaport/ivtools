@@ -8,6 +8,11 @@ extension to the BSD/X11 license that approximates the WxWindows
 license (which grants more freedom with binaries than the basic LGPL).
 Send any thoughts to ivtools-info@vectaport.com.
 
+** As of September 2000 I've started dual licensing with GPL if
+** anybody wants that. I will gladly help maintain a GPL version of
+** the source and a GPL patch history for those whose choose
+** not to dual license their contribution.
+
 -----------------------------------------------------------------------
 
 I'm considering a possible modification to the ivtools COPYRIGHT

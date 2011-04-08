@@ -26,6 +26,9 @@
 #ifndef _unidraw_import_handler_
 #define _unidraw_import_handler_
 
+#include <stdio.h>
+#define __USE_GNU
+#include <sys/msg.h>
 #include <signal.h>
 #include <ace/Acceptor.h>
 #include <ace/Reactor.h>

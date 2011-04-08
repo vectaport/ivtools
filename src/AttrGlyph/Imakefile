@@ -12,9 +12,9 @@ Use_libInterViews()
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,)
+#define Obj(file,flags) MakeObjectFromSrcFlags(file,flags)
 
-Obj(attredit)
+Obj(attredit,-DLibStdCPlusPlus=$(LIBSTDCPLUSPLUS))
 
 IncludeDependencies()
 

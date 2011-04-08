@@ -635,8 +635,8 @@ int FMultiLineObj::Bresenham(int*& xpts, int*& ypts) {
     ypts = _ypts;
     int curpt = 0;
     int npts;
-    for (int i=0; i<_count-1; i++) {
-      npts = edges[i]->Bresenham(temp_xpts, temp_ypts);
+    for (int k=0; k<_count-1; k++) {
+      npts = edges[k]->Bresenham(temp_xpts, temp_ypts);
       for (int j=0; j<npts-1; j++) {
 	_xpts[curpt] = temp_xpts[j];
 	_ypts[curpt] = temp_ypts[j];
@@ -646,8 +646,8 @@ int FMultiLineObj::Bresenham(int*& xpts, int*& ypts) {
     _xpts[curpt] = temp_xpts[npts-1];
     _ypts[curpt] = temp_ypts[npts-1];
     _npts = curpt+1;
-    for (int i=0; i<_count-1; i++) 
-      delete edges[i];
+    for (int j=0; j<_count-1; j++) 
+      delete edges[j];
   }
   return _npts;
 }
@@ -858,8 +858,8 @@ int FFillPolygonObj::Bresenham(int*& xpts, int*& ypts) {
     ypts = _ypts;
     int curpt = 0;
     int npts;
-    for (int i=0; i<_count; i++) {
-      npts = edges[i]->Bresenham(temp_xpts, temp_ypts);
+    for (int k=0; k<_count; k++) {
+      npts = edges[k]->Bresenham(temp_xpts, temp_ypts);
       for (int j=0; j<npts-1; j++) {
 	_xpts[curpt] = temp_xpts[j];
 	_ypts[curpt] = temp_ypts[j];
@@ -867,8 +867,8 @@ int FFillPolygonObj::Bresenham(int*& xpts, int*& ypts) {
       }
     }
     _npts = curpt;
-    for (int i=0; i<_count; i++) 
-      delete edges[i];
+    for (int j=0; j<_count; j++) 
+      delete edges[j];
   }
   return _npts;
 }

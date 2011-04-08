@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000 IET Inc.
+ * Copyright (c) 2000 Vectaport Inc, IET Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -35,13 +35,37 @@ class ComValue;
 
 //: command for toggling or setting trace mode
 // val=trace([flag] :val) -- toggle or set trace mode
-class TraceFunc : public ComFunc {
+class ComterpTraceFunc : public ComFunc {
 public:
-    TraceFunc(ComTerp*);
+    ComterpTraceFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
       return "val=%s([flag] :val) -- toggle or set trace mode"; }
+};
+
+//: command to pause script execution until C/R
+// pause -- pause script execution until C/R
+class ComterpPauseFunc : public ComFunc {
+public:
+    ComterpPauseFunc(ComTerp*);
+    virtual void execute();
+    virtual void execute_body(ComValue&);
+    virtual const char* docstring() { 
+	return "%s -- pause script execution until C/R"; }
+    virtual boolean stepfunc() { return false; }
+
+};
+
+//: command to toggle step script execution 
+// pause -- toggle stepwise script execution
+class ComterpStepFunc : public ComterpPauseFunc {
+public:
+    ComterpStepFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s -- toggle stepwise script execution"; }
+    virtual boolean stepfunc() { return true; }
 };
 
 #endif /* !defined(_debugfunc_h) */

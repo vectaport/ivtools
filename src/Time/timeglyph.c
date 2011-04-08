@@ -58,7 +58,7 @@ TimeGlyph::TimeGlyph(Style* s, ObservableTime* tm, boolean editable)
     const LayoutKit& layout_ = *LayoutKit::instance();
     Style* s = kit_.style();
 
-    Date date(*time_->time());
+    Date date(time_->time()->date());
     StringList* wdaylist = new StringList(7);
     wdaylist->append(String("Mon"));
     wdaylist->append(String("Tue"));
@@ -213,7 +213,7 @@ TimeGlyph::TimeGlyph(Style* s, ObservableTime* tm, boolean editable)
 }
 
 void TimeGlyph::updatevalues() {
-    Date date(*time_->time());
+    Date date(time_->time()->date());
     wdayvalue->current_value(date.weekDay()-1);
     monthvalue->current_value(date.month()-1);
     mdayvalue->current_value(date.dayOfMonth());

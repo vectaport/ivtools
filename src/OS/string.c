@@ -26,6 +26,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <iostream.h>
+#include <streambuf.h>
 
 /*
  * Just to be sure ...
@@ -327,7 +328,12 @@ String::operator const char*() const {
 };
 
 ostream& operator<< (ostream& out, const String& str) {
+#if defined(sun) && !defined(solaris)
+  out.write(str.string(), str.length());
+#else
   out.write(str.string(), (streamsize)str.length());
+#endif
+  return out;	
 }
 
 /* class CopyString */

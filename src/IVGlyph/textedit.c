@@ -64,52 +64,52 @@ void TE_Adjustable::update(Observable*)
    notify(Dimension_Y);		// notify scrollbar
 }
 
-inline Coord TE_Adjustable::lower(DimensionName) const
+Coord TE_Adjustable::lower(DimensionName) const
 {
    return Coord(0);
 }
 
-inline Coord TE_Adjustable::upper(DimensionName) const
+Coord TE_Adjustable::upper(DimensionName) const
 {
     return Coord(te_view_->lines());
 }
 
-inline Coord TE_Adjustable::length(DimensionName) const
+Coord TE_Adjustable::length(DimensionName) const
 {
     return Coord(te_view_->lines() /*- 1*/);
 }
 
-inline Coord TE_Adjustable::cur_lower(DimensionName) const
+Coord TE_Adjustable::cur_lower(DimensionName) const
 {
     return Coord(te_view_->lines() - te_view_->end_row() -1);
 }
 
-inline Coord TE_Adjustable::cur_upper(DimensionName) const
+Coord TE_Adjustable::cur_upper(DimensionName) const
 {
     return Coord(te_view_->lines() /*- 1*/ - te_view_->start_row());
 }
 
-inline Coord TE_Adjustable::cur_length(DimensionName) const
+Coord TE_Adjustable::cur_length(DimensionName) const
 {
    return Coord(te_view_->end_row() - te_view_->start_row() +1);
 }
 
-inline void TE_Adjustable::scroll_forward(DimensionName d)
+void TE_Adjustable::scroll_forward(DimensionName d)
 {
    scroll_by(d, -long(small_scroll(d)));
 }
 
-inline void TE_Adjustable::scroll_backward(DimensionName d)
+void TE_Adjustable::scroll_backward(DimensionName d)
 {
    scroll_by(d, long(small_scroll(d)));
 }
 
-inline void TE_Adjustable::page_forward(DimensionName d)
+void TE_Adjustable::page_forward(DimensionName d)
 {
    scroll_by(d, -long(large_scroll(d)));
 }
 
-inline void TE_Adjustable::page_backward(DimensionName d)
+void TE_Adjustable::page_backward(DimensionName d)
 {
    scroll_by(d, long(large_scroll(d)));
 }

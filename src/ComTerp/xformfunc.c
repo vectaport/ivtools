@@ -122,8 +122,8 @@ void InvertXformFunc::execute() {
       t.matrix(affine[0], affine[1], affine[2], 
 	       affine[3], affine[4], affine[5]);
       AttributeValueList* avl = new AttributeValueList();
-      for (int i=0; i<6; i++)
-	avl->Append(new ComValue(affine[i]));
+      for (int j=0; j<6; j++)
+	avl->Append(new ComValue(affine[j]));
       ComValue array(avl);
       push_stack(array);
 

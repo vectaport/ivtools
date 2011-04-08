@@ -30,6 +30,7 @@
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/condfunc.h>
 #include <ComTerp/ctrlfunc.h>
@@ -128,6 +129,8 @@ void ComTerp::init() {
     _val_for_next_func = nil;
     _func_for_next_expr = nil;
     _trace_mode = 0;
+    _npause = 0;
+    _stepflag = 0;
 }
 
 
@@ -209,9 +212,15 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
 }
 
 void ComTerp::eval_expr_internals(int pedepth) {
+  static int step_symid = symbol_add("step");
+  static ComFunc* stepfunc = nil;
+  if (!stepfunc)
+    stepfunc = new ComterpStepFunc(this);
+
   ComValue sv = pop_stack(false);
   
   if (sv.type() == ComValue::CommandType) {
+
 
     ComFunc* func = nil;
     if (_func_for_next_expr) {
@@ -244,9 +253,23 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
     }
 
-    func->execute();
+    if (stepflag()) {
+      filebuf fbufout;
+      fbufout.attach(handler() ? max(1, handler()->get_handle()) : fileno(stdout));
+      ostream out(&fbufout);
+      out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
+      static int pause_symid = symbol_add("pause");
+      ComValue pausekey(pause_symid, 0, ComValue::KeywordType);
+      push_stack(pausekey);
+      stepfunc->push_funcstate(0,1, pedepth, step_symid);
+      stepfunc->execute();
+      stepfunc->pop_funcstate();
+      pop_stack();
+    }
 
+    func->execute();
     func->pop_funcstate();
+
     if (_just_reset && !_func_for_next_expr) {
       push_stack(ComValue::blankval());
       _just_reset = false;
@@ -308,17 +331,17 @@ void ComTerp::load_sub_expr() {
       token_to_comvalue(_pfbuf+i, sv);
     }
     int offset = 0;
-    for (int i=_pfnum-1; i>=0; i--) {
-      ComValue* sv = _pfcomvals + i;
+    for (int j=_pfnum-1; j>=0; j--) {
+      ComValue* sv = _pfcomvals + j;
       if (sv->is_type(ComValue::CommandType)) {
 	ComFunc* func = (ComFunc*)sv->obj_val();
 	if (func && func->post_eval()) {
 	  int newoffset = offset;
 	  skip_func(_pfcomvals+_pfnum-1, newoffset, -_pfnum);
-	  int start = i-1;
+	  int start = j-1;
 	  int stop = _pfnum+newoffset;
-	  for (int j=start; j>=stop; j--) 
-	    _pfcomvals[j].pedepth()++;
+	  for (int k=start; k>=stop; k--) 
+	    _pfcomvals[k].pedepth()++;
 	}
       }
       offset--;
@@ -908,7 +931,9 @@ void ComTerp::add_defaults() {
     add_command("run", new RunFunc(this));
 
     add_command("help", new HelpFunc(this));
-    add_command("trace", new TraceFunc(this));
+    add_command("trace", new ComterpTraceFunc(this));
+    add_command("pause", new ComterpPauseFunc(this));
+    add_command("step", new ComterpStepFunc(this));
     add_command("symid", new SymIdFunc(this));
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));
@@ -1087,13 +1112,14 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
   if (sort) {
     int* sortedbuffer = new int[ncomm];
     int i = 0;  /* operators first */
-    for (int j=0; j< ncomm; j++) sortedbuffer[j] = -1;
-    for (int j=0; j< ncomm; j++)
+    int j;
+    for (j=0; j< ncomm; j++) sortedbuffer[j] = -1;
+    for (j=0; j< ncomm; j++)
       if (!isalpha(*symbol_pntr(buffer[j])))
 	  sortedbuffer[i++] = buffer[j];
     if (i != opercnt) cerr << "bad number of operators\n";
       
-    for (int j=0; j<ncomm; j++) {
+    for (j=0; j<ncomm; j++) {
       if (!isalpha(*symbol_pntr(buffer[j]))) continue;
 
       /* count the number of strings greater than this one */
@@ -1108,7 +1134,7 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
 
     /* one more pass over the sorted buffer to remove duplicates */
     int copydist = 0;
-    for (int j=0; j<ncomm; j++) {
+    for (j=0; j<ncomm; j++) {
       if (sortedbuffer[j]<0) 
 	copydist++;
       else 

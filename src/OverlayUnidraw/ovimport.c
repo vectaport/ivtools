@@ -1521,9 +1521,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed) 
-	    sprintf(buffer, "cm=`tmpnam`;stdcmapppm>$cm;gzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
+	    sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
 	  else
-	    sprintf(buffer, "cm=`tmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
+	    sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
 	  FILE* pptr = popen(buffer, "r");
           helper.add_pipe(pptr);
 	  if (pptr) {
@@ -1534,7 +1534,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    comp = PNM_Image(*new_in);
 	  }
 	} else
-	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`tmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
+	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
       } else
 	cerr << "djpeg or stdcmapppm not found\n";
 

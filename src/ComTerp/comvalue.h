@@ -62,11 +62,11 @@ public:
     // ShortType constructor.
     ComValue(unsigned short val);
     // UShortType constructor.
-    ComValue(int val, ValueType type=ComValue::IntType);
+    ComValue(int val, ValueType type=IntType);
     // IntType constructor or any other int-like value.
-    ComValue(unsigned int val, ValueType type=ComValue::IntType);
+    ComValue(unsigned int val, ValueType type=IntType);
     // UIntType constructor or any other unsigned-int-like value including SymbolType.
-    ComValue(unsigned int val, unsigned int, ValueType type=ComValue::KeywordType);
+    ComValue(unsigned int val, unsigned int, ValueType type=KeywordType);
     // KeywordType constructor (or can be used for ObjectType).
     ComValue(long val);
     // LongType constructor.

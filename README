@@ -1,10 +1,10 @@
 
-			README for ivtools 0.8
+			README for ivtools 0.9
 
 
-This directory contains a release of ivtools 0.8.4 from Vectaport
-Inc..  You should read the rest of this file for information on what
-ivtools is and the INSTALL file for instructions on how to build it.
+This directory contains a release of ivtools 0.9.  You should read
+the rest of this file for information on what ivtools is and the
+INSTALL file for instructions on how to build it.
 
 The overall copyright and permission notice for ivtools can be found
 in the COPYRIGHT file in this directory.  It is similar to the X11
@@ -19,7 +19,7 @@ libraries and sample programs (from 3.2a.tar.Z), augmented with new
 class libraries and sample programs for a wide variety of generic
 spatial data applications.
 
-ivtools comprises four sets of interrelated capabilities useful for
+ivtools comprises four sets of interrelated capabilities useful to
 application programmers.  The first set is the libraries and example
 programs borrowed whole from InterViews 3.1.  The second set is for
 reusing and extending the light-weight glyph objects of InterViews 3.1
@@ -29,8 +29,9 @@ InterViews 3.1 release that provides an application framework for
 custom drawing editors).  The fourth set adds a command interpreter
 and server mechanism to ivtools, and demonstrates these capabilities
 with text, glyph, and graphic front-ends.  To get more of an overview
-of these layers you can read
-http://www.vectaport.com/ivtools/ivtools-layers.html.
+of these layers you can read:
+
+    http://www.ivtools.org/ivtools/ivtools-layers.html.
 
 These are the libraries and example programs borrowed straight from
 InterViews 3.1:
@@ -109,7 +110,7 @@ information.
 A series of makefile targets support the checkin of sources to
 cvs/rcs, and their subsequent update and modification.  This requires
 a copy of cvs available from the Free Software Foundation and
-ivmkcm-0.7.2 available through http://www.vectaport.com/ivmkcm/
+ivmkcm-0.7.2 available through http://www.ivtools.org/ivmkcm/
 
 * More ivtools details
 
@@ -118,35 +119,39 @@ gcc-2.8.1, >= egcs-1.0.1) and on a variety of Unix'es: SunOS 4.1
 (MIT's X11R5), Solaris 2.6 (X11R6), Irix 5.2 (SGI's X11R5), Linux 1.2
 (Slackware 3.0, XFree86 3.1), Linux 2.* (RedHat 4.0 thru 6.0, Debian
 2.*), NetBSD, and perhaps now FreeBSD.  There are contributed configs
-for HPUX and Dec Alpha. Recently it has been built on Windows NT 4.0
-using Cygwin from Cygnus Solutions (see README.cygwin).  You can pick
-up Linux-ELF binaries from the ivtools web page
-(http://www.vectaport.com/ivtools/).
+that are out of date for HPUX and Dec Alpha. Recently it has been
+built on Windows NT 4.0 using Cygwin from Cygnus Solutions (see
+README.cygwin).  You can pick up Linux-ELF binaries from the ivtools
+web page (http://www.ivtools.org).
 
 If you have a question about this software, desire to add code, found
 a bug, want to request a feature, or wonder how to get further
 assistance, please send e-mail to the general purpose ivtools mailing
-list, ivtools-discuss@lists.sourceforge.net, or this Vectaport e-mail
-address: ivtools-info@vectaport.com.  To subcribe to the mailing list,
-visit http://lists.sourceforge.net/mailman/listinfo/ivtools-discuss or
-send an informal request to ivtools-request@vectaport.com.  Other
-ivtools related mailing lists can be found at:
+list, ivtools-discuss@lists.sourceforge.net, or this e-mail address:
+ivtools-info@vectaport.com.  To subcribe to the mailing list, visit
+http://lists.sourceforge.net/mailman/listinfo/ivtools-discuss or send
+an informal request to ivtools-request@vectaport.com.  Other ivtools
+related mailing lists can be found at:
 
-	http://www.vectaport.com/ivtools/mailinglists.html
+	http://www.ivtools.org/ivtools/mailinglists.html
 
 Online documentation (including an FAQ) is available for ivtools at:
 
-	http://www.vectaport.com/ivtools/doc/
+	http://www.ivtools.org/ivtools/doc/
 
 Read about finding and generating all this from inline documentation
-below.  A copy of the ivtools html documentation is available for
+below.  A copy of the ivtools html documentation will be available for
 download as well:
 
-	http://www.vectaport.com/pub/src/ivtools-0.8-html.tgz
+	http://www.ivtools.org/pub/src/ivtools-doc-0.9.tgz
 
 A SourceForge project page for ivtools can be found at:
 
-	http://sourceforge.net/project/?form_grp=275
+	http://sourceforge.net/project/ivtools
+
+Read about other vector graphic free software at:
+
+	http://sourceforge.net/foundry/vectorgraphics
 
 * Finding and Generating Inline Documentation
 
@@ -175,7 +180,7 @@ InterViews 3.1 and Unidraw.  Here is a list:
 	See src/html/README for instructions on auto-generating these
 	web pages yourself, or see the result on-line at:
 
-		http://www.vectaport.com/ivtools/doc/classes/
+		http://www.ivtools.org/ivtools/doc/classes/
 
 	- InterViews 3.1 and Unidraw man pages
 
@@ -183,7 +188,7 @@ InterViews 3.1 and Unidraw.  Here is a list:
 	been preserved, and can be found in src/man/man3, or where ever
 	you elect to install them.  They also can be browsed online at:
 
-		http://www.vectaport.com/ivtools/doc/man3.1/
+		http://www.ivtools.org/ivtools/doc/man3.1/
 
 	- InterViews 3.1 reference manual 
 
@@ -191,14 +196,14 @@ InterViews 3.1 and Unidraw.  Here is a list:
 	PostScript form at src/man/refman3.1/refman.PS.  It is also
 	found in page-indexable online form at:
 
-		http://www.vectaport.com/ivtools/doc/refman3.1/
+		http://www.ivtools.org/ivtools/doc/refman3.1/
 
 
 * Building on top of ivtools
 
 Copied from the ivtools FAQ: 
 
-	http://www.vectaport.com/ivtools/faq.html#standalonedevel
+	http://www.ivtools.org/ivtools/faq.html#standalonedevel
 
 Q: How do I set up a stand-alone program or source tree on top of ivtools
 for development purposes?
@@ -219,12 +224,12 @@ and executable programs, you will want to get started by replicating
 an equivalent source tree (i.e. vhclmaps) and change or rename all
 directories or files as appropriate. 
 
-** read more on vhclmaps at http://www.vectaport.com/vhclmaps/ **
+** read more on vhclmaps at http://www.ivtools.org/vhclmaps/ **
 
 
 * Acknowledgements:
 
-ivtools programmers at Vectaport:
+ivtools programmers at Vectaport (http://www.vectaport.com):
 
 	Scott Johnston
 	Jorge Gautier
@@ -320,7 +325,7 @@ aggregrate copyright notice for that software package:
  * OF THIS SOFTWARE.
  */
 
-The building of iv-3.1 with gcc-2.5.* (and subsequent versions)
+The building of Unidraw with gcc-2.5.* (and subsequent versions)
 was enabled by a patch from Adam Zell.
 
 The TIFF library was written by Sam Leffler and published with this
@@ -434,8 +439,9 @@ GraphUnidraw.
 The balance of ivtools has been developed by Vectaport Inc. (P.O. Box
 7141, Redwood City, CA 94063), with additional support from IET Inc.
 (P.O.  Box 112450, Campbell, CA 95011) in the form of ARPA
-subcontracts (DACA76-93-C-0025 and DACA76-97-C-0005), and more
-recently by granting part-time employee Scott Johnston the freedom to
-evolve ivtools and related open-source frameworks as part of his
-job. There was also support from Applied Sciences Inc, San Francisco,
-CA, in the form of a subcontract for a Phase II SBIR from NASA Ames.
+subcontracts (DACA76-93-C-0025 and DACA76-97-C-0005), as well as
+directly employing Scott Johnston from April 1999 thru August 2000 and
+giving him the freedom to evolve ivtools and related open-source
+frameworks as part of his job. There was also support from Applied
+Sciences Inc, San Francisco, CA, in the form of a subcontract for a
+Phase II SBIR from NASA Ames.

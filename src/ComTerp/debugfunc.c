@@ -21,17 +21,20 @@
  * 
  */
 
+#include <ComTerp/comhandler.h>
 #include <ComTerp/debugfunc.h>
-#include <ComTerp/comterp.h>
+#include <ComTerp/comterpserv.h>
+#include <strstream.h>
+#include <vector.h>
 
 #define TITLE "DebugFunc"
 
 /*****************************************************************************/
 
-TraceFunc::TraceFunc(ComTerp* comterp) : ComFunc(comterp) {
+ComterpTraceFunc::ComterpTraceFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-void TraceFunc::execute() {
+void ComterpTraceFunc::execute() {
   static int get_symid = symbol_add("get");
   boolean get_flag = stack_key(get_symid).is_true();
   if (get_flag) {
@@ -54,4 +57,97 @@ void TraceFunc::execute() {
     }
   }
 }
+
+/*****************************************************************************/
+
+ComterpPauseFunc::ComterpPauseFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
+
+  comterp()->npause()++;
+
+ if (msgstrv.is_string()) {
+    ostrstream sbuf1_s;
+    sbuf1_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): " 
+	    << msgstrv.string_ptr() << "\n";
+    sbuf1_s.put('\0');
+    cerr << sbuf1_s.str();
+ }
+  ostrstream sbuf2_s;
+  sbuf2_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): enter command or press C/R to continue\n";
+  sbuf2_s.put('\0');
+  cerr << sbuf2_s.str();
+
+  comterp()->push_servstate();
+  filebuf fbufin;
+  if (comterp()->handler()) {
+    int fd = max(0, comterp()->handler()->get_handle());
+    fbufin.attach(fd);
+  } else
+    fbufin.attach(fileno(stdin));
+  istream in(&fbufin);
+  filebuf fbufout;
+  if (comterp()->handler()) {
+    int fd = max(1, comterp()->handler()->get_handle());
+    fbufout.attach(fd);
+  } else
+    fbufout.attach(fileno(stdout));
+  ostream out(&fbufout);
+  vector<char> cvect;
+  ComValue retval;
+  do {
+    char ch;
+    cvect.clear();
+    /* need to handle embedded newlines differently */
+    do {
+      ch = in.get();
+      cvect.push_back(ch);
+    } while (in.good() && ch != '\n');
+    if (cvect[0] != '\n') {
+      if (comterpserv()) {
+	retval.assignval(comterpserv()->run(&cvect[0]));
+	out << retval << "\n";
+      } else {
+	cerr << "execution of commands during step requires comterp in server or remote mode\n";
+      }
+    }
+  } while (cvect[0] != '\n');
+  comterp()->pop_servstate();
+  ostrstream sbuf_e;
+  sbuf_e << (stepfunc() ? "end of step(" : "end of pause(") << comterp()->npause()-- << ")\n";
+  sbuf_e.put('\0');
+  cerr << sbuf_e.str();
+  push_stack(retval);
+}
+
+void ComterpPauseFunc::execute() {
+  ComValue msgstrv(stack_arg(0));
+  reset_stack();
+  execute_body(msgstrv);
+}
+
+
+/*****************************************************************************/
+
+ComterpStepFunc::ComterpStepFunc(ComTerp* comterp) : ComterpPauseFunc(comterp) {
+}
+
+void ComterpStepFunc::execute() {
+  ComValue msgstrv(stack_arg(0));
+  static int pause_symid = symbol_add("pause");
+  ComValue pausekey(stack_key(pause_symid));
+  reset_stack();
+  if (pausekey.is_true()) {
+    execute_body(msgstrv);
+  } else {
+    comterp()->stepflag() = !comterp()->stepflag();
+    ComValue retval(comterp()->stepflag());
+    push_stack(retval);
+  }
+}
+
+
+
+
 

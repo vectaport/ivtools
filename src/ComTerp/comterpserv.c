@@ -60,8 +60,6 @@ ComTerpServ::ComTerpServ(int bufsize, int fd)
     /* inform the parser which infunc is the oneshot infunc */
     _oneshot_infunc = (infuncptr)&s_fgets;
 
-    _npause = 0;
-
     _logger_mode = 0;
 }
 

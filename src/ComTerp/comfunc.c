@@ -25,6 +25,7 @@
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comvalue.h>
+#include <ComUtil/comutil.h>
 #include <Attribute/attrlist.h>
 #include <string.h>
 
@@ -42,7 +43,7 @@ void ComFunc::reset_stack() {
   if (!post_eval()) {
     int count = nargs() + nkeys() - npops();
     for (int i=1; i<=npops(); i++) 
-      _comterp->stack_top(i).AttributeValue::~AttributeValue();
+      ((AttributeValue)_comterp->stack_top(i)).AttributeValue::~AttributeValue();
     
     _comterp->decr_stack(count);
   } else 
@@ -124,7 +125,7 @@ ComValue& ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
 
   if (n>=nargsfixed()) return dflt;  
 
-  for (int i=nargsfixed(); i>n; i--) {
+  for (int j=nargsfixed(); j>n; j--) {
     argcnt = 0;
     skip_arg_in_expr(offtop, argcnt);
   }
@@ -168,7 +169,7 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
 
   if (n>=nargsfixed()) return dflt;  
 
-  for (int i=nargsfixed(); i>n; i--) {
+  for (int j=nargsfixed(); j>n; j--) {
     argcnt = 0;
     skip_arg_in_expr(offtop, argcnt);
   }
@@ -417,6 +418,15 @@ AttributeList* ComFunc::stack_keys(boolean symbol, AttributeValue& dflt) {
   return al;
 }
 
+ComTerpServ* ComFunc::comterpserv() { 
+  return _comterp && _comterp->is_serv() ? (ComTerpServ*)_comterp : nil; 
+}
+
+ostream& operator<< (ostream& out, const ComFunc& cf) {
+    out << symbol_pntr(cf.funcid());
+    return out;
+}
+
 /*****************************************************************************/
 
 ComFuncState::ComFuncState(int narg, int nkey, int pedepth, 
@@ -433,4 +443,11 @@ ComFuncState::ComFuncState(int narg, int nkey, int pedepth,
 ComFuncState::ComFuncState(ComFuncState& cfs) {
   *this = cfs;
 }
+
+ostream& operator<< (ostream& out, const ComFuncState& cf) {
+    out << "nargs = " << cf._nargs;
+    out << ";nkeys = " << cf._nkeys;
+    return out;
+}
+
 

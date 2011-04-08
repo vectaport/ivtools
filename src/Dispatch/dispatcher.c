@@ -597,7 +597,11 @@ int Dispatcher::fillInReady(
     return rmaskret.numSet() + wmaskret.numSet() + emaskret.numSet();
 }
 
+#if defined(__GNUC__) && !defined(__GNUC_MINOR__)
+void Dispatcher::sigCLD() {
+#else
 void Dispatcher::sigCLD(...) {
+#endif
     pid_t pid;
     int status;
 

@@ -6,6 +6,9 @@
 #if defined(sun) && !defined(solaris)
 extern "C" {
 int strcasecmp(const char*, const char*);
+int strncasecmp(const char*, const char*,int);
+#undef size_t
+#define size_t long unsigned int	
 }
 #endif
 

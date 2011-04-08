@@ -78,8 +78,8 @@ static OverlayEditor* launch_graphdraw() {
 /*****************************************************************************/
 
 static PropertyData properties[] = {
-    { "*ComEditor*name", "drawserv" },
-    { "*ComEditor*iconName", "drawserv" },
+    { "*ComEditor*name", "ivtools drawserv" },
+    { "*ComEditor*iconName", "ivtools drawserv" },
     { "*domain",  "drawing" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },
@@ -208,7 +208,7 @@ int main (int argc, char** argv) {
     Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
 #endif
     DrawCreator creator;
-    DrawCatalog* catalog = new DrawCatalog("drawserv", &creator);
+    DrawCatalog* catalog = new DrawCatalog("ivtools drawserv", &creator);
     OverlayUnidraw* unidraw = new OverlayUnidraw(
         catalog, argc, argv, options, properties
     );

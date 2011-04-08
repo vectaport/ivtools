@@ -114,7 +114,7 @@ Glyph* MenuEnumEditor::buildmenu() {
 	action1 = new EnumActionCallback(MenuEnumEditor)(
 	    this, &MenuEnumEditor::edit, _obs->labelvalue(i)
 	);
-	_macro ? action2 = _macro->action(i) : action2 = nil;
+	action2 = _macro ? _macro->action(i) : nil;
 	MenuItem* mi = wk.menu_item(lk.overlay(
 	    lk.vcenter(lk.hspace(maxwidth)),
 	    lk.vcenter(wk.label(_obs->labelvalue(i)))));

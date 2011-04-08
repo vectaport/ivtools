@@ -95,11 +95,11 @@ public:
 
     ComTerp* comterp() { return _comterp; }
     // return ComTerp this ComFunc is associated with.
-    ComTerpServ* comterpserv() { return (ComTerpServ*)_comterp; }
+    ComTerpServ* comterpserv();
     // return ComTerpServ this ComFunc is associated with.
 
 
-    ComValue& pop_stack();
+    ComValue& pop_stack(); 
     // pop top off the stack.
     ComValue& pop_symbol();
     // pop top off the stack preserving symbol ids if ComValue is a symbol type.
@@ -153,7 +153,7 @@ public:
 
     void funcid(int id) { _funcid = id; }
     // set symbol id of name for func
-    int funcid() { return _funcid; }
+    int funcid() const { return _funcid; }
     // get symbol id of name for func
 
     ComValue& lookup_symval(ComValue&);
@@ -167,6 +167,9 @@ public:
     static int bintest(const char* name);
     static boolean bincheck(const char* name);
     
+    friend ostream& operator << (ostream& s, const ComFunc&);
+    // print contents to ostream, brief or not depending on
+    // associated ComTerp brief flag.
 
 
 protected:
@@ -240,6 +243,10 @@ public:
   // within blocks of conditionally executing control commands.
   int& command_symid() { return _command_symid; }
   // symbol id associated with the ComFunc.
+  
+  friend ostream& operator << (ostream& s, const ComFuncState&);
+  // print contents to ostream, brief or not depending on
+  // associated ComTerp brief flag.
 
 protected:
 

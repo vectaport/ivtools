@@ -454,8 +454,7 @@ void OpenFileChooserImpl::cancel_browser() {
 
 void OpenFileChooserImpl::accept_editor(FieldEditor* e) {
     boolean urlflag = OpenFileChooser::urltest(e->text()->string());
-    const String* path = urlflag 
-      ? e->text() : Directory::canonical(*e->text());
+    String* path = (String *) (urlflag ? e->text() : Directory::canonical(*e->text()));
     e->field(*path);
     if (!urlflag && chdir(*path)) {
 	/* chdir has copied the string */

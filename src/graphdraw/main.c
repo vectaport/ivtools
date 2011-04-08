@@ -42,8 +42,8 @@
 /*****************************************************************************/
 
 static PropertyData properties[] = {
-    { "*GraphEditor*name", "graphdraw" },
-    { "*GraphEditor*iconName", "graphdraw" },
+    { "*GraphEditor*name", "ivtools graphdraw" },
+    { "*GraphEditor*iconName", "ivtools graphdraw" },
     { "*domain",  "graphdrawing" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },

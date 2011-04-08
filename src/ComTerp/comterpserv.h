@@ -69,9 +69,6 @@ public:
     virtual boolean is_serv() { return true; } 
     // flag to test if ComTerp or ComTerpServ
 
-    int& npause() { return _npause; }
-    // return (reference to) number of pauses
-
 protected:
 
     static char* s_fgets(char* s, int n, void* serv);
@@ -95,7 +92,6 @@ protected:
     int _fd;
     FILE* _fptr;
     int _instat;
-    int _npause;
     int _logger_mode;
 
     friend class ComterpHandler;

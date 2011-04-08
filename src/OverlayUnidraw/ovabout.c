@@ -67,7 +67,7 @@ void OvAboutCmd::Init() {
     PolyGlyph* vb = layout.vbox(25);
     char banner[] = "\
  |\
-binary Copyright (c) 1994-1999 Vectaport Inc.|\
+binary Copyright (c) 1994-2000 Vectaport Inc.|\
  |\
 Permission to use, copy, modify, distribute, and sell this software and|\
 its documentation for any purpose is hereby granted without fee, provided|\
@@ -87,7 +87,7 @@ FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,|\
 NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION|\
 WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.|\
  |\
-source and online documentation at http://www.vectaport.com/ivtools/|\
+source and online documentation at http://www.ivtools.org|\
  |";
     vb->append(kit.label(strtok(banner, "|")));
     char* line = strtok(nil, "|");

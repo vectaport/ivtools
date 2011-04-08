@@ -59,7 +59,7 @@ const unsigned VERSION =2;
 #include <sys/time.h>
 #if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
 extern "C" {
-    void gettimeofday(struct timeval *tp, struct timezone *tzp);
+    int gettimeofday(struct timeval *tp, struct timezone *tzp);
 }
 #endif
 
@@ -142,7 +142,7 @@ Time::Time(const Date& date, hourTy h, minuteTy m, secondTy s, boolean dst)
 	sec += TIME_ZONE;				// adjust to GMT 
 }
 
-Time::operator Date() const
+Date Time::date() const
 /*
 	Convert a Time to a local Date
 */
@@ -237,7 +237,7 @@ Time Time::localTime() const
 	Adjusts this GM Time for local time zone and Daylight Savings Time.
 */
 {
-	Time &local_time = *new Time(sec-TIME_ZONE);
+	Time local_time(sec-TIME_ZONE);
 	if (local_time.isDST()) local_time.sec += 3600;
 	return local_time;
 }
@@ -294,7 +294,7 @@ Time Time::min(const Time& t) const
 void Time::printOn(ostream& strm) const
 {
 	register unsigned hh = hour();
-	Date(*this).printOn(strm);
+	this->date().printOn(strm);
  	strm << ' ' << ((hh <= 12) ? hh : hh-12) << ':';
  	strm << setfill('0') << setw(2) << minute() << ':';
  	strm << setfill('0') << setw(2) << second() << ' ';

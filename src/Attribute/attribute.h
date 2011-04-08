@@ -45,7 +45,7 @@ public:
     Attribute(const Attribute&);
     // copy constructor.
 
-    ~Attribute();
+    virtual ~Attribute();
     // deallocate memory for internal AttributeValue.
 
     char* Name();

@@ -49,8 +49,8 @@
 /*****************************************************************************/
 
 static PropertyData properties[] = {
-    { "*FrameEditor*name", "flipbook" },
-    { "*FrameEditor*iconName", "flipbook" },
+    { "*FrameEditor*name", "ivtools flipbook" },
+    { "*FrameEditor*iconName", "ivtools flipbook" },
     { "*domain",  "flipbook" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },

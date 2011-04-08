@@ -25,7 +25,9 @@
 #include <Dispatch/rpcbuf.h>
 #include <OS/memory.h>
 #include <OS/types.h>	/* must come before <netinet/in.h> on some systems */
+extern "C" {
 #include <arpa/inet.h>
+}
 #include "netinet_in.h"
 #include <ctype.h>
 #include <errno.h>

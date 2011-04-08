@@ -6,10 +6,10 @@ PACKAGE = utils_ivtools
 
 #ifdef InObjectCodeDir
 
-all:: tmpnam stdcmapppm ivdl
+all:: ivtmpnam stdcmapppm ivdl
 
-BuildProgram(tmpnam,NullParameter,tmpnam.o,,)
-InstallProgram(tmpnam,$(BINDIR),tmpnam)
+BuildProgram(ivtmpnam,NullParameter,ivtmpnam.o,,)
+InstallProgram(ivtmpnam,$(BINDIR),ivtmpnam)
 BuildProgram(stdcmapppm,NullParameter,stdcmapppm.o,,)
 InstallProgram(stdcmapppm,$(BINDIR),stdcmapppm)
 #if defined(SVR4Architecture) && defined(SunArchitecture)
@@ -21,10 +21,10 @@ InstallProgram(ivdl,$(BINDIR),ivdl)
 
 DependTarget();
 
-tmpnam: tmpnam.o
-tmpnam.o: ../tmpnam.c
-	@$(RM) tmpnam.o
-	$(CDRIVER) -c ../tmpnam.c
+ivtmpnam: ivtmpnam.o
+ivtmpnam.o: ../ivtmpnam.c
+	@$(RM) ivtmpnam.o
+	$(CDRIVER) -c ../ivtmpnam.c
 
 stdcmapppm: stdcmapppm.o
 stdcmapppm.o: ../stdcmapppm.c

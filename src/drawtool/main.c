@@ -52,8 +52,8 @@
 /*****************************************************************************/
 
 static PropertyData properties[] = {
-    { "*OverlayEditor*name", "drawtool" },
-    { "*OverlayEditor*iconName", "drawtool" },
+    { "*OverlayEditor*name", "ivtools drawtool" },
+    { "*OverlayEditor*iconName", "ivtools drawtool" },
     { "*domain",  "drawing" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },

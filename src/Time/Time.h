@@ -72,7 +72,7 @@ public:
 	Time(clockTy s)			{ sec = s; }
 	Time(hourTy h, minuteTy m, secondTy s =0, boolean dst =false);
 	Time(const Date&, hourTy h =0, minuteTy m =0, secondTy s=0, boolean dst =false);
-	operator Date() const;
+	Date date() const;
 	boolean operator<(const Time& t) const	{ return sec < t.sec; }
 	boolean operator<=(const Time& t) const	{ return sec <= t.sec; }
 	boolean operator>(const Time& t) const	{ return sec > t.sec; }

@@ -34,7 +34,11 @@
 /* link libraries for the above */
 #undef ExtraCCLdLibs
 #ifndef SVR4Architecture
-#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -lm -Xlinker -Bdynamic -ldl -Xlinker -Bstatic
+#if 0
+#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -lm -Xlinker -Bdynamic -ldl
+#else
+#define ExtraCCLdLibs -Xlinker -Bstatic -lm -Xlinker -Bdynamic -ldl
+#endif
 #else
 #if 0  /* static linking of libstdc++ not necessarly needed */
 #define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -Xlinker -Bdynamic -lsocket -lnsl -lSM -lICE -lm

@@ -15,10 +15,16 @@
 // Jan Andersson, Torpa Konsult AB
 // janne@torpa.se - 1993-08-29
 
+#if defined(sun) && !defined(solaris) && __GNUC__==2 && !defined(__GNUC_MINOR__)
+#define _GCC_SIZE_T /* workaround for _G_size_t conflict */
+#endif
+
 #include <stdio.h>
 #include <fcntl.h> 
 #include <sys/stat.h>
+extern "C" {
 #include <malloc.h>
+}
 
 #include <InterViews/regexp.h>
 
