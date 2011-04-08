@@ -71,15 +71,17 @@ int main(int argc, char *argv[]) {
 
 #ifdef HAVE_ACE
     if (server_flag || logger_flag) {
-        ComterpAcceptor* peer_acceptor = new ComterpAcceptor();
+        ComterpAcceptor* peer_acceptor = 
+	    new ComterpAcceptor(ComterpHandler::reactor_singleton());
 	ComterpHandler::logger_mode(logger_flag);
 
         int portnum = argc > 2 ? atoi(argv[2]) : atoi(ACE_DEFAULT_SERVER_PORT_STR);
-        if (peer_acceptor->open (ACE_INET_Addr (portnum)) == -1)
+        if (peer_acceptor->open (ACE_INET_Addr (portnum),
+				 ComterpHandler::reactor_singleton()) == -1)
             cerr << "comterp: unable to open port " << portnum << " with ACE\n";
 
 #if !defined(__NetBSD__)  /* this is not the way to do it for NetBSD */
-        else if (COMTERP_REACTOR::instance ()->register_handler
+        else if (ComterpHandler::reactor_singleton()->register_handler
                   (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
           cerr << "comterp: error registering acceptor with ACE reactor\n";
 #endif
@@ -90,7 +92,7 @@ int main(int argc, char *argv[]) {
         // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
         // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
         // exit.
-        if (COMTERP_REACTOR::instance ()->register_handler 
+        if (ComterpHandler::reactor_singleton()->register_handler 
     	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
           ACE_ERROR_RETURN ((LM_ERROR, 
     			 "registering service with ACE_Reactor\n"), -1);
@@ -98,14 +100,14 @@ int main(int argc, char *argv[]) {
 	// Start up one on stdin
 	if (!logger_flag) {
 	  ComterpHandler* stdin_handler = new ComterpHandler();
-	  if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+	  if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							    ACE_Event_Handler::READ_MASK)==-1)
 	    cerr << "comterp: unable to open stdin with ACE\n";
 	}
 
         // Perform logging service until COMTERP_QUIT_HANDLER receives SIGINT.
         while (COMTERP_QUIT_HANDLER::instance ()->is_set () == 0)
-            COMTERP_REACTOR::instance ()->handle_events ();
+            ComterpHandler::reactor_singleton()->handle_events ();
     
         return 0;
     }

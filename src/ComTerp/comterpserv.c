@@ -152,10 +152,15 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     fbuf.attach(fd);
     istream in (&fbuf);
     in.gets(&instr);
-#else
+#elif __GNUC__==3 && __GNUC_MINOR__<1
     char instr[BUFSIZ];
     FILE* ifptr = fdopen(fd, "r");
     fileptr_filebuf fbuf(ifptr, ios_base::in);
+    istream in (&fbuf);
+    in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
+#else
+    char instr[BUFSIZ];
+    fileptr_filebuf fbuf(fd, ios_base::in, false, static_cast<size_t>(BUFSIZ));
     istream in (&fbuf);
     in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
 #endif
@@ -180,7 +185,7 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     /* append a null byte */
     outstr[outpos] = '\0';
 
-#if __GNUC__>=3
+#if __GNUC__==3 && __GNUC_MINOR__<1
     if (ifptr) fclose(ifptr);
 #endif
 
@@ -197,16 +202,18 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 #if __GNUC__<3
     filebuf fbuf;
     fbuf.attach(fd);
-#else
+#elif __GNUC__==3 && __GNUC_MINOR__<1
     FILE* ofptr = fdopen(fd, "w");
     fileptr_filebuf fbuf(ofptr, ios_base::out);
+#else
+    fileptr_filebuf fbuf(fd, ios_base::out, false, static_cast<size_t>(BUFSIZ));
 #endif
     ostream out(&fbuf);
     for (; outpos < bufsize-1 && s[outpos]; outpos++)
 	out.put(s[outpos]);
     out.flush();
     outpos = 0;
-#if __GNUC__>=3
+#if __GNUC__==3 && __GNUC_MINOR__<1
     if (ofptr) fclose(ofptr);
 #endif
     return 1;
@@ -313,13 +320,17 @@ int ComTerpServ::runfile(const char* filename) {
 	        err_print( stderr, "comterp" );
 #if __GNUC__<3
 	        filebuf obuf(handler() ? handler()->get_handle() : 1);
-#else
+#elif __GNUC__==3 && __GNUC_MINOR__<1
                 FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
 	        fileptr_filebuf obuf(ofptr, ios_base::out);
+#else
+		fileptr_filebuf obuf(handler()&&handler()->get_handle()>0 
+				     ? (int)handler()->get_handle() : 1, 
+				     ios_base::out, false, static_cast<size_t>(BUFSIZ));
 #endif
 		ostream ostr(&obuf);
 		ostr.flush();
-#if __GNUC__>=3
+#if __GNUC__==3 && __GNUC_MINOR__<1
                 if (ofptr) fclose(ofptr);
 #endif
 		status = -1;
@@ -334,13 +345,18 @@ int ComTerpServ::runfile(const char* filename) {
 	  err_print( stderr, "comterp" );
 #if __GNUC__<3
 	  filebuf obuf(handler() ? handler()->get_handle() : 1);
-#else
+#elif __GNUC__==3 && __GNUC_MINOR__<1
           FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
 	  fileptr_filebuf obuf(ofptr, ios_base::out);
+#else
+	  fileptr_filebuf obuf(handler()&&handler()->get_handle()>0 
+			       ? (int)handler()->get_handle() : 1, 
+			       ios_base::out, false, static_cast<size_t>(BUFSIZ));
+
 #endif
 	  ostream ostr(&obuf);
 	  ostr.flush();
-#if __GNUC__>=3
+#if __GNUC__==3 && __GNUC_MINOR__<1
           if (ofptr) fclose(ofptr);
 #endif
 	  status = -1;

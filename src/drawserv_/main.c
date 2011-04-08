@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2004 Scott E. Johnston
  * Copyright (c) 1994-1999 Vectaport, Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
@@ -30,14 +31,16 @@
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
+#include <Comterp/comhandler.h>
 #endif
 
 #include <DrawServ/drawcatalog.h>
 #include <DrawServ/drawcreator.h>
 #include <DrawServ/drawcomps.h>
+#include <DrawServ/draweditor.h>
 #include <DrawServ/drawkit.h>
+#include <DrawServ/drawserv.h>
 
-#include <FrameUnidraw/frameeditor.h>
 #include <GraphUnidraw/grapheditor.h>
 
 #include <OverlayUnidraw/ovellipse.h>
@@ -208,11 +211,11 @@ static OptionDesc options[] = {
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     DrawCreator creator;
     DrawCatalog* catalog = new DrawCatalog("ivtools drawserv", &creator);
-    OverlayUnidraw* unidraw = new OverlayUnidraw(
+    DrawServ* unidraw = new DrawServ(
         catalog, argc, argv, options, properties
     );
 
@@ -226,7 +229,7 @@ int main (int argc, char** argv) {
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "drawserv:  unable to open import port " << importnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawserv:  unable to register UnidrawImportAcceptor with ACE reactor\n";
     else
@@ -239,10 +242,10 @@ int main (int argc, char** argv) {
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
     if (peer_acceptor->open 
-	(ACE_INET_Addr (portnum)) == -1)
+	(ACE_INET_Addr (portnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "drawserv:  unable to open port " << portnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawserv:  unable to register ComterpAcceptor with ACE reactor\n";
     else
@@ -252,7 +255,7 @@ int main (int argc, char** argv) {
     // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
     // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (COMTERP_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
         cerr << "drawserv:  unable to register quit handler with ACE reactor\n";
 
@@ -271,11 +274,11 @@ int main (int argc, char** argv) {
 
     } else {
 	const char* initial_file = (argc == 2) ? argv[1] : nil;
-	FrameEditor* ed = nil;
+	DrawEditor* ed = nil;
 	if (initial_file) 
-	  ed = new FrameEditor(initial_file, DrawKit::Instance());
+	  ed = new DrawEditor(initial_file, DrawKit::Instance());
 	else 
-	  ed = new FrameEditor(new DrawIdrawComp, DrawKit::Instance());
+	  ed = new DrawEditor(new DrawIdrawComp, DrawKit::Instance());
 
 	unidraw->Open(ed);
 
@@ -283,9 +286,9 @@ int main (int argc, char** argv) {
 	/*  Start up one on stdin */
 	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
 #if 0
-	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
 #else
-	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
 	  cerr << "drawserv: unable to open stdin with ACE\n";

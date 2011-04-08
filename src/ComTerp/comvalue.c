@@ -158,12 +158,13 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	case ComValue::SymbolType:
 	  if (brief) {
 	    if (svp->global_flag()) out << "global(";
-	    out << symbol_pntr( svp->symbol_ref());
+	    symbol = symbol_pntr(svp->symbol_ref());
+	    out << (symbol ? symbol : "(null)");
 	    if (svp->global_flag()) out << ")";
 	  } else {
 	    title = "symbol( ";
 	    symbol = symbol_pntr( svp->symbol_ref() );
-	    out << title << symbol;
+	    out << title << (symbol ? symbol : "(null)");
 	    counter = strlen(title) + strlen(symbol);
 	    while( ++counter < 32 ) out << ' ';
 	    out << ")   narg " << svp->narg() << "  nkey " << svp->nkey() << 

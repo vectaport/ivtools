@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2004 Scott E. Johnston
- * Copyright (c) 1994 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -22,56 +21,22 @@
  * 
  */
 
-#include <Unidraw/Commands/command.h>
-#include <Unidraw/Tools/tool.h>
-#include <Unidraw/editor.h>
-#include <OverlayUnidraw/ovdoer.h>
-#include <OverlayUnidraw/oved.h>
-#include <OverlayUnidraw/ovunidraw.h>
+/*
+ * Implementation of DrawServ class.
+ */
 
-CommandDoer::CommandDoer(Command* c) {
-    cmd = c;
+#include <DrawServ/drawserv.h>
+/*****************************************************************************/
+
+DrawServ::DrawServ (Catalog* c, int& argc, char** argv, 
+		    OptionDesc* od, PropertyData* pd) 
+: OverlayUnidraw(c, argc, argv, od, pd) {
 }
 
-void CommandDoer::Do() {
-#if 0 
-    Command* command = cmd;
-    if (command) {
-	if (command->Reversible()) {
-	    command = command->Copy();
-	    command->Execute();
-            if (command->Reversible()) {
-                command->Log();
-            } else {
-                delete command;
-            }
-	}
-	else {
-	    command->Execute();
-            if (command->Reversible()) {
-                command = command->Copy();
-                command->Log();
-            }
-	}
-    }
-#else
-    unidraw->ExecuteCmd(cmd);
-#endif
+DrawServ::DrawServ (Catalog* c, World* w) 
+: OverlayUnidraw(c, w) {
 }
 
-CommandPusher::CommandPusher(Command* c) {
-    cmd = c;
-}
-
-void CommandPusher::Push() {
-    ((OverlayUnidraw*)unidraw)->Append(cmd);
-}
-
-ToolSelector::ToolSelector(Tool* tl, Editor* ed) {
-    tool = tl;
-    editor = ed;
-}
-
-void ToolSelector::Select() {
-    editor->SetCurTool(tool);
+DrawServ::~DrawServ () 
+{
 }

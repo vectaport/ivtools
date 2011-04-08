@@ -215,7 +215,7 @@ static char* usage =
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     int exit_status = 0;
     GraphCreator creator;
@@ -239,7 +239,7 @@ int main (int argc, char** argv) {
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "flipbook:  unable to open import port " << importnum << "\n";
 
-    else if (IMPORT_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "graphdraw:  unable to register UnidrawImportAcceptor with ACE reactor\n";
 
@@ -252,10 +252,10 @@ int main (int argc, char** argv) {
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
     if (peer_acceptor->open 
-	(ACE_INET_Addr (portnum)) == -1)
+	(ACE_INET_Addr (portnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "graphdraw:  unable to open port " << portnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "graphdraw:  unable to register ComterpAcceptor with ACE reactor\n";
     else
@@ -265,7 +265,7 @@ int main (int argc, char** argv) {
     // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
     // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (IMPORT_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
         cerr << "graphdraw:  unable to register quit handler with ACE reactor\n";
 
@@ -280,9 +280,9 @@ int main (int argc, char** argv) {
 	/*  Start up one on stdin */
 	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
 #if 0
-	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
 #else
-	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
 	  cerr << "graphdraw: unable to open stdin with ACE\n";

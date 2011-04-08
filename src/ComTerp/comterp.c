@@ -139,6 +139,7 @@ void ComTerp::init() {
     _trace_mode = 0;
     _npause = 0;
     _stepflag = 0;
+
 }
 
 
@@ -884,10 +885,14 @@ int ComTerp::run(boolean one_expr, boolean nested) {
     fbuf.attach(fd);
   } else
     fbuf.attach(fileno(stdout));
-#else
+#elif __GNUC__==3 && __GNUC_MINOR__<1
   fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
 	       ? handler()->wrfptr() : stdout, 
 	       ios_base::out);
+#else
+  fileptr_filebuf fbuf(handler()&&handler()->get_handle()>0 
+		       ? handler()->get_handle() : 1, 
+		       ios_base::out, false, static_cast<size_t>(BUFSIZ));
 #endif
   ostream out(&fbuf);
   boolean eolflag = false;
@@ -907,7 +912,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	  break;
 	} else if (!func_for_next_expr() && val_for_next_func().is_null()) {
 	  print_stack_top(out);
-	  out << "\n"; out.flush();
+	  out << "\n"; out.flush(); 
 	}
       } else {
 	out << _errbuf << "\n"; out.flush();

@@ -69,7 +69,10 @@ DrawServ/drawcatalog.h
 DrawServ/drawclasses.h
 DrawServ/drawcomps.h
 DrawServ/drawcreator.h
+DrawServ/draweditor.h
+DrawServ/drawfunc.h
 DrawServ/drawkit.h
+DrawServ/drawserv.h
 DrawServ/drawviews.h
 FrameUnidraw/framecatalog.h
 FrameUnidraw/frameclasses.h

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2004 Scott E. Johnston
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
@@ -29,6 +30,7 @@
 #include <Unidraw/globals.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/uctrls.h>
+#include <Unidraw/unidraw.h>
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Graphic/ulabel.h>
 #include <Unidraw/Graphic/picture.h>
@@ -71,6 +73,9 @@ void CommandControl::Do () {
     if (cmd != nil) {
         Busy();
 
+#if 1
+	unidraw->ExecuteCmd(cmd->Copy());
+#else
         if (cmd->Reversible()) {
             cmd = cmd->Copy();
             cmd->Execute();
@@ -89,6 +94,7 @@ void CommandControl::Do () {
                 cmd->Log();
             }
         }
+#endif
 
         Done();
     }

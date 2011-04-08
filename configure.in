@@ -213,6 +213,59 @@ else
 fi
 
 
+QT_ENABLED=0
+QT=""
+QTLIBS=""
+AC_ARG_WITH(qt,     [  --with-qt=<path>    path to QT directory],
+        QT=$withval
+	
+	if test x"$QTLIBS" = x
+	then
+		if test -d "$QT"/lib
+		then
+			QTLIBS=$QT/lib
+		else
+			QTLIBS=$QT/Build/lib
+		fi
+	fi
+)
+
+AC_ARG_WITH(qt-libs,[  --with-qt-libs=<path> path to compiled QT libs],
+	QTLIBS=$withval )
+
+## Check qt
+
+if test x"$QT" = x
+then
+	echo ""
+	echo "No QT path specified."
+	echo "Use --with-qt=<path> to point to QT installed directory."
+else
+   if test ! -f "$QT"/include/qt.h
+   then
+	echo ""
+	echo "Verify your QT environment and try it again."
+	echo "(Couldn't find $QT/include/qt.h!)"
+
+	echo "Use --with-qt=<path> to point to QT (or set it in the env)."
+	echo "<path> points to the installed QT version or to a source tree."
+	echo "You may also use --with-qt-libs to specify the lib directory."
+   else
+	QTINCS="$QT/include"
+   fi
+
+   if test ! -d "$QTLIBS"
+   then
+        echo "QT directory '$QTLIBS' does not exist (or is not readable)."
+        echo "Use --with-qt-libs to point to it."
+   fi
+   echo "Building with QT support"
+   echo "QT includes = $QTINCS"
+   echo "QT libs = $QTLIBS"
+   QT_ENABLED=1
+fi
+
+
 # check of the c++ compiler
 AC_PROG_CXX
 # check for the c compiler
@@ -227,7 +280,7 @@ AC_PATH_X
 #AC_CXX_BOOL
 # check for c++ standard headers
 #AC_CXX_HEADERS
-ICE_CXX_INCLUDE_DIR
+#ICE_CXX_INCLUDE_DIR
 # check for EGCS or gcc 2.8.x
 #AC_CXX_EGCS
 # check for gettimeofday
@@ -320,6 +373,10 @@ AC_SUBST(IUE)
 AC_SUBST(IUELIBS)
 AC_SUBST(IUEINCS)
 AC_SUBST(IUE_ENABLED)
+AC_SUBST(QT)
+AC_SUBST(QTLIBS)
+AC_SUBST(QTINCS)
+AC_SUBST(QT_ENABLED)
 AC_SUBST(IV)
 AC_SUBST(IV_LIBS)
 #AC_SUBST(no_x)

@@ -95,3 +95,4 @@ void ComTerpModule::reset() {
     _token[0] = '\0';
     _linenum = 0;
 }
+

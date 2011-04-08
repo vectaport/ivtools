@@ -40,8 +40,13 @@
 #include <ace/Singleton.h>
 #include <ace/Svc_Handler.h>
 #include <ace/SOCK_Acceptor.h>
+#include <ace/Test_and_Set.h>
 
 class ComTerpServ;
+
+//: An ACE_Test_and_Set Singleton.
+typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 
+	COMTERP_QUIT_HANDLER;
 
 //: handler to invoke ComTerp on socket (version with ACE)
 class ComterpHandler : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>
@@ -91,6 +96,9 @@ public:
   FILE* rdfptr() { return _rdfptr; }
   // file pointer for reading from handle
 
+  static ACE_Reactor* reactor_singleton();
+  // alternate way of getting at reactor singleton
+
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
@@ -119,15 +127,8 @@ protected:
 
   static int _logger_mode;
   // mode for logging commands: 0 = no log, 1 = log only
+
 };
-
-//: A Reactor Singleton.
-typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex> 
-	COMTERP_REACTOR;
-
-//: An ACE_Test_and_Set Singleton.
-typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 
-	COMTERP_QUIT_HANDLER;
 
 //: Specialize a ComterpAcceptor.
 typedef ACE_Acceptor <ComterpHandler, ACE_SOCK_ACCEPTOR> 
@@ -156,6 +157,7 @@ public:
 protected:
     int _handle;
     ComTerpServ* comterp_;
+
 };
 #endif
 

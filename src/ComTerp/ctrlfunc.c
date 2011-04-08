@@ -37,7 +37,11 @@
 
 #if __GNUC__>=3
 static char newline;
+#if __GNUC__>3||__GNUC_MINOR_>1
+#include <ext/stdio_filebuf.h>
 #endif
+#endif
+
 
 /*****************************************************************************/
 
@@ -104,6 +108,8 @@ void RunFunc::execute() {
     return;
 }
 
+/*****************************************************************************/
+
 RemoteFunc::RemoteFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -116,6 +122,13 @@ void RemoteFunc::execute() {
   reset_stack();
 
 #ifdef HAVE_ACE
+
+#if __GNUC__==3&&__GNUC_MINOR__<1
+  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
+  push_stack(ComValue::nullval());
+  return;
+#endif
+
   if (hostv.is_string() && portv.is_known() && cmdstrv.is_string()) {
 
     const char* hoststr = hostv.string_ptr();
@@ -134,8 +147,8 @@ void RemoteFunc::execute() {
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
 #else
-    fileptr_filebuf ofbuf(comterp()->handler() && comterp()->handler()->wrfptr() 
-		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+    fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
+			  false, static_cast<size_t>(BUFSIZ));
 #endif
     ostream out(&ofbuf);
     const char* cmdstr = cmdstrv.string_ptr();
@@ -150,11 +163,12 @@ void RemoteFunc::execute() {
       char* buf;
       in.gets(&buf);
 #else
-      fileptr_filebuf ifbuf(comterp()->handler()->rdfptr(), ios_base::in);
-      istream in(&ifbuf);
       char buf[BUFSIZ];
-      in.get(buf, BUFSIZ);
-      in.get(newline);
+      int i=0;
+      do {
+	read(socket.get_handle(), buf+i++, 1);
+      } while (i<BUFSIZ-1 && buf[i-1]!='\n');
+      if (buf[i]=='\n') buf[i]==0;
 #endif
       ComValue& retval = comterpserv()->run(buf, true);
       push_stack(retval);
@@ -168,7 +182,6 @@ void RemoteFunc::execute() {
 
 #else
 
-  reset_stack();
   cerr << "for the remote command to work rebuild comterp with ACE\n";
   return;
 

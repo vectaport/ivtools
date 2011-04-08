@@ -725,7 +725,7 @@ void SessionRep::init_display(Display* display) {
     } else if (style_->find_attribute(String("display"), name)) {
 	default_ = Display::open(name);
     } else {
-	default_ = Display::open();
+	default_ = Display::open("localhost:0.0");
     }
     if (default_ == nil) {
 	if (name.length() > 0) {

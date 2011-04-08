@@ -246,7 +246,7 @@ static char* usage =
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     OverlayCreator creator;
     OverlayCatalog* catalog = new OverlayCatalog("comdraw", &creator);
@@ -266,10 +266,10 @@ int main (int argc, char** argv) {
     const char* importstr = catalog->GetAttribute("import");
     int importnum = atoi(importstr);
     if (import_acceptor->open 
-	(ACE_INET_Addr (importnum)) == -1)
+	(ACE_INET_Addr (importnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "comdraw:  unable to open import port " << importnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "comdraw:  unable to register UnidrawImportAcceptor with ACE reactor\n";
     else
@@ -282,10 +282,10 @@ int main (int argc, char** argv) {
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
     if (peer_acceptor->open 
-	(ACE_INET_Addr (portnum)) == -1)
+	(ACE_INET_Addr (portnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "comdraw:  unable to open port " << portnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "comdraw:  unable to register ComterpAcceptor with ACE reactor\n";
     else
@@ -295,7 +295,7 @@ int main (int argc, char** argv) {
     // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
     // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (COMTERP_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
         cerr << "comdraw:  unable to register quit handler with ACE reactor\n";
 
@@ -319,9 +319,9 @@ int main (int argc, char** argv) {
 	if (!stdin_off_str || strcmp(stdin_off_str, "false")==0) {
 	  UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
 #if 0
-	  if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+	  if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
 #else
-	    if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
 	      cerr << "comdraw: unable to open stdin with ACE\n";

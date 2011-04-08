@@ -51,7 +51,7 @@ int main(int argc, char *argv[]) {
   if (peer_acceptor->open (ACE_INET_Addr (portnum)) == -1)
     cerr << "iueserv: unable to open port " << portnum << " with ACE\n";
   
-  else if (COMTERP_REACTOR::instance ()->register_handler
+  else if (ComterpHandler::reactor_singleton()->register_handler
 	   (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
     cerr << "iueserv: error registering acceptor with ACE reactor\n";
   
@@ -61,7 +61,7 @@ int main(int argc, char *argv[]) {
   // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
        // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
        // exit.
-       if (COMTERP_REACTOR::instance ()->register_handler 
+       if (ComterpHandler::reactor_singleton()->register_handler 
 	   (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
 	 ACE_ERROR_RETURN ((LM_ERROR, 
 			    "registering service with ACE_Reactor\n"), -1);
@@ -69,16 +69,16 @@ int main(int argc, char *argv[]) {
   // Start up one on stdin
        IueHandler* stdin_handler = new IueHandler();
 #if 0
-  if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+  if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
 #else
-    if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 						      ACE_Event_Handler::READ_MASK)==-1)
 #endif
     cerr << "iueserv: unable to open stdin with ACE\n";
   
   // Perform logging service until COMTERP_QUIT_HANDLER receives SIGINT.
        while (COMTERP_QUIT_HANDLER::instance ()->is_set () == 0)
-	 COMTERP_REACTOR::instance ()->handle_events ();
+	 ComterpHandler::reactor_singleton()->handle_events ();
   
   return 0;
 #endif

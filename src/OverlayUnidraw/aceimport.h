@@ -33,6 +33,7 @@
 #include <ace/Singleton.h>
 #include <ace/Svc_Handler.h>
 #include <ace/SOCK_Acceptor.h>
+#include <ace/Test_and_Set.h>
 
 class OvImportCmd;
 #include <fstream.h>
@@ -72,10 +73,6 @@ protected:
   istream* _inptr;          // associated input stream
   FILE* _infptr;            // associated FILE*
 };
-
-//: a Reactor Singleton.
-typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex> 
-	IMPORT_REACTOR;
 
 //: an ACE_Test_and_Set Singleton for Ctrl-C.
 typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 

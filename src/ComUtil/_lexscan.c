@@ -75,7 +75,8 @@ Summary:
 */
 
 int lexscan(void * infile,char * (*infunc)(),int (*eoffunc)(), int (*errfunc)(), 
-	    void * outfile,int (*outfunc)(),char * begcmt,char * endcmt,
+	    void * outfile,int (*outfunc)(),
+	    char * begcmt,char * endcmt, char linecmt,
             char * buffer,unsigned bufsiz,unsigned * bufptr,char * token,
 	    unsigned toksiz, unsigned * toklen,unsigned * toktype,
 	    unsigned * tokstart,unsigned * linenum )
@@ -104,6 +105,7 @@ int           (*outfunc)();/* I   Function for writing output text
 				  (typically `fputs`). */
 char *	        begcmt    ;/* I   String that begins comment. */
 char *          endcmt    ;/* I   String that ends comment. */
+char            linecmt   ;/* I   Character to start comment line.  */
 char *          buffer    ;/* I   Buffer or file I/O.          */
 unsigned        bufsiz    ;/* I   Size of `buffer` in bytes.   */
 unsigned *      bufptr    ;/* O   Current location in `buffer`.*/
@@ -242,8 +244,11 @@ char* infunc_retval;
 	     (*outfunc) ( "> ", outfile);
 	   _continuation_prompt = 0;
 	 }
-	 while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL  && 
-		buffer[0] == '#') {} /* skip all script comments */
+	 if (linecmt)
+	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL && 
+		  buffer[0] == linecmt) {} /* skip all script comments */
+	 else
+	   infunc_retval = (*infunc)( buffer, bufsiz, infile );
 	 if( infunc_retval == NULL ) {
 	    if( *toklen > 0 )
 	       goto token_return;

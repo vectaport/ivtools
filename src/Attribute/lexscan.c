@@ -63,7 +63,7 @@ attr_value LexScan::get_next_token(unsigned int& toktype)
 {
     unsigned int toklen, tokstart;
     int status = lexscan (_inptr, _infunc, _eoffunc, _errfunc, NULL, NULL,
-			  _begcmt, _endcmt, _buffer, _bufsiz, &_bufptr,
+			  _begcmt, _endcmt, '#', _buffer, _bufsiz, &_bufptr,
 			  _token, _toksiz, &toklen, &toktype, &tokstart, &_linenum);
     attr_value retval;
     switch (toktype) {
@@ -87,7 +87,7 @@ const char* LexScan::get_next_token_string(unsigned int& toktype)
 {
     unsigned int toklen, tokstart;
     int status = lexscan (_inptr, _infunc, _eoffunc, _errfunc, NULL, NULL,
-			  _begcmt, _endcmt, _buffer, _bufsiz, &_bufptr,
+			  _begcmt, _endcmt, '#', _buffer, _bufsiz, &_bufptr,
 			  _token, _toksiz, &toklen, &toktype, &tokstart, &_linenum);
     unsigned tok_buflen = _bufptr-tokstart;
     strncpy(_tokbuf, _buffer+tokstart, tok_buflen);
@@ -119,3 +119,4 @@ AttributeValue* LexScan::get_attr(char* buf, unsigned int bufsiz)
 
     return new AttributeValue(valtype, tokval);
 }
+

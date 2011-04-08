@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2004 Scott E. Johnston
- * Copyright (c) 1994 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -22,56 +21,21 @@
  * 
  */
 
-#include <Unidraw/Commands/command.h>
-#include <Unidraw/Tools/tool.h>
-#include <Unidraw/editor.h>
-#include <OverlayUnidraw/ovdoer.h>
-#include <OverlayUnidraw/oved.h>
-#include <OverlayUnidraw/ovunidraw.h>
+#if !defined(_drawfunc_h)
+#define _drawfunc_h
 
-CommandDoer::CommandDoer(Command* c) {
-    cmd = c;
-}
+#include <DrawServ/draweditor.h>
+#include <ComUnidraw/unifunc.h>
 
-void CommandDoer::Do() {
-#if 0 
-    Command* command = cmd;
-    if (command) {
-	if (command->Reversible()) {
-	    command = command->Copy();
-	    command->Execute();
-            if (command->Reversible()) {
-                command->Log();
-            } else {
-                delete command;
-            }
-	}
-	else {
-	    command->Execute();
-            if (command->Reversible()) {
-                command = command->Copy();
-                command->Log();
-            }
-	}
-    }
-#else
-    unidraw->ExecuteCmd(cmd);
-#endif
-}
+//: command to connect to another drawserv
+// drawserv(hoststr :port portnum) -- connect to remote drawserv
+class DrawServFunc : public UnidrawFunc {
+public:
+    DrawServFunc(ComTerp*,DrawEditor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s(hoststr :port portnum) -- connect to remote drawserv"; }
+};
 
-CommandPusher::CommandPusher(Command* c) {
-    cmd = c;
-}
+#endif /* !defined(_drawfunc_h) */
 
-void CommandPusher::Push() {
-    ((OverlayUnidraw*)unidraw)->Append(cmd);
-}
-
-ToolSelector::ToolSelector(Tool* tl, Editor* ed) {
-    tool = tl;
-    editor = ed;
-}
-
-void ToolSelector::Select() {
-    editor->SetCurTool(tool);
-}

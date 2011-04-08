@@ -97,7 +97,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "str|lst=%s(cmdstr) -- evaluate string as commands, optionally return symbol instead of nil"; }
+      return "str|lst=%s(cmdstr :symret) -- evaluate string as commands, optionally return symbol instead of nil"; }
 
 };
 

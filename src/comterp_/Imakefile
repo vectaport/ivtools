@@ -16,7 +16,6 @@ OTHER_CCLDLIBS = $(ACE_CCLDLIBS)
 
 
 ComplexProgramTarget(comterp)
-
 #define Obj(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
 
 Obj(main)

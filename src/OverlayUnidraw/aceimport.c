@@ -31,6 +31,7 @@
 #include <IVGlyph/importchooser.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
+#include <Comterp/comhandler.h>
 #include <fstream.h>
 #include <stdio.h>
 
@@ -54,7 +55,7 @@ UnidrawImportHandler::destroy (void)
 {
     cerr << this->peer_name_ << " disconnected from import port\n";
 #if 0
-    IMPORT_REACTOR::instance ()->cancel_timer (this);
+    ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
     if (_infptr) {
@@ -121,12 +122,12 @@ UnidrawImportHandler::open (void *)
 		       addr.get_host_name (), 
 		       MAXHOSTNAMELEN + 1);
 
-      if (IMPORT_REACTOR::instance ()->register_handler 
+      if (ComterpHandler::reactor_singleton()->register_handler 
 	  (this, ACE_Event_Handler::READ_MASK) == -1)
 	ACE_ERROR_RETURN ((LM_ERROR, 
 			   "(%P|%t) can't register with reactor\n"), -1);
 #if 0
-      else if (IMPORT_REACTOR::instance ()->schedule_timer
+      else if (ComterpHandler::reactor_singleton()->schedule_timer
 	  (this, 
 	  (const void *) this, 
 	   ACE_Time_Value (10), 

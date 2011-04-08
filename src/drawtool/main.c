@@ -32,6 +32,7 @@
 #ifdef HAVE_ACE
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
+#include <Comterp/comhandler.h>
 #endif
 
 #include <OverlayUnidraw/ovcatalog.h>
@@ -224,7 +225,7 @@ static char* usage =
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     int exit_status = 0;
     OverlayCreator creator;
@@ -248,7 +249,7 @@ int main (int argc, char** argv) {
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "drawtool:  unable to open import port " << importnum << "\n";
 
-    else if (IMPORT_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawtool:  unable to register UnidrawImportAcceptor with ACE reactor\n";
 
@@ -258,7 +259,7 @@ int main (int argc, char** argv) {
     // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
     // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (IMPORT_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
         cerr << "drawtool:  unable to register quit handler with ACE reactor\n";
 

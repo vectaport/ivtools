@@ -40,6 +40,7 @@ History:        Written by Scott E. Johnston, April 1989
 
 int _continuation_prompt;
 int _continuation_prompt_disabled = 0;
+int _skip_shell_comments = 0;
 infuncptr _oneshot_infunc;
 
 static int get_next_token(void *infile, char *(*infunc)(), int (*eoffunc)(),

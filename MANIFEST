@@ -281,8 +281,14 @@ ivtools-1.1/src/DrawServ/drawcomps.c
 ivtools-1.1/src/DrawServ/drawcomps.h
 ivtools-1.1/src/DrawServ/drawcreator.c
 ivtools-1.1/src/DrawServ/drawcreator.h
+ivtools-1.1/src/DrawServ/draweditor.c
+ivtools-1.1/src/DrawServ/draweditor.h
+ivtools-1.1/src/DrawServ/drawfunc.c
+ivtools-1.1/src/DrawServ/drawfunc.h
 ivtools-1.1/src/DrawServ/drawkit.c
 ivtools-1.1/src/DrawServ/drawkit.h
+ivtools-1.1/src/DrawServ/drawserv.c
+ivtools-1.1/src/DrawServ/drawserv.h
 ivtools-1.1/src/DrawServ/drawviews.c
 ivtools-1.1/src/DrawServ/drawviews.h
 ivtools-1.1/src/FrameUnidraw/Imakefile
@@ -1553,7 +1559,6 @@ ivtools-1.1/src/include/ivstd/stdio.h
 ivtools-1.1/src/include/ivstd/stdlib.h
 ivtools-1.1/src/include/ivstd/stream.h
 ivtools-1.1/src/include/ivstd/string.h
-ivtools-1.1/src/include/ivstd/strstream.h
 ivtools-1.1/src/include/ivstd/version.h
 ivtools-1.1/src/iueserv_/Imakefile
 ivtools-1.1/src/iueserv_/Makefile

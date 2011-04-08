@@ -504,3 +504,22 @@ void Unidraw::GetHistory (Component* comp, UList*& past, UList*& future) {
     past = history->_past;
     future = history->_future;
 }
+
+void Unidraw::ExecuteCmd(Command *command) {
+    if (command) {
+	if (command->Reversible()) {
+	    command->Execute();
+            if (command->Reversible()) {
+                command->Log();
+            } else {
+                delete command;
+            }
+	}
+	else {
+	    command->Execute();
+            if (command->Reversible()) {
+                command->Log();
+            }
+	}
+    }
+}

@@ -148,7 +148,7 @@ int status;
    /* Don't worry about status return, because token_type     */
    /* will be set to TOK_NONE                                 */
       status = lexscan( infile, infunc, eoffunc, errfunc, outfile, outfunc,
-                        "/*", "*/", buffer, bufsiz, bufptr,
+                        "/*", "*/", '#', buffer, bufsiz, bufptr,
                         token, toksiz, toklen, toktype,
                         tokstart, linenum );
       if( status != 0 )

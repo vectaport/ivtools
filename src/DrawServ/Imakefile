@@ -8,16 +8,23 @@ PACKAGE = DrawServ
 
 LIB = DrawServ
 
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+
 Use_libUnidraw()
 Use_2_6()
 
 MakeLibrary($(LIB),$(VERSION))
 
 #define Obj26(file) MakeObjectFromSrcFlags(file,)
+#define Obj26A(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
 
 Obj26(drawcatalog)
 Obj26(drawcreator)
 Obj26(drawcomps)
+Obj26(draweditor)
+Obj26A(drawfunc)
+Obj26(drawserv)
 Obj26(drawviews)
 
 

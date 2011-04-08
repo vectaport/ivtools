@@ -389,12 +389,7 @@ void OverlayEditor::ResetStateVars() {
 }
 
 /* virtual */ void OverlayEditor::ExecuteCmd(Command* cmd) {
-  cmd->Execute();
-  if (cmd->Reversible()) {
-    cmd->Log();
-  } else {
-    delete cmd;
-  }
+  unidraw->ExecuteCmd(cmd);
 }
 
 void OverlayEditor::SetText() {

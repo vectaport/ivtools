@@ -38,6 +38,12 @@
 #define IueLibDir @IUELIBS@
 #endif
 
+#if @QT_ENABLED@
+#define QtDir @QT@
+#define QtLibDir @QTLIBS@
+#define QtIncDir @QTINCS@
+#endif
+
 #undef CCDriver
 #define CCDriver @CXX@
 

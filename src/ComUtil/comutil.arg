@@ -56,14 +56,15 @@ int fferror(FILE *stream);
 int lexscan(void *infile,char *(*infunc)(char*,int,void*),
 	    int (*eoffunc)(void*),int (*errfunc)(void*),
 	    void *outfile,int (*outfunc)(const char*,void*),
-	    char *begcmt,char *endcmt,
+	    char *begcmt,char *endcmt,char linecmt,
 	    char *buffer,unsigned bufsiz,unsigned *bufptr,char *token,
 	    unsigned toksiz,unsigned *toklen,unsigned *toktype,
 	    unsigned *tokstart,unsigned *linenum );
 #else
 int lexscan(void *infile,char *(*infunc)(),
 	    int (*eoffunc)(),int (*errfunc)(),
-	    void *outfile,int (*outfunc)(),char *begcmt,char *endcmt,
+	    void *outfile,int (*outfunc)(),
+	    char *begcmt,char *endcmt,char linecmt,
 	    char *buffer,unsigned bufsiz,unsigned *bufptr,char *token,
 	    unsigned toksiz,unsigned *toklen,unsigned *toktype,
 	    unsigned *tokstart,unsigned *linenum );

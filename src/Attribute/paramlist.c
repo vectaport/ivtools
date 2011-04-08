@@ -888,7 +888,7 @@ boolean ParamList::url_use_ok() {
 
 boolean ParamList::urltest(const char* buf) {
   if (!buf) return false;
-  static boolean file_url_ok = bincheck("w3c") || bincheck("curl");
+  static boolean file_url_ok = url_use_ok();
   return 
     strncasecmp("http://", buf, 7)==0 || 
     strncasecmp("ftp://", buf, 6)==0 || 

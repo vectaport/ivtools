@@ -45,7 +45,10 @@ int ComterpHandler::_logger_mode = 0;
 
 // Default constructor.
 
-ComterpHandler::ComterpHandler (void)
+ComterpHandler::ComterpHandler (void) 
+#if 0
+: ACE_Svc_Handler<ACE_SOCK_Stream, ACE_NULL_SYNCH>(0,0,ComterpHandler::reactor_singleton())
+#endif
 {
     comterp_ = new ComTerpServ(BUFSIZ*BUFSIZ);
     comterp_->handler(this);
@@ -67,11 +70,11 @@ void ComterpHandler::timeoutscript(const char* timeoutscript) {
 int ComterpHandler::timeoutscriptid() { return _timeoutscriptid; }
 void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
     if (_timeoutscriptid != -1) 
-      COMTERP_REACTOR::instance ()->cancel_timer (this);
+      ComterpHandler::reactor_singleton()->cancel_timer (this);
 
     _timeoutscriptid = timeoutscriptid;
     if (_timeoutscriptid != -1) {
-      if (COMTERP_REACTOR::instance ()->schedule_timer
+      if (ComterpHandler::reactor_singleton()->schedule_timer
 	  (this, 
 	   (const void *) this, 
 	   ACE_Time_Value (timeoutseconds()), 
@@ -88,7 +91,7 @@ ComterpHandler::destroy (void)
         ACE_DEBUG ((LM_DEBUG, 
 		    "(%P|%t) disconnected from %s\n", this->peer_name_));
 #if 0
-    COMTERP_REACTOR::instance ()->cancel_timer (this);
+    ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
     if (_timeoutscriptid<0)
@@ -246,12 +249,12 @@ ComterpHandler::open (void *)
       ACE_OS::strncpy (this->peer_name_, buffer,
 		       MAXHOSTNAMELEN + 1);
 
-      if (COMTERP_REACTOR::instance ()->register_handler 
+      if (ComterpHandler::reactor_singleton()->register_handler 
 	  (this, ACE_Event_Handler::READ_MASK) == -1)
 	ACE_ERROR_RETURN ((LM_ERROR, 
 			   "(%P|%t) can't register with reactor\n"), -1);
 #if defined(__NetBSD__) /* this seems to be required for NetBSD */
-      else if (COMTERP_REACTOR::instance ()->schedule_timer
+      else if (ComterpHandler::reactor_singleton()->schedule_timer
 	  (this, 
 	  (const void *) this, 
 	   ACE_Time_Value (10), 
@@ -275,6 +278,14 @@ ComterpHandler::close (u_long)
 {
   this->destroy ();
   return 0;
+}
+
+// Our Reactor Singleton.
+typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex>
+REACTOR;
+
+ACE_Reactor* ComterpHandler::reactor_singleton() {
+  return REACTOR::instance();
 }
 
 #endif /* HAVE_ACE */

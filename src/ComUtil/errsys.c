@@ -137,21 +137,21 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
     errpath = (char*)getenv( "COMTERP_PATH" );
     if (errpath) {
 	strcpy( fullpath, errpath );
-	strcat( fullpath, "/" );
+	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");
     }
 
     if (!fptr) {
 	strcpy( fullpath, RELLIBALLDIR );
-	strcat( fullpath, "/" );
+	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");
     }
     
     if (!fptr) {
 	strcpy( fullpath, ABSLIBALLDIR );
-	strcat( fullpath, "/" );
+	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");
     }

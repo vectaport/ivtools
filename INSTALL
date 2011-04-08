@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.1
 
-Instructions for building ivtools-1.1.2 from source, the short version:
+Instructions for building ivtools-1.1.3 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.1.2 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.1.2 from source, the long version:
+Instructions for building ivtools-1.1.3 from source, the long version:
 
 0. Compilation Environment
 
