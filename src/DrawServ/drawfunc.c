@@ -88,7 +88,11 @@ void DrawLinkFunc::execute() {
 	((DrawServ*)unidraw)->cycletest
 	(sidv.uint_val(), hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
 #if 1
+#if __GNUC__<4
       fileptr_filebuf obuf(comterp()->handler()->get_handle(), ios_base::out, false, static_cast<size_t>(BUFSIZ));
+#else
+      fileptr_filebuf obuf(comterp()->handler()->get_handle(), ios_base::out, static_cast<size_t>(BUFSIZ));
+#endif
       ostream out(&obuf);
       out << "ackback(cycle)\n";
       out.flush();

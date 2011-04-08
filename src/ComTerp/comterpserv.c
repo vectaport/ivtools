@@ -152,7 +152,7 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     fbuf.attach(fd);
     istream in (&fbuf);
     in.gets(&instr);
-#elif __GNUC__==3 && __GNUC_MINOR__<1
+#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3
     char instr[BUFSIZ];
     FILE* ifptr = fdopen(fd, "r");
     fileptr_filebuf fbuf(ifptr, ios_base::in);
@@ -185,7 +185,7 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     /* append a null byte */
     outstr[outpos] = '\0';
 
-#if __GNUC__==3 && __GNUC_MINOR__<1
+#if (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3
     if (ifptr) fclose(ifptr);
 #endif
 
@@ -202,7 +202,7 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 #if __GNUC__<3
     filebuf fbuf;
     fbuf.attach(fd);
-#elif __GNUC__==3 && __GNUC_MINOR__<1
+#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3
     FILE* ofptr = fdopen(fd, "w");
     fileptr_filebuf fbuf(ofptr, ios_base::out);
 #else
@@ -213,7 +213,7 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 	out.put(s[outpos]);
     out.flush();
     outpos = 0;
-#if __GNUC__==3 && __GNUC_MINOR__<1
+#if (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3
     if (ofptr) fclose(ofptr);
 #endif
     return 1;
@@ -320,7 +320,7 @@ int ComTerpServ::runfile(const char* filename) {
 	        err_print( stderr, "comterp" );
 #if __GNUC__<3
 	        filebuf obuf(handler() ? handler()->get_handle() : 1);
-#elif __GNUC__==3 && __GNUC_MINOR__<1
+#elif __GNUC__==3 && __GNUC_MINOR__<1 || __GNUC__>3
                 FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
 	        fileptr_filebuf obuf(ofptr, ios_base::out);
 #else
@@ -330,7 +330,7 @@ int ComTerpServ::runfile(const char* filename) {
 #endif
 		ostream ostr(&obuf);
 		ostr.flush();
-#if __GNUC__==3 && __GNUC_MINOR__<1
+#if __GNUC__==3 && __GNUC_MINOR__<1 || __GNUC__>3
                 if (ofptr) fclose(ofptr);
 #endif
 		status = -1;
@@ -345,7 +345,7 @@ int ComTerpServ::runfile(const char* filename) {
 	  err_print( stderr, "comterp" );
 #if __GNUC__<3
 	  filebuf obuf(handler() ? handler()->get_handle() : 1);
-#elif __GNUC__==3 && __GNUC_MINOR__<1
+#elif __GNUC__==3 && __GNUC_MINOR__<1 || __GNUC__>3
           FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
 	  fileptr_filebuf obuf(ofptr, ios_base::out);
 #else
@@ -356,7 +356,7 @@ int ComTerpServ::runfile(const char* filename) {
 #endif
 	  ostream ostr(&obuf);
 	  ostr.flush();
-#if __GNUC__==3 && __GNUC_MINOR__<1
+#if __GNUC__==3 && __GNUC_MINOR__<1 || __GNUC__>3
           if (ofptr) fclose(ofptr);
 #endif
 	  status = -1;

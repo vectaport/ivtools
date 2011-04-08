@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-1.2.2
+#define	Release ivtools-1.2.3
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 1.2.2
+#define	Version 1.2.3
 #endif
 
    VERSION = Version
@@ -347,6 +347,15 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 		      $(CCINCLUDES)
 #endif
 
+#ifndef IvCFlags
+#define IvCFlags \							@@\
+		      DefaultDebugCCFlags\				@@\
+		      DefaultOptimizeCCFlags\				@@\
+		      $(SHARED_CCFLAGS)\				@@\
+		      $(CDEFINES)\					@@\
+		      $(CCINCLUDES)
+#endif
+
 #ifndef DefaultDebugCCFlags
 #if TurnOnDebugging
 #define DefaultDebugCCFlags $(DEBUG_CCFLAGS)
@@ -401,6 +410,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 
             CCFLAGS = CCFlags
          IV_CCFLAGS = IvCCFlags
+          IV_CFLAGS = IvCFlags
       DEBUG_CCFLAGS = DebugCCFlags
    OPTIMIZE_CCFLAGS = OptimizeCCFlags
      SHARED_CCFLAGS = /* defined when MakeLibrary() is used in Imakefile */
@@ -420,8 +430,15 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #define IvCCDefines $(LANGUAGE_CCDEFINES) $(BACKWARD_CCDEFINES)
 #endif
 
-#ifndef LanguageCCDefines
-#define LanguageCCDefines -Dcplusplus_2_1
+/*
+ * Define the defines passed to the C compiler when we compile a C file.
+ */
+#ifndef CDefines
+#define CDefines $(APP_CCDEFINES) $(IV_CDEFINES) $(OTHER_CCDEFINES) $(EXTRA_CCDEFINES) 
+#endif
+
+#ifndef IvCDefines
+#define IvCDefines -D_POSIX_C_SOURCE $(BACKWARD_CCDEFINES)
 #endif
 
 #ifndef BackwardCompatibilityCCDefines
@@ -472,12 +489,22 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
+#ifndef TiffCCDefines
+#ifdef TiffDir
+#define TiffCCDefines -DEXTERN_TIFF
+#else
+#define TiffCCDefines /**/
+#endif
+#endif
+
 #ifndef OtherCCDefines
-#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(IUE_DEFINES) $(QT_DEFINES)
+#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(IUE_DEFINES) $(QT_DEFINES) $(TIFF_CCDEFINES)
 #endif
 
           CCDEFINES = CCDefines
        IV_CCDEFINES = IvCCDefines
+           CDEFINES = CDefines
+        IV_CDEFINES = IvCDefines
  LANGUAGE_CCDEFINES = LanguageCCDefines
  BACKWARD_CCDEFINES = /* defined when Use_2_6() is used in Imakefile */
     EXTRA_CCDEFINES = ExtraCCDefines
@@ -489,6 +516,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
       ACE_CCDEFINES = AceCCDefines
       IUE_CCDEFINES = IueCCDefines
        QT_CCDEFINES = QtCCDefines
+     TIFF_CCDEFINES = TiffCCDefines
 
 /*
  * Define the includes passed to the CC driver when we compile a C++ file.
@@ -559,8 +587,16 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
+#ifndef TiffCCIncludes
+#ifdef TiffDir
+#define TiffCCIncludes -I$(TIFFDIR)/include
+#else
+#define TiffCCIncludes /**/
+#endif
+#endif
+
 #ifndef OtherCCIncludes
-#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(IUE_CCINCLUDES) $(QT_CCINCLUDES)
+#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(IUE_CCINCLUDES) $(QT_CCINCLUDES) $(TIFF_CCINCLUDES)
 #endif
 
          CCINCLUDES = CCIncludes
@@ -577,6 +613,7 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
      ACE_CCINCLUDES = AceCCIncludes
      IUE_CCINCLUDES = IueCCIncludes
       QT_CCINCLUDES = QtCCIncludes
+    TIFF_CCINCLUDES = TiffCCIncludes
 #ifdef ClipPolyDir
         CLIPPOLYDIR = ClipPolyDir
 #endif
@@ -591,6 +628,9 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
 #endif
 #ifdef QtDir
               QTDIR = QtDir
+#endif
+#ifdef TiffDir
+            TIFFDIR = TiffDir
 #endif
 
 /*
@@ -609,9 +649,10 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
 
 /*
  * Define all the flags passed to the C driver when we compile a C file.
+ * 10/3/05:  change to $(IV_CFLAGS) to avoid -Wno-deprecated warning
  */
 #ifndef CFlags
-#define CFlags CCFlags
+#define CFlags $(APP_CCFLAGS) $(IV_CFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)  
 #endif
 
              CFLAGS = CFlags
@@ -1013,8 +1054,28 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #define QtLibBase libQt.so  /* only for installing symbolic link */
 #endif
 
+#ifndef TiffCCLdLibs
+#ifdef TiffLibDir
+#define TiffCCLdLibs -L$(TIFFLIBDIR) -lTIFF
+#else
+#define TiffCCLdLibs /**/
+#endif
+#endif
+
+#ifndef TiffLibDir
+#ifdef TiffDir
+#define TiffLibDir TiffDir/tiff
+#else
+#define TiffLibDir /**/
+#endif
+#endif
+
+#ifndef TiffLibBase 
+#define TiffLibBase libTIFF.so  /* only for installing symbolic link */
+#endif
+
 #ifndef OtherCCLdLibs
-#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(IUE_CCLDLIBS) $(QT_CCLDLIBS)
+#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(IUE_CCLDLIBS) $(QT_CCLDLIBS) $(TIFF_CCLDLIBS)
 #endif
 
 #ifndef SharedCCLdLibs
@@ -1045,6 +1106,9 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
         QT_CCLDLIBS = QtCCLdLibs
            QTLIBDIR = QtLibDir
           QTLIBBASE = QtLibBase
+      TIFF_CCLDLIBS = TiffCCLdLibs
+         TIFFLIBDIR = TiffLibDir
+        TIFFLIBBASE = TiffLibBase
 	
 /*
  * Define how to install a program, library, header, man page, or data file.

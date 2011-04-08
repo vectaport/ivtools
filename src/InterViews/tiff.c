@@ -25,7 +25,11 @@
 #include <InterViews/color.h>
 #include <InterViews/raster.h>
 #include <InterViews/tiff.h>
+#ifdef EXTERN_TIFF
+#include <tiffio.h>
+#else
 #include <TIFF/tiffio.h>
+#endif
 #include <stdlib.h>
 
 #if defined(howmany)
@@ -41,11 +45,11 @@ typedef unsigned char RGBvalue;
 
 class TIFFRasterImpl;
 
-typedef void (TIFFRasterImpl::*tileContigRoutine)(
+typedef void (TIFFRasterImpl::*tileContigRoutineIv)(
     u_long*, const u_char*, const RGBvalue*, u_long, u_long, int, int
 );
 
-typedef void (TIFFRasterImpl::*tileSeparateRoutine)(
+typedef void (TIFFRasterImpl::*tileSeparateRoutineIv)(
     u_long*, const u_char*, const u_char*, const u_char*,
     const RGBvalue*, u_long, u_long, int, int
 );
@@ -135,8 +139,8 @@ private:
 	const RGBvalue* Map, u_long w, u_long h, int fromskew, int toskew
     );
 
-    tileContigRoutine pickTileContigCase(const RGBvalue* Map);
-    tileSeparateRoutine pickTileSeparateCase(const RGBvalue* Map);
+    tileContigRoutineIv pickTileContigCase(const RGBvalue* Map);
+    tileSeparateRoutineIv pickTileSeparateCase(const RGBvalue* Map);
 };
 
 TIFFRasterImpl::TIFFRasterImpl() {}
@@ -373,7 +377,7 @@ boolean TIFFRasterImpl::gtTileContig(const RGBvalue* Map, u_long h, u_long w) {
 	TIFFError(TIFFFileName(tif_), "No space for tile buffer");
 	return false;
     }
-    tileContigRoutine put = pickTileContigCase(Map);
+    tileContigRoutineIv put = pickTileContigCase(Map);
     u_long tw;
     TIFFGetField(tif_, TIFFTAG_TILEWIDTH, &tw);
     u_long th;
@@ -426,7 +430,7 @@ boolean TIFFRasterImpl::gtTileSeparate(
     u_char* r = buf;
     u_char* g = r + tilesize;
     u_char* b = g + tilesize;
-    tileSeparateRoutine put = pickTileSeparateCase(Map);
+    tileSeparateRoutineIv put = pickTileSeparateCase(Map);
     u_long tw;
     TIFFGetField(tif_, TIFFTAG_TILEWIDTH, &tw);
     u_long th;
@@ -482,7 +486,7 @@ boolean TIFFRasterImpl::gtStripContig(
 	TIFFError(TIFFFileName(tif_), "No space for strip buffer");
 	return (false);
     }
-    tileContigRoutine put = pickTileContigCase(Map);
+    tileContigRoutineIv put = pickTileContigCase(Map);
     u_long y = setorientation(h);
     int toskew = (int)(orientation_ == ORIENTATION_TOPLEFT ? -w + -w : -w + w);
     u_long rowsperstrip = (u_long) -1L;
@@ -519,7 +523,7 @@ boolean TIFFRasterImpl::gtStripSeparate(
     u_char* r = buf;
     u_char* g = r + stripsize;
     u_char* b = g + stripsize;
-    tileSeparateRoutine put = pickTileSeparateCase(Map);
+    tileSeparateRoutineIv put = pickTileSeparateCase(Map);
     u_long y = setorientation(h);
     int toskew = (int)(orientation_ == ORIENTATION_TOPLEFT ? -w + -w : -w + w);
     u_long rowsperstrip = (u_long) -1L;
@@ -1004,8 +1008,8 @@ void TIFFRasterImpl::putRGBgreytile(
 /*
  * Select the appropriate conversion routine for packed data.
  */
-tileContigRoutine TIFFRasterImpl::pickTileContigCase(const RGBvalue*) {
-    tileContigRoutine put = 0;
+tileContigRoutineIv TIFFRasterImpl::pickTileContigCase(const RGBvalue*) {
+    tileContigRoutineIv put = 0;
     switch (photometric_) {
     case PHOTOMETRIC_RGB:
 	if (bitspersample_ == 8) {
@@ -1041,7 +1045,7 @@ tileContigRoutine TIFFRasterImpl::pickTileContigCase(const RGBvalue*) {
  * NB: we assume that unpacked single channel data is directed
  *     to the "packed routines.
  */
-tileSeparateRoutine TIFFRasterImpl::pickTileSeparateCase(const RGBvalue*) {
+tileSeparateRoutineIv TIFFRasterImpl::pickTileSeparateCase(const RGBvalue*) {
     if (bitspersample_ == 8) {
 	return &TIFFRasterImpl::putRGBseparate8bittile;
     }

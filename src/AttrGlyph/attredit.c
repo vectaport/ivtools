@@ -161,13 +161,13 @@ void AttributeListEditor::update_text(boolean update) {
 #else
             vbuf.push_back(' ');
 	vbuf.push_back('\n');
-	vbuf.push_back('\0');
 #endif
 
     }
 #ifndef STL_VECTOR
     _ete->text(buf, update);
 #else
+    vbuf.push_back('\0');
     _ete->text(&vbuf[0] ? &vbuf[0] : "", update);
 #endif
 }

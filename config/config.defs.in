@@ -45,6 +45,12 @@
 #define QtIncDir @QTINCS@
 #endif
 
+#if @TIFF_ENABLED@
+#define TiffDir @TIFF@
+#define TiffLibDir @TIFFLIBS@
+#define TiffIncDir @TIFFINCS@
+#endif
+
 #undef CCDriver
 #define CCDriver @CXX@
 

@@ -6,6 +6,11 @@ PACKAGE = src_iv
 
 #ifdef InObjectCodeDir
 
+#ifdef TiffDir
+OTHER_CCDEFINES = $(TIFF_CCDEFINES)
+OTHER_CCINCLUDES = $(TIFF_CCINCLUDES)
+#endif
+
 #if BuildIV_2_6
 #define IV_2_6Srcs $(IV_2_6)$(SLASH)*.$(CCSUFFIX)
 #else
@@ -217,6 +222,7 @@ OSObj(memory)
 OSObjFlags(string,$(OPTIMIZE_CCFLAGS))
 OSObj(ustring)
 
+#ifndef TiffDir
 #include <InterViews/TIFF.def>
 #define TIFFObj(file) TIFFObjFlags(file,NullParameter)
 #define TIFFObjFlags(file,f)\
@@ -260,6 +266,7 @@ g3states.h: $(TIFF)/mkg3states.c $(TIFF)/t4.h
 	./mkg3states > g3states.h
 clean::
 	$(RM) mkg3states g3states.h
+#endif
 
 InstallXDefaultAs(../InterViews.defaults,$(LIBALLDIR),InterViews)
 

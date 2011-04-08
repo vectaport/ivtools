@@ -23,6 +23,16 @@
  * 
  */
 
+#include <ctype.h>
+#include <iostream.h>
+#include <string.h>
+#include <strstream>
+#include <unistd.h>
+
+#if __GNUC__>=3
+#include <fstream.h>
+#endif
+
 #include <ComTerp/comhandler.h>
 
 #include <ComTerp/_comterp.h>
@@ -886,7 +896,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
     fbuf.attach(fd);
   } else
     fbuf.attach(fileno(stdout));
-#elif __GNUC__==3 && __GNUC_MINOR__<1
+#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3
   fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
 	       ? handler()->wrfptr() : stdout, 
 	       ios_base::out);

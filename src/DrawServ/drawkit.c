@@ -196,9 +196,11 @@ Glyph* DrawKit::MakeToolbar() {
 
     _toolbars = layout.deck(2);
 
-    PolyGlyph* vb = layout.vbox(16);
+    PolyGlyph* vb = layout.vbox();
+    _toolbar_vbox = new Glyph*[2];
+    _toolbar_vbox[0] = vb;
 
-    TelltaleGroup* tg = new TelltaleGroup();
+    _tg = new TelltaleGroup();
 
     Glyph* sel = kit.label("Select");
     Glyph* mov = kit.label("Move");
@@ -283,31 +285,31 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(select = MakeTool(new SelectTool(new ControlInfo("Select", KLBL_SELECT, CODE_SELECT)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(sel)),
-			tg, _ed->MouseDocObservable(), mouse_sel));
+			_tg, _ed->MouseDocObservable(), mouse_sel));
     vb->append(move = MakeTool(new MoveTool(new ControlInfo("Move", KLBL_MOVE, CODE_MOVE)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(mov)),
-			tg, _ed->MouseDocObservable(), mouse_mov));
+			_tg, _ed->MouseDocObservable(), mouse_mov));
     vb->append(MakeTool(new ScaleTool(new ControlInfo("Scale", KLBL_SCALE, CODE_SCALE)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(scl)), tg, _ed->MouseDocObservable(), mouse_scl));
+				       layout.hcenter(scl)), _tg, _ed->MouseDocObservable(), mouse_scl));
     vb->append(MakeTool(new StretchTool(new ControlInfo("Stretch", KLBL_STRETCH,CODE_STRETCH)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(str)), tg, _ed->MouseDocObservable(), mouse_str));
+				       layout.hcenter(str)), _tg, _ed->MouseDocObservable(), mouse_str));
     vb->append(MakeTool(new RotateTool(new ControlInfo("Rotate", KLBL_ROTATE, CODE_ROTATE)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(rot)), tg, _ed->MouseDocObservable(), mouse_rot));
+				       layout.hcenter(rot)), _tg, _ed->MouseDocObservable(), mouse_rot));
     vb->append(reshape = MakeTool(new ReshapeTool(new ControlInfo("Alter", KLBL_RESHAPE, CODE_RESHAPE)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(alt)), tg, _ed->MouseDocObservable(), mouse_alt));
+				       layout.hcenter(alt)), _tg, _ed->MouseDocObservable(), mouse_alt));
     vb->append(magnify = MakeTool(new MagnifyTool(new ControlInfo("Magnify", KLBL_MAGNIFY,CODE_MAGNIFY)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(mag)), tg, _ed->MouseDocObservable(), mouse_mag));
+				       layout.hcenter(mag)), _tg, _ed->MouseDocObservable(), mouse_mag));
     TextGraphic* text = new TextGraphic("Text", stdgraphic);
     TextOvComp* textComp = new TextOvComp(text);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo("Text", KLBL_TEXT, CODE_TEXT), textComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(txt)), tg, _ed->MouseDocObservable(), mouse_txt));
+				       layout.hcenter(txt)), _tg, _ed->MouseDocObservable(), mouse_txt));
     ArrowLine* line = new ArrowLine(
 	0, 0, unit, unit, false, false, 1., stdgraphic
     );
@@ -315,7 +317,7 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(arrowLineComp, KLBL_LINE, CODE_LINE), arrowLineComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(glin)),
-			tg, _ed->MouseDocObservable(), mouse_lin));
+			_tg, _ed->MouseDocObservable(), mouse_lin));
     ArrowMultiLine* ml = new ArrowMultiLine(
         xOpen, yOpen, nOpen, false, false, 1., stdgraphic
     );
@@ -324,7 +326,7 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(mlComp, KLBL_MULTILINE, CODE_MULTILINE), mlComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gmlin)),
-			tg, _ed->MouseDocObservable(), mouse_mlin));
+			_tg, _ed->MouseDocObservable(), mouse_mlin));
     ArrowOpenBSpline* spl = new ArrowOpenBSpline(
         xOpen, yOpen, nOpen, false, false, 1., stdgraphic
     );
@@ -333,28 +335,28 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(splComp, KLBL_SPLINE, CODE_SPLINE), splComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gospl)),
-			tg, _ed->MouseDocObservable(), mouse_ospl));
+			_tg, _ed->MouseDocObservable(), mouse_ospl));
     SF_Rect* rect = new SF_Rect(0, 0, unit, unit*4/5, stdgraphic);
     rect->SetPattern(psnonepat);
     RectOvComp* rectComp = new RectOvComp(rect);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(rectComp, KLBL_RECT, CODE_RECT), rectComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(grect)),
-			tg, _ed->MouseDocObservable(), mouse_rect));
+			_tg, _ed->MouseDocObservable(), mouse_rect));
     SF_Ellipse* ellipse = new SF_Ellipse(0, 0, unit*2/3, unit*2/5, stdgraphic);
     ellipse->SetPattern(psnonepat);
     EllipseOvComp* ellipseComp = new EllipseOvComp(ellipse);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(ellipseComp, KLBL_ELLIPSE, CODE_ELLIPSE), ellipseComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gellp)),
-			tg, _ed->MouseDocObservable(), mouse_ellp));
+			_tg, _ed->MouseDocObservable(), mouse_ellp));
     SF_Polygon* polygon = new SF_Polygon(xClosed, yClosed, nClosed,stdgraphic);
     polygon->SetPattern(psnonepat);
     PolygonOvComp* polygonComp = new PolygonOvComp(polygon);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(polygonComp, KLBL_POLY, CODE_POLY), polygonComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gpoly)),
-			tg, _ed->MouseDocObservable(), mouse_poly));
+			_tg, _ed->MouseDocObservable(), mouse_poly));
     SFH_ClosedBSpline* cspline = new SFH_ClosedBSpline(
         xClosed, yClosed, nClosed, stdgraphic
     );
@@ -363,17 +365,17 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(csplineComp, KLBL_CSPLINE,CODE_CSPLINE), csplineComp),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gcspl)),
-			tg, _ed->MouseDocObservable(), mouse_cspl));
+			_tg, _ed->MouseDocObservable(), mouse_cspl));
     vb->append(MakeTool(new AnnotateTool(new ControlInfo("Annotate", "A", "A")),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(anno)), tg, _ed->MouseDocObservable(), mouse_anno));
+				       layout.hcenter(anno)), _tg, _ed->MouseDocObservable(), mouse_anno));
     vb->append(MakeTool(new AttributeTool(new ControlInfo("Attribute", "T", "T")),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(attr)), tg, _ed->MouseDocObservable(), mouse_attr));
+				       layout.hcenter(attr)), _tg, _ed->MouseDocObservable(), mouse_attr));
 
     _toolbars->append(vb);
-    vb = layout.vbox(7);
-
+    vb = layout.vbox();
+    _toolbar_vbox[1] = vb;
     vb->append(select);
     vb->append(move);
     vb->append(reshape);
@@ -385,7 +387,7 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(protoedge, "E","E"),
 					    protoedge),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(gedge)), tg, _ed->MouseDocObservable(), GraphKit::mouse_edge));
+				       layout.hcenter(gedge)), _tg, _ed->MouseDocObservable(), GraphKit::mouse_edge));
     SF_Ellipse* nellipse = new SF_Ellipse(0, 0, unit, unit*3/5, stdgraphic);
     nellipse->SetPattern(psnonepat);
     TextGraphic* ntext = new TextGraphic("___", stdgraphic);
@@ -394,7 +396,7 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(protonode, "N","N"),
 					    protonode),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(gnod1)), tg, _ed->MouseDocObservable(), GraphKit::mouse_node));
+				       layout.hcenter(gnod1)), _tg, _ed->MouseDocObservable(), GraphKit::mouse_node));
     SF_Ellipse* nellipse2 = new SF_Ellipse(0, 0, unit, unit*3/5, stdgraphic);
     nellipse2->SetPattern(psnonepat);
     TextGraphic* ntext2 = new TextGraphic("abc", stdgraphic);
@@ -403,7 +405,7 @@ Glyph* DrawKit::MakeToolbar() {
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(protonode2, "L","L"),
 					    protonode2),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(gnod2)), tg, _ed->MouseDocObservable(), GraphKit::mouse_lnode));
+				       layout.hcenter(gnod2)), _tg, _ed->MouseDocObservable(), GraphKit::mouse_lnode));
 
     _toolbars->append(vb);
 

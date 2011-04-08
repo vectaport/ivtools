@@ -32,4 +32,5 @@ inline char* strlower(char* str) {
 #else
 #include </usr/include/string.h>
 #endif
+#include <strings.h>
 #endif

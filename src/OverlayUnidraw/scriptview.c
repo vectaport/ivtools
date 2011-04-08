@@ -685,7 +685,7 @@ int OverlayScript::ReadOther(istream& in, void* addr1, void* addr2, void* addr3,
     char ch;
     if ((ch=in.peek()) == '\"') {
 	sbuf[0] = '\"';
-	ParamList::parse_string(in, sbuf+1, SBUFSIZE-1);
+	ParamList::parse_string(in, sbuf+1, SBUFSIZE-1, true);
 	strcat(sbuf, "\"\n");
     }
     else if (ch!=')') {

@@ -222,7 +222,7 @@ protected:
     const char* otherdisplay();
     // returns string that might specify an alternate X display.
 
-protected:
+public:
     void toolbar0();
     // switch to default toolbar
     void toolbar1();

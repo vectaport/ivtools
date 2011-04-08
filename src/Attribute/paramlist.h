@@ -198,7 +198,7 @@ public:
     static int parse_token(istream& in, char* buffer, int buflen, char* delim);
     // parse token from istream ended by one of a string of delimters, 
     // for use of a param_callback.
-    static int parse_string(istream& in, char* buffer, int buflen);
+    static int parse_string(istream& in, char* buffer, int buflen, boolean keep_backslashes=0);
     // parse string from istream, correctly handling embedded quotes prefixed
     // by back-slashes, for use of a param_callback.
     static int parse_points(istream&, Coord*&, Coord*&, int&);

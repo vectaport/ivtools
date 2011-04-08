@@ -859,7 +859,7 @@ void ColorRgbFunc::execute() {
   fgcolor = catalog->FindColor(fgname);
   //This comparison is made because the user can set only the foreground color by calling
   //colorsrgb with one argument.
-  if (strcmp(bgname,"sym")!=0){
+  if (bgname && strcmp(bgname,"sym")!=0){
     bgcolor = catalog->FindColor(bgname);
   }
   ColorCmd* cmd = new ColorCmd(_ed, fgcolor, bgcolor);

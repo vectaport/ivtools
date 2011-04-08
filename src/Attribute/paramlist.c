@@ -606,7 +606,7 @@ int ParamList::parse_token (istream& in, char* buf, int buflen, char* delim) {
     return in.good() && (strchr(delim,ch) || ch==')') ? 0 : -1;
 }
 
-int ParamList::parse_string (istream& in, char* buf, int buflen) {
+int ParamList::parse_string (istream& in, char* buf, int buflen, boolean keep_backslashes) {
     int cnt = 0;
     char curr_ch = in.get();
     if (curr_ch == '"') {
@@ -614,7 +614,7 @@ int ParamList::parse_string (istream& in, char* buf, int buflen) {
 	char prev_ch = '\0';
         while(in.good() && cnt<buflen-1 && 
 	      (curr_ch != '"' || prev_ch == '\\')) {
-	    if (curr_ch != '\\') 
+	    if (curr_ch != '\\' || keep_backslashes) 
 		buf[cnt++] = curr_ch;
 	    prev_ch = curr_ch;
 	    curr_ch = in.get();

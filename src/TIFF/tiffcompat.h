@@ -213,4 +213,8 @@ typedef double dblparam_t;
 #define	VA_START(ap, parmN)	va_start(ap, parmN)
 #endif
 #endif /* defined(USE_VARARGS) */
+
+#include <stdlib.h>
+#include <string.h>
+
 #endif /* _COMPAT_ */

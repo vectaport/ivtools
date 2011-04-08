@@ -36,7 +36,9 @@
 #include <float.h>
 #else
 #include <math.h>
+#ifndef MAXFLOAT
 #define MAXFLOAT HUGE_VAL
+#endif
 #endif
 #endif
 

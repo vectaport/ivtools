@@ -12,6 +12,7 @@ APP_CCLDLIBS = $(LIBUNIIDRAW)
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS = $(DEPUNIIDRAW)
 #endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
 
 Use_libUnidraw()
 Use_2_6()

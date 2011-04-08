@@ -440,7 +440,7 @@ prefix/postfix) and expanded to maximum length.
 
 {
 
-int nchar;              /* Number of characters in operator */
+unsigned int nchar;      /* Number of characters in operator */
 int status;
 
 /* Read token from input file */

@@ -640,7 +640,7 @@ static boolean FoundDelim (const char* delim, UArray& data) {
         int j = n_data - n_delim;
 
         for (int i = 0; i < n_delim; ++i, ++j) {
-            char c = (int) data[j];
+            char c = (long) data[j];
 
             if (delim[i] != c) {
                 found = false;
@@ -811,7 +811,7 @@ void Catalog::WriteIt (void* obj, ClassId base_id, ostream& out) {
 
     } else {
         for (int i = 0; i < extra_data->Count(); ++i) {
-            char c = (int) (*extra_data)[i];
+            char c = (long) (*extra_data)[i];
             out << c;
         }
     }

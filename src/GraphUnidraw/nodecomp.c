@@ -594,6 +594,7 @@ void NodeComp::update(Observable*) {
   if(al = attrlist()) {
     static int valexpr_symid = symbol_add("valexpr");
     static int val_symid = symbol_add("val");
+    static int colexpr_symid = symbol_add("colexpr");
     AttributeValue* av = FindValue(valexpr_symid);
     if (av && av->is_string()) {
       Iterator it;
@@ -619,14 +620,26 @@ void NodeComp::update(Observable*) {
       outstr << av->string_ptr() << '\0';
       cerr << "interpreting: " << outstr.str() << "\n";
       ComValue retval(comterp->run(outstr.str()));
+      cerr << "return value: " << retval << "\n";
       if (retval.is_known()) {
 	const int val_symid = symbol_add("val");
 	al->add_attr(val_symid, retval);
+	AttributeValue* cv = FindValue(colexpr_symid, false, false, false, true);
+	if (cv && cv->is_string()) {
+	  comterp->set_attributes(al);
+	  ComValue colval(comterp->run(cv->string_ptr()));
+	  comterp->set_attributes(nil);
+	  PSColor *fgcolor = nil, *bgcolor = nil;
+	  Catalog* catalog = unidraw->GetCatalog();
+	  fgcolor = catalog->FindColor(colval.string_ptr());
+	  GetGraphic()->SetColors(fgcolor, bgcolor);
+	  Notify();
+	}
+	Observable::notify();
       }
       comterp->brief(old_brief);
     }
   }
-  Observable::notify();
 }
 
 void NodeComp::Notify() {

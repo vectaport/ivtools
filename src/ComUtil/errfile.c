@@ -113,11 +113,11 @@ See Also:  err_open, err_submit, err_match, err_print, err_clear
 
 int search_state = LOOK_POUND;  /* State of what has been found */
 				/* in error file */
-int token_type;                 /* Type of token returned from lexscan */
-int linenum = 0;                /* Current line number in error file */
-int colnum = 0;                 /* Current location in buffer */
-int token_length;               /* Token length */
-int token_start;                /* Start of token in FormatBuffer */
+unsigned int token_type;        /* Type of token returned from lexscan */
+unsigned int linenum = 0;       /* Current line number in error file */
+unsigned int colnum = 0;        /* Current location in buffer */
+unsigned int token_length;      /* Token length */
+unsigned int token_start;       /* Start of token in FormatBuffer */
 int status;                     /* Status from lexscan */
 
 

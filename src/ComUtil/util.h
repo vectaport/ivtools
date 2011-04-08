@@ -517,7 +517,7 @@ typedef int size_t;	/* this is some ANSI type */
 		memcpy((char *)(dest),(char *)(src),(unsigned)(count))
 #else
 #define MEMCPY(dest,src,count) \
-                bcopy((char*)src,(char*)dest,(int)(count))
+                bcopy((const void*)src,(void*)dest,(size_t)(count))
 #endif
 #define MEMSET(dest,c,count)    \
 		memset((char *)(dest),(int)(c),(unsigned)(count))

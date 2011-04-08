@@ -23,6 +23,9 @@
 
 #ifdef HAVE_ACE
 
+#include <vector.h>
+#include <err.h>
+
 #include <DrawServ/ackback-handler.h>
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawkit.h>
@@ -31,9 +34,6 @@
 
 #include <IVGlyph/gdialogs.h>
 #include <InterViews/window.h>
-
-#include <vector.h>
-#include <err.h>
 
 /*****************************************************************************/
 

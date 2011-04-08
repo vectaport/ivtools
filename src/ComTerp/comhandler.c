@@ -23,16 +23,15 @@
  */
 
 #ifdef HAVE_ACE
-
-#include <ComTerp/comhandler.h>
-#include <ComTerp/comterpserv.h>
-
 #include <iostream.h>
 #include <fstream.h>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
 #include <vector.h>
 #endif
+
+#include <ComTerp/comhandler.h>
+#include <ComTerp/comterpserv.h>
 
 #include <signal.h>
 

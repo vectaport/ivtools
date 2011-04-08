@@ -225,7 +225,7 @@ public:
   // keywords), number of keywords, an option post-eval depth (nesting
   // within blocks of post-evaluation commands), and an optional 
   // symbol id associated with the ComFunc.
-  ComFuncState(ComFuncState&);
+  ComFuncState(const ComFuncState&);
   // copy constructor.
 
   int& nargs() {return _nargs;}

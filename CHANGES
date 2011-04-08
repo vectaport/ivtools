@@ -1,6 +1,24 @@
+October 7th, 2005  ivtools-1.2.3
+
+- add support for an external libtiff with a --with-tiff (and
+-with-tiff-lib) configure arguments.
+
+- changes necessary to compile with gcc-4.0
+
+- changes necessary to compile with gcc-4.0 on top of ACE-5.4.7
+
+- changes necessary to compile on suse-9.3 linux (amd64 platform).
+Contributed by Paul Vixie.
+
+- fixed bug in "addtool" command/mechanism in graphdraw and drawserv
+
+- added support for color expressions to graphdraw (:colexpr), to
+allow attribute-sensitive computation of a node's color.
+
 January 25th, 2005  ivtools-1.2.2
 
-If you submitted a patch in the past half year to ivtools that you don't see reflected here, please resubmit.  I lost that e-mail.
+If you submitted a patch in the past half year to ivtools that you
+don't see reflected here, please resubmit.  I lost that e-mail.
 
 - fix for problem writing to /tmp
 

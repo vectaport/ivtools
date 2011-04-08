@@ -107,56 +107,56 @@ fi
 
 
 
-FRESCO_ENABLED=0
-FRESCO=""
-FRESCOLIBS=""
-AC_ARG_WITH(fresco,     [  --with-fresco=<path>    path to Fresco include files (not-used)],
-        FRESCO=$withval
+TIFF_ENABLED=0
+TIFF=""
+TIFFLIBS=""
+AC_ARG_WITH(tiff,     [  --with-tiff=<path>    path to installed Tiff files],
+        TIFF=$withval
 	
-	if test x"$FRESCOLIBS" = x
+	if test x"$TIFFLIBS" = x
 	then
-		if test -d "$FRESCO"/lib
+		if test -d "$TIFF"/lib
 		then
-			FRESCOLIBS=$FRESCO/lib
+			TIFFLIBS=$TIFF/lib
 		else
-			FRESCOLIBS=$FRESCO/Build/lib
+			TIFFLIBS=$TIFF/Build/lib
 		fi
 	fi
 )
 
-AC_ARG_WITH(fresco-libs,[  --with-fresco-libs=<path> path to compiled Fresco libs (not-used)],
-	FRESCOLIBS=$withval )
+AC_ARG_WITH(tiff-libs,[  --with-tiff-libs=<path> path to compiled Tiff libs],
+	TIFFLIBS=$withval )
 
-## Check fresco
+## Check tiff
 
-if test x"$FRESCO" = x
+if test x"$TIFF" = x
 then
 	echo ""
-	echo "No Fresco path specified."
-	echo "Use --with-fresco=<path> to point to Fresco installed directory."
+	echo "No Tiff path specified."
+	echo "Use --with-tiff=<path> to point to Tiff installed directory."
 else
-   if test ! -f "$FRESCO"/Fresco/X11/X11Display.h
+   if test ! -f "$TIFF"/include/tiff.h
    then
 	echo ""
-	echo "Verify your Fresco environment and try it again."
-	echo "(Couldn't find $FRESCO/Fresco/X11/X11Display.h!)"
+	echo "Verify your Tiff environment and try it again."
+	echo "(Couldn't find $TIFF/include/tiff.h!)"
 
-	echo "Use --with-fresco=<path> to point to Fresco (or set it in the env)."
-	echo "<path> points to the installed Fresco version or to a source tree."
-	echo "You may also use --with-fresco-libs to specify the lib directory."
+	echo "Use --with-tiff=<path> to point to Tiff (or set it in the env)."
+	echo "<path> points to the installed Tiff version or to a source tree."
+	echo "You may also use --with-tiff-libs to specify the lib directory."
    else
-	FRESCOINCS="$FRESCO"
+	TIFFINCS="$TIFF"/include
    fi
 
-   if test ! -d "$FRESCOLIBS"
+   if test ! -d "$TIFFLIBS"
    then
-        echo "Fresco directory '$FRESCOLIBS' does not exist (or is not readable)."
-        echo "Use --with-fresco-libs to point to it."
+        echo "Tiff directory '$TIFFLIBS' does not exist (or is not readable)."
+        echo "Use --with-tiff-libs to point to it."
    fi
-   echo "Building with Fresco support"
-   echo "FRESCO includes = $FRESCOINCS"
-   echo "FRESCO libs = $FRESCOLIBS"
-   FRESCO_ENABLED=1
+   echo "Building with external Tiff support"
+   echo "TIFF includes = $TIFFINCS"
+   echo "TIFF libs = $TIFFLIBS"
+   TIFF_ENABLED=1
 fi
 
 
@@ -366,9 +366,10 @@ AC_SUBST(ACE_ENABLED)
 AC_SUBST(CLIPPOLY)
 AC_SUBST(CLIPPOLY_LIBS)
 AC_SUBST(CLIPPOLY_ENABLED)
-AC_SUBST(FRESCOLIBS)
-AC_SUBST(FRESCOINCS)
-AC_SUBST(FRESCO_ENABLED)
+AC_SUBST(TIFF)
+AC_SUBST(TIFFLIBS)
+AC_SUBST(TIFFINCS)
+AC_SUBST(TIFF_ENABLED)
 AC_SUBST(IUE)
 AC_SUBST(IUELIBS)
 AC_SUBST(IUEINCS)

@@ -15,6 +15,7 @@ APP_CCLDLIBS =  $(LIBTIME) $(LIBIVGLYPH)
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS =  $(DEPTIME) $(DEPIVGLYPH)
 #endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
 
 ComplexProgramTargetNoInstall(y2ktest)
 

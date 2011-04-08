@@ -62,6 +62,7 @@
  * END (from the original source)
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include "prototypes.h"
 
 #ifndef TRUE

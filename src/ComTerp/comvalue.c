@@ -49,7 +49,7 @@ ComValue ComValue::_minusoneval(-1, ComValue::IntType);
 
 const ComTerp* ComValue::_comterp = nil;
 
-ComValue::ComValue(ComValue& sv) {
+ComValue::ComValue(const ComValue& sv) {
     *this = sv;
 }
 

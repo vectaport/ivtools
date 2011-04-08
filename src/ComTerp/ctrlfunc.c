@@ -21,13 +21,13 @@
  * 
  */
 
+#include <fstream.h>
 #include <ComTerp/comhandler.h>
 
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
-#include <fstream.h>
 
 #ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
@@ -146,9 +146,12 @@ void RemoteFunc::execute() {
 #if __GNUC__<3
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
-#else
+#elif __GNUC__<4
     fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
 			  false, static_cast<size_t>(BUFSIZ));
+#else
+    fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
+			  static_cast<size_t>(BUFSIZ));
 #endif
     ostream out(&ofbuf);
     const char* cmdstr = cmdstrv.string_ptr();

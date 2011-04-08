@@ -440,7 +440,7 @@ ComFuncState::ComFuncState(int narg, int nkey, int pedepth,
   _command_symid = command_symid;
 }
 
-ComFuncState::ComFuncState(ComFuncState& cfs) {
+ComFuncState::ComFuncState(const ComFuncState& cfs) {
   *this = cfs;
 }
 

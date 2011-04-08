@@ -364,7 +364,11 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
     if (link && link != orglink && link->state()==DrawLink::two_way) {
       int fd = link->handle();
       if (fd>=0) {
+#if __GNUC__<4
 	fileptr_filebuf fbuf(fd, ios_base::out, false, static_cast<size_t>(BUFSIZ));
+#else
+	fileptr_filebuf fbuf(fd, ios_base::out, static_cast<size_t>(BUFSIZ));
+#endif
 	ostream out(&fbuf);
 	out << cmdstring;
 	out << "\n";
@@ -382,7 +386,11 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
   if (link) {
     int fd = link->handle();
     if (fd>=0) {
+#if __GNUC__<4
       fileptr_filebuf fbuf(fd, ios_base::out, false, static_cast<size_t>(BUFSIZ));
+#else
+      fileptr_filebuf fbuf(fd, ios_base::out, static_cast<size_t>(BUFSIZ));
+#endif
       ostream out(&fbuf);
       out << cmdstring;
       out << "\n";
@@ -656,11 +664,12 @@ void DrawServ::remove_sids(DrawLink* link) {
   SessionIdTable_Iterator it(*table);
   while(it.more()) {
     SessionId* sid = (SessionId*)it.cur_value();
+    void* vsid = (void*)sid;
     DrawLink* testlink = sid->drawlink();
-    unsigned int altid = it.cur_key();
+    int altid = it.cur_key();
     it.next();
     if (testlink==link) 
-      if (!table->find_and_remove((void*)sid, altid)) 
+      if (!table->find_and_remove(vsid, altid)) 
 	fprintf(stderr, "unable to remove SessionId's associated with DrawLink\n");
   }
 }
