@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.0
 
-Instructions for building ivtools-1.0.2 from source, the short version:
+Instructions for building ivtools-1.0.3 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.0.2 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.0.1 from source, the long version:
+Instructions for building ivtools-1.0.3 from source, the long version:
 
 0. Compilation Environment
 
@@ -37,7 +37,7 @@ the configure script.  Establishing a symbolic link to
 /usr/local/include/g++ will fix the problem.
 
 0.d. An installed copy of X11R6 as distributed by the Open Group, or
-an equivalent (XFree86 for Linux, or X11R5 from MIT).  If you use a
+an equivalent (XFree86 for Linux/BSD/MacOS-X, or X11R5 from MIT).  If you use a
 vendor's X11 product, the product should be based on X11R4 or later
 and the product should include imake and the config files.
 

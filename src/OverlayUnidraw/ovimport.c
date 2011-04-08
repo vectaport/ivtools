@@ -970,6 +970,12 @@ const char* OvImportCmd::ReadCreator (istream& in, FileType& ftype) {
       strcpy(creator, "idraw");
       if (ftype==UnknownFile) ftype = OvImportCmd::PostScriptFile;
     }
+
+    /* other PostScript files */
+    if (!*creator && strncmp(line, "%!PS", 4)==0) {
+      ftype = OvImportCmd::PostScriptFile;
+      strcpy(creator, "PostScript");
+    }
     
     /* fullup idraw format */
     if (!*creator && line[0] == '%' && line[1] == '!' ) {

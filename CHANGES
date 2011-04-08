@@ -1,3 +1,11 @@
+March 11th, 2002  ivtools-1.0.3
+
+- add missing src/include/ivstd/stdlib.h to MANIFEST.  This was
+needed to get socklen_t defined for Dispatch/rpc*.c on Darwin.
+
+- recognize files that start with plain "%!PS" as PostScript files.
+
+
 March 1st, 2002  ivtools-1.0.2
 
 - add -stdin_off argument to comdraw/flipbook/graphdraw/drawserv to
