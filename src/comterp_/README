@@ -215,6 +215,8 @@ OTHER COMMANDS
 
 help(cmdname [cmdname ...] :all :posteval) -- help for commands
 
+optable() -- print contents of operator table
+
 val=trace([flag] :get) -- toggle or set trace mode
 
 [str]=print(fmtstr val :string|:str :err) -- print value with format string

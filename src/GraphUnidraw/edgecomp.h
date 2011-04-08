@@ -54,6 +54,8 @@ public:
     EdgeComp(istream&, OverlayComp* parent = nil);
     // construct edge component from istream, relying on GraphCatalog
     // to re-establish connections between edges and nodes.
+    EdgeComp(OverlayComp* parent = nil);
+    // construct edge component but defer anything graphical
     virtual ~EdgeComp();
 
     virtual Component* Copy();

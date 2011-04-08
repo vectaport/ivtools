@@ -65,6 +65,25 @@ static unsigned MaxPriority;	/* Maximum priority encountered so far */
 				/* Minimum can always be considered zero */
 static int last_operid = -1;
 
+/* variables for preserving default table once created */
+static opr_tbl_is_default = 0;  
+static opr_tbl_entry* opr_tbl_default_table = NULL;
+static unsigned opr_tbl_default_numop;
+static unsigned opr_tbl_default_maxop;
+static unsigned opr_tbl_default_maxpri;
+static int opr_tbl_default_lastop;
+
+void* opr_tbl_ptr_get()                  { return (void*)OperatorTable; }
+void opr_tbl_ptr_set(void* ptr)          { OperatorTable = ptr; }
+unsigned opr_tbl_numop_get()             { return NumOperators; }
+void opr_tbl_numop_set(unsigned numop)   { NumOperators = numop; }
+unsigned opr_tbl_maxop_get()             { return MaxOperators; }
+void opr_tbl_maxop_set(unsigned maxop)   { MaxOperators = maxop; }
+unsigned opr_tbl_maxpri_get()            { return MaxPriority; }
+void opr_tbl_maxpri_set(unsigned maxpri) { MaxPriority = maxpri; }
+int opr_tbl_lastop_get()                 { return last_operid; } 
+void opr_tbl_lastop_set(int lastop)      { last_operid = lastop; }
+
 #define OPSTR( index ) (symbol_pntr(OperatorTable[index].operid))
 #define OPSTR_LEN( index ) (symbol_len(OperatorTable[index].operid))
 #define COMMAND( index ) (symbol_pntr(OperatorTable[index].commid))
@@ -175,6 +194,8 @@ int index;
    NumOperators = 0;
    MaxOperators = maxop;
    MaxPriority  = 0;
+   last_operid = -1; 
+   opr_tbl_is_default = 0;
 
    return FUNCOK;
 
@@ -950,8 +971,20 @@ $          stream             125        Y      UNARY PREFIX
     sizeof( struct _opr_tbl_default_entry );
   int index;
 
-  if (OperatorTable)
+  if (OperatorTable && opr_tbl_is_default)
      return 0;
+
+  /* restore from saved pointers if previously constructed */
+  if (opr_tbl_default_table) {
+    opr_tbl_ptr_set(opr_tbl_default_table);
+    opr_tbl_numop_set(opr_tbl_default_numop);
+    opr_tbl_maxop_set(opr_tbl_default_maxop);
+    opr_tbl_maxpri_set(opr_tbl_default_maxpri);
+    opr_tbl_lastop_set(opr_tbl_default_lastop);
+    return 0;
+  }
+
+  OperatorTable = NULL;
 
   /* Initalize table to the right size */
   if( opr_tbl_create( table_size ) != 0 )
@@ -965,6 +998,12 @@ $          stream             125        Y      UNARY PREFIX
                          DefaultOperatorTable[index].rtol,
 			 DefaultOperatorTable[index].optype ) != 0 )
         KAPUT1( "Unable to add the %d entry to the default operator table", index );
+  opr_tbl_is_default = 1;
+  opr_tbl_default_table = opr_tbl_ptr_get();
+  opr_tbl_default_numop = opr_tbl_numop_get();
+  opr_tbl_default_maxop = opr_tbl_maxop_get();
+  opr_tbl_default_maxpri = opr_tbl_maxpri_get();
+  opr_tbl_default_lastop = opr_tbl_lastop_get();
 
   return 0;
 
@@ -1046,8 +1085,3 @@ the command referred to by commid.
 {
    return last_operid;
 }
-
-
-
-
-

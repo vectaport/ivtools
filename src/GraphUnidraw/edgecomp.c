@@ -101,6 +101,10 @@ EdgeComp::EdgeComp(istream& in, OverlayComp* parent)
     _valid = GetParamList()->read_args(in, this);
 }
     
+EdgeComp::EdgeComp(OverlayComp* parent) : OverlayComp(nil, parent) {
+    _edge = new TopoEdge(this);
+}
+
 EdgeComp::~EdgeComp() {
     delete _edge;
 }

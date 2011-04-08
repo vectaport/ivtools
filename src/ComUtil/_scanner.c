@@ -40,6 +40,7 @@ History:        Written by Scott E. Johnston, March 1989
 
 #include "comterp.ci"
 
+int _angle_brackets = 0;
 
 /*!
 
@@ -106,6 +107,8 @@ a token and returns its value.  The possible token types are as follows
         TOK_RBRACKET    Right bracket
         TOK_LBRACE      Left brace
         TOK_RBRACE      Right brace
+        TOK_LANGBRACK   Left angle bracket
+        TOK_RANGBRACK   Right angle bracket
         TOK_KEYWORD     Keyword for free format parameters, i.e. ":SIZE"
         TOK_IDENTIFIER  Identifier, i.e. command name
         TOK_OPERATOR    Operator
@@ -190,6 +193,16 @@ int status;
 
             case '}' :
                *toktype = TOK_RBRACE;
+               search_state = LOOK_DONE;
+               break;
+
+            case '<' :
+               if (_angle_brackets) *toktype = TOK_LANGBRACK;
+               search_state = LOOK_DONE;
+               break;
+
+            case '>' :
+               if (_angle_brackets) *toktype = TOK_RANGBRACK;
                search_state = LOOK_DONE;
                break;
 

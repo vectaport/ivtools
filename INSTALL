@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.2
 
-Instructions for building ivtools-1.2.3 from source, the short version:
+Instructions for building ivtools-1.2.4 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.2.3 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.2.3 from source, the long version:
+Instructions for building ivtools-1.2.4 from source, the long version:
 
 0. Compilation Environment
 
@@ -58,7 +58,7 @@ archives (such as ftp.x.org).
 0.e. If you want to use the polygon intersection tools, acquire and
 build clippoly, a LGPLed library for polygon clipping from:
 
-http://www.ph.tn.tudelft.nl/People/klamer/clippoly_entry.html
+http://clippoly.sourceforge.net
 
 Add -fPIC to the CCFLAGS in the Makefile, then do a make, then build a
 shared library in the clippoly directory with: "gcc -shared -o

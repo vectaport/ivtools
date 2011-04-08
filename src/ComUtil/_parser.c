@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2005 Scott E. Johnston
  * Copyright (c) 1993-1995 Vectaport Inc.
  * Copyright (c) 1989 Triple Vision, Inc.
  *
@@ -41,7 +42,8 @@ History:        Written by Scott E. Johnston, April 1989
 int _continuation_prompt;
 int _continuation_prompt_disabled = 0;
 int _skip_shell_comments = 0;
-infuncptr _oneshot_infunc;
+infuncptr _oneshot_infunc = NULL;
+int _detail_matched_delims = 0;
 
 static int get_next_token(void *infile, char *(*infunc)(), int (*eoffunc)(),
 			  int (*errfunc)(), FILE *outfile, int (*outfunc)(),
@@ -55,26 +57,12 @@ static int get_next_token(void *infile, char *(*infunc)(), int (*eoffunc)(),
 #define LEFTPAREN 1
 #define KEYWORD   2
 
-/* Structure of stack to count command arguments and keywords */
-typedef struct _paren_stack paren_stack;
-struct _paren_stack 
-{
-  unsigned nids;
-  unsigned narg;
-  unsigned nkey;
-  unsigned paren_type;
-  int comm_id;
-};
-
-/* Structure of stack to store operators and keywords */
-typedef struct _oper_stack oper_stack;
-struct _oper_stack 
-{
-  int id;
-  int oper_type;
-};
-
 /* Static Variables */
+#define EXTERN_VISIBILITY
+#ifdef EXTERN_VISIBILITY
+#define static /**/
+void* parser_client = NULL;                    /* pointer to current client */
+#endif
 static unsigned expecting;              /* Type of operator expected next */
 
 static paren_stack *ParenStack = NULL;  /* Stack to count args and keywords */
@@ -92,6 +80,9 @@ static unsigned NextToktype;
 static unsigned NextTokstart;
 static unsigned NextLinenum;
 static int NextOp_ids[OPTYPE_NUM];
+#ifdef EXTERN_VISIBILITY
+#undef static
+#endif
 
 /* Parenthesis stack macros */
 #define INITIAL_PAREN_STACK_SIZE 32
@@ -164,8 +155,10 @@ if( toktype == TOK_RPAREN ) \
    errid = ERR_UNEXPECTED_RPAREN;\
 else if( toktype == TOK_RBRACKET )\
    errid = ERR_UNEXPECTED_RBRACKET;\
-else\
+else if( toktype == TOK_RBRACE )\
    errid = ERR_UNEXPECTED_RBRACE;\
+else\
+   errid = ERR_UNEXPECTED_RANGBRACK;\
 COMERR_SET1( errid, *linenum );\
 goto error_return;}
 
@@ -175,18 +168,20 @@ if( toktype == TOK_LPAREN ) \
    errid = ERR_UNEXPECTED_LPAREN;\
 else if( toktype == TOK_LBRACKET )\
    errid = ERR_UNEXPECTED_LBRACKET;\
-else\
+else if( toktype == TOK_LBRACE )\
    errid = ERR_UNEXPECTED_LBRACE;\
+else\
+   errid = ERR_UNEXPECTED_LANGBRACK;\
 COMERR_SET1( errid, *linenum );\
 goto error_return;}
 
 #define INSTACK_PRIORITY_HIGHER( incoming_priority ) rkg_instack( incoming_priority)
 
 #define LEFT_PAREN( toktype ) \
-(toktype == TOK_LPAREN || toktype == TOK_LBRACKET || toktype == TOK_LBRACE)
+(toktype == TOK_LPAREN || toktype == TOK_LBRACKET || toktype == TOK_LBRACE || toktype == TOK_LANGBRACK)
 
 #define RIGHT_PAREN( toktype ) \
-(toktype == TOK_RPAREN || toktype == TOK_RBRACKET || toktype == TOK_RBRACE)
+(toktype == TOK_RPAREN || toktype == TOK_RBRACKET || toktype == TOK_RBRACE || toktype == TOK_RANGBRACK)
 
 #define PROCEEDING_WHITESPACE( tokstart ) \
 (tokstart == 0 || isspace( buffer[tokstart-1] ))
@@ -196,7 +191,7 @@ goto error_return;}
 
 #define UNEXPECTED_NEW_EXPRESSION \
 (TopOfParenStack >= 0 && \
-(ParenStack[ TopOfParenStack ].comm_id < 0 || \
+((ParenStack[ TopOfParenStack ].comm_id < 0 && !_detail_matched_delims) || \
 ParenStack[ TopOfParenStack ].nkey > 0 ))
 
 
@@ -211,6 +206,10 @@ ParenStack[ TopOfParenStack ].nkey > 0 ))
 #define AMBIGUITY( op_ids )\
 (UNARY_AMBIGUITY(op_ids)||BINARY_AMBIGUITY(op_ids))
 
+static int parens_symid = -1;
+static int brackets_symid = -1;
+static int braces_symid = -1;
+static int angbracks_symid = -1;
 
 /* === Static functions ================================================== */
 
@@ -853,7 +852,7 @@ int status;
       /* separation between free format parameters                  */
 	 if( expecting == OPTYPE_BINARY ) {
 
-	    if( !PROCEEDING_WHITESPACE( tokstart ) ||
+	    if( !PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims ||
 		UNEXPECTED_NEW_EXPRESSION ) {
 	       COMERR_SET2( ERR_UNEXPECTED_IDENTIFIER, *linenum,
 			    symbol_pntr( *(int *)token ) );
@@ -980,7 +979,7 @@ int status;
 
       /* If next token type is KEY or right_paren just output this keyword  */
       /* because it has no argument.  Otherwise place this one on the stack */
-      /* Note that this means that a Keyword on the stack implies theat it  */
+      /* Note that this means that a Keyword on the stack implies that it   */
       /* has an argument.                                                   */
          LOOK_AHEAD;
          if ( (NextToktype == TOK_KEYWORD) ||
@@ -1000,17 +999,19 @@ int status;
 /*-LPAREN-LPAREN-LPAREN-LPAREN-LPAREN-LPAREN-LPAREN-LPAREN-LPAREN-LPAREN-*/
 /*-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-*/
 /*-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-*/
+/*-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-*/
 
       case TOK_LPAREN:
       case TOK_LBRACKET:
       case TOK_LBRACE:
+      case TOK_LANGBRACK:
 
       /* Expecting a binary is either an error, or an indicator of  */
       /* separation between free format parameters                  */
 	 if( expecting == OPTYPE_BINARY ) {
-	     if( !PROCEEDING_WHITESPACE( tokstart ) ||
+	     if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
-		 UNEXPECTED_LPAREN_ERROR( tokstart );
+		 UNEXPECTED_LPAREN_ERROR( toktype );
 	     }
 
              /* End of an argument                     */
@@ -1037,10 +1038,12 @@ int status;
 /*-RPAREN-RPAREN-RPAREN-RPAREN-RPAREN-RPAREN-RPAREN-RPAREN-RPAREN-RPAREN-*/
 /*-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-*/
 /*-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-*/
+/*-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-*/
 
       case TOK_RPAREN:
       case TOK_RBRACKET:
       case TOK_RBRACE:
+      case TOK_RANGBRACK:
 
       /* Parenthesis integrity checking */
 	 if( TopOfParenStack < 0  ||
@@ -1058,7 +1061,10 @@ int status;
 		ParenStack[TopOfParenStack].paren_type != TOK_LBRACKET ||
 
 	     toktype == TOK_RBRACE &&
-		ParenStack[TopOfParenStack].paren_type != TOK_LBRACE ) {
+		ParenStack[TopOfParenStack].paren_type != TOK_LBRACE ||
+
+	     toktype == TOK_RANGBRACK &&
+		ParenStack[TopOfParenStack].paren_type != TOK_LANGBRACK ) {
 
 	    UNEXPECTED_RPAREN_ERROR(toktype);
 	    }
@@ -1090,7 +1096,7 @@ int status;
 
       /* If this parenthesis corresponds to a command, set up the */
       /* the number of embedded arguments and keywords, and output */
-	 if( ParenStack[TopOfParenStack].comm_id >= 0 )
+	 if( ParenStack[TopOfParenStack].comm_id >= 0 || _detail_matched_delims)
          {
 	    if( expecting == OPTYPE_BINARY) {
 	      
@@ -1108,12 +1114,33 @@ int status;
 
                for (i = 0; i < lp; i++)
                {
-  	          PFOUT( TOK_COMMAND,
-                     ParenStack[TopOfParenStack].comm_id,
-                     ParenStack[TopOfParenStack].narg,
-		     ParenStack[TopOfParenStack].nkey,
-		     ParenStack[TopOfParenStack].nids );
-                  --TopOfParenStack;
+		 if (!_detail_matched_delims) {
+		   PFOUT( TOK_COMMAND,
+			  ParenStack[TopOfParenStack].comm_id,
+			  ParenStack[TopOfParenStack].narg,
+			  ParenStack[TopOfParenStack].nkey,
+			  ParenStack[TopOfParenStack].nids );
+		 } else {
+		   if (parens_symid==-1) {
+		     parens_symid = symbol_add("parens");
+		     brackets_symid = symbol_add("brackets");
+		     braces_symid = symbol_add("braces");
+		     angbracks_symid = symbol_add("angbracks");
+		   }
+		   int commandid = ParenStack[TopOfParenStack].comm_id;
+		   if (commandid<0) {
+		     if (toktype==TOK_RPAREN) commandid = parens_symid;
+		     else if (toktype==TOK_RBRACKET) commandid = brackets_symid;
+		     else if (toktype==TOK_RBRACE) commandid = braces_symid;
+		     else commandid = angbracks_symid;
+		   }
+		   PFOUT( TOK_COMMAND,
+			  commandid,
+			  ParenStack[TopOfParenStack].narg,
+			  ParenStack[TopOfParenStack].nkey,
+			  toktype );
+		 }
+		 --TopOfParenStack;
                }
             }
             else

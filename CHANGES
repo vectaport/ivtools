@@ -1,3 +1,11 @@
+July 20th, 2006  ivtools-1.2.4
+
+- changes for compiling with gcc-4.0
+
+- changes to socket-driven (ACE) use of comterp to support multi-line commands
+
+- changes to allow re-use of scanner/parser with multiple operator tables
+
 October 7th, 2005  ivtools-1.2.3
 
 - add support for an external libtiff with a --with-tiff (and

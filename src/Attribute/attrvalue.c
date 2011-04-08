@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001,2006 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
@@ -1104,3 +1104,8 @@ void AttributeValue::state(int val) {
     _state = val;
 }
 
+boolean AttributeValue::is_object(int class_symid) { 
+  if (!is_type(ObjectType)) return false;
+  if (this->class_symid() == class_symid) return true;
+  return false;
+}

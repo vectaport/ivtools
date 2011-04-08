@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Scott E. Johnston
  * Copyright (c) 1994-1996, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -184,7 +185,7 @@ NodeComp::NodeComp(GraphComp* graph)
 
 NodeComp::NodeComp(OverlayComp* parent) : OverlayComp(nil, parent) {
     _graph = nil;
-    _node = nil;
+    _node = new TopoNode(this);
 }
 
 NodeComp::NodeComp(istream& in, OverlayComp* parent) : OverlayComp(nil, parent) {

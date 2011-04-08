@@ -17,5 +17,6 @@ public: \
     { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
 protected: \
   static int _symid;
+
 #endif /* !defined(__comutil.h) */
 

@@ -118,7 +118,7 @@ private:
 	const UniqueString& name, const StyleAttributeTableEntry&,
 	const StyleList&, long s_index, String& value
     );
-    int StyleRep::finish_match(
+    int finish_match(
 	const StyleList&, long s_index, const UniqueStringList&, long p_index
     );
 };

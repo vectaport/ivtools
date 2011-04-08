@@ -259,7 +259,7 @@ public:
 
     static OvNewViewCmd* default_instance() { return _default; }
     // return default instance of this command.
-    static void OvNewViewCmd::default_instance(OvNewViewCmd* cmd)
+    static void default_instance(OvNewViewCmd* cmd)
       { _default = cmd; }
     // set default instance of this command.
     

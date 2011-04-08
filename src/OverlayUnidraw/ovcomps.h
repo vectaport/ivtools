@@ -52,7 +52,7 @@ enum { bypath_mask=0x1, fromcomm_mask=0x2, autoconv_mask=0x4 };
 
 //: derived GraphicComp
 // derived GraphicComp  with extensions for property lists of arbitrary 
-// AttributeValue objects, event propogation inherited from Observer and 
+// AttributeValue objects, event propagation inherited from Observer and 
 // Observable, and new persistence mechanisms (serialization) derived from 
 // ExternView (OverlayScript).
 class OverlayComp : public GraphicComp, public Observer, public Observable {

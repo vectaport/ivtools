@@ -255,6 +255,11 @@ void EqualFunc::execute() {
 	result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
 	  operand1.array_val() == operand2.array_val();
 	break;
+      case ComValue::ObjectType:
+	result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
+	  operand1.obj_val() == operand2.obj_val() &&
+	  operand1.class_symid() == operand2.class_symid();
+	break;
       default:
         result.boolean_ref() = operand1.is_type(ComValue::UnknownType) && 
 	  operand2.is_type(ComValue::UnknownType);

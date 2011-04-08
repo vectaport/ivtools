@@ -779,6 +779,13 @@ _ACEOF
 Installation directories:
   --prefix=PREFIX         install architecture-independent files in PREFIX
 			  [$ac_default_prefix]
+_ACEOF
+fi
+
+if test -n "$ac_init_help"; then
+
+  cat <<\_ACEOF
+
 Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]

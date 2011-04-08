@@ -125,7 +125,7 @@ public:
 
     static MoveFrameCmd* default_instance() { return _default; }
     // return a default instance of the MoveFrameCmd.
-    static void MoveFrameCmd::default_instance(MoveFrameCmd* cmd)
+    static void default_instance(MoveFrameCmd* cmd)
       { _default = cmd; }
     // set a default instance of the MoveFrameCmd.
     
@@ -315,7 +315,7 @@ public:
     virtual boolean Reversible();
 
     static AutoNewFrameCmd* default_instance() { return _default; }
-    static void AutoNewFrameCmd::default_instance(AutoNewFrameCmd* cmd)
+    static void default_instance(AutoNewFrameCmd* cmd)
       { _default = cmd; }
     
 protected:

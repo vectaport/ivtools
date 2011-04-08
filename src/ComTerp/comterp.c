@@ -170,12 +170,13 @@ const ComValue* ComTerp::stack(unsigned int &top) const {
 }
 
 boolean ComTerp::read_expr() {
-    unsigned int toklen, tokstart;
+    check_parser_client();
     int status = parser (_inptr, _infunc, _eoffunc, _errfunc, (FILE*)_outptr, _outfunc,
 			 _buffer, _bufsiz, &_bufptr, _token, _toksiz, &_linenum,
 			 &_pfbuf, &_pfsiz, &_pfnum);
 
     _pfoff = 0;
+    save_parser_client();    
     return status==0 && _pfbuf[_pfnum-1].type != TOK_EOF && _buffer[0] != '\0';
 }
 
@@ -358,11 +359,12 @@ void ComTerp::eval_expr_internals(int pedepth) {
     
   } else if (sv.is_object(Attribute::class_symid())) {
     
+
     push_stack(*((Attribute*)sv.obj_val())->Value());
     
   } else if (sv.type() == ComValue::BlankType) {
 
-    eval_expr_internals(pedepth);
+    if (!stack_empty()) eval_expr_internals(pedepth);
 
   } else {  /* everything else*/
     
@@ -421,8 +423,8 @@ void ComTerp::load_sub_expr() {
 	stack_top(0).array_val()->nested_insert(true);
       } else if (stack_top(0).is_symbol()) {
         AttributeValue* av = lookup_symval(&stack_top(0));
-	if (av->is_array()) av->array_val()->nested_insert(true);
-      }
+	if (av && av->is_array()) av->array_val()->nested_insert(true);
+      } 
     }
     _pfoff++;
     if (stack_top().type() == ComValue::CommandType && 
@@ -753,8 +755,10 @@ ComValue& ComTerp::pop_stack(boolean lookupsym) {
       return lookup_symval(stacktop);
     else 
       return stacktop;
-  } else
+  } else {
+    cerr << "stack empty, blank returned\n";
     return ComValue::blankval();
+  }
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
@@ -887,7 +891,6 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   _errbuf[0] = '\0';
   char errbuf_save[BUFSIZ];
   errbuf_save[0] = '\0';
-  
 
 #if __GNUC__<3
   filebuf fbuf;
@@ -1061,6 +1064,7 @@ void ComTerp::add_defaults() {
     add_command("run", new RunFunc(this));
 
     add_command("help", new HelpFunc(this));
+    add_command("optable", new OptableFunc(this));
     add_command("trace", new ComterpTraceFunc(this));
     add_command("pause", new ComterpPauseFunc(this));
     add_command("step", new ComterpStepFunc(this));
@@ -1432,5 +1436,4 @@ void ComTerp::push_servstate() {
   *ctss = cts_state;
 }
 
-
-
+boolean ComTerp::stack_empty() { return _stack_top<0; }

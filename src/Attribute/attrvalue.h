@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001,2006 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
@@ -320,9 +320,8 @@ public:
     // returns true if CommandType (for use of ComTerp).
     boolean is_object() { return is_type(ObjectType); }
     // returns true if ObjectType.
-    boolean is_object(int class_symid) { return is_type(ObjectType) &&
-					   this->class_symid() == class_symid; }
-    // returns true if ObjectType and matching class_symid.
+    boolean is_object(int class_symid);
+    // returns true if ObjectType and class_symid matches or belongs to a parent class.
 
     static boolean is_char(ValueType t) 
       { return t==CharType || t==UCharType; }
@@ -355,7 +354,7 @@ public:
     // returns true if ObjectType with an Attribute object.
 
     void* geta(int type); 
-    // return a pointer if ObjectType matches
+    // return a pointer if ObjectType matches or is a parent class
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.

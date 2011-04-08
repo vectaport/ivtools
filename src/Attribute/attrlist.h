@@ -197,6 +197,11 @@ public:
     void Remove(AttributeValue*);
     // remove AttributeValue from list, returning responsibility for freeing the
     // associated memory.
+    void Remove(ALIterator&);
+    // remove AttributeValue pointed to by iterator from the list, 
+    // returning responsibility for freeing the associated memory.
+    // This requires saving a pointer to the AttributeValue before calling this method.
+
 
     AttributeValue* GetAttrVal(ALIterator);
     // get AttributeValue pointed to by iterator.
@@ -223,11 +228,6 @@ public:
     // get flag to insert in a nested fashion
 
 protected:
-    void Remove(ALIterator&);
-    // remove AttributeValue pointed to by iterator from the list, 
-    // returning responsibility for freeing the associated memory.
-    // This requires saving a pointer to the AttributeValue before calling this method.
-
     AList* _alist;
     unsigned int _count;
     boolean _nested_insert;

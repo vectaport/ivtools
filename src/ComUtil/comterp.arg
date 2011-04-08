@@ -28,6 +28,16 @@ unsigned opr_tbl_maxprior();
 int opr_tbl_default();
 int opr_tbl_opstr(unsigned commid);
 int opr_tbl_topstr();
+void* opr_tbl_ptr_get();
+void opr_tbl_ptr_set(void* ptr);
+unsigned opr_tbl_numop_get();
+void opr_tbl_numop_set(unsigned numop);
+unsigned opr_tbl_maxop_get();
+void opr_tbl_maxop_set(unsigned maxop);
+unsigned opr_tbl_maxpri_get();
+void opr_tbl_maxpri_set(unsigned maxpri);
+int opr_tbl_lastop_get();
+void opr_tbl_lastop_set(int lastop);
 /* PARSER.C */
 #ifdef __cplusplus
 int parser(void *infile,char *(*infunc)(char*,int,void*),

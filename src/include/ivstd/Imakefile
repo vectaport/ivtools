@@ -7,4 +7,5 @@ PACKAGE = include_std
 IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(ivstd)
+InstallInclude(ivstd,iosfwd)
 

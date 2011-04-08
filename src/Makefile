@@ -34,7 +34,7 @@ LIBUNIIDRAW = -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
 LIBTOPOFACE = -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
 LIBOVERLAYUNIDRAW = -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
 
-  LIBACEDISPATCH =
+LIBACEDISPATCH = -L$(IVTOOLSSRC)/AceDispatch/$(CPU) -lAceDispatch
 
 LIBCOMUNIDRAW = -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
 LIBFRAMEUNIDRAW = -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
@@ -55,7 +55,7 @@ DEPUNIIDRAW = $(IVTOOLSSRC)/UniIdraw/$(CPU)/libUniIdraw.$(VERSION).dylib
 DEPTOPOFACE = $(IVTOOLSSRC)/TopoFace/$(CPU)/libTopoFace.$(VERSION).dylib
 DEPOVERLAYUNIDRAW = $(IVTOOLSSRC)/OverlayUnidraw/$(CPU)/libOverlayUnidraw.$(VERSION).dylib
 
-    DEPACEDISPATCH =
+DEPACEDISPATCH = $(IVTOOLSSRC)/AceDispatch/$(CPU)/libAceDispatch.$(VERSION).dylib
 
 DEPCOMUNIDRAW = $(IVTOOLSSRC)/ComUnidraw/$(CPU)/libComUnidraw.$(VERSION).dylib
 DEPFRAMEUNIDRAW = $(IVTOOLSSRC)/FrameUnidraw/$(CPU)/libFrameUnidraw.$(VERSION).dylib
@@ -66,9 +66,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-1.2.3
+   RELEASE = ivtools-1.2.4
 
-   VERSION = 1.2.3
+   VERSION = 1.2.4
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? CHANGES-1.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -125,7 +125,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
     EXTRA_CCDEFINES =
 
  CLIPPOLY_CCDEFINES =
-      ACE_CCDEFINES =
+      ACE_CCDEFINES = -DHAVE_ACE
       IUE_CCDEFINES =
        QT_CCDEFINES =
      TIFF_CCDEFINES =
@@ -138,10 +138,14 @@ BACKWARD_CCINCLUDES =
    EXTRA_CCINCLUDES =
 
 CLIPPOLY_CCINCLUDES =
-     ACE_CCINCLUDES =
+     ACE_CCINCLUDES = -I$(ACEDIR)
      IUE_CCINCLUDES =
       QT_CCINCLUDES =
     TIFF_CCINCLUDES =
+
+             ACEDIR = /Users/scott/src/ACE_wrappers
+
+          ACELIBDIR = /Users/scott/src/ACE_wrappers/ace
 
              CFLAGS = $(APP_CCFLAGS) $(IV_CFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 
@@ -180,8 +184,8 @@ NONSHARED_CCLDFLAGS =
   CLIPPOLY_CCLDLIBS =
      CLIPPOLYLIBDIR =
     CLIPPOLYLIBBASE = libclippoly.so
-       ACE_CCLDLIBS =
-          ACELIBDIR =
+       ACE_CCLDLIBS = -L$(ACELIBDIR) -lACE
+          ACELIBDIR = /Users/scott/src/ACE_wrappers/ace
          ACELIBBASE = libACE.so
        IUE_CCLDLIBS =
           IUELIBDIR =
@@ -296,7 +300,7 @@ PACKAGE = src_ivtools
 
 IUEDIRS =
 
-ACEDISPATCH =
+ACEDISPATCH = AceDispatch
 
 SUBDIRS = 	IV-common 	Unidraw-common 		ComUtil 	Attribute 	TopoFace 	ComTerp 	comtest 	comterp_ 		IV 	InterViews 	IV-2_6 	IV-X11 	OS 	TIFF 	Dispatch 	dclock 	iclass 	idemo 		Time 	IVGlyph 	ivtext 	glyphs 		AttrGlyph 	ComGlyph 	glyphterp 		Unidraw 	UniIdraw 	idraw 		OverlayUnidraw 	$(ACEDISPATCH) 	drawtool 		$(IUEDIRS) 		ComUnidraw 	comdraw 		FrameUnidraw 	flipbook 		GraphUnidraw 	graphdraw 		DrawServ 	drawserv_ 		include 	scripts 	utils 	tests 		 	man 	html
 

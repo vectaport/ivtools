@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001,2005 Scott E. Johnston
  * Copyright (c) 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -243,3 +243,13 @@ void HelpFunc::execute() {
 
 }
 
+/*****************************************************************************/
+
+OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void OptableFunc::execute() {
+  reset_stack();
+  opr_tbl_print(stdout, OPBY_PRIORITY);
+  return;
+}

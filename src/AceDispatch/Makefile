@@ -66,9 +66,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-1.2.2
+   RELEASE = ivtools-1.2.4
 
-   VERSION = 1.2.2
+   VERSION = 1.2.4
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? CHANGES-1.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -125,22 +125,23 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
     EXTRA_CCDEFINES =
 
  CLIPPOLY_CCDEFINES =
-      ACE_CCDEFINES = -DHAVE_ACE -DACE_MT_SAFE=0
+      ACE_CCDEFINES = -DHAVE_ACE
       IUE_CCDEFINES =
        QT_CCDEFINES =
-     TIFF_CCDEFINES = -DEXTERN_TIFF
+     TIFF_CCDEFINES =
 
          CCINCLUDES = $(APP_CCINCLUDES) $(OTHER_CCINCLUDES) $(EXTRA_CCINCLUDES)
       IV_CCINCLUDES = IvCCIncludes
 BACKWARD_CCINCLUDES =
      TOP_CCINCLUDES = -I$(INCSRC)
        X_CCINCLUDES = -I$(XINCDIR)
-   EXTRA_CCINCLUDES = -I/sw/include
+   EXTRA_CCINCLUDES =
 
 CLIPPOLY_CCINCLUDES =
      ACE_CCINCLUDES = -I$(ACEDIR)
      IUE_CCINCLUDES =
       QT_CCINCLUDES =
+    TIFF_CCINCLUDES =
 
              ACEDIR = /Users/scott/src/ACE_wrappers
 
@@ -192,8 +193,8 @@ NONSHARED_CCLDFLAGS =
         QT_CCLDLIBS = QtCCLdLibs
            QTLIBDIR =
           QTLIBBASE = libQt.so
-      TIFF_CCLDLIBS = -L$(TIFFLIBDIR) -lTIFF
-         TIFFLIBDIR = /sw/lib
+      TIFF_CCLDLIBS =
+         TIFFLIBDIR =
         TIFFLIBBASE = libTIFF.so
 
             INSTALL = install

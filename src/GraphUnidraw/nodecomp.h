@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006 Scott E. Johnston
  * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -66,6 +67,8 @@ public:
     NodeComp(istream&, OverlayComp* parent = nil);
     // construct node component from istream, relying on GraphCatalog
     // to re-establish connections between edges and nodes.
+    NodeComp(OverlayComp* parent = nil);
+    // construct node component but defer anything graphical
     virtual ~NodeComp();
 
     void SetGraph(GraphComp*);
@@ -127,7 +130,6 @@ public:
 
     virtual boolean operator == (OverlayComp&);
 protected:
-    NodeComp(OverlayComp* parent = nil);
 
     GraphComp* _graph;
     TopoNode* _node;
