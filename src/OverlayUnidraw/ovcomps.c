@@ -301,6 +301,13 @@ boolean OverlayComp::GetByPathnameFlag() {
 void OverlayComp::SetByPathnameFlag(boolean flag) {
 }
 
+boolean OverlayComp::GetFromCommandFlag() {
+    return true;
+}
+
+void OverlayComp::SetFromCommandFlag(boolean flag) {
+}
+
 void OverlayComp::Configure(Editor*) { }
 
 OverlayComp* OverlayComp::TopComp() {

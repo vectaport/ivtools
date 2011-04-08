@@ -432,8 +432,6 @@ ivtools-0.9/src/IVGlyph/exportchooser.h
 ivtools-0.9/src/IVGlyph/fieldedit.c
 ivtools-0.9/src/IVGlyph/fieldedit.h
 ivtools-0.9/src/IVGlyph/figure.c
-ivtools-0.9/src/IVGlyph/figure.c
-ivtools-0.9/src/IVGlyph/figure.h
 ivtools-0.9/src/IVGlyph/figure.h
 ivtools-0.9/src/IVGlyph/gdialogs.c
 ivtools-0.9/src/IVGlyph/gdialogs.h
@@ -1726,7 +1724,6 @@ ivtools-0.9/src/man/man3/viewcmds.3
 ivtools-0.9/src/man/refman3.1/refman.PS
 ivtools-0.9/src/scripts/Imakefile
 ivtools-0.9/src/scripts/Makefile
-ivtools-0.9/src/scripts/anytopnm.sh
 ivtools-0.9/src/scripts/bsdinst.sh
 ivtools-0.9/src/scripts/chgsuffix.sh
 ivtools-0.9/src/scripts/cntsrclines.bash

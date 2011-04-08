@@ -120,6 +120,7 @@ void * ParamStruct::addr4(void* base) {
 /*****************************************************************************/
 
 LexScan* ParamList::_lexscan = nil;
+ParamStruct* ParamList::_currstruct = nil;
 
 ParamList::ParamList (ParamList* s) {
     _alist = new AList;
@@ -345,7 +346,7 @@ void ParamList::Remove (ParamStruct* p) {
     }
 }
 
-ParamStruct* ParamList::GetStruct (ALIterator i) { return Struct(Elem(i)); }
+ParamStruct* ParamList::GetStruct (ALIterator i) { _currstruct = Struct(Elem(i)); return _currstruct;}
 
 void ParamList::SetStruct (ParamStruct* gv, ALIterator& i) {
     i.SetValue(_alist->Find(gv));
@@ -879,6 +880,10 @@ int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* d
     return 0;
 }
 
+boolean ParamList::url_use_ok() {
+  return bincheck("ivdl") || bincheck("w3c") || bincheck("curl") || bincheck("wget");
+}
+
 boolean ParamList::urltest(const char* buf) {
   if (!buf) return false;
   static boolean file_url_ok = bincheck("w3c") || bincheck("curl");
@@ -890,7 +895,7 @@ boolean ParamList::urltest(const char* buf) {
 
 int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "which %s", command );
+  sprintf( combuf, "wr=`which %s`; echo $wr", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  

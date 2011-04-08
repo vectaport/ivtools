@@ -1,4 +1,45 @@
-Jan 10th 2000 ivtools-0.9.1
+Apr 5th 2001 ivtools-0.9.2
+
+- set of changes to allow save/restore of graphics files internal to a
+drawing by the Unix command line used to generate them.  For example,
+if "xwdtopnm temp.xwd" was used to import a raster file (with "from
+command" checked on the import dialog box), a subsequent save would
+write this command (and only this command) to the document on disk,
+and a subsequent restore would re-run the command to regenerate the
+contents.  Should work equally well for rasters, PostScript, and
+ivtools drawtool files.
+
+- remove anytopnm from ivtools, since the enhancements our copy had
+over pbmplus were incorporated directly into the netpbm variant.  The
+salient feature was the ability for anytopnm to recognize it had a
+file that was already in a pbmplus format, and pass it through.
+
+- remove duplicate IVGlyph/figure.[ch] from MANIFEST
+
+- add /usr/local/include/g++-3 and /usr/local/include/g++-2 to paths
+searched for libstdc++ include files by configure.
+
+- add "wget" to the list of download utilities searched for and used
+by the code that reads URLs.  The others are ivdl (from ivtools),
+curl, and w3c.
+
+- changes to support compiling with older versions of libg++ and
+changes to support relative installation (--enable-install-relative)
+on FreeBSD.  
+
+- add "name" and "value" labels to the attribute-list editing dialog box.
+
+- save rasters imported from Unix commands by writing out only the
+command string in an generic by-file drawtool object.  For example:
+
+	ovfile(:popen "djpeg -pnm test.jpg" ) 
+
+would be output  to the saved document if  save-by-path was checked on
+the import box and save-by-path is checked (for the whole document) on
+the export box.  Subsequent opens rerun the command.
+
+
+Jan 10th 2001 ivtools-0.9.1
 
 Correct 0.9 oversights:
 

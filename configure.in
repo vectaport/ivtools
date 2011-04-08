@@ -289,6 +289,8 @@ AC_ARG_ENABLE(use-rpath,[ --enable-use-rpath[=ARG]	enable use of -rpath when lin
 
 AC_ARG_ENABLE(install-subdir,[ --enable-install-subdir[=ARG]	enable installation in an ivtools sub-directory], INSTALLSUBDIR=YES, INSTALLSUBDIR=NO)
 
+# AC_TRY_RUN(int access(); int main() { return access("/bin/bash", 1); },BIN_BASH=1,BIN_BASH=0,BIN_BASH=1)
+
 AC_SUBST(prefix)
 #AC_SUBST(OPENGL)
 #AC_SUBST(XGL)
@@ -320,6 +322,7 @@ AC_SUBST(PWD)
 AC_SUBST(INSTALLRELATIVE)
 AC_SUBST(USERPATH)
 AC_SUBST(INSTALLSUBDIR)
+#AC_SUBST(BIN_BASH)
 
 #output to config-$host_fragd 
 PWD=`pwd`; export PWD

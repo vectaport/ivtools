@@ -1054,12 +1054,11 @@ uninstall::								@@\
  * Install header files on Linux.
  */
 
-
 #ifndef InstallIncludes
 #if InstallRelative
 #define InstallIncludes(dir)						@@\
 install::								@@\
-	-@if [ -L $(TOP)/include ]; then exit 0; else \                 @@\
+	-@if [ -h $(TOP)/include ]; then exit 0; else \                 @@\
         (cd $(TOP) && $(LN) src/include include); fi
 #else
 #define InstallIncludes(dir)						@@\
@@ -1076,7 +1075,7 @@ uninstall::								@@\
 #if InstallRelative
 #define InstallInclude(dir, file)					@@\
 install::								@@\
-	-@if [ -L $(TOP)/include ]; then exit 0; else \                 @@\
+	-@if [ -h $(TOP)/include ]; then exit 0; else \                 @@\
         (cd $(TOP) && $(LN) src/include include); fi
 #else
 #define InstallInclude(dir, file)					@@\

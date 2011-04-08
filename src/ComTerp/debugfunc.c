@@ -98,7 +98,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   ComValue retval;
   do {
     char ch;
-    cvect.clear();
+    cvect.erase(cvect.begin(), cvect.end());
     /* need to handle embedded newlines differently */
     do {
       ch = in.get();

@@ -72,10 +72,18 @@ public:
     // set pathname associated with raster.
     virtual const char* GetPathName();
     // return pathname associated with raster.
-    virtual boolean GetByPathnameFlag() { return _by_pathname;}
+    virtual boolean GetByPathnameFlag() { return _import_flags & bypath_mask;}
     // return flag that indicates whether component will be serialized
     // by data or by pathname.
-    virtual void SetByPathnameFlag(boolean flag) { _by_pathname = flag;}
+    virtual void SetByPathnameFlag(boolean flag) 
+      { _import_flags = flag ? _import_flags |= bypath_mask : _import_flags &= ~bypath_mask;}
+    // set flag that indicates whether component will be serialized
+    // by data or by pathname.
+    virtual boolean GetFromCommandFlag() { return _import_flags & fromcomm_mask;}
+    // return flag that indicates whether component will be serialized
+    // by data or by pathname.
+    virtual void SetFromCommandFlag(boolean flag) 
+      { _import_flags = flag ? _import_flags |= fromcomm_mask : _import_flags &= ~fromcomm_mask;}
     // set flag that indicates whether component will be serialized
     // by data or by pathname.
 
@@ -105,7 +113,7 @@ protected:
     static ParamList* _ovraster_params;
 
     char* _pathname;
-    boolean _by_pathname;
+    int _import_flags;
 
     CopyStringList _commands;    
     CopyString _com_exp;
@@ -190,6 +198,7 @@ public:
     virtual boolean IsA(ClassId);
 
     boolean GetByPathnameFlag();
+    boolean GetFromCommandFlag();
 
 };
 

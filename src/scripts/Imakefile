@@ -40,7 +40,6 @@ InstallScriptAs(ivgetjpg.bash,$(BINDIR),ivgetjpg)
 InstallScriptAs(cntsrclines.bash,$(BINDIR),cntsrclines)
 InstallScriptAs(tiftopnm.bash,$(BINDIR),tiftopnm)
 
-InstallScriptAs(anytopnm.sh,$(BINDIR),anytopnm)
 InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)
 
 clean::

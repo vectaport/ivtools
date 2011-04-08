@@ -201,6 +201,16 @@ void AttributeListEditor::build() {
     _mainglyph->append(
 	lk.hcenter(
 	    lk.hbox(
+		    lk.vcenter(lk.hfixed(wk.label("name"), wid)),
+		lk.hspace(10),
+		    lk.vcenter(lk.hfixed(wk.label("value"), wid))
+	    )
+	)
+    );
+    _mainglyph->append(lk.vspace(2));
+    _mainglyph->append(
+	lk.hcenter(
+	    lk.hbox(
 		lk.vcenter(lk.hfixed(_namefe, wid)),
 		lk.hspace(10),
 		lk.vcenter(lk.hfixed(_valfe, wid))

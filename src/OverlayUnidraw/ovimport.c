@@ -1216,6 +1216,8 @@ GraphicComp* OvImportCmd::Import (const char* path) {
 
     /* pipe import from command */
     if (chooser_->from_command() || chooser_->auto_convert()) {
+      _popen = true;
+      
       FILE* fptr = nil;
       if (chooser_->auto_convert()) {
 	char buffer[BUFSIZ];
@@ -1230,7 +1232,10 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       }
       pclose(fptr);
       return comp;
-    }
+    } else
+      _popen = false;
+
+    comp->SetFromCommandFlag(_popen);
 
     const char* creator = ReadCreator(path);
     OverlayCatalog* catalog = (OverlayCatalog*)unidraw->GetCatalog();
@@ -1288,7 +1293,8 @@ GraphicComp* OvImportCmd::Import (const char* path) {
     GraphicComp* comp = nil;
     FILE* fptr = nil;
     boolean incremental_flag = false;
-    if (chooser_ && chooser_->auto_convert()) {
+    static boolean use_anytopnm = OverlayKit::bincheck("anytopnm");
+    if (chooser_ && chooser_->auto_convert() && use_anytopnm) {
       char buffer[BUFSIZ];
       sprintf( buffer, "anytopnm %s", path );
       fptr = popen(buffer, "r");
@@ -1301,10 +1307,13 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       char buffer[BUFSIZ];
       static boolean use_w3c = OverlayKit::bincheck("w3c");
       static boolean use_curl = OverlayKit::bincheck("curl");
-      if (use_w3c) 
-	sprintf(buffer,"w3c -q %s", path);
-      else if (use_curl)
+      static boolean use_wget = OverlayKit::bincheck("wget");
+      if (use_curl)
 	sprintf(buffer,"curl %s", path);
+      else if (use_w3c) 
+	sprintf(buffer,"w3c -q %s", path);
+      else if (use_wget) 
+	sprintf(buffer,"wget -q -O - %s", path);
       else
 	sprintf(buffer,"ivdl %s -", path);
       cerr << buffer << "\n";
@@ -1319,6 +1328,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
 	rr->GetOverlayRaster()->initialize();
 	
         rcomp->SetByPathnameFlag(chooser_ ? chooser_->by_pathname() : true);
+        rcomp->SetFromCommandFlag(chooser_ ? chooser_->from_command() : true);
 	
 	helper_->add_pipe(fptr);
 	new ReadImageHandler(
@@ -1349,6 +1359,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       ((OverlayComp*)comp)->SetPathName(pathname());
       if (chooser_) {
 	((OverlayComp*)comp)->SetByPathnameFlag(chooser_->by_pathname());
+	((OverlayComp*)comp)->SetFromCommandFlag(chooser_->from_command());
 	if (chooser_->by_pathname() && comp->IsA(OVERLAY_IDRAW_COMP)) {
 	  OverlayFileComp* ovfile = new OverlayFileComp();
 	  ovfile->SetPathName(path);
@@ -1520,10 +1531,17 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
+#if 0
 	  if (compressed) 
 	    sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
 	  else
 	    sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
+#else
+	  if (compressed) 
+	    sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gzip -c %s | djpeg  -pnm;rm $cm", pathname);
+	  else
+	    sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -pnm %s;rm $cm", pathname);
+#endif
 	  FILE* pptr = popen(buffer, "r");
           helper.add_pipe(pptr);
 	  if (pptr) {

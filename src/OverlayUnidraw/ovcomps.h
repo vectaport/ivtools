@@ -48,6 +48,8 @@ class OverlaysScript;
 class Viewer;
 class istream;
 
+enum { bypath_mask=0x1, fromcomm_mask=0x2, autoconv_mask=0x4 };
+
 //: derived GraphicComp
 // derived GraphicComp  with extensions for property lists of arbitrary 
 // AttributeValue objects, event propogation inherited from Observer and 
@@ -88,6 +90,11 @@ public:
     // set flag that determines whether component will be serialized (converted to
     // external persistent storage) by just the pathname or by the internal contents.
     virtual boolean GetByPathnameFlag();
+    // return by-pathname flag
+    virtual void SetFromCommandFlag(boolean);
+    // set flag that determines whether component will be serialized (converted to
+    // external persistent storage) by just the pathname or by the internal contents.
+    virtual boolean GetFromCommandFlag();
     // return by-pathname flag
     virtual const char* GetBaseDir();
     // set base directory used for generating pathnames for this component

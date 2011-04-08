@@ -524,7 +524,8 @@ int OverlayScript::ReadTransform (istream& in, void* addr1, void* addr2, void* a
     }
     else {
         Transformer* t = new Transformer(a00, a01, a10, a11, a20, a21);
-        gs->SetTransformer(t);
+        if (gs) gs->SetTransformer(t);
+        else fprintf(stderr, "OverlayScript::ReadTransform:  no graphic for transformer\n");
 	Unref(t);
         return 0;
     }

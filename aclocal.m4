@@ -25,7 +25,7 @@ if test "$ice_cv_cxx_include_dir" = ""; then
 ice_cv_cxx_include_dir="$prefix/include"
 for pfx in "$prefix" "$exec_prefix"; do
 for dir in "$pfx/lib/g++-include" "$pfx/include/CC" \
-    "$pfx/include" /usr/include; do
+    "$pfx/include" /usr/include /usr/local/include/g++-3 /usr/local/include/g++-2 ; do
 if test -d "$dir"; then
 ice_cv_cxx_include_dir="$dir"
 break

@@ -126,13 +126,13 @@ Component* RasterOvComp::Copy () {
 RasterOvComp::RasterOvComp (OverlayRasterRect* s, const char* pathname, 
 OverlayComp* parent) : OverlayComp(s, parent), _com_exp("") {
     _pathname = (pathname == nil) ? nil : strdup(pathname);
-    _by_pathname = pathname ? true : false;
+    if(pathname) _import_flags |= bypath_mask;
 }
 
 RasterOvComp::RasterOvComp(istream& in, OverlayComp* parent) 
 : OverlayComp(nil, parent), _com_exp("") {
     _pathname = nil;
-    _by_pathname = false;
+    _import_flags = 0x0;
     _valid = GetParamList()->read_args(in, this);
 
     // update the size of the raster 
@@ -155,7 +155,7 @@ ParamList* RasterOvComp::GetParamList() {
 }
 
 void RasterOvComp::GrowParamList(ParamList* pl) {
-    pl->add_param("by pathname", ParamStruct::optional, &RasterScript::ReadRaster,
+    pl->add_param("pathname", ParamStruct::optional, &RasterScript::ReadRaster,
 		  this, this);
     pl->add_param("rgb", ParamStruct::keyword, &RasterScript::ReadRGB,
 		  this, this);
@@ -329,10 +329,8 @@ Graphic* RasterOvView::GetGraphic () {
     if (graphic == nil) {
         OverlayRasterRect* rr = GetRasterOvComp()->GetOverlayRasterRect();
 
-        OverlayRaster* r = rr->GetOverlayRaster();
-        OverlayRaster* or = rr->GetOverlayRaster();
-	graphic = or ? (new OverlayRasterRect(or, rr)) :
-            (new OverlayRasterRect(r, rr));
+        OverlayRaster* r = rr ? rr->GetOverlayRaster() : nil;
+	graphic = r ? new OverlayRasterRect(r, rr) : nil;
 
         SetGraphic(graphic);
     }
@@ -470,8 +468,9 @@ boolean RasterScript::Definition (ostream& out) {
     OverlayRasterRect* rr = comp->GetOverlayRasterRect();
     OverlayRaster* raster = (OverlayRaster*)rr->GetOriginal();
 
-    out << "raster(";
-
+    out << (GetFromCommandFlag() && GetByPathnameFlag() && comp->GetPathName()
+	    ? "ovfile(:popen " : "raster(");
+    
     if (GetByPathnameFlag() && comp->GetPathName()){
       out << "\"" << comp->GetPathName() << "\"";
 
@@ -885,6 +884,11 @@ int RasterScript::ReadProcess (
 boolean RasterScript::GetByPathnameFlag() {
     RasterOvComp* comp = (RasterOvComp*) GetSubject();
     return comp->GetByPathnameFlag() && ((OverlayScript*)GetParent())->GetByPathnameFlag();
+}
+
+boolean RasterScript::GetFromCommandFlag() {
+    RasterOvComp* comp = (RasterOvComp*) GetSubject();
+    return comp->GetFromCommandFlag();
 }
 
 /*****************************************************************************/
