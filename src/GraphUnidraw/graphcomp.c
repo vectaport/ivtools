@@ -589,8 +589,10 @@ int GraphIdrawScript::ReadChildren (istream& in, void* addr1, void* addr2, void*
     edges[i]->Edge()->
       attach_nodes(start_id < 0 ? nil : nodes[start_id]->Node(), 
 		   end_id < 0 ? nil : nodes[end_id]->Node());
+    #if defined(GRAPH_OBSERVABLES)
     if (start_id >=0 && end_id >=0) 
       edges[i]->NodeStart()->attach(edges[i]->NodeEnd());
+    #endif
   }
   return 0;
 }

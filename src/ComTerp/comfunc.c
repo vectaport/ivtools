@@ -31,20 +31,34 @@
 
 #define TITLE "ComFunc"
 
+//#define LEAKCHECK
+
+#ifdef LEAKCHECK
+#include <ivstd/leakchecker.h>
+extern LeakChecker AttributeValuechecker;
+#endif
+
 /*****************************************************************************/
 
 int ComFunc::_symid = -1;
 
 ComFunc::ComFunc(ComTerp* comterp) {
     _comterp = comterp;
+    _context = nil;
 }
 
 void ComFunc::reset_stack() {
   if (!post_eval()) {
     int count = nargs() + nkeys() - npops();
-    for (int i=1; i<=npops(); i++) 
+    #if 0 // now done immediately with stack_pop
+    for (int i=1; i<=npops(); i++) {
       ((AttributeValue)_comterp->stack_top(i)).AttributeValue::~AttributeValue();
-    
+        #ifdef LEAKCHECK
+	AttributeValuechecker.create();
+        #endif
+    }
+    #endif
+
     _comterp->decr_stack(count);
   } else 
     _comterp->decr_stack(1);
@@ -69,7 +83,7 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 		  keyref.keynarg_val())
 		return dflt;
 	    }
-	    if (!symbol)
+	    if (!symbol) 
 	        argref = _comterp->lookup_symval(argref);
 	    return argref;
 	}
@@ -114,7 +128,7 @@ ComValue& ComFunc::stack_dotname(int n) {
     return _comterp->stack_top(n+1+npops());
 }
 
-ComValue& ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
+ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
   int argcnt;
@@ -135,7 +149,7 @@ ComValue& ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
   return comterp()->pop_stack(!symbol);
 }
 
-ComValue& ComFunc::stack_key_post_eval
+ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
@@ -221,14 +235,14 @@ boolean ComFunc::skip_arg_in_expr(int& offtop, int& argcnt) {
 			     offtop, -comterp()->_pfnum, argcnt);
 }
 
-ComValue& ComFunc::pop_stack() {
+ComValue ComFunc::pop_stack() {
 
     /* get rid of keywords -- use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
 	int nkey = nkeys();
         for (int i=0; i<count; i++) {
-	    ComValue& val = _comterp->pop_stack();
+	    ComValue val(_comterp->pop_stack());
 	    npops()++;
 	    if (val.type() == ComValue::KeywordType) nkey--;
 	    if (nkey==0) break;    
@@ -242,13 +256,13 @@ ComValue& ComFunc::pop_stack() {
         return ComValue::nullval();
 }
 
-ComValue& ComFunc::pop_symbol() {
+ComValue ComFunc::pop_symbol() {
     /* get rid of keywords -- use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
 	int nkey = nkeys();
         for (int i=0; i<count; i++) {
-	    ComValue& val = _comterp->pop_stack();
+	    ComValue val = _comterp->pop_stack();
 	    npops()++;
 	    if (val.type() == ComValue::KeywordType) nkey--;
 	    if (nkey==0) break;    

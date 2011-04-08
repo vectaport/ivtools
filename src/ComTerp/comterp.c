@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001-2007 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
@@ -75,8 +75,17 @@
 #include <fstream.h>
 #endif
 
+// #define LEAKCHECK
+
+#ifdef LEAKCHECK
+#include <ivstd/leakchecker.h>
+extern LeakChecker AttributeValuechecker;
+#endif
+
 #define TITLE "ComTerp"
 #define STREAM_MECH
+
+extern int _detail_matched_delims;
 
 implementTable(ComValueTable,int,void*)
 
@@ -150,6 +159,8 @@ void ComTerp::init() {
     _trace_mode = 0;
     _npause = 0;
     _stepflag = 0;
+    _echo_postfix = 0;
+    _delim_func;
 
 }
 
@@ -177,6 +188,8 @@ boolean ComTerp::read_expr() {
 
     _pfoff = 0;
     save_parser_client();    
+    postfix_echo();
+
     return status==0 && _pfbuf[_pfnum-1].type != TOK_EOF && _buffer[0] != '\0';
 }
 
@@ -234,10 +247,6 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
 
 void ComTerp::eval_expr_internals(int pedepth) {
   static int step_symid = symbol_add("step");
-  static ComFunc* stepfunc = nil;
-  if (!stepfunc)
-    stepfunc = new ComterpStepFunc(this);
-
   ComValue sv = pop_stack(false);
   
   if (sv.type() == ComValue::CommandType) {
@@ -260,8 +269,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
     if (has_streams) {
       AttributeValueList* avl = new AttributeValueList();
-      for(int i=0; i<sv.narg()+sv.nkey(); i++)
-	avl->Prepend(new AttributeValue(pop_stack(true)));
+      for(int i=0; i<sv.narg()+sv.nkey(); i++) {
+	ComValue topval(pop_stack(true));
+	avl->Prepend(new AttributeValue(topval));
+      }
       ComValue val(sv.obj_val(), avl);
       val.stream_mode(1); // for external use
       push_stack(val);
@@ -277,6 +288,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
       func->push_funcstate(1, 0, pedepth, func->funcid());
     } else {   
       func = (ComFunc*)sv.obj_val();
+      if (_delim_func && sv.nids()!=1) {
+	ComValue nameval(sv.command_symid(), ComValue::SymbolType);
+	push_stack(nameval);  // this assumes it will be immediately popped off the stack
+      } 
       func->push_funcstate(sv.narg(), sv.nkey(), 
 			   pedepth, sv.command_symid());
     }
@@ -314,11 +329,18 @@ void ComTerp::eval_expr_internals(int pedepth) {
       static int pause_symid = symbol_add("pause");
       ComValue pausekey(pause_symid, 0, ComValue::KeywordType);
       push_stack(pausekey);
-      stepfunc->push_funcstate(0,1, pedepth, step_symid);
-      stepfunc->execute();
-      stepfunc->pop_funcstate();
+      ComterpStepFunc stepfunc(this);
+      stepfunc.push_funcstate(0,1, pedepth, step_symid);
+      stepfunc.execute();
+      stepfunc.pop_funcstate();
       pop_stack();
     }
+
+    int stack_base = _stack_top;
+    if (!func->post_eval()) 
+      stack_base -= sv.narg()+sv.nkey();
+    else
+      stack_base -= 1;
 
     func->execute();
     func->pop_funcstate();
@@ -327,6 +349,11 @@ void ComTerp::eval_expr_internals(int pedepth) {
       push_stack(ComValue::blankval());
       _just_reset = false;
     }
+
+    if (stack_base+1 < _stack_top)
+      fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
+    else if (stack_base+1 > _stack_top)
+      fprintf(stderr, "func \"%s\" pushed more than a single value on stack\n", symbol_pntr(func->funcid()));
     
   } else if (sv.type() == ComValue::SymbolType) {
 
@@ -681,8 +708,29 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
     unsigned int command_symid = sv->int_val();
     localtable()->find(vptr, command_symid);
 
+    /* handle case where symbol has matched parens, and things are set up to invoke a delim-specific func. */
+    if (!vptr && _delim_func && sv->nids() != 1) {
+      if (sv->nids() == TOK_RPAREN) {
+	static int parens_symid =  symbol_add("()");
+	localtable()->find(vptr, parens_symid);
+      }
+      if (sv->nids() == TOK_RBRACKET) {
+	static int brackets_symid =  symbol_add("[]");
+	localtable()->find(vptr, brackets_symid);
+      }
+      else if (sv->nids() == TOK_RBRACE) {
+	static int braces_symid =  symbol_add("{}");
+	localtable()->find(vptr, braces_symid);
+      }
+      else if (sv->nids() == TOK_RANGBRACK) {
+	static int anglebrackets_symid =  symbol_add("<>");
+	localtable()->find(vptr, anglebrackets_symid);
+      }
+      command_symid = sv->symbol_val();
+    }
+
     /* handle case where symbol has arguments/keywords, but is not defined */
-    if (!vptr && (sv->narg() || sv->nkey())) {
+    else if (!vptr && (sv->narg() || sv->nkey())) {
       static int nil_symid = symbol_add("nil");
       localtable()->find(vptr, nil_symid);
     }
@@ -707,6 +755,12 @@ void ComTerp::push_stack(ComValue& value) {
 	}
     } 
     _stack_top++;
+
+    if (_stack_top<0) {
+      fprintf(stderr, "warning: comterp stack still empty after push\n");
+      return;
+    }
+
     ComValue* sv = _stack + _stack_top;
     *sv = ComValue(value);
     if (sv->type() == ComValue::KeywordType)
@@ -745,16 +799,25 @@ void ComTerp::decr_stack(int n) {
     for (int i=0; i<n && _stack_top>=0; i++) {
         ComValue& stacktop = _stack[_stack_top--];
 	stacktop.AttributeValue::~AttributeValue();
+        #ifdef LEAKCHECK // destructor called where constructor never called
+	AttributeValuechecker.create();
+        #endif
     }
 }
 
-ComValue& ComTerp::pop_stack(boolean lookupsym) {
+ComValue ComTerp::pop_stack(boolean lookupsym) {
   if (!stack_empty()) {
     ComValue& stacktop = _stack[_stack_top--];
+    ComValue topval(stacktop);
+    stacktop.AttributeValue::~AttributeValue();
+    #ifdef LEAKCHECK  // destructor called where constructor never called
+    AttributeValuechecker.create();
+    #endif
     if (lookupsym)
-      return lookup_symval(stacktop);
+      return lookup_symval(topval);
     else 
-      return stacktop;
+      return topval;
+
   } else {
     cerr << "stack empty, blank returned\n";
     return ComValue::blankval();
@@ -899,7 +962,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
     fbuf.attach(fd);
   } else
     fbuf.attach(fileno(stdout));
-#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3
+#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3 || defined(__CYGWIN__)
   fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
 	       ? handler()->wrfptr() : stdout, 
 	       ios_base::out);
@@ -947,13 +1010,15 @@ int ComTerp::run(boolean one_expr, boolean nested) {
         if (errbuf_save[0]) strcpy(_errbuf, errbuf_save);
       }
     }
-    if (!nested) 
-      _stack_top = -1;
+    if (!nested)
+      decr_stack(_stack_top+1);
     if (one_expr) break;
   }
   if (status==1 && _pfnum==0) status=2;
   if (status==1 && !errorflag) status=3;
-  if (nested && status!=2) _stack_top--;
+  #if 0 // has to be dealt with a different way
+  if (nested && status!=2) pop_stack();
+  #endif
   if (errno == EPIPE) {
     status = -1;
     fprintf(stderr, "broken pipe detected: comterp quit\n");
@@ -1091,6 +1156,7 @@ void ComTerp::add_defaults() {
 
     add_command("print", new PrintFunc(this));
 
+    add_command("usleep", new USleepFunc(this));
 #ifdef HAVE_ACE
     add_command("timeexpr", new TimeExprFunc(this));
 #endif
@@ -1437,3 +1503,57 @@ void ComTerp::push_servstate() {
 }
 
 boolean ComTerp::stack_empty() { return _stack_top<0; }
+
+void ComTerp::postfix_echo() {
+  if (!_echo_postfix) return;
+  // print everything in the _pfbuf for this function
+#if __GNUC__<3
+  filebuf fbuf;
+  if (handler()) {
+    int fd = Math::max(1, handler()->get_handle());
+    fbuf.attach(fd);
+  } else
+    fbuf.attach(fileno(stdout));
+#else
+  fileptr_filebuf fbuf(handler() && handler()->wrfptr()
+	       ? handler()->wrfptr() : stdout, ios_base::out);
+#endif
+  ostream out(&fbuf);
+ 
+  boolean oldbrief = brief();
+  brief(true);
+
+  ComValue val;
+  for (int i=0; i<_pfnum; i++) {
+    ComValue val;
+    token_to_comvalue(_pfbuf+i, &val);
+    val.comterp(this);
+    out << val;
+    if (val.is_type(AttributeValue::CommandType) ||
+       (_detail_matched_delims && val.is_type(AttributeValue::SymbolType) && 
+	val.nids() >= TOK_RPAREN )) {
+      if (!_detail_matched_delims) {
+	out << "[" << val.narg() << "|" << val.nkey() << "]";
+	ComFunc* func = (ComFunc*)val.obj_val();
+	if (func->post_eval()) out << "*";
+      } else {
+	char ldelim, rdelim;
+	if (val.nids()==TOK_RPAREN) {ldelim = '('; rdelim = ')'; }
+	else if (val.nids()==TOK_RBRACKET) {ldelim = '['; rdelim = ']'; }
+	else if (val.nids()==TOK_RBRACE) {ldelim = '{'; rdelim = '}'; }
+	else if (val.nids()==TOK_RANGBRACK) {ldelim = '<'; rdelim = '>'; }
+	else {ldelim = ':'; rdelim = 0x0;};
+	out << ldelim << val.narg();
+	if (rdelim) out << rdelim;
+      }
+    }
+    else if (val.is_type(AttributeValue::SymbolType) && 
+	     (val.narg() || val.nkey()))
+      out << "{" << val.narg() << "|" << val.nkey() << "}";
+    else if (val.is_type(AttributeValue::KeywordType))
+      out << "(" << val.keynarg_val() << ")";
+    out << ((i==_pfnum-1) ? "\n" : " ");
+  }
+  brief(oldbrief);
+}
+

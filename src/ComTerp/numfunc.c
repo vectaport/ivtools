@@ -261,7 +261,8 @@ AttributeValueList* AddFunc::matrix_add(AttributeValueList* list1,
     push_stack(*list1->GetAttrVal(it1));
     push_stack(*list2->GetAttrVal(it2));
     exec(2, 0);
-    sum->Append(new AttributeValue(comterp()->pop_stack()));
+    ComValue topval(comterp()->pop_stack());
+    sum->Append(new AttributeValue(topval));
     list1->Next(it1);
     list2->Next(it2);
   }
@@ -530,7 +531,8 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
 	  if (row1) row1->Next(itj1);
 	}
 	
-	prodrow->Append(new AttributeValue(comterp()->pop_stack()));
+	ComValue topval(comterp()->pop_stack());
+	prodrow->Append(new AttributeValue(topval));
       }
       /* done looping over output columsn */
       
@@ -560,7 +562,8 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
 	if (row1) row1->Next(itj1);
       }
       
-      prodrow->Append(new AttributeValue(comterp()->pop_stack()));
+      ComValue topval(comterp()->pop_stack());
+      prodrow->Append(new AttributeValue(topval));
     }
 
     list1->Next(iti1);

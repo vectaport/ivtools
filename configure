@@ -779,6 +779,40 @@ _ACEOF
 Installation directories:
   --prefix=PREFIX         install architecture-independent files in PREFIX
 			  [$ac_default_prefix]
+  --exec-prefix=EPREFIX   install architecture-dependent files in EPREFIX
+			  [PREFIX]
+
+By default, \`make install' will install all the files in
+\`$ac_default_prefix/bin', \`$ac_default_prefix/lib' etc.  You can specify
+an installation prefix other than \`$ac_default_prefix' using \`--prefix',
+for instance \`--prefix=\$HOME'.
+
+For better control, use the options below.
+
+Fine tuning of the installation directories:
+  --bindir=DIR           user executables [EPREFIX/bin]
+  --sbindir=DIR          system admin executables [EPREFIX/sbin]
+  --libexecdir=DIR       program executables [EPREFIX/libexec]
+  --datadir=DIR          read-only architecture-independent data [PREFIX/share]
+  --sysconfdir=DIR       read-only single-machine data [PREFIX/etc]
+  --sharedstatedir=DIR   modifiable architecture-independent data [PREFIX/com]
+  --localstatedir=DIR    modifiable single-machine data [PREFIX/var]
+  --libdir=DIR           object code libraries [EPREFIX/lib]
+  --includedir=DIR       C header files [PREFIX/include]
+  --oldincludedir=DIR    C header files for non-gcc [/usr/include]
+  --infodir=DIR          info documentation [PREFIX/info]
+  --mandir=DIR           man documentation [PREFIX/man]
+_ACEOF
+
+  cat <<\_ACEOF
+
+X features:
+  --x-includes=DIR    X include files are in DIR
+  --x-libraries=DIR   X library files are in DIR
+
+System types:
+  --build=BUILD     configure for building on BUILD [guessed]
+  --host=HOST       cross-compile to build programs to run on HOST [BUILD]
 _ACEOF
 fi
 
@@ -1393,12 +1427,12 @@ if test x"$ACE" = x; then
 	echo ""
 else
 	echo "Building with ACE support ACE=$ACE"
-	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so -o -f $ACE_LIBS/libACE.dylib ; then
+	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so -o -f $ACE_LIBS/libACE.dll.a -o -f $ACE_LIBS/libACE.dylib ; then
 		echo "$as_me:$LINENO: result: Found libACE.* in $ACE_LIBS " >&5
 echo "${ECHO_T}Found libACE.* in $ACE_LIBS " >&6
 	        ACE_ENABLED=1
 	else
-	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so -o -f $ACE/ace/libACE.dylib ; then
+	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so -o -f $ACE/ace/libACE.dll.a -o -f $ACE/ace/libACE.dylib ; then
 			echo "$as_me:$LINENO: result: Found libACE.* in $ACE/ace " >&5
 echo "${ECHO_T}Found libACE.* in $ACE/ace " >&6
 		        ACE_ENABLED=1

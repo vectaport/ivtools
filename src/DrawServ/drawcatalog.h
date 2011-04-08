@@ -43,8 +43,8 @@ public:
 
     virtual OverlayComp* ReadComp(const char*, istream&, OverlayComp* =nil);
 
-    void graph_init(DrawIdrawComp* comps, int num_edge, int num_node);
-    void graph_finish();
+    virtual void graph_init(DrawIdrawComp* comps, int num_edge, int num_node);
+    virtual void graph_finish();
 
 protected:
     int* _startnode;

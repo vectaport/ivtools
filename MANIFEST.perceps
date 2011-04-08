@@ -154,6 +154,7 @@ OverlayUnidraw/attrtool.h
 OverlayUnidraw/grayraster.h
 OverlayUnidraw/grloctool.h
 OverlayUnidraw/indexmixins.h
+OverlayUnidraw/leafwalker.h
 OverlayUnidraw/leakchecker.h
 OverlayUnidraw/ovabout.h
 OverlayUnidraw/ovadjuster.h

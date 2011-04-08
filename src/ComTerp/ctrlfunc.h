@@ -113,6 +113,18 @@ public:
 
 };
 
+//: usleep sleep microseconds
+// usleep(cmdstr) -- sleep microseconds
+class USleepFunc : public ComFunc {
+public:
+    USleepFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(msec) -- sleep microseconds"; }
+
+};
+
 //: nil command for ComTerp.
 // nil([...]) -- accept any arguments and return nil.
 class NilFunc : public ComFunc {

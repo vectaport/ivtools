@@ -58,6 +58,7 @@
 #include <OverlayUnidraw/ovexport.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovpolygon.h>
+#include <OverlayUnidraw/ovprecise.h>
 #include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/ovtext.h>
@@ -67,6 +68,7 @@
 #include <UniIdraw/idarrows.h>
 #include <UniIdraw/idkybd.h>
 
+#include <Unidraw/Commands/transforms.h>
 #include <Unidraw/Components/text.h>
 #include <Unidraw/Graphic/ellipses.h>
 #include <Unidraw/Graphic/polygons.h>
@@ -98,6 +100,8 @@ declareActionCallback(DrawKit)
 implementActionCallback(DrawKit)
 
 static const int unit = 15;
+static const int xradius = 35;
+static const int yradius = 20;
 
 static int xClosed[] = { unit/5, unit, unit, unit*3/5, 0 };
 static int yClosed[] = { 0, unit/5, unit*3/5, unit, unit*2/5 };
@@ -123,6 +127,12 @@ DrawKit::DrawKit () {
 
 void DrawKit::Init (OverlayComp* comp, const char* name) {
     FrameKit::Init(comp, name);
+}
+
+DrawKit* DrawKit::Instance() {
+    if (!_comkit)
+	_comkit = new DrawKit();
+    return _comkit;
 }
 
 MenuItem * DrawKit::MakeFileMenu() {
@@ -160,10 +170,58 @@ MenuItem * DrawKit::MakeFileMenu() {
     return mbi;
 }
 
-DrawKit* DrawKit::Instance() {
-    if (!_comkit)
-	_comkit = new DrawKit();
-    return _comkit;
+MenuItem* DrawKit::MakeEditMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem *mbi = kit.menubar_item(kit.label("Edit"));
+    mbi->menu(kit.pulldown());
+
+    MakeMenu(mbi, new UndoCmd(new ControlInfo("Undo", KLBL_UNDO, CODE_UNDO)),
+	     "Undo   ");
+    MakeMenu(mbi, new RedoCmd(new ControlInfo("Redo", KLBL_REDO, CODE_REDO)),
+	     "Redo   ");
+    MakeMenu(mbi, new GraphCutCmd(new ControlInfo("Cut", KLBL_CUT, CODE_CUT)),
+	     "Cut   "); // overrides FrameCutCmd
+    MakeMenu(mbi, new GraphCopyCmd(new ControlInfo("Copy", KLBL_COPY, CODE_COPY)),
+	     "Copy   ");
+    MakeMenu(mbi, new GraphPasteCmd(new ControlInfo("Paste", KLBL_PASTE, CODE_PASTE)),
+	     "Paste   ");
+    MakeMenu(mbi, new GraphDupCmd(new ControlInfo("Duplicate", KLBL_DUP, CODE_DUP)),
+	     "Duplicate   ");
+    MakeMenu(mbi, new GraphDeleteCmd(new ControlInfo("Delete", KLBL_DEL, CODE_DEL)),
+	     "Delete   ");
+    MakeMenu(mbi, new OvSlctAllCmd(new ControlInfo("Select All", KLBL_SLCTALL, CODE_SLCTALL)),
+	     "Select All   ");
+    MakeMenu(mbi, new SlctByAttrCmd(new ControlInfo("Select by Attribute", "$", "$")),
+	     "Select by Attribute   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new ScaleCmd(new ControlInfo("Flip Horizontal",
+				       KLBL_HFLIP, CODE_HFLIP),
+		       -1.0, 1.0),
+	     "Flip Horizontal   ");
+    MakeMenu(mbi, new ScaleCmd(new ControlInfo("Flip Vertical",
+				       KLBL_VFLIP, CODE_VFLIP),
+		       1.0, -1.0),
+	     "Flip Vertical   ");
+    MakeMenu(mbi, new RotateCmd(new ControlInfo("90 Clockwise", KLBL_CW90, CODE_CW90),
+			-90.0),
+	     "90 Clockwise   ");
+    MakeMenu(mbi, new RotateCmd(new ControlInfo("90 CounterCW", KLBL_CCW90, CODE_CCW90),
+			90.0),
+	     "90 CounterCW   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new OvPreciseMoveCmd(new ControlInfo("Precise Move",
+					     KLBL_PMOVE, CODE_PMOVE)),
+	     "Precise Move   ");
+    MakeMenu(mbi, new OvPreciseScaleCmd(new ControlInfo("Precise Scale",
+					      KLBL_PSCALE, CODE_PSCALE)),
+	     "Precise Scale   ");
+    MakeMenu(mbi, new OvPreciseRotateCmd(new ControlInfo("Precise Rotate",
+					       KLBL_PROTATE, CODE_PROTATE)),
+	     "Precise Rotate   ");
+
+    return mbi;
 }
 
 MenuItem * DrawKit::MakeToolsMenu() {
@@ -388,7 +446,7 @@ Glyph* DrawKit::MakeToolbar() {
 					    protoedge),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gedge)), _tg, _ed->MouseDocObservable(), GraphKit::mouse_edge));
-    SF_Ellipse* nellipse = new SF_Ellipse(0, 0, unit, unit*3/5, stdgraphic);
+    SF_Ellipse* nellipse = new SF_Ellipse(0, 0, xradius, yradius, stdgraphic);
     nellipse->SetPattern(psnonepat);
     TextGraphic* ntext = new TextGraphic("___", stdgraphic);
     nellipse->Align(4, ntext, 4); // same as Center in IV-2_6/InterViews/alignment.h
@@ -397,7 +455,7 @@ Glyph* DrawKit::MakeToolbar() {
 					    protonode),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(gnod1)), _tg, _ed->MouseDocObservable(), GraphKit::mouse_node));
-    SF_Ellipse* nellipse2 = new SF_Ellipse(0, 0, unit, unit*3/5, stdgraphic);
+    SF_Ellipse* nellipse2 = new SF_Ellipse(0, 0, xradius, yradius, stdgraphic);
     nellipse2->SetPattern(psnonepat);
     TextGraphic* ntext2 = new TextGraphic("abc", stdgraphic);
     nellipse2->Align(4, ntext2, 4); // same as Center in IV-2_6/InterViews/alignment.h

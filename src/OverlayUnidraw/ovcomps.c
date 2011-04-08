@@ -32,6 +32,7 @@
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovpainter.h>
 #include <OverlayUnidraw/ovselection.h>
+#include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/paramlist.h>
@@ -45,7 +46,6 @@
 #include <Unidraw/clipboard.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/ulist.h>
-#include <Unidraw/unidraw.h>
 
 #include <Unidraw/Commands/datas.h>
 #include <Unidraw/Commands/struct.h>
@@ -95,6 +95,7 @@ OverlayComp::OverlayComp (Graphic* g, OverlayComp* parent) : GraphicComp(g)
     _parent = parent;
     _anno = nil;
     _attrlist = nil;
+    _notify_deferred = 0;
 }
 
 OverlayComp::OverlayComp (istream& in) { 
@@ -102,6 +103,7 @@ OverlayComp::OverlayComp (istream& in) {
     _parent = nil;
     _anno = nil;
     _attrlist = nil;
+    _notify_deferred = 0;
     _valid = GetParamList()->read_args(in, this);
 }
 
@@ -347,8 +349,18 @@ void OverlayComp::update(Observable* obs) {
   Notify();
 }
 
+void OverlayComp::NotifyLater() {
+  Observable::notify();
+
+  if (OverlayUnidraw::deferred_notifications()) 
+    _notify_deferred = 1;
+  else 
+    GraphicComp::Notify();
+}
+
 void OverlayComp::Notify() {
   Observable::notify();
+
   GraphicComp::Notify();
 }
 
@@ -376,6 +388,49 @@ AttributeValue* OverlayComp::FindValue
     return  al->find(symid);
   } else
     return nil;
+}
+
+void OverlayComp::DeferredNotify() {
+  if (_notify_deferred) {
+    GraphicComp::Notify();
+    _notify_deferred = false;
+  }
+}
+
+boolean OverlayComp::IsPrev(OverlayComp* prev) {
+  OverlaysComp* parent = (OverlaysComp*)GetParent();
+  if (!parent) return false;
+  Iterator it;
+  parent->First(it);
+  while (parent->GetComp(it) != this) parent->Next(it);
+  parent->Prev(it);
+  return !parent->Done(it) && parent->GetComp(it)==prev;
+}
+
+boolean OverlayComp::IsNext(OverlayComp* next) {
+  OverlaysComp* parent = (OverlaysComp*)GetParent();
+  if (!parent) return false;
+  Iterator it;
+  parent->First(it);
+  while (parent->GetComp(it) != this) parent->Next(it);
+  parent->Next(it);
+  return !parent->Done(it) && parent->GetComp(it)==next;
+}
+
+boolean OverlayComp::IsParent(OverlayComp* parent) {
+  return parent==GetParent();
+}
+
+boolean OverlayComp::IsChild(OverlayComp* parent) {
+  return false;
+}
+
+OverlayComp* OverlayComp::DepthPrev(OverlayComp*) {
+  return (OverlayComp*) GetParent();
+}
+
+OverlayComp* OverlayComp::DepthNext(OverlayComp*) {
+  return (OverlayComp*) GetParent();
 }
 
 /*****************************************************************************/
@@ -1172,6 +1227,73 @@ AttributeValue* OverlaysComp::FindValue
   }
   return nil;
 }
+
+void OverlaysComp::DeferredNotify() {
+  if (_notify_deferred) {
+    GraphicComp::Notify();
+    _notify_deferred = false;
+  } else {
+    Iterator i;
+    for (First(i); !Done(i); Next(i)) {
+      OverlayComp* comp = (OverlayComp*)GetComp(i);
+      if (!comp->GetGraphic()->Hidden())
+	((OverlayComp*)GetComp(i))->DeferredNotify();
+    }
+  }
+}
+
+boolean OverlaysComp::IsChild(OverlayComp* child) {
+  Iterator it;
+  First(it);
+  while (!Done(it) && GetComp(it)!=child) Next(it);
+  return !Done(it);
+}
+
+OverlayComp* OverlaysComp::DepthPrev(OverlayComp* before) {
+  Iterator it;
+  
+  // move down
+  if (!before || IsParent(before)) {
+    First(it);
+    return (OverlayComp*)GetComp(it);
+  } 
+
+  // IsChild(before)
+  else {  
+    First(it);
+    while (GetComp(it)!=before) Prev(it);
+    Prev(it);
+    if (!Done(it)) return (OverlayComp*)GetComp(it);
+  }
+  
+  // or move up
+  OverlaysComp* parent = (OverlaysComp*)GetParent();
+  return parent;
+}
+
+
+OverlayComp* OverlaysComp::DepthNext(OverlayComp* before) {
+  Iterator it;
+  
+  // move down
+  if (!before || IsParent(before)) {
+    First(it);
+    return (OverlayComp*)GetComp(it);
+  } 
+
+  // IsChild(before)
+  else {  
+    First(it);
+    while (GetComp(it)!=before) Next(it);
+    Next(it);
+    if (!Done(it)) return (OverlayComp*)GetComp(it);
+  }
+  
+  // or move up
+  OverlaysComp* parent = (OverlaysComp*)GetParent();
+  return parent;
+}
+
 
 /*****************************************************************************/
 

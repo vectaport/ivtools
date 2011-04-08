@@ -183,9 +183,9 @@ void StrEditDialogImpl::init(StrEditDialog* d, Style* s,
     dialog_ = d;
     style_ = s;
     editor_ = nil;
+    custom_ = custom;
     build(c1, c2, extra);
     editor_->select_all();
-    custom_ = custom;
 }
 
 void StrEditDialogImpl::build(const char* msg, const char* txt, Glyph* extra) {

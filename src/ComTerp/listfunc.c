@@ -58,7 +58,8 @@ void ListFunc::execute() {
 	boolean done = false;
 	while (!done) {
 	  NextFunc::execute_impl(comterp(), listv);
-	  AttributeValue* newval = new AttributeValue(comterp()->pop_stack());
+	  ComValue topval(comterp()->pop_stack());
+	  AttributeValue* newval = new AttributeValue(topval);
 	  if (newval->is_unknown()) {
 	    done = true;
 	    delete newval;
@@ -100,6 +101,7 @@ void ListAtFunc::execute() {
 
   if (listv.is_type(ComValue::ArrayType) && !nv.is_nil() && nv.int_val()>=0) {
     AttributeValueList* avl = listv.array_val();
+    #if 0
     if (avl && nv.int_val()<avl->Number()) {
       int count = 0;
       Iterator it;
@@ -113,6 +115,23 @@ void ListAtFunc::execute() {
 	count++;
       }
     }
+    #else
+    if (avl) {
+      if (setflag) {
+	AttributeValue* oldv = avl->Set(nv.int_val(), new AttributeValue(setv));
+	delete oldv;
+	push_stack(setv);
+	return;
+      } else {
+	AttributeValue* retv = avl->Get(nv.int_val());
+	if (retv)
+	  push_stack(*retv);
+	else
+	  push_stack(ComValue::blankval());
+	return;
+      }
+    }
+    #endif
   } else if (listv.is_object(AttributeList::class_symid())) {
     AttributeList* al = (AttributeList*)listv.obj_val();
     if (al && nv.int_val()<al->Number()) {

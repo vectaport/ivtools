@@ -109,6 +109,7 @@ void LinkSelection::Reserve() {
 
   /* clear anything that was in the previous selection, but not in this one */
   Selection* lastsel = _editor->last_selection();
+  if (!lastsel) return;
   Iterator lt;
   lastsel->First(lt);
   Iterator it;

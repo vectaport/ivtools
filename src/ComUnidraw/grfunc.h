@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001-2007 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
@@ -370,6 +371,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file"; }
+};
+
+//: command to access a graphic's transformer
+// a00,a01,a10,a11,a20,a21=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic
+class TransformerFunc : public UnidrawFunc {
+public:
+    TransformerFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic"; }
 };
 
 #endif /* !defined(_grfunc_h) */

@@ -76,18 +76,6 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
 
   comterp()->npause()++;
 
- if (msgstrv.is_string()) {
-    std::ostrstream sbuf1_s;
-    sbuf1_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): " 
-	    << msgstrv.string_ptr() << "\n";
-    sbuf1_s.put('\0');
-    cerr << sbuf1_s.str();
- }
-  std::ostrstream sbuf2_s;
-  sbuf2_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): enter command or press C/R to continue\n";
-  sbuf2_s.put('\0');
-  cerr << sbuf2_s.str();
-
   comterp()->push_servstate();
 #if __GNUC__<3
   filebuf fbufin;
@@ -113,6 +101,21 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
 		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #endif
   ostream out(&fbufout);
+
+ if (msgstrv.is_string()) {
+    std::ostrstream sbuf1_s;
+    sbuf1_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): " 
+	    << msgstrv.string_ptr() << "\n";
+    sbuf1_s.put('\0');
+    out << sbuf1_s.str();
+    out.flush();
+ }
+  std::ostrstream sbuf2_s;
+  sbuf2_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): enter command or press C/R to continue\n";
+  sbuf2_s.put('\0');
+  out << sbuf2_s.str();
+  out.flush();
+
 #if __GNUC__==2 && __GNUC_MINOR__<=7
   char cvect[BUFSIZ];
   int cvect_cnt = 0;
@@ -127,6 +130,8 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
 #else
     cvect.erase(cvect.begin(), cvect.end());
 #endif
+
+
     /* need to handle embedded newlines differently */
 #if __GNUC__==2 && __GNUC_MINOR__<=7
     do {
@@ -140,20 +145,22 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
       cvect.push_back(ch);
     } while (in.good() && ch != '\n');
 #endif
-    if (cvect[0] != '\n') {
+    if (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n')) {
       if (comterpserv()) {
 	retval.assignval(comterpserv()->run(&cvect[0]));
+	ComValue::comterp(comterpserv());
 	out << retval << "\n";
+	out.flush();
       } else {
 	cerr << "execution of commands during step requires comterp in server or remote mode\n";
       }
     }
-  } while (cvect[0] != '\n');
+  } while (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n'));
   comterp()->pop_servstate();
   std::ostrstream sbuf_e;
   sbuf_e << (stepfunc() ? "end of step(" : "end of pause(") << comterp()->npause()-- << ")\n";
   sbuf_e.put('\0');
-  cerr << sbuf_e.str();
+  out << sbuf_e.str();
   push_stack(retval);
 }
 

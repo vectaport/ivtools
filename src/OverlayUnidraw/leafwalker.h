@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Vectaport Inc.
+ * Copyright (c) 2007 Scott E. Johnston
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -21,25 +21,29 @@
  * 
  */
 
-#ifdef HAVE_ACE
+/*
+ * implementation of depth first OverlayComps leaf walking algorithm
+ */
 
-#include <ComUnidraw/comterp-acehandler.h>
+#ifndef leafwalker_h
+#define leafwalke_h
 
-#include <ComUnidraw/comeditor.h>
-#include <ComTerp/comterpserv.h>
+#include <OverlayUnidraw/ovcomps.h>
 
-#include <Unidraw/iterator.h>
-#include <Unidraw/unidraw.h>
+//: walk the leafs of an OverlaysComp tree
+class LeafWalker {
+public:
+  LeafWalker(OverlaysComp* start);
+  OverlayComp* NextLeaf();
+  // returns next leaf in tree or nil when done
 
-/*****************************************************************************/
+protected:
+  OverlayComp* _before;
+  OverlayComp* _curr;
+  OverlaysComp* _start;
+};
 
-// Default constructor.
+#endif
 
-UnidrawComterpHandler::UnidrawComterpHandler (ComTerpServ* serv) : ComterpHandler(serv)
-{
-  Iterator i;
-  unidraw->First(i);
-  if (!serv) ((ComEditor*)unidraw->GetEditor(i))->AddCommands(comterp_);
-}
 
-#endif /* HAVE_ACE */
+

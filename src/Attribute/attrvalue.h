@@ -362,14 +362,16 @@ public:
     void* value_ptr() { return &_v; }
     // returns void* pointer to value struct.
 
-protected:
-
     void ref_as_needed();
     // increment ref counters as needed
     void unref_as_needed();
     // decrement ref counters as needed
     void dup_as_needed();
     // duplicate lists then increment ref counters as needed
+    boolean same_list(const AttributeValue& av);
+    // check if arrayval or streamval are the same
+
+protected:
 
     ValueType _type;
     attr_value _v;

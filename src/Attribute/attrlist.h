@@ -201,6 +201,10 @@ public:
     // remove AttributeValue pointed to by iterator from the list, 
     // returning responsibility for freeing the associated memory.
     // This requires saving a pointer to the AttributeValue before calling this method.
+    AttributeValue* Replace(ALIterator&, AttributeValue*);
+    // remove AttributeValue pointed to by iterator from the list, 
+    // returning responsibility for freeing the associated memory.
+    // Then insert new AttributeValue in the same place.
 
 
     AttributeValue* GetAttrVal(ALIterator);
@@ -209,6 +213,12 @@ public:
     // set AttributeValue pointed to by iterator.
     boolean Includes(AttributeValue*);
     // check if list includes AttributeValue by pointer-comparison.
+
+    AttributeValue* Get(unsigned int index);
+    // retrieve value by index, return nil if not there
+    AttributeValue* Set(unsigned int index, AttributeValue* av);
+    // set value by index, increase list length if necessary with nil padding,
+    // take responsibility for the memory (and return responsibility for old memory)
 
     AList* Elem(ALIterator); 
     // return AList (UList) pointed to by ALIterator (Iterator).

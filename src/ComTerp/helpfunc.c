@@ -41,6 +41,8 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 
 #define TITLE "HelpFunc"
 
+#define HELPOUT 0  // set to 1 if desire to print instead of return help info
+
 /*****************************************************************************/
 
 HelpFunc::HelpFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -130,17 +132,17 @@ void HelpFunc::execute() {
   std::strstreambuf sbuf;
 #if __GNUC__<3
   filebuf fbuf;
-  if (comterp()->handler()) {
+  if (comterp()->handler() && HELPOUT) {
     int fd = Math::max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
   } 
-  ostream outs( comterp()->handler() ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
+  ostream outs( (comterp()->handler() && HELPOUT) ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
   ostream *out = &outs;
 #else
-  fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+  fileptr_filebuf fbuf((comterp()->handler() && HELPOUT) && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #if 1
-  ostream outs(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);
+  ostream outs((comterp()->handler() && HELPOUT) ? (streambuf*)&fbuf : (streambuf*)&sbuf);
 #else
   ostream outs((streambuf*)&fbuf);
 #endif
@@ -229,7 +231,7 @@ void HelpFunc::execute() {
   }
 
 
-  if (!comterp()->handler()) {
+  if (!comterp()->handler() || !HELPOUT) {
     *out << '\0';
     int help_str_symid = symbol_add(sbuf.str());
     ComValue retval(sbuf.str()); 

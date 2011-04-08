@@ -146,7 +146,7 @@ void RemoteFunc::execute() {
 #if __GNUC__<3
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
-#elif __GNUC__<4
+#elif __GNUC__<4 && !defined(__CYGWIN__)
     fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
 			  false, static_cast<size_t>(BUFSIZ));
 #else
@@ -173,7 +173,7 @@ void RemoteFunc::execute() {
       } while (i<BUFSIZ-1 && buf[i-1]!='\n');
       if (buf[i]=='\n') buf[i]==0;
 #endif
-      ComValue& retval = comterpserv()->run(buf, true);
+      ComValue retval(comterpserv()->run(buf, true));
       push_stack(retval);
     }
 
@@ -266,6 +266,19 @@ void ShellFunc::execute() {
 	retval.type(ComValue::IntType);
     }
     push_stack(retval);
+    return;
+}
+
+USleepFunc::USleepFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void USleepFunc::execute() {
+    ComValue msecv(stack_arg(0));
+    reset_stack();
+
+    if (msecv.int_val()>0) 
+    usleep(msecv.int_val());
+    push_stack(msecv);
     return;
 }
 

@@ -72,7 +72,7 @@ public:
     void zero();
     void setBit(int);
     void clrBit(int);
-    boolean isSet(int) const;
+    boolean isSet(int);
     boolean anySet() const;
     int numSet() const;
 };
@@ -84,7 +84,7 @@ FdMask::FdMask() {
 void FdMask::zero() { Memory::zero(this, sizeof(FdMask)); }
 void FdMask::setBit(int fd) { FD_SET(fd,this); }
 void FdMask::clrBit(int fd) { FD_CLR(fd,this); }
-boolean FdMask::isSet(int fd) const { return FD_ISSET(fd,this); }
+boolean FdMask::isSet(int fd) { return FD_ISSET(fd,this); }
 
 boolean FdMask::anySet() const {
     const int mskcnt = howmany(FD_SETSIZE,NFDBITS);

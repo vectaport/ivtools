@@ -1641,7 +1641,11 @@ int OverlayKit::bintest(const char* command) {
   char combuf[BUFSIZ];
   // the echo -n $PATH is to workaround a mysterious problem on MacOS X
   // whereby the which sometime returns nothing
+#if 0
   sprintf( combuf, "echo -n $PATH; which %s", command );
+#else
+  sprintf( combuf, "which %s", command );
+#endif
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  

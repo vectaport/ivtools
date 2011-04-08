@@ -41,11 +41,13 @@ extern "C" {
     extern wchar_t toupper(wchar_t);
 #endif
 #else
+#if !defined(__APPLE__)
 #ifndef tolower
     extern int tolower(int);
 #endif
 #ifndef toupper
     extern int toupper(int);
+#endif
 #endif
 #endif
     extern long int strtol(const char*, char**, int);

@@ -32,7 +32,7 @@ int DrawServHandler::_sigpipe_handler_initialized = 0;
 
 // Default constructor.
 
-DrawServHandler::DrawServHandler () : UnidrawComterpHandler()
+DrawServHandler::DrawServHandler (ComTerpServ* serv) : UnidrawComterpHandler(serv)
 {
   _drawlink = nil;
   if (!_sigpipe_handler_initialized) {

@@ -333,7 +333,7 @@ int commid;			/* Id of command in symbol table */
       COMERR_SET1( ERR_PRIORITY_RANGE, priority );
       return FUNCBAD;
       }
-   MaxPriority = max( MaxPriority, priority );
+   MaxPriority = MAX( MaxPriority, priority );
 
 /* Search for place to insert operator */
    while( table_off < NumOperators &&

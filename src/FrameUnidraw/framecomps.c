@@ -488,7 +488,7 @@ FrameIdrawComp::FrameIdrawComp(boolean add_bg, const char* pathname, OverlayComp
     _gslist = nil;
     _ptsbuf = nil;
     SetPathName(pathname);
-    if (add_bg)
+    if (add_bg || !pathname)
         Append(new FrameComp());
 }
 

@@ -43,6 +43,7 @@ public:
 
     virtual void Init(OverlayComp*, const char* name);
     virtual MenuItem *MakeFileMenu();
+    virtual MenuItem *MakeEditMenu();
     virtual Glyph* MakeToolbar();
     virtual MenuItem* MakeToolsMenu();
     virtual MenuItem* MakeViewersMenu();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000 IET Inc.
+ * Copyright (c) 2001-2007 Scott E. Johnston
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -117,7 +117,8 @@ ComValue::ComValue(postfix_token* token) {
     }
     _narg = token->narg;
     _nkey = token->nkey;
-    _nids = token->nids;
+    _nids = token->nids;  // nids not always used for number-of-ids
+
     _command_symid = -1;
     _pedepth = 0;
     _bquote = 0;
@@ -130,7 +131,9 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nids = sv._nids;
     _pedepth = sv._pedepth;
     _bquote = sv._bquote;
+    #if 0  // duplicated ref_as_needed call in assignval()
     ref_as_needed();
+    #endif
     return *this;
 }
     

@@ -37,7 +37,7 @@ class DrawServHandler : public UnidrawComterpHandler
 
 public:
   // = Initialization and termination methods.
-  DrawServHandler ();
+  DrawServHandler (ComTerpServ* serv = NULL);
 
   DrawLink* drawlink() { return _drawlink; }
   // get DrawLink associated with this handler

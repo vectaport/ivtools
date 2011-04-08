@@ -57,11 +57,11 @@ public:
 
     virtual int run(boolean one_expr=false, boolean nested=false);
     // run this interpreter until quit or exit command.
-    virtual ComValue& run(const char*, boolean nested=false);
+    virtual ComValue run(const char*, boolean nested=false);
     // interpret and return value of expression.  'nested' flag used
     // to indicated nested call to the run() method, to avoid
     // re-initialization.
-    virtual ComValue& run(postfix_token*, int);
+    virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
     
     virtual int runfile(const char*);

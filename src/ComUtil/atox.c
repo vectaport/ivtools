@@ -79,7 +79,7 @@ int string_length;
 unsigned long value = 0;
 int index;
 
-   string_length = min( sizeof(unsigned long) * 2, strlen( string ));
+   string_length = MIN( sizeof(unsigned long) * 2, strlen( string ));
 
    for( index=0; index<string_length; index++ ) {
       if( !isxdigit( string[index] ))
@@ -137,7 +137,7 @@ int string_length;
 unsigned long value = 0;
 int index;
 
-   string_length = min( sizeof(unsigned long) * 8 / 3, strlen( string ));
+   string_length = MIN( sizeof(unsigned long) * 8 / 3, strlen( string ));
 
    for( index=0; index<string_length; index++ ) {
       if( !isodigit( string[index] ))

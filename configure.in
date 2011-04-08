@@ -49,11 +49,11 @@ if test x"$ACE" = x; then
 	echo ""
 else
 	echo "Building with ACE support ACE=$ACE"
-	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so -o -f $ACE_LIBS/libACE.dylib ; then
+	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so -o -f $ACE_LIBS/libACE.dll.a -o -f $ACE_LIBS/libACE.dylib ; then
 		AC_MSG_RESULT( Found libACE.* in $ACE_LIBS )
 	        ACE_ENABLED=1
 	else
-	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so -o -f $ACE/ace/libACE.dylib ; then
+	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so -o -f $ACE/ace/libACE.dll.a -o -f $ACE/ace/libACE.dylib ; then
 			AC_MSG_RESULT( Found libACE.* in $ACE/ace )
 		        ACE_ENABLED=1
 			ACE_LIBS=$ACE/ace

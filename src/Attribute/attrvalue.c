@@ -35,61 +35,100 @@
 #include <stdio.h>
 #include <string.h>
 
+//#define LEAKCHECK
+
+#ifdef LEAKCHECK
+#include <ivstd/leakchecker.h>
+LeakChecker AttributeValuechecker("AttributeValue");
+#endif
+
+
 /*****************************************************************************/
 
 int* AttributeValue::_type_syms = nil;
 
 AttributeValue::AttributeValue(ValueType valtype) {
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     type(valtype);
 }
 
 AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     type(valtype);
     _v = value;
+    ref_as_needed();
 }
 
 AttributeValue::AttributeValue(AttributeValue& sv) {
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     *this = sv;
 }
 
 AttributeValue::AttributeValue(AttributeValue* sv) {
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     *this = *sv;
     dup_as_needed();
 }
 
 AttributeValue::AttributeValue() {
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     type(UnknownType);
     _command_symid = -1;
 }
 
 AttributeValue::AttributeValue(unsigned char v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::UCharType;
     _v.ucharval = v;
 }
 
 AttributeValue::AttributeValue(char v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::CharType;
     _v.charval = v;
 }
 
 AttributeValue::AttributeValue(unsigned short v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::UShortType;
     _v.ushortval = v;
 }
 
 AttributeValue::AttributeValue(short v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::ShortType;
     _v.shortval = v;
 }
 
 AttributeValue::AttributeValue(unsigned int v, ValueType type) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = type;
     if ( type >= CharType && type <= UShortType ) {
@@ -112,6 +151,9 @@ AttributeValue::AttributeValue(unsigned int v, ValueType type) {
 }
 
 AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = type;
     _v.keyval.keyid = kv;
@@ -119,6 +161,9 @@ AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type)
 }
 
 AttributeValue::AttributeValue(int v, ValueType type) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = type;
     if ( type >= CharType && type <= UShortType ) {
@@ -141,30 +186,45 @@ AttributeValue::AttributeValue(int v, ValueType type) {
 }
 
 AttributeValue::AttributeValue(unsigned long v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::ULongType;
     _v.lnunsval = v;
 }
 
 AttributeValue::AttributeValue(long v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::LongType;
     _v.lnintval = v;
 }
 
 AttributeValue::AttributeValue(float v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::FloatType;
     _v.floatval = v;
 }
 
 AttributeValue::AttributeValue(double v) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     clear();
     _type = AttributeValue::DoubleType;
     _v.doublval = v;
 }
 
 AttributeValue::AttributeValue(int classid, void* ptr) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     _type = AttributeValue::ObjectType;
     _v.objval.ptr = ptr;
     _v.objval.type = classid;
@@ -172,6 +232,9 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
 }
 
 AttributeValue::AttributeValue(AttributeValueList* ptr) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     _type = AttributeValue::ArrayType;
     _v.arrayval.ptr = ptr;
     _v.arrayval.type = 0;
@@ -179,6 +242,9 @@ AttributeValue::AttributeValue(AttributeValueList* ptr) {
 }
 
 AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     _type = AttributeValue::StreamType;
     _v.streamval.funcptr = comfuncptr;
     _v.streamval.listptr = vallist;
@@ -186,11 +252,17 @@ AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
 }
 
 AttributeValue::AttributeValue(const char* string) { 
+#ifdef LEAKCHECK
+    AttributeValuechecker.create();
+#endif
     _type = AttributeValue::StringType;
     _v.dfintval = symbol_add((char*)string);
 }
 
 AttributeValue::~AttributeValue() {
+#ifdef LEAKCHECK
+    AttributeValuechecker.destroy();
+#endif
 #if 0  // disable symbol reference counting
     if (_type == StringType || _type == SymbolType) 
         symbol_del(string_val());
@@ -207,6 +279,8 @@ void AttributeValue::clear() {
 }
 
 AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
+    boolean preserve_flag = same_list(sv);
+    if (!preserve_flag) unref_as_needed();
     void* v1 = &_v;
     const void* v2 = &sv._v;
     memcpy(v1, v2, sizeof(_v));
@@ -219,7 +293,7 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     }
     else 
 #endif
-    ref_as_needed();
+    if (!preserve_flag) ref_as_needed();
     return *this;
 }
     
@@ -441,6 +515,8 @@ unsigned int AttributeValue::uint_val() {
 	return (unsigned int) boolean_val();
     case AttributeValue::SymbolType:
 	return (unsigned int) int_val();
+    case AttributeValue::ObjectType:
+        return (unsigned int)obj_val();
     default:
 	return 0;
     }
@@ -472,6 +548,8 @@ int AttributeValue::int_val() {
 	return (int) boolean_val();
     case AttributeValue::SymbolType:
 	return int_ref();
+    case AttributeValue::ObjectType:
+        return (int)obj_val();
     default:
 	return 0;
     }
@@ -503,6 +581,8 @@ unsigned long AttributeValue::ulong_val() {
 	return (unsigned long) boolean_val();
     case AttributeValue::SymbolType:
 	return (unsigned long) int_val();
+    case AttributeValue::ObjectType:
+        return (unsigned long)obj_val();
     default:
 	return 0L;
     }
@@ -534,6 +614,8 @@ long AttributeValue::long_val() {
 	return (long) boolean_val();
     case AttributeValue::SymbolType:
 	return (long) int_val();
+    case AttributeValue::ObjectType:
+        return (long)obj_val();
     default:
 	return 0L;
     }
@@ -979,6 +1061,8 @@ int AttributeValue::type_size(ValueType type) {
 }
 
 void AttributeValue::assignval (const AttributeValue& av) {
+    boolean preserve_flag = same_list(av);
+    if (!preserve_flag) unref_as_needed();
     void* v1 = &_v;
     const void* v2 = &av._v;
     memcpy(v1, v2, sizeof(_v));
@@ -989,7 +1073,7 @@ void AttributeValue::assignval (const AttributeValue& av) {
 	symbol_add((char *)string_ptr());
     else 
 #endif
-    ref_as_needed();
+    if (!preserve_flag) ref_as_needed();
 }
     
 
@@ -1064,10 +1148,24 @@ void AttributeValue::dup_as_needed() {
 }
 
 void AttributeValue::unref_as_needed() {
-    if (_type == AttributeValue::ArrayType)
+  if (_type == AttributeValue::ArrayType) {
+      #if 0
+      if (_v.arrayval.ptr->refcount_==1) 
+	fprintf(stderr, "AttributeValue::ArrayType about to be deleted.\n");
+      #endif
       Resource::unref(_v.arrayval.ptr);
-    else if (_type == AttributeValue::StreamType)
+  }
+  else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
+}
+
+boolean AttributeValue::same_list(const AttributeValue& av) {
+  if (_type == AttributeValue::ArrayType)
+    return _v.arrayval.ptr == av._v.arrayval.ptr;
+  else if (_type == AttributeValue::StreamType)
+    return _v.streamval.listptr == av._v.streamval.listptr;
+  else
+    return false;
 }
 
 void AttributeValue::stream_list(AttributeValueList* list) 

@@ -227,7 +227,7 @@ void ComTE_View::newline()
   comterp()->load_string(bufptr);
   int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);
   comterp()->linenum()--;
-#if 1
+#if 0
   ComValue result(comterp()->stack_top(1));
 #else
   ComValue result(comterp()->pop_stack());

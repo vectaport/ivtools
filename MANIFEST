@@ -632,7 +632,8 @@ ivtools-1.2/src/OverlayUnidraw/grloctool.c
 ivtools-1.2/src/OverlayUnidraw/grloctool.h
 ivtools-1.2/src/OverlayUnidraw/indexmixins.c
 ivtools-1.2/src/OverlayUnidraw/indexmixins.h
-ivtools-1.2/src/OverlayUnidraw/leakchecker.h
+ivtools-1.2/src/OverlayUnidraw/leafwalker.c
+ivtools-1.2/src/OverlayUnidraw/leafwalker.h
 ivtools-1.2/src/OverlayUnidraw/ovabout.c
 ivtools-1.2/src/OverlayUnidraw/ovabout.h
 ivtools-1.2/src/OverlayUnidraw/ovadjuster.c
@@ -1571,6 +1572,7 @@ ivtools-1.2/src/include/ivstd/Makefile
 ivtools-1.2/src/include/ivstd/fstream.h
 ivtools-1.2/src/include/ivstd/iosfwd
 ivtools-1.2/src/include/ivstd/iostream.h
+ivtools-1.2/src/include/ivstd/leakchecker.h
 ivtools-1.2/src/include/ivstd/malloc.h
 ivtools-1.2/src/include/ivstd/math.h
 ivtools-1.2/src/include/ivstd/nan.h

@@ -155,3 +155,9 @@ OverlayView* FrameViewer::GetCurrent()
 { 
   return GetFrameEditor()->GetFrame(); 
 }
+
+GraphicView* FrameViewer::GetCurrentGraphicView()
+{
+    OverlaysView* frame = ((FrameEditor*)GetEditor())->GetFrame();
+    return frame ? frame : GetGraphicView();
+}

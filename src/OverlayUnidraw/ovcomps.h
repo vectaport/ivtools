@@ -156,6 +156,26 @@ public:
     virtual void Notify(); 
     // method specialized from Component that incorporates the Observer/Observable
     // notification with the original Unidraw notification.
+    virtual void NotifyLater();
+    // defers notifications when enabled
+
+    virtual void DeferredNotify();
+    // do all deferred Notify's
+
+    virtual boolean IsPrev(OverlayComp*);
+    // true if previous sibling
+    virtual boolean IsNext(OverlayComp*);
+    // true if next sibling
+    virtual boolean IsParent(OverlayComp*);
+    // true if parent
+    virtual boolean IsChild(OverlayComp*);
+    // true if child
+
+    virtual OverlayComp* DepthNext(OverlayComp*);
+    // return next node in depth first traversal of tree
+    virtual OverlayComp* DepthPrev(OverlayComp*);
+    // return previous node in depth first traversal of tree
+
 protected:
     ParamList* GetParamList();
     // return ParamList of required/optional/keyword arguments to be read
@@ -175,6 +195,7 @@ protected:
     char* _anno;
     OverlayComp* _parent;
     AttributeList* _attrlist;
+    boolean _notify_deferred;
 
 friend class OverlayScript;
 friend class OverlaysScript;
@@ -274,6 +295,17 @@ public:
     // default argument mode implemented so far -- return first occurence found
     // with a downward depth-first search.
 
+    virtual void DeferredNotify();
+    // do all deferred Notify's
+
+    virtual boolean IsChild(OverlayComp*);
+    // true if child
+
+    virtual OverlayComp* DepthNext(OverlayComp*);
+    // return next node in depth first traversal of tree
+    virtual OverlayComp* DepthPrev(OverlayComp*);
+    // return previous node in depth first traversal of tree
+
 protected:
     OverlayComp* Comp(UList*);
     UList* Elem(Iterator);
@@ -294,7 +326,7 @@ protected:
     // group everything in the clipboard into a new OverlaysComp
     void Ungroup(OverlayComp*, Clipboard*, Command*);
     // ungroup everything in an OverlaysComp into the clipboard.
-
+    
 protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);

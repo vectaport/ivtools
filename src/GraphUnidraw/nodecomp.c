@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006 Scott E. Johnston
+ * Copyright (c) 2006-2007 Scott E. Johnston
  * Copyright (c) 1994-1996, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -35,6 +35,7 @@
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovellipse.h>
 #include <OverlayUnidraw/ovtext.h>
+#include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/paramlist.h>
 
 #include <IVGlyph/observables.h>
@@ -56,7 +57,6 @@
 #include <Unidraw/statevars.h>
 #include <Unidraw/ulist.h>
 #include <Unidraw/viewer.h>
-#include <Unidraw/unidraw.h>
 #include <UniIdraw/idarrows.h>
 #include <UniIdraw/ided.h>
 #include <IV-2_6/InterViews/painter.h>
@@ -153,7 +153,16 @@ NodeComp::NodeComp(Picture* pic, boolean rl, OverlayComp* parent)
     _node = new TopoNode(this);
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    if (GetText()) pic->SetFont(GetText()->GetFont());
+    Iterator it;
+    pic->First(it);
+    Graphic* first = pic->GetGraphic(it);
+    if (first) {
+      pic->FillBg(first->BgFilled() && !first->GetBgColor()->None());
+      pic->SetColors(first->GetFgColor(), first->GetBgColor());
+      pic->SetPattern(first->GetPattern());
+      pic->SetBrush(first->GetBrush());
+      if (GetText()) pic->SetFont(GetText()->GetFont());
+    }
     _reqlabel = rl;
 }
 
@@ -218,9 +227,9 @@ boolean NodeComp::IsA(ClassId id) {
 Component* NodeComp::Copy() {
     NodeComp* comp = nil;
     if (GetGraph()) {
-        comp = new NodeComp((SF_Ellipse*)GetEllipse()->Copy(),
+        comp = NewNodeComp((SF_Ellipse*)GetEllipse()->Copy(),
 	    (TextGraphic*)GetText()->Copy(), (SF_Ellipse*)GetEllipse2()->Copy(), 
-	    (GraphComp*)GetGraph()->Copy());
+	    GetGraph() ? (GraphComp*)GetGraph()->Copy() : nil);
 	if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
 
 	Picture* pic = (Picture*)GetGraphic();
@@ -246,7 +255,7 @@ Component* NodeComp::Copy() {
         }
 
     } else {
-        comp = new NodeComp((SF_Ellipse*)GetEllipse()->Copy(), 
+        comp = NewNodeComp((SF_Ellipse*)GetEllipse()->Copy(), 
             (TextGraphic*)GetText()->Copy());
     }
     return comp;
@@ -303,12 +312,12 @@ void NodeComp::GraphGraphic(SF_Ellipse* ellipse2) {
 	    x1 = x0 + dx;
 	    y1 = y0 + dy;
        	    arrow = new ArrowLine(x0, y0, x1, y1, false, true, 1.5);
-	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse2, nx, ny)) {
+	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse2, false, nx, ny)) {
 	        x0 = nx;
 	        y0 = ny;
 		arrow->SetOriginal(x0, y0, x1, y1);
 	    } 
-	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse3, nx, ny)) {
+	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse3, true, nx, ny)) {
 	        x1 = nx;
 	        y1 = ny;
 		arrow->SetOriginal(x0, y0, x1, y1);
@@ -320,12 +329,12 @@ void NodeComp::GraphGraphic(SF_Ellipse* ellipse2) {
 	    x0 = x1 - dx;
 	    y0 = y1 - dy;
        	    arrow = new ArrowLine(x1, y1, x0, y0, false, true, 1.5);
-	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse2, nx, ny)) {
+	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse2, true, nx, ny)) {
 	        x1 = nx;
 	        y1 = ny;
 		arrow->SetOriginal(x0, y0, x1, y1);
 	    }
-	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse, nx, ny)) {
+	    if (EdgeComp::clipline(x0, y0, x1, y1, ellipse, false, nx, ny)) {
 	        x0 = nx;
 	        y0 = ny;
 		arrow->SetOriginal(x0, y0, x1, y1);
@@ -377,8 +386,10 @@ void NodeComp::GrowParamList(ParamList* pl) {
 
 SF_Ellipse* NodeComp::GetEllipse() {
     Picture* pic = (Picture*)GetGraphic();
+    if (!pic) return nil;
     Iterator i;
     pic->First(i);
+    if (pic->Done(i)) return nil;
     return (SF_Ellipse*)pic->GetGraphic(i);
 }
 
@@ -405,6 +416,22 @@ TextGraphic* NodeComp::GetText() {
     else
 	return (TextGraphic*)pic->GetGraphic(i);
 }
+
+void NodeComp::SetText(TextGraphic* tg) {
+  TextGraphic* oldtg = GetText();
+  Transformer t;
+  if (oldtg) {
+    if (oldtg->GetTransformer()) 
+      t = *oldtg->GetTransformer();
+    ((Picture*)GetGraphic())->Remove(oldtg);
+    delete oldtg;
+  }
+  tg->SetTransformer(new Transformer(t));
+  Iterator it;
+  GetGraphic()->First(it);
+  GetGraphic()->InsertAfter(it, tg);
+}
+
 
 ArrowLine* NodeComp::SubEdgeGraphic(int index) {
     if (!GetGraph() || index == -1)
@@ -482,18 +509,26 @@ void NodeComp::Interpret(Command* cmd) {
 	Editor* ed = cmd->GetEditor();
 	for (node->first(i); !node->done(i); node->next(i)) {
 	    TopoEdge* edge = node->edge(node->elem(i));
-	    EdgeUpdateCmd* eucmd = new EdgeUpdateCmd(ed, (EdgeComp*)edge->value());
-	    eucmd->Execute();
+	    EdgeUpdateCmd eucmd(ed, (EdgeComp*)edge->value());
+	    eucmd.Execute();
 	}
     }
     else if (cmd->IsA(NODETEXT_CMD)) {
 	NodeTextCmd* ntcmd = (NodeTextCmd*)cmd;
 	TextGraphic* tg = ntcmd->Graphic();
-	if (GetText())
-	    ((Picture*)GetGraphic())->Remove(GetText());
-	((Picture*)GetGraphic())->Append(tg);
+	SetText(tg);
 	Notify();
 	unidraw->Update();
+    } else if (cmd->IsA(ALIGN_CMD)) {
+        OverlayComp::Interpret(cmd);
+	Iterator i;
+	TopoNode* node = Node();
+	Editor* ed = cmd->GetEditor();
+	for (node->first(i); !node->done(i); node->next(i)) {
+	    TopoEdge* edge = node->edge(node->elem(i));
+	    EdgeUpdateCmd eucmd(ed, (EdgeComp*)edge->value());
+	    eucmd.Execute();
+	}
     }
     else
 	OverlayComp::Interpret(cmd);
@@ -526,8 +561,8 @@ void NodeComp::Uninterpret(Command* cmd) {
 	Editor* ed = cmd->GetEditor();
 	for (node->first(i); !node->done(i); node->next(i)) {
 	    TopoEdge* edge = node->edge(node->elem(i));
-	    EdgeUpdateCmd* eucmd = new EdgeUpdateCmd(ed, (EdgeComp*)edge->value());
-	    eucmd->Execute();
+	    EdgeUpdateCmd eucmd(ed, (EdgeComp*)edge->value());
+	    eucmd.Execute();
 	}
     }
     else if (cmd->IsA(GRAPHDELETE_CMD)) {
@@ -548,6 +583,16 @@ void NodeComp::Uninterpret(Command* cmd) {
 			    (TopoNode*)data->edge->start_node(), Node());
 		}
 	    conn = conn->Next();
+	}
+    } else if (cmd->IsA(ALIGN_CMD)) {
+        OverlayComp::Uninterpret(cmd);
+	Iterator i;
+	TopoNode* node = Node();
+	Editor* ed = cmd->GetEditor();
+	for (node->first(i); !node->done(i); node->next(i)) {
+	    TopoEdge* edge = node->edge(node->elem(i));
+	    EdgeUpdateCmd eucmd(ed, (EdgeComp*)edge->value());
+	    eucmd.Execute();
 	}
     }
     else
@@ -590,6 +635,7 @@ boolean NodeComp::operator == (OverlayComp& comp) {
 	*(OverlayComp*)this == (OverlayComp&)comp;
 }
 
+#if defined(GRAPH_OBSERVABLES)
 void NodeComp::update(Observable*) {
   AttributeList* al;
   if(al = attrlist()) {
@@ -642,9 +688,10 @@ void NodeComp::update(Observable*) {
     }
   }
 }
+#endif
 
 void NodeComp::Notify() {
-  GraphicComp::Notify();
+    GraphicComp::Notify();
 }
 
 EdgeComp* NodeComp::EdgeIn(int n) const {
@@ -679,7 +726,7 @@ NodeComp* NodeComp::NodeIn(int n) const {
   if (edgecomp) {
     TopoEdge* edge = edgecomp->Edge();
     if (edge && edge->start_node()) {
-      return (NodeComp*)edge->start_node()->value();
+      return (NodeComp*)edgecomp->NodeStart();
     }
   }  
   return nil;
@@ -690,7 +737,7 @@ NodeComp* NodeComp::NodeOut(int n) const {
   if (edgecomp) {
     TopoEdge* edge = edgecomp->Edge();
     if (edge && edge->end_node()) {
-      return (NodeComp*)edge->end_node()->value();
+      return (NodeComp*)edgecomp->NodeEnd();
     }
   }  
   return nil;
@@ -854,11 +901,7 @@ Manipulator* NodeView::CreateManipulator(Viewer* v, Event& e, Transformer* rel,
     } else if (tool->IsA(MOVE_TOOL)) {
 	RubberGroup* rubgroup = new RubberGroup(nil,nil);
         v->Constrain(e.x, e.y);
-        v->GetSelection()->GetBox(l, b, r, t);
-        rub = new SlidingEllipse(nil, nil, l+(r-l)/2, b+(t-b)/2, 
-				 Math::round(xradius * v->GetMagnification()),
-				 Math::round(yradius * v->GetMagnification()),
-				 e.x, e.y);
+	rub = MakeRubberband(e.x, e.y);
 	rubgroup->Append(rub);
 	Iterator i;
 	TopoNode* node = ((NodeComp*)GetGraphicComp())->Node();
@@ -917,13 +960,28 @@ Manipulator* NodeView::CreateManipulator(Viewer* v, Event& e, Transformer* rel,
     return m;
 }
 
+
+Rubberband* NodeView::MakeRubberband(IntCoord x, IntCoord y) {
+  Coord l, r, b, t;
+  Viewer* v = GetViewer();
+  GetEllipse()->GetBox(l, b, r, t);
+  Coord cx, cy;
+  int rx, ry;
+  GetEllipse()->GetOriginal(cx, cy, rx, ry);
+  Rubberband* rub = new SlidingEllipse(nil, nil, l+(r-l)/2, b+(t-b)/2,
+				       Math::round(rx * v->GetMagnification()),
+				       Math::round(ry * v->GetMagnification()),
+				       x, y);
+  return rub;
+}
+
 Command* NodeView::InterpretManipulator(Manipulator* m) {
     Tool* tool = m->GetTool();
     Command* cmd = nil;
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
-        Graphic* tpg = ((NodeComp*)GetGraphicComp())->GetText();
-        Graphic* epg = ((NodeComp*)GetGraphicComp())->GetEllipse();
+        TextGraphic* tpg = (TextGraphic*)((NodeComp*)GetGraphicComp())->GetText();
+        SF_Ellipse* epg = (SF_Ellipse*)((NodeComp*)GetGraphicComp())->GetEllipse();
         TextGraphic* textgr;
 	SF_Ellipse* ellipse;
 	Coord xpos, ypos;
@@ -944,7 +1002,11 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
             textgr->SetTransformer(nil);
             textgr->Translate(xpos, ypos);
 
-	    ellipse = new SF_Ellipse(xpos, ypos, xradius, yradius, epg);
+ 	    Coord expos, eypos;
+	    int exradius, eyradius;
+	    epg->GetOriginal(expos, eypos, exradius, eyradius);
+
+	    ellipse = new SF_Ellipse(xpos, ypos, exradius, eyradius, epg);
 	    ellipse->SetTransformer(nil);
 	    BrushVar* brVar = (BrushVar*) ed->GetState("BrushVar");
 	    PatternVar* patVar = (PatternVar*) ed->GetState("PatternVar");
@@ -959,8 +1021,12 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 		ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
 	    }
 
+	    #if 0
 	    textgr->Align(Center, ellipse, Center);
-	    cmd = new PasteCmd(ed, new Clipboard(new NodeComp(ellipse, textgr)));
+	    #else
+	    ellipse->Align(Center, textgr, Center);
+	    #endif
+	    cmd = new PasteCmd(ed, new Clipboard(NewNodeComp(ellipse, textgr)));
 	}
 	else {
 	    TextManip* tm = (TextManip*) m;
@@ -998,9 +1064,13 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 		    ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
 		}
 
+		#if 0
 		textgr->Align(Center, ellipse, Center);
+		#else
+		ellipse->Align(Center, textgr, Center);
+		#endif
 
-		cmd = new PasteCmd(ed, new Clipboard(new NodeComp(ellipse, textgr, true)));
+		cmd = new PasteCmd(ed, new Clipboard(NewNodeComp(ellipse, textgr, true)));
 	    } else if (size == 0) {
 		Viewer* v = m->GetViewer();
 		v->Update();          // to repair text display-incurred damage
@@ -1142,7 +1212,7 @@ void NodeScript::Attributes(ostream& out) {
 }
 
 boolean NodeScript::Definition (ostream& out) {
-    out << "node(";
+    out << script_name() << "(" ;
     Attributes(out);
     out << ")";
     return out.good();
@@ -1277,3 +1347,21 @@ int NodeScript::ReadTextTransform (istream& in, void* addr1, void* addr2, void* 
         return 0;
     }
 }
+
+void NodeComp::nedges(int &nin, int &nout) const {
+  nin = 0;
+  nout = 0;
+
+  TopoNode* toponode = Node();
+  if (toponode) {
+    Iterator it;
+    toponode->first(it);
+    while (!toponode->done(it)) {
+      TopoEdge* edge = toponode->get_edge(it);
+      if (edge && edge->end_node()==toponode) nin++;
+      if (edge && edge->start_node()==toponode) nout++;
+      toponode->next(it);
+    }
+  } 
+}
+

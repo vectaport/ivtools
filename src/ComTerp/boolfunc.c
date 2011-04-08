@@ -283,6 +283,13 @@ void NotEqualFunc::execute() {
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
 
+    if (operand1.type() != operand2.type()) {
+      result.boolean_ref() = true;
+      reset_stack();
+      push_stack(result);
+      return;
+    }
+
     switch (operand1.type()) {
     case ComValue::CharType:
 	result.boolean_ref() = operand1.char_val() != operand2.char_val();

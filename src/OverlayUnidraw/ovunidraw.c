@@ -62,6 +62,7 @@ MacroCmd* OverlayUnidraw::_cmdq = nil;
 boolean* OverlayUnidraw::_updated_ptr = nil;
 ComTerpServ* OverlayUnidraw::_comterp = nil;
 int OverlayUnidraw::_npause = nil;
+boolean OverlayUnidraw::_deferred_notifications = 0;
 
 /*****************************************************************************/
 
@@ -213,10 +214,18 @@ void OverlayUnidraw::Log (Command* cmd, boolean dirty) {
   }
 }
 
+void OverlayUnidraw::DeferredNotify() {
+    UList* e = _editors->First();
+    ((OverlayComp*)editor(e)->GetComponent())->DeferredNotify();
+}
 
+void OverlayUnidraw::Update (boolean immediate) {
+  if (deferred_notifications())
+    DeferredNotify();
 
-
-
-
-
+    if (immediate) {
+        DoUpdate();
+    }
+    updated(!immediate);
+}
 

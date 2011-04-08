@@ -424,7 +424,7 @@ char buffer[BUFSIZ];
       for( index=TopError; index>=0; index-- ) {
 	 fseek( ErrorIOFile, (long)ErrorStructs[index].erroff, SEEK_SET );
 	 fgets( buffer,
-		min( BUFSIZ, ErrorStructs[index].errlen+1),
+		MIN( BUFSIZ, ErrorStructs[index].errlen+1),
 		ErrorIOFile );
 	 fprintf( outstream, "%s\n", buffer );
 	 }
@@ -435,7 +435,7 @@ char buffer[BUFSIZ];
 /* with command substituted for the function name              */
    else {
       fseek( ErrorIOFile, (long)ErrorStructs[TopError].erroff, SEEK_SET );
-      fgets( buffer, min( BUFSIZ, ErrorStructs[TopError].errlen+1),
+      fgets( buffer, MIN( BUFSIZ, ErrorStructs[TopError].errlen+1),
 	     ErrorIOFile );
       ptr = buffer;
       if( isident( *ptr ))
@@ -532,7 +532,7 @@ char buffer[bufsiz];
       for( index=TopError; index>=0; index-- ) {
 	 fseek( ErrorIOFile, (long)ErrorStructs[index].erroff, SEEK_SET );
 	 fgets( buffer,
-		min( BUFSIZ, ErrorStructs[index].errlen+1),
+		MIN( BUFSIZ, ErrorStructs[index].errlen+1),
 		ErrorIOFile );
 	 fprintf( outstream, "%s\n", buffer );
 	 }
@@ -544,7 +544,7 @@ char buffer[bufsiz];
    else {
 #endif
       fseek( ErrorIOFile, (long)ErrorStructs[TopError].erroff, SEEK_SET );
-      fgets( buffer, min( BUFSIZ, ErrorStructs[TopError].errlen+1),
+      fgets( buffer, MIN( BUFSIZ, ErrorStructs[TopError].errlen+1),
 	     ErrorIOFile );
       ptr = buffer;
       if( isident( *ptr ))

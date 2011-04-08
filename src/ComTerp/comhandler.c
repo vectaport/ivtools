@@ -47,12 +47,12 @@ int ComterpHandler::_logger_mode = 0;
 
 // Default constructor.
 
-ComterpHandler::ComterpHandler (void) 
+ComterpHandler::ComterpHandler (ComTerpServ* serv) 
 #if 0
 : ACE_Svc_Handler<ACE_SOCK_Stream, ACE_NULL_SYNCH>(0,0,ComterpHandler::reactor_singleton())
 #endif
 {
-    comterp_ = new ComTerpServ(BUFSIZ*BUFSIZ);
+    comterp_ = serv ? serv : new ComTerpServ(BUFSIZ*BUFSIZ);
     comterp_->handler(this);
     comterp_->add_defaults();
     _timeoutscriptid = -1;

@@ -34,10 +34,11 @@
 #include <OS/types.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/classid.h>
+#include <Unidraw/Components/component.h>
 
 class AttributeList;
 class ComFuncState;
-class ComTerp;
+class Component;
 class ComTerpServ;
 
 
@@ -99,9 +100,9 @@ public:
     // return ComTerpServ this ComFunc is associated with.
 
 
-    ComValue& pop_stack(); 
+    ComValue pop_stack(); 
     // pop top off the stack.
-    ComValue& pop_symbol();
+    ComValue pop_symbol();
     // pop top off the stack preserving symbol ids if ComValue is a symbol type.
     void push_stack(ComValue&);
     // push ComValue onto the stack.
@@ -132,11 +133,11 @@ public:
     ComValue& stack_dotname(int n);
     // unused method to get at a dotted list of names, i.e. a.b.c
 
-    ComValue& stack_arg_post_eval(int n, boolean symbol=false, 
-				  ComValue& dflt=ComValue::nullval());
+    ComValue stack_arg_post_eval(int n, boolean symbol=false, 
+				 ComValue& dflt=ComValue::nullval());
     // evaluate the nth argument for this post-evaluating ComFunc.
 
-    ComValue& stack_key_post_eval(int id, boolean symbol=false, 
+    ComValue stack_key_post_eval(int id, boolean symbol=false, 
 				  ComValue& dflt=ComValue::trueval(), 
 				  boolean use_dflt_for_no_key=false);
     // evaluate the argument following a keyword for this post-evaluating ComFunc.
@@ -171,6 +172,8 @@ public:
     // print contents to ostream, brief or not depending on
     // associated ComTerp brief flag.
 
+    Component* context() { return _context; }
+    void context(Component* comp) { _context = comp; }
 
 protected:
 
@@ -211,6 +214,7 @@ protected:
 
     ComTerp* _comterp;
     int _funcid;
+    Component* _context;
 
     CLASS_SYMID("ComFunc");
 };

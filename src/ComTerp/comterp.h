@@ -1,5 +1,7 @@
 /*
- * Copyright (c) IET Inc.
+ * 
+ * Copyright (c) 2001-2007 Scott E. Johnston
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -110,7 +112,7 @@ public:
     int* get_commands(int &ncommands, boolean sorted = false);
     // return an optionally sorted list of command names.
 
-    ComValue& pop_stack(boolean lookupsym=true);
+    ComValue pop_stack(boolean lookupsym=true);
     // return a reference (on the stack) to what was the top of the stack,
     // if 'lookupsym' is false, don't look up ComValue objects in 
     // the local or global symbol table to replace a symbol, just
@@ -242,6 +244,21 @@ public:
     int& stepflag() { return _stepflag; }
     // return flag that controls stepwise execution
 
+    void echo_postfix(boolean flag) { _echo_postfix = flag; }
+    // set flag that indicates whether to echo postfix or not
+
+    boolean echo_postfix() const { return _echo_postfix; }
+    // return flag that indicates whether to echo contents of postfix buffer
+
+    void postfix_echo();
+    // echo the postfix tokens
+
+    void delim_func(boolean flag) { _delim_func = flag; }
+    // set flag that indicates whether to run a delimeter selected func.
+ 
+    boolean delim_func() const { return _delim_func; }
+    // return flag that indicates whether to run a delimeter selected func.
+
 protected:
     void incr_stack();
     void incr_stack(int n);
@@ -311,6 +328,12 @@ protected:
 
     int _stepflag;
     // true if single-stepping interpreter
+
+    boolean _echo_postfix;
+    // echos postfix tokens if true
+
+    boolean _delim_func;
+    // use delimeter selected func, passing symbol in ::command_symid()
 
     friend class ComFunc;
     friend class ComterpHandler;

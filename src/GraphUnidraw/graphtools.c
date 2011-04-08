@@ -78,12 +78,12 @@ Command* GraphMoveTool::InterpretManipulator (Manipulator* m) {
 	      TopoEdge* edge2 = e2comp->Edge();
 	      if (edge1->start_node() == edge2->end_node() ||
 		  edge1->start_node() == edge2->start_node()) {
-		NodeComp* ncomp = (NodeComp*) edge1->start_node()->value();
+		NodeComp* ncomp = (NodeComp*) e1comp->NodeStart();
 		NodeView* nview = (NodeView*)ncomp->FindView(m->GetViewer());
 		ns.Append(nview);
 	      } else if (edge1->end_node() == edge2->end_node() ||
 			 edge1->end_node() == edge2->start_node()) {
-		  NodeComp* ncomp = (NodeComp*) edge1->end_node()->value();
+		  NodeComp* ncomp = (NodeComp*) e1comp->NodeEnd();
 		  NodeView* nview = (NodeView*)ncomp->FindView(m->GetViewer());
 		  ns.Append(nview);
 		}

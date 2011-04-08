@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2005 Scott E. Johnston
+ * Copyright (c) 2005-2007 Scott E. Johnston
  * Copyright (c) 1993-1995 Vectaport Inc.
  * Copyright (c) 1989 Triple Vision, Inc.
  *
@@ -44,6 +44,7 @@ int _continuation_prompt_disabled = 0;
 int _skip_shell_comments = 0;
 infuncptr _oneshot_infunc = NULL;
 int _detail_matched_delims = 0;
+int _sticky_matched_delims = 0;
 
 static int get_next_token(void *infile, char *(*infunc)(), int (*eoffunc)(),
 			  int (*errfunc)(), FILE *outfile, int (*outfunc)(),
@@ -1122,10 +1123,10 @@ int status;
 			  ParenStack[TopOfParenStack].nids );
 		 } else {
 		   if (parens_symid==-1) {
-		     parens_symid = symbol_add("parens");
-		     brackets_symid = symbol_add("brackets");
-		     braces_symid = symbol_add("braces");
-		     angbracks_symid = symbol_add("angbracks");
+		     parens_symid = symbol_add("()");
+		     brackets_symid = symbol_add("[]");
+		     braces_symid = symbol_add("{}");
+		     angbracks_symid = symbol_add("<>");
 		   }
 		   int commandid = ParenStack[TopOfParenStack].comm_id;
 		   if (commandid<0) {
@@ -1202,6 +1203,9 @@ int status;
    /*   3) The next token on the current line of input is separated by      */
    /*      whitespace from the current token.                               */
    /*   4) If the next token is an operator, it is not a binary operator    */
+   /*   5) If _sticky_matched_delims is true, and the next token is not an  */
+   /*      operator, then it can't be a matching delimeter.                 */
+   /*      and _delim_concatenation */
       if( !done && TopOfParenStack < 0 && expecting == OPTYPE_BINARY ) {
 
 	 if( NextToklen == 0 ) 
@@ -1219,7 +1223,8 @@ int status;
 	 if( NextToktype == TOK_EOF )
 	    done = TRUE;
 
-	 if( PROCEEDING_WHITESPACE( NextTokstart ) )
+	 if( (!_sticky_matched_delims || !LEFT_PAREN( NextToktype)) 
+	     && PROCEEDING_WHITESPACE( NextTokstart ) )
 
 	    if( NextToktype != TOK_OPERATOR )
 	       done = TRUE;

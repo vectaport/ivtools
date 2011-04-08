@@ -38,7 +38,7 @@ class UnidrawComterpHandler : public ComterpHandler
 
 public:
   // = Initialization and termination methods.
-  UnidrawComterpHandler ();
+  UnidrawComterpHandler (ComTerpServ* serv=NULL);
 
 };
 

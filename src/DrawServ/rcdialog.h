@@ -55,7 +55,7 @@ protected:
   StrEditDialog* _dialog;
 };
 
-#include <InterViews/dialog.h>
+#include <IV-3_1/InterViews/dialog.h>
 
 class ConnectionsDialogImpl;
 class DrawLinkList;

@@ -434,7 +434,7 @@ void TerpDialogImpl::eval() {
     else
         sprintf(exprbuf, "%s", expr);
 
-    ComValue& retval = terpserv_->run(exprbuf);
+    ComValue retval(terpserv_->run(exprbuf));
 
     const char* errmsg = terpserv_->errmsg();
     if (*errmsg) {
