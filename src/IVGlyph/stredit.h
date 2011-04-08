@@ -28,13 +28,14 @@
 
 #include <InterViews/_enter.h>
 
+class Action;
 class StrEditDialogImpl;
 class WidgetKit;
 
 class StrEditDialog : public Dialog {
 public:
     StrEditDialog(const char* caption1, const char* caption2 = nil, 
-		  Glyph* extra=nil);
+		  Glyph* extra=nil, boolean custom=false);
     virtual ~StrEditDialog();
 
     boolean cancel();
@@ -45,9 +46,24 @@ public:
 
     static char* post(Window*, const char* message, 
 		      const char* string=nil, const char* title=nil,
-		      Glyph* extra = nil);
+		      Glyph* extra = nil, boolean custom=false);
 
+    static StrEditDialog* map(Window*, const char* message, 
+			      const char* string=nil, const char* title=nil,
+			      Glyph* extra = nil, boolean custom=false);
+
+    static const char* accept_custom() { return _accept_custom; }
+    static void accept_custom(const char* caption);
+    static const char* cancel_custom() { return _cancel_custom; }
+    static void cancel_custom(const char* caption);
+    static void action_custom(Action* accept, Action* cancel);
+    static Action* accept_action_custom() { return _accept_action_custom; }
+    static Action* cancel_action_custom() { return _cancel_action_custom; }
 private:
+    static const char* _accept_custom;
+    static const char* _cancel_custom;
+    static Action* _accept_action_custom;
+    static Action* _cancel_action_custom;
     StrEditDialogImpl* impl_;
 };
 

@@ -203,11 +203,11 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
 	Attribute* attr = attrlist->GetAttr(i);
 	out << " :" << attr->Name() << " ";
 
-	char* string;
 	AttributeValue* attrval = attr->Value();
 #if 1
 	out << *attrval;
 #else
+	char* string;
         switch(attr->Value()->type()) {
 	    case AttributeValue::SymbolType:
 	        out << attrval->symbol_ptr();

@@ -211,9 +211,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;	    
 
 	case ComValue::UShortType:
-	  if (brief)
-	    out << svp->ushort_ref();
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::OctState)
+	      out << "0" << std::oct << svp->ushort_ref() << std::dec;
+	    else if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::hex << svp->ushort_ref() << std::dec;
+	    else
+	      out << svp->ushort_ref();
+	  } else
 	    out << "ushort( " << svp->ushort_ref() << ":" << (int)svp->ushort_ref() << " )";
 	  break;
 	    
@@ -225,9 +230,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::UIntType:
-	  if (brief)
-	    out << svp->uint_ref();
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::OctState)
+	      out << "0" << std::oct << svp->uint_ref() << std::dec;
+	    else if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::hex << svp->uint_ref() << std::dec;
+	    else
+	      out << svp->uint_ref();
+	  } else
 	    out << "uint( " << svp->uint_ref() << " )";
 	  break;
 	    
@@ -239,9 +249,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::ULongType:
-	  if (brief)
-	    out << svp->ulong_ref() << "L";
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::OctState)
+	      out << "0" << std::oct << svp->ulong_ref() << std::dec;
+	    else if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::hex << svp->ulong_ref() << std::dec;
+	    else
+	      out << svp->ulong_ref() << "L";
+	  } else
 	    out << "ulong( " << svp->ulong_ref() << " )";
 	  break;
 	    

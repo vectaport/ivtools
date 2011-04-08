@@ -72,6 +72,7 @@ UnidrawFunc::UnidrawFunc(ComTerp* comterp, Editor* ed) : ComFunc(comterp) {
 }
 
 void UnidrawFunc::execute_log(Command* cmd) {
+#if 0
     if (cmd != nil) {
 	cmd->Execute();
 	
@@ -81,6 +82,9 @@ void UnidrawFunc::execute_log(Command* cmd) {
 	    delete cmd;
 	}
     }
+#else
+    unidraw->ExecuteCmd(cmd);
+#endif
 }
 
 void UnidrawFunc::menulength_execute(const char* kind) {

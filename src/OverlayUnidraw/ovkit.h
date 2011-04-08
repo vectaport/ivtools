@@ -45,15 +45,17 @@ class MenuItem;
 class ObservableText;
 class OverlayComp;
 class OverlayEditor;
-class Patch;
-class UPage;
+class OverlaySelection;
 class PSBrush;
 class PSColor;
 class PSPattern;
-class Viewer;
+class Patch;
+class Selection;
 class TelltaleGroup;
 class Tool;
 class ToolButton;
+class UPage;
+class Viewer;
 
 //: helper class for constructing an OverlayEditor.
 // this class (or something derived from it) is supplied to the constructor
@@ -197,6 +199,9 @@ public:
 
     OverlayComp* add_tool_button(const char* path, OverlayComp* comp=nil);
     // low-level routine used by ::add_custom_tool and others
+
+    virtual OverlaySelection* MakeSelection(Selection* sel = nil);
+    // make Selection of the proper derivation.
 protected:
     Glyph* MenuLine(PSBrush*);
     // create line to put in a pulldown menu.

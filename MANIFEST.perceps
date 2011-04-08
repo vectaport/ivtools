@@ -65,6 +65,7 @@ ComUtil/comterp.h
 ComUtil/comutil.h
 ComUtil/util.h
 Dispatch/netinet_in.h
+DrawServ/ackback-handler.h
 DrawServ/drawcatalog.h
 DrawServ/drawclasses.h
 DrawServ/drawcomps.h
@@ -72,8 +73,15 @@ DrawServ/drawcreator.h
 DrawServ/draweditor.h
 DrawServ/drawfunc.h
 DrawServ/drawkit.h
+DrawServ/drawlink.h
+DrawServ/drawlinkcomp.h
+DrawServ/drawlinklist.h
 DrawServ/drawserv.h
+DrawServ/drawserv-handler.h
 DrawServ/drawviews.h
+DrawServ/grid.h
+DrawServ/gridlist.h
+DrawServ/linkselection.h
 FrameUnidraw/framecatalog.h
 FrameUnidraw/frameclasses.h
 FrameUnidraw/framecmds.h

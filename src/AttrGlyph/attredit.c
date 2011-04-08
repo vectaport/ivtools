@@ -40,6 +40,7 @@
 #include <OS/string.h>
 
 #include <IVGlyph/textedit.h>
+#include <IVGlyph/textview.h>
 
 #include <strstream>
 #include <string.h>
@@ -73,6 +74,7 @@ AttributeListEditor::AttributeListEditor(AttributeList* al)
     s->attribute("columns", "30");
     _ete = new EivTextEditor(s, false);
     _ete->ref();
+    _ete->textview()->disable_caret();
     build();
 }
 
@@ -159,6 +161,7 @@ void AttributeListEditor::update_text(boolean update) {
 #else
             vbuf.push_back(' ');
 	vbuf.push_back('\n');
+	vbuf.push_back('\0');
 #endif
 
     }

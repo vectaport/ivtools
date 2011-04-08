@@ -28,7 +28,7 @@
  */
 
 #ifdef HAVE_ACE
-#include <ComUnidraw/comterp-acehandler.h>
+#include <DrawServ/drawserv-handler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 #include <Comterp/comhandler.h>
@@ -209,7 +209,31 @@ static OptionDesc options[] = {
 
 /*****************************************************************************/
 
+void handle_badpipe(int i) {
+  fprintf(stderr, "broken pipe detected %d\n", i);
+  return;
+}
+
 int main (int argc, char** argv) {
+
+#if 0
+    /* ignore broken pipe, so socket writes that are in error return EPIPE */
+#if 0
+    struct sigaction oldaction, newaction;
+    newaction.sa_handler = SIG_IGN;
+    newaction.sa_mask = 0;
+    newaction.sa_flags = 0;
+    newaction.sa_sigaction = 0;
+    int status = sigaction(SIGPIPE, &newaction, &oldaction); 
+    fprintf(stderr, "sigaction status %d  errno %d\n", status, errno);
+#else
+    void (*func)(int) = nil;
+    func = signal(SIGPIPE, &handle_badpipe);
+    if (func==SIG_ERR) 
+      fprintf(stderr, "SIG_ERR returned from signal, errno = %d\n", errno);
+#endif
+#endif
+  
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
@@ -237,7 +261,7 @@ int main (int argc, char** argv) {
 
 
     // Acceptor factory.
-    UnidrawComterpAcceptor* peer_acceptor = new UnidrawComterpAcceptor();
+    DrawServAcceptor* peer_acceptor = new DrawServAcceptor();
 
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
@@ -284,7 +308,7 @@ int main (int argc, char** argv) {
 
 #ifdef HAVE_ACE
 	/*  Start up one on stdin */
-	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+	DrawServHandler* stdin_handler = new DrawServHandler();
 #if 0
 	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
 #else

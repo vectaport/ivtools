@@ -279,5 +279,3 @@ int DrawIdrawScript::ReadFrames (istream& in, void* addr1, void* addr2, void* ad
   catalog->graph_finish();
   return 0;
 }
-
-

@@ -1119,7 +1119,8 @@ void OvImportCmd::Execute () {
     if (comp_ != nil) {
         OverlaySelection* oldsel;
 	if (preserve_selection_)
-	  oldsel = new OverlaySelection((OverlaySelection*)GetEditor()->GetSelection());
+	  oldsel = ((OverlayEditor*)GetEditor())->overlay_kit()->
+	    MakeSelection((OverlaySelection*)GetEditor()->GetSelection());
 	((OverlayEditor*)GetEditor())->DoAutoNewFrame();
 	if (comp_->IsA(GRAPHIC_COMP)) {
 	    PasteCmd* paste_cmd = new PasteCmd(GetEditor(), new Clipboard((GraphicComp*)comp_));
@@ -1151,8 +1152,10 @@ void OvImportCmd::Execute () {
 
         // let components configures themselves with the editor
         ((OverlayEditor*)GetEditor())->InformComponents();
-	if (preserve_selection_)
+	if (preserve_selection_) {
+	  delete GetEditor()->GetSelection();
 	  GetEditor()->SetSelection(oldsel);
+	}
         unidraw->Update();
     } else {
       if (!from_dialog && !empty) {
@@ -1630,8 +1633,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       }
 
     } else if (strncmp(creator, "JPEG", 4)==0) {
-      if (OverlayKit::bincheck("stdcmapppm") && 
-	  OverlayKit::bincheck("djpeg")) {
+      boolean stdcmapppm_flag = OverlayKit::bincheck("stdcmapppm");
+      boolean djpeg_flag = OverlayKit::bincheck("djpeg");
+      if (stdcmapppm_flag && djpeg_flag) {
 
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];

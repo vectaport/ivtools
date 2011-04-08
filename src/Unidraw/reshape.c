@@ -63,7 +63,9 @@ Manipulator* ReshapeTool::CreateManipulator (
         newSel->First(i);
 	gv = newSel->GetView(i);
         s->Append(gv);
-        m = gv->CreateManipulator(v, e, rel, this);
+	s->Update();
+	if (!s->IsEmpty())
+	  m = gv->CreateManipulator(v, e, rel, this);
     }
     delete newSel;
     return m;

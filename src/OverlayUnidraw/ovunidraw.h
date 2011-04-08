@@ -30,6 +30,7 @@
 
 #include <Unidraw/unidraw.h>
 
+class AttributeList;
 class Command;
 class ComTerpServ;
 class Event;
@@ -52,6 +53,11 @@ public:
     virtual void Log(Command*, boolean dirty);
 
     void Append(Command*);
+
+    virtual boolean PrintAttributeList(ostream& out, AttributeList* list) 
+      { return false; }
+    // alternate method for serializing an AttributeList
+    // returns false if really not there.
 
     static boolean unidraw_updated();
     static boolean npause_lessened();

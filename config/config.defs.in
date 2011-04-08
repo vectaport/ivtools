@@ -26,6 +26,7 @@
 #if @ACE_ENABLED@
 #define AceDir @ACE@
 #define AceLibDir @ACE_LIBS@
+#define AceEnabled
 #endif
 
 #if @CLIPPOLY_ENABLED@

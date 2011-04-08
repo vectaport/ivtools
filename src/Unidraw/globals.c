@@ -137,9 +137,3 @@ void Ref (Resource* r) {
         r->Reference();
     }
 }
-
-char* strnew (const char* s) {
-    char* dup = new char[strlen(s) + 1];
-    strcpy(dup, s);
-    return dup;
-}

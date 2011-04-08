@@ -675,8 +675,8 @@ Command* OvSlctAllCmd::Copy () {
 }
 
 void OvSlctAllCmd::Execute () {
-    Editor* editor = GetEditor();
-    OverlaySelection* newSel = new OverlaySelection;
+    OverlayEditor* editor = (OverlayEditor*)GetEditor();
+    OverlaySelection* newSel = editor->overlay_kit()->MakeSelection();
     Selection* s;
     Viewer* viewer;
 

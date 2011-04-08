@@ -1,4 +1,5 @@
 /*
+ * Copyright 2004 Scott E. Johnston
  * Copyright 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -39,6 +40,10 @@
 #include <string.h>
 #include <stdio.h>
 
+const char* StrEditDialog::_accept_custom = nil;
+const char* StrEditDialog::_cancel_custom = nil;
+Action* StrEditDialog::_accept_action_custom = nil;
+Action* StrEditDialog::_cancel_action_custom = nil;
 
 /*****************************************************************************/
 
@@ -51,25 +56,26 @@ protected:
     StrEditDialog* dialog_;
     boolean cancel_;
 
-    void init(StrEditDialog*, Style*, const char*, const char*, Glyph*);
+    void init(StrEditDialog*, Style*, const char*, const char*, Glyph*, boolean custom);
     void build(const char*, const char*, Glyph*);
 
     void accept();
     void cancel();
 
     GFieldEditor* editor_;
+    boolean custom_;
 };
 
 declareActionCallback(StrEditDialogImpl)
 implementActionCallback(StrEditDialogImpl)
 
-StrEditDialog::StrEditDialog(const char* c1, const char* c2, Glyph* extra) 
+StrEditDialog::StrEditDialog(const char* c1, const char* c2, Glyph* extra, boolean custom) 
 : Dialog(nil, WidgetKit::instance()->style())
 {
     impl_ = new StrEditDialogImpl;
     StrEditDialogImpl& impl = *impl_;
     impl.kit_ = WidgetKit::instance();
-    impl.init(this, WidgetKit::instance()->style(), c1, c2, extra);
+    impl.init(this, WidgetKit::instance()->style(), c1, c2, extra, custom);
 }
 
 StrEditDialog::~StrEditDialog() {
@@ -99,7 +105,7 @@ void StrEditDialog::keystroke(const Event& e) {
 
 char* StrEditDialog::post(Window* window, const char* message, 
 			  const char* string, const char* title,
-			  Glyph* extra) {
+			  Glyph* extra, boolean custom) {
   WidgetKit& kit = *WidgetKit::instance();
   if (title) {
     Style* ts = new Style(kit.style());
@@ -107,7 +113,7 @@ char* StrEditDialog::post(Window* window, const char* message,
     kit.push_style(ts);
   }
   
-  StrEditDialog* dialog = new StrEditDialog(message, string, extra);
+  StrEditDialog* dialog = new StrEditDialog(message, string, extra, custom);
   Resource::ref(dialog);
   boolean accepted = dialog->post_for(window);
   char* retstr = strdup(dialog->text());
@@ -118,16 +124,68 @@ char* StrEditDialog::post(Window* window, const char* message,
   return accepted ? retstr : nil;
 }
 
+StrEditDialog* StrEditDialog::map(Window* window, const char* message, 
+			 const char* string, const char* title,
+			 Glyph* extra, boolean custom) {
+  WidgetKit& kit = *WidgetKit::instance();
+  if (title) {
+    Style* ts = new Style(kit.style());
+    ts->attribute("name", title);
+    kit.push_style(ts);
+  }
+  
+  StrEditDialog* dialog = new StrEditDialog(message, string, extra, custom);
+  // Resource::ref(dialog);
+  dialog->map_for(window);
+  if (title)
+    kit.pop_style();
+  return dialog;
+}
+
+void StrEditDialog::accept_custom(const char* caption) { 
+  boolean same = _accept_custom ? strcmp(caption, _accept_custom)==0 : !caption;
+  if (_accept_custom && !same) {
+    delete _accept_custom;
+    _accept_custom = nil;
+  }
+  if (caption && !same) 
+    _accept_custom = strnew(caption);
+}
+
+void StrEditDialog::cancel_custom(const char* caption) { 
+  boolean same = _cancel_custom ? strcmp(caption, _cancel_custom)==0 : !caption;
+  if (_cancel_custom && !same) {
+    delete _cancel_custom;
+    _cancel_custom = nil;
+  }
+  if (caption && !same) 
+    _cancel_custom = strnew(caption);
+}
+
+void StrEditDialog::action_custom(Action* aaction, Action* caction) {
+  if (aaction != _accept_action_custom) {
+    Unref(_accept_action_custom);
+    _accept_action_custom = aaction;
+    Resource::ref(_accept_action_custom);
+  }
+  if (caction != _cancel_action_custom) {
+    Unref(_cancel_action_custom);
+    _cancel_action_custom = caction;
+    Resource::ref(_cancel_action_custom);
+  }
+}
+
 /** class StrEditDialogImpl **/
 
 void StrEditDialogImpl::init(StrEditDialog* d, Style* s, 
-			     const char* c1, const char* c2, Glyph* extra) {
+			     const char* c1, const char* c2, Glyph* extra, boolean custom) {
     cancel_ = false;
     dialog_ = d;
     style_ = s;
     editor_ = nil;
     build(c1, c2, extra);
     editor_->select_all();
+    custom_ = custom;
 }
 
 void StrEditDialogImpl::build(const char* msg, const char* txt, Glyph* extra) {
@@ -156,9 +214,21 @@ void StrEditDialogImpl::build(const char* msg, const char* txt, Glyph* extra) {
 		      editor_,
 		      layout.vspace(15.0),
 		      layout.hbox(
-				  layout.vcenter(kit.push_button(kit.label("Accept"), accept)),
+				  layout.vcenter
+				  (kit.push_button
+				   (kit.label
+				    (custom_ 
+				     ? StrEditDialog::accept_custom() 
+				     : "Accept"), 
+				    accept)),
 				  layout.hspace(10.0),
-				  layout.vcenter(kit.push_button(kit.label("Cancel"), cancel))
+				  layout.vcenter
+				  (kit.push_button
+				   (kit.label
+				    (custom_ 
+				     ? StrEditDialog::cancel_custom() 
+				     : "Cancel"), 
+				    cancel))
 				  ));
     else 
       g = layout.vbox(
@@ -183,10 +253,15 @@ void StrEditDialogImpl::build(const char* msg, const char* txt, Glyph* extra) {
 }
 
 void StrEditDialogImpl::accept() {
-  dialog_->dismiss(true);
+  if (!dialog_->unmap_for_dismiss())
+    dialog_->dismiss(true);
+  if (custom_ && StrEditDialog::accept_action_custom())
+    StrEditDialog::accept_action_custom()->execute();
 }
 
 void StrEditDialogImpl::cancel() {
     cancel_ = true;
     dialog_->dismiss(false);
+    if (custom_ && StrEditDialog::cancel_action_custom())
+      StrEditDialog::cancel_action_custom()->execute();
 }

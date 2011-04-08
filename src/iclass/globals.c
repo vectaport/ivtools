@@ -32,11 +32,13 @@
 
 /*****************************************************************************/
 
+#if 0
 char* strnew (const char* s) {
     char* dup = new char[strlen(s) + 1];
     strcpy(dup, s);
     return dup;
 }
+#endif
 
 char* strnnew (const char* s, int len) {
     char* dup = new char[len + 1];

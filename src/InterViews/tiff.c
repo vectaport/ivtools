@@ -28,6 +28,9 @@
 #include <TIFF/tiffio.h>
 #include <stdlib.h>
 
+#if defined(howmany)
+#undef howmany
+#endif
 #define	howmany(x, y)	(((x)+((y)-1))/(y))
 
 typedef	unsigned char u_char;

@@ -28,6 +28,7 @@
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovexport.h>
+#include <OverlayUnidraw/ovunidraw.h>
 
 #include <ComTerp/parser.h>
 
@@ -927,7 +928,8 @@ void OverlayScript::StencilGS (ostream& out) {
 
 void OverlayScript::Attributes(ostream& out) {
     AttributeList* attrlist = GetOverlayComp()->GetAttributeList();
-    out << *attrlist;
+    if( !((OverlayUnidraw*)unidraw)->PrintAttributeList(out, attrlist))
+      out << *attrlist;
 }
 
 Clipboard* OverlayScript::GetGSList() {

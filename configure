@@ -4847,12 +4847,11 @@ fi
 echo
 
 #make symbolic links if they do not exist
-if test ! -d src/include/IV-3_1/InterViews ; then
-	echo "establishing symbolic link for src/include/IV-3_1/InterViews"
-	cd src/include/IV-3_1;
-	ln -s ../InterViews;
-	cd ../../..;
-fi
+echo "establishing symbolic link for src/include/IV-3_1/InterViews"
+cd src/include/IV-3_1;
+rm -rf InterViews;
+ln -s ../InterViews;
+cd ../../..;
 
 if test ! -f src/IV-common/listimpl.c ; then
 	echo "establishing symbolic links for src/IV-common"

@@ -24,12 +24,16 @@
  */
 
 /*
- * ComKit definitions
+ * DrawKit definitions
  */
 
 #include <DrawServ/drawkit.h>
 #include <DrawServ/drawcomps.h>
-#include <ComUnidraw/comeditor.h>
+#include <DrawServ/draweditor.h>
+#include <DrawServ/drawlinklist.h>
+#include <DrawServ/drawserv.h>
+#include <DrawServ/linkselection.h>
+#include <DrawServ/rcdialog.h>
 
 #include <FrameUnidraw/frameeditor.h>
 
@@ -447,4 +451,31 @@ void DrawKit::launch_graphdraw() {
   GraphEditor* ed = new GraphEditor((const char*)nil);
   unidraw->Open(ed);
 }
+
+OverlaySelection* DrawKit::MakeSelection(Selection* sel) {
+#ifdef HAVE_ACE
+  return new LinkSelection((DrawEditor*)GetEditor(), sel);
+#else
+  return FrameKit::MakeSelection(sel);
+#endif
+}
+
+MenuItem * DrawKit::MakeViewersMenu() {
+#ifdef HAVE_ACE
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+
+    MenuItem *mbi = kit.menubar_item(kit.label("Connections"));
+    mbi->menu(kit.pulldown());
+
+    MenuItem* menu_item = kit.menu_item(kit.label("Connect"));
+    menu_item->action(new RemoteConnectPopupAction(GetEditor()));
+    mbi->menu()->append_item(menu_item);
+
+    return mbi;
+#else
+    return nil;
+#endif
+}
+
 

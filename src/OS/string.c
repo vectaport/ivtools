@@ -460,3 +460,10 @@ void NullTerminatedString::free() {
 	allocated_ = false;
     }
 }
+
+
+char* strnew (const char* s) {
+    char* dup = new char[strlen(s) + 1];
+    strcpy(dup, s);
+    return dup;
+}

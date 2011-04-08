@@ -64,6 +64,7 @@ public:
     virtual boolean run();
     virtual void dismiss(boolean accept);
     boolean accepted() { return accepted_; }
+    boolean unmap_for_dismiss() { return unmap_for_dismiss_; }
 private:
     boolean done_;
     boolean accepted_;

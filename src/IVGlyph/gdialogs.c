@@ -98,6 +98,23 @@ void GAcknowledgeDialog::post(Window* window, const char* message,
 }
 
 
+void GAcknowledgeDialog::map(Window* window, const char* message, 
+			     const char* submsg, const char* title) {
+  WidgetKit& kit = *WidgetKit::instance();
+  if (title) {
+    Style* ts = new Style(kit.style());
+    ts->attribute("name", title);
+    kit.push_style(ts);
+  }
+  
+  GAcknowledgeDialog* dialog = new GAcknowledgeDialog(message, submsg);
+  // Resource::ref(dialog);
+  dialog->map_for(window);
+  if (title)
+    kit.pop_style();
+}
+
+
 /** class GAcknowledgeDialogImpl **/
 
 void GAcknowledgeDialogImpl::init(GAcknowledgeDialog* d, Style* s, const char* c1, const char* c2) {

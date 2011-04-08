@@ -69,6 +69,9 @@ public:
 
     OverlaySelection* ViewsWithin(IntCoord l, IntCoord b, IntCoord r, IntCoord t);
 
+    virtual void Reserve() { return; }
+    // for use of derived classes
+
 protected:
     boolean _clear_to_repair;
     boolean _handles_disabled;

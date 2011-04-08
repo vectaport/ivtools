@@ -717,7 +717,12 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	    break;
 	    
 	case AttributeValue::UIntType:
-	    out << "uint (" << svp->uint_ref() << ")";
+	    if (svp->state()==AttributeValue::OctState) 
+	      out << "uint (" << svp->uint_ref() << ")";
+	    else if (svp->state()==AttributeValue::HexState) 
+	      out << "uint (" << svp->uint_ref() << ")";
+	    else
+	      out << "uint (" << svp->uint_ref() << ")";
 	    break;
 	    
 	case AttributeValue::LongType:
@@ -798,6 +803,14 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 	  
 	case AttributeValue::UIntType:
+	  if (svp->state()==AttributeValue::OctState)
+	    out << "0" << std::oct << svp->uint_ref() << std::dec;
+	  else if (svp->state()==AttributeValue::HexState)
+	    out << "0x" << std::hex << svp->uint_ref() << std::dec;
+	  else
+	    out << svp->uint_ref();
+	  break;
+
 	case AttributeValue::BooleanType:
 	  out << svp->uint_ref();
 	  break;
@@ -807,7 +820,12 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 
 	case AttributeValue::UShortType:
-	  out << svp->ushort_ref();
+	  if (svp->state()==AttributeValue::OctState)
+	    out << "0" << std::oct << svp->ushort_ref() << std::dec;
+	  else if (svp->state()==AttributeValue::HexState)
+	    out << "0x" << std::hex << svp->ushort_ref() << std::dec;
+	  else
+	    out << svp->ushort_ref();
 	  break;
 
 	case AttributeValue::LongType:
@@ -815,7 +833,12 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 	  
 	case AttributeValue::ULongType:
-	  out << svp->ulong_ref();
+	  if (svp->state()==AttributeValue::OctState)
+	    out << "0" << std::oct << svp->ulong_ref() << std::dec;
+	  else if (svp->state()==AttributeValue::HexState)
+	    out << "0x" << std::hex << svp->ulong_ref() << std::dec;
+	  else
+	    out << svp->ulong_ref();
 	  break;
 	  
 	case AttributeValue::FloatType:
@@ -1067,3 +1090,16 @@ int AttributeValue::stream_mode() {
   } else
     return 0;
 }
+
+int AttributeValue::state() {
+  if (!is_stream() && !is_object() && !is_command()) 
+    return _state;
+  else
+    return -1;
+}
+
+void AttributeValue::state(int val) {
+  if (!is_stream() && !is_object() && !is_command()) 
+    _state = val;
+}
+

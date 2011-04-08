@@ -109,6 +109,9 @@ public:
 };
     // enum for attribute value types.
 
+    enum ValueState { UnknownState, OctState, HexState };
+    // enum for states
+
     AttributeValue(ValueType type);
     // construct with specified type and unitialized value.
     AttributeValue(ValueType type, attr_value value);
@@ -256,6 +259,11 @@ public:
     void stream_list(AttributeValueList* list); 
     // set pointer to AttributeValueList associated with stream object
 
+    int state();
+    // get generic state value useful for any type other than CommandType, ObjectType, or StreamType
+    void state(int val);
+    // set generic state value useful for any type other than CommandType, ObjectType, or StreamType
+
     void negate();
     // negate numeric values.
 
@@ -370,6 +378,7 @@ protected:
       int _command_symid; // used for CommandType.
       boolean _object_compview; // used for ObjectType.
       int _stream_mode; // used for StreamType
+      int _state; // useful for any type other than CommandType, ObjectType, or StreamType
     };
     static int* _type_syms;
 

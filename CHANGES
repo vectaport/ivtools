@@ -1,49 +1,45 @@
-February 18th, 2004  ivtools-1.1.3
+June 3rd, 2004  ivtools-1.2
 
-- continue evolution of iostreams usage to keep up with changes to
-libstdc++-v3.  Many thanks for reinstating a filebuf constructor that
-accepts an integer file descriptor.  Hard to wrap them around sockets
-any other way.
+ivtools-1.2 sets a new direction for the package, toward peer-to-peer
+drawing chat.  ivtools' drawserv, the editor that incorporates every ivtool
+mechanism to date (multi-frame, graph-editing, integrated scripting
+language) has been extended to support a unique kind of
+small-granularity shared whiteboard.  
 
-- fix problem with use of ACE on Darwin with gcc-3.3.
+This work was based on the pre-existing networked scripting capability
+of ivtools' comdraw.  Then the pasting of any graphic was intercepted,
+and the graphic serialized into a command that could be communicated
+to other drawing editors to keep them in sync.
 
-- fix problem with lexical scanning introduced when "#" comment lines
-were first handled.
+Then a connection management system was established, that supported
+two-way peer-to-peer links between drawing editors.  In addition the
+return path on each socket was used for detecting timeout, which
+causes the connection to be dropped.
 
-December December 8th, 2003  ivtools-1.1.2
+Finally, a distributed mutually-exclusive graphic selection mechanism
+was created, where every drawing editor is aware of who currently has
+a graphic selected or who had it selected last if it is not currently
+selected.  When one drawing editor tries to select a graphic, it first
+requests that permission from the last selector (after determining it
+is unselected).
 
-- fixes a problem with using gcc-2.95 to compile ivtools-1.1.*.  It
-avoids the use of a local copy of strstream.h, which worked fine for
-gcc-3.3, but not for gcc-2.9.5.  Instead it uses strstream directly,
-and appends istrstream and ostrstream with the std:: using prefix.
-Fix contributed by Mark Davies.
+Now you can link to other drawing editors, draw graphics and see them
+appear remotely (although only in black and white), and exercise the
+distributed selection mechanism.  Four pieces remain to be developed:
+1) support for full-up graphic state transmittal (it is sent, but not
+interpreted on the remote end);, 2) support for transmission of the
+complete set of drawing editor commands; 3) extending the distributed
+mutual-exclusion mechanism to select pseudo-graphics to acquire global
+permission for connection, pasting, moving front-to-back, and
+grouping; and 4) a two-tier mechanism for invoking select(), that will
+allow the bypass of selection requests while engaged in lengthy direct
+manipulations.
+
+If all this interests you, and you'd like to help, build this version
+of ivtools with ACE support, subscribe to the ivtools-dev mailing, and
+help me do some testing, programming, thinking, whatever.  Or visit
+http://www.ivtools.org to make a donation to support this work.  Thanks.
+
+Scott Johnston
 
 
-November 16th, 2003  ivtools-1.1.1
-
-- add missing src/include/ivstd/strstream.h to MANIFEST file and tar file
-
-
-October 29th, 2003  ivtools-1.1.0
-
-- re-enable use of shared memory for X11 image rendering under MacOS X
-
-- fix command passed to popen() to detect executables on MacOS X
-
-- fix up some AttrValue stuff
-
-- all the changes it took to get it built with ACE on MacOS X (though
-it doesn't work yet).
-
-- the cpp bundled with gcc-3.3 has a bug, and gets confused by
-back-slashed commas in macro arguments (it thinks they start a new
-argument, which they don't).  This introduced a problem to long stable
-config files, but a workaround is here.
-
-- this also fixes things so FreeBSD can configure on alpha architectures.
-
-- add -svgexport flag to drawtool that by default suppresses (the
-incomplete) SVG export mechanism.
-
-- incorporate an XML dump of all the SourceForge tracker info, in case
-SourceForge goes away (sourceforge.102203.xml).
