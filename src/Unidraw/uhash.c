@@ -53,7 +53,7 @@ UHashTable::~UHashTable () {
             DeleteSlot(_slot[i]);
         }
     }
-    delete _slot;
+    delete[] _slot;
 }
 
 void UHashTable::Register (void* key, UHashElem* elem) {

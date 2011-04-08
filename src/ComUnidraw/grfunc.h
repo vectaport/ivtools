@@ -182,7 +182,7 @@ public:
 };
 
 //:comand for setting color state variables by RGB name in comdraw.
-// colors(fgcolorname bgcolorname). The colorname format is "#RRGGBB"
+// colorsrgb(fgcolorname bgcolorname). The colorname format is "#RRGGBB"
 class ColorRgbFunc : public UnidrawFunc {
  public:
   ColorRgbFunc(ComTerp*,Editor*);

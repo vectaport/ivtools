@@ -190,7 +190,7 @@ NameMapElem::NameMapElem (void* object, const char* string) {
     Init(object, string);
 }
 
-NameMapElem::~NameMapElem () { delete _string; }
+NameMapElem::~NameMapElem () { free(_string); }
 void* NameMapElem::id () { return _object; }
 void* NameMapElem::tag () { return (void*) _string; }
 
@@ -352,7 +352,7 @@ Catalog::~Catalog () {
     deleteFonts(_fonts);
     deletePatterns(_pats);
 
-    delete _name;
+    free(_name);
     delete _brs;
     delete _colors;
     delete _fonts;
@@ -370,7 +370,7 @@ Catalog::~Catalog () {
 #ifdef __GNUC__
     if (_tmpfile != nil) {
         unlink(_tmpfile);
-        delete _tmpfile;
+        free(_tmpfile);
     }
 #endif
 }
@@ -1000,7 +1000,7 @@ int Catalog::ReadBgFilled (istream& in) {
     return bgFilled;
 }
 
-void Catalog::WriteBgFilled (boolean bgFilled, ostream& out) {
+void Catalog::WriteBgFilled (int bgFilled, ostream& out) {
     Mark(out);
     out << bgFilled << " ";
 }
@@ -1171,7 +1171,7 @@ PSBrush* Catalog::ReadBrush (const char* n, int index) {
     } else if (sscanf(definition, "%x %d", &p, &w) == 2) {
         br = FindBrush(p, w);
     }
-    delete definition;
+    free(definition);
     return br;
 }
 
@@ -1298,7 +1298,7 @@ PSColor* Catalog::ReadColor (const char* n, int index) {
     } else if (sscanf(definition, "%s", name) == 1) {
 	color = FindColor(name);
     }
-    delete definition;
+    free(definition);
     return color;
 }
 
@@ -1429,7 +1429,7 @@ PSFont* Catalog::ReadFont (const char* n, int index) {
             font = FindFont(definition, pf, ps);
         }
     }
-    delete definition;
+    free(definition);
     return font;
 }
 
@@ -1675,7 +1675,7 @@ PSPattern* Catalog::ReadPattern (const char* n, int index) {
 	    }
 	}
     }
-    delete definition;
+    free(definition);
     return pat;
 }
 

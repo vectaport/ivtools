@@ -40,6 +40,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 /*****************************************************************************/
 
@@ -81,7 +82,7 @@ TextInteractor::TextInteractor (const char* t, Alignment a) {
 TextInteractor::~TextInteractor () { delete _text; }
 
 void TextInteractor::SetText (const char* t) {
-    delete _text;
+    free(_text);
     _text = strdup(t);
 }
 

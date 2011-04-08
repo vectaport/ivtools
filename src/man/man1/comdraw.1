@@ -60,6 +60,9 @@ graphical object assigned to an interpreter variable.
    set current pattern from menu
  colors(fgcolornum bgcolornum) -- 
    set current colors from menu
+ colorsrgb(fgcolornum bgcolornum) -- set current colors by RGB name.
+	 The colorname format is "#RGB" for 4 bits, "#RRGGBB" for 8 bits,
+	 #RRRGGGBBB for 12 bits, #RRRRGGGGBBBB for 16 bits
 
  nfonts() -- return size of font menu
  nbrushes() -- return size of brush menu
@@ -129,7 +132,9 @@ graphical object assigned to an interpreter variable.
 .SH IMAGING COMMANDS
 
  tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
+ val=peek(compview x y) -- peek pixel value into raster
  poke(compview x y val) -- poke pixel value into raster
+ pokeline(compview x y vallist) -- poke list of values into a raster line.
  pcols(compview) -- number of columns in a raster
  pcols(compview) -- number of rows in a raster
  pflush(compview) -- flush pixels poked into a raster

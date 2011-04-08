@@ -52,8 +52,8 @@ OpenBSpline::OpenBSpline (
     
     _pts = MultiLineObj::make_pts(newx, newy, count);
     Resource::ref(_pts);
-    delete newx;
-    delete newy;
+    delete[] newx;
+    delete[] newy;
 }
 
 int OpenBSpline::GetOriginal (const Coord*& x, const Coord*& y) {

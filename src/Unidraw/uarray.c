@@ -37,7 +37,7 @@ UArray::UArray (int defaultSize) {
     _count = 0;
 }
 
-UArray::~UArray () { delete _buf; }
+UArray::~UArray () { delete[] _buf; }
 
 void UArray::Check (int index) {
     void** newbuf;

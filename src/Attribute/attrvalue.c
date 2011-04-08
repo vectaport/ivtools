@@ -203,6 +203,7 @@ AttributeValue::~AttributeValue() {
 void AttributeValue::clear() {
     unsigned char* buf = (unsigned char*)(void*)&_v;
     for (int i=0; i<sizeof(double); i++) buf[i] = '\0';
+    _state = 0;
 }
 
 AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {

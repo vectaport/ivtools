@@ -414,7 +414,7 @@ SessionRep::~SessionRep() {
 	delete d;
     }
     delete displays_;
-    delete argv_;
+    delete[] argv_;
 }
 
 void SessionRep::init(

@@ -1,3 +1,13 @@
+January 25th, 2005  ivtools-1.2.2
+
+If you submitted a patch in the past half year to ivtools that you don't see reflected here, please resubmit.  I lost that e-mail.
+
+- fix for problem writing to /tmp
+
+- compilation fix on NetBSD for comterp.c
+
+- compilation patch submitted by Michal Palczew.
+
 July 13th, 2004  ivtools-1.2.1
 
 Two crashes discovered and fixed by Michal Palczewski (mpalczew at

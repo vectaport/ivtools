@@ -33,6 +33,7 @@
 #include <IV-2_6/_enter.h>
 
 #include <string.h>
+#include <stdlib.h>
 
 /*****************************************************************************/
 
@@ -45,7 +46,7 @@ ULabel::ULabel (const char* s, Graphic* gr) : Graphic(gr) {
 }
 
 ULabel::~ULabel () {
-    delete _string;
+    free(_string);
     Unref(_font);
 }
 

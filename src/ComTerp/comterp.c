@@ -56,6 +56,7 @@
 #include <OS/math.h>
 
 #include <ctype.h>
+#include <errno.h>
 #include <iostream.h>
 #include <string.h>
 #include <strstream>

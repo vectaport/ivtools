@@ -85,7 +85,7 @@ PSColor::PSColor(
     _none = false;
 }
 
-PSColor::~PSColor () { delete _name; }
+PSColor::~PSColor () { free(_name); }
 
 void PSColor::GetIntensities(
     ColorIntensity& r, ColorIntensity& g, ColorIntensity& b
