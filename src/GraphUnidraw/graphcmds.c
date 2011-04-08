@@ -294,6 +294,14 @@ void GraphCutCmd::Execute () {
     Iterator i, j, k;
     Clipboard* globalcb = unidraw->GetCatalog()->GetClipboard();
     Clipboard* cmdcb = GetClipboard();
+
+    if (cmdcb == nil) {
+      cb->DeleteComps();
+      delete cb;
+      _executed = false;
+      return;
+    }
+
     globalcb->First(j);
     cmdcb->First(k);
     for (cb->First(i); !cb->Done(i); cb->Next(i)) {
@@ -467,6 +475,14 @@ void GraphDupCmd::Execute () {
 
     Iterator i, k;
     Clipboard* cmdcb = GetClipboard();
+
+    if (cmdcb == nil) {
+      cb->DeleteComps();
+      delete cb;
+      _executed = false;
+      return;
+    }
+
     cmdcb->First(k);
     for (cb->First(i); !cb->Done(i); cb->Next(i)) {
         GraphicComp* gcomp = cb->GetComp(i);

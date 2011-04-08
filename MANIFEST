@@ -308,6 +308,10 @@ ivtools-1.2/src/DrawServ/gridlist.c
 ivtools-1.2/src/DrawServ/gridlist.h
 ivtools-1.2/src/DrawServ/linkselection.c
 ivtools-1.2/src/DrawServ/linkselection.h
+ivtools-1.2/src/DrawServ/rcdialog.c
+ivtools-1.2/src/DrawServ/rcdialog.h
+ivtools-1.2/src/DrawServ/sid.c
+ivtools-1.2/src/DrawServ/sid.h
 ivtools-1.2/src/FrameUnidraw/Imakefile
 ivtools-1.2/src/FrameUnidraw/Makefile
 ivtools-1.2/src/FrameUnidraw/framecatalog.c

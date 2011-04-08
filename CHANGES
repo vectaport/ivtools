@@ -1,3 +1,14 @@
+July 13th, 2004  ivtools-1.2.1
+
+Two crashes discovered and fixed by Michal Palczewski (mpalczew at
+users.sourceforge.net).  One was a crash on exit after a delete with
+idraw/drawtool, the other was a crash upon delete with graphdraw.
+They turned out to be long-standing bugs in the order of object
+deletion, problems that hadn't appeared with other versions of gcc.
+RedHat must have adopted a more aggressive recycling of freed space in
+a recent release.  Thanks Michal.
+
+
 June 3rd, 2004  ivtools-1.2
 
 ivtools-1.2 sets a new direction for the package, toward peer-to-peer

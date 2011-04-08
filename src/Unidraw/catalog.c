@@ -358,14 +358,14 @@ Catalog::~Catalog () {
     delete _fonts;
     delete _pats;
 
+    _clipboard->DeleteComps();
+    delete _clipboard;
+
     delete _substMap;
     delete _edInfoMap;
     delete _compMap;
     delete _cmdMap;
     delete _toolMap;
-
-    _clipboard->DeleteComps();
-    delete _clipboard;
 
 #ifdef __GNUC__
     if (_tmpfile != nil) {
