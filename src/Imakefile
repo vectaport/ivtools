@@ -56,8 +56,8 @@ SUBDIRS = \
 	UniIdraw \
 	idraw \
 	\
-	$(ACEDISPATCH) \
 	OverlayUnidraw \
+	$(ACEDISPATCH) \
 	drawtool \
 	\
 	$(IUEDIRS) \

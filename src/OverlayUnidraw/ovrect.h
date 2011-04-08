@@ -58,6 +58,8 @@ protected:
     static ParamList* _ovrect_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("RectComp");
 };
 
 //: graphical view of RectOvComp.

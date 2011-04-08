@@ -55,6 +55,8 @@ public:
 protected:
     VerticesOvComp(Vertices* = nil, OverlayComp* parent = nil);
     VerticesOvComp(istream&, OverlayComp* parent = nil);
+
+    CLASS_SYMID("VerticesComp"); 
 };
 
 //: graphical view of VerticesOvComp.

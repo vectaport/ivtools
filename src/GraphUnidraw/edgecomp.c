@@ -79,6 +79,7 @@ static const float seen = 1.025;
 /*****************************************************************************/
 
 ParamList* EdgeComp::_edge_params = nil;
+int EdgeComp::_symid = -1;
 
 ClassId EdgeComp::GetClassId() { return EDGE_COMP; }
 

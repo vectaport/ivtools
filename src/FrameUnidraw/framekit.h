@@ -55,8 +55,6 @@ public:
     static FrameKit* Instance();
 protected:
     static FrameKit* _framekit;
-    boolean _set_button_flag;
-    boolean _clr_button_flag;
 };
 
 #include <InterViews/action.h>

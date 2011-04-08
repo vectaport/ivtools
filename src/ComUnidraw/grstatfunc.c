@@ -60,7 +60,7 @@ void CenterFunc::execute() {
     Viewer* viewer = _ed->GetViewer();
     ComValue& obj = stack_arg(0);
     reset_stack();
-    if (obj.obj_type_val() == _compview_id) {
+    if (obj.object_compview()) {
       ComponentView* compview = (ComponentView*)obj.obj_val();
       if (compview && compview->GetSubject()) {
 	Graphic* gr = ((GraphicComp*)compview->GetSubject())->GetGraphic();
@@ -99,7 +99,7 @@ void MbrFunc::execute() {
     Viewer* viewer = _ed->GetViewer();
     ComValue& obj = stack_arg(0);
     reset_stack();
-    if (obj.obj_type_val() == _compview_id) {
+    if (obj.object_compview()) {
       ComponentView* compview = (ComponentView*)obj.obj_val();
       if (compview && compview->GetSubject()) {
 	Graphic* gr = ((GraphicComp*)compview->GetSubject())->GetGraphic();
@@ -133,7 +133,7 @@ void PointsFunc::execute() {
     Viewer* viewer = _ed->GetViewer();
     ComValue& obj = stack_arg(0);
     reset_stack();
-    if (obj.obj_type_val() == _compview_id) {
+    if (obj.object_compview()) {
       ComponentView* compview = (ComponentView*)obj.obj_val();
       if (compview && compview->GetSubject()) {
 	GraphicComp* comp = (GraphicComp*)compview->GetSubject();

@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #include <OS/types.h>
 #include <ComTerp/comvalue.h>
-#include <Attribute/_comutil.h>
+#include <Attribute/classid.h>
 
 class AttributeList;
 class ComFuncState;

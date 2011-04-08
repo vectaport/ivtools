@@ -53,6 +53,8 @@ protected:
     static ParamList* _ovpolygon_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("PolygonComp");
 };
 
 //: graphical view of PolygonOvComp.

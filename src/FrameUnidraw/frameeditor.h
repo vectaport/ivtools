@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1999 Vectaport Inc.
+ * Copyright (c) 1994-2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -57,25 +57,20 @@ public:
     virtual void InitCommands();
     // execute Unidraw commands as needed after FrameEditor is constructed.
 
-    EivTextEditor* TextEditor() { return _texteditor; }
-    // return pointer to text-editor that holds current frame annotation.
-    void SetText();
-    // set contents of text-editor as frame annotation.
-    void ClearText();
-    // clear contents of text-editor.
-    void UpdateText(OverlayComp*, boolean update =true);
-    // update contents of text-editor with frame annotation.
-
     void SetFrame(FrameView* f) { _prevframe = _currframe;_currframe = f; }
     // set current frame.
     virtual OverlaysView* GetFrame(int index=-1);
     // return current frame.
 
-    int OtherFrame(){ return _curr_other; }
+    int OtherFrame(){ return _curr_others ? _curr_others[0] : nil; }
     // return index of previous (or secondary) frame.
-    void OtherFrame(int other_frame) 
-      { _prev_other = _curr_other; _curr_other = other_frame; }
+    void OtherFrame(int other_frame);
     // set index of previous (or secondary) frame.
+
+    int* OtherFrames(){ return _curr_others; }
+    // return index of previous (or secondary) frames.
+    void OtherFrames(int* other_frames, int num_others);
+    // set index of previous (or secondary) frames.
 
     FrameNumberState*& framenumstate() { return _framenumstate; }
     // return reference to pointer to current-frame-number state variable
@@ -92,14 +87,18 @@ public:
     // virtual method which does the work of creating a new frame
     // if flag is set.
 
+    int NumFrames();
+    // number of frames not counting background frame
+
 protected:
     FrameView* _currframe;
     FrameView* _prevframe;
     FrameNumberState* _framenumstate;
     FrameListState* _frameliststate;
-    EivTextEditor* _texteditor;
-    int _curr_other;
-    int _prev_other;
+    int* _curr_others;
+    int* _prev_others;
+    int _num_curr_others;
+    int _num_prev_others;
     boolean _autonewframe;
     TelltaleState* _autonewframe_tts;
 

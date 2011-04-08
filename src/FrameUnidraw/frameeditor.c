@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1998 Vectaport Inc.
+ * Copyright (c) 1994-2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -91,12 +91,22 @@ FrameEditor::FrameEditor(const char* file, OverlayKit* ok)
 }
 
 FrameEditor::FrameEditor(boolean initflag, OverlayKit* ok) 
-: ComEditor(initflag, ok) {}
+: ComEditor(initflag, ok) {
+  _curr_others = _prev_others = nil;
+  _num_curr_others = _num_prev_others = 0;
+  _texteditor = nil;
+  _autonewframe = false;
+  _autonewframe_tts = nil;
+}
 
-FrameEditor::~FrameEditor() {}
+FrameEditor::~FrameEditor() {
+  delete _curr_others;
+  delete _prev_others;
+}
 
 void FrameEditor::Init (OverlayComp* comp, const char* name) {
-  _curr_other = _prev_other = 0;
+  _curr_others = _prev_others = nil;
+  _num_curr_others = _num_prev_others = 0;
   _texteditor = nil;
   _autonewframe = false;
   _autonewframe_tts = nil;
@@ -161,8 +171,13 @@ void FrameEditor::Update() {
 
 void FrameEditor::UpdateFrame(boolean txtupdate) {
     FrameIdrawView *views = (FrameIdrawView*)GetViewer()->GetGraphicView();
-    views->UpdateFrame(_currframe, _prevframe, _curr_other, _prev_other);
-    _prev_other = _curr_other;
+    views->UpdateFrame(_currframe, _prevframe, 
+		       _curr_others, _num_curr_others, 
+		       _prev_others, _num_prev_others);
+    delete _prev_others;
+    _num_prev_others = _num_curr_others;
+    _prev_others = new int[_num_prev_others];
+    for(int i=0; i<_num_prev_others; i++) _prev_others[i]=_curr_others[i];
     if (GetFrame())
       UpdateText((OverlayComp*)GetFrame()->GetGraphicComp(), txtupdate);
     Iterator last;
@@ -170,29 +185,10 @@ void FrameEditor::UpdateFrame(boolean txtupdate) {
     if (frameliststate()) frameliststate()->framenumber(views->Index(last)+1);
 }
 
-void FrameEditor::SetText() {
-    GraphicComp* comp = GetFrame()->GetGraphicComp();
-    ((OverlayComp*)comp)->SetAnnotation(TextEditor()->text());
-    ((ModifStatusVar*)GetState("ModifStatusVar"))->SetModifStatus(true);
-}
-
-void FrameEditor::ClearText() {
-    _texteditor->text("");
-}
-
-void FrameEditor::UpdateText(OverlayComp* comp, boolean update) {
-    if (_texteditor) {
-	const char* txt = comp->GetAnnotation();
-	if (!txt)
-	    txt = "";
-	_texteditor->text(txt, update);
-    }
-}
-
 OverlaysView* FrameEditor::GetFrame(int index) {
   if (index<0) 
     return _currframe;
-  else if (index<_frameliststate->framenumber()) {
+  else if (_frameliststate && index<_frameliststate->framenumber()) {
     FrameIdrawView* views = (FrameIdrawView*)GetViewer()->GetGraphicView();
     Iterator i;
     int count = 0;
@@ -208,6 +204,8 @@ void FrameEditor::AddCommands(ComTerp* comterp) {
   comterp->add_command("moveframe", new MoveFrameFunc(comterp, this));
   comterp->add_command("createframe", new CreateFrameFunc(comterp, this));
   comterp->add_command("autoframe", new AutoNewFrameFunc(comterp, this));
+  comterp->add_command("numframes", new NumFramesFunc(comterp, this));
+  comterp->add_command("showframes", new ShowFramesFunc(comterp, this));
 }
 
 void FrameEditor::DoAutoNewFrame() {
@@ -222,3 +220,39 @@ void FrameEditor::ToggleAutoNewFrame() {
   _autonewframe = !_autonewframe; 
   if (_autonewframe_tts) _autonewframe_tts->set(TelltaleState::is_chosen, _autonewframe);
 }
+
+int FrameEditor::NumFrames() {
+  if (_frameliststate) 
+    return _frameliststate->framenumber();
+  else {
+    FrameIdrawView* views = (FrameIdrawView*)GetViewer()->GetGraphicView();
+    Iterator i;
+    int count = 0;
+    for (views->First(i); !views->Done(i); views->Next(i)) {
+      if (views->IsA(FRAME_VIEW)) count++;
+    }
+    return count;
+  }
+}
+
+void FrameEditor::OtherFrame(int other_frame) {
+  delete _prev_others;
+  _prev_others = _curr_others;
+  _num_prev_others = _num_curr_others;
+  _curr_others = new int[1];
+  _curr_others[0] = other_frame;
+  _num_curr_others = 1;
+}
+
+void FrameEditor::OtherFrames(int* other_frames, int num_other_frames) {
+  delete _prev_others;
+  _prev_others = _curr_others;
+  _num_prev_others = _num_curr_others;
+  _curr_others = new int[num_other_frames];
+  for (int i=0; i<num_other_frames; i++) 
+    _curr_others[i] = other_frames[i];
+  _num_curr_others = num_other_frames;
+}
+
+  
+  

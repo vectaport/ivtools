@@ -115,6 +115,7 @@ ivtools-0.8/src/Attribute/attrlist.c
 ivtools-0.8/src/Attribute/attrlist.h
 ivtools-0.8/src/Attribute/attrvalue.c
 ivtools-0.8/src/Attribute/attrvalue.h
+ivtools-0.8/src/Attribute/classid.h
 ivtools-0.8/src/Attribute/commodule.c
 ivtools-0.8/src/Attribute/commodule.h
 ivtools-0.8/src/Attribute/lexscan.c
@@ -191,6 +192,8 @@ ivtools-0.8/src/ComUnidraw/comterp-acehandler.c
 ivtools-0.8/src/ComUnidraw/comterp-acehandler.h
 ivtools-0.8/src/ComUnidraw/comterp-iohandler.c
 ivtools-0.8/src/ComUnidraw/comterp-iohandler.h
+ivtools-0.8/src/ComUnidraw/grdotfunc.c
+ivtools-0.8/src/ComUnidraw/grdotfunc.h
 ivtools-0.8/src/ComUnidraw/grfunc.c
 ivtools-0.8/src/ComUnidraw/grfunc.h
 ivtools-0.8/src/ComUnidraw/grstatfunc.c

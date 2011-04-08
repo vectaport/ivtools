@@ -600,8 +600,8 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
 	if (localtable()->find(vptr, comval.symbol_val())) {
-	    comval.assignval(*(ComValue*)vptr);
-	    return comval;
+	  comval.assignval(*(ComValue*)vptr);
+	  return comval;
 	} else {
 	    if (_alist) {
      	        int id = comval.symbol_val();
@@ -620,6 +620,14 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 
     }       
     return comval;
+}
+
+ComValue& ComTerp::lookup_symval(int symid) {
+  void* vptr = nil;
+  if (localtable()->find(vptr, symid)) 
+    return *(ComValue*)vptr;
+  else 
+    return ComValue::nullval();
 }
 
 ComValue& ComTerp::stack_top(int n) {
@@ -782,7 +790,7 @@ void ComTerp::add_defaults() {
     add_command("iterate", new IterateFunc(this));
 
     add_command("dot", new DotFunc(this));
-    add_command("dotname", new DotNameFunc(this));
+    add_command("attrname", new DotNameFunc(this));
 
     add_command("list", new ListFunc(this));
     add_command("at", new ListAtFunc(this));
@@ -820,8 +828,8 @@ void ComTerp::add_defaults() {
     add_command("help", new HelpFunc(this));
     add_command("symid", new SymIdFunc(this));
     add_command("symval", new SymValFunc(this));
-    add_command("symbol", new SymbolFunc(this), "symval");
-    add_command("symvar", new SymVarFunc(this));
+    add_command("symbol", new SymbolFunc(this));
+    add_command("symadd", new SymAddFunc(this));
     add_command("postfix", new PostFixFunc(this));
     add_command("posteval", new PostEvalFunc(this));
 
@@ -864,11 +872,12 @@ int ComTerp::runfile(const char* filename) {
     FILE* fptr = fopen(filename, "r");
     _inptr = fptr;
     _outfunc = nil;
+    if (!fptr) cerr << "unable to run from file " << filename << "\n";
     
 
     ComValue* retval = nil;
     int status = 0;
-    while( !feof(fptr)) {
+    while( fptr && !feof(fptr)) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );

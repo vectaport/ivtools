@@ -64,6 +64,7 @@
 /*****************************************************************************/
 
 ParamList* RectOvComp::_ovrect_params = nil;
+int RectOvComp::_symid = -1;
 
 ClassId RectOvComp::GetClassId () { return OVRECT_COMP; }
 

@@ -27,7 +27,7 @@
 
 #include <stdlib.h>
 #include <OS/enter-scope.h>
-#include <Attribute/_comutil.h>
+#include <Attribute/classid.h>
 
 extern "C" {
     int symbol_add(char*);
@@ -203,6 +203,11 @@ public:
     boolean command_alias();
     // returns true if command is an alias, not the first name.
 
+    boolean object_compview() { return _object_compview; }
+    // true if object is wrapped with a ComponentView
+    void object_compview(boolean flag) { _object_compview = flag; }
+    // true if object is wrapped with a ComponentView
+
     void negate();
     // negate numeric values.
 
@@ -302,6 +307,7 @@ protected:
     union { 
       ValueType _aggregate_type; // used for ArrayType.
       unsigned int _command_symid; // used for CommandType.
+      boolean _object_compview; // used for ObjectType.
     };
 
 };

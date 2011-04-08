@@ -302,7 +302,8 @@ ComFuncState* ComFunc::funcstate() {
 
 void ComFunc::push_funcstate(int nargs, int nkeys, int pedepth,
 			     int command_symid) {
-  ComFuncState cfs(nargs, nkeys, pedepth, command_symid);
+  ComFuncState cfs(nargs, nkeys, pedepth, 
+		   command_symid==0 ? classid() : command_symid );
   _comterp->push_funcstate(cfs);
 }
 

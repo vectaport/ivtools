@@ -65,6 +65,8 @@ protected:
     int _linewidth;
 
 friend TextFileScript;
+
+    CLASS_SYMID("TextFileComp");
 };
 
 //: graphical view of a TextOvComp.

@@ -43,6 +43,7 @@
 #include <Unidraw/catalog.h>
 #include <Unidraw/clipboard.h>
 #include <Unidraw/editor.h>
+#include <Unidraw/selection.h>
 #include <Unidraw/statevars.h>
 #include <Unidraw/unidraw.h>
 
@@ -117,7 +118,8 @@ void CreateRectFunc::execute() {
 	Unref(rel);
 	RectOvComp* comp = new RectOvComp(rect);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("RectComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -179,7 +181,8 @@ void CreateLineFunc::execute() {
 	Unref(rel);
 	ArrowLineOvComp* comp = new ArrowLineOvComp(line);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowLineComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -240,7 +243,8 @@ void CreateEllipseFunc::execute() {
 	Unref(rel);
 	EllipseOvComp* comp = new EllipseOvComp(ellipse);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("EllipseComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -302,7 +306,8 @@ void CreateTextFunc::execute() {
 	text->Translate(args[x0], args[y0]);
 	TextOvComp* comp = new TextOvComp(text);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("TextComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else
         push_stack(ComValue::nullval());
@@ -365,7 +370,8 @@ void CreateMultiLineFunc::execute() {
 	Unref(rel);
 	ArrowMultiLineOvComp* comp = new ArrowMultiLineOvComp(multiline);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowMultiLineComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -428,7 +434,8 @@ void CreateOpenSplineFunc::execute() {
 	Unref(rel);
 	ArrowSplineOvComp* comp = new ArrowSplineOvComp(openspline);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowSplineComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -489,7 +496,8 @@ void CreatePolygonFunc::execute() {
 	Unref(rel);
 	PolygonOvComp* comp = new PolygonOvComp(polygon);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("PolygonComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -551,7 +559,8 @@ void CreateClosedSplineFunc::execute() {
 	Unref(rel);
 	ClosedSplineOvComp* comp = new ClosedSplineOvComp(closedspline);
 	cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(_compview_id, new ComponentView(comp));
+	ComValue compval(symbol_add("ClosedSplineComp"), new ComponentView(comp));
+	compval.object_compview(true);
 	push_stack(compval);
     } else 
 	push_stack(ComValue::nullval());
@@ -653,13 +662,16 @@ SelectFunc::SelectFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) 
 }
 
 void SelectFunc::execute() {
-    Selection* s = _ed->GetSelection();
-    delete s;
+    static int all_symid = symbol_add("all");
+    ComValue all_flagv(stack_key(all_symid));
+    boolean all_flag = all_flagv.is_true();
+
+    Selection* sel = _ed->GetViewer()->GetSelection();
     OverlaySelection* newSel = new OverlaySelection();
     
     Viewer* viewer = _ed->GetViewer();
     AttributeValueList* avl = new AttributeValueList();
-    if (nargs()==0) {
+    if (all_flag) {
 
       GraphicView* gv = ((OverlayEditor*)_ed)->GetFrame();
       Iterator i;
@@ -667,30 +679,51 @@ void SelectFunc::execute() {
       for (gv->First(i); !gv->Done(i); gv->Next(i)) {
 	GraphicView* subgv = gv->GetView(i);
 	newSel->Append(subgv);
-	GraphicComp* comp = subgv->GetGraphicComp();
-	ComValue* compval = new ComValue(_compview_id, new ComponentView(comp));
+	OverlayComp* comp = (OverlayComp*)subgv->GetGraphicComp();
+	ComValue* compval = new ComValue(comp->classid(), new ComponentView(comp));
+	compval->object_compview(true);
 	avl->Append(compval);
+      }
+
+    } else if (nargs()==0) {
+      Iterator i;
+      int count=0;
+      for (sel->First(i); !sel->Done(i); sel->Next(i)) {
+	GraphicView* grview = sel->GetView(i);
+	OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+	ComValue* compval = comp ? new ComValue(comp->classid(), new ComponentView(comp)) : nil;
+
+	if (compval) {
+	  compval->object_compview(true);
+	  avl->Append(compval);
+	}
+	delete newSel;
+        newSel = nil;
       }
 
     } else {
 
       for (int i=0; i<nargsfixed(); i++) {
         ComValue& obj = stack_arg(i);
-	if (obj.obj_type_val() == _compview_id) {
+	if (obj.object_compview()) {
 	  ComponentView* comview = (ComponentView*)obj.obj_val();
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
 	    newSel->Append(comp->FindView(viewer));
-	    ComValue* compval = new ComValue(_compview_id, new ComponentView(comp));
+	    ComValue* compval = new ComValue(comp->classid(), new ComponentView(comp));
+	    compval->object_compview(true);
 	    avl->Append(compval);
 	  }
 	}
       }
     }
 
-    _ed->SetSelection(newSel);
-    newSel->Update();
-    unidraw->Update();
+    if (newSel){
+      delete sel;
+      _ed->SetSelection(newSel);
+      newSel->Update();
+      unidraw->Update();
+    }
     reset_stack();
     ComValue retval(avl);
     push_stack(retval);

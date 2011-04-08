@@ -72,6 +72,8 @@ protected:
     boolean _by_pathname;
 
 friend StencilScript;
+
+    CLASS_SYMID("StencilComp"); 
 };
 
 //: graphical view of StencilOvComp.

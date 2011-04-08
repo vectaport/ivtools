@@ -39,6 +39,7 @@
 #include <OverlayUnidraw/ovviewer.h>
 
 #include <IVGlyph/observables.h>
+#include <IVGlyph/textedit.h>
 
 #include <UniIdraw/idcmds.h>
 #include <UniIdraw/idkybd.h>
@@ -75,6 +76,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+implementActionCallback(OverlayEditor)
+
 /*****************************************************************************/
 
 inline void InsertSeparator (PulldownMenu* pdm) {
@@ -100,7 +103,6 @@ inline PulldownMenu* MakePulldown (const char* name) {
 
 AttributeList* OverlayEditor::_edlauncherlist = nil;
 AttributeList* OverlayEditor::_comterplist = nil;
-
 
 OverlayEditor::OverlayEditor (OverlayComp* comp, OverlayKit* ok) : IdrawEditor(false) {
     _viewer = nil;
@@ -138,6 +140,7 @@ OverlayEditor::OverlayEditor (boolean initflag, OverlayKit* ok) : IdrawEditor(in
     ok->SetEditor(this);
     _overlay_kit = ok;
     _mousedoc = new ObservableText("");
+    _texteditor = nil;
 }
 
 OverlayEditor::~OverlayEditor() {
@@ -145,6 +148,7 @@ OverlayEditor::~OverlayEditor() {
 }
 
 void OverlayEditor::Init (OverlayComp* comp, const char* name) {
+    _texteditor = nil;
     if (!comp) comp = new OverlayIdrawComp;
     _overlay_kit->Init(comp, name);
 }
@@ -385,3 +389,23 @@ void OverlayEditor::ResetStateVars() {
     delete cmd;
   }
 }
+
+void OverlayEditor::SetText() {
+    GraphicComp* comp = GetFrame()->GetGraphicComp();
+    ((OverlayComp*)comp)->SetAnnotation(TextEditor()->text());
+    ((ModifStatusVar*)GetState("ModifStatusVar"))->SetModifStatus(true);
+}
+
+void OverlayEditor::ClearText() {
+    _texteditor->text("");
+}
+
+void OverlayEditor::UpdateText(OverlayComp* comp, boolean update) {
+    if (_texteditor) {
+	const char* txt = comp->GetAnnotation();
+	if (!txt)
+	    txt = "";
+	_texteditor->text(txt, update);
+    }
+}
+

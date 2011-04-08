@@ -30,7 +30,7 @@
 
 #include <OS/enter-scope.h>
 #include <InterViews/resource.h>
-#include <Attribute/_comutil.h>
+#include <Attribute/classid.h>
 
 #ifndef ALITERATOR
 #define ALIterator _lib_iv(Iterator)

@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-0.8
 
-Instructions for building ivtools-0.8.1 from source:
+Instructions for building ivtools-0.8.2 from source:
 
 0. Compilation Environment
 
@@ -15,8 +15,8 @@ Irix, Dec Alpha, HPUX, and SunOS.
 egcs-1.0.3 and gcc-2.8.1.  gcc-2.7.2 will still work, as probably
 would gcc-2.6.3.  You will also need an equivalent copy of libstdc++.
 The libstdc++ version numbers stay roughly in synch with the gcc
-version numbers.  If you have if you have gcc-2.8.1 you'd want
-libstdc++-2.8.1, etc..
+version numbers.  If you have gcc-2.8.1 you'd want libstdc++-2.8.1,
+etc..
 
 0.c. An installed copy of X11R6 as distributed by the Open Group, or
 an equivalent (XFree86 for Linux, or X11R5 from MIT).  If you use a

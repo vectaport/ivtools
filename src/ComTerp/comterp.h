@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and

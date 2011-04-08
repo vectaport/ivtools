@@ -163,7 +163,7 @@ Run contents of file then exit.
 
 .SH LIST COMMANDS:
  
- lst=list() -- create an empty list
+ lst=list([olst]) -- create an empty list or copy existing one
 
  val=at(list n) -- return nth item in a list
 
@@ -188,16 +188,17 @@ Run contents of file then exit.
 
  symid(symbol [symbol...]) -- return integer id(s) associated with symbol(s)
 
- symval(symbol [symbol...]) -- return symbols as is without lookup
-
  symbol(symid [symid...]) -- return symbol(s) associated with integer id(s)
 
- symvar(symbol_var [symbol_var...]) -- return value(s) associated with symbol variable(s)
+ symval(symbol [symbol...]) -- return value(s) associated with symbol variables(s)
+
+ symadd(symbol [symbol ...]) -- create symbol(s) and return without lookup.
 
  postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
 
  arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
 				 
+ sym=attrname(attribute) -- return name field of dotted pair.
 
  quit() -- quit the interpreter
 

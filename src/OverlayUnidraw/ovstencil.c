@@ -50,12 +50,14 @@
 /*****************************************************************************/
 
 ParamList* StencilOvComp::_ovstencil_params = nil;
+int StencilOvComp::_symid = -1;
 
 static const int no_mask = 0;
 static const int mask_equals_image = 1;
 static const int valid_mask = 2;
 
 /*****************************************************************************/
+
 
 ClassId StencilOvComp::GetClassId () { return OVSTENCIL_COMP; }
 

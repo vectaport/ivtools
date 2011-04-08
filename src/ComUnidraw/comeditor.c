@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -21,6 +22,7 @@
  * 
  */
 
+#include <ComUnidraw/grdotfunc.h>
 #include <ComUnidraw/grfunc.h>
 #include <ComUnidraw/grstatfunc.h>
 #include <ComUnidraw/comeditor.h>
@@ -173,6 +175,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
       comterp->add_command("barplot", new BarPlotFunc(comterp, this));
 
     comterp->add_command("import", new ImportFunc(comterp, this));
+
+    comterp->add_command("dot", new GrDotFunc(comterp));
+    comterp->add_command("attrlist", new GrAttrListFunc(comterp));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {

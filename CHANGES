@@ -1,3 +1,131 @@
+April 28th 2000 ivtools-0.8.2
+
+- Add a new version of a dot (".") func to comdraw, one that accesses
+the AttributeList of a graphical component. This allows for easy
+set/get access to the attributes of graphics in a drawing editor.
+
+- Change default behavior of comdraw select func to return list of
+graphics in current selection.  Implement the :all feature as well.
+This is a non-backward compatible change for anyone who has relied on
+the undocumented way the select func has behaved up until now (which
+was the same as :all behavior should have been).
+
+- change comterp list output (what gets printed when a list is
+returned on the stack) to use "," instead of "\n" and surround the
+entire list with "{" and "}".  Now you can see the difference between
+lists of length 1 and scalars.
+
+- copy/move capability for text editor with interpreter from
+FrameUnidraw to OverlayUnidraw, and make use of it in comdraw.
+
+- add a flag to ComValue (use space from one of two type-specific
+unions) to indicate the void* pointer stored in an ComValue of
+ObjectType is really a ComponentView, not the class indicated by the
+classid symbol associated with it.  This allows derived ComFunc's to
+detect whether an object pointer is really a ComponentView indirection
+to some Component object.
+
+- fix bug in comterp telcat mode where a bad pathname segfaults.
+
+- extend OverlayComp::FindValue to support the "up" flag.
+
+- change all the derived ComFunc's that work with ComponentView's to
+set the ComValue::_object_compview flag, and provide a symbol for the
+classid that corresponds to the kind of component.  This needs to
+become a virtual method on every component, which requires adding
+CLASS_SYMID to all the *comp(s).h in the OverlayUnidraw library.
+
+- create "attrname" command to return name of attribute name/value pair.
+
+- create "attrlist" command to return the AttributeList of a component.
+
+- fix the adjusting of relative pathnames for an OverlayFileComp when
+the whole document is saved out to a different directory.
+
+- finish migration to use of ComValue::object_compview method.
+
+- add FrameScript::suppress_frame method to trim the output of "frame"
+objects from a derived program, i.e. a map viewer.
+
+- extend the use of a symbol-table based class id to all the
+components in OverlayUnidraw, GraphUnidraw, and FrameUnidraw, so that
+the command interpreter can print the class name of objects returned
+on the stack.  Elide the "Ov" from certain class names,
+i.e. "RasterComp" instead of "RasterOvComp".
+
+- fix the equality operator (==) of comterp to return 0 when one
+argument is of unknown type (unless both are of unknown type)
+
+- finalize arrangement of symbol manipulating commands of comterp:
+
+	symid	return symbol id given symbol
+	symbol  return symbol given symbol id
+	symval	lookup value associated with symbol
+	symadd  return symbol without value lookup
+
+because symbol lookup is automatic in the interpreter, you only have to use symval when passing a symbol argument by variable to a command that accepts symbols without lookup.  The command will take the name of the variable for input, not its contents, so wrapping it in symval() has the desired affect.
+
+symadd() is how you get a symbol assigned to a variable.
+
+- add test for non-existent input file to run() command.
+
+- extend list() command to initialize new list with contents of old
+list supplied as the first argument, i.e. with "l1=1,2,3;
+l2=list(v),4" lists l1 and l2 are distinct, where as with
+"l1=1,2,3; l2=l1,4" l1 and l2 are the same.
+
+- add numframes() command to flipbook interpreter, and
+FrameEditor::NumFrames method.  
+
+- fix bug in comterp ! operator that made it not work for anything but boolean.
+
+- show many frames at once in ivtools flipbook with a new "showframes"
+command.  If four frames (plus background) existed in a flipbook
+editor, this would show the first and third frame (and the the
+background), when entered into the interpreter:
+
+	showframes(1,4)
+
+This required generalizing the "other" frame concept of FrameEditor to
+be a list of other frames to see instead of a single frame.  To
+preserve the "current frame" concept in the editor, the list of frames
+given to "showframes" is searched for the max frame to make it the
+current (and foremost) frame, then internally all other "other" frames
+are stored as negative offsets from this frame.  It would be possible
+to have a mode (a keyword flag) on "showframes" to interpret the input
+list as offsets both positive and negative from the current flag
+(i.e. :offsets).
+
+- add ComTerp::lookup_symval(int symid), to give a non-in-place way of
+looking up a variable's value.
+
+- make the comterp nil command post-evaluated, so none of its
+arguments are processed or pushed on the stack.
+
+- fix a problem where inner-parenthesis (or extra outer parentheses)
+on an expression wouldn't work when part of the body of a
+post-evaluated command (i.e. for, cond, while, etc.).
+
+Before this didn't work:  cond(1 (1+2)*3)
+
+Or this:		  cond(1 (1))
+
+This time the bug wasn't in the mechanism for post-evaluating the
+byte-compiled script, as many similar bugs have been in the past.
+This time the fix was to a parser tweak adopted not that long ago to
+generate blank placeholders in the parser output (the postfix
+expression) to preserve where free-standing parentheses existed in the
+original expression.
+
+- and now a better fix for the inner paren problems of the comterp
+parser.  I finally came to understand the origin of the problem was
+not the popping of matched stand-alone parens, but in the failure to
+recognize when parenthesized expressions are different from
+parenthesized arguments.  Consider "a(b (3))" v.s. "a(2 (3))" (try
+this with "comtest parser" if you want.  You might think the command
+"a" has two arguments in each case.  But in the first case it has only
+one, and the "(3)" is interpreted as arguments for the command "b".  
+
 March 9th 2000 ivtools-0.8.1
 
 Interpreter Changes

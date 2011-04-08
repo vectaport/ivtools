@@ -40,6 +40,7 @@ class ComTerpServ;
 class Editor;
 class GraphicView;
 class Grid;
+class EivTextEditor;
 class ObservableText;
 class OverlayComp;
 class OverlayPanner;
@@ -161,6 +162,16 @@ public:
     // indirect command execution for distributed whiteboard mechanism.
     // actual mechanism implemented in ComEditor.
 
+    void SetText();
+    // set contents of text-editor.
+    void ClearText();
+    // clear contents of text-editor.
+
+    EivTextEditor* TextEditor() { return _texteditor; }
+    // return pointer to text-editor that holds current frame annotation.
+    void UpdateText(OverlayComp*, boolean update =true);
+    // update contents of text-editor with frame annotation.
+
 protected:
     void Init(OverlayComp* = nil, const char* = "OverlayEditor");
     // construct empty component tree if necessary, and pass to
@@ -175,16 +186,28 @@ protected:
     int panner_align();
     // handle -panner_align or -pal command line argument.
 
+    virtual ComTerpServ* GetComTerp() { return nil; }
+    // return nil because this is not a ComEditor.
+    virtual ComTerpServ* comterp() { return nil; }
+    // return nil because this is not a ComEditor.
+    virtual void SetComTerp(ComTerpServ* terp) { }
+    // do nothing because this is not a ComEditor
+    virtual void comterp(ComTerpServ* terp) { }
+    // do nothing because this is not a ComEditor
+
 protected: 
     OverlayKit* _overlay_kit;
     Tool* _curtool;
     ObservableText* _mousedoc;
     PtrLocState* _ptrlocstate;
+    EivTextEditor* _texteditor;
     static AttributeList* _edlauncherlist;
     static AttributeList* _comterplist;
 
 friend OverlayKit;
 };
+
+declareActionCallback(OverlayEditor)
 
 inline ObservableText* OverlayEditor::MouseDocObservable() { return _mousedoc; }
 

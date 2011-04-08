@@ -65,6 +65,8 @@ protected:
     static ParamList* _ovtext_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("TextComp"); 
 };
 
 //: graphical view of TextOvComp.

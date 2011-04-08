@@ -151,13 +151,14 @@ public:
 };
 
 //: command to select graphics in comdraw.
-// select([compview ...]) -- make these graphics the current selection (dflt is all)
+// select([compview ...] :all) -- make these graphics the current selection, 
+// default returns current selection.
 class SelectFunc : public UnidrawFunc {
 public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([compview ...]) -- make these graphics the current selection (dflt is all)"; }
+	return "%s([compview ...] :all) -- make these graphics the current selection (dflt is current)"; }
 };
 
 //: command to move current selection in comdraw

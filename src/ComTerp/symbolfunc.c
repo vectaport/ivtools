@@ -72,10 +72,10 @@ void SymIdFunc::execute() {
 
 /*****************************************************************************/
 
-SymValFunc::SymValFunc(ComTerp* comterp) : ComFunc(comterp) {
+SymAddFunc::SymAddFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-void SymValFunc::execute() {
+void SymAddFunc::execute() {
   // return each symbol in the arguments as is
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
@@ -143,10 +143,10 @@ void SymbolFunc::execute() {
 
 /*****************************************************************************/
 
-SymVarFunc::SymVarFunc(ComTerp* comterp) : ComFunc(comterp) {
+SymValFunc::SymValFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-void SymVarFunc::execute() {
+void SymValFunc::execute() {
   // return value for each symbol variable
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
@@ -156,6 +156,7 @@ void SymVarFunc::execute() {
 
     // return fully-evaluated value: expression --> symbol --> value
     varvalues[i] = &stack_arg(i, false); 
+    //    lookup_symval(*varvalues[i]);
   }
 
   if (numargs>1) {
@@ -167,6 +168,7 @@ void SymVarFunc::execute() {
     push_stack(retval);
   } else {
     ComValue retval (*varvalues[0]);
+    reset_stack();
     push_stack(retval);
   }
 }

@@ -581,7 +581,6 @@ BOOLEAN ambiguous;      /* Used to indicate string of amb. ops. */
 int temp_id;            /* Temporary variables */
 int index;
 int status;
-int blank_count = 0; 
 
 /* Static initialization */
    if( *linenum == 0 ) {
@@ -1012,6 +1011,12 @@ int blank_count = 0;
 		 UNEXPECTED_NEW_EXPRESSION ) {
 		 UNEXPECTED_LPAREN_ERROR( tokstart );
 	     }
+
+             /* End of an argument                     */
+	     if( TopOfParenStack >= 0) {
+	         ParenStack[ TopOfParenStack ].narg++;
+	     }
+
 	 }
 
       /* If left paren was encountered without a proceeding identifier   */
@@ -1084,10 +1089,16 @@ int blank_count = 0;
 
       /* If this parenthesis corresponds to a command, set up the */
       /* the number of embedded arguments and keywords, and output */
-	 if( expecting == OPTYPE_BINARY ) ParenStack[TopOfParenStack].narg++;
-
 	 if( ParenStack[TopOfParenStack].comm_id >= 0 )
          {
+	    if( expecting == OPTYPE_BINARY) {
+	      
+	      /* End of an argument                     */
+	      if( TopOfParenStack >= 0) {
+		ParenStack[ TopOfParenStack ].narg++;
+	      }
+	    }
+
             if (ParenStack[TopOfParenStack].nids > 0)
             {
                int i, lp;
@@ -1096,15 +1107,12 @@ int blank_count = 0;
 
                for (i = 0; i < lp; i++)
                {
-		  ParenStack[TopOfParenStack].narg += 
-		     blank_count>1 ? blank_count-1 : 0;
   	          PFOUT( TOK_COMMAND,
                      ParenStack[TopOfParenStack].comm_id,
                      ParenStack[TopOfParenStack].narg,
 		     ParenStack[TopOfParenStack].nkey,
 		     ParenStack[TopOfParenStack].nids );
                   --TopOfParenStack;
-   	          blank_count = 0;
                }
             }
             else
@@ -1122,7 +1130,11 @@ int blank_count = 0;
 
 	   PFOUT_LITERAL( TOK_BLANK, token );
 	   --TopOfParenStack;
-	   blank_count++;
+#if 0
+	   if (TopOfParenStack>=0) {
+	        ParenStack[TopOfParenStack].narg++;
+	   }
+#endif
          }
 
       /* Set up to expect a binary */

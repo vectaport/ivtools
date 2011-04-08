@@ -102,6 +102,8 @@ public:
     // initialize viewer to go with the editor.
     virtual void InitLayout(const char* name);
     // initialize chrome that goes around the viewer.
+    static void InitLayout(OverlayKit* kit, const char* name);
+    // static method that implements virtual method.
 
     virtual Glyph* MakeMenus();
     // make all the pull-down menus and their menu bar.
@@ -179,6 +181,10 @@ public:
     // set possible alternate X display string for constructing viewer.  
     // Not yet working.
 
+    boolean& set_button_flag() { return _set_button_flag; }
+    // flag to add setr button to text editor
+    boolean& clr_button_flag() { return _clr_button_flag; }
+    // flag to add clear button to text editor
 protected:
     Glyph* MenuLine(PSBrush*);
     // create line to put in a pulldown menu.
@@ -204,6 +210,8 @@ protected:
     Patch* _toolbar;
 
     char* _otherdisplay;
+    boolean _set_button_flag;
+    boolean _clr_button_flag;
 
 protected:
     static OverlayKit* _overlaykit;

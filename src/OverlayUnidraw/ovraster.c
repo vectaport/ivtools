@@ -91,6 +91,8 @@ static char hexcharmap[] = {
 
 /*****************************************************************************/
 
+int RasterOvComp::_symid = -1;
+
 static ostream& operator<<(ostream& out, const CopyStringList& sl) {
     for (ListItr(CopyStringList) i(sl); i.more(); i.next()) {
         out << i.cur_ref().string() << "\n";

@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2000 IET Inc.
- * Copyright (c) 1998 Vectaport Inc.
+ * Copyright (c) 1998-2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -27,8 +27,12 @@
 #include <FrameUnidraw/framefunc.h>
 #include <FrameUnidraw/frameviews.h>
 #include <Unidraw/iterator.h>
+#include <Unidraw/unidraw.h>
 #include <Unidraw/viewer.h>
 #include <ComTerp/comvalue.h>
+#include <Attribute/attrlist.h>
+#include <OS/math.h>
+#include <iostream.h>
 
 static int on_symid = symbol_add("on");
 static int off_symid = symbol_add("off");
@@ -40,7 +44,7 @@ MoveFrameFunc::MoveFrameFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp
 
 void MoveFrameFunc::execute() {
   ComValue deltav(stack_arg(0, false, ComValue::oneval()));
-  static int abs_symid = symbol_find("abs");
+  static int abs_symid = symbol_add("abs");
   ComValue absflag(stack_key(abs_symid));
   reset_stack();
 
@@ -103,5 +107,66 @@ void AutoNewFrameFunc::execute() {
       if (ed->AutoNewFrame()) ed->ToggleAutoNewFrame();
     }
   }
+}
+
+/*****************************************************************************/
+
+NumFramesFunc::NumFramesFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void NumFramesFunc::execute() {
+  reset_stack();
+  FrameEditor* ed = (FrameEditor*)GetEditor();
+  ComValue retval(ed->NumFrames());
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+ShowFramesFunc::ShowFramesFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void ShowFramesFunc::execute() {
+  FrameEditor* ed = (FrameEditor*)GetEditor();
+  ComValue flistv(stack_arg(0));
+  reset_stack();
+  AttributeValueList* avl = nil;
+  if (flistv.is_array() && 
+      (avl = flistv.array_val()) &&
+      avl->Number()>1 ) {
+    int topframe = 0;
+    int num_others=0;
+    Iterator it;
+    for (avl->First(it); !avl->Done(it); avl->Next(it)) {
+      topframe = Math::max(topframe, avl->GetAttrVal(it)->int_val());
+    }
+    ComValue topval(topframe, ComValue::IntType);
+    static int abs_symid = symbol_add("abs");
+    ComValue abskey(abs_symid, 0, ComValue::KeywordType);
+    push_stack(topval);
+    push_stack(abskey);
+    MoveFrameFunc moveframefunc(comterp(), ed);
+    moveframefunc.push_funcstate(1, 1, pedepth());
+    moveframefunc.execute();
+    moveframefunc.pop_funcstate();
+    pop_stack();
+    const int otherslen=avl->Number()-1;
+    int others[otherslen];
+    int otherscnt=0;
+    for (avl->First(it); !avl->Done(it); avl->Next(it)) {
+      int currframe = avl->GetAttrVal(it)->int_val();
+      if (currframe != topframe) {
+	int offset = currframe-topframe;
+	boolean takenflag=false;
+	for(int i=0; !takenflag && i<otherscnt; i++) 
+	  takenflag = others[i]==offset;
+	if (!takenflag) 
+	  others[otherscnt++] = offset;
+      }
+    }
+    ed->OtherFrames(others, otherscnt);
+    ed->UpdateFrame(true);
+  } else
+    cerr << "showframes:  need at least two frames for this command.\n";
 }
 

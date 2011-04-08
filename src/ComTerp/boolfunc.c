@@ -134,7 +134,7 @@ void NegFunc::execute() {
     ComValue& operand1 = stack_arg(0);
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
-    switch (result.type()) {
+    switch (operand1.type()) {
     case ComValue::CharType:
 	result.char_ref() = ! operand1.char_val();
 	break;
@@ -168,6 +168,17 @@ void NegFunc::execute() {
     case ComValue::BooleanType:
         result.boolean_ref() = ! operand1.boolean_val();
 	break;
+    case ComValue::UnknownType:
+        result.boolean_ref() = true;
+	break;
+    case ComValue::ArrayType:
+    case ComValue::ObjectType:
+        result.boolean_ref() = false;
+	break;
+    case ComValue::SymbolType:
+    case ComValue::StringType:
+        result.boolean_ref() = operand1.symbol_val()<0;
+	break;
     }
     reset_stack();
     push_stack(result);
@@ -183,47 +194,52 @@ void EqualFunc::execute() {
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
 
-    switch (operand1.type()) {
-    case ComValue::CharType:
+    if (operand2.type()==ComValue::UnknownType && operand1.type()!=ComValue::UnknownType)
+      result.boolean_ref() = 0;
+    
+    else {
+      switch (operand1.type()) {
+      case ComValue::CharType:
 	result.boolean_ref() = operand1.char_val() == operand2.char_val();
 	break;
-    case ComValue::UCharType:
+      case ComValue::UCharType:
 	result.boolean_ref() = operand1.uchar_val() == operand2.uchar_val();
 	break;
-    case ComValue::ShortType:
+      case ComValue::ShortType:
 	result.boolean_ref() = operand1.short_val() == operand2.short_val();
 	break;
-    case ComValue::UShortType:
+      case ComValue::UShortType:
 	result.boolean_ref() = operand1.ushort_val() == operand2.ushort_val();
 	break;
-    case ComValue::IntType:
+      case ComValue::IntType:
 	result.boolean_ref() = operand1.int_val() == operand2.int_val();
 	break;
-    case ComValue::UIntType:
+      case ComValue::UIntType:
 	result.boolean_ref() = operand1.uint_val() == operand2.uint_val();
 	break; 
-    case ComValue::LongType:
+      case ComValue::LongType:
 	result.boolean_ref() = operand1.long_val() == operand2.long_val();
 	break;
-    case ComValue::ULongType:
+      case ComValue::ULongType:
 	result.boolean_ref() = operand1.ulong_val() == operand2.ulong_val();
 	break;
-    case ComValue::FloatType:
+      case ComValue::FloatType:
 	result.boolean_ref() = operand1.float_val() == operand2.float_val();
 	break;
-    case ComValue::DoubleType:
+      case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() == operand2.double_val();
 	break;
-    case ComValue::StringType:
+      case ComValue::StringType:
 	result.boolean_ref() = operand1.string_val() == operand2.string_val();
 	break;
-    case ComValue::SymbolType:
+      case ComValue::SymbolType:
 	result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
 	break;
-    default:
+      default:
         result.boolean_ref() = operand1.is_type(ComValue::UnknownType) && 
-	                       operand2.is_type(ComValue::UnknownType);
+	  operand2.is_type(ComValue::UnknownType);
 	break;
+      }
     }
     reset_stack();
     push_stack(result);

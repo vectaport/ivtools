@@ -97,8 +97,6 @@ static const char* grid_y_incr = "gridyincr";
 FrameKit* FrameKit::_framekit = nil;
 
 FrameKit::FrameKit () {
-  _set_button_flag = false;
-  _clr_button_flag = false;
 }
 
 FrameKit* FrameKit::Instance() {
@@ -181,8 +179,8 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 	ed->GetKeyMap()->Execute(CODE_SELECT);
 	topbox->append(ed);
 	if (!bookgeom) {
-	    boolean set_flag = ((FrameKit*)kit)->_set_button_flag;
-	    boolean clr_flag = ((FrameKit*)kit)->_clr_button_flag;
+	    boolean set_flag = kit->set_button_flag();
+	    boolean clr_flag = kit->clr_button_flag();
 	    EivTextEditor* texteditor = nil;
 	    if(!set_flag && !clr_flag) {
 	      texteditor = new ComTextEditor(wk.style(), ed->comterp());

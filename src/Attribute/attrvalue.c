@@ -116,6 +116,7 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
     _type = AttributeValue::ObjectType;
     _v.objval.ptr = ptr;
     _v.objval.type = classid;
+    _object_compview = false;
 }
 
 AttributeValue::AttributeValue(AttributeValueList* ptr) { 
@@ -869,9 +870,12 @@ boolean AttributeValue::is_attribute() {
 }
 
 void* AttributeValue::geta(int id) {
-    if (is_object(id)) 
-        return obj_val();
+  if (is_object(id)) {
+    if (object_compview())
+      return nil;
     else
-        return nil;
+      return obj_val();
+  } else
+    return nil;
 }
 

@@ -122,8 +122,9 @@ void IueGaussianFunc::execute() {
       ops.Gaussian(*fsrc, fsrc, sigma.float_val());
       PutFloatBuffer(src, fsrc);
       IueImageComp* imagecomp = new IueImageComp(src);
-      ComValue retval(ComValue::ObjectType, new ComponentView(imagecomp));
-      retval.obj_type_ref() = IueImageComp::class_symid();
+      ComValue retval(imagecomp->classid(), new ComponentView(imagecomp));
+      // retval.obj_type_ref() = IueImageComp::class_symid();
+      retval.object_compview(true);
       push_stack(retval);
       return;
     }
@@ -186,8 +187,9 @@ void IueThresholdFunc::execute() {
       }
       PutFloatBuffer(dst, fdst);
       IueImageComp* imagecomp = new IueImageComp(dst);
-      ComValue retval(ComValue::ObjectType, new ComponentView(imagecomp));
-      retval.obj_type_ref() = IueImageComp::class_symid();
+      ComValue retval(imagecomp->classid(), new ComponentView(imagecomp));
+      // retval.obj_type_ref() = IueImageComp::class_symid();
+      retval.object_compview(true);
       push_stack(retval);
       return;
     }

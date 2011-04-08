@@ -55,6 +55,8 @@ protected:
     static ParamList* _ovspline_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("SplineComp"); 
 };
 
 //: graphic view of SplineOvComp.
@@ -122,6 +124,8 @@ protected:
     static ParamList* _ovclosed_spline_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("ClosedSplineComp"); 
 };
 
 //: graphic view of ClosedSplineOvComp.

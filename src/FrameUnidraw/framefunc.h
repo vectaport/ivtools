@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998,1999 Vectaport Inc.
+ * Copyright (c) 1998-2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -54,6 +54,26 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(:on :off) -- command to toggle autonewframe"; }
+};
+
+//: interpreter command to return number of frames in viewer
+// numframes() -- return number of frames in viewer
+class NumFramesFunc : public UnidrawFunc {
+public:
+    NumFramesFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s() -- return number of frames in viewer"; }
+};
+
+//: interpreter command to show a set of frames at once
+// showframes(fnum[,fnum[...,fnum]]) -- show list of frames
+class ShowFramesFunc : public UnidrawFunc {
+public:
+    ShowFramesFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(fnum[,fnum[...,fnum]]) -- show list of frames"; }
 };
 
 #endif /* !defined(_framefunc_h) */

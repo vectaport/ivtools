@@ -108,6 +108,8 @@ protected:
     static ParamList* _edge_params;
     int _start_node;
     int _end_node;
+
+    CLASS_SYMID("EdgeComp");
 };
 
 //: graphical view of EdgeComp

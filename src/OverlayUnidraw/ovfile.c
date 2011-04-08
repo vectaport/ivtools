@@ -41,6 +41,7 @@
 /*****************************************************************************/
 
 ParamList* OverlayFileComp::_overlay_file_params = nil;
+int OverlayFileComp::_symid = -1;
 
 OverlayFileComp::OverlayFileComp(OverlayComp* parent) : OverlaysComp(parent) {
     _pathname = nil;
@@ -133,6 +134,10 @@ void OverlayFileComp::Append(GraphicComp* comp) {
   }
   OverlaysComp::Append(comp);
   SetAttributeList(((OverlayComp*)comp)->GetAttributeList());
+}
+
+void OverlayFileComp::AdjustBaseDir(const char* olddir, const char* newdir) {
+  OverlayComp::AdjustBaseDir(olddir, newdir);
 }
 
 /*****************************************************************************/

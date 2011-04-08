@@ -61,6 +61,8 @@ protected:
     static ParamList* _ovarrow_line_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("ArrowLineComp");
 };
 
 //: graphical view of ArrowLineOvComp.
@@ -138,6 +140,8 @@ protected:
     static ParamList* _ovarrow_multiline_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("ArrowMultiLineComp"); 
 };
 
 //: graphical view of ArrowMultiLineOvComp.
@@ -219,6 +223,8 @@ protected:
     static ParamList* _ovarrow_spline_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("ArrowSplineComp");
 };
 
 //: graphical view of ArrowSplineOvComp.

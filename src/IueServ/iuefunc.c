@@ -65,8 +65,9 @@ void IueImageFunc::execute() {
       push_stack(ComValue::nullval());
       return;  
     }
-    ComValue retval(ComValue::ObjectType, new ComponentView(imagecomp));
-    retval.obj_type_ref() = IueImageComp::class_symid();
+    ComValue retval(imagecomp->classid(), new ComponentView(imagecomp));
+    // retval.obj_type_ref() = IueImageComp::class_symid();
+    retval.object_compview(true);
     push_stack(retval);
 
   } else {
@@ -78,8 +79,9 @@ void IueImageFunc::execute() {
       int sx = image->GetSizeX(); int sy = image->GetSizeY();
       memimage->PutSection(image->GetSection((void*)0,0,0,sx,sy),0,0,sx,sy);
       IueImageComp* imagecomp = new IueImageComp(memimage);
-      ComValue retval(ComValue::ObjectType, new ComponentView(imagecomp));
-      retval.obj_type_ref() = IueImageComp::class_symid();
+      ComValue retval(imagecomp->classid(), new ComponentView(imagecomp));
+      // retval.obj_type_ref() = IueImageComp::class_symid();
+      retval.object_compview(true);
       push_stack(retval);
 
     } else

@@ -42,7 +42,8 @@ void DotFunc::execute() {
     reset_stack();
     if (!before_part.is_symbol() && 
 	!(before_part.is_attribute() && 
-	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) {
+	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist()) &&
+	!before_part.is_attributelist()) {
       cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList>\n";
       return;
     }
@@ -54,7 +55,7 @@ void DotFunc::execute() {
     /* lookup value of before variable */
     void* vptr = nil; 
     AttributeList* al = nil;
-    if (!before_part.is_attribute()) {
+    if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       comterp()->localtable()->find(vptr, before_symid);
       if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
@@ -65,11 +66,13 @@ void DotFunc::execute() {
 	ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
 	comterp()->localtable()->insert(before_symid, comval);
       }
-    } else
+    } else if (!before_part.is_attributelist())
       al = (AttributeList*) ((Attribute*) before_part.obj_val())->Value()->obj_val();
+    else
+      al = (AttributeList*) before_part.obj_val();
 
     int after_symid = after_part.symbol_val();
-    Attribute* attr = al->GetAttr(after_symid);
+    Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
     if (!attr) {
       attr = new Attribute(after_symid, new AttributeValue());
       al->add_attribute(attr);
@@ -88,7 +91,7 @@ void DotNameFunc::execute() {
     reset_stack();
     if (dotted_pair.class_symid() != Attribute::class_symid()) return;
     Attribute *attr = (Attribute*)dotted_pair.obj_val();
-    ComValue retval(attr->SymbolId(), ComValue::SymbolType);
+    ComValue retval(attr->SymbolId(), ComValue::StringType);
     push_stack(retval);
 }
 

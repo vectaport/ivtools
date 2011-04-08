@@ -45,6 +45,8 @@
 
 /****************************************************************************/
 
+int VerticesOvComp::_symid = -1;
+
 ClassId VerticesOvComp::GetClassId () { return OVVERTICES_COMP; }
 
 boolean VerticesOvComp::IsA (ClassId id) {

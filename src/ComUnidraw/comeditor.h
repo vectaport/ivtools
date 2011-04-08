@@ -47,13 +47,13 @@ public:
     // method for adding ComFunc objects to the ComTerp associated with
     // this ComEditor.
 
-    ComTerpServ* GetComTerp() { return _terp;}
+    virtual ComTerpServ* GetComTerp() { return _terp;}
     // return pointer to associated ComTerp (always a ComTerpServ).
-    ComTerpServ* comterp() { return _terp;}
+    virtual ComTerpServ* comterp() { return _terp;}
     // return pointer to associated ComTerp (always a ComTerpServ).
-    void SetComTerp(ComTerpServ* terp) { _terp = terp;}
+    virtual void SetComTerp(ComTerpServ* terp) { _terp = terp;}
     // set pointer to associated ComTerp (always a ComTerpServ).
-    void comterp(ComTerpServ* terp) { _terp = terp;}
+    virtual void comterp(ComTerpServ* terp) { _terp = terp;}
     // set pointer to associated ComTerp (always a ComTerpServ).
 
     virtual void ExecuteCmd(Command* cmd);

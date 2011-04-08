@@ -45,8 +45,6 @@ protected:
     void menulength_execute(const char* kind);
     Editor* _ed;
 
-static int _compview_id;
-
 };
 
 //: command to update Unidraw from comdraw.

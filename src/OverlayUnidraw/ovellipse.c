@@ -61,6 +61,8 @@
 
 /*****************************************************************************/
 
+int EllipseOvComp::_symid = -1;
+
 ParamList* EllipseOvComp::_ovellipse_params = nil;
 
 ClassId EllipseOvComp::GetClassId () { return OVELLIPSE_COMP; }

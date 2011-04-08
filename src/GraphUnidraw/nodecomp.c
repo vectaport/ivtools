@@ -103,6 +103,7 @@ static char* octal(unsigned char c, register char* p) {
 /*****************************************************************************/
 
 ParamList* NodeComp::_node_params = nil;
+int NodeComp::_symid = -1;
 
 NodeComp::NodeComp(SF_Ellipse* ellipse, TextGraphic* txt, boolean rl, OverlayComp* parent) 
     : OverlayComp(nil, parent)

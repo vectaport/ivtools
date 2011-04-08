@@ -130,6 +130,7 @@ class NilFunc : public ComFunc {
 public:
     NilFunc(ComTerp*);
 
+    virtual boolean post_eval() { return true; }
     virtual void execute();
     virtual const char* docstring() { 
       return "%s([...]) -- accept any arguments and return nil"; }

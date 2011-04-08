@@ -38,9 +38,12 @@ ListFunc::ListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ListFunc::execute() {
+  ComValue listv(stack_arg(0));
   reset_stack();
 
-  AttributeValueList* avl = new AttributeValueList();
+  AttributeValueList* avl = listv.is_array() 
+    ? new AttributeValueList(listv.array_val())
+    : new AttributeValueList();
   Resource::ref(avl);
   ComValue retval(avl);
   push_stack(retval);

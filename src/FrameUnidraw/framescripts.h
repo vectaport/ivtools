@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994, 1995, 1999 Vectaport
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
@@ -58,6 +59,10 @@ public:
     virtual boolean Definition(ostream&);
     static int ReadChildren(istream&, void*, void*, void*, void*);
     virtual boolean EmitPic(ostream&, Clipboard*, Clipboard*, boolean);
+
+    boolean suppress_frame() { _suppress_frame = true; }
+protected:
+    boolean _suppress_frame;
 };
 
 //: serialized view of FramesComp.

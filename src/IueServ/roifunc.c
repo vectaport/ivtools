@@ -70,8 +70,9 @@ void IueConnCompFunc::execute() {
 	dst->PutSection((void*)rowvals,0,row,ncols,1);
       }
       IueImageComp* imagecomp = new IueImageComp(dst);
-      ComValue retval(ComValue::ObjectType, new ComponentView(imagecomp));
-      retval.obj_type_ref() = IueImageComp::class_symid();
+      ComValue retval(imagecomp->classid(), new ComponentView(imagecomp));
+      // retval.obj_type_ref() = IueImageComp::class_symid();
+      retval.object_compview(true);
       push_stack(retval);
       return;
 

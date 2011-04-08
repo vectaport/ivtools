@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1998 Vectaport Inc.
+ * Copyright (c) 1994-2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -48,12 +48,8 @@
 
 /*****************************************************************************/
 
-int UnidrawFunc::_compview_id = -1;
-
 UnidrawFunc::UnidrawFunc(ComTerp* comterp, Editor* ed) : ComFunc(comterp) {
     _ed = ed;
-    if (_compview_id<0)
-        _compview_id = symbol_add("CompView");
 }
 
 void UnidrawFunc::execute_log(Command* cmd) {
@@ -207,17 +203,20 @@ void ImportFunc::execute() {
     if (!pathnamev.is_array()) {
       if (nargs()==1) {
 	if (cmd = import(pathnamev.string_ptr())) {
-	  ComValue compval(_compview_id,
+	  ComValue compval(((OverlayComp*)cmd->component())->classid(),
 			   new ComponentView(cmd->component()));
+	  compval.object_compview(true);
 	  push_stack(compval);
 	} else
 	  push_stack(ComValue::nullval());
       } else {
 	for (int i=0; i<nargs(); i++) 
 	  if (cmd = import(stack_arg(i).string_ptr())) {
-	    ComValue compval(_compview_id,
+	    ComValue compval(((OverlayComp*)cmd->component())->classid(),
 			     new ComponentView(cmd->component()));
+	    compval.object_compview(true);
 	    push_stack(compval);
+
 	  } else
 	    push_stack(ComValue::nullval());
       }
@@ -228,8 +227,10 @@ void ImportFunc::execute() {
       inlist->First(it);
       while(!inlist->Done(it)) {
 	cmd = import(inlist->GetAttrVal(it)->string_ptr());
-	outlist->Append(new ComValue(_compview_id, 
-				     new ComponentView(cmd->component())));
+	ComValue* val = new ComValue(((OverlayComp*)cmd->component())->classid(),
+				     new ComponentView(cmd->component()));
+	val->object_compview(true);
+	outlist->Append(val);
 	inlist->Next(it);
       }
     }

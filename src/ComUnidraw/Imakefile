@@ -17,6 +17,7 @@ MakeLibrary($(LIB),$(VERSION))
 
 #define Obj26(file) MakeObjectFromSrcFlags(file,)
 
+Obj26(grdotfunc)
 Obj26(grfunc)
 Obj26(grstatfunc)
 Obj26(comeditor)

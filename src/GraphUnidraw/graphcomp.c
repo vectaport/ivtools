@@ -92,6 +92,7 @@ static void ScaleToPostScriptCoords (Graphic* g) {
 /*****************************************************************************/
 
 ParamList* GraphComp::_graph_params = nil;
+int GraphComp::_symid = -1;
 
 GraphComp::GraphComp (const char* pathname, OverlayComp* parent) 
     : OverlaysComp(parent) {
@@ -349,6 +350,7 @@ int GraphScript::ReadChildren (istream& in, void* addr1, void* addr2, void* addr
 
 
 ParamList* GraphIdrawComp::_graph_idraw_params = nil;
+int GraphIdrawComp::_symid = -1;
 
 GraphIdrawComp::GraphIdrawComp (const char* pathname, OverlayComp* parent) 
    : OverlayIdrawComp(pathname, parent) { }

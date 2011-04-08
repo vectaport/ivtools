@@ -57,6 +57,7 @@
 /****************************************************************************/
 
 ParamList* PolygonOvComp::_ovpolygon_params = nil;
+int PolygonOvComp::_symid = -1;
 
 ClassId PolygonOvComp::GetClassId () { return OVPOLYGON_COMP; }
 

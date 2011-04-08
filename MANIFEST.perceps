@@ -46,6 +46,7 @@ ComTerp/xformfunc.h
 ComUnidraw/comeditor.h
 ComUnidraw/comterp-acehandler.h
 ComUnidraw/comterp-iohandler.h
+ComUnidraw/grdotfunc.h
 ComUnidraw/grfunc.h
 ComUnidraw/grstatfunc.h
 ComUnidraw/nfunc.h

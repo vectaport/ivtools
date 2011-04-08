@@ -84,6 +84,8 @@ protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);
     static ParamList* _graph_params;
+
+    CLASS_SYMID("GraphComp");
 };
 
 inline UList* GraphComp::GraphEdges() { return _graphedges; }
@@ -149,6 +151,8 @@ protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);
     static ParamList* _graph_idraw_params;
+
+    CLASS_SYMID("GraphIdrawComp");
 };
 
 //: graphical view of GraphIdrawComp.

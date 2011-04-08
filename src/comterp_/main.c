@@ -145,7 +145,7 @@ int main(int argc, char *argv[]) {
 	}
       }
       
-    } else {
+    } else if (inptr) {
 
       filebuf inbuf;
       inbuf.attach(fileno(inptr));
@@ -155,55 +155,15 @@ int main(int argc, char *argv[]) {
       obuf.attach(server.get_handle());
       ostream out(&obuf);
 
-#if 0      
-      for (;;) {
-	char ch;
-	in.get(ch);
-	if (!in.good()) break;
-	out << ch;
-      }
-#else
       char buffer[BUFSIZ*BUFSIZ];
       while(!in.eof() && in.good()) {
 	in.read(buffer, BUFSIZ*BUFSIZ);
 	if (!in.eof() || in.gcount())
 	  out.write(buffer, in.gcount());
       }
-#endif
       out.flush();
-      
-#if 0
-      for (;;) {
-	fgets(buffer, BUFSIZ*BUFSIZ, inptr);
-	if (feof(inptr)) break;
-	fputs(buffer, fptr);
-	fflush(fptr);
-#if 0
-	fgets(buffer, BUFSIZ*BUFSIZ, fptr);
-	fputs(buffer, stdout);
-#else
-	char ch;
-	ch = getc(fptr);
-	if (ch == '>') {
-	  ch = getc(fptr);
-	  if (ch != ' ') {
-	    ungetc(ch, fptr);
-	    ungetc('>', fptr);
-	    fgets(buffer, BUFSIZ*BUFSIZ, fptr);
-	    fputs(buffer, stdout);
-	  } else {
-	    printf( "> " );
-	  }
-	} else {
-	  ungetc(ch, fptr);
-	  fgets(buffer, BUFSIZ*BUFSIZ, fptr);
-	  fputs(buffer, stdout);
-	}
-#endif
-      }
-#endif
-
-    }
+    } else 
+      cerr << "comterp: unable to open file:  " << argv[4] << "\n";
 
     if (argc<=4 && inptr)
       fclose(inptr);
@@ -213,7 +173,7 @@ int main(int argc, char *argv[]) {
 
     return 0;
     }
-#endif
+#endif /* defined(HAVE_ACE) */
 
     if (server_flag || remote_flag) {
       ComTerpServ* terp = new ComTerpServ(BUFSIZ*BUFSIZ);

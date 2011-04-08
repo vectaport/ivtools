@@ -60,6 +60,8 @@ protected:
     static ParamList* _ovellipse_params;
 
 friend OverlaysScript;
+
+    CLASS_SYMID("EllipseComp"); 
 };
 
 //: graphical view of EllipseOvComp.

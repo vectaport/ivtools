@@ -114,6 +114,8 @@ protected:
     static boolean _warned;
 
 friend RasterScript;
+
+    CLASS_SYMID("RasterComp");
 };
 
 //: graphical view of RasterOvComp.

@@ -66,6 +66,7 @@ rotate(degflt) -- rotate current selection
 ATTRIBUTE COMMANDS
 
 compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
+attrlist(compview) -- return attribute list of component
 
 VIEWER COMMANDS
 

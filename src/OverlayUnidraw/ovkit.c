@@ -66,6 +66,7 @@
 #include <OverlayUnidraw/slctbyattr.h>
 
 #include <ComGlyph/attrdialog.h>
+#include <ComGlyph/comtextedit.h>
 #include <IVGlyph/exportchooser.h>
 #include <IVGlyph/saveaschooser.h>
 
@@ -192,6 +193,8 @@ OverlayKit::OverlayKit () {
     WidgetKit& kit = *WidgetKit::instance();
     _ed = nil;
     _otherdisplay = nil;
+    _set_button_flag = false;
+    _clr_button_flag = false;
 }
 
 OverlayKit::~OverlayKit() {
@@ -266,12 +269,17 @@ void OverlayKit::InitViewer () {
 }
 
 void OverlayKit::InitLayout(const char* name) {
+  InitLayout(this, name);
+}
+
+void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
+    OverlayEditor* ed = kit->GetEditor();
     Catalog* catalog = unidraw->GetCatalog();
     const char* stripped_string = catalog->GetAttribute("stripped");
     boolean stripped_flag = stripped_string ? strcmp(stripped_string, "true")==0 : false;
-    if (_ed->GetWindow() == nil) {
+    if (ed->GetWindow() == nil) {
 
-      TextObserver* mousedoc_observer = new TextObserver(_ed->MouseDocObservable(), "");
+      TextObserver* mousedoc_observer = new TextObserver(ed->MouseDocObservable(), "");
       const LayoutKit& lk = *LayoutKit::instance();
       WidgetKit& wk = *WidgetKit::instance();
       PolyGlyph* topbox = lk.vbox();
@@ -279,19 +287,19 @@ void OverlayKit::InitLayout(const char* name) {
       if (stripped_flag) {
 
 	Target* viewer = 
-	    new Target(new Frame(Interior()), TargetPrimitiveHit);
-	_ed->body(viewer);
-	topbox->append(_ed);
+	    new Target(new Frame(ed->Interior()), TargetPrimitiveHit);
+	ed->body(viewer);
+	topbox->append(ed);
 
       } else {
 
-	Glyph* menus = MakeMenus();
-	Glyph* states = MakeStates();
-	Glyph* toolbar = MakeToolbar();
+	Glyph* menus = kit->MakeMenus();
+	Glyph* states = kit->MakeStates();
+	Glyph* toolbar = kit->MakeToolbar();
 	if (states)
 	    menus->append(states);
 	Target* viewer = 
-	    new Target(new Frame(Interior()), TargetPrimitiveHit);
+	    new Target(new Frame(ed->Interior()), TargetPrimitiveHit);
 	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
 	  if (strcmp(toolbarloca, "r") == 0) 
 	    toolbar->prepend(lk.vcenter(viewer));
@@ -301,8 +309,8 @@ void OverlayKit::InitLayout(const char* name) {
 	  toolbar->append(lk.vcenter(viewer));
 	menus->append(toolbar);
 
-	_ed->body(menus);
-	topbox->append(_ed);
+	ed->body(menus);
+	topbox->append(ed);
 	topbox->append(
 		wk.outset_frame(
 		    lk.hbox(
@@ -312,9 +320,81 @@ void OverlayKit::InitLayout(const char* name) {
 	    );
       }
 
-      _ed->GetKeyMap()->Execute(CODE_SELECT);
-      ManagedWindow* w = new ApplicationWindow(topbox, _otherdisplay);
-      _ed->SetWindow(w);
+
+      ed->GetKeyMap()->Execute(CODE_SELECT);
+	
+      if (ed->comterp()) {
+	    boolean set_flag = kit->_set_button_flag;
+	    boolean clr_flag = kit->_clr_button_flag;
+	    EivTextEditor* texteditor = nil;
+	    if(!set_flag && !clr_flag) {
+	      texteditor = new ComTextEditor(wk.style(), ed->comterp());
+	    }
+	    else
+	      texteditor = new EivTextEditor(wk.style());
+	    ed->_texteditor = texteditor;
+	    Button* set = set_flag ? wk.push_button("Set", new ActionCallback(OverlayEditor)(
+		(OverlayEditor*)ed, &OverlayEditor::SetText
+	    )) : nil;
+	    Button* clear = clr_flag ? wk.push_button("Clear", new ActionCallback(OverlayEditor)(
+		(OverlayEditor*)ed, &OverlayEditor::ClearText
+	    )) : nil;
+	    Glyph* buttonbox = nil;
+	    if (set && !clear) {
+	      buttonbox = 
+		lk.vbox(
+			    lk.hcenter(set));
+	    } else if (!set && clear) { 
+	      buttonbox = 
+		lk.vbox(
+			    lk.hcenter(clear));
+	    } else if (set && clear) {
+	      buttonbox = 
+		lk.vbox(
+			    lk.hcenter(set),
+			    lk.vspace(10),
+			    lk.hcenter(clear)
+			    );
+	    }
+	    if (buttonbox) {
+	      topbox->append(
+		  wk.outset_frame(
+		      lk.hbox(
+			  lk.vcenter(
+			      lk.margin(
+                                  buttonbox,
+				  10
+			      )
+			  ),
+			  lk.vcenter(texteditor)
+		      )
+		  )
+	      );
+	    } else {
+	      topbox->append(
+		  wk.outset_frame(
+		      lk.hbox(
+			  lk.vcenter(
+			      lk.margin(
+				  lk.vbox(
+ 			              wk.label("type help"),
+			              lk.vspace(10),
+			              wk.label("to print"),
+			              lk.vspace(10),
+			              wk.label("info to stdout")
+			              ),
+				  10
+			      )
+			  ),
+			  lk.vcenter(texteditor)
+		      )
+		  )
+	      );
+	    }
+	}
+
+      ManagedWindow* w = new ApplicationWindow(topbox, kit->_otherdisplay);
+      ed->SetWindow(w);
       Style* s = new Style(Session::instance()->style());
       s->alias(name);
       w->style(s);

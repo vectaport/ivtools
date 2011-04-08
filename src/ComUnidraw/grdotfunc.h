@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2000 IET Inc.
- * Copyright (c) 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -22,49 +21,38 @@
  * 
  */
 
-/*
- * collection of list manipulation functions
+/* 
+ * dot func for componentviews
  */
 
-#if !defined(_listfunc_h)
-#define _listfunc_h
+#if !defined(_grdotfunc_h)
+#define _grdotfunc_h
 
-#include <ComTerp/comfunc.h>
+#include <ComTerp/dotfunc.h>
 
-class ComTerp;
-class ComValue;
-
-//: create list command for ComTerp.
-// lst=list([olst]) -- create an empty list or copy existing one.
-class ListFunc : public ComFunc {
+//: . (dot) operator, for compound variables, and access to ComponentView AttributeList's.
+class GrDotFunc : public DotFunc {
 public:
-    ListFunc(ComTerp*);
+    GrDotFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "lst=%s([olst]) -- create an empty list or copy existing one"; }
+      return "%s(. makes compound variables, and gives access to ComponentView AttributeList's."; }
+
+    CLASS_SYMID("GrDotFunc");
 };
 
-//: list member command for ComTerp.
-// val=at(list n) -- return the nth item in a list.
-class ListAtFunc : public ComFunc {
+//: attrlist command, for returning the attribute list of a component.
+// attrlist(compview) -- return attribute list of component.
+class GrAttrListFunc : public ComFunc {
 public:
-    ListAtFunc(ComTerp*);
+    GrAttrListFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=at(list n) -- return the nth item in a list"; }
+      return "%s(compview) -- return attribute list of component."; }
+
 };
 
-//: list size command for ComTerp.
-// num=size(list) -- return size of a list.
-class ListSizeFunc : public ComFunc {
-public:
-    ListSizeFunc(ComTerp*);
+#endif /* !defined(_grdotfunc_h) */
 
-    virtual void execute();
-    virtual const char* docstring() { 
-      return "val=size(list -- return the size of the list"; }
-};
-
-#endif /* !defined(_listfunc_h) */
