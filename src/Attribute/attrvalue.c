@@ -92,7 +92,23 @@ AttributeValue::AttributeValue(short v) {
 AttributeValue::AttributeValue(unsigned int v, ValueType type) { 
     clear();
     _type = type;
-    _v.dfunsval = v;
+    if ( type >= CharType && type <= UShortType ) {
+      switch (type) {
+      case CharType: 
+	_v.charval = v;
+	break;
+      case UCharType:
+	_v.ucharval = v;
+	break;
+      case ShortType: 
+	_v.shortval = v;
+	break;
+      case UShortType:
+	_v.ushortval = v;
+	break;
+      }
+    } else 
+      _v.dfunsval = v;
 }
 
 AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type) { 
@@ -105,7 +121,23 @@ AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type)
 AttributeValue::AttributeValue(int v, ValueType type) { 
     clear();
     _type = type;
-    _v.dfintval = v;
+    if ( type >= CharType && type <= UShortType ) {
+      switch (type) {
+      case CharType: 
+	_v.charval = v;
+	break;
+      case UCharType:
+	_v.ucharval = v;
+	break;
+      case ShortType: 
+	_v.shortval = v;
+	break;
+      case UShortType:
+	_v.ushortval = v;
+	break;
+      }
+    } else 
+      _v.dfintval = v;
 }
 
 AttributeValue::AttributeValue(unsigned long v) { 

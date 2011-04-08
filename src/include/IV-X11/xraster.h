@@ -30,7 +30,7 @@
 #define iv_xraster_h
 
 // should be defined externally
-#if !defined(__CYGWIN__)&&(!defined(__APPLE__)||__GNUC__>2)
+#if !defined(__CYGWIN__) /* &&(!defined(__APPLE__)||__GNUC__>2) */
 #define XSHM
 #endif
 

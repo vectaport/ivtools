@@ -1,7 +1,7 @@
 
-			INSTALL for ivtools-1.0
+			INSTALL for ivtools-1.1.0
 
-Instructions for building ivtools-1.0.7 from source, the short version:
+Instructions for building ivtools-1.1 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.0.7 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.0.7 from source, the long version:
+Instructions for building ivtools-1.1 from source, the long version:
 
 0. Compilation Environment
 
@@ -19,19 +19,18 @@ Things you will need (or might want) before building ivtools:
 0.a. a Unix machine (for Windows see README.cygwin).  We know it has
 been built on Linux, NetBSD, FreeBSD, Solaris, Irix, Dec Alpha, HPUX,
 and SunOS.  It also builds on Mac OS X (Darwin) which is a
-BSD-derivative OS.  This version (1.0.7) may be Jaguar ready, give it
-a try.
+BSD-derivative OS.  As of version 1.0.7 ivtools is Jaguar ready.
 
 0.b GNU make.  Test to make sure this is the version you are using
 with "make -v"
 
 0.c. The gcc compiler.  Recently we've been building and testing with
-gcc-2.95.*, gcc-2.96, gcc-3.0.*, gcc-3.1, and gcc-3.2.  egcs-1.0.3
-would probably still work, as would gcc-2.8.1 and gcc-2.7.2.  You will
-also need an equivalent copy of libstdc++.  libstdc++ comes bundled
-with gcc-3.0 and greater.  Before that the libstdc++ version numbers
-stay roughly in synch with the gcc version numbers.  If you have
-gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
+gcc-2.95.*, gcc-2.96, gcc-3.0.*, gcc-3.1, gcc-3.2, and gcc-3.3.
+egcs-1.0.3 would probably still work, as would gcc-2.8.1 and
+gcc-2.7.2.  You will also need an equivalent copy of libstdc++.
+libstdc++ comes bundled with gcc-3.0 and greater.  Before that the
+libstdc++ version numbers stay roughly in synch with the gcc version
+numbers.  If you have gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
 
 ** NOTE ** Now you can use gcc-2.96.  Ignore
 http://www.ivtools.org/ivtools/faq.html#gcc-2.96-problem
@@ -182,7 +181,7 @@ site.def.<CPU> file to see if they are good defaults for your system.
 
 2. Compiling ivtools:
 
-2.a. cd to the ivtools-1.0/ directory (you'd already be in this
+2.a. cd to the ivtools-1.1/ directory (you'd already be in this
 directory after running the configure script).
 
 2.b. Compile it with a "make" command.  The first time it is run it
@@ -213,14 +212,14 @@ If you have any trouble at this stage take a look at:
 
 3. Testing:
 
-Each directory under ivtools-1.0/src that begins in lower case (except
+Each directory under ivtools-1.1/src that begins in lower case (except
 for "include" and "scripts") contains executables that exercise some
 particular functionality.  "cd" to each particular directory, type
 "<CPU>/a.out" and see what happens (the utils directory contains more
 than one executable, things named other than a.out).  Quite a few
 directories have README's that go into further detail on how to use
-the programs.  ivtools-1.0/src/glyphs contains sub-directories of
-glyph example programs.  ivtools-1.0/src/glyphs/examples3.1 contains
+the programs.  ivtools-1.1/src/glyphs contains sub-directories of
+glyph example programs.  ivtools-1.1/src/glyphs/examples3.1 contains
 most of the simple example programs that were originally distributed
 with InterViews 3.1.
 
@@ -242,9 +241,9 @@ uninstall" is supported as well.
 
 When relative install is enabled (--enable-install-relative for the
 configure script), the binaries are installed in
-ivtools-1.0/bin/<CPU>, the libraries are installed in
-ivtools-1.0/lib/<CPU>, and the run-time X resource and config files
-are installed in ivtools-1.0/lib/ivtools.
+ivtools-1.1/bin/<CPU>, the libraries are installed in
+ivtools-1.1/lib/<CPU>, and the run-time X resource and config files
+are installed in ivtools-1.1/lib/ivtools.
 
 When relative install is disabled (the default for the configure
 script) the binaries are installed as stripped executables in `prefix`/bin

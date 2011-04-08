@@ -277,7 +277,7 @@ void OverlayScript::Pattern (ostream& out) {
     }
 }
 
-void OverlayScript::Transformation(ostream& out, char* keyword, Graphic* gr = nil) {
+void OverlayScript::Transformation(ostream& out, char* keyword, Graphic* gr) {
     Transformer* t = gr ? gr->GetTransformer() : GetOverlayComp()->GetGraphic()->GetTransformer();
     Transformer identity;
 

@@ -159,6 +159,7 @@ static PropertyData properties[] = {
     { "*opaque_off",    "false"  },
     { "*ptrloc",        "false"  },
     { "*dithermap",     "false"  },
+    { "*svgexport",     "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
 #endif
@@ -194,6 +195,7 @@ static OptionDesc options[] = {
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-ptrloc", "*ptrloc", OptionValueImplicit, "true" },
     { "-dithermap", "*dithermap", OptionValueImplicit, "true" },
+    { "-svgexport", "*svgexport", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
 #endif
@@ -208,15 +210,15 @@ static char* usage =
 "Usage: drawtool [any idraw parameter] [-color5] [-dithermap] [-gray5] [-gray6] \n\
 [-gray7] [-import port] [-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
 [-pagerows|-nrows n] [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] \n\
-[-slider_off|-soff] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
+[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] [-slider_off|-soff]\n\
+[-svgexport] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
 #else
 static char* usage =
 "Usage: drawtool [any idraw parameter] [-color5] [-dithermap] [-gray5] [-gray6] \n\
 [-gray7] [-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
 [-pagerows|-nrows n] [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] \n\
-[-slider_off|-soff] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
+[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] [-slider_off|-soff]\n\
+[-svgexport] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
 #endif
 /*****************************************************************************/
 

@@ -714,7 +714,7 @@ AllTarget(Concat(lib,libname.so.rev))					@@\
 Concat(lib,libname.so.rev): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
-	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
+	SharedLibraryCmd(ldobjs,/*-Wl\,-soname=Concat(lib\,libname.so.rev)*/)@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 									@@\
@@ -731,7 +731,7 @@ Concat(lib,libname.so.rev): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
 	$(RM) Concat(lib,libname.so)					@@\
-	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
+	SharedLibraryCmd(ldobjs,/*-Wl\,-soname=Concat(lib\,libname.so.rev)*/) @@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 	$(LN) $@ Concat(lib,libname.so)					@@\

@@ -644,16 +644,16 @@ if test x"$ACE" = x; then
 	echo ""
 else
 	echo "Building with ACE support ACE=$ACE"
-	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so ; then
+	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so -o -f $ACE_LIBS/libACE.dylib ; then
 		echo "$ac_t""Found libACE.* in $ACE_LIBS " 1>&6
 	        ACE_ENABLED=1
 	else
-	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so ; then
+	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so -o -f $ACE/ace/libACE.dylib ; then
 			echo "$ac_t""Found libACE.* in $ACE/ace " 1>&6
 		        ACE_ENABLED=1
 			ACE_LIBS=$ACE/ace
 	        else
-			{ echo "configure: error: Can not find libACE.a or libACE.so in $ACE_LIBS ($ACE).
+			{ echo "configure: error: Can not find libACE.a or libACE.so or libACE.dylib in $ACE_LIBS ($ACE).
 			Use --with-ace-libs to specify location of ACE " 1>&2; exit 1; }
 	        fi
 
@@ -692,17 +692,17 @@ if test x"$CLIPPOLY" = x; then
 	echo ""
 else
 	echo "Building with clippoly support CLIPPOLY=$CLIPPOLY"
-	if test -f $CLIPPOLY_LIBS/libclippoly.a -o -f $CLIPPOLY_LIBS/libclippoly.so ; then
+	if test -f $CLIPPOLY_LIBS/libclippoly.a -o -f $CLIPPOLY_LIBS/libclippoly.so -o -f $CLIPPOLY_LIBS/libclippoly.dylib ; then
 		echo "$ac_t""Found libclippoly.* in $CLIPPOLY_LIBS " 1>&6
 		CLIPPOLY_ENABLED=1
 	else
-		if test -f $CLIPPOLY/libclippoly.a -o -f $CLIPPOLY/libclippoly.so ; then
+		if test -f $CLIPPOLY/libclippoly.a -o -f $CLIPPOLY/libclippoly.so -o -f $CLIPPOLY/libclippoly.dylib ; then
 			echo "$ac_t""Found libclippoly.* in $CLIPPOLY " 1>&6
 			CLIPPOLY_ENABLED=1
 			CLIPPOLY_LIBS=$CLIPPOLY
 		else
 
-	        { echo "configure: error: Can not find libclippoly.a or libclippoly.so in $CLIPPOLY ($CLIPPOLY_LIBS)  
+	        { echo "configure: error: Can not find libclippoly.a or libclippoly.so or libclippoly.dylib in $CLIPPOLY ($CLIPPOLY_LIBS)  
 Use --with-clippoly-libs to specify location of clippoly libraries" 1>&2; exit 1; }
 		fi
 	fi

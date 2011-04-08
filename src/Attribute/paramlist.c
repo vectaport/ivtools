@@ -38,7 +38,9 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
+#ifndef __APPLE__
 #include <strstream.h>
+#endif
 
 /*****************************************************************************/
 
@@ -895,7 +897,7 @@ boolean ParamList::urltest(const char* buf) {
 
 int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "wr=`which %s`; echo $wr", command );
+  sprintf( combuf, "sh -c \"wr=`which %s`; echo $wr\"", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  

@@ -1,8 +1,8 @@
 
-			README for ivtools 1.0
+			README for ivtools 1.1
 
 
-This directory contains a release of ivtools 1.0.7.  You should read
+This directory contains a release of ivtools 1.1.0.  You should read
 the rest of this file for information on what ivtools is and the
 INSTALL file for instructions on how to build it.
 
@@ -122,7 +122,7 @@ ivmkcm-0.7.2 available through http://www.ivtools.org/ivmkcm/
 * More ivtools details
 
 ivtools is known to build with many versions of gcc (>= gcc-2.8.1, 
->= egcs-1.0.1, gcc-3.0.*, gcc-3.1.*) and on a variety of Unix'es:
+>= egcs-1.0.1, gcc-3.*) and on a variety of Unix'es:
 SunOS 4.1 (MIT's X11R5), Solaris 2.6 (X11R6), Irix 5.2 (SGI's X11R5),
 Linux 1.2 (Slackware 3.0, XFree86 3.1), Linux 2.* (RedHat 4.0 thru
 7.0, Debian 2.* and 3.*), NetBSD, FreeBSD, and Darwin (Mac OS X).  There are
@@ -132,11 +132,6 @@ Windows NT 4.0 using Cygwin from Cygnus Solutions (see README.cygwin).
 You can find links to available binaries on the ivtools web page
 (http://www.ivtools.org) and ivtools download page
 (http://www.ivtools.org/ivtools/download.html)
-
-** NOTE **  Do not use gcc-2.96, the default compiler shipped with
-RedHat 7.*.  This branch of gcc was never approved by the gcc
-steering committee.  The workaround is to upgrade to gcc-3.* or 
-downgrade to gcc-2.95.*.
 
 If you have a question about this software, desire to add code, found
 a bug, want to request a feature, or wonder how to get further
@@ -152,7 +147,7 @@ Read about finding and generating all this from inline documentation
 below.  A copy of the ivtools html documentation will be available for
 download as well:
 
-	http://downloads.sourceforge.net/ivtools/ivtools-doc-1.0.tgz
+	http://downloads.sourceforge.net/ivtools/ivtools-doc-1.1.tgz
 
 A SourceForge project page for ivtools can be found at:
 

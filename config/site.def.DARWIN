@@ -39,7 +39,7 @@
 #if 0
 #define ToolIncludeDir /usr/local/include
 #else
-#define ToolIncludeDir
+#define ToolIncludeDir /usr/include
 #endif
 
 /* link libraries for the above */
@@ -49,11 +49,14 @@
 #undef ExtraCCLdFlags
 #define ExtraCCLdFlags -Wl,-bind_at_load
 
+#undef ExtraCCIncludes
+#define ExtraCCIncludes -I/sw/include
+
 /* command to create shared libraries */
 #if 0
 #define SharedLibraryCmd(ldobjs,extra_flags) $(LD) -r extra_flags -o $@~ ldobjs
 #else
-#define SharedLibraryCmd(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name @PREFIX@/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
+#define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name @PREFIX@/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
 #endif
 
 #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
@@ -65,7 +68,7 @@ AllTarget(Concat(lib,libname.rev.dylib))					@@\
 Concat(lib,libname.rev.dylib): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
-	SharedLibraryCmd(ldobjs,depobjs,rev,libname)			@@\
+	SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname)		@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 	$(LN) -f $@ Concat(lib,libname.dylib)				@@\
