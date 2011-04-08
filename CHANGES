@@ -1,3 +1,12 @@
+Jan 10th 2000 ivtools-0.9.1
+
+Correct 0.9 oversights:
+
+- restore GPL dual licensing documentation in COPYRIGHT, COPYING, and
+MANIFEST.
+
+- correctly set version number to 0.9.1
+
 December 19th 2000 ivtools-0.9
 
 - fix segfault in new comdraw addtool command when the supplied
