@@ -804,7 +804,7 @@ ivtools-1.2/src/Time/Date.h
 ivtools-1.2/src/Time/Imakefile
 ivtools-1.2/src/Time/Makefile
 ivtools-1.2/src/Time/Time.c
-ivtools-1.2/src/Time/Time.h
+ivtools-1.2/src/Time/Time_.h
 ivtools-1.2/src/Time/obstime.c
 ivtools-1.2/src/Time/obstime.h
 ivtools-1.2/src/Time/timeglyph.c

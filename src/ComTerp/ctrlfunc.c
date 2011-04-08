@@ -221,7 +221,7 @@ void RemoteFunc::execute() {
 }
 
 /*****************************************************************************/
-
+#ifdef HAVE_ACE
 int SocketObj::_symid = -1;
 
 SocketObj::SocketObj(const char* host, unsigned short port) {
@@ -253,6 +253,7 @@ int SocketObj::close() {
 int SocketObj::get_handle() { 
   return _socket->get_handle(); 
 }
+#endif
 
 /*****************************************************************************/
 

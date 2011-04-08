@@ -368,7 +368,7 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
     if (link && link != orglink && link->state()==DrawLink::two_way) {
       int fd = link->handle();
       if (fd>=0) {
-#if __GNUC__<4
+#if __GNUC__<4 && !defined(__CYGWIN__)
 	fileptr_filebuf fbuf(fd, ios_base::out, false, static_cast<size_t>(BUFSIZ));
 #else
 	fileptr_filebuf fbuf(fd, ios_base::out, static_cast<size_t>(BUFSIZ));
@@ -390,7 +390,7 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
   if (link) {
     int fd = link->handle();
     if (fd>=0) {
-#if __GNUC__<4
+#if __GNUC__<4 && !defined(__CYGWIN__)
       fileptr_filebuf fbuf(fd, ios_base::out, false, static_cast<size_t>(BUFSIZ));
 #else
       fileptr_filebuf fbuf(fd, ios_base::out, static_cast<size_t>(BUFSIZ));

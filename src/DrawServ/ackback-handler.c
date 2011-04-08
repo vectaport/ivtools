@@ -23,7 +23,8 @@
 
 #ifdef HAVE_ACE
 
-#include <vector.h>
+using namespace std;
+#include <vector>
 #include <err.h>
 
 #include <DrawServ/ackback-handler.h>
@@ -34,6 +35,8 @@
 
 #include <IVGlyph/gdialogs.h>
 #include <InterViews/window.h>
+
+#include <iostream.h>
 
 /*****************************************************************************/
 

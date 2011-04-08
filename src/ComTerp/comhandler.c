@@ -28,7 +28,8 @@
 #include <fstream.h>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
-#include <vector.h>
+using namespace std;
+#include <vector>
 #endif
 
 #include <ComTerp/comhandler.h>

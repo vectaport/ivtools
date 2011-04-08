@@ -1,3 +1,10 @@
+Nov. 21st, 2009  ivtools-1.2.8
+
+- significant work on keeping up with gcc and libstdc++.  A wrapper
+  for stdio.h was inadvertently getting pulled in by /usr/include
+  files, causing a lot of trouble.  Now builds with gcc-4.4 on Ubuntu
+  9.10.
+
 August 25th, 2009  ivtools-1.2.7
 
 - series of memory leak checking commands: alistleak, attrvleak, commandleak, compleak, graphlicleak, mlineleak, viewleak.  Each returns the current number of allocated objects of that type (AttributeValueList, AttributeValue, Command, OverlayComp, Graphic, MultiLineObj, and OverlayView).

@@ -111,6 +111,7 @@ class SocketObj {
 
   CLASS_SYMID("SocketObj");
 };
+#endif
   
 //: create socket object
 // sockobj=socket(hoststr portnum) -- create and open socket object
@@ -123,7 +124,6 @@ public:
     virtual const char* docstring() { 
       return "%s(hoststr portnum ) -- create and open socket object"; }
 };
-#endif
 
 //: eval string command for ComTerp.
 // str|lst=eval(cmdstr [cmdstr ...] :symret) -- evaluate string as commands, optionally returning symbol instead of nil.

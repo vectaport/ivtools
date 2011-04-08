@@ -25,7 +25,7 @@
 #define obstime_h
 
 #include <InterViews/observe.h>
-#include <Time/Time.h>
+#include <Time/Time_.h>
 
 class ObservableTime : public Observable {
 public:

@@ -22,7 +22,7 @@
  */
 
 #include <InterViews/enter-scope.h>
-#include <Time/Time.h>
+#include <Time/Time_.h>
 #include <Time/Date.h>
 #include <Time/timeglyph.h>
 #include <IV-look/kit.h>

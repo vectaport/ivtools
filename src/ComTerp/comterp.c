@@ -193,7 +193,9 @@ boolean ComTerp::read_expr() {
     save_parser_client();    
     postfix_echo();
 
-    return status==0 && _pfbuf[_pfnum-1].type != TOK_EOF && _buffer[0] != '\0';
+    return status==0 
+      && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF) 
+      && _buffer[0] != '\0';
 }
 
 boolean ComTerp::eof() {

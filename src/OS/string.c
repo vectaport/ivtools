@@ -312,7 +312,7 @@ String String::before(const char* str) const {
  */
 
 String String::from(const char* str) const {
-  char* ptr = strstr(string(), str);
+  const char* ptr = strstr(string(), str);
   if (ptr) {
     int offset = (int)(ptr-string());
     return substr(offset,length()-offset);

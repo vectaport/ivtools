@@ -939,6 +939,7 @@ void SelectFunc::execute() {
     Selection* sel = _ed->GetViewer()->GetSelection();
     if (clear_flag) {
       sel->Clear();
+      unidraw->Update();
       reset_stack();
       return;
     }
