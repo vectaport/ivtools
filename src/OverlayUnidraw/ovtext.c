@@ -27,6 +27,7 @@
  */
 
 #include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovtext.h>
 #include <OverlayUnidraw/paramlist.h>
 
@@ -280,7 +281,7 @@ Command* TextOvView::InterpretManipulator (Manipulator* m) {
 
         if (size == 0) {
             if (tool->IsA(RESHAPE_TOOL)) {
-                cmd = new DeleteCmd(ed);
+                cmd = new OvDeleteCmd(ed);
             } else {
                 v->Update();          // to repair text display-incurred damage
             }
@@ -300,11 +301,11 @@ Command* TextOvView::InterpretManipulator (Manipulator* m) {
             }
 
             if (rel != nil) {
-		if (v->GetOrientation()==Rotated ) 
+		if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL)) 
 		  rel->Rotate(-90);
                 rel->InvTransform(xpos, ypos);
             }
-	    if (v->GetOrientation()==Rotated)
+	    if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL))
 	      textgr->Rotate(90.0);
             textgr->Translate(xpos, ypos);
             textgr->FillBg(false);

@@ -2,19 +2,23 @@ XCOMM
 XCOMM morpher: morph between two idraw drawings
 XCOMM
 
-PACKAGE = examples3.1_morpher
+PACKAGE = glyph_morpher
 
 #ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS =  $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
 
 Use_libInterViews()
 ComplexProgramTargetNoInstall(imorpher)
 
 MakeObjectFromSrc(main)
-MakeObjectFromSrc(figure)
-MakeObjectFromSrc(globals)
 MakeObjectFromSrc(glypheditor)
 MakeObjectFromSrc(glyphviewer)
-MakeObjectFromSrc(idraw)
 MakeObjectFromSrc(morpher)
 
 #else

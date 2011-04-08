@@ -159,6 +159,7 @@ unsigned endcmt_len =           /* Number of characters in comment ending */
 unsigned no_comment =           /* TRUE if comments are disabled */
    (begcmt_len == 0 || endcmt_len == 0);
 int index;
+char* infunc_retval;
 
 
 /* ----------------------------------------------------------------------- */
@@ -241,7 +242,9 @@ int index;
 	     (*outfunc) ( "> ", outfile);
 	   _continuation_prompt = 0;
 	 }
-	 if( (*infunc)( buffer, bufsiz, infile ) == NULL ) {
+	 while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL  && 
+		buffer[0] == '#') {} /* skip all script comments */
+	 if( infunc_retval == NULL ) {
 	    if( *toklen > 0 )
 	       goto token_return;
 	    else {

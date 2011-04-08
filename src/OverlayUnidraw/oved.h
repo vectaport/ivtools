@@ -172,6 +172,9 @@ public:
     void UpdateText(OverlayComp*, boolean update =true);
     // update contents of text-editor with frame annotation.
 
+    OverlayKit* overlay_kit() { return _overlay_kit; }
+    // return pointer to paired OverlayKit
+
 protected:
     void Init(OverlayComp* = nil, const char* = "OverlayEditor");
     // construct empty component tree if necessary, and pass to

@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#define ALIGNMENT_DEFINED
+
 /*
  * Alignment needs to be unsigned so that it can be stored
  * as a bit field.

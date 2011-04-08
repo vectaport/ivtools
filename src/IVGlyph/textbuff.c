@@ -114,8 +114,8 @@ void EivTextBuffer ::expand_buffer(int count)
       count * (1 + allocate_extra),
       size * allocate_extra));;
    // re-allocate
-   printf("EivTextBuffer::allocating more memory\n");
-   printf("\t add:%d bytes\n", add_size);
+   // printf("EivTextBuffer::allocating more memory\n");
+   // printf("\t add:%d bytes\n", add_size);
    char* buffer = (char *)realloc(text, size + add_size);
    if (buffer == nil)
       return;			// quitely ???

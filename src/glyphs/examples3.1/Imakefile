@@ -29,7 +29,6 @@ SUBDIRS = \
 	image \
 	ips \
 	menu \
-	morpher \
 	patch \
 	$(PLOT) \
 	preview \

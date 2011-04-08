@@ -275,11 +275,11 @@ Command* TextView::InterpretManipulator (Manipulator* m) {
             }
 
             if (rel != nil) {
-		if (v->GetOrientation()==Rotated ) 
+		if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL)) 
 		  rel->Rotate(-90);
                 rel->InvTransform(xpos, ypos);
             }
-	    if (v->GetOrientation()==Rotated)
+	    if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL))
 	      textgr->Rotate(90.0);
             textgr->Translate(xpos, ypos);
             textgr->FillBg(false);

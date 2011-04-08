@@ -74,7 +74,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "== is the equal operator\nbool=eq(str1 str2 :n len) -- partial string comparison"; }
+      return "== is the equal operator\nbool=eq(str1 str2 :n len) -- partial string comparison\nbool=eq(sym1 sym2 :sym) -- symbol comparison"; }
 
 };
 

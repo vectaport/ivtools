@@ -211,6 +211,11 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
 	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #endif /* Line */
 
+	    /* remove the dashing for the arrowheads */
+	    if (_head || _tail) 
+	        if (_brush->dashed())
+		    output->SetBrush(new PSBrush(0, _brush->Width()));
+
 	    if (_head) {
 		x[2] = x[0] = xmax-ARROWX;
 		y[0] = ymax/2 - ARROWY;

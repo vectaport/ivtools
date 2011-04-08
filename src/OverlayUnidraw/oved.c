@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 Vectaport Inc, IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
@@ -129,7 +130,11 @@ OverlayEditor::OverlayEditor (const char* file, OverlayKit* ok) : IdrawEditor(fa
 	    Init(comp);
 
 	} else {
-	    Init();
+	    OverlayIdrawComp* comp = new OverlayIdrawComp;
+	    comp->SetPathName(file);
+	    catalog->Register(comp, file);
+	    Init(comp, file);
+	    
 	    fprintf(stderr, "drawtool: couldn't open %s\n", file);
 	}
     }

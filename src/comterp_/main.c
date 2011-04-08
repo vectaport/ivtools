@@ -71,9 +71,11 @@ int main(int argc, char *argv[]) {
         if (peer_acceptor->open (ACE_INET_Addr (portnum)) == -1)
             cerr << "comterp: unable to open port " << portnum << " with ACE\n";
 
+#if !defined(__NetBSD__)  /* this is not the way to do it for NetBSD */
         else if (COMTERP_REACTOR::instance ()->register_handler
                   (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
           cerr << "comterp: error registering acceptor with ACE reactor\n";
+#endif
 
 	else if (ComterpHandler::logger_mode()==0)
 	  cerr << "accepting comterp port (" << portnum << ") connections\n";

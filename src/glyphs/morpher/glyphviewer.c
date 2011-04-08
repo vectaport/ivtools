@@ -20,8 +20,8 @@
 #include <OS/string.h>
 #include <IV-look/kit.h>
 #include <math.h>
-#include "figure.h"
-#include "globals.h"
+#include <IVGlyph/figure.h>
+#include <IVGlyph/globals.h>
 #include "glyphviewer.h"
 
 static Cursor* zoom_in_cursor = nil;

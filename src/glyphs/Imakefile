@@ -9,6 +9,7 @@ SUBDIRS = \
 	formdemo \
 	gclock \
 	meter \
+	morpher \
 	radiogroup \
 	scrollable \
 	scrollfield \

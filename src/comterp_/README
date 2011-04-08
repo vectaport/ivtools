@@ -74,7 +74,8 @@ OPERATOR TABLE
 
     Operators     Command Name         Priority    Order       Type
     ---------     ------------         --------    -----       ----
-    .             dot                  130         R-to-L      binary
+    .             dot                  130         L-to-R      binary
+    `             bquote               125         R-to-L      unary-prefix
     ^             power                120         R-to-L      binary
     !             negate               110         R-to-L      unary-prefix
     ++            incr                 110         R-to-L      unary-prefix
@@ -138,6 +139,12 @@ dbl=tan(x) -- returns the tangent of x radians
 
 dbl=sqrt(x) -- returns square root of x
 
+num=floor(num) -- return closest integer value less than or equal to argument
+
+num=ceil(num) -- return closest integer value greater than or equal to argument
+
+num=round(num) -- return closest integer value
+
 AFFINE TRANSFORM COMMANDS:
 
 point=xform(x,y a00,a01,a10,a11,a20,a21) -- affine transform of x,y coordinates
@@ -182,6 +189,8 @@ OTHER COMMANDS
 
 help(cmdname [cmdname ...]) -- help for commands
 
+val=trace([flag] :get) -- toggle or set trace mode
+
 [str]=print(fmtstr val :string|:str :err) -- print value with format string
 [str]=print(val :string|:str :err) -- print value with format string
 
@@ -199,6 +208,8 @@ str=join(clist :sym) -- join list of characters into string
 
 bool=eq(str1 str2 :n len) -- partial string comparison
 
+bool=eq(sym1 sym2 :sym) -- symbol comparison
+
 postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments
 (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands,
 (narg) after keys, and a * following post-evaluation commands)
@@ -206,7 +217,8 @@ postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments
 arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed 
 argument (until nil) and return array
 
-sym=attrname(attribute) -- return name field of dotted pair.
+sym=attrname(attribute) -- return name field of dotted pair
+val=attrval(attribute) -- return value field of dotted pair
 				 
 quit() -- quit the interpreter
 
@@ -235,6 +247,10 @@ l=long(num) -- convert any numeric to a long
 f=float(num) -- convert any numeric to a float
 
 d=double(num) -- convert any numeric to a double
+
+sym|lst=type(val [val ...]) -- return type symbol(s) for value(s)
+
+sym|lst=class(val [val ...]) -- return class symbol(s) for value(s) of object type
 
 ONLY IN SERVER MODE
 

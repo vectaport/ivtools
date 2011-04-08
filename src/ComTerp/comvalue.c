@@ -118,6 +118,7 @@ ComValue::ComValue(postfix_token* token) {
     _nids = token->nids;
     _aggregate_type = UnknownType;
     _pedepth = 0;
+    _bquote = 0;
 }
 
 ComValue& ComValue::operator= (const ComValue& sv) {
@@ -126,12 +127,14 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nkey = sv._nkey;
     _nids = sv._nids;
     _pedepth = sv._pedepth;
+    _bquote = sv._bquote;
     return *this;
 }
     
 int ComValue::narg() const { return _narg; }
 int ComValue::nkey() const { return _nkey; }
 int ComValue::nids() const { return _nids; }
+int ComValue::bquote() const { return _bquote; }
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;

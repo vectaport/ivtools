@@ -20,6 +20,7 @@ ComTerp/_comterp.h
 ComTerp/_comutil.h
 ComTerp/assignfunc.h
 ComTerp/boolfunc.h
+ComTerp/bquotefunc.h
 ComTerp/comfunc.h
 ComTerp/comhandler.h
 ComTerp/commodule.h
@@ -28,6 +29,7 @@ ComTerp/comterpserv.h
 ComTerp/comvalue.h
 ComTerp/condfunc.h
 ComTerp/ctrlfunc.h
+ComTerp/debugfunc.h
 ComTerp/dotfunc.h
 ComTerp/helpfunc.h
 ComTerp/iofunc.h
@@ -42,6 +44,7 @@ ComTerp/scanner.h
 ComTerp/statfunc.h
 ComTerp/strmfunc.h
 ComTerp/symbolfunc.h
+ComTerp/typefunc.h
 ComTerp/xformfunc.h
 ComUnidraw/comeditor.h
 ComUnidraw/comterp-acehandler.h
@@ -105,6 +108,7 @@ IVGlyph/exportchooser.h
 IVGlyph/fieldedit.h
 IVGlyph/figure.h
 IVGlyph/gdialogs.h
+IVGlyph/idraw.h
 IVGlyph/importchooser.h
 IVGlyph/namestate.h
 IVGlyph/observables.h

@@ -59,11 +59,6 @@ public:
     static const char mouse_edge[]  = "l-drag: Connect; m-drag: Move; r-click/drag: Select";
 
 protected:
-    void toolbar0();
-    // switch to graph drawing toolbar.
-    void toolbar1();
-    // switch to graphics drawing toolbar.
-protected:
     static GraphKit* _graphkit;
 };
 

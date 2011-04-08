@@ -36,6 +36,8 @@
 
 /*****************************************************************************/
 
+int* AttributeValue::_type_syms = nil;
+
 AttributeValue::AttributeValue(ValueType valtype) {
     clear();
     type(valtype);
@@ -571,7 +573,7 @@ unsigned int AttributeValue::obj_type_val() {
 }
 
 unsigned int& AttributeValue::class_symid() {
-    return _v.objval.type; 
+    return _v.objval.type;
 }
 
 AttributeValueList* AttributeValue::array_val() { 
@@ -902,3 +904,35 @@ void* AttributeValue::geta(int id) {
     return nil;
 }
 
+int AttributeValue::type_symid() const {
+  if (!_type_syms) {
+    int i = 0;
+    _type_syms = new int[((int)BlankType)+1];
+    _type_syms[i++] = symbol_add("UnknownType");
+    _type_syms[i++] = symbol_add("CharType");
+    _type_syms[i++] = symbol_add("UCharType");
+    _type_syms[i++] = symbol_add("ShortType");
+    _type_syms[i++] = symbol_add("UShortType");
+    _type_syms[i++] = symbol_add("IntType");
+    _type_syms[i++] = symbol_add("UIntType");
+    _type_syms[i++] = symbol_add("LongType");
+    _type_syms[i++] = symbol_add("ULongType");
+    _type_syms[i++] = symbol_add("FloatType");
+    _type_syms[i++] = symbol_add("DoubleType");
+    _type_syms[i++] = symbol_add("StringType");
+    _type_syms[i++] = symbol_add("SymbolType");
+    _type_syms[i++] = symbol_add("ArrayType");
+    _type_syms[i++] = symbol_add("StreamType");
+    _type_syms[i++] = symbol_add("CommandType");
+    _type_syms[i++] = symbol_add("KeywordType");
+    _type_syms[i++] = symbol_add("ObjectType");
+    _type_syms[i++] = symbol_add("EofType");
+    _type_syms[i++] = symbol_add("BooleanType");
+    _type_syms[i++] = symbol_add("OperatorType");
+    _type_syms[i++] = symbol_add("BlankType");
+  }
+  if (type()>=UnknownType && type()<=BlankType)
+    return _type_syms[(int)type()];
+  else
+    return -1;
+}

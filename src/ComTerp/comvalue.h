@@ -101,12 +101,16 @@ public:
     // number of keywords associated with this command.
     int nids() const;
     // number of subordinate identifiers associated with this identifier (not used).
+    int bquote() const;
+    // return backquote flag
     void narg(int n) {_narg = n; }
     // set number of arguments associated with this command or keyword.
     void nkey(int n) {_nkey = n; }
     // set number of keywords associated with this command.
     void nids(int n) {_nids = n; }
     // set number of subordinate identifiers associated with this identifier (not used).
+    void bquote(int flag) {_bquote = flag; }
+    // set backquote flag
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.
@@ -146,12 +150,13 @@ public:
     static ComValue& minusoneval();
     // returns reference to IntType ComValue with value of -1.
 protected:
-    void zero_vals() { _narg = _nkey = _nids = _pedepth = 0; }
+    void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
 
     int _narg;
     int _nkey;
     int _nids;
     int _pedepth;
+    int _bquote;
 
     static const ComTerp* _comterp;
     static ComValue _nullval;

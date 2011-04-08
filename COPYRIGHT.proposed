@@ -1,9 +1,12 @@
-**Note** 6/12/2000 ** This proposed revised license is no longer under
-active consideration, because the understanding of, and political
-support for MIT/BSD style licenses has greatly increased in the past
-year.  But if it would make all the difference to you in supporting
-ivtools, and you've got a lot of development muscle ready to apply,
-get in touch. **
+	     **Notice** 6/12/2000(modified 8/22/2000) **
+
+This proposed revised license is no longer under active
+consideration. It seems what I proposed below would make the nature of
+the licensing fixed, and I'm not that sure about it to cast it in
+stone.  I am really looking for a free software acceptable LGPL-like
+extension to the BSD/X11 license that approximates the WxWindows
+license (which grants more freedom with binaries than the basic LGPL).
+Send any thoughts to ivtools-info@vectaport.com.
 
 -----------------------------------------------------------------------
 

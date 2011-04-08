@@ -39,6 +39,7 @@ class AttributeList;
 class AttributeValue;
 class ComFunc;
 class ComFuncState;
+class ComTerpState;
 class ComValue;
 class ostream;
 
@@ -216,14 +217,29 @@ public:
     unsigned int& linenum() { return _linenum; }
     // count of lines processed
 
+    ComTerpState* top_servstate();
+    // return pointer to top state on ComTerpServ state stack
+
+    void push_servstate();
+    // push ComTerpServ state for later retrieval
+
+    void pop_servstate();
+    // pop ComTerpServ state that was saved earlier
+
+    void trace_mode(int mode) { _trace_mode = mode; }
+    // set trace mode
+
+    int trace_mode() { return _trace_mode; }
+    // return trace mode
+
 protected:
     void incr_stack();
     void incr_stack(int n);
     void decr_stack(int n=1);
 
-    boolean skip_func(ComValue* topval, int& offset);
-    boolean skip_key(ComValue* topval, int& offset, int& argcnt);
-    boolean skip_arg(ComValue* topval, int& offset, int& argcnt);
+    boolean skip_func(ComValue* topval, int& offset, int offlimit);
+    boolean skip_key(ComValue* topval, int& offset, int offlimit, int& argcnt);
+    boolean skip_arg(ComValue* topval, int& offset, int offlimit, int& argcnt);
 
     void push_stack(postfix_token*);
     void token_to_comvalue(postfix_token*, ComValue*);
@@ -233,19 +249,21 @@ protected:
     void eval_expr_internals(int pedepth=0);
 
     ComFuncState* top_funcstate();
-    void push_funcstate(ComFuncState& funcstate);
-    void pop_funcstate();
+    // return top ComFuncState on stack
+    virtual void push_funcstate(ComFuncState& funcstate);
+    // push ComFuncState onto stack
+    virtual void pop_funcstate();
+    // pop ComFuncState off stack
 
-protected:
-    ComValue* _stack;
-    int _stack_top;
-    unsigned int _stack_siz;
-    boolean _quitflag;
-    char* _errbuf;
-    char* _errbuf2;
-    int _pfoff;
+    ComValue* _stack;  // stack of multi-value objects, central to the interpreter
+    int _stack_top; // current top of stack, -1 indicates empty
+    unsigned int _stack_siz; // current maximum stack size
+    boolean _quitflag; // flag that can be set to terminate interpreter
+    char* _errbuf; // buffer used for rendering error messages
+    char* _errbuf2; // ancillary buffer for rendering error messages
+    int _pfoff; // current offset in _pfbuf
     boolean _brief; // when used to produce ComValue output
-    boolean _just_reset;
+    boolean _just_reset; // flag that gets set after call to ::reset_stack()
     boolean _defaults_added; // flag for base set of commands added 
 
     ComValueTable* _localtable; // per interpreter symbol table
@@ -255,6 +273,10 @@ protected:
     ComFuncState* _fsstack;  // stack of func-status (nargs/nkeys/...) 
     int _fsstack_top;
     unsigned int _fsstack_siz;
+
+    ComTerpState* _ctsstack;  // stack of ComTerpServ state
+    int _ctsstack_top;
+    unsigned int _ctsstack_siz;
 
     ComValue* _pfcomvals; 
     // postfix buffer of ComValue's converted from postfix_token
@@ -271,10 +293,51 @@ protected:
     ComValue* _val_for_next_func;
     // ComValue to pass to next command
 
+    int _trace_mode;
+    // trace mode
 
     friend class ComFunc;
     friend class ComterpHandler;
     friend class ComTerpIOHandler;
 };
 
+//: object for holding ComTerp state
+// object that holds the state of a ComTerp
+// which allows for nested and recursive use of a singular ComTerp
+class ComTerpState {
+public:
+  ComTerpState() {}
+  ComTerpState(ComTerpState& ctss) { *this = ctss; }
+  // copy constructor.
+
+  postfix_token*& pfbuf() { return _pfbuf; }
+  int& pfnum() { return _pfnum; }
+  int& pfoff() { return _pfoff; }
+  int& bufptr() { return _bufptr; }
+  int& bufsiz() { return _bufsiz; }
+  int& linenum() { return _linenum; }
+  //  int& just_reset() { return _just_reset; }
+  char*& buffer() { return _buffer; }
+  ComValue*& pfcomvals() { return _pfcomvals; }
+  infuncptr& infunc() { return _infunc; }
+  eoffuncptr& eoffunc() { return _eoffunc; }
+  errfuncptr& errfunc() { return _errfunc; }
+  void*& inptr() { return _inptr; }
+
+protected:
+
+  postfix_token* _pfbuf;
+  int _pfnum;
+  int _pfoff;
+  int _bufptr;
+  int _linenum;
+  // int _just_reset;
+  char* _buffer;
+  int _bufsiz;
+  ComValue* _pfcomvals;
+  infuncptr _infunc;
+  eoffuncptr _eoffunc;
+  errfuncptr _errfunc;
+  void* _inptr;
+};
 #endif /* !defined(_comterp_h) */

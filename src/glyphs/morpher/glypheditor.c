@@ -20,11 +20,11 @@
 #include <OS/string.h>
 #include <stdio.h>
 #include <string.h>
-#include "figure.h"
+#include <IVGlyph/figure.h>
 #include "morpher.h"
 #include "glypheditor.h"
 #include "glyphviewer.h"
-#include "idraw.h"
+#include <IVGlyph/idraw.h>
 
 typedef void (GlyphViewer::*ToolSetter) (unsigned int);
 

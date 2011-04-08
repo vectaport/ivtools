@@ -44,7 +44,8 @@ void AssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
-    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true));
+    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol lookup */));
+    if (operand2->is_attribute()) lookup_symval(*operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
@@ -64,6 +65,7 @@ void AssignFunc::execute() {
     } else {
         cerr << "assignment to something other than a symbol ignored\n";
 	// should say something about assignment from something other than a symbol as well.
+	delete operand2;
     }
     push_stack(*operand2);
 }
@@ -77,7 +79,8 @@ void ModAssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
-    ComValue operand2(stack_arg_post_eval(1, true));
+    ComValue operand2(stack_arg_post_eval(1, true /* no symbol lookup */));
+    if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         void* op1val = nil;
@@ -109,7 +112,8 @@ void MpyAssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
-    ComValue operand2(stack_arg_post_eval(1, true));
+    ComValue operand2(stack_arg_post_eval(1, true /* no symbol lookup */));
+    if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         void* op1val = nil;
@@ -141,7 +145,8 @@ void AddAssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
-    ComValue operand2(stack_arg_post_eval(1, true));
+    ComValue operand2(stack_arg_post_eval(1, true /* no symbol lookup */));
+    if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         void* op1val = nil;
@@ -173,7 +178,8 @@ void SubAssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
-    ComValue operand2(stack_arg_post_eval(1, true));
+    ComValue operand2(stack_arg_post_eval(1, true /* no symbol lookup */));
+    if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         void* op1val = nil;
@@ -205,7 +211,8 @@ void DivAssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
-    ComValue operand2(stack_arg_post_eval(1, true));
+    ComValue operand2(stack_arg_post_eval(1, true /* no symbol lookup */));
+    if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         void* op1val = nil;

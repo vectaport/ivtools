@@ -332,14 +332,4 @@ public:
 	return "%s(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file"; }
 };
 
-//: command to move graphic in front of another
-// reorder(destview srcview) -- move graphic to the front of another
-class ReorderFunc : public UnidrawFunc {
-public:
-    ReorderFunc(ComTerp*,Editor*);
-    virtual void execute();
-    virtual const char* docstring() { 
-	return "%s(destview srcview) -- move graphic to the front of another"; }
-};
-
 #endif /* !defined(_grfunc_h) */

@@ -175,7 +175,6 @@ public:
     PSPattern* FindNonePattern();
     PSPattern* FindGrayLevel(float);
     PSPattern* FindPattern(int[], int);
-protected:
     void Register(EditorInfo*, const char*);
     void Register(Component*, const char*);
     void Register(Command*, const char*);

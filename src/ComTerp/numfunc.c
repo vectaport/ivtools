@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994,1995,1999 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999,2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -24,6 +24,7 @@
 #include <ComTerp/numfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <math.h>
 
 #define TITLE "NumFunc"
 
@@ -707,4 +708,104 @@ void DoubleFunc::execute() {
     reset_stack();
     push_stack(result);
 }
+
+FloorFunc::FloorFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void FloorFunc::execute() {
+    ComValue& operand1 = stack_arg(0);
+    ComValue result(operand1);
+    switch (result.type()) {
+    case ComValue::CharType:
+    case ComValue::UCharType:
+    case ComValue::ShortType:
+    case ComValue::UShortType:
+    case ComValue::IntType:
+    case ComValue::UIntType:
+    case ComValue::LongType:
+    case ComValue::ULongType:
+      break;
+    case ComValue::FloatType:
+      {
+	ComValue val((long)floor((double) operand1.float_val()));
+	result.assignval(val);
+      }
+      break;
+    case ComValue::DoubleType:
+      {
+        ComValue val((long)floor(operand1.double_val()));
+	result.assignval(val);
+      }
+      break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
+CeilFunc::CeilFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void CeilFunc::execute() {
+    ComValue& operand1 = stack_arg(0);
+    ComValue result(operand1);
+    switch (result.type()) {
+    case ComValue::CharType:
+    case ComValue::UCharType:
+    case ComValue::ShortType:
+    case ComValue::UShortType:
+    case ComValue::IntType:
+    case ComValue::UIntType:
+    case ComValue::LongType:
+    case ComValue::ULongType:
+      break;
+    case ComValue::FloatType:
+      {
+	ComValue val((long)ceil((double) operand1.float_val()));
+	result.assignval(val);
+      }
+      break;
+    case ComValue::DoubleType:
+      {
+        ComValue val((long)ceil(operand1.double_val()));
+	result.assignval(val);
+      }
+      break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
+RoundFunc::RoundFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void RoundFunc::execute() {
+    ComValue& operand1 = stack_arg(0);
+    ComValue result(operand1);
+    switch (result.type()) {
+    case ComValue::CharType:
+    case ComValue::UCharType:
+    case ComValue::ShortType:
+    case ComValue::UShortType:
+    case ComValue::IntType:
+    case ComValue::UIntType:
+    case ComValue::LongType:
+    case ComValue::ULongType:
+      break;
+    case ComValue::FloatType:
+      {
+	ComValue val((long)floor((double) operand1.float_val()+0.5));
+	result.assignval(val);
+      }
+      break;
+    case ComValue::DoubleType:
+      {
+        ComValue val((long)floor(operand1.double_val()+0.5));
+	result.assignval(val);
+      }
+      break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
 

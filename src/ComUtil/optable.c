@@ -80,6 +80,7 @@ struct _opr_tbl_default_entry {
   unsigned optype;
 } DefaultOperatorTable[] = {
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
+  {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"^",          "power",              120,        TRUE,       OPTYPE_BINARY },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"++",         "incr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
@@ -894,7 +895,8 @@ language, as follows:
 
 Operator   Command            Priority   RtoL   Type
 --------   -------            --------   ----   ----
-.          dot                130        Y      BINARY
+.          dot                130        N      BINARY
+`          bquote             125        Y      UNARY PREFIX
 ^          power              120        Y      BINARY
 !          negate             110        Y      UNARY PREFIX
 ++         incr               110        Y      UNARY PREFIX

@@ -8,6 +8,7 @@ AC_CANONICAL_HOST
 
 case "$host" in
     *freebsd2.1.* ) platform_part=freebsd2.1 ;;
+    *freebsd* ) platform_part=freebsd ;;
     *hpux*10*20) platform_part=hpux10.20 ;;
     *hpux* ) platform_part=hpux ;;
     *netbsd* ) platform_part=netbsd ;;

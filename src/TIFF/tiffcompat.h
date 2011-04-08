@@ -152,7 +152,7 @@ extern	void TIFFUnmapFileContents();
 #define	lseek	mpw_lseek
 extern long mpw_lseek(int, long, int);
 #else
-#if !defined(__NetBSD__)
+#if !defined(__NetBSD__) && !defined(__FreeBSD__)
 extern	long lseek();
 #endif
 #endif

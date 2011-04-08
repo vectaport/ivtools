@@ -96,7 +96,7 @@ DotNameFunc::DotNameFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void DotNameFunc::execute() {
-    ComValue dotted_pair(stack_arg(0, true));
+    ComValue dotted_pair(stack_arg(0));
     reset_stack();
     if (dotted_pair.class_symid() != Attribute::class_symid()) return;
     Attribute *attr = (Attribute*)dotted_pair.obj_val();

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,8 +34,6 @@
  */
 
 #include <ComTerp/comterp.h>
-
-class ComTerpServState;
 
 //: extended ComTerp that works with buffered IO.
 class ComTerpServ : public ComTerp {
@@ -73,15 +72,6 @@ public:
     int& npause() { return _npause; }
     // return (reference to) number of pauses
 
-    ComTerpServState* top_servstate();
-    // return pointer to top state on ComTerpServ state stack
-
-    void push_servstate();
-    // push ComTerpServ state for later retrieval
-
-    void pop_servstate();
-    // pop ComTerpServ state that was saved earlier
-
 protected:
 
     static char* s_fgets(char* s, int n, void* serv);
@@ -108,51 +98,8 @@ protected:
     int _npause;
     int _logger_mode;
 
-    ComTerpServState* _ctsstack;  // stack of ComTerpServ state
-    int _ctsstack_top;
-    unsigned int _ctsstack_siz;
-
     friend class ComterpHandler;
     friend class ComTerpIOHandler;
 };
 
-//: object for holding ComTerpServ state
-// object that holds the state of a ComTerpServ
-// which allows for nested and recursive use of a singular ComTerpServ
-class ComTerpServState {
-public:
-  ComTerpServState() {}
-  ComTerpServState(ComTerpServState& ctss) { *this = ctss; }
-  // copy constructor.
-
-  postfix_token*& pfbuf() { return _pfbuf; }
-  int& pfnum() { return _pfnum; }
-  int& pfoff() { return _pfoff; }
-  int& bufptr() { return _bufptr; }
-  int& bufsiz() { return _bufsiz; }
-  int& linenum() { return _linenum; }
-  int& just_reset() { return _just_reset; }
-  char*& buffer() { return _buffer; }
-  ComValue*& pfcomvals() { return _pfcomvals; }
-  infuncptr& infunc() { return _infunc; }
-  eoffuncptr& eoffunc() { return _eoffunc; }
-  errfuncptr& errfunc() { return _errfunc; }
-  void*& inptr() { return _inptr; }
-
-protected:
-
-  postfix_token* _pfbuf;
-  int _pfnum;
-  int _pfoff;
-  int _bufptr;
-  int _linenum;
-  int _just_reset;
-  char* _buffer;
-  int _bufsiz;
-  ComValue* _pfcomvals;
-  infuncptr _infunc;
-  eoffuncptr _eoffunc;
-  errfuncptr _errfunc;
-  void* _inptr;
-};
 #endif

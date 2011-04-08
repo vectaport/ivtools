@@ -7,7 +7,7 @@
 
 #include <InterViews/event.h>
 #include <InterViews/input.h>
-#include "figure.h"
+#include <IVGlyph/figure.h>
 
 class Cursor;
 class IOHandler;

@@ -144,6 +144,7 @@ TE_View::TE_View(Style* s, EivTextBuffer* te_buffer, int rows, int cols,
    chooser_ = nil;
 
    // init key map
+   for (int i=0; i<keymap_size; i++) key_[i] = nil;
    for (TE_ViewKeyInfo* k = &default_key_map[0]; k->key != 0; k++) {
       key_[k->key] = k->func;
    }

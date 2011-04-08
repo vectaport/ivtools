@@ -26,12 +26,14 @@
 #include <ComTerp/_comutil.h>
 #include <ComTerp/assignfunc.h>
 #include <ComTerp/boolfunc.h>
+#include <ComTerp/bquotefunc.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/condfunc.h>
 #include <ComTerp/ctrlfunc.h>
+#include <ComTerp/debugfunc.h>
 #include <ComTerp/dotfunc.h>
 #include <ComTerp/helpfunc.h>
 #include <ComTerp/iofunc.h>
@@ -43,6 +45,7 @@
 #include <ComTerp/statfunc.h>
 #include <ComTerp/strmfunc.h>
 #include <ComTerp/symbolfunc.h>
+#include <ComTerp/typefunc.h>
 #include <ComTerp/xformfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
@@ -95,6 +98,12 @@ void ComTerp::init() {
     if(dmm_calloc((void**)&_fsstack, _fsstack_siz, sizeof(ComFuncState)) != 0) 
 	KANRET("error in call to dmm_calloc");
 
+    /* Allocate servstate stack to initial size */
+    _ctsstack_top = -1;
+    _ctsstack_siz = 256;
+    if(dmm_calloc((void**)&_ctsstack, _ctsstack_siz, sizeof(ComFuncState)) != 0) 
+	KANRET("error in call to dmm_calloc");
+
     _pfoff = 0;
     _pfnum = 0;
     _quitflag = false;
@@ -118,6 +127,7 @@ void ComTerp::init() {
     _handler = nil;
     _val_for_next_func = nil;
     _func_for_next_expr = nil;
+    _trace_mode = 0;
 }
 
 
@@ -170,9 +180,13 @@ int ComTerp::eval_expr(boolean nested) {
 }
 
 int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
+#if 0
   int save_pfoff = _pfoff;
   int save_pfnum = _pfnum;
   ComValue* save_pfcomvals = _pfcomvals;
+#else
+  push_servstate();
+#endif
 
   _pfoff = 0;
   _pfnum = npfvals;
@@ -183,9 +197,13 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
     eval_expr_internals();
   }
 
+#if 0
   _pfoff = save_pfoff;
   _pfnum = save_pfnum;
   _pfcomvals = save_pfcomvals;
+#else
+  pop_servstate();
+#endif
 
   return FUNCOK;
 }
@@ -206,7 +224,28 @@ void ComTerp::eval_expr_internals(int pedepth) {
       func->push_funcstate(sv.narg(), sv.nkey(), 
 			   pedepth, sv.command_symid());
     }
+
+    /* output execution trace */
+    if (this->trace_mode()) {
+      for(int i=0; i<pedepth; i++) cerr << "    ";
+      cerr << symbol_pntr(sv.command_symid());
+      if (func->post_eval()) 
+	cerr << ": nargs=" << sv.narg() << " nkeys=" << sv.nkey() << "\n";
+      else {
+	int ntotal = func->nargs() + func->nkeys();
+	for(int i=0; i<ntotal; i++) {
+	  if (i) 
+	    cerr << " ";
+	  else 
+	    cerr << "(";
+	  cerr << stack_top(i-ntotal+1);
+	}
+	cerr << ")\n";
+      }
+    }
+
     func->execute();
+
     func->pop_funcstate();
     if (_just_reset && !_func_for_next_expr) {
       push_stack(ComValue::blankval());
@@ -275,7 +314,7 @@ void ComTerp::load_sub_expr() {
 	ComFunc* func = (ComFunc*)sv->obj_val();
 	if (func && func->post_eval()) {
 	  int newoffset = offset;
-	  skip_func(_pfcomvals+_pfnum-1, newoffset);
+	  skip_func(_pfcomvals+_pfnum-1, newoffset, -_pfnum);
 	  int start = i-1;
 	  int stop = _pfnum+newoffset;
 	  for (int j=start; j>=stop; j--) 
@@ -380,6 +419,7 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth) {
 	if (stack_top().is_type(ComValue::CommandType) 
 	    && stack_top().pedepth() == pedepth) break;
       }
+      // if (!stack_top().is_symbol())
       eval_expr_internals(pedepth);
       
     }
@@ -387,34 +427,42 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth) {
   return FUNCOK;
 }
 
-boolean ComTerp::skip_func(ComValue* topval, int& offset) {
+boolean ComTerp::skip_func(ComValue* topval, int& offset, int offlimit) {
   ComValue* sv = topval + offset;
   int nargs = sv->narg();
   int nkeys = sv->nkey();
+  if (offlimit == offset) {
+    cerr << "offlimit hit by ComTerp::skip_func\n";
+    return false;
+  }
   offset--;
   while(nargs>0 || nkeys>0) {
     ComValue* nv = topval + offset;
     int tokcnt;
     if (nv->is_type(ComValue::KeywordType)) {
-      skip_key(topval, offset, tokcnt);
+      skip_key(topval, offset, offlimit, tokcnt);
       nkeys--;
       nargs -= tokcnt ? 1 : 0;
     } else {
-      skip_arg(topval, offset, tokcnt);
+      skip_arg(topval, offset, offlimit, tokcnt);
       nargs--;
     }
   }
   return true;
 }
 
-boolean ComTerp::skip_key(ComValue* topval, int& offset, int& tokcnt) {
+boolean ComTerp::skip_key(ComValue* topval, int& offset, int offlimit, int& tokcnt) {
   ComValue& curr = *(topval+offset);
   tokcnt = 0;
   if (curr.is_type(ComValue::KeywordType)) {
+    if (offlimit == offset) {
+      cerr << "offlimit hit by ComTerp::skip_key\n";
+      return false;
+    }
     offset--;
     if (curr.keynarg_val()) {
       int subtokcnt;
-      skip_arg(topval, offset, subtokcnt);
+      skip_arg(topval, offset, offlimit, subtokcnt);
       tokcnt += subtokcnt;
     }
 
@@ -423,7 +471,7 @@ boolean ComTerp::skip_key(ComValue* topval, int& offset, int& tokcnt) {
   return false;
 }
 
-boolean ComTerp::skip_arg(ComValue* topval, int& offset, int& tokcnt) {
+boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokcnt) {
   tokcnt = 0;
   ComValue& curr = *(topval+offset);
   if (curr.is_type(ComValue::KeywordType)) {
@@ -433,11 +481,19 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int& tokcnt) {
     cerr << "unexpected unknown found by ComTerp::skip_arg\n";
     return false;
   } else if (curr.is_type(ComValue::BlankType)) {
+    if (offlimit == offset) {
+      cerr << "offlimit hit by ComTerp::skip_arg\n";
+      return false;
+    }
     offset--;
-    boolean val = skip_arg(topval, offset, tokcnt);
+    boolean val = skip_arg(topval, offset, offlimit, tokcnt);
     tokcnt++;
     return val;
   } else {
+    if (offlimit == offset) {
+      cerr << "offlimit hit by ComTerp::skip_arg\n";
+      return false;
+    }
     offset--;
     tokcnt++;
 
@@ -447,18 +503,26 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int& tokcnt) {
 	ComValue& next = *(topval+offset);
 	int subtokcnt = 0;
 	if (next.is_type(ComValue::KeywordType)) {
-	  skip_key(topval, offset, subtokcnt);
+	  skip_key(topval, offset, offlimit, subtokcnt);
 	  tokcnt += subtokcnt + 1;
 	  if (subtokcnt) count++;
 	} else if (next.is_type(ComValue::CommandType) ||
 		   next.is_type(ComValue::SymbolType)) {
-	  skip_arg(topval, offset, subtokcnt);
+	  skip_arg(topval, offset, offlimit, subtokcnt);
 	  tokcnt += subtokcnt;
 	} else if (next.is_type(ComValue::BlankType)) {
+	  if (offlimit == offset) {
+	    cerr << "offlimit hit by ComTerp::skip_arg\n";
+	    return false;
+	  }
 	  offset--;
-	  skip_arg(topval, offset, subtokcnt);
+	  skip_arg(topval, offset, offlimit, subtokcnt);
 	  tokcnt += subtokcnt+1;
 	} else {
+	  if (offlimit == offset) {
+	    cerr << "offlimit hit by ComTerp::skip_arg\n";
+	    return false;
+	  }
 	  offset--;
 	  tokcnt++;
 	}
@@ -584,21 +648,26 @@ void ComTerp::incr_stack(int n) {
 }
 
 void ComTerp::decr_stack(int n) {
-    for (int i=0; i<n; i++) {
+    for (int i=0; i<n && _stack_top>=0; i++) {
         ComValue& stacktop = _stack[_stack_top--];
 	stacktop.AttributeValue::~AttributeValue();
     }
 }
 
 ComValue& ComTerp::pop_stack(boolean lookupsym) {
+  if (!stack_empty()) {
     ComValue& stacktop = _stack[_stack_top--];
     if (lookupsym)
       return lookup_symval(stacktop);
     else 
       return stacktop;
+  } else
+    return ComValue::nullval();
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
+    if (comval.bquote()) return comval;
+
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
 
@@ -799,6 +868,7 @@ void ComTerp::add_defaults() {
 
     add_command("dot", new DotFunc(this));
     add_command("attrname", new DotNameFunc(this));
+    add_command("attrval", new DotValFunc(this));
 
     add_command("list", new ListFunc(this));
     add_command("at", new ListAtFunc(this));
@@ -826,6 +896,10 @@ void ComTerp::add_defaults() {
     add_command("tan", new TanFunc(this));
     add_command("sqrt", new SqrtFunc(this));
 
+    add_command("floor", new FloorFunc(this));
+    add_command("ceil", new CeilFunc(this));
+    add_command("round", new RoundFunc(this));
+
     add_command("xform", new XformFunc(this));
     add_command("invert", new InvertXformFunc(this));
 
@@ -834,6 +908,7 @@ void ComTerp::add_defaults() {
     add_command("run", new RunFunc(this));
 
     add_command("help", new HelpFunc(this));
+    add_command("trace", new TraceFunc(this));
     add_command("symid", new SymIdFunc(this));
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));
@@ -841,6 +916,11 @@ void ComTerp::add_defaults() {
     add_command("global", new GlobalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
+
+    add_command("type", new TypeSymbolFunc(this));
+    add_command("class", new ClassSymbolFunc(this));
+
+    add_command("bquote", new BackQuoteFunc(this));
 
     add_command("postfix", new PostFixFunc(this));
     add_command("posteval", new PostEvalFunc(this));
@@ -878,9 +958,13 @@ int ComTerp::runfile(const char* filename) {
     int tokoff = _pfoff;
 
     /* swap in input pointer and function */
+#if 0
     void* save_inptr = _inptr;
     infuncptr save_infunc = _infunc;
     outfuncptr save_outfunc = _outfunc;
+#else
+    push_servstate();
+#endif
     FILE* fptr = fopen(filename, "r");
     _inptr = fptr;
     _outfunc = nil;
@@ -908,9 +992,13 @@ int ComTerp::runfile(const char* filename) {
 	}
     }
 
+#if 0
     _inptr = save_inptr;
     _infunc = save_infunc;
     _outfunc = save_outfunc;
+#else
+    pop_servstate();
+#endif
 
     load_postfix(tokbuf, toklen, tokoff);
     delete tokbuf;
@@ -1105,6 +1193,78 @@ ComValue& ComTerp::val_for_next_func() {
 void ComTerp::clr_val_for_next_func() {
   delete _val_for_next_func;
   _val_for_next_func = nil;
+}
+
+ComTerpState* ComTerp::top_servstate() {
+  return _ctsstack_top < 0 ? nil : _ctsstack+_ctsstack_top;
+}
+
+void ComTerp::pop_servstate() {
+  if (_ctsstack_top >=0) {
+
+    ComTerpState* cts_state = top_servstate();
+
+    /* clean up */
+    delete _buffer;
+    delete _pfbuf;
+    delete [] _pfcomvals;
+
+    /* restore copies of everything */
+    _pfbuf = cts_state->pfbuf();
+    _pfnum = cts_state->pfnum();
+    _pfoff = cts_state->pfoff();
+    _bufptr = cts_state->bufptr();
+    _linenum = cts_state->linenum();
+    //    _just_reset = cts_state->just_reset();
+    _buffer = cts_state->buffer();
+    _pfcomvals = cts_state->pfcomvals();
+    _infunc = cts_state->infunc();
+    _eoffunc = cts_state->eoffunc();
+    _errfunc = cts_state->errfunc();
+    _inptr = cts_state->inptr();
+    
+    _ctsstack_top--;
+  }
+}
+
+void ComTerp::push_servstate() {
+  ComTerpState cts_state;
+
+  /* save copies of everything */
+  cts_state.pfbuf() = _pfbuf;
+  cts_state.pfnum() = _pfnum;
+  cts_state.pfoff() = _pfoff;
+  cts_state.bufptr() = _bufptr;
+  cts_state.linenum() = _linenum;
+  //  cts_state.just_reset() = _just_reset;
+  cts_state.buffer() = _buffer;
+  cts_state.pfcomvals() = _pfcomvals;
+  cts_state.infunc() = _infunc;
+  cts_state.eoffunc() = _eoffunc;
+  cts_state.errfunc() = _errfunc;
+  cts_state.inptr() = _inptr;
+
+  /* re-initialize */
+  if(dmm_calloc((void**)&_pfbuf, _pfsiz, sizeof(postfix_token)) != 0) 
+    KANRET("error in call to dmm_calloc");
+  _pfnum = _pfoff = 0;
+  _buffer = new char[_bufsiz];
+  _bufptr = 0;
+  _linenum = 0;
+  // _just_reset = false;
+  _pfcomvals = nil;
+
+  if (_ctsstack_top+1 == _ctsstack_siz) {
+    _ctsstack_siz *= 2;
+    dmm_realloc_size(sizeof(ComTerpState));
+    if(dmm_realloc((void**)&_ctsstack, (unsigned long)_ctsstack_siz) != 0) {
+      KANRET("error in call to dmm_realloc");
+      return;
+    }
+  } 
+  _ctsstack_top++;
+  ComTerpState* ctss = _ctsstack + _ctsstack_top;
+  *ctss = cts_state;
 }
 
 

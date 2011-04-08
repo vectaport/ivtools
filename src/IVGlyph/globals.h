@@ -18,6 +18,7 @@ typedef unsigned Alignment;
  * Use the concrete type (unsigned) instead of Alignment
  * to get around cfront 2.1 incorrect warning.
  */
+#if !defined(ALIGNMENT_DEFINED)
 static const unsigned TopLeft = 0;
 static const unsigned TopCenter = 1;
 static const unsigned TopRight = 2;
@@ -33,7 +34,9 @@ static const unsigned Top = 11;
 static const unsigned Bottom = 12;
 static const unsigned HorizCenter = 13;
 static const unsigned VertCenter = 14;
+#endif /* !defined(ALIGNMENT_DEFINED) */
 
+#if !defined(GEOMOBJS_DEFINED)
 class PointObj {
 public:
     PointObj(Coord = 0, Coord = 0);
@@ -136,6 +139,7 @@ public:
  */
 
 inline boolean Extent::Undefined () { return _left == _cx && _bottom == _cy; }
+#endif
 
 inline void exch (int& a, int& b) {
     int temp = a;

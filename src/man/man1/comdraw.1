@@ -90,7 +90,9 @@ graphical object assigned to an interpreter variable.
 
  update() -- update viewer
 
- import(pathstr) -- import graphic file from pathname or URL
+ compview=import(pathstr :popen) -- import graphic file from pathname or URL, or from a command if :popen
+ compview=paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer
+ val=pastemode([val] :get) -- toggle or set paste mode, default is 0, always paste new graphics
 
  ncols() -- onscreen horizontal extent in pixels
  nrows() -- onscreen vertical extent in pixels

@@ -154,6 +154,8 @@ public:
     // return sizeof of value of this type.
     static int type_size(ValueType);
     // return sizeof of value of given type.
+    int type_symid() const;
+    // return symbol id corresponding to type
 
     void assignval (const AttributeValue&);
     // copy contents of AttributeValue
@@ -322,6 +324,7 @@ protected:
       unsigned int _command_symid; // used for CommandType.
       boolean _object_compview; // used for ObjectType.
     };
+    static int* _type_syms;
 
 };
 

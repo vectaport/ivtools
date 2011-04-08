@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 1994-2000 Vectaport Inc.
+ * Copyright (c) 2000 Vectaport Inc, IET Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -84,7 +85,10 @@ FrameEditor::FrameEditor(const char* file, OverlayKit* ok)
 	    Init(comp);
 
 	} else {
-	    Init();
+	    FrameIdrawComp* comp = new FrameIdrawComp;
+	    comp->SetPathName(file);
+	    catalog->Register(comp, file);
+	    Init(comp, file);
 	    fprintf(stderr, "flipbook: couldn't open %s\n", file);
 	}
     }

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1990, 1991 Stanford University 
  *
@@ -34,12 +35,14 @@
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviews.h>
 
+#include <Unidraw/clipboard.h>
 #include <Unidraw/grid.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/ulist.h>
 #include <Unidraw/viewer.h>
 
 #include <Unidraw/Commands/align.h>
+#include <Unidraw/Commands/edit.h>
 
 #include <Unidraw/Components/grcomp.h>
 #include <Unidraw/Components/gvupdater.h>
@@ -653,6 +656,61 @@ void OverlaysView::AdjustForPan(float dx, float dy) {
         ((OverlayView*)GetView(i))->AdjustForPan(dx, dy);
     }
     OverlayView::AdjustForPan(dx, dy);
+}
+
+Manipulator* OverlaysView::CreateManipulator (
+    Viewer* v, Event& e, Transformer* rel, Tool* tool
+) {
+    Rubberband* rub = nil;
+    Manipulator* m = nil;
+    IntCoord l, b, r, t;
+
+    if (tool->IsA(GRAPHIC_COMP_TOOL)) {
+      v->Constrain(e.x, e.y);
+      m = new DragManip(v, nil, rel, tool, 
+			      DragConstraint(XFixed | YFixed));
+    } else
+        m = OverlayView::CreateManipulator(v, e, rel, tool);
+    
+    return m;
+}
+
+Command* OverlaysView::InterpretManipulator(Manipulator* m) {
+    Tool* tool = m->GetTool();
+    Command* cmd = nil;
+
+    if (tool->IsA(GRAPHIC_COMP_TOOL)) 
+    {
+      DragManip* dm = (DragManip*) m;
+      Editor* ed = dm->GetViewer()->GetEditor();
+      Transformer* rel = dm->GetTransformer();
+
+      Event initial = dm->GraspEvent();
+      Coord x = initial.x;
+      Coord y = initial.y;
+
+      if (rel != nil) {
+	rel = new Transformer(rel);
+	rel->Invert();
+      }
+      /* get the comp */
+      OverlaysComp* comp = (OverlaysComp*)GetSubject()->Copy();
+      Transformer* t = comp->GetGraphic()->GetTransformer();
+      if (!t) {
+	t = new Transformer();
+	comp->GetGraphic()->SetTransformer(t);
+      }
+      t->Translate(x, y);
+      t->postmultiply(rel);
+      Unref(rel);
+
+      cmd = new PasteCmd(ed, new Clipboard(comp));
+
+    } else 
+    {
+        cmd = OverlayView::InterpretManipulator(m);
+    }
+    return cmd;
 }
 
 /*****************************************************************************/

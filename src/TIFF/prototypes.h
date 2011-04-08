@@ -53,6 +53,6 @@
 #define	DECLARE3V(f,t1,a1,t2,a2,t3,a3) \
 	f(a1, a2, a3, va_alist) t1 a1; t2 a2; t3 a3; va_dcl
 #else
-"Help, I don't know how to handle this case: !USE_PROTOTYPES and !USE_VARARGS?"
+/* "Help, I don't know how to handle this case: !USE_PROTOTYPES and !USE_VARARGS?" */
 #endif
 #endif

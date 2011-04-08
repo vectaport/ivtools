@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994,1995,1999 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999,2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -142,6 +142,42 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "n=%s(a) -- return absolute value of a"; }
+
+};
+
+//: floor command for ComTerp.
+// num=floor(num) -- return closest integer value less than or equal to argument
+class FloorFunc : public NumFunc {
+public:
+    FloorFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "num=%s(num) -- return closest integer value less than or equal to argument"; }
+
+};
+
+//: ceiling command for ComTerp.
+// num=ceil(num) -- return closest integer value greater than or equal to argument
+class CeilFunc : public NumFunc {
+public:
+    CeilFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "num=%s(num) -- return closest integer value greater than or equal to argument"; }
+
+};
+
+//: ceiling command for ComTerp.
+// num=round(num) -- return closest integer value
+class RoundFunc : public NumFunc {
+public:
+    RoundFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "num=%s(num) -- return closest integer value"; }
 
 };
 

@@ -331,11 +331,11 @@ MenuItem * GraphKit::MakeToolsMenu() {
     mbi->menu(kit.pulldown());
 
     MenuItem* menu_item = kit.menu_item(kit.label("Graph Tools"));
-    menu_item->action(new ActionCallback(GraphKit)(this, &GraphKit::toolbar1));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar1));
     mbi->menu()->append_item(menu_item);
 
     menu_item = kit.menu_item(kit.label("Idraw Tools"));
-    menu_item->action(new ActionCallback(GraphKit)(this, &GraphKit::toolbar0));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar0));
     mbi->menu()->append_item(menu_item);
 
     return mbi;
@@ -586,18 +586,6 @@ Glyph* GraphKit::MakeToolbar() {
 		fil, 0.0
 	)
     );
-}
-
-void GraphKit::toolbar0() {
-    _toolbars->flip_to(0);
-    _ed->GetKeyMap()->Execute(CODE_SELECT);
-    _toolbar->redraw();
-}
-
-void GraphKit::toolbar1() {
-    _toolbars->flip_to(1);
-    _ed->GetKeyMap()->Execute("L");
-    _toolbar->redraw();
 }
 
 void GraphKit::InitLayout(const char* name) {

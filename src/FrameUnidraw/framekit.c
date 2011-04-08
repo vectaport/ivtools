@@ -149,36 +149,49 @@ void FrameKit::InitLayout(const char* name) {
 
 void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
     FrameEditor* ed = (FrameEditor*) kit->GetEditor();
+    Catalog* catalog = unidraw->GetCatalog();
+    const char* stripped_string = catalog->GetAttribute("stripped");
+    boolean stripped_flag = stripped_string ? strcmp(stripped_string, "true")==0 : false;
     if (ed->GetWindow() == nil) {
         TextObserver* mousedoc_observer = new TextObserver(ed->MouseDocObservable(), "");
 	WidgetKit& wk = *WidgetKit::instance();
 	const LayoutKit& layout = *LayoutKit::instance();
+	PolyGlyph* topbox = layout.vbox();
+
 	Glyph* menus = kit->MakeMenus();
 	Glyph* states = kit->MakeStates();
 	Glyph* toolbar = kit->MakeToolbar();
-	if (states)
-	    menus->append(states);
-	Target* viewer = 
-	    new Target(new Frame(kit->Interior()), TargetPrimitiveHit);
-	Catalog* catalog = unidraw->GetCatalog();
-	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
-	  if (strcmp(toolbarloca, "r") == 0) 
-	    toolbar->prepend(layout.vcenter(viewer));
-	  else /* if (strcmp(toolbarloca, "l") == 0) */
-	    toolbar->append(layout.vcenter(viewer));
-	} else 
-	  toolbar->append(layout.vcenter(viewer));
-	menus->append(toolbar);
 
-	
-	Style* style = Session::instance()->style();
-	boolean bookgeom = style->value_is_on("bookgeom");
-	
-	PolyGlyph* topbox = layout.vbox();
-	ed->body(menus);
-	ed->GetKeyMap()->Execute(CODE_SELECT);
-	topbox->append(ed);
-	if (!bookgeom) {
+	if (stripped_flag) {
+
+	  Target* viewer = 
+	    new Target(new Frame(ed->Interior()), TargetPrimitiveHit);
+	  ed->body(viewer);
+	  topbox->append(ed);
+
+	} else {
+	  if (states)
+	    menus->append(states);
+	  Target* viewer = 
+	    new Target(new Frame(kit->Interior()), TargetPrimitiveHit);
+	  Catalog* catalog = unidraw->GetCatalog();
+	  if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
+	    if (strcmp(toolbarloca, "r") == 0) 
+	      toolbar->prepend(layout.vcenter(viewer));
+	    else /* if (strcmp(toolbarloca, "l") == 0) */
+	      toolbar->append(layout.vcenter(viewer));
+	  } else 
+	    toolbar->append(layout.vcenter(viewer));
+	  menus->append(toolbar);
+	  
+	  
+	  Style* style = Session::instance()->style();
+	  boolean bookgeom = style->value_is_on("bookgeom");
+	  
+	  ed->body(menus);
+	  ed->GetKeyMap()->Execute(CODE_SELECT);
+	  topbox->append(ed);
+	  if (!bookgeom) {
 	    boolean set_flag = kit->set_button_flag();
 	    boolean clr_flag = kit->clr_button_flag();
 	    EivTextEditor* texteditor = nil;
@@ -188,21 +201,21 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 	    else
 	      texteditor = new EivTextEditor(wk.style());
 	    ((FrameEditor*)ed)->_texteditor = texteditor;
-	    Button* set = set_flag ? wk.push_button("Set", new ActionCallback(FrameEditor)(
-		(FrameEditor*)ed, &FrameEditor::SetText
-	    )) : nil;
-	    Button* clear = clr_flag ? wk.push_button("Clear", new ActionCallback(FrameEditor)(
-		(FrameEditor*)ed, &FrameEditor::ClearText
-	    )) : nil;
+	    Button* set = set_flag ? 
+	      wk.push_button("Set", new ActionCallback(FrameEditor)
+			     ((FrameEditor*)ed, &FrameEditor::SetText)) : 
+	      nil;
+	    Button* clear = clr_flag ? 
+	      wk.push_button("Clear", new ActionCallback(FrameEditor)
+			     ((FrameEditor*)ed, &FrameEditor::ClearText)) : 
+	      nil;
 	    Glyph* buttonbox = nil;
 	    if (set && !clear) {
 	      buttonbox = 
-		layout.vbox(
-			    layout.hcenter(set));
+		layout.vbox(layout.hcenter(set));
 	    } else if (!set && clear) { 
 	      buttonbox = 
-		layout.vbox(
-			    layout.hcenter(clear));
+		layout.vbox(layout.hcenter(clear));
 	    } else if (set && clear) {
 	      buttonbox = 
 		layout.vbox(
@@ -213,41 +226,42 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 	    }
 	    if (buttonbox) {
 	      topbox->append(
-		  wk.outset_frame(
-		      layout.hbox(
-			  layout.vcenter(
-			      layout.margin(
-                                  buttonbox,
-				  10
-			      )
-			  ),
-			  layout.vcenter(texteditor)
+		wk.outset_frame(
+		  layout.hbox(
+		    layout.vcenter(
+		      layout.margin(
+			buttonbox,
+			10
 		      )
+		    ),
+   		    layout.vcenter(texteditor)
 		  )
+   	        )
 	      );
 	    } else {
 	      topbox->append(
-		  wk.outset_frame(
-		      layout.hbox(
-			  layout.vcenter(
-			      layout.margin(
-				  layout.vbox(
- 			              wk.label("type help"),
-			              layout.vspace(10),
-			              wk.label("to print"),
-			              layout.vspace(10),
-			              wk.label("info to stdout")
-			              ),
-				  10
-			      )
-			  ),
-			  layout.vcenter(texteditor)
+   	        wk.outset_frame(
+		  layout.hbox(
+		    layout.vcenter(
+		      layout.margin(
+			layout.vbox(
+			  wk.label("type help"),
+			  layout.vspace(10),
+			  wk.label("to print"),
+			  layout.vspace(10),
+		          wk.label("info to stdout")
+		        ),
+			10
 		      )
+   		    ),
+  		    layout.vcenter(texteditor)
 		  )
+   	        )
 	      );
 	    }
+	  }
 	}
-
+	  
 	ManagedWindow* w = new ApplicationWindow(topbox);
 	ed->SetWindow(w);
 	Style* s = new Style(Session::instance()->style());

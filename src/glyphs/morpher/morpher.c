@@ -1,5 +1,5 @@
 #include "morpher.h"
-#include "figure.h"
+#include <IVGlyph/figure.h>
 #include "glypheditor.h"
 #include "glyphviewer.h"
 #include <InterViews/canvas.h>

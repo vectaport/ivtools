@@ -37,7 +37,7 @@
 #include <sys/utsname.h>
 #define MAXHOSTNAMELEN SYS_NMLN
 #endif
-#ifdef __linux__
+#if defined(__linux__) || defined(__FreeBSD__)
 #include <stdio.h>
 #endif
 // Print a short error message describing the last error encountered

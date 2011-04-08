@@ -34,6 +34,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#define GEOMOBJS_DEFINED
+
 class UList;
 class ostream;
 

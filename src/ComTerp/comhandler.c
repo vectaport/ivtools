@@ -196,7 +196,7 @@ ComterpHandler::open (void *)
 	  (this, ACE_Event_Handler::READ_MASK) == -1)
 	ACE_ERROR_RETURN ((LM_ERROR, 
 			   "(%P|%t) can't register with reactor\n"), -1);
-#if 0
+#if defined(__NetBSD__) /* this seems to be required for NetBSD */
       else if (COMTERP_REACTOR::instance ()->schedule_timer
 	  (this, 
 	  (const void *) this, 

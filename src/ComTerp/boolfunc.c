@@ -190,8 +190,10 @@ EqualFunc::EqualFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void EqualFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    static int sym_symid = symbol_add("sym");
+    boolean symflag = stack_key(sym_symid).is_true(); 
+    ComValue& operand1 = stack_arg(0, symflag);
+    ComValue& operand2 = stack_arg(1, symflag);
     static int n_symid = symbol_add("n");
     ComValue& nval =stack_key(n_symid); 
     promote(operand1, operand2);

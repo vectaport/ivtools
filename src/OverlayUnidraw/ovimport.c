@@ -836,7 +836,7 @@ const char* OvImportCmd::ReadCreator (const char* pathname) {
 	}
 	return creator;
     } else {
-	cerr << "Unable to access image file:  " << pathname << "\n";
+	cerr << "Unable to access graphic file:  " << pathname << "\n";
 	return nil;
     }
 }

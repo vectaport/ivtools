@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1990, 1991 Stanford University 
  *
@@ -198,6 +199,10 @@ public:
     // called once per OverlayView before each pan, to let
     // fixed location graphics adjust accordingly.
 
+    virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
+    // create manipulator for laying down composite graphic
+    virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulator by copying prototype
 protected:
     UList* Elem(Iterator);
 
