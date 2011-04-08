@@ -25,7 +25,11 @@
 #include <ComTerp/numfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <Unidraw/iterator.h>
+#include <Attribute/attrlist.h>
+#include <OS/math.h>
 #include <math.h>
+#include <string.h>
 
 #define TITLE "NumFunc"
 
@@ -228,9 +232,40 @@ void AddFunc::execute() {
 	  result.string_ref()  = symbol_add(buffer);
 	}
 	break;
+    case ComValue::ArrayType: 
+        {
+	  if (operand2.is_array()) {
+	    Resource::unref(result.array_val());
+	    result.array_ref() = 
+	      AddFunc::matrix_add(operand1.array_val(), operand2.array_val());
+	    Resource::ref(result.array_val());
+	  }
+	  else 
+	    result.type(ComValue::UnknownType); // nil
+        }
+        break;
+
     }
     reset_stack();
     push_stack(result);
+}
+
+
+AttributeValueList* AddFunc::matrix_add(AttributeValueList* list1,
+					AttributeValueList* list2) {
+  AttributeValueList* sum = new AttributeValueList();
+  Iterator it1, it2;
+  list1->First(it1);
+  list2->First(it2);
+  while (!list1->Done(it1) && !list2->Done(it2)) {
+    push_stack(*list1->GetAttrVal(it1));
+    push_stack(*list2->GetAttrVal(it2));
+    exec(2, 0);
+    sum->Append(new AttributeValue(comterp()->pop_stack()));
+    list1->Next(it1);
+    list2->Next(it2);
+  }
+  return sum;
 }
 
 SubFunc::SubFunc(ComTerp* comterp) : NumFunc(comterp) {
@@ -379,10 +414,161 @@ void MpyFunc::execute() {
     case ComValue::DoubleType:
 	result.double_ref() = operand1.double_val() * operand2.double_val();
 	break;
+    case ComValue::ArrayType: 
+        {
+	  if (operand2.is_array()) {
+	    Resource::unref(result.array_val());
+	    AttributeValueList* avl = 
+	      MpyFunc::matrix_mpy(operand1.array_val(), operand2.array_val());
+	    if (avl) {
+	      result.array_ref() = avl;
+	      Resource::ref(result.array_val());
+	    } else
+	      result.type(ComValue::UnknownType); // nil
+	  }
+	  else 
+	    result.type(ComValue::UnknownType); // nil
+        }
+        break;
     }
 
     reset_stack();
     push_stack(result);
+}
+
+AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
+					AttributeValueList* list2) {
+
+  static AddFunc addfunc(comterp());
+  Iterator it1, it2;
+  list1->First(it1);
+  list2->First(it2);
+  
+  // extract dimensions
+  int i1max, j1max;
+  int i2max, j2max;
+  i1max = list1->Number();
+  i2max = list2->Number();
+  j1max = list1->GetAttrVal(it1)->is_array() &&
+    list1->GetAttrVal(it1)->array_val() ? 
+    list1->GetAttrVal(it1)->array_val()->Number() : 0;
+  j2max = list2->GetAttrVal(it2)->is_array() &&
+    list1->GetAttrVal(it2)->array_val() ? 
+    list1->GetAttrVal(it2)->array_val()->Number() : 0;
+
+  /* ensure inner dimension is the same */
+  /* allow for vector argument on rhs */
+  if (j1max != i2max && (j1max || i2max!=1)) return nil;
+
+  /* ensure each row is of equal length */
+  list1->First(it1);
+  list1->Next(it1);
+  while (!list1->Done(it1)) {
+    int jlen = list1->GetAttrVal(it1)->is_array() &&
+      list1->GetAttrVal(it1)->array_val() ? 
+      list1->GetAttrVal(it1)->array_val()->Number() : 0;
+    if (jlen != j1max) return nil;
+    list1->Next(it1);
+  }
+  list2->First(it2);
+  list2->Next(it2);
+  while (!list2->Done(it2)) {
+    int jlen = list2->GetAttrVal(it2)->is_array() &&
+      list2->GetAttrVal(it2)->array_val() ? 
+      list2->GetAttrVal(it2)->array_val()->Number() : 0;
+    if (jlen != j2max) return nil;
+    list2->Next(it2);
+  }
+  
+
+  AttributeValueList* product = new AttributeValueList();
+
+  int i3max = i1max;
+  int j3max = j2max;
+
+  /* loop over output rows */
+  Iterator iti1, itj1;
+  list1->First(iti1);
+
+  for (int i3=0; i3<i3max; i3++) {
+    AttributeValueList* prodrow = new AttributeValueList();
+    product->Append(new AttributeValue(prodrow));
+    AttributeValue* row1v = list1->GetAttrVal(iti1);
+    AttributeValueList* row1 = row1v && row1v->is_array() ? 
+      row1v->array_val() : nil;
+
+    if (j3max) {
+      /* loop over output columns */
+      for (int j3=0; j3<j3max; j3++) {
+	
+	if (row1) row1->First(itj1);
+	
+	/* generate inner product */
+	for (int n=0; n<Math::max(j1max,1); n++) {
+	  
+	  /* locate the value from the second matrix */
+	  Iterator iti2, itj2;
+	  list2->First(iti2);
+	  for (int i=0; i<n; i++) list2->Next(iti2);
+	  AttributeValue* row2v = list1->GetAttrVal(iti2);
+	  AttributeValueList* row2 = row2v && row2v->is_array() ? 
+	    row2v->array_val() : nil;
+	  if (row2) {
+	    row2->First(itj2);
+	    for (int j=0; j<j3; j++) row2->Next(itj2);
+	  }
+	  if ((row1 || !j1max) && row2) {
+	    if (row1) 
+	      comterp()->push_stack(*row1->GetAttrVal(itj1));
+	    else
+	      comterp()->push_stack(*row1v);
+	    comterp()->push_stack(*row2->GetAttrVal(itj2));
+	    exec(2,0);
+	    if (n) addfunc.exec(2,0);
+	  }
+	  
+	  if (row1) row1->Next(itj1);
+	}
+	
+	prodrow->Append(new AttributeValue(comterp()->pop_stack()));
+      }
+      /* done looping over output columsn */
+      
+    } else {
+      /* handle single output column */
+
+      if (row1) row1->First(itj1);
+	
+      /* generate inner product */
+      for (int n=0; n<Math::max(j1max,1); n++) {
+	  
+	/* locate the value from the lhs vector */
+	Iterator iti2;
+	list2->First(iti2);
+	for (int i=0; i<n; i++) list2->Next(iti2);
+	AttributeValue* val2v = list1->GetAttrVal(iti2);
+	if ((row1 || !j1max) && val2v) {
+	  if (row1) 
+	    comterp()->push_stack(*row1->GetAttrVal(itj1));
+	  else
+	    comterp()->push_stack(*row1v);
+	  comterp()->push_stack(*val2v);
+	  exec(2,0);
+	  if (n) addfunc.exec(2,0);
+	}
+	
+	if (row1) row1->Next(itj1);
+      }
+      
+      prodrow->Append(new AttributeValue(comterp()->pop_stack()));
+    }
+
+    list1->Next(iti1);
+  }
+  /* done looping over output rows */
+
+
+  return product;
 }
 
 DivFunc::DivFunc(ComTerp* comterp) : NumFunc(comterp) {

@@ -1185,9 +1185,12 @@ void OverlayPainter::DoRasterRect(
 
 	boolean transparent_val = 0;
 
-	if (r_r->alphaval()<1.0 || transparent_val) {
+	if (r_r->alphaval()<1.0 /* || transparent_val */ ) {
 	
 	  /* WITH alpha-tranparency */
+
+	  unsigned long alpha = (unsigned long)(r_r->alphaval() * 65535);
+	  unsigned long beta = 65535 - alpha;
 
 	  /* adjust pwidth and pheight, because they might be in error */
 	  XWindow win_ret;
@@ -1218,22 +1221,27 @@ void OverlayPainter::DoRasterRect(
 		XColor xc1, xc2;
 		d.rep()->default_visual_->find_color(val1, xc1);
 		d.rep()->default_visual_->find_color(val2, xc2);
-		float alpha = r_r->alphaval();
-		float beta = 1.0 - alpha;
+#if 0
 		if (!(transparent_val && 
 		    xc1.red==0xffff && 
 		    xc1.green==0xffff && 
 		    xc1.blue==0xffff)) { 
-		  unsigned short newred = (short unsigned)(xc1.red*alpha+xc2.red*beta);
-		  unsigned short newgreen = (short unsigned)(xc1.green*alpha+xc2.green*beta);
-		  unsigned short newblue = (short unsigned)(xc1.blue*alpha+xc2.blue*beta);
+#endif
+		  unsigned short newred = 
+		    (unsigned short)((xc1.red*alpha+xc2.red*beta)>>16);
+		  unsigned short newgreen = 
+		    (unsigned short)((xc1.green*alpha+xc2.green*beta)>>16);
+		  unsigned short newblue = 
+		    (unsigned short)((xc1.blue*alpha+xc2.blue*beta)>>16);
 		  
 		  XColor newcolor;
 		  d.rep()->default_visual_->find_color((short unsigned int)newred, (short unsigned int)newgreen, (short unsigned int)newblue, newcolor);
 		  XPutPixel(im1, i, j, newcolor.pixel);
+#if 0
 		} else {
 		  XPutPixel(im1, i, j, xc2.pixel);
 		}
+#endif
 	      }
 	    }
 	    

@@ -101,6 +101,7 @@ private:
     unsigned long blue_shift_;
     unsigned long white_;
     unsigned long xor_;
+    boolean bytesize_;
 
     static void find_visual_by_class_name(const String&, WindowVisualInfo&);
     static boolean find_layer(const String&, int& layer);

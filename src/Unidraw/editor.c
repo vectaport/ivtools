@@ -39,8 +39,10 @@
 #include <InterViews/style.h>
 #include <InterViews/target.h>
 #include <InterViews/window.h>
-
+#include <IV-X11/xdisplay.h>
+#include <IV-X11/xevent.h>
 #include <OS/list.h>
+#include <string.h>
 
 declarePtrList(EditorImpl,TransientWindow)
 implementPtrList(EditorImpl,TransientWindow)
@@ -117,6 +119,16 @@ void Editor::keystroke(const Event& e) {
     if (n > 0) {
 	buf[n] = '\0';
 	GetKeyMap()->Execute(buf);
+    } else if (e.rep()->xevent_.type == KeyPress) {
+      KeySym ks = XKeycodeToKeysym(e.rep()->display_->rep()->display_,
+				   e.rep()->xevent_.xkey.keycode, 0);
+      if (ks) {
+	strncpy(buf, (const char*)&ks, 2);
+	n = 2;
+	buf[n] = '\0';
+	GetKeyMap()->Execute(buf);
+      }
+      
     }
 }
 

@@ -1,5 +1,6 @@
 #ifndef _iv_iostream_h_
 #define _iv_iostream_h_
+#include <iosfwd>
 #include_next <iostream.h>
 
 #if __GNUG__>=3

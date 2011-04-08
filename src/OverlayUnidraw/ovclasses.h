@@ -93,6 +93,7 @@
 #define OVPRECISEBRUSH_CMD    2060
 #define PUSH_CMD              2061
 #define PULL_CMD              2062
+#define ALPHATRANSPARENT_CMD  2063
 
 #define OVERLAY_COMP          2150
 #define OVERLAYS_COMP         2151

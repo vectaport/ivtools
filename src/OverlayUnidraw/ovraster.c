@@ -179,6 +179,9 @@ void RasterOvComp::GrowParamList(ParamList* pl) {
     pl->add_param("graydouble", ParamStruct::keyword, &RasterScript::ReadGrayDouble,
 		  this, this);
 
+    pl->add_param("alpha", ParamStruct::keyword, &RasterScript::ReadAlpha,
+		  this, this);
+
     pl->add_param("proc", ParamStruct::keyword, &RasterScript::ReadProcess,
 		  this, this);
 
@@ -527,6 +530,8 @@ boolean RasterScript::Definition (ostream& out) {
       raster->write(out);
     }
 
+    if (rr->alphaval() != 1.0) out << " :alpha " << rr->alphaval();
+
     if (rr->xbeg()>=0 || rr->xend()>=0 || rr->ybeg()>=0 || rr->yend()>=0)
         out << " :sub " <<
 	    rr->xbeg() << "," <<
@@ -868,6 +873,23 @@ int RasterScript::ReadSub (istream& in, void* addr1, void* addr2, void* addr3, v
         gr->xend(xend);
         gr->ybeg(ybeg);
         gr->yend(yend);
+        return 0;
+    }
+}
+
+
+int RasterScript::ReadAlpha (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    RasterOvComp* comp = (RasterOvComp*)addr1;
+    float alpha;
+    OverlayRasterRect* gr = comp ? (OverlayRasterRect*) comp->GetGraphic() : nil;
+ 
+    ParamList::skip_space(in);
+    in >> alpha;
+    if (!in.good()) {
+        return -1;
+    }
+    else {
+        if (gr) gr->alphaval(alpha);
         return 0;
     }
 }
@@ -1367,6 +1389,7 @@ void OverlayRaster::graypeek(unsigned long x, unsigned long y, AttributeValue& v
   float rval, gval, bval, aval;
   peek(x, y, rval, gval, bval, aval);
   val.double_ref() = (double) (gval*(float)0xff); 
+  val.type(AttributeValue::DoubleType);
 }
 
 void OverlayRaster::graypoke(unsigned long x, unsigned long y, unsigned int i)

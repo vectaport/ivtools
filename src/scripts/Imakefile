@@ -6,7 +6,7 @@ PACKAGE = scripts_ivtools
 
 IvmkcmTargets($(PACKAGE))
 
-PROGRAMS = ivmkmf ivct ivdt ivcd ivfb ivgd ivds
+PROGRAMS = ivmkmf
 #if InstallRelative
 CONFIGDIRSPEC = -T IMAKE_TEMPLATE -I$(CONFIGDIR) -I$(XCONFIGDIR)
 MAKEMAKESPEC = ARCH=$(CPU) CONFIGSRC=$(CONFIGDIR) XCONFIGDIR=$(XCONFIGDIR)
@@ -27,17 +27,15 @@ InstallMultipleFlags($(PROGRAMS),$(BINDIR),$(INSTBINFLAGS))
 
 LDLIB_SPEC = LD_LIBRARY_PATH='$(LIBABSDIR)':$$LD_LIBRARY_PATH
 PATH_SPEC = PATH='$(BINDIR)':$$PATH
-CppScriptTarget(ivct,ivct.cpp,-DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)',)
-CppScriptTarget(ivdt,ivdt.cpp,-DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)',)
-CppScriptTarget(ivcd,ivcd.cpp,-DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)',)
-CppScriptTarget(ivfb,ivfb.cpp,-DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)',)
-CppScriptTarget(ivgd,ivgd.cpp,-DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)',)
-CppScriptTarget(ivds,ivds.cpp,-DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)',)
 
+#if InstallRelative
 InstallScriptAs(mkgif89a.bash,$(BINDIR),mkgif89a)
 InstallScriptAs(mkgif89ac.bash,$(BINDIR),mkgif89ac)
+#endif
 InstallScriptAs(ivgetjpg.bash,$(BINDIR),ivgetjpg)
+#if InstallRelative
 InstallScriptAs(cntsrclines.bash,$(BINDIR),cntsrclines)
+#endif
 InstallScriptAs(ivtiftopnm.bash,$(BINDIR),ivtiftopnm)
 
 InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)

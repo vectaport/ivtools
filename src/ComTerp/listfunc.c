@@ -76,7 +76,8 @@ void ListFunc::execute() {
 	return;
       }
 
-    }
+    } else if (nargs())
+      avl->Append(new AttributeValue(listv));
   }
   Resource::ref(avl);
   ComValue retval(avl);
@@ -172,17 +173,23 @@ void TupleFunc::execute() {
     ComValue* operand2 = new ComValue(stack_arg(1));
     reset_stack();
 
-    if (!operand1->is_type(ComValue::ArrayType)) {
+    if (!operand1->is_array() || 
+	operand1->array_val()->nested_insert()) {
 	AttributeValueList* avl = new AttributeValueList();
 	avl->Append(operand1);
 	avl->Append(operand2);
 	ComValue retval(avl);
 	push_stack(retval);
+        if( operand1->is_array())
+	  operand1->array_val()->nested_insert(false);
     } else {
         AttributeValueList* avl = operand1->array_val();
 	avl->Append(operand2);
 	push_stack(*operand1);
 	delete operand1;
     }
+    
+    if (operand2->is_array())
+      operand2->array_val()->nested_insert(false);
 }
 

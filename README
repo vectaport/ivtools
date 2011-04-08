@@ -2,7 +2,7 @@
 			README for ivtools 1.0
 
 
-This directory contains a release of ivtools 1.0.3.  You should read
+This directory contains a release of ivtools 1.0.4.  You should read
 the rest of this file for information on what ivtools is and the
 INSTALL file for instructions on how to build it.
 
@@ -129,6 +129,11 @@ Windows NT 4.0 using Cygwin from Cygnus Solutions (see README.cygwin).
 You can find links to available binaries on the ivtools web page
 (http://www.ivtools.org) and ivtools download page
 (http://www.ivtools.org/ivtools/download.html)
+
+** NOTE **  Do not use gcc-2.96, the default compiler shipped with
+RedHat 7.*.  This branch of gcc was never approved by the gcc
+steering committee.  The workaround is to upgrade to gcc-3.* or 
+downgrade to gcc-2.95.*.
 
 If you have a question about this software, desire to add code, found
 a bug, want to request a feature, or wonder how to get further

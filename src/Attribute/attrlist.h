@@ -216,6 +216,12 @@ public:
     void clear(); 
     // empty AttributeValueList, deleting all AttributeValue's.
 
+    void nested_insert(boolean flag) { _nested_insert = flag; }
+    // set flag to insert in a nested fashion
+
+    boolean nested_insert() { return _nested_insert; }
+    // get flag to insert in a nested fashion
+
 protected:
     void Remove(ALIterator&);
     // remove AttributeValue pointed to by iterator from the list, 
@@ -224,6 +230,7 @@ protected:
 
     AList* _alist;
     unsigned int _count;
+    boolean _nested_insert;
 };
 
 #endif

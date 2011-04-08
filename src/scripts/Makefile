@@ -67,9 +67,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-1.0.2
+   RELEASE = ivtools-1.0.4
 
-   VERSION = 1.0.2
+   VERSION = 1.0.4
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -326,7 +326,7 @@ cmcommit::
 	if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \
 	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi; fi
 
-PROGRAMS = ivmkmf ivct ivdt ivcd ivfb ivgd ivds
+PROGRAMS = ivmkmf
 
 CONFIGDIRSPEC = -T "template" -I$(CONFIGDIR) -I$(XCONFIGDIR)
 MAKEMAKESPEC = ARCH=$(CPU) CONFIGSRC=$(CONFIGDIR) XCONFIGDIR=$(XCONFIGDIR)
@@ -352,36 +352,6 @@ uninstall::
 
 LDLIB_SPEC = LD_LIBRARY_PATH='$(LIBABSDIR)':$$LD_LIBRARY_PATH
 PATH_SPEC = PATH='$(BINDIR)':$$PATH
-
-ivct::  ivct.cpp
-	$(RM) $@
-	$(CPP) -DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)' <ivct.cpp | sed -e '/^#  *[0-9][0-9]*  *.*$$/d' -e '/^XCOMM$$/s//#/' -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/' >$@
-	chmod a+x $@
-
-ivdt::  ivdt.cpp
-	$(RM) $@
-	$(CPP) -DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)' <ivdt.cpp | sed -e '/^#  *[0-9][0-9]*  *.*$$/d' -e '/^XCOMM$$/s//#/' -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/' >$@
-	chmod a+x $@
-
-ivcd::  ivcd.cpp
-	$(RM) $@
-	$(CPP) -DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)' <ivcd.cpp | sed -e '/^#  *[0-9][0-9]*  *.*$$/d' -e '/^XCOMM$$/s//#/' -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/' >$@
-	chmod a+x $@
-
-ivfb::  ivfb.cpp
-	$(RM) $@
-	$(CPP) -DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)' <ivfb.cpp | sed -e '/^#  *[0-9][0-9]*  *.*$$/d' -e '/^XCOMM$$/s//#/' -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/' >$@
-	chmod a+x $@
-
-ivgd::  ivgd.cpp
-	$(RM) $@
-	$(CPP) -DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)' <ivgd.cpp | sed -e '/^#  *[0-9][0-9]*  *.*$$/d' -e '/^XCOMM$$/s//#/' -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/' >$@
-	chmod a+x $@
-
-ivds::  ivds.cpp
-	$(RM) $@
-	$(CPP) -DLDLIB_SPEC='$(LDLIB_SPEC)' -DPATH_SPEC='$(PATH_SPEC)' <ivds.cpp | sed -e '/^#  *[0-9][0-9]*  *.*$$/d' -e '/^XCOMM$$/s//#/' -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/' >$@
-	chmod a+x $@
 
 install:: mkgif89a.bash
 	-@if [ -d $(BINDIR) ]; then exit 0; \

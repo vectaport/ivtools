@@ -277,15 +277,42 @@ OvImportCmd* ImportFunc::import(const char* path, boolean popen) {
 }
 
 void ImportFunc::execute() {
+    static char* lastpath = nil;
+
     ComValue pathnamev(stack_arg(0));
     static int popen_symid = symbol_add("popen");
     boolean popen_flag = stack_key(popen_symid).is_true();
+    static int next_symid = symbol_add("next");
+    boolean next_flag = stack_key(next_symid).is_true();
     reset_stack();
+
+    if (next_flag) {
+      if (lastpath) {
+        char* ptr = lastpath + strlen(lastpath) - 1;
+	while ((*ptr < '0' || *ptr > '9') && ptr > lastpath ) ptr--;
+	if (*ptr >= '0' && *ptr <= '9') {
+	  do {
+	    if (*ptr >= '0' && *ptr <= '8') *ptr = ++*ptr;
+	    else *ptr = '0';
+	  } while (*ptr == '0' && --ptr > lastpath);
+	}
+      } else {
+	lastpath = strnew(pathnamev.string_ptr());
+      }
+    } else {
+      delete lastpath;
+      lastpath = nil;
+    }
+
+    if (!next_flag && pathnamev.is_string()) 
+      lastpath = strnew(pathnamev.string_ptr());
+
     
     OvImportCmd* cmd;
     if (!pathnamev.is_array()) {
-      if (nargs()==1) {
-	if ((cmd = import(pathnamev.string_ptr(), popen_flag)) && cmd->component()) {
+      if (nargs()==1 || next_flag) {
+	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
+			  popen_flag)) && cmd->component()) {
 	  ComValue compval(((OverlayComp*)cmd->component())->classid(),
 			   new ComponentView(cmd->component()));
 	  delete cmd;

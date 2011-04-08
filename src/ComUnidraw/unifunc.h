@@ -123,7 +123,8 @@ public:
 };
 
 //: command to import a graphic file
-// compview=import(pathname :popen) -- import graphic file from pathname or URL, or from a command if :popen.
+// compview=import(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen
+// (:next imports next in numeric series).
 class ImportFunc : public UnidrawFunc {
 public:
     ImportFunc(ComTerp*,Editor*);
@@ -131,7 +132,7 @@ public:
     // helper method to import from path
     virtual void execute();
     virtual const char* docstring() { 
-	return "compview=%s(pathname :popen) -- import graphic file from pathname or URL, or from a command if :popen"; }
+	return "compview=%s(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen\n(:next imports next in numeric series)"; }
 
 };
 

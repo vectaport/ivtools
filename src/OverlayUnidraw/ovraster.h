@@ -189,6 +189,8 @@ public:
     // read floating point pixel values directly from serialized file.
     static int ReadGrayDouble(istream&, void*, void*, void*, void*);
     // read double floating point pixel values directly from serialized file.
+    static int ReadAlpha(istream&, void*, void*, void*, void*);
+    // read alpha-transparency value specification.
     static int ReadSub(istream&, void*, void*, void*, void*);
     // read sub-image specification.
     static int ReadProcess(istream&, void*, void*, void*, void*);

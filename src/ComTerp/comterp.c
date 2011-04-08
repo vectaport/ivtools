@@ -348,8 +348,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     push_stack(*((Attribute*)sv.obj_val())->Value());
     
   } else if (sv.type() == ComValue::BlankType) {
-    
-    /* ignore it */
+
     eval_expr_internals(pedepth);
 
   } else {  /* everything else*/
@@ -401,8 +400,17 @@ void ComTerp::load_sub_expr() {
 	push_stack(argoffval);
       }
     }
-    if (!_pfcomvals[_pfoff].is_blank())
+    if (!_pfcomvals[_pfoff].is_blank()) {
       push_stack(_pfcomvals[_pfoff]);
+    } else {
+      /* to handle a list as the 1st operand of the tuple operator */
+      if (stack_top(0).is_array()) {
+	stack_top(0).array_val()->nested_insert(true);
+      } else if (stack_top(0).is_symbol()) {
+        AttributeValue* av = lookup_symval(&stack_top(0));
+	if (av->is_array()) av->array_val()->nested_insert(true);
+      }
+    }
     _pfoff++;
     if (stack_top().type() == ComValue::CommandType && 
 	!_pfcomvals[_pfoff-1].pedepth()) break;
@@ -471,8 +479,17 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth) {
 	      push_stack(argoffval);
 	    }
 	  }
-	  if (!_pfcomvals[offset].is_blank())
+	  if (!_pfcomvals[offset].is_blank()) {
 	    push_stack(_pfcomvals[offset]);
+	  } else {
+	    /* to handle a list as the 1st operand of the tuple operator */
+	    if (stack_top(0).is_array()) {
+	      stack_top(0).array_val()->nested_insert(true);
+	    } else if (stack_top(0).is_symbol()) {
+	      AttributeValue* av = lookup_symval(&stack_top(0));
+	      if (av->is_array()) av->array_val()->nested_insert(true);
+	    }
+	  }
 	}
 	tokcnt--;
 	offset++;
@@ -1002,6 +1019,9 @@ void ComTerp::add_defaults() {
     add_command("sin", new SinFunc(this));
     add_command("tan", new TanFunc(this));
     add_command("sqrt", new SqrtFunc(this));
+    add_command("pi", new PiFunc(this));
+    add_command("radtodeg", new RadToDegFunc(this));
+    add_command("degtorad", new DegToRadFunc(this));
 
     add_command("floor", new FloorFunc(this));
     add_command("ceil", new CeilFunc(this));
@@ -1009,6 +1029,7 @@ void ComTerp::add_defaults() {
 
     add_command("xform", new XformFunc(this));
     add_command("invert", new InvertXformFunc(this));
+    add_command("xpose", new XposeFunc(this));
 
     add_command("cond", new CondFunc(this));
     add_command("seq", new SeqFunc(this));

@@ -36,6 +36,16 @@ public:
 	return "%s(compview x y val) -- poke pixel value into raster"; }
 };
 
+//: command to peek pixel values from raster
+// val=peek(compview x y) -- peek pixel value into raster
+class PixelPeekFunc : public UnidrawFunc {
+public:
+    PixelPeekFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "val=%s(compview x y) -- peek pixel value from raster"; }
+};
+
 //: command to return number of columns in a raster
 // pcols(compview) -- number of columns in a raster
 class PixelColsFunc : public UnidrawFunc {

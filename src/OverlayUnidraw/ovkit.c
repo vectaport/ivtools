@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2002 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1998-2000 Vectaport Inc.
  * Copyright (c) 1994-1995 Vectaport Inc., Cartoactive Systems
@@ -63,6 +64,7 @@
 #include <OverlayUnidraw/ovtext.h>
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/rastercmds.h>
 #include <OverlayUnidraw/setattrbyexpr.h>
 #include <OverlayUnidraw/slctbyattr.h>
 
@@ -149,6 +151,8 @@
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
+
+#include <X11/keysym.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -513,12 +517,11 @@ Glyph* OverlayKit::MakeToolbar() {
     ToolButton* rotate;
     ToolButton* reshape;
     ToolButton* magnify;
-    ToolButton* attribute;
 
     _toolbars = layout.deck(1);
 
 
-    PolyGlyph* vb = layout.vbox(19);
+    PolyGlyph* vb = layout.vbox();
     _toolbar_vbox = new Glyph*[2];
     _toolbar_vbox[0] = vb;
 
@@ -683,27 +686,6 @@ Glyph* OverlayKit::MakeToolbar() {
 			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(gcspl)),
 			_tg, _ed->MouseDocObservable(), mouse_cspl));
-    vb->append(MakeTool(new AnnotateTool(new ControlInfo("Annotate", "A", "A")),
-			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
-				       layout.hcenter(anno)), _tg, _ed->MouseDocObservable(), mouse_anno));
-    vb->append(attribute = MakeTool(new AttributeTool(new ControlInfo("Attribute", "T", "T")),
-			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
-				       layout.hcenter(attr)), _tg, _ed->MouseDocObservable(), mouse_attr));
-#ifdef CLIPPOLY
-    vb->append(MakeTool(new ClipRectTool(new ControlInfo("ClipRect", "C", "C")),
-			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
-				       layout.hcenter(clipr)), _tg, _ed->MouseDocObservable(), mouse_clipr));
-    vb->append(MakeTool(new ClipPolyTool(new ControlInfo("ClipPoly")),
-			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
-				       layout.hcenter(clipp)), _tg, _ed->MouseDocObservable(), mouse_clipp));
-    if (!bintest("qhull"))
-      vb->append(MakeTool(new ConvexHullTool(new ControlInfo("ConvexHull")),
-			  layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
-					 layout.hcenter(hull)), _tg, _ed->MouseDocObservable(), mouse_convexhull));
-#endif
-    vb->append(MakeTool(new GrLocTool(new ControlInfo("GraphicLoc", "", "")),
-			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
-				       layout.hcenter(grloc)), _tg, _ed->MouseDocObservable(), mouse_grloc));
 
     _toolbars->append(vb);
     vb = layout.vbox();
@@ -714,7 +696,27 @@ Glyph* OverlayKit::MakeToolbar() {
     vb->append(rotate);
     vb->append(reshape);
     vb->append(magnify);
-    vb->append(attribute);
+    vb->append(MakeTool(new AttributeTool(new ControlInfo("Attribute", "T", "T")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(attr)), _tg, _ed->MouseDocObservable(), mouse_attr));
+    vb->append(MakeTool(new AnnotateTool(new ControlInfo("Annotate", "A", "A")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(anno)), _tg, _ed->MouseDocObservable(), mouse_anno));
+    vb->append(MakeTool(new GrLocTool(new ControlInfo("GraphicLoc", "", "")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(grloc)), _tg, _ed->MouseDocObservable(), mouse_grloc));
+#ifdef CLIPPOLY
+    vb->append(MakeTool(new ClipRectTool(new ControlInfo("ClipRect", "C", "C")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(clipr)), _tg, _ed->MouseDocObservable(), mouse_clipr));
+    vb->append(MakeTool(new ClipPolyTool(new ControlInfo("ClipPoly")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(clipp)), _tg, _ed->MouseDocObservable(), mouse_clipp));
+#endif
+    if (!bintest("qhull"))
+      vb->append(MakeTool(new ConvexHullTool(new ControlInfo("ConvexHull")),
+			  layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+					 layout.hcenter(hull)), _tg, _ed->MouseDocObservable(), mouse_convexhull));
     _toolbars->append(vb);
     _toolbars->flip_to(0);
     _toolbar = new Patch(_toolbars);
@@ -1011,17 +1013,20 @@ MenuItem* OverlayKit::MakeEditMenu() {
 	     "Precise Rotate   ");
     mbi->menu()->append_item(kit.menu_item_separator());
 
-    MenuItem* graymenu = kit.menu_item(kit.label("Graylevel Processing   "));
-    graymenu->menu(kit.pullright());
-    mbi->menu()->append_item(graymenu);
+    MenuItem* imagemenu = kit.menu_item(kit.label("Image Processing   "));
+    imagemenu->menu(kit.pullright());
+    mbi->menu()->append_item(imagemenu);
     
-    MakeMenu(graymenu, new ScaleGrayCmd(new ControlInfo("Scale GrayImage",
+    MakeMenu(imagemenu, new AlphaTransparentRasterCmd(new ControlInfo("Alpha Transparency",
+					     "", "")),
+	     "Alpha Transparency ");
+    MakeMenu(imagemenu, new ScaleGrayCmd(new ControlInfo("Scale GrayImage",
 					     "", "")),
 	     "Scale Gray Image   ");
-    MakeMenu(graymenu, new LogScaleCmd(new ControlInfo("LogScale GrayImage",
+    MakeMenu(imagemenu, new LogScaleCmd(new ControlInfo("LogScale GrayImage",
 					     "", "")),
 	     "Logscale Gray Image   ");
-    MakeMenu(graymenu, new PseudocolorCmd(new ControlInfo("PseudoColor GrayImage",
+    MakeMenu(imagemenu, new PseudocolorCmd(new ControlInfo("PseudoColor GrayImage",
 					     "", "")),
 	     "Pseudocolor Gray Image   ");
 #ifdef CLIPPOLY
@@ -1306,6 +1311,10 @@ MenuItem* OverlayKit::MakeFrameMenu() {
 }
 
 MenuItem* OverlayKit::MakeViewMenu() {
+    /* for handling special keys */
+    char keystr[3];
+    keystr[2] = '\0';
+
     LayoutKit& lk = *LayoutKit::instance();
     WidgetKit& kit = *WidgetKit::instance();
     
@@ -1381,22 +1390,28 @@ MenuItem* OverlayKit::MakeViewMenu() {
     MenuItem* spani = kit.menu_item(kit.label("Small Pan        "));
     Menu* span = kit.pullright();
     spani->menu(span);
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Up"), NO_PAN, PLUS_SMALL_PAN),
+    *(unsigned short*)keystr = XK_Up;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Up", "", keystr), NO_PAN, PLUS_SMALL_PAN),
 	     "Small Pan Up     ");
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Down"), NO_PAN, MINUS_SMALL_PAN),
+    *(unsigned short*)keystr = XK_Down;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Down", "", keystr), NO_PAN, MINUS_SMALL_PAN),
 	     "Small Pan Down   ");
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Left"), MINUS_SMALL_PAN, NO_PAN),
+    *(unsigned short*)keystr = XK_Left;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Left", "", keystr), MINUS_SMALL_PAN, NO_PAN),
 	     "Small Pan Left   ");
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Right"), PLUS_SMALL_PAN, NO_PAN),
+    *(unsigned short*)keystr = XK_Right;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Right", "", keystr), PLUS_SMALL_PAN, NO_PAN),
 	     "Small Pan Right  ");
     mbi->menu()->append_item(spani);
 
     MenuItem* lpani = kit.menu_item(kit.label("Large Pan        "));
     Menu* lpan = kit.pullright();
     lpani->menu(lpan);
-    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Up"), NO_PAN, PLUS_LARGE_PAN),
+    *(unsigned short*)keystr = XK_Page_Up;
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Up", "PgUp", keystr), NO_PAN, PLUS_LARGE_PAN),
 	     "Large Pan Up     ");
-    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Down"), NO_PAN, MINUS_LARGE_PAN),
+    *(unsigned short*)keystr = XK_Page_Down;
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Down", "PgDn", keystr), NO_PAN, MINUS_LARGE_PAN),
 	     "Large Pan Down   ");
     MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Left"), MINUS_LARGE_PAN, NO_PAN),
 	     "Large Pan Left   ");
@@ -1458,7 +1473,7 @@ MenuItem * OverlayKit::MakeToolsMenu() {
     MenuItem *mbi = kit.menubar_item(kit.label("Tools"));
     mbi->menu(kit.pulldown());
 
-    MenuItem* menu_item = kit.menu_item(kit.label("Custom Tools"));
+    MenuItem* menu_item = kit.menu_item(kit.label("Extra Tools"));
     menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar1));
     mbi->menu()->append_item(menu_item);
 

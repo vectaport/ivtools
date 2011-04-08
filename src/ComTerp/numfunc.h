@@ -45,13 +45,16 @@ public:
 };
 
 //: + (plus) operator.
+// adds numerics and matrices, and concatenating strings
 class AddFunc : public NumFunc {
 public:
     AddFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "+ is the add operator"; }
+      return "+ is the add operator for numerics and matrices, and the concatenation operator for strings"; }
+
+    AttributeValueList* matrix_add(AttributeValueList*, AttributeValueList*);
 
 };
 
@@ -77,13 +80,16 @@ public:
 };
 
 //: * (multiply) operator.
+// multiplies numerics and matrices
 class MpyFunc : public NumFunc {
 public:
     MpyFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "* is the multiply operator"; }
+      return "* is the multiply operator for numerics and matrices"; }
+
+    AttributeValueList* matrix_mpy(AttributeValueList*, AttributeValueList*);
 
 };
 

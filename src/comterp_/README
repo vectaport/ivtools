@@ -146,17 +146,27 @@ dbl=tan(x) -- returns the tangent of x radians
 
 dbl=sqrt(x) -- returns square root of x
 
+dbl=pi() -- returns the value of pi
+
+dbl=radtodeg(dbl) -- convert radians to degrees
+
+dbl=degtorad(dbl) -- convert degrees to radians
+
 num=floor(num) -- return closest integer value less than or equal to argument
 
 num=ceil(num) -- return closest integer value greater than or equal to argument
 
 num=round(num) -- return closest integer value
 
-AFFINE TRANSFORM COMMANDS:
+AFFINE TRANSFORM AND MATRIX COMMANDS:
 
 point=xform(x,y a00,a01,a10,a11,a20,a21) -- affine transform of x,y coordinates
 
 affine=invert(a00,a01,a10,a11,a20,a21) -- invert affine transform
+
+matrix=xpose(matrix) -- transpose an arbitrary matrix
+
+matrix=matrix*matrix -- matrix multiplication
 
 STATISTICAL/RANDOM COMMANDS: 
 
@@ -174,7 +184,7 @@ srand(seedval) -- seed random number generator
 
 LIST COMMANDS:
 
-lst=list([olst|strm] :strmlst) -- create list, copy list, or convert stream
+lst=list([olst|strm|val] :strmlst) -- create list, copy list, or convert stream
 
 val=at(list|attrlist n :set val ) -- return (or set) nth item in a list
 

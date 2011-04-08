@@ -1597,10 +1597,12 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
 	comp = TIFF_Image(pathname);
       else {
-	if (OverlayKit::bincheck("tifftopnm")) {
+	/* ivtiftopnm (part of ivtools) is a stdin/stdout wrapper to tifftopnm */
+	/* tiftopnm is the older name for ivtiftopnm */
+	if (OverlayKit::bincheck("tifftopnm")) { 
 	  if (OverlayKit::bincheck("ivtiftopnm"))
 	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "ivtiftopnm");
-	  else if (OverlayKit::bincheck("ivtiftopnm"))
+	  else if (OverlayKit::bincheck("tiftopnm"))
 	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "tiftopnm");
 	  else
 	    cerr << "ivtiftopnm or tiftopnm not found (part of ivtools)\n";

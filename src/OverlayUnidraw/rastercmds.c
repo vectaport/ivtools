@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2002 Scott E. Johnston
  * Copyright (c) 1997 Vectaport Inc. and R.B. Kissh & Associates
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -24,11 +25,16 @@
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovraster.h>
+#include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/rastercmds.h>
 
 #include <Unidraw/unidraw.h>
 #include <Unidraw/iterator.h>
+
+#include <IVGlyph/stredit.h>
+
+#include <InterViews/window.h>
 
 // -----------------------------------------------------------------------
 
@@ -159,3 +165,85 @@ void UnhighlightRasterCmd::Execute() {
     }
   }
 }
+
+/*-----------------------------------------------------------------*/
+
+AlphaTransparentRasterCmd::AlphaTransparentRasterCmd(ControlInfo* ci) : Command(ci) {
+  _alpha_set = false;
+}
+
+Command* AlphaTransparentRasterCmd::Copy() {
+    Command* copy = new AlphaTransparentRasterCmd(CopyControlInfo());
+    InitCopy(copy);
+    ((AlphaTransparentRasterCmd*)copy)->_alpha = _alpha;
+    ((AlphaTransparentRasterCmd*)copy)->_oldalpha = _oldalpha;
+    ((AlphaTransparentRasterCmd*)copy)->_alpha_set = _alpha_set;
+    return copy;
+}
+
+ClassId AlphaTransparentRasterCmd::GetClassId () { return ALPHATRANSPARENT_CMD; }
+
+boolean AlphaTransparentRasterCmd::IsA (ClassId id) {
+    return ALPHATRANSPARENT_CMD == id || Command::IsA(id);
+}
+
+boolean AlphaTransparentRasterCmd::Reversible() {
+    return true;
+}
+
+void AlphaTransparentRasterCmd::Execute() {
+
+  if (!_alpha_set) {
+    char* newalpha = StrEditDialog::post
+      (GetEditor()->GetWindow(), 
+       "Enter alpha value", "0.5");
+    if (newalpha)
+      _alpha = atof(newalpha);
+    else
+      _alpha = 1.0;
+    _alpha_set = true;
+  }
+
+  OverlayEditor* ed = (OverlayEditor*)GetEditor();
+  OverlaySelection* sel = (OverlaySelection*) ed->GetSelection();
+  Iterator i;
+  for (sel->First(i); !sel->Done(i); sel->Next(i)) {
+    GraphicView* view = sel->GetView(i);
+    if (view->IsA(OVRASTER_VIEW)) {
+      RasterOvView* rastview = (RasterOvView*)view;
+      if (rastview) {
+	RasterOvComp* rastcomp = (RasterOvComp*)rastview->GetSubject();
+	OverlayRasterRect* rr = rastcomp->GetOverlayRasterRect();
+	if (rr) {
+	  _oldalpha = rr->alphaval();
+	  rr->alphaval(_alpha);
+	  rastcomp->Notify();
+	  unidraw->Update();
+	}
+      }
+    }
+  }
+}
+
+void AlphaTransparentRasterCmd::Unexecute() {
+
+  OverlayEditor* ed = (OverlayEditor*)GetEditor();
+  OverlaySelection* sel = (OverlaySelection*) ed->GetSelection();
+  Iterator i;
+  for (sel->First(i); !sel->Done(i); sel->Next(i)) {
+    GraphicView* view = sel->GetView(i);
+    if (view->IsA(OVRASTER_VIEW)) {
+      RasterOvView* rastview = (RasterOvView*)view;
+      if (rastview) {
+	RasterOvComp* rastcomp = (RasterOvComp*)rastview->GetSubject();
+	OverlayRasterRect* rr = rastcomp->GetOverlayRasterRect();
+	if (rr) {
+	  rr->alphaval(_oldalpha);
+	  rastcomp->Notify();
+	  unidraw->Update();
+	}
+      }
+    }
+  }
+}
+

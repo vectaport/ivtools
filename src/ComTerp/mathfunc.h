@@ -175,4 +175,40 @@ public:
 
 };
 
+//: Pi  command for ComTerp.
+// dbl=pi() -- returns the value of pi.
+class PiFunc : public ComFunc {
+public:
+    PiFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "dbl=%s(x) -- returns the value of pi"; }
+
+};
+
+//: radians to degrees command for ComTerp.
+// dbl=radtodeg(dbl) -- convert radians to degrees
+class RadToDegFunc : public ComFunc {
+public:
+    RadToDegFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "dbl=%s(x) -- convert radians to degrees"; }
+
+};
+
+//: degrees to radianscommand for ComTerp.
+// dbl=degtorad(dbl) -- convert degrees to radians
+class DegToRadFunc : public ComFunc {
+public:
+    DegToRadFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "dbl=%s(x) -- convert radians to degrees"; }
+
+};
+
 #endif /* !defined(_mathfunc_h) */

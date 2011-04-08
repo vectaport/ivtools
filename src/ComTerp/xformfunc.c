@@ -30,6 +30,7 @@
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
 #include <InterViews/transformer.h>
+#include <OS/math.h>
 
 #define TITLE "XformFunc"
 
@@ -129,6 +130,63 @@ void InvertXformFunc::execute() {
 
     } else
       push_stack(ComValue::nullval());
+  } else 
+    push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+XposeFunc::XposeFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void XposeFunc::execute() {
+  ComValue listv(stack_arg(0));
+  reset_stack();
+  
+  if (listv.is_array()) {
+    int imax = 0;
+    int jmax = 0;
+    Iterator it;
+    listv.array_val()->First(it);
+    while (!listv.array_val()->Done(it)) {
+      imax++;
+      AttributeValue* av = listv.array_val()->GetAttrVal(it);
+      if (av->is_array())
+	jmax = Math::max(jmax, av->array_val()->Number());
+      listv.array_val()->Next(it);
+    }
+
+    /* construct tranposed matrix */
+    jmax += jmax ? 0 : 1;
+    AttributeValueList* new_matrix = new AttributeValueList();
+    for(int j=0; j<jmax; j++) 
+      new_matrix->Append(new AttributeValue(new AttributeValueList()));
+    
+    /* save pointer to first new column */
+    Iterator jt;
+    new_matrix->First(jt);
+    AttributeValue* jv = new_matrix->GetAttrVal(jt);
+
+    /* populate new matrix */
+    listv.array_val()->First(it);
+    while (!listv.array_val()->Done(it)) {
+      AttributeValue* av = listv.array_val()->GetAttrVal(it);
+      if (av->is_array()) {
+	Iterator at;
+	av->array_val()->First(at);
+	Iterator nt;
+	new_matrix->First(nt);
+	while (!av->array_val()->Done(at)) {
+	  new_matrix->GetAttrVal(nt)->array_val()->Append(new AttributeValue(av->array_val()->GetAttrVal(at)));
+	  av->array_val()->Next(at);
+	  new_matrix->Next(nt);
+	}
+      } else
+	jv->array_val()->Append(new AttributeValue(av));
+      listv.array_val()->Next(it);
+    }
+    ComValue retval(new_matrix);
+    push_stack(retval);
   } else 
     push_stack(ComValue::nullval());
 }

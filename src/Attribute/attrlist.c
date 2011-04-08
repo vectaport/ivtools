@@ -307,6 +307,7 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
 	    Append(new AttributeValue(s->GetAttrVal(i)));
 	}
     }
+    _nested_insert = false;
 }
 
 AttributeValueList::~AttributeValueList () { 

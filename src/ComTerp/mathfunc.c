@@ -200,3 +200,41 @@ void SqrtFunc::execute() {
     ComValue result(sqrt(operandx.double_val()));
     push_stack(result);
 }
+
+PiFunc::PiFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void PiFunc::execute() {
+     reset_stack();
+    ComValue result((double)3.1415926535897932270E0);
+    push_stack(result);
+}
+
+RadToDegFunc::RadToDegFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void RadToDegFunc::execute() {
+    ComValue operandx = stack_arg(0);
+    reset_stack();
+    if (operandx.is_nil()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue result(operandx.double_val()*360.0/(2*3.1415926535897932270E0));
+    push_stack(result);
+}
+
+DegToRadFunc::DegToRadFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void DegToRadFunc::execute() {
+    ComValue operandx = stack_arg(0);
+    reset_stack();
+    if (operandx.is_nil()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue result(operandx.double_val()*2*3.1415926535897932270E0/360.);
+    push_stack(result);
+}
+

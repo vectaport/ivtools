@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.0
 
-Instructions for building ivtools-1.0.3 from source, the short version:
+Instructions for building ivtools-1.0.4 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.0.3 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.0.3 from source, the long version:
+Instructions for building ivtools-1.0.4 from source, the long version:
 
 0. Compilation Environment
 
@@ -30,6 +30,10 @@ probably would gcc-2.7.2.  You will also need an equivalent copy of
 libstdc++.  libstdc++ comes bundled with gcc-3.0.  Before that the
 libstdc++ version numbers stay roughly in synch with the gcc version
 numbers.  If you have gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
+
+** NOTE ** Do not use gcc-2.96.  See
+http://www.ivtools.org/ivtools/faq.html#gcc-2.96-problem for more
+details.
 
 Be aware that sometimes the include files for libstdc++ are in
 /usr/local/include/g++-2, a place that cannot be auto-determined by

@@ -58,6 +58,33 @@ void PixelPokeFunc::execute() {
 
 /*****************************************************************************/
 
+PixelPeekFunc::PixelPeekFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void PixelPeekFunc::execute() {
+  Viewer* viewer = _ed->GetViewer();
+
+  ComValue rastcompv(stack_arg(0));
+  ComValue xv(stack_arg(1));
+  ComValue yv(stack_arg(2));
+  reset_stack();
+  
+  RasterOvComp* rastcomp = (RasterOvComp*) rastcompv.geta(RasterOvComp::class_symid());
+  OverlayRasterRect* rastrect = rastcomp ? rastcomp->GetOverlayRasterRect() : nil;
+  OverlayRaster* raster = rastrect ? rastrect->GetOriginal() : nil;
+
+  if (raster) {
+    ComValue retval;
+    raster->graypeek(xv.int_val(), yv.int_val(), retval);
+    push_stack(retval);
+  } else 
+    push_stack(ComValue::nullval());
+
+
+}
+
+/*****************************************************************************/
+
 PixelColsFunc::PixelColsFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 

@@ -174,7 +174,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     if (!_rdfptr) _rdfptr = fdopen(fd, "r");
 
     ch = '\0';
-    int status;
+    int status=1;
     while (ch != '\n' && status>0) {
       status = read(fd, &ch, 1);
       if (status == 1 && ch != '\n') inv.push_back(ch);
