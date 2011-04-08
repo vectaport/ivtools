@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1992 Stanford University
  * Copyright (c) 1992 Silicon Graphics, Inc.
  *
@@ -34,6 +35,7 @@
 #include <InterViews/_enter.h>
 
 class Window;
+class TransientWindow;
 
 /*
  * The post*_aligned operations replaced default parameters
@@ -51,11 +53,20 @@ public:
     virtual boolean post_at_aligned(
 	Coord x, Coord y, float xalign, float yalign
     );
+    void map_for(Window*);
+    virtual void map_for_aligned(Window*, float xalign, float yalign);
+    void map_at(Coord x, Coord y);
+    virtual void map_at_aligned(
+	Coord x, Coord y, float xalign, float yalign
+    );
+    void unmap();
+    boolean mapped();
     virtual boolean run();
     virtual void dismiss(boolean accept);
 private:
     boolean done_;
     boolean accepted_;
+    TransientWindow* t_;
 };
 
 inline boolean Dialog::post_for(Window* w) {
@@ -64,6 +75,14 @@ inline boolean Dialog::post_for(Window* w) {
 
 inline boolean Dialog::post_at(Coord x, Coord y) {
     return post_at_aligned(x, y, 0.5, 0.5);
+}
+
+inline void Dialog::map_for(Window* w) {
+    map_for_aligned(w, 0.5, 0.5);
+}
+
+inline void Dialog::map_at(Coord x, Coord y) {
+    map_at_aligned(x, y, 0.5, 0.5);
 }
 
 #include <InterViews/_leave.h>

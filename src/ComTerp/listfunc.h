@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -32,6 +33,17 @@
 
 class ComTerp;
 class ComValue;
+
+//: create list command for ComTerp.
+// lst=list() -- create an empty list.
+class ListFunc : public ComFunc {
+public:
+    ListFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "lst=%s() -- create an empty list"; }
+};
 
 //: list member command for ComTerp.
 // val=at(list n) -- return the nth item in a list.

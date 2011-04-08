@@ -284,6 +284,8 @@ AC_ARG_ENABLE(install-relative,[ --enable-install-relative[=ARG]	enable installa
 
 AC_ARG_ENABLE(use-rpath,[ --enable-use-rpath[=ARG]	enable use of -rpath when linking], USERPATH=YES, USERPATH=NO)
 
+AC_ARG_ENABLE(install-subdir,[ --enable-install-subdir[=ARG]	enable installation in an ivtools sub-directory], INSTALLSUBDIR=YES, INSTALLSUBDIR=NO)
+
 AC_SUBST(prefix)
 #AC_SUBST(OPENGL)
 #AC_SUBST(XGL)
@@ -314,6 +316,7 @@ AC_SUBST(NO_BOOL)
 AC_SUBST(PWD)
 AC_SUBST(INSTALLRELATIVE)
 AC_SUBST(USERPATH)
+AC_SUBST(INSTALLSUBDIR)
 
 #output to config-$host_fragd 
 PWD=`pwd`; export PWD
@@ -360,6 +363,6 @@ echo ABSTOP = `pwd` >>config/config.mk
 echo writing \"CPU = `make CPU`\"
 echo CPU = `make CPU` >>config/config.mk
 echo
-echo "now do a \"make World\""
+echo "now do a \"make\""
 echo
 

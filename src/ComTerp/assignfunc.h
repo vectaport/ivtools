@@ -38,6 +38,8 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "= is the assigment operator"; }
+
+    CLASS_SYMID("AssignFunc");
 };
 
 //: %= (mod assign) operator .

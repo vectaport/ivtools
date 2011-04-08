@@ -63,15 +63,6 @@ public:
 
 };
 
-//: . (dot) operator.
-class DotFunc : public ComFunc {
-public:
-    DotFunc(ComTerp*);
-
-    virtual void execute();
-
-};
-
 //: timer expression command for ComTerp.
 // timeexpr(comstr :sec n) -- command string to execute at intervals.
 class TimeExprFunc : public ComFunc {

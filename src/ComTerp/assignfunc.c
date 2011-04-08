@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -32,6 +33,8 @@
 
 /*****************************************************************************/
 
+int AssignFunc::_symid = -1;
+
 AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -53,6 +56,9 @@ void AssignFunc::execute() {
 	    Unref(attrlist);
 	} else 
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
+    } else if (operand1.is_object(Attribute::class_symid())) {
+      Attribute* attr = (Attribute*)operand1.obj_val();
+      attr->Value(operand2);
     } else {
         cerr << "assignment to something other than a symbol ignored\n";
 	// should say something about assignment from something other than a symbol as well.

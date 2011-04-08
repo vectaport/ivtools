@@ -60,7 +60,7 @@ public:
     // execute a buffer of postfix tokens and return the value.
     
     virtual int runfile(const char*);
-    // run interpreter on command read from a file.
+    // run interpreter on commands read from a file.
 
     void add_defaults();
     // add a default list of ComFunc objects to this interpreter.

@@ -167,7 +167,7 @@ boolean StencilPS::Definition (ostream& out) {
     UStencil* stencil = (UStencil*) GetGraphicComp()->GetGraphic();
     Bitmap* image, *mask;
     stencil->GetOriginal(image, mask);
-    char* tag = (image == mask) ? "SSten" : "FSten";
+    const char* tag = (image == mask) ? "SSten" : "FSten";
     Coord w = image->Width();
     Coord h = image->Height();
 

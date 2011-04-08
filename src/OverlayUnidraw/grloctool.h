@@ -1,4 +1,5 @@
 /*
+ * Copyright 2000 IET Inc.
  * Copyright 1998-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -26,6 +27,9 @@
 
 #include <Unidraw/Tools/tool.h>
 
+class Dialog;
+class ObservableText;
+
 //: tool to display coordinates relative to a graphic.
 // For a raster or stencil the origin is 0,0.  
 // For all other graphics the origin is relative to the coordinates used to
@@ -34,6 +38,7 @@
 class GrLocTool : public Tool {
 public:
     GrLocTool(ControlInfo* = nil);
+    virtual ~GrLocTool();
 
     virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
     // use event to select a component and determine graphic-relative coordinates
@@ -43,6 +48,13 @@ public:
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
+    Dialog* dialog();
+
+protected:
+    Dialog* _dialog;
+    ObservableText* _otext;
+    char* _buffer;
+    int _bufsiz;
 };
 
 #endif

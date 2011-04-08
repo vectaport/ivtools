@@ -216,6 +216,8 @@ void ObservableText::textvalue(const char* txt) {
 }
 
 void ObservableText::accept() {
-    if (ptr)
-	strcpy(*ptr, text);
+  if (ptr) {
+    delete text;
+    text = strdup(*ptr);
+  }
 }

@@ -1256,7 +1256,7 @@ void OvImageMapCmd::DumpViews(OverlayView* view, ostream& outs, ostream& drs) {
     int* y;
     int np;
     SF_Polygon* poly = (SF_Polygon*)view->GetGraphic();
-    np = poly->GetOriginal(x, y);
+    np = poly->GetOriginal((const iv2_6_Coord *&)x,(const iv2_6_Coord *&) y);
     float* fx = new float[np];
     float* fy = new float[np];
     for (int i = 0; i < np; i++) {

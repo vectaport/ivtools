@@ -30,9 +30,6 @@
 #undef TIFFOptimizeCFlags
 #define TIFFOptimizeCFlags -O3
 
-/* libg++ include directory -- usually does not change with new version of libg++ */
-#define GPlusPlusIncludeDir /usr/local/lib/g++-include
-
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
 #define ToolIncludeDir /usr/local/hppa1.1-hp-hpux9/include
 
@@ -42,9 +39,6 @@
 
 /* command to create shared libraries */
 #define SharedLibraryCmd(ldobjs) g++ -shared -fpic -o $@ ldobjs
-
-/* use -rpath instead of -L to get slack developers shared libraries */
-#define UseRpath NO
 
 /* Different LdPath for HP */
 #define LdPath(libname) -Wl,+s -L$(LIBSRC)/libname/$(ARCH) Concat(-l,libname)
@@ -66,49 +60,11 @@ uninstall::								@@\
 	$(RM) dest/Concat(lib,libname.sl)
 #endif
 
-/* 
- * Enable/disable relative InterViews-style installation of binaries
- */
-#undef InstallRelative
-#define InstallRelative YES
-
 #undef BuildProgram
 #define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
 program: depobjs deplibs						@@\
 	RemoveIfUnwritable($@)						@@\
 	g++ $(CCLDFLAGS) -o $@ ldobjs ldlibs
 
-#if 0 
-
-/* -------------- imake way of configuring ------------------ */
-
-/* 
-/* 
- * Where to put binaries, libraries, and data files when InstallRelative is NO
- */ 
-#define BinDir /usr/local/bin
-#define LibDir /usr/local/lib
-#define LibAllDir /usr/local/lib/ivtools
-
-/*
- * X11 directories -- remember to override XCONFIGDIR the
- * first time you run "make World".
- */
-#define XConfigDir /usr/local/lib/imake
-#define XIncDir /usr/include/X11R5
-#define XLibDir /usr/lib/X11R5
-
-/* clippoly directory:  comment out if not available */
-/* #define ClipPolyDir ProjectDir/clippoly */
-
-/* ACE directory: comment out if not available */
-/* #define AceDir ProjectDir/ACE_wrappers */
-
-#else
-
-/* --------------- autconf way of configuring --------------- */
-
 /* file output by configure script */
 #include "config-hpux-gcc.defs"
-
-#endif

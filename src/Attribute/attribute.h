@@ -24,6 +24,8 @@
 #ifndef _attribute_h
 #define _attribute_h
 
+#include <Attribute/_comutil.h>
+
 extern "C" {
     int symbol_add(char*);
     int symbol_del(int);
@@ -68,6 +70,8 @@ protected:
     AttributeValue* valueptr;
 
 friend AttributeList;
+
+    CLASS_SYMID("Attribute"); 
 };
 
 #endif

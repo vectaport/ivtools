@@ -42,6 +42,7 @@ void SymIdFunc::execute() {
   // return id of each symbol in the arguments
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
+  if (!numargs) return;
   int symbol_ids[numargs];
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i, true);
@@ -56,11 +57,54 @@ void SymIdFunc::execute() {
   }
   reset_stack();
 
-  AttributeValueList* avl = new AttributeValueList();
-  ComValue retval(avl);
-  for (int i=0; i<numargs; i++)
-    avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::IntType));
-  push_stack(retval);
+  if (numargs>1) {
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<numargs; i++)
+      avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::IntType));
+    push_stack(retval);
+  } else {
+    ComValue retval (symbol_ids[0], AttributeValue::IntType);
+    push_stack(retval);
+  }
+
+}
+
+/*****************************************************************************/
+
+SymValFunc::SymValFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SymValFunc::execute() {
+  // return each symbol in the arguments as is
+  boolean noargs = !nargs() && !nkeys();
+  int numargs = nargs();
+  if (!numargs) return;
+  int symbol_ids[numargs];
+  for (int i=0; i<numargs; i++) {
+    ComValue& val = stack_arg(i, true);
+    if (val.is_type(AttributeValue::CommandType))
+      symbol_ids[i] = val.command_symid();
+    else if (val.is_type(AttributeValue::StringType))
+      symbol_ids[i] = val.string_val();
+    else if (val.is_type(AttributeValue::SymbolType))
+      symbol_ids[i] = val.symbol_val();
+    else 
+      symbol_ids[i] = -1;
+  }
+  reset_stack();
+
+  if (numargs>1) {
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<numargs; i++)
+      avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::SymbolType));
+    push_stack(retval);
+  } else {
+    ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
+    push_stack(retval);
+  }
+
 }
 
 /*****************************************************************************/
@@ -72,6 +116,7 @@ void SymbolFunc::execute() {
   // return symbol for each id argument
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
+  if (!numargs) return;
   int symbol_ids[numargs];
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i, true);
@@ -82,11 +127,17 @@ void SymbolFunc::execute() {
   }
   reset_stack();
 
-  AttributeValueList* avl = new AttributeValueList();
-  ComValue retval(avl);
-  for (int i=0; i<numargs; i++)
-    avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::SymbolType));
-  push_stack(retval);
+  if (numargs>1) {
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<numargs; i++)
+      avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::SymbolType));
+    push_stack(retval);
+  } else {
+    ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
+    push_stack(retval);
+  }
+
 }
 
 
@@ -99,6 +150,7 @@ void SymVarFunc::execute() {
   // return value for each symbol variable
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
+  if (!numargs) return;
   ComValue* varvalues[numargs];
   for (int i=0; i<numargs; i++) {
 
@@ -106,12 +158,17 @@ void SymVarFunc::execute() {
     varvalues[i] = &stack_arg(i, false); 
   }
 
-  AttributeValueList* avl = new AttributeValueList();
-  ComValue retval(avl);
-  for (int i=0; i<numargs; i++)
-    avl->Append(new ComValue(*varvalues[i]));
-  reset_stack();
-  push_stack(retval);
+  if (numargs>1) {
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<numargs; i++)
+      avl->Append(new ComValue(*varvalues[i]));
+    reset_stack();
+    push_stack(retval);
+  } else {
+    ComValue retval (*varvalues[0]);
+    push_stack(retval);
+  }
 }
 
 

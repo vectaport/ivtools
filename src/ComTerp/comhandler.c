@@ -154,7 +154,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     inbuf[len] = '\0';
 #endif
     comterp_->load_string(inbuf);
-    if (fd) 
+    if (fd>0) 
       cerr << "command via ACE -- " << inbuf << "\n";
 #else
     comterp_->_infunc = (infuncptr)&ComTerpServ::fd_fgets;

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -21,9 +22,11 @@
  * 
  */
 
+#include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/paramlist.h>
 
@@ -83,6 +86,7 @@ ComValue::ComValue(double v) : AttributeValue(v) {zero_vals();}
 ComValue::ComValue(int classid, void* ptr) : AttributeValue(classid, ptr) {zero_vals();}
 ComValue::ComValue(AttributeValueList* avl) : AttributeValue(avl) {zero_vals();}
 ComValue::ComValue(const char* string) : AttributeValue(string) {zero_vals();}
+ComValue::ComValue(ComFunc* func) : AttributeValue(ComFunc::class_symid(), func) {zero_vals(); type(ComValue::CommandType); command_symid(func->funcid()); }
 
 ComValue::~ComValue() {
 }
@@ -122,22 +126,6 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     return *this;
 }
     
-void ComValue::assignval (const ComValue& sv) {
-    void* v1 = &_v;
-    const void* v2 = &sv._v;
-    memcpy(v1, v2, sizeof(double));
-    _type = sv._type;
-    _aggregate_type = sv._aggregate_type;
-#if 0 // this end of reference counting disabled as well
-    if (_type == StringType || _type == SymbolType) 
-	symbol_add((char *)string_ptr());
-    else 
-#endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Resource::ref(_v.arrayval.ptr);
-}
-    
-
 int ComValue::narg() const { return _narg; }
 int ComValue::nkey() const { return _nkey; }
 int ComValue::nids() const { return _nids; }
@@ -233,16 +221,16 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::LongType:
 	  if (brief)
-	    out << svp->long_ref();
+	    out << svp->long_ref() << "L";
 	  else
 	    out << "long( " << svp->long_ref() << " )";
 	  break;
 	    
 	case ComValue::ULongType:
 	  if (brief)
-	    out << "ulong( " << svp->ulong_ref() << " )";
+	    out << svp->ulong_ref() << "L";
 	  else
-	    out << svp->ulong_ref();
+	    out << "ulong( " << svp->ulong_ref() << " )";
 	  break;
 	    
 	case ComValue::FloatType:
@@ -301,12 +289,19 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	case ComValue::BlankType:
 	  break;
 
+	case ComValue::ObjectType:
+	  if (svp->class_symid() == Attribute::class_symid())
+	    out << *((Attribute*)svp->obj_val())->Value();
+	  else
+	    out << "<" << symbol_pntr(svp->class_symid()) << ">";
+	  break;
+
 	case ComValue::UnknownType:
-	    out << "nil";
-	    break;
+	  out << "nil";
+	  break;
 	    
 	default:
-	    break;
+	  break;
 	}
     return out;
 }
@@ -346,10 +341,7 @@ ComValue& ComValue::zeroval() {
   return _zeroval;
 }
 
-void* ComValue::geta(int id) {
-    if (type() == ComValue::ObjectType && obj_type_val() == id) 
-        return obj_val();
-    else
-        return nil;
+boolean ComValue::is_comfunc(int func_classid) {
+  return is_type(CommandType) && 
+    func_classid==((ComFunc*)obj_val())->classid(); 
 }
-

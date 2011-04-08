@@ -30,6 +30,7 @@
 
 #include <OS/enter-scope.h>
 #include <InterViews/resource.h>
+#include <Attribute/_comutil.h>
 
 #ifndef ALITERATOR
 #define ALIterator _lib_iv(Iterator)
@@ -91,6 +92,8 @@ public:
 
     Attribute* GetAttr(const char*);
     // get attribute by name.
+    Attribute* GetAttr(int symid);
+    // get attribute by symbol id.
     Attribute* GetAttr(ALIterator);
     // get attribute pointed to by iterator.
     void SetAttr(Attribute*, ALIterator&);
@@ -134,8 +137,9 @@ public:
 
     AttributeValue* find(const char*);
     // find AttributeValue by symbol.
-    AttributeValue* find(int);
+    AttributeValue* find(int symid);
     // find AttributeValue by symbol id.
+
 
 protected:
     int add_attr(Attribute* attr);
@@ -145,6 +149,8 @@ protected:
 
     AList* _alist;
     unsigned int _count;
+
+    CLASS_SYMID("AttributeList");
 };
 
 //: list of AttributeValue objects.

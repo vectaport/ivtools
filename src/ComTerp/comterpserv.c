@@ -99,7 +99,7 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
 
     /* copy characters until n-1 characters are transferred, */
     /* the input buffer is exhausted, or a newline is found. */
-    for (outpos = 0; outpos < n-1 && inpos < bufsize-1 && instr[inpos] != '\n';)
+    for (outpos = 0; outpos < n-1 && inpos < bufsize-1 && instr[inpos] != '\n' && instr[inpos] != '\0';)
 	outstr[outpos++] = instr[inpos++];
 
     /* copy the newline character if there is room */

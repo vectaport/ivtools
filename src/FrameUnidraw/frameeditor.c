@@ -50,6 +50,7 @@
 #include <InterViews/box.h>
 #include <InterViews/border.h>
 #include <InterViews/glue.h>
+#include <InterViews/telltale.h>
 
 #include <IV-2_6/InterViews/frame.h>
 #include <IV-2_6/InterViews/panner.h>
@@ -97,13 +98,14 @@ FrameEditor::~FrameEditor() {}
 void FrameEditor::Init (OverlayComp* comp, const char* name) {
   _curr_other = _prev_other = 0;
   _texteditor = nil;
+  _autonewframe = false;
+  _autonewframe_tts = nil;
   if (!comp) comp = new FrameIdrawComp;
   _terp = new ComTerpServ();
   AddCommands(_terp);
   add_comterp("Flipbook", _terp);
   _overlay_kit->Init(comp, name);
   InitFrame();
-  _autonewframe = false;
 }
 
 void FrameEditor::InitCommands() {
@@ -205,6 +207,7 @@ void FrameEditor::AddCommands(ComTerp* comterp) {
   ComEditor::AddCommands(comterp);
   comterp->add_command("moveframe", new MoveFrameFunc(comterp, this));
   comterp->add_command("createframe", new CreateFrameFunc(comterp, this));
+  comterp->add_command("autoframe", new AutoNewFrameFunc(comterp, this));
 }
 
 void FrameEditor::DoAutoNewFrame() {
@@ -213,4 +216,9 @@ void FrameEditor::DoAutoNewFrame() {
     cmd->Execute();
     cmd->Log();
   }
+}
+
+void FrameEditor::ToggleAutoNewFrame() { 
+  _autonewframe = !_autonewframe; 
+  if (_autonewframe_tts) _autonewframe_tts->set(TelltaleState::is_chosen, _autonewframe);
 }

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -26,6 +27,7 @@
 
 #include <stdlib.h>
 #include <OS/enter-scope.h>
+#include <Attribute/_comutil.h>
 
 extern "C" {
     int symbol_add(char*);
@@ -97,33 +99,33 @@ public:
     AttributeValue();
     // default constructor (UnknownType constructor).
 
-    AttributeValue(char);
+    AttributeValue(char val);
     // CharType constructor.
-    AttributeValue(unsigned char);
+    AttributeValue(unsigned char val);
     // UCharType constructor.
-    AttributeValue(short);
+    AttributeValue(short val);
     // ShortType constructor.
-    AttributeValue(unsigned short);
+    AttributeValue(unsigned short val);
     // UShortType constructor.
-    AttributeValue(int, ValueType);
+    AttributeValue(int val, ValueType type);
     // IntType constructor or any other int-like value.
-    AttributeValue(unsigned int, ValueType);
+    AttributeValue(unsigned int val, ValueType type);
     // UIntType constructor or any other unsigned-int-like value including SymbolType.
-    AttributeValue(unsigned int, unsigned int, ValueType=KeywordType);
+    AttributeValue(unsigned int keysym, unsigned int narg, ValueType=KeywordType);
     // KeywordType constructor (or can be used for ObjectType).
-    AttributeValue(long);
+    AttributeValue(long val);
     // LongType constructor.
-    AttributeValue(unsigned long);
+    AttributeValue(unsigned long val);
     // ULongType constructor.
-    AttributeValue(float);
+    AttributeValue(float val);
     // FloatType constructor.
     AttributeValue(double);
     // DoubleType constructor.
-    AttributeValue(int class_symid, void*);
+    AttributeValue(int class_symid, void* objptr);
     // ObjectType constructor.
-    AttributeValue(AttributeValueList*);
+    AttributeValue(AttributeValueList* listptr);
     // ArrayType constructor.
-    AttributeValue(const char*);
+    AttributeValue(const char* val);
     // StringType constructor.
 
     virtual ~AttributeValue();
@@ -142,6 +144,9 @@ public:
     // return sizeof of value of this type.
     static int type_size(ValueType);
     // return sizeof of value of given type.
+
+    void assignval (const AttributeValue&);
+    // copy contents of AttributeValue
 
     char& char_ref();                 // char by reference.
     unsigned char& uchar_ref();       // unsigned char by reference.
@@ -178,6 +183,7 @@ public:
     unsigned int symbol_val();	      // symbol id by value.                        
     void* obj_val();		      // void* pointer to object by value.          
     unsigned int obj_type_val();      // classid of object by value.                
+    unsigned int& class_symid();       // classid of object by value.                
     AttributeValueList* array_val();  // values in list by value.                   
     unsigned int array_type_val();    // type of values in list by value            
     unsigned int keyid_val();	      // symbol id of keyword by value.             
@@ -247,6 +253,9 @@ public:
     // returns true if CommandType (for use of ComTerp).
     boolean is_object() { return is_type(ObjectType); }
     // returns true if ObjectType.
+    boolean is_object(int class_symid) { return is_type(ObjectType) &&
+					   this->class_symid() == class_symid; }
+    // returns true if ObjectType and matching class_symid.
 
     static boolean is_char(ValueType t) 
       { return t==CharType || t==UCharType; }
@@ -268,11 +277,18 @@ public:
     static boolean is_num(ValueType t)
       { return is_integer(t) || is_floatingpoint(t); }
 
-
     boolean is_blank() { return is_type(BlankType); }
     // returns true if BlankType.
     static boolean is_blank(ValueType t)
       { return t==BlankType; };
+
+    boolean is_attributelist();
+    // returns true if ObjectType with an AttributeList object.
+    boolean is_attribute();
+    // returns true if ObjectType with an Attribute object.
+
+    void* geta(int id); 
+    // get the class symbol id associated with an ObjectType.
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.

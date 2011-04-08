@@ -27,9 +27,6 @@
 #undef DefaultCCOptions
 #define DefaultCCOptions /**/
 
-/* libg++ include directory -- usually does not change with new version of libg++ */
-#define GPlusPlusIncludeDir /usr/local/include/g++
-
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
 #define ToolIncludeDir /usr/local/include
 
@@ -39,9 +36,6 @@
 
 /* command to create shared libraries */
 #define SharedLibraryCmd(ldobjs,extra_flags) gcc -shared extra_flags -o $@ ldobjs
-
-/* use -rpath instead of -L to get slack developers shared libraries */
-#define UseRpath YES
 
 /*
  * Install a shared library on Linux.
@@ -60,49 +54,5 @@ uninstall::								@@\
 	$(RM) dest/Concat(lib,libname.so)	
 #endif
 
-/* 
- * Enable/disable relative InterViews-style installation of binaries
- */
-#undef InstallRelative
-#define InstallRelative NO
-
-#if 0 
-
-/* -------------- imake way of configuring ------------------ */
-
-/* 
-/* 
- * Where to put binaries, libraries, and data files when InstallRelative is NO
- */ 
-#if 1
-#define BinDir /usr/local/bin
-#define LibDir /usr/local/lib
-#define LibAllDir /usr/local/lib/ivtools
-#else
-#define InstalledRoot $(DESTDIR)/usr/X11R6 // for Debian
-#endif
-
-/*
- * X11 directories -- remember to override XCONFIGDIR the
- * first time you run "make World".
- */
-#define XConfigDir /usr/X11R6/lib/X11/config
-#define XIncDir /usr/X11R6/include
-#define XLibDir /usr/X11R6/lib
-
-/* clippoly directory:  comment out if not available */
-/* #define ClipPolyDir ProjectDir/clippoly */
-
-/* ACE directory: comment out if not available */
-/* #define AceDir ProjectDir/ACE_wrappers */
-
-#else
-
-/* --------------- autconf way of configuring --------------- */
-
 /* file output by configure script */
 #include "config-linux-gcc.defs"
-
-#endif
-
-

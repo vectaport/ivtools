@@ -16,6 +16,8 @@ MakeLibrary($(LIB),$(VERSION))
 #define Obj31(file) MakeObjectFromSrcFlags(file, -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
 Obj31(attrdialog)
+Obj31(comtextedit)
+Obj31(comtextview)
 Obj31(terpdialog)
 
 IncludeDependencies()

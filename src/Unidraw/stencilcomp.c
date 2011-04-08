@@ -169,7 +169,7 @@ boolean PSStencil::Definition (ostream& out) {
     StencilComp* comp = (StencilComp*) GetSubject();
     Bitmap* image, *mask;
     comp->GetStencil()->GetOriginal(image, mask);
-    char* tag = (image == mask) ? "SSten" : "FSten";
+    const char* tag = (image == mask) ? "SSten" : "FSten";
     Coord w = image->Width();
     Coord h = image->Height();
 

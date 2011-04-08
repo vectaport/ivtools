@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -79,38 +80,38 @@ public:
 };
 
 //: arc-cosine command for ComTerp.
-// dbl=acos(x) -- returns the arc cosine of x.
+// dbl=acos(x) -- returns the arc cosine of x in radians.
 class ACosFunc : public ComFunc {
 public:
     ACosFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the arc cosine of x"; }
+      return "dbl=%s(x) -- returns the arc cosine of x in radians"; }
 
 };
 
 //: arc-sine command for ComTerp.
-// dbl=asin(x) -- returns the arc sine of x.
+// dbl=asin(x) -- returns the arc sine of x in radians.
 class ASinFunc : public ComFunc {
 public:
     ASinFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the arc sine of x"; }
+      return "dbl=%s(x) -- returns the arc sine of x in radians"; }
 
 };
 
 //: arc-tangent command for ComTerp.
-// dbl=atan(x) -- returns the arc tangent of x.
+// dbl=atan(x) -- returns the arc tangent of x in radians.
 class ATanFunc : public ComFunc {
 public:
     ATanFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the arc tangent of x"; }
+      return "dbl=%s(x) -- returns the arc tangent of x in radians"; }
 
 };
 
@@ -127,38 +128,38 @@ public:
 };
 
 //: cosine command for ComTerp.
-// dbl=cos(x) -- returns the cosine of x.
+// dbl=cos(x) -- returns the cosine of x radians.
 class CosFunc : public ComFunc {
 public:
     CosFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the cosine of x"; }
+      return "dbl=%s(x) -- returns the cosine of x radians"; }
 
 };
 
 //: sine command for ComTerp.
-// dbl=sin(x) -- returns the sine of x.
+// dbl=sin(x) -- returns the sine of x radians.
 class SinFunc : public ComFunc {
 public:
     SinFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the sine of x"; }
+      return "dbl=%s(x) -- returns the sine of x radians"; }
 
 };
 
 //: tangent command for ComTerp.
-// dbl=tan(x) -- returns the tangent of x.
+// dbl=tan(x) -- returns the tangent of x radians.
 class TanFunc : public ComFunc {
 public:
     TanFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the tangent of x"; }
+      return "dbl=%s(x) -- returns the tangent of x radians"; }
 
 };
 

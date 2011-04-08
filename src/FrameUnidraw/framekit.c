@@ -65,6 +65,7 @@
 
 #include <UniIdraw/idkybd.h>
 
+#include <InterViews/box.h>
 #include <InterViews/frame.h>
 #include <InterViews/layout.h>
 #include <InterViews/session.h>
@@ -74,7 +75,7 @@
 #include <InterViews/window.h>
 #include <IV-look/kit.h>
 #include <IV-look/mf_kit.h>
-#include <IVGlyph/textedit.h>
+#include <ComGlyph/comtextedit.h>
 
 #include <OS/string.h>
 
@@ -96,6 +97,8 @@ static const char* grid_y_incr = "gridyincr";
 FrameKit* FrameKit::_framekit = nil;
 
 FrameKit::FrameKit () {
+  _set_button_flag = false;
+  _clr_button_flag = false;
 }
 
 FrameKit* FrameKit::Instance() {
@@ -178,38 +181,73 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 	ed->GetKeyMap()->Execute(CODE_SELECT);
 	topbox->append(ed);
 	if (!bookgeom) {
-	    EivTextEditor* texteditor = new EivTextEditor(wk.style());
+	    boolean set_flag = ((FrameKit*)kit)->_set_button_flag;
+	    boolean clr_flag = ((FrameKit*)kit)->_clr_button_flag;
+	    EivTextEditor* texteditor = nil;
+	    if(!set_flag && !clr_flag) {
+	      texteditor = new ComTextEditor(wk.style(), ed->comterp());
+	    }
+	    else
+	      texteditor = new EivTextEditor(wk.style());
 	    ((FrameEditor*)ed)->_texteditor = texteditor;
-	    Button* set = wk.push_button("Set", new ActionCallback(FrameEditor)(
+	    Button* set = set_flag ? wk.push_button("Set", new ActionCallback(FrameEditor)(
 		(FrameEditor*)ed, &FrameEditor::SetText
-	    ));
-	    Button* clear = wk.push_button("Clear", new ActionCallback(FrameEditor)(
+	    )) : nil;
+	    Button* clear = clr_flag ? wk.push_button("Clear", new ActionCallback(FrameEditor)(
 		(FrameEditor*)ed, &FrameEditor::ClearText
-	    ));
-	    topbox->append(
-		wk.outset_frame(
-		    layout.hbox(
-			layout.vcenter(
-			    layout.margin(
-				layout.vbox(
-				    layout.hcenter(set),
-				    layout.vspace(10),
-				    layout.hcenter(clear)
-				),
-				10
-			    )
-			),
-			layout.vcenter(texteditor)
-		    )
-		)
-	    );
-	    topbox->append(
-		wk.outset_frame(
-		    layout.hbox(
-			layout.vcenter(mousedoc_observer)
-                    )
-                )
-            );
+	    )) : nil;
+	    Glyph* buttonbox = nil;
+	    if (set && !clear) {
+	      buttonbox = 
+		layout.vbox(
+			    layout.hcenter(set));
+	    } else if (!set && clear) { 
+	      buttonbox = 
+		layout.vbox(
+			    layout.hcenter(clear));
+	    } else if (set && clear) {
+	      buttonbox = 
+		layout.vbox(
+			    layout.hcenter(set),
+			    layout.vspace(10),
+			    layout.hcenter(clear)
+			    );
+	    }
+	    if (buttonbox) {
+	      topbox->append(
+		  wk.outset_frame(
+		      layout.hbox(
+			  layout.vcenter(
+			      layout.margin(
+                                  buttonbox,
+				  10
+			      )
+			  ),
+			  layout.vcenter(texteditor)
+		      )
+		  )
+	      );
+	    } else {
+	      topbox->append(
+		  wk.outset_frame(
+		      layout.hbox(
+			  layout.vcenter(
+			      layout.margin(
+				  layout.vbox(
+ 			              wk.label("type help"),
+			              layout.vspace(10),
+			              wk.label("to print"),
+			              layout.vspace(10),
+			              wk.label("info to stdout")
+			              ),
+				  10
+			      )
+			  ),
+			  layout.vcenter(texteditor)
+		      )
+		  )
+	      );
+	    }
 	}
 
 	ManagedWindow* w = new ApplicationWindow(topbox);
@@ -317,6 +355,7 @@ MenuItem* FrameKit::MakeFrameMenu() {
 #else
     menu_item = kit.check_menu_item(kit.label("Auto New Frame"));
     menu_item->state()->set(TelltaleState::is_chosen, ((FrameEditor*)GetEditor())->AutoNewFrame());
+    ((FrameEditor*)GetEditor())->_autonewframe_tts = menu_item->state();
     AutoNewFrameCmd::default_instance(new AutoNewFrameCmd(GetEditor()));
     menu_item->action
       (new ActionCallback(AutoNewFrameCmd)

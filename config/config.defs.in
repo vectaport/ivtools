@@ -1,6 +1,7 @@
 /* This file generated from config.defs.in, */
 /* (unless this file *is* config.defs.in :) */
 
+#if !@INSTALLSUBDIR@
 #define Prefix @prefix@
 #define BinDir Prefix/bin
 #define LibDir Prefix/lib
@@ -8,6 +9,15 @@
 #define IncDir Prefix/include
 #define ConfigDir LibAllDir/config
 #define ManDir Prefix/man
+#else
+#define Prefix @prefix@
+#define BinDir Prefix/bin/ivtools
+#define LibDir Prefix/lib/ivtools
+#define LibAllDir Prefix/lib/ivtools
+#define IncDir Prefix/include
+#define ConfigDir LibAllDir/config
+#define ManDir Prefix/man
+#endif
 
 #define XConfigDir @x_libraries@/X11/config
 #define XIncDir @x_includes@

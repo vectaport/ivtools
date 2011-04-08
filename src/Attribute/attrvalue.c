@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -22,6 +23,7 @@
  */
 
 #include <Attribute/aliterator.h>
+#include <Attribute/attribute.h>
 #include <Attribute/attrvalue.h>
 #include <Attribute/attrlist.h>
 
@@ -208,6 +210,8 @@ boolean AttributeValue::boolean_val() {
 	return boolean_ref();
     case AttributeValue::SymbolType:
 	return (boolean) int_val();
+    case AttributeValue::ObjectType:
+	return (boolean) obj_val();
     default:
 	return 0;
     }
@@ -539,6 +543,10 @@ unsigned int AttributeValue::obj_type_val() {
     return _v.objval.type; 
 }
 
+unsigned int& AttributeValue::class_symid() {
+    return _v.objval.type; 
+}
+
 AttributeValueList* AttributeValue::array_val() { 
 	return array_ref();
 }
@@ -754,6 +762,10 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	case AttributeValue::BlankType:
 	    break;
 	    
+	case AttributeValue::ObjectType:
+	  out << "<" << symbol_pntr(svp->class_symid()) << ">";
+	  break;
+
 	default:
 	  out << "Unknown type";
 	  break;
@@ -830,5 +842,36 @@ int AttributeValue::type_size(ValueType type) {
   default:
     return 0;
   }
+}
+
+void AttributeValue::assignval (const AttributeValue& av) {
+    void* v1 = &_v;
+    const void* v2 = &av._v;
+    memcpy(v1, v2, sizeof(double));
+    _type = av._type;
+    _aggregate_type = av._aggregate_type;
+#if 0 // this end of reference counting disabled as well
+    if (_type == StringType || _type == SymbolType) 
+	symbol_add((char *)string_ptr());
+    else 
+#endif
+    if (_type == ArrayType && _v.arrayval.ptr)
+        Resource::ref(_v.arrayval.ptr);
+}
+    
+
+boolean AttributeValue::is_attributelist() {
+  return is_object() && class_symid() == AttributeList::class_symid();
+}
+
+boolean AttributeValue::is_attribute() {
+  return is_object() && class_symid() == Attribute::class_symid();
+}
+
+void* AttributeValue::geta(int id) {
+    if (is_object(id)) 
+        return obj_val();
+    else
+        return nil;
 }
 

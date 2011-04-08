@@ -32,7 +32,9 @@
 #include <UniIdraw/ided.h>
 #include <OverlayUnidraw/ovkit.h>
 #include <InterViews/action.h>
-
+extern "C" {
+#include <ComUtil/comutil.h>
+}
 class AttributeList;
 class ComTerpServ;
 class Editor;

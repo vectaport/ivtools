@@ -83,6 +83,8 @@ public:
     // evaluate topmost expression on the stack, with a flag to
     // indicate if this call to eval_expr() is nested inside
     // another, so that initialization doesn't get repeated.
+    virtual int eval_expr(ComValue* pfvals, int npfvals);
+    // evaluate postfix expression stored in ComValue objects.
     virtual int post_eval_expr(int tokcnt, int offtop, int pedepth);
     // copy unevaluated expression to the stack and evaluate.
 
@@ -114,6 +116,9 @@ public:
     ComValue& lookup_symval(ComValue&);
     // look up a ComValue associated with a symbol (specified in the
     // input ComValue) in the local or global symbol tables.
+    ComValue& lookup_symval(int symid);
+    // look up a ComValue associated with a symbol (specified with a
+    // symbol id) in the local or global symbol tables.
 
     ComValue& stack_top(int n=0);
     // return reference to top of the stack, offset by 'n' (usually negative).
@@ -143,8 +148,12 @@ public:
     virtual void exit(int status=0);
     // call _exit().
 
-    virtual int run(boolean once=false);
-    // run interpreter until end-of-file or quit command, unless 'once' is true.
+    virtual int run(boolean one_expr=false);
+    // run interpreter until end-of-file or quit command, unless 
+    // 'one_expr' is true.  Leave 'one_expr' false when using a ComTerpServ.
+    // Return Value:  -1 if eof, 0 if normal operation, 1 if 
+    // partial expression parsed, 2 if no result computed
+
     virtual int runfile(const char* filename);
     // run interpreter on contents of 'filename'.
     void add_defaults();
@@ -189,6 +198,21 @@ public:
     virtual boolean is_serv() { return false; } 
     // flag to test if ComTerp or ComTerpServ
 
+    void func_for_next_expr(ComFunc* func);
+    // set ComFunc to use on subsequent expression
+    ComFunc* func_for_next_expr();
+    // get ComFunc to use on subsequent expression
+
+    void val_for_next_func(ComValue& val);
+    // set ComValue to pass to subequent command
+    ComValue& val_for_next_func();
+    // get ComValue to pass to subequent command
+    void clr_val_for_next_func();
+    // clear out ComValue to pass to subequent command
+
+    unsigned int& linenum() { return _linenum; }
+    // count of lines processed
+
 protected:
     void incr_stack();
     void incr_stack(int n);
@@ -215,6 +239,7 @@ protected:
     unsigned int _stack_siz;
     boolean _quitflag;
     char* _errbuf;
+    char* _errbuf2;
     int _pfoff;
     boolean _brief; // when used to produce ComValue output
     boolean _just_reset;
@@ -236,6 +261,13 @@ protected:
 
     ComterpHandler* _handler;
     // I/O handler for this ComTerp.
+
+    ComFunc* _func_for_next_expr;
+    // ComFunc to run on next expression
+
+    ComValue* _val_for_next_func;
+    // ComValue to pass to next command
+
 
     friend class ComFunc;
     friend class ComterpHandler;

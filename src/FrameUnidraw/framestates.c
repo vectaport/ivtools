@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc
  * Copyright (c) 1994, 1995 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -22,6 +23,7 @@
  */
 
 #include <FrameUnidraw/framestates.h>
+#include <Time/obstime.h>
 #include <InterViews/layout.h>
 #include <InterViews/patch.h>
 #include <IV-look/kit.h>
@@ -36,8 +38,9 @@ FrameNumberState::FrameNumberState(int fn, const char* desc, int usebg)
     _number = fn;
     _desc = strdup (desc ? desc : "Current Frame");
     _usebg = usebg;
+    _bgstr = nil;
     if (_usebg && fn == 0)
-	sprintf(buf, "%s: background", _desc);
+	sprintf(buf, "%s: %s", _desc, "background");
     else
         sprintf(buf, "%s: %d", _desc, _number);
     name(buf, false);
@@ -57,6 +60,13 @@ void FrameNumberState::number(int fn, boolean notif) {
 int FrameNumberState::framenumber() { return number(); }
 void FrameNumberState::framenumber(int fn, boolean notif) 
 { number(fn, notif); }
+
+void FrameNumberState::set_bgstr(const char* str) {
+  if (_bgstr) delete _bgstr;
+  _bgstr = strdup(str);
+  if (_usebg && _number == 0)
+    sprintf(buf, "%s: %s", _desc, _bgstr);
+}
 
 /*****************************************************************************/
 

@@ -21,26 +21,26 @@
 
              IVTOOLSSRC = /proj/ivtools-0.8/src
 
-LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
-LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
-LIBTIME = -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
-LIBATTRIBUTE = -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
-LIBCOMUTIL = -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
-LIBCOMTERP = -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
-LIBIVGLYPH = -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
-LIBATTRGLYPH = -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
-LIBCOMGLYPH = -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
-LIBGLYPHTERP = -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
-LIBUNIIDRAW = -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
-LIBTOPOFACE = -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
-LIBOVERLAYUNIDRAW = -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
+LIBUNIDRAWCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/Unidraw-common/$(CPU) -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
+LIBIVCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/IV-common/$(CPU) -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
+LIBTIME = -Wl,-rpath,$(IVTOOLSSRC)/Time/$(CPU) -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
+LIBATTRIBUTE = -Wl,-rpath,$(IVTOOLSSRC)/Attribute/$(CPU) -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
+LIBCOMUTIL = -Wl,-rpath,$(IVTOOLSSRC)/ComUtil/$(CPU) -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
+LIBCOMTERP = -Wl,-rpath,$(IVTOOLSSRC)/ComTerp/$(CPU) -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
+LIBIVGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/IVGlyph/$(CPU) -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
+LIBATTRGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/AttrGlyph/$(CPU) -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
+LIBCOMGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/ComGlyph/$(CPU) -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
+LIBGLYPHTERP = -Wl,-rpath,$(IVTOOLSSRC)/GlyphTerp/$(CPU) -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
+LIBUNIIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/UniIdraw/$(CPU) -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
+LIBTOPOFACE = -Wl,-rpath,$(IVTOOLSSRC)/TopoFace/$(CPU) -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
+LIBOVERLAYUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
 
-LIBACEDISPATCH = -L$(IVTOOLSSRC)/AceDispatch/$(CPU) -lAceDispatch
+LIBACEDISPATCH = -Wl,-rpath,$(IVTOOLSSRC)/AceDispatch/$(CPU) -L$(IVTOOLSSRC)/AceDispatch/$(CPU) -lAceDispatch
 
-LIBCOMUNIDRAW = -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
-LIBFRAMEUNIDRAW = -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
-LIBGRAPHUNIDRAW = -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
-LIBDRAWSERV = -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
+LIBCOMUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/ComUnidraw/$(CPU) -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
+LIBFRAMEUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
+LIBGRAPHUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
+LIBDRAWSERV = -Wl,-rpath,$(IVTOOLSSRC)/DrawServ/$(CPU) -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
 
 DEPUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.so.$(VERSION)
 DEPIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.so.$(VERSION)
@@ -69,7 +69,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
    RELEASE = ivtools-0.8
 
-   VERSION = 0.8
+   VERSION = 0.8.1
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -78,7 +78,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
               IMAKE = imake
          IMAKEFLAGS = \
 	-T "template"\
-	-I$(ABSTOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
+	-I$(ABSTOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 	$(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
              DEPEND = makedepend
@@ -132,7 +132,7 @@ CLIPPOLY_CCINCLUDES =
      ACE_CCINCLUDES = -I$(ACEDIR)
      IUE_CCINCLUDES =
 
-             ACEDIR = /proj/ACE_wrappers
+             ACEDIR = /proj/ACE_wrappers/
 
              CFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 
@@ -172,7 +172,7 @@ NONSHARED_CCLDFLAGS =
      CLIPPOLYLIBDIR =
     CLIPPOLYLIBBASE = libclippoly.so
        ACE_CCLDLIBS = -L$(ACEDIR)/ace -lACE
-          ACELIBDIR = /proj/ACE_wrappers/ace
+          ACELIBDIR = /proj/ACE_wrappers//ace
          ACELIBBASE = libACE.so
        IUE_CCLDLIBS =
           IUELIBDIR =
@@ -216,13 +216,13 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = /usr/local/bin
-          CONFIGDIR = /usr/local/lib/ivtools/config
-             INCDIR = /usr/local/include
-             LIBDIR = /usr/local/lib
-          LIBABSDIR = /usr/local/lib
-          LIBALLDIR = /usr/local/lib/ivtools
-             MANDIR = /usr/local/man
+             BINDIR = $(RELTOP)/bin/$(ARCH)
+          CONFIGDIR = $(TOP)/config
+             INCDIR = $(TOP)/include
+             LIBDIR = $(RELTOP)/lib/$(ARCH)
+          LIBABSDIR = $(TOP)/lib/$(ARCH)
+          LIBALLDIR = $(TOP)/lib/ivtools
+             MANDIR = $(TOP)/man
 
        ABSCONFIGDIR = /usr/local/lib/ivtools/config
           ABSLIBDIR = /usr/local/lib
@@ -495,10 +495,6 @@ cmcommit::
 	done
 
 install::
-	-@if [ -d $(INCDIR)/IV-2_6 ]; then exit 0; \
-	else (set -x; $(MKDIRHIER) $(INCDIR)/IV-2_6); fi
-	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/IV-2_6
-
-uninstall::
-	(cd $(INCDIR)/IV-2_6;$(RM) *.h)
+	-@if [ -L $(TOP)/include ]; then exit 0; else \
+ (cd $(TOP) && $(LN) src/include include); fi
 

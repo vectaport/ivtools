@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -34,7 +35,8 @@ class ComTerp;
 class ComValue;
 
 //: value printing command for ComTerp.
-// [str]=print(fmtstr val :string) -- print value with format string.
+// [str]=print(fmtstr val :string|:str :err) -- print value with format string
+// [str]=print(val :string|:str :err) -- print value
 class PrintFunc : public ComFunc {
 public:
     PrintFunc(ComTerp*);

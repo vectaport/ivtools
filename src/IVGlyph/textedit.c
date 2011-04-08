@@ -52,31 +52,6 @@
 #include "texteditor.h"
 #include "textview.h"
 
-// Adjustable, used to control scrolling
-class TE_Adjustable : public Adjustable, public Observer {
-public:
-   TE_Adjustable(TE_View*);
-
-   virtual void update(Observable*);
-
-   virtual Coord lower(DimensionName) const;
-   virtual Coord upper(DimensionName) const;
-   virtual Coord length(DimensionName) const;
-   virtual Coord cur_lower(DimensionName) const;
-   virtual Coord cur_upper(DimensionName) const;
-   virtual Coord cur_length(DimensionName) const;
-   
-   virtual void scroll_forward(DimensionName);
-   virtual void scroll_backward(DimensionName);
-   virtual void page_forward(DimensionName);
-   virtual void page_backward(DimensionName);
-   
-   virtual void scroll_to(DimensionName, Coord lower);
-   virtual void scroll_by(DimensionName, long);
-private:
-   TE_View* te_view_;
-};
-
 // TE Adjustable
 
 TE_Adjustable::TE_Adjustable(TE_View* te_view)
@@ -155,6 +130,8 @@ void TE_Adjustable::scroll_by(DimensionName, long offset)
    notify(Dimension_Y);		// notify scrollbar
 }
 
+
+EivTextEditor::EivTextEditor() { }
 
 EivTextEditor::EivTextEditor(Style* s, boolean active)
 {

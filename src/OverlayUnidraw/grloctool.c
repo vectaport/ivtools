@@ -1,4 +1,5 @@
 /*
+ * Copyright 2000 IET Inc.
  * Copyright 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,7 +31,8 @@
 #include <Unidraw/iterator.h>
 #include <Unidraw/selection.h>
 
-#include <IVGlyph/gdialogs.h>
+#include <IVGlyph/observables.h>
+#include <IVGlyph/odialogs.h>
 
 #include <InterViews/event.h>
 #include <InterViews/transformer.h>
@@ -49,7 +51,27 @@ boolean GrLocTool::IsA (ClassId id) {
 
 GrLocTool::GrLocTool (ControlInfo* m) : Tool(m)
 {
+  _dialog = nil;
+  _bufsiz = 64;
+  _buffer = new char[_bufsiz];
+  strcpy(_buffer, "test string");
+  _otext = new ObservableText(&_buffer);
 }
+
+GrLocTool::~GrLocTool() {
+  delete _buffer;
+  delete _otext;
+}
+
+Dialog* GrLocTool::dialog() {
+  if (!_dialog) {
+    _dialog = new ObsTextDialog(_otext, "Location relative to graphic's coordinate system");
+    Resource::ref(_dialog);
+  }
+  return _dialog;
+}
+  
+
 
 Tool* GrLocTool::Copy () { return new GrLocTool(CopyControlInfo()); }
 
@@ -66,12 +88,12 @@ Manipulator* GrLocTool::CreateManipulator (
     Graphic* gr;
     if (view && (gr = view->GetGraphic())) {
       viewer->ScreenToGraphic(e.x, e.y, gr, xgr, ygr);
-      char buffer[BUFSIZ];
-      sprintf( buffer, "x,y:  %.2f %.2f", xgr, ygr);
-      GAcknowledgeDialog* dialog = new GAcknowledgeDialog(buffer);
-      Resource::ref(dialog);
-      dialog->post_for(v->GetEditor()->GetWindow());
-      Resource::unref(dialog);
+      sprintf( _buffer, "x,y:  %.2f %.2f", xgr, ygr);
+      _otext->accept();
+      if (!dialog()->mapped())
+	dialog()->map_for(v->GetEditor()->GetWindow());
+      else
+	_otext->notify();
     }
   }
   Manipulator* m = nil;

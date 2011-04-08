@@ -43,9 +43,6 @@
 #undef ExtraLibraries
 #define ExtraLibraries /**/
 
-/* libg++ include directory -- usually does not change with new version of libg++ */
-#define GPlusPlusIncludeDir /usr/cal/lib/g++-include
-
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
 /* TAKE CARE TO PUT THIS VALUE ALSO IN ExtraCCLdLibs !!! */
 #define ToolIncludeDir /usr/cal/lib 
@@ -70,14 +67,20 @@
 /* command to create shared libraries */
 #define SharedLibraryCmd(ldobjs, extra_flags) gcc -shared -Xlinker -all -Xlinker /usr/cal/lib/libstdc++.a -Xlinker -none -lc -lm extra_flags -o $@ ldobjs
 
-/* 
- * Enable/disable relative InterViews-style installation of binaries
+/*
+ * Irix strip is broken
  */
-#undef InstallRelative
-#define InstallRelative YES
+#undef InstPgmFlags
+#define InstPgmFlags /**/
 
-/* use -rpath instead of -L to get slack developers shared libraries */
-#define UseRpath NO
+#if 0
+/* override InterViews/iv-alpha.cf */
+#undef InstallCmd
+#define InstallCmd ${INSTALL_PATH}/install.sh
+#endif
+
+/* file output by configure script */
+#include "config-alpha4-gcc.defs"
 
 /* use symbolic links for relative install of libraries */
 #if !UseRpath
@@ -104,50 +107,3 @@ uninstall::								@@\
 	$(RM) dest/Concat(lib,libname.a)
 #endif
 #endif
-
-/*
- * Irix strip is broken
- */
-#undef InstPgmFlags
-#define InstPgmFlags /**/
-
-#if 0
-/* override InterViews/iv-alpha.cf */
-#undef InstallCmd
-#define InstallCmd ${INSTALL_PATH}/install.sh
-#endif
-
-#if 0 
-
-/* -------------- imake way of configuring ------------------ */
-
-/* 
- * Where to put binaries, libraries, and data files when InstallRelative is NO
- */ 
-#define BinDir /usr/local/bin
-#define LibDir /usr/local/lib
-#define LibAllDir /usr/local/lib/ivtools
-
-/*
- * X11 directories -- remember to override XCONFIGDIR the
- * first time you run "make World".
- */
-#define XConfigDir /usr/lib/X11/config
-#define XIncDir /usr/include
-#define XLibDir /usr/lib
-
-/* clippoly directory:  comment out if not available */
-/* #define ClipPolyDir ProjectDir/clippoly */
-
-/* ACE directory: comment out if not available */
-/* #define AceDir ProjectDir/ACE_wrappers */
-
-#else
-
-/* --------------- autconf way of configuring --------------- */
-
-/* file output by configure script */
-#include "config-alpha4-gcc.defs"
-
-#endif
-

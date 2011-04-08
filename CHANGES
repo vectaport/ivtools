@@ -1,3 +1,232 @@
+March 9th 2000 ivtools-0.8.1
+
+Interpreter Changes
+    
+        * Add the "." (dot) operator to comterp, to allow for compound
+        variables (i.e. "a.b").  They can be used on the right-hand or
+        left-hand side of an assignment operator, and used pretty much
+        anywhere a symbol can be used.
+    
+        The first operand is either a symbol to assign an AttributeList
+        to, or an expression that evaluates to an AttributeList.  The
+        second operand is always a symbol.  They can be concatenated
+        (i.e. "a.b.c").
+    
+        * create a list func that initializes an empty list object.
+          
+        * extended the print func to invoke the ostream ComValue "<<"
+        operator if it only has one argument.
+    
+        * add new symval command to returns the symbol value instead of
+       looking up the value of that symbol in the variable tables.
+    
+    
+        * documented acos, asin, and atan as returning radians,
+        and cos, sin, tan as taking radians.
+
+	* created autoframe command in flipbook command
+	interpreter, and synched it with the "Auto New Frame" checkbox
+	on the Frame pulldown menu.  So now you can set/reset this
+	feature from either the GUI or interpreter, and the GUI
+	reflects the state.
+
+	* settle on "dotname" for the command that returns the name of
+	a name/value attribute pair.  This is because "." (dot) is the
+	operator used to create attribute list objects in the comterp
+	command interpreter.  Normally most attribute objects are
+	automatically indirected to the attribute value when finally
+	applied, but in this command overrides that and returns the
+	symbol which is the attribute name.
+
+
+	* enable the command interpreter in the text editor panel at
+	the bottom of the flipbook user interface.
+
+	* copy anything but the last line in the interpreter text
+        buffer to the end of the buffer before executing -- like shell
+        mode in emacs.
+
+Library Changes
+
+        -- Attribute -- 
+
+	* migrate macro for declaring symbol-table based class ids to
+	one place -- Attribute/_comutil.h.  Rename it CLASS_SYMID
+	(from classid).
+
+	* AttributeList::add_attr fix.
+
+	* new twist to the classid stuff.  Now classid() gets defined
+	as a virtual function along with static methods for
+	class_name() and class_symid() when you add the CLASS_SYMID
+	macro (<Attribute/_comutil.h>) to a class definition.  This
+	was used for identifying derived ComFunc's, ComFunc's that
+	have a func symbol id as well, but might vary with
+	internationalization or other custom changes to the
+	interpreter.  But the symbol id of the class name itself
+	doesn't change.
+
+	-- ComUtil -- 
+
+	* modify lexical scanner to preserve token state between invocations.
+	This fixes a problem with multi-line comments when comterp is
+	in server (when comterp is receiving input strings one at a
+	time from an external source).  However, this does not fix the
+	problem with multi-line strings when comterp is in server
+	mode, which will require a better solution for preserving more
+	of the token state (i.e. the partial token buffer) between
+	invocations.  This is also a necessary step in preserving
+	parallel use of one lexical scanner by more than one comterp
+	in the same program.
+
+	-- ComTerp --
+
+	* fix a problem in server-mode comterp.  Part of making
+	server-mode work was figuring out how to return from the
+	depths of the lexical scanner in the middle of an expression,
+	when an expression continues across multiple-lines, but the
+	capability to retrieve a new line (or string) is external to
+	the parser/scanner.  To make this work I made up the
+	convention that if the input function (the function pointer
+	with an fgets signature passed to the parser/scanner C
+	routines) returns a null string (a string that begins with
+	'\000'), return out of the scanner and parser, yet assume
+	there is more to come.  When that function
+	(ComTerpServ::s_fgets) was going to return the null string, it
+	still traversed the entire input buffer, which is huge by
+	default.
+
+	* compress some code by making use of the new
+	ComValue::is_object(int classid) method to test both whether
+	something has a generic void* pointer for its value, and
+	whether it has a known matching classid (based on a id in a
+	symbol table for that kind of object).
+
+	* migrate ComValue::geta() to AttributeValue::geta().  This is
+	the method that returns a void* to an ObjectType if the
+	classid matches.  Work for every object but ComFunc's and
+	AttributeValueList's, which have their own types (CommandType
+	and ArrayType).
+
+	-- IVGlyph --
+
+	* new Dialog methods to support stay-up dialog boxes that
+	don't block events being handled by the main application:
+
+    void map_for(Window*);
+    virtual void map_for_aligned(Window*, float xalign, float yalign);
+    void map_at(Coord x, Coord y);
+    virtual void map_at_aligned(
+	Coord x, Coord y, float xalign, float yalign
+    );
+    void unmap();
+    boolean mapped();
+
+        These are an alternate to the pre-existing Dialog::post_* methods,
+        which map the dialog box to the screen then enter their own event
+        handling loop (the run() method), then unmap the dialog box when
+        done.
+    
+        With this new approach you call one of the Dialog::map_* methods
+        to bring up the dialog box, and control returns to the normal
+        event-handling loop of the main application.  The action taken
+        when a Close or OK button has to be different with this new
+        approach.  Instead of setting a flag that causes the local run
+        loop to terminate, you need to explicitly call Dialog::unmap.
+    
+        Dialog::unmapped is provided as a way to test if the dialog is
+        currently displayed.  Repeated calls to Dialog::map_* are ok,
+        because the first thing these methods do is check if already
+        mapped, and if so they do nothing.
+    
+        * create a new ObsTextDialog that uses the new Dialog::map_*
+        methods (IVGlyph/odialogs.[ch]).
+    
+        * store the symbol id for a given ComFunc in a new _funcid member
+        variable.
+    
+        * create a ComTerp::eval_expr method that takes an array of fully
+        code-converted ComValue's ready to be executed.
+    
+        * so that a ComFunc execute method can ask ComTerp to invoke a
+        certain ComFunc on the subsequent symbol to be encountered after
+        the ComFunc execute method returns (ComTerp::func_for_next_sym()).
+    
+        * modify the various func of symbolfunc.c to generate scalar or
+        vector results depending on whether there is a single or multiple
+        argument.  Affected are symbol, symid, and symvar.
+    
+        * add mechanism to ComTerp to pass values to the next expression
+        (ComTerp::val_for_next_func) and invoke a func on the next symbol
+        (ComTerp::func_for_next_sym).  This allows for the stringing
+        together of stand-alone expressions interspersed by keywords that
+        lack parenthization.
+    
+        * add ComValue constructor that takes a ComFunc* directly and
+        makes something of CommandType.
+    
+        * derive ComGlyph's ComTextEditor and ComTE_View from
+	IVGlyph's EivTextEditor and TE_View.  This adds an interactive
+	command interpreter capability to the text editor object,
+	where the user can enter expressions and see results computed.
+	While a command history plus anything else goes to stdout, the
+	results follow just the expression, so it is sometimes easier
+	to keep track of the commands you're using.  All of stdout
+	could be rerouted to the texteditor window in the future.
+	vhclmaps vhclviewer is the first place in the source tree
+	where this capability is exposed for now.  Check it out.
+
+        -- OverlayUnidraw --
+    
+        * the GraphicLoc tool to use the new ObsTextDialog box.  Now the
+        GraphicLoc dialog box can stay up between uses of the tool, and
+        each new click refreshes the displayed text.
+
+	-- FrameUnidraw --
+
+	* generalize the "select" command of comdraw to work in the
+	interpreter of flipbook and anything derived from flipbook, by
+	using the OverlayEditor::GetFrame() virtual method, which
+	hides the fact whether a multi-frame system is in place or
+	not.
+
+Miscellaneous and Config Changes
+
+	* change the default behavior of make with no arguments to be
+	the same as "make World" the first time it used.  So now
+	ivtools can build out of the box with the ubiquitous
+	"./configure;make"
+
+	* add --enable-install-subdir argument to ./configure.  This
+	allows a user to install in /usr/local/lib/ivtools and
+	/usr/local/bin/ivtools if they want (/usr/local can be changed
+	with --prefix).
+
+	* change src/scripts/mkdirhier.sh to work with new versions of
+	mkdir that no longer accept multiple arguments.
+
+	* pare down the various config/site.def.$CPU files to the
+	things actually used/required.  Take out all definitions
+	now provided by the ./configure script.
+
+	* patches submitted by Gregor Zych to compile ivtools-0.8 with
+	frozen Debian Potato.  The first patch adds a function
+	definition that is disabled by default.  Someone would need to
+	change the #if clause to correctly test for the Debian 2.2
+	release.  This was the only thing that didn't compile smoothly
+	on RedHat 5.1.
+
+	* give variable names to all the constructor arguments in
+	Attribute/attrvalue.h and ComTerp/comvalue.h, to improve the
+	PERCEPS extracted web page.
+
+	* change signature of accept() used in utils/sockets.cc to use
+	an unsigned instead of signed int* as the third argument.
+	This seems to be more the recent standard.
+
+- format bug in ComValue::ULongType ostream output.
+
+
 January 18th 2000 ivtools-0.8
 
 Drawing Editor Changes

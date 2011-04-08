@@ -67,18 +67,6 @@ void SeqFunc::execute() {
 
 /*****************************************************************************/
 
-DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void DotFunc::execute() {
-    ComValue thisval(stack_arg(0));
-    ComValue methval(stack_arg(1));
-    reset_stack();
-    push_stack(methval);
-}
-
-/*****************************************************************************/
-
 TimeExprFunc::TimeExprFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

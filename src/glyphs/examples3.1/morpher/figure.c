@@ -1379,7 +1379,7 @@ boolean PolyGraphic::intersects_gs (BoxObj& box, Graphic31* gs) {
 
 /**********************************************************************/
 declarePtrList(GraphicList, Graphic31);
-implmentPtrList(GraphicList, Graphic31);
+int implmentPtrList(GraphicList, Graphic31);
 
 static Cursor* grabber_cursor = nil;
 static Cursor* window_cursor = nil;

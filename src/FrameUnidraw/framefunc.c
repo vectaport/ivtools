@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -28,6 +29,9 @@
 #include <Unidraw/iterator.h>
 #include <Unidraw/viewer.h>
 #include <ComTerp/comvalue.h>
+
+static int on_symid = symbol_add("on");
+static int off_symid = symbol_add("off");
 
 /*****************************************************************************/
 
@@ -75,6 +79,29 @@ void CreateFrameFunc::execute() {
     execute_log(cmd);
     ComValue retval(cmd->moveframecmd()->actualmotion(), ComValue::IntType);
     push_stack(retval);
+  }
+}
+
+/*****************************************************************************/
+
+AutoNewFrameFunc::AutoNewFrameFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void AutoNewFrameFunc::execute() {
+  ComValue onflagv(stack_key(on_symid));
+  ComValue offflagv(stack_key(off_symid));
+  reset_stack();
+
+  FrameEditor* ed = (FrameEditor*)GetEditor();
+  
+  if (ed) {
+    if (onflagv.is_false() && offflagv.is_false()) {
+      ed->ToggleAutoNewFrame();
+    } else if (onflagv.is_true()) {
+      if (!ed->AutoNewFrame()) ed->ToggleAutoNewFrame();
+    } else if (offflagv.is_true()) {
+      if (ed->AutoNewFrame()) ed->ToggleAutoNewFrame();
+    }
   }
 }
 

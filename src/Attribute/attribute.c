@@ -26,6 +26,8 @@
 
 /*****************************************************************************/
 
+int Attribute::_symid = -1;
+
 Attribute::Attribute(const char* name, AttributeValue* value) {
     if (name)
 	symbolid = symbol_add((char *)name);

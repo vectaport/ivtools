@@ -49,7 +49,11 @@ public:
 
     ComTerpServ* GetComTerp() { return _terp;}
     // return pointer to associated ComTerp (always a ComTerpServ).
+    ComTerpServ* comterp() { return _terp;}
+    // return pointer to associated ComTerp (always a ComTerpServ).
     void SetComTerp(ComTerpServ* terp) { _terp = terp;}
+    // set pointer to associated ComTerp (always a ComTerpServ).
+    void comterp(ComTerpServ* terp) { _terp = terp;}
     // set pointer to associated ComTerp (always a ComTerpServ).
 
     virtual void ExecuteCmd(Command* cmd);

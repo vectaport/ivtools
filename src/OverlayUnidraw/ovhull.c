@@ -53,7 +53,7 @@ void ConvexHullCmd::Execute() {
   if (comp && comp->IsA(OVPOLYGON_COMP)) {
     SF_Polygon* poly = ((PolygonOvComp*)comp)->GetPolygon();
     Coord* x, *y;
-    int np = poly->GetOriginal(x, y);
+    int np = poly->GetOriginal((const Coord*&)x,(const Coord*&) y);
     if (np > 2) {
       float* fx = new float[np];
       float* fy = new float[np];

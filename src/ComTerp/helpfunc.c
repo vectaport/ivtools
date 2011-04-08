@@ -73,8 +73,8 @@ void HelpFunc::execute() {
       } else if (val.is_type(AttributeValue::StringType)) {
 	void *vptr = nil;
 	comterp()->localtable()->find(vptr, val.string_val());
-	if (vptr) {
-	  comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
+	if (vptr && ((ComValue*)vptr)->is_command()) {
+	    comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
 	} else
 	  comfuncs[i] = nil;
 	command_ids[i] = val.string_val();
@@ -104,7 +104,7 @@ void HelpFunc::execute() {
 
       void* vptr;
       comterp()->localtable()->find(vptr, command_id);
-      if (vptr) {
+      if (vptr && ((ComValue*)vptr)->is_command()) {
 	comfuncs[j] = (ComFunc*)((ComValue*)vptr)->obj_val();
       } else
 	comfuncs[j] = nil;

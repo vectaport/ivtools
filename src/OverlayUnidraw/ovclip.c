@@ -115,7 +115,7 @@ void ClipRectCmd::Execute() {
 	    int n1, n2;
 	    Transformer tn1, tn2;
 	    g1 = (SF_Polygon*)((PolygonOvView*)view)->GetGraphic();
-	    n1 = g1->GetOriginal(tx1, ty1);
+	    n1 = g1->GetOriginal((const Coord*&)tx1,(const Coord*&) ty1);
 	    ftx1 = new float[n1];
 	    fty1 = new float[n1];
 	    for (int j = 0; j < n1; j++) {
@@ -221,7 +221,7 @@ void ClipRectCmd::Execute() {
 	else {
 	    if (view->IsA(OVMULTILINE_VIEW)) {
 		MultiLine* ml = (MultiLine*)graphic;
-		n = ml->GetOriginal(x, y);
+		n = ml->GetOriginal((const Coord*&)x,(const Coord*&) y);
 	    }
 	    else if (view->IsA(OVLINE_VIEW)) {
 		Line* line = (Line*)graphic;
@@ -384,7 +384,7 @@ void ClipPolyCmd::Execute() {
 	    int n1, n2;
 	    Transformer tn1, tn2;
 	    g1 = (SF_Polygon*)((PolygonOvView*)view)->GetGraphic();
-	    n1 = g1->GetOriginal(tx1, ty1);
+	    n1 = g1->GetOriginal((const Coord *&)tx1,(const Coord *&) ty1);
 	    ftx1 = new float[n1];
 	    fty1 = new float[n1];
 	    for (int ii = 0; ii < n1; ii++) {
@@ -494,7 +494,7 @@ void ClipPolyCmd::Execute() {
 	else {
 	    if (view->IsA(OVMULTILINE_VIEW)) {
 		MultiLine* ml = (MultiLine*)graphic;
-		n = ml->GetOriginal(x, y);
+		n = ml->GetOriginal((const Coord *&)x,(const Coord *&) y);
 	    }
 	    else if (view->IsA(OVLINE_VIEW)) {
 		Line* line = (Line*)graphic;
@@ -705,8 +705,8 @@ void ClipPolyAMinusBCmd::Execute () {
 	Transformer tn1, tn2;
 	g1 = (SF_Polygon*)((PolygonOvView*)view1)->GetGraphic();
 	g2 = (SF_Polygon*)((PolygonOvView*)view2)->GetGraphic();
-	n1 = g1->GetOriginal(tx1, ty1);
-	n2 = g2->GetOriginal(tx2, ty2);
+	n1 = g1->GetOriginal((const Coord *&)tx1,(const Coord *&) ty1);
+	n2 = g2->GetOriginal((const Coord *&)tx2,(const Coord *&) ty2);
 	x1 = new float[n1];
 	y1 = new float[n1];
 	x2 = new float[n2];
@@ -777,7 +777,7 @@ void ClipPolyAMinusBCmd::Execute () {
 	  Graphic* graphic1 = view1->GetGraphic();
 	  if (view1->IsA(OVMULTILINE_VIEW)) {
 	    MultiLine* ml = (MultiLine*)graphic1;
-	    n = ml->GetOriginal(x, y);
+	    n = ml->GetOriginal((const Coord *&)x,(const Coord *&) y);
 	  }
 	  else if (view1->IsA(OVLINE_VIEW)) {
 	    Line* line = (Line*)graphic1;
@@ -797,7 +797,7 @@ void ClipPolyAMinusBCmd::Execute () {
 	  Coord* px;
 	  Coord* py;
 	  int pn;
-	  pn = graphic2->GetOriginal(px, py);
+	  pn = graphic2->GetOriginal((const Coord *&)px,(const Coord *&) py);
 	  graphic2->TotalTransformation(tn2);
 	  float* tpx = new float[pn];
 	  float* tpy = new float[pn];
@@ -898,8 +898,8 @@ void ClipPolyBMinusACmd::Execute () {
 	Transformer tn1, tn2;
 	g1 = (SF_Polygon*)((PolygonOvView*)view1)->GetGraphic();
 	g2 = (SF_Polygon*)((PolygonOvView*)view2)->GetGraphic();
-	n1 = g1->GetOriginal(tx1, ty1);
-	n2 = g2->GetOriginal(tx2, ty2);
+	n1 = g1->GetOriginal((const Coord *&)tx1,(const Coord *&) ty1);
+	n2 = g2->GetOriginal((const Coord *&)tx2,(const Coord *&) ty2);
 	x1 = new float[n1];
 	y1 = new float[n1];
 	x2 = new float[n2];
@@ -970,7 +970,7 @@ void ClipPolyBMinusACmd::Execute () {
 	  Graphic* graphic1 = view2->GetGraphic();
 	  if (view2->IsA(OVMULTILINE_VIEW)) {
 	    MultiLine* ml = (MultiLine*)graphic1;
-	    n = ml->GetOriginal(x, y);
+	    n = ml->GetOriginal((const Coord *&)x,(const Coord *&) y);
 	  }
 	  else if (view2->IsA(OVLINE_VIEW)) {
 	    Line* line = (Line*)graphic1;
@@ -990,7 +990,7 @@ void ClipPolyBMinusACmd::Execute () {
 	  Coord* px;
 	  Coord* py;
 	  int pn;
-	  pn = graphic2->GetOriginal(px, py);
+	  pn = graphic2->GetOriginal((const Coord *&)px,(const Coord *&) py);
 	  graphic2->TotalTransformation(tn2);
 	  float* tpx = new float[pn];
 	  float* tpy = new float[pn];
@@ -1091,8 +1091,8 @@ void ClipPolyAAndBCmd::Execute () {
 	Transformer tn1, tn2;
 	g1 = (SF_Polygon*)((PolygonOvView*)view1)->GetGraphic();
 	g2 = (SF_Polygon*)((PolygonOvView*)view2)->GetGraphic();
-	n1 = g1->GetOriginal(tx1, ty1);
-	n2 = g2->GetOriginal(tx2, ty2);
+	n1 = g1->GetOriginal((const Coord *&)tx1,(const Coord *&) ty1);
+	n2 = g2->GetOriginal((const Coord *&)tx2,(const Coord *&) ty2);
 	x1 = new float[n1];
 	y1 = new float[n1];
 	x2 = new float[n2];
@@ -1164,7 +1164,7 @@ void ClipPolyAAndBCmd::Execute () {
 	  Graphic* graphic1 = view1->GetGraphic();
 	  if (view1->IsA(OVMULTILINE_VIEW)) {
 	    MultiLine* ml = (MultiLine*)graphic1;
-	    n = ml->GetOriginal(x, y);
+	    n = ml->GetOriginal((const Coord *&)x, (const Coord *&)y);
 	  }
 	  else if (view1->IsA(OVLINE_VIEW)) {
 	    Line* line = (Line*)graphic1;
@@ -1184,7 +1184,7 @@ void ClipPolyAAndBCmd::Execute () {
 	  Coord* px;
 	  Coord* py;
 	  int pn;
-	  pn = graphic2->GetOriginal(px, py);
+	  pn = graphic2->GetOriginal((const Coord *&)px,(const Coord *&) py);
 	  graphic2->TotalTransformation(tn2);
 	  float* tpx = new float[pn];
 	  float* tpy = new float[pn];

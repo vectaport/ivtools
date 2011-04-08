@@ -46,4 +46,14 @@ public:
       return "%s(:before) -- create and move to new frame"; }
 };
 
+//: interpreter command to toggle the autonewframe flag
+// autonewframe(:on :off) -- command to toggle the autonewframe flag
+class AutoNewFrameFunc : public UnidrawFunc {
+public:
+    AutoNewFrameFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(:on :off) -- command to toggle autonewframe"; }
+};
+
 #endif /* !defined(_framefunc_h) */

@@ -32,6 +32,7 @@
 class FrameNumberState;
 class FrameListState;
 class FrameView;
+class TelltaleState;
 
 //: ComEditor specialized for multi-frame use.
 class FrameEditor : public ComEditor {
@@ -81,7 +82,7 @@ public:
     FrameListState*& frameliststate() { return _frameliststate; }
     // return reference to pointer to current-frame-count state variable
 
-    void ToggleAutoNewFrame() { _autonewframe = !_autonewframe; }
+    void ToggleAutoNewFrame();
     // toggle flag which indicates a new frame should be automatically
     // created whenever anything is imported.
     boolean AutoNewFrame() { return _autonewframe; }
@@ -100,6 +101,7 @@ protected:
     int _curr_other;
     int _prev_other;
     boolean _autonewframe;
+    TelltaleState* _autonewframe_tts;
 
 friend FrameKit;
 };

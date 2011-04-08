@@ -33,14 +33,14 @@ World::									@@\
 	@echo "Building $(RELEASE) on `date`"				@@\
 	@echo ""							@@\
 	$(MAKE) Makefile CONFIGSRC=$(CONFIGSRC) XCONFIGDIR=$(XCONFIGDIR)@@\
-	@echo "twice to propogate new toplevel pathname"							@@\
+	@echo "twice to propogate new toplevel pathname"		@@\
 	$(MAKE) Makefile 						@@\
 	@echo ""							@@\
 	$(MAKE) Makefiles						@@\
 	@echo ""							@@\
 	$(MAKE) depend							@@\
 	@echo ""							@@\
-	$(MAKE) flags all						@@\
+	$(MAKE) flags subdirs						@@\
 	@echo ""							@@\
 	@echo "$(RELEASE) build completed on `date`"			@@\
 	@echo ""
@@ -78,6 +78,38 @@ MakeSpecialWorld(.noshared,flags)
 MakeNormalWorld(flags)							@@\
 MakeSpecialWorld(.debug,flags)
 #endif
+#endif
+
+/*
+ * Make everything by default
+ */
+#ifndef MakeWorld2
+#define MakeWorld2(flags)						@@\
+all::									@@\
+	-@if [ ! -f make.makefile ]; then \				@@\
+	echo ""; \							@@\
+	echo "Building $(RELEASE) on `date`"; \			@@\
+	echo ""; \							@@\
+	$(MAKE) Makefile CONFIGSRC=$(CONFIGSRC) XCONFIGDIR=$(XCONFIGDIR);\@@\
+	echo "twice to propogate new toplevel pathname"; \		@@\
+	$(MAKE) Makefile; \						@@\
+	touch make.makefile; fi						@@\
+	-@if [ ! -f make.makefiles ]; then \				@@\
+	echo ""; \							@@\
+	$(MAKE) Makefiles; \ 						@@\
+	touch make.makefiles; fi					@@\
+	-@if [ ! -f make.depend ]; then \				@@\
+	echo ""; \							@@\
+	$(MAKE) depend; \						@@\
+	touch make.depend; fi						@@\
+	-@if [ ! -f make.make ]; then \					@@\
+	echo ""; fi							@@\
+	$(MAKE) flags subdirs						@@\
+	-@if [ ! -f make.make ]; then \					@@\
+	echo ""; \							@@\
+	echo "$(RELEASE) build completed on `date`"; \			@@\
+	echo ""; \							@@\
+	touch make.make; fi
 #endif
 
 /*
@@ -178,6 +210,23 @@ name::									@@\
 	done
 #endif
 
+/*
+ * Make the given target in the list of subdirectories.
+ */
+#ifndef IntoSubdirs2
+#define IntoSubdirs2(name,dirs,verb,target)				@@\
+target::								@@\
+	-@for i in dirs; \						@@\
+	do \								@@\
+		if [ -d $$i ]; then ( \					@@\
+			echo verb \					@@\
+			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
+			cd $$i; \					@@\
+			$(MAKE) $(PASSARCH) name; \			@@\
+		) else continue; fi; \					@@\
+	done
+#endif
+
 #ifndef DependSubdirs
 #define DependSubdirs(dirs)						@@\
 IntoSubdirs(depend,dirs,"depending")
@@ -186,6 +235,11 @@ IntoSubdirs(depend,dirs,"depending")
 #ifndef MakeSubdirs
 #define MakeSubdirs(dirs)						@@\
 IntoSubdirs(all,dirs,"making all")
+#endif
+
+#ifndef MakeSubdirsTop
+#define MakeSubdirsTop(dirs)						@@\
+IntoSubdirs2(all,dirs,"making all",subdirs)
 #endif
 
 #ifndef InstallSubdirs
@@ -283,6 +337,34 @@ IvmkcmSubdirs(dirs)
 MakefilesSubdirs(dirs)							@@\
 DependSubdirs(dirs)							@@\
 MakeSubdirs(dirs)							@@\
+InstallSubdirs(dirs)							@@\
+CleanSubdirs(dirs)							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
+#endif
+#endif
+
+/*
+ * Version of MakeInSubdirs for the top-level without the MakeSubdirs
+ */
+#ifndef MakeInSubdirsTop
+#if HasDynamicSharedLibraries
+#define MakeInSubdirsTop(dirs)						@@\
+MakefilesSubdirs(dirs)							@@\
+DependSubdirs(dirs)							@@\
+MakeSubdirsTop(dirs)							@@\
+InstallSubdirs(dirs)							@@\
+CleanSubdirs(dirs)							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+SpecialTargets(noshared,-DUseNonShared)					@@\
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
+#else
+#define MakeInSubdirsTop(dirs)						@@\
+MakefilesSubdirs(dirs)							@@\
+DependSubdirs(dirs)							@@\
+MakeSubdirsTop(dirs)							@@\
 InstallSubdirs(dirs)							@@\
 CleanSubdirs(dirs)							@@\
 SpecialTargets(debug,-DUseDebug)					@@\

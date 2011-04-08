@@ -27,6 +27,7 @@
 #include <ComTerp/comterp.h>
 
 #include <OverlayUnidraw/ovarrow.h>
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviewer.h>
@@ -660,7 +661,7 @@ void SelectFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     if (nargs()==0) {
 
-      GraphicView* gv = viewer->GetGraphicView();
+      GraphicView* gv = ((OverlayEditor*)_ed)->GetFrame();
       Iterator i;
       int count=0;
       for (gv->First(i); !gv->Done(i); gv->Next(i)) {

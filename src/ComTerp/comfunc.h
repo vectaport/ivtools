@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -32,6 +33,7 @@
 #include <stdlib.h>
 #include <OS/types.h>
 #include <ComTerp/comvalue.h>
+#include <Attribute/_comutil.h>
 
 class AttributeList;
 class ComFuncState;
@@ -149,13 +151,23 @@ public:
     // to the invocation of this ComFunc.  'dflt' is used whenever a 
     // keyword has no matching argument.
 
+    void funcid(int id) { _funcid = id; }
+    // set symbol id of name for func
+    int funcid() { return _funcid; }
+    // get symbol id of name for func
+
     ComValue& lookup_symval(ComValue&);
+    // lookup variable value given a symbol ComValue
+    ComValue& lookup_symval(int symid);
+    // lookup variable value given a symbol id.
     void assign_symval(int id, ComValue*);
 
     virtual boolean post_eval() { return false; }
     virtual const char* docstring() { return "%s: no docstring method defined"; }
     static int bintest(const char* name);
     static boolean bincheck(const char* name);
+    
+
 
 protected:
 
@@ -195,7 +207,9 @@ protected:
     // currently interpreting expression.
 
     ComTerp* _comterp;
+    int _funcid;
 
+    CLASS_SYMID("ComFunc");
 };
 
 //: state object for holding invocation specific data about a ComFunc.

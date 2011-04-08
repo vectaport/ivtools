@@ -31,9 +31,6 @@
 #define BuildRPCClasses YES
 #define SOMAXCONN 5
 
-/* libg++ include directory -- usually does not change with new version of libg++ */
-#define GPlusPlusIncludeDir /usr/local/lib/g++-include
-
 /* link libraries for the above */
 #undef ExtraCCLdLibs
 #ifndef SVR4Architecture
@@ -98,46 +95,9 @@ uninstall::								@@\
 #undef InstallRelative
 #define InstallRelative YES
 
-#if 0 
-
-/* -------------- imake way of configuring ------------------ */
-
-/* 
- * Where to put binaries, libraries, and data files when InstallRelative is NO
- */ 
-#define BinDir /usr/local/bin
-#define LibDir /usr/local/lib
-#define LibAllDir /usr/local/lib/ivtools
-
-/*
- * X11 directories -- remember to override XCONFIGDIR the
- * first time you run "make World".
- */
-#ifndef SVR4Architecture
-#define XConfigDir /usr/local/lib/X11/config
-#define XIncDir /usr/local/include
-#define XLibDir /usr/local/lib
-#else
-#define XConfigDir /usr/X/lib/X11/config
-#define XIncDir /usr/X/include
-#define XLibDir /usr/X/lib
-#endif
-
-/* clippoly directory:  comment out if not available */
-#define ClipPolyDir ProjectDir/clippoly
-
-/* ACE directory: comment out if not available */
-#define AceDir ProjectDir/ACE_wrappers
-
-#else
-
-/* --------------- autconf way of configuring --------------- */
-
 /* file output by configure script */
 #ifdef SVR4Architecture
 #include "config-solaris-gcc.defs"
 #else
 #include "config-sunos4-gcc.defs"
-#endif
-
 #endif

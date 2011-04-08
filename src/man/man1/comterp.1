@@ -125,19 +125,19 @@ Run contents of file then exit.
 
  dbl=pow(x y) -- returns the value of x raised to the power of y
 
- dbl=acos(x) -- returns the arc cosine of x
+ dbl=acos(x) -- returns the arc cosine of x in radians
 
- dbl=asin(x) -- returns the arc sine of x
+ dbl=asin(x) -- returns the arc sine of x in radians
 
- dbl=atan(x) -- returns the arc tangent of x
+ dbl=atan(x) -- returns the arc tangent of x in radians
 
  dbl=atan2(y x) -- returns the arc tangent of y over x
 
- dbl=cos(x) -- returns the cosine of x
+ dbl=cos(x) -- returns the cosine of x radians
 
- dbl=sin(x) -- returns the sine of x
+ dbl=sin(x) -- returns the sine of x radians
 
- dbl=tan(x) -- returns the tangent of x
+ dbl=tan(x) -- returns the tangent of x radians
 
  dbl=sqrt(x) -- returns square root of x
 
@@ -162,6 +162,8 @@ Run contents of file then exit.
  srand(seedval) -- seed random number generator
 
 .SH LIST COMMANDS:
+ 
+ lst=list() -- create an empty list
 
  val=at(list n) -- return nth item in a list
 
@@ -182,8 +184,11 @@ Run contents of file then exit.
  help(cmdname [cmdname ...]) -- help for commands
 
  [str]=print(fmtstr val :string|:str :err) -- print value with format string
+ [str]=print(val :string|:str :err) -- print value
 
  symid(symbol [symbol...]) -- return integer id(s) associated with symbol(s)
+
+ symval(symbol [symbol...]) -- return symbols as is without lookup
 
  symbol(symid [symid...]) -- return symbol(s) associated with integer id(s)
 

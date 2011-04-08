@@ -51,6 +51,10 @@
  */
 
 extern "C" {
+#if Debian_Potato
+    extern int sprintf __P ((char *__restrict __s,
+                             __const char *__restrict __format, ...));
+#endif
     extern uid_t getuid();
     extern void qsort(
 	void*, size_t, size_t, int (*) (const void*, const void*)

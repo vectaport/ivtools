@@ -59,8 +59,8 @@ ivtools-0.8/config/alpha3.0-gcc.mk
 ivtools-0.8/config/alpha3.2-gcc.mk
 ivtools-0.8/config/alpha4-gcc.mk
 ivtools-0.8/config/arch.def
-ivtools-0.8/config/config.mk
 ivtools-0.8/config/config.defs.in
+ivtools-0.8/config/config.mk
 ivtools-0.8/config/config.null.mk
 ivtools-0.8/config/default-gcc.mk
 ivtools-0.8/config/freebsd2.1-gcc.mk
@@ -125,6 +125,10 @@ ivtools-0.8/src/ComGlyph/Imakefile
 ivtools-0.8/src/ComGlyph/Makefile
 ivtools-0.8/src/ComGlyph/attrdialog.c
 ivtools-0.8/src/ComGlyph/attrdialog.h
+ivtools-0.8/src/ComGlyph/comtextedit.c
+ivtools-0.8/src/ComGlyph/comtextedit.h
+ivtools-0.8/src/ComGlyph/comtextview.c
+ivtools-0.8/src/ComGlyph/comtextview.h
 ivtools-0.8/src/ComGlyph/terpdialog.c
 ivtools-0.8/src/ComGlyph/terpdialog.h
 ivtools-0.8/src/ComTerp/Imakefile
@@ -150,6 +154,8 @@ ivtools-0.8/src/ComTerp/condfunc.c
 ivtools-0.8/src/ComTerp/condfunc.h
 ivtools-0.8/src/ComTerp/ctrlfunc.c
 ivtools-0.8/src/ComTerp/ctrlfunc.h
+ivtools-0.8/src/ComTerp/dotfunc.c
+ivtools-0.8/src/ComTerp/dotfunc.h
 ivtools-0.8/src/ComTerp/helpfunc.c
 ivtools-0.8/src/ComTerp/helpfunc.h
 ivtools-0.8/src/ComTerp/iofunc.c
@@ -413,6 +419,8 @@ ivtools-0.8/src/IVGlyph/namestate.c
 ivtools-0.8/src/IVGlyph/namestate.h
 ivtools-0.8/src/IVGlyph/observables.c
 ivtools-0.8/src/IVGlyph/observables.h
+ivtools-0.8/src/IVGlyph/odialogs.c
+ivtools-0.8/src/IVGlyph/odialogs.h
 ivtools-0.8/src/IVGlyph/ofilechooser.c
 ivtools-0.8/src/IVGlyph/ofilechooser.h
 ivtools-0.8/src/IVGlyph/printchooser.c

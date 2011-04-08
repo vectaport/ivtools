@@ -1,5 +1,5 @@
 XCOMM
-XCOMM IVGlyph - InterViews-3.1-derived glyphs
+XCOMM IVGlyph - InterViews-3.1-derived glyphs, observables, and dialog boxes
 XCOMM
 
 PACKAGE = IVGlyph
@@ -28,6 +28,7 @@ Obj(gdialogs)
 Obj(importchooser)
 Obj(namestate)
 Obj(observables)
+Obj(odialogs)
 Obj(ofilechooser)
 Obj(printchooser)
 Obj(saveaschooser)

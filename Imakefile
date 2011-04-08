@@ -1,16 +1,21 @@
 XCOMM
-XCOMM "make CPU" prints the name you should assign to CPU.
-XCOMM "make World" builds everything.
+XCOMM "make CPU" prints the CPU name used for machine-specific subdirectories.
+XCOMM "make" builds everything.
 XCOMM "make install" installs everything.
 XCOMM
 
 PACKAGE = top_ivtools
 
-WORLDOPTS = -k
+WORLDOPTS = 
 SUBDIRS = src config
 
 MakeCPU()
 MakeWorld($(WORLDOPTS))
-MakeInSubdirs($(SUBDIRS))
+MakeWorld2($(WORLDOPTS))
+MakeInSubdirsTop($(SUBDIRS))
+
+clean::
+	@$(RM_CMD) make.makefile make.makefiles make.depend make.make
+
 
 

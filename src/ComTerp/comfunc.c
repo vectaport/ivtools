@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,6 +31,8 @@
 #define TITLE "ComFunc"
 
 /*****************************************************************************/
+
+int ComFunc::_symid = -1;
 
 ComFunc::ComFunc(ComTerp* comterp) {
     _comterp = comterp;

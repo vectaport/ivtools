@@ -13,6 +13,8 @@ Attribute/commodule.h
 Attribute/lexscan.h
 Attribute/paramlist.h
 ComGlyph/attrdialog.h
+ComGlyph/comtextedit.h
+ComGlyph/comtextview.h
 ComGlyph/terpdialog.h
 ComTerp/_comterp.h
 ComTerp/_comutil.h
@@ -26,6 +28,7 @@ ComTerp/comterpserv.h
 ComTerp/comvalue.h
 ComTerp/condfunc.h
 ComTerp/ctrlfunc.h
+ComTerp/dotfunc.h
 ComTerp/helpfunc.h
 ComTerp/iofunc.h
 ComTerp/lexscan.h
@@ -100,6 +103,7 @@ IVGlyph/gdialogs.h
 IVGlyph/importchooser.h
 IVGlyph/namestate.h
 IVGlyph/observables.h
+IVGlyph/odialogs.h
 IVGlyph/ofilechooser.h
 IVGlyph/printchooser.h
 IVGlyph/saveaschooser.h

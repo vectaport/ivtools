@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -26,9 +27,24 @@
 #include <ComTerp/comterp.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
 #include <iostream.h>
 
 #define TITLE "ListFunc"
+
+/*****************************************************************************/
+
+ListFunc::ListFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ListFunc::execute() {
+  reset_stack();
+
+  AttributeValueList* avl = new AttributeValueList();
+  Resource::ref(avl);
+  ComValue retval(avl);
+  push_stack(retval);
+}
 
 /*****************************************************************************/
 
@@ -48,6 +64,20 @@ void ListAtFunc::execute() {
       for (avl->First(it); !avl->Done(it); avl->Next(it)) {
 	if (count==nv.int_val()) {
 	  push_stack(*avl->GetAttrVal(it));
+	  return;
+	}
+	count++;
+      }
+    }
+  } else if (listv.is_object(AttributeList::class_symid())) {
+    AttributeList* al = (AttributeList*)listv.obj_val();
+    if (al && nv.int_val()<al->Number()) {
+      int count = 0;
+      Iterator it;
+      for (al->First(it); !al->Done(it); al->Next(it)) {
+	if (count==nv.int_val()) {
+	  ComValue retval(Attribute::class_symid(), (void*) al->GetAttr(it));
+	  push_stack(retval);
 	  return;
 	}
 	count++;
@@ -73,7 +103,15 @@ void ListSizeFunc::execute() {
       push_stack(retval);
       return;			  
     }
+  } else if (listv.is_object(AttributeList::class_symid())) {
+    AttributeList* al = (AttributeList*)listv.obj_val();
+    if (al) {
+      ComValue retval(al->Number());
+      push_stack(retval);
+      return;			  
+    }
   }
   push_stack(ComValue::nullval());
 }
+
 

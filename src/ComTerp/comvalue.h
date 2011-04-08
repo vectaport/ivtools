@@ -32,6 +32,7 @@
 #include <ComTerp/_comterp.h>
 #include <Attribute/attrvalue.h>
 
+class ComFunc;
 class ComTerp;
 
 //: AttributeValue with extensions for use with ComTerp.
@@ -53,34 +54,36 @@ public:
     ComValue();
     // construct of UnknownType.
 
-    ComValue(char);
+    ComValue(char val);
     // CharType constructor.
-    ComValue(unsigned char);
+    ComValue(unsigned char val);
     // UCharType constructor.
-    ComValue(short);
+    ComValue(short val);
     // ShortType constructor.
-    ComValue(unsigned short);
+    ComValue(unsigned short val);
     // UShortType constructor.
-    ComValue(int, ValueType=IntType);
+    ComValue(int val, ValueType type=ComValue::IntType);
     // IntType constructor or any other int-like value.
-    ComValue(unsigned int, ValueType=IntType);
+    ComValue(unsigned int val, ValueType type=ComValue::IntType);
     // UIntType constructor or any other unsigned-int-like value including SymbolType.
-    ComValue(unsigned int, unsigned int, ValueType=KeywordType);
+    ComValue(unsigned int val, unsigned int, ValueType type=ComValue::KeywordType);
     // KeywordType constructor (or can be used for ObjectType).
-    ComValue(long);
+    ComValue(long val);
     // LongType constructor.
-    ComValue(unsigned long);
+    ComValue(unsigned long val);
     // ULongType constructor.
-    ComValue(float);
+    ComValue(float val);
     // FloatType constructor.
-    ComValue(double);
+    ComValue(double val);
     // DoubleType constructor.
-    ComValue(int class_symid, void*);
+    ComValue(int class_symid, void* ptr);
     // ObjectType constructor.
-    ComValue(AttributeValueList*);
+    ComValue(AttributeValueList* listptr);
     // ArrayType constructor.
-    ComValue(const char*);
+    ComValue(const char* val);
     // StringType constructor.
+    ComValue(ComFunc* func);
+    // CommandType constructor.
 
     void init();
     // initialize member variables.
@@ -88,8 +91,6 @@ public:
 
     ComValue& operator= (const ComValue&);
     // assignment operator.
-    void assignval (const ComValue&);
-    // assign only the AttributeValue portion of a ComValue.
 
     int narg() const;
     // number of arguments associated with this command or keyword.
@@ -112,9 +113,8 @@ public:
     // return true if UnknownType.
     boolean null() { return unknown(); }
     // return true if UnknownType.
-
-    void* geta(int id); 
-    // get the class symbol id associated with an ObjectType.
+    boolean is_comfunc(int func_classid);
+    // returns true if CommandType with ComFunc
 
     friend ostream& operator << (ostream& s, const ComValue&);
     // print contents to ostream, brief or not depending on

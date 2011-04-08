@@ -44,6 +44,18 @@ public:
       return "%s(symbol [symbol...]) -- return id(s) associated with symbol(s)"; }
 };
 
+//: symbol value command for ComTerp.
+// symval(symbol [symbol...]) -- preserve symbol(s) and return without lookup
+class SymValFunc : public ComFunc {
+public:
+    SymValFunc(ComTerp*);
+    virtual void execute();
+
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return "%s(symbol [symbol...]) -- preserve symbol(s) and return without lookup"; }
+};
+
 //: symbol command for ComTerp.
 // symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 class SymbolFunc : public ComFunc {

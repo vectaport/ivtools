@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -31,6 +32,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/condfunc.h>
 #include <ComTerp/ctrlfunc.h>
+#include <ComTerp/dotfunc.h>
 #include <ComTerp/helpfunc.h>
 #include <ComTerp/iofunc.h>
 #include <ComTerp/listfunc.h>
@@ -43,6 +45,7 @@
 #include <ComTerp/symbolfunc.h>
 #include <ComTerp/xformfunc.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
 
 #include <ctype.h>
 #include <iostream.h>
@@ -111,6 +114,8 @@ void ComTerp::init() {
     _just_reset = false;
     _defaults_added = false;
     _handler = nil;
+    _val_for_next_func = nil;
+    _func_for_next_expr = nil;
 }
 
 
@@ -162,35 +167,85 @@ int ComTerp::eval_expr(boolean nested) {
   return FUNCOK;
 }
 
+int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
+  int save_pfoff = _pfoff;
+  int save_pfnum = _pfnum;
+  ComValue* save_pfcomvals = _pfcomvals;
+
+  _pfoff = 0;
+  _pfnum = npfvals;
+  _pfcomvals = pfvals;
+
+  while (_pfoff < _pfnum) {
+    load_sub_expr();
+    eval_expr_internals();
+  }
+
+  _pfoff = save_pfoff;
+  _pfnum = save_pfnum;
+  _pfcomvals = save_pfcomvals;
+
+  return FUNCOK;
+}
+
 void ComTerp::eval_expr_internals(int pedepth) {
-  ComValue& sv = pop_stack(false);
+  ComValue sv = pop_stack(false);
   
   if (sv.type() == ComValue::CommandType) {
-    
-    ComFunc* func = (ComFunc*)sv.obj_val();
-    func->push_funcstate(sv.narg(), sv.nkey(), pedepth, sv.command_symid());
+
+    ComFunc* func = nil;
+    if (_func_for_next_expr) {
+      func = _func_for_next_expr;
+      _func_for_next_expr = nil;
+      push_stack(sv);
+      func->push_funcstate(1, 0, pedepth, func->funcid());
+    } else {   
+      func = (ComFunc*)sv.obj_val();
+      func->push_funcstate(sv.narg(), sv.nkey(), 
+			   pedepth, sv.command_symid());
+    }
     func->execute();
     func->pop_funcstate();
-    if (_just_reset) {
+    if (_just_reset && !_func_for_next_expr) {
       push_stack(ComValue::blankval());
       _just_reset = false;
     }
     
   } else if (sv.type() == ComValue::SymbolType) {
+
+    if (_func_for_next_expr) {
+      ComFunc* func = _func_for_next_expr;
+      _func_for_next_expr = nil;
+
+      push_stack(sv);
+      func->push_funcstate(1, 0, pedepth, func->funcid());
+      func->execute();
+      func->pop_funcstate();
+      if (_just_reset && val_for_next_func().is_null()) {
+	push_stack(ComValue::blankval());
+	_just_reset = false;
+      }
+
+    } else {
+      
+      if (_alist) {
+	int id = sv.symbol_val();
+	AttributeValue* val = _alist->find(id);  
+	if (val) {
+	  ComValue newval(*val);
+	  push_stack(newval);
+	} else
+	  push_stack(ComValue::nullval());
+      } else 
+	push_stack(lookup_symval(sv));
+    }
     
-    if (_alist) {
-      int id = sv.symbol_val();
-      AttributeValue* val = _alist->find(id);  
-      if (val) {
-	ComValue newval(*val);
-	push_stack(newval);
-      } else
-	push_stack(ComValue::nullval());
-    } else 
-      push_stack(lookup_symval(sv));
+  } else if (sv.is_object(Attribute::class_symid())) {
+    
+    push_stack(*((Attribute*)sv.obj_val())->Value());
     
   } else if (sv.type() == ComValue::BlankType) {
-
+    
     /* ignore it */
     eval_expr_internals(pedepth);
 
@@ -559,6 +614,10 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	    } else 
 	        return ComValue::nullval();
 	}
+    } else if (comval.is_object(Attribute::class_symid())) {
+
+      comval.assignval(*((Attribute*)comval.obj_val())->Value());
+
     }       
     return comval;
 }
@@ -581,6 +640,7 @@ ComValue& ComTerp::pop_symbol() {
 
 int ComTerp::add_command(const char* name, ComFunc* func, const char* alias) {
     int symid = symbol_add((char *)name);
+    func->funcid(symid);
     ComValue* comval = new ComValue();
     comval->type(ComValue::CommandType);
     comval->obj_ref() = (void*)func;
@@ -619,9 +679,11 @@ void ComTerp::quitflag(boolean flag) {
     _quitflag = flag;
 }
 
-int ComTerp::run(boolean once) {
-  int status = 0;
+int ComTerp::run(boolean one_expr) {
+  int status = 1;
   _errbuf[0] = '\0';
+  char errbuf_save[BUFSIZ];
+  errbuf_save[0] = '\0';
   
   filebuf fbuf;
   if (handler()) {
@@ -635,31 +697,40 @@ int ComTerp::run(boolean once) {
   while (!eof() && !quitflag() && !eolflag) {
     
     if (read_expr()) {
+      status = 0;
+      int top_before = _stack_top;
       eval_expr();
+      if (top_before == _stack_top)
+	status = 2;
       err_str( _errbuf, BUFSIZ, "comterp" );
       if (strlen(_errbuf)==0) {
 	if (quitflag()) {
 	  status = -1;
 	  break;
-	} else {
+	} else if (!func_for_next_expr() && val_for_next_func().is_null()) {
 	  print_stack_top(out);
 	  out << "\n"; out.flush();
 	}
       } else {
 	out << _errbuf << "\n"; out.flush();
+	strcpy(errbuf_save, _errbuf);
 	_errbuf[0] = '\0';
       }
     } else {
       err_str( _errbuf, BUFSIZ, "comterp" );
       if (strlen(_errbuf)>0) {
 	out << _errbuf << "\n"; out.flush();
+	strcpy(errbuf_save, _errbuf);
 	_errbuf[0] = '\0';
-      } else
+      } else {
 	eolflag = true;
+        if (errbuf_save[0]) strcpy(_errbuf, errbuf_save);
+      }
     }
     _stack_top = -1;
-    if (once) break;
+    if (one_expr) break;
   }
+  if (status==1 && _pfnum==0) status=2;
   return status;
 }
 
@@ -710,6 +781,10 @@ void ComTerp::add_defaults() {
     add_command("repeat", new RepeatFunc(this));
     add_command("iterate", new IterateFunc(this));
 
+    add_command("dot", new DotFunc(this));
+    add_command("dotname", new DotNameFunc(this));
+
+    add_command("list", new ListFunc(this));
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
 
@@ -744,6 +819,7 @@ void ComTerp::add_defaults() {
 
     add_command("help", new HelpFunc(this));
     add_command("symid", new SymIdFunc(this));
+    add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this), "symval");
     add_command("symvar", new SymVarFunc(this));
     add_command("postfix", new PostFixFunc(this));
@@ -981,3 +1057,34 @@ void ComTerp::push_funcstate(ComFuncState& funcstate) {
   ComFuncState* sfs = _fsstack + _fsstack_top;
   *sfs = ComFuncState(funcstate);
 }
+
+void ComTerp::func_for_next_expr(ComFunc* func) {
+  if (!_func_for_next_expr)
+    _func_for_next_expr = func;
+}
+
+ComFunc* ComTerp::func_for_next_expr() {
+  return _func_for_next_expr;
+}
+
+void ComTerp::val_for_next_func(ComValue& val) {
+  if (_val_for_next_func) {
+    delete _val_for_next_func;
+  }
+  _val_for_next_func = new ComValue(val);
+}
+
+ComValue& ComTerp::val_for_next_func() {
+  if (_val_for_next_func) {
+    return *_val_for_next_func;
+  } else
+    return ComValue::nullval();
+}
+
+void ComTerp::clr_val_for_next_func() {
+  delete _val_for_next_func;
+  _val_for_next_func = nil;
+}
+
+
+

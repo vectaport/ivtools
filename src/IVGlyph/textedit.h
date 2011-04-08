@@ -28,14 +28,19 @@
 // TextEditor*textFont         fixed
 // 
 
+#include <InterViews/monoglyph.h>
+
 typedef unsigned int EivTextUnit;
 
+class Style;
+class InputHandler;
 class TE_Adjustable;
 class TE_View;
 
 class EivTextEditor : public MonoGlyph {
 public:
    EivTextEditor(Style*, boolean active= true);
+   EivTextEditor();
    virtual ~EivTextEditor();
 
    // load/save file. Default for save is to save to current
@@ -90,6 +95,34 @@ protected:
    TE_View*   te_view_;
    Glyph* sb_;
    Style* style_;
+};
+
+#include <InterViews/adjust.h>
+#include <InterViews/observe.h>
+
+// Adjustable, used to control scrolling
+class TE_Adjustable : public Adjustable, public Observer {
+public:
+   TE_Adjustable(TE_View*);
+
+   virtual void update(Observable*);
+
+   virtual FloatCoord lower(DimensionName) const;
+   virtual FloatCoord upper(DimensionName) const;
+   virtual FloatCoord length(DimensionName) const;
+   virtual FloatCoord cur_lower(DimensionName) const;
+   virtual FloatCoord cur_upper(DimensionName) const;
+   virtual FloatCoord cur_length(DimensionName) const;
+   
+   virtual void scroll_forward(DimensionName);
+   virtual void scroll_backward(DimensionName);
+   virtual void page_forward(DimensionName);
+   virtual void page_backward(DimensionName);
+   
+   virtual void scroll_to(DimensionName, FloatCoord lower);
+   virtual void scroll_by(DimensionName, long);
+private:
+   TE_View* te_view_;
 };
 
 #endif

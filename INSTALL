@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-0.8
 
-Instructions for building ivtools-0.8 from source:
+Instructions for building ivtools-0.8.1 from source:
 
 0. Compilation Environment
 
@@ -115,10 +115,13 @@ arguments are recognized as --enable as well):
   --x-libraries=DIR       X library files are in DIR
 
   --enable-install-relative[=ARG]  install relative to source tree
-  --prefix=DIR			   to use when install-relative false
+  --enable-install-subdir[=ARG]    install in ivtools sub-directory
+  --prefix=DIR			   to use when install-relative is false
 				   (default is /usr/local)
 
-  --enable-use-rpath[=ARG]        use -rpath when linking
+  --enable-use-rpath[=ARG]        use -rpath when linking, to
+				  embed shared-library pathnames
+				  in executable. 
 
 ARG can be 0 or 1, default is 1 when not specified.  The configure
 script is usually able to automatically determine --x-includes and
@@ -147,9 +150,6 @@ necessary.
 
 Also you may want to review the rest of the entries in the
 site.def.<CPU> file to see if they are good defaults for your system.
-Some of these, like UseRpath and InstallRelative, are overridden in
-the config/config-<os>-gcc.defs file, so their value in
-config/site.def.<CPU> has no affect.
 
 ** See http://www.vectaport.com/ivtools/faq.html for more info.
 

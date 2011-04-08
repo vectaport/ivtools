@@ -79,7 +79,7 @@ struct _opr_tbl_default_entry {
   BOOLEAN rtol;
   unsigned optype;
 } DefaultOperatorTable[] = {
-  {".",          "dot",                130,        TRUE,       OPTYPE_BINARY },
+  {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
   {"^",          "power",              120,        TRUE,       OPTYPE_BINARY },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"++",         "incr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },

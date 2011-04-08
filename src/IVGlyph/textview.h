@@ -131,10 +131,11 @@ public:
 
     const char* text();
     void text(const char*, boolean update =true);
-private:
+
+protected:
    void scroll_to_line(int line);
    void make_visible(const boolean scroll_page = true);
-   event_to_index(const Event&);
+   int event_to_index(const Event&);
 
    // popup menu stuff
    Menu* menu_;

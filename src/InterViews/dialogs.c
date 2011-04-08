@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1991 Stanford University
  * Copyright (c) 1991 Silicon Graphics, Inc.
  *
@@ -154,7 +155,7 @@ boolean DialogHandler::event(Event&) {
 
 /* class Dialog */
 
-Dialog::Dialog(Glyph* g, Style* s) : InputHandler(g, s) { }
+Dialog::Dialog(Glyph* g, Style* s) : InputHandler(g, s) { t_ = nil;}
 Dialog::~Dialog() { }
 
 boolean Dialog::post_for_aligned(Window* w, float x_align, float y_align) {
@@ -186,6 +187,42 @@ boolean Dialog::post_at_aligned(
     t->display()->sync();
     delete t;
     return b;
+}
+
+void Dialog::map_for_aligned(Window* w, float x_align, float y_align) {
+    if (t_) return;
+    t_ = new TransientWindow(this);
+    t_->style(new Style(style()));
+    t_->transient_for(w);
+    t_->wm_delete(new DialogHandler(this));
+    t_->place(w->left() + 0.5 * w->width(), w->bottom() + 0.5 * w->height());
+    t_->align(x_align, y_align);
+    t_->map();
+}
+
+void Dialog::map_at_aligned(
+    Coord x, Coord y, float x_align, float y_align
+) {
+    if (t_) return;
+    t_ = new TransientWindow(this);
+    t_->style(new Style(style()));
+    t_->wm_delete(new DialogHandler(this));
+    t_->place(x, y);
+    t_->align(x_align, y_align);
+    t_->map();
+}
+
+void Dialog::unmap() {
+  if (t_) {
+    t_->unmap();
+    t_->display()->sync();
+    delete t_;
+    t_ = nil;
+  }
+}
+
+boolean Dialog::mapped() {
+  return t_ != nil;
 }
 
 boolean Dialog::run() {

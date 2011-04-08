@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1993-1995 Vectaport Inc.
  * Copyright (c) 1989 Triple Vision, Inc.
  *
@@ -149,6 +150,8 @@ unsigned double_state = FLOAT_INTEGER;
 BOOLEAN long_num = FALSE;       /* Indicates long integer to be used */
 unsigned token_state = TOK_WHITESPACE;
 				/* Internal token state variable */
+static unsigned token_state_save = TOK_WHITESPACE;
+				/* variable to save token state between calls */
 unsigned begcmt_len =           /* Number of characters in comment beginning */
    (begcmt != NULL ? strlen(begcmt) : 0 );
 unsigned endcmt_len =           /* Number of characters in comment ending */
@@ -172,6 +175,8 @@ int index;
    *toktype = TOK_NONE;
    *toklen = 0;
    *tokstart = 0;
+   token_state = token_state_save;
+   token_state_save = TOK_WHITESPACE;
 
 /* Initialize if linenumber is 0 */
    if( *linenum == 0 ) {
@@ -291,6 +296,12 @@ int index;
       /* Reset pointer to front of buffer */
 	 *bufptr = 0;
          CURR_CHAR = buffer[0];
+	 if (CURR_CHAR == '\0') {
+	   if (token_state == TOK_COMMENT)
+	     token_state_save = token_state;
+	    *linenum--;
+	    return  FUNCOK;
+	 }
 
       /* Echo source line if so desired */
 #if 0

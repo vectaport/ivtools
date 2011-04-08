@@ -36,6 +36,8 @@ StrmFunc::StrmFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 /*****************************************************************************/
 
+int StreamFunc::_symid;
+
 StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
