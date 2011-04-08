@@ -571,7 +571,7 @@ void PostScriptView::ShowProc (ostream& out) {
     out << "gsave\n";
     out << "fgred fggreen fgblue setrgbcolor\n";
     out << "/fontDict printFont printSize scalefont dup setfont def\n";
-    out << "/descender fontDict begin 0 [FontBBox] 1 get FontMatrix end\n";
+    out << "/descender fontDict begin 0 /FontBBox load 1 get FontMatrix end\n";
     out << "transform exch pop def\n";
     out << "/vertoffset 1 printSize sub descender sub def {\n";
     out << "0 vertoffset moveto show\n";

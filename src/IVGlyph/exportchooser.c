@@ -93,6 +93,12 @@ boolean ExportChooser::postscript_format() {
 	: false;
 }
 
+boolean ExportChooser::svg_format() { 
+    return ((ExportChooserImpl*)impl_)->_obse 
+	? strncmp(((ExportChooserImpl*)impl_)->_obse->labelvalue().string(), "SVG", 3) == 0 
+	: false;
+}
+
 boolean ExportChooser::execute_flag() { 
     return ((ExportChooserImpl*)impl_)->_execute_flag;
 }

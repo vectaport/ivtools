@@ -344,18 +344,30 @@ boolean ArrowLineScript::Definition (ostream& out) {
     head = comp->GetArrowLine()->Head();
     tail = comp->GetArrowLine()->Tail();
 
-    out << "arrowline(";
-    out << x0 << "," << y0 << "," << x1 << "," << y1;
-    if (arrow_scale != 1 )
+    if (!svg_format()) {
+
+      out << "arrowline(";
+      out << x0 << "," << y0 << "," << x1 << "," << y1;
+      if (arrow_scale != 1 )
 	out << " :arrowscale " << arrow_scale;
-    if (head) 
+      if (head) 
 	out << " :head";
-    if (tail)
+      if (tail)
 	out << " :tail";
-    MinGS(out);
-    Annotation(out);
-    Attributes(out);
-    out << ")";
+      MinGS(out);
+      Annotation(out);
+      Attributes(out);
+      out << ")";
+      
+    } else {
+      
+      out << "<line x1=\"" << x0 << "\" y1=\"" << y0 << "\" x2=\"" << x1 << "\" y2=\"" << y1 << "\" ";
+      MinGS(out);
+      Annotation(out);
+      Attributes(out);
+      out << " />\n";
+    }
+    
 
     return out.good();
 }
@@ -621,16 +633,7 @@ boolean ArrowMultiLinePS::IsA (ClassId id) {
 
 boolean ArrowMultiLinePS::Definition (ostream& out) {
 
-    Command* cmd = GetCommand();
-    boolean idraw_format = OverlayPS::idraw_format;
-    if (cmd) {
-      if (cmd->IsA(OVPRINT_CMD)) 
-	idraw_format = ((OvPrintCmd*)cmd)->idraw_format();
-      else if (cmd->IsA(OV_EXPORT_CMD))
-	idraw_format = true;
-    }
-      
-    if (idraw_format) {
+    if (idraw_format()) {
 	ArrowMultiLineOvComp* comp = (ArrowMultiLineOvComp*) GetSubject();
 	ArrowMultiLine* aml = comp->GetArrowMultiLine();
 	

@@ -1094,10 +1094,6 @@ ivtools-1.0/src/glyphs/scrollfield/main.c
 ivtools-1.0/src/glyphs/strchooser/Imakefile
 ivtools-1.0/src/glyphs/strchooser/Makefile
 ivtools-1.0/src/glyphs/strchooser/main.c
-ivtools-1.0/src/glyphs/text-editor/Imakefile
-ivtools-1.0/src/glyphs/text-editor/Makefile
-ivtools-1.0/src/glyphs/text-editor/README
-ivtools-1.0/src/glyphs/text-editor/main.c
 ivtools-1.0/src/glyphs/timestamp/Imakefile
 ivtools-1.0/src/glyphs/timestamp/Makefile
 ivtools-1.0/src/glyphs/timestamp/main.c
@@ -1560,6 +1556,10 @@ ivtools-1.0/src/iueserv_/Imakefile
 ivtools-1.0/src/iueserv_/Makefile
 ivtools-1.0/src/iueserv_/README
 ivtools-1.0/src/iueserv_/main.c
+ivtools-1.0/src/ivtext/Imakefile
+ivtools-1.0/src/ivtext/Makefile
+ivtools-1.0/src/ivtext/README
+ivtools-1.0/src/ivtext/main.c
 ivtools-1.0/src/ivxt/Imakefile
 ivtools-1.0/src/ivxt/Xd.h
 ivtools-1.0/src/ivxt/Xud.h

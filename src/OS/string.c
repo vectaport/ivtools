@@ -33,7 +33,7 @@
  */
 
 extern "C" {
-#ifdef __APPLE__
+#if defined(__APPLE__)&&__GNUC__<3
 #ifndef tolower
     extern wchar_t tolower(wchar_t);
 #endif

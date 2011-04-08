@@ -364,13 +364,7 @@ boolean RasterPS::Definition (ostream& out) {
     Coord w = raster->Width();
     Coord h = raster->Height();
 
-    boolean idraw_format = OverlayPS::idraw_format;
-    if (GetCommand() && GetCommand()->IsA(OV_EXPORT_CMD))
-      idraw_format = ((OvExportCmd*)GetCommand())->idraw_format();
-    else if (GetCommand() && GetCommand()->IsA(OVPRINT_CMD)) 
-      idraw_format = ((OvPrintCmd*)GetCommand())->idraw_format();
-    
-    if (idraw_format) {
+    if (idraw_format()) {
       
 	out << "Begin " << MARK << " " << "Rast\n";
 	Transformation(out);

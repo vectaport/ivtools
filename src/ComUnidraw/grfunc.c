@@ -62,6 +62,11 @@
 #include <Unidraw/Graphic/ellipses.h>
 
 #include <InterViews/transformer.h>
+#include <IV-2_6/InterViews/world.h>
+#include <IV-X11/Xlib.h>
+#include <IV-X11/xdisplay.h>
+#include <IV-X11/xfont.h>
+#include <X11/Xatom.h>
 
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
@@ -672,6 +677,141 @@ void FontFunc::execute() {
     execute_log(cmd);
 }
 
+/*****************************************************************************/
+FontByNameFunc::FontByNameFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+static char  *psfonttoxfont(char* f)
+{
+  /* convert a PS name to a X... */
+  char type[10];
+  int size=0;
+  static char copy[256];
+  static char name[256];
+  static char *wght[] = { "bold","demi","light","demibold","book",0 };
+  char *s;
+  
+  if (*f=='-')
+    return f;
+  
+  strcpy(copy,f);
+  s = copy;
+  while (*s) {
+    *s = tolower(*s);
+    s++;
+  }
+  f = copy+strlen(copy);
+  
+  s = strchr(copy,'-');
+  if (!s) {
+    strcpy(type,"medium-r");
+  } else {
+    *s=0;
+    s++;
+    for (size=0;wght[size];size++)
+      if (!strncmp(s,wght[size],strlen(wght[size]))) {
+	strcpy(type,wght[size]);
+	strcat(type,"-");
+	s+=strlen(wght[size]);
+	break;
+      }
+    if (!wght[size])
+      strcpy(type,"medium-");
+    switch (*s) {
+    case 'i':
+      strcat(type,"i");
+      break;
+    case 'o':
+      strcat(type,"o");
+      break;
+    default:
+      strcat(type,"r");
+      break;
+    }
+  }
+  
+  size = 11;
+  while (f[-1]>='0' && f[-1]<='9')
+    f--;
+  
+  if (*f)
+    size = atoi(f);
+  f[0] = 0;
+  if (f[-1]=='-')
+    f[-1] = 0;
+  sprintf(name,"-*-%s-%s-normal-*-%d-*",
+	  copy, type, size );
+  return name;
+}
+ /*****************************************************************************/
+void FontByNameFunc::execute() {
+  ComValue& fontarg = stack_arg(0);
+  const char*  fontval = fontarg.string_ptr();
+  reset_stack();
+  
+  char* fontvaldup=strdup(fontval);
+  Catalog* catalog = unidraw->GetCatalog();
+  XDisplay* dpy =World::current()->display()->rep()->display_;
+  XFontStruct* xfs = XLoadQueryFont(dpy, fontvaldup);
+  PSFont* font = nil;
+  
+  if (!xfs){
+    char* xfontval=psfonttoxfont(fontvaldup);
+    fontvaldup = strdup(xfontval);
+    xfs = XLoadQueryFont(dpy,xfontval);
+    if (!xfs){
+      fprintf(stderr, "Can not load font:  %s, \n", fontval);
+      fprintf(stderr, "Keeping the current font.\n");
+    }
+  }
+  if (xfs){
+    unsigned long value;
+    char fontname[CHARBUFSIZE];
+    char fontsizeptr[CHARBUFSIZE];
+    char fontfullname[CHARBUFSIZE];
+    
+    XGetFontProperty(xfs, XA_FULL_NAME, &value);
+    strcpy(fontfullname, XGetAtomName(dpy, (Atom)value));
+    
+    XGetFontProperty(xfs, XA_FONT_NAME, &value);
+    strcpy(fontname, XGetAtomName(dpy, (Atom)value));
+    
+    XGetFontProperty(xfs,XA_POINT_SIZE, &value);
+    sprintf(fontsizeptr,"%d",(unsigned int)(value/10));
+    
+    font = catalog->FindFont(fontvaldup,fontname,fontsizeptr);
+    delete fontvaldup;
+  }
+  FontCmd* cmd = nil;
+  
+  if (font) {
+    cmd = new FontCmd(_ed, font);
+  }
+  
+  execute_log(cmd);
+}
+/*****************************************************************************/
+ColorRgbFunc::ColorRgbFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+ }
+
+void ColorRgbFunc::execute() {
+  ComValue& fgarg = stack_arg(0);
+  ComValue& bgarg = stack_arg(1);
+  const char* fgname = fgarg.string_ptr();
+  const char* bgname = bgarg.string_ptr();
+  reset_stack();
+  PSColor* fgcolor=nil;
+  PSColor* bgcolor=nil;
+  Catalog* catalog = unidraw->GetCatalog();
+  fgcolor = catalog->FindColor(fgname);
+  //This comparison is made because the user can set only the foreground color by calling
+  //colorsrgb with one argument.
+  if (strcmp(bgname,"sym")!=0){
+    bgcolor = catalog->FindColor(bgname);
+  }
+  ColorCmd* cmd = new ColorCmd(_ed, fgcolor, bgcolor);
+  execute_log(cmd);
+}
 /*****************************************************************************/
 
 BrushFunc::BrushFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {

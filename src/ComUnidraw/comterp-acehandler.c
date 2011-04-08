@@ -23,8 +23,9 @@
 
 #ifdef HAVE_ACE
 
-#include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/comterp-acehandler.h>
+
+#include <ComUnidraw/comeditor.h>
 #include <ComTerp/comterpserv.h>
 
 #include <Unidraw/iterator.h>

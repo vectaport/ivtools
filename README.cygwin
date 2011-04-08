@@ -2,7 +2,7 @@ Steps to building ivtools on Windows NT using Cygwin and X11R6.4:
 
 1. Download and install Cygwin from:
 
-http://sources.rehdat.com/cygwin/ or http://sourceware.cygnus.com/cygwin/
+http://sourceware.cygnus.com/cygwin/
 
 Use "less" for more.  Use "type" for "which". Make a \bin (/bin) if
 necessary, and place a copy of sh.exe from the Cygwin distribrution
@@ -11,7 +11,7 @@ cygnus.bat provided with Cygwin.
 
 There is a very useful FAQ for Cygwin you may want to look at as well:
 
-http://sources.redhat.com/cygwin/faq/ or http://sourceware.cygnus.com/cygwin/faq/
+http://sourceware.cygnus.com/cygwin/faq/
 
 2. Download and install Xlib binaries for X11R6.4 from:
 
@@ -24,10 +24,9 @@ PATH environment variable.
 3. (optional) Download and install an emacs binary (for Windows NT)
 from www.fsf.org.
 
-4. Download ivtools-1.0.2.tgz or later:
+4. Download ivtools-1.0.tgz or later:
 
-http://www.ivtools.org/pub/src/ivtools-1.0.2.tgz
-
+http://www.ivtools.org/pub/src/ivtools-1.0.tgz
 
 In a cygwin/bash window:
 
@@ -59,5 +58,5 @@ setup.
 
 6. acquire an X server for Windows NT, and try things out.
 
-Instructions verified to work with Windows 2000, January 2002, using
-ivtools-1.0.2.tgz
+September 1999, Vectaport Inc. (instructions not actually verified for
+1.0, let me know if they work)

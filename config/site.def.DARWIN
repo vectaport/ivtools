@@ -2,16 +2,24 @@
 #define ProjectDir /proj
 
 /* gcc command line with -V for version and -O for optimize */
-#define CCDriver g++
+#define CCDriver gcc
 
 #undef HasDynamicSharedLibraries
 #define HasDynamicSharedLibraries YES
 
+/* -fPIC is the default on Darwin */
 #undef SharedCCFlags
-#define SharedCCFlags -fPIC
+#define SharedCCFlags
 
 #undef SharedCCLdFlags
-#define SharedCCLdFlags
+#define SharedCCLdFlags -Wl,-bind_at_load
+
+#undef CppCmd
+#define CppCmd c++ -E
+
+/* -gdwarf-2 crashes GCC 3.1 on Darwin */
+#undef DefaultDebugCCFlags
+#define DefaultDebugCCFlags -g
 
 #undef TroffCmd
 #define TroffCmd groff
@@ -25,17 +33,28 @@
 
 /* override -ansi -pedantic from xfree86.cf */
 #undef DefaultCCOptions
-#define DefaultCCOptions /**/
+#define DefaultCCOptions -fno-common
 
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
+#if 0
 #define ToolIncludeDir /usr/local/include
+#else
+#define ToolIncludeDir
+#endif
 
 /* link libraries for the above */
 #undef ExtraCCLdLibs
 #define ExtraCCLdLibs -lstdc++ -lm
 
+#undef ExtraCCLdFlags
+#define ExtraCCLdFlags -Wl,-bind_at_load
+
 /* command to create shared libraries */
+#if 0
 #define SharedLibraryCmd(ldobjs,extra_flags) $(LD) -r extra_flags -o $@~ ldobjs
+#else
+#define SharedLibraryCmd(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name @PREFIX@/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
+#endif
 
 #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
 AOUT = Concat(lib,libname.rev.dylib)					@@\
@@ -46,7 +65,7 @@ AllTarget(Concat(lib,libname.rev.dylib))					@@\
 Concat(lib,libname.rev.dylib): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
-	SharedLibraryCmd(ldobjs,)					@@\
+	SharedLibraryCmd(ldobjs,depobjs,rev,libname)			@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 	$(LN) -f $@ Concat(lib,libname.dylib)				@@\

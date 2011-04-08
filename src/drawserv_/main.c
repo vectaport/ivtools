@@ -26,6 +26,12 @@
  * drawserv main program.
  */
 
+#ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
 #include <DrawServ/drawcatalog.h>
 #include <DrawServ/drawcreator.h>
 #include <DrawServ/drawcomps.h>
@@ -43,12 +49,6 @@
 #include <Unidraw/iterator.h>
 
 #include <InterViews/world.h>
-
-#ifdef HAVE_ACE
-#include <ComUnidraw/comterp-acehandler.h>
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <stream.h>
 #include <string.h>

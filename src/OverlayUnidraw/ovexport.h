@@ -57,6 +57,8 @@ public:
     // return string that indicates format: "drawtool" or "idraw".
     virtual boolean idraw_format();
     // true when format is "idraw".
+    virtual boolean svg_format();
+    // true when format is "svg".
 
 protected:
     ExportChooser* chooser_;

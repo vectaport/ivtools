@@ -46,6 +46,7 @@ SUBDIRS = \
 	\
 	Time \
 	IVGlyph \
+	ivtext \
 	glyphs \
 	\
 	AttrGlyph \

@@ -26,6 +26,12 @@
  * Frame editor main program.
  */
 
+#ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
 #include <FrameUnidraw/framecatalog.h>
 #include <FrameUnidraw/framecreator.h>
 #include <FrameUnidraw/frameeditor.h>
@@ -33,12 +39,6 @@
 #include <OverlayUnidraw/ovunidraw.h>
 
 #include <InterViews/world.h>
-
-#ifdef HAVE_ACE
-#include <ComUnidraw/comterp-acehandler.h>
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <stdio.h>
 #include <stream.h>

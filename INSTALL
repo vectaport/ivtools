@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.0
 
-Instructions for building ivtools-1.0.6 from source, the short version:
+Instructions for building ivtools-1.0.7 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.0.6 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.0.6 from source, the long version:
+Instructions for building ivtools-1.0.7 from source, the long version:
 
 0. Compilation Environment
 
@@ -19,22 +19,22 @@ Things you will need (or might want) before building ivtools:
 0.a. a Unix machine (for Windows see README.cygwin).  We know it has
 been built on Linux, NetBSD, FreeBSD, Solaris, Irix, Dec Alpha, HPUX,
 and SunOS.  It also builds on Mac OS X (Darwin) which is a
-BSD-derivative OS.
+BSD-derivative OS.  This version (1.0.7) may be Jaguar ready, give it
+a try.
 
 0.b GNU make.  Test to make sure this is the version you are using
 with "make -v"
 
 0.c. The gcc compiler.  Recently we've been building and testing with
-gcc-2.95.*, gcc-3.0.*, and gcc-3.1.  egsc-1.0.3 would probably still
-work, as would gcc-2.8.1 and gcc-2.7.2.  You will also need an
-equivalent copy of libstdc++.  libstdc++ comes bundled with gcc-3.0
-and greater.  Before that the libstdc++ version numbers stay roughly
-in synch with the gcc version numbers.  If you have gcc-2.8.1 you'd
-want libstdc++-2.8.1, etc..
+gcc-2.95.*, gcc-2.96, gcc-3.0.*, gcc-3.1, and gcc-3.2.  egcs-1.0.3
+would probably still work, as would gcc-2.8.1 and gcc-2.7.2.  You will
+also need an equivalent copy of libstdc++.  libstdc++ comes bundled
+with gcc-3.0 and greater.  Before that the libstdc++ version numbers
+stay roughly in synch with the gcc version numbers.  If you have
+gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
 
-** NOTE ** Do not use gcc-2.96.  See
-http://www.ivtools.org/ivtools/faq.html#gcc-2.96-problem for more
-details.
+** NOTE ** Now you can use gcc-2.96.  Ignore
+http://www.ivtools.org/ivtools/faq.html#gcc-2.96-problem
 
 Be aware that sometimes the include files for libstdc++ are in
 /usr/local/include/g++-2, a place that cannot be auto-determined by

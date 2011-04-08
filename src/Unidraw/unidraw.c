@@ -211,10 +211,10 @@ void Unidraw::Init (Catalog* c, World* w) {
 Unidraw::~Unidraw () {
     CloseAll();
     ClearHistory();
-    delete _histories;
     delete _editors;
     delete _deadEditors;
     delete _catalog;
+    delete _histories;
     delete _world;
 }
 

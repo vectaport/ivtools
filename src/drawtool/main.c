@@ -29,6 +29,11 @@
  */
 
 
+#ifdef HAVE_ACE
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovcreator.h>
 #include <OverlayUnidraw/oved.h>
@@ -38,11 +43,6 @@
 
 #include <InterViews/world.h>
 #include <InterViews/event.h>
-
-#ifdef HAVE_ACE
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <stream.h>
 #include <string.h>

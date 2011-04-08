@@ -2,7 +2,7 @@ XCOMM
 XCOMM comterp - simple command interpreter
 XCOMM
 
-PACKAGE = comterp
+PACKAGE = comterp_
 
 #ifdef InObjectCodeDir
 

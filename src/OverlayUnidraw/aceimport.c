@@ -23,8 +23,9 @@
 
 #ifdef HAVE_ACE
 
-#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/aceimport.h>
+
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <IVGlyph/importchooser.h>

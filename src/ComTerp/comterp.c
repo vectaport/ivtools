@@ -23,6 +23,8 @@
  * 
  */
 
+#include <ComTerp/comhandler.h>
+
 #include <ComTerp/_comterp.h>
 #include <ComTerp/_comutil.h>
 #include <ComTerp/assignfunc.h>
@@ -30,7 +32,6 @@
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/bquotefunc.h>
 #include <ComTerp/comfunc.h>
-#include <ComTerp/comhandler.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>

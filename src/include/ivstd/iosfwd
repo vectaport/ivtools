@@ -1,6 +1,6 @@
 #ifndef _iv_iosfwd_
 #define _iv_iosfwd_
-#if __GNUG__>=3
+#if __GNUC__>=3
 #include_next <iosfwd>
 using std::ios_base;
 using std::filebuf;
@@ -12,34 +12,10 @@ char buffer[BUFSIZ]; \
 snprintf(buffer, BUFSIZ, format, value); \
 ostr << buffer; \
 }	
-#define out_form2(ostr,format,val1,val2) \
-{ \
-char buffer[BUFSIZ]; \
-snprintf(buffer, BUFSIZ, format, val1, val2); \
-ostr << buffer; \
-}	
-#define out_form3(ostr,format,val1,val2,val3) \
-{ \
-char buffer[BUFSIZ]; \
-snprintf(buffer, BUFSIZ, format, val1, val2, val3); \
-ostr << buffer; \
-}	
-#define out_form4(ostr,format,val1,val2,val3,val4) \
-{ \
-char buffer[BUFSIZ]; \
-snprintf(buffer, BUFSIZ, format, val1, val2, val3, val4); \
-ostr << buffer; \
-}
 #else
 class istream;
 class ostream;
 #define out_form(ostr,format,value) \
 ostr.form(format,value);
-#define out_form2(ostr,format,val1,val2) \
-ostr.form(format,val1,val2);
-#define out_form3(ostr,format,val1,val2,val3) \
-ostr.form(format,val1,val2,val3);
-#define out_form4(ostr,format,val1,val2,val3,val4) \
-ostr.form(format,val1,val2,val3,val4);
 #endif
 #endif

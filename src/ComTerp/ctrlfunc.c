@@ -21,10 +21,11 @@
  * 
  */
 
-#include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comhandler.h>
-#include <ComTerp/comvalue.h>
+
+#include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
 #include <fstream.h>
 

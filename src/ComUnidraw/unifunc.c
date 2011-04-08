@@ -22,6 +22,11 @@
  * 
  */
 
+#ifdef HAVE_ACE
+#include <ComTerp/comhandler.h>
+#include <ace/SOCK_Connector.h>
+#endif
+
 #include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/unifunc.h>
 #include <OverlayUnidraw/ovcatalog.h>
@@ -57,11 +62,6 @@
 #include <fstream.h>
 #endif
 #include <string.h>
-
-#ifdef HAVE_ACE
-#include <ComTerp/comhandler.h>
-#include <ace/SOCK_Connector.h>
-#endif
 
 #define TITLE "UnidrawFunc"
 
@@ -512,8 +512,8 @@ void ExportFunc::execute() {
 	compout(comp, out);
 	*out << ")\n";
       } else {
-	OverlayPS::idraw_format = idraw_flag.is_true();
 	OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
+	psv->idraw_format(idraw_flag.is_true());
 	comp->Attach(psv);
 	psv->Update();
 	psv->Emit(*out);

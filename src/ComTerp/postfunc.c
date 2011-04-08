@@ -22,8 +22,9 @@
  * 
  */
 
-#include <ComTerp/postfunc.h>
 #include <ComTerp/comhandler.h>
+
+#include <ComTerp/postfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 

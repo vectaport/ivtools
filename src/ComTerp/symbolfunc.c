@@ -22,8 +22,9 @@
  * 
  */
 
-#include <ComTerp/symbolfunc.h>
 #include <ComTerp/comhandler.h>
+
+#include <ComTerp/symbolfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 

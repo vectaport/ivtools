@@ -26,6 +26,12 @@
  * Graph editor main program.
  */
 
+#ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
 #include <GraphUnidraw/graphcatalog.h>
 #include <GraphUnidraw/graphcreator.h>
 #include <GraphUnidraw/grapheditor.h>
@@ -38,12 +44,6 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
-
-#ifdef HAVE_ACE
-#include <ComUnidraw/comterp-acehandler.h>
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
 
 
 /*****************************************************************************/

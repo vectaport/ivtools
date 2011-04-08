@@ -22,10 +22,11 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
  * 
  */
 
-#include <ComTerp/helpfunc.h>
 #include <ComTerp/comhandler.h>
-#include <ComTerp/comvalue.h>
+
+#include <ComTerp/helpfunc.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/comvalue.h>
 
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>

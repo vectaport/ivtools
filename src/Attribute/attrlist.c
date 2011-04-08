@@ -217,10 +217,10 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
 	        out << "\"" << string << "\"";
 	        break;
 	    case AttributeValue::CharType:
-	        out << attrval->char_ref();
+	        out << "'" << attrval->char_ref() << "'";
 	        break;
 	    case AttributeValue::UCharType:
-	        out << attrval->char_ref();
+	        out << "'" << attrval->char_ref() << "'";
 	        break;
 	    case AttributeValue::IntType:
 	        out << attrval->int_ref();

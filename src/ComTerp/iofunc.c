@@ -22,8 +22,9 @@
  * 
  */
 
-#include <ComTerp/iofunc.h>
 #include <ComTerp/comhandler.h>
+
+#include <ComTerp/iofunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <Attribute/aliterator.h>

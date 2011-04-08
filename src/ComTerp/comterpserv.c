@@ -22,9 +22,10 @@
  * 
  */
 
+#include <ComTerp/comhandler.h>
+
 #include <ComTerp/_comterp.h>
 #include <ComTerp/_comutil.h>
-#include <ComTerp/comhandler.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>

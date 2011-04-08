@@ -184,6 +184,8 @@ void DrawCatalog::graph_finish() {
     _edges[i]->Edge()->
       attach_nodes(start_id < 0 ? nil : _nodes[start_id]->Node(), 
 		   end_id < 0 ? nil : _nodes[end_id]->Node());
+    if (start_id >=0 && end_id >=0) 
+      _edges[i]->NodeStart()->attach(_edges[i]->NodeEnd());
   }
   delete _startnode; _startnode = nil;
   delete _endnode; _endnode = nil;

@@ -52,6 +52,9 @@ public:
    void load_popup();
    void save_popup();
 
+   // before quitting invoke save or save-as as needed
+   void quit();
+
    // Selections
 
    // get dot and mark indices

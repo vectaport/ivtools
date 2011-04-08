@@ -210,6 +210,12 @@ void EivTextEditor::load_popup()
    te_view_->load_popup();
 }
 
+void EivTextEditor::quit()
+{
+   // quit without error check; Bug Alert!
+   te_view_->quit();
+}
+
 int EivTextEditor::dot()
 {
   return te_view_->text_editor()->Dot();

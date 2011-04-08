@@ -63,6 +63,7 @@ public:
    int save_as(const char* path);
    int save_current();
    void save();
+   void quit();
 
    // InputHandler
    virtual void press(const Event&);

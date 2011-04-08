@@ -63,9 +63,15 @@ public:
     virtual void Creator(ostream&);
     // output idraw as creator
 
-    static boolean idraw_format;
+    boolean idraw_format(); 
+    // true if exporting idraw EPS
+    void idraw_format(boolean); 
+    // set flag for exporting idraw EPS
+    // can be overridden by flag associated with Command objects
+
 protected:
     OverlayPS(OverlayComp* = nil);
+    static boolean _idraw_format;
 
     Command* _command;
 };

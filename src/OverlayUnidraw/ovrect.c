@@ -393,12 +393,20 @@ boolean RectScript::Definition (ostream& out) {
     RectOvComp* comp = (RectOvComp*) GetSubject();
     comp->GetRect()->GetOriginal(l, b, r, t);
 
-    out << "rectangle(";
-    out << l << "," << b << "," << r << "," << t;
+    if (!svg_format()) {
+      out << "rectangle(";
+      out << l << "," << b << "," << r << "," << t;
+    } else {
+      out << "<rect x=\"" << l << "\" y=\"" << b
+	  << "\" width=\"" << r-l << "\" height=\"" << t-b << "\" ";;
+    }
     MinGS(out);
     Annotation(out);
     Attributes(out);
-    out << ")";
+    if (!svg_format()) 
+      out << ")";
+    else
+      out << "/>\n";
 
     return out.good();
 }

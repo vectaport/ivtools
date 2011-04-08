@@ -1093,6 +1093,15 @@ uninstall::								@@\
 #define InstallSymLink(dir, file) /**/
 #else
 #if !defined(SVR4)
+#if defined(DARWIN)
+#define InstallSymLink(dir, file)					@@\
+install::								@@\
+	MakeDir(dir)							@@\
+	cp -f file dir							@@\
+									@@\
+uninstall::								@@\
+	$(RM) dir/file	
+#else
 #define InstallSymLink(dir, file)					@@\
 install::								@@\
 	MakeDir(dir)							@@\
@@ -1100,6 +1109,7 @@ install::								@@\
 									@@\
 uninstall::								@@\
 	$(RM) dir/file	
+#endif
 #else
 #define InstallSymLink(dir, file)					@@\
 install::								@@\

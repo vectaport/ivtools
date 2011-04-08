@@ -48,6 +48,10 @@ Author:
 
 #if defined(BSD) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 
+#if defined(__APPLE__)
+#include_next <time.h>
+#endif
+
 #include <sys/time.h>
   #if defined(__NetBSD__)
     #include </usr/include/sys/time.h>
@@ -79,8 +83,13 @@ Author:
 */
 
 #include <OS/types.h>
+#if !defined(__APPLE_)
 #include <iostream.h>
 #include_next <time.h>
+#else
+#include <iosfwd>
+#include <iostream>
+#endif
 
 #define NO_NESTED_TYPES 1
 

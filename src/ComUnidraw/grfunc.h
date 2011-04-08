@@ -131,6 +131,16 @@ public:
 	return "%s(fontnum) -- set current font from menu order"; }
 };
 
+//: command for setting font state variable by  font name in comdraw.
+// fontbyname(fontname) -- set current font by name
+class FontByNameFunc : public UnidrawFunc {
+ public:
+  FontByNameFunc(ComTerp*,Editor*);
+  virtual void execute();
+  virtual const char* docstring() {
+    return "%s(fontname) -- set current font by X font name"; }
+};
+
 //: command for setting brush state variable in comdraw.
 // brush(brushnum) -- set current brush from menu order
 class BrushFunc : public UnidrawFunc {
@@ -159,6 +169,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(fgcolornum bgcolornum) -- set current colors from menu order"; }
+};
+
+//:comand for setting color state variables by RGB name in comdraw.
+// colors(fgcolorname bgcolorname). The colorname format is "#RRGGBB"
+class ColorRgbFunc : public UnidrawFunc {
+ public:
+  ColorRgbFunc(ComTerp*,Editor*);
+  virtual void execute();
+  virtual const char* docstring() {
+    return "%s(fgcolorname bgcolorname) -- set current colors by RGB name.\nThe colorname format is \"#RGB\" for 4 bits, \"#RRGGBB\" for 8 bits,\n\"#RRRGGGBBB\" for 12 bits,\"#RRRRGGGGBBBB\" for 16 bits"; }
 };
 
 //: command to select graphics in comdraw.

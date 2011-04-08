@@ -2,7 +2,7 @@ XCOMM
 XCOMM drawserv - drawing editor with command interpreter
 XCOMM
 
-PACKAGE = drawserv
+PACKAGE = drawserv_
 
 #ifdef InObjectCodeDir
 

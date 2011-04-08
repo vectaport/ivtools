@@ -149,7 +149,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("brush", new BrushFunc(comterp, this));
     comterp->add_command("pattern", new PatternFunc(comterp, this));
     comterp->add_command("colors", new ColorFunc(comterp, this));
-
+    comterp->add_command("fontbyname", new FontByNameFunc(comterp, this));
+    comterp->add_command("colorsrgb", new ColorRgbFunc(comterp, this));
     comterp->add_command("nfonts", new NFontsFunc(comterp, this));
     comterp->add_command("nbrushes", new NBrushesFunc(comterp, this));
     comterp->add_command("npatterns", new NPatternsFunc(comterp, this));
@@ -218,6 +219,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("poke", new PixelPokeFunc(comterp, this));
     comterp->add_command("peek", new PixelPeekFunc(comterp, this));
+    comterp->add_command("pokeline", new PixelPokeLineFunc(comterp, this));
     comterp->add_command("pcols", new PixelColsFunc(comterp, this));
     comterp->add_command("prows", new PixelRowsFunc(comterp, this));
     comterp->add_command("pflush", new PixelFlushFunc(comterp, this));
