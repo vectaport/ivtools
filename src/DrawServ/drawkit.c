@@ -93,7 +93,7 @@
 declareActionCallback(DrawKit)
 implementActionCallback(DrawKit)
 
-static const unit = 15;
+static const int unit = 15;
 
 static int xClosed[] = { unit/5, unit, unit, unit*3/5, 0 };
 static int yClosed[] = { 0, unit/5, unit*3/5, unit, unit*2/5 };

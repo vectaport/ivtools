@@ -203,7 +203,7 @@ boolean OvExportCmd::Export (const char* pathname) {
                 ostream out(&fbuf);
                 false_top->Attach(ovpsv);
 		ovpsv->SetCommand(this);
-		if (!chooser_->idraw_format())
+		if (!chooser_->idraw_format() && !chooser_->postscript_format())
 		    ((OverlayIdrawScript*)ovpsv)->SetByPathnameFlag(chooser_->by_pathname_flag());
                 ovpsv->Update();
                 ok = ovpsv->Emit(out);

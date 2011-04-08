@@ -95,6 +95,8 @@ public:
     // set current default tool.
     virtual void SetComponent(Component*);
     // set new component tree, informing them of their new editor.
+    virtual void ReplaceComponent(Component*);
+    // set new component tree, informing them of their new editor, and delete old one.
 
     virtual void Annotate(OverlayComp*);
     // invoke annotation dialog box for this component.

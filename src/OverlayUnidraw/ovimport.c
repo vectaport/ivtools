@@ -583,7 +583,7 @@ int ReadImageHandler::inputReady(int fd) {
 
 #if defined(OPEN_DRAWTOOL_URL)
     if (comp && comp->IsA(OVERLAY_IDRAW_COMP)) {
-      _ed->SetComponent(comp); 
+      _ed->ReplaceComponent(comp); 
       return -1;
     }
 #endif

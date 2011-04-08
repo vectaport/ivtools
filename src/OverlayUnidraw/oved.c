@@ -281,11 +281,15 @@ void OverlayEditor::InformComponents() {
 }
 
 void OverlayEditor::SetComponent(Component* comp) {
-    Component* orig = GetComponent();
-
     GetSelection()->Clear();
     IdrawEditor::SetComponent(comp);
     DoInformComponents(this, comp);
+}
+
+void OverlayEditor::ReplaceComponent(Component* comp) {
+    Component* orig = GetComponent();
+
+    SetComponent(comp);
 
     if (orig != nil && unidraw->FindAny(orig) == nil) {
         Component* root = orig->GetRoot();

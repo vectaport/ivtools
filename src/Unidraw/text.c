@@ -203,7 +203,15 @@ Manipulator* TextView::CreateManipulator (
         painter->FillBg(false);
         painter->SetFont(font);
 	painter->SetColors(fg, nil);
-        painter->SetTransformer(rel);
+	Orientation o = v->GetOrientation();
+	if (o!=Rotated) 
+	  painter->SetTransformer(rel);
+	else {
+	  rel = new Transformer(rel);
+	  rel->Rotate(90.0);
+	  painter->SetTransformer(rel);
+	  Unref(rel);
+	}
 
         m = new TextManip(v, painter, lineHt, tabWidth, tool);
 
@@ -267,8 +275,12 @@ Command* TextView::InterpretManipulator (Manipulator* m) {
             }
 
             if (rel != nil) {
+		if (v->GetOrientation()==Rotated ) 
+		  rel->Rotate(-90);
                 rel->InvTransform(xpos, ypos);
             }
+	    if (v->GetOrientation()==Rotated)
+	      textgr->Rotate(90.0);
             textgr->Translate(xpos, ypos);
             textgr->FillBg(false);
             textgr->SetFont((PSFont*) p->GetFont());

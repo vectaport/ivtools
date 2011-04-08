@@ -37,6 +37,7 @@ Author:
 
 #include <OS/types.h>
 #include <iostream.h>
+#include_next <time.h>
 
 #define NO_NESTED_TYPES 1
 

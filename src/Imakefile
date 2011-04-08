@@ -11,7 +11,7 @@ PACKAGE = src_ivtools
 #endif
 
 #ifdef IueDir
-IUEDIRS = IueServ iueserv
+IUEDIRS = IueServ iueserv_
 #else
 IUEDIRS =	
 #endif
@@ -31,7 +31,7 @@ SUBDIRS = \
 	TopoFace \
 	ComTerp \
 	comtest \
-	comterp \
+	comterp_ \
 	\
 	IV \
 	InterViews \
@@ -72,7 +72,7 @@ SUBDIRS = \
 	graphdraw \
 	\
 	DrawServ \
-	drawserv \
+	drawserv_ \
 	\
 	include \
 	scripts \

@@ -327,6 +327,7 @@ void Raster::flush() const {
     }
 }
 
+
 void Raster::flushrect(IntCoord left, IntCoord bottom, 
 		       IntCoord right, IntCoord top) const {
 //  cerr << "Raster::flushrect l,b,r,t " <<

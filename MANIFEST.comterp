@@ -187,9 +187,9 @@ src/Unidraw-common/Imakefile
 src/Unidraw-common/geomobjs.c
 src/Unidraw-common/iterator.c
 src/Unidraw-common/ulist.c
-src/comterp/Imakefile
-src/comterp/README
-src/comterp/main.c
+src/comterp_/Imakefile
+src/comterp_/README
+src/comterp_/main.c
 src/comtest/Imakefile
 src/comtest/main.c
 src/include/IV-2_6/Imakefile

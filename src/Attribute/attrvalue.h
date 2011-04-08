@@ -264,6 +264,12 @@ public:
     static boolean is_num(ValueType t)
       { return is_integer(t) || is_floatingpoint(t); }
 
+
+    boolean is_blank() { return is_type(BlankType); }
+    // returns true if BlankType.
+    static boolean is_blank(ValueType t)
+      { return t==BlankType; };
+
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.
 

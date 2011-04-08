@@ -27,7 +27,7 @@
  */
 #include "tiffioP.h"
 
-#if defined(unix) || defined(__unix) || defined(MSDOS) || defined(VMS) || defined(AIXV3)
+#if defined(unix) || defined(__unix) || defined(MSDOS) || defined(VMS) || defined(AIXV3) || defined(__CYGWIN__)
 #include <sys/stat.h>
 
 long

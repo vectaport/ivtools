@@ -48,5 +48,13 @@
 #define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
   ULIBNAME = $(LIBDIR)/liblibname.SO.libver
 #endif
+#else
+#ifndef UseInstalled
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(PCKGSRC)/llibname/$(CPU)/liblibname.a
+#else
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(LIBDIR)/liblibname.a
+#endif
 #endif
 

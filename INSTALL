@@ -1,11 +1,12 @@
 
 			INSTALL for ivtools-0.7
 
-Instructions for building ivtools-0.7.9 from source:
+Instructions for building ivtools-0.7.10 from source:
 
 0. Compilation Environment
 
-Tools you will need before you can build:
+Tools you will need before you can build (note, if you are attempting
+to build on Windows NT, look at README.cygwin as well):
 
 0.a. a Unix machine.  We know it has been built on Linux, Solaris,
 Irix, Dec Alpha, HPUX, and SunOS.  
@@ -37,7 +38,7 @@ polygon clipping from:
 
 http://www.ph.tn.tudelft.nl/People/klamer/clippoly_entry.html
 
-Add -fPIC to the CCFLAGS in the Makefile, then do a make, then make
+Add -fPIC to the CCFLAGS in the Makefile, then do a make, then build a
 shared library in the clippoly directory with: "gcc -shared -o
 libclippoly.so *.o" (you can leave out test.o if you want).
 
@@ -83,7 +84,8 @@ class libraries for image understanding application development.
 1.a. You no longer need to set your CPU environment variable to build
 ivtools, but you still need a CPU specific configuration file.
 Ready-made configurations that have been known to work exist for
-LINUX, SUN4 (and Solaris), SGI, HP800 (HPUX), and ALPHA.
+LINUX, SUN4 (and Solaris), SGI, HP800 (HPUX), ALPHA, and now CYGWIN
+(for Windows NT).
 
 Use "make CPU" from the top directory to see the symbol ivtools will
 use for your OS (grep config/arch.def for ArchitectureName to get a
@@ -99,7 +101,7 @@ correct, the config files automatically determine the difference
 between the two OS'es by checking for SVR4'ness.
 
 1.b Run the configure script in the top-level directory, by entering
-"./configure" followed by any of the following arguments(--with
+"./configure" followed by any of the following arguments (--with
 arguments are recognized as --enable as well):
 
   --with-ace=<path>                Path to ACE source

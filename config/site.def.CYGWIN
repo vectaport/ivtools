@@ -1,0 +1,10 @@
+/* machine-specific gcc include directory -- does not change with each new version of gcc */
+#define ToolIncludeDir /usr/local/include
+
+/* extra link libraries */
+#undef ExtraCCLdLibs
+#define ExtraCCLdLibs -lstdc++ -lm
+
+/* file output by configure script */
+#include "config-default-gcc.defs"
+

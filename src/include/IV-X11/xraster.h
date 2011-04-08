@@ -30,7 +30,9 @@
 #define iv_xraster_h
 
 // should be defined externally
+#if !defined(__CYGWIN__)
 #define XSHM
+#endif
 
 #include <InterViews/coord.h>
 #include <IV-X11/Xlib.h>

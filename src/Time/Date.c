@@ -61,13 +61,12 @@ Log: Date.c,v
 */
 
 #include <Time/Date.h>
-
+#include <Time/Time.h>
 #include <OS/string.h>
 
 #include <iomanip.h>
 #include <ctype.h>
 #include <string.h>
-#include <time.h>
 #include <stdio.h>
 
 #define	THIS	Date

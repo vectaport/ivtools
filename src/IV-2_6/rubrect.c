@@ -32,7 +32,11 @@
 #include <math.h>
 #include <stdlib.h>
 #ifndef apollo
+#if defined(__CYGWIN__)
+#include <mingw32/float.h>
+#else
 #include <values.h>
+#endif
 #endif
 
 RubberRect::RubberRect(
@@ -178,7 +182,11 @@ float StretchingRect::CurrentStretching() {
     }
 
     if (osz == 0) {
+#if defined(__CYGWIN__)
+      return FLT_MAX;
+#else
 	return MAXFLOAT;
+#endif
     } else {
 	return nsz / osz;
     }
@@ -323,3 +331,5 @@ void RotatingRect::Draw() {
     }
 
 }
+
+

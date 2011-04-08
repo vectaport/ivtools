@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997 Vectaport Inc.
+ * Copyright (c) 1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -239,7 +239,6 @@ void IncrAfterFunc::execute() {
 	    push_stack(ComValue::nullval());
 	else {
 	    push_stack(*(ComValue*)op1val);
-	    delete (ComValue*)op1val;
 	    ComValue one;
 	    one.type(ComValue::IntType);
 	    one.int_ref() = 1;
@@ -250,6 +249,7 @@ void IncrAfterFunc::execute() {
 	    ComValue* result = new ComValue(pop_stack());
             _comterp->localtable()->insert(operand1.symbol_val(), result);
 	    push_stack(*(ComValue*)op1val);
+	    delete (ComValue*)op1val;
 	}
     } else 
         push_stack(ComValue::nullval());
@@ -299,7 +299,6 @@ void DecrAfterFunc::execute() {
 	    push_stack(ComValue::nullval());
 	else {
 	    push_stack(*(ComValue*)op1val);
-	    delete (ComValue*)op1val;
 	    ComValue one;
 	    one.type(ComValue::IntType);
 	    one.int_ref() = 1;
@@ -310,6 +309,7 @@ void DecrAfterFunc::execute() {
 	    ComValue* result = new ComValue(pop_stack());
             _comterp->localtable()->insert(operand1.symbol_val(), result);
 	    push_stack(*(ComValue*)op1val);
+	    delete (ComValue*)op1val;
 	}
     } else 
         push_stack(ComValue::nullval());

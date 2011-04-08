@@ -1,12 +1,98 @@
+September 14th 1999 ivtools-0.7.10
+
+Drawing Editors
+
+	* propogate the horizontal-drawing-of-text-while-in-landscape-mode
+ 	enhancement that's been in drawtool for awhile to idraw, because
+ 	this is a long-standing Debian request, and it's hard to see how
+ 	it would bother anyone.  Before you would be entering vertical
+ 	text when in landscape mode.  Now it will be horizontal, just like
+ 	it is in portrait mode.
+
+Interpreter Changes
+
+	* change comterp's for and while command to accept an extra fixed
+ 	argument for the body expression if no :body argument exists,
+ 	i.e.:
+
+	for(x=0 x<10 x++ print("%d\n" x))
+
+	x=0;while(x<10 print("%d\n" x))
+
+	instead of:
+
+	for(x=0 x<10 x++ :body print("%d\n" x))
+
+	x=0;while(x<10 :body print("%d\n" x))
+
+	* fix bugs in incr_after (postfix ++) and decr_after (postfix --)
+ 	commands in comterp.
+
+Library Changes
+
+	-- Attribute --
+
+	* add methods for checking a "blank" AttributeValue.  These
+	are pushed on the stack by comterp whenever an interpreter
+	command fails to put anything on the stack.
+
+		AttributeValue::is_blank
+	
+		static AttributeValue::is_blank(ValueType t)
+
+	-- OverlayUnidraw --
+
+	* set up a new method, OverlayEditor::ReplaceComponent, to do what
+ 	::SetComponent does, plus delete the old component if it is no
+ 	longer used in the Unidraw environment.  This gets rid of a bug
+ 	that appeared in ivtools-0.7.9, where the deleting of the old
+ 	component was done in two places, once in OvNewCompCmd::Execute
+ 	(where it has always been done) and once in
+ 	OverlayEditor::SetComponent (where it was done for the duration of
+ 	ivtools-0.7.9).
+
+	* fix bug (that appeared in ivtools-0.7.9) for handling of the New
+ 	command Postscript-format option on the export dialog box.
+	
+
+Miscellaneous and Configuration Changes	
+
+	* a set of changes to config files and some source files to get
+ 	ivtools compiled on Windows NT using Cygwin beta 20.  Everything
+ 	works to build the executables, including the configure script and
+ 	the imake process.  Haven't yet tested it with an X server. See
+ 	README.cygwin for more details.  Thanks to John Carlson at
+ 	Lawrence Livermore National Labs for showing this was possible
+ 	with his copy of InterViews, Cygnus Solutions' Cygwin environment,
+ 	and X11R6.4 Xlib binaries from NASA.
+	
+	* change the script in aclocal.m4 for finding the
+ 	CPlusPlusIncludeDir to work on Windows NT (with Cygwin) as well.
+
+	* rename these directories:
+
+	comterp, iueserv, drawserv
+
+	to:
+
+	comterp_, iueserv_, drawserv_
+
+	This is to avoid a collision with the library directions ComTerp,
+ 	IueServ, and DrawServ which would happen when untar'ing ivtools on
+ 	a Windows NT box (using the Cygwin tar).  Although upper and lower
+ 	case are preserved, they are not distinct for purposes of file
+ 	comparison on that platform.
+
+
 July 30th 1999 ivtools-0.7.9
 
 Drawing Editors
 
 	* add a "PostScript" format to the export dialog box, which means
- 	the existing incompatible extension to idraw PostScript format
- 	which allows color image rendering.  With normal idraw format,
- 	which is a restricted formulation of real PostScript, the color
- 	images print grey.
+ 	when checked to use the existing incompatible extension to idraw
+ 	PostScript format which supports color image rendering.  With normal
+ 	idraw format, which is a restricted formulation of real
+ 	PostScript, the color images print grey.
 
 	* terminate a multi-point drawing tool if right-clicks cause the
  	number of vertices to become zero.  
@@ -21,8 +107,9 @@ Interpreter Changes
 
 	* modify the comterp "+" operator to concatenate two strings.
 
-	* create a comterp eval command to take a set of string and return
- 	an array of evaluated results on the stack.
+	* create a comterp eval command to take a set of strings and
+ 	return an array of evaluated results on the stack.  Same
+ 	functionality as the "," operator, only from strings.
 
 	* add a :str and :err keywords to comterp's print func.  :string
  	already existed, :str is just shorter for something so commonly

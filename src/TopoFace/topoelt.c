@@ -22,7 +22,12 @@
 
 #include <TopoFace/topoelt.h>
 
+#if !defined(__CYGWIN__)
 #include <values.h>
+#else
+#include <math.h>
+#define MAXFLOAT HUGE_VAL
+#endif
 
 /****************************************************************************/
 
@@ -93,7 +98,7 @@ void TopoElement::delete_points() {
 
 void TopoElement::compute_minmax() {
     _xmin = _ymin = _zmin = MAXFLOAT;
-    _xmax = _ymax = _zmax = -MINFLOAT;
+    _xmax = _ymax = _zmax = -MAXFLOAT;
     for (int i=0; i<_npts; i++) {
 	if (_x[i]<_xmin)
 	    _xmin = _x[i];

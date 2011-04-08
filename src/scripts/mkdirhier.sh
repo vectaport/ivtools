@@ -37,7 +37,9 @@ do
 
 	for filename
 	do
-		path=$prefix$filename
+		if [ "$filename" != "" ]; then
+		    path=$prefix$filename
+		fi
 		prefix=$path/
 		shift
 
@@ -51,8 +53,14 @@ do
 				fi
 			done
 
-			mkdir $paths || status=$?
-			chmod g+w $paths
+			
+			for x in $paths 
+			do
+			    if [ ! -d $x ]; then
+			        mkdir $x || status=$?
+			        chmod g+w $x
+			    fi
+			done
 
 			break
 		}

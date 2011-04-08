@@ -19,7 +19,7 @@ AC_MSG_ERROR(${CXXCPP} could not find iostream.h)
 else
 ice_file=`grep '^# 1' conftest.ii | grep iostream.h | \
         head -1 | sed 's/^.*"\(.*\)".*$/\1/'`
-ice_cv_cxx_include_dir=`echo $ice_file | sed 's%/[^/][^/]*$%%'`
+ice_cv_cxx_include_dir=`echo $ice_file | sed 's%iostream.h%%'`
 fi
 if test "$ice_cv_cxx_include_dir" = ""; then
 ice_cv_cxx_include_dir="$prefix/include"

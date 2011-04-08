@@ -8,13 +8,13 @@
 #define NO 0
 #define NullParameter /**/
 
-#if __STDC__
+#if __STDC__ && !defined(__CYGWIN__)
 #define Concat(a,b)a##b
 #else
 #define Concat(a,b)a/**/b
 #endif
 
-#if __STDC__
+#if __STDC__ && !defined(__CYGWIN__)
 #define Concat3(a,b,c)a##b##c
 #else
 #define Concat3(a,b,c)a/**/b/**/c
@@ -440,6 +440,17 @@
 #define MacroIncludeFile <InterViews/iv-alpha.cf>
 #define MacroFile InterViews/iv-alpha.cf
 #endif /* __alpha */
+
+#if defined(__CYGWIN__) && !defined(__linux__)
+#undef CYGWIN
+#undef cygwin
+#define CygwinArchitecture
+#define ArchitectureName CYGWIN
+#define architectureName cygwin
+#define SiteDefCpu <site.def.CYGWIN>
+#define MacroIncludeFile <InterViews/iv-cygwin.cf>
+#define MacroFile InterViews/iv-cygwin.cf
+#endif /* __CYGWIN__ */
 
 #ifndef ArchitectureName
 XCOMM WARNING: Imakefile not configured; guessing at definitions!!!

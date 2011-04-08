@@ -173,9 +173,9 @@ Run contents of file then exit.
 
  val=if(testexpr :then expr :else expr) -- evaluate testexpr and execute the :then expression if true, the :else expression if false.
 
- val=for(initexpr whileexpr [nextexpr] :body expr) -- for loop
+ val=for(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop
 
- val=while([testexpr] :until :body expr ) -- while loop
+ val=while([testexpr [bodyexpr]] :until :body expr ) -- while loop
 
 .SH OTHER COMMANDS
 

@@ -62,11 +62,13 @@
 #include <stropts.h>
 #include <sys/conf.h>
 #endif
-#ifndef __linux__
+#if !defined(__linux__) && !defined(__CYGWIN__)
 /* no standard place for this */
 extern "C" {
     extern int ioctl(int, int, ...);
 }
+#else
+#include <asm/socket.h>
 #endif
 implementPtrList(WindowVisualList,WindowVisual)
 
@@ -2128,3 +2130,5 @@ void DisplayRep::remove(Window* w) {
 	}
     } while (!done);
 }
+
+
