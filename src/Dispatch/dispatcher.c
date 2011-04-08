@@ -653,9 +653,15 @@ int Dispatcher::waitFor(
 	sv.sa_flags = SV_INTERRUPT;
 	sigaction(SIGCLD, &sv, &osv);
 #else
+#ifdef __APPLE__
+	sv.sv_handler = (void (*)()) fxSIGVECHANDLER(&Dispatcher::sigCLD);
+	sv.sv_flags = SV_INTERRUPT;
+	sigvec(SIGCLD, &sv, &osv);
+#else
 	sv.sv_handler = (void (*)(int)) fxSIGVECHANDLER(&Dispatcher::sigCLD);
 	sv.sv_flags = SV_INTERRUPT;
 	sigvec(SIGCLD, &sv, &osv);
+#endif
 #endif
 #else
 #ifdef SA_NOCLDSTOP                   /* POSIX */

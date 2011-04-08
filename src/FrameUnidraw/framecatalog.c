@@ -37,9 +37,7 @@
 #include <stream.h>
 #include <string.h>
 #include <ctype.h>
-#if __GNUG__>=3
 #include <fstream.h>
-#endif
 
 
 /*****************************************************************************/

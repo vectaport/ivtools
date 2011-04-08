@@ -69,9 +69,7 @@
 #include <unistd.h>
 #endif
 #include <sys/file.h>
-#if __GNUG__>=3
 #include <fstream.h>
-#endif
 
 #ifdef __DECCXX
 extern "C" {

@@ -135,6 +135,7 @@ static PropertyData properties[] = {
     { "*bgcolor10",	"White" },
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
+    { "*bgcolor13",	"none" },
     { "*history",	"20" },
     { "*color6",        "false" },
     { "*color5",        "false" },
@@ -156,6 +157,7 @@ static PropertyData properties[] = {
     { "*opaque_off",    "false"  },
     { "*slideshow",     "0"  },
     { "*stripped",      "false"  },
+    { "*stdin_off",   "false"  },
 #ifdef HAVE_ACE
     { "*comdraw",       "20002" },
     { "*import",        "20003" },
@@ -197,6 +199,7 @@ static OptionDesc options[] = {
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-slideshow", "*slideshow", OptionValueNext },
     { "-stripped", "*stripped", OptionValueImplicit, "true" },
+    { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
@@ -208,22 +211,22 @@ static OptionDesc options[] = {
 
 #ifdef HAVE_ACE
 static char* usage =
-"Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] \n\
-[-color5] [-color6] [-import port] [-gray5] [-gray6] [-gray7] \n\
-[-opaque_off|-opoff] [-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
-[-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
-[-zoomer_off|-zoff] [file]";
+"Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] [-color5]\n\
+[-color6] [-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
+[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff]\n\
+[-stdin_off] [-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
+[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
 #else
 static char* usage =
-"Usage: flipbook [any idraw parameter] [-bookgeom] \n\
-[-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
-[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
-[-zoomer_off|-zoff] [file]";
+"Usage: flipbook [any idraw parameter] [-bookgeom]\n\
+[-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
+[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff]\n\
+ [-stdin_off] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
+[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
 #endif
 /*****************************************************************************/
 

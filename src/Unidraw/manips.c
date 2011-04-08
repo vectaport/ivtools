@@ -353,6 +353,8 @@ boolean VertexManip::Manipulating (Event& e) {
 
         if (e.button == LEFTMOUSE) {
             GetGrowingVertices()->AddVertex(e.x, e.y);
+	    _origx = e.x;
+	    _origy = e.y;
 
         } else if (e.button == MIDDLEMOUSE) {
             GetGrowingVertices()->AddVertex(e.x, e.y);

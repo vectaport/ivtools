@@ -46,7 +46,7 @@ Author:
 
 //moved from Time.c
 
-#if defined(BSD) || defined(__FreeBSD__) || defined(__NetBSD__)
+#if defined(BSD) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
 
 #include <sys/time.h>
   #if defined(__NetBSD__)

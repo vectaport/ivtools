@@ -474,11 +474,23 @@
 #define MacroFile InterViews/iv-freebsd.cf
 #endif /* __FreeBSD__ */
 
+#if defined(__APPLE__)
+#undef APPLE
+#undef apple
+#define DarwinArchitecture
+#define ArchitectureName DARWIN
+#define architectureName darwin
+#define SiteDefCpu <site.def.DARWIN>
+#define MacroIncludeFile <InterViews/iv-darwin.cf>
+#define MacroFile InterViews/iv-darwin.cf
+#endif /* __FreeBSD__ */
+
 #ifndef ArchitectureName
 XCOMM WARNING: Imakefile not configured; guessing at definitions!!!
 XCOMM This might mean that BOOTSTRAPCFLAGS was not set when building imake.
 #undef UNKNOWN
 #undef unknown
+#define UnknownArchitecture
 #define ArchitectureName UNKNOWN
 #define architectureName unknown
 #define SiteDefCpu <site.def.UNKNOWN>

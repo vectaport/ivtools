@@ -698,21 +698,7 @@ void GrayRaster::gainbias_minmax(double& gain, double& bias,
       for(int y=0; y < h; y++) {
 	me->vpeek(x, h-y-1, av);
 	double dval = av.double_val();
-#if 0
-#if !defined(__sun) && !defined(__svr4__) && !defined(__alpha) || defined(__linux__)
-	if (dval==NAN) continue;
-#else
-      {
-#if defined(__sun__)
-        if (isnan(dval) || isinf(dval)) continue;
-#else
-      	if (IsNANorINF(dval)) continue;
-#endif	
-      }
-#endif
-#else
         if (isnanorinf(dval)) continue;
-#endif
 	if (dval<dmin) dmin = dval;
 	if (dval>dmax) dmax = dval;
       }

@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-1.0.1
+#define	Release ivtools-1.0.2
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 1.0.1
+#define	Version 1.0.2
 #endif
 
    VERSION = Version
@@ -367,7 +367,11 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #if TurnOnOptimizing && !TurnOnDebugging
 #define DebugCCFlags /**/
 #else
+#if LibStdCPlusPlusV3==1
+#define DebugCCFlags -gdwarf-2
+#else
 #define DebugCCFlags -g
+#endif
 #endif
 #endif
 

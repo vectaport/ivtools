@@ -910,6 +910,7 @@ OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect
     _xbeg = _xend = _ybeg = _yend = -1;
     _damage_done = 0;
     _clippts = nil;
+    _alphaval = 1.0;
 }
 
 OverlayRasterRect::~OverlayRasterRect () { Unref(_clippts);}
@@ -940,6 +941,7 @@ Graphic* OverlayRasterRect::Copy () {
     new_rr->ybeg(_ybeg);
     new_rr->yend(_yend);
     new_rr->clippts(_clippts);
+    new_rr->alphaval(_alphaval);
     return new_rr;
 }
 
@@ -1047,6 +1049,8 @@ OverlayRasterRect& OverlayRasterRect::operator = (OverlayRasterRect& rect) {
     Unref(_clippts);
     _clippts = rect._clippts;
     Resource::ref(_clippts);
+
+    _alphaval = rect.alphaval();
 
     return *this;
 }

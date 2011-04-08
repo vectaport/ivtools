@@ -158,6 +158,12 @@ public:
     static boolean skip_comp(istream& in);
     // skip the text for the current component while de-serializing.
 
+    static boolean ptlist_parens() { return _ptlist_parens; }
+    // get flag that indicates putting parens around pointlist's
+
+    static void ptlist_parens(boolean flag) { _ptlist_parens = flag; }
+    // set flag that indicates putting parens around pointlist's
+
 protected:
     virtual void FillBg(ostream& out);
     virtual void Brush(ostream& out);
@@ -177,6 +183,8 @@ protected:
     virtual void SetParent(ComponentView* child, ComponentView* parent);
 
     OverlayScript* _parent;
+
+    static boolean _ptlist_parens;
 };
 
 //: composite version of OverlayScript.

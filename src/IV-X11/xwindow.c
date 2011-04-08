@@ -62,7 +62,7 @@
 #include <stropts.h>
 #include <sys/conf.h>
 #endif
-#if !defined(__NetBSD__) && !defined(__FreeBSD__)
+#if !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__APPLE__)
 #if !defined(__linux__) && !defined(__CYGWIN__)
 /* no standard place for this */
 extern "C" {

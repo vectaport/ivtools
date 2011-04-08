@@ -175,7 +175,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 
     ch = '\0';
     int status;
-    while (ch != '\n') {
+    while (ch != '\n' && status>0) {
       status = read(fd, &ch, 1);
       if (status == 1 && ch != '\n') inv.push_back(ch);
     }

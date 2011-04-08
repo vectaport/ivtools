@@ -75,4 +75,14 @@ public:
     virtual const char* docstring() { 
 	return "%s(compview x1,y1,x2,y2,x3,y3[,...,xn,yn]) -- clip raster with polygon"; }
 };
+
+//: command to set/get raster alpha transparency
+// alpha(compview [alphaval]) -- set/get alpha transparency value
+class AlphaTransFunc : public UnidrawFunc {
+public:
+    AlphaTransFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s(compview [alphaval]) -- set/get alpha transparency value"; }
+};
 #endif /* !defined(_pixelfunc_h) */

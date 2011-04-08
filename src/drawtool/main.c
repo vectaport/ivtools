@@ -140,7 +140,6 @@ static PropertyData properties[] = {
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
     { "*bgcolor13",	"none" },
     { "*history",	"20" },
-
     { "*color5",        "false" },
     { "*color6",        "true" },
     { "*gray5",         "false" },

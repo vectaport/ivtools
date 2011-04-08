@@ -65,6 +65,8 @@
 
 /*****************************************************************************/
 
+boolean OverlayScript::_ptlist_parens = true;
+
 ClassId OverlayScript::GetClassId () { return OVERLAY_SCRIPT; }
 
 boolean OverlayScript::IsA (ClassId id) {

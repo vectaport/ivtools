@@ -33,7 +33,7 @@
 #include <stdlib.h>
 #ifndef apollo
 #if defined(__CYGWIN__)
-#include <mingw32/float.h>
+#include <float.h>
 #else
 #include <math.h>
 #define MAXFLOAT HUGE_VAL

@@ -1181,14 +1181,81 @@ void OverlayPainter::DoRasterRect(
     if (xid != CanvasRep::unbound) {
         XSetRegion(dpy, Rep()->fillgc, rg);
         XSetGraphicsExposures(dpy, Rep()->fillgc, False);
-        XCopyArea(
-    	    dpy, dest, xid, Rep()->fillgc,
-	    0, 0, pwidth, pheight, xmin, 
-            c->pheight() - 1 - (ymin + pheight)
-        );
+	int _ymin = c->pheight() - 1 - (ymin + pheight);
+
+	boolean transparent_val = 0;
+
+	if (r_r->alphaval()<1.0 || transparent_val) {
+	
+	  /* WITH alpha-tranparency */
+
+	  /* adjust pwidth and pheight, because they might be in error */
+	  XWindow win_ret;
+	  int x_ret, y_ret;
+	  unsigned int w_ret, h_ret, borderw_ret, depth_ret;
+	  XGetGeometry(dpy, dest, &win_ret, &x_ret, &y_ret, &w_ret, &h_ret,
+		       &borderw_ret, &depth_ret);
+	  pwidth = Math::min((unsigned)pwidth, w_ret);
+	  pheight = Math::min((unsigned)pheight, h_ret);
+	  
+	  XImage* im1 = 
+	    XGetImage(dpy, dest, 0, 0,
+		      pwidth, pheight, AllPlanes, ZPixmap);
+	  int xbclip = xmin < 0 ? -xmin : 0;
+	  int ybclip = _ymin < 0 ? -_ymin : 0;
+	  int xeclip = xmin + pwidth > c->pwidth() ? (pwidth + xmin) - c->pwidth() : 0;
+	  int yeclip = _ymin + pheight > c->pheight() ? (pheight + _ymin) - c->pheight() : 0;
+	  XImage* im2 = 
+	    XGetImage(dpy, xid, 
+		      xmin+xbclip, _ymin+ybclip,
+		      pwidth-xeclip-xbclip, pheight-yeclip-ybclip, 
+		      AllPlanes, ZPixmap);
+	  if (im1 && im2) {
+	    for (int j=ybclip; j<pheight-yeclip; j++) {
+	      for (int i=xbclip; i<pwidth-xeclip; i++) {
+		unsigned long val1 = XGetPixel(im1, i, j);
+		unsigned long val2 = XGetPixel(im2, i-xbclip, j-ybclip);
+		XColor xc1, xc2;
+		d.rep()->default_visual_->find_color(val1, xc1);
+		d.rep()->default_visual_->find_color(val2, xc2);
+		float alpha = r_r->alphaval();
+		float beta = 1.0 - alpha;
+		if (!(transparent_val && 
+		    xc1.red==0xffff && 
+		    xc1.green==0xffff && 
+		    xc1.blue==0xffff)) { 
+		  unsigned short newred = (short unsigned)(xc1.red*alpha+xc2.red*beta);
+		  unsigned short newgreen = (short unsigned)(xc1.green*alpha+xc2.green*beta);
+		  unsigned short newblue = (short unsigned)(xc1.blue*alpha+xc2.blue*beta);
+		  
+		  XColor newcolor;
+		  d.rep()->default_visual_->find_color((short unsigned int)newred, (short unsigned int)newgreen, (short unsigned int)newblue, newcolor);
+		  XPutPixel(im1, i, j, newcolor.pixel);
+		} else {
+		  XPutPixel(im1, i, j, xc2.pixel);
+		}
+	      }
+	    }
+	    
+	    XPutImage(dpy, xid, Rep()->fillgc, im1, xbclip, ybclip, xmin+xbclip, 
+		      _ymin+ybclip, pwidth-xbclip-xeclip, pheight-ybclip-yeclip);
+	    XDestroyImage(im1);
+	    XDestroyImage(im2);
+	  }
+
+	} else {
+
+	  /* WITHOUT alpha-tranparency */
+
+	  XCopyArea(
+		    dpy, dest, xid, Rep()->fillgc,
+		    0, 0, pwidth, pheight, xmin, _ymin);
+
+	}
+
         XSetGraphicsExposures(dpy, Rep()->fillgc, True);
         XDestroyRegion(rg);
-
+	
         if (Rep()->clipped) {
 	    XSetClipRectangles(
               dpy, Rep()->fillgc, 0, 0, Rep()->xclip, 1, Unsorted

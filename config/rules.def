@@ -687,7 +687,7 @@ $(LD) -o $@ $(SHARED_CCLDFLAGS) ldobjs $(SHARED_CCLDLIBS)
 #ifndef NormalDynamicSharedLibraryTarget
 #if defined(HPArchitecture)
 #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
-AOUT = Concat(lib,libname.so.rev)					@@\
+AOUT = Concat(lib,libname.sl.rev)					@@\
 SHARED_CCFLAGS = SharedCCFlags						@@\
 									@@\
 AllTarget(Concat(lib,libname.sl.rev))					@@\

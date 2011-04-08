@@ -1,0 +1,77 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
+/* gcc command line with -V for version and -O for optimize */
+#define CCDriver g++
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+#undef TroffCmd
+#define TroffCmd groff
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
+#define SOMAXCONN 5
+
+/* override -ansi -pedantic from xfree86.cf */
+#undef DefaultCCOptions
+#define DefaultCCOptions /**/
+
+/* machine-specific gcc include directory -- does not change with each new version of gcc */
+#define ToolIncludeDir /usr/local/include
+
+/* link libraries for the above */
+#undef ExtraCCLdLibs
+#define ExtraCCLdLibs -lstdc++ -lm
+
+/* command to create shared libraries */
+#define SharedLibraryCmd(ldobjs,extra_flags) $(LD) -r extra_flags -o $@~ ldobjs
+
+#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
+AOUT = Concat(lib,libname.rev.dylib)					@@\
+SHARED_CCFLAGS = SharedCCFlags						@@\
+									@@\
+AllTarget(Concat(lib,libname.rev.dylib))					@@\
+									@@\
+Concat(lib,libname.rev.dylib): depobjs					@@\
+	@echo "building $@"						@@\
+	$(RM) $@~							@@\
+	SharedLibraryCmd(ldobjs,)					@@\
+	$(RM) $@							@@\
+	$(MV) $@~ $@							@@\
+	$(LN) -f $@ Concat(lib,libname.dylib)				@@\
+									@@\
+clean::									@@\
+	$(RM) Concat(lib,libname.rev.dylib)
+/*
+ * Install a shared library on FreeBSD.
+ */
+#ifndef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)			@@\
+install:: Concat(lib,libname.rev.dylib)					@@\
+	MakeDir(dest)                                                   @@\
+	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.rev.dylib) dest   @@\
+	-@$(RM) dest/Concat(lib,libname.dylib)		                @@\
+	-@(cd dest;$(LN) Concat(lib,libname.rev.dylib) \			@@\
+	Concat(lib,libname.dylib))					        @@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.rev.dylib)				@@\
+	$(RM) dest/Concat(lib,libname.dylib)	
+#endif
+
+/* file output by configure script */
+#include "config-darwin-gcc.defs"
+
+
+

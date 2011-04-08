@@ -178,7 +178,11 @@ depvar(DEPDRAWSERV,IVTOOLSSRC,DrawServ,libDrawServ,$(VERSION))
 #endif
 #undef Dep_libUnidraw
 #if HasDynamicSharedLibraries
+#ifndef DarwinArchitecture
 #define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.SO.$(VERSION)
+#else
+#define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.$(VERSION).dylib
+#endif
 #else
 #define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.a
 #endif

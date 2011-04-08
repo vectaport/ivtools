@@ -92,8 +92,7 @@ Manipulator* GrLocTool::CreateManipulator (
       _otext->accept();
       if (!dialog()->mapped())
 	dialog()->map_for(v->GetEditor()->GetWindow());
-      else
-	_otext->notify();
+      _otext->notify();
     }
   }
   Manipulator* m = nil;

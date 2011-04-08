@@ -24,10 +24,12 @@ inline char* strlower(char* str) {
 
 #endif
 
-#include_next <string.h>
 
 #if defined(__cplusplus)
+#include_next <string.h>
 #undef NULL
 #define NULL 0
+#else
+#include </usr/include/string.h>
 #endif
 #endif

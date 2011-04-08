@@ -215,7 +215,10 @@ boolean VerticesScript::Definition (ostream& out) {
     } else {
 	for (int i = 0; i < n; ) {
 	    for (int j = 0; j < 10 && i < n; j++, i++) {
-		out << "(" << x[i] << "," << y[i] << ")";
+	        if (ptlist_parens())
+		    out << "(" << x[i] << "," << y[i] << ")";
+		else
+		    out << x[i] << "," << y[i];
 		if (i+1 < n ) 
 		    out << ",";
 	    }

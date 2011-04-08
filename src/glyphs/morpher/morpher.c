@@ -554,7 +554,7 @@ void MorphGraphic::expandSpline (
 }
         
 declarePtrList(GraphicList, Graphic31);
-implementPtrList(GraphicList, Graphic31);
+// implementPtrList(GraphicList, Graphic31);
 declarePtrList(MGraphicList, MorphGraphic);
 implementPtrList(MGraphicList, MorphGraphic);
 declarePtrList(MMGraphicList, MGraphicList);

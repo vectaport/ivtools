@@ -135,6 +135,7 @@ static PropertyData properties[] = {
     { "*bgcolor10",	"White" },
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
+    { "*bgcolor13",	"none" },
     { "*history",	"20" },
     { "*color6",        "false" },
     { "*color5",        "false" },
@@ -149,6 +150,7 @@ static PropertyData properties[] = {
     { "*slider_off",    "false"  },
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
+    { "*stdin_off",   "false"  },
 #ifdef HAVE_ACE
     { "*comdraw",       "20002" },
     { "*import",        "20003" },
@@ -180,6 +182,7 @@ static OptionDesc options[] = {
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+    { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
@@ -192,17 +195,20 @@ static OptionDesc options[] = {
 
 #ifdef HAVE_ACE
 static char* usage =
-"Usage: graphdraw [any idraw parameter] [-color5] [-color6] [-comdraw port] \n\
-[-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-zoomer_off|-zoff] [file]";
+"Usage: graphdraw [any idraw parameter] [-color5] [-color6] [-comdraw port]\n\
+[-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
+[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
+[-zoomer_off|-zoff] [file]";
 #else
-"Usage: graphdraw [any idraw parameter] [-color5] [-color6] \n\
-[-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
-[-pagerows|-nrows n] [-panner_off|-poff] \n\
+static char* usage =
+"Usage: graphdraw [any idraw parameter] [-color5] [-color6]\n\
+[-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] [-pagecols|-ncols n]\n\
+[-pagerows|-nrows n] [-panner_off|-poff]\n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-zoomer_off|-zoff] [file]";
+[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
+[-zoomer_off|-zoff] [file]";
 #endif
 
 /*****************************************************************************/

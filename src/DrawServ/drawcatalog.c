@@ -73,7 +73,7 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
 #endif
 	    name = nil;
 	} else {
-	    fptr = fopen(name, "r+");
+	    fptr = fopen(name, "r");
 	    fptr = OvImportCmd::CheckCompression(fptr, name, compressed);
 #if __GNUG__<3
 	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;

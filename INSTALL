@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.0
 
-Instructions for building ivtools-1.0.1 from source, the short version:
+Instructions for building ivtools-1.0.2 from source, the short version:
 
 	./configure
 	make
@@ -18,7 +18,8 @@ Things you will need (or might want) before building ivtools:
 
 0.a. a Unix machine (for Windows see README.cygwin).  We know it has
 been built on Linux, NetBSD, FreeBSD, Solaris, Irix, Dec Alpha, HPUX,
-and SunOS.  
+and SunOS.  It also builds on Mac OS X (Darwin) which is a
+BSD-derivative OS.
 
 0.b GNU make.  Test to make sure this is the version you are using
 with "make -v"

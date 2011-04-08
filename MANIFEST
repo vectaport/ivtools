@@ -35,6 +35,7 @@ ivtools-1.0/config/InterViews/iv-bsd.cf
 ivtools-1.0/config/InterViews/iv-convex.cf
 ivtools-1.0/config/InterViews/iv-cray.cf
 ivtools-1.0/config/InterViews/iv-cygwin.cf
+ivtools-1.0/config/InterViews/iv-darwin.cf
 ivtools-1.0/config/InterViews/iv-freebsd.cf
 ivtools-1.0/config/InterViews/iv-generic.cf
 ivtools-1.0/config/InterViews/iv-hp.cf
@@ -65,6 +66,8 @@ ivtools-1.0/config/arch.def
 ivtools-1.0/config/config.defs.in
 ivtools-1.0/config/config.mk
 ivtools-1.0/config/config.null.mk
+ivtools-1.0/config/darwin-gcc.mk
+ivtools-1.0/config/darwin-gcc.mk
 ivtools-1.0/config/default-gcc.mk
 ivtools-1.0/config/freebsd-gcc.mk
 ivtools-1.0/config/freebsd2.1-gcc.mk
@@ -84,6 +87,7 @@ ivtools-1.0/config/rules.def
 ivtools-1.0/config/sco3.2.4-gcc.mk
 ivtools-1.0/config/site.def.ALPHA
 ivtools-1.0/config/site.def.CYGWIN
+ivtools-1.0/config/site.def.DARWIN
 ivtools-1.0/config/site.def.FREEBSD
 ivtools-1.0/config/site.def.HP800
 ivtools-1.0/config/site.def.LINUX
@@ -1543,11 +1547,13 @@ ivtools-1.0/src/include/ivstd/Makefile
 ivtools-1.0/src/include/ivstd/fstream.h
 ivtools-1.0/src/include/ivstd/iosfwd
 ivtools-1.0/src/include/ivstd/iostream.h
+ivtools-1.0/src/include/ivstd/malloc.h
 ivtools-1.0/src/include/ivstd/math.h
 ivtools-1.0/src/include/ivstd/nan.h
 ivtools-1.0/src/include/ivstd/osfcn.h
 ivtools-1.0/src/include/ivstd/signal.h
 ivtools-1.0/src/include/ivstd/stdio.h
+ivtools-1.0/src/include/ivstd/stream.h
 ivtools-1.0/src/include/ivstd/string.h
 ivtools-1.0/src/include/ivstd/version.h
 ivtools-1.0/src/iueserv_/Imakefile
@@ -1765,6 +1771,7 @@ ivtools-1.0/src/utils/ftp.h
 ivtools-1.0/src/utils/http.cc
 ivtools-1.0/src/utils/http.h
 ivtools-1.0/src/utils/ivdl.cc
+ivtools-1.0/src/utils/ivtmpnam.c
 ivtools-1.0/src/utils/parse.h
 ivtools-1.0/src/utils/readwrite.h
 ivtools-1.0/src/utils/sockets.cc
@@ -1772,4 +1779,3 @@ ivtools-1.0/src/utils/sockets.h
 ivtools-1.0/src/utils/stdcmapppm.c
 ivtools-1.0/src/utils/thrower.cc
 ivtools-1.0/src/utils/thrower.h
-ivtools-1.0/src/utils/ivtmpnam.c

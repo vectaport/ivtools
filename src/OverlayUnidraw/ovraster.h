@@ -218,6 +218,11 @@ public:
     MultiLineObj* clippts(); 
     // return polygon used for additional clipping 
 
+    void alphaval(float alpha) { _alphaval = alpha; }
+    // set alpha-transparency value, default is 1.0
+    float alphaval() { return _alphaval; }
+    // return alpha-transparency value.
+
     virtual Graphic* Copy();
 
     OverlayRaster* GetOriginal() { return (OverlayRaster*)_raster; }
@@ -282,6 +287,7 @@ protected:
     IntCoord _damage_t;
     
     MultiLineObj* _clippts;
+    float _alphaval;
 
 friend class RasterOvComp;
 friend class RasterOvView;

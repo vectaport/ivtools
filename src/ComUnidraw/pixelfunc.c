@@ -165,3 +165,30 @@ void PixelClipFunc::execute() {
 
 }
 
+/*****************************************************************************/
+
+AlphaTransFunc::AlphaTransFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void AlphaTransFunc::execute() {
+  Viewer* viewer = _ed->GetViewer();
+
+  ComValue rastcompv(stack_arg(0));
+  ComValue alphav(stack_arg(1));
+  reset_stack();
+  
+  RasterOvComp* rastcomp = (RasterOvComp*) rastcompv.geta(RasterOvComp::class_symid());
+  OverlayRasterRect* rastrect = rastcomp ? rastcomp->GetOverlayRasterRect() : nil;
+
+  if (rastrect ) {
+    if (alphav.is_numeric()) {
+      rastrect->alphaval(alphav.float_val());
+      rastcomp->Notify();
+    }
+    ComValue retval(rastrect->alphaval());
+    push_stack(retval);
+  } else 
+    push_stack(ComValue::nullval());
+
+}
+

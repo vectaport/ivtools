@@ -444,9 +444,9 @@ const Font* IdrawReaderImpl::read_font() {
     NullTerminatedString psname_nt(psname);
     float pointsize;
     read(pointsize);
-    if (PSFont::exists(psname_nt.string())) {
+    if (PSFont31::exists(psname_nt.string())) {
 	NullTerminatedString s_nt(s);
-	return new PSFont(psname_nt.string(), pointsize, s_nt.string(), 1.0);
+	return new PSFont31(psname_nt.string(), pointsize, s_nt.string(), 1.0);
     }
     String default_font("fixed");
     Session::instance()->style()->find_attribute("font", default_font);

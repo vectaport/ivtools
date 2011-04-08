@@ -108,10 +108,10 @@ void ComEditor::Init (OverlayComp* comp, const char* name) {
 void ComEditor::InitCommands() {
     if (!_terp) 
       _terp = new ComTerpServ();
-      const char* comdraw_off_str = unidraw->GetCatalog()->GetAttribute("comdraw_off");
+      const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
 #ifndef HAVE_ACE
     if ((!comterplist() || comterplist()->Number()==1) &&
-	(comdraw_off_str ? strcmp(comdraw_off_str, "false")==0 : true))
+	(stdin_off_str ? strcmp(stdin_off_str, "false")==0 : true))
       _terp_iohandler = new ComTerpIOHandler(_terp, stdin);
     else
 #endif
@@ -220,6 +220,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("prows", new PixelRowsFunc(comterp, this));
     comterp->add_command("pflush", new PixelFlushFunc(comterp, this));
     comterp->add_command("pclip", new PixelClipFunc(comterp, this));
+    comterp->add_command("alpha", new AlphaTransFunc(comterp, this));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {
@@ -227,6 +228,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     OverlayEditor::ExecuteCmd(cmd);
   else {
     ostrstream sbuf;
+    boolean oldflag = OverlayScript::ptlist_parens();
+    OverlayScript::ptlist_parens(false);
     switch (cmd->GetClassId()) {
     case PASTE_CMD:
       {
@@ -270,6 +273,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
       }
       break;
     }
+    OverlayScript::ptlist_parens(oldflag);
   }
 }
 

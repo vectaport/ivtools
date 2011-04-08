@@ -38,7 +38,8 @@
 #define ExtraCCLdLibs -lstdc++ -lm
 
 /* command to create shared libraries */
-#define SharedLibraryCmd(ldobjs) g++ -shared -fpic -o $@ ldobjs
+/* notice all dependent libraries need to be supplied */
+#define SharedLibraryCmd(ldobjs) g++ -shared -fPIC -o $@ ldobjs $(CCLDLIBS)
 
 /* Different LdPath for HP */
 #define LdPath(libname) -Wl,+s -L$(LIBSRC)/libname/$(ARCH) Concat(-l,libname)

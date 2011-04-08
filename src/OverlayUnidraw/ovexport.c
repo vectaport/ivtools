@@ -59,9 +59,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#if __GNUG__>=3
 #include <fstream.h>
-#endif
 
 /*****************************************************************************/
 

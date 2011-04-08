@@ -58,7 +58,7 @@ void Clock::GetTime (char* date, int& h, int& m, int& s) {
 #ifdef __DECCXX
     local = * localtime((time_t*)&gmt.tv_sec);
 #else
-    local = * localtime(&gmt.tv_sec);
+    local = * localtime((const time_t *)&gmt.tv_sec);
 #endif
 #endif
     h = local.tm_hour;

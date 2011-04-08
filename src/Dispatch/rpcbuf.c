@@ -234,7 +234,7 @@ rpcbuf* rpcbuf::connect(const char* host, int port) {
 
 rpcbuf* rpcbuf::accept(int& fd) {
     struct sockaddr_in name;
-    unsigned int name_len = sizeof(name);
+    socklen_t name_len = sizeof(name);
 
     if (!_opened) {
 	error("rpcbuf::accept: not using a file number yet");
