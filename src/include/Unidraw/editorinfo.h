@@ -32,6 +32,8 @@
 
 #include <InterViews/_enter.h>
 
+//: manages persistent information contained in an editor
+// <a href=../man3.1/EditorInfo.html>man page</a>
 class EditorInfo : public UMap {
 public:
     EditorInfo();

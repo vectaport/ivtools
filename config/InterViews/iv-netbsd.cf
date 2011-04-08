@@ -1,0 +1,13 @@
+/* 
+ * This is the NetBSD configuration file for Interviews 3.1
+ * Set up to use gcc in local.def
+ */
+
+#define OptimizeCCFlags -O6
+#define TIFFOptimizeCFlags -O
+
+#ifndef ExtraCCLdFlags
+#define ExtraCCLdFlags /**/
+#endif
+
+#include <InterViews/xparams.cf>

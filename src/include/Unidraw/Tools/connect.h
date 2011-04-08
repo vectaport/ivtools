@@ -31,6 +31,8 @@
 
 class ConnectorView;
 
+//: connect tool
+// <a href=../man3.1/ConnectTool.html>man page</a>
 class ConnectTool : public Tool {
 public:
     ConnectTool(ControlInfo* = nil);

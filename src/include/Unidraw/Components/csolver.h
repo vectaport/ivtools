@@ -40,6 +40,8 @@ class CSolverState;
 class istream;
 class ostream;
 
+//: connector constraint solver
+// <a href=../man3.1/CSolver.html>man page</a>
 class CSolver {
 public:
     CSolver();

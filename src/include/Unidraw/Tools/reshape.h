@@ -29,6 +29,8 @@
 
 #include <Unidraw/Tools/tool.h>
 
+//: reshape tool 
+// <a href=../man3.1/ReshapeTool.html>man page</a>
 class ReshapeTool : public Tool {
 public:
     ReshapeTool(ControlInfo* = nil);

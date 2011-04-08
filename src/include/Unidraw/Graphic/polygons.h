@@ -31,6 +31,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: rectangle graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class Rect : public Graphic {
 public:
     void GetOriginal(Coord&, Coord&, Coord&, Coord&);
@@ -49,6 +51,8 @@ protected:
     Coord _x0, _y0, _x1, _y1;
 };
 
+//: stroked rectangle graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class S_Rect : public Rect {
 public:
     S_Rect(Coord x0, Coord y0, Coord x1, Coord y1, Graphic* = nil);
@@ -67,6 +71,8 @@ protected:
     PSBrush* _br;
 };
 
+//: filled rectangle graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class F_Rect : public Rect {
 public:
     F_Rect(Coord x0, Coord y0, Coord x1, Coord y1, Graphic* = nil);
@@ -85,6 +91,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked-filled rectangle graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class SF_Rect : public Rect {
 public:
     SF_Rect(Coord x0, Coord y0, Coord x1, Coord y1, Graphic* = nil);
@@ -107,6 +115,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: polygon graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class Polygon : public Vertices {
 protected:
     Polygon(Coord* x, Coord* y, int count, Graphic* gr = nil) ;
@@ -117,6 +127,8 @@ protected:
     boolean f_intersects(BoxObj&, Graphic*);
 };
 
+//: stroked polygon graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class S_Polygon : public Polygon {
 public:
     S_Polygon(Coord* x, Coord* y, int count, Graphic* = nil);
@@ -135,6 +147,8 @@ protected:
     PSBrush* _br;
 };
 
+//: filled polygon graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class F_Polygon : public Polygon {
 public:
     F_Polygon(Coord* x, Coord* y, int count, Graphic* = nil);
@@ -153,6 +167,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked-filled polygon graphic
+// <a href=../man3.1/polygons.html>man page</a>
 class SF_Polygon : public Polygon {
 public:
     SF_Polygon(Coord* x, Coord* y, int count, Graphic* = nil);

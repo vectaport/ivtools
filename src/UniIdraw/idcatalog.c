@@ -970,6 +970,7 @@ GraphicComp* IdrawCatalog::ReadRaster (istream& in) {
     }
 
     Raster* raster = new Raster(w, h);
+    // cerr << "w,h " << w << "," << h << "\n";
     ReadRasterData(raster, in);
 
     return new RasterComp(new RasterRect(raster, &gs));

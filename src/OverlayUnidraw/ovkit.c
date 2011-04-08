@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998-1999 Vectaport Inc.
+ * Copyright (c) 1998-2000 Vectaport Inc.
  * Copyright (c) 1994-1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1994 Cartoactive Systems
  * Copyright (c) 1993 David B. Hollenbeck
@@ -266,10 +266,25 @@ void OverlayKit::InitViewer () {
 }
 
 void OverlayKit::InitLayout(const char* name) {
+    Catalog* catalog = unidraw->GetCatalog();
+    const char* stripped_string = catalog->GetAttribute("stripped");
+    boolean stripped_flag = stripped_string ? strcmp(stripped_string, "true")==0 : false;
     if (_ed->GetWindow() == nil) {
-        TextObserver* mousedoc_observer = new TextObserver(_ed->MouseDocObservable(), "");
-	const LayoutKit& lk = *LayoutKit::instance();
-	WidgetKit& wk = *WidgetKit::instance();
+
+      TextObserver* mousedoc_observer = new TextObserver(_ed->MouseDocObservable(), "");
+      const LayoutKit& lk = *LayoutKit::instance();
+      WidgetKit& wk = *WidgetKit::instance();
+      PolyGlyph* topbox = lk.vbox();
+
+      if (stripped_flag) {
+
+	Target* viewer = 
+	    new Target(new Frame(Interior()), TargetPrimitiveHit);
+	_ed->body(viewer);
+	topbox->append(_ed);
+
+      } else {
+
 	Glyph* menus = MakeMenus();
 	Glyph* states = MakeStates();
 	Glyph* toolbar = MakeToolbar();
@@ -277,7 +292,6 @@ void OverlayKit::InitLayout(const char* name) {
 	    menus->append(states);
 	Target* viewer = 
 	    new Target(new Frame(Interior()), TargetPrimitiveHit);
-	Catalog* catalog = unidraw->GetCatalog();
 	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
 	  if (strcmp(toolbarloca, "r") == 0) 
 	    toolbar->prepend(lk.vcenter(viewer));
@@ -287,9 +301,7 @@ void OverlayKit::InitLayout(const char* name) {
 	  toolbar->append(lk.vcenter(viewer));
 	menus->append(toolbar);
 
-	PolyGlyph* topbox = lk.vbox();
 	_ed->body(menus);
-	_ed->GetKeyMap()->Execute(CODE_SELECT);
 	topbox->append(_ed);
 	topbox->append(
 		wk.outset_frame(
@@ -298,12 +310,15 @@ void OverlayKit::InitLayout(const char* name) {
 		    )
 		)
 	    );
+      }
 
-	ManagedWindow* w = new ApplicationWindow(topbox, _otherdisplay);
-	_ed->SetWindow(w);
-	Style* s = new Style(Session::instance()->style());
-	s->alias(name);
-	w->style(s);
+      _ed->GetKeyMap()->Execute(CODE_SELECT);
+      ManagedWindow* w = new ApplicationWindow(topbox, _otherdisplay);
+      _ed->SetWindow(w);
+      Style* s = new Style(Session::instance()->style());
+      s->alias(name);
+      w->style(s);
+
     }
 }
 
@@ -877,6 +892,12 @@ MenuItem* OverlayKit::MakeStructureMenu() {
     MakeMenu(mbi, new BackCmd(new ControlInfo("Send to Back",
 				      KLBL_BACK, CODE_BACK)),
 	     "Send to Back   ");
+    MakeMenu(mbi, new PullCmd(new ControlInfo("Pull Up One"
+                                     )),
+           "Pull Up One   ");
+    MakeMenu(mbi, new PushCmd(new ControlInfo("Push Down One"
+                                    )),
+           "Push Down One   ");
 
     return mbi;
 }

@@ -35,7 +35,8 @@
 #if defined(__CYGWIN__)
 #include <mingw32/float.h>
 #else
-#include <values.h>
+#include <math.h>
+#define MAXFLOAT HUGE_VAL
 #endif
 #endif
 

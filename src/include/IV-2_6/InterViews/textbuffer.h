@@ -33,6 +33,8 @@
 
 class Regexp;
 
+//: editable text buffer (iv-2.6)
+// <a href=../man3.1/TextBuffer.html>man page</a>
 class TextBuffer {
 public:
     TextBuffer(char* buffer, int length, int size);

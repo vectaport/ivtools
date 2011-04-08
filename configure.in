@@ -10,6 +10,7 @@ case "$host" in
     *freebsd2.1.* ) platform_part=freebsd2.1 ;;
     *hpux*10*20) platform_part=hpux10.20 ;;
     *hpux* ) platform_part=hpux ;;
+    *netbsd* ) platform_part=netbsd ;;
     *linux* ) platform_part=linux ;;
     m88k-*-sysv4 ) platform_part=m88k-sysv4 ;;
     m88k-*-sysv3 ) platform_part=m88k-sysv3 ;;

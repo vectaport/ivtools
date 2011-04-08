@@ -187,6 +187,9 @@ EvalFunc::EvalFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void EvalFunc::execute() {
+  static int symret_sym = symbol_add("symret");
+  ComValue symretv(stack_key(symret_sym));
+
   // evaluate every string fixed argument on the stack and return in array
   int numargs = nargsfixed();
   if (numargs) {
@@ -197,6 +200,10 @@ void EvalFunc::execute() {
       if (argstrv.is_string()) {
 	if (comterp()->is_serv()) {
 	  ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
+	  if (val->is_nil() && symretv.is_true()) {
+	    delete val;
+	    val = new ComValue(argstrv.symbol_val(), AttributeValue::SymbolType);
+	  }
 	  if (!avl) avl = new AttributeValueList();
 	  avl->Append(val);
 	} else 

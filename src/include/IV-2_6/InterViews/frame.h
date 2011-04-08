@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: surrounds another Interactor (iv-2.6)
+// <a href=../man3.1/Frame.html>man page</a>
 class Frame : public MonoScene {
 public:
     Frame(Interactor* = nil, int width = 1);

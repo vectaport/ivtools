@@ -47,7 +47,7 @@ class ComterpHandler;
 // ComTerp is an extendable command interpreter with a simple C-like expression
 // syntax and support for commands with fixed-location and keyword-prefixed 
 // arguments.  The underlying architecture of this interpreter is patterned
-// after Fischer and LeBlanc's "Crafting a Compiler in C", with their pipeline
+// after Fischer and LeBlanc's "Crafting a Compiler with C", with their pipeline
 // of scanner --> parser --> code_conversion --> code_generation retrofitted into 
 // one of scanner --> parser --> code_conversion --> interpreter.
 // <p>
@@ -99,7 +99,7 @@ public:
     void brief(boolean flag) { _brief = flag; }
     // set brief mode flag.
 
-    int add_command(const char* name, ComFunc*);
+    int add_command(const char* name, ComFunc*, const char* alias = nil);
     // add a derived ComFunc to be known by 'name'.
     void list_commands(ostream& out, boolean sorted = false);
     // print an optionally sorted list of commands to an ostream.
@@ -216,23 +216,26 @@ protected:
     boolean _quitflag;
     char* _errbuf;
     int _pfoff;
-    boolean _brief;
+    boolean _brief; // when used to produce ComValue output
     boolean _just_reset;
-    boolean _defaults_added;
+    boolean _defaults_added; // flag for base set of commands added 
 
-    ComValueTable* _localtable;
-    static ComValueTable* _globaltable;
-    AttributeList* _alist;
+    ComValueTable* _localtable; // per interpreter symbol table
+    static ComValueTable* _globaltable; // interpreter shared symbol table
+    AttributeList* _alist; // extends symbol tables with names in an AttributeList
 
-    ComFuncState* _fsstack;
+    ComFuncState* _fsstack;  // stack of func-status (nargs/nkeys/...) 
     int _fsstack_top;
     unsigned int _fsstack_siz;
 
-    ComValue* _pfcomvals;
+    ComValue* _pfcomvals; 
+    // postfix buffer of ComValue's converted from postfix_token
 
     static ComTerp* _instance;
+    // default instance of a ComTerp
 
     ComterpHandler* _handler;
+    // I/O handler for this ComTerp.
 
     friend class ComFunc;
     friend class ComterpHandler;

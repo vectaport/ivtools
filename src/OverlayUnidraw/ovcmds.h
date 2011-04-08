@@ -401,4 +401,26 @@ protected:
 		       int& ni, int*& ix, int*& iy);
 };
 
+//: command to push down one level in the graphical structure
+class PushCmd : public BackCmd {
+public:
+    PushCmd(ControlInfo*);
+    PushCmd(Editor* = nil);
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+};
+
+//: command to pull up one level in the graphical structure
+class PullCmd : public FrontCmd {
+public:
+    PullCmd(ControlInfo*);
+    PullCmd(Editor* = nil);
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+};
+
 #endif

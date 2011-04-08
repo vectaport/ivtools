@@ -35,6 +35,8 @@
 
 class SF_Ellipse;
 
+//: ellipse component
+// <a href=../man3.1/EllipseComp>man page</a>
 class EllipseComp : public GraphicComp {
 public:
     EllipseComp(SF_Ellipse* = nil);

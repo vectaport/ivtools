@@ -34,6 +34,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: variable spacing between interactors (iv-2.6)
+// <a href=../man3.1/Glue2_6.html>man page</a>
 class Glue : public Interactor {
 protected:
     Glue();

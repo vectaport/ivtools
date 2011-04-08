@@ -44,28 +44,4 @@ public:
       return "%s([command] [command...] :all) -- help for commands"; }
 };
 
-//: symbol id command for ComTerp.
-// symid(symbol [symbol...]) -- return id associated with symbol
-class SymIdFunc : public ComFunc {
-public:
-    SymIdFunc(ComTerp*);
-    virtual void execute();
-
-    virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "%s(symbol [symbol...]) -- return id associated with symbol"; }
-};
-
-//: symbol value command for ComTerp.
-// symval(symid [symid...]) -- return symbol associated with id.
-class SymValFunc : public ComFunc {
-public:
-    SymValFunc(ComTerp*);
-    virtual void execute();
-
-    virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "%s(symid [symid...]) -- return symbol associated with id"; }
-};
-
 #endif /* !defined(_helpfunc_h) */

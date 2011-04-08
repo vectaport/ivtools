@@ -181,13 +181,15 @@ Run contents of file then exit.
 
  help(cmdname [cmdname ...]) -- help for commands
 
-[str]=print(fmtstr val :string|:str :err) -- print value with format string
+ [str]=print(fmtstr val :string|:str :err) -- print value with format string
 
- symid(symbol [symbol...]) -- return id associated with symbol
+ symid(symbol [symbol...]) -- return integer id(s) associated with symbol(s)
 
- symval(symid [symid...]) -- return symbol associated with id
+ symbol(symid [symid...]) -- return symbol(s) associated with integer id(s)
 
- postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys)
+ symvar(symbol_var [symbol_var...]) -- return value(s) associated with symbol variable(s)
+
+ postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
 
  arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
 				 
@@ -200,7 +202,7 @@ Run contents of file then exit.
 
  val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string
 
- val=eval(cmdstr) -- evaluate string as commands
+ val=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands, optionally return symbol instead of nil
 
  val=shell(cmdstr) -- evaluate command in shell
 

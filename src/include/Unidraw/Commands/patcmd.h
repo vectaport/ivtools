@@ -31,6 +31,8 @@
 
 class PSPattern;
 
+//: command to change pattern of current selection and editor.
+// <a href=../man3.1/PatternCmd.html>man page</a>
 class PatternCmd : public Command {
 public:
     PatternCmd(ControlInfo*, PSPattern* = nil);

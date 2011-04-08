@@ -31,6 +31,8 @@
 
 class PSColor;
 
+//: command to change color of current selection and editor
+// <a href=../man3.1/ColorCmd.html>man page</a>
 class ColorCmd : public Command {
 public:
     ColorCmd(ControlInfo*, PSColor* fg = nil, PSColor* bg = nil);

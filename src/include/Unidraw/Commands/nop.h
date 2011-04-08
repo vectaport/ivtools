@@ -29,6 +29,8 @@
 
 #include <Unidraw/Commands/command.h>
 
+//: null command
+// <a href=../man3.1/NOPCmd.html>man page</a>
 class NOPCmd : public Command {
 public:
     NOPCmd(ControlInfo*);

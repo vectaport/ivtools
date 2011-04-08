@@ -20,14 +20,14 @@ PATH environment variable.
 3. (optional) Download and install an emacs binary (for Windows NT)
 from www.fsf.org.
 
-4. Download ivtools-0.7.10.tgz or later:
+4. Download ivtools-0.8.tgz or later:
 
-http://www.vectaport.com/pub/src/ivtools-0.7.10.tgz
+http://www.vectaport.com/pub/src/ivtools-0.8.tgz
 
 In a cygwin/bash window:
 
-	tar xvfz ivtools-0.7.10.tgz  	# unpack and move to top directory
-        cd ivtools-0.7
+	tar xvfz ivtools-0.8.tgz  	# unpack and move to top directory
+        cd ivtools-0.8
 
 	./configure		# configure for CYGWIN environment
 	make World		# make Makefile/Makefiles/depend/-k	
@@ -39,7 +39,7 @@ At this point you should be able to verify that compiling and linking
 worked by executing the test program for the interpreter portion of
 ivtools:
 
-	ivtools-0.7/src/comterp_/CYGWIN/a.out
+	ivtools-0.8/src/comterp_/CYGWIN/a.out
 
 Type help to see information on available commands.
 

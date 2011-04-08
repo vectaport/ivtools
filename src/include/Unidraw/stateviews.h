@@ -45,6 +45,8 @@ class PSPattern;
 class PSFont;
 class TextInteractor;
 
+//: name state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class NameVarView : public StateVarView {
 public:
     NameVarView(NameVar*, Alignment = Center, const char* sample = nil);
@@ -53,6 +55,8 @@ protected:
     virtual boolean Stale();
 };
 
+//: file-name state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class FileNameVarView : public StateVarView {
 public:
     FileNameVarView(
@@ -65,6 +69,8 @@ protected:
     boolean _relative;
 };
 
+//: component-name state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class CompNameVarView : public StateVarView {
 public:
     CompNameVarView(
@@ -77,6 +83,8 @@ protected:
     boolean _relative;
 };
 
+//: modified-status state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class ModifStatusVarView : public StateVarView {
 public:
     ModifStatusVarView(ModifStatusVar*, Alignment = Center);
@@ -89,6 +97,8 @@ protected:
     boolean _prevVal, _prevProt;
 };
 
+//: magnify-factor state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class MagnifVarView : public StateVarView {
 public:
     MagnifVarView(MagnifVar*, Alignment = Center);
@@ -99,6 +109,8 @@ protected:
     float _prevVal;
 };
 
+//: gravity-enabled state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class GravityVarView : public StateVarView {
 public:
     GravityVarView(GravityVar*, Alignment = Center);
@@ -109,6 +121,8 @@ protected:
     boolean _prevVal;
 };
 
+//: current-font state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class FontVarView : public StateVarView {
 public:
     FontVarView(FontVar*, Alignment = Center, const char* sample = nil);
@@ -119,6 +133,8 @@ protected:
     PSFont* _prevVal;
 };
 
+//: current-brush state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class BrushVarView : public StateVarView {
 public:
     BrushVarView(BrushVar*, ColorVar* = nil);
@@ -132,6 +148,8 @@ protected:
     ColorVar* _colorSubj;
 };
 
+//: current-pattern state variable view
+// <a href=../man3.1/stateviews.html>man page</a>
 class PatternVarView : public StateVarView {
 public:
     PatternVarView(PatternVar*, ColorVar* = nil);

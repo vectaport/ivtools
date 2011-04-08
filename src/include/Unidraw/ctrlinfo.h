@@ -34,6 +34,8 @@
 
 class GraphicComp;
 
+//: manages persistent information contained in a Control
+// <a href=../man3.1/ControlInfo.html>man page</a>
 class ControlInfo {
 public:
     ControlInfo(

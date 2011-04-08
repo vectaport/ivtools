@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1999 Vectaport, Inc.
+ * Copyright (c) 1994-2000 Vectaport, Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -161,6 +161,7 @@ static PropertyData properties[] = {
     { "*twidth",        "512" },
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
+    { "*stripped",        "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",       "20002" },
@@ -204,6 +205,7 @@ static OptionDesc options[] = {
     { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+    { "-stripped", "*stripped", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
@@ -223,7 +225,7 @@ static char* usage =
 [-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
 [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
+[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stripped]\n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
 [-wbhost host] [-wbmaster] [-wbslave] [-wbport port] [-zoomer_off|-zoff] [file]";
 #else
@@ -232,7 +234,7 @@ static char* usage =
 [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
 [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
+[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stripped]\n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
 [-zoomer_off|-zoff] [file]";
 #endif

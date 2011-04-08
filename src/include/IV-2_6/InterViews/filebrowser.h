@@ -36,6 +36,8 @@
 class FBDirectory;
 class Regexp;
 
+//:  a StringBrowser that displays file names (iv-2.6)
+// <a href=../man3.1/FileBrowser.html>man page</a>
 class FileBrowser : public StringBrowser {
 public:
     FileBrowser(

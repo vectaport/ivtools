@@ -35,6 +35,8 @@
 
 const char CEComplete = ' ';
 
+//: string-editor with completion (iv-2_6)
+// <p><a href=../man3.1/CompletionEditor.html>man page</a>
 class CompletionEditor : public StringEditor {
 public:
     CompletionEditor(ButtonState*, const char* samp, const char* = SEDone);

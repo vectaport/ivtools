@@ -452,6 +452,17 @@
 #define MacroFile InterViews/iv-cygwin.cf
 #endif /* __CYGWIN__ */
 
+#if defined(__NetBSD__)
+#undef NETBSD
+#undef netbsd
+#define NetBSDArchitecture
+#define ArchitectureName NETBSD
+#define architectureName netbsd
+#define SiteDefCpu <site.def.NETBSD>
+#define MacroIncludeFile <InterViews/iv-netbsd.cf>
+#define MacroFile InterViews/iv-netbsd.cf
+#endif /* __NetBSD__ */
+
 #ifndef ArchitectureName
 XCOMM WARNING: Imakefile not configured; guessing at definitions!!!
 XCOMM This might mean that BOOTSTRAPCFLAGS was not set when building imake.

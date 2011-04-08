@@ -39,6 +39,8 @@ class Font;
 class Interactor;
 class Sensor;
 
+//: object representing a display (iv-2.6)
+// <a href=../man3.1/World.html>man page</a>
 class World {
 protected:
     World();

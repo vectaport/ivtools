@@ -103,6 +103,7 @@ ComValue::ComValue(postfix_token* token) {
     case TOK_EOF:     type(EofType); break;
     case TOK_COMMAND: type(SymbolType); break;
     case TOK_KEYWORD: type(KeywordType); break;
+    case TOK_BLANK:   type(BlankType); break;
     default:          type(UnknownType); break;
     }
     _narg = token->narg;

@@ -1,10 +1,15 @@
 /*
+ * Copyright (c) 2000  Vectaport Inc., I.E.T. Inc
  * Copyright (c) 1999  Vectaport Inc., I.E.T. Inc, R.B. Kissh and Associates
  * Copyright (c) 1998  Vectaport Inc., R.B. Kissh and Associates, Eric F. Kahler
  * Copyright (c) 1997  Vectaport Inc., R.B. Kissh and Associates
  * Copyright (c) 1996  Vectaport Inc., R.B. Kissh and Associates, Cider Press
  * Copyright (c) 1994, 1995  Vectaport Inc., Cartoactive Systems, Cider Press
+ * Copyright (c) 1993 David B. Hollenbeck
+ * Copyright (c) 1993 Ellemtel Telecommunication Systems Labratories
+ * Copyright (c) 1991, 1992 Sam Leffler
  * Copyright (c) 1991 Silicon Graphics, Inc.
+ * Copyright (c) 1989 Triple Vision Inc.
  * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and its

@@ -127,6 +127,7 @@ ComValue& ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
   }
 
   comterp()->post_eval_expr(argcnt, offtop, pedepth()+1);
+
   return comterp()->pop_stack(!symbol);
 }
 

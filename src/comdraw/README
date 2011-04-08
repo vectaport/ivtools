@@ -38,6 +38,12 @@ compview=arrowspline(x0,y0[,x1,y1,...]) -- create an open spline with arrows
 compview=polygon(x0,y0[,x1,y1,...]) -- create a polygon
 compview=closedspline(x0,y0[,x1,y1,...]) -- create a closed spline
 
+GRAPHIC STATS COMMANDS
+
+xylist=center(compview :xy :yx :x :y) -- center of compview (dflt :xy)
+rectlist=mbr(compview :lbrt :lrbt) -- minimum bounding rectangle of compview (dflt :lbrt)
+ptlist=points(compview) -- return point list from compview graphic
+
 GRAPHIC STATE COMMANDS
 
 font(fontnum) -- set current font from menu
@@ -52,7 +58,7 @@ ncolors() -- return size of color menus
 
 DIRECT MANIPULATION COMMANDS
 
-select(compview [compview ...]) -- make these graphics the current selection
+select(compview [compview ...] :all) -- make these graphics the current selection
 move(dx dy) -- move current selection
 scale(xflt yflt) -- scale current selection
 rotate(degflt) -- rotate current selection
@@ -110,6 +116,10 @@ connections on.
 "-import n" specifies the port number run the import service on.  The
 import service accepts connections over the net and reads drawtool
 format data.
+
+"-stripped" brings up a comdraw without any menubar, toolbar, panner,
+slider, or zoomer.  It can be controlled via stdin or telnet if built
+with ACE.
 
 SEE ALSO  
 	comterp, drawtool, idraw

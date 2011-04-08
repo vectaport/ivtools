@@ -24,6 +24,7 @@ config/InterViews/iv-luna.cf
 config/InterViews/iv-m4330.cf
 config/InterViews/iv-macII.cf
 config/InterViews/iv-moto.cf
+config/InterViews/iv-netbsd.cf
 config/InterViews/iv-pegasus.cf
 config/InterViews/iv-sgi.cf
 config/InterViews/iv-sony.cf
@@ -54,12 +55,14 @@ config/local.def
 config/m88k-sysv3-gcc.mk
 config/m88k-sysv4-gcc.mk
 config/makevars.def
+config/netbsd-gcc.mk
 config/params.def
 config/rules.def
 config/sco3.2.4-gcc.mk
 config/site.def.ALPHA
 config/site.def.HP800
 config/site.def.LINUX
+config/site.def.NETBSD
 config/site.def.SGI
 config/site.def.SUN4
 config/solaris-gcc.mk

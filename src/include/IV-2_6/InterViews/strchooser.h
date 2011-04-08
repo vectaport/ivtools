@@ -37,6 +37,8 @@
 class StringBrowser;
 class StringEditor;
 
+//: dialog box for choosing from list of strings (iv-2.6)
+// <a href=../man3.1/StrChooser.html>man page</a>
 class StringChooser : public Dialog {
 public:
     StringChooser(

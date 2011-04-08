@@ -571,7 +571,8 @@ int AttributeValue::array_len() {
 }
 
 unsigned int AttributeValue::command_symid() { return _command_symid; }
-void AttributeValue::command_symid(unsigned int id) { _command_symid = id; }
+void AttributeValue::command_symid(unsigned int id, boolean alias) { 
+  _command_symid = (alias ? -1 : 1) * id; }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
     AttributeValue* svp = (AttributeValue*)&sv;

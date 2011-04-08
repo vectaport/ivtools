@@ -30,6 +30,8 @@
 #include <Unidraw/globals.h>
 #include <Unidraw/uctrl.h>
 
+//: command control
+// <a href=../man3.1/uctrls.html>man page</a>
 class CommandControl : public UControl {
 public:
     CommandControl(ControlInfo*);
@@ -43,6 +45,8 @@ protected:
     void Init(ControlInfo*);
 };
 
+//: panel control
+// <a href=../man3.1/uctrls.html>man page</a>
 class PanelControl : public UControl {
 public:
     PanelControl(Interactor*, ControlInfo*, ControlState* = nil);
@@ -58,18 +62,24 @@ protected:
     void Init(Interactor*, ControlState*);
 };
 
+//: horizontal-panel control
+// <a href=../man3.1/uctrls.html>man page</a>
 class HPanelControl : public PanelControl {
 public:
     HPanelControl(ControlInfo*, ControlState* = nil);
     HPanelControl(const char*, ControlInfo*, ControlState* = nil);
 };
 
+//: vertical-panel control
+// <a href=../man3.1/uctrls.html>man page</a>
 class VPanelControl : public PanelControl {
 public:
     VPanelControl(ControlInfo*, ControlState* = nil);
     VPanelControl(const char*, ControlInfo*, ControlState* = nil);
 };
 
+//: command "interactor" control
+// <a href=../man3.1/uctrls.html>man page</a>
 class CommandInteractor : public UControlInteractor {
 public:
     CommandInteractor(ControlInfo*);
@@ -78,6 +88,8 @@ protected:
     virtual void Resize();
 };
 
+//: panel "interactor" control
+// <a href=../man3.1/uctrls.html>man page</a>
 class PanelInteractor : public UControlInteractor {
 public:
     PanelInteractor(ControlInfo*, Orientation);

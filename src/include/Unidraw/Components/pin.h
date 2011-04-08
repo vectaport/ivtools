@@ -37,6 +37,8 @@
 
 class PinGraphic;
 
+//: pin component
+// <a href=../man3.1/PinComp.html>man page</a>
 class PinComp : public Connector {
 public:
     PinComp(PinGraphic* = nil);

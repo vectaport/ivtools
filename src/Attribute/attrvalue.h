@@ -192,8 +192,10 @@ public:
 
     unsigned int command_symid();
     // symbol id of associated command name, for use with ComTerp.
-    void command_symid(unsigned int);
+    void command_symid(unsigned int, boolean alias=false);
     // set symbol id of associated command name, for use with ComTerp.
+    boolean command_alias();
+    // returns true if command is an alias, not the first name.
 
     void negate();
     // negate numeric values.
@@ -239,6 +241,8 @@ public:
     // returns true if !UnknownType.
     boolean is_string() { return is_type(StringType) || is_type(SymbolType); }
     // returns true if StringType || SymbolType.
+    boolean is_symbol() { return is_type(SymbolType); }
+    // returns true if SymbolType.
     boolean is_command() { return is_type(CommandType); }
     // returns true if CommandType (for use of ComTerp).
     boolean is_object() { return is_type(ObjectType); }

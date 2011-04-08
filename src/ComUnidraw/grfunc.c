@@ -652,19 +652,47 @@ SelectFunc::SelectFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) 
 }
 
 void SelectFunc::execute() {
-    Selection* sel = _ed->GetSelection();
-    sel->Clear();
+    Selection* s = _ed->GetSelection();
+    delete s;
+    OverlaySelection* newSel = new OverlaySelection();
     
-    for (int i=0; i<nargs(); i++) {
+    Viewer* viewer = _ed->GetViewer();
+    AttributeValueList* avl = new AttributeValueList();
+    if (nargs()==0) {
+
+      GraphicView* gv = viewer->GetGraphicView();
+      Iterator i;
+      int count=0;
+      for (gv->First(i); !gv->Done(i); gv->Next(i)) {
+	GraphicView* subgv = gv->GetView(i);
+	newSel->Append(subgv);
+	GraphicComp* comp = subgv->GetGraphicComp();
+	ComValue* compval = new ComValue(_compview_id, new ComponentView(comp));
+	avl->Append(compval);
+      }
+
+    } else {
+
+      for (int i=0; i<nargsfixed(); i++) {
         ComValue& obj = stack_arg(i);
 	if (obj.obj_type_val() == _compview_id) {
-	    ComponentView* comview = (ComponentView*)obj.obj_val();
-	    OverlayComp* comp = (OverlayComp*)comview->GetSubject();
-	    if (comp) 
-                sel->Append(comp->FindView(_ed->GetViewer()));
+	  ComponentView* comview = (ComponentView*)obj.obj_val();
+	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+	  if (comp) {
+	    newSel->Append(comp->FindView(viewer));
+	    ComValue* compval = new ComValue(_compview_id, new ComponentView(comp));
+	    avl->Append(compval);
+	  }
 	}
+      }
     }
+
+    _ed->SetSelection(newSel);
+    newSel->Update();
+    unidraw->Update();
     reset_stack();
+    ComValue retval(avl);
+    push_stack(retval);
 }
 
 /*****************************************************************************/

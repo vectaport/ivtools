@@ -29,6 +29,8 @@
 
 #include <Unidraw/Tools/tool.h>
 
+//: rotate tool
+// <a href=../man3.1/RotateTool.html>man page</a>
 class RotateTool : public Tool {
 public:
     RotateTool(ControlInfo* = nil);

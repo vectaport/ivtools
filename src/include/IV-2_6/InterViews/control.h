@@ -38,6 +38,8 @@
 class Control;
 class ControlState;
 
+//: provide an interface to selecting and executing some action (iv-2.6)
+// <a href=../man3.1/Control.html>man page</a>
 class Control : public MonoScene {
 public:
     Control(Interactor*);

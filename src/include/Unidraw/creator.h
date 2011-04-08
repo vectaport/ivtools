@@ -39,6 +39,8 @@
 class ObjectMap;
 class istream;
 
+//: component factory class
+// <a href=../man3.1/Creator.html>man page</a>
 class Creator {
 public:
     Creator();

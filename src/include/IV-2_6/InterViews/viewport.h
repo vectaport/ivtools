@@ -36,6 +36,12 @@
 
 #include <IV-2_6/_enter.h>
 
+//: Interactor that shows a portion of another Interactor (iv-2.6)
+// A viewport contains another interactor.  Unlike a MonoScene or Frame,
+// a viewport always gives the interactor its desired shape.  However,
+// the interactor may not be entirely viewable through the viewport.
+// The viewport's Perspective can be used to adjust what portion is visible.
+// <p><a href=../man3.1/Viewport.html>man page</a>
 class Viewport : public MonoScene {
 public:
     Viewport(Interactor* = nil, Alignment = Center);

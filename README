@@ -1,43 +1,14 @@
 
-			README for ivtools 0.7
+			README for ivtools 0.8
 
 
-This directory contains a release of ivtools 0.7.10 from Vectaport
+This directory contains a release of ivtools 0.8 from Vectaport
 Inc..  You should read the rest of this file for information on what
 ivtools is and the INSTALL file for instructions on how to build it.
 
-ivtools is known to build with many versions of gcc (<= gcc-2.7.2, >=
-gcc-2.8.1, >= egcs-1.0.1) and on a variety of Unix'es: SunOS 4.1
-(MIT's X11R5), Solaris 2.6 (X11R6), Irix 5.2 (SGI's X11R5), Linux 1.2
-(Slackware 3.0, XFree86 3.1) and Linux 2.* (RedHat 4.0 thru 5.2,
-Debian 2.*).  There are contributed configs for HPUX and Dec
-Alpha. Recently it has been built on Windows NT 4.0 using Cygwin from
-Cygnus Solutions (see README.cygwin).  You can pick up Linux-ELF
-binaries from the ivtools web page (http://www.vectaport.com/ivtools/).
-
 The overall copyright and permission notice for ivtools can be found
 in the COPYRIGHT file in this directory.  It is similar to the X11
-copyright, otherwise known as non-copylefted freeware.  If you have a
-question about this software, desire to add code, found a bug, want to
-request a feature, or wonder how to get further assistance, please
-send e-mail to ivtools-info@vectaport.com.  To subcribe to the mailing
-list, send an informal request to ivtools-request@vectaport.com.
-
-**NOTE** The COPYRIGHT might be changing slightly with ivtools-0.8, to
-acquire some of the protection of an LGPL style open-source license
-without adding restrictions to purely binary forms of redistribution.
-Take a look at the COPYRIGHT.proposed file and forward comments to
-ivtools-info@vectaport.com.  See an on-line discussion of this
-proposal at http://www.vectaport.com/ivtools/caveats.html
-
-Online documentation (including an FAQ) is available for ivtools at:
-
-	http://www.vectaport.com/ivtools/doc/
-
-Read about finding and generating inline documentation below.  A copy
-of the ivtools html documentation is available for download as well:
-
-	http://www.vectaport.com/pub/src/ivtools-0.7.10-html.tgz
+copyright, otherwise known as non-copylefted freeware.  
 
 * What is ivtools?:
 
@@ -140,6 +111,53 @@ cvs/rcs, and their subsequent update and modification.  This requires
 a copy of cvs available from the Free Software Foundation and
 ivmkcm-0.7.2 available through http://www.vectaport.com/ivmkcm/
 
+* More ivtools details
+
+ivtools is known to build with many versions of gcc (<= gcc-2.7.2, >=
+gcc-2.8.1, >= egcs-1.0.1) and on a variety of Unix'es: SunOS 4.1
+(MIT's X11R5), Solaris 2.6 (X11R6), Irix 5.2 (SGI's X11R5), Linux 1.2
+(Slackware 3.0, XFree86 3.1), Linux 2.* (RedHat 4.0 thru 6.0, Debian
+2.*), and NetBSD.  There are contributed configs for HPUX and Dec
+Alpha. Recently it has been built on Windows NT 4.0 using Cygwin from
+Cygnus Solutions (see README.cygwin).  You can pick up Linux-ELF
+binaries from the ivtools web page
+(http://www.vectaport.com/ivtools/).
+
+If you have a question about this software, desire to add code, found
+a bug, want to request a feature, or wonder how to get further
+assistance, please send e-mail to the general purpose ivtools mailing
+list, ivtools-discuss@lists.sourceforge.net, or this Vectaport e-mail
+address: ivtools-info@vectaport.com.  To subcribe to the mailing list,
+visit http://lists.sourceforge.net/mailman/listinfo/ivtools-discuss or
+send an informal request to ivtools-request@vectaport.com.  Other
+ivtools related mailing lists can be found at:
+
+	http://www.vectaport.com/ivtools/mailinglists.html
+
+**NOTE** A new term might be added to the COPYRIGHT in the future, to
+acquire some of the protection of an LGPL style open-source license
+without adding restrictions to purely binary forms of redistribution.
+Take a look at the COPYRIGHT.proposed file and forward comments to
+ivtools-info@vectaport.com.  See an on-line discussion of this
+proposal at http://www.vectaport.com/ivtools/caveats.html.  Vote your
+preference in a survey at:
+
+	http://sourceforge.net/survey/survey.php?group_id=275&survey_id=10018
+
+Online documentation (including an FAQ) is available for ivtools at:
+
+	http://www.vectaport.com/ivtools/doc/
+
+Read about finding and generating all this from inline documentation
+below.  A copy of the ivtools html documentation is available for
+download as well:
+
+	http://www.vectaport.com/pub/src/ivtools-0.8-html.tgz
+
+A SourceForge project page for ivtools can be found at:
+
+	http://sourceforge.net/project/?form_grp=275
+
 * Finding and Generating Inline Documentation
 
 Extensive documentation is embedded within the ivtools source tree,
@@ -162,7 +180,7 @@ InterViews 3.1 and Unidraw.  Here is a list:
 	Many of the C++ class libraries of ivtools are documented 
 	using comments in the header files (the .h files) that can
 	be extracted using PERCEPS, a Perl documentation generator for
-	C++ (http://friga.mer.utexas.edu/mark/perl/perceps/).
+	C++ (http://starship.python.net/crew/tbryan/PERCEPS/).
 
 	See src/html/README for instructions on auto-generating these
 	web pages yourself, or see the result on-line at:
@@ -211,7 +229,7 @@ and executable programs, you will want to get started by replicating
 an equivalent source tree (i.e. vhclmaps) and change or rename all
 directories or files as appropriate. 
 
-** read more on vhclmaps at http://www.vectaport.com/ivmaps/ **
+** read more on vhclmaps at http://www.vectaport.com/vhclmaps/ **
 
 
 * Acknowledgements:
@@ -223,9 +241,9 @@ ivtools programmers at Vectaport:
 
 ivtools programmers at large:
 
+	Brian Hogencamp
 	Rick Kissh
 	Eric Kahler
-	Brian Hogencamp
 
 InterViews 3.1 programmers that we know of:
 
@@ -268,7 +286,7 @@ Algebra routnes" (algebra3.h) from Jean-Francois Doue.
 HPUX (HP-800) config contributed by Neal Becker.  ALPHA config
 contributed by Bruno Delfosse at Thomson CSF.  A lot of feedback on
 Solaris 2.6 building from M. Rasit Eskicioglu at the University of
-Alberta.
+Alberta. NetBSD port by Todd Gruhn.
 
 Cygwin development environment for Windows NT from Cygnus Solutions.
 

@@ -38,6 +38,9 @@ class BrushRep;
 class BrushImpl;
 class Display;
 
+//: a brush style object
+// defines the line thickness and line style for drawing operations.
+// <p><a href=../refman3.1/refman.html#PAGE37>in reference manual</a>.
 class Brush : public Resource {
 public:
     Brush(Coord width);

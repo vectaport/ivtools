@@ -62,13 +62,15 @@
 #include <stropts.h>
 #include <sys/conf.h>
 #endif
+#if !defined(__NetBSD__)
 #if !defined(__linux__) && !defined(__CYGWIN__)
 /* no standard place for this */
 extern "C" {
     extern int ioctl(int, int, ...);
 }
-#else
+#else 
 #include <asm/socket.h>
+#endif
 #endif
 implementPtrList(WindowVisualList,WindowVisual)
 

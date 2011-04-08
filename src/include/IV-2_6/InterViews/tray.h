@@ -50,6 +50,8 @@ private:
     Shape* shape;
 };
 
+//: composes interactors into (possibly) overlapping layouts (iv-2.6)
+// <a href=../man3.1/Tray.html>man page</a>
 class Tray : public Scene {
 public:
     Tray(Interactor* background = nil);

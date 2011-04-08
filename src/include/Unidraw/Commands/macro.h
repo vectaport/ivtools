@@ -31,6 +31,8 @@
 
 class UList;
 
+//: command containing a sequence of other commands to execute
+// <a href=../man3.1/MacroCmd.html>man page</a>
 class MacroCmd : public Command {
 public:
     MacroCmd(ControlInfo*);

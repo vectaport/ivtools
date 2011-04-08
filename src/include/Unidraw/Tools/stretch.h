@@ -29,6 +29,8 @@
 
 #include <Unidraw/Tools/tool.h>
 
+//: stretch tool
+// <a href=../man3.1/StretchTool.html>man page</a>
 class StretchTool : public Tool {
 public:
     StretchTool(ControlInfo* = nil);

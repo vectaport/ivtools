@@ -48,6 +48,8 @@ private:
     void Init();
 };
 
+//: menu derived from Control (iv-2.6)
+// <a href=../man3.1/Menu2_6.html>man page</a>
 class Menu : public Control {
 public:
     Menu(Interactor*);

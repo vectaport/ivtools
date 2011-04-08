@@ -34,6 +34,8 @@ class StateVarView;
 class istream;
 class ostream;
 
+//: state variable
+// <a href=../man3.1/StateVar.html>man page</a>
 class StateVar {
 public:
     Connector* GetBinding();

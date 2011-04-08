@@ -37,6 +37,8 @@ class Iterator;
 class UList;
 class Selection;
 
+//:  contains a list of component subjects
+// <a href=../man3.1/Clipboard.html>man page</a>
 class Clipboard {
 public:
     Clipboard(GraphicComp* = nil);

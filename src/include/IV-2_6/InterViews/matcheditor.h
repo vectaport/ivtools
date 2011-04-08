@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: StringEditor with pattern matching.
+// <a href=../man3.1/MatchEditor>man page</a>
 class MatchEditor : public StringEditor {
 public:
     MatchEditor(ButtonState*, const char* sample, const char* done = SEDone);

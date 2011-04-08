@@ -32,6 +32,8 @@
 class Connector;
 class GraphicComp;
 
+//: undo command
+// <a href=../man3.1/edit.html>man page</a>
 class UndoCmd : public Command {
 public:
     UndoCmd(ControlInfo*);
@@ -45,6 +47,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: redo command
+// <a href=../man3.1/edit.html>man page</a>
 class RedoCmd : public Command {
 public:
     RedoCmd(ControlInfo*);
@@ -58,6 +62,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: cut command
+// <a href=../man3.1/edit.html>man page</a>
 class CutCmd : public Command {
 public:
     CutCmd(ControlInfo*, Clipboard* = nil);
@@ -74,6 +80,8 @@ protected:
     boolean _executed;
 };
 
+//: copy command
+// <a href=../man3.1/edit.html>man page</a>
 class CopyCmd : public Command {
 public:
     CopyCmd(ControlInfo*, Clipboard* = nil);
@@ -88,6 +96,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: paste command
+// <a href=../man3.1/edit.html>man page</a>
 class PasteCmd : public Command {
 public:
     PasteCmd(ControlInfo*, Clipboard* = nil);
@@ -105,6 +115,8 @@ protected:
     boolean _executed;
 };
 
+//: replace command
+// <a href=../man3.1/edit.html>man page</a>
 class ReplaceCmd : public MacroCmd {
 public:
     ReplaceCmd(ControlInfo*, GraphicComp* = nil);
@@ -119,6 +131,8 @@ protected:
     void Init(GraphicComp*);
 };
 
+//: duplicate command
+// <a href=../man3.1/edit.html>man page</a>
 class DupCmd : public Command {
 public:
     DupCmd(ControlInfo*, Clipboard* = nil);
@@ -135,6 +149,8 @@ protected:
     boolean _executed;
 };
 
+//: delete command
+// <a href=../man3.1/edit.html>man page</a>
 class DeleteCmd : public Command {
 public:
     DeleteCmd(ControlInfo*, Clipboard* = nil);
@@ -151,6 +167,8 @@ protected:
     boolean _executed;
 };
 
+//: select-all command
+// <a href=../man3.1/edit.html>man page</a>
 class SlctAllCmd : public Command {
 public:
     SlctAllCmd(ControlInfo*);
@@ -164,6 +182,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: connect command
+// <a href=../man3.1/edit.html>man page</a>
 class ConnectCmd : public Command {
 public:
     ConnectCmd(ControlInfo*, Connector* = nil, Connector* = nil);
@@ -184,6 +204,8 @@ protected:
     Connector* _source, *_target;
 };
 
+//: mobility command
+// <a href=../man3.1/edit.html>man page</a>
 class MobilityCmd : public Command {
 public:
     MobilityCmd(ControlInfo*, Mobility = Fixed);

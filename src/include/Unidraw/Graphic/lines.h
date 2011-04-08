@@ -31,6 +31,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: point graphic
+// <a href=../man3.1/lines.html>man page</a>
 class Point : public Graphic {
 public:
     Point(Coord x, Coord y, Graphic* gr = nil);
@@ -53,6 +55,8 @@ protected:
     PSBrush* _br;
 };
 
+//: line graphic
+// <a href=../man3.1/lines.html>man page</a>
 class Line : public Graphic {
 public:
     Line(Coord x0, Coord y0, Coord x1, Coord y1, Graphic* gr = nil);
@@ -76,6 +80,8 @@ protected:
     PSBrush* _br;
 };
 
+//: multi-line graphic
+// <a href=../man3.1/lines.html>man page</a>
 class MultiLine : public Vertices {
 protected:
     MultiLine(Coord* x, Coord* y, int count, Graphic* gr = nil) ;
@@ -86,6 +92,8 @@ protected:
     boolean f_intersects(BoxObj&, Graphic*);
 };
 
+//: stroked multi-line graphic
+// <a href=../man3.1/lines.html>man page</a>
 class S_MultiLine : public MultiLine {
 public:
     S_MultiLine(Coord* x, Coord* y, int count, Graphic* gr = nil);
@@ -104,6 +112,8 @@ protected:
     PSBrush* _br;
 };
 
+//: stroked-filled multi-line graphic
+// <a href=../man3.1/lines.html>man page</a>
 class SF_MultiLine : public MultiLine {
 public:
     SF_MultiLine(Coord* x, Coord* y, int count, Graphic* = nil);

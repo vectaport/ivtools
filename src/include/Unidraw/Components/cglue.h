@@ -32,6 +32,8 @@
 
 class Shape;
 
+//: connector glue for specifying connection behavior
+// <a href=../man3.1/CGlue.html>man page</a>
 class CGlue {
 public:
     CGlue(

@@ -1,0 +1,1488 @@
+September 14th 1999 ivtools-0.7.10
+
+Drawing Editors
+
+	* propogate the horizontal-drawing-of-text-while-in-landscape-mode
+ 	enhancement that's been in drawtool for awhile to idraw, because
+ 	this is a long-standing Debian request, and it's hard to see how
+ 	it would bother anyone.  Before you would be entering vertical
+ 	text when in landscape mode.  Now it will be horizontal, just like
+ 	it is in portrait mode.
+
+Interpreter Changes
+
+	* change comterp's for and while command to accept an extra fixed
+ 	argument for the body expression if no :body argument exists,
+ 	i.e.:
+
+	for(x=0 x<10 x++ print("%d\n" x))
+
+	x=0;while(x<10 print("%d\n" x))
+
+	instead of:
+
+	for(x=0 x<10 x++ :body print("%d\n" x))
+
+	x=0;while(x<10 :body print("%d\n" x))
+
+	* fix bugs in incr_after (postfix ++) and decr_after (postfix --)
+ 	commands in comterp.
+
+Library Changes
+
+	-- Attribute --
+
+	* add methods for checking a "blank" AttributeValue.  These
+	are pushed on the stack by comterp whenever an interpreter
+	command fails to put anything on the stack.
+
+		AttributeValue::is_blank
+	
+		static AttributeValue::is_blank(ValueType t)
+
+	-- OverlayUnidraw --
+
+	* set up a new method, OverlayEditor::ReplaceComponent, to do what
+ 	::SetComponent does, plus delete the old component if it is no
+ 	longer used in the Unidraw environment.  This gets rid of a bug
+ 	that appeared in ivtools-0.7.9, where the deleting of the old
+ 	component was done in two places, once in OvNewCompCmd::Execute
+ 	(where it has always been done) and once in
+ 	OverlayEditor::SetComponent (where it was done for the duration of
+ 	ivtools-0.7.9).
+
+	* fix bug (that appeared in ivtools-0.7.9) for handling of the New
+ 	command Postscript-format option on the export dialog box.
+	
+
+Miscellaneous and Configuration Changes	
+
+	* a set of changes to config files and some source files to get
+ 	ivtools compiled on Windows NT using Cygwin beta 20.  Everything
+ 	works to build the executables, including the configure script and
+ 	the imake process.  Haven't yet tested it with an X server. See
+ 	README.cygwin for more details.  Thanks to John Carlson at
+ 	Lawrence Livermore National Labs for showing this was possible
+ 	with his copy of InterViews, Cygnus Solutions' Cygwin environment,
+ 	and X11R6.4 Xlib binaries from NASA.
+	
+	* change the script in aclocal.m4 for finding the
+ 	CPlusPlusIncludeDir to work on Windows NT (with Cygwin) as well.
+
+	* rename these directories:
+
+	comterp, iueserv, drawserv
+
+	to:
+
+	comterp_, iueserv_, drawserv_
+
+	This is to avoid a collision with the library directions ComTerp,
+ 	IueServ, and DrawServ which would happen when untar'ing ivtools on
+ 	a Windows NT box (using the Cygwin tar).  Although upper and lower
+ 	case are preserved, they are not distinct for purposes of file
+ 	comparison on that platform.
+
+
+July 30th 1999 ivtools-0.7.9
+
+Drawing Editors
+
+	* add a "PostScript" format to the export dialog box, which means
+ 	when checked to use the existing incompatible extension to idraw
+ 	PostScript format which supports color image rendering.  With normal
+ 	idraw format, which is a restricted formulation of real
+ 	PostScript, the color images print grey.
+
+	* terminate a multi-point drawing tool if right-clicks cause the
+ 	number of vertices to become zero.  
+
+	* added keyboard shortcuts for zoom-in (Shift-Z) and zoom-out
+ 	(Ctrl-Z).
+
+	* change behavior of magnify-tool to zoom by 2 around a
+ 	single-click. Done in all drawing editors, including idraw.
+	
+Interpreter Changes
+
+	* modify the comterp "+" operator to concatenate two strings.
+
+	* create a comterp eval command to take a set of strings and
+ 	return an array of evaluated results on the stack.  Same
+ 	functionality as the "," operator, only from strings.
+
+	* add a :str and :err keywords to comterp's print func.  :string
+ 	already existed, :str is just shorter for something so commonly
+ 	used (since the advent of string concatenation).  :err writes to
+ 	stderr instead of stdout.  
+
+        * fixed bug in comterp help func that caused a segfault when help
+ 	was requested for unknown operator strings, i.e. help("^")
+
+Library Changes
+
+	-- IV-common and Unidraw-common --
+
+	* add a link to Unidraw/geomobjs.c from Unidraw-common, and a link
+ 	to OS/math.c to IV-common.  This is done so that both geomobjs.c
+ 	and fgeomobjs.c can be used from comterp.  This is tested with the
+ 	construction of a PointObj and FPointObj in comterp/main.c. So if
+ 	you can get everything built through comterp you can make use of
+ 	these geometric objects without any other IV or Unidraw code.
+
+	-- Attribute --
+
+	* added API to ComModule (<Attribute/commodule.h>) to inspect the
+ 	operator table for infix,postfix, or prefix operators that match a
+ 	string.
+
+	-- Unidraw --
+
+	* deprivatize boolean Unidraw::updated(), so it can be used to
+ 	prune unnecessary calls to Unidraw::Update from comdraw.
+
+	-- AttrGlyph -- 
+	
+	* modified AttributeListEditor::update_text to put a blank
+ 	after long attribute names.
+	
+	-- OverlayUnidraw --
+
+	* three partial experiments to improve the incremental loading of
+ 	rasters from URLs.  Each temporarily disabled for various reasons
+ 	with a unique #define:
+
+	#define OPEN_DRAWTOOL_URL // define for drawtool document loading
+	           	          // from a URL in ovimport.c
+
+	#define RASTER_DAMAGE1 // define for incremental flushing of raster
+	                       // in ovraster.c
+
+	#define RASTER_DAMAGE2 // define to use mb of incrementally loaded
+	                       // region for raster damage in ovraster.c
+
+	The OPEN_DRAWTOOL_URL attempt first causes a placeholder graphic
+ 	to be opened and displayed, and nothing more happens until you
+ 	manipulate the placeholder graphic in some way, like moving it.
+  	Then the contents of the drawtool document is displayed, which may
+ 	include raster referenced by URL, which are incrementally
+ 	displayed as they are loaded.
+
+	The RASTER_DAMAGE1 attempt works when importing images or opening
+ 	them by themselves or another document, but you can see artifacts
+ 	(all white rows) if you zoom in and out repeatedly during the load
+ 	process.
+
+	The RASTER_DAMAGE2 attempt works when importing images but not
+ 	completely when opening images by URL whether stand-alone or in a
+ 	drawtool document.
+
+	-- ComUnidraw --
+
+	* start work on an ivtools distributed whiteboard capability.
+  	Decided to implement this using the comdraw command interpreter.
+  	Now all the Command objects generated by a Manipulator are
+ 	indirectly executed via a new ComEditor::ExecuteCmd method (the
+ 	base class method, OverlayEditor::ExecuteCmd, just calls
+ 	Command::Execute immediately). This indirect execution is where
+ 	things will get beefed up to make for a distributed whiteboard.
+
+	Right now, whether you specify -wbmaster or -wbslave on the
+ 	comdraw command line, all the PasteCmd's (the commands that result
+ 	when a GraphicCompTool is used) are converted into comdraw script
+ 	capable of constructing and pasting the equivalent comp.  In the
+ 	future this script would be transmitted to the whiteboard master,
+ 	then redistributed to each whiteboard slave.  Right now it is
+ 	simply interpreted within the local comdraw, to show that things
+ 	work (somewhat).
+
+	The script is generated by constructing a SCRIPT_VIEW of the
+ 	components in the clipboard of the PasteCmd, then having it write
+ 	it's ::Definition out to an ostrstream.  This worked fine for
+ 	ellipse with no changes to the generated script. Synonym commands
+ 	had to be set up for rectangle (rect), arrowline (line),
+ 	arrowmultiline (multiline), and arrowspline (closedspine).  Right
+ 	now it works for everything but the text graphic, and any of the
+ 	multi-point graphics.
+
+	Currently it ignores all the additional arguments that get spewed
+ 	out in the script (like :fgcolor) and takes these instead from the
+ 	default graphic state of the viewer.  When used in a true
+ 	distributed fashion these would need to be used, and this would
+ 	then allow each person to have their own default graphic state.
+
+Miscellaneous and Config Changes
+
+	* fix the inclusion of nan.h when using glibc-2.0.  It already
+ 	worked for glibc-2.1.  It migrates the conditional include of
+ 	nan.h from OverlayUnidraw/grayraster.c to src/include/ivstd/nan.h.
+  	It tests for !glibc-2.0 before using bits/nan.h as the include
+ 	file pathname.  Worked out with help from Guenter Geiger.
+
+	* patches to compile on SunOS 4.1.4 from Nico Kadel-Garcia at the
+ 	Massachusetts Eye and Ear Infirmary.
+
+	* remove fgeomobjs.c from Unidraw-common.  It didn't really belong
+ 	there.
+
+	* modify the configure script to detect if necessary symbolic
+ 	links are missing and add them.  This happens when you get a copy
+ 	of ivtools from a cvs repository.
+	
+	* threw out the Dispatch/ace*.h files.  If there are used anywhere
+ 	those references will have to be changed to AceDispatch/ace*.h.
+
+	* added links from the PERCEPS-generated documentation to the old
+ 	3.1 man pages for the Dispach library.  Full-up links for
+ 	InterViews and Unidraw remain to be done.
+
+	* fixes for building with ACE 4.6.15 and glibc-2.1, submitted by
+ 	Guenter Geiger.
+	
+	* beefed up MANIFEST.comterp (and README.comterp) so that now a
+ 	stand-alone comterp tar file can be created, untarred in a new
+ 	place, configured, built, and installed.  All works smoothly now.
+  	The resultant tar file is 1/5th the size of the entire ivtools.
+
+	* removed a Use_libInterViews() from src/Attribute/Imakefile,
+ 	because this library doesn't really have an InterViews dependency
+ 	(only IV-common and Unidraw-common).  From Guenter Geiger.
+
+	* new InstallXDefaultAs rule in config/rules.def from Guenter
+ 	Geiger, to get the permission right when installing
+ 	InterViews.defaults.
+
+June 10th 1999 ivtools-0.7.8
+
+Interpreter Changes
+
+	* migration of the stream operator "," upwards in the parsing
+ 	priority table, to have higher priority than the assignment
+ 	operators, so that something like:
+
+	v=1,2,3,4
+
+	ends up assigning a list to the variable v that can be passed to
+ 	commands like size, at, sum, etc..
+
+	* came up with a solution for iterating over multiple space
+ 	delimited expressions in a single line of input when using a
+ 	comterp in server mode.  Now something like:
+
+	1 2 3 4
+
+
+	returns:
+
+	1
+	2
+	3
+	4
+
+	* add an echo of returned results to the comterp client mode.
+
+Library Changes
+
+	-- Attribute --	
+
+	* add extra predicates to AttributeValue:
+
+	AttributeValue::is_numeric() (same as ::is_num)
+	AttributeValue::is_object()
+
+	* change timer mechanism in ComTerpHandler to disable old
+	timer before creating new one.
+
+	-- ComTerp --	
+
+	* catch one more place (ComTerpServ::runfile()), where the
+	bufsiz needed to be kicked up to 1M.
+
+	-- FrameUnidraw --
+
+	* fix bug in deserializing code for a FrameIdrawComp so that
+	if a background frame already exists another one is not created.
+
+Config and Miscellaneous Changes
+
+	* add IET Inc. to the overall copyright, to reflect their
+	new status as a contributor to and supporter of ivtools.
+
+	* added workarounds for glibc-2.* needed by Dispatch/dispatcher.c
+ 	and OverlayUnidraw/grayraster.c.  Makes ivtools compile on RedHat
+ 	6.0.
+
+May 3rd 1999 ivtools-0.7.7
+
+Drawing Editor and Drawing Editor Framework Changes
+
+	* add Ellipse::ellipse_to_polygon method, to return
+	a list of points that define an ellipse as a polygon.
+
+Interpreter and Interpreter Framework Changes
+
+	* add command to return the size of a list (ListSizeFunc/size).
+	
+	* add command to return the nth member of a list (ListAtFunc/at).
+
+	* add a :nowait argument to the remote command, to allow for
+	asynchronous transmission of commands to a remote interpreter.
+
+	* add a ComFunc::exec method for use of derived class ::execute
+	methods.  It calls ComFunc::push_funcstate, then ::execute, then
+	ComFunc::pop_funcstate.
+
+	* fix a bug where the print command was passing a double
+	to a float format string.
+
+	* add an AttributeList::merge method, for combining the contents of
+ 	two AttributeList's.
+
+	* add a ComFunc::stack_keys method, for returning all the
+ 	keyword/value pairs of a ComFunc invocation in an AttributeList.
+
+	* create a SetAttrFunc in ComUnidraw that can be used to set the
+ 	attributes of a graphic component via the command
+ 	interpreter. 
+
+Config and Miscellaneous Changes
+
+	* fix problem with relative install of shared libraries that
+	was recently introduced.
+
+	* TopoFace/fgeomobjs.c temporarily incorporated into Unidraw-common
+	so it can be made use of from comterp and other IV-free
+	applications.  The better long-term approach is to link the
+	TopoFace library into comterp, and incorporate any IV or
+	Unidraw classes that it relies on into IV-common or
+	Unidraw-common.
+
+	* Experiment with a MANIFEST.comterp that specifies a
+	stand-alone subset of ivtools that excludes the bulk of IV and
+	Unidraw.  The resultant source tree builds with a
+	"./configure;make World", but there are lots of warnings and
+	errors to be smoothed over.
+
+	* increment all the buffer sizes associated with comterp from the
+ 	default 1K (BUFSIZ) to 1M.  A better solution would be to revisit
+ 	the continuity of command input over multiple input buffers for
+ 	the various modes of input (or at least make it a command line
+ 	parameter or X resource).  When entering command via stdin it is
+ 	easy enough to use command line continuation (automatically
+ 	invoked if an expression is incomplete) or character string
+ 	continuation (a backslash followed immediately by a newline).  But
+ 	this generality does not apply to socketed interactions, etc..
+
+	The buffer overrun (at 1K) was being correctly detected, and
+	disaster averted, but it was still a problem because there was
+	no course of correction.  So upping it to 1M is a quick fix.  
+
+	* fix a file id limitation of 20 on Solaris.
+
+
+April 16th 1999 ivtools-0.7.6
+
+Drawing Editor and Library Changes
+
+	* when reading rasters from URL's, set the "by-pathname" flag
+ 	based on import dialog box check box.  This flag controls whether
+ 	a raster is serialized with just a pathname or with all the pixel
+ 	data.
+
+	* update flipbook's view menu to include things like the scribble
+ 	pointer, etc..  Still no support for multiple viewers.
+
+	* fix some very old event handling bugs in drawtool etc..  Have
+ 	you ever seen the cursor jump the first time you draw or move
+ 	something in an editor?  There were two different problems, one
+ 	where X coordinates were not getting converted to IV coordinates
+ 	(upper-left origin to lower-left origin), and the other was a
+ 	little more tricky.  Whenever something is dragged in an editor,
+ 	the software issues an XGrabPointer to the server, so that all
+ 	subsequent events come through relative to the canvas of the
+ 	drawing editor.  Except, because of the client-server nature of X,
+ 	it was possible for some motion events to slip through before the
+ 	XGrabPointer had taken affect!
+
+	* add a pointer-tracking mechanism to drawtool (invoke with
+ 	-ptrloc command line argument).  This introduces an extra bar
+ 	across the top (below the menu-bar) with a constantly updated
+ 	readout of the pointer in document coordinates.
+
+	Several things had to be developed to make this work:
+
+	- a static function pointer (a callback) was added to the 
+	Event class, to be invoked (if defined) for every event
+	read from the X server.  This is its signature:
+
+    typedef void (*event_tracker_ptr)(Event&);
+
+	and these are the methods for setting and retrieving
+	the static function pointer:
+
+    static event_tracker_ptr event_tracker() { return _event_tracker; }
+    static void event_tracker(event_tracker_ptr ptr) { _event_tracker = ptr; }
+
+	- a static method on OverlayUnidraw was developed that matched
+	this signature:
+
+    static pointer_tracker_func(Event&);
+
+	this method ignores all but motion events, but still had to
+	deal with 3 different kinds of motion events:
+
+	1. motion events associated with the top-level window
+	(the ApplicationWindow) before the offset to Unidraw canvas
+	is known (this requires traversing the X Window tree to
+	compute the offset using a new method Window::offset_from_toplevel).
+
+	2. motion events associated with the top-level window after
+	the offset to Unidraw canvas is known (which happens after the
+	first mouse click within the Unidraw canvas).
+
+	3. motion events directly associated with the Unidraw canvas
+	(these occur during a drag operation within the canvas).
+
+	In each case the right thing was done to convert the raw
+	XEvent locations to canvas screen coordinates, which are
+	then converted to drawing coordinates using
+	OverlayViewer::ScreenToDrawing.  This method also deals
+	with multiple-editor/viewers, by searching the Unidraw editor
+	list to find which editor/viewer the event corresponds to.
+
+	- finally, a state variable was developed (PtrLocState) that
+	converts the screen coordinates to drawing coordinates and
+	displays them in a glyph.
+
+Config and Miscellaneous Changes
+
+	* really make things work without a CPU environment variable.  It
+ 	was necessary to change a $$CPU to a $(CPU) in the makefile stuff.
+
+	* modify configure script to allow for the specification of only
+ 	one pathname for each underlying library.  You can still specify
+ 	the second pathname to explicitly say where the libraries are, but
+ 	if it can find them without this everything works.  For example,
+ 	you only have to supply --with-ace, and not --with-ace-libs, if
+ 	the libraries and include files for ACE are co-located.
+
+	* fix unnecessary bash dependency in configure script.  
+
+	    export PWD=`pwd` 
+
+	is now 
+
+	    PWD=`pwd';export PWD.
+
+	* various fixes to Solaris 2.6 build and install submitted by Roy
+ 	M. Lecates of Fore Systems:
+
+	- workaround for collision with #define of ManDir
+	in config/config-solaris-gcc.mk
+
+	- new command line for installing symbolic links: 
+	"tar cf - file | (cd dir; tar xfp -)" instead of "cp -d"
+
+	- patch to make src/sripts/bsdinst.sh handle multiple files
+
+	* patch to add "[]" after delete where ever purify wants it,
+ 	submitted by Roy M. Lecates of Fore Systems.
+
+	* explicit definition of FloatCoord (same as the default Coord) in
+ 	src/include/InterViews/coord.h
+
+
+March 19th 1999 ivtools-0.7.5
+
+Drawing Editor Changes
+
+	* re-center rasters imported from a URL as soon as the width and
+ 	height are known.
+
+	* fully animate move/scale/stretch/rotate tools.  Can be disabled
+ 	with -opaque_off or -opoff given to drawtool or any derivative
+ 	editor.
+
+Interpreter Changes
+
+	* add an import command to comdraw, which for now takes a raster
+ 	URL and imports it into the drawing editor.  To try it out, run
+ 	ivtools flipbook, enable auto-new-frame (under the View menu),
+ 	then enter something like the following into stdin:
+
+	  for(x=1 x<5 x++ :body 
+	    import(print("http://www.vectaport.com/ivtools/aaron-%d.gif" x :string)))
+
+Library Changes
+
+	-- OS --
+
+	* make the offset for String::contains apply to the internal
+ 	string.  Didn't make much sense applied to the first argument.
+
+	-- IV-2_6 -- 
+
+	* add a ClassId system to all the classes derived from Rubberband,
+ 	for use of the OpaqueDragManip described below.
+
+	-- ComTerp -- 
+
+	* add short and ushort output to ComValue ostream operator.
+
+	-- OverlayUnidraw --
+
+	* fixed a bug in OvImportCmd where imports via ACE were getting
+ 	treated like URL imports for asynchronous incremental download
+	(because the is_url flag was set).
+
+	* migrate OvImportCmd::is_url to be a method that computes its
+ 	value from a pathname, instead of needing to be set and cleared.
+
+	* in OvImportCmd, separate out the code fragment for centering a
+ 	newly imported component, snapping to grid if gravity on:
+
+	  static void OvImportCmd::center_import(Editor*, GraphicComp*)
+
+	then use it to re-center a raster being imported from a URL as
+ 	soon as the width and height are known.
+
+	* create OpaqueDragManip (OverlayUnidraw/ovmanips.c) to replace
+ 	the rubberbands with directly visualization of graphical
+ 	transformations (move/scale/stretch/rotate).
+	
+	Care was taken in the creation of OpaqueDragManip, making sure
+ 	that there was no cumulative error accrued with many small mouse
+ 	moves, so hopefully you'll never see the graphic jump when you let
+ 	go of the mouse button.
+	
+	-- FrameUnidraw --
+
+	* fixed a bug in FrameViewer::Update, where ::Update was getting
+ 	erroneously called when a resize was needed (same problem was
+ 	fixed a short while back in OverlayViewer::Update).
+
+Config and Miscellaneous Changes
+
+	* upgrade the configure script to auto-determine the CPU type, the
+ 	PWD, the XCONFIGDIR, and the GPLUSPLUSINCLUDEDIR.  This greatly
+ 	simplifies the INSTALL directions.  Now the following command is
+ 	all it should take to build from source on most commercial Unix'es
+ 	(as long as imake invokes a gcc version of cpp):
+
+	  ./configure;make World;su -c "make install"
+
+	To do this I had to generate two output files from configure, one
+ 	to feed the imake process as before (a config/config-<os>-gcc.defs
+ 	generated from config/config.defs.in), and another
+ 	(config/config.mk) to be directly pulled in by the top-level
+ 	Makefile (and every other Makefile).
+
+	* restructure the declaration of make variables for library
+ 	pathnames in config/local.def (adds a new file,
+ 	config/makevars.def), so that each library has to be listed only
+ 	twice, once for the LIB* variable, and once for the DEP* variable.
+	
+	* add support for file: to ParamList::urltest and
+ 	OpenFileChooser::urltest (this is conditional on finding w3c or
+ 	curl).
+
+	* gcc-2.8.1 warnings fixed.
+
+	* remove a duplicate -I on the src directory when compiling.
+
+
+February 27th 1999 ivtools-0.7.4
+
+Drawing Editor Changes
+
+	* make use of the X Shared Memory extensions for raster display.
+
+	* implement asynchronous download and incremental display of color
+ 	images from a URL.  To test, make a local copy of
+ 	http://www.vectaport.com/ivtools/anteaters.drs, and open it with
+ 	ivtools drawtool.  Watch while the rasters within this drawing are
+ 	downloaded from various web servers.  Before its finished you can
+ 	pan or zoom the drawing, and move or draw any graphic (including
+ 	the partially downloaded rasters).  Then you can Undo all your
+ 	changes to get back to a fully-loaded, unmodified drawing!
+
+	* add support for Ctrl-K (delete-until-end-of-line) to the string
+ 	editor used throughout ivtools.  
+
+	* add support for pasting the current X Window selection when the
+ 	middle mouse button is clicked within a string editor. Especially
+ 	useful for the string editor used within the Open and Import
+ 	dialog boxes.
+
+	* add a one-line welcome message to every drawing editor that
+ 	gives the ivtools version number, identifies the editor, and
+ 	states how to find more information.
+
+	* complete support for floating point brush width (line width) in
+ 	all ivtools drawing editors.  New idraw PostScript format version
+ 	number (12) introduced to facilitate this.  
+
+	Version 11 has been in use since ivtools-0.6.7, and differed from
+ 	the class Version 10 in only one detail, the addition of
+ 	"closepath" to the PostScript fragments for circle and ellipse
+ 	graphics.  Version 12 is forward-compatible, in that future
+ 	versions of idraw will be able to always read it, but for the
+ 	first time in a long while there is no guarantee of backward
+ 	compatibility.  This has been the design and intent of the idraw
+ 	version numbering system all along.
+
+	Ideally what this means is that users of older versions of idraw
+ 	would see a warning message that explained why a newer format
+ 	drawing didn't load.  Unfortunately pre-existing bugs in idraw
+ 	(ones that have been fixed since ivtools-0.6.7) cause the warning
+ 	message to have zero's where version numbers should go and/or
+ 	cause idraw to segfault when it can't load a newer format.  The
+ 	warning message should work ok for users of idraw from Debian 2.1.
+  	For more details see:
+	
+ 	    http://www.vectaport.com/ivtools/faq.html#idrawversions.
+
+	* The incrementing of the idraw format version number was
+ 	undertaken to add support for floating point line widths, at the
+ 	request of Robert S. Maier, the developer of GNU plotutils.  This
+ 	possiblity has not been enabled yet.  But to show off the new
+ 	capability a "Precise Width" was added to the Brush menu of
+ 	drawtool, etc..  For kicks try something like 10000.
+	
+	* add a check for using the curl download utility, after checking
+ 	for the w3c download utility, and before trying the native ivdl
+ 	utility.
+
+Interpreter Changes	
+
+	* add a one-line welcome message to every interpreter that
+ 	gives the ivtools version number, identifies the interpreter, and
+ 	states how to find more information.
+	
+Documentation Changes
+
+	* finalize the embedding of PERCEPS extractable comments in the
+ 	header files for most of the class libraries:
+
+	    http://friga.mer.utexas.edu/mark/perl/perceps/
+
+	* add a -t argument to iclass to generate a tree structured
+	web page of links to HTML class documentation.
+
+	* create a src/html directory with enough instructions and
+	PERCEPS template files to allow a third party to recreate
+	most of the HTML documentation for ivtools found under:
+
+	    http://www.vectaport.com/ivtools/doc/
+
+ComTerp Framework Changes
+
+	-- ComTerp -- 
+
+	* make NilFunc that ignores all its arguments, does (almost)
+ 	nothing except for returning nil on the stack.  Bind it to the nil
+ 	symbol in comterp.
+
+	* fix problem with undefined commands inside the body of a control
+ 	command by substituting a NilFunc to execute (while preserving the
+ 	symbol id associated with the undefined command).
+
+	* add a _command_symid member variable to ComFuncState, so that
+ 	this value can be used a NilFunc to report what undefined command
+ 	is being skipped by returning nil on the stack.
+
+	* add numeric conversion funcs: char (CharFunc), short
+ 	(ShortFunc), int (IntFunc), long (LongFunc), float (FloatFunc),
+ 	double (DoubleFunc). In the future unsigned'ness can be added with
+ 	keyword arguments, and maybe a boolean func could be defined as
+ 	well.
+
+Glyph Framework Changes
+
+	-- IV-X11 -- 
+
+	* add support for the SelectionNotify X11 event type.  This is
+ 	what a client receives after it makes a request for the current X
+ 	selection (i.e. what happens when the middle mouse button gets
+ 	pressed in something like an xterm).
+
+	* add a new InputHandler virtual method:
+
+	    InputHandler::selection_notify(const Event&); 
+
+	this gets called whenever a SelectionNotify event arrives at an
+ 	InputHandler.
+
+	-- InterViews -- 
+
+	* make a FieldEditor::selection_notify(const Event&) method that in
+ 	turn delegates the SelectionNotify event to a new
+ 	FieldStringEditor::do_xselection_paste.
+
+	* finally (actually this was first), change the
+ 	FieldStringEditor::press method to call a new
+ 	FieldStringEditor::do_xselection_request whenever the midddle
+ 	button is pressed.  When that happens the client asks the server
+ 	to get the current window manager selection from whomever owns it,
+ 	and assign it to a property on the local window.  When this is
+ 	done a SelectionNotify event gets generated and
+ 	FieldStringEditor::do_xselection_paste ends up getting called to
+ 	paste the result into the FieldEditor.  Voila!
+
+        -- glyphs/examples3.1 -- 	
+
+	* add most of the InterViews 3.1 glyph example programs in a
+ 	subdirectory alongside the rest of the glyph examples, except for
+ 	gl which requires gl.h and punidraw which requires Unidraw.
+  	morpher and plot/sendplot need to be debugged.
+
+	* to run the button2 example you have supply a tif file as the
+ 	first argument on the command line, or have a copy of jello.tif
+ 	(from the 3.1 distribution) in your current directory.
+
+	* create README's for src/glyphs and src/glyphs/examples3.1
+
+	* make the morpher example use its own classnames for things in
+ 	figure.(ch) This is the same process that created
+ 	IVGlyph/figure.(ch) a long time ago.  These could be made to use
+ 	the same classes, but not worth doing until the morpher example
+ 	looks more promising.  Maybe even the morpher example should be
+ 	thrown out (again).
+
+Unidraw Framework Changes
+
+	-- OverlayUnidraw --
+
+	* change Overlay(s)Comp's interpretation of a duplicate command
+ 	(DUP_CMD), to duplicate the AttributeList as well if one exists.
+
+	* change the ::Copy methods of all the comp's in OverlayUnidraw,
+ 	to replicate the associated AttributeList if there is one.
+
+	-- GraphUnidraw --
+
+	* debug the duplicate (DUP_CMD) command when used on NodeComp's in
+ 	graphdraw.  Turns out the istream constructed NodeComp's did not
+ 	have the same layout of graphic state as the others.  The
+ 	underlying TextGraphic did not have a Font pointer, for example.
+  	This was no problem in rendering, but was a problem for the
+ 	duplicate command, which invoked a get-extent operation which
+ 	failed for lack of knowing the font.  Fix was to push down gs of
+ 	the Picture graphic associated with the NodeComp to be in the
+ 	underlying ellipse and text graphics as well.
+
+	-- DrawServ --
+
+	* rename all the classes in DrawServ to have a "Draw" prefix
+ 	instead of a "Com" prefix, to alleviate confusion between the
+ 	ComUnidraw and DrawServ layers.
+
+	* derive everything in DrawServ from FrameUnidraw.  Already
+ 	DrawServ had been able to handle components from GraphUnidraw
+ 	without having its mechanisms inherited from GraphUnidraw.  This
+ 	"finishes" the job, making for a multi-frame graph editing
+ 	framework.
+
+Miscellaneous and Config Changes
+
+       	* remove all WishList files.  This is now handled outside of the
+ 	tarfile, some of it on:
+
+	    http://www.vectaport.com/ivtools/help-wanted.html
+
+
+	* changes required based on feedback from M. Rasit Eskicioglu at
+ 	the University of Alberta, as he tried (and succeeded) building
+ 	ivtools on Solaris 2.6, as well as a few changes based on feedback
+ 	from Bruno DelFosse at Thompson CSF (Dec Alpha guy).
+
+	* many improvements to the non-relative installation process (the
+ 	default), including fixing the generated ivmkmf script.
+
+	* creation of an uninstall makefile target, which reverses the
+ 	effect of "make install".  Useful for backing out the installation
+ 	of one version of ivtools before installing another, or before
+	switching modes of installation.
+
+	* src/include/std renamed to src/include/ivstd, so it makes a
+ 	little more sense when someone does a non-relative install in
+ 	/usr/local.
+
+	* upgrade to gcc-2.8.1 and libstdc++-2.8.1.1, which required some
+ 	changes: 
+
+	- new src/include/ivstd/signal.h file, to reset NULL to be 0
+	(instead of ((void*)0).  Same trick required in
+ 	src/include/ivstd/string.h (to avoid new warnings).  
+
+	- add the OS String class to the IV-common library, and extend it
+ 	so that utils/ivdl could be ported to use it, to avoid any use of
+ 	libg++ String (libg++ is no longer recommended, at least by the
+ 	gcc-2.8.1 distribution).  
+
+	- changes to Attribute/paramlist.c and a few others to get rid of
+ 	new warnings.
+	
+	* upgrade to ACE-4.6, which required some changes:
+
+	- the register_stdin_handler method on the Reactor is no longer
+
+	- need to add -UHAVE_ACE to makedepend 
+
+	- more changes required for ivmaps (like #undef CLOSED after
+	<VpfUtil/vpftable.h> -- that'll be in a patch someday.
+
+	* add a src/tests directory, with the first program useful for
+ 	demonstrating no Y2K problem in ivtools (y2k/y2ktest.cc).
+
+	* incorporate COPYRIGHT.proposed as another way of getting
+ 	comments.
+
+	* add comtop.tgz directly to the tar file, the tar file for a
+ 	sample stand alone custom comterp.
+
+	* fix up the use ivmkmf in conjunction with comtop.tgz, making it
+ 	work equally well with and without --enable-relative-install
+ 	supplied to ./configure.
+
+	* rewrite the definitions of the library makefile variables in
+ 	config/local.def, so that a conditionally determined macro gets
+ 	defined first, then each library requires only a single line after
+ 	that (and a single line for the dependency make variable).
+  	Because of the inflexiblity of the C preprocessor this is not so
+ 	elegant, in that the arguments to the macro have to include the
+ 	library name without and without the prefix, and one with a -l
+ 	prefix.  But is still only a single line, which is a big improvement.
+
+	* make use of the UseInstalled preprocessor define to indicate
+ 	when Makefiles should be generated to use the installed copy.
+  	This really only makes sense (or is only currently used) for
+ 	ivmkmf when --enable-relative-install was not given to
+ 	./configure.
+
+	* adds a historical list of changes to ivtools over the course of
+ 	version 0.4
+
+	* appends to CHANGES-0.5 changes which occurred for 0.5.1 and
+ 	0.5.2. This leaves only 0.5.3 and 0.5.4 (and any work prior to
+ 	0.4.0) undocumented.
+
+	* small change found in Debian ivtools-0.7.3-1 changes.
+	
+January 26th 1999 ivtools-0.7.3
+
+Drawing Editor Changes
+
+	* add support for CR and ESC to the attribute editing dialog box
+ 	of any drawing editor.  Now CR accepts the contents of the two
+ 	field editors (when the focus is in one of them) and ESC clears
+ 	the field editor with current focus.  Also the current contents of
+ 	the field editors is added to the attribute list whenever OK is
+ 	clicked.
+
+	* glyphify (grayish 3d look) the "Precise Page" dialog box, which
+ 	invokes the command to reset the drawing editor page size.
+
+	* fix the use of the "save by pathname" checkbox on the export
+ 	dialog box.
+
+	* change both the export and print dialog boxes so that they don't
+ 	clobber a command line or pathname that has been entered when you
+ 	click on the "to command" checkbox or the output format
+ 	enums/checkboxes.  This is done by disabling the auto-update
+ 	feature (the thing that automatically places a
+ 	ghostview/idraw/drawtool command line when "to command" is
+ 	checked) whenever the contents of the field-editor has changed
+ 	from the default.
+
+Utility Changes
+
+	* add a -d argument to iclass to dump an html file of links to web
+ 	pages named the same, i.e. Interactor.html or OverlayComp.html.
+  	Each class link is followed by a menu of derived classes.  See the
+ 	result when used on ivtools at
+ 	http://www.vectaport.com/ivtools/doc/classes/derivedclasses.html.
+
+Library Changes
+
+	-- Attribute --
+
+	* add a ParamStruct copy constructor.
+
+	* protect "int AttributeList::add_attr(Attribute*)", because it
+ 	requires the user to be aware of the return status and free memory
+ 	if required, and replace it with a public "void
+ 	AttributeList::add_attribute(Attribute*)".  NOTE: This is a
+ 	less-than 100% backward compatible change to the API of the
+ 	Attribute library.  You may have to switch your code over to the
+ 	new method, and in the process you might remove a memory leak.
+
+	* add AttributeList::add_attr methods that take an "int symid".
+
+	-- ComTerp -- 
+
+	* changes ComTerp/assignfunc.c to use AttributeList::add_attribute
+ 	instead of the now protected ::add_attr(Attribute*);
+
+	-- InterViews -- 
+
+	* remove limitation of 1024 command line arguments for any
+ 	program.  Found while running iclass with more than 1024 header
+ 	files in the command line.
+
+	-- Unidraw --
+
+	* add a ::Width() and ::Height() method to PageGraphic.
+
+	* change the copyright notices on all the Graphic-related files
+ 	that were changed back in 1994 to accomodate hide/show/sensitivity
+ 	and gs/pts/pic compaction.
+
+	-- UniIdraw --
+
+	* add support for floating point line widths to idraw, as
+ 	requested by Robert S. Maier, the GNU plotutils guy.  This is
+ 	indicated by Version 11 of the idraw format, but a floating point
+ 	line width can a) be successfully read if incorporated in an older
+ 	idraw format, and b) can be successfully ignored by older idraw
+ 	executables (because the istream method for reading an integer can
+ 	handle floats).  This was easy to do, because the object
+ 	underlying the idraw brush object PSBrush is Brush, and it had
+ 	always supported a floating point line width.  Further plans for
+ 	Version 11 of idraw format include support for the capstyle and
+ 	joinstyle of a brush.
+
+	* fix an egcs revealed problem in the Arrowhead class
+ 	(UniIdraw/idarrowhead.*), where an Arrowhead&
+ 	Arrowhead::operator=(Arrowhead&) needed to be defined as well as
+ 	the existing Graphic& Arrowhead::operator=(Arrowhead&) (Debian bug
+ 	#30749).  This had not been a problem with earlier C++ compilers,
+ 	because they defaulted to using the assignment operator for
+ 	Graphic& whenever an assignment operator for Arrowhead& wasn't
+ 	available.
+
+	-- OverlayUnidraw --
+
+	* remove a mysterious call to OverlayViewer::Update from within
+ 	OverlayViewer::Update (invoked when _needs_resize is true).
+
+	* change the classid macro in OverlayUnidraw/ovcomps.h so that it
+ 	adds methods ::class_name() and ::class_symid() to any class
+ 	definition (instead of the previous ::classname() and ::classid(),
+ 	the latter which had a confusing similarity to the ::ClassId()
+ 	method on Unidraw components).  NOTE: this is a less-than 100%
+ 	backward compatible change to the OverlayUnidraw API, and may
+ 	require changes in third-party code that makes use of the macro.
+	
+	* add a call to Observable::notify at the end of
+ 	OverlayComp::SetAttributeList (something that gets invoked when an
+ 	attribute editing dialog box gets OK clicked).  By default this
+ 	invokes OverlayComp::update, which calls OverlayComp::Notify, so
+ 	the ::notify method (used for generic observable/observer
+ 	notification) quickly gets transmuted into a subject/view sort of
+ 	Notify/Update. However a derived class can override this (by
+ 	providing a different ::update method), keeping the two tracks of
+ 	notify/update separate, which is exactly what happens in NodeComp
+ 	described below.
+
+	-- ComUnidraw --
+
+	* create ComUnidraw/plotfunc.(ch) to hold BarPlotFunc and the
+ 	forthcoming LinePlotFunc and ScatPlotFunc.
+
+	* set up a :newview argument to the barplot func, to make plotting
+ 	in the current viewer the default behavior.  
+
+	* wrap an OverlayKit::bincheck("plotmtv") around the
+ 	comterp->add_command for the barplot func.
+
+	-- GraphUnidraw -- 
+
+	* make each end-node an Observer of each start-node (whenever an
+ 	edge connects two nodes).  Create this observer/observable link in
+ 	the EdgeConnectCmd, remove it within a GraphDeleteCmd, and restore
+ 	it after a graphdraw document is newly opened.
+
+	* use this new observer/observable mechanism between nodes to
+ 	trigger a dataflow process, where each node recomputes its :value
+ 	attribute based on a :valexpr attribute when told to ::update
+ 	itself.  Nothing happens if no :valexpr attribute exists.  The
+ 	command that makes up a valexpr assumes in1, in2, etc.. are
+ 	predefined.  The NodeComp::update method goes out and gets these
+ 	values and builds up a string for ComTerp to evaluate that first
+ 	sets the values within the interpreter, then executes the
+ 	:valexpr.  The result is place back within a :value attribute.
+
+	* Here is an example of a graphdraw document with embedded
+ 	dataflow. The executable script (the :valexpr) with each of the
+ 	three computational nodes represent the AND, OR, and NOT operators
+ 	of 4-value Null Convention Logic, 4NCL (http://www.theseus.com):
+
+
+graphdraw(5,5
+    gs( :fillbg 1 :brush 65535,0 :fgcolor "Black",0,0,0 :bgcolor "White",1,1,1 :font "-*-helvetica-medium-r-normal-*-12-*-*-*-*-*-*-*","Helvetica",12 :graypat 1),
+    gs( :fillbg 1 :brush 65535,0 :fgcolor "Black",0,0,0 :bgcolor "White",1,1,1 :graypat 0),
+    node( :reqlabel 1 :ellipse 300,458,35,20 :ellipsetrans 1,0,0,1,15,36 :text 12,"NOT" :texttrans 1,0,0,1,302.5,487 :gs 0 :valexpr "if(in1=='I'||in1=='N' :then in1 :else !in1) /* NOT */" :val N),
+    node( :reqlabel 1 :ellipse 300,458,35,20 :ellipsetrans 1,0,0,1,-102,-33 :text 12,"AND" :texttrans 1,0,0,1,185,418 :gs 0 :valexpr "if(in1=='I'||in2=='I' :then 'I' :else if(in1=='N'||in2=='N' :then if(in1=='N'&&in2=='N' :then 'N' :else 'I') :else in1&&in2)) /* OR */" :val 'N'),
+    node( :reqlabel 1 :ellipse 300,458,35,20 :ellipsetrans 1,0,0,1,151,-34 :text 12,"OR" :texttrans 1,0,0,1,442.5,418 :gs 0 :transform 1,0,0,1,0,1 :valexpr "if(in1=='I'||in2=='I' :then 'I' :else if(in1=='N'||in2=='N' :then if(in1=='N'&&in2=='N' :then 'N' :else 'I') :else in1||in2)) /* OR */" :val 'N'),
+    node( :reqlabel 0 :ellipse 178,503,35,20 :ellipsetrans 1,0,0,1,-118,-3 :text 16,"" :texttrans 1,0,0,1,60,485 :gs 0 :val 'N'),
+    node( :reqlabel 0 :ellipse 172,341,35,20 :ellipsetrans 1,0,0,1,-116,15 :text 16,"" :texttrans 1,0,0,1,56,341 :gs 0 :val 'N'),
+    edge(85,486,173,439 :arrowscale 1.5 :tail :startnode 3 :endnode 1 :gs 1),
+    edge(82,369,172,412 :arrowscale 1.5 :tail :startnode 4 :endnode 1 :gs 1),
+    edge(222,439,291,480 :arrowscale 1.5 :tail :startnode 1 :endnode 0 :gs 1),
+    edge(341,481,425,438 :arrowscale 1.5 :tail :startnode 0 :endnode 2 :gs 1),
+    edge(233,425,416,424 :arrowscale 1.5 :tail :startnode 1 :endnode 2 :gs 1)
+)
+
+	* add these methods to ease access of other components from an
+ 	EdgeComp:
+
+    EdgeComp* EdgeIn(int n) const;
+    // return pointer to nth incoming edge.
+
+    EdgeComp* EdgeOut(int n) const;
+    // return pointer to nth outgoing edge.
+
+    EdgeComp* EdgeByDir(int n, boolean out_edge) const;
+    // return pointer to nth edge of given direction.
+
+    NodeComp* NodeIn(int n) const;
+    // return pointer to node on other side of nth incoming edge.
+
+    NodeComp* NodeOut(int n) const;
+    // return pointer to node on other side of nth outgoing edge.
+
+	* add these methods to ease access of other components from an
+ 	NodeComp:
+
+    NodeComp* NodeStart() const;
+    // return pointer to start node.
+
+    NodeComp* NodeEnd() const;
+    // return pointer to end node.
+
+Configuration, Documentation, and Miscellaneous Changes
+
+	* add PERCEPS (http://friga.mer.utexas.edu/mark/perl/perceps/)
+ 	extractable documentation to the header files of these class
+ 	libraries: Attribute, ComTerp, OverlayUnidraw, GraphUnidraw.
+  	Result can be found at
+ 	http://www.vectaport.com/ivtools/doc/classes/index.html.
+
+	* add man pages from iv/src/man/(Dispatch|InterViews|Unidraw) to
+ 	src/man/man3/.  Also put them online at
+ 	http://www.vectaport.com/ivtools/doc/man3.1/
+
+	* add PostScript copy of InterViews 3.1 reference manual.  Also
+ 	put up online at http://www.vectaport.com/ivtools/doc/refman3.1/
+
+	* add in PERCEPS class comments with URLs to point to man page
+ 	from InterViews 3.1 (i.e. href=../man3.1/Border.html) to be
+ 	embedded in PERCEPS generated web pages, as well as comments with
+ 	reference manual web page URLs.
+	
+	* add output of attributes when serializing a toplevel
+ 	FrameUnidrawComp or GraphUnidrawComp.
+
+	* fix Solaris build problems with OverlayUnidraw/grayraster.c and
+ 	utils/ivdl, thanks to feedback from Dan DeJohn at Digicomp.
+
+	* same fixes apply to an Alpha build, given feedback from Bruno
+ 	Delfosse at Thomson CSF.
+
+
+December 23rd 1998 ivtools-0.7.2
+
+Drawing Editor Changes
+
+	* enable deferred loading of rasters-by-URL, similar to the
+ 	deferred loading of PGM/PPM rasters.  Tested with the following
+ 	flipbook document, which brings up the first frame, and loads the
+ 	subsequent frames only when moved to:
+	
+flipbook(
+    frame(),
+    frame(
+        raster("http://www.nps.gov/apis/photo1.jpg" :transform 1,0,0,1,120.5,271)
+    ),
+    frame(
+        raster("http://www.nps.gov/apis/photo2.jpg" :transform 1,0,0,1,120.5,271)
+    ),
+    frame(
+        raster("http://www.nps.gov/apis/photo3.jpg" :transform 1,0,0,1,120.5,271)
+    ),
+    frame(
+        raster("http://www.nps.gov/apis/photo4.jpg" :transform 1,0,0,1,120.5,271)
+    )
+)
+
+	* set up a continuously-looping slideshow mechanism for flipbook,
+ 	invoked by a "-slideshow secs" command line argument or a
+ 	":slideshow secs" attribute in the flipbook document.  At present
+ 	requires building with ACE (or downloading Linux binaries).
+  	Typing "exit" into stdin or Ctrl-Q through the GUI will terminate
+ 	the show. See this URL for sample on-line slideshows:
+
+	http://www.vectaport.com/ivtools/slideshows.html
+
+	* glyphify the precise move/scale/rotate dialog boxes in
+ 	drawtool/comdraw/flipbook/graphdraw (under the Edit menu).  This
+ 	leaves only the precise page dialog box (under the View menu) left
+ 	to be glyphified.
+
+	* test the new comdraw funcs described below with a script like
+ 	this entered into stdin:
+
+	for(x=0 x<100 x++ :body ellipse(rand(0,ncols-1),rand(0,nrows-1),rand(20,30),rand(10,20));rotate(rand(1,180));update;colors(rand(1,ncolors) rand(1,ncolors));pattern(rand(1,npatterns)))
+
+	** happy random jelly beans **
+
+Interpreter Changes
+
+	* add rand([minval,maxval]) and srand(seedval) funcs to comterp.
+
+	* add :string argument to print(fmtstr val) func, to cause the
+ 	output to be pushed on the stack in the form of a string.
+
+	* update documentation (both README and man pages) for comterp and
+ 	comdraw.
+
+	* add comdraw funcs to return menu sizes: nfonts(), nbrushes(),
+ 	npatterns(), and ncolors().
+
+	* add comdraw funcs to return onscreen extent of canvas in pixels:
+ 	ncols() and nrows().
+
+	* generalize the timeexpr func to take a :sec argument, and
+ 	include this func in a comterp built with ACE (server mode).
+
+Library Changes
+
+	-- ComTerp --
+
+	* generalize the timeoutscript mechanism on the ComterpHandler to
+ 	take a seconds argument as well (ComTerpHandler::timeoutseconds()).
+
+	-- IVGlyph --
+
+	* add a GFieldEditor::select_all method, to facilitate its use
+ 	from new precise move/scale/rotate dialog boxes.
+
+	* extend StrEditDialog to accept an arbitrary extra glyph.
+
+	* generalize RadioEnumEditor to allow for horizontal layout and no
+ 	frame.
+
+	-- OverlayUnidraw --
+
+	* set up OvPreciseMoveCmd, OvPreciseScaleCmd, and
+ 	OvPreciseRotateCmd, to allow for the glyphification of the
+ 	"Precise" command dialog boxes.
+
+	* create an OverlayGraphic::new_painter() for use by
+ 	OverlayUnidraw to slip in an OverlayPainter for the default
+ 	Graphic Painter (Graphic::_p).  It was discovered that every
+ 	OverlayRasterRect was creating a new OverlayPainter and stuffing
+ 	it in Graphic::_p, which wasn't a problem, until I tried to defer
+ 	the loading of rasters-by-URL.  This meant that the Painter was
+ 	engaged in rendering the raster before the final OverlayRasterRect
+ 	was constructed, which caused the Painter currently being used to
+ 	be deleted (oops).
+
+	-- FrameUnidraw --
+
+	* create a FrameEditor::InitCommands (invoked by the ::Resize
+ 	method on the viewer) to initialize the slideshow mechanism.
+
+Configuration and Miscellaneous Changes
+
+	* change the construction of the toolbar glyphs, to use a
+ 	layout.vflexible with infinite stretchability and 0
+ 	shrinkability. This works to make the whole toolbar automatically
+ 	appear no matter how long, and obviates the need to have a funky
+ 	constant that guesses how many pixels long the toolbar really is.
+
+	* switch flipbook from using a Dispatcher based ComTerpIOHandler
+ 	on stdin to using a Reactor based UnidrawComterpHandler (when
+ 	built with ACE).  This facilitates the use of the timeexpr func in
+ 	the flipbook slideshow mechanism.  In the future the older
+ 	Dispatcher mechanism could handle the slideshow mechanism as well
+ 	(since timer objects are supported by the Dispatcher).
+
+December 4th 1998 ivtools-0.7.1
+
+Drawing Editor Changes
+
+	* add support for %s embedding in print and export dialog box
+ 	command strings.  This facilitates the cat'ing of a file to a
+ 	device (i.e. cat %s >/dev/lp1), and use of utilities like pstoedit
+ 	(i.e. "pstoedit -f tgif %s /tmp/temp.obj;tgif /tmp/temp.obj") from
+ 	these dialog boxes. If no %s is found when the "to command" button
+ 	is checked, the command line is built up the old way, by appending
+ 	the pathname of the temporary file used for rendering output.  So
+ 	"ghostview" will still work, as well as "ghostview %s".
+	
+	* propagate the stay-on-grid bugfix that was introduced in
+ 	ivtools-0.7 down to idraw.
+	
+	* recognize and accept the partial idraw format generated by
+ 	xfig2idraw (idraw already could handle it)
+	
+	* add full URL support for black-and-white JPEG's and GIF's (color
+ 	and graylevel were already handled).
+
+Interpreter Changes
+
+	* fix :abs argument on flipbook moveframe func.  Now on a
+ 	four-frame flipbook these work equally as well:
+
+
+  for(i=0 i<100 i++ :body 
+      for(j=0 j<4 j++ :body moveframe(1);update);moveframe(-3);update)
+
+	*and*
+
+  for(i=0 i<100 i++ :body 
+      for(j=0 j<4 j++ :body moveframe(1);update);moveframe(1 :abs);update)
+
+	* complete the iueserv example program, a derived comterp that
+ 	links against the Image Understanding Environment
+ 	(http://www.aai.com/AAI/IUE/IUE.html).  Now the following command
+ 	string works to process an image and export it to a drawing
+ 	editor:
+
+  export(conncomp(threshold(image("test.pgm") 150)) "localhost" 20001)
+
+Library Changes
+
+	-- ComTerp --
+
+	* fix bug in post-evaluation handling of keyword arguments with no
+ 	associated values.  See flipbook example above.
+	
+	-- Unidraw --
+
+	* second attempt to fix the interaction of the Modified (dirty)
+ 	state variable and the New command.  This time, when
+ 	ModifStatusVar::SetComponent is called, a check is made to ensure
+ 	the new component is actually different than the old component
+ 	before clearing the modified flag.
+
+Configuration and Miscellaneous Changes
+
+	* remove conflicting include of memory.h that impacted a Solaris
+ 	build in these file: Attribute/attrvalue.c, IV-2_6/textbuffer.c,
+ 	and IV-2_6/texteditor.c.
+
+	* add back the need for XCONFIGDIR for "make World" in the INSTALL
+ 	file.
+
+	* expand the Acknowledgements section of the README.
+
+	* incorporate changes suggested by Debian ivtools-0.6.7-4 (the
+ 	last packaging for the slink release of Debian).
+
+	* rename scripts/install.sh to scripts/install-sh, to avoid a make
+ 	rule that would automatically create a confusing (to make) install
+ 	file.
+
+
+November 12th 1998 ivtools-0.7
+
+Drawing Editor Changes
+
+ 	* ivtools drawtool (and every drawing editor that inherits the
+ 	same mechanism) can now import or open a wide variety of graphics
+ 	file by URL.  This is done with a separate ivtools executable,
+ 	ivdl, written by Eric Kahler, which makes a straightforward
+ 	attempt to connect to any http or ftp server and download the
+ 	requested file.  Any error messsages are printed to stderr.
+
+	This means that ivtools now supports hyper-structured-graphics, as
+ 	defined (invented?) by William Chia-Wei Cheng, the author of Tgif:
+
+		http://bourbon.cs.umd.edu:8001/tgif/hgviewer.html
+
+	To try it out, acquire or build a copy of ivtools drawtool, and
+ 	launch it on this URL:
+
+	        http://www.vectaport.com/ivtools/anteaters.drs
+
+	* In addition to URL support, ivtools drawtool supports launching
+ 	or importing (to an import port if built with ACE) on any JPEG,
+ 	GIF, TIFF, or pbmplus image file, any idraw format PostScript, and
+ 	non-raster portions of any arbitrary PostScript file.  These
+ 	capabilities require the use of the following executables
+ 	distributed separately from ivtools: djpeg, giftopnm, tifftopnm,
+ 	pstoedit.	
+
+	* ivtools drawtool supports launching or importing of any graphic
+ 	file compressed by gzip or compress as well.	
+
+	* The "auto-convert" check-box on the import dialog box has been
+ 	removed (by default).  This feature is still available for use in
+ 	custom applications, or the same effect can be had by entering an
+ 	"anytopnm" command line into the import dialog box, and selecting
+ 	the "from command" checkbox before hitting the Import button.	
+
+	* this release fixes a very old stay-on-grid-when-zooming problem
+ 	in drawtool.  The changes ended up being very minor, and will be
+ 	propogated to idraw by ivtools-0.7.1, but for now they exist only
+ 	in drawtool to facilitate independent verification that the
+ 	problem is gone.
+
+	This might have been one of the inadvertent reasons why Fresco
+ 	went to all floating-point coordinates.  In the Unidraw graphics
+ 	library, the graphics are all rendered in integers (collected from
+ 	the screen coordinates of the original drawing events), then
+ 	mapped to a floating point drawing coordinate system with a
+ 	floating point affine transform.  There was an unsolved problem
+ 	with this strategy, and you can reproduce it in idraw with these
+ 	steps:
+
+	0) turn on the grid (?) and gravity (,)
+	1) zoom in once
+	2) pan left once (while at 2x magnification)
+	3) zoom back to 1x magnification
+	4) draw a rectangle 
+	5) zoom in four times or so -- you'll see rectangle isn't on grid
+
+	The reason is that the pan at 2x is really the equivalent of a
+ 	fractional pan at 1x, so when you get back to 1x the grid is no
+ 	longer on an integer boundary, but halfway between pixels.  Of
+ 	course this is impractical for drawing the grid, so the grid
+ 	coordinates are rounded before rendering.  The same thing is done
+ 	for the x,y coordinates of the mouse events in Grid::Constrain.
+
+	The resultant rectangle looks great at 1x, where the rounding
+ 	effects on the grid display match up with the integer-constrained
+ 	coordinates that define the rectangle.  But as you zoom in, the
+ 	grid positions are no longer rounded, and you see the error
+ 	between the actual grid location and the rectangle drawn with
+ 	gravity on.
+
+	The fix was to simply ensure that the transformer used to
+ 	construct a graphic when gravity is on would always produce
+ 	integerized drawing coordinates, by rounding the last two
+ 	arguments of the affine transform used to map from screen
+ 	coordinates to drawing coordinates.  This counters for the
+ 	necessary rounding effect when x,y events are constrained
+ 	(Grid::Constrain) not to the actual floating point location of the
+ 	grid, but to the nearest pixel.  Try the above directions in an
+ 	ivtools-0.7 copy of drawtool, and you'll see the problem is gone.
+
+	Bug reported by Larry Larson and others.
+
+Server Changes
+
+	* a new server, iueserv, was set up to begin experimenting with
+ 	the packaging of the extensive capability of the Image
+ 	Understanding Environment class libraries into the command
+ 	language of comterp.  The IUE is available from:
+
+		http://www.aai.com/AAI/IUE/IUE.html
+
+	--with-iue and --with-iue-libs arguments were added to the
+ 	configure script to facilitate this.  See src/iueserv/README for
+ 	more details.
+
+	* add affine transform funcs to comterp, to assist in debugging:
+
+	point=xform(x,y a00,a01,a10,a11,a20,a21) 
+		-- affine transform of x,y coordinates
+	affine=invert(a00,a01,a10,a11,a20,a21) 
+		-- invert affine transform
+	
+Utility Changes
+
+	* incorporate a URL downloading utility written by Eric F. Kahler,
+ 	now called ivdl, into the src/utils directory.
+
+Library Changes
+
+	-- IVGlyph --
+
+	* make changes to the ::accept_editor methods of OpenFileChooser
+ 	and ImportChooser to recognize a URL and avoid pre-processing it
+ 	like it was a local pathname.
+
+	-- Unidraw --
+
+	* fix bug where the modified flag on a drawing editor was getting
+ 	inadvertently cleared when the user does the following:
+
+	     - open and modify a drawing
+	     - invoke open again, and say No to saving the drawing
+	     - type in the same pathname
+
+	The result is that the system recognizes the drawing is the same,
+ 	and does not reload it, but clears the modified flag without ever
+ 	saving it.  This is now fixed.  Bug reported by K.C. Ng.
+
+	-- OverlayUnidraw --
+
+	* the majority of work on URL open/import, and compressed image
+ 	open/import was done in the OvImportCmd.  One evolution (from
+ 	ivtools-0.6.12) was the use of the ::pathname() method to indicate
+ 	when a file was coming from a file (instead of just a pipe), which
+ 	would then allow the import command to configure a filtering
+ 	command to be popen'ed.  Without knowing the pathname (or when the
+ 	pathname was an URL or "-"), there was a need to use
+ 	double-fork/double-pipe architecture, with the child reading the
+ 	source and writing to the grandchild, and the grandchild exec'ing
+ 	the filter, causing the result to be written back to the original
+ 	process. 
+
+	* support for GIF and JPEG file formats was extended by extending
+ 	the RasterOvComp istream constructor to invoke an OvImportCmd to
+ 	read them in.  In this way GIF and JPEG files can be
+ 	saved/restored by pathname, in the same manner long supported
+ 	for TIFF and pbmplus raster files.
+
+	-- GraphUnidraw -- 
+
+	* fix bug in Alter tool (RESHAPE_TOOL) to make it set the modified
+ 	flag when something is changed.
+
+	* fix another bug in Alter tool, reported by K.C. Ng, that caused
+ 	the recreated TextGraphic to have a foreground color with a nil
+ 	name.
+
+	* finally, fix old problem with moving more than one arc reported
+ 	by K.C. Ng as well.  The problem occurred when two arcs were
+ 	selected then moved -- nothing would happen.  This had been
+ 	disabled a long time ago, because there was a solution in place to
+ 	handle moving one edge (the CreateManipulator pre-selected the
+ 	nodes on each end of the edge as well), but there had never been a
+ 	solution for more than one edge at once.  The fix was simple, in
+ 	that it only required a derived MoveTool (GraphMoveTool) with a
+ 	single derived method of note, ::InterpretManipulator, that checks
+ 	for a selection list longer than 1, and runs through it to augment
+ 	the selection with any nodes that lie between selected edges.
+	
+
+Config/Build Changes
+
+	* a new library, AceDispatch, was set up to isolate any use of the
+ 	ACE library from the InterViews Dispatch library.  In this way
+ 	older executables, like idraw, can run without any reference to
+ 	ACE shared library.	
+
+	* further work was done to isolate older executables from newer
+ 	shared libraries.  This required #ifdef 0'ing all the OTHER_* make
+ 	variables defined in config/params.def (OTHER_CCFLAGS,
+ 	OTHER_CCDEFINES, OTHER_CCINCLUDES, OTHER_CCLDLIBS,
+ 	OTHER_CCDEPLIBS) and instead defining them within the relevant
+ 	Imakefile's.  For example, src/comterp/Imakefile has these new
+ 	definitions:
+
+	OTHER_CCDEFINES = $(ACE_CCDEFINES)
+	OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+	OTHER_CCLDLIBS = $(ACE_CCLDLIBS)
+
+	* extraneous arguments were manually trimmed from the configure
+ 	script generated by autoconf from configure.in.  This process
+ 	needs to be repeated each time autoconf is run until the time
+ 	someone figures out how to change configure.in to remove the
+ 	Cygnus-standard options that are not utilized in the ivtools
+ 	setup.

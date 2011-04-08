@@ -36,6 +36,8 @@
 class BoxElement;
 class BoxCanonical;
 
+//: used to compose side-by-side (iv-2.6)
+// <a href=../man3.1/Box2_6.html>man page</a>
 class Box : public Scene {
 public:
     virtual ~Box();

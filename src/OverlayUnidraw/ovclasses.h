@@ -91,6 +91,8 @@
 #define OVPRECISEROTATE_CMD   2058
 #define OVPRECISEPAGE_CMD     2059
 #define OVPRECISEBRUSH_CMD    2060
+#define PUSH_CMD              2061
+#define PULL_CMD              2062
 
 #define OVERLAY_COMP          2150
 #define OVERLAYS_COMP         2151

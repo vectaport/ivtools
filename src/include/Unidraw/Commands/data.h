@@ -31,6 +31,10 @@
 #include <InterViews/resource.h>
 #include <Unidraw/enter-scope.h>
 
+//: undo information object
+// encapsulates undo information that components store in commands they
+// interpret. 
+// <p><a href=../man3.1/Data.html>man page</a>
 class Data : public Resource {
 protected:
     Data();

@@ -4,8 +4,8 @@ Instructions for auto-generating ivtools html documentation.
 1. Background
 
 ivtools header files (.h files) include comments that can be extracted
-the PERCEPS, an automatic documentation generator for C++ written in
-Perl (http://friga.mer.utexas.edu/mark/perl/perceps/).  
+by PERCEPS, an automatic documentation generator for C++ written in
+Perl (http://starship.python.net/crew/tbryan/PERCEPS/).
 
 ivtools uses three techniques supported by PERCEPS for embedding
 extractable comments:
@@ -37,9 +37,9 @@ To generate the HTML documentation for each C++ class defined in
 ivtools, do the following:
 
 	2.1 Acquire and install a copy of PERCEPS, Version 3.4.1 or
-	greater.  Get it from the author's website:
+	greater.  Get it from the maintainers's website:
 
-		http://friga.mer.utexas.edu/mark/perl/perceps/	
+		http://starship.python.net/crew/tbryan/PERCEPS/
 
 	or from here:
 
@@ -50,12 +50,13 @@ ivtools, do the following:
 		perl --version
 
 	
-	2.3 Verify your copy of Perl is installed at /usr/local/bin/perl:
+	2.3 Verify your copy of Perl is installed at /bin/perl:
 
 		which perl
 
 	    If it is not at that location, edit the first line of the 
-	    perceps script in this directory to reflect the actual location.
+	    perceps script in this directory to reflect the actual
+	location, or make a symbol link for.
 
 
 	2.4 Run the following commands to generate the html:
@@ -101,11 +102,13 @@ under the same COPYRIGHT and license of ivtools.
 
 	Run the shell script getman31.sh from this directory.
 	Requires an installed and working copy of the ivtools utility
-	ivdl.
+	ivdl.  The script can be edited to use w3c or curl or any other
+	command line URL grabber.
 
 	4.2 HTML versions of InterViews 3.1 reference manual
 
 	Run the shell script getrefman31.sh from this directory.
 	Requires an installed and working copy of the ivtools utility
-	ivdl.
+	ivdl.  The script can be edited to use w3c or curl or any other
+	command line URL grabber.
 

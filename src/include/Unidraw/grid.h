@@ -35,6 +35,10 @@
 
 class Graphic;
 
+//: drawing editor grid
+// constrains points to lie on a grid and provides a corresponding
+// visual representation of the grid.
+// <p><a href=../man3.1/Grid.html>man page</a>
 class Grid {
 public:
     Grid(float w, float h, float xincr, float yincr);

@@ -35,6 +35,8 @@
 
 class PadGraphic;
 
+//: pad component
+// <a href=../man3.1/PadComp.html>man page</a>
 class PadComp : public Connector {
 public:
     PadComp(PadGraphic* = nil);

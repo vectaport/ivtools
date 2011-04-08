@@ -60,7 +60,7 @@ public:
 
 //: text drawing command for comdraw.
 // compview=text(x0,y0 textstr) -- create a text string
-class CreateTextFunc : public UnidrawFunc {  // doesn\'t work
+class CreateTextFunc : public UnidrawFunc { 
 public:
     CreateTextFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -151,13 +151,13 @@ public:
 };
 
 //: command to select graphics in comdraw.
-// select(compview [compview ...]) -- make these graphics the current selection
+// select([compview ...]) -- make these graphics the current selection (dflt is all)
 class SelectFunc : public UnidrawFunc {
 public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(compview [compview ...]) -- make these graphics the current selection"; }
+	return "%s([compview ...]) -- make these graphics the current selection (dflt is all)"; }
 };
 
 //: command to move current selection in comdraw

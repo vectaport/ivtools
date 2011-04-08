@@ -50,6 +50,8 @@ class ButtonState;
 class TextDisplay;
 class TextBuffer;
 
+//: interactive editor for character strings (iv-2.6)
+// <a href=../man3.1/StringEditor>man page</a>
 class StringEditor : public Interactor {
 public:
     StringEditor(ButtonState*, const char* sample, const char* done = SEDone);

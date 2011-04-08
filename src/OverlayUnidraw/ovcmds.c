@@ -1507,3 +1507,31 @@ void OvImageMapCmd::GetScreenCoords(OverlayViewer* viewer, Graphic* poly, int nf
       }
     }
 }
+
+/*****************************************************************************/
+
+ClassId PushCmd::GetClassId () { return PUSH_CMD; }
+boolean PushCmd::IsA (ClassId id) { return PUSH_CMD==id || BackCmd::IsA(id);}
+
+PushCmd::PushCmd (ControlInfo* c) : BackCmd(c) { }
+PushCmd::PushCmd (Editor* ed) : BackCmd(ed) { }
+
+Command* PushCmd::Copy () {
+    Command* copy = new PushCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}
+
+/*****************************************************************************/
+
+ClassId PullCmd::GetClassId () { return PULL_CMD; }
+boolean PullCmd::IsA (ClassId id) { return PULL_CMD==id || FrontCmd::IsA(id);}
+
+PullCmd::PullCmd (ControlInfo* c) : FrontCmd(c) { }
+PullCmd::PullCmd (Editor* ed) : FrontCmd(ed) { }
+
+Command* PullCmd::Copy () {
+    Command* copy = new PullCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}

@@ -35,6 +35,8 @@
 
 class ButtonState;
 
+//: a simple dialog box input handler (iv-2.6)
+// <a href=../man3.1/Dialog.html>man page</a>
 class Dialog : public MonoScene {
 public:
     Dialog(ButtonState*, Interactor*, Alignment = Center);

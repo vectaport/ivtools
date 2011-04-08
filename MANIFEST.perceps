@@ -38,11 +38,13 @@ ComTerp/randfunc.h
 ComTerp/scanner.h
 ComTerp/statfunc.h
 ComTerp/strmfunc.h
+ComTerp/symbolfunc.h
 ComTerp/xformfunc.h
 ComUnidraw/comeditor.h
 ComUnidraw/comterp-acehandler.h
 ComUnidraw/comterp-iohandler.h
 ComUnidraw/grfunc.h
+ComUnidraw/grstatfunc.h
 ComUnidraw/nfunc.h
 ComUnidraw/plotfunc.h
 ComUnidraw/unifunc.h

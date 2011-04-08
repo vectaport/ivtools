@@ -68,7 +68,7 @@ void PostFixFunc::execute() {
       out << "{" << val.narg() << "|" << val.nkey() << "}";
     else if (val.is_type(AttributeValue::KeywordType))
       out << "(" << val.keynarg_val() << ")";
-    out << " ";
+    out << ((i+1>topptr) ? "\n" : " ");
   }
   comterp()->brief(oldbrief);
   reset_stack();
@@ -164,7 +164,7 @@ void WhileFunc::execute() {
     delete bodyexpr;
     ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval(), true));
     if (keybody.is_unknown() && nargsfixed()>= 2)
-      bodyexpr = new ComValue(stack_arg_post_eval(3));
+      bodyexpr = new ComValue(stack_arg_post_eval(1));
     else
       bodyexpr = new ComValue(keybody);
     if (untilflag.is_true()) {

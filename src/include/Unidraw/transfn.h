@@ -35,6 +35,8 @@ class StateVar;
 class istream;
 class ostream;
 
+//: transfer function
+// <a href=../man3.1/transfns.html>man page</a>
 class TransferFunct {
 public:
     virtual void Evaluate(Path* = nil);

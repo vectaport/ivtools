@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: one line title bar (iv-2.6
+// <a href=../man3.1/Banner.html>man page</a>
 class Banner : public Interactor {
 public:
     char* left;

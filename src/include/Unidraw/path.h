@@ -38,6 +38,10 @@ static const int SLOTS = 100;
 class Connector;
 class UList;
 
+//: transmission path for state variable propogation
+// accumulates information about the transmission path during
+// state variable propagation.
+// <p><a href=../man3.1/Path.html>man page</a>
 class Path {
 public:
     Path(Path* = nil);

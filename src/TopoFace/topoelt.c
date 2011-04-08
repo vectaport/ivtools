@@ -22,12 +22,8 @@
 
 #include <TopoFace/topoelt.h>
 
-#if !defined(__CYGWIN__)
-#include <values.h>
-#else
 #include <math.h>
 #define MAXFLOAT HUGE_VAL
-#endif
 
 /****************************************************************************/
 

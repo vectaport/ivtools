@@ -604,6 +604,46 @@ void OverlaysComp::Interpret (Command* cmd) {
             cmd->GetClipboard()->Append(this);
         }
 
+    } else if (cmd->IsA(PUSH_CMD) || cmd->IsA(PULL_CMD)) {
+        Component* edComp = cmd->GetEditor()->GetComponent();
+
+        if (edComp == (Component*) this) {
+            Clipboard* cb = cmd->GetClipboard();
+            Iterator i;
+
+            if (cmd->IsA(PULL_CMD)) {
+                for (cb->First(i); !cb->Done(i); cb->Next(i)) {
+                    OverlayComp* comp = (OverlayComp*)cb->GetComp(i);
+                  Iterator j;
+                  SetComp(comp, j);
+                  Next(j);
+                    StorePosition(comp, cmd);
+                  if (!Done(j)) {
+                    Remove(comp);
+                    InsertAfter(j, comp);
+                  }
+                }
+
+            } else {
+                for (cb->Last(i); !cb->Done(i); cb->Prev(i)) {
+                    OverlayComp* comp = (OverlayComp*) cb->GetComp(i);
+                  Iterator j;
+                  SetComp(comp, j);
+                  Prev(j);
+                    StorePosition(comp, cmd);
+                  if (!Done(j)) {
+                    Remove(comp);
+                    InsertBefore(j, comp);
+                  }
+                }
+            }
+            Notify();
+            unidraw->Update();
+
+        } else {
+            OverlayComp::Interpret(cmd);
+        }
+
     } else if (cmd->IsA(FRONT_CMD) || cmd->IsA(BACK_CMD)) {
         Component* edComp = cmd->GetEditor()->GetComponent();
 

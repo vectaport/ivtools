@@ -34,6 +34,8 @@
 static const int hfil = 1000000;
 static const int vfil = 1000000;
 
+//: for defining "infinite" stretchability or shrinkability (iv-2.6)
+// <a href=../man3.1/Shape.html>man page</a>
 class Shape {
 public:
     int width, height;		/* natural dimensions */

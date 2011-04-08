@@ -31,6 +31,8 @@
 
 class Selection;
 
+//: select tool
+// <a href=../man3.1/SelectTool.html>man page</a>
 class SelectTool : public Tool {
 public:
     SelectTool(ControlInfo* = nil);

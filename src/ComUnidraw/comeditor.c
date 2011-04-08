@@ -22,6 +22,7 @@
  */
 
 #include <ComUnidraw/grfunc.h>
+#include <ComUnidraw/grstatfunc.h>
 #include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/comterp-iohandler.h>
 #include <ComUnidraw/nfunc.h>
@@ -125,6 +126,10 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("arrowspline", new CreateOpenSplineFunc(comterp, this));
     comterp->add_command("polygon", new CreatePolygonFunc(comterp, this));
     comterp->add_command("closedspline", new CreateClosedSplineFunc(comterp, this));
+
+    comterp->add_command("center", new CenterFunc(comterp, this));
+    comterp->add_command("mbr", new MbrFunc(comterp, this));
+    comterp->add_command("points", new PointsFunc(comterp, this));
 
     comterp->add_command("font", new FontFunc(comterp, this));
     comterp->add_command("brush", new BrushFunc(comterp, this));

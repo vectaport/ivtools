@@ -110,14 +110,14 @@ public:
 };
 
 //: eval string command for ComTerp.
-// eval(cmdstr) -- evaluate string as commands.
+// eval(cmdstr [cmdstr ...] :symret) -- evaluate string as commands, optionally returning symbol instead of nil.
 class EvalFunc : public ComFunc {
 public:
     EvalFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(cmdstr) -- evaluate string as commands"; }
+      return "%s(cmdstr) -- evaluate string as commands, optionally return symbol instead of nil"; }
 
 };
 

@@ -37,6 +37,8 @@
 class Interactor;
 class InteractorWindow;
 
+//: describe input events of interest (iv-2.6)
+// <a href=../man3.1/Sensor.html>man page</a>
 class Sensor : virtual public Resource {
 public:
     Sensor();

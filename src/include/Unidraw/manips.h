@@ -48,6 +48,8 @@ class TextDisplay;
 class Transformer;
 class UList;
 
+//: group manipulator
+// <a href=../man3.1/manips.html>man page</a>
 class ManipGroup : public Manipulator {
 public:
     ManipGroup(Viewer* = nil, Tool* = nil);
@@ -91,6 +93,8 @@ protected:
     Tool* _tool;
 };
 
+//: drag manipulator
+// <a href=../man3.1/manips.html>man page</a>
 class DragManip : public Manipulator {
 public:
     DragManip(
@@ -135,6 +139,8 @@ protected:
 
 inline const Event& DragManip::GraspEvent () { return _grasp_e; }
 
+//: vertex manipulator
+// <a href=../man3.1/manips.html>man page</a>
 class VertexManip : public DragManip {
 public:
     VertexManip(
@@ -147,6 +153,8 @@ public:
     GrowingVertices* GetGrowingVertices();
 };
 
+//: continuous vertex manipulator
+// <a href=../man3.1/manips.html>man page</a>
 class ScribbleVertexManip : public VertexManip {
 public:
     ScribbleVertexManip(
@@ -160,6 +168,8 @@ protected:
     boolean _first;
 };
 
+//: connection manipulator
+// <a href=../man3.1/manips.html>man page</a>
 class ConnectManip : public DragManip {
 public:
     ConnectManip(Viewer*, Rubberband*, Transformer* = nil, Tool* = nil);
@@ -170,6 +180,8 @@ protected:
     ConnectorView* _target;
 };
 
+//: text manipulator
+// <a href=../man3.1/manips.html>man page</a>
 class TextManip : public Manipulator {
 public:
     TextManip(Viewer*, Painter*, Coord tab, Tool* = nil);

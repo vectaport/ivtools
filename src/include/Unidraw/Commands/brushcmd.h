@@ -31,6 +31,8 @@
 
 class PSBrush;
 
+//: command to change brush of editor and current selection
+// <a href=../man3.1/BrushCmd.html>man page</a>
 class BrushCmd : public Command {
 public:
     BrushCmd(ControlInfo*, PSBrush* = nil);

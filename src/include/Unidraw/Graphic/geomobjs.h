@@ -37,6 +37,8 @@
 class UList;
 class ostream;
 
+//: point geometric object
+// <a href=../man3.1/geomobjs.html>man page</a>
 class PointObj {
 public:
     PointObj(Coord = 0, Coord = 0);
@@ -47,6 +49,8 @@ public:
     Coord _x, _y;
 };
 
+//: line geometric object
+// <a href=../man3.1/geomobjs.html>man page</a>
 class LineObj {
 public:
     LineObj(Coord = 0, Coord = 0, Coord = 0, Coord = 0);
@@ -59,6 +63,8 @@ public:
     PointObj _p1, _p2;
 };
 
+//: box geometric object
+// <a href=../man3.1/geomobjs.html>man page</a>
 class BoxObj {
 public:
     BoxObj(Coord = 0, Coord = 0, Coord = 0, Coord = 0);
@@ -75,6 +81,8 @@ public:
     Coord _bottom, _top;
 };
 
+//: multi-line geometric object
+// <a href=../man3.1/geomobjs.html>man page</a>
 class MultiLineObj : public Resource {
 public:
     MultiLineObj(Coord* = nil, Coord* = nil, int = 0);
@@ -122,6 +130,8 @@ protected:
     static boolean _pts_by_n_enabled;
 };
 
+//: filled polygon geometric object
+// <a href=../man3.1/geomobjs.html>man page</a>
 class FillPolygonObj : public MultiLineObj {
 public:
     FillPolygonObj(Coord* = nil, Coord* = nil, int = 0);
@@ -137,6 +147,8 @@ protected:
     int _normCount;
 };
 
+//: geometric extent object
+// <a href=../man3.1/geomobjs.html>man page</a>
 class Extent {
 public:
     Extent(float = 0, float = 0, float = 0, float = 0, float = 0);

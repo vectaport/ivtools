@@ -46,6 +46,9 @@ void HelpFunc::execute() {
   // because that is what it would be (an operator)
   static int all_symid = symbol_add("all");
   ComValue allflag(stack_key(all_symid));
+
+  static int aliases_symid = symbol_add("aliases");
+  ComValue aliasesflag(stack_key(aliases_symid));
 		   
   boolean noargs = !nargs() && !nkeys();
   ComFunc** comfuncs= nil;
@@ -90,8 +93,17 @@ void HelpFunc::execute() {
     comfuncs = new ComFunc*[nfuncs];
     str_flags = new boolean[nfuncs];
     for (int j=0; j<nfuncs; j++) {
+
+      /* check for aliases, and negate the symbol id if needed */
+      int command_id;
+      if (command_ids[j]<0) {
+	if (aliasesflag.is_false()) continue;
+	command_id = -command_ids[j];
+      } else 
+	command_id = command_ids[j];
+
       void* vptr;
-      comterp()->localtable()->find(vptr, command_ids[j]);
+      comterp()->localtable()->find(vptr, command_id);
       if (vptr) {
 	comfuncs[j] = (ComFunc*)((ComValue*)vptr)->obj_val();
       } else
@@ -175,58 +187,3 @@ void HelpFunc::execute() {
 
 }
 
-/*****************************************************************************/
-
-SymIdFunc::SymIdFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SymIdFunc::execute() {
-  // print symbol id of arguments
-  boolean noargs = !nargs() && !nkeys();
-  int numargs = nargs();
-  int symbol_ids[numargs];
-  for (int i=0; i<numargs; i++) {
-    ComValue& val = stack_arg(i, true);
-    if (val.is_type(AttributeValue::CommandType))
-      symbol_ids[i] = val.command_symid();
-    else if (val.is_type(AttributeValue::StringType))
-      symbol_ids[i] = val.string_val();
-    else if (val.is_type(AttributeValue::SymbolType))
-      symbol_ids[i] = val.symbol_val();
-    else 
-      symbol_ids[i] = -1;
-  }
-  reset_stack();
-
-  AttributeValueList* avl = new AttributeValueList();
-  ComValue retval(avl);
-  for (int i=0; i<numargs; i++)
-    avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::IntType));
-  push_stack(retval);
-}
-
-/*****************************************************************************/
-
-SymValFunc::SymValFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SymValFunc::execute() {
-  // print symbol id of arguments
-  boolean noargs = !nargs() && !nkeys();
-  int numargs = nargs();
-  int symbol_ids[numargs];
-  for (int i=0; i<numargs; i++) {
-    ComValue& val = stack_arg(i, true);
-    if (val.is_char() || val.is_short() || val.is_int())
-      symbol_ids[i] = val.int_val();
-    else 
-      symbol_ids[i] = -1;
-  }
-  reset_stack();
-
-  AttributeValueList* avl = new AttributeValueList();
-  ComValue retval(avl);
-  for (int i=0; i<numargs; i++)
-    avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::StringType));
-  push_stack(retval);
-}

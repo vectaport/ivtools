@@ -36,6 +36,8 @@ class CatalogChooser;
 class FileChooser;
 class PrintDialog;
 
+//: new component command
+// <a href=../man3.1/catcmds.h>man page</a>
 class NewCompCmd : public Command {
 public:
     NewCompCmd(ControlInfo*, Component* prototype = nil);
@@ -58,6 +60,8 @@ protected:
 
 inline Component* NewCompCmd::GetPrototype () { return prototype_; }
 
+//: revert command
+// <a href=../man3.1/catcmds.h>man page</a>
 class RevertCmd : public Command {
 public:
     RevertCmd(ControlInfo*);
@@ -71,6 +75,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: view component command
+// <a href=../man3.1/catcmds.h>man page</a>
 class ViewCompCmd : public Command {
 public:
     ViewCompCmd(ControlInfo*, FileChooser* = nil);
@@ -87,6 +93,8 @@ protected:
     FileChooser* chooser_;
 };
 
+//: save component command
+// <a href=../man3.1/catcmds.h>man page</a>
 class SaveCompCmd : public Command {
 public:
     SaveCompCmd(ControlInfo*);
@@ -100,6 +108,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: save-as component command
+// <a href=../man3.1/catcmds.h>man page</a>
 class SaveCompAsCmd : public Command {
 public:
     SaveCompAsCmd(ControlInfo*, FileChooser* = nil);
@@ -116,6 +126,8 @@ protected:
     FileChooser* chooser_;
 };
 
+//: print command
+// <a href=../man3.1/catcmds.h>man page</a>
 class PrintCmd : public Command {
 public:
     PrintCmd(ControlInfo*, PrintDialog* = nil);
@@ -134,6 +146,8 @@ protected:
     PrintDialog* _dialog;
 };
 
+//: quit command
+// <a href=../man3.1/catcmds.h>man page</a>
 class QuitCmd : public Command {
 public:
     QuitCmd(ControlInfo*);

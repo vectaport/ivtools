@@ -35,6 +35,8 @@ class PSColor;
 class PSPattern;
 class PSFont;
 
+//: name state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class NameVar : public StateVar {
 public:
     NameVar(const char* = nil);
@@ -53,6 +55,8 @@ private:
     char* _name;
 };
 
+//: component name state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class CompNameVar : public NameVar {
 public:
     CompNameVar(Component* = nil);
@@ -75,6 +79,8 @@ protected:
     Component* _comp;
 };
 
+//: modified-status state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class ModifStatusVar : public StateVar {
 public:
     ModifStatusVar(Component* = nil, boolean = false);
@@ -100,6 +106,8 @@ protected:
     static class UList* _vars;
 };
 
+//: magnify factor state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class MagnifVar : public StateVar {
 public:
     MagnifVar(float = 1);
@@ -118,6 +126,8 @@ protected:
     float _magnif;
 };
 
+//: gravity-enabled state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class GravityVar : public StateVar {
 public:
     GravityVar(boolean = false);
@@ -136,6 +146,8 @@ protected:
     int _active;
 };
 
+//: current font state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class FontVar : public StateVar {
 public:
     FontVar(PSFont* = nil);
@@ -155,6 +167,8 @@ protected:
     PSFont* _psfont;
 };
 
+//: current brush state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class BrushVar : public StateVar {
 public:
     BrushVar(PSBrush* = nil);
@@ -174,6 +188,8 @@ protected:
     PSBrush* _psbrush;
 };
 
+//: current pattern state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class PatternVar : public StateVar {
 public:
     PatternVar(PSPattern* = nil);
@@ -193,6 +209,8 @@ protected:
     PSPattern* _pspattern;
 };
 
+//: current color state variable
+// <a href=../man3.1/statevars.html>man page</a>
 class ColorVar : public StateVar {
 public:
     ColorVar(PSColor* fg = nil, PSColor* bg = nil);

@@ -35,6 +35,8 @@
 
 class Card;
 
+//: a Scene for stacking one or more Interactor (iv-2.6)
+// <a href=../man3.1/Deck2_6.html>man page</a>
 class Deck : public Scene {
 public:
     Deck();

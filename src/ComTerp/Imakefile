@@ -35,6 +35,7 @@ Obj(randfunc)
 Obj(scanner)	
 Obj(statfunc)
 Obj(strmfunc)
+Obj(symbolfunc)
 Obj(xformfunc)
 
 #ifdef AceDir

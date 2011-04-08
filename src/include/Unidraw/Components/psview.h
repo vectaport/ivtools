@@ -32,6 +32,10 @@
 
 #include <IV-2_6/_enter.h>
 
+//: PostScript serialization
+// idraw-compatible PostScript external representation 
+// for graphical components.
+// <p><a href=../man3.1/POSTSCRIPTVIEW.html>man page</a>
 class PostScriptView : public PreorderView {
 public:
     virtual boolean Emit(ostream&);

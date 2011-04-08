@@ -56,6 +56,8 @@ static const char SBHalfPageUp = 'u';
 class ButtonState;
 class TextDisplay;
 
+//: for choosing from list of strings (iv-2.6)
+// <a href=../man3.1/StrBrowser.html>man page</a>
 class StringBrowser : public Interactor {
 public:
     StringBrowser(
