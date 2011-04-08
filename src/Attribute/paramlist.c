@@ -77,6 +77,10 @@ ParamStruct::ParamStruct(const char* name, ParamFormat format, param_callback if
     _indirection = indirection;
 }
 
+ParamStruct::ParamStruct(ParamStruct& ps) {
+    *this = ps;
+}
+
 ParamStruct::~ParamStruct() {
     delete _name;
 }
@@ -86,7 +90,7 @@ void * ParamStruct::addr1(void* base) {
     if (_indirection<0)
 	return (char *) base + _offset1;
     else 
-	return *(char **)(base+_indirection) + _offset1;
+	return *(char **)((char*)base+_indirection) + _offset1;
 }
 
 void * ParamStruct::addr2(void* base) {
@@ -94,7 +98,7 @@ void * ParamStruct::addr2(void* base) {
     if (_indirection<0)
 	return (char *) base + _offset2;
     else 
-	return *(char **)(base+_indirection) + _offset2;
+	return *(char **)((char*)base+_indirection) + _offset2;
 }
 
 void * ParamStruct::addr3(void* base) {
@@ -102,7 +106,7 @@ void * ParamStruct::addr3(void* base) {
     if (_indirection<0)
 	return (char *) base + _offset3;
     else 
-	return *(char **)(base+_indirection) + _offset3;
+	return *(char **)((char*)base+_indirection) + _offset3;
 }
 
 void * ParamStruct::addr4(void* base) {
@@ -110,7 +114,7 @@ void * ParamStruct::addr4(void* base) {
     if (_indirection<0)
 	return (char *) base + _offset4;
     else 
-	return *(char **)(base+_indirection) + _offset4;
+	return *(char **)((char*)base+_indirection) + _offset4;
 }
 
 /*****************************************************************************/
@@ -129,7 +133,7 @@ ParamList::ParamList (ParamList* s) {
         ALIterator i;
 
         for (s->First(i); !s->Done(i); s->Next(i)) {
-	    insert(GetStruct(i));
+	    insert(new ParamStruct(*GetStruct(i)));
 	}
     }
 }
@@ -837,6 +841,11 @@ char* ParamList::parse_textbuf(istream& in) {
 }
 
 int ParamList::output_text(ostream& out, const char* text, int indent) {
+    if (!text) {
+      out << "(null)";
+      return out.good() ? 0 : -1;
+    }
+
     int len = strlen(text);
     int beg, end, lineSize, nextBeg, ypos = 0;
     if (len == 0) 
@@ -861,13 +870,41 @@ int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* d
     char buf2[buflen];
     if (parse_string(in, buf2, buflen) != 0)
 	return -1;
-    else if (buf2[0] != '/' && dir) {
+    else if (buf2[0] != '/' && dir && !urltest(buf2)) {
 	strncpy( buf, dir, buflen);
 	strncat( buf+strlen(dir), buf2, buflen-strlen(dir));
     } else {
 	strcpy( buf, buf2 );
     }
     return 0;
+}
+
+boolean ParamList::urltest(const char* buf) {
+  if (!buf) return false;
+  static boolean file_url_ok = bincheck("w3c") || bincheck("curl");
+  return 
+    strncasecmp("http://", buf, 7)==0 || 
+    strncasecmp("ftp://", buf, 6)==0 || 
+    file_url_ok && strncasecmp("file:/", buf, 6)==0 ;
+}
+
+int ParamList::bintest(const char* command) {
+  char combuf[BUFSIZ];
+  sprintf( combuf, "which %s", command );
+  FILE* fptr = popen(combuf, "r");
+  char testbuf[BUFSIZ];	
+  fgets(testbuf, BUFSIZ, fptr);  
+  pclose(fptr);
+  if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
+	      command, strlen(command)) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+boolean ParamList::bincheck(const char* command) {
+  int status = bintest(command);
+  return !status;
 }
 
 // octal converts a character to the string \ddd where d is an octal digit.

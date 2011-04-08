@@ -1,0 +1,71 @@
+.TH UMap 3U "4 October 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+UMap \- maintains a mapping between two sets of pointers
+.SH SYNOPSIS
+.B #include <Unidraw/umap.h>
+.SH DESCRIPTION
+UMap is an abstract class for objects that store an arbitrary number
+of pointer pairs and can search to find either member of a pair given
+the other.  A UMapElem object stores each pointer pair in the UMap.
+UMapElem is an abstract class that defines virtuals for returning
+either member of the pair, referred to as the \fIid\fP and the
+\fItag\fP.  Subclasses of UMapElem redefine these virtuals to return
+either member of the pair they store.
+.SH UMAPELEM PUBLIC OPERATIONS
+.TP
+.B "UMapElem()"
+The base class constructor does nothing by default.
+.TP
+.B "virtual void* id()"
+.ns
+.TP
+.B "virtual void* tag()"
+Return the id or the tag that the UMapElem stores.  Subclasses
+typically define two member variables that store pair's values
+and redefine these operations to return them.
+.SH UMAP PUBLIC OPERATIONS
+.TP
+.B "virtual ~UMap()"
+The destructor deletes all UMapElem objects in the UMap.
+.TP
+.B "int Count()"
+Return the number of mappings in the UMap, corresponding to the number
+of UMapElems that have been registered.
+.TP
+.B "void Clear()"
+Delete all the UMapElem mappings in the UMap without destroying the UMap.
+.SH UMAP PROTECTED OPERATIONS
+.TP
+.B "UMap()"
+The base class constructor does nothing by default.
+.TP
+.B "void Register(UMapElem*)"
+.ns
+.TP
+.B "void Unregister(UMapElem*)"
+Register or remove a UMapElem from the UMap.
+.TP
+.B "int Index(UMapElem*)"
+.ns
+.TP
+.B "UMapElem* Elem(int index)"
+A UMap stores its UMapElem in its \fI_elems\fP UArray protected member
+variable.  The Index operations returns the index of the given
+UMapElem in the UArray, while Elem returns the UMapElem at a specified
+index.  These operations simply perform the corresponding operations
+on the UArray.
+.TP
+.B "virtual UMapElem* FindId(void* id)"
+.ns
+.TP
+.B "virtual UMapElem* FindTag(void* tag)"
+FindId searches the UMap for the UMapElem element containing the given
+id, while FindTag searches for the one with the given tag.  These
+operations perform linear searches by default, comparing their
+arguments against the values that the UMapElems' id and tag operations
+return.  The comparison is based on the pointer values; subclasses can
+redefine these operations to make more sophisticated comparisons based
+on the id or tags actual type.  For example, if either the id
+is a string, then FindId might do a string comparison to detect a match.
+.SH SEE ALSO
+UArray(3U)

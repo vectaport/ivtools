@@ -54,6 +54,7 @@ public:
 
     virtual const char* format();
     virtual boolean idraw_format();
+    virtual boolean postscript_format();
     virtual boolean by_pathname_flag();
     virtual boolean execute_flag();
     virtual boolean by_pathname_flag_button();

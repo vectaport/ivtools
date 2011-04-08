@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -28,25 +28,35 @@
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
 
+//: component used to import a sub-tree by pathname.
 class OverlayFileComp : public OverlaysComp {
 public:
     OverlayFileComp(OverlayComp* parent = nil);
+    // empty constructor.
     OverlayFileComp(Graphic*, OverlayComp* parent = nil);
+    // construct for arbitrary graphic -- pathname set later.
     OverlayFileComp(istream&, OverlayComp* parent = nil);
+    // construct from pathname read from istream.
     virtual ~OverlayFileComp();
 
     virtual void Append(GraphicComp*);
+    // regular append then copy pointer to attribute list up to OverlayFileComp.
 
     virtual void Interpret(Command*);
+    // disallow ungroup command, otherwise pass to base class.
     virtual void Uninterpret(Command*);
+    // disallow undoing ungroup command, otherwise pass to base class.
 
     virtual Component* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     void SetPathName(const char*);
+    // concrete implementation of this method.
     const char* GetPathName();
+    // concrete implementation of this method.
     OverlayIdrawComp* GetIdrawComp();
+    // return point to underlying top-level component.
     virtual boolean operator == (OverlayComp&);
 protected:
     ParamList* GetParamList();
@@ -55,6 +65,7 @@ protected:
     char * _pathname;
 };
 
+//: graphical view of OverlayFileComp.
 class OverlayFileView : public OverlaysView {
 public:
     OverlayFileView();
@@ -64,15 +75,20 @@ public:
 
 };
 
+//: serialized view of OverlayFileComp.
 class OverlayFileScript : public OverlaysScript {
 public:
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
     OverlayFileScript(OverlayFileComp* = nil);
     virtual boolean Definition (ostream&);
+    // output record with only pathname to represent entire subtree.
     virtual boolean EmitGS(ostream&, Clipboard*, boolean);
+    // skip OverlaysScript::EmitGS for OverlayScript::EmitGS.
 
     static int ReadPathName(istream&, void*, void*, void*, void*);
+    // read pathname from istream and used to construct OverlayIdrawComp
+    // inside an OverlayFileComp.
 };
 
 #endif

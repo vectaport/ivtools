@@ -1,0 +1,47 @@
+.TH lines 3U "2 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Point, Line, MultiLine, S_MultiLine, SF_MultiLine \- structured
+graphics classes for points, lines, and open polygons
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/lines.h>
+.SH DESCRIPTION
+Point and Line are subclasses of Graphic that draw a point and a line,
+respectively.  MultiLine is a Vertices subclass that serves as an
+abstract base class for open polygons: S_MultiLine is a MultiLine
+subclass for stroked open polygons, while SF_MultiLine is a
+stroked-filled open polygon.  Point, Line, and S_MultiLine store a
+PSBrush, while SF_MultiLine also stores a PSPattern.
+.SH POINT PUBLIC OPERATIONS
+.TP
+.B "Point(Coord x, Cord y, Graphic* = nil)"
+Construct a Point object, optionally supplying a graphic from which to
+obtain an initial set of graphics state.
+.TP
+.B "void GetOriginal(Coord&, Coord&)"
+Return the coordinates supplied in the constructor.
+.SH LINE PUBLIC OPERATIONS
+.TP
+.B "Line(Coord x0, Cord y0, Coord x1, Coord y1, Graphic* = nil)"
+Construct a Line object, optionally supplying a graphic from which to
+obtain an initial set of graphics state.
+.TP
+.B "void GetOriginal(Coord& x0, Coord& y0, Coord& x1, Coord& y1)"
+Return the line's endpoints as supplied in the constructor.
+.SH MULTILINE PROTECTED OPERATIONS
+.TP
+.B "MultiLine(Coord* x, Coord* y, int count, Graphic* = nil)"
+MultiLine's constructor is protected to prevent instantiation of the
+abstract base class.  The parameters are passed directly to the
+Vertices constructor.
+.SH S_MULTILINE PUBLIC OPERATIONS
+.TP
+.B "S_MultiLine(Coord* x, Coord* y, int count, Graphic* = nil)"
+Construct an S_MultiLine object, optionally supplying a graphic from
+which to obtain an initial set of graphics state.
+.SH SF_MULTILINE PUBLIC OPERATIONS
+.TP
+.B "SF_MultiLine(Coord* x, Coord* y, int count, Graphic* = nil)"
+Construct an SF_MultiLine object, optionally supplying a graphic from
+which to obtain an initial set of graphics state.
+.SH SEE ALSO
+Graphic(3U), Vertices(3U), pspaint(3U)

@@ -1,0 +1,79 @@
+.TH struct 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+BackCmd, FrontCmd, GroupCmd, UngroupCmd \- commands for modifying
+components structurally
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/struct.h>
+.SH DESCRIPTION
+BackCmd, FrontCmd, GroupCmd, and UngroupCmd are purely interpretive
+commands for altering the structure of their editor's component.  All
+redefine their Execute and Unexecute operations to let the editor's
+component interpret them as it wishes.
+.SH BACKCMD PUBLIC OPERATIONS
+.TP
+.B "BackCmd(ControlInfo*)"
+.ns
+.TP
+.B "BackCmd(Editor* = nil)"
+Construct a new BackCmd.
+.SH FRONTCMD PUBLIC OPERATIONS
+.TP
+.B "FrontCmd(ControlInfo*)"
+.ns
+.TP
+.B "FrontCmd(Editor* = nil)"
+Construct a new FrontCmd.
+.SH GROUPCMD PUBLIC OPERATIONS
+.TP
+.B "GroupCmd(ControlInfo*, GraphicComp* = nil)"
+.ns
+.TP
+.B "GroupCmd(Editor* = nil, GraphicComp* = nil)"
+Create a new GroupCmd, optionally specifying the component into which
+components will be grouped.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+Execute will set the value of the \fI_executed\fP protected member
+variable to \fItrue\fP as a side effect if anything was grouped.
+Similarly, Unexecute will set reset the value to \fIfalse\fP as a side
+effect the operation was undone.
+.TP
+.B "GraphicComp* GetGroup()"
+.ns
+.TP
+.B "void SetGroup(GraphicComp*)"
+Get or set the component into which components will be grouped.
+SetGroup will \fInot\fP delete the old value.
+.SH UNGROUPCMD PUBLIC OPERATIONS
+.TP
+.B "UngroupCmd(ControlInfo*)"
+.ns
+.TP
+.B "UngroupCmd(Editor* = nil)"
+Construct a new UngroupCmd.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+Execute will set the value of the \fI_executed\fP protected member
+variable to \fItrue\fP as a side effect if anything was ungrouped.
+Similarly, Unexecute will set reset the value to \fIfalse\fP as a side
+effect the operation was undone.
+.TP
+.B "Clipboard* GetKids()"
+.ns
+.TP
+.B "void SetKids(Clipboard*)"
+Explicitly set and get a clipboard containing the child components
+that were ungrouped, which is stored in the \fI_kids\fP protected
+member.  UngroupCmd does not initialize this member; it merely
+provides the storage as a convenience to components that interpret the
+command and need a place to store the ungrouped children to support
+reverse execution.  However, UngroupCmd deletes the clipboard (if it
+exists) in ~UngroupCmd. SetKids will \fInot\fP delete the old value.
+.SH SEE ALSO
+Command(3U), GraphicComp(3U)

@@ -1,0 +1,18 @@
+PACKAGE = examples3.1_plot
+
+#ifdef InObjectCodeDir
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(plot)
+
+MakeObjectFromSrc(Axis)
+MakeObjectFromSrc(Graph)
+MakeObjectFromSrc(Plot)
+MakeObjectFromSrc(rpc_read)
+MakeObjectFromSrc(main)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1996,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -40,9 +40,12 @@
 class Vertices;
 class istream;
 
+//: clone of VerticesComp derived from OverlayComp.
+// base class for all multi-point components.
 class VerticesOvComp : public OverlayComp {
 public:
     Vertices* GetVertices();
+    // return generic pointer to graphic.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -54,6 +57,8 @@ protected:
     VerticesOvComp(istream&, OverlayComp* parent = nil);
 };
 
+//: graphical view of VerticesOvComp.
+// base class for all multi-point OverlayView objects.
 class VerticesOvView : public OverlayView {
 public:
     virtual void Interpret(Command*);
@@ -74,6 +79,8 @@ protected:
     int _reshapePt;
 };
 
+//: "PostScript" view of VerticesOvComp.
+// base class for all multi-point OverlayPS objects.
 class VerticesPS : public OverlayPS {
 public:
     virtual boolean Definition(ostream&);
@@ -84,20 +91,26 @@ protected:
     VerticesPS(OverlayComp* = nil);
 
     virtual const char* Name();
+    // method to be filled in by derivative classes to tell them apart.
 };
 
+//: serialized view of VerticesOvComp.
+// base class for all multi-point OverlayScript objects.
 class VerticesScript : public OverlayScript {
 public:
     virtual boolean Definition(ostream&);
+    // output variable-length ASCII record that defines the component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     static int ReadPts(istream&, void*, void*, void*, void*);
+    // read and set point list in a Vertices graphic.
 protected:
     VerticesScript(VerticesOvComp* = nil);
 
     virtual const char* Name();
+    // method to be filled in by derivative classes to tell them apart.
 };
 
 #include <IV-2_6/_leave.h>

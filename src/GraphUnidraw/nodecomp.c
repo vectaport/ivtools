@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1996, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -65,6 +65,10 @@
 #include <IV-2_6/InterViews/textbuffer.h>
 #include <InterViews/transformer.h>
 
+#include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
+#include <Attribute/attrlist.h>
+
 #include <TopoFace/topoedge.h>
 #include <TopoFace/toponode.h>
 
@@ -73,6 +77,8 @@
 #include <ctype.h>
 #include <iostream.h>
 #include <stdio.h>
+#include <string.h>
+#include <strstream.h>
 
 FullGraphic* NodeView::_nv_gs = nil;
 
@@ -188,6 +194,12 @@ NodeComp::NodeComp(istream& in, OverlayComp* parent) : OverlayComp(nil, parent) 
     _valid = GetParamList()->read_args(in, this);
     if (GetGraph())
 	GraphGraphic();
+    if(GetEllipse())
+      GetGraphic()->concatGS(GetEllipse(), GetGraphic(), GetEllipse()); 
+    if(GetText())
+      GetGraphic()->concatGS(GetText(), GetGraphic(), GetText()); 
+    if(GetEllipse2())
+      GetGraphic()->concatGS(GetEllipse2(), GetGraphic(), GetEllipse2()); 
 }
     
 NodeComp::~NodeComp() {
@@ -207,6 +219,7 @@ Component* NodeComp::Copy() {
         comp = new NodeComp((SF_Ellipse*)GetEllipse()->Copy(),
 	    (TextGraphic*)GetText()->Copy(), (SF_Ellipse*)GetEllipse2()->Copy(), 
 	    (GraphComp*)GetGraph()->Copy());
+	if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
 
 	Picture* pic = (Picture*)GetGraphic();
         Iterator i;
@@ -575,6 +588,100 @@ boolean NodeComp::operator == (OverlayComp& comp) {
 	*(OverlayComp*)this == (OverlayComp&)comp;
 }
 
+void NodeComp::update(Observable*) {
+  AttributeList* al;
+  if(al = attrlist()) {
+    static int valexpr_symid = symbol_add("valexpr");
+    static int val_symid = symbol_add("val");
+    AttributeValue* av = FindValue(valexpr_symid);
+    if (av && av->is_string()) {
+      Iterator it;
+      unidraw->First(it);
+      ComTerpServ* comterp = ((ComEditor*)unidraw->GetEditor(it))->
+	GetComTerp();
+      boolean old_brief = comterp->brief();
+      comterp->brief(true);
+      ostrstream outstr;
+      NodeComp* node;
+      int incnt = 1;
+      while (node = NodeIn(incnt)) {
+	outstr.form("in%d=", incnt);
+	AttributeValue* av = node->FindValue(val_symid);
+	if (av) {
+	  ComValue inval(*av);
+	  inval.comterp(comterp);
+	  outstr << inval << ";";
+	} else
+	  outstr << "'N';";
+	incnt++;  
+      }
+      outstr << av->string_ptr() << '\0';
+      cerr << "interpreting: " << outstr.str() << "\n";
+      ComValue retval(comterp->run(outstr.str()));
+      if (retval.is_known()) {
+	const int val_symid = symbol_add("val");
+	al->add_attr(val_symid, retval);
+      }
+      comterp->brief(old_brief);
+    }
+  }
+  Observable::notify();
+}
+
+void NodeComp::Notify() {
+  GraphicComp::Notify();
+}
+
+EdgeComp* NodeComp::EdgeIn(int n) const {
+  return EdgeByDir(n, false);
+}
+
+EdgeComp* NodeComp::EdgeOut(int n) const {
+  return EdgeByDir(n, true);
+}
+
+
+EdgeComp* NodeComp::EdgeByDir(int n, boolean out_edge) const {
+  TopoNode* toponode = Node();
+  if (toponode) {
+    Iterator it;
+    toponode->first(it);
+    while (!toponode->done(it)) {
+      TopoEdge* edge = toponode->get_edge(it);
+      if (edge && 
+
+	  (out_edge?edge->start_node():edge->end_node())==toponode)
+	n--;
+      if (!n) return (EdgeComp*)edge->value();
+      toponode->next(it);
+    }
+  } 
+  return nil;
+}
+
+NodeComp* NodeComp::NodeIn(int n) const {
+  EdgeComp* edgecomp = EdgeIn(n);
+  if (edgecomp) {
+    TopoEdge* edge = edgecomp->Edge();
+    if (edge && edge->start_node()) {
+      return (NodeComp*)edge->start_node()->value();
+    }
+  }  
+  return nil;
+}
+
+NodeComp* NodeComp::NodeOut(int n) const {
+  EdgeComp* edgecomp = EdgeOut(n);
+  if (edgecomp) {
+    TopoEdge* edge = edgecomp->Edge();
+    if (edge && edge->end_node()) {
+      return (NodeComp*)edge->end_node()->value();
+    }
+  }  
+  return nil;
+}
+
+
 /*****************************************************************************/
 
 NodeView::NodeView(NodeComp* comp) : OverlayView(comp) {
@@ -917,7 +1024,7 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 	textgr->SetTransformer(nil);
 	((NodeComp*)GetGraphicComp())->GetEllipse()->Align(Center, textgr, Center);
 	textgr->SetFont((PSFont*) p->GetFont());
-	textgr->SetColors((PSColor*) p->GetFgColor(), nil);
+//	textgr->SetColors((PSColor*) p->GetFgColor(), nil);
 	
 	cmd = new NodeTextCmd(tm->GetViewer()->GetEditor(),
 			      (NodeComp*)GetGraphicComp(),
@@ -1094,7 +1201,7 @@ int NodeScript::ReadText (istream& in, void* addr1, void* addr2, void* addr3, vo
     char buf[BUFSIZ];
 
     in >> line_height >> delim;
-    if (in.good)
+    if (in.good())
 	ParamList::parse_text(in, buf, BUFSIZ);    
 
     if (!in.good()) {

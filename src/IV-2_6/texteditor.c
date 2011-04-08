@@ -44,7 +44,9 @@
 #include <IV-2_6/InterViews/textdisplay.h>
 #include <OS/math.h>
 #include <ctype.h>
+#if !defined(solaris)
 #include <memory.h>
+#endif
 #include <string.h>
 
 #include <IV-2_6/_enter.h>

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,6 +33,7 @@
 
 class ExportChooser;
 
+//: command to export selection in idraw "PostScript" or drawtool serialized format.
 class OvExportCmd : public Command {
 public:
     OvExportCmd(ControlInfo*, ExportChooser* = nil);
@@ -40,8 +41,12 @@ public:
     virtual ~OvExportCmd();
 
     virtual void Execute();
-    virtual boolean Export(const char*);
+    // present ExportChooser to specify pathname, export flags, and export mode.
+    virtual boolean Export(const char* path);
+    // export by constructing appropriate ExternView for idraw or drawtool format,
+    // and using it to transcribe the contents of the selected components to 'path'.
     virtual boolean Reversible();
+    // returns false.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -49,7 +54,9 @@ public:
 
 
     virtual const char* format();
+    // return string that indicates format: "drawtool" or "idraw".
     virtual boolean idraw_format();
+    // true when format is "idraw".
 
 protected:
     ExportChooser* chooser_;

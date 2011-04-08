@@ -1,0 +1,139 @@
+.TH viewcmds 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+CenterCmd, CloseEditorCmd, GravityCmd, GridCmd, GridSpacingCmd,
+NormSizeCmd, OrientationCmd, RedToFitCmd \- commands for modifying
+editor attributes
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/viewcmds.h>
+.SH DESCRIPTION
+The Unidraw library predefines several commands for altering the
+attributes of editors and their viewers.  CenterCmd centers each of
+the editor's viewers.  CloseEditorCmd closes the editor, removing it
+from the screen.  GravityCmd turns gravity on by activating the
+editor's GravityVar, if it defines one.  GridCmd toggles the
+visibility of each viewer's grid, while GridSpacingCmd lets the user
+specify the grid spacing for all grids.  Finally, NormSizeCmd sets
+each viewer's magnification to a factor of one, OrientationCmd toggles
+each viewer's orientation between landscape mode and portrait mode,
+and RedToFitCmd changes each viewer's magnification so that its
+component view is fully visible.
+.SH CENTERCMD PUBLIC OPERATIONS
+.TP
+.B "CenterCmd(ControlInfo*)"
+.ns
+.TP
+.B "CenterCmd(Editor* = nil)"
+Construct a new CenterCmd.
+.TP
+.B "virtual void Execute()"
+Execute simply calls CenterOp on each of the editor's viewers.
+.TP
+.B "virtual boolean Reversible()"
+CenterCmd is not reversible.
+.SH CLOSEEDITORCMD PUBLIC OPERATIONS
+.TP
+.B "CloseEditorCmd(ControlInfo*)"
+.ns
+.TP
+.B "CloseEditorCmd(Editor* = nil)"
+Construct a new CloseEditorCmd.
+.TP
+.B "virtual void Execute()"
+Execute calls Close on the global unidraw object with the
+CloseEditorCmd's editor as its argument.  Execute prompts the use to
+save the component if it does not appear in any other open editors.
+If no other editors are open at all, Execute creates and executes a
+QuitCmd.
+.TP
+.B "virtual boolean Reversible()"
+CloseEditorCmd is not reversible.
+.SH GRAVITYCMD PUBLIC OPERATIONS
+.TP
+.B "GravityCmd(ControlInfo*)"
+.ns
+.TP
+.B "GravityCmd(Editor* = nil)"
+Construct a new GravityCmd.
+.TP
+.B "virtual void Execute()"
+Execute calls Activate on the editor's GravityVar (if it defines one)
+with the inverse of the value returned by GravityVar's IsActive
+operation.
+.TP
+.B "virtual boolean Reversible()"
+GravityCmd is not reversible.
+.SH GRIDCMD PUBLIC OPERATIONS
+.TP
+.B "GridCmd(ControlInfo*)"
+.ns
+.TP
+.B "GridCmd(Editor* = nil)"
+Construct a new GridCmd.
+.TP
+.B "virtual void Execute()"
+Execute calls the Visibility operation on the grid from each of the
+editor's viewers, supplying the inverse of the value returned by
+Grid's IsVisible oepation.
+.TP
+.B "virtual boolean Reversible()"
+GridCmd is not reversible.
+.SH GRIDSPACINGCMD PUBLIC OPERATIONS
+.TP
+.B "GridSpacingCmd(ControlInfo*)"
+.ns
+.TP
+.B "GridSpacingCmd(Editor* = nil)"
+Construct a new GridSpacingCmd.
+.TP
+.B "virtual void Execute()"
+Execute prompts the user to specify grid spacing information through a
+GridDialog.  If the user does not cancel the dialog, then Execute will
+pass the specified grid spacing to a SetSpacing call on each viewer's
+grid.
+.TP
+.B "virtual boolean Reversible()"
+GridSpacingCmd is not reversible.
+.SH NORMSIZECMD PUBLIC OPERATIONS
+.TP
+.B "NormSizeCmd(ControlInfo*)"
+.ns
+.TP
+.B "NormSizeCmd(Editor* = nil)"
+Construct a new NormSizeCmd.
+.TP
+.B "virtual void Execute()"
+Execute simply calls SetMagnification with an argument of 1 on each of
+the editor's viewers.
+.TP
+.B "virtual boolean Reversible()"
+NormSizeCmd is not reversible.
+.SH ORIENTATIONCMD PUBLIC OPERATIONS
+.TP
+.B "OrientationCmd(ControlInfo*)"
+.ns
+.TP
+.B "OrientationCmd(Editor* = nil)"
+Construct a new OrientationCmd.
+.TP
+.B "virtual void Execute()"
+Execute switches the orientation of each of the editor's viewers via
+their SetOrientation operation.
+.TP
+.B "virtual boolean Reversible()"
+OrientationCmd is not reversible.
+.SH REDTOFITCMD PUBLIC OPERATIONS
+.TP
+.B "RedToFitCmd(ControlInfo*)"
+.ns
+.TP
+.B "RedToFitCmd(Editor* = nil)"
+Construct a new RedToFitCmd.
+.TP
+.B "virtual void Execute()"
+Execute simply calls ReduceToFit on each of the editor's viewers.
+.TP
+.B "virtual boolean Reversible()"
+RedToFitCmd is not reversible.
+.SH SEE ALSO
+BasicDialog(3U), Command(3U), Grid(3U), Unidraw(3U), Viewer(3U),
+catcmds(3U), globals(3U), statevars(3U)

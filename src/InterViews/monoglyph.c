@@ -44,6 +44,11 @@ void MonoGlyph::body(Glyph* glyph) {
 
 Glyph* MonoGlyph::body() const { return body_; }
 
+void MonoGlyph::bodyclear() {
+    Resource::unref(body_);
+    body_ = nil;
+}
+
 void MonoGlyph::request(Requisition& requisition) const {
     if (body_ != nil) {
         body_->request(requisition);

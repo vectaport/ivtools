@@ -1,0 +1,74 @@
+.TH UHashTable 3U "3 October 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+UHashTable, UHashElem \- hash table classes
+.SH SYNOPSIS
+.B #include <Unidraw/uhash.h>
+.SH DESCRIPTION
+UHashTable implements a simple open hash table.  The number of slots
+can be specified when the table is created.  UHashTable stores
+UHashElem instances, which contain the key that is hashed.  Code that
+uses UHashTables may derive from UHashElem to store data in addition
+to the key.  UHashTable also provides operations for iterating over
+the elements in the hash table.
+.SH UHASHELEM OPERATIONS
+.TP
+.B "UHashElem(void* = nil)"
+Create a UHashElem with the given key value.
+.TP
+.B "void* GetKey()"
+.ns
+.TP
+.B "void SetKey(void*)"
+Explicitly get and set the element's key value.
+.SH UHASHTABLE PUBLIC OPERATIONS
+.TP
+.B "UHashTable(int nslots)"
+Create a new UHashTable, specifying its number of slots.
+.TP
+.B "virtual void Register(void* key, UHashElem* = nil)"
+Make an entry into the hash table.  If no UHashElem is supplied, this
+function call the CreateElem function (described below) to create one,
+and it will call SetKey (with \fIkey\fP as its argument) on the
+result.
+.TP
+.B "virtual void Unregister(void* key)"
+Remove the element with the matching key from the hash table and
+delete it.
+.TP
+.B "void First(Iterator&)"
+.ns
+.TP
+.B "void Next(Iterator&)"
+.ns
+.TP
+.B "boolean Done(Iterator)"
+.ns
+.TP
+.B "UHashElem* GetElem(Iterator)"
+Operations for iterating over the elements in the hash table.  These
+operation do not guarantee a particular ordering for the iteration.
+First initializes an iterator to point to the first element in the
+traversal, Next increments the iterator to point to the following
+element, and Done returns whether or not the iterator points beyond
+the last element in the traversal.  GetElem returns the element to
+which the given iterator points.
+.TP
+.B "UHashElem* Find(void* key)"
+Find the element with the matching key (as defined by the Equal
+operation, described below) in the hash table.
+.SH UHASHTABLE PROTECTED OPERATIONS
+.TP
+.B "virtual UHashElem* CreateElem()"
+Return a new UHashElem instance.  Subclasses of UHashTable should
+redefine this function if they use subclasses of UHashElem.
+.TP
+.B "virtual int Hash(void* key)"
+Hash the specified key to return a slot index.  This value should be
+less than the value of the \fI_nslots\fP member variable.
+.TP
+.B "virtual boolean Equal(void* key1, void* key2)"
+Return whether the specified keys are equivalent.  By default, Equal
+simply compares the pointers for equality.  Subclasses may redefine
+this operation to make more sophisticated comparisons.
+.SH SEE ALSO
+Iterator(3U)

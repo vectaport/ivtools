@@ -1,0 +1,45 @@
+.TH datas 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ColorData, GSData, MobilityData, MoveData, VoidData \- Data subclasses
+for storing common undo information
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/datas.h>
+.SH DESCRIPTION
+The Unidraw library predefines several Data subclasses for storing
+common undo information: ColorData stores two PSColors (usually
+representing foreground and background colors), while GSData stores a
+complete set of graphics state in a FullGraphic object.  MobilityData
+stores the mobility and graphics state information needed to undo a
+change in mobility. MoveData stores a horizontal and vertical
+distance.  VoidData stores a void pointer as a useful alternative to
+deriving trivially from Data just to store one word of information.
+.SH COLORDATA PUBLIC OPERATIONS
+.TP
+.B "ColorData(PSColor*, PSColor*)"
+Create a ColorData instance, supplying the PSColor objects it stores.
+.SH GSDATA PUBLIC OPERATIONS
+.TP
+.B "GSData(Graphic*)"
+Create a GSData instance, supplying the Graphic object from which to
+copy a complete set of graphics state.  The GSData constructor copies
+this information into its \fI_gs\fP member, from whence it can be
+retrieved later.
+.SH MOBILITYDATA PUBLIC OPERATIONS
+.TP
+.B "MobilityData(Mobility, Graphic*)"
+Create a MobilityData instance, supplying the mobility and a Graphic
+object from which to copy a complete set of graphics state.  The
+MobilityData constructor copies the graphic into its \fI_gs\fP member,
+from whence it can be retrieved later.
+.SH MOVEDATA PUBLIC OPERATIONS
+.TP
+.B "MoveData(float, float)"
+Create a MoveData instance, supplying two floating point numbers that
+normally represent horizontal and vertical movement.
+.SH VOIDDATA PUBLIC OPERATIONS
+.TP
+.B "VoidData(void*)"
+Create a VoidData instance, supplying a pointer to an object of
+unknown type.
+.SH SEE ALSO
+Data(3U), Graphic(3U), globals(3U)

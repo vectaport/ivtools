@@ -1,0 +1,17 @@
+.TH iostreamb 3I "21 December 1990" "InterViews" "InterViews Reference Manual"
+.SH NAME
+istreamb, ostreamb, iostreamb \- unformatted streams
+.SH SYNOPSIS
+.B #include <Dispatch/iostreamb.h>
+.SH DESCRIPTION
+istreamb, ostreamb, and iostreamb are streams just like istream,
+ostream, and iostream except for two features.  First, they
+automatically insert and extract delimiters around datums where
+necessary so you never have to separate datums by whitespace yourself.
+Second, they can insert and extract integers as either unformatted
+(binary) bytes or formatted characters so you can eliminate the time
+needed to convert integers to strings and back.  Both of these
+features make these classes easier to use than the base stream classes
+for inter-process communication (IPC).
+.SH SEE ALSO
+IOS.INTRO(3C++)

@@ -11,7 +11,7 @@ CLIPPOLY_CCLDLIBS =
 Use_libInterViews()
 ComplexProgramTarget(idemo)
 
-MakeObjectFromSrcFlags(main, -xc++)
+MakeObjectFromSrcFlags(main,)
 
 InstallScriptAs(../Idemo.defaults,$(LIBALLDIR),Idemo)
 

@@ -90,46 +90,132 @@ OPERATOR TABLE
     ==            eq                   45          L-to-R      binary
     &&            and                  41          L-to-R      binary
     ||            or                   40          L-to-R      binary
+    ,             stream               35          L-to-R      binary
     %=            mod_assign           30          R-to-L      binary
     *=            mpy_assign           30          R-to-L      binary
     +=            add_assign           30          R-to-L      binary
     -=            sub_assign           30          R-to-L      binary
     /=            div_assign           30          R-to-L      binary
     =             assign               30          R-to-L      binary
-    ,             stream               20          L-to-R      binary
     ;             seq                  10          L-to-R      binary
+
+MATHEMATICAL COMMANDS:
+
+n=min(a b) -- return minimum of a and b
+
+n=max(a b) -- return maximum of a and b
+
+n=abs(a) -- return absolute value of a
+
+dbl=exp(x) -- returns the value e raised to the power of x
+
+dbl=log(x) -- returns the natural logarithm of x
+
+dbl=log10(x) -- returns the base-10 logarithm of x
+
+dbl=pow(x y) -- returns the value of x raised to the power of y
+
+dbl=acos(x) -- returns the arc cosine of x
+
+dbl=asin(x) -- returns the arc sine of x
+
+dbl=atan(x) -- returns the arc tangent of x
+
+dbl=atan2(y x) -- returns the arc tangent of y over x
+
+dbl=cos(x) -- returns the cosine of x
+
+dbl=sin(x) -- returns the sine of x
+
+dbl=tan(x) -- returns the tangent of x
+
+dbl=sqrt(x) -- returns square root of x
+
+AFFINE TRANSFORM COMMANDS:
+
+point=xform(x,y a00,a01,a10,a11,a20,a21) -- affine transform of x,y coordinates
+
+affine=invert(a00,a01,a10,a11,a20,a21) -- invert affine transform
+
+STATISTICAL/RANDOM COMMANDS: 
+
+val=sum(val1[,val2[,...,valn]]) -- return sum of values
+
+val=mean(val1[,val2[,...,valn]]) -- return mean of values
+
+val=var(val1[,val2[,...,valn]]) -- return variance of values
+
+val=stddev(val1[,val2[,...,valn]]) -- return standard deviation of values
+
+val=rand([minval,maxval]) -- return random number between 0 and 1 or minval,maxval
+
+srand(seedval) -- seed random number generator
+
+LIST COMMANDS:
+
+val=at(list n) -- return nth item in a list
+
+num=size(list) -- return size of a list
+
+CONTROL COMMANDS (using post evaluation):
+
+val=cond(testexpr trueexpr falseexpr) -- evaluate testexpr, and if true,
+evaluate and return trueexpr, otherwise evaluate and return falseexpr
+
+val=if(testexpr :then expr :else expr) -- evaluate testexpr and
+execute the :then expression if true, the :else expression if false.
+
+val=for(initexpr whileexpr [nextexpr] :body expr) -- for loop
+
+val=while([testexpr] :until :body expr ) -- while loop
 
 OTHER COMMANDS
 
 help(cmdname [cmdname ...]) -- help for commands
+
+[str]=print(fmtstr val :string|:str :err) -- print value with format string
+
 symid(symbol [symbol...]) -- return id associated with symbol
+
 symval(symid [symid...]) -- return symbol associated with id
 
+postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments
+(with [narg|nkey] after defined commands, {narg|nkey} after undefined commands,
+(narg) after keys)
+
+arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed 
+argument (until nil) and return array
+				 
 quit() -- quit the interpreter
+
 exit() -- exit entire application
 
 val=run(filename) -- run commands from file
 
-val=remote(hoststr portnum cmdstr) -- remotely evaluate command string then locally
-evaluate result string
+val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then 
+locally evaluate result string
+
+val=eval(cmdstr) -- evaluate string as commands
 
 val=shell(cmdstr) -- evaluate command in shell
 
-n=min(a b) -- return minimum of a and b
-n=max(a b) -- return maximum of a and b
-dbl=exp(x) -- returns the value of raised to the power of x
-dbl=log(x) -- returns the natural logarithm of x
-dbl=log10(x) -- returns the base-10 logarithm of x
-dbl=pow(x y) -- returns the value of x raised to the power of y
-dbl=acos(x) -- returns the arc cosine of x
-dbl=asin(x) -- returns the arc sine of x
-dbl=atan(x) -- returns the arc tangent of x
-dbl=atan2(y x) -- returns the arc tangent of y over x
-dbl=cos(x) -- returns the cosine of x
-dbl=sin(x) -- returns the sine of x
-dbl=tan(x) -- returns the tangent of x
-val=cond(test trueval falseval) -- if test is true, return trueval, otherwise return falseval
+nil([...]) -- accept any arguments and return nil
 
+c=char(num) -- convert any numeric to a char
+
+s=short(num) -- convert any numeric to a short
+
+i=int(num) -- convert any numeric to an int
+
+l=long(num) -- convert any numeric to a long
+
+f=float(num) -- convert any numeric to a float
+
+d=double(num) -- convert any numeric to a double
+
+ONLY IN SERVER MODE
+
+str=timeexpr(comstr :sec n) -- command string to execute at intervals
 
 SEE ALSO  
 	comdraw

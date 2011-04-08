@@ -1,0 +1,110 @@
+.TH catcmds 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+NewCompCmd, PrintCmd, QuitCmd, RevertCmd, SaveCompCmd, SaveCompAsCmd,
+ViewCompCmd \- catalog-oriented commands
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/catcmds.h>
+.SH DESCRIPTION
+The Unidraw library predefines a set of non-interpretive commands that
+let a user specify components to open, view, and save, plus commands
+for generating a PostScript external representation and for quitting
+the application.  NewCompCmd re-initializes its editor's component to
+let the user start editing afresh.  If the existing component is
+modified, NewCompCmd prompts the user to save it.  PrintCmd generates
+a PostScriptView of the editor's component and lets the user send it
+to a file or to a printer.  QuitCmd quits the application, prompting
+the user to save modified components.  RevertCmd lets the user re-open
+the current component, discarding changes since it was last saved.
+SaveCompAsCmd lets the user save a component under a particular name,
+while SaveCompCmd saves a component named previously.  Finally,
+ViewCompCmd lets the user specify another component to view in its
+editor.
+.SH NEWCOMPCMD PUBLIC OPERATIONS
+.TP
+.B "NewCompCmd(ControlInfo*, Component* prototype = nil)"
+.ns
+.TP
+.B "NewCompCmd(Editor* = nil, Component* = nil)"
+Create a new NewCompCmd instance, optionally supplying a prototype
+component.  When executed, NewCompCmd will make its editor edit a copy
+of the prototype.  The editor's original component will be deleted if
+no other editor refers to it.
+.TP
+.B "virtual boolean Reversible()"
+NewCompCmd is not reversible.
+.TP
+.B "Component* GetPrototype()"
+Return the prototype component specified in the constructor.
+.SH PRINTCMD PUBLIC OPERATIONS
+.TP
+.B "PrintCmd(ControlInfo*, PrintDialog* = nil)"
+.ns
+.TP
+.B "PrintCmd(Editor* = nil, PrintDialog* = nil)"
+Create a new PrintCmd instance, optionally supplying the PrintDialog
+to display when executed.
+.TP
+.B "virtual boolean Reversible()"
+PrintCmd is not reversible.
+.SH PRINTCMD PROTECTED OPERATIONS
+.TP
+.B "void print(const char* print_cmd, const char* file)"
+Concatenates \fIprint_cmd\fP and \fIfile\fP and calls system(3) on the
+result.
+.SH QUITCMD PUBLIC OPERATIONS
+.TP
+.B "QuitCmd(ControlInfo*)"
+.ns
+.TP
+.B "QuitCmd(Editor* = nil)"
+Create a new QuitCmd instance.
+.TP
+.B "virtual boolean Reversible()"
+QuitCmd is not reversible.
+.SH REVERTCMD PUBLIC OPERATIONS
+.TP
+.B "RevertCmd(ControlInfo*)"
+.ns
+.TP
+.B "RevertCmd(Editor* = nil)"
+Create a new RevertCmd instance.
+.TP
+.B "virtual boolean Reversible()"
+RevertCmd is not reversible.
+.SH SAVECOMPCMD PUBLIC OPERATIONS
+.TP
+.B "SaveCompCmd(ControlInfo*)"
+.ns
+.TP
+.B "SaveCompCmd(Editor* = nil)"
+Create a new SaveCompCmd instance.
+.TP
+.B "virtual boolean Reversible()"
+SaveCompCmd is not reversible.
+.SH SAVECOMPASCMD PUBLIC OPERATIONS
+.TP
+.B "SaveCompAsCmd(ControlInfo*, FileChooser* = nil)"
+.ns
+.TP
+.B "SaveCompAsCmd(Editor* = nil, FileChooser* = nil)"
+Create a new SaveCompAsCmd instance, optionally supplying the
+FileChooser that will prompt the user to name the component.
+.TP
+.B "virtual boolean Reversible()"
+SaveCompAsCmd is not reversible.
+.SH VIEWCOMPCMD PUBLIC OPERATIONS
+.TP
+.B "ViewCompCmd(ControlInfo*, FileChooser* = nil)"
+.ns
+.TP
+.B "ViewCompCmd(Editor* = nil, FileChooser* = nil)"
+Create a new ViewCompCmd instance, optionally supplying the
+FileChooser that will prompt the user to specify the component to
+view.  After the new component is opened successfully, the editor's
+original component will be deleted if no other editor refers to it.
+.TP
+.B "virtual boolean Reversible()"
+ViewCompCmd is not reversible.
+.SH SEE ALSO
+BasicDialog(3U), Command(3U), Component(3U), Editor(3U),
+PostScriptView(3U), lpr(1).

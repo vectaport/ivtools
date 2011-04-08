@@ -1,0 +1,79 @@
+.TH StateVar 3U "6 August 1990" "Unidraw" "InterViews Reference Manual" .SH NAME
+.SH NAME
+StateVar \- state variable subject base class
+.SH SYNOPSIS
+.B #include <Unidraw/statevar.h>
+.SH DESCRIPTION
+StateVar is the base class for state variable subjects.  State
+variables provide a standard way to represent and access state that
+can be modified by the user or through dataflow.  State variable
+subjects store the state, while state variable views provide a
+graphical interface for examining and potentially modifying the state
+in their subject.  The StateVar class defines the protocol for state
+variable subjects.  It is an abstract class and thus cannot be
+instantiated.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Connector* GetBinding()"
+Return the connector to which the state variable is bound to support
+dataflow.  Data flows through connected connectors with bound state
+variables: the library automatically assigns one bound state
+variable's state to another's.  The direction of this assignment
+depends on the participating connectors. See Connector(3U) for details
+on how to bind state variables to connectors and how to specify the
+direction of flow. 
+.TP
+.B "virtual void Attach(StateVarView*)"
+.ns
+.TP
+.B "virtual void Detach(StateVarView*)"
+Attach associates the subject with a view, represented by an instance
+of a StateVarView subclass.  Detach dissociates a previously attached
+view.  These operations do not ensure that the argument is an
+appropriate view of the subject. 
+.TP
+.B "virtual void Notify()"
+Notify iterates through the views, calling each one's Update
+operation to notify the view that the subject has potentially changed. 
+Notify is usually called by the subject's state-modifying operations. 
+.TP
+.B "virtual StateVar& operator = (StateVar&)"
+The assignment operation should be redefined to carry out
+subclass-specific assignment semantics.  Typically this operator calls
+the parent classes' assignment operator and then performs additional
+assignments of its own.  This operator is used during dataflow to
+transfer state variable values. 
+.TP
+.B "virtual StateVar* Copy()"
+Return a copy of the state variable.  Subclasses should redefine this
+operation to return an instance of their type. 
+.TP
+.B "virtual void Read(istream&)"
+.ns
+.TP
+.B "virtual void Write(ostream&)"
+Read and write the state variable's contents to a stream to support
+catalog operations.  Read and write typically call first the
+corresponding operations defined by their parent class, and then they
+read or write their class-specific state.  Note that you must ensure
+that the objects are read in the same order they are written. 
+.TP
+.B "virtual ClassId GetClassId()"
+.ns
+.TP
+.B "virtual boolean IsA(ClassId)"
+GetClassId returns the unique class identifier for the StateVar
+subclass, while IsA returns whether the instance is of a class or
+subclass corresponding to the given identifier.  IsA typically checks
+the given identifier against the instance's own (as defined by its
+GetClassId operation) and, failing that, calls its parent classes' IsA
+operation.  All subclasses must redefine GetClassId and IsA to ensure
+that their identifiers are unique and that instances are written and
+read properly. 
+.SH PROTECTED OPERATIONS
+.TP
+.B "StateVar()"
+The constructor is protected to prevent instantiation.
+.SH SEE ALSO
+Catalog(3U), Connector(3U), Creator(3U), StateVarView(3U),
+classes(3U), istream(3C++), ostream(3C++)

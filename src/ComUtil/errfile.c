@@ -54,7 +54,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-char * err_readfile( errstream, errnum )
+char * err_readfile(FILE* errstream,unsigned errnum )
 
 
 /*!
@@ -67,8 +67,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 FILE *          errstream ;/* I   Error message format string file pointer. */
 unsigned        errnum    ;/* I   Number of error message to search for. */
+#endif
 
 
 #ifdef DOC

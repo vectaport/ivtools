@@ -1,25 +1,25 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1991 Stanford University
  * Copyright (c) 1991 Silicon Graphics, Inc.
  *
- * Permission to use, copy, modify, distribute, and sell this software and 
+ * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
- * that (i) the above copyright notices and this permission notice appear in
- * all copies of the software and related documentation, and (ii) the names of
- * Stanford and Silicon Graphics may not be used in any advertising or
- * publicity relating to the software without the specific, prior written
- * permission of Stanford and Silicon Graphics.
- * 
- * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
- * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
- * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+ * that the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the names of the copyright holders not be used in
+ * advertising or publicity pertaining to distribution of the software
+ * without specific, written prior permission.  The copyright holders make
+ * no representations about the suitability of this software for any purpose.
+ * It is provided "as is" without express or implied warranty.
  *
- * IN NO EVENT SHALL STANFORD OR SILICON GRAPHICS BE LIABLE FOR
- * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
- * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
- * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
- * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
- * OF THIS SOFTWARE.
+ * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL,
+ * INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
+ * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+ * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+ * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 /*
@@ -46,8 +46,21 @@
 #include <IV-2_6/InterViews/sensor.h>
 #include <IV-2_6/InterViews/streditor.h>
 #include <IV-2_6/InterViews/textdisplay.h>
+#include <IV-2_6/InterViews/world.h>
+
+#include <IV-X11/Xlib.h>
+#include <IV-X11/xdisplay.h>
+#include <IV-X11/xevent.h>
+#include <IV-X11/xwindow.h>
+#include <IV-X11/xcanvas.h>
+#include <InterViews/window.h>
+extern "C" {
+#include <X11/Xatom.h>
+}
+
 #include <OS/math.h>
 #include <OS/string.h>
+#include <stdio.h>
 
 class FieldStringEditor : public StringEditor {
 public:
@@ -78,6 +91,9 @@ private:
     void do_select(Event&);
     void do_grab_scroll(Event&);
     void do_rate_scroll(Event&);
+    void do_xselection_request(Event&);
+public:
+    void do_xselection_paste(const Event&);
 };
 
 declareSelectionCallback(FieldStringEditor)
@@ -130,7 +146,11 @@ void FieldStringEditor::press(const Event& event) {
 	do_select(e);
 	break;
     case Event::middle:
-	do_grab_scroll(e);
+#if 0
+        do_grab_scroll(e);
+#else
+	do_xselection_request(e);
+#endif
 	break;
     case Event::right:
 	do_rate_scroll(e);
@@ -207,6 +227,47 @@ void FieldStringEditor::do_rate_scroll(Event& e) {
     } while (e.rightmouse);
     w->cursor(c);
 }
+
+void FieldStringEditor::do_xselection_request(Event& e) {
+  int origin = display->Left(0, 0);
+  int width = display->Width();
+  Poll(e);
+  start_ = display->LineIndex(0, e.x);
+  if (e.x < 0) {
+    origin = Math::min(0, origin - e.x);
+  } else if (e.x > xmax) {
+    origin = Math::max(
+		       xmax - width, origin - (e.x - xmax)
+		       );
+  }
+  display->Scroll(0, origin, ymax);
+  index_ = display->LineIndex(0, e.x);
+  DoSelect(start_, index_);
+  XDisplay* disp = GetWorld()->display()->rep()->display_;
+  unsigned int win = GetCanvas()->rep()->window_->rep()->xwindow_;
+  Atom target_property = XInternAtom(disp, "PASTESTRING", false);
+  int ret = XConvertSelection(disp, XA_PRIMARY, XA_STRING, target_property,
+			      win, e.rep()->xevent_.xbutton.time);
+}
+
+void FieldStringEditor::do_xselection_paste(const Event& e) {
+  XDisplay* disp = GetWorld()->display()->rep()->display_;
+  unsigned int win = GetCanvas()->rep()->window_->rep()->xwindow_;
+  Atom target_property = XInternAtom(disp, "PASTESTRING", false);
+  Atom actual_atom;
+  int actual_format;
+  unsigned long ret_length, ret_remaining;
+  unsigned char* data;
+  int ret=XGetWindowProperty(disp, win, target_property,
+			     0L, BUFSIZ, false, XA_STRING,
+			     &actual_atom, &actual_format, &ret_length,
+			     &ret_remaining, &data);
+  if (ret == Success && data) {
+    InsertText((char*) data, strlen((char*)data));
+    XFree(data);
+  }
+}
+
 
 boolean FieldStringEditor::keystroke(const Event& e) {
     char c;
@@ -305,6 +366,10 @@ void FieldEditor::undraw() {
 
 void FieldEditor::press(const Event& e) {
     impl_->editor_->press(e);
+}
+
+void FieldEditor::selection_notify(const Event& e) {
+  impl_->editor_->do_xselection_paste(e);
 }
 
 void FieldEditor::drag(const Event&) { }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -31,11 +31,15 @@
 
 #include <Unidraw/upage.h>
 
+//: drawing page object.
 class OverlayPage : public UPage {
 public:
     OverlayPage(float w, float h, boolean visible = false);
+    // construct page object of a given pixel width and height.
     virtual void Visibility(boolean);
+    // set visibility of page graphic.
     virtual boolean IsVisible();
+    // return visibility of page graphic.
 };
 
 #endif

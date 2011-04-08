@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport, Inc.
+ * Copyright (c) 1994-1999 Vectaport, Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -43,24 +43,15 @@
 #ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
-#include <Dispatch/ace_dispatcher.h>
+#include <AceDispatch/ace_dispatcher.h>
 #endif
 
 #include <stream.h>
 #include <string.h>
 #include <math.h>
+#include <version.h>
 
 static int nmsg = 0;
-
-#if defined(__sun) && !defined(__svr4__)
-/* Disables atan2(0.0,0.0) warning messages */
-extern "C" {
-    int matherr(struct exception *x) {
-	if (x && strcmp(x->name, "atan2") == 0) return 1;
-	else return 0;
-    }
-}
-#endif
 
 /*****************************************************************************/
 
@@ -169,9 +160,14 @@ static PropertyData properties[] = {
     { "*toolbarloc",    "l"  },
     { "*twidth",        "512" },
     { "*zoomer_off",    "false"  },
+    { "*opaque_off",    "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
-    { "*comdraw",          "20002" },
+    { "*comdraw",       "20002" },
+    { "*wbmaster",      "false" },
+    { "*wbslave",       "false" },
+    { "*wbhost",        "localhost" },
+    { "*wbport",        "20002" },
 #endif
     { "*help",          "false"  },
     { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
@@ -206,9 +202,15 @@ static OptionDesc options[] = {
     { "-twidth", "*twidth", OptionValueNext },
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
     { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
+    { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
-    { "-comdraw", "*port", OptionValueNext },
+    { "-comdraw", "*comdraw", OptionValueNext },
+    { "-wbmaster", "*wbmaster", OptionValueImplicit, "true" },
+    { "-wbslave", "*wbslave", OptionValueImplicit, "true" },
+    { "-wbhost", "*wbhost", OptionValueNext },
+    { "-wbport", "*wbport", OptionValueNext },
 #endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -218,17 +220,17 @@ static OptionDesc options[] = {
 #ifdef HAVE_ACE
 static char* usage =
 "Usage: comdraw [any idraw parameter] [-comdraw port] [-color5] \n\
-[-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-pagecols|-ncols] \n\
-[-pagerows|-nrows] [-panner_off|-poff] \n\
+[-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
+[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
 [-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
-[-zoomer_off|-zoff] [file]";
+[-wbhost host] [-wbmaster] [-wbslave] [-wbport port] [-zoomer_off|-zoff] [file]";
 #else
 static char* usage =
 "Usage: comdraw [any idraw parameter] [-color5] \n\
-[-color6] [-gray5] [-gray6] [-gray7] [-pagecols|-ncols] \n\
-[-pagerows|-nrows] [-panner_off|-poff] \n\
+[-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
+[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
 [-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
 [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
@@ -304,6 +306,7 @@ int main (int argc, char** argv) {
 	ComEditor* ed = new ComEditor(initial_file);
 
 	unidraw->Open(ed);
+	fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	unidraw->Run();
     }
 

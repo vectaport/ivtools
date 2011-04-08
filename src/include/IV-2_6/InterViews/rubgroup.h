@@ -36,6 +36,9 @@ class RubberList;
 class RubberGroup : public Rubberband {
 public:
     RubberGroup(Painter*, Canvas*);
+    virtual ClassId GetClassId() { return RUBBERGROUP; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERGROUP == id || Rubberband::IsA(id); }
     virtual ~RubberGroup();
 
     virtual void Draw();

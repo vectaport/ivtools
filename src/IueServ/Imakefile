@@ -1,0 +1,35 @@
+XCOMM
+XCOMM source files for building the IueServ library
+XCOMM
+
+PACKAGE = IueServ
+
+#ifdef InObjectCodeDir
+
+LIB = IueServ
+OTHER_CCDEFINES = $(IUE_CCDEFINES) $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(IUE_CCINCLUDES) $(ACE_CCINCLUDES)
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+#define ObjA(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
+
+Obj(exportfunc)
+Obj(ipfunc)
+Obj(iuecomps)
+Obj(iuefunc)
+Obj(iuehandler)
+Obj(roifunc)
+
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

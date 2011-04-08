@@ -1,0 +1,129 @@
+.TH Damage 3U "30 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Damage \- repairs damaged graphics
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/damage.h>
+.SH DESCRIPTION
+Damage objects store damaged areas of a graphic for subsequent
+incremental repair.  Areas of a graphic are "damaged" if they need to
+be redrawn for any reason, e.g., if their state has been modified or
+if under/overlapping graphics change their appearance.  Damage objects
+try to minimize the amount of redrawing needed to repair a graphic.
+They are most useful when the graphic is complicated enough that it
+would be undesirable to redraw the entire canvas when the graphic is
+modified.  Damage objects do \fInot\fP eliminate the need for an
+interactor's \fIRedraw\fP member function, though they could be used
+to implement it.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Damage(Canvas* = nil, Painter* = nil, Graphic* = nil)"
+Create a new Damage object for a graphic on the given canvas.  The
+painter is used to erase damaged areas using its ClearRect function
+prior to redrawing them.
+.TP
+.B "virtual void Incur(Graphic*)"
+.ns
+.TP
+.B "virtual void Incur(BoxObj&)"
+.ns
+.TP
+.B "virtual void Incur("
+.ns
+.TP
+.B "    Coord left, Coord bottom, Coord right, Coord top"
+.ns
+.TP
+.B ")"
+.br
+Notify the damage object that a rectangular area has been damaged,
+either by passing the graphic that contributed the area or the area
+itself.
+.TP
+.B "virtual void Added(Graphic*)"
+Notify the damage object that the given graphic was appended
+(\fInot\fP inserted) to the graphic but never drawn.  The damage
+object can thus be responsible for drawing newly added graphics as
+well.
+.TP
+.B "virtual void Repair()"
+Repair all damage incurred since the last Repair (or since the damage
+object was created if this is the first Repair).
+.TP
+.B "virtual void Reset()"
+Reset the damage object.  Any damage incurred is lost.
+.TP
+.B "virtual boolean Incurred()"
+Returns true if any damage has been incurred.
+.TP
+.B "void SetCanvas(Canvas*)"
+.ns
+.TP
+.B "void SetPainter(Painter*)"
+.ns
+.TP
+.B "void SetGraphic(Graphic*)"
+.TP
+.B "Canvas* GetCanvas()"
+.ns
+.TP
+.B "Painter* GetPainter()"
+.ns
+.TP
+.B "Graphic* GetGraphic()"
+Set and get attributes of the damage object.
+.SH PROTECTED OPERATIONS
+.TP
+.B "int Area(BoxObj&)"
+A helper function that returns the area in square pixels occupied by
+the given BoxObj.
+.TP
+.B "virtual void DrawAreas()"
+.ns
+.TP
+.B "virtual void DrawAdditions()"
+Explicitly draw the areas of incurred and added damage, respectively.
+.TP
+.B "virtual void Merge(BoxObj&)"
+Merge the given BoxObj into the list of incur-damaged areas,
+coalescing it into an existing area if the number of non-overlapping
+areas exceeds 2.
+.TP
+.B "void FirstArea(Iterator&)"
+.ns
+.TP
+.B "void FirstAddition(Iterator&)"
+.ns
+.TP
+.B "void Next(Iterator&)"
+.ns
+.TP
+.B "boolean Done(Iterator)"
+.ns
+.TP
+.B "BoxObj* GetArea(Iterator)"
+.ns
+.TP
+.B "Graphic* GetAddition(Iterator)"
+Operations for iterating over the lists of damaged areas (represented
+with BoxObj objects) and added Graphics.  FirstArea and FirstAddition
+initialize the iterator to point to the first item on the
+corresponding list, Next advances the iterator, and Done returns true
+if the iterator points beyond the end of the list.  GetArea and
+GetAddition return the BoxObj or Graphic to which the iterator points.
+.TP
+.B "UList* Elem(Iterator)"
+A helper function for returning the UList to which an iterator
+points.  The \fI_areas\fP protected member is a UList that stores the
+list of damaged areas, and the \fI_additions\fP protected stores the
+list of added graphics.
+.TP
+.B "void DeleteArea(BoxObj*)"
+.ns
+.TP
+.B "void DeleteAreas()"
+DeleteArea is a helper function for deleting the storage
+associated with a damaged area, including the area itself and the
+UList element.  DeleteAreas is a helper function that deletes the
+list of damaged areas.
+.SH SEE ALSO
+Canvas(3I), Graphic(3U), Iterator(3U), Painter(3I), UList(3U), geomobjs(3U)

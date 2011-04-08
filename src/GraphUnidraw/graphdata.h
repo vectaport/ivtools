@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995 Vectaport Inc.
+ * Copyright (c) 1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -34,12 +34,14 @@ class TopoNode;
 #define EDGE_DATA   1
 #define NODE_DATA   2
 
+//: base class for EdgeData and NodeData.
 class GraphData {
 public:
     GraphData() {}
     virtual boolean IsA(ClassId) = 0;
 };
 
+//: command data for storing edge information.
 class EdgeData : public GraphData {
 public:
     EdgeData(EdgeComp* ed, TopoNode* st, TopoNode* en);
@@ -49,6 +51,7 @@ public:
     TopoNode* end;
 };
 
+//: command data for storing node information.
 class NodeData : public GraphData {
 public:
     NodeData(NodeComp* nod, TopoEdge*, boolean);

@@ -29,8 +29,9 @@
 
 class rpcstream;
 
+//: header for remote procedure calls
 // Insert or extract this header to send or receive a RPC request.
-
+// <p><a href=../man3.1/RpcHdr.html>man page</a>
 class RpcHdr {
 public:
     RpcHdr(void* writer, int request);

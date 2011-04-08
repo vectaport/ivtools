@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Vectaport Inc.
+ * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -30,13 +30,19 @@
 
 #include <ComTerp/comfunc.h>
 
+//: conditional control command for ComTerp
+// val=cond(testexpr trueexpr falseexpr) -- evaluate testexpr, and if true,
+// evaluate and return trueexpr, otherwise evaluate and return falseexpr.
 class CondFunc : public ComFunc {
 public:
     CondFunc(ComTerp*);
 
     virtual void execute();
+    boolean post_eval() { return true; }
+    // post-evaluated command.
+
     virtual const char* docstring() { 
-      return "val=%s(test trueval falseval) -- if test is true, return trueval, otherwise return falseval"; }
+      return "val=%s(testexpr trueexpr falseexpr) -- evaluate testexpr, and if true,\nevaluate and return trueexpr, otherwise evaluate and return falseexpr"; }
 
 };
 

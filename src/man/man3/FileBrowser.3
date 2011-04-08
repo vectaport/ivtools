@@ -1,0 +1,93 @@
+.TH FileBrowser 3I "30 November 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+FileBrowser \- browse and/or select file names
+.SH SYNOPSIS
+.B #include <InterViews/filebrowser.h>
+.SH DESCRIPTION
+FileBrowser is a StringBrowser that displays file names. In addition
+to the standard StringBrowser constructor parameters, the FileBrowser
+constructor takes a directory name as an argument.  The FileBrowser
+scans the corresponding directory, appending the file names to its
+list of strings.  FileBrowser lets the user choose a file name, and
+the application queries the FileBrowser for the chosen file.
+.SH PUBLIC OPERATIONS
+.TP
+.B "FileBrowser(ButtonState*, const char* dir, int rows, int cols, boolean uniqueSel, \
+int highlight, const char* done)"
+.ns
+.TP
+.B "FileBrowser(const char* name, ButtonState*, const char*, int, int, \
+boolean, int, const char*)" 
+Create a new FileBrowser object.  The ButtonState, \fIrows, cols,
+uniqueSel, highlight, done\fP, and \fIname\fP parameters have
+semantics identical to those of the corresponding StringBrowser
+parameters.  The \fIdir\fP parameter specifies the directory to search
+for file names.  Internally, FileBrowser prepends \fIdir\fP to relative path
+specifications in operations that require them, thus avoiding a chdir(2).
+.TP
+.B "boolean IsADirectory(const char*)"
+Return whether or not the given relative path corresponds to a valid
+directory.  
+.TP
+.B "boolean SetDirectory(const char* newdir)"
+Change the search directory to \fInewdir\fP if that directory is
+accessible.  The function returns true if successful.
+.TP
+.B "const char* GetDirectory()"
+Return the name of the search directory.
+.TP
+.B "const char* ValidDirectories(const char* path)"
+Given a path string, return the largest substring (starting from the
+beginning of \fIpath\fP) that represents a valid path.  The substring
+is returned in a static buffer and should be copied before use.
+.TP
+.B "const char* Normalize(const char* path)"
+Return a normalized version of \fIpath\fP with all spurious slashes,
+dots, and tildes interpreted.  The normalized path is returned in a
+static buffer and should be copied before use.
+.TP
+.B "const char* Path(int i)"
+Return the \fIi\fPth string as it appears in the FileBrowser.  This
+function prepends the search directory to the string, normalizes the
+concatenation, and returns the result.
+.TP
+.B "void RereadDirectory()"
+Rescan the current directory without updating the FileBrowser's appearance.
+.TP
+.B "virtual void Update()"
+Rescan the current directory and update the FileBrowser's appearance to
+reflect any changes in the set of files it should display.
+.TP
+.B "void SetTextFilter(const char*)"
+.ns
+.TP
+.B "void SetDirectoryTextFilter(const char*)"
+.ns
+.TP
+.B "void SetModeFilter(int)"
+.ns
+.TP
+.B "void SetDirectoryModeFilter(int)"
+By default, FileBrowser displays all the files and directories it
+finds in the search directory.  These functions provide some control
+over the entries that FileBrowser displays.  SetTextFilter specifies a
+regular expression (see Regexp(3I)) to match against file names.
+SetDirectoryTextFilter serves a similar role for directory names.
+SetModeFilter and SetDirectoryModeFilter specify the mode (see
+chmod(1)) that displayed files and directories should have.  Only
+files and directories that match both the regular expression and the
+mode will appear in the FileBrowser.  Passing \fInil\fP for the
+regular expression or 0 for the mode restores the default behavior.
+.SH PROTECTED OPERATIONS
+.TP
+.B "void UpdateStrings()"
+Explicitly update the FileBrowser's appearance to reflect any changes
+in the set of files it should display without rescanning the
+directory.
+.TP
+.B "virtual boolean Acceptable(const char*)"
+Return whether the given file name is an acceptable name.  By default,
+files that conform to the text or mode filter specifications are
+acceptable.  Only acceptable files will be displayed by UpdateStrings.
+.SH SEE ALSO
+Interactor(2I), Button(3I), StringBrowser(3I), Regexp(3I), chmod(1)

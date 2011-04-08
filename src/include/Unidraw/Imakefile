@@ -11,3 +11,5 @@ SUBDIRS = \
 	Tools
 
 MakeInSubdirs($(SUBDIRS))
+
+InstallIncludes(Unidraw)

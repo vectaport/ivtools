@@ -1,0 +1,95 @@
+.TH Viewport 3I "10 February 1988" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Viewport \- scrollable view
+.SH SYNOPSIS
+.B #include <InterViews/viewport.h>
+.SH DESCRIPTION
+.B Viewport
+is a subclass of MonoScene that allocates its component
+exactly as much space as it wants (determined from its shape).
+This space will be clipped to the viewport's size and
+the viewport maintains a perspective to adjust the portion
+of the component that is actually displayed.
+If the component is smaller than the viewport's canvas,
+then the viewport background will be filled with a light gray pattern.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Viewport(Interactor* = nil, Alignment = Center)"
+Construct a new viewport.
+If the interactor is not nil, it is inserted
+as the viewport's component.
+The second parameter determines where the component
+is placed relative to the viewport.
+.TP
+.B "Insert(Interactor*)"
+Set the component interactor.
+.TP
+.B "void Change(Interactor*)"
+A viewport does not propagate changes.
+Thus, if the component's shape changes
+the viewport simply resizes the component
+according to the new shape.
+.TP
+.B "void Remove(Interactor*)"
+Take out the component interactor.
+.TP
+.B "virtual void Adjust(Perspective&)"
+Change the viewport's perspective to the given one.
+This operation will cause the desired area of the component
+to be drawn.
+.TP
+.B "void AdjustTo(float px, float py, float zx, float zy)"
+.ns
+.TP
+.B "void AdjustBy(float dpx, float dpy, float dzx, float dzy)"
+.ns
+.TP
+.B "void ScrollTo(float px, float py)"
+.ns
+.TP
+.B "void ScrollXTo(float px)"
+.ns
+.TP
+.B "void ScrollYTo(float py)"
+.ns
+.TP
+.B "void ScrollBy(float dpx, float dpy)"
+.ns
+.TP
+.B "void ScrollXBy(float dpx)"
+.ns
+.TP
+.B "void ScrollYBy(float dpy)"
+.ns
+.TP
+.B "void ZoomTo(float zx, float zy)"
+.ns
+.TP
+.B "void ZoomXTo(float zx)"
+.ns
+.TP
+.B "void ZoomYTo(float zy)"
+.ns
+.TP
+.B "void ZoomBy(float dzx, float dzy)"
+.ns
+.TP
+.B "void ZoomXBy(float dzx)"
+.ns
+.TP
+.B "void ZoomYBy(float dzy)"
+Short-hand operations for explicit manipulation of the viewport's perspective.
+.TP
+.B "float XPos()"
+.ns
+.TP
+.B "float YPos()"
+.ns
+.TP
+.B "float XMag()"
+.ns
+.TP
+.B "float YMag()"
+Short-hand for retrieving information about the current perspective.
+.SH SEE ALSO
+Perspective(3I), Scene(3I), Shape(3I)

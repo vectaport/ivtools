@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -26,6 +26,7 @@
 
 #include <Unidraw/dialogs.h>
 
+//: dialog box for precision panning.
 class PanDialog : public BasicDialog {
 public:
     PanDialog();
@@ -40,6 +41,7 @@ protected:
     class MatchEditor* _medit;
 };
 
+//: dialog box for precision zooming.
 class ZoomDialog : public BasicDialog {
 public:
     ZoomDialog();
@@ -54,6 +56,7 @@ protected:
     class MatchEditor* _medit;
 };
 
+//: dialog box for precision page sizing.
 class PageDialog : public BasicDialog {
 public:
     PageDialog();

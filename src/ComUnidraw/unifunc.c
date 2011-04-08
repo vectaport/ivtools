@@ -42,7 +42,6 @@
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
 #include <stdio.h>
-#include <fstream.h>
 #include <unistd.h>
 
 #define TITLE "UnidrawFunc"
@@ -67,6 +66,27 @@ void UnidrawFunc::execute_log(Command* cmd) {
 	    delete cmd;
 	}
     }
+}
+
+void UnidrawFunc::menulength_execute(const char* kind) {
+  reset_stack();
+  int itemcount=0;
+  Catalog* catalog = unidraw->GetCatalog();
+  while(catalog->GetAttribute(catalog->Name(kind, itemcount+1)))
+    itemcount++;
+  ComValue retval(itemcount);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+UpdateFunc::UpdateFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void UpdateFunc::execute() {
+  reset_stack();
+  unidraw->Update(true);
+  
 }
 
 /*****************************************************************************/
@@ -146,18 +166,17 @@ void PasteFunc::execute() {
 /*****************************************************************************/
 
 ReadOnlyFunc::ReadOnlyFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
-    _clear_symid = symbol_add("clear");
 }
 
 void ReadOnlyFunc::execute() {
     ComValue viewval(stack_arg(0));
-    ComValue clear(stack_key(_clear_symid));
+    static int clear_symid = symbol_add("clear");
+    ComValue clear(stack_key(clear_symid));
     reset_stack();
 
     ComponentView* view = (ComponentView*)viewval.obj_val();
     OverlayComp* comp = (OverlayComp*)view->GetSubject();
 
-    /* should be done with an attribute setting command */
     AttributeList* al = comp->GetAttributeList();
     al->add_attr("readonly", ComValue::trueval());
 
@@ -166,76 +185,80 @@ void ReadOnlyFunc::execute() {
 
 /*****************************************************************************/
 
-BarPlotFunc::BarPlotFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
-  _title_symid = symbol_add("title");
-  _valtitle_symid = symbol_add("valtitle");
-  _xtitle_symid = symbol_add("xtitle");
-  _ytitle_symid = symbol_add("ytitle");
+ImportFunc::ImportFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
-void BarPlotFunc::execute() {
-  if (Component::use_unidraw()) {
-    boolean ok;
-    char* tmpfilename = tempnam(NULL,"plot");
-    ofstream out(tmpfilename);
+OvImportCmd* ImportFunc::import(const char* path) {
+  OvImportCmd* cmd = new OvImportCmd(editor());
+  cmd->pathname(path);
+  execute_log(cmd);
+  if (cmd->component()) {
+    ((OverlayComp*)cmd->component())->SetPathName(path);
+    ((OverlayComp*)cmd->component())->SetByPathnameFlag(true);
+  }
+  return cmd;
+}
 
-    ComValue title(stack_key(_title_symid));
-    ComValue xtitle(stack_key(_xtitle_symid));
-    ComValue ytitle(stack_key(_ytitle_symid));
-    ComValue vtitle(stack_key(_valtitle_symid));
-    char* ts = "";
-    char* xs = "";
-    char* ys = "";
-    char* vs = "";
-    if (title.is_string())
-      ts = (char*)title.string_ptr();
-    if (xtitle.is_string())
-      xs = (char*)xtitle.string_ptr();
-    if (ytitle.is_string())
-      ys = (char*)ytitle.string_ptr();
-    if (vtitle.is_string())
-      vs = (char*)vtitle.string_ptr();
-
-    out << "$ DATA=BARCHART\n";
-    out << "% toplabel = \"" << ts << "\"\n";
-    out << "% xlabel = \"" << xs << "\"\n";
-    out << "% ylabel = \"" << ys << "\"\n";
-    out << "\t\"" << vs << "\"\n";
-
-    for (int i = 0; i < nargsfixed(); i += 2) {
-      ComValue var(stack_arg(i));
-      ComValue val(stack_arg(i+1));
-      if (var.is_string() && val.is_num()) {
-	char* vars = (char*)var.string_ptr();
-	double v = val.double_val();
-	out << "\"" << vars << "\"  " << v << "\n";
+void ImportFunc::execute() {
+    ComValue pathnamev(stack_arg(0));
+    reset_stack();
+    
+    OvImportCmd* cmd;
+    if (!pathnamev.is_array()) {
+      if (nargs()==1) {
+	if (cmd = import(pathnamev.string_ptr())) {
+	  ComValue compval(_compview_id,
+			   new ComponentView(cmd->component()));
+	  push_stack(compval);
+	} else
+	  push_stack(ComValue::nullval());
+      } else {
+	for (int i=0; i<nargs(); i++) 
+	  if (cmd = import(stack_arg(i).string_ptr())) {
+	    ComValue compval(_compview_id,
+			     new ComponentView(cmd->component()));
+	    push_stack(compval);
+	  } else
+	    push_stack(ComValue::nullval());
+      }
+    } else   {
+      AttributeValueList* outlist = new AttributeValueList();
+      AttributeValueList* inlist = pathnamev.array_val();
+      Iterator it;
+      inlist->First(it);
+      while(!inlist->Done(it)) {
+	cmd = import(inlist->GetAttrVal(it)->string_ptr());
+	outlist->Append(new ComValue(_compview_id, 
+				     new ComponentView(cmd->component())));
+	inlist->Next(it);
       }
     }
-
-    out << "$ END\n";
-    out.flush();
-    out.close();
-
-    char cmd[256];
-    char* pstmp = tempnam(NULL,"ps");
-    sprintf(cmd, "plotmtv -noxplot -color -o %s %s", pstmp, tmpfilename);
-    FILE* plotp = popen(cmd, "w");
-    fprintf(plotp, "n\n");
-    pclose(plotp);
-
-    char* idtmp = tempnam(NULL,"idraw");
-    sprintf(cmd, "pstoedit -f idraw < %s > %s", pstmp, idtmp);
-fprintf(stderr, "%s\n", cmd);
-    system(cmd);
-
-    ComEditor* ed = new ComEditor((const char*)nil);
-    unidraw->Open(ed);
-    OvImportCmd* imp = new OvImportCmd(ed);
-    imp->pathname(idtmp);
-    imp->Execute();
-
-    //remove(pstmp);
-    //remove(tmpfilename);
-  }
-  reset_stack();
 }
+
+/*****************************************************************************/
+
+SetAttrFunc::SetAttrFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void SetAttrFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    AttributeList* al = stack_keys();
+    reset_stack();
+    if (!viewval.is_object()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+
+    AttributeList* comp_al = comp->attrlist();
+    if (!comp_al)
+      comp->SetAttributeList(al);
+    else {
+      comp_al->merge(al);
+      delete al;
+    }
+    push_stack(viewval);
+}
+

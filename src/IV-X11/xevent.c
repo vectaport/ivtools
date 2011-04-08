@@ -42,6 +42,8 @@
 #include <X11/keysymdef.h>
 #include <string.h>
 
+event_tracker_ptr Event::_event_tracker = nil;
+
 Event::Event() {
     if (sizeof(EventRep) <= sizeof(free_store_)) {
 	rep_ = (EventRep*)free_store_;
@@ -184,6 +186,8 @@ Handler* Event::handler() const {
 }
 
 void Event::handle() {
+    if (event_tracker()) 
+      (*event_tracker())(*this);
     Handler* h = nil;
     if (rep()->xevent_.type != KeyPress) {
 	h = grabber();
@@ -225,6 +229,8 @@ EventType Event::type() const {
 	return up;
     case KeyPress:
 	return key;
+    case SelectionNotify:
+	return selection_notify;
     default:
 	return other_event;
     }

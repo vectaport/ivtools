@@ -1,0 +1,40 @@
+.TH Picture 3U "1 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Picture \- composite structured graphic
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/picture.h>
+.SH DESCRIPTION
+A Picture defines a composition of graphic objects.  A picture has its
+own graphics state, which it concatenates with its children's state
+when it is drawn or erased.  Picture adopts the default concatenation
+semantics supported by the Graphic base class: The picture's graphics
+state effectively overrides its children's so that they are drawn with
+the picture's state information substituted for their own.  A child's
+attribute is used only when the picture does not already define it.
+Moreover, each child's transformer is postmultiplied by the picture's
+transformer when the picture is drawn; thus children are drawn
+relative to the picture's coordinate system.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Picture(Graphic* = nil)"
+Construct a new picture, optionally supply a graphic from which to
+copy an initial set of graphics state.  Picture is derived from
+FullGraphic and therefore defines a full set of graphics state.
+.TP
+.B "virtual ~Picture()"
+The picture deletes its children when it is deleted.
+.TP
+.B "boolean IsEmpty()"
+Picture defines IsEmpty in addition to the standard Graphic child
+traversal operations to provide a convenient way to check if the
+picture has any children.
+.SH PROTECTED OPERATIONS
+.TP
+.B "Graphic* graphic(UList*)"
+.ns
+.TP
+.B "UList* Elem(Iterator)"
+Convenience functions for extracting a graphic from a UList element
+and a UList from an iterator.
+.SH SEE ALSO
+Graphic(3U), Iterator(3U), Transformer(3I), UList(3U), pspaint(3U)

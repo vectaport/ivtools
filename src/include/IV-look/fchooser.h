@@ -93,6 +93,7 @@ public:
     virtual const String* selected() const;
     virtual void reread();
     virtual void dismiss(boolean);
+    void bodyclear();
 private:
     FileChooserImpl* impl_;
 };

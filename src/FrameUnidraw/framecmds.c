@@ -227,7 +227,7 @@ void MoveFrameCmd::Execute() {
 	}
     }
     ed->SetFrame((FrameView*)fv->GetView(frameptr));
-    if (prev != ed->GetFrame()) {
+    if (ed->GetFrame() && prev != ed->GetFrame()) {
 	Damage* damage = ed->GetViewer()->GetDamage();
 	damage->Incur(prev->GetGraphic());
 	damage->Incur(ed->GetFrame()->GetGraphic());
@@ -787,4 +787,47 @@ void ShowOtherFrameCmd::Unexecute() {
   ed->OtherFrame(_old_offset);
   unidraw->Update();
 }
+
+/*****************************************************************************/ 
+AutoNewFrameCmd* AutoNewFrameCmd::_default = nil;
+
+AutoNewFrameCmd::AutoNewFrameCmd(ControlInfo* i)
+: MacroCmd(i)
+{
+}
+
+AutoNewFrameCmd::AutoNewFrameCmd(Editor* e)
+: MacroCmd(e)
+{
+}
+
+ClassId AutoNewFrameCmd::GetClassId() { return AUTONEWFRAME_CMD; }
+boolean AutoNewFrameCmd::IsA(ClassId id) {
+    return id == AUTONEWFRAME_CMD || Command::IsA(id);
+}
+
+Command* AutoNewFrameCmd::Copy() {
+    Command* copy = new AutoNewFrameCmd(CopyControlInfo());
+    InitCopy(copy);
+    return copy;
+}
+
+boolean AutoNewFrameCmd::Reversible() { return true; }
+
+void AutoNewFrameCmd::Log () { 
+ boolean document_changed  = false;
+  ((OverlayUnidraw*)unidraw)->Log(this, document_changed); 
+}
+
+void AutoNewFrameCmd::Execute() {
+  FrameEditor* ed = (FrameEditor*) GetEditor();
+  ed->ToggleAutoNewFrame();
+}
+
+void AutoNewFrameCmd::Unexecute() {
+  FrameEditor* ed = (FrameEditor*) GetEditor();
+  ed->ToggleAutoNewFrame();
+}
+
+implementActionCallback(AutoNewFrameCmd)
 

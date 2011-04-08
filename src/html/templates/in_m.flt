@@ -1,0 +1,30 @@
+# PERL script to process input argument lists
+# Malcolm Wilkins 3.11.97
+
+
+sub filter {
+	local ($in) = @_;
+	local ($start) = '<FONT SIZE=3><B>Inputs:</B></FONT><UL><FONT SIZE=2><TABLE>';
+	local ($end) = '</TABLE></FONT></UL>';
+	local ($key, $pname, $pdesc, $descriptions, $str);
+
+	local (@words) = split (" ", $in);
+	while (@words) {
+		if ( ($key, ) = $words[0] =~ /(\w+):/ ) {
+			if ($pname) {
+				$descriptions .= "<TR><TD><FONT FACE=Helvetica><B>$pname:</B></FONT></TD><TD><FONT FACE=Times>$pdesc</FONT></TD></TR>";
+				}
+			$pname=$key;
+			$pdesc="";
+			}
+		else {
+			$pdesc .= $words [0] . " ";
+			}
+		shift @words;
+		}
+	if ($pname) {
+		$descriptions .= "<TR><TD><FONT FACE=Helvetica><B>$pname:</B></FONT></TD><TD><FONT FACE=Times>$pdesc</FONT></TD></TR>";
+		}
+	$str = $start.$descriptions.$end;
+	return $str;
+	}

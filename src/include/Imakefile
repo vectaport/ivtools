@@ -6,6 +6,7 @@ PACKAGE = include_ivtools
 
 SUBDIRS = \
 	Dispatch \
+	IV-3_1 \
 	IV-2_6 \
 	IV-X11 \
 	IV-look \
@@ -13,6 +14,6 @@ SUBDIRS = \
 	OS \
 	TIFF \
 	Unidraw \
-	std
+	ivstd
 
 MakeInSubdirs($(SUBDIRS))

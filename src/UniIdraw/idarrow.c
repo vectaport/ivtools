@@ -286,7 +286,7 @@ void PSArrowLine::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << head << " " << tail << " ";
 
 	const int* dashpat = brush->GetDashPattern();
@@ -539,7 +539,7 @@ void PSArrowMultiLine::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << head << " " << tail << " ";
 
 	const int* dashpat = brush->GetDashPattern();
@@ -788,7 +788,7 @@ void PSArrowSpline::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << head << " " << tail << " ";
 
 	const int* dashpat = brush->GetDashPattern();

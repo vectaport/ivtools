@@ -33,6 +33,8 @@ class Command;
 class Component;
 class Iterator;
 
+//: base class for views of objects that model domain-specific elements.
+// <a href=../man3.1/ComponentView.html>man page</a>
 class ComponentView {
 public:
     virtual void Update();
@@ -56,9 +58,10 @@ public:
 protected:
 
     friend class Component;
+public:
     virtual void SetSubject(Component*);
-    virtual void SetParent(ComponentView* child, ComponentView* parent);
 protected:
+    virtual void SetParent(ComponentView* child, ComponentView* parent);
     Component* _subject;
 };
 

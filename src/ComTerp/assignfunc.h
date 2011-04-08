@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997 Vectaport Inc.
+ * Copyright (c) 1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -29,6 +29,7 @@
 class ComTerp;
 class ComValue;
 
+//: = (assign) operator.
 class AssignFunc : public ComFunc {
 public:
     AssignFunc(ComTerp*);
@@ -38,6 +39,7 @@ public:
       return "= is the assigment operator"; }
 };
 
+//: %= (mod assign) operator .
 class ModAssignFunc : public ModFunc {
 public:
     ModAssignFunc(ComTerp*);
@@ -47,6 +49,7 @@ public:
       return "%= is the mod assignment operator"; }
 };
 
+//: *= (multiply assign) operator .
 class MpyAssignFunc : public MpyFunc {
 public:
     MpyAssignFunc(ComTerp*);
@@ -56,6 +59,7 @@ public:
       return "*= is the multiply assignment operator"; }
 };
 
+//: *= (add assign) operator .
 class AddAssignFunc : public AddFunc {
 public:
     AddAssignFunc(ComTerp*);
@@ -65,6 +69,7 @@ public:
       return "+= is the add assignment operator"; }
 };
 
+//: += (subtract assign) operator .
 class SubAssignFunc : public SubFunc {
 public:
     SubAssignFunc(ComTerp*);
@@ -74,6 +79,7 @@ public:
       return "-= is the minus assignment operator"; }
 };
 
+//: /= (divide assign) operator .
 class DivAssignFunc : public DivFunc {
 public:
     DivAssignFunc(ComTerp*);
@@ -83,40 +89,44 @@ public:
       return "/= is the minus assignment operator"; }
 };
 
+//: ++(increment before) operator.
 class IncrFunc : public AddFunc {
 public:
     IncrFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "++ is the increment before operator (prefix) and the "; }
+      return "++ is the increment-before operator (prefix) and the "; }
 };
 
+//: (increment after)++  operator.
 class IncrAfterFunc : public AddFunc {
 public:
     IncrAfterFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "increment after as well (postfix)"; }
+      return "increment-after as well (postfix)"; }
 };
 
+//: --(decrement before)  operator.
 class DecrFunc : public SubFunc {
 public:
     DecrFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "-- is the decrement before operator (prefix) and the "; }
+      return "-- is the decrement-before operator (prefix) and the "; }
 };
 
+//: (decrement after)--  operator.
 class DecrAfterFunc : public SubFunc {
 public:
     DecrAfterFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "decrement after as well (postfix)"; }
+      return "decrement-after as well (postfix)"; }
 };
 
 #endif /* !defined(_assignfunc_h) */

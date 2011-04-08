@@ -1,0 +1,618 @@
+.TH Graphic 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Graphic, FullGraphic \- structured graphic abstract base class and
+subclass that stores a complete set of graphics state attributes
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/graphic.h>
+.SH DESCRIPTION
+\fBGraphic\fP is an abstract base class for structured graphics
+objects.  Graphic objects maintain graphics state and geometric
+information, which lets them draw themselves on demand and support hit
+detection.
+.sp
+Graphic subclasses can implement graphical objects such as lines,
+rectangles, ellipses, and polygons.  Subclasses can also support
+hierarchical composition of Graphic instances, thus providing an
+object-oriented rendition of traditional structured graphics
+functionality.
+.SH GRAPHIC PUBLIC OPERATIONS
+.TP
+.B "virtual void Draw(Canvas*)"
+.ns
+.TP
+.B "virtual void Draw(Canvas*, Coord, Coord, Coord, Coord)"
+.ns
+.TP
+.B "virtual void DrawClipped(Canvas*, Coord, Coord, Coord, Coord)"
+.TP
+.B "virtual void Erase(Canvas*)"
+.ns
+.TP
+.B "virtual void Erase(Canvas*, Coord, Coord, Coord, Coord)"
+.ns
+.TP
+.B "virtual void EraseClipped(Canvas*, Coord, Coord, Coord, Coord)"
+Draw or erase the graphic on the given canvas.  The one-parameter Draw
+and Erase operations draw and erase the graphic in its entirety.  The
+five-parameter forms take four coordinates defining a rectangular area
+with which to cull drawing.  Composite graphics in particular can use
+this information to avoid drawing children falling entirely outside
+the given area.  DrawClipped and EraseClipped draw the graphic
+strictly within a rectangular area.  All Coord parameters are in
+canvas coordinates.
+.TP
+.B "virtual void FillBg(boolean)"
+.ns
+.TP
+.B "virtual void SetBrush(PSBrush*)"
+.ns
+.TP
+.B "virtual void SetColors(PSColor* fg, PSColor* bg)"
+.ns
+.TP
+.B "virtual void SetFont(PSFont*)"
+.ns
+.TP
+.B "virtual void SetPattern(PSPattern*)"
+.TP
+.B "virtual int BgFilled()"
+.ns
+.TP
+.B "virtual PSBrush* GetBrush()"
+.ns
+.TP
+.B "virtual PSColor* GetFgColor()"
+.ns
+.TP
+.B "virtual PSColor* GetBgColor()"
+.ns
+.TP
+.B "virtual PSFont* GetFont()"
+.ns
+.TP
+.B "virtual PSPattern* GetPattern()"
+Set and get the graphic's graphic state attributes analogous to those
+defined for Painters.  The base class implements the operations for
+setting and getting the fill mode and colors; the other operations
+should be redefined in subclasses that need them.
+.TP
+.B "void Translate(float dx, float dy)"
+.ns
+.TP
+.B "void Scale(float x, float y, float cx = 0.0, float cy = 0.0)"
+.ns
+.TP
+.B "void Rotate(float angle, float cx = 0.0, float cy = 0.0)"
+.ns
+.TP
+.B "void SetTransformer(Transformer*)"
+.ns
+.TP
+.B "Transformer* GetTransformer()"
+.ns
+.TP
+.B "void TotalTransformation(Transformer& t)"
+Coordinates passed to drawing operations are transformed according to
+the current translation, rotation, and scale factor.  Optionally,
+scaling and rotation can be performed relative to a point (\fIcx\fP,
+\fIcy\fP).  The base class stores a transformer \fI_t\fP that can be
+directly set and accessed with SetTransformer and GetTransformer.  The
+default transformer is nil, meaning no transformations are performed.
+TotalTransformation uses concatTransformer (described below) to
+concatenate \fIt\fP (usually the identity transformation) and the
+transformers of the graphic's parents to obtain the graphic's total
+transformation, which it then stores in \fIt\fP.
+.sp
+Unless otherwise noted, input and output coordinates are affected by
+the concatentation of \fIthis\fP's transformer, its parent's
+transformer, its parent's parent's, and so on up to the root of the
+graphic instance hierarchy.  Prior to transformation, coordinates
+reflect the \fIgraphic's coordinate system\fP.  Following
+transformation, the coordinates reflect the canvas coordinate system
+(i.e., they are canvas coordinates).  The coordinates that Graphic
+subclass constructors require are normally in graphic coordinates,
+while operations for returning a graphic's bounding box (see below)
+are in canvas coordinates.
+.TP
+.B "void Align(Alignment, Graphic*, Alignment)"
+Position the given graphic relative to \fIthis\fP, which stays fixed,
+while the graphic supplied as the argument is translated
+appropriately.  The first Alignment parameter specifies the alignment
+with respect to \fIthis\fP, while the second specifies the alignment
+with respect to the given graphic.
+.TP
+.B "virtual void GetBounds("
+.ns
+.TP
+.B "    float& left, float& bottom, float& right, float& top"
+.ns
+.TP
+.B ")"
+.br
+Return the exact coordinates of the smallest box circumscribing the graphic.
+The return values are in canvas coordinates.
+.TP
+.B "void GetBox(Coord& left, Coord& bottom, Coord& right, Coord& top)"
+.ns
+.TP
+.B "void GetBox(BoxObj&)"
+Return the smallest bounding box circumscribing the graphic.  The
+return values are in canvas coordinates.  The \fBBoxObj\fP represents
+a rectangle defined by lower left and upper right coordinates (see
+geomobjs(3U) for details).
+.TP
+.B "virtual void GetCenter(float& x, float& y)"
+Return the center point of the graphic in canvas coordinates.
+.TP
+.B "virtual boolean Contains(PointObj&)"
+.ns
+.TP
+.B "virtual boolean Intersects(BoxObj&)"
+Return whether or not the graphic contains the given point or
+intersects the given rectangular area specified in canvas coordinates.
+\fBPointObj\fP describes a point (see geomobjs(3U)).  These operations
+are used most often for fine-grained hit detection.
+.TP
+.B "void SetTag(void*)"
+.ns
+.TP
+.B "void* GetTag()"
+Set or return a tag associated with the graphic.
+.TP
+.B "Graphic* Parent()"
+Return the graphic's parent, if any.
+.TP
+.B "virtual void First(Iterator&)"
+.ns
+.TP
+.B "virtual void Last(Iterator&)"
+.ns
+.TP
+.B "virtual void Next(Iterator&)"
+.ns
+.TP
+.B "virtual void Prev(Iterator&)"
+.ns
+.TP
+.B "virtual boolean Done(Iterator)"
+Operations for iterating over the graphic's children, if any.  These
+operations do nothing by default. Graphics that compose other graphics
+should redefine these operations to permit traversal of their
+children.  First and Last initialize an iterator to point to the
+beginning and end of the list of children, respectively.  Next
+increments the iterator to point to the following child, while Prev
+decrements the iterator to point to the preceding child.  Done returns
+whether or not the iterator points beyond the first or last child in
+the list.
+.TP
+.B "Graphic* GetGraphic(Iterator)"
+.ns
+.TP
+.B "void SetGraphic(Graphic*, Iterator&)"
+These operations do nothing by default.  Subclasses that contain
+children should redefine them as follows: GetGraphic should return the
+graphic to which an iterator points.  SetGraphic should initialize the
+iterator to point to a particular graphic in the list of children; it
+should initialize the iterator to point to a nil instance if the given
+graphic is not a child.
+.TP
+.B "virtual void Bequeath()"
+Bequeath does nothing by default.  Composite graphic subclasses should
+redefine it so that it propagates to the children all the graphics
+state in \fIthis\fP that can affect them.  This will prevent a change
+in a child's appearance should it be removed from \fIthis\fP.
+Following the call to Bequeath, \fIthis\fP should no longer define any
+graphics state attributes.
+.TP
+.B "virtual Graphic* FirstGraphicContaining(PointObj&)"
+.ns
+.TP
+.B "virtual Graphic* LastGraphicContaining(PointObj&)"
+.ns
+.TP
+.B "virtual Graphic* FirstGraphicIntersecting(BoxObj&)"
+.ns
+.TP
+.B "virtual Graphic* LastGraphicIntersecting(BoxObj&)"
+.ns
+.TP
+.B "virtual Graphic* FirstGraphicWithin(BoxObj&)"
+.ns
+.TP
+.B "virtual Graphic* LastGraphicWithin(BoxObj&)"
+These operation do nothing by default.  Composite graphic subclasses
+should redefine them so that they return the first or last child that
+contains a point, intersects a rectangular area, or does not extend
+beyond the given rectangular area, respectively.
+.TP
+.B "virtual Graphic& operator = (Graphic&)"
+Assign the given graphic's graphics state attributes to \fIthis\fP.
+.TP
+.B "virtual Graphic* Copy()"
+Return a copy of the graphic.  Subclasses should redefine this
+operation to return an instance of their type.
+.SH GRAPHIC PROTECTED MEMBERS
+.TP
+.B "Graphic(Graphic* gr = nil)"
+Initialize the graphics, optionally supplying a graphic from which to
+obtain an initial set of graphics state attributes.  Graphic is an
+abstract base class.  Therefore its constructor is protected to
+prevent instantiation.
+.TP
+.B "virtual void draw(Canvas*, Graphic* gs)
+.ns
+.TP
+.B "virtual void drawClipped("
+.ns
+.TP
+.B "    Canvas*, Coord, Coord, Coord, Coord, Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void erase(Canvas*, Graphic*)
+.ns
+.TP
+.B "virtual void eraseClipped("
+.ns
+.TP
+.B "    Canvas*, Coord, Coord, Coord, Coord, Graphic*"
+.ns
+.TP
+.B ")"
+.br
+Graphic subclasses redefine these \fIstateless drawing operations\fP
+to render themselves.  These operations are called by the
+corresponding capitalized operations, which supply them with the extra
+trailing Graphic parameter \fIgs\fP.  This parameter defines the
+graphics state with which to draw the graphic.  The graphic state is
+normally computed using the \fIconcat\fP functions described below.
+Subclasses normally use the graphics state passed to them without
+ignoring or modifying it, though they may safely do so if they must
+override one or more attributes.
+.TP
+.B "void update(Graphic* gs)"
+Graphics ultimately use a Painter to draw themselves.  The Graphic
+class maintains a protected static painter \fI_p\fP that subclasses
+can use to draw themselves.  The update operation sets \fI_p\fP's
+graphics state attributes to match those of the given graphic to
+ensure that the painter will generate graphics with the proper color,
+font, etc.  Subclasses should call update in their stateless drawing
+operations (normally supplying the graphic they were passed) before
+they call any drawing operations on \fI_p\fP.  The graphics that
+\fI_p\fP generates, therefore, will reflect the graphics state that
+was passed to the stateless drawing operation.
+.TP
+.B "virtual void getExtent("
+.ns
+.TP
+.B "    float& left, float& bottom, float& cx, float& cy,"
+.ns
+.TP
+.B "    float& tol, Graphic* gs"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void GetExtent(Extent&)"
+A graphic's \fIextent\fP defines its physical boundaries. Subclasses
+redefine getExtent to return this boundary information based on the
+graphics state supplied in \fIgs\fP.  The \fIleft\fP, \fIbottom\fP,
+\fIcx\fP, and \fIcy\fP parameters define the graphic's lower left
+corner and center, respectively, in canvas coordinates.  The \fItol\fP
+parameter specifies a fixed amount of space around the boundary to
+account for parts of the graphic's appearance that do not scale
+linearly (e.g., brush width).  The relationship between getExtent and
+GetExtent is the same as that between draw and Draw: getExtent is the
+stateless version of GetExtent, which concatenates the parent's
+graphics state and calls getExtent with the result.
+.TP
+.B "void getBounds("
+.ns
+.TP
+.B "    float& left, float& bottom, float& right, float& top,"
+.ns
+.TP
+.B "    Graphic* gs"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void getBox("
+.ns
+.TP
+.B "    Coord& left, Coord& bottom, Coord& right, Coord& top,"
+.ns
+.TP
+.B "    Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void getBox(BoxObj&, Graphic*)"
+Stateless versions of the corresponding capitalized bounding box
+operations, which call the stateless versions with the cumulative
+graphics state of \fIthis\fP's ancestors.  These operations are
+defined in terms of getExtent and therefore should not be
+reimplemented by subclasses.
+.TP
+.B "virtual boolean contains(PointObj&, Graphic* gs)"
+.ns
+.TP
+.B "virtual boolean intersects(BoxObj&, Graphic*)"
+Stateless versions of the corresponding capitalized operations for
+fine-grained hit detection.  By default, these operations return true
+if the argument is contained in or intersects \fIthis\fP's bounding
+box.  Subclasses can redefine these operations to make a more
+discerning decision.
+.TP
+.B "Graphic* getRoot()"
+.ns
+.TP
+.B "void totalGS(Graphic& g)"
+.ns
+.TP
+.B "void parentXform(Transformer& t)"
+Helper functions for parent-related operations.  getRoot returns the
+root graphic in \fIthis\fP's hierarchy.  totalGS uses concat
+(described below) to concatenate the graphics state of \fIthis\fP and
+all its ancestors, returning the result in \fIg\fP. Any graphics state
+that \fIg\fP stored initially will be lost.  The parentXform operation
+uses concatTransform (described below) to concatenate the
+transformations of all ancestors of \fIthis\fP, returning the result
+in \fIt\fP.  Any transformations that \fIt\fP stored initially will be
+lost.
+.TP
+.B "void setParent(Graphic* g, Graphic* parent)"
+.ns
+.TP
+.B "void unsetParent(Graphic* g)"
+Operations for setting and getting the value of another graphic's
+(\fIg\fP's) parent as stored in the \fI_parent\fP protected member
+variable.  Normally only composite graphics change this attribute of
+another graphic, usually a newly-acquired child.
+.TP
+.B "void cachingOn()"
+.ns
+.TP
+.B "void cachingOff()"
+.ns
+.TP
+.B "virtual boolean extentCached()"
+.ns
+.TP
+.B "virtual void uncacheExtent()"
+.ns
+.TP
+.B "virtual void uncacheParents()"
+.ns
+.TP
+.B "virtual void uncacheChildren()"
+.ns
+.TP
+.B "virtual void invalidateCaches()"
+Operations that support extent caching.  Some Graphic subclasses may
+cache extent information when it is computed for the first time,
+thereby improving performance.  For example, it may be expensive to
+compute the extent for composite graphics that have many children;
+thus caching the extent will improve performance if the extent does
+not change often.
+.sp
+cachingOn and cachingOff change the value of \fI_caching\fP, a
+protected static boolean member of Graphic that indicates whether
+caching is active on a global basis.  Extent-caching subclasses should
+check this member to avoid caching when it is \fIfalse\fP.  Caching
+subclasses should redefine extentCached to return whether or not they
+have cached their extent (in whatever form they store it).  They
+should redefine uncacheExtent to discard any extent information
+they've cached.  By default, uncacheParents simply calls uncacheExtent
+on each ancestor of \fIthis\fP, while uncacheChildren does nothing by
+default.  Subclasses should redefine uncacheChildren to make any
+children uncache their extents.
+.TP
+.B "virtual void concatGS(Graphic* a, Graphic* b, Graphic* dest)"
+.ns
+.TP
+.B "virtual void concatTransformer("
+.ns
+.TP
+.B "    Transformer* a, Transformer* b, Transformer* dest"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void concat(Graphic* a, Graphic* b, Graphic* dest)"
+Operations for concatenting graphics state.  concatGS concatenates
+\fIa\fP's graphics state (brush, font, pattern, etc., but \fInot\fP
+transformation matrix) with \fIb\fP's and assigns the result to
+\fIdest\fP. According to the default concatenation semantics,
+\fIdest\fP will receive graphics state attributes defined by \fIb\fP;
+\fIdest\fP will receive only those attributes from \fIa\fP that
+\fIb\fP does not define (i.e., those for which \fIb\fP returns
+\fInil\fP).  By default, concatTransformer does a matrix multiply of
+\fIa\fP and \fIb\fP and assigns the result to \fIdest\fP.  The concat
+operation concatenates both the graphics state and transformation of
+its arguments, assigning the results to \fIdest\fP.
+.TP
+.B "void transform(Coord&, Coord&, Graphic*)"
+.ns
+.TP
+.B "void transform(Coord, Coord, Coord&, Coord&, Graphic*)"
+.ns
+.TP
+.B "void transform(float, float, float&, float&, Graphic*)"
+.ns
+.TP
+.B "void transformList("
+.ns
+.TP
+.B "    Coord[], Coord[], int, Coord[], Coord[], Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void transformRect("
+.ns
+.TP
+.B "    float, float, float, float,"
+.ns
+.TP
+.B "    float&, float&, float&, float&, Graphic*"
+.ns
+.TP
+.B ")"
+.TP
+.B "void invTransform(Coord&, Coord&, Graphic*)"
+.ns
+.TP
+.B "void invTransform(Coord, Coord, Coord&, Coord&, Graphic*)"
+.ns
+.TP
+.B "void invTransform(float, float, float&, float&, Graphic*)"
+.ns
+.TP
+.B "void invTransformList("
+.ns
+.TP
+.B "    Coord[], Coord[], int, Coord[], Coord[], Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void invTransformRect("
+.ns
+.TP
+.B "    float, float, float, float,"
+.ns
+.TP
+.B "    float&, float&, float&, float&, Graphic*"
+.ns
+.TP
+.B ")"
+.br
+Convenience functions analogous to the Transformer operations of the
+same name.  These operations simply check if \fI_t\fP is nil before
+calling the corresponding Transformer operation on it.
+.TP
+.B "virtual void drawGraphic(Graphic* g, Canvas*, Graphic* gs)
+.ns
+.TP
+.B "virtual void drawClippedGraphic("
+.ns
+.TP
+.B "    Graphic* g, Canvas*, Coord, Coord, Coord, Coord, Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void eraseGraphic(Graphic* g, Canvas*, Graphic*)
+.ns
+.TP
+.B "virtual void eraseClippedGraphic("
+.ns
+.TP
+.B "    Graphic* g, Canvas*, Coord, Coord, Coord, Coord, Graphic*"
+.ns
+.TP
+.B ")"
+.TP
+.B "virtual void getExtentGraphic("
+.ns
+.TP
+.B "    Graphic* g, float& left, float& bottom, float& cx, float& cy,"
+.ns
+.TP
+.B "    float& tol, Graphic* gs"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual boolean containsGraphic("
+.ns
+.TP
+.B "    Graphic* g, PointObj&, Graphic* gs"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual boolean intersectsGraphic(Graphic* g, BoxObj&, Graphic*)"
+.TP
+.B "virtual boolean extentCachedGraphic(Graphic* g)"
+.ns
+.TP
+.B "virtual void uncacheExtentGraphic(Graphic* g)"
+.ns
+.TP
+.B "virtual void uncacheParentsGraphic(Graphic* g)"
+.ns
+.TP
+.B "virtual void uncacheChildrenGraphic(Graphic* g)"
+.ns
+.TP
+.B "virtual void invalidateCachesGraphic(Graphic* g)"
+.TP
+.B "virtual void concatGSGraphic("
+.ns
+.TP
+.B "    Graphic* g, Graphic* a, Graphic* b, Graphic* dest"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void concatTransformerGraphic("
+.ns
+.TP
+.B "    Graphic* g, Transformer* a, Transformer* b,"
+.ns
+.TP
+.B "    Transformer* dest"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void concatGraphic("
+.ns
+.TP
+.B "    Graphic* g, Graphic* a, Graphic* b, Graphic* dest"
+.ns
+.TP
+.B ")"
+.br
+Helper functions that let graphic subclasses call the protected member
+functions on instances of other subclasses that redefine them.  All
+these helper functions take the affected instance as their first
+parameter.  All are semantically identical to the corresponding
+functions described above (which omit the "Graphic" suffix and the
+leading \fIg\fP parameter).  Composite graphics are the most likely
+users of such helper functions, calling them on their children.
+.SH FULLGRAPHIC PUBLIC OPERATIONS
+.TP
+.B "FullGraphic(Graphic* = nil)"
+Construct a full graphic, optionally supplying another graphic from
+which to copy an initial set of graphics state attributes.
+FullGraphic objects store a full complement of graphics state
+attributes; consequently, FullGraphic redefines all the operations for
+setting and getting these attributes.  The FullGraphic class can be
+used as a base class from which to derive graphics that require a
+complete set of graphics state and store such state.  It is also
+useful to instantiate FullGraphics and use them as graphics state
+repositories.
+.SH SEE ALSO
+Canvas(3I), Iterator(3U), Painter(3I) Transformer(3I), geomobjs(3U),
+pspaint(3U)
+.LP
+"Applying Object-Oriented Design to Structured Graphics,"
+John M. Vlissides and Mark A. Linton, in \fIProceedings of the 1988
+USENIX C++ Conference\fP, Denver, CO, October 1988, pp. 81\-94.

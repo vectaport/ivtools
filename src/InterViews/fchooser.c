@@ -121,6 +121,12 @@ void FileChooser::dismiss(boolean accept) {
     }
 }
 
+void FileChooser::bodyclear() {
+    MonoGlyph::bodyclear();
+    FileChooserImpl& fc = *impl_;
+    fc.editor_ = nil;
+}
+
 /** class FileChooserImpl **/
 
 void FileChooserImpl::init(

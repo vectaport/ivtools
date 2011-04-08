@@ -126,6 +126,7 @@ Command* SetAttrByExprCmd::Copy () {
 }
 
 Clipboard* SetAttrByExprCmd::PostDialog () {
+  return nil;
 }
 
 

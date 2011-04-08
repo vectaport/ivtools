@@ -18,7 +18,7 @@ Use_libInterViews()
 
 ComplexProgramTarget(gclock)
 
-MakeObjectFromSrcFlags(main,-xc++)
+MakeObjectFromSrcFlags(main,)
 
 IncludeDependencies()
 

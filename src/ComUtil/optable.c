@@ -102,13 +102,13 @@ struct _opr_tbl_default_entry {
   {"==",         "eq",                 45,         FALSE,      OPTYPE_BINARY },
   {"&&",         "and",                41,         FALSE,      OPTYPE_BINARY },
   {"||",         "or",                 40,         FALSE,      OPTYPE_BINARY },
+  {",",          "stream",             35,         FALSE,      OPTYPE_BINARY },
   {"%=",         "mod_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"*=",         "mpy_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"+=",         "add_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"-=",         "sub_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"/=",         "div_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"=",          "assign",             30,         TRUE,       OPTYPE_BINARY },
-  {",",          "stream",             20,         FALSE,      OPTYPE_BINARY },
   {";",          "seq",                10,         FALSE,      OPTYPE_BINARY },
 };
 
@@ -122,7 +122,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_create( maxop )
+int opr_tbl_create(unsigned  maxop)
 
 
 /*!
@@ -133,8 +133,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        maxop     ;/* I   Maximum number of operators table 
 				  will support. */
+#endif
 
 
 /*!
@@ -232,7 +234,8 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_insert( opstr, command, priority, rtol, optype )
+int opr_tbl_insert(char * opstr,char * command,unsigned priority,
+		   BOOLEAN rtol,unsigned  optype)
 
 
 /*!
@@ -243,6 +246,7 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 char *          opstr	  ;/* I   String of characters that define 
 				  an operator. */
 char *          command   ;/* I   Name of command associated with operator. */
@@ -252,6 +256,8 @@ BOOLEAN         rtol      ;/* I   Indicates whether operator associates
 unsigned        optype    ;/* I   Type of operator:  OPTYPE_BINARY,
 				  OPTYPE_UNARY_PREFIX, or OPTYPE_UNARY_POSTFIX
 			          (constants defined in "comterp.ci"). */
+#endif
+
 
 
 /*!
@@ -418,7 +424,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_print( outfile, by )
+int opr_tbl_print(FILE * outfile,unsigned  by)
 
 
 /*!
@@ -429,11 +435,13 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 FILE *	        outfile   ;/* I   File pointer for output. */
 unsigned        by        ;/* I   Ordering of output, by one of the following:
 			          OPBY_OPERATOR, OPBY_COMMAND, or 
 				  OPBY_PRIORITY (constants defined in
 				  "comterp.ci"). */
+#endif
 
 
 /*!
@@ -498,7 +506,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_entries( buffer, op_ids, nop_ids, nchar )
+int opr_tbl_entries(char * buffer,int * op_ids,unsigned nop_ids,unsigned * nchar)
 
 
 /*!
@@ -509,10 +517,12 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 char *          buffer    ;/* I   Buffer to look for operator within. */
 int  *          op_ids    ;/* I   Array of command symbol ids. */
 unsigned	nop_ids   ;/* I   Size of `op_ids` (should be 3). */
 unsigned *      nchar     ;/* O   Number of characters in operator */
+#endif
 
 
 /*!
@@ -606,7 +616,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_operid( opnum )
+int opr_tbl_operid(unsigned opnum)
 
 
 /*!
@@ -617,7 +627,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        opnum     ;/* I   Number of operator in table. */
+#endif
 
 
 /*!
@@ -649,7 +661,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_commid( opnum )
+int opr_tbl_commid(unsigned opnum)
 
 
 /*!
@@ -660,8 +672,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        opnum     ;/* I   Number of operator in table. */
-
+#endif
 
 /*!
 Description:
@@ -693,7 +706,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_priority( opnum )
+int opr_tbl_priority(unsigned opnum)
 
 
 /*!
@@ -704,8 +717,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        opnum     ;/* I   Number of operator in table. */
-
+#endif
 
 /*!
 Description:
@@ -735,7 +749,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_rtol( opnum )
+int opr_tbl_rtol(unsigned opnum)
 
 
 /*!
@@ -746,8 +760,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        opnum     ;/* I   Number of operator in table. */
-
+#endif
 
 /*!
 Description:
@@ -778,7 +793,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_optype( opnum )
+int opr_tbl_optype(unsigned opnum)
 
 
 /*!
@@ -789,7 +804,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        opnum     ;/* I   Number of operator in table. */
+#endif
 
 
 /*!
@@ -900,13 +917,13 @@ Operator   Command            Priority   RtoL   Type
 ==         eq                 45         N      BINARY
 &&         and                41         N      BINARY
 ||         or                 40         N      BINARY
+,          stream             35         N      BINARY
 %=         mod_assign         30         Y      BINARY
 *=         mpy_assign         30         Y      BINARY
 +=         add_assign         30         Y      BINARY
 -=         sub_assign         30         Y      BINARY
 /=         div_assign         30         Y      BINARY
 =          assign             30         Y      BINARY
-,          stream             20         N      BINARY
 ;          seq                10         N      BINARY
 
 
@@ -947,7 +964,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_opstr( commid )
+int opr_tbl_opstr(unsigned commid)
 
 
 /*!
@@ -958,8 +975,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        commid     ;/* I  Symbol id of command name. */
-
+#endif
 
 /*!
 Description:

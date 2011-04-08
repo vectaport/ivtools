@@ -8,8 +8,11 @@ IvmkcmTargets($(PACKAGE))
 
 #if !InstallRelative
 install::
-	MakeDir($(CONFIGDIR)/../InterViews)
-	$(INSTALL) $(INSTINCFLAGS) *.cf $(CONFIGDIR)/../InterViews
+	MakeDir($(CONFIGDIR)/InterViews)
+	$(INSTALL) $(INSTINCFLAGS) *.cf $(CONFIGDIR)/InterViews
+
+uninstall::
+	(cd $(CONFIGDIR)/InterViews; $(RM) *.cf)
 #endif
 
 

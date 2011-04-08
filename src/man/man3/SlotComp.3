@@ -1,0 +1,141 @@
+.TH SlotComp 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+SlotComp, SlotView, HSlotComp, HSlotView, VSlotComp, VSlotView,
+SlotGraphic, PSSlot \- abstract base class and subclasses for slot
+connector subject and view; and structured graphic and PostScript
+external representation classes for slots
+.SH SYNOPSIS
+.B #include <Unidraw/Components/slot.h>
+.SH DESCRIPTION
+SlotComp is a Connector subclass that supports connectivity with one
+degree of freedom.  It serves as an abstract base class from which to
+derive HSlotComp and VSlotComp, which support horizontal and vertical
+orientations.  The slot component classes use SlotGraphics to store
+their graphical attributes.  SlotView is an abstract subclass of
+ConnectorView for displaying slots. HSlotView and VSlotView are
+SlotViews that display slots with the corresponding orientations.
+Finally, PSSlot is a PostScriptView that externalizes the slot
+subject's information in PostScript form.
+.SH SLOTCOMP PUBLIC OPERATIONS
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+SlotComp (un)interprets a subset of commands that connectors can
+generally interpret, namely MoveCmd, BrushCmd, AlignCmd, MobilityCmd,
+DeleteCmd, and CutCmd.
+.TP
+.B "virtual Mobility GetMobility()"
+.ns
+.TP
+.B "virtual void SetMobility(Mobility)"
+SlotComp redefines these functions to return and assign its
+\fI_mobility\fP protected member.  Slots have fixed mobility
+initially.
+.TP
+.B "Slot* GetSlot()"
+Return the Slot graphic that defines the line's attributes.  GetSlot
+is simply a more specific form of the GetGraphic operation.
+.SH SLOTCOMP PROTECTED OPERATIONS
+.TP
+.B "SlotComp(SlotGraphic* = nil)"
+The constructor takes an optional SlotGraphic that defines the slot's
+graphical attributes. It is protected to prevent instantiation, since
+SlotComp is an abstract class.
+.TP
+.B "void SetOrientation(SlotGraphic*, Orientation)"
+Define the orientation of the SlotComp's SlotGraphic.  Only SlotComp
+can specify this SlotGraphic attribute; HSlotComp and VSlotComp
+subclasses set it to reflect their respective orientations.
+.SH SLOTVIEW PUBLIC OPERATIONS
+.TP
+.B "virtual void Interpret(Command*)"
+SlotView interprets AlignToGridCmd to align its starting point to the
+grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+SlotViews respond only to manipulation by GraphicCompTools, MoveTools,
+and ConnectTools. SlotView inherits its MoveTool response from
+ConnectorView.  GraphicCompTool will let the user sweep out a
+crosshaired rectangle that reflects the slot's size and orientation.
+Creation will be influenced by gravity, if any. SlotView creates a
+ConnectManip in response to the ConnectTool, which will exhibit a
+gravational attraction to potential target connectors.  SlotView will
+produce a ConnectCmd to connect the slot to its target. A slot
+connected in this way will receive floating mobility.
+.TP
+.B "SlotComp* GetSlotComp()"
+Return the subject.
+.SH SLOTVIEW PROTECTED OPERATIONS
+.TP
+.B "SlotView(SlotComp* = nil)"
+Create an SlotView, optionally supplying the subject.  The constructor
+is protected to prevent instantiation.
+.TP
+.B "SlotGraphic* GetSlot()"
+Return the SlotGraphic that defines the slot's attributes.  GetSlot is
+simply a more specific form of the GetGraphic operation.
+.TP
+.B "virtual SlotComp* NewSubject(SlotGraphic*)"
+A helper function that creates a SlotComp subject with the given slot
+graphic. This function produces the proper subject when the
+GraphicCompTool's manipulator is interpreted.  HSlotView and VSlotView
+redefine this operation to return the corresponding SlotComp
+subclasses, thus eliminating the need to reimplement
+InterpretManipulator.
+.TP
+.B "Manipulator* CreateGraphicCompManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Manipulator* CreateConnectManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Command* InterpretGraphicCompManip(Manipulator*)"
+.ns
+.TP
+.B "Command* InterpretConnectManip(Manipulator*)"
+Helper functions used by CreateManipulator and InterpretManipulator to
+create and interpret the manipulators associated with GraphicCompTool
+and ConnectTool.
+.SH SLOTGRAPHIC PUBLIC OPERATIONS
+.TP
+.B "SlotGraphic(Coord, Coord, Coord, Graphic* = nil)"
+Create a SlotGraphic, specifying the starting point, length, and
+optionally a graphic from which to obtain its default graphics
+attributes.
+.TP
+.B "void GetOriginal(Coord&, Coord&, Coord&)"
+Return the SlotGraphic's original geometry parameters as specified in
+the constructor.
+.SH PSSLOT PUBLIC OPERATIONS
+.TP
+.B "PSSlot(SlotComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+BrushCmd(3U), ConnectTool(3U), Connector(3U), ConnectorView3U),
+Event(3I), Graphic(3U), GraphicCompTool(3U), Grid(3U), MoveTool(3U),
+PatternCmd(3U), PostScriptView(3U), Transformer(3I), Viewer(3U),
+align(3U), edit(3U), globals(3U), manips(3U), transforms(3U)

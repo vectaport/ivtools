@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -35,12 +35,14 @@ class SFH_OpenBSpline;
 class SFH_ClosedBSpline;
 class istream;
 
+//: clone of SplineComp derived from OverlayComp.
 class SplineOvComp : public VerticesOvComp {
 public:
     SplineOvComp(SFH_OpenBSpline* = nil, OverlayComp* parent = nil);
     SplineOvComp(istream&, OverlayComp* parent = nil);
 
     SFH_OpenBSpline* GetSpline();
+    // return pointer to graphic.
 
     virtual Component* Copy();
     virtual ClassId GetClassId();
@@ -55,14 +57,18 @@ protected:
 friend OverlaysScript;
 };
 
+//: graphic view of SplineOvComp.
 class SplineOvView : public VerticesOvView {
 public:
     SplineOvView(SplineOvComp* = nil);
 
     virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
+    // create manipulator to create or reshape a spline.
     virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulator to create or reshape a spline.
 
     SplineOvComp* GetSplineOvComp();
+    // return pointer to associated component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -70,6 +76,7 @@ protected:
     virtual boolean VertexChanged();
 };
 
+//: "PostScript" view of SplineOvComp.
 class SplinePS : public VerticesPS {
 public:
     SplinePS(OverlayComp* = nil);
@@ -78,8 +85,10 @@ public:
     virtual boolean IsA(ClassId);
 protected:
     virtual const char* Name();
+    // return name to differentiate from other VerticesPS.
 };
 
+//: serialized view of SplineOvComp.
 class SplineScript : public VerticesScript {
 public:
     SplineScript(SplineOvComp* = nil);
@@ -88,16 +97,20 @@ public:
     virtual boolean IsA(ClassId);
 
     static int ReadPoints(istream&, void*, void*, void*, void*);
+    // read set of points and construct a SFH_OpenBSpline.
 protected:
     virtual const char* Name();
+    // return name to differentiate from other VerticesScript.
 };
 
+//: clone of ClosedSplineComp derived from OverlayComp.
 class ClosedSplineOvComp : public VerticesOvComp {
 public:
     ClosedSplineOvComp(SFH_ClosedBSpline* = nil, OverlayComp* parent = nil);
     ClosedSplineOvComp(istream&, OverlayComp* parent = nil);
 
     SFH_ClosedBSpline* GetClosedSpline();
+    // return pointer to graphic.
 
     virtual Component* Copy();
     virtual ClassId GetClassId();
@@ -111,14 +124,18 @@ protected:
 friend OverlaysScript;
 };
 
+//: graphic view of ClosedSplineOvComp.
 class ClosedSplineOvView : public VerticesOvView {
 public:
     ClosedSplineOvView(ClosedSplineOvComp* = nil);
 
     virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
+    // create manipulator to create or reshape a spline.
     virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulator to create or reshape a spline.
 
     ClosedSplineOvComp* GetClosedSplineOvComp();
+    // return pointer to associated component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -126,6 +143,7 @@ protected:
     virtual boolean VertexChanged();
 };
 
+//: "PostScript" view of ClosedSplineOvComp.
 class ClosedSplinePS : public VerticesPS {
 public:
     ClosedSplinePS(OverlayComp* = nil);
@@ -134,8 +152,10 @@ public:
     virtual boolean IsA(ClassId);
 protected:
     virtual const char* Name();
+    // return name to differentiate from other VerticesPS.
 };
 
+//: serialized view of ClosedSplineOvComp.
 class ClosedSplineScript : public VerticesScript {
 public:
     ClosedSplineScript(ClosedSplineOvComp* = nil);
@@ -144,8 +164,10 @@ public:
     virtual boolean IsA(ClassId);
 
     static int ReadPoints(istream&, void*, void*, void*, void*);
+    // read set of points and construct a SFH_ClosedBSpline.
 protected:
     virtual const char* Name();
+    // return name to differentiate from other VerticesScript.
 };
 
 #endif

@@ -42,9 +42,11 @@ class PSBrush : public Brush {
 public:
     PSBrush();
     PSBrush(int, int);
+    PSBrush(int, float);
 
     int GetLinePattern();
     int Width();
+    float width();
 
     boolean None();
     const int* GetDashPattern();

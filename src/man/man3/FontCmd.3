@@ -1,0 +1,25 @@
+.TH FontCmd 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+FontCmd \- command for setting components' font attribute
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/font.h>
+.SH DESCRIPTION
+FontCmd is a purely interpretive command for setting the font
+attribute of selected components.
+.SH PUBLIC OPERATIONS
+.TP
+.B "FontCmd(ControlInfo*, PSFont* = nil)"
+.ns
+.TP
+.B "FontCmd(Editor* = nil, PSFont* = nil)"
+Create a FontCmd, optionally specifying the PSFont that components
+should adopt.
+.TP
+.B "virtual void Execute()"
+FontCmd extends Execute to set the value of the affected editor's
+FontVar instance, if it defines one.
+.TP
+.B "PSFont* GetFont()"
+Return the PSFont supplied in the constructor.
+.SH SEE ALSO
+Command(3U), pspaint(3U), statevars(3U)

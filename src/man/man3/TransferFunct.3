@@ -1,0 +1,56 @@
+.TH TransferFunct 3U "6 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+TransferFunct \- transfer function base class
+.SH SYNOPSIS
+.B #include <Unidraw/transfn.h>
+.SH DESCRIPTION
+A transfer function defines relationships between state variables.  A
+component uses a transfer function to enforce dependencies between its
+state variables during dataflow. State variables whose values change
+as a result of data flowing into the component can thus affect the
+component's dependent state variables as defined by its transfer
+function.  A transfer function can define dependencies between any
+number of state variables, but a component can define only one
+transfer function.
+.SH PUBLIC OPERATIONS
+.TP
+.B "virtual void Evaluate(Path* = nil)"
+Enforce the transfer function's dependencies between its state
+variables, optionally depending on the information in a path.  This
+operation does nothing by default.
+.TP
+.B "virtual TransferFunct* Copy()"
+Return a copy of the transfer function.  Subclasses redefine this
+operation to return an instance of their type.
+.TP
+.B "virtual void Read(istream&)"
+.ns
+.TP
+.B "virtual void Write(ostream&)"
+Read and write the transfer function's contents to a stream to support
+catalog operations.  Read and write typically call first the
+corresponding operations defined by their parent class, and then they
+read or write their class-specific state.
+.TP
+.B "virtual ClassId GetClassId()"
+.ns
+.TP
+.B "virtual boolean IsA(ClassId)"
+GetClassId returns the unique class identifier for the TransferFunct
+subclass, while IsA returns whether the instance is of a class or
+subclass corresponding to the given identifier.  IsA typically checks
+the given identifier against the instance's own (as defined by its
+GetClassId operation) and, failing that, calls its parent classes' IsA
+operation.  All subclasses must redefine GetClassId and IsA to ensure
+that their identifiers are unique and that instances are written and
+read properly.
+.SH PROTECTED OPERATIONS
+.TP
+.B "TransferFunct()"
+The constructor is protected to prevent instantiation.
+.TP
+.B "virtual Connector* GetBinding(StateVar*)"
+Return the connector to which a state variable is bound.
+.SH SEE ALSO
+Catalog(3U), Component(3U), Connector(3U), Creator(3U), Path(3U),
+StateVar(3U) classes(3U), istream(3C++), ostream(3C++)

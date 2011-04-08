@@ -1,0 +1,320 @@
+.TH GraphicView 3U "18 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+GraphicView, GraphicViews \- base classes for graphical component views
+.SH SYNOPSIS
+.B #include <Unidraw/Components/grview.h>
+.SH DESCRIPTION
+GraphicView is an abstract base class for graphical views of
+GraphicComp objects.  GraphicView is derived from ComponentView and
+adds operations for manipulating its graphical attributes.
+GraphicViews is a non-abstract subclass of GraphicView for composite
+graphical component views.
+.SH GRAPHICVIEW PUBLIC OPERATIONS
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+GraphicView objects can (un)interpret the following command:
+.sp
+.B "AlignToGridCmd"
+aligns the graphical component to the grid that affects the view.
+Interpret uses AlignToGridCmd::Align to carry out the alignment, while
+Uninterpret uses AlignToGridCmd::Unalign to reverse Interpret's
+effects.
+.TP
+.B "virtual void DrawHandles()"
+.ns
+.TP
+.B "virtual void RedrawHandles()"
+.ns
+.TP
+.B "virtual void InitHandles()"
+.ns
+.TP
+.B "virtual void EraseHandles()"
+Operations for displaying and hiding the view's selection handles.
+All use CreateHandles (described below) to create component-specific
+rubberbands that draw the handles if they do not already exist.  The
+rubberband is stored in the \fI_handles\fP protected member.
+DrawHandles makes the handles visible if they are not already visible.
+RedrawHandles forces the handles to draw themselves even if they are
+already drawn, which may make them disappear if the rubberband draws
+them in XOR mode.  InitHandles deletes and recreates the rubberband
+defining the handles if it existed when InitHandles was called.
+EraseHandles erases the handles and deletes the rubberband.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+Operations that define how the GraphicView reacts when it is
+manipulated by a tool and how the tool affects that component
+following manipulation.  They effectively override the tool's default
+behavior if the tool defers manipulator creation and interpretation to
+the view.  This allows the same tool to behave differently depending
+on the component it manipulates.
+.sp
+CreateManipulator creates a manipulator that is appropriate for the
+given tool.  It receives the viewer in which the manipulation will
+take place, an event with which to initialize the manipulator if
+necessary, and the coordinate transformation that maps canvas
+coordinates into the subject's coordinate space.  InterpretManipulator
+is called following manipulation and defines how to construct a
+command that carries out the manipulation's desired effect.
+GraphicView objects create and interpret manipulators for the
+following tools:
+.sp
+.B "GraphicCompTool"
+will let the user position a fixed-sized outline reflecting the view's
+bounding box on the screen.  Interpretation will produce a command
+that inserts a copy of the subject into the editor's component at the
+specified position.  Placement will be constrained by gravity, if active.
+.sp
+.B "MoveTool"
+will let the user move a fixed-sized outline reflecting the view's
+bounding box on the screen.  Interpretation will produce a command
+that moves the subject to the specified position. Holding down the
+Shift key will constrain the movement to purely horizontal or
+vertical, and movement will be constrained by gravity.
+.sp
+.B "ScaleTool"
+will let the user drag a scaling rectangular outline corresponding to
+the view's scale following manipulation with the tool.  Scaling will
+be constrained by gravity.
+.sp
+.B "StretchTool"
+will let the user drag a variable-sized rectangular outline
+corresponding to a two-dimensional stretch that the component will
+undergo following manipulation.  Holding the Shift key down will
+constrain the stretch to one dimension.  Stretching will be
+constrained by gravity.
+.sp
+.B "RotateTool"
+will let the user rotate a fixed-sized rectangular outline
+reflecting the view's bounding box.  The rotation of the outline
+corresponds to the rotation that the component will undergo following
+manipulation.  Rotation will be constrained by gravity.
+.TP
+.B "virtual Graphic* GetGraphic()"
+Return the graphic that defines the GraphicView's appearance.
+Often this graphic is a copy of that in the subject, but it needn't
+be.
+.TP
+.B "virtual Viewer* GetViewer()"
+Return the viewer (if any) that displays the view.
+.TP
+.B "GraphicComp* GetGraphicComp()"
+Return the view's subject.
+.TP
+.B "boolean Includes(GraphicView*)"
+A convenience function that returns whether or not the GraphicView
+includes the given view, that is, whether the view is a child of
+\fIthis\fP.
+.TP
+.B "GraphicView* GetGraphicView(Component*)"
+A convenience function that returns the view of the given component
+(if any) that appears in the same viewer as \fIthis\fP.
+.TP
+.B "GraphicView* GetView(Iterator)"
+.ns
+.TP
+.B "void SetView(GraphicView*, Iterator&)"
+These operations do nothing by default.  Subclasses that contain
+children should redefine them as follows: GetView should return the
+GraphicView to which an iterator points.  SetView should initialize
+the iterator to point to a particular GraphicView in the list of
+children; it should initialize the iterator to point to a nil instance
+if the given GraphicView is not a child.
+.TP
+.B "virtual Selection* SelectAll()"
+.ns
+.TP
+.B "virtual Selection* ViewContaining(Coord, Coord)"
+.ns
+.TP
+.B "virtual Selection* ViewsContaining(Coord, Coord)"
+.ns
+.TP
+.B "virtual Selection* ViewIntersecting(Coord, Coord, Coord, Coord)"
+.ns
+.TP
+.B "virtual Selection* ViewsIntersecting(Coord, Coord, Coord, Coord)"
+.ns
+.TP
+.B "virtual Selection* ViewsWithin(Coord, Coord, Coord, Coord)"
+.ns
+.TP
+.B "virtual ConnectorView* ConnectorIntersecting("
+.ns
+.TP
+.B "    Coord, Coord, Coord, Coord"
+.ns
+.TP
+.B ")"
+.br
+These convenience operations do nothing by default.  Subclasses
+containing children should redefine them to do the following:
+SelectAll should return a selection object containing (pointers to)
+all its children; ViewContaining should return the last (visibly
+topmost) child view containing the given point, while ViewsContaining
+should return \fIall\fP children containing the point;
+ViewIntersecting should return the last (visibly topmost) child view
+intersecting a rectangular area, while ViewsIntersecting should return
+all such children; ViewsWithin should return all the child views
+falling strictly within a rectangular area; and ConnectorIntersecting
+should return the child ConnectorView (if any) that intersects a
+rectangular area.
+.SH GRAPHICVIEW PROTECTED OPERATIONS
+.TP
+.B "GraphicView(GraphicComp* = nil)"
+The constructor is protected to guard against instantiation. It takes
+the view's subject as an optional argument, passing it to the
+ComponentView constructor.
+.TP
+.B "virtual void SetGraphic(Graphic*)"
+Set the GraphicView's graphic to the given one, and store \fIthis\fP
+in the graphic using Graphic::SetTag.  This makes it possible to
+obtain the GraphicView that owns the graphic from the graphic itself,
+e.g., after hit detection.
+.TP
+.B "virtual void CreateHandles()"
+Initialize the \fI_handles\fP member with a rubberband that will draw
+the appropriate handles.  By default, CreateHandles creates a
+RubberHandles object with eight handles around the periphery of the
+view's bounding box.
+.TP
+.B "virtual int ClosestPoint("
+.ns
+.TP
+.B "    Coord x[], Coord y[], int n, Coord px, Coord py"
+.ns
+.TP
+.B ")"
+.br
+A convenience function that returns the index of the point closest to
+(\fIpx, py\fP) in an array of \fIn\fP points.
+.TP
+.B "GraphicView* View(UList*)"
+.ns
+.TP
+.B "GraphicView* GetGraphicView(Graphic*)"
+Convenience functions that return the GraphicView in a UList element
+and the GraphicView associated with a graphic, respectively.
+.TP
+.B "Manipulator* CreateGraphicCompManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Manipulator* CreateStretchManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Command* InterpretGraphicCompManip(Manipulator*)"
+.ns
+.TP
+.B "Command* InterpretStretchManip(Manipulator*)"
+Helper functions used by CreateManipulator and InterpretManipulator to
+create and interpret the manipulators associated with GraphicCompTool
+and StretchTool.
+.TP
+.B "void AddDamage(Graphic*)"
+.ns
+.TP
+.B "void IncurDamage(Graphic*)"
+GraphicViews should incur damage in response to a change in their
+appearance, which generally happens in their Update function.
+AddDamage and IncurDamage produce damage by calling the related
+operations on the enclosing viewer's damage object.  Subclasses can
+use these functions for convenience to avoid accessing the enclosing
+viewer's damage object directly.
+.TP
+.B "void Unselect(GraphicView*)"
+A convenience function that unselects the given view, which entails
+erasing its handles and removing it from the enclosing editor's
+selection object.
+.TP
+.B "virtual void Add(GraphicView*)"
+.ns
+.TP
+.B "virtual void Append(GraphicView*)"
+.ns
+.TP
+.B "virtual void InsertBefore(Iterator, GraphicView*)"
+.ns
+.TP
+.B "virtual void Remove(Iterator&)"
+.ns
+.TP
+.B "virtual void DeleteView(Iterator&)"
+Unimplemented operations that composite subclasses should redefine for
+modifying the their (conceptual) list of children.  Note that
+subclasses needn't necessarily store their children in a list data
+structure, but a list maps closely to the semantics of these
+operations.  These operations are not public because only the view
+itself knows how to keep its structure consistent with that of the
+subject and/or its semantics.
+.sp
+Add adds a GraphicView to the end of the list of children.
+InsertBefore inserts a GraphicView before the GraphicView pointed to
+by the iterator.  Remove removes a view to which the given iterator
+refers from the list without deleting it, while DeleteView removes it
+and deletes it.  Remove and DeleteView should advance the iterator to
+point to the following view as a side effect.
+.SH GRAPHICVIEWS PUBLIC OPERATIONS
+.TP
+.B "GraphicViews(GraphicComps* = nil)"
+.ns
+.TP
+.B "virtual ~GraphicViews()"
+The constructor creates a GraphicViews, optionally supplying the
+subject.  The destructor deletes the GraphicViews' children.
+.TP
+.B "virtual void Interpret(Command*)"
+GraphicViews objects interpret the following command:
+.sp
+.B "AlignToGridCmd"
+aligns the graphical component to the grid that affects the view.  The
+overall alignment is based on how the first leaf subcomponent aligns
+itself: Interpret aligns the first leaf subcomponent to the grid and
+then moves all other subcomponents by the amount that the leaf moved.
+.TP
+.B "virtual void Update()"
+Automatically update the GraphicViews' state and structure to match
+the subject's.  Update will \fInot\fP necessarily detect
+restructurings or state modifications made to the subject's children
+more than one level deep.  Update uses GVUpdater to do its work.
+.TP
+.B "virtual Graphic* GetGraphic()"
+Return the GraphicViews' graphic, which (like its subject's graphic)
+is a Picture.
+.TP
+.B "GraphicComps* GetGraphicComps()"
+Return the subject.
+.SH GRAPHICVIEWS PROTECTED OPERATIONS
+.TP
+.B "UList* Elem(Iterator)"
+A convenience function for extracting a UList from an iterator.
+.SH SEE ALSO
+Command(3U), ComponentView(3U), Connector(3U),
+Damage(3U), GVUpdater(3U), GraphicComp(3U), GraphicCompTool(3U),
+Grid(3U), Event(3I), Manipulator(3U), MoveTool(3U), Picture(3U), 
+RotateTool(3U),
+Rubband(3I), ScaleTool(3U), Selection(3U), StretchTool(3U),
+Transformer(3I), Viewer(3U), align(3U)

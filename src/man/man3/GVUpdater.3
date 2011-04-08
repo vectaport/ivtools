@@ -1,0 +1,65 @@
+.TH GVUpdater 3U "19 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+GVUpdater \- updates GraphicViews structure to match its subject
+.SH SYNOPSIS
+.B #include <Unidraw/Components/gvupdater.h>
+.SH DESCRIPTION
+GVUpdater is an implementation class that GraphicViews uses to keep
+its state and structure consistent with its GraphicComps subject.
+GVUpdater ensures that subject's immediate children are identical to
+the view's in number and graphics state attributes. It also ensures
+that the root GraphicViews and GraphicComps themselves have the same
+graphics state.  GVUpdater does \fInot\fP ensure that it will detect
+and update changes made to deeper child nodes.
+.SH PUBLIC OPERATIONS
+.TP
+.B "GVUpdater(GraphicView*)"
+The constructor takes the GraphicView that it will be updating as a
+parameter and stores it in the protected member \fI_gv\fP. Normally,
+GraphicViews are the only objects that will instantiate GVUpdater.
+.TP
+.B "virtual void Update()"
+Update the GraphicView to make it consistent with its subject.
+.SH PROTECTED OPERATIONS
+.TP
+.B "void UpdateStructure()"
+.ns
+.TP
+.B "void UpdateState()"
+The Update procedure takes place in two stages.  The subject's and
+view's structures are reconciled first by UpdateStructure, and then
+the view's graphic state is changed to match the subjects with
+UpdateState.
+.TP
+.B "void AddDamage(Graphic*)"
+.ns
+.TP
+.B "void IncurDamage(Graphic*)"
+.ns
+.TP
+.B "void Unselect(GraphicView*)"
+.ns
+.TP
+.B "virtual void Add(GraphicView*)"
+.ns
+.TP
+.B "virtual void Append(GraphicView*)"
+.ns
+.TP
+.B "virtual void InsertBefore(Iterator, GraphicView*)"
+.ns
+.TP
+.B " virtual void Remove(Iterator&)"
+.ns
+.TP
+.B "virtual void DeleteView(Iterator&)"
+GVUpdater is a friend of GraphicViews.  These convenience operations
+provide an interface to the corresponding protected GraphicViews
+operations.
+.TP
+.B "virtual ClassId ViewCategory()"
+Returns the view category (see classes(3U)) GVUpdater will use to
+instantiate views of subjects.  ViewCategory returns COMPONENT_VIEW by
+default.
+.SH SEE ALSO
+GraphicComp(3U), GraphicView(3U), classes(3U)

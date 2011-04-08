@@ -28,13 +28,14 @@
 
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcomps.h>
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovfixview.h>
+#include <OverlayUnidraw/ovmanips.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviews.h>
 
 #include <Unidraw/grid.h>
 #include <Unidraw/iterator.h>
-#include <Unidraw/manips.h>
 #include <Unidraw/ulist.h>
 #include <Unidraw/viewer.h>
 
@@ -50,6 +51,8 @@
 #include <Unidraw/Tools/tool.h>
 
 #include <InterViews/transformer.h>
+
+#include <IV-2_6/InterViews/rubrect.h>
 
 #include <stream.h>
 
@@ -263,16 +266,80 @@ void OverlayView::Uninterpret (Command* cmd) {
 Manipulator* OverlayView::CreateManipulator (
     Viewer* v, Event& e, Transformer* rel, Tool* tool
 ) {
+    Rubberband* rub = nil;
     Manipulator* m = nil;
+    IntCoord l, b, r, t;
 
-    if (!tool->IsA(MOVE_TOOL) || !FixedLocation()) 
+    if (tool->IsA(MOVE_TOOL)) {
+      if (!FixedLocation()) {
+        v->Constrain(e.x, e.y);
+        v->GetSelection()->GetBox(l, b, r, t);
+        rub = new SlidingRect(nil, nil, l, b, r, t, e.x, e.y);
+        m = new OpaqueDragManip(
+  	    v, rub, rel, tool, 
+	    DragConstraint(HorizOrVert | Gravity),
+	    GetGraphic()
+	    );
+      }
+
+    } else if (tool->IsA(SCALE_TOOL)) {
+        v->Constrain(e.x, e.y);
+        GetGraphic()->GetBox(l, b, r, t);
+        rub = new ScalingRect(nil, nil, l, b, r, t, (l+r)/2, (b+t)/2);
+        m = new OpaqueDragManip(v, rub, rel, tool, Gravity, GetGraphic());
+
+    } else if (tool->IsA(STRETCH_TOOL)) {
+        m = CreateStretchManip(v, e, rel, tool);
+
+    } else if (tool->IsA(ROTATE_TOOL)) {
+        v->Constrain(e.x, e.y);
+        GetGraphic()->GetBox(l, b, r, t);
+        rub = new RotatingRect(
+            nil, nil, l, b, r, t, (l+r)/2, (b+t)/2, e.x, e.y
+        );
+        m = new OpaqueDragManip(v, rub, rel, tool, Gravity, GetGraphic());
+
+    } else
         m = GraphicView::CreateManipulator(v, e, rel, tool);
-
+    
     return m;
 }
 
 boolean OverlayView::FixedSize() { return _fixed_size; }
 boolean OverlayView::FixedLocation() { return _fixed_location; }
+
+Manipulator* OverlayView::CreateStretchManip (
+    Viewer* v, Event& e, Transformer* rel, Tool* tool
+) {
+    Coord l, b, r, t, tmp;
+    DragConstraint dc = HorizOrVert;
+
+    v->Constrain(e.x, e.y);
+    GetGraphic()->GetBox(l, b, r, t);
+    boolean horizCtr = e.x > (2*l + r)/3 && e.x < (l + 2*r)/3;
+    boolean vertCtr  = e.y > (2*b + t)/3 && e.y < (b + 2*t)/3;
+
+    if (e.x < (l + r)/2) {
+        tmp = r;
+        r = l;
+        l = tmp;
+    }
+    if (e.y < (b + t)/2) {
+        tmp = t;
+        t = b;
+        b = tmp;
+    }
+    if (horizCtr && !vertCtr) {
+        dc = XFixed;
+    } else if (!horizCtr && vertCtr) {
+        dc = YFixed;
+    }
+
+    RubberRect* rub = new RubberRect(nil, nil, l, b, r, t);
+    return new OpaqueDragManip(
+	v, rub, rel, tool, DragConstraint(dc | Gravity), r, t, GetGraphic()
+    );
+}
 
 /*****************************************************************************/
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1996-1997 R.B. Kissh & Associates
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,11 +31,12 @@
 #include <IV-X11/Xlib.h>
 #include <stdio.h>
 
+//: base class image object for large-image handling.
+// N.B. 0,0 is the upper left corner, NOT IV conventions.
 class OvRestrictedImage {
 public:
     virtual ~OvRestrictedImage();
 
-    // N.B. 0,0 is the upper left corner, NOT IV conventions
 
     virtual unsigned long Peek(IntCoord x, IntCoord y) = 0;
 
@@ -44,6 +46,7 @@ public:
 
 class OverlayRasterRect;
 
+//: file-based image object for large-image handling.
 class OvFileImage : public OvRestrictedImage {
 public:
     virtual ~OvFileImage();
@@ -78,6 +81,7 @@ protected:
     IntCoord _yend;
 };
 
+//: specialization of OvFileImage for untiled pbmplus image formats.
 class OvPortableFileImage : public OvFileImage {
 friend class OvFileImage;
 public:
@@ -99,9 +103,9 @@ inline long OvPortableFileImage::to_offset(IntCoord x, IntCoord y) const {
 
 
 
+//: specialization of OvFileImage for internally tiled pbmplus image formats.
 // Note that this class is optimized for iterations that begin at 0,0 and
 // proceed 1,0 2,0 3,0 ... 0,1 1,1 2,1 ... 
-
 class OvTiledFileImage : public OvFileImage {
 friend class OvFileImage;
 public:
@@ -123,7 +127,7 @@ inline long OvTiledFileImage::to_offset(IntCoord x, IntCoord y) const {
     );
 }
 
-
+//: in-memory image object for large-image handling.
 class OvMemoryImage : public OvRestrictedImage {
 public:
     OvMemoryImage(XImage*);

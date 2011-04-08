@@ -33,6 +33,7 @@
 #include <GraphUnidraw/graphcomp.h>
 #include <GraphUnidraw/graphimport.h>
 #include <GraphUnidraw/graphkit.h>
+#include <GraphUnidraw/graphtools.h>
 
 #include <OverlayUnidraw/annotate.h>
 #include <OverlayUnidraw/attrtool.h>
@@ -47,6 +48,7 @@
 #include <OverlayUnidraw/ovexport.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovpolygon.h>
+#include <OverlayUnidraw/ovprecise.h>
 #include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/ovtext.h>
@@ -221,13 +223,13 @@ MenuItem* GraphKit::MakeEditMenu() {
 			90.0),
 	     "90 CounterCW   ");
     mbi->menu()->append_item(kit.menu_item_separator());
-    MakeMenu(mbi, new PreciseMoveCmd(new ControlInfo("Precise Move",
+    MakeMenu(mbi, new OvPreciseMoveCmd(new ControlInfo("Precise Move",
 					     KLBL_PMOVE, CODE_PMOVE)),
 	     "Precise Move   ");
-    MakeMenu(mbi, new PreciseScaleCmd(new ControlInfo("Precise Scale",
+    MakeMenu(mbi, new OvPreciseScaleCmd(new ControlInfo("Precise Scale",
 					      KLBL_PSCALE, CODE_PSCALE)),
 	     "Precise Scale   ");
-    MakeMenu(mbi, new PreciseRotateCmd(new ControlInfo("Precise Rotate",
+    MakeMenu(mbi, new OvPreciseRotateCmd(new ControlInfo("Precise Rotate",
 					       KLBL_PROTATE, CODE_PROTATE)),
 	     "Precise Rotate   ");
 
@@ -280,9 +282,9 @@ MenuItem* GraphKit::MakeViewMenu() {
     MenuItem* zoomi = kit.menu_item(kit.label("Zoom             "));
     Menu* zoom = kit.pullright();
     zoomi->menu(zoom);
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In"), 2.0),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
 	     "Zoom In          ");
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out"), 0.5),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
 	     "Zoom Out         ");
     MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
 	     "Precise Zoom     ");
@@ -446,7 +448,7 @@ Glyph* GraphKit::MakeToolbar() {
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(sel)),
 			tg, _ed->MouseDocObservable(), mouse_sel));
-    vb->append(move = MakeTool(new MoveTool(new ControlInfo("Move", KLBL_MOVE, CODE_MOVE)),
+    vb->append(move = MakeTool(new GraphMoveTool(new ControlInfo("Move", KLBL_MOVE, CODE_MOVE)),
 			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
 				       layout.hcenter(mov)),
 			tg, _ed->MouseDocObservable(), mouse_mov));
@@ -575,15 +577,13 @@ Glyph* GraphKit::MakeToolbar() {
 
     return layout.hbox(
 	layout.vflexible(
-	    layout.vnatural(
 		new Background(
 		    layout.vcenter(
 			_toolbar
 		    ),
 		    unidraw->GetCatalog()->FindColor("#aaaaaa")
 		),
-		550
-	    )
+		fil, 0.0
 	)
     );
 }

@@ -33,7 +33,18 @@
 #include <InterViews/coord.h>
 #include <InterViews/resource.h>
 
+typedef unsigned long ClassId; // borrowed from Unidraw
+
 enum Side { LeftSide, RightSide, BottomSide, TopSide };
+
+enum RubberTypes { 
+RUBBERBAND, FIXEDPIN, GROWINGVERTICES, GROWINGBSPLINE, GROWINGCLOSEDBSPLINE,
+GROWINGMULTILINE, GROWINGPOLYGON, ROTATINGRECT, RUBBERELLIPSE, RUBBERCIRCLE,
+SLIDINGELLIPSE, SLIDINGPIN, RUBBERGROUP, RUBBERLINE, ROTATINGLINE, RUBBERAXIS,
+SCALINGLINE, SLIDINGLINE, RUBBERPOINTLIST, ROTATINGLINELIST, RUBBERVERTEX,
+RUBBERCLOSEDSPLINE, RUBBERHANDLES, RUBBERSPLINE, SCALINGLINELIST, 
+SLIDINGPOINTLIST, SLIDINGLINELIST, RUBBERRECT, RUBBERSQUARE, SCALINGRECT,
+SLIDINGRECT, STRETCHINGRECT };
 
 class Canvas;
 class Painter;
@@ -43,10 +54,17 @@ public:
     Rubberband(Painter*, Canvas*, IntCoord offx, IntCoord offy);
     virtual ~Rubberband();
 
+    virtual ClassId GetClassId () { return RUBBERBAND; }
+    virtual boolean IsA(ClassId id) { return RUBBERBAND == id; }
+
     virtual void Draw();
     virtual void Redraw();
     virtual void Erase();
     virtual void Track(IntCoord x, IntCoord y);
+    void SetTrack(IntCoord x, IntCoord y) { trackx=x; tracky=y; }
+    void GetTrack(IntCoord& x, IntCoord& y) { x=trackx; y=tracky; }
+    IntCoord TrackX() { return trackx; }
+    IntCoord TrackY() { return tracky; }
 
     virtual void SetPainter(Painter*);
     virtual void SetCanvas(Canvas*);

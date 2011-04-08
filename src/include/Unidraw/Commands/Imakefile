@@ -5,3 +5,5 @@ XCOMM
 PACKAGE = include_commands
 
 IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(Unidraw/Commands)

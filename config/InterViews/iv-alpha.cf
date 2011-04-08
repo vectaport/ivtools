@@ -8,10 +8,12 @@
 #undef DependCmd
 #define DependCmd makedepend
 
-#undef ExtraCCDefines
+#ifndef ExtraCCDefines
 #define ExtraCCDefines -D__STDC__ -Ualpha
-#undef ExtraCCLdFlags
+#endif
+#ifndef ExtraCCLdLibs
 #define ExtraCCLdLibs -ldnet_stub
+#endif
 
 /*
  * osf1.cf defines #define StandardIncludes -I$(CROSSBASE)/usr/include
@@ -31,8 +33,9 @@
 /*
  * Same for the InstallCmd
  */
-#undef InstallCmd
+#ifndef InstallCmd
 #define InstallCmd /usr/bin/X11/install.sh
+#endif
 
 #undef DefaultCCOptions
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Vectaport Inc.
+ * Copyright (c) 1998-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -34,6 +34,13 @@
 class Clipboard;
 class AttrDialog;
 
+//: command to set attributes on a component by evaluating an expression.
+// This command checks for a non-empty selection in the current editor,
+// then pops up a dialog box for entering attribute expressions to evaluate.
+// symbols on the right hand side of an assigment operator are used to
+// look up and return values from the property list (AttributeList) of
+// a component.  symbols on the left-hand side of an assignment operator are
+// used to create or modify an entry in the same component property list.
 class SetAttrByExprCmd : public Command {
 public:
     SetAttrByExprCmd(Editor* = nil, AttrDialog* = nil);
@@ -56,12 +63,20 @@ protected:
     Clipboard* clipboard_;
 };
 
+//: interpreter command for plugging together AttrDialog and SetAttrByExprCmd.
+// interpreter command used to iterate over all the components in the current 
+// selection.
 class NextInSelectionFunc : public AttrListFunc {
 public:
     NextInSelectionFunc(ComTerp*, AttrDialog*, Selection* sel, Iterator* i);
     virtual void execute();
 };
 
+
+//: interpreter command for plugging together AttrDialog and SetAttrByExprCmd.
+// interpreter command used to do nothing whether the attribute expression
+// evalutes to true or false, because the assignment of values by interpreting
+// assignment commands has already occurred.
 class BothSetAttrFunc : public AttrListFunc {
 public:
     BothSetAttrFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb);
@@ -69,6 +84,9 @@ public:
 
 };
 
+//: interpreter command for plugging together AttrDialog and SetAttrByExprCmd.
+// interpreter command used to indicate when done iterating over all the components 
+// in the current selection.
 class DoneSetAttrFunc : public AttrListFunc {
 public:
     DoneSetAttrFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb, Viewer* v);

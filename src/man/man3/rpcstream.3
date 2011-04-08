@@ -1,0 +1,52 @@
+.TH rpcstream 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+rpcstream \- iostreamb specialized to RPC requests
+.SH SYNOPSIS
+.B #include <Dispatch/rpcstream.h>
+.SH DESCRIPTION
+rpcstream, irpcstream, and orpcstream specialize iostream, istream,
+and ostream, respectively, to RPC requests.  That is, the
+associated streambuf will be an rpcbuf.  Conversions will be formatted
+(that is, ASCII) so datums will need to be separated by space
+characters.
+.SH CONSTRUCTORS
+.TP
+.B "rpcstream()"
+Construct an unopened rpcstream.
+.SH PUBLIC OPERATIONS
+.TP
+.B "void listen(int port)"
+.ns
+.TP
+.B "void connect(const char* host, int port)"
+Create a connection.  Any failure sets ios::failbit in the error
+state.
+.TP
+.B "int accept()"
+Accept a pending connection and return the new file descriptor.
+.TP
+.B "void attach(int fd)"
+Attach to a pre-existing connection.
+.TP
+.B "void close()"
+Break a connection.  The error state is cleared except on failure.
+.TP
+.B "void nonblocking(boolean)"
+.ns
+.TP
+.B "void verbose(boolean)"
+Enable or disable non-blocking I/O and/or printing of error messages.
+.TP
+.B "rpcbuf* rdbuf()"
+Return a pointer to the rpcbuf created by the rpcstream.
+.TP
+.B "boolean incomplete_request()"
+.ns
+.TP
+.B "void incomplete_request(boolean)"
+Get or set a flag.  Used by the operations that insert an RpcHdr into
+an rpcstream or extract an RpcHdr from an rpcstream.
+.SH SEE ALSO
+IOS.INTRO(3C++),
+iostreamb(3I),
+rpcbuf(3I)

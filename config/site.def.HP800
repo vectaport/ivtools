@@ -2,7 +2,7 @@
 #define ProjectDir /proj
 
 /* gcc command line with -V for version and -O for optimize */
-#define CCDriver gcc -V 2.7.2.f.1
+#define CCDriver g++
 
 #undef HasDynamicSharedLibraries
 #define HasDynamicSharedLibraries YES
@@ -58,8 +58,12 @@ install:: Concat(lib,libname.sl.rev)					@@\
 	MakeDir(dest)							@@\
 	if [ -f dest/Concat(lib,libname.sl.rev) ]; then \		@@\
 	$(RM) dest/Concat(lib,libname.sl.rev); else exit 0; fi		@@\
-	$(INSTALL) -c -m555 Concat(lib,libname.sl.rev) dest   @@\
-	$(LN) dest/Concat(lib,libname.sl.rev) dest/Concat(lib,libname.sl)
+	$(INSTALL) -c -m555 Concat(lib,libname.sl.rev) dest   		@@\
+	$(LN) dest/Concat(lib,libname.sl.rev) dest/Concat(lib,libname.sl)@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.sl.rev)				@@\
+	$(RM) dest/Concat(lib,libname.sl)
 #endif
 
 /* 
@@ -67,6 +71,16 @@ install:: Concat(lib,libname.sl.rev)					@@\
  */
 #undef InstallRelative
 #define InstallRelative YES
+
+#undef BuildProgram
+#define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
+program: depobjs deplibs						@@\
+	RemoveIfUnwritable($@)						@@\
+	g++ $(CCLDFLAGS) -o $@ ldobjs ldlibs
+
+#if 0 
+
+/* -------------- imake way of configuring ------------------ */
 
 /* 
 /* 
@@ -90,8 +104,11 @@ install:: Concat(lib,libname.sl.rev)					@@\
 /* ACE directory: comment out if not available */
 /* #define AceDir ProjectDir/ACE_wrappers */
 
-#undef BuildProgram
-#define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
-program: depobjs deplibs						@@\
-	RemoveIfUnwritable($@)						@@\
-	g++ $(CCLDFLAGS) -o $@ ldobjs ldlibs
+#else
+
+/* --------------- autconf way of configuring --------------- */
+
+/* file output by configure script */
+#include "config-hpux-gcc.defs"
+
+#endif

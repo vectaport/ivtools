@@ -29,8 +29,17 @@
 #ifndef iv_xraster_h
 #define iv_xraster_h
 
+// should be defined externally
+#define XSHM
+
 #include <InterViews/coord.h>
 #include <IV-X11/Xlib.h>
+
+#ifdef XSHM
+#include <IV-X11/Xdefs.h>
+#include <X11/extensions/XShm.h>
+#include <IV-X11/Xundefs.h>
+#endif
 
 #include <InterViews/_enter.h>
 
@@ -54,6 +63,16 @@ public:
     XImage* image_;
     Pixmap pixmap_;
     GC gc_;
+    boolean shared_memory_;
+
+#ifdef XSHM
+    static void free_shared_memory(Display&, XShmSegmentInfo&);
+    static boolean init_shared_memory(
+        boolean& shared_memory, Display&, XShmSegmentInfo&,  
+        unsigned int pwidth, unsigned int pheight, XImage*&, Pixmap
+    );
+    XShmSegmentInfo shminfo_;
+#endif
 };
 
 #include <InterViews/_leave.h>

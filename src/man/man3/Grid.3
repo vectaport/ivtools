@@ -1,0 +1,42 @@
+.TH Grid 3U "30 July 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Grid \- displays a grid in a viewer and constrains points to lie on it
+.SH SYNOPSIS
+.B #include <Unidraw/grid.h>
+.SH DESCRIPTION
+The Grid object performs two functions: it displays a grid in a viewer,
+and it can constrain points to lie on the grid.  The base class draws
+the grid as a simple array of dots; subclasses can draw arbitrarily
+complex grids.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Grid(float w, float h, float xincr, float yincr)"
+The constructor parameters correspond to a width, a height, and
+independent units of graduation for the horizontal and vertical axes,
+all in pixels.  The Grid base class employs a special-purpose graphic
+to render itself, one that draws an array of dots based on the
+information supplied in this constructor.
+.TP
+.B "virtual Graphic* GetGraphic()"
+Return the graphic used to render the grid.
+.TP
+.B "virtual void Constrain(Coord&, Coord&)"
+Constrain the given coordinate pair to fall on the grid.  The pair is
+changed to fall on the nearest grid point by default.
+.TP
+.B "virtual void Visiblity(boolean)"
+Make the grid visible (specify \fItrue\fP) or invisible (specify \fIfalse\fP).
+.TP
+.B "virtual boolean IsVisible()"
+Return whether the grid is visible or not.
+.TP
+.B "virtual void SetSpacing(float xincr, float yincr)"
+Reset the grid's units of graduation.
+.SH PROTECTED OPERATIONS
+.TP
+.B "Grid(Graphic*)"
+The protected constructor allows subclasses to specify an arbitrary
+graphic for rendering the grid.  Subclasses that use this constructor
+\fImust\fP also redefine the Constrain operation.
+.SH SEE ALSO
+Graphic(3U), Viewer(3U)

@@ -31,15 +31,11 @@ CondFunc::CondFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void CondFunc::execute() {
-  ComValue testval(stack_arg(0));
-  ComValue trueval(stack_arg(1));
-  ComValue falseval(stack_arg(2));
+  ComValue booltest(stack_arg_post_eval(0));
+  ComValue retval(booltest.is_true() 
+		  ? stack_arg_post_eval(1)
+		  : stack_arg_post_eval(2));
   reset_stack();
-
-  if (testval.is_true()) 
-    push_stack(trueval);
-  else
-    push_stack(falseval);
-  return;
+  push_stack(retval);
 }
 

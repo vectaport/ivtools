@@ -1,0 +1,180 @@
+.TH TextEditor 3I "24 May 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+TextEditor \- basic unstructured text editing
+.SH SYNOPSIS
+.B #include <InterViews/texteditor.h>
+.SH DESCRIPTION
+A TextEditor is an interactor that provides an interactive interface
+for simple text editing of a TextBuffer.  TextEditor uses an editing
+model based on a single current selection.  Editing operations operate
+on the text in the selection, alter the position or size of the
+selection, or scroll the display to view other parts of the text.
+TextEditor interprets a perspective for interactive scrolling using a
+scroller.
+.PP
+TextEditor does not provide a default set of keyboard bindings.  You
+can implement the key bindings you desire by subclassing and
+redefining the Handle operation or by handling keyboard events in an
+entirely separate class.
+.SH PUBLIC OPERATIONS
+.TP
+.B "TextEditor(int rows, int cols, int tabsize, int highlight)"
+.ns
+.TP
+.B "~TextEditor()"
+Create or destroy an instance of TextEditor.  The natural size of a
+TextEditor is specified by \fIrows\fP and \fIcolumns\fP.  The
+TextEditor will be tall enough to display \fIrows\fP lines of text in
+the current font, and it will be wide enough to display \fIcolumns\fP
+characters.  For proportionally-spaced fonts, the width of the
+character 'n' is taken to be representative.  Tab characters in the
+text are expanded to multiples of \fItabsize\fP character widths.  The
+current selection highlighted with the text style \fIhighlight\fP.
+.TP
+.B "void Edit(TextBuffer*, int index = 0)"
+Specify the text buffer to edit.  A text buffer must be specified
+before the TextEditor is displayed.  The optional \fIindex\fP
+parameter specifies the initial selection point.  If necessary,
+the TextEditor is scrolled so that the selection point is visible.
+.TP
+.B "int Dot()"
+.ns
+.TP
+.B "int Mark()"
+The current selection is bounded by two indices into the text buffer.
+By convention these indices are called dot and mark.  Dot is the
+position at which text will be inserted and deleted.  Mark locates the
+end of the selection that moves as the selection is modified.  When
+the selection is empty (an insertion point), dot and mark are equal.
+.TP
+.B "void InsertText(const char* string, int count)"
+.ns
+.TP
+.B "void DeleteText(int count)"
+.ns
+.TP
+.B "void DeleteSelection()"
+Edit the text buffer at the current selection.  InsertText inserts
+count characters from string after dot.  The selection becomes an
+insertion point following the newly inserted text.  DeleteText deletes
+count characters at dot.  If count is positive, the characters
+following dot are deleted; if count is negative the characters before
+dot are deleted.  The selection becomes an insertion point in the
+place of the deleted text.  DeleteSelection deletes the text between
+dot and mark, changing the selection to an insertion point.
+.TP
+.B "void BackwardCharacter(int count)"
+.ns
+.TP
+.B "void ForwardCharacter(int count)"
+.ns
+.TP
+.B "void BackwardLine(int count)"
+.ns
+.TP
+.B "void ForwardLine(int count)"
+.ns
+.TP
+.B "void BackwardWord(int count)"
+.ns
+.TP
+.B "void ForwardWord(int count)"
+.ns
+.TP
+.B "void BackwardPage(int count)"
+.ns
+.TP
+.B "void ForwardPage(int count)"
+Move the current selection forward or backward by the specified number
+of the specified units.  The default movement is one unit.  The
+selection is not moved before the beginning of after the end of the
+text.
+.TP
+.B "void BeginningOfLine()"
+.ns
+.TP
+.B "void EndOfLine()"
+.ns
+.TP
+.B "void BeginningOfWord()"
+.ns
+.TP
+.B "void EndOfWord()"
+.ns
+.TP
+.B "void BeginningOfSelection()"
+.ns
+.TP
+.B "void EndOfSelection()"
+.ns
+.TP
+.B "void BeginningOfText()"
+.ns
+.TP
+.B "void EndOfText()"
+Move the current selection forwards or backwards to the specified
+feature of the text.
+.TP
+.B "void ScrollToSelection(boolean always = false)"
+.ns
+.TP
+.B "void SetScrollAlignment(Alignment)"
+.ns
+.TP
+.B "Alignment GetScrollAlignment()"
+ScrollToSelction scrolls the display so that dot will be visible.  If
+dot is currently visible and \fIalways\fP is false, no scrolling takes
+place; if dot is not visible or \fIalways\fP is true, the display is
+scrolled so that dot will be positioned as close as possible to the
+position specified by SetScrollAlignment.  GetScrollAlignment returns
+the current scroll alignment.  The default alignment is Center.
+.TP
+.B "void ScrollToView(Coord x, Coord y)"
+.ns
+.TP
+.B "void ScrollBy(Coord dx, Coord dy)"
+ScrollToView scrolls the display so that the text currently at
+the position (\fIx\fP, \fIy\fP) will be visible.  If the specified
+point is currently visible, no scrolling takes place.  ScrollBy
+specifies an amount by which to scroll the display.  Positive values
+scroll the display upwards and to the right.  In each case, the final
+position of the display is limited so that some text will be visible.
+.TP
+.B "void GrabScroll(Event&)"
+.ns
+.TP
+.B "void RateScroll(Event&)"
+Initiate grab scrolling or rate scrolling.  Once called, GrabScroll
+(RateScroll) polls the current mouse position as long as the middle
+(right) button is pressed.  As GrabScroll polls, it scrolls the text
+to follow the mouse position, making it appear as though the user is
+dragging the text itself.  Each time RateScroll polls the mouse, it
+scrolls the text by an amount corresponding to the differential
+between the current and initial mouse positions.  This creates the
+illusion of a joystick interface: the further away the mouse is from
+its initial position, the greater the scrolling increment and the
+faster the text appears to scroll; scrolling slows down, stops, and
+reverses direction as the user drags the mouse back towards and past
+the initial position.
+.TP
+.B "void Select(int dot)"
+.ns
+.TP
+.B "void Select(int dot, int mark)"
+.ns
+.TP
+.B "void SelectMore(int mark)"
+.ns
+.TP
+.B "void SelectAll()"
+Modify the current selection in terms of text indices.  With a single
+parameter, Select moves both dot and mark to the specified index.
+With two parameters, dot and mark can be controlled independently.
+SelectMore leaves dot unchanged and moves mark.  SelectAll sets dot to
+the end of the text and mark to the beginning.
+.TP
+.B "int Locate(Coord x, Coord y)"
+Return the text index most closely matching the point (\fIx\fP,
+\fIy\fP).
+.SH SEE ALSO
+Interactor(2I), TextBuffer(3I)

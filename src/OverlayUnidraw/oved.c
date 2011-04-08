@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1998 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -27,6 +27,7 @@
  */
 
 
+#include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/oved.h>
@@ -72,6 +73,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 /*****************************************************************************/
 
@@ -101,6 +103,7 @@ AttributeList* OverlayEditor::_comterplist = nil;
 
 
 OverlayEditor::OverlayEditor (OverlayComp* comp, OverlayKit* ok) : IdrawEditor(false) {
+    _viewer = nil;
     ok->SetEditor(this);
     _overlay_kit = ok;
     _mousedoc = new ObservableText("");
@@ -108,6 +111,7 @@ OverlayEditor::OverlayEditor (OverlayComp* comp, OverlayKit* ok) : IdrawEditor(f
 }
 
 OverlayEditor::OverlayEditor (const char* file, OverlayKit* ok) : IdrawEditor(false) {
+    _viewer = nil;
     ok->SetEditor(this);
     _overlay_kit = ok;
     _mousedoc = new ObservableText("");
@@ -118,6 +122,7 @@ OverlayEditor::OverlayEditor (const char* file, OverlayKit* ok) : IdrawEditor(fa
 	Catalog* catalog = unidraw->GetCatalog();
 	OverlayComp* comp;
 
+	((OverlayCatalog*)catalog)->SetEditor(this);
 	if (catalog->Retrieve(file, (Component*&) comp)) {
 	    Init(comp);
 
@@ -129,6 +134,7 @@ OverlayEditor::OverlayEditor (const char* file, OverlayKit* ok) : IdrawEditor(fa
 }
 
 OverlayEditor::OverlayEditor (boolean initflag, OverlayKit* ok) : IdrawEditor(initflag) {
+    _viewer = nil;
     ok->SetEditor(this);
     _overlay_kit = ok;
     _mousedoc = new ObservableText("");
@@ -275,9 +281,16 @@ void OverlayEditor::InformComponents() {
 }
 
 void OverlayEditor::SetComponent(Component* comp) {
+    Component* orig = GetComponent();
+
     GetSelection()->Clear();
     IdrawEditor::SetComponent(comp);
     DoInformComponents(this, comp);
+
+    if (orig != nil && unidraw->FindAny(orig) == nil) {
+        Component* root = orig->GetRoot();
+        delete root;
+    }
 }
 
 void OverlayEditor::Annotate(OverlayComp* comp) {
@@ -353,3 +366,18 @@ void OverlayEditor::ResetStateVars() {
   return;
 }
 
+/* static */ boolean OverlayEditor::opaque_flag() {
+  static boolean opflag = unidraw->GetCatalog()->GetAttribute("opaque_off") ?
+    strcmp(unidraw->GetCatalog()->GetAttribute("opaque_off"), "true") != 0 :
+    false;
+  return opflag;
+}
+
+/* virtual */ void OverlayEditor::ExecuteCmd(Command* cmd) {
+  cmd->Execute();
+  if (cmd->Reversible()) {
+    cmd->Log();
+  } else {
+    delete cmd;
+  }
+}

@@ -86,7 +86,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_add (string)
+int symbol_add (char * string)
 
 /*!
 Return Value:  >= 0 unique identifier for this symbol, 
@@ -96,7 +96,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 char	      * string   ;/*  I    NULL terminated string to add */
+#endif
 
 #ifdef DOC
 /*!
@@ -253,7 +255,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_del (id)
+int symbol_del (int id)
 
 /*!
 Return Value:  0 if OK, -1 if error.
@@ -262,7 +264,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id       ;/*   I   Identifier returned by symbol_add() */
+#endif
 
 /*!
 Description:
@@ -328,7 +332,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_find (string)
+int symbol_find (char * string)
 
 /*!
 Return Value:  >=0 unique identifier for symbol if symbol found,
@@ -338,7 +342,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 char	      * string   ;/*  I    NULL terminated symbol string to find */
+#endif
 
 /*!
 Description:
@@ -382,7 +388,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-char * symbol_pntr (id)
+char * symbol_pntr (int id)
 
 /*!
 Return Value:  Pointer to NULL terminated string if OK, NULL if error.
@@ -391,7 +397,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id       ;/*   I   Identifier returned by symbol_add() */
+#endif
 
 
 /*!
@@ -423,7 +431,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_len (id)
+int symbol_len (int id)
 
 /*!
 Return Value:  >0 is number of chars in symbol if OK, -1 if none exists.
@@ -432,7 +440,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id       ;/*   I   Identifier returned by symbol_add() */
+#endif
 
 
 /*!
@@ -463,7 +473,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_instances (id)
+int symbol_instances (int id)
 
 /*!
 Return Value:  >=0 is number of instances of symbol if OK, -1 if error.
@@ -472,7 +482,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id       ;/*   I   Identifier returned by symbol_add() */
+#endif
 
 
 /*!

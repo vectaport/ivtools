@@ -68,6 +68,7 @@ UnidrawImportHandler::handle_timeout (const ACE_Time_Value &,
 int
 UnidrawImportHandler::handle_input (ACE_HANDLE fd)
 {
+#if 0
     if (!_inptr) {
         _filebuf = new filebuf();
 	boolean valid = _filebuf->attach(fd) != 0;
@@ -81,6 +82,18 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
       _import_cmd->Execute();
     }
     return _inptr->good() ? 0 : -1;
+#else
+    filebuf fbuf;
+    if(fbuf.attach(fd)==0) return -1;
+    istream in(&fbuf);
+    int ch = in.get();
+    if (ch != EOF && in.good()) {
+      in.unget();
+      _import_cmd->instream(&in);
+      _import_cmd->Execute();
+    }
+    return -1;
+#endif
 }
 
 int

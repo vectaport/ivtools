@@ -46,6 +46,8 @@ class Picture;
 class Raster;
 class Transformer;
 
+//: base classes for graphical component subjects.
+// <a href=../man3.1/GraphicComp.html>man page</a>
 class GraphicComp : public Component {
 public:
     virtual ~GraphicComp();

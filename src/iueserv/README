@@ -1,0 +1,48 @@
+NAME
+     iueserv - experimental server for the IUE
+
+SYNOPSIS
+     iueserv [portnum]
+
+DESCRIPTION
+
+iueserv is an experimental server built on top of the Image
+Understanding Environment (IUE) class libraries.  The command
+syntax is a semi-colon separated list of commands with arbitrary
+number of parameters enclosed in parenthesis, with support for
+optional parameters and keyword arguments, i.e:
+
+	command1(arg1 arg2 arg3 :key1 val1 :key2 val2);
+	command2(arg1 arg2 arg3 :key1 val1 :key2 val2)
+
+The literals and operators of C are all supported except for the
+syntax of the conditional operator "?:".  See the comterp
+documentation for more details.  
+
+IMAGE HANDLING COMMANDS
+
+img=image(path|img :mem) -- load or convert image
+val=getpix(img x,y) -- get image pixel value of arbitrary type
+val=ncols(img) -- get number of columns in image
+val=nrows(img) -- get number of rows in image
+str=pixtype(img) -- get type of image pixels
+export(iueobj) -- export IUE object to host/port
+
+IMAGE FILTERING COMMANDS
+
+gaussian(img [sigma=3.0]) -- gaussian image filter
+threshold(img tval1[,tval2,...tvaln]) -- limit pixels at or above a threshold to that value
+
+OTHER COMMANDS  
+
+iueserv inherits the entire command language of comterp.
+
+
+SEE ALSO
+	comterp
+
+WEB PAGES
+	 http://www.vectaport.com/ivtools/iueserv.html
+
+
+

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -28,14 +28,19 @@
 #include <GraphUnidraw/graphkit.h>
 #include <IV-3_1/InterViews/dialog.h>
 
+//: editor for graphdraw.
 class GraphEditor : public ComEditor {
 public:
     GraphEditor(OverlayComp*, OverlayKit* = GraphKit::Instance());
+    // construct editor to manipulate a given GraphIdrawComp.
     GraphEditor(const char*, OverlayKit* = GraphKit::Instance());
+    // construct editor to open, then manipulate a graphdraw document.
     GraphEditor(boolean initflag, OverlayKit* = GraphKit::Instance());
+    // method for use of derived classes.  Could be protected.
     virtual ~GraphEditor();
 
     const char* GetNodeLabel();
+    // run NodeDialog and return string.
 protected:
     void Init(OverlayComp* = nil, const char* = "GraphEditor");
     NodeDialog* _nodedialog;

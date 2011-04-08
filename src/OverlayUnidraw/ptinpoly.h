@@ -24,8 +24,7 @@
 #ifndef ptinpoly_h
 #define ptinpoly_h
 
-/* Simple wrapper around geomobjs to avoid clippoly collisions */
-
+//: Simple wrapper around geomobjs to avoid clippoly collisions.
 int point_in_poly(float x, float y, int pn, float* px, float* py);
 
 #endif

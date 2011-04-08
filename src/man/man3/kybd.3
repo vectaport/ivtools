@@ -1,0 +1,18 @@
+.TH kybd 3U "1 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+kybd \- predefined keyboard equivalents
+.SH SYNOPSIS
+.B #include <Unidraw/kybd.h>
+.SH DESCRIPTION
+The hybd header file provides external declarations for predefined
+keyboard equivalents corresponding to the predefined components,
+commands, and tools in the Unidraw library.  These declarations take
+the form
+
+#extern const char* KLBL_\fIname\fP, *CODE_\fIname\fP
+
+where KLBL denotes the printable representation of the keyboard
+equivalent, and CODE denotes the code against which the key event is
+matched to find the corresponding control.
+.SH SEE ALSO
+ControlInfo(3U), KeyMap(3U), UControl(3U)

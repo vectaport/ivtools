@@ -61,6 +61,7 @@
 #include <Unidraw/viewer.h>
 #include <Unidraw/globals.h>
 
+#include <IVGlyph/gdialogs.h>
 #include <IVGlyph/stredit.h>
 
 #include <InterViews/cursor.h>
@@ -501,8 +502,11 @@ void ProcessingCmd::Execute () {
     if (do_something) {
       MacroCmd::Execute();
       unidraw->Update(); // for safety
-    } else
+    } else {
       _reversible = false;
+      GAcknowledgeDialog::post(GetEditor()->GetWindow(),
+			       "no gray-level raster found");
+    }
 }
 
 
@@ -549,10 +553,12 @@ boolean ProcessingCmd::PrepareToExecute(GraphicComp* comp) {
 	    return false;
         }
     }
+    return false;
 }
 
 
 OverlayRaster* ProcessingCmd::Process(OverlayRaster* rast, CopyString& scmd) {
+  return nil;
 }
 
 

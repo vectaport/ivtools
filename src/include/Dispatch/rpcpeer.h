@@ -29,10 +29,11 @@
 
 class rpcbuf;
 
+//: support bi-directional RPC between two services
 // Support bi-directional RPC between two peers.  Derived classes
 // create both a reader and a writer so each peer can send RPC
 // requests to its opposite over the same connection.
-
+// <p><a href=../man3.1/RpcPeer.html>man page</a>
 class RpcPeer : public IOHandler {
 public:
     virtual ~RpcPeer();

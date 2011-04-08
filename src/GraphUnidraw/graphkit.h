@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -35,12 +35,15 @@
 class FieldEditor;
 class NodeDialog;
 
+//: kit for constructing GraphEditor.
 class GraphKit : public OverlayKit {
 public:
     GraphKit();
 
     virtual void Init(OverlayComp*, const char* name);
+    // initialize based on optional component and pathname.
     virtual void InitLayout(const char* name);
+    // initialize layout of editor/viewer.
     virtual MenuItem* MakeFileMenu();
     virtual MenuItem* MakeEditMenu();
     virtual MenuItem* MakeViewMenu();
@@ -48,6 +51,7 @@ public:
     virtual Glyph* MakeToolbar();
 
     static GraphKit* Instance();
+    // return default instance of GraphKit.
 
     static const char mouse_node[]  = "l-click: Add Node; m-drag: Move; r-click/drag: Select";
     static const char mouse_lnode[]  = "l-click: Add Labeled Node; m-drag: Move; r-click/drag: Select";
@@ -56,7 +60,9 @@ public:
 
 protected:
     void toolbar0();
+    // switch to graph drawing toolbar.
     void toolbar1();
+    // switch to graphics drawing toolbar.
 protected:
     static GraphKit* _graphkit;
 };

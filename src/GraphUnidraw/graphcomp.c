@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1996,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -56,6 +56,8 @@
 #include <Unidraw/Graphic/picture.h>
 
 #include <InterViews/transformer.h>
+
+#include <Attribute/attrlist.h>
 
 #include <iostream.h>
 #include <stdio.h>
@@ -138,6 +140,7 @@ ParamList* GraphComp::GetParamList() {
 
 Component* GraphComp::Copy () {
     GraphComp* comps = new GraphComp(GetPathName());
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -377,6 +380,7 @@ void GraphIdrawComp::GrowParamList(ParamList* pl) {
 
 Component* GraphIdrawComp::Copy () {
     GraphIdrawComp* comps = new GraphIdrawComp(GetPathName());
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -519,6 +523,7 @@ boolean GraphIdrawScript::Emit (ostream& out) {
     out << "\n";
     FullGS(out);
     Annotation(out);
+    Attributes(out);
     out << ")\n";
     return status;
 }
@@ -582,6 +587,8 @@ int GraphIdrawScript::ReadChildren (istream& in, void* addr1, void* addr2, void*
     edges[i]->Edge()->
       attach_nodes(start_id < 0 ? nil : nodes[start_id]->Node(), 
 		   end_id < 0 ? nil : nodes[end_id]->Node());
+    if (start_id >=0 && end_id >=0) 
+      edges[i]->NodeStart()->attach(edges[i]->NodeEnd());
   }
   return 0;
 }

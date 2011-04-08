@@ -4,7 +4,7 @@ PACKAGE = ivxt
 
 CCINCLUDES = -I$(PROJECTDIR)/lesstif/include -I$(PROJECTDIR)/ivtools-0.6/src/include -I$(PROJECTDIR)/ivtools-0.6/src/include/IV-2_6 CCIncludes
 
-CCFLAGS = CCFlags -xc++ -g -DFUNCPROTO
+CCFLAGS = CCFlags  -g -DFUNCPROTO
 CFLAGS = CFlags -g
 
 # CCLDFLAGS = CCLdFlags -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/ComUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/ComUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/UniIdraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/UniIdraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/OverlayUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/OverlayUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/IV/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/IV/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/Unidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/Unidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/lesstif/lib -L$(PROJECTDIR)/lesstif/lib -L$(PROJECTDIR)/clippoly

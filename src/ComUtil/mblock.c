@@ -73,7 +73,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int mblock_open (nel,size)
+int mblock_open (unsigned nel,unsigned size)
 
 /*!
 Return Value:  != -1 identifier for this mblock structure, -1 if 
@@ -83,8 +83,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned	nel    ;/*     I  number of elements to allocate */
 unsigned	size   ;/*     I  number of bytes per element */
+#endif
 
 #ifdef DOC
 /*!
@@ -232,7 +234,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int mblock_close (id)
+int mblock_close (int id)
 
 /*!
 Return Value:  0 if close OK, -1 if error.
@@ -241,8 +243,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id       ;/*   I  id returned by mblock_open() to close or
 				  -1 if all mblocks are to be closed */
+#endif
+
 /*!
 Description:
 
@@ -290,7 +295,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int mblock_resize (id,nel)
+int mblock_resize (int id,unsigned nel)
 
 /*!
 Return Value:  != -1 identifier for this mblock structure, -1 if 
@@ -300,8 +305,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id      ;/*    I  mblock identifier from mblock_open() */
 unsigned	nel    ;/*     I  number of elements to change to */
+#endif
 
 /*!
 Description:
@@ -338,7 +345,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-void *mblock_pntr(id)
+void *mblock_pntr(int id)
 
 /*!
 Return Value:  pntr to mblock position if OK, NULL if error.
@@ -347,7 +354,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id      ;/*    I  mblock identifier from mblock_open() */
+#endif
 
 /*!
 Description:
@@ -378,7 +387,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int	mblock_sizes(id,nel,size,nbytes)
+int	mblock_sizes(int id,unsigned * nel,unsigned * size,unsigned long * nbytes)
 
 /*!
 Return Value:  0 if OK, -1 if error.
@@ -387,6 +396,7 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int             id      ;/*    I  mblock identifier from mblock_open() */
 unsigned       *nel     ;/*    O  returns number of elements
 				  if NULL, do not return this value. */
@@ -394,6 +404,7 @@ unsigned       *size    ;/*    O  returns size of element in bytes
 				  if NULL, do not return this value. */
 unsigned long  *nbytes  ;/*    O  returns total number of bytes in the block,
 				  if NULL, do not return this value. */
+#endif
 /*!
 Description:
 

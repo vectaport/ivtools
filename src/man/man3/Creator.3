@@ -1,0 +1,63 @@
+.TH Creator 3U "12 June 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Creator \- recreates catalog-managed objects from disk and
+instantiates component views from their class identifiers
+.SH SYNOPSIS
+.B #include <Unidraw/creator.h>
+.SH DESCRIPTION
+A creator object can reconstruct a catalog-managed object from disk
+and can instantiate a component view given a class identifier.
+Generally only the Catalog class uses the creator to reconstruct
+objects from disk, but it may be useful for other classes (e.g., the
+Component base class) to use the creator to create views of component
+subjects.
+
+Applications that derive new catalog-managed classes or component
+views must also derive a subclass of Creator that extends the base
+class operations to support the new classes.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Creator()"
+Instantiate an new creator object.  The Catalog constructor requires
+an instance of a creator object, either an instance of the Creator
+base class or an instance of an application-specific Creator subclass.
+.TP
+.B "virtual void* Create("
+.ns
+.TP
+.B "    ClassId, istream& in, ObjectMap* objmap, int objid"
+.ns
+.TP
+.B ")"
+.br
+Create an instance of the class corresponding to the given class
+identifier.  Normally this operation will be used by the Catalog class
+exclusively.  This operation contains a switch statement that calls a
+CREATE macro for each possible class identifier.  The CREATE macro
+takes the istream, ObjectMap, and int arguments as parameters; it is
+not important to understand how the macro uses these arguments.  For
+example, the entry for the LineComp line component subject class is
+
+case LINE_COMP: CREATE(LineComp, in, objmap, objid);
+
+Derived Creator classes must redefine this operation to include a
+switch statement for application-specific classes, with the default
+case calling the parent class's Create operation.
+.TP
+.B "virtual void* Create(ClassId id)"
+Create an instance of the view class corresponding to the given view
+class identifier.  This operation is implemented with a set of
+consecutive if statements of the form
+
+if (id == \fI<identifier name>\fP) return new \fI<class name>\fP;
+
+For example, the entry for the PostScript external view class
+identifier for line components is
+
+if (id == PS_LINE) return new PSLine;
+
+Derived Creator classes must redefine this operation to include if
+statements for application-specific view classes, with the final
+statement being a call to the parent classes's Create operation.
+.SH SEE ALSO
+Catalog(3U), classes(3U), globals(3U)

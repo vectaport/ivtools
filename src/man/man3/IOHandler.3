@@ -1,0 +1,50 @@
+.TH IOHandler 3I "9 January 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+IOHandler \- read input, write output, or handle an I/O exception or timeout
+.SH SYNOPSIS
+.B #include <Dispatch/iohandler.h>
+.SH DESCRIPTION
+An iohandler reads data from a file descriptor, writes data to a file
+descriptor, handles an I/O exception on a file descriptor, or handles
+a timer's expiration.  Once the user has requested the dispatcher to
+attach an iohandler to a file descriptor or a timer, the dispatcher
+will automatically notify the iohandler when the file descriptor's I/O
+condition changes or the timer expires.
+.PP
+For convenience, the user can use a derived generic class (see
+IOCallback(3I)) to make the iohandler do nothing more than call an
+arbitrary object's member function.
+.SH PUBLIC OPERATIONS
+.TP
+.B "virtual int inputReady(int fd)"
+.ns
+.TP
+.B "virtual int outputReady(int fd)"
+.ns
+.TP
+.B "virtual int exceptionRaised(int fd)"
+The dispatcher will call one of these functions to notify an iohandler
+that it can read data from a file descriptor, write data to a file
+descriptor, or handle an I/O exception on a file descriptor.  The
+iohandler should perform the appropriate action and tell the
+dispatcher what to do next.  A negative return value means that the
+iohandler encountered an error or it doesn't want to read or write
+anything more.  The dispatcher will unlink the iohandler from its file
+descriptor automatically.  A positive return value means that the
+iohandler didn't read or write everything that it could have.  The
+dispatcher will call the iohandler again in round robin fashion
+WITHOUT checking select, which means that the iohandler will be called
+again as soon as the rest of the iohandlers have performed their
+actions.  A zero return value means that the iohandler finished
+reading or writing everything it was able to.  The dispatcher must
+check the descriptor's status with the select call before it can call
+the iohandler again.
+.TP
+.B "virtual void timerExpired(long sec, long usec)"
+The dispatcher will call this function to notify an iohandler that a
+timer has expired.  For informational purposes, the parameters give
+the current time in seconds and microseconds since midnight January 1,
+1970.  If the iohandler wants to reset the timer, it must tell the
+dispatcher to start another timer.
+.SH SEE ALSO
+Dispatcher(3I), IOCallback(3I)

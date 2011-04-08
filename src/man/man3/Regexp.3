@@ -1,0 +1,45 @@
+.TH Regexp 3I "23 May 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Regexp \- regular expression searching
+.SH SYNOPSIS
+.B #include <InterViews/regexp.h>
+.SH DESCRIPTION
+A Regexp encapsulates a regular expression pattern and defines
+operations for searching and matching the pattern against a string.
+The syntax of the regular expression pattern is the same as that for
+ed(1).  Information can be obtained about the most recent match of the
+regular expression (and its sub-expressions).
+.SH PUBLIC OPERATIONS
+.TP
+.B "Regexp(const char* pattern)"
+.ns
+.TP
+.B "Regexp(const char* pattern, int length)"
+Construct a new Regexp for \fIpattern\fP.
+.TP
+.B "int Match(const char* text, int length, int index)"
+Attempt a match against \fItext\fP (of length \fIlength\fP) at
+position \fIindex\fP.  The return value is the length of the matching
+string, or a negative number if the match failed.
+.TP
+.B "int Search(const char* text, int length, int index, int range)"
+Search for a match in the string \fItext\fP (of length \fIlength\fP).
+Matches are attempted starting at positions between \fIindex\fP and
+\fIindex\fP plus \fIrange\fP.  If \fIrange\fP is positive the first
+match after \fIindex\fP is reported.  If \fIrange\fP is negative the
+first match before \fIindex\fP is reported.  The return value is the
+index of the starting position of the match, or a negative number if
+there is no match in the specified range.
+.TP
+.B "int BeginningOfMatch(int subexp)"
+.ns
+.TP
+.B "int EndOfMatch(int subexp)"
+Return information about the most recent match.  If
+\fIsubexp\fP is zero (the default), information is reported for the
+complete regular expression.  Other values of \fIsubexp\fP refer to
+sub-expressions in the pattern.  For example, if \fIsubexp\fP is 2,
+information is returned for the sub-expression specified by the second
+pair of \\( and \\) delimiters in the pattern.
+.SH SEE ALSO
+ed(1)

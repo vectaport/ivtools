@@ -1,0 +1,58 @@
+.TH Panner 3I "15 January 1988" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Panner \- two-dimensional scrolling and zooming
+.SH SYNOPSIS
+.B #include <InterViews/panner.h>
+.SH DESCRIPTION
+A panner is an interactor that manipulates
+the perspective of another interactor to provide two-dimensional scrolling
+and zooming.  A panner is composed of a \fIslider\fP and several adjusters, 
+including two zoomers and four movers. The slider's position and size reflect
+the current origin, size, and aspect ratio in the interactor's perspective.
+Dragging the slider around with the mouse
+changes the perspective's \fIcurx\fP and \fIcury\fP members.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Panner(Interactor*, int size = 0)"
+Create a panner for the given interactor, optionally with the given width.
+If the size is 0, a reasonable default size is used.  The panner's aspect
+ratio reflects that of the perspective.
+.TP
+.B "Slider(Interactor*)"
+.ns
+.TP
+.B "Slider::Handle(Event&)"
+.ns
+.TP
+.B "Slider::Reshape(Shape&)"
+.ns
+.TP
+.B "Slider::Update()"
+A slider reflects and lets the user specify the visible portion of the view.
+A rectangle represents the visible area, while the area
+surrounding it represents the total area.  Clicking and holding down
+any mouse button on the rectangle allows you to drag it
+to a different position within the total area.
+The perspective's current origin is shifted to reflect the new position when
+the button is released.  Holding down the shift key while dragging the
+rectangle constrains its motion horizontally or vertically.  Clicking outside
+the rectangle moves it in the corresponding one of eight
+directions; for example, clicking to the right of the rectangle moves it to 
+the right.  If the left mouse button is used, the movement increment equals the
+perspective's \fIsx\fP or \fIsy\fP member variables.
+The middle mouse button increments by \fIlx\fP or \fIly\fP, and the right 
+mouse button centers the rectangle around the cursor.
+The Reshape call sets the width of the slider to that of the
+passed Shape and calls Change on
+the parent interactor.  Update redisplays the slider to reflect a change
+in the interactor's perspective.
+.SH X DEFAULTS
+The ``syncScroll'' resource specifies whether the slider should work
+in real-time or not.  When synchronized scrolling is employed the
+interactor scrolls synchronously as the slider is dragged; otherwise
+the slider's outline follows the mouse during dragging, and the
+interactor is scrolled only after the user stops dragging the slider.
+Sliders will scroll synchronously if their syncScroll resource is set to ``on''
+or ``true.''
+.SH SEE ALSO
+Adjuster(3I), Interactor(3I), Perspective(3I)

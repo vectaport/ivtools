@@ -37,6 +37,9 @@ public:
         Painter*, Canvas*, IntCoord cx, IntCoord cy, IntCoord rx, IntCoord ry,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERELLIPSE; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERELLIPSE == id || Rubberband::IsA(id); }
 
     virtual void GetOriginal(
 	IntCoord& cx, IntCoord& cy, IntCoord& rx, IntCoord& ry
@@ -58,6 +61,9 @@ public:
         Painter*, Canvas*, IntCoord cx, IntCoord cy, IntCoord xr, IntCoord yr,
 	IntCoord rfx, IntCoord rfy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SLIDINGELLIPSE; }
+    virtual boolean IsA (ClassId id) 
+      { return SLIDINGELLIPSE == id || RubberEllipse::IsA(id); }
     virtual void GetCurrent(
 	IntCoord& cx, IntCoord& cy, IntCoord& xr, IntCoord& yr
     );
@@ -74,6 +80,9 @@ public:
         Painter*, Canvas*, IntCoord cx, IntCoord cy, IntCoord rx, IntCoord ry,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERCIRCLE; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERCIRCLE == id || RubberEllipse::IsA(id); }
 
     virtual void OriginalRadii(int& xr, int& yr);
     virtual void CurrentRadii(int& xr, int& yr);
@@ -86,6 +95,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERPOINTLIST; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERPOINTLIST == id || Rubberband::IsA(id); }
     ~RubberPointList();
 protected:
     void Copy(IntCoord*, IntCoord*, int, IntCoord*&, IntCoord*&);
@@ -101,6 +113,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERVERTEX; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERVERTEX == id || RubberPointList::IsA(id); }
 
     virtual void GetOriginal(IntCoord*& px, IntCoord*& py, int& n, int& pt);
     virtual void GetCurrent(IntCoord*& px, IntCoord*& py, int& n, int& pt);
@@ -116,6 +131,9 @@ public:
         Painter*, Canvas*, IntCoord x[], IntCoord y[], int n, int pt, int size,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERHANDLES; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERHANDLES == id || RubberVertex::IsA(id); }
 
     virtual void Track(IntCoord x, IntCoord y);
     virtual void Draw();
@@ -129,6 +147,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERSPLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERSPLINE == id || RubberVertex::IsA(id); }
 
     virtual void Draw();
 };
@@ -139,6 +160,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERCLOSEDSPLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERCLOSEDSPLINE == id || RubberVertex::IsA(id); }
 
     virtual void Draw();
 };
@@ -149,6 +173,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n,
 	IntCoord rfx, IntCoord rfy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SLIDINGPOINTLIST; }
+    virtual boolean IsA (ClassId id) 
+      { return SLIDINGPOINTLIST == id || RubberPointList::IsA(id); }
 
     virtual void GetOriginal(IntCoord*& px, IntCoord*& py, int& n);
     virtual void GetCurrent(IntCoord*& px, IntCoord*& py, int& n);
@@ -165,6 +192,9 @@ public:
         Painter*, Canvas*, IntCoord x[], IntCoord y[], int n,
 	IntCoord rfx, IntCoord rfy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SLIDINGLINELIST; }
+    virtual boolean IsA (ClassId id) 
+      { return SLIDINGLINELIST == id || SlidingPointList::IsA(id); }
 
     virtual void Draw();
 };    
@@ -175,6 +205,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n,
         IntCoord cx, IntCoord cy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SCALINGLINELIST; }
+    virtual boolean IsA (ClassId id) 
+      { return SCALINGLINELIST == id || RubberPointList::IsA(id); }
     virtual ~ScalingLineList();
 
     virtual void GetOriginal(IntCoord*& px, IntCoord*& py, int& n);
@@ -197,6 +230,9 @@ public:
         IntCoord cx, IntCoord cy, IntCoord rfx, IntCoord rfy,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return ROTATINGLINELIST; }
+    virtual boolean IsA (ClassId id) 
+      { return ROTATINGLINELIST == id || RubberPointList::IsA(id); }
     virtual ~RotatingLineList();
 
     virtual void GetOriginal(IntCoord*& px, IntCoord*& py, int& n);

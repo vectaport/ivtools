@@ -1,0 +1,30 @@
+.TH ReqErr 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+ReqErr \- handle request errors
+.SH SYNOPSIS
+.B #include <InterViews/reqerr.h>
+.SH DESCRIPTION
+Some requests to the window server may generate an error.
+For example, if a window is destroyed while it is being repositioned
+interactively,
+the request to place the window in the new position will fail.
+Normally, errors cause a process to terminate.
+The ReqErr class is used to handle errors within an application.
+The base class defines the attributes associated with each error,
+including a \fImessage\fP string describing the error,
+an integer \fIrequest\fP code that specifies the kind of call that
+generated the error, and a \fIid\fP object that was the target
+of the request.
+When an error occurs, the attributes of the current request handler
+are assigned and the handler's Error operation is called.
+.SH PUBLIC OPERATIONS
+.TP
+.B "ReqErr* Install()"
+Use this error handler for subsequent errors and return
+the previous error handler.
+.TP
+.B "virtual void Error()"
+Handle a detected error.
+The default handler is a nop.
+.SH SEE ALSO
+Interactor(3I)

@@ -142,3 +142,13 @@ void TanFunc::execute() {
     push_stack(result);
 }
 
+SqrtFunc::SqrtFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SqrtFunc::execute() {
+    ComValue operandx = stack_arg(0);
+    reset_stack();
+    ComValue result(sqrt(operandx.double_val()));
+    push_stack(result);
+}
+

@@ -1,0 +1,30 @@
+.TH ReshapeTool 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ReshapeTool \- tool for reshaping or otherwise altering components' structures
+.SH SYNOPSIS
+.B #include <Unidraw/Tools/reshape.h>
+.SH DESCRIPTION
+ReshapeTool lets the user perform component-specific structural
+changes by direct manipulation.
+.SH PUBLIC OPERATIONS
+.TP
+.B "ReshapeTool(ControlInfo* = nil)"
+Create a new ConnectTool.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+CreateManipulator detects whether the user clicked on a component.  If
+not, it returns a nil manipulator.  If a component was hit,
+CreateManipulator clears the editor's selection, selects that
+component, and delegates manipulator creation and interpretation to
+that component.
+.SH SEE ALSO
+Tool(3U)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -28,6 +28,8 @@
 #include <FrameUnidraw/frameviews.h>
 #include <FrameUnidraw/framescripts.h>
 
+//: component to indirectly refer to a flipbook document by a pathname.
+// similar to OverlayFileComp.
 class FrameFileComp : public FramesComp {
 public:
     FrameFileComp(OverlayComp* parent = nil);
@@ -54,6 +56,7 @@ protected:
 
 };
 
+//: graphical view of FrameFileComp.
 class FrameFileView : public FramesView {
 public:
     FrameFileView();
@@ -63,6 +66,7 @@ public:
 
 };
 
+//: serialized view of FrameFileComp.
 class FrameFileScript : public FramesScript {
 public:
     virtual ClassId GetClassId();

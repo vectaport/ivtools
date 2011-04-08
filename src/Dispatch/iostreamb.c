@@ -458,8 +458,8 @@ void iostreamb::negotiate(boolean b) {
 	return;
     }
 
-    binary(b);
-    char format = binary() ? 'T' : 'F';
+    iosb::binary(b);
+    char format = iosb::binary() ? 'T' : 'F';
 
     *this << format; flush();
     *this >> format;
@@ -468,10 +468,10 @@ void iostreamb::negotiate(boolean b) {
 	setstate(ios::badbit);
     }
     else if (format == 'F') {
-	binary(false);
+	iosb::binary(false);
     }
 
-    if (binary()) {
+    if (iosb::binary()) {
 	int indian = 1;
 	char localEndian = (*(char*)&indian) ? 'l' : 'B';
 	char remoteEndian = localEndian;

@@ -8,11 +8,9 @@ PACKAGE = Attribute
 
 LIB = Attribute
 
-Use_libInterViews()
-
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(alist)
 Obj(aliterator)
@@ -28,5 +26,6 @@ IncludeDependencies()
 #else
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
 
 #endif

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995 Vectaport Inc.
+ * Copyright (c) 1995,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -34,6 +34,7 @@
 
 class TextFileScript;
 
+//: TextOvComp constructed by reading text from a file.
 class TextFileComp : public TextOvComp {
 public:
     TextFileComp(const char* pathname, const char* begstr,
@@ -66,6 +67,7 @@ protected:
 friend TextFileScript;
 };
 
+//: graphical view of a TextOvComp.
 class TextFileView : public TextOvView {
 public:
     TextFileView(TextFileComp* = nil);
@@ -79,16 +81,21 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: serialized view of a TextOvComp.
 class TextFileScript : public TextScript {
 public:
     TextFileScript(TextFileComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output variable-length ASCII record that defines the component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     static int ReadTextFile(istream&, void*, void*, void*, void*);
+    // method to read pathname of text file then read that file
+    // in order to initialize a TextGraphic.
+
 };
 
 #include <IV-2_6/_leave.h>

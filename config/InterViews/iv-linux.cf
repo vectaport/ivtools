@@ -10,6 +10,8 @@
 #define ExtraCCDefines -DLINUX 
 #endif
 
+#ifndef ExtraCCLdFlags
 #define ExtraCCLdFlags /**/
+#endif
 
 #include <InterViews/xparams.cf>

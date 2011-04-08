@@ -32,6 +32,8 @@
 
 #include <InterViews/_enter.h>
 
+//: marks a position in a data structure.
+// <a href=../man3.1/Iterator.html>man page</a>
 class Iterator {
 public:
     Iterator();

@@ -44,6 +44,7 @@ static const char SENextCharacter = '\006';
 static const char SEDeleteNextCharacter = '\004';
 static const char SEDeletePreviousCharacter = '\177';
 static const char SEDeletePreviousCharacterAlt = '\010';
+static const char SEDeleteUntilEndOfLine = '\013';
 
 class ButtonState;
 class TextDisplay;

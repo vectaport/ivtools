@@ -1,0 +1,15 @@
+.TH Data 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Data \- object containing undo information for storage in a command
+.SH SYNOPSIS
+.B #include <Unidraw/Command/data.h>
+.SH DESCRIPTION
+Data is an abstract base class for objects that components store in
+commands they (un)interpret.  Components use Data subclasses to store
+whatever information they need to uninterpret the command.
+.SH PROTECTED OPERATIONS
+.TP
+.B "Data()"
+The constructor is protected to prevent instantiation.
+.SH SEE ALSO
+Command(3U), Component(3U), Resource(3I)

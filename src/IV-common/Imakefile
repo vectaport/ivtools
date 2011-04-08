@@ -11,13 +11,17 @@ LIB = IV-common
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,$(OPTIMIZE_CCFLAGS))
 
 Obj(listimpl)
+Obj(math)
 Obj(memory)
 Obj(regexp)
 Obj(resource)
+Obj(string)
 Obj(textbuffer)
+Obj(tform2_6)
+Obj(transformer)
 
 IncludeDependencies()
 

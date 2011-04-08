@@ -1,0 +1,186 @@
+.TH edit 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ConnectCmd, CopyCmd, CutCmd, DeleteCmd, DupCmd, MobilityCmd, PasteCmd,
+RedoCmd, ReplaceCmd, SlctAllCmd, UndoCmd \- editing commands
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/edit.h>
+.SH DESCRIPTION
+The Unidraw library defines several commands that offer common
+component editing functionality.  ConnectCmd is a non-interpretive
+command that connects two connectors.  CopyCmd copies selected
+components onto its clipboard (if it defines one) or onto the global
+clipboard.  CutCmd, DeleteCmd, DupCmd, and PasteCmd are purely
+interpretive commands that are always interpreted by their editor's
+component. MobilityCmd gives selected components the opportunity to
+set their mobility based on the value it provides.  UndoCmd and
+RedoCmd are non-interpretive commands that simply undo and redo the
+last command that affected their editor's component.  ReplaceCmd
+replaces selected components with the component it stores.  Finally,
+SlctAllCmd is a non-interpretive command that selects all the
+components displayed in its editor.
+.SH CONNECTCMD PUBLIC OPERATIONS
+.TP
+.B "ConnectCmd("
+.ns
+.TP
+.B "    ControlInfo*,"
+.ns
+.TP
+.B "    Connector* source = nil, Connector* target = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "ConnectCmd(Editor* = nil, Connector* = nil, Connector* = nil)"
+The ConnectCmd constructor optionally takes two connectors as
+parameters, the \fIsource\fP and the \fItarget\fP.  When executed, it
+will call Connect on \fIsource\fP with \fItarget\fP as its argument.
+It will also set the source's mobility to floating.
+.TP
+.B "void GetConnectors(Connector*& source, Connector*& target)"
+Return the connectors supplied in the constructor.
+.SH COPYCMD PUBLIC OPERATIONS
+.TP
+.B "CopyCmd(ControlInfo*, Clipboard* = nil)"
+.ns
+.TP
+.B "CopyCmd(Editor* = nil, Clipboard* = nil)"
+Create a CopyCmd instance, optionally specifying a clipboard in which
+to store copied components.
+.TP
+.B "virtual void Execute()"
+Execute does nothing if no components are selected. Otherwise, Execute
+places a copy of the selected components onto the CopyCmd's clipboard
+if is non-nil or else onto the global clipboard (obtained from the
+catalog).
+.TP
+.B "virtual boolean Reversible()"
+CopyCmd is not reversible.
+.SH CUTCMD PUBLIC OPERATIONS
+.TP
+.B "CutCmd(ControlInfo*, Clipboard* = nil)"
+.ns
+.TP
+.B "CutCmd(Editor* = nil, Clipboard* = nil)"
+Create a CutCmd instance, optionally specifying a clipboard in which
+to store the components that were cut.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+CutCmd redefines these operations to let the editor's component
+interpret it.  Execute will set the value of the \fI_executed\fP
+protected member variable to \fItrue\fP as a side effect.  Similarly,
+Unexecute will reset the value to \fIfalse\fP as a side effect.
+.SH DELETECMD PUBLIC OPERATIONS
+.TP
+.B "DeleteCmd(ControlInfo*, Clipboard* = nil)"
+.ns
+.TP
+.B "DeleteCmd(Editor* = nil, Clipboard* = nil)"
+Create a DeleteCmd instance, optionally specifying a clipboard in which
+to store the components that were deleted.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+DeleteCmd redefines these operations to let the editor's component
+interpret it. Execute will set the value of the \fI_executed\fP
+protected member variable to \fItrue\fP as a side effect.  Similarly,
+Unexecute will reset the value to \fIfalse\fP as a side effect.
+.SH DUPCMD PUBLIC OPERATIONS
+.TP
+.B "DupCmd(ControlInfo*, Clipboard* = nil)"
+.ns
+.TP
+.B "DupCmd(Editor* = nil, Clipboard* = nil)"
+Create a DupCmd instance, optionally specifying a clipboard in which
+to store the components that were duplicated.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+DupCmd redefines these operations to let the editor's component
+interpret it. Execute will set the value of the \fI_executed\fP
+protected member variable to \fItrue\fP as a side effect.  Similarly,
+Unexecute will reset the value to \fIfalse\fP as a side effect.
+.SH MOBILITYCMD PUBLIC OPERATIONS
+.TP
+.B "MobilityCmd(ControlInfo*, Mobility = Fixed)"
+.ns
+.TP
+.B "MobilityCmd(Editor* = nil, Mobility = Fixed)"
+Create a MobilityCmd instance, optionally specifying the mobility that
+interpreting components may use.
+.TP
+.B "Mobility GetMobility()"
+Return the mobility specified in the constructor.
+.SH PASTECMD PUBLIC OPERATIONS
+.TP
+.B "PasteCmd(ControlInfo*, Clipboard* = nil)"
+.ns
+.TP
+.B "PasteCmd(Editor* = nil, Clipboard* = nil)"
+Create a PasteCmd instance, optionally specifying a clipboard in which
+to store the components that will be pasted.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+PasteCmd redefines these operations to let the editor's component
+interpret it.  Execute will set the value of the \fI_executed\fP
+protected member variable to \fItrue\fP as a side effect.  Similarly,
+Unexecute will reset the value to \fIfalse\fP as a side effect.
+.TP
+.B "virtual boolean Reversible()"
+PasteCmd is reversible if either its clipboard or the global clipboard
+is non-empty.
+.SH REDOCMD PUBLIC OPERATIONS
+.TP
+.B "RedoCmd(ControlInfo*)"
+.ns
+.TP
+.B "RedoCmd(Editor* = nil)"
+Construct a new RedoCmd.
+.TP
+.B "virtual boolean Reversible()"
+RedoCmd is not reversible.
+.SH REPLACECMD PUBLIC OPERATIONS
+.TP
+.B "ReplaceCmd(ControlInfo*, GraphicComp* replacement = nil)"
+.ns
+.TP
+.B "ReplaceCmd(Editor* = nil, GraphicComp* replacement = nil)"
+Create a new ReplaceCmd, optionally supplying the GraphicComp that
+will replace those that are selected.
+.TP
+.B "GraphicComp* GetReplacement()"
+Return the replacement GraphicComp supplied in the constructor.
+.SH SLCTALLCMD PUBLIC OPERATIONS
+.TP
+.B "SlctAllCmd(ControlInfo*)"
+.ns
+.TP
+.B "SlctAllCmd(Editor* = nil)"
+Construct a new SlctAllCmd.
+.TP
+.B "virtual boolean Reversible()"
+SlctAllCmd is not reversible.
+.SH UNDOCMD PUBLIC OPERATIONS
+.TP
+.B "UndoCmd(ControlInfo*)"
+.ns
+.TP
+.B "UndoCmd(Editor* = nil)"
+Construct a new UndoCmd.
+.TP
+.B "virtual boolean Reversible()"
+UndoCmd is not reversible.
+.SH SEE ALSO
+Catalog(3U), Clipboard(3U), Command(3U), Connector(3U),
+GraphicComp(3U), globals(3U)

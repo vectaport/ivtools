@@ -22,7 +22,11 @@
  */
 
 #include <FrameUnidraw/framecmds.h>
+#include <FrameUnidraw/frameeditor.h>
 #include <FrameUnidraw/framefunc.h>
+#include <FrameUnidraw/frameviews.h>
+#include <Unidraw/iterator.h>
+#include <Unidraw/viewer.h>
 #include <ComTerp/comvalue.h>
 
 /*****************************************************************************/
@@ -32,10 +36,23 @@ MoveFrameFunc::MoveFrameFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp
 
 void MoveFrameFunc::execute() {
   ComValue deltav(stack_arg(0, false, ComValue::oneval()));
+  static int abs_symid = symbol_find("abs");
+  ComValue absflag(stack_key(abs_symid));
   reset_stack();
 
   if (editor() && deltav.is_num()) {
-    MoveFrameCmd* cmd = new MoveFrameCmd(editor(), deltav.int_val());
+    int deltaframes = 0;
+    if (absflag.is_true()) {
+      FramesView* fv = (FramesView*)GetEditor()->GetViewer()->GetGraphicView();
+      Iterator it;
+      fv->SetView(((FrameEditor*)GetEditor())->GetFrame(), it);
+      int currframe = fv->Index(it);
+      deltaframes = deltav.int_val() - currframe;
+    }
+    else
+      deltaframes = deltav.int_val();
+    MoveFrameCmd* cmd = new MoveFrameCmd(GetEditor(), deltaframes);
+    cmd->wraparound(MoveFrameCmd::default_instance()->wraparound());
     execute_log(cmd);
     ComValue retval(cmd->actualmotion(), ComValue::IntType);
     push_stack(retval);

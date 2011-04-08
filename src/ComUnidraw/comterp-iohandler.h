@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1996,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -27,10 +27,9 @@
 #include <Dispatch/iohandler.h>
 #include <stdio.h>
 
-// ComTerpIOHandler: class for splicing comterp into iv event loop
-
 class ComTerpServ;
 
+//: class for splicing comterp into Unidraw event loop
 class ComTerpIOHandler : public IOHandler {
 public:
     ComTerpIOHandler(ComTerpServ*, FILE* fptr);

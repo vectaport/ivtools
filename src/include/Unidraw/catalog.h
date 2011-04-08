@@ -60,6 +60,8 @@ class World;
 class istream;
 class ostream;
 
+//: stores and retrieves named objects.
+// <a href=../man3.1/Catalog.html>man page</a>
 class Catalog {
 public:
     Catalog(const char*, Creator*, float version = UV_LATEST);
@@ -167,6 +169,7 @@ public:
 
     PSBrush* FindNoneBrush();
     PSBrush* FindBrush(int, int);
+    PSBrush* FindBrush(int, float);
     PSColor* FindColor(const char*, int = 0, int = 0, int = 0);
     PSFont* FindFont(const char*, const char* = "", const char* = "");
     PSPattern* FindNonePattern();
@@ -182,7 +185,9 @@ protected:
 protected:
     friend class Unidraw;
     void Init(World*);
+public:
     const char* Name(const char*, int);
+protected:
 
     ClassId ReadClassId(istream&, int& inst_id, ClassId&, const char*&);
     void* ReadObject(istream&);
@@ -256,7 +261,7 @@ public:
     ClassId GetClientId();
 
     void* GetObject(int id);
-    int GetId(void* obj);
+    unsigned long GetId(void* obj);
 
     ClassId GetOrigClassId(void* obj);
     const char* GetDelim(void* obj);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -49,6 +49,12 @@ Parser::Parser(void* inptr, char*(*infunc)(char*,int,void*),
     init();
 }
 
+Parser::Parser(istream& in) : 
+ComTerpModule(&in, istream_fgets, istream_feof, istream_ferror) 
+{
+    init();
+}
+
 void Parser::init() {
 
     /* Allocate block for initial postfix tokens to start with */
@@ -82,7 +88,6 @@ int Parser::print_next_expr()
     return _pfbuf[_pfnum-1].type != TOK_EOF;
 }
 
-
 postfix_token* Parser::copy_postfix_tokens(int& ntokens) {
     ntokens = _pfnum;
     postfix_token *pfcopy = new postfix_token[ntokens];
@@ -90,3 +95,64 @@ postfix_token* Parser::copy_postfix_tokens(int& ntokens) {
         pfcopy[i] = _pfbuf[i];
     return pfcopy;
 }
+
+boolean Parser::skip_matched_parens() {
+  istream& in = *(istream*)_inptr;
+  char lparen = in.get();
+  if (lparen == '(' || lparen ==  '[' || lparen == '[') {
+    int status = 0;
+
+    while (status==0) {
+
+      /* run parser until an unexpected rparen */
+      status = parser (_inptr, _infunc, _eoffunc, _errfunc, NULL, NULL,
+			   _buffer, _bufsiz, &_bufptr, _token, _toksiz, 
+			   &_linenum, &_pfbuf, &_pfsiz, &_pfnum);
+      if (status) {
+	int errid = comerr_get();
+	err_clear();
+	if (errid == ERR_UNEXPECTED_RPAREN && lparen == '(')
+	  return true;
+	else  if (errid == ERR_UNEXPECTED_RBRACKET && lparen == '[')
+	  return true;
+	else  if (errid == ERR_UNEXPECTED_RBRACE && lparen == '{')
+	  return true;
+	else
+	  return false;
+      } 
+    }
+    return true;
+  } else {
+    in.unget();
+    return false;
+  }
+}
+
+
+char* Parser::istream_fgets(char* s, int n, void* instreamp) {
+  istream& in  = *(istream*)instreamp;
+  char *instr;
+  in.gets(&instr);
+  if (in.good()) {
+    int i = 0;
+    for (; i<n-2; i++) {
+      if (instr[i] == '\0') break;
+      s[i] = instr[i];
+    }
+    s[i++] = '\n';
+    s[i] = '\0';
+    return s;
+  } else
+    return nil;
+}
+
+int Parser::istream_feof(void* instreamp) {
+  istream& in  = *(istream*)instreamp;
+  return in.eof();
+}
+
+int Parser::istream_ferror(void* instreamp) {
+  istream& in  = *(istream*)instreamp;
+  return !in.good();
+}
+

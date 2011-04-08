@@ -5,3 +5,5 @@ XCOMM
 PACKAGE = include_tiff
 
 IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(TIFF)

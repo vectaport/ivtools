@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -32,6 +32,7 @@ class FrameScript;
 class FramesScript;
 class FrameIdrawScript;
 
+//: OverlaysComp specialized for use within a FrameIdrawComp.
 class FrameOverlaysComp : public OverlaysComp {
 public:
     FrameOverlaysComp(OverlayComp* parent = nil);
@@ -52,6 +53,7 @@ protected:
 
 };
 
+//: single frame component.
 class FrameComp : public OverlaysComp {
 public:
     FrameComp(OverlayComp* parent = nil);
@@ -72,6 +74,7 @@ protected:
 
 };
 
+//: composite frame component.
 class FramesComp : public FrameComp {
 public:
     FramesComp(OverlayComp* parent = nil);
@@ -92,10 +95,13 @@ protected:
     
 };
 
+//: top-level component for flipbook document.
+// FrameIdrawComp is a clone of OverlayIdrawComp derived from FramesComp.
 class FrameIdrawComp : public FramesComp {
 public:
     FrameIdrawComp(boolean add_bg = true, const char* pathname = nil, OverlayComp* parent = nil);
     FrameIdrawComp(istream&, const char* pathname = nil, OverlayComp* parent = nil);
+    FrameIdrawComp(OverlayComp* parent);
     virtual ~FrameIdrawComp();
 
     virtual void Interpret(Command*);

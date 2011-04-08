@@ -26,6 +26,7 @@
 #include <OS/memory.h>
 #include <OS/string.h>
 
+#include <stdlib.h>
 #include <string.h>
 
 #include "textbuff.h"

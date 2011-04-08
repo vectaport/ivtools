@@ -1,0 +1,148 @@
+.TH Selection 3U "6 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Selection \- maintains a list of selected graphical component views
+.SH SYNOPSIS
+.B #include <Unidraw/selection.h>
+.SH DESCRIPTION
+A Selection manages a set of distinguished graphical component
+views, usually those in which the user has expressed interest by
+selecting them with a tool or command.  Each selection object
+maintains a list of graphical component views and provides operations
+for iterating through and manipulating the list.  Components,
+commands, tools, and editors often rely on one or more selection
+objects to supply the components on which they operate.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Selection(Selection* = nil)"
+Create a new selection object, optionally containing references to the
+same views as the given selection object.
+.TP
+.B "virtual ~Selection()"
+Destroy a selection instance.  Deleting the selection does \fInot\fP
+in turn delete the view instances it maintains.
+.TP
+.B "void Show(Viewer* = nil)"
+.ns
+.TP
+.B "void Update(Viewer* = nil)"
+.ns
+.TP
+.B "void Hide(Viewer* = nil)"
+.ns
+.TP
+.B "void Init(Viewer* = nil)"
+These operations affect how the selection is represented visually in
+the viewer.  Show instructs the views to initialize and draw their
+handles to highlight themselves, thus indicating that they are
+selected. To do so, it calls RedrawHandles on each view.  Update makes
+handles of newly-selected, unhighlighted views appear by calling
+DrawHandles on all its views.  Hide unhighlights the views by calling
+their EraseHandles operation.  Finally, Init initializes each view's
+handles without drawing them (in case the handles' appearance may have
+changed) by calling InitHandles on each.
+.TP
+.B "void Clear(Viewer* = nil)"
+Remove all views from the Selection object, hiding their handles in
+the process.
+.TP
+.B "void Append(GraphicView*)"
+.ns
+.TP
+.B "void Prepend(GraphicView*)"
+.ns
+.TP
+.B "void InsertAfter(Iterator, GraphicView*)"
+.ns
+.TP
+.B "void InsertBefore(Iterator, GraphicView*)"
+.ns
+.TP
+.B "void Remove(GraphicView*)"
+.ns
+.TP
+.B "void Remove(Iterator&)"
+Operations for modifying the selection's list of views.  Append and
+Prepend add a GraphicView to the end and the beginning of the list,
+respectively.  InsertAfter and InsertBefore insert a GraphicView after
+and before the GraphicView pointed to by the iterator, respectively.
+The Remove operations remove a view from the list (without deleting
+it).  You can remove a view instance by referring to it explicitly or
+by specifying an iterator.  If an iterator is supplied, the Remove
+operation will advance it to point to the following view as a side
+effect.
+.TP
+.B "GraphicView* GetView(Iterator)"
+.ns
+.TP
+.B "void SetView(GraphicView*, Iterator&)"
+GetView returns the view to which an iterator points.  SetView
+initializes an iterator to point to a particular view in the list; it
+initializes the iterator to point to a nil instance if the given
+GraphicView is not in the selection list.
+.TP
+.B "void First(Iterator&)"
+.ns
+.TP
+.B "void Last(Iterator&)"
+.ns
+.TP
+.B "void Next(Iterator&)"
+.ns
+.TP
+.B "void Prev(Iterator&)"
+.ns
+.TP
+.B "boolean Done(Iterator)"
+Operations for iterating over the selection list.  First and Last
+initialize an iterator to point to the beginning and end of the list,
+respectively.  Next increments the iterator to point to the following
+view, while Prev decrements the iterator to point to the preceding
+view.  Done returns whether or not the iterator points beyond the
+first or last view in the list.
+.TP
+.B "boolean IsEmpty()"
+.ns
+.TP
+.B "boolean Includes(GraphicView*)"
+.ns
+.TP
+.B "int Number()"
+Operations that return information about the selection object's
+contents.  IsEmpty returns whether the selection list is empty,
+Includes returns whether the list contains the given view, and Number
+returns the number of views in the list.
+.TP
+.B "void Sort(GraphicView*)"
+Sort the views in the selection list to conform to their order in the
+given GraphicView's list of children.  The selection list's order
+usually reflects the order in which the user selected the objects, not
+their order in their parent. Sort is useful in operations that modify
+or depend on the parent view's structure.
+.TP
+.B "void Merge(Selection*)"
+.ns
+.TP
+.B "void Exclusive(Selection*)"
+Operations that change the selection object's contents based on
+another selection's.  Merge adds the views in the given selection to
+those already in the selection object (the union of the two sets),
+while Exclusive adds those views not already in this object and
+removes those common to both (the union minus the intersection of the
+two sets).  Neither of these operations change the contents of their
+argument.
+.TP
+.B "void GetBox(Coord&, Coord&, Coord&, Coord&)"
+Return the bounding box circumscribing the views in the selection list.
+.SH PROTECTED OPERATIONS
+.TP
+.B "UList* Elem(Iterator)"
+.ns
+.TP
+.B "GraphicView* View(UList*)"
+Selection stores its views on a UList, which is accessible via the
+\fI_ulist\fP protected member.  The Selection's iteration operations
+store the UList containing the current view in their iterator.  Elem
+is a convenience function for returning the UList to which an iterator
+points, and View extracts the GraphicView that a UList element contains.
+.SH SEE ALSO
+GraphicView(3U), Iterator(3U), UList(3U), Viewer(3U)

@@ -1082,7 +1082,7 @@ private:
 OL_Specs::OL_Specs (Style* style) : Resource(), points_(12) {
     style->find_attribute("olglyph", points_);
     char fontname[20];
-    sprintf(fontname, "olglyph-%d", points_);
+    sprintf(fontname, "olglyph-%ld", points_);
     font_ = Font::lookup(fontname);
     if (font_ == nil) {
 	fprintf(stderr, "font for OLKit not found: \'%s\'\n", fontname);

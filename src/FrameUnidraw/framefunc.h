@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Vectaport Inc.
+ * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -26,6 +26,8 @@
 
 #include <ComUnidraw/unifunc.h>
 
+//: interpreter command to move current frame.
+// moveframe([num] :abs) -- move frame by num or to num if :abs
 class MoveFrameFunc : public UnidrawFunc {
 public:
     MoveFrameFunc(ComTerp*,Editor*);
@@ -34,6 +36,8 @@ public:
 	return "%s([num] :abs) -- move frame by num or to num if :abs"; }
 };
 
+//: interpreter command to create new frame.
+// createframe(:before) -- create and move to new frame
 class CreateFrameFunc : public UnidrawFunc {
 public:
     CreateFrameFunc(ComTerp*,Editor*);

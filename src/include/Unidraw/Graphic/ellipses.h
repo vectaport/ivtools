@@ -31,12 +31,15 @@
 
 #include <IV-2_6/_enter.h>
 
+class MultiLineObj;
+
 class Ellipse : public Graphic {
 public:
     void GetOriginal(Coord&, Coord&, int&, int&);
     void SetOriginal(Coord, Coord, int, int);
-protected:
     Ellipse(Coord x0, Coord y0, int r1, int r2, Graphic* gr = nil);
+    MultiLineObj* ellipse_to_polygon(Transformer* t = nil);
+protected:
 
     void s_getExtent(float&, float&, float&, float&, float&, Graphic*);
     void f_getExtent(float&, float&, float&, float&, float&, Graphic*);
@@ -45,6 +48,7 @@ protected:
     boolean f_contains(PointObj&, Graphic*);
     boolean s_intersects(BoxObj&, Graphic*);
     boolean f_intersects(BoxObj&, Graphic*);
+
 protected:
     Coord _x0, _y0;
     int _r1, _r2;

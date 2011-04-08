@@ -39,7 +39,7 @@ UHashElem::~UHashElem () { }
 
 UHashElem* UHashTable::CreateElem () { return nil; }
 UHashElem* UHashTable::Elem (UList* r) { return (UHashElem*) (*r)(); }
-int UHashTable::Hash (void* c) { return (unsigned) c % _nslots; }
+unsigned long UHashTable::Hash (void* c) { return (unsigned long) c % _nslots; }
 
 UHashTable::UHashTable (int nslots) {
     _nslots = nslots;

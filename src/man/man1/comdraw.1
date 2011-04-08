@@ -1,0 +1,133 @@
+.TH COMDRAW 1 
+.SH COMDRAW
+comdraw \- drawtool with distributed command interpreter
+.SH SYNOPSIS
+.B comdraw 
+[-port n] [-import n] ['X-params'] [file]
+.SH DESCRIPTION
+comdraw is a drawing editor with integrated command interpreter the
+user can interact with via stdin and stdout (or via telnet if ACE is
+built in).  The command syntax is a semi-colon separated list of
+commands with arbitrary number of parameters enclosed in parenthesis,
+with support for optional parameters and keyword arguments, i.e:
+
+       command1(arg1 arg2 arg3 :key1 val1 :key2 val2);
+       command2(arg1 arg2 arg3 :key1 val1 :key2 val2)
+
+The literals and operators of C are all supported except for the
+syntax of the conditional operator "?:".  See the comterp
+documentation for more details.  
+
+All arguments to commands documented below are integers unless
+indicated by a suffix of str or flt.  "compview" is a graphical object
+assigned to an interpreter variable.
+
+.SH DRAWING COMMANDS
+
+ compview=rect(x0,y0,x1,y1) -- create a rectangle
+ compview=rectangle(x0,y0,x1,y1) -- same as rect
+ compview=line(x0,y0,x1,y1) -- create a line
+ compview=arrowline(x0,y0,x1,y1) -- create line with arrows
+ compview=ellipse(x0,y0,r1,r2) -- create a rectangle
+ compview=text(x0,y0 textstr) -- create a text string
+ compview=multiline(x0,y0[,x1,y1,...]) -- 
+    create a multiline
+ compview=arrowmultiline(x0,y0[,x1,y1,...]) -- 
+    create a multiline with arrows
+ compview=openspline(x0,y0[,x1,y1,...]) --
+    create an open spline
+ compview=arrowspline(x0,y0[,x1,y1,...]) -- 
+    create an open spline with arrows
+ compview=polygon(x0,y0[,x1,y1,...]) -- 
+    create a polygon
+ compview=closedspline(x0,y0[,x1,y1,...]) -- 
+    create a closed spline
+
+.SH GRAPHIC STATE COMMANDS
+
+ font(fontnum) -- set current font from menu
+ brush(brushnum) -- set current brush from menu
+ pattern(patternnum) -- 
+   set current pattern from menu
+ colors(fgcolornum bgcolornum) -- 
+   set current colors from menu
+
+ nfonts() -- return size of font menu
+ nbrushes() -- return size of brush menu
+ npatterns() -- return size of pattern menu
+ ncolors() -- return size of color menus
+
+.SH DIRECT MANIPULATION COMMANDS
+
+ select(compview [compview ...]) -- 
+    make these graphics the current selection
+ move(dx dy) -- move current selection
+ scale(xflt yflt) -- scale current selection
+ rotate(degflt) -- rotate current selection
+
+.SH ATTRIBUTE COMMANDS
+
+compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
+
+.SH VIEWER COMMANDS
+
+ update() -- update viewer
+
+ import(pathname) -- import graphic file from pathname or URL
+
+ ncols() -- onscreen horizontal extent in pixels
+ nrows() -- onscreen vertical extent in pixels
+
+ handles(flag) --     
+    enable/disable current selection tic marks 
+    and/or highlighting
+
+ zoom(zoomflt) -- zoom by factor
+ zoomin() -- zoom-in by 2
+ zoomout() -- zoom-out by 2
+
+ pan(px py) -- pan viewer
+ smallpanup() -- small pan up
+ smallpandown() -- small pan down
+ smallpanleft() -- small pan left
+ smallpanright() - small pan right
+ largepanup() -- large pan up
+ largepandown() -- large pan down
+ largepanleft() -- large pan left
+ largepanright() -- large pan right
+
+.SH IMAGING COMMANDS
+
+tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
+
+.SH PLOTTING COMMANDS
+
+-- requires plotmtv and pstoedit --
+barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str 
+	:ytitle ytitle_str :valtitle valtitle_str :newview) -- display a barplot
+
+.SH OTHER COMMANDS
+
+ run(filename) -- run commands from file
+ quit() -- quit this interpreter
+ exit() -- exit entire application
+
+.SH OPTIONS
+
+.B \-port n,  
+specifies the port number to accept command interpreter
+connections on.
+
+.B \-import n, 
+specifies the port number run the import service on.  The
+import service accepts connections over the net and reads drawtool
+format data.
+
+.SH SEE ALSO  
+       comterp, drawtool, idraw
+
+.SH WEB PAGES
+        http://www.vectaport.com/ivtools/comdraw.html
+
+
+

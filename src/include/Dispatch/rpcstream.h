@@ -27,9 +27,10 @@
 
 #include <Dispatch/rpcbuf.h>
 
+//: iostreamb specialized to RPC requests
 // Modify iostreamb to store a rpcbuf and provide operations on the
 // rpcbuf, therefore specializing iostreamb to RPC requests.
-
+// <a href=../man3.1/rpcstream.html>man page</a>
 class rpcstream : public
 #if !defined(_IO_NEW_STREAMS)
 virtual

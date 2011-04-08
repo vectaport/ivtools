@@ -26,7 +26,9 @@
 #include <Attribute/attrlist.h>
 
 #include <iostream.h>
+#if !defined(solaris)
 #include <memory.h>
+#endif
 #include <stdio.h>
 #include <string.h>
 
@@ -127,9 +129,12 @@ AttributeValue::AttributeValue(const char* string) {
 }
 
 AttributeValue::~AttributeValue() {
+#if 0  // disable symbol reference counting
     if (_type == StringType || _type == SymbolType) 
-        /* symbol_del(string_val()) */;
-    else if (_type == ArrayType && _v.arrayval.ptr)
+        symbol_del(string_val());
+    else 
+#endif
+    if (_type == ArrayType && _v.arrayval.ptr)
         Unref(_v.arrayval.ptr);
     type(UnknownType);
 }
@@ -140,10 +145,16 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     memcpy(v1, v2, sizeof(double));
     _type = sv._type;
     _aggregate_type = sv._aggregate_type;
-    if (_type == StringType || _type == SymbolType) 
-	symbol_add((char *)string_ptr());
-    else if (_type == ArrayType && _v.arrayval.ptr)
+#if 0  // disable symbol reference counting
+    if (_type == StringType || _type == SymbolType) {
+        char* sptr = (char *)string_ptr();
+	if (sptr) symbol_add(sptr);
+    }
+    else 
+#endif
+    if (_type == ArrayType && _v.arrayval.ptr)
         Resource::ref(_v.arrayval.ptr);
+    return *this;
 }
     
 

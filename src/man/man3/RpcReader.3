@@ -1,0 +1,63 @@
+.TH RpcReader 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+RpcReader \- read RPC requests from a client
+.SH SYNOPSIS
+.B #include <Dispatch/rpcreader.h>
+.SH DESCRIPTION
+An RpcReader reads RPC requests from an rpcstream which represents a
+connection to a client.  When it reads an RPC request, it uses the
+request number to look up the address of a function in an array and
+calls that function to unmarshall the request's arguments and execute
+the request.
+.PP
+An RpcReader is not instantiable; you have to implement a derived class
+which initializes the function array with addresses of static member
+functions to unmarshall RPC requests and which defines the action to
+be performed when the client closes the connection.  The function
+array looks like this:
+.PP
+	typedef void (*PF)(RpcReader*, RpcHdr&, rpcstream&);
+.br
+	PF* _function;
+.PP
+Each function stored in the array should extract any arguments needed
+by the RPC request from the rpcstream, execute the RPC request, and
+insert any return values into the rpcstream so they can be sent back
+to the client.
+.SH CONSTRUCTORS
+.TP
+.B "RpcReader(rpcstream* client, int nfcns)"
+.ns
+.TP
+.B "RpcReader(int fd, int nfcns, boolean binary = true)"
+If given a non-nil rpcstream, prepare to read RPC requests from the
+client using it.  If given a nil rpcstream, just allocate the function
+array.  If given a file descriptor, create a new rpcstream and prepare
+to read RPC requests from the client using it.  ``nfcns'' sets the
+size of the function array that each constructor allocates.
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual int inputReady(int)"
+Read an RPC request (only one request per call so the program can
+service RPC requests from multiple connections in round robin
+fashion).  Look up the appropriate function in the reader's or another
+reader's function array and call it to handle the RPC request.  Return
+the appropriate status to tell the Dispatcher whether to detach the
+RpcReader, call inputReady again, or wait for new data before calling
+inputReady again.  A derived class should not need to redefine this
+function.
+.TP
+.B "virtual RpcReader* map(unsigned long reader)"
+You can redefine this function to change which reader executes an RPC
+request after it's read.  Ordinarily the same reader that reads an RPC
+request also executes it, but you can hand the request off to another
+reader as well.
+.TP
+.B "virtual void connectionClosed(int fd) = 0"
+You have to define this function since it may be your only chance to
+perform cleanup (such as deleting this) when the client closes the
+connection.
+.SH SEE ALSO
+RpcHdr(3I),
+RpcService(3I),
+rpcstream(3I)

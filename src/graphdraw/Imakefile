@@ -10,6 +10,7 @@ APP_CCLDLIBS = \
 $(LIBGRAPHUNIDRAW) \
 $(LIBCOMUNIDRAW) \
 $(LIBOVERLAYUNIDRAW) \
+$(LIBACEDISPATCH) \
 $(LIBCOMGLYPH) \
 $(LIBCOMTERP) \
 $(LIBATTRGLYPH) \
@@ -23,6 +24,7 @@ APP_CCDEPLIBS = \
 $(DEPGRAPHUNIDRAW) \
 $(DEPCOMUNIDRAW) \
 $(DEPOVERLAYUNIDRAW) \
+$(DEPACEDISPATCH) \
 $(DEPCOMGLYPH) \
 $(DEPCOMTERP) \
 $(DEPATTRGLYPH) \
@@ -33,11 +35,15 @@ $(DEPIVGLYPH) \
 $(DEPTOPOFACE)
 #endif
 
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS)
+
 Use_libUnidraw()
 Use_2_6()
 ComplexProgramTarget(graphdraw)
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(main)
 

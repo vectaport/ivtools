@@ -144,6 +144,7 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 	return nhp;
       }
     }
+    return 1;
   }
   else
     return 0;

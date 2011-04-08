@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1994 Vectaport Inc., Cartoactive Systems
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -28,13 +29,16 @@
 
 class OvAboutDialog;
 
+//: command to display 'about' message for drawing editors.
 class OvAboutCmd : public Command {
 public:
     OvAboutCmd(ControlInfo*);
     OvAboutCmd(Editor* = nil);
 
     virtual void Execute();
+    // display 'about' message.
     virtual boolean Reversible();
+    // returns true, but why?
 
     virtual Command* Copy();
     virtual ClassId GetClassId();

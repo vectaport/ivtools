@@ -38,6 +38,8 @@ class Transformer;
 class istream;
 class ostream;
 
+//: base class for tool objects.
+// <a href=../man3.1/Tool.html>man page</a>
 class Tool {
 public:
     virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);

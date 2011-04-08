@@ -1,0 +1,49 @@
+.TH SelectTool 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+SelectTool \- tool for modifying an editor's current selection
+.SH SYNOPSIS
+.B #include <Unidraw/Tools/select.h>
+.SH DESCRIPTION
+SelectTool lets a user change the current selection by direct
+manipulation, thus affecting the enclosing editor's selection object.
+A single click directly on a component view selects that view and
+unselects all others.  Clicking while holding the Shift key down adds
+the target component to the selection if it was not already selected
+and removes it if it was selected.  The user can select all components
+within a rectangular area in the viewer by clicking somewhere outside
+the nearest component and dragging to specify the rectangular area.
+All components completely within the area will be selected.
+.SH PUBLIC OPERATIONS
+.TP
+.B "SelectTool(ControlInfo* = nil)"
+Create a new SelectTool.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+If the user did not click on a component, then CreateManipulator
+creates a DragManip with a RubberRect for dragging out a rectangular
+area.  Otherwise, CreateManipulator clears the editor's selection and
+selects the hit component.  If the user holds the Shift key down in
+either case, the components that would have otherwise been selected
+will be unselected, and vice versa.  InterpretManipulator will only be
+called if CreateManipulator returned a non-nil manipulator; in this
+case InterpretManipulator will examine the DragManipulator's
+RubberRect and select the component views falling completely within
+it.
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual void Localize(Selection*, Viewer*)"
+Localize ensures that the given selection object contains only those
+views displayed in the given viewer.  CreateManipulator calls this
+function to avoid possibly shift-selecting views from different
+components.
+.SH SEE ALSO
+Editor(3U), Rubband(3I), Selection(3U), Tool(3U), Viewer(3U), manips(3U)

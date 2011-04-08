@@ -1,0 +1,128 @@
+{keephtml}
+<html><head><TITLE>Description of {classname}</TITLE><BASE TARGET="_parent" ></head>
+<body BGCOLOR=#FFFFFF>
+<FONT FACE=Helvetica>
+<DL><DT>
+<FONT SIZE=4>{ if templ} template { endif} {if struct} struct {endif}
+{else} {if union} union {endif}{else} class {endelse} {endelse}
+</FONT>
+<FONT SIZE=5><B>{classlinked}{templ}</B></FONT>
+{if parents}
+  <FONT SIZE=4> : {parents} </FONT>
+{endif}
+
+{!autolink}<A HREF="index.html">(Return to index)</A>
+{autolink}
+<br><br>
+
+<DD><FONT FACE=Times SIZE=4>
+{if brief}{brief}<br><br>{endif}
+
+<B>Type:</B><br>
+<UL>
+{if abstract}Abstract{endif}{else}Instantiable{endelse}
+</UL>
+<br>
+
+{if parents}
+<B>Base Classes:</B><br>
+<UL><FONT FACE=Helvetica SIZE=3>
+{parents}
+</FONT></UL>
+<br>
+{endif}
+
+<A HREF=derivedclasses.html#{classname}><B>Derived Classes</B></A>
+<p>
+
+{if hfile}
+<B>Include file:</B><br>
+<UL><FONT FACE=Helvetica SIZE=3>
+{!autolink}{filter includeflt}{hfile}{endfilter}{autolink}
+</FONT></UL>
+<br>
+{endif}
+
+{if detail} <B>Description:</B><P> {detail}  <br><br>{endif}
+</DL></FONT>
+
+
+{if public}
+<FONT FACE=Times SIZE=4><B>Public:</B></FONT><br><br><UL>
+{foreach public sort}
+    <DT><FONT FACE=Helvetica>{if pure}pure {endif}{type}
+    {!autolink}<A NAME="{filter linkflt}{member}{endfilter}">{autolink}
+    <B>{mname}</B>{if func} ({args}) {if const}const{endif}</FONT> 
+    {if throws} <FONT COLOR="red"> throws {throwclass}({throwargs}) </FONT>{endif}{endif}
+    {if enum} {lb}{args}{rb} {endif}
+    <DD><FONT FACE=Times SIZE=3><UL>
+      {if brief}  {brief} <br> {endif}
+      {if detail} {detail} <br> {endif}
+      <br>
+      {if in} {in} {endif}
+      {if out} {out} {endif}
+      {if ret} {ret} <br> {endif}
+      {if err} {err} <br> {endif}
+	  {if dr} {dr} <br> {endif}
+      {if bug} {bug} <br> {endif}
+      </UL></FONT><br>
+{next public}
+</UL><br><br>
+{endif public}
+
+
+{if protected}
+<FONT FACE=Times SIZE=4><B>Protected:</B></FONT><br><br><UL>
+{foreach protected sort}
+    <DT><FONT FACE=Helvetica>{if pure}pure {endif}{type}
+    {!autolink}<A NAME="{filter linkflt}{member}{endfilter}">{autolink}
+    <B>{mname}</B>{if func} ({args}) {if const}const{endif}</FONT> 
+    {if throws} <FONT COLOR="red"> throws {throwclass}({throwargs}) </FONT>{endif}{endif}
+    {if enum} {lb}{args}{rb} {endif}
+    <DD><FONT FACE=Times SIZE=3><UL>
+      {if brief}  {brief} <br> {endif}
+      {if detail} {detail} <br> {endif}
+      <br>
+      {if in} {in} <br> {endif}
+      {if out} {out} <br> {endif}
+      {if ret} {ret} <br> {endif}
+      {if err} {err} <br> {endif}
+      {if dr} {dr} <br> {endif}
+      {if bug} {bug} <br> {endif}
+      </UL></FONT><br>
+{next protected}
+</UL><br><br>
+{endif protected}
+
+{if friend}
+<FONT FACE=Times SIZE=4><B>Friend methods:</B></FONT><br><br><UL>
+{foreach friend sort}
+    <DT><FONT FACE=Helvetica>
+    {if pure}pure {endif}{type}
+    {!autolink}<A NAME="{filter linkflt}{member}{endfilter}">{autolink}
+    <B>{mname}</B>{if func} ({args}) {if const}const{endif} </FONT> 
+    {if throws} <FONT COLOR="red"> throws {throwclass}({throwargs}) </FONT>{endif}{endif}
+    {if enum} {lb}{args}{rb} {endif}
+    <DD><FONT FACE=Times SIZE=3><UL>
+      {if brief}  {brief} <br> {endif}
+      {if detail} {detail} <br> {endif}
+      <br>
+      {if in} {in} <br> {endif}
+      {if out} {out} <br> {endif}
+      {if ret} {ret} <br> {endif}
+      {if err} {err} <br> {endif}
+      {if dr} {dr} <br> {endif}
+      {if bug} {bug} <br> {endif}
+      </UL></FONT><br>
+{next friend}
+</UL><br><br>
+{endif friend}
+
+{!autolink}
+<A HREF="../index.html">(more documentation)</A>
+{autolink}
+<br><br>
+
+</FONT>
+</body>
+</html>

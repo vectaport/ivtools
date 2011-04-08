@@ -163,25 +163,5 @@ protected:
     int* _xends;      // ending x of segment
     boolean* _xings;  // true if previous segment on different row from next
 };
-#if 0
-class Extent {
-public:
-    Extent(float = 0, float = 0, float = 0, float = 0, float = 0);
-    Extent(Extent&);
-
-    boolean Undefined();
-    boolean Within(Extent& e);
-    void Merge(Extent&);
-public:
-    /* defines lower left and center of an object */
-    float _left, _bottom, _cx, _cy, _tol;
-};
-
-/*
- * inlines
- */
-
-inline boolean Extent::Undefined () { return _left == _cx && _bottom == _cy; }
-#endif
 
 #endif

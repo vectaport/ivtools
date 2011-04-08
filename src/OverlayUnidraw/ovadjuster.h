@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1995-1999 Vectaport Inc.
  * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
  * Copyright (c) 1991 Silicon Graphics, Inc.
  *
@@ -33,6 +34,13 @@
 
 #include <IV-2_6/_enter.h>
 
+//: clone of Mover.
+// Partial attempt to change the appearance or location of the 
+// panner buttons on a drawing editor.  Perhaps there is a unremembered bugfix
+// in this subtree (which includes OvLeftMover, OvRightMover, OvUpMover, and 
+// OvDownMover) but an inspection of the methods doesn't show one up.  These
+// classes could be factored out in the future, or used to improve the appearance 
+// and feel of the panner buttons in drawing editors other than idraw.
 class OvMover : public Adjuster {
 public:
     OvMover(Interactor*, int delay, int moveType);
@@ -45,6 +53,7 @@ private:
     void Init(int);
 };
 
+//: clone of LeftMover.
 class OvLeftMover : public OvMover {
 public:
     OvLeftMover(Interactor*, int delay = NO_AUTOREPEAT);
@@ -54,6 +63,7 @@ private:
     void Init();
 };
 
+//: clone of RightMover.
 class OvRightMover : public OvMover {
 public:
     OvRightMover(Interactor*, int delay = NO_AUTOREPEAT);
@@ -63,6 +73,7 @@ private:
     void Init();
 };
 
+//: clone of UpMover.
 class OvUpMover : public OvMover {
 public:
     OvUpMover(Interactor*, int delay = NO_AUTOREPEAT);
@@ -72,6 +83,7 @@ private:
     void Init();
 };
 
+//: clone of DownMover.
 class OvDownMover : public OvMover {
 public:
     OvDownMover(Interactor*, int delay = NO_AUTOREPEAT);

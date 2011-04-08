@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -27,13 +27,13 @@
  */
 
 #include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/oved.h>
+#include <OverlayUnidraw/ovmanips.h>
 #include <OverlayUnidraw/ovpolygon.h>
 #include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/paramlist.h>
 
 #include <Unidraw/clipboard.h>
-#include <Unidraw/editor.h>
-#include <Unidraw/manips.h>
 #include <Unidraw/selection.h>
 #include <Unidraw/statevars.h>
 #include <Unidraw/viewer.h>
@@ -57,6 +57,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <Attribute/attrlist.h>
+
 #include <stream.h>
 
 /*****************************************************************************/
@@ -70,7 +72,10 @@ boolean RectOvComp::IsA (ClassId id) {
 }
 
 Component* RectOvComp::Copy () {
-    return new RectOvComp((SF_Rect*) GetGraphic()->Copy());
+    RectOvComp* comp =
+      new RectOvComp((SF_Rect*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 RectOvComp::RectOvComp (SF_Rect* graphic, OverlayComp* parent) 
@@ -206,9 +211,11 @@ Manipulator* RectOvView::CreateManipulator (
 	v->Constrain(e.x, e.y);
 	GetCorners(x, y);
         x[4] = x[0]; y[4] = y[0];
+
 	rub = new SlidingLineList(nil, nil, x, y, 5, e.x, e.y);
-        m = new DragManip(
-	    v, rub, rel, tool, DragConstraint(HorizOrVert | Gravity)
+        m = new OpaqueDragManip(
+	    v, rub, rel, tool, DragConstraint(HorizOrVert | Gravity),
+	    GetGraphic()
 	);
 
     } else if (tool->IsA(SCALE_TOOL)) {
@@ -216,7 +223,7 @@ Manipulator* RectOvView::CreateManipulator (
         GetCorners(x, y);
         x[4] = x[0]; y[4] = y[0];
         rub = new ScalingLineList(nil,nil,x,y,5, (x[0]+x[2])/2, (y[0]+y[2])/2);
-        m = new DragManip(v, rub, rel, tool, Gravity);
+        m = new OpaqueDragManip(v, rub, rel, tool, Gravity, GetGraphic());
 
     } else if (tool->IsA(ROTATE_TOOL)) {
         v->Constrain(e.x, e.y);
@@ -225,7 +232,7 @@ Manipulator* RectOvView::CreateManipulator (
         rub = new RotatingLineList(
             nil, nil, x, y, 5, (x[0]+x[2])/2, (y[0]+y[2])/2, e.x, e.y
         );
-        m = new DragManip(v, rub, rel, tool, Gravity);
+        m = new OpaqueDragManip(v, rub, rel, tool, Gravity, GetGraphic());
 
     } else {
         m = OverlayView::CreateManipulator(v, e, rel, tool);

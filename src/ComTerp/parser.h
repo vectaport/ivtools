@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1998, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -31,18 +31,34 @@
 #include <ComTerp/commodule.h>
 #include <ComTerp/_comterp.h>
 
+class istream;
+
+//: C++ wrapper for ComUtil parser capability.
 class Parser : public ComTerpModule {
 public:
     Parser();
     Parser(const char* path);
     Parser(void*, char*(*)(char*,int,void*), int(*)(void*), int(*)(void*));
+    // see descriptions in ComTerp or ComTerpModule.
+    Parser(istream&);
     ~Parser();
 
     int print_next_expr();
     postfix_token* copy_postfix_tokens(int& ntokens);
+    // make a copy of current buffer of postfix tokens.
+
+    boolean skip_matched_parens();
+    // support for '()', '{}', and '[]'.
 
 protected:
     void init();
+
+    static char* istream_fgets(char* s, int n, void* istreamptr);
+    // signature like fgets for reading from an istream.
+    static int istream_feof(void* istreamptr);
+    // signature like feof for passing on istream end-of-file.
+    static int istream_ferror(void* istreamptr);
+    // signature like feof for passing on istream error info.
 
 protected:
     postfix_token* _pfbuf;

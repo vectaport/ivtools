@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -24,6 +24,7 @@
 #include <Attribute/attrlist.h>
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovgdialog.h>
+#include <Unidraw/unidraw.h>
 
 #include <AttrGlyph/attredit.h>
 #include <IVGlyph/textedit.h>
@@ -248,8 +249,10 @@ void AttributeDialogImpl::build(AttributeList* al) {
 }
 
 void AttributeDialogImpl::accept() {
+    editor_->add();    
     comp_->SetAttributeList(copylist_);
     dialog_->dismiss(true);
+    unidraw->Update();
 }
 
 void AttributeDialogImpl::cancel() {

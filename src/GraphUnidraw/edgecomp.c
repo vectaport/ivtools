@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1996, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -64,6 +64,8 @@
 #include <TopoFace/topoedge.h>
 #include <TopoFace/toponode.h>
 
+#include <Attribute/attrlist.h>
+
 #include <OS/math.h>
 #include <iostream.h>
 
@@ -127,6 +129,7 @@ void EdgeComp::GrowParamList(ParamList* pl) {
 
 Component* EdgeComp::Copy() {
     EdgeComp* comp = new EdgeComp((ArrowLine*) GetArrowLine()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
     comp->_start_node = _start_node;
     comp->_end_node = _end_node;
     comp->_start_subedge = _start_subedge;
@@ -250,6 +253,7 @@ void EdgeComp::Interpret(Command* cmd) {
 	    ((GraphDeleteCmd*)cmd)->connections->Append(new UList(
 		new EdgeData(this, (TopoNode*)Edge()->start_node(),
 			     (TopoNode*)Edge()->end_node())));
+	if (NodeStart() && NodeEnd()) NodeStart()->detach(NodeEnd());
 	Edge()->attach_nodes(nil, nil);
     }
     else if (cmd->IsA(EDGECONNECT_CMD)) {
@@ -260,6 +264,14 @@ void EdgeComp::Interpret(Command* cmd) {
 	ecmd->Store(this, new VoidData(nodes));
 	Edge()->attach_nodes(ecmd->Node1() ? ecmd->Node1()->Node() : nil,
 			     ecmd->Node2() ? ecmd->Node2()->Node() : nil);
+	if(ecmd->Node1() && ecmd->Node2()) {
+	  NodeComp* start_node_comp = (NodeComp*)ecmd->Node1();
+	  NodeComp* end_node_comp = (NodeComp*)ecmd->Node2();
+	  if (start_node_comp && start_node_comp->IsA(NODE_COMP) &&
+	      end_node_comp && end_node_comp->IsA(NODE_COMP)) {
+	    start_node_comp->attach(end_node_comp);
+	  }
+	}
         ArrowLine* subgr1 = ecmd->Node1() ? ecmd->Node1()->SubEdgeGraphic(_start_subedge) : nil;
         if (subgr1) {
   	    subgr1->Hide();
@@ -394,6 +406,8 @@ void EdgeComp::Uninterpret(Command* cmd) {
 		    {
 			EdgeData* data = (EdgeData*)(*conn)();
 			Edge()->attach_nodes(data->start, data->end);
+			if (data->start && data->end) 
+			  NodeStart()->attach(NodeEnd());
 			break;
 		    }
 		conn = conn->Next();
@@ -436,6 +450,28 @@ boolean EdgeComp::operator == (OverlayComp& comp) {
 	GetArrowLine()->Head() == ((EdgeComp&)comp).GetArrowLine()->Head() &&
 	GetArrowLine()->Tail() == ((EdgeComp&)comp).GetArrowLine()->Tail() &&
 	*(OverlayComp*)this == (OverlayComp&)comp;
+}
+
+NodeComp* EdgeComp::NodeStart() const {
+  TopoEdge* edge = Edge();
+  if (edge) {
+    TopoNode* start = edge->start_node();
+    if (start) {
+      return (NodeComp*)start->value();
+    }
+  }
+  return nil;
+}
+
+NodeComp* EdgeComp::NodeEnd() const {
+  TopoEdge* edge = Edge();
+  if (edge) {
+    TopoNode* end = edge->end_node();
+    if (end) {
+      return (NodeComp*)end->value();
+    }
+  }
+  return nil;
 }
 
 /*****************************************************************************/

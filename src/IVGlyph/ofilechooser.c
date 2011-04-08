@@ -54,6 +54,7 @@
 
 #include <iostream.h>
 #include <stdio.h>
+#include <string.h>
 
 
 /* class DialogHandler -- helper for class Dialog */
@@ -143,6 +144,34 @@ boolean OpenFileChooser::saveas_chooser() { return false; }
 
 void OpenFileChooser::updatecaption() { 
   if (impl_) impl_->updatecaption(); 
+}
+
+boolean OpenFileChooser::urltest(const char* buf) {
+  if (!buf) return false;
+  static boolean file_url_ok = bincheck("w3c") || bincheck("curl");
+  return 
+    strncasecmp("http://", buf, 7)==0 || 
+    strncasecmp("ftp://", buf, 6)==0 ||
+    file_url_ok && strncasecmp("file:/", buf, 6)==0;
+}
+
+int OpenFileChooser::bintest(const char* command) {
+  char combuf[BUFSIZ];
+  sprintf( combuf, "which %s", command );
+  FILE* fptr = popen(combuf, "r");
+  char testbuf[BUFSIZ];	
+  fgets(testbuf, BUFSIZ, fptr);  
+  pclose(fptr);
+  if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
+	      command, strlen(command)) != 0) {
+    return -1;
+  }
+  return 0;
+}
+
+boolean OpenFileChooser::bincheck(const char* command) {
+  int status = bintest(command);
+  return !status;
 }
 
 /** class OpenFileChooserImpl **/
@@ -424,9 +453,11 @@ void OpenFileChooserImpl::cancel_browser() {
 }
 
 void OpenFileChooserImpl::accept_editor(FieldEditor* e) {
-    String* path = Directory::canonical(*e->text());
+    boolean urlflag = OpenFileChooser::urltest(e->text()->string());
+    const String* path = urlflag 
+      ? e->text() : Directory::canonical(*e->text());
     e->field(*path);
-    if (chdir(*path)) {
+    if (!urlflag && chdir(*path)) {
 	/* chdir has copied the string */
 	delete path;
     } else {

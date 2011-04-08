@@ -1,0 +1,155 @@
+.TH Button 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+ButtonState, Button, TextButton, PushButton, RadioButton, CheckBox \- interactive buttons
+.SH SYNOPSIS
+.B #include <InterViews/button.h>
+.SH DESCRIPTION
+.B Button
+is a class of interactors that can set the value of a piece of state.
+.B ButtonState
+is a class of objects that contain a value and a list of buttons
+that can set its value.
+A value is either an integer or an arbitrary pointer.
+.PP
+.B TextButton
+is a subclass of
+.B Button
+that has an associated text label to be displayed inside
+or to the right of the button.
+.B PushButton,
+.B RadioButton,
+and
+.B CheckBox
+are subclasses of
+.B TextButton
+that provide particular displays for buttons.
+Each kind of button will display itself differently
+for each of the five possible cases:
+``enabled'', when the button is listening to input,
+``disabled'', when the button is not listening,
+``chosen'', when the button's value is equal to its button state's value,
+``hit'', when a button that is not chosen first receives a DownEvent, and
+``same-hit'', when a button that is chosen receives a DownEvent.
+.PP
+When a button receives a DownEvent, it calls the virtual Refresh()
+to update its display.
+It then reads input waiting for an UpEvent.
+If the UpEvent coordinates are also within the button,
+then it calls the virtual Press().
+The default Press operation
+sets the associated state's value
+to the button's value.
+.PP
+A button can have a list of attached buttons.
+When a button is not chosen its attached buttons are ``disabled'',
+meaning they ignore all input events.
+.SH BUTTONSTATE OPERATIONS
+.TP
+.B "ButtonState()"
+.ns
+.TP
+.B "ButtonState(int)"
+.ns
+.TP
+.B "ButtonState(void*)"
+Define a button state optionally with an initial value.
+.TP
+.B "void Attach(Button*)"
+Add a button to the list associated with a button state.
+The button will be notified when the button state's value is modified.
+.TP
+.B "void Detach(Button*)"
+Remove a button from the list associated with a button state.
+.TP
+.B "void GetValue(int&)"
+.ns
+.TP
+.B "void GetValue(void*&)"
+Get the value of a button.
+.TP
+.B "void SetValue(int)"
+.ns
+.TP
+.B "void SetValue(void*)"
+Set the value of a button state and notify all the buttons
+associated with the state.
+.TP
+.B "void operator=(ButtonState&)"
+Copy the value of one button state to another.
+The button list associated with the source button state is not copied.
+.SH BUTTON OPERATIONS
+.TP
+.B "void PushButton(const char* text, ButtonState* s, int v)"
+.ns
+.TP
+.B "void PushButton(const char* text, ButtonState* s, void* v)"
+Construct a button with \fItext\fP in the center and
+a polygon on the outside.  The polygon is like a rectangle,
+but with rounded corners.
+When chosen,
+the entire button is drawn with foreground and background colors reversed.
+.TP
+.B "void RadioButton(const char* text, ButtonState* s, int v)"
+.ns
+.TP
+.B "void RadioButton(const char* text, ButtonState* s, void* v)"
+Construct a button with a circle on the left and \fItext\fP on the right.
+When hit, a second circle is drawn inside the first.
+When chosen, a filled circle is drawn inside the outer circle.
+.TP
+.B "void CheckBox(const char* text, ButtonState* s, int on, int off)"
+.ns
+.TP
+.B "void CheckBox(const char* text, ButtonState* s, void* on, void* off)"
+Construct a button with a rectangle on the left and \fItext\fP on the right.
+When hit, a second rectangle is drawn inside the first.
+When chosen, two diagonal lines are drawn connecting the opposite corners
+of the rectangle.
+When a checkbox is pressed the first time,
+it sets \fIs\fP to \fIoff\fP if the value is \fIon\fP and
+sets \fIs\fP to \fIon\fP otherwise.
+Subsequent presses swap the values of the checkbox and \fIs\fP.
+.TP
+.B "void Attach(Button*)"
+Add to this button's list of associated buttons.
+These buttons are enabled when the button is chosen and disabled
+when it is not chosen.
+.TP
+.B "void Detach(Button*)"
+Remove a button from this button's list of associated buttons.
+.TP
+.B "void Disable()"
+Stop listening to input events.
+Disabled buttons are typically ``grayed out'' by drawing
+a half-filled rectangle in the background.
+.TP
+.B "void Enable()"
+Start listening to input events.
+.TP
+.B "void Choose()"
+Make the button as chosen, enabling any associated buttons.
+.TP
+.B "void Handle(Event&)"
+If the event type is DownEvent and the button is enabled,
+call Refresh and read events until an UpEvent occurs.
+If the button is the target of the UpEvent,
+then call Press.
+.TP
+.B "virtual void Press()"
+Take the appropriate action for the button being pressed.
+The default is to set the associated state
+to the button's value, which will trigger all related
+buttons to update their display.
+.TP
+.B "virtual void Refresh()"
+Update the button display.
+.TP
+.B "void SetDimensions(int width, int height)"
+Specify the natural size of the button.
+The default size is a function of the size of the text.
+This routine is obsolete; use Interactor::Reshape instead.
+.TP
+.B "void UnChoose()"
+Mark the button as not chosen, disabling any associated buttons.
+.SH SEE ALSO
+Event(3I), Interactor(3I)

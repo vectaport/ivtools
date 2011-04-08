@@ -7,13 +7,15 @@ PACKAGE = OverlayUnidraw
 #ifdef InObjectCodeDir
 
 LIB = OverlayUnidraw
+OTHER_CCDEFINES = $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES)
 
 Use_libUnidraw()
 Use_2_6()
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj26(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj26(file) MakeObjectFromSrcFlags(file,)
 
 
 Obj26(annotate)
@@ -34,10 +36,12 @@ Obj26(ovellipse)
 Obj26(ovfile)
 Obj26(ovhull)
 Obj26(ovline)
+Obj26(ovmanips)
 Obj26(ovpage)
 Obj26(ovpainter)
 Obj26(ovpanner)
 Obj26(ovpolygon)
+Obj26(ovprecise)
 Obj26(ovpspict)
 Obj26(ovpsview)
 Obj26(ovraster)
@@ -46,6 +50,7 @@ Obj26(ovrestimage)
 Obj26(ovselect)
 Obj26(ovselection)
 Obj26(ovspline)
+Obj26(ovstates)
 Obj26(ovstencil)
 Obj26(ovtext)
 Obj26(ovunidraw)
@@ -61,11 +66,11 @@ Obj26(textfile)
 #ifdef ClipPolyDir
 Obj26(ovclip)
 Obj26(cliplinepoly)
-MakeObjectFromSrcFlags(clippoly,-xc++ -fno-implicit-templates)
+MakeObjectFromSrcFlags(clippoly,-fno-implicit-templates)
 #endif
 
 
-#define Obj31(file) MakeObjectFromSrcFlags(file,-xc++ -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+#define Obj31(file) MakeObjectFromSrcFlags(file,-Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
 
 
@@ -87,7 +92,7 @@ Obj31(setattrbyexpr)
 Obj31(slctbyattr)
 
 #ifdef AceDir
-#define ObjACE(file) MakeObjectFromSrcFlags(file,-xc++ -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
+#define ObjACE(file) MakeObjectFromSrcFlags(file,-Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
 ObjACE(aceimport)
 #endif
 
@@ -100,5 +105,6 @@ InstallLibLink($(CLIPPOLYLIBDIR),$(CLIPPOLYLIBBASE), $(LIBDIR))
 #else
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
 
 #endif

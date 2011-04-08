@@ -1,0 +1,41 @@
+.TH UArray 3U "6 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+UArray \- dynamic array class
+.SH SYNOPSIS
+.B #include <Unidraw/uarray.h>
+.SH DESCRIPTION
+UArray implements a dynamic array, that is, one that grows as elements
+are added.  It can also act as a linked list, allowing insertion and
+removal of objects, though the overhead for such operations is
+generally greater than that for conventional doubly-linked list
+implementations.  However, the overhead per stored object is
+potentially much less for a UArray, and objects can be accessed by
+index in constant time.
+.SH PUBLIC OPERATIONS
+.TP
+.B "UArray(int = 16)"
+Create a new UArray instance, optionally providing an estimate of its
+maximum size.  While specifying the size is not required, supplying an
+accurate estimate will improve performance.
+.TP
+.B "void*& operator[](int index)"
+Overloading the brackets operator allows access to the UArray's
+elements with the standard array notation.  Note that type information
+is lost when retrieving objects from the UArray, requiring casting.
+.TP
+.B "void Insert(void*, int index)"
+.ns
+.TP
+.B "void Remove(int index)"
+Insert and remove an object at a particular index, moving the
+succeeding objects up or down one position as required.
+.TP
+.B "int Index(void*)"
+Return the given object's index in the UArray, returning -1 if the
+object does not appear in the UArray.
+.TP
+.B "int Count()"
+Return the number of objects inserted in the UArray.
+.TP
+.B "void Clear()"
+Clear the UArray, reducing the number of object it contains to zero.

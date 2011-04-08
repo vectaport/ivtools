@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1995 Vectaport Inc.
+ * Copyright (c) 1994-1995,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,6 +33,7 @@
 
 class Viewer;
 
+//: command to hide a graphic view in this viewer.
 class HideViewCmd : public Command {
 public:
     HideViewCmd(Viewer*, ControlInfo*);
@@ -52,6 +53,7 @@ protected:
     Viewer* _viewer;
 };
 
+//: command to unhide a graphic view in all other viewers.
 class UnhideViewsCmd : public Command {
 public:
     UnhideViewsCmd(ControlInfo*);
@@ -69,6 +71,7 @@ public:
 protected:
 };
 
+//: command to desensitize a graphic view in this viewer.
 class DesensitizeViewCmd : public Command {
 public:
     DesensitizeViewCmd(Viewer*, ControlInfo*);
@@ -88,6 +91,7 @@ protected:
     Viewer* _viewer;
 };
 
+//: command to sensitize a graphic view in all other viewers.
 class SensitizeViewsCmd : public Command {
 public:
     SensitizeViewsCmd(ControlInfo*);

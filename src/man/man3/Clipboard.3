@@ -1,0 +1,115 @@
+.TH Clipboard 3U "12 June 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Clipboard \- manages a list of graphical component subjects
+.SH SYNOPSIS
+.B #include <Unidraw/clipboard.h>
+.SH DESCRIPTION
+A Clipboard maintains a list of GraphicComp objects and provides
+operations for manipulating the list.  Catalog and Command classes use
+clipboards to store graphical components they affect.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Clipboard(GraphicComp* = nil)"
+Construct a new clipboard object, optionally with a GraphicComp that
+should appear initially on the list.
+.TP
+.B "virtual ~Clipboard()"
+Delete the clipboard.  Deleting the clipboard does \fInot\fP delete
+the GraphicComp objects it contains.
+.TP
+.B "void Init(Selection*)"
+.ns
+.TP
+.B "void CopyInit(Selection*)"
+Init initializes the clipboard with the subjects belonging to the
+graphical views in the given selection object.  CopyInit initializes
+it with \fIcopies\fP of the subjects.
+.TP
+.B "void Clear()"
+Remove all GraphicComp objects from the clipboard.  The objects are
+not deleted.
+.TP
+.B "void DeleteComps()"
+Delete each GraphicComp in the clipboard.  This operation does
+\fInot\fP delete the list itself; thus it will still be possible to
+iterate through the list afterwards.  DeleteComps is generally called
+just before the clipboard is destroyed.
+.TP
+.B "void Append(GraphicComp*)"
+.ns
+.TP
+.B "void Prepend(GraphicComp*)"
+.ns
+.TP
+.B "void InsertAfter(Iterator, GraphicComp*)"
+.ns
+.TP
+.B "void InsertBefore(Iterator, GraphicComp*)"
+.ns
+.TP
+.B "void Remove(GraphicComp*)"
+.ns
+.TP
+.B "void Remove(Iterator&)"
+Operations for adding and removing GraphicComp objects from the clipboard.
+InsertAfter and InsertBefore take an iterator that specifies the point
+before or after which the given GraphicComp should be inserted.
+Remove(Iterator&) removes the GraphicComp to which the iterator refers
+and increments the iterator to point to the following GraphicComp.
+.TP
+.B "GraphicComp* GetComp(Iterator)"
+.ns
+.TP
+.B "void SetComp(GraphicComp*, Iterator&)"
+GetComp effectively dereferences an iterator, returning the
+GraphicComp to which it points.  SetComp initializes an iterator to
+point to the given GraphicComp object, assuming the object is in
+the clipboard.
+.TP
+.B "void First(Iterator&)"
+.ns
+.TP
+.B "void Last(Iterator&)"
+.ns
+.TP
+.B "void Next(Iterator&)"
+.ns
+.TP
+.B "void Prev(Iterator&)"
+.ns
+.TP
+.B "boolean Done(Iterator&)"
+Operations for iterating through the GraphicComps in the clipboard.
+First and Last modify the iterator to point to the first and last
+GraphicComp objects.  Next and Prev make the iterator point to the
+succeeding and preceding GraphicComp objects.  Done returns whether
+the iterator points to the sentinel object on the list, which
+marks the beginning and the end of list.
+.TP
+.B "boolean IsEmpty()"
+.ns
+.TP
+.B "boolean Includes(GraphicComp*)"
+Return whether or not the clipboard is empty or whether it includes
+the given GraphicComp object.
+.TP
+.B "virtual Clipboard* Copy()"
+.ns
+.TP
+.B "virtual Clipboard* DeepCopy()"
+Copy creates a new clipboard with a list of the same GraphicComp
+objects as \fIthis\fP.  DeepCopy creates a new clipboard containing
+copies of the objects in \fIthis\fP.
+.SH PROTECTED OPERATIONS
+.TP
+.B "UList* Elem(Iterator)"
+.ns
+.TP
+.B "GraphicComp* Comp(UList*)"
+The Clipboard class stores its GraphicComp objects in a UList.
+These convenience functions convert an iterator into a UList element
+and dereference a UList element to obtain a GraphicComp object,
+respectively.
+.SH SEE ALSO
+Catalog(3U), Command(3U), GraphicComp(3U), Iterator(3U),
+Selection(3U), UList(3U)

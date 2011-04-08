@@ -137,7 +137,8 @@ void MenuEnumEditor::edit(String i) {
 declareEnumActionCallback(RadioEnumEditor)
 implementEnumActionCallback(RadioEnumEditor)
 
-RadioEnumEditor::RadioEnumEditor(ObservableEnum* obs, char* labl)
+RadioEnumEditor::RadioEnumEditor(ObservableEnum* obs, char* labl,
+				 boolean horiz, boolean noframe)
 : Patch(nil), Observer()
 {
     lab = labl;
@@ -145,6 +146,8 @@ RadioEnumEditor::RadioEnumEditor(ObservableEnum* obs, char* labl)
     _group->ref();
     _obs = obs;
     _obs->attach(this);
+    _horiz = horiz;
+    _noframe = noframe;
     build();
     update(_obs);
 }
@@ -158,17 +161,20 @@ void RadioEnumEditor::build() {
     mainglyph->append(lk.hcenter(wk.label(lab)));
     buildbox();
     mainglyph->append(lk.hcenter(_buttonbox));
-    body(wk.inset_frame(lk.margin(mainglyph, 10)));
+    if (_noframe) 
+      body(mainglyph);
+    else
+      body(wk.inset_frame(lk.margin(mainglyph, 10)));
 }
 
 void RadioEnumEditor::buildbox() {
     WidgetKit& wk = *WidgetKit::instance();
     const LayoutKit& lk = *LayoutKit::instance();
-    Glyph* glu = lk.vspace(5);
-    _buttonbox = lk.vbox();
+    Glyph* glu = _horiz ? lk.hspace(5) : lk.vspace(5);
+    _buttonbox = _horiz ? lk.hbox() : lk.vbox();
     Style *style_ = new Style(Session::instance()->style());
     style_->attribute("frameThickness", "2.5");
-    style_->attribute("radioScale", "3.5");
+    style_->attribute("radioScale", "1.0");
     wk.push_style();
     wk.style(style_);
     for (int i = 0; i < _obs->maxvalue(); i++) {
@@ -176,7 +182,7 @@ void RadioEnumEditor::buildbox() {
 	    this, &RadioEnumEditor::edit, _obs->labelvalue(i)
 	);
 	Button* button = wk.radio_button(_group, _obs->labelvalue(i), action);
-	_buttonbox->append(lk.vbox(glu, button));
+	_buttonbox->append(_horiz ? lk.hbox(glu, button) : lk.vbox(glu, button));
     }
     wk.pop_style();
 }

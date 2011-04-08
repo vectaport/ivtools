@@ -744,7 +744,7 @@ void PostScriptView::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << false << " " << false << " ";
 
 	const int* dashpat = brush->GetDashPattern();

@@ -1,0 +1,68 @@
+.TH RectComp 3U "22 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+RectComp, RectView, PSRect \- rectangle component subject,
+view, and PostScript external representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/rect.h>
+.SH DESCRIPTION
+RectComp is a GraphicComp that defines a rectangle.  It uses an
+SF_Rect graphic to store its graphical attributes.  RectView is a
+GraphicView for displaying the rectangle.  PSRect is a PostScriptView
+that externalizes the subject's information in PostScript form.
+.SH RECTCOMP PUBLIC OPERATIONS
+.TP
+.B "RectComp(SF_Rect* = nil)"
+The constructor takes an optional stroked-filled rectangle that defines
+the attributes of the rectangle.
+.TP
+.B "SF_Rect* GetRect()"
+Return the SF_Rect graphic that defines the rectangle's attributes.
+GetRect is simply a more specific form of the GetGraphic operation.
+.SH RECTVIEW PUBLIC OPERATIONS
+.TP
+.B "RectView(RectComp* = nil)"
+Create an RectView, optionally supplying the subject.
+.TP
+.B "virtual void Interpret(Command*)"
+RectView interprets AlignToGridCmd to align its lower-left to the
+grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+RectView redefines its response to manipulation with a
+GraphicCompTool. GraphicCompTool will let the user sweep out a
+rectangle that reflects the RectComp's size.  Creation will be
+influenced by gravity, if any. RectView also defines a response to the
+ReshapeTool, allowing the user to click on one of its corners to
+reposition it.  The subject is actually replaced (via ReplaceCmd) with
+a PolygonComp subject reflecting the repositioned corner.  Repositioning
+will be influenced by gravity.
+.TP
+.B "virtual void GetCorners(Coord*, Coord*)"
+GetCorners takes two arrays of four Coord values and stores into them
+the coordinates of its corners, in canvas coordinates.
+.TP
+.B "RectComp* GetRectComp()"
+Return the subject.
+.SH RECTVIEW PROTECTED OPERATIONS
+.TP
+.B "virtual void CreateHandles()"
+RectView redefines CreateHandles to use a RubberHandles object with
+four handles, one at each corner of the rectangle.
+.SH PSRECT PUBLIC OPERATIONS
+.TP
+.B "PSRect(RectComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+GraphicComp(3U), GraphicCompTool(3U), GraphicView(3U),
+Grid(3U), PolygonComp(3U), PostScriptView(3U), ReshapeTool(3U),
+align(3U), edit(3U), polygons(3U)

@@ -373,13 +373,15 @@ boolean StringBrowser::HandleChar (char c) {
         break;
     case SBSelectPreviousString:
         UnselectAll();
-        index = Math::max(0, Math::min(--index, strcount-1));
+	--index;
+        index = Math::max(0, Math::min(index, strcount-1));
         Select(index);
         ScrollTo(index);
         break;
     case SBSelectNextString:
         UnselectAll();
-        index = Math::max(0, Math::min(++index, strcount-1));
+	++index;
+        index = Math::max(0, Math::min(index, strcount-1));
         Select(index);
         ScrollTo(index);
         break;

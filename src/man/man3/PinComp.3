@@ -1,0 +1,132 @@
+.TH PinComp 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+PinComp, PinView, PinGraphic, PSPin \- pin connector subject, view,
+structured graphic, and PostScript external representation
+
+SlidingPin, FixedPin \- rubberbands used in pin manipulation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/pin.h>
+.SH DESCRIPTION
+PinComp is a Connector subclass that supports connectivity with zero
+degrees of freedom.  It uses a PinGraphic to store its graphical
+attributes.  PinView is a GraphicView for displaying the pin.  PSPin
+is a PostScriptView that externalizes the subject's information in
+PostScript form.
+
+SlidingPin and FixedPin are special rubberbands used to implement the
+animation effects that pins produce during direct manipulation.  A
+SlidingPin is a circle with crosshairs (duplicating the appearance of
+a PinGraphic) that follows the mouse position, while a FixedPin draws
+a static circle with crosshairs.
+.SH PINCOMP PUBLIC OPERATIONS
+.TP
+.B "PinComp(PinGraphic* = nil)"
+The constructor takes an optional PinGraphic that defines the pin's
+graphical attributes.  The pad has fixed mobility initially
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+PinComp (un)interprets a subset of commands that connectors can
+generally interpret, namely MoveCmd, BrushCmd, AlignCmd, MobilityCmd,
+DeleteCmd, and CutCmd.
+.TP
+.B "virtual Mobility GetMobility()"
+.ns
+.TP
+.B "virtual void SetMobility(Mobility)"
+PinComp redefines these functions to return and assign its
+\fI_mobility\fP protected member.  The pin has fixed mobility
+initially.
+.TP
+.B "Pin* GetPin()"
+Return the Pin graphic that defines the line's attributes.  GetPin
+is simply a more specific form of the GetGraphic operation.
+.SH PINVIEW PUBLIC OPERATIONS
+.TP
+.B "PinView(PinComp* = nil)"
+Create an PinView, optionally supplying the subject.
+.TP
+.B "virtual void Interpret(Command*)"
+PinView interprets AlignToGridCmd to align its lower left to the
+grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+PinViews respond only to manipulation by GraphicCompTools, MoveTools,
+and ConnectTools.  PinView inherits its MoveTool response from
+ConnectorView.  GraphicCompTool will let the user place the pin at a
+particular position.  Placement will be influenced by gravity, if any.
+PinView creates a ConnectManip in response to the ConnectTool, which
+will exhibit a gravational attraction to potential target connectors.
+PinView will produce a ConnectCmd to connect the pin to its target. A
+pin connected in this way will receive floating mobility.
+.TP
+.B "PinComp* GetPinComp()"
+Return the subject.
+.SH PINVIEW PROTECTED OPERATIONS
+.TP
+.B "PinGraphic* GetPin()"
+Return the PinGraphic that defines the pin's attributes.  GetPin is
+simply a more specific form of the GetGraphic operation.
+.TP
+.B "virtual PinComp* NewSubject(PinGraphic*)"
+A helper function that creates a PinComp subject with the given pin
+graphic. This function produces the proper subject when the
+GraphicCompTool's manipulator is interpreted.  Subclasses can redefine
+this operation to return a PinComp subclass, thus eliminating the need
+to reimplement InterpretManipulator.
+.TP
+.B "Manipulator* CreateGraphicCompManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Manipulator* CreateConnectManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Command* InterpretGraphicCompManip(Manipulator*)"
+.ns
+.TP
+.B "Command* InterpretConnectManip(Manipulator*)"
+Helper functions used by CreateManipulator and InterpretManipulator to
+create and interpret the manipulators associated with GraphicCompTool
+and ConnectTool.
+.SH PINGRAPHIC PUBLIC OPERATIONS
+.TP
+.B "PinGraphic(Coord = 0, Coord = 0, Graphic* = nil)"
+Create a PinGraphic, optionally specifying its center and a graphic
+from which to obtain its default graphics attributes.
+.TP
+.B "void GetOriginal(Coord&, Coord&)"
+Return the PinGraphic's original center coordinates as specified in
+the constructor.
+.SH PSPIN PUBLIC OPERATIONS
+.TP
+.B "PSPin(PinComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+BrushCmd(3U), ConnectTool(3U), Connector(3U), ConnectorView3U),
+Event(3I), Graphic(3U), GraphicCompTool(3U), Grid(3U), MoveTool(3U),
+PatternCmd(3U), PostScriptView(3U), Rubband(3I), Transformer(3I),
+Viewer(3U), align(3U), edit(3U), manips(3U), transforms(3U)

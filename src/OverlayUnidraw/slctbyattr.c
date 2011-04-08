@@ -119,6 +119,7 @@ Command* SlctByAttrCmd::Copy () {
 }
 
 Clipboard* SlctByAttrCmd::PostDialog () {
+  return nil;
 }
 
 

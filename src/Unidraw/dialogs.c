@@ -325,7 +325,7 @@ PrintBS::PrintBS (PrintDialog* pd, boolean v) : ButtonState(v) {
 
 void PrintBS::Notify () {
     ButtonState::Notify();
-    _dialog->ToPrinter(boolean(value));
+    _dialog->ToPrinter(value ? 1 : 0);
 }
 
 /*****************************************************************************/

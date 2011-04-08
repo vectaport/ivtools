@@ -1,0 +1,10 @@
+
+# PERL script to process include pathnames for ivtools.
+# Scott Johnston, Jan. 5th 1999
+
+sub filter {
+	local ($str)=@_;
+	$str =~ s/include\///g;
+	return $str
+	}
+

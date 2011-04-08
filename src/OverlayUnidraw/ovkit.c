@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Vectaport Inc.
+ * Copyright (c) 1998-1999 Vectaport Inc.
  * Copyright (c) 1994-1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1994 Cartoactive Systems
  * Copyright (c) 1993 David B. Hollenbeck
@@ -51,13 +51,16 @@
 #include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovline.h>
 #include <OverlayUnidraw/ovpage.h>
+#include <OverlayUnidraw/ovprecise.h>
 #include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/ovpolygon.h>
 #include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovshowhide.h>
 #include <OverlayUnidraw/ovspline.h>
+#include <OverlayUnidraw/ovstates.h>
 #include <OverlayUnidraw/ovtext.h>
+#include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/setattrbyexpr.h>
 #include <OverlayUnidraw/slctbyattr.h>
@@ -75,7 +78,6 @@
 #include <Unidraw/kybd.h>
 #include <Unidraw/statevars.h>
 #include <Unidraw/uctrls.h>
-#include <Unidraw/unidraw.h>
 #include <Unidraw/viewer.h>
 
 #include <Unidraw/Commands/align.h>
@@ -116,6 +118,7 @@
 #include <InterViews/background.h>
 #include <InterViews/deck.h>
 #include <InterViews/display.h>
+#include <InterViews/event.h>
 #include <InterViews/frame.h>
 #include <InterViews/label.h>
 #include <InterViews/layout.h>
@@ -188,6 +191,7 @@ OverlayKit* OverlayKit::_overlaykit = nil;
 OverlayKit::OverlayKit () {
     WidgetKit& kit = *WidgetKit::instance();
     _ed = nil;
+    _otherdisplay = nil;
 }
 
 OverlayKit::~OverlayKit() {
@@ -304,6 +308,25 @@ void OverlayKit::InitLayout(const char* name) {
 }
 
 Glyph* OverlayKit::MakeStates() {
+  Catalog* catalog = unidraw->GetCatalog();
+  const char* ptrlocstr = catalog->GetAttribute("ptrloc");
+  if (ptrlocstr && strcmp(ptrlocstr, "true")==0) {
+    if (Event::event_tracker() != OverlayUnidraw::pointer_tracker_func)
+	Event::event_tracker(OverlayUnidraw::pointer_tracker_func);
+
+    _ed->_ptrlocstate = new PtrLocState(0,0, _ed);
+    NameView* ptrlocview = new NameView(_ed->ptrlocstate());
+
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    return kit.inset_frame(
+	lk.margin(
+	    lk.hbox(lk.hglue(), ptrlocview),
+	    4, 2
+	    )
+    );
+
+  } else
     return nil;
 }
 
@@ -519,15 +542,13 @@ Glyph* OverlayKit::MakeToolbar() {
 
     return layout.hbox(
 	layout.vflexible(
-	    layout.vnatural(
 		new Background(
 		    layout.vcenter(
 			_toolbar
 		    ),
 		    unidraw->GetCatalog()->FindColor("#aaaaaa")
 		),
-		580
-	    )
+		fil, 0.0
 	)
     );
 }
@@ -580,7 +601,7 @@ Glyph* OverlayKit::MenuLine(PSBrush* br) {
 	return lk.hbox(lk.hglue(), wk.label("None"), lk.hglue());
     else
 	return lk.margin(new Fig31Line(br, wk.foreground(), nil,
-				       0, 0, MENU_WIDTH*ivcm, 0),
+				       0, 0, MENU_WIDTH*2*ivcm, 0),
 			 0.1*MENU_WIDTH*ivcm, 0.4*MENU_HEIGHT*ivcm);
 }
 
@@ -591,22 +612,22 @@ Glyph* OverlayKit::MenuArrowLine(boolean tail, boolean head) {
     Coord * x = new Coord[6];
     Coord * y = new Coord[6];
     
-    x[0] = 0.1*MENU_WIDTH*ivcm;
-    y[0] = 0.05*MENU_WIDTH*ivcm;
+    x[0] = 0.1*MENU_WIDTH*2*ivcm;
+    y[0] = 0.05*MENU_WIDTH*2*ivcm;
     x[1] = 0.0;
     y[1] = 0.0;
-    x[2] = 0.1*MENU_WIDTH*ivcm;
-    y[2] = -0.05*MENU_WIDTH*ivcm;
+    x[2] = 0.1*MENU_WIDTH*2*ivcm;
+    y[2] = -0.05*MENU_WIDTH*2*ivcm;
     
-    x[3] = 0.9*MENU_WIDTH*ivcm;
-    y[3] = 0.05*MENU_WIDTH*ivcm;
-    x[4] = MENU_WIDTH*ivcm;
+    x[3] = 0.9*MENU_WIDTH*2*ivcm;
+    y[3] = 0.05*MENU_WIDTH*2*ivcm;
+    x[4] = MENU_WIDTH*2*ivcm;
     y[4] = 0.0;
-    x[5] = 0.9*MENU_WIDTH*ivcm;
-    y[5] = -0.05*MENU_WIDTH*ivcm;
+    x[5] = 0.9*MENU_WIDTH*2*ivcm;
+    y[5] = -0.05*MENU_WIDTH*2*ivcm;
     
     Fig31Line* liner = new Fig31Line(br, wk.foreground(), nil,
-				     0, 0, MENU_WIDTH*ivcm, 0);
+				     0, 0, MENU_WIDTH*2*ivcm, 0);
     Fig31Polyline* tailer = new Fig31Polyline(br, wk.foreground(), nil,
 					      x, y, 3);
     Fig31Polyline* header = new Fig31Polyline(br, wk.foreground(), nil,
@@ -619,14 +640,14 @@ Glyph* OverlayKit::MenuArrowLine(boolean tail, boolean head) {
 					    lk.overlay(tailer, liner, header),
 					    lk.hglue()),
 				    lk.vglue()),
-			    1.2*MENU_WIDTH*ivcm, 0.9*MENU_HEIGHT*ivcm);
+			    1.2*MENU_WIDTH*2*ivcm, 0.9*MENU_HEIGHT*ivcm);
 	} else {
 	    return lk.fixed(lk.vbox(lk.vglue(),
 				    lk.hbox(lk.hglue(),
 					    lk.overlay(tailer, liner),
 					    lk.hglue()),
 				    lk.vglue()),
-			    1.2*MENU_WIDTH*ivcm, 0.9*MENU_HEIGHT*ivcm);
+			    1.2*MENU_WIDTH*2*ivcm, 0.9*MENU_HEIGHT*ivcm);
 	}
     } else {
 	if (head == true) {
@@ -635,14 +656,14 @@ Glyph* OverlayKit::MenuArrowLine(boolean tail, boolean head) {
 					    lk.overlay(liner, header),
 					    lk.hglue()),
 				    lk.vglue()),
-			    1.2*MENU_WIDTH*ivcm, 0.9*MENU_HEIGHT*ivcm);
+			    1.2*MENU_WIDTH*2*ivcm, 0.9*MENU_HEIGHT*ivcm);
 	} else {
 	    return lk.fixed(lk.vbox(lk.vglue(),
 				    lk.hbox(lk.hglue(),
 					    lk.overlay(liner),
 					    lk.hglue()),
 				    lk.vglue()),
-			    1.2*MENU_WIDTH*ivcm, 0.9*MENU_HEIGHT*ivcm);
+			    1.2*MENU_WIDTH*2*ivcm, 0.9*MENU_HEIGHT*ivcm);
 	}
     }
 }
@@ -745,9 +766,9 @@ MenuItem * OverlayKit::MakeFileMenu() {
     MakeMenu(mbi, new OvExportCmd(new ControlInfo("Export Graphic...",
 						  "^X", "\030")),
 	     "Export Graphic...   ");
-    MakeMenu(mbi, new OvWindowDumpAsCmd(new ControlInfo("Dump Window As..."
+    MakeMenu(mbi, new OvWindowDumpAsCmd(new ControlInfo("Dump Canvas As..."
 						  )),
-	     "Dump Window As...   ");
+	     "Dump Canvas As...   ");
     MakeMenu(mbi, new OvImageMapCmd(new ControlInfo("Save ImageMap As..."
 						  )),
 	     "Save ImageMap As... ");
@@ -800,13 +821,13 @@ MenuItem* OverlayKit::MakeEditMenu() {
 			90.0),
 	     "90 CounterCW   ");
     mbi->menu()->append_item(kit.menu_item_separator());
-    MakeMenu(mbi, new PreciseMoveCmd(new ControlInfo("Precise Move",
+    MakeMenu(mbi, new OvPreciseMoveCmd(new ControlInfo("Precise Move",
 					     KLBL_PMOVE, CODE_PMOVE)),
 	     "Precise Move   ");
-    MakeMenu(mbi, new PreciseScaleCmd(new ControlInfo("Precise Scale",
+    MakeMenu(mbi, new OvPreciseScaleCmd(new ControlInfo("Precise Scale",
 					      KLBL_PSCALE, CODE_PSCALE)),
 	     "Precise Scale   ");
-    MakeMenu(mbi, new PreciseRotateCmd(new ControlInfo("Precise Rotate",
+    MakeMenu(mbi, new OvPreciseRotateCmd(new ControlInfo("Precise Rotate",
 					       KLBL_PROTATE, CODE_PROTATE)),
 	     "Precise Rotate   ");
     mbi->menu()->append_item(kit.menu_item_separator());
@@ -934,6 +955,10 @@ MenuItem* OverlayKit::MakeBrushMenu() {
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, true, true), MenuArrowLine(true, true));
 
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new OvPreciseBrushCmd(new ControlInfo("Precise Width",
+				       "", "")),
+	     "Precise Width");
     return mbi;
 }
 
@@ -1121,7 +1146,7 @@ MenuItem* OverlayKit::MakeViewMenu() {
     MakeMenu(mbi, new PageCmd(new ControlInfo("Page on/off",
 					      "p", "p")),
 	     "Page on/off   ");
-    MakeMenu(mbi, new PrecisePageCmd(new ControlInfo("Precise Page",
+    MakeMenu(mbi, new OvPrecisePageCmd(new ControlInfo("Precise Page",
 					     "^P", "\020")),
 	     "Precise Page   ");
     MakeMenu(mbi, new NormSizeCmd(new ControlInfo("Normal Size",
@@ -1156,9 +1181,9 @@ MenuItem* OverlayKit::MakeViewMenu() {
     MenuItem* zoomi = kit.menu_item(kit.label("Zoom             "));
     Menu* zoom = kit.pullright();
     zoomi->menu(zoom);
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In"), 2.0),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
 	     "Zoom In          ");
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out"), 0.5),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
 	     "Zoom Out         ");
     MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
 	     "Precise Zoom     ");
@@ -1277,7 +1302,7 @@ MenuItem * OverlayKit::MakeViewersMenu() {
 	AttrDialog* attrdialog = new AttrDialog((ComTerpServ*)attr->Value()->obj_val());
 	char buf[BUFSIZ];
 	sprintf(buf, "%s Interpreter", attr->Name());
-	MakeMenu(mbi, new SetAttrByExprCmd(new ControlInfo("Compute Attributes ", "", ""), attrdialog),
+	MakeMenu(mbi, new SetAttrByExprCmd(new ControlInfo(buf, "", ""), attrdialog),
 		 buf);
 	comterplist->Next(i);
       }

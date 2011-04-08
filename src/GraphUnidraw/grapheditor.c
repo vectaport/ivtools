@@ -55,6 +55,7 @@
 #include <ComTerp/comterpserv.h>
 
 #include <stdio.h>
+#include <string.h>
 
 /*****************************************************************************/
 
@@ -92,6 +93,7 @@ GraphEditor::~GraphEditor() {}
 void GraphEditor::Init (OverlayComp* comp, const char* name) {
     if (!comp) comp = new GraphIdrawComp;
     _terp = new ComTerpServ();
+    AddCommands(_terp);
     add_comterp("Graphdraw", _terp);
     _overlay_kit->Init(comp, name);
     

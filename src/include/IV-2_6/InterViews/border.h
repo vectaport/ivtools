@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: line of a given thickness (iv-2.6)
+// <a href=../man3.1/Border.html>man page</a>
 class Border : public Interactor {
 protected:
     int thickness;

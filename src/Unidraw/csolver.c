@@ -87,7 +87,7 @@ CSGlue::CSGlue (CSGlue* glue) {
 }   
 
 void CSGlue::Print () {
-    cout << "CSGlue " << (int) this << ":\n";
+    cout << "CSGlue " << (unsigned long) this << ":\n";
     cout << "nat/shr/str: ";
     cout << _natural << "/" << _shrink << "/" << _stretch << "\n";
     cout << "shrlim/strlim: ";
@@ -211,8 +211,8 @@ CCnxn* CCnxn::Copy () {
 }
 
 void CCnxn::Print () {
-    cout << "Cnxn " << (int) this << ":\n";
-    cout << "lb/rt: " << (int) _lbConn << "/" << (int) _rtConn << "\n";
+    cout << "Cnxn " << (unsigned long) this << ":\n";
+    cout << "lb/rt: " << (unsigned long) _lbConn << "/" << (unsigned long) _rtConn << "\n";
     cout << "pos/deform: " << _pos << "/" << _deform << "\n";
     _glue->Print();
 }

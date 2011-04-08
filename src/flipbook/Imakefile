@@ -10,6 +10,7 @@ APP_CCLDLIBS = \
 $(LIBFRAMEUNIDRAW) \
 $(LIBCOMUNIDRAW) \
 $(LIBOVERLAYUNIDRAW) \
+$(LIBACEDISPATCH) \
 $(LIBCOMGLYPH) \
 $(LIBCOMTERP) \
 $(LIBATTRGLYPH) \
@@ -24,6 +25,7 @@ APP_CCDEPLIBS = \
 $(DEPFRAMEUNIDRAW) \
 $(DEPCOMUNIDRAW) \
 $(DEPOVERLAYUNIDRAW) \
+$(DEPACEDISPATCH) \
 $(DEPCOMGLYPH) \
 $(DEPCOMTERP) \
 $(DEPATTRGLYPH) \
@@ -34,11 +36,15 @@ $(DEPIVGLYPH) \
 $(DEPTOPOFACE)
 #endif
 
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS)
+
 Use_libUnidraw()
 Use_2_6()
 ComplexProgramTarget(flipbook)
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(main)
 

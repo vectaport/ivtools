@@ -1,0 +1,101 @@
+.TH transfns 3U "6 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+TF_2Port, TF_Direct \- transfer function subclasses
+.SH SYNOPSIS
+.B #include <Unidraw/transfns.h>
+.SH DESCRIPTION
+The TransferFunct abstract base class defines the transfer function
+protocol.  The library predefines two subclasses. TF_2Port is a
+subclass that acts as an abstract base class for transfer functions
+having two sets of state variables, ``input'' and ``output'', with
+output variables always dependent on input variables.  TF_Direct is a
+subclass of TF_2Port that defines a one-to-one assignment relationship
+between an input and an output state variable.
+.SH TF_2PORT PUBLIC OPERATIONS
+.TP
+.B "void Evaluate(Path* = nil)"
+Evaluate first carries out information transfer between dependent
+state variables by calling the Transfer operation (described below).
+Then it iterates through its output state variables; those that have
+changed (according to the ChangedOutput operation, described below)
+get Transmit called on the connector they're bound to.  Subclasses
+needn't redefine this operation if they implement Transfer and
+ChangedOutput appropriately.
+.TP
+.B "virtual StateVar* GetInput(int index)"
+.ns
+.TP
+.B "virtual StateVar* GetOutput(int index)"
+.ns
+.TP
+.B "virtual void SetInput(StateVar*, int index)"
+.ns
+.TP
+.B "virtual void SetOutput(StateVar*, int index)"
+Retrieve and assign the TF_2Port's input and output state variables,
+identified serially.  These operations do nothing by default;
+subclasses must allocate the storage they require.
+.TP
+.B "virtual int Inputs()"
+.ns
+.TP
+.B "virtual int Outputs()"
+Return the number of input and output state variables.  These
+operations return zero by default.
+.SH TF_2PORT PROTECTED OPERATIONS
+.TP
+.B "TF_2Port()"
+The constructor is protected to prevent instantiation.
+.TP
+.B "virtual void Transfer()"
+Enforce the subclass-specific dependencies between the TF_2Port's
+state variables.  This operation does nothing by default.
+.TP
+.B "virtual boolean ChangedOutput(int index = 0)"
+Return whether the output state variable with the given index has
+changed its value since the last call to Transfer.  Subclasses
+redefine this operation according to the semantics of their Transfer
+operation.
+.SH TF_DIRECT PUBLIC OPERATIONS
+.TP
+.B "TF_Direct(StateVar* input = nil, StateVar* output = nil)"
+Instantiate a new object, optionally specifying the input state
+variable and its dependent output state variable.
+.TP
+.B "virtual StateVar* GetInput(int index = 0)"
+.ns
+.TP
+.B "virtual StateVar* GetOutput(int index = 0)"
+.ns
+.TP
+.B "virtual void SetInput(StateVar*, int index = 0)"
+.ns
+.TP
+.B "virtual void SetOutput(StateVar*, int index = 0)"
+Retrieve and assign the TF_Direct's input and output state variables.
+Specifying an index greater than zero does nothing, since TF_Direct
+defines a dependency between one input and one output state variable.
+.TP
+.B "virtual int Inputs()"
+.ns
+.TP
+.B "virtual int Outputs()"
+Return the number of input and output state variables.  These
+operations return zero by default.
+.TP
+.B "virtual int Inputs()"
+.ns
+.TP
+.B "virtual int Outputs()"
+These operations return 1.
+.SH TF_DIRECT PROTECTED OPERATIONS
+.TP
+.B "virtual void Transfer()"
+Assign the input state variable to the output state variable, setting
+a flag indicating that the output value has changed.
+.TP
+.B "virtual boolean ChangedOutput(int index = 0)"
+Return the status of the flag set by Transfer.  The flag is reset as a
+side-effect of this operation.
+.SH SEE ALSO
+TransferFunct(3U)

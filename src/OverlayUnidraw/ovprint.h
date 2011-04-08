@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995 Vectaport Inc.
+ * Copyright (c) 1995,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,6 +33,7 @@
 
 class PrintChooser;
 
+//: evolved clone of PrintCmd.
 class OvPrintCmd : public Command {
 public:
     OvPrintCmd(ControlInfo*, PrintChooser* = nil);
@@ -41,13 +42,16 @@ public:
 
     virtual void Execute();
     virtual boolean Reversible();
+    // returns false.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     virtual boolean to_printer();
+    // return flag that indicates whether "to printer" is checked in dialog box.
     virtual boolean idraw_format();
+    // return flag that indicates whether "idraw format" is checked in dialog box.
 
     int print(const char* cmd, const char* file);
 

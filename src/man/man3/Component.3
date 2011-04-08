@@ -1,0 +1,168 @@
+.TH Component 3U "20 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Component \- base class for objects that model domain-specific elements
+.SH SYNOPSIS
+.B #include <Unidraw/Components/component.h>
+.SH DESCRIPTION
+Component is an abstract base class for objects that are created,
+edited, and composed to form domain-specific drawings.  Components
+represent the objects of interest in an editing domain, encapsulating
+their appearance and semantics.  Components are partitioned into a
+subject and zero or more views: the subject encapsulates the
+context-independent state and operations of a component, and each view
+supports a context-dependent presentation of the subject.  A subject
+notifies its views whenever its state is modified to allow them to
+change their state or appearance to reflect the modification.  The
+Component class defines the protocol for component subjects, while
+ComponentView is the abstract base class defining the protocol for
+component views.  See ComponentView(3U) for more information on the
+component view class.
+.SH PUBLIC OPERATIONS
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+Interpret performs a component-specific operation based on the type of
+command passed.  Uninterpret reverses the effects of a preceding
+Interpret.  The component is responsible for storing enough state
+(either in itself or in the command) to carry out the Uninterpret
+operation.
+.TP
+.B "virtual void Attach(ComponentView*)"
+.ns
+.TP
+.B "virtual void Detach(ComponentView*)"
+Attach adds a component view to the component's list of views.  Note
+that by default these operations do not check to ensure that the view
+is compatible with the subject.  Detach removes the argument from the
+component's list of views.
+.TP
+.B "virtual void Notify()"
+Notify the component's views that its state has changed.  This
+operation calls Update on each view in the component's list of
+attached views.
+.TP
+.B "virtual void Update()"
+Other classes may use this operation to notify the component subject
+of a possible change in state that the component depends upon. This
+operation does nothing by default.
+.TP
+.B "virtual Component* GetParent()"
+.ns
+.TP
+.B "virtual TransferFunct* GetTransferFunct()"
+Return the component's parent and transfer function, if any.  These
+operations return nil by default.
+.TP
+.B "virtual Component* GetRoot()"
+Return the root component in this hierarchy.  GetRoot calls GetParent
+recursively and returns the last non-nil parent, if any.
+.TP
+.B "virtual StateVar* GetState(const char*)"
+The component may maintain a string-to-state variable mapping to
+provide external access to any state variables it defines.  The
+GetState operation returns a state variable given an identifying
+string.  Defining such a mapping lets other objects (typically
+commands) query the component for state variables that it may define
+without extending the component protocol, potentially allowing
+interchange of components from different applications.  This operation
+returns nil by default.
+.TP
+.B "virtual void First(Iterator&)"
+.ns
+.TP
+.B "virtual void Last(Iterator&)"
+.ns
+.TP
+.B "virtual void Next(Iterator&)"
+.ns
+.TP
+.B "virtual void Prev(Iterator&)"
+.ns
+.TP
+.B "virtual boolean Done(Iterator)"
+Operations for iterating over the component subject's children, if
+any.  First and Last initialize an iterator to point to the beginning
+and end of the list of children, respectively.  Next increments the
+iterator to point to the following child, while Prev decrements the
+iterator to point to the preceding child.  Done returns whether or not
+the iterator points beyond the first or last child in the list.
+.TP
+.B "virtual Component* Copy()"
+Return a copy of the component.  Subclasses should redefine this
+operation to return an instance of their type.
+.TP
+.B "virtual void Read(istream&)"
+.ns
+.TP
+.B "virtual void Write(ostream&)"
+Read and write the component's contents to a stream to support catalog
+operations.  Read and write typically call first the corresponding
+operations defined by their parent class, and then they read or write
+their class-specific state.  Note that you must ensure that the
+objects are read in the same order they are written.
+.TP
+.B "virtual ClassId GetClassId()"
+.ns
+.TP
+.B "virtual boolean IsA(ClassId)"
+GetClassId returns the unique class identifier for the Component
+subclass, while IsA returns whether the instance is of a class or
+subclass corresponding to the given identifier.  IsA typically checks
+the given identifier against the instance's own (as defined by its
+GetClassId operation) and, failing that, calls its parent classes' IsA
+operation.  All subclasses must redefine GetClassId and IsA to ensure
+that their identifiers are unique and that instances are written and
+read properly.
+.TP
+.B "virtual ClassId GetSubstId(const char*& delim)"
+A Component subclasses can redefine GetSubstId to specify a component
+that can substitute for it.  This lets applications that do not define
+a particular component subclass still read in a substitute that is
+compatible with the subclass.  The substitute class should be one of
+the predefined components in the Unidraw library.  This guarantees
+that all applications can instantiate the substitute.
+
+GetSubstId returns the class identifier for the substitute.  When an
+another Unidraw application's catalog reads this object, it can create
+an instance of the substitute (which it is guaranteed to define)
+instead of the original (which it may not define).
+
+The original should read and write a superset of the substitute's
+data.  The catalog will read to the end of the substitute's data and
+then advance the stream to the point following the sequence of
+characters specified by \fIdelim\fP, saving the extra characters
+between the two points in the stream.  When the substitute object is
+saved subsequently, the original class identifier will be written
+along with the substitute's data plus the extra characters saved
+previously.  Thus information needn't be lost as a result of being
+read and written by an unsophisticated application.
+.TP
+.B "ComponentView* Create(ClassId)"
+Create a view instance that is appropriate for the component subject
+given a view category.  The relationship between subjects, views, and
+view categories is encoded in their class identifiers.  See
+classes(3U) for more information on class identifiers and view
+categories.
+.SH PROTECTED OPERATIONS
+.TP
+.B "void Component()"
+The Component class is abstract; therefore the constructor is
+protected.  
+.TP
+.B "ComponentView* View(UList*)"
+Each component maintains a list of its views, implemented with a
+UList.  This operation returns the component view associated with a
+given entry in the UList.
+.TP
+.B "virtual void SetParent(Component* child, Component* parent)"
+Notify a child component that it has a new or different parent.  This
+operation does nothing by default.  Composite components should call
+this function in their structure-modifying operations, and components
+that keep information about their parents should redefine it to update
+this information.
+.SH SEE ALSO
+Catalog(3U), Command(3U), ComponentView(3U), Creator(3U),
+Iterator(3U), StatVar(3U), TransferFunct(3U), UList(3U), classes(3U),
+istream(3C++), ostream(3C++)

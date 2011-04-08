@@ -31,6 +31,10 @@
 
 class ostream;
 
+//: base class for external representation objects. with traversal subclasses.
+// base class for external representation objects and subclasses for
+// common traversals (PreorderView, InorderView, PostorderView).
+// <p><a href=../man3.1/ExternView.html>man page</a>
 class ExternView : public ComponentView {
 public:
     virtual boolean Emit(ostream&);

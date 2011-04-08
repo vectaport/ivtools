@@ -44,6 +44,8 @@ class StateVar;
 class Tool;
 class Viewer;
 
+//: base class for top-level windows in an application.
+// <a href=../man3.1/Editor.html>man page</a>
 class Editor : public InputHandler {
 public:
     virtual ~Editor();

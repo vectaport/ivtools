@@ -57,8 +57,8 @@
 #define DFUNS_PRFORM "%u"
 #define SHINT_PRFORM "%d"
 #define SHUNS_PRFORM "%d"
-#define LNINT_PRFORM "%d"
-#define LNUNS_PRFORM "%u"
+#define LNINT_PRFORM "%ld"
+#define LNUNS_PRFORM "%lu"
 #define FLOAT_PRFORM "%g"
 #define DOUBL_PRFORM "%g"
 #endif

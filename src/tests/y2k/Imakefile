@@ -1,0 +1,29 @@
+XCOMM
+XCOMM y2k test program
+XCOMM
+XCOMM
+
+PACKAGE = y2k_test
+
+#ifdef InObjectCodeDir
+
+CCSUFFIX = cc
+
+Use_libInterViews()
+
+APP_CCLDLIBS =  $(LIBTIME) $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPTIME) $(DEPIVGLYPH)
+#endif
+
+ComplexProgramTargetNoInstall(y2ktest)
+
+MakeObjectFromSrcFlags(y2ktest,)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

@@ -27,9 +27,10 @@
 
 #include <Dispatch/iostreamb.h>
 
+//: streambuf specialized for sending and receiving RPC requests
 // Specialize streambuf to sending and receiving RPC requests to and
 // from remote machines.
-
+// <p><a href=../man3.1/rpcbuf.html>man page</a>
 class rpcbuf : public streambuf {
 public:
     rpcbuf(iostreamb* = nil);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1995 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -31,6 +31,8 @@
 
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
+
+#include <Attribute/attrlist.h>
 
 #include <stdio.h>
 #include <stream.h>
@@ -71,6 +73,7 @@ void OverlayFileComp::GrowParamList(ParamList* pl) {
 
 Component* OverlayFileComp::Copy () {
     OverlayFileComp* ovfile = new OverlayFileComp(new Picture(GetGraphic()));
+    if (attrlist()) ovfile->SetAttributeList(new AttributeList(attrlist()));
     ovfile->SetPathName(GetPathName());
     Iterator i;
     First(i);

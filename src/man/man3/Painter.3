@@ -1,0 +1,265 @@
+.TH Painter 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Painter \- graphics output
+.SH SYNOPSIS
+.B #include <InterViews/painter.h>
+.SH DESCRIPTION
+.B Painter
+is a class that provides ``immediate-mode'' graphics operations
+for drawing on a canvas.
+The state of a painter defines the graphics context
+for the drawing operations and includes
+a brush,
+foreground and background colors, a fill pattern and mode,
+a text font, a text style, an output origin and current position, and
+a transformation matrix.
+.SH STATE OPERATIONS
+.TP
+.B "Painter(Painter* = stdpaint)"
+Create a new painter and copy its state
+from the given painter.
+.TP
+.B "void SetBrush(Brush*)"
+.ns
+.TP
+.B "Brush* GetBrush()"
+Set or return the painter's brush.
+Default is the predefined brush ``single''.
+.TP
+.B "void SetColors(Color* fg, Color* bg)"
+.ns
+.TP
+.B "Color* GetFgColor()"
+.ns
+.TP
+.B "Color* GetBgColor()"
+Set or return the painter's colors.
+If either argument to SetColors is nil,
+then the corresponding color is not changed.
+Defaults are ``black'' for foreground and ``white'' for background.
+.TP
+.B "void SetFont(Font*)"
+.ns
+.TP
+.B "Font* GetFont()"
+Set or return the painter's text font.
+Default is the predefined font ``stdfont''.
+.TP
+.B "void SetStyle(int style)"
+.ns
+.TP
+.B "int GetStyle()"
+Set or get the painter's text style.  A text style is a bit vector
+that can be assembled from the predefined constants \fIPlain\fP,
+\fIBoldface\fP, \fIUnderlined\fP, and \fIReversed\fP.
+Default is Plain.
+.TP
+.B "void SetPattern(Pattern*)"
+.ns
+.TP
+.B "Pattern* GetPattern()"
+.ns
+.TP
+.B "void FillBg(boolean mode)"
+.ns
+.TP
+.B "boolean BgFilled()"
+Set or return the painter's fill pattern and mode.
+If the mode is \fItrue\fP,
+fill operations will set pixels corresponding
+to ones in the current fill pattern to the foreground color and
+pixels corresponding to zeros to the background color.
+If \fIfalse\fP, then only foreground pixels will be set.
+Default pattern is ``solid''; default mode is \fItrue\fP.
+.TP
+.B "void SetOrigin(int x0, int y0)"
+.ns
+.TP
+.B "void GetOrigin(int& x0, int& y0)"
+Set or return the origin by which all coordinates are offset.
+Default is (0,\ 0).
+.TP
+.B "void Translate(float dx, float dy)"
+.ns
+.TP
+.B "void Rotate(float angle)"
+.ns
+.TP
+.B "void Scale(float x, float y)"
+.ns
+.TP
+.B "void SetTransformer(Transformer*)"
+.ns
+.TP
+.B "Transformer* GetTransformer()"
+Coordinates passed to drawing operations are transformed
+according to the current origin, translation (cumulative),
+rotation, and scale factor.
+Internally, a transformation matrix is stored that
+can be directly set and accessed using
+SetTransformer and GetTransformer.
+The default transformer is nil, meaning no transformations are performed.
+.TP
+.B "void SetPlaneMask(int mask)"
+Set which bit planes are affected by drawing operations.
+If the Kth bit of \fImask\fP is set,
+then display operations will draw on plane K.
+.TP
+.B "void SetOverwrite(boolean)"
+Set whether a painter is allowed to write in subcanvases.
+If true, drawing operations will be able to write over
+the canvases of component interactors.
+If false, drawing operations will be clipped by any subcanvases.
+The default is false.
+.TP
+.B "void Clip(Canvas*, Coord x1, Coord y1, Coord x2, Coord y2)"
+.ns
+.TP
+.B "void NoClip()"
+Clip restricts output operations
+to the specified region of the canvas.
+NoClip removes the restriction so that operations affect
+the entire canvas.
+Only one clipping region may be in effect at a time.
+.TP
+.B "void MoveTo(Coord x, Coord y)"
+Set the current output position.
+The output position is used and updated by Text and CurveTo.
+.SH DRAWING OPERATIONS
+.TP
+.B "void Curve(Canvas*, Coord x0, y0, x1, y1, x2, y2, x3, y3)"
+.ns
+.TP
+.B "void CurveTo(Canvas*, Coord x1, y1, x2, y2, x3, y3)"
+Paint a Bezier curve on the canvas from the first point
+to the last point (but not going through the intermediate control
+points).  The curve will lie within the polygon formed by the four points.
+CurveTo uses the current position for the first point.
+.TP
+.B "void BSpline(Canvas*, Coord x[], y[], int n)"
+.ns
+.TP
+.B "void ClosedBSpline(Canvas*, Coord x[], y[], int n)"
+.ns
+.TP
+.B "void FillBSpline(Canvas*, Coord x[], y[], int n)"
+Draw the B-spline defined by the \fIn\fP control vertices.
+If closed or filled, the last point is connected to the first point.
+.TP
+.B "void Circle(Canvas*, Coord x, y, int r)"
+.ns
+.TP
+.B "void FillCircle(Canvas*, Coord x, y, int radius)"
+Draw a circle with center (\fIx\fP,\ \fIy\fP) and radius \fIr\fP.
+.TP
+.B "void Ellipse(Canvas*, Coord x, y, int xr, int yr)"
+.ns
+.TP
+.B "void FillEllipse(Canvas*, Coord x, y, int xr, int yr)"
+Draw an ellipse with center (\fIx\fP,\ \fIy\fP), horizontal radius
+\fIxr\fP, and vertical radius \fIyr\fP.
+.TP
+.B "void Line(Canvas*, Coord x1, y1, x2, y2)"
+.ns
+.TP
+.B "void MultiLine(Canvas*, Coord x[], y[], int n)"
+.ns
+.TP
+.B "void Polygon(Canvas*, Coord x[], y[], int n)"
+.ns
+.TP
+.B "void FillPolygon(Canvas*, Coord x[], y[], int n)"
+Draw a path using the current brush and colors.
+The Line operation draws a vector between two points (inclusive);
+MultiLine draws a number of connected vectors;
+Polygon draws a closed set of vectors;
+FillPolygon fills the area inside a polygon using the current
+fill pattern and colors.
+.TP
+.B "void Point(Canvas*, Coord x, y)"
+.ns
+.TP
+.B "void MultiPoint(Canvas*, Coord x[], y[], int n)"
+Set a point or set of points to the current foreground color.
+.TP
+.B "void Rect(Canvas*, Coord x1, y1, x2, y2)"
+.ns
+.TP
+.B "void FillRect(Canvas*, Coord x1, y1, x2, y2)"
+.ns
+.TP
+.B "void ClearRect(Canvas*, Coord x1, y1, x2, y2)"
+Draw a rectangle with opposite corners specfied by (\fIx1\fP,\ \fIy1\fP) and
+(\fIx2\fP,\ \fIy2\fP).
+FillRect fills the rectangle using the current pattern and colors;
+ClearRect fills the rectangle with the background color.
+.TP
+.B "void Text(Canvas*, const char* str, Coord x, Coord y)"
+.ns
+.TP
+.B "void Text(Canvas*, const char* str, int n, Coord x, Coord y)"
+.ns
+.TP
+.B "void Text(Canvas*, const char* str)"
+.ns
+.TP
+.B "void Text(Canvas*, const char* str, int n)"
+Draw a string or substring of text using the current Font and text
+style.  The (\fIx\fP,\ \fI\y\fP) coordinates specify the lower-left
+corner of the bounding box of the text.  The width of the bounding box
+is the width of the string as reported by the Font::Width operation,
+and the height of the bounding box is the Font height.  Most fonts
+will result in output which only affects pixels within the bounding
+box.  The current transformation matrix is applied to both the
+positions and the shapes of characters drawn.  If the matrix specifies
+a transformation involving rotation or scaling, the resulting
+operation may proceed much more slowly than normal.  If background
+fill mode is on, then the characters are drawn in the foreground
+color, and other pixels within the bounding box are set to the
+background color.  If background fill mode is off, only the foreground
+pixels are set.  If no coordinates are specified, then the current
+position (defined by MoveTo) is used and updated to reflect the
+lower-right corner of the bounding box.
+.TP
+.B "void Stencil(Canvas*, Coord x, Coord y, Bitmap* image, Bitmap* mask = nil)"
+Paint foreground and background colors through a stencil formed by
+positioning the image and mask Bitmaps with their origins at the point
+(\fIx\fP,\ \fIy\fP).
+Foreground color is painted where the
+\fIimage\fP Bitmap has a true value and background color where image
+is false.  However, only pixels corresponding to a true
+value in the mask Bitmap are affected.  A nil \fImask\fP is equivalent
+to a mask of the same size and shape as image and containing all true
+values.
+The current transformation matrix is applied to both the image and
+mask Bitmaps.  If the matrix specifies a
+transformation involving rotation or scaling, the resulting operation
+may proceed much more slowly than normal.
+.TP
+.B "void RasterRect(Canvas*, Coord x, Coord y, Raster*)"
+Render the Raster with its lower-left corner at the position
+(\fIx\fP,\ \fIy\fP).
+The current transformation matrix is applied to the Raster.
+If the matrix specifies a
+transformation involving rotation or scaling, the resulting operation
+may proceed much more slowly than normal.
+.TP
+.B "void Read(Canvas*, void*, Coord x1, y1, x2, y2)"
+.ns
+.TP
+.B "void Write(Canvas*, const void*, Coord x1, y1, x2, y2)"
+.ns
+.TP
+.B "void Copy(Canvas* src, Coord x1, y1, x2, y2, Canvas* dst, Coord x0, y0)"
+Read copies a region of a canvas into memory.
+Write copies data from memory to a region of a canvas.
+Copy reads a region of one canvas and writes the data into
+a region of another canvas (or within
+a canvas if \fIsrc\fP and \fIdst\fP are the same).
+The point (\fIx0\fP,\ \fIy0\fP) is the lower-left corner
+of the destination region.
+Note that \fIRead\fP and \fIWrite\fP are superceded by operations
+that use Rasters.
+.SH SEE ALSO
+Bitmap(3I), Brush(3I), Canvas(3I), Color(3I), Font(3I), Pattern(3I),
+Raster(3I), Transformer(3I)

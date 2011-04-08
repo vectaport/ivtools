@@ -43,7 +43,7 @@ DEPEND_CCFLAGS = DependCCFlags $(KIT_CCFLAGS) $(GL_CCFLAGS)
 MakeLibrary($(LIB),$(VERSION))
 
 #define InterViewsObj(file) InterViewsObjFlags(file,NullParameter)
-#define InterViewsObjFlags(file,f) MakeObjectRule(file,$(INTERVIEWS)/file,f -xc++)
+#define InterViewsObjFlags(file,f) MakeObjectRule(file,$(INTERVIEWS)/file,f)
 
 InterViewsObj(action)
 InterViewsObj(adjust)
@@ -116,7 +116,7 @@ InterViewsObj(xymarker)
 #if BuildIV_2_6
 
 #define IV_2_6Obj(file) IV_2_6ObjFlags(file,NullParameter)
-#define IV_2_6ObjFlags(file,f) MakeObjectRule(file,$(IV_2_6)/file,f -xc++)
+#define IV_2_6ObjFlags(file,f) MakeObjectRule(file,$(IV_2_6)/file,f)
 
 IV_2_6Obj(box2_6)
 IV_2_6Obj(deck2_6)
@@ -169,7 +169,7 @@ IV_2_6Obj(world)
 #endif
 
 #define IV_X11Obj(file) IV_X11ObjFlags(file,NullParameter)
-#define IV_X11ObjFlags(file,f) MakeObjectRule(file,$(IV_X11)/file,f -xc++)
+#define IV_X11ObjFlags(file,f) MakeObjectRule(file,$(IV_X11)/file,f)
 
 #if BuildGLContext
 GL_CCFLAGS = -DGL
@@ -189,14 +189,10 @@ IV_X11Obj(xselection)
 IV_X11ObjFlags(xwindow,$(OPTIMIZE_CCFLAGS))
 
 #define DispatchObj(file) DispatchObjFlags(file,NullParameter)
-#define DispatchObjFlags(file,f) MakeObjectRule(file,$(DISPATCH)/file,f -xc++)
+#define DispatchObjFlags(file,f) MakeObjectRule(file,$(DISPATCH)/file,f)
 
 DispatchObjFlags(dispatcher,$(OPTIMIZE_CCFLAGS))
 DispatchObj(iohandler)
-#ifdef AceDir
-DispatchObj(ace_dispatcher)
-DispatchObj(ace_iohandler)
-#endif
 #if BuildRPCClasses
 DispatchObj(iostreamb)
 DispatchObj(rpcbuf)
@@ -210,7 +206,7 @@ DispatchObj(rpcwriter)
 #endif
 
 #define OSObj(file) OSObjFlags(file,NullParameter)
-#define OSObjFlags(file,f) MakeObjectRule(file,$(OS)/file,f -xc++)
+#define OSObjFlags(file,f) MakeObjectRule(file,$(OS)/file,f)
 
 OSObjFlags(directory,$(OPTIMIZE_CCFLAGS))
 OSObj(file)
@@ -265,7 +261,7 @@ g3states.h: $(TIFF)/mkg3states.c $(TIFF)/t4.h
 clean::
 	$(RM) mkg3states g3states.h
 
-InstallScriptAs(../InterViews.defaults,$(LIBALLDIR),InterViews)
+InstallXDefaultAs(../InterViews.defaults,$(LIBALLDIR),InterViews)
 
 IncludeDependencies()
 

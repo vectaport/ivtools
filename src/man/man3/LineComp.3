@@ -1,0 +1,122 @@
+.TH LineComp 3U "22 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+LineComp, LineView, PSLine, MultiLineComp, MultiLineView, PSMultiLine
+\- line and multiline component subject, view, and PostScript external
+representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/line.h>
+.SH DESCRIPTION
+LineComp is a GraphicComp that defines a line.  It uses an Line
+graphic to store its graphical attributes.  LineView is a GraphicView
+for displaying the line.  PSLine is a PostScriptView that externalizes
+the subject's information in PostScript form.  The MultiLine
+counterparts of these classes define the component and external
+representation for a contiguous set of line segments, i.e., an open
+polygon.  MultiLineComp is derived from VerticesComp, MultiLineView is
+a VerticesView, and PSMultiLine is a PSVertices.
+.SH LINECOMP PUBLIC OPERATIONS
+.TP
+.B "LineComp(Line* = nil)"
+The constructor takes an optional line graphic that defines the
+attributes of the line.
+.TP
+.B "virtual void Interpret(Command*)"
+LineComp redefines Interpret to ignore PatternCmds.
+.TP
+.B "Line* GetLine()"
+Return the Line graphic that defines the line's attributes.  GetLine
+is simply a more specific form of the GetGraphic operation.
+.SH LINEVIEW PUBLIC OPERATIONS
+.TP
+.B "LineView(LineComp* = nil)"
+Create an LineView, optionally supplying the subject.
+.TP
+.B "virtual void Interpret(Command*)"
+LineView interprets AlignToGridCmd to align its first endpoint to the
+grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+LineView redefines its response to manipulation with a
+GraphicCompTool.  The user clicks to specify the first endpoint of the
+line and then drags to position remaining endpoint.  The endpoints
+will be constrained by gravity, if any.  LineView also defines a
+response to the ReshapeTool, allowing the user to click on one of its
+endpoints to reposition it.  The subject is actually replaced (via
+ReplaceCmd) with a new LineComp subject reflecting the repositioned
+endpoint.  Repositioning will be influenced by gravity.
+.TP
+.B "virtual void GetEndpoints(Coord&, Coord&, Coord&, Coord&)"
+Return the line's endpoints, in canvas coordinates.
+.TP
+.B "LineComp* GetLineComp()"
+Return the subject.
+.SH LINEVIEW PROTECTED OPERATIONS
+.TP
+.B "virtual void CreateHandles()"
+LineView redefines CreateHandles to use a RubberHandles object with
+two handles, one at each endpoint of the line.
+.SH PSLINE PUBLIC OPERATIONS
+.TP
+.B "PSLine(LineComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH MULTILINECOMP PUBLIC OPERATIONS
+.TP
+.B "MultiLineComp(SF_MultiLine* = nil)"
+The constructor takes an optional stroked-filled multiline graphic
+that defines the attributes of the multiline.
+.TP
+.B "SF_MultiLine* GetMultiLine()"
+Return the MultiLine graphic that defines the multiline's attributes.
+GetMultiLine is simply a more specific form of the GetGraphic
+operation.
+.SH MULTILINEVIEW PUBLIC OPERATIONS
+.TP
+.B "MultiLineView(MultiLineComp* = nil)"
+Create an MultiLineView, optionally supplying the subject.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+MultiLineView redefines its response to manipulation with a
+GraphicCompTool.  The user clicks the left mouse button to specify
+each vertex and clicks with the middle mouse button to specify the
+final vertex.  Vertex positioning will be constrained by gravity, if
+any.  MultiLineView also defines a response to the ReshapeTool,
+allowing the user to click on one of its vertices to reposition it.
+The subject is actually replaced (via ReplaceCmd) with a new
+MultiLineComp subject reflecting the repositioned vertex.  Repositioning
+will be influenced by gravity.
+.TP
+.B "MultiLineComp* GetMultiLineComp()"
+Return the subject.
+.SH PSMULTILINE PUBLIC OPERATIONS
+.TP
+.B "PSMultiLine(MultiLineComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH PSMULTILINE PROTECTED OPERATIONS
+.TP
+.B "virtual const char* Name()"
+PSMultiLine identifies itself as "MLine" in the PostScript output.
+.SH SEE ALSO
+Event(3I), GraphicComp(3U), GraphicCompTool(3U),
+GraphicView(3U), Grid(3U), PatternCmd(3U), PostScriptView(3U),
+ReshapeTool(3U), Rubband(3I), Transformer(3I), VerticesComp(3U),
+Viewer(3U), align(3U), edit(3U), lines(3U)

@@ -132,6 +132,7 @@ OverlayCatalog::OverlayCatalog (
 ) : IdrawCatalog(name, creator) {
     _parent = nil;
     _gs_compacted = _pts_compacted = _pic_compacted = false;
+    _ed = nil;
 }
 
 boolean OverlayCatalog::Save (Component* comp, const char* name) {
@@ -192,8 +193,9 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
 	    }
 	}
 	
-        if (_valid) {
+        if (_valid || ParamList::urltest(name)) {
 	    istream in(&fbuf);
+#if 0
 	    const char* command = "drawtool";
 	    int len = strlen(command)+1;
 	    char buf[len];
@@ -207,7 +209,32 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
 	    } else 
 		_valid = false;
 
-            if (_valid && name) {
+#else
+	    Editor* ed = GetEditor();
+	    OvImportCmd importcmd(ed);
+	    importcmd.pathname(name);
+	    if (ParamList::urltest(name)) {
+	      comp = importcmd.Import(name);
+	    } else {
+	      boolean empty;
+	      comp = importcmd.Import(in, empty);
+	    }
+	    _valid = in.good() && comp && ((OverlayComp*)comp)->valid();
+	    if (!_valid) {
+	      delete comp;
+	      comp = nil;
+	    }
+	    boolean idrawcompflag = true;
+	    if (comp && !comp->IsA(OVERLAY_IDRAW_COMP)) {
+	      idrawcompflag = false;
+	      OverlayIdrawComp* icomp = new OverlayIdrawComp();
+	      icomp->Append((GraphicComp*)comp);
+	      comp = icomp;
+	    }
+	    
+#endif
+
+            if (_valid && name && idrawcompflag) {
                 Forget(comp, name);
                 Register(comp, name);
             } else if (!_valid) {
@@ -233,8 +260,8 @@ GraphicComp* OverlayCatalog::ReadPostScript (istream& in) {
     in >> _buf >> _psversion;
 
     if (_psversion > PSV_LATEST) {
-        fprintf(stderr, "warning: drawing version %d ", _psversion);
-        fprintf(stderr, "newer than idraw version %d\n", PSV_LATEST);
+        fprintf(stderr, "warning: drawing version %lf ", _psversion);
+        fprintf(stderr, "newer than idraw version %lf\n", PSV_LATEST);
     }
 
     float xincr, yincr;

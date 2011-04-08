@@ -27,11 +27,11 @@
 
 #include <Dispatch/enter-scope.h>
 #include <OS/types.h>
-
+//: read  input,  write output, or handle an I/O exception or timeout
 // Derived classes read input on a file number, write output on a file
 // number, handle an exception raised on a file number, or handle a
 // timers expiration.
-
+// <p><a href=../man3.1/IOHandler.html>man page</a>
 class IOHandler {
 protected:
     IOHandler();

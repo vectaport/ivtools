@@ -1,0 +1,21 @@
+.TH ULabel 3U "1 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ULabel \- structured graphic displaying one line of text
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/label.h>
+.SH DESCRIPTION
+A ULabel is a Graphic that displays one line of text.  It stores a
+PSFont to define the font in which the text appears.  With no
+transformation, the text will be drawn with its bounding box's
+lower-left corner at the origin.
+.SH PUBLIC OPERATIONS
+.TP
+.B "ULabel(const char* text, Graphic* = nil)"
+Construct a label, supplying a null-terminated string in \fItext\fP and
+an optional graphic from which to obtain an initial set of graphics
+state.  ULabel stores a copy \fItext\fP internally.
+.TP
+.B "const char* GetOriginal()"
+Return a pointer to the text that the label stores internally.
+.SH SEE ALSO
+Graphic(3U), pspaint(3U)

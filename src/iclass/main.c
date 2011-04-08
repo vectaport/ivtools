@@ -33,6 +33,7 @@
 #include <InterViews/world.h>
 
 #include <string.h>
+#include <iostream.h>
 
 /*****************************************************************************/
 
@@ -48,6 +49,8 @@ static PropertyData properties[] = {
     { "*recursive",                 "false" },
     { "*verbose",                   "false" },
     { "*CPlusPlusFiles",            "false" },
+    { "*DerivedClassGraph",         "false" },
+    { "*DerivedClassTree",          "false" },
     { "*showButton",                "true" },
     { "*dirBrowser*singleClick",    "on" },
     { nil }
@@ -57,8 +60,31 @@ static OptionDesc options[] = {
     { "-r", "*recursive", OptionValueImplicit, "true" },
     { "-v", "*verbose", OptionValueImplicit, "true" },
     { "-c", "*CPlusPlusFiles", OptionValueImplicit, "true" },
+    { "-d", "*DerivedClassGraph", OptionValueImplicit, "true" },
+    { "-t", "*DerivedClassTree", OptionValueImplicit, "true" },
     { nil }
 };
+
+/*****************************************************************************/
+
+void print_class_subtree(ostream& out, ClassBuffer* cbuffer, const char* classname, int depth) {
+  
+  for(int i=0; i<depth; i++) out << "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+
+  out << "<a name=" << classname << " href=" << classname << ".html>" 
+      << classname << "</a><br>\n";
+
+  const char* childname;
+  const char* prevname=strdup("");
+  int childindex=0;
+  while (childname = cbuffer->Child(classname, childindex)) {
+    if (strcmp(prevname, childname)!=0) 
+      print_class_subtree(out, cbuffer, childname, depth+1);
+    delete prevname;
+    prevname = strdup(childname);
+    childindex++;
+  }
+}
 
 /*****************************************************************************/
 
@@ -67,6 +93,8 @@ int main (int argc, char** argv) {
     const char* recursive = world.GetAttribute("recursive");
     const char* verbose = world.GetAttribute("verbose");
     const char* CPlusPlusFiles = world.GetAttribute("CPlusPlusFiles");
+    const char* DerivedClassGraph = world.GetAttribute("DerivedClassGraph");
+    const char* DerivedClassTree = world.GetAttribute("DerivedClassTree");
     ClassBuffer* buffer = new ClassBuffer(
         strcmp(recursive, "true") == 0, strcmp(verbose, "true") == 0,
 	strcmp(CPlusPlusFiles, "true") == 0
@@ -74,6 +102,39 @@ int main (int argc, char** argv) {
 
     for (int i = 1; i < argc; ++i) {
         buffer->Search(argv[i]);
+    }
+
+    if (strcmp(DerivedClassGraph, "true")==0) {
+      const char* classname;
+      int classindex = 0;
+      while (classname = buffer->Class(classindex)) {
+	classindex++;
+	cout << "<a name=" << classname << " href=" << classname << ".html>" 
+	  << classname << "</a>:<br>\n";
+	const char* childname;
+        const char* prevname=strdup("");
+	int childindex = 0;
+	while (childname = buffer->Child(classname, childindex)) {
+	  childindex++;
+	  if (strcmp(prevname, childname)!=0)
+	    cout << "<li> <a href=" << childname << ".html>" << childname << "</a></li>\n";
+	  delete prevname;
+	  prevname = strdup(childname);
+	}
+	cout << "<p>\n";
+      }
+      return 0;
+    }
+
+    if (strcmp(DerivedClassTree, "true")==0) {
+      const char* classname;
+      int classindex = 0;
+      while (classname = buffer->Class(classindex)) {
+	const char* parent = buffer->Parent(classname);
+	if (!parent) print_class_subtree(cout, buffer, classname, 0);
+	classindex++;
+      }
+      return 0;
     }
 
     IClass* iclass = new IClass(buffer);

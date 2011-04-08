@@ -34,6 +34,8 @@
 
 #include <stream.h>
 
+#include <version.h>
+
 /*****************************************************************************/
 
 static PropertyData properties[] = {
@@ -146,6 +148,8 @@ int main (int argc, char** argv) {
 	IdrawEditor* ed = new IdrawEditor(initial_file);
 
 	unidraw->Open(ed);
+	cerr << "ivtools-" << VersionString 
+	     << " idraw: see \"man idraw\" for more info\n"; 
 	unidraw->Run();
     }
 

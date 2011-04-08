@@ -152,6 +152,8 @@ void Interactor::Read(Event& e) {
     Handler* h = nil;
     while (!world->done()) {
 	e.read();
+	if (Event::event_tracker()) 
+	    (*Event::event_tracker())(e);
 	h = e.handler();
 	Resource::ref(h);
 	if (e.target != nil) {
@@ -161,6 +163,7 @@ void Interactor::Read(Event& e) {
 	if (h != nil && !e.is_grabbing(h)) {
 	    e.GetInfo();
 	    e.target = InteractorHelper::instance(h);
+	    e.y = ymax - e.y;
 	    break;
 	}
 	Resource::unref(h);
@@ -171,6 +174,8 @@ boolean Interactor::Read(long sec, long usec, Event& e) {
     e.display(world->display());
     e.target = nil;
     while (!world->done() && e.read(sec, usec)) {
+        if (Event::event_tracker()) 
+	    (*Event::event_tracker())(e);
 	Handler* h = e.handler();
 	if (e.target != nil) {
 	    return true;
@@ -178,6 +183,7 @@ boolean Interactor::Read(long sec, long usec, Event& e) {
 	if (h != nil && !e.is_grabbing(h)) {
 	    e.GetInfo();
 	    e.target = InteractorHelper::instance(h);
+	    e.y = ymax - e.y;
 	    return true;
 	}
     }

@@ -51,6 +51,7 @@
 
 #include <iostream.h>
 #include <stdio.h>
+#include <string.h>
 
 implementActionCallback(ImportChooserImpl)
 implementFieldEditorCallback(ImportChooserImpl)
@@ -75,13 +76,13 @@ ImportChooser::ImportChooser(
     if (by_pathname_bttn) {
       ic._by_pathname_action = new ActionCallback(ImportChooserImpl)
 	(&ic, &ImportChooserImpl::by_pathname_callback);
-      ic._fbutton = kit->check_box("by pathname", ic._by_pathname_action);
+      ic._fbutton = kit->check_box("save by path", ic._by_pathname_action);
       ic._fbutton->state()->set(ic._by_pathname ? 0xffff : 0x0000,ic._by_pathname); 
     } else ic._fbutton = nil;
     if (from_command_bttn) {
       ic._from_command_action = new ActionCallback(ImportChooserImpl)
 	(&ic, &ImportChooserImpl::from_command_callback);
-      ic._mbutton = kit->check_box("pipe from filter", ic._from_command_action);
+      ic._mbutton = kit->check_box("from command", ic._from_command_action);
       ic._mbutton->state()->set(ic._from_command ? 0xffff : 0x0000,ic._from_command); 
     } else ic._mbutton = nil;
     if (auto_convert_bttn) {
@@ -273,12 +274,10 @@ void ImportChooserImpl::build() {
       vb->append(layout.vspace(10.0));
     } else {
       if (_cbutton) {
-      }
-      if (_fbutton) {
 	vb->append(
 		   layout.hbox(
 			       layout.hglue(10.0),
-			       layout.hfixed(_fbutton, from_left),
+			       layout.hfixed(_cbutton, from_left),
 			       layout.hglue(10.0)
 			       ));
 	vb->append(layout.vspace(10.0));
@@ -288,6 +287,15 @@ void ImportChooserImpl::build() {
 		   layout.hbox(
 			       layout.hglue(10.0),
 			       layout.hfixed(_mbutton, from_left),
+			       layout.hglue(10.0)
+			       ));
+	vb->append(layout.vspace(10.0));
+      }
+      if (_fbutton) {
+	vb->append(
+		   layout.hbox(
+			       layout.hglue(10.0),
+			       layout.hfixed(_fbutton, from_left),
 			       layout.hglue(10.0)
 			       ));
 	vb->append(layout.vspace(10.0));
@@ -343,8 +351,10 @@ void ImportChooserImpl::auto_convert_callback() {
 }
 
 void ImportChooserImpl::accept_editor(FieldEditor* e) {
-  if (!_from_command) {
-    String* path = Directory::canonical(*e->text());
+  const String* fstring = e->text();
+  boolean urlflag = OpenFileChooser::urltest(fstring->string());
+  if (!_from_command && !urlflag) {
+    String* path = Directory::canonical(*fstring);
     e->field(*path);
     if (chdir(*path)) {
       /* chdir has copied the string */

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997 Vectaport Inc.
+ * Copyright (c) 1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -33,6 +33,13 @@
 class Clipboard;
 class AttrDialog;
 
+//: command to select components by evaluating an expression.
+// This command pops up a dialog box for entering attribute expressions
+// to evaluate on all the components in an editor.  unknown
+// symbols are replaced with the corresponding AttributeValue on the
+// AttributeList associated with the component.  expressions that evaluate
+// to non-zero cause that component to be added to the current selection
+// of the drawing editor.
 class SlctByAttrCmd : public Command {
 public:
     SlctByAttrCmd(Editor* = nil, AttrDialog* = nil);
@@ -73,12 +80,18 @@ protected:
 
 class OverlaysComp;
 
+//: interpreter command for plugging together AttrDialog and SlctByAttrCmd.
+// interpreter command used to iterate over all the components in an editor.
+// selection.
 class NextAttrListFunc : public AttrListFunc {
 public:
     NextAttrListFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb);
     virtual void execute();
 };
 
+//: interpreter command for plugging together AttrDialog and SlctByAttrCmd.
+// interpreter command for adding component to current selection when 
+// attribute expression evaluates to true.
 class TrueAttrListFunc : public AttrListFunc {
 public:
     TrueAttrListFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb);
@@ -86,12 +99,17 @@ public:
 
 };
 
+//: interpreter command for plugging together AttrDialog and SlctByAttrCmd.
+// interpreter command used to not add a component to current selection when 
+// attribute expression evaluates to false.
 class FalseAttrListFunc : public AttrListFunc {
 public:
     FalseAttrListFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb);
     virtual void execute();
 };
 
+//: interpreter command for plugging together AttrDialog and SlctByAttrCmd.
+// interpreter command used to indicate when done iterating over components.
 class DoneAttrListFunc : public AttrListFunc {
 public:
     DoneAttrListFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb, Viewer* v);

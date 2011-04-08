@@ -442,7 +442,7 @@ void IdrawCatalog::PSReadBrush (istream& in, Graphic* gs) {
 	boolean undefined = false;
 	boolean none = false;
 	int p = 0;
-	int w = 0;
+	float w = 0;
 	int head = false;
 	int tail = false;
  

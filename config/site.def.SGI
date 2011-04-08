@@ -3,7 +3,7 @@
 
 /* gcc command line with -V for version and -O for optimize */
 #undef CCDriver
-#define CCDriver gcc -O
+#define CCDriver g++
 
 #undef HasDynamicSharedLibraries
 #define HasDynamicSharedLibraries YES
@@ -60,14 +60,20 @@ install:: Concat(lib,libname.so.rev)					@@\
 	MakeDir(dest)							@@\
 	if [ -f dest/Concat(lib,libname.so.rev) ]; then \		@@\
 	$(RM) dest/Concat(lib,libname.so.rev); else exit 0; fi		@@\
-	ln -s $(CURRENT_DIR)/Concat(lib,libname.so.rev) dest/
-#undef InstallNonSharedLibrary
+	ln -s $(CURRENT_DIR)/Concat(lib,libname.so.rev) dest/		@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.so.rev)
+#undef InstallNonSharedLibrary	
 #define InstallNonSharedLibrary(libname,dest)				@@\
 install:: Concat(lib,libname.a)						@@\
 	MakeDir(dest)							@@\
 	if [ -f dest/Concat(lib,libname.a) ]; then \			@@\
 	$(RM) dest/Concat(lib,libname.a); else exit 0; fi		@@\
-	ln -s  $(CURRENT_DIR)/Concat(lib,libname.a) dest/
+	ln -s  $(CURRENT_DIR)/Concat(lib,libname.a) dest/		@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.a)
 #endif
 #endif
 
@@ -76,6 +82,10 @@ install:: Concat(lib,libname.a)						@@\
  */
 #undef InstPgmFlags
 #define InstPgmFlags /**/
+
+#if 0 
+
+/* -------------- imake way of configuring ------------------ */
 
 /* 
  * Where to put binaries, libraries, and data files when InstallRelative is NO
@@ -97,3 +107,12 @@ install:: Concat(lib,libname.a)						@@\
 
 /* ACE directory: comment out if not available */
 /* #define AceDir ProjectDir/ACE_wrappers */
+
+#else
+
+/* --------------- autconf way of configuring --------------- */
+
+/* file output by configure script */
+#include "config-irix5-gcc.defs"
+
+#endif

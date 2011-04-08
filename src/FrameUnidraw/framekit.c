@@ -39,8 +39,10 @@
 #include <OverlayUnidraw/ovcamcmds.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovexport.h>
+#include <OverlayUnidraw/ovfixview.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovpage.h>
+#include <OverlayUnidraw/ovprecise.h>
 #include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/slctbyattr.h>
 #include <OverlayUnidraw/setattrbyexpr.h>
@@ -68,6 +70,7 @@
 #include <InterViews/session.h>
 #include <InterViews/style.h>
 #include <InterViews/target.h>
+#include <InterViews/telltale.h>
 #include <InterViews/window.h>
 #include <IV-look/kit.h>
 #include <IV-look/mf_kit.h>
@@ -307,6 +310,19 @@ MenuItem* FrameKit::MakeFrameMenu() {
        (MoveFrameCmd::default_instance(), &MoveFrameCmd::clr_wraparound));
     mbi->menu()->append_item(menu_item);
 
+#if 0
+    MakeMenu(mbi, new AutoNewFrameCmd(new ControlInfo("Toggle Auto New Frame",
+						      "","")),
+	     "Toggle Auto New Frame");
+#else
+    menu_item = kit.check_menu_item(kit.label("Auto New Frame"));
+    menu_item->state()->set(TelltaleState::is_chosen, ((FrameEditor*)GetEditor())->AutoNewFrame());
+    AutoNewFrameCmd::default_instance(new AutoNewFrameCmd(GetEditor()));
+    menu_item->action
+      (new ActionCallback(AutoNewFrameCmd)
+       (AutoNewFrameCmd::default_instance(), &AutoNewFrameCmd::Execute));
+    mbi->menu()->append_item(menu_item);
+#endif
     return mbi;
 }
 
@@ -374,18 +390,21 @@ MenuItem* FrameKit::MakeEditMenu() {
 			90.0),
 	     "90 CounterCW   ");
     mbi->menu()->append_item(kit.menu_item_separator());
-    MakeMenu(mbi, new PreciseMoveCmd(new ControlInfo("Precise Move",
+    MakeMenu(mbi, new OvPreciseMoveCmd(new ControlInfo("Precise Move",
 					     KLBL_PMOVE, CODE_PMOVE)),
 	     "Precise Move   ");
-    MakeMenu(mbi, new PreciseScaleCmd(new ControlInfo("Precise Scale",
+    MakeMenu(mbi, new OvPreciseScaleCmd(new ControlInfo("Precise Scale",
 					      KLBL_PSCALE, CODE_PSCALE)),
 	     "Precise Scale   ");
-    MakeMenu(mbi, new PreciseRotateCmd(new ControlInfo("Precise Rotate",
+    MakeMenu(mbi, new OvPreciseRotateCmd(new ControlInfo("Precise Rotate",
 					       KLBL_PROTATE, CODE_PROTATE)),
 	     "Precise Rotate   ");
 
     return mbi;
 }
+
+// upgrade to copy of OverlayKit::MakeViewMenu 3/24/99
+#if 0 
 
 MenuItem* FrameKit::MakeViewMenu() {
     LayoutKit& lk = *LayoutKit::instance();
@@ -435,9 +454,9 @@ MenuItem* FrameKit::MakeViewMenu() {
     MenuItem* zoomi = kit.menu_item(kit.label("Zoom             "));
     Menu* zoom = kit.pullright();
     zoomi->menu(zoom);
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In"), 2.0),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
 	     "Zoom In          ");
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out"), 0.5),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
 	     "Zoom Out         ");
     MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
 	     "Precise Zoom     ");
@@ -474,6 +493,161 @@ MenuItem* FrameKit::MakeViewMenu() {
 
     return mbi;
 }
+
+#else
+
+MenuItem* FrameKit::MakeViewMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem* mbi = kit.menubar_item(kit.label("View"));
+    mbi->menu(kit.pulldown());
+
+#if 0
+    OvNewViewCmd::default_instance
+      (new OvNewViewCmd
+       (new ControlInfo("New View", KLBL_NEWVIEW, CODE_NEWVIEW), 
+       "localhost:0.0"));
+    MakeMenu(mbi, OvNewViewCmd::default_instance(), "New View   ");
+
+    MakeMenu(mbi, new OvCloseEditorCmd(new ControlInfo("Close View",
+					     KLBL_CLOSEEDITOR,
+					     CODE_CLOSEEDITOR)),
+	     "Close View   ");
+#endif
+#if 0
+    MenuItem* menu_item;
+    menu_item = kit.menu_item(kit.label("New Display"));
+    menu_item->action
+      (new ActionCallback(OvNewViewCmd)
+       (OvNewViewCmd::default_instance(), &OvNewViewCmd::set_display));
+    mbi->menu()->append_item(menu_item);
+    mbi->menu()->append_item(kit.menu_item_separator());
+#endif
+
+    MakeMenu(mbi, new PageCmd(new ControlInfo("Page on/off",
+					      "p", "p")),
+	     "Page on/off   ");
+    MakeMenu(mbi, new OvPrecisePageCmd(new ControlInfo("Precise Page",
+					     "^P", "\020")),
+	     "Precise Page   ");
+    MakeMenu(mbi, new NormSizeCmd(new ControlInfo("Normal Size",
+					  KLBL_NORMSIZE, CODE_NORMSIZE)),
+	     "Normal Size   ");
+    MakeMenu(mbi, new RedToFitCmd(new ControlInfo("Reduce to Fit",
+					  KLBL_REDTOFIT, CODE_REDTOFIT)),
+	     "Reduce to Fit   ");
+    MakeMenu(mbi, new CenterCmd(new ControlInfo("Center Page",
+					KLBL_CENTER, CODE_CENTER)),
+	     "Center Page   ");
+    MakeMenu(mbi, new OrientationCmd(new ControlInfo("Orientation",
+					     KLBL_ORIENTATION,
+					     CODE_ORIENTATION)),
+	     "Orientation   ");
+
+    mbi->menu()->append_item(kit.menu_item_separator());
+    MakeMenu(mbi, new GridCmd(new ControlInfo("Grid on/off",
+				      KLBL_GRID, CODE_GRID)),
+	     "Grid on/off   ");
+    MakeMenu(mbi, new GridSpacingCmd(new ControlInfo("Grid Spacing...",
+						     KLBL_GRIDSPC, CODE_GRIDSPC)),
+	     "Grid Spacing...   ");
+    MakeMenu(mbi, new GravityCmd(new ControlInfo("Gravity on/off",
+					 KLBL_GRAVITY, CODE_GRAVITY)),
+	     "Gravity on/off   ");
+    MakeMenu(mbi, new ScribblePointerCmd(new ControlInfo("Scribble pointer on/off",
+					 "", "")),
+	     "Scribble pointer on/off   ");
+    mbi->menu()->append_item(kit.menu_item_separator());
+
+    MenuItem* zoomi = kit.menu_item(kit.label("Zoom             "));
+    Menu* zoom = kit.pullright();
+    zoomi->menu(zoom);
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
+	     "Zoom In          ");
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
+	     "Zoom Out         ");
+    MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
+	     "Precise Zoom     ");
+    mbi->menu()->append_item(zoomi);
+
+    MenuItem* spani = kit.menu_item(kit.label("Small Pan        "));
+    Menu* span = kit.pullright();
+    spani->menu(span);
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Up"), NO_PAN, PLUS_SMALL_PAN),
+	     "Small Pan Up     ");
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Down"), NO_PAN, MINUS_SMALL_PAN),
+	     "Small Pan Down   ");
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Left"), MINUS_SMALL_PAN, NO_PAN),
+	     "Small Pan Left   ");
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Right"), PLUS_SMALL_PAN, NO_PAN),
+	     "Small Pan Right  ");
+    mbi->menu()->append_item(spani);
+
+    MenuItem* lpani = kit.menu_item(kit.label("Large Pan        "));
+    Menu* lpan = kit.pullright();
+    lpani->menu(lpan);
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Up"), NO_PAN, PLUS_LARGE_PAN),
+	     "Large Pan Up     ");
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Down"), NO_PAN, MINUS_LARGE_PAN),
+	     "Large Pan Down   ");
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Left"), MINUS_LARGE_PAN, NO_PAN),
+	     "Large Pan Left   ");
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Right"), PLUS_LARGE_PAN, NO_PAN),
+	     "Large Pan Right  ");
+    mbi->menu()->append_item(lpani);
+
+    MakeMenu(mbi, new PrecisePanCmd(new ControlInfo("Precise Pan")),
+	     "Precise Pan      ");
+
+    mbi->menu()->append_item(kit.menu_item_separator());
+
+#if 0
+    MenuItem* grmenu = kit.menu_item(kit.label("Hide/Show Graphics   "));
+    grmenu->menu(kit.pullright());
+    mbi->menu()->append_item(grmenu);
+    
+    MakeMenu(grmenu, new HideViewCmd(_ed->GetViewer(), new ControlInfo("Hide Graphic Here", "H", "H")),
+	     "Hide Graphic Here");
+    MakeMenu(grmenu, new UnhideViewsCmd(new ControlInfo("Unhide Graphics There", "^H", "\010")),
+	     "Unhide Graphics There");
+    MakeMenu(grmenu, new DesensitizeViewCmd(_ed->GetViewer(), new ControlInfo("Desensitize Graphic Here", "", "")),
+	     "Desensitize Graphic Here");
+    MakeMenu(grmenu, new SensitizeViewsCmd(new ControlInfo("Sensitize Graphics There", "", "")),
+	     "Sensitize Graphics There");
+#endif
+
+    MenuItem* fixmenu = kit.menu_item(kit.label("Fix/Unfix Graphics   "));
+    fixmenu->menu(kit.pullright());
+    mbi->menu()->append_item(fixmenu);
+    
+    MakeMenu(fixmenu, new FixViewCmd(new ControlInfo("Fix Size", " ", " "), true, false),
+	     "Fix Size");
+    MakeMenu(fixmenu, new UnfixViewCmd(new ControlInfo("Unfix Size", " ", " "), true, false),
+	     "Unfix Size");
+    MakeMenu(fixmenu, new FixViewCmd(new ControlInfo("Fix Location", " ", " "), false, true),
+	     "Fix Location");
+    MakeMenu(fixmenu, new UnfixViewCmd(new ControlInfo("Unfix Location", " ", " "), false, true),
+	     "Unfix Location");
+
+#if 0
+    MenuItem* chainmenu = kit.menu_item(kit.label("Chain/Unchain Viewers   "));
+    chainmenu->menu(kit.pullright());
+    mbi->menu()->append_item(chainmenu);
+    
+    MakeMenu(chainmenu, new ChainViewersCmd(_ed->GetViewer(), new ControlInfo("Chain Panning", " ", " "), true, false),
+	     "Chain Panning");
+    MakeMenu(chainmenu, new UnchainViewersCmd(_ed->GetViewer(), new ControlInfo("Unchain Panning", " ", " "), true, false),
+	     "Unchain Panning");
+    MakeMenu(chainmenu, new ChainViewersCmd(_ed->GetViewer(), new ControlInfo("Chain Zooming", " ", " "), false, true),
+	     "Chain Zooming");
+    MakeMenu(chainmenu, new UnchainViewersCmd(_ed->GetViewer(), new ControlInfo("Unchain Zooming", " ", " "), false, true),
+	     "Unchain Zooming");
+#endif
+    return mbi;
+}
+
+#endif
 
 
 Glyph* FrameKit::MakeStates() {

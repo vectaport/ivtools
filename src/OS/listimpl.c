@@ -48,6 +48,6 @@ long ListImpl_best_new_count(long count, unsigned int size) {
 }
 
 void ListImpl_range_error(long i) {
-    fprintf(stderr, "internal error: list index %d out of range\n", i);
+    fprintf(stderr, "internal error: list index %ld out of range\n", i);
     abort();
 }

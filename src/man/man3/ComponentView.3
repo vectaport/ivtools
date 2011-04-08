@@ -1,0 +1,87 @@
+.TH ComponentView 3U "20 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ComponentView \- base class for views of objects that model
+domain-specific elements
+.SH SYNOPSIS
+.B #include <Unidraw/Components/compview.h>
+.SH DESCRIPTION
+ComponentView is an abstract base class for views of component
+subjects.  Component views provide a specialized presentation of the
+information in the component subject to which they are attached.
+Usually there is at least one view subclass defined for each subclass
+of component subject.
+.SH PUBLIC OPERATIONS
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+These operations call the corresponding subject operations by default.
+They are included in the component view protocol for convenience,
+since other objects often deal with component views rather than their
+subjects.
+.TP
+.B "virtual void Update()"
+Notify the view of a change in some state that it depends on, normally
+state in the subject.  This operation does nothing by default.
+.TP
+.B "virtual Component* GetParent()"
+Return the view's parent, if any.  Like component subjects, component
+views may be structured hierarchically, and their structure may or may
+not reflect that of their subject.
+.TP
+.B "Component* GetSubject()"
+Return the component view's subject.
+.TP
+.B "virtual void First(Iterator&)"
+.ns
+.TP
+.B "virtual void Last(Iterator&)"
+.ns
+.TP
+.B "virtual void Next(Iterator&)"
+.ns
+.TP
+.B "virtual void Prev(Iterator&)"
+.ns
+.TP
+.B "virtual boolean Done(Iterator)"
+Operations for iterating over the component view's children, if any.
+First and Last initialize an iterator to point to the beginning and
+end of the list of children, respectively.  Next increments the
+iterator to point to the following child, while Prev decrements the
+iterator to point to the preceding child.  Done returns whether or not
+the iterator points beyond the first or last child in the list.
+.TP
+.B "virtual ClassId GetClassId()"
+.ns
+.TP
+.B "virtual boolean IsA(ClassId)"
+GetClassId returns the unique class identifier for the ComponentView
+subclass, while IsA returns whether the instance is of a class or
+subclass corresponding to the given identifier.  IsA typically checks
+the given identifier against the instance's own (as defined by its
+GetClassId operation) and, failing that, calls its parent classes' IsA
+operation.  All subclasses must redefine GetClassId and IsA to ensure
+that their identifiers are unique and that view category information
+is defined properly.  See classes(3U) for more information on class
+identifiers and view categories.
+.SH PROTECTED OPERATIONS
+.TP
+.B "ComponentView(Component* subject = nil)"
+The constructor initializes the component view's subject pointer to
+the given value.  The view will also attach itself to the subject if
+the argument is non-nil.
+.TP
+.B "virtual void SetSubject(Component*)"
+Set the component's subject pointer to the given value.  By default,
+this operation does not call Attach or Detach on the subject(s).
+.TP
+.B "virtual void SetParent(Component* child, Component* parent)"
+Notify a child component that it has a new or different parent.  This
+operation does nothing by default.  Composite components should call
+this function in their structure-modifying operations, and components
+that keep information about their parents should redefine it to update
+this information.
+.SH SEE ALSO
+Command(3U), Component(3U), Iterator(3U), classes(3U)

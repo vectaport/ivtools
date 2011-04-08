@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1998 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University 
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -109,15 +109,16 @@ void OvExportCmd::Execute () {
 	style = new Style(Session::instance()->style());
 	style->attribute("subcaption", "Export selected graphics to file:");
 	style->attribute("open", "Export");
-	const char *formats[] = {"idraw", "drawtool"};
+	const char *formats[] = {"PostScript", "idraw", "drawtool"};
+	const char *commands[] = {"ghostview %s", "idraw %s", "drawtool %s"};
 	chooser_ = new ExportChooser(".", WidgetKit::instance(), style,
-				     formats, sizeof(formats)/sizeof(char*), nil, nil, true);
+				     formats, sizeof(formats)/sizeof(char*), commands, nil, true);
 	Resource::ref(chooser_);
     } else {
 	style = chooser_->style();
     }
     boolean again; 
-   while (again = chooser_->post_for(ed->GetWindow())) {
+    while (again = chooser_->post_for(ed->GetWindow())) {
 	const String* str = chooser_->selected();
 	if (str != nil) {
 	    NullTerminatedString ns(*str);
@@ -173,7 +174,7 @@ boolean OvExportCmd::Export (const char* pathname) {
 	Iterator i;
 	s->First(i);
 	while (!s->Done(i)) {
-	    if (chooser_->idraw_format())
+	    if (chooser_->idraw_format() || chooser_->postscript_format())
 		false_top->Append(new OverlayComp(s->GetView(i)->GetGraphicComp()->GetGraphic()->Copy()));
 	    else
 		false_top->Append((OverlayComp*)s->GetView(i)->GetGraphicComp()->Copy());
@@ -181,7 +182,7 @@ boolean OvExportCmd::Export (const char* pathname) {
 	}
 	
 	OverlayPS* ovpsv;
-	if (chooser_->idraw_format())
+	if (chooser_->idraw_format() || chooser_->postscript_format())
 	    ovpsv = (OverlayPS*) false_top->Create(POSTSCRIPT_VIEW);
 	else
 	    ovpsv = (OverlayPS*) false_top->Create(SCRIPT_VIEW);
@@ -210,7 +211,12 @@ boolean OvExportCmd::Export (const char* pathname) {
 
 		if (chooser_->to_printer()) {
 		    char cmd[CHARBUFSIZE];
-		    sprintf(cmd, "(%s %s;rm %s)&", pathname, tmpfilename, tmpfilename);
+		    if (strstr(pathname, "%s")) {
+		        char buf[CHARBUFSIZE];
+		        sprintf(buf, pathname, tmpfilename);    
+			sprintf(cmd, "(%s;rm %s)&", buf, tmpfilename);
+		    } else
+			sprintf(cmd, "(%s %s;rm %s)&", pathname, tmpfilename, tmpfilename);
 		    ok = system(cmd) == 0;
 		}
             } 

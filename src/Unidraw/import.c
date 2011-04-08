@@ -251,11 +251,13 @@ GraphicComp* ImportCmd::PostDialog () {
 	    if (comp != nil) {
 		break;
 	    }
+	    chooser_->bodyclear();
 	    style->attribute("caption", "Import failed!");
 	    reset_caption = true;
 	}
     }
     if (reset_caption) {
+        chooser_->bodyclear();
 	style->attribute("caption", "");
     }
     return comp;

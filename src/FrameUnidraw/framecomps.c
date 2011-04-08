@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cider Press
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -45,6 +46,8 @@
 
 #include <InterViews/world.h>
 
+#include <Attribute/attrlist.h>
+
 #include <string.h>
 
 /*****************************************************************************/
@@ -82,6 +85,7 @@ boolean FrameOverlaysComp::IsA(ClassId id) {
 
 Component* FrameOverlaysComp::Copy () {
     FrameOverlaysComp* comps = new FrameOverlaysComp(new Picture(GetGraphic()));
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -142,6 +146,7 @@ boolean FrameComp::IsA(ClassId id) {
 
 Component* FrameComp::Copy () {
     FrameComp* comp = new FrameComp(new Picture(GetGraphic()));
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -433,6 +438,7 @@ void FramesComp::GrowParamList(ParamList* pl) {
 
 Component* FramesComp::Copy () {
     FramesComp* comps = new FramesComp(new Picture(GetGraphic()));
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -497,6 +503,9 @@ FrameIdrawComp::FrameIdrawComp (istream& in, const char* pathname, OverlayComp* 
     }
 }
 
+FrameIdrawComp::FrameIdrawComp(OverlayComp* parent) : FramesComp(parent) {
+}
+
 FrameIdrawComp::~FrameIdrawComp () {
     delete _pathname;
     delete _basedir;
@@ -517,6 +526,7 @@ void FrameIdrawComp::GrowParamList(ParamList* pl) {
 
 Component* FrameIdrawComp::Copy () {
     FrameIdrawComp* comps = new FrameIdrawComp(false, GetPathName());
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -637,7 +647,11 @@ void FrameIdrawComp::Uninterpret (Command* cmd) {
 	cmd->IsA(UNGROUP_CMD) ||
 	cmd->IsA(FRONT_CMD) ||
 	cmd->IsA(BACK_CMD)) 
-	ed->GetFrame()->GetGraphicComp()->Uninterpret(cmd);
+	if (OverlaysView* frameview = ed->GetFrame()) 
+	  frameview->GetGraphicComp()->Uninterpret(cmd);
+	else
+	  OverlaysComp::Uninterpret(cmd);
+
     else if (cmd->IsA(CREATEFRAME_CMD)) {
 	boolean after = ((CreateFrameCmd*)cmd)->After();
 	Iterator frame;
@@ -728,8 +742,8 @@ Graphic* FrameIdrawComp::GetIndexedGS(int index) {
 	    if (index==0) return _gslist->GetGraphic(i);
 	    index--;
 	}
-	return nil;
     }
+    return nil;
 }
 
 void FrameIdrawComp::GrowIndexedPts(MultiLineObj* mlo) {

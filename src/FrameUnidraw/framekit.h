@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1997 Vectaport Inc.
+ * Copyright (c) 1996-1999 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cartoactive Systems
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -36,6 +36,7 @@
 class EivTextEditor;
 class FrameEditor;
 
+//: derived OverlayKit for use with FrameEditor.
 class FrameKit : public OverlayKit {
 public:
     FrameKit();

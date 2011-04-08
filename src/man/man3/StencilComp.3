@@ -1,0 +1,40 @@
+.TH StencilComp 3U "10 August 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+StencilComp, StencilView, PSStencil \- bitmap component subject, view,
+and PostScript external representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/stencilcomp.h>
+.SH DESCRIPTION
+StencilComp is a GraphicComp that represents a bitmapped image.  It
+uses a Stencil graphic to store its graphical attributes.  StencilView
+is a GraphicView for displaying the bitmapped image.  PSStencil is a
+PostScriptView that externalizes the subject's information in
+PostScript form.
+.SH STENCILCOMP PUBLIC OPERATIONS
+.TP
+.B "StencilComp(Stencil* = nil, const char* filename = nil)"
+The constructor takes an optional Stencil structured graphic that
+defines the attributes of the bitmapped image.  You can also supply an
+optional file name to associate the component with a file containing
+the (copious) image data.
+.TP
+.B "Stencil* GetStencil()"
+Return the Stencil graphic that defines the stencil's attributes.
+GetStencil is simply a more specific form of the GetGraphic operation.
+.TP
+.B "const char* GetFileName()"
+Return the file name specified in the constructor, if any.
+.SH STENCILVIEW PUBLIC OPERATIONS
+.TP
+.B "StencilView(StencilComp* = nil)"
+Create an StencilView, optionally supplying the subject.
+.TP
+.B "StencilComp* GetStencilComp()"
+Return the subject.
+.SH PSSTENCIL PUBLIC OPERATIONS
+.TP
+.B "PSStencil(StencilComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+GraphicComp(3U), GraphicView(3U), PostScriptView(3U), Stencil(3U)

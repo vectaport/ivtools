@@ -29,10 +29,11 @@
 
 class rpcbuf;
 
+//: support RPC between a service and its clients
 // Support communication between a RPC service and its clients.
 // Derived classes create readers to read RPC requests from
 // connections with clients.
-
+// <p><a href=../man3.1/RpcService.html>man page</a>
 class RpcService : public IOHandler {
 public:
     virtual ~RpcService();

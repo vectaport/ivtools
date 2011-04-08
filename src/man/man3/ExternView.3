@@ -1,0 +1,57 @@
+.TH ExternView 3U "19 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ExternView, PreorderView, InorderView, PostorderView \- base class for
+external representation objects and subclasses for common traversals
+.SH SYNOPSIS
+.B #include <Unidraw/Components/externview.h>
+.SH DESCRIPTION
+ExternView is the abstract base class for external representation
+objects.  Generally speaking, external representation objects convey
+domain-specific information outside the editor.  They are simply
+component views that extract information from their subject and
+externalize it as a stream of bytes; thus the ExternView base class is
+derived from ComponentView.
+.sp
+There are three predefined ExternView subclasses: PreorderView,
+InorderView, and PostorderView.  These subclasses manage subviews and
+support three common traversals of the external view hierarchy.
+.SH EXTERNVIEW PUBLIC OPERATIONS
+.TP
+.B "virtual boolean Emit(ostream&)"
+.ns
+.TP
+.B "virtual boolean Definition(ostream&)"
+Emit and Definition make up the basic ExternView protocol.  Emit
+initiates external representation generation and calls Definition on
+each of its children.  Emit normally calls the external view's own
+Definition operation first.  Then if the external view contains
+subviews, Emit invokes the children's Definition operations in the
+proper order to ensure a syntactically correct external
+representation.  Both of these operation do nothing by default, and
+both return a boolean that indicates whether the stream of bytes was
+generated successfully.
+.TP
+.B "ExternView* GetView(Iterator)"
+.ns
+.TP
+.B "void SetView(ExternView*, Iterator&)"
+These operations do nothing by default.  Subclasses that contain
+children should redefine them as follows: GetView should return the
+ExternView to which an iterator points.  SetView should initialize
+the iterator to point to a particular ExternView in the list of
+children; it should initialize the iterator to point to a nil instance
+if the given ExternView is not a child.
+.SH EXTERNVIEW PROTECTED OPERATIONS
+.TP
+.B "ExternView(Component* = nil)"
+The abstract base class constructor is protected to guard against
+instantiation.  It takes the subject as an optional argument.
+.SH DERIVED CLASSES
+PreorderView, InorderView, and PostorderView redefine their Definition
+operations to perform preorder, inorder, and postorder traversals of
+their children, respectively. Each child's Definition operation is
+called during the traversal.  Note that every child must be an
+instance of the same ExternView subclass to ensure a consistent
+traversal order.
+.SH SEE ALSO
+Component(3U), ComponentView(3U), Iterator(3U), ostream(3C++)

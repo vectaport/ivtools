@@ -1,0 +1,113 @@
+.TH rpcbuf 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+rpcbuf \- streambuf specialized for sending and receiving RPC requests
+.SH SYNOPSIS
+.B #include <Dispatch/rpcbuf.h>
+.SH DESCRIPTION
+An rpcbuf is a streambuf specialized in two ways: to use an IPC
+connection as a source or sink of characters and to send and receive
+RPC requests.  The rpcbuf encloses RPC requests in packets which begin
+with a length field so that the rpcbuf can buffer requests until they
+are complete if the user uses non-blocking I/O.
+.SH CONSTRUCTORS
+.TP
+.B "rpcbuf(iostreamb* = nil)"
+Construct an unopened rpcbuf, giving it a pointer to an iostreamb so
+that the rpcbuf can read and write the length field of RPC requests.
+.SH IPC OPERATIONS
+.TP
+.B "const char* host()"
+.ns
+.TP
+.B "int port()"
+.ns
+.TP
+.B "int fd()"
+.ns
+.TP
+.B "boolean opened()"
+.ns
+.TP
+.B "boolean nonblocking()"
+Return information about the IPC connection.
+.TP
+.B "enum { anyport = 0 }"
+.ns
+.TP
+.B "rpcbuf* listen(int port)"
+Create a socket, bind the socket to a <localhost, port> address, and
+prepare to accept incoming connections.  anyport can be used in place
+of a specific port number.  Return the rpcbuf's address if successful,
+nil otherwise.
+.TP
+.B "rpcbuf* connect(const char* host, int port)"
+Create a socket and connect it to a peer at the <host, port> address.
+Return the rpcbuf's address if successful, nil otherwise.
+.TP
+.B "rpcbuf* accept(int& fd)"
+Accept an incoming connection, allocate a new file descriptor for it,
+and assign the new file descriptor to the parameter.  Return the
+rpcbuf's address if successful, nil otherwise.  Can be called only for
+rpcbufs that have already called listen.
+.TP
+.B "rpcbuf* attach(int fd)"
+Attach the rpcbuf to a file descriptor.  The rpcbuf will not be
+allowed to close the file descriptor.
+.TP
+.B "rpcbuf* nonblocking(boolean)"
+Enable or disable non-blocking I/O on the file descriptor (disabled by
+default).
+.TP
+.B "rpcbuf* verbose(boolean)"
+Enable or disable printing of error messages when anything goes wrong
+(enabled by default).
+.TP
+.B "rpcbuf* close()"
+Flush the get and put areas, close the file descriptor if it was
+created by the rpcbuf, and detach the rpcbuf from the file descriptor.
+.SH RPC OPERATIONS
+.TP
+.B "int start_request()"
+If a current request exists, compute its length and insert the length
+into the request's length field.  Then start a new request, making
+sure to leave space for the request's length field.  Return 0 if no
+problem occurred, EOF otherwise.
+.TP
+.B "int read_request()"
+Return 0 if a complete request is buffered in the get area, EOF
+otherwise.  The rpcbuf moves the get pointer back to the beginning of
+the request after extracting the length field and checking that the
+get area contains that many bytes.
+.SH STREAMBUF OPERATIONS
+.TP
+.B "virtual int overflow(int c=EOF)"
+If given EOF, terminate the current request.  Flush all requests
+buffered in the put area except for the last request if it's still
+incomplete.  Shift any still incomplete request to the beginning of
+the put area.  If given a character, append it to the request.
+.TP
+.B "virtual int underflow()"
+Flush the put area.  Shift any still unread or incomplete requests to
+the beginning of the get area and position the get pointer at the
+beginning of the get area.  Read as much data as available to fill the
+rest of the get area.  Return the get area's first character or EOF if
+a problem occurred.
+.TP
+.B "virtual int sync()"
+Discard any still unread requests from the get area.  Flush all
+buffered requests from the put area.
+.TP
+.B "virtual streampos seekoff(streamoff, ios::seek_dir, int)"
+Allow the user to find the get pointer's current position so the user
+can compute how many bytes the get pointer moved between calls to
+seekoff.  Return EOF if the user tries to do anything else than find
+the get pointer's current position.
+.TP
+.B "virtual streambuf* setbuf(char*, int)"
+Reject any attempt to set the buffer used to store incoming and
+outgoing requests.  The rpcbuf dynamically allocates separate buffers
+for both areas and automatically resizes the buffers whenever
+necessary.
+.SH SEE ALSO
+IOS.INTRO(3C++),
+rpcstream(3I)

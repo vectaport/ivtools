@@ -358,6 +358,7 @@ boolean VertexManip::Manipulating (Event& e) {
 
         } else if (e.button == RIGHTMOUSE) {
             GetGrowingVertices()->RemoveVertex();
+	    if (GetGrowingVertices()->Count()==0) return false;
         }
     }
     return true;

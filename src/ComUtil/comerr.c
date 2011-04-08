@@ -50,7 +50,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-char * comerr_read( errnum )
+char * comerr_read( unsigned errnum )
 
 
 /*!
@@ -61,8 +61,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        errnum    ;/* I   Number of error message to search for. */
-
+#endif
 
 /*!
 Description:
@@ -101,7 +102,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-void comerr_set( errnum, errlen )
+void comerr_set( unsigned errnum, unsigned errlen )
 
 
 /*!
@@ -112,11 +113,12 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        errnum    ;/* I   Number of error message being submitted. */
 unsigned        errlen    ;/* I   Length of error message string just
 				  printed via `fprintf` to file pointer
 				  returned from `err_fileio`. */
-
+#endif
 
 /*!
 Description:
@@ -215,7 +217,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-BOOLEAN comerr_chk( errnum )
+BOOLEAN comerr_chk( unsigned errnum )
 
 
 /*!
@@ -227,8 +229,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned        errnum    ;/* I   Error number to check for */
-
+#endif
 
 /*!
 Description:

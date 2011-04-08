@@ -1,6 +1,5 @@
-
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University                              
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -38,29 +37,21 @@
 #ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
-#include <Dispatch/ace_dispatcher.h>
+#include <AceDispatch/ace_dispatcher.h>
 #endif
 
+#include <stdio.h>
 #include <stream.h>
 #include <string.h>
 #include <math.h>
-
-#if defined(__sun) && !defined(__svr4__)
-/* Disables atan2(0.0,0.0) warning messages */
-extern "C" {
-    int matherr(struct exception *x) {
-	if (x && strcmp(x->name, "atan2") == 0) return 1;
-	else return 0;
-    }
-}
-#endif
+#include <version.h>
 
 /*****************************************************************************/
 
 static PropertyData properties[] = {
     { "*FrameEditor*name", "flipbook" },
     { "*FrameEditor*iconName", "flipbook" },
-    { "*domain",  "flipbooking" },
+    { "*domain",  "flipbook" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },
     { "*TextEditor*FileChooser*rows", "10" },
@@ -162,6 +153,8 @@ static PropertyData properties[] = {
     { "*toolbarloc",    "l"  },
     { "*twidth",        "512" },
     { "*zoomer_off",    "false"  },
+    { "*opaque_off",    "false"  },
+    { "*slideshow",     "0"  },
 #ifdef HAVE_ACE
     { "*comdraw",       "20002" },
     { "*import",        "20003" },
@@ -199,9 +192,12 @@ static OptionDesc options[] = {
     { "-tw", "*twidth", OptionValueNext },
     { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
+    { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+    { "-slideshow", "*slideshow", OptionValueNext },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
-    { "-comdraw", "*port", OptionValueNext },
+    { "-comdraw", "*comdraw", OptionValueNext },
 #endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -212,18 +208,20 @@ static OptionDesc options[] = {
 static char* usage =
 "Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] \n\
 [-color5] [-color6] [-import port] [-gray5] [-gray6] [-gray7] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+[-opaque_off|-opoff] [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-toolbarloc|-tbl r|l ] \n\
-[-theight|-th n] [-tile] [-twidth|-tw n] [-zoomer_off|-zoff] [file]";
+[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
+[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
+[-zoomer_off|-zoff] [file]";
 #else
 static char* usage =
 "Usage: flipbook [any idraw parameter] [-bookgeom] \n\
-[-color5] [-color6] [-gray5] [-gray6] [-gray7] \n\
+[-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
 [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-toolbarloc|-tbl r|l ] \n\
-[-theight|-th n] [-tile] [-twidth|-tw n] [-zoomer_off|-zoff] [file]";
+[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
+[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
+[-zoomer_off|-zoff] [file]";
 #endif
 /*****************************************************************************/
 
@@ -266,7 +264,7 @@ int main (int argc, char** argv) {
     int portnum = atoi(portstr);
     if (peer_acceptor->open 
 	(ACE_INET_Addr (portnum)) == -1)
-        cerr << "comdraw:  unable to open port " << portnum << "\n";
+        cerr << "flipbook:  unable to open port " << portnum << "\n";
 
     else if (COMTERP_REACTOR::instance ()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
@@ -292,6 +290,22 @@ int main (int argc, char** argv) {
 	FrameEditor* ed = new FrameEditor(initial_file);
 
 	unidraw->Open(ed);
+
+#ifdef HAVE_ACE
+	/*  Start up one on stdin */
+	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+#if 0
+	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+#else
+	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+							  ACE_Event_Handler::READ_MASK)==-1)
+#endif
+	  cerr << "flipbook: unable to open stdin with ACE\n";
+	ed->SetComTerp(stdin_handler->comterp());
+#endif
+	
+
+	fprintf(stderr, "ivtools-%s flipbook: see \"man flipbook\" or type help here for command info\n", VersionString);
 	unidraw->Run();
     }
 

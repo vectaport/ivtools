@@ -95,7 +95,7 @@ int rpcbuf::port() {
     }
 
     struct sockaddr_in name;
-    int name_len = sizeof(name);
+    unsigned int name_len = sizeof(name);
     if (getsockname(_fd, (struct sockaddr*)&name, &name_len) < 0) {
 	sys_error("rpcbuf::port: getsockname");
 	return 0;
@@ -232,7 +232,7 @@ rpcbuf* rpcbuf::connect(const char* host, int port) {
 
 rpcbuf* rpcbuf::accept(int& fd) {
     struct sockaddr_in name;
-    int name_len = sizeof(name);
+    unsigned int name_len = sizeof(name);
 
     if (!_opened) {
 	error("rpcbuf::accept: not using a file number yet");

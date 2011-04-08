@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -33,6 +33,8 @@
 #include <Unidraw/catalog.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
+
+#include <Attribute/attrlist.h>
 
 #include <stdio.h>
 #include <stream.h>
@@ -73,6 +75,7 @@ void FrameFileComp::GrowParamList(ParamList* pl) {
 
 Component* FrameFileComp::Copy () {
     FrameFileComp* ovfile = new FrameFileComp(new Picture(GetGraphic()));
+    if (attrlist()) ovfile->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     if (!Done(i)) ovfile->Append((GraphicComp*)GetComp(i)->Copy());

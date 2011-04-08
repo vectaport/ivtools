@@ -207,7 +207,13 @@ void PrintChooserImpl::build() {
 
 void PrintChooserImpl::to_printer_callback() {
     _to_printer = !_to_printer;
-    editor_->field(_to_printer ? "ghostview" : "./" );
+    if (_to_printer) {
+      if (strcmp(editor_->text()->string(), "./")==0)
+	editor_->field("ghostview %s");
+    } else {
+      if (strcmp(editor_->text()->string(), "ghostview %s")==0)
+	editor_->field("./");
+    }
 }
 
 void PrintChooserImpl::idraw_format_callback() {

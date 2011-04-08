@@ -278,7 +278,7 @@ void ClassBuffer::SearchFile (const char* path, struct stat&) {
 	return;
     }
     if (_verbose) {
-	printf("searching file %s\n", path, len);
+	printf("searching file %s (%d)\n", path, len);
     }
 
     /*

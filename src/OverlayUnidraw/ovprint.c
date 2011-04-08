@@ -171,8 +171,14 @@ void OvPrintCmd::Execute () {
 }
 
 int OvPrintCmd::print (const char* print_cmd, const char* file) {
+    
     char cmd[CHARBUFSIZE];
-    sprintf(cmd, "(%s %s ;rm %s)&", print_cmd, file, file);
+    if (strstr(print_cmd, "%s")) {
+        char buf[CHARBUFSIZE];
+	sprintf(buf, print_cmd, file);
+        sprintf(cmd, "(%s;rm %s)&", buf, file);
+    } else 
+        sprintf(cmd, "(%s %s ;rm %s)&", print_cmd, file, file);
     return system(cmd);
 }
 

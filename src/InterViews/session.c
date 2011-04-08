@@ -453,7 +453,7 @@ void SessionRep::init(
 void SessionRep::parse_args(int& argc, char** argv, const OptionDesc* opts) {
     int i;
     int newargc = 1;
-    char* newargv[1024];
+    char** newargv = new char*[argc];
     newargv[0] = argv[0];
     for (i = 1; i < argc; i++) {
 	boolean matched = false;
@@ -476,6 +476,7 @@ void SessionRep::parse_args(int& argc, char** argv, const OptionDesc* opts) {
 	argc = newargc;
 	argv[argc] = nil;
     }
+    delete [] newargv;
 }
 
 /*
@@ -660,7 +661,7 @@ void SessionRep::load_path(
     char* buf = new char[h.length() + t.length() + 1];
     sprintf(buf, "%s%s", h.string(), t.string());
     s->load_file(String(buf), priority);
-    delete buf;
+    delete[] buf;
 }
 
 const char* SessionRep::home() {
@@ -681,7 +682,7 @@ void SessionRep::load_path(
     char* buf = new char[h.length() + m.length() + t.length() + 1];
     sprintf(buf, "%s%s%s", h.string(), m.string(), t.string());
     s->load_file(String(buf), priority);
-    delete buf;
+    delete[] buf;
 }
 
 /*

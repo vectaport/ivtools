@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -41,6 +41,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <Attribute/attrlist.h>
+
 #include <stdio.h>
 #include <stream.h>
 #include <string.h>
@@ -62,7 +64,10 @@ boolean StencilOvComp::IsA (ClassId id) {
 }
 
 Component* StencilOvComp::Copy () {
-    return new StencilOvComp((UStencil*) GetGraphic()->Copy(), _pathname);
+    StencilOvComp* comp = 
+      new StencilOvComp((UStencil*) GetGraphic()->Copy(), _pathname);
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 StencilOvComp::StencilOvComp (UStencil* s, const char* pathname, OverlayComp* parent ) 
@@ -259,24 +264,52 @@ int StencilScript::ReadStencil (istream& in, void* addr1, void* addr2, void* add
     if (!in.good()) 
 	return -1;
 
+#if 1
+    boolean urlflag = ParamList::urltest(pathname);
+    boolean already_ref = false;
+    
+    const char* creator = !urlflag ? OvImportCmd::ReadCreator(pathname) : nil;
+    if (!creator && !urlflag) {
+      cerr << "Error in reading creator for raster: " << pathname << "\n";
+      return -1;
+    }
+#else
     const char* creator = OvImportCmd::ReadCreator(pathname);
     if (!creator) return -1;
+#endif
     Bitmap* bitmap = nil;
-    if (strcmp(creator, "X11") == 0) 
-	bitmap = OvImportCmd::XBitmap_Bitmap(pathname);
-	
-    else if (strcmp(creator, "PBM") == 0) 
-	bitmap = OvImportCmd::PBM_Bitmap(pathname);
-
+    if (!urlflag && strcmp(creator, "X11") == 0) 
+        bitmap = OvImportCmd::XBitmap_Bitmap(pathname);
+    
+    else if (!urlflag && strcmp(creator, "PBM") == 0) 
+        bitmap = OvImportCmd::PBM_Bitmap(pathname);
+    
+    else if (urlflag || 
+	     strcmp(creator, "JPEG") == 0 || 
+	     strcmp(creator, "GIF")==0) {
+        OvImportCmd importcmd((Editor*)nil);
+	OverlayComp* tempcomp = (OverlayComp*)importcmd.Import(pathname);
+	if (tempcomp && tempcomp->IsA(OVSTENCIL_COMP)) {
+	  UStencil* ustencil = 
+	    ((StencilOvComp*)tempcomp)->GetStencil();
+	  Bitmap* mask = nil;
+	  if(ustencil) ustencil->GetOriginal(bitmap, mask);
+	  if (bitmap) bitmap->ref(); // to protect from deletion
+   	  already_ref = true;		      
+	  delete tempcomp;
+	  
+	}
+    }
+    
     if (bitmap != nil) {
-        bitmap->ref();
+        if(!already_ref) bitmap->ref();
         bitmap->flush();
-	comp->_gr = new UStencil(bitmap, bitmap, stdgraphic);
+        comp->_gr = new UStencil(bitmap, bitmap, stdgraphic);
 	comp->_pathname = strdup(pathname);
 	return 0;
     } else {
-	cerr << "Unable to access stencil file:  " << pathname << "\n";
-	return -1;
+      cerr << "Unable to access stencil file:  " << pathname << "\n";
+      return -1;
     }
 }
 
@@ -341,7 +374,7 @@ int StencilScript::ReadImageBitmap (istream& in, void* addr1, void* addr2, void*
 	return 0;
     } else {
         delete bitmap;
-	cerr << "Unable to create bitmap from script file." << "\n";
+	cerr << "Unable to create bitmap from file." << "\n";
 	return -1;
     }
 }
@@ -365,7 +398,7 @@ int StencilScript::ReadMaskBitmap (istream& in, void* addr1, void* addr2, void* 
 	return 0;
     } else {
         delete bitmap;
-	cerr << "Unable to create bitmap from script file." << "\n";
+	cerr << "Unable to create bitmap from file." << "\n";
 	return -1;
     }
 }

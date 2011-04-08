@@ -1,0 +1,33 @@
+.TH RpcWriter 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+RpcWriter \- write RPC requests to a server
+.SH SYNOPSIS
+.B #include <Dispatch/rpcwriter.h>
+.SH DESCRIPTION
+An RpcWriter (actually, an instance of a class derived from RpcWriter)
+writes RPC requests to a server.  Derived classes should add member
+functions that send RPC requests corresponding to the RPC service's
+protocol.
+.SH CONSTRUCTORS
+.TP
+.B "RpcWriter(const char* path, boolean fatal, boolean binary)"
+.ns
+.TP
+.B "RpcWriter(const char* host, int port, boolean fatal, boolean binary)"
+.ns
+.TP
+.B "RpcWriter(int fd, boolean fatal, boolean binary)"
+.ns
+.TP
+.B "RpcWriter(rpcstream* server)"
+Open a connection to an RPC service at its registered host name and
+port number, or give the host name and port number needed to open a
+connection to the RPC service, or give the number of an already open
+file descriptor, or give the address of an already open rpcstream
+(connection).  Negotiate the I/O format (binary or formatted) if
+opening a connection.  Terminate the program if errors should be
+fatal.
+.SH SEE ALSO
+RpcHdr(3I),
+RpcRegistry(3I),
+rpcstream(3I)

@@ -6,7 +6,8 @@ XCOMM
 PACKAGE = man_ivtools
 
 SUBDIRS	= \
-	man1
+	man1 \
+        man3
 
 MakeInSubdirs($(SUBDIRS))
 FormatSubdirs($(SUBDIRS))
