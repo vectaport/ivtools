@@ -40,7 +40,7 @@ public:
     SymIdFunc(ComTerp*);
     virtual void execute();
 
-    virtual boolean post_eval() { return true; }
+    // virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "int|lst=%s(symbol [symbol ...]) -- return id(s) associated with symbol(s)"; }
 };
@@ -75,7 +75,7 @@ public:
     SymAddFunc(ComTerp*);
     virtual void execute();
 
-    virtual boolean post_eval() { return true; }
+    // virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "sym|lst=%s(symbol [symbol ...]) -- create symbol(s) and return without lookup"; }
 };

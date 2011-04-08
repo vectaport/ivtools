@@ -100,11 +100,15 @@ void SymAddFunc::execute() {
   if (numargs>1) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    for (int i=0; i<numargs; i++)
-      avl->Append(new AttributeValue(symbol_ids[i], AttributeValue::SymbolType));
+    for (int i=0; i<numargs; i++) {
+      AttributeValue* av = new AttributeValue(symbol_ids[i], AttributeValue::SymbolType);
+      if (symbol_ids[i]<0) av->type(ComValue::UnknownType);
+      avl->Append(av);
+    }
     push_stack(retval);
   } else {
     ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
+    if (symbol_ids[0]<0) retval.type(ComValue::UnknownType);
     push_stack(retval);
   }
 

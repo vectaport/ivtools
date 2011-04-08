@@ -724,7 +724,7 @@ ComValue& ComTerp::pop_stack(boolean lookupsym) {
     else 
       return stacktop;
   } else
-    return ComValue::nullval();
+    return ComValue::blankval();
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
@@ -797,7 +797,7 @@ ComValue& ComTerp::lookup_symval(int symid) {
 
 ComValue& ComTerp::stack_top(int n) {
   if (_stack_top+n < 0 || _stack_top+n >= _stack_siz) {
-    return ComValue::unkval();    
+    return ComValue::blankval();    
   }
   else
     return _stack[_stack_top+n];
@@ -970,6 +970,7 @@ void ComTerp::add_defaults() {
     add_command("repeat", new RepeatFunc(this));
     add_command("iterate", new IterateFunc(this));
     add_command("next", new NextFunc(this));
+    add_command("each", new EachFunc(this));
 
     add_command("dot", new DotFunc(this));
     add_command("attrname", new DotNameFunc(this));

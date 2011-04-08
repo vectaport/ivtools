@@ -51,12 +51,15 @@ const ComTerp* ComValue::_comterp = nil;
 
 ComValue::ComValue(ComValue& sv) {
     *this = sv;
-    ref_as_needed();
+}
+
+ComValue::ComValue(ComValue* sv) {
+    *this = *sv;
+    dup_as_needed();
 }
 
 ComValue::ComValue(AttributeValue& sv) {
     *(AttributeValue*)this = sv;
-    ref_as_needed();
     zero_vals();
 }
 
@@ -96,7 +99,7 @@ ComValue::ComValue(postfix_token* token) {
     clear();
     void* v1 = &_v;
     void* v2 = &token->v;
-    memcpy(v1, v2, sizeof(double));
+    memcpy(v1, v2, sizeof(_v));
     switch (token->type) {
     case TOK_STRING:  type(StringType); break;
     case TOK_CHAR:    type(CharType); break;
@@ -127,6 +130,7 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nids = sv._nids;
     _pedepth = sv._pedepth;
     _bquote = sv._bquote;
+    ref_as_needed();
     return *this;
 }
     

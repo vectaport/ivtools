@@ -58,6 +58,7 @@ void PrintFunc::execute() {
   reset_stack();
 
   const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
+  ComValue::comterp(comterp());
 
 #if __GNUG__<3
   streambuf* strmbuf = nil;
@@ -89,7 +90,8 @@ void PrintFunc::execute() {
 #endif
   ostream out(strmbuf);
 
-  if (nargs()==1) {
+  int narg = nargs();
+  if (narg==1) {
 
     if (formatstr.is_string())
       out << formatstr.symbol_ptr();

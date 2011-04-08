@@ -48,6 +48,7 @@ void ConfirmBoxFunc::execute() {
   reset_stack();
   int status = GConfirmDialog::post(GetEditor()->GetWindow(), msgstrv.symbol_ptr());
   ComValue retval(status);
+  if (status==-1) retval.type(ComValue::UnknownType);
   push_stack(retval);
 }
 

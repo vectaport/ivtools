@@ -33,7 +33,7 @@
 class ComTerp;
 
 //: help command for ComTerp.
-// help([command] [command...] :all) -- help for commands.
+// help([command] [command...] :all :posteval) -- help for commands.
 class HelpFunc : public ComFunc {
 public:
     HelpFunc(ComTerp*);
@@ -41,7 +41,9 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s([command] [command...] :all) -- help for commands"; }
+      return "%s([command] [command...] :all :posteval) -- help for commands"; }
 };
 
 #endif /* !defined(_helpfunc_h) */
+
+

@@ -45,6 +45,8 @@ class ComValue : public AttributeValue {
 public:
     ComValue(ComValue&);
     // copy constructor.
+    ComValue(ComValue*);
+    // deep copy constructor.
     ComValue(AttributeValue&);
     // copy constructor from an AttributeValue.
     ComValue(postfix_token* token);

@@ -1,7 +1,7 @@
 ivmkcm is a set of Perl scripts that use CVS to manage source tree
 directories.  The Makefile hierarchy of ivtools contains built-in
 targets described below that facilitate the hierarchical use of
-ivmkcm. You can acquire ivmkcm from http://www.vectaport.com/ivmkcm/.
+ivmkcm. You can acquire ivmkcm from http://www.ivtools.org/ivmkcm/.
 It is licensed under the GPL.
 
 This file documents the Makefile targets associated with ivmkcm, and

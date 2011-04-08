@@ -52,7 +52,11 @@ AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
 
 AttributeValue::AttributeValue(AttributeValue& sv) {
     *this = sv;
-    ref_as_needed();
+}
+
+AttributeValue::AttributeValue(AttributeValue* sv) {
+    *this = *sv;
+    dup_as_needed();
 }
 
 AttributeValue::AttributeValue() {
@@ -172,7 +176,7 @@ void AttributeValue::clear() {
 AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     void* v1 = &_v;
     const void* v2 = &sv._v;
-    memcpy(v1, v2, sizeof(double));
+    memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
     _command_symid = sv._command_symid;
 #if 0  // disable symbol reference counting
@@ -921,7 +925,7 @@ int AttributeValue::type_size(ValueType type) {
 void AttributeValue::assignval (const AttributeValue& av) {
     void* v1 = &_v;
     const void* v2 = &av._v;
-    memcpy(v1, v2, sizeof(double));
+    memcpy(v1, v2, sizeof(_v));
     _type = av._type;
     _command_symid = av._command_symid;
 #if 0 // this end of reference counting disabled as well
@@ -987,6 +991,20 @@ void AttributeValue::ref_as_needed() {
       Resource::ref(_v.arrayval.ptr);
     else if (_type == AttributeValue::StreamType)
       Resource::ref(_v.streamval.listptr);
+}
+
+void AttributeValue::dup_as_needed() {
+  if (_type == AttributeValue::ArrayType) {
+    AttributeValueList* avl = _v.arrayval.ptr;
+    _v.arrayval.ptr = new AttributeValueList(avl);
+    Resource::ref(_v.arrayval.ptr);
+    Resource::unref(avl);
+  } else if (_type == AttributeValue::StreamType) {
+    AttributeValueList* avl = _v.streamval.listptr;
+    _v.streamval.listptr = new AttributeValueList(avl);
+    Resource::ref(_v.streamval.listptr);
+    Resource::unref(avl);
+  }
 }
 
 void AttributeValue::unref_as_needed() {

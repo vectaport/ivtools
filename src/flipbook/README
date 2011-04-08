@@ -59,11 +59,12 @@ this mode.
 with "sec" delay between frames (currently only available when built
 with ACE).
 
-Also see "-help" for more options.
+Also see "-help" for more options, and the comdraw, drawtool, and
+idraw man pages.
 
 SEE ALSO
 	drawtool, idraw
 
 WEB PAGE
-	http://www.vectaport.com/ivtools/flipbook.html
+	http://www.ivtools.org/ivtools/flipbook.html
 

@@ -115,6 +115,8 @@ public:
     // construct with specified type and value struct.
     AttributeValue(AttributeValue&);
     // copy constructor.
+    AttributeValue(AttributeValue*);
+    // deep copy constructor.
     AttributeValue();
     // default constructor (UnknownType constructor).
 
@@ -359,6 +361,8 @@ protected:
     // increment ref counters as needed
     void unref_as_needed();
     // decrement ref counters as needed
+    void dup_as_needed();
+    // duplicate lists then increment ref counters as needed
 
     ValueType _type;
     attr_value _v;

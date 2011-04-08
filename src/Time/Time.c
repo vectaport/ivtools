@@ -51,7 +51,7 @@ const unsigned VERSION =2;
 
 #endif
 
-#if defined(BSD) || defined(hpux) || defined(linux) || defined(__sun) || defined(__alpha) || defined(__CYGWIN__) || defined(__FreeBSD__)
+#if defined(BSD) || defined(hpux) || defined(linux) || defined(__sun) || defined(__alpha) || defined(__CYGWIN__) || defined(__FreeBSD__) || defined(__NetBSD__)
 
 #ifdef hpux
 #include <time.h>
@@ -62,7 +62,9 @@ extern "C" {
     int gettimeofday(struct timeval *tp, struct timezone *tzp);
 }
 #endif
-
+#if defined(__NetBSD__)
+  #include </usr/include/sys/time.h>
+#endif
 #endif
 
 static long TIME_ZONE;          /* seconds west of GMT */

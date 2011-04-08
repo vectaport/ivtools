@@ -81,6 +81,7 @@ struct _opr_tbl_default_entry {
 } DefaultOperatorTable[] = {
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
   {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
+  {"$",          "stream",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"~",          "bit_not",            110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"++",         "incr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
@@ -903,6 +904,7 @@ Operator   Command            Priority   RtoL   Type
 --------   -------            --------   ----   ----
 .          dot                130        N      BINARY
 `          bquote             125        Y      UNARY PREFIX
+$          stream             125        Y      UNARY PREFIX
 !          negate             110        Y      UNARY PREFIX
 ~          bit_not            110        Y      UNARY PREFIX
 ++         incr               110        Y      UNARY PREFIX

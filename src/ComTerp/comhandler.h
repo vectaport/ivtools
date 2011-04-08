@@ -148,6 +148,12 @@ public:
     ComterpHandler(int id) { comterp_ = new ComTerpServ(); _handle = id;}
     int get_handle() { return _handle;}
 
+    FILE* wrfptr() { return nil; }
+    // file pointer for writing to handle
+    
+    FILE* rdfptr() { return nil; }
+    // file pointer for reading from handle
+
 protected:
     int _handle;
     ComTerpServ* comterp_;

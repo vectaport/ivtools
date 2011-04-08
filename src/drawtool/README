@@ -72,10 +72,51 @@ or idraw documents and pbmplus image formats (PBM/PGM/PPM), plus JPEG, GIF,
 TIFF, and the non-raster portions of arbitrary PostScript if appropriate
 filters are available (djpeg, giftopnm, tifftopnm, pstoedit).
 
-Also see "-help" for more options.
+"-color5" selects a colormap with 5 values per color or 125 entries (5
+cubed).
+
+"-nocolor6" overrides the selection of a colormap with 6 values per
+color or 216 entries (6 cubed).
+
+"-gray5" selects a colormap with 5 bits of gray-level intensity (32
+gray-levels) arranged to maximize rubberband visibility.
+
+"-gray6" selects a colormap with 6 bits of gray-level intensity (64
+gray-levels)  arranged to maximize rubberband visibility.
+
+"-gray7" selects a colormap with 7 bits of gray-level intensity (128
+gray-levels) arranged to maximize rubberband visibility.
+
+"-dithermap" causes imported JPEG rasters to be mapped to the standard
+colormap (the default without -nocolor6) and dithered to avoid color
+banding.
+
+"-opaque_off" (or "-opoff") disables the opaque (visible)
+interactive transformations of graphics.
+
+"-pagecols" (or "-ncols") sets the horizontal page extent in pixels.
+
+"-pagerows" (or "-nrows") sets the vertical page extent in pixels.
+
+"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal
+...") selects the alignment of the panner display.
+
+"-panner_off" (or "-poff") disables the panner display.
+
+"-slider_off" (or "-soff") disables the slider display.
+
+"-zoomer_off" (or "-zoff") disables the zoomer display.
+
+"-ptrloc" enables display of the current pointer location.
+
+"-scribble_pointer (or "-scrpt") enables continuous line drawing.
+
+"-toolbarloc r|l" (or "-tbl ...") selects the toolbar location.
+
+Also see "-help" and the idraw man page for more options.
 
 SEE ALSO  
 	idraw
 
 WEB PAGE
-	 http://www.vectaport.com/ivtools/drawtool.html
+	 http://www.ivtools.org/ivtools/drawtool.html

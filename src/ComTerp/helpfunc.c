@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -15,7 +16,7 @@
  * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
  * IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL,
  * INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
- * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * 
@@ -53,6 +54,9 @@ void HelpFunc::execute() {
   static int all_symid = symbol_add("all");
   ComValue allflag(stack_key(all_symid));
 
+  static int posteval_symid = symbol_add("posteval");
+  ComValue postevalflag(stack_key(posteval_symid));
+
   static int aliases_symid = symbol_add("aliases");
   ComValue aliasesflag(stack_key(aliases_symid));
 		   
@@ -63,7 +67,7 @@ void HelpFunc::execute() {
   int nfuncs = 0;
   
   /* build up table of command ids and flags to indicate if its an operator encased in quotes */
-  if (allflag.is_false()) {
+  if (allflag.is_false() && postevalflag.is_false()) {
 
     nfuncs = nargs();
     comfuncs = new ComFunc*[nfuncs];
@@ -112,6 +116,8 @@ void HelpFunc::execute() {
       comterp()->localtable()->find(vptr, command_id);
       if (vptr && ((ComValue*)vptr)->is_command()) {
 	comfuncs[j] = (ComFunc*)((ComValue*)vptr)->obj_val();
+	if (postevalflag.is_true() && !comfuncs[j]->post_eval())
+	  comfuncs[j] = nil;
       } else
 	comfuncs[j] = nil;
       str_flags[j] = false;
@@ -132,7 +138,11 @@ void HelpFunc::execute() {
 #else
   filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+#if 1
   ostream outs(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);
+#else
+  ostream outs((streambuf*)&fbuf);
+#endif
   ostream *out = &outs;
 #endif
 
@@ -183,6 +193,7 @@ void HelpFunc::execute() {
 	      ComValue* value = comterp()->localvalue(opr_tbl_commid(op_ids[j]));
 	      if (value) {
 		ComFunc* comfunc = (ComFunc*)value->obj_val();
+		if (postevalflag.is_true() && !comfunc->post_eval()) continue;
 		if (first) 
 		  first = false;
 		else
@@ -202,7 +213,7 @@ void HelpFunc::execute() {
 
 	    }
 	  }
-	} else {
+	} else if (comfuncs[i]) {
 	  if (first) 
 	    first = false;
 	  else

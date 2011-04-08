@@ -131,7 +131,7 @@ pause([msgstr]) -- pause script execution until C/R
 
 OPTIONS
 
-"-port n" specifies the port number to accept command interpreter
+"-comdraw n" specifies the port number to accept command interpreter
 connections on.
 
 "-import n" specifies the port number run the import service on.  The
@@ -142,11 +142,23 @@ format data.
 slider, or zoomer.  It can be controlled via stdin or telnet if built
 with ACE.
 
+"-rampsize n" selects the rampsize used for gray-level image
+processing.
+
+"-theight n" (or "-th n") selects the automatic raster tiling height.
+
+"-twidth n" (or "-tw n") selects the automatic raster tiling width.
+
+"-tile" enables the automatic raster tiling.
+
+Also see the -help message and the drawtool and idraw man pages for
+further options.
+
 SEE ALSO  
 	comterp, drawtool, idraw
 
 WEB PAGES
-	 http://www.vectaport.com/ivtools/comdraw.html
+	 http://www.ivtools.org/ivtools/comdraw.html
 
 
 

@@ -3,7 +3,7 @@
 #define ProjectDir $(IVDIR)
 
 #undef InstalledRoot
-#define InstalledRoot $(IVDIR)/ivtools-0.9
+#define InstalledRoot $(IVDIR)/ivtools-1.0
 
 #undef TroffCmd
 #define TroffCmd nroff -Tlpr
