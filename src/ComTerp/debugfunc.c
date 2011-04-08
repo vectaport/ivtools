@@ -26,7 +26,7 @@
 
 #include <ComTerp/debugfunc.h>
 #include <ComTerp/comterpserv.h>
-#include <strstream.h>
+#include <strstream>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
 #include <vector.h>
@@ -76,13 +76,13 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   comterp()->npause()++;
 
  if (msgstrv.is_string()) {
-    ostrstream sbuf1_s;
+    std::ostrstream sbuf1_s;
     sbuf1_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): " 
 	    << msgstrv.string_ptr() << "\n";
     sbuf1_s.put('\0');
     cerr << sbuf1_s.str();
  }
-  ostrstream sbuf2_s;
+  std::ostrstream sbuf2_s;
   sbuf2_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): enter command or press C/R to continue\n";
   sbuf2_s.put('\0');
   cerr << sbuf2_s.str();
@@ -149,7 +149,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
     }
   } while (cvect[0] != '\n');
   comterp()->pop_servstate();
-  ostrstream sbuf_e;
+  std::ostrstream sbuf_e;
   sbuf_e << (stepfunc() ? "end of step(" : "end of pause(") << comterp()->npause()-- << ")\n";
   sbuf_e.put('\0');
   cerr << sbuf_e.str();

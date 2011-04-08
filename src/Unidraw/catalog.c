@@ -63,7 +63,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stream.h>
-#include <strstream.h>
+#include <strstream>
 #ifdef SYSV
 #include <OS/types.h>
 #include <unistd.h>
@@ -1660,7 +1660,7 @@ PSPattern* Catalog::ReadPattern (const char* n, int index) {
 	    }
 
 	} else {
-	    istrstream in(definition, strlen(definition) + 1);
+	    std::istrstream in(definition, strlen(definition) + 1);
             int data[patternHeight];
             int i;
 	    for (i = 0; !in.eof() && in.good() && i < patternHeight; i++) {

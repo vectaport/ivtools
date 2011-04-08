@@ -58,7 +58,7 @@
 #include <ctype.h>
 #include <iostream.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 #include <unistd.h>
 #if __GNUC__>=3
 #include <fstream.h>

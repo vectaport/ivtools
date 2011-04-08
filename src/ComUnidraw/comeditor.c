@@ -58,7 +58,7 @@
 
 #include <Attribute/attrlist.h>
 
-#include <strstream.h>
+#include <strstream>
 #include <string.h>
 
 /*****************************************************************************/
@@ -231,7 +231,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
   if(!whiteboard()) 
     OverlayEditor::ExecuteCmd(cmd);
   else {
-    ostrstream sbuf;
+    std::ostrstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
     OverlayScript::ptlist_parens(false);
     switch (cmd->GetClassId()) {

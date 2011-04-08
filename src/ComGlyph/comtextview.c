@@ -49,7 +49,7 @@
 #include <ComTerp/comvalue.h>
 #include <ctype.h>
 #include <iostream.h>
-#include <strstream.h>
+#include <strstream>
 #include <string.h>
 
 #define XK_MISCELLANY           /* to get the keysym's we need */
@@ -232,7 +232,7 @@ void ComTE_View::newline()
 #else
   ComValue result(comterp()->pop_stack());
 #endif
-  ostream* out = new strstream();
+  ostream* out = new std::strstream();
   if (*comterp()->errmsg()) {
     *out << comterp()->errmsg() << "\n";
   } else {
@@ -248,7 +248,7 @@ void ComTE_View::newline()
   }
   out->put('\0');
   out->flush();
-  strstream* sout = (strstream*)out;
+  std::strstream* sout = (std::strstream*)out;
   insert_string(sout->str(), strlen(sout->str()));
   comterp()->brief(old_brief);
   delete out; 

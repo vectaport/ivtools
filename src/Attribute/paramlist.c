@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <string.h>
 #ifndef __APPLE__
-#include <strstream.h>
+#include <strstream>
 #endif
 
 /*****************************************************************************/

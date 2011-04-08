@@ -49,7 +49,7 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 
 /*****************************************************************************/
 
@@ -446,7 +446,7 @@ void TerpDialogImpl::eval() {
     } else {
         char buf[BUFSIZ];
         buf[0] = '\0';
-        ostrstream ostr(buf, BUFSIZ);
+        std::ostrstream ostr(buf, BUFSIZ);
 	
         ostr << retval;
 	ostr << '\0';

@@ -41,7 +41,7 @@
 #include <OS/math.h>
 #include <OS/types.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 
 // how is this done portably? it is used to generate a name unique to
 // this process.
@@ -129,7 +129,7 @@ static void setDragProperty(
     Atom property = None;
     if (length != 0) {
 	char buffer[256];
-	ostrstream name(buffer, 256);
+	std::ostrstream name(buffer, 256);
 	name << dragName << "_" << Host::name() << "_" << getpid() << "_"  <<
 	    dropUid++ << '\0';
 	property = XInternAtom(display, name.str(), False);

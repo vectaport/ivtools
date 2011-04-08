@@ -1,3 +1,12 @@
+December December 8th, 2003  ivtools-1.1.2
+
+- fixes a problem with using gcc-2.95 to compile ivtools-1.1.*.  It
+avoids the use of a local copy of strstream.h, which worked fine for
+gcc-3.3, but not for gcc-2.9.5.  Instead it uses strstream directly,
+and appends istrstream and ostrstream with the std:: using prefix.
+Fix contributed by Mark Davies.
+
+
 November 16th, 2003  ivtools-1.1.1
 
 - add missing src/include/ivstd/strstream.h to MANIFEST file and tar file

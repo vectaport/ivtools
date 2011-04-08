@@ -31,7 +31,7 @@
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
 #include <iostream.h>
-#include <strstream.h>
+#include <strstream>
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
@@ -73,7 +73,7 @@ void PrintFunc::execute() {
     } else
       fbuf->attach(fileno(errflag.is_false() ? stdout : stderr));
   } else {
-    strmbuf = new strstreambuf();
+    strmbuf = new std::strstreambuf();
   }
 #else
   streambuf* strmbuf = nil;
@@ -87,7 +87,7 @@ void PrintFunc::execute() {
       fbuf = new fileptr_filebuf(errflag.is_false() ? stdout : stderr, ios_base::out);
     strmbuf = fbuf;
   } else
-    strmbuf = new strstreambuf();
+    strmbuf = new std::strstreambuf();
 #endif
   ostream out(strmbuf);
 
@@ -177,11 +177,11 @@ void PrintFunc::execute() {
 
   if (stringflag.is_true() || strflag.is_true()) {
     out << '\0';
-    ComValue retval(((strstreambuf*)strmbuf)->str());
+    ComValue retval(((std::strstreambuf*)strmbuf)->str());
     push_stack(retval);
   } else if (symbolflag.is_true() || symflag.is_true()) {
     out << '\0';
-    int symbol_id = symbol_add(((strstreambuf*)strmbuf)->str());
+    int symbol_id = symbol_add(((std::strstreambuf*)strmbuf)->str());
     ComValue retval(symbol_id, ComValue::SymbolType);
     push_stack(retval);
   }

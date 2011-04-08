@@ -34,7 +34,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <OS/math.h>
 
 #include <iostream.h>
-#include <strstream.h>
+#include <strstream>
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
@@ -127,7 +127,7 @@ void HelpFunc::execute() {
   
   reset_stack();
 
-  strstreambuf sbuf;
+  std::strstreambuf sbuf;
 #if __GNUC__<3
   filebuf fbuf;
   if (comterp()->handler()) {

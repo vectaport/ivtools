@@ -41,7 +41,7 @@
 
 #include <IVGlyph/textedit.h>
 
-#include <strstream.h>
+#include <strstream>
 #include <string.h>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
@@ -139,7 +139,7 @@ void AttributeListEditor::update_text(boolean update) {
 #else
         vbuf.push_back(' ');
 #endif
-	strstream valstr;
+	std::strstream valstr;
 	valstr << *attr->Value() << '\0';
 	const char* val = valstr.str();
 	int vallen = val ? strlen(val) : 0;

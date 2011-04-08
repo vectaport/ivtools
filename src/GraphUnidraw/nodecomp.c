@@ -78,7 +78,7 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 
 FullGraphic* NodeView::_nv_gs = nil;
 
@@ -602,7 +602,7 @@ void NodeComp::update(Observable*) {
 	GetComTerp();
       boolean old_brief = comterp->brief();
       comterp->brief(true);
-      ostrstream outstr;
+      std::ostrstream outstr;
       NodeComp* node;
       int incnt = 1;
       while (node = NodeIn(incnt)) {
