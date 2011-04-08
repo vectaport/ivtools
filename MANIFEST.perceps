@@ -19,6 +19,7 @@ ComGlyph/terpdialog.h
 ComTerp/_comterp.h
 ComTerp/_comutil.h
 ComTerp/assignfunc.h
+ComTerp/bitfunc.h
 ComTerp/boolfunc.h
 ComTerp/bquotefunc.h
 ComTerp/comfunc.h

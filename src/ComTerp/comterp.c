@@ -25,6 +25,7 @@
 #include <ComTerp/_comterp.h>
 #include <ComTerp/_comutil.h>
 #include <ComTerp/assignfunc.h>
+#include <ComTerp/bitfunc.h>
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/bquotefunc.h>
 #include <ComTerp/comfunc.h>
@@ -892,6 +893,12 @@ void ComTerp::add_defaults() {
     add_command("decr", new DecrFunc(this));
     add_command("decr_after", new DecrAfterFunc(this));
 
+    add_command("bit_and", new BitAndFunc(this));
+    add_command("bit_xor", new BitXorFunc(this));
+    add_command("bit_or", new BitOrFunc(this));
+    add_command("bit_not", new BitNotFunc(this));
+    add_command("lshift", new LeftShiftFunc(this));
+    add_command("rshift", new RightShiftFunc(this));
     add_command("and", new AndFunc(this));
     add_command("or", new OrFunc(this));
     add_command("negate", new NegFunc(this));

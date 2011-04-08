@@ -38,7 +38,7 @@ InstallScriptAs(mkgif89a.bash,$(BINDIR),mkgif89a)
 InstallScriptAs(mkgif89ac.bash,$(BINDIR),mkgif89ac)
 InstallScriptAs(ivgetjpg.bash,$(BINDIR),ivgetjpg)
 InstallScriptAs(cntsrclines.bash,$(BINDIR),cntsrclines)
-InstallScriptAs(tiftopnm.bash,$(BINDIR),tiftopnm)
+InstallScriptAs(ivtiftopnm.bash,$(BINDIR),ivtiftopnm)
 
 InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)
 

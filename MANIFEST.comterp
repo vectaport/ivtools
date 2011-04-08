@@ -95,6 +95,8 @@ src/ComTerp/_comterp.h
 src/ComTerp/_comutil.h
 src/ComTerp/assignfunc.c
 src/ComTerp/assignfunc.h
+src/ComTerp/bitfunc.c
+src/ComTerp/bitfunc.h
 src/ComTerp/boolfunc.c
 src/ComTerp/boolfunc.h
 src/ComTerp/comfunc.c
@@ -274,5 +276,5 @@ src/scripts/ivmkmf.cpp
 src/scripts/mkdirhier.sh
 src/scripts/mkgif89a.bash
 src/scripts/mkgif89ac.bash
+src/scripts/ivtiftopnm.bash
 src/scripts/pnmtopgm.sh
-src/scripts/tiftopnm.bash

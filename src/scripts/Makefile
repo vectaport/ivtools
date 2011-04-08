@@ -67,9 +67,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-0.9.5
+   RELEASE = ivtools-0.9.6
 
-   VERSION = 0.9.5
+   VERSION = 0.9.6
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -82,7 +82,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 	$(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
              DEPEND = makedepend
-     DEPEND_CCFLAGS = -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I$(GPLUSPLUS_INCLUDE_DIR) -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
+     DEPEND_CCFLAGS = -w -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I$(GPLUSPLUS_INCLUDE_DIR) -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
                MAKE = make
            PASSARCH = ARCH="$(ARCH)" SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS)" CMFLAGS="$(CMFLAGS)" CMMSG="$(CMMSG)"
           ARCHORCPU = $(CPU)
@@ -113,7 +113,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
           CCDEFINES = $(APP_CCDEFINES) $(IV_CCDEFINES) $(OTHER_CCDEFINES) $(EXTRA_CCDEFINES)
        IV_CCDEFINES = $(LANGUAGE_CCDEFINES) $(BACKWARD_CCDEFINES)
- LANGUAGE_CCDEFINES = -Dcplusplus_2_1
+ LANGUAGE_CCDEFINES = -Dcplusplus_2_1 -Wno-deprecated
  BACKWARD_CCDEFINES =
     EXTRA_CCDEFINES =
 
@@ -415,13 +415,13 @@ install:: cntsrclines.bash
 uninstall::
 	$(RM) $(BINDIR)/cntsrclines
 
-install:: tiftopnm.bash
+install:: ivtiftopnm.bash
 	-@if [ -d $(BINDIR) ]; then exit 0; \
 	else (set -x; $(MKDIRHIER) $(BINDIR)); fi
-	$(INSTALL) -c $(INSTBINFLAGS) tiftopnm.bash $(BINDIR)/tiftopnm
+	$(INSTALL) -c $(INSTBINFLAGS) ivtiftopnm.bash $(BINDIR)/ivtiftopnm
 
 uninstall::
-	$(RM) $(BINDIR)/tiftopnm
+	$(RM) $(BINDIR)/ivtiftopnm
 
 install:: pnmtopgm.sh
 	-@if [ -d $(BINDIR) ]; then exit 0; \

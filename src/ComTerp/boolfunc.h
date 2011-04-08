@@ -49,7 +49,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "|| is the and operator"; }
+      return "|| is the or operator"; }
 
 };
 

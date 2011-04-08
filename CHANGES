@@ -1,3 +1,25 @@
+Aug 20th 2001 ivtools-0.9.6
+
+- minor adjustments to adapt to gcc-3.0.1.  One advantage of upgrading
+to gcc-3.0.1 is that incremental import of rasters from URL's works
+again.
+
+- introduce all the bitwise operators from C to comterp: &, |, ^, and
+~.  This change is slightly backward incompatible, in that "^" had
+been used as a shortcut for the pow command (raise something to a
+power).  Scripts that rely on that single operator will need to be
+rewritten.  Sorry for doing that -- but it is the first incompatible
+change in I can't remember how long, and something I wanted to get
+done before version 1.0 (where the syntax and semantics of comterp get
+"frozen", ready for wider use).
+
+- renames the tiftopnm bash script to a less confusing ivtiftopnm
+(less confusing in that people won't think it is part of netpbm).
+ivtiftopnm is a wrapper script for tifftopnm, which doesn't accept
+stdin input directly (because of its need for random access to the
+tiff file).
+
+
 Jul 25th 2001 ivtools-0.9.5
 
 ** Most of the outstanding problems with gcc-3.0 and libstdc++-v3 have

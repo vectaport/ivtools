@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott Johnston
  * Copyright (c) 1996-1999 Vectaport Inc., R.B. Kissh & Associates 
  * Copyright (c) 1994-1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1990, 1991 Stanford University
@@ -284,8 +285,8 @@ ReadPpmIterator::ReadPpmIterator(OverlayRaster* r)
 }
 
 void ReadPpmIterator::getPixels(strstream& in) {
-  //  cerr << "pcount: " << in.pcount() << "\ttellg: " << in.tellg() << endl;
-  while((in.pcount() - in.tellg()) >= 3) { 
+  // cerr << "pcount: " << in.pcount() << "\ttellg: " << in.tellg() << endl;
+  while((in.pcount() - in.tellg()) >= 3 && in.good() && !in.eof()) { 
     u_char r, g, b;
     in.get((char&)r);
     in.get((char&)g);
@@ -1355,7 +1356,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       static boolean use_curl = OverlayKit::bincheck("curl");
       static boolean use_wget = OverlayKit::bincheck("wget");
       if (use_curl)
-	sprintf(buffer,"curl %s", path);
+	sprintf(buffer,"curl -s %s", path);
       else if (use_w3c) 
 	sprintf(buffer,"w3c -q %s", path);
       else if (use_wget) 
@@ -1590,16 +1591,22 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	} else	
 	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "giftopnm");
       } else 
-	cerr << "giftopnm not found\n";
+	cerr << "giftopnm not found (part of netpbm)\n";
 
     } else if (strncmp(creator, "TIFF", 4)==0) {
       if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
 	comp = TIFF_Image(pathname);
       else {
-	if (OverlayKit::bincheck("tiftopnm"))
-	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "tiftopnm");
-	else
-	  cerr << "tiftopnm not found\n";
+	if (OverlayKit::bincheck("tifftopnm")) {
+	  if (OverlayKit::bincheck("ivtiftopnm"))
+	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "ivtiftopnm");
+	  else if (OverlayKit::bincheck("ivtiftopnm"))
+	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "tiftopnm");
+	  else
+	    cerr << "ivtiftopnm or tiftopnm not found (part of ivtools)\n";
+	} else {
+	    cerr << "tifftopnm not found (part of netpbm)\n";
+	}
       }
 
     } else if (strncmp(creator, "X11", 3)==0) {
@@ -1609,7 +1616,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (OverlayKit::bincheck("xbmtopbm"))
 	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "xbmtopbm");
 	else
-	  cerr << "xbmtopbm not found\n";
+	  cerr << "xbmtopbm not found (part of netpbm)\n";
       }
 
     } else if (strncmp(creator, "JPEG", 4)==0) {
@@ -1650,7 +1657,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "djpeg -pnm");
 	}
       } else
-	cerr << "djpeg or stdcmapppm not found\n";
+	cerr << "djpeg (part of libjpeg) or stdcmapppm (part of ivtools) not found\n";
 
     } else if (strncmp(creator, "PNG", 3)==0) {
       if (OverlayKit::bincheck("pngtopnm")) {
@@ -1674,9 +1681,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	    pclose(pptr);
 	  }
 	} else	
-	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "pngtopnm");
+	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "pnmtopng");
       } else 
-	cerr << "pngtopnm not found\n";
+	cerr << "pnmtopgm not found (part of ivtools)\n";
     }
 
 

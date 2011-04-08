@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# tiftopnm [file]
+# ivtiftopnm [file]
 #
 # bash script to wrap tifftopnm which can't handle stdin
 #

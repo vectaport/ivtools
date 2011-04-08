@@ -18,6 +18,7 @@ MakeLibrary($(LIB),$(VERSION))
 #define ObjA(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
 
 Obj(assignfunc)
+Obj(bitfunc)
 Obj(boolfunc)
 Obj(bquotefunc)
 Obj(comfunc)	

@@ -142,6 +142,8 @@ ivtools-0.9/src/ComTerp/_comterp.h
 ivtools-0.9/src/ComTerp/_comutil.h
 ivtools-0.9/src/ComTerp/assignfunc.c
 ivtools-0.9/src/ComTerp/assignfunc.h
+ivtools-0.9/src/ComTerp/bitfunc.c
+ivtools-0.9/src/ComTerp/bitfunc.h
 ivtools-0.9/src/ComTerp/boolfunc.c
 ivtools-0.9/src/ComTerp/boolfunc.h
 ivtools-0.9/src/ComTerp/bquotefunc.c
@@ -1741,11 +1743,11 @@ ivtools-0.9/src/scripts/ivfb.cpp
 ivtools-0.9/src/scripts/ivgd.cpp
 ivtools-0.9/src/scripts/ivgetjpg.bash
 ivtools-0.9/src/scripts/ivmkmf.cpp
+ivtools-0.9/src/scripts/ivtiftopnm.bash
 ivtools-0.9/src/scripts/mkdirhier.sh
 ivtools-0.9/src/scripts/mkgif89a.bash
 ivtools-0.9/src/scripts/mkgif89ac.bash
 ivtools-0.9/src/scripts/pnmtopgm.sh
-ivtools-0.9/src/scripts/tiftopnm.bash
 ivtools-0.9/src/tests/Imakefile
 ivtools-0.9/src/tests/Makefile
 ivtools-0.9/src/tests/y2k/Imakefile

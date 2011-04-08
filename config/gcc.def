@@ -7,7 +7,7 @@
 
 #ifndef DependCCFlags
 #if 1 /* without -D__GNUG__ */
-#define DependCCFlags -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I$(GPLUSPLUS_INCLUDE_DIR) \
+#define DependCCFlags -w -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I$(GPLUSPLUS_INCLUDE_DIR) \
 		      -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
 #else /* with -D__GNUG__ */
 #define DependCCFlags -D__GNUG__ -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) -I$(GPLUSPLUS_INCLUDE_DIR) \

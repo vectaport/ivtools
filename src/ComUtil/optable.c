@@ -81,8 +81,8 @@ struct _opr_tbl_default_entry {
 } DefaultOperatorTable[] = {
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
   {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
-  {"^",          "power",              120,        TRUE,       OPTYPE_BINARY },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
+  {"~",          "bit_not",            110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"++",         "incr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"++",         "incr_after",         110,        TRUE,       OPTYPE_UNARY_POSTFIX },
   {"-",          "minus",              110,        TRUE,       OPTYPE_UNARY_PREFIX },
@@ -95,12 +95,17 @@ struct _opr_tbl_default_entry {
   {"/",          "div",                70,         FALSE,      OPTYPE_BINARY },
   {"+",          "add",                60,         FALSE,      OPTYPE_BINARY },
   {"-",          "sub",                60,         FALSE,      OPTYPE_BINARY },
+  {"<<",         "lshift",             55,         FALSE,      OPTYPE_BINARY },
+  {">>",         "rshift",             55,         FALSE,      OPTYPE_BINARY },
   {"<",          "lt",                 50,         FALSE,      OPTYPE_BINARY },
   {"<=",         "lt_or_eq",           50,         FALSE,      OPTYPE_BINARY },
   {">",          "gt",                 50,         FALSE,      OPTYPE_BINARY },
   {">=",         "gt_or_eq",           50,         FALSE,      OPTYPE_BINARY },
   {"!=",         "not_eq",             45,         FALSE,      OPTYPE_BINARY },
   {"==",         "eq",                 45,         FALSE,      OPTYPE_BINARY },
+  {"&",          "bit_and",            44,         FALSE,      OPTYPE_BINARY },
+  {"^",          "bit_xor",            43,         FALSE,      OPTYPE_BINARY },
+  {"|",          "bit_or",             42,         FALSE,      OPTYPE_BINARY },
   {"&&",         "and",                41,         FALSE,      OPTYPE_BINARY },
   {"||",         "or",                 40,         FALSE,      OPTYPE_BINARY },
   {",",          "stream",             35,         FALSE,      OPTYPE_BINARY },
@@ -897,8 +902,8 @@ Operator   Command            Priority   RtoL   Type
 --------   -------            --------   ----   ----
 .          dot                130        N      BINARY
 `          bquote             125        Y      UNARY PREFIX
-^          power              120        Y      BINARY
 !          negate             110        Y      UNARY PREFIX
+~          bit_not            110        Y      UNARY PREFIX
 ++         incr               110        Y      UNARY PREFIX
 ++         incr_after         110        Y      UNARY POSTFIX
 -          minus              110        Y      UNARY PREFIX
@@ -911,12 +916,17 @@ Operator   Command            Priority   RtoL   Type
 /          div                70         N      BINARY
 +          add                60         N      BINARY
 -          sub                60         N      BINARY
+<<         lshift             55         N      BINARY
+>>         rshift             55         N      BINARY
 <          lt                 50         N      BINARY
 <=         lt_or_eq           50         N      BINARY
 >          gt                 50         N      BINARY
 >=         gt_or_eq           50         N      BINARY
 !=         not_eq             45         N      BINARY
 ==         eq                 45         N      BINARY
+&          bit_and            44         N      BINARY
+^          bit_xor            43         N      BINARY
+|          bit_or             42         N      BINARY
 &&         and                41         N      BINARY
 ||         or                 40         N      BINARY
 ,          stream             35         N      BINARY

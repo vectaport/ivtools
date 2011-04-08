@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott Johnston
  * Copyright (c) 1998-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
@@ -90,7 +91,7 @@ void OvPreciseMoveCmd::Execute () {
 
     if (movestr) {
       istrstream in(movestr);
-      float xmove, ymove;
+      float xmove = 0, ymove = 0;
       in >> xmove >> ymove;
 
       switch (cur_unit) {
@@ -99,7 +100,7 @@ void OvPreciseMoveCmd::Execute () {
       case 3:   xmove *= ivinches; ymove *= ivinches; break;
       }
 
-      if (in.good() && (xmove!=0.0 || ymove!=0.0)) {
+      if (xmove!=0.0 || ymove!=0.0) {
 	MoveCmd* moveCmd = new MoveCmd(GetEditor(), xmove, ymove);
 	moveCmd->Execute();
 	moveCmd->Log();
@@ -135,9 +136,9 @@ void OvPreciseScaleCmd::Execute () {
 			  default_scalestr);
     if (scalestr) {
       istrstream in(scalestr);
-      float xscale, yscale;
+      float xscale = 0.0, yscale = 0.0;
       in >> xscale >> yscale;
-      if (in.good() && xscale !=0.0 && yscale != 0.0) {
+      if (xscale !=0.0 && yscale != 0.0) {
 	ScaleCmd* scaleCmd = new ScaleCmd(GetEditor(), xscale, yscale);
 	scaleCmd->Execute();
 	scaleCmd->Log();
@@ -173,9 +174,9 @@ void OvPreciseRotateCmd::Execute () {
 			  default_rotatestr);
     if (rotatestr) {
       istrstream in(rotatestr);
-      float angle;
+      float angle = 0.0;
       in >> angle;
-      if (in.good() && angle!=0.0) {
+      if (angle!=0.0) {
 	RotateCmd* rotateCmd = new RotateCmd(GetEditor(), angle);
 	rotateCmd->Execute();
 	rotateCmd->Log();
@@ -218,9 +219,9 @@ void OvPrecisePageCmd::Execute () {
 			  default_pagestr);
     if (pagestr) {
       istrstream in(pagestr);
-      int xpage, ypage;
+      int xpage = 0, ypage = 0;
       in >> xpage >> ypage;
-      if (in.good() && xpage !=0 && ypage != 0) {
+      if (xpage !=0 && ypage != 0) {
 	Viewer* viewer = GetEditor()->GetViewer();
 	viewer->SetPage(new OverlayPage(xpage, ypage, true));
 	viewer->Update();
@@ -256,9 +257,9 @@ void OvPreciseBrushCmd::Execute () {
 			  default_widthstr);
     if (widthstr) {
       istrstream in(widthstr);
-      float width;
+      float width = 0;
       in >> width;
-      if (in.good() && width>=0.0) {
+      if (width>=0.0) {
 	Catalog* catalog = unidraw->GetCatalog();
 	PSBrush* br = catalog->FindBrush(0xffff, width);
 	BrushCmd* brushCmd = new BrushCmd(GetEditor(), br);

@@ -76,8 +76,8 @@ OPERATOR TABLE
     ---------     ------------         --------    -----       ----
     .             dot                  130         L-to-R      binary
     `             bquote               125         R-to-L      unary-prefix
-    ^             power                120         R-to-L      binary
     !             negate               110         R-to-L      unary-prefix
+    ~             bit_not              110         R-to-L      unary-prefix
     ++            incr                 110         R-to-L      unary-prefix
     ++            incr_after           110         R-to-L      unary-postfix
     -             minus                110         R-to-L      unary-prefix
@@ -90,12 +90,17 @@ OPERATOR TABLE
     /             div                  70          L-to-R      binary
     +             add                  60          L-to-R      binary
     -             sub                  60          L-to-R      binary
+    <<            lshift               55          L-to-R      binary
+    >>            rshift               55          L-to-R      binary
     <             lt                   50          L-to-R      binary
     <=            lt_or_eq             50          L-to-R      binary
     >             gt                   50          L-to-R      binary
     >=            gt_or_eq             50          L-to-R      binary
     !=            not_eq               45          L-to-R      binary
     ==            eq                   45          L-to-R      binary
+    &             bit_and              44          L-to-R      binary
+    ^             bit_xor              43          L-to-R      binary
+    |             bit_or               42          L-to-R      binary
     &&            and                  41          L-to-R      binary
     ||            or                   40          L-to-R      binary
     ,             stream               35          L-to-R      binary
