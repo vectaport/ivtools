@@ -263,6 +263,10 @@ optionally return symbol instead of nil
 
 val=shell(cmdstr) -- evaluate command in shell
 
+usleep(msec) -- sleep microseconds
+
+mute([flag]) -- set or toggle mute flag
+
 nil([...]) -- accept any arguments and return nil
 
 c=char(num) -- convert any numeric to a char

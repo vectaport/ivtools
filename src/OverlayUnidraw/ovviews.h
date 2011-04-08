@@ -130,8 +130,9 @@ public:
 
     Manipulator* CreateStretchManip(Viewer*, Event&, Transformer*, Tool*);
     // specialized method to construct OpaqueDragManip instead of DragManip.
-protected:
+
     OverlayView(OverlayComp* = nil);
+protected:
 
     OverlayView* View(UList*);
     OverlayView* GetOverlayView(Graphic*);

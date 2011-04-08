@@ -62,6 +62,9 @@
 #include <fstream.h>
 #endif
 #include <string.h>
+#include <iostream>
+
+using std::cerr;
 
 #define TITLE "UnidrawFunc"
 
@@ -319,7 +322,7 @@ void ImportFunc::execute() {
 	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
 			  popen_flag)) && cmd->component()) {
 	  ComValue compval(((OverlayComp*)cmd->component())->classid(),
-			   new ComponentView(cmd->component()));
+			   new OverlayView((OverlayComp*)cmd->component()));
 	  delete cmd;
 	  compval.object_compview(true);
 	  push_stack(compval);
@@ -329,7 +332,7 @@ void ImportFunc::execute() {
 	for (int i=0; i<nargs(); i++) 
 	  if (cmd = import(stack_arg(i).string_ptr(), popen_flag)) {
 	    ComValue compval(((OverlayComp*)cmd->component())->classid(),
-			     new ComponentView(cmd->component()));
+			     new OverlayView((OverlayComp*)cmd->component()));
 	    delete cmd;
 	    compval.object_compview(true);
 	    push_stack(compval);
@@ -345,7 +348,7 @@ void ImportFunc::execute() {
       while(!inlist->Done(it)) {
 	cmd = import(inlist->GetAttrVal(it)->string_ptr(), popen_flag);
 	ComValue* val = new ComValue(((OverlayComp*)cmd->component())->classid(),
-				     new ComponentView(cmd->component()));
+				     new OverlayView((OverlayComp*)cmd->component()));
 	delete cmd;
 	val->object_compview(true);
 	outlist->Append(val);
@@ -630,7 +633,7 @@ void FrameFunc::execute() {
     OverlaysView* frameview = ed->GetFrame(indexv.int_val());
     if (frameview && frameview->GetSubject()) {
       OverlayComp* comp = (OverlayComp*)frameview->GetSubject();
-      ComValue retval(comp->classid(), new ComponentView(comp));
+      ComValue retval(comp->classid(), new OverlayView(comp));
       retval.object_compview(true);
       push_stack(retval);
     } else
@@ -685,7 +688,7 @@ void AddToolButtonFunc::execute() {
     OverlayEditor* ed = (OverlayEditor*)GetEditor();
     OverlayComp* comp = ed->overlay_kit()->add_tool_button(pathnamev.symbol_ptr());
     if (comp) {
-      ComValue retval(comp->classid(), new ComponentView(comp));
+      ComValue retval(comp->classid(), new OverlayView(comp));
       retval.object_compview(true);
       push_stack(retval);
     } else {

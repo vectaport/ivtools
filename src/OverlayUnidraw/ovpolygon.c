@@ -54,6 +54,11 @@
 
 #include <stream.h>
 
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
+
 /****************************************************************************/
 
 ParamList* PolygonOvComp::_ovpolygon_params = nil;

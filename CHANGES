@@ -1,3 +1,13 @@
+July 9th, 2008  ivtools-1.2.6
+
+- Debian contributed patch for iostreams backward compatibility
+
+- bug fix for dispatcher.c contributed by Damon Permezel
+
+- add mute command to comterp
+
+- balance of changes to support ipl-1.0.2
+
 March 4th, 2008  ivtools-1.2.5
 
 - overall evolution to support use by ipl-1.0.1 (see

@@ -60,6 +60,10 @@
 
 #include <strstream>
 #include <string.h>
+#include <fstream>
+#include <iostream>
+
+using std::cout;
 
 /*****************************************************************************/
 

@@ -80,6 +80,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <strstream>
+#include <fstream>
+
+using std::cerr;
 
 FullGraphic* NodeView::_nv_gs = nil;
 
@@ -406,6 +409,7 @@ SF_Ellipse* NodeComp::GetEllipse2() {
 
 TextGraphic* NodeComp::GetText() {
     Picture* pic = (Picture*)GetGraphic();
+    if (!pic) return nil;
     Iterator i;
     pic->First(i);
     pic->Next(i);

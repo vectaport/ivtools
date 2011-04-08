@@ -87,6 +87,9 @@ extern LeakChecker AttributeValuechecker;
 
 extern int _detail_matched_delims;
 
+using std::cerr;
+using std::cout;
+
 implementTable(ComValueTable,int,void*)
 
 ComTerp* ComTerp::_instance = nil;
@@ -160,8 +163,9 @@ void ComTerp::init() {
     _npause = 0;
     _stepflag = 0;
     _echo_postfix = 0;
-    _delim_func;
-
+    _delim_func = 0;
+    _running = 0;
+    _muted = 0;
 }
 
 
@@ -281,6 +285,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
 #endif
 
     ComFunc* func = nil;
+    int nargs = sv.narg();
+    int nkeys = sv.nkey();
     if (_func_for_next_expr) {
       func = _func_for_next_expr;
       _func_for_next_expr = nil;
@@ -291,9 +297,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
       if (_delim_func && sv.nids()!=1) {
 	ComValue nameval(sv.command_symid(), ComValue::SymbolType);
 	push_stack(nameval);  // this assumes it will be immediately popped off the stack
-      } 
-      func->push_funcstate(sv.narg(), sv.nkey(), 
-			   pedepth, sv.command_symid());
+	nargs++;
+      }
+      func->push_funcstate(nargs, nkeys, pedepth, func->funcid());
     }
 
     /* output execution trace */
@@ -301,7 +307,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
       for(int i=0; i<pedepth; i++) cerr << "    ";
       cerr << symbol_pntr(sv.command_symid());
       if (func->post_eval()) 
-	cerr << ": nargs=" << sv.narg() << " nkeys=" << sv.nkey() << "\n";
+	cerr << ": nargs=" << nargs << " nkeys=" << nkeys << "\n";
       else {
 	int ntotal = func->nargs() + func->nkeys();
 	for(int i=0; i<ntotal; i++) {
@@ -338,7 +344,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
 
     int stack_base = _stack_top;
     if (!func->post_eval()) 
-      stack_base -= sv.narg()+sv.nkey();
+      stack_base -= nargs+nkeys;
     else
       stack_base -= 1;
 
@@ -950,6 +956,9 @@ void ComTerp::quitflag(boolean flag) {
 }
 
 int ComTerp::run(boolean one_expr, boolean nested) {
+  int old_runflag = running();
+  running(true);
+
   int status = 1;
   _errbuf[0] = '\0';
   char errbuf_save[BUFSIZ];
@@ -989,7 +998,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	if (quitflag()) {
 	  status = -1;
 	  break;
-	} else if (!func_for_next_expr() && val_for_next_func().is_null()) {
+	} else if (!func_for_next_expr() && val_for_next_func().is_null() && !muted()) {
 	  print_stack_top(out);
 	  out << "\n"; out.flush(); 
 	}
@@ -1023,6 +1032,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
     status = -1;
     fprintf(stderr, "broken pipe detected: comterp quit\n");
   }
+  running(old_runflag);
   return status;
 }
 
@@ -1165,6 +1175,7 @@ void ComTerp::add_defaults() {
     add_command("shell", new ShellFunc(this));
     add_command("quit", new QuitFunc(this));
     add_command("exit", new ExitFunc(this));
+    add_command("mute", new MuteFunc(this));
   }
 }
 
@@ -1178,6 +1189,9 @@ AttributeList* ComTerp::get_attributes() { return _alist;}
 
 
 int ComTerp::runfile(const char* filename) {
+    int old_runflag = running();
+    running(true);
+
     /* save tokens to restore after the file has run */
     int toklen;
     postfix_token* tokbuf = copy_postfix_tokens(toklen);
@@ -1239,6 +1253,7 @@ int ComTerp::runfile(const char* filename) {
     } else
         push_stack(ComValue::nullval());
 
+    running(old_runflag);
     return status;
 }
 

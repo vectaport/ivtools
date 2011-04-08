@@ -73,6 +73,9 @@ public:
     virtual boolean is_serv() { return true; } 
     // flag to test if ComTerp or ComTerpServ
 
+    void delete_later(boolean flag) { _delete_later = flag; }
+    boolean delete_later() { return _delete_later; }
+
 protected:
 
     static char* s_fgets(char* s, int n, void* serv);
@@ -97,6 +100,7 @@ protected:
     FILE* _fptr;
     int _instat;
     int _logger_mode;
+    int _delete_later;
 
     friend class ComterpHandler;
     friend class ComTerpIOHandler;

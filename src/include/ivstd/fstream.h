@@ -1,6 +1,6 @@
 #ifndef _iv_fstream_
 #define _iv_fstream_
-#include_next <fstream.h>
+#include_next <fstream>
 #if __GNUC__>=3
 #define input ios_base::in
 #define output ios_base::out

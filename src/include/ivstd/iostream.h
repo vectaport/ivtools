@@ -1,7 +1,7 @@
 #ifndef _iv_iostream_h_
 #define _iv_iostream_h_
 #include <iosfwd>
-#include_next <iostream.h>
+#include_next <iostream>
 
 #if __GNUC__>=3
 #if 0

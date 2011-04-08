@@ -710,7 +710,11 @@ void Dispatcher::notify(
 ) {
     for (int i = 0; i < _nfds && nfound > 0; i++) {
 	if (rmaskret.isSet(i)) {
+#if 0
 	    int status = _rtable[i]->inputReady(i);
+#else
+            int status = (_rtable[i] ? _rtable[i]->inputReady(i) : 0);
+#endif
 	    if (status < 0) {
 		detach(i);
 	    } else if (status > 0) {
@@ -719,7 +723,11 @@ void Dispatcher::notify(
 	    nfound--;
 	}
 	if (wmaskret.isSet(i)) {
+#if 0
 	    int status = _wtable[i]->outputReady(i);
+#else
+            int status = (_wtable[i] ? _wtable[i]->outputReady(i) : 0);
+#endif
 	    if (status < 0) {
 		detach(i);
 	    } else if (status > 0) {
@@ -728,7 +736,11 @@ void Dispatcher::notify(
 	    nfound--;
 	}
 	if (emaskret.isSet(i)) {
+#if 0
 	    int status = _etable[i]->exceptionRaised(i);
+#else
+            int status = (_etable[i] ? _etable[i]->exceptionRaised(i) : 0);
+#endif
 	    if (status < 0) {
 		detach(i);
 	    } else if (status > 0) {

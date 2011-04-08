@@ -26,6 +26,7 @@
 
 #include <Unidraw/statevar.h>
 #include <Unidraw/stateview.h>
+#include <cstdio>
 
 /*****************************************************************************/
 

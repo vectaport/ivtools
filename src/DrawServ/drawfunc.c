@@ -27,12 +27,14 @@
 #include <DrawServ/drawlinkcomp.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
-
+#include <OverlayUnidraw/ovviews.h>
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
 #include <fstream.h>
+#include <cstdio>
+
 #define TITLE "DrawLinkFunc"
 
 /*****************************************************************************/
@@ -148,7 +150,7 @@ void DrawLinkFunc::execute() {
   
   if (link) {
     DrawLinkComp* linkcomp = new DrawLinkComp(link);
-    ComValue result(DrawLinkComp::class_symid(), new ComponentView(linkcomp));
+    ComValue result(DrawLinkComp::class_symid(), new OverlayView(linkcomp));
     result.object_compview(true);
     push_stack(result);
   }

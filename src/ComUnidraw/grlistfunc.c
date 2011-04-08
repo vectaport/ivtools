@@ -25,7 +25,7 @@
 #include <ComUnidraw/grlistfunc.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcomps.h>
-#include <Unidraw/Components/compview.h>
+#include <OverlayUnidraw/ovviews.h>
 #include <Unidraw/iterator.h>
 #include <ComTerp/listfunc.h>
 
@@ -56,7 +56,7 @@ void GrListAtFunc::execute() {
 	if (count==nv.int_val()) {
 	  OverlayComp* retcomp = (OverlayComp*)comps->GetComp(i);
 	  if (retcomp) {
-	    ComValue retval(retcomp->classid(), new ComponentView(retcomp));
+	    ComValue retval(retcomp->classid(), new OverlayView(retcomp));
 	    retval.object_compview(true);
 	    push_stack(retval);
 	    return;

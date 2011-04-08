@@ -68,6 +68,7 @@ ComTerpServ::ComTerpServ(int bufsize, int fd)
     __oneshot_infunc = (infuncptr)&s_fgets;
 
     _logger_mode = 0;
+    _delete_later = 0;
 }
 
 ComTerpServ::~ComTerpServ() {
@@ -231,7 +232,6 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 }
 
 int ComTerpServ::run(boolean one_expr, boolean nested) {
-
     char buffer[BUFSIZ];
     char errbuf[BUFSIZ];
     errbuf[0] = '\0';

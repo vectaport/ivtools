@@ -39,7 +39,7 @@
 #include <OS/list.h>
 #include <OS/string.h>
 #include <ctype.h>
-#include <stdio.h>
+#include <cstdio>
 #include <stdlib.h>
 
 #ifdef sgi

@@ -38,7 +38,7 @@
 #include <OS/ustring.h>
 #include <OS/table.h>
 #include <X11/Xatom.h>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 /** class FontImpl **/

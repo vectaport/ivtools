@@ -43,7 +43,7 @@
 #include <InterViews/telltale.h>
 #include <InterViews/window.h>
 #include <OS/string.h>
-#include <stdio.h>
+#include <cstdio>
 
 /*
  * character definitions

@@ -102,6 +102,8 @@ typedef unsigned short secondTy;
 typedef unsigned long clockTy;
 #endif
 
+using std::cout;
+
 class Time {
 
 public:			// type definitions

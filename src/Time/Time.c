@@ -51,7 +51,6 @@ const unsigned VERSION =2;
 
 #endif
 
-
 /************************ end of edits ************************************************/
 static long TIME_ZONE;          /* seconds west of GMT */
 static int DST_OBSERVED;        /* flags U.S. daylight saving time observed */

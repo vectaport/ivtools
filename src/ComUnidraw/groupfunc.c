@@ -87,7 +87,7 @@ void GrowGroupFunc::execute() {
       mcmd->Append(gcmd);
 
       execute_log(mcmd);
-      ComValue retval(OverlaysComp::class_symid(), new ComponentView(grgroup));
+      ComValue retval(OverlaysComp::class_symid(), new OverlayView(grgroup));
       retval.object_compview(true);
       push_stack(retval);
       return;
@@ -154,7 +154,7 @@ void TrimGroupFunc::execute() {
       mcmd->Append(gcmd);
 
       execute_log(mcmd);
-      ComValue retval(OverlaysComp::class_symid(), new ComponentView(grgroup));
+      ComValue retval(OverlaysComp::class_symid(), new OverlayView(grgroup));
       retval.object_compview(true);
       push_stack(retval);
       return;

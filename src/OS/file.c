@@ -27,7 +27,7 @@
 #include <OS/types.h>
 #include <assert.h>
 #include <fcntl.h>
-#include <stdio.h>
+#include <cstdio>
 #include <sys/stat.h>
 
 #ifdef sgi

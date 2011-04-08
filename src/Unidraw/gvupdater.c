@@ -39,6 +39,9 @@
 
 #include <iostream.h>
 #include <stdlib.h>
+#include <fstream>
+
+using std::cerr;
 
 /*****************************************************************************/
 

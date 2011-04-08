@@ -60,6 +60,10 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+#include <fstream>
+
+using std::cerr;
+
 #if __GNUC__<2 || __GNUC__==2 && __GNUC_MINOR__<96
 extern "C" 
 {

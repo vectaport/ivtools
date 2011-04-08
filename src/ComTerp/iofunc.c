@@ -35,8 +35,11 @@
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
+#include <streambuf>
 
 #define TITLE "IoFunc"
+
+using std::streambuf;
 
 /*****************************************************************************/
 

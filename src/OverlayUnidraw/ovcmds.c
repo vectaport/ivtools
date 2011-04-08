@@ -87,6 +87,9 @@
 #include <fstream.h>
 #include <iostream.h>
 
+using std::cerr;
+using std::ofstream;
+
 /*****************************************************************************/
 
 static const float GRID_XINCR = 8;                 // default grid spacing
@@ -417,7 +420,7 @@ void OvSaveCompCmd::Execute () {
     CompNameVar* compNameVar = (CompNameVar*) ed->GetState("CompNameVar");
     const char* name = (compNameVar == nil) ? nil : compNameVar->GetName();
 
-    comp_ = ed->GetComponent();
+    comp_ = (OverlayComp*)ed->GetComponent();
     if (name == nil) {
         OvSaveCompAsCmd saveCompAs(ed, chooser_);
         saveCompAs.Execute();

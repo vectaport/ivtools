@@ -434,7 +434,7 @@ GraphicView* GraphicView::GetGraphicView (Component* c) {
 }
 
 ComponentView* GraphicView::GetParent () {
-    Graphic* parent = GetGraphic()->Parent();
+    Graphic* parent = GetGraphic() ? GetGraphic()->Parent() : nil;
 
     if (parent == nil) {
         return nil;

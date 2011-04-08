@@ -114,7 +114,7 @@ public:
 };
 
 //: usleep sleep microseconds
-// usleep(cmdstr) -- sleep microseconds
+// usleep(msec) -- sleep microseconds
 class USleepFunc : public ComFunc {
 public:
     USleepFunc(ComTerp*);
@@ -135,6 +135,18 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s([...]) -- accept any arguments and return nil"; }
+
+};
+
+//: mute command for ComTerp
+// mute([flag]) -- set or toggle mute flag
+class MuteFunc : public ComFunc {
+public:
+    MuteFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s([flag]) -- set or toggle mute flag"; }
 
 };
 

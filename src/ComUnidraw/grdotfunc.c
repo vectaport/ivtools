@@ -28,6 +28,10 @@
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
+#include <fstream>
+#include <iostream>
+
+using std::cerr;
 
 #define TITLE "GrDotFunc"
 

@@ -37,6 +37,10 @@
 #include <IV-2_6/_enter.h>
 
 #include <stream.h>
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
 
 /*****************************************************************************/
 

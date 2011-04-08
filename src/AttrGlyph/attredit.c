@@ -47,8 +47,10 @@
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
 #define STL_VECTOR
-#include <vector.h>
+#include <vector>
 #endif
+
+using std::vector;
 
 declareActionCallback(AttributeListEditor)
 implementActionCallback(AttributeListEditor)

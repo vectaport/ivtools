@@ -69,7 +69,10 @@
 #include <unistd.h>
 #endif
 #include <sys/file.h>
+#include <iostream>
 #include <fstream.h>
+
+using std::cerr;
 
 #ifdef __DECCXX
 extern "C" {

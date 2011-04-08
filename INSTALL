@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.2
 
-Instructions for building ivtools-1.2.5 from source, the short version:
+Instructions for building ivtools-1.2.6 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.2.5 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.2.5 from source, the long version:
+Instructions for building ivtools-1.2.6 from source, the long version:
 
 0. Compilation Environment
 
@@ -24,16 +24,11 @@ BSD-derivative OS.  As of version 1.0.7 ivtools is Jaguar ready.
 0.b GNU make.  Test to make sure this is the version you are using
 with "make -v"
 
-0.c. The gcc compiler.  Recently we've been building and testing with
-gcc-2.95.*, gcc-2.96, gcc-3.0.*, gcc-3.1, gcc-3.2, and gcc-3.3.
-egcs-1.0.3 would probably still work, as would gcc-2.8.1 and
-gcc-2.7.2.  You will also need an equivalent copy of libstdc++.
+0.c. The gcc compiler.  Almost any recent version of gcc will work, up
+to gcc-4.3.  You will also need an equivalent copy of libstdc++.
 libstdc++ comes bundled with gcc-3.0 and greater.  Before that the
 libstdc++ version numbers stay roughly in synch with the gcc version
 numbers.  If you have gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
-
-** NOTE ** Now you can use gcc-2.96.  Ignore
-http://www.ivtools.org/ivtools/faq.html#gcc-2.96-problem
 
 Be aware that sometimes the include files for libstdc++ are in
 /usr/local/include/g++-2, a place that cannot be auto-determined by

@@ -38,6 +38,8 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
+#include <streambuf>
+using std::streambuf;
 
 #define TITLE "HelpFunc"
 

@@ -26,7 +26,7 @@
 #include <ctype.h>
 #include <string.h>
 #include <iostream.h>
-#include <streambuf.h>
+#include <streambuf>
 
 /*
  * Just to be sure ...

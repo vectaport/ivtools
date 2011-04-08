@@ -165,7 +165,7 @@ void CreateRectFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("RectComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("RectComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -231,7 +231,7 @@ void CreateLineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowLineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowLineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -296,7 +296,7 @@ void CreateEllipseFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("EllipseComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("EllipseComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -363,7 +363,7 @@ void CreateTextFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("TextComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("TextComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -430,7 +430,7 @@ void CreateMultiLineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowMultiLineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowMultiLineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -497,7 +497,7 @@ void CreateOpenSplineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowSplineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowSplineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -562,7 +562,7 @@ void CreatePolygonFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("PolygonComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("PolygonComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -628,7 +628,7 @@ void CreateClosedSplineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ClosedSplineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ClosedSplineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -699,7 +699,7 @@ void CreateRasterFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("RasterComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("RasterComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
 	execute_log(cmd);
@@ -965,7 +965,7 @@ void SelectFunc::execute() {
 	GraphicView* subgv = gv->GetView(i);
 	newSel->Append(subgv);
 	OverlayComp* comp = (OverlayComp*)subgv->GetGraphicComp();
-	ComValue* compval = new ComValue(comp->classid(), new ComponentView(comp));
+	ComValue* compval = new ComValue(comp->classid(), new OverlayView(comp));
 	compval->object_compview(true);
 	avl->Append(compval);
       }
@@ -976,7 +976,7 @@ void SelectFunc::execute() {
       for (sel->First(i); !sel->Done(i); sel->Next(i)) {
 	GraphicView* grview = sel->GetView(i);
 	OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-	ComValue* compval = comp ? new ComValue(comp->classid(), new ComponentView(comp)) : nil;
+	ComValue* compval = comp ? new ComValue(comp->classid(), new OverlayView(comp)) : nil;
 
 	if (compval) {
 	  compval->object_compview(true);
@@ -995,7 +995,7 @@ void SelectFunc::execute() {
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
 	    newSel->Append(comp->FindView(viewer));
-	    ComValue* compval = new ComValue(comp->classid(), new ComponentView(comp));
+	    ComValue* compval = new ComValue(comp->classid(), new OverlayView(comp));
 	    compval->object_compview(true);
 	    avl->Append(compval);
 	  }
@@ -1361,7 +1361,7 @@ void TransformerFunc::execute() {
 	    Transformer t(a00, a01, a10, a11, a20, a21);
 	    *gr->GetTransformer()=t;
 
-	    ComValue compval(comp->class_symid(), new ComponentView(comp));
+	    ComValue compval(comp->class_symid(), new OverlayView(comp));
 	    compval.object_compview(true);
 	    push_stack(compval);
 	  }

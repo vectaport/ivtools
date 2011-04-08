@@ -44,7 +44,7 @@
 #include <IV-2_6/InterViews/textdisplay.h>
 
 #include <ctype.h>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 #define XK_MISCELLANY           /* to get the keysym's we need */

@@ -64,6 +64,11 @@
 #include <math.h>
 #include <stream.h>
 
+#include <fstream>
+#include <iostream>
+
+using std::cerr;
+
 /*****************************************************************************/
 
 ParamList* LineOvComp::_ovline_params = nil;

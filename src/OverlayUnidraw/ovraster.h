@@ -360,7 +360,7 @@ public:
     virtual void flush() const;
     // flush internal XImage data structure to a pixmap on the X server.
 
-    virtual void flushrect(IntCoord l, IntCoord b, IntCoord t, IntCoord t) const;
+    virtual void flushrect(IntCoord l, IntCoord b, IntCoord s, IntCoord t) const;
     // flush rectangular region of internal XImage data structure 
     // to a pixmap on the X server.
 

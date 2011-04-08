@@ -31,6 +31,8 @@
 
 #define TITLE "PlotFunc"
 
+using std::ofstream;
+
 /*****************************************************************************/
 
 BarPlotFunc::BarPlotFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {

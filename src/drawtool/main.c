@@ -49,6 +49,10 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
 
 /*****************************************************************************/
 

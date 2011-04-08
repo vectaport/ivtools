@@ -38,7 +38,7 @@
 
 #include <IV-2_6/_enter.h>
 
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 #include <stdlib.h>
 

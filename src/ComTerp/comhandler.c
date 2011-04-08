@@ -96,8 +96,14 @@ ComterpHandler::destroy (void)
     ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
-    if (_timeoutscriptid<0)
-      delete comterp_;
+    if (_timeoutscriptid<0) {
+      if (comterp_->running()) 
+	comterp_->delete_later(1);
+      else {
+	delete comterp_;
+	comterp_ = nil;
+      }
+    }
     else /* timer could be still running */;
     if (_wrfptr) {
       fclose(_wrfptr);
@@ -195,19 +201,21 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     if (!comterp_ || !input_good)
       return -1;
     else if (!inbuf || !*inbuf) {
+#if 0
 #if __GNUC__<3
-      filebuf obuf(fd ? fd : 1);
-      ostream ostr(&obuf);
-      ostr << "\n";
-      ostr.flush();
-      return 0;
+	filebuf obuf(fd ? fd : 1);
+	ostream ostr(&obuf);
+	ostr << "\n";
+	ostr.flush();
 #else
-      fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
-      ostream ostr(&obuf);
-      ostr << "\n";
-      ostr.flush();
-      return 0;
+	fprintf(stderr, "unexpected empty command string\n");
+	fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
+	ostream ostr(&obuf);
+	ostr << "\n";
+	ostr.flush();
 #endif
+#endif
+	return -1;
     }
     if (!ComterpHandler::logger_mode()) {
       comterp_->load_string(inbuf);
@@ -217,6 +225,10 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
 
       int  status = comterp_->ComTerp::run(false /* !once */, false /* !nested */);
+      if (comterp_->delete_later()) {
+	delete comterp_;
+	comterp_ = nil;
+      }
       return input_good&&(status==0||status==3||status==2) ? 0 : -1;
     } else {
       if (inbuf[0]!='\004')
