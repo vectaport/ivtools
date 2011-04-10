@@ -30,9 +30,6 @@ static u_short SERVER_PORT = 20000;
 static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #endif
 
-#include <ComTerp/comterpserv.h>
-
-
 #include <fstream.h>
 
 #include <iostream.h>
@@ -42,6 +39,9 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #include <unistd.h>
 
 #include <version.h>
+
+#include <ComTerp/comterpserv.h>
+
 
 #if BUFSIZ>1024
 #undef BUFSIZ

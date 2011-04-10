@@ -43,8 +43,8 @@ class ComTerp;
 // interpretation.  
 class ComValue : public AttributeValue {
 public:
-    ComValue(ComValue&);
-    // copy constructor.
+    ComValue(const ComValue&);
+    // deep copy constructor.
     ComValue(ComValue*);
     // deep copy constructor.
     ComValue(AttributeValue&);

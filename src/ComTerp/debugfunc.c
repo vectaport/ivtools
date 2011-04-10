@@ -22,11 +22,6 @@
  * 
  */
 
-#include <ComTerp/comhandler.h>
-
-#include <ComTerp/debugfunc.h>
-#include <ComTerp/comterpserv.h>
-#include <strstream>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
 #include <vector.h>
@@ -34,6 +29,12 @@
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
+
+#include <ComTerp/comhandler.h>
+
+#include <ComTerp/debugfunc.h>
+#include <ComTerp/comterpserv.h>
+#include <strstream>
 
 #define TITLE "DebugFunc"
 

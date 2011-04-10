@@ -282,7 +282,7 @@ boolean AttributeValue::boolean_val() {
     case AttributeValue::StringType:
 	return (boolean) int_val()!=-1;
     case AttributeValue::ObjectType:
-	return (boolean) obj_val();
+	return (long) obj_val();
     case AttributeValue::StreamType:
 	return stream_mode() != 0;
     default:

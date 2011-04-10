@@ -21,13 +21,13 @@
  * 
  */
 
+#include <fstream.h>
 #include <ComTerp/comhandler.h>
 
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
-#include <fstream.h>
 
 #ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
