@@ -1,3 +1,14 @@
+ivtools (1.2.6-1+nmu2) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * debian/rules: Try working around race condition causing #549407
+    by calling main build target with explicit -j1.
+  * Fix lintian error 'weak-library-dev-dependency' by tightening
+    some ivtools-dev dependencies to the range between the exact
+    version and version just before next non-binary NMU.
+
+ -- Agustin Martin Domingo <agmartin@debian.org>  Thu, 05 Nov 2009 12:35:12 +0100
+
 ivtools (1.2.6-1+nmu1) unstable; urgency=low
 
   * Non-maintainer upload.

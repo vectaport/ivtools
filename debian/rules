@@ -4,7 +4,7 @@
 # architecture-dependant package, as well as an architecture-independent
 # package.
 
-# Uncomment this to turn on verbose mode. 
+# Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
 PKGDEVEL=ivtools-dev
@@ -12,14 +12,14 @@ PKG_BIN=ivtools-bin
 
 # libace still doesn work on Alpha ...
 # I have invested too much time already figuring out
-# if it is a problem of libace or of ivtools, 
+# if it is a problem of libace or of ivtools,
 # so for alpha we just don't have ace, who uses it
 # anyhow ?
 
 ARCH = $(dpkg --print-architecture)
 
 ifeq "$(ARCH)" "alpha"
-ACE = 
+ACE =
 else
 # ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
 endif
@@ -43,9 +43,9 @@ build-stamp:
 
 	make Makefile ARCH=LINUX
 	make Makefiles ARCH=LINUX
-	make ARCH=LINUX
+	make -j1 ARCH=LINUX
 
-	#   BUILD FINISHED  
+	#   BUILD FINISHED
 	# -----------------------------------------------------------
 	# reconfigure for the devel package
 	# build process should be finished now
@@ -77,7 +77,7 @@ clean:
 
 	-rm -r `find . -name LINUX`
 	-rm `find src -name Makefile`
-	-rm config/InterViews/Makefile config/Makefile config.status 
+	-rm config/InterViews/Makefile config/Makefile config.status
 
 	-rm *.log
 	-rm config.cache
@@ -86,7 +86,7 @@ clean:
 	[ ! -f Makefile ] || make ARCH=LINUX clean
 	[ ! -f src/scripts/Makefile ] || (cd src/scripts;make clean)
 
-#      remove backups  
+#      remove backups
 	-rm -f `find . -name "*~"`
 
 	QUILT_PATCHES=debian/patches quilt pop -a -R || test $$? = 2
@@ -126,8 +126,8 @@ binary-indep: build install
 	chmod a-x debian/ivtools-dev/usr/lib/ivtools/comterp.err
 
 	dh_installdocs -p ivtools-dev src/man/refman3.1/refman.PS
-	-rm `find src/glyphs -name Makefile.depend` 
-	dh_installexamples -p ivtools-dev 
+	-rm `find src/glyphs -name Makefile.depend`
+	dh_installexamples -p ivtools-dev
 	dh_installmenu -i
 	dh_installchangelogs
 	dh_compress -i
@@ -163,7 +163,7 @@ binary-arch: build install
 	dh_md5sums -a
 	dh_builddeb -a
 
-source diff:                                                                  
+source diff:
 	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
 
 binary: binary-indep binary-arch
