@@ -58,6 +58,8 @@ struct regexp {
  */
 #define	REGEXP_MAGIC	0234
 
+//: regular expression searching
+// <a href=../man3.1/Regexp.html>man page</a>
 class Regexp {
 public:
     Regexp(const char*);

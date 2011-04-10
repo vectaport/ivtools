@@ -41,6 +41,10 @@
 #include "thrower.h"
 const int DownLoadAmount = 1024; // Amount per socket read.
 
+#if !defined(SOCKLEN_T_DEFINED) || !SOCKLEN_T_DEFINED
+typedef int socklen_t;
+#endif
+
 // Perhaps.. a value of 0 allows the system to choose a port.
 const int ListenPort = 20003; // Port for receiving FTP data.
 
@@ -51,11 +55,7 @@ class CSocket {
 
   // PConnect() and Listen() share the following 4 data members.
   int Psocket_fd;  // socket file descriptor (transport)
-#ifdef __linux__
-   socklen_t * Palen;
-#else
   int Palen;	   // length of address structure
-#endif
   struct sockaddr_in Pclient_addr; // client's address
   struct sockaddr_in my_addr;      // address of this service 
 

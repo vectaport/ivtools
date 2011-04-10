@@ -51,6 +51,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <OS/math.h>
+
 #include <math.h>
 #include <stdlib.h>
 #include <stream.h>
@@ -308,8 +310,8 @@ Manipulator* LinkView::CreateLinkCompManip (
     if (target != nil) {
         target->GetConnector()->GetCenter(x, y);
         rel->Transform(x, y, tx, ty);
-        e.x = round(tx);
-        e.y = round(ty);
+        e.x = Math::round(tx);
+        e.y = Math::round(ty);
     }
     if (rel != nil) {
         rel->Transform(cx, dum1);

@@ -57,6 +57,10 @@ protected:
     void Modify(void*);
 };
 
+//: button object (iv-2_6)
+// A button is a view of some value that is normally set when
+// the button is pressed.
+// <p><a href=../man3.1/Button2_6.html>man page</a>
 class Button : public Interactor {
 public:
     void Attach(Button*);

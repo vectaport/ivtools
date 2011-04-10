@@ -27,6 +27,8 @@
  */
 
 #include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/ovexport.h>
+#include <OverlayUnidraw/ovprint.h>
 #include <OverlayUnidraw/ovpsview.h>
 
 #include <UniIdraw/idarrows.h>
@@ -40,6 +42,8 @@
 #include <Unidraw/Graphic/graphic.h>
 
 #include <InterViews/transformer.h>
+
+#include <OS/math.h>
 
 #include <stream.h>
 
@@ -99,6 +103,8 @@ static void CollectFontsFromGraphic (Graphic* gr, UList* fonts) {
 
 /*****************************************************************************/
 
+boolean OverlayPS::_idraw_format = true;
+
 ClassId OverlayPS::GetClassId () { return OVERLAY_PS; }
 
 boolean OverlayPS::IsA (ClassId id) {
@@ -107,6 +113,10 @@ boolean OverlayPS::IsA (ClassId id) {
 
 OverlayPS::OverlayPS (OverlayComp* subj) : PostScriptView(subj) {
     _command = nil;
+}
+
+void OverlayPS::Creator (ostream& out) {
+    out << "%%Creator: " << (idraw_format() ? "idraw" : "unidraw") << "\n";
 }
 
 UList* OverlayPS::GetPSFonts () {
@@ -174,6 +184,20 @@ OverlayPS* OverlayPS::CreateOvPSViewFromGraphic (Graphic* graphic, boolean compt
 OverlayComp* OverlayPS::GetOverlayComp () {
     return (OverlayComp*) GetSubject();
 }
+
+boolean OverlayPS::idraw_format() {
+    boolean format = OverlayPS::_idraw_format;
+    Command* cmd = GetCommand();
+    if (cmd) {
+      if (GetCommand()->IsA(OV_EXPORT_CMD))
+	format = ((OvExportCmd*)GetCommand())->idraw_format();
+      else if (GetCommand() && GetCommand()->IsA(OVPRINT_CMD)) 
+	format = ((OvPrintCmd*)GetCommand())->idraw_format();
+    }
+    return format;
+}
+
+void OverlayPS::idraw_format(boolean flag) { _idraw_format = flag; }
 
 /*****************************************************************************/
 
@@ -299,10 +323,6 @@ boolean OverlayIdrawPS::IsA (ClassId id) {
     return OVERLAY_IDRAW_PS == id || OverlaysPS::IsA(id);
 }
 
-void OverlayIdrawPS::Creator (ostream& out) {
-    out << "%%Creator: idraw\n";
-}
-
 void OverlayIdrawPS::Prologue (ostream& out) {
     out << "%%BeginIdrawPrologue\n";
     ArrowHeader(out);
@@ -320,8 +340,8 @@ void OverlayIdrawPS::GridSpacing (ostream& out) {
 }
 
 void OverlayIdrawPS::ConstProcs (ostream& out) {
-    int arrowWidth = round(ARROWWIDTH*ivpoints);
-    int arrowHeight = round(ARROWHEIGHT*ivpoints);
+    int arrowWidth = Math::round(ARROWWIDTH*ivpoints);
+    int arrowHeight = Math::round(ARROWHEIGHT*ivpoints);
 
     out << "/arrowHeight " << arrowHeight << " def\n";
     out << "/arrowWidth " << arrowWidth << " def\n\n";

@@ -98,7 +98,7 @@ boolean Point::intersects (BoxObj& b, Graphic* gs) {
 void Point::draw (Canvas* c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
 	update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Point
 	_p->Point(c, _x, _y);
 #define Point _lib_iv(Point)
@@ -185,7 +185,7 @@ boolean Line::intersects (BoxObj& b, Graphic* gs) {
 void Line::draw (Canvas* c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
 	update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
 	_p->Line(c, _x0, _y0, _x1, _y1);
 #define Line _lib_iv(Line)
@@ -305,7 +305,7 @@ boolean S_MultiLine::intersects (BoxObj& userb, Graphic* gs) {
 void S_MultiLine::draw (Canvas *c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
 	update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
 	_p->MultiLine(c, x(), y(), count());
 #define MultiLine _lib_iv(MultiLine)
@@ -379,7 +379,7 @@ void SF_MultiLine::draw (Canvas *c, Graphic* gs) {
         _p->FillPolygon(c, x(), y(), count());
     }
     if (!gs->GetBrush()->None()) {
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
         _p->MultiLine(c, x(), y(), count());
 #define MultiLine _lib_iv(MultiLine)

@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-0.7
+#define	Release ivtools-1.1.3
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 0.7.9
+#define	Version 1.1.3
 #endif
 
    VERSION = Version
@@ -48,9 +48,10 @@
 #ifndef RepositoryFiles
 #define RepositoryFiles *.c *.cc *.cxx *.C *.h Imakefile *.def template \
 README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script \
-*.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 \
-site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 \
-config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4
+*.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci \
+site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD \
+WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 \
+config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 #endif
 
    REPOSITORY_FILES = RepositoryFiles
@@ -284,6 +285,10 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #define CCDriver CC +p			/* might want an absolute path, etc. */
 #endif
 
+#ifndef CCLinker
+#define CCLinker CCDriver
+#endif
+
 #ifndef CCSuffix
 #define CCSuffix c			/* might want cc, cxx, C, etc. */
 #endif
@@ -321,6 +326,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 
            CCDRIVER = CCDriver
+	   CCLINKER = CCLinker
            CCSUFFIX = CCSuffix
             CDRIVER = CDriver
             CSUFFIX = CSuffix
@@ -366,7 +372,11 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #if TurnOnOptimizing && !TurnOnDebugging
 #define DebugCCFlags /**/
 #else
+#if LibStdCPlusPlusV3==1
+#define DebugCCFlags -gdwarf-2
+#else
 #define DebugCCFlags -g
+#endif
 #endif
 #endif
 
@@ -445,7 +455,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 
 #ifndef AceCCDefines
 #ifdef AceDir
-#define AceCCDefines -DHAVE_ACE
+#define AceCCDefines -DHAVE_ACE -DACE_MT_SAFE=0
 #else
 #define AceCCDefines /**/
 #endif
@@ -459,8 +469,16 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
+#ifndef QtCCDefines
+#ifdef QtDir
+#define QtCCDefines /**/
+#else
+#define QtCCDefines /**/
+#endif
+#endif
+
 #ifndef OtherCCDefines
-#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(IUE_DEFINES)
+#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(IUE_DEFINES) $(QT_DEFINES)
 #endif
 
           CCDEFINES = CCDefines
@@ -475,6 +493,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
  CLIPPOLY_CCDEFINES = ClipPolyCCDefines
       ACE_CCDEFINES = AceCCDefines
       IUE_CCDEFINES = IueCCDefines
+       QT_CCDEFINES = QtCCDefines
 
 /*
  * Define the includes passed to the CC driver when we compile a C++ file.
@@ -537,8 +556,16 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
+#ifndef QtCCIncludes
+#ifdef QtDir
+#define QtCCIncludes -I$(QTINCS)
+#else
+#define QtCCIncludes /**/
+#endif
+#endif
+
 #ifndef OtherCCIncludes
-#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(IUE_CCINCLUDES)
+#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(IUE_CCINCLUDES) $(QT_CCINCLUDES)
 #endif
 
          CCINCLUDES = CCIncludes
@@ -554,14 +581,21 @@ BACKWARD_CCINCLUDES = /* defined when Use_2_6() is used in Imakefile */
 CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
      ACE_CCINCLUDES = AceCCIncludes
      IUE_CCINCLUDES = IueCCIncludes
+      QT_CCINCLUDES = QtCCIncludes
 #ifdef ClipPolyDir
         CLIPPOLYDIR = ClipPolyDir
 #endif
 #ifdef AceDir
              ACEDIR = AceDir
 #endif
+#ifdef AceLibDir
+          ACELIBDIR = AceLibDir
+#endif
 #ifdef IueDir
              IUEDIR = IueDir
+#endif
+#ifdef QtDir
+              QTDIR = QtDir
 #endif
 
 /*
@@ -782,8 +816,8 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #endif
 
 #ifndef AceCCLdLibs
-#ifdef AceDir
-#define AceCCLdLibs -L$(ACEDIR)/ace -lACE
+#ifdef AceLibDir
+#define AceCCLdLibs -L$(ACELIBDIR) -lACE
 #else
 #define AceCCLdLibs /**/
 #endif
@@ -972,8 +1006,20 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #define IueLibBase libIUE.so   /* only for installing symbolic link */
 #endif
 
+#ifndef QtLibDir
+#ifdef QtDir
+#define QtLibDir $(QTLIBS)
+#else
+#define QtLibDir /**/
+#endif
+#endif
+
+#ifndef QtLibBase 
+#define QtLibBase libQt.so  /* only for installing symbolic link */
+#endif
+
 #ifndef OtherCCLdLibs
-#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(IUE_CCLDLIBS)
+#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(IUE_CCLDLIBS) $(QT_CCLDLIBS)
 #endif
 
 #ifndef SharedCCLdLibs
@@ -1001,6 +1047,9 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
        IUE_CCLDLIBS = IueCCLdLibs
           IUELIBDIR = IueLibDir
          IUELIBBASE = IueLibBase
+        QT_CCLDLIBS = QtCCLdLibs
+           QTLIBDIR = QtLibDir
+          QTLIBBASE = QtLibBase
 	
 /*
  * Define how to install a program, library, header, man page, or data file.
@@ -1273,3 +1322,8 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
             XLIBDIR = XLibDir           /* installed X libraries */
           PSFONTDIR = PSFontDir         /* installed PS font metrics (afm) */
 
+#if defined(Typedef_socklen_t)&&!Typedef_socklen_t
+  SOCKLEN_T_DEFINED = NO
+#else
+  SOCKLEN_T_DEFINED = YES
+#endif

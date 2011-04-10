@@ -25,7 +25,9 @@
 #include <Dispatch/rpcbuf.h>
 #include <OS/memory.h>
 #include <OS/types.h>	/* must come before <netinet/in.h> on some systems */
+extern "C" {
 #include <arpa/inet.h>
+}
 #include "netinet_in.h"
 #include <ctype.h>
 #include <errno.h>
@@ -42,7 +44,7 @@
 #define SOMAXCONN 5
 #endif
 
-#if defined(__sun) || !defined(__svr4__)
+#if defined(__sun) && !defined(__svr4__)
 extern "C" {
     int accept();
     int bind();
@@ -51,6 +53,10 @@ extern "C" {
     int listen();
     int socket();
 }
+#endif
+
+#if !defined(SOCKLEN_T_DEFINED) || !SOCKLEN_T_DEFINED
+typedef int socklen_t;
 #endif
 
 // I need a pointer to an iostreamb so I can insert and extract values
@@ -95,7 +101,7 @@ int rpcbuf::port() {
     }
 
     struct sockaddr_in name;
-    unsigned int name_len = sizeof(name);
+    socklen_t name_len = sizeof(name);
     if (getsockname(_fd, (struct sockaddr*)&name, &name_len) < 0) {
 	sys_error("rpcbuf::port: getsockname");
 	return 0;
@@ -232,7 +238,7 @@ rpcbuf* rpcbuf::connect(const char* host, int port) {
 
 rpcbuf* rpcbuf::accept(int& fd) {
     struct sockaddr_in name;
-    unsigned int name_len = sizeof(name);
+    socklen_t name_len = sizeof(name);
 
     if (!_opened) {
 	error("rpcbuf::accept: not using a file number yet");

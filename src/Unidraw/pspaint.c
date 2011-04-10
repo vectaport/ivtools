@@ -67,6 +67,14 @@ void PSBrush::CalcDashPat (int pat) {
 
 /*****************************************************************************/
 
+PSColor::PSColor() : Color((ColorIntensity)1., (ColorIntensity)1., (ColorIntensity)1.) {
+ _name = strdup("None");
+ _r = (ColorIntensity)1.;
+ _g = (ColorIntensity)1.;
+ _b = (ColorIntensity)1.;
+ _none = true; 
+}
+
 PSColor::PSColor(
     ColorIntensity r, ColorIntensity g, ColorIntensity b, const char* name
 ) : Color(r, g, b) {
@@ -74,6 +82,7 @@ PSColor::PSColor(
     _r = r;
     _g = g;
     _b = b;
+    _none = false;
 }
 
 PSColor::~PSColor () { delete _name; }

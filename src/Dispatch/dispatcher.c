@@ -60,7 +60,7 @@ extern "C" {
 #endif
 }
 
-#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2)
+#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2) && __GNUC__<3
 #define fds_bits __fds_bits
 #endif
 
@@ -597,7 +597,11 @@ int Dispatcher::fillInReady(
     return rmaskret.numSet() + wmaskret.numSet() + emaskret.numSet();
 }
 
+#if defined(__GNUC__) && !defined(__GNUC_MINOR__)
+void Dispatcher::sigCLD() {
+#else
 void Dispatcher::sigCLD(...) {
+#endif
     pid_t pid;
     int status;
 
@@ -629,7 +633,7 @@ int Dispatcher::waitFor(
 ) {
     int nfound;
 #ifdef SV_INTERRUPT                   /* BSD-style */
-#if defined(sun) && defined(__GNUG__)
+#if defined(sun) && defined(__GNUC__)
     static struct sigaction sv, osv;
 #else
     static struct sigvec sv, osv;
@@ -644,14 +648,20 @@ int Dispatcher::waitFor(
 
     if (!_cqueue->isEmpty()) {
 #ifdef SV_INTERRUPT                   /* BSD-style */
-#if defined(sun) && defined(__GNUG__)
+#if defined(sun) && defined(__GNUC__)
 	sv.sa_handler = fxSIGVECHANDLER(&Dispatcher::sigCLD);
 	sv.sa_flags = SV_INTERRUPT;
 	sigaction(SIGCLD, &sv, &osv);
 #else
-	sv.sv_handler = fxSIGVECHANDLER(&Dispatcher::sigCLD);
+#ifdef __APPLE__
+	sv.sv_handler = (void (*)()) fxSIGVECHANDLER(&Dispatcher::sigCLD);
 	sv.sv_flags = SV_INTERRUPT;
 	sigvec(SIGCLD, &sv, &osv);
+#else
+	sv.sv_handler = (void (*)(int)) fxSIGVECHANDLER(&Dispatcher::sigCLD);
+	sv.sv_flags = SV_INTERRUPT;
+	sigvec(SIGCLD, &sv, &osv);
+#endif
 #endif
 #else
 #ifdef SA_NOCLDSTOP                   /* POSIX */
@@ -684,7 +694,7 @@ int Dispatcher::waitFor(
     } while (nfound < 0 && !handleError());
     if (!_cqueue->isEmpty()) {
 #ifdef SV_INTERRUPT                   /* BSD-style */
-#if defined(sun) && defined(__GNUG__)
+#if defined(sun) && defined(__GNUC__)
 	sigaction(SIGCLD, &osv, (struct sigaction*) 0);
 #else
 	sigvec(SIGCLD, &osv, (struct sigvec*) 0);

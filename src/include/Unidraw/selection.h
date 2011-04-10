@@ -38,6 +38,8 @@ class Painter;
 class UList;
 class Viewer;
 
+//:  manages a set of selected components.
+// <a href=../man3.1/Selection.html>man page</a>
 class Selection {
 public:
     Selection(Selection* = nil);

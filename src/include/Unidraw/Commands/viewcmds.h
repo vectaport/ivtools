@@ -32,6 +32,8 @@
 class ControlInfo;
 class GridDialog;
 
+//: normal-size command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class NormSizeCmd : public Command {
 public:
     NormSizeCmd(ControlInfo*);
@@ -45,6 +47,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: reduce-to-fit command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class RedToFitCmd : public Command {
 public:
     RedToFitCmd(ControlInfo*);
@@ -58,6 +62,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: center command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class CenterCmd : public Command {
 public:
     CenterCmd(ControlInfo*);
@@ -71,6 +77,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: enable/disable grid command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class GridCmd : public Command {
 public:
     GridCmd(ControlInfo*);
@@ -84,6 +92,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: grid-spacing command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class GridSpacingCmd : public Command {
 public:
     GridSpacingCmd(ControlInfo*);
@@ -100,6 +110,8 @@ protected:
     GridDialog* _dialog;
 };
 
+//: enable/disable gravity command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class GravityCmd : public Command {
 public:
     GravityCmd(ControlInfo*);
@@ -113,6 +125,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: landscape/portrait orientation command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class OrientationCmd : public Command {
 public:
     OrientationCmd(ControlInfo*);
@@ -126,6 +140,8 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: editor close command
+// <a href=../man3.1/viewcmds.html>man page</a>
 class CloseEditorCmd : public Command {
 public:
     CloseEditorCmd(ControlInfo*);

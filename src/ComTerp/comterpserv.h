@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -32,6 +33,10 @@
  * Server-oriented interpreter deals with strings
  */
 
+#ifdef HAVE_ACE
+#include <ace/config.h>
+#endif
+
 #include <ComTerp/comterp.h>
 
 //: extended ComTerp that works with buffered IO.
@@ -50,7 +55,7 @@ public:
     // generate buffer of length 'codelen' of postfix tokens ready
     // to be converted into ComValue objects and executed.
 
-    virtual int run();
+    virtual int run(boolean one_expr=false, boolean nested=false);
     // run this interpreter until quit or exit command.
     virtual ComValue& run(const char*, boolean nested=false);
     // interpret and return value of expression.  'nested' flag used
@@ -60,7 +65,7 @@ public:
     // execute a buffer of postfix tokens and return the value.
     
     virtual int runfile(const char*);
-    // run interpreter on command read from a file.
+    // run interpreter on commands read from a file.
 
     void add_defaults();
     // add a default list of ComFunc objects to this interpreter.
@@ -91,6 +96,7 @@ protected:
     int _fd;
     FILE* _fptr;
     int _instat;
+    int _logger_mode;
 
     friend class ComterpHandler;
     friend class ComTerpIOHandler;

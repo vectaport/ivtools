@@ -21,17 +21,27 @@
  * 
  */
 
-#include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comhandler.h>
-#include <ComTerp/comvalue.h>
+
+#include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
+#include <fstream.h>
 
 #ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
 #endif
 
 #define TITLE "CtrlFunc"
+
+#if __GNUC__>=3
+static char newline;
+#if __GNUC__>3||__GNUC_MINOR_>1
+#include <ext/stdio_filebuf.h>
+#endif
+#endif
+
 
 /*****************************************************************************/
 
@@ -51,30 +61,6 @@ ExitFunc::ExitFunc(ComTerp* comterp) : ComFunc(comterp) {
 void ExitFunc::execute() {
     reset_stack();
     _comterp->exit();
-}
-
-/*****************************************************************************/
-
-SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SeqFunc::execute() {
-    ComValue arg1(stack_arg(0));
-    ComValue arg2(stack_arg(1));
-    reset_stack();
-    push_stack(arg2);
-}
-
-/*****************************************************************************/
-
-DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void DotFunc::execute() {
-    ComValue thisval(stack_arg(0));
-    ComValue methval(stack_arg(1));
-    reset_stack();
-    push_stack(methval);
 }
 
 /*****************************************************************************/
@@ -122,6 +108,8 @@ void RunFunc::execute() {
     return;
 }
 
+/*****************************************************************************/
+
 RemoteFunc::RemoteFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -134,6 +122,13 @@ void RemoteFunc::execute() {
   reset_stack();
 
 #ifdef HAVE_ACE
+
+#if __GNUC__==3&&__GNUC_MINOR__<1
+  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
+  push_stack(ComValue::nullval());
+  return;
+#endif
+
   if (hostv.is_string() && portv.is_known() && cmdstrv.is_string()) {
 
     const char* hoststr = hostv.string_ptr();
@@ -148,19 +143,33 @@ void RemoteFunc::execute() {
       return;
     }
 
+#if __GNUC__<3
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
+#else
+    fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
+			  false, static_cast<size_t>(BUFSIZ));
+#endif
     ostream out(&ofbuf);
     const char* cmdstr = cmdstrv.string_ptr();
     out << cmdstr;
     if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
     out.flush();
     if (nowaitv.is_false()) {
+#if __GNUC__<3
       filebuf ifbuf;
       ifbuf.attach(socket.get_handle());
       istream in(&ifbuf);
       char* buf;
       in.gets(&buf);
+#else
+      char buf[BUFSIZ];
+      int i=0;
+      do {
+	read(socket.get_handle(), buf+i++, 1);
+      } while (i<BUFSIZ-1 && buf[i-1]!='\n');
+      if (buf[i]=='\n') buf[i]==0;
+#endif
       ComValue& retval = comterpserv()->run(buf, true);
       push_stack(retval);
     }
@@ -173,7 +182,6 @@ void RemoteFunc::execute() {
 
 #else
 
-  reset_stack();
   cerr << "for the remote command to work rebuild comterp with ACE\n";
   return;
 
@@ -187,26 +195,54 @@ EvalFunc::EvalFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void EvalFunc::execute() {
+  static int symret_sym = symbol_add("symret");
+  ComValue symretv(stack_key(symret_sym));
+
+  if (!comterp()->is_serv()) {
+    cerr << "need server mode comterp (or remote mode) for eval command\n";
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   // evaluate every string fixed argument on the stack and return in array
   int numargs = nargsfixed();
-  if (numargs) {
+  if (numargs>1) {
     AttributeValueList* avl = nil;
     for (int i=0; i<numargs; i++) {
       ComValue argstrv (stack_arg(i));
       if (argstrv.is_nil()) break;
       if (argstrv.is_string()) {
-	if (comterp()->is_serv()) {
-	  ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
-	  if (!avl) avl = new AttributeValueList();
-	  avl->Append(val);
-	} else 
-	  cerr << "need server (or remote) mode for eval(\"" << argstrv.string_ptr() << "\")\n";
+	ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
+	if (val->is_nil() && symretv.is_true()) {
+	  delete val;
+	  val = new ComValue(argstrv.symbol_val(), AttributeValue::SymbolType);
+	}
+	if (!avl) avl = new AttributeValueList();
+	avl->Append(val);
       }
     }
     reset_stack();
     if (avl) {
       ComValue retval(avl);
       push_stack(retval);
+    }
+
+  }
+  /* unless only single argument */
+  else if (numargs==1) {
+
+    ComValue argstrv (stack_arg(0));
+    reset_stack();
+    if (argstrv.is_nil()) {
+      push_stack(ComValue::nullval());
+    } else if (argstrv.is_string()) {
+	ComValue val(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
+	if (val.is_nil() && symretv.is_true()) {
+	  val.assignval(ComValue(argstrv.symbol_val(), AttributeValue::SymbolType));
+	}
+	push_stack(val);
+	
     }
   } else
     reset_stack();

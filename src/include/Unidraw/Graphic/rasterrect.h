@@ -33,6 +33,8 @@
 
 class Raster;
 
+//: raster graphic
+// <a href=../man3.1/RasterRect.html>man page</a>
 class RasterRect : public Graphic {
 public:
     RasterRect(Raster*, Graphic* = nil);

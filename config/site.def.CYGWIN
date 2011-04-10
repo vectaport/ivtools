@@ -1,0 +1,14 @@
+/* machine-specific gcc include directory -- does not change with each new version of gcc */
+#define ToolIncludeDir /usr/local/include
+
+/* extra link libraries */
+#undef ExtraCCLdLibs
+#define ExtraCCLdLibs -lstdc++ -lm
+
+/* permissive for X11R6.4 include files */
+#undef ExtraCCFlags
+#define ExtraCCFlags -fpermissive 
+
+/* file output by configure script */
+#include "config-default-gcc.defs"
+

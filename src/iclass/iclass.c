@@ -50,6 +50,7 @@
 #include <InterViews/streditor.h>
 #include <InterViews/textbuffer.h>
 #include <InterViews/world.h>
+#include <OS/math.h>
 #include <OS/types.h>
 
 #include <stdio.h>
@@ -195,7 +196,7 @@ void IClass::Visit (const char* filename) {
         if (f != nil) {
             struct stat filestats;
             stat(filename, &filestats);
-            _bufsize = max(round(filestats.st_size * 1.2), MINTEXTSIZE);
+            _bufsize = max(Math::round(filestats.st_size * 1.2), MINTEXTSIZE);
             _buf = new char[_bufsize];
             char* b = _buf;
             int remaining = _bufsize;
@@ -448,7 +449,7 @@ void IClass::UnselectCurClass () {
 }
 
 Interactor* IClass::Interior () {
-    int space = round(fspace*ivcm);
+    int space = Math::round(fspace*ivcm);
     const char* showButton = GetAttribute("showButton");
     Interactor* selector = SelectedClass();
 
@@ -501,7 +502,7 @@ static PulldownMenu* MakePulldown(
     const char* name, MenuInfo* item, IClass* ic
 ) {
     PulldownMenu* menu = new PulldownMenu(
-	new Message(name, Left, round(.1*ivcm))
+	new Message(name, Left, Math::round(.1*ivcm))
     );
 
     for (MenuInfo* i = item; i->_lbl != nil; i++) {
@@ -653,7 +654,7 @@ void IClass::QuitCmd () { _state->SetValue(QUIT_CODE); }
 
 void IClass::ForwardSearchCmd () {
     if (_fwdSearch == nil) {
-        _fwdSearch = new StringDialog("Search forward for: ", round(3*ivinches));
+        _fwdSearch = new StringDialog("Search forward for: ", Math::round(3*ivinches));
     }
 
     InsertDialog(_fwdSearch);
@@ -670,7 +671,7 @@ void IClass::ForwardSearchCmd () {
 
 void IClass::BackwardSearchCmd () {
     if (_bwdSearch == nil) {
-        _bwdSearch = new StringDialog("Search backward for:", round(3*ivinches));
+        _bwdSearch = new StringDialog("Search backward for:", Math::round(3*ivinches));
     }
 
     InsertDialog(_bwdSearch);

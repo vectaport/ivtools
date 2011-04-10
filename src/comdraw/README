@@ -20,8 +20,9 @@ syntax of the conditional operator "?:".  See the comterp
 documentation for more details.  
 
 All arguments to commands documented below are integers unless
-indicated by a suffix of str or flt.  "compview" is a graphical object
-assigned to an interpreter variable.
+indicated by a suffix of str (which are strings embedded in quotes) or
+flt (which are conventional floating point numbers).  "compview" is a
+graphical object assigned to an interpreter variable.
 
 DRAWING COMMANDS
 
@@ -37,6 +38,13 @@ compview=openspline(x0,y0[,x1,y1,...]) -- create an open spline
 compview=arrowspline(x0,y0[,x1,y1,...]) -- create an open spline with arrows
 compview=polygon(x0,y0[,x1,y1,...]) -- create a polygon
 compview=closedspline(x0,y0[,x1,y1,...]) -- create a closed spline
+compview=raster(x0,x1,y0,y1) -- create an empty raster
+
+GRAPHIC STATS COMMANDS
+
+xylist=center(compview :xy :yx :x :y :scrn) -- center of compview (dflt :xy)
+rectlist=mbr(compview :lbrt :lrbt :scrn) -- minimum bounding rectangle of compview (dflt :lbrt)
+ptlist=points(compview :scrn) -- return point list from compview graphic
 
 GRAPHIC STATE COMMANDS
 
@@ -52,25 +60,47 @@ ncolors() -- return size of color menus
 
 DIRECT MANIPULATION COMMANDS
 
-select(compview [compview ...]) -- make these graphics the current selection
+select([compview ...] :all :clear) -- make these graphics the current selection
+delete(compview [compview ...]) -- delete graphic(s)
 move(dx dy) -- move current selection
 scale(xflt yflt) -- scale current selection
 rotate(degflt) -- rotate current selection
 
-ATTRIBUTE COMMANDS
+GROUP/UNGROUP COMMANDS
+
+newgroup=growgroup(groupview compview) -- add graphic to existing group graphic
+newgroup=trimgroup(groupview compview) -- remove graphic from existing group graphic
+
+COMPONENT AND ATTRIBUTE COMMANDS
 
 compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
+attrlist(compview) -- return attribute list of component
+compview=frame([index]) -- return composite component for a frame, defaults to current
+val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list.
+num=size(list|attrlist|compview) -- return size of a list.
 
 VIEWER COMMANDS
 
 update() -- update viewer
 
-import(pathname) -- import graphic file from pathname or URL
+error=save([pathstr]) -- command to save document (to pathname)	
+compview=import(pathstr :popen :next) -- import graphic file from pathname or URL, or from a command if :popen
+(:next imports next in numeric series)
+export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- remote in drawtool (or other) format
+compview=paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer
+val=pastemode([val] :get) -- toggle or set paste mode, default is 0, always paste new graphics
+compview=addtool(pathname) -- add button to toolbar based on zero-centered idraw drawing.
 
 ncols() -- onscreen horizontal extent in pixels
 nrows() -- onscreen vertical extent in pixels
 
+dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
+sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
+dx,dy=gtod(compview gx,gy) -- convert from graphic to drawing coordinates
+gx,gy=dtog(compview dx,dy) -- convert from drawing to graphic coordinates
+
 handles(flag) -- enable/disable current selection tic marks and/or highlighting
+highlight(compview compviewgs) -- set the highlight graphic state for a graphic
 
 zoom(zoomflt) -- zoom by factor
 zoomin() -- zoom-in by 2
@@ -89,6 +119,12 @@ largepanright() -- large pan right
 IMAGING COMMANDS
 
 tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
+poke(compview x y val) -- poke pixel value into raster
+pcols(compview) -- number of columns in a raster
+pcols(compview) -- number of rows in a raster
+pflush(compview) -- flush pixels poked into a raster
+pclip(compview x1,y1,x2,y2,x3,y3[,...,xn,yn]) -- clip raster with polygon
+alpha(compview [alphaval]) -- set/get alpha transparency
 
 PLOTTING COMMANDS
 
@@ -101,21 +137,38 @@ OTHER COMMANDS
 run(filename) -- run commands from file
 quit() -- quit this interpreter
 exit() -- exit entire application
+pause([msgstr]) -- pause script execution until C/R
 
 OPTIONS
 
-"-port n" specifies the port number to accept command interpreter
+"-comdraw n" specifies the port number to accept command interpreter
 connections on.
 
 "-import n" specifies the port number run the import service on.  The
 import service accepts connections over the net and reads drawtool
 format data.
 
+"-stripped" brings up a comdraw without any menubar, toolbar, panner,
+slider, or zoomer.  It can be controlled via stdin or telnet if built
+with ACE.
+
+"-rampsize n" selects the rampsize used for gray-level image
+processing.
+
+"-theight n" (or "-th n") selects the automatic raster tiling height.
+
+"-twidth n" (or "-tw n") selects the automatic raster tiling width.
+
+"-tile" enables the automatic raster tiling.
+
+Also see the -help message and the drawtool and idraw man pages for
+further options.
+
 SEE ALSO  
 	comterp, drawtool, idraw
 
 WEB PAGES
-	 http://www.vectaport.com/ivtools/comdraw.html
+	 http://www.ivtools.org/ivtools/comdraw.html
 
 
 

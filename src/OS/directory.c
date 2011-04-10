@@ -22,6 +22,7 @@
  * OF THIS SOFTWARE.
  */
 
+#include <stdio.h>
 #include <OS/directory.h>
 #include <OS/memory.h>
 #include <OS/string.h>
@@ -41,16 +42,8 @@
 #endif
 #include <pwd.h>
 
-#include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
-
-/* bad hack until I found out why the definition from stdio doesn't work */
-extern "C" {
-extern int sprintf __P ((char *__restrict __s,
-                         __const char *__restrict __format, ...));
-}
-
 
 /*
  * These hide in mysterious places on various systems.
@@ -58,6 +51,10 @@ extern int sprintf __P ((char *__restrict __s,
  */
 
 extern "C" {
+#if 0
+    extern int sprintf __P ((char *__restrict __s,
+                             __const char *__restrict __format, ...));
+#endif
     extern uid_t getuid();
     extern void qsort(
 	void*, size_t, size_t, int (*) (const void*, const void*)

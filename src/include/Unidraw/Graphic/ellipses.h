@@ -33,6 +33,8 @@
 
 class MultiLineObj;
 
+//: ellipse graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class Ellipse : public Graphic {
 public:
     void GetOriginal(Coord&, Coord&, int&, int&);
@@ -57,6 +59,8 @@ protected:
     void CalcControlPts(Transformer*);
 };
 
+//: stroked ellipse graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class S_Ellipse : public Ellipse {
 public:
     S_Ellipse(Coord x0, Coord y0, int r1, int r2, Graphic* gr = nil);
@@ -75,6 +79,8 @@ protected:
     PSBrush* _br;
 };
 
+//: filled ellipse graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class F_Ellipse : public Ellipse {
 public:
     F_Ellipse(Coord x0, Coord y0, int r1, int r2, Graphic* gr = nil);
@@ -93,6 +99,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroke-filled ellipse graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class SF_Ellipse : public Ellipse {
 public:
     SF_Ellipse(Coord x0, Coord y0, int r1, int r2, Graphic* gr = nil);
@@ -115,6 +123,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked circle graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class S_Circle : public S_Ellipse {
 public:
     S_Circle(Coord x0, Coord y0, int radius, Graphic* gr = nil);
@@ -122,6 +132,8 @@ public:
     virtual Graphic* Copy();
 };
 
+//: filled circle graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class F_Circle : public F_Ellipse {
 public:
     F_Circle(Coord x0, Coord y0, int radius, Graphic* gr = nil);
@@ -129,6 +141,8 @@ public:
     virtual Graphic* Copy();
 };
 
+//: stroked-filled circle graphic
+// <a href=../man3.1/ellipses.html>man page</a>
 class SF_Circle : public SF_Ellipse {
 public:
     SF_Circle(Coord x0, Coord y0, int radius, Graphic* gr = nil);

@@ -57,8 +57,7 @@ class Unidraw;
 class UList;
 class World;
 
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: stores and retrieves named objects.
 // <a href=../man3.1/Catalog.html>man page</a>
@@ -171,11 +170,11 @@ public:
     PSBrush* FindBrush(int, int);
     PSBrush* FindBrush(int, float);
     PSColor* FindColor(const char*, int = 0, int = 0, int = 0);
+    PSColor* FindNoneColor();
     PSFont* FindFont(const char*, const char* = "", const char* = "");
     PSPattern* FindNonePattern();
     PSPattern* FindGrayLevel(float);
     PSPattern* FindPattern(int[], int);
-protected:
     void Register(EditorInfo*, const char*);
     void Register(Component*, const char*);
     void Register(Command*, const char*);
@@ -228,7 +227,7 @@ protected:
     ObjectMap* _curMap;
     ObjectMap* _substMap;
     float _fileVersion;
-#ifdef __GNUG__
+#ifdef __GNUC__
     char* _tmpfile;
 #endif
 

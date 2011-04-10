@@ -25,6 +25,7 @@
 #define framestates_h
 
 #include <IVGlyph/namestate.h>
+#include <InterViews/observe.h>
 
 //: state variable for current-frame-number.
 class FrameNumberState : public NameState {
@@ -34,14 +35,19 @@ public:
     int number();
     void number(int, boolean notif =true);
 
-    // same as number methods
     int framenumber(); 
+    // same as number methods
     void framenumber(int, boolean notif =true);
+    // same as number methods
+
+    void set_bgstr(const char*);
+    // set alternate string to represent "background" frame
 protected:
     int _number;
     char* _desc;
     char buf[256];
     int _usebg;
+    char* _bgstr;
 };
 
 //: state variable for current-frame-count.

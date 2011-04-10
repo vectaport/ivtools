@@ -80,7 +80,7 @@ public:
     );
 
     unsigned long x_or(const Style&) const;
-    unsigned long xor(const Style&) const;
+    unsigned long x_or_(const Style&) const;
 
     XDisplay* display() const;
     int screen() const;
@@ -101,6 +101,7 @@ private:
     unsigned long blue_shift_;
     unsigned long white_;
     unsigned long xor_;
+    boolean bytesize_;
 
     static void find_visual_by_class_name(const String&, WindowVisualInfo&);
     static boolean find_layer(const String&, int& layer);

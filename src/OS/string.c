@@ -26,17 +26,27 @@
 #include <ctype.h>
 #include <string.h>
 #include <iostream.h>
+#include <streambuf.h>
 
 /*
  * Just to be sure ...
  */
 
 extern "C" {
+#if defined(__APPLE__)&&__GNUC__<3
+#ifndef tolower
+    extern wchar_t tolower(wchar_t);
+#endif
+#ifndef toupper
+    extern wchar_t toupper(wchar_t);
+#endif
+#else
 #ifndef tolower
     extern int tolower(int);
 #endif
 #ifndef toupper
     extern int toupper(int);
+#endif
 #endif
     extern long int strtol(const char*, char**, int);
     extern double strtod(const char*, char**);
@@ -327,7 +337,12 @@ String::operator const char*() const {
 };
 
 ostream& operator<< (ostream& out, const String& str) {
+#if defined(sun) && !defined(solaris) || __GNUC__>=3
+  out.write(str.string(), str.length());
+#else
   out.write(str.string(), (streamsize)str.length());
+#endif
+  return out;	
 }
 
 /* class CopyString */

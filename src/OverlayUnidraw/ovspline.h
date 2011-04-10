@@ -33,7 +33,7 @@
 
 class SFH_OpenBSpline;
 class SFH_ClosedBSpline;
-class istream;
+#include <iosfwd>
 
 //: clone of SplineComp derived from OverlayComp.
 class SplineOvComp : public VerticesOvComp {
@@ -54,7 +54,9 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovspline_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("SplineComp"); 
 };
 
 //: graphic view of SplineOvComp.
@@ -121,7 +123,9 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovclosed_spline_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("ClosedSplineComp"); 
 };
 
 //: graphic view of ClosedSplineOvComp.

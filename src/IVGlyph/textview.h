@@ -63,6 +63,7 @@ public:
    int save_as(const char* path);
    int save_current();
    void save();
+   void quit();
 
    // InputHandler
    virtual void press(const Event&);
@@ -131,7 +132,8 @@ public:
 
     const char* text();
     void text(const char*, boolean update =true);
-private:
+
+protected:
    void scroll_to_line(int line);
    void make_visible(const boolean scroll_page = true);
    int event_to_index(const Event&);

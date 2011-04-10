@@ -72,17 +72,23 @@ int ComTerpIOHandler::inputReady(int i)
     _comterp->_fd = i;
     _comterp->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
 
-    if (_comterp->read_expr()) {
+    boolean done = false;
+    while (!done) {
+      if (_comterp->read_expr()) {
 	if (_comterp->eval_expr())
-	    err_print( stderr, "comterp" );
+	  err_print( stderr, "comterp" );
 	else if (_comterp->quitflag()) 
-	    return 0;
+	  return 0;
 	else {
-	    if (unidraw->updated()) unidraw->Update(true);
-	    _comterp->print_stack_top();
+	  if (unidraw->updated()) unidraw->Update(true);
+	  _comterp->print_stack_top();
 	}
-    } else 
-      err_print( stderr, "comterp");
+      } else {
+	if (err_cnt()>0) 
+	  err_print( stderr, "comterp");
+	done = 1;
+      }
+    }
     return 0;
 }
 

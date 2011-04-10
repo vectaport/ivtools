@@ -33,10 +33,11 @@
 #include <ace/Singleton.h>
 #include <ace/Svc_Handler.h>
 #include <ace/SOCK_Acceptor.h>
+#include <ace/Test_and_Set.h>
 
 class OvImportCmd;
-class filebuf;
-class istream;
+#include <fstream.h>
+#include <iosfwd>
 
 //: handler for import by socket into OverlayUnidraw.
 class UnidrawImportHandler : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>
@@ -64,13 +65,14 @@ protected:
   // host we are connected to.
 
   OvImportCmd* _import_cmd; // associated import command
-  filebuf* _filebuf;        // associated input buffer
+#if __GNUC__<3
+  filebuf* _filebuf;
+#else				 
+  fileptr_filebuf* _filebuf;        // associated input buffer#
+#endif
   istream* _inptr;          // associated input stream
+  FILE* _infptr;            // associated FILE*
 };
-
-//: a Reactor Singleton.
-typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex> 
-	IMPORT_REACTOR;
 
 //: an ACE_Test_and_Set Singleton for Ctrl-C.
 typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 

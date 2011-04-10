@@ -93,7 +93,7 @@ public:
 
     static GraphicComp* DoImport(
         istream& instrm, boolean& empty, FileHelper& helper, Editor* ed, 
-        boolean is_strm, const char* pathname, int& pnmfd
+        boolean is_strm, const char* pathname, int& pnmfd, boolean cmdflag
     );
 
     static GraphicComp* TIFF_Image(const char*);
@@ -172,13 +172,13 @@ public:
     static const char* ReadCreator(const char* pathname);
     // read creator from 'pathname', returning one of "COMPRESS", "GZIP",
     // "TIFF", "SUN", "PBM", "PGM", "PPM", "PBMA", "PGMA", "PPMA", "JPEG",
-    // "BM", "ATK", "MP", "X11", "PCX", "IFF", "GIF", "RLE", "idraw", or
-    // something else for arbitrary "PostScript".
+    // "BM", "ATK", "MP", "X11", "PCX", "IFF", "GIF", "RLE", "PNG", "idraw", 
+    // or something else for arbitrary "PostScript".
     static const char* ReadCreator(istream& in, FileType& type);
     // read creator from istream, returning one of "COMPRESS", "GZIP",
     // "TIFF", "SUN", "PBM", "PGM", "PPM", "PBMA", "PGMA", "PPMA", "JPEG",
-    // "BM", "ATK", "MP", "X11", "PCX", "IFF", "GIF", "RLE", "idraw", or
-    // something else for arbitrary "PostScript", plus a FileType enum.
+    // "BM", "ATK", "MP", "X11", "PCX", "IFF", "GIF", "RLE", "PNG", "idraw", 
+    // or something else for arbitrary "PostScript", plus a FileType enum.
     // The bytes read to determine the creator are pushed back onto
     // the istream.
 

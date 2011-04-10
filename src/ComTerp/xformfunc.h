@@ -56,4 +56,16 @@ public:
 
 };
 
+//: ComTerp command to transpose a matrix
+// matrix=xpose(matrix) -- transpose an arbitrary matrix
+class XposeFunc : public ComFunc {
+public:
+    XposeFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "matrix=%s(matrix) -- transpose an arbitrary matrix"; }
+
+};
+
 #endif /* !defined(_xformfunc_h) */

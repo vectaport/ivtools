@@ -30,6 +30,7 @@
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xselection.h>
 #include <IV-X11/xwindow.h>
+#include <OS/math.h>
 #include <OS/string.h>
 #include <OS/table.h>
 #include <X11/Xatom.h>
@@ -72,7 +73,8 @@ void SelectionManager::put_value(const void* data, int length, int format) {
     XChangeProperty(
         s.xdisplay_, s.x_req_.requestor, s.x_req_.property,
 	/* type */ XA_STRING, format, PropModeReplace,
-	(const unsigned char*)data, length
+	(const unsigned char*)data - (length<0 ? length : 0), 
+	Math::abs(length)
     );
     XEvent xe;
     XSelectionEvent& xs = xe.xselection;

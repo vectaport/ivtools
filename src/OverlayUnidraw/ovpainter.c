@@ -843,11 +843,11 @@ static OvSourceTable* source_table_;
 // if spm or sri is set then hscale, vscale will be set
 
 static void ImageSetup(
-    const OverlayRaster* or, OverlayRasterRect* rr, const Transformer& tx,
+    const OverlayRaster* o_r, OverlayRasterRect* r_r, const Transformer& tx,
     OvFileImage*& sri, Pixmap& spm, IntCoord& swidth, IntCoord& sheight, 
     float& hscale, float& vscale, int& key, Pixmap& dpm
 ) {
-    const OverlayRaster* r = or ? or : rr->GetOriginal();
+    const OverlayRaster* r = o_r ? o_r : r_r->GetOriginal();
     Display* d = r->rep()->display_;
     sri = nil;
     spm = dpm = nil;
@@ -860,7 +860,7 @@ static void ImageSetup(
     if (!(tx.Rotated() || tx.Scaled())) {
 #endif
         if (!r->rep()->pixmap_) {
-            rr->load_image();
+            r_r->load_image();
         }
         dpm = r->rep()->pixmap_;
         swidth = r->rep()->pwidth_;   
@@ -877,7 +877,7 @@ static void ImageSetup(
                 hscale = vscale = 1.;
             } else {
                 if (tx.Rotated()) {
-                    rr->load_image();
+                    r_r->load_image();
                     spm = r->rep()->pixmap_;
                     swidth = r->rep()->pwidth_;   
                     sheight = r->rep()->pheight_;   
@@ -892,12 +892,12 @@ static void ImageSetup(
                     if (!source_table_->find(srep, r)) {
                         if ((hscale < 1.) && (vscale < 1.)) {
                             // need to store this later in source_table
-                            sri = OvFileImage::create(d, rr);
+                            sri = OvFileImage::create(d, r_r);
                             assert(sri);
                             swidth = sri->Width(); 
                             sheight = sri->Height();
                         } else {
-                            rr->load_image();
+                            r_r->load_image();
                             spm = r->rep()->pixmap_;
                             swidth = r->rep()->pwidth_;   
                             sheight = r->rep()->pheight_;   
@@ -919,12 +919,12 @@ static void ImageSetup(
                             // we need some sort of hueristic, we may just want
                             // to read the 1x res
                             // need to store this later in source_table
-                            sri = OvFileImage::create(d, rr);
+                            sri = OvFileImage::create(d, r_r);
                             assert(sri);
                             swidth = sri->Width(); 
                             sheight = sri->Height();
                         } else {  // normal or zoomed in scale
-                            rr->load_image();
+                            r_r->load_image();
                             spm = r->rep()->pixmap_;
                             swidth = r->rep()->pwidth_;   
                             sheight = r->rep()->pheight_;   
@@ -943,13 +943,13 @@ static void ImageSetup(
 
 static Pixmap DetermineImage(
     const Mapper& mpr, unsigned long fg, unsigned long bg, 
-    const OverlayRaster* or, OverlayRasterRect* rr, 
+    const OverlayRaster* o_r, OverlayRasterRect* r_r, 
     const Transformer& tx, XRectangle* bb, 
     boolean& free_pixmap, IntCoord& xmin, IntCoord& ymin, IntCoord& dwidth, 
     IntCoord& dheight
 ) {
     Pixmap map;
-    const OverlayRaster* r = or ? or : rr->GetOriginal();
+    const OverlayRaster* r = o_r ? o_r : r_r->GetOriginal();
     Display& dis = *r->rep()->display_;
 
     Pixmap spm = nil;
@@ -960,7 +960,7 @@ static Pixmap DetermineImage(
     int key;
 
     ImageSetup(
-        r, rr, tx, sri, spm, swidth, sheight, hscale, vscale, key, dpm
+        r, r_r, tx, sri, spm, swidth, sheight, hscale, vscale, key, dpm
     );
 
     boolean from_source, over_maxpixels;
@@ -1069,22 +1069,22 @@ void OverlayPainter::RasterRect(
 }
 
 void OverlayPainter::RasterRect(
-    Canvas* c, IntCoord x, IntCoord y, OverlayRasterRect* rr
+    Canvas* c, IntCoord x, IntCoord y, OverlayRasterRect* r_r
 ) {
-    DoRasterRect(c, x, y, nil, rr);
+    DoRasterRect(c, x, y, nil, r_r);
 }
 
 void OverlayPainter::DoRasterRect(
-    Canvas* c, IntCoord x, IntCoord y, OverlayRaster* or, OverlayRasterRect* rr
+    Canvas* c, IntCoord x, IntCoord y, OverlayRaster* o_r, OverlayRasterRect* r_r
 ) {
-    if (c == nil) {
+    if (c == nil || r_r == nil) {
 	return;
     }
 
-    rr->load_image();
+    r_r->load_image();
 
-    const OverlayRaster* r = or ? or : rr->GetOriginal();
-    rr->damage_flush();  // was r->flush()
+    const OverlayRaster* r = o_r ? o_r : r_r->GetOriginal();
+    r_r->damage_flush();  // was r->flush()
 
     if (!icache_) {
         icache_ = new ImageCache();
@@ -1142,6 +1142,20 @@ void OverlayPainter::DoRasterRect(
     XIntersectRegion(rg, tmp, rg);
     XDestroyRegion(tmp);
 
+    if (r_r && r_r->clippts()) {
+      MultiLineObj* mlo = r_r->clippts();
+      XPoint polypts[mlo->count()];
+      for (int i=0; i<mlo->count(); i++) {
+	IntCoord x, y;
+	MapRoundUp(c, mlo->x()[i], mlo->y()[i], x, y);
+	polypts[i].x = x;
+	polypts[i].y = y;
+      }
+      Region poly = XPolygonRegion(polypts, mlo->count(), EvenOddRule);
+      XIntersectRegion(rg, poly, rg);
+      XDestroyRegion(poly);
+    }
+
     boolean free_pmap;
     IntCoord xmin, ymin;
 
@@ -1157,7 +1171,7 @@ void OverlayPainter::DoRasterRect(
 
     Pixmap dest = DetermineImage(
         mapper, GetFgColor()->PixelValue(), GetBgColor()->PixelValue(),
-        or, rr, *tmatrix, &iv_bb, free_pmap, xmin, ymin, pwidth, pheight
+        o_r, r_r, *tmatrix, &iv_bb, free_pmap, xmin, ymin, pwidth, pheight
     );
 
     Display& d = *r->rep()->display_;
@@ -1167,14 +1181,89 @@ void OverlayPainter::DoRasterRect(
     if (xid != CanvasRep::unbound) {
         XSetRegion(dpy, Rep()->fillgc, rg);
         XSetGraphicsExposures(dpy, Rep()->fillgc, False);
-        XCopyArea(
-    	    dpy, dest, xid, Rep()->fillgc,
-	    0, 0, pwidth, pheight, xmin, 
-            c->pheight() - 1 - (ymin + pheight)
-        );
+	int _ymin = c->pheight() - 1 - (ymin + pheight);
+
+	boolean transparent_val = 0;
+
+	if (r_r->alphaval()<1.0 /* || transparent_val */ ) {
+	
+	  /* WITH alpha-tranparency */
+
+	  unsigned long alpha = (unsigned long)(r_r->alphaval() * 65535);
+	  unsigned long beta = 65535 - alpha;
+
+	  /* adjust pwidth and pheight, because they might be in error */
+	  XWindow win_ret;
+	  int x_ret, y_ret;
+	  unsigned int w_ret, h_ret, borderw_ret, depth_ret;
+	  XGetGeometry(dpy, dest, &win_ret, &x_ret, &y_ret, &w_ret, &h_ret,
+		       &borderw_ret, &depth_ret);
+	  pwidth = Math::min((unsigned)pwidth, w_ret);
+	  pheight = Math::min((unsigned)pheight, h_ret);
+	  
+	  XImage* im1 = 
+	    XGetImage(dpy, dest, 0, 0,
+		      pwidth, pheight, AllPlanes, ZPixmap);
+	  int xbclip = xmin < 0 ? -xmin : 0;
+	  int ybclip = _ymin < 0 ? -_ymin : 0;
+	  int xeclip = xmin + pwidth > c->pwidth() ? (pwidth + xmin) - c->pwidth() : 0;
+	  int yeclip = _ymin + pheight > c->pheight() ? (pheight + _ymin) - c->pheight() : 0;
+	  XImage* im2 = 
+	    XGetImage(dpy, xid, 
+		      xmin+xbclip, _ymin+ybclip,
+		      pwidth-xeclip-xbclip, pheight-yeclip-ybclip, 
+		      AllPlanes, ZPixmap);
+	  if (im1 && im2) {
+	    for (int j=ybclip; j<pheight-yeclip; j++) {
+	      for (int i=xbclip; i<pwidth-xeclip; i++) {
+		unsigned long val1 = XGetPixel(im1, i, j);
+		unsigned long val2 = XGetPixel(im2, i-xbclip, j-ybclip);
+		XColor xc1, xc2;
+		d.rep()->default_visual_->find_color(val1, xc1);
+		d.rep()->default_visual_->find_color(val2, xc2);
+#if 0
+		if (!(transparent_val && 
+		    xc1.red==0xffff && 
+		    xc1.green==0xffff && 
+		    xc1.blue==0xffff)) { 
+#endif
+		  unsigned short newred = 
+		    (unsigned short)((xc1.red*alpha+xc2.red*beta)>>16);
+		  unsigned short newgreen = 
+		    (unsigned short)((xc1.green*alpha+xc2.green*beta)>>16);
+		  unsigned short newblue = 
+		    (unsigned short)((xc1.blue*alpha+xc2.blue*beta)>>16);
+		  
+		  XColor newcolor;
+		  d.rep()->default_visual_->find_color((short unsigned int)newred, (short unsigned int)newgreen, (short unsigned int)newblue, newcolor);
+		  XPutPixel(im1, i, j, newcolor.pixel);
+#if 0
+		} else {
+		  XPutPixel(im1, i, j, xc2.pixel);
+		}
+#endif
+	      }
+	    }
+	    
+	    XPutImage(dpy, xid, Rep()->fillgc, im1, xbclip, ybclip, xmin+xbclip, 
+		      _ymin+ybclip, pwidth-xbclip-xeclip, pheight-ybclip-yeclip);
+	    XDestroyImage(im1);
+	    XDestroyImage(im2);
+	  }
+
+	} else {
+
+	  /* WITHOUT alpha-tranparency */
+
+	  XCopyArea(
+		    dpy, dest, xid, Rep()->fillgc,
+		    0, 0, pwidth, pheight, xmin, _ymin);
+
+	}
+
         XSetGraphicsExposures(dpy, Rep()->fillgc, True);
         XDestroyRegion(rg);
-
+	
         if (Rep()->clipped) {
 	    XSetClipRectangles(
               dpy, Rep()->fillgc, 0, 0, Rep()->xclip, 1, Unsorted

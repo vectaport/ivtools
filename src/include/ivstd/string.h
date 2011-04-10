@@ -3,9 +3,12 @@
 
 #if defined(__cplusplus)
 
-#if defined(sun) && !defined(solaris)
+#if defined(sun) && !defined(__svr4__)
 extern "C" {
 int strcasecmp(const char*, const char*);
+int strncasecmp(const char*, const char*,int);
+#undef size_t
+#define size_t long unsigned int	
 }
 #endif
 
@@ -21,10 +24,12 @@ inline char* strlower(char* str) {
 
 #endif
 
-#include_next <string.h>
 
 #if defined(__cplusplus)
+#include_next <string.h>
 #undef NULL
 #define NULL 0
+#else
+#include </usr/include/string.h>
 #endif
 #endif

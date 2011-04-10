@@ -411,7 +411,7 @@ boolean S_Polygon::intersects (BoxObj& userb, Graphic* gs) {
 void S_Polygon::draw (Canvas *c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
 	update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Polygon
 	_p->Polygon(c, x(), y(), count());
 #define Polygon _lib_iv(Polygon)
@@ -528,7 +528,7 @@ void SF_Polygon::draw (Canvas *c, Graphic* gs) {
         _p->FillPolygon(c, x(), y(), count());
     }
     if (!gs->GetBrush()->None()) {
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Polygon
         _p->Polygon(c, x(), y(), count());
 #define Polygon _lib_iv(Polygon)

@@ -23,13 +23,16 @@
 
 #ifdef HAVE_ACE
 
-#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/aceimport.h>
+
+#include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <IVGlyph/importchooser.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
+#include <Comterp/comhandler.h>
+#include <fstream.h>
 #include <stdio.h>
 
 /*****************************************************************************/
@@ -44,6 +47,7 @@ UnidrawImportHandler::UnidrawImportHandler ()
     _import_cmd = new OvImportCmd(unidraw->GetEditor(i), &ImportChooser::instance());
     _inptr = nil;
     _filebuf = nil;
+    _infptr = nil;
 }
 
 void
@@ -51,9 +55,13 @@ UnidrawImportHandler::destroy (void)
 {
     cerr << this->peer_name_ << " disconnected from import port\n";
 #if 0
-    IMPORT_REACTOR::instance ()->cancel_timer (this);
+    ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
+    if (_infptr) {
+      fclose(_infptr);
+      _infptr = nil;
+    }
 }
 
 int
@@ -83,8 +91,13 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
     }
     return _inptr->good() ? 0 : -1;
 #else
+#if __GNUC__<3
     filebuf fbuf;
     if(fbuf.attach(fd)==0) return -1;
+#else
+    if (!_infptr) _infptr = fdopen(fd, "r");
+    fileptr_filebuf fbuf(_infptr, ios_base::in);
+#endif
     istream in(&fbuf);
     int ch = in.get();
     if (ch != EOF && in.good()) {
@@ -92,7 +105,7 @@ UnidrawImportHandler::handle_input (ACE_HANDLE fd)
       _import_cmd->instream(&in);
       _import_cmd->Execute();
     }
-    return -1;
+    return -1;  /* only return -1, which indicates input handling is fini */
 #endif
 }
 
@@ -109,12 +122,12 @@ UnidrawImportHandler::open (void *)
 		       addr.get_host_name (), 
 		       MAXHOSTNAMELEN + 1);
 
-      if (IMPORT_REACTOR::instance ()->register_handler 
+      if (ComterpHandler::reactor_singleton()->register_handler 
 	  (this, ACE_Event_Handler::READ_MASK) == -1)
 	ACE_ERROR_RETURN ((LM_ERROR, 
 			   "(%P|%t) can't register with reactor\n"), -1);
 #if 0
-      else if (IMPORT_REACTOR::instance ()->schedule_timer
+      else if (ComterpHandler::reactor_singleton()->schedule_timer
 	  (this, 
 	  (const void *) this, 
 	   ACE_Time_Value (10), 

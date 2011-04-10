@@ -68,7 +68,9 @@ boolean FrameOverlaysScript::IsA (ClassId id) {
  
 /*****************************************************************************/
 
-FrameScript::FrameScript (FrameComp* subj) : OverlaysScript(subj) {}
+FrameScript::FrameScript (FrameComp* subj) : OverlaysScript(subj) {
+  _suppress_frame = false;
+}
 
 ClassId FrameScript::GetClassId () { return FRAME_SCRIPT; }
 
@@ -80,7 +82,7 @@ boolean FrameScript::Definition (ostream& out) {
     Iterator i;
     boolean status = true;
 
-    out << "frame(\n";
+    if (!_suppress_frame) out << "frame(\n";
     
     static int readonly_symval = symbol_add("readonly");
     boolean outflag = false;
@@ -104,7 +106,7 @@ boolean FrameScript::Definition (ostream& out) {
     out << "\n";
     Indent(out);
     Attributes(out);
-    out << ")";
+    if (!_suppress_frame) out << ")";
 
     return status;
 }    

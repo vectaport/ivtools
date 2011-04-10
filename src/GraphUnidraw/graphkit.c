@@ -136,6 +136,11 @@ static const int nOpen = 4;
 static Coord xhead[] = { unit, unit-4, unit-7 };
 static Coord yhead[] = { unit, unit-7, unit-4 };
 
+const char* GraphKit::mouse_node = "l-click: Add Node; m-drag: Move; r-click/drag: Select";
+const char* GraphKit::mouse_lnode = "l-click: Add Labeled Node; m-drag: Move; r-click/drag: Select";
+const char* GraphKit::mouse_labl = "l-click: Type In Label, l-,m-,r-click To Finish";
+const char* GraphKit::mouse_edge = "l-drag: Connect; m-drag: Move; r-click/drag: Select";
+
 /******************************************************************************/
 
 GraphKit* GraphKit::_graphkit = nil;
@@ -284,7 +289,7 @@ MenuItem* GraphKit::MakeViewMenu() {
     zoomi->menu(zoom);
     MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
 	     "Zoom In          ");
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", "\032"), 0.5),
 	     "Zoom Out         ");
     MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
 	     "Precise Zoom     ");
@@ -331,11 +336,11 @@ MenuItem * GraphKit::MakeToolsMenu() {
     mbi->menu(kit.pulldown());
 
     MenuItem* menu_item = kit.menu_item(kit.label("Graph Tools"));
-    menu_item->action(new ActionCallback(GraphKit)(this, &GraphKit::toolbar1));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar1));
     mbi->menu()->append_item(menu_item);
 
     menu_item = kit.menu_item(kit.label("Idraw Tools"));
-    menu_item->action(new ActionCallback(GraphKit)(this, &GraphKit::toolbar0));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar0));
     mbi->menu()->append_item(menu_item);
 
     return mbi;
@@ -586,18 +591,6 @@ Glyph* GraphKit::MakeToolbar() {
 		fil, 0.0
 	)
     );
-}
-
-void GraphKit::toolbar0() {
-    _toolbars->flip_to(0);
-    _ed->GetKeyMap()->Execute(CODE_SELECT);
-    _toolbar->redraw();
-}
-
-void GraphKit::toolbar1() {
-    _toolbars->flip_to(1);
-    _ed->GetKeyMap()->Execute("L");
-    _toolbar->redraw();
 }
 
 void GraphKit::InitLayout(const char* name) {

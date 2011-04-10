@@ -7,25 +7,49 @@
 # Uncomment this to turn on verbose mode. 
 #export DH_VERBOSE=1
 
-ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
 
-DOCS = VERSION CHANGES CHANGES-0.4 CHANGES-0.5 CHANGES-0.6 README COPYRIGHT.proposed
+# libace still doesn work on Alpha ...
+# I have invested too much time already figuring out
+# if it is a problem of libace or of ivtools, 
+# so for alpha we just don't have ace, who uses it
+# anyhow ?
+
+ARCH = $(dpkg --print-architecture)
+
+ifeq "$(ARCH)" "alpha"
+ACE = 
+else
+# ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
+endif
+
+DOCS = VERSION CHANGES CHANGES-0.4 CHANGES-0.5 CHANGES-0.6 CHANGES-0.7 CHANGES-0.8 README COPYRIGHT
 
 build: build-stamp
 build-stamp:
 	dh_testdir
 
-	./configure --x-includes=/usr/X11R6/include \
- --x-libraries=/usr/X11R6/lib --prefix=`pwd`/debian/tmp/usr/X11R6 \
- $(ACE)
+	cp -p /usr/share/misc/config.* src/scripts/
+
+	./configure \
+		--x-includes=/usr/X11R6/include \
+		 --x-libraries=/usr/X11R6/lib \
+		--prefix=`pwd`/debian/tmp/usr/X11R6 \
+		$(ACE)
 
 	#  Compile the packages
 
 	make Makefile ARCH=LINUX
 	make Makefiles ARCH=LINUX
 	make ARCH=LINUX
-	
+
+	#   BUILD FINISHED  
+	# -----------------------------------------------------------
 	# reconfigure for the devel package
+	# build process should be finished now
+	# we have to reconfigure in order to get a correct
+	# build environment
+	# -----------------------------------------------------------
+
 
 	./configure --x-includes=/usr/X11R6/include \
  --x-libraries=/usr/X11R6/lib --prefix=/usr/X11R6  
@@ -41,6 +65,8 @@ clean:
 	# Add here commands to clean up after the build process.
 	#-$(MAKE) clean
 	#-$(MAKE) distclean
+
+	rm -f src/scripts/config.*
 
 	-rm -r `find . -name LINUX`
 	-rm `find src -name Makefile`
@@ -92,6 +118,10 @@ install-stamp: build-stamp
 #       ivtools installs the libACE link, we remove it ... hack
 #
 	-rm `pwd`/debian/ivtools-dev/usr/X11R6/lib/libACE.so
+
+	chmod a-x debian/ivtools-dev/usr/X11R6/lib/ivtools/Idemo
+	chmod a-x debian/ivtools-dev/usr/X11R6/lib/ivtools/comterp.err
+
 	touch install-stamp
 
 # Build architecture-independent files here.
@@ -100,8 +130,9 @@ binary-indep: build install
 	dh_testdir -i
 	dh_testroot -i
 	dh_installdocs -p ivtools-dev src/man/refman3.1/refman.PS
+	-rm `find src/glyphs -name Makefile.depend` 
 	dh_installexamples -p ivtools-dev 
-#	dh_installmenu -i
+	dh_installmenu -i
 #	dh_installemacsen -i
 #	dh_installinit -i
 #	dh_installcron -i
@@ -110,7 +141,6 @@ binary-indep: build install
 	dh_installchangelogs -p ivtools-dev
 	dh_compress -i
 	dh_fixperms -i
-	dh_suidregister -i
 	dh_installdeb -i
 	dh_gencontrol -i
 	dh_md5sums -i
@@ -134,7 +164,6 @@ binary-arch: build install
 	dh_strip -a
 	dh_compress -a
 	dh_fixperms -a
-#	dh_suidregister -a
 	dh_installdeb -a
 	dh_makeshlibs -a
 	dh_shlibdeps -a

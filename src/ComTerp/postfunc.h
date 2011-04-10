@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -69,7 +70,7 @@ public:
 };
 
 //: for-loop command for ComTerp.
-// val=for(initexpr whileexpr [nextexpr] :body expr) -- for loop.
+// val=for(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop.
 class ForFunc : public ComFunc {
 public:
     ForFunc(ComTerp*);
@@ -77,11 +78,11 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "val=%s(initexpr whileexpr [nextexpr] :body expr) -- for loop"; }
+      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop"; }
 };
 
 //: while-loop command for ComTerp.
-// val=while([testexpr] :until :body expr ) -- while loop.
+// val=while([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop.
 class WhileFunc : public ComFunc {
 public:
     WhileFunc(ComTerp*);
@@ -89,7 +90,19 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "val=%s([testexpr] :until :body expr ) -- while loop"; }
+      return "val=%s([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop"; }
+};
+
+//: ; (sequence) operator.
+class SeqFunc : public ComFunc {
+public:
+    SeqFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return "; is the sequencing operator"; }
+
 };
 
 #endif /* !defined(_postfunc_h) */

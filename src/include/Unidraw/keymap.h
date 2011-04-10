@@ -31,6 +31,8 @@
 
 class UControl;
 
+//: maintains a keycode-to-UControl mapping
+// <a href=../man3.1/KeyMap.html>man page</a>
 class KeyMap {
 public:
     KeyMap();

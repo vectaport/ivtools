@@ -39,6 +39,10 @@
 class Interactor;
 class ViewList;
 
+//: indicates portion of total view shown (iv-2.6).
+// A Perspective describes what portion of the total view
+// an Interactor shows.
+// <p><a href=../man3.1/Perspective.html>man page</a>
 class Perspective : public Resource {
 public:
     IntCoord x0, y0;		/* origin of view */

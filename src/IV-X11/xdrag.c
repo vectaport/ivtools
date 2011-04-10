@@ -38,9 +38,10 @@
 #include <IV-X11/xdrag.h>
 #include <X11/Xatom.h>
 #include <OS/host.h>
+#include <OS/math.h>
 #include <OS/types.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 
 // how is this done portably? it is used to generate a name unique to
 // this process.
@@ -128,14 +129,16 @@ static void setDragProperty(
     Atom property = None;
     if (length != 0) {
 	char buffer[256];
-	ostrstream name(buffer, 256);
+	std::ostrstream name(buffer, 256);
 	name << dragName << "_" << Host::name() << "_" << getpid() << "_"  <<
-	    dropUid++ << ends;
+	    dropUid++ << '\0';
 	property = XInternAtom(display, name.str(), False);
 
 	XChangeProperty(
 	    display, destination, property, XA_STRING, 8,
-	    PropModePrepend, (unsigned char*)value, length
+	    PropModePrepend, 
+	    (unsigned char*)value + (length<0 ? length : 0), 
+	    Math::abs(length)
 	);
     }
 

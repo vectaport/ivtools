@@ -31,21 +31,7 @@
 
 #include <UniIdraw/idcomp.h>
 #include <InterViews/observe.h>
-extern "C" {
-#include <ComUtil/comutil.ci>
-}
-
-//: define methods for a class name and class symbol id.
-// adds ::class_name() and ::class_symid() based on 'name' to any 
-// class definition.  For use in servers built on ComTerp for generating a
-// unique id for a given type of component.
-#define classid(name) \
-public: \
-  static const char* class_name() {return name;}\
-  static int class_symid()\
-    { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
-protected: \
-  static int _symid;
+#include <Attribute/classid.h>
 
 class AttributeList;
 class AttributeValue;
@@ -60,7 +46,9 @@ class OverlaysComp;
 class OverlayScript;
 class OverlaysScript;
 class Viewer;
-class istream;
+#include <iosfwd>
+
+enum { bypath_mask=0x1, fromcomm_mask=0x2, autoconv_mask=0x4 };
 
 //: derived GraphicComp
 // derived GraphicComp  with extensions for property lists of arbitrary 
@@ -92,7 +80,7 @@ public:
     void SetAnnotation(const char*);
     // set the annotation string for this component.
     OverlayView* FindView(Viewer*);
-    // return the view for this compoent (for this subject) in a specific viewer.
+    // return the view for this component (for this subject) in a specific viewer.
 
     virtual void SetPathName(const char*);
     // set pathname associated with this component.
@@ -102,6 +90,11 @@ public:
     // set flag that determines whether component will be serialized (converted to
     // external persistent storage) by just the pathname or by the internal contents.
     virtual boolean GetByPathnameFlag();
+    // return by-pathname flag
+    virtual void SetFromCommandFlag(boolean);
+    // set flag that determines whether component will be serialized (converted to
+    // external persistent storage) by just the pathname or by the internal contents.
+    virtual boolean GetFromCommandFlag();
     // return by-pathname flag
     virtual const char* GetBaseDir();
     // set base directory used for generating pathnames for this component
@@ -141,8 +134,8 @@ public:
       (const char* name, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
     // search component tree for specified attribute value by 'name'.  Only
-    // default argument mode implemented so far -- return first occurence found
-    // with a downward depth-first search.
+    // two modes supported so far:  the default argument mode which returns the
+    // first occurence found with a downward depth-first search, and upward search.
     virtual AttributeValue* FindValue
       (int symid, boolean last = false, boolean breadth = false, 
        boolean down = true, boolean up = false);
@@ -183,8 +176,10 @@ protected:
     OverlayComp* _parent;
     AttributeList* _attrlist;
 
-friend OverlayScript;
-friend OverlaysScript;
+friend class OverlayScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("OverlayComp"); 
 };
 
 //: composite component, clone of GraphicComps derived from OverlayComp
@@ -309,7 +304,9 @@ protected:
 protected:
     UList* _comps;
 
-friend OverlaysScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("OverlaysComp"); 
 };
 
 #include <OverlayUnidraw/indexmixins.h>
@@ -373,7 +370,9 @@ protected:
     char* _pathname;
     char* _basedir;
 
-friend OverlayCatalog;
+friend class OverlayCatalog;
+
+    CLASS_SYMID("OverlayIdrawComp"); 
 };
 
 inline boolean OverlayComp::valid() { return _valid; }

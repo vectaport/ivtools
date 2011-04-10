@@ -31,6 +31,8 @@
 
 class SF_Polygon;
 
+//: polygon component
+// <a href=../man3.1/PolygonComp.html>man page</a>
 class PolygonComp : public VerticesComp {
 public:
     PolygonComp(SF_Polygon* = nil);

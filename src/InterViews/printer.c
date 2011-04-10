@@ -372,7 +372,7 @@ void Printer::character(
         out << "\\" << char(c);
     } else if (c > 127) {
 #ifdef __GNUC__
-	out.form("\\%03o", c);
+	out_form(out, "\\%03o", c);
 #else
 	out << "\\";
         int old_width = out.width(3);
@@ -443,7 +443,7 @@ void Printer::stencil(
                 }
             }
 #ifdef __GNUC__
-	    out.form("%02x", byte);
+	    out_form(out, "%02x", byte);
 #else
             out << ((byte>>4) & 0x0f) <<  (byte & 0x0f);
 #endif
@@ -484,7 +484,7 @@ void Printer::image(const Raster* raster, Coord x, Coord y) {
             raster->peek(ix, iy, r, g, b, alpha);
             int byte = int(0xff * (r + g + b) / 3);
 #ifdef __GNUC__
-	    out.form("%02x", byte);
+	    out_form(out, "%02x", byte);
 #else
             out << ((byte>>4) & 0x0f) <<  (byte & 0x0f);
 #endif

@@ -35,8 +35,7 @@
 class ALIterator;
 class LexScan;
 class AList;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: signature of static methods for reading parameter data from an istream.
 typedef int (*param_callback)(istream&, void*, void*, void*, void*);
@@ -220,8 +219,10 @@ public:
     // parse pathname, expanding relative pathnames from 'dir', for use of a
     // param_callback.
 
+    static boolean url_use_ok();
+    // test if url use ok for pathnames.  Same as OpenFileChooser method.
     static boolean urltest(const char*);
-    // test if pathname looks like a URL.
+    // test if pathname looks like a URL.  Same as OpenFileChooser method.
 
     static int bintest(const char* name);
     // return 0 if executable can be found, otherwise -1.
@@ -234,6 +235,9 @@ public:
     // convert a character to an octal string.
     static char octal(const char* p);
     // convert string of three octal digits to a character.
+
+    static ParamStruct* CurrParamStruct() { return _currstruct; }
+    // last ParamStruct from ::GetStruct
 
 protected:
     void insert(ParamStruct*);
@@ -270,6 +274,7 @@ protected:
     int _other_count;
 
     static LexScan* _lexscan;
+    static ParamStruct* _currstruct;
 };
 
 #include <IV-2_6/_leave.h>

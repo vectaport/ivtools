@@ -56,7 +56,7 @@
 
 ParamList* SplineOvComp::_ovspline_params = nil;
 ParamList* ClosedSplineOvComp::_ovclosed_spline_params = nil;
-
+int SplineOvComp::_symid = -1;
 
 ClassId SplineOvComp::GetClassId () { return OVSPLINE_COMP; }
 
@@ -190,6 +190,7 @@ Command* SplineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) spline->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        spline->FillBg(!colVar->GetBgColor()->None());
                 spline->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             spline->SetTransformer(rel);
@@ -277,6 +278,8 @@ int SplineScript::ReadPoints (istream& in, void* addr1,
 
 
 /*****************************************************************************/
+
+int ClosedSplineOvComp::_symid = -1;
 
 ClassId ClosedSplineOvComp::GetClassId () { return OVCLOSEDSPLINE_COMP; }
 
@@ -413,6 +416,7 @@ Command* ClosedSplineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) cbs->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        cbs->FillBg(!colVar->GetBgColor()->None());
                 cbs->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             cbs->SetTransformer(rel);

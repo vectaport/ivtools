@@ -29,6 +29,7 @@
 #include <assert.h>
 //#include <yvals.h>
 #include <math.h>
+#include <ctype.h>
 
 // this line defines a new type: pointer to a function which returns a
 // double and takes as argument a double

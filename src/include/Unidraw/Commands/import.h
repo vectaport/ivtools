@@ -34,6 +34,8 @@
 
 class FileChooser;
 
+//: command for importing graphical objects
+// <a href=../man3.1/ImportCmd.html>man page</a>
 class ImportCmd : public Command {
 public:
     ImportCmd(ControlInfo*, FileChooser* = nil);

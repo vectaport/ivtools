@@ -1,2 +1,3 @@
-#define VersionString "0.7.9"
-#define ReleaseString "ivtools-0.7"
+#define IvtoolsVersion 1.1.3
+#define VersionString "1.1.3"
+#define ReleaseString "ivtools-1.1.3"

@@ -10,6 +10,6 @@ InstallIncludes(InterViews)
 
 XCOMM install::
 XCOMM	MakeDir($(INCDIR)/InterViews)
-XCOMM	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/IInterViews
+XCOMM	$(INSTALL) -c $(INSTINCFLAGS) *.h $(INCDIR)/IInterViews
 
 

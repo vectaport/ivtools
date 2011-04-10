@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -22,6 +24,7 @@
  */
 
 #include <Attribute/aliterator.h>
+#include <Attribute/attribute.h>
 #include <Attribute/attrvalue.h>
 #include <Attribute/attrlist.h>
 
@@ -34,78 +37,129 @@
 
 /*****************************************************************************/
 
+int* AttributeValue::_type_syms = nil;
+
 AttributeValue::AttributeValue(ValueType valtype) {
+    clear();
     type(valtype);
 }
 
 AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
+    clear();
     type(valtype);
     _v = value;
 }
 
 AttributeValue::AttributeValue(AttributeValue& sv) {
     *this = sv;
-    if (_type == AttributeValue::ArrayType)
-      Resource::ref(_v.arrayval.ptr);
+}
+
+AttributeValue::AttributeValue(AttributeValue* sv) {
+    *this = *sv;
+    dup_as_needed();
 }
 
 AttributeValue::AttributeValue() {
+    clear();
     type(UnknownType);
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
 }
 
 AttributeValue::AttributeValue(unsigned char v) { 
+    clear();
     _type = AttributeValue::UCharType;
     _v.ucharval = v;
 }
 
 AttributeValue::AttributeValue(char v) { 
+    clear();
     _type = AttributeValue::CharType;
     _v.charval = v;
 }
 
 AttributeValue::AttributeValue(unsigned short v) { 
+    clear();
     _type = AttributeValue::UShortType;
     _v.ushortval = v;
 }
 
 AttributeValue::AttributeValue(short v) { 
+    clear();
     _type = AttributeValue::ShortType;
     _v.shortval = v;
 }
 
 AttributeValue::AttributeValue(unsigned int v, ValueType type) { 
+    clear();
     _type = type;
-    _v.dfunsval = v;
+    if ( type >= CharType && type <= UShortType ) {
+      switch (type) {
+      case CharType: 
+	_v.charval = v;
+	break;
+      case UCharType:
+	_v.ucharval = v;
+	break;
+      case ShortType: 
+	_v.shortval = v;
+	break;
+      case UShortType:
+	_v.ushortval = v;
+	break;
+      }
+    } else 
+      _v.dfunsval = v;
 }
 
 AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type) { 
+    clear();
     _type = type;
     _v.keyval.keyid = kv;
     _v.keyval.keynarg = kn;
 }
 
 AttributeValue::AttributeValue(int v, ValueType type) { 
+    clear();
     _type = type;
-    _v.dfintval = v;
+    if ( type >= CharType && type <= UShortType ) {
+      switch (type) {
+      case CharType: 
+	_v.charval = v;
+	break;
+      case UCharType:
+	_v.ucharval = v;
+	break;
+      case ShortType: 
+	_v.shortval = v;
+	break;
+      case UShortType:
+	_v.ushortval = v;
+	break;
+      }
+    } else 
+      _v.dfintval = v;
 }
 
 AttributeValue::AttributeValue(unsigned long v) { 
+    clear();
     _type = AttributeValue::ULongType;
     _v.lnunsval = v;
 }
 
 AttributeValue::AttributeValue(long v) { 
+    clear();
     _type = AttributeValue::LongType;
     _v.lnintval = v;
 }
 
 AttributeValue::AttributeValue(float v) { 
+    clear();
     _type = AttributeValue::FloatType;
     _v.floatval = v;
 }
 
 AttributeValue::AttributeValue(double v) { 
+    clear();
     _type = AttributeValue::DoubleType;
     _v.doublval = v;
 }
@@ -114,6 +168,7 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
     _type = AttributeValue::ObjectType;
     _v.objval.ptr = ptr;
     _v.objval.type = classid;
+    _object_compview = false;
 }
 
 AttributeValue::AttributeValue(AttributeValueList* ptr) { 
@@ -121,6 +176,13 @@ AttributeValue::AttributeValue(AttributeValueList* ptr) {
     _v.arrayval.ptr = ptr;
     _v.arrayval.type = 0;
     Resource::ref(ptr);
+}
+
+AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
+    _type = AttributeValue::StreamType;
+    _v.streamval.funcptr = comfuncptr;
+    _v.streamval.listptr = vallist;
+    Resource::ref(vallist);
 }
 
 AttributeValue::AttributeValue(const char* string) { 
@@ -134,17 +196,21 @@ AttributeValue::~AttributeValue() {
         symbol_del(string_val());
     else 
 #endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Unref(_v.arrayval.ptr);
+    unref_as_needed();
     type(UnknownType);
+}
+
+void AttributeValue::clear() {
+    unsigned char* buf = (unsigned char*)(void*)&_v;
+    for (int i=0; i<sizeof(double); i++) buf[i] = '\0';
 }
 
 AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     void* v1 = &_v;
     const void* v2 = &sv._v;
-    memcpy(v1, v2, sizeof(double));
+    memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
-    _aggregate_type = sv._aggregate_type;
+    _command_symid = sv._command_symid;
 #if 0  // disable symbol reference counting
     if (_type == StringType || _type == SymbolType) {
         char* sptr = (char *)string_ptr();
@@ -152,15 +218,13 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     }
     else 
 #endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Resource::ref(_v.arrayval.ptr);
+    ref_as_needed();
     return *this;
 }
     
 
 AttributeValue::ValueType AttributeValue::type() const { return _type; }
 void AttributeValue::type(AttributeValue::ValueType type) { _type = type; }
-AttributeValue::ValueType AttributeValue::aggregate_type() const { return _aggregate_type; }
 
 unsigned char& AttributeValue::uchar_ref() { return _v.ucharval; }
 char& AttributeValue::char_ref() { return _v.charval; }
@@ -173,14 +237,22 @@ unsigned long& AttributeValue::ulong_ref() { return _v.lnunsval; }
 long& AttributeValue::long_ref() { return _v.lnintval; }
 float& AttributeValue::float_ref() { return _v.floatval; }
 double& AttributeValue::double_ref() { return _v.doublval; }
-unsigned int& AttributeValue::string_ref() { return _v.symbolid; }
-unsigned int& AttributeValue::symbol_ref() { return _v.symbolid; }
+unsigned int& AttributeValue::string_ref() { return _v.symval.symid; }
+unsigned int& AttributeValue::symbol_ref() { return _v.symval.symid; }
 void*& AttributeValue::obj_ref() { return _v.objval.ptr; }
 unsigned int& AttributeValue::obj_type_ref() { return _v.objval.type; }
 AttributeValueList*& AttributeValue::array_ref() { return _v.arrayval.ptr; }
 unsigned int& AttributeValue::array_type_ref() { return _v.arrayval.type; }
+AttributeValueList*& AttributeValue::list_ref() { return _v.arrayval.ptr; }
+unsigned int& AttributeValue::list_type_ref() { return _v.arrayval.type; }
 unsigned int& AttributeValue::keyid_ref() { return _v.keyval.keyid; }
 unsigned int& AttributeValue::keynarg_ref() { return _v.keyval.keynarg; }
+
+boolean AttributeValue::global_flag() { return is_symbol() && _v.symval.globalflag; }
+void AttributeValue::global_flag(boolean flag) 
+{ 
+  if (is_symbol()) _v.symval.globalflag = flag; 
+}
 
 boolean AttributeValue::boolean_val() {
     switch (type()) {
@@ -207,7 +279,12 @@ boolean AttributeValue::boolean_val() {
     case AttributeValue::BooleanType:
 	return boolean_ref();
     case AttributeValue::SymbolType:
-	return (boolean) int_val();
+    case AttributeValue::StringType:
+	return (boolean) int_val()!=-1;
+    case AttributeValue::ObjectType:
+	return (boolean) obj_val();
+    case AttributeValue::StreamType:
+	return stream_mode() != 0;
     default:
 	return 0;
     }
@@ -532,11 +609,15 @@ unsigned int AttributeValue::symbol_val() {
 }
 
 void* AttributeValue::obj_val() { 
-	return obj_ref();
+	return is_object()||is_command() ? obj_ref() : nil;
 }
 
 unsigned int AttributeValue::obj_type_val() { 
     return _v.objval.type; 
+}
+
+unsigned int& AttributeValue::class_symid() {
+    return _v.objval.type;
 }
 
 AttributeValueList* AttributeValue::array_val() { 
@@ -544,6 +625,14 @@ AttributeValueList* AttributeValue::array_val() {
 }
 
 unsigned int AttributeValue::array_type_val() { 
+    return _v.arrayval.type; 
+}
+
+AttributeValueList* AttributeValue::list_val() { 
+	return list_ref();
+}
+
+unsigned int AttributeValue::list_type_val() { 
     return _v.arrayval.type; 
 }
 
@@ -570,8 +659,16 @@ int AttributeValue::array_len() {
         return 0;
 }
 
-unsigned int AttributeValue::command_symid() { return _command_symid; }
-void AttributeValue::command_symid(unsigned int id) { _command_symid = id; }
+int AttributeValue::list_len() {
+    if (is_type(AttributeValue::ArrayType))
+        return array_val()->Number();
+    else
+        return 0;
+}
+
+int AttributeValue::command_symid() { return _command_symid; }
+void AttributeValue::command_symid(int id, boolean alias) { 
+  _command_symid = (alias ? -1 : 1) * id; }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
     AttributeValue* svp = (AttributeValue*)&sv;
@@ -646,7 +743,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	    
 	case AttributeValue::ArrayType:
 	  {
-	    out << "array of length " << svp->array_len();
+	    out << "list of length " << svp->array_len();
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
@@ -722,11 +819,29 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 	  
 	case AttributeValue::FloatType:
+#if __GNUG__<3
 	  out.form("%.6f", svp->float_val());
+#else
+          {
+	  const int bufsiz=256;
+	  char buffer[bufsiz];
+	  snprintf(buffer, bufsiz, "%.6f", svp->float_val());
+	  out << buffer;
+	  }
+#endif
 	  break;
 	  
 	case AttributeValue::DoubleType:
+#if __GNUG__<3
 	  out.form("%.6f", svp->double_val());
+#else
+	  {
+	  const int bufsiz=256;
+	  char buffer[bufsiz];
+	  snprintf(buffer, bufsiz, "%.6f", svp->double_val());
+	  out << buffer;
+	  }
+#endif
 	  break;
 
 	case AttributeValue::EofType:
@@ -753,8 +868,16 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	case AttributeValue::BlankType:
 	    break;
 	    
+	case AttributeValue::ObjectType:
+	  out << "<" << symbol_pntr(svp->class_symid()) << ">";
+	  break;
+
+	case AttributeValue::StreamType:
+	  out << "<stream:" << svp->stream_mode() << ">";
+	  break;
+	    
 	default:
-	  out << "Unknown type";
+	  out << "nil";
 	  break;
 	}
 #endif
@@ -831,3 +954,116 @@ int AttributeValue::type_size(ValueType type) {
   }
 }
 
+void AttributeValue::assignval (const AttributeValue& av) {
+    void* v1 = &_v;
+    const void* v2 = &av._v;
+    memcpy(v1, v2, sizeof(_v));
+    _type = av._type;
+    _command_symid = av._command_symid;
+#if 0 // this end of reference counting disabled as well
+    if (_type == StringType || _type == SymbolType) 
+	symbol_add((char *)string_ptr());
+    else 
+#endif
+    ref_as_needed();
+}
+    
+
+boolean AttributeValue::is_attributelist() {
+  return is_object() && class_symid() == AttributeList::class_symid();
+}
+
+boolean AttributeValue::is_attribute() {
+  return is_object() && class_symid() == Attribute::class_symid();
+}
+
+void* AttributeValue::geta(int id) {
+  if (is_object(id))
+    return obj_val();
+  else
+    return nil;
+}
+
+int AttributeValue::type_symid() const {
+  if (!_type_syms) {
+    int i = 0;
+    _type_syms = new int[((int)BlankType)+1];
+    _type_syms[i++] = symbol_add("UnknownType");
+    _type_syms[i++] = symbol_add("CharType");
+    _type_syms[i++] = symbol_add("UCharType");
+    _type_syms[i++] = symbol_add("ShortType");
+    _type_syms[i++] = symbol_add("UShortType");
+    _type_syms[i++] = symbol_add("IntType");
+    _type_syms[i++] = symbol_add("UIntType");
+    _type_syms[i++] = symbol_add("LongType");
+    _type_syms[i++] = symbol_add("ULongType");
+    _type_syms[i++] = symbol_add("FloatType");
+    _type_syms[i++] = symbol_add("DoubleType");
+    _type_syms[i++] = symbol_add("StringType");
+    _type_syms[i++] = symbol_add("SymbolType");
+    _type_syms[i++] = symbol_add("ListType");
+    _type_syms[i++] = symbol_add("StreamType");
+    _type_syms[i++] = symbol_add("CommandType");
+    _type_syms[i++] = symbol_add("KeywordType");
+    _type_syms[i++] = symbol_add("ObjectType");
+    _type_syms[i++] = symbol_add("EofType");
+    _type_syms[i++] = symbol_add("BooleanType");
+    _type_syms[i++] = symbol_add("OperatorType");
+    _type_syms[i++] = symbol_add("BlankType");
+  }
+  if (type()>=UnknownType && type()<=BlankType)
+    return _type_syms[(int)type()];
+  else
+    return -1;
+}
+
+
+void AttributeValue::ref_as_needed() {
+    if (_type == AttributeValue::ArrayType)
+      Resource::ref(_v.arrayval.ptr);
+    else if (_type == AttributeValue::StreamType)
+      Resource::ref(_v.streamval.listptr);
+}
+
+void AttributeValue::dup_as_needed() {
+  if (_type == AttributeValue::ArrayType) {
+    AttributeValueList* avl = _v.arrayval.ptr;
+    _v.arrayval.ptr = new AttributeValueList(avl);
+    Resource::ref(_v.arrayval.ptr);
+    Resource::unref(avl);
+  } else if (_type == AttributeValue::StreamType) {
+    AttributeValueList* avl = _v.streamval.listptr;
+    _v.streamval.listptr = new AttributeValueList(avl);
+    Resource::ref(_v.streamval.listptr);
+    Resource::unref(avl);
+  }
+}
+
+void AttributeValue::unref_as_needed() {
+    if (_type == AttributeValue::ArrayType)
+      Resource::unref(_v.arrayval.ptr);
+    else if (_type == AttributeValue::StreamType)
+      Resource::unref(_v.streamval.listptr);
+}
+
+void AttributeValue::stream_list(AttributeValueList* list) 
+{ 
+  if (is_stream()) {
+    Resource::unref(_v.streamval.listptr); 
+    _v.streamval.listptr = list; 
+    if (!list) 
+      stream_mode(0);
+    else
+      Resource::ref(list); 
+  }
+}
+
+int AttributeValue::stream_mode() { 
+  if (is_stream()) {
+    if (!stream_list() || stream_list()->Number()==0)
+      return 0;
+    else
+      return _stream_mode;
+  } else
+    return 0;
+}

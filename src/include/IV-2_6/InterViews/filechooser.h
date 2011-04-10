@@ -40,6 +40,8 @@ class MarginFrame;
 #undef FileChooser
 #define FileChooser _lib_iv2_6(FileChooser)
 
+//: a StringChooser for choosing files from a directory (iv-2.6)
+// <a href=../man3.1/FileChooser.html>man page</a>
 class FileChooser : public StringChooser {
 public:
     FileChooser(

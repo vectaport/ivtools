@@ -190,9 +190,13 @@ main()
   {
     if (sym_beg == NULL)	/* if NULL, allocate some space for symbol table */
     {
+#if !defined(DMM_OFF)
       dmm_mblock_stats(NULL,&nbytes,NULL,NULL,NULL);
       sym_alloc_num = (nbytes < LOTS_OF_MEM) ? SYM_ALLOC_NUM_LOW:
 					       SYM_ALLOC_NUM_HIGH;
+#else
+      sym_alloc_num = SYM_ALLOC_NUM_HIGH;
+#endif
       if ( dmm_calloc((void**)&sym_beg,(long) sym_alloc_num,sizeof(char)) != 0)
            goto error_return;	/* goto error return; INSUFFICIENT MEMORY */
       sym_nbytes = sym_alloc_num;
@@ -406,8 +410,7 @@ int		id       ;/*   I   Identifier returned by symbol_add() */
 Description:
 
 Returns a pointer to the symbol string for the `id` parameter.  CAUTION:
-DO NOT MODIFY THE STRING.  May change this to duplicate the string in the
-future.
+DO NOT MODIFY THE STRING.  
 
 See Also:  symbol_add(), symbol_len()
 

@@ -22,7 +22,7 @@
 
 #ifdef iv__2_6_h
 
-#ifndef iv2_6_compatible
+#if !defined(iv2_6_compatible)||defined(iv2_6_incompatible)
 #undef iv__2_6_h
 #include <InterViews/_names.h>
 #endif

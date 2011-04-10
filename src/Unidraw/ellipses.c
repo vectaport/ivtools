@@ -34,6 +34,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <OS/math.h>
+
 /*****************************************************************************/
 
 Coord Ellipse::_x[8];
@@ -156,8 +158,8 @@ void Ellipse::CalcControlPts (Transformer* t) {
     if (t == nil) {
         Coord px1, py1, px2, py2;
 
-	px1 = round(float(_r1)*axis); py1 = round(float(_r2)*axis);
-	px2 = round(float(_r1)*seen); py2 = round(float(_r2)*seen);
+	px1 = Math::round(float(_r1)*axis); py1 = Math::round(float(_r2)*axis);
+	px2 = Math::round(float(_r1)*seen); py2 = Math::round(float(_r2)*seen);
 
         _x[0] = _x0 + px1;    _y[0] = _y0 + py2;
         _x[1] = _x0 - px1;    _y[1] = _y[0];
@@ -185,8 +187,8 @@ void Ellipse::CalcControlPts (Transformer* t) {
 
         for (int i = 0; i < 8; ++i) {
             t->Transform(tx[i], ty[i], tmpx, tmpy);
-            _x[i] = round(tmpx);
-            _y[i] = round(tmpy);
+            _x[i] = Math::round(tmpx);
+            _y[i] = Math::round(tmpy);
         }
     }
 }
@@ -235,7 +237,7 @@ boolean S_Ellipse::intersects (BoxObj& userb, Graphic* gs) {
 void S_Ellipse::draw (Canvas *c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
 	update(gs);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Ellipse
 	_p->Ellipse(c, _x0, _y0, _r1, _r2);
 #define Ellipse _lib_iv(Ellipse)
@@ -352,7 +354,7 @@ void SF_Ellipse::draw (Canvas* c, Graphic* gs) {
         _p->FillEllipse(c, _x0, _y0, _r1, _r2);
     }
     if (!gs->GetBrush()->None()) {
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Ellipse
         _p->Ellipse(c, _x0, _y0, _r1, _r2);
 #define Ellipse _lib_iv(Ellipse)

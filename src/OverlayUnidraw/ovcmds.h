@@ -43,7 +43,7 @@
 class OpenFileChooser;
 class OverlayViewer;
 class PageDialog;
-class ostream;
+#include <iosfwd>
 
 //: derived new command.
 class OvNewCompCmd : public NewCompCmd {
@@ -120,10 +120,15 @@ public:
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
+    Component* component() { return comp_; }
+    // return pointer to saved component.   
+
 protected:
     OpenFileChooser* chooser_;
 
     void Init(OpenFileChooser*);
+
+    Component* comp_;
 };
 
 //: derived save-as command.
@@ -140,11 +145,20 @@ public:
     virtual Command* Copy();
     virtual ClassId GetClassId();
 
-protected:
+    Component* component() { return comp_; }
+    // return pointer to saved component.   
+
+    void pathname(const char*);
+    // set pathname to save file to.
+
+ protected:
     OpenFileChooser* chooser_;
 
     void Init(OpenFileChooser*);
     virtual boolean IsA(ClassId);
+
+    char* path_;
+    Component* comp_;
 };
 
 //: derived quit command.
@@ -399,6 +413,28 @@ protected:
   void GetScreenCoords(OverlayViewer* viewer, Graphic* poly,
 		       int nf, float* fx, float* fy,
 		       int& ni, int*& ix, int*& iy);
+};
+
+//: command to push down one level in the graphical structure
+class PushCmd : public BackCmd {
+public:
+    PushCmd(ControlInfo*);
+    PushCmd(Editor* = nil);
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+};
+
+//: command to pull up one level in the graphical structure
+class PullCmd : public FrontCmd {
+public:
+    PullCmd(ControlInfo*);
+    PullCmd(Editor* = nil);
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
 };
 
 #endif

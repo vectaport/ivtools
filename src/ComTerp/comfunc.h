@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -32,6 +33,7 @@
 #include <stdlib.h>
 #include <OS/types.h>
 #include <ComTerp/comvalue.h>
+#include <Attribute/classid.h>
 
 class AttributeList;
 class ComFuncState;
@@ -93,11 +95,11 @@ public:
 
     ComTerp* comterp() { return _comterp; }
     // return ComTerp this ComFunc is associated with.
-    ComTerpServ* comterpserv() { return (ComTerpServ*)_comterp; }
+    ComTerpServ* comterpserv();
     // return ComTerpServ this ComFunc is associated with.
 
 
-    ComValue& pop_stack();
+    ComValue& pop_stack(); 
     // pop top off the stack.
     ComValue& pop_symbol();
     // pop top off the stack preserving symbol ids if ComValue is a symbol type.
@@ -149,13 +151,26 @@ public:
     // to the invocation of this ComFunc.  'dflt' is used whenever a 
     // keyword has no matching argument.
 
+    void funcid(int id) { _funcid = id; }
+    // set symbol id of name for func
+    int funcid() const { return _funcid; }
+    // get symbol id of name for func
+
     ComValue& lookup_symval(ComValue&);
+    // lookup variable value given a symbol ComValue
+    ComValue& lookup_symval(int symid);
+    // lookup variable value given a symbol id.
     void assign_symval(int id, ComValue*);
 
     virtual boolean post_eval() { return false; }
     virtual const char* docstring() { return "%s: no docstring method defined"; }
     static int bintest(const char* name);
     static boolean bincheck(const char* name);
+    
+    friend ostream& operator << (ostream& s, const ComFunc&);
+    // print contents to ostream, brief or not depending on
+    // associated ComTerp brief flag.
+
 
 protected:
 
@@ -195,7 +210,9 @@ protected:
     // currently interpreting expression.
 
     ComTerp* _comterp;
+    int _funcid;
 
+    CLASS_SYMID("ComFunc");
 };
 
 //: state object for holding invocation specific data about a ComFunc.
@@ -226,6 +243,10 @@ public:
   // within blocks of conditionally executing control commands.
   int& command_symid() { return _command_symid; }
   // symbol id associated with the ComFunc.
+  
+  friend ostream& operator << (ostream& s, const ComFuncState&);
+  // print contents to ostream, brief or not depending on
+  // associated ComTerp brief flag.
 
 protected:
 

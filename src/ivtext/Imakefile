@@ -1,0 +1,27 @@
+XCOMM
+XCOMM InterViews text-editor application
+XCOMM
+
+PACKAGE = ivtext
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS = $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+
+Use_libInterViews()
+ComplexProgramTarget(ivtext)
+
+MakeObjectFromSrcFlags(main,)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

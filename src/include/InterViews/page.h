@@ -33,6 +33,8 @@
 
 class PageInfo_List;
 
+//: glyph for arbitrary placements
+// <a href=../man3.1/Page.html>man page</a>
 class Page : public Glyph {
 public:
     Page(Glyph* background);

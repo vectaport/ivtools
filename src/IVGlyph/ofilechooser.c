@@ -146,9 +146,13 @@ void OpenFileChooser::updatecaption() {
   if (impl_) impl_->updatecaption(); 
 }
 
+boolean OpenFileChooser::url_use_ok() {
+  return bincheck("ivdl") || bincheck("w3c") || bincheck("curl") || bincheck("wget");
+}
+
 boolean OpenFileChooser::urltest(const char* buf) {
   if (!buf) return false;
-  static boolean file_url_ok = bincheck("w3c") || bincheck("curl");
+  static boolean file_url_ok = url_use_ok();
   return 
     strncasecmp("http://", buf, 7)==0 || 
     strncasecmp("ftp://", buf, 6)==0 ||
@@ -157,7 +161,7 @@ boolean OpenFileChooser::urltest(const char* buf) {
 
 int OpenFileChooser::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "which %s", command );
+  sprintf( combuf, "wr=`which %s`; echo $wr", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  
@@ -454,8 +458,7 @@ void OpenFileChooserImpl::cancel_browser() {
 
 void OpenFileChooserImpl::accept_editor(FieldEditor* e) {
     boolean urlflag = OpenFileChooser::urltest(e->text()->string());
-    const String* path = urlflag 
-      ? e->text() : Directory::canonical(*e->text());
+    String* path = (String *) (urlflag ? e->text() : Directory::canonical(*e->text()));
     e->field(*path);
     if (!urlflag && chdir(*path)) {
 	/* chdir has copied the string */

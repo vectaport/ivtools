@@ -44,7 +44,11 @@ XCOMM from <local.def>:
  * Assume the use of gcc-2.3.3 or greater
  */ 
 #undef LanguageCCDefines
+#if LibStdCPlusPlusV3
+#define LanguageCCDefines -Dcplusplus_2_1 -Wno-deprecated
+#else
 #define LanguageCCDefines -Dcplusplus_2_1
+#endif
 #include <gcc.def>
 
 /* 
@@ -126,7 +130,7 @@ libvar(LIBOVERLAYUNIDRAW,IVTOOLSSRC,OverlayUnidraw,libOverlayUnidraw,-lOverlayUn
 #ifdef IueDir
 libvar(LIBIUESERV,IVTOOLSSRC,IueServ,libIueServ,-lIueServ)
 #endif
-#ifdef AceDir
+#ifdef AceLibDir
 libvar(LIBACEDISPATCH,IVTOOLSSRC,AceDispatch,libAceDispatch,-lAceDispatch)
 #else
   LIBACEDISPATCH =
@@ -155,7 +159,7 @@ depvar(DEPOVERLAYUNIDRAW,IVTOOLSSRC,OverlayUnidraw,libOverlayUnidraw,$(VERSION))
 #ifdef IueDir
 depvar(DEPIUESERV,IVTOOLSSRC,IueServ,libIueServ,$(VERSION))
 #endif
-#ifdef AceDir
+#ifdef AceLibDir
 depvar(DEPACEDISPATCH,IVTOOLSSRC,AceDispatch,libAceDispatch,$(VERSION))
 #else
     DEPACEDISPATCH =
@@ -174,7 +178,11 @@ depvar(DEPDRAWSERV,IVTOOLSSRC,DrawServ,libDrawServ,$(VERSION))
 #endif
 #undef Dep_libUnidraw
 #if HasDynamicSharedLibraries
+#ifndef DarwinArchitecture
 #define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.SO.$(VERSION)
+#else
+#define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.$(VERSION).dylib
+#endif
 #else
 #define Dep_libUnidraw $(IVTOOLSSRC)/Unidraw/$(CPU)/libUnidraw.a
 #endif
@@ -182,5 +190,8 @@ depvar(DEPDRAWSERV,IVTOOLSSRC,DrawServ,libDrawServ,$(VERSION))
 /* actual shared library filename for install of symbolic link only */
 #undef ClipPolyLibBase
 #define ClipPolyLibBase libclippoly.SO
+
+/* substitute C compiler for makedepend */
+#define DependCmd CCDriver -M 
 
 XCOMM -------------------------------------------------------------------------

@@ -22,16 +22,16 @@
  * 
  */
 
-#include <OverlayUnidraw/ovabout.h>
-#include <OverlayUnidraw/ovclasses.h>
-#include <OverlayUnidraw/oved.h>
 #include <InterViews/action.h>
-#include <InterViews/dialog.h>
+#include <IV-3_1/InterViews/dialog.h>
 #include <InterViews/layout.h>
 #include <InterViews/polyglyph.h>
 #include <InterViews/session.h>
 #include <InterViews/window.h>
 #include <IV-look/kit.h>
+#include <OverlayUnidraw/ovabout.h>
+#include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/oved.h>
 #include <string.h>
 
 class OvAboutDialog : public Dialog {
@@ -67,7 +67,7 @@ void OvAboutCmd::Init() {
     PolyGlyph* vb = layout.vbox(25);
     char banner[] = "\
  |\
-binary Copyright (c) 1994-1999 Vectaport Inc.|\
+binary Copyright (c) 1994-2000 Vectaport Inc.|\
  |\
 Permission to use, copy, modify, distribute, and sell this software and|\
 its documentation for any purpose is hereby granted without fee, provided|\
@@ -87,7 +87,7 @@ FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,|\
 NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION|\
 WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.|\
  |\
-source and online documentation at http://www.vectaport.com/ivtools/|\
+source and online documentation at http://www.ivtools.org|\
  |";
     vb->append(kit.label(strtok(banner, "|")));
     char* line = strtok(nil, "|");

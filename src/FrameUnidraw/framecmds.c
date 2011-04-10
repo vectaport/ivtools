@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1997 Vectaport Inc.
+ * Copyright (c) 1997-2000 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cider Press
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -779,12 +779,14 @@ void ShowOtherFrameCmd::Execute() {
   FrameEditor* ed = (FrameEditor*) GetEditor();
   _old_offset = ed->OtherFrame();
   ed->OtherFrame(_offset);
+  ed->UpdateFrame();
   unidraw->Update();
 }
 
 void ShowOtherFrameCmd::Unexecute() {
   FrameEditor* ed = (FrameEditor*) GetEditor();
   ed->OtherFrame(_old_offset);
+  ed->UpdateFrame();
   unidraw->Update();
 }
 

@@ -37,6 +37,7 @@
 #include <stream.h>
 #include <string.h>
 #include <ctype.h>
+#include <fstream.h>
 
 
 /*****************************************************************************/
@@ -54,14 +55,28 @@ boolean FrameCatalog::Retrieve (const char* pathname, Component*& comp) {
         _valid = true;
 
     } else {
+#if __GNUC__<3
         filebuf fbuf;
+#else
+        filebuf* pfbuf = nil;
+#endif
 	if (strcmp(name, "-") == 0) {
+#if __GNUC__<3
 	    _valid = fbuf.attach(fileno(stdin)) != 0;
+#else
+	    pfbuf = new fileptr_filebuf(stdin, input);
+	    _valid = 1;
+#endif
 	    name = nil;
 	} else {
 	    fptr = fopen(name, "r");
 	    fptr = OvImportCmd::CheckCompression(fptr, name, compressed);
+#if __GNUC__<3
 	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;
+#else
+	    pfbuf = fptr ? new fileptr_filebuf(fptr, input) : nil;
+	    _valid = fptr ? 1 : 0;
+#endif
 	    if (compressed) {
 		int namelen = strlen(name);
 		if (strcmp(name+namelen-3,".gz")==0) name[namelen-3] = '\0';
@@ -70,7 +85,11 @@ boolean FrameCatalog::Retrieve (const char* pathname, Component*& comp) {
 	}
 
         if (_valid) {
+#if __GNUC__<3
 	    istream in(&fbuf);
+#else
+	    istream in(pfbuf);
+#endif
 
 	    char ch;
 	    while (isspace(ch = in.get())); in.putback(ch);
@@ -94,6 +113,10 @@ boolean FrameCatalog::Retrieve (const char* pathname, Component*& comp) {
 		comp = nil;
 	    }
         }
+
+#if __GNUC__>=3
+	delete pfbuf;
+#endif
     }
 
     if (fptr) {

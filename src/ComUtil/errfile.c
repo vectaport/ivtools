@@ -132,7 +132,7 @@ int status;                     /* Status from lexscan */
    /* Don't worry about status return, because token_type     */
    /* will be set to TOK_NONE                                 */
       status = lexscan( errstream, fgets, ffeof, fferror,
-			NULL, NULL, NULL, NULL,
+			NULL, NULL, NULL, NULL, 0,
 			InputBuffer, MAX_INPUT_LENGTH+2, &colnum,
 			FormatBuffer, MAX_FORMAT_LENGTH+1, &token_length,
 			&token_type, &token_start, &linenum );

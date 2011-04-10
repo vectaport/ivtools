@@ -35,6 +35,9 @@
 
 class PatternRep;
 
+//: a pattern object
+// defines a pattern for rendering operations
+// <p><a href=../man3.1/pspaint3.html>pspaint(3)</a>.
 class Pattern : public Resource {
 public:
     enum {

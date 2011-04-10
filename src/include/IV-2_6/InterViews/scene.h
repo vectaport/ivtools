@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: basic composite object for interaction.
+// <a href=../man3.1/Scene.html>man page</a>
 class Scene : public Interactor {
 protected:
     Scene();

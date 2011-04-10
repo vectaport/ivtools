@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2004 Scott E. Johnston
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
@@ -82,6 +83,10 @@ public:
     void Redo(Component*, int = 1);
     void ClearHistory(Component* = nil);
     void ClearHistory(Editor*);
+
+    virtual void ExecuteCmd(Command*);
+    // indirection for command execution, will delete object
+
 protected:
     virtual void Process();
 

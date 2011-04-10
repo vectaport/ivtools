@@ -259,6 +259,7 @@ Command* RectView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) rect->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        rect->FillBg(!colVar->GetBgColor()->None());
                 rect->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             rect->SetTransformer(rel);

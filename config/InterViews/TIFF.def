@@ -121,11 +121,6 @@ TIFF_OPTIMIZE_CFLAGS = TIFFOptimizeCFlags
     -DCOLORIMETRY_SUPPORT -DYCBCR_SUPPORT \
     -DHAVE_IEEEFP=1 -DUSE_VARARGS=1 -DUSE_PROTOTYPES=0
 #endif
-#if defined(AlphaArchitecture)
-#define TIFFStdCDefines \
-    -DCOLORIMETRY_SUPPORT -DYCBCR_SUPPORT \
-    -DHAVE_IEEEFP=1 -DUSE_VARARGS=1 -DUSE_PROTOTYPES=0
-#endif
 #if defined(NeXTArchitecture)
 #define TIFFStdCDefines \
     -DCOLORIMETRY_SUPPORT -DJPEG_SUPPORT -DYCBCR_SUPPORT -DCMYK_SUPPORT \
@@ -138,6 +133,21 @@ TIFF_OPTIMIZE_CFLAGS = TIFFOptimizeCFlags
 #endif
 #endif
 #if defined(LinuxArchitecture)
+#define TIFFStdCDefines \
+    -DCOLORIMETRY_SUPPORT -DJPEG_SUPPORT -DYCBCR_SUPPORT -DCMYK_SUPPORT \
+    -DHAVE_IEEEFP=1 -DUSE_VARARGS=0 -DUSE_PROTOTYPES=1 -DUSE_CONST=1
+#endif
+#if defined(CygwinArchitecture)
+#define TIFFStdCDefines \
+   -DCOLORIMETRY_SUPPORT -DJPEG_SUPPORT -DYCBCR_SUPPORT -DCMYK_SUPPORT \
+    -DHAVE_IEEEFP=1 -DUSE_VARARGS=0 -DUSE_PROTOTYPES=1 -DUSE_CONST=1
+#endif
+#if defined(NetBSDArchitecture)
+#define TIFFStdCDefines \
+    -DCOLORIMETRY_SUPPORT -DJPEG_SUPPORT -DYCBCR_SUPPORT -DCMYK_SUPPORT \
+    -DHAVE_IEEEFP=1 -DUSE_VARARGS=0 -DUSE_PROTOTYPES=1 -DUSE_CONST=1
+#endif
+#if defined(UnknownArchitecture)
 #define TIFFStdCDefines \
     -DCOLORIMETRY_SUPPORT -DJPEG_SUPPORT -DYCBCR_SUPPORT -DCMYK_SUPPORT \
     -DHAVE_IEEEFP=1 -DUSE_VARARGS=0 -DUSE_PROTOTYPES=1 -DUSE_CONST=1
@@ -232,5 +242,6 @@ dst.o: src.c								@@\
 #endif
 
 #else
-#define  MakeTIFFCObjectRule(dst,src,flags) 
+#define MakeTIFFCObjectRule(dst,src,flags)
 #endif
+

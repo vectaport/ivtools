@@ -31,7 +31,7 @@
 #include <ComTerp/commodule.h>
 #include <ComTerp/_comterp.h>
 
-class istream;
+#include <iosfwd>
 
 //: C++ wrapper for ComUtil parser capability.
 class Parser : public ComTerpModule {

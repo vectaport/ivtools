@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1994,1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -40,14 +41,57 @@ public:
 
 };
 
-//: , (stream) operator.
+//: stream command
 class StreamFunc : public StrmFunc {
 public:
     StreamFunc(ComTerp*);
 
     virtual void execute();
+    virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return ", is the stream operator"; }
+      return "strm=%s(ostrm|list) -- copy stream or convert list"; }
+
+    CLASS_SYMID("StreamFunc");
+
+};
+
+//: hidden func used by next command for stream command
+class StreamNextFunc : public StrmFunc {
+public:
+    StreamNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "hidden func used by next command for stream command."; }
+
+    CLASS_SYMID("StreamNextFunc");
+
+};
+
+//: ,, (concat) operator.
+class ConcatFunc : public StrmFunc {
+public:
+    ConcatFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return ",, is the concat operator"; }
+
+    CLASS_SYMID("ConcatFunc");
+
+};
+
+//: hidden func used by next command for ,, (concat) operator.
+class ConcatNextFunc : public StrmFunc {
+public:
+    ConcatNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "hidden func used by next command for ,, (concat) operator."; }
+
+    CLASS_SYMID("ConcatNextFunc");
 
 };
 
@@ -71,6 +115,31 @@ public:
     virtual const char* docstring() { 
       return ".. is the iterate operator"; }
 
+};
+
+//: next command from stream for ComTerp
+class NextFunc : public StrmFunc {
+public:
+    NextFunc(ComTerp*);
+
+    virtual void execute();
+    static  void execute_impl(ComTerp*, ComValue& strmv);
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return "val=%s(stream) -- return next value from stream"; }
+
+};
+
+//: traverse stream command for ComTerp.
+// cnt=each(strm) -- traverse list returning its length
+class EachFunc : public ComFunc {
+public:
+    EachFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return "cnt=%s(strm) -- traverse list returning its length"; }
 };
 
 #endif /* !defined(_strmfunc_h) */

@@ -36,6 +36,8 @@
 class TextDisplay;
 class TextBuffer;
 
+//: basic interactive editor for mulit-line text (iv-2.6)
+// <a href=../man3.1/TextEditor.html>man page</a>
 class TextEditor : public Interactor {
 public:
     TextEditor(int rows, int cols, int tabsize, int highlight);

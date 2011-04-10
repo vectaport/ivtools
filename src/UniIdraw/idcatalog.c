@@ -48,11 +48,14 @@
 #include <InterViews/textbuffer.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stream.h>
 #include <string.h>
+#include <fstream.h>
 
 /*****************************************************************************/
 
@@ -262,6 +265,10 @@ void IdrawCatalog::PSReadChildren (istream& in, GraphicComp* comp) {
 	else if (strcmp(_buf, "SSten") == 0)    child = ReadSStencil(in);
 	else if (strcmp(_buf, "FSten") == 0)    child = ReadFStencil(in);
 	else if (strcmp(_buf, "Rast") == 0)     child = ReadRaster(in);
+	else if (strcmp(_buf, "ColorRast") ==0) {
+	  child = nil; 
+	  cerr << "Support for reading idraw PostScript with color-printer ready rasters not yet available.\n"; 
+	}
 	else if (strcmp(_buf, "eop") == 0)      break;
 
 	else {
@@ -291,7 +298,7 @@ void IdrawCatalog::PSReadGridSpacing (istream& in, float& xincr, float& yincr){
     if (_psversion < PSV_GRIDSPACING) {
 	const int oldspacing = 8;
 	const double oldpoints = 72.07/ivinches;
-	xincr = yincr = oldpoints * round(oldspacing * oldpoints);
+	xincr = yincr = oldpoints * Math::round(oldspacing * oldpoints);
 
     } else {
 	in >> _buf;
@@ -508,9 +515,9 @@ void IdrawCatalog::PSReadFgColor (istream& in, Graphic* gs) {
 	    gs->SetColors(nil, gs->GetBgColor());
 
 	} else {
-	    int ir = round(r * float(0xffff));
-	    int ig = round(g * float(0xffff));
-	    int ib = round(b * float(0xffff));
+	    int ir = Math::round(r * float(0xffff));
+	    int ig = Math::round(g * float(0xffff));
+	    int ib = Math::round(b * float(0xffff));
 
 	    PSColor* fgcolor = FindColor(name, ir, ig, ib);
 	    gs->SetColors(fgcolor, gs->GetBgColor());
@@ -545,9 +552,9 @@ void IdrawCatalog::PSReadBgColor (istream& in, Graphic* gs) {
 	    gs->SetColors(gs->GetFgColor(), nil);
 
 	} else {
-	    int ir = round(r * float(0xffff));
-	    int ig = round(g * float(0xffff));
-	    int ib = round(b * float(0xffff));
+	    int ir = Math::round(r * float(0xffff));
+	    int ig = Math::round(g * float(0xffff));
+	    int ib = Math::round(b * float(0xffff));
 
 	    PSColor* bgcolor = FindColor(name, ir, ig, ib);
 	    gs->SetColors(gs->GetFgColor(), bgcolor);
@@ -970,6 +977,7 @@ GraphicComp* IdrawCatalog::ReadRaster (istream& in) {
     }
 
     Raster* raster = new Raster(w, h);
+    // cerr << "w,h " << w << "," << h << "\n";
     ReadRasterData(raster, in);
 
     return new RasterComp(new RasterRect(raster, &gs));

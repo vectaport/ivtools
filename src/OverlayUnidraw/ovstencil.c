@@ -50,12 +50,14 @@
 /*****************************************************************************/
 
 ParamList* StencilOvComp::_ovstencil_params = nil;
+int StencilOvComp::_symid = -1;
 
 static const int no_mask = 0;
 static const int mask_equals_image = 1;
 static const int valid_mask = 2;
 
 /*****************************************************************************/
+
 
 ClassId StencilOvComp::GetClassId () { return OVSTENCIL_COMP; }
 
@@ -286,7 +288,8 @@ int StencilScript::ReadStencil (istream& in, void* addr1, void* addr2, void* add
     
     else if (urlflag || 
 	     strcmp(creator, "JPEG") == 0 || 
-	     strcmp(creator, "GIF")==0) {
+	     strcmp(creator, "GIF") == 0 || 
+	     strcmp(creator, "PNG")==0) {
         OvImportCmd importcmd((Editor*)nil);
 	OverlayComp* tempcomp = (OverlayComp*)importcmd.Import(pathname);
 	if (tempcomp && tempcomp->IsA(OVSTENCIL_COMP)) {

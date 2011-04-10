@@ -45,6 +45,7 @@ PSColor* pswhite;
 PSPattern* pssolid;
 PSPattern* psclear;
 PSPattern* psnonepat;
+PSColor* psnonecolor;
 PSBrush* pssingle;
 PSBrush* psnonebr;
 PSFont* psstdfont;

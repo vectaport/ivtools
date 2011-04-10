@@ -29,15 +29,23 @@
 #ifndef iv_transformer_h
 #define iv_transformer_h
 
+#if defined(PSTOEDIT)
+typedef IntCoord int;
+#else
 #include <InterViews/coord.h>
 #include <InterViews/resource.h>
 
 #include <InterViews/_enter.h>
+#endif
 
 //: a 3x2 matrix for use in translating 2d coordinates.
 // <a href=../refman3.1/refman.html#PAGE40>in reference manual</a>
 // <p><a href=../man3.1/Transformer.html>man page</a>
-class Transformer : public Resource {
+class Transformer 
+#if !defined(PSTOEDIT) 
+: public Resource 
+#endif
+{
 public:
     Transformer();	/* identity */
     Transformer(const Transformer&);
@@ -166,6 +174,8 @@ inline void Transformer::Premultiply(Transformer* t) { premultiply(*t); }
 inline void Transformer::Postmultiply(Transformer* t) { postmultiply(*t); }
 inline void Transformer::Invert() { invert(); }
 
+#if !defined(PSTOEDIT)
 #include <InterViews/_leave.h>
+#endif
 
 #endif

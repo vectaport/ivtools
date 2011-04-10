@@ -29,6 +29,12 @@
  */
 
 
+#ifdef HAVE_ACE
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#include <Comterp/comhandler.h>
+#endif
+
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovcreator.h>
 #include <OverlayUnidraw/oved.h>
@@ -39,11 +45,6 @@
 #include <InterViews/world.h>
 #include <InterViews/event.h>
 
-#ifdef HAVE_ACE
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
-
 #include <stream.h>
 #include <string.h>
 #include <math.h>
@@ -52,8 +53,8 @@
 /*****************************************************************************/
 
 static PropertyData properties[] = {
-    { "*OverlayEditor*name", "drawtool" },
-    { "*OverlayEditor*iconName", "drawtool" },
+    { "*OverlayEditor*name", "ivtools drawtool" },
+    { "*OverlayEditor*iconName", "ivtools drawtool" },
     { "*domain",  "drawing" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },
@@ -138,8 +139,8 @@ static PropertyData properties[] = {
     { "*bgcolor10",	"White" },
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
+    { "*bgcolor13",	"none" },
     { "*history",	"20" },
-
     { "*color5",        "false" },
     { "*color6",        "true" },
     { "*gray5",         "false" },
@@ -158,6 +159,8 @@ static PropertyData properties[] = {
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
     { "*ptrloc",        "false"  },
+    { "*dithermap",     "false"  },
+    { "*svgexport",     "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
 #endif
@@ -192,6 +195,8 @@ static OptionDesc options[] = {
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-ptrloc", "*ptrloc", OptionValueImplicit, "true" },
+    { "-dithermap", "*dithermap", OptionValueImplicit, "true" },
+    { "-svgexport", "*svgexport", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
 #endif
@@ -200,18 +205,27 @@ static OptionDesc options[] = {
     { nil }
 };
 
-static char* usage =
-"Usage: drawtool [any idraw parameter] [-color5] [-gray5] [-gray6] [-gray7] \n\
-[-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols] [-pagerows|-nrows] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] \n\
-[-slider_off|-soff] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
 
+#ifdef HAVE_ACE
+static char* usage =
+"Usage: drawtool [any idraw parameter] [-color5] [-dithermap] [-gray5] [-gray6] \n\
+[-gray7] [-import port] [-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
+[-pagerows|-nrows n] [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
+[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] [-slider_off|-soff]\n\
+[-svgexport] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
+#else
+static char* usage =
+"Usage: drawtool [any idraw parameter] [-color5] [-dithermap] [-gray5] [-gray6] \n\
+[-gray7] [-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
+[-pagerows|-nrows n] [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
+[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] [-slider_off|-soff]\n\
+[-svgexport] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
+#endif
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     int exit_status = 0;
     OverlayCreator creator;
@@ -235,7 +249,7 @@ int main (int argc, char** argv) {
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "drawtool:  unable to open import port " << importnum << "\n";
 
-    else if (IMPORT_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "drawtool:  unable to register UnidrawImportAcceptor with ACE reactor\n";
 
@@ -245,7 +259,7 @@ int main (int argc, char** argv) {
     // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
     // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (IMPORT_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
         cerr << "drawtool:  unable to register quit handler with ACE reactor\n";
 

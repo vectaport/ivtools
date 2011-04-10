@@ -31,6 +31,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: open b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class OpenBSpline : public Vertices {
 public:
     virtual int GetOriginal(const Coord*&, const Coord*&);
@@ -43,6 +45,8 @@ protected:
     boolean f_intersects(BoxObj&, Graphic*);
 };
 
+//: stroked open b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class S_OpenBSpline : public OpenBSpline {
 public:
     S_OpenBSpline(Coord* x, Coord* y, int count, Graphic* gr =nil);
@@ -61,6 +65,8 @@ protected:
     PSBrush* _br;
 };
 
+//: filled open b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class F_OpenBSpline : public OpenBSpline {
 public:
     F_OpenBSpline(Coord* x, Coord* y, int count, Graphic* = nil);
@@ -79,6 +85,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked-filled open b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class SF_OpenBSpline : public OpenBSpline {
 public:
     SF_OpenBSpline(Coord* x, Coord* y, int count, Graphic* = nil);
@@ -100,6 +108,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked-filled open b-spline graphic with control-point hit detection.
+// <a href=../man3.1/splines.html>man page</a>
 class SFH_OpenBSpline : public SF_OpenBSpline {
 public:
     SFH_OpenBSpline(Coord* x, Coord* y, int count, Graphic* = nil);
@@ -111,6 +121,8 @@ protected:
     virtual boolean intersects(BoxObj&, Graphic*);
 };
 
+//: closed b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class ClosedBSpline : public Vertices {
 protected:
     ClosedBSpline(Coord* x, Coord* y, int count, Graphic* gr = nil) ;
@@ -121,6 +133,8 @@ protected:
     boolean f_intersects(BoxObj&, Graphic*);
 };
 
+//: stroked closed b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class S_ClosedBSpline : public ClosedBSpline {
 public:
     S_ClosedBSpline(Coord* x, Coord* y, int count, Graphic* gr =nil);
@@ -139,6 +153,8 @@ protected:
     PSBrush* _br;
 };
 
+//: filled closed b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class F_ClosedBSpline : public ClosedBSpline {
 public:
     F_ClosedBSpline(Coord* x, Coord* y, int count, Graphic* gr =nil);
@@ -157,6 +173,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked-filled closed b-spline graphic
+// <a href=../man3.1/splines.html>man page</a>
 class SF_ClosedBSpline : public ClosedBSpline {
 public:
     SF_ClosedBSpline(Coord* x, Coord* y, int count, Graphic* = nil);
@@ -178,6 +196,8 @@ protected:
     PSPattern* _pat;
 };
 
+//: stroked-filled closed b-spline graphic with control-point hit detection
+// <a href=../man3.1/splines.html>man page</a>
 class SFH_ClosedBSpline : public SF_ClosedBSpline {
 public:
     SFH_ClosedBSpline(Coord* x, Coord* y, int count, Graphic* = nil);

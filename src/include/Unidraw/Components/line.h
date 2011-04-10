@@ -34,6 +34,8 @@
 class Line;
 class SF_MultiLine;
 
+//: line component
+// <a href=../man3.1/LineComp.html>man page</a>
 class LineComp : public GraphicComp {
 public:
     LineComp(Line* = nil);

@@ -456,4 +456,4 @@ X DEFAULTS
                     colors.
 
 WEB PAGE
-	http://www.vectaport.com/ivtools/idraw.html
+	http://www.ivtools.org/ivtools/idraw.html

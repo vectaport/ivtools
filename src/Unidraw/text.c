@@ -48,6 +48,8 @@
 #include <IV-2_6/InterViews/textbuffer.h>
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
+
 #include <IV-2_6/_enter.h>
 
 #include <ctype.h>
@@ -190,7 +192,7 @@ Manipulator* TextView::CreateManipulator (
 ) {
     Manipulator* m = nil;
     Editor* ed = v->GetEditor();
-    int tabWidth = round(.5*ivinch);
+    int tabWidth = Math::round(.5*ivinch);
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
         FontVar* fontVar = (FontVar*) ed->GetState("FontVar");
@@ -275,11 +277,11 @@ Command* TextView::InterpretManipulator (Manipulator* m) {
             }
 
             if (rel != nil) {
-		if (v->GetOrientation()==Rotated ) 
+		if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL)) 
 		  rel->Rotate(-90);
                 rel->InvTransform(xpos, ypos);
             }
-	    if (v->GetOrientation()==Rotated)
+	    if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL))
 	      textgr->Rotate(90.0);
             textgr->Translate(xpos, ypos);
             textgr->FillBg(false);

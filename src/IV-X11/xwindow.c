@@ -62,11 +62,15 @@
 #include <stropts.h>
 #include <sys/conf.h>
 #endif
-#ifndef __linux__
+#if !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__APPLE__)
+#if !defined(__linux__) && !defined(__CYGWIN__)
 /* no standard place for this */
 extern "C" {
     extern int ioctl(int, int, ...);
 }
+#else 
+#include <asm/socket.h>
+#endif
 #endif
 implementPtrList(WindowVisualList,WindowVisual)
 
@@ -1588,6 +1592,7 @@ void WindowVisual::init_color_tables() {
 	set_shift(v.red_mask, red_, red_shift_);
 	set_shift(v.green_mask, green_, green_shift_);
 	set_shift(v.blue_mask, blue_, blue_shift_);
+	bytesize_ = red_ == 0xff && green_ == 0xff && blue_ == 0xff;
 	break;
     default:
 	rgbtable_ = new RGBTable(512);
@@ -1620,7 +1625,7 @@ inline unsigned int WindowVisual::MSB(unsigned long i) {
     return (i ^ (i>>1)) & i;
 }
 
-unsigned long WindowVisual::xor(const Style& s) const {
+unsigned long WindowVisual::x_or_(const Style& s) const {
   return x_or(s);
 }
 
@@ -1652,7 +1657,12 @@ unsigned long WindowVisual::x_or(const Style& s) const {
  */
 
 void WindowVisual::find_color(unsigned long pixel, XColor& xc) {
-    if (!ctable_->find(xc, pixel)) {
+    if (bytesize_) {
+        xc.pixel = pixel;
+	xc.red = (pixel & 0xff0000)>>8 | (pixel & 0xff0000)>>16;
+	xc.green = (pixel & 0x00ff00) | (pixel & 0x00ff00)>>8;
+	xc.blue = (pixel & 0x0000ff)<<8 | (pixel & 0x0000ff);
+    } else if (!ctable_->find(xc, pixel)) {
 	xc.pixel = pixel;
 	XQueryColor(info_.display_, info_.cmap_, &xc);
 	ctable_->insert(pixel, xc);
@@ -1690,15 +1700,22 @@ void WindowVisual::find_color(
     unsigned long r, g, b;
     switch (info_.visual_->c_class) {
     case TrueColor:
-	r = rescale(red, 0xffff, red_);
-	g = rescale(green, 0xffff, green_);
-	b = rescale(blue, 0xffff, blue_);
-	xc.pixel = (
+	xc.red = red;
+	xc.green = green;
+	xc.blue = blue;
+	if (bytesize_) {
+	  xc.pixel = 
+	    ((red & 0xff00) << 8) | 
+	    (green & 0xff00) | 
+	    ((blue & 0xff00) >> 8 );
+	} else {
+	  r = rescale(red, 0xffff, red_);
+	  g = rescale(green, 0xffff, green_);
+	  b = rescale(blue, 0xffff, blue_);
+	  xc.pixel = (
 	    (r << red_shift_) | (g << green_shift_) | (b << blue_shift_)
-	);
-	xc.red = (unsigned short)rescale(r, red_, 0xffff);
-	xc.green = (unsigned short)rescale(g, green_, 0xffff);
-	xc.blue = (unsigned short)rescale(b, blue_, 0xffff);
+	    );
+	}
 	break;
     default:
 	RGBTableEntry rgb;

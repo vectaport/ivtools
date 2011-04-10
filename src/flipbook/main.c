@@ -26,6 +26,12 @@
  * Frame editor main program.
  */
 
+#ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
 #include <FrameUnidraw/framecatalog.h>
 #include <FrameUnidraw/framecreator.h>
 #include <FrameUnidraw/frameeditor.h>
@@ -33,12 +39,6 @@
 #include <OverlayUnidraw/ovunidraw.h>
 
 #include <InterViews/world.h>
-
-#ifdef HAVE_ACE
-#include <ComUnidraw/comterp-acehandler.h>
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <stdio.h>
 #include <stream.h>
@@ -49,8 +49,8 @@
 /*****************************************************************************/
 
 static PropertyData properties[] = {
-    { "*FrameEditor*name", "flipbook" },
-    { "*FrameEditor*iconName", "flipbook" },
+    { "*FrameEditor*name", "ivtools flipbook" },
+    { "*FrameEditor*iconName", "ivtools flipbook" },
     { "*domain",  "flipbook" },
     { "*TextEditor*rows", "10" },
     { "*TextEditor*columns", "40" },
@@ -135,6 +135,7 @@ static PropertyData properties[] = {
     { "*bgcolor10",	"White" },
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
+    { "*bgcolor13",	"none" },
     { "*history",	"20" },
     { "*color6",        "false" },
     { "*color5",        "false" },
@@ -155,6 +156,8 @@ static PropertyData properties[] = {
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
     { "*slideshow",     "0"  },
+    { "*stripped",      "false"  },
+    { "*stdin_off",   "false"  },
 #ifdef HAVE_ACE
     { "*comdraw",       "20002" },
     { "*import",        "20003" },
@@ -195,6 +198,8 @@ static OptionDesc options[] = {
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-slideshow", "*slideshow", OptionValueNext },
+    { "-stripped", "*stripped", OptionValueImplicit, "true" },
+    { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
@@ -206,28 +211,28 @@ static OptionDesc options[] = {
 
 #ifdef HAVE_ACE
 static char* usage =
-"Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] \n\
-[-color5] [-color6] [-import port] [-gray5] [-gray6] [-gray7] \n\
-[-opaque_off|-opoff] [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
-[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
-[-zoomer_off|-zoff] [file]";
+"Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] [-color5]\n\
+[-color6] [-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
+[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff]\n\
+[-stdin_off] [-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
+[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
 #else
 static char* usage =
-"Usage: flipbook [any idraw parameter] [-bookgeom] \n\
-[-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff] \n\
-[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
-[-zoomer_off|-zoff] [file]";
+"Usage: flipbook [any idraw parameter] [-bookgeom]\n\
+[-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
+[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff]\n\
+ [-stdin_off] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
+[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
 #endif
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     int exit_status = 0;
     FrameCreator creator;
@@ -250,7 +255,7 @@ int main (int argc, char** argv) {
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "flipbook:  unable to open import port " << importnum << "\n";
 
-    else if (IMPORT_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "flipbook:  unable to register UnidrawImportAcceptor with ACE reactor\n";
 
@@ -263,12 +268,12 @@ int main (int argc, char** argv) {
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
     if (peer_acceptor->open 
-	(ACE_INET_Addr (portnum)) == -1)
+	(ACE_INET_Addr (portnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "flipbook:  unable to open port " << portnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
-        cerr << "comdraw:  unable to register ComterpAcceptor with ACE reactor\n";
+        cerr << "flipbook:  unable to register ComterpAcceptor with ACE reactor\n";
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 
@@ -276,7 +281,7 @@ int main (int argc, char** argv) {
     // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
     // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (IMPORT_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
         cerr << "flipbook:  unable to register quit handler with ACE reactor\n";
 
@@ -295,9 +300,9 @@ int main (int argc, char** argv) {
 	/*  Start up one on stdin */
 	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
 #if 0
-	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
 #else
-	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
 	  cerr << "flipbook: unable to open stdin with ACE\n";

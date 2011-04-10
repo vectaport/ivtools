@@ -1,0 +1,825 @@
+August 23rd 2000 ivtools-0.8.4
+
+- builds and works on FreeBSD 4.0 (tested at bsd.compile.sourceforge.net)
+
+- add :popen keyword to comdraw import command, so that Unix command
+lines can be substituted for pathnames, i.e.:
+
+	import("pbmtext \"TEST STRING\" | pnmalias" :popen) 
+
+will cause a anti-aliased rendering of TEST STRING to be imported as a
+PPM raster file.
+
+- fix bug in editing text graphics in Landscape mode.  A while back
+things were changed so you could enter horizontal text in landscape
+mode.  This changed code that was used both when you typed in new
+text, and when you edited existing text.  But the test for Landscape
+mode (and the resultant rotation by 90 degrees before pasting) needed
+only to be done in the case of new text.  This is the explanation for
+the text disappearing after its been edited with the Reshape tool
+which some have seen, but seemed to be a hard-to-replicate bug.
+
+- extend the use of -stripped to ivtools flipbook as well as comdraw.
+Now you can bring up a flipbook without any toolbar or menubar.
+
+- cause the menubar and toolbar (and state variables) to be
+constructed anyways when -stripped is given.  This keeps the keyboard
+shortcuts working, a necessary feature when there is no GUI for those
+commands and tools.
+
+- part 2 of patch to fix Landscape-mode text editing.  This makes all
+cases works, and propogates the fix to idraw as well.
+
+- make a brush undashed when drawing any arrowhead.  It just didn't
+look good to see three quarters of an arrowhead at the end of a dashed
+line.  There are still discrepancies between the how an arrowhead
+looks in the ArrowVarView and how it looks in a drawing.  This math
+could be reviewed and improved.
+
+- rename ComTerpServState to ComTerpState (because that is what it
+was), and make more widespread use of it in all the ::run* methods.
+This makes multiple run commands on the same line work for the first
+time.
+
+- first version of comterp trace command:
+
+	trace([flag] :get) -- toggle or set trace mode
+
+When true, the trace mode causes the interpreter to print out the name
+of the command (ComFunc) ready to be executed, and the number of
+arguments and number of keywords supplied to it.  Indentation is 4
+spaces time the depth of post-evaluate expression, i.e. a doubly
+nested for-loop has 8 spaces of indentation on the inner loop, four
+for the outer loop.
+
+- expand on the trace output for non-post-evaluated commands
+(ComFunc's).  Since each of them has all its arguments (and keywords)
+ready to go on the stack, it is a simple matter to loop through and
+print these.  It gives an interesting visualization of the innards of
+any complex comterp expression with control constructs, because you
+get to see what the arguments of each command (or operator) evaluated
+to before the command itself was executed.
+
+The next step would be print the unevaluated expressions for a
+post-evaluated command before they are executed.  It might also be
+possible to trace their value after they are determined at run-time,
+to see what the "cond" or "if" conditional evaluated too.
+
+- if the pathname given to drawing editor doesn't exist, launch the
+drawing editor so that it is ready to edit a file of that name.  The
+file won't come into existence until a File/Save is done, but the user
+doesn't have to enter the pathname again if they don't want to.
+
+- attempt to workaround an ACE-related NetBSD bug.  Todd Gruhn has
+been faced with the problem comterp doesn't work in server mode when
+compiled with ACE on NetBSD for quite a while.  We confirmed that for
+whatever reason, ACE would accept the connection to the port, and
+construct the handler, but subsequent data transmitted to the port
+would not cause select() to return.
+
+We also confirmed that ACE_wrappers/examples/Logger did work on NetBSD
+(the Acceptor-server version).  Since this was the example from which
+comterp's use of ACE was derived, the next thing to do was a
+line-by-line comparison of the comterp ACE code to the Logger example.
+
+I found that little had changed in the past five years regarding the
+ACE Acceptor/Handler/Reactor API.  But I did find two differences
+between how that API was used in the Logger example, and how it was
+used by comterp in server mode.
+
+The first was I had removed the call to Reactor::schedule_timerin
+ComterpHandler::open, something that had been used in
+Logging_Handler::open.  I was trying to avoid the use of timers in the
+case of comterp in server mode.  This patch conditionally enables this
+again for NetBSD.
+
+The second was I had added a call to Reactor::register_handler in
+comterp's main.c (to register the templated Acceptor object) that
+wasn't to be found in the main program of the Logger Acceptor-server
+example.  This patch backs that out for NetBSD.  I think I had done
+this to fix things after the change described in the previous
+paragraph.  The pair of changes worked quite well on Linux, but might
+be the cause of the problem on NetBSD. 
+
+- this patch also fixes an initialization bug in the TextView object,
+one that only recently surfaced.
+
+- fix bug in use of ComTerpState.  The ComTerp::pop_servstate method
+always deletes the _pfnum member variable, but in the case of the
+ComTerpServ::run method that takes a buffer of tokens as an argument,
+you don't want to do this.  The fix was to nil out _pfbuf before
+popping the state.
+
+- add method to return symbol associated with type of an
+AttributeValue (AttributeValue::type_symid()).
+
+- add comterp commands for returning the type of a value, and the
+class of a value of object type.
+
+- modify the various comterp assignment operators to look up the value
+of an attribute given as the second, or right-hand side operand.
+Symbols are treated differently, in that they behave like attributes
+when explicitly given, but get assigned as symbols when they are
+computed and returned from some other expression.
+
+- add a symbol comparison option to EqualFunc, i.e.:
+
+	eq(sym1 sym2 :sym)
+
+This assumes sym1 and sym2 are computed by an expression that returns
+symbols, and then subsequent lookup is suppressed.
+
+- set limits on the traversal of the posteval expression buffer by
+adding an offlimit argument to the various ComTerp::skip_* methods
+(i.e. ::skip_func, ::skip_arg, and ::skip_key).  Now you get a warning
+when this condition occurs, and the related segfault is avoided.
+
+- remove printf in EivTextBuffer that squawked when the text buffer
+was reallocated into large space.
+
+- add a LISP-like backquote operator to comterp.  Works for attributes
+as well.
+
+- add floor, ceil, and round commands to comterp.  In each case a long
+integer is returned when the argument is a float or double.
+
+- add pastemode command to comdraw, to allow for construction of
+off-screen graphics.  These can be later inserted with the comdraw
+paste command, or maybe they can be used as a prototype for a
+toolbutton.  This will require investigating the graphics-to-glyph
+conversion software that exists somewhere in the glyphs examples
+source tree.
+
+- modify the comterp lexical scanner to always skip lines that begin
+with a "#".  This allows someone to write stand-alone executable
+scripts for comterp that begin like this:
+
+#!/usr/local/bin/comterp run
+
+- migrate classes for representing graphics as glyphs from the morpher
+example program to the IVGlyph library.  This includes a method for
+constructing glyphs given an idraw file.
+
+- migrate the morpher example from the examples3.1 sub-tree to the
+main glyphs directory.
+
+- add customizable toolbar to drawtool, that consists of everything
+but the Annotate and graphic drawing tools.  You switch to this
+toolbar by using a new "Tools" menu in the top menu bar.  Also in that
+new menu is an "Add Custom Tool" menu item, that brings up a
+filechooser and prompts you to enter the path of an idraw document to
+use as the prototype for the tool button and for the tool action.
+
+The reason it needs to be an idraw document is the tool button glyph
+construction relies on an IdrawReader::load method reused from the
+InterViews 3.1 morpher example.  This is the gateway between glyphs
+and graphics, which finally allows the same drawing to be used in both
+worlds.  This gives extra usefulness to the Export-in-idraw-format
+mode.
+
+These idraw-format icons need to be small enough to fit in a
+toolbutton, and they need to centered on 0,0.
+
+- attempt to set up configuration files for a port of ivtools to
+FreeBSD, at the request of Wilhelm B. Kloke.
+
+- new addtool command in comdraw takes the pathname of an idraw drawn
+(or drawtool, etc. exported) picture and makes it a button in the
+alternate toolbar.
+
+compview=addtool(pathname) -- add button to toolbar based on zero-centered idraw drawing.
+
+The idraw graphics need to be zero-centered, which can be done in comdraw like this:
+
+	g=at(select)  /* gets the first graphic in the selection */
+        move(-at(center(g) -at(center(g) 1)))  /* zero-centers */
+
+followed by ^X (File/Export) with idraw format checked.
+
+- perhaps now building on FreeBSD.
+
+June 12th 2000 ivtools-0.8.3
+
+- remove the output for a ComValue of BlankType in the related ostream
+operator.  This puts it back to the way it has long been.  The output
+of "<blank>" was just a temporary debugging thing.
+
+- add an "acknowledgebox" command (AcknowledgeBoxFunc) to command, to allow
+a script to pop-up a dialog box and require the user to press ok.
+
+- add a confirmbox command to comdraw that returns 1 for Yes, 0 for
+No, and -1 if Cancelled.
+
+- use a self-growing STL (Standard Template Library) vector<char> to
+read comterp commands from a socket.  This replaces the year-old hack
+of using a 1 megabyte input buffer (BUFSIZ*BUFSIZ), which was
+problematic in certain run-time environments, causing an inexplicable
+crash at the head of ComterpHandler::handle_input before any code of
+the method was executed.
+
+If this approach proves out, it should be migrated to all the other
+large input buffers spread around ivtools (where-ever the size is
+BUFSIZ*BUFSIZ), and would make for a significant reduction in the
+runtime footprint of some programs.
+
+- fix AttributeValue::geta(int classid) and add back a
+ComValue::geta(int classid)
+
+- fix the use of CLASS_SYMID macro in OverlaysComp class definition.
+It was missing the "s" from the class name string.
+
+- new comterp commands to "split" a string or symbol into a list of
+characters, and to "join" a list of characters into a string or
+symbol.
+
+- add -DUnidrawCommon to the compiler command line in the
+Unidraw-common library, and make judicious use of "#ifndef
+UnidrawCommon" in Unidraw/component.c and Unidraw/compview.c, so they
+only pull in stuff out of libUnidraw-common.
+
+- print "nil" instead of "Unknown type" when a ComValue is of
+UnknownType, since that is how UnknownType is used throughout comterp,
+as the nil value which means no value.
+
+- bug fixed in AttributeListEditor where a fixed buffer of length 1024
+was overflowed.  Replaced with a vector <char> instead.
+
+- change comterp eval command to return a single value if it has only one argument.
+
+- change the Dialog class so that a box put up with ::map_for or
+::map_for_aligned (as opposed to ::post_for or ::post_for_aligned) can
+unmap itself when cancelled or accepted.
+
+- add highlight command to comdraw interpreter:
+
+highlight(compview compviewgs) -- set the highlight graphic state for a graphic
+
+- changed ComTerpModule::reset to reuse buffers without reallocating them.
+
+- fixed equality comparisons in comterp against nil (which is
+ComValue::UnknownType under the hood).  Now nil!=0 is true (1) and
+nil==0 is false (0).
+
+- added base class method to set an OverlayView's HighlightGraphic and
+member variable _hilite_gs to hold it.
+
+- fixed bug in OverlayScript::ReadOther.  Now the attribute built from
+a keyword with no following value(followed by the closing paren) gets
+a value of true (1).
+
+- add a global variable capability to comterp.  Now you can:
+
+	global(v1)=100
+
+and the value v1 will be available in all other copies of the command
+interpreter running at the time.  If a local variable of the same name
+exists, you can access the global value by:
+
+	symval(global(v1))
+
+The "global" command returns a ComValue of SymbolType with a new
+global flag set to true.  This flag is subsequently checked when doing
+symbol lookup, and if true the values are taken from the global symbol
+table (a static class variable of ComTerp).
+
+- add a AttributeValue::clear() method to zero out all the bytes of
+the double sized multi-value union _v.
+
+- add "frame" command to comdraw (and flipbook) to return the current
+composite graphic.
+
+- make comdraw versions of the "at" and "size" commands that work on
+composite graphic objects (i.e. the list of sub-graphics gets used as
+the list).
+
+- add a static method ComValue::minusoneval to return a ComValue set
+to -1.
+
+- ensure a ComValue is really of ObjectType before returning the value
+of the ::object_compview() flag.
+
+- test for global symbol flag before doing local symbol table lookup
+in comterp.
+
+- ensure the global symbol flag is zeroed when constructing a ComValue
+from a postfix_token struct.
+
+- remove bug in comdraw "center" command.
+
+- fix bug in "mbr" and "points" commands of comdraw (same one that was
+in "center").
+
+- annotate (prefix) the result from a timeexpr command with "timeexpr
+result: ".  Otherwise it is kind of hard to tell where these things
+come from.
+
+- modify min and max commands of comterp so that max(num nil) is always num,
+and min(num nil) is always num as well.
+
+- preserve the ComTerp associated with a ComterpHandler if there is a timer evaluated expression still running.
+
+- define AttributeValue::boolean_val() to return true for any symbol
+or string value if the symbol id is greater than or equal to zero.
+
+- new "delete" command for comdraw.
+
+- new :clear flag on the "select" command of comdraw.
+
+- new :scrn flag on the "center" and "mbr" commands of comdraw (to
+return screen relative coordinates as opposed to drawing coordinates).
+
+- fix :str keyword of print command (shortcut for :string)
+
+- add :sym and :symbol keyword to print command, for generating
+symbols the same way :str and :string can generate strings.
+
+- fix a few cases in the execute method of a derived Comfunc where a
+reference is initialized to a ComValue on the interpreter stack
+(ComValue&), and then used after the stack has been reset for this
+command (ComFunc::reset_stack), which obliterates all the input
+arguments.  Instead a local copy of the ComValue is initialized.
+
+- add a comdraw "growgroup" command:
+
+	newgroup=growgroup(groupview compview) -- add graphic to existing group graphic
+
+This is implemented with a MacroCmd (macro command) that has two
+members, an UngroupCmd to break down the initial group into its
+constituent parts, and an (Ov)GroupCmd to build it back up to include
+the new graphic.
+
+- add comdraw "trimgroup" command, to reverse the effect of a "growgroup"
+command:
+
+	newgroup=trimgroup(groupview compview) -- remove graphic from existing group graphic
+
+Underneath the hood this a macro command (MacroCmd) with an ungroup
+command (UngroupCmd) followed by group command (OvGroupCmd) with the
+specified graphic removed from the list.  This does not delete that
+graphic, but that can be done with a "delete" command if so desired.
+
+- fix bug in comdraw "select" command, so that changes to the current
+selection are graphically represented in the viewer.
+
+- add pause command to comdraw.  Can be embedded in the middle of a
+script, and allows for arbitrary commands to be evaluated until a
+simple C/R is entered.
+
+- add a "logger" mode to comterp:
+
+comterp logger 'portnum'
+
+Listens for and accept connections on portnum, then simply forward
+the incoming messages to stdout, while ack'ing back with newlines. For
+debugging purposes, not really a use of the interpreter.
+
+- revise comdraw documentation, to make it more obvious that the
+"import" command requires a string for its pathname argument, and that
+a string has to be embedded in double-quotes.
+
+- upgrades to smoothly compile on RedHat 6.2
+
+- add a :n argument to the eq command (the command that underlies the
+"==" operator), so that it can be used for partial string comparison,
+i.e.:
+
+	eq("string1" "string2" :n 6) 
+
+returns true.
+
+- fix up the comdraw text command to work at other than 1x mag.
+
+- fix two bugs in the Attribute tool dialog box.  Make things work
+when there are no attributes defined (a problem that cropped up since
+using STL vector template to store the contents of the dialog buffer).
+And use a ComponentView to hold the pointer to a Component being
+examined by the dialog box, so that if the Component gets deleted in
+the drawing editor the Attribute tool dialog box won't be fooled into
+thinking it still has a good Component pointer.
+
+April 28th 2000 ivtools-0.8.2
+
+- Add a new version of a dot (".") func to comdraw, one that accesses
+the AttributeList of a graphical component. This allows for easy
+set/get access to the attributes of graphics in a drawing editor.
+
+- Change default behavior of comdraw select func to return list of
+graphics in current selection.  Implement the :all feature as well.
+This is a non-backward compatible change for anyone who has relied on
+the undocumented way the select func has behaved up until now (which
+was the same as :all behavior should have been).
+
+- change comterp list output (what gets printed when a list is
+returned on the stack) to use "," instead of "\n" and surround the
+entire list with "{" and "}".  Now you can see the difference between
+lists of length 1 and scalars.
+
+- copy/move capability for text editor with interpreter from
+FrameUnidraw to OverlayUnidraw, and make use of it in comdraw.
+
+- add a flag to ComValue (use space from one of two type-specific
+unions) to indicate the void* pointer stored in an ComValue of
+ObjectType is really a ComponentView, not the class indicated by the
+classid symbol associated with it.  This allows derived ComFunc's to
+detect whether an object pointer is really a ComponentView indirection
+to some Component object.
+
+- fix bug in comterp telcat mode where a bad pathname segfaults.
+
+- extend OverlayComp::FindValue to support the "up" flag.
+
+- change all the derived ComFunc's that work with ComponentView's to
+set the ComValue::_object_compview flag, and provide a symbol for the
+classid that corresponds to the kind of component.  This needs to
+become a virtual method on every component, which requires adding
+CLASS_SYMID to all the *comp(s).h in the OverlayUnidraw library.
+
+- create "attrname" command to return name of attribute name/value pair.
+
+- create "attrlist" command to return the AttributeList of a component.
+
+- fix the adjusting of relative pathnames for an OverlayFileComp when
+the whole document is saved out to a different directory.
+
+- finish migration to use of ComValue::object_compview method.
+
+- add FrameScript::suppress_frame method to trim the output of "frame"
+objects from a derived program, i.e. a map viewer.
+
+- extend the use of a symbol-table based class id to all the
+components in OverlayUnidraw, GraphUnidraw, and FrameUnidraw, so that
+the command interpreter can print the class name of objects returned
+on the stack.  Elide the "Ov" from certain class names,
+i.e. "RasterComp" instead of "RasterOvComp".
+
+- fix the equality operator (==) of comterp to return 0 when one
+argument is of unknown type (unless both are of unknown type)
+
+- finalize arrangement of symbol manipulating commands of comterp:
+
+	symid	return symbol id given symbol
+	symbol  return symbol given symbol id
+	symval	lookup value associated with symbol
+	symadd  return symbol without value lookup
+
+because symbol lookup is automatic in the interpreter, you only have to use symval when passing a symbol argument by variable to a command that accepts symbols without lookup.  The command will take the name of the variable for input, not its contents, so wrapping it in symval() has the desired affect.
+
+symadd() is how you get a symbol assigned to a variable.
+
+- add test for non-existent input file to run() command.
+
+- extend list() command to initialize new list with contents of old
+list supplied as the first argument, i.e. with "l1=1,2,3;
+l2=list(v),4" lists l1 and l2 are distinct, where as with
+"l1=1,2,3; l2=l1,4" l1 and l2 are the same.
+
+- add numframes() command to flipbook interpreter, and
+FrameEditor::NumFrames method.  
+
+- fix bug in comterp ! operator that made it not work for anything but boolean.
+
+- show many frames at once in ivtools flipbook with a new "showframes"
+command.  If four frames (plus background) existed in a flipbook
+editor, this would show the first and third frame (and the the
+background), when entered into the interpreter:
+
+	showframes(1,4)
+
+This required generalizing the "other" frame concept of FrameEditor to
+be a list of other frames to see instead of a single frame.  To
+preserve the "current frame" concept in the editor, the list of frames
+given to "showframes" is searched for the max frame to make it the
+current (and foremost) frame, then internally all other "other" frames
+are stored as negative offsets from this frame.  It would be possible
+to have a mode (a keyword flag) on "showframes" to interpret the input
+list as offsets both positive and negative from the current flag
+(i.e. :offsets).
+
+- add ComTerp::lookup_symval(int symid), to give a non-in-place way of
+looking up a variable's value.
+
+- make the comterp nil command post-evaluated, so none of its
+arguments are processed or pushed on the stack.
+
+- fix a problem where inner-parenthesis (or extra outer parentheses)
+on an expression wouldn't work when part of the body of a
+post-evaluated command (i.e. for, cond, while, etc.).
+
+Before this didn't work:  cond(1 (1+2)*3)
+
+Or this:		  cond(1 (1))
+
+This time the bug wasn't in the mechanism for post-evaluating the
+byte-compiled script, as many similar bugs have been in the past.
+This time the fix was to a parser tweak adopted not that long ago to
+generate blank placeholders in the parser output (the postfix
+expression) to preserve where free-standing parentheses existed in the
+original expression.
+
+- and now a better fix for the inner paren problems of the comterp
+parser.  I finally came to understand the origin of the problem was
+not the popping of matched stand-alone parens, but in the failure to
+recognize when parenthesized expressions are different from
+parenthesized arguments.  Consider "a(b (3))" v.s. "a(2 (3))" (try
+this with "comtest parser" if you want.  You might think the command
+"a" has two arguments in each case.  But in the first case it has only
+one, and the "(3)" is interpreted as arguments for the command "b".  
+
+March 9th 2000 ivtools-0.8.1
+
+Interpreter Changes
+    
+        * Add the "." (dot) operator to comterp, to allow for compound
+        variables (i.e. "a.b").  They can be used on the right-hand or
+        left-hand side of an assignment operator, and used pretty much
+        anywhere a symbol can be used.
+    
+        The first operand is either a symbol to assign an AttributeList
+        to, or an expression that evaluates to an AttributeList.  The
+        second operand is always a symbol.  They can be concatenated
+        (i.e. "a.b.c").
+    
+        * create a list func that initializes an empty list object.
+          
+        * extended the print func to invoke the ostream ComValue "<<"
+        operator if it only has one argument.
+    
+        * add new symval command to returns the symbol value instead of
+       looking up the value of that symbol in the variable tables.
+    
+    
+        * documented acos, asin, and atan as returning radians,
+        and cos, sin, tan as taking radians.
+
+	* created autoframe command in flipbook command
+	interpreter, and synched it with the "Auto New Frame" checkbox
+	on the Frame pulldown menu.  So now you can set/reset this
+	feature from either the GUI or interpreter, and the GUI
+	reflects the state.
+
+	* settle on "dotname" for the command that returns the name of
+	a name/value attribute pair.  This is because "." (dot) is the
+	operator used to create attribute list objects in the comterp
+	command interpreter.  Normally most attribute objects are
+	automatically indirected to the attribute value when finally
+	applied, but in this command overrides that and returns the
+	symbol which is the attribute name.
+
+
+	* enable the command interpreter in the text editor panel at
+	the bottom of the flipbook user interface.
+
+	* copy anything but the last line in the interpreter text
+        buffer to the end of the buffer before executing -- like shell
+        mode in emacs.
+
+Library Changes
+
+        -- Attribute -- 
+
+	* migrate macro for declaring symbol-table based class ids to
+	one place -- Attribute/_comutil.h.  Rename it CLASS_SYMID
+	(from classid).
+
+	* AttributeList::add_attr fix.
+
+	* new twist to the classid stuff.  Now classid() gets defined
+	as a virtual function along with static methods for
+	class_name() and class_symid() when you add the CLASS_SYMID
+	macro (<Attribute/_comutil.h>) to a class definition.  This
+	was used for identifying derived ComFunc's, ComFunc's that
+	have a func symbol id as well, but might vary with
+	internationalization or other custom changes to the
+	interpreter.  But the symbol id of the class name itself
+	doesn't change.
+
+	-- ComUtil -- 
+
+	* modify lexical scanner to preserve token state between invocations.
+	This fixes a problem with multi-line comments when comterp is
+	in server (when comterp is receiving input strings one at a
+	time from an external source).  However, this does not fix the
+	problem with multi-line strings when comterp is in server
+	mode, which will require a better solution for preserving more
+	of the token state (i.e. the partial token buffer) between
+	invocations.  This is also a necessary step in preserving
+	parallel use of one lexical scanner by more than one comterp
+	in the same program.
+
+	-- ComTerp --
+
+	* fix a problem in server-mode comterp.  Part of making
+	server-mode work was figuring out how to return from the
+	depths of the lexical scanner in the middle of an expression,
+	when an expression continues across multiple-lines, but the
+	capability to retrieve a new line (or string) is external to
+	the parser/scanner.  To make this work I made up the
+	convention that if the input function (the function pointer
+	with an fgets signature passed to the parser/scanner C
+	routines) returns a null string (a string that begins with
+	'\000'), return out of the scanner and parser, yet assume
+	there is more to come.  When that function
+	(ComTerpServ::s_fgets) was going to return the null string, it
+	still traversed the entire input buffer, which is huge by
+	default.
+
+	* compress some code by making use of the new
+	ComValue::is_object(int classid) method to test both whether
+	something has a generic void* pointer for its value, and
+	whether it has a known matching classid (based on a id in a
+	symbol table for that kind of object).
+
+	* migrate ComValue::geta() to AttributeValue::geta().  This is
+	the method that returns a void* to an ObjectType if the
+	classid matches.  Work for every object but ComFunc's and
+	AttributeValueList's, which have their own types (CommandType
+	and ArrayType).
+
+	-- IVGlyph --
+
+	* new Dialog methods to support stay-up dialog boxes that
+	don't block events being handled by the main application:
+
+    void map_for(Window*);
+    virtual void map_for_aligned(Window*, float xalign, float yalign);
+    void map_at(Coord x, Coord y);
+    virtual void map_at_aligned(
+	Coord x, Coord y, float xalign, float yalign
+    );
+    void unmap();
+    boolean mapped();
+
+        These are an alternate to the pre-existing Dialog::post_* methods,
+        which map the dialog box to the screen then enter their own event
+        handling loop (the run() method), then unmap the dialog box when
+        done.
+    
+        With this new approach you call one of the Dialog::map_* methods
+        to bring up the dialog box, and control returns to the normal
+        event-handling loop of the main application.  The action taken
+        when a Close or OK button has to be different with this new
+        approach.  Instead of setting a flag that causes the local run
+        loop to terminate, you need to explicitly call Dialog::unmap.
+    
+        Dialog::unmapped is provided as a way to test if the dialog is
+        currently displayed.  Repeated calls to Dialog::map_* are ok,
+        because the first thing these methods do is check if already
+        mapped, and if so they do nothing.
+    
+        * create a new ObsTextDialog that uses the new Dialog::map_*
+        methods (IVGlyph/odialogs.[ch]).
+    
+        * store the symbol id for a given ComFunc in a new _funcid member
+        variable.
+    
+        * create a ComTerp::eval_expr method that takes an array of fully
+        code-converted ComValue's ready to be executed.
+    
+        * so that a ComFunc execute method can ask ComTerp to invoke a
+        certain ComFunc on the subsequent symbol to be encountered after
+        the ComFunc execute method returns (ComTerp::func_for_next_sym()).
+    
+        * modify the various func of symbolfunc.c to generate scalar or
+        vector results depending on whether there is a single or multiple
+        argument.  Affected are symbol, symid, and symvar.
+    
+        * add mechanism to ComTerp to pass values to the next expression
+        (ComTerp::val_for_next_func) and invoke a func on the next symbol
+        (ComTerp::func_for_next_sym).  This allows for the stringing
+        together of stand-alone expressions interspersed by keywords that
+        lack parenthization.
+    
+        * add ComValue constructor that takes a ComFunc* directly and
+        makes something of CommandType.
+    
+        * derive ComGlyph's ComTextEditor and ComTE_View from
+	IVGlyph's EivTextEditor and TE_View.  This adds an interactive
+	command interpreter capability to the text editor object,
+	where the user can enter expressions and see results computed.
+	While a command history plus anything else goes to stdout, the
+	results follow just the expression, so it is sometimes easier
+	to keep track of the commands you're using.  All of stdout
+	could be rerouted to the texteditor window in the future.
+	vhclmaps vhclviewer is the first place in the source tree
+	where this capability is exposed for now.  Check it out.
+
+        -- OverlayUnidraw --
+    
+        * the GraphicLoc tool to use the new ObsTextDialog box.  Now the
+        GraphicLoc dialog box can stay up between uses of the tool, and
+        each new click refreshes the displayed text.
+
+	-- FrameUnidraw --
+
+	* generalize the "select" command of comdraw to work in the
+	interpreter of flipbook and anything derived from flipbook, by
+	using the OverlayEditor::GetFrame() virtual method, which
+	hides the fact whether a multi-frame system is in place or
+	not.
+
+Miscellaneous and Config Changes
+
+	* change the default behavior of make with no arguments to be
+	the same as "make World" the first time it used.  So now
+	ivtools can build out of the box with the ubiquitous
+	"./configure;make"
+
+	* add --enable-install-subdir argument to ./configure.  This
+	allows a user to install in /usr/local/lib/ivtools and
+	/usr/local/bin/ivtools if they want (/usr/local can be changed
+	with --prefix).
+
+	* change src/scripts/mkdirhier.sh to work with new versions of
+	mkdir that no longer accept multiple arguments.
+
+	* pare down the various config/site.def.$CPU files to the
+	things actually used/required.  Take out all definitions
+	now provided by the ./configure script.
+
+	* patches submitted by Gregor Zych to compile ivtools-0.8 with
+	frozen Debian Potato.  The first patch adds a function
+	definition that is disabled by default.  Someone would need to
+	change the #if clause to correctly test for the Debian 2.2
+	release.  This was the only thing that didn't compile smoothly
+	on RedHat 5.1.
+
+	* give variable names to all the constructor arguments in
+	Attribute/attrvalue.h and ComTerp/comvalue.h, to improve the
+	PERCEPS extracted web page.
+
+	* change signature of accept() used in utils/sockets.cc to use
+	an unsigned instead of signed int* as the third argument.
+	This seems to be more the recent standard.
+
+- format bug in ComValue::ULongType ostream output.
+
+
+January 18th 2000 ivtools-0.8
+
+Drawing Editor Changes
+
+	* add "center" and "mbr" commands to comdraw, to return the
+	center and minimum-bounding rectangle of a graphic.
+
+	* make select-all the default behavior of the comdraw "select"
+	command.
+
+	* add -stripped argument to comdraw, to remove menubar and
+	toolbar.  Use a -geometry as well to specify size of canvas.
+	Control resultant program via stdin or telnet using the
+	builtin command interpreter.  
+
+	* add Pull/Push By One Commands to the Structure menu in
+	drawtool, also making them available to any OverlayUnidraw
+	based program.
+
+Interpreter Changes
+ 
+	* add LISP-like symbol assignment semantics to comterp.  Now
+	expressions that return a symbol can appear on the right hand
+	or left hand side of an assigment operator.  See new command
+	"symvar", and "symbol" has been renamed "symval".
+
+	* add support for command aliases to comterp, to allow
+	multiple symbols to point to a command without having them
+	listed via help.
+
+	* make posteval((1)) work, by improved handling of the token
+	generated for the extra nested parens.  Problem still remain
+	with the handling of some forms of nested parens in
+	post-evaluated expressions, but this is a start at fixing
+	them.  This is the last outstanding known bug in the comterp
+	language, though many features remain to be added.
+
+	* fix problem with nested parens in post-evaluated
+	expressions.  Now commands like these work:
+
+	posteval((1+2)*3)
+
+	cond((1+2)*3 1 0)
+
+	The problem originated when for some reason the underlying
+	parser was modified to spew a Blank whenever it popped an
+	empty paren pair from the parser stack.  Doing that made
+	something, I don't recall what, and could be useful in the
+	future for representing n-depth streams by nested parens
+	(i.e. ((1,2,3),(3,4,5),(5,6,7)) could be a 3x3 pixmap (or a
+	list of 3 rgb values).
+
+Config and Misc. Changes
+
+	* add NetBSD support.
+
+	* finalize links from embedded html (extractable by PERCEPS)
+	to pre-existing man pages.  Now every man page can be reached
+	by its corresponding classes html documentation.
+
+	* test and revise the src/html/README that describes how to
+	gen a set of ivtools html documentation.
+
+
+
+
+
+
+

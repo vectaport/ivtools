@@ -18,12 +18,16 @@ MakeLibrary($(LIB),$(VERSION))
 #define ObjA(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
 
 Obj(assignfunc)
+Obj(bitfunc)
 Obj(boolfunc)
+Obj(bquotefunc)
 Obj(comfunc)	
 ObjA(comterpserv)
 Obj(comvalue)
 Obj(condfunc)
 ObjA(ctrlfunc)
+Obj(debugfunc)
+Obj(dotfunc)
 Obj(helpfunc)
 Obj(iofunc)
 Obj(listfunc)
@@ -35,13 +39,15 @@ Obj(randfunc)
 Obj(scanner)	
 Obj(statfunc)
 Obj(strmfunc)
+Obj(symbolfunc)
+Obj(typefunc)
 Obj(xformfunc)
 
 #ifdef AceDir
 ObjA(comhandler)
 #endif
 
-#define Obj31(file) MakeObjectFromSrcFlags(file, -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
 Obj31(comterp)
 IncludeDependencies()

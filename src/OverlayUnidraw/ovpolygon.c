@@ -57,6 +57,7 @@
 /****************************************************************************/
 
 ParamList* PolygonOvComp::_ovpolygon_params = nil;
+int PolygonOvComp::_symid = -1;
 
 ClassId PolygonOvComp::GetClassId () { return OVPOLYGON_COMP; }
 
@@ -194,6 +195,7 @@ Command* PolygonOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) polygon->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        polygon->FillBg(!colVar->GetBgColor()->None());
                 polygon->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             polygon->SetTransformer(rel);

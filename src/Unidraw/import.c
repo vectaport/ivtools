@@ -91,7 +91,8 @@ static FILE* CheckCompression(
         compressed = true;
 
     } else {
-        rewind (file);
+        fclose (file);
+        file = fopen(filename, "r");
         compressed = false;
     }
 

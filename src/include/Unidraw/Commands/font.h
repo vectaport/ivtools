@@ -31,6 +31,8 @@
 
 class PSFont;
 
+//: command for changing font in current selection and editor
+// <a href=../man3.1/FontCmd.html>man page</a>
 class FontCmd : public Command {
 public:
     FontCmd(ControlInfo*, PSFont* = nil);

@@ -38,6 +38,8 @@ static const int patternHeight = 16;
 
 #undef None
 
+//: "PostScript" brush object
+// <a href=../man3.1/pspaint.html>man page</a>
 class PSBrush : public Brush {
 public:
     PSBrush();
@@ -68,20 +70,28 @@ inline const int* PSBrush::GetDashPattern () { return _dashpat; }
 inline int PSBrush::GetDashPatternSize () { return _dashpatsize; }
 inline int PSBrush::GetDashOffset () { return _dashoffset; }
 
+//: "PostScript" color object
+// <a href=../man3.1/pspaint.html>man page</a>
 class PSColor : public Color {
 public:
+    PSColor();
     PSColor(ColorIntensity, ColorIntensity, ColorIntensity, const char*);
     virtual ~PSColor();
 
+    boolean None();
     const char* GetName();
     void GetIntensities(ColorIntensity&, ColorIntensity&, ColorIntensity&);
 protected:
+    boolean _none;
     char* _name;			// stores name passed into constructor
     ColorIntensity _r, _g, _b;		// stores intensities passed to ctor
 };
 
-inline const char* PSColor::GetName () { return _name; }
+inline boolean PSColor::None () { return _none; }
+inline const char* PSColor::GetName () { return _none ? "None" : _name; }
 
+//: "PostScript" font object
+// <a href=../man3.1/pspaint.html>man page</a>
 class PSFont : public Font {
 public:
     PSFont(const char*, const char*, const char*);
@@ -107,6 +117,8 @@ inline const char* PSFont::GetPrintSize () { return _printsize; }
 inline const char* PSFont::GetPrintFontAndSize () { return _printfontandsize; }
 inline int PSFont::GetLineHt () { return _lineHt; }
 
+//: "PostScript" pattern object
+// <a href=../man3.1/pspaint.html>man page</a>
 class PSPattern : public Pattern {
 public:
     PSPattern();

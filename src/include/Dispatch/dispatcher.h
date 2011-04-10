@@ -91,7 +91,11 @@ protected:
     TimerQueue* _queue;
     ChildQueue* _cqueue;
 
+#if defined(__GNUC__) && !defined(__GNUC_MINOR__)
+    static void sigCLD();
+#else
     static void sigCLD(...);
+#endif
 
 private:
     static Dispatcher* _instance;

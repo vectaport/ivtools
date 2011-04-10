@@ -31,6 +31,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: composite Graphic
+// <a href=../man3.1/Picture.html>man page</a>
 class Picture : public FullGraphic {
 public:
     Picture(Graphic* gr = nil);

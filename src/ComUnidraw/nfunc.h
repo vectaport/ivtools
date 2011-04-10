@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -27,7 +28,7 @@
 #include <ComUnidraw/unifunc.h>
 
 //: command to return number of onscreen columns in comdraw.
-// ncols() -- onscreen horizontal extent in pixels
+// ncols() -- onscreen horizontal extent in pixels or 
 class NColsFunc : public UnidrawFunc {
 public:
     NColsFunc(ComTerp*,Editor*);

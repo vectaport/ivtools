@@ -24,7 +24,7 @@
 
 #ifdef iv__current_h
 
-#ifdef iv2_6_compatible
+#if defined(iv2_6_compatible)&&!defined(iv2_6_incompatible)
 #undef iv__current_h
 #define iv__2_6_h
 #ifndef MAKEDEPEND

@@ -32,6 +32,8 @@
 class Command;
 class GraphicComp;
 
+//: graphic component tool
+// <a href=../man3.1/GraphicCompTool.html>man page</a>
 class GraphicCompTool : public Tool {
 public:
     GraphicCompTool();

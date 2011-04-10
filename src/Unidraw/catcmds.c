@@ -47,6 +47,7 @@
 #include <stdlib.h>
 #include <stream.h>
 #include <string.h>
+#include <fstream.h>
 
 /*****************************************************************************/
 

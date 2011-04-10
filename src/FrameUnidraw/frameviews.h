@@ -60,7 +60,8 @@ public:
     virtual boolean IsA(ClassId);
 
     void UpdateFrame(FrameView* curr, FrameView* prev,
-		     int curr_other = 0, int prev_other=0);
+		     int* curr_others, int num_curr_others,
+		     int* prev_others, int num_prev_others);
 };
 
 //: graphical view of FrameIdrawComp.

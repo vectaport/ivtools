@@ -75,7 +75,7 @@ void print_class_subtree(ostream& out, ClassBuffer* cbuffer, const char* classna
       << classname << "</a><br>\n";
 
   const char* childname;
-  const char* prevname=strdup("");
+  char* prevname=strdup("");
   int childindex=0;
   while (childname = cbuffer->Child(classname, childindex)) {
     if (strcmp(prevname, childname)!=0) 
@@ -112,7 +112,7 @@ int main (int argc, char** argv) {
 	cout << "<a name=" << classname << " href=" << classname << ".html>" 
 	  << classname << "</a>:<br>\n";
 	const char* childname;
-        const char* prevname=strdup("");
+        char* prevname=strdup("");
 	int childindex = 0;
 	while (childname = buffer->Child(classname, childindex)) {
 	  childindex++;

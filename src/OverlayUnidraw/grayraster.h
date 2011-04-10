@@ -185,7 +185,7 @@ protected:
 
 protected:
     unsigned char* _pixel_map;        // map from intensity-byte to colormap-byte
-    void* _data;                      // raw pixel data of _type
+    unsigned char* _data;             // raw pixel data of _type
     AttributeValue::ValueType _type;  // numeric type of pixels
     boolean _t2b;                     // top2bottom() flag
     double _minval;                   // cached minimum pixel value

@@ -21,7 +21,6 @@
  * 
  */
 
-
 #include <Attribute/aliterator.h>
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
@@ -42,8 +41,13 @@
 
 #include <IVGlyph/textedit.h>
 
-#include <strstream.h>
+#include <strstream>
 #include <string.h>
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+#else
+#define STL_VECTOR
+#include <vector.h>
+#endif
 
 declareActionCallback(AttributeListEditor)
 implementActionCallback(AttributeListEditor)
@@ -104,29 +108,65 @@ void AttributeListEditor::remove() {
 
 void AttributeListEditor::update_text(boolean update) {
     ALIterator i;
+#ifndef STL_VECTOR
     char buf[1024];
     memset(buf, 0, 1024);
+#else
+    vector <char> vbuf;
+#endif
     for (_list->First(i); !_list->Done(i); _list->Next(i)) {
 	Attribute* attr = _list->GetAttr(i);
 	const char* name = attr->Name();
 	int namelen = name ? strlen(name) : 0;
 	if (name)
+#ifndef STL_VECTOR
 	    strcat(buf, name);
+#else
+	{
+	    const char* namep = name;
+	    while (*namep) { vbuf.push_back(*namep++); }
+	}
+#endif
 	int n;
 	for (n = 15; n > namelen-1; n--)
+#ifndef STL_VECTOR
 	    strcat(buf, " ");
+#else
+	    vbuf.push_back(' ');
+#endif
+#ifndef STL_VECTOR
 	strcat(buf, " ");
-	strstream valstr;
+#else
+        vbuf.push_back(' ');
+#endif
+	std::strstream valstr;
 	valstr << *attr->Value() << '\0';
 	const char* val = valstr.str();
 	int vallen = val ? strlen(val) : 0;
 	if (val)
+#ifndef STL_VECTOR
 	    strcat(buf, val);
+#else
+	{
+	    const char* valp = val;
+	    while (*valp)  { vbuf.push_back(*valp++); }
+	}
+#endif
 	for (n = 15; n > vallen; n--)
+#ifndef STL_VECTOR
 	    strcat(buf, " ");
 	strcat(buf, "\n");
+#else
+            vbuf.push_back(' ');
+	vbuf.push_back('\n');
+#endif
+
     }
+#ifndef STL_VECTOR
     _ete->text(buf, update);
+#else
+    _ete->text(&vbuf[0] ? &vbuf[0] : "", update);
+#endif
 }
 
 void AttributeListEditor::build() {
@@ -159,6 +199,16 @@ void AttributeListEditor::build() {
 	)
     );
     _mainglyph->append(lk.vspace(10));
+    _mainglyph->append(
+	lk.hcenter(
+	    lk.hbox(
+		    lk.vcenter(lk.hfixed(wk.label("name"), wid)),
+		lk.hspace(10),
+		    lk.vcenter(lk.hfixed(wk.label("value"), wid))
+	    )
+	)
+    );
+    _mainglyph->append(lk.vspace(2));
     _mainglyph->append(
 	lk.hcenter(
 	    lk.hbox(

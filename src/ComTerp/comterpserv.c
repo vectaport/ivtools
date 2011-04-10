@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -21,14 +22,19 @@
  * 
  */
 
+#include <ComTerp/comhandler.h>
+
 #include <ComTerp/_comterp.h>
 #include <ComTerp/_comutil.h>
-#include <ComTerp/comhandler.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
+#include <OS/math.h>
 #include <iostream.h>
 #include <string.h>
+#if __GNUC__>=3
+#include <fstream.h>
+#endif
 
 #if BUFSIZ>1024
 #undef BUFSIZ
@@ -58,6 +64,8 @@ ComTerpServ::ComTerpServ(int bufsize, int fd)
 
     /* inform the parser which infunc is the oneshot infunc */
     _oneshot_infunc = (infuncptr)&s_fgets;
+
+    _logger_mode = 0;
 }
 
 ComTerpServ::~ComTerpServ() {
@@ -99,7 +107,7 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
 
     /* copy characters until n-1 characters are transferred, */
     /* the input buffer is exhausted, or a newline is found. */
-    for (outpos = 0; outpos < n-1 && inpos < bufsize-1 && instr[inpos] != '\n';)
+    for (outpos = 0; outpos < n-1 && inpos < bufsize-1 && instr[inpos] != '\n' && instr[inpos] != '\0';)
 	outstr[outpos++] = instr[inpos++];
 
     /* copy the newline character if there is room */
@@ -137,12 +145,25 @@ int ComTerpServ::s_fputs(const char* s, void* serv) {
 
 char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     ComTerpServ* server = (ComTerpServ*)serv;
+    int fd = Math::max(server->_fd, 1);
+#if __GNUC__<3
     char* instr;
-    int fd = max(server->_fd, 1);
     filebuf fbuf;
     fbuf.attach(fd);
     istream in (&fbuf);
     in.gets(&instr);
+#elif __GNUC__==3 && __GNUC_MINOR__<1
+    char instr[BUFSIZ];
+    FILE* ifptr = fdopen(fd, "r");
+    fileptr_filebuf fbuf(ifptr, ios_base::in);
+    istream in (&fbuf);
+    in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
+#else
+    char instr[BUFSIZ];
+    fileptr_filebuf fbuf(fd, ios_base::in, false, static_cast<size_t>(BUFSIZ));
+    istream in (&fbuf);
+    in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
+#endif
     server->_instat = in.good(); 
   
     char* outstr = s;
@@ -164,6 +185,10 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     /* append a null byte */
     outstr[outpos] = '\0';
 
+#if __GNUC__==3 && __GNUC_MINOR__<1
+    if (ifptr) fclose(ifptr);
+#endif
+
     return s;
 }
 
@@ -174,17 +199,27 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
     int& bufsize = server->_bufsiz;
 
     int fd = (int)server->_fd;
+#if __GNUC__<3
     filebuf fbuf;
     fbuf.attach(fd);
+#elif __GNUC__==3 && __GNUC_MINOR__<1
+    FILE* ofptr = fdopen(fd, "w");
+    fileptr_filebuf fbuf(ofptr, ios_base::out);
+#else
+    fileptr_filebuf fbuf(fd, ios_base::out, false, static_cast<size_t>(BUFSIZ));
+#endif
     ostream out(&fbuf);
     for (; outpos < bufsize-1 && s[outpos]; outpos++)
 	out.put(s[outpos]);
     out.flush();
     outpos = 0;
+#if __GNUC__==3 && __GNUC_MINOR__<1
+    if (ofptr) fclose(ofptr);
+#endif
     return 1;
 }
 
-int ComTerpServ::run() {
+int ComTerpServ::run(boolean one_expr, boolean nested) {
 
     char buffer[BUFSIZ];
     char errbuf[BUFSIZ];
@@ -200,7 +235,7 @@ int ComTerpServ::run() {
     _linenum = 0;
 
 #if 1
-    ComTerp::run();
+    ComTerp::run(one_expr, nested);
 #else
     while (!feof(_fptr) && !quitflag()) {
 	
@@ -238,12 +273,16 @@ int ComTerpServ::run() {
 
 int ComTerpServ::runfile(const char* filename) {
     /* save enough state as needed by this interpreter */
+#if 0
     void* save_inptr = _inptr;
     infuncptr save_infunc = _infunc;
     outfuncptr save_outfunc = _outfunc;
     eoffuncptr save_eoffunc = _eoffunc;
     errfuncptr save_errfunc = _errfunc;
     int save_linenum = _linenum;
+#else
+    push_servstate();
+#endif
     _inptr = this;
     _infunc = (infuncptr)&ComTerpServ::s_fgets;
     _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -255,8 +294,12 @@ int ComTerpServ::runfile(const char* filename) {
     char inbuf[bufsiz];
     char outbuf[bufsiz];
     inbuf[0] = '\0';
+#if __GNUC__<3
     filebuf ibuf;
     ibuf.open(filename, "r");
+#else
+    fileptr_filebuf ibuf(fopen(filename, "r"), ios_base::in);
+#endif
     istream istr(&ibuf);
     ComValue* retval = nil;
     int status = 0;
@@ -275,9 +318,21 @@ int ComTerpServ::runfile(const char* filename) {
 	if (*inbuf && read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
+#if __GNUC__<3
 	        filebuf obuf(handler() ? handler()->get_handle() : 1);
+#elif __GNUC__==3 && __GNUC_MINOR__<1
+                FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
+	        fileptr_filebuf obuf(ofptr, ios_base::out);
+#else
+		fileptr_filebuf obuf(handler()&&handler()->get_handle()>0 
+				     ? (int)handler()->get_handle() : 1, 
+				     ios_base::out, false, static_cast<size_t>(BUFSIZ));
+#endif
 		ostream ostr(&obuf);
 		ostr.flush();
+#if __GNUC__==3 && __GNUC_MINOR__<1
+                if (ofptr) fclose(ofptr);
+#endif
 		status = -1;
 	    } else if (quitflag()) {
 	        status = 1;
@@ -288,9 +343,22 @@ int ComTerpServ::runfile(const char* filename) {
 	    }
 	} else 	if (*inbuf) {
 	  err_print( stderr, "comterp" );
+#if __GNUC__<3
 	  filebuf obuf(handler() ? handler()->get_handle() : 1);
+#elif __GNUC__==3 && __GNUC_MINOR__<1
+          FILE* ofptr = fdopen(handler() ? handler()->get_handle() : 1, "w"); 
+	  fileptr_filebuf obuf(ofptr, ios_base::out);
+#else
+	  fileptr_filebuf obuf(handler()&&handler()->get_handle()>0 
+			       ? (int)handler()->get_handle() : 1, 
+			       ios_base::out, false, static_cast<size_t>(BUFSIZ));
+
+#endif
 	  ostream ostr(&obuf);
 	  ostr.flush();
+#if __GNUC__==3 && __GNUC_MINOR__<1
+          if (ofptr) fclose(ofptr);
+#endif
 	  status = -1;
 	}
     }
@@ -304,12 +372,16 @@ int ComTerpServ::runfile(const char* filename) {
     } else
         push_stack(ComValue::nullval());
 
+#if 0
     _inptr = save_inptr;
     _infunc = save_infunc;
     _outfunc = save_outfunc;
     _eoffunc = save_eoffunc;
     _errfunc = save_errfunc;
     _linenum = save_linenum;
+#else
+    pop_servstate();
+#endif
 
     return status;
 }
@@ -317,6 +389,7 @@ int ComTerpServ::runfile(const char* filename) {
 ComValue& ComTerpServ::run(const char* expression, boolean nested) {
     _errbuf[0] = '\0';
 
+#if 0
     postfix_token* save_pfbuf = _pfbuf;
     int save_pfoff = _pfoff;
     int save_pfnum = _pfnum;
@@ -324,31 +397,42 @@ ComValue& ComTerpServ::run(const char* expression, boolean nested) {
     int save_linenum = _linenum;
     int save_just_reset = _just_reset;
     char* save_buffer = _buffer;
+#else
+    push_servstate();
+#endif
     _buffer = new char[_bufsiz];
     _bufptr = 0;
     _buffer[_bufptr] = '\0';
+#if 0
     if (save_pfoff) {
+#endif
       _pfbuf =  new postfix_token[_pfsiz];
       _pfoff = 0;
+#if 0
     }
     ComValue* save_pfcomvals = _pfcomvals;
+#endif
     _pfcomvals = nil;
 
     if (expression) {
         load_string(expression);
+#if 0
 	infuncptr save_infunc = _infunc;
 	eoffuncptr save_eoffunc = _eoffunc;
 	errfuncptr save_errfunc = _errfunc;
 	void* save_inptr = _inptr;
+#endif
 	_infunc = (infuncptr)&ComTerpServ::s_fgets;
 	_eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
 	_errfunc = (errfuncptr)&ComTerpServ::s_ferror;
 	_inptr = this;
         read_expr();
+#if 0
 	_infunc = save_infunc;
 	_eoffunc = save_eoffunc;
 	_errfunc = save_errfunc;
 	_inptr = save_inptr;
+#endif
         err_str(_errbuf, BUFSIZ, "comterp");
     }
     if (!*_errbuf) {
@@ -356,6 +440,7 @@ ComValue& ComTerpServ::run(const char* expression, boolean nested) {
 	err_str(_errbuf, BUFSIZ, "comterp");
     }
 
+#if 0
     _pfnum = save_pfnum;
     _bufptr = save_bufptr;
     delete _buffer;
@@ -369,6 +454,9 @@ ComValue& ComTerpServ::run(const char* expression, boolean nested) {
     }
     delete [] _pfcomvals;
     _pfcomvals = save_pfcomvals;
+#else
+    pop_servstate();
+#endif
 
     return *_errbuf ? ComValue::nullval() : pop_stack();
 }
@@ -376,12 +464,16 @@ ComValue& ComTerpServ::run(const char* expression, boolean nested) {
 ComValue& ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _errbuf[0] = '\0';
 
+#if 0
     postfix_token* save_pfbuf = _pfbuf;
     int save_pfnum = _pfnum;
     int save_pfoff = _pfoff;
     int save_bufptr = _bufptr;
     int save_linenum = _linenum;
     int save_just_reset = _just_reset;
+#else
+    push_servstate();
+#endif
     _pfbuf = tokens;
     _pfnum = ntokens;
     _pfoff = 0;
@@ -390,12 +482,17 @@ ComValue& ComTerpServ::run(postfix_token* tokens, int ntokens) {
     err_str(_errbuf, BUFSIZ, "comterp");
 
     ComValue& retval = *_errbuf ? ComValue::nullval() : pop_stack();
+#if 0
     _pfbuf = save_pfbuf;
     _pfnum = save_pfnum;
     _pfoff = save_pfoff;
     _bufptr = save_bufptr;
     _linenum = save_linenum;
     _just_reset = save_just_reset;
+#else
+    _pfbuf = nil;
+    pop_servstate();
+#endif
     return retval;
 }
 
@@ -409,7 +506,7 @@ void ComTerpServ::read_string(const char* script) {
     load_string(script);
     read_expr();
 }
-  
+
 void ComTerpServ::add_defaults() {
   if (!_defaults_added) {
     ComTerp::add_defaults();
@@ -417,4 +514,3 @@ void ComTerpServ::add_defaults() {
     add_command("eval", new EvalFunc(this));
   }
 }
-

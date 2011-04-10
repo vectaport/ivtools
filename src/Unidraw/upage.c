@@ -26,6 +26,7 @@
 
 #include <Unidraw/globals.h>
 #include <Unidraw/upage.h>
+#include <OS/math.h>
 
 #include <IV-2_6/InterViews/painter.h>
 
@@ -77,7 +78,7 @@ void PageGraphic::getExtent (
 void PageGraphic::draw (Canvas* c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
 	update(gs);
-	_p->Rect(c, 0, 0, round(_width)-1, round(_height)-1);
+	_p->Rect(c, 0, 0, Math::round(_width)-1, Math::round(_height)-1);
     }
 }
 

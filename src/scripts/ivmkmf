@@ -1,40 +1,39 @@
 #!/bin/sh
-# 
+#
 # generate a Makefile from an Imakefile outside of the source tree
-# 
+#
 
 usage="usage: $0 [-a]"
 do_all=
 
 case "$#" in
-	0)	;;
-	1)	case "$1" in
-			-a)	do_all="yes"
-				;;
-			*)	echo "$usage" 1>&2; exit 1
-				;;
-		esac
-		;;
-	*)	echo "$usage" 1>&2; exit 1
-		;;
+        0) ;;
+        1) case "$1" in
+                        -a) do_all="yes"
+                                ;;
+                        *) echo "$usage" 1>&2; exit 1
+                                ;;
+                esac
+                ;;
+        *) echo "$usage" 1>&2; exit 1
+                ;;
 esac
 
-if [ -f Makefile ]; then 
-	rm -f Makefile.bak
-	mv Makefile Makefile.bak
+if [ -f Makefile ]; then
+        rm -f Makefile.bak
+        mv Makefile Makefile.bak
 fi
 
 
 case "$do_all" in
-	yes)	set -x
-		imake -T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`  -DUseInstalled &&
-		make Makefile ARCH=LINUX  UseInstalled=1 &&
-		make Makefiles ARCH=LINUX  UseInstalled=1 &&
-		make depend UseInstalled=1
-		;;
-	*)	set -x
-		imake -T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`  -DUseInstalled
-		make Makefile ARCH=LINUX  UseInstalled=1
-		;;
+        yes) set -x
+                imake -T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\` -DUseInstalled &&
+                make Makefile ARCH=LINUX UseInstalled=1 &&
+                make Makefiles ARCH=LINUX UseInstalled=1 &&
+                make depend UseInstalled=1
+                ;;
+        *) set -x
+                imake -T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\` -DUseInstalled
+                make Makefile ARCH=LINUX UseInstalled=1
+                ;;
 esac
-

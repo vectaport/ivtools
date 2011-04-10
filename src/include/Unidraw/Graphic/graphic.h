@@ -42,6 +42,10 @@ class Iterator;
 class Painter;
 class Transformer;
 
+//: graphic base-classe
+// interface to Graphic base class and FullGraphic, a subclass of Graphic
+// for which all graphics state is defined.
+// <p><a href=../man3.1/Graphic.html>man page</a>
 class Graphic {
 public:
     virtual ~Graphic();

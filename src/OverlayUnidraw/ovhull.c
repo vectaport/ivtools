@@ -52,8 +52,8 @@ void ConvexHullCmd::Execute() {
   GraphicComp* comp = GetClipboard()->GetComp(it);
   if (comp && comp->IsA(OVPOLYGON_COMP)) {
     SF_Polygon* poly = ((PolygonOvComp*)comp)->GetPolygon();
-    const Coord* x, *y;
-    int np = poly->GetOriginal(x, y);
+    Coord* x, *y;
+    int np = poly->GetOriginal((const Coord*&)x,(const Coord*&) y);
     if (np > 2) {
       float* fx = new float[np];
       float* fy = new float[np];
@@ -192,6 +192,7 @@ Command* ConvexHullTool::InterpretManipulator(Manipulator* m) {
     if (brVar != nil) cpoly->SetBrush(brVar->GetBrush());
     if (patVar != nil) cpoly->SetPattern(patVar->GetPattern());
     if (colVar != nil) {
+      cpoly->FillBg(!colVar->GetBgColor()->None());
       cpoly->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
     }
 

@@ -102,7 +102,7 @@ void ToolButton::leave() {}
 void ToolButton::update(Observable* obs) {
     if (((TelltaleState*)obs)->test(TelltaleState::is_chosen)) {
 	deck->flip_to(0);
-	if (_mousedoc)
+	if (_mousedoc && _doc)
 	    _mousedoc->textvalue(_doc);
     }
     else

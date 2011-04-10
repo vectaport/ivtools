@@ -49,7 +49,7 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 
 /*****************************************************************************/
 
@@ -186,7 +186,7 @@ void AttrDialogImpl::eval() {
 
 	    const int bufsiz = BUFSIZ;
 	    char buf[bufsiz];
-	    strstream outstr(buf, bufsiz);
+	    std::strstream outstr(buf, bufsiz);
 	    outstr << retval;
 	    outstr.put('\0');
             result_->textvalue(buf);

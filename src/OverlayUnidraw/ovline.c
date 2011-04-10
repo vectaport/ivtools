@@ -68,7 +68,7 @@
 
 ParamList* LineOvComp::_ovline_params = nil;
 ParamList* MultiLineOvComp::_ovmultiline_params = nil;
-
+int LineOvComp::_symid = -1;
 
 ClassId LineOvComp::GetClassId () { return OVLINE_COMP; }
 
@@ -258,6 +258,7 @@ Command* LineOvView::InterpretManipulator (Manipulator* m) {
             if (brVar != nil) line->SetBrush(brVar->GetBrush());
 
             if (colVar != nil) {
+	        line->FillBg(!colVar->GetBgColor()->None());
                 line->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             line->SetTransformer(rel);
@@ -404,6 +405,8 @@ int LineScript::ReadOriginal (istream& in, void* addr1, void* addr2, void* addr3
 
 /****************************************************************************/
 
+int MultiLineOvComp::_symid = -1;
+
 ClassId MultiLineOvComp::GetClassId () { return OVMULTILINE_COMP; }
 
 boolean MultiLineOvComp::IsA (ClassId id) {
@@ -540,6 +543,7 @@ Command* MultiLineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) polygon->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        polygon->FillBg(!colVar->GetBgColor()->None());
                 polygon->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             polygon->SetTransformer(rel);

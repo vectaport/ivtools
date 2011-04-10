@@ -52,6 +52,7 @@
 #include <InterViews/transformer.h>
 #include <IV-2_6/InterViews/world.h>
 
+#include <OS/math.h>
 #include <OS/memory.h>
 
 #include <IV-2_6/_enter.h>
@@ -62,12 +63,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stream.h>
-#include <strstream.h>
+#include <strstream>
 #ifdef SYSV
 #include <OS/types.h>
 #include <unistd.h>
 #endif
 #include <sys/file.h>
+#include <fstream.h>
 
 #ifdef __DECCXX
 extern "C" {
@@ -104,9 +106,9 @@ static unsigned int hexintmap[] = {
 static const char* HexEncode (
     ColorIntensity ir, ColorIntensity ig, ColorIntensity ib
 ) {
-    unsigned int r = round(ir * color_base);
-    unsigned int g = round(ig * color_base);
-    unsigned int b = round(ib * color_base);
+    unsigned int r = Math::round(ir * color_base);
+    unsigned int g = Math::round(ig * color_base);
+    unsigned int b = Math::round(ib * color_base);
 
     static char enc[hex_encode+1];
     enc[hex_encode] = '\0';
@@ -143,7 +145,7 @@ static const char* HexGrayEncode (
     ColorIntensity ir, ColorIntensity ig, ColorIntensity ib
 ) {
     ColorIntensity igray = 0.30 * ir + 0.59 * ig + 0.11 * ib;
-    unsigned int gray = round(igray * color_base);
+    unsigned int gray = Math::round(igray * color_base);
 
     static char enc[hex_gray_encode+1];
     enc[hex_gray_encode] = '\0';
@@ -274,7 +276,7 @@ Catalog::Catalog (const char* domainName, Creator* creator, float version) {
     _curMap = nil;
     _substMap = new ObjectMap(nil, COMPONENT);
     _clipboard = new Clipboard;
-#ifdef __GNUG__
+#ifdef __GNUC__
     _tmpfile = nil;
 #endif
 
@@ -298,6 +300,7 @@ void Catalog::Init (World* w) {
     pssolid = FindGrayLevel(0.0);
     psclear = FindGrayLevel(1.0);
     psnonepat = FindNonePattern();
+    psnonecolor = FindNoneColor();
 
     stdgraphic = new FullGraphic;
     stdgraphic->FillBg(true);
@@ -364,7 +367,7 @@ Catalog::~Catalog () {
     _clipboard->DeleteComps();
     delete _clipboard;
 
-#ifdef __GNUG__
+#ifdef __GNUC__
     if (_tmpfile != nil) {
         unlink(_tmpfile);
         delete _tmpfile;
@@ -438,7 +441,6 @@ boolean Catalog::Retrieve (const char* name, EditorInfo*& edInfo) {
     if (edInfo == nil) {
         filebuf fbuf;
         ok = fbuf.open((char*) name, input) != 0;
-
         if (ok) {
             istream in(&fbuf);
             edInfo = ReadEditorInfo(in);
@@ -655,7 +657,7 @@ void Catalog::ReadExtraData (
     for (int i = 0; !in.eof() && !FoundDelim(delim, *extra_data); ++i) {
         char c;
         in.get(c);
-        extra_data->Insert((void*) c, i);
+        extra_data->Insert((void*)(unsigned int)c, i);
     }
 }
 
@@ -666,7 +668,7 @@ void* Catalog::CopyObject (void* obj, ClassId base_id) {
     ObjectMap empty_subst_map(obj, base_id);    // copies
     _substMap = &empty_subst_map;
 
-#ifdef __GNUG__
+#ifdef __GNUC__
     filebuf obuf, ibuf;
     ObjectMap* prevMap = _curMap;
     char* prevTmp = _tmpfile;
@@ -1217,13 +1219,16 @@ PSColor* Catalog::ReadColor (istream& in) {
         }
 
         if (defined && in.good()) {
-            int ir = round(r * float(0xffff));
-            int ig = round(g * float(0xffff));
-            int ib = round(b * float(0xffff));
+            int ir = Math::round(r * float(0xffff));
+            int ig = Math::round(g * float(0xffff));
+            int ib = Math::round(b * float(0xffff));
             
             color = FindColor(name, ir, ig, ib);
         }
+    } else if (buf[0] == 'n' || buf[0] == 'N') {
+	color = FindNoneColor();
     }
+
     return color;
 }
 
@@ -1255,6 +1260,23 @@ PSColor* Catalog::FindColor (const char* name, int ir, int ig, int ib) {
     return color;
 }
 
+PSColor* Catalog::FindNoneColor () {
+    PSColor* color = nil;
+
+    for (UList* u = _colors->First(); u != _colors->End(); u = u->Next()) {
+        color = getcolor(u);
+
+        if (color->None()) {
+            return color;
+        }
+    }
+    color = new PSColor;
+    Ref(color);
+    _colors->Append(new UList(color));
+
+    return color;
+}    
+
 PSColor* Catalog::ReadColor (const char* n, int index) {
     const char* def = GetAttribute(Name(n, index));
 
@@ -1267,7 +1289,10 @@ PSColor* Catalog::ReadColor (const char* n, int index) {
     char name[CHARBUFSIZE];
     int r = 0, g = 0, b = 0;
 
-    if (sscanf(definition, "%s %d %d %d", name, &r, &g, &b) == 4) {
+    if (strcmp(definition, "none")==0) {
+        color = FindNoneColor();
+
+    } else if (sscanf(definition, "%s %d %d %d", name, &r, &g, &b) == 4) {
 	color = FindColor(name, r, g, b);
 
     } else if (sscanf(definition, "%s", name) == 1) {
@@ -1417,7 +1442,7 @@ static int CalcBitmap (float graylevel) {
 	0x0505, 0x0405, 0x0401, 0x0001,
 	0x0000
     };
-    return shades[round(graylevel * (SHADES - 1))];
+    return shades[Math::round(graylevel * (SHADES - 1))];
 }
 
 static const int* ExpandToFullSize (const int* orig_data, int size) {
@@ -1635,7 +1660,7 @@ PSPattern* Catalog::ReadPattern (const char* n, int index) {
 	    }
 
 	} else {
-	    istrstream in(definition, strlen(definition) + 1);
+	    std::istrstream in(definition, strlen(definition) + 1);
             int data[patternHeight];
             int i;
 	    for (i = 0; !in.eof() && in.good() && i < patternHeight; i++) {

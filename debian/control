@@ -1,44 +1,49 @@
 Source: ivtools
-Section: optional
-Priority: extra
+Priority: optional
+Section: libs
+Build-Depends: debhelper, xutils, libtiff4-dev, libjpeg62-dev, zlib1g-dev, xlibs-dev, libace-dev, autotools-dev
 Maintainer: Guenter Geiger <geiger@debian.org>
-Standards-Version: 2.4.1
+Standards-Version: 3.6.1
 
 Package: ivtools-bin
+Section: graphics
 Architecture: any
-Depends: ivtools-interviews (>= ${Source-Version}), ivtools-unidraw (>= ${Source-Version}),  ${shlibs:Depends}
+Depends: ivtools-unidraw (>= ${Source-Version}),  xterm | x-terminal-emulator,  ${shlibs:Depends}
 Suggests: netpbm, libjpeg-progs, pstoedit
-Description: Drawing Editors evolved from idraw. 
+Description: Drawing Editors evolved from idraw
  The drawing editors in this package are idraw, a basic vector graphics
  editor, graphdraw, flipbook, a vector graphics animation tool, a vector
  graphics server and some small sample programs like dclock. For more
  information about these tools and it's usage see 
-                     http://www.vectaport.com 
+                     <http://www.ivtools.org> 
 
 Package: ivtools-dev
+Section: devel
 Architecture: all
-Depends: ivtools-interviews (>= ${Source-Version}), ivtools-unidraw (>= ${Source-Version}), libc6-dev
+Depends: ivtools-interviews (>= ${Source-Version}), ivtools-unidraw (>= ${Source-Version}), libc6-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, xlibs-dev, libace-dev
 Conflicts: ivtools-bin (<< 0.7.2)
-Description: Development files for the InterViews library.
+Description: Development files for the InterViews library
  The ivmkmf program (similar to xmkmf) and all the include-files needed
  to develop applications with the ivtools library.
 
 Package: ivtools-interviews
+Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}
 Conflicts: ivtools
-Description: C++ GUI library with Motif Look and Feel. 
+Description: C++ GUI library with Motif Look and Feel
  This package contains the InterViews library. It is written in C++ 
  and portable to several different Unix platforms. 
  Applications written with the Interviews library can be configured to 
  provide a special "Look and Feel", such as SGI-Motif and normal Motif.
 
 Package: ivtools-unidraw
+Section: libs
 Architecture: any
 Conflicts: ivtools
 Replaces: ivtools
-Depends: ivtools-interviews, ${shlibs:Depends}
-Description: Unidraw is a C++ framework for drawing editor and vector graphics
- development. It is the base of the drawing editors in Vectaports ivtools 
- package. 
-
+Depends: ${shlibs:Depends}
+Description: Application Frameworks layered on Unidraw
+ The package includes the unidraw library plus extensions for frame and
+ graph editing, needed by the ivtools vector graphics editors.
+ 

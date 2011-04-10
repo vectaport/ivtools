@@ -29,6 +29,10 @@
 
 #define TITLE "Parser"
 
+#if __GNUC__>=3
+static char newline;
+#endif
+
 /*****************************************************************************/
 
 Parser::Parser() : ComTerpModule() 
@@ -131,8 +135,14 @@ boolean Parser::skip_matched_parens() {
 
 char* Parser::istream_fgets(char* s, int n, void* instreamp) {
   istream& in  = *(istream*)instreamp;
+#if __GNUC__<3
   char *instr;
   in.gets(&instr);
+#else
+  char instr[BUFSIZ];
+  in.get(instr, BUFSIZ);  // needs to be generalized with <vector.h>
+  in.get(newline);
+#endif
   if (in.good()) {
     int i = 0;
     for (; i<n-2; i++) {

@@ -49,8 +49,8 @@ Vertices::~Vertices () {
 }
 
 int Vertices::GetOriginal (const Coord*& x, const Coord*& y) {
-    x = _pts->x();
-    y = _pts->y();
+    x = _pts ? _pts->x() : nil;
+    y = _pts ? _pts->y() : nil;
     return count();
 }
 
@@ -125,7 +125,8 @@ void Vertices::s_getExtent (
     } else {
 	width = float(gs->GetBrush()->Width());
 	tol = (width > 1) ? width/2 : 0;
-	bx0 = bx1 = x()[0]; by0 = by1 = y()[0];
+	bx0 = bx1 = x() ? x()[0] : 0.0; 
+	by0 = by1 = y() ? y()[0] : 0.0;
 
 	for (int i = 1; i < count(); ++i) {
 	    bx0 = min(bx0, float(x()[i]));

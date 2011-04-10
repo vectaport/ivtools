@@ -32,6 +32,8 @@
 class SFH_OpenBSpline;
 class SFH_ClosedBSpline;
 
+//: spline component
+// <a href=../man3.1/SplineComp.html>man page</a>
 class SplineComp : public VerticesComp {
 public:
     SplineComp(SFH_OpenBSpline* = nil);

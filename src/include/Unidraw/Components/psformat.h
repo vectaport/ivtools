@@ -31,8 +31,9 @@
 
 #include <Unidraw/enter-scope.h>
 
-static const float PSV_CAPJOINSTYLE  = 13; // support for capstyle/joinstyle
+static const float PSV_CAPJOINSTYLE  = 14; // support for capstyle/joinstyle
                                            // (probably won't be backward compatible)
+static const float PSV_LOADFONT      = 13; // support for executable fonts
 static const float PSV_FLOATWIDTH    = 12; // floating point line width 
                                            // (not backward compatible if utilized)
 static const float PSV_CLOSEPATH     = 11; // addition of "closepath" to ellipse
@@ -58,6 +59,6 @@ static const float PSV_NONREDUNDANT  =  3; // eliminated unnecessary text
 static const float PSV_FGCOLOR       =  2; // added foreground color
 static const float PSV_ORIGINAL      =  1; // original format
 
-#define PSV_LATEST PSV_FLOATWIDTH
+#define PSV_LATEST PSV_LOADFONT
 
 #endif

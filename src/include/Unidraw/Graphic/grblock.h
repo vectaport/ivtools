@@ -37,6 +37,8 @@ enum Zooming { Continuous, Binary };
 class Graphic;
 class Perspective;
 
+//: an Interactor that contains a Picture.
+// <a href=../man3.1/GraphicBlock.html>man page</a>
 class GraphicBlock : public Interactor {
 public:
     GraphicBlock(

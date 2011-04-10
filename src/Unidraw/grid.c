@@ -162,12 +162,12 @@ void GridGraphic::drawClipped (
 
         for (register float x = x0; x <= r; x += xincr) {
             for (register float y = y0; y <= t; y += yincr) {
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5  || __GNUC__>=3
 #undef Point
-                _p->Point(c, round(x), round(y));
+                _p->Point(c, Math::round(x), Math::round(y));
 #define Point _lib_iv(Point)
 #else
-                _p->Point(c, round(x), round(y));
+                _p->Point(c, Math::round(x), Math::round(y));
 #endif /* Point */
             }
         }
@@ -193,11 +193,11 @@ void Grid::Constrain (Coord& x, Coord& y) {
     gg->GetOriginal(dummy1, dummy2, xincr, yincr);
     float x0, y0;
     total.InvTransform(float(x), float(y), x0, y0);
-    x0 = round(x0/xincr) * xincr;
-    y0 = round(y0/yincr) * yincr;
+    x0 = Math::round(x0/xincr) * xincr;
+    y0 = Math::round(y0/yincr) * yincr;
     total.Transform(x0, y0, x0, y0);
-    x = round(x0);
-    y = round(y0);
+    x = Math::round(x0);
+    y = Math::round(y0);
 }
 
 void Grid::SetSpacing (float xincr, float yincr) {

@@ -65,6 +65,7 @@
 
 #include <UniIdraw/idkybd.h>
 
+#include <InterViews/box.h>
 #include <InterViews/frame.h>
 #include <InterViews/layout.h>
 #include <InterViews/session.h>
@@ -74,11 +75,13 @@
 #include <InterViews/window.h>
 #include <IV-look/kit.h>
 #include <IV-look/mf_kit.h>
-#include <IVGlyph/textedit.h>
+#include <ComGlyph/comtextedit.h>
 
+#include <OS/math.h>
 #include <OS/string.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #undef None
 
@@ -121,8 +124,8 @@ void FrameKit::InitViewer () {
     Style* style = Session::instance()->style();
     boolean bookgeom = style->value_is_on("bookgeom");
 
-    float w = bookgeom ? 700 : round(atof(page_w) * ivinches);
-    float h = bookgeom ? 906 : round(atof(page_h) * ivinches);
+    float w = bookgeom ? 700 : Math::round(atof(page_w) * ivinches);
+    float h = bookgeom ? 906 : Math::round(atof(page_h) * ivinches);
     if (page_cols && page_rows) {
       int ncols = atoi(page_cols);
       int nrows = atoi(page_rows);
@@ -148,70 +151,119 @@ void FrameKit::InitLayout(const char* name) {
 
 void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
     FrameEditor* ed = (FrameEditor*) kit->GetEditor();
+    Catalog* catalog = unidraw->GetCatalog();
+    const char* stripped_string = catalog->GetAttribute("stripped");
+    boolean stripped_flag = stripped_string ? strcmp(stripped_string, "true")==0 : false;
     if (ed->GetWindow() == nil) {
         TextObserver* mousedoc_observer = new TextObserver(ed->MouseDocObservable(), "");
 	WidgetKit& wk = *WidgetKit::instance();
 	const LayoutKit& layout = *LayoutKit::instance();
+	PolyGlyph* topbox = layout.vbox();
+
 	Glyph* menus = kit->MakeMenus();
 	Glyph* states = kit->MakeStates();
 	Glyph* toolbar = kit->MakeToolbar();
-	if (states)
+
+	if (stripped_flag) {
+
+	  Target* viewer = 
+	    new Target(new Frame(ed->Interior()), TargetPrimitiveHit);
+	  ed->body(viewer);
+	  topbox->append(ed);
+
+	} else {
+	  if (states)
 	    menus->append(states);
-	Target* viewer = 
+	  Target* viewer = 
 	    new Target(new Frame(kit->Interior()), TargetPrimitiveHit);
-	Catalog* catalog = unidraw->GetCatalog();
-	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
-	  if (strcmp(toolbarloca, "r") == 0) 
-	    toolbar->prepend(layout.vcenter(viewer));
-	  else /* if (strcmp(toolbarloca, "l") == 0) */
+	  Catalog* catalog = unidraw->GetCatalog();
+	  if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
+	    if (strcmp(toolbarloca, "r") == 0) 
+	      toolbar->prepend(layout.vcenter(viewer));
+	    else /* if (strcmp(toolbarloca, "l") == 0) */
+	      toolbar->append(layout.vcenter(viewer));
+	  } else 
 	    toolbar->append(layout.vcenter(viewer));
-	} else 
-	  toolbar->append(layout.vcenter(viewer));
-	menus->append(toolbar);
-
-	
-	Style* style = Session::instance()->style();
-	boolean bookgeom = style->value_is_on("bookgeom");
-	
-	PolyGlyph* topbox = layout.vbox();
-	ed->body(menus);
-	ed->GetKeyMap()->Execute(CODE_SELECT);
-	topbox->append(ed);
-	if (!bookgeom) {
-	    EivTextEditor* texteditor = new EivTextEditor(wk.style());
+	  menus->append(toolbar);
+	  
+	  
+	  Style* style = Session::instance()->style();
+	  boolean bookgeom = style->value_is_on("bookgeom");
+	  
+	  ed->body(menus);
+	  ed->GetKeyMap()->Execute(CODE_SELECT);
+	  topbox->append(ed);
+	  if (!bookgeom) {
+	    boolean set_flag = kit->set_button_flag();
+	    boolean clr_flag = kit->clr_button_flag();
+	    EivTextEditor* texteditor = nil;
+	    if(!set_flag && !clr_flag) {
+	      texteditor = new ComTextEditor(wk.style(), ed->comterp());
+	    }
+	    else
+	      texteditor = new EivTextEditor(wk.style());
 	    ((FrameEditor*)ed)->_texteditor = texteditor;
-	    Button* set = wk.push_button("Set", new ActionCallback(FrameEditor)(
-		(FrameEditor*)ed, &FrameEditor::SetText
-	    ));
-	    Button* clear = wk.push_button("Clear", new ActionCallback(FrameEditor)(
-		(FrameEditor*)ed, &FrameEditor::ClearText
-	    ));
-	    topbox->append(
+	    Button* set = set_flag ? 
+	      wk.push_button("Set", new ActionCallback(FrameEditor)
+			     ((FrameEditor*)ed, &FrameEditor::SetText)) : 
+	      nil;
+	    Button* clear = clr_flag ? 
+	      wk.push_button("Clear", new ActionCallback(FrameEditor)
+			     ((FrameEditor*)ed, &FrameEditor::ClearText)) : 
+	      nil;
+	    Glyph* buttonbox = nil;
+	    if (set && !clear) {
+	      buttonbox = 
+		layout.vbox(layout.hcenter(set));
+	    } else if (!set && clear) { 
+	      buttonbox = 
+		layout.vbox(layout.hcenter(clear));
+	    } else if (set && clear) {
+	      buttonbox = 
+		layout.vbox(
+			    layout.hcenter(set),
+			    layout.vspace(10),
+			    layout.hcenter(clear)
+			    );
+	    }
+	    if (buttonbox) {
+	      topbox->append(
 		wk.outset_frame(
-		    layout.hbox(
-			layout.vcenter(
-			    layout.margin(
-				layout.vbox(
-				    layout.hcenter(set),
-				    layout.vspace(10),
-				    layout.hcenter(clear)
-				),
-				10
-			    )
-			),
-			layout.vcenter(texteditor)
-		    )
-		)
-	    );
-	    topbox->append(
-		wk.outset_frame(
-		    layout.hbox(
-			layout.vcenter(mousedoc_observer)
-                    )
-                )
-            );
+		  layout.hbox(
+		    layout.vcenter(
+		      layout.margin(
+			buttonbox,
+			10
+		      )
+		    ),
+   		    layout.vcenter(texteditor)
+		  )
+   	        )
+	      );
+	    } else {
+	      topbox->append(
+   	        wk.outset_frame(
+		  layout.hbox(
+		    layout.vcenter(
+		      layout.margin(
+			layout.vbox(
+			  wk.label("type help"),
+			  layout.vspace(10),
+			  wk.label("to print"),
+			  layout.vspace(10),
+		          wk.label("info to stdout")
+		        ),
+			10
+		      )
+   		    ),
+  		    layout.vcenter(texteditor)
+		  )
+   	        )
+	      );
+	    }
+	  }
 	}
-
+	  
 	ManagedWindow* w = new ApplicationWindow(topbox);
 	ed->SetWindow(w);
 	Style* s = new Style(Session::instance()->style());
@@ -317,6 +369,7 @@ MenuItem* FrameKit::MakeFrameMenu() {
 #else
     menu_item = kit.check_menu_item(kit.label("Auto New Frame"));
     menu_item->state()->set(TelltaleState::is_chosen, ((FrameEditor*)GetEditor())->AutoNewFrame());
+    ((FrameEditor*)GetEditor())->_autonewframe_tts = menu_item->state();
     AutoNewFrameCmd::default_instance(new AutoNewFrameCmd(GetEditor()));
     menu_item->action
       (new ActionCallback(AutoNewFrameCmd)
@@ -456,7 +509,7 @@ MenuItem* FrameKit::MakeViewMenu() {
     zoomi->menu(zoom);
     MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
 	     "Zoom In          ");
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", "\032"), 0.5),
 	     "Zoom Out         ");
     MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
 	     "Precise Zoom     ");

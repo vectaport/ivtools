@@ -90,7 +90,7 @@ void CSocket::PConnect(){
 
 int CSocket::Listen(){
   
-   Palen = (socklen_t*) sizeof(Pclient_addr); // length of address
+   Palen = sizeof(Pclient_addr); // length of address
   
   // Wait for connection.
   // If we don't Place some sort of timing on this..... may we hang forever?

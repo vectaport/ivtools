@@ -27,6 +27,7 @@
  */
 
 #include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovtext.h>
 #include <OverlayUnidraw/paramlist.h>
 
@@ -57,6 +58,8 @@
 
 #include <Attribute/attrlist.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <math.h>
 #include <stdio.h>
@@ -66,6 +69,7 @@
 /*****************************************************************************/
 
 ParamList* TextOvComp::_ovtext_params = nil;
+int TextOvComp::_symid = -1;
 
 /*****************************************************************************/
 
@@ -214,7 +218,7 @@ Manipulator* TextOvView::CreateManipulator (
 ) {
     Manipulator* m = nil;
     Editor* ed = v->GetEditor();
-    int tabWidth = round(.5*ivinch);
+    int tabWidth = Math::round(.5*ivinch);
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
         FontVar* fontVar = (FontVar*) ed->GetState("FontVar");
@@ -279,7 +283,7 @@ Command* TextOvView::InterpretManipulator (Manipulator* m) {
 
         if (size == 0) {
             if (tool->IsA(RESHAPE_TOOL)) {
-                cmd = new DeleteCmd(ed);
+                cmd = new OvDeleteCmd(ed);
             } else {
                 v->Update();          // to repair text display-incurred damage
             }
@@ -299,11 +303,11 @@ Command* TextOvView::InterpretManipulator (Manipulator* m) {
             }
 
             if (rel != nil) {
-		if (v->GetOrientation()==Rotated ) 
+		if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL)) 
 		  rel->Rotate(-90);
                 rel->InvTransform(xpos, ypos);
             }
-	    if (v->GetOrientation()==Rotated)
+	    if (v->GetOrientation()==Rotated && !tool->IsA(RESHAPE_TOOL))
 	      textgr->Rotate(90.0);
             textgr->Translate(xpos, ypos);
             textgr->FillBg(false);

@@ -62,6 +62,8 @@ void* OverlayCreator::Create (
     ClassId id, istream& in, ObjectMap* objmap, int objid
 ) {
     switch (id) {
+        case PUSH_CMD:    CREATE(PushCmd, in, objmap, objid);
+        case PULL_CMD:    CREATE(PullCmd, in, objmap, objid);
     default:                   return IdrawCreator::Create(id, in,objmap,objid);
     }
 }

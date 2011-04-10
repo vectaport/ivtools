@@ -1,0 +1,18 @@
+/* 
+ * This is the Darwin configuration file for Interviews 3.1
+ * Set up to use gcc in local.def
+ */
+
+#if LibStdCPlusPlusV3
+#define OptimizeCCFlags -O2
+#else
+#define OptimizeCCFlags -O2
+#endif
+#define TIFFOptimizeCFlags -O
+#define TIFFStdCDefines -DHAVE_IEEEFP
+
+#ifndef ExtraCCLdFlags
+#define ExtraCCLdFlags /**/
+#endif
+
+#include <InterViews/xparams.cf>

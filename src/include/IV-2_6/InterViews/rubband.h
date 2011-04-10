@@ -49,6 +49,8 @@ SLIDINGRECT, STRETCHINGRECT };
 class Canvas;
 class Painter;
 
+//: rubberbanding graphical objects (iv-2.6)
+// <a href=../man3.1/Rubband.html>man page</a>
 class Rubberband : public Resource {
 public:
     Rubberband(Painter*, Canvas*, IntCoord offx, IntCoord offy);

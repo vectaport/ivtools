@@ -40,8 +40,7 @@ class GraphicComp;
 class Iterator;
 class Selection;
 
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: base class for command objects.
 // <a href=../man3.1/Command.html>man page</a>

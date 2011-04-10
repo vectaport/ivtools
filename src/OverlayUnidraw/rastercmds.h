@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2002 Scott E. Johnston
  * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1997 Vectaport Inc., R.B. Kissh & Associates
  *
@@ -69,6 +70,28 @@ public:
     virtual boolean IsA(ClassId);
 
     virtual boolean Reversible();
+};
+
+
+
+//: command to make raster alpha-transparent
+class AlphaTransparentRasterCmd : public Command {
+public:
+    AlphaTransparentRasterCmd(ControlInfo* ci); 
+
+    virtual void Execute();
+    virtual void Unexecute();
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+    virtual boolean Reversible();
+
+protected: 
+    float _alpha;
+    float _oldalpha;
+    boolean _alpha_set;
 };
 
 

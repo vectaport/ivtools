@@ -24,6 +24,7 @@
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovfile.h>
+#include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/paramlist.h>
 
 #include <Unidraw/Commands/command.h>
@@ -37,10 +38,12 @@
 #include <stdio.h>
 #include <stream.h>
 #include <string.h>
+#include <fstream.h>
 
 /*****************************************************************************/
 
 ParamList* OverlayFileComp::_overlay_file_params = nil;
+int OverlayFileComp::_symid = -1;
 
 OverlayFileComp::OverlayFileComp(OverlayComp* parent) : OverlaysComp(parent) {
     _pathname = nil;
@@ -66,7 +69,9 @@ ParamList* OverlayFileComp::GetParamList() {
 }
 
 void OverlayFileComp::GrowParamList(ParamList* pl) {
-    pl->add_param("pathname", ParamStruct::required, &OverlayFileScript::ReadPathName,
+    pl->add_param("path", ParamStruct::optional, &OverlayFileScript::ReadPathName,
+		  this, this);
+    pl->add_param("popen", ParamStruct::keyword, &OverlayFileScript::ReadPathName,
 		  this, this);
     OverlaysComp::GrowParamList(pl); 
 }
@@ -135,6 +140,10 @@ void OverlayFileComp::Append(GraphicComp* comp) {
   SetAttributeList(((OverlayComp*)comp)->GetAttributeList());
 }
 
+void OverlayFileComp::AdjustBaseDir(const char* olddir, const char* newdir) {
+  OverlayComp::AdjustBaseDir(olddir, newdir);
+}
+
 /*****************************************************************************/
 
 OverlayFileView::OverlayFileView() : OverlaysView() {}
@@ -170,13 +179,22 @@ boolean OverlayFileScript::Definition (ostream& out) {
 int OverlayFileScript::ReadPathName (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
     OverlayFileComp* filecomp = (OverlayFileComp*)addr1;
 
+    const char* paramname = ParamList::CurrParamStruct()->name();
+    filecomp->SetPopenFlag(strcmp(paramname, "popen")==0);
+
     char pathname[BUFSIZ];
-    if (ParamList::parse_pathname(in, pathname, BUFSIZ, filecomp->GetBaseDir()) != 0)
+    if (filecomp->GetPopenFlag()) {
+      if (ParamList::parse_string(in, pathname, BUFSIZ) != 0)
 	return -1;
+    } else {
+      if (ParamList::parse_pathname(in, pathname, BUFSIZ, filecomp->GetBaseDir()) != 0)
+	return -1;
+    }
+
 
     /* check pathname for recursion */
     OverlayComp* parent = (OverlayComp*) filecomp->GetParent();
-    while (parent != nil) {
+    while (!filecomp->GetPopenFlag() && parent != nil) {
 	if (parent->GetPathName() && strcmp(parent->GetPathName(), pathname) == 0) {
 	    cerr << "pathname recursion not allowed (" << pathname << ")\n";
 	    return -1;
@@ -185,17 +203,38 @@ int OverlayFileScript::ReadPathName (istream& in, void* addr1, void* addr2, void
     }
 
     filecomp->SetPathName(pathname);
-    OverlayIdrawComp* child = nil;
-    OverlayCatalog* catalog = (OverlayCatalog*) unidraw->GetCatalog();
-    catalog->SetParent(filecomp);
-    if( catalog->OverlayCatalog::Retrieve(pathname, (Component*&)child)) {
+    if (!filecomp->GetPopenFlag()) {
+      OverlayIdrawComp* child = nil;
+      OverlayCatalog* catalog = (OverlayCatalog*) unidraw->GetCatalog();
+      catalog->SetParent(filecomp);
+      if( catalog->OverlayCatalog::Retrieve(pathname, (Component*&)child)) {
 	catalog->SetParent(nil);
 	catalog->Forget(child);
 	filecomp->Append(child);
 	return 0;
-    } else {
+      } else {
 	catalog->SetParent(nil);
 	return -1;
+      }
+    } else {
+      OvImportCmd impcmd((Editor*)nil);
+      FILE* fptr = popen(pathname, "r");
+      if (fptr) {
+#if __GNUC__<3
+	ifstream ifs;
+	ifs.rdbuf()->attach(fileno(fptr));
+#else
+	fileptr_filebuf fbuf(fptr, ios_base::in);
+	istream ifs(&fbuf);
+#endif
+	OverlayComp* child = (OverlayComp*) impcmd.Import(ifs);
+	if (child) {
+	  filecomp->Append(child);
+	  return 0;
+	}
+	fclose(fptr);
+      }	
+      return -1;
     }
 }
 

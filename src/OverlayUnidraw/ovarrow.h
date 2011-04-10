@@ -60,7 +60,9 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovarrow_line_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("ArrowLineComp");
 };
 
 //: graphical view of ArrowLineOvComp.
@@ -137,7 +139,9 @@ protected:
     void GrowParamList(ParamList*); 
     static ParamList* _ovarrow_multiline_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("ArrowMultiLineComp"); 
 };
 
 //: graphical view of ArrowMultiLineOvComp.
@@ -218,7 +222,9 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovarrow_spline_params;
 
-friend OverlaysScript;
+friend class OverlaysScript;
+
+    CLASS_SYMID("ArrowSplineComp");
 };
 
 //: graphical view of ArrowSplineOvComp.

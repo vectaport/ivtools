@@ -36,6 +36,8 @@
 class Interactor;
 class SubjectRep;
 
+//: object with one or more views to notify when it changes (iv-2.6)
+// <a href=../man3.1/Subject.html>man page</a>
 class Subject : virtual public Resource {
 public:
     virtual ~Subject();

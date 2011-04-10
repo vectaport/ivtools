@@ -396,7 +396,7 @@ void PinGraphic::draw (Canvas* c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
         update(gs);
         _p->Circle(c, _x, _y, PIN_RAD);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
         _p->Line(c, _x, _y - PIN_RAD, _x, _y + PIN_RAD);
         _p->Line(c, _x - PIN_RAD, _y, _x + PIN_RAD, _y);
@@ -435,14 +435,14 @@ void SlidingPin::Draw () {
         CurrentRadii(xr, yr);
         cx += offx;
         cy += offy;
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Ellipse
         output->Ellipse(canvas, cx, cy, xr, yr);
 #define Ellipse _lib_iv(Ellipse)
 #else
         output->Ellipse(canvas, cx, cy, xr, yr);
 #endif /* Ellipse */
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
         output->Line(canvas, cx, cy - yr, cx, cy + yr);
         output->Line(canvas, cx - xr, cy, cx + xr, cy);
@@ -474,7 +474,7 @@ void FixedPin::GetOriginal (Coord& x, Coord& y, int& r) {
 void FixedPin::Draw () {
     if (!drawn) {
         output->Circle(canvas, _cx, _cy, _rad);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
         output->Line(canvas, _cx, _cy - _rad, _cx, _cy + _rad);
         output->Line(canvas, _cx - _rad, _cy, _cx + _rad, _cy);

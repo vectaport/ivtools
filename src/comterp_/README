@@ -1,0 +1,290 @@
+NAME
+     comterp - distributed command interpreter demonstrator
+
+SYNOPSIS
+     comterp
+     comterp remote
+     comterp server 'portnum'
+     comterp logger 'portnum'
+     comterp client 'host' 'portnum' ['file']
+     comterp telcat 'host' 'portnum' ['file']
+     comterp run 'file'	
+
+DESCRIPTION
+
+comterp demonstrates the command interpreter incorporated into
+ivtools. A user (or client program) can interact with comterp via
+stdin and stdout or telnet (when ACE is built in).  The command syntax
+is a semi-colon separated list of commands with arbitrary number of
+parameters enclosed in parenthesis, with support for optional
+parameters and keyword arguments, i.e:
+
+	command2(arg1 arg2 arg3 :key1 val1 :key2 val2);
+	command1(arg1 arg2 arg3 :key1 val1 :key2 val2)
+
+C-like binary expressions can be embedded anywhere in the command
+language, using the operators in the table below.  Variables can be
+created on the fly with an assignment operator (i.e "ball=1" creates a
+integer "ball" variable set to 1).  Unterminated expressions cause an
+automatic command line extension (until the parser determines the
+expression is complete).  "(), "{}", and "[]" can all be used
+interchangeably.
+
+COMMAND OPTIONS
+
+comterp
+
+Invoke a single command interpreter to interact with via stdin and
+stdout.
+
+comterp remote
+
+Invoke a single command interpreter, like the default, and include a
+remote command for accessing other comterp's in server mode.
+
+
+comterp server 'portnum'
+
+Listens for and accept connections on portnum, then setup a command
+interpreter to wait for and process commands from that connection.
+
+comterp logger 'portnum'
+
+Listens for and accept connections on portnum, then simply forward
+the incoming messages to stdout, while ack'ing back with newlines. For
+debugging purposes, not really a use of the interpreter.
+
+comterp client 'host' 'portnum' ['file']
+
+Connect to a portnum on a host and send/receive new-line terminated
+text buffers.  For debugging purposes, not really a use of the
+interpreter.
+
+comterp telcat 'host' 'portnum' ['file']
+
+Connect to a portnum on a host, cat the file, then close the
+connection.  Not really a use of the interpreter either.
+
+comterp run 'file'
+
+Run contents of file then exit.
+
+
+OPERATOR TABLE
+
+    Operators     Command Name         Priority    Order       Type
+    ---------     ------------         --------    -----       ----
+    .             dot                  130         L-to-R      binary
+    `             bquote               125         R-to-L      unary-prefix
+    $             stream               125         R-to-L      unary-prefix
+    !             negate               110         R-to-L      unary-prefix
+    ~             bit_not              110         R-to-L      unary-prefix
+    ++            incr                 110         R-to-L      unary-prefix
+    ++            incr_after           110         R-to-L      unary-postfix
+    -             minus                110         R-to-L      unary-prefix
+    --            decr                 110         R-to-L      unary-prefix
+    --            decr_after           110         R-to-L      unary-postfix
+    **            repeat               90          L-to-R      binary
+    ..            iterate              80          L-to-R      binary
+    %             mod                  70          L-to-R      binary
+    *             mpy                  70          L-to-R      binary
+    /             div                  70          L-to-R      binary
+    +             add                  60          L-to-R      binary
+    -             sub                  60          L-to-R      binary
+    <<            lshift               55          L-to-R      binary
+    >>            rshift               55          L-to-R      binary
+    <             lt                   50          L-to-R      binary
+    <=            lt_or_eq             50          L-to-R      binary
+    >             gt                   50          L-to-R      binary
+    >=            gt_or_eq             50          L-to-R      binary
+    !=            not_eq               45          L-to-R      binary
+    ==            eq                   45          L-to-R      binary
+    &             bit_and              44          L-to-R      binary
+    ^             bit_xor              43          L-to-R      binary
+    |             bit_or               42          L-to-R      binary
+    &&            and                  41          L-to-R      binary
+    ||            or                   40          L-to-R      binary
+    ,             tuple                35          L-to-R      binary
+    ,,            concat               33          L-to-R      binary
+    %=            mod_assign           30          R-to-L      binary
+    *=            mpy_assign           30          R-to-L      binary
+    +=            add_assign           30          R-to-L      binary
+    -=            sub_assign           30          R-to-L      binary
+    /=            div_assign           30          R-to-L      binary
+    =             assign               30          R-to-L      binary
+    ;             seq                  10          L-to-R      binary
+
+MATHEMATICAL COMMANDS:
+
+n=min(a b) -- return minimum of a and b
+
+n=max(a b) -- return maximum of a and b
+
+n=abs(a) -- return absolute value of a
+
+dbl=exp(x) -- returns the value e raised to the power of x
+
+dbl=log(x) -- returns the natural logarithm of x
+
+dbl=log10(x) -- returns the base-10 logarithm of x
+
+dbl=pow(x y) -- returns the value of x raised to the power of y
+
+dbl=acos(x) -- returns the arc cosine of x in radians
+
+dbl=asin(x) -- returns the arc sine of x in radians
+
+dbl=atan(x) -- returns the arc tangent of x in radians
+
+dbl=atan2(y x) -- returns the arc tangent of y over x
+
+dbl=cos(x) -- returns the cosine of x radians
+
+dbl=sin(x) -- returns the sine of x radians
+
+dbl=tan(x) -- returns the tangent of x radians
+
+dbl=sqrt(x) -- returns square root of x
+
+dbl=pi() -- returns the value of pi
+
+dbl=radtodeg(dbl) -- convert radians to degrees
+
+dbl=degtorad(dbl) -- convert degrees to radians
+
+num=floor(num) -- return closest integer value less than or equal to argument
+
+num=ceil(num) -- return closest integer value greater than or equal to argument
+
+num=round(num) -- return closest integer value
+
+AFFINE TRANSFORM AND MATRIX COMMANDS:
+
+point=xform(x,y a00,a01,a10,a11,a20,a21) -- affine transform of x,y coordinates
+
+affine=invert(a00,a01,a10,a11,a20,a21) -- invert affine transform
+
+matrix=xpose(matrix) -- transpose an arbitrary matrix
+
+matrix=matrix*matrix -- matrix multiplication
+
+STATISTICAL/RANDOM COMMANDS: 
+
+val=sum(val1[,val2[,...,valn]]) -- return sum of values
+
+val=mean(val1[,val2[,...,valn]]) -- return mean of values
+
+val=var(val1[,val2[,...,valn]]) -- return variance of values
+
+val=stddev(val1[,val2[,...,valn]]) -- return standard deviation of values
+
+val=rand([minval,maxval]) -- return random number between 0 and 1 or minval,maxval
+
+srand(seedval) -- seed random number generator
+
+LIST COMMANDS:
+
+lst=list([olst|strm|val] :strmlst) -- create list, copy list, or convert stream
+
+val=at(list|attrlist n :set val ) -- return (or set) nth item in a list
+
+num=size(list|attrlist) -- return size of a list
+
+
+STREAM COMMANDS:
+
+val=next(strm) -- return next value from stream
+
+strm=stream(ostrm|list) -- copy stream or convert list
+
+cnt=each(strm) -- traverse the stream returning its length
+
+CONTROL COMMANDS (using post evaluation):
+
+val=cond(testexpr trueexpr falseexpr) -- evaluate testexpr, and if true,
+evaluate and return trueexpr, otherwise evaluate and return falseexpr
+
+val=if(testexpr :then expr :else expr) -- evaluate testexpr and
+execute the :then expression if true, the :else expression if false.
+
+val=for(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop
+
+val=while([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop
+
+OTHER COMMANDS
+
+help(cmdname [cmdname ...] :all :posteval) -- help for commands
+
+val=trace([flag] :get) -- toggle or set trace mode
+
+[str]=print(fmtstr val :string|:str :err) -- print value with format string
+[str]=print(val :string|:str :err) -- print value with format string
+
+int|lst=symid(symbol [symbol ...]) -- return integer id(s) associated with symbol(s)
+
+sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
+
+val|lst=symval(symbol [symbol ...]) -- return value(s) associated with symbol variables(s)
+
+sym|lst=symadd(symbol [symbol ...]) -- create symbol(s) and return without lookup.
+
+lst=split(symbol|string) -- split symbol or string into list of characters.
+
+str=join(clist :sym) -- join list of characters into string
+
+bool=eq(str1 str2 :n len) -- partial string comparison
+
+bool=eq(sym1 sym2 :sym) -- symbol comparison
+
+postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments
+(with [narg|nkey] after defined commands, {narg|nkey} after undefined commands,
+(narg) after keys, and a * following post-evaluation commands)
+
+arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed 
+argument (until nil) and return array
+
+sym=attrname(attribute) -- return name field of dotted pair
+val=attrval(attribute) -- return value field of dotted pair
+dotlst=dot(name) -- construct empty dotted pair list	
+				 
+quit() -- quit the interpreter
+
+exit() -- exit entire application
+
+val=run(filename) -- run commands from file
+
+val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then 
+locally evaluate result string
+
+val|lst=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands, 
+optionally return symbol instead of nil
+
+val=shell(cmdstr) -- evaluate command in shell
+
+nil([...]) -- accept any arguments and return nil
+
+c=char(num) -- convert any numeric to a char
+
+s=short(num) -- convert any numeric to a short
+
+i=int(num) -- convert any numeric to an int
+
+l=long(num) -- convert any numeric to a long
+
+f=float(num) -- convert any numeric to a float
+
+d=double(num) -- convert any numeric to a double
+
+sym|lst=type(val [val ...]) -- return type symbol(s) for value(s)
+
+sym|lst=class(val [val ...]) -- return class symbol(s) for value(s) of object type
+
+ONLY IN SERVER MODE
+
+str=timeexpr(comstr :sec n) -- command string to execute at intervals
+
+SEE ALSO  
+	comdraw
+
+WEB PAGES
+	 http://www.ivtools.org/ivtools/comterp.html

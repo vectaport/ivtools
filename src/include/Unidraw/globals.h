@@ -96,6 +96,7 @@ extern PSColor* pswhite;
 extern PSPattern* pssolid;
 extern PSPattern* psclear;
 extern PSPattern* psnonepat;
+extern PSColor* psnonecolor;
 extern PSBrush* pssingle;
 extern PSBrush* psnonebr;
 extern PSFont* psstdfont;

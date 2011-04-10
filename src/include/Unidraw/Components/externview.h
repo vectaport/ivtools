@@ -29,7 +29,7 @@
 
 #include <Unidraw/Components/compview.h>
 
-class ostream;
+#include <iosfwd>
 
 //: base class for external representation objects. with traversal subclasses.
 // base class for external representation objects and subclasses for

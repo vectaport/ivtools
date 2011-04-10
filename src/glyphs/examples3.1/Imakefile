@@ -29,7 +29,6 @@ SUBDIRS = \
 	image \
 	ips \
 	menu \
-	morpher \
 	patch \
 	$(PLOT) \
 	preview \
@@ -39,3 +38,5 @@ SUBDIRS = \
 	zoomer
 
 MakeInSubdirs($(SUBDIRS))
+
+IvmkcmTargets($(PACKAGE))

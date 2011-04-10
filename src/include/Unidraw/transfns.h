@@ -29,6 +29,8 @@
 
 #include <Unidraw/transfn.h>
 
+//: to-port transfer function
+// <a href=../man3.1/transfns.html>man page</a>
 class TF_2Port : public TransferFunct {
 public:
     virtual void Evaluate(Path* = nil);
@@ -50,6 +52,8 @@ protected:
     virtual boolean ChangedOutput(int index = 0);
 };
 
+//: direct transfer function
+// <a href=../man3.1/transfns.html>man page</a>
 class TF_Direct : public TF_2Port {
 public:
     TF_Direct(StateVar* input = nil, StateVar* output = nil);

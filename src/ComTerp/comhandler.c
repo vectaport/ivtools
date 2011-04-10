@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1996 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -27,22 +28,33 @@
 #include <ComTerp/comterpserv.h>
 
 #include <iostream.h>
+#include <fstream.h>
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+#else
+#include <vector.h>
+#endif
 
 #if BUFSIZ>1024
 #undef BUFSIZ
 #define BUFSIZ 1024
 #endif
 
+int ComterpHandler::_logger_mode = 0;
+
 /*****************************************************************************/
 
 // Default constructor.
 
-ComterpHandler::ComterpHandler (void)
+ComterpHandler::ComterpHandler (void) 
+#if 0
+: ACE_Svc_Handler<ACE_SOCK_Stream, ACE_NULL_SYNCH>(0,0,ComterpHandler::reactor_singleton())
+#endif
 {
     comterp_ = new ComTerpServ(BUFSIZ*BUFSIZ);
     comterp_->handler(this);
     comterp_->add_defaults();
     _timeoutscriptid = -1;
+    _wrfptr = _rdfptr = nil;
 }
 
 ComterpHandler::~ComterpHandler() {
@@ -58,11 +70,11 @@ void ComterpHandler::timeoutscript(const char* timeoutscript) {
 int ComterpHandler::timeoutscriptid() { return _timeoutscriptid; }
 void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
     if (_timeoutscriptid != -1) 
-      COMTERP_REACTOR::instance ()->cancel_timer (this);
+      ComterpHandler::reactor_singleton()->cancel_timer (this);
 
     _timeoutscriptid = timeoutscriptid;
     if (_timeoutscriptid != -1) {
-      if (COMTERP_REACTOR::instance ()->schedule_timer
+      if (ComterpHandler::reactor_singleton()->schedule_timer
 	  (this, 
 	   (const void *) this, 
 	   ACE_Time_Value (timeoutseconds()), 
@@ -75,13 +87,24 @@ void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
 void
 ComterpHandler::destroy (void)
 {
-    ACE_DEBUG ((LM_DEBUG, 
-	      "(%P|%t) disconnected from %s\n", this->peer_name_));
+    if (ComterpHandler::logger_mode()==0)
+        ACE_DEBUG ((LM_DEBUG, 
+		    "(%P|%t) disconnected from %s\n", this->peer_name_));
 #if 0
-    COMTERP_REACTOR::instance ()->cancel_timer (this);
+    ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
-    delete comterp_;
+    if (_timeoutscriptid<0)
+      delete comterp_;
+    else /* timer could be still running */;
+    if (_wrfptr) {
+      fclose(_wrfptr);
+      _wrfptr = nil;
+    }
+    if (_rdfptr) {
+      fclose(_rdfptr);
+      _rdfptr = nil;
+    }
 }
 
 int
@@ -89,6 +112,7 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 				 const void *arg)
 {
     if (_timeoutscriptid<0) return 0;
+    comterp_->push_servstate();
     comterp_->load_string(symbol_pntr(_timeoutscriptid));
     if (comterp_->read_expr()) {
         if (comterp_->eval_expr()) {
@@ -99,99 +123,115 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 	    delete comterp_;
 #endif
 	    timeoutscriptid(-1);
+	    comterp_->pop_servstate();
 	    comterp_ = nil;
 	    return -1;
 	} else {
 	    if (!comterp_->stack_empty()) {
+#if __GNUC__<3
 	      filebuf obuf(1);
+#else
+	      fileptr_filebuf obuf(stdout, ios_base::out);
+#endif
 	      ostream ostr(&obuf);
+	      ostr << "timeexpr result:  ";
 	      comterp_->print_stack_top(ostr);
 	      ostr << "\n";
 	      ostr.flush();
 	    }
 	}
     }
+    comterp_->pop_servstate();
     return 0;
 }
-
-// Perform the logging record receive. 
-static const int unit = 15;
-
-// #define INPUT_BY_READ
 
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
-#if 1
-    const int bufsiz = BUFSIZ*BUFSIZ;
-    char inbuf[bufsiz];
-    char outbuf[bufsiz];
-    inbuf[0] = '\0';
-#if !defined(INPUT_BY_READ)
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+    char inv[BUFSIZ];
+    int inv_cnt = 0;
+#else
+    vector<char> inv;
+#endif
+    char ch;
+
+#if __GNUC__<3
     filebuf ibuf(fd);
     istream istr(&ibuf);
-    istr.getline(inbuf, bufsiz);
-    if (!comterp_ || !istr.good())
-      return -1; 
-    else if (!*inbuf) {
+
+    // problem handling new-lines embedded in character strings
+#if __GNUC__==2 && __GNUC_MINOR__<=7
+    while(istr.good() && istr.get(ch),ch!='\n'&&ch!='\0' && inv_cnt<BUFSIZ-1) 
+      inv[inv_cnt++] = ch;
+    inv[inv_cnt++] = '\0';
+#else
+    while(istr.good() && istr.get(ch),ch!='\n'&&ch!='\0') 
+      inv.push_back(ch);
+    inv.push_back('\0');
+#endif
+
+    boolean input_good = istr.good();
+#else
+
+    if (!_wrfptr) _wrfptr = fdopen(fd, "w");
+    if (!_rdfptr) _rdfptr = fdopen(fd, "r");
+
+    ch = '\0';
+    int status=1;
+    while (ch != '\n' && status>0) {
+      status = read(fd, &ch, 1);
+      if (status == 1 && ch != '\n') inv.push_back(ch);
+    }
+    inv.push_back('\0');
+      
+    boolean input_good = status != -1;
+
+#endif
+
+    char* inbuf = &inv[0];
+    if (!comterp_ || !input_good)
+      return -1;
+    else if (!inbuf || !*inbuf) {
+#if __GNUC__<3
       filebuf obuf(fd ? fd : 1);
       ostream ostr(&obuf);
       ostr << "\n";
       ostr.flush();
       return 0;
-    }
 #else
-    int len = 0;
-    while (len<bufsiz-2) {
-      int nread = read(fd, inbuf+len, 1);
-      if (nread!=1) {
-	cerr << "zero bytes read, connection closed\n";
-	return -1;
-      }
-      if (inbuf[len] == '\n') break;
-      len++;
+      fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
+      ostream ostr(&obuf);
+      ostr << "\n";
+      ostr.flush();
+      return 0;
+#endif
     }
-    inbuf[len] = '\0';
-#endif
-    comterp_->load_string(inbuf);
-    if (fd) 
-      cerr << "command via ACE -- " << inbuf << "\n";
-#else
-    comterp_->_infunc = (infuncptr)&ComTerpServ::fd_fgets;
-#endif
-    comterp_->_fd = fd;
-    comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
+    if (!ComterpHandler::logger_mode()) {
+      comterp_->load_string(inbuf);
+      if (fd>0) 
+	cerr << "command via ACE -- " << inbuf << "\n";
+      comterp_->_fd = fd;
+      comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
 
-#if 1
-    int  status = comterp_->ComTerp::run(false /* !once */);
+      int  status = comterp_->ComTerp::run(false /* !once */, false /* !nested */);
+      return (input_good ? 0 : -1) && status;
+    } else {
+      if (inbuf[0]!='\004')
+	cout << inbuf << "\n";
+#if __GNUC__<3
+      filebuf obuf(fd ? fd : 1);
+      ostream ostr(&obuf);
+      ostr << "\n";
+      ostr.flush();
 #else
-    if (comterp_->read_expr()) {
-        if (comterp_->eval_expr()) {
-	    err_print( stderr, "comterp" );
-	    filebuf obuf(fd ? fd : 1);
-	    ostream ostr(&obuf);
-	    ostr << "err\n";
-	    ostr.flush();
-        } else if (comterp_->quitflag()) {
-	    return -1;
-	} else {
-	    filebuf obuf(fd ? fd : 1);
-	    ostream ostr(&obuf);
-	    comterp_->print_stack_top(ostr);
-	    ostr << "\n";
-	    ostr.flush();
-	}
+      fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
+      ostream ostr(&obuf);
+      ostr << "\n";
+      ostr.flush();
+#endif
+      return (input_good && inbuf[0]!='\004') ? 0 : -1;
     }
-#endif
-#if 1
-#if !defined(INPUT_BY_READ)
-    return (istr.good() ? 0 : -1) && status;
-#else
-    return status;
-#endif
-#else
-    return comterp_->_instat ? 0 : -1;
-#endif
 }
 
 int
@@ -209,12 +249,12 @@ ComterpHandler::open (void *)
       ACE_OS::strncpy (this->peer_name_, buffer,
 		       MAXHOSTNAMELEN + 1);
 
-      if (COMTERP_REACTOR::instance ()->register_handler 
+      if (ComterpHandler::reactor_singleton()->register_handler 
 	  (this, ACE_Event_Handler::READ_MASK) == -1)
 	ACE_ERROR_RETURN ((LM_ERROR, 
 			   "(%P|%t) can't register with reactor\n"), -1);
-#if 0
-      else if (COMTERP_REACTOR::instance ()->schedule_timer
+#if defined(__NetBSD__) /* this seems to be required for NetBSD */
+      else if (ComterpHandler::reactor_singleton()->schedule_timer
 	  (this, 
 	  (const void *) this, 
 	   ACE_Time_Value (10), 
@@ -223,8 +263,9 @@ ComterpHandler::open (void *)
 			   "can'(%P|%t) t register with reactor\n"), -1);
 #endif
       else
-      	ACE_DEBUG ((LM_DEBUG, 
-		    "(%P|%t) connected with %s\n", this->peer_name_));
+	if (ComterpHandler::logger_mode()==0) 
+	  ACE_DEBUG ((LM_DEBUG, 
+		      "(%P|%t) connected with %s\n", this->peer_name_));
       return 0;
     }
 }
@@ -237,6 +278,14 @@ ComterpHandler::close (u_long)
 {
   this->destroy ();
   return 0;
+}
+
+// Our Reactor Singleton.
+typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex>
+REACTOR;
+
+ACE_Reactor* ComterpHandler::reactor_singleton() {
+  return REACTOR::instance();
 }
 
 #endif /* HAVE_ACE */

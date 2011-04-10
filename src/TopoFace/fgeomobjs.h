@@ -32,7 +32,7 @@
 #include <Unidraw/enter-scope.h>
 
 class UList;
-class ostream;
+#include <iosfwd>
 
 class FPointObj {
 public:

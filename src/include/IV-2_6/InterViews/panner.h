@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: an Interactor for two-dimensional scrolling and zooming (iv-2.6)
+// <a href=../man3.1/Panner.html>man page</a>
 class Panner : public MonoScene {
 public:
     Panner(Interactor*, int size = 0);

@@ -29,6 +29,8 @@
 
 #include <Unidraw/Tools/tool.h>
 
+//: tool for moving graphics
+// <a href=../man3.1/MoveTool.html>man page</a>
 class MoveTool : public Tool {
 public:
     MoveTool(ControlInfo* = nil);

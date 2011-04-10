@@ -135,8 +135,10 @@ typedef	struct {
 
 #if !HAVE_IEEEFP
 #if !defined(IEEEFLOAT2NATIVE) || !defined(NATIVE2IEEEFLOAT)
+/*
 "Help, you've configured the library to not have IEEE floating point,\
 but not defined how to convert between IEEE and native formats!"
+*/
 #endif
 
 /*

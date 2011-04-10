@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1993-1995 Vectaport Inc.
  * Copyright (c) 1989 Triple Vision, Inc.
  *
@@ -147,7 +148,7 @@ int status;
    /* Don't worry about status return, because token_type     */
    /* will be set to TOK_NONE                                 */
       status = lexscan( infile, infunc, eoffunc, errfunc, outfile, outfunc,
-                        "/*", "*/", buffer, bufsiz, bufptr,
+                        "/*", "*/", '#', buffer, bufsiz, bufptr,
                         token, toksiz, toklen, toktype,
                         tokstart, linenum );
       if( status != 0 )

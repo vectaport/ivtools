@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,6 +31,7 @@
 
 #include <OS/enter-scope.h>
 #include <InterViews/resource.h>
+#include <Attribute/classid.h>
 
 #ifndef ALITERATOR
 #define ALIterator _lib_iv(Iterator)
@@ -38,8 +40,7 @@
 
 class ALIterator;
 class AList;
-class istream;
-class ostream;
+#include <iosfwd>
 
 class Attribute;
 class AttributeValue;
@@ -91,6 +92,8 @@ public:
 
     Attribute* GetAttr(const char*);
     // get attribute by name.
+    Attribute* GetAttr(int symid);
+    // get attribute by symbol id.
     Attribute* GetAttr(ALIterator);
     // get attribute pointed to by iterator.
     void SetAttr(Attribute*, ALIterator&);
@@ -124,6 +127,9 @@ protected:
     // returning responsibility for freeing the associated memory.
     // This requires saving a pointer to the Attribute before calling this method.
 
+    void clear(); 
+    // empty AttributeList, deleting all Attributes.
+
 
 public:
     friend ostream& operator << (ostream& s, const AttributeList&);
@@ -134,8 +140,9 @@ public:
 
     AttributeValue* find(const char*);
     // find AttributeValue by symbol.
-    AttributeValue* find(int);
+    AttributeValue* find(int symid);
     // find AttributeValue by symbol id.
+
 
 protected:
     int add_attr(Attribute* attr);
@@ -145,6 +152,8 @@ protected:
 
     AList* _alist;
     unsigned int _count;
+
+    CLASS_SYMID("AttributeList");
 };
 
 //: list of AttributeValue objects.
@@ -204,6 +213,15 @@ public:
     friend ostream& operator << (ostream& s, const AttributeValueList&);
     // print list to ostream.
 
+    void clear(); 
+    // empty AttributeValueList, deleting all AttributeValue's.
+
+    void nested_insert(boolean flag) { _nested_insert = flag; }
+    // set flag to insert in a nested fashion
+
+    boolean nested_insert() { return _nested_insert; }
+    // get flag to insert in a nested fashion
+
 protected:
     void Remove(ALIterator&);
     // remove AttributeValue pointed to by iterator from the list, 
@@ -212,6 +230,7 @@ protected:
 
     AList* _alist;
     unsigned int _count;
+    boolean _nested_insert;
 };
 
 #endif

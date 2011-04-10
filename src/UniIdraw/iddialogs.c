@@ -36,6 +36,8 @@
 #include <InterViews/matcheditor.h>
 #include <InterViews/sensor.h>
 
+#include <OS/math.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -82,7 +84,7 @@ void MoveDialog::SelectMessage () {
 }
 
 Interactor* MoveDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),
@@ -179,7 +181,7 @@ void ScaleDialog::SelectMessage () {
 }
 
 Interactor* ScaleDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),
@@ -253,7 +255,7 @@ void RotateDialog::SelectMessage () {
 }
 
 Interactor* RotateDialog::Interior () {
-    const int space = round(.5*ivcm);
+    const int space = Math::round(.5*ivcm);
 
     VBox* titleblock = new VBox(
         new HBox(_title, new HGlue),

@@ -33,14 +33,14 @@ World::									@@\
 	@echo "Building $(RELEASE) on `date`"				@@\
 	@echo ""							@@\
 	$(MAKE) Makefile CONFIGSRC=$(CONFIGSRC) XCONFIGDIR=$(XCONFIGDIR)@@\
-	@echo "twice to propogate new toplevel pathname"							@@\
+	@echo "twice to propogate new toplevel pathname"		@@\
 	$(MAKE) Makefile 						@@\
 	@echo ""							@@\
 	$(MAKE) Makefiles						@@\
 	@echo ""							@@\
 	$(MAKE) depend							@@\
 	@echo ""							@@\
-	$(MAKE) flags all						@@\
+	$(MAKE) flags subdirs						@@\
 	@echo ""							@@\
 	@echo "$(RELEASE) build completed on `date`"			@@\
 	@echo ""
@@ -81,6 +81,38 @@ MakeSpecialWorld(.debug,flags)
 #endif
 
 /*
+ * Make everything by default
+ */
+#ifndef MakeWorld2
+#define MakeWorld2(flags)						@@\
+all::									@@\
+	-@if [ ! -f make.makefile ]; then \				@@\
+	echo ""; \							@@\
+	echo "Building $(RELEASE) on `date`"; \			@@\
+	echo ""; \							@@\
+	$(MAKE) Makefile CONFIGSRC=$(CONFIGSRC) XCONFIGDIR=$(XCONFIGDIR);\@@\
+	echo "twice to propogate new toplevel pathname"; \		@@\
+	$(MAKE) Makefile; \						@@\
+	touch make.makefile; fi						@@\
+	-@if [ ! -f make.makefiles ]; then \				@@\
+	echo ""; \							@@\
+	$(MAKE) Makefiles; \ 						@@\
+	touch make.makefiles; fi					@@\
+	-@if [ ! -f make.depend ]; then \				@@\
+	echo ""; \							@@\
+	$(MAKE) depend; \						@@\
+	touch make.depend; fi						@@\
+	-@if [ ! -f make.make ]; then \					@@\
+	echo ""; fi							@@\
+	$(MAKE) flags subdirs						@@\
+	-@if [ ! -f make.make ]; then \					@@\
+	echo ""; \							@@\
+	echo "$(RELEASE) build completed on `date`"; \			@@\
+	echo ""; \							@@\
+	touch make.make; fi
+#endif
+
+/*
  * Make the Makefile in the current directory.
  */
 #ifndef MakefileTarget
@@ -117,7 +149,7 @@ Makefile::								@@\
 #ifndef MakefilesSubdirs
 #define MakefilesSubdirs(dirs)						@@\
 Makefiles::								@@\
-	@for i in dirs; \					@@\
+	-@for i in dirs; \						@@\
 	do \								@@\
 		if [ -d $$i ]; then ( \					@@\
 			echo "Making Makefiles" \			@@\
@@ -169,12 +201,29 @@ Makefiles::								@@\
 name::									@@\
 	@(set -e;for i in dirs; \					@@\
 	do \								@@\
-		if [ -d $$i ]; then  \					@@\
+		if [ -d $$i ]; then \					@@\
 			echo verb \					@@\
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
 			cd $$i; \					@@\
-			$(MAKE) $(PASSARCH) name; cd ../ ; \			@@\
+			$(MAKE) $(PASSARCH) name ; cd .. \		@@\
 		else continue; fi; \					@@\
+	done)
+#endif
+
+/*
+ * Make the given target in the list of subdirectories.
+ */
+#ifndef IntoSubdirs2
+#define IntoSubdirs2(name,dirs,verb,target)				@@\
+target::								@@\
+	@(set -e;for i in dirs; \					@@\
+	do \								@@\
+		if [ -d $$i ]; then \					@@\
+			echo verb \					@@\
+			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
+			cd $$i; \					@@\
+			$(MAKE) $(PASSARCH) name || break; \		@@\
+		 else continue; fi; \					@@\
 	done)
 #endif
 
@@ -186,6 +235,11 @@ IntoSubdirs(depend,dirs,"depending")
 #ifndef MakeSubdirs
 #define MakeSubdirs(dirs)						@@\
 IntoSubdirs(all,dirs,"making all")
+#endif
+
+#ifndef MakeSubdirsTop
+#define MakeSubdirsTop(dirs)						@@\
+IntoSubdirs2(all,dirs,"making all",subdirs)
 #endif
 
 #ifndef InstallSubdirs
@@ -292,6 +346,34 @@ IvmkcmSubdirs(dirs)
 #endif
 
 /*
+ * Version of MakeInSubdirs for the top-level without the MakeSubdirs
+ */
+#ifndef MakeInSubdirsTop
+#if HasDynamicSharedLibraries
+#define MakeInSubdirsTop(dirs)						@@\
+MakefilesSubdirs(dirs)							@@\
+DependSubdirs(dirs)							@@\
+MakeSubdirsTop(dirs)							@@\
+InstallSubdirs(dirs)							@@\
+CleanSubdirs(dirs)							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+SpecialTargets(noshared,-DUseNonShared)					@@\
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
+#else
+#define MakeInSubdirsTop(dirs)						@@\
+MakefilesSubdirs(dirs)							@@\
+DependSubdirs(dirs)							@@\
+MakeSubdirsTop(dirs)							@@\
+InstallSubdirs(dirs)							@@\
+CleanSubdirs(dirs)							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
+#endif
+#endif
+
+/*
  * Shorthand for making all targets in the appropriate object code
  * subdirectory.
  */
@@ -352,7 +434,7 @@ all:: deps
 #ifndef DependTarget
 #define DependTarget()							 @@\
 depend::								 @@\
-	gcc -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
+	$(DEPEND) $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
 #endif
 
 /*
@@ -605,7 +687,7 @@ $(LD) -o $@ $(SHARED_CCLDFLAGS) ldobjs $(SHARED_CCLDLIBS)
 #ifndef NormalDynamicSharedLibraryTarget
 #if defined(HPArchitecture)
 #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
-AOUT = Concat(lib,libname.so.rev)					@@\
+AOUT = Concat(lib,libname.sl.rev)					@@\
 SHARED_CCFLAGS = SharedCCFlags						@@\
 									@@\
 AllTarget(Concat(lib,libname.sl.rev))					@@\
@@ -632,7 +714,7 @@ AllTarget(Concat(lib,libname.so.rev))					@@\
 Concat(lib,libname.so.rev): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
-	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
+	SharedLibraryCmd(ldobjs,libname))				@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 									@@\
@@ -649,7 +731,7 @@ Concat(lib,libname.so.rev): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
 	$(RM) Concat(lib,libname.so)					@@\
-	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
+	SharedLibraryCmd(ldobjs,libname))				@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 	$(LN) $@ Concat(lib,libname.so)					@@\
@@ -733,7 +815,7 @@ DependTarget()
 #define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
 program: depobjs deplibs						@@\
 	RemoveIfUnwritable($@)						@@\
-	$(CCDRIVER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
+	$(CCLINKER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
 #endif
 
 /*
@@ -972,18 +1054,17 @@ uninstall::								@@\
  * Install header files on Linux.
  */
 
-
 #ifndef InstallIncludes
 #if InstallRelative
 #define InstallIncludes(dir)						@@\
 install::								@@\
-	-@if [ -L $(TOP)/include ]; then exit 0; else \                 @@\
+	-@if [ -h $(TOP)/include ]; then exit 0; else \                 @@\
         (cd $(TOP) && $(LN) src/include include); fi
 #else
 #define InstallIncludes(dir)						@@\
 install::								@@\
 	MakeDir($(INCDIR)/dir)						@@\
-	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/dir			@@\
+	$(INSTALL) -c $(INSTINCFLAGS) *.h $(INCDIR)/dir			@@\
 									@@\
 uninstall::								@@\
 	(cd $(INCDIR)/dir;$(RM) *.h)
@@ -994,13 +1075,13 @@ uninstall::								@@\
 #if InstallRelative
 #define InstallInclude(dir, file)					@@\
 install::								@@\
-	-@if [ -L $(TOP)/include ]; then exit 0; else \                 @@\
+	-@if [ -h $(TOP)/include ]; then exit 0; else \                 @@\
         (cd $(TOP) && $(LN) src/include include); fi
 #else
 #define InstallInclude(dir, file)					@@\
 install::								@@\
 	MakeDir($(INCDIR)/dir)						@@\
-	$(INSTALL) $(INSTINCFLAGS) file $(INCDIR)/dir		        @@\
+	$(INSTALL) -c $(INSTINCFLAGS) file $(INCDIR)/dir		@@\
 									@@\
 uninstall::								@@\
 	$(RM) $(INCDIR)/dir/file

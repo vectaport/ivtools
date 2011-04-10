@@ -35,6 +35,8 @@
 
 class SlotGraphic;
 
+//: slot component
+// <a href=../man3.1/SlotComp.html>man page</a>
 class SlotComp : public Connector {
 public:
     virtual void Interpret(Command*);

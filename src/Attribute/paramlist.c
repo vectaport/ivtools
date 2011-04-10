@@ -38,7 +38,9 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
-#include <strstream.h>
+#ifndef __APPLE__
+#include <strstream>
+#endif
 
 /*****************************************************************************/
 
@@ -120,6 +122,7 @@ void * ParamStruct::addr4(void* base) {
 /*****************************************************************************/
 
 LexScan* ParamList::_lexscan = nil;
+ParamStruct* ParamList::_currstruct = nil;
 
 ParamList::ParamList (ParamList* s) {
     _alist = new AList;
@@ -345,7 +348,7 @@ void ParamList::Remove (ParamStruct* p) {
     }
 }
 
-ParamStruct* ParamList::GetStruct (ALIterator i) { return Struct(Elem(i)); }
+ParamStruct* ParamList::GetStruct (ALIterator i) { _currstruct = Struct(Elem(i)); return _currstruct;}
 
 void ParamList::SetStruct (ParamStruct* gv, ALIterator& i) {
     i.SetValue(_alist->Find(gv));
@@ -879,9 +882,13 @@ int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* d
     return 0;
 }
 
+boolean ParamList::url_use_ok() {
+  return bincheck("ivdl") || bincheck("w3c") || bincheck("curl") || bincheck("wget");
+}
+
 boolean ParamList::urltest(const char* buf) {
   if (!buf) return false;
-  static boolean file_url_ok = bincheck("w3c") || bincheck("curl");
+  static boolean file_url_ok = url_use_ok();
   return 
     strncasecmp("http://", buf, 7)==0 || 
     strncasecmp("ftp://", buf, 6)==0 || 
@@ -890,7 +897,7 @@ boolean ParamList::urltest(const char* buf) {
 
 int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "which %s", command );
+  sprintf( combuf, "sh -c \"wr=`which %s`; echo $wr\"", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  
@@ -941,16 +948,9 @@ const char* ParamList::filter (const char* string, int len) {
 	    dot += text.Insert(dot, buf, sizeof(buf) - 1);
 
 	} else {
-	    switch (c) {
-	    case '\\':
-		dot += text.Insert(dot, "\\", 1);
-		// fall through
-	    case '"':
-		dot += text.Insert(dot, "\\", 1);	   
-		// fall through
-	    default:
-		dot += text.Insert(dot, string, 1);
-	    }
+	    if (c == '\\' || c == '"') 
+	      dot += text.Insert(dot, "\\", 1);
+	    dot += text.Insert(dot, string, 1);
 	}
     }
     text.Insert(dot, "", 1);

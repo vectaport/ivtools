@@ -1,0 +1,416 @@
+Oct 16th 2001 ivtools-0.9.7
+
+** last release before 1.0 -- if things are ok with this distribution
+I will simply roll over the version number **
+
+- fix the pnmtopgm script to do the right thing for PBM files.
+
+- better error messages when someone tries to open an idraw format
+PostScript file that has ColorRast objects in it.  These are rasters
+that are color-printer ready, and do not conform the idraw format.  A
+future version upgrade of this format will include support for these.
+
+As an aside, these ColorRast objects cannot be filtered through
+pstoedit either (pstoedit -f idraw), because they have separate
+sources for R, G, and B.  A future pstoedit back-end for the ivtools
+drawtool format would be needed to make this work instead, one that
+relied on the ghostscript mechanism for dumping out rasters to PNG
+files.
+
+- modifies the pstoedit import command lines to always use a temporary
+file for output with a %d indicator to support multi-page files.
+
+- add a StreamObject to AttributeValue/ComValue.  This consists of a
+pointer to a ComFunc to use in getting the next value out of a stream,
+and local data storage to indicate current position.  Sort of a
+procedural iterator.
+
+- add streaming mechanism to comterp, that leverages the ".." iterate
+and "**" repeat operators.  Now arbitrary expressions can be composed
+where each operator is overdriven (repeatedly executed) by one or more
+of its arguments.  Some examples:
+
+	s1=0..10   # stream that iterates from 0 to 10
+
+	s2=0..10*3 # stream that iterates from 0 to 30 in steps of 3
+
+	next(s1)   # returns 0 on first call, incremented by 1 each call after
+
+	next(s2)   # returns 0 on first call, incremented by 3 each call after
+
+A more complicated example counts to 4 Meg without using megs of memory:
+
+	s=1..pow(2 22)
+	x=0
+	while(next(s) x++)
+
+An example for computing a ramp step-function for a look-up-table:
+
+	0..255-0..255%10
+
+Overdriven streaming operators were first presented here:
+
+"Command Language for Developing Real-Time Signal and Image Processing
+Applications", S. Johnston, R.C. Fitch, SPIE Proceedings on Automated
+Inspection and High Speed Vision Architectures II, vol. 1004,
+Nov. 1988.
+
+- fix != comparison of symbols.  Found this problem when experimenting
+with the new stream objects.  A while loop terminates on either 0 or
+nil, but a stream terminates with only nil.  To differentiate nil from
+0 I looked at the return type:
+
+	s=0..255
+	while(`type(v=next(s))!=`type(nil) print("%d\n" v))
+
+This didn't work without this change.
+
+- adds partial-string (:n) and symbol (:sym) comparison to the rest of
+the equality operators (!=, >, <, >=, <=).
+
+- add :nilchk option to terminate the while loop upon nil (instead of
+nil and zero).
+
+- make the seq operator (;) post-evaluated so that this works:
+
+	s=0..100;while(v=next(s) print("%d " v) :nilchk)
+
+Without post-eval the stream on the left would overdrive the ";",
+which just didn't work.
+
+- more work on new stream and list concepts in comterp.  Now ",," is
+the stream concatenator, and "," remains the list concatenator.
+stream(lst) converts a list to a stream, and list(strm) will converts
+a stream to a list (as soon as I debug it).
+
+- makes list(strm) work.  Now you can convert streams to lists and
+lists to streams (with stream(lst)).
+
+- equate lists to arrays in all the API of ComValue, and make
+type(strm) return ListType instead of ArrayType.
+
+- fix problem with interacting with the KDE X server.  Seems all other
+X servers allow a negative "length" argument, which causes the server
+to index backwards from a data pointer.  This was not documented in
+the man pages, so the KDE folks "fixed" the problem by changing the
+code instead of the man page.  So I have to fix the code as well.
+
+- Now the streams are really flowing.  The ",," concatenation operator
+works for the most part, allowing for the composition of complex
+streams like this:
+
+	s=0,,1,,2,,3**3,,4+100
+
+which generates the sequence:
+
+	100 101 102 103 103 103 104 nil
+
+Probably a few minor issues left to clean up.  So far I've discovered:
+
+	0,1**2
+
+works partially as expected, generating a {0,1} followed by a {0,1}.
+But then it generates a {0,nil} repeatedly, never terminating.  Hmmmm.
+
+- make ",," concat operator lower priority than the "," tuple
+operator.  This means these two examples behave in a similar fashion:
+
+	s=1,2,,3    # yields {1,2} followed by a 3
+
+	s=1,2,3,,4  # yields {1,2,3} followed by a 4
+
+and you can construct 2-d structures in a pleasing way:
+
+	s=1,2,3,,4,5,6,,7,8,9   # 3x3 grid
+
+- ensure streaming doesn't happen on post-evaluated commands.
+
+- create a hidden :strmlst argument to the list command, to have a way
+at looking at the AttributeValueList associated with a stream object.
+
+- NetBSD compile fix
+
+- fix the AttributeValueList constructor so it does a list copy as it
+advertises.
+
+- evaluate symbols when popping them off the stack to build a stream
+object.  This may not be desirable in the long run, and it really
+wasn't causing any problem to delay this that I know of.  Hmmm...
+
+- make the default value of the second "at" argument zero instead of
+nil, so that if nil is supplied it can be used to return nil (to
+terminate stream handling).
+
+- set up to "stream" over an AttributeList.
+
+- ensure ComValue::is_true() returns true for StreamType that exists.
+
+- touchups to glyph-based graphics (Graphic31).  There were
+difficult-to-decipher problems in allocate/requisition which clipped
+graphics by one row or one column.  So I just padded things a bit.
+This is only used in the addtool (custom toolbutton) mechanism of
+comdraw.
+
+- revert to using "r" instead of "r+" in fopen calls for graphics
+files to be read in.  I had added "r+" when gcc-3.0 needed it to allow
+rewinding.  Now gcc-3.0.1 has that fixed, and "r+" got in the way of
+read-only access (CD-ROMS).
+
+- set "." dot operator to 1) create AttributeList's as needed on the
+fly, and 2) create an emtpy AttributeList when a second argument is
+not given.  For example:
+
+	a.b.c.d.e.f=100   # this now works, without having to create
+			  # all the intermediate AttributeList's
+
+	x=dot(z)          # creates an empty AttributeList z which is
+                          # can be accessed through the variable x as well.
+
+- go through all the math commands to ensure they return nil given any
+nil argument.
+
+- add a :set argument to the list at() command.
+
+
+Aug 20th 2001 ivtools-0.9.6
+
+- minor adjustments to adapt to gcc-3.0.1.  One advantage of upgrading
+to gcc-3.0.1 is that incremental import of rasters from URL's works
+again.
+
+- introduce all the bitwise operators from C to comterp: &, |, ^, and
+~.  This change is slightly backward incompatible, in that "^" had
+been used as a shortcut for the pow command (raise something to a
+power).  Scripts that rely on that single operator will need to be
+rewritten.  Sorry for doing that -- but it is the first incompatible
+change in I can't remember how long, and something I wanted to get
+done before version 1.0 (where the syntax and semantics of comterp get
+"frozen", ready for wider use).
+
+- renames the tiftopnm bash script to a less confusing ivtiftopnm
+(less confusing in that people won't think it is part of netpbm).
+ivtiftopnm is a wrapper script for tifftopnm, which doesn't accept
+stdin input directly (because of its need for random access to the
+tiff file).
+
+
+Jul 25th 2001 ivtools-0.9.5
+
+** Most of the outstanding problems with gcc-3.0 and libstdc++-v3 have
+** been resolved.  Only known problem is with incremental importing
+** (and display) of rasters from URL's.  This is a long-standing
+** stable feature of ivtools.  Perhaps newer versions of gcc-3.* and
+** libstdc++-v3 will fix the problem.
+
+- fixes a problem with importing files introduced when migrating away
+from the use of istream::gets (required for gcc-3.0 and libstdc++ v3).
+istream::gets would automatically skip the newline delimeter.  When
+using istream::get in libstdc++ v3 I needed to manually skip the
+newline delimeter.
+
+- globally change optimization from -O6 to -O2, which makes gcc-3.0
+compile time much more reasonable.
+
+- all the necessary changes to support ACE and gcc-3.0 at the same
+time.  The majority of the work is in deferring (or avoiding) an
+fclose on a fdopen'ed socket, by a) saving a FILE* in some class to be
+fclose'd later, or b) rewriting without iostreams.  Now there should
+no longer be any dangling FILE*'s to worry about.
+
+- adds built-in support for PNG rasters.  That means they can be
+imported and save/restored by pathname (like JPEG and GIF).  This
+requires that pngtopnm be available to be invoked by the ivtools
+drawing editors.
+
+- added test for whether socklen_t is typedef'ed to the configure
+script.  Seems older versions of FreeBSD doen't have this.
+
+- fix the test for whether the X11 Shared Memory extensions exists in
+the server, and whether it can be utilized (which requires co-resident
+client and server).
+
+- add a -c argument (copy instead of move) to every install command
+for the benefit of the BSD's.
+
+- use "r+" for fopen of files to be rewound, otherwise they never get
+rewound.  This is a recently introduced problem.  "r+" is supposed to
+mean opening for reading and writing, but it seems necessary for
+rewinding as well.
+
+
+Jun 15th 2001 ivtools-0.9.4
+
+- monstrous amount of changes required by forthcoming gcc-3.0.  The
+heavy lifting was mostly due to the absence of filebuf::attach in v3
+of libstdc++.  
+
+Other issues to deal with: templated iostreams, change to meaning of
+-U (undefine compiler option), can't have static const char
+initializes in class definition, need class between "friend" and class
+name, use of <iosfwd>, missing ostream::form, missing istream::gets,
+round needs to be Math::round.
+
+Unfortunately, gdb can't debug C++ generated by gcc-3.0 yet, so
+although things mostly work, I can't resolve problems with the wild
+iostream hacking I did.  My recommendation: stick to gcc-2.95.* for
+now.
+
+- add an :eps and :idraw option to the comdraw export keyboard command.
+Now you can generate these formats as well as the default drawtool
+format.
+
+- fix export of EPS with color imagery, by correctly reading radio
+button for output format on export dialog box.  Before it only
+generated the idraw format, which is EPS, but has only graylevel
+rasters visible to any PostScript interpreter (the color information
+is in comments).
+
+- change the declaration of an argument to getsockname() from unsigned
+int to socklen_t (in Dispatch/rpcbuf.c).  This fixes the problem with
+portability caused by the fact signedness of a socklen_t is
+unstandardized.
+
+- restore full support for XBM (X bitmap) images to drawtool and its
+derivatives.  idraw was always XBM capable, but drawtool lost support
+for this a while back.
+
+From John Denker (jsd at research.att.com):
+
+>Here is a patch that will allow ivtools to correctly output text 
+>objects that contain backslashes.
+
+May 18th 2001 ivtools-0.9.3
+
+Keyboard Commands:
+
+- add save func to comdraw:
+
+	error=save([path]) -- save editor document (to pathname) 
+
+With no argument it saves using the current document name.  If none is
+current the SaveAs dialog box pops up.  If the file already exists a
+warning dialog box pops up.  If the current document is unmodified the
+func returns zero without doing anything.
+
+With a pathname argument it always tries to save to the document to
+that file, returning zero if the save doesn't work (at least it will
+after a bug is fixed).  If the file already exists a warning dialog
+box pops up.
+
+- add export func to comdraw:
+
+with ACE:
+   export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str) -- export in drawtool format
+
+without ACE:
+   export(compview[,compview[,...compview]] [path] :string|:str) -- export in drawtool format ";
+
+- add comdraw funcs to convert between drawing and screen coordinates:
+
+	dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
+	sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
+
+- convert output of help func to a string, so it can be displayed in
+the keyboard command window on comdraw/graphdraw/flipbook/drawserv.
+
+Miscellaneous:
+
+- applied diffs by Guenter Geiger to generate ivtools-0.9.2-1 for
+latest Debian (sid).
+
+- attempt to upgrade to ACE 5.1
+
+- put an arbitrary glyph in the lower left of each drawing editor with
+a keyboard command window. Defaults to text describing the editor and
+how to get help on keyboard commands.
+
+- check that an AttributeValue is_object() or is_command() before
+returning the void* pointer associated with some C++ object.
+
+- change for building on Solaris 2.6.
+
+- bug fix in growgroup comdraw func.
+
+
+
+
+Apr 5th 2001 ivtools-0.9.2
+
+- set of changes to allow save/restore of graphics files internal to a
+drawing by the Unix command line used to generate them.  For example,
+if "xwdtopnm temp.xwd" was used to import a raster file (with "from
+command" checked on the import dialog box), a subsequent save would
+write this command (and only this command) to the document on disk,
+and a subsequent restore would re-run the command to regenerate the
+contents.  Should work equally well for rasters, PostScript, and
+ivtools drawtool files.
+
+- remove anytopnm from ivtools, since the enhancements our copy had
+over pbmplus were incorporated directly into the netpbm variant.  The
+salient feature was the ability for anytopnm to recognize it had a
+file that was already in a pbmplus format, and pass it through.
+
+- remove duplicate IVGlyph/figure.[ch] from MANIFEST
+
+- add /usr/local/include/g++-3 and /usr/local/include/g++-2 to paths
+searched for libstdc++ include files by configure.
+
+- add "wget" to the list of download utilities searched for and used
+by the code that reads URLs.  The others are ivdl (from ivtools),
+curl, and w3c.
+
+- changes to support compiling with older versions of libg++ and
+changes to support relative installation (--enable-install-relative)
+on FreeBSD.  
+
+- add "name" and "value" labels to the attribute-list editing dialog box.
+
+- save rasters imported from Unix commands by writing out only the
+command string in an generic by-file drawtool object.  For example:
+
+	ovfile(:popen "djpeg -pnm test.jpg" ) 
+
+would be output  to the saved document if  save-by-path was checked on
+the import box and save-by-path is checked (for the whole document) on
+the export box.  Subsequent opens rerun the command.
+
+
+Jan 10th 2001 ivtools-0.9.1
+
+Correct 0.9 oversights:
+
+- restore GPL dual licensing documentation in COPYRIGHT, COPYING, and
+MANIFEST.
+
+- correctly set version number to 0.9.1
+
+December 19th 2000 ivtools-0.9
+
+- fix segfault in new comdraw addtool command when the supplied
+pathname is non-existent.
+
+- allow for using new symbols (those with a nil value) in the various
+assignment operators of comterp, i.e. x++ or x+=1 work if x was
+undefined.
+
+- make ivtools available under the GPL as well as the original X11
+style license.
+
+- changes type of third argument to accept() from an unportable
+(unsigned int*) to a more correct (socklent_t *) (in
+src/utils/sockets.cc).  First done by Guenter Geiger in his
+Debianization of ivtools-0.8.3
+
+- partial build (up to glyphterp and comterp) on SunOS 4.1.4 with
+gcc-2.4.5.  After that I ran into static initialization (even though
+using collect2) and multiple-inheritance problems that made it no
+longer worth it.
+
+- patches for building with libace5.0 under Debian 2.3 (woody).
+
+- fix up the construction of symbolic links for Unidraw-common done by
+the configure script.
+
+- revises and extends the comterp pause, trace, and step commands.
+
+

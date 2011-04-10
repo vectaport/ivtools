@@ -52,31 +52,6 @@
 #include "texteditor.h"
 #include "textview.h"
 
-// Adjustable, used to control scrolling
-class TE_Adjustable : public Adjustable, public Observer {
-public:
-   TE_Adjustable(TE_View*);
-
-   virtual void update(Observable*);
-
-   virtual Coord lower(DimensionName) const;
-   virtual Coord upper(DimensionName) const;
-   virtual Coord length(DimensionName) const;
-   virtual Coord cur_lower(DimensionName) const;
-   virtual Coord cur_upper(DimensionName) const;
-   virtual Coord cur_length(DimensionName) const;
-   
-   virtual void scroll_forward(DimensionName);
-   virtual void scroll_backward(DimensionName);
-   virtual void page_forward(DimensionName);
-   virtual void page_backward(DimensionName);
-   
-   virtual void scroll_to(DimensionName, Coord lower);
-   virtual void scroll_by(DimensionName, long);
-private:
-   TE_View* te_view_;
-};
-
 // TE Adjustable
 
 TE_Adjustable::TE_Adjustable(TE_View* te_view)
@@ -89,52 +64,52 @@ void TE_Adjustable::update(Observable*)
    notify(Dimension_Y);		// notify scrollbar
 }
 
-inline Coord TE_Adjustable::lower(DimensionName) const
+Coord TE_Adjustable::lower(DimensionName) const
 {
    return Coord(0);
 }
 
-inline Coord TE_Adjustable::upper(DimensionName) const
+Coord TE_Adjustable::upper(DimensionName) const
 {
     return Coord(te_view_->lines());
 }
 
-inline Coord TE_Adjustable::length(DimensionName) const
+Coord TE_Adjustable::length(DimensionName) const
 {
     return Coord(te_view_->lines() /*- 1*/);
 }
 
-inline Coord TE_Adjustable::cur_lower(DimensionName) const
+Coord TE_Adjustable::cur_lower(DimensionName) const
 {
     return Coord(te_view_->lines() - te_view_->end_row() -1);
 }
 
-inline Coord TE_Adjustable::cur_upper(DimensionName) const
+Coord TE_Adjustable::cur_upper(DimensionName) const
 {
     return Coord(te_view_->lines() /*- 1*/ - te_view_->start_row());
 }
 
-inline Coord TE_Adjustable::cur_length(DimensionName) const
+Coord TE_Adjustable::cur_length(DimensionName) const
 {
    return Coord(te_view_->end_row() - te_view_->start_row() +1);
 }
 
-inline void TE_Adjustable::scroll_forward(DimensionName d)
+void TE_Adjustable::scroll_forward(DimensionName d)
 {
    scroll_by(d, -long(small_scroll(d)));
 }
 
-inline void TE_Adjustable::scroll_backward(DimensionName d)
+void TE_Adjustable::scroll_backward(DimensionName d)
 {
    scroll_by(d, long(small_scroll(d)));
 }
 
-inline void TE_Adjustable::page_forward(DimensionName d)
+void TE_Adjustable::page_forward(DimensionName d)
 {
    scroll_by(d, -long(large_scroll(d)));
 }
 
-inline void TE_Adjustable::page_backward(DimensionName d)
+void TE_Adjustable::page_backward(DimensionName d)
 {
    scroll_by(d, long(large_scroll(d)));
 }
@@ -155,6 +130,8 @@ void TE_Adjustable::scroll_by(DimensionName, long offset)
    notify(Dimension_Y);		// notify scrollbar
 }
 
+
+EivTextEditor::EivTextEditor() { }
 
 EivTextEditor::EivTextEditor(Style* s, boolean active)
 {
@@ -231,6 +208,12 @@ void EivTextEditor::save_popup()
 void EivTextEditor::load_popup()
 {
    te_view_->load_popup();
+}
+
+void EivTextEditor::quit()
+{
+   // quit without error check; Bug Alert!
+   te_view_->quit();
 }
 
 int EivTextEditor::dot()

@@ -1,5 +1,7 @@
 /*
- * Copyright (c) 1998-1999 Vectaport Inc.
+ * Copyright (c) 2002 Scott E. Johnston
+ * Copyright (c) 2000 IET Inc.
+ * Copyright (c) 1998-2000 Vectaport Inc.
  * Copyright (c) 1994-1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1994 Cartoactive Systems
  * Copyright (c) 1993 David B. Hollenbeck
@@ -62,14 +64,18 @@
 #include <OverlayUnidraw/ovtext.h>
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/rastercmds.h>
 #include <OverlayUnidraw/setattrbyexpr.h>
 #include <OverlayUnidraw/slctbyattr.h>
 
 #include <ComGlyph/attrdialog.h>
+#include <ComGlyph/comtextedit.h>
 #include <IVGlyph/exportchooser.h>
+#include <IVGlyph/idraw.h>
 #include <IVGlyph/saveaschooser.h>
 
-#include <Unidraw/catalog.h>
+#include <UniIdraw/idcatalog.h>
+
 #include <Unidraw/ctrlinfo.h>
 #include <Unidraw/editor.h>
 #include <Unidraw/grid.h>
@@ -137,6 +143,7 @@
 #undef None
 #include <OS/math.h>
 
+#include <IVGlyph/idraw.h>
 #include <IVGlyph/figure.h>
 #include <IVGlyph/textform.h>
 #include <IVGlyph/toolbutton.h>
@@ -144,6 +151,8 @@
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
+
+#include <X11/keysym.h>
 
 #include <stdlib.h>
 #include <string.h>
@@ -184,6 +193,41 @@ static Coord fxOpen[] = { 0, unit/2, unit/2, unit };
 static Coord fyOpen[] = { 0, unit/4, unit*3/4, unit };
 static const int nOpen = 4;
 
+const char* OverlayKit::mouse_sel  = "l-click/drag: Select; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_mov  = "l-drag: Move; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_scl  = "l-drag: Scale; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_str  = "l-drag: Stretch; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_rot  = "l-drag: Rotate; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_alt  = "l-click: Alter; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_mag  = "l-drag: Magnify; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_txt  = "l-click: Text; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_lin  = "l-drag: Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_mlin = "l-click: Start Multi-Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_ospl = "l-click: Start Open Spline; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_rect = "l-drag: Rectangle; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_ellp = "l-drag: Ellipse; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_poly = "l-click: Start Polygon; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_cspl = "l-drag: Start Closed Spline; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_anno = "l-click: Annotate; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_attr = "l-click: Edit Attributes; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_tack = "l-click: Tack Down; m-click: Tack and Finish; r-click: Remove Last Tack";
+#ifdef CLIPPOLY
+const char* OverlayKit::mouse_clipr = "l-drag: Clip MultiLines in Box; m-drag: Move; r-click/drag: Select";
+#else
+const char* OverlayKit::mouse_clipr = "l-drag: Clip MultiLines and Polygons in Box; m-drag: Move; r-click/drag: Select";
+#endif    
+#ifdef CLIPPOLY
+const char* OverlayKit::mouse_clipp = "l-drag: Clip MultiLines in Polygon; m-drag: Move; r-click/drag: Select";
+#else
+const char* OverlayKit::mouse_clipp = "l-drag: Clip MultiLines and Polygons in Polygon; m-drag: Move; r-click/drag: Select";
+#endif    
+const char* OverlayKit::mouse_convexhull = "l-click: Start Convex Hull; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_imgscale = "l-drag: Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_logscale = "l-drag: Logarithmically Scale Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_pseudocolor = "l-drag: Pseudocolor Image between Pixel Values on Line; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_grloc = "l-click: Location within Graphic; m-drag: Move; r-click/drag: Select";
+const char* OverlayKit::mouse_custom = "l-click: Drop icon; m-drag: Move; r-click/drag: Select";
+
 /*****************************************************************************/
 
 OverlayKit* OverlayKit::_overlaykit = nil;
@@ -192,6 +236,11 @@ OverlayKit::OverlayKit () {
     WidgetKit& kit = *WidgetKit::instance();
     _ed = nil;
     _otherdisplay = nil;
+    _set_button_flag = false;
+    _clr_button_flag = false;
+    _tg = nil;
+    _toolbar_vbox = nil;
+    _appname = nil;
 }
 
 OverlayKit::~OverlayKit() {
@@ -245,8 +294,8 @@ void OverlayKit::InitViewer () {
      * These statements had to be moved down here to workaround
      * a strange cfront 3.0 bug.
      */
-    float w = round(atof(page_w) * ivinches);
-    float h = round(atof(page_h) * ivinches);
+    float w = Math::round(atof(page_w) * ivinches);
+    float h = Math::round(atof(page_h) * ivinches);
     if (page_cols && page_rows) {
       int ncols = atoi(page_cols);
       int nrows = atoi(page_rows);
@@ -266,18 +315,39 @@ void OverlayKit::InitViewer () {
 }
 
 void OverlayKit::InitLayout(const char* name) {
-    if (_ed->GetWindow() == nil) {
-        TextObserver* mousedoc_observer = new TextObserver(_ed->MouseDocObservable(), "");
-	const LayoutKit& lk = *LayoutKit::instance();
-	WidgetKit& wk = *WidgetKit::instance();
-	Glyph* menus = MakeMenus();
-	Glyph* states = MakeStates();
-	Glyph* toolbar = MakeToolbar();
+  InitLayout(this, name);
+}
+
+void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
+    kit->_appname = name; 
+    OverlayEditor* ed = kit->GetEditor();
+    Catalog* catalog = unidraw->GetCatalog();
+    const char* stripped_string = catalog->GetAttribute("stripped");
+    boolean stripped_flag = stripped_string ? strcmp(stripped_string, "true")==0 : false;
+    if (ed->GetWindow() == nil) {
+
+      TextObserver* mousedoc_observer = new TextObserver(ed->MouseDocObservable(), "");
+      const LayoutKit& lk = *LayoutKit::instance();
+      WidgetKit& wk = *WidgetKit::instance();
+      PolyGlyph* topbox = lk.vbox();
+
+      Glyph* menus = kit->MakeMenus();
+      Glyph* states = kit->MakeStates();
+      Glyph* toolbar = kit->MakeToolbar();
+
+      if (stripped_flag) {
+
+	Target* viewer = 
+	    new Target(new Frame(ed->Interior()), TargetPrimitiveHit);
+	ed->body(viewer);
+	topbox->append(ed);
+
+      } else {
+
 	if (states)
 	    menus->append(states);
 	Target* viewer = 
-	    new Target(new Frame(Interior()), TargetPrimitiveHit);
-	Catalog* catalog = unidraw->GetCatalog();
+	    new Target(new Frame(ed->Interior()), TargetPrimitiveHit);
 	if (const char* toolbarloca = catalog->GetAttribute("toolbarloc")) {
 	  if (strcmp(toolbarloca, "r") == 0) 
 	    toolbar->prepend(lk.vcenter(viewer));
@@ -287,10 +357,8 @@ void OverlayKit::InitLayout(const char* name) {
 	  toolbar->append(lk.vcenter(viewer));
 	menus->append(toolbar);
 
-	PolyGlyph* topbox = lk.vbox();
-	_ed->body(menus);
-	_ed->GetKeyMap()->Execute(CODE_SELECT);
-	topbox->append(_ed);
+	ed->body(menus);
+	topbox->append(ed);
 	topbox->append(
 		wk.outset_frame(
 		    lk.hbox(
@@ -298,13 +366,105 @@ void OverlayKit::InitLayout(const char* name) {
 		    )
 		)
 	    );
+      }
 
-	ManagedWindow* w = new ApplicationWindow(topbox, _otherdisplay);
-	_ed->SetWindow(w);
-	Style* s = new Style(Session::instance()->style());
-	s->alias(name);
-	w->style(s);
+
+      ed->GetKeyMap()->Execute(CODE_SELECT);
+	
+      if (ed->comterp()) {
+	    boolean set_flag = kit->_set_button_flag;
+	    boolean clr_flag = kit->_clr_button_flag;
+	    EivTextEditor* texteditor = nil;
+	    if(!set_flag && !clr_flag) {
+	      texteditor = new ComTextEditor(wk.style(), ed->comterp());
+	    }
+	    else
+	      texteditor = new EivTextEditor(wk.style());
+	    ed->_texteditor = texteditor;
+	    Button* set = set_flag ? wk.push_button("Set", new ActionCallback(OverlayEditor)(
+		(OverlayEditor*)ed, &OverlayEditor::SetText
+	    )) : nil;
+	    Button* clear = clr_flag ? wk.push_button("Clear", new ActionCallback(OverlayEditor)(
+		(OverlayEditor*)ed, &OverlayEditor::ClearText
+	    )) : nil;
+	    Glyph* buttonbox = nil;
+
+	    if (set && !clear) {
+	      buttonbox = 
+		lk.vbox(
+			    lk.hcenter(set));
+	    } else if (!set && clear) { 
+	      buttonbox = 
+		lk.vbox(
+			    lk.hcenter(clear));
+	    } else if (set && clear) {
+	      buttonbox = 
+		lk.vbox(
+			    lk.hcenter(set),
+			    lk.vspace(10),
+			    lk.hcenter(clear)
+			    );
+	    }
+	    if (buttonbox) {
+	      topbox->append(
+		  wk.outset_frame(
+		      lk.hbox(
+			  lk.vcenter(
+			      lk.margin(
+                                  buttonbox,
+				  10
+			      )
+			  ),
+			  lk.vcenter(texteditor)
+		      )
+		  )
+	      );
+	    } else {
+	      topbox->append(
+		  wk.outset_frame(
+		      lk.hbox(
+			  lk.vcenter(
+			      lk.margin(
+				  lk.vbox(
+#if 0
+ 			              wk.label("type help"),
+			              lk.vspace(10),
+			              wk.label("to print"),
+			              lk.vspace(10),
+			              wk.label("info to stdout")
+#else
+				      kit->appicon()
+#endif
+			              ),
+				  10
+			      )
+			  ),
+			  lk.vcenter(texteditor)
+		      )
+		  )
+	      );
+	    }
+	}
+
+      ManagedWindow* w = new ApplicationWindow(topbox, kit->_otherdisplay);
+      ed->SetWindow(w);
+      Style* s = new Style(Session::instance()->style());
+      s->alias(name);
+      w->style(s);
+
     }
+ }
+
+
+Glyph* OverlayKit::appicon() {
+  const LayoutKit& lk = *LayoutKit::instance();
+  WidgetKit& wk = *WidgetKit::instance();
+  return lk.vbox(lk.hcenter(wk.label("ivtools")), 
+		 lk.hcenter(wk.label(this->appname())),
+		 lk.vspace(20),
+		 lk.hcenter(wk.label("type help for list of")),
+		 lk.hcenter(wk.label("keyboard commands"))
+		 );
 }
 
 Glyph* OverlayKit::MakeStates() {
@@ -349,11 +509,23 @@ Glyph* OverlayKit::MakeToolbar() {
     const LayoutKit& layout = *LayoutKit::instance();
     Style* s = kit.style();
 
+    /* tools shared between pallettes */
+    ToolButton* select;
+    ToolButton* move;
+    ToolButton* scale;
+    ToolButton* stretch;
+    ToolButton* rotate;
+    ToolButton* reshape;
+    ToolButton* magnify;
+
     _toolbars = layout.deck(1);
 
-    PolyGlyph* vb = layout.vbox(19);
 
-    TelltaleGroup* tg = new TelltaleGroup();
+    PolyGlyph* vb = layout.vbox();
+    _toolbar_vbox = new Glyph*[2];
+    _toolbar_vbox[0] = vb;
+
+    _tg = new TelltaleGroup();
 
     Glyph* sel = kit.label("Select");
     Glyph* mov = kit.label("Move");
@@ -384,158 +556,167 @@ Glyph* OverlayKit::MakeToolbar() {
     Glyph* hull = kit.label("ConvexHull");
     Glyph* grloc = kit.label("GraphicLoc");
 
-    Coord maxwidth = 0;
+    _maxwidth = 0;
     Requisition req;
-    maxwidth = Math::max((sel->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((mov->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((scl->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((str->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((rot->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((alt->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((mag->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((txt->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((glin->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((gmlin->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((gospl->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((grect->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((gellp->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((gpoly->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((gcspl->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((anno->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((attr->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((clipr->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((clipp->request(req), req.x_requirement().natural()),
-			 maxwidth);
-    maxwidth = Math::max((hull->request(req), req.x_requirement().natural()),
-			 maxwidth);
+    _maxwidth = Math::max((sel->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((mov->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((scl->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((str->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((rot->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((alt->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((mag->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((txt->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((glin->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((gmlin->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((gospl->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((grect->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((gellp->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((gpoly->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((gcspl->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((anno->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((attr->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((clipr->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((clipp->request(req), req.x_requirement().natural()),
+			 _maxwidth);
+    _maxwidth = Math::max((hull->request(req), req.x_requirement().natural()),
+			 _maxwidth);
 
-    maxwidth = Math::max((grloc->request(req), req.x_requirement().natural()),
-			 maxwidth);
+    _maxwidth = Math::max((grloc->request(req), req.x_requirement().natural()),
+			 _maxwidth);
 
-    vb->append(MakeTool(new SelectTool(new ControlInfo("Select", KLBL_SELECT, CODE_SELECT)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+    vb->append(select = MakeTool(new SelectTool(new ControlInfo("Select", KLBL_SELECT, CODE_SELECT)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(sel)),
-			tg, _ed->MouseDocObservable(), mouse_sel));
-    vb->append(MakeTool(new MoveTool(new ControlInfo("Move", KLBL_MOVE, CODE_MOVE)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			_tg, _ed->MouseDocObservable(), mouse_sel));
+    vb->append(move = MakeTool(new MoveTool(new ControlInfo("Move", KLBL_MOVE, CODE_MOVE)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(mov)),
-			tg, _ed->MouseDocObservable(), mouse_mov));
-    vb->append(MakeTool(new ScaleTool(new ControlInfo("Scale", KLBL_SCALE, CODE_SCALE)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(scl)), tg, _ed->MouseDocObservable(), mouse_scl));
-    vb->append(MakeTool(new StretchTool(new ControlInfo("Stretch", KLBL_STRETCH,CODE_STRETCH)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(str)), tg, _ed->MouseDocObservable(), mouse_str));
-    vb->append(MakeTool(new RotateTool(new ControlInfo("Rotate", KLBL_ROTATE, CODE_ROTATE)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(rot)), tg, _ed->MouseDocObservable(), mouse_rot));
-    vb->append(MakeTool(new ReshapeTool(new ControlInfo("Alter", KLBL_RESHAPE, CODE_RESHAPE)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(alt)), tg, _ed->MouseDocObservable(), mouse_alt));
-    vb->append(MakeTool(new MagnifyTool(new ControlInfo("Magnify", KLBL_MAGNIFY,CODE_MAGNIFY)),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(mag)), tg, _ed->MouseDocObservable(), mouse_mag));
+			_tg, _ed->MouseDocObservable(), mouse_mov));
+    vb->append(scale = MakeTool(new ScaleTool(new ControlInfo("Scale", KLBL_SCALE, CODE_SCALE)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(scl)), _tg, _ed->MouseDocObservable(), mouse_scl));
+    vb->append(stretch = MakeTool(new StretchTool(new ControlInfo("Stretch", KLBL_STRETCH,CODE_STRETCH)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(str)), _tg, _ed->MouseDocObservable(), mouse_str));
+    vb->append(rotate = MakeTool(new RotateTool(new ControlInfo("Rotate", KLBL_ROTATE, CODE_ROTATE)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(rot)), _tg, _ed->MouseDocObservable(), mouse_rot));
+    vb->append(reshape = MakeTool(new ReshapeTool(new ControlInfo("Alter", KLBL_RESHAPE, CODE_RESHAPE)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(alt)), _tg, _ed->MouseDocObservable(), mouse_alt));
+    vb->append(magnify = MakeTool(new MagnifyTool(new ControlInfo("Magnify", KLBL_MAGNIFY,CODE_MAGNIFY)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(mag)), _tg, _ed->MouseDocObservable(), mouse_mag));
     TextGraphic* text = new TextGraphic("Text", stdgraphic);
     TextOvComp* textComp = new TextOvComp(text);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo("Text", KLBL_TEXT, CODE_TEXT), textComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(txt)), tg, _ed->MouseDocObservable(), mouse_txt));
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(txt)), _tg, _ed->MouseDocObservable(), mouse_txt));
     ArrowLine* line = new ArrowLine(
 	0, 0, unit, unit, false, false, 1., stdgraphic
     );
     ArrowLineOvComp* arrowLineComp = new ArrowLineOvComp(line);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(arrowLineComp, KLBL_LINE, CODE_LINE), arrowLineComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(glin)),
-			tg, _ed->MouseDocObservable(), mouse_lin));
+			_tg, _ed->MouseDocObservable(), mouse_lin));
     ArrowMultiLine* ml = new ArrowMultiLine(
         xOpen, yOpen, nOpen, false, false, 1., stdgraphic
     );
     ml->SetPattern(psnonepat);
     ArrowMultiLineOvComp* mlComp = new ArrowMultiLineOvComp(ml);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(mlComp, KLBL_MULTILINE, CODE_MULTILINE), mlComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(gmlin)),
-			tg, _ed->MouseDocObservable(), mouse_mlin));
+			_tg, _ed->MouseDocObservable(), mouse_mlin));
     ArrowOpenBSpline* spl = new ArrowOpenBSpline(
         xOpen, yOpen, nOpen, false, false, 1., stdgraphic
     );
     spl->SetPattern(psnonepat);
     ArrowSplineOvComp* splComp = new ArrowSplineOvComp(spl);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(splComp, KLBL_SPLINE, CODE_SPLINE), splComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(gospl)),
-			tg, _ed->MouseDocObservable(), mouse_ospl));
+			_tg, _ed->MouseDocObservable(), mouse_ospl));
     SF_Rect* rect = new SF_Rect(0, 0, unit, unit*4/5, stdgraphic);
     rect->SetPattern(psnonepat);
     RectOvComp* rectComp = new RectOvComp(rect);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(rectComp, KLBL_RECT, CODE_RECT), rectComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(grect)),
-			tg, _ed->MouseDocObservable(), mouse_rect));
+			_tg, _ed->MouseDocObservable(), mouse_rect));
     SF_Ellipse* ellipse = new SF_Ellipse(0, 0, unit*2/3, unit*2/5, stdgraphic);
     ellipse->SetPattern(psnonepat);
     EllipseOvComp* ellipseComp = new EllipseOvComp(ellipse);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(ellipseComp, KLBL_ELLIPSE, CODE_ELLIPSE), ellipseComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(gellp)),
-			tg, _ed->MouseDocObservable(), mouse_ellp));
+			_tg, _ed->MouseDocObservable(), mouse_ellp));
     SF_Polygon* polygon = new SF_Polygon(xClosed, yClosed, nClosed,stdgraphic);
     polygon->SetPattern(psnonepat);
     PolygonOvComp* polygonComp = new PolygonOvComp(polygon);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(polygonComp, KLBL_POLY, CODE_POLY), polygonComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(gpoly)),
-			tg, _ed->MouseDocObservable(), mouse_poly));
+			_tg, _ed->MouseDocObservable(), mouse_poly));
     SFH_ClosedBSpline* cspline = new SFH_ClosedBSpline(
         xClosed, yClosed, nClosed, stdgraphic
     );
     cspline->SetPattern(psnonepat);
     ClosedSplineOvComp* csplineComp = new ClosedSplineOvComp(cspline);
     vb->append(MakeTool(new GraphicCompTool(new ControlInfo(csplineComp, KLBL_CSPLINE,CODE_CSPLINE), csplineComp),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
 				       layout.hcenter(gcspl)),
-			tg, _ed->MouseDocObservable(), mouse_cspl));
-    vb->append(MakeTool(new AnnotateTool(new ControlInfo("Annotate", "A", "A")),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(anno)), tg, _ed->MouseDocObservable(), mouse_anno));
+			_tg, _ed->MouseDocObservable(), mouse_cspl));
+
+    _toolbars->append(vb);
+    vb = layout.vbox();
+    _toolbar_vbox[1] = vb;
+    vb->append(select);
+    vb->append(move);
+    vb->append(scale);
+    vb->append(rotate);
+    vb->append(reshape);
+    vb->append(magnify);
     vb->append(MakeTool(new AttributeTool(new ControlInfo("Attribute", "T", "T")),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(attr)), tg, _ed->MouseDocObservable(), mouse_attr));
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(attr)), _tg, _ed->MouseDocObservable(), mouse_attr));
+    vb->append(MakeTool(new AnnotateTool(new ControlInfo("Annotate", "A", "A")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(anno)), _tg, _ed->MouseDocObservable(), mouse_anno));
+    vb->append(MakeTool(new GrLocTool(new ControlInfo("GraphicLoc", "", "")),
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(grloc)), _tg, _ed->MouseDocObservable(), mouse_grloc));
 #ifdef CLIPPOLY
     vb->append(MakeTool(new ClipRectTool(new ControlInfo("ClipRect", "C", "C")),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(clipr)), tg, _ed->MouseDocObservable(), mouse_clipr));
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(clipr)), _tg, _ed->MouseDocObservable(), mouse_clipr));
     vb->append(MakeTool(new ClipPolyTool(new ControlInfo("ClipPoly")),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(clipp)), tg, _ed->MouseDocObservable(), mouse_clipp));
+			layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+				       layout.hcenter(clipp)), _tg, _ed->MouseDocObservable(), mouse_clipp));
+#endif
     if (!bintest("qhull"))
       vb->append(MakeTool(new ConvexHullTool(new ControlInfo("ConvexHull")),
-			  layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-					 layout.hcenter(hull)), tg, _ed->MouseDocObservable(), mouse_convexhull));
-#endif
-    vb->append(MakeTool(new GrLocTool(new ControlInfo("GraphicLoc", "", "")),
-			layout.overlay(layout.hcenter(layout.hspace(maxwidth)),
-				       layout.hcenter(grloc)), tg, _ed->MouseDocObservable(), mouse_grloc));
-
+			  layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+					 layout.hcenter(hull)), _tg, _ed->MouseDocObservable(), mouse_convexhull));
     _toolbars->append(vb);
     _toolbars->flip_to(0);
     _toolbar = new Patch(_toolbars);
@@ -669,14 +850,14 @@ Glyph* OverlayKit::MenuArrowLine(boolean tail, boolean head) {
 }
 
 
-Glyph* OverlayKit::MenuRect (Color * color) {
-    Brush * brush = new Brush(0.0);
+Glyph* OverlayKit::MenuRect (PSColor * color) {
+    Brush * brush = color->None() ? new Brush(0xaaaa, 0.0) : new Brush(0.0);
     Coord w = (MENU_WIDTH*ivcm);
     Coord h = (MENU_HEIGHT*ivcm);
     
     Resource::ref(brush);
     return new Fig31Rectangle(brush, WidgetKit::instance()->foreground(),
-			      color, 0, 0, w, h);
+			      color->None() ? nil : color, 0, 0, w, h);
 }
 
 
@@ -832,17 +1013,20 @@ MenuItem* OverlayKit::MakeEditMenu() {
 	     "Precise Rotate   ");
     mbi->menu()->append_item(kit.menu_item_separator());
 
-    MenuItem* graymenu = kit.menu_item(kit.label("Graylevel Processing   "));
-    graymenu->menu(kit.pullright());
-    mbi->menu()->append_item(graymenu);
+    MenuItem* imagemenu = kit.menu_item(kit.label("Image Processing   "));
+    imagemenu->menu(kit.pullright());
+    mbi->menu()->append_item(imagemenu);
     
-    MakeMenu(graymenu, new ScaleGrayCmd(new ControlInfo("Scale GrayImage",
+    MakeMenu(imagemenu, new AlphaTransparentRasterCmd(new ControlInfo("Alpha Transparency",
+					     "", "")),
+	     "Alpha Transparency ");
+    MakeMenu(imagemenu, new ScaleGrayCmd(new ControlInfo("Scale GrayImage",
 					     "", "")),
 	     "Scale Gray Image   ");
-    MakeMenu(graymenu, new LogScaleCmd(new ControlInfo("LogScale GrayImage",
+    MakeMenu(imagemenu, new LogScaleCmd(new ControlInfo("LogScale GrayImage",
 					     "", "")),
 	     "Logscale Gray Image   ");
-    MakeMenu(graymenu, new PseudocolorCmd(new ControlInfo("PseudoColor GrayImage",
+    MakeMenu(imagemenu, new PseudocolorCmd(new ControlInfo("PseudoColor GrayImage",
 					     "", "")),
 	     "Pseudocolor Gray Image   ");
 #ifdef CLIPPOLY
@@ -877,6 +1061,12 @@ MenuItem* OverlayKit::MakeStructureMenu() {
     MakeMenu(mbi, new BackCmd(new ControlInfo("Send to Back",
 				      KLBL_BACK, CODE_BACK)),
 	     "Send to Back   ");
+    MakeMenu(mbi, new PullCmd(new ControlInfo("Pull Up One"
+                                     )),
+           "Pull Up One   ");
+    MakeMenu(mbi, new PushCmd(new ControlInfo("Push Down One"
+                                    )),
+           "Push Down One   ");
 
     return mbi;
 }
@@ -928,7 +1118,7 @@ MenuItem* OverlayKit::MakeBrushMenu() {
 	    ctrlInfo = new ControlInfo("None");
 	    
 	} else {
-	    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic);
+	    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0, false, false, 1., stdgraphic);
 	    line->SetBrush(br);
 	    ctrlInfo = new ControlInfo(new ArrowLineComp(line));
 	}
@@ -938,19 +1128,19 @@ MenuItem* OverlayKit::MakeBrushMenu() {
     
     mbi->menu()->append_item(kit.menu_item_separator());
     
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 false, false, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, false, false), MenuArrowLine(false, false));
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 true, false, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, true, false), MenuArrowLine(true, false));
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 false, true, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, false, true), MenuArrowLine(false, true));
-    line = new ArrowLine(0, 0, round(MENU_WIDTH*ivcm), 0,
+    line = new ArrowLine(0, 0, Math::round(MENU_WIDTH*ivcm), 0,
 			 true, true, 1., stdgraphic);
     ctrlInfo = new ControlInfo(new ArrowLineComp(line));
     MakeMenu(mbi, new ArrowCmd(ctrlInfo, true, true), MenuArrowLine(true, true));
@@ -974,8 +1164,8 @@ MenuItem* OverlayKit::MakePatternMenu() {
     
     while (pat != nil) {
 	ControlInfo* ctrlInfo;
-	IntCoord w = round(MENU_WIDTH*ivcm);
-	IntCoord h = round(MENU_HEIGHT*ivcm);
+	IntCoord w = Math::round(MENU_WIDTH*ivcm);
+	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
 	
 	if (pat->None()) {
 	    ctrlInfo = new ControlInfo("None");
@@ -1001,8 +1191,8 @@ MenuItem* OverlayKit::MakeFgColorMenu() {
     PSColor* color = catalog->ReadColor(fgAttrib, i);
     
     while (color != nil) {
-	IntCoord w = round(MENU_WIDTH*ivcm);
-	IntCoord h = round(MENU_HEIGHT*ivcm);
+	IntCoord w = Math::round(MENU_WIDTH*ivcm);
+	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
 	
 	SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
 	sfr->SetColors(color, color);
@@ -1032,18 +1222,22 @@ MenuItem* OverlayKit::MakeBgColorMenu() {
     
     while (color != nil) {
 	ControlInfo* ctrlInfo;
-	IntCoord w = round(MENU_WIDTH*ivcm);
-	IntCoord h = round(MENU_HEIGHT*ivcm);
-	
-	SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
-	sfr->SetColors(color, color);
-	MakeMenu(mbi, new ColorCmd(new ControlInfo(new RectOvComp(sfr), color->GetName()),
-			   nil, color),
+	IntCoord w = Math::round(MENU_WIDTH*ivcm);
+	IntCoord h = Math::round(MENU_HEIGHT*ivcm);
+
+	if (color->None()) {
+	  ctrlInfo = new ControlInfo("None");
+	} else {
+	  SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
+	  sfr->SetColors(color, color);
+	  ctrlInfo = new ControlInfo(new RectOvComp(sfr), color->GetName());
+	}
+	MakeMenu(mbi, new ColorCmd( ctrlInfo, nil, color),
 		 lk.hbox(MenuRect(color),
 			 kit.label("  "),
 			 kit.label(color->GetName()),
 			 lk.hglue())
-	     );
+		 );
 	color = catalog->ReadColor(bgAttrib, ++i);
     }
     
@@ -1117,6 +1311,10 @@ MenuItem* OverlayKit::MakeFrameMenu() {
 }
 
 MenuItem* OverlayKit::MakeViewMenu() {
+    /* for handling special keys */
+    char keystr[3];
+    keystr[2] = '\0';
+
     LayoutKit& lk = *LayoutKit::instance();
     WidgetKit& kit = *WidgetKit::instance();
     
@@ -1126,7 +1324,7 @@ MenuItem* OverlayKit::MakeViewMenu() {
     OvNewViewCmd::default_instance
       (new OvNewViewCmd
        (new ControlInfo("New View", KLBL_NEWVIEW, CODE_NEWVIEW), 
-       "localhost:0.0"));
+       "0.0"));
     MakeMenu(mbi, OvNewViewCmd::default_instance(), "New View   ");
 
     MakeMenu(mbi, new OvCloseEditorCmd(new ControlInfo("Close View",
@@ -1183,7 +1381,7 @@ MenuItem* OverlayKit::MakeViewMenu() {
     zoomi->menu(zoom);
     MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom In", "Z", "Z"), 2.0),
 	     "Zoom In          ");
-    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", ""), 0.5),
+    MakeMenu(zoomi, new ZoomCmd(new ControlInfo("Zoom Out", "^Z", "\032"), 0.5),
 	     "Zoom Out         ");
     MakeMenu(zoomi, new PreciseZoomCmd(new ControlInfo("Precise Zoom")),
 	     "Precise Zoom     ");
@@ -1192,22 +1390,28 @@ MenuItem* OverlayKit::MakeViewMenu() {
     MenuItem* spani = kit.menu_item(kit.label("Small Pan        "));
     Menu* span = kit.pullright();
     spani->menu(span);
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Up"), NO_PAN, PLUS_SMALL_PAN),
+    *(unsigned short*)keystr = XK_Up;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Up", "", keystr), NO_PAN, PLUS_SMALL_PAN),
 	     "Small Pan Up     ");
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Down"), NO_PAN, MINUS_SMALL_PAN),
+    *(unsigned short*)keystr = XK_Down;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Down", "", keystr), NO_PAN, MINUS_SMALL_PAN),
 	     "Small Pan Down   ");
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Left"), MINUS_SMALL_PAN, NO_PAN),
+    *(unsigned short*)keystr = XK_Left;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Left", "", keystr), MINUS_SMALL_PAN, NO_PAN),
 	     "Small Pan Left   ");
-    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Right"), PLUS_SMALL_PAN, NO_PAN),
+    *(unsigned short*)keystr = XK_Right;
+    MakeMenu(spani, new FixedPanCmd(new ControlInfo("Small Pan Right", "", keystr), PLUS_SMALL_PAN, NO_PAN),
 	     "Small Pan Right  ");
     mbi->menu()->append_item(spani);
 
     MenuItem* lpani = kit.menu_item(kit.label("Large Pan        "));
     Menu* lpan = kit.pullright();
     lpani->menu(lpan);
-    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Up"), NO_PAN, PLUS_LARGE_PAN),
+    *(unsigned short*)keystr = XK_Page_Up;
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Up", "PgUp", keystr), NO_PAN, PLUS_LARGE_PAN),
 	     "Large Pan Up     ");
-    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Down"), NO_PAN, MINUS_LARGE_PAN),
+    *(unsigned short*)keystr = XK_Page_Down;
+    MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Down", "PgDn", keystr), NO_PAN, MINUS_LARGE_PAN),
 	     "Large Pan Down   ");
     MakeMenu(lpani, new FixedPanCmd(new ControlInfo("Large Pan Left"), MINUS_LARGE_PAN, NO_PAN),
 	     "Large Pan Left   ");
@@ -1262,8 +1466,98 @@ MenuItem* OverlayKit::MakeViewMenu() {
 }
 
 
-MenuItem* OverlayKit::MakeToolsMenu() {
-    return nil;
+MenuItem * OverlayKit::MakeToolsMenu() {
+    LayoutKit& lk = *LayoutKit::instance();
+    WidgetKit& kit = *WidgetKit::instance();
+    
+    MenuItem *mbi = kit.menubar_item(kit.label("Tools"));
+    mbi->menu(kit.pulldown());
+
+    MenuItem* menu_item = kit.menu_item(kit.label("Extra Tools"));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar1));
+    mbi->menu()->append_item(menu_item);
+
+    menu_item = kit.menu_item(kit.label("Idraw Tools"));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::toolbar0));
+    mbi->menu()->append_item(menu_item);
+
+    menu_item = kit.menu_item(kit.label("Add Custom Tool"));
+    menu_item->action(new ActionCallback(OverlayKit)(this, &OverlayKit::add_custom_tool));
+    mbi->menu()->append_item(menu_item);
+
+    return mbi;
+}
+
+void OverlayKit::toolbar0() {
+    _toolbars->flip_to(0);
+    _ed->GetKeyMap()->Execute(CODE_SELECT);
+    _toolbar->redraw();
+}
+
+void OverlayKit::toolbar1() {
+    _toolbars->flip_to(1);
+    _ed->GetKeyMap()->Execute(CODE_SELECT);
+    _toolbar->redraw();
+}
+
+void OverlayKit::add_custom_tool() {
+    static OpenFileChooser* chooser = nil;
+    Editor* ed = GetEditor();
+    Style* style = new Style(Session::instance()->style());
+    if (!chooser) {
+      style->attribute("subcaption", "Open Idraw Icon For Tool Button:");
+      style->attribute("open", "Open");
+      chooser = new OpenFileChooser(".", WidgetKit::instance(), style);
+      Resource::ref(chooser);
+    }
+    boolean again;
+    boolean reset_caption = false;
+    const char* name = nil;
+    GraphicComp* comp = nil;
+    while (again = chooser->post_for(ed->GetWindow())) {
+      const String* str = chooser->selected();
+      NullTerminatedString ns(*str);
+      name = ns.string();
+      IdrawCatalog* catalog = (IdrawCatalog*)unidraw->GetCatalog();
+      boolean ok = true;
+      style->attribute("caption", "                     " );
+      chooser->twindow()->repair();
+      chooser->twindow()->display()->sync();
+      if (catalog->IdrawCatalog::Retrieve(name, (Component*&)comp)) {
+	break;
+      } else {
+	style->attribute("caption", "Open failed!" );
+	reset_caption = true;
+      }
+
+    }
+    chooser->unmap();
+    if (reset_caption) {
+	style->attribute("caption", "            ");
+    }
+    add_tool_button(name, (OverlayComp*)comp);
+}
+
+OverlayComp* OverlayKit::add_tool_button(const char* path, OverlayComp* comp) {
+    LayoutKit& layout = *LayoutKit::instance();
+    if (!comp) {
+      IdrawCatalog* catalog = (IdrawCatalog*)unidraw->GetCatalog();
+      catalog->IdrawCatalog::Retrieve(path, (Component*&)comp);
+    }
+    _toolbars->flip_to(1);
+    Glyph* newbutton = path&&comp ? IdrawReader::load(path) : nil;
+    if (newbutton) {
+      _toolbar_vbox[1]->append(MakeTool(new GraphicCompTool(new ControlInfo(comp, "", ""), comp),
+					layout.overlay(layout.hcenter(layout.hspace(_maxwidth)),
+						       layout.hcenter(newbutton)),
+					_tg, _ed->MouseDocObservable(), mouse_custom));
+    } else {
+      delete comp;
+      comp = nil;
+    }
+    _ed->GetKeyMap()->Execute(CODE_SELECT);
+    _toolbar->redraw();
+    return comp;
 }
 
 MenuItem * OverlayKit::MakeViewersMenu() {
@@ -1272,7 +1566,7 @@ MenuItem * OverlayKit::MakeViewersMenu() {
     AttributeList* edlaunchlist = _ed->edlauncherlist();
     AttributeList* comterplist = _ed->comterplist();
 
-    if (!edlaunchlist && !comterplist) return nil;
+    if (!edlaunchlist /* && !comterplist */) return nil;
     MenuItem *mbi = kit.menubar_item(kit.label("Editors"));
     mbi->menu(kit.pulldown());
 
@@ -1335,8 +1629,12 @@ void OverlayKit::AttrEdit(OverlayComp* comp) {
     WidgetKit& kit = *WidgetKit::instance();
     AttributeDialog* dlog = new AttributeDialog(comp, &kit, kit.style());
     dlog->ref();
+#if 0
     if (dlog->post_for(_ed->GetWindow()))
 	((ModifStatusVar*)_ed->GetState("ModifStatusVar"))->SetModifStatus(true);	
+#else
+    dlog->map_for(_ed->GetWindow());
+#endif
 }
 
 int OverlayKit::bintest(const char* command) {

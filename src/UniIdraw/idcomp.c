@@ -32,6 +32,8 @@
 #include <Unidraw/grid.h>
 #include <Unidraw/viewer.h>
 
+#include <OS/math.h>
+
 #include <stream.h>
 
 /*****************************************************************************/
@@ -103,8 +105,8 @@ void PSIdraw::GridSpacing (ostream& out) {
 }
 
 void PSIdraw::ConstProcs (ostream& out) {
-    int arrowWidth = round(ARROWWIDTH*ivpoints);
-    int arrowHeight = round(ARROWHEIGHT*ivpoints);
+    int arrowWidth = Math::round(ARROWWIDTH*ivpoints);
+    int arrowHeight = Math::round(ARROWHEIGHT*ivpoints);
 
     out << "/arrowHeight " << arrowHeight << " def\n";
     out << "/arrowWidth " << arrowWidth << " def\n\n";

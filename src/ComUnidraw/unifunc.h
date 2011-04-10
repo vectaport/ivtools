@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -29,7 +30,9 @@
 
 class Command;
 class ComTerp;
+class OverlayComp;
 class OvImportCmd;
+class OvSaveCompCmd;
 class OverlayCatalog;
 
 //: base class for interpreter commands in comdraw.
@@ -44,8 +47,6 @@ public:
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;
-
-static int _compview_id;
 
 };
 
@@ -70,16 +71,31 @@ public:
 };
 
 //: command to paste a graphic in comdraw.
-// paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"
+// compview=paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"
 class PasteFunc : public UnidrawFunc {
 public:
     PasteFunc(ComTerp*,Editor*,OverlayCatalog* = nil);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"; }
+	return "compview=%s(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"; }
 
 protected:
     OverlayCatalog* _catalog;
+};
+
+//: command for toggling or setting paste mode
+// val=paste([flag] :val) -- toggle or set paste mode, default is 0, always paste new graphics
+class PasteModeFunc : public UnidrawFunc {
+public:
+    PasteModeFunc(ComTerp*, Editor*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "val=%s([flag] :val) -- toggle or set paste mode, default is 0, always paste new graphics"; }
+    static int paste_mode() { return _paste_mode; }
+    static void paste_mode(int mode) { _paste_mode = mode; }
+ protected:
+    static int _paste_mode;
 };
 
 //: command to make a graphic read-only in comdraw.
@@ -93,17 +109,50 @@ public:
 
 };
 
-//: command to import a graphic file
-// import(pathname) -- import graphic file from pathname or URL.
-class ImportFunc : public UnidrawFunc {
+//: command to save document (to pathname)
+//error=save([path]) -- save editor document (to pathname). 
+class SaveFileFunc : public UnidrawFunc {
 public:
-    ImportFunc(ComTerp*,Editor*);
-    OvImportCmd* import(const char* path);
+    SaveFileFunc(ComTerp*,Editor*);
+    Command* save(const char* path);
     // helper method to import from path
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(pathname) -- import graphic file from pathname or URL"; }
+	return "error=%s([path]) -- save editor document (to pathname)"; }
 
+};
+
+//: command to import a graphic file
+// compview=import(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen
+// (:next imports next in numeric series).
+class ImportFunc : public UnidrawFunc {
+public:
+    ImportFunc(ComTerp*,Editor*);
+    OvImportCmd* import(const char* path, boolean popen=false);
+    // helper method to import from path
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen\n(:next imports next in numeric series)"; }
+
+};
+
+//: command to export a graphic file
+// export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- export in drawtool (or other) format "; 
+class ExportFunc : public UnidrawFunc {
+public:
+  ExportFunc(ComTerp* c, Editor* e, const char* appname=nil);
+  virtual ~ExportFunc() { delete _docstring; }
+  virtual void execute();
+  virtual const char* docstring();
+  const char* appname() { return _appname ? _appname : "drawtool"; }
+  void appname(const char* name) 
+    { _appname = name; delete _docstring; _docstring=nil;}
+
+ protected:
+  void compout(OverlayComp*, ostream*);
+
+  const char* _appname;
+  char* _docstring;
 };
 
 //: command to set attributes on a graphic
@@ -117,4 +166,82 @@ public:
 
 };
 
+//: command to composite component for a frame, defaults to current
+// compview=frame([index]) -- return composite component for a frame, defaults to current
+class FrameFunc : public UnidrawFunc {
+public:
+    FrameFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s([index]) --  return composite component for a frame, defaults to current"; }
+
+};
+
+//: command to pause script execution until C/R
+// pause -- pause script execution until C/R
+class UnidrawPauseFunc : public UnidrawFunc {
+public:
+    UnidrawPauseFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "pause -- pause script execution until C/R"; }
+
+};
+
+//: command to add button to custom toolbar
+// compview=addtool(pathname) -- add button to toolbar based on zero-centered idraw drawing.
+class AddToolButtonFunc : public UnidrawFunc {
+public:
+    AddToolButtonFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(pathname) -- add button to toolbar based on zero-centered idraw drawing."; }
+
+};
+
+//: command to convert from screen to drawing coordinates
+// dx,dy=stod(sx,sy) -- convert from screen to drawing coordinates
+class ScreenToDrawingFunc : public UnidrawFunc {
+public:
+    ScreenToDrawingFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "dx,dy=%s(sx,sy) -- convert from screen to drawing coordinates."; }
+
+};
+
+//: command to convert from drawing to screen coordinates
+// sx,sy=dtos(dx,dy) -- convert from drawing to screen coordinates
+class DrawingToScreenFunc : public UnidrawFunc {
+public:
+    DrawingToScreenFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "sx,sy=%s(dx,dy) -- convert from drawing to screen coordinates."; }
+
+};
+
+//: command to convert from graphic to drawing coordinates
+// dx,dy=gtod(compview gx,gy) -- convert from graphic to drawing coordinates
+class GraphicToDrawingFunc : public UnidrawFunc {
+public:
+    GraphicToDrawingFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "dx,dy=%s(compview gx,gy) -- convert from graphic to drawing coordinates."; }
+
+};
+
+//: command to convert from drawing to graphic coordinates
+// gx,gy=dtog(compview dx,dy) -- convert from drawing to graphic coordinates
+class DrawingToGraphicFunc : public UnidrawFunc {
+public:
+    DrawingToGraphicFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "gx,gy=%s(compview dx,dy) -- convert from drawing to graphic coordinates."; }
+
+};
+
 #endif /* !defined(_unifunc_h) */
+

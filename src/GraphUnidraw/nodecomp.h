@@ -42,8 +42,7 @@ class SF_Ellipse;
 class TextGraphic;
 class TopoNode;
 class Viewer;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: node component
 // component for a node in an edge-node directed graph.  Default appearance
@@ -138,6 +137,8 @@ protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);
     static ParamList* _node_params;
+
+    CLASS_SYMID("NodeComp");
 };
 
 inline void NodeComp::SetGraph(GraphComp* comp) { _graph = comp; }

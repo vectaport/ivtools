@@ -394,7 +394,7 @@ void PadGraphic::draw (Canvas* c, Graphic* gs) {
     if (!gs->GetBrush()->None()) {
         update(gs);
         _p->Rect(c, _l, _b, _r, _t);
-#if __GNUC__>=2 && __GNUC_MINOR__>=5
+#if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
         _p->Line(c, _l, _b, _r, _t);
         _p->Line(c, _l, _t, _r, _b);

@@ -78,7 +78,7 @@
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
-#include <strstream.h>
+#include <strstream>
 
 FullGraphic* NodeView::_nv_gs = nil;
 
@@ -103,6 +103,7 @@ static char* octal(unsigned char c, register char* p) {
 /*****************************************************************************/
 
 ParamList* NodeComp::_node_params = nil;
+int NodeComp::_symid = -1;
 
 NodeComp::NodeComp(SF_Ellipse* ellipse, TextGraphic* txt, boolean rl, OverlayComp* parent) 
     : OverlayComp(nil, parent)
@@ -115,7 +116,7 @@ NodeComp::NodeComp(SF_Ellipse* ellipse, TextGraphic* txt, boolean rl, OverlayCom
     SetGraphic(pic);
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled());
+    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
     pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
     pic->SetPattern(ellipse->GetPattern());
     pic->SetBrush(ellipse->GetBrush());
@@ -137,7 +138,7 @@ NodeComp::NodeComp(SF_Ellipse* ellipse, TextGraphic* txt, SF_Ellipse* ellipse2,
 
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled());
+    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
     pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
     pic->SetPattern(ellipse->GetPattern());
     pic->SetBrush(ellipse->GetBrush());
@@ -174,7 +175,7 @@ NodeComp::NodeComp(GraphComp* graph)
 
     // kludge to fix ps: fonts are collected from comp\'s graphic, so we
     // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled());
+    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
     pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
     pic->SetPattern(ellipse->GetPattern());
     pic->SetBrush(ellipse->GetBrush());
@@ -601,11 +602,11 @@ void NodeComp::update(Observable*) {
 	GetComTerp();
       boolean old_brief = comterp->brief();
       comterp->brief(true);
-      ostrstream outstr;
+      std::ostrstream outstr;
       NodeComp* node;
       int incnt = 1;
       while (node = NodeIn(incnt)) {
-	outstr.form("in%d=", incnt);
+	out_form(outstr, "in%d=", incnt);
 	AttributeValue* av = node->FindValue(val_symid);
 	if (av) {
 	  ComValue inval(*av);
@@ -812,7 +813,7 @@ Manipulator* NodeView::CreateManipulator(Viewer* v, Event& e, Transformer* rel,
     Manipulator* m = nil;
     Coord l, r, b, t;
     Editor* ed = v->GetEditor();
-    int tabWidth = round(.5*ivinch);
+    int tabWidth = Math::round(.5*ivinch);
 
     if (tool->IsA(GRAPHIC_COMP_TOOL)) {
 	if (!((NodeComp*)GetGraphicComp())->RequireLabel()) {
@@ -890,7 +891,7 @@ Manipulator* NodeView::CreateManipulator(Viewer* v, Event& e, Transformer* rel,
 	painter->SetColors(textgr->GetFgColor(), nil);
         painter->SetTransformer(rel);
         Unref(rel);
-	int tabWidth = round(.5*ivinch);
+	int tabWidth = Math::round(.5*ivinch);
 
         m = new TextManip(
             v, text, size, xpos, ypos, painter, lineHt, tabWidth, tool
@@ -940,6 +941,7 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 	    else if (patVar != nil)
 		ellipse->SetPattern(patVar->GetPattern());
 	    if (colVar != nil) {
+	        ellipse->FillBg(!colVar->GetBgColor()->None());
 		ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
 	    }
 
@@ -978,6 +980,7 @@ Command* NodeView::InterpretManipulator(Manipulator* m) {
 		else if (patVar != nil)
 		    ellipse->SetPattern(patVar->GetPattern());
 		if (colVar != nil) {
+		    ellipse->FillBg(!colVar->GetBgColor()->None());
 		    ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
 		}
 

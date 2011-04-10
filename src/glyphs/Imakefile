@@ -9,11 +9,11 @@ SUBDIRS = \
 	formdemo \
 	gclock \
 	meter \
+	morpher \
 	radiogroup \
 	scrollable \
 	scrollfield \
 	strchooser \
-	text-editor \
 	timestamp \
 	examples3.1
 

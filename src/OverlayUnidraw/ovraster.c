@@ -65,6 +65,7 @@
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xraster.h>
 #include <IV-X11/xcolor.h>
+#include <OS/math.h>
 #include <OS/memory.h>
 
 #include <Attribute/attrlist.h>
@@ -90,6 +91,8 @@ static char hexcharmap[] = {
 };
 
 /*****************************************************************************/
+
+int RasterOvComp::_symid = -1;
 
 static ostream& operator<<(ostream& out, const CopyStringList& sl) {
     for (ListItr(CopyStringList) i(sl); i.more(); i.next()) {
@@ -124,13 +127,13 @@ Component* RasterOvComp::Copy () {
 RasterOvComp::RasterOvComp (OverlayRasterRect* s, const char* pathname, 
 OverlayComp* parent) : OverlayComp(s, parent), _com_exp("") {
     _pathname = (pathname == nil) ? nil : strdup(pathname);
-    _by_pathname = pathname ? true : false;
+    if(pathname) _import_flags |= bypath_mask;
 }
 
 RasterOvComp::RasterOvComp(istream& in, OverlayComp* parent) 
 : OverlayComp(nil, parent), _com_exp("") {
     _pathname = nil;
-    _by_pathname = false;
+    _import_flags = 0x0;
     _valid = GetParamList()->read_args(in, this);
 
     // update the size of the raster 
@@ -153,7 +156,7 @@ ParamList* RasterOvComp::GetParamList() {
 }
 
 void RasterOvComp::GrowParamList(ParamList* pl) {
-    pl->add_param("by pathname", ParamStruct::optional, &RasterScript::ReadRaster,
+    pl->add_param("pathname", ParamStruct::optional, &RasterScript::ReadRaster,
 		  this, this);
     pl->add_param("rgb", ParamStruct::keyword, &RasterScript::ReadRGB,
 		  this, this);
@@ -174,6 +177,9 @@ void RasterOvComp::GrowParamList(ParamList* pl) {
     pl->add_param("grayfloat", ParamStruct::keyword, &RasterScript::ReadGrayFloat,
 		  this, this);
     pl->add_param("graydouble", ParamStruct::keyword, &RasterScript::ReadGrayDouble,
+		  this, this);
+
+    pl->add_param("alpha", ParamStruct::keyword, &RasterScript::ReadAlpha,
 		  this, this);
 
     pl->add_param("proc", ParamStruct::keyword, &RasterScript::ReadProcess,
@@ -327,10 +333,8 @@ Graphic* RasterOvView::GetGraphic () {
     if (graphic == nil) {
         OverlayRasterRect* rr = GetRasterOvComp()->GetOverlayRasterRect();
 
-        OverlayRaster* r = rr->GetOverlayRaster();
-        OverlayRaster* or = rr->GetOverlayRaster();
-	graphic = or ? (new OverlayRasterRect(or, rr)) :
-            (new OverlayRasterRect(r, rr));
+        OverlayRaster* r = rr ? rr->GetOverlayRaster() : nil;
+	graphic = r ? new OverlayRasterRect(r, rr) : nil;
 
         SetGraphic(graphic);
     }
@@ -360,8 +364,8 @@ boolean RasterPS::Definition (ostream& out) {
     Coord w = raster->Width();
     Coord h = raster->Height();
 
-    if (((OvPrintCmd*)GetCommand())->idraw_format()) {
-
+    if (idraw_format()) {
+      
 	out << "Begin " << MARK << " " << "Rast\n";
 	Transformation(out);
 
@@ -468,8 +472,9 @@ boolean RasterScript::Definition (ostream& out) {
     OverlayRasterRect* rr = comp->GetOverlayRasterRect();
     OverlayRaster* raster = (OverlayRaster*)rr->GetOriginal();
 
-    out << "raster(";
-
+    out << (GetFromCommandFlag() && GetByPathnameFlag() && comp->GetPathName()
+	    ? "ovfile(:popen " : "raster(");
+    
     if (GetByPathnameFlag() && comp->GetPathName()){
       out << "\"" << comp->GetPathName() << "\"";
 
@@ -518,6 +523,8 @@ boolean RasterScript::Definition (ostream& out) {
 	out << ":rgb ";
       raster->write(out);
     }
+
+    if (rr->alphaval() != 1.0) out << " :alpha " << rr->alphaval();
 
     if (rr->xbeg()>=0 || rr->xend()>=0 || rr->ybeg()>=0 || rr->yend()>=0)
         out << " :sub " <<
@@ -578,7 +585,8 @@ int RasterScript::ReadRaster (istream& in, void* addr1, void* addr2, void* addr3
     } else if (!urlflag && strcmp(creator, "PPM") == 0) {
 	ovraster = OvImportCmd::PPM_Raster(pathname, delayed);
     } else if (!urlflag && 
-	       (strcmp(creator, "JPEG") == 0 || strcmp(creator, "GIF")==0)) {
+	       (strcmp(creator, "JPEG") == 0 || strcmp(creator, "GIF")==0 ||
+		strcmp(creator, "PNG")==0)) {
       OvImportCmd importcmd((Editor*)nil);
       OverlayComp* tempcomp = (OverlayComp*)importcmd.Import(pathname);
       if (tempcomp && tempcomp->IsA(OVRASTER_COMP)) {
@@ -864,6 +872,23 @@ int RasterScript::ReadSub (istream& in, void* addr1, void* addr2, void* addr3, v
 }
 
 
+int RasterScript::ReadAlpha (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    RasterOvComp* comp = (RasterOvComp*)addr1;
+    float alpha;
+    OverlayRasterRect* gr = comp ? (OverlayRasterRect*) comp->GetGraphic() : nil;
+ 
+    ParamList::skip_space(in);
+    in >> alpha;
+    if (!in.good()) {
+        return -1;
+    }
+    else {
+        if (gr) gr->alphaval(alpha);
+        return 0;
+    }
+}
+
+
 int RasterScript::ReadProcess (
     istream& in, void* addr1, void*, void*, void*
 ) {
@@ -885,6 +910,11 @@ boolean RasterScript::GetByPathnameFlag() {
     return comp->GetByPathnameFlag() && ((OverlayScript*)GetParent())->GetByPathnameFlag();
 }
 
+boolean RasterScript::GetFromCommandFlag() {
+    RasterOvComp* comp = (RasterOvComp*) GetSubject();
+    return comp->GetFromCommandFlag();
+}
+
 /*****************************************************************************/
 
 OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect(r, gr) {
@@ -895,9 +925,28 @@ OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect
 #endif
     _xbeg = _xend = _ybeg = _yend = -1;
     _damage_done = 0;
+    _clippts = nil;
+    _alphaval = 1.0;
 }
 
-OverlayRasterRect::~OverlayRasterRect () {}
+OverlayRasterRect::~OverlayRasterRect () { Unref(_clippts);}
+
+void OverlayRasterRect::clippts(MultiLineObj* pts) {
+  _clippts = pts;
+  Resource::ref(_clippts);
+}
+
+void OverlayRasterRect::clippts(int* x, int* y, int n) {
+  Resource::unref(_clippts);
+  if (x && y) {
+    _clippts = MultiLineObj::make_pts(x, y, n);
+    Resource::ref(_clippts);
+  }
+}
+
+MultiLineObj* OverlayRasterRect::clippts() {
+  return _clippts;
+}
 
 Graphic* OverlayRasterRect::Copy () {
     OverlayRasterRect* new_rr;
@@ -907,6 +956,8 @@ Graphic* OverlayRasterRect::Copy () {
     new_rr->xend(_xend);
     new_rr->ybeg(_ybeg);
     new_rr->yend(_yend);
+    new_rr->clippts(_clippts);
+    new_rr->alphaval(_alphaval);
     return new_rr;
 }
 
@@ -1010,6 +1061,12 @@ OverlayRasterRect& OverlayRasterRect::operator = (OverlayRasterRect& rect) {
     Unref(_raster);
     _raster = rect._raster;
     Resource::ref(_raster);
+
+    Unref(_clippts);
+    _clippts = rect._clippts;
+    Resource::ref(_clippts);
+
+    _alphaval = rect.alphaval();
 
     return *this;
 }
@@ -1326,6 +1383,7 @@ void OverlayRaster::graypeek(unsigned long x, unsigned long y, AttributeValue& v
   float rval, gval, bval, aval;
   peek(x, y, rval, gval, bval, aval);
   val.double_ref() = (double) (gval*(float)0xff); 
+  val.type(AttributeValue::DoubleType);
 }
 
 void OverlayRaster::graypoke(unsigned long x, unsigned long y, unsigned int i)
@@ -1664,8 +1722,8 @@ void OverlayRaster::scale(
     RasterRep* rp = rep();
     float fmin = mingray * 0xff;
     float fmax = maxgray * 0xff;
-    int min = round(fmin);
-    int max = round(fmax);
+    int min = Math::round(fmin);
+    int max = Math::round(fmax);
 
     float ratio = ((fmax - fmin) == 0) ? 0. : (0xff / (max - min));
 
@@ -1679,7 +1737,7 @@ void OverlayRaster::scale(
             graypeek(w, h, byte);
             if (byte < min) byte = min;
             if (byte > max) byte = max;
-            unsigned int newval = round((byte - min) * ratio);
+            unsigned int newval = Math::round((byte - min) * ratio);
             graypoke(w, h, newval);
         }
     }
@@ -1725,9 +1783,9 @@ OverlayRaster* OverlayRaster::pseudocolor(
 	    newr = grayfract < 0.5 ? 0.0 : (grayfract-.5)*2;
 	    newg = grayfract < 0.5 ? grayfract*2 : 1.0 - (grayfract-.5)*2;
 	    newb = grayfract < 0.5 ? 1.0 - (grayfract-.5)*2 : 0.0;
-	    newr = max(0.0, newr);
-	    newg = max(0.0, newg);
-	    newb = max(0.0, newb);
+	    newr = max((float)0.0, newr);
+	    newg = max((float)0.0, newg);
+	    newb = max((float)0.0, newb);
 #endif
 
 	    color->poke(w, h, newr, newg, newb, 1.0);
@@ -1742,8 +1800,8 @@ void OverlayRaster::logscale
 {
   int n = 255;
   int min, max;
-  min = round(mingray * 0xff);
-  max = round(maxgray * 0xff);
+  min = Math::round(mingray * 0xff);
+  max = Math::round(maxgray * 0xff);
 
   RasterRep* rp = rep();
   unsigned int width = rp->pwidth_;

@@ -96,8 +96,9 @@ inline Coord FontBoundingBox::descent() const { return descent_; }
 inline Coord FontBoundingBox::font_ascent() const { return font_ascent_; }
 inline Coord FontBoundingBox::font_descent() const { return font_descent_; }
 
-//: InterViews font class.
-// <a href=../refman3.1/refman.html#PAGE39>in reference manual</a>
+//: a font object
+// defines a mapping between character codes and their appearance on the screen.
+// <p><a href=../refman3.1/refman.html#PAGE39>in reference manual</a>
 class Font : public Resource {
 public:
     Font(const String&, float scale = 1.0);

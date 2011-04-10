@@ -27,6 +27,7 @@
 
 #include <ComUtil/comterp.err>
 #include <ComUtil/util.h>
+#include <ctype.h>
 #include <stdio.h>
 
 /* ================================================================== */

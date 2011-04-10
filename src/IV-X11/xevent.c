@@ -41,6 +41,7 @@
 #include <IV-X11/xwindow.h>
 #include <X11/keysymdef.h>
 #include <string.h>
+#include <stdio.h>
 
 event_tracker_ptr Event::_event_tracker = nil;
 
@@ -358,6 +359,18 @@ unsigned int Event::mapkey(char* buf, unsigned int len) const {
 		buf[i] |= 0200;
 	    }
 	}
+
+	
+#if 0 /* determined this would be better done in Editor::keystroke */
+	if (!n) {
+	  KeySym ks = XKeycodeToKeysym(rep()->display_->rep()->display_, xe.xkey.keycode, 0);
+	  if (ks) {
+	    strncpy(buf, (const char*)&ks, 2);
+	    n = 2;
+	  }
+	}
+#endif
+
     }
     return n;
 }

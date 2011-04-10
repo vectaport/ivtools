@@ -29,7 +29,9 @@
 
 #include <Unidraw/globals.h>
 
+#ifndef UnidrawCommon
 class Command;
+#endif
 class Component;
 class Iterator;
 
@@ -38,8 +40,10 @@ class Iterator;
 class ComponentView {
 public:
     virtual void Update();
+#ifndef UnidrawCommon
     virtual void Interpret(Command*);
     virtual void Uninterpret(Command*);
+#endif
     virtual ComponentView* GetParent();
 
     virtual void First(Iterator&);

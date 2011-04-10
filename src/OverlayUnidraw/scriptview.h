@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 1994-1997,1999 Vectaport Inc.
+ * Copyright (C) 2002 Scott E. Johnston
+ * Copyright (C) 1994-1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided
@@ -33,8 +34,7 @@ class Clipboard;
 class OverlayComp;
 class OverlaysComp;
 class OverlayIdrawComp;
-class istream;
-class ostream;
+#include <iosfwd>
 
 //: serialized view of OverlayComp.
 // the OverlayScript class hierarchy is a tree of ExternView classes
@@ -159,9 +159,22 @@ public:
     static boolean skip_comp(istream& in);
     // skip the text for the current component while de-serializing.
 
+    static boolean ptlist_parens() { return _ptlist_parens; }
+    // get flag that indicates putting parens around pointlist's
+
+    static void ptlist_parens(boolean flag) { _ptlist_parens = flag; }
+    // set flag that indicates putting parens around pointlist's
+
+    boolean svg_format(); 
+    // true if exporting SVG
+    void svg_format(boolean); 
+    // set flag for exporting SVG
+    // can be overridden by flag associated with Command objects
+
 protected:
     virtual void FillBg(ostream& out);
     virtual void Brush(ostream& out);
+    virtual void Colors(ostream& out);
     virtual void FgColor(ostream& out);
     virtual void BgColor(ostream& out);
     virtual void Font(ostream& out);
@@ -178,6 +191,9 @@ protected:
     virtual void SetParent(ComponentView* child, ComponentView* parent);
 
     OverlayScript* _parent;
+
+    static boolean _ptlist_parens;
+    static boolean _svg_format;
 };
 
 //: composite version of OverlayScript.
@@ -281,6 +297,9 @@ public:
     // return pointer to list of point lists that are stored in components.
     virtual Clipboard* GetPicList();
     // return pointer to list of composite graphics that are stored in components.
+
+    virtual boolean EmitSvg(ostream&);
+    // serialize entire document to ostream in SVG format.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);

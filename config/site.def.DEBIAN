@@ -3,7 +3,7 @@
   to other Linux distributions too. So it's ok to include this file anyhow 
 */
 
-#define maj 0
+#define maj 1
 
 #undef PSFontDir
 #define PSFontDir /usr/lib/ghostscript/fonts

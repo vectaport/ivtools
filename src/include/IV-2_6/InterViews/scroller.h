@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: general scrolling interface (iv-2.6)
+// <a href=../man3.1/Scroller.html>man page</a>
 class Scroller : public Interactor {
 protected:
     Interactor* interactor;

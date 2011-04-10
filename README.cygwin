@@ -1,0 +1,62 @@
+Steps to building ivtools on Windows NT using Cygwin and X11R6.4:
+
+1. Download and install Cygwin from:
+
+http://sourceware.cygnus.com/cygwin/
+
+Use "less" for more.  Use "type" for "which". Make a \bin (/bin) if
+necessary, and place a copy of sh.exe from the Cygwin distribrution
+there.  Now you can launch a window with a bash shell by using the
+cygnus.bat provided with Cygwin.
+
+There is a very useful FAQ for Cygwin you may want to look at as well:
+
+http://sourceware.cygnus.com/cygwin/faq/
+
+2. Download and install Xlib binaries for X11R6.4 from:
+
+http://dao.gsfc.nasa.gov/software/grads/win32/X11R6.4/
+
+Unpack in /usr (\usr) using the cygwin tar.  Modify the cygnus.bat
+that came with Cygwin to include the directory /usr/X11R6.4/bin in the
+PATH environment variable.
+
+3. (optional) Download and install an emacs binary (for Windows NT)
+from www.fsf.org.
+
+4. Download ivtools-1.0.tgz or later:
+
+http://www.ivtools.org/pub/src/ivtools-1.0.tgz
+
+In a cygwin/bash window:
+
+	tar xvfz ivtools-1.0.tgz  	# unpack and move to top directory
+        cd ivtools-1.0
+
+	./configure		# configure for CYGWIN environment
+	make World		# make Makefile/Makefiles/depend/-k	
+	make install            # may have trouble if directories
+				# don't pre-exist. You can ignore
+				# some of the error messages.	
+
+At this point you should be able to verify that compiling and linking
+worked by executing the test program for the interpreter portion of
+ivtools:
+
+	ivtools-1.0/src/comterp_/CYGWIN/a.out
+
+Type help to see information on available commands.
+
+5. (optional) Then type these commands if you want a few extra small
+utilities that are used for over the network drawing editor import.
+They need to be built and installed by hand with the current Makefile
+setup.
+
+	cd src/utils		# workaround for a Makefile incompatibility
+        make ivtmpnam;cd CYGWIN; install -c -m 755 ivtmpnam.exe /usr/local/bin
+        make stdcmapppm;cd CYGWIN; install -c -m 755 stdcmapppm.exe /usr/local/bin
+
+6. acquire an X server for Windows NT, and try things out.
+
+September 1999, Vectaport Inc. (instructions not actually verified for
+1.0, let me know if they work)

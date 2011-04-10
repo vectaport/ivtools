@@ -61,6 +61,8 @@
 
 /*****************************************************************************/
 
+int EllipseOvComp::_symid = -1;
+
 ParamList* EllipseOvComp::_ovellipse_params = nil;
 
 ClassId EllipseOvComp::GetClassId () { return OVELLIPSE_COMP; }
@@ -194,6 +196,7 @@ Command* EllipseOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) ellipse->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        ellipse->FillBg(!colVar->GetBgColor()->None());
                 ellipse->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             ellipse->SetTransformer(rel);

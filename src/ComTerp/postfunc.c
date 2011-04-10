@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -21,15 +22,21 @@
  * 
  */
 
-#include <ComTerp/postfunc.h>
 #include <ComTerp/comhandler.h>
+
+#include <ComTerp/postfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <OS/math.h>
+
 #include <iostream.h>
+#if __GNUC__>=3
+#include <fstream.h>
+#endif
 
 #define TITLE "PostFunc"
 
@@ -40,12 +47,17 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
+#if __GNUC__<3
   filebuf fbuf;
   if (comterp()->handler()) {
-    int fd = max(1, comterp()->handler()->get_handle());
+    int fd = Math::max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
   } else
     fbuf.attach(fileno(stdout));
+#else
+  fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+#endif
   ostream out(&fbuf);
  
   boolean oldbrief = comterp()->brief();
@@ -68,7 +80,7 @@ void PostFixFunc::execute() {
       out << "{" << val.narg() << "|" << val.nkey() << "}";
     else if (val.is_type(AttributeValue::KeywordType))
       out << "(" << val.keynarg_val() << ")";
-    out << " ";
+    out << ((i+1>topptr) ? "\n" : " ");
   }
   comterp()->brief(oldbrief);
   reset_stack();
@@ -131,7 +143,11 @@ void ForFunc::execute() {
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
-    bodyexpr = new ComValue(stack_key_post_eval(body_symid));
+    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval(), true));
+    if (keybody.is_unknown() && nargsfixed()>= 4)
+      bodyexpr = new ComValue(stack_arg_post_eval(3));
+    else
+      bodyexpr = new ComValue(keybody);
     ComValue nextexpr(stack_arg_post_eval(2));
   }
   reset_stack();
@@ -150,18 +166,24 @@ WhileFunc::WhileFunc(ComTerp* comterp) : ComFunc(comterp) {
 void WhileFunc::execute() {
   static int body_symid = symbol_add("body");
   static int until_symid = symbol_add("until");
+  static int nilchk_symid = symbol_add("nilchk");
   ComValue untilflag(stack_key_post_eval(until_symid));
+  ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
   ComValue* bodyexpr = nil;
   while (1) {
     if (untilflag.is_false()) {
       ComValue doneexpr(stack_arg_post_eval(0));
-      if (doneexpr.is_false()) break;
+      if (nilchkflag.is_false() ? doneexpr.is_false() : doneexpr.is_unknown()) break;
     }
     delete bodyexpr;
-    bodyexpr = new ComValue(stack_key_post_eval(body_symid));
+    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval(), true));
+    if (keybody.is_unknown() && nargsfixed()>= 2)
+      bodyexpr = new ComValue(stack_arg_post_eval(1));
+    else
+      bodyexpr = new ComValue(keybody);
     if (untilflag.is_true()) {
       ComValue doneexpr(stack_arg_post_eval(0));
-      if (doneexpr.is_true()) break;
+      if (nilchkflag.is_false() ? doneexpr.is_true() : doneexpr.is_unknown()) break;
     }
   }
   reset_stack();
@@ -170,5 +192,17 @@ void WhileFunc::execute() {
     delete bodyexpr;
   } else 
     push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SeqFunc::execute() {
+    ComValue arg1(stack_arg_post_eval(0));
+    ComValue arg2(stack_arg_post_eval(1));
+    reset_stack();
+    push_stack(arg2);
 }
 

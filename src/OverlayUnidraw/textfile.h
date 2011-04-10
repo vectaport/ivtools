@@ -64,7 +64,9 @@ protected:
     char* _endstr;
     int _linewidth;
 
-friend TextFileScript;
+friend class TextFileScript;
+
+    CLASS_SYMID("TextFileComp");
 };
 
 //: graphical view of a TextOvComp.

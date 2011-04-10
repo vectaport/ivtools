@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -60,7 +61,7 @@ public:
 
 //: text drawing command for comdraw.
 // compview=text(x0,y0 textstr) -- create a text string
-class CreateTextFunc : public UnidrawFunc {  // doesn\'t work
+class CreateTextFunc : public UnidrawFunc { 
 public:
     CreateTextFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -110,6 +111,16 @@ public:
 	return "compview=%s(x0,y0[,x1,y1,...]) -- create a closed spline"; }
 };
 
+//: raster creation command for comdraw.
+// compview=raster(x0,y0,x1,y1) -- create an empty raster
+class CreateRasterFunc : public UnidrawFunc {
+public:
+    CreateRasterFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(x0,y0,x1,y1) -- create an empty raster"; }
+};
+
 //: command for setting font state variable in comdraw.
 // font(fontnum) -- set current font from menu order
 class FontFunc : public UnidrawFunc {
@@ -118,6 +129,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(fontnum) -- set current font from menu order"; }
+};
+
+//: command for setting font state variable by  font name in comdraw.
+// fontbyname(fontname) -- set current font by name
+class FontByNameFunc : public UnidrawFunc {
+ public:
+  FontByNameFunc(ComTerp*,Editor*);
+  virtual void execute();
+  virtual const char* docstring() {
+    return "%s(fontname) -- set current font by X font name"; }
 };
 
 //: command for setting brush state variable in comdraw.
@@ -150,14 +171,35 @@ public:
 	return "%s(fgcolornum bgcolornum) -- set current colors from menu order"; }
 };
 
+//:comand for setting color state variables by RGB name in comdraw.
+// colors(fgcolorname bgcolorname). The colorname format is "#RRGGBB"
+class ColorRgbFunc : public UnidrawFunc {
+ public:
+  ColorRgbFunc(ComTerp*,Editor*);
+  virtual void execute();
+  virtual const char* docstring() {
+    return "%s(fgcolorname bgcolorname) -- set current colors by RGB name.\nThe colorname format is \"#RGB\" for 4 bits, \"#RRGGBB\" for 8 bits,\n\"#RRRGGGBBB\" for 12 bits,\"#RRRRGGGGBBBB\" for 16 bits"; }
+};
+
 //: command to select graphics in comdraw.
-// select(compview [compview ...]) -- make these graphics the current selection
+// select([compview ...] :all :clear) -- make these graphics the current selection, 
+// default returns current selection.
 class SelectFunc : public UnidrawFunc {
 public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(compview [compview ...]) -- make these graphics the current selection"; }
+	return "%s([compview ...] :all :clear) -- make these graphics the current selection (dflt is current)"; }
+};
+
+//: command to delete graphics in comdraw.
+// delete(compview [compview ...]) -- delete graphic(s)
+class DeleteFunc : public UnidrawFunc {
+public:
+    DeleteFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([compview ...]) -- delete graphic(s)"; }
 };
 
 //: command to move current selection in comdraw

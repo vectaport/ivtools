@@ -59,8 +59,19 @@ public:
     // of a tree of components or not.
 
     OverlayComp* GetOverlayComp();
+
+    virtual void Creator(ostream&);
+    // output idraw as creator
+
+    boolean idraw_format(); 
+    // true if exporting idraw EPS
+    void idraw_format(boolean); 
+    // set flag for exporting idraw EPS
+    // can be overridden by flag associated with Command objects
+
 protected:
     OverlayPS(OverlayComp* = nil);
+    static boolean _idraw_format;
 
     Command* _command;
 };
@@ -112,7 +123,6 @@ public:
 protected:
 
     virtual void MiscProcs(ostream&);
-    virtual void Creator(ostream&);
     virtual void ArrowHeader(ostream&);
     virtual void ConstProcs(ostream&);
     virtual void GridSpacing(ostream&);

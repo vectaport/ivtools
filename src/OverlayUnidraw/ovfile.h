@@ -58,11 +58,24 @@ public:
     OverlayIdrawComp* GetIdrawComp();
     // return point to underlying top-level component.
     virtual boolean operator == (OverlayComp&);
+
+
+    void SetPopenFlag(boolean flg) { _popenflg = flg; }
+    // set flag that indicates whether to read from command pipe.
+    boolean GetPopenFlag() { return _popenflg; }
+    // get flag that indicates whether to read from command pipe.
+
+    virtual void AdjustBaseDir(const char* oldpath, const char* newpath);
+    // adjust base directory used for generating pathnames for this component,
+    // done when a document is saved to a new location.
 protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);
     static ParamList* _overlay_file_params;
     char * _pathname;
+    boolean _popenflg;
+
+    CLASS_SYMID("OverlayFileComp");
 };
 
 //: graphical view of OverlayFileComp.

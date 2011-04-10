@@ -39,6 +39,7 @@
 #include <Unidraw/Graphic/picture.h>
 #include <Attribute/attrlist.h>
 #include <iostream.h>
+#include <string.h>
 
 /*****************************************************************************/
 

@@ -32,7 +32,7 @@
 #include <InterViews/_undefs.h>
 #include <InterViews/_defines.h>
 
-#ifdef iv2_6_compatible
+#if defined(iv2_6_compatible)&&!defined(iv2_6_incompatible)
 #include <IV-2_6/_enter.h>
 #endif
 

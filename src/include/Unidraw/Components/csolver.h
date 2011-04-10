@@ -37,9 +37,10 @@ class ConnInfo;
 class Connector;
 class CSolverState;
 
-class istream;
-class ostream;
+#include <iosfwd>
 
+//: connector constraint solver
+// <a href=../man3.1/CSolver.html>man page</a>
 class CSolver {
 public:
     CSolver();

@@ -1,4 +1,6 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -26,6 +28,7 @@
 
 #include <stdlib.h>
 #include <OS/enter-scope.h>
+#include <Attribute/classid.h>
 
 extern "C" {
     int symbol_add(char*);
@@ -35,7 +38,15 @@ extern "C" {
 }
 
 class AttributeValueList;
-class ostream;
+
+#include <iosfwd>
+
+//: struct for symbol value, symid + global flag for symbol value
+// used in attr_value.
+typedef struct {
+       unsigned int symid;
+       boolean globalflag;
+} symval_struct;
 
 //: void* pointer plus object classid (see macro in OverlayUnidraw/ovcomps.h)
 // used in attr_value.
@@ -50,6 +61,13 @@ typedef struct {
   AttributeValueList *ptr;
   unsigned int type;
 } arrayval_struct;
+
+//: void* pointer to ComFunc object plus optional type id
+// used in attr_value.
+typedef struct {
+       void *funcptr;
+       AttributeValueList *listptr;
+} streamval_struct;
 
 //: keyword symbol id, plus number of arguments that follow.
 // used in attr_value.
@@ -71,9 +89,10 @@ typedef union attr_value_union
       unsigned long     lnunsval;
       float             floatval;
       double            doublval;
-      unsigned int      symbolid;
+      symval_struct     symval;
       objval_struct     objval;
       arrayval_struct   arrayval;
+      streamval_struct  streamval;
       keyval_struct     keyval;
 } attr_value;
 
@@ -85,7 +104,9 @@ public:
     enum ValueType { UnknownType, CharType, UCharType, ShortType, UShortType, 
 		     IntType, UIntType, LongType, ULongType, FloatType, DoubleType, 
                      StringType, SymbolType, ArrayType, StreamType, CommandType, KeywordType, 
-                     ObjectType, EofType, BooleanType, OperatorType, BlankType };
+                     ObjectType, EofType, BooleanType, OperatorType, BlankType,
+		     ListType = ArrayType
+};
     // enum for attribute value types.
 
     AttributeValue(ValueType type);
@@ -94,40 +115,47 @@ public:
     // construct with specified type and value struct.
     AttributeValue(AttributeValue&);
     // copy constructor.
+    AttributeValue(AttributeValue*);
+    // deep copy constructor.
     AttributeValue();
     // default constructor (UnknownType constructor).
 
-    AttributeValue(char);
+    AttributeValue(char val);
     // CharType constructor.
-    AttributeValue(unsigned char);
+    AttributeValue(unsigned char val);
     // UCharType constructor.
-    AttributeValue(short);
+    AttributeValue(short val);
     // ShortType constructor.
-    AttributeValue(unsigned short);
+    AttributeValue(unsigned short val);
     // UShortType constructor.
-    AttributeValue(int, ValueType);
+    AttributeValue(int val, ValueType type);
     // IntType constructor or any other int-like value.
-    AttributeValue(unsigned int, ValueType);
+    AttributeValue(unsigned int val, ValueType type);
     // UIntType constructor or any other unsigned-int-like value including SymbolType.
-    AttributeValue(unsigned int, unsigned int, ValueType=KeywordType);
+    AttributeValue(unsigned int keysym, unsigned int narg, ValueType=KeywordType);
     // KeywordType constructor (or can be used for ObjectType).
-    AttributeValue(long);
+    AttributeValue(long val);
     // LongType constructor.
-    AttributeValue(unsigned long);
+    AttributeValue(unsigned long val);
     // ULongType constructor.
-    AttributeValue(float);
+    AttributeValue(float val);
     // FloatType constructor.
     AttributeValue(double);
     // DoubleType constructor.
-    AttributeValue(int class_symid, void*);
+    AttributeValue(int class_symid, void* objptr);
     // ObjectType constructor.
-    AttributeValue(AttributeValueList*);
-    // ArrayType constructor.
-    AttributeValue(const char*);
+    AttributeValue(AttributeValueList* listptr);
+    // ArrayType/ListType constructor.
+    AttributeValue(void* comfunc, AttributeValueList* vallist);
+    // StreamType constructor.
+    AttributeValue(const char* val);
     // StringType constructor.
 
     virtual ~AttributeValue();
-    // set to UnknownType and unref pointer if ArrayType.
+    // set to UnknownType and unref pointer if ArrayType/ListType or StreamType.
+
+    void clear(); 
+    // clear bytes of multi-value union
 
     AttributeValue& operator= (const AttributeValue&);
     // copy assignment operator.
@@ -136,12 +164,15 @@ public:
     // return type enum.
     void type(ValueType);
     // set type enum.
-    ValueType aggregate_type() const;
-    // set type used for aggregate values (ArrayType, StreamType).
     int type_size() { return type_size(type()); }
     // return sizeof of value of this type.
     static int type_size(ValueType);
     // return sizeof of value of given type.
+    int type_symid() const;
+    // return symbol id corresponding to type
+
+    void assignval (const AttributeValue&);
+    // copy contents of AttributeValue
 
     char& char_ref();                 // char by reference.
     unsigned char& uchar_ref();       // unsigned char by reference.
@@ -160,6 +191,8 @@ public:
     unsigned int& obj_type_ref();     // classid of object by reference.
     AttributeValueList*& array_ref(); // values in list by reference.
     unsigned int& array_type_ref();   // type of values in list by reference
+    AttributeValueList*& list_ref();  // values in list by reference.
+    unsigned int& list_type_ref();    // type of values in list by reference
     unsigned int& keyid_ref();        // symbol id of keyword by reference.
     unsigned int& keynarg_ref();      // number of arguments after keyword by reference.
 
@@ -178,22 +211,50 @@ public:
     unsigned int symbol_val();	      // symbol id by value.                        
     void* obj_val();		      // void* pointer to object by value.          
     unsigned int obj_type_val();      // classid of object by value.                
+    unsigned int& class_symid();       // classid of object by value.                
     AttributeValueList* array_val();  // values in list by value.                   
     unsigned int array_type_val();    // type of values in list by value            
+    AttributeValueList* list_val();   // values in list by value.                   
+    unsigned int list_type_val();     // type of values in list by value            
     unsigned int keyid_val();	      // symbol id of keyword by value.             
     unsigned int keynarg_val();	      // number of arguments after keyword by value.
 
     const char* string_ptr();
     // lookup and return pointer to string associated with string.
     const char* symbol_ptr();
-    // lookup and return pointer to string associated with symbol.
+    boolean global_flag();
+    // return true if a symbol and the global flag is set.
+    void global_flag(boolean flag);
+    // set global flag of a symbol
     int array_len();
-    // length of list of values when ArrayType.
+    // length of list of values when ArrayType/ListType.
+    int list_len();
+    // length of list of values when ArrayType/ListType.
 
-    unsigned int command_symid();
+    int command_symid();
     // symbol id of associated command name, for use with ComTerp.
-    void command_symid(unsigned int);
+    void command_symid(int, boolean alias=false);
     // set symbol id of associated command name, for use with ComTerp.
+    boolean command_alias();
+    // returns true if command is an alias, not the first name.
+
+    boolean object_compview() { return is_object() && _object_compview; }
+    // true if object is wrapped with a ComponentView
+    void object_compview(boolean flag) { _object_compview = flag; }
+    // true if object is wrapped with a ComponentView
+
+    int stream_mode();
+    // 0 = disabled, negative = internal, positive = external
+    void stream_mode(int mode) { if (is_stream()) _stream_mode = mode; }
+    // 0 = disabled, negative = internal, positive = external
+    void* stream_func() { return is_stream() ? _v.streamval.funcptr : nil; }
+    // return function pointer associated with stream object
+    void stream_func(void* func) { if (is_stream()) _v.streamval.funcptr = func; }
+    // set function pointer associated with stream object
+    AttributeValueList* stream_list() { return is_stream() ? _v.streamval.listptr : nil; }
+    // return pointer to AttributeValueList associated with stream object
+    void stream_list(AttributeValueList* list); 
+    // set pointer to AttributeValueList associated with stream object
 
     void negate();
     // negate numeric values.
@@ -228,7 +289,13 @@ public:
     // same as AttributeValue::is_num().
 
     boolean is_array() { return is_type(ArrayType); }
-    // returns true if ArrayType.
+    // returns true if ArrayType/ListType.
+    boolean is_list() { return is_type(ArrayType); }
+    // returns true if ArrayType/ListType.
+    boolean is_stream() { return is_type(StreamType); }
+    // returns true if StreamType.
+    boolean is_key() { return is_type(KeywordType); }
+    // returns true if KeywordType.
     boolean is_unknown() { return is_type(UnknownType); }
     // returns true if UnknownType.
     boolean is_null() { return is_unknown(); }
@@ -239,10 +306,15 @@ public:
     // returns true if !UnknownType.
     boolean is_string() { return is_type(StringType) || is_type(SymbolType); }
     // returns true if StringType || SymbolType.
+    boolean is_symbol() { return is_type(SymbolType); }
+    // returns true if SymbolType.
     boolean is_command() { return is_type(CommandType); }
     // returns true if CommandType (for use of ComTerp).
     boolean is_object() { return is_type(ObjectType); }
     // returns true if ObjectType.
+    boolean is_object(int class_symid) { return is_type(ObjectType) &&
+					   this->class_symid() == class_symid; }
+    // returns true if ObjectType and matching class_symid.
 
     static boolean is_char(ValueType t) 
       { return t==CharType || t==UCharType; }
@@ -264,6 +336,19 @@ public:
     static boolean is_num(ValueType t)
       { return is_integer(t) || is_floatingpoint(t); }
 
+    boolean is_blank() { return is_type(BlankType); }
+    // returns true if BlankType.
+    static boolean is_blank(ValueType t)
+      { return t==BlankType; };
+
+    boolean is_attributelist();
+    // returns true if ObjectType with an AttributeList object.
+    boolean is_attribute();
+    // returns true if ObjectType with an Attribute object.
+
+    void* geta(int type); 
+    // return a pointer if ObjectType matches
+
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.
 
@@ -271,12 +356,22 @@ public:
     // returns void* pointer to value struct.
 
 protected:
+
+    void ref_as_needed();
+    // increment ref counters as needed
+    void unref_as_needed();
+    // decrement ref counters as needed
+    void dup_as_needed();
+    // duplicate lists then increment ref counters as needed
+
     ValueType _type;
     attr_value _v;
     union { 
-      ValueType _aggregate_type; // used for ArrayType.
-      unsigned int _command_symid; // used for CommandType.
+      int _command_symid; // used for CommandType.
+      boolean _object_compview; // used for ObjectType.
+      int _stream_mode; // used for StreamType
     };
+    static int* _type_syms;
 
 };
 

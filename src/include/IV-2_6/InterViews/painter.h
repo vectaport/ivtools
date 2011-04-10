@@ -47,6 +47,8 @@ class Transformer;
 class Bitmap;
 class Raster;
 
+//: graphics rendering interface (iv-2.6)
+// <a href=../man3.1/Painter.html>man page</a>
 class Painter : public Resource {
 public:
     Painter();

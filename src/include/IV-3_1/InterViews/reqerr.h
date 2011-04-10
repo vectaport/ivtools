@@ -33,6 +33,8 @@
 
 #include <InterViews/_enter.h>
 
+//: Handling errors from window server.
+// <a href=../man3.1/Reqerr.html>man page</a>
 class ReqErr {
 public:
     unsigned long msgid;

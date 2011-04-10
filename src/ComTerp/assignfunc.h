@@ -34,13 +34,16 @@ class AssignFunc : public ComFunc {
 public:
     AssignFunc(ComTerp*);
 
+    virtual boolean post_eval() { return true; }
     virtual void execute();
     virtual const char* docstring() { 
       return "= is the assigment operator"; }
+
+    CLASS_SYMID("AssignFunc");
 };
 
 //: %= (mod assign) operator .
-class ModAssignFunc : public ModFunc {
+class ModAssignFunc : public AssignFunc {
 public:
     ModAssignFunc(ComTerp*);
 
@@ -50,7 +53,7 @@ public:
 };
 
 //: *= (multiply assign) operator .
-class MpyAssignFunc : public MpyFunc {
+class MpyAssignFunc : public AssignFunc {
 public:
     MpyAssignFunc(ComTerp*);
 
@@ -60,7 +63,7 @@ public:
 };
 
 //: *= (add assign) operator .
-class AddAssignFunc : public AddFunc {
+class AddAssignFunc : public AssignFunc {
 public:
     AddAssignFunc(ComTerp*);
 
@@ -70,7 +73,7 @@ public:
 };
 
 //: += (subtract assign) operator .
-class SubAssignFunc : public SubFunc {
+class SubAssignFunc : public AssignFunc {
 public:
     SubAssignFunc(ComTerp*);
 
@@ -80,7 +83,7 @@ public:
 };
 
 //: /= (divide assign) operator .
-class DivAssignFunc : public DivFunc {
+class DivAssignFunc : public AssignFunc {
 public:
     DivAssignFunc(ComTerp*);
 
@@ -90,7 +93,7 @@ public:
 };
 
 //: ++(increment before) operator.
-class IncrFunc : public AddFunc {
+class IncrFunc : public AssignFunc {
 public:
     IncrFunc(ComTerp*);
 
@@ -100,7 +103,7 @@ public:
 };
 
 //: (increment after)++  operator.
-class IncrAfterFunc : public AddFunc {
+class IncrAfterFunc : public AssignFunc {
 public:
     IncrAfterFunc(ComTerp*);
 
@@ -110,7 +113,7 @@ public:
 };
 
 //: --(decrement before)  operator.
-class DecrFunc : public SubFunc {
+class DecrFunc : public AssignFunc {
 public:
     DecrFunc(ComTerp*);
 
@@ -120,7 +123,7 @@ public:
 };
 
 //: (decrement after)--  operator.
-class DecrAfterFunc : public SubFunc {
+class DecrAfterFunc : public AssignFunc {
 public:
     DecrAfterFunc(ComTerp*);
 

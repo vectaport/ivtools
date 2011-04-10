@@ -186,7 +186,14 @@ boolean Raster::init_shared_memory() {
     XDisplay* dpy = dr->display_;
 
     int i;
-    shared_memory = XShmQueryVersion(dpy, &i, &i, &i) ? true : false; 
+    shared_memory = XShmQueryExtension(dpy) ? true : false; 
+    boolean pixmaps;
+    int *major, *minor;
+    if (shared_memory) {
+      int major, minor, pixmaps;
+      XShmQueryVersion(dpy, &major, &minor, &pixmaps);
+      shared_memory = pixmaps;
+    }
 
     if (shared_memory) {
         image = XShmCreateImage(
@@ -219,7 +226,7 @@ boolean Raster::init_shared_memory() {
                 image->data = nil;
                 XDestroyImage(image);
                 image = nil;
-                XShmDetach(dpy, &shminfo);
+                // XShmDetach(dpy, &shminfo);
                 XSync(dpy, False); // necessary?
                 shmdt(shminfo.shmaddr);
                 shmctl(shminfo.shmid, IPC_RMID, 0);
@@ -326,6 +333,7 @@ void Raster::flush() const {
 	r->modified_ = false;
     }
 }
+
 
 void Raster::flushrect(IntCoord left, IntCoord bottom, 
 		       IntCoord right, IntCoord top) const {

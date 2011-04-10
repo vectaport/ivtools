@@ -15,10 +15,16 @@
 // Jan Andersson, Torpa Konsult AB
 // janne@torpa.se - 1993-08-29
 
+#if defined(sun) && !defined(solaris) && __GNUC__==2 && !defined(__GNUC_MINOR__)
+#define _GCC_SIZE_T /* workaround for _G_size_t conflict */
+#endif
+
 #include <stdio.h>
 #include <fcntl.h> 
 #include <sys/stat.h>
+extern "C" {
 #include <malloc.h>
+}
 
 #include <InterViews/regexp.h>
 
@@ -26,6 +32,7 @@
 #include <OS/memory.h>
 #include <OS/string.h>
 
+#include <ctype.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -114,8 +121,8 @@ void EivTextBuffer ::expand_buffer(int count)
       count * (1 + allocate_extra),
       size * allocate_extra));;
    // re-allocate
-   printf("EivTextBuffer::allocating more memory\n");
-   printf("\t add:%d bytes\n", add_size);
+   // printf("EivTextBuffer::allocating more memory\n");
+   // printf("\t add:%d bytes\n", add_size);
    char* buffer = (char *)realloc(text, size + add_size);
    if (buffer == nil)
       return;			// quitely ???

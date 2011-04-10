@@ -23,8 +23,9 @@
 */
 
 #include "thrower.h"
+#include <stdlib.h>
 
-// Yes this is utterly simple, but can be revised for more sofisticated
+// Yes this is utterly simple, but can be revised for more sophisticated
 // error handling without editing all of the other files involved in 
 // the downloader program.        
 

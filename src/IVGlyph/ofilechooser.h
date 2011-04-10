@@ -116,7 +116,10 @@ public:
     TransientWindow* twindow();
     virtual void updatecaption();
 
+    static boolean url_use_ok();
+    // test if url use ok for pathnames.  Same as ParamList method.
     static boolean urltest(const char*);
+    // test if pathname looks like a URL. Same as ParamList method.
 
     static int bintest(const char* name);
     // return 0 if executable can be found, otherwise -1.

@@ -36,6 +36,8 @@
 class Connector;
 class Line;
 
+//: link component
+// <a href=../man3.1/LinkComp.html>man page</a>
 class LinkComp : public GraphicComp {
 public:
     LinkComp(Line* = nil);

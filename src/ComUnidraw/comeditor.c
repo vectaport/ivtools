@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -21,10 +22,17 @@
  * 
  */
 
+#include <ComUnidraw/grdotfunc.h>
 #include <ComUnidraw/grfunc.h>
+#include <ComUnidraw/grlistfunc.h>
+#include <ComUnidraw/groupfunc.h>
+#include <ComUnidraw/grstatfunc.h>
+#include <ComUnidraw/highlightfunc.h>
 #include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/comterp-iohandler.h>
+#include <ComUnidraw/dialogfunc.h>
 #include <ComUnidraw/nfunc.h>
+#include <ComUnidraw/pixelfunc.h>
 #include <ComUnidraw/plotfunc.h>
 
 #include <ComTerp/ctrlfunc.h>
@@ -33,6 +41,7 @@
 
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcomps.h>
+#include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/scriptview.h>
 
 #include <Unidraw/catalog.h>
@@ -49,7 +58,8 @@
 
 #include <Attribute/attrlist.h>
 
-#include <strstream.h>
+#include <strstream>
+#include <string.h>
 
 /*****************************************************************************/
 
@@ -87,6 +97,7 @@ ComEditor::ComEditor(boolean initflag, OverlayKit* kit)
 void ComEditor::Init (OverlayComp* comp, const char* name) {
     if (!comp) comp = new OverlayIdrawComp;
     _terp = new ComTerpServ();
+    ((OverlayUnidraw*)unidraw)->comterp(_terp);
     AddCommands(_terp);
     char buffer[BUFSIZ];
     sprintf(buffer, "Comdraw%d", ncomterp());
@@ -98,11 +109,13 @@ void ComEditor::Init (OverlayComp* comp, const char* name) {
 void ComEditor::InitCommands() {
     if (!_terp) 
       _terp = new ComTerpServ();
-    const char* comdraw_off_str = unidraw->GetCatalog()->GetAttribute("comdraw_off");
+      const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
+#ifndef HAVE_ACE
     if ((!comterplist() || comterplist()->Number()==1) &&
-	(comdraw_off_str ? strcmp(comdraw_off_str, "false")==0 : true))
+	(stdin_off_str ? strcmp(stdin_off_str, "false")==0 : true))
       _terp_iohandler = new ComTerpIOHandler(_terp, stdin);
     else
+#endif
       _terp_iohandler = nil;
 #if 0
     _terp->add_defaults();
@@ -125,12 +138,19 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("arrowspline", new CreateOpenSplineFunc(comterp, this));
     comterp->add_command("polygon", new CreatePolygonFunc(comterp, this));
     comterp->add_command("closedspline", new CreateClosedSplineFunc(comterp, this));
+    comterp->add_command("raster", new CreateRasterFunc(comterp, this));
+    comterp->add_command("pixmap", new CreateRasterFunc(comterp, this));
+
+    comterp->add_command("center", new CenterFunc(comterp, this));
+    comterp->add_command("mbr", new MbrFunc(comterp, this));
+    comterp->add_command("points", new PointsFunc(comterp, this));
 
     comterp->add_command("font", new FontFunc(comterp, this));
     comterp->add_command("brush", new BrushFunc(comterp, this));
     comterp->add_command("pattern", new PatternFunc(comterp, this));
     comterp->add_command("colors", new ColorFunc(comterp, this));
-
+    comterp->add_command("fontbyname", new FontByNameFunc(comterp, this));
+    comterp->add_command("colorsrgb", new ColorRgbFunc(comterp, this));
     comterp->add_command("nfonts", new NFontsFunc(comterp, this));
     comterp->add_command("nbrushes", new NBrushesFunc(comterp, this));
     comterp->add_command("npatterns", new NPatternsFunc(comterp, this));
@@ -139,6 +159,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("setattr", new SetAttrFunc(comterp, this));
 
     comterp->add_command("select", new SelectFunc(comterp, this));
+    comterp->add_command("delete", new DeleteFunc(comterp, this));
     comterp->add_command("move", new MoveFunc(comterp, this));
     comterp->add_command("scale", new ScaleFunc(comterp, this));
     comterp->add_command("rotate", new RotateFunc(comterp, this));
@@ -167,14 +188,57 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     if (OverlayKit::bincheck("plotmtv"))
       comterp->add_command("barplot", new BarPlotFunc(comterp, this));
 
+    comterp->add_command("save", new SaveFileFunc(comterp, this));
     comterp->add_command("import", new ImportFunc(comterp, this));
+    comterp->add_command("export", new ExportFunc(comterp, this));
+
+    comterp->add_command("dot", new GrDotFunc(comterp));
+    comterp->add_command("attrlist", new GrAttrListFunc(comterp));
+    comterp->add_command("at", new GrListAtFunc(comterp));
+    comterp->add_command("size", new GrListSizeFunc(comterp));
+
+    comterp->add_command("acknowledgebox", new AcknowledgeBoxFunc(comterp, this));
+    comterp->add_command("confirmbox", new ConfirmBoxFunc(comterp, this));
+
+    comterp->add_command("highlight", new HighlightFunc(comterp, this));
+    comterp->add_command("frame", new FrameFunc(comterp, this));
+
+    comterp->add_command("growgroup", new GrowGroupFunc(comterp, this));
+    comterp->add_command("trimgroup", new TrimGroupFunc(comterp, this));
+
+    comterp->add_command("pause", new UnidrawPauseFunc(comterp, this));
+
+    comterp->add_command("paste", new PasteFunc(comterp, this));
+    comterp->add_command("pastemode", new PasteModeFunc(comterp, this));
+    comterp->add_command("addtool", new AddToolButtonFunc(comterp, this));
+
+    comterp->add_command("dtos", new DrawingToScreenFunc(comterp, this));
+    comterp->add_command("stod", new ScreenToDrawingFunc(comterp, this));
+    comterp->add_command("dtog", new DrawingToGraphicFunc(comterp, this));
+    comterp->add_command("gtod", new GraphicToDrawingFunc(comterp, this));
+
+    comterp->add_command("poke", new PixelPokeFunc(comterp, this));
+    comterp->add_command("peek", new PixelPeekFunc(comterp, this));
+    comterp->add_command("pokeline", new PixelPokeLineFunc(comterp, this));
+    comterp->add_command("pcols", new PixelColsFunc(comterp, this));
+    comterp->add_command("prows", new PixelRowsFunc(comterp, this));
+    comterp->add_command("pflush", new PixelFlushFunc(comterp, this));
+    comterp->add_command("pclip", new PixelClipFunc(comterp, this));
+    comterp->add_command("alpha", new AlphaTransFunc(comterp, this));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {
   if(!whiteboard()) 
+
+    /* normal Unidraw command execution */
     OverlayEditor::ExecuteCmd(cmd);
+
   else {
-    ostrstream sbuf;
+
+    /* indirect command execution, all by script */
+    std::ostrstream sbuf;
+    boolean oldflag = OverlayScript::ptlist_parens();
+    OverlayScript::ptlist_parens(false);
     switch (cmd->GetClassId()) {
     case PASTE_CMD:
       {
@@ -203,7 +267,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
       if (!scripted)
 	sbuf << "print(\"Failed attempt to generate script for a PASTE_CMD\\n\" :err)";
       sbuf.put('\0');
-      cerr << sbuf.str() << "\n";
+      cout << sbuf.str() << "\n";
+      cout.flush();
       GetComTerp()->run(sbuf.str());
       delete cmd;
       }
@@ -218,6 +283,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
       }
       break;
     }
+    OverlayScript::ptlist_parens(oldflag);
   }
 }
 

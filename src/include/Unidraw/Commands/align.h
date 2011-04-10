@@ -33,6 +33,8 @@
 class GraphicComp;
 class GraphicView;
 
+//: align command
+// <a href=../man3.1/align.html>man page</a>
 class AlignCmd : public Command {
 public:
     AlignCmd(ControlInfo*, Alignment = Left, Alignment = Left);
@@ -50,6 +52,8 @@ protected:
     Alignment _align1, _align2;
 };
 
+//: align-to-grid command
+// <a href=../man3.1/align.html>man page</a>
 class AlignToGridCmd : public Command {
 public:
     AlignToGridCmd(ControlInfo*);

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 Vectaport Inc, IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
@@ -39,6 +40,7 @@
 #include <OverlayUnidraw/ovviewer.h>
 
 #include <IVGlyph/observables.h>
+#include <IVGlyph/textedit.h>
 
 #include <UniIdraw/idcmds.h>
 #include <UniIdraw/idkybd.h>
@@ -70,10 +72,14 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <OS/math.h>
+
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+implementActionCallback(OverlayEditor)
 
 /*****************************************************************************/
 
@@ -90,7 +96,7 @@ inline void InsertSeparator (PulldownMenu* pdm) {
 inline PulldownMenu* MakePulldown (const char* name) {
     return new PulldownMenu(
         new HBox(
-            new Message(name, Center, round(.1*ivcm)),
+            new Message(name, Center, Math::round(.1*ivcm)),
             new HGlue(0, 5*strlen(name), 0)
         )
     );
@@ -100,7 +106,6 @@ inline PulldownMenu* MakePulldown (const char* name) {
 
 AttributeList* OverlayEditor::_edlauncherlist = nil;
 AttributeList* OverlayEditor::_comterplist = nil;
-
 
 OverlayEditor::OverlayEditor (OverlayComp* comp, OverlayKit* ok) : IdrawEditor(false) {
     _viewer = nil;
@@ -127,7 +132,11 @@ OverlayEditor::OverlayEditor (const char* file, OverlayKit* ok) : IdrawEditor(fa
 	    Init(comp);
 
 	} else {
-	    Init();
+	    OverlayIdrawComp* comp = new OverlayIdrawComp;
+	    comp->SetPathName(file);
+	    catalog->Register(comp, file);
+	    Init(comp, file);
+	    
 	    fprintf(stderr, "drawtool: couldn't open %s\n", file);
 	}
     }
@@ -138,6 +147,7 @@ OverlayEditor::OverlayEditor (boolean initflag, OverlayKit* ok) : IdrawEditor(in
     ok->SetEditor(this);
     _overlay_kit = ok;
     _mousedoc = new ObservableText("");
+    _texteditor = nil;
 }
 
 OverlayEditor::~OverlayEditor() {
@@ -145,6 +155,7 @@ OverlayEditor::~OverlayEditor() {
 }
 
 void OverlayEditor::Init (OverlayComp* comp, const char* name) {
+    _texteditor = nil;
     if (!comp) comp = new OverlayIdrawComp;
     _overlay_kit->Init(comp, name);
 }
@@ -165,7 +176,7 @@ void OverlayEditor::Update () {
 Interactor* OverlayEditor::Interior () {
     HBorder* hborder = new HBorder;
     VBorder* vborder = new VBorder;
-    int gap = round(.1*ivcm);
+    int gap = Math::round(.1*ivcm);
 
     HBox* indicators = new HBox(
         new ArrowVarView(_arrows, _brush, _color),
@@ -378,10 +389,25 @@ void OverlayEditor::ResetStateVars() {
 }
 
 /* virtual */ void OverlayEditor::ExecuteCmd(Command* cmd) {
-  cmd->Execute();
-  if (cmd->Reversible()) {
-    cmd->Log();
-  } else {
-    delete cmd;
-  }
+  unidraw->ExecuteCmd(cmd);
 }
+
+void OverlayEditor::SetText() {
+    GraphicComp* comp = GetFrame()->GetGraphicComp();
+    ((OverlayComp*)comp)->SetAnnotation(TextEditor()->text());
+    ((ModifStatusVar*)GetState("ModifStatusVar"))->SetModifStatus(true);
+}
+
+void OverlayEditor::ClearText() {
+    _texteditor->text("");
+}
+
+void OverlayEditor::UpdateText(OverlayComp* comp, boolean update) {
+    if (_texteditor) {
+	const char* txt = comp->GetAnnotation();
+	if (!txt)
+	    txt = "";
+	_texteditor->text(txt, update);
+    }
+}
+

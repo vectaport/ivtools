@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994,1995,1999 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999,2000 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -45,13 +45,16 @@ public:
 };
 
 //: + (plus) operator.
+// adds numerics and matrices, and concatenating strings
 class AddFunc : public NumFunc {
 public:
     AddFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "+ is the add operator"; }
+      return "+ is the add operator for numerics and matrices, and the concatenation operator for strings"; }
+
+    AttributeValueList* matrix_add(AttributeValueList*, AttributeValueList*);
 
 };
 
@@ -77,13 +80,16 @@ public:
 };
 
 //: * (multiply) operator.
+// multiplies numerics and matrices
 class MpyFunc : public NumFunc {
 public:
     MpyFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "* is the multiply operator"; }
+      return "* is the multiply operator for numerics and matrices"; }
+
+    AttributeValueList* matrix_mpy(AttributeValueList*, AttributeValueList*);
 
 };
 
@@ -142,6 +148,42 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "n=%s(a) -- return absolute value of a"; }
+
+};
+
+//: floor command for ComTerp.
+// num=floor(num) -- return closest integer value less than or equal to argument
+class FloorFunc : public NumFunc {
+public:
+    FloorFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "num=%s(num) -- return closest integer value less than or equal to argument"; }
+
+};
+
+//: ceiling command for ComTerp.
+// num=ceil(num) -- return closest integer value greater than or equal to argument
+class CeilFunc : public NumFunc {
+public:
+    CeilFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "num=%s(num) -- return closest integer value greater than or equal to argument"; }
+
+};
+
+//: ceiling command for ComTerp.
+// num=round(num) -- return closest integer value
+class RoundFunc : public NumFunc {
+public:
+    RoundFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "num=%s(num) -- return closest integer value"; }
 
 };
 

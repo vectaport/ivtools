@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001 Scott E. Johnston
  * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -41,6 +42,8 @@
 #include <IV-2_6/_enter.h>
 
 /*****************************************************************************/
+
+int AttributeList::_symid = -1;
 
 AttributeList::AttributeList (AttributeList* s) {
     _alist = new AList;
@@ -99,7 +102,7 @@ int AttributeList::add_attr(Attribute* attr) {
     ALIterator i;
     for (First(i); !Done(i); Next(i)) {
 	Attribute* old_attr = GetAttr(i);
-	if (attr->SymbolId() == old_attr->SymbolId()) {
+	if (old_attr && attr->SymbolId() == old_attr->SymbolId()) {
 	    old_attr->Value(attr->Value());
 	    return -1;
 	}
@@ -113,6 +116,16 @@ Attribute* AttributeList::GetAttr (const char* n) {
     for (First(i); !Done(i); Next(i)) {
 	Attribute* attr = GetAttr(i);
 	if (strcmp(n, attr->Name()) == 0)
+	    return attr;
+    }
+    return nil;
+}
+
+Attribute* AttributeList::GetAttr (int symid) {
+    ALIterator i;
+    for (First(i); !Done(i); Next(i)) {
+	Attribute* attr = GetAttr(i);
+	if (symid == attr->SymbolId())
 	    return attr;
     }
     return nil;
@@ -204,10 +217,10 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
 	        out << "\"" << string << "\"";
 	        break;
 	    case AttributeValue::CharType:
-	        out << attrval->char_ref();
+	        out << "'" << attrval->char_ref() << "'";
 	        break;
 	    case AttributeValue::UCharType:
-	        out << attrval->char_ref();
+	        out << "'" << attrval->char_ref() << "'";
 	        break;
 	    case AttributeValue::IntType:
 	        out << attrval->int_ref();
@@ -251,13 +264,13 @@ AttributeValue* AttributeList::find(const char* name) {
     return find(id);
 }
 
-AttributeValue* AttributeList::find(int id) {
-    if (id==-1)
+AttributeValue* AttributeList::find(int symid) {
+    if (symid==-1)
         return nil;
     ALIterator i;
     for (First(i); !Done(i); Next(i)) {
 	Attribute* attr = GetAttr(i);
-	if (attr->SymbolId() == id) {
+	if (attr->SymbolId() == symid) {
 	    return attr->Value();
 	}
     }
@@ -266,11 +279,20 @@ AttributeValue* AttributeList::find(int id) {
 
 AttributeList* AttributeList::merge(AttributeList* al) {
   if (al) {
-    Iterator it;
+    ALIterator it;
     for( al->First(it); !al->Done(it); al->Next(it)) 
       add_attribute(new Attribute(*al->GetAttr(it)));
   }
   return this;
+}
+
+void AttributeList::clear() {
+  ALIterator it;
+  for( First(it); !Done(it); ) {
+    Attribute* attr = GetAttr(it);
+    Remove(it);
+    delete attr;
+  }
 }
 
 /*****************************************************************************/
@@ -282,9 +304,10 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
         ALIterator i;
 
         for (s->First(i); !s->Done(i); s->Next(i)) {
-	    Append(s->GetAttrVal(i));
+	    Append(new AttributeValue(s->GetAttrVal(i)));
 	}
     }
+    _nested_insert = false;
 }
 
 AttributeValueList::~AttributeValueList () { 
@@ -366,7 +389,7 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 
     AttributeValueList* attrlist = (AttributeValueList*)&al;
     ALIterator i;
-    for (attrlist->First(i); !attrlist->Done(i); attrlist->Next(i)) {
+    for (attrlist->First(i); !attrlist->Done(i);) {
 	AttributeValue* attrval = attrlist->GetAttrVal(i);
 
 	char* string;
@@ -406,8 +429,21 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 		out << "Unknown type";
 	        break;
 	}
+
+	attrlist->Next(i);
+	if (!attrlist->Done(i))  out << ",";
+	
     }
     return out;
 }
 
+
+void AttributeValueList::clear() {
+  ALIterator it;
+  for( First(it); !Done(it); ) {
+    AttributeValue* av = GetAttrVal(it);
+    Remove(it);
+    delete av;
+  }
+}
 

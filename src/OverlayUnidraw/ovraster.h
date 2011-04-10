@@ -50,7 +50,7 @@ class OvImportCmd;
 class OverlayRaster;
 class OverlayRasterRect;
 class RasterScript;
-class istream;
+#include <iosfwd>
 
 //: alignment of gray-level ramp when embbeded in a OverlayRaster.
 enum RampAlignment { R_LB, R_LT, R_TL, R_TR, R_RT, R_RB, R_BR, R_BL };
@@ -72,10 +72,18 @@ public:
     // set pathname associated with raster.
     virtual const char* GetPathName();
     // return pathname associated with raster.
-    virtual boolean GetByPathnameFlag() { return _by_pathname;}
+    virtual boolean GetByPathnameFlag() { return _import_flags & bypath_mask;}
     // return flag that indicates whether component will be serialized
     // by data or by pathname.
-    virtual void SetByPathnameFlag(boolean flag) { _by_pathname = flag;}
+    virtual void SetByPathnameFlag(boolean flag) 
+      { _import_flags = flag ? _import_flags |= bypath_mask : _import_flags &= ~bypath_mask;}
+    // set flag that indicates whether component will be serialized
+    // by data or by pathname.
+    virtual boolean GetFromCommandFlag() { return _import_flags & fromcomm_mask;}
+    // return flag that indicates whether component will be serialized
+    // by data or by pathname.
+    virtual void SetFromCommandFlag(boolean flag) 
+      { _import_flags = flag ? _import_flags |= fromcomm_mask : _import_flags &= ~fromcomm_mask;}
     // set flag that indicates whether component will be serialized
     // by data or by pathname.
 
@@ -105,7 +113,7 @@ protected:
     static ParamList* _ovraster_params;
 
     char* _pathname;
-    boolean _by_pathname;
+    int _import_flags;
 
     CopyStringList _commands;    
     CopyString _com_exp;
@@ -113,7 +121,9 @@ protected:
     static boolean _use_gray_raster;
     static boolean _warned;
 
-friend RasterScript;
+friend class RasterScript;
+
+    CLASS_SYMID("RasterComp");
 };
 
 //: graphical view of RasterOvComp.
@@ -179,6 +189,8 @@ public:
     // read floating point pixel values directly from serialized file.
     static int ReadGrayDouble(istream&, void*, void*, void*, void*);
     // read double floating point pixel values directly from serialized file.
+    static int ReadAlpha(istream&, void*, void*, void*, void*);
+    // read alpha-transparency value specification.
     static int ReadSub(istream&, void*, void*, void*, void*);
     // read sub-image specification.
     static int ReadProcess(istream&, void*, void*, void*, void*);
@@ -188,9 +200,11 @@ public:
     virtual boolean IsA(ClassId);
 
     boolean GetByPathnameFlag();
+    boolean GetFromCommandFlag();
 
 };
 
+class MultiLineObj;
 class OverlayRaster;
 
 //: derived RasterRect Graphic for use with OverlayRaster and GrayRaster.
@@ -198,6 +212,18 @@ class OverlayRasterRect : public RasterRect {
 public:
     OverlayRasterRect(OverlayRaster* = nil, Graphic* = nil);
     virtual ~OverlayRasterRect();
+
+    void clippts(MultiLineObj*); 
+    // set polygon used for additional clipping 
+    void clippts(int* x, int* y, int n);
+    // set polygon used for additional clipping 
+    MultiLineObj* clippts(); 
+    // return polygon used for additional clipping 
+
+    void alphaval(float alpha) { _alphaval = alpha; }
+    // set alpha-transparency value, default is 1.0
+    float alphaval() { return _alphaval; }
+    // return alpha-transparency value.
 
     virtual Graphic* Copy();
 
@@ -261,9 +287,12 @@ protected:
     IntCoord _damage_b;
     IntCoord _damage_r;
     IntCoord _damage_t;
+    
+    MultiLineObj* _clippts;
+    float _alphaval;
 
-friend RasterOvComp;
-friend RasterOvView;
+friend class RasterOvComp;
+friend class RasterOvView;
 };
 
 #include <Attribute/attrvalue.h>
@@ -443,8 +472,8 @@ protected:
     boolean _grayflag;
     boolean _init;
 
-friend OvImportCmd;
-friend RasterOvComp;
+friend class OvImportCmd;
+friend class RasterOvComp;
 };
 
 

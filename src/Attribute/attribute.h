@@ -24,12 +24,7 @@
 #ifndef _attribute_h
 #define _attribute_h
 
-extern "C" {
-    int symbol_add(char*);
-    int symbol_del(int);
-    int symbol_find(char*);
-    char* symbol_pntr(int);
-}
+#include <Attribute/classid.h>
 
 class AttributeValue;
 class AttributeList;
@@ -50,7 +45,7 @@ public:
     Attribute(const Attribute&);
     // copy constructor.
 
-    ~Attribute();
+    virtual ~Attribute();
     // deallocate memory for internal AttributeValue.
 
     char* Name();
@@ -67,7 +62,9 @@ protected:
     int symbolid;
     AttributeValue* valueptr;
 
-friend AttributeList;
+friend class AttributeList;
+
+    CLASS_SYMID("Attribute"); 
 };
 
 #endif

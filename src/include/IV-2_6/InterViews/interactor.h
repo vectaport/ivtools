@@ -60,6 +60,8 @@ enum CanvasType {
     CanvasSaveUnder, CanvasSaveContents, CanvasSaveBoth
 };
 
+//: base class for interactive objects (iv-2.6)
+// <a href=../man3.1/Interactor.html>man page</a>
 class Interactor : public Glyph {
 protected:
     Interactor();

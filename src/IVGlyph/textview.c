@@ -94,6 +94,7 @@ CommandInfo filemenu[] = {
    { "Load...",   &TE_View::load_popup, nil },
    { "Save",      &TE_View::save, nil },
    { "Save As..", &TE_View::save_popup, nil },
+   { "Quit", &TE_View::quit, nil },
    { nil }
 };
 
@@ -144,6 +145,7 @@ TE_View::TE_View(Style* s, EivTextBuffer* te_buffer, int rows, int cols,
    chooser_ = nil;
 
    // init key map
+   for (int i=0; i<keymap_size; i++) key_[i] = nil;
    for (TE_ViewKeyInfo* k = &default_key_map[0]; k->key != 0; k++) {
       key_[k->key] = k->func;
    }
@@ -287,6 +289,12 @@ void TE_View::save()
 {
    // save without error check; Bug Alert!
    (void) te_buffer_->save();
+}
+
+void TE_View::quit()
+{
+   // save without error check; Bug Alert!
+   Session::instance()->quit();
 }
 
 void TE_View::make_visible(const boolean scroll_page)

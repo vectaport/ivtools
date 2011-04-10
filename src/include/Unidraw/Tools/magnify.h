@@ -29,6 +29,8 @@
 
 #include <Unidraw/Tools/tool.h>
 
+//: zoom in to specified region
+// <a href=../man3.1/MagnifyTool.html>man page</a>
 class MagnifyTool : public Tool {
 public:
     MagnifyTool(ControlInfo* = nil);

@@ -35,6 +35,8 @@
 
 class SF_Rect;
 
+//: rectangle component
+// <a href=../man3.1/RectComp.html>man page</a>
 class RectComp : public GraphicComp {
 public:
     RectComp(SF_Rect* = nil);

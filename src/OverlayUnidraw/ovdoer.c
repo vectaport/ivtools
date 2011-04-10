@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2004 Scott E. Johnston
  * Copyright (c) 1994 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,6 +34,7 @@ CommandDoer::CommandDoer(Command* c) {
 }
 
 void CommandDoer::Do() {
+#if 0 
     Command* command = cmd;
     if (command) {
 	if (command->Reversible()) {
@@ -52,6 +54,9 @@ void CommandDoer::Do() {
             }
 	}
     }
+#else
+    unidraw->ExecuteCmd(cmd);
+#endif
 }
 
 CommandPusher::CommandPusher(Command* c) {

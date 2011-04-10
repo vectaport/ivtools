@@ -1,9 +1,0 @@
-?package(ivtools-bin): needs=x11 section=Apps/Graphics \
-title="idraw" command="/usr/X11R6/bin/idraw" 
-?package(ivtools-bin): needs=x11 section=Apps/Graphics \
-title="graphdraw" command="/usr/X11R6/bin/graphdraw"
-?package(ivtools-bin): needs=x11 section=Apps/Graphics \
-title="drawtool" command="/usr/X11R6/bin/drawtool"
-?package(ivtools-bin): needs=x11 section=Apps/Graphics \
-title="flipbook" command="/usr/X11R6/bin/flipbook"
-

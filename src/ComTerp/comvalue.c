@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -21,9 +22,12 @@
  * 
  */
 
+#include <Unidraw/Components/compview.h>
+#include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attribute.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/paramlist.h>
 
@@ -39,6 +43,7 @@ ComValue ComValue::_blankval(ComValue::BlankType);
 ComValue ComValue::_unkval(ComValue::UnknownType);
 ComValue ComValue::_oneval(1, ComValue::IntType);
 ComValue ComValue::_zeroval(0, ComValue::IntType);
+ComValue ComValue::_minusoneval(-1, ComValue::IntType);
 
 /*****************************************************************************/
 
@@ -46,26 +51,27 @@ const ComTerp* ComValue::_comterp = nil;
 
 ComValue::ComValue(ComValue& sv) {
     *this = sv;
-    if (_type == AttributeValue::ArrayType)
-      Resource::ref(_v.arrayval.ptr);
+}
+
+ComValue::ComValue(ComValue* sv) {
+    *this = *sv;
+    dup_as_needed();
 }
 
 ComValue::ComValue(AttributeValue& sv) {
     *(AttributeValue*)this = sv;
-    if (_type == AttributeValue::ArrayType)
-      Resource::ref(_v.arrayval.ptr);
     zero_vals();
 }
 
 ComValue::ComValue() {
     type(UnknownType);
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
     zero_vals();
 }
 
 ComValue::ComValue(ValueType valtype) {
     type(valtype);
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
     zero_vals();
 }
 
@@ -82,15 +88,18 @@ ComValue::ComValue(float v) : AttributeValue(v) {zero_vals();}
 ComValue::ComValue(double v) : AttributeValue(v) {zero_vals();}
 ComValue::ComValue(int classid, void* ptr) : AttributeValue(classid, ptr) {zero_vals();}
 ComValue::ComValue(AttributeValueList* avl) : AttributeValue(avl) {zero_vals();}
+ComValue::ComValue(void* funcptr, AttributeValueList* listptr) : AttributeValue(funcptr, listptr) {zero_vals();}
 ComValue::ComValue(const char* string) : AttributeValue(string) {zero_vals();}
+ComValue::ComValue(ComFunc* func) : AttributeValue(ComFunc::class_symid(), func) {zero_vals(); type(ComValue::CommandType); command_symid(func->funcid()); }
 
 ComValue::~ComValue() {
 }
 
 ComValue::ComValue(postfix_token* token) {
+    clear();
     void* v1 = &_v;
     void* v2 = &token->v;
-    memcpy(v1, v2, sizeof(double));
+    memcpy(v1, v2, sizeof(_v));
     switch (token->type) {
     case TOK_STRING:  type(StringType); break;
     case TOK_CHAR:    type(CharType); break;
@@ -101,15 +110,17 @@ ComValue::ComValue(postfix_token* token) {
     case TOK_FLOAT:   type(FloatType); break;
     case TOK_DOUBLE:  type(DoubleType); break;
     case TOK_EOF:     type(EofType); break;
-    case TOK_COMMAND: type(SymbolType); break;
+    case TOK_COMMAND: type(SymbolType); _v.symval.globalflag=0; break;
     case TOK_KEYWORD: type(KeywordType); break;
+    case TOK_BLANK:   type(BlankType); break;
     default:          type(UnknownType); break;
     }
     _narg = token->narg;
     _nkey = token->nkey;
     _nids = token->nids;
-    _aggregate_type = UnknownType;
+    _command_symid = -1;
     _pedepth = 0;
+    _bquote = 0;
 }
 
 ComValue& ComValue::operator= (const ComValue& sv) {
@@ -118,28 +129,15 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nkey = sv._nkey;
     _nids = sv._nids;
     _pedepth = sv._pedepth;
+    _bquote = sv._bquote;
+    ref_as_needed();
     return *this;
 }
     
-void ComValue::assignval (const ComValue& sv) {
-    void* v1 = &_v;
-    const void* v2 = &sv._v;
-    memcpy(v1, v2, sizeof(double));
-    _type = sv._type;
-    _aggregate_type = sv._aggregate_type;
-#if 0 // this end of reference counting disabled as well
-    if (_type == StringType || _type == SymbolType) 
-	symbol_add((char *)string_ptr());
-    else 
-#endif
-    if (_type == ArrayType && _v.arrayval.ptr)
-        Resource::ref(_v.arrayval.ptr);
-}
-    
-
 int ComValue::narg() const { return _narg; }
 int ComValue::nkey() const { return _nkey; }
 int ComValue::nids() const { return _nids; }
+int ComValue::bquote() const { return _bquote; }
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;
@@ -158,12 +156,15 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::SymbolType:
-	  if (brief) 
-	    out << symbol_pntr( svp->symbol_ref());
-	  else {
+	  if (brief) {
+	    if (svp->global_flag()) out << "global(";
+	    symbol = symbol_pntr(svp->symbol_ref());
+	    out << (symbol ? symbol : "(null)");
+	    if (svp->global_flag()) out << ")";
+	  } else {
 	    title = "symbol( ";
 	    symbol = symbol_pntr( svp->symbol_ref() );
-	    out << title << symbol;
+	    out << title << (symbol ? symbol : "(null)");
 	    counter = strlen(title) + strlen(symbol);
 	    while( ++counter < 32 ) out << ' ';
 	    out << ")   narg " << svp->narg() << "  nkey " << svp->nkey() << 
@@ -232,16 +233,16 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::LongType:
 	  if (brief)
-	    out << svp->long_ref();
+	    out << svp->long_ref() << "L";
 	  else
 	    out << "long( " << svp->long_ref() << " )";
 	  break;
 	    
 	case ComValue::ULongType:
 	  if (brief)
-	    out << "ulong( " << svp->ulong_ref() << " )";
+	    out << svp->ulong_ref() << "L";
 	  else
-	    out << svp->ulong_ref();
+	    out << "ulong( " << svp->ulong_ref() << " )";
 	  break;
 	    
 	case ComValue::FloatType:
@@ -267,24 +268,28 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-	    boolean first = true;
+	    out << "{";
 	    while (!avl->Done(i)) {
 	      ComValue val(*avl->GetAttrVal(i));
 	      out << val;
 	      avl->Next(i);
-	      if (!avl->Done(i)) out << "\n";
-	    }
+	      if (!avl->Done(i)) out << ",";
+	    };
+	    out << "}";
 	  } else {
-	    out << "array of length " << svp->array_len();
+	    out << "list of length " << svp->array_len();
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-	    boolean first = true;
 	    while (!avl->Done(i)) {
  	        out << "\n\t" << *avl->GetAttrVal(i);
 	        avl->Next(i);
 	    }
 	  }
+	  break;
+	    
+	case ComValue::StreamType:
+	  out << "<stream:" << svp->stream_mode() << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
 	  break;
 	    
 	case ComValue::CommandType:
@@ -298,14 +303,22 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::BlankType:
+	  // cerr << "<blank>";
+	  break;
+
+	case ComValue::ObjectType:
+	  if (svp->class_symid() == Attribute::class_symid())
+	    out << *((Attribute*)svp->obj_val())->Value();
+	  else
+            out << /* "<" << */ symbol_pntr(svp->class_symid()) /* << ">" */ ;
 	  break;
 
 	case ComValue::UnknownType:
-	    out << "nil";
-	    break;
+	  out << "nil";
+	  break;
 	    
 	default:
-	    break;
+	  break;
 	}
     return out;
 }
@@ -345,10 +358,23 @@ ComValue& ComValue::zeroval() {
   return _zeroval;
 }
 
+ComValue& ComValue::minusoneval() { 
+  *&_minusoneval = ComValue(-1, ComValue::IntType);
+  return _minusoneval;
+}
+
+boolean ComValue::is_comfunc(int func_classid) {
+  return is_type(CommandType) && 
+    func_classid==((ComFunc*)obj_val())->classid(); 
+}
+
 void* ComValue::geta(int id) {
-    if (type() == ComValue::ObjectType && obj_type_val() == id) 
-        return obj_val();
+  if (is_object(id)) {
+    if (object_compview())
+      return ((ComponentView*)obj_val())->GetSubject();
     else
-        return nil;
+      return obj_val();
+  } else
+    return nil;
 }
 

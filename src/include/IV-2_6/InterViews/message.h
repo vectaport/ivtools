@@ -33,6 +33,8 @@
 
 #include <IV-2_6/_enter.h>
 
+//: display a string of text (iv-2.6).
+// <a href=../man3.1/Message.html>man page</a>
 class Message : public Interactor {
 public:
     Message(

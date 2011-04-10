@@ -6,9 +6,8 @@ PACKAGE = src_iv
 
 #ifdef InObjectCodeDir
 
-
-#define Ld_libX11 -lX11 -ltiff -ljpeg -lz 
-
+#undef Ld_libX11
+#define Ld_libX11 -lX11 -ltiff -ljpeg -lz
 Use_libDebian()
 
 #if BuildIV_2_6
@@ -70,7 +69,7 @@ InterViewsObj(deck)
 InterViewsObjFlags(dialogs,$(KIT_CCFLAGS))
 InterViewsObj(fbrowser)
 InterViewsObj(fchooser)
-InterViewsObj(field)
+InterViewsObjFlags(field,-O2)
 InterViewsObj(geometry)
 InterViewsObj(glyph)
 InterViewsObj(group)
@@ -200,7 +199,7 @@ DispatchObjFlags(dispatcher,$(OPTIMIZE_CCFLAGS))
 DispatchObj(iohandler)
 #if BuildRPCClasses
 DispatchObj(iostreamb)
-DispatchObj(rpcbuf)
+DispatchObjFlags(rpcbuf,-DSOCKLEN_T_DEFINED=$(SOCKLEN_T_DEFINED))
 DispatchObj(rpchdr)
 DispatchObj(rpcpeer)
 DispatchObj(rpcreader)

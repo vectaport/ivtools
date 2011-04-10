@@ -61,7 +61,8 @@ boolean FramesView::IsA(ClassId id) {
 }
 
 void FramesView::UpdateFrame(FrameView* curr, FrameView* prev,
-			     int curr_other, int prev_other)  {
+			     int* curr_others, int num_curr_others,
+			     int* prev_others, int num_prev_others) {
   Iterator i;
   First(i);
   FrameView* background = (FrameView*)GetView(i);
@@ -70,17 +71,19 @@ void FramesView::UpdateFrame(FrameView* curr, FrameView* prev,
     if (prev) {		
       if (prev != background) prev->Hide();
       prev->Desensitize();
-      if (prev_other) {
-	SetView(prev, i);
-	if (prev_other>0) 
-	  for (int ii=0; ii<prev_other; ii++) Next(i);
-	else 
-	  for (int ii=0; ii>prev_other; ii--) Prev(i);
-	if (!Done(i)) {
-	  FrameView* frame = (FrameView*)GetView(i);
-	  if (frame != background) {
-	    frame->Hide();
-	    frame->Sensitize();
+      if (prev_others) {
+	for (int np=0; np<num_prev_others; np++) {
+	  SetView(prev, i);
+	  if (prev_others[np]>0) 
+	    for (int ii=0; ii<prev_others[np]; ii++) Next(i);
+	  else 
+	    for (int ii=0; ii>prev_others[np]; ii--) Prev(i);
+	  if (!Done(i)) {
+	    FrameView* frame = (FrameView*)GetView(i);
+	    if (frame != background) {
+	      frame->Hide();
+	      frame->Sensitize();
+	    }
 	  }
 	}
       }
@@ -88,17 +91,19 @@ void FramesView::UpdateFrame(FrameView* curr, FrameView* prev,
     if (curr) {
       if (curr != background) curr->Show();
       curr->Sensitize();
-      if (curr_other) {
-	SetView(curr, i);
-	if (curr_other>0) 
-	  for (int ii=0; ii<curr_other; ii++) Next(i);
-	else 
-	  for (int ii=0; ii>curr_other; ii--) Prev(i);
-	if (!Done(i)) {
-	  FrameView* frame = (FrameView*)GetView(i);
-	  if (frame != background) {
-	    frame->Show();
-	    frame->Desensitize();
+      if (curr_others) {
+	for (int np=0; np<num_curr_others; np++) {
+	  SetView(curr, i);
+	  if (curr_others[np]>0) 
+	    for (int ii=0; ii<curr_others[np]; ii++) Next(i);
+	  else 
+	    for (int ii=0; ii>curr_others[np]; ii--) Prev(i);
+	  if (!Done(i)) {
+	    FrameView* frame = (FrameView*)GetView(i);
+	    if (frame != background) {
+	      frame->Show();
+	      frame->Desensitize();
+	    }
 	  }
 	}
       }

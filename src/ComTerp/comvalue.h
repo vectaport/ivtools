@@ -32,6 +32,7 @@
 #include <ComTerp/_comterp.h>
 #include <Attribute/attrvalue.h>
 
+class ComFunc;
 class ComTerp;
 
 //: AttributeValue with extensions for use with ComTerp.
@@ -44,6 +45,8 @@ class ComValue : public AttributeValue {
 public:
     ComValue(ComValue&);
     // copy constructor.
+    ComValue(ComValue*);
+    // deep copy constructor.
     ComValue(AttributeValue&);
     // copy constructor from an AttributeValue.
     ComValue(postfix_token* token);
@@ -53,34 +56,38 @@ public:
     ComValue();
     // construct of UnknownType.
 
-    ComValue(char);
+    ComValue(char val);
     // CharType constructor.
-    ComValue(unsigned char);
+    ComValue(unsigned char val);
     // UCharType constructor.
-    ComValue(short);
+    ComValue(short val);
     // ShortType constructor.
-    ComValue(unsigned short);
+    ComValue(unsigned short val);
     // UShortType constructor.
-    ComValue(int, ValueType=IntType);
+    ComValue(int val, ValueType type=IntType);
     // IntType constructor or any other int-like value.
-    ComValue(unsigned int, ValueType=IntType);
+    ComValue(unsigned int val, ValueType type=IntType);
     // UIntType constructor or any other unsigned-int-like value including SymbolType.
-    ComValue(unsigned int, unsigned int, ValueType=KeywordType);
+    ComValue(unsigned int val, unsigned int, ValueType type=KeywordType);
     // KeywordType constructor (or can be used for ObjectType).
-    ComValue(long);
+    ComValue(long val);
     // LongType constructor.
-    ComValue(unsigned long);
+    ComValue(unsigned long val);
     // ULongType constructor.
-    ComValue(float);
+    ComValue(float val);
     // FloatType constructor.
-    ComValue(double);
+    ComValue(double val);
     // DoubleType constructor.
-    ComValue(int class_symid, void*);
+    ComValue(int class_symid, void* ptr);
     // ObjectType constructor.
-    ComValue(AttributeValueList*);
-    // ArrayType constructor.
-    ComValue(const char*);
+    ComValue(AttributeValueList* listptr);
+    // ArrayType/ListType constructor.
+    ComValue(void* funcptr, AttributeValueList* listptr);
+    // StreamType constructor.
+    ComValue(const char* val);
     // StringType constructor.
+    ComValue(ComFunc* func);
+    // CommandType constructor.
 
     void init();
     // initialize member variables.
@@ -88,8 +95,9 @@ public:
 
     ComValue& operator= (const ComValue&);
     // assignment operator.
-    void assignval (const ComValue&);
-    // assign only the AttributeValue portion of a ComValue.
+
+    void* geta(int type); 
+    // return a pointer if ObjectType matches
 
     int narg() const;
     // number of arguments associated with this command or keyword.
@@ -97,12 +105,16 @@ public:
     // number of keywords associated with this command.
     int nids() const;
     // number of subordinate identifiers associated with this identifier (not used).
+    int bquote() const;
+    // return backquote flag
     void narg(int n) {_narg = n; }
     // set number of arguments associated with this command or keyword.
     void nkey(int n) {_nkey = n; }
     // set number of keywords associated with this command.
     void nids(int n) {_nids = n; }
     // set number of subordinate identifiers associated with this identifier (not used).
+    void bquote(int flag) {_bquote = flag; }
+    // set backquote flag
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.
@@ -112,9 +124,8 @@ public:
     // return true if UnknownType.
     boolean null() { return unknown(); }
     // return true if UnknownType.
-
-    void* geta(int id); 
-    // get the class symbol id associated with an ObjectType.
+    boolean is_comfunc(int func_classid);
+    // returns true if CommandType with ComFunc
 
     friend ostream& operator << (ostream& s, const ComValue&);
     // print contents to ostream, brief or not depending on
@@ -140,13 +151,16 @@ public:
     // returns reference to IntType ComValue with value of 1.
     static ComValue& zeroval();
     // returns reference to IntType ComValue with value of 0.
+    static ComValue& minusoneval();
+    // returns reference to IntType ComValue with value of -1.
 protected:
-    void zero_vals() { _narg = _nkey = _nids = _pedepth = 0; }
+    void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
 
     int _narg;
     int _nkey;
     int _nids;
     int _pedepth;
+    int _bquote;
 
     static const ComTerp* _comterp;
     static ComValue _nullval;
@@ -156,6 +170,7 @@ protected:
     static ComValue _unkval;
     static ComValue _oneval;
     static ComValue _zeroval;
+    static ComValue _minusoneval;
 };
 
 #endif /* !defined(_comvalue_h) */

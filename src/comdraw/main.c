@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1999 Vectaport, Inc.
+ * Copyright (c) 1994-2000 Vectaport, Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -26,6 +26,12 @@
  * comdraw main program.
  */
 
+#ifdef HAVE_ACE
+#include <ComUnidraw/comterp-acehandler.h>
+#include <OverlayUnidraw/aceimport.h>
+#include <AceDispatch/ace_dispatcher.h>
+#endif
+
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovcreator.h>
 #include <ComUnidraw/comeditor.h>
@@ -39,12 +45,6 @@
 #include <Unidraw/iterator.h>
 
 #include <InterViews/world.h>
-
-#ifdef HAVE_ACE
-#include <ComUnidraw/comterp-acehandler.h>
-#include <OverlayUnidraw/aceimport.h>
-#include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <stream.h>
 #include <string.h>
@@ -142,6 +142,7 @@ static PropertyData properties[] = {
     { "*bgcolor10",	"White" },
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
+    { "*bgcolor13",	"none" },
     { "*history",	"20" },
     { "*color5",        "false" },
     { "*color6",        "false" },
@@ -161,6 +162,8 @@ static PropertyData properties[] = {
     { "*twidth",        "512" },
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
+    { "*stripped",      "false"  },
+    { "*stdin_off",   "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",       "20002" },
@@ -204,6 +207,8 @@ static OptionDesc options[] = {
     { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+    { "-stripped", "*stripped", OptionValueImplicit, "true" },
+    { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
@@ -219,29 +224,29 @@ static OptionDesc options[] = {
 
 #ifdef HAVE_ACE
 static char* usage =
-"Usage: comdraw [any idraw parameter] [-comdraw port] [-color5] \n\
-[-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
-[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
+"Usage: comdraw [any idraw parameter] [-comdraw port] [-color5]\n\
+ [-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc]\n\
+[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
+[-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n]\n\
 [-wbhost host] [-wbmaster] [-wbslave] [-wbport port] [-zoomer_off|-zoff] [file]";
 #else
 static char* usage =
-"Usage: comdraw [any idraw parameter] [-color5] \n\
-[-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
+"Usage: comdraw [any idraw parameter] [-color5] [-color6] \n\
+[-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
+[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
 [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
-[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
-[-zoomer_off|-zoff] [file]";
+[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
+[-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
+[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
 #endif
 
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
-    Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
+    Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
     OverlayCreator creator;
     OverlayCatalog* catalog = new OverlayCatalog("comdraw", &creator);
@@ -261,10 +266,10 @@ int main (int argc, char** argv) {
     const char* importstr = catalog->GetAttribute("import");
     int importnum = atoi(importstr);
     if (import_acceptor->open 
-	(ACE_INET_Addr (importnum)) == -1)
+	(ACE_INET_Addr (importnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "comdraw:  unable to open import port " << importnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "comdraw:  unable to register UnidrawImportAcceptor with ACE reactor\n";
     else
@@ -277,10 +282,10 @@ int main (int argc, char** argv) {
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
     if (peer_acceptor->open 
-	(ACE_INET_Addr (portnum)) == -1)
+	(ACE_INET_Addr (portnum), ComterpHandler::reactor_singleton()) == -1)
         cerr << "comdraw:  unable to open port " << portnum << "\n";
 
-    else if (COMTERP_REACTOR::instance ()->register_handler 
+    else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "comdraw:  unable to register ComterpAcceptor with ACE reactor\n";
     else
@@ -290,7 +295,7 @@ int main (int argc, char** argv) {
     // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
     // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
-    if (COMTERP_REACTOR::instance ()->register_handler 
+    if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
         cerr << "comdraw:  unable to register quit handler with ACE reactor\n";
 
@@ -306,6 +311,24 @@ int main (int argc, char** argv) {
 	ComEditor* ed = new ComEditor(initial_file);
 
 	unidraw->Open(ed);
+
+#ifdef HAVE_ACE
+	
+	/*  Start up one on stdin */
+	const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
+	if (!stdin_off_str || strcmp(stdin_off_str, "false")==0) {
+	  UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+#if 0
+	  if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
+#else
+	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
+							  ACE_Event_Handler::READ_MASK)==-1)
+#endif
+	      cerr << "comdraw: unable to open stdin with ACE\n";
+	  ed->SetComTerp(stdin_handler->comterp());
+	}
+#endif
+
 	fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	unidraw->Run();
     }

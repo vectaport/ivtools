@@ -160,6 +160,8 @@ int Brush::dash_count() const { return impl_->dash_count; }
 
 int Brush::dash_list(int i) const { return int(impl_->dash_list[i]); }
 
+boolean Brush::dashed() { return impl_ && impl_->dash_list; }
+
 /* anachronism */
 unsigned int Brush::Width() const {
     return rep(Session::instance()->default_display())->width_;

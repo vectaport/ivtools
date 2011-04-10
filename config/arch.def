@@ -8,13 +8,13 @@
 #define NO 0
 #define NullParameter /**/
 
-#if __STDC__
+#if __STDC__ && !defined(__CYGWIN__)
 #define Concat(a,b)a##b
 #else
 #define Concat(a,b)a/**/b
 #endif
 
-#if __STDC__
+#if __STDC__ && !defined(__CYGWIN__)
 #define Concat3(a,b,c)a##b##c
 #else
 #define Concat3(a,b,c)a/**/b/**/c
@@ -430,7 +430,7 @@
 #define MacroFile InterViews/iv-stratus.cf
 #endif
 
-#if defined(__alpha) && !defined(ArchitectureName)
+#if defined(__alpha) && !defined(__linux__) && !defined(__FreeBSD__)
 #undef ALPHA
 #undef alpha
 #define AlphaArchitecture
@@ -441,11 +441,56 @@
 #define MacroFile InterViews/iv-alpha.cf
 #endif /* __alpha */
 
+#if defined(__CYGWIN__) && !defined(__linux__)
+#undef CYGWIN
+#undef cygwin
+#define CygwinArchitecture
+#define ArchitectureName CYGWIN
+#define architectureName cygwin
+#define SiteDefCpu <site.def.CYGWIN>
+#define MacroIncludeFile <InterViews/iv-cygwin.cf>
+#define MacroFile InterViews/iv-cygwin.cf
+#endif /* __CYGWIN__ */
+
+#if defined(__NetBSD__)
+#undef NETBSD
+#undef netbsd
+#define NetBSDArchitecture
+#define ArchitectureName NETBSD
+#define architectureName netbsd
+#define SiteDefCpu <site.def.NETBSD>
+#define MacroIncludeFile <InterViews/iv-netbsd.cf>
+#define MacroFile InterViews/iv-netbsd.cf
+#endif /* __NetBSD__ */
+
+#if defined(__FreeBSD__)
+#undef FREEBSD
+#undef freebsd
+#define FreeBSDArchitecture
+#define ArchitectureName FREEBSD
+#define architectureName freebsd
+#define SiteDefCpu <site.def.FREEBSD>
+#define MacroIncludeFile <InterViews/iv-freebsd.cf>
+#define MacroFile InterViews/iv-freebsd.cf
+#endif /* __FreeBSD__ */
+
+#if defined(__APPLE__)
+#undef APPLE
+#undef apple
+#define DarwinArchitecture
+#define ArchitectureName DARWIN
+#define architectureName darwin
+#define SiteDefCpu <site.def.DARWIN>
+#define MacroIncludeFile <InterViews/iv-darwin.cf>
+#define MacroFile InterViews/iv-darwin.cf
+#endif /* __FreeBSD__ */
+
 #ifndef ArchitectureName
 XCOMM WARNING: Imakefile not configured; guessing at definitions!!!
 XCOMM This might mean that BOOTSTRAPCFLAGS was not set when building imake.
 #undef UNKNOWN
 #undef unknown
+#define UnknownArchitecture
 #define ArchitectureName UNKNOWN
 #define architectureName unknown
 #define SiteDefCpu <site.def.UNKNOWN>

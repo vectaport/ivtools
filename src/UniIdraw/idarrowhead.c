@@ -29,6 +29,7 @@
 
 #include <InterViews/transformer.h>
 
+#include <OS/math.h>
 #include <math.h>
 
 /*****************************************************************************/
@@ -66,8 +67,8 @@ Coord Arrowhead::CorrectedHeight (float t) {
 
     if (c == 0) return 0;
 
-    Coord h1 = round((a + b) / c);
-    Coord h2 = round((a - b) / c);
+    Coord h1 = Math::round((a + b) / c);
+    Coord h2 = Math::round((a - b) / c);
 
     return (h1 < h && h1 > 0) ? h1 : h2;
 }
@@ -108,6 +109,13 @@ void Arrowhead::draw (Canvas* c, Graphic* gs) {
         SF_Polygon::draw(c, gs);
 
     } else {
+        /*  if brush is dashed, disable it for the arrowhead */
+	if (br->dashed()) {
+	  Ref(br);
+	  PSBrush* newbr = new PSBrush(0, br->Width());
+	  gs->SetBrush(newbr);
+	}
+
         Coord ytip = Vertices::y()[TIP];
         float thk = UnscaledLength(br->Width(), gs->GetTransformer());
         Coord hcorrect = CorrectedHeight(thk);
@@ -123,6 +131,12 @@ void Arrowhead::draw (Canvas* c, Graphic* gs) {
             SF_Polygon::draw(c, gs);
             Vertices::y()[TIP] = ytip;
         }
+
+        /*  if brush was dashed, restore it */
+	if (br->dashed()) {
+	  gs->SetBrush(br);
+	  Unref(br);
+	}
     }
 }
 

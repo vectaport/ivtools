@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1990, 1991 Stanford University 
  *
@@ -87,6 +88,10 @@ public:
     // graphic used to highlight by changing graphic state.  
     // A nil returned from this method disables the mechanism.
 
+    virtual void HighlightGraphic(Graphic* hilite_gs);
+    // graphic used to highlight by changing graphic state.  
+    // A nil returned from this method disables the mechanism.
+
     virtual Selection* MakeSelection();
     // factor method to construct an OverlaySelection.
 
@@ -136,6 +141,7 @@ protected:
     boolean _fixed_size;
     float _fixed_size_factor;
     boolean _fixed_location;
+    Graphic* _hilite_gs;
 };
 
 //: graphical view of OverlaysComp.
@@ -193,6 +199,10 @@ public:
     // called once per OverlayView before each pan, to let
     // fixed location graphics adjust accordingly.
 
+    virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
+    // create manipulator for laying down composite graphic
+    virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulator by copying prototype
 protected:
     UList* Elem(Iterator);
 

@@ -51,17 +51,13 @@ void SumFunc::execute() {
     for (avl->First(it); !avl->Done(it); avl->Next(it)) {
       count++;
       push_stack(*avl->GetAttrVal(it));
-      push_funcstate(2,0);
-      addfunc.execute();
-      pop_funcstate();
+      addfunc.exec(2,0);
     }
     if (_meanfunc) {
       DivFunc divfunc(comterp());
       ComValue divisor(count, ComValue::IntType);
       push_stack(divisor);
-      push_funcstate(2,0);
-      divfunc.execute();
-      pop_funcstate();
+      divfunc.exec(2,0);
     }
   } else {
     push_stack(vallist);
@@ -98,21 +94,15 @@ void VarFunc::execute() {
       /* square value and add to sum of squares */
       push_stack(*avl->GetAttrVal(it));
       push_stack(*avl->GetAttrVal(it));
-      push_funcstate(2,0);
-      mpyfunc.execute();
-      pop_funcstate();
+      mpyfunc.exec(2,0);
       push_stack(sqrsumval);
-      push_funcstate(2,0);
-      addfunc.execute();
-      pop_funcstate();
+      addfunc.exec(2,0);
       sqrsumval = comterp()->pop_stack();
 
       /* add value to running sum */
       push_stack(sumval);
       push_stack(*avl->GetAttrVal(it));
-      push_funcstate(2,0);
-      addfunc.execute();
-      pop_funcstate();
+      addfunc.exec(2,0);
       sumval = comterp()->pop_stack();
     }
 
@@ -121,31 +111,23 @@ void VarFunc::execute() {
     push_stack(sumval);
     ComValue countval(count, ComValue::IntType);
     push_stack(countval);
-    push_funcstate(2,0);
-    divfunc.execute();
-    pop_funcstate();
+    divfunc.exec(2,0);
     ComValue meanval(comterp()->pop_stack());
     push_stack(meanval);
     push_stack(meanval);
-    push_funcstate(2,0);
-    mpyfunc.execute();
-    pop_funcstate();
+    mpyfunc.exec(2,0);
     ComValue mnsquaredval(comterp()->pop_stack());
 
     /* subract mean squared from sum of squares to get variance */
     SubFunc subfunc(comterp());
     push_stack(sqrsumval);
     push_stack(mnsquaredval);
-    push_funcstate(2,0);
-    subfunc.execute();
-    pop_funcstate();
+    subfunc.exec(2,0);
 
     /* compute standard deviation if StdDevFunc */
     if (_stddevfunc) {
       SqrtFunc sqrtfunc(comterp());
-      push_funcstate(1,0);
-      sqrtfunc.execute();
-      pop_funcstate();
+      sqrtfunc.exec(1,0);
     }
 
   } else {

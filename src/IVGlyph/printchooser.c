@@ -50,6 +50,7 @@
 
 #include <iostream.h>
 #include <stdio.h>
+#include <string.h>
 
 implementActionCallback(PrintChooserImpl)
 implementFieldEditorCallback(PrintChooserImpl)

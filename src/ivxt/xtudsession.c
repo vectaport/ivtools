@@ -139,8 +139,7 @@ void XtUnidraw::workProc() {
 
     Iterator it;
     for (_cmdq->First(it); !_cmdq->Done(it); _cmdq->First(it)) {
-       CommandDoer doer(_cmdq->GetCommand(it));
-       doer.Do();
+       unidraw->ExecuteCmd(_cmdq->GetCommand(it)->Copy());
        _cmdq->Remove(_cmdq->GetCommand(it));
     }
 

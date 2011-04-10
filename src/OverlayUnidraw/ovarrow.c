@@ -72,7 +72,7 @@
 ParamList* ArrowLineOvComp::_ovarrow_line_params = nil;
 ParamList* ArrowMultiLineOvComp::_ovarrow_multiline_params = nil;
 ParamList* ArrowSplineOvComp::_ovarrow_spline_params = nil;
-
+int ArrowLineOvComp::_symid = -1;
 
 ArrowLineOvComp::ArrowLineOvComp (ArrowLine* graphic) : LineOvComp(graphic) { }
 
@@ -344,18 +344,30 @@ boolean ArrowLineScript::Definition (ostream& out) {
     head = comp->GetArrowLine()->Head();
     tail = comp->GetArrowLine()->Tail();
 
-    out << "arrowline(";
-    out << x0 << "," << y0 << "," << x1 << "," << y1;
-    if (arrow_scale != 1 )
+    if (!svg_format()) {
+
+      out << "arrowline(";
+      out << x0 << "," << y0 << "," << x1 << "," << y1;
+      if (arrow_scale != 1 )
 	out << " :arrowscale " << arrow_scale;
-    if (head) 
+      if (head) 
 	out << " :head";
-    if (tail)
+      if (tail)
 	out << " :tail";
-    MinGS(out);
-    Annotation(out);
-    Attributes(out);
-    out << ")";
+      MinGS(out);
+      Annotation(out);
+      Attributes(out);
+      out << ")";
+      
+    } else {
+      
+      out << "<line x1=\"" << x0 << "\" y1=\"" << y0 << "\" x2=\"" << x1 << "\" y2=\"" << y1 << "\" ";
+      MinGS(out);
+      Annotation(out);
+      Attributes(out);
+      out << " />\n";
+    }
+    
 
     return out.good();
 }
@@ -417,6 +429,8 @@ int ArrowLineScript::ReadTail (istream& in, void* addr1, void* addr2, void* addr
 }
 
 /****************************************************************************/
+
+int ArrowMultiLineOvComp::_symid = -1;
 
 ArrowMultiLineOvComp::ArrowMultiLineOvComp (ArrowMultiLine* g) : MultiLineOvComp(g){}
 
@@ -567,6 +581,8 @@ Command* ArrowMultiLineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) aml->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        aml->FillBg(!colVar->GetBgColor()->None());
+
                 aml->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             aml->SetTransformer(rel);
@@ -617,16 +633,7 @@ boolean ArrowMultiLinePS::IsA (ClassId id) {
 
 boolean ArrowMultiLinePS::Definition (ostream& out) {
 
-    Command* cmd = GetCommand();
-    boolean idraw_format = false;
-    if (cmd) {
-      if (cmd->IsA(OVPRINT_CMD)) 
-	idraw_format = ((OvPrintCmd*)cmd)->idraw_format();
-      else if (cmd->IsA(OV_EXPORT_CMD))
-	idraw_format = true;
-    }
-      
-    if (idraw_format) {
+    if (idraw_format()) {
 	ArrowMultiLineOvComp* comp = (ArrowMultiLineOvComp*) GetSubject();
 	ArrowMultiLine* aml = comp->GetArrowMultiLine();
 	
@@ -761,7 +768,10 @@ boolean ArrowMultiLineScript::Definition (ostream& out) {
     } else {
 	for (int i = 0; i < n;) {
 	    for (int j=0; j < 10 && i < n; j++, i++) {
-		out << "(" << x[i] << "," << y[i] << ")";
+	        if (ptlist_parens())
+		    out << "(" << x[i] << "," << y[i] << ")";
+		else
+		    out << x[i] << "," << y[i];
 		if (i+1 < n ) out << ",";
 	    }
 	    if (i+1 < n ) {
@@ -856,6 +866,8 @@ int ArrowMultiLineScript::ReadTail (istream& in, void* addr1, void* addr2,
 }
 
 /****************************************************************************/
+
+int ArrowSplineOvComp::_symid = -1;
 
 ArrowSplineOvComp::ArrowSplineOvComp (ArrowOpenBSpline* g) : SplineOvComp(g) {}
 
@@ -1004,6 +1016,7 @@ Command* ArrowSplineOvView::InterpretManipulator (Manipulator* m) {
             if (patVar != nil) aml->SetPattern(patVar->GetPattern());
 
             if (colVar != nil) {
+	        aml->FillBg(!colVar->GetBgColor()->None());
                 aml->SetColors(colVar->GetFgColor(), colVar->GetBgColor());
             }
             aml->SetTransformer(rel);
@@ -1146,7 +1159,10 @@ boolean ArrowSplineScript::Definition (ostream& out) {
     } else {
 	for (int i = 0; i < n; ) {
 	    for (int j = 0; j < 10 && i < n; j++, i++) {
-		out << "(" << x[i] << "," << y[i] << ")";
+	        if (ptlist_parens())
+		    out << "(" << x[i] << "," << y[i] << ")";
+		else
+		    out << x[i] << "," << y[i];
 		if (i+1 < n ) out << ",";
 	    }
 	    if (i+1 < n ) {

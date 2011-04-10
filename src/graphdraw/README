@@ -43,10 +43,11 @@ A Tools menu has been added to the set of pull-down menus to allow
 switching between a graph editing toolbar and a generic graphics
 editing toolbar.  
 
+
 SEE ALSO
-	drawtool, idraw
+	-help for more options, and the comdraw, drawtool, idraw man pages
 
 WEB PAGE
-	http://www.vectaport.com/ivtools/graphdraw.html
+	http://www.ivtools.org/ivtools/graphdraw.html
 
 

@@ -29,6 +29,8 @@
 
 #include <Unidraw/Tools/tool.h>
 
+//: scale tool
+// <a href=../man3.1/ScaleTool.html>man page</a>
 class ScaleTool : public Tool {
 public:
     ScaleTool(ControlInfo* = nil);

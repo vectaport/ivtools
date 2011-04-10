@@ -34,6 +34,8 @@
 
 class StateVar;
 
+//: state variable view
+// <a href=../man3.1/StateVarView.html>man page</a>
 class StateVarView : public MonoScene {
 public:
     virtual ~StateVarView();

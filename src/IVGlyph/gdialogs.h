@@ -56,6 +56,8 @@ public:
 
     boolean cancel();
 
+    static int post(Window*, const char* message, 
+			const char* submsg=nil, const char* title=nil);
 private:
     GConfirmDialogImpl* impl_;
 };

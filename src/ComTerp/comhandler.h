@@ -30,15 +30,23 @@
 
 #ifdef HAVE_ACE
 
-#include <stdio.h>  /* I need this because of stderr GG */
+#include <stdio.h>
+#ifdef __alpha__
+#define __USE_GNU
+#endif
 #include <signal.h>
 #include <ace/Acceptor.h>
 #include <ace/Reactor.h>
 #include <ace/Singleton.h>
 #include <ace/Svc_Handler.h>
 #include <ace/SOCK_Acceptor.h>
+#include <ace/Test_and_Set.h>
 
 class ComTerpServ;
+
+//: An ACE_Test_and_Set Singleton.
+typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 
+	COMTERP_QUIT_HANDLER;
 
 //: handler to invoke ComTerp on socket (version with ACE)
 class ComterpHandler : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>
@@ -75,6 +83,22 @@ public:
   ComTerpServ* comterp() { return comterp_; }
   // return associated ComTerpServ pointer.
 
+  static void logger_mode(int flag) { _logger_mode = flag; }
+  // set flag to put comterp in logging mode, where commands are echoed
+  // to stdout without executing
+  
+  static int logger_mode() { return _logger_mode; }
+  // return flag that indicates comterp is in logging-only mode
+
+  FILE* wrfptr() { return _wrfptr; }
+  // file pointer for writing to handle
+
+  FILE* rdfptr() { return _rdfptr; }
+  // file pointer for reading from handle
+
+  static ACE_Reactor* reactor_singleton();
+  // alternate way of getting at reactor singleton
+
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
@@ -94,15 +118,17 @@ protected:
 
   int _seconds;
   // timeout in seconds
+
+  FILE* _wrfptr;
+  // file pointer for writing to handle
+
+  FILE* _rdfptr;
+  // file pointer for reading from handle
+
+  static int _logger_mode;
+  // mode for logging commands: 0 = no log, 1 = log only
+
 };
-
-//: A Reactor Singleton.
-typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex> 
-	COMTERP_REACTOR;
-
-//: An ACE_Test_and_Set Singleton.
-typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 
-	COMTERP_QUIT_HANDLER;
 
 //: Specialize a ComterpAcceptor.
 typedef ACE_Acceptor <ComterpHandler, ACE_SOCK_ACCEPTOR> 
@@ -122,9 +148,16 @@ public:
     ComterpHandler(int id) { comterp_ = new ComTerpServ(); _handle = id;}
     int get_handle() { return _handle;}
 
+    FILE* wrfptr() { return nil; }
+    // file pointer for writing to handle
+    
+    FILE* rdfptr() { return nil; }
+    // file pointer for reading from handle
+
 protected:
     int _handle;
     ComTerpServ* comterp_;
+
 };
 #endif
 

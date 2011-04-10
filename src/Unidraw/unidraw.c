@@ -211,10 +211,10 @@ void Unidraw::Init (Catalog* c, World* w) {
 Unidraw::~Unidraw () {
     CloseAll();
     ClearHistory();
-    delete _histories;
     delete _editors;
     delete _deadEditors;
     delete _catalog;
+    delete _histories;
     delete _world;
 }
 
@@ -503,4 +503,23 @@ void Unidraw::GetHistory (Component* comp, UList*& past, UList*& future) {
     History* history = _histories->GetHistory(root);
     past = history->_past;
     future = history->_future;
+}
+
+void Unidraw::ExecuteCmd(Command *command) {
+    if (command) {
+	if (command->Reversible()) {
+	    command->Execute();
+            if (command->Reversible()) {
+                command->Log();
+            } else {
+                delete command;
+            }
+	}
+	else {
+	    command->Execute();
+            if (command->Reversible()) {
+                command->Log();
+            }
+	}
+    }
 }

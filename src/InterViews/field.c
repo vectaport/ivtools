@@ -61,6 +61,7 @@ extern "C" {
 #include <OS/math.h>
 #include <OS/string.h>
 #include <stdio.h>
+#include <string.h>
 
 class FieldStringEditor : public StringEditor {
 public:

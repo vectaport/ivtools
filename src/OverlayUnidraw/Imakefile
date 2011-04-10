@@ -70,7 +70,7 @@ MakeObjectFromSrcFlags(clippoly,-fno-implicit-templates)
 #endif
 
 
-#define Obj31(file) MakeObjectFromSrcFlags(file,-Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+#define Obj31(file) MakeObjectFromSrcFlags(file,-Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
 
 
@@ -92,7 +92,7 @@ Obj31(setattrbyexpr)
 Obj31(slctbyattr)
 
 #ifdef AceDir
-#define ObjACE(file) MakeObjectFromSrcFlags(file,-Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
+#define ObjACE(file) MakeObjectFromSrcFlags(file,-Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
 ObjACE(aceimport)
 #endif
 
