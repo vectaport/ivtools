@@ -41,7 +41,7 @@
 #include <InterViews/target.h>
 #include <OS/directory.h>
 #include <OS/string.h>
-#include <stdio.h>
+#include <cstdio>
 
 class FileChooserImpl {
 private:

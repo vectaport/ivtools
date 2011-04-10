@@ -1,3 +1,12 @@
+ivtools (1.1.3-5.4) unstable; urgency=low
+
+  * Non-maintainer upload.
+
+  [ Maximiliano Curia ]
+  * Fix FTBFS with GCC 4.3 (Closes: #461680)
+
+ -- Peter Eisentraut <petere@debian.org>  Wed, 07 May 2008 12:07:21 +0200
+
 ivtools (1.1.3-5.3) unstable; urgency=low
 
   * Non-maintainer upload.

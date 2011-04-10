@@ -33,6 +33,9 @@
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
 #include <iostream.h>
+#include <fstream>
+
+using std::cerr;
 
 static int on_symid = symbol_add("on");
 static int off_symid = symbol_add("off");

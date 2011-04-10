@@ -22,6 +22,7 @@
  */
 
 #include <fstream.h>
+#include <iostream>
 #include <ComTerp/comhandler.h>
 
 #include <ComTerp/ctrlfunc.h>
@@ -42,6 +43,7 @@ static char newline;
 #endif
 #endif
 
+using std::cerr;
 
 /*****************************************************************************/
 

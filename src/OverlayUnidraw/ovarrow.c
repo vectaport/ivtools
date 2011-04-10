@@ -66,6 +66,10 @@
 #include <math.h>
 #include <stdio.h>
 #include <stream.h>
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
 
 /****************************************************************************/
 

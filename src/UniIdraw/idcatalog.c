@@ -56,6 +56,9 @@
 #include <stream.h>
 #include <string.h>
 #include <fstream.h>
+#include <iostream>
+
+using std::cerr;
 
 /*****************************************************************************/
 

@@ -68,6 +68,9 @@
 #define TITLE "ComTerp"
 #define STREAM_MECH
 
+using std::cerr;
+using std::cout;
+
 implementTable(ComValueTable,int,void*)
 
 ComTerp* ComTerp::_instance = nil;

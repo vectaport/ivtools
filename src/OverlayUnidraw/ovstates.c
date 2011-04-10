@@ -26,6 +26,11 @@
 #include <OverlayUnidraw/ovviewer.h>
 #include <stdio.h>
 
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
+
 /*****************************************************************************/
 
 PtrLocState::PtrLocState(PixelCoord x, PixelCoord y, OverlayEditor* ed) :NameState(nil)

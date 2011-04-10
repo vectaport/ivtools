@@ -27,8 +27,12 @@
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
+#include <iostream>
+#include <fstream>
 
 #define TITLE "DotFunc"
+
+using std::cerr;
 
 /*****************************************************************************/
 

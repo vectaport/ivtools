@@ -71,7 +71,7 @@
 #include <OS/list.h>
 #include <OS/string.h>
 #include <OS/ustring.h>
-#include <stdio.h>
+#include <cstdio>
 
 declareActionCallback(Session)
 implementActionCallback(Session)

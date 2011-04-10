@@ -62,6 +62,9 @@
 #include <fstream.h>
 #endif
 #include <string.h>
+#include <iostream>
+
+using std::cerr;
 
 #define TITLE "UnidrawFunc"
 

@@ -104,6 +104,11 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <phold.h>
+#include <iostream>
+
+using std::cerr;
+using std::endl;
+using std::ifstream;
 
 declarePtrList(PipeList,FILE)
 declarePtrList(FileList,FILE)

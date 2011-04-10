@@ -47,7 +47,7 @@
 /* derived from idemo/main.c */
 
 #include <IVGlyph/bdvalue.h>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 /* class BoundedValue */

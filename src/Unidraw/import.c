@@ -54,7 +54,7 @@
 #include <TIFF/format.h>
 #include <OS/string.h>
 
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 /*****************************************************************************/

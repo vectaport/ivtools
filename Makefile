@@ -18,7 +18,7 @@
 
     APP_CCINCLUDES = $(NORM_CCINCLUDES)
 
-             IVTOOLSSRC = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/src
+             IVTOOLSSRC = /home/pei/tmp/ivtools-1.1.3/src
 
 LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
 LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
@@ -80,7 +80,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 		      -I$(ABSTOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 		      $(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
-             DEPEND = g++ -M
+             DEPEND = ccache g++-4.3 -M
      DEPEND_CCFLAGS = -w -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) 		      -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
                MAKE = make
            PASSARCH = ARCH="$(ARCH)" SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS)" CMFLAGS="$(CMFLAGS)" CMMSG="$(CMMSG)"
@@ -88,12 +88,12 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
                ARCH = $(ARCHORCPU)$(SPECIAL_ARCH)
        SPECIAL_ARCH =
 
-           CCDRIVER = g++
+           CCDRIVER = ccache g++-4.3
 	   CCLINKER = gcc
            CCSUFFIX = c
-            CDRIVER = gcc
+            CDRIVER = ccache gcc-4.3
             CSUFFIX = c
-                SRC = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/.
+                SRC = /home/pei/tmp/ivtools-1.1.3/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
@@ -207,11 +207,11 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = groff
 
-                TOP = /home/cb/debian/nmu/ivtools/ivtools-1.1.3
+                TOP = /home/pei/tmp/ivtools-1.1.3
              RELTOP = .
-        CURRENT_DIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3
+        CURRENT_DIR = /home/pei/tmp/ivtools-1.1.3
 
-              IVSRC = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/src
+              IVSRC = /home/pei/tmp/ivtools-1.1.3/src
              BINSRC = $(IVSRC)/bin
           CONFIGSRC = $(RELTOP)/config
              INCSRC = $(IVSRC)/include
@@ -219,21 +219,21 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/bin
-          CONFIGDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
-             INCDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/include
-             LIBDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib
-          LIBABSDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib
-          LIBALLDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
-             MANDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/man
+             BINDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/bin
+          CONFIGDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
+             INCDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/include
+             LIBDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib
+          LIBABSDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib
+          LIBALLDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
+             MANDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/man
 
-       ABSCONFIGDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
-          ABSLIBDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib
-       ABSLIBALLDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
+       ABSCONFIGDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
+          ABSLIBDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib
+       ABSLIBALLDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
        RELLIBALLDIR = $(TOP)/lib/ivtools
-         XCONFIGDIR = /usr/X11R6/lib/X11/config
-            XINCDIR = /usr/X11R6/include
-            XLIBDIR = /usr/X11R6/lib
+         XCONFIGDIR = /usr/lib/X11/config
+            XINCDIR = /usr/include
+            XLIBDIR = /usr/lib
           PSFONTDIR = /usr/lib/ghostscript/fonts
 
   SOCKLEN_T_DEFINED = 1

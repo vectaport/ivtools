@@ -50,6 +50,9 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <iostream>
+
+using std::cerr;
 
 static int nmsg = 0;
 

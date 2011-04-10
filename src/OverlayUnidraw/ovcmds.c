@@ -87,6 +87,9 @@
 #include <fstream.h>
 #include <iostream.h>
 
+using std::cerr;
+using std::ofstream;
+
 /*****************************************************************************/
 
 static const float GRID_XINCR = 8;                 // default grid spacing

@@ -24,7 +24,7 @@
 
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
-#include <vector.h>
+#include <vector>
 #endif
 #if __GNUC__>=3
 #include <fstream.h>
@@ -35,6 +35,11 @@
 #include <ComTerp/debugfunc.h>
 #include <ComTerp/comterpserv.h>
 #include <strstream>
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
+using std::vector;
 
 #define TITLE "DebugFunc"
 

@@ -34,7 +34,7 @@
 #include <InterViews/patch.h>
 #include <InterViews/session.h>
 #include <IV-look/kit.h>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 /*****************************************************************************/

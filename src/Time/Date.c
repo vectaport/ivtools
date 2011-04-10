@@ -64,10 +64,14 @@ Log: Date.c,v
 #include <Time/Time.h>
 #include <OS/string.h>
 
-#include <iomanip.h>
+#include <iomanip>
 #include <ctype.h>
 #include <string.h>
-#include <stdio.h>
+#include <cstdio>
+#include <iostream>
+
+using std::setfill;
+using std::setw;
 
 #define	THIS	Date
 #define	BASE	Object

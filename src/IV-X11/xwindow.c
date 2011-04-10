@@ -58,6 +58,10 @@
 #include <X11/Xatom.h>
 #include <sys/ioctl.h>
 #include <iostream.h>
+#include <fstream>
+
+using std::cerr;
+
 #if defined(sun) && defined(__svr4__)
 #include <stropts.h>
 #include <sys/conf.h>

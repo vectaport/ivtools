@@ -79,6 +79,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <strstream>
+#include <fstream>
+
+using std::cerr;
 
 FullGraphic* NodeView::_nv_gs = nil;
 

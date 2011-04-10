@@ -51,6 +51,10 @@
 #include <iostream.h>
 #include <strstream>
 #include <string.h>
+#include <fstream>
+
+using std::cerr;
+using std::cout;
 
 #define XK_MISCELLANY           /* to get the keysym's we need */
 #include <X11/keysymdef.h>

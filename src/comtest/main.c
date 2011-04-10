@@ -25,6 +25,11 @@
 
 #include <iostream.h>
 #include <string.h>
+#include <fstream>
+
+using std::cerr;
+using std::cout;
+using std::endl;
 
 char* type_names[] = {
 	"None",

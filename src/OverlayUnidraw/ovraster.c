@@ -73,6 +73,10 @@
 #include <stdio.h>
 #include <stream.h>
 #include <string.h>
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
 
 implementList(CopyStringList,CopyString)
 

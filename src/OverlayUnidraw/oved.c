@@ -75,7 +75,7 @@
 #include <OS/math.h>
 
 #include <ctype.h>
-#include <stdio.h>
+#include <cstdio>
 #include <stdlib.h>
 #include <string.h>
 

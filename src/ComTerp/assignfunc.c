@@ -29,6 +29,10 @@
 #include <Attribute/attribute.h>
 #include <InterViews/resource.h>
 
+#include <fstream>
+#include <iostream>
+using std::cerr;
+
 #define TITLE "AssignFunc"
 
 /*****************************************************************************/

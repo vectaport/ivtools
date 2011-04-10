@@ -36,6 +36,11 @@
 
 #include <version.h>
 
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
+
 /*****************************************************************************/
 
 static PropertyData properties[] = {

@@ -38,10 +38,12 @@
 
 #include <iostream.h>
 #include <string.h>
+#include <fstream>
 
 #include <IV-2_6/_enter.h>
 
 /*****************************************************************************/
+using std::cerr;
 
 int AttributeList::_symid = -1;
 

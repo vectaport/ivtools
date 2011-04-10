@@ -34,6 +34,9 @@
 
 #include <string.h>
 #include <iostream.h>
+#include <fstream>
+
+using std::cout;
 
 /*****************************************************************************/
 

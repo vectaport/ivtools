@@ -286,7 +286,7 @@ class Rectangle31 : public Graphic31 {
 public:
     Rectangle31 (
         const Brush* brush, const Color* stroke, const Color* fill,
-        Coord l, Coord b, Coord r, Coord t, Transformer* t = nil
+        Coord l, Coord b, Coord r, Coord s, Transformer* t = nil
     );
     virtual Glyph* clone() const;
 

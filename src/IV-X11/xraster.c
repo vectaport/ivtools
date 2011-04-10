@@ -46,6 +46,12 @@
 #include <X11/extensions/XShm.h>
 #include <IV-X11/Xundefs.h>
 
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
+using std::endl;
+
 // no X prototype
 extern "C" int XShmGetEventBase(XDisplay*);
 

@@ -29,6 +29,10 @@
 #include <InterViews/regexp.h>
 #include <stream.h>
 #include <string.h>
+#include <iostream>
+#include <fstream>
+
+using std::cerr;
 
 /*
  * This version is based on the Henry Spencers public domain reimplementation

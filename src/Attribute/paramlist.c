@@ -36,6 +36,7 @@
 
 #include <ctype.h>
 #include <iostream.h>
+#include <fstream>
 #include <stdio.h>
 #include <string.h>
 #ifndef __APPLE__
@@ -43,6 +44,7 @@
 #endif
 
 /*****************************************************************************/
+using std::cerr;
 
 static const int BUFSIZE = 10000;
 static char textbuf[BUFSIZE];

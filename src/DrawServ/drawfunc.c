@@ -29,6 +29,8 @@
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawfunc.h>
 
+#include <cstdio>
+
 #define TITLE "DrawServFunc"
 
 /*****************************************************************************/

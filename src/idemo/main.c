@@ -41,7 +41,7 @@
 #include <InterViews/transformer.h>
 #include <InterViews/window.h>
 #include <OS/string.h>
-#include <stdio.h>
+#include <cstdio>
 
 static const Coord tool_scale = 12.0;
 

@@ -114,11 +114,11 @@ extern  int   Kaput_On;
 extern  int   TITLE;
 #endif
 
-#if !defined(min) && !defined(COMUTIL_NOMINMAXDEF) 
-#define  min(a,b) (a<b?a:b)
+#if !defined(my_min) && !defined(COMUTIL_NOMINMAXDEF) 
+#define  my_min(a,b) (a<b?a:b)
 #endif
-#if !defined(max) && !defined(COMUTIL_NOMINMAXDEF)
-#define  max(a,b) (a>b?a:b)
+#if !defined(my_max) && !defined(COMUTIL_NOMINMAXDEF)
+#define  my_max(a,b) (a>b?a:b)
 #endif
 
 /* Return Status for functions */

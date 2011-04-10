@@ -59,7 +59,7 @@
 #include <InterViews/patch.h>
 #include <InterViews/style.h>
 #include <OS/string.h>
-#include <stdio.h>
+#include <cstdio>
 #include <string.h>
 
 DragValuator::DragValuator(BoundedValue* bv, Style* style, Action* up, Action* down)
