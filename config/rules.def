@@ -33,6 +33,8 @@ World::									@@\
 	@echo "Building $(RELEASE) on `date`"				@@\
 	@echo ""							@@\
 	$(MAKE) Makefile CONFIGSRC=$(CONFIGSRC) XCONFIGDIR=$(XCONFIGDIR)@@\
+	@echo "twice to propogate new toplevel pathname"							@@\
+	$(MAKE) Makefile 						@@\
 	@echo ""							@@\
 	$(MAKE) Makefiles						@@\
 	@echo ""							@@\
@@ -81,12 +83,6 @@ MakeSpecialWorld(.debug,flags)
 /*
  * Make the Makefile in the current directory.
  */
-#ifdef LinuxArchitecture
-#define PWD_VAL shell pwd
-#else
-#define PWD_VAL PWD
-#endif
-
 #ifndef MakefileTarget
 #define MakefileTarget()						@@\
 Makefile::								@@\
@@ -99,11 +95,17 @@ Makefile::								@@\
 	echo >.toplevel-make-makefile; else \				@@\
 	echo >.not-toplevel-make-makefile; fi				@@\
 	-@if [ -f .toplevel-make-makefile ]; then \                     @@\
-	$(IMAKE) $(IMAKEFLAGS) -I$(PWD_VAL)/config \			@@\
-	-DTOPDIR=$(PWD_VAL) -DRELTOPDIR=$(RELTOP) -DCURDIR=$(PWD_VAL);fi@@\
+	echo;\							@@\
+	echo "remaking top-level Makefile using:";\			@@\
+	echo "    top-level directory -- $(ABSTOP)";\			@@\
+	echo "    ivtools config directory -- $(CONFIGSRC)";\		@@\
+	echo "    X11 config directory -- $(XCONFIGDIR)";\		@@\
+	echo;\							@@\
+	$(IMAKE) $(IMAKEFLAGS) -I$(ABSTOP)/config \			@@\
+	-DTOPDIR=$(ABSTOP) -DRELTOPDIR=$(RELTOP) -DCURDIR=$(ABSTOP); fi @@\
 	-@if [ -f .not-toplevel-make-makefile ]; then \			@@\
 	$(IMAKE) $(IMAKEFLAGS) -DTOPDIR=$(TOP) \                        @@\
-		-DRELTOPDIR=$(RELTOP) -DCURDIR=$(PWD_VAL); fi		@@\
+		-DRELTOPDIR=$(RELTOP) -DCURDIR=$(CURRENT_DIR); fi	@@\
 	-@if [ $(TOP) = $(CURRENT_DIR) ]; then \                        @@\
 	$(RM) .toplevel-make-makefile; else \				@@\
 	$(RM) .not-toplevel-make-makefile; fi				
@@ -115,7 +117,7 @@ Makefile::								@@\
 #ifndef MakefilesSubdirs
 #define MakefilesSubdirs(dirs)						@@\
 Makefiles::								@@\
-	-@for i in dirs; \						@@\
+	@for i in dirs; \					@@\
 	do \								@@\
 		if [ -d $$i ]; then ( \					@@\
 			echo "Making Makefiles" \			@@\
@@ -165,15 +167,15 @@ Makefiles::								@@\
 #ifndef IntoSubdirs
 #define IntoSubdirs(name,dirs,verb)					@@\
 name::									@@\
-	-@for i in dirs; \						@@\
+	@(set -e;for i in dirs; \					@@\
 	do \								@@\
-		if [ -d $$i ]; then ( \					@@\
+		if [ -d $$i ]; then  \					@@\
 			echo verb \					@@\
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
 			cd $$i; \					@@\
-			$(MAKE) $(PASSARCH) name; \			@@\
-		) else continue; fi; \					@@\
-	done
+			$(MAKE) $(PASSARCH) name; cd ../ ; \			@@\
+		else continue; fi; \					@@\
+	done)
 #endif
 
 #ifndef DependSubdirs
@@ -188,7 +190,9 @@ IntoSubdirs(all,dirs,"making all")
 
 #ifndef InstallSubdirs
 #define InstallSubdirs(dirs)						@@\
-IntoSubdirs(install,dirs,"installing")
+IntoSubdirs(install,dirs,"installing")					@@\
+									@@\
+IntoSubdirs(uninstall,dirs,"uninstalling")
 #endif
 
 #ifndef CleanSubdirs
@@ -348,7 +352,7 @@ all:: deps
 #ifndef DependTarget
 #define DependTarget()							 @@\
 depend::								 @@\
-	c++ -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
+	gcc -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
 #endif
 
 /*
@@ -454,6 +458,7 @@ cmcommit:: 									@@\
        LIBDIRPATH = LibDirPath						@@\
           LDLIBIV = Ld_libIV						@@\
       XLIBDIRPATH = XLibDirPath						@@\
+        LDLIBXEXT = Ld_libXext						@@\
          LDLIBX11 = Ld_libX11						@@\
            LDLIBM = Ld_libm						@@\
     ABSLIBDIRPATH = AbsLibDirPath
@@ -466,6 +471,7 @@ cmcommit:: 									@@\
 #define Use_libUnidraw() 						@@\
     DEPLIBUNIDRAW = Dep_libUnidraw					@@\
          DEPLIBIV = Dep_libIV						@@\
+       DEPLIBXEXT = Dep_libXext						@@\
         DEPLIBX11 = Dep_libX11						@@\
           DEPLIBM = Dep_libm						@@\
 									@@\
@@ -473,6 +479,7 @@ cmcommit:: 									@@\
      LDLIBUNIDRAW = Ld_libUnidraw					@@\
           LDLIBIV = Ld_libIV						@@\
       XLIBDIRPATH = XLibDirPath						@@\
+        LDLIBXEXT = Ld_libXext						@@\
          LDLIBX11 = Ld_libX11						@@\
            LDLIBM = Ld_libm						@@\
     ABSLIBDIRPATH = AbsLibDirPath
@@ -518,7 +525,6 @@ dst.o: src.$(CCSUFFIX)							@@\
 	$(CCDRIVER) flags $(CCFLAGS) -c src.$(CCSUFFIX)
 #endif
 
-
 #ifndef MakeObjectRule2
 #define MakeObjectRule2(dst,src,flags1,flags2)				@@\
 $(AOUT): dst.o								@@\
@@ -527,12 +533,17 @@ dst.o: src.$(CCSUFFIX)							@@\
 	$(CCDRIVER) flags1 $(CCFLAGS) flags2 -c src.$(CCSUFFIX)
 #endif
 
+#ifndef MakeCObjectRule
+#define MakeCObjectRule(dst,src,flags)					@@\
+$(AOUT): dst.o								@@\
+dst.o: src.$(CSUFFIX)							@@\
+	@$(RM) dst.o 							@@\
+	$(CDRIVER) flags $(CFLAGS) -c src.$(CSUFFIX)
+#endif
 
 /*
  * Shorthands for making an object file.
  */
-
-
 #ifndef MakeObjectFromSrcFlags
 #define MakeObjectFromSrcFlags(file,flags)				@@\
 MakeObjectRule(file,$(SRC)/file,flags)
@@ -552,6 +563,11 @@ MakeObjectFromSrcFlags(file,NullParameter)
 #define MakeObjectFromSrc2_6(file)					@@\
 MakeObjectFromSrcFlags(file,\
 BackwardCompatibilityCCDefines BackwardCompatibilityCCIncludes)
+#endif
+
+#ifndef MakeObjectFromCSrcFlags
+#define MakeObjectFromCSrcFlags(file,flags)				@@\
+MakeCObjectRule(file,$(SRC)/file,flags)
 #endif
 
 /*
@@ -636,7 +652,7 @@ Concat(lib,libname.so.rev): depobjs					@@\
 	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
- 	$(LN) $@ Concat(lib,libname.so)					@@\
+	$(LN) $@ Concat(lib,libname.so)					@@\
 									@@\
 clean::									@@\
 	$(RM) Concat(lib,libname.so.rev)
@@ -701,7 +717,6 @@ InstallLibrary(name,rev,$(LIBDIR))					@@\
 DependTarget()
 #endif
 
-
 /*
  * Removing an executable before relinking it wastes time if the user's using
  * an incremental linker smart enough to write only the modified sections.
@@ -743,7 +758,8 @@ PROGRAM	= program							@@\
 									@@\
 AllTarget($(AOUT))							@@\
 BuildProgram($(AOUT),NullParameter,$(OBJS),$(CCDEPLIBS),$(CCLDLIBS))	@@\
-DependTarget()
+DependTarget()								@@\
+uninstall::
 #endif
 
 /*
@@ -832,7 +848,10 @@ step::									@@\
 #define InstallDynamicSharedLibrary(libname,rev,dest)			@@\
 install:: Concat(lib,libname.so.rev)					@@\
 	MakeDir(dest)							@@\
-	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest
+	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
+									@@\
+uninstall:: 								@@\
+	$(RM) dest/Concat(lib,libname.so.rev)			
 #endif
 
 #ifndef InstallNonSharedLibrary
@@ -840,7 +859,10 @@ install:: Concat(lib,libname.so.rev)					@@\
 install:: Concat(lib,libname.a)						@@\
 	MakeDir(dest)							@@\
 	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.a) dest	@@\
-	RanLibrary($(RANLIBINSTFLAGS) Concat(dest/lib,libname.a))
+	RanLibrary($(RANLIBINSTFLAGS) Concat(dest/lib,libname.a))       @@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.a)
 #endif
 
 #ifndef InstallLibrary
@@ -862,12 +884,18 @@ InstallNonSharedLibrary(libname,dest)
 install:: program							@@\
 	MakeDir(destdir)						@@\
 	$(INSTALL) -c $(INSTPGMFLAGS) flags program destdir/destname	@@\
-	$(RM) program
+	$(RM) program							@@\
+									@@\
+uninstall::								@@\
+	$(RM) destdir/destname
 #else
 #define InstallProgramWithFlags(program,destdir,destname,flags)		@@\
 install:: program							@@\
 	MakeDir(destdir)						@@\
-	$(INSTALL) -c $(INSTPGMFLAGS) flags program destdir/destname
+	$(INSTALL) -c $(INSTPGMFLAGS) flags program destdir/destname    @@\
+									@@\
+uninstall::								@@\
+	$(RM) destdir/destname
 #endif
 #endif
 
@@ -883,7 +911,10 @@ InstallProgramWithFlags(program,destdir,destname,$(INSTBINFLAGS))
 #define InstallScript(script,dest)					@@\
 install:: script							@@\
 	MakeDir(dest)							@@\
-	$(INSTALL) -c $(INSTBINFLAGS) script dest
+	$(INSTALL) -c $(INSTBINFLAGS) script dest			@@\
+									@@\
+uninstall::								@@\
+	dest/script
 #endif
 
 /*
@@ -893,19 +924,12 @@ install:: script							@@\
 #define InstallScriptAs(script,dest,destname)				@@\
 install:: script							@@\
 	MakeDir(dest)							@@\
-	$(INSTALL) -c $(INSTBINFLAGS) script dest/destname
+	$(INSTALL) -c $(INSTBINFLAGS) script dest/destname		@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/destname		
 #endif
 
-/* 
- * Install a defaults file
- */
-
-#ifndef InstallXDefaultAs                                        
-#define InstallXDefaultAs(source,dest,destname)                          @@\
-install:: source                                                         @@\
-	MakeDir(dest)                                                    @@\
-	$(INSTALL) -c $(INSTINCFLAGS) source dest/destname
-#endif
 /*
  * Install multiple files.
  */
@@ -915,6 +939,11 @@ install:: list								@@\
 	MakeDir(dest)							@@\
 	@for i in list; do \						@@\
 		(set -x; $(INSTALL) -c flags $$i dest); \		@@\
+	done								@@\
+									@@\
+uninstall::								@@\
+	@for i in list; do \						@@\
+		($(RM) dest/$$i); \					@@\
 	done
 #endif
 
@@ -933,7 +962,10 @@ install::  								@@\
 	if [ ! -f dest/libbase ]; then \				@@\
 		 $(LN) libdir/libbase dest/; \				@@\
 		 echo $(LN) libdir/libbase dest/ \			@@\
-	;fi ;fi
+	;fi ;fi								@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/libbase
 #endif
 
 /*
@@ -951,7 +983,62 @@ install::								@@\
 #define InstallIncludes(dir)						@@\
 install::								@@\
 	MakeDir($(INCDIR)/dir)						@@\
-	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/dir		    
+	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/dir			@@\
+									@@\
+uninstall::								@@\
+	(cd $(INCDIR)/dir;$(RM) *.h)
 #endif
+#endif
+
+#ifndef InstallInclude
+#if InstallRelative
+#define InstallInclude(dir, file)					@@\
+install::								@@\
+	-@if [ -L $(TOP)/include ]; then exit 0; else \                 @@\
+        (cd $(TOP) && $(LN) src/include include); fi
+#else
+#define InstallInclude(dir, file)					@@\
+install::								@@\
+	MakeDir($(INCDIR)/dir)						@@\
+	$(INSTALL) $(INSTINCFLAGS) file $(INCDIR)/dir		        @@\
+									@@\
+uninstall::								@@\
+	$(RM) $(INCDIR)/dir/file
+#endif
+#endif
+
+#ifndef InstallSymLink
+#if InstallRelative
+#define InstallSymLink(dir, file) /**/
+#else
+#if !defined(SVR4)
+#define InstallSymLink(dir, file)					@@\
+install::								@@\
+	MakeDir(dir)							@@\
+	cp -frd file dir						@@\
+									@@\
+uninstall::								@@\
+	$(RM) dir/file	
+#else
+#define InstallSymLink(dir, file)					@@\
+install::								@@\
+	MakeDir(dir)							@@\
+	tar cf - file | (cd dir; tar xfp -)				@@\
+									@@\
+uninstall::								@@\
+	$(RM) dir/file	
+#endif
+#endif	
+#endif
+
+/* 
+ * Command to install X Default files with correct permissions
+ */
+
+#ifndef InstallXDefaultAs                                        
+#define InstallXDefaultAs(source,dest,destname)                          @@\
+install:: source                                                         @@\
+	MakeDir(dest)                                                    @@\
+	$(INSTALL) -c $(INSTINCFLAGS) source dest/destname
 #endif
 

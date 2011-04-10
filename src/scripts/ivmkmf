@@ -27,13 +27,14 @@ fi
 
 case "$do_all" in
 	yes)	set -x
-		imake -T "template" -I/usr/X11R6/lib/ivtools -I/usr/X11R6/lib/ivtools/.. -I/usr/X11R6/lib/X11/config  -DUseInstalled &&
-		make Makefile ARCH=LINUX CONFIGSRC=/usr/X11R6/lib/ivtools XCONFIGDIR=/usr/X11R6/lib/X11/config  &&
-		make Makefiles ARCH=LINUX CONFIGSRC=/usr/X11R6/lib/ivtools XCONFIGDIR=/usr/X11R6/lib/X11/config  &&
-		make depend
+		imake -T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`  -DUseInstalled &&
+		make Makefile ARCH=LINUX  UseInstalled=1 &&
+		make Makefiles ARCH=LINUX  UseInstalled=1 &&
+		make depend UseInstalled=1
 		;;
 	*)	set -x
-		imake -T "template" -I/usr/X11R6/lib/ivtools -I/usr/X11R6/lib/ivtools/.. -I/usr/X11R6/lib/X11/config  -DUseInstalled
+		imake -T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`  -DUseInstalled
+		make Makefile ARCH=LINUX  UseInstalled=1
 		;;
 esac
 

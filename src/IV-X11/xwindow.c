@@ -606,6 +606,30 @@ void Window::resize() {
     w.needs_resize_ = true;
 }
 
+void Window::offset_from_toplevel(PixelCoord& dx, PixelCoord& dy) {
+  WindowRep& w = *rep();
+  XWindow xtoplevel = w.xtoplevel_;
+  dx = 0;
+  dy = 0;
+  XWindow curwin = w.xwindow_;
+  XWindowAttributes attributes;
+  while (1) {
+    XGetWindowAttributes(w.dpy(), curwin, &attributes);
+    dx += attributes.x;
+    dy += attributes.y;
+    
+    XWindow root;
+    XWindow parent;
+    XWindow* children;
+    unsigned int nchildren;
+    if(!XQueryTree(w.dpy(), curwin, &root, &parent, &children, &nchildren))  break;
+    XFree(children);
+    if (parent == xtoplevel) return;
+    curwin = parent;
+  }
+  cerr << "unexpected failure in traversing up X window tree\n";
+}
+
 /** class ManagedWindow **/
 
 ManagedWindow::ManagedWindow(Glyph* g) : Window(g) {
@@ -735,6 +759,12 @@ void ManagedWindow::set_props() {
 
 /** class ApplicationWindow **/
 
+ApplicationWindow::ApplicationWindow(Glyph* g)
+: ManagedWindow(g) 
+{ 
+  _otherdisplay = nil;
+ }
+
 ApplicationWindow::ApplicationWindow(Glyph* g, const char* display) 
 : ManagedWindow(g) 
 { 
@@ -782,6 +812,7 @@ void ApplicationWindow::set_props() {
     if (d == nil) {
 	d = s.default_display();
     }
+#if 0
     if (_otherdisplay) {
       cerr << "attempting to open new viewer on " << _otherdisplay << "\n";
       DisplayRep* displayrep = new DisplayRep;
@@ -794,6 +825,7 @@ void ApplicationWindow::set_props() {
 	cerr << "failed to connect to " << _otherdisplay << "\n";
       }
     }
+#endif
     XSetCommand(d->rep()->display_, w.xwindow_, s.argv(), s.argc());
     ManagedWindow::set_props();
 }

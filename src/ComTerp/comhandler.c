@@ -28,13 +28,18 @@
 
 #include <iostream.h>
 
+#if BUFSIZ>1024
+#undef BUFSIZ
+#define BUFSIZ 1024
+#endif
+
 /*****************************************************************************/
 
 // Default constructor.
 
 ComterpHandler::ComterpHandler (void)
 {
-    comterp_ = new ComTerpServ(BUFSIZ);
+    comterp_ = new ComTerpServ(BUFSIZ*BUFSIZ);
     comterp_->handler(this);
     comterp_->add_defaults();
     _timeoutscriptid = -1;
@@ -46,25 +51,25 @@ ComterpHandler::~ComterpHandler() {
 const char* ComterpHandler::timeoutscript() { return symbol_pntr(_timeoutscriptid); }
 
 void ComterpHandler::timeoutscript(const char* timeoutscript) {
-    _timeoutscriptid = -1;
     if (timeoutscript)
-        _timeoutscriptid = symbol_add((char *)timeoutscript);
+        timeoutscriptid(symbol_add((char *)timeoutscript));
 }
 
 int ComterpHandler::timeoutscriptid() { return _timeoutscriptid; }
 void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
+    if (_timeoutscriptid != -1) 
+      COMTERP_REACTOR::instance ()->cancel_timer (this);
+
     _timeoutscriptid = timeoutscriptid;
     if (_timeoutscriptid != -1) {
       if (COMTERP_REACTOR::instance ()->schedule_timer
 	  (this, 
 	   (const void *) this, 
-	   ACE_Time_Value (2), 
-	   ACE_Time_Value (2)) == -1)
+	   ACE_Time_Value (timeoutseconds()), 
+	   ACE_Time_Value (timeoutseconds())) == -1)
 	/* ACE_ERROR_RETURN ((LM_ERROR, 
 	   "can'(%P|%t) t register with reactor\n"), -1) */;
     }
-    else
-      COMTERP_REACTOR::instance ()->cancel_timer (this);
 }
 
 void
@@ -110,16 +115,19 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 }
 
 // Perform the logging record receive. 
-static const unit = 15;
+static const int unit = 15;
+
+// #define INPUT_BY_READ
 
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
 #if 1
-    const int bufsiz = BUFSIZ;
+    const int bufsiz = BUFSIZ*BUFSIZ;
     char inbuf[bufsiz];
     char outbuf[bufsiz];
     inbuf[0] = '\0';
+#if !defined(INPUT_BY_READ)
     filebuf ibuf(fd);
     istream istr(&ibuf);
     istr.getline(inbuf, bufsiz);
@@ -132,13 +140,31 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       ostr.flush();
       return 0;
     }
+#else
+    int len = 0;
+    while (len<bufsiz-2) {
+      int nread = read(fd, inbuf+len, 1);
+      if (nread!=1) {
+	cerr << "zero bytes read, connection closed\n";
+	return -1;
+      }
+      if (inbuf[len] == '\n') break;
+      len++;
+    }
+    inbuf[len] = '\0';
+#endif
     comterp_->load_string(inbuf);
-    cerr << "command via ACE -- " << inbuf << "\n";
+    if (fd) 
+      cerr << "command via ACE -- " << inbuf << "\n";
 #else
     comterp_->_infunc = (infuncptr)&ComTerpServ::fd_fgets;
 #endif
     comterp_->_fd = fd;
     comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
+
+#if 1
+    int  status = comterp_->ComTerp::run(false /* !once */);
+#else
     if (comterp_->read_expr()) {
         if (comterp_->eval_expr()) {
 	    err_print( stderr, "comterp" );
@@ -156,8 +182,13 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	    ostr.flush();
 	}
     }
+#endif
 #if 1
-    return istr.good() ? 0 : -1;
+#if !defined(INPUT_BY_READ)
+    return (istr.good() ? 0 : -1) && status;
+#else
+    return status;
+#endif
 #else
     return comterp_->_instat ? 0 : -1;
 #endif
@@ -172,8 +203,10 @@ ComterpHandler::open (void *)
     return -1;
   else
     {
-      ACE_OS::strncpy (this->peer_name_, 
-		       addr.get_host_name (), 
+      const char* hostname = addr.get_host_name();
+      char buffer[MAXHOSTNAMELEN];
+      addr.addr_to_string(buffer, MAXHOSTNAMELEN);
+      ACE_OS::strncpy (this->peer_name_, buffer,
 		       MAXHOSTNAMELEN + 1);
 
       if (COMTERP_REACTOR::instance ()->register_handler 

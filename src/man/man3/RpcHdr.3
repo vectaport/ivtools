@@ -1,0 +1,48 @@
+.TH RpcHdr 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+RpcHdr \- header for remote procedure calls
+.SH SYNOPSIS
+.B #include <Dispatch/rpchdr.h>
+.SH DESCRIPTION
+An RpcHdr enables an RPC request to be sent or received.  To send an
+RPC request, you would insert an RpcHdr into an rpcstream followed by
+any arguments and then flush the rpcstream if you wanted the request
+to be sent immediately.  The rpcstream automatically fills in each RPC
+request's length field.  To receive an RPC request, you would extract
+an RpcHdr from an rpcstream and examine the ``request()'' member to
+determine which additional arguments need to be extracted as well.
+You can examine the ``ndata()'' member too if you need to estimate how
+much space to allocate.
+.SH CONSTRUCTORS
+.TP
+.B "RpcHdr(void* writer, int request)"
+.ns
+.TP
+.B "RpcHdr(int request)"
+.ns
+.TP
+.B "RpcHdr()"
+Construct an initialized header for an outgoing RPC request (first two
+constructors) or construct an uninitialized header for an incoming RPC
+request (third constructor).  To initialize the header, you'll have to
+store the request's protocol number.  You can also store the address
+of the writer sending the RPC request if you want to route the RPC
+request to a specific reader on the peer's side.
+.SH PUBLIC OPERATIONS
+.TP
+.B "unsigned long reader()"
+.ns
+.TP
+.B "int request()"
+.ns
+.TP
+.B "unsigned int ndata()"
+Get information about the RPC request.  ``reader()'' identifies the
+reader which should handle the RPC request.  ``request()'' identifies
+the action that should be performed.  ``ndata()'' gives the number of
+data bytes following the header, which may be useful for estimating
+the amount of space that must be allocated to store an argument.
+.SH SEE ALSO
+RpcReader(3I),
+RpcWriter(3I),
+rpcstream(3I)

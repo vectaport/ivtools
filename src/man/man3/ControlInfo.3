@@ -1,0 +1,80 @@
+.TH ControlInfo 3U "20 November 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ControlInfo \- object for storing control-related information
+.SH SYNOPSIS
+.B #include <Unidraw/ctrlinfo.h>
+.SH DESCRIPTION
+A ControlInfo object stores information from which to build a Control
+for executing a command or engaging the current tool. The ControlInfo
+object is stored with the command or tool, thus providing all the
+information necessary to recreate the interface when the command or
+tool is retrieved from disk through a catalog. The ControlInfo
+object also defines the mapping between a keycode and a UControl
+instance to support keyboard equivalents via the KeyMap class.
+.SH PUBLIC OPERATIONS
+.TP
+.B "ControlInfo("
+.ns
+.TP
+.B "    GraphicComp* label, const char* keylabel = ``'',"
+.ns
+.TP
+.B "    const char* keycode = ``'', void* owner = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "ControlInfo("
+.ns
+.TP
+.B "    const char* label , const char* = ``'',"
+.ns
+.TP
+.B "    const char* = ``'', void* = nil
+.ns
+.TP
+.B ")"
+.br
+Create a new ControlInfo instance, supplying either a GraphicComp or a
+character string to define its label's appearance.  The \fIlabel\fP
+parameter is an iconic or textual cue that a control displays to
+identify the command or tool it activates.  The \fIkeylabel\fP
+parameter specifies a string to be displayed in the control that
+identifies the control's keyboard equivalent, while the \fIkeycode\fP
+parameter defines the mapping between a keyboard event and the
+ControlInfo.  Finally, the \fIowner\fP parameter specifies the command
+or tool instance to which the ControlInfo object corresponds.
+.TP
+.B "void SetLabel(GraphicComp*)"
+.ns
+.TP
+.B "void SetLabel(const char*)"
+.ns
+.TP
+.B "void SetKeyLabel(const char*)"
+.ns
+.TP
+.B "void SetKeyCode(const char*)"
+.ns
+.TP
+.B "void SetOwner(void*)"
+.TP
+.B "GraphicComp* GetLabel()"
+.ns
+.TP
+.B "const char* GetKeyLabel()"
+.ns
+.TP
+.B "const char* GetKeyCode()"
+.ns
+.TP
+.B "void* GetOwner()"
+Explicitly set or get a constructor-specified parameter.  The Set
+operations delete the value they replace if it is different from the
+given one. The string setting operations copy their arguments.
+.TP
+.B "virtual ControlInfo* Copy()"
+Return a copy of this ControlInfo object, copying its constituent members.
+.SH SEE ALSO
+Catalog(3U), Command(3U), KeyMap(3U), Tool(3U), UControl(3U), uctrls(3U)

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cider Press
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -35,6 +36,7 @@ class PanDialog;
 class Perspective;
 class ZoomDialog;
 
+//: base class for pan and zoom commands.
 class CameraMotionCmd : public Command {
 public:
     CameraMotionCmd(ControlInfo*);
@@ -48,25 +50,31 @@ public:
 #endif
 };
 
-
+//: command for viewer zoom/de-zoom.
 class ZoomCmd : public CameraMotionCmd {
 public:
     ZoomCmd(ControlInfo*, float zf =1.0);
     ZoomCmd(Editor* = nil, float zf =1.0);
 
     virtual void Execute();
+    // same as viewer zoom mechanism.
     virtual void Unexecute();
     virtual boolean Reversible();
+    // returns false, but why?
 
     virtual Command* Copy();
-    virtual void Read(istream&);
-    virtual void Write(ostream&);
+    virtual void Read(istream&); // archaic read method.
+    virtual void Write(ostream&); // archaic write method.
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 protected:
     float _zf;
 };
 
+//: command for zooming other than by powers of 2.
+// Although this command works, it has yet to be useful
+// because other parts of the framework constrain the
+// resultant zoom to a power of 2 anyways.
 class PreciseZoomCmd : public CameraMotionCmd {
 public:
     PreciseZoomCmd(ControlInfo*);
@@ -74,7 +82,9 @@ public:
     virtual ~PreciseZoomCmd();
 
     virtual void Execute();
+    // prompt for precise zoom value, then execute ZoomCmd.
     virtual boolean Reversible();
+    // returns false, but why?
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -83,42 +93,53 @@ protected:
     ZoomDialog* _dialog;
 };
 
+//: command for panning viewer.
 class PanCmd : public CameraMotionCmd {
 public:
     PanCmd(ControlInfo*, IntCoord px =0, IntCoord py =0);
     PanCmd(Editor* = nil, IntCoord px =0, IntCoord py =0);
 
     virtual void Execute();
+    // same as viewer pan mechanism.
     virtual void Unexecute();
     virtual boolean Reversible();
+    // returns false, but why?
 
     virtual Command* Copy();
-    virtual void Read(istream&);
-    virtual void Write(ostream&);
+    virtual void Read(istream&); // archaic read method.
+    virtual void Write(ostream&); // archaic write method.
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 protected:
-    IntCoord _px, _py;
+    IntCoord _px;
+    IntCoord _py;
 };
 
+//: pan amount for FixedPanCmd
 enum PanAmount { NO_PAN, PLUS_SMALL_PAN, PLUS_LARGE_PAN, MINUS_SMALL_PAN,
 		 MINUS_LARGE_PAN };
 
+//: command for panning by fixed amount.
+// Used in a set of pull-down menu items under the "View" menu of a drawing editor.
 class FixedPanCmd : public CameraMotionCmd {
 public:
     FixedPanCmd(ControlInfo*, PanAmount xpan =NO_PAN, PanAmount ypan =NO_PAN);
     FixedPanCmd(Editor* = nil, PanAmount xpan =NO_PAN, PanAmount ypan =NO_PAN);
 
     virtual void Execute();
+    // figure pan amount and invoke PanCmd.
     virtual boolean Reversible();
+    // returns false, but why?
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 protected:
-    PanAmount _xpan, _ypan;
+    PanAmount _xpan;
+    PanAmount _ypan;
 };
 
+//: command for precision panning of the viewer.
 class PrecisePanCmd : public CameraMotionCmd {
 public:
     PrecisePanCmd(ControlInfo*);
@@ -126,7 +147,9 @@ public:
     virtual ~PrecisePanCmd();
 
     virtual void Execute();
+    // prompt for precise amount to pan, then invoke PanCmd.
     virtual boolean Reversible();
+    // returns false, but why?
 
     virtual Command* Copy();
     virtual ClassId GetClassId();

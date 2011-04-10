@@ -10,12 +10,25 @@ PACKAGE = src_ivtools
 #define ivxt_name /**/
 #endif
 
+#ifdef IueDir
+IUEDIRS = IueServ iueserv
+#else
+IUEDIRS =	
+#endif
+
+#ifdef AceDir
+ACEDISPATCH = AceDispatch
+#else
+ACEDISPATCH =
+#endif
+
 SUBDIRS = \
 	IV-common \
 	Unidraw-common \
 	\
 	ComUtil \
 	Attribute \
+	TopoFace \
 	ComTerp \
 	comtest \
 	comterp \
@@ -43,26 +56,31 @@ SUBDIRS = \
 	UniIdraw \
 	idraw \
 	\
-	TopoFace \
+	$(ACEDISPATCH) \
 	OverlayUnidraw \
 	drawtool \
+	\
+	$(IUEDIRS) \
 	\
 	ComUnidraw \
 	comdraw \
 	\
-	GraphUnidraw \
-	graphdraw \
-	\
 	FrameUnidraw \
 	flipbook \
+	\
+	GraphUnidraw \
+	graphdraw \
 	\
 	DrawServ \
 	drawserv \
 	\
 	include \
 	scripts \
+	utils \
+	tests \
 	\
 	ivxt_name \
-	man
+	man \
+	html
 
 MakeInSubdirs($(SUBDIRS))

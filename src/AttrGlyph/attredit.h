@@ -35,6 +35,8 @@ public:
     AttributeListEditor(AttributeList*);
     virtual ~AttributeListEditor();
     void add();
+    void fe_add(FieldEditor*) { add(); }
+    void fe_clr(FieldEditor*);
     void remove();
     AttributeList* list();
     FieldEditor* focusable1() { return _namefe; }

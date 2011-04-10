@@ -45,6 +45,8 @@ class String;
 class Style;
 class WidgetKitImpl;
 
+//: factory object for widgets.
+// <a href=../refman3.1/refman.html#PAGE51>in reference manual</a>
 class WidgetKit {
 protected:
     WidgetKit();

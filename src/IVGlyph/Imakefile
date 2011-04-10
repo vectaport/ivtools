@@ -12,7 +12,7 @@ Use_libInterViews()
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(bdfltform)
 Obj(bdtable)
@@ -49,5 +49,6 @@ IncludeDependencies()
 #else
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
 
 #endif

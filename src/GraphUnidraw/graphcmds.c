@@ -32,6 +32,7 @@
 #include <TopoFace/topoedge.h>
 #include <TopoFace/toponode.h>
 
+#include <Unidraw/Commands/dirty.h>
 #include <Unidraw/Components/text.h>
 #include <Unidraw/catalog.h>
 #include <Unidraw/clipboard.h>
@@ -59,7 +60,7 @@ static boolean selected(Selection* s, NodeComp* comp) {
     return false;
 }
 
-static int index (Selection* s, NodeComp *comp) {
+static int node_index (Selection* s, NodeComp *comp) {
     Iterator i;
     int index = -1;
 
@@ -103,9 +104,9 @@ static void index_clipboard(Selection* s, Clipboard* cb) {
             int start = -1;
             int end = -1;
             if ((node = topoedge->start_node()) && selected(s, (NodeComp*)node->value()))
-	        start = index(s, (NodeComp*)node->value());
+	        start = node_index(s, (NodeComp*)node->value());
             if ((node = topoedge->end_node()) && selected(s, (NodeComp*)node->value()))
-	        end = index(s, (NodeComp*)node->value());
+	        end = node_index(s, (NodeComp*)node->value());
 
 	    EdgeComp* cbcomp = (EdgeComp*)cbgcomp;
 	    cbcomp->SetStartNode(start);
@@ -188,8 +189,11 @@ boolean NodeTextCmd::IsA(ClassId id) {
 boolean NodeTextCmd::Reversible() { return false; }
 
 void NodeTextCmd::Execute() {
-    if (node)
-	node->Interpret(this);
+  if (node) {
+    node->Interpret(this);
+    DirtyCmd cmd(_editor);
+    cmd.Execute();
+  }
 }
 
 ClassId GraphDeleteCmd::GetClassId () { return GRAPHDELETE_CMD; }

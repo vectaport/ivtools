@@ -29,9 +29,10 @@
 
 class rpcstream;
 
+//: write RPC requests to a server
 // Write RPC requests to a server.  Derived classes should add member
 // functions corresponding to the RPC service's protocol.
-
+// <p><a href=../man3.1/RpcWriter.html>man page</a>
 class RpcWriter {
 public:
     ~RpcWriter();

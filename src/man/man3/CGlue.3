@@ -1,0 +1,71 @@
+.TH CGlue 3U "23 November 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+CGlue \- connector glue
+.SH SYNOPSIS
+.B #include <Unidraw/cglue.h>
+.SH DESCRIPTION
+CGlue defines a natural size, elasticity (its rate of stretching and
+shrinking relative to other CGlue), and deformation limits (total
+amount it can stretch and shrink) in both the horizontal and vertical
+dimensions.  CGlue can be interposed between two connected connectors
+to augment their connectivity semantics; it acts like two non-linear
+springs, one horizontal and one vertical, connecting the connectors'
+centers.
+.SH PUBLIC OPERATIONS
+.TP
+.B "CGlue("
+.ns
+.TP
+.B "    float hnat = 0, float vnat = 0,"
+.ns
+.TP
+.B "    float hshr = 0, float hstr = 0,"
+.ns
+.TP
+.B "    float vshr = 0, float vstr = 0,"
+.ns
+.TP
+.B "    float hshrlim = 0, float hstrlim = 0,"
+.ns
+.TP
+.B "    float vshrlim = 0, float vstrlim = 0"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "CGlue(const Shape&)"
+Instantiate CGlue, providing the requisite parameters explicitly or
+inferring them from a Shape object.  If a shape is supplied, then the
+CGlue adopts the shape's natural size, and it assigns the shape's
+stretchability and shrinkability values to its corresponding CGlue
+elasticity members to obtain a proportionately equivalent elasticity.
+It also assigns the shape's stretchability and shrinkability values to
+its deformation limit members.  The parameters are described below:
+
+\fIhnat, vnat\fP: horizontal and vertical natural sizes, screen
+units
+
+\fIhshr, vshr\fP: horizontal and vertical shrinking rate, constant
+units
+
+\fIhstr, vstr\fP: horizontal and vertical stretching rate, constant
+units
+
+\fIhshrlim, vshrlim\fP: horizontal and vertical shrink limit, screen
+units
+
+\fIhstrlim, vstrlim\fP: horizontal and vertical stretch limit, screen
+units
+.TP
+.B "CGlue* Copy()"
+Create a copy of this CGlue instance.
+.TP
+.B "void Rigid()"
+Set all elasticity and deformation limits equal to zero.
+.TP
+.B "void Interpose(const CGlue* glue)"
+Change this instance's attributes to reflect the series combination of
+\fIthis\fP and \fIglue\fP.
+.SH SEE ALSO
+Connector(3U), Shape(3I)

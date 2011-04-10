@@ -43,6 +43,8 @@ class Selection;
 class istream;
 class ostream;
 
+//: base class for command objects.
+// <a href=../man3.1/Command.html>man page</a>
 class Command {
 public:
     virtual void Execute();

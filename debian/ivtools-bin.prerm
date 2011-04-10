@@ -1,0 +1,6 @@
+#!/bin/sh
+
+if [ \( "$1" = "upgrade" -o "$1" = "remove" \) -a -L /usr/doc/ivtools-bin ]; then
+        rm -f /usr/doc/ivtools-bin
+fi
+

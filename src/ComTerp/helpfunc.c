@@ -143,12 +143,16 @@ void HelpFunc::execute() {
 	  for (int j=0; j<OPTYPE_NUM; j++) {
 	    if (op_ids[j]>=0) {
 	      ComValue* value = comterp()->localvalue(opr_tbl_commid(op_ids[j]));
-	      ComFunc* comfunc = (ComFunc*)value->obj_val();
-	      if (first) 
-		first = false;
-	      else
-		out.put('\n');
-	      out.form(comfunc->docstring(), symbol_pntr(value->command_symid()));
+	      if (value) {
+		ComFunc* comfunc = (ComFunc*)value->obj_val();
+		if (first) 
+		  first = false;
+		else
+		  out.put('\n');
+		out.form(comfunc->docstring(), symbol_pntr(value->command_symid()));
+	      } else 
+		out.form("unknown operator: %s\n", symbol_pntr(command_ids[i]));
+
 	    }
 	  }
 	} else {

@@ -31,7 +31,7 @@
 
 /*****************************************************************************/
 
-inline int Hash (Connector* c) { return ((unsigned int) c) % SLOTS; }
+inline unsigned long Hash (Connector* c) { return ((unsigned long) c) % SLOTS; }
 inline void* Elem (UList* u) { return (*u)(); }
 
 static UList* Copy (UList* ulist) {

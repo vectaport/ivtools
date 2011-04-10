@@ -1,0 +1,120 @@
+.TH pspaint 3U "2 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+PSBrush, PSColor, PSFont, PSPattern \- graphics state objects with
+added PostScript information
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/pspaint.h>
+.SH DESCRIPTION
+PSBrush, PSColor, PSFont, and PSPattern are subclasses of Brush,
+Color, Font, and Pattern, respectively, that store added information
+needed to generate idraw-compatible PostScript.  Unidraw's structured
+graphics objects use these subclasses exclusively.
+.SH PSBRUSH PUBLIC OPERATIONS
+.TP
+.B "PSBrush()"
+.ns
+.TP
+.B "PSBrush(int pattern, int width)"
+Create an undefined PSBrush (the parameterless constructor) or one
+having the specified line pattern and width.  Structured graphics
+having an undefined brush will not render their stroked portions.
+.TP
+.B "int GetLinePattern()"
+.ns
+.TP
+.B "int Width()"
+Return constructor-specified brush parameters.
+.TP
+.B "boolean None()"
+Return \fItrue\fP if this is an undefined brush.
+.TP
+.B "const int* GetDashPattern()"
+.ns
+.TP
+.B "int GetDashPatternSize()"
+.ns
+.TP
+.B "int GetDashOffset()"
+Return values required to characterize the brush in PostScript.  The
+equivalent PostScript dash pattern is computed from the brush's line
+pattern.
+.SH PSBRUSH PROTECTED OPERATIONS
+.TP
+.B "void CalcDashPat(int)"
+Compute the equivalent PostScript dash pattern from the line pattern
+specified in the constructor.
+.SH PSCOLOR PUBLIC OPERATIONS
+.TP
+.B "PSColor("
+.ns
+.TP
+.B "    Color_Intensity, Color_Intensity, Color_Intensity,"
+.ns
+.TP
+.B "    const char* name"
+.ns
+.TP
+.B ")"
+.br
+Create a PSColor, supplying color intensity information and a name to
+associate with the intensities.  The name is used solely to generate
+idraw-compatible PostScript.
+.SH PSFONT PUBLIC OPERATIONS
+.TP
+.B "PSFont("
+.ns
+.TP
+.B "    const char* name, const char* PS_name, const char* PS_size"
+.ns
+.TP
+.B ")"
+.br
+Construct a PSFont, supplying the window-system-specified font name
+and the corresponding PostScript font name and its size.
+.TP
+.B "const char* GetName()"
+.ns
+.TP
+.B "const char* GetPrintFont()"
+.ns
+.TP
+.B "const char* GetPrintSize()"
+.ns
+.TP
+.B "const char* GetPrintFontAndSize()"
+Return constructor-supplied parameters.  GetPrintFontAndSize returns
+the concatenation of the PostScript font name and its size, with a
+space interposed for legibility.
+.TP
+.B "int GetLineHt()"
+Return an integer version of the PostScript font's size (as supplied
+to the constructor).
+.SH PSPATTERN PUBLIC OPERATIONS
+.TP
+.B "PSPattern()"
+.ns
+.TP
+.B "PSPattern(int dither, float graylevel)"
+.ns
+.TP
+.B "PSPattern(const int* pattern, int)"
+Create an undefined PSPattern (the parameterless constructor), or one
+having specific dither and graylevel values, or one that replicates a
+pattern defined by the given array.  Structured graphics having an
+undefined pattern will not render their filled portions.
+.TP
+.B "boolean None()"
+Return \fItrue\fP if this is an undefined pattern.
+.TP
+.B "float GetGrayLevel()"
+Return the graylevel that the pattern approximates, if one was
+specified in the constructor.
+.TP
+.B "const int* GetData()"
+.ns
+.TP
+.B "int GetSize()"
+Return the array that defines the replicated pattern and its size, if
+the pattern was constructed with one.
+.SH SEE ALSO
+Brush(3I), Color(3I), Font(3I), Pattern(3I), idraw(1I)

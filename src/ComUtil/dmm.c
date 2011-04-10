@@ -271,7 +271,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_mblock_alloc (nbytes)
+int dmm_mblock_alloc (unsigned long nbytes)
 
 /*!
 Return Value:  0 if OK, -1 if insufficient memory or mblock already exists.
@@ -280,7 +280,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned long   nbytes    ;/* I   Total number of bytes of memory to alloc */
+#endif
 
 
 #ifdef DOC
@@ -435,7 +437,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_mblock_pack (ipackflag)
+int dmm_mblock_pack (int ipackflag)
 
 /*!
 Return Value:  0 if Pack done OK, <0 if no memory block has been allocated,
@@ -446,8 +448,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int             ipackflag  ;/* I  true - do an incremental pack */
                             /*    false - pack entire memory */
+#endif
 /*!
 Description:
 
@@ -541,7 +545,9 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_mblock_stats (mpntr,total,used,free,system)
+int dmm_mblock_stats (void ** mpntr, unsigned long * total,
+		      unsigned long * used, unsigned long * free,
+		      unsigned long * system)
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated or
@@ -551,11 +557,13 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void       **   mpntr      ;/* I  Beginning address of memory block */
 unsigned long   *total     ;/* I  Total number of bytes in memory block */
 unsigned long   *used      ;/* I  Number of bytes the user has allocated */
 unsigned long   *free      ;/* I  Num of bytes free */
 unsigned long   *system    ;/* I  Num of bytes used by the alloc system */
+#endif
 
 
 /*!
@@ -629,7 +637,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_malloc (pntr,nrecs,nsize)
+int dmm_malloc (void ** pntr,unsigned long nrecs,unsigned nsize)
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated
@@ -639,10 +647,12 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr    ;/*  I  Address of location to put start of area */
                            /*     allocated.   */
 unsigned long   nrecs     ;/*  I  Number of records to be allocated */
 unsigned        nsize     ;/*  I  Size of each record in bytes   */
+#endif
 
 /*!
 Description:
@@ -773,7 +783,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_calloc (pntr,nrecs,nsize)
+int dmm_calloc (void ** pntr,unsigned long nrecs,unsigned nsize)
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated
@@ -783,10 +793,12 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr    ;/*  I  Address of location to put start of area */
                            /*     allocated.   */
 unsigned long   nrecs     ;/*  I  Number of records to allocated */
 unsigned        nsize     ;/*  I  Size of each record in bytes   */
+#endif
 
 /*!
 Description:
@@ -829,7 +841,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_realloc (pntr,nrecs)
+int dmm_realloc (void ** pntr,unsigned long nrecs)
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated
@@ -839,9 +851,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr    ;/*  I  Address of location to put start of area */
                            /*     allocated.   */
 unsigned long   nrecs     ;/*  I  Number of records to be allocated */
+#endif
 
 /*!
 Description:
@@ -1064,7 +1078,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_free (pntr)
+int dmm_free (void ** pntr)
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated
@@ -1074,7 +1088,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr     ;/*  I  Address of location of alloc'd area. */
+#endif
 
 /*!
 Description:
@@ -1142,7 +1158,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_clear (pntr)
+int dmm_clear (void ** pntr)
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated
@@ -1152,7 +1168,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr     ;/*  I  Address of location of alloc'd area. */
+#endif
 
 /*!
 Description:
@@ -1195,7 +1213,8 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_pntr (ptype,pntr,nrecs,nsize,cond)
+int dmm_pntr (int ptype,void ** pntr,unsigned long nrecs,
+	      unsigned nsize,int (*cond)())
 
 /*!
 Return Value:  0 if OK, -1 if no memory block has been allocated
@@ -1205,6 +1224,7 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int             ptype     ;/*  I  0 - single scalar pointer */
                            /*     >0 - array of pointers outside mem block */
                            /*     <0 - array of pointers in alloc'd area */
@@ -1216,6 +1236,7 @@ int            (*cond)()  ;/*  I  Function that returns:    */
                            /*      0 - to update pointer, */
                            /*      1 - to not update pointer */
                            /*     If cond NULL, then always update */
+#endif
 #ifdef DOC
 /* look for this dmm2.doc */
 #endif /* DOC */
@@ -1298,7 +1319,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_free_pntr (pntr)
+int dmm_free_pntr (void ** pntr)
 
 /*!
 Return Value:  0 if OK, -1 no memory block has been allocated
@@ -1308,7 +1329,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr    ;/*  I  Address of location of pntr reference */
+#endif
 
 /*!
 Description:
@@ -1420,7 +1443,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_walk (ret)
+int dmm_walk (dmmwalk ret)
 
 /*!
 Return Value:  DMM_WALK_OK if OK,
@@ -1432,8 +1455,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 dmmwalk         *ret       ;/* O  Val returned in structure pointed to by ret */
-
+#endif
 
 #ifdef DOC
 /*!
@@ -1561,7 +1585,8 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int dmm_movrecs(pntr,dstrec,srcrec,nrecs)
+int dmm_movrecs(void ** pntr,unsigned long dstrec,unsigned long srcrec,
+                unsigned long nrecs)
 
 /*!
 Return Value:  0 if OK, -1 no memory block has been allocated
@@ -1571,10 +1596,12 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr    ;/*  I  Address of location of alloc'd area */
 unsigned long	dstrec    ;/*  I  Destination record number */
 unsigned long	srcrec    ;/*  I  Source record number  */
 unsigned long	nrecs     ;/*  I  Number of records to move */
+#endif
 
 /*!
 Description:
@@ -1655,7 +1682,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static int dmm_update (flag,apntr,nbytes,srec,erec)
+static int dmm_update (int flag,ALLOCPNTR apntr,long nbytes,long srec,long erec)
 
 /*!
 Return Value:  0 if OK, -1 if apntr->nrecs was zero.
@@ -1665,6 +1692,7 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int             flag     ;/*   I  >  0 - Update pointers by adding nbytes */
 			  /*      <  0 - Update pointer but don't move memory */
                           /*      == 0 - Free pointers and set to NULL */
@@ -1674,6 +1702,7 @@ long            nbytes   ;/*   I  How many bytes you are moving the */
                           /*      can be pos or neg depending on direction */
 long            srec     ;/*   I  Starting record number (<= 0 is start). */
 long            erec     ;/*   I  Ending record num (< 0 if to last record) */
+#endif
 
 
 /*!
@@ -1884,7 +1913,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static void dmm_update_pntr (flag,pntr,ldiff,apntr)
+static void dmm_update_pntr (int flag, HPNTR * pntr,long ldiff,HPNTR apntr)
 
 /*!
 Return Value:  none
@@ -1893,12 +1922,15 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------        */
+#ifdef DOC
 int             flag     ;/*   I  true - add ldiff to pointer */
                           /*      false - NULL out pointer */
 HPNTR *         pntr     ;/*   I  Pointer to pointer to add to */
 long            ldiff    ;/*   I  Value to add to it */
 HPNTR           apntr    ;/*   I  Address to offset *pntr relative to */
                           /*      Ignored if NULL */
+#endif
+
 /*!
 Description:
 
@@ -1949,7 +1981,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static ALLOCPNTR dmm_find_alloc (pntr)
+static ALLOCPNTR dmm_find_alloc (void ** pntr)
 
 /*!
 Return Value:  The address of alloc'd areas structure.  NULL if not found.
@@ -1958,7 +1990,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr     ;/*  I  Address of location of alloc'd area. */
+#endif
 
 /*!
 Description:
@@ -2005,7 +2039,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static PNTRPNTR dmm_find_pntr (pntr)
+static PNTRPNTR dmm_find_pntr (void ** pntr)
 
 /*!
 Return Value:  The address of pointer link-list structure.  NULL if not found.
@@ -2014,7 +2048,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr   ;/*  I  Address of pointer reference to find. */
+#endif
 
 /*!
 Description:
@@ -2085,7 +2121,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static ALLOCPNTR dmm_find_pntr_to_alloc (pntr)
+static ALLOCPNTR dmm_find_pntr_to_alloc (void ** pntr)
 
 /*!
 Return Value:  The address of alloc link-list structure.  NULL if not found.
@@ -2094,7 +2130,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void            **pntr   ;/*  I  Address of pointer reference to find. */
+#endif
 
 /*!
 Description:
@@ -2142,7 +2180,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static HPNTR dmm_gap_search (size)
+static HPNTR dmm_gap_search (unsigned long size)
 
 /*!
 Return Value:  Address of start of the gap if found, NULL if not found.
@@ -2153,7 +2191,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 unsigned long   size     ;/*   I  Number of bytes to look for */
+#endif
 
 /*!
 Description:
@@ -2204,7 +2244,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static unsigned long dmm_gap_size(flag,curr)
+static unsigned long dmm_gap_size(int flag,ALLOCPNTR curr)
 
 /*!
 Return Value:  Number of bytes in the gap.  0 if no gap.
@@ -2213,12 +2253,14 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int              flag    ;/*   I  true - find size of gap on next page */
                           /*              boundary after curr */
                           /*      false - find gap from end of user memory */
                           /*              in curr */
 ALLOCPNTR        curr    ;/*   I  Alloc table entry to check gap after */
                           /*      NULL means check gap at head of memory */
+#endif
 
 /*!
 Description:
@@ -2294,7 +2336,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static int dmm_memcpy (dest,src,count)
+static int dmm_memcpy (HPNTR dest,HPNTR src,unsigned long count)
 
 /*!
 Return Value:  0 if OK, -1 if illegal parameters.
@@ -2304,9 +2346,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 HPNTR           dest      ;/* I  Destination Address  */
 HPNTR           src       ;/* I  Source Address       */
 unsigned long   count     ;/* I  Number of bytes to move */
+#endif
 
 /*!
 Description:
@@ -2396,7 +2440,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static int dmm_memset (dest,c,count)
+static int dmm_memset (HPNTR dest,int c,unsigned long count)
 
 /*!
 Return Value:  0 if OK, -1 if illegal parameters.
@@ -2405,9 +2449,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 HPNTR           dest      ;/* I  Destination Address  */
 int             c         ;/* I  Char to set it to */
 unsigned long   count     ;/* I  Number of bytes to set */
+#endif
 
 /*!
 Description:
@@ -2453,7 +2499,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static void dmm_pack_range (beg,end,upflag)
+static void dmm_pack_range (ALLOCPNTR beg,ALLOCPNTR end,int upflag)
 
 /*!
 Return Value:  None.
@@ -2462,12 +2508,14 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 ALLOCPNTR        beg     ;/*   I  Starting allocation table position */
                           /*      NULL means from start of memory block */
 ALLOCPNTR        end     ;/*   I  Ending allocation table position */
                           /*      NULL means to the end of memory block */
 int             upflag   ;/*   I  false - pack memory down in memory */
                           /*      true  - pack memory up in memory */
+#endif
 /*!
 Description:
 
@@ -2569,7 +2617,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static long dmm_sub_pntrs (pntr1,pntr2)
+static long dmm_sub_pntrs (HPNTR pntr1,HPTNR pntr2)
 
 /*!
 Return Value:  The difference pntr1 - pntr2.  Also returns compare states:
@@ -2581,8 +2629,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 HPNTR           pntr1   ;/*   I  Pointer 1 to compare */
 HPNTR           pntr2   ;/*   I  Pointer 2 to compare */
+#endif
 
 /*!
 Description:
@@ -2620,7 +2670,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static HPNTR dmm_add_offset (pntr,offset)
+static HPNTR dmm_add_offset (HPNTR pntr,long offset)
 
 /*!
 Return Value:  The pointer (pntr + offset).
@@ -2629,8 +2679,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
- HPNTR           *pntr    ;/*   I  Pointer to add offset to */
+#ifdef DOC
+HPNTR           *pntr    ;/*   I  Pointer to add offset to */
 long            offset   ;/*   I  Amount to add (pos or neg) */
+#endif
 
 /*!
 Description:

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1997 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -30,13 +30,18 @@
 
 #include <OverlayUnidraw/ovcatalog.h>
 
+//: catalog for retrieving flipbook documents
 class FrameCatalog : public OverlayCatalog{
 public:
     FrameCatalog(const char*, Creator*);
 
-    boolean Retrieve (const char*, Component*&);
+    boolean Retrieve (const char* path, Component*&);
+    // construct a FrameIdrawComp from 'path'.
 
     virtual OverlayComp* ReadComp(const char*, istream&, OverlayComp* =nil);
+    // specialized method to ensure a FrameOverlaysComp gets constructed
+    // whenever a composite-graphic is de-serialized (as opposed to
+    // just a plain OverlaysComp).
 };
 
 #endif

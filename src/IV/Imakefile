@@ -6,6 +6,11 @@ PACKAGE = src_iv
 
 #ifdef InObjectCodeDir
 
+
+#define Ld_libX11 -lX11 -ltiff -ljpeg -lz 
+
+Use_libDebian()
+
 #if BuildIV_2_6
 #define IV_2_6Srcs $(IV_2_6)$(SLASH)*.$(CCSUFFIX)
 #else
@@ -19,8 +24,6 @@ PACKAGE = src_iv
     $(DISPATCH)/dispatcher.$(CCSUFFIX)\					@@\
     $(DISPATCH)/iohandler.$(CCSUFFIX)
 #endif
-
-Use_libDebian()
 
 INTERVIEWS = $(SRC)/../InterViews
 IV_2_6	   = $(SRC)/../IV-2_6
@@ -195,10 +198,6 @@ IV_X11ObjFlags(xwindow,$(OPTIMIZE_CCFLAGS))
 
 DispatchObjFlags(dispatcher,$(OPTIMIZE_CCFLAGS))
 DispatchObj(iohandler)
-#ifdef AceDir
-DispatchObj(ace_dispatcher)
-DispatchObj(ace_iohandler)
-#endif
 #if BuildRPCClasses
 DispatchObj(iostreamb)
 DispatchObj(rpcbuf)
@@ -223,7 +222,6 @@ OSObj(memory)
 OSObjFlags(string,$(OPTIMIZE_CCFLAGS))
 OSObj(ustring)
 
-#if ! (UseOwnTIFF)
 #include <InterViews/TIFF.def>
 #define TIFFObj(file) TIFFObjFlags(file,NullParameter)
 #define TIFFObjFlags(file,f)\
@@ -267,9 +265,6 @@ g3states.h: $(TIFF)/mkg3states.c $(TIFF)/t4.h
 	./mkg3states > g3states.h
 clean::
 	$(RM) mkg3states g3states.h
-#else
-
-#endif
 
 InstallXDefaultAs(../InterViews.defaults,$(LIBALLDIR),InterViews)
 

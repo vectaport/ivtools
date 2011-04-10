@@ -29,6 +29,10 @@
 
 #undef boolean
 #include <sys/types.h>
+#ifdef __linux__  /* restore to non-void* NULL */ 
+#undef NULL
+#define NULL 0
+#endif
 #define boolean _lib_os(boolean)
 
 #endif

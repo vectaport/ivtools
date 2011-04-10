@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Vectaport Inc.
+ * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -29,13 +29,16 @@
 
 class Selection;
 
+//: command for clipping arbitrary graphics with a rectangle.
 class ClipRectCmd : public MacroCmd {
 public:
     ClipRectCmd(Editor* ed, Selection* sel,
 		     Coord l, Coord b, Coord r, Coord t);
 
     virtual void Execute();
+    // replace graphics under box with graphics clipped to box.
     virtual boolean Reversible() { return true; }
+    // returns true.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -45,12 +48,15 @@ protected:
   Coord _l, _b, _r, _t;
 };
 
+//: tool for clipping arbitrary graphics with a rectangle.
 class ClipRectTool : public Tool {
 public:
   ClipRectTool(ControlInfo* =nil);
 
   virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
+  // create rectangular rubber band.
   virtual Command* InterpretManipulator(Manipulator*);
+  // use rectangle to clip graphics with ClipRectCmd.
 
   virtual Tool* Copy();
   virtual ClassId GetClassId();
@@ -58,13 +64,16 @@ public:
 protected:
 };
 
+//: command for clipping arbitrary graphics with a polygon.
 class ClipPolyCmd : public MacroCmd {
 public:
     ClipPolyCmd(Editor* ed, Selection* sel,
 		     float* x, float* y, int n);
 
     virtual void Execute();
+    // replace graphics under polygon with graphics clipped by the polygon.
     virtual boolean Reversible() { return true; }
+    // returns true.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -76,12 +85,15 @@ protected:
   int _n;
 };
 
+//: tool for clipping arbitrary graphics with a polygon.
 class ClipPolyTool : public Tool {
 public:
   ClipPolyTool(ControlInfo* =nil);
 
   virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
+  // create polygonal rubber band.
   virtual Command* InterpretManipulator(Manipulator*);
+  // use polygon to clip graphics with ClipPolyCmd.
 
   virtual Tool* Copy();
   virtual ClassId GetClassId();
@@ -91,13 +103,17 @@ protected:
 
 #ifdef CLIPPOLY
 
+//: command to clip polygon A with polygon B.
 class ClipPolyAMinusBCmd : public MacroCmd {
 public:
     ClipPolyAMinusBCmd(ControlInfo*);
     ClipPolyAMinusBCmd(Editor* = nil);
 
     virtual void Execute();
+    // clip first polygon (in selection) with second polygon,
+    // leaving the remains of the first.
     virtual boolean Reversible() { return true; }
+    // returns true.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -105,13 +121,17 @@ public:
 protected:
 };
 
+//: command to clip polygon B with polygon A.
 class ClipPolyBMinusACmd : public MacroCmd {
 public:
     ClipPolyBMinusACmd(ControlInfo*);
     ClipPolyBMinusACmd(Editor* = nil);
 
     virtual void Execute();
+    // clip second polygon (in selection) with first polygon,
+    // leaving the remains of the second.
     virtual boolean Reversible() { return true; }
+    // returns true.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -119,13 +139,16 @@ public:
 protected:
 };
 
+//: command to intersect two polygons.
 class ClipPolyAAndBCmd : public MacroCmd {
 public:
     ClipPolyAAndBCmd(ControlInfo*);
     ClipPolyAAndBCmd(Editor* = nil);
 
     virtual void Execute();
+    // leave the intersection of the first two polygons in the selection.
     virtual boolean Reversible() { return true; }
+    // returns true.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();

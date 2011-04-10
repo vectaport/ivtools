@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -31,13 +31,18 @@
 
 #include <OverlayUnidraw/ovcatalog.h>
 
+//: catalog for read/write of graphdraw documents.
 class GraphCatalog : public OverlayCatalog{
 public:
     GraphCatalog(const char*, Creator*);
 
     virtual boolean Save(Component*, const char*);
-    virtual boolean Retrieve (const char*, Component*&);
+    // pass to OverlayCatalog::Save.
+    virtual boolean Retrieve (const char* path, Component*&);
+    // read component tree from 'path', saving node and edge connectivity
+    // information in tables until done, then reconnect graph.
     void SetImport(boolean);
+    // set flag that indicates read is for import instead of an open.
 
 protected:
     boolean _import;

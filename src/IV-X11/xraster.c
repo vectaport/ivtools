@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 R.B. Kissh & Associates
  * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
  * Copyright (c) 1991 Silicon Graphics, Inc.
  *
@@ -35,6 +36,27 @@
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xraster.h>
 
+#include <stream.h>
+
+#ifdef XSHM
+#include <stream.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <IV-X11/Xdefs.h>
+#include <X11/extensions/XShm.h>
+#include <IV-X11/Xundefs.h>
+
+// no X prototype
+extern "C" int XShmGetEventBase(XDisplay*);
+
+static boolean xerror_alert;
+
+static int XError(XDisplay*, XErrorEvent*) {
+  xerror_alert = true;
+  return true;
+}
+#endif
+
 Raster::Raster(unsigned long w, unsigned long h) {
     RasterRep* r = new RasterRep;
     rep_ = r;
@@ -49,15 +71,24 @@ Raster::Raster(unsigned long w, unsigned long h) {
     r->bottom_ = 0;
     r->right_ = r->width_;
     r->top_ = r->height_;
+    r->shared_memory_ = false;
+
     DisplayRep* dr = r->display_->rep();
     XDisplay* dpy = dr->display_;
     r->pixmap_ = XCreatePixmap(
 	dpy, dr->root_, r->pwidth_, r->pheight_, dr->default_visual_->depth()
     );
     r->gc_ = XCreateGC(dpy, r->pixmap_, 0, nil);
-    r->image_ = XGetImage(
-	dpy, r->pixmap_, 0, 0, r->pwidth_, r->pheight_, AllPlanes, ZPixmap
-    );
+
+#ifdef XSHM
+    init_shared_memory();
+#endif
+
+    if (!r->shared_memory_) {
+        r->image_ = XGetImage(
+    	    dpy, r->pixmap_, 0, 0, r->pwidth_, r->pheight_, AllPlanes, ZPixmap
+        );
+    }
 }
 
 Raster::Raster(const Raster& raster) {
@@ -75,6 +106,8 @@ Raster::Raster(const Raster& raster) {
     r->top_ = rr.top_;
     r->pwidth_ = rr.pwidth_;
     r->pheight_ = rr.pheight_;
+    r->shared_memory_ = false;
+
     DisplayRep* dr = r->display_->rep();
     XDisplay* dpy = dr->display_;
     r->pixmap_ = XCreatePixmap(
@@ -85,9 +118,16 @@ Raster::Raster(const Raster& raster) {
 	dpy, rr.pixmap_, r->pixmap_, r->gc_,
 	0, 0, r->pwidth_, r->pheight_, 0, 0
     );
-    r->image_ = XGetImage(
-	dpy, r->pixmap_, 0, 0, r->pwidth_, r->pheight_, AllPlanes, ZPixmap
-    );
+
+#ifdef XSHM
+    init_shared_memory();
+#endif
+
+    if (!r->shared_memory_) {
+        r->image_ = XGetImage(
+    	    dpy, r->pixmap_, 0, 0, r->pwidth_, r->pheight_, AllPlanes, ZPixmap
+        );
+    }
 }
 
 Raster::Raster(RasterRep* r) { rep_ = r; }
@@ -98,10 +138,120 @@ Raster::~Raster() {
         XDisplay* dpy = r->display_->rep()->display_;
         XFreePixmap(dpy, r->pixmap_);
         XFreeGC(dpy, r->gc_);
+
         XDestroyImage(r->image_);
+
+#ifdef XSHM
+        if (r->shared_memory_) {
+            RasterRep::free_shared_memory(*r->display_, r->shminfo_);
+        }
+#endif
+
     }
     delete r;
 }
+
+boolean Raster::init_shared_memory() {
+#ifdef XSHM
+    RasterRep* r = rep();
+    return RasterRep::init_shared_memory(
+        r->shared_memory_, *r->display_, r->shminfo_, r->pwidth_, r->pheight_,
+        r->image_, r->pixmap_ 
+    );
+#else
+    return false;
+#endif
+}
+
+
+#ifdef XSHM
+
+/* static */ void RasterRep::free_shared_memory(
+    Display& idpy, XShmSegmentInfo& shminfo
+) {
+    XDisplay* dpy = idpy.rep()->display_;
+
+    XShmDetach(dpy, &shminfo);
+    XSync(dpy, False);
+    shmdt(shminfo.shmaddr);
+}
+
+
+/* static */ boolean RasterRep::init_shared_memory(
+    boolean& shared_memory, Display& idpy, XShmSegmentInfo& shminfo,
+    unsigned int pwidth, unsigned int pheight, XImage*& image, Pixmap pixmap
+) {
+
+    DisplayRep* dr = idpy.rep();
+    XDisplay* dpy = dr->display_;
+
+    int i;
+    shared_memory = XShmQueryVersion(dpy, &i, &i, &i) ? true : false; 
+
+    if (shared_memory) {
+        image = XShmCreateImage(
+          dpy, dr->default_visual_->visual(), dr->default_visual_->depth(),
+          ZPixmap, 0, &shminfo, pwidth, pheight
+        );
+
+        shminfo.shmid = shmget(IPC_PRIVATE,
+          image->bytes_per_line * image->height, IPC_CREAT|0777);
+
+        shared_memory = shminfo.shmid >= 0;
+
+        if (shared_memory) {
+            shminfo.shmaddr = (char*)shmat(shminfo.shmid, 0, 0);
+            image->data = shminfo.shmaddr;
+
+            xerror_alert = false;
+            XErrorHandler xh = XSetErrorHandler(XError);
+            shminfo.readOnly = False;
+            XShmAttach(dpy, &shminfo);
+            XSync(dpy, False);
+            XSetErrorHandler(xh);
+
+            if (xerror_alert) {
+                cerr << "unable to attach calling XShmAttach\n";
+                shared_memory = false;
+            
+                // cleanup
+
+                image->data = nil;
+                XDestroyImage(image);
+                image = nil;
+                XShmDetach(dpy, &shminfo);
+                XSync(dpy, False); // necessary?
+                shmdt(shminfo.shmaddr);
+                shmctl(shminfo.shmid, IPC_RMID, 0);
+            }
+        }
+    }
+
+    if (shared_memory) {
+        XShmGetImage(dpy, pixmap, image, 0, 0, AllPlanes);
+
+        // removing the segment should cause the segment to be freed when
+        // either the last process attached either detaches or terminates
+        shmctl(shminfo.shmid, IPC_RMID, 0);
+    }
+
+#if 1
+    static boolean announce;
+    if (!announce) {
+        if (shared_memory) {
+            cerr << "using X shared memory extensions" << endl;
+        }
+        else {
+            cerr << "NOT using X shared memory extensions" << endl;;
+        }
+        announce = true;
+    }
+#endif
+
+   return shared_memory;
+}
+
+#endif
 
 Coord Raster::width() const { return rep()->width_; }
 Coord Raster::height() const { return rep()->height_; }
@@ -146,13 +296,76 @@ void Raster::poke(
     r->modified_ = true;
 }
 
+#ifdef XSHM 
+static Bool completion(XDisplay* d, XEvent* eventp, char* arg) {
+    return eventp->xany.type == (XShmGetEventBase(d) + ShmCompletion);
+}
+#endif
+
 void Raster::flush() const {
     RasterRep* r = rep();
     if (r->modified_) {
-	XPutImage(
-	    r->display_->rep()->display_, r->pixmap_, r->gc_, r->image_,
-	    0, 0, 0, 0, r->pwidth_, r->pheight_
-	);
+
+#ifdef XSHM
+        if (r->shared_memory_) {
+            XShmPutImage(
+	        r->display_->rep()->display_, r->pixmap_, r->gc_, r->image_,
+	        0, 0, 0, 0, r->pwidth_, r->pheight_, True
+            );
+            XEvent xe;
+            // thank god for this routine
+            XIfEvent(r->display_->rep()->display_, &xe, completion, nil);
+        }
+#endif
+        if (!r->shared_memory_) {
+	    XPutImage(
+	        r->display_->rep()->display_, r->pixmap_, r->gc_, r->image_,
+	        0, 0, 0, 0, r->pwidth_, r->pheight_
+	    );
+        }
 	r->modified_ = false;
     }
 }
+
+void Raster::flushrect(IntCoord left, IntCoord bottom, 
+		       IntCoord right, IntCoord top) const {
+//  cerr << "Raster::flushrect l,b,r,t " <<
+//    left << "," << bottom << "," <<
+//    right << "," << top << "\n";
+  RasterRep* r = rep();
+  if (r->pixmap_)
+    {
+      if (r->modified_) {
+	
+#ifdef XSHM
+	if (r->shared_memory_) {
+//	  cerr << "Raster::flushrect args to XShmPutImage " <<
+//	     "...," << 
+//	    left << "," <<  r->pheight_ - top - 1 << "," <<
+//	    left << "," <<  r->pheight_ - top - 1 << "," <<
+//	    right-left+1 << "," << top-bottom+1 << "\n";
+	  XShmPutImage(
+		       r->display_->rep()->display_, r->pixmap_, r->gc_, r->image_,
+		       left, r->pheight_ - top - 1,
+		       left, r->pheight_ - top - 1,
+		       right-left+1, top-bottom+1, True
+		       );
+	XEvent xe;
+	// thank god for this routine
+	XIfEvent(r->display_->rep()->display_, &xe, completion, nil);
+	}
+#endif
+	if (!r->shared_memory_) {
+	  XPutImage(
+		    r->display_->rep()->display_, r->pixmap_, r->gc_, r->image_,
+		    left, r->pheight_ - top - 1,
+		    left, r->pheight_ - top - 1,
+		    right-left+1, top-bottom+1
+		    );
+	}
+	r->modified_ = false;
+      }
+    }
+}
+
+

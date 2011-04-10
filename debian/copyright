@@ -1,12 +1,12 @@
 This package was debianized by Guenter Geiger geiger@debian.org on
-Tue, 11 Nov 1997 16:42:31 +0100.
-
-It was downloaded from <http://www.vectaport.com/ivtools>
-
-Copyright:
-
+Tue, 11 Nov 1997 16:42:31 +0100.                                                                            
+                                                                                                            
+It was downloaded from <http://www.vectaport.com/ivtools>                                                   
+ 
 /*
- * Copyright (c) 1997, 1998  Vectaport Inc., R.B. Kissh and Associates
+ * Copyright (c) 1999  Vectaport Inc., R.B. Kissh and Associates
+ * Copyright (c) 1998  Vectaport Inc., R.B. Kissh and Associates, Eric F. Kahler
+ * Copyright (c) 1997  Vectaport Inc., R.B. Kissh and Associates
  * Copyright (c) 1996  Vectaport Inc., R.B. Kissh and Associates, Cider Press
  * Copyright (c) 1994, 1995  Vectaport Inc., Cartoactive Systems, Cider Press
  * Copyright (c) 1991 Silicon Graphics, Inc.

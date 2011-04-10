@@ -1,0 +1,11 @@
+# PERL script to process error condition description
+# Malcolm Wilkins 3.11.97
+
+
+sub filter {
+	local ($in) = @_;
+	local ($start) = '<FONT SIZE=3><B>Error condition:</B></FONT><br><UL>';
+	local ($end) = '</UL>';
+	$str = $start.$in.$end;
+	return $str;
+	}

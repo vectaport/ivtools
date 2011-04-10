@@ -1,0 +1,88 @@
+.TH ellipses 3U "2 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Ellipse, S_Ellipse, F_Ellipse, SF_Ellipse, S_Circle, F_Circle,
+SF_Circle \- abstract base class and predefined subclasses for
+elliptical structured graphics
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/ellipses.h>
+.SH DESCRIPTION
+Ellipse is an abstract base class for elliptical structured graphics
+objects.  It stores geometric information that such graphics require
+and provides helper functions for calculating extents and for hit
+detection.  Predefined subclasses include S_Ellipse, F_Ellipse, and
+SF_Ellipse, which draw stroked, filled, and stroked-filled ellipses,
+respectively; and S_Circle, F_Circle, and SF_Circle, which draw
+stroked, filled, and stroked-filled circles, respectively.
+The stroked subclasses store a PSBrush, the filled subclasses store a
+PSPattern, and the stroked-filled subclasses store one of each.
+.SH ELLIPSE PUBLIC OPERATIONS
+.TP
+.B "void GetOriginal(Coord& x, Coord& y, int& rx, int& ry)"
+Return the ellipse's geometry.  (\fIx, y\fP) defines the ellipse's
+center, while \fIrx\fP and \fIry\fP define its horizontal and vertical
+radii, respectively.
+.SH ELLIPSE PROTECTED OPERATIONS
+.TP
+.B "Ellipse(Coord x, Coord y, int rx, int ry, Graphic* = nil)"
+The constructor is protected to disallow instantiation of the abstract
+base class.  An ellipse's geometry is defined in terms of its center
+and its horizontal and vertical radii.  The constructor also takes an
+optional graphic from which to obtain an initial set of graphics
+state.
+.TP
+.B "void s_getExtent("
+.ns
+.TP
+.B "    float&, float&, float&, float&, float&, Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void f_getExtent("
+.ns
+.TP
+.B "    float&, float&, float&, float&, float&, Graphic*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "boolean s_contains(PointObj&, Graphic*)"
+.ns
+.TP
+.B "boolean f_contains(PointObj&, Graphic*)"
+.ns
+.TP
+.B "boolean s_intersects(BoxObj&, Graphic*)"
+.ns
+.TP
+.B "boolean f_intersects(BoxObj&, Graphic*)"
+Helper functions that return extent and hit detection information
+based on the bounding box that the ellipse defines.  s_getExtent,
+s_contains, and s_intersects return information that accounts for the
+width of a brush, as would be necessary if the ellipse is stroked,
+while f_getExtent, f_contains, and f_intersects assumes that the
+ellipse is filled.  Subclasses can use the operations to help
+implement their getExtent, contains, and intersects operations.
+.SH SUBCLASS PUBLIC OPERATIONS
+.TP
+.B "S_Ellipse(Coord x, Coord y, int rx, int ry, Graphic* = nil)"
+.ns
+.TP
+.B "F_Ellipse(Coord x, Coord y, int rx, int ry, Graphic* = nil)"
+.ns
+.TP
+.B "SF_Ellipse(Coord x, Coord y, int rx, int ry, Graphic* = nil)"
+.ns
+.TP
+.B "S_Circle(Coord x, Coord y, int radius, Graphic* = nil)"
+.ns
+.TP
+.B "F_Circle(Coord x, Coord y, int radius, Graphic* = nil)"
+.ns
+.TP
+.B "SF_Circle(Coord x, Coord y, int radius, Graphic* = nil)"
+Constructors for the various predefined Ellipse subclasses.
+.SH SEE ALSO
+Graphic(3U), geomobjs(3U), pspaint(3U)

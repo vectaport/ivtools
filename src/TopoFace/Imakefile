@@ -8,12 +8,10 @@ PACKAGE = TopoFace
 
 LIB = TopoFace
 
-Use_libUnidraw()
-Use_2_6()
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(fgeomobjs)
 Obj(topoedge)
@@ -27,5 +25,6 @@ IncludeDependencies()
 #else
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
 
 #endif

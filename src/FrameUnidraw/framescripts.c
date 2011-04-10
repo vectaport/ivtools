@@ -216,6 +216,13 @@ int FramesScript::ReadFrames (istream& in, void* addr1, void* addr2, void* addr3
   char* buf = buf1;
 
   FrameComp* bgframe = nil;
+  Iterator it;
+  comps->First(it);
+  if (!comps->Done(it)) {
+    OverlayComp* comp = (OverlayComp*) comps->GetComp(it);
+    if (comp->IsA(FRAME_COMP))
+      bgframe = (FrameComp*) comp;
+  }
 
   while (in.good()) {
     frame = nil;
@@ -371,6 +378,7 @@ boolean FrameIdrawScript::Emit (ostream& out) {
     out << "\n";
     FullGS(out);
     Annotation(out);
+    Attributes(out);
     out << ")\n";
     return status;
 }

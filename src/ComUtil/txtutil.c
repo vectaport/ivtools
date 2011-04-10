@@ -58,7 +58,7 @@ Summary:
 
 */
 
-unsigned int txtstore( new_entry , txtstr )
+unsigned int txtstore(int new_entry,char * txtstr)
 
 
 /*!
@@ -69,10 +69,12 @@ Parameters:
 
 Type      Name               IO    Description
 ----      ----               --    -----------                 */
+#ifdef DOC
 int       new_entry     ;/*  I     New entry flag.
                                    1 = Start new entry
                                    0 = Continue previous entry */
 char *    txtstr        ;/*  I     String to write.            */
+#endif
 
 
 /*!
@@ -224,7 +226,7 @@ Summary:
 
 */
 
-unsigned int txtopenclose( openclose )
+unsigned int txtopenclose(int openclose)
 
 
 /*!
@@ -235,9 +237,11 @@ Parameters:
 
 Type      Name               IO    Description
 ----      ----               --    -----------               */
+#ifdef DOC
 int       openclose     ;/*  I     Txt file open close flag.
                                    0 = open
                                    1 = close                 */
+#endif
 
 
 /*!
@@ -288,7 +292,7 @@ Summary:
 
 */
 
-unsigned int txtkwsrch( keyword, bol, rdstr )
+unsigned int txtkwsrch(char * keyword,int bol,char * rdstr)
 
 
 /*!
@@ -299,6 +303,7 @@ Parameters:
 
 Type      Name             IO    Description
 ----      ----             --    -----------                         */
+#ifdef DOC
 char *    keyword     ;/*  I     String to search table for          */
 int       bol         ;/*  I     Search flag
                                     0 = whole line 
@@ -307,6 +312,7 @@ char *    rdstr       ;/*  IO    String to return value in.
                                  Must be alloced in calling program.
                                  If rdstr is NULL an internal string
                                  is used.                            */
+#endif
 
 /*!
 Description:
@@ -385,7 +391,8 @@ Summary:
 
 */
 
-unsigned int txtprint( id, ignorestr, pause, nlines )
+unsigned int txtprint(unsigned id,char * ignorestr,unsigned pause,
+		      unsigned * nlines)
 
 
 /*!
@@ -396,6 +403,7 @@ Parameters:
 
 Type      Name           IO    Description
 ----      ----           --    -----------                        */
+#ifdef DOC
 unsigned  id        ;/*  I     ID to print                        */
 char *    ignorestr ;/*  I     Strings beginning with ignorestr 
                                are not printed                    */
@@ -404,6 +412,7 @@ unsigned  pause     ;/*  I     Pause afeter 22 lines flag.
 unsigned  *nlines   ;/*  I/0   Number of lines printed prior to
                                this call of txtrpint. Updated on
                                output                             */
+#endif
 
 /*!
 Description:

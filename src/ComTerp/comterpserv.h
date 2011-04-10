@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1997 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -34,31 +34,54 @@
 
 #include <ComTerp/comterp.h>
 
+//: extended ComTerp that works with buffered IO.
 class ComTerpServ : public ComTerp {
 public:
-    ComTerpServ(int bufsize = 1024, int fd = -1);
+    ComTerpServ(int bufsize = 1024*1024, int fd = -1);
+    // construct with optional 'bufsize', and on an optional 'fd'.
     ~ComTerpServ();
 
     void load_string(const char*);
+    // load string to be interpreted into buffer.
     void read_string(const char*);
+    // load string to be interpreted into buffer, and read postfix
+    // tokens from it.
     postfix_token* gen_code(const char*, int& codelen);
+    // generate buffer of length 'codelen' of postfix tokens ready
+    // to be converted into ComValue objects and executed.
 
     virtual int run();
+    // run this interpreter until quit or exit command.
     virtual ComValue& run(const char*, boolean nested=false);
+    // interpret and return value of expression.  'nested' flag used
+    // to indicated nested call to the run() method, to avoid
+    // re-initialization.
     virtual ComValue& run(postfix_token*, int);
+    // execute a buffer of postfix tokens and return the value.
     
     virtual int runfile(const char*);
+    // run interpreter on command read from a file.
 
     void add_defaults();
+    // add a default list of ComFunc objects to this interpreter.
+
+    virtual boolean is_serv() { return true; } 
+    // flag to test if ComTerp or ComTerpServ
 
 protected:
 
     static char* s_fgets(char* s, int n, void* serv);
+    // signature like fgets used to copy input from a buffer.
     static int s_feof(void* serv);
+    // signature like feof used to relay end-of-file.
     static int s_ferror(void* serv);
+    // signature like ferror used to relay error info.
     static int s_fputs(const char* s, void* serv);
+    // signature like fputs used to copy output back to buffer.
     static char* fd_fgets(char* s, int n, void* serv);
+    // signature like fgets used to explicitly read from an filedescriptor.
     static int fd_fputs(const char* s, void* serv);
+    // signature like fputs used to explicitly read from an filedescriptor.
 
 protected:
     char* _instr;

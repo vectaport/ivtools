@@ -134,7 +134,7 @@ public:
 private:
    void scroll_to_line(int line);
    void make_visible(const boolean scroll_page = true);
-   event_to_index(const Event&);
+   int event_to_index(const Event&);
 
    // popup menu stuff
    Menu* menu_;

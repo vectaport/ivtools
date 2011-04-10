@@ -1,0 +1,7 @@
+This directory contains the glyph example programs copied verbatim
+from the InterViews 3.1 (3.2a) distribution (except for gl and
+punidraw).  All should work, except for morpher and plot/sendplot,
+which need to be debugged for a modern C++ compiler and iostreams
+package.  Quite a few of these examples have no Quit button, so you
+need to kill them with Ctrl-C or via the window-manager menu.
+

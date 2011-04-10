@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -39,12 +39,14 @@
 class SF_Rect;
 class istream;
 
+//: clone of RectComp derived from OverlayComp.
 class RectOvComp : public OverlayComp {
 public:
     RectOvComp(SF_Rect* = nil, OverlayComp* parent = nil);
     RectOvComp(istream&, OverlayComp* parent = nil);
 
     SF_Rect* GetRect();
+    // return pointer to graphic.
 
     virtual Component* Copy();
     virtual ClassId GetClassId();
@@ -58,18 +60,24 @@ protected:
 friend OverlaysScript;
 };
 
+//: graphical view of RectOvComp.
 class RectOvView : public OverlayView {
 public:
     RectOvView(RectOvComp* = nil);
 
     virtual void Interpret(Command*);
+    // interpret align-to-grid command, otherwise pass to base class.
     virtual void Update();
 
     virtual Manipulator* CreateManipulator(Viewer*, Event&,Transformer*,Tool*);
+    // create manipulator to create, reshape, move, scale, or rotate rectangle.
     virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulator to create, reshape, move, scale, or rotate rectangle.
 
-    virtual void GetCorners(Coord*, Coord*);
+    virtual void GetCorners(Coord* xvals, Coord* yvals);
+    // return four corners of rectangle in current screen coordinates.
     RectOvComp* GetRectOvComp();
+    // return pointer to associated component.
     virtual Graphic* GetGraphic();
 
     virtual ClassId GetClassId();
@@ -80,26 +88,31 @@ protected:
     int _reshapeCorner;
 };
 
+//: "PostScript" view of RectOvComp.
 class RectPS : public OverlayPS {
 public:
     RectPS(OverlayComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output PostScript fragment for SF_Rect.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: serialized view of RectOvComp.
 class RectScript : public OverlayScript {
 public:
     RectScript(RectOvComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output variable-length ASCII record that defines the component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     static int ReadOriginal(istream&, void*, void*, void*, void*);
+    // read l,b,r,t arguments and construct a SF_Rect.
 };
 
 #include <IV-2_6/_leave.h>

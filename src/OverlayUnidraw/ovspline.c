@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -48,6 +48,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <Attribute/attrlist.h>
+
 #include <stream.h>
 
 /****************************************************************************/
@@ -63,7 +65,10 @@ boolean SplineOvComp::IsA (ClassId id) {
 }
 
 Component* SplineOvComp::Copy () {
-    return new SplineOvComp((SFH_OpenBSpline*) GetGraphic()->Copy());
+    SplineOvComp* comp =
+      new SplineOvComp((SFH_OpenBSpline*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 SplineOvComp::SplineOvComp (SFH_OpenBSpline* graphic, OverlayComp* parent) 
@@ -280,7 +285,10 @@ boolean ClosedSplineOvComp::IsA (ClassId id) {
 }
 
 Component* ClosedSplineOvComp::Copy () {
-    return new ClosedSplineOvComp((SFH_ClosedBSpline*) GetGraphic()->Copy());
+    ClosedSplineOvComp* comp = 
+      new ClosedSplineOvComp((SFH_ClosedBSpline*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 ClosedSplineOvComp::ClosedSplineOvComp (

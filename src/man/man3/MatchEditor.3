@@ -1,0 +1,34 @@
+.TH MatchEditor 3I "7 Dec 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+MatchEditor \- StringEditor with pattern matching
+.SH SYNOPSIS
+.B #include <InterViews/matcheditor.h>
+.SH DESCRIPTION
+MatchEditor is a StringEditor subclass that checks the validity of its
+contents against a specified pattern.  It is suitable for entering
+strings that must conform to a particular format such as a number or a
+file name.  The matching pattern is specified according to the rules
+of scanf(3).  For example, a pattern of "%3d" will match a 3-digit
+integer, a pattern of "%[ab]" will match a string containing only a's
+and b's, and a pattern of "(%f, %f)" will match the string "(12.0,
+5E23)".
+.SH PUBLIC OPERATIONS
+.TP
+.B "MatchEditor(ButtonState*, const char* sample, const char* done)"
+Create a new MatchEditor object.  The ButtonState, sample string, and
+termination string are passed to the StringEditor constructor.
+.TP
+.B "void Match(const char* pattern, boolean keystroke = true)"
+Specify the pattern to match against.  When MatchEditor performs
+matching, it will highlight any trailing part of the edit string that
+does not conform to \fIpattern\fP.  The user can then correct the
+string.  If \fIkeystroke\fP is true, matching will occur on every
+keystroke; otherwise matching will only occur on the completion of the
+edit.  The initial pattern matches any string, and the initial value
+of keystroke is true.
+.SH RESTRICTIONS
+MatchEditor uses sscanf internally to check the pattern match.
+Different versions of sscanf have different scanning capabilities;
+check with your local version to see what patterns you can use.
+.SH SEE ALSO
+StringEditor(3I)

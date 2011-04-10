@@ -740,15 +740,13 @@ boolean OvNewViewCmd::IsA (ClassId id) {
 OvNewViewCmd::OvNewViewCmd (ControlInfo* c, const char* display) 
 : NewViewCmd(c) 
 { 
-  if (display)
-     _display = strdup(display); 
+  _display = display ? strdup(display) : nil; 
 }
 
 OvNewViewCmd::OvNewViewCmd (Editor* ed, const char* display) 
 : NewViewCmd(ed) 
 { 
-  if (display)
-     _display = strdup(display);
+  _display = display ?  strdup(display) : nil;
 }
 
 OvNewViewCmd::~OvNewViewCmd() { 
@@ -795,7 +793,7 @@ void OvNewViewCmd::set_display() {
 const char* OvNewViewCmd::display() { return _display; }
 void OvNewViewCmd::display(const char* display ) 
 { delete _display; 
-  if (display) _display = strdup(display); }
+  _display = display ? strdup(display) : nil; }
 
 implementActionCallback(OvNewViewCmd)
 
@@ -1058,7 +1056,7 @@ void OvWindowDumpAsCmd::Execute () {
     Editor* ed = GetEditor();
 
     char buf[CHARBUFSIZE];
-    sprintf(buf, "Dump this window as:");
+    sprintf(buf, "Dump canvas in .xwd format to:");
 
     boolean reset_caption = false;
     Style* style = new Style(Session::instance()->style());
@@ -1098,7 +1096,7 @@ void OvWindowDumpAsCmd::Execute () {
 		style->attribute("caption", "Couldn't save to file!" );
             } else {
 	      char cmdbuf[CHARBUFSIZE];
-	      sprintf(cmdbuf, "xwd -id %d -out %s",
+	      sprintf(cmdbuf, "xwd -id %ld -out %s",
 		     ed->GetViewer()->GetCanvas()->window()->rep()->xwindow_,
 		     name);
 	      ed->GetWindow()->cursor(hourglass);
@@ -1254,8 +1252,8 @@ void OvImageMapCmd::DumpViews(OverlayView* view, ostream& outs, ostream& drs) {
     // 
     OverlayViewer* viewer = (OverlayViewer*)view->GetViewer();
     Canvas* canvas = viewer->GetCanvas();
-    int* x;
-    int* y;
+    const int* x;
+    const int* y;
     int np;
     SF_Polygon* poly = (SF_Polygon*)view->GetGraphic();
     np = poly->GetOriginal(x, y);

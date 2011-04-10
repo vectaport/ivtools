@@ -466,6 +466,7 @@ void Viewer::CenterOp () {
 }
 
 void Viewer::Magnify (Coord left, Coord bottom, Coord right, Coord top) {
+  if( left != right || top != bottom) {
     Perspective np = *perspective;
     NormalRect(left, bottom, right, top);
     np.curx += left;
@@ -473,6 +474,16 @@ void Viewer::Magnify (Coord left, Coord bottom, Coord right, Coord top) {
     np.curwidth = Math::max(right - left, 1);
     np.curheight = Math::max(top - bottom, 1);
     Adjust(np);
+  }
+  else {
+    Perspective np = *perspective;
+    NormalRect(left, bottom, right, top);
+    np.curx = np.curx + left - np.curwidth/4;
+    np.cury = np.cury + bottom - np.curheight/4;
+    np.curwidth = np.curwidth/2;
+    np.curheight = np.curheight/2;
+    Adjust(np);
+  }
 }
 
 void Viewer::ReduceToFit () {
@@ -521,6 +532,36 @@ static Transformer* ComputeRel (Viewer* v, Transformer* t) {
     return rel;
 }    
 
+Transformer* Viewer::ComputeGravityRel() {
+  Transformer* rel = ComputeRel(this, _graphic->GetTransformer());
+  if (_grid != nil) {
+    GravityVar* grav = (GravityVar*) GetEditor()->GetState("GravityVar");
+    
+    if (grav != nil && grav->IsActive()) {
+
+      /* if gravity is on, make sure all x,y points are mapped to */
+      /* integers in the drawing coordinate space.  This makes sure */
+      /* resultant graphic is on grid, regardless of what resolution */
+      /* it was drawn at, after any possible pan/zoom combinations */
+      /* This removes the error in the gravity mechanism introduced */
+      /* by the rounding at the end of Grid::Constrain */
+
+      float affine[6];
+      rel->matrix(affine[0], affine[1], affine[2],
+		  affine[3], affine[4], affine[5]);
+      float xdelta = round(affine[4]) - affine[4];
+      float ydelta = round(affine[5]) - affine[5];
+      rel->Translate(xdelta, ydelta);
+
+    }
+  }
+  return rel;
+}
+
+Transformer* Viewer::GetRel() {
+    return ComputeRel(this, _graphic->GetTransformer());
+}
+
 void Viewer::UseTool (Tool* t) {
     Event e;
     e.target = nil;
@@ -529,7 +570,7 @@ void Viewer::UseTool (Tool* t) {
 }
 
 void Viewer::UseTool (Tool* t, Event& e) {
-    Transformer* relative = ComputeRel(this, _graphic->GetTransformer());
+    Transformer* relative = ComputeGravityRel();
     Manipulator* m = t->CreateManipulator(this, e, relative);
 
     if (m != nil) {

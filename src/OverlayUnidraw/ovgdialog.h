@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -31,18 +31,23 @@ class AttributeDialogImpl;
 class OverlayComp;
 class WidgetKit;
 
+//: dialog for entering component annotation string.
 class AnnotateDialog : public Dialog {
 public:
     AnnotateDialog(const char*, WidgetKit*, Style*);
     virtual ~AnnotateDialog();
 
     virtual const char* value();
+    // return annotation string from dialog box.
     virtual void value(const char*, boolean update =true);
+    // preset annotation string from dialog box.
     void clear();
+    // clear annotation string in dialog box.
 private:
     AnnotateDialogImpl* impl_;
 };
 
+//: dialog for editing component attributes (property list).
 class AttributeDialog : public Dialog {
 public:
     AttributeDialog(OverlayComp*, WidgetKit*, Style*);

@@ -1,0 +1,79 @@
+.TH CSolver 3U "20 November 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+CSolver \- enforces connector semantics
+.SH SYNOPSIS
+.B #include <Unidraw/csolver.h>
+.SH DESCRIPTION
+A CSolver object defines and implements a model for specifying
+connectivity semantics that connector subclasses can build upon to
+implement their specialized semantics.  Normally, only one CSolver
+instance is used per application, and only connector subclasses need
+access it.  The Unidraw class constructor initializes the
+\fIcsolver\fP global to point to a CSolver instance it creates.  Thus
+applications should not instantiate CSolver directly.
+
+CSolver models a connection between two connectors (regardless of
+their particular subclass or semantics) as a pair of generic
+connectors with a piece of CGlue interposed.  The CGlue characterizes
+the relationship between the connectors' centers in terms of a natural
+size (which corresponds to the distance between the centers),
+elasticity, and deformation limits.  Connector subclasses specify
+their connectivity behavior with a CGlue instance and subsequently
+rely on the CSolver to reorient them to conform to that behavior.  For
+example, when a pin is told to connect itself to another pin, it
+registers with the global csolver a connection containing the two
+connectors (the pins themselves) and a piece of CGlue having zero
+natural size, elasticity, and deformation limits.  This specification
+effectively constrains the connectors' centers to coincide.  The
+connectivity semantics of other connector combinations, including
+those involving application-specific connectors, must be specified
+using CGlue.
+.SH PUBLIC OPERATIONS
+.TP
+.B "CSolver()"
+Create a new instance.  Application programs do not normally
+instantiate CSolver explicitly.
+.TP
+.B "virtual void Connect(Connector*, Connector*, CGlue* = nil)"
+Specify a connection between two connectors, optionally with a piece
+of CGlue interposed.  Omitting the CGlue parameter is equivalent to
+specifying a connection with CGlue having zero natural size,
+elasticity, and deformation limits.
+.TP
+.B "void Disconnect(Connector*, Connector*)"
+.ns
+.TP
+.B "void Disconnect(Connector*)"
+Destroy the connection(s) established between two connectors (the
+two-parameter form), or destroy all connections to a given connector
+(the one-parameter form).
+.TP
+.B "void Solve()"
+Solve instructs the CSolver to reorient connected connectors to
+conform to their connectivity semantics as reflected by its connection
+specifications.  Normally this function is called automatically and
+only in response to Unidraw::Update.
+.TP
+.B "CSolverState* GetState(Connector*)"
+.ns
+.TP
+.B "void SetState(CSolverState*)"
+CSolverState is a class that encapsulates all the information about
+the connections in which a connector participates.  Only CSolver can
+create or do anything with a CSolverState instance. GetState
+initializes and returns a CSolverState instance for the given
+connector, and SetState establishes the connections that a
+CSolverState instance specifies without disturbing existing
+connections.  These operations are useful when it is necessary to
+reestablish a connector's connections after they have been lost, for
+example, by removing the connector from the component hierarchy (as
+caused by a command to delete the component).
+.TP
+.B "void Read(istream&)"
+.ns
+.TP
+.B "void Write(ostream&)"
+Explicitly read/write the csolver's contents from/to disk.  Normally
+only a catalog calls these operations.
+.SH SEE ALSO
+Catalog(3U), GGlue(3U), Connector(3U), globals(3U)

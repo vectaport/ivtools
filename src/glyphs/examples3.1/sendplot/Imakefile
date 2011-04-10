@@ -1,0 +1,16 @@
+PACKAGE = examples3.1_sendplot
+
+#ifdef InObjectCodeDir
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(send)
+
+MakeObjectFromSrc(main)
+MakeObjectFromSrc(rpc_write)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif
+

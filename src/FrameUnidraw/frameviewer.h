@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -36,12 +36,13 @@
 class FrameEditor;
 class OverlayView;
 
+//: OverlayViewer specialized for use with FrameEditor.
 class FrameViewer : public OverlayViewer {
 public:
     FrameViewer(
         Editor*, GraphicView*, UPage*, Grid* = nil, 
         Coord = 0, Coord = 0, Orientation = Normal,
-	Alignment = Center, Zooming = Binary
+	Alignment = Center, Zooming = Continuous
     );
 
     void Update();

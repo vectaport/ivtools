@@ -46,7 +46,7 @@ public:
     ImportChooser(
 	const String& dir, WidgetKit*, Style*, OpenFileChooserAction* = nil,
 	boolean centered_bttn = true, boolean by_pathname_bttn = true,
-	boolean from_command_bttn = true, boolean auto_convert_bttn = true
+	boolean from_command_bttn = true, boolean auto_convert_bttn = false
     );
 #if 0
     ImportChooser( Style* );

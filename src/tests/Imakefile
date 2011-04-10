@@ -1,0 +1,10 @@
+XCOMM
+XCOMM test programs
+XCOMM
+
+PACKAGE = tests_ivtools
+
+SUBDIRS = \
+	y2k
+
+MakeInSubdirs($(SUBDIRS))

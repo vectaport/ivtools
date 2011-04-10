@@ -1,0 +1,63 @@
+.TH Sensor 3I "" "InterViews Reference Manual"
+.SH NAME
+Sensor \- describe input interest
+.SH SYNOPSIS
+.B #include <InterViews/sensor.h>
+.SH DESCRIPTION
+A sensor specifies a set of input events to catch.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Sensor()"
+Create a new sensor that initially will not catch any events.
+.TP
+.B "virtual void motion(boolean)"
+Specify the sensor should (parameter is true) or should not
+(parameter is false) catch pointer motion events.
+.TP
+.B "virtual boolean motion()"
+Return whether the sensor is catching pointer motion events.
+.TP
+.B "virtual void key(boolean)"
+Specify the sensor should (parameter is true) or should not
+(parameter is false) catch keyboard events.
+.TP
+.B "virtual boolean key()"
+Return whether the sensor is catching keyboard events.
+.TP
+.B "virtual void button(boolean, PointerButton = Event::any)"
+Specify the sensor should (parameter is true) or should not
+(parameter is false) catch button events.
+The pointer button may specify a particular button
+or Event::any (meaning all button events).
+.TP
+.B "virtual boolean button(PointerButton = Event::any)"
+Return whether the sensor is catching button events.
+The pointer button may specify a particular button
+or Event::any (meaning any of the buttons).
+.TP
+.B "virtual boolean caught(Event&)"
+Return whether the sensor is catching the given event.
+.TP
+.B "void Catch(EventType)"
+Express interest in a particular type of event.
+This function is provided solely for backward compatibility and
+will be removed in a future version.
+.TP
+.B "void CatchButton(EventType, int)"
+Express interest in a particular type of button event
+for a specific button.
+This function is provided solely for backward compatibility and
+will be removed in a future version.
+.TP
+.B "void Ignore(EventType)"
+Remove interest in a particular type of event.
+This function is provided solely for backward compatibility and
+will be removed in a future version.
+.TP
+.B "void IgnoreButton(EventType, int)"
+Remove interest in a particular type of button event
+for a specific button.
+This function is provided solely for backward compatibility and
+will be removed in a future version.
+.SH SEE ALSO
+Event(3I)

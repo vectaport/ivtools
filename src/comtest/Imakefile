@@ -12,10 +12,13 @@ APP_CCLDLIBS = $(LIBCOMTERP) $(LIBATTRIBUTE) $(LIBCOMUTIL) $(LIBUNIDRAWCOMMON) $
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS = $(DEPCOMTERP) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIDRAWCOMMON) $(DEPIVCOMMON)
 #endif
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(ACE_CCLDLIBS)
 
 ComplexProgramTarget(comtest)
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(main)
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -50,6 +50,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <Attribute/attrlist.h>
+
 #include <stream.h>
 
 /****************************************************************************/
@@ -63,7 +65,10 @@ boolean PolygonOvComp::IsA (ClassId id) {
 }
 
 Component* PolygonOvComp::Copy () { 
-    return new PolygonOvComp((SF_Polygon*) GetGraphic()->Copy());
+    PolygonOvComp* comp =
+      new PolygonOvComp((SF_Polygon*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 PolygonOvComp::PolygonOvComp (SF_Polygon* graphic, OverlayComp* parent) 

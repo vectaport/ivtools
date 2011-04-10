@@ -1,0 +1,10 @@
+XCOMM
+XCOMM dummy directory sometimes useful for distinguishing 3.1 include 
+XCOMM files from 2.6 include files.
+XCOMM
+
+PACKAGE = include_iv31
+
+InstallSymLink($(INCDIR)/IV-3_1,InterViews)
+
+IvmkcmTargets($(PACKAGE))

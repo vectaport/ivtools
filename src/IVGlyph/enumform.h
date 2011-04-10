@@ -67,7 +67,8 @@ protected:
 
 class RadioEnumEditor : public Patch, public Observer {
 public:
-    RadioEnumEditor(ObservableEnum* obs, char* labl);
+    RadioEnumEditor(ObservableEnum* obs, char* labl, 
+		    boolean horiz=false, boolean noframe=false);
     virtual ~RadioEnumEditor();
 
     void edit(String);
@@ -81,6 +82,8 @@ protected:
     TelltaleGroup* _group;
     ObservableEnum* _obs;
     char* lab;
+    boolean _horiz;
+    boolean _noframe;
 };
 
 class CycleEnumEditor : public MonoGlyph, public Observer {

@@ -36,6 +36,8 @@ class Event;
 class Tool;
 class Viewer;
 
+//: base class for defining direct-manipulation semantics.
+// <a href=../man3.1/Manipulator.3.1>man page</a>
 class Manipulator {
 public:
     virtual ~Manipulator();

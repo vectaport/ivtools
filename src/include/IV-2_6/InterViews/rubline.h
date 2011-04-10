@@ -37,6 +37,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERLINE == id || Rubberband::IsA(id); }
 
     virtual void GetOriginal(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -56,6 +59,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERAXIS; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERAXIS == id || RubberLine::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -68,6 +74,9 @@ public:
 	Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord rfx, IntCoord rfy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SLIDINGLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return SLIDINGLINE == id || RubberLine::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -83,6 +92,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord cx, IntCoord cy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SCALINGLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return SCALINGLINE == id || RubberLine::IsA(id); }
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
     );
@@ -99,6 +111,9 @@ public:
 	IntCoord cx, IntCoord cy, IntCoord rfx, IntCoord rfy, 
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return ROTATINGLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return ROTATINGLINE == id || RubberLine::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1

@@ -117,6 +117,7 @@ public:
     void insert_char(char);
     void clear_buffer();
     void update();
+    void select_all();
 
 protected:
     EivTextBuffer* field_;

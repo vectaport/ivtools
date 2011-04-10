@@ -129,5 +129,5 @@ void DebugGlyph::print_allotment(const Allotment& a) {
 }
 
 void DebugGlyph::heading(const char* s) const {
-    printf("%s(0x%x) %s", msg_, body(), s);
+    printf("%s(0x%lx) %s", msg_, (unsigned long)body(), s);
 }

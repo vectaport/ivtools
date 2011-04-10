@@ -45,6 +45,13 @@
 #include <string.h>
 #include <sys/stat.h>
 
+/* bad hack until I found out why the definition from stdio doesn't work */
+extern "C" {
+extern int sprintf __P ((char *__restrict __s,
+                         __const char *__restrict __format, ...));
+}
+
+
 /*
  * These hide in mysterious places on various systems.
  * For now, it seems safest just to declare them explicitly.

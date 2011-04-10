@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -33,12 +33,14 @@
 class ComTerp;
 class ComValue;
 
+//: base class for ComTerp stream commands.
 class StrmFunc : public ComFunc {
 public:
     StrmFunc(ComTerp*);
 
 };
 
+//: , (stream) operator.
 class StreamFunc : public StrmFunc {
 public:
     StreamFunc(ComTerp*);
@@ -49,6 +51,7 @@ public:
 
 };
 
+//: ** (repeat) operator.
 class RepeatFunc : public StrmFunc {
 public:
     RepeatFunc(ComTerp*);
@@ -59,6 +62,7 @@ public:
 
 };
 
+//: .. (iterate) operator.
 class IterateFunc : public StrmFunc {
 public:
     IterateFunc(ComTerp*);

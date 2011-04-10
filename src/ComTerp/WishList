@@ -1,8 +1,0 @@
-------------- ComTerp WishList -------------
-
--- Jul 18 1997 -- johnston@vectaport.com
-	- lazy stack evaluation for delayed conditional execution
-	- type/object system for organizing procedures
-
--- Mar 27 1996 -- johnston@vectaport.com -- 
-bug when ComCom table size doubles. (fixed by picking really large size :-))

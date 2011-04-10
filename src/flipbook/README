@@ -2,7 +2,7 @@ NAME
      flipbook - multi-frame editor and viewer derived from drawtool
 
 SYNOPSIS
-     flipbook [-bookgeom] ['X-params'] [file]
+     flipbook [-bookgeom] [-slideshow sec] ['X-params'] [file]
 
 DESCRIPTION
 
@@ -39,13 +39,27 @@ The New command creates a document with only a background frame.  The
 ("New Before" does not work when the current frame is the background
 frame).
 
-flipbook save/restores its documents with a script language
-specific to flipbook (and possibly programs derived from
-flipbook).  Idraw format drawings can be imported via the "Import
-Graphic" command (under the File menu).  "Export Graphic" exports
-currently selected graphics in the idraw format.  The Print command
+flipbook save/restores its documents with a document format specific
+to flipbook (and possibly programs derived from flipbook).  Idraw
+format drawings can be imported via the "Import Graphic" command
+(under the File menu).  The rest of the flexibile import mechanism of
+drawtool is supported as well.  "Export Graphic" exports currently
+selected graphics in idraw or drawtool format.  The Print command
 (under the File menu) generates a multi-page Postscript document, one
-page per frame except for the zeroth frame.
+page per frame except for the zeroth frame which is always the
+background.
+
+OPTIONS
+
+"-bookgeom" brings up the flipbook in landscape mode, with a 906 by
+700 pixel page size.  Useful for viewing illustrated books prepared in
+this mode.
+
+"-slideshow sec" continuously plays the contents of a flipbook file
+with "sec" delay between frames (currently only available when built
+with ACE).
+
+Also see "-help" for more options.
 
 SEE ALSO
 	drawtool, idraw

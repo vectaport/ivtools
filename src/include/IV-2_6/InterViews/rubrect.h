@@ -37,6 +37,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERRECT; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERRECT == id || Rubberband::IsA(id); }
 
     virtual void GetOriginal(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -56,6 +59,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return RUBBERSQUARE; }
+    virtual boolean IsA (ClassId id) 
+      { return RUBBERSQUARE == id || RubberRect::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -68,6 +74,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1, 
 	IntCoord rfx, IntCoord rfy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SLIDINGRECT; }
+    virtual boolean IsA (ClassId id) 
+      { return SLIDINGRECT == id || RubberRect::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -84,6 +93,9 @@ public:
 	IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1, Side s,
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return STRETCHINGRECT; }
+    virtual boolean IsA (ClassId id) 
+      { return STRETCHINGRECT == id || RubberRect::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -99,6 +111,9 @@ public:
         Painter*, Canvas*, IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1,
 	IntCoord cx, IntCoord cy, IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return SCALINGRECT; }
+    virtual boolean IsA (ClassId id) 
+      { return SCALINGRECT == id || RubberRect::IsA(id); }
 
     virtual void GetCurrent(
 	IntCoord& x0, IntCoord& y0, IntCoord& x1, IntCoord& y1
@@ -116,6 +131,9 @@ public:
 	IntCoord cx, IntCoord cy, IntCoord rfx, IntCoord rfy, 
 	IntCoord offx = 0, IntCoord offy = 0
     );
+    virtual ClassId GetClassId() { return ROTATINGRECT; }
+    virtual boolean IsA (ClassId id) 
+      { return ROTATINGRECT == id || Rubberband::IsA(id); }
 
     virtual void Draw();
     virtual void GetOriginal(

@@ -48,6 +48,8 @@ extern int com_debug;
 /* Token types returned from OPTABLE.C */
 #define TOK_COMMAND     23      /* Command name */
 
+#define TOK_BLANK       24      /* genereated by empty parens: () */
+ 
 /* OPTABLE.C Constants */
 
 /* Kind of operator in operator table */

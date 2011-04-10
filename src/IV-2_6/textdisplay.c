@@ -204,7 +204,7 @@ void TextDisplay::Size (int first, int last) {
         TextLine** newlines = new TextLine* [newmaxlines];
         Memory::zero(newlines, newmaxlines * sizeof(TextLine*));
         Memory::copy(lines, newlines, maxlines * sizeof(TextLine*));
-        delete lines;
+        delete[] lines;
         lines = newlines;
         maxlines = newmaxlines;
     }
@@ -779,9 +779,9 @@ void TextLine::Delete (
 void TextLine::Replace (
     TextDisplay* display, int line, const char* t, int c
 ) {
-    delete text;
+    delete[] text;
     text = nil;
-    delete attr;
+    delete[] attr;
     attr = nil;
     size = 0;
     Size(c);

@@ -237,4 +237,5 @@ int main(int argc, char** argv) {
 	    app->top
       )
     );
+    return 0;
 }

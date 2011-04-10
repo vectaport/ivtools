@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 Vectaport Inc.
+ * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -29,19 +29,25 @@
 
 class Clipboard;
 
+//: command to generate generate and paste a convex hull given a polygon.
+// relies on the qhull utilility from the University of Minnesota Geometry Center
+// (http://geom.umn.edu).
 class ConvexHullCmd : public Command {
 public:
   ConvexHullCmd(Editor*, Clipboard*);
   virtual void Execute();
   static int ConvexHull(int np, float* fx, float* fy, float*& hx, float*& hy);
+  // static method useful for computing a convex hull elsewhere.
 };
 
+//: tool to draw a polygon and invoke the ConvexHullCmd.
 class ConvexHullTool : public Tool {
 public:
   ConvexHullTool(ControlInfo* =nil);
   virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
+  // create a GrowingPolygon manipulator.
   virtual Command* InterpretManipulator(Manipulator*);
-protected:
+  // interpret GrowingPolygon manipulator to generate and paste a convex hull.
 };
 
 #endif

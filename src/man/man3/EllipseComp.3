@@ -1,0 +1,54 @@
+.TH EllipseComp 3U "22 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+EllipseComp, EllipseView, PSEllipse \- ellipse component subject,
+view, and PostScript external representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/ellipse.h>
+.SH DESCRIPTION
+EllipseComp is a GraphicComp that defines an ellipse.  It uses an
+Ellipse graphic to store its graphical attributes.  EllipseView
+is a GraphicView for displaying the ellipse.  PSEllipse is a
+PostScriptView that externalizes the subject's information in
+PostScript form.
+.SH ELLIPSECOMP PUBLIC OPERATIONS
+.TP
+.B "EllipseComp(SF_Ellipse* = nil)"
+The constructor takes an optional stroked-filled ellipse that defines
+the attributes of the ellipse.
+.TP
+.B "SF_Ellipse* GetEllipse()"
+Return the SF_Ellipse graphic that defines the ellipse's attributes.
+GetEllipse is simply a more specific form of the GetGraphic operation.
+.SH ELLIPSEVIEW PUBLIC OPERATIONS
+.TP
+.B "EllipseView(EllipseComp* = nil)"
+Create an EllipseView, optionally supplying the subject.
+.TP
+.B "virtual void Interpret(Command*)"
+EllipseView interprets AlignToGridCmd to align its center to the grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+EllipseView redefines its response to manipulation with a
+GraphicCompTool.  The user clicks to specify the center of the ellipse
+and then drags to vary its axes.  The center and the axes will be
+constrained by gravity, if any.
+.TP
+.B "EllipseComp* GetEllipseComp()"
+Return the subject.
+.SH PSELLIPSE PUBLIC OPERATIONS
+.TP
+.B "PSEllipse(EllipseComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+GraphicComp(3U), GraphicCompTool(3U), GraphicView(3U),
+Grid(3U), PostScriptView(3U), align(3U), ellipses(3U)

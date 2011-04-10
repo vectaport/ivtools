@@ -30,13 +30,12 @@
 class RpcHdr;
 class rpcstream;
 
-/*
- * Read RPC requests from a client.  Derived classes initialize the
- * function array with addresses of static member functions to
- * unmarshall RPC requests and implement the virtual function called
- * when the client closes the connection.
- */
-
+//: read RPC requests from a client
+// Read RPC requests from a client.  Derived classes initialize the
+// function array with addresses of static member functions to
+// unmarshall RPC requests and implement the virtual function called
+// when the client closes the connection.
+// <p><a href=../man3.1/RpcReader.html>man page</a>
 class RpcReader : public IOHandler {
 public:
     virtual ~RpcReader();

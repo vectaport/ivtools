@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1997 Vectaport Inc.
+ * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -31,6 +31,7 @@
 
 #include <ComTerp/numfunc.h>
 
+//: && (and) operator.
 class AndFunc : public NumFunc {
 public:
     AndFunc(ComTerp*);
@@ -40,6 +41,7 @@ public:
       return "&& is the and operator"; }
 };
 
+//: || (or) operator.
 class OrFunc : public NumFunc {
 public:
     OrFunc(ComTerp*);
@@ -50,6 +52,7 @@ public:
 
 };
 
+//: ! (negate) operator.
 class NegFunc : public NumFunc {
 public:
     NegFunc(ComTerp*);
@@ -61,6 +64,7 @@ public:
 };
 
 
+//: == (equality) operator.
 class EqualFunc : public NumFunc {
 public:
     EqualFunc(ComTerp*);
@@ -72,6 +76,7 @@ public:
 };
 
 
+//: != (non-equality) operator.
 class NotEqualFunc : public NumFunc {
 public:
     NotEqualFunc(ComTerp*);
@@ -83,6 +88,7 @@ public:
 };
 
 
+//: > (greater than) operator.
 class GreaterThanFunc : public NumFunc {
 public:
     GreaterThanFunc(ComTerp*);
@@ -94,6 +100,7 @@ public:
 };
 
 
+//: >= (greater than or equal) operator.
 class GreaterThanOrEqualFunc : public NumFunc {
 public:
     GreaterThanOrEqualFunc(ComTerp*);
@@ -105,6 +112,7 @@ public:
 };
 
 
+//: < (less than) operator.
 class LessThanFunc : public NumFunc {
 public:
     LessThanFunc(ComTerp*);
@@ -115,6 +123,7 @@ public:
 
 };
 
+//: <= (less than or equal) operator.
 class LessThanOrEqualFunc : public NumFunc {
 public:
     LessThanOrEqualFunc(ComTerp*);

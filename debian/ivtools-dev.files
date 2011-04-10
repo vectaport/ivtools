@@ -1,0 +1,6 @@
+usr/X11R6/man/man1/ivmkmf.1
+usr/X11R6/bin/ivmkmf
+usr/X11R6/include/*
+usr/X11R6/lib/lib*.so
+usr/X11R6/lib/ivtools
+usr/X11R6/man/man3

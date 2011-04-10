@@ -12,7 +12,7 @@ Use_libInterViews()
 Use_2_6()
 ComplexProgramTarget(iclass)
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(classbuffer)
 Obj(classeditor)

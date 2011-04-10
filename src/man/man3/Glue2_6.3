@@ -1,0 +1,33 @@
+.TH Glue 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Glue, HGlue, VGlue \- open space between interactors
+.SH SYNOPSIS
+.B #include <InterViews/glue.h>
+.SH DESCRIPTION
+A glue object is an interactor that is used to define
+variable-size space between interactors in boxes.
+The \fBHGlue\fP subclass is for space in a horizontal box;
+\fBVGlue\fP for space in a vertical box.
+Along its minor axis (vertical for \fBHGlue\fP, horizontal for \fBVGlue\fP),
+glue has a natural size of zero and infinite stretchability.
+.SH PUBLIC OPERATIONS
+.TP
+.B "HGlue(int natural = 0, int stretch = hfil)"
+.ns
+.TP
+.B "VGlue(int natural = 0, int stretch = vfil)"
+Construct glue with a given natural size and stretchability.
+The glue's shrinkability is defined to be the same as the natural size,
+meaning it can shrink to zero.
+.TP
+.B "HGlue(int natural, int shrink, int stretch)"
+.ns
+.TP
+.B "VGlue(int natural, int shrink, int stretch)"
+Construct glue with a given natural size,
+shrinkability, and stretchability.
+If \fIshrink\fP is larger than \fInatural\fP
+the glue potentially can have ``negative size'', meaning
+interactors will overlap in a box.
+.SH SEE ALSO
+Box(3I), Interactor(3I), Shape(3I)

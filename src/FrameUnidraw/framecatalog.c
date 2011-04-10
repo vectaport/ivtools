@@ -29,6 +29,7 @@
 #include <FrameUnidraw/frameclasses.h>
 #include <FrameUnidraw/framecomps.h>
 
+#include <OverlayUnidraw/ovfile.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/paramlist.h>
 
@@ -77,6 +78,10 @@ boolean FrameCatalog::Retrieve (const char* pathname, Component*& comp) {
 	    if (strcmp(sbuf, "flipbook") == 0 || 
 		strcmp(sbuf, "frame-idraw") == 0) { 
 		comp = new FrameIdrawComp(in, name, _parent);
+		_valid = in.good() && ((OverlayComp*)comp)->valid();
+	    } else if (strcmp(sbuf, "drawtool") == 0 || 
+		strcmp(sbuf, "ov-idraw") == 0) { 
+		comp = new OverlayIdrawComp(in, name, _parent);
 		_valid = in.good() && ((OverlayComp*)comp)->valid();
 	    } else 
 		_valid = false;

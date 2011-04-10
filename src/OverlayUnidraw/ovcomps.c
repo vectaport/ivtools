@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -23,13 +23,14 @@
  */
 
 /*
- * OverlayIdrawComp implementation.
+ * OverlayUnidraw component implementation.
  */
 
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/oved.h>
+#include <OverlayUnidraw/ovpainter.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
@@ -113,10 +114,25 @@ AttributeList* OverlayComp::GetAttributeList() {
     return _attrlist;
 }
 
+#if 0 // experimentation with attribute changing
+#include <Attribute/attrlist.h>
+#include <Attribute/attrvalue.h>
+#endif
+
 void OverlayComp::SetAttributeList(AttributeList* al) {
     Unref(_attrlist);
     _attrlist = al;
     Resource::ref(_attrlist);
+
+#if 0 // experimentation with attribute changing
+    if (al) {
+      static int hidden_symid = symbol_find("hidden");
+      AttributeValue* av = al->find(hidden_symid);
+      if (av)
+	_gr->Hide(av->is_true());
+    }
+#endif
+    Observable::notify();
 }
 
 const char* OverlayComp::GetAnnotation() {
@@ -236,7 +252,15 @@ void OverlayComp::SetPathName(const char* pathname) {}
 const char* OverlayComp::GetPathName() { return nil;}
 
 Component* OverlayComp::GetParent () { 
-    return _parent ? _parent : GraphicComp::GetParent();
+  if (_parent) 
+    return _parent;
+  else {
+    if (GetGraphic()) {
+      Graphic* parent = GetGraphic()->Parent();
+      return !parent ? nil : GetGraphicComp(parent);
+    } else
+      return nil;
+  }
 }
 
 void OverlayComp::SetParent (Component* child, Component* parent) {
@@ -373,6 +397,7 @@ void OverlaysComp::GrowParamList(ParamList* pl) {
 
 Component* OverlaysComp::Copy () {
     OverlaysComp* comps = new OverlaysComp(new Picture(GetGraphic()));
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -505,7 +530,12 @@ void OverlaysComp::Interpret (Command* cmd) {
             s->Sort(views);
 
             for (s->First(i); !s->Done(i); s->Next(i)) {
-                dup1 = (OverlayComp*) s->GetView(i)->GetOverlayComp()->Copy();
+	        OverlayComp* orig = s->GetView(i)->GetOverlayComp();
+                dup1 = (OverlayComp*) orig->Copy();
+		if (!dup1->attrlist() && orig->attrlist()) {
+		  AttributeList* al = new AttributeList(orig->attrlist());
+		  dup1->SetAttributeList(al);
+		}
                 dup1->Interpret(&move);
                 cb->Append(dup1);
             }
@@ -1041,6 +1071,15 @@ void OverlaysComp::AdjustBaseDir(const char* olddir, const char* newdir) {
 }
 
 AttributeValue* OverlaysComp::FindValue
+(const char* name, boolean last, boolean breadth, boolean down, boolean up) {
+  int symid = symbol_find((char*)name);
+  if (symid >= 0)
+    return FindValue(symid, last, breadth, down, up);
+  else
+    return nil;
+}
+
+AttributeValue* OverlaysComp::FindValue
 (int symid, boolean last, boolean breadth, boolean down, boolean up) {
   if (breadth) {
     cerr << "breadth search not yet unsupported\n";
@@ -1107,6 +1146,7 @@ ClassId OverlayIdrawComp::GetClassId () { return OVERLAY_IDRAW_COMP; }
 
 Component* OverlayIdrawComp::Copy () {
     OverlayIdrawComp* comps = new OverlayIdrawComp(GetPathName());
+    if (attrlist()) comps->SetAttributeList(new AttributeList(attrlist()));
     Iterator i;
     First(i);
     while (!Done(i)) {
@@ -1142,3 +1182,12 @@ const char* OverlayIdrawComp::GetPathName() { return _pathname; }
 
 const char* OverlayIdrawComp::GetBaseDir() { return _basedir; }
 
+/*****************************************************************************/
+
+/* for sliding in a new static default Painter */
+
+void OverlayGraphic::new_painter() {
+  Unref(_p);
+  _p = new OverlayPainter();
+  Resource::ref(_p);
+}

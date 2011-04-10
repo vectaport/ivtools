@@ -5,3 +5,5 @@ XCOMM
 PACKAGE = include_graphic
 
 IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(Unidraw/Graphic)

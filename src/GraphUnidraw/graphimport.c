@@ -104,6 +104,7 @@ GraphicComp* GraphImportCmd::Import (const char* pathname) {
 	        return comp;
 	}
         catalog->SetImport(false);
+	return nil;
     } else 
         return OvImportCmd::Import(pathname);
 }

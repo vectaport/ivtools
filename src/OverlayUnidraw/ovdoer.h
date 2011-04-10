@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -34,6 +34,7 @@ class Command;
 class Editor;
 class Tool;
 
+//: helper object for executing command from glyph-based pull-down menus.
 class CommandDoer {
 public:
     CommandDoer(Command*);
@@ -43,6 +44,7 @@ protected:
     Command* cmd;
 };
 
+//: helper object for postponing execution of commands until environment is ready.
 class CommandPusher {
 public:
     CommandPusher(Command*);
@@ -52,6 +54,7 @@ protected:
     Command* cmd;
 };
 
+//: helper object for selecting tool button when pressed.
 class ToolSelector {
 public:
     ToolSelector(Tool*, Editor*);

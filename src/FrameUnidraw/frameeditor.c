@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -21,7 +21,9 @@
  * 
  */
 
+#include <FrameUnidraw/frameclasses.h>
 #include <FrameUnidraw/framecomps.h>
+#include <FrameUnidraw/framecmds.h>
 #include <FrameUnidraw/frameeditor.h>
 #include <FrameUnidraw/framefunc.h>
 #include <FrameUnidraw/framestates.h>
@@ -97,33 +99,57 @@ void FrameEditor::Init (OverlayComp* comp, const char* name) {
   _texteditor = nil;
   if (!comp) comp = new FrameIdrawComp;
   _terp = new ComTerpServ();
+  AddCommands(_terp);
   add_comterp("Flipbook", _terp);
   _overlay_kit->Init(comp, name);
   InitFrame();
+  _autonewframe = false;
+}
+
+void FrameEditor::InitCommands() {
+  int secs = 0;
+  Catalog* catalog = unidraw->GetCatalog();
+  const char* slideshow_str = catalog->GetAttribute("slideshow");
+  if (slideshow_str) secs = atoi(slideshow_str);
+  if (!secs) {
+    FrameIdrawComp* comp = (FrameIdrawComp*)GetGraphicComp();
+    const char* attrname = "slideshow";
+    AttributeValue* av = comp->FindValue(attrname);
+    if (av) secs = av->int_val();
+  }
+  if (secs && _terp) {
+    MoveFrameCmd::default_instance()->set_wraparound();
+    char buffer[BUFSIZ];
+    sprintf(buffer, "timeexpr(\"moveframe(1)\" :sec %d)", secs);
+    _terp->run(buffer);
+  }
 }
 
 void FrameEditor::InitFrame() {
     _currframe = nil;
     _prevframe = nil;
     FrameIdrawView* view = (FrameIdrawView*)GetViewer()->GetGraphicView();
-    Iterator frame;
-    view->First(frame);
-    ((OverlayView*)view->GetView(frame))->Desensitize();
-    view->Next(frame);
-    if (view->Done(frame)) {
-	view->First(frame);
+    Iterator it;
+    view->First(it);
+    OverlayView* subview = ((OverlayView*)view->GetView(it));
+    if (subview && subview->IsA(FRAME_VIEW)) {			    
+      subview->Desensitize();
+      view->Next(it);
+      if (view->Done(it)) {
+	view->First(it);
 	if (framenumstate()) framenumstate()->framenumber(0, true);
-    } else {
+      } else {
 	if (framenumstate()) framenumstate()->framenumber(1, true);
-	Iterator i(frame);
+	Iterator i(it);
 	view->Next(i);
 	while (!view->Done(i)) {
-	    OverlayView* v = (OverlayView*)view->GetView(i);
-	    v->Hide();
-	    view->Next(i);
+	  OverlayView* v = (OverlayView*)view->GetView(i);
+	  v->Hide();
+	  view->Next(i);
 	}
+      }
     }
-    SetFrame((FrameView*)view->GetView(frame));
+    SetFrame((FrameView*)view->GetView(it));
     UpdateFrame(false);
 }
 
@@ -135,7 +161,8 @@ void FrameEditor::UpdateFrame(boolean txtupdate) {
     FrameIdrawView *views = (FrameIdrawView*)GetViewer()->GetGraphicView();
     views->UpdateFrame(_currframe, _prevframe, _curr_other, _prev_other);
     _prev_other = _curr_other;
-    UpdateText((OverlayComp*)GetFrame()->GetGraphicComp(), txtupdate);
+    if (GetFrame())
+      UpdateText((OverlayComp*)GetFrame()->GetGraphicComp(), txtupdate);
     Iterator last;
     views->Last(last);
     if (frameliststate()) frameliststate()->framenumber(views->Index(last)+1);
@@ -178,4 +205,12 @@ void FrameEditor::AddCommands(ComTerp* comterp) {
   ComEditor::AddCommands(comterp);
   comterp->add_command("moveframe", new MoveFrameFunc(comterp, this));
   comterp->add_command("createframe", new CreateFrameFunc(comterp, this));
+}
+
+void FrameEditor::DoAutoNewFrame() {
+  if (_autonewframe) {
+    CreateMoveFrameCmd* cmd = new CreateMoveFrameCmd(this, true);
+    cmd->Execute();
+    cmd->Log();
+  }
 }

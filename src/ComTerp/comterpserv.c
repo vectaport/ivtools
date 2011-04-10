@@ -30,6 +30,11 @@
 #include <iostream.h>
 #include <string.h>
 
+#if BUFSIZ>1024
+#undef BUFSIZ
+#define BUFSIZ 1024
+#endif
+
 ComTerpServ::ComTerpServ(int bufsize, int fd)
 : ComTerp()
 {
@@ -193,6 +198,10 @@ int ComTerpServ::run() {
     _fd = handler() ? handler()->get_handle() : fileno(stdout);
     _outfunc = (outfuncptr)&fd_fputs;
     _linenum = 0;
+
+#if 1
+    ComTerp::run();
+#else
     while (!feof(_fptr) && !quitflag()) {
 	
 	if (read_expr()) {
@@ -216,6 +225,8 @@ int ComTerpServ::run() {
             }
 	}
     }
+#endif
+
     _inptr = this;
     _infunc = (infuncptr)&ComTerpServ::s_fgets;
     _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -240,7 +251,7 @@ int ComTerpServ::runfile(const char* filename) {
     _outfunc = nil;
     _linenum = 0;
 
-    const int bufsiz = BUFSIZ;
+    const int bufsiz = BUFSIZ*BUFSIZ;
     char inbuf[bufsiz];
     char outbuf[bufsiz];
     inbuf[0] = '\0';
@@ -312,10 +323,16 @@ ComValue& ComTerpServ::run(const char* expression, boolean nested) {
     int save_bufptr = _bufptr;
     int save_linenum = _linenum;
     int save_just_reset = _just_reset;
+    char* save_buffer = _buffer;
+    _buffer = new char[_bufsiz];
+    _bufptr = 0;
+    _buffer[_bufptr] = '\0';
     if (save_pfoff) {
-      _pfbuf =  new postfix_token[_pfnum];
+      _pfbuf =  new postfix_token[_pfsiz];
       _pfoff = 0;
     }
+    ComValue* save_pfcomvals = _pfcomvals;
+    _pfcomvals = nil;
 
     if (expression) {
         load_string(expression);
@@ -339,15 +356,19 @@ ComValue& ComTerpServ::run(const char* expression, boolean nested) {
 	err_str(_errbuf, BUFSIZ, "comterp");
     }
 
+    _pfnum = save_pfnum;
+    _bufptr = save_bufptr;
+    delete _buffer;
+    _buffer = save_buffer;
+    _linenum = save_linenum;
+    _just_reset = save_just_reset;
     if (save_pfoff) {
       delete _pfbuf;
       _pfbuf =  save_pfbuf;
       _pfoff = save_pfoff;
-      _pfnum = save_pfnum;
-      _bufptr = 0; // save_bufptr;
-      _linenum = save_linenum;
-      _just_reset = save_just_reset;
     }
+    delete [] _pfcomvals;
+    _pfcomvals = save_pfcomvals;
 
     return *_errbuf ? ComValue::nullval() : pop_stack();
 }
@@ -393,6 +414,7 @@ void ComTerpServ::add_defaults() {
   if (!_defaults_added) {
     ComTerp::add_defaults();
     add_command("remote", new RemoteFunc(this));
+    add_command("eval", new EvalFunc(this));
   }
 }
 

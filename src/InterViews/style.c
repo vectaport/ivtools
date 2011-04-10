@@ -267,7 +267,7 @@ StyleRep::~StyleRep() {
 		    delete a;
 		}
 	    }
-	    delete e->entries_;
+	    delete[] e->entries_;
 	    delete e;
 	}
 	delete t;

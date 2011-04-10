@@ -16,7 +16,7 @@ APP_CCDEPLIBS =  $(DEPIVGLYPH)
 Use_libInterViews()
 ComplexProgramTargetNoInstall(textedit)
 
-MakeObjectFromSrcFlags(main,-xc++)
+MakeObjectFromSrcFlags(main,)
 
 IncludeDependencies()
 

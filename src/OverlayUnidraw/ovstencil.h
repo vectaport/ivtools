@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -38,6 +38,7 @@ class StencilScript;
 class UStencil;
 class istream;
 
+//: clone of StencilComp derived from OverlayComp.
 class StencilOvComp : public OverlayComp {
 public:
     StencilOvComp(UStencil* = nil, const char* pathname = nil, OverlayComp* parent = nil);
@@ -45,10 +46,17 @@ public:
     virtual ~StencilOvComp();
 
     UStencil* GetStencil();
+    // return pointer to graphic.
     virtual void SetPathName(const char*);
+    // set pathname associated with this stencil
     const char* GetPathName();
+    // return pathname associated with this stencil
     virtual boolean GetByPathnameFlag() { return _by_pathname;}
+    // return flag that indicates whether component will be serialized
+    // by data or by pathname.
     virtual void SetByPathnameFlag(boolean flag) { _by_pathname = flag;}
+    // set flag that indicates whether component will be serialized
+    // by data or by pathname.
 
     virtual Component* Copy();
     virtual ClassId GetClassId();
@@ -66,6 +74,7 @@ protected:
 friend StencilScript;
 };
 
+//: graphical view of StencilOvComp.
 class StencilOvView : public OverlayView {
 public:
     StencilOvView(StencilOvComp* = nil);
@@ -73,31 +82,43 @@ public:
     virtual void Update();
 
     StencilOvComp* GetStencilOvComp();
+    // return pointer to associated component.
     virtual Graphic* GetGraphic();
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: "PostScript" view of StencilOvComp.
 class StencilPS : public OverlayPS {
 public:
     StencilPS(OverlayComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output "PostScript" fragment for this component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: serialized view of StencilOvComp.
 class StencilScript : public OverlayScript {
 public:
     StencilScript(StencilOvComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output variable-length ASCII record that defines the component.
     static int ReadStencil(istream&, void*, void*, void*, void*);
+    // read stencil pathname if it exists, and construct a Ustencil
+    // with two Bitmap's inside (image and mask).
     static int ReadImageBitmap(istream&, void*, void*, void*, void*);
+    // read bits (1's and 0's separated by commas) of the image part of
+    // a stencil directly from istream.
     static int ReadMaskBitmap(istream&, void*, void*, void*, void*);
+    // read bits (1's and 0's separated by commas) of the mask part of
+    // a stencil directly from istream.
     static Bitmap* read_bitmap(istream&);
+    // read bits (1's and 0's separated by commas) and construct a Bitmap.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);

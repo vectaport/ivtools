@@ -47,7 +47,7 @@ Summary:
 #include <comterp/comutil.h>
 */
 
-unsigned long atox( string )
+unsigned long atox(char * string )
 
 
 /*!
@@ -56,10 +56,11 @@ Return Value:  returns the unsigned long value
 
 Parameters:
 
-Type            Name          IO  Description
+Type            Name          IO  Description 
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 char *          string    ;/* I   String to be converted. */
-
+#endif
 
 /*!
 Description:
@@ -103,19 +104,21 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-unsigned long atoo( string )
+unsigned long atoo( char * string )
 
 
 /*!
 Return Value:  returns the unsigned long value
 
 
+
 Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 char *          string    ;/* I   String to be converted. */
-
+#endif
 
 /*!
 Description:

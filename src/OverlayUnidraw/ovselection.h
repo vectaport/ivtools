@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -34,6 +34,10 @@
 class OverlayView;
 class OverlayViewer;
 
+//: derived Selection object
+// specialized Selection object with support for highlighting by
+// changing graphic state (as opposed to only using tic mark handles).
+// Also adds ability to globally disable tic mark handles.
 class OverlaySelection : public Selection {
 public:
     OverlaySelection(OverlaySelection* = nil);

@@ -1,0 +1,38 @@
+.TH GraphicCompTool 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+GraphicCompTool \- tool for instantiating graphical components
+.SH SYNOPSIS
+.B #include <Unidraw/Tools/grcomptool.h>
+.SH DESCRIPTION
+A GraphicCompTool lets the user instantiate graphical components by
+direct manipulation.  The GraphicCompTool keeps a prototypical
+component that defines the type of component it can instantiate.
+.SH PUBLIC OPERATIONS
+.TP
+.B "GraphicCompTool(ControlInfo*, GraphicComp* prototype)"
+.ns
+.TP
+.B "GraphicCompTool()"
+Create a new GraphicCompTool, supplying the prototypical
+GraphicComp.  (You should not normally call the parameterless
+constructor, which Creator requires.)  The first constructor creates a
+graphical view of the prototype for internal use.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+CreateManipulator clears the editor's selection and delegates
+manipulator creation and interpretation to the graphical view of the
+prototype.
+.TP
+.B "GraphicComp* GetPrototype()"
+Return the prototypical GraphicComp.
+.SH SEE ALSO
+GraphicComp(3U), Tool(3U)

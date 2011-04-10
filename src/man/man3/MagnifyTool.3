@@ -1,0 +1,32 @@
+.TH MagnifyTool 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+MagnifyTool \- tool for magnifying a portion of the GraphicView
+displayed in a viewer
+.SH SYNOPSIS
+.B #include <Unidraw/Tools/magnify.h>
+.SH DESCRIPTION
+MagnifyTool lets the user magnify a portion a viewer's contents.  The
+user sweeps out a rectangular area with the MagnifyTool, and the
+viewer will magnify the area to occupy the entire screen, if possible.
+.SH PUBLIC OPERATIONS
+.TP
+.B "MagnifyTool(ControlInfo* = nil)"
+Instantiate a MagnifyTool.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+CreateManipulator generates a DragManip with a RubberRect to provide
+visual feedback for specifying the rectangular area to be magnified.
+InterpretManipulator does not create a command; rather, it examines
+the DragManipulator's RubberRect and calls Magnify on the viewer with
+the RubberRect's final coordinates.
+.SH SEE ALSO
+Rubband(3I), Tool(3U), Viewer(3U), manips(3U)

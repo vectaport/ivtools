@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -31,6 +31,7 @@
 
 #include <Unidraw/Graphic/damage.h>
 
+//: double-buffered damage repair mechanism.
 class OverlayDamage : public Damage {
 public:
     OverlayDamage(Canvas* = nil, Painter* = nil, Graphic* = nil);

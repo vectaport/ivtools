@@ -43,7 +43,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int ffeof( stream )
+int ffeof(FILE * stream)
 
 
 /*!
@@ -54,7 +54,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 FILE *          stream    ;/* I   Pointer to `FILE` structure */
+#endif
 
 
 /*!
@@ -83,7 +85,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int fferror( stream )
+int fferror(FILE * stream)
 
 
 /*!
@@ -94,7 +96,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 FILE *          stream    ;/* I   Pointer to `FILE` structure */
+#endif
 
 
 /*!

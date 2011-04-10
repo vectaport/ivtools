@@ -1,0 +1,35 @@
+.TH StretchTool 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+StretchTool \- tool for rotating components
+.SH SYNOPSIS
+.B #include <Unidraw/Tools/stretch.h>
+.SH DESCRIPTION
+StretchTool lets the user rotate components by direct manipulation.
+.SH PUBLIC OPERATIONS
+.TP
+.B "StretchTool(ControlInfo* = nil)"
+Create a new StretchTool.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+CreateManipulator detects whether the user clicked on a component.  If
+not, it clears the editor's selection and returns a nil manipulator.
+If a component was hit, and if the component was not previously
+selected, then CreateManipulator clears the editor's selection,
+selects the component the user hit, and delegates manipulator creation
+and interpretation to it.  If the component was the only selected
+component, it again delegates manipulator creation and interpretation
+to the component, but the selection is unaltered.  If the user clicks
+on one of many selected components, then CreateManipulator will
+delegate manipulator creation and interpretation to the hit component
+without altering the selection.
+.SH SEE ALSO
+Tool(3U)

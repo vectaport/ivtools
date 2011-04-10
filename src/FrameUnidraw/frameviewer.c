@@ -55,10 +55,14 @@ FrameViewer::FrameViewer (
 }
 
 void FrameViewer::Update () {
+    if (_needs_resize)
+      return;
+
     OverlaySelection* s = (OverlaySelection*)GetSelection();
     OverlayView* view = GetOverlayView();
     Component* viewComp = view->GetOverlayComp();
     OverlayComp* edComp = (OverlayComp*)_editor->GetComponent();
+    boolean glyph_repair = _damage->Incurred();
 
     if (viewComp != edComp) {
         FrameIdrawView* newView = (FrameIdrawView*)edComp->Create(ViewCategory());
@@ -73,9 +77,11 @@ void FrameViewer::Update () {
 	    Iterator last;
 	    newView->Last(last);
             int nframes = newView->Index(last);
-	    ed->frameliststate()->framenumber(nframes, true);
-
-	    ed->framenumstate()->framenumber(nframes ? 1 : 0, true);
+	    if (ed->frameliststate())
+	      ed->frameliststate()->framenumber(nframes, true);
+	    
+	    if (ed->framenumstate())
+	      ed->framenumstate()->framenumber(nframes ? 1 : 0, true);
 	    Iterator first;
 	    newView->First(first);
 	    newView->Next(first);
@@ -91,17 +97,21 @@ void FrameViewer::Update () {
 
         } else 
             delete newView;
-
+	glyph_repair = true;
     } else {
+      if (_damage->Incurred()) {
 	s->HideHandles(this);
         _viewerView->Update();
         GraphicBlock::UpdatePerspective();
 	s->ShowHighlights();
 	_damage->Repair();
         s->ShowHandles(this);
+      }
     }
-    GetEditor()->GetWindow()->repair();
-    GetEditor()->GetWindow()->display()->flush();
+    if (glyph_repair) {
+      GetEditor()->GetWindow()->repair();
+      GetEditor()->GetWindow()->display()->flush();
+    }
     GetEditor()->GetWindow()->cursor(arrow);
 }
 

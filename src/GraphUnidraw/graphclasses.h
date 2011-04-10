@@ -41,6 +41,7 @@
 #define GRAPHCOPY_CMD      9712
 #define GRAPHPASTE_CMD     9713
 #define GRAPHDUP_CMD       9714
+#define GRAPH_MOVE_TOOL    9715
 
 #define GRAPH_IDRAW_VIEW   Combine(GRAPH_IDRAW_COMP, COMPONENT_VIEW)
 #define GRAPH_VIEW         Combine(GRAPH_COMP,	     COMPONENT_VIEW)

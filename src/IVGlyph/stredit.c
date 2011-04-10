@@ -51,8 +51,8 @@ protected:
     StrEditDialog* dialog_;
     boolean cancel_;
 
-    void init(StrEditDialog*, Style*, const char*, const char*);
-    void build(const char*, const char*);
+    void init(StrEditDialog*, Style*, const char*, const char*, Glyph*);
+    void build(const char*, const char*, Glyph*);
 
     void accept();
     void cancel();
@@ -63,13 +63,13 @@ protected:
 declareActionCallback(StrEditDialogImpl)
 implementActionCallback(StrEditDialogImpl)
 
-StrEditDialog::StrEditDialog(const char* c1, const char* c2) 
+StrEditDialog::StrEditDialog(const char* c1, const char* c2, Glyph* extra) 
 : Dialog(nil, WidgetKit::instance()->style())
 {
     impl_ = new StrEditDialogImpl;
     StrEditDialogImpl& impl = *impl_;
     impl.kit_ = WidgetKit::instance();
-    impl.init(this, WidgetKit::instance()->style(), c1, c2);
+    impl.init(this, WidgetKit::instance()->style(), c1, c2, extra);
 }
 
 StrEditDialog::~StrEditDialog() {
@@ -98,7 +98,8 @@ void StrEditDialog::keystroke(const Event& e) {
 }
 
 char* StrEditDialog::post(Window* window, const char* message, 
-			 const char* string, const char* title) {
+			  const char* string, const char* title,
+			  Glyph* extra) {
   WidgetKit& kit = *WidgetKit::instance();
   if (title) {
     Style* ts = new Style(kit.style());
@@ -106,7 +107,7 @@ char* StrEditDialog::post(Window* window, const char* message,
     kit.push_style(ts);
   }
   
-  StrEditDialog* dialog = new StrEditDialog(message, string);
+  StrEditDialog* dialog = new StrEditDialog(message, string, extra);
   Resource::ref(dialog);
   boolean accepted = dialog->post_for(window);
   char* retstr = strdup(dialog->text());
@@ -119,15 +120,17 @@ char* StrEditDialog::post(Window* window, const char* message,
 
 /** class StrEditDialogImpl **/
 
-void StrEditDialogImpl::init(StrEditDialog* d, Style* s, const char* c1, const char* c2) {
+void StrEditDialogImpl::init(StrEditDialog* d, Style* s, 
+			     const char* c1, const char* c2, Glyph* extra) {
     cancel_ = false;
     dialog_ = d;
     style_ = s;
     editor_ = nil;
-    build(c1, c2);
+    build(c1, c2, extra);
+    editor_->select_all();
 }
 
-void StrEditDialogImpl::build(const char* msg, const char* txt) {
+void StrEditDialogImpl::build(const char* msg, const char* txt, Glyph* extra) {
     WidgetKit& kit = *kit_;
     const LayoutKit& layout = *LayoutKit::instance();
     Style* s = style_;
@@ -146,19 +149,32 @@ void StrEditDialogImpl::build(const char* msg, const char* txt) {
 #endif
     editor_->field()->righttrim();
     Glyph *g;
-    g = layout.vbox(
-		    kit.fancy_label(message),
-		    layout.vglue(5.0, 0.0, 2.0),
-		    editor_,
-		    layout.vspace(15.0),
-		    layout.hbox(
-				layout.vcenter(kit.push_button(kit.label("Accept"), accept)),
-				layout.hspace(10.0),
-				layout.vcenter(kit.push_button(kit.label("Cancel"), cancel))
-				));
-
-
-    
+    if (!extra) 
+      g = layout.vbox(
+		      kit.fancy_label(message),
+		      layout.vglue(5.0, 0.0, 2.0),
+		      editor_,
+		      layout.vspace(15.0),
+		      layout.hbox(
+				  layout.vcenter(kit.push_button(kit.label("Accept"), accept)),
+				  layout.hspace(10.0),
+				  layout.vcenter(kit.push_button(kit.label("Cancel"), cancel))
+				  ));
+    else 
+      g = layout.vbox(
+		      layout.vbox(layout.hbox(kit.fancy_label(message), layout.hglue()),
+				  layout.vspace(5.0),
+				  layout.hbox(editor_, layout.hglue()),
+				  layout.vspace(10.0),
+				  layout.hbox(extra, layout.hglue())),
+		      layout.vspace(10.0),
+		      layout.hbox(
+				  layout.hglue(),
+				  layout.vcenter(kit.push_button(kit.label("Accept"), accept)),
+				  layout.hspace(10.0),
+				  layout.vcenter(kit.push_button(kit.label("Cancel"), cancel))
+				  ));
+				  
     InputHandler* topih = 
       new InputHandler(kit.outset_frame(layout.margin(g, 10.0)), style_);
     topih->append_input_handler(editor_);

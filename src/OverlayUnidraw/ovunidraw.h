@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -31,8 +31,13 @@
 #include <Unidraw/unidraw.h>
 
 class Command;
+class Event;
 class MacroCmd;
+class OverlayViewer;
 
+//: derived Unidraw object with extra mechanisms.
+// derived Unidraw object with extra mechanisms for logging and deferred
+// execution of commands.
 class OverlayUnidraw : public Unidraw {
 public:
     OverlayUnidraw(
@@ -49,9 +54,15 @@ public:
 
     static boolean unidraw_updated();
     static boolean unidraw_updated_or_command_pushed();
+    static void pointer_tracker_func(Event&);
+
+    void CurrentViewer(OverlayViewer* viewer) { _ovviewer = viewer; }
+    OverlayViewer* CurrentViewer() { return _ovviewer; }
+    
 protected:
     static MacroCmd* _cmdq;
     static boolean* _updated_ptr;
+    OverlayViewer* _ovviewer;
 };
 
 #endif

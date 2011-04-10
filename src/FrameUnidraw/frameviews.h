@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1997 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -30,6 +30,7 @@ class FrameComp;
 class FramesComp;
 class FrameIdrawComp;
 
+//: graphical view of FrameOverlaysComp.
 class FrameOverlaysView : public OverlaysView {
 public:
     FrameOverlaysView();
@@ -38,6 +39,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: graphical view of FrameComp.
 class FrameView : public OverlaysView {
 public:
     FrameView(FrameComp* = nil);
@@ -49,6 +51,7 @@ protected:
 
 };
 
+//: graphical view of FramesComp.
 class FramesView : public FrameView {
 public:
     FramesView(FramesComp* = nil);
@@ -60,6 +63,7 @@ public:
 		     int curr_other = 0, int prev_other=0);
 };
 
+//: graphical view of FrameIdrawComp.
 class FrameIdrawView : public FramesView {
 public:
 

@@ -40,6 +40,8 @@ class UList;
 class istream;
 class ostream;
 
+//: base class for objects that model domain specific elements.
+// <a href=../man3.1/Component.html>man page</a>
 class Component {
 public:
     virtual void Update();

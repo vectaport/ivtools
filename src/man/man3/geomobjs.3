@@ -1,0 +1,237 @@
+.TH geomobjs 3U "2 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+PointObj, LineObj, BoxObj, MultiLineObj, FillPolygonObj, Extent \-
+helper classes that manage geometric information for structured
+graphics
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/geomobjs.h>
+.SH DESCRIPTION
+Unidraw defines several helper classes that store and manage geometric
+information.  Structured graphics objects may use these helper classes
+to support their semantics.  PointObj stores a point, LineObj stores
+two points, and MultiLineObj stores any number of points. BoxObj and
+FillPolygonObj define rectangular and polygonal areas, respectively.
+Extent stores extent information, that is, the lower left corner and
+center of a bounding box plus a fixed amount of extra space around the
+bounding box.  All these classes provide operations for computing
+geometric information.
+.SH POINTOBJ PUBLIC OPERATIONS
+.TP
+.B "PointObj(Coord = 0, Coord = 0)"
+.ns
+.TP
+.B "PointObj(PointObj*)"
+Construct a PointObj, supplying either two Coords or another PointObj
+to specify the instance's coordinates, which are stored in its
+\fI_x\fP and \fI_y\fP public members.
+.TP
+.B "float Distance(PointObj&)"
+Return the distance between \fIthis\fP and the given PointObj.
+.SH LINEOBJ PUBLIC OPERATIONS
+.TP
+.B "LineObj(Coord = 0, Coord = 0, Coord = 0, Coord = 0)"
+.ns
+.TP
+.B "LineObj(LineObj*)"
+Construct a LineObj, supplying either two coordinate pairs or another
+LineObj to specify the instance's endpoints, which are stored in its
+\fI_p1\fP and \fI_p2\fP public members.
+.TP
+.B "boolean Contains(PointObj&)"
+.ns
+.TP
+.B "boolean Intersects(LineObj&)"
+Return whether \fIthis\fP contains the given point and intersects the
+given line, respectively.
+.TP
+.B "int Same(PointObj& p1, PointObj& p2)"
+A helper function used in Intersects. Same returns a positive value if
+\fIp1\fP and \fIp2\fP fall on the same side of the line, 0 if both
+points fall on the line, or a negative value if the points are on
+opposite sides of the line.
+.SH BOXOBJ PUBLIC OPERATIONS
+.TP
+.B "BoxObj(Coord = 0, Coord = 0, Coord = 0, Coord = 0)"
+.ns
+.TP
+.B "BoxObj(BoxObj*)"
+Construct a BoxObj, supplying either two coordinate pairs or another
+BoxObj to specify the instance's bottom-left and top-right corners,
+which are stored in its \fI_left\fP, \fI_bottom\fP, \fI_right\fP, and
+\fI_top\fP public members.
+.TP
+.B "boolean Contains(PointObj&)"
+.ns
+.TP
+.B "boolean Intersects(BoxObj&)"
+.ns
+.TP
+.B "boolean Intersects(LineObj&)"
+Return whether \fIthis\fP contains the given point and intersects the
+given box or line, respectively.
+.TP
+.B "BoxObj operator - (BoxObj&)"
+.ns
+.TP
+.B "BoxObj operator + (BoxObj&)"
+Compute the intersection (-) or union (+) of \fIthis\fP and the given
+box, returning the result.  These operations do not affect \fIthis\fP
+or their argument.
+.TP
+.B "boolean Within(BoxObj&)"
+Return \fItrue\fP if \fIthis\fP falls completely within the given box.
+Within will also return \fItrue\fP if the boxes are identical.
+.SH MULTILINEOBJ PUBLIC OPERATIONS
+.TP
+.B "MultiLineObj(Coord* = nil, Coord* = nil, int = 0)"
+Create a MultiLineObj, optionally supplying coordinate arrays (and
+their size) that define the vertices of the multiline. The
+MultiLineObj does \fInot\fP copy these arrays but stores them
+directly. The MultiLineObj stores this information in its \fI_x\fP,
+\fI_y\fP, and \fI_count\fP public members.
+.TP
+.B "void GetBox(BoxObj&)"
+Calculate the bounding box circumscribing the MultiLineObj's vertices
+and store it in the argument.
+.TP
+.B "boolean Contains(PointObj&)"
+.ns
+.TP
+.B "boolean Intersects(BoxObj&)"
+.ns
+.TP
+.B "boolean Intersects(LineObj&)"
+Return whether \fIthis\fP contains the given point and intersects the
+given box or line, respectively.
+.TP
+.B "boolean Within(BoxObj&)"
+Return \fItrue\fP if \fIthis\fP falls completely within the
+MultiLineObj's bounding box. Within will also return \fItrue\fP if the
+boxes are identical.
+.TP
+.B "void SplineToMultiLine(Coord* cpx, Coord* cpy, int count)"
+.ns
+.TP
+.B "void ClosedSplineToMultiLine(Coord* cpx, Coord* cpy, int count)"
+Linearize the open or closed B-Spline defined by the given set of
+control points and store the result in \fIthis\fP.  These operations
+store the linearized result in internal buffers and assign the
+addresses of these buffers to \fI_x\fP and \fI_y\fP; they do \fInot\fP
+delete \fI_x\fP and \fI_y\fP if they are non-nil prior to assignment.
+.SH MULTILINEOBJ PROTECTED OPERATIONS
+.TP
+.B "void GrowBuf()"
+Increase the size of the internal buffers used to store linearized
+splines.
+.TP
+.B "boolean CanApproxWithLine("
+.ns
+.TP
+.B "    double x0, double, y0,"
+.ns
+.TP
+.B "    double x1, double y1,"
+.ns
+.TP
+.B "    double x2, double y2"
+.ns
+.TP
+.B ")"
+.br
+Return whether two connected line segments defined by the given three
+points can be approximated visually with a single line between the
+endpoints.
+.TP
+.B "void AddLine(double x0, double y0, double x1, double y1)"
+Add a line to the internal buffer of vertices.
+.TP
+.B "void AddBezierArc("
+.ns
+.TP
+.B "    double x0, double y0, double x1, double y1,"
+.ns
+.TP
+.B "    double x2, double y2, double x3, double y3"
+.ns
+.TP
+.B ")"
+.br
+Add lines approximating the appearance of a Bezier arc defined by the
+given points to the internal buffer of vertices.
+.TP
+.B "void CalcSection("
+.ns
+.TP
+.B "    Coord cminus1x, Coord cminus1y, Coord cx, Coord cy,"
+.ns
+.TP
+.B "    Coord cplus1x, Coord cplus1y, Coord cplus2x, Coord cplus2y"
+.ns
+.TP
+.B ")"
+.br
+Add a Bezier arc to the internal buffer of vertices based on a series
+of four B-spline control points, the one before and the two after
+(\fIcx, cy\fP).
+.SH FILLPOLYGONOBJ PUBLIC OPERATIONS
+.TP
+.B "FillPolygonObj(Coord* = nil, Coord* = nil, int = 0)"
+Create a new FillPolygonObj, optionally specifying its vertices.  If
+vertices are supplied, then the constructor uses Normalize (described
+below) to store a normalized set of vertices in the FillPolygonObj's
+\fI_normx\fP, \fI_normy\fP, and \fI_normCount\fP public members.
+FillPolygonObj is a subclass of MultiLineObj; thus it stores the
+constructor arguments in its \fI_x\fP, \fI_y\fP, and \fI_count\fP
+public members.
+.TP
+.B "virtual ~FillPolygonObj()"
+The destructor deletes the \fI_normx\fP and \fI_normy\fP arrays.
+.TP
+.B "boolean Contains(PointObj&)"
+.ns
+.TP
+.B "boolean Intersects(BoxObj&)"
+.ns
+.TP
+.B "boolean Intersects(LineObj&)"
+Return whether \fIthis\fP contains the given point and intersects the
+given box or line, respectively.
+.SH FILLPOLYGONOBJ PROTECTED OPERATIONS
+.TP
+.B "void Normalize()"
+Copy the vertices defined by \fI_x\fP, \fI_y\fP, and \fI_count\fP into
+\fI_normx\fP, \fI_normy\fP, and \fI_normCount\fP such that
+(\fI_normx[0], _normy[0]\fP) is the lower-leftmost vertex and there
+are no redundant vertices.
+.SH EXTENT PUBLIC OPERATIONS
+.TP
+.B "Extent("
+.ns
+.TP
+.B "    float left = 0, float bottom = 0,"
+.ns
+.TP
+.B "    float cx = 0, float cy = 0, float tol = 0"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Extent(Extent&)"
+Construct a new Extent, optionally supplying its parameters explicitly
+or providing a existing Extent to copy.  The parameters are stored in
+the Extent's \fI_left\fP, \fI_bottom\fP, \fI_cx\fP, \fI_cy\fP, and
+\fI_tol\fP public members.
+.TP
+.B "boolean Undefined()"
+Return whether the extent is undefined, that is, if (\fI_left,
+_bottom\fP) and (\fI_cx, _cy\fP) are the same point.
+.TP
+.B "boolean Within(Extent&)"
+Return \fItrue\fP if the given extent circumscribes \fIthis\fP.
+Within will also return \fItrue\fP if the extents are identical.
+.TP
+.B "void Merge(Extent&)"
+Enlarge this extent to subsume area of the given extent.
+.SH SEE ALSO
+Graphic(3U)

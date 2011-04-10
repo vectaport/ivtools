@@ -1,0 +1,170 @@
+.TH World 3I "7 Mar 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+World \- control a display
+.SH SYNOPSIS
+.B #include <InterViews/world.h>
+.SH DESCRIPTION
+A world was an application's connection to a particular display.
+It is currently provided for backward compatibility.
+.SH PUBLIC OPERATIONS
+.TP
+.B "World("
+.ns
+.TP
+.B "    const char* classname, int& argc, char** argv"
+.ns
+.TP
+.B "    OptionDesc* = nil, PropertyData* = nil"
+.ns
+.TP
+.B ")"
+.br
+Construct the world object for a display.
+The world's instance name comes from the -name option if
+it was given; otherwise the instance name comes from the environment
+variable RESOURCE_NAME if it is nonnil.  If the name has still not
+been defined, then argv[0] with all leading directories stripped is
+used.  The following arguments are interpreted automatically and are
+removed from \fIargv\fP:
+.PP
+.RS
+.nf
+.ta 1.5i
+\-background	next argument sets the background color
+\-bg	same as \-background
+\-display	next argument specifies the target workstation display
+\-foreground	next argument sets the foreground color
+\-fg	same as \-foreground
+\-fn	same as \-font
+\-font	next argument sets the text font
+\-geometry	next argument sets the first top-level interactor's position and size
+\-iconic	starts up the first top-level interactor in iconic form
+\-name	next argument sets the instance name of all top-level interactors
+	that don't have their own instance names
+\-reverse	swaps default foreground and background colors
+\-rv	same as \-reverse
+\-synchronous	force synchronous operation with the window system
+\-title	next argument sets the first top-level interactor's title bar name
+\-xrm	next argument sets an ``attribute: value'' property
+.fi
+.RE
+The geometry specification has the form ``=WxH+XOFF+YOFF''.  A
+negative XOFF (YOFF) specifies the offset of the interactor's right
+(bottom) edge from the right (bottom) side of the screen.  The
+constructor sets \fIargc\fP to the number of uninterpreted arguments
+that remain.
+.PP
+If non-nil, the OptionDesc* parameter is an array of option descriptors
+used to parse application-specific attributes.
+OptionDesc contains four fields:
+a \fIname\fP used on the command line,
+a \fIpath\fP specifying the attribute,
+a \fIstyle\fP specifying where the value is, and
+a default \fIvalue\fP.
+Valid styles are \fIOptionPropertyNext\fP (use next argument as an
+attribute:value pair, not just the value),
+\fIOptionValueNext\fP (use next argument as value),
+\fIOptionValueImplicit\fP (use default value),
+\fIOptionValueIsArg\fP (use argument as value), and
+\fIOptionValueAfter\fP (use remainder of argument as value).
+If non-nil, the PropertyData* parameter is an array of structures
+that each contain three string fields:
+a \fIpath\fP specifying the attribute,
+a \fIvalue\fP specifying the value, and
+a \fItype\fP specifying the type name.
+Attributes are entered in the following order:
+first any application defaults (specified by the PropertyData array),
+then application defaults from /usr/lib/X11/app-defaults/\fIclassname\fP,
+then user defaults (usually in $HOME/.Xdefaults), and finally
+command-line arguments.
+Thus, command-line arguments override user defaults, and
+both override application defaults.
+.TP
+.B "const char* name()"
+Return the instance name associated with the world.
+.TP
+.B "const char* classname()"
+Return the class name associated with the world.
+.TP
+.B "int argc()"
+Return the number of arguments passed to the world
+(not counting those that were interpreted by the constructor).
+.TP
+.B "char** argv()"
+Return the argument vector passed to the world.
+.TP
+.B "Font* font()"
+Return the default font associated with the display.
+If a value for ``font'' is defined at the top-level of the property sheet,
+then it is used.
+Otherwise, a system default is used.
+.TP
+.B "Color* foreground()"
+Return the default foreground color associated with the display.
+If a value for ``foreground'' is defined
+at the top-level of the property sheet,
+then it is used.
+Otherwise, a system default is used.
+.TP
+.B "Color* background()"
+Return the default background color associated with the display.
+If a value for ``background'' is defined
+at the top-level of the property sheet,
+then it is used.
+Otherwise, a system default is used.
+.TP
+.B "boolean shaped_windows()"
+Return whether the display supports non-rectangular windows.
+.TP
+.B "boolean double_buffered()"
+Return whether windows on the display should by default be double-buffered.
+.TP
+.B "virtual void flush()"
+Repair all damaged windows on the display and then send any pending requests
+to the window system.
+.TP
+.B "virtual void sync()"
+Repair all damaged windows on the display, send any pending requests
+to the window system, and wait for an acknowledgement from the window
+system.
+.TP
+.B "Coord width()"
+Return the width in coordinates of the current screen
+associated with the display.
+.TP
+.B "Coord height()"
+Return the height in coordinates of the current screen
+associated with the display.
+.TP
+.B "virtual void run()"
+Read events from the display, handling them as they arrive, and
+stopping when quit is called.
+.TP
+.B "virtual void quit()"
+Terminate the run loop.
+.TP
+.B "virtual boolean pending()"
+Return whether any events are waiting to be read.
+.TP
+.B "virtual void read(Event&)"
+Read the next event from the world associated with the event.
+.TP
+.B "virtual boolean read(long sec, long usec, Event&)"
+Read the next event from the world associated with the event,
+but do not wait more than \fIsec\fP seconds and \fIusec\fP microseconds.
+Return whether an event was found in the given time.
+.TP
+.B "virtual void unread(Event&)"
+Put the event back on the input queue for the world associated
+with the event.
+.TP
+.B "virtual void poll(Event&)"
+Set the event to an artificial motion event based on the current pointer
+position and the state of the buttons and meta-keys.
+.B "virtual void SetScreen(int s)"
+Set the current screen to \fIs\fP.
+.TP
+.B "static World* current()"
+Return the current world.  The current world is set
+when a world is created or an event is received for the display
+associated with a world.

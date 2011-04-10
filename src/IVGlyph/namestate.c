@@ -27,6 +27,7 @@
 #include <IV-look/kit.h>
 #include <Dispatch/dispatcher.h>
 #include <stdio.h>
+#include <string.h>
 
 /*****************************************************************************/
 

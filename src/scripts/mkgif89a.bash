@@ -3,7 +3,7 @@
 # $2 rotation
 # $3 postscript file
 echo "** rendering ppmraw images with Ghostscript **"
-cat $3 | gs -g$4x$5 -sDEVICE=ppmraw -sOutputFile=$3-%02d.ppm -dNOPAUSE -
+cat $3 | gs -sDEVICE=ppmraw -sOutputFile=$3-%02d.ppm -dNOPAUSE -
 echo "** converting images from ppmraw to gif **"
 for x in $3-??.ppm
 do

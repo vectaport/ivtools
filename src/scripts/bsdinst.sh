@@ -8,6 +8,7 @@
 flags=""
 dst=""
 src=""
+srclist=""
 dostrip=""
 owner=""
 mode=""
@@ -38,10 +39,11 @@ while [ x$1 != x ]; do
 	    shift
 	    continue;;
 
-	*)  if [ x$src = x ] 
+	*)  if [ "x$srclist" = "x" ] 
 	    then
-		src=$1
+		srclist=$1
 	    else
+		srclist="$srclist $dst "
 		dst=$1
 	    fi
 	    shift
@@ -60,6 +62,8 @@ case "$mode" in
 #	esac
 	;;
 esac
+
+for src in $srclist ; do
 
 if [ x$src = x ] 
 then
@@ -138,3 +142,4 @@ fi
 
 $rmcmd
 
+done

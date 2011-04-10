@@ -137,7 +137,7 @@ void Ref (Resource* r) {
     }
 }
 
-char* strdup (const char* s) {
+char* strnew (const char* s) {
     char* dup = new char[strlen(s) + 1];
     strcpy(dup, s);
     return dup;

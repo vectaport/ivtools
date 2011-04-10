@@ -454,14 +454,12 @@ iostreamb::~iostreamb() {}
 // check for streams tied to themselves.  Sigh....
 
 void iostreamb::negotiate(boolean b) {
-#ifndef __alpha__ /* on Debian */
-
     if (!good()) {
 	return;
     }
 
     iosb::binary(b);
-    char format = iosb::binary() ? 'T' : 'F'; // iosb:: makes it compilable w. egcs
+    char format = iosb::binary() ? 'T' : 'F';
 
     *this << format; flush();
     *this >> format;
@@ -488,5 +486,4 @@ void iostreamb::negotiate(boolean b) {
 	    swapped(true);
 	}
     }
-#endif
 }

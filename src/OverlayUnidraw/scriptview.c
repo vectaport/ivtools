@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1997 Vectaport Inc.
+ * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided
@@ -26,6 +26,8 @@
 #include <OverlayUnidraw/scriptview.h>
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
+
+#include <ComTerp/parser.h>
 
 #include <Attribute/aliterator.h>
 #include <Attribute/attribute.h>
@@ -92,7 +94,7 @@ void OverlayScript::Brush (ostream& out) {
 	    int p = brush->GetLinePattern();
 	    out << p << ",";
 
-	    int w = brush->Width();
+	    float w = brush->width();
 	    out << w;
 	}
     }
@@ -234,6 +236,29 @@ int OverlayScript::Indent (ostream& out, int extra) {
 boolean OverlayScript::GetByPathnameFlag() {
     return _parent ? _parent->GetByPathnameFlag() : false;
 }
+
+boolean OverlayScript::skip_comp(istream& in) {
+
+  char ch; 
+  ParamList::skip_space(in);
+  ch = in.get();
+  if (ch==',') {
+    ParamList::skip_space(in);
+    ch = in.get();
+    ParamList::skip_space(in);
+  }
+  in.unget();
+  if (ch=='(') {
+    Parser parser(in);
+    if (!parser.skip_matched_parens())
+      cerr << "error in skipping matched parens\n";
+  } else {
+    cerr << "not positioned at left-paren for skipping component\n";
+  }
+  return true;
+}
+  
+
 /*****************************************************************************/
 
 int OverlayScript::ReadGS (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
@@ -284,7 +309,8 @@ int OverlayScript::ReadNoneBr (istream& in, void* addr1, void* addr2, void* addr
 }
 
 int OverlayScript::ReadBrush (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
-    int p, w;
+    int p;
+    float w;
     char delim;
     Graphic* gs = *(Graphic**)addr1;
 
@@ -584,7 +610,7 @@ boolean OverlayScript::DefaultGS() {
 
 int OverlayScript::MatchedGS(Clipboard* cb) {
     int count;
-    Iterator i = MatchedGS(cb, count);
+    MatchedGS(cb, count);
     return count;
 }
 
@@ -631,7 +657,7 @@ boolean OverlayScript::EmitGS(ostream& out, Clipboard* cb, boolean prevout) {
 
 int OverlayScript::MatchedPts(Clipboard* cb) {
     int count;
-    Iterator i = MatchedPts(cb, count);
+    MatchedPts(cb, count);
     return count;
 }
 
@@ -655,7 +681,7 @@ Iterator OverlayScript::MatchedPts(Clipboard* cb, int& count) {
 
 int OverlayScript::MatchedPic(Clipboard* cb) {
     int count;
-    Iterator i = MatchedPic(cb, count);
+    MatchedPic(cb, count);
     return count;
 }
 
@@ -677,26 +703,28 @@ Iterator OverlayScript::MatchedPic(Clipboard* cb, int& count) {
 
 boolean OverlayScript::EmitPts(ostream& out, Clipboard* cb, boolean prevout) {
     if (GetGraphicComp()->IsA(OVVERTICES_COMP) && MatchedPts(cb)<0) {
-	if (prevout) 
-	    out << ",\n    ";
-	else
-	    out << "\n    ";
-	prevout = true;
-	out << "pts(";
 	MultiLineObj* pts = ((Vertices*)GetGraphicComp()->GetGraphic())->GetOriginal();
-	const int rowsz = 10;
-	Coord* x = pts->x();
-	Coord* y = pts->y();
-	int count = pts->count();
-	for (int i=0; i<count; i+= rowsz) {
+	if (pts->count()>0) {
+	  if (prevout) 
+	    out << ",\n    ";
+	  else
+	    out << "\n    ";
+	  prevout = true;
+	  out << "pts(";
+	  const int rowsz = 10;
+	  Coord* x = pts->x();
+	  Coord* y = pts->y();
+	  int count = pts->count();
+	  for (int i=0; i<count; i+= rowsz) {
 	    if (i!=0) out << ",\n        ";
 	    for (int j=i; j<i+rowsz && j<count; j++) {
-		if (j!=i) out << ",";
-		out << "(" << x[j] << "," << y[j] << ")";
+	      if (j!=i) out << ",";
+	      out << "(" << x[j] << "," << y[j] << ")";
 	    }
+	  }
+	  out << ")";
+	  cb->Append(GetGraphicComp());
 	}
-	out << ")";
-	cb->Append(GetGraphicComp());
     }
     return prevout;
 }
@@ -779,7 +807,7 @@ Clipboard* OverlayScript::GetGSList() {
 	curr = parent;
 	parent = (OverlayScript*) curr->GetParent();
     }
-    return curr->GetGSList();
+    return curr != this ? curr->GetGSList() : nil;
 }
 
 Clipboard* OverlayScript::GetPtsList() {
@@ -789,7 +817,7 @@ Clipboard* OverlayScript::GetPtsList() {
 	curr = parent;
 	parent = (OverlayScript*) curr->GetParent();
     }
-    return curr->GetPtsList();
+    return curr != this ? curr->GetPtsList() : nil;
 }
 
 Clipboard* OverlayScript::GetPicList() {
@@ -799,7 +827,7 @@ Clipboard* OverlayScript::GetPicList() {
 	curr = parent;
 	parent = (OverlayScript*) curr->GetParent();
     }
-    return curr->GetPicList();
+    return curr != this ? curr->GetPicList() : nil;
 }
 
 /*****************************************************************************/
@@ -998,7 +1026,6 @@ int OverlaysScript::ReadChildren (istream& in, void* addr1, void* addr2, void* a
 
     else {
       child = read_obj(buf, in, comps);
-      if (!child) return -1;
     }
   
     if (child) {

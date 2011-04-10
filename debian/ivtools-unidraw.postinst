@@ -1,0 +1,12 @@
+#!/bin/sh
+
+if  test "$1" = "configure"; then
+    ldconfig
+fi
+
+if [ "$1" = "configure" ]; then
+        if [ -d /usr/doc -a ! -e /usr/doc/ivtools-unidraw -a -d /usr/share/doc/ivtools-interviews ]; then
+                ln -sf ../share/doc/ivtools-interviews /usr/doc/ivtools-unidraw
+        fi
+fi
+

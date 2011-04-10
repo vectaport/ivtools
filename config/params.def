@@ -27,7 +27,7 @@
  * Name of the software release
  */
 #ifndef Release
-#define	Release ivtools-0.6
+#define	Release ivtools-0.7
 #endif
 
    RELEASE = Release
@@ -36,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 0.6.7
+#define	Version 0.7.9
 #endif
 
    VERSION = Version
@@ -49,7 +49,8 @@
 #define RepositoryFiles *.c *.cc *.cxx *.C *.h Imakefile *.def template \
 README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script \
 *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 \
-site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf *.bash *.1
+site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 \
+config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4
 #endif
 
    REPOSITORY_FILES = RepositoryFiles
@@ -248,7 +249,7 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #ifdef InObjectCodeDir
 #define ArchOrCPU ArchitectureName
 #else
-#define ArchOrCPU $$CPU
+#define ArchOrCPU $(CPU)
 #endif
 #endif
 
@@ -287,8 +288,12 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #define CCSuffix c			/* might want cc, cxx, C, etc. */
 #endif
 
+/*
+ * Define how to compile a C file with the C driver.
+ * Always use +p ("pure") to flag anachronisms as errors.
+ */
 #ifndef CDriver
-#define CDriver CCDriver
+#define CDriver gcc
 #endif
 
 #ifndef CSuffix
@@ -315,10 +320,10 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #define AoutName a.out
 #endif
 
-	   CDRIVER = CDriver
-	   CSUFFIX = CSuffix
            CCDRIVER = CCDriver
            CCSUFFIX = CCSuffix
+            CDRIVER = CDriver
+            CSUFFIX = CSuffix
                 SRC = CURDIR/SrcDir
               SLASH = /
                SRCS = SrcsList
@@ -331,7 +336,6 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #ifndef CCFlags
 #define CCFlags $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 #endif
-
 
 #ifndef IvCCFlags
 #define IvCCFlags \							@@\
@@ -391,13 +395,14 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #endif
 
             CCFLAGS = CCFlags
-            CFLAGS = CCFlags
          IV_CCFLAGS = IvCCFlags
       DEBUG_CCFLAGS = DebugCCFlags
    OPTIMIZE_CCFLAGS = OptimizeCCFlags
      SHARED_CCFLAGS = /* defined when MakeLibrary() is used in Imakefile */
       EXTRA_CCFLAGS = ExtraCCFlags
+#if 0 /* moved to individual Imakefile's */
       OTHER_CCFLAGS = OtherCCFlags
+#endif
 
 /*
  * Define the defines passed to the CC driver when we compile a C++ file.
@@ -446,8 +451,16 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #endif
 #endif
 
+#ifndef IueCCDefines
+#ifdef IueDir
+#define IueCCDefines -DIUE -DGCC272
+#else
+#define IueCCDefines /**/
+#endif
+#endif
+
 #ifndef OtherCCDefines
-#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES)
+#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(IUE_DEFINES)
 #endif
 
           CCDEFINES = CCDefines
@@ -455,10 +468,13 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
  LANGUAGE_CCDEFINES = LanguageCCDefines
  BACKWARD_CCDEFINES = /* defined when Use_2_6() is used in Imakefile */
     EXTRA_CCDEFINES = ExtraCCDefines
+#if 0 /* moved to individual Imakefile's */
     OTHER_CCDEFINES = OtherCCDefines
+#endif
 
  CLIPPOLY_CCDEFINES = ClipPolyCCDefines
       ACE_CCDEFINES = AceCCDefines
+      IUE_CCDEFINES = IueCCDefines
 
 /*
  * Define the includes passed to the CC driver when we compile a C++ file.
@@ -513,8 +529,16 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #endif
 #endif
 
+#ifndef IueCCIncludes
+#ifdef IueDir
+#define IueCCIncludes -I$(IUEDIR)/COOL -I$(IUEDIR)/GeneralUtility -I$(IUEDIR)/Image -I$(IUEDIR)/Smallg++ -I$(IUEDIR)/Tasks-IUE/RegionsOfInterest-AAI -I$(IUEDIR)/Image-IUE -I$(IUEDIR)/Basics-IUE -I$(IUEDIR)/Dex2
+#else
+#define IueCCIncludes /**/
+#endif
+#endif
+
 #ifndef OtherCCIncludes
-#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES)
+#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(IUE_CCINCLUDES)
 #endif
 
          CCINCLUDES = CCIncludes
@@ -523,12 +547,22 @@ BACKWARD_CCINCLUDES = /* defined when Use_2_6() is used in Imakefile */
      TOP_CCINCLUDES = TopCCIncludes
        X_CCINCLUDES = XCCIncludes
    EXTRA_CCINCLUDES = ExtraCCIncludes
+#if 0 /* moved to individual Imakefile's */
    OTHER_CCINCLUDES = OtherCCIncludes
+#endif
 
 CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
      ACE_CCINCLUDES = AceCCIncludes
+     IUE_CCINCLUDES = IueCCIncludes
+#ifdef ClipPolyDir
         CLIPPOLYDIR = ClipPolyDir
+#endif
+#ifdef AceDir
              ACEDIR = AceDir
+#endif
+#ifdef IueDir
+             IUEDIR = IueDir
+#endif
 
 /*
  * Define the flags passed to the CC driver when we link a C++ program.
@@ -543,6 +577,15 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
 		      DefaultOptimizeCCFlags\				@@\
 		      $(NONSHARED_CCLDFLAGS)
 #endif
+
+/*
+ * Define all the flags passed to the C driver when we compile a C file.
+ */
+#ifndef CFlags
+#define CFlags CCFlags
+#endif
+
+             CFLAGS = CFlags
 
 /*
  * Flags that are specific to the link line to build a shared library.
@@ -573,7 +616,9 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
 NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
    SHARED_CCLDFLAGS = SharedCCLdFlags
     EXTRA_CCLDFLAGS = ExtraCCLdFlags
+#if 0 /* moved to individual Imakefile's */
     OTHER_CCLDFLAGS = OtherCCLdFlags
+#endif
 
 /*
  * Define all the dependencies a C++ program can have on its libraries.
@@ -630,7 +675,9 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
           CCDEPLIBS = CCDepLibs
        IV_CCDEPLIBS = IvCCDepLibs
     EXTRA_CCDEPLIBS = ExtraCCDepLibs
+#if 0 /* moved to individual Imakefile's */
     OTHER_CCDEPLIBS = OtherCCDepLibs
+#endif
 
 /*
  * Define all the libraries a C++ program can be linked with.
@@ -680,13 +727,13 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #ifdef UseInstalled
 #define LdPath(libname) Concat(-l,libname)
 #else
-#define LdPath(libname) -L$(LIBSRC)/libname/$(ARCH) Concat(-l,libname)
+#define LdPath(libname) -L$(IVTOOLSSRC)/libname/$(ARCH) Concat(-l,libname)
 #endif
 #else
 #ifdef UseInstalled
-#define LdPath(libname) -Wl,-rpath,$(LIBSRC)/libname/$(ARCH) Concat(-l,libname)
+#define LdPath(libname) -Wl,-rpath,$(IVTOOLSSRC)/libname/$(ARCH) Concat(-l,libname)
 #else
-#define LdPath(libname) -Wl,-rpath,$(LIBSRC)/libname/$(ARCH) -L$(LIBSRC)/libname/$(ARCH) Concat(-l,libname)
+#define LdPath(libname) -Wl,-rpath,$(IVTOOLSSRC)/libname/$(ARCH) -L$(IVTOOLSSRC)/libname/$(ARCH) Concat(-l,libname)
 #endif
 #endif
 #endif
@@ -754,8 +801,179 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #define AceLibBase libACE.so  /* only for installing symbolic link */
 #endif
 
+#ifndef IueCCLdLibs
+#ifdef IueDir
+#if UseRpath
+#define _arg -Wl,-rpath,$(IUEDIR)/lib.$(CPU) -L$(IUELIBDIR)
+#else
+#define _arg -L$(IUELIBDIR)
+#endif
+#if 0
+#define IueCCLdLibs  _arg \
+-lArcInfoIO \
+-lBasicRelation \
+-lBasics \
+-lCOOL \
+-lChangeDetection-AAI \
+-lCompGeom \
+-lCurveFormation-Brunel \
+-lCurveFormation-CSU \
+-lCurveFormation-IUE \
+-lCurveFormation-Stanford \
+-lDEXTableIO \
+-lDXFIO \
+-lDex2 \
+-lDex2Test \
+-lDexTestIUE \
+-lDexTestNonIUE \
+-lDigitalGeometry \
+-lDigitalSurface \
+-lEasyImage \
+-lEdgeDetection-IUE \
+-lFEXIO \
+-lFitting-IUE \
+-lFredIO \
+-lGeometry \
+-lGraphTools \
+-lGroups \
+-lIPGeneric \
+-lIUCameras \
+-lIUCamerasDEX \
+-lIUE-CS-Base \
+-lIUE-CS-CartesianSystem \
+-lIUE-CS-ColorSystem \
+-lIUE-CS-ColorTransform \
+-lIUE-CS-Functional-Transform \
+-lIUE-CS-GeographicSystem \
+-lIUE-CS-GeographicTransform \
+-lIUE-CS-GeometricSystem \
+-lIUE-CS-GeometricTransform \
+-lIUE-CS-HomogeneousTransform \
+-lIUE-CS-NonHomogeneousTransform \
+-lIUE-Container \
+-lIUE-IF-Curve \
+-lIUE-IF-Edgel \
+-lIUE-IF-ImageFeature \
+-lIUE-IF-Point \
+-lIUE-IF-Region \
+-lIUE-IF-Topology \
+-lIUE-Image \
+-lIUE-Math-Basics \
+-lIUE-Root \
+-lIUE-\SO-AxisAlignedBox \
+-lIUE-\SO-Base \
+-lIUE-\SO-BinaryOps \
+-lIUE-\SO-CellLattice \
+-lIUE-\SO-Conic \
+-lIUE-\SO-Curve \
+-lIUE-\SO-FunctionalSurface \
+-lIUE-\SO-Line \
+-lIUE-\SO-PlanarPatch \
+-lIUE-\SO-Plane \
+-lIUE-\SO-Point \
+-lIUE-\SO-Rectangle \
+-lIUE-\SO-Sample \
+-lIUE-\SO-SampledCurve \
+-lIUE-\SO-Spline \
+-lIUE-\SO-Surface \
+-lIUE-\SO-Topology \
+-lIUE-\SO-Volume \
+-lIUE-SpatialIndex \
+-lIUE-Stat \
+-lIUE-Unit \
+-lIUE-templates \
+-lIaf \
+-lImageClasses \
+-lImageDEX \
+-lImageGeneration \
+-lImageProcessing \
+-lImageProcessingBasics \
+-lInstances01 \
+-lJPEG \
+-lLineDetection-USC \
+-lNumerics \
+-lPointDetection-AAI \
+-lPointDetection-IUE \
+-lPrinting \
+-lQv \
+-lRegionFormation-IUE \
+-lRegionsOfInterest-AAI \
+-lSmallg++ \
+-lSolarFeatureDetection-AAI \
+-lSolver \
+-lSpatialBasics \
+-lSpatialObjectDEX \
+-lStat \
+-lSurfaceTest \
+-lTIFF \
+-lTargetDetection-CSU \
+-lTopology \
+-lTraits \
+-lVRMLIO \
+-lbyteTest \
+-ldex_generic \
+-liue-math-extensions \
+-liue-math \
+-lnetlib
+#else
+#define IueCCLdLibs  _arg \
+-lCOOL \
+-liue-math \
+-lnetlib \
+-lJPEG \
+-lSmallg++ \
+-lBasics \
+-lNumerics \
+-lImageClasses \
+-lEasyImage \
+-lImageProcessing \
+-lInstances01 \
+-lIPGeneric \
+-lIUE-Image \
+-lIUE-Root \
+-lStat \
+-lDex2 \
+-lTraits \
+-lIaf \
+-lIUE-Container \
+-lIUE-Math-Basics \
+-lRegionsOfInterest-AAI \
+-lIUE-\SO-CellLattice \
+-lIUE-\SO-BinaryOps \
+-lIUE-\SO-AxisAlignedBox \
+-lIUE-\SO-Base \
+-lIUE-CS-Base \
+-lIUE-\SO-Point \
+-lIUE-\SO-Line \
+-lIUE-\SO-Curve \
+-lIUE-\SO-Plane \
+-lIUE-\SO-Sample \
+-lIUE-\SO-Surface \
+-lIUE-IF-ImageFeature \
+-lIUE-IF-Region \
+-lDexTestIUE \
+-lIUE-Unit \
+-lTIFF
+#endif
+#else
+#define IueCCLdLibs /**/
+#endif
+#endif
+
+#ifndef IueLibDir
+#ifdef IueDir
+#define IueLibDir IueDir/lib.$(CPU)
+#else
+#define IueLibDir /**/
+#endif
+#endif
+
+#ifndef IueLibBase 
+#define IueLibBase libIUE.so   /* only for installing symbolic link */
+#endif
+
 #ifndef OtherCCLdLibs
-#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS)
+#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(IUE_CCLDLIBS)
 #endif
 
 #ifndef SharedCCLdLibs
@@ -770,7 +988,9 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
         IV_CCLDLIBS = IvCCLdLibs
     SHARED_CCLDLIBS = SharedCCLdLibs
      EXTRA_CCLDLIBS = ExtraCCLdLibs
+#if 0 /* moved to individual Imakefile's */
      OTHER_CCLDLIBS = OtherCCLdLibs
+#endif
 
   CLIPPOLY_CCLDLIBS = ClipPolyCCLdLibs
      CLIPPOLYLIBDIR = ClipPolyLibDir
@@ -778,6 +998,9 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
        ACE_CCLDLIBS = AceCCLdLibs
           ACELIBDIR = AceLibDir
          ACELIBBASE = AceLibBase
+       IUE_CCLDLIBS = IueCCLdLibs
+          IUELIBDIR = IueLibDir
+         IUELIBBASE = IueLibBase
 	
 /*
  * Define how to install a program, library, header, man page, or data file.
@@ -966,7 +1189,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #define BinDir InstalledRoot/bin
 #endif
 #ifndef RelativeBinDir
-#define RelativeBinDir $(TOP)/bin/$(ARCH)
+#define RelativeBinDir $(RELTOP)/bin/$(ARCH)
 #endif
 
 #ifndef ConfigDir
@@ -988,6 +1211,10 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #endif
 #ifndef RelativeLibDir
 #define RelativeLibDir $(RELTOP)/lib/$(ARCH)
+#endif
+
+#ifndef RelLibAbsDir
+#define RelLibAbsDir $(TOP)/lib/$(ARCH)
 #endif
 
 #ifndef LibAllDir
@@ -1025,6 +1252,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
           CONFIGDIR = RelativeConfigDir /* installed config files */
              INCDIR = RelativeIncDir    /* installed includes */
              LIBDIR = RelativeLibDir    /* installed libraries */
+          LIBABSDIR = RelLibAbsDir      /* abs path to installed libraries */
           LIBALLDIR = RelativeLibAllDir /* installed app-specific data */
              MANDIR = RelativeManDir    /* installed man pages */
 #else
@@ -1032,6 +1260,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
           CONFIGDIR = ConfigDir         /* installed config files */
              INCDIR = IncDir            /* installed includes */
              LIBDIR = LibDir            /* installed libraries */
+          LIBABSDIR = LibDir            /* abs path to installed libraries */
           LIBALLDIR = LibAllDir         /* installed app-specific data */
              MANDIR = ManDir            /* installed man pages */
 #endif

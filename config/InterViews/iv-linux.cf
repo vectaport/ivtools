@@ -10,7 +10,7 @@
 #define ExtraCCDefines -DLINUX 
 #endif
 
-#if 0
+#ifndef ExtraCCLdFlags
 #define ExtraCCLdFlags /**/
 #endif
 

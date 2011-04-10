@@ -482,7 +482,7 @@ void Date::printOn(ostream& strm) const
 {
  	strm << setfill(' ') << setw(2) << dayOfMonth() << '-';
  	strm.write(nameOfMonth(), 3);
- 	strm << '-' << setfill('0') << setw(2) << (year() % 100);
+ 	strm << '-' << setfill('0') << setw(2) << (year() /* % 100 */);
 }
 
 void Date::scanFrom(istream& strm)	{ julnum = parseDate(strm); }

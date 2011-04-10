@@ -7,19 +7,30 @@
 # Uncomment this to turn on verbose mode. 
 #export DH_VERBOSE=1
 
+ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
+
+DOCS = VERSION CHANGES CHANGES-0.4 CHANGES-0.5 CHANGES-0.6 README COPYRIGHT.proposed
+
 build: build-stamp
 build-stamp:
 	dh_testdir
 
-	if test "`cat config/site.def.LINUX | grep DEBIAN`" == ""; then \
-	echo "#include <site.def.DEBIAN>" >> config/site.def.LINUX;fi
-	export CPU=LINUX;make ARCH=LINUX XCONFIGDIR=/usr/X11R6/lib/config Makefile 
-	export CPU=LINUX;make ARCH=LINUX Makefiles      
-	export CPU=LINUX;make ARCH=LINUX depend 
+	./configure --x-includes=/usr/X11R6/include \
+ --x-libraries=/usr/X11R6/lib --prefix=`pwd`/debian/tmp/usr/X11R6 \
+ $(ACE)
 
 	#  Compile the packages
 
-	export CPU=LINUX;make ARCH=LINUX all
+	make Makefile ARCH=LINUX
+	make Makefiles ARCH=LINUX
+	make ARCH=LINUX
+	
+	# reconfigure for the devel package
+
+	./configure --x-includes=/usr/X11R6/include \
+ --x-libraries=/usr/X11R6/lib --prefix=/usr/X11R6  
+	cd src/scripts && make ARCH=LINUX clean && make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`'\
+ MAKEMAKESPEC='ARCH=LINUX'
 	touch build-stamp
 
 clean:
@@ -33,13 +44,19 @@ clean:
 
 	-rm -r `find . -name LINUX`
 	-rm `find src -name Makefile`
-	-rm `find config -name Makefile`
+	-rm config/InterViews/Makefile config/Makefile config.status 
+
 	-rm *.log
+	-rm config.cache
 
 	-rm -rf static shared
-	-rm -f build stage1 stage2
 	-make ARCH=LINUX clean
+	-(cd src/scripts;make clean)
+
+#      remove backups  
 	-rm -f `find . -name "*~"`
+
+#       remove all Debian leftovers
 	-rm -rf debian/tmp `find debian/* -type d` debian/files* core
 	-rm -f debian/*substvars
 
@@ -53,11 +70,28 @@ install-stamp: build-stamp
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp.
-	export CPU=LINUX;make install ARCH=LINUX DESTDIR=`pwd`/debian/tmp
-	ln -s ivtools `pwd`/debian/tmp/usr/doc/ivtools-dev
-	ln -s ivtools `pwd`/debian/tmp/usr/doc/ivtools-bin
+	make install ARCH=LINUX DESTDIR=`pwd`/debian/tmp
 
-	dh_movefiles
+#	ln -s ivtools-interviews `pwd`/debian/tmp/usr/doc/ivtools-dev
+	ln -s ivtools-interviews `pwd`/debian/tmp/usr/share/doc/ivtools-bin
+	ln -s ivtools-interviews `pwd`/debian/tmp/usr/share/doc/ivtools-unidraw
+	cp debian/template `pwd`/debian/tmp/usr/X11R6/lib/ivtools/config/
+	-(cd src/glyphs && make clean)
+	# don't include the scripts
+
+	# Documentation
+#	install -d `pwd`/debian/tmp/usr/doc/ivtools-doc
+#	cp src/man/refman3.1/refman.PS `pwd`/debian/tmp/usr/doc/ivtools-dev/
+
+	dh_movefiles 
+#
+#       remove the directories that are installed into /usr/X11R6/include
+#
+	-rm -r `pwd`/debian/tmp/usr/X11R6/include
+#
+#       ivtools installs the libACE link, we remove it ... hack
+#
+	-rm `pwd`/debian/ivtools-dev/usr/X11R6/lib/libACE.so
 	touch install-stamp
 
 # Build architecture-independent files here.
@@ -65,15 +99,15 @@ binary-indep: build install
 #	dh_testversion
 	dh_testdir -i
 	dh_testroot -i
-#	dh_installdocs -i
-#	dh_installexamples -i
+	dh_installdocs -p ivtools-dev src/man/refman3.1/refman.PS
+	dh_installexamples -p ivtools-dev 
 #	dh_installmenu -i
 #	dh_installemacsen -i
 #	dh_installinit -i
 #	dh_installcron -i
 #	dh_installmanpages -i
 #	dh_undocumented
-#	dh_installchangelogs -i
+	dh_installchangelogs -p ivtools-dev
 	dh_compress -i
 	dh_fixperms -i
 	dh_suidregister -i
@@ -87,23 +121,24 @@ binary-arch: build install
 #	dh_testversion
 	dh_testdir -a
 	dh_testroot -a
-	dh_installdocs -p ivtools CHANGES README
+	dh_installdocs -p ivtools-interviews $(DOCS)
 #	dh_installexamples -a
-	dh_installmenu -a
+	dh_installmenu ivtools-bin
 #	dh_installemacsen -a
 #	dh_installinit -a
 #	dh_installcron -a
 #	dh_installmanpages -p ivtools-bin
 #	dh_undocumented
-	dh_installchangelogs -p ivtools
+	dh_installchangelogs -p ivtools-interviews
+	dh_installmime -a
 	dh_strip -a
 	dh_compress -a
 	dh_fixperms -a
 #	dh_suidregister -a
 	dh_installdeb -a
+	dh_makeshlibs -a
 	dh_shlibdeps -a
 	dh_gencontrol -a
-	dh_makeshlibs -a
 	dh_md5sums -a
 	dh_builddeb -a
 

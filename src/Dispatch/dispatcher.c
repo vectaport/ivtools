@@ -60,6 +60,10 @@ extern "C" {
 #endif
 }
 
+#if defined(__GLIBC__) && (__GLIBC__==2 && __GLIBC_MINOR__>0 || __GLIBC__>2)
+#define fds_bits __fds_bits
+#endif
+
 Dispatcher* Dispatcher::_instance;
 
 class FdMask : public fd_set {
@@ -384,7 +388,7 @@ void ChildQueue::notify() {
     _ready = false;
 }
 
-#if defined(svr4) && defined(sun) && NOFILE==20
+#if defined(__svr4__) && defined(sun) && NOFILE==20
 #undef NOFILE
 #define NOFILE 256
 #endif

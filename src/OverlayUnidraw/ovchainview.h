@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1995 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -33,6 +33,7 @@
 
 class Viewer;
 
+//: command to chain other viewers to this one under panning and/or zooming.
 class ChainViewersCmd : public Command {
 public:
     ChainViewersCmd(Viewer*, ControlInfo*, boolean pan = true, boolean zoom = true);
@@ -40,13 +41,15 @@ public:
     virtual ~ChainViewersCmd();
 
     virtual void Log();
+    // log command without modifying document.
     virtual void Execute();
+    // set flags that indicate whether viewer is to be chained for pan or zoom.
     virtual void Unexecute();
+    // clear flags that indicate whether viewer is to be chained for pan or zoom.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
-
 
 protected:
     Viewer* _viewer;
@@ -54,6 +57,7 @@ protected:
     boolean _zoom;
 };
 
+//: command to unchain other viewers from this one under panning and/or zooming.
 class UnchainViewersCmd : public Command {
 public:
     UnchainViewersCmd(Viewer*, ControlInfo*, boolean pan = true, boolean zoom = true);
@@ -61,13 +65,15 @@ public:
     virtual ~UnchainViewersCmd();
 
     virtual void Log();
+    // log command without modifying document.
     virtual void Execute();
+    // clear flags that indicate whether viewer is to be chained for pan or zoom.
     virtual void Unexecute();
+    // reset flags that indicate whether viewer is to be chained for pan or zoom.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
-
 
 protected:
     Viewer* _viewer;
@@ -75,6 +81,7 @@ protected:
     boolean _zoom;
 };
 
+//: command to add this viewer to list of chained viewers.
 class ChainViewerCmd : public Command {
 public:
     ChainViewerCmd(ControlInfo*, boolean pan = true, boolean zoom = true);
@@ -82,19 +89,22 @@ public:
     virtual ~ChainViewerCmd();
 
     virtual void Log();
+    // log command without modifying document.
     virtual void Execute();
+    // set flags for pan and zoom chaining on this viewer.
     virtual void Unexecute();
+    // clear flags for pan and zoom chaining on this viewer.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
-
 
 protected:
     boolean _pan;
     boolean _zoom;
 };
 
+//: command to remove this viewer from list of chained viewers.
 class UnchainViewerCmd : public Command {
 public:
     UnchainViewerCmd(ControlInfo*, boolean pan = true, boolean zoom = true);
@@ -102,13 +112,15 @@ public:
     virtual ~UnchainViewerCmd();
 
     virtual void Log();
+    // log command without modifying document.
     virtual void Execute();
+    // clear flags for pan and zoom chaining on this viewer.
     virtual void Unexecute();
+    // reset flags for pan and zoom chaining on this viewer.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
-
 
 protected:
     boolean _pan;

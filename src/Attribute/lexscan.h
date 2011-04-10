@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1996,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -27,19 +27,28 @@
 #include <Attribute/attrvalue.h>
 #include <Attribute/commodule.h>
 
+//: Lexical scanner for C tokens, with C-style comment skipping.
 class LexScan : public ComTerpModule {
 public:
     LexScan();
+    // construct on stdin.
     LexScan(const char* path);
+    // construct on 'path'.
     LexScan(void*, char*(*)(char*,int,void*), int(*)(void*), int(*)(void*));
+    // construct on arbitrary function pointers, with arbitrary void* 
+    // pointer to pass to them.
     ~LexScan();
 
     void init();
+    // intialize comment delimeters and internal token buffer.
 
     attr_value get_next_token(unsigned int& toktype);         
+    // return token in structure ready for constructing an AttributeValue.
     const char* get_next_token_string(unsigned int& toktype);
+    // return pointer to next token in internal buffer.
 
     AttributeValue* get_attr(char* buf, unsigned int bufsiz);
+    // return token in newly allocated AttributeValue.
 
 protected:
     char* _begcmt;

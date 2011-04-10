@@ -42,6 +42,8 @@ class PropertyData;
 class UList;
 class World;
 
+//: singleton for coordinating and controlling a Unidraw application.
+// <a href=../man3.1/Unidraw.html>man page</a>
 class Unidraw {
 public:
     Unidraw(
@@ -93,6 +95,7 @@ protected:
 
     UList* elem(Iterator);
     Command* command(UList*);
+public:
     boolean alive();
     boolean updated();
 

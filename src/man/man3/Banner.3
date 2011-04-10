@@ -1,0 +1,27 @@
+.TH Banner 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Banner \- one line title bar
+.SH SYNOPSIS
+.B #include <InterViews/banner.h>
+.SH DESCRIPTION
+A banner is an interactor that draws a one line title bar with
+optional left-justified, centered, and right-justified headings.
+The member variable \fIhighlight\fP can be set to cause
+drawing to be performed with the foreground and background colors reversed.
+.PP
+The natural size of a banner depends on the size of its headings.
+Banners are infinitely stretchable horizontally, but fixed size vertically.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Banner(char* left, char* middle, char* right)"
+The \fIleft\fP string will be left-justified, the \fImiddle\fP string
+centered, and \fIright\fP string right-justified in the banner.
+A header can be omitted by passing a nil string.
+.TP
+.B "void Update()"
+The strings can be set through the \fIleft\fP, \fImiddle\fP, and \fIright\fP
+member variables.
+The Update operation should be called after one or more of the strings
+is changed.
+.SH SEE ALSO
+Interactor(3I)

@@ -37,6 +37,8 @@ class TimerQueue;
 class ChildQueue;
 struct timeval;
 
+//: wait on multiple file descriptors until a condition occurs
+// <a href=../man3.1/Dispatcher.html>man page</a>
 class Dispatcher {
 public:
     enum DispatcherMask {

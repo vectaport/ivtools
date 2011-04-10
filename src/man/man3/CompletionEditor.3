@@ -1,0 +1,34 @@
+.TH MatchEditor 3I "13 Dec 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+MatchEditor \- StringEditor with string completion
+.SH SYNOPSIS
+.B #include <InterViews/compeditor.h>
+.SH DESCRIPTION
+CompletionEditor is a StringEditor subclass with the added ability to
+complete the current contents of the edit buffer against a specified
+set of strings.  A CompletionEditor is often useful when a user must
+specify a selection from a large set of well-known strings--the user
+need only type the first few characters of the string; he types the
+completion character to fill out the remainder.
+.PP
+When the user types the completion character, CompletionEditor checks
+the current string against the list of possible completions.  If the
+current string is a prefix of one or more completion strings,
+characters are appended so that the edit string contains the longest
+common prefix; if the current string does not match any completion
+string, trailing characters are removed until the string matches at
+least one completion.  In any case, if there is more than one possible
+completion of a string, CompletionEditor rings the workstation bell.
+.SH PUBLIC OPERATIONS
+.TP
+.B "CompletionEditor(ButtonState*, const char* sample, const char* done)"
+Create a new CompletionEditor object.  The ButtonState, sample string,
+and termination string are passed to the StringEditor constructor.
+.TP
+.B "void Completions(const char* completions[], int count, char complete)"
+Specify the list of completion strings and the completion character.
+The initial completion list is empty, and the completion character
+defaults to a space.  CompletionEditor does not copy the strings in
+the list.
+.SH SEE ALSO
+StringEditor(3I)

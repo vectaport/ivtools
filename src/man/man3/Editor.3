@@ -1,0 +1,135 @@
+.TH Editor 3U "30 July 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Editor \- base class for top-level windows in an application
+.SH SYNOPSIS
+.B #include <Unidraw/editor.h>
+.SH DESCRIPTION
+An editor provides a complete user interface for editing a component
+subject.  It unites one or more viewers with commands and tools that
+act upon the component and its subcomponents.  Editor is an abstract
+class derived from MonoScene; the Editor class adds the protocol for
+associating tools, commands, and viewers with the component(s) they
+affect.  A programmer normally derives one or more
+application-specific editors from the Editor base class and defines
+their appearance with a composition of interactors.  Each window of a
+Unidraw application is usually an instance of an editor subclass
+designed for the editing domain, and it is these windows that the user
+recognizes as the application program.
+.SH PUBLIC OPERATIONS
+.TP
+.B "virtual ~Editor()"
+Editors should not be deleted explicitly if the Unidraw object is used
+to open and close them.  Moreover, Editor subclasses should not
+explicitly delete the component they edit.  The Unidraw object will
+delete the editor's component after the editor is closed, provided no
+other editor references the component (or its relatives) and the
+component is not known to the catalog.
+.TP
+.B "virtual void Open()"
+.ns
+.TP
+.B "virtual void Close()"
+Open informs the editor that it has just become visible and accessible
+to the user, in case it needs to know, and Close signals the editor
+that it is no longer needed and should perform any final housekeeping
+operations.  For example, the editor may display a copyright message
+when it is first opened, or it make take the opportunity when closed
+to warn the user to save a modified component. These operations simply
+notify the editor of a condition and are not usually called by the
+application; instead, the application makes editors appear and
+disappear with the Unidraw object, which calls these operations as
+appropriate.
+.TP
+.B "virtual void Handle(Event&)"
+Editor redefines Handle to interpret key events as keyboard
+equivalents via the HandleKey operation (described below).  This is
+appropriate in the common case where the interactor composition that
+defines the editor's appearance does not interpret keyboard events.
+.TP
+.B "virtual void Update()"
+By default, the editor's Update operation calls Update on its viewer(s).
+.TP
+.B "virtual void SetComponent(Component*)"
+.ns
+.TP
+.B "virtual void SetViewer(Viewer*, int = 0)"
+.ns
+.TP
+.B "virtual void SetSelection(Selection*)"
+.ns
+.TP
+.B "virtual void SetKeyMap(Viewer*, int = 0)"
+.ns
+.TP
+.B "virtual void SetCurTool(Tool*)"
+.TP
+.B "virtual Component* GetComponent()"
+.ns
+.TP
+.B "virtual Viewer* GetViewer(int = 0)"
+.ns
+.TP
+.B "virtual KeyMap* GetKeyMap()"
+.ns
+.TP
+.B "virtual Selection* GetSelection()"
+.ns
+.TP
+.B "virtual Tool* GetCurTool()"
+Assign and return various objects managed by the editor.  These
+operations are undefined by default.
+
+The component is the object that the user edits through the editor.
+The editor can have any number of viewers, identified serially.  An
+editor can maintain a key map for defining keyboard equivalents and a
+selection object for keeping track of selected components (typically
+subcomponents of the component being edited).  The editor also has a
+notion of the tool that is currently engaged, that is, the tool that
+would be used if the user clicked in a viewer.  The SetCurTool and
+GetCurTool operations assign and return this tool, respectively.
+.TP
+.B "virtual StateVar* GetState(const char*)"
+The editor may maintain a string-to-state variable mapping to provide
+external access to any state variables it defines.  The GetState
+operation returns a state variable given an identifying string.
+Defining such a mapping lets components query the editor for state
+variables that may affect them without extending the editor protocol,
+potentially allowing interchange of components from different
+applications.  This operation returns nil by default.
+.TP
+.B "virtual void InsertDialog(Interactor*)"
+.ns
+.TP
+.B "virtual void RemoveDialog(Interactor*)"
+Insert or remove an interactor that provides a modal interface, such
+as a dialog box.  By default, these operations insert the dialog into
+the world as a transient window centered atop the editor's canvas.
+Subclasses can redefine them to insert and remove an interactor
+(suitably embellished with a border, drop shadow, etc.) as needed.
+Subclasses should not assume that two InsertDialog operations will
+always be separated by a RemoveDialog operation; that is, multiple
+dialogs might be visible at once.
+.SH PROTECTED OPERATIONS
+.TP
+.B "Editor()"
+You cannot create instances of the Editor class; rather, you define
+subclasses that suit your application.  The constructor is thus
+protected to disallow instantiation.
+.TP
+.B "virtual void HandleKey(Event&)"
+Executes a command given a valid keyboard event as defined by the
+key-to-command mapping in the KeyMap object.
+.TP
+.B "virtual boolean DependsOn(Component*)"
+Return whether the editor depends on the given component in any way.
+Unidraw may destroy the component if no editor depends on it.
+.TP
+.B "void SetWindow(ManagedWindow*)"
+.ns
+.TP
+.B "ManagedWindow* GetWindow()"
+Get and set the window associated with the editor.
+.SH SEE ALSO
+Catalog(3U), Command(3U), Component(3U), Interactor(3I), KeyMap(3U),
+MonoScene(3I), Selection(3U), StateVar(3U), Tool(3U), Unidraw(3U),
+Viewer(3U), Window(3I), World(3I)

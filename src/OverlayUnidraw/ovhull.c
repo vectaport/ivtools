@@ -52,7 +52,7 @@ void ConvexHullCmd::Execute() {
   GraphicComp* comp = GetClipboard()->GetComp(it);
   if (comp && comp->IsA(OVPOLYGON_COMP)) {
     SF_Polygon* poly = ((PolygonOvComp*)comp)->GetPolygon();
-    Coord* x, *y;
+    const Coord* x, *y;
     int np = poly->GetOriginal(x, y);
     if (np > 2) {
       float* fx = new float[np];
@@ -144,6 +144,7 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 	return nhp;
       }
     }
+    return 1;
   }
   else
     return 0;

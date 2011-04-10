@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-1997 Vectaport Inc.
+ * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -70,6 +70,25 @@ void AttributeList::add_attr(const char* name, AttributeValue& value) {
 
 void AttributeList::add_attr(const char* name, AttributeValue* value) {
     Attribute* attr = new Attribute(name, value);
+    if (add_attr(attr)) {
+        attr->valueptr = nil;
+	delete attr;
+    }
+}
+
+void AttributeList::add_attr(int symid, AttributeValue& value) {
+  add_attr(symid, new AttributeValue(value));
+}
+
+void AttributeList::add_attr(int symid, AttributeValue* value) {
+    Attribute* attr = new Attribute(symid, value);
+    if (add_attr(attr)) {
+        attr->valueptr = nil;
+	delete attr;
+    }
+}
+
+void AttributeList::add_attribute(Attribute* attr) {
     if (add_attr(attr)) {
         attr->valueptr = nil;
 	delete attr;
@@ -243,6 +262,15 @@ AttributeValue* AttributeList::find(int id) {
 	}
     }
     return nil;
+}
+
+AttributeList* AttributeList::merge(AttributeList* al) {
+  if (al) {
+    Iterator it;
+    for( al->First(it); !al->Done(it); al->Next(it)) 
+      add_attribute(new Attribute(*al->GetAttr(it)));
+  }
+  return this;
 }
 
 /*****************************************************************************/

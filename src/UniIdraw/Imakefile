@@ -13,7 +13,7 @@ Use_2_6()
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(idarrow)
 Obj(idarrowhead)
@@ -32,5 +32,6 @@ IncludeDependencies()
 #else
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
 
 #endif

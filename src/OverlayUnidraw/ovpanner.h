@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995 Vectaport Inc.
+ * Copyright (c) 1995,1999 Vectaport Inc.
  * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
  * Copyright (c) 1991 Silicon Graphics, Inc.
  *
@@ -33,6 +33,7 @@
 
 #include <IV-2_6/_enter.h>
 
+//: flexible panner/zoomer/slider window.
 class OverlayPanner : public MonoScene {
 public:
     OverlayPanner(Interactor*, int size = 0, boolean panner = true,
@@ -43,8 +44,11 @@ public:
     virtual ~OverlayPanner();
 
     boolean& panner_on() { return _panner_on; }
+    // set/get flag to enable/disable panner.
     boolean& zoomer_on() { return _zoomer_on; }
+    // set/get flag to enable/disable zoomer.
     boolean& slider_on() { return _slider_on; }
+    // set/get flag to enable/disable slider.
 protected:
     int size;
     boolean _panner_on;
@@ -59,6 +63,7 @@ private:
     void Init(Interactor*, int, boolean, boolean, boolean);
 };
 
+//: slider window within an OverlayPanner.
 class OverlaySlider : public Interactor {
 public:
     OverlaySlider(Interactor*);

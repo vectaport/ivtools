@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1997-1999 Vectaport Inc.
  * Copyright (c) 1996 Vectaport Inc., R.B. Kissh & Associates 
  * Copyright (c) 1994-1995 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
@@ -27,6 +28,7 @@
  * Overlay editor main program.
  */
 
+
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovcreator.h>
 #include <OverlayUnidraw/oved.h>
@@ -35,25 +37,17 @@
 #include <Unidraw/Graphic/geomobjs.h>
 
 #include <InterViews/world.h>
+#include <InterViews/event.h>
 
 #ifdef HAVE_ACE
 #include <OverlayUnidraw/aceimport.h>
-#include <Dispatch/ace_dispatcher.h>
+#include <AceDispatch/ace_dispatcher.h>
 #endif
 
 #include <stream.h>
 #include <string.h>
 #include <math.h>
-
-#if defined(__sun) && !defined(__svr4__)
-/* Disables atan2(0.0,0.0) warning messages */
-extern "C" {
-    int matherr(struct exception *x) {
-	if (x && strcmp(x->name, "atan2") == 0) return 1;
-	else return 0;
-    }
-}
-#endif
+#include <version.h>
 
 /*****************************************************************************/
 
@@ -147,7 +141,7 @@ static PropertyData properties[] = {
     { "*history",	"20" },
 
     { "*color5",        "false" },
-    { "*nocolor6",      "false" },
+    { "*color6",        "true" },
     { "*gray5",         "false" },
     { "*gray6",         "false" },
     { "*gray7",         "false" },
@@ -162,6 +156,8 @@ static PropertyData properties[] = {
     { "*toolbarloc",    "l"  },
     { "*twidth",        "512" },
     { "*zoomer_off",    "false"  },
+    { "*opaque_off",    "false"  },
+    { "*ptrloc",        "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
 #endif
@@ -172,7 +168,7 @@ static PropertyData properties[] = {
 
 static OptionDesc options[] = {
     { "-color5", "*color5", OptionValueImplicit, "true" },
-    { "-nocolor6", "*color6", OptionValueImplicit, "true" },
+    { "-nocolor6", "*color6", OptionValueImplicit, "false" },
     { "-gray5", "*gray5", OptionValueImplicit, "true" },
     { "-gray6", "*gray6", OptionValueImplicit, "true" },
     { "-gray7", "*gray7", OptionValueImplicit, "true" },
@@ -193,6 +189,9 @@ static OptionDesc options[] = {
     { "-tbl", "*toolbarloc", OptionValueNext },
     { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
+    { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+    { "-ptrloc", "*ptrloc", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
 #endif
@@ -203,10 +202,10 @@ static OptionDesc options[] = {
 
 static char* usage =
 "Usage: drawtool [any idraw parameter] [-color5] [-gray5] [-gray6] [-gray7] \n\
-[-nocolor6] [-pagecols|-ncols] [-pagerows|-nrows] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-toolbarloc|-tbl r|l ] \n\
-[-zoomer_off|-zoff] [file]";
+[-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols] [-pagerows|-nrows] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
+[-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] \n\
+[-slider_off|-soff] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
 
 /*****************************************************************************/
 
@@ -262,6 +261,8 @@ int main (int argc, char** argv) {
 	OverlayEditor* ed = new OverlayEditor(initial_file);
 
 	unidraw->Open(ed);
+	cerr << "ivtools-" << VersionString 
+	     << " drawtool: see \"man drawtool\" for more info\n"; 
 	unidraw->Run();
     }
 

@@ -1,5 +1,5 @@
 XCOMM
-XCOMM source files for comutil library
+XCOMM source files for comutil library (written in C)
 XCOMM
 
 PACKAGE = ComUtil
@@ -10,19 +10,19 @@ LIB = ComUtil
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeCObjectFromSrc(file)
+#define Obj(file) MakeObjectFromCSrcFlags(file,)
 
 Obj(atox)
 Obj(comerr)
 Obj(dmm)
 Obj(errfile)
-MakeCObjectFromSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
+MakeObjectFromCSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
 Obj(funcptrs)
-Obj(lexscan)
+Obj(_lexscan)
 Obj(mblock)
 Obj(optable)
-Obj(parser)
-Obj(scanner)
+Obj(_parser)
+Obj(_scanner)
 Obj(symbols)
 Obj(txtutil)
 Obj(types)
@@ -33,8 +33,14 @@ IncludeDependencies()
 
 #else
 
-InstallXDefaultAs(comterp.err,$(LIBALLDIR),comterp.err)
+LIB_FILES = comterp.err
+InstallMultiple($(LIB_FILES),$(LIBALLDIR))
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+InstallInclude($(PACKAGE),comterp.arg)
+InstallInclude($(PACKAGE),comterp.err)
+InstallInclude($(PACKAGE),comutil.arg)
+InstallInclude($(PACKAGE),comutil.ci)
 
 #endif

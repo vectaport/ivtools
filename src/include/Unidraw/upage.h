@@ -44,6 +44,9 @@ public:
     virtual PSBrush* GetBrush();
 
     virtual Graphic* Copy();
+    
+    float Width() { return _width; } 
+    float Height() { return _height; } 
 protected:
     virtual void getExtent(float&, float&, float&, float&, float&, Graphic*);
     virtual void draw(Canvas*, Graphic*);

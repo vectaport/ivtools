@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Vectaport Inc.
+ * Copyright (c) 1996-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -28,12 +28,15 @@
 
 class Selection;
 
+//: tool for editing attributes of a component (property list editing).
 class AttributeTool : public Tool {
 public:
     AttributeTool(ControlInfo* =nil);
 
     virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
+    // select component under event, and bring up dialog for editing attributes.
     virtual Command* InterpretManipulator(Manipulator*);
+    // empty method.
 
     virtual Tool* Copy();
     virtual ClassId GetClassId();

@@ -1,0 +1,25 @@
+.TH Path 3U "6 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Path \- record of connectors visited during dataflow
+.SH SYNOPSIS
+.B #include <Unidraw/path.h>
+.SH DESCRIPTION
+A Path object stores a record of connectors that have been visited
+during dataflow.  Transfer functions, state variables, connectors, and
+other components can use the information in the path to determine
+whether data should be transmitted, for example, to avoid circular
+flow.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Path(Path* = nil)"
+Instantiate a new path, optionally with a duplicate of the information
+contained in the given path.
+.TP
+.B "virtual void Visit(Connector*)"
+Register a connector as having been visited.
+.TP
+.B "virtual boolean Visited(Connector*)"
+Return whether or not a connector has been registered previously with
+the path.
+.SH SEE ALSO
+Connector(3U), StateVar(3U), TransferFunct(3U)

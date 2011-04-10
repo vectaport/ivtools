@@ -9,10 +9,13 @@ PACKAGE = ComTerp
 LIB = ComTerp
 CCSUFFIX = c
 
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
-#define ObjA(file) MakeObjectFromSrcFlags(file,-xc++ -D__ACE_INLINE__)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+#define ObjA(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
 
 Obj(assignfunc)
 Obj(boolfunc)
@@ -22,17 +25,23 @@ Obj(comvalue)
 Obj(condfunc)
 ObjA(ctrlfunc)
 Obj(helpfunc)
+Obj(iofunc)
+Obj(listfunc)
 Obj(mathfunc)
 Obj(numfunc)
 Obj(parser)	
+Obj(postfunc)
+Obj(randfunc)
 Obj(scanner)	
+Obj(statfunc)
 Obj(strmfunc)
+Obj(xformfunc)
 
 #ifdef AceDir
 ObjA(comhandler)
 #endif
 
-#define Obj31(file) MakeObjectFromSrcFlags(file,-xc++ -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Uiv2_6_compatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
 Obj31(comterp)
 IncludeDependencies()
@@ -44,5 +53,6 @@ InstallLibLink($(ACELIBDIR),$(ACELIBBASE), $(LIBDIR))
 #else
 
 MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
 
 #endif

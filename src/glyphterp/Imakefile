@@ -11,12 +11,15 @@ APP_CCLDLIBS = 	$(LIBCOMGLYPH) $(LIBIVGLYPH) $(LIBCOMTERP) $(LIBATTRIBUTE) $(LIB
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS = $(DEPCOMGLYPH) $(DEPIVGLYPH) $(DEPCOMTERP) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIDRAWCOMMON)
 #endif
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(ACE_CCLDLIBS)
 
 Use_libInterViews()
 
 ComplexProgramTarget(glyphterp)
 
-MakeObjectFromSrcFlags(main,-xc++)
+MakeObjectFromSrcFlags(main,)
 
 IncludeDependencies()
 

@@ -1,0 +1,358 @@
+This is a list of patches applied to ivtools over the course of
+ivtools-0.4 development, which ran from approximately September 1994
+until October 1995.
+
+ivtools originated with a 0.3 version designation in January 1994,
+since this was approximately the third time our team had started from
+scratch building a value-added library version of idraw.  From January
+1994 until September 1994 the structure of the libraries of ivtools
+was determined, and the first versions of OverlayUnidraw,
+FrameUnidraw, and GraphUnidraw were created, along with their sample
+programs: idraw, ov-idraw (now drawtool), frame-idraw (now flipbook),
+and graph-idraw (now graphdraw).
+
+fix-01a adds cmtag Imakefile target
+fix-01b NameView and NameState classes migrated from maptools
+fix-01c  put OverlayUnidraw comp classes back in as placeholders
+fix-01d fix pathnames in  iv-3.1 patches
+fix-01e fix up graph-idraw 
+fix-02a fixes NodeView::Update method and upgrades Unidraw.inc.patch
+fix-02b OverlayKit now builds Glyph menus
+fix-02c update TextGraphic in NodeView::Update with SetOriginal
+fix-02d finish changeover to OverlayKit* from OverlayKit&
+fix-02e adds glyph based toolbars to ov-idraw and graph-idraw
+fix-02f add Hide and Desensitize capability to Graphic
+fix-02g fix cmchkin Makefile target
+fix-02h fix edge/node sizes, remove extra interactors
+fix-02i add keymap to toolbar
+fix-02j move text-editor classes to IVGlyph, remove toolbar
+fix-02k skeleton FrameUnidraw and frame-idraw
+fix-02l migrate more methods from OverlayEditor to OverlayKit
+fix-02m clean up OverlayKit/OverlayEditor
+fix-02n add Hide/Show and Desensitize/Sensitize methods to OverlayView
+fix-02o add initial frame-oriented structures
+fix-02p wrapping up for patch 0.2.4
+fix-03a FrameUnidraw and frame-idraw
+fix-03b create initial ScriptView object
+fix-03c add FrameIdrawComp and FrameIdrawView
+fix-03d add ScriptView class to OverlayUnidraw
+fix-03e restructured FrameUnidraw
+fix-03f GraphEditor constructors changed to expect GraphKit
+fix-03g fix copy/paste between frames, wb titlebar
+fix-03h add current/total frames stateviews, create&move command
+fix-03i fix wm titlebars
+fix-03j disfunctional FrameUngroupCmd
+fix-03k fix node delete, edge move
+fix-03l fix frame-idraw crash, add keycodes to frame cmds
+fix-03m work struct command for FrameUnidraw
+fix-03n fix PostScript save of *IdrawComp
+fix-03o fixed dup cmd and updates menu names
+fix-03p add prelabeled node tool
+fix-03q fix new, open of a graph-idraw component when previous selection existed
+fix-03r ScriptView, cm for special directories, and OvGroupCmd
+fix-03s last minor fix for patch #3
+fix-04a fix some problems with TextEditor glyph
+fix-04b better text-editor layout, add text get/set methods
+fix-04c add multiple toolbars to graph-idraw
+fix-04d add complete graphic hierarchies for OverlayComp, ScriptView, and OvPostScriptView
+fix-04e declare OverlayView prior to OverlayViewer class definition
+fix-04f fix graph-idraw cut cmd, labeled node create
+fix-04g getting ready for patch-0.4.4
+fix-05a fix alter of rectangle comp
+fix-05b add hierarchical menus example to OverlayKit
+fix-05c begin to support modifiable radiobutton groups
+fix-05d add non-working radiogroup example
+fix-05e better RadioEnumEditor, radiogroup example
+fix-05f irix-happy patch fix-05f
+fix-05h fix NodeView::Update and bring src/include into imake system
+fix-05g make radiogroup work by recreating layout glyphs
+fix-05i fix Save command for OverlayUnidraw and related libraries/programs
+fix-05j add new bounded value table state, glyph, example program
+fix-05k last minor fix for #5
+fix-06a layout improvements to the BoundedValueTableEditor
+fix-06b add ParamList object for reading ScriptView's
+fix-06c fix-06c sketch of framescripts
+fix-06d more work on OverlayComp methods associated with ParamList
+fix-06e modify ObsTextEditor glyph
+fix-06f get ready for major patch 6
+fix-07a fix-07a: paramlist and scriptview work in progress
+fix-07b fix problems in TopoFace::insert_ordered
+fix-07c fix-07c reads in OverlayIdrawComp grid
+fix-07d remove another bug from TopoFace::insert_ordered
+fix-07e fix handle zoom in OverlayView's
+fix-07f fix-07f, again
+fix-07g fix-07g, ellipse reading in
+fix-07h fix various frame-idraw commands
+fix-07i fix-07i
+fix-07j fix problem in OverlayCatalog::Retrieve
+fix-07k abandonment of TopoFace edge sorting mechanism
+fix-07l add new FieldEditor subclass that accepts on every key
+fix-07m another improvement to TopoFace::load_points
+fix-07n chop up EivTextEditor for easier reuse
+fix-07o first cut at annotate tool
+fix-07p fix-07p pictures, splines and polygons
+fix-07q fix-07q add texteditor to frame-idraw
+fix-07r changes to ParamStruct and ParamList
+fix-07s fix-07s, annotations and OvTextComp
+fix-07t extend table to observe each value within it
+fix-07u fix-07u
+fix-07v remove focus from frame-idraw texteditor
+fix-07w fix-07w FrameUnidraw, frame-unidraw, OverlayUnidraw
+fix-07x everything else
+fix-08b fix-08b text migration
+fix-08a fix-08a
+fix-08c fix grid spacing cmd
+fix-08d fixes warranted by isat work
+fix-08e last patch for #8
+fix-09a make OvDeleteCmd non-reversible for real
+fix-09b fix-09b annotation and pattern
+fix-09c fix-09c add first/last frame cmds, fix graph-idraw save/restore/print
+fix-09d fix-09d a wrap
+fix-10a fix-10a fix printing of graph-idraw arrowlines
+fix-10c fix-10c a wrap
+fix-10b fix-10b fillbg
+fix-11a fix-11a fix graph-idraw save/restore
+fix-11b fix disappearing glyph bug
+fix-11c fix NameView/TextObserver glyphs, update to linux gcc2.5.8
+fix-11d fix select-all and select-by-rectangle of desensitized graphics
+fix-11e fix-11e extra char in date-time string 
+fix-11f workaround for R6 makedepend
+fix-11g more work on R6 makedepend config file happiness
+fix-11h still trying to get those R6 makedepend patches installed correctly
+fix-11i OvPSPicture generates idraw format PostScript for (almost) any Picture graphic
+fix-11j fix-11j script save/restore graph-idraw
+fix-11k fix for iv-3.1 nested menu bug
+fix-11l make install, X11R6 XFillRectangle workaround, README editing
+fix-11m new FrameUnidraw Print command creates multi-page PostScript document
+fix-11n patches/iv-3.1-irix* cleanup
+fix-11o ScriptRaster can now save/restore tiff files by name
+fix-11p graph-idraw save/restore nodecomp tuning
+fix-11q Add new constructor to NodeComp with no arguments
+fix-11r filename arguments, ParamList callback functions, better frame loading
+fix-11s UngroupCmd fix for frame-idraw
+fix-11t Minor fix to ivtools-0.4.11r
+fix-11u adjust AdjustForZoom, add more ParamList callbacks, soften impact of MoveFrameCmd
+fix-11v adds DeleteFrameCmd to FrameUunidraw
+fix-11w adjust OverlayViewer and edit README's
+fix-11x adds PageCmd, beefs up OverlayPage, tunes DeleteFrameCmd
+fix-11y fix problem with OvPSPicture erroneously deleting graphics
+fix-11z fix OvPSPicture's handling of sub-graphic fonts
+fix-11aa last fix for patch 11
+fix-12a new OvTextFileComp, improved OvRasterComp, ParamList::parse_string
+fix-12b make PGM work for real
+fix-12c frame number display and Goto First Frame changes
+fix-12d initialize Number of Frames
+fix-12e add PBM and gzip support to ImportGraphic, finalize ScriptStencil, and make frame-idraw start on 1
+fix-12f add a new "Export Graphic" command 
+fix-12g Bitmap constructor
+fix-12h in-memory deep-copy for OverlayComps::Copy
+fix-12i more bug hunting...
+fix-12j frame-idraw grouping, current frame display
+fix-12k restore graph connnectivity during Undo Delete
+fix-12l grid spacing removed from *IdrawComp and other fixes/cleanups
+fix-12m fix memory leak in GraphDeleteCmd
+fix-12n new Unidraw patch set
+fix-12o one more bug fix for iv-3.1
+fix-12p confirm dialog glyph
+fix-12q *NewViewCmd, fix a few open problems with frame-idraw, add example script file
+fix-12r adds keystroke handling to GConfirmDialog
+fix-13a :linewidth added to textfile
+fix-13b add sub-frames to FrameComp and fix popen/pclose pairing
+fix-13c make OvPostScriptView's Viewer sensitive
+fix-13d patch that makes vpf-unidraw "Export Graphic" work
+fix-13e better looking toolbar for SGI X11 setup
+fix-13f implement Chin-Fu's suggestions, etc..
+fix-13g use -> in fix-13e
+fix-13h fix the export graphic command
+fix-13i make postscript output work for maptools
+fix-13j handle off-size pbm files
+fix-13k add insert_string to EivTextEditor
+fix-13l make strchooser embedable
+fix-13m clean up after fix-13l
+fix-13n support for color raster postscript 
+fix-13o add pure glyph field editor
+fix-13p migrate to new class names for views and comps
+fix-13q works on RasterPS, ArrowMultiLinePS, ArrowMultiLineScript, and ArrowSplineScript
+fix-13r gcc-2.6.1 changes to GFieldEditor
+fix-13s reinstate #define SCRIPT_VIEW and create FrameFile* classes
+fix-13t SetCommand and GetCommand added to OverlayPS, and OverlayScript set to inherit
+fix-13u addition to fix-13t
+fix-13v localize use of OverlayPS::SetCommand to Create* methods
+fix-13w make color raster postscript work
+fix-13x fix problem with OverlayScript::Transformation created by last fix
+fix-13y glyph-based PrintChooser for new OvPrintCmd
+fix-13z PrintChooser check boxes
+fix-13aa precise page command
+fix-13ab add cursor on/off to GFieldEditor
+fix-13ac framefile fleshing out
+fix-13ad removes the extra frames in framefile
+fix-13ae remove -Dprivate=protected to compile on gcc 2.6.4
+fix-13af a few more diffs for gcc-2.6.4
+fix-13ag fix :pattern problem
+fix-13ah update Unidraw.inc.patch after fix-13ae
+fix-13ai finalize PrintChooser glyph work
+fix-13aj fix graphkit toolbuttons
+fix-13ak separate out base class from PrintChooser (OpenFileChooser)
+fix-13al fixes for gcc-2.6.4 (?)
+fix-13am make printchooser compile on gcc-2.6.4
+fix-13an glyph-based export file chooser
+fix-13ao compile on gcc-2.6.4, bigger radiobuttons
+fix-13ap more work on choosers
+fix-13aq adds GAcknowledgeDialog
+fix-13ar more chooser work
+fix-13as creates ParamList::parse_filename and uses ParamList::output_text
+fix-13at relative-pathname mechanism for script files and format-specific export commands
+fix-13au tying up loose-ends on relative-pathname mechanism
+fix-13av remove scrollfield example program
+fix-13aw fix bug in NameView glyph
+fix-13ax import chooser with option to load graphics at 0,0
+fix-13ay last patch for 13?
+fix-13az last minor patch for patch-0.4.13
+fix-14a hide/show commands
+fix-14b gcc-2.6.3 happy
+fix-14c fix hide problem of EllipseOvComp
+fix-14d chain viewers together for panning
+fix-14e add chained zooming
+fix-14f handle arbitrary length annotations and add UnchainViewCmd
+fix-14g 
+fix-14h make fixed-location work at other than 1x
+fix-14i add glyphterp example program to ivtools
+fix-14j really add glyphterp example program
+fix-14k fix position of raster display when left edge is off screen
+fix-14l fix update of mag display
+fix-14m postpone reading pixel data until raster is on screen and add ovfile mechanism
+fix-14n ovfile and chained pan/zoom work
+fix-14o fix bug in unchaining views
+fix-14p fix another bug in chain viewing stuff
+fix-14q fix Linux magic-byte problem (?) and work on comterp linefeeds
+fix-14r more robust locating of error file for comterp
+fix-14s fix parser/scanner problem with "3+.4"
+fix-14t make text-editor default focus for glyphterp and add "()" button
+fix-14u remove -Dprivate=protected in a better way
+fix-14v div-by-zero exception added to comterp and glyphterp
+fix-14w adds MeterObservor, virtualizes IdrawEditor::InitStateVars()
+fix-14x add :gs option and reimplement ovfile object
+fix-14y add "incomplete expression" and "unexpected left paren" exceptions to comterp
+fix-14z check for ovfile loops and add "-" filename support
+fix-14aa rework config files to make a site.def
+fix-14ab changes for gcc-2.7.0 compilation
+fix-14ac fix a few stray bugs and edit the README
+fix-14ad generalize BoundedValue with format string
+fix-14ae more upgrading to gcc-2.7.0, etc..
+fix-14af upgrade to gcc-2.7.1 for SUN4
+fix-14ag adds meter and fixes ExtraCCLdLibs
+fix-14ah default iv-3.1-SUN4.patch to gcc-2.7.1
+fix-14ai more meter work
+fix-14aj remove -lmalloc from gcc.def and add -xc++ to glyphterp/Imakefile
+fix-14ak restore scrollfield example program
+fix-14al extend scrollfield and add OverlaySelection::ViewsWithin
+fix-14am new scrollfield and OverlayFileComp::GetFileName problem fixed
+fix-14an more diffs for fix-14am
+fix-14ao restore framefile to old style
+fix-14ap default params only in header file
+fix-14aq scrollfield focus work and fix unloaded raster printing
+fix-14ar fix input handling for frame around field editors in scrollfield
+fix-14as upgrade bdvtable to use GFieldEditor
+fix-14at revert bdvtable/Imakefile, InstallScriptAs
+fix-14au new improved frame-idraw and support for compressed script files
+fix-14av site.def.SGI up to gcc-2.7.2
+fix-14aw fix OpenFileChooser bug and add in WishList's
+fix-14ax add :sub (image) capability to PPM and PGM rasters
+fix-14ay small layout fix for frame-idraw
+fix-14az massages *Script::Definition(ostream& out)
+fix-14aaa adds a font and fgcolor to a TextfileComp's graphic
+fix-14bb fixes a bug in EivTextBuffer constructor
+fix-14bc fixes an initial display bug in BoundedValueEditor
+fix-14bd ParamList::add_param_indirect()
+fix-14be sets the bdvalue when a GFieldEditor is focused out
+fix-14bf add ESC and BS support to GFieldEditor
+fix-14bg fixes a bug in ovraster and ovstencil
+fix-14bh fix x11r6fillrect.patch, change sample site.def.LINUX to gcc-2.7.2
+fix-14bi optimize graphic point lists and fix other bugs
+fix-14bj keep GFieldEditor string left justified
+fix-14bk position cursor where mouse clicks in a GFieldEditor
+fix-14bl fix ref problem on spline graphic's multilineobj (uni-idraw crash)
+fix-14bm add "invisible" selection mechanism to GFieldEditor
+fix-14bn again, add a new menu enum editing form
+fix-14bo fixes a small bug in ArrowLineScript::ReadOriginal
+fix-14bp white-on-gray selection highlighting in GFieldEditor
+fix-14bq changes to MenuEnumEditor
+fix-14br graph-idraw cleaning up
+fix-14bs point list compaction, GFieldEditor fixes, separate observables
+fix-14bt add pointer and accept() to observables
+fix-14bu add object type to comterp
+fix-14bv add object type ref and val methods to comterp, fix warning
+fix-14bw add comtest and string value to ComValue
+fix-14bx add no-param constructor to ComValue
+fix-14by fix missing unhighlight bug
+fix-14bz properly initialize a ComValue on a symbol id
+fix-14ca fix string ComValue
+fix-14cb new config files
+fix-14cc fixes to graph-idraw edge moving
+fix-14cd temporarily fix table size in ComTerp
+fix-14ce add equality system for OverlayComps
+fix-14cf add pic compaction to frame-idraw
+fix-14cg ComUnidraw and com-idraw
+fix-14ch add row add/delete to scrollfield
+fix-14ci better XOR rubberbanding in front of gray-level imagery
+fix-14cj swag at fixing viewport in scrollable example program
+fix-14ck 
+fix-14cl fix boolean editor glyphs to reflect initial value
+fix-14cm shared libraries for SunOS
+fix-14cn shared libraries for everyone?
+fix-14co allow for redefinition of shared library building command
+fix-14cp make shared libraries work on linux
+fix-14cq gets shared libs working for SGI
+fix-14cr virtualize start and stop buffering
+fix-14cs enables raster (and stencil) scripts without :transform
+fix-14ct drops the auto-centering of raster and stencil scripts
+patch-02n convert camera tool to rpc
+fix-14cu adds a mouse documentation line
+fix-14cv add new Attribute library
+fix-14cw migrate ParamList, set up AttributeList, add one to OverlayComp
+fix-14cx further work on AttributeList, add AttributeListEditor
+fix-14cy fixes a few memory leaks found with Purify
+fix-14cz alter mouse-doc lines and fix const problem in Attribute library
+fix-14da create standalone AttributeValue
+fix-14db drop LexScan into Attribute library
+fix-14dc link ComUtil library under Attribute library
+fix-14dd add Attribute tool and attribute editing dialog
+fix-14de drops in a skeleton for attribute save/restore
+fix-14df adds a get_next_attr method to LexScan
+fix-14dg work on Attribute and AttributeValue memory mgmt
+fix-14dh further work on attribute editing
+fix-14di gets a simple Attribute save/restore working
+fix-14dj more work on Attribute Edit/Save/Restore
+fix-14dk use EivTextEditor to display attribute list
+fix-14dl fix AttributeList memory problems
+fix-14dm move attredit to AttrGlyph library
+fix-14dn get scrollfield running (but not working)
+fix-14do fix-14do (from Brian)
+fix-14dp fix-14dp (from Brian)
+fix-14dq fixes some attribute problems
+fix-14dr final minor patch for major patch 14
+fix-15a add OTHER to config/params.def
+fix-15b add polygon clipping commands
+fix-15c 
+fix-15d fix configs for clippoly
+fix-15e fix creation of polygon for clippoly
+fix-15f make clipping work with edited polygons
+fix-15g command line switches for colormap mgmt
+fix-15h remove -lg++, move -lstdc++ and -lm to the end
+fix-15i fix crash when derived programs don't define color/gray attributes
+fix-15j enables export of color rasters to scriptfile format
+fix-15k last patch for ivtools-0.4.15
+fix-16a extends GraphUnidraw to import a graph-idraw document
+fix-16b gets graph-idraw copy/paste/dup cmds working again
+fix-16c shows unconnected subgraph edges
+fix-16d fix bug in MultiLineObj cacheing 
+fix-16e enforces graph-idraw edge connection directionality
+fix-16f fix save/restore and export of raster graphics
+fix-16g gets Undo working for graphnode connections
+fix-16h add optional config file support for Fresco
+fix-16i last patch for ivtools-0.4.16
+fix-17a gets graph copy/paste working
+fix-17b gets graph cut working
+fix-17c gets graph dup working
+fix-17d adds a graph-idraw import-by-filename or -flat mechanism
+fix-17e fix graph import, wrap up ivtools-0.4.17

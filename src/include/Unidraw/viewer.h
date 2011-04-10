@@ -51,6 +51,8 @@ class UPage;
 class ViewerGraphic;
 class ViewerView;
 
+//: displays a graphical component view hierarchy.
+// <a href=../man3.1/Viewer.html>man page</a>
 class Viewer : public GraphicBlock {
 public:
     Viewer(
@@ -96,6 +98,10 @@ public:
     virtual void Constrain(Coord&, Coord&);
     virtual void UseTool(Tool*);
     virtual void Align(GraphicComp*, Alignment);
+
+    Transformer* GetRel();
+    Transformer* ComputeGravityRel();
+
 protected:
     void Init(Editor*, GraphicView*, UPage*, Grid*, Coord, Coord, Orientation);
     void Init(Editor*, GraphicView*, UPage*, Grid*);

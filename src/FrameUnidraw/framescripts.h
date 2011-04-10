@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport
+ * Copyright (c) 1994, 1995, 1999 Vectaport
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided
@@ -39,7 +39,7 @@ class FramesComp;
 class FrameIdrawComp;
 class ostream;
 
-
+//: serialized view of FrameOverlaysComp.
 class FrameOverlaysScript : OverlaysScript {
 public:
     virtual ClassId GetClassId();
@@ -48,6 +48,7 @@ public:
 
 };
 
+//: serialized view of FrameComp.
 class FrameScript : public OverlaysScript {
 public:
     virtual ClassId GetClassId();
@@ -59,6 +60,7 @@ public:
     virtual boolean EmitPic(ostream&, Clipboard*, Clipboard*, boolean);
 };
 
+//: serialized view of FramesComp.
 class FramesScript : public FrameScript {
 public:
     virtual ClassId GetClassId();
@@ -69,6 +71,7 @@ public:
     static int ReadFrames(istream& in, void* addr1, void* addr2, void* addr3, void* addr4);
 };
 
+//: serialized view of FrameIdrawComp.
 class FrameIdrawScript : public FramesScript {
 public:
     virtual ClassId GetClassId();

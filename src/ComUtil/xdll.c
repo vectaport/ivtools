@@ -107,7 +107,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_open (beg,nlinks,nsize)
+int xdll_open (void * beg,int nlinks,int nsize)
 
 /*!
 Return Value:  >=0 identifier for this link structure, -1 if params
@@ -117,9 +117,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void *		beg      ;/* I   Pointer to link area alloc'd by user */
 int             nlinks    ;/* I   Max number of links in the list */
 int             nsize     ;/* I   Size of a link entry in bytes */
+#endif
 
 #ifdef DOC
 
@@ -285,7 +287,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_reopen (newflag,beg,nlinks,newhead)
+int xdll_reopen (int newflag,void * beg,int nlinks,int newhead)
 
 /*!
 Return Value:    0 the id reopened if OK,  
@@ -297,6 +299,7 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int	        newflag  ;/*  I   true - this is a new list (no head) */
 			  /*     false - this is an old list (use newhead)*/
 void *		beg       ;/* I   Pointer to link area alloc'd by user */
@@ -305,6 +308,7 @@ int             nlinks    ;/* I   Max number of links in the list      */
 			   /*     0 means don't change number of links */
 int     	newhead   ;/* I   Byte Offset to head of linked list    */
 			   /*     < 0 means leave head at old offset */
+#endif
 
 
 /*!
@@ -369,7 +373,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_use (id)
+int xdll_use (int id)
 
 /*!
 Return Value:  >=0 id in use if OK, -1 if id is out-of-range or the
@@ -379,7 +383,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		id	  ;/* I   identifier returned by xdll_open() */
+#endif
 
 
 /*!
@@ -460,7 +466,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_close (allflag)
+int xdll_close (int allflag)
 
 /*!
 Return Value:  0 (FUNCOK) if close OK, -1 (FUNCBAD) if error.
@@ -469,8 +475,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		allflag  ;/*   I  allflag true, close all lists */
 			  /*              false, close list spec'd by id */
+#endif
+
 /*!
 Description:
 
@@ -723,7 +732,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-void *xdll_insert (before)
+void *xdll_insert (int before)
 
 /*!
 Return Value:  position of new link if OK, NULL if error.
@@ -732,8 +741,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		before    ;/* I   flag, True - insert before current link */
 			   /*           False - insert after current link */
+#endif
+
 /*!
 Description:
 
@@ -753,20 +765,20 @@ See Also:   xdll_use().
 
 !*/
 {
-   xdllink *curr,*new;   
+   xdllink *curr, *newl;
    int nnew,ncurr;
 
    CHECKUSE;
    /* first find a node that is empty */
    if ( (nnew = next_free_link(1)) < 0 )  
       goto error_return;	/* uh oh, out of memory; die */
-   new =  ADDBEG(nnew);
+   newl =  ADDBEG(nnew);
    if (xdllist_curr->head == NULL)	/* if list is empty */
    {  /* first entry, make it the head */
-     xdllist_curr->head = xdllist_curr->curr =  new;
+     xdllist_curr->head = xdllist_curr->curr =  newl;
 			/* set to start of list */
-     new->prev = HEADID; /* HEADID means its the head node */
-     new->next = -1;  /* initialize */
+     newl->prev = HEADID; /* HEADID means its the head node */
+     newl->next = -1;  /* initialize */
    }
    else	/* there are already links in the table */
    {
@@ -778,21 +790,21 @@ See Also:   xdll_use().
 	if (curr->prev >= 0) /* not head of list ? */
           ADDBEG(curr->prev)->next = nnew;
 	else
-	  xdllist_curr->head = new;  /* new head of the list */
-	new->prev = curr->prev; /* OK even if curr->prev is < 0 */
-	new->next = ncurr; /* next is previous current entry */
+	  xdllist_curr->head = newl;  /* new head of the list */
+	newl->prev = curr->prev; /* OK even if curr->prev is < 0 */
+	newl->next = ncurr; /* next is previous current entry */
         curr->prev = nnew;
       }
       else  /* !before (after)  inserting after curr */
       {
 	if (curr->next >= 0) /* not tail of list ? */
           ADDBEG(curr->next)->prev = nnew;
-	new->next = curr->next;  /* OK even if curr->next is <0 */
-	new->prev = ncurr; /* next is previous current entry */
+	newl->next = curr->next;  /* OK even if curr->next is <0 */
+	newl->prev = ncurr; /* next is previous current entry */
 	curr->next = nnew;	
       }
    }
-   return ((void *) new);	/* return position added */
+   return ((void *) newl);	/* return position added */
 
 error_return:
     return (NULL);	/* means out of memory or id not opened */
@@ -808,7 +820,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_delete (flag)
+int xdll_delete (int flag)
 
 /*!
 Return Value:  FUNCOK if OK, FUNCBAD if error.
@@ -817,8 +829,11 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		flag      ;/* I   True - reposition to previous link */
 			   /*     False - reposition to next link */
+#endif
+
 /*!
 Description:
 
@@ -872,7 +887,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-void *xdll_goto (pos)
+void *xdll_goto (void * pos)
 
 /*!
 Return Value:  New position if OK, NULL if pos does not exist or is empty.
@@ -881,7 +896,9 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 void	       *pos	  ;/* I   Pointer to position to goto */
+#endif
 
 /*!
 Description:
@@ -923,7 +940,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_clear(flag,userfunc)
+int xdll_clear(int flag,void (*userfunc)())
 
 /*!
 Return Value:  0 (FUNCOK) if OK, -1 (FUNCBAD) if no linked list in use.
@@ -932,11 +949,13 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		flag      ;/*  I  true - clear entire linked list */
 		           /*     false - clear only from head to tail */
 void	     (*userfunc)();/*  I  User function that is called for every */
 			   /*     link cleared with the pointer to the *
 			   /*	  user's structure;  NULL if no user function */
+#endif
 
 /*!
 Description:
@@ -1070,7 +1089,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static  int next_free_link(flag)
+static  int next_free_link(int flag)
 
 /*!
 Return Value:  Offset of next free link relative to beginning of link list,
@@ -1080,8 +1099,10 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 int		flag      ;/* I   If true, start at top of link structure */
 			   /*     If false, continue from last position */
+#endif
 
 /*!
 Description:
@@ -1130,7 +1151,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static int clear_links(curr,nlinks,userfunc)
+static int clear_links(xdllink * curr,int nlinks,void (*userfunc)())
 
 /*!
 Return Value:  0 always.
@@ -1139,10 +1160,13 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 xdllink        *curr      ;/* I   Position to start clearing links for */
 int		nlinks    ;/* I   Number of links to clear */
 void       (*userfunc)()  ;/* I   User function to call to clear their own */
 			   /*     structure elements; NULL if none */
+#endif
+
 /*!
 Description:
 

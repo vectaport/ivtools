@@ -1,0 +1,14 @@
+#!/bin/sh
+# 
+# ivgd  shell script for ivtools graphdraw
+# 
+
+LD_LIBRARY_PATH=/slink/home/debian/IVTOOLS/ivtools-0.7.9/debian/tmp/usr/X11R6/lib:$LD_LIBRARY_PATH 
+PATH=/slink/home/debian/IVTOOLS/ivtools-0.7.9/debian/tmp/usr/X11R6/bin:$PATH 
+case "$#" in 
+        0)       graphdraw
+                 ;;
+        *)       graphdraw "$*"
+                 ;;
+esac
+

@@ -142,6 +142,13 @@ boolean Ellipse::f_intersects (BoxObj& userb, Graphic* gs) {
     return false;
 }
 
+MultiLineObj* Ellipse::ellipse_to_polygon(Transformer* t) {
+  MultiLineObj* ml = new MultiLineObj;
+  CalcControlPts(t);
+  ml->ClosedSplineToPolygon(_x, _y, 8);
+  return ml;
+}
+
 static const float axis = 0.42;
 static const float seen = 1.025;
 
@@ -183,6 +190,8 @@ void Ellipse::CalcControlPts (Transformer* t) {
         }
     }
 }
+
+
 
 /*****************************************************************************/
 

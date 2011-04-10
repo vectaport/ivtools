@@ -366,6 +366,9 @@ void IClass::UpdateCurClass (const char* string) {
             int line = info->LineNumber();
 	    _editor->Edit(_text, _text->LineIndex(line));
             ForwardSearch(info->Name());
+            boolean backward_success = BackwardSearch("//: ");
+	    _editor->ScrollToSelection();
+            if (backward_success) ForwardSearch(info->Name());
             _focus = _editor;
         }
     }

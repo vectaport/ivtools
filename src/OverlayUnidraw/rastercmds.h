@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1997 Vectaport Inc., R.B. Kissh & Associates
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,6 +31,7 @@ class ControlInfo;
 class RasterOvComp;
 class OverlayRaster;
 
+//: command to replace raster in a component.
 class ReplaceRasterCmd : public Command {
 public:
     ReplaceRasterCmd();
@@ -54,6 +56,7 @@ protected:
     OverlayRaster* _nras;
 };
 
+//: command to unhighlight a raster.
 class UnhighlightRasterCmd : public Command {
 public:
     UnhighlightRasterCmd();

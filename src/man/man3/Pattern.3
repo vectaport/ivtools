@@ -1,0 +1,38 @@
+.TH Pattern 3I "" "InterViews Reference Manual"
+.SH NAME
+Pattern \- fill patterns
+.SH SYNOPSIS
+.B #include <InterViews/pattern.h>
+.SH DESCRIPTION
+A pattern
+defines how to fill areas during graphics operations.
+A pattern is essentially a mask for drawing that is replicated
+to fill the size of the destination.
+.PP
+N.B.: Patterns are relatively low-level objects, typically
+used to implement an alpha value for a color.  Since the color object
+now supports an alpha value, there is no need to use patterns.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Pattern()"
+Create a solid pattern.
+.TP
+.B "Pattern(char*, unsigned int width, unsigned int height)"
+Create a pattern with the given width and height, using
+the bits described by the first parameter.
+.TP
+.B "Pattern(int)"
+Create a 4x4 pattern determined from the least significant 16 bits
+of the parameter.
+.TP
+.B "Pattern(int*)"
+Construct a 16x16 pattern from the given data.
+This function is provided solely for backward compatibility and
+will be removed in the future.
+.TP
+.B "Pattern(Bitmap*)"
+Construct a pattern from the bitmap.  If necessary, the bitmap will be
+tiled or truncated to satisfy window system requirements for fill
+pattern sizes.
+.SH SEE ALSO
+Painter(3I)

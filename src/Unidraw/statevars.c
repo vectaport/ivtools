@@ -173,6 +173,7 @@ void ModifStatusVar::SetModifStatus (boolean status) {
 }
 
 void ModifStatusVar::SetComponent (Component* c) {
+    Component* oldcomp = _component;
     _component = (c == nil) ? nil : c->GetRoot();
 
     for (UList* v = _vars->First(); v != _vars->End(); v = v->Next()) {
@@ -183,7 +184,8 @@ void ModifStatusVar::SetComponent (Component* c) {
             return;
         }
     }
-    modified(false);
+    if (oldcomp != _component)
+        modified(false);
 }
 
 boolean ModifStatusVar::GetModifStatus () { return _modified; }

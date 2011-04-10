@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -41,15 +41,19 @@ class TextGraphic;
 class TextManip;
 class istream;
 
+//: clone of TextComp derived from OverlayComp.
 class TextOvComp : public OverlayComp {
 public:
     TextOvComp(TextGraphic* = nil, OverlayComp* parent = nil);
     TextOvComp(istream&, OverlayComp* parent = nil);
 
     virtual void Interpret(Command*);
+    // interpret brush, pattern, and font commands, pass rest to base class.
     virtual void Uninterpret(Command*);
+    // uninterpret brush, pattern, and font commands, pass rest to base class.
     
     TextGraphic* GetText();
+    // return pointer to graphic.
     
     virtual Component* Copy();
     virtual ClassId GetClassId();
@@ -63,17 +67,22 @@ protected:
 friend OverlaysScript;
 };
 
+//: graphical view of TextOvComp.
 class TextOvView : public OverlayView {
 public:
     TextOvView(TextOvComp* = nil);
 
     virtual void Interpret(Command*);
+    // interpret align-to-grid command, pass rest to base class.
     virtual void Update();
 
     virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
+    // create manipulator for creating and reshaping a text component.
     virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulator for creating and reshaping a text component.
 
     TextOvComp* GetTextOvComp();
+    // return pointer to associated component.
     virtual Graphic* GetGraphic();
 
     virtual ClassId GetClassId();
@@ -82,11 +91,13 @@ protected:
     virtual boolean TextChanged();
 };
 
+//: "PostScript" view of TextOvComp.
 class TextPS : public OverlayPS {
 public:
     TextPS(OverlayComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output "PostScript" fragment for this component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -94,16 +105,19 @@ protected:
     const char* Filter(const char*, int);
 };
 
+//: serialized view of TextOvComp.
 class TextScript : public OverlayScript {
 public:
     TextScript(TextOvComp* = nil);
 
     virtual boolean Definition(ostream&);
+    // output variable-length ASCII record that defines the component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     static int ReadText(istream&, void*, void*, void*, void*);
+    // read text string and construct a TextGraphic.
 };
 
 #include <IV-2_6/_leave.h>

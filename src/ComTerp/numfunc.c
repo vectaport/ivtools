@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994,1995,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -201,6 +201,16 @@ void AddFunc::execute() {
 	break;
     case ComValue::DoubleType:
 	result.double_ref() = operand1.double_val() + operand2.double_val();
+	break;
+    case ComValue::StringType:
+        { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
+	  int len1 = strlen(operand1.string_ptr()); 
+	  int len2 = strlen(operand2.string_ptr()); 
+	  char buffer[len1+len2+1];
+	  strcpy(buffer, operand1.string_ptr());
+	  strcpy(buffer+len1, operand2.string_ptr());
+	  result.string_ref()  = symbol_add(buffer);
+	}
 	break;
     }
     reset_stack();
@@ -595,6 +605,98 @@ void MaxFunc::execute() {
 	  ? operand1.double_val() : operand2.double_val();
 	break;
     }
+    reset_stack();
+    push_stack(result);
+}
+
+AbsFunc::AbsFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void AbsFunc::execute() {
+    ComValue& operand1 = stack_arg(0);
+    ComValue result(operand1);
+
+    switch (result.type()) {
+    case ComValue::CharType:
+	result.char_ref() =  operand1.char_val() < 0 
+	  ? -operand1.char_val() : operand1.char_val();
+	break;
+    case ComValue::ShortType:
+	result.short_ref() =  operand1.short_val() < 0
+	  ? -operand1.short_val() : operand1.short_val();
+	break;
+    case ComValue::IntType:
+	result.int_ref() =  operand1.int_val() < 0
+	  ? -operand1.int_val() : operand1.int_val();
+	break;
+    case ComValue::LongType:
+	result.long_ref() =  operand1.long_val() < 0
+	  ? -operand1.long_val() : operand1.long_val();
+	break;
+    case ComValue::FloatType:
+	result.float_ref() =  operand1.float_val() < 0.0
+	  ? -operand1.float_val() : operand1.float_val();
+	break;
+    case ComValue::DoubleType:
+	result.double_ref() =  operand1.double_val() < 0.0
+	  ? -operand1.double_val() : operand1.double_val();
+	break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
+
+CharFunc::CharFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void CharFunc::execute() {
+    ComValue& operand = stack_arg(0);
+    ComValue result(operand.char_val(), ComValue::CharType);
+    reset_stack();
+    push_stack(result);
+}
+
+ShortFunc::ShortFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void ShortFunc::execute() {
+    ComValue& operand = stack_arg(0);
+    ComValue result(operand.short_val(), ComValue::ShortType);
+    reset_stack();
+    push_stack(result);
+}
+
+IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void IntFunc::execute() {
+    ComValue& operand = stack_arg(0);
+    ComValue result(operand.int_val(), ComValue::IntType);
+    reset_stack();
+    push_stack(result);
+}
+
+LongFunc::LongFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void LongFunc::execute() {
+    ComValue& operand = stack_arg(0);
+    ComValue result(operand.long_val());
+    reset_stack();
+    push_stack(result);
+}
+
+FloatFunc::FloatFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void FloatFunc::execute() {
+    ComValue& operand = stack_arg(0);
+    ComValue result(operand.float_val());
+    reset_stack();
+    push_stack(result);
+}
+
+DoubleFunc::DoubleFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void DoubleFunc::execute() {
+    ComValue& operand = stack_arg(0);
+    ComValue result(operand.double_val());
     reset_stack();
     push_stack(result);
 }

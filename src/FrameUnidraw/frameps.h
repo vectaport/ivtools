@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1990, 1991 Stanford University 
  *
@@ -35,6 +36,9 @@
 
 class FrameIdrawComp;
 
+//: "PostScript" view of FrameIdrawComp.
+// this generates a multi-page "PostScript" document that is
+// not necessarily in idraw format.
 class FrameIdrawPS : public OverlayIdrawPS {
 public:
     FrameIdrawPS(FrameIdrawComp* = nil);

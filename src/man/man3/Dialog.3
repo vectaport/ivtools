@@ -1,0 +1,33 @@
+.TH Dialog 3I "11 August 1988" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Dialog \- popup dialog interactor
+.SH SYNOPSIS
+.B #include <InterViews/dialog.h>
+.SH DESCRIPTION
+A dialog is an interactor that handles input for a dialog box.
+The dialog layout is specified by a separate interactor passed
+to the dialog constructor.
+The dialog completes when the value of an associated button state becomes
+non-zero.
+This button state is typically set by one or more buttons
+in the component interactor.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Dialog(ButtonState*, Interactor*, Alignment = Center)"
+Construct a new dialog with the given button state and interactor.
+The alignment is used by the Popup operation.
+.TP
+.B "virtual boolean Accept()"
+Set the dialog button state to zero and loop reading events
+until the button state's value becomes non-zero.
+Each event is passed to is target's Handle operation.
+Return true if the value is one, false otherwise.
+.TP
+.B "virtual boolean Popup(Event&, boolean placed = true)"
+Insert the dialog into the world associated with the given event.
+If \fIplaced\fP is true,
+align the dialog around the event's (\fIx\fP,\ \fIy\fP) coordinate.
+Otherwise, the dialog is inserted without specifying a position.
+Popup then calls the Accept operation and returns its value.
+.SH SEE ALSO
+Button(3I), Interactor(3I), World(3I)

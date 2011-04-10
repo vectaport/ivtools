@@ -107,7 +107,8 @@ Time::Time()
 */
 {
 	sec = time(0);
-	sec += 2177452800L;	/* seconds from 1/1/01 to 1/1/70 */
+	unsigned long nsecs = 2177452800Lu;	/* seconds from 1/1/01 to 1/1/70 */
+	sec += nsecs;
 }
 
 Time::Time(hourTy h, minuteTy m, secondTy s, boolean dst)
@@ -134,7 +135,7 @@ Time::Time(const Date& date, hourTy h, minuteTy m, secondTy s, boolean dst)
 	else {
 		sec += 3600;
 		if (isDST()) 
-		    fprintf(stderr,"Bad time error %d %s %2d:%2d:%2d %s\n",
+		    fprintf(stderr,"Bad time error %d %s %d %2d:%2d:%2d %s\n",
 			    date.dayOfMonth(),date.nameOfMonth(),date.year(),
 			    h,m,s,(dst?"DST":""));
 		    }
@@ -303,4 +304,5 @@ void Time::printOn(ostream& strm) const
 
 ostream& operator<< (ostream& out, const Time& tv) {
   tv.printOn(out);
+  return out;
 }

@@ -11,8 +11,9 @@ LIB = Unidraw-common
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
+Obj(geomobjs)
 Obj(iterator)
 Obj(ulist)
 

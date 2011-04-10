@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -29,22 +29,38 @@
 
 class Command;
 class ComTerp;
+class OvImportCmd;
 class OverlayCatalog;
 
+//: base class for interpreter commands in comdraw.
 class UnidrawFunc : public ComFunc {
 public:
     UnidrawFunc(ComTerp*,Editor*);
 
     void execute_log(Command*);
 
+    Editor* GetEditor() { return editor(); }
     Editor* editor() { return _ed; }
 protected:
+    void menulength_execute(const char* kind);
     Editor* _ed;
 
 static int _compview_id;
 
 };
 
+//: command to update Unidraw from comdraw.
+// update() -- update viewers
+class UpdateFunc : public UnidrawFunc {
+public:
+    UpdateFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- update viewers"; }
+};
+
+//: command to turn on or off the selection tic marks in comdraw.
+// handles(flag) -- enable/disable current selection tic marks and/or highlighting
 class HandlesFunc : public UnidrawFunc {
 public:
     HandlesFunc(ComTerp*,Editor*);
@@ -53,39 +69,52 @@ public:
 	return "%s(flag) -- enable/disable current selection tic marks and/or highlighting"; }
 };
 
+//: command to paste a graphic in comdraw.
+// paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"
 class PasteFunc : public UnidrawFunc {
 public:
     PasteFunc(ComTerp*,Editor*,OverlayCatalog* = nil);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(grcomp [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic component into the viewer"; }
+	return "%s(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"; }
 
 protected:
     OverlayCatalog* _catalog;
 };
 
+//: command to make a graphic read-only in comdraw.
+// compview=readonly(compview :clear) -- set or clear the readonly attribute of a graphic component
 class ReadOnlyFunc : public UnidrawFunc {
 public:
     ReadOnlyFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(grcomp :clear) -- set or clear the readonly attribute of a graphic component"; }
+	return "compview=%s(compview :clear) -- set or clear the readonly attribute of a graphic component"; }
 
-protected:
-    int _clear_symid;
 };
 
-class BarPlotFunc : public UnidrawFunc {
+//: command to import a graphic file
+// import(pathname) -- import graphic file from pathname or URL.
+class ImportFunc : public UnidrawFunc {
 public:
-    BarPlotFunc(ComTerp*,Editor*);
+    ImportFunc(ComTerp*,Editor*);
+    OvImportCmd* import(const char* path);
+    // helper method to import from path
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([var_str value_float] [...] :title title_str :xtitle xtitle_str :ytitle ytitle_str :valtitle valtitle_str) -- display a barplot"; }
-protected:
-  int _title_symid;
-  int _xtitle_symid;
-  int _ytitle_symid;
-  int _valtitle_symid;
+	return "%s(pathname) -- import graphic file from pathname or URL"; }
+
+};
+
+//: command to set attributes on a graphic
+// compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component.
+class SetAttrFunc : public UnidrawFunc {
+public:
+    SetAttrFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component"; }
+
 };
 
 #endif /* !defined(_unifunc_h) */

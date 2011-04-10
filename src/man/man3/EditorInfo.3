@@ -1,0 +1,55 @@
+.TH EditorInfo 3U "30 July 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+EditorInfo \- stores information about an editor's contents
+.SH SYNOPSIS
+.B #include <Unidraw/editorinfo.h>
+.SH DESCRIPTION
+An EditorInfo object is a UMap that stores a list of strings and/or
+string tuples.  Application-specific editors can use these objects to
+store information about what components, commands, and tools they
+incorporate in their interface.  The programmer can write out this
+information with a catalog object and read it back in later.  The
+application can then let the user change the editor's configuration by
+editing the catalog-generated file.  For example, an EditorInfo object
+could have a list of names for tools in the editor's interface that
+have been saved with the catalog. When the application is restarted,
+the EditorInfo object can be read first, and then the catalog can
+reconstruct the tools given their names.
+.SH PUBLIC OPERATIONS
+.TP
+.B "EditorInfo()"
+Construct an EditorInfo instance.
+.TP
+.B "void Register(const char* name, const char* info = ``'')"
+.ns
+.TP
+.B "void UnregisterName(const char*)"
+.ns
+.TP
+.B "void UnregisterInfo(const char*)"
+.ns
+.TP
+.B "boolean Registered(const char* name)"
+Register enters a name or name-info tuple into the EditorInfo object.
+UnregisterName removes an entry whose name string matches the given
+one, while UnregisterInfo removes an entry whose info string matches
+the given one. The Registered operation returns whether or not an
+entry with a matching name exists.
+.TP
+.B "const char* GetName(const char* info)"
+.ns
+.TP
+.B "const char* GetInfo(const char* name)"
+Name-info tuple lookup operations. The GetName operation returns the
+name corresponding to a given info string, while the GetInfo
+operation returns the info string for a given name.
+.TP
+.B "const char* GetName(int index)"
+.ns
+.TP
+.B "const char* GetInfo(int index)"
+Name or info strings can be accessed by an index that reflects the
+order in which they were registered.  These operations return the name
+or info string for a given index.
+.SH SEE ALSO
+Catalog(3U), Editor(3U), UMap(3U)

@@ -48,7 +48,7 @@ extern "C" {
 #endif
 #if defined(sun) && !defined(__SYSENT_H)
 #if !defined(__svr4__)
-    extern int read(int, void*, long unsigned int);
+    extern int read(int, void*, unsigned int);
 #endif
 #endif
 #if defined(AIXV3)
@@ -118,7 +118,7 @@ void File::close() {
 #endif
 	}
 	if (i->buf_ != nil) {
-	    delete i->buf_;
+	    delete[] i->buf_;
 	}
 	::close(i->fd_);
 	i->fd_ = -1;
@@ -164,7 +164,7 @@ int InputFile::read(const char*& start) {
     }
 #if defined(sgi) || defined(__alpha)
     i->map_ = (char*)mmap(0, len, PROT_READ, MAP_PRIVATE, i->fd_, i->pos_);
-    if ((int)(i->map_) == -1) {
+    if ((unsigned long)(i->map_) == (unsigned long)-1) {
 	return -1;
     }
     start = i->map_;

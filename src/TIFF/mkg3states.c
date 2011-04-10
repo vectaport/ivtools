@@ -255,7 +255,7 @@ void	write_tables();
 int	verbose = FALSE;
 char	*storage_class = "";
 
-void
+int
 DECLARE2(main, int, argc, char**, argv)
 {
     while (argc > 1 && argv[1][0] == '-') {

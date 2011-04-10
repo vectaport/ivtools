@@ -1,0 +1,24 @@
+XCOMM
+XCOMM morpher: morph between two idraw drawings
+XCOMM
+
+PACKAGE = examples3.1_morpher
+
+#ifdef InObjectCodeDir
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(imorpher)
+
+MakeObjectFromSrc(main)
+MakeObjectFromSrc(figure)
+MakeObjectFromSrc(globals)
+MakeObjectFromSrc(glypheditor)
+MakeObjectFromSrc(glyphviewer)
+MakeObjectFromSrc(idraw)
+MakeObjectFromSrc(morpher)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

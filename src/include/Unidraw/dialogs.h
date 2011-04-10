@@ -37,6 +37,8 @@ class MarginFrame;
 class MatchEditor;
 class PrintBS;
 
+//: base class for simple, common dialog boxes (Unidraw).
+// <a href=../man3.1/BasicDialog.html>man page</a>
 class BasicDialog : public Dialog {
 public:
     void SetTitle(const char*);

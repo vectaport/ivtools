@@ -78,10 +78,11 @@ int ComTerpIOHandler::inputReady(int i)
 	else if (_comterp->quitflag()) 
 	    return 0;
 	else {
-	    unidraw->Update(true);
+	    if (unidraw->updated()) unidraw->Update(true);
 	    _comterp->print_stack_top();
 	}
-    }
+    } else 
+      err_print( stderr, "comterp");
     return 0;
 }
 

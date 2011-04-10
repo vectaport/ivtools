@@ -39,6 +39,8 @@ static const int NO_AUTOREPEAT = -1;
 class Bitmap;
 class Shape;
 
+//: manipulate a perspective using a pushbutton like interface (iv-2.6).
+// <a href=../man3.1/Adjuster.html>man page</a>
 class Adjuster : public Interactor {
 public:
     Adjuster(Interactor*, int = NO_AUTOREPEAT);

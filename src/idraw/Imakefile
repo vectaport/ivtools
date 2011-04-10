@@ -17,7 +17,7 @@ Use_libUnidraw()
 Use_2_6()
 ComplexProgramTarget(idraw)
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc++)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(main)
 

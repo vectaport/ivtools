@@ -1,0 +1,257 @@
+.TH Unidraw 3U "4 October 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Unidraw \- one-of-a-kind object for coordinating and controlling a
+Unidraw application
+.SH SYNOPSIS
+.B #include <Unidraw/unidraw.h>
+.SH DESCRIPTION
+Unidraw applications create a single instance of a Unidraw object,
+which does several things.  It creates a World, establishing the
+connection to the underlying window system.  It initializes the
+catalog and other objects, manages editor instances, and defines the
+application main loop.  It also maintains histories of commands that
+have be executed and reverse-executed for each component hierarchy
+being edited.  Finally, it cleans up internal state when it is deleted
+to ensure orderly program termination.
+
+The Unidraw object must be created before opening any editors but
+after creating a catalog.  Below is the main program for a typical
+Unidraw application:
+.TP
+int main (int argc, char** argv) {
+.ns
+.TP
+    AppSpecificCreator creator;
+.ns
+.TP
+    Unidraw* unidraw = new Unidraw(
+.ns
+.TP
+        new Catalog("appName", &creator),
+.ns
+.TP
+        argc, argv, options, properties
+.ns
+.TP
+    );
+.TP
+    unidraw->Open(new AppSpecificEditor);
+.ns
+.TP
+    unidraw->Run();
+.ns
+.TP
+    delete unidraw;
+.ns
+.TP
+    return 0;
+.ns
+.TP
+}
+.SH PUBLIC OPERATIONS
+.TP
+.B "Unidraw(
+.ns
+.TP
+.B "    Catalog*, int argc, char** argv,"
+.ns
+.TP
+.B "    OptionDesc* = nil, PropertyData* = nil
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Unidraw(Catalog*, World*)"
+.br
+The first constructor form requires a catalog object and command line
+argument information.  Other arguments include pointers to
+PropertyData and OptionDesc arrays.  This constructor creates a World
+instance, passing whichever of these arguments are supplied (except
+the catalog).  To specify a World instance explicitly, use the second
+constructor form.
+.TP
+.B "virtual void Run()"
+.ns
+.TP
+.B "virtual void Quit()"
+Run initiates the main loop of the program.  The call to Run returns
+when Quit is called.
+.TP
+.B "virtual void Update(boolean immedate = false)"
+Bring the screen up to date with the state of the application's
+objects.  By default, this involves moving connectors to their proper
+positions (by calling Solve on the global csolver object) and telling
+editors to update themselves (by calling their Update functions).
+Because Update may carry out potentially lengthy operations, Unidraw
+batches Update calls by default.  This ensures that multiple
+consecutive calls do not induce redundant computations.  To force an
+immediate update, simply call Update(\fItrue\fP).
+.TP
+.B "virtual void Open(Editor*)"
+.ns
+.TP
+.B "virtual boolean Opened(Editor*)"
+Open inserts an editor into the world, making it visible on the
+display.  The user positions the editor's window by default.  Opened
+returns whether an editor has been opened already.
+.TP
+.B "virtual void Close(Editor*)"
+.ns
+.TP
+.B "virtual void CloseDependents(Component*)"
+.ns
+.TP
+.B "virtual void CloseAll()"
+Close closes a specified editor, removing it from the user's view
+\fIand deleting it\fP.  CloseDependents closes those editors that
+report a dependence on the given component via their DependsOn
+operation. CloseAll closes all open editors.  ~Unidraw calls CloseAll.
+.TP
+.B "void First(Iterator&)"
+.ns
+.TP
+.B "void Next(Iterator&)"
+.ns
+.TP
+.B "boolean Done(Iterator)"
+Operations for iterating over the Unidraw object's list of open
+editors.  First initializes an iterator to point to the beginning of
+the list, Next increments the iterator to point to the following
+editor, and Done returns whether or not the iterator points beyond the
+first or last editor in the list.
+.TP
+.B "Editor* GetEditor(Iterator)"
+Return the editor to which an iterator points.
+.TP
+.B "Editor* Find(Component*)"
+.ns
+.TP
+.B "Editor* FindAny(Component*)"
+Operations for finding an (or the) editor associated with a given
+component.  Find searches the list of editors for the one whose
+GetComponent operation returns the given component.  FindAny returns
+the first editor in the list whose GetComponent operation returns a
+component in the same hierarchy as the the given component.
+.TP
+.B "Catalog* GetCatalog()"
+Return the catalog passed to the constructor.
+.TP
+.B "World* GetWorld()"
+Return the world object, which the Unidraw object creates when it is
+instantiated.
+.TP
+.B "void Log(Command*)"
+.ns
+.TP
+.B "void Undo(Component*, int i = 1)"
+.ns
+.TP
+.B "void Redo(Component*, int i = 1)"
+The Unidraw object maintains histories of commands associated with a
+given component hierarchy.  There are two command histories per
+hierarchy: the \fIpast\fP history and the \fIfuture\fP history.  These
+histories normally contain commands that have been executed and
+unexecuted to support arbitrary level undo and redo.  For example,
+after a viewer executes the command that a tool generates by
+interpreting a manipulator, it will record that command in a past
+history for possible undoing in the future.
+
+The Log operation logs a command, placing it on the past history for
+the component hierarchy being edited.  Log determines the past that is
+approprate from the command's editor, which specifies the component
+(hence the hierarchy) that it is editing.  Undo reverse-executes the
+last \fIi\fP commands that were logged for a given component's
+hierarchy and moves them from their past history to the corresponding
+future history.  Redo re-executes the future \fIi\fP commands and
+moves them to the past.  Note that calling Redo without a preceding
+Undo is meaningless; thus calling Log will clear the future history
+associated with the affected component hierarchy.
+.TP
+.B "void SetHistoryLength(int)"
+.ns
+.TP
+.B "int GetHistoryLength()"
+Assign and retrieve the maximum command history length.  No more than
+this many commands can be undone and redone.  The default length is
+20.  Older commands are deleted automatically as new commands are
+logged.
+.TP
+.B "void ClearHistory(Component* = nil)"
+Clear the past and future for a given component hierarchy, deleting
+the corresponding commands.  All histories are cleared if no component
+is specified.
+.ns
+.TP
+.B "void ClearHistory(Editor*)"
+Clear the history associated with the given editor's component if no
+other editor is editing the same hierarchy.  For example,
+Unidraw::Close calls this operation to avoid clearing histories when a
+component hierarchy is being edited in multiple editors.
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual void Process()"
+Process is called once in the main loop defined by the Run operation.
+It does nothing by default.  Subclasses may redefine Process to carry
+out any processing that should be done in each pass through the main
+loop.
+.TP
+.B "boolean IsClean(Editor*)"
+This convenience function queries the given editor for a
+ModifStatusVar instance.  If it has one, then it returns its status
+(modified or unmodified); otherwise it returns \fIfalse\fP.
+.TP
+.B "void Mark(Editor*)"
+.ns
+.TP
+.B "void Sweep(Editor*)
+These operations support deferred editor deletion, a mechanism to
+avoid deleting editors prematurely.  For example, if a command to
+close the editor is invoked from a pull-down menu, then the command
+must not delete the editor, since that will delete the pull-down menu
+before it has a chance to close.  Thus Close and similar operations do
+not delete editors directly; instead, they call Mark to indicate that
+an editor should be deleted sometime in the future.  Sweep actually
+deletes the editors that have been marked.  By default, Unidraw::Run
+calls Sweep each time an event is handled.
+.TP
+.B "void DoUpdate()"
+A helper function that performs an immediate update independent of the
+batching mechanism.
+.TP
+.B "void GetHistory(Component*, UList*& past, UList*& future)"
+.ns
+.TP
+.B "void ClearHistory(UList*, int i = 1)"
+Command histories are stored as ULists.  These operations provide a
+low-level interface to the lists themselves; the corresponding public
+operations are built on top.  GetHistory returns the past and future
+lists for a given component, while ClearHistory deletes the first
+\fIi\fP commands on the given list.
+.TP
+.B "UList* elem(Iterator)"
+.ns
+.TP
+.B "Command* command(UList*)"
+Convenience functions for extracting the list element in an iterator
+and the command object from the list element.  These are useful in
+conjunction with protected history operations described above.
+.TP
+.B "boolean updated()"
+.ns
+.TP
+.B "void updated(boolean)"
+The first form of this function returns \fItrue\fP if there are
+pending Update(s) to be performed.  The second form sets this value
+explicitly.
+.TP
+.B "boolean alive()"
+.ns
+.TP
+.B "void alive(boolean)"
+The first form of this function returns \fItrue\fP if the program is
+in the run loop defined by Run.  The second form sets this value
+explicitly.
+.SH SEE ALSO
+Catalog(3U), Creator(3U), Editor(3U), Interactor(3U), Iterator(3U),
+Viewer(3I), UList(3U), World(3I), statevars(3U)

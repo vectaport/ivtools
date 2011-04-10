@@ -3,67 +3,22 @@
   to other Linux distributions too. So it's ok to include this file anyhow 
 */
 
-/* egcs "gcc" doesn't have gcc -xc++ so .. */ 
-
-#undef CCDriver
-#define CCDriver c++
-
 #define maj 0
 
 #undef PSFontDir
 #define PSFontDir /usr/lib/ghostscript/fonts
-
-#undef ExtraCCLdFlags
-#define ExtraCCLdFlags -lm
-
-/******************************************************************************
- *                                                                            *
- *         REDEFINITIONS OF SOME OF THE MACROS                                *
- *                                                                            *
- ******************************************************************************/
-
-/*
- *   Special rules to build Objects with the C-Compiler
- *   These rules need some additional changes in params.def
- *   see CDRIVER, CFLAGS, CSUFFIX 
- *   These Macros are new !!!
- *   They are used in the ComUtil Imakefile
- */ 
-#ifndef DependTarget                                                   
-#define DependTarget()                                                   @@\
-depend::                                                                 @@\
-        c++ -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend                      
-#endif                                                                     
-
-#define CDriver cc
-
-#ifndef MakeCObjectRule
-#define MakeCObjectRule(dst,src,flags)					@@\
-$(AOUT): dst.o								@@\
-dst.o: src.$(CSUFFIX)							@@\
-	@$(RM) dst.o dst..c						@@\
-	$(CDRIVER) flags $(CFLAGS) -c src.$(CSUFFIX)
-#endif
-
-
-#ifndef MakeCObjectFromSrc
-#define MakeCObjectFromSrc(file)					@@\
-MakeCObjectRule(file,$(SRC)/file,NullParameter)
-#endif
-
-
-#ifndef MakeCObjectFromSrcFlags
-#define MakeCObjectFromSrcFlags(file,flags)				@@\
-MakeCObjectRule(file,$(SRC)/file,flags)
-#endif
-
-
 
 /* 
  * Command to create shared libraries 
  * On Debian shared libraries are linked explicitely with the libraries they 
  * depend on. This allows ldd to be used to create dependecies for packages
  *
+ * src/IV/Imakefile:
+ * 
+ * add Use_libDebian in order to get linking right
+ * 
+ * src/Attribute/Imakefile:
+ * remove uselibInterviews !!
  */
 
 #ifndef Use_libDebian
@@ -79,13 +34,13 @@ MakeCObjectRule(file,$(SRC)/file,flags)
 #endif
 
 #undef SharedLibraryCmd
-#define SharedLibraryCmd(ldobjs,libname) gcc -shared -Wl,-soname,Concat(lib,libname.so.maj) \
+#define SharedLibraryCmd(ldobjs,libname) c++ -shared -Wl,-soname,Concat(lib,libname.so.maj) \
         -o $@ ldobjs $(CCDEPLIBS) $(CCLDLIBS) -lc
 
 /*
  *  Install a shared library on Debian.
- *  This is Debian specific, because we need the link ldconfig would 
- *  create 
+ *  This is Debian specific, because we need to create the link 
+ *  ldconfig would create 
  */
 
 #undef InstallDynamicSharedLibrary
@@ -95,7 +50,7 @@ install:: Concat(lib,libname.so.rev)                                    @@\
 	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
 	-@if [ -f dest/Concat(lib,libname.so) ]; then exit 0; else \    @@\
 	pushd dest; \                                                   @@\
-	$(LN) Concat(lib,libname.so.rev) Concat(lib,libname.so.maj); \  @@\
+	$(LN) Concat(lib,libname.so.rev) Concat(lib,libname.so.maj);\   @@\
 	$(LN) Concat(lib,libname.so.maj) Concat(lib,libname.so); popd; fi
 
 
@@ -125,42 +80,35 @@ clean::                                                                 @@\
 	$(RM) Concat(lib,libname.so.rev)  Concat(lib,libname.so)
 #endif
 
+/* 
+ * Use the systems TIFF library (change in config/InterViews/TIFF.def) 
+ * the define of Ld_libX11 includes the installed tiff library in the
+ * linker flags
+ * 
+ * config/InterViews/TIFF.def: 
+ 
+#ifdef CompileTIFF
 
+  #ifndef MakeTIFFCObjectRule
+  #define MakeTIFFCObjectRule(dst,src,flags)                            @@\
+  $(AOUT): dst.o                                                                @@\
+  dst.o: src.c                                                          @@\
+        @$(RM) dst.o                                                    @@\
+        $(TIFF_CDRIVER) $(TIFF_CFLAGS) flags -c src.c
+#endif
 
-/* make it possible to install binary relative */
+#else
+#define  MakeTIFFCObjectRule(dst,src,flags) 
+#endif
 
-#undef BinDir
-#undef LibDir
-#undef LibAllDir
+ */
 
-#define InstalledRoot $(DESTDIR)/usr/X11R6 
+#ifdef CompileTIFF
+#undef CompileTIFF
+#endif
 
-/* don't include Debugging flags */
+#define Ld_libX11 -lX11 -ltiff -ljpeg -lz AceCCLdLibs
 
-#undef DebugCCFlags
-#define DebugCCFlags -g
-
-/* Use the systems TIFF library 
-!! This makes a change in the Imakfile of IV necessary !!
-*/
-
-#define UseOwnTIFF 1
-#define Ld_libX11 -lX11 -ltiff
-
-
-#undef TIFFCDriver
-#define TIFFCDriver cc
-
-/* using rpath is said to be "bad" */
-
-#undef UseRpath
-#define UseRpath NO
-
-/* root should still be able to remove these files */
-
-#define InstIncFlags -m 0644
-#define InstManFlags -m 0644
-#define InstDatFlags -m 0644
 
 
 /* Build only for SGI Motif 

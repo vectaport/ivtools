@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1999 Vectaport Inc.
  * Copyright (c) 1994 Vectaport Inc., Cartoactive Systems
  * Copyright (c) 1990, 1991 Stanford University 
  *
@@ -33,6 +34,7 @@
 
 #include <IV-2_6/_enter.h>
 
+//: general purpose "PostScript" view for any OverlayComp with a composite graphic.
 class PicturePS : public OverlaysPS {
 public:
     PicturePS(OverlayComp* = nil);

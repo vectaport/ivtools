@@ -1,20 +1,56 @@
-ivtools (0.6.7-7) frozen; urgency=low
+ivtools (0.7.9-6) frozen; urgency=low
 
-  * Finally fixed the segv bug in idraw (egcs c++ problem)
+  * fixed build errors closing Bug#57250 for m68k 
 
- -- Guenter Geiger <geiger@debian.org>  Mon, 25 Jan 1999 22:30:00 +0100
+ -- Guenter Geiger <geiger@debian.org>  Sun, 13 Feb 2000 00:24:21 +0100
 
-ivtools (0.6.7-6) frozen; urgency=low
+ivtools (0.7.9-5) frozen unstable; urgency=low
 
-  * Corrected buggy postinst script
+  * recompilation because libace changed in incompatible manner
 
- -- Guenter Geiger <geiger@debian.org>  Mon, 18 Jan 1999 22:15:00 +0100
+ -- Guenter Geiger <geiger@debian.org>  Wed, 2 Feb 2000 12:34:00 +0100
 
-ivtools (0.6.7-5) frozen; urgency=low
+ivtools (0.7.9-4) unstable; urgency=low
 
-  * Added vanished shared library links
+  * added /usr/doc links for unidraw and bin, changed priority to optional  
 
- -- Guenter Geiger <geiger@debian.org>  Sat, 9 Jan 1999 18:00:00 +0200
+ -- Guenter Geiger <geiger@debian.org>  Wed, 24 Nov 1999 13:10:01 +0100
+
+ivtools (0.7.9-3) unstable; urgency=low
+
+  * recompilation with ace support
+
+ -- Guenter Geiger <geiger@debian.org>  Wed, 17 Nov 1999 17:30:06 +0100
+
+ivtools (0.7.9-2) unstable; urgency=low
+
+  * fixed compile errors, fixed bug#45691
+
+ -- Guenter Geiger <geiger@debian.org>  Wed, 22 Sep 1999 9:00:00 +0200
+
+ivtools (0.7.9-1) unstable; urgency=low
+
+  * New upstream version
+
+ -- Guenter Geiger <geiger@debian.org>  Mon, 2 Aug 1999 14:30:00 +0200
+
+ivtools (0.7.8-1) unstable; urgency=low
+
+  *   New upstream version with ACE support.
+
+ -- Guenter Geiger <geiger@debian.org>  Fri, 23 Jul 1999 15:34:00 +0200
+
+ivtools (0.7.5-1) unstable; urgency=low
+
+  * new upstream version
+
+ -- Guenter Geiger <geiger@debian.org>  Sun, 11 Apr 1999 12:30:00 +0200
+
+ivtools (0.7.3-1) unstable; urgency=low
+
+  * new upstream version
+
+ -- Guenter Geiger <geiger@debian.org>  Fri, 8 Jan 1999 22:00:00 +0200
 
 ivtools (0.6.7-4) frozen; urgency=low
 

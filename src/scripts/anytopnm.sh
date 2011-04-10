@@ -84,7 +84,10 @@ while true ; do
 	;;
 
 	*JPEG* )
-	djpeg -pnm "$file"
+	cmapfile=`tmpnam`
+	stdcmapppm >$cmapfile
+	djpeg -map $cmapfile -dither fs -pnm "$file"
+	rm $cmapfile
 	break
 	;;
 

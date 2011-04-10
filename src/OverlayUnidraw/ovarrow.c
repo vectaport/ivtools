@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -61,6 +61,8 @@
 #include <InterViews/rubverts.h>
 #include <InterViews/transformer.h>
 
+#include <Attribute/attrlist.h>
+
 #include <math.h>
 #include <stdio.h>
 #include <stream.h>
@@ -106,7 +108,10 @@ boolean ArrowLineOvComp::IsA (ClassId id) {
 }
 
 Component* ArrowLineOvComp::Copy () {
-    return new ArrowLineOvComp((ArrowLine*) GetGraphic()->Copy());
+    ArrowLineOvComp* comp = 
+      new ArrowLineOvComp((ArrowLine*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 void ArrowLineOvComp::Interpret (Command* cmd) {
@@ -296,7 +301,7 @@ void ArrowLinePS::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << head << " " << tail << " ";
 
 	const int* dashpat = brush->GetDashPattern();
@@ -450,7 +455,10 @@ boolean ArrowMultiLineOvComp::IsA (ClassId id) {
 }
 
 Component* ArrowMultiLineOvComp::Copy () {
-    return new ArrowMultiLineOvComp((ArrowMultiLine*) GetGraphic()->Copy());
+    ArrowMultiLineOvComp* comp = 
+      new ArrowMultiLineOvComp((ArrowMultiLine*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 void ArrowMultiLineOvComp::Interpret (Command* cmd) {
@@ -609,7 +617,16 @@ boolean ArrowMultiLinePS::IsA (ClassId id) {
 
 boolean ArrowMultiLinePS::Definition (ostream& out) {
 
-    if (((OvPrintCmd*)GetCommand())->idraw_format()) {
+    Command* cmd = GetCommand();
+    boolean idraw_format = false;
+    if (cmd) {
+      if (cmd->IsA(OVPRINT_CMD)) 
+	idraw_format = ((OvPrintCmd*)cmd)->idraw_format();
+      else if (cmd->IsA(OV_EXPORT_CMD))
+	idraw_format = true;
+    }
+      
+    if (idraw_format) {
 	ArrowMultiLineOvComp* comp = (ArrowMultiLineOvComp*) GetSubject();
 	ArrowMultiLine* aml = comp->GetArrowMultiLine();
 	
@@ -690,7 +707,7 @@ void ArrowMultiLinePS::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << head << " " << tail << " ";
 
 	const int* dashpat = brush->GetDashPattern();
@@ -878,7 +895,10 @@ boolean ArrowSplineOvComp::IsA (ClassId id) {
 }
 
 Component* ArrowSplineOvComp::Copy () {
-    return new ArrowSplineOvComp((ArrowOpenBSpline*) GetGraphic()->Copy());
+    ArrowSplineOvComp* comp = 
+      new ArrowSplineOvComp((ArrowOpenBSpline*) GetGraphic()->Copy());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 void ArrowSplineOvComp::Interpret (Command* cmd) {
@@ -1071,7 +1091,7 @@ void ArrowSplinePS::Brush (ostream& out) {
 	int p = brush->GetLinePattern();
 	out << MARK << " b " << p << "\n";
 
-	int w = brush->Width();
+	float w = brush->width();
 	out << w << " " << head << " " << tail << " ";
 
 	const int* dashpat = brush->GetDashPattern();

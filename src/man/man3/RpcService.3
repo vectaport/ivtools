@@ -1,0 +1,40 @@
+.TH RpcService 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+RpcService \- support RPC between a service and its clients
+.SH SYNOPSIS
+.B #include <Dispatch/rpcservice.h>
+.SH DESCRIPTION
+An RpcService (actually, an instance of a derived class) creates a port
+and listens to it for connections from clients.  When a client opens a
+connection, the RpcService will create a reader to handle RPC requests
+from the connection.
+.SH CONSTRUCTORS
+.TP
+.B "RpcService(int port)"
+.ns
+.TP
+.B "RpcService(const char* path, int port = 0)"
+Start up an RPC service.  If a filename is given, record the RPC
+service's hostname and port number in it so clients can contact the
+service.  If ``port'' is zero, the next free port number will be used.
+.SH PUBLIC OPERATIONS
+.TP
+.B "void run()"
+.ns
+.TP
+.B "void quitRunning()"
+Read RPC requests continuously until ``quitRunning()'' terminates the
+loop.  If you're using InterViews, you don't have to call ``run()''
+since the InterViews event-reading code will also read RPC requests.
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual void createReader(int fd) = 0"
+You must define this function in a derived class in order to start
+servicing RPC requests from a new client.  Typically all you have to
+do is to construct a reader using the passed file descriptor and make
+the reader responsible for deleting itself when it notices that the
+connection has been closed by the client.
+.SH SEE ALSO
+Dispatcher(3I),
+RpcReader(3I),
+RpcRegistry(3I)

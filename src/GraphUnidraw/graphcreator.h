@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -26,16 +26,20 @@
 
 #include <OverlayUnidraw/ovcreator.h>
 
+//: creator for use of GraphCatalog.
 class GraphCreator : public OverlayCreator {
  public:
     GraphCreator();
 
-    virtual void* Create(                       // for subjects
+    virtual void* Create(  
         ClassId, istream&, ObjectMap* = nil, int = 0
-    );
-    virtual void* Create(ClassId);              // for views
-
+    );                     
+    // for subjects.
+    virtual void* Create(ClassId);         
+    // for views
     static void* create(ClassId);
+    // static method that allows the use of the bulk of this
+    // class from other places.
 };
 
 #endif

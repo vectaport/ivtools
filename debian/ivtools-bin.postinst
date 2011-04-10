@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$1" = "configure" ]; then
+        if [ -d /usr/doc -a ! -e /usr/doc/ivtools-bin -a -d /usr/share/doc/ivtools-interviews ]; then
+                ln -sf ../share/doc/ivtools-interviews /usr/doc/ivtools-bin
+        fi
+fi
+

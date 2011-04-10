@@ -1,0 +1,155 @@
+.TH LinkComp 3U "22 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+LinkComp, LinkView, PSLink \- component subject, view, and PostScript
+external representation for lines with connectable endpoints
+.SH SYNOPSIS
+.B #include <Unidraw/Components/link.h>
+.SH DESCRIPTION
+LinkComp is a GraphicComp defining a line with two pins on each end.
+The line's endpoints will always coincide with the pins, even if they
+are moved, thereby maintaining a graphical link between the objects to
+which it is connected.  LinkComp uses an Line graphic to define its
+initial geometry and graphical attributes.  LinkView is a GraphicView
+for displaying the link.  PSLink is a PostScriptView that externalizes
+the subject's information in PostScript form.
+.SH LINKCOMP PUBLIC OPERATIONS
+.TP
+.B "LinkComp(Line* = nil)"
+The constructor takes an optional line graphic to define its initial
+appearance.
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+In addition to (un)interpreting the commands GraphicComp
+(un)interprets, LinkComp also (un)interprets DeleteCmd and CutCmd by
+passing these commands to its pins for (un)interpretation.
+.TP
+.B "virtual void Update()"
+When the LinkComp's pins move to maintain connectivity, LinkComp will
+reorient the line so that its endpoints and the pins coincide.
+.TP
+.B "virtual void First(Iterator&)"
+.ns
+.TP
+.B "virtual void Last(Iterator&)"
+.ns
+.TP
+.B "virtual void Next(Iterator&)"
+.ns
+.TP
+.B "virtual void Prev(Iterator&)"
+.ns
+.TP
+.B "virtual boolean Done(Iterator)"
+.ns
+.TP
+.B "GraphicComp* GetComp(Iterator)"
+.ns
+.TP
+.B "void SetComp(GraphicComp*, Iterator&)"
+LinkComp redefines GraphicComp's traversal operations to make its pins
+accessible to the Unidraw library.  Thus Unidraw can determine the
+connectors that belong to the component and call its Update operation
+only once for efficiency.  The traversal does \fInot\fP include the
+line.
+.TP
+.B "Line* GetLine()"
+Return the Line graphic that defines the link's attributes.  GetLine
+is simply a more specific form of the GetGraphic operation.
+.TP
+.B "void GetConnectors(Connector*&, Connector*&)"
+Return the LinkView's pins, which are stored in the \fI_conn1\fP and
+\fI_conn2\fP protected members.
+.SH LINKVIEW PUBLIC OPERATIONS
+.TP
+.B "LinkView(LinkComp* = nil)"
+Create an LinkView, optionally supplying the subject.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+LinkView redefines its response to manipulation with a
+GraphicCompTool.  The user clicks to specify the first endpoint of the
+link and then drags to position the remaining endpoint.  (Up)clicking
+on an existing connector will establish a connection between it and
+the LinkComp's first (second) pin.  LinkView uses a ConnectManip to
+produce a gravitational attraction between existing connectors and the
+second pin as the user drags to position it.  The endpoints will
+\fInot\fP be constrained by gravity.  LinkView will use ConnectCmds to
+connect the pin(s) to their target(s). Pin(s) connected in this way
+will receive floating mobility; unconnected pin(s) will be fixed.
+.TP
+.B "virtual void First(Iterator&)"
+.ns
+.TP
+.B "virtual void Last(Iterator&)"
+.ns
+.TP
+.B "virtual void Next(Iterator&)"
+.ns
+.TP
+.B "virtual void Prev(Iterator&)"
+.ns
+.TP
+.B "virtual boolean Done(Iterator)"
+.ns
+.TP
+.B "GraphicView* GetView(Iterator)"
+.ns
+.TP
+.B "void SetView(GraphicView*, Iterator&)"
+LinkView redefines GraphicView's traversal operations to make its pins
+accessible to the Unidraw library.  Thus Unidraw can determine the
+connectors that belong to the component, for example, to support
+ConnectManip's gravitational attraction effect.
+.TP
+.B "virtual void GetEndpoints(Coord&, Coord&, Coord&, Coord&)"
+Return the link's endpoints, in canvas coordinates.
+.TP
+.B "LinkComp* GetLinkComp()"
+Return the subject.
+.SH LINKVIEW PROTECTED OPERATIONS
+.TP
+.B "virtual void CreateHandles()"
+LinkView redefines CreateHandles to use a RubberHandles object with
+two handles, one at each endpoint of the link.
+.TP
+.B "Line* GetLine()"
+Return the line that LinkView draws between its pins.
+.TP
+.B "virtual LinkComp* NewSubject(Line*)"
+A helper function that creates a LinkComp subject with the given line
+graphic. This function produces the proper subject when the
+GraphicCompTool's manipulator is interpreted.  Subclasses can redefine
+this operation to return a LinkComp subclass, thus eliminating the
+need to reimplement InterpretManipulator.
+.TP
+.B "Manipulator* CreateLinkCompManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.TP
+.B "Command* InterpretLinkCompManip(Manipulator*)"
+Helper functions that CreateManipulator and InterpretManipulator use
+to create and interpret the manipulator for GraphicCompTool.
+.SH PSLINK PUBLIC OPERATIONS
+.TP
+.B "PSLink(LinkComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+Event(3I), Graphic(3U), GraphicComp(3U), GraphicCompTool(3U),
+GraphicView(3U), Grid(3U), PinComp(3U), PostScriptView(3U),
+Transformer(3I), align(3U), edit(3U), manips(3U)

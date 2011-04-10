@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1998 VectaporT Inc.
+ * Copyright (c) 1998-1999 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cider Press
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -45,36 +45,42 @@ class OverlayViewer;
 class PageDialog;
 class ostream;
 
+//: derived new command.
 class OvNewCompCmd : public NewCompCmd {
 public:
     OvNewCompCmd(ControlInfo*, Component* prototype = nil);
     OvNewCompCmd(Editor* = nil, Component* prototype = nil);
 
     virtual void Execute();
+    // create new (empty) document.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: derived revert command.
 class OvRevertCmd : public RevertCmd {
 public:
     OvRevertCmd(ControlInfo*);
     OvRevertCmd(Editor* = nil);
 
     virtual void Execute();
+    // revert to disk version of current document.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: derived open command.
 class OvViewCompCmd : public ViewCompCmd {
 public:
     OvViewCompCmd(ControlInfo*, OpenFileChooser* = nil);
     OvViewCompCmd(Editor* = nil, OpenFileChooser* = nil);
 
     virtual void Execute();
+    // pop-up filechooser and attempt to open document.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -84,18 +90,22 @@ protected:
     OpenFileChooser* chooser_;
 };
 
+//: derived open command with grid support.
 class OvOpenCmd : public OvViewCompCmd {
 public:
     OvOpenCmd(ControlInfo*, OpenFileChooser* = nil);
     OvOpenCmd(Editor* = nil, OpenFileChooser* = nil);
 
     virtual void Execute();
+    // run base class execute method, then set grid spacing
+    // from attributes of just-opened document.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: derived save command.
 class OvSaveCompCmd : public SaveCompCmd {
 public:
     OvSaveCompCmd(ControlInfo*, OpenFileChooser* = nil);
@@ -104,6 +114,7 @@ public:
     void Init();
 
     virtual void Execute();
+    // use catalog to save document in ASCII script format.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -115,6 +126,7 @@ protected:
     void Init(OpenFileChooser*);
 };
 
+//: derived save-as command.
 class OvSaveCompAsCmd : public SaveCompAsCmd {
 public:
     OvSaveCompAsCmd(ControlInfo*, OpenFileChooser* = nil);
@@ -123,6 +135,7 @@ public:
     void Init();
 
     virtual void Execute();
+    // prompt for pathname to save document to.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -134,18 +147,21 @@ protected:
     virtual boolean IsA(ClassId);
 };
 
+//: derived quit command.
 class OvQuitCmd : public QuitCmd {
 public:
     OvQuitCmd(ControlInfo*);
     OvQuitCmd(Editor* = nil);
 
     virtual void Execute();
+    // prompt to save document if modified, then quit application.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: derived delete command that can be made irreversable.
 class OvDeleteCmd : public DeleteCmd {
 public:
     OvDeleteCmd(ControlInfo*, Clipboard* = nil);
@@ -156,43 +172,53 @@ public:
     virtual boolean IsA(ClassId);
 
     virtual boolean Reversable();
+    // changeable value.
     void Reversable(boolean);
+    // set reversable value.
 protected:
     boolean _reversable;
 };
 
+//: derived select-all command.
 class OvSlctAllCmd : public SlctAllCmd {
 public:
     OvSlctAllCmd(ControlInfo*);
     OvSlctAllCmd(Editor* = nil);
 
     virtual void Execute();
+    // create new OverlaySelection with everything in it.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: derived group command.
 class OvGroupCmd : public GroupCmd {
 public:
     OvGroupCmd(ControlInfo*, OverlayComp* dest = nil);
     OvGroupCmd(Editor* = nil, OverlayComp* dest = nil);
 
     virtual void Execute();
+    // create new OverlaysComp and stuff selection in it.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     virtual OverlaysComp* MakeOverlaysComp();
+    // construct an OverlaysComp.
 
-    OverlayComp* GetGroup();
-    void SetGroup(OverlayComp*);
+    OverlayComp* GetGroup(); 
+    // get OverlaysComp used by execute method.
+    void SetGroup(OverlayComp*); 
+    // set OverlaysComp to be used by execute method.
 };
 
 inline OverlayComp* OvGroupCmd::GetGroup () { return (OverlayComp*) _group; }
 inline void OvGroupCmd::SetGroup (OverlayComp* g) { _group = g; }
 
+//: derived new-view command.
 class OvNewViewCmd : public NewViewCmd {
 public:
     OvNewViewCmd(ControlInfo*, const char* display=nil);
@@ -200,20 +226,28 @@ public:
     virtual ~OvNewViewCmd(); 
 
     virtual void Execute();
+    // create new view by constructing an OverlayEditor and asking
+    // the unidraw object to open it.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
     void set_display();
+    // prompt for alternate X11 display to attempt opening new view upon.
     void clr_display();
+    // clear alternate X11 display to attempt opening new view upon.
 
     const char* display();
+    // return alternate X11 display string.
     void display(const char*);
+    // set alternate X11 display string.
 
     static OvNewViewCmd* default_instance() { return _default; }
+    // return default instance of this command.
     static void OvNewViewCmd::default_instance(OvNewViewCmd* cmd)
       { _default = cmd; }
+    // set default instance of this command.
     
 protected:
     char * _display;
@@ -224,31 +258,38 @@ protected:
 
 declareActionCallback(OvNewViewCmd)
 
+//: derived close command.
 class OvCloseEditorCmd : public CloseEditorCmd {
 public:
     OvCloseEditorCmd(ControlInfo*);
     OvCloseEditorCmd(Editor* = nil);
 
     virtual void Execute();
+    // close current viewer, invoking OvSaveAsCmd if needed.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: command to toggle page graphic visibility.
 class PageCmd : public Command {
 public:
     PageCmd(ControlInfo*);
     PageCmd(Editor* = nil);
 
     virtual void Execute();
+    // toggle visibility of graphic that shows outline of current page.
     virtual boolean Reversible();
+    // returns false.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+
+//: command to set page size.
 class PrecisePageCmd : public Command {
 public:
     PrecisePageCmd(ControlInfo*);
@@ -256,7 +297,9 @@ public:
     virtual ~PrecisePageCmd();
 
     virtual void Execute();
+    // prompt for page width and height, and then recreate page graphic.
     virtual boolean Reversible();
+    // returns false.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -265,19 +308,23 @@ protected:
     PageDialog* _dialog;
 };
 
+//: command to enable/disable continuous mode drawing with pointer (mouse).
 class ScribblePointerCmd : public Command {
 public:
     ScribblePointerCmd(ControlInfo*);
     ScribblePointerCmd(Editor* = nil);
 
     virtual void Execute();
+    // toggle current scribble_pointer value.
     virtual boolean Reversible();
+    // returns false.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 };
 
+//: command to internally tile a PGM or PPM image.
 class TileFileCmd : public Command {
 public:
     TileFileCmd(ControlInfo*);
@@ -291,7 +338,10 @@ public:
     virtual ~TileFileCmd();
 
     virtual void Execute();
+    // create a new internally tiled PGM or PPM binary image from an
+    // existing untiled PGM or PPM binary image.
     virtual boolean Reversible();
+    // returns false.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -299,9 +349,11 @@ public:
 private:
     const char* _ifn;
     const char* _ofn;
-    int _twidth, _theight;
+    int _twidth;
+    int _theight;
 };
 
+//: command to dump current viewer canvas as .xwd file.
 class OvWindowDumpAsCmd : public SaveCompAsCmd {
 public:
     OvWindowDumpAsCmd(ControlInfo*, OpenFileChooser* = nil);
@@ -310,6 +362,8 @@ public:
     void Init();
 
     virtual void Execute();
+    // prompt for pathname, then write contents of current viewer canvas
+    // to that file by invoking "xwd" with the appropriate X window id.
 
     virtual Command* Copy();
 
@@ -319,6 +373,7 @@ protected:
     void Init(OpenFileChooser*);
 };
 
+//: command to create clickable imagemap from viewer canvas.
 class OvImageMapCmd : public SaveCompAsCmd {
 public:
     OvImageMapCmd(ControlInfo*, OpenFileChooser* = nil);
@@ -327,6 +382,9 @@ public:
     void Init();
 
     virtual void Execute();
+    // prompt for pathname, then export current viewer canvas as a 
+    // clickable imagemap, with URL's written out where-ever "url"
+    // attributes exist.
 
     virtual Command* Copy();
 

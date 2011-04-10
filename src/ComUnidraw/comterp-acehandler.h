@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996 Vectaport Inc.
+ * Copyright (c) 1996,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -26,10 +26,13 @@
 #ifndef _unidraw_comterp_handler_
 #define _unidraw_comterp_handler_
 
+#include <stdio.h>
+#include <signal.h>
 #include <ComTerp/comhandler.h>
 
 class ComEditor;
 
+//: specialized ComterpHandler for integration into Unidraw event loop.
 class UnidrawComterpHandler : public ComterpHandler
 {
 
@@ -39,7 +42,7 @@ public:
 
 };
 
-// Specialize a ComterpAcceptor.
+//: Acceptor specialized for use with Unidraw and ComTerp.
 typedef ACE_Acceptor <UnidrawComterpHandler, ACE_SOCK_ACCEPTOR> 
 	UnidrawComterpAcceptor;
 

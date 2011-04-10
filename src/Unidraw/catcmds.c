@@ -314,11 +314,13 @@ void ViewCompCmd::Execute () {
             }
 	    break;
         } else {
+	    chooser_->bodyclear();
 	    style->attribute("caption", "Open failed!");
 	    reset_caption = true;
         }
     }
     if (reset_caption) {
+      chooser_->bodyclear();
 	style->attribute("caption", "");
     }
 }

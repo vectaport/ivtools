@@ -1,4 +1,5 @@
-usr/lib
-usr/include
-usr/man/man3
-usr/doc
+usr/X11R6/lib
+usr/X11R6/include
+usr/X11R6/man/man1
+usr/share/doc
+

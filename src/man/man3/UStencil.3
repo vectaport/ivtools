@@ -1,0 +1,27 @@
+.TH UStencil 3U "2 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+UStencil \- structured graphic displaying a bitmap
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/stencil.h>
+.SH DESCRIPTION
+A UStencil is a Graphic that displays a bitmapped image.  Two Bitmap
+objects, an \fIimage\fP and a \fImask\fP, define a stencil's
+appearance.  The stencil potentially paints foreground color where
+\fIimage\fP has a \fItrue\fP value and background color where
+\fIimage\fP is \fIfalse\fP, but only pixels that have a corresponding
+\fItrue\fP value in \fImask\fP are thus affected.  The stencil's
+origin coincides with the origins of the \fIimage\fP and \fImask\fP
+bitmaps. The \fImask\fP's bounding box defines the stencil's extent.
+.SH PUBLIC OPERATIONS
+.TP
+.B "UStencil(Bitmap* image, Bitmap* mask = nil, Graphic* = nil)"
+Construct a UStencil, supplying an \fIimage\fP and an optional
+\fImask\fP bitmap and an optional graphic from which to obtain an
+initial set of graphics state.  Specifying \fInil\fP for \fImask\fP is
+equivalent to supplying a mask of the same size and shape as
+\fIimage\fP that contains all \fItrue\fP values.
+.TP
+.B "void GetOriginal(Bitamp*&, Bitmap*&)"
+Return the bitmap parameters supplied in the constructor.
+.SH SEE ALSO
+Bitmap(3I), Graphic(3U)

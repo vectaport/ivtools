@@ -88,5 +88,6 @@ int main(int argc, char *argv[]) {
 	} while (toktype != TOK_EOF);
 
     }
+    return 0;
 }
 

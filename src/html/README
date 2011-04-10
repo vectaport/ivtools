@@ -1,0 +1,111 @@
+Instructions for auto-generating ivtools html documentation.
+------------------------------------------------------------
+
+1. Background
+
+ivtools header files (.h files) include comments that can be extracted
+the PERCEPS, an automatic documentation generator for C++ written in
+Perl (http://friga.mer.utexas.edu/mark/perl/perceps/).  
+
+ivtools uses three techniques supported by PERCEPS for embedding
+extractable comments:
+
+	1. one-line class definition -- comments that proceed a class
+	definition (or any free-standing function, global, or typedef)
+	that start with a "//:"
+
+	2. multi-line class description -- comments that follow a
+	"//:" comment that start with "//", and still proceed the
+	class definition.
+
+	3. class member descriptions -- comments inside a class
+	definition that begin with a "//" that immediately follow any
+	particular item.
+
+Normal C comments, of the "/* */" style are not extracted.
+
+PERCEPS first extracts the class information, then uses a directory of
+templates (PERL plugins) to generate documentation of arbitrary
+format.  The "templates" directory within this directory generates
+HTML documentation for each individual class, plus two global indexes,
+and one page of miscellaneous information.
+
+
+2. Generating HTML Documentation for C++ Classes
+
+To generate the HTML documentation for each C++ class defined in
+ivtools, do the following:
+
+	2.1 Acquire and install a copy of PERCEPS, Version 3.4.1 or
+	greater.  Get it from the author's website:
+
+		http://friga.mer.utexas.edu/mark/perl/perceps/	
+
+	or from here:
+
+		http://www.vectaport.com/pub/src/perceps341.tgz
+
+	2.2 Verify your version of Perl is >= 5.003 with:
+
+		perl --version
+
+	
+	2.3 Verify your copy of Perl is installed at /usr/local/bin/perl:
+
+		which perl
+
+	    If it is not at that location, edit the first line of the 
+	    perceps script in this directory to reflect the actual location.
+
+
+	2.4 Run the following commands to generate the html:
+
+		mkdir classes
+		cd ..
+		perceps -d `pwd`/html/classes -o `pwd`/html/templates `cat ../MANIFEST.perceps`
+	        cd html
+
+	    The whole process takes some time, especially the generation of the
+	    global html/classes/index.html.	
+
+
+3. Generating Derived Class HTML
+
+Two more web pages are needed in the classes sub-directory to make it
+complete: derivedclasses.html, a list of links to class web pages
+immediately followed by links to each of their immediate derived (or
+children) classes; and derivedtree.html, a tree structured web page of
+all classes without parents followed by their complete tree of derived
+classes.
+
+iclass has been modified to generate these automatically.
+
+	3.1 Generating classes/derivedclasses.html
+
+	cd ..;iclass -r -c -d . >html/classes/derivedclasses.html;cd html
+
+	3.2 Generating classes/derivedtree.html
+
+	cd ..;iclass -r -c -t . >html/classes/derivedtree.html;cd html
+
+4. Acquiring HTML Documentation related to InterViews 3.1
+
+Some of the HTML documentation generated for the ivtools classes
+contains embedded links to HTML versions of the original InterViews
+3.1 man pages and reference manual.  Two scripts are included in this
+directory to facilitate downloading these directories from the online
+directory of ivtools documentation.  These web pages are available
+under the same COPYRIGHT and license of ivtools.
+
+	4.1 HTML versions of InterViews 3.1 man pages
+
+	Run the shell script getman31.sh from this directory.
+	Requires an installed and working copy of the ivtools utility
+	ivdl.
+
+	4.2 HTML versions of InterViews 3.1 reference manual
+
+	Run the shell script getrefman31.sh from this directory.
+	Requires an installed and working copy of the ivtools utility
+	ivdl.
+

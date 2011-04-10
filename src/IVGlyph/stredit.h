@@ -33,7 +33,8 @@ class WidgetKit;
 
 class StrEditDialog : public Dialog {
 public:
-    StrEditDialog(const char* caption1, const char* caption2 = nil);
+    StrEditDialog(const char* caption1, const char* caption2 = nil, 
+		  Glyph* extra=nil);
     virtual ~StrEditDialog();
 
     boolean cancel();
@@ -43,7 +44,8 @@ public:
 
 
     static char* post(Window*, const char* message, 
-		      const char* string=nil, const char* title=nil);
+		      const char* string=nil, const char* title=nil,
+		      Glyph* extra = nil);
 
 private:
     StrEditDialogImpl* impl_;

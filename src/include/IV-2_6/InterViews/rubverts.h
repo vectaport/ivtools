@@ -34,6 +34,9 @@
 
 class GrowingVertices : public Rubberband {
 public:
+    virtual ClassId GetClassId() { return GROWINGVERTICES; }
+    virtual boolean IsA (ClassId id) 
+      { return GROWINGVERTICES == id || Rubberband::IsA(id); }
     virtual ~GrowingVertices();
 
     virtual void AddVertex(IntCoord, IntCoord);
@@ -63,7 +66,9 @@ public:					// obsolete calls
     virtual void AppendVertex(IntCoord, IntCoord);
     virtual void GetOriginal(IntCoord*& px, IntCoord*& py, int& n);
     virtual void GetCurrent(IntCoord*& px, IntCoord*& py, int& n);
+    int Count() { return count; }
 };
+
 
 class GrowingMultiLine : public GrowingVertices {
 public:
@@ -71,6 +76,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt = -1,
 	int handleSize = -1
     );
+    virtual ClassId GetClassId() { return GROWINGMULTILINE; }
+    virtual boolean IsA (ClassId id) 
+      { return GROWINGMULTILINE == id || GrowingVertices::IsA(id); }
 protected:
     virtual void DrawVertices(IntCoord*, IntCoord*, int);
 };
@@ -81,6 +89,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt = -1,
 	int handleSize = -1
     );
+    virtual ClassId GetClassId() { return GROWINGPOLYGON; }
+    virtual boolean IsA (ClassId id) 
+      { return GROWINGPOLYGON == id || GrowingVertices::IsA(id); }
 protected:
     virtual void DrawVertices(IntCoord*, IntCoord*, int);
 };
@@ -91,6 +102,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt = -1,
         int handleSize = -1
     );
+    virtual ClassId GetClassId() { return GROWINGBSPLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return GROWINGBSPLINE == id || GrowingVertices::IsA(id); }
 protected:
     virtual void DrawVertices(IntCoord*, IntCoord*, int);
 };
@@ -101,6 +115,9 @@ public:
         Painter*, Canvas*, IntCoord px[], IntCoord py[], int n, int pt = -1,
 	int handleSize = -1
     );
+    virtual ClassId GetClassId() { return GROWINGCLOSEDBSPLINE; }
+    virtual boolean IsA (ClassId id) 
+      { return GROWINGCLOSEDBSPLINE == id || GrowingVertices::IsA(id); }
 protected:
     virtual void DrawVertices(IntCoord*, IntCoord*, int);
 };

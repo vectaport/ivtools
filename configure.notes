@@ -1,0 +1,10 @@
+The configure script is generated from configure.in using autoconf, then
+manually modified in two ways:
+
+	1) the --with-x command line option is removed.
+	2) the --help output for everything from --exec-prefix to
+	   --target is removed, because no use is made of these.
+
+aclocal.m4 contains an autoconf macro for locating the g++ include
+directory (the include files from libstdc++). 
+

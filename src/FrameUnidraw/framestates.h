@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -26,6 +26,7 @@
 
 #include <IVGlyph/namestate.h>
 
+//: state variable for current-frame-number.
 class FrameNumberState : public NameState {
 public:
     FrameNumberState(int =0, const char* desc=nil, int usebg =1);
@@ -43,6 +44,7 @@ protected:
     int _usebg;
 };
 
+//: state variable for current-frame-count.
 class FrameListState : public NameState {
 public:
     FrameListState(int =1);

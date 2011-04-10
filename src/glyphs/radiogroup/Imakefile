@@ -18,7 +18,7 @@ Use_libInterViews()
 
 ComplexProgramTargetNoInstall(radiogroup)
 
-MakeObjectFromSrcFlags(main,-xc++)
+MakeObjectFromSrcFlags(main,)
 
 IncludeDependencies()
 

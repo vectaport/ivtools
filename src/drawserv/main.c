@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport, Inc.
+ * Copyright (c) 1994-1999 Vectaport, Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -26,11 +26,10 @@
  * drawserv main program.
  */
 
-#include <DrawServ/comcatalog.h>
-#include <DrawServ/comcreator.h>
-#include <DrawServ/comcomps.h>
-#include <DrawServ/comkit.h>
-#include <ComUnidraw/comeditor.h>
+#include <DrawServ/drawcatalog.h>
+#include <DrawServ/drawcreator.h>
+#include <DrawServ/drawcomps.h>
+#include <DrawServ/drawkit.h>
 
 #include <FrameUnidraw/frameeditor.h>
 #include <GraphUnidraw/grapheditor.h>
@@ -48,38 +47,32 @@
 #ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
-#include <Dispatch/ace_dispatcher.h>
+#include <AceDispatch/ace_dispatcher.h>
 #endif
 
 #include <stream.h>
 #include <string.h>
 #include <math.h>
+#include <version.h>
 
 static int nmsg = 0;
 
-#if defined(__sun) && !defined(__svr4__)
-/* Disables atan2(0.0,0.0) warning messages */
-extern "C" {
-    int matherr(struct exception *x) {
-	if (x && strcmp(x->name, "atan2") == 0) return 1;
-	else return 0;
-    }
-}
-#endif
-
 static OverlayEditor* launch_comdraw() {
-  ComEditor* ed = new ComEditor((const char*)nil, ComKit::Instance());
+  ComEditor* ed = new ComEditor((const char*)nil, OverlayKit::Instance());
   unidraw->Open(ed);
+  return ed;
 }
 
 static OverlayEditor* launch_flipbook() {
   FrameEditor* ed = new FrameEditor((const char*)nil, FrameKit::Instance());
   unidraw->Open(ed);
+  return ed;
 }
 
 static OverlayEditor* launch_graphdraw() {
   GraphEditor* ed = new GraphEditor((const char*)nil, GraphKit::Instance());
   unidraw->Open(ed);
+  return ed;
 }
 
 /*****************************************************************************/
@@ -180,6 +173,7 @@ static PropertyData properties[] = {
     { "*tile",          "false" },
     { "*twidth",        "512" },
     { "*theight",       "512" },
+    { "*opaque_off",    "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",          "20002" },
@@ -197,6 +191,8 @@ static OptionDesc options[] = {
     { "-tile", "*tile", OptionValueImplicit, "true" },
     { "-twidth", "*twidth", OptionValueNext },
     { "-theight", "*theight", OptionValueNext },
+    { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
+    { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
@@ -211,8 +207,8 @@ int main (int argc, char** argv) {
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(IMPORT_REACTOR::instance()));
 #endif
-    ComCreator creator;
-    ComCatalog* catalog = new ComCatalog("drawserv", &creator);
+    DrawCreator creator;
+    DrawCatalog* catalog = new DrawCatalog("drawserv", &creator);
     OverlayUnidraw* unidraw = new OverlayUnidraw(
         catalog, argc, argv, options, properties
     );
@@ -272,13 +268,30 @@ int main (int argc, char** argv) {
 
     } else {
 	const char* initial_file = (argc == 2) ? argv[1] : nil;
-	ComEditor* ed = nil;
+	FrameEditor* ed = nil;
 	if (initial_file) 
-	  ed = new ComEditor(initial_file, ComKit::Instance());
+	  ed = new FrameEditor(initial_file, DrawKit::Instance());
 	else 
-	  ed = new ComEditor(new ComIdrawComp, ComKit::Instance());
+	  ed = new FrameEditor(new DrawIdrawComp, DrawKit::Instance());
 
 	unidraw->Open(ed);
+
+#ifdef HAVE_ACE
+	/*  Start up one on stdin */
+	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+#if 0
+	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+#else
+	if (COMTERP_REACTOR::instance()->register_handler(0, stdin_handler, 
+							  ACE_Event_Handler::READ_MASK)==-1)
+#endif
+	  cerr << "drawserv: unable to open stdin with ACE\n";
+	ed->SetComTerp(stdin_handler->comterp());
+	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
+#else
+	fprintf(stderr, "ivtools-%s drawserv", VersionString);
+#endif
+
 	unidraw->Run();
     }
 

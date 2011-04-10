@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994,1995,1998 Vectaport Inc.
+ * Copyright (c) 1994,1995,1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -25,6 +25,7 @@
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterpserv.h>
+#include <Attribute/attrlist.h>
 
 #ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
@@ -42,6 +43,8 @@ void QuitFunc::execute() {
     _comterp->quit();
 }
 
+/*****************************************************************************/
+
 ExitFunc::ExitFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -49,6 +52,8 @@ void ExitFunc::execute() {
     reset_stack();
     _comterp->exit();
 }
+
+/*****************************************************************************/
 
 SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -60,6 +65,8 @@ void SeqFunc::execute() {
     push_stack(arg2);
 }
 
+/*****************************************************************************/
+
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -70,18 +77,23 @@ void DotFunc::execute() {
     push_stack(methval);
 }
 
+/*****************************************************************************/
+
 TimeExprFunc::TimeExprFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void TimeExprFunc::execute() {
 #ifdef HAVE_ACE
     ComValue timeoutstr(stack_arg(0));
+    static int sec_symval = symbol_add("sec");
+    ComValue sec_val(stack_key(sec_symval, false, ComValue::oneval(), true));
     reset_stack();
 
     ComterpHandler* handler = ((ComTerpServ*)_comterp)->handler();
     if (handler) {
         if (nargs()) {
 	  if (timeoutstr.type() == ComValue::StringType) {
+	      handler->timeoutseconds(sec_val.int_val());
 	      handler->timeoutscriptid(timeoutstr.string_val());
 	      push_stack(timeoutstr);
 	  } else 
@@ -95,6 +107,8 @@ void TimeExprFunc::execute() {
     }
 #endif
 }
+
+/*****************************************************************************/
 
 RunFunc::RunFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -115,6 +129,8 @@ void RemoteFunc::execute() {
   ComValue hostv(stack_arg(0, true));
   ComValue portv(stack_arg(1));
   ComValue cmdstrv(stack_arg(2));
+  static int nowait_sym = symbol_add("nowait");
+  ComValue nowaitv(stack_key(nowait_sym));
   reset_stack();
 
 #ifdef HAVE_ACE
@@ -139,13 +155,15 @@ void RemoteFunc::execute() {
     out << cmdstr;
     if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
     out.flush();
-    filebuf ifbuf;
-    ifbuf.attach(socket.get_handle());
-    istream in(&ifbuf);
-    char* buf;
-    in.gets(&buf);
-    ComValue& retval = comterpserv()->run(buf, true);
-    push_stack(retval);
+    if (nowaitv.is_false()) {
+      filebuf ifbuf;
+      ifbuf.attach(socket.get_handle());
+      istream in(&ifbuf);
+      char* buf;
+      in.gets(&buf);
+      ComValue& retval = comterpserv()->run(buf, true);
+      push_stack(retval);
+    }
 
     if (socket.close () == -1)
         ACE_ERROR ((LM_ERROR, "%p\n", "close"));
@@ -163,6 +181,39 @@ void RemoteFunc::execute() {
 
 }
 
+/*****************************************************************************/
+
+EvalFunc::EvalFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void EvalFunc::execute() {
+  // evaluate every string fixed argument on the stack and return in array
+  int numargs = nargsfixed();
+  if (numargs) {
+    AttributeValueList* avl = nil;
+    for (int i=0; i<numargs; i++) {
+      ComValue argstrv (stack_arg(i));
+      if (argstrv.is_nil()) break;
+      if (argstrv.is_string()) {
+	if (comterp()->is_serv()) {
+	  ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
+	  if (!avl) avl = new AttributeValueList();
+	  avl->Append(val);
+	} else 
+	  cerr << "need server (or remote) mode for eval(\"" << argstrv.string_ptr() << "\")\n";
+      }
+    }
+    reset_stack();
+    if (avl) {
+      ComValue retval(avl);
+      push_stack(retval);
+    }
+  } else
+    reset_stack();
+}
+
+/*****************************************************************************/
+
 ShellFunc::ShellFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -177,6 +228,21 @@ void ShellFunc::execute() {
     }
     push_stack(retval);
     return;
+}
+
+/*****************************************************************************/
+
+NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void NilFunc::execute() {
+    reset_stack();
+    static int nil_symid = symbol_add("nil");
+    int comm_symid = funcstate()->command_symid();
+    if (comm_symid && comm_symid!= nil_symid)
+      cerr << "unknown command \"" << symbol_pntr(comm_symid)
+	<< "\" returned nil\n";
+    push_stack(ComValue::nullval());
 }
 
 

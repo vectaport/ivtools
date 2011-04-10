@@ -46,7 +46,14 @@ PSBrush::PSBrush (int p, int w) : Brush(p, w) {
     _none = false;
 }
 
+PSBrush::PSBrush (int p, float w) : Brush(p, w) {
+    CalcDashPat(p);
+    _linepat = p;
+    _none = false;
+}
+
 int PSBrush::Width () { return _none ? 0 : Brush::Width(); }
+float PSBrush::width () { return _none ? 0 : Brush::width(); }
 
 void PSBrush::CalcDashPat (int pat) {
     calc_dashes(pat, _dashpat, _dashpatsize);

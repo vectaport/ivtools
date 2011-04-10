@@ -45,6 +45,8 @@ class Tool;
 class Transformer;
 class Viewer;
 
+//: base classes for graphical component views.
+// <a href=../man3.1/GraphicView.html>man page</a>
 class GraphicView : public ComponentView {
 public:
     virtual ~GraphicView();

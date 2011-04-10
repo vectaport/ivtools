@@ -1,0 +1,48 @@
+/* This file generated from config.defs.in, */
+/* (unless this file *is* config.defs.in :) */
+
+#define Prefix /slink/home/debian/IVTOOLS/ivtools-0.7.9/debian/tmp/usr/X11R6
+#define BinDir Prefix/bin
+#define LibDir Prefix/lib
+#define LibAllDir Prefix/lib/ivtools
+#define IncDir Prefix/include
+#define ConfigDir LibAllDir/config
+#define ManDir Prefix/man
+
+#define XConfigDir /usr/X11R6/lib/X11/config
+#define XIncDir /usr/X11R6/include
+#define XLibDir /usr/X11R6/lib
+
+#if 1
+#define AceDir /usr/include
+#define AceLibDir /usr/lib
+#endif
+
+#if 0
+#define ClipPolyDir 
+#define ClipPolyLibDir 
+#endif
+
+#if 0
+#define IueDir 
+#define IueLibDir 
+#endif
+
+#undef CCDriver
+#define CCDriver c++
+
+#undef CDriver
+#define CDriver gcc
+
+#undef GPlusPlusIncludeDir
+#define GPlusPlusIncludeDir /usr/lib/gcc-lib/alpha-linux/2.95.2/../../../../include/g++-3
+
+#undef InstallRelative
+#define InstallRelative NO
+
+#undef UseRpath
+#define UseRpath NO
+
+#define IvToolsSrcRoot /slink/home/debian/IVTOOLS/ivtools-0.7.9
+
+

@@ -69,6 +69,7 @@ GrayRaster::~GrayRaster() {
 }
 
 void GrayRaster::init(AttributeValue::ValueType type, void* data) {
+  _grayflag = true;
   _minmax_set = 0x00;
   _t2b = true;
   _type = type;
@@ -667,8 +668,11 @@ boolean GrayRaster::read(istream& in, boolean gray) {
     }
   }
 
-  if (in.good()) 
+  if (in.good()) {
     rep()->modified_ = true;
+    return true;
+  } else
+    return false;
 }
 
 
@@ -688,12 +692,17 @@ void GrayRaster::gainbias_minmax(double& gain, double& bias,
     for(int x=0; x < w; x++) {
       for(int y=0; y < h; y++) {
 	me->vpeek(x, h-y-1, av);
-#if !defined(__svr4__) && !defined(__alpha)
+#if !defined(__sun) && !defined(__svr4__) && !defined(__alpha) || defined(__linux__)
 	if (av.double_val()==NAN) continue;
 #else
-#if !defined(__linux__)
-	if (IsNANorINF(av.double_val)) continue;
-#endif
+      {
+	double test = av.double_val();
+#if defined(__sun__)
+        if (isnan(test) || isinf(test)) continue;
+#else
+      	if (IsNANorINF(test)) continue;
+#endif	
+      }
 #endif
 	if (av.double_val()<dmin) dmin = av.double_val();
 	if (av.double_val()>dmax) dmax = av.double_val();

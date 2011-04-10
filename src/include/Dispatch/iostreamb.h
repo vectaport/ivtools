@@ -28,8 +28,8 @@
 #include <Dispatch/enter-scope.h>
 #include <iostream.h>
 
-// Modify ios to store extra state information for binary I/O.
-
+//: Modify ios to store extra state information for binary I/O.
+// <p><a href=../man3.1/iostreamb.html>man page</a>
 class iosb : public virtual ios {
 public:
     iosb();
@@ -44,9 +44,10 @@ protected:
     boolean _swapped;		// does my peer have a swapped endian?
 };
 
+//: unformatted input stream
 // Modify istream to extract unformatted data where possible for
 // faster I/O throughput and to discard delimiters automatically.
-
+// <p><a href=../man3.1/iostreamb.html>man page</a>
 class istreamb : public virtual iosb, public istream {
 protected:
     istreamb();
@@ -71,9 +72,10 @@ public:
     istreamb& operator>>(ios& (*)(ios&));
 };
 
+//: unformatted output stream
 // Modify ostream to insert unformatted data where possible for faster
 // I/O throughput and to delimit formatted data automatically.
-
+// <p><a href=../man3.1/iostreamb.html>man page</a>
 class ostreamb : public virtual iosb, public ostream {
 protected:
     ostreamb();
@@ -100,10 +102,11 @@ protected:
     void fixwidth();
 };
 
+//: unformatted input/output stream
 // Replace iostream with a stream that inserts and extracts
 // unformatted data where possible for faster I/O throughput and
 // delimits formatted data automatically.
-
+// <p><a href=../man3.1/iostreamb.html>man page</a>
 class iostreamb : public istreamb, public ostreamb {
 protected:
     iostreamb();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1995 Vectaport Inc.
+ * Copyright (c) 1995,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -38,6 +38,8 @@
 
 #include <InterViews/transformer.h>
 
+#include <Attribute/attrlist.h>
+
 #include <iostream.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,7 +57,10 @@ boolean TextFileComp::IsA (ClassId id) {
 }
 
 Component* TextFileComp::Copy () {
-    return new TextFileComp(_pathname, _begstr, _endstr, _linewidth, GetGraphic());
+    TextFileComp* comp = 
+      new TextFileComp(_pathname, _begstr, _endstr, _linewidth, GetGraphic());
+    if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
+    return comp;
 }
 
 TextFileComp::TextFileComp (const char* pathname, const char* begstr, 

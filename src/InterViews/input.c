@@ -282,6 +282,7 @@ void InputHandler::move(const Event&) { }
 void InputHandler::press(const Event&) { }
 void InputHandler::drag(const Event&) { }
 void InputHandler::release(const Event&) { }
+void InputHandler::selection_notify(const Event&) { }
 
 void InputHandler::keystroke(const Event& e) {
     InputHandlerImpl& i = *impl_;
@@ -393,6 +394,9 @@ boolean InputHandlerImpl::event(Event& e) {
 	break;
     case Event::key:
 	input_->keystroke(e);
+	break;
+    case Event::selection_notify:
+        input_->selection_notify(e);
 	break;
     default:
 	/* ignore */

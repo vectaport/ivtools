@@ -1,0 +1,41 @@
+.TH KeyMap 3U "1 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+KeyMap \- activates controls given their keyboard equivalents
+.SH SYNOPSIS
+.B #include <Unidraw/keymap.h>
+.SH DESCRIPTION
+KeyMap supports keyboard equivalents, which allow the user of a
+Unidraw application to execute menu commands or select from a palette
+of controls by typing rather than pointing and clicking with the
+mouse. The KeyMap can activate a control given its key code as defined
+by its ControlInfo object.  Only those controls registered with the
+KeyMap can be activated through the KeyMap.  By default, the Editor
+base class handles key events by having its KeyMap execute the key
+code.
+.SH PUBLIC OPERATIONS
+.TP
+.B "KeyMap()"
+Construct a new keymap, initially with no registrants.
+.TP
+.B "void Register(UControl*)"
+.ns
+.TP
+.B "void Register(KeyMap*)"
+.ns
+.TP
+.B "void Unregister(UControl*)"
+.ns
+.TP
+.B "void Unregister(KeyMap*)"
+Register and unregister a control or another KeyMap.  Registering a
+KeyMap is equivalent to registering all its registered controls
+individually.
+.TP
+.B "void Execute(const char* keyCode)"
+Execute the given key code by activating the corresponding control.
+Each UControl contains a ControlInfo object that specifies its key
+code; thus the mapping between key codes and controls is defined by
+the ControlInfo objects collectively.  Key codes among registered
+controls should be unique.
+.SH SEE ALSO
+ControlInfo(3U), KeyMap(3U), UControl(3U), kybd(3U)

@@ -65,7 +65,7 @@ public:
     UHashElem* Find(void* key);
 protected:
     virtual UHashElem* CreateElem();
-    virtual int Hash(void*);
+    virtual unsigned long Hash(void*);
     virtual boolean Equal(void* key1, void* key2);
 protected:
     int _nslots;

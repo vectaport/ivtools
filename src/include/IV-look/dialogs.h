@@ -39,6 +39,8 @@ class String;
 class Style;
 class WidgetKit;
 
+//: factory object for widgets.
+// <a href=../refman3.1/refman.html#PAGE57>in reference manual</a>
 class DialogKit {
 protected:
     DialogKit();

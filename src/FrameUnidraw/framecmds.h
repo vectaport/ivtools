@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994, 1995, 1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -34,6 +34,8 @@
 
 #include <InterViews/action.h>
 
+//: command to create a frame.
+// commmand to create a frame, before or after the current frame.
 class CreateFrameCmd : public Command {
 public:
     CreateFrameCmd(ControlInfo*, boolean after = true);
@@ -50,6 +52,7 @@ protected:
     boolean _after;
 };
 
+//: data object for DeleteFrameCmd.
 class DeleteFrameData : public VoidData {
 public:
     DeleteFrameData(void*, boolean restore_after);
@@ -59,6 +62,7 @@ protected:
     boolean _after;
 };
 
+//: command to delete a frame.
 class DeleteFrameCmd : public Command {
 public:
     DeleteFrameCmd(ControlInfo*);
@@ -72,6 +76,7 @@ public:
     virtual Command* Copy();
 };
 
+//: command to change current frame.
 class MoveFrameCmd : public Command {
 public:
     MoveFrameCmd(ControlInfo*, int motion = +1, boolean allowbg = true);
@@ -79,7 +84,9 @@ public:
     void init(int motion, boolean allowbg);
     
     void wraparound(boolean flag) { _wraparound = flag; }
+    // set flag to indicate forward wraparound during replay.
     boolean wraparound() { return _wraparound; }
+    // get flag to indicate forward wraparound during replay.
 
     virtual void Execute();
     virtual void Unexecute();
@@ -90,23 +97,37 @@ public:
     virtual Command* Copy();
 
     boolean AllowBg() { return _allowbg; }
+    // get flag that indicates whether to allow a background frame.
     void AllowBg(boolean abg) { _allowbg = abg; }
+    // set flag that indicates whether to allow a background frame.
 
     static const char* MoveFuncFormat(); 
+    // return format string for generating interpreted move command.
     static const char* AbsMoveFuncFormat(); 
+    // return format string for generating interpreted move command with
+    // absolute frame arguments.
     static void FuncEnable(const char* movefunc=nil, const char* absmovefunc=nil); 
+    // enable execution of an interpreter command on each move.
     static void FuncDisable() { _func_on=false; }
+    // disable execution of an interpreter command on each move.
 
     int requestmotion() { return _requestmotion; }
-    int actualmotion() { return _actualmotion; }
+    // requested motion in frames, negative means backward.
     int plannedmotion() { return _plannedmotion; }
+    // planned motion in frames, negative means backward.
+    int actualmotion() { return _actualmotion; }
+    // actual motion in frames, negative means backward.
 
     void set_wraparound();
+    // set forward wraparound flag.
     void clr_wraparound();
+    // clear forward wraparound flag.
 
     static MoveFrameCmd* default_instance() { return _default; }
+    // return a default instance of the MoveFrameCmd.
     static void MoveFrameCmd::default_instance(MoveFrameCmd* cmd)
       { _default = cmd; }
+    // set a default instance of the MoveFrameCmd.
     
 protected:
     int _requestmotion, _actualmotion, _plannedmotion;
@@ -124,6 +145,7 @@ friend class MoveFrameFunc;
 
 declareActionCallback(MoveFrameCmd)
 
+//: command to move to the first frame.
 class FrameBeginCmd : public MoveFrameCmd {
 public:
     FrameBeginCmd(ControlInfo*);
@@ -135,6 +157,7 @@ public:
     virtual Command* Copy();
 };
 
+//: command to move to the last frame.
 class FrameEndCmd : public MoveFrameCmd {
 public:
     FrameEndCmd(ControlInfo*);
@@ -146,6 +169,7 @@ public:
     virtual Command* Copy();
 };
 
+//: command to create a frame and move to it.
 class CreateMoveFrameCmd : public MacroCmd {
 public:
     CreateMoveFrameCmd(ControlInfo*, boolean after = true);
@@ -162,6 +186,7 @@ protected:
     boolean _after;
 };
 
+//: command to copy contents of current frame to create a new frame.
 class CopyMoveFrameCmd : public MacroCmd {
 public:
     CopyMoveFrameCmd(ControlInfo*, boolean after = true);
@@ -175,6 +200,7 @@ protected:
     boolean _after;
 };
 
+//: OvGroupCmd specialized for FrameUnidraw use.
 class FrameGroupCmd : public OvGroupCmd {
 public:
     FrameGroupCmd(ControlInfo*, OverlayComp* dest = nil);
@@ -189,6 +215,7 @@ public:
 };
 
 
+//: UngroupCmd specialized for FrameUnidraw use.
 class FrameUngroupCmd : public UngroupCmd {
 public:
     FrameUngroupCmd(ControlInfo*);
@@ -202,6 +229,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: FrontCmd specialized for FrameUnidraw use.
 class FrameFrontCmd : public FrontCmd {
 public:
     FrameFrontCmd(ControlInfo*);
@@ -214,6 +242,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: BackCmd specialized for FrameUnidraw use.
 class FrameBackCmd : public BackCmd {
 public:
     FrameBackCmd(ControlInfo*);
@@ -226,6 +255,7 @@ public:
     virtual boolean IsA(ClassId);
 };
  
+//: CopyCmd specialized for FrameUnidraw use.
 class FrameCopyCmd : public CopyCmd {
 public:
     FrameCopyCmd(ControlInfo*, Clipboard* = nil);
@@ -238,6 +268,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: OvNewViewCmd specialized for FrameUnidraw use.
 class FrameNewViewCmd : public OvNewViewCmd {
 public:
     FrameNewViewCmd(ControlInfo*);
@@ -250,6 +281,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: command to enable/disable display of previous frame
 class ShowOtherFrameCmd : public Command {
 public:
     ShowOtherFrameCmd(ControlInfo*, int offset = -1);
@@ -267,5 +299,30 @@ protected:
     int _offset;
     int _old_offset;
 };
+
+//: command to enable/disable auto-new-frame on import.
+class AutoNewFrameCmd : public MacroCmd {
+public:
+    AutoNewFrameCmd(ControlInfo*);
+    AutoNewFrameCmd(Editor* = nil);
+
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+    virtual Command* Copy();
+    virtual void Execute();
+    virtual void Unexecute();
+    virtual void Log();
+    virtual boolean Reversible();
+
+    static AutoNewFrameCmd* default_instance() { return _default; }
+    static void AutoNewFrameCmd::default_instance(AutoNewFrameCmd* cmd)
+      { _default = cmd; }
+    
+protected:
+    static AutoNewFrameCmd* _default;
+
+};
+
+declareActionCallback(AutoNewFrameCmd)
 
 #endif

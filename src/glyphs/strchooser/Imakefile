@@ -17,7 +17,7 @@ Use_libInterViews()
 
 ComplexProgramTargetNoInstall(strchooser)
 
-MakeObjectFromSrcFlags(main,-xc++)
+MakeObjectFromSrcFlags(main,)
 
 IncludeDependencies()
 

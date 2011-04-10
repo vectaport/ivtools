@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994-1996 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -32,14 +32,18 @@ class EdgeComp;
 class NodeComp;
 class TextGraphic;
 
+//: command to connect an edge to one or two nodes.
 class EdgeConnectCmd : public Command {
 public:
     EdgeConnectCmd(Editor* =nil, EdgeComp* =nil, NodeComp* =nil, NodeComp* =nil);
     virtual ~EdgeConnectCmd();
 
     virtual void Execute();
+    // pass to edge component to interpret.
     virtual void Unexecute();
+    // pass to edge component to uninterpret.
     virtual boolean Reversible();
+    // returns true.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -53,13 +57,16 @@ protected:
     NodeComp* node2;
 };
 
+//: command to update edge display
 class EdgeUpdateCmd : public Command {
 public:
     EdgeUpdateCmd(Editor* =nil, EdgeComp* =nil);
     virtual ~EdgeUpdateCmd();
 
     virtual void Execute();
+    // pass to edge component to interpret.
     virtual boolean Reversible();
+    // returns false.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -69,14 +76,16 @@ protected:
     EdgeComp* edge;
 };
 
+//: command to set text of a node component.
 class NodeTextCmd : public Command {
 public:
-//    NodeTextCmd(Editor* =nil, NodeComp* =nil, const char* =nil, int =0);
     NodeTextCmd(Editor* =nil, NodeComp* =nil, TextGraphic* =nil);
     virtual ~NodeTextCmd();
 
     virtual void Execute();
+    // pass to node to interpret, then mark document as modified.
     virtual boolean Reversible();
+    // returns false.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -92,6 +101,7 @@ protected:
     TextGraphic* tgraphic;
 };
 
+//: specialized DeleteCmd for graphdraw.
 class GraphDeleteCmd : public DeleteCmd {
 public:
     GraphDeleteCmd(ControlInfo*, Clipboard* = nil);
@@ -105,6 +115,7 @@ public:
     UList* connections;
 };
 
+//: specialized OvNewViewCmd for graphdraw.
 class GraphNewViewCmd : public OvNewViewCmd {
 public:
     GraphNewViewCmd(ControlInfo*);
@@ -117,6 +128,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: specialized CutCmd for graphdraw.
 class GraphCutCmd : public CutCmd {
 public:
     GraphCutCmd(ControlInfo*, Clipboard* = nil);
@@ -131,6 +143,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: specialized CopyCmd for graphdraw.
 class GraphCopyCmd : public CopyCmd {
 public:
     GraphCopyCmd(ControlInfo*, Clipboard* = nil);
@@ -144,6 +157,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: specialized PasteCmd for graphdraw.
 class GraphPasteCmd : public PasteCmd {
 public:
     GraphPasteCmd(ControlInfo*, Clipboard* = nil);
@@ -159,6 +173,7 @@ public:
     virtual boolean IsA(ClassId);
 };
 
+//: specialized DupCmd for graphdraw.
 class GraphDupCmd : public DupCmd {
 public:
     GraphDupCmd(ControlInfo*, Clipboard* = nil);

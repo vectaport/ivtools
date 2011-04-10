@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -28,18 +28,22 @@
 
 class Selection;
 
+//: tool for annotating a component (adding a descriptive string).
 class AnnotateTool : public Tool {
 public:
     AnnotateTool(ControlInfo* =nil);
 
     virtual Manipulator* CreateManipulator(Viewer*, Event&, Transformer* =nil);
+    // select component under event, and ask for annotation to add as attribute.
     virtual Command* InterpretManipulator(Manipulator*);
+    // empty method.
 
     virtual Tool* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 protected:
     virtual void Localize(Selection*, Viewer*);
+    // localize selection to current viewer.
 };
 
 #endif

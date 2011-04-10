@@ -47,7 +47,7 @@ Summary:
 #include <util.h>
 */
 
-int print_type( fptr, dtype, dptr, offset )
+int print_type(FILE * fptr,unsigned dtype,char * dptr,int offset)
 
 
 /*!
@@ -58,10 +58,12 @@ Parameters:
 
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
+#ifdef DOC
 FILE *          fptr      ;/* I   Output file pointer.         */
 unsigned        dtype     ;/* I   Type of datum.               */
 char *          dptr      ;/* I   Pointer to datum to print.   */
 int		offset    ;/* I   Offset from `dptr`.          */
+#endif
 
 
 /*!

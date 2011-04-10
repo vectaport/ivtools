@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 1994,1999 Vectaport Inc.
  * Copyright (c) 1990, 1991 Stanford University
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -34,12 +34,14 @@
 
 class SF_Polygon;
 
+//: clone of PolygonComp derived from OverlayComp.
 class PolygonOvComp : public VerticesOvComp {
 public:
     PolygonOvComp(SF_Polygon* = nil, OverlayComp* parent = nil);
     PolygonOvComp(istream&, OverlayComp* parent = nil);
 
     SF_Polygon* GetPolygon();
+    // return pointer to graphic.
 
     virtual Component* Copy();
     virtual ClassId GetClassId();
@@ -53,13 +55,17 @@ protected:
 friend OverlaysScript;
 };
 
+//: graphical view of PolygonOvComp.
 class PolygonOvView : public VerticesOvView {
 public:
     PolygonOvView(PolygonOvComp* = nil);
 
     virtual Manipulator* CreateManipulator(Viewer*,Event&,Transformer*,Tool*);
+    // create manipulators for tools that create or reshape.
     virtual Command* InterpretManipulator(Manipulator*);
+    // interpret manipulators for tools that create or reshape.
     PolygonOvComp* GetPolygonOvComp();
+    // return pointer to associated component.
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -67,6 +73,7 @@ protected:
     virtual boolean VertexChanged();
 };
 
+//: "PostScript" view of PolygonOvComp.
 class PolygonPS : public VerticesPS {
 public:
     PolygonPS(OverlayComp* = nil);
@@ -76,8 +83,10 @@ public:
 
 protected:
     virtual const char* Name();
+    // return name to differentiate from other VerticesPS.
 };
 
+//: serialized view of PolygonOvComp.
 class PolygonScript : public VerticesScript {
 public:
     PolygonScript(PolygonOvComp* = nil);
@@ -86,8 +95,10 @@ public:
     virtual boolean IsA(ClassId);
 
     static int ReadPoints(istream&, void*, void*, void*, void*);
+    // read point list and construct an SF_Polygon.
 protected:
     virtual const char* Name();
+    // return name to differentiate from other VerticesScript.
 };
 
 #endif

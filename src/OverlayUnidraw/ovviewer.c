@@ -33,6 +33,7 @@
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
+#include <OverlayUnidraw/ovunidraw.h>
 
 #include <UniIdraw/idclasses.h>
 #include <UniIdraw/ided.h>
@@ -40,6 +41,7 @@
 #include <Unidraw/catalog.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/manips.h>
+#include <Unidraw/statevars.h>
 #include <Unidraw/unidraw.h>
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Graphic/graphic.h>
@@ -52,9 +54,11 @@
 #include <InterViews/transformer.h>
 #include <InterViews/window.h>
 #include <IV-X11/xcanvas.h>
+#include <IV-X11/xwindow.h>
 #include <IV-2_6/InterViews/painter.h>
 #include <IV-2_6/InterViews/sensor.h>
 #include <OS/math.h>
+#include <iostream.h>
 
 /*****************************************************************************/
 
@@ -83,7 +87,9 @@ OverlayViewer::~OverlayViewer () {}
 
 
 void OverlayViewer::Update () {
-    if (_needs_resize)  return;
+    ((OverlayUnidraw*)unidraw)->CurrentViewer(this);
+    if (_needs_resize)
+      return;
 
     OverlaySelection* s = (OverlaySelection*)GetSelection();
     OverlayView* view = GetOverlayView();
@@ -117,6 +123,7 @@ void OverlayViewer::Update () {
 
 void OverlayViewer::Draw() 
 {
+    ((OverlayUnidraw*)unidraw)->CurrentViewer(this);
     OverlaySelection* s = (OverlaySelection*)GetSelection();
 
     _editor->GetWindow()->cursor(hourglass);
@@ -134,6 +141,7 @@ void OverlayViewer::Draw()
 
 void OverlayViewer::Redraw(Coord x0, Coord y0, Coord x1, Coord y1) 
 {
+    ((OverlayUnidraw*)unidraw)->CurrentViewer(this);
     OverlaySelection* s = (OverlaySelection*)GetSelection();
 
     _editor->GetWindow()->cursor(hourglass);
@@ -184,20 +192,8 @@ void OverlayViewer::FinishBuffering(boolean refresh_needed)
     canvas->rep()->xdrawable_ = canvas->rep()->copybuffer_;
 }
 
-static Transformer* ComputeRel (OverlayViewer* v, Transformer* t) {
-    Transformer* rel = new Transformer;
-    OverlayComp* comp = v->GetOverlayView()->GetOverlayComp();
-    comp->GetGraphic()->TotalTransformation(*rel);
-    rel->Postmultiply(t);
-    return rel;
-}  
-
-Transformer* OverlayViewer::GetRel() {
-    return ComputeRel(this, _graphic->GetTransformer());
-}
-
 void OverlayViewer::UseTool (Tool* t, Event& e) {
-    Transformer* relative = ComputeRel(this, _graphic->GetTransformer());
+    Transformer* relative = ComputeGravityRel();
     Manipulator* m = t->CreateManipulator(this, e, relative);
 
     if (m != nil) {
@@ -205,13 +201,17 @@ void OverlayViewer::UseTool (Tool* t, Event& e) {
         Command* cmd = t->InterpretManipulator(m);
 
         if (cmd != nil) {
+#if 0
             cmd->Execute();
-
             if (cmd->Reversible()) {
                 cmd->Log();
 	    } else {
 		delete cmd;
             }
+#else
+	    ((OverlayEditor*)GetEditor())->ExecuteCmd(cmd);
+#endif
+
 	    ((OverlaySelection*)GetSelection())->RepairClear(this, t->IsA(SELECT_TOOL));
         } else 
 	    ((OverlaySelection*)GetSelection())->RepairClear(this, true);
@@ -346,6 +346,20 @@ void OverlayViewer::Manipulate (Manipulator* m, Event& e) {
     GetCanvas()->window()->grab_pointer();
     do {
         Read(e);
+
+	/* correct for motion events that arrive before the */
+        /* GetCanvas()->window()->grab_pointer() takes affect */
+        /* this also has the pleasant side effect of fixing a */
+        /* bug in computing x,y location when the mouse rolls */
+        /* off the canvas */
+	if (e.type() == Event::motion && e.window() && 
+	    e.window() != GetCanvas()->window()) {
+	  WindowRep& ew = *e.window()->rep();
+	  WindowRep& cw = *GetCanvas()->window()->rep();
+	  e.x -=  cw.xpos_-ew.xpos_;
+	  e.y +=  cw.ypos_-ew.ypos_;
+	}
+
 	b = m->Manipulating(e);
     } while (b);
     GetCanvas()->window()->ungrab_pointer();
@@ -382,8 +396,10 @@ void OverlayViewer::DrawingToScreen(float xdraw, float ydraw,
 				    Coord& xscreen, Coord& yscreen) {
   float fxscreen, fyscreen;
   DrawingToScreen(xdraw, ydraw, fxscreen, fyscreen);
-  xscreen = int(fxscreen);
-  yscreen = int(fyscreen);
+//  xscreen = int(fxscreen);
+//  yscreen = int(fyscreen);
+  xscreen = round(fxscreen);
+  yscreen = round(fyscreen);
   return;
   
 }
@@ -474,3 +490,4 @@ void OverlayViewer::SetMagnification (float newmag) {
   }
   Viewer::SetMagnification(newmag);
 }    
+

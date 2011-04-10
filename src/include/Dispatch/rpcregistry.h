@@ -27,9 +27,10 @@
 
 #include <Dispatch/enter-scope.h>
 
+//: name space for finding RPC services
 // Store or retrieve a RPC service's hostname and port number so that
 // clients can contact the RPC service.
-
+// <p><a href=../man3.1/RcpRegistry.html>man page</a>
 class RpcRegistry {
 public:
     static boolean record(const char* path, int port);

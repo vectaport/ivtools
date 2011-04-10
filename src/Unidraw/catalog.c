@@ -830,7 +830,7 @@ void Catalog::WriteObject (void* obj, ClassId base_id, ostream& out) {
             WriteClassId(obj, base_id, out, id);
 
         } else {
-            id = (int) obj;
+            id = (unsigned long) obj;
             _curMap->Register(obj, id);
             WriteClassId(obj, base_id, out, id);
             WriteIt(obj, base_id, out);
@@ -1120,6 +1120,26 @@ PSBrush* Catalog::FindBrush (int p, int w) {
         if (
             !brush->None() && brush->GetLinePattern() == p &&
             brush->Width() == w
+        ) {
+            return brush;
+        }
+    }
+    brush = new PSBrush(p, w);
+    Ref(brush);
+    _brs->Append(new UList(brush));
+
+    return brush;
+}
+
+PSBrush* Catalog::FindBrush (int p, float w) {
+    PSBrush* brush = nil;
+
+    for (UList* u = _brs->First(); u != _brs->End(); u = u->Next()) {
+        brush = getbr(u);
+
+        if (
+            !brush->None() && brush->GetLinePattern() == p &&
+            brush->width() == w
         ) {
             return brush;
         }
@@ -1967,7 +1987,7 @@ public:
     virtual ~ObjectMapElem();
 
     void* GetObject();
-    int GetId();
+    unsigned long GetId();
     ClassId GetOrigClassId();
     const char* GetDelim();
     UArray* GetExtraData();
@@ -2001,7 +2021,7 @@ ObjectMapElem::~ObjectMapElem () {
 }
 
 inline void* ObjectMapElem::GetObject () { return _elem->id(); }
-inline int ObjectMapElem::GetId () { return (int) _elem->tag(); }
+inline unsigned long ObjectMapElem::GetId () { return (unsigned long) _elem->tag(); }
 inline ClassId ObjectMapElem::GetOrigClassId () { return _orig_id; }
 inline const char* ObjectMapElem::GetDelim () { return _delim; }
 inline UArray* ObjectMapElem::GetExtraData () { return _extra_data; }
@@ -2075,7 +2095,7 @@ void* ObjectMap::GetObject (int id) {
     return (idElem == nil) ? nil : idElem->GetObject();
 }
 
-int ObjectMap::GetId (void* obj) {
+unsigned long ObjectMap::GetId (void* obj) {
     ObjectMapElem* objElem = Find(obj);
     return (objElem == nil) ? nil : objElem->GetId();
 }

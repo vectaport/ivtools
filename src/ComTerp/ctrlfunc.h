@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994,1995,1998 Vectaport Inc.
+ * Copyright (c) 1994,1995,1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -28,6 +28,8 @@
 
 class ComTerp;
 
+//: quit command for ComTerp.
+// quit() -- quit this interpreter.
 class QuitFunc : public ComFunc {
 public:
     QuitFunc(ComTerp*);
@@ -38,6 +40,8 @@ public:
 
 };
 
+//: exit command for ComTerp.
+// exit() -- exit entire application.
 class ExitFunc : public ComFunc {
 public:
     ExitFunc(ComTerp*);
@@ -48,6 +52,7 @@ public:
 
 };
 
+//: ; (sequence) operator.
 class SeqFunc : public ComFunc {
 public:
     SeqFunc(ComTerp*);
@@ -58,6 +63,7 @@ public:
 
 };
 
+//: . (dot) operator.
 class DotFunc : public ComFunc {
 public:
     DotFunc(ComTerp*);
@@ -66,16 +72,20 @@ public:
 
 };
 
+//: timer expression command for ComTerp.
+// timeexpr(comstr :sec n) -- command string to execute at intervals.
 class TimeExprFunc : public ComFunc {
 public:
     TimeExprFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(comstr) -- command string to execute at intervals"; }
+      return "%s(comstr :sec n) -- command string to execute at intervals"; }
 
 };
 
+//: run command for ComTerp.
+// run(filename) -- run commands from a file.
 class RunFunc : public ComFunc {
 public:
     RunFunc(ComTerp*);
@@ -86,16 +96,33 @@ public:
 
 };
 
+//: remote execution command for ComTerp.
+// remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then locally 
+// evaluate result string.
 class RemoteFunc : public ComFunc {
 public:
     RemoteFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(hoststr portnum cmdstr) -- remotely evaluate command string then locally evaluate result string"; }
+      return "%s(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string"; }
 
 };
 
+//: eval string command for ComTerp.
+// eval(cmdstr) -- evaluate string as commands.
+class EvalFunc : public ComFunc {
+public:
+    EvalFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(cmdstr) -- evaluate string as commands"; }
+
+};
+
+//: shell escape command for ComTerp.
+// shell(cmdstr) -- evaluate command in shell.
 class ShellFunc : public ComFunc {
 public:
     ShellFunc(ComTerp*);
@@ -103,6 +130,18 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(cmdstr) -- evaluate command in shell"; }
+
+};
+
+//: nil command for ComTerp.
+// nil([...]) -- accept any arguments and return nil.
+class NilFunc : public ComFunc {
+public:
+    NilFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s([...]) -- accept any arguments and return nil"; }
 
 };
 

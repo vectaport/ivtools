@@ -1,42 +1,60 @@
 
-			README for ivtools 0.6
+			README for ivtools 0.7
 
 
-This directory contains a release of ivtools 0.6.7 from Vectaport
+This directory contains a release of ivtools 0.7.9 from Vectaport
 Inc..  You should read the rest of this file for information on what
 ivtools is and the INSTALL file for instructions on how to build it.
-It is known to build with many versions of gcc (2.6.3, 2.7.2, 2.7.2.1)
-and on a variety of Unix'es: SunOS 4.1 (MIT's X11R5), Solaris 2.6
-(X11R6), Irix 5.2 (SGI's X11R5), Linux 1.2 (Slackware 3.0, XFree86
-3.1) and Linux 2.0 (RedHat 4.0 and 4.1).  It has also been built with
-a RedHat 5.1 environment with glibc-2.0.7-17 and egcs-1.0.2-10 (you
-need a symbolic link from gcc to egcs -- and only install the egcs
-RPMs, not the gcc RPMs).  There are contributed configs for HPUX and
+It is known to build with many versions of gcc (<= gcc-2.7.2, >=
+gcc-2.8.1, >= egcs-1.0.1) and on a variety of Unix'es: SunOS 4.1
+(MIT's X11R5), Solaris 2.6 (X11R6), Irix 5.2 (SGI's X11R5), Linux 1.2
+(Slackware 3.0, XFree86 3.1) and Linux 2.* (RedHat 4.0 thru 5.2,
+Debian 2.*).  There are contributed configs for HPUX and Dec
 Alpha. You can pick up Linux-ELF binaries from the ivtools web page
 (http://www.vectaport.com/ivtools/).
 
 The overall copyright and permission notice for ivtools can be found
 in the COPYRIGHT file in this directory.  If you have a question about
-this software, desire to contribute code, found a bug, or wonder how
-to get further assistance, please send e-mail to info@vectaport.com.
+this software, desire to add code, found a bug, want to request a
+feature, or wonder how to get further assistance, please send e-mail
+to ivtools-info@vectaport.com.  To subcribe to the mailing list, send
+an informal request to ivtools-request@vectaport.com.
+
+**NOTE** The COPYRIGHT might be changing slightly with ivtools-0.8, to
+acquire some of the protection of an LGPL style open-source license
+without adding restrictions to purely binary forms of redistribution.
+Take a look at the COPYRIGHT.proposed file and forward comments to
+ivtools-info@vectaport.com
+
+Online documentation (including an FAQ) is available for ivtools at:
+
+	http://www.vectaport.com/ivtools/doc/
+
+Read about finding and generating inline documentation below.  A copy
+of the ivtools html documentation is available for download as well:
+
+	http://www.vectaport.com/pub/src/ivtools-0.7.8-html.tgz
 
 * What is ivtools?:
 
-ivtools is a framework for building custom drawing editors and
-servers.  It is a collection of C++ libraries and example programs
-that incorporates and augments the last source tree for InterViews 3.1
-published by Stanford University and Silicon Graphics (3.2a.tar.Z).
+ivtools is a layered collection of application frameworks for building
+custom drawing editors and spatial data servers.  It incorporates a
+backward compatible copy of the original InterViews and Unidraw class
+libraries and sample programs (from 3.2a.tar.Z), augmented with new
+class libraries and sample programs for a wide variety of generic
+spatial data applications.
 
 ivtools comprises four sets of interrelated capabilities useful for
 application programmers.  The first set is the libraries and example
-programs we borrowed whole from InterViews 3.1.  The second set is for
+programs borrowed whole from InterViews 3.1.  The second set is for
 reusing and extending the light-weight glyph objects of InterViews
 3.1.  The third set reuses and extends the Unidraw library (Unidraw is
 a major portion of the overall InterViews 3.1 release that provides an
 application framework for custom drawing editors).  The fourth set
 adds a command interpreter and server mechanism to ivtools, and
 demonstrates these capabilities with text, glyph, and graphic
-front-ends.
+front-ends.  To get more of an overview of these layers you can read
+http://www.vectaport.com/ivtools/ivtools-layers.html.
 
 These are the libraries and example programs borrowed straight from
 InterViews 3.1:
@@ -68,7 +86,7 @@ part of ivtools:
 
 	Unidraw		copy of Unidraw library from InterViews 3.1
 	UniIdraw        librarification of 3.1 idraw 
-	OverlayUnidraw  extended Unidraw framework
+	OverlayUnidraw  extended Unidraw/idraw framework
 	TopoFace	spatial network library (nodes, edges, faces)
 	GraphUnidraw    graph browser/editor library
 	FrameUnidraw    multi-frame display mechanism
@@ -86,22 +104,111 @@ ivtools:
 	AttrGlyph	glyphs for Attribute library
 	ComTerp		command interpreter objects
 	ComGlyph	glyphs for ComTerp library	
-	ComUnidraw      command interpreter augmentation
-	DrawServ        drawing server framework
+	ComUnidraw      drawing editor with command interpreter
+	DrawServ        drawing server framework with support
+			for graphs and frames.
 
 	comtest		test program
 	comterp 	sample command interpreter 
 	glyphterp	command interpreter user interface
 	comdraw		drawtool with command interpreter
-	drawserv        comdraw with graphs
+	drawserv        comdraw with both graphs and frames.
+
+Note: GraphUnidraw/graphdraw and FrameUnidraw/flipbook have been
+rearranged within the ivtools source tree to take advantage of the
+ComUnidraw framework layer, so they really could be listed in both of
+the previous sections.
 
 There is also a Time library with Date and Time classes borrowed from
 the NIH's class library, and an example program, ivxt, that shows how
 an Xt widget can be wrapped around an InterViews application.
+Finally, there is a collection of utilities (utils) and shell scripts
+(scripts) that augment the drawing editors of ivtools with minor
+capabilities.  See the relevant directories and files for further
+information.
 	
 A series of makefile targets support the checkin of sources to
 cvs/rcs, and their subsequent update and modification.  This requires
-cvs (at least 1.3) available from the Free Software Foundation and ivmkcm-0.7.2 available through http://www.vectaport.com/ivmkcm/
+a copy of cvs available from the Free Software Foundation and
+ivmkcm-0.7.2 available through http://www.vectaport.com/ivmkcm/
+
+* Finding and Generating Inline Documentation
+
+Extensive documentation is embedded within the ivtools source tree,
+including most all of the documentation originally available for
+InterViews 3.1 and Unidraw.  Here is a list:
+
+	- README/man pages for executable programs
+
+	Within most directories that contain an executable program
+	(a main.c) you'll find a README that explains something
+	about the program, how to use it, what it does, what
+	arguments it takes.  In the case of the drawing editors
+	and command interpreters this README has been further
+	processed into a man page, which can be found in its
+	uninstalled state in the src/man/man1 directory or wherever 
+	you elect to install them.
+
+	- HTML class documentation
+
+	Many of the C++ class libraries of ivtools are documented 
+	using comments in the header files (the .h files) that can
+	be extracted using PERCEPS, a Perl documentation generator for
+	C++ (http://friga.mer.utexas.edu/mark/perl/perceps/).
+
+	See src/html/README for instructions on auto-generating these
+	web pages yourself, or see the result on-line at:
+
+		http://www.vectaport.com/ivtools/doc/classes/
+
+	- InterViews 3.1 and Unidraw man pages
+
+	All the original man pages from InterViews 3.1 and Unidraw have
+	been preserved, and can be found in src/man/man3, or where ever
+	you elect to install them.  They also can be browsed online at:
+
+		http://www.vectaport.com/ivtools/doc/man3.1/
+
+	- InterViews 3.1 reference manual 
+
+	The original reference manual for InterViews 3.1 can be found in
+	PostScript form at src/man/refman3.1/refman.PS.  It is also
+	found in page-indexable online form at:
+
+		http://www.vectaport.com/ivtools/doc/refman3.1/
+
+
+* Building on top of ivtools
+
+Copies from the ivtools FAQ: 
+
+	http://www.vectaport.com/ivtools/faq.html#standalonedevel
+
+Q: How do I set up a stand-alone program or source tree on top of ivtools
+for development purposes?
+
+A: If you are writing a stand-alone program that will exist in a
+single directory, simply copy an appropriate Imakefile and main.c from
+a InterViews or ivtools example program directory, modify accordingly,
+then use "ivmkmf -a" to generate the Makefile. Make sure you are using
+a fresh ivmkmf that corresponds to your installation of ivtools. An
+example of this is the comtop sample program, a stand-alone program
+separate from ivtools that builds on top of the comterp command
+interpreter mechanism.  
+
+** comtop.tgz is now part of the ivtools distribution **
+
+If you are setting up an entire source tree with both class libraries
+and executable programs, you will want to get started by replicating
+an equivalent source tree (i.e. ivmaps) and change or rename all
+directories or files as appropriate. At the moment ivmaps does not
+make use of the autoconf configure script mechanism recently
+incorporated into ivtools. But it is possible that the patches that
+will incorporate these mechanisms into ivmaps in the future can do the
+same to another source tree of similar lineage.
+
+** read more on ivmaps at http://www.vectaport.com/ivmaps/ **
+
 
 * Acknowledgements:
 
@@ -113,6 +220,7 @@ ivtools programmers at Vectaport:
 ivtools programmers at large:
 
 	Rick Kissh
+	Eric Kahler
 	Brian Hogencamp
 
 InterViews 3.1 programmers that we know of:
@@ -123,9 +231,40 @@ InterViews 3.1 programmers that we know of:
 	John Interrante
 	Scott Stanton
 	Steven Tang
+
+ivtools can be built to leverage a variety of separate third-party
+libraries:
+
+	* clippoly from Klamer Schutte for polygon intersection
+	(licensed under the LGPL)
+
+	* ACE from Doug Schmidt for middleware networking frameworks
+	(licensed similar to X Windows)
+
+	* IUE (the Image Understanding Environment) from Amerinex
+	(half public-domain, half licensed similar to X Windows)
+
+ivtools detects and uses at runtime a variety of third-party executables:
+
+	* qhull from the University of Minnesota Geometry Center
+
+	* pstoedit from Wolfgang Glunz
+
+	* ghostscript from L. Peter Deutsch and Aladdin Systems
+
+	* djpeg from the JPEG group
+
+	* giftopnm from Jef Poskanzer's pbmplus toolkit
+	(a copy of anytopnm from the same toolkit is incorporated into
+	the scripts directory)
+
+OverlayUnidraw incorporates Version 3.1 of a "C++ Vector and Matrix
+Algebra routnes" (algebra3.h) from Jean-Francois Doue.
 	
 HPUX (HP-800) config contributed by Neal Becker.  ALPHA config
-contributed by Bruno Delfosse at Thomson CSF.
+contributed by Bruno Delfosse at Thomson CSF.  A lot of feedback on
+Solaris 2.6 building from M. Rasit Eskicioglu at the University of
+Alberta.
 
 Patches to iv-3.2a incorporated from the PDP++ distribution from
 Carnegie Mellon University Department of Psychiatry, Randall
@@ -135,12 +274,13 @@ Patches for Debian 2.0 packaging incorporated from Guenter Geiger.
 This work included the conversion of drawtool, flipbook, and graphdraw
 README's to man page format.
 
-Patch for iv-3.1 shift key handling from Doug Scott.
+Patch for iv-3.1 shift key handling from Doug Scott, the author of
+MiXViews.
 
-The InterViews libraries (Dispatch, IV, IV-2_6, IV-X11, InterViews,
-OS, TIFF) and example programs (iclass, idemo, idraw) are copied from
-the InterViews 3.1 sources.  Here is the aggregrate copyright notice
-for that software package:
+Certain InterViews libraries (Dispatch, IV, IV-2_6, IV-X11,
+InterViews, OS, TIFF, Unidraw) and example programs (iclass, idemo,
+idraw) are copied from the InterViews 3.1 sources.  Here is the
+aggregrate copyright notice for that software package:
 
 /*
  * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
@@ -259,18 +399,27 @@ and published with this notice:
      RESTRICTIONS ON ITS USE, NOW OR SUBSEQUENTLY.
 
 The graylevel raster and painting mechanisms of OverlayUnidraw were
-originated by Richard B. Kissh under contract to Vectaport Inc.
+originated by Richard B. Kissh under contract to Vectaport Inc, as
+well as the shared memory rasters and asychronous incremental download
+of rasters.
 
 The ComUtil library was originally developed at Triple Vision
 Inc. under NSF Grant ISI-8521259 (authors/contributors: Robert
 C. Fitch, Richard A. Fundakowski, Robert K. Graber, Scott
 E. Johnston).
 
-ivtools has been developed by Vectaport Inc. (P.O. Box 7141, Redwood
-City, CA 94063), with additional support from IET Inc.  (P.O.  Box
-112450, Campbell, CA 95011) in the form of ARPA subcontracts
-(DACA76-93-C-0025 and DACA76-97-C-0005), as well as support from
-Applied Sciences Inc, San Francisco, CA, in the form of a subcontract
-for a NASA Phase II SBIR.
+The ivdl URL downloading utility was developed by Eric F. Kahler under
+contract to Vectaport Inc.
 
+Keung Chi Ng of IET Inc. has provided a good deal of feedback on
+ivtools over the years, and has assisted in demonstrating the
+viability of the application frameworks by developing a variety of
+vertical applications on top of OverlayUnidraw, FrameUnidraw, and
+GraphUnidraw.
 
+The balance of ivtools has been developed by Vectaport Inc. (P.O. Box
+7141, Redwood City, CA 94063), with additional support from IET Inc.
+(P.O.  Box 112450, Campbell, CA 95011) in the form of ARPA
+subcontracts (DACA76-93-C-0025 and DACA76-97-C-0005), as well as
+support from Applied Sciences Inc, San Francisco, CA, in the form of a
+subcontract for a Phase II SBIR from NASA Ames.

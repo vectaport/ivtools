@@ -54,7 +54,7 @@ public: \
     void insert(Key1, Key2, Value); \
     boolean find(Value&, Key1, Key2); \
     void remove(Key1, Key2); \
-private: \
+protected: \
     friend class Table2Iterator(Table2); \
 \
     int size_; \
@@ -65,9 +65,7 @@ private: \
 }; \
 \
 struct Table2Entry(Table2) { \
-private: \
-friend class Table2; \
-friend class Table2Iterator(Table2); \
+public: \
 \
     Key1 key1_; \
     Key2 key2_; \
@@ -84,7 +82,7 @@ public: \
     Value& cur_value(); \
     boolean more(); \
     boolean next(); \
-private: \
+protected: \
     Table2Entry(Table2)* cur_; \
     Table2Entry(Table2)** entry_; \
     Table2Entry(Table2)** last_; \
