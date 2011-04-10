@@ -1,3 +1,14 @@
+ivtools (1.2.6-1+nmu1) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * 48_gcc40_int_pointer_errors.diff: New patch to fix some gcc40 errors.
+    + A pointer does not fit in an integer on 64 bit arches. A pointer
+      is 64 bit, an integer 32 bit. Use (u)intptr_t instead of
+      (unsigned) int (Closes: #545834).
+  * debian/rules: Remove empty -p parameter to dh_installdocs.
+
+ -- Agustin Martin Domingo <agmartin@debian.org>  Tue, 29 Sep 2009 13:02:03 +0200
+
 ivtools (1.2.6-1) unstable; urgency=low
 
   * QA upload.
@@ -132,7 +143,7 @@ ivtools (1.0.7-2) unstable; urgency=low
 
 ivtools (1.0.7-1) unstable; urgency=low
 
-  * New upstream release. (Thanks to martin _at_ tuxfamily.org for his 
+  * New upstream release. (Thanks to martin _at_ tuxfamily.org for his
     contribution)
 
  -- Guenter Geiger (Debian/GNU) <geiger@debian.org>  Wed, 04 Jun 2003 17:13:12 +0200
@@ -159,11 +170,11 @@ ivtools (0.9.2-4) unstable; urgency=low
 
 ivtools (0.9.2-3) unstable; urgency=low
 
-  * Build dependency on libace5.1-dev changed to libace5.2-dev 
+  * Build dependency on libace5.1-dev changed to libace5.2-dev
   (closes: #141955)
 
  -- Guenter Geiger (Debian/GNU) <geiger@debian.org>  Wed, 10 Apr 2002 10:53:15 +0200
- 
+
 ivtools (0.9.2-2) unstable; urgency=low
 
   * renamed tiftopnm, pnmtopgm (closes: #42665)
@@ -172,16 +183,16 @@ ivtools (0.9.2-2) unstable; urgency=low
 
 ivtools (0.9.2-1) unstable; urgency=low
 
-  * fixed broken libtiff build dependency  (closes: 93070), added 
+  * fixed broken libtiff build dependency  (closes: 93070), added
     changes to description suggested by Scott Johnston <scott@accom.com>
      ivtools-bin now only adds drawserv to menu, which launches all other
-    applications (closes: 90443)                                        
+    applications (closes: 90443)
 
  -- Guenter Geiger <geiger@debian.org>  Mon, 6 Apr 2001 11:34:03 +0200
 
 ivtools (0.9.1-3) unstable; urgency=low
 
-  * added  debhelper, xutils, libtiff3-dev, libjpeg62-dev, zlib1g-dev, 
+  * added  debhelper, xutils, libtiff3-dev, libjpeg62-dev, zlib1g-dev,
     xlibs-dev, libace5.1-dev to build depends, (closes: #89486, 89861)
 
  -- Guenter Geiger <geiger@debian.org>  Mon, 13 Mar 2001 12:30:00 +0100
@@ -206,7 +217,7 @@ ivtools (0.8.3-1) unstable; urgency=low
 
 ivtools (0.7.9-6) frozen; urgency=low
 
-  * fixed build errors closing Bug#57250 for m68k 
+  * fixed build errors closing Bug#57250 for m68k
 
  -- Guenter Geiger <geiger@debian.org>  Sun, 13 Feb 2000 00:24:21 +0100
 
@@ -218,7 +229,7 @@ ivtools (0.7.9-5) frozen unstable; urgency=low
 
 ivtools (0.7.9-4) unstable; urgency=low
 
-  * added /usr/doc links for unidraw and bin, changed priority to optional  
+  * added /usr/doc links for unidraw and bin, changed priority to optional
 
  -- Guenter Geiger <geiger@debian.org>  Wed, 24 Nov 1999 13:10:01 +0100
 
@@ -278,7 +289,7 @@ ivtools (0.6.7-2) unstable; urgency=low
 
 ivtools (0.6.7-1) unstable; urgency=low
 
-  * New upstream maintainer version. Deals again with Bug#23286.      
+  * New upstream maintainer version. Deals again with Bug#23286.
 
  -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Thu, 13 Aug 1998 20:00:00 +0100
 

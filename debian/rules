@@ -146,7 +146,7 @@ binary-arch: build install
 	-rm -f $(CURDIR)/debian/libiv-unidraw1/usr/lib/libIV.so.*
 	#Remove ivmkmf from ivtools-bin package.
 	-rm -f $(CURDIR)/debian/ivtools-bin/usr/bin/ivmkmf
-	dh_installdocs -p
+	dh_installdocs
 #	dh_installexamples -a
 	dh_installmenu ivtools-bin
 	dh_installman -p$(PKG_BIN) -Xsrc/man/man1/ivmkmf.1

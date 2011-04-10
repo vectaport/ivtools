@@ -1,0 +1,31 @@
+Index: ivtools-1.2.6/src/Attribute/attrvalue.c
+===================================================================
+--- ivtools-1.2.6.orig/src/Attribute/attrvalue.c	2008-02-12 19:38:19.000000000 +0100
++++ ivtools-1.2.6/src/Attribute/attrvalue.c	2009-09-27 23:56:17.000000000 +0200
+@@ -357,7 +357,7 @@
+     case AttributeValue::StringType:
+ 	return (boolean) int_val()!=-1;
+     case AttributeValue::ObjectType:
+-	return (boolean) obj_val();
++	return (intptr_t) obj_val();
+     case AttributeValue::StreamType:
+ 	return stream_mode() != 0;
+     default:
+@@ -516,7 +516,7 @@
+     case AttributeValue::SymbolType:
+ 	return (unsigned int) int_val();
+     case AttributeValue::ObjectType:
+-        return (unsigned int)obj_val();
++        return (uintptr_t) obj_val();
+     default:
+ 	return 0;
+     }
+@@ -549,7 +549,7 @@
+     case AttributeValue::SymbolType:
+ 	return int_ref();
+     case AttributeValue::ObjectType:
+-        return (int)obj_val();
++      return (intptr_t) obj_val();
+     default:
+ 	return 0;
+     }

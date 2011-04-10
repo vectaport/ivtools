@@ -39,3 +39,4 @@
 45_site_def_LINUX.diff
 46_comdraw_crash.diff
 47_manpages_whatis.diff
+48_gcc40_int_pointer_errors.diff
