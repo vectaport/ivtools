@@ -7,6 +7,8 @@
 # Uncomment this to turn on verbose mode. 
 #export DH_VERBOSE=1
 
+PKGDEVEL=ivtools-dev
+PKG_BIN=ivtools-bin
 
 # libace still doesn work on Alpha ...
 # I have invested too much time already figuring out
@@ -32,8 +34,9 @@ build-stamp:
 
 	./configure \
 		--x-includes=/usr/X11R6/include \
-		 --x-libraries=/usr/X11R6/lib \
-		--prefix=`pwd`/debian/tmp/usr/X11R6 \
+		--x-libraries=/usr/X11R6/lib \
+		--prefix=`pwd`/debian/tmp/usr \
+		--mandir=`pwd`/debian/tmp/usr/share/man \
 		$(ACE)
 
 	#  Compile the packages
@@ -50,10 +53,14 @@ build-stamp:
 	# build environment
 	# -----------------------------------------------------------
 
-
 	./configure --x-includes=/usr/X11R6/include \
- --x-libraries=/usr/X11R6/lib --prefix=/usr/X11R6  
-	cd src/scripts && make ARCH=LINUX clean && make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`'\
+		    --x-libraries=/usr/X11R6/lib \
+		    --prefix=/usr \
+		    --mandir=`pwd`/debian/tmp/usr/share/man
+
+	cd src/scripts && \
+	  make ARCH=LINUX clean && \
+	  make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`'\
  MAKEMAKESPEC='ARCH=LINUX'
 	touch build-stamp
 
@@ -98,10 +105,12 @@ install-stamp: build-stamp
 	# Add here commands to install the package into debian/tmp.
 	make install ARCH=LINUX DESTDIR=`pwd`/debian/tmp
 
-#	ln -s ivtools-interviews `pwd`/debian/tmp/usr/doc/ivtools-dev
-	ln -s ivtools-interviews `pwd`/debian/tmp/usr/share/doc/ivtools-bin
-	ln -s ivtools-interviews `pwd`/debian/tmp/usr/share/doc/ivtools-unidraw
-	cp debian/template `pwd`/debian/tmp/usr/X11R6/lib/ivtools/config/
+#   Make sure dir is present
+	mkdir -p `pwd`/debian/tmp/usr/share/doc
+#	ln -s libiv1 `pwd`/debian/tmp/usr/share/doc/ivtools-dev
+	ln -s libiv1 `pwd`/debian/tmp/usr/share/doc/ivtools-bin
+	ln -s libiv1 `pwd`/debian/tmp/usr/share/doc/libiv-unidraw1
+	cp debian/template `pwd`/debian/tmp/usr/lib/ivtools/config/
 	-(cd src/glyphs && make clean)
 	# don't include the scripts
 
@@ -109,7 +118,8 @@ install-stamp: build-stamp
 #	install -d `pwd`/debian/tmp/usr/doc/ivtools-doc
 #	cp src/man/refman3.1/refman.PS `pwd`/debian/tmp/usr/doc/ivtools-dev/
 
-	dh_movefiles 
+	dh_movefiles -p$(PKGDEVEL)
+	dh_movefiles -N$(PKGDEVEL)
 #
 #       remove the directories that are installed into /usr/X11R6/include
 #
@@ -117,10 +127,10 @@ install-stamp: build-stamp
 #
 #       ivtools installs the libACE link, we remove it ... hack
 #
-	-rm `pwd`/debian/ivtools-dev/usr/X11R6/lib/libACE.so
+	-rm `pwd`/debian/ivtools-dev/usr/lib/libACE.so
 
-	chmod a-x debian/ivtools-dev/usr/X11R6/lib/ivtools/Idemo
-	chmod a-x debian/ivtools-dev/usr/X11R6/lib/ivtools/comterp.err
+	chmod a-x debian/ivtools-dev/usr/lib/ivtools/Idemo
+	chmod a-x debian/ivtools-dev/usr/lib/ivtools/comterp.err
 
 	touch install-stamp
 
@@ -151,21 +161,23 @@ binary-arch: build install
 #	dh_testversion
 	dh_testdir -a
 	dh_testroot -a
-	dh_installdocs -p ivtools-interviews $(DOCS)
+	dh_installdocs -p libiv1 $(DOCS)
 #	dh_installexamples -a
 	dh_installmenu ivtools-bin
 #	dh_installemacsen -a
 #	dh_installinit -a
 #	dh_installcron -a
 #	dh_installmanpages -p ivtools-bin
+	dh_installman -p$(PKG_BIN) -Xsrc/man/man1/ivmkmf.1
+	dh_installman -N$(PKG_BIN)
 #	dh_undocumented
-	dh_installchangelogs -p ivtools-interviews
+	dh_installchangelogs -p libiv1
 	dh_installmime -a
 	dh_strip -a
 	dh_compress -a
 	dh_fixperms -a
-	dh_installdeb -a
 	dh_makeshlibs -a
+	dh_installdeb -a
 	dh_shlibdeps -a
 	dh_gencontrol -a
 	dh_md5sums -a

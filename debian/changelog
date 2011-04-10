@@ -1,3 +1,26 @@
+ivtools (1.1.3-5.1) unstable; urgency=low
+
+  * Non-maintainer upload.
+
+  [Amaya Rodrigo Sastre]
+  * Remove Build-Dependency on xlibs-dev (Closes: #346695).
+  * Remove Dependency on xlibs-dev (Closes: #347154).
+
+  [Agustin Martin]
+  * Make sure things are installed under /usr/, not /usr/X11R6.
+  * Use dh_installman to properly install manpages.
+
+  [Christoph Berg]
+  * Rename ivtools-interviews to libiv1 (Closes: #145887, #337593, #339192).
+    Rename ivtools-unidraw to libiv-unidraw1.
+    (No Conflicts/Replaces necessary because of the X11R7 transition.)
+  * Call dh_makeshlibs before dh_installdeb (Closes: #224712, #282056).
+  * Divert dclock's /usr/bin/dclock to dclock.dclock (Closes: #323583).
+  * Fix typos in Description (Closes: #124108, #277235).
+  * Bump Standards-Version.
+
+ -- Christoph Berg <myon@debian.org>  Tue,  2 May 2006 15:35:53 +0200
+
 ivtools (1.1.3-5) unstable; urgency=low
 
   * Applied gcc4 patch (thanks to Andreas Jochens)

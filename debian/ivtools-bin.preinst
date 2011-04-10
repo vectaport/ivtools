@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case $1 in
+	install|upgrade)
+	dpkg-divert --package ivtools-bin --divert /usr/bin/dclock.dclock \
+	                                  --rename /usr/bin/dclock
+	dpkg-divert --package ivtools-bin --divert /usr/share/man/man1/dclock.dclock.1.gz \
+	                                  --rename /usr/share/man/man1/dclock.1.gz
+	;;
+esac
+
+#DEBHELPER#

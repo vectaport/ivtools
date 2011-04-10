@@ -1,0 +1,10 @@
+#!/bin/sh
+
+case $1 in
+	remove)
+	dpkg-divert --package ivtools-bin --rename --remove /usr/bin/dclock
+	dpkg-divert --package ivtools-bin --rename --remove /usr/share/man/man1/dclock.1.gz
+	;;
+esac
+
+#DEBHELPER#

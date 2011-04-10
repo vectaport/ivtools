@@ -2,7 +2,7 @@
 /* (unless this file *is* config.defs.in :) */
 
 #if !NO
-#define Prefix /usr/X11R6
+#define Prefix /usr
 #define BinDir Prefix/bin
 #define LibDir Prefix/lib
 #define LibAllDir Prefix/lib/ivtools
@@ -10,7 +10,7 @@
 #define ConfigDir LibAllDir/config
 #define ManDir Prefix/man
 #else
-#define Prefix /usr/X11R6
+#define Prefix /usr
 #define BinDir Prefix/bin/ivtools
 #define LibDir Prefix/lib/ivtools
 #define LibAllDir Prefix/lib/ivtools
@@ -65,6 +65,6 @@
 #undef UseRpath
 #define UseRpath NO
 
-#define IvToolsSrcRoot /home/geiger/demudi/recompile/ivtools-1.1.3
+#define IvToolsSrcRoot /home/cb/debian/nmu/ivtools/ivtools-1.1.3
 
 

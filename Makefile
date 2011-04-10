@@ -18,7 +18,7 @@
 
     APP_CCINCLUDES = $(NORM_CCINCLUDES)
 
-             IVTOOLSSRC = /home/geiger/demudi/recompile/ivtools-1.1.3/src
+             IVTOOLSSRC = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/src
 
 LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
 LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
@@ -93,7 +93,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
            CCSUFFIX = c
             CDRIVER = gcc
             CSUFFIX = c
-                SRC = /home/geiger/demudi/recompile/ivtools-1.1.3/.
+                SRC = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
@@ -207,11 +207,11 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = groff
 
-                TOP = /home/geiger/demudi/recompile/ivtools-1.1.3
+                TOP = /home/cb/debian/nmu/ivtools/ivtools-1.1.3
              RELTOP = .
-        CURRENT_DIR = /home/geiger/demudi/recompile/ivtools-1.1.3
+        CURRENT_DIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3
 
-              IVSRC = /home/geiger/demudi/recompile/ivtools-1.1.3/src
+              IVSRC = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/src
              BINSRC = $(IVSRC)/bin
           CONFIGSRC = $(RELTOP)/config
              INCSRC = $(IVSRC)/include
@@ -219,17 +219,17 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/bin
-          CONFIGDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib/ivtools/config
-             INCDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/include
-             LIBDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib
-          LIBABSDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib
-          LIBALLDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib/ivtools
-             MANDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/man
+             BINDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/bin
+          CONFIGDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
+             INCDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/include
+             LIBDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib
+          LIBABSDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib
+          LIBALLDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
+             MANDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/man
 
-       ABSCONFIGDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib/ivtools/config
-          ABSLIBDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib
-       ABSLIBALLDIR = /home/geiger/demudi/recompile/ivtools-1.1.3/debian/tmp/usr/X11R6/lib/ivtools
+       ABSCONFIGDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
+          ABSLIBDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib
+       ABSLIBALLDIR = /home/cb/debian/nmu/ivtools/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
        RELLIBALLDIR = $(TOP)/lib/ivtools
          XCONFIGDIR = /usr/X11R6/lib/X11/config
             XINCDIR = /usr/X11R6/include

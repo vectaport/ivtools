@@ -1,5 +1,5 @@
-application/ov-idraw; /usr/X11R6/bin/drawtool '%s'; priority=0
-application/frame-idraw; /usr/X11R6/bin/flipbook '%s'; priority=0
-application/graph-idraw; /usr/X11R6/bin/graphdraw '%s'; priority=0
+application/ov-idraw; /usr/bin/drawtool '%s'; priority=0
+application/frame-idraw; /usr/bin/flipbook '%s'; priority=0
+application/graph-idraw; /usr/bin/graphdraw '%s'; priority=0
 
 
