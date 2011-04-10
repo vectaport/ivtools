@@ -49,9 +49,8 @@ install:: Concat(lib,libname.so.rev)                                    @@\
 	MakeDir(dest)                                                   @@\
 	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
 	-@if [ -f dest/Concat(lib,libname.so) ]; then exit 0; else \    @@\
-	pushd dest; \                                                   @@\
-	$(LN) Concat(lib,libname.so.rev) Concat(lib,libname.so.maj);\   @@\
-	$(LN) Concat(lib,libname.so.maj) Concat(lib,libname.so); popd; fi
+	$(LN) Concat(lib,libname.so.rev) dest/Concat(lib,libname.so.maj);\   @@\
+	$(LN) Concat(lib,libname.so.maj) dest/Concat(lib,libname.so); fi
 
 
 

@@ -33,8 +33,8 @@ build-stamp:
 	cp -p /usr/share/misc/config.* src/scripts/
 
 	./configure \
-		--x-includes=/usr/X11R6/include \
-		--x-libraries=/usr/X11R6/lib \
+		--x-includes=/usr/include \
+		--x-libraries=/usr/lib \
 		--prefix=`pwd`/debian/tmp/usr \
 		--mandir=`pwd`/debian/tmp/usr/share/man \
 		$(ACE)
@@ -53,14 +53,14 @@ build-stamp:
 	# build environment
 	# -----------------------------------------------------------
 
-	./configure --x-includes=/usr/X11R6/include \
-		    --x-libraries=/usr/X11R6/lib \
+	./configure --x-includes=/usr/include \
+		    --x-libraries=/usr/lib \
 		    --prefix=/usr \
 		    --mandir=`pwd`/debian/tmp/usr/share/man
 
 	cd src/scripts && \
 	  make ARCH=LINUX clean && \
-	  make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/X11R6/lib/ivtools/config -DCURDIR=\`pwd\`'\
+	  make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/lib/ivtools/config -DCURDIR=\`pwd\`'\
  MAKEMAKESPEC='ARCH=LINUX'
 	touch build-stamp
 
@@ -121,9 +121,9 @@ install-stamp: build-stamp
 	dh_movefiles -p$(PKGDEVEL)
 	dh_movefiles -N$(PKGDEVEL)
 #
-#       remove the directories that are installed into /usr/X11R6/include
+#       remove the directories that are installed into /usr/include
 #
-	-rm -r `pwd`/debian/tmp/usr/X11R6/include
+	-rm -r `pwd`/debian/tmp/usr/include
 #
 #       ivtools installs the libACE link, we remove it ... hack
 #
