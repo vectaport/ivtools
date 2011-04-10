@@ -24,6 +24,8 @@ New Forward      F        create new frame in front of the current
                           frame and make it the current frame
 New Backward     B        create new frame in back of the current
                           frame and make it the current frame
+Copy Forward     X        copy current frame in front of itself
+Copy Backward    Y        copy current frame in back of itself
 Delete           D        delete current frame (the zeroth frame
                           can never be deleted)
 

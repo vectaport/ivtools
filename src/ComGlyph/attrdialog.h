@@ -64,7 +64,8 @@ protected:
     friend class AttrDialog;
     AttrDialogImpl();
 
-    void initterp(ComTerpServ*);
+    InputHandler* init(TerpDialog*, Style*, boolean session = false, 
+        int argc = -1, char** argv = nil);
 
     /* general buttons */
     void eval();

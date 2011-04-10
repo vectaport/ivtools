@@ -115,6 +115,7 @@ public:
     virtual void GrowIndexedPic(OverlaysComp*);
     virtual OverlaysComp* GetIndexedPic(int);
 
+    virtual void ResetIndexedGS();
 protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);
@@ -123,7 +124,7 @@ protected:
 protected:
     static ParamList* _frame_idraw_params;
     float _xincr, _yincr;
-    Picture* _grlist;
+    Picture* _gslist;
     MultiLineObj** _ptsbuf;
     int _ptsnum;
     int _ptslen;

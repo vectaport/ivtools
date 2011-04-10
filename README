@@ -2,15 +2,18 @@
 			README for ivtools 0.6
 
 
-This directory contains a release of the ivtools 0.6.2 from Vectaport
+This directory contains a release of ivtools 0.6.7 from Vectaport
 Inc..  You should read the rest of this file for information on what
 ivtools is and the INSTALL file for instructions on how to build it.
 It is known to build with many versions of gcc (2.6.3, 2.7.2, 2.7.2.1)
-and on a variety of Unix'es: SunOS 4.1 (MIT's X11R5), Solaris 5.2
+and on a variety of Unix'es: SunOS 4.1 (MIT's X11R5), Solaris 2.6
 (X11R6), Irix 5.2 (SGI's X11R5), Linux 1.2 (Slackware 3.0, XFree86
-3.1) and Linux 2.0 (RedHat 4.0 and 4.1).  There is also a contributed
-config for HPUX. You can pick up ELF binaries for Linux from the
-ivtools web page (http://www.vectaport.com/ivtools/).
+3.1) and Linux 2.0 (RedHat 4.0 and 4.1).  It has also been built with
+a RedHat 5.1 environment with glibc-2.0.7-17 and egcs-1.0.2-10 (you
+need a symbolic link from gcc to egcs -- and only install the egcs
+RPMs, not the gcc RPMs).  There are contributed configs for HPUX and
+Alpha. You can pick up Linux-ELF binaries from the ivtools web page
+(http://www.vectaport.com/ivtools/).
 
 The overall copyright and permission notice for ivtools can be found
 in the COPYRIGHT file in this directory.  If you have a question about
@@ -21,7 +24,7 @@ to get further assistance, please send e-mail to info@vectaport.com.
 
 ivtools is a framework for building custom drawing editors and
 servers.  It is a collection of C++ libraries and example programs
-that incorporates and evolves the last source tree for InterViews 3.1
+that incorporates and augments the last source tree for InterViews 3.1
 published by Stanford University and Silicon Graphics (3.2a.tar.Z).
 
 ivtools comprises four sets of interrelated capabilities useful for
@@ -93,24 +96,24 @@ ivtools:
 	drawserv        comdraw with graphs
 
 There is also a Time library with Date and Time classes borrowed from
-the NIH's class library.
+the NIH's class library, and an example program, ivxt, that shows how
+an Xt widget can be wrapped around an InterViews application.
 	
 A series of makefile targets support the checkin of sources to
 cvs/rcs, and their subsequent update and modification.  This requires
-cvs (at least 1.3) available from the Free Software Foundation and
-ivmkcm-0.7.1 available through http://www.vectaport.com/ivmkcm/
+cvs (at least 1.3) available from the Free Software Foundation and ivmkcm-0.7.2 available through http://www.vectaport.com/ivmkcm/
 
 * Acknowledgements:
 
 ivtools programmers at Vectaport:
 
-	Scott Johnston (johnston at vectaport.com)
-	Jorge Gautier (jgautier at vectaport.com)
+	Scott Johnston
+	Jorge Gautier
 
 ivtools programmers at large:
 
-	Brian Hogencamp (brian at ciderpress.com)
-	Rick Kissh (rkissh at access.digex.net)
+	Rick Kissh
+	Brian Hogencamp
 
 InterViews 3.1 programmers that we know of:
 
@@ -118,14 +121,21 @@ InterViews 3.1 programmers that we know of:
 	John Vlissides
 	Paul Calder
 	John Interrante
+	Scott Stanton
 	Steven Tang
 	
-First brought up on HPUX (HP-800) by Neal Becker (neal at ctd.comsat.com).
+HPUX (HP-800) config contributed by Neal Becker.  ALPHA config
+contributed by Bruno Delfosse at Thomson CSF.
 
-Patches for Debian 2.0 packaging incorporated from Guenter Geiger
-(geiger at iem.mhsg.ac.at).
+Patches to iv-3.2a incorporated from the PDP++ distribution from
+Carnegie Mellon University Department of Psychiatry, Randall
+C. O'Reilly, et. al.
 
-Patch for iv-3.1 shift key handling from 
+Patches for Debian 2.0 packaging incorporated from Guenter Geiger.
+This work included the conversion of drawtool, flipbook, and graphdraw
+README's to man page format.
+
+Patch for iv-3.1 shift key handling from Doug Scott.
 
 The InterViews libraries (Dispatch, IV, IV-2_6, IV-X11, InterViews,
 OS, TIFF) and example programs (iclass, idemo, idraw) are copied from
@@ -187,9 +197,8 @@ copyright and permission notice:
  */
 
 The strchooser example and StrChooser class were contributed by David
-B. Hollenbeck (dave at fremenworks.org), as well as the
-glyph-based Motif-look pull-down menus of OverlayUnidraw.  Here is his
-copyright notice:
+B. Hollenbeck, as well as the glyph-based Motif-look pull-down menus
+of OverlayUnidraw.  Here is his copyright notice:
 
 /*
  * Copyright (c) 1993 David B. Hollenbeck
@@ -215,10 +224,9 @@ copyright notice:
  */
 
 The scrollable example is based on code from Chen Wang
-(chen at cs.toronto.edu).
 
 The text-editor example program is by Jan Andersson of Torpa Konsult
-AB (janne at torpa.se).  Here is that copyright notice:
+AB.  Here is that copyright notice:
 
 //
 // Simple Text Editor
@@ -250,17 +258,19 @@ and published with this notice:
      PUBLIC FOR USE WITHOUT A COPYRIGHT NOTICE, AND THERE ARE NO
      RESTRICTIONS ON ITS USE, NOW OR SUBSEQUENTLY.
 
+The graylevel raster and painting mechanisms of OverlayUnidraw were
+originated by Richard B. Kissh under contract to Vectaport Inc.
+
 The ComUtil library was originally developed at Triple Vision
 Inc. under NSF Grant ISI-8521259 (authors/contributors: Robert
 C. Fitch, Richard A. Fundakowski, Robert K. Graber, Scott
 E. Johnston).
 
-ivtools has been developed with partial support from IET Inc.  (P.O.
-Box 112450, Campbell, CA 95011) in the form of an ARPA subcontract
-(Prime Contract Number DACA76-93-C-0025) to Vectaport Systems
-Inc. (P.O. Box 471801, San Francisco, CA 94147).
+ivtools has been developed by Vectaport Inc. (P.O. Box 7141, Redwood
+City, CA 94063), with additional support from IET Inc.  (P.O.  Box
+112450, Campbell, CA 95011) in the form of ARPA subcontracts
+(DACA76-93-C-0025 and DACA76-97-C-0005), as well as support from
+Applied Sciences Inc, San Francisco, CA, in the form of a subcontract
+for a NASA Phase II SBIR.
 
-ivtools has also been developed with partial support from Applied
-Sciences Inc, San Francisco, CA, in the form of a subcontract for a
-NASA Phase II SBIR.
 

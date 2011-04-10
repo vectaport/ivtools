@@ -76,11 +76,11 @@ protected:
   // command for timeoutscript execution
 };
 
-// Our Reactor Singleton.
+// A Reactor Singleton.
 typedef ACE_Singleton<ACE_Reactor, ACE_Null_Mutex> 
 	COMTERP_REACTOR;
 
-// Our ACE_Test_and_Set Singleton.
+// An ACE_Test_and_Set Singleton.
 typedef ACE_Singleton<ACE_Test_and_Set <ACE_Null_Mutex, sig_atomic_t>, ACE_Null_Mutex> 
 	COMTERP_QUIT_HANDLER;
 

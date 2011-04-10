@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-0.6
 
-Instructions for building ivtools-0.6.2 from source:
+Instructions for building ivtools-0.6.7 from source:
 
 0. Compilation Environment
 
@@ -45,19 +45,29 @@ ACE-4.2, with a patch applied to alleviate warnings:
 
 http://www.vectaport.com/pub/src/ace4.2warnpatch
 
+0.f some version of lesstif or Motif (libXm), if you want to build the
+ivxt example program, which demonstrates the embedding of a ivtools
+drawing editor inside Motif widgets.  Without these libraries and
+include files the build of ivxt will fail, which can be safely ignored.
+
 1. Creating and/or editing config/site.def.$CPU:
 
 1.a. Set your CPU environment variable to one of the supported types
 (grep config/arch.def for ArchitectureName to get a complete list or
-try "make CPU" from the top directory of ivtools).  Use "setenv CPU"
-for csh or "export CPU=" for sh/bash.  LINUX, SUN4, and SGI are known
-to work.
+try "make CPU" from the top directory of ivtools).  Use "setenv
+CPU arch" for csh or "export CPU=arch" for sh/bash.  LINUX, SUN4, and
+SGI are known to work.
 
 1.b. Either edit the site.def.$CPU file if it exists, or determine
 which existing site.def.* is closest to your needs and copy it into
 site.def.$CPU.  ***Edit the parameters in this file as needed for your
 facility.*** Especially verify that any pathname definitions are
 correct for your environment.  
+
+First redefine ProjectDir (at the top of each site.def.$CPU file) to
+be the directory where links to all relevant software packages can be
+found (i.e. where the ivtools-0.6 src tree, where clippoly, ACE,
+and/or lesstif sources can be found if using any of those).
 
 Set InstallRelative to YES if you want installation done within the
 ivtools-0.6 directory, or NO if you want them installed in the BinDir,
@@ -89,11 +99,14 @@ to the libraries and important directories of this package.
 variable definitions:
 
 	XCONFIGDIR	The location of your X11 config files.
+	PWD		If you're using a shell without this pre-defined
 
 Sample Linux command line: 
 	make World XCONFIGDIR=/usr/X11R6/lib/X11/config 
 Sample SunOS command line:
 	make World XCONFIGDIR=/usr/local/lib/X11/config 
+Sample Solaris command line:
+	make World XCONFIGDIR=/usr/X/lib/X11/config PWD=`pwd`
 Sample Irix command line:
 	make World XCONFIGDIR=/usr/lib/X11/config
 

@@ -3,6 +3,7 @@ XCOMM source files for building the Unidraw-common library
 XCOMM
 
 PACKAGE = Unidraw-common
+NO_IVMKCM = 1
 
 #ifdef InObjectCodeDir
 

@@ -152,37 +152,88 @@ static PropertyData properties[] = {
     { "*bgcolor11",	"LtGray 50000 50000 50000" },
     { "*bgcolor12",	"DkGray 33000 33000 33000" },
     { "*history",	"20" },
-    { "*color6",        "false" },
     { "*color5",        "false" },
-    { "*gray7",         "false" },
-    { "*gray6",         "false" },
+    { "*color6",        "false" },
     { "*gray5",         "false" },
-    { "*tile",          "false" },
-    { "*twidth",        "512" },
+    { "*gray6",         "false" },
+    { "*gray7",         "false" },
+    { "*pagecols",      "0" },
+    { "*pagerows",      "0" },
+    { "*panner_off",    "false"  },
+    { "*panner_align",  "br"  },
+    { "*ramp_size",     "20"  },
+    { "*scribble_pointer", "false" },
+    { "*slider_off",    "false"  },
     { "*theight",       "512" },
+    { "*tile",          "false" },
+    { "*toolbarloc",    "l"  },
+    { "*twidth",        "512" },
+    { "*zoomer_off",    "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",          "20002" },
 #endif
+    { "*help",          "false"  },
+    { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
 
 static OptionDesc options[] = {
-    { "-color6", "*color6", OptionValueImplicit, "true" },
     { "-color5", "*color5", OptionValueImplicit, "true" },
-    { "-gray7", "*gray7", OptionValueImplicit, "true" },
-    { "-gray6", "*gray6", OptionValueImplicit, "true" },
+    { "-color6", "*color6", OptionValueImplicit, "true" },
     { "-gray5", "*gray5", OptionValueImplicit, "true" },
-    { "-tile", "*tile", OptionValueImplicit, "true" },
-    { "-twidth", "*twidth", OptionValueNext },
-    { "-theight", "*theight", OptionValueNext },
+    { "-gray6", "*gray6", OptionValueImplicit, "true" },
+    { "-gray7", "*gray7", OptionValueImplicit, "true" },
+    { "-ncols", "*pagecols", OptionValueNext },
+    { "-nrows", "*pagerows", OptionValueNext },
+    { "-pagecols", "*pagecols", OptionValueNext },
+    { "-pagerows", "*pagerows", OptionValueNext },
+    { "-pal", "*panner_align", OptionValueNext },
+    { "-panner_align", "*panner_align", OptionValueNext },
+    { "-panner_off", "*panner_off", OptionValueImplicit, "true" },
+    { "-poff", "*panner_off", OptionValueImplicit, "true" },
     { "-rampsize", "*rampsize", OptionValueNext },
+    { "-scribble_pointer", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-scrpt", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-slider_off", "*slider_off", OptionValueImplicit, "true" },
+    { "-soff", "*slider_off", OptionValueImplicit, "true" },
+    { "-tbl", "*toolbarloc", OptionValueNext },
+    { "-theight", "*theight", OptionValueNext },
+    { "-tile", "*tile", OptionValueImplicit, "true" },
+    { "-toolbarloc", "*toolbarloc", OptionValueNext },
+    { "-tw", "*theight", OptionValueNext },
+    { "-tw", "*twidth", OptionValueNext },
+    { "-twidth", "*twidth", OptionValueNext },
+    { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*port", OptionValueNext },
 #endif
+    { "-help", "*help", OptionValueImplicit, "true" },
+    { "-font", "*font", OptionValueNext },
     { nil }
 };
+
+#ifdef HAVE_ACE
+static char* usage =
+"Usage: comdraw [any idraw parameter] [-comdraw port] [-color5] \n\
+[-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-pagecols|-ncols] \n\
+[-pagerows|-nrows] [-panner_off|-poff] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
+[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
+[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
+[-zoomer_off|-zoff] [file]";
+#else
+static char* usage =
+"Usage: comdraw [any idraw parameter] [-color5] \n\
+[-color6] [-gray5] [-gray6] [-gray7] [-pagecols|-ncols] \n\
+[-pagerows|-nrows] [-panner_off|-poff] \n\
+[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
+[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] \n\
+[-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n] \n\
+[-zoomer_off|-zoff] [file]";
+#endif
 
 /*****************************************************************************/
 
@@ -196,34 +247,39 @@ int main (int argc, char** argv) {
         catalog, argc, argv, options, properties
     );
 
+    if (strcmp(catalog->GetAttribute("help"), "true")==0) {
+      cerr << usage << "\n";
+      return 0;
+    }
+
 #ifdef HAVE_ACE
 
-    UnidrawImportAcceptor import_acceptor;
+    UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
     const char* importstr = catalog->GetAttribute("import");
     int importnum = atoi(importstr);
-    if (import_acceptor.open 
+    if (import_acceptor->open 
 	(ACE_INET_Addr (importnum)) == -1)
         cerr << "comdraw:  unable to open import port " << importnum << "\n";
 
     else if (COMTERP_REACTOR::instance ()->register_handler 
-	     (&import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "comdraw:  unable to register UnidrawImportAcceptor with ACE reactor\n";
     else
         cerr << "accepting import port (" << importnum << ") connections\n";
 
 
     // Acceptor factory.
-    UnidrawComterpAcceptor peer_acceptor;
+    UnidrawComterpAcceptor* peer_acceptor = new UnidrawComterpAcceptor();
 
     const char* portstr = catalog->GetAttribute("comdraw");
     int portnum = atoi(portstr);
-    if (peer_acceptor.open 
+    if (peer_acceptor->open 
 	(ACE_INET_Addr (portnum)) == -1)
         cerr << "comdraw:  unable to open port " << portnum << "\n";
 
     else if (COMTERP_REACTOR::instance ()->register_handler 
-	     (&peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+	     (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
         cerr << "comdraw:  unable to register ComterpAcceptor with ACE reactor\n";
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
@@ -240,7 +296,7 @@ int main (int argc, char** argv) {
     int exit_status = 0;
 
     if (argc > 2) {
-	cerr << "Usage: comdraw [file]" << "\n";
+	cerr << usage << "\n";
 	exit_status = 1;
 
     } else {

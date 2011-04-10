@@ -31,6 +31,8 @@ Summary:        Lexical scanning routine to recognize C-like tokens
 History:        Written by Scott E. Johnston, March 1989
 */
 
+extern int _continuation_prompt;
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -173,9 +175,11 @@ int index;
 	 buffer[0] = '\0';
       else {
 	 *linenum = 1;
+#if 0
 	 if( outfile != NULL )
 	    if( (*outfunc)( buffer, outfile ) != 0 )
 	       return ERR_OUTFILE;
+#endif
          }
       }
    CURR_CHAR = buffer[*bufptr];
@@ -222,6 +226,10 @@ int index;
       /* If error returned from infunc, return current token as is */
 	 if( token_state != TOK_STRING && token_state != TOK_CHAR )
 	    *tokstart = 0;
+	 if (_continuation_prompt && outfunc) {
+	   (*outfunc) ( "> ", outfile);
+	   _continuation_prompt = 0;
+	 }
 	 if( (*infunc)( buffer, bufsiz, infile ) == NULL ) {
 	    if( *toklen > 0 )
 	       goto token_return;
@@ -260,6 +268,10 @@ int index;
 	 /* Get the rest of the line and toss it */
 	    while( buffer[bufsiz-2] != '\0' && buffer[bufsiz-2] != '\n' ) {
 	       buffer[bufsiz-2] = '\0';
+	       if (_continuation_prompt && outfunc) {
+		 (*outfunc) ( "> ", outfile);
+		 _continuation_prompt = 0;
+	       }
 	       (*infunc)( buffer, bufsiz, infile );
 	       }
 
@@ -274,9 +286,11 @@ int index;
          CURR_CHAR = buffer[0];
 
       /* Echo source line if so desired */
+#if 0
 	 if( outfile != NULL )
 	    if( (*outfunc)( buffer, outfile ) == EOF )
 	       return ERR_OUTFILE;
+#endif
 	 }
 
 
@@ -407,11 +421,12 @@ int index;
 	    }
 
       /* Check for an unexpected new-line character */
-	 if( CURR_CHAR == '\n' )
-	    if( *toktype == TOK_STRING )
+	 if( CURR_CHAR == '\n') 
+            if( *toktype == TOK_STRING )
 	       return ERR_NLINSTRING;
 	    else
 	       return ERR_NLINCHAR;
+
 
       /* Normal character added to string or character constant */
 	 else if( CURR_CHAR != '\\' )
@@ -421,8 +436,15 @@ int index;
 	 else if( CURR_CHAR == '\\' ) {
 
 	 /* Line continuation, for both strings and characters */
-	    if( NEXT_CHAR == '\n' )
+	   if( NEXT_CHAR == '\n' ) {
 	       ADVANCE_CHAR;
+	       _continuation_prompt = 1;
+	   } else if( NEXT_CHAR == '\r') {
+	       ADVANCE_CHAR;
+	       if ( NEXT_CHAR == '\n') 
+		  ADVANCE_CHAR;
+	       _continuation_prompt = 1;
+	   } 
 
 	 /* Octal digit indicates ASCII character in octal notation */
 	    else if( isodigit( NEXT_CHAR )) {

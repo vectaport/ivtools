@@ -39,7 +39,7 @@ public:
     virtual void InitCommands();
     virtual void AddCommands(ComTerp*);
 
-    ComTerpServ* GetComTerp();
+    ComTerpServ* GetComTerp() { return _terp;}
 
 protected:
 

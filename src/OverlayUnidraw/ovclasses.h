@@ -85,6 +85,7 @@
 #define OVSELECT_TOOL         2053
 #define GRAYRAMP_CMD	      2054
 #define SETATTRBYEXPR_CMD     2054
+#define GRLOC_TOOL            2055
 
 #define OVERLAY_COMP          2150
 #define OVERLAYS_COMP         2151

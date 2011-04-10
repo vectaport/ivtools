@@ -690,6 +690,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 	  
 	case AttributeValue::UIntType:
+	case AttributeValue::BooleanType:
 	  out << svp->uint_ref();
 	  break;
 

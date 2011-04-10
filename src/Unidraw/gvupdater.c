@@ -37,6 +37,8 @@
 
 #include <IV-2_6/_enter.h>
 
+#include <iostream.h>
+
 /*****************************************************************************/
 
 static const int SLOTS = 1000;
@@ -205,6 +207,10 @@ void GVUpdater::InitViews (GVU_HashTable* table) {
 
         if (info->Undefined()) {
             GraphicView* view = (GraphicView*) subj->Create(ViewCategory());
+	    if (!view) {
+	      cerr << "Unidraw/gvupdater.c: subject failed to create view -- check relevant creator\n";
+	      exit(-1);
+	    }
             subj->Attach(view);
             Append(view);
             view->Update();

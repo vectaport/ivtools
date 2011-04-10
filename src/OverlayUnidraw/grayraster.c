@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 Vectaport Inc.
  * Copyright (c) 1997 Vectaport Inc., R.B. Kissh & Associates
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -29,11 +30,10 @@
 
 #include <OS/math.h>
 #include <math.h>
-#ifdef __svr4__ 
 #include <nan.h>
-#endif
 
 #include <OverlayUnidraw/grayraster.h>
+#include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovipcmds.h>
 #include <Attribute/attrvalue.h>
 #include <OS/memory.h>
@@ -57,6 +57,9 @@ GrayRaster::GrayRaster(const GrayRaster& image)
     _pixel_map[i] = image._pixel_map[i];
   }
   top2bottom(image.top2bottom());
+  _minmax_set = image._minmax_set;
+  _minval = image._minval;
+  _maxval = image._maxval;
 }
 
 
@@ -66,7 +69,8 @@ GrayRaster::~GrayRaster() {
 }
 
 void GrayRaster::init(AttributeValue::ValueType type, void* data) {
-  _t2b = false;
+  _minmax_set = 0x00;
+  _t2b = true;
   _type = type;
   _pixel_map = new unsigned char[256];
   int i;
@@ -87,6 +91,7 @@ void GrayRaster::init(AttributeValue::ValueType type, void* data) {
   }
   else 
     Memory::zero(_data, nbytes);
+
 }
 
 
@@ -99,6 +104,10 @@ void GrayRaster::poke(
     unsigned long x, unsigned long y,
     ColorIntensity red, ColorIntensity green, ColorIntensity blue, float
 ) {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? y : (unsigned long)rep()->pheight_ - y - 1;
+
   // compute an equivalent gray
   // From ppmtopgm.c, netpbm
   // color to lumin. value: 0.299 r + 0.587 g + 0.114 b.
@@ -106,13 +115,13 @@ void GrayRaster::poke(
   if (AttributeValue::is_char(value_type())) {
     unsigned char gray;
     gray = (unsigned char)(0xff * (0.299 * red + 0.587 * green + 0.114 * blue));
-    ipoke(x, (unsigned long)rep()->pheight_ - y - 1, gray);
+    ipoke(xloc, yloc, gray);
   }
   else {
     float gray;
     gray = 0xff * (0.299 * red + 0.587 * green + 0.114 * blue);
     AttributeValue grayval(gray);
-    vpoke(x, (unsigned long)rep()->pheight_ - y - 1, grayval);
+    vpoke(xloc, yloc, grayval);
   }
 
   rep()->modified_ = true;
@@ -121,11 +130,14 @@ void GrayRaster::poke(
 
 void GrayRaster::graypeek(unsigned long x, unsigned long y, unsigned int& val)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    val = _pixel_map[ipeek(x, (unsigned long)rep()->pheight_ - y - 1)];
+    val = _pixel_map[ipeek(xloc, yloc)];
   else {
     AttributeValue av;
-    vpeek(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpeek(xloc, yloc, av);
     val = av.uint_val();
   }
 }
@@ -133,11 +145,14 @@ void GrayRaster::graypeek(unsigned long x, unsigned long y, unsigned int& val)
 
 void GrayRaster::graypeek(unsigned long x, unsigned long y, unsigned long& val)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    val = _pixel_map[ipeek(x, (unsigned long)rep()->pheight_ - y - 1)];
+    val = _pixel_map[ipeek(xloc, yloc)];
   else {
     AttributeValue av;
-    vpeek(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpeek(xloc, yloc, av);
     val = av.ulong_val();
   }
 }
@@ -145,11 +160,14 @@ void GrayRaster::graypeek(unsigned long x, unsigned long y, unsigned long& val)
 
 void GrayRaster::graypeek(unsigned long x, unsigned long y, float& val)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    val = (float)_pixel_map[ipeek(x, (unsigned long)rep()->pheight_ - y - 1)];
+    val = (float)_pixel_map[ipeek(xloc, yloc)];
   else {
     AttributeValue av;
-    vpeek(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpeek(xloc, yloc, av);
     val = av.float_val();
   }
 }
@@ -157,23 +175,42 @@ void GrayRaster::graypeek(unsigned long x, unsigned long y, float& val)
 
 void GrayRaster::graypeek(unsigned long x, unsigned long y, double& val)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    val = (double)_pixel_map[ipeek(x, (unsigned long)rep()->pheight_ - y - 1)];
+    val = (double)_pixel_map[ipeek(xloc, yloc)];
   else {
     AttributeValue av;
-    vpeek(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpeek(xloc, yloc, av);
     val = av.double_val();
+  }
+}
+
+
+void GrayRaster::graypeek(unsigned long x, unsigned long y, AttributeValue& val)
+{
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
+  if (AttributeValue::is_char(value_type())) {
+    val.char_ref() = _pixel_map[ipeek(xloc, yloc)];
+  } else {
+    vpeek(xloc, yloc, val);
   }
 }
 
 
 void GrayRaster::graypoke(unsigned long x, unsigned long y, unsigned int i)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    ipoke(x, (unsigned long)rep()->pheight_ - y - 1, i);
+    ipoke(xloc, yloc, i);
   else {
     AttributeValue av(i, AttributeValue::UIntType);
-    vpoke(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpoke(xloc, yloc, av);
   }
   rep()->modified_ = true;
 }
@@ -181,33 +218,55 @@ void GrayRaster::graypoke(unsigned long x, unsigned long y, unsigned int i)
 
 void GrayRaster::graypoke(unsigned long x, unsigned long y, unsigned long l)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    ipoke(x, (unsigned long)rep()->pheight_ - y - 1, (unsigned char)l);
+    ipoke(xloc, yloc, (unsigned char)l);
   else {
     AttributeValue av(l);
-    vpoke(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpoke(xloc, yloc, av);
   }
   rep()->modified_ = true;
 }
 
 void GrayRaster::graypoke(unsigned long x, unsigned long y, float f)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    ipoke(x, (unsigned long)rep()->pheight_ - y - 1, (unsigned char)f);
+    ipoke(xloc, yloc, (unsigned char)f);
   else {
     AttributeValue av(f);
-    vpoke(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpoke(xloc, yloc, av);
   }
   rep()->modified_ = true;
 }
 
 void GrayRaster::graypoke(unsigned long x, unsigned long y, double d)
 {
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
   if (AttributeValue::is_char(value_type())) 
-    ipoke(x, (unsigned long)rep()->pheight_ - y - 1, (unsigned char)d);
+    ipoke(xloc, yloc, (unsigned char)d);
   else {
     AttributeValue av(d);
-    vpoke(x, (unsigned long)rep()->pheight_ - y - 1, av);
+    vpoke(xloc, yloc, av);
+  }
+  rep()->modified_ = true;
+}
+
+void GrayRaster::graypoke(unsigned long x, unsigned long y, AttributeValue val)
+{
+  unsigned long xloc = x;
+  unsigned long yloc = 
+    top2bottom() ? (unsigned long)rep()->pheight_ - y - 1 : y;
+  if (AttributeValue::is_char(value_type())) 
+    ipoke(xloc, yloc, val.uchar_val());
+  else {
+    vpoke(xloc, yloc, val);
   }
   rep()->modified_ = true;
 }
@@ -257,13 +316,13 @@ void GrayRaster::flush() const {
 	  pixel = _gray_map[_pixel_map[me->ipeek(x, y)]].pixel;
 	else {
 	  AttributeValue av;
-	  me->vpeek(x, h-y-1, av);
+	  me->vpeek(x, y, av);
 	  int ival = (int)(av.double_val()*gain+bias);
 	  ival = ival < 0 ? 0 : (ival > 255 ? 255 : ival);
 	  pixel = _gray_map[_pixel_map[ival]].pixel;
 	}
 	unsigned int xloc = x;
-	unsigned int yloc = top2bottom() ? h-y-1 : y;
+	unsigned int yloc = top2bottom() ? y : h-y-1;
 	XPutPixel(r->image_, xloc, yloc, pixel); // replace with direct access
       }
     }
@@ -296,7 +355,7 @@ OverlayRaster* GrayRaster::scale
 OverlayRaster* GrayRaster::pseudocolor
 ( ColorIntensity mingray, ColorIntensity maxgray, CopyString& cmd ) {
   // this hardcoded scoping override should be unnecessary?
-  OverlayRaster* nrast = OverlayRaster::pseudocolor(mingray, maxgray);
+  OverlayRaster* nrast = pseudocolor(mingray, maxgray);
   cmd = PseudocolorFunc::CommandString(mingray,maxgray);
   return nrast;
 }
@@ -360,6 +419,50 @@ OverlayRaster* GrayRaster::logscale(
   cmd = LogScaleFunc::CommandString(minintensity, maxintensity);
   return nrast;
 }
+
+OverlayRaster* GrayRaster::pseudocolor(
+    ColorIntensity mingray, ColorIntensity maxgray
+) {
+
+    if (AttributeValue::is_integer(value_type()))
+	return OverlayRaster::pseudocolor(mingray, maxgray);
+
+    OverlayRaster* color = new OverlayRaster(pwidth(), pheight());
+
+    float ratio = (1.0 / (maxgray - mingray));
+
+    float gray;
+
+    RasterRep* rp = rep();
+    unsigned int width = rp->pwidth_;
+    unsigned int height = rp->pheight_;
+    int w,h;
+
+    for (w = 0; w < width; w++) {
+	for (h = 0; h < height; h++) {
+
+	    AttributeValue val;
+	    graypeek(w, h, val);
+            gray = val.double_val();
+	    if (gray < mingray) gray = mingray;
+	    if (gray > maxgray) gray = maxgray;
+ 	    float grayfract = (gray - mingray) * ratio;
+
+	    float newr, newg, newb;
+
+	    newr = grayfract < 0.5 ? 0.0 : (grayfract-.5)*2;
+	    newg = grayfract < 0.5 ? grayfract*2 : 1.0 - (grayfract-.5)*2;
+	    newb = grayfract < 0.5 ? 1.0 - (grayfract-.5)*2 : 0.0;
+	    newr = max(0.0, newr);
+	    newg = max(0.0, newg);
+	    newb = max(0.0, newb);
+
+	    color->poke(w, h, newr, newg, newb, 1.0);
+        }
+    }
+    return color;
+}
+
 
 void GrayRaster::vpoke(unsigned long x, unsigned long y, AttributeValue& val)
 {
@@ -428,11 +531,11 @@ boolean GrayRaster::write (ostream& out, boolean gray) {
       int yloc = top2bottom() ? h-y-1 : y;
       for (x=xstep; x < xstop; x++) {
 	if (AttributeValue::is_char(value_type())) {
-	  graypeek(xloc, yloc, byte);
+	  graypeek(x, y, byte);
 	  out << byte;
 	} else {
 	  AttributeValue av;
-	  vpeek(xloc, yloc, av);
+	  vpeek(x, yloc, av);
 	  out << av;
 	}
 	
@@ -585,14 +688,20 @@ void GrayRaster::gainbias_minmax(double& gain, double& bias,
     for(int x=0; x < w; x++) {
       for(int y=0; y < h; y++) {
 	me->vpeek(x, h-y-1, av);
-#ifndef __svr4__
+#if !defined(__svr4__) && !defined(__alpha)
 	if (av.double_val()==NAN) continue;
 #else
+#if !defined(__linux__)
 	if (IsNANorINF(av.double_val)) continue;
+#endif
 #endif
 	if (av.double_val()<dmin) dmin = av.double_val();
 	if (av.double_val()>dmax) dmax = av.double_val();
       }
+    }
+    if (_minmax_set) {
+      if (dmin<_minval || _minmax_set>1) dmin = _minval;
+      if (dmax>_maxval || _minmax_set>1) dmax = _maxval;
     }
     gain = 256.0/(dmax-dmin);
     bias = -dmin*gain;
@@ -656,5 +765,10 @@ OverlayRaster* GrayRaster::addgrayramp(
 }
 
 
-
+void GrayRaster::set_minmax(double minval, double maxval, boolean fixminmax) {
+  _minval = minval; 
+  _maxval = maxval; 
+  _minmax_set = 0x1; 
+  _minmax_set = _minmax_set | (fixminmax ? 0x02 : 0x00); 
+}
 

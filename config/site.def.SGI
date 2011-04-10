@@ -1,6 +1,25 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
 /* gcc command line with -V for version and -O for optimize */
 #undef CCDriver
 #define CCDriver gcc -O
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses YES
+#define SOMAXCONN 5
 
 /* Don't need these for when TIFF built with gcc */
 #undef StandardIncludes
@@ -74,7 +93,7 @@ install:: Concat(lib,libname.a)						@@\
 #define XLibDir /usr/lib
 
 /* clippoly directory:  comment out if not available */
-/* #define ClipPolyDir /proj/clippoly */
+/* #define ClipPolyDir ProjectDir/clippoly */
 
 /* ACE directory: comment out if not available */
-/* #define AceDir /proj/ACE_wrappers */
+/* #define AceDir ProjectDir/ACE_wrappers */

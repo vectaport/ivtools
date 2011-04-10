@@ -146,12 +146,44 @@ protected:
 
 class PortableImageHelper {
 public:
+    PortableImageHelper(boolean is_ascii=false) 
+      { _is_ascii = is_ascii; _maxval = 255;}
     virtual boolean ppm() = 0;
     virtual int bytes_per_pixel() = 0;
     virtual void read_write_pixel( FILE* in, FILE* out ) = 0;
     virtual const char* magic() = 0;
     virtual void read_poke( OverlayRaster*, FILE*, u_long x, u_long y ) = 0;
     virtual OverlayRaster* create_raster( u_long w, u_long h ) = 0;
+
+    boolean is_ascii() { return _is_ascii; }
+    void maxval(int maxv) { _maxval = maxv; }
+    int maxval() { return _maxval; }
+protected:
+    boolean _is_ascii;
+    int _maxval;
+};
+
+
+class PGM_Helper : public PortableImageHelper {
+public:
+    PGM_Helper(boolean is_ascii=false);
+    virtual boolean ppm();
+    virtual int bytes_per_pixel();
+    virtual void read_write_pixel( FILE* in, FILE* out );
+    virtual const char* magic();
+    virtual void read_poke( OverlayRaster*, FILE*, u_long x, u_long y );
+    virtual OverlayRaster* create_raster( u_long w, u_long h );
+};
+
+class PPM_Helper : public PortableImageHelper {
+public:
+    PPM_Helper(boolean is_ascii=false);
+    virtual boolean ppm();
+    virtual int bytes_per_pixel();
+    virtual void read_write_pixel( FILE* in, FILE* out );
+    virtual const char* magic();
+    virtual void read_poke( OverlayRaster*, FILE*, u_long x, u_long y );
+    virtual OverlayRaster* create_raster( u_long w, u_long h );
 };
 
 

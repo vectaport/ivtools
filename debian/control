@@ -1,30 +1,34 @@
 Source: ivtools
 Section: devel
 Priority: extra
-Maintainer: Guenter Geiger <geiger@iem.mhsg.ac.at>
+Maintainer: Guenter Geiger <geiger@debian.org>
 Standards-Version: 2.1.2.2
 
 Package: ivtools-dev
-Architecture: any
+Architecture: all
 Depends: ivtools (= ${Source-Version}), libc6-dev
-Conflicts: ivtools-dev
-Description: Development files for the ivtools library.
- See ivtools
+Conflicts: ivtools-dev, ivtools-bin (<< 0.6.7)
+Description: Development files for the InterViews library.
+ The ivmkmf program (similar to xmkmf) and all the include-files needed
+ to develop applications with the ivtools library.
 
 Package: ivtools-bin
 Architecture: any
-Depends: ${shlibs:Depends}
-Description: Sample programs using the InterViews libraby. 
- These consist out of several demos like dclock and idemo, a C++ 
- class browser iclass and several vector drawing programs like 
- idraw, drawtool and graphdraw. The animation tool flipbook is
- also part of these programs.
+Depends: ivtools (>= ${Source-Version}), ${shlibs:Depends}
+Description: Drawing Editors using Unidraw. 
+ The drawing editors in this package are idraw, a basic vector graphics
+ editor, graphdraw, flipbook, a vector graphics animation tool, a vector
+ graphics server and some small sample programs like dclock. For more
+ information about these tools and it's usage see 
+                     http://www.vectaport.com 
 
 Package: ivtools
 Architecture: any
 Depends: ${shlibs:Depends}
 Conflicts:
-Description: Ivtools is a C++ GUI library. 
- It was originally known as InterViews. It is written in C++ 
- and portable to serveral different Unix platforms. 
-
+Description: C++ GUI library with Motif Look and Feel. 
+ This package contains the InterViews library. It is written in C++ 
+ and portable to several different Unix platforms. Ivtools also
+ provides a framwork for Drawing Editor development, called Unidraw.
+ Applications written with the Interviews library can be configured to 
+ provide a special "Look and Feel", such as SGI-Motif and normal Motif.

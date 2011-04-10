@@ -697,11 +697,12 @@ See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
 !*/
 
 {
-
+   char *errpath;
    if( ErrorIOFile == NULL ) {
-      ErrorIOFile = fopen( ERROR_IO_FILE, "w+" );
+      errpath = tmpnam(nil);
+      ErrorIOFile = fopen( errpath, "w+" );
       if( ErrorIOFile == NULL )
-	 KANIL1( "Unable to open error I/O file %s", ERROR_IO_FILE );
+	 KANIL1( "Unable to open error I/O file %s", errpath );
       }
    return ErrorIOFile;
 

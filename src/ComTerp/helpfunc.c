@@ -43,54 +43,82 @@ void HelpFunc::execute() {
   // take everything off the stack and check commands, strings, and symbols
   // for valid command names and print their document string
   // (check if an ordinary symbol is less than the largest symbol id of an operator
-  // because that is what it would be (an operator))
+  // because that is what it would be (an operator)
+  static int all_symid = symbol_add("all");
+  ComValue allflag(stack_key(all_symid));
+		   
   boolean noargs = !nargs() && !nkeys();
-  int numargs = nargsfixed();
-  ComFunc* comfuncs[numargs];
-  int command_ids[numargs];
-  boolean str_flag[numargs];
-  for (int i=0; i<numargs; i++) {
-    ComValue& val = stack_arg(i, true);
-    if (val.is_type(AttributeValue::CommandType)) {
-      comfuncs[i] = (ComFunc*)val.obj_val();
-      command_ids[i] = val.command_symid();
-      str_flag[i] = false;
-    } else if (val.is_type(AttributeValue::StringType)) {
-      void *vptr = nil;
-      comterp()->localtable()->find(vptr, val.string_val());
-      if (vptr) {
-	comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
-      } else
+  ComFunc** comfuncs= nil;
+  int* command_ids = nil;
+  boolean* str_flags;
+  int nfuncs = 0;
+  
+  /* build up table of command ids and flags to indicate if its an operator encased in quotes */
+  if (allflag.is_false()) {
+
+    nfuncs = nargs();
+    comfuncs = new ComFunc*[nfuncs];
+    command_ids = new int[nfuncs];
+    str_flags = new boolean[nfuncs];
+
+    for (int i=0; i<nfuncs; i++) {
+      ComValue& val = stack_arg(i, true);
+      if (val.is_type(AttributeValue::CommandType)) {
+	comfuncs[i] = (ComFunc*)val.obj_val();
+	command_ids[i] = val.command_symid();
+	str_flags[i] = false;
+      } else if (val.is_type(AttributeValue::StringType)) {
+	void *vptr = nil;
+	comterp()->localtable()->find(vptr, val.string_val());
+	if (vptr) {
+	  comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
+	} else
+	  comfuncs[i] = nil;
+	command_ids[i] = val.string_val();
+	str_flags[i] = true;
+      } else {
 	comfuncs[i] = nil;
-      command_ids[i] = val.string_val();
-      str_flag[i] = true;
-    } else {
-      comfuncs[i] = nil;
-      if (val.is_type(AttributeValue::SymbolType))
-	command_ids[i] = val.symbol_val();
-      else 
-	command_ids[i] = -1;
-      str_flag[i] = false;
+	if (val.is_type(AttributeValue::SymbolType))
+	  command_ids[i] = val.symbol_val();
+	else 
+	  command_ids[i] = -1;
+	str_flags[i] = false;
+      }
+    }
+  } else {
+    command_ids = comterp()->get_commands(nfuncs, true);
+    comfuncs = new ComFunc*[nfuncs];
+    str_flags = new boolean[nfuncs];
+    for (int j=0; j<nfuncs; j++) {
+      void* vptr;
+      comterp()->localtable()->find(vptr, command_ids[j]);
+      if (vptr) {
+	comfuncs[j] = (ComFunc*)((ComValue*)vptr)->obj_val();
+      } else
+	comfuncs[j] = nil;
+      str_flags[j] = false;
     }
   }
+  
   reset_stack();
 
   filebuf fbuf;
-  if (comterp()->handler()) 
-    fbuf.attach(comterp()->handler()->get_handle());
-  else
+  if (comterp()->handler()) {
+    int fd = max(1, comterp()->handler()->get_handle());
+    fbuf.attach(fd);
+  } else
     fbuf.attach(fileno(stdout));
   ostream out(&fbuf);
 
   if (noargs) {
 
     out << "help available on these commands:\n";
-    comterp()->list_commands(out);
+    comterp()->list_commands(out, true);
     out << "\n(provide any of the above, operators in quotes, as arguments to help,\ni.e. help(help) or help(\"++\"))\n";
 
   } else {
     boolean first=true;
-    for (int i=0; i<numargs; i++) {
+    for (int i=0; i<nfuncs; i++) {
       boolean printed = false;
       if (comfuncs[i]) {
 	void *vptr = nil;
@@ -128,14 +156,19 @@ void HelpFunc::execute() {
 	    first = false;
 	  else
 	    out.put('\n');
-	  if (str_flag[i]) out.put('"');
+	  if (str_flags[i]) out.put('"');
 	  out << symbol_pntr(command_ids[i]);
-	  if (str_flag[i]) out.put('"');
+	  if (str_flags[i]) out.put('"');
 	  out << " unknown";
 	}
       }
     }
   }
+
+  delete command_ids;
+  delete comfuncs;
+  delete str_flags;
+
 }
 
 /*****************************************************************************/

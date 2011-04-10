@@ -56,6 +56,9 @@ class EivTextBuffer : public TextBuffer {
 
    int line(int);		// index to line
    int column(int);		// index to column
+
+
+   void righttrim();				     
  private:
    void expand_buffer(int);
    int linecount;

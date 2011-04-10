@@ -199,6 +199,8 @@ void* Creator::Create (ClassId id) {
     return nil;
 }
 
-Creator* Creator::instance() { return _instance; }
-void Creator::instance(Creator* instance) {delete _instance;  _instance = instance; }
+Creator* Creator::instance() 
+{ if (!_instance) _instance = new Creator(); return _instance; }
+
+void Creator::instance(Creator* instance) {_instance = instance; }
 

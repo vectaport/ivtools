@@ -4,6 +4,12 @@ XCOMM
 
 PACKAGE = src_ivtools
 
+#if 0
+#define ivxt_name ivxt
+#else
+#define ivxt_name /**/
+#endif
+
 SUBDIRS = \
 	IV-common \
 	Unidraw-common \
@@ -54,6 +60,9 @@ SUBDIRS = \
 	drawserv \
 	\
 	include \
-	scripts
+	scripts \
+	\
+	ivxt_name \
+	man
 
 MakeInSubdirs($(SUBDIRS))

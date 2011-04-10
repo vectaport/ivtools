@@ -21,23 +21,23 @@
 
              IVTOOLSSRC = $(TOP)/src
 
-  LIBUNIDRAWCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/Unidraw-common/$(CPU) -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
-       LIBIVCOMMON = -Wl,-rpath,$(IVTOOLSSRC)/IV-common/$(CPU) -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
-           LIBTIME = -Wl,-rpath,$(IVTOOLSSRC)/Time/$(CPU) -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
-      LIBATTRIBUTE = -Wl,-rpath,$(IVTOOLSSRC)/Attribute/$(CPU) -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
-        LIBCOMUTIL = -Wl,-rpath,$(IVTOOLSSRC)/ComUtil/$(CPU) -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
-        LIBCOMTERP = -Wl,-rpath,$(IVTOOLSSRC)/ComTerp/$(CPU) -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
-        LIBIVGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/IVGlyph/$(CPU) -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
-      LIBATTRGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/AttrGlyph/$(CPU) -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
-       LIBCOMGLYPH = -Wl,-rpath,$(IVTOOLSSRC)/ComGlyph/$(CPU) -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
-      LIBGLYPHTERP = -Wl,-rpath,$(IVTOOLSSRC)/GlyphTerp/$(CPU) -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
-       LIBUNIIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/UniIdraw/$(CPU) -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
- LIBOVERLAYUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
-       LIBTOPOFACE = -Wl,-rpath,$(IVTOOLSSRC)/TopoFace/$(CPU) -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
-   LIBGRAPHUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
-   LIBFRAMEUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
-     LIBCOMUNIDRAW = -Wl,-rpath,$(IVTOOLSSRC)/ComUnidraw/$(CPU) -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
-     LIBDRAWSERV = -Wl,-rpath,$(IVTOOLSSRC)/DrawServ/$(CPU) -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
+  LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
+       LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
+           LIBTIME = -L$(IVTOOLSSRC)/Time/$(CPU) -lTime
+      LIBATTRIBUTE = -L$(IVTOOLSSRC)/Attribute/$(CPU) -lAttribute
+        LIBCOMUTIL = -L$(IVTOOLSSRC)/ComUtil/$(CPU) -lComUtil
+        LIBCOMTERP = -L$(IVTOOLSSRC)/ComTerp/$(CPU) -lComTerp
+        LIBIVGLYPH = -L$(IVTOOLSSRC)/IVGlyph/$(CPU) -lIVGlyph
+      LIBATTRGLYPH = -L$(IVTOOLSSRC)/AttrGlyph/$(CPU) -lAttrGlyph
+       LIBCOMGLYPH = -L$(IVTOOLSSRC)/ComGlyph/$(CPU) -lComGlyph
+      LIBGLYPHTERP = -L$(IVTOOLSSRC)/GlyphTerp/$(CPU) -lGlyphTerp
+       LIBUNIIDRAW = -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
+ LIBOVERLAYUNIDRAW = -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
+       LIBTOPOFACE = -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
+   LIBGRAPHUNIDRAW = -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
+   LIBFRAMEUNIDRAW = -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
+     LIBCOMUNIDRAW = -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
+       LIBDRAWSERV = -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
 
   DEPUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.so.$(VERSION)
        DEPIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.so.$(VERSION)
@@ -59,18 +59,20 @@
 
 # -------------------------------------------------------------------------
 
+   PROJECTDIR = /proj
+
    RELEASE = ivtools-0.6
 
-   VERSION = 0.6.2
+   VERSION = 0.6.7
 
-   REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf
+   REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf *.bash *.1
 
               SHELL = /bin/sh
 
               IMAKE = imake
          IMAKEFLAGS = \
 	-T "template"\
-	-I$(TOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR)\
+	-I$(TOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 	$(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
              DEPEND = makedepend
@@ -81,15 +83,18 @@
                ARCH = $(ARCHORCPU)$(SPECIAL_ARCH)
        SPECIAL_ARCH =
 
-           CCDRIVER = gcc
+	   CDRIVER = cc
+	   CSUFFIX = c
+           CCDRIVER = c++
            CCSUFFIX = c
-                SRC = /debian/source/ivtools-0.6.2/.
+                SRC = /home/tritonus-geiger/Debian/ivtools-0.6.7/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
                AOUT = a.out
 
             CCFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
+            CFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
          IV_CCFLAGS = \
 	$(DEBUG_CCFLAGS)\
 	\
@@ -106,7 +111,7 @@
        IV_CCDEFINES = $(LANGUAGE_CCDEFINES) $(BACKWARD_CCDEFINES)
  LANGUAGE_CCDEFINES = -Dcplusplus_2_1
  BACKWARD_CCDEFINES =
-    EXTRA_CCDEFINES = -D_GNU_SOURCE
+    EXTRA_CCDEFINES =
     OTHER_CCDEFINES = $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES)
 
  CLIPPOLY_CCDEFINES =
@@ -117,13 +122,13 @@
 BACKWARD_CCINCLUDES =
      TOP_CCINCLUDES = -I$(INCSRC)
        X_CCINCLUDES = -I$(XINCDIR)
-   EXTRA_CCINCLUDES = -nostdinc++ -I$(TOP)/debian-include -I /usr/include/g++
+   EXTRA_CCINCLUDES =
    OTHER_CCINCLUDES = $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES)
 
 CLIPPOLY_CCINCLUDES =
      ACE_CCINCLUDES =
         CLIPPOLYDIR = ClipPolyDir
-   	     ACEDIR = AceDir
+             ACEDIR = AceDir
 
           CCLDFLAGS = $(APP_CCLDFLAGS) $(IV_CCLDFLAGS) $(OTHER_CCLDFLAGS) $(EXTRA_CCLDFLAGS)
        IV_CCLDFLAGS = \
@@ -132,7 +137,7 @@ CLIPPOLY_CCINCLUDES =
 	$(NONSHARED_CCLDFLAGS)
 NONSHARED_CCLDFLAGS =
    SHARED_CCLDFLAGS =
-    EXTRA_CCLDFLAGS =
+    EXTRA_CCLDFLAGS = -lm
     OTHER_CCLDFLAGS =
 
           CCDEPLIBS = $(APP_CCDEPLIBS) $(IV_CCDEPLIBS) $(OTHER_CCDEPLIBS) $(EXTRA_CCDEPLIBS) $(_CCDEPLIBS)
@@ -157,7 +162,7 @@ NONSHARED_CCLDFLAGS =
 	$(LDLIBX11)\
 	$(ABSLIBDIRPATH)
     SHARED_CCLDLIBS =
-     EXTRA_CCLDLIBS = -lstdc++ -lm -lc
+     EXTRA_CCLDLIBS = -lm
      OTHER_CCLDLIBS = $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS)
 
   CLIPPOLY_CCLDLIBS =
@@ -172,9 +177,9 @@ NONSHARED_CCLDFLAGS =
        INSTBINFLAGS = -m 0755
        INSTUIDFLAGS = -m 4755
        INSTLIBFLAGS = -m 0644
-       INSTINCFLAGS = -m 0444
-       INSTMANFLAGS = -m 0444
-       INSTDATFLAGS = -m 0444
+       INSTINCFLAGS = -m 0644
+       INSTMANFLAGS = -m 0644
+       INSTDATFLAGS = -m 0644
       INSTKMEMFLAGS = -m 4755
 
                  AR = ar clq
@@ -193,9 +198,9 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = psroff
 
-                TOP = /debian/source/ivtools-0.6.2
+                TOP = /home/tritonus-geiger/Debian/ivtools-0.6.7
              RELTOP = .
-        CURRENT_DIR = /debian/source/ivtools-0.6.2
+        CURRENT_DIR = /home/tritonus-geiger/Debian/ivtools-0.6.7
 
               IVSRC = $(TOP)/src
              BINSRC = $(IVSRC)/bin
@@ -219,7 +224,7 @@ NONSHARED_CCLDFLAGS =
          XCONFIGDIR = /usr/X11R6/lib/X11/config
             XINCDIR = /usr/X11R6/include
             XLIBDIR = /usr/X11R6/lib
-          PSFONTDIR = /usr/lib/ps
+          PSFONTDIR = /usr/lib/ghostscript/fonts
 
 all::
 
@@ -415,34 +420,48 @@ clean.noshared:
 	clean
 
 cmchkin::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(cd $(TOP); cminstall); fi
-	@csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmchkin $(PACKAGE) $(TOP)/cm $(TOP) $(CURRENT_DIR))';
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(cd $(TOP); cminstall); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; \
+	cmchkin $(PACKAGE) $(TOP)/cm $(TOP) $(CURRENT_DIR))'; fi
 
 cmtag::
-	cmtag $(CMFLAGS) $(CMARGS)
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	cmtag $(CMFLAGS) $(CMARGS); fi
 
 cmadd::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	@csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)";cmadd -m null_message)'
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmadd -m null_message)'; fi
 
 cmupdate::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	cmupdate
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else cmupdate; fi
 
 cmcommit::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \
-	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \
+	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi; fi
 
 cmchkin::
 	-@for i in $(SUBDIRS); \

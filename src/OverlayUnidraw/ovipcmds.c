@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 Vectaport Inc.
  * Copyright (c) 1997 Vectaport Inc. and R.B. Kissh & Associates
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -30,14 +31,14 @@
 #include <OS/math.h>
 #include <OS/string.h>
 
-#include <OverlayUnidraw/ovdialog.h> // this works on Alpha/egcs
+#include <OverlayUnidraw/ovdialog.h> // putting this first works for Alpha/egcs
 #include <OverlayUnidraw/ovipcmds.h>
 
+#include <OverlayUnidraw/grayraster.h>
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovcomps.h>
-//#include <OverlayUnidraw/ovdialog.h>
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovpage.h>
 #include <OverlayUnidraw/ovselection.h>
@@ -60,6 +61,8 @@
 #include <Unidraw/viewer.h>
 #include <Unidraw/globals.h>
 
+#include <IVGlyph/stredit.h>
+
 #include <InterViews/cursor.h>
 #include <InterViews/session.h>
 #include <InterViews/style.h>
@@ -71,7 +74,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stream.h>
+#include <iostream.h>
+#include <strstream.h>
 
 
 RasterTerp::RasterTerp(Editor* ed) : _editor(ed) {
@@ -437,11 +441,15 @@ const CopyString& ImageCmd::Cmd() const {
 
 ProcessingCmd::ProcessingCmd (ControlInfo* c) 
     : MacroCmd(c), _prepared(false), _comps(new Clipboard)
-{ }
+{ 
+  _reversible = true;
+}
 
 ProcessingCmd::ProcessingCmd (Editor* ed)
     : MacroCmd(ed), _prepared(false), _comps(new Clipboard) 
-{ }
+{
+  _reversible = true;
+}
 
 ProcessingCmd::~ProcessingCmd() {
     delete _comps;
@@ -449,9 +457,29 @@ ProcessingCmd::~ProcessingCmd() {
 
 void ProcessingCmd::Execute () {
 
+    boolean do_something = false;
+
     if (!_prepared) {
         Selection* s = _editor ? _editor->GetSelection() : nil;
         Clipboard* cb = GetClipboard();
+
+
+	/* grab the foremost raster if none is selected */
+	if (!_ed_constructor && 
+	    (!s || s->IsEmpty()) && (!cb || cb->IsEmpty())) {
+	  OverlaysView* views = ((OverlayEditor*)GetEditor())->GetFrame();
+	  Iterator i;
+	  for (views->Last(i); !views->Done(i); views->Prev(i)) {
+	    GraphicView* view = views->GetView(i);
+	    if (view->IsA(OVRASTER_VIEW)) {
+	      if (!cb)
+		SetClipboard(cb = new Clipboard);
+	      cb->Append(view->GetGraphicComp());
+	      break;
+	    }
+	  }
+	}
+	
 
         if ( (s && !s->IsEmpty()) || (cb != nil && !cb->IsEmpty())) {
             Iterator i;
@@ -462,19 +490,23 @@ void ProcessingCmd::Execute () {
             }
 
             for (cb->First(i); !cb->Done(i); cb->Next(i)) {
-                PrepareToExecute(cb->GetComp(i));
+                do_something = do_something || 
+		  PrepareToExecute(cb->GetComp(i));
             }
         }
 
         _prepared = true;
     }
 
-    MacroCmd::Execute();
-    unidraw->Update();  // for safety
+    if (do_something) {
+      MacroCmd::Execute();
+      unidraw->Update(); // for safety
+    } else
+      _reversible = false;
 }
 
 
-void ProcessingCmd::PrepareToExecute(GraphicComp* comp) {
+boolean ProcessingCmd::PrepareToExecute(GraphicComp* comp) {
 
     if (comp->IsA(OVRASTER_COMP)) {
         RasterOvComp* rcomp = (RasterOvComp*)comp;
@@ -503,15 +535,18 @@ void ProcessingCmd::PrepareToExecute(GraphicComp* comp) {
                 Append(cmd);
 
                 _comps->Append(rcomp);
+		return true;
     	    }
             else {
                 // do nothing
                 _comps->Append(comp);
+		return false;
             }
         }
         else {
             // do nothing
             _comps->Append(comp);
+	    return false;
         }
     }
 }
@@ -528,6 +563,11 @@ void ProcessingCmd::GetResult(Clipboard& clip) const {
     }
 }
 
+boolean ProcessingCmd::Reversible () {
+  return _reversible;
+}
+
+
 // -------------------------------------------------------------------------
 
 
@@ -542,14 +582,16 @@ ScaleGrayCmd::ScaleGrayCmd(
 ) 
     : ProcessingCmd(c), _mingray(mingray), _maxgray(maxgray)
 {
+  _ed_constructor = false;
 }
 
 
-ScaleGrayCmd::ScaleGrayCmd (
-    Editor* ed
-)
-    : ProcessingCmd(ed), _mingray(0.), _maxgray(0.)
-{ 
+ScaleGrayCmd::ScaleGrayCmd(
+    ControlInfo* c
+) 
+    : ProcessingCmd(c), _mingray(0.0), _maxgray(-1.0)
+{
+  _ed_constructor = false;
 }
 
 
@@ -558,6 +600,16 @@ ScaleGrayCmd::ScaleGrayCmd (
 )
     : ProcessingCmd(ed), _mingray(mingray), _maxgray(maxgray)
 { 
+  _ed_constructor = true;
+}
+
+
+ScaleGrayCmd::ScaleGrayCmd (
+    Editor* ed
+)
+    : ProcessingCmd(ed), _mingray(0.), _maxgray(-1.0)
+{ 
+  _ed_constructor = true;
 }
 
 
@@ -570,11 +622,33 @@ Command* ScaleGrayCmd::Copy () {
         CopyControlInfo(), _mingray, _maxgray
     );
     InitCopy(copy);
+    copy->_ed_constructor = _ed_constructor;
     return copy;
 }
 
 OverlayRaster* ScaleGrayCmd::Process(OverlayRaster* rast, CopyString& scmd) {
+  if (_maxgray<_mingray || !_ed_constructor) {
+    char* newminmax = StrEditDialog::post
+      (GetEditor()->GetWindow(), 
+       "Enter min and max for linear scaling of gray values",
+       "0.0 1.0");
+    if (newminmax) {
+      istrstream in(newminmax);
+      float fmin, fmax;
+      in >> fmin >> fmax;
+      if (in.good()) {
+	_mingray = fmin;
+	_maxgray = fmax;
+      }
+      delete newminmax;
+      GetEditor()->GetWindow()->cursor(hourglass);
+      return rast->scale(_mingray, _maxgray, scmd);
+    }
+  } else {
+    GetEditor()->GetWindow()->cursor(hourglass);
     return rast->scale(_mingray, _maxgray, scmd);
+  }
+  return nil;
 }
 
 // -------------------------------------------------------------------------
@@ -590,24 +664,37 @@ boolean PseudocolorCmd::IsA(ClassId id) {
 PseudocolorCmd::PseudocolorCmd(
     ControlInfo* c, ColorIntensity mingray, ColorIntensity maxgray
 ) 
-    : ProcessingCmd(c), _mingray(mingray), _maxgray(maxgray)
+  : ProcessingCmd(c), _mingray(mingray), _maxgray(maxgray)
 {
+  _ed_constructor = false;
 }
 
 
 PseudocolorCmd::PseudocolorCmd (
-    Editor* ed
+    ControlInfo* c
 )
-    : ProcessingCmd(ed), _mingray(0.), _maxgray(0.)
+  : ProcessingCmd(c), _mingray(0.), _maxgray(-1.0)
+
 { 
+  _ed_constructor = false;
 }
 
 
 PseudocolorCmd::PseudocolorCmd (
     Editor* ed, ColorIntensity mingray, ColorIntensity maxgray
 )
-    : ProcessingCmd(ed), _mingray(mingray), _maxgray(maxgray)
+  : ProcessingCmd(ed), _mingray(mingray), _maxgray(maxgray)
 { 
+  _ed_constructor = true;
+}
+
+
+PseudocolorCmd::PseudocolorCmd (
+    Editor* ed
+)
+  : ProcessingCmd(ed), _mingray(0.), _maxgray(-1.0)
+{ 
+  _ed_constructor = true;
 }
 
 
@@ -620,12 +707,40 @@ Command* PseudocolorCmd::Copy () {
         CopyControlInfo(), _mingray, _maxgray
     );
     InitCopy(copy);
+    copy->_ed_constructor = _ed_constructor;
     return copy;
 }
 
 
 OverlayRaster* PseudocolorCmd::Process(OverlayRaster* rast, CopyString& scmd) {
+  if (_maxgray<_mingray || !_ed_constructor) {
+    const char* message = rast->grayraster() 
+      && AttributeValue::is_float(((GrayRaster*)rast)->value_type())
+      ? "Enter actual min and max for pseudo coloring of gray values"
+      : "Enter min and max for pseudo coloring of gray values";
+    const char* range = rast->grayraster() 
+      && AttributeValue::is_float(((GrayRaster*)rast)->value_type())
+      ? "0.5 2.0"
+      : "0.0 1.0";
+    char* newminmax = StrEditDialog::post
+      (GetEditor()->GetWindow(), message, range);
+    if (newminmax) {
+      istrstream in(newminmax);
+      float fmin, fmax;
+      in >> fmin >> fmax;
+      if (in.good()) {
+	_mingray = fmin;
+	_maxgray = fmax;
+      }
+      delete newminmax;
+      GetEditor()->GetWindow()->cursor(hourglass);
+      return rast->pseudocolor(_mingray, _maxgray, scmd);
+    }
+  } else {
+    GetEditor()->GetWindow()->cursor(hourglass);
     return rast->pseudocolor(_mingray, _maxgray, scmd);
+  }
+  return nil;
 }
 
 
@@ -642,16 +757,35 @@ boolean LogScaleCmd::IsA(ClassId id) {
 LogScaleCmd::LogScaleCmd(
     ControlInfo* c, ColorIntensity mingray, ColorIntensity maxgray
 ) 
-    : ProcessingCmd(c), _mingray(mingray), _maxgray(maxgray)
+  : ProcessingCmd(c), _mingray(mingray), _maxgray(maxgray) 
 {
+  _ed_constructor = false;
+}
+
+
+LogScaleCmd::LogScaleCmd(
+    ControlInfo* c
+) 
+  : ProcessingCmd(c), _mingray(0.0), _maxgray(-1.0)
+{
+  _ed_constructor = false;
 }
 
 
 LogScaleCmd::LogScaleCmd (
     Editor* ed, ColorIntensity mingray, ColorIntensity maxgray
 )
-    : ProcessingCmd(ed), _mingray(mingray), _maxgray(maxgray)
+  : ProcessingCmd(ed), _mingray(mingray), _maxgray(maxgray)
 { 
+  _ed_constructor = true;
+}
+
+LogScaleCmd::LogScaleCmd (
+    Editor* ed
+)
+  : ProcessingCmd(ed), _mingray(0.0), _maxgray(-1.0)
+{ 
+  _ed_constructor = true;
 }
 
 
@@ -663,12 +797,34 @@ Command* LogScaleCmd::Copy () {
         CopyControlInfo(), _mingray, _maxgray
     );
     InitCopy(copy);
+    copy->_ed_constructor = _ed_constructor;
     return copy;
 }
 
 
 OverlayRaster* LogScaleCmd::Process(OverlayRaster* rast, CopyString& scmd) {
-  return rast->logscale(_mingray, _maxgray, scmd);
+  if (_maxgray<_mingray || !_ed_constructor) {
+    char* newminmax = StrEditDialog::post
+      (GetEditor()->GetWindow(), 
+       "Enter min and max for logarithmic scaling of gray values",
+       "0.0 1.0");
+    if (newminmax) {
+      istrstream in(newminmax);
+      float fmin, fmax;
+      in >> fmin >> fmax;
+      if (in.good()) {
+	_mingray = fmin;
+	_maxgray = fmax;
+      }
+      delete newminmax;
+      GetEditor()->GetWindow()->cursor(hourglass);
+      return rast->logscale(_mingray, _maxgray, scmd);
+    }
+  } else {
+    GetEditor()->GetWindow()->cursor(hourglass);
+    return rast->logscale(_mingray, _maxgray, scmd);
+  }
+  return nil;
 }
 
 
@@ -692,7 +848,7 @@ GrayRampCmd::GrayRampCmd(
 GrayRampCmd::GrayRampCmd(
     ControlInfo* c, RampAlignment align
 ) 
-    : ProcessingCmd(c), _align(align), _use_align(true)
+  : ProcessingCmd(c), _align(align), _use_align(true)
 {
 }
 
@@ -700,7 +856,7 @@ GrayRampCmd::GrayRampCmd(
 GrayRampCmd::GrayRampCmd (
     Editor* ed, IntCoord x, IntCoord y
 )
-    : ProcessingCmd(ed), _x(x), _y(y), _use_align(false)
+  : ProcessingCmd(ed), _x(x), _y(y), _use_align(false)
 { 
 }
 
@@ -708,7 +864,7 @@ GrayRampCmd::GrayRampCmd (
 GrayRampCmd::GrayRampCmd (
     Editor* ed, RampAlignment align
 )
-    : ProcessingCmd(ed), _align(align), _use_align(true)
+  : ProcessingCmd(ed), _align(align), _use_align(true)
 { 
 }
 

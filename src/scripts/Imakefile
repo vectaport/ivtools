@@ -4,16 +4,36 @@ XCOMM
 
 PACKAGE = scripts_ivtools
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 PROGRAMS = ivmkmf
+#if InstallRelative
 CONFIGDIRSPEC = -T IMAKE_TEMPLATE -I$(CONFIGDIR) -I$(XCONFIGDIR)
+MAKEMAKESPEC = ARCH=LINUX CONFIGSRC=$(CONFIGDIR) XCONFIGDIR=$(XCONFIGDIR)
+#else
+CONFIGDIRSPEC = -T IMAKE_TEMPLATE -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR)
+MAKEMAKESPEC = ARCH=LINUX CONFIGSRC=$(CONFIGDIR) XCONFIGDIR=$(XCONFIGDIR)
+#endif
 
 AllTarget($(PROGRAMS))
 
-CppScriptTarget(ivmkmf,ivmkmf.cpp,-DCONFIGDIRSPEC='$(CONFIGDIRSPEC)',)
+#if InstallRelative
+CppScriptTarget(ivmkmf,ivmkmf.cpp,-DCONFIGDIRSPEC='$(CONFIGDIRSPEC)' -DMAKEMAKESPEC='$(MAKEMAKESPEC)',)
+#else
+CppScriptTarget(ivmkmf,ivmkmf.cpp,-DCONFIGDIRSPEC='$(CONFIGDIRSPEC)' -DMAKEMAKESPEC='$(MAKEMAKESPEC)' -DUseInstalled,)
+#endif
 
 InstallMultipleFlags($(PROGRAMS),$(BINDIR),$(INSTBINFLAGS))
+
+InstallScriptAs(anytopnm.sh,$(BINDIR),anytopnm)
+InstallScriptAs(mkgif89a.bash,$(BINDIR),mkgif89a)
+InstallScriptAs(mkgif89ac.bash,$(BINDIR),mkgif89ac)
+InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)
+
+#if InstallRelative
+InstallScriptAs(cntsrcheng.bash,$(BINDIR),cntsrcheng)
+InstallScriptAs(fgrab10.bash,$(BINDIR),fgrab10)
+#endif
 
 clean::
 	$(RM) $(PROGRAMS)

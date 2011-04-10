@@ -6,6 +6,8 @@ PACKAGE = dclock
 
 #ifdef InObjectCodeDir
 
+CLIPPOLY_CCLDLIBS =
+
 Use_libInterViews()
 Use_2_6()
 ComplexProgramTarget(dclock)

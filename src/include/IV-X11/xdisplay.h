@@ -69,6 +69,8 @@ public:
 
     void needs_repair(Window*);
     void remove(Window*);
+
+    void init(XDisplay*);
 };
 
 #include <InterViews/_leave.h>

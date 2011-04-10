@@ -6,12 +6,14 @@ PACKAGE = idemo
 
 #ifdef InObjectCodeDir
 
+CLIPPOLY_CCLDLIBS =
+
 Use_libInterViews()
 ComplexProgramTarget(idemo)
 
 MakeObjectFromSrcFlags(main, -xc++)
 
-InstallScriptAs(../Idemo.defaults,$(LIBALLDIR),Idemo)
+InstallXDefaultAs(../Idemo.defaults,$(LIBALLDIR),Idemo)
 
 IncludeDependencies()
 

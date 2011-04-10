@@ -165,6 +165,7 @@ void ArrowLineView::Update () {
     IncurDamage(line);
     *line = *subj;
     IncurDamage(line);
+
     EraseHandles();
 }
 

@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = include_commands
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

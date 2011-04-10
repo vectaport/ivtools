@@ -59,7 +59,8 @@ ImportChooser*  ImportChooser::instance_ = nil;
 
 ImportChooser::ImportChooser(
     const String& dir, WidgetKit* kit, Style* s, OpenFileChooserAction* a,
-    boolean centered_bttn, boolean by_pathname_bttn, boolean from_command_bttn
+    boolean centered_bttn, boolean by_pathname_bttn, boolean from_command_bttn,
+    boolean auto_convert_bttn
 ) : OpenFileChooser(s) {
     impl_ = new ImportChooserImpl();
     ImportChooserImpl& ic = *(ImportChooserImpl*)impl_;
@@ -80,9 +81,15 @@ ImportChooser::ImportChooser(
     if (from_command_bttn) {
       ic._from_command_action = new ActionCallback(ImportChooserImpl)
 	(&ic, &ImportChooserImpl::from_command_callback);
-      ic._mbutton = kit->check_box("pipe from command", ic._from_command_action);
+      ic._mbutton = kit->check_box("pipe from filter", ic._from_command_action);
       ic._mbutton->state()->set(ic._from_command ? 0xffff : 0x0000,ic._from_command); 
     } else ic._mbutton = nil;
+    if (auto_convert_bttn) {
+      ic._auto_convert_action = new ActionCallback(ImportChooserImpl)
+	(&ic, &ImportChooserImpl::auto_convert_callback);
+      ic._abutton = kit->check_box("auto convert", ic._auto_convert_action);
+      ic._abutton->state()->set(ic._auto_convert ? 0xffff : 0x0000,ic._auto_convert); 
+    } else ic._abutton = nil;
     ic.init(this, s, a);
 }
 
@@ -116,6 +123,31 @@ void ImportChooser::instance(ImportChooser* instance) {
 boolean ImportChooser::centered() { return ((ImportChooserImpl*)impl_)->_centered; }
 boolean ImportChooser::by_pathname() { return ((ImportChooserImpl*)impl_)->_by_pathname; }
 boolean ImportChooser::from_command() { return ((ImportChooserImpl*)impl_)->_from_command; }
+boolean ImportChooser::auto_convert() { return ((ImportChooserImpl*)impl_)->_auto_convert; }
+
+void ImportChooser::set_centered(boolean v) { 
+  ((ImportChooserImpl*)impl_)->_centered = v;
+  ImportChooserImpl& ic = *(ImportChooserImpl*)impl_;
+  ic._cbutton->state()->set(ic._centered ? 0xffff : 0x0000,ic._centered); 
+ }
+
+void ImportChooser::set_by_pathname(boolean v) { 
+  ((ImportChooserImpl*)impl_)->_by_pathname = v;
+  ImportChooserImpl& ic = *(ImportChooserImpl*)impl_;
+  ic._fbutton->state()->set(ic._by_pathname ? 0xffff : 0x0000,ic._by_pathname); 
+ }
+
+void ImportChooser::set_from_command(boolean v) { 
+  ((ImportChooserImpl*)impl_)->_from_command = v;
+  ImportChooserImpl& ic = *(ImportChooserImpl*)impl_;
+  ic._mbutton->state()->set(ic._from_command ? 0xffff : 0x0000,ic._from_command); 
+ }
+
+void ImportChooser::set_auto_convert(boolean v) { 
+  ((ImportChooserImpl*)impl_)->_auto_convert = v;
+  ImportChooserImpl& ic = *(ImportChooserImpl*)impl_;
+  ic._abutton->state()->set(ic._auto_convert ? 0xffff : 0x0000,ic._auto_convert); 
+ }
 
 /** class ImportChooserImpl **/
 
@@ -123,6 +155,7 @@ ImportChooserImpl::ImportChooserImpl () {
   _centered = true;
   _by_pathname = true;
   _from_command = false;
+  _auto_convert = false;
 
 }
 
@@ -219,33 +252,57 @@ void ImportChooserImpl::build() {
 
     Glyph* vb = layout.vbox();
     int from_left = 100;
-    if (_cbutton) {
+    if (_cbutton && _fbutton && _mbutton && _abutton) {
       vb->append(
 		 layout.hbox(
 			     layout.hglue(10.0),
 			     layout.hfixed(_cbutton, from_left),
-			     layout.hglue(10.0)
-			     ));
-      vb->append(layout.vspace(10.0));
-    }
-    if (_fbutton) {
-      vb->append(
-		 layout.hbox(
 			     layout.hglue(10.0),
 			     layout.hfixed(_fbutton, from_left),
 			     layout.hglue(10.0)
 			     ));
       vb->append(layout.vspace(10.0));
-    }
-    if (_mbutton) {
       vb->append(
 		 layout.hbox(
 			     layout.hglue(10.0),
 			     layout.hfixed(_mbutton, from_left),
+			     layout.hglue(10.0),
+			     layout.hfixed(_abutton, from_left),
 			     layout.hglue(10.0)
 			     ));
       vb->append(layout.vspace(10.0));
+    } else {
+      if (_cbutton) {
+      }
+      if (_fbutton) {
+	vb->append(
+		   layout.hbox(
+			       layout.hglue(10.0),
+			       layout.hfixed(_fbutton, from_left),
+			       layout.hglue(10.0)
+			       ));
+	vb->append(layout.vspace(10.0));
+      }
+      if (_mbutton) {
+	vb->append(
+		   layout.hbox(
+			       layout.hglue(10.0),
+			       layout.hfixed(_mbutton, from_left),
+			       layout.hglue(10.0)
+			       ));
+	vb->append(layout.vspace(10.0));
+      }
+      if (_abutton) {
+	vb->append(
+		   layout.hbox(
+			       layout.hglue(10.0),
+			       layout.hfixed(_abutton, from_left),
+			       layout.hglue(10.0)
+			       ));
+	vb->append(layout.vspace(10.0));
+      }
     }
+
     vb->append(layout.vspace(5.0));
     vb->append(
 	       layout.hbox(
@@ -279,6 +336,10 @@ void ImportChooserImpl::by_pathname_callback() {
 
 void ImportChooserImpl::from_command_callback() {
     _from_command = !_from_command;
+}
+
+void ImportChooserImpl::auto_convert_callback() {
+    _auto_convert = !_auto_convert;
 }
 
 void ImportChooserImpl::accept_editor(FieldEditor* e) {

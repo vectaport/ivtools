@@ -140,8 +140,8 @@ Component* HistoryMap::GetComponent (int index) {
 ClassId DirtyCmd::GetClassId () { return DIRTY_CMD; }
 boolean DirtyCmd::IsA (ClassId id) {return DIRTY_CMD==id || Command::IsA(id);}
 
-DirtyCmd::DirtyCmd (ControlInfo* c) : Command(c) { }
-DirtyCmd::DirtyCmd (Editor* ed) : Command(ed) { }
+DirtyCmd::DirtyCmd (ControlInfo* c) : Command(c), _reverse(0) { }
+DirtyCmd::DirtyCmd (Editor* ed) : Command(ed), _reverse(0)  { }
 
 Command* DirtyCmd::Copy () {
     Command* copy = new DirtyCmd(CopyControlInfo());
@@ -150,18 +150,30 @@ Command* DirtyCmd::Copy () {
 }
 
 void DirtyCmd::Execute () { 
-    ModifStatusVar* mv = (ModifStatusVar*) _editor->GetState("ModifStatusVar");
+    if (reverse()) {
+      reverse() = false;
+      DirtyCmd::Unexecute();
+      reverse() = true;
+    }  else {
+      ModifStatusVar* mv = (ModifStatusVar*) _editor->GetState("ModifStatusVar");
 
-    if (mv != nil) {
+      if (mv != nil) {
 	mv->SetModifStatus(true);
+      }
     }
 }
 
 void DirtyCmd::Unexecute () {
-    ModifStatusVar* mv = (ModifStatusVar*) _editor->GetState("ModifStatusVar");
-
-    if (mv != nil) {
+    if (reverse()) {
+      reverse() = false;
+      DirtyCmd::Execute();
+      reverse() = true;
+    } else {
+      ModifStatusVar* mv = (ModifStatusVar*) _editor->GetState("ModifStatusVar");
+      
+      if (mv != nil) {
 	mv->SetModifStatus(false);
+      }
     }
 }
 

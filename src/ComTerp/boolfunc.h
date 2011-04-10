@@ -36,7 +36,8 @@ public:
     AndFunc(ComTerp*);
 
     virtual void execute();
-
+    virtual const char* docstring() { 
+      return "&& is the and operator"; }
 };
 
 class OrFunc : public NumFunc {
@@ -44,6 +45,8 @@ public:
     OrFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "|| is the and operator"; }
 
 };
 
@@ -52,6 +55,8 @@ public:
     NegFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "! is the negate operator"; }
 
 };
 
@@ -61,6 +66,8 @@ public:
     EqualFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "== is the equal operator"; }
 
 };
 
@@ -70,6 +77,8 @@ public:
     NotEqualFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "!= is the not-equal operator"; }
 
 };
 
@@ -79,6 +88,8 @@ public:
     GreaterThanFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "> is the greater-than operator"; }
 
 };
 
@@ -88,6 +99,8 @@ public:
     GreaterThanOrEqualFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return ">= is the greater-than-or-equal operator"; }
 
 };
 
@@ -97,6 +110,8 @@ public:
     LessThanFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "> is the less-than operator"; }
 
 };
 
@@ -105,6 +120,8 @@ public:
     LessThanOrEqualFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return ">= is the less-than-or-equal operator"; }
 
 };
 

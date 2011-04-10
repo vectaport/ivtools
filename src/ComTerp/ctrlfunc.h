@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994, 1995 Vectaport Inc.
+ * Copyright (c) 1994,1995,1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -53,6 +53,8 @@ public:
     SeqFunc(ComTerp*);
 
     virtual void execute();
+    virtual const char* docstring() { 
+      return "; is the sequencing operator"; }
 
 };
 
@@ -81,6 +83,26 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(filename) -- run commands from a file"; }
+
+};
+
+class RemoteFunc : public ComFunc {
+public:
+    RemoteFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(hoststr portnum cmdstr) -- remotely evaluate command string then locally evaluate result string"; }
+
+};
+
+class ShellFunc : public ComFunc {
+public:
+    ShellFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(cmdstr) -- evaluate command in shell"; }
 
 };
 

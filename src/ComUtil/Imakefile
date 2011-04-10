@@ -10,13 +10,13 @@ LIB = ComUtil
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromSrcFlags(file,-xc)
+#define Obj(file) MakeCObjectFromSrc(file)
 
 Obj(atox)
 Obj(comerr)
 Obj(dmm)
 Obj(errfile)
-MakeObjectFromSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
+MakeCObjectFromSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
 Obj(funcptrs)
 Obj(lexscan)
 Obj(mblock)
@@ -33,8 +33,7 @@ IncludeDependencies()
 
 #else
 
-LIB_FILES = comterp.err
-InstallMultiple($(LIB_FILES),$(LIBALLDIR))
+InstallXDefaultAs(comterp.err,$(LIBALLDIR),comterp.err)
 
 MakeInObjectCodeDir()
 

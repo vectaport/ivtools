@@ -74,8 +74,8 @@ void AttrDialog::_init(ComTerpServ* comterp, boolean session, int argc, char** a
     impl_ = new AttrDialogImpl();
     AttrDialogImpl& cdi = *(AttrDialogImpl*)impl_;
     cdi.kit_ = WidgetKit::instance();
-    focus(cdi.init(this, WidgetKit::instance()->style(), session, argc, argv));
     cdi.initterp(comterp);
+    focus(cdi.init(this, WidgetKit::instance()->style(), session, argc, argv));
 }
 
 
@@ -150,10 +150,10 @@ AttrDialogImpl::AttrDialogImpl() {
     return; 
 }
 
-void AttrDialogImpl::initterp(ComTerpServ* comterp) {
-    TerpDialogImpl::initterp(comterp);
-
-    _eval_button->action(new ActionCallback(AttrDialogImpl)(this, &AttrDialogImpl::eval));
+InputHandler* AttrDialogImpl::init(TerpDialog* d, Style* s, boolean session, int argc, char** argv) {
+  InputHandler* ih = TerpDialogImpl::init(d, s, session, argc, argv);
+  _eval_button->action(new ActionCallback(AttrDialogImpl)(this, &AttrDialogImpl::eval));
+  return ih;
 }
 
 void AttrDialogImpl::eval() {

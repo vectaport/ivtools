@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 VectaporT Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cider Press
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -37,8 +38,12 @@
 #include <Unidraw/Commands/edit.h>
 #include <Unidraw/Commands/struct.h>
 
+#include <InterViews/action.h>
+
 class OpenFileChooser;
+class OverlayViewer;
 class PageDialog;
+class ostream;
 
 class OvNewCompCmd : public NewCompCmd {
 public:
@@ -190,15 +195,34 @@ inline void OvGroupCmd::SetGroup (OverlayComp* g) { _group = g; }
 
 class OvNewViewCmd : public NewViewCmd {
 public:
-    OvNewViewCmd(ControlInfo*);
-    OvNewViewCmd(Editor* = nil);
+    OvNewViewCmd(ControlInfo*, const char* display=nil);
+    OvNewViewCmd(Editor* = nil, const char* display=nil);
+    virtual ~OvNewViewCmd(); 
 
     virtual void Execute();
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
+
+    void set_display();
+    void clr_display();
+
+    const char* display();
+    void display(const char*);
+
+    static OvNewViewCmd* default_instance() { return _default; }
+    static void OvNewViewCmd::default_instance(OvNewViewCmd* cmd)
+      { _default = cmd; }
+    
+protected:
+    char * _display;
+
+    static OvNewViewCmd* _default;
+
 };
+
+declareActionCallback(OvNewViewCmd)
 
 class OvCloseEditorCmd : public CloseEditorCmd {
 public:
@@ -294,4 +318,29 @@ protected:
 
     void Init(OpenFileChooser*);
 };
+
+class OvImageMapCmd : public SaveCompAsCmd {
+public:
+    OvImageMapCmd(ControlInfo*, OpenFileChooser* = nil);
+    OvImageMapCmd(Editor* = nil, OpenFileChooser* = nil);
+    ~OvImageMapCmd();
+    void Init();
+
+    virtual void Execute();
+
+    virtual Command* Copy();
+
+protected:
+    OpenFileChooser* chooser_;
+
+    void Init(OpenFileChooser*);
+
+  void DumpViews(OverlayView*, ostream&, ostream&);
+  void DumpPolys(OverlayView*, ostream&, ostream&, float* ux, float* uy, int unp,
+		     int pwidth, int pheight);
+  void GetScreenCoords(OverlayViewer* viewer, Graphic* poly,
+		       int nf, float* fx, float* fy,
+		       int& ni, int*& ix, int*& iy);
+};
+
 #endif

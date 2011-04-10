@@ -34,6 +34,7 @@
 #include <ComTerp/comvalue.h>
 
 class ComTerp;
+class ComTerpServ;
 
 class ComFunc {
 public:
@@ -57,13 +58,14 @@ public:
     ComValue& stack_arg(int n, boolean symbol=false, 
 			ComValue& dflt=ComValue::nullval());
     ComValue& stack_key(int id, boolean symbol=false, 
-			ComValue& dflt=ComValue::trueval());
+			ComValue& dflt=ComValue::trueval(), boolean always=false);
     ComValue& stack_dotname(int n);
 
     ComValue& lookup_symval(ComValue&);
     void assign_symval(int id, ComValue*);
 
     ComTerp* comterp() { return _comterp; }
+    ComTerpServ* comterpserv() { return (ComTerpServ*)_comterp; }
 
     virtual boolean lazy_eval() { return false; }
     virtual const char* docstring() { return "%s: no docstring method defined"; }

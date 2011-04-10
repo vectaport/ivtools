@@ -256,7 +256,7 @@ MinusFunc::MinusFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void MinusFunc::execute() {
-    ComValue operand1(pop_stack());
+    ComValue& operand1 = stack_arg(0);
     ComValue result(operand1);
     switch (result.type()) {
     case ComValue::CharType:

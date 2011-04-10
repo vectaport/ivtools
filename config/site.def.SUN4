@@ -1,5 +1,11 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
 /* solaris workarounds */
-#ifdef SVR4
+#if defined(__svr4__)
+#define SVR4 YES
+#endif
+#if defined(SVR4)
 #define SVR4Architecture YES
 #define HasGcc2 YES
 #define HasGcc HasGcc2
@@ -7,6 +13,22 @@
 
 /* gcc command line with -V for version and -O for optimize */
 #define CCDriver gcc -O	
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses YES
+#define SOMAXCONN 5
 
 /* libg++ include directory -- usually does not change with new version of libg++ */
 #define GPlusPlusIncludeDir /usr/local/lib/g++-include
@@ -16,7 +38,7 @@
 #ifndef SVR4Architecture
 #define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -lm -Xlinker -Bdynamic -ldl -Xlinker -Bstatic
 #else
-#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -Xlinker -Bdynamic -lsocket -lnsl -lreadline -lSM -lICE -lm
+#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -Xlinker -Bdynamic -lsocket -lnsl -lSM -lICE -lm
 #endif
 
 /* statically link libX11 */
@@ -44,6 +66,19 @@
 #define LdCmd /usr/ccs/bin/ld
 #endif
 
+/*
+ * Install a shared library 
+ */
+#ifndef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)                   @@\
+install:: Concat(lib,libname.so.rev)                                    @@\
+        MakeDir(dest)                                                   @@\
+        $(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
+        -@if [ -f dest/Concat(lib,libname.so) ]; then exit 0; else \    @@\
+        cd dest; \                                                   @@\
+        $(LN) Concat(lib,libname.so.rev) Concat(lib,libname.so); fi
+#endif
+
 /* 
  * Enable/disable relative InterViews-style installation of binaries
  */
@@ -66,13 +101,13 @@
 #define XIncDir /usr/local/include
 #define XLibDir /usr/local/lib
 #else
-#define XConfigDir /usr/X11/lib/X11/config
-#define XIncDir /usr/X11/include
-#define XLibDir /usr/X11/lib
+#define XConfigDir /usr/X/lib/X11/config
+#define XIncDir /usr/X/include
+#define XLibDir /usr/X/lib
 #endif
 
 /* clippoly directory:  comment out if not available */
-/* #define ClipPolyDir /proj/clippoly */
+#define ClipPolyDir ProjectDir/clippoly
 
 /* ACE directory: comment out if not available */
-/* #define AceDir /proj/ACE_wrappers */
+#define AceDir ProjectDir/ACE_wrappers

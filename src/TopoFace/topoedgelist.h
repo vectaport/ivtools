@@ -45,6 +45,7 @@ public:
 
     TopoEdge* edge(UList*) const;
     UList* elem(Iterator) const;
+    TopoEdge* get_edge(Iterator) const;
     boolean includes(TopoEdge*) const;
 
     void first(Iterator&) const;

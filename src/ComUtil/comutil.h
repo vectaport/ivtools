@@ -169,5 +169,12 @@ unsigned int txtkwsrch();
 /* unsigned int txtprint(); */
 #endif
 
+typedef char* (*infuncptr)(char*,int,void*);
+typedef int (*eoffuncptr)(void*);
+typedef int (*errfuncptr)(void*);
+typedef int (*outfuncptr)(const char*, void*);
+
+extern infuncptr _oneshot_infunc;  /* to inform parser of one-shot infunc */
+
 #endif /* not COMUTIL_INCLUDED */
 

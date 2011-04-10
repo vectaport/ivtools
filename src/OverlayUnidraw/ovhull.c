@@ -111,20 +111,31 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 	  char line[80];
 	  fgets(line, 80, pp);
 	  sscanf(line, "%d", &nhp);
-	  hx = new float[nhp];
-	  hy = new float[nhp];
-	  for (int i = 0; i < nhp; i++) {
-	    int idx;
-	    fgets(line, 80, pp);
-	    sscanf(line, "%d", &idx);
-	    hx[i] = fx[idx];
-	    hy[i] = fy[idx];
-	  }
+	  if (nhp) {
+	    
+	    hx = new float[nhp];
+	    hy = new float[nhp];
+	    for (int i = 0; i < nhp; i++) {
+	      int idx;
+	      fgets(line, 80, pp);
+	      sscanf(line, "%d", &idx);
+	      hx[i] = fx[idx];
+	      hy[i] = fy[idx];
+	    }
 #ifdef DEBUG
-	cerr << "convex hull output\n";
-	for (int i=0; i<np; i++) 
-	  cerr << i << ": " << hx[i] << "," << hy[i] << "\n";
+	    cerr << "convex hull output\n";
+	    for (int i=0; i<np; i++) 
+	      cerr << i << ": " << hx[i] << "," << hy[i] << "\n";
 #endif
+	  } else {
+	    nhp = np;
+	    hx = new float[nhp];
+	    hy = new float[nhp];
+	    for (int i = 0; i < nhp; i++) {
+	      hx[i] = fx[i];
+	      hy[i] = fy[i];
+	    }
+	  }
 	  pclose(pp);
 	}
 	else

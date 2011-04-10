@@ -1,0 +1,149 @@
+.TH COMTERP 1 
+.SH COMTERP
+comterp \- distributed command interpreter demonstrator
+.SH SYNOPSIS
+.B comterp
+.br
+.B comterp 
+remote
+.br
+.B comterp 
+server 'portnum'
+.br
+.B comterp 
+.I client 'host' 'portnum' ['file']
+.br
+.B comterp 
+.I telcat 'host' 'portnum' ['file']
+.br
+.B comterp 
+.I run 'file'	
+.br
+.SH DESCRIPTION
+comterp demonstrates the command interpreter incorporated into
+ivtools. A user (or client program) can interact with comterp via
+stdin and stdout or telnet (when ACE is built in).  The command syntax
+is a semi-colon separated list of commands with arbitrary number of
+parameters enclosed in parenthesis, with support for optional
+parameters and keyword arguments, i.e:
+
+	command2(arg1 arg2 arg3 :key1 val1 :key2 val2);
+	command1(arg1 arg2 arg3 :key1 val1 :key2 val2)
+
+C-like binary expressions can be embedded anywhere in the command
+language, using the operators in the table below.  Variables can be
+created on the fly with an assignment operator (i.e "ball=1" creates a
+integer "ball" variable set to 1).  Unterminated expressions cause an
+automatic command line extension (until the parser determines the
+expression is complete).  "(), "{}", and "[]" can all be used
+interchangeably.
+
+.SH COMMAND OPTIONS
+
+comterp
+
+Invoke a single command interpreter to interact with via stdin and
+stdout.
+
+comterp remote
+
+Invoke a single command interpreter, like the default, and include a
+remote command for accessing other comterp's in server mode.
+
+
+comterp server 'portnum'
+
+Listens for and accept connections on portnum, then setup a command
+interpreter to wait for and process commands from that connection.
+
+comterp client 'host' 'portnum' ['file']
+
+Connect to a portnum on a host and send/receive new-line terminated
+text buffers.  For debugging purposes, not really a use of the
+interpreter.
+
+comterp telcat 'host' 'portnum' ['file']
+
+Connect to a portnum on a host, cat the file, then close the
+connection.  Not really a use of the interpreter either.
+
+comterp run 'file'
+
+Run contents of file then exit.
+
+
+.SH OPERATOR TABLE
+.nf
+    Operators  Command Name   Priority    Order       Type
+    ---------  ------------   --------    -----       ----
+    .          dot            130         R-to-L      binary
+    ^          power          120         R-to-L      binary
+    !          negate         110         R-to-L      unary-prefix
+    ++         incr           110         R-to-L      unary-prefix
+    ++         incr_after     110         R-to-L      unary-postfix
+    -          minus          110         R-to-L      unary-prefix
+    --         decr           110         R-to-L      unary-prefix
+    --         decr_after     110         R-to-L      unary-postfix
+    **         repeat         90          L-to-R      binary
+    ..         iterate        80          L-to-R      binary
+    %          mod            70          L-to-R      binary
+    *          mpy            70          L-to-R      binary
+    /          div            70          L-to-R      binary
+    +          add            60          L-to-R      binary
+    -          sub            60          L-to-R      binary
+    <          lt             50          L-to-R      binary
+    <=         lt_or_eq       50          L-to-R      binary
+    >          gt             50          L-to-R      binary
+    >=         gt_or_eq       50          L-to-R      binary
+    !=         not_eq         45          L-to-R      binary
+    ==         eq             45          L-to-R      binary
+    &&         and            41          L-to-R      binary
+    ||         or             40          L-to-R      binary
+    %=         mod_assign     30          R-to-L      binary
+    *=         mpy_assign     30          R-to-L      binary
+    +=         add_assign     30          R-to-L      binary
+    -=         sub_assign     30          R-to-L      binary
+    /=         div_assign     30          R-to-L      binary
+    =          assign         30          R-to-L      binary
+    ,          stream         20          L-to-R      binary
+    ;          seq            10          L-to-R      binary
+.fi
+
+.SH OTHER COMMANDS
+
+ help(cmdname [cmdname ...]) - help for commands
+ symid(symbol [symbol...]) - return id associated with symbol
+ symval(symid [symid...]) - return symbol associated with id
+
+ quit() -- quit the interpreter
+ exit() -- exit entire application
+
+ val=run(filename) -- run commands from file
+
+ val=remote(hoststr portnum cmdstr) -- remotely evaluate 
+   command string then locally evaluate result string
+
+ val=shell(cmdstr) -- evaluate command in shell
+
+ n=min(a b) -- return minimum of a and b
+ n=max(a b) -- return maximum of a and b
+ dbl=exp(x) -- returns the value of raised to the power of x
+ dbl=log(x) -- returns the natural logarithm of x
+ dbl=log10(x) -- returns the base-10 logarithm of x
+ dbl=pow(x y) -- returns the value of x raised to the power of y
+ dbl=acos(x) -- returns the arc cosine of x
+ dbl=asin(x) -- returns the arc sine of x
+ dbl=atan(x) -- returns the arc tangent of x
+ dbl=atan2(y x) -- returns the arc tangent of y over x
+ dbl=cos(x) -- returns the cosine of x
+ dbl=sin(x) -- returns the sine of x
+ dbl=tan(x) -- returns the tangent of x
+ val=cond(test trueval falseval) -- if test is true, 
+	return trueval, otherwise return falseval
+
+
+.SH SEE ALSO  
+	comdraw
+
+.SH WEB PAGES
+	 http://www.vectaport.com/ivtools/comterp.html

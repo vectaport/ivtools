@@ -80,6 +80,8 @@ public:
 
     friend ostream& operator << (ostream& s, const AttributeList&);
 
+  void dump();
+
     AttributeValue* find(const char*);
     AttributeValue* find(int);
 

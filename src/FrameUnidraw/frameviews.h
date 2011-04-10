@@ -26,6 +26,10 @@
 
 #include <OverlayUnidraw/ovviews.h>
 
+class FrameComp;
+class FramesComp;
+class FrameIdrawComp;
+
 class FrameOverlaysView : public OverlaysView {
 public:
     FrameOverlaysView();
@@ -36,7 +40,7 @@ public:
 
 class FrameView : public OverlaysView {
 public:
-    FrameView();
+    FrameView(FrameComp* = nil);
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -47,7 +51,7 @@ protected:
 
 class FramesView : public FrameView {
 public:
-    FramesView();
+    FramesView(FramesComp* = nil);
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
@@ -59,7 +63,7 @@ public:
 class FrameIdrawView : public FramesView {
 public:
 
-    FrameIdrawView();
+    FrameIdrawView(FrameIdrawComp* = nil);
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);

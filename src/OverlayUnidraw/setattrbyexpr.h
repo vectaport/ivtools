@@ -49,14 +49,33 @@ public:
     virtual Clipboard* PostDialog();
 
     Selection* selection();
+    Clipboard* clipboard();
 protected:
     AttrDialog* calculator_;
+    OverlaysComp* comps_;
+    Clipboard* clipboard_;
 };
 
 class NextInSelectionFunc : public AttrListFunc {
 public:
     NextInSelectionFunc(ComTerp*, AttrDialog*, Selection* sel, Iterator* i);
     virtual void execute();
+};
+
+class BothSetAttrFunc : public AttrListFunc {
+public:
+    BothSetAttrFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb);
+    virtual void execute();
+
+};
+
+class DoneSetAttrFunc : public AttrListFunc {
+public:
+    DoneSetAttrFunc(ComTerp*, AttrDialog*, OverlaysComp* comps, Iterator* i, Clipboard* cb, Viewer* v);
+    virtual void execute();
+
+protected:
+    Viewer* viewer_;
 };
 
 #endif

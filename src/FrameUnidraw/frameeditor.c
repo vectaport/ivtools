@@ -23,6 +23,7 @@
 
 #include <FrameUnidraw/framecomps.h>
 #include <FrameUnidraw/frameeditor.h>
+#include <FrameUnidraw/framefunc.h>
 #include <FrameUnidraw/framestates.h>
 #include <FrameUnidraw/frameviews.h>
 
@@ -111,9 +112,9 @@ void FrameEditor::InitFrame() {
     view->Next(frame);
     if (view->Done(frame)) {
 	view->First(frame);
-	framenumstate()->framenumber(0, true);
+	if (framenumstate()) framenumstate()->framenumber(0, true);
     } else {
-	framenumstate()->framenumber(1, true);
+	if (framenumstate()) framenumstate()->framenumber(1, true);
 	Iterator i(frame);
 	view->Next(i);
 	while (!view->Done(i)) {
@@ -137,7 +138,7 @@ void FrameEditor::UpdateFrame(boolean txtupdate) {
     UpdateText((OverlayComp*)GetFrame()->GetGraphicComp(), txtupdate);
     Iterator last;
     views->Last(last);
-    frameliststate()->framenumber(views->Index(last)+1);
+    if (frameliststate()) frameliststate()->framenumber(views->Index(last)+1);
 }
 
 void FrameEditor::SetText() {
@@ -159,7 +160,7 @@ void FrameEditor::UpdateText(OverlayComp* comp, boolean update) {
     }
 }
 
-FrameView* FrameEditor::GetFrame(int index) {
+OverlaysView* FrameEditor::GetFrame(int index) {
   if (index<0) 
     return _currframe;
   else if (index<_frameliststate->framenumber()) {
@@ -168,7 +169,13 @@ FrameView* FrameEditor::GetFrame(int index) {
     int count = 0;
     views->First(i);
     while (count++<index && !views->Done(i)) views->Next(i);
-    return (FrameView*)views->GetView(i);
+    return (OverlaysView*)views->GetView(i);
   } else
     return nil;
+}
+
+void FrameEditor::AddCommands(ComTerp* comterp) { 
+  ComEditor::AddCommands(comterp);
+  comterp->add_command("moveframe", new MoveFrameFunc(comterp, this));
+  comterp->add_command("createframe", new CreateFrameFunc(comterp, this));
 }

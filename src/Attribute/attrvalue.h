@@ -163,8 +163,16 @@ public:
     boolean is_long() { return is_long(type()); }
     boolean is_float() { return is_float(type()); }
     boolean is_double() { return is_double(type()); }
-    boolean is_num() { return is_char() || is_short() || is_int() ||
-			 is_long() || is_float() || is_double(); }
+
+    boolean is_integer() { return is_integer(type()); }
+    boolean is_floatingpoint() { return is_floatingpoint(type()); }
+    boolean is_num() { return is_integer(type()) || is_floatingpoint(type()); }
+
+    boolean is_array() { return is_type(ArrayType); }
+    boolean is_unknown() { return is_type(UnknownType); }
+    boolean is_known() { return !is_type(UnknownType); }
+    boolean is_string() { return is_type(StringType) || is_type(SymbolType); }
+    boolean is_command() { return is_type(CommandType); }
 
     static boolean is_char(ValueType t) 
       { return t==CharType || t==UCharType; }
@@ -178,6 +186,13 @@ public:
       { return t==FloatType; }
     static boolean is_double(ValueType t)
       { return t==DoubleType; }
+
+    static boolean is_integer(ValueType t)
+      { return is_char(t) || is_short(t) || is_int(t) | is_long(t); }
+    static boolean is_floatingpoint(ValueType t)
+      { return is_float(t) || is_double(t); }
+    static boolean is_num(ValueType t)
+      { return is_integer(t) || is_floatingpoint(t); }
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
 

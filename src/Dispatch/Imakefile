@@ -4,4 +4,4 @@ XCOMM
 
 PACKAGE = src_dispatch
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))

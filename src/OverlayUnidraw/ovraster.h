@@ -83,12 +83,12 @@ public:
     static boolean UseGrayRaster() { return _use_gray_raster; }
     static void UseGrayRaster(boolean flag) { _use_gray_raster = flag; }
 
+    static ParamList* get_param_list();
 protected:
     ParamList* GetParamList();
     void GrowParamList(ParamList*);
     static ParamList* _ovraster_params;
 
-protected:
     char* _pathname;
     boolean _by_pathname;
 
@@ -213,11 +213,13 @@ public:
     virtual void graypeek(unsigned long x, unsigned long y, unsigned long&);
     virtual void graypeek(unsigned long x, unsigned long y, float&);
     virtual void graypeek(unsigned long x, unsigned long y, double&);
+    virtual void graypeek(unsigned long x, unsigned long y, AttributeValue&);
 
     virtual void graypoke(unsigned long x, unsigned long y, unsigned int);
     virtual void graypoke(unsigned long x, unsigned long y, unsigned long);
     virtual void graypoke(unsigned long x, unsigned long y, float);
     virtual void graypoke(unsigned long x, unsigned long y, double);
+    virtual void graypoke(unsigned long x, unsigned long y, AttributeValue);
 
     virtual void highlight(unsigned long x, unsigned long y) {}
     virtual void unhighlight() {}
@@ -242,6 +244,7 @@ public:
     virtual boolean read(istream& in, boolean gray=false);
     virtual void gray_flag(boolean flag) { _grayflag = flag; }
     virtual boolean gray_flag() { return _grayflag; }
+    virtual boolean grayraster() { return false; }
 
     // arbitrary type is not enabled in this class
     virtual AttributeValue::ValueType value_type() const 

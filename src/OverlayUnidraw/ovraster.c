@@ -269,11 +269,18 @@ cerr << "Configure: " << _com_exp.string() << endl;
 
     if (GetOverlayRasterRect()->GetOverlayRaster()->status() && !_warned) {
       _warned = true;
-      GAcknowledgeDialog* dialog = new GAcknowledgeDialog("unable to allocate enough colormap entries on the X server, quit other programs and restart");
-      Resource::ref(dialog);
-      dialog->post_for(ed->GetWindow());
-      Resource::unref(dialog);
+      GAcknowledgeDialog::post(ed->GetWindow(), "unable to allocate enough colormap entries on the X server", "quit other programs and restart", "colormap problem");
     }
+}
+
+
+
+ParamList* RasterOvComp::get_param_list() {
+  if (!_ovraster_params) {
+    RasterOvComp raster;
+    raster.GrowParamList(_ovraster_params = new ParamList());
+  }
+  return _ovraster_params;
 }
 
 /*****************************************************************************/
@@ -609,6 +616,7 @@ int RasterScript::ReadGrayChar (istream& in, void* addr1, void* addr2, void* add
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::CharType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -632,6 +640,7 @@ int RasterScript::ReadGrayUChar (istream& in, void* addr1, void* addr2, void* ad
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::UCharType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -655,6 +664,7 @@ int RasterScript::ReadGrayShort (istream& in, void* addr1, void* addr2, void* ad
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::ShortType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -678,6 +688,7 @@ int RasterScript::ReadGrayUShort (istream& in, void* addr1, void* addr2, void* a
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::UShortType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -701,6 +712,7 @@ int RasterScript::ReadGrayInt (istream& in, void* addr1, void* addr2, void* addr
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::IntType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -724,6 +736,7 @@ int RasterScript::ReadGrayUInt (istream& in, void* addr1, void* addr2, void* add
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::UIntType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -747,6 +760,7 @@ int RasterScript::ReadGrayLong (istream& in, void* addr1, void* addr2, void* add
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::LongType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -770,6 +784,7 @@ int RasterScript::ReadGrayULong (istream& in, void* addr1, void* addr2, void* ad
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::ULongType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -793,6 +808,7 @@ int RasterScript::ReadGrayFloat (istream& in, void* addr1, void* addr2, void* ad
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::FloatType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -816,6 +832,7 @@ int RasterScript::ReadGrayDouble (istream& in, void* addr1, void* addr2, void* a
 
   GrayRaster* raster = new GrayRaster(w, h, AttributeValue::DoubleType);
   raster->read(in);
+  raster->top2bottom(false);
   
   if (in.good()) {
 #ifndef NOREF
@@ -1125,6 +1142,13 @@ void OverlayRaster::graypeek(unsigned long x, unsigned long y, double& d)
   d = (double) (gval*(float)0xff); 
 }
 
+void OverlayRaster::graypeek(unsigned long x, unsigned long y, AttributeValue& val)
+{
+  float rval, gval, bval, aval;
+  peek(x, y, rval, gval, bval, aval);
+  val.double_ref() = (double) (gval*(float)0xff); 
+}
+
 void OverlayRaster::graypoke(unsigned long x, unsigned long y, unsigned int i)
 {
     if (!gray_initialized())
@@ -1154,6 +1178,11 @@ void OverlayRaster::graypoke(unsigned long x, unsigned long y, float f)
 void OverlayRaster::graypoke(unsigned long x, unsigned long y, double d)
 {
   graypoke(x, y, (unsigned int)d);
+}
+
+void OverlayRaster::graypoke(unsigned long x, unsigned long y, AttributeValue val)
+{
+  graypoke(x, y, val.uint_val());
 }
 
 long OverlayRaster::gray_lookup(int byte) 
@@ -1497,9 +1526,19 @@ OverlayRaster* OverlayRaster::pseudocolor(
                 (grayfract*steps - fmod(grayfract*steps,1.0)) / (float)steps;
 	    float newr, newg, newb;
 
+#if 0
 	    newr = grayfract * maxgray;
 	    newg = (1.0 - grayfract) * maxgray;
 	    newb = 0.0;
+#else
+	    grayfract *= maxgray;
+	    newr = grayfract < 0.5 ? 0.0 : (grayfract-.5)*2;
+	    newg = grayfract < 0.5 ? grayfract*2 : 1.0 - (grayfract-.5)*2;
+	    newb = grayfract < 0.5 ? 1.0 - (grayfract-.5)*2 : 0.0;
+	    newr = max(0.0, newr);
+	    newg = max(0.0, newg);
+	    newb = max(0.0, newb);
+#endif
 
 	    color->poke(w, h, newr, newg, newb, 1.0);
         }

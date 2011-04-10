@@ -26,6 +26,8 @@
 #include <OS/memory.h>
 #include <OS/string.h>
 
+#include <string.h>
+
 #include "textbuff.h"
 #if 0
 // Probably not truly portable (?)
@@ -186,5 +188,15 @@ int EivTextBuffer::Delete(int index, int count)
    if (!modified_)
       modified_ = true;
    return TextBuffer::Delete(index, count);
+}
+
+void EivTextBuffer::righttrim()
+{
+   if (!modified_)
+      modified_ = true;
+   int bytecnt = strlen(Text());
+   char* text = (char *) Text();
+   while( isspace(text[bytecnt-1]) && bytecnt)
+     Delete(1, (bytecnt--)-1);
 }
 

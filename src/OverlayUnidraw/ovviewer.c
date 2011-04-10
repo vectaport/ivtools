@@ -74,7 +74,7 @@ OverlayViewer::OverlayViewer (
         xorPainter = new Painter;
         Ref(xorPainter);
     }
-    _init = true;
+    _needs_resize = true;
     SetColorMap();
     _pan_chain = _zoom_chain = _scribble_pointer = false;
 }
@@ -83,6 +83,8 @@ OverlayViewer::~OverlayViewer () {}
 
 
 void OverlayViewer::Update () {
+    if (_needs_resize)  return;
+
     OverlaySelection* s = (OverlaySelection*)GetSelection();
     OverlayView* view = GetOverlayView();
     Component* viewComp = view->GetOverlayComp();
@@ -163,10 +165,10 @@ void OverlayViewer::Resize()
     PrepareDoubleBuf();
 
     /* initial drawing commands, if any */
-    if (_init) {
+    if (_needs_resize) {
       ((OverlayEditor*)_editor)->InformComponents();
       ((OverlayEditor*)_editor)->InitCommands();
-      _init = false;
+      _needs_resize = false;
     }
 }
 
@@ -295,15 +297,19 @@ void OverlayViewer::Adjust (Perspective& np) {
 void OverlayViewer::SetColorMap() {
     Catalog* catalog = unidraw->GetCatalog();
     const char* col6 = catalog->GetAttribute("color6");
+    const char* nocol6 = catalog->GetAttribute("nocolor6");
     const char* col5 = catalog->GetAttribute("color5");
     const char* gr7 = catalog->GetAttribute("gray7");
     const char* gr6 = catalog->GetAttribute("gray6");
     const char* gr5 = catalog->GetAttribute("gray5");
-    boolean color6 = strcmp(col6 ? col6 : "", "true") == 0;
+    boolean color6 =  col6 ? strcmp(col6 ? col6 : "", "true") == 0 : false;
+    boolean nocolor6 = nocol6 ? strcmp(col6 ? col6 : "", "true") == 0 : false;
     boolean color5 = strcmp(col5 ? col5 : "", "true") == 0;
     boolean gray7 = strcmp(gr7 ? gr7 : "", "true") == 0;
     boolean gray6 = strcmp(gr6 ? gr6 : "", "true") == 0;
     boolean gray5 = strcmp(gr5 ? gr5 : "", "true") == 0;
+
+    color6 = color6 && !nocolor6;
 
     if (color6 || color5) {
 
@@ -438,7 +444,7 @@ void OverlayViewer::GraphicToScreen
 }
 
 void OverlayViewer::GraphicToScreen
-(Graphic* gr, float xgr, float ygr, Coord& xscreen, Coord& yscreen) 
+(Graphic* gr, float xgr, float ygr, int& xscreen, int& yscreen) 
 {
   float fxscreen, fyscreen;
   GraphicToScreen(gr, xgr, ygr, fxscreen, fyscreen);

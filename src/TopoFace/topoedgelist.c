@@ -76,6 +76,7 @@ void TopoEdgeList::remove (TopoEdge* p) {
 
 TopoEdge* TopoEdgeList::edge (UList* r) const { return (TopoEdge*) (*r)(); }
 UList* TopoEdgeList::elem (Iterator i) const { return (UList*) i.GetValue(); }
+TopoEdge* TopoEdgeList::get_edge (Iterator i) const { return edge(elem(i)); }
 
 boolean TopoEdgeList::includes (TopoEdge* e) const {
     return _ulist->Find(e) != nil;

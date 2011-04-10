@@ -20,6 +20,7 @@ Obj26(annotate)
 Obj26(attrtool)
 Obj26(clipline)
 Obj26(grayraster)
+Obj26(indexmixins)
 Obj26(ovadjuster)
 Obj26(ovarrow)
 Obj26(ovcatalog)
@@ -68,6 +69,7 @@ MakeObjectFromSrcFlags(clippoly,-xc++ -fno-implicit-templates)
 
 
 
+Obj31(grloctool)
 Obj31(ovabout)
 Obj31(ovcamcmds)
 Obj31(ovchainview)

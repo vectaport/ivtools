@@ -6,6 +6,16 @@
  */
 
 /*
+ * Directory for software projects
+ */
+#ifndef ProjectDir
+#define ProjectDir /proj
+#endif
+
+   PROJECTDIR = ProjectDir
+
+
+/*
  * Override SrcRoot in local.def to refer to the uninstalled iv 3.1 src tree 
  * in an absolute location.
  */
@@ -26,7 +36,7 @@
  * VersionNumber
  */
 #ifndef Version
-#define	Version 0.6.2
+#define	Version 0.6.7
 #endif
 
    VERSION = Version
@@ -39,7 +49,7 @@
 #define RepositoryFiles *.c *.cc *.cxx *.C *.h Imakefile *.def template \
 README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script \
 *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 \
-site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf
+site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf *.bash *.1
 #endif
 
    REPOSITORY_FILES = RepositoryFiles
@@ -277,6 +287,14 @@ site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyri
 #define CCSuffix c			/* might want cc, cxx, C, etc. */
 #endif
 
+#ifndef CDriver
+#define CDriver CCDriver
+#endif
+
+#ifndef CSuffix
+#define CSuffix c
+#endif
+
 #ifndef SrcDir
 #ifdef InObjectCodeDir
 #define SrcDir ..
@@ -297,6 +315,8 @@ site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyri
 #define AoutName a.out
 #endif
 
+	   CDRIVER = CDriver
+	   CSUFFIX = CSuffix
            CCDRIVER = CCDriver
            CCSUFFIX = CCSuffix
                 SRC = CURDIR/SrcDir
@@ -311,6 +331,7 @@ site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyri
 #ifndef CCFlags
 #define CCFlags $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 #endif
+
 
 #ifndef IvCCFlags
 #define IvCCFlags \							@@\
@@ -370,6 +391,7 @@ site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyri
 #endif
 
             CCFLAGS = CCFlags
+            CFLAGS = CCFlags
          IV_CCFLAGS = IvCCFlags
       DEBUG_CCFLAGS = DebugCCFlags
    OPTIMIZE_CCFLAGS = OptimizeCCFlags
@@ -506,7 +528,7 @@ BACKWARD_CCINCLUDES = /* defined when Use_2_6() is used in Imakefile */
 CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
      ACE_CCINCLUDES = AceCCIncludes
         CLIPPOLYDIR = ClipPolyDir
-   	     ACEDIR = AceDir
+             ACEDIR = AceDir
 
 /*
  * Define the flags passed to the CC driver when we link a C++ program.
@@ -571,7 +593,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #endif
 
 #ifndef DepPath
-#if HasDynamicSharedLibraries || UseInstalled
+#if HasDynamicSharedLibraries || defined(UseInstalled)
 #define DepPath(name) /* as nothing */
 #else
 #define DepPath(name) Concat($(LIBSRC)/name/$(ARCH)/lib,name.a)

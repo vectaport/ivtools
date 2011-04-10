@@ -28,7 +28,8 @@ fi
 case "$do_all" in
 	yes)	set -x
 		imake CONFIGDIRSPEC -DUseInstalled &&
-		make Makefiles &&
+		make Makefile MAKEMAKESPEC &&
+		make Makefiles MAKEMAKESPEC &&
 		make depend
 		;;
 	*)	set -x
@@ -39,7 +40,8 @@ esac
 case "$do_all" in
 	yes)	set -x
 		imake CONFIGDIRSPEC &&
-		make Makefiles &&
+		make Makefile MAKEMAKESPEC &&
+		make Makefiles MAKEMAKESPEC &&
 		make depend
 		;;
 	*)	set -x

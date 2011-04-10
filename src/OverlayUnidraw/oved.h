@@ -40,7 +40,9 @@ class GraphicView;
 class Grid;
 class ObservableText;
 class OverlayComp;
+class OverlayPanner;
 class OverlayViewer;
+class OverlaysView;
 class UPage;
 class TextObserver;
 class Viewer;
@@ -80,6 +82,12 @@ public:
 
     virtual void InformComponents();
 
+    virtual OverlaysView* GetFrame(int index=-1);
+
+    boolean IsClean();
+
+    virtual void ResetStateVars();
+
     static int nedlauncher();
     static void add_edlauncher(const char* name, editor_launcher);
     static editor_launcher edlauncher(const char *);
@@ -96,6 +104,8 @@ protected:
     void Init(OverlayComp* = nil, const char* = "OverlayEditor");
 
     Interactor* Interior();
+    OverlayPanner* make_panner();
+    int panner_align();
 
 protected: 
     OverlayKit* _overlay_kit;

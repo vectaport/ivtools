@@ -1,5 +1,24 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
 /* gcc command line with -V for version and -O for optimize */
 #define CCDriver gcc -V 2.7.2.f.1
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses YES
+#define SOMAXCONN 5
 
 /* override -ansi -pedantic from xfree86.cf */
 #undef DefaultCCOptions
@@ -66,10 +85,10 @@ install:: Concat(lib,libname.sl.rev)					@@\
 #define XLibDir /usr/lib/X11R5
 
 /* clippoly directory:  comment out if not available */
-/* #define ClipPolyDir /proj/clippoly */
+/* #define ClipPolyDir ProjectDir/clippoly */
 
 /* ACE directory: comment out if not available */
-/* #define AceDir /proj/ACE_wrappers */
+/* #define AceDir ProjectDir/ACE_wrappers */
 
 #undef BuildProgram
 #define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\

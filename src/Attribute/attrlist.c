@@ -223,6 +223,10 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
     return out;
 }
 
+void AttributeList::dump() {
+  cerr << *this << "\n";
+}
+
 AttributeValue* AttributeList::find(const char* name) {
     int id = symbol_find((char *)name);
     return find(id);

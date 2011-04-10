@@ -40,7 +40,8 @@ public:
 
     virtual void keystroke(const Event&);
 
-    static void post(Window*, const char*);
+    static void post(Window*, const char* message, 
+		     const char* submsg=nil, const char* title=nil);
 
 private:
     GAcknowledgeDialogImpl* impl_;

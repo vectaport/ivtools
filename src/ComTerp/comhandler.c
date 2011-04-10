@@ -115,6 +115,7 @@ static const unit = 15;
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
+#if 1
     const int bufsiz = BUFSIZ;
     char inbuf[bufsiz];
     char outbuf[bufsiz];
@@ -122,10 +123,22 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     filebuf ibuf(fd);
     istream istr(&ibuf);
     istr.getline(inbuf, bufsiz);
-    if (!comterp_ || !istr.good() || !*inbuf) 
+    if (!comterp_ || !istr.good())
       return -1; 
+    else if (!*inbuf) {
+      filebuf obuf(fd ? fd : 1);
+      ostream ostr(&obuf);
+      ostr << "\n";
+      ostr.flush();
+      return 0;
+    }
     comterp_->load_string(inbuf);
     cerr << "command via ACE -- " << inbuf << "\n";
+#else
+    comterp_->_infunc = (infuncptr)&ComTerpServ::fd_fgets;
+#endif
+    comterp_->_fd = fd;
+    comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
     if (comterp_->read_expr()) {
         if (comterp_->eval_expr()) {
 	    err_print( stderr, "comterp" );
@@ -143,7 +156,11 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	    ostr.flush();
 	}
     }
+#if 1
     return istr.good() ? 0 : -1;
+#else
+    return comterp_->_instat ? 0 : -1;
+#endif
 }
 
 int

@@ -26,6 +26,7 @@
 
 #include <InterViews/monoglyph.h>
 #include <InterViews/observe.h>
+#include <Dispatch/iocallback.h>
 
 class NameState;
 class Patch;
@@ -36,10 +37,17 @@ public:
     virtual ~NameView();
 
     virtual void update(Observable*);
+  void blink_view(long =0, long =long(0.5 * 1000000));
+  void stop_blinking();
 protected:
+  IOHandler* _blink_handler;
+  int _blink_state;
+  int _blink_in;
     Patch* _label;
     NameState* st1;
 };
+
+declareIOCallback(NameView)
 
 class NameState : public Observable {
 public:

@@ -1,2 +1,1 @@
-usr/X11R6/lib/*.so.*
-usr/doc/ivtools
+usr/X11R6/lib/lib*.so.*

@@ -3,9 +3,11 @@ NAME
 
 SYNOPSIS
      comterp
+     comterp remote
      comterp server 'portnum'
-     comterp client 'host' 'portnum'
-     comterp telcat 'host' 'portnum' 'file'
+     comterp client 'host' 'portnum' ['file']
+     comterp telcat 'host' 'portnum' ['file']
+     comterp run 'file'	
 
 DESCRIPTION
 
@@ -34,21 +36,31 @@ comterp
 Invoke a single command interpreter to interact with via stdin and
 stdout.
 
+comterp remote
+
+Invoke a single command interpreter, like the default, and include a
+remote command for accessing other comterp's in server mode.
+
+
 comterp server 'portnum'
 
 Listens for and accept connections on portnum, then setup a command
 interpreter to wait for and process commands from that connection.
 
-
-comterp client 'host' 'portnum'
+comterp client 'host' 'portnum' ['file']
 
 Connect to a portnum on a host and send/receive new-line terminated
-text buffers.
+text buffers.  For debugging purposes, not really a use of the
+interpreter.
 
-comterp telcat 'host' 'portnum' 'file'
+comterp telcat 'host' 'portnum' ['file']
 
 Connect to a portnum on a host, cat the file, then close the
-connection.
+connection.  Not really a use of the interpreter either.
+
+comterp run 'file'
+
+Run contents of file then exit.
 
 
 OPERATOR TABLE
@@ -89,9 +101,35 @@ OPERATOR TABLE
 
 OTHER COMMANDS
 
-run(filename) -- run commands from file
-quit() -- quit this interpreter
+help(cmdname [cmdname ...]) -- help for commands
+symid(symbol [symbol...]) -- return id associated with symbol
+symval(symid [symid...]) -- return symbol associated with id
+
+quit() -- quit the interpreter
 exit() -- exit entire application
+
+val=run(filename) -- run commands from file
+
+val=remote(hoststr portnum cmdstr) -- remotely evaluate command string then locally
+evaluate result string
+
+val=shell(cmdstr) -- evaluate command in shell
+
+n=min(a b) -- return minimum of a and b
+n=max(a b) -- return maximum of a and b
+dbl=exp(x) -- returns the value of raised to the power of x
+dbl=log(x) -- returns the natural logarithm of x
+dbl=log10(x) -- returns the base-10 logarithm of x
+dbl=pow(x y) -- returns the value of x raised to the power of y
+dbl=acos(x) -- returns the arc cosine of x
+dbl=asin(x) -- returns the arc sine of x
+dbl=atan(x) -- returns the arc tangent of x
+dbl=atan2(y x) -- returns the arc tangent of y over x
+dbl=cos(x) -- returns the cosine of x
+dbl=sin(x) -- returns the sine of x
+dbl=tan(x) -- returns the tangent of x
+val=cond(test trueval falseval) -- if test is true, return trueval, otherwise return falseval
+
 
 SEE ALSO  
 	comdraw

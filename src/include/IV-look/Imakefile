@@ -4,7 +4,7 @@ XCOMM
 
 PACKAGE = include_look
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(IV-look)
 

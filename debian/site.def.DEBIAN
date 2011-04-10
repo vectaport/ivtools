@@ -1,0 +1,156 @@
+/* This file should be included when compiling for Debian
+   there are some further improvements here, which propably apply
+  to other Linux distributions too. So it's ok to include this file anyhow 
+*/
+
+/* egcs "gcc" doesn't have gcc -xc++ so .. */ 
+
+#undef CCDriver
+#define CCDriver c++
+
+#define maj 0
+
+#undef PSFontDir
+#define PSFontDir /usr/lib/ghostscript/fonts
+
+
+/******************************************************************************
+ *                                                                            *
+ *         REDEFINITIONS OF SOME OF THE MACROS                                *
+ *                                                                            *
+ ******************************************************************************/
+
+/*
+ *   Special rules to build Objects with the C-Compiler
+ *   These rules need some additional changes in params.def
+ *   see CDRIVER, CFLAGS, CSUFFIX 
+ *   These Macros are new !!!
+ *   They are used in the ComUtil Imakefile
+ */ 
+
+#define CDriver cc
+
+#ifndef MakeCObjectRule
+#define MakeCObjectRule(dst,src,flags)					@@\
+$(AOUT): dst.o								@@\
+dst.o: src.$(CSUFFIX)							@@\
+	@$(RM) dst.o dst..c						@@\
+	$(CDRIVER) flags $(CFLAGS) -c src.$(CSUFFIX)
+#endif
+
+
+#ifndef MakeCObjectFromSrc
+#define MakeCObjectFromSrc(file)					@@\
+MakeCObjectRule(file,$(SRC)/file,NullParameter)
+#endif
+
+
+#ifndef MakeCObjectFromSrcFlags
+#define MakeCObjectFromSrcFlags(file,flags)				@@\
+MakeCObjectRule(file,$(SRC)/file,flags)
+#endif
+
+
+/* 
+ * Command to create shared libraries 
+ * On Debian shared libraries are linked explicitely with the libraries they 
+ * depend on. This allows ldd to output all the libraries the specific
+ * library needs ..
+ */
+
+/*
+ *   This command is used in the IV/Imakefile to create the desired
+ *   library flags
+ */
+
+#ifndef Use_libDebian
+#define Use_libDebian()                 @@\
+       DEPLIBX11 = Dep_libX11                                          @@\
+          DEPLIBM = Dep_libm                                            @@\
+                                                                        @@\
+       LIBDIRPATH = LibDirPath                                          @@\
+      XLIBDIRPATH = XLibDirPath                                         @@\
+         LDLIBX11 = Ld_libX11                                           @@\
+           LDLIBM = Ld_libm                                             @@\
+    ABSLIBDIRPATH = AbsLibDirPath
+#endif
+
+#undef SharedLibraryCmd
+#define SharedLibraryCmd(ldobjs,libname) gcc -shared -Wl,-soname,Concat(lib,libname.so.maj) \
+        -o $@ ldobjs $(CCDEPLIBS) $(CCLDLIBS) -lc
+
+
+/*
+ * Install a shared library on Debian. (I'm not sure if this is really needed
+ * my feeling is rather not 
+ */
+
+#ifndef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)                   @@\
+install:: Concat(lib,libname.so.rev)                                    @@\
+	MakeDir(dest)                                                   @@\
+	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
+	-@if [ -f dest/Concat(lib,libname.so) ]; then exit 0; else \    @@\
+	pushd dest; \                                                   @@\
+	$(LN) Concat(lib,libname.so.maj) Concat(lib,libname.so); popd; fi
+#endif
+
+
+/* 
+ * Create a dynamic shared Library on Debian 
+ * This version removes the link when clean is called and works
+ * together with SharedLibraryCmd (above) to produce the desired effect
+ * for the -soname flag.
+ */
+
+#ifndef NormalDynamicSharedLibraryTarget
+#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)    @@\
+AOUT = Concat(lib,libname.so.rev)                                       @@\
+SHARED_CCFLAGS = SharedCCFlags                                          @@\
+                                                                        @@\
+AllTarget(Concat(lib,libname.so.rev))                                   @@\
+                                                                        @@\
+Concat(lib,libname.so.rev): depobjs                                     @@\
+	@echo "building $@"                                             @@\
+	$(RM) $@                                                        @@\
+	SharedLibraryCmd(ldobjs,libname)                                @@\
+	$(RM) Concat(lib,libname.so)                                    @@\
+	$(LN) $@ Concat(lib,libname.so)                                 @@\
+                                                                        @@\
+clean::                                                                 @@\
+	$(RM) Concat(lib,libname.so.rev)  Concat(lib,libname.so)
+#endif
+
+
+
+/* make it possible to install binary relative */
+
+#undef BinDir
+#undef LibDir
+#undef LibAllDir
+
+#define InstalledRoot $(DESTDIR)/usr/X11R6 
+
+/* don't include Debugging flags */
+
+#undef DebugCCFlags
+#define DebugCCFlags 
+
+/* Use the systems TIFF library 
+!! This makes a change in the Imakfile of IV necessary !!
+*/
+
+#define UseOwnTIFF 1
+#define Ld_libX11 -lX11 -ltiff
+
+
+/* Build only for SGI Motif 
+ (makes library smaller)
+*/
+
+#ifndef KitFlags
+#define KitFlags \
+-Dsgi_motif_kit \
+-Dmotif_kit \
+-Ddefault_kit=SMFKit
+#endif

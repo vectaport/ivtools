@@ -177,8 +177,8 @@ GraphicComp* IdrawCatalog::ReadPostScript (istream& in) {
     in >> _buf >> _psversion;
 
     if (_psversion > PSV_LATEST) {
-        fprintf(stderr, "warning: drawing version %d ", _psversion);
-        fprintf(stderr, "newer than idraw version %d\n", PSV_LATEST);
+        fprintf(stderr, "warning: drawing version %f ", _psversion);
+        fprintf(stderr, "newer than idraw version %f\n", PSV_LATEST);
     }
 
     float xincr, yincr;

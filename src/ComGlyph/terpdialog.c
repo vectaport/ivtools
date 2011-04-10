@@ -21,6 +21,8 @@
  * 
  */
 
+#define FUNC_CHOOSER
+
 #include <ComGlyph/terpdialog.h>
 
 #include <ComTerp/comvalue.h>
@@ -64,8 +66,8 @@ TerpDialog::TerpDialog(boolean session, int argc, char** argv, boolean init)
         impl_ = new TerpDialogImpl();
         TerpDialogImpl& cdi = *impl_;
         cdi.kit_ = WidgetKit::instance();
-        focus(cdi.init(this, WidgetKit::instance()->style(), session, argc, argv));
         cdi.initterp();
+        focus(cdi.init(this, WidgetKit::instance()->style(), session, argc, argv));
     }
 }
 
@@ -108,7 +110,10 @@ void TerpDialog::instance(TerpDialog* instance) {
 
 /*****************************************************************************/
 
-TerpDialogImpl::TerpDialogImpl() { return; }
+TerpDialogImpl::TerpDialogImpl() { 
+  terpserv_ = nil;
+  return;
+}
 
 InputHandler* TerpDialogImpl::init(TerpDialog* d, Style* s, boolean session, int argc, char** argv) {
     cancel_ = false;
@@ -116,7 +121,6 @@ InputHandler* TerpDialogImpl::init(TerpDialog* d, Style* s, boolean session, int
     dialog_ = d;
     style_ = s;
     cancelsession_ = session;
-    terpserv_ = nil;
     return build(argc, argv);
 }
 
@@ -146,39 +150,31 @@ InputHandler* TerpDialogImpl::build(int argc, char** argv) {
     err_ = new ObservableText("");
     errview_ = new TextObserver(err_, "");
 
-#if 0
     /* function chooser */
+#ifdef FUNC_CHOOSER
     func_choices_ = new StringList();
-    String* func_str = new String("and()");
-    func_choices_->append(*func_str);
-    func_str = new String("or()");
-    func_choices_->append(*func_str);
-    func_str = new String("negate()");
-    func_choices_->append(*func_str);
-    func_str = new String("div()");
-    func_choices_->append(*func_str);
-    func_str = new String("mpy()");
-    func_choices_->append(*func_str);
-    func_str = new String("sub()");
-    func_choices_->append(*func_str);
-    func_str = new String("add()");
-    func_choices_->append(*func_str);
-    func_str = new String("minus()");
-    func_choices_->append(*func_str);
+    int nfunc_symids;
+    int* func_symids = terpserv_->get_commands(nfunc_symids, true);
+    for (int i=0; i<nfunc_symids; i++) {
+      String* func_str = new String(symbol_pntr(func_symids[i]));
+      func_choices_->append(*func_str);
+    }
+    delete func_symids;
 
     func_chooser_ = new StrChooser(func_choices_, new String("Functions:"), 
         MFKit::instance(), Session::instance()->style(), nil, true, 
 	(strchooser_callback)&TerpDialogImpl::insert_func, this);
     Resource::ref(func_chooser_);
+#endif
 
     /* variable chooser */
+#ifdef VAR_CHOOSER
     var_choices_ = new StringList();
 
     var_chooser_ = new StrChooser(var_choices_, new String("Variables"), 
         MFKit::instance(), Session::instance()->style(), nil, true, 
 	(strchooser_callback)&TerpDialogImpl::insert_var, this);
     Resource::ref(var_chooser_);
-
 #endif
 
     /* number pad */
@@ -288,12 +284,14 @@ InputHandler* TerpDialogImpl::build(int argc, char** argv) {
         layout.hcenter(errview_),
 	layout.vspace(15.0),
         layout.hcenter(layout.hbox(
-#if 0
+#ifdef FUNC_CHOOSER
 	    func_chooser_,
 	    layout.hspace(30.0),
-	    var_chooser_,
 #endif
+#ifdef VAR_CHOOSER
+	    var_chooser_,
 	    layout.hspace(15.0),
+#endif
 	    numpad)),
 	layout.vspace(30.0),
 	layout.hcenter(layout.hbox(

@@ -59,18 +59,20 @@
 
 # -------------------------------------------------------------------------
 
+   PROJECTDIR = /proj
+
    RELEASE = ivtools-0.6
 
-   VERSION = 0.6.2
+   VERSION = 0.6.7
 
-   REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf
+   REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.5 ivmkmf.cpp ivmkmf *.bash *.1
 
               SHELL = /bin/sh
 
               IMAKE = imake
          IMAKEFLAGS = \
 	-T "template"\
-	-I$(TOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR)\
+	-I$(TOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 	$(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
              DEPEND = makedepend
@@ -83,7 +85,7 @@
 
            CCDRIVER = gcc
            CCSUFFIX = c
-                SRC = /proj/ivtools-0.6/src/ComUnidraw/.
+                SRC = /xtra3/ivtools-0.6/src/ComUnidraw/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
@@ -123,7 +125,7 @@ BACKWARD_CCINCLUDES =
 CLIPPOLY_CCINCLUDES = -I$(CLIPPOLYDIR)
      ACE_CCINCLUDES = -I$(ACEDIR)
         CLIPPOLYDIR = /proj/clippoly
-   	     ACEDIR = /proj/ACE_wrappers
+             ACEDIR = /proj/ACE_wrappers
 
           CCLDFLAGS = $(APP_CCLDFLAGS) $(IV_CCLDFLAGS) $(OTHER_CCLDFLAGS) $(EXTRA_CCLDFLAGS)
        IV_CCLDFLAGS = \
@@ -193,9 +195,9 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = psroff
 
-                TOP = /proj/ivtools-0.6
+                TOP = /xtra3/ivtools-0.6
              RELTOP = ../../.
-        CURRENT_DIR = /proj/ivtools-0.6/src/ComUnidraw
+        CURRENT_DIR = /xtra3/ivtools-0.6/src/ComUnidraw
 
               IVSRC = $(TOP)/src
              BINSRC = $(IVSRC)/bin
@@ -205,12 +207,12 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = $(TOP)/bin/$(ARCH)
-          CONFIGDIR = $(TOP)/config
-             INCDIR = $(TOP)/include
-             LIBDIR = $(RELTOP)/lib/$(ARCH)
-          LIBALLDIR = $(TOP)/lib/ivtools
-             MANDIR = $(TOP)/man
+             BINDIR = /usr/local/bin
+          CONFIGDIR = /usr/local/lib/ivtools
+             INCDIR = /usr/local/include
+             LIBDIR = /usr/local/lib
+          LIBALLDIR = /usr/local/lib/ivtools
+             MANDIR = /usr/local/man
 
        ABSCONFIGDIR = /usr/local/lib/ivtools
           ABSLIBDIR = /usr/local/lib
@@ -362,32 +364,46 @@ clean.noshared:
 	clean
 
 cmchkin::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(cd $(TOP); cminstall); fi
-	@csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmchkin $(PACKAGE) $(TOP)/cm $(TOP) $(CURRENT_DIR))';
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(cd $(TOP); cminstall); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; \
+	cmchkin $(PACKAGE) $(TOP)/cm $(TOP) $(CURRENT_DIR))'; fi
 
 cmtag::
-	cmtag $(CMFLAGS) $(CMARGS)
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	cmtag $(CMFLAGS) $(CMARGS); fi
 
 cmadd::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	@csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)";cmadd -m null_message)'
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmadd -m null_message)'; fi
 
 cmupdate::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	cmupdate
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else cmupdate; fi
 
 cmcommit::
-	-@if [ ! -d $(TOP)/cm ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \
-	(echo "Build repository first with cmchkin"; exit 0;); fi
-	-@if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \
-	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ ! -d $(TOP)/cm ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \
+	if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \
+	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi; fi
 

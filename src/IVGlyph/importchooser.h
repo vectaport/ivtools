@@ -46,7 +46,7 @@ public:
     ImportChooser(
 	const String& dir, WidgetKit*, Style*, OpenFileChooserAction* = nil,
 	boolean centered_bttn = true, boolean by_pathname_bttn = true,
-	boolean from_command_bttn = true
+	boolean from_command_bttn = true, boolean auto_convert_bttn = true
     );
 #if 0
     ImportChooser( Style* );
@@ -56,6 +56,12 @@ public:
     virtual boolean centered();
     virtual boolean by_pathname();
     virtual boolean from_command();
+    virtual boolean auto_convert();
+
+    void set_centered(boolean);
+    void set_by_pathname(boolean);
+    void set_from_command(boolean);
+    void set_auto_convert(boolean);
 
     static ImportChooser& instance();
     static void instance(ImportChooser*);
@@ -77,16 +83,20 @@ public:
     void centered_callback();
     void by_pathname_callback();
     void from_command_callback();
+    void auto_convert_callback();
 
     boolean _centered;
     boolean _by_pathname;
     boolean _from_command;
+    boolean _auto_convert;
     Button* _cbutton;
     Button* _fbutton;
     Button* _mbutton;
+    Button* _abutton;
     Action* _centered_action;
     Action* _by_pathname_action;
     Action* _from_command_action;
+    Action* _auto_convert_action;
 };
 
 declareActionCallback(ImportChooserImpl)

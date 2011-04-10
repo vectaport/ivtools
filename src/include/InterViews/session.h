@@ -73,7 +73,7 @@ class Session {
 public:
     Session(
 	const char*, int& argc, char** argv,
-	const OptionDesc* = nil, const PropertyData* = nil
+	const OptionDesc* = nil, const PropertyData* = nil, Display* = nil
     );
     virtual ~Session();
 

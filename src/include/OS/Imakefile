@@ -4,6 +4,6 @@ XCOMM
 
 PACKAGE = include_os
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(OS)

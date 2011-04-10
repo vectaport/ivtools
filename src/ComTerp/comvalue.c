@@ -37,6 +37,7 @@ ComValue ComValue::_trueval(1, ComValue::BooleanType);
 ComValue ComValue::_falseval(0, ComValue::BooleanType);
 ComValue ComValue::_blankval(ComValue::BlankType);
 ComValue ComValue::_unkval(ComValue::UnknownType);
+ComValue ComValue::_oneval(1, ComValue::IntType);
 
 /*****************************************************************************/
 
@@ -308,6 +309,11 @@ ComValue& ComValue::blankval() {
 ComValue& ComValue::unkval() { 
   *&_unkval = ComValue(ComValue::UnknownType);
   return _unkval;
+}
+
+ComValue& ComValue::oneval() { 
+  *&_oneval = ComValue(1, ComValue::IntType);
+  return _oneval;
 }
 
 void* ComValue::geta(int id) {

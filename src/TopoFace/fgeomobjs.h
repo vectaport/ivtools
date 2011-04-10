@@ -116,8 +116,8 @@ public:
 
     float* x() {return _x;}
     float* y() {return _y;}
-    const int count() {return _count;}
-    const int size() {return _size;}
+    int count() const {return _count;}
+    int size() const {return _size;}
 
     virtual boolean operator == (FMultiLineObj&);
     virtual boolean operator != (FMultiLineObj&);

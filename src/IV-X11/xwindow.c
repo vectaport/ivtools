@@ -57,6 +57,7 @@
 #include <OS/table.h>
 #include <X11/Xatom.h>
 #include <sys/ioctl.h>
+#include <iostream.h>
 #if defined(sun) && defined(__svr4__)
 #include <stropts.h>
 #include <sys/conf.h>
@@ -734,7 +735,12 @@ void ManagedWindow::set_props() {
 
 /** class ApplicationWindow **/
 
-ApplicationWindow::ApplicationWindow(Glyph* g) : ManagedWindow(g) { }
+ApplicationWindow::ApplicationWindow(Glyph* g, const char* display) 
+: ManagedWindow(g) 
+{ 
+  _otherdisplay = display;
+ }
+
 ApplicationWindow::~ApplicationWindow() { }
 
 void ApplicationWindow::compute_geometry() {
@@ -775,6 +781,18 @@ void ApplicationWindow::set_props() {
     Display* d = w.display_;
     if (d == nil) {
 	d = s.default_display();
+    }
+    if (_otherdisplay) {
+      cerr << "attempting to open new viewer on " << _otherdisplay << "\n";
+      DisplayRep* displayrep = new DisplayRep;
+      XDisplay* dpy = XOpenDisplay(_otherdisplay);
+      if (dpy) {
+	displayrep->init(dpy);
+	w.display_ =  new Display(displayrep);
+	cerr << "connected to " << _otherdisplay << "\n";
+      } else {
+	cerr << "failed to connect to " << _otherdisplay << "\n";
+      }
     }
     XSetCommand(d->rep()->display_, w.xwindow_, s.argv(), s.argc());
     ManagedWindow::set_props();
@@ -1715,6 +1733,16 @@ implementPtrList(SelectionList,SelectionManager)
 
 implementTable(WindowTable,XWindow,Window*)
 
+void DisplayRep::init(XDisplay* dpy) {
+    display_ = dpy;
+    screen_ = DefaultScreen(display_);
+    style_ = nil;
+    grabbers_ = new GrabList;
+    damaged_ = new DamageList;
+    selections_ = new SelectionList;
+    wtable_ = new WindowTable(256);
+}
+
 Display::Display(DisplayRep* d) {
     rep_ = d;
 }
@@ -1734,13 +1762,7 @@ Display* Display::open(const char* device) {
 	return nil;
     }
     DisplayRep* d = new DisplayRep;
-    d->display_ = dpy;
-    d->screen_ = DefaultScreen(d->display_);
-    d->style_ = nil;
-    d->grabbers_ = new GrabList;
-    d->damaged_ = new DamageList;
-    d->selections_ = new SelectionList;
-    d->wtable_ = new WindowTable(256);
+    d->init(dpy);
     return new Display(d);
 }
 

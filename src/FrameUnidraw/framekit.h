@@ -34,6 +34,7 @@
 #include <InterViews/_enter.h>
 
 class EivTextEditor;
+class FrameEditor;
 
 class FrameKit : public OverlayKit {
 public:
@@ -41,8 +42,8 @@ public:
 
     virtual void InitViewer();
     virtual void InitLayout(const char* name);
+    static void InitLayout(OverlayKit* kit, const char* name);
 
-    virtual Glyph* MakeMenus();
     virtual MenuItem* MakeFileMenu();
     virtual MenuItem* MakeEditMenu();
     virtual MenuItem* MakeStructureMenu();

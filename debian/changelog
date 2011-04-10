@@ -1,6 +1,54 @@
+ivtools (0.6.7-7) frozen; urgency=low
+
+  * Finally fixed the segv bug in idraw (egcs c++ problem)
+
+ -- Guenter Geiger <geiger@debian.org>  Mon, 25 Jan 1999 22:30:00 +0100
+
+ivtools (0.6.7-6) frozen; urgency=low
+
+  * Corrected buggy postinst script
+
+ -- Guenter Geiger <geiger@debian.org>  Mon, 18 Jan 1999 22:15:00 +0100
+
+ivtools (0.6.7-5) frozen; urgency=low
+
+  * Added vanished shared library links
+
+ -- Guenter Geiger <geiger@debian.org>  Sat, 9 Jan 1999 18:00:00 +0200
+
+ivtools (0.6.7-4) frozen; urgency=low
+
+  * Added missing manpages for comterp, comdraw; fixed egcs-bug in iostreamb.c
+
+ -- Guenter Geiger <geiger@debian.org>  Sat, 17 Oct 1998 21:00:05 +0200
+
+ivtools (0.6.7-3) unstable; urgency=low
+
+  * Minor changes for Alpha architecture; #26824 closes output redirect bug
+
+ -- Guenter Geiger <geiger@debian.org>  Thu, 1 Oct 1998 21:00:00 +0200
+
+ivtools (0.6.7-2) unstable; urgency=low
+
+  * Fixed compiler related bugs, use Debian TIFF library
+
+ -- Guenter Geiger <geiger@debian.org>  Sun, 13 Sep 1998 22:00:00 +0200
+
+ivtools (0.6.7-1) unstable; urgency=low
+
+  * New upstream maintainer version. Deals again with Bug#23286.      
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Thu, 13 Aug 1998 20:00:00 +0100
+
+ivtools (0.6.2-5) unstable; urgency=low
+
+  * Bug#23286: ivtools doesn't compile smoothly with g++ solved
+
+ -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Tue, 9 Jun 1998 12:30:00 +0100
+
 ivtools (0.6.2-4) frozen; urgency=low
 
-  * made links from /usr/doc/ivtool-dev adn -bin to ivtools
+  * made links from /usr/doc/ivtool-dev and -bin to ivtools
 
  -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Tue, 24 Mar 1998 11:00:00 +0100
 
@@ -41,5 +89,5 @@ ivtools (0.5.9-1) unstable; urgency=low
 
 Local variables:
 mode: debian-changelog
-add-log-mailing-address: "geiger@iem.mhsg.ac.at"
+add-log-mailing-address: "geiger@debian.org"
 End:

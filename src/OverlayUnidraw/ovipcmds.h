@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 1998 Vectaport Inc.
  * Copyright (c) 1997 Vectaport Inc. and R.B. Kissh & Associates
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -126,14 +127,18 @@ public:
 
     void Execute();
     
-    virtual void PrepareToExecute(GraphicComp*);
+    virtual boolean PrepareToExecute(GraphicComp*);
     virtual OverlayRaster* Process(OverlayRaster*, CopyString& scmd);
 
     void GetResult(Clipboard&) const;
 
+    virtual boolean Reversible();
+
 protected:
     Clipboard* _comps;
     boolean _prepared;
+    boolean _ed_constructor;
+    boolean _reversible;
 };
 
 
@@ -163,10 +168,11 @@ public:
     ScaleGrayCmd(
         ControlInfo*, ColorIntensity mingray, ColorIntensity maxgray
     ); 
-    ScaleGrayCmd(Editor* ed);
+    ScaleGrayCmd(ControlInfo*);
     ScaleGrayCmd(
         Editor* ed, ColorIntensity mingray, ColorIntensity maxgray
     );
+    ScaleGrayCmd(Editor* ed);
 
     virtual ~ScaleGrayCmd();
     
@@ -187,10 +193,11 @@ public:
     PseudocolorCmd(
         ControlInfo*, ColorIntensity mingray, ColorIntensity maxgray
     ); 
-    PseudocolorCmd(Editor* ed);
+    PseudocolorCmd(ControlInfo*);
     PseudocolorCmd(
         Editor* ed, ColorIntensity mingray, ColorIntensity maxgray
     );
+    PseudocolorCmd(Editor* ed);
     virtual ~PseudocolorCmd();
     
     virtual OverlayRaster* Process(OverlayRaster*, CopyString& scmd);
@@ -208,7 +215,9 @@ class LogScaleCmd : public ProcessingCmd {
 public:
 
     LogScaleCmd(ControlInfo*, ColorIntensity mingray, ColorIntensity maxgray); 
+    LogScaleCmd(ControlInfo*);
     LogScaleCmd(Editor* ed, ColorIntensity mingray, ColorIntensity maxgray); 
+    LogScaleCmd(Editor* ed);
     virtual ~LogScaleCmd();
     
     virtual OverlayRaster* Process(OverlayRaster*, CopyString& scmd);

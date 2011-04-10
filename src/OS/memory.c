@@ -27,12 +27,6 @@
 #include <string.h>
 
 #if defined(sun) && !defined(SVR4)
-extern "C" {
-    int bcopy();
-}
-#endif
-
-#if defined(sun) && !defined(SVR4)
 /* would that these lived in a standard place ... */
 extern "C" {
     extern void bcopy(const void*, void*, int);

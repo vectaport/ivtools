@@ -42,7 +42,7 @@
 
 /*****************************************************************************/
 
-GFieldEditor::GFieldEditor(char* init, GFieldEditorAction* act, float minw)
+GFieldEditor::GFieldEditor(char* init, GFieldEditorAction* act, float minwidth)
 : InputHandler(nil, Session::instance()->style())
 {
     field_ = new EivTextBuffer();
@@ -52,7 +52,7 @@ GFieldEditor::GFieldEditor(char* init, GFieldEditorAction* act, float minw)
     point_pos_ = 0;
     mark_pos_ = 0;
     action_ = act;
-    minwidth_ = minw;
+    minwidth_ = minwidth;
     cursor_is_on_= false;
     int thickness;
     Style *s = Session::instance()->style();
@@ -189,6 +189,11 @@ void GFieldEditor::make_body() {
     for (; i <field_->Length(); i++) {
 	label_->append(new Character(*field_->Text(i), wk.font(), Color::lookup(d, "black")));
     }
+#if 0
+    for (; i <minwidth_; i++) {
+	label_->append(new Character(' ', wk.font(), Color::lookup(d, "black")));
+    }
+#endif
     label_->append(lk.hglue(0, fil, fil));
     if (cursor_is_on_) {
 	body_->append(lk.vcenter(cursor_ = lk.hbox()));
@@ -198,7 +203,10 @@ void GFieldEditor::make_body() {
 				      0, 0, 0, wk.font()->Height()));
 	cursor_->append(lk.hglue(0, fil, fil));
     }
-    body(new Target(wk.inset_frame(body_), TargetPrimitiveHit));
+    if (minwidth_>0.0) 
+      body(wk.inset_frame(lk.hnatural(lk.vfixed(new Target(body_, TargetPrimitiveHit),wk.font()->Height()), minwidth_)));
+    else
+      body(wk.inset_frame(lk.vfixed(new Target(body_, TargetPrimitiveHit), wk.font()->Height())));
 }
 
 void GFieldEditor::update() {

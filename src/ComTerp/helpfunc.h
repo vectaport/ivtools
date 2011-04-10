@@ -39,7 +39,7 @@ public:
 
     virtual boolean lazy_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s(command [command...])"; }
+      return "%s([command] [command...] :all) -- help for commands"; }
 };
 
 class SymIdFunc : public ComFunc {
@@ -49,7 +49,7 @@ public:
 
     virtual boolean lazy_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s(symbol [symbol...])"; }
+      return "%s(symbol [symbol...]) -- return id associated with symbol"; }
 };
 
 class SymValFunc : public ComFunc {
@@ -59,7 +59,7 @@ public:
 
     virtual boolean lazy_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s(symbol [symbol...])"; }
+      return "%s(symid [symid...]) -- return symbol associated with id"; }
 };
 
 #endif /* !defined(_helpfunc_h) */

@@ -21,11 +21,13 @@
  * 
  */
 
+#include <ComTerp/_comterp.h>
+#include <ComTerp/_comutil.h>
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
-#include <ComTerp/_comterp.h>
-#include <streambuf.h>
+#include <ComTerp/ctrlfunc.h>
+#include <iostream.h>
 #include <string.h>
 
 ComTerpServ::ComTerpServ(int bufsize, int fd)
@@ -48,6 +50,9 @@ ComTerpServ::ComTerpServ(int bufsize, int fd)
 #ifdef HAVE_ACE
     _handler = nil;
 #endif
+
+    /* inform the parser which infunc is the oneshot infunc */
+    _oneshot_infunc = (infuncptr)&s_fgets;
 }
 
 ComTerpServ::~ComTerpServ() {
@@ -76,7 +81,6 @@ void ComTerpServ::load_string(const char* expr) {
             *(inptr) = '\n';
 	    *(inptr+1) = '\0';
     }
-    
 }
 
 char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
@@ -126,6 +130,55 @@ int ComTerpServ::s_fputs(const char* s, void* serv) {
     return 1;
 }
 
+char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
+    ComTerpServ* server = (ComTerpServ*)serv;
+    char* instr;
+    int fd = max(server->_fd, 1);
+    filebuf fbuf;
+    fbuf.attach(fd);
+    istream in (&fbuf);
+    in.gets(&instr);
+    server->_instat = in.good(); 
+  
+    char* outstr = s;
+    int inpos = 0;
+    int& bufsize = server->_bufsiz;
+
+    int outpos;
+
+    /* copy characters until n-1 characters are transferred, */
+    /* or the input buffer is exhausted */
+    for (outpos = 0; outpos < n-1 && inpos < bufsize-1 && 
+	   instr[inpos] != '\n' && instr[inpos] != '\0';)
+	outstr[outpos++] = instr[inpos++];
+
+    /* add a newline character if there is room */
+    if (outpos < n-1 && inpos < bufsize-1)
+	outstr[outpos++] = '\n';
+
+    /* append a null byte */
+    outstr[outpos] = '\0';
+
+    return s;
+}
+
+int ComTerpServ::fd_fputs(const char* s, void* serv) {
+    ComTerpServ* server = (ComTerpServ*)serv;
+    char* outstr = server->_outstr;
+    int& outpos = server->_outpos;
+    int& bufsize = server->_bufsiz;
+
+    int fd = (int)server->_fd;
+    filebuf fbuf;
+    fbuf.attach(fd);
+    ostream out(&fbuf);
+    for (; outpos < bufsize-1 && s[outpos]; outpos++)
+	out.put(s[outpos]);
+    out.flush();
+    outpos = 0;
+    return 1;
+}
+
 int ComTerpServ::run() {
 
     char buffer[BUFSIZ];
@@ -133,10 +186,14 @@ int ComTerpServ::run() {
     errbuf[0] = '\0';
     int status = 0;
 
+    _inptr = _fptr;
+    _infunc = (infuncptr)&fgets;
+    _eoffunc = (eoffuncptr)&ffeof;
+    _errfunc = (errfuncptr)&fferror;
+    _fd = handler() ? handler()->get_handle() : fileno(stdout);
+    _outfunc = (outfuncptr)&fd_fputs;
+    _linenum = 0;
     while (!feof(_fptr) && !quitflag()) {
-	
-        fgets( buffer, BUFSIZ, _fptr);
-        load_string(buffer);
 	
 	if (read_expr()) {
             err_str( errbuf, BUFSIZ, "comterp" );
@@ -159,10 +216,30 @@ int ComTerpServ::run() {
             }
 	}
     }
+    _inptr = this;
+    _infunc = (infuncptr)&ComTerpServ::s_fgets;
+    _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
+    _errfunc = (errfuncptr)&ComTerpServ::s_ferror;
+    _outptr = this;
+    _outfunc = (outfuncptr)&ComTerpServ::s_fputs;
     return status;
 }
 
 int ComTerpServ::runfile(const char* filename) {
+    /* save enough state as needed by this interpreter */
+    void* save_inptr = _inptr;
+    infuncptr save_infunc = _infunc;
+    outfuncptr save_outfunc = _outfunc;
+    eoffuncptr save_eoffunc = _eoffunc;
+    errfuncptr save_errfunc = _errfunc;
+    int save_linenum = _linenum;
+    _inptr = this;
+    _infunc = (infuncptr)&ComTerpServ::s_fgets;
+    _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
+    _errfunc = (errfuncptr)&ComTerpServ::s_ferror;
+    _outfunc = nil;
+    _linenum = 0;
+
     const int bufsiz = BUFSIZ;
     char inbuf[bufsiz];
     char outbuf[bufsiz];
@@ -172,21 +249,23 @@ int ComTerpServ::runfile(const char* filename) {
     istream istr(&ibuf);
     ComValue* retval = nil;
     int status = 0;
+   
 
     /* save tokens to restore after the file has run */
     int toklen;
     postfix_token* tokbuf = copy_postfix_tokens(toklen);
     int tokoff = _pfoff;
     
-    while( !istr.eof()) {
+    while( istr.good()) {
         istr.getline(inbuf, bufsiz-1);
-	load_string(inbuf);
-	if (read_expr()) {
+	if (istr.eof())
+	  break;
+	if (*inbuf) load_string(inbuf);
+	if (*inbuf && read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
 	        filebuf obuf(handler() ? handler()->get_handle() : 1);
 		ostream ostr(&obuf);
-		ostr << "err\n";
 		ostr.flush();
 		status = -1;
 	    } else if (quitflag()) {
@@ -196,6 +275,12 @@ int ComTerpServ::runfile(const char* filename) {
 	        /* save last thing on stack */
 	        retval = new ComValue(pop_stack());
 	    }
+	} else 	if (*inbuf) {
+	  err_print( stderr, "comterp" );
+	  filebuf obuf(handler() ? handler()->get_handle() : 1);
+	  ostream ostr(&obuf);
+	  ostr.flush();
+	  status = -1;
 	}
     }
 
@@ -208,34 +293,77 @@ int ComTerpServ::runfile(const char* filename) {
     } else
         push_stack(ComValue::nullval());
 
+    _inptr = save_inptr;
+    _infunc = save_infunc;
+    _outfunc = save_outfunc;
+    _eoffunc = save_eoffunc;
+    _errfunc = save_errfunc;
+    _linenum = save_linenum;
+
     return status;
 }
 
-ComValue& ComTerpServ::run(const char* expression) {
+ComValue& ComTerpServ::run(const char* expression, boolean nested) {
     _errbuf[0] = '\0';
+
+    postfix_token* save_pfbuf = _pfbuf;
+    int save_pfoff = _pfoff;
+    int save_pfnum = _pfnum;
+    int save_bufptr = _bufptr;
+    int save_linenum = _linenum;
+    int save_just_reset = _just_reset;
+    if (save_pfoff) {
+      _pfbuf =  new postfix_token[_pfnum];
+      _pfoff = 0;
+    }
 
     if (expression) {
         load_string(expression);
+	infuncptr save_infunc = _infunc;
+	eoffuncptr save_eoffunc = _eoffunc;
+	errfuncptr save_errfunc = _errfunc;
+	void* save_inptr = _inptr;
+	_infunc = (infuncptr)&ComTerpServ::s_fgets;
+	_eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
+	_errfunc = (errfuncptr)&ComTerpServ::s_ferror;
+	_inptr = this;
         read_expr();
+	_infunc = save_infunc;
+	_eoffunc = save_eoffunc;
+	_errfunc = save_errfunc;
+	_inptr = save_inptr;
         err_str(_errbuf, BUFSIZ, "comterp");
     }
     if (!*_errbuf) {
-	eval_expr();
+	eval_expr(nested);
 	err_str(_errbuf, BUFSIZ, "comterp");
     }
+
+    if (save_pfoff) {
+      delete _pfbuf;
+      _pfbuf =  save_pfbuf;
+      _pfoff = save_pfoff;
+      _pfnum = save_pfnum;
+      _bufptr = 0; // save_bufptr;
+      _linenum = save_linenum;
+      _just_reset = save_just_reset;
+    }
+
     return *_errbuf ? ComValue::nullval() : pop_stack();
 }
 
 ComValue& ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _errbuf[0] = '\0';
 
-    _pfoff = 0;
-
     postfix_token* save_pfbuf = _pfbuf;
     int save_pfnum = _pfnum;
-
+    int save_pfoff = _pfoff;
+    int save_bufptr = _bufptr;
+    int save_linenum = _linenum;
+    int save_just_reset = _just_reset;
     _pfbuf = tokens;
     _pfnum = ntokens;
+    _pfoff = 0;
 
     eval_expr();
     err_str(_errbuf, BUFSIZ, "comterp");
@@ -243,6 +371,10 @@ ComValue& ComTerpServ::run(postfix_token* tokens, int ntokens) {
     ComValue& retval = *_errbuf ? ComValue::nullval() : pop_stack();
     _pfbuf = save_pfbuf;
     _pfnum = save_pfnum;
+    _pfoff = save_pfoff;
+    _bufptr = save_bufptr;
+    _linenum = save_linenum;
+    _just_reset = save_just_reset;
     return retval;
 }
 
@@ -257,3 +389,10 @@ void ComTerpServ::read_string(const char* script) {
     read_expr();
 }
   
+void ComTerpServ::add_defaults() {
+  if (!_defaults_added) {
+    ComTerp::add_defaults();
+    add_command("remote", new RemoteFunc(this));
+  }
+}
+

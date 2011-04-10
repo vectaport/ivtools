@@ -14,18 +14,22 @@ frame (1 thru n).
 The Frame menu controls the frame display mechanism.  The operations
 are:
 .PP
-Menu Item Keyboard  Description
+.nf
+Menu Item       Keyboard        Description
 --------------	--------	-----------
-Move Forward	^F move forward one frame
-Move Backward	^B move backward one frame
-Goto First Frame    move to the first frame
-Goto Last Frame           move to the last frame
-New Forward      F        create new frame in front of the current
-                          frame and make it the current frame
-New Backward     B        create new frame in back of the current
-                          frame and make it the current frame
-Delete           D        delete current frame (the zeroth frame
-                          can never be deleted)
+Move Forward	^F              move forward one frame
+Move Backward	^B              move backward one frame
+Goto First Frame                move to the first frame
+Goto Last Frame                 move to the last frame
+New Forward      F              create new frame in front of the current
+                                frame and make it the current frame
+New Backward     B              create new frame in back of the current
+                                frame and make it the current frame
+Copy Forward     X              copy current frame in front of itself
+Copy Backward    Y              copy current frame in back of itself
+Delete           D              delete current frame (the zeroth frame
+                                can never be deleted)
+.fi
 
 By default a flipbook document is positioned on the first frame
 when opened (if one exists).  "Move Backward" can be used to move to

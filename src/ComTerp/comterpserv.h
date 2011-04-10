@@ -44,10 +44,12 @@ public:
     postfix_token* gen_code(const char*, int& codelen);
 
     virtual int run();
-    virtual ComValue& run(const char*);
+    virtual ComValue& run(const char*, boolean nested=false);
     virtual ComValue& run(postfix_token*, int);
     
     virtual int runfile(const char*);
+
+    void add_defaults();
 
 protected:
 
@@ -55,6 +57,8 @@ protected:
     static int s_feof(void* serv);
     static int s_ferror(void* serv);
     static int s_fputs(const char* s, void* serv);
+    static char* fd_fgets(char* s, int n, void* serv);
+    static int fd_fputs(const char* s, void* serv);
 
 protected:
     char* _instr;
@@ -63,6 +67,10 @@ protected:
     int _outpos;
     int _fd;
     FILE* _fptr;
+    int _instat;
+
+    friend class ComterpHandler;
+    friend class ComTerpIOHandler;
 };
 
 #endif

@@ -4,6 +4,8 @@ XCOMM
 
 PACKAGE = scrollfield
 
+CLIPPOLY_CCLDLIBS =
+
 #ifdef InObjectCodeDir
 
 APP_CCLDLIBS = $(LIBIVGLYPH)

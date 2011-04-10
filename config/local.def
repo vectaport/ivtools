@@ -29,13 +29,6 @@ XCOMM from <local.def>:
 #undef TurnOnDebugging
 #define TurnOnDebugging YES
 
-/* 
- * build RPC classes -- requires iostreams & TCP sockets
- */
-#undef BuildRPCClasses
-#define BuildRPCClasses YES 
-#define SOMAXCONN 5
-
 /*
  * To disable removal of programs if a "make install" is done"
  */
@@ -46,7 +39,11 @@ XCOMM from <local.def>:
  * Where to look for config files.
  */
 #undef ImakeIncludes
-#define ImakeIncludes -I$(TOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR)
+#if InstallRelative
+#define ImakeIncludes -I$(TOP)/config -I$(CONFIGSRC) -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config
+#else
+#define ImakeIncludes -I$(TOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config
+#endif
 
 /* 
  * TIFF C Compiler

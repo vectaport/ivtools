@@ -51,7 +51,8 @@ Arrowhead::Arrowhead (
 
 Graphic* Arrowhead::Copy () { return new Arrowhead(Vertices::x(), Vertices::y(), this); }
 Graphic& Arrowhead::operator = (Graphic& g) { return Graphic::operator=(g); }
-
+Arrowhead& Arrowhead::operator = (Arrowhead& g) { return (Arrowhead&)Graphic::operator=(g);}
+ 
 Coord Arrowhead::CorrectedHeight (float t) {
     float w = Vertices::x()[BOTRIGHT] - Vertices::x()[BOTCTR];
     float h = Vertices::y()[TIP] - Vertices::y()[BOTRIGHT];

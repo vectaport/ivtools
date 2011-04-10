@@ -4,6 +4,6 @@ XCOMM
 
 PACKAGE = include_iviv-2_6
 
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(IV-2_6/InterViews)

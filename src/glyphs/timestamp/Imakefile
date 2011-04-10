@@ -7,6 +7,8 @@ PACKAGE = timestamp
 
 #ifdef InObjectCodeDir
 
+CLIPPOLY_CCLDLIBS =
+
 APP_CCLDLIBS = $(LIBTIME) $(LIBIVGLYPH)
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS =  $(DEPTIME) $(DEPIVGLYPH)

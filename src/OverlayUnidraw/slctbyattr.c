@@ -104,7 +104,6 @@ void SlctByAttrCmd::Execute () {
     } else {
 	style = calculator_->style();
     }
-    boolean again;
     clipboard_->Clear();
     calculator_->post_for(ed->GetWindow());
     
@@ -141,6 +140,8 @@ AttrListFunc::~AttrListFunc() {
 }
 
 
+/* move to next component in the list */
+
 NextAttrListFunc::NextAttrListFunc
 (ComTerp* comterp, AttrDialog* attrdialog, OverlaysComp* comps, Iterator* i, Clipboard* cb) 
 : AttrListFunc(comterp, attrdialog, comps, i, cb) {
@@ -158,6 +159,8 @@ void NextAttrListFunc::execute() {
     return; 
 }
 
+/* if expression evaluates to true for this component, add to clipboard */
+
 TrueAttrListFunc::TrueAttrListFunc
 (ComTerp* comterp, AttrDialog* attrdialog, OverlaysComp* comps, Iterator* i, Clipboard* cb) 
 : AttrListFunc(comterp, attrdialog, comps, i, cb) {}
@@ -169,6 +172,8 @@ void TrueAttrListFunc::execute() {
     return; 
 }
 
+/* if expression evaluates to false for this component, do nothing */
+
 FalseAttrListFunc::FalseAttrListFunc
 (ComTerp* comterp, AttrDialog* attrdialog,  OverlaysComp* comps, Iterator* i, Clipboard* cb) 
 : AttrListFunc(comterp, attrdialog, comps, i, cb) {}
@@ -177,6 +182,8 @@ void FalseAttrListFunc::execute() {
     push_stack(ComValue::falseval());
     return; 
 }
+
+/* at the end build new selection from clipboard */
 
 DoneAttrListFunc::DoneAttrListFunc
 (ComTerp* comterp, AttrDialog* attrdialog, OverlaysComp* comps, Iterator* i, Clipboard* cb, Viewer* v) 

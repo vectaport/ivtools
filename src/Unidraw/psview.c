@@ -351,6 +351,7 @@ void PostScriptView::CircleProc (ostream& out) {
     out << "/Circ {\n";
     out << "newpath\n";
     out << "0 360 arc\n";
+    out << "closepath\n";
     out << "patternNone not { ifill } if\n";
     out << "brushNone not { istroke } if\n";
     out << "} def\n\n";
@@ -386,6 +387,7 @@ void PostScriptView::EllipseProc (ostream& out) {
     out << "translate\n";
     out << "scale\n";
     out << "0 0 1 0 360 arc\n";
+    out << "closepath\n";
     out << "patternNone not { ifill } if\n";
     out << "brushNone not { istroke } if\n";
     out << "end\n";

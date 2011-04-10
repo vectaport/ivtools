@@ -272,8 +272,8 @@ InstallSubdirs(dirs)							@@\
 CleanSubdirs(dirs)							@@\
 SpecialTargets(debug,-DUseDebug)					@@\
 SpecialTargets(noshared,-DUseNonShared)					@@\
-CmscriptsTargets($(PACKAGE))						@@\
-CmscriptsSubdirs(dirs)
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
 #else
 #define MakeInSubdirs(dirs)						@@\
 MakefilesSubdirs(dirs)							@@\
@@ -282,8 +282,8 @@ MakeSubdirs(dirs)							@@\
 InstallSubdirs(dirs)							@@\
 CleanSubdirs(dirs)							@@\
 SpecialTargets(debug,-DUseDebug)					@@\
-CmscriptsTargets($(PACKAGE))						@@\
-CmscriptsSubdirs(dirs)
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
 #endif
 #endif
 
@@ -301,7 +301,7 @@ InstallSubdirs($(ARCH))							@@\
 CleanSubdirs($(ARCH))							@@\
 SpecialTargets(debug,-DUseDebug)					@@\
 SpecialTargets(noshared,-DUseNonShared)					@@\
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 #else
 #define MakeInObjectCodeDir()						@@\
 MakefileObjectCodeDir($(ARCH))						@@\
@@ -310,14 +310,14 @@ MakeSubdirs($(ARCH))							@@\
 InstallSubdirs($(ARCH))							@@\
 CleanSubdirs($(ARCH))							@@\
 SpecialTargets(debug,-DUseDebug)					@@\
-CmscriptsTargets($(PACKAGE))
+IvmkcmTargets($(PACKAGE))
 #endif
 #endif
 
 /*
- * All the cmscripts targets for any directory
+ * All the ivmkcm targets for any directory
  */
-#define CmscriptsTargets(package)					@@\
+#define IvmkcmTargets(package)						@@\
 CmchkinTarget(package)							@@\
 CmtagTarget()								@@\
 CmaddTarget()								@@\
@@ -325,9 +325,9 @@ CmupdateTarget()							@@\
 CmcommitTarget()							
 
 /*
- * All the cmscripts targets for sub-directories
+ * All the ivmkcm targets for sub-directories
  */
-#define CmscriptsSubdirs(dirs)						@@\
+#define IvmkcmSubdirs(dirs)						@@\
 CmchkinSubdirs(dirs)							@@\
 CmtagSubdirs(dirs)							@@\
 CmaddSubdirs(dirs)							@@\
@@ -348,7 +348,7 @@ all:: deps
 #ifndef DependTarget
 #define DependTarget()							 @@\
 depend::								 @@\
-	gcc -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
+	c++ -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
 #endif
 
 /*
@@ -378,9 +378,12 @@ clean::									@@\
 #ifndef CmchkinTarget
 #define CmchkinTarget(package)							@@\
 cmchkin:: 									@@\
-	-@if [ ! -d $(TOP)/cm ]; then \						@@\
-	(cd $(TOP); cminstall); fi						@@\
-	@csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmchkin package $(TOP)/cm $(TOP) $(CURRENT_DIR))';
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	if [ ! -d $(TOP)/cm ]; then \						@@\
+	(cd $(TOP); cminstall); fi; fi						@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; \ 		@@\
+	cmchkin package $(TOP)/cm $(TOP) $(CURRENT_DIR))'; fi
 #endif
 
 /*
@@ -389,7 +392,9 @@ cmchkin:: 									@@\
 #ifndef CmtagTarget
 #define CmtagTarget()								@@\
 cmtag:: 									@@\
-	cmtag $(CMFLAGS) $(CMARGS)
+	CheckRepository()							@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	cmtag $(CMFLAGS) $(CMARGS); fi
 #endif
 
 /*
@@ -397,10 +402,11 @@ cmtag:: 									@@\
  */
 #ifndef CheckRepository
 #define CheckRepository()\
--@if [ ! -d $(TOP)/cm ]; then \						@@\
-	(echo "Build repository first with cmchkin"; exit 0;); fi		@@\
-	-@if [ ! -d $(CURRENT_DIR)/CVS ]; then \		@@\
-	(echo "Build repository first with cmchkin"; exit 0;); fi
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	if [ ! -d $(TOP)/cm ]; then \						@@\
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \ 		@@\
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \					@@\
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
 #endif
 
 /*
@@ -410,7 +416,8 @@ cmtag:: 									@@\
 #define CmaddTarget()								@@\
 cmadd:: 									@@\
 	CheckRepository()							@@\
-	@csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)";cmadd -m null_message)'
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmadd -m null_message)'; fi
 #endif
 
 /*
@@ -420,7 +427,7 @@ cmadd:: 									@@\
 #define CmupdateTarget()							@@\
 cmupdate:: 									@@\
 	CheckRepository()							@@\
-	cmupdate
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else cmupdate; fi
 #endif
 
 /*
@@ -430,8 +437,9 @@ cmupdate:: 									@@\
 #define CmcommitTarget()							@@\
 cmcommit:: 									@@\
 	CheckRepository()							@@\
-	-@if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \			@@\
-	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi 	                                              	
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \ 				@@\
+	if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \			@@\
+	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi; fi 	                                              	
 #endif
 
 /*
@@ -510,6 +518,7 @@ dst.o: src.$(CCSUFFIX)							@@\
 	$(CCDRIVER) flags $(CCFLAGS) -c src.$(CCSUFFIX)
 #endif
 
+
 #ifndef MakeObjectRule2
 #define MakeObjectRule2(dst,src,flags1,flags2)				@@\
 $(AOUT): dst.o								@@\
@@ -518,9 +527,12 @@ dst.o: src.$(CCSUFFIX)							@@\
 	$(CCDRIVER) flags1 $(CCFLAGS) flags2 -c src.$(CCSUFFIX)
 #endif
 
+
 /*
  * Shorthands for making an object file.
  */
+
+
 #ifndef MakeObjectFromSrcFlags
 #define MakeObjectFromSrcFlags(file,flags)				@@\
 MakeObjectRule(file,$(SRC)/file,flags)
@@ -688,6 +700,7 @@ NormalLibraryTarget(name,rev,NullParameter,$(OBJS))			@@\
 InstallLibrary(name,rev,$(LIBDIR))					@@\
 DependTarget()
 #endif
+
 
 /*
  * Removing an executable before relinking it wastes time if the user's using
@@ -883,6 +896,16 @@ install:: script							@@\
 	$(INSTALL) -c $(INSTBINFLAGS) script dest/destname
 #endif
 
+/* 
+ * Install a defaults file
+ */
+
+#ifndef InstallXDefaultAs                                        
+#define InstallXDefaultAs(source,dest,destname)                          @@\
+install:: source                                                         @@\
+	MakeDir(dest)                                                    @@\
+	$(INSTALL) -c $(INSTINCFLAGS) source dest/destname
+#endif
 /*
  * Install multiple files.
  */

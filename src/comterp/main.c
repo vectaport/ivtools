@@ -37,19 +37,21 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 int main(int argc, char *argv[]) {
 
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;
+    boolean remote_flag = argc>1 && strcmp(argv[1], "remote") == 0;
     boolean client_flag = argc>1 && strcmp(argv[1], "client") == 0;
     boolean telcat_flag = argc>1 && strcmp(argv[1], "telcat") == 0;
+    boolean run_flag = argc>1 && strcmp(argv[1], "run") == 0;
 
 #ifdef HAVE_ACE
     if (server_flag) {
-        ComterpAcceptor peer_acceptor;
+        ComterpAcceptor* peer_acceptor = new ComterpAcceptor();
 
         int portnum = argc > 2 ? atoi(argv[2]) : atoi(ACE_DEFAULT_SERVER_PORT_STR);
-        if (peer_acceptor.open (ACE_INET_Addr (portnum)) == -1)
+        if (peer_acceptor->open (ACE_INET_Addr (portnum)) == -1)
             cerr << "comterp: unable to open port " << portnum << " with ACE\n";
 
         else if (COMTERP_REACTOR::instance ()->register_handler
-                  (&peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+                  (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
           cerr << "comterp: error registering acceptor with ACE reactor\n";
 
 	else
@@ -64,8 +66,8 @@ int main(int argc, char *argv[]) {
     			 "registering service with ACE_Reactor\n"), -1);
     
 	// Start up one on stdin
-	ComterpHandler stdin_handler;
-	if (ACE::register_stdin_handler(&stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
+	ComterpHandler* stdin_handler = new ComterpHandler();
+	if (ACE::register_stdin_handler(stdin_handler, COMTERP_REACTOR::instance(), nil) == -1)
 	    cerr << "comterp: unable to open stdin with ACE\n";
 
         // Perform logging service until COMTERP_QUIT_HANDLER receives SIGINT.
@@ -93,23 +95,81 @@ int main(int argc, char *argv[]) {
     FILE* inptr = argc>=5 ? fopen(argv[4], "r") : stdin;
 
     if (!telcat_flag) {
+      
+      filebuf obuf;
+      obuf.attach(server.get_handle());
+      ostream out(&obuf);
+      
+      filebuf ibuf;
+      ibuf.attach(server.get_handle());
+      istream in(&ibuf);
+      
+      for (;;) {
+	fgets(buffer, BUFSIZ, inptr);
+	if (feof(inptr)) break;
+	out << buffer;
+	out.flush();
+	char* inbuf;
+	char ch;
+	ch = in.get();
+	if (ch == '>')
+	  ch = in.get(); // ' '
+	else {
+	  in.unget();
+	  in.gets(&inbuf);
+	}
+      }
+      
+    } else {
+
+      filebuf inbuf;
+      inbuf.attach(fileno(inptr));
+      istream in(&inbuf);
+      
+      filebuf obuf;
+      obuf.attach(server.get_handle());
+      ostream out(&obuf);
+      
+      for (;;) {
+	char ch;
+	in.get(ch);
+	if (!in.good()) break;
+	out << ch;
+      }
+      out.flush();
+      
+      
+
+#if 0
       for (;;) {
 	fgets(buffer, BUFSIZ, inptr);
 	if (feof(inptr)) break;
 	fputs(buffer, fptr);
 	fflush(fptr);
+#if 0
 	fgets(buffer, BUFSIZ, fptr);
 	fputs(buffer, stdout);
+#else
+	char ch;
+	ch = getc(fptr);
+	if (ch == '>') {
+	  ch = getc(fptr);
+	  if (ch != ' ') {
+	    ungetc(ch, fptr);
+	    ungetc('>', fptr);
+	    fgets(buffer, BUFSIZ, fptr);
+	    fputs(buffer, stdout);
+	  } else {
+	    printf( "> " );
+	  }
+	} else {
+	  ungetc(ch, fptr);
+	  fgets(buffer, BUFSIZ, fptr);
+	  fputs(buffer, stdout);
+	}
+#endif
       }
-
-    } else {
-
-      for (;;) {
-	unsigned char ch = fgetc(inptr);
-	if (feof(inptr)) break;
-	fputc(ch, fptr);
-      }
-      fflush(fptr);
+#endif
 
     }
 
@@ -123,16 +183,19 @@ int main(int argc, char *argv[]) {
     }
 #endif
 
-
-    ComTerp* terp;
-    if (server_flag) 
-      terp = new ComTerpServ(BUFSIZ);
-    else
-      terp = new ComTerp();
-
-    terp->add_defaults();
-
-    return terp->run();
+    if (server_flag || remote_flag) {
+      ComTerpServ* terp = new ComTerpServ();
+      terp->add_defaults();
+      return terp->run();
+    } else {
+      ComTerp* terp = new ComTerp();
+      terp->add_defaults();
+      if (run_flag && argc > 2 ) {
+        const char *rfile = argv[2];
+	terp->runfile(rfile);
+      } else
+	return terp->run();
+    }
 
 }
 
