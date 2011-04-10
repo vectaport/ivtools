@@ -29,6 +29,8 @@
 #include <GraphUnidraw/edgecomp.h>
 #include <GraphUnidraw/nodecomp.h>
 
+#include <OverlayUnidraw/ovviewer.h>
+
 #include <TopoFace/topoedge.h>
 #include <TopoFace/toponode.h>
 
@@ -42,7 +44,6 @@
 #include <Unidraw/statevars.h>
 #include <Unidraw/ulist.h>
 #include <Unidraw/unidraw.h>
-#include <Unidraw/viewer.h>
 
 #include <UniIdraw/idarrows.h>
 
@@ -100,13 +101,12 @@ static void index_clipboard(Selection* s, Clipboard* cb) {
             GraphicComp* cbgcomp = cb->GetComp(j);
 	    EdgeComp* comp = (EdgeComp*)gcomp;
             TopoEdge* topoedge = comp->Edge();
-            const TopoNode* node;
             int start = -1;
             int end = -1;
-            if ((node = topoedge->start_node()) && selected(s, (NodeComp*)node->value()))
-	        start = node_index(s, (NodeComp*)node->value());
-            if ((node = topoedge->end_node()) && selected(s, (NodeComp*)node->value()))
-	        end = node_index(s, (NodeComp*)node->value());
+            if ((topoedge->start_node()) && selected(s,  comp->NodeStart()))
+	        start = node_index(s, comp->NodeStart());
+            if ((topoedge->end_node()) && selected(s, comp->NodeEnd()))
+	        end = node_index(s, comp->NodeEnd());
 
 	    EdgeComp* cbcomp = (EdgeComp*)cbgcomp;
 	    cbcomp->SetStartNode(start);
@@ -294,6 +294,14 @@ void GraphCutCmd::Execute () {
     Iterator i, j, k;
     Clipboard* globalcb = unidraw->GetCatalog()->GetClipboard();
     Clipboard* cmdcb = GetClipboard();
+
+    if (cmdcb == nil) {
+      cb->DeleteComps();
+      delete cb;
+      _executed = false;
+      return;
+    }
+
     globalcb->First(j);
     cmdcb->First(k);
     for (cb->First(i); !cb->Done(i); cb->Next(i)) {
@@ -458,7 +466,7 @@ void GraphDupCmd::Execute () {
     Editor* editor = GetEditor();
     Selection* s = editor->GetSelection();
     Clipboard* cb = new Clipboard();
-    GraphicView* views = editor->GetViewer()->GetGraphicView();
+    GraphicView* views = ((OverlayViewer*)editor->GetViewer())->GetCurrentGraphicView();
     s->Sort(views);
     cb->CopyInit(s);
     index_clipboard(s, cb);
@@ -467,6 +475,14 @@ void GraphDupCmd::Execute () {
 
     Iterator i, k;
     Clipboard* cmdcb = GetClipboard();
+
+    if (cmdcb == nil) {
+      cb->DeleteComps();
+      delete cb;
+      _executed = false;
+      return;
+    }
+
     cmdcb->First(k);
     for (cb->First(i); !cb->Done(i); cb->Next(i)) {
         GraphicComp* gcomp = cb->GetComp(i);

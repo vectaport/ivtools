@@ -5,7 +5,7 @@
 #else
 #include </usr/include/stdlib.h>
 #endif
-#if defined(__APPLE__)
+#if defined(__APPLE__) && 0
 typedef int socklen_t;
 #endif
 #endif

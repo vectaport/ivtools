@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001,2006 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
@@ -108,6 +108,9 @@ public:
 		     ListType = ArrayType
 };
     // enum for attribute value types.
+
+    enum ValueState { UnknownState, OctState, HexState };
+    // enum for states
 
     AttributeValue(ValueType type);
     // construct with specified type and unitialized value.
@@ -256,6 +259,11 @@ public:
     void stream_list(AttributeValueList* list); 
     // set pointer to AttributeValueList associated with stream object
 
+    int state();
+    // get generic state value useful for any type other than CommandType, ObjectType, or StreamType
+    void state(int val);
+    // set generic state value useful for any type other than CommandType, ObjectType, or StreamType
+
     void negate();
     // negate numeric values.
 
@@ -312,9 +320,8 @@ public:
     // returns true if CommandType (for use of ComTerp).
     boolean is_object() { return is_type(ObjectType); }
     // returns true if ObjectType.
-    boolean is_object(int class_symid) { return is_type(ObjectType) &&
-					   this->class_symid() == class_symid; }
-    // returns true if ObjectType and matching class_symid.
+    boolean is_object(int class_symid);
+    // returns true if ObjectType and class_symid matches or belongs to a parent class.
 
     static boolean is_char(ValueType t) 
       { return t==CharType || t==UCharType; }
@@ -347,7 +354,7 @@ public:
     // returns true if ObjectType with an Attribute object.
 
     void* geta(int type); 
-    // return a pointer if ObjectType matches
+    // return a pointer if ObjectType matches or is a parent class
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.
@@ -355,14 +362,16 @@ public:
     void* value_ptr() { return &_v; }
     // returns void* pointer to value struct.
 
-protected:
-
     void ref_as_needed();
     // increment ref counters as needed
     void unref_as_needed();
     // decrement ref counters as needed
     void dup_as_needed();
     // duplicate lists then increment ref counters as needed
+    boolean same_list(const AttributeValue& av);
+    // check if arrayval or streamval are the same
+
+protected:
 
     ValueType _type;
     attr_value _v;
@@ -370,6 +379,7 @@ protected:
       int _command_symid; // used for CommandType.
       boolean _object_compview; // used for ObjectType.
       int _stream_mode; // used for StreamType
+      int _state; // useful for any type other than CommandType, ObjectType, or StreamType
     };
     static int* _type_syms;
 

@@ -186,7 +186,7 @@ See Also:  comerr_read, comerr_set, comerr_chk, err_get
 #define TITLE "comerr_get"
 
 {
-int get_errnum;
+unsigned int get_errnum;
 int get_errid;
 
 /* If non-initialized, answer must be 0 */
@@ -247,7 +247,7 @@ See Also:  comerr_read, comerr_set, comerr_get, err_get
 #define TITLE "comerr_chk"
 
 {
-int get_errnum;
+unsigned int get_errnum;
 int get_errid;
 
 /* If non-initialized, answer must be FALSE */

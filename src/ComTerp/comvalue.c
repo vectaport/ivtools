@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2000 IET Inc.
+ * Copyright (c) 2001-2007 Scott E. Johnston
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -117,7 +117,8 @@ ComValue::ComValue(postfix_token* token) {
     }
     _narg = token->narg;
     _nkey = token->nkey;
-    _nids = token->nids;
+    _nids = token->nids;  // nids not always used for number-of-ids
+
     _command_symid = -1;
     _pedepth = 0;
     _bquote = 0;
@@ -130,7 +131,9 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nids = sv._nids;
     _pedepth = sv._pedepth;
     _bquote = sv._bquote;
+    #if 0  // duplicated ref_as_needed call in assignval()
     ref_as_needed();
+    #endif
     return *this;
 }
     
@@ -211,9 +214,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;	    
 
 	case ComValue::UShortType:
-	  if (brief)
-	    out << svp->ushort_ref();
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::OctState)
+	      out << "0" << std::oct << svp->ushort_ref() << std::dec;
+	    else if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::hex << svp->ushort_ref() << std::dec;
+	    else
+	      out << svp->ushort_ref();
+	  } else
 	    out << "ushort( " << svp->ushort_ref() << ":" << (int)svp->ushort_ref() << " )";
 	  break;
 	    
@@ -225,9 +233,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::UIntType:
-	  if (brief)
-	    out << svp->uint_ref();
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::OctState)
+	      out << "0" << std::oct << svp->uint_ref() << std::dec;
+	    else if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::hex << svp->uint_ref() << std::dec;
+	    else
+	      out << svp->uint_ref();
+	  } else
 	    out << "uint( " << svp->uint_ref() << " )";
 	  break;
 	    
@@ -239,9 +252,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::ULongType:
-	  if (brief)
-	    out << svp->ulong_ref() << "L";
-	  else
+	  if (brief) {
+	    if (svp->state()==AttributeValue::OctState)
+	      out << "0" << std::oct << svp->ulong_ref() << std::dec;
+	    else if (svp->state()==AttributeValue::HexState)
+	      out << "0x" << std::hex << svp->ulong_ref() << std::dec;
+	    else
+	      out << svp->ulong_ref() << "L";
+	  } else
 	    out << "ulong( " << svp->ulong_ref() << " )";
 	  break;
 	    

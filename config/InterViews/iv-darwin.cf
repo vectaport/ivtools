@@ -4,9 +4,9 @@
  */
 
 #if LibStdCPlusPlusV3
-#define OptimizeCCFlags -O2
+#define OptimizeCCFlags 
 #else
-#define OptimizeCCFlags -O2
+#define OptimizeCCFlags 
 #endif
 #define TIFFOptimizeCFlags -O
 #define TIFFStdCDefines -DHAVE_IEEEFP

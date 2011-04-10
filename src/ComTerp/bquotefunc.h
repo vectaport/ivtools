@@ -38,6 +38,7 @@ public:
     BackQuoteFunc(ComTerp*);
 
     virtual void execute();
+    virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "` is the LISP-like backquote operator"; }
 };

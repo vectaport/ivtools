@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2005 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1996 Vectaport Inc.
  *
@@ -23,16 +24,17 @@
  */
 
 #ifdef HAVE_ACE
-
-#include <ComTerp/comhandler.h>
-#include <ComTerp/comterpserv.h>
-
 #include <iostream.h>
 #include <fstream.h>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
 #include <vector.h>
 #endif
+
+#include <ComTerp/comhandler.h>
+#include <ComTerp/comterpserv.h>
+
+#include <signal.h>
 
 #if BUFSIZ>1024
 #undef BUFSIZ
@@ -45,12 +47,12 @@ int ComterpHandler::_logger_mode = 0;
 
 // Default constructor.
 
-ComterpHandler::ComterpHandler (void) 
+ComterpHandler::ComterpHandler (ComTerpServ* serv) 
 #if 0
 : ACE_Svc_Handler<ACE_SOCK_Stream, ACE_NULL_SYNCH>(0,0,ComterpHandler::reactor_singleton())
 #endif
 {
-    comterp_ = new ComTerpServ(BUFSIZ*BUFSIZ);
+    comterp_ = serv ? serv : new ComTerpServ(BUFSIZ*BUFSIZ);
     comterp_->handler(this);
     comterp_->add_defaults();
     _timeoutscriptid = -1;
@@ -94,8 +96,14 @@ ComterpHandler::destroy (void)
     ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
-    if (_timeoutscriptid<0)
-      delete comterp_;
+    if (_timeoutscriptid<0) {
+      if (comterp_->running()) 
+	comterp_->delete_later(1);
+      else {
+	delete comterp_;
+	comterp_ = nil;
+      }
+    }
     else /* timer could be still running */;
     if (_wrfptr) {
       fclose(_wrfptr);
@@ -193,29 +201,35 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     if (!comterp_ || !input_good)
       return -1;
     else if (!inbuf || !*inbuf) {
+#if 0
 #if __GNUC__<3
-      filebuf obuf(fd ? fd : 1);
-      ostream ostr(&obuf);
-      ostr << "\n";
-      ostr.flush();
-      return 0;
+	filebuf obuf(fd ? fd : 1);
+	ostream ostr(&obuf);
+	ostr << "\n";
+	ostr.flush();
 #else
-      fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
-      ostream ostr(&obuf);
-      ostr << "\n";
-      ostr.flush();
-      return 0;
+	fprintf(stderr, "unexpected empty command string\n");
+	fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
+	ostream ostr(&obuf);
+	ostr << "\n";
+	ostr.flush();
 #endif
+#endif
+	return -1;
     }
     if (!ComterpHandler::logger_mode()) {
       comterp_->load_string(inbuf);
       if (fd>0) 
-	cerr << "command via ACE -- " << inbuf << "\n";
+	cerr << "(" << fd << "):  " << inbuf << "\n";
       comterp_->_fd = fd;
       comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
 
       int  status = comterp_->ComTerp::run(false /* !once */, false /* !nested */);
-      return (input_good ? 0 : -1) && status;
+      if (comterp_->delete_later()) {
+	delete comterp_;
+	comterp_ = nil;
+      }
+      return input_good&&(status==0||status==3||status==2) ? 0 : -1;
     } else {
       if (inbuf[0]!='\004')
 	cout << inbuf << "\n";

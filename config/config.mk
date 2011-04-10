@@ -1,5 +1,0 @@
-XCONFIGDIR = /usr/lib/X11/config
-ABSTOP = /home/pei/tmp/ivtools-1.1.3
-CPU = LINUX
-LIBSTDCPLUSPLUS2 = 0
-LIBSTDCPLUSPLUS3 = 1

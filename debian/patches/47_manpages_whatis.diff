@@ -1,0 +1,37 @@
+Index: ivtools-1.2/src/man/man1/comdraw.1
+===================================================================
+--- ivtools-1.2.orig/src/man/man1/comdraw.1	2009-09-05 19:29:02.000000000 -0400
++++ ivtools-1.2/src/man/man1/comdraw.1	2009-09-05 19:31:07.000000000 -0400
+@@ -1,5 +1,5 @@
+ .TH COMDRAW 1 
+-.SH COMDRAW
++.SH NAME
+ comdraw \- drawtool with distributed command interpreter
+ .SH SYNOPSIS
+ .B comdraw 
+Index: ivtools-1.2/src/man/man1/comterp.1
+===================================================================
+--- ivtools-1.2.orig/src/man/man1/comterp.1	2009-09-05 19:31:57.000000000 -0400
++++ ivtools-1.2/src/man/man1/comterp.1	2009-09-05 19:32:40.000000000 -0400
+@@ -1,5 +1,5 @@
+ .TH COMTERP 1 
+-.SH COMTERP
++.SH NAME
+ comterp \- distributed command interpreter demonstrator
+ .SH SYNOPSIS
+ .B comterp
+Index: ivtools-1.2/src/man/man1/drawtool.1
+===================================================================
+--- ivtools-1.2.orig/src/man/man1/drawtool.1	2009-09-05 19:33:48.000000000 -0400
++++ ivtools-1.2/src/man/man1/drawtool.1	2009-09-05 19:35:24.000000000 -0400
+@@ -104,8 +104,8 @@
+ "-pagerows" (or "-nrows") sets the vertical page extent in pixels.
+ 
+ .PP
+-"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal
+-...") selects the alignment of the panner display.
++"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal...")
++ selects the alignment of the panner display.
+ 
+ .PP
+ "-panner_off" (or "-poff") disables the panner display.

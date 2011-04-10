@@ -49,7 +49,7 @@ using std::cerr;
 ParamList* DrawIdrawComp::_com_idraw_params = nil;
 
 DrawIdrawComp::DrawIdrawComp (const char* pathname, OverlayComp* parent)
-: FrameIdrawComp(true, pathname, parent) {
+: FrameIdrawComp(false, pathname, parent) {
     _graphedges = new UList();
 }
 
@@ -130,7 +130,7 @@ boolean DrawIdrawScript::IsA (ClassId id) {
 }
 
 boolean DrawIdrawScript::Emit (ostream& out) {
-    out << "drawserv(";
+    out << script_name() << "(";
 
     GraphicComp* comps = GetGraphicComp();
     Iterator i;
@@ -282,5 +282,3 @@ int DrawIdrawScript::ReadFrames (istream& in, void* addr1, void* addr2, void* ad
   catalog->graph_finish();
   return 0;
 }
-
-

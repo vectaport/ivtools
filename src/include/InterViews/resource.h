@@ -55,7 +55,7 @@ public:
     /* for backward compatibility */
     virtual void Reference() const { ref(); }
     virtual void Unreference() const { unref(); }
-private:
+
     unsigned refcount_;
 private:
     /* prohibit default assignment */

@@ -35,11 +35,11 @@
 
 // Default constructor.
 
-UnidrawComterpHandler::UnidrawComterpHandler ()
+UnidrawComterpHandler::UnidrawComterpHandler (ComTerpServ* serv) : ComterpHandler(serv)
 {
   Iterator i;
   unidraw->First(i);
-  ((ComEditor*)unidraw->GetEditor(i))->AddCommands(comterp_);
+  if (!serv) ((ComEditor*)unidraw->GetEditor(i))->AddCommands(comterp_);
 }
 
 #endif /* HAVE_ACE */

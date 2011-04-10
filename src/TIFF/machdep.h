@@ -51,7 +51,7 @@
 #define	IEEEFP			/* IEEE floating point supported */
 #endif /* transputer */
 
-#if defined(m386) || defined(M_I86) || defined(i386)
+#if defined(m386) || defined(M_I86) || defined(i386) || defined(__x64_64__)
 #define BIGENDIAN	0
 #define IEEEFP			/* IEEE floating point supported */
 #endif /* m386 || M_I86 || i386 */

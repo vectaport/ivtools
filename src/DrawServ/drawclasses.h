@@ -31,4 +31,6 @@
 #define DRAW_IDRAW_PS       Combine(DRAW_IDRAW_COMP,POSTSCRIPT_VIEW)
 #define DRAW_IDRAW_SCRIPT   Combine(DRAW_IDRAW_COMP, SCRIPT_VIEW)
 
+#define DRAWLINK_COMP       9802
+
 #endif

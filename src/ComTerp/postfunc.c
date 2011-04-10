@@ -40,6 +40,8 @@
 
 #define TITLE "PostFunc"
 
+extern int _detail_matched_delims;
+
 /*****************************************************************************/
 
 PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -66,14 +68,27 @@ void PostFixFunc::execute() {
 
   ComValue argoff(comterp()->stack_top());
   int topptr = argoff.int_val()-(comterp()->pfnum()-1);
-  for (int i=topptr-numargs; i<=topptr; i++) {
+  for (int i=topptr-numargs; i<=topptr-1; i++) {
     ComValue& val = comterp()->expr_top(i);
     val.comterp(comterp());
     out << val;
-    if (val.is_type(AttributeValue::CommandType)) {
-      out << "[" << val.narg() << "|" << val.nkey() << "]";
-      ComFunc* func = (ComFunc*)val.obj_val();
-      if (func->post_eval()) out << "*";
+    if (val.is_type(AttributeValue::CommandType) ||
+       (_detail_matched_delims && val.is_type(AttributeValue::SymbolType) && 
+	val.nids() >= TOK_RPAREN )) {
+      if (!_detail_matched_delims) {
+	out << "[" << val.narg() << "|" << val.nkey() << "]";
+	ComFunc* func = (ComFunc*)val.obj_val();
+	if (func->post_eval()) out << "*";
+      } else {
+	char ldelim, rdelim;
+	if (val.nids()==TOK_RPAREN) {ldelim = '('; rdelim = ')'; }
+	else if (val.nids()==TOK_RBRACKET) {ldelim = '['; rdelim = ']'; }
+	else if (val.nids()==TOK_RBRACE) {ldelim = '{'; rdelim = '}'; }
+	else if (val.nids()==TOK_RANGBRACK) {ldelim = '<'; rdelim = '>'; }
+	else {ldelim = ':'; rdelim = 0x0;};
+	out << ldelim << val.narg();
+	if (rdelim) out << rdelim;
+      }
     }
     else if (val.is_type(AttributeValue::SymbolType) && 
 	     (val.narg() || val.nkey()))
@@ -200,8 +215,8 @@ SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void SeqFunc::execute() {
-    ComValue arg1(stack_arg_post_eval(0));
-    ComValue arg2(stack_arg_post_eval(1));
+    ComValue arg1(stack_arg_post_eval(0, true));
+    ComValue arg2(stack_arg_post_eval(1, true));
     reset_stack();
     push_stack(arg2);
 }

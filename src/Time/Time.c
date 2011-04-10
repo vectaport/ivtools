@@ -30,13 +30,9 @@ seconds since January 1, 1901, GMT.
 
 #include <Time/Date.h>
 #include <Time/Time.h>
-#include <iomanip>
-#include <iostream>
+#include <iomanip.h>
 
-#include <cstdio>
-
-using std::setfill;
-using std::setw;
+#include <stdio.h>
 
 const unsigned VERSION =2;
 
@@ -54,7 +50,6 @@ const unsigned VERSION =2;
 #define VIRTUAL_BASE_CLASSES Object::desc()
 
 #endif
-
 
 /************************ end of edits ************************************************/
 static long TIME_ZONE;          /* seconds west of GMT */

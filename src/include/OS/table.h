@@ -124,7 +124,7 @@ Table::~Table() { \
 	TableEntry(Table)* t = *e; \
 	delete t; \
     } \
-    delete first_; \
+    delete[] first_; \
 } \
 \
 inline TableEntry(Table)*& Table::probe(Key i) { \

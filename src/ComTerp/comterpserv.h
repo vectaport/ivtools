@@ -57,11 +57,11 @@ public:
 
     virtual int run(boolean one_expr=false, boolean nested=false);
     // run this interpreter until quit or exit command.
-    virtual ComValue& run(const char*, boolean nested=false);
+    virtual ComValue run(const char*, boolean nested=false);
     // interpret and return value of expression.  'nested' flag used
     // to indicated nested call to the run() method, to avoid
     // re-initialization.
-    virtual ComValue& run(postfix_token*, int);
+    virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
     
     virtual int runfile(const char*);
@@ -72,6 +72,9 @@ public:
 
     virtual boolean is_serv() { return true; } 
     // flag to test if ComTerp or ComTerpServ
+
+    void delete_later(boolean flag) { _delete_later = flag; }
+    boolean delete_later() { return _delete_later; }
 
 protected:
 
@@ -97,6 +100,7 @@ protected:
     FILE* _fptr;
     int _instat;
     int _logger_mode;
+    int _delete_later;
 
     friend class ComterpHandler;
     friend class ComTerpIOHandler;

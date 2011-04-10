@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2006-2007 Scott E. Johnston
  * Copyright (c) 1994,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -24,6 +25,7 @@
 #ifndef nodecomp_h
 #define nodecomp_h
 
+#include <GraphUnidraw/graphcomp.h>
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
@@ -38,6 +40,7 @@ class FullGraphic;
 class GraphComp;
 class NodeView;
 class Picture;
+class Rubberband;
 class SF_Ellipse;
 class TextGraphic;
 class TopoNode;
@@ -66,7 +69,30 @@ public:
     NodeComp(istream&, OverlayComp* parent = nil);
     // construct node component from istream, relying on GraphCatalog
     // to re-establish connections between edges and nodes.
+    NodeComp(OverlayComp* parent = nil);
+    // construct node component but defer anything graphical
     virtual ~NodeComp();
+
+    virtual NodeComp* NewNodeComp(SF_Ellipse* ell, TextGraphic* txt, 
+	boolean reqlabel = false, OverlayComp* parent = nil)
+      { return new NodeComp(ell, txt, reqlabel, parent); }
+    // virtual constructor for use of derived classes
+    virtual NodeComp* NewNodeComp(SF_Ellipse* ell1, TextGraphic* txt, SF_Ellipse* ell2, GraphComp* comp, 
+	boolean reqlabel = false, OverlayComp* parent = nil)
+      { return new NodeComp(ell1, txt, ell2, comp, reqlabel, parent); }
+    // virtual constructor for use of derived classes
+    virtual NodeComp* NewNodeComp(Picture* pict, boolean reqlabel =false, OverlayComp* parent = nil)
+      { return new NodeComp(pict, reqlabel, parent); }
+    // virtual constructor for use of derived classes
+    virtual NodeComp* NewNodeComp(GraphComp* comp)
+      { return new NodeComp(comp); }
+    // virtual constructor for use of derived classes
+    virtual NodeComp* NewNodeComp(istream& strm, OverlayComp* parent = nil)
+      { return new NodeComp(strm, parent); }
+    // virtual constructor for use of derived classes
+    virtual NodeComp* NewNodeComp(OverlayComp* parent = nil)
+      { return new NodeComp(parent); }
+    // virtual constructor for use of derived classes
 
     void SetGraph(GraphComp*);
     // set internal graph for this node.
@@ -89,6 +115,8 @@ public:
     // return pointer to ellipse graphic.
     TextGraphic* GetText();
     // return pointer to text graphic.
+    void SetText(TextGraphic*);
+    // set pointer to text graphic.
     SF_Ellipse* GetEllipse2();
     // return pointer to second ellipse graphic used to indicate internal graph.
     EdgeComp* SubEdgeComp(int);
@@ -103,8 +131,10 @@ public:
     boolean RequireLabel() { return _reqlabel; }
     // flag to indicate whether node must have label (text graphic).
 
+#if 0
     void update(Observable*);
     // update notification received from Observable.
+#endif
 
     virtual void Notify(); 	 
     // override OverlayComp::Notify, separating view update from 
@@ -115,6 +145,9 @@ public:
 
     EdgeComp* EdgeOut(int n) const;
     // return pointer to nth outgoing edge.
+
+    void nedges (int &nin, int &nout) const;
+    // count number of input and ouput edges
 
     EdgeComp* EdgeByDir(int n, boolean out_edge) const;
     // return pointer to nth edge of given direction.
@@ -127,7 +160,6 @@ public:
 
     virtual boolean operator == (OverlayComp&);
 protected:
-    NodeComp(OverlayComp* parent = nil);
 
     GraphComp* _graph;
     TopoNode* _node;
@@ -141,7 +173,7 @@ protected:
     CLASS_SYMID("NodeComp");
 };
 
-inline void NodeComp::SetGraph(GraphComp* comp) { _graph = comp; }
+inline void NodeComp::SetGraph(GraphComp* comp) { if (_graph) delete _graph; _graph = comp; }
 inline GraphComp* NodeComp::GetGraph() { return _graph; }
 
 //: graphical view of NodeComp.
@@ -181,6 +213,13 @@ public:
     int SubEdgeIndex(ArrowLine*);
     // return index of ArrowLine graphic relative to edges on internal graph.
 
+    virtual NodeComp* NewNodeComp(SF_Ellipse* ellipse, TextGraphic* txt, boolean reqlabel = false) 
+      { return new NodeComp(ellipse, txt, reqlabel); }
+    // virtual function to allow construction of specialized NodeComp's by specialized NodeView's
+
+    virtual Rubberband* MakeRubberband(IntCoord x, IntCoord y);
+    // make Rubberband specific to this node.
+
 protected:
     static FullGraphic* _nv_gs;
 };
@@ -190,6 +229,8 @@ class NodeScript : public OverlayScript {
 public:
     NodeScript(NodeComp* = nil);
 
+    virtual const char* script_name() { return "node"; }
+    // for overriding in derived classes
     virtual boolean Definition(ostream&);
     // output variable-length ASCII record that defines the component.
     void Attributes(ostream& out);

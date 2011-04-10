@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2001-2007 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
@@ -25,12 +26,22 @@
 #if !defined(grfunc_h)
 #define _grfunc_h
 
+
 #include <ComUnidraw/unifunc.h>
+
+class Transformer;
+
+//: base class for graphic construction func's
+class CreateGraphicFunc : public UnidrawFunc {
+public:
+    CreateGraphicFunc(ComTerp*,Editor*);
+    Transformer* get_transformer(AttributeList*);
+};
 
 //: rectangle drawing command for comdraw.
 // compview=rect(x0,y0,x1,y1) -- create a rectangle <br>
 // compview=rectangle(x0,y0,x1,y1) -- same as rect
-class CreateRectFunc : public UnidrawFunc {
+class CreateRectFunc : public CreateGraphicFunc {
 public:
     CreateRectFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -41,7 +52,7 @@ public:
 //: line drawing command for comdraw.
 // compview=line(x0,y0,x1,y1) -- create a line <br>
 // compview=arrowline(x0,y0,x1,y1) -- same as line
-class CreateLineFunc : public UnidrawFunc {
+class CreateLineFunc : public CreateGraphicFunc {
 public:
     CreateLineFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -51,7 +62,7 @@ public:
 
 //: ellipse drawing command for comdraw.
 // compview=ellipse(x0,y0,r1,r2) -- create an ellipse
-class CreateEllipseFunc : public UnidrawFunc {
+class CreateEllipseFunc : public CreateGraphicFunc {
 public:
     CreateEllipseFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -61,7 +72,7 @@ public:
 
 //: text drawing command for comdraw.
 // compview=text(x0,y0 textstr) -- create a text string
-class CreateTextFunc : public UnidrawFunc { 
+class CreateTextFunc : public CreateGraphicFunc { 
 public:
     CreateTextFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -72,7 +83,7 @@ public:
 //: multiline drawing command for comdraw.
 // compview=multiline(x0,y0[,x1,y1,...]) -- create a multiline <br>
 // compview=arrowmultiline(x0,y0[,x1,y1,...]) -- same as multiline
-class CreateMultiLineFunc : public UnidrawFunc {
+class CreateMultiLineFunc : public CreateGraphicFunc {
 public:
     CreateMultiLineFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -83,7 +94,7 @@ public:
 //: open spline drawing command for comdraw.
 // compview=openspline(x0,y0[,x1,y1,...]) -- create an open spline <br>
 // compview=arrowspline(x0,y0[,x1,y1,...]) -- same as openspline
-class CreateOpenSplineFunc : public UnidrawFunc {
+class CreateOpenSplineFunc : public CreateGraphicFunc {
 public:
     CreateOpenSplineFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -93,7 +104,7 @@ public:
 
 //: polygon drawing command for comdraw.
 // compview=polygon(x0,y0[,x1,y1,...]) -- create a polygon
-class CreatePolygonFunc : public UnidrawFunc {
+class CreatePolygonFunc : public CreateGraphicFunc {
 public:
     CreatePolygonFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -103,7 +114,7 @@ public:
 
 //: closed spline drawing command for comdraw.
 // compview=closedspline(x0,y0[,x1,y1,...]) -- create a closed spline
-class CreateClosedSplineFunc : public UnidrawFunc {
+class CreateClosedSplineFunc : public CreateGraphicFunc {
 public:
     CreateClosedSplineFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -113,7 +124,7 @@ public:
 
 //: raster creation command for comdraw.
 // compview=raster(x0,y0,x1,y1) -- create an empty raster
-class CreateRasterFunc : public UnidrawFunc {
+class CreateRasterFunc : public CreateGraphicFunc {
 public:
     CreateRasterFunc(ComTerp*,Editor*);
     virtual void execute();
@@ -172,7 +183,7 @@ public:
 };
 
 //:comand for setting color state variables by RGB name in comdraw.
-// colors(fgcolorname bgcolorname). The colorname format is "#RRGGBB"
+// colorsrgb(fgcolorname bgcolorname). The colorname format is "#RRGGBB"
 class ColorRgbFunc : public UnidrawFunc {
  public:
   ColorRgbFunc(ComTerp*,Editor*);
@@ -360,6 +371,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file"; }
+};
+
+//: command to access a graphic's transformer
+// a00,a01,a10,a11,a20,a21=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic
+class TransformerFunc : public UnidrawFunc {
+public:
+    TransformerFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic"; }
 };
 
 #endif /* !defined(_grfunc_h) */

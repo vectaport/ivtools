@@ -8,6 +8,8 @@
 #include <InterViews/window.h>
 #include <fstream.h>
 
+using std::ofstream;
+
 class Printable : public Patch {
 public:
     Printable(Glyph*);

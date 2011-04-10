@@ -81,7 +81,7 @@ void TimeExprFunc::execute() {
     if (handler) {
         if (nargs()) {
 	  if (timeoutstr.type() == ComValue::StringType) {
-	      handler->timeoutseconds(sec_val.int_val());
+  	      handler->timeoutseconds(sec_val.int_val());
 	      handler->timeoutscriptid(timeoutstr.string_val());
 	      push_stack(timeoutstr);
 	  } else 
@@ -148,9 +148,12 @@ void RemoteFunc::execute() {
 #if __GNUC__<3
     filebuf ofbuf;
     ofbuf.attach(socket.get_handle());
-#else
+#elif __GNUC__<4 && !defined(__CYGWIN__)
     fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
 			  false, static_cast<size_t>(BUFSIZ));
+#else
+    fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
+			  static_cast<size_t>(BUFSIZ));
 #endif
     ostream out(&ofbuf);
     const char* cmdstr = cmdstrv.string_ptr();
@@ -170,9 +173,9 @@ void RemoteFunc::execute() {
       do {
 	read(socket.get_handle(), buf+i++, 1);
       } while (i<BUFSIZ-1 && buf[i-1]!='\n');
-      if (buf[i]=='\n') buf[i]==0;
+      if (buf[i-1]=='\n') buf[i-1]=0;
 #endif
-      ComValue& retval = comterpserv()->run(buf, true);
+      ComValue retval(comterpserv()->run(buf, true));
       push_stack(retval);
     }
 
@@ -270,6 +273,21 @@ void ShellFunc::execute() {
 
 /*****************************************************************************/
 
+USleepFunc::USleepFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void USleepFunc::execute() {
+    ComValue msecv(stack_arg(0));
+    reset_stack();
+
+    if (msecv.int_val()>0) 
+    usleep(msecv.int_val());
+    push_stack(msecv);
+    return;
+}
+
+/*****************************************************************************/
+
 NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -281,6 +299,24 @@ void NilFunc::execute() {
       cerr << "unknown command \"" << symbol_pntr(comm_symid)
 	<< "\" returned nil\n";
     push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+MuteFunc::MuteFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void MuteFunc::execute() {
+    ComValue mutev(stack_arg(0));
+    reset_stack();
+
+    if (mutev.is_unknown())
+      comterp()->muted(!comterp()->muted());
+    else
+      comterp()->muted(mutev.boolean_val());
+    ComValue retval(comterp()->muted());
+    push_stack(retval);
+    return;
 }
 
 

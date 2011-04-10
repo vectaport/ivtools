@@ -31,10 +31,6 @@ Author:
 #ifndef	TIME_H
 #define	TIME_H
 
-#include <iostream>
-#include <fstream>
-
-using std::cout;
 
 #if defined(SYSV) && ! defined(hpux)
 
@@ -105,6 +101,8 @@ typedef unsigned short minuteTy;
 typedef unsigned short secondTy;
 typedef unsigned long clockTy;
 #endif
+
+using std::cout;
 
 class Time {
 

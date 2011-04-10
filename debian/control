@@ -1,9 +1,10 @@
 Source: ivtools
 Priority: optional
 Section: libs
-Build-Depends: debhelper, xutils, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev, autotools-dev, libx11-dev, libxext-dev, libxmu-dev, libxt-dev, x-dev 
-Maintainer: Guenter Geiger <geiger@debian.org>
-Standards-Version: 3.7.0
+Build-Depends: debhelper (>> 5.0.0), quilt, x11-utils, xutils-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev, autotools-dev, libx11-dev, libxext-dev, libxmu-dev, libxt-dev, x11proto-core-dev 
+Maintainer: Debian QA Group <packages@qa.debian.org>
+Standards-Version: 3.8.3
+Homepage: http://www.ivtools.org
 
 Package: ivtools-bin
 Section: graphics
@@ -13,13 +14,12 @@ Suggests: netpbm, libjpeg-progs, pstoedit
 Description: Drawing Editors evolved from idraw
  The drawing editors in this package are idraw, a basic vector graphics
  editor, graphdraw, flipbook, a vector graphics animation tool, a vector
- graphics server and some small sample programs like dclock. For more
- information about these tools and their usage see http://www.ivtools.org.
+ graphics server and some small sample programs like dclock.
 
 Package: ivtools-dev
 Section: devel
 Architecture: all
-Depends: libiv1 (>= ${Source-Version}), libiv-unidraw1 (>= ${Source-Version}), libc6-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev, ${shlibs:Depends}
+Depends: libiv1 (>= ${binary:Version}), libiv-unidraw1 (>= ${binary:Version}), libc6-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev, ${shlibs:Depends}
 Conflicts: ivtools-bin (<< 0.7.2)
 Description: Development files for the InterViews library
  The ivmkmf program (similar to xmkmf) and all the include-files needed

@@ -1,7 +1,7 @@
 ivtools for DEBIAN
 ----------------------
 
-Ivtools is splitted into two library packages, a package containing
+Ivtools is split into two library packages, a package containing
 the binaries and a development package.  
 
 ivtools-dev:
@@ -16,5 +16,3 @@ Build the program
 
 
 Guenter Geiger <geiger@debian.org>, Tue, 11 Nov 1997 16:42:31 +0100
-
-

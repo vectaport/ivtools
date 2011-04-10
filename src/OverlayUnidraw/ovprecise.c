@@ -84,7 +84,7 @@ void OvPreciseMoveCmd::Execute () {
     char* movestr = 
       StrEditDialog::post(GetEditor()->GetWindow(),
 			  "Enter X and Y movement:",
-			  _default_movestr, nil, unit_buttons());
+			  _default_movestr, "Precise Move", unit_buttons());
 
     int cur_unit = _unit_enum->intvalue();
     _default_enumval = cur_unit;
@@ -133,7 +133,7 @@ void OvPreciseScaleCmd::Execute () {
     char* scalestr = 
       StrEditDialog::post(GetEditor()->GetWindow(),
 			  "Enter X and Y scaling:",
-			  default_scalestr);
+			  default_scalestr, "Precise Scale");
     if (scalestr) {
       std::istrstream in(scalestr);
       float xscale = 0.0, yscale = 0.0;
@@ -171,7 +171,7 @@ void OvPreciseRotateCmd::Execute () {
     char* rotatestr = 
       StrEditDialog::post(GetEditor()->GetWindow(),
 			  "Enter rotation in degrees:",
-			  default_rotatestr);
+			  default_rotatestr, "Precise Rotate");
     if (rotatestr) {
       std::istrstream in(rotatestr);
       float angle = 0.0;

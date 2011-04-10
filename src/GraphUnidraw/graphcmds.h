@@ -186,6 +186,7 @@ public:
     virtual Command* Copy();
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
+
 };
 
 #endif

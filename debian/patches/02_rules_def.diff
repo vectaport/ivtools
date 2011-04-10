@@ -1,0 +1,82 @@
+Index: ivtools-1.2/config/rules.def
+===================================================================
+--- ivtools-1.2.orig/config/rules.def	2009-09-04 15:40:26.000000000 -0400
++++ ivtools-1.2/config/rules.def	2009-09-04 15:59:42.000000000 -0400
+@@ -199,15 +199,15 @@
+ #ifndef IntoSubdirs
+ #define IntoSubdirs(name,dirs,verb)					@@\
+ name::									@@\
+-	-@for i in dirs; \						@@\
++	@(set -e;for i in dirs; \					@@\
+ 	do \								@@\
+-		if [ -d $$i ]; then ( \					@@\
++		if [ -d $$i ]; then \					@@\
+ 			echo verb \					@@\
+ 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
+ 			cd $$i; \					@@\
+-			$(MAKE) $(PASSARCH) name; \			@@\
+-		) else continue; fi; \					@@\
+-	done
++			$(MAKE) $(PASSARCH) name ; cd .. \		@@\
++		else continue; fi; \					@@\
++	done)
+ #endif
+ 
+ /*
+@@ -216,15 +216,15 @@
+ #ifndef IntoSubdirs2
+ #define IntoSubdirs2(name,dirs,verb,target)				@@\
+ target::								@@\
+-	-@for i in dirs; \						@@\
++	@(set -e;for i in dirs; \					@@\
+ 	do \								@@\
+-		if [ -d $$i ]; then ( \					@@\
++		if [ -d $$i ]; then \					@@\
+ 			echo verb \					@@\
+ 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
+ 			cd $$i; \					@@\
+-			$(MAKE) $(PASSARCH) name; \			@@\
+-		) else continue; fi; \					@@\
+-	done
++			$(MAKE) $(PASSARCH) name || break; \		@@\
++		else continue; fi; \					@@\
++	done)
+ #endif
+ 
+ #ifndef DependSubdirs
+@@ -714,7 +714,7 @@
+ Concat(lib,libname.so.rev): depobjs					@@\
+ 	@echo "building $@"						@@\
+ 	$(RM) $@~							@@\
+-	SharedLibraryCmd(ldobjs,/*-Wl\,-soname=Concat(lib\,libname.so.rev)*/)@@\
++	SharedLibraryCmd(ldobjs,libname))				@@\
+ 	$(RM) $@							@@\
+ 	$(MV) $@~ $@							@@\
+ 									@@\
+@@ -731,7 +731,7 @@
+ 	@echo "building $@"						@@\
+ 	$(RM) $@~							@@\
+ 	$(RM) Concat(lib,libname.so)					@@\
+-	SharedLibraryCmd(ldobjs,/*-Wl\,-soname=Concat(lib\,libname.so.rev)*/) @@\
++	SharedLibraryCmd(ldobjs,libname)) 				@@\
+ 	$(RM) $@							@@\
+ 	$(MV) $@~ $@							@@\
+ 	$(LN) $@ Concat(lib,libname.so)					@@\
+@@ -815,7 +815,7 @@
+ #define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
+ program: depobjs deplibs						@@\
+ 	RemoveIfUnwritable($@)						@@\
+-	$(CCDRIVER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
++	$(CCLINKER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
+ #endif
+ 
+ /*
+@@ -1096,7 +1096,7 @@
+ #define InstallSymLink(dir, file)					@@\
+ install::								@@\
+ 	MakeDir(dir)							@@\
+-	cp -fd file dir							@@\
++	cp -frd file dir						@@\
+ 									@@\
+ uninstall::								@@\
+ 	$(RM) dir/file	

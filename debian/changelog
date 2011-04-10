@@ -1,3 +1,38 @@
+ivtools (1.2.6-1) unstable; urgency=low
+
+  * QA upload.
+    + Set maintainer to Debian QA Group <packages@qa.debian.org>.
+  * New upstream release. (Closes: #469407, #303956)
+    + Drop changes no longer needed.
+    + Add build-dep on quilt.
+    + Add quilt patches for pertinent changes.
+    + Fix FTBFS. (Closes: #441490).
+      + Many of the fixes taken from Michael Ablassmeier, thanks!
+    + Probably patched more than necessary.
+    + 46_comdraw_crash.diff. (Closes: #446774).
+      + Thanks to Leon Bottou for the patch.
+    + Patch WHATIS entry in upstream man pages. (Closes: #210626).
+    + 015_Makefile_dontstrip.diff - Don't strip. (Closes: #437237).
+  * Replace ${Source-Version} with ${binaryVersion} in depends.
+  * Replace x-dev build-dep with x11proto-core-dev. (Closes: #515446).
+  * Replace xutils build-dep with x11-utils.
+  * Add build-dep on xutils-dev for imake. (Closes: #536901).
+  * Debian/rules clean-up.
+  * Move from .files files to .install files.
+    + Call dh_install instead of dh_movefiles.
+  * Make clean not ignore errors.
+  * Replace pwd with $(CURDIR) in rules.
+  * Add watch file.
+  * Move Homepage from package description to source stanza.
+  * Update debian/template to use /etc/X11 instead of /usr/lib/X11/config.
+  * Add set -e to maintainer scripts.
+  * Version debhelper build-dep and set to 5.
+    + Bump compat to 5.
+  * Bump Standards Version to 3.8.3.
+    + Menu policy transition.
+
+ -- Barry deFreese <bdefreese@debian.org>  Fri, 04 Sep 2009 09:48:21 -0400
+
 ivtools (1.1.3-5.4) unstable; urgency=low
 
   * Non-maintainer upload.
@@ -289,6 +324,7 @@ ivtools (0.5.9-1) unstable; urgency=low
 
  -- Geiger Guenter <geiger@iem.mhsg.ac.at>  Mon, 20 Jan 1998 15:00:00 +0100
 
+ivtools (0.5-1) unstable; urgency=low
 
   * Initial Release.
 

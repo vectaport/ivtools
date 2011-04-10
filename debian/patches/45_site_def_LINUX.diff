@@ -1,0 +1,29 @@
+Index: ivtools-1.2/config/site.def.LINUX
+===================================================================
+--- ivtools-1.2.orig/config/site.def.LINUX	2009-09-04 22:22:25.000000000 -0400
++++ ivtools-1.2/config/site.def.LINUX	2009-09-04 22:24:36.000000000 -0400
+@@ -3,6 +3,7 @@
+ 
+ /* gcc command line with -V for version and -O for optimize */
+ #define CCDriver g++
++#define CCLinker gcc
+ 
+ #undef HasDynamicSharedLibraries
+ #define HasDynamicSharedLibraries YES
+@@ -32,7 +33,7 @@
+ 
+ /* link libraries for the above */
+ #undef ExtraCCLdLibs
+-#define ExtraCCLdLibs -lstdc++ -lm
++#define ExtraCCLdLibs -lm
+ 
+ /* command to create shared libraries */
+ #define SharedLibraryCmd(ldobjs,extra_flags) gcc -shared extra_flags -o $@ ldobjs
+@@ -54,5 +55,7 @@
+ 	$(RM) dest/Concat(lib,libname.so)	
+ #endif
+ 
++#include "site.def.DEBIAN"
++
+ /* file output by configure script */
+ #include "config-linux-gcc.defs"

@@ -1,4 +1,0 @@
-usr/bin/ivmkmf
-usr/include/*
-usr/lib/lib*.so
-usr/lib/ivtools

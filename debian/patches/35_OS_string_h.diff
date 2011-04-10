@@ -1,0 +1,12 @@
+Index: ivtools-1.2/src/include/OS/string.h
+===================================================================
+--- ivtools-1.2.orig/src/include/OS/string.h	2009-09-04 13:56:56.000000000 -0400
++++ ivtools-1.2/src/include/OS/string.h	2009-09-04 13:57:12.000000000 -0400
+@@ -29,6 +29,7 @@
+  * String - simple (non-copying) string class
+  */
+ 
++#include <cstdio>
+ #include <OS/enter-scope.h>
+ 
+ #include <iosfwd>

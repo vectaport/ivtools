@@ -72,7 +72,7 @@ public:
     void zero();
     void setBit(int);
     void clrBit(int);
-    boolean isSet(int) const;
+    boolean isSet(int);
     boolean anySet() const;
     int numSet() const;
 };
@@ -84,7 +84,7 @@ FdMask::FdMask() {
 void FdMask::zero() { Memory::zero(this, sizeof(FdMask)); }
 void FdMask::setBit(int fd) { FD_SET(fd,this); }
 void FdMask::clrBit(int fd) { FD_CLR(fd,this); }
-boolean FdMask::isSet(int fd) const { return FD_ISSET(fd,this); }
+boolean FdMask::isSet(int fd) { return FD_ISSET(fd,this); }
 
 boolean FdMask::anySet() const {
     const int mskcnt = howmany(FD_SETSIZE,NFDBITS);
@@ -653,19 +653,13 @@ int Dispatcher::waitFor(
 	sv.sa_flags = SV_INTERRUPT;
 	sigaction(SIGCLD, &sv, &osv);
 #else
-#ifdef __APPLE__
-	sv.sv_handler = (void (*)()) fxSIGVECHANDLER(&Dispatcher::sigCLD);
-	sv.sv_flags = SV_INTERRUPT;
-	sigvec(SIGCLD, &sv, &osv);
-#else
 	sv.sv_handler = (void (*)(int)) fxSIGVECHANDLER(&Dispatcher::sigCLD);
 	sv.sv_flags = SV_INTERRUPT;
 	sigvec(SIGCLD, &sv, &osv);
 #endif
-#endif
 #else
 #ifdef SA_NOCLDSTOP                   /* POSIX */
-#if defined(hpux) || defined(linux)
+#if defined(hpux) || defined(linux) || defined(sun) && defined(__svr4__)
 	sa.sa_handler = (void (*)(int))(&Dispatcher::sigCLD);
 #else
 	sa.sa_handler = fxSIGACTIONHANDLER(&Dispatcher::sigCLD);
@@ -716,7 +710,11 @@ void Dispatcher::notify(
 ) {
     for (int i = 0; i < _nfds && nfound > 0; i++) {
 	if (rmaskret.isSet(i)) {
+#if 0
 	    int status = _rtable[i]->inputReady(i);
+#else
+            int status = (_rtable[i] ? _rtable[i]->inputReady(i) : 0);
+#endif
 	    if (status < 0) {
 		detach(i);
 	    } else if (status > 0) {
@@ -725,7 +723,11 @@ void Dispatcher::notify(
 	    nfound--;
 	}
 	if (wmaskret.isSet(i)) {
+#if 0
 	    int status = _wtable[i]->outputReady(i);
+#else
+            int status = (_wtable[i] ? _wtable[i]->outputReady(i) : 0);
+#endif
 	    if (status < 0) {
 		detach(i);
 	    } else if (status > 0) {
@@ -734,7 +736,11 @@ void Dispatcher::notify(
 	    nfound--;
 	}
 	if (emaskret.isSet(i)) {
+#if 0
 	    int status = _etable[i]->exceptionRaised(i);
+#else
+            int status = (_etable[i] ? _etable[i]->exceptionRaised(i) : 0);
+#endif
 	    if (status < 0) {
 		detach(i);
 	    } else if (status > 0) {

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2004 Scott E. Johnston
  * Copyright (c) 1994-1997,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -42,11 +43,15 @@ public:
 
     virtual void Init(OverlayComp*, const char* name);
     virtual MenuItem *MakeFileMenu();
+    virtual MenuItem *MakeEditMenu();
     virtual Glyph* MakeToolbar();
     virtual MenuItem* MakeToolsMenu();
+    virtual MenuItem* MakeViewersMenu();
 
     static DrawKit* Instance();
 
+    virtual OverlaySelection* MakeSelection(Selection* sel = nil);
+    // make Selection of the proper derivation.
 protected:
     void toolbar0();
     void toolbar1();

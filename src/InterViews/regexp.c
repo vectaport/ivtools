@@ -29,9 +29,6 @@
 #include <InterViews/regexp.h>
 #include <stream.h>
 #include <string.h>
-#include <fstream>
-#include <iostream>
-
 using std::cerr;
 
 /*

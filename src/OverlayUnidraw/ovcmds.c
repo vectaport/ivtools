@@ -420,7 +420,7 @@ void OvSaveCompCmd::Execute () {
     CompNameVar* compNameVar = (CompNameVar*) ed->GetState("CompNameVar");
     const char* name = (compNameVar == nil) ? nil : compNameVar->GetName();
 
-    comp_ = ed->GetComponent();
+    comp_ = (OverlayComp*)ed->GetComponent();
     if (name == nil) {
         OvSaveCompAsCmd saveCompAs(ed, chooser_);
         saveCompAs.Execute();
@@ -678,8 +678,8 @@ Command* OvSlctAllCmd::Copy () {
 }
 
 void OvSlctAllCmd::Execute () {
-    Editor* editor = GetEditor();
-    OverlaySelection* newSel = new OverlaySelection;
+    OverlayEditor* editor = (OverlayEditor*)GetEditor();
+    OverlaySelection* newSel = editor->overlay_kit()->MakeSelection();
     Selection* s;
     Viewer* viewer;
 
@@ -811,7 +811,7 @@ void OvNewViewCmd::set_display() {
     StrEditDialog::post
     (GetEditor()->GetWindow(), 
      "Enter display name, i.e. \"hostname:0.0\"",  
-     _display ? _display : "0.0");
+     _display ? _display : "localhost:0.0");
   delete _display;
   _display = newdisplay;
 }

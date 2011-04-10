@@ -49,7 +49,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%= is the mod assignment operator"; }
+      return "\%= is the mod assignment operator"; }
 };
 
 //: *= (multiply assign) operator .

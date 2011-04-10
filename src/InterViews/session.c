@@ -414,7 +414,7 @@ SessionRep::~SessionRep() {
 	delete d;
     }
     delete displays_;
-    delete argv_;
+    delete[] argv_;
 }
 
 void SessionRep::init(
@@ -725,7 +725,8 @@ void SessionRep::init_display(Display* display) {
     } else if (style_->find_attribute(String("display"), name)) {
 	default_ = Display::open(name);
     } else {
-	default_ = Display::open(":0.0");
+        const char* defaultvar = (char*)getenv( "DISPLAY" );
+	default_ = Display::open(defaultvar ? defaultvar : ":0.0");
     }
     if (default_ == nil) {
 	if (name.length() > 0) {

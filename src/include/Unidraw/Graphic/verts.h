@@ -45,6 +45,8 @@ public:
     virtual MultiLineObj* GetOriginal();
     virtual void SetOriginal(MultiLineObj*);
 
+    boolean GetPoint(int index, Coord& x, Coord& y);
+
     virtual boolean operator == (Vertices&);
     virtual boolean operator != (Vertices&);
 

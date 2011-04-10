@@ -34,7 +34,7 @@ void CondFunc::execute() {
   ComValue booltest(stack_arg_post_eval(0));
   ComValue retval(booltest.is_true() 
 		  ? stack_arg_post_eval(1)
-		  : stack_arg_post_eval(2));
+		  : (nargs()>=3 ? stack_arg_post_eval(2) : ComValue::nullval()));
   reset_stack();
   push_stack(retval);
 }

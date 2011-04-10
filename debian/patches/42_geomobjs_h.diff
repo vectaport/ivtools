@@ -1,0 +1,13 @@
+Index: ivtools-1.2/src/include/Unidraw/Graphic/geomobjs.h
+===================================================================
+--- ivtools-1.2.orig/src/include/Unidraw/Graphic/geomobjs.h	2009-09-04 14:35:06.000000000 -0400
++++ ivtools-1.2/src/include/Unidraw/Graphic/geomobjs.h	2009-09-04 14:35:18.000000000 -0400
+@@ -28,6 +28,8 @@
+ #ifndef unidraw_graphic_geomobjs_h
+ #define unidraw_graphic_geomobjs_h
+ 
++#include <cstdio>
++
+ #include <IV-2_6/InterViews/defs.h>
+ #include <Unidraw/enter-scope.h>
+ #include <InterViews/resource.h>

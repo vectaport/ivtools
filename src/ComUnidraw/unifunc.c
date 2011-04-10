@@ -36,6 +36,7 @@
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovpsview.h>
+#include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
@@ -45,7 +46,6 @@
 #include <Unidraw/creator.h>
 #include <Unidraw/globals.h>
 #include <Unidraw/iterator.h>
-#include <Unidraw/unidraw.h>
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Commands/edit.h>
 #include <Unidraw/Components/compview.h>
@@ -75,6 +75,7 @@ UnidrawFunc::UnidrawFunc(ComTerp* comterp, Editor* ed) : ComFunc(comterp) {
 }
 
 void UnidrawFunc::execute_log(Command* cmd) {
+#if 0
     if (cmd != nil) {
 	cmd->Execute();
 	
@@ -84,6 +85,9 @@ void UnidrawFunc::execute_log(Command* cmd) {
 	    delete cmd;
 	}
     }
+#else
+    unidraw->ExecuteCmd(cmd);
+#endif
 }
 
 void UnidrawFunc::menulength_execute(const char* kind) {
@@ -318,7 +322,7 @@ void ImportFunc::execute() {
 	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
 			  popen_flag)) && cmd->component()) {
 	  ComValue compval(((OverlayComp*)cmd->component())->classid(),
-			   new ComponentView(cmd->component()));
+			   new OverlayView((OverlayComp*)cmd->component()));
 	  delete cmd;
 	  compval.object_compview(true);
 	  push_stack(compval);
@@ -328,7 +332,7 @@ void ImportFunc::execute() {
 	for (int i=0; i<nargs(); i++) 
 	  if (cmd = import(stack_arg(i).string_ptr(), popen_flag)) {
 	    ComValue compval(((OverlayComp*)cmd->component())->classid(),
-			     new ComponentView(cmd->component()));
+			     new OverlayView((OverlayComp*)cmd->component()));
 	    delete cmd;
 	    compval.object_compview(true);
 	    push_stack(compval);
@@ -344,7 +348,7 @@ void ImportFunc::execute() {
       while(!inlist->Done(it)) {
 	cmd = import(inlist->GetAttrVal(it)->string_ptr(), popen_flag);
 	ComValue* val = new ComValue(((OverlayComp*)cmd->component())->classid(),
-				     new ComponentView(cmd->component()));
+				     new OverlayView((OverlayComp*)cmd->component()));
 	delete cmd;
 	val->object_compview(true);
 	outlist->Append(val);
@@ -629,7 +633,7 @@ void FrameFunc::execute() {
     OverlaysView* frameview = ed->GetFrame(indexv.int_val());
     if (frameview && frameview->GetSubject()) {
       OverlayComp* comp = (OverlayComp*)frameview->GetSubject();
-      ComValue retval(comp->classid(), new ComponentView(comp));
+      ComValue retval(comp->classid(), new OverlayView(comp));
       retval.object_compview(true);
       push_stack(retval);
     } else
@@ -670,6 +674,7 @@ void UnidrawPauseFunc::execute() {
   } else {
     cerr << "this version of pause command only works with ComTextEditor\n";
   }
+  push_stack(ComValue::blankval());
 }
 
 /*****************************************************************************/
@@ -683,7 +688,7 @@ void AddToolButtonFunc::execute() {
     OverlayEditor* ed = (OverlayEditor*)GetEditor();
     OverlayComp* comp = ed->overlay_kit()->add_tool_button(pathnamev.symbol_ptr());
     if (comp) {
-      ComValue retval(comp->classid(), new ComponentView(comp));
+      ComValue retval(comp->classid(), new OverlayView(comp));
       retval.object_compview(true);
       push_stack(retval);
     } else {

@@ -1,0 +1,12 @@
+Index: ivtools-1.2/src/InterViews/fchooser.c
+===================================================================
+--- ivtools-1.2.orig/src/InterViews/fchooser.c	2009-09-04 13:07:41.000000000 -0400
++++ ivtools-1.2/src/InterViews/fchooser.c	2009-09-04 13:07:53.000000000 -0400
+@@ -26,6 +26,7 @@
+  * FileChooser -- select a file
+  */
+ 
++#include <cstdio>
+ #include <IV-look/choice.h>
+ #include <IV-look/dialogs.h>
+ #include <IV-look/fbrowser.h>

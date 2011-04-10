@@ -1,0 +1,12 @@
+Index: ivtools-1.2/src/Time/obstime.c
+===================================================================
+--- ivtools-1.2.orig/src/Time/obstime.c	2009-09-04 13:25:45.000000000 -0400
++++ ivtools-1.2/src/Time/obstime.c	2009-09-04 13:25:59.000000000 -0400
+@@ -21,6 +21,7 @@
+  * 
+  */
+ 
++#include <cstdio>
+ #include <Time/obstime.h>
+ 
+ ObservableTime::ObservableTime(Time* th) {

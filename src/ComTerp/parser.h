@@ -50,6 +50,12 @@ public:
     boolean skip_matched_parens();
     // support for '()', '{}', and '[]'.
 
+    void check_parser_client();
+    /* set this object as client of underlying C-based scanner/parser */
+
+    void save_parser_client();
+    /* save current parser info for this client */
+
 protected:
     void init();
 
@@ -64,6 +70,42 @@ protected:
     postfix_token* _pfbuf;
     unsigned int _pfsiz;
     unsigned int _pfnum;
+
+    /* copies of scanner/parser internals */
+    int __continuation_prompt;
+    int __continuation_prompt_disabled;
+    int __skip_shell_comments;
+    infuncptr __oneshot_infunc;
+    int __detail_matched_delims;
+    int __ignore_numerics;
+    int __angle_brackets;
+    unsigned __token_state_save;
+
+    unsigned _expecting;             /* Type of operator expected next */
+
+    /* copy of operator table */
+    void* _opr_tbl_ptr;
+    unsigned _opr_tbl_numop;
+    unsigned _opr_tbl_maxop;
+    unsigned _opr_tbl_maxpri;
+    int _opr_tbl_lastop;
+
+    paren_stack* _ParenStack;               /* Stack to count args and keywords */
+    int _TopOfParenStack;            /* Top of ParenStack */
+    int _SizeOfParenStack;           /* Allocated size of ParenStack */
+
+    oper_stack* _OperStack;                /* Operator stack */
+    int _TopOfOperStack;             /* Top of OperStack */
+    int _SizeOfOperStack;            /* Allocated size of OperStack */
+
+    unsigned _NextBufptr;            /* Variables for look-ahead token */
+    char* _NextToken;
+    unsigned _NextToklen;    
+    unsigned _NextToktype;
+    unsigned _NextTokstart;
+    unsigned _NextLinenum;
+    int _NextOp_ids[OPTYPE_NUM];
+
 };
 
 #endif /* !defined(_parser_h) */

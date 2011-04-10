@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001-2007 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1997 Vectaport Inc.
  *
@@ -29,6 +29,7 @@
 #include <ComTerp/comterp.h>
 
 #include <OverlayUnidraw/ovarrow.h>
+#include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovselection.h>
@@ -75,7 +76,43 @@
 
 /*****************************************************************************/
 
-CreateRectFunc::CreateRectFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateGraphicFunc::CreateGraphicFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+Transformer* CreateGraphicFunc::get_transformer(AttributeList* al) {
+  static int transform_symid = symbol_add("transform");
+
+  AttributeValue* transformv = nil;
+  Transformer* rel = nil;
+  AttributeValueList* avl = nil;
+  if (al && 
+      (transformv=al->find(transform_symid)) && 
+      transformv->is_array() && 
+      (avl=transformv->array_val()) &&
+      avl->Number()==6) {
+    float a00, a01, a10, a11, a20, a21;
+    Iterator it;
+    avl->First(it); a00=avl->GetAttrVal(it)->float_val();
+    avl->Next(it); a01=avl->GetAttrVal(it)->float_val();
+    avl->Next(it); a10=avl->GetAttrVal(it)->float_val();
+    avl->Next(it); a11=avl->GetAttrVal(it)->float_val();
+    avl->Next(it); a20=avl->GetAttrVal(it)->float_val();
+    avl->Next(it); a21=avl->GetAttrVal(it)->float_val();
+    rel = new Transformer(a00, a01, a10, a11, a20, a21);
+  } else {
+    rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
+    if (rel != nil) {
+      rel = new Transformer(rel);
+      rel->Invert();
+    }
+  }
+  return rel;
+  
+}
+
+/*****************************************************************************/
+
+CreateRectFunc::CreateRectFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateRectFunc::execute() {
@@ -99,6 +136,9 @@ void CreateRectFunc::execute() {
         coords[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -108,11 +148,7 @@ void CreateRectFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 
 	SF_Rect* rect = new SF_Rect(coords[x0], coords[y0], coords[x1], coords[y1], stdgraphic);
 
@@ -126,20 +162,22 @@ void CreateRectFunc::execute() {
 	rect->SetTransformer(rel);
 	Unref(rel);
 	RectOvComp* comp = new RectOvComp(rect);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("RectComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("RectComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreateLineFunc::CreateLineFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateLineFunc::CreateLineFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateLineFunc::execute() {
@@ -163,6 +201,9 @@ void CreateLineFunc::execute() {
         coords[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -172,11 +213,7 @@ void CreateLineFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
 	ArrowLine* line = new ArrowLine(coords[x0], coords[y0], coords[x1], coords[y1], aVar->Head(), aVar->Tail(), 
@@ -191,20 +228,22 @@ void CreateLineFunc::execute() {
 	line->SetTransformer(rel);
 	Unref(rel);
 	ArrowLineOvComp* comp = new ArrowLineOvComp(line);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowLineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowLineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreateEllipseFunc::CreateEllipseFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateEllipseFunc::CreateEllipseFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateEllipseFunc::execute() {
@@ -228,6 +267,9 @@ void CreateEllipseFunc::execute() {
         args[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -237,12 +279,8 @@ void CreateEllipseFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
-
+	Transformer* rel = get_transformer(al);
+	
 	SF_Ellipse* ellipse = new SF_Ellipse(args[x0], args[y0], args[r1], args[r2], stdgraphic);
 
 	if (brVar != nil) ellipse->SetBrush(brVar->GetBrush());
@@ -255,22 +293,24 @@ void CreateEllipseFunc::execute() {
 	ellipse->SetTransformer(rel);
 	Unref(rel);
 	EllipseOvComp* comp = new EllipseOvComp(ellipse);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("EllipseComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("EllipseComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
 // this one needs to get the string value, plus x,y location
 
-CreateTextFunc::CreateTextFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateTextFunc::CreateTextFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateTextFunc::execute() {
@@ -295,6 +335,9 @@ void CreateTextFunc::execute() {
     }
 
     char* txt = symbol_pntr( txtv.symbol_ref() );
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
    
     PasteCmd* cmd = nil;
@@ -303,11 +346,7 @@ void CreateTextFunc::execute() {
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 	FontVar* fntVar = (FontVar*) _ed->GetState("FontVar");
 	
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 	
 	TextGraphic* text = new TextGraphic(txt, stdgraphic);
 
@@ -321,20 +360,22 @@ void CreateTextFunc::execute() {
 	text->GetTransformer()->postmultiply(rel);
 	Unref(rel);
 	TextOvComp* comp = new TextOvComp(text);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("TextComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("TextComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else
         push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreateMultiLineFunc::CreateMultiLineFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateMultiLineFunc::CreateMultiLineFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateMultiLineFunc::execute() {
@@ -358,6 +399,9 @@ void CreateMultiLineFunc::execute() {
         y[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -367,11 +411,7 @@ void CreateMultiLineFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
 	ArrowMultiLine* multiline = new ArrowMultiLine(x, y, npts, aVar->Head(), aVar->Tail(), 
@@ -387,20 +427,22 @@ void CreateMultiLineFunc::execute() {
 	multiline->SetTransformer(rel);
 	Unref(rel);
 	ArrowMultiLineOvComp* comp = new ArrowMultiLineOvComp(multiline);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowMultiLineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowMultiLineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreateOpenSplineFunc::CreateOpenSplineFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateOpenSplineFunc::CreateOpenSplineFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateOpenSplineFunc::execute() {
@@ -424,6 +466,9 @@ void CreateOpenSplineFunc::execute() {
         y[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -433,11 +478,7 @@ void CreateOpenSplineFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
 	ArrowOpenBSpline* openspline = new ArrowOpenBSpline(x, y, npts, aVar->Head(), aVar->Tail(), 
@@ -453,20 +494,22 @@ void CreateOpenSplineFunc::execute() {
 	openspline->SetTransformer(rel);
 	Unref(rel);
 	ArrowSplineOvComp* comp = new ArrowSplineOvComp(openspline);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowSplineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ArrowSplineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreatePolygonFunc::CreatePolygonFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreatePolygonFunc::CreatePolygonFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreatePolygonFunc::execute() {
@@ -490,6 +533,9 @@ void CreatePolygonFunc::execute() {
         y[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -499,11 +545,7 @@ void CreatePolygonFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 
 	SF_Polygon* polygon = new SF_Polygon(x, y, npts, stdgraphic);
 
@@ -517,20 +559,22 @@ void CreatePolygonFunc::execute() {
 	polygon->SetTransformer(rel);
 	Unref(rel);
 	PolygonOvComp* comp = new PolygonOvComp(polygon);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("PolygonComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("PolygonComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreateClosedSplineFunc::CreateClosedSplineFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateClosedSplineFunc::CreateClosedSplineFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateClosedSplineFunc::execute() {
@@ -554,6 +598,9 @@ void CreateClosedSplineFunc::execute() {
         y[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -563,11 +610,7 @@ void CreateClosedSplineFunc::execute() {
 	PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
 	ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
 
-        Transformer* rel = ((OverlayViewer*)_ed->GetViewer())->GetRel();
-	if (rel != nil) {
-	    rel = new Transformer(rel);
-	    rel->Invert();
-	}
+        Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
 	SFH_ClosedBSpline* closedspline = new SFH_ClosedBSpline(x, y, npts, stdgraphic);
@@ -582,20 +625,22 @@ void CreateClosedSplineFunc::execute() {
 	closedspline->SetTransformer(rel);
 	Unref(rel);
 	ClosedSplineOvComp* comp = new ClosedSplineOvComp(closedspline);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ClosedSplineComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("ClosedSplineComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
 
-CreateRasterFunc::CreateRasterFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+CreateRasterFunc::CreateRasterFunc(ComTerp* comterp, Editor* ed) : CreateGraphicFunc(comterp, ed) {
 }
 
 void CreateRasterFunc::execute() {
@@ -619,6 +664,9 @@ void CreateRasterFunc::execute() {
         coords[j] = avl->GetAttrVal(i)->int_val();
 	avl->Next(i);
     }
+
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
     reset_stack();
 
     PasteCmd* cmd = nil;
@@ -638,21 +686,27 @@ void CreateRasterFunc::execute() {
 
 	OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
 
+#if 1
 	Transformer* t = new Transformer();
 	t->Translate(dcoords[x0], dcoords[y0]);
 	rasterrect->SetTransformer(t);
 	Unref(t);
+#else
+        Transformer* rel = get_transformer(al);
+#endif
 
 	RasterOvComp* comp = new RasterOvComp(rasterrect);
+	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("RasterComp"), new ComponentView(comp));
+	ComValue compval(symbol_add("RasterComp"), new OverlayView(comp));
 	compval.object_compview(true);
 	push_stack(compval);
+	execute_log(cmd);
     } else 
 	push_stack(ComValue::nullval());
 
-    execute_log(cmd);
+    Unref(al);
 }
 
 /*****************************************************************************/
@@ -672,9 +726,9 @@ void FontFunc::execute() {
 
     if (font) {
 	cmd = new FontCmd(_ed, font);
+	execute_log(cmd);
     }
 
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -786,9 +840,9 @@ void FontByNameFunc::execute() {
   
   if (font) {
     cmd = new FontCmd(_ed, font);
+    execute_log(cmd);
   }
   
-  execute_log(cmd);
 }
 /*****************************************************************************/
 ColorRgbFunc::ColorRgbFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
@@ -806,7 +860,7 @@ void ColorRgbFunc::execute() {
   fgcolor = catalog->FindColor(fgname);
   //This comparison is made because the user can set only the foreground color by calling
   //colorsrgb with one argument.
-  if (strcmp(bgname,"sym")!=0){
+  if (bgname && strcmp(bgname,"sym")!=0){
     bgcolor = catalog->FindColor(bgname);
   }
   ColorCmd* cmd = new ColorCmd(_ed, fgcolor, bgcolor);
@@ -829,9 +883,9 @@ void BrushFunc::execute() {
 
     if (brush) {
 	cmd = new BrushCmd(_ed, brush);
+	execute_log(cmd);
     }
 
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -851,9 +905,9 @@ void PatternFunc::execute() {
 
     if (pattern) {
 	cmd = new PatternCmd(_ed, pattern);
+	execute_log(cmd);
     }
 
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -898,7 +952,7 @@ void SelectFunc::execute() {
       return;
     }
       
-    OverlaySelection* newSel = new OverlaySelection();
+    OverlaySelection* newSel = ((OverlayEditor*)_ed)->overlay_kit()->MakeSelection();
     
     Viewer* viewer = _ed->GetViewer();
     AttributeValueList* avl = new AttributeValueList();
@@ -911,7 +965,7 @@ void SelectFunc::execute() {
 	GraphicView* subgv = gv->GetView(i);
 	newSel->Append(subgv);
 	OverlayComp* comp = (OverlayComp*)subgv->GetGraphicComp();
-	ComValue* compval = new ComValue(comp->classid(), new ComponentView(comp));
+	ComValue* compval = new ComValue(comp->classid(), new OverlayView(comp));
 	compval->object_compview(true);
 	avl->Append(compval);
       }
@@ -922,7 +976,7 @@ void SelectFunc::execute() {
       for (sel->First(i); !sel->Done(i); sel->Next(i)) {
 	GraphicView* grview = sel->GetView(i);
 	OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-	ComValue* compval = comp ? new ComValue(comp->classid(), new ComponentView(comp)) : nil;
+	ComValue* compval = comp ? new ComValue(comp->classid(), new OverlayView(comp)) : nil;
 
 	if (compval) {
 	  compval->object_compview(true);
@@ -941,7 +995,7 @@ void SelectFunc::execute() {
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
 	    newSel->Append(comp->FindView(viewer));
-	    ComValue* compval = new ComValue(comp->classid(), new ComponentView(comp));
+	    ComValue* compval = new ComValue(comp->classid(), new OverlayView(comp));
 	    compval->object_compview(true);
 	    avl->Append(compval);
 	  }
@@ -1011,9 +1065,9 @@ void MoveFunc::execute() {
 
     if (delx != 0  || dely != 0) {
 	cmd = new MoveCmd(_ed, delx, dely);
+	execute_log(cmd);
     }
 
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -1032,9 +1086,9 @@ void ScaleFunc::execute() {
 
     if (fx > 0.0  || fy > 0.0) {
 	cmd = new ScaleCmd(_ed, fx, fy);
+	execute_log(cmd);
     }
 
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -1070,9 +1124,9 @@ void PanFunc::execute() {
 
     if (delx != 0  || dely != 0) {
 	cmd = new PanCmd(_ed, delx, dely);
+	execute_log(cmd);
     }
 
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -1169,7 +1223,7 @@ ZoomFunc::ZoomFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void ZoomFunc::execute() {
-    ComValue& zoomv = pop_stack();
+    ComValue zoomv(pop_stack());
     double zoom = zoomv.double_val();
     reset_stack();
     
@@ -1178,9 +1232,9 @@ void ZoomFunc::execute() {
     
     if (zoom > 0.0) {
 	cmd = new ZoomCmd(_ed, zoom);
+	execute_log(cmd);
     }
     
-    execute_log(cmd);
 }
 
 /*****************************************************************************/
@@ -1249,5 +1303,70 @@ void TileFileFunc::execute() {
     }
 }
 
+/*****************************************************************************/
 
+TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void TransformerFunc::execute() {
+    
+    ComValue objv(stack_arg(0));
+    ComValue transv(stack_arg(0));
+    reset_stack();
+    if (objv.object_compview()) {
+      ComponentView* compview = (ComponentView*)objv.obj_val();
+      if (compview && compview->GetSubject()) {
+	OverlayComp* comp = (OverlayComp*)compview->GetSubject();
+	Graphic* gr = comp->GetGraphic();
+	if (gr) {
+	  Transformer* trans = gr->GetTransformer();
+	  if (transv.is_unknown() || !transv.is_array() || transv.array_val()->Number()!=6) {
+	    AttributeValueList* avl = new AttributeValueList();
+	    float a00, a01, a10, a11, a20, a21;
+	    trans->matrix(a00, a01, a10, a11, a20, a21);
+	    avl->Append(new AttributeValue(a00));
+	    avl->Append(new AttributeValue(a01));
+	    avl->Append(new AttributeValue(a10));
+	    avl->Append(new AttributeValue(a11));
+	    avl->Append(new AttributeValue(a20));
+	    avl->Append(new AttributeValue(a21));
+	    ComValue retval(avl);
+	    push_stack(retval);
+
+	  } else {
+	    float a00, a01, a10, a11, a20, a21;
+	    AttributeValueList* avl = transv.array_val();
+	    Iterator it;
+	    AttributeValue* av;
+
+	    avl->First(it);
+	    av = avl->GetAttrVal(it);
+	    a00 = av->float_val();
+	    avl->Next(it);
+	    av = avl->GetAttrVal(it);
+	    a01 = av->float_val();
+	    avl->Next(it);
+	    av = avl->GetAttrVal(it);
+	    a10 = av->float_val();
+	    avl->Next(it);
+	    av = avl->GetAttrVal(it);
+	    a11 = av->float_val();
+	    avl->Next(it);
+	    av = avl->GetAttrVal(it);
+	    a20 = av->float_val();
+	    avl->Next(it);
+	    av = avl->GetAttrVal(it);
+	    a21 = av->float_val();
+
+	    Transformer t(a00, a01, a10, a11, a20, a21);
+	    *gr->GetTransformer()=t;
+
+	    ComValue compval(comp->class_symid(), new OverlayView(comp));
+	    compval.object_compview(true);
+	    push_stack(compval);
+	  }
+	}
+      } 	
+    }
+}
 

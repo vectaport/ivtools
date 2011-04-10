@@ -171,8 +171,8 @@ RubberPointList::RubberPointList(
 }
 
 RubberPointList::~RubberPointList() {
-    delete x;
-    delete y;
+    delete[] x;
+    delete[] y;
 }
 
 /*****************************************************************************/

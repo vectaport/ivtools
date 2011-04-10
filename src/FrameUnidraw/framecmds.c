@@ -240,7 +240,7 @@ void MoveFrameCmd::Execute() {
     if (funcformat && comterp) {
       char buf[BUFSIZ];
       sprintf(buf, funcformat, _requestmotion);
-      ComValue& retval = comterp->run(buf);
+      ComValue retval(comterp->run(buf));
     }
     unidraw->Update();
 }
@@ -270,7 +270,7 @@ void MoveFrameCmd::Unexecute() {
     if (funcformat && comterp) {
       char buf[BUFSIZ];
       sprintf(buf, funcformat, -_requestmotion);
-      ComValue& retval = comterp->run(buf);
+      ComValue retval(comterp->run(buf));
     }
     unidraw->Update();
 }
@@ -336,7 +336,7 @@ void FrameBeginCmd::Execute() {
     if (funcformat && comterp) {
       char buf[BUFSIZ];
       sprintf(buf, funcformat, _allowbg ? 0 : 1);
-      ComValue& retval = comterp->run(buf);
+      ComValue retval (comterp->run(buf));
     }
     unidraw->Update();
 }
@@ -389,7 +389,7 @@ void FrameEndCmd::Execute() {
     if (funcformat && comterp) {
       char buf[BUFSIZ];
       sprintf(buf, funcformat, fnum);
-      ComValue& retval = comterp->run(buf);
+      ComValue retval(comterp->run(buf));
     }
     unidraw->Update();
 }

@@ -1,5 +1,5 @@
 .TH COMTERP 1 
-.SH NAME
+.SH COMTERP
 comterp \- distributed command interpreter demonstrator
 .SH SYNOPSIS
 .B comterp
@@ -263,6 +263,10 @@ Run contents of file then exit.
  val=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands, optionally return symbol instead of nil
 
  val=shell(cmdstr) -- evaluate command in shell
+
+ usleep(msec) -- sleep microseconds
+
+ mute([flag]) -- set or toggle mute flag
 
  nil([...]) -- accept any arguments and return nil
 

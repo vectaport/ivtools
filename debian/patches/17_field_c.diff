@@ -1,0 +1,21 @@
+Index: ivtools-1.2/src/InterViews/field.c
+===================================================================
+--- ivtools-1.2.orig/src/InterViews/field.c	2009-09-04 13:34:59.000000000 -0400
++++ ivtools-1.2/src/InterViews/field.c	2009-09-04 13:35:12.000000000 -0400
+@@ -26,6 +26,8 @@
+  * FieldEditor -- simple editor for text fields
+  */
+ 
++#include <cstdio>
++
+ #include <Dispatch/dispatcher.h>
+ #include <Dispatch/iocallback.h>
+ #include <IV-look/field.h>
+@@ -60,7 +62,6 @@
+ 
+ #include <OS/math.h>
+ #include <OS/string.h>
+-#include <cstdio>
+ #include <string.h>
+ 
+ class FieldStringEditor : public StringEditor {

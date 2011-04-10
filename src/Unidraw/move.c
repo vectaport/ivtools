@@ -71,7 +71,7 @@ Manipulator* MoveTool::CreateManipulator (
 	}
         if (s->Number() > 1) {
             m = gv->GraphicView::CreateManipulator(v, e, rel, this);
-        } else {
+        } else if (s->Number() == 1 ) {
             m = gv->CreateManipulator(v, e, rel, this);
         }
     }

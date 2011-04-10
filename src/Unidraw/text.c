@@ -115,7 +115,7 @@ void TextComp::Read (istream& in) {
     in >> lineHt;
     char* string = ReadString(in);
     TextGraphic* text = new TextGraphic(string, lineHt);
-    delete string;
+    delete[] string;
 
     text->FillBg(ReadBgFilled(in));
     PSColor* fg = ReadColor(in);

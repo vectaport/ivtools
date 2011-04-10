@@ -29,7 +29,7 @@
 #ifndef iv_layout_h
 #define iv_layout_h
 
-#include <InterViews/deck.h>
+#include <IV-3_1/InterViews/deck.h> // too avoid confusion with IV-2_6
 #include <InterViews/monoglyph.h>
 #include <InterViews/polyglyph.h>
 #include <InterViews/scrbox.h>

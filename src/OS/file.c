@@ -42,14 +42,11 @@ extern "C" {
 
 /* no standard place for these */
 extern "C" {
-#if 0
 #ifdef __P
     extern int close __P ((int));
 #else
     extern int close (int);
 #endif
-#endif
-
 #if defined(sgi)
     extern int read(int, void*, unsigned int);
 #endif

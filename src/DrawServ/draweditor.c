@@ -27,6 +27,7 @@
 #include <DrawServ/drawserv.h>
 
 #include <Unidraw/catalog.h>
+#include <Unidraw/selection.h>
 
 #include <ComTerp/comterpserv.h>
 
@@ -74,6 +75,7 @@ void DrawEditor::Init (OverlayComp* comp, const char* name) {
   add_comterp("DrawServ", _terp);
   _overlay_kit->Init(comp, name);
   InitFrame();
+  _last_selection = new Selection;
 }
 
 void DrawEditor::InitCommands() {
@@ -83,6 +85,11 @@ void DrawEditor::InitCommands() {
 void DrawEditor::AddCommands(ComTerp* comterp) {
   FrameEditor::AddCommands(comterp);
 
-  comterp->add_command("drawserv", new DrawServFunc(comterp, this));
+#ifdef HAVE_ACE
+  comterp->add_command("drawlink", new DrawLinkFunc(comterp, this));
+  comterp->add_command("sid", new SessionIdFunc(comterp, this));
+  comterp->add_command("grid", new GraphicIdFunc(comterp, this));
+  comterp->add_command("chgid", new ChangeIdFunc(comterp, this));
+#endif
 }
 

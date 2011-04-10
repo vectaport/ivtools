@@ -3,22 +3,22 @@
 
 # Read "template" to understand how this Makefile was generated.
 # Edit <arch.def> to add support for a new platform.
-# Edit <InterViews/iv-linux.cf> to change platform-specific parameters.
+# Edit <InterViews/iv-darwin.cf> to change platform-specific parameters.
 # Edit <local.def> to change site-specific parameters.
 # Edit <Imakefile> to change actions that make should perform.
 
-# architecture:  LINUX
+# architecture:  DARWIN
 
 # -------------------------------------------------------------------------
 # from <local.def>:
 
-          TOOL_INCLUDE_DIR = /usr/local/include
+          TOOL_INCLUDE_DIR = /usr/include
 
     NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../..  -I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include -I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES)
 
     APP_CCINCLUDES = $(NORM_CCINCLUDES)
 
-             IVTOOLSSRC = /home/pei/tmp/ivtools-1.1.3/src
+             IVTOOLSSRC = /Users/scott/src/ivtools-1.2/src
 
 LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
 LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
@@ -34,43 +34,43 @@ LIBUNIIDRAW = -L$(IVTOOLSSRC)/UniIdraw/$(CPU) -lUniIdraw
 LIBTOPOFACE = -L$(IVTOOLSSRC)/TopoFace/$(CPU) -lTopoFace
 LIBOVERLAYUNIDRAW = -L$(IVTOOLSSRC)/OverlayUnidraw/$(CPU) -lOverlayUnidraw
 
-  LIBACEDISPATCH =
+LIBACEDISPATCH = -L$(IVTOOLSSRC)/AceDispatch/$(CPU) -lAceDispatch
 
 LIBCOMUNIDRAW = -L$(IVTOOLSSRC)/ComUnidraw/$(CPU) -lComUnidraw
 LIBFRAMEUNIDRAW = -L$(IVTOOLSSRC)/FrameUnidraw/$(CPU) -lFrameUnidraw
 LIBGRAPHUNIDRAW = -L$(IVTOOLSSRC)/GraphUnidraw/$(CPU) -lGraphUnidraw
 LIBDRAWSERV = -L$(IVTOOLSSRC)/DrawServ/$(CPU) -lDrawServ
 
-DEPUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.so.$(VERSION)
-DEPIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.so.$(VERSION)
-DEPTIME = $(IVTOOLSSRC)/Time/$(CPU)/libTime.so.$(VERSION)
-DEPATTRIBUTE = $(IVTOOLSSRC)/Attribute/$(CPU)/libAttribute.so.$(VERSION)
-DEPCOMUTIL = $(IVTOOLSSRC)/ComUtil/$(CPU)/libComUtil.so.$(VERSION)
-DEPCOMTERP = $(IVTOOLSSRC)/ComTerp/$(CPU)/libComTerp.so.$(VERSION)
-DEPIVGLYPH = $(IVTOOLSSRC)/IVGlyph/$(CPU)/libIVGlyph.so.$(VERSION)
-DEPATTRGLYPH = $(IVTOOLSSRC)/AttrGlyph/$(CPU)/libAttrGlyph.so.$(VERSION)
-DEPCOMGLYPH = $(IVTOOLSSRC)/ComGlyph/$(CPU)/libComGlyph.so.$(VERSION)
-DEPGLYPHTERP = $(IVTOOLSSRC)/GlyphTerp/$(CPU)/libGlyphTerp.so.$(VERSION)
-DEPUNIIDRAW = $(IVTOOLSSRC)/UniIdraw/$(CPU)/libUniIdraw.so.$(VERSION)
-DEPTOPOFACE = $(IVTOOLSSRC)/TopoFace/$(CPU)/libTopoFace.so.$(VERSION)
-DEPOVERLAYUNIDRAW = $(IVTOOLSSRC)/OverlayUnidraw/$(CPU)/libOverlayUnidraw.so.$(VERSION)
+DEPUNIDRAWCOMMON = $(IVTOOLSSRC)/Unidraw-common/$(CPU)/libUnidraw-common.$(VERSION).dylib
+DEPIVCOMMON = $(IVTOOLSSRC)/IV-common/$(CPU)/libIV-common.$(VERSION).dylib
+DEPTIME = $(IVTOOLSSRC)/Time/$(CPU)/libTime.$(VERSION).dylib
+DEPATTRIBUTE = $(IVTOOLSSRC)/Attribute/$(CPU)/libAttribute.$(VERSION).dylib
+DEPCOMUTIL = $(IVTOOLSSRC)/ComUtil/$(CPU)/libComUtil.$(VERSION).dylib
+DEPCOMTERP = $(IVTOOLSSRC)/ComTerp/$(CPU)/libComTerp.$(VERSION).dylib
+DEPIVGLYPH = $(IVTOOLSSRC)/IVGlyph/$(CPU)/libIVGlyph.$(VERSION).dylib
+DEPATTRGLYPH = $(IVTOOLSSRC)/AttrGlyph/$(CPU)/libAttrGlyph.$(VERSION).dylib
+DEPCOMGLYPH = $(IVTOOLSSRC)/ComGlyph/$(CPU)/libComGlyph.$(VERSION).dylib
+DEPGLYPHTERP = $(IVTOOLSSRC)/GlyphTerp/$(CPU)/libGlyphTerp.$(VERSION).dylib
+DEPUNIIDRAW = $(IVTOOLSSRC)/UniIdraw/$(CPU)/libUniIdraw.$(VERSION).dylib
+DEPTOPOFACE = $(IVTOOLSSRC)/TopoFace/$(CPU)/libTopoFace.$(VERSION).dylib
+DEPOVERLAYUNIDRAW = $(IVTOOLSSRC)/OverlayUnidraw/$(CPU)/libOverlayUnidraw.$(VERSION).dylib
 
-    DEPACEDISPATCH =
+DEPACEDISPATCH = $(IVTOOLSSRC)/AceDispatch/$(CPU)/libAceDispatch.$(VERSION).dylib
 
-DEPCOMUNIDRAW = $(IVTOOLSSRC)/ComUnidraw/$(CPU)/libComUnidraw.so.$(VERSION)
-DEPFRAMEUNIDRAW = $(IVTOOLSSRC)/FrameUnidraw/$(CPU)/libFrameUnidraw.so.$(VERSION)
-DEPGRAPHUNIDRAW = $(IVTOOLSSRC)/GraphUnidraw/$(CPU)/libGraphUnidraw.so.$(VERSION)
-DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
+DEPCOMUNIDRAW = $(IVTOOLSSRC)/ComUnidraw/$(CPU)/libComUnidraw.$(VERSION).dylib
+DEPFRAMEUNIDRAW = $(IVTOOLSSRC)/FrameUnidraw/$(CPU)/libFrameUnidraw.$(VERSION).dylib
+DEPGRAPHUNIDRAW = $(IVTOOLSSRC)/GraphUnidraw/$(CPU)/libGraphUnidraw.$(VERSION).dylib
+DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
 
 # -------------------------------------------------------------------------
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-1.1.3
+   RELEASE = ivtools-1.2.6
 
-   VERSION = 1.1.3
+   VERSION = 1.2.6
 
-   REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
+   REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? CHANGES-1.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
               SHELL = /bin/sh
 
@@ -80,7 +80,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 		      -I$(ABSTOP)/config -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR) -I$(IVTOOLSSRC)/../config\
 		      $(SPECIAL_IMAKEFLAGS)
  SPECIAL_IMAKEFLAGS =
-             DEPEND = ccache g++-4.3 -M
+             DEPEND = g++ -M
      DEPEND_CCFLAGS = -w -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) 		      -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
                MAKE = make
            PASSARCH = ARCH="$(ARCH)" SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS)" CMFLAGS="$(CMFLAGS)" CMMSG="$(CMMSG)"
@@ -88,12 +88,11 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
                ARCH = $(ARCHORCPU)$(SPECIAL_ARCH)
        SPECIAL_ARCH =
 
-           CCDRIVER = ccache g++-4.3
-	   CCLINKER = gcc
+           CCDRIVER = g++
            CCSUFFIX = c
-            CDRIVER = ccache gcc-4.3
+            CDRIVER = gcc
             CSUFFIX = c
-                SRC = /home/pei/tmp/ivtools-1.1.3/.
+                SRC = /Users/scott/src/ivtools-1.2/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
@@ -101,26 +100,35 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.so.$(VERSION)
 
             CCFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
          IV_CCFLAGS = \
-		      $(DEBUG_CCFLAGS)\
+		      -g\
 		      $(OPTIMIZE_CCFLAGS)\
 		      $(SHARED_CCFLAGS)\
 		      $(CCDEFINES)\
 		      $(CCINCLUDES)
+          IV_CFLAGS = \
+		      -g\
+		      $(OPTIMIZE_CCFLAGS)\
+		      $(SHARED_CCFLAGS)\
+		      $(CDEFINES)\
+		      $(CCINCLUDES)
       DEBUG_CCFLAGS = -gdwarf-2
-   OPTIMIZE_CCFLAGS = -O2
+   OPTIMIZE_CCFLAGS =
      SHARED_CCFLAGS =
-      EXTRA_CCFLAGS =
+      EXTRA_CCFLAGS = -fno-common
 
           CCDEFINES = $(APP_CCDEFINES) $(IV_CCDEFINES) $(OTHER_CCDEFINES) $(EXTRA_CCDEFINES)
        IV_CCDEFINES = $(LANGUAGE_CCDEFINES) $(BACKWARD_CCDEFINES)
+           CDEFINES = $(APP_CCDEFINES) $(IV_CDEFINES) $(OTHER_CCDEFINES) $(EXTRA_CCDEFINES)
+        IV_CDEFINES = -D_POSIX_C_SOURCE $(BACKWARD_CCDEFINES)
  LANGUAGE_CCDEFINES = -Dcplusplus_2_1 -Wno-deprecated
  BACKWARD_CCDEFINES =
     EXTRA_CCDEFINES =
 
  CLIPPOLY_CCDEFINES =
-      ACE_CCDEFINES =
+      ACE_CCDEFINES = -DHAVE_ACE
       IUE_CCDEFINES =
        QT_CCDEFINES =
+     TIFF_CCDEFINES =
 
          CCINCLUDES = $(APP_CCINCLUDES) $(OTHER_CCINCLUDES) $(EXTRA_CCINCLUDES)
       IV_CCINCLUDES = IvCCIncludes
@@ -130,20 +138,25 @@ BACKWARD_CCINCLUDES =
    EXTRA_CCINCLUDES =
 
 CLIPPOLY_CCINCLUDES =
-     ACE_CCINCLUDES =
+     ACE_CCINCLUDES = -I$(ACEDIR)
      IUE_CCINCLUDES =
       QT_CCINCLUDES =
+    TIFF_CCINCLUDES =
 
-             CFLAGS = $(APP_CCFLAGS) $(IV_CCFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
+             ACEDIR = /Users/scott/src/ACE_wrappers
+
+          ACELIBDIR = /Users/scott/src/ACE_wrappers/ace
+
+             CFLAGS = $(APP_CCFLAGS) $(IV_CFLAGS) $(OTHER_CCFLAGS) $(EXTRA_CCFLAGS)
 
           CCLDFLAGS = $(APP_CCLDFLAGS) $(IV_CCLDFLAGS) $(OTHER_CCLDFLAGS) $(EXTRA_CCLDFLAGS)
        IV_CCLDFLAGS = \
-		      $(DEBUG_CCFLAGS)\
+		      -g\
 		      $(OPTIMIZE_CCFLAGS)\
 		      $(NONSHARED_CCLDFLAGS)
 NONSHARED_CCLDFLAGS =
-   SHARED_CCLDFLAGS =
-    EXTRA_CCLDFLAGS =
+   SHARED_CCLDFLAGS = -Wl,-bind_at_load
+    EXTRA_CCLDFLAGS = -Wl,-bind_at_load
 
           CCDEPLIBS = $(APP_CCDEPLIBS) $(IV_CCDEPLIBS) $(OTHER_CCDEPLIBS) $(EXTRA_CCDEPLIBS) $(_CCDEPLIBS)
        IV_CCDEPLIBS = \
@@ -166,13 +179,13 @@ NONSHARED_CCLDFLAGS =
 		      $(LDLIBX11)\
 		      $(ABSLIBDIRPATH)
     SHARED_CCLDLIBS =
-     EXTRA_CCLDLIBS = -lm
+     EXTRA_CCLDLIBS = -lstdc++ -lm
 
   CLIPPOLY_CCLDLIBS =
      CLIPPOLYLIBDIR =
     CLIPPOLYLIBBASE = libclippoly.so
-       ACE_CCLDLIBS =
-          ACELIBDIR =
+       ACE_CCLDLIBS = -L$(ACELIBDIR) -lACE
+          ACELIBDIR = /Users/scott/src/ACE_wrappers/ace
          ACELIBBASE = libACE.so
        IUE_CCLDLIBS =
           IUELIBDIR =
@@ -180,6 +193,9 @@ NONSHARED_CCLDFLAGS =
         QT_CCLDLIBS = QtCCLdLibs
            QTLIBDIR =
           QTLIBBASE = libQt.so
+      TIFF_CCLDLIBS =
+         TIFFLIBDIR =
+        TIFFLIBBASE = libTIFF.so
 
             INSTALL = install
        INSTPGMFLAGS = -s
@@ -194,7 +210,7 @@ NONSHARED_CCLDFLAGS =
                  AR = ar clq
                  AS = as
                  CP = cp
-                CPP = /lib/cpp $(EXTRA_CCDEFINES) $(OTHER_CCDEFINES)
+                CPP = c++ -E $(EXTRA_CCDEFINES) $(OTHER_CCDEFINES)
       PREPROCESSCMD = $(CCDRIVER) -E $(EXTRA_CCDEFINES) $(OTHER_CCDEFINES)
                  LD = ld
                  LN = ln -s
@@ -207,11 +223,11 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = groff
 
-                TOP = /home/pei/tmp/ivtools-1.1.3
+                TOP = /Users/scott/src/ivtools-1.2
              RELTOP = .
-        CURRENT_DIR = /home/pei/tmp/ivtools-1.1.3
+        CURRENT_DIR = /Users/scott/src/ivtools-1.2
 
-              IVSRC = /home/pei/tmp/ivtools-1.1.3/src
+              IVSRC = /Users/scott/src/ivtools-1.2/src
              BINSRC = $(IVSRC)/bin
           CONFIGSRC = $(RELTOP)/config
              INCSRC = $(IVSRC)/include
@@ -219,22 +235,22 @@ NONSHARED_CCLDFLAGS =
              MANSRC = $(IVSRC)/man
           SCRIPTSRC = $(RELTOP)/src/scripts
 
-             BINDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/bin
-          CONFIGDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
-             INCDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/include
-             LIBDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib
-          LIBABSDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib
-          LIBALLDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
-             MANDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/man
+             BINDIR = /usr/local/bin
+          CONFIGDIR = /usr/local/lib/ivtools/config
+             INCDIR = /usr/local/include
+             LIBDIR = /usr/local/lib
+          LIBABSDIR = /usr/local/lib
+          LIBALLDIR = /usr/local/lib/ivtools
+             MANDIR = /usr/local/man
 
-       ABSCONFIGDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools/config
-          ABSLIBDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib
-       ABSLIBALLDIR = /home/pei/tmp/ivtools-1.1.3/debian/tmp/usr/lib/ivtools
+       ABSCONFIGDIR = /usr/local/lib/ivtools/config
+          ABSLIBDIR = /usr/local/lib
+       ABSLIBALLDIR = /usr/local/lib/ivtools
        RELLIBALLDIR = $(TOP)/lib/ivtools
-         XCONFIGDIR = /usr/lib/X11/config
-            XINCDIR = /usr/include
-            XLIBDIR = /usr/lib
-          PSFONTDIR = /usr/lib/ghostscript/fonts
+         XCONFIGDIR = /usr/X11R6/lib/X11/config
+            XINCDIR = /Developer/SDKs/MacOSX10.4u.sdk/usr/X11R6/include
+            XLIBDIR = /Developer/SDKs/MacOSX10.4u.sdk/usr/X11R6/lib
+          PSFONTDIR = /usr/lib/ps
 
   SOCKLEN_T_DEFINED = 1
 
@@ -383,59 +399,59 @@ Makefiles::
 	done
 
 depend::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "depending" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) depend ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) depend; \
+		) else continue; fi; \
+	done
 
 subdirs::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "making all" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) all || break; \
-		 else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) all; \
+		) else continue; fi; \
+	done
 
 install::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "installing" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) install ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) install; \
+		) else continue; fi; \
+	done
 
 uninstall::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "uninstalling" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) uninstall ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) uninstall; \
+		) else continue; fi; \
+	done
 
 clean::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "cleaning" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) clean ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) clean; \
+		) else continue; fi; \
+	done
 
 Makefiles.debug:
 	@$(MAKE) ARCH="$(ARCH).debug" \
@@ -524,59 +540,59 @@ cmcommit::
 	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi; fi
 
 cmchkin::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "checking into the repository" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) cmchkin ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) cmchkin; \
+		) else continue; fi; \
+	done
 
 cmtag::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "tagging the repository" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) cmtag ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) cmtag; \
+		) else continue; fi; \
+	done
 
 cmadd::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "adding to the repository" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) cmadd ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) cmadd; \
+		) else continue; fi; \
+	done
 
 cmupdate::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "updating from repository" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) cmupdate ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) cmupdate; \
+		) else continue; fi; \
+	done
 
 cmcommit::
-	@(set -e;for i in $(SUBDIRS); \
+	-@for i in $(SUBDIRS); \
 	do \
-		if [ -d $$i ]; then \
+		if [ -d $$i ]; then ( \
 			echo "committing to repository" \
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \
 			cd $$i; \
-			$(MAKE) $(PASSARCH) cmcommit ; cd .. \
-		else continue; fi; \
-	done)
+			$(MAKE) $(PASSARCH) cmcommit; \
+		) else continue; fi; \
+	done
 
 clean::
 	@$(RM_CMD) make.makefile make.makefiles make.depend make.make

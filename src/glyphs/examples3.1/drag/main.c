@@ -32,6 +32,8 @@
 #include <InterViews/window.h>
 #include <IV-look/kit.h>
 
+using std::cout;
+
 ///////////////////////////////////////////////
 // Glyph that can be dragged to a drag zone. //
 ///////////////////////////////////////////////
@@ -111,7 +113,7 @@ void DragZoneDemo::leave(Event&) {
 }
 
 void DragZoneDemo::drop(Event& event, const char* data, int) {
-    cout << data << endl;
+    cout << data << '\n';
     leave(event);
 }
 

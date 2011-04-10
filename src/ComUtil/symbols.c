@@ -72,7 +72,7 @@ static int symid_alloc_num;
 #define SYM_ALLOC_NUM_LOW	  512
 #define SYMID_ALLOC_NUM_LOW        32
 /* These are used when you have lots of memory */
-#define SYM_ALLOC_NUM_HIGH	 4096
+#define SYM_ALLOC_NUM_HIGH	 32768
 #define SYMID_ALLOC_NUM_HIGH      256
 
 /*=============*/

@@ -265,6 +265,7 @@ void TE_View::text(const char* txt, boolean update) {
    // delete text in editor
    text_editor_->Select(0);
    text_editor_->DeleteText(te_buffer_->characters());
+
    // load new text
    te_buffer_->Insert(0, txt, strlen(txt));
    text_editor_->Edit(te_buffer_, 0);
@@ -850,3 +851,7 @@ Menu* TE_View::make_menu(Menu* m, CommandInfo* info)
 }
 
 int TE_View::lines() { return te_buffer_->lines(); }
+
+void TE_View::disable_caret() { text_editor_->DisableCaret(); }
+
+void TE_View::enable_caret() { text_editor_->EnableCaret(); }

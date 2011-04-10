@@ -26,6 +26,7 @@
 #if @ACE_ENABLED@
 #define AceDir @ACE@
 #define AceLibDir @ACE_LIBS@
+#define AceEnabled
 #endif
 
 #if @CLIPPOLY_ENABLED@
@@ -42,6 +43,12 @@
 #define QtDir @QT@
 #define QtLibDir @QTLIBS@
 #define QtIncDir @QTINCS@
+#endif
+
+#if @TIFF_ENABLED@
+#define TiffDir @TIFF@
+#define TiffLibDir @TIFFLIBS@
+#define TiffIncDir @TIFFINCS@
 #endif
 
 #undef CCDriver

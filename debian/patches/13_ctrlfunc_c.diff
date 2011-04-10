@@ -1,0 +1,12 @@
+Index: ivtools-1.2/src/ComTerp/ctrlfunc.c
+===================================================================
+--- ivtools-1.2.orig/src/ComTerp/ctrlfunc.c	2009-09-04 13:23:28.000000000 -0400
++++ ivtools-1.2/src/ComTerp/ctrlfunc.c	2009-09-04 13:23:45.000000000 -0400
+@@ -21,6 +21,7 @@
+  * 
+  */
+ 
++#include <cstdio>
+ #include <fstream.h>
+ #include <iostream>
+ #include <ComTerp/comhandler.h>

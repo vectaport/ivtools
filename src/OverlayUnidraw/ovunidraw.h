@@ -30,6 +30,7 @@
 
 #include <Unidraw/unidraw.h>
 
+class AttributeList;
 class Command;
 class ComTerpServ;
 class Event;
@@ -48,10 +49,16 @@ public:
     OverlayUnidraw(Catalog*, World*);
     virtual ~OverlayUnidraw();
 
+    virtual void Update(boolean immediate = false);
     virtual void Run();
     virtual void Log(Command*, boolean dirty);
 
     void Append(Command*);
+
+    virtual boolean PrintAttributeList(ostream& out, AttributeList* list) 
+      { return false; }
+    // alternate method for serializing an AttributeList
+    // returns false if really not there.
 
     static boolean unidraw_updated();
     static boolean npause_lessened();
@@ -64,6 +71,15 @@ public:
 
     ComTerpServ* comterp() { return _comterp; }
     void comterp(ComTerpServ* comterp) { _comterp = comterp; }
+
+    void DeferredNotify();
+    // do all deferred notifications
+
+    static boolean deferred_notifications() { return _deferred_notifications; }
+    // return flag that indicates deferred notifications
+
+    static void deferred_notifications(boolean flag) { _deferred_notifications = flag; }
+    // set flag that indicates deferred notifications
     
 protected:
     static MacroCmd* _cmdq;
@@ -71,6 +87,7 @@ protected:
     OverlayViewer* _ovviewer;
     static ComTerpServ* _comterp;
     static int _npause;
+    static boolean _deferred_notifications;
 };
 
 #endif

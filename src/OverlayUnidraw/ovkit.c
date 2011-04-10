@@ -270,7 +270,7 @@ void OverlayKit::InitMembers (OverlayComp* comp) {
     _ed->_comp = comp;
     _ed->_keymap = new KeyMap;
     _ed->_curCtrl = new ControlState;
-    _ed->_selection = new OverlaySelection;
+    _ed->_selection = MakeSelection();
     _ed->_tray = new Tray;
     _ed->_tray->Propagate(false);
 }
@@ -1324,7 +1324,7 @@ MenuItem* OverlayKit::MakeViewMenu() {
     OvNewViewCmd::default_instance
       (new OvNewViewCmd
        (new ControlInfo("New View", KLBL_NEWVIEW, CODE_NEWVIEW), 
-       "0.0"));
+       "localhost:0.0"));
     MakeMenu(mbi, OvNewViewCmd::default_instance(), "New View   ");
 
     MakeMenu(mbi, new OvCloseEditorCmd(new ControlInfo("Close View",
@@ -1639,10 +1639,17 @@ void OverlayKit::AttrEdit(OverlayComp* comp) {
 
 int OverlayKit::bintest(const char* command) {
   char combuf[BUFSIZ];
+  // the echo -n $PATH is to workaround a mysterious problem on MacOS X
+  // whereby the which sometime returns nothing
+#if 0
+  sprintf( combuf, "echo -n $PATH; which %s", command );
+#else
   sprintf( combuf, "which %s", command );
+#endif
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  
+  // fprintf(stderr, "%s\n", testbuf);
   pclose(fptr);
   if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
 	      command, strlen(command)) != 0) {
@@ -1653,9 +1660,14 @@ int OverlayKit::bintest(const char* command) {
 
 boolean OverlayKit::bincheck(const char* command) {
   int status = bintest(command);
-  return !status;
+  return status==0 ? 1 : 0;
 }
 
 const char* OverlayKit::otherdisplay() { return _otherdisplay; }
 void OverlayKit::otherdisplay(const char* display) 
 { delete _otherdisplay; _otherdisplay= strdup(display); }
+
+
+OverlaySelection* OverlayKit::MakeSelection(Selection* sel) {
+  return new OverlaySelection(sel);
+}

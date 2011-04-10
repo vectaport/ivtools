@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2005 Scott E. Johnston
  * Copyright (c) 1998,1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -42,6 +43,17 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "%s([command] [command...] :all :posteval) -- help for commands"; }
+};
+
+//: print contents of operator table
+// optable() -- print contents of operator table to stdout
+class OptableFunc : public ComFunc {
+public:
+    OptableFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "%s() -- print contents of operator table"; }
 };
 
 #endif /* !defined(_helpfunc_h) */

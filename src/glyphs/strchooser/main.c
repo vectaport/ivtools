@@ -31,7 +31,9 @@
 #include <IV-look/fbrowser.h>
 #include <OS/string.h>
 #include <IVGlyph/strchooser.h>
-#include <iostream.h>
+#include <iostream>
+using std::cout;
+
 
 static OptionDesc options[] = {
     { nil }
@@ -115,7 +117,7 @@ void App::post_the_file_chooser() {
     selectme = choices->item_ref(pickme->selected());
   else
     selectme = "";
-  cout << "You picked \"" << selectme.string() << "\"" << endl;
+  cout << "You picked \"" << selectme.string() << "\"" << '\n';
 }
 
 declareActionCallback(Session)

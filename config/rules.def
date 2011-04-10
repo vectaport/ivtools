@@ -199,15 +199,15 @@ Makefiles::								@@\
 #ifndef IntoSubdirs
 #define IntoSubdirs(name,dirs,verb)					@@\
 name::									@@\
-	@(set -e;for i in dirs; \					@@\
+	-@for i in dirs; \						@@\
 	do \								@@\
-		if [ -d $$i ]; then \					@@\
+		if [ -d $$i ]; then ( \					@@\
 			echo verb \					@@\
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
 			cd $$i; \					@@\
-			$(MAKE) $(PASSARCH) name ; cd .. \		@@\
-		else continue; fi; \					@@\
-	done)
+			$(MAKE) $(PASSARCH) name; \			@@\
+		) else continue; fi; \					@@\
+	done
 #endif
 
 /*
@@ -216,15 +216,15 @@ name::									@@\
 #ifndef IntoSubdirs2
 #define IntoSubdirs2(name,dirs,verb,target)				@@\
 target::								@@\
-	@(set -e;for i in dirs; \					@@\
+	-@for i in dirs; \						@@\
 	do \								@@\
-		if [ -d $$i ]; then \					@@\
+		if [ -d $$i ]; then ( \					@@\
 			echo verb \					@@\
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
 			cd $$i; \					@@\
-			$(MAKE) $(PASSARCH) name || break; \		@@\
-		 else continue; fi; \					@@\
-	done)
+			$(MAKE) $(PASSARCH) name; \			@@\
+		) else continue; fi; \					@@\
+	done
 #endif
 
 #ifndef DependSubdirs
@@ -714,7 +714,7 @@ AllTarget(Concat(lib,libname.so.rev))					@@\
 Concat(lib,libname.so.rev): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
-	SharedLibraryCmd(ldobjs,libname))				@@\
+	SharedLibraryCmd(ldobjs,/*-Wl\,-soname=Concat(lib\,libname.so.rev)*/)@@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 									@@\
@@ -731,7 +731,7 @@ Concat(lib,libname.so.rev): depobjs					@@\
 	@echo "building $@"						@@\
 	$(RM) $@~							@@\
 	$(RM) Concat(lib,libname.so)					@@\
-	SharedLibraryCmd(ldobjs,libname))				@@\
+	SharedLibraryCmd(ldobjs,/*-Wl\,-soname=Concat(lib\,libname.so.rev)*/) @@\
 	$(RM) $@							@@\
 	$(MV) $@~ $@							@@\
 	$(LN) $@ Concat(lib,libname.so)					@@\
@@ -815,7 +815,7 @@ DependTarget()
 #define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
 program: depobjs deplibs						@@\
 	RemoveIfUnwritable($@)						@@\
-	$(CCLINKER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
+	$(CCDRIVER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
 #endif
 
 /*
@@ -1092,11 +1092,11 @@ uninstall::								@@\
 #if InstallRelative
 #define InstallSymLink(dir, file) /**/
 #else
-#if !defined(SVR4)
+#if !defined(SVR4) && !defined(DarwinArchitecture)
 #define InstallSymLink(dir, file)					@@\
 install::								@@\
 	MakeDir(dir)							@@\
-	cp -frd file dir						@@\
+	cp -fd file dir							@@\
 									@@\
 uninstall::								@@\
 	$(RM) dir/file	

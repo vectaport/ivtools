@@ -24,19 +24,19 @@ else
 # ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
 endif
 
-DOCS = VERSION CHANGES CHANGES-0.4 CHANGES-0.5 CHANGES-0.6 CHANGES-0.7 CHANGES-0.8 README COPYRIGHT
-
 build: build-stamp
 build-stamp:
 	dh_testdir
 
 	cp -p /usr/share/misc/config.* src/scripts/
 
+	QUILT_PATCHES=debian/patches quilt push -a || test $$? = 2
+
 	./configure \
 		--x-includes=/usr/include \
 		--x-libraries=/usr/lib \
-		--prefix=`pwd`/debian/tmp/usr \
-		--mandir=`pwd`/debian/tmp/usr/share/man \
+		--prefix=$(CURDIR)/debian/tmp/usr \
+		--mandir=$(CURDIR)/debian/tmp/usr/share/man \
 		$(ACE)
 
 	#  Compile the packages
@@ -56,11 +56,11 @@ build-stamp:
 	./configure --x-includes=/usr/include \
 		    --x-libraries=/usr/lib \
 		    --prefix=/usr \
-		    --mandir=`pwd`/debian/tmp/usr/share/man
+		    --mandir=$(CURDIR)/debian/tmp/usr/share/man
 
 	cd src/scripts && \
 	  make ARCH=LINUX clean && \
-	  make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/lib/ivtools/config -DCURDIR=\`pwd\`'\
+	  make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/lib/ivtools/config -DCURDIR=\$(CURDIR)'\
  MAKEMAKESPEC='ARCH=LINUX'
 	touch build-stamp
 
@@ -83,15 +83,14 @@ clean:
 	-rm config.cache
 
 	-rm -rf static shared
-	-make ARCH=LINUX clean
-	-(cd src/scripts;make clean)
+	[ ! -f Makefile ] || make ARCH=LINUX clean
+	[ ! -f src/scripts/Makefile ] || (cd src/scripts;make clean)
 
 #      remove backups  
 	-rm -f `find . -name "*~"`
 
-#       remove all Debian leftovers
-	-rm -rf debian/tmp `find debian/* -type d` debian/files* core
-	-rm -f debian/*substvars
+	QUILT_PATCHES=debian/patches quilt pop -a -R || test $$? = 2
+	rm -rf .pc
 
 	dh_clean
 
@@ -103,34 +102,16 @@ install-stamp: build-stamp
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp.
-	make install ARCH=LINUX DESTDIR=`pwd`/debian/tmp
+	make install ARCH=LINUX DESTDIR=$(CURDIR)/debian/tmp
 
-#   Make sure dir is present
-	mkdir -p `pwd`/debian/tmp/usr/share/doc
-#	ln -s libiv1 `pwd`/debian/tmp/usr/share/doc/ivtools-dev
-	ln -s libiv1 `pwd`/debian/tmp/usr/share/doc/ivtools-bin
-	ln -s libiv1 `pwd`/debian/tmp/usr/share/doc/libiv-unidraw1
-	cp debian/template `pwd`/debian/tmp/usr/lib/ivtools/config/
-	-(cd src/glyphs && make clean)
+	cp debian/template $(CURDIR)/debian/tmp/usr/lib/ivtools/config/
+	[ ! -f src/glyphs/Makefile ] || (cd src/glyphs && make clean)
 	# don't include the scripts
 
-	# Documentation
-#	install -d `pwd`/debian/tmp/usr/doc/ivtools-doc
-#	cp src/man/refman3.1/refman.PS `pwd`/debian/tmp/usr/doc/ivtools-dev/
-
-	dh_movefiles -p$(PKGDEVEL)
-	dh_movefiles -N$(PKGDEVEL)
-#
-#       remove the directories that are installed into /usr/include
-#
-	-rm -r `pwd`/debian/tmp/usr/include
-#
 #       ivtools installs the libACE link, we remove it ... hack
 #
-	-rm `pwd`/debian/ivtools-dev/usr/lib/libACE.so
-
-	chmod a-x debian/ivtools-dev/usr/lib/ivtools/Idemo
-	chmod a-x debian/ivtools-dev/usr/lib/ivtools/comterp.err
+#	-rm $(CURDIR)/debian/ivtools-dev/usr/lib/libACE.so
+#
 
 	touch install-stamp
 
@@ -139,16 +120,16 @@ binary-indep: build install
 #	dh_testversion
 	dh_testdir -i
 	dh_testroot -i
+	dh_install -i
+
+	chmod a-x debian/ivtools-dev/usr/lib/ivtools/Idemo
+	chmod a-x debian/ivtools-dev/usr/lib/ivtools/comterp.err
+
 	dh_installdocs -p ivtools-dev src/man/refman3.1/refman.PS
 	-rm `find src/glyphs -name Makefile.depend` 
 	dh_installexamples -p ivtools-dev 
 	dh_installmenu -i
-#	dh_installemacsen -i
-#	dh_installinit -i
-#	dh_installcron -i
-#	dh_installmanpages -i
-#	dh_undocumented
-	dh_installchangelogs -p ivtools-dev
+	dh_installchangelogs
 	dh_compress -i
 	dh_fixperms -i
 	dh_installdeb -i
@@ -158,20 +139,19 @@ binary-indep: build install
 
 # Build architecture-dependent files here.
 binary-arch: build install
-#	dh_testversion
 	dh_testdir -a
 	dh_testroot -a
-	dh_installdocs -p libiv1 $(DOCS)
+	dh_install -a
+	#Remove libIV.so.* from libiv-unidraw1 package.
+	-rm -f $(CURDIR)/debian/libiv-unidraw1/usr/lib/libIV.so.*
+	#Remove ivmkmf from ivtools-bin package.
+	-rm -f $(CURDIR)/debian/ivtools-bin/usr/bin/ivmkmf
+	dh_installdocs -p
 #	dh_installexamples -a
 	dh_installmenu ivtools-bin
-#	dh_installemacsen -a
-#	dh_installinit -a
-#	dh_installcron -a
-#	dh_installmanpages -p ivtools-bin
 	dh_installman -p$(PKG_BIN) -Xsrc/man/man1/ivmkmf.1
 	dh_installman -N$(PKG_BIN)
-#	dh_undocumented
-	dh_installchangelogs -p libiv1
+	dh_installchangelogs
 	dh_installmime -a
 	dh_strip -a
 	dh_compress -a

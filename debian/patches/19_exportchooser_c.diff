@@ -1,0 +1,21 @@
+Index: ivtools-1.2/src/IVGlyph/exportchooser.c
+===================================================================
+--- ivtools-1.2.orig/src/IVGlyph/exportchooser.c	2009-09-04 13:37:44.000000000 -0400
++++ ivtools-1.2/src/IVGlyph/exportchooser.c	2009-09-04 13:38:00.000000000 -0400
+@@ -27,6 +27,8 @@
+  * ExportChooser -- select a file/command to export graphics to
+  */
+ 
++#include <cstdio>
++
+ #include <IVGlyph/exportchooser.h>
+ #include <IVGlyph/enumform.h>
+ #include <IVGlyph/textform.h>
+@@ -53,7 +55,6 @@
+ #include <OS/string.h>
+ 
+ #include <iostream.h>
+-#include <stdio.h>
+ #include <string.h>
+ 
+ implementActionCallback(ExportChooserImpl)

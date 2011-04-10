@@ -4,7 +4,7 @@
 
 CPU=LINUX
 ABSTOP=./
-XCONFIGDIR = /usr/lib/X11/config
+XCONFIGDIR = /etc/X11
 
 /*
  * Define the OS platform and CPU architecture.

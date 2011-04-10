@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001 Scott E. Johnston
+ * Copyright (c) 2001,2005 Scott E. Johnston
  * Copyright (c) 1998 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -39,10 +39,11 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <fstream.h>
 #endif
 #include <streambuf>
+using std::streambuf;
 
 #define TITLE "HelpFunc"
 
-using std::streambuf;
+#define HELPOUT 0  // set to 1 if desire to print instead of return help info
 
 /*****************************************************************************/
 
@@ -133,17 +134,17 @@ void HelpFunc::execute() {
   std::strstreambuf sbuf;
 #if __GNUC__<3
   filebuf fbuf;
-  if (comterp()->handler()) {
+  if (comterp()->handler() && HELPOUT) {
     int fd = Math::max(1, comterp()->handler()->get_handle());
     fbuf.attach(fd);
   } 
-  ostream outs( comterp()->handler() ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
+  ostream outs( (comterp()->handler() && HELPOUT) ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
   ostream *out = &outs;
 #else
-  fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
+  fileptr_filebuf fbuf((comterp()->handler() && HELPOUT) && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
 #if 1
-  ostream outs(comterp()->handler() ? (streambuf*)&fbuf : (streambuf*)&sbuf);
+  ostream outs((comterp()->handler() && HELPOUT) ? (streambuf*)&fbuf : (streambuf*)&sbuf);
 #else
   ostream outs((streambuf*)&fbuf);
 #endif
@@ -232,7 +233,7 @@ void HelpFunc::execute() {
   }
 
 
-  if (!comterp()->handler()) {
+  if (!comterp()->handler() || !HELPOUT) {
     *out << '\0';
     int help_str_symid = symbol_add(sbuf.str());
     ComValue retval(sbuf.str()); 
@@ -246,3 +247,13 @@ void HelpFunc::execute() {
 
 }
 
+/*****************************************************************************/
+
+OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void OptableFunc::execute() {
+  reset_stack();
+  opr_tbl_print(stdout, OPBY_PRIORITY);
+  return;
+}

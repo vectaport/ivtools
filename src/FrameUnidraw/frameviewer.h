@@ -47,6 +47,10 @@ public:
 
     void Update();
     virtual void SetGraphicView(GraphicView*);
+
+    virtual GraphicView* GetCurrentGraphicView();
+    // allow for other than the top-level graphic view
+
     FrameEditor* GetFrameEditor() { return (FrameEditor*) GetEditor(); }
 
     virtual OverlayView* GetCurrent();

@@ -183,7 +183,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- returns the value of pi"; }
+      return "dbl=%s() -- returns the value of pi"; }
 
 };
 

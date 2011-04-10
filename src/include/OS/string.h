@@ -164,4 +164,6 @@ inline void String::set_to_right(int start) { set_to_substr(start, -1); }
 inline int String::index(u_char c) const { return search(0, c); }
 inline int String::rindex(u_char c) const { return search(-1, c); }
 
+extern char* strnew(const char*);   /* return a copy of the given string */
+
 #endif

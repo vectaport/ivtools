@@ -149,7 +149,7 @@ public:
     Raster* ReadRaster(istream&);
     void ReadRasterData(Raster*, istream&);
 
-    void WriteBgFilled(boolean, ostream&);
+    void WriteBgFilled(int, ostream&);
     void WriteBrush(PSBrush*, ostream&);
     void WriteColor(PSColor*, ostream&);
     void WriteFont(PSFont*, ostream&);

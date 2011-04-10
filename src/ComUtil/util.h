@@ -114,11 +114,11 @@ extern  int   Kaput_On;
 extern  int   TITLE;
 #endif
 
-#if !defined(my_min) && !defined(COMUTIL_NOMINMAXDEF) 
-#define  my_min(a,b) (a<b?a:b)
+#if !defined(MIN) && !defined(COMUTIL_NOMINMAXDEF) 
+#define  MIN(a,b) (a<b?a:b)
 #endif
-#if !defined(my_max) && !defined(COMUTIL_NOMINMAXDEF)
-#define  my_max(a,b) (a>b?a:b)
+#if !defined(MAX) && !defined(COMUTIL_NOMINMAXDEF)
+#define  MAX(a,b) (a>b?a:b)
 #endif
 
 /* Return Status for functions */
@@ -517,7 +517,7 @@ typedef int size_t;	/* this is some ANSI type */
 		memcpy((char *)(dest),(char *)(src),(unsigned)(count))
 #else
 #define MEMCPY(dest,src,count) \
-                bcopy((char*)src,(char*)dest,(int)(count))
+                bcopy((const void*)src,(void*)dest,(size_t)(count))
 #endif
 #define MEMSET(dest,c,count)    \
 		memset((char *)(dest),(int)(c),(unsigned)(count))

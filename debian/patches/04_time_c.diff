@@ -1,0 +1,21 @@
+Index: ivtools-1.2/src/Time/Time.c
+===================================================================
+--- ivtools-1.2.orig/src/Time/Time.c	2009-09-04 13:16:59.000000000 -0400
++++ ivtools-1.2/src/Time/Time.c	2009-09-04 13:18:29.000000000 -0400
+@@ -28,11 +28,14 @@
+   Modified by Vectaport Inc.  - added operator << plus other small stuff.
+ */
+ 
++#include <cstdio>
++
+ #include <Time/Date.h>
+ #include <Time/Time.h>
+-#include <iomanip.h>
++#include <iomanip>
+ 
+-#include <stdio.h>
++using std::setfill;
++using std::setw;
+ 
+ const unsigned VERSION =2;
+ 

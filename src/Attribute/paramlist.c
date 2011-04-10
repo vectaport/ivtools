@@ -388,7 +388,7 @@ int ParamList::read_int(istream& in, void* addr1, void* addr2, void* addr3, void
 	    }
 	}
     }
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::read_float(istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -410,7 +410,7 @@ int ParamList::read_float(istream& in, void* addr1, void* addr2, void* addr3, vo
 	    }
 	}
     }
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
  
 int ParamList::read_double(istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -432,7 +432,7 @@ int ParamList::read_double(istream& in, void* addr1, void* addr2, void* addr3, v
 	    }
 	}
     }
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
  
 int ParamList::read_string(istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -455,7 +455,7 @@ int ParamList::read_string(istream& in, void* addr1, void* addr2, void* addr3, v
 	    }
 	}
     }
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
  
 int ParamList::read_ints (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -483,7 +483,7 @@ int ParamList::read_ints (istream& in, void* addr1, void* addr2, void* addr3, vo
     
     *(int**)addr1 = nums;
     *(int*)addr2 = n;
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::read_floats (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -511,7 +511,7 @@ int ParamList::read_floats (istream& in, void* addr1, void* addr2, void* addr3, 
     
     *(float**)addr1 = nums;
     *(int*)addr2 = n;
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::read_doubles (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -539,7 +539,7 @@ int ParamList::read_doubles (istream& in, void* addr1, void* addr2, void* addr3,
     
     *(double**)addr1 = nums;
     *(int*)addr2 = n;
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::read_strings (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -569,7 +569,7 @@ int ParamList::read_strings (istream& in, void* addr1, void* addr2, void* addr3,
     
     *(char***)addr1 = strings;
     *(int*)addr2 = n;
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::skip_space (istream& in) {
@@ -577,7 +577,7 @@ int ParamList::skip_space (istream& in) {
     while(isspace(ch=in.get()) && in.good());
     if (in.good())
 	in.putback(ch);
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::parse_token (istream& in, char* buf, int buflen, char delim) {
@@ -591,7 +591,7 @@ int ParamList::parse_token (istream& in, char* buf, int buflen, char delim) {
     if (in.good() /* && ch != ')' */ )
 	in.putback(ch);
     buf[cnt] = '\0';
-    return in.good() && (ch==delim || ch==')') ? 0 : -1;
+    return (in.good()||in.eof()) && (ch==delim || ch==')') ? 0 : -1;
 }
 
 int ParamList::parse_token (istream& in, char* buf, int buflen, char* delim) {
@@ -605,10 +605,10 @@ int ParamList::parse_token (istream& in, char* buf, int buflen, char* delim) {
     if (in.good() /* && ch != ')' */ )
 	in.putback(ch);
     buf[cnt] = '\0';
-    return in.good() && (strchr(delim,ch) || ch==')') ? 0 : -1;
+    return (in.good()||in.eof()) && (strchr(delim,ch) || ch==')') ? 0 : -1;
 }
 
-int ParamList::parse_string (istream& in, char* buf, int buflen) {
+int ParamList::parse_string (istream& in, char* buf, int buflen, boolean keep_backslashes) {
     int cnt = 0;
     char curr_ch = in.get();
     if (curr_ch == '"') {
@@ -616,14 +616,14 @@ int ParamList::parse_string (istream& in, char* buf, int buflen) {
 	char prev_ch = '\0';
         while(in.good() && cnt<buflen-1 && 
 	      (curr_ch != '"' || prev_ch == '\\')) {
-	    if (curr_ch != '\\') 
+	    if (curr_ch != '\\' || keep_backslashes) 
 		buf[cnt++] = curr_ch;
 	    prev_ch = curr_ch;
 	    curr_ch = in.get();
         }
         buf[cnt] = '\0';
     }
-    return in.good() && curr_ch == '"' ? 0 : -1;
+    return (in.good()||in.eof()) && curr_ch == '"' ? 0 : -1;
 }
 
 int ParamList::parse_points (istream& in, Coord*& x, Coord*& y, int& n) {
@@ -662,7 +662,7 @@ int ParamList::parse_points (istream& in, Coord*& x, Coord*& y, int& n) {
     } while ((ch = in.get()) == ',' && in.good());
     if (in.good()) in.putback(ch);
     
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::parse_fltpts (istream& in, float*& x, float*& y, int& n) {
@@ -701,7 +701,7 @@ int ParamList::parse_fltpts (istream& in, float*& x, float*& y, int& n) {
     } while ((ch = in.get()) == ',' && in.good());
     if (in.good()) in.putback(ch);
     
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::parse_dblpts (istream& in, double*& x, double*& y, int& n) {
@@ -740,7 +740,7 @@ int ParamList::parse_dblpts (istream& in, double*& x, double*& y, int& n) {
     } while ((ch = in.get()) == ',' && in.good());
     if (in.good()) in.putback(ch);
     
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 int ParamList::parse_text(istream& in, char* buffer, int buflen) {
@@ -775,7 +775,7 @@ int ParamList::parse_text(istream& in, char* buffer, int buflen) {
     }
     in.putback(c);
     stext.Insert(stext.Length(), &null, 1);
-    return in.good() ? 0 : -1;
+    return (in.good()||in.eof()) ? 0 : -1;
 }
 
 char* ParamList::parse_textbuf(istream& in) {

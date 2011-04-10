@@ -1,0 +1,21 @@
+Index: ivtools-1.2/src/Time/timeglyph.c
+===================================================================
+--- ivtools-1.2.orig/src/Time/timeglyph.c	2009-09-04 13:36:17.000000000 -0400
++++ ivtools-1.2/src/Time/timeglyph.c	2009-09-04 13:36:40.000000000 -0400
+@@ -21,6 +21,8 @@
+  * 
+  */
+ 
++#include <cstdio>
++
+ #include <InterViews/enter-scope.h>
+ #include <Time/Time.h>
+ #include <Time/Date.h>
+@@ -35,7 +37,6 @@
+ #include <InterViews/layout.h>
+ #include <InterViews/style.h>
+ #include <OS/string.h>
+-#include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 

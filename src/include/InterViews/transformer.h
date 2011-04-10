@@ -83,6 +83,11 @@ public:
     virtual void matrix(
 	float& a00, float& a01, float& a10, float& a11, float& a20, float& a21
     ) const;
+
+    void flipx() {mat00 *= -1.0;} 
+    void flipy() {mat11 *= -1.0;}
+    boolean xflipped(float = 1e-6) const;
+    boolean yflipped(float = 1e-6) const;
 private:
     boolean identity_;
     float mat00, mat01, mat10, mat11, mat20, mat21;
@@ -158,7 +163,15 @@ inline boolean Transformer::Rotated(float tol) const {
 
 inline boolean Transformer::Rotated90(float tol) const {
     return Rotated(tol) && -tol <= mat00 && mat00 <= tol && 
-        -tol <= mat11 && mat11 <= tol;
+      -tol <= mat11 && mat11 <= tol;
+}
+
+inline boolean Transformer::xflipped(float tol) const {
+  return Rotated90(tol) ? mat10 > 0.0 : mat00 < 0.0;
+}
+
+inline boolean Transformer::yflipped(float tol) const {
+  return Rotated90(tol) ? mat01 < 0.0 : mat11 < 0.0;
 }
 
 inline void Transformer::GetEntries(

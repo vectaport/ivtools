@@ -115,6 +115,7 @@ void TextEditor::Init (int r, int c, int t, int h) {
     highlight = h;
     display = nil;
     perspective = new Perspective();
+    caret_off = false;
 }
 
 TextEditor::~TextEditor () {
@@ -559,6 +560,7 @@ void TextEditor::Select (int d, int m) {
         display->CaretStyle(BarCaret);
     }
     if (newl == newr) {
+        if (caret_off) display->CaretStyle(NoCaret);
         display->Caret(text->LineNumber(newl), text->LineOffset(newl));
     }
     dot = d;
@@ -613,3 +615,6 @@ void TextEditor::RateScroll (Event& e) {
 
     SetCursor(origCursor);
 }
+
+void TextEditor::DisableCaret() { caret_off = true; }
+void TextEditor::EnableCaret() { caret_off = false; }

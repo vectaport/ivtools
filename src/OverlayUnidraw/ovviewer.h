@@ -48,6 +48,9 @@ public:
     );
     virtual ~OverlayViewer();
 
+    virtual GraphicView* GetCurrentGraphicView() { return GetGraphicView(); }
+    // allow for other than the top-level graphic view
+
     void Update();
     // double-buffered damage repair.
     void Draw();

@@ -49,8 +49,10 @@
 #undef ExtraCCLdFlags
 #define ExtraCCLdFlags -Wl,-bind_at_load
 
+#if 0
 #undef ExtraCCIncludes
 #define ExtraCCIncludes -I/sw/include
+#endif
 
 /* command to create shared libraries */
 #if 0

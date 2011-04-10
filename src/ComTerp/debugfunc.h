@@ -68,8 +68,8 @@ public:
     virtual boolean stepfunc() { return true; }
 };
 
-//: command to toggle step script execution 
-// pause -- toggle stepwise script execution
+//: command to return stack height for debugging
+// stackheight -- return stack height for debug purposes
 class ComterpStackHeightFunc : public ComFunc {
 public:
     ComterpStackHeightFunc(ComTerp*);

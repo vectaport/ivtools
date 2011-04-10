@@ -215,6 +215,8 @@ OTHER COMMANDS
 
 help(cmdname [cmdname ...] :all :posteval) -- help for commands
 
+optable() -- print contents of operator table
+
 val=trace([flag] :get) -- toggle or set trace mode
 
 [str]=print(fmtstr val :string|:str :err) -- print value with format string
@@ -260,6 +262,10 @@ val|lst=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands,
 optionally return symbol instead of nil
 
 val=shell(cmdstr) -- evaluate command in shell
+
+usleep(msec) -- sleep microseconds
+
+mute([flag]) -- set or toggle mute flag
 
 nil([...]) -- accept any arguments and return nil
 

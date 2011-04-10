@@ -133,6 +133,9 @@ public:
     const char* text();
     void text(const char*, boolean update =true);
 
+    void disable_caret();
+    void enable_caret();
+
 protected:
    void scroll_to_line(int line);
    void make_visible(const boolean scroll_page = true);

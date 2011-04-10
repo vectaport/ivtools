@@ -1,0 +1,20 @@
+Index: ivtools-1.2/src/idemo/main.c
+===================================================================
+--- ivtools-1.2.orig/src/idemo/main.c	2009-09-04 13:16:20.000000000 -0400
++++ ivtools-1.2/src/idemo/main.c	2009-09-04 13:16:41.000000000 -0400
+@@ -22,6 +22,7 @@
+  * OF THIS SOFTWARE.
+  */
+ 
++#include <cstdio>
+ #include <IV-look/dialogs.h>
+ #include <IV-look/kit.h>
+ #include <IV-look/menu.h>
+@@ -41,7 +42,6 @@
+ #include <InterViews/transformer.h>
+ #include <InterViews/window.h>
+ #include <OS/string.h>
+-#include <cstdio>
+ 
+ static const Coord tool_scale = 12.0;
+ 

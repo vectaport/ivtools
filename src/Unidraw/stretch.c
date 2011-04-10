@@ -73,7 +73,8 @@ Manipulator* StretchTool::CreateManipulator (
 	    s->Append(gv);
 	    s->Update();
 	}
-        m = gv->CreateManipulator(v, e, rel, this);
+	if (!s->IsEmpty()) 
+	  m = gv->CreateManipulator(v, e, rel, this);
     }
     delete newSel;
     return m;

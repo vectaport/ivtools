@@ -12,6 +12,7 @@ APP_CCLDLIBS = $(LIBIVGLYPH)
 #if HasDynamicSharedLibraries
 APP_CCDEPLIBS =  $(DEPIVGLYPH)
 #endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
 
 Use_libInterViews()
 ComplexProgramTarget(ivtext)

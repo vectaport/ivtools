@@ -13,9 +13,9 @@ all:: ivtmpnam stdcmapppm ivdl
 all:: ivtmpnam stdcmapppm
 #endif
 
-BuildProgram(ivtmpnam,NullParameter,ivtmpnam.o -lc,,)
+BuildProgram(ivtmpnam,NullParameter,ivtmpnam.o,,)
 InstallProgram(ivtmpnam,$(BINDIR),ivtmpnam)
-BuildProgram(stdcmapppm,NullParameter,stdcmapppm.o -lc,,)
+BuildProgram(stdcmapppm,NullParameter,stdcmapppm.o,,)
 InstallProgram(stdcmapppm,$(BINDIR),stdcmapppm)
 #if !LibStdCPlusPlusV3
 #if defined(SVR4Architecture) && defined(SunArchitecture)

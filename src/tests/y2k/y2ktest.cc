@@ -21,7 +21,9 @@
  */
 
 #include <Time/Date.h>
-#include <iostream.h>
+#include <iostream>
+using std::cin;
+using std::cout;
 
 main() {
   Date date(1, "Jan", 1999);

@@ -1,0 +1,13 @@
+Index: ivtools-1.2/src/IV-X11/xdrag.c
+===================================================================
+--- ivtools-1.2.orig/src/IV-X11/xdrag.c	2009-09-04 14:17:53.000000000 -0400
++++ ivtools-1.2/src/IV-X11/xdrag.c	2009-09-04 14:18:06.000000000 -0400
+@@ -21,6 +21,8 @@
+  * SOFTWARE.
+  */
+ 
++#include <cstdio>
++
+ #include <InterViews/cursor.h>
+ #include <InterViews/event.h>
+ #include <InterViews/handler.h>

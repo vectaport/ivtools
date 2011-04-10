@@ -1,0 +1,4 @@
+debian/tmp/usr/bin/ivmkmf usr/bin/
+debian/tmp/usr/include/* usr/include/
+debian/tmp/usr/lib/lib*.so usr/lib/
+debian/tmp/usr/lib/ivtools/* /usr/lib/ivtools/

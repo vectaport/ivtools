@@ -1,0 +1,26 @@
+Index: ivtools-1.2/src/Time/Date.c
+===================================================================
+--- ivtools-1.2.orig/src/Time/Date.c	2009-09-04 13:45:53.000000000 -0400
++++ ivtools-1.2/src/Time/Date.c	2009-09-04 13:46:25.000000000 -0400
+@@ -60,14 +60,19 @@
+   Modified by Vectaport, Inc.
+ */
+ 
++#include <cstdio>
++
+ #include <Time/Date.h>
+ #include <Time/Time.h>
+ #include <OS/string.h>
+ 
+-#include <iomanip.h>
++#include <iomanip>
+ #include <ctype.h>
+ #include <string.h>
+-#include <stdio.h>
++#include <iostream>
++
++using std::setfill;
++using std::setw;
+ 
+ #define	THIS	Date
+ #define	BASE	Object

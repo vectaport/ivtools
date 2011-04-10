@@ -1,0 +1,49 @@
+February 18th, 2004  ivtools-1.1.3
+
+- continue evolution of iostreams usage to keep up with changes to
+libstdc++-v3.  Many thanks for reinstating a filebuf constructor that
+accepts an integer file descriptor.  Hard to wrap them around sockets
+any other way.
+
+- fix problem with use of ACE on Darwin with gcc-3.3.
+
+- fix problem with lexical scanning introduced when "#" comment lines
+were first handled.
+
+December December 8th, 2003  ivtools-1.1.2
+
+- fixes a problem with using gcc-2.95 to compile ivtools-1.1.*.  It
+avoids the use of a local copy of strstream.h, which worked fine for
+gcc-3.3, but not for gcc-2.9.5.  Instead it uses strstream directly,
+and appends istrstream and ostrstream with the std:: using prefix.
+Fix contributed by Mark Davies.
+
+
+November 16th, 2003  ivtools-1.1.1
+
+- add missing src/include/ivstd/strstream.h to MANIFEST file and tar file
+
+
+October 29th, 2003  ivtools-1.1.0
+
+- re-enable use of shared memory for X11 image rendering under MacOS X
+
+- fix command passed to popen() to detect executables on MacOS X
+
+- fix up some AttrValue stuff
+
+- all the changes it took to get it built with ACE on MacOS X (though
+it doesn't work yet).
+
+- the cpp bundled with gcc-3.3 has a bug, and gets confused by
+back-slashed commas in macro arguments (it thinks they start a new
+argument, which they don't).  This introduced a problem to long stable
+config files, but a workaround is here.
+
+- this also fixes things so FreeBSD can configure on alpha architectures.
+
+- add -svgexport flag to drawtool that by default suppresses (the
+incomplete) SVG export mechanism.
+
+- incorporate an XML dump of all the SourceForge tracker info, in case
+SourceForge goes away (sourceforge.102203.xml).

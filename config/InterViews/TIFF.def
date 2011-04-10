@@ -230,18 +230,11 @@ TIFF_EXTRA_CINCLUDES = TIFFExtraCIncludes
 /*
  * Make a TIFF object file.
  */
-
-#ifdef CompileTIFF
-
 #ifndef MakeTIFFCObjectRule
 #define MakeTIFFCObjectRule(dst,src,flags)				@@\
 $(AOUT): dst.o								@@\
 dst.o: src.c								@@\
 	@$(RM) dst.o							@@\
 	$(TIFF_CDRIVER) $(TIFF_CFLAGS) flags -c src.c
-#endif
-
-#else
-#define MakeTIFFCObjectRule(dst,src,flags)
 #endif
 

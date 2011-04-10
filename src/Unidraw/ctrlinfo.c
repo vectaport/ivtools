@@ -32,6 +32,7 @@
 #include <IV-2_6/_enter.h>
 
 #include <string.h>
+#include <stdlib.h>
 
 /*****************************************************************************/
 
@@ -68,8 +69,8 @@ ControlInfo::~ControlInfo () {
     if (_label != nil) {
         delete _label;
     }
-    delete _keyLabel;
-    delete _keyCode;
+    free(_keyLabel);
+    free(_keyCode);
 }
 
 void ControlInfo::SetLabel (GraphicComp* g) {

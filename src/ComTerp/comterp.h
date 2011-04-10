@@ -1,5 +1,7 @@
 /*
- * Copyright (c) IET Inc.
+ * 
+ * Copyright (c) 2001-2007 Scott E. Johnston
+ * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1999 Vectaport Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
@@ -110,7 +112,7 @@ public:
     int* get_commands(int &ncommands, boolean sorted = false);
     // return an optionally sorted list of command names.
 
-    ComValue& pop_stack(boolean lookupsym=true);
+    ComValue pop_stack(boolean lookupsym=true);
     // return a reference (on the stack) to what was the top of the stack,
     // if 'lookupsym' is false, don't look up ComValue objects in 
     // the local or global symbol table to replace a symbol, just
@@ -137,7 +139,7 @@ public:
     // copy the state of an AttributeValue into a ComValue on the stack, 
     // incrementing the reference count of any AttributeValueList, 
     // otherwise replicating data.
-    boolean stack_empty() { return _stack_top<0; }
+    boolean stack_empty();
 
     ComValue& expr_top(int n=0);
     // top of currently evaluating expression buffer.
@@ -158,8 +160,8 @@ public:
     // run interpreter until end-of-file or quit command, unless 
     // 'one_expr' is true.  Leave 'one_expr' false when using a ComTerpServ.
     // Return Value:  -1 if eof, 0 if normal operation, 1 if 
-    // partial expression parsed, 2 if no result computed.  'nested' indicates
-    // contents of stack should be preserved.
+    // partial expression parsed, 2 if no result computed, 3 if error in parsing.  
+    // 'nested' indicates contents of stack should be preserved.
 
     virtual int runfile(const char* filename);
     // run interpreter on contents of 'filename'.
@@ -242,6 +244,33 @@ public:
     int& stepflag() { return _stepflag; }
     // return flag that controls stepwise execution
 
+    void echo_postfix(boolean flag) { _echo_postfix = flag; }
+    // set flag that indicates whether to echo postfix or not
+
+    boolean echo_postfix() const { return _echo_postfix; }
+    // return flag that indicates whether to echo contents of postfix buffer
+
+    void postfix_echo();
+    // echo the postfix tokens
+
+    void delim_func(boolean flag) { _delim_func = flag; }
+    // set flag that indicates whether to run a delimeter selected func.
+ 
+    boolean delim_func() const { return _delim_func; }
+    // return flag that indicates whether to run a delimeter selected func.
+
+    void running(boolean flag) { _running = flag; }
+    // set flag that indicates whether to run a delimeter selected func.
+ 
+    boolean running() const { return _running; }
+    // return flag that indicates whether to run a delimeter selected func.
+
+    void muted(boolean flag) { _muted = flag; }
+    // set flag that indicates whether to mute output
+ 
+    boolean muted() const { return _muted; }
+    // return flag that indicates whether to mute output
+
 protected:
     void incr_stack();
     void incr_stack(int n);
@@ -312,6 +341,18 @@ protected:
     int _stepflag;
     // true if single-stepping interpreter
 
+    boolean _echo_postfix;
+    // echos postfix tokens if true
+
+    boolean _delim_func;
+    // use delimeter selected func, passing symbol in ::command_symid()
+
+    boolean _running;
+    // flag to inform others this ComTerp in use
+
+    boolean _muted;
+    // flag to mute any response from a ComTerp
+
     friend class ComFunc;
     friend class ComterpHandler;
     friend class ComTerpIOHandler;
@@ -355,5 +396,6 @@ protected:
   eoffuncptr _eoffunc;
   errfuncptr _errfunc;
   void* _inptr;
+
 };
 #endif /* !defined(_comterp_h) */

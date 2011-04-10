@@ -54,7 +54,7 @@ class ComterpHandler : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>
 
 public:
   // = Initialization and termination methods.
-  ComterpHandler (void);
+  ComterpHandler (ComTerpServ* serv=NULL);
   virtual ~ComterpHandler();
 
   virtual void destroy (void);
@@ -144,8 +144,8 @@ class ComTerpServ;
 //: version without ACE
 class ComterpHandler {
 public:
-    ComterpHandler(void) {comterp_ = new ComTerpServ(); _handle = 0;}
-    ComterpHandler(int id) { comterp_ = new ComTerpServ(); _handle = id;}
+    ComterpHandler(ComTerpServ* serv=nil) {comterp_ = serv ? serv : new ComTerpServ(); _handle = 0; comterp_->add_defaults();}
+    ComterpHandler(int id, ComTerpServ* serv = nil) { comterp_ = serv ? serv : new ComTerpServ(); _handle = id; comterp_->add_defaults();}
     int get_handle() { return _handle;}
 
     FILE* wrfptr() { return nil; }
@@ -153,6 +153,8 @@ public:
     
     FILE* rdfptr() { return nil; }
     // file pointer for reading from handle
+
+    ComTerp* comterp() { return comterp_; }
 
 protected:
     int _handle;

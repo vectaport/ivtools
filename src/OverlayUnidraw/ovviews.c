@@ -162,7 +162,10 @@ boolean OverlayView::Desensitized() { return _gr->Desensitized(); }
 void OverlayView::Desensitize() { _gr->Desensitize(); }
 void OverlayView::Sensitize() { _gr->Sensitize(); }
 
-Selection* OverlayView::MakeSelection() { return new OverlaySelection; }
+Selection* OverlayView::MakeSelection() 
+{ 
+  return ((OverlayEditor*)GetViewer()->GetEditor())->overlay_kit()->MakeSelection(); 
+}
 
 void OverlayView::AdjustForZoom(float factor, Coord cx, Coord cy) {
     if (factor==1.0) return;

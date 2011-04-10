@@ -28,6 +28,7 @@
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovexport.h>
+#include <OverlayUnidraw/ovunidraw.h>
 
 #include <ComTerp/parser.h>
 
@@ -688,7 +689,7 @@ int OverlayScript::ReadOther(istream& in, void* addr1, void* addr2, void* addr3,
     char ch;
     if ((ch=in.peek()) == '\"') {
 	sbuf[0] = '\"';
-	ParamList::parse_string(in, sbuf+1, SBUFSIZE-1);
+	ParamList::parse_string(in, sbuf+1, SBUFSIZE-1, true);
 	strcat(sbuf, "\"\n");
     }
     else if (ch!=')') {
@@ -931,7 +932,8 @@ void OverlayScript::StencilGS (ostream& out) {
 
 void OverlayScript::Attributes(ostream& out) {
     AttributeList* attrlist = GetOverlayComp()->GetAttributeList();
-    out << *attrlist;
+    if( !((OverlayUnidraw*)unidraw)->PrintAttributeList(out, attrlist))
+      out << *attrlist;
 }
 
 Clipboard* OverlayScript::GetGSList() {

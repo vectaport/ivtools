@@ -1,0 +1,13 @@
+Index: ivtools-1.2/src/IVGlyph/fieldedit.c
+===================================================================
+--- ivtools-1.2.orig/src/IVGlyph/fieldedit.c	2009-09-04 13:47:42.000000000 -0400
++++ ivtools-1.2/src/IVGlyph/fieldedit.c	2009-09-04 13:47:57.000000000 -0400
+@@ -21,6 +21,8 @@
+  * 
+  */
+ 
++#include <cstdio>
++
+ #include <IVGlyph/fieldedit.h>
+ #include <IVGlyph/figure.h>
+ #include <IVGlyph/textbuff.h>

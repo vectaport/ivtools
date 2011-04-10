@@ -1,0 +1,11 @@
+Index: ivtools-1.2/src/include/ivstd/iostream.h
+===================================================================
+--- ivtools-1.2.orig/src/include/ivstd/iostream.h	2009-09-04 14:20:59.000000000 -0400
++++ ivtools-1.2/src/include/ivstd/iostream.h	2009-09-04 14:21:38.000000000 -0400
+@@ -1,5 +1,6 @@
+ #ifndef _iv_iostream_h_
+ #define _iv_iostream_h_
++#include <cstdio>
+ #include <iosfwd>
+ #include_next <iostream>
+ 
