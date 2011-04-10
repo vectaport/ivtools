@@ -16,13 +16,16 @@ PKG_BIN=ivtools-bin
 # so for alpha we just don't have ace, who uses it
 # anyhow ?
 
-ARCH = $(dpkg --print-architecture)
+ARCH = $(shell dpkg --print-architecture)
 
 ifeq "$(ARCH)" "alpha"
 ACE =
 else
 # ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
 endif
+
+# Make sure this symbol is disabled when imake is invoked. See #549407.
+MAKE += SPECIAL_IMAKEFLAGS="-U$(ARCH)"
 
 build: build-stamp
 build-stamp:
@@ -41,9 +44,9 @@ build-stamp:
 
 	#  Compile the packages
 
-	make Makefile ARCH=LINUX
-	make Makefiles ARCH=LINUX
-	make -j1 ARCH=LINUX
+	$(MAKE) Makefile ARCH=LINUX
+	$(MAKE) Makefiles ARCH=LINUX
+	$(MAKE) ARCH=LINUX
 
 	#   BUILD FINISHED
 	# -----------------------------------------------------------
@@ -59,8 +62,8 @@ build-stamp:
 		    --mandir=$(CURDIR)/debian/tmp/usr/share/man
 
 	cd src/scripts && \
-	  make ARCH=LINUX clean && \
-	  make ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/lib/ivtools/config -DCURDIR=\$(CURDIR)'\
+	  $(MAKE) ARCH=LINUX clean && \
+	  $(MAKE) ARCH=LINUX CONFIGDIRSPEC='-T template -I/usr/lib/ivtools/config -DCURDIR=\$(CURDIR)'\
  MAKEMAKESPEC='ARCH=LINUX'
 	touch build-stamp
 
@@ -83,8 +86,8 @@ clean:
 	-rm config.cache
 
 	-rm -rf static shared
-	[ ! -f Makefile ] || make ARCH=LINUX clean
-	[ ! -f src/scripts/Makefile ] || (cd src/scripts;make clean)
+	[ ! -f Makefile ] || $(MAKE) ARCH=LINUX clean
+	[ ! -f src/scripts/Makefile ] || (cd src/scripts;$(MAKE) clean)
 
 #      remove backups
 	-rm -f `find . -name "*~"`
@@ -102,10 +105,10 @@ install-stamp: build-stamp
 	dh_installdirs
 
 	# Add here commands to install the package into debian/tmp.
-	make install ARCH=LINUX DESTDIR=$(CURDIR)/debian/tmp
+	$(MAKE) install ARCH=LINUX DESTDIR=$(CURDIR)/debian/tmp
 
 	cp debian/template $(CURDIR)/debian/tmp/usr/lib/ivtools/config/
-	[ ! -f src/glyphs/Makefile ] || (cd src/glyphs && make clean)
+	[ ! -f src/glyphs/Makefile ] || (cd src/glyphs && $(MAKE) clean)
 	# don't include the scripts
 
 #       ivtools installs the libACE link, we remove it ... hack

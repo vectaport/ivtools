@@ -1,3 +1,10 @@
+This patch is currently disabled. Not stripping binaries until 
+debian/rules is now handled through 01_configure.diff 
+
+Since imake+xmkmf rebuilds Makefiles everytime, this is much better,
+because otherwise Makefile is changed back by imake+xmkmf during build
+and this patch can no longer be reverted.
+
 Index: ivtools-1.2/Makefile
 ===================================================================
 --- ivtools-1.2.orig/Makefile	2009-09-05 22:06:50.000000000 -0400

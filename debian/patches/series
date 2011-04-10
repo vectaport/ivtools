@@ -1,5 +1,4 @@
 01_configure.diff
-015_Makefile_dontstrip.diff
 02_rules_def.diff
 025_params_def.diff
 026_geomobjs_c.diff
@@ -40,3 +39,4 @@
 46_comdraw_crash.diff
 47_manpages_whatis.diff
 48_gcc40_int_pointer_errors.diff
+49_string.c_constchar.diff

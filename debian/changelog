@@ -1,3 +1,20 @@
+ivtools (1.2.6-1+nmu3) unstable; urgency=low
+
+  * Non-maintainer upload.
+  * debian/rules:
+    - Reverting 1.2.6-1+nmu2 -j1 addition to keep package clean.
+    - Fix ARCH evaluation.
+    - Use generic $(MAKE) instead of make.
+    - Make sure imake is always called with -U$(ARCH) (Closes: #549407).
+  * 01_configure.diff: Handle disabling of early binary stripping.
+  * 015_Makefile_dontstrip.diff: Disable patch.
+  * 49_string.c_constchar.diff: New patch to deal with gcc 4.4 'invalid
+    conversion from 'const char*' to 'char*'' errors (Closes: #560203).
+  * 48_gcc40_int_pointer_errors.diff: Modified to use (unsigned intptr_t)
+    instead of (uintptr_t) to avoid out-of-context errors.
+
+ -- Agustin Martin Domingo <agmartin@debian.org>  Wed, 09 Dec 2009 18:13:03 +0100
+
 ivtools (1.2.6-1+nmu2) unstable; urgency=low
 
   * Non-maintainer upload.
