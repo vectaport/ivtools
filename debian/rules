@@ -18,12 +18,6 @@ PKG_BIN=ivtools-bin
 
 ARCH = $(shell dpkg --print-architecture)
 
-ifeq "$(ARCH)" "alpha"
-ACE =
-else
-# ACE = --with-ace=/usr/include --with-ace-libs=/usr/lib
-endif
-
 # Make sure this symbol is disabled when imake is invoked. See #549407.
 MAKE += SPECIAL_IMAKEFLAGS="-U$(ARCH)"
 
@@ -38,15 +32,16 @@ build-stamp:
 	./configure \
 		--x-includes=/usr/include \
 		--x-libraries=/usr/lib \
+		--with-tiff=/usr \
+		--with-ace=/usr/include --with-ace-libs=/usr/lib \
 		--prefix=$(CURDIR)/debian/tmp/usr \
-		--mandir=$(CURDIR)/debian/tmp/usr/share/man \
-		$(ACE)
+		--mandir=$(CURDIR)/debian/tmp/usr/share/man
 
 	#  Compile the packages
 
 	$(MAKE) Makefile ARCH=LINUX
 	$(MAKE) Makefiles ARCH=LINUX
-	$(MAKE) ARCH=LINUX
+	$(MAKE) ARCH=LINUX CCLINKER=g++
 
 	#   BUILD FINISHED
 	# -----------------------------------------------------------
@@ -58,6 +53,7 @@ build-stamp:
 
 	./configure --x-includes=/usr/include \
 		    --x-libraries=/usr/lib \
+		    --with-tiff=/usr \
 		    --prefix=/usr \
 		    --mandir=$(CURDIR)/debian/tmp/usr/share/man
 
@@ -112,9 +108,7 @@ install-stamp: build-stamp
 	# don't include the scripts
 
 #       ivtools installs the libACE link, we remove it ... hack
-#
-#	-rm $(CURDIR)/debian/ivtools-dev/usr/lib/libACE.so
-#
+	-rm $(CURDIR)/debian/tmp/usr/lib/libACE.so
 
 	touch install-stamp
 
