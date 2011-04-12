@@ -58,14 +58,18 @@ void TypeSymbolFunc::execute() {
     for (int i=0; i<numargs; i++)
       if (type_syms[i]<0)
 	avl->Append(new AttributeValue());
-      else
-	avl->Append(new AttributeValue(type_syms[i], AttributeValue::SymbolType));
+      else {
+	ComValue* av = new ComValue(type_syms[i], AttributeValue::SymbolType);
+	av->bquote(1);
+	avl->Append(av);
+      }
     push_stack(retval);
   } else {
     if (type_syms[0]<0)
       push_stack(ComValue::nullval());
     else {
       ComValue retval (type_syms[0], AttributeValue::SymbolType);
+      retval.bquote(1);
       push_stack(retval);
     }
   }
@@ -84,7 +88,7 @@ void ClassSymbolFunc::execute() {
   if (!numargs) return;
   int class_syms[numargs];
   for (int i=0; i<numargs; i++) {
-    ComValue& val = stack_arg(i);
+    ComValue val = stack_arg(i);
     if (val.is_object()) 
       class_syms[i] = val.class_symid();
     else
@@ -98,14 +102,18 @@ void ClassSymbolFunc::execute() {
     for (int i=0; i<numargs; i++)
       if (class_syms[i]<0)
 	avl->Append(new AttributeValue());
-      else
-	avl->Append(new AttributeValue(class_syms[i], AttributeValue::SymbolType));
+      else {
+	ComValue* av = new ComValue(class_syms[i], AttributeValue::SymbolType);
+	av->bquote(1);
+	avl->Append(av);
+      }
     push_stack(retval);
   } else {
     if (class_syms[0]<0)
       push_stack(ComValue::nullval());
     else {
       ComValue retval (class_syms[0], AttributeValue::SymbolType);
+      retval.bquote(1);
       push_stack(retval);
     }
   }

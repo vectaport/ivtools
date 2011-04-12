@@ -60,6 +60,9 @@ FPointObj fp(0.,0.);
 static char newline;
 #endif
 
+using std::cout;
+using std::cerr;
+
 int main(int argc, char *argv[]) {
 
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;

@@ -155,6 +155,8 @@ ivtools-1.2/src/ComTerp/boolfunc.c
 ivtools-1.2/src/ComTerp/boolfunc.h
 ivtools-1.2/src/ComTerp/bquotefunc.c
 ivtools-1.2/src/ComTerp/bquotefunc.h
+ivtools-1.2/src/ComTerp/charfunc.c
+ivtools-1.2/src/ComTerp/charfunc.h
 ivtools-1.2/src/ComTerp/comfunc.c
 ivtools-1.2/src/ComTerp/comfunc.h
 ivtools-1.2/src/ComTerp/comhandler.c
@@ -280,6 +282,8 @@ ivtools-1.2/src/DrawServ/ackback-handler.h
 ivtools-1.2/src/DrawServ/drawcatalog.c
 ivtools-1.2/src/DrawServ/drawcatalog.h
 ivtools-1.2/src/DrawServ/drawclasses.h
+ivtools-1.2/src/DrawServ/drawcmds.c
+ivtools-1.2/src/DrawServ/drawcmds.h
 ivtools-1.2/src/DrawServ/drawcomps.c
 ivtools-1.2/src/DrawServ/drawcomps.h
 ivtools-1.2/src/DrawServ/drawcreator.c
@@ -288,6 +292,8 @@ ivtools-1.2/src/DrawServ/draweditor.c
 ivtools-1.2/src/DrawServ/draweditor.h
 ivtools-1.2/src/DrawServ/drawfunc.c
 ivtools-1.2/src/DrawServ/drawfunc.h
+ivtools-1.2/src/DrawServ/drawimport.c
+ivtools-1.2/src/DrawServ/drawimport.h
 ivtools-1.2/src/DrawServ/drawkit.c
 ivtools-1.2/src/DrawServ/drawkit.h
 ivtools-1.2/src/DrawServ/drawlink.c
@@ -329,6 +335,8 @@ ivtools-1.2/src/FrameUnidraw/framefile.c
 ivtools-1.2/src/FrameUnidraw/framefile.h
 ivtools-1.2/src/FrameUnidraw/framefunc.c
 ivtools-1.2/src/FrameUnidraw/framefunc.h
+ivtools-1.2/src/FrameUnidraw/frameimport.c
+ivtools-1.2/src/FrameUnidraw/frameimport.h
 ivtools-1.2/src/FrameUnidraw/framekit.c
 ivtools-1.2/src/FrameUnidraw/framekit.h
 ivtools-1.2/src/FrameUnidraw/frameps.c
@@ -796,7 +804,7 @@ ivtools-1.2/src/Time/Date.h
 ivtools-1.2/src/Time/Imakefile
 ivtools-1.2/src/Time/Makefile
 ivtools-1.2/src/Time/Time.c
-ivtools-1.2/src/Time/Time.h
+ivtools-1.2/src/Time/Time_.h
 ivtools-1.2/src/Time/obstime.c
 ivtools-1.2/src/Time/obstime.h
 ivtools-1.2/src/Time/timeglyph.c

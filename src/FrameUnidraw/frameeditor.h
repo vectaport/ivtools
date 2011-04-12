@@ -100,6 +100,7 @@ protected:
     int _num_curr_others;
     int _num_prev_others;
     boolean _autonewframe;
+public:
     TelltaleState* _autonewframe_tts;
 
 friend class FrameKit;

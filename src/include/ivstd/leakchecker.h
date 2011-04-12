@@ -25,6 +25,7 @@
 #define leak_checker_h
 
 #include <stream.h>
+using std::cerr;
 
 //: utility for counting undestroyed instances of a class.
 // To use create a static instance initialized with the class name, i.e.
@@ -42,6 +43,8 @@ public:
 
     LeakChecker(const char* c) : _alive(0), _class(c) {}
     ~LeakChecker();
+
+    int alive() {return _alive;}
 private:
     int _alive;
     const char* _class;

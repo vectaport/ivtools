@@ -59,13 +59,13 @@ GraphImportCmd::GraphImportCmd (Editor* ed, ImportChooser* f) : OvImportCmd(ed, 
 }
 
 Command* GraphImportCmd::Copy () {
-    GraphImportCmd* copy = new GraphImportCmd(CopyControlInfo());
+    GraphImportCmd* copy = new GraphImportCmd(CopyControlInfo(), chooser_);
     InitCopy(copy);
     return copy;
 }
 
 void GraphImportCmd::Execute () { 
-    GraphComp* comps = (GraphComp*)PostDialog();
+    GraphicComp* comps = PostDialog();
 
     Clipboard* cb;
     if (comps != nil) {

@@ -165,8 +165,7 @@ void CreateRectFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("RectComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("RectComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -231,8 +230,7 @@ void CreateLineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowLineComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("ArrowLineComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -296,8 +294,7 @@ void CreateEllipseFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("EllipseComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval( new OverlayViewRef(comp), symbol_add("EllipseComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -363,8 +360,7 @@ void CreateTextFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("TextComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("TextComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else
@@ -430,8 +426,7 @@ void CreateMultiLineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowMultiLineComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("ArrowMultiLineComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -497,8 +492,7 @@ void CreateOpenSplineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ArrowSplineComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("ArrowSplineComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -562,8 +556,7 @@ void CreatePolygonFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("PolygonComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("PolygonComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -628,8 +621,7 @@ void CreateClosedSplineFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("ClosedSplineComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("ClosedSplineComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -699,8 +691,7 @@ void CreateRasterFunc::execute() {
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
 	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(symbol_add("RasterComp"), new OverlayView(comp));
-	compval.object_compview(true);
+	ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
 	push_stack(compval);
 	execute_log(cmd);
     } else 
@@ -948,6 +939,7 @@ void SelectFunc::execute() {
     Selection* sel = _ed->GetViewer()->GetSelection();
     if (clear_flag) {
       sel->Clear();
+      unidraw->Update();
       reset_stack();
       return;
     }
@@ -965,8 +957,7 @@ void SelectFunc::execute() {
 	GraphicView* subgv = gv->GetView(i);
 	newSel->Append(subgv);
 	OverlayComp* comp = (OverlayComp*)subgv->GetGraphicComp();
-	ComValue* compval = new ComValue(comp->classid(), new OverlayView(comp));
-	compval->object_compview(true);
+	ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
 	avl->Append(compval);
       }
 
@@ -976,10 +967,9 @@ void SelectFunc::execute() {
       for (sel->First(i); !sel->Done(i); sel->Next(i)) {
 	GraphicView* grview = sel->GetView(i);
 	OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-	ComValue* compval = comp ? new ComValue(comp->classid(), new OverlayView(comp)) : nil;
+	ComValue* compval = comp ? new ComValue(new OverlayViewRef(comp), comp->classid()) : nil;
 
 	if (compval) {
-	  compval->object_compview(true);
 	  avl->Append(compval);
 	}
 	delete newSel;
@@ -995,9 +985,24 @@ void SelectFunc::execute() {
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
 	    newSel->Append(comp->FindView(viewer));
-	    ComValue* compval = new ComValue(comp->classid(), new OverlayView(comp));
-	    compval->object_compview(true);
+	    ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
 	    avl->Append(compval);
+	  }
+	} else if (obj.is_array()) {
+	  Iterator it;
+	  AttributeValueList* al = obj.array_val();
+	  al->First(it);
+	  while (!al->Done(it)) {
+	    if (al->GetAttrVal(it)->object_compview()) {
+	      ComponentView* comview = (ComponentView*)al->GetAttrVal(it)->obj_val();
+	      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+	      if (comp) {
+		newSel->Append(comp->FindView(viewer));
+		ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
+		avl->Append(compval);
+	      }
+	    }
+	    al->Next(it);
 	  }
 	}
       }
@@ -1361,12 +1366,92 @@ void TransformerFunc::execute() {
 	    Transformer t(a00, a01, a10, a11, a20, a21);
 	    *gr->GetTransformer()=t;
 
-	    ComValue compval(comp->class_symid(), new OverlayView(comp));
-	    compval.object_compview(true);
+	    ComValue compval(new OverlayViewRef(comp), comp->class_symid());
 	    push_stack(compval);
 	  }
 	}
       } 	
     }
 }
+
+/*****************************************************************************/
+
+#ifdef LEAKCHECK
+#include <leakchecker.h>
+
+CompLeakFunc::CompLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void CompLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(OverlayComp::_leakchecker->alive(), ComValue::IntType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+ViewLeakFunc::ViewLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ViewLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(OverlayView::_leakchecker->alive(), ComValue::IntType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+AlistLeakFunc::AlistLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void AlistLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(AttributeValueList::_leakchecker ? AttributeValueList::_leakchecker->alive() : 0, ComValue::IntType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+AttrvLeakFunc::AttrvLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void AttrvLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(AttributeValue::_leakchecker ? AttributeValue::_leakchecker->alive() : 0, ComValue::IntType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+MlineLeakFunc::MlineLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void MlineLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(MultiLineObj::_leakchecker ? MultiLineObj::_leakchecker->alive() : 0, ComValue::IntType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+GraphicLeakFunc::GraphicLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void GraphicLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(Graphic::_leakchecker ? Graphic::_leakchecker->alive() : 0, ComValue::IntType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+CommandLeakFunc::CommandLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void CommandLeakFunc::execute() {
+  reset_stack();
+  ComValue retval(Command::_leakchecker ? Command::_leakchecker->alive() : 0, ComValue::IntType);
+  push_stack(retval);
+}
+#endif
 

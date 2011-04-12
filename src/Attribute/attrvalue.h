@@ -26,9 +26,17 @@
 #if !defined(_attrvalue_h)
 #define _attrvalue_h
 
+#define RESOURCE_COMPVIEW
+
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
+
 #include <stdlib.h>
 #include <OS/enter-scope.h>
 #include <Attribute/classid.h>
+#include <Unidraw/Components/compview.h>
 
 extern "C" {
     int symbol_add(char*);
@@ -38,6 +46,7 @@ extern "C" {
 }
 
 class AttributeValueList;
+class ComponentView;
 
 #include <iosfwd>
 
@@ -153,6 +162,8 @@ public:
     // StreamType constructor.
     AttributeValue(const char* val);
     // StringType constructor.
+    AttributeValue(ComponentView* view, int compid);
+    // ComponentView constructor.
 
     virtual ~AttributeValue();
     // set to UnknownType and unref pointer if ArrayType/ListType or StreamType.
@@ -243,8 +254,10 @@ public:
 
     boolean object_compview() { return is_object() && _object_compview; }
     // true if object is wrapped with a ComponentView
-    void object_compview(boolean flag) { _object_compview = flag; }
+#if 0
+    void object_compview(boolean flag);
     // true if object is wrapped with a ComponentView
+#endif
 
     int stream_mode();
     // 0 = disabled, negative = internal, positive = external
@@ -383,6 +396,10 @@ protected:
     };
     static int* _type_syms;
 
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
 };
 
 //: for quick casting in debugger

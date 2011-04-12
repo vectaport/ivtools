@@ -28,6 +28,11 @@
 #ifndef unidraw_commands_command_h
 #define unidraw_commands_command_h
 
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
+
 #include <Unidraw/globals.h>
 
 class Clipboard;
@@ -95,6 +100,11 @@ protected:
     void SetData(DataCache*);
 protected:
     DataCache* _cache;
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
 };
 
 #endif

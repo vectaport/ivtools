@@ -64,7 +64,7 @@ ncolors() -- return size of color menus
 
 DIRECT MANIPULATION COMMANDS
 
-select([compview ...] :all :clear) -- make these graphics the current selection
+select([compview ... | compview,compview[,... compview]] :all :clear) -- make these graphics the current selection
 delete(compview [compview ...]) -- delete graphic(s)
 move(dx dy) -- move current selection
 scale(xflt yflt) -- scale current selection

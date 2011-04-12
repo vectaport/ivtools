@@ -28,7 +28,8 @@
 #include <fstream.h>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
 #else
-#include <vector.h>
+using namespace std;
+#include <vector>
 #endif
 
 #include <ComTerp/comhandler.h>
@@ -219,7 +220,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     }
     if (!ComterpHandler::logger_mode()) {
       comterp_->load_string(inbuf);
-      if (fd>0) 
+      if (fd>0 && (!comterp_->_muted || strncmp(inbuf, "ready", 5)!=0))
 	cerr << "(" << fd << "):  " << inbuf << "\n";
       comterp_->_fd = fd;
       comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;

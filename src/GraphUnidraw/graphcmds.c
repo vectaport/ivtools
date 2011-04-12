@@ -199,14 +199,14 @@ void NodeTextCmd::Execute() {
 ClassId GraphDeleteCmd::GetClassId () { return GRAPHDELETE_CMD; }
 
 boolean GraphDeleteCmd::IsA (ClassId id) {
-    return GRAPHDELETE_CMD == id || DeleteCmd::IsA(id);
+    return GRAPHDELETE_CMD == id || OvDeleteCmd::IsA(id);
 }
 
-GraphDeleteCmd::GraphDeleteCmd (ControlInfo* c, Clipboard* cb) : DeleteCmd(c,cb) {
+GraphDeleteCmd::GraphDeleteCmd (ControlInfo* c, Clipboard* cb) : OvDeleteCmd(c,cb) {
     connections = new UList;
 }
 
-GraphDeleteCmd::GraphDeleteCmd (Editor* ed, Clipboard* cb) : DeleteCmd(ed, cb) {
+GraphDeleteCmd::GraphDeleteCmd (Editor* ed, Clipboard* cb) : OvDeleteCmd(ed, cb) {
     connections = new UList;
 }
 
@@ -225,6 +225,7 @@ GraphDeleteCmd::~GraphDeleteCmd () {
 Command* GraphDeleteCmd::Copy () {
     Command* copy = new GraphDeleteCmd(CopyControlInfo());
     InitCopy(copy);
+    ((OvDeleteCmd*)copy)->Reversable(Reversable());
     return copy;
 }
 
@@ -284,7 +285,7 @@ void GraphCutCmd::Execute () {
     Editor* editor = GetEditor();
     Selection* s = editor->GetSelection();
     Clipboard* cb = new Clipboard();
-    GraphicView* views = editor->GetViewer()->GetGraphicView();
+    GraphicView* views = ((OverlayViewer*)editor->GetViewer())->GetCurrentGraphicView();
     s->Sort(views);
     cb->CopyInit(s);
     index_clipboard(s, cb);
@@ -359,7 +360,7 @@ GraphCopyCmd::~GraphCopyCmd () {
 }
 
 Command* GraphCopyCmd::Copy () {
-    Command* copy = new CopyCmd(CopyControlInfo());
+    Command* copy = new GraphCopyCmd(CopyControlInfo());
     InitCopy(copy);
     return copy;
 }
@@ -373,14 +374,15 @@ void GraphCopyCmd::Execute () {
         cb = GetClipboard();
         cb = (cb == nil) ? unidraw->GetCatalog()->GetClipboard() : cb; 
 
-        GraphicView* views = editor->GetViewer()->GetGraphicView();
+        GraphicView* views = ((OverlayViewer*)editor->GetViewer())->GetCurrentGraphicView();
         s->Sort(views);
 
         cb->DeleteComps();
         cb->CopyInit(s);
+
+	index_clipboard(s, cb);
     }
  
-    index_clipboard(s, cb);
 }
 
 /*****************************************************************************/

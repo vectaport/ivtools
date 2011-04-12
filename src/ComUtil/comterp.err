@@ -148,6 +148,12 @@
 #define ERR_UNEXPECTED_LANGBRACK	1313
 /* "parser:  (%d) Unexpected left angle bracket" */
 
+#define ERR_UNEXPECTED_RANGBRACK2	1314
+/* "parser:  (%d) Unexpected double right angle bracket" */
+
+#define ERR_UNEXPECTED_LANGBRACK2	1315
+/* "parser:  (%d) Unexpected double left angle bracket" */
+
 #define ERR_TYPE_BADPARAMS		5201
 /* "types:  Bad parameters in function call" */
 

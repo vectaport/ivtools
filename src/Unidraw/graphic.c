@@ -36,6 +36,11 @@
 
 #include <IV-2_6/_enter.h>
 
+#ifdef LEAKCHECK
+#include <leakchecker.h>
+LeakChecker* Graphic::_leakchecker = nil;
+#endif
+
 /*****************************************************************************/
 
 Transformer* Graphic::_identity;
@@ -47,6 +52,10 @@ unsigned int Graphic::_desensitize_mask = 0x2;
 boolean Graphic::_use_iv = true;
 
 Graphic::Graphic (Graphic* gr) {
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("Graphic");
+    _leakchecker->create();
+#endif
     _parent = nil;
     _fg = _bg = nil;
     _tag = nil;
@@ -77,6 +86,9 @@ Graphic::Graphic (Graphic* gr) {
 }
 
 Graphic::~Graphic () {
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
     Unref(_fg);
     Unref(_bg);
     Unref(_t);

@@ -90,7 +90,7 @@ void DrawLinkFunc::execute() {
 	((DrawServ*)unidraw)->cycletest
 	(sidv.uint_val(), hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
 #if 1
-#if __GNUC__<4
+#if __GNUC__<4 && !defined(__CYGWIN__)
       fileptr_filebuf obuf(comterp()->handler()->get_handle(), ios_base::out, false, static_cast<size_t>(BUFSIZ));
 #else
       fileptr_filebuf obuf(comterp()->handler()->get_handle(), ios_base::out, static_cast<size_t>(BUFSIZ));
@@ -150,8 +150,7 @@ void DrawLinkFunc::execute() {
   
   if (link) {
     DrawLinkComp* linkcomp = new DrawLinkComp(link);
-    ComValue result(DrawLinkComp::class_symid(), new OverlayView(linkcomp));
-    result.object_compview(true);
+    ComValue result(new OverlayViewRef(linkcomp), DrawLinkComp::class_symid());
     push_stack(result);
   }
   else

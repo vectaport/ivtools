@@ -34,8 +34,17 @@ BackQuoteFunc::BackQuoteFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void BackQuoteFunc::execute() {
+#if 0  // maybe, maybe not
+  ComValue topval(stack_arg(0, true));
+  if (topval.is_command())
+      topval.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
+  reset_stack();
+  topval.bquote(1);
+  push_stack(topval);
+#else
   ComValue retval(stack_arg(0, true));
   reset_stack();
   retval.bquote(1);
   push_stack(retval);
+#endif  
 }

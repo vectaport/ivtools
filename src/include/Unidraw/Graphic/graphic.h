@@ -29,6 +29,11 @@
 #ifndef unidraw_graphic_graphic_h
 #define unidraw_graphic_graphic_h
 
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
+
 #include <Unidraw/globals.h>
 #include <Unidraw/Graphic/geomobjs.h>
 #include <Unidraw/Graphic/pspaint.h>
@@ -261,6 +266,11 @@ protected:
     static unsigned int _hide_mask;
     static unsigned int _desensitize_mask;
     static boolean _use_iv;
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
 };
 
 class FullGraphic : public Graphic {

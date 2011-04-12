@@ -101,8 +101,8 @@ protected:
     TextGraphic* tgraphic;
 };
 
-//: specialized DeleteCmd for graphdraw.
-class GraphDeleteCmd : public DeleteCmd {
+//: specialized OvDeleteCmd for graphdraw.
+class GraphDeleteCmd : public OvDeleteCmd {
 public:
     GraphDeleteCmd(ControlInfo*, Clipboard* = nil);
     GraphDeleteCmd(Editor* = nil, Clipboard* = nil);

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2007 Scott E. Johnston
+ * Copyright (c) 2001-2009 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
  *
@@ -41,6 +41,7 @@
 #include <ComTerp/bitfunc.h>
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/bquotefunc.h>
+#include <ComTerp/charfunc.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comterpserv.h>
@@ -75,11 +76,8 @@
 #include <fstream.h>
 #endif
 
-// #define LEAKCHECK
-
 #ifdef LEAKCHECK
-#include <ivstd/leakchecker.h>
-extern LeakChecker AttributeValuechecker;
+#include <leakchecker.h>
 #endif
 
 #define TITLE "ComTerp"
@@ -164,6 +162,7 @@ void ComTerp::init() {
     _stepflag = 0;
     _echo_postfix = 0;
     _delim_func = 0;
+    _autostream = 0;
     _running = 0;
     _muted = 0;
 }
@@ -194,7 +193,9 @@ boolean ComTerp::read_expr() {
     save_parser_client();    
     postfix_echo();
 
-    return status==0 && _pfbuf[_pfnum-1].type != TOK_EOF && _buffer[0] != '\0';
+    return status==0 
+      && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF) 
+      && _buffer[0] != '\0';
 }
 
 boolean ComTerp::eof() {
@@ -219,6 +220,8 @@ int ComTerp::eval_expr(boolean nested) {
   }
   return FUNCOK;
 }
+
+boolean ComTerp::top_expr() { return _pfoff >= _pfnum && NextFunc::next_depth()<=1; }
 
 int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
 #if 0
@@ -260,6 +263,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     /* create another StreamType ComValue to hold all its */
     /* arguments, along with a pointer to the func. */
     boolean has_streams = false;
+    int streamid = -1;
     if (!((ComFunc*)sv.obj_val())->post_eval())
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
 	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
@@ -269,14 +273,25 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	    lookup_symval(&stack_top(-i));
 	  has_streams = testval ? testval->is_stream() : false;
 	}
-	if (has_streams) break;
+	if (has_streams) {
+	  streamid = i;
+	  break;
+	}
       }
     if (has_streams) {
       AttributeValueList* avl = new AttributeValueList();
+      
+      /* if delims associated with symbol, put that first in stream list */
+      if (_delim_func && sv.nids()!=1) {
+	ComValue nameval(sv.command_symid(), ComValue::SymbolType);
+	avl->Prepend(new AttributeValue(nameval));
+      }
+
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
-	ComValue topval(pop_stack(true));
+	ComValue topval(pop_stack(i==streamid));
 	avl->Prepend(new AttributeValue(topval));
       }
+
       ComValue val(sv.obj_val(), avl);
       val.stream_mode(1); // for external use
       push_stack(val);
@@ -357,9 +372,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stack_base+1 < _stack_top)
-      fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
-    else if (stack_base+1 > _stack_top)
       fprintf(stderr, "func \"%s\" pushed more than a single value on stack\n", symbol_pntr(func->funcid()));
+    else if (stack_base+1 > _stack_top)
+      fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
     
   } else if (sv.type() == ComValue::SymbolType) {
 
@@ -514,7 +529,14 @@ void ComTerp::load_sub_expr() {
 }
 
 
-int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth) {
+int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth 
+#ifdef POSTEVAL_EXPERIMENT
+			    , int nolookup 
+#endif
+			    ) {
+#ifdef POSTEVAL_EXPERIMENT
+  int numtok = tokcnt;
+#endif
   if (tokcnt) {
     int offset = _pfnum+offtop;
     while (tokcnt>0) {
@@ -546,7 +568,9 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth) {
 	if (stack_top().is_type(ComValue::CommandType) 
 	    && stack_top().pedepth() == pedepth) break;
       }
-      // if (!stack_top().is_symbol())
+#ifdef POSTEVAL_EXPERIMENT 
+      if (!(stack_top().is_symbol()&&numtok==1&&nolookup))
+#endif
       eval_expr_internals(pedepth);
       
     }
@@ -715,7 +739,7 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
     localtable()->find(vptr, command_symid);
 
     /* handle case where symbol has matched parens, and things are set up to invoke a delim-specific func. */
-    if (!vptr && _delim_func && sv->nids() != 1) {
+    if (/*!vptr && */ _delim_func && sv->nids() != 1) {
       if (sv->nids() == TOK_RPAREN) {
 	static int parens_symid =  symbol_add("()");
 	localtable()->find(vptr, parens_symid);
@@ -731,6 +755,10 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
       else if (sv->nids() == TOK_RANGBRACK) {
 	static int anglebrackets_symid =  symbol_add("<>");
 	localtable()->find(vptr, anglebrackets_symid);
+      }
+      else if (sv->nids() == TOK_RANGBRACK2) {
+	static int dblanglebrackets_symid =  symbol_add("<<>>");
+	localtable()->find(vptr, dblanglebrackets_symid);
       }
       command_symid = sv->symbol_val();
     }
@@ -806,7 +834,7 @@ void ComTerp::decr_stack(int n) {
         ComValue& stacktop = _stack[_stack_top--];
 	stacktop.AttributeValue::~AttributeValue();
         #ifdef LEAKCHECK // destructor called where constructor never called
-	AttributeValuechecker.create();
+	AttributeValue::_leakchecker->create();
         #endif
     }
 }
@@ -817,7 +845,7 @@ ComValue ComTerp::pop_stack(boolean lookupsym) {
     ComValue topval(stacktop);
     stacktop.AttributeValue::~AttributeValue();
     #ifdef LEAKCHECK  // destructor called where constructor never called
-    AttributeValuechecker.create();
+    AttributeValue::_leakchecker->create();
     #endif
     if (lookupsym)
       return lookup_symval(topval);
@@ -999,8 +1027,20 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	  status = -1;
 	  break;
 	} else if (!func_for_next_expr() && val_for_next_func().is_null() && !muted()) {
-	  print_stack_top(out);
-	  out << "\n"; out.flush(); 
+	  if (stack_top().is_stream() && autostream()) {
+	    ComValue streamv(stack_top());
+	    do {
+	      pop_stack();
+	      NextFunc::execute_impl(this, streamv);
+	      if (stack_top().is_known()) {
+		print_stack_top(out);
+		out << "\n"; out.flush(); 
+	      }
+	    } while (stack_top().is_known());
+	  } else {
+	    print_stack_top(out);
+	    out << "\n"; out.flush(); 
+	  }
 	}
       } else {
 	out << _errbuf << "\n"; out.flush();
@@ -1091,6 +1131,7 @@ void ComTerp::add_defaults() {
     add_command("iterate", new IterateFunc(this));
     add_command("next", new NextFunc(this));
     add_command("each", new EachFunc(this));
+    add_command("filter", new FilterFunc(this));
 
     add_command("dot", new DotFunc(this));
     add_command("attrname", new DotNameFunc(this));
@@ -1148,6 +1189,7 @@ void ComTerp::add_defaults() {
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));
     add_command("symadd", new SymAddFunc(this));
+    add_command("symstr", new SymStrFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
@@ -1176,6 +1218,10 @@ void ComTerp::add_defaults() {
     add_command("quit", new QuitFunc(this));
     add_command("exit", new ExitFunc(this));
     add_command("mute", new MuteFunc(this));
+
+    add_command("ctoi", new CtoiFunc(this));
+    add_command("isspace", new IsSpaceFunc(this));
+
   }
 }
 
@@ -1328,6 +1374,8 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
 	for (int j=0; j<bufsiz; j++) 
 	  newbuf[j] = buffer[j];
 	bufsiz *= 2;
+	delete buffer;
+	buffer = newbuf;
       }
       buffer[ncomm++] = key;
     }
@@ -1553,13 +1601,20 @@ void ComTerp::postfix_echo() {
 	if (func->post_eval()) out << "*";
       } else {
 	char ldelim, rdelim;
+	boolean dbldelim = 0;
 	if (val.nids()==TOK_RPAREN) {ldelim = '('; rdelim = ')'; }
 	else if (val.nids()==TOK_RBRACKET) {ldelim = '['; rdelim = ']'; }
 	else if (val.nids()==TOK_RBRACE) {ldelim = '{'; rdelim = '}'; }
 	else if (val.nids()==TOK_RANGBRACK) {ldelim = '<'; rdelim = '>'; }
+	else if (val.nids()==TOK_RANGBRACK2) {ldelim = '<'; rdelim = '>'; dbldelim=1;}
 	else {ldelim = ':'; rdelim = 0x0;};
-	out << ldelim << val.narg();
-	if (rdelim) out << rdelim;
+	out << ldelim;
+	if (dbldelim) out << ldelim;
+	out << val.narg();
+	if (rdelim) {
+	  out << rdelim;
+	  if (dbldelim) out << rdelim;
+	}
       }
     }
     else if (val.is_type(AttributeValue::SymbolType) && 

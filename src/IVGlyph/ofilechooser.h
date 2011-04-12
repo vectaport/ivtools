@@ -36,6 +36,7 @@
 #include <OS/directory.h>
 #include <InterViews/action.h>
 #include <IV-look/field.h>
+#include <IV-3_1/InterViews/dialog.h>
 
 #include <InterViews/_enter.h>
 

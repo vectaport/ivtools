@@ -38,6 +38,8 @@
 #include <IV-look/slider.h>
 
 #include <stdio.h>
+#include <cstdio> // for sprintf
+using namespace std;
 
 declareActionCallback(Session)
 

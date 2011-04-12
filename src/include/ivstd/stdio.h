@@ -17,4 +17,6 @@ int pclose(FILE*);
 #endif
 #endif
 
+#else
+#include_next <stdio.h>
 #endif

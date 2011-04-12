@@ -31,7 +31,7 @@
 #include <DrawServ/drawserv-handler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
-#include <Comterp/comhandler.h>
+#include <ComTerp/comhandler.h>
 #endif
 
 #include <DrawServ/drawcatalog.h>

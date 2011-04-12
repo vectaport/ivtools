@@ -42,11 +42,9 @@
 
 #include <IV-2_6/_enter.h>
 
-//#define LEAKCHECK
-
 #ifdef LEAKCHECK
-#include <ivstd/leakchecker.h>
-LeakChecker AttributeValueListchecker("AttributeValueList");
+#include <leakchecker.h>
+LeakChecker* AttributeValueList::_leakchecker = nil;
 #endif
 
 
@@ -309,7 +307,8 @@ void AttributeList::clear() {
 
 AttributeValueList::AttributeValueList (AttributeValueList* s) {
 #ifdef LEAKCHECK
-    AttributeValueListchecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValueList");
+    _leakchecker->create();
 #endif
     _alist = new AList;
     _count = 0;
@@ -325,7 +324,7 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
 
 AttributeValueList::~AttributeValueList () { 
 #ifdef LEAKCHECK
-    AttributeValueListchecker.destroy();
+    _leakchecker->destroy();
 #endif
     if (_alist) {
         ALIterator i;
@@ -436,7 +435,7 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 	        out << attrval->ulong_ref();
 	        break;
 	    case AttributeValue::FloatType:
-	        out << attrval->double_ref();
+	        out << attrval->float_ref();
 	        break;
 	    case AttributeValue::DoubleType:
 	        out << attrval->double_ref();
@@ -445,7 +444,9 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 	        out << attrval->boolean_ref();
 	        break;
 	    case AttributeValue::ArrayType:
+  	        out << "{";
 	        out << *attrval->array_ref();
+  	        out << "}";
 	        break;
             default:
 		out << "nil";

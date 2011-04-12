@@ -47,6 +47,9 @@ public:
 
     void SetOriginal(IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1);
 
+    void GetHead(float &x, float &y);
+    void GetTail(float &x, float &y);
+
     void SetArrows(boolean h, boolean t);
     void ScaleArrows(float);
     boolean Head();

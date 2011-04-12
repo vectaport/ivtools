@@ -649,6 +649,8 @@ OvDeleteCmd::OvDeleteCmd (Editor* ed, Clipboard* cb) : DeleteCmd(ed, cb) {
     _reversable = true;
 }
 
+OvDeleteCmd::~OvDeleteCmd() { }
+
 Command* OvDeleteCmd::Copy () {
     Command* copy = new OvDeleteCmd(CopyControlInfo());
     InitCopy(copy);

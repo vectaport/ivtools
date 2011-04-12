@@ -107,6 +107,8 @@ src/ComTerp/boolfunc.c
 src/ComTerp/boolfunc.h
 src/ComTerp/bquotefunc.c
 src/ComTerp/bquotefunc.h
+src/ComTerp/charfunc.c
+src/ComTerp/charfunc.h
 src/ComTerp/comfunc.c
 src/ComTerp/comfunc.h
 src/ComTerp/comhandler.c

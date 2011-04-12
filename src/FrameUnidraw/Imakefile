@@ -29,6 +29,7 @@ Obj26(frameviews)
 
 #define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
+Obj31(frameimport)
 Obj31(framekit)
 Obj31(framestates)
 

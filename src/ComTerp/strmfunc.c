@@ -339,6 +339,8 @@ void IterateFunc::execute() {
 
 /*****************************************************************************/
 
+int NextFunc::_next_depth = 0;
+
 NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
@@ -350,8 +352,12 @@ void NextFunc::execute() {
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
+    _next_depth++;
 
-    if (!streamv.is_stream()) return;
+    if (!streamv.is_stream()) {
+      _next_depth--;
+      return;
+    }
 
     int outside_stackh = comterp->stack_height();
 
@@ -404,6 +410,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	      streamv.stream_list()->clear();
 	      while (comterp->stack_height()>outside_stackh) comterp->pop_stack();
 	      comterp->push_stack(ComValue::nullval());
+	      _next_depth--;
 	      return;
 	    } else if (comterp->stack_height()==inside_stackh)
 	      comterp->push_stack(ComValue::blankval());
@@ -434,6 +441,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
     } else 
       comterp->push_stack(ComValue::nullval());
+
+    _next_depth--;
 }
 
 
@@ -465,5 +474,86 @@ void EachFunc::execute() {
   } else 
     push_stack(ComValue::nullval());
     
+}
+
+/*****************************************************************************/
+
+int FilterFunc::_symid;
+
+FilterFunc::FilterFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void FilterFunc::execute() {
+  ComValue streamv(stack_arg_post_eval(0));
+  ComValue filterv(stack_arg(1));
+  reset_stack();
+
+  /* setup for filterenation */
+  static FilterNextFunc* flfunc = nil;
+  
+  if (!flfunc) {
+    flfunc = new FilterNextFunc(comterp());
+    flfunc->funcid(symbol_add("filter"));
+  }
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(streamv));
+  avl->Append(new AttributeValue(filterv));
+  ComValue stream(flfunc, avl);
+  stream.stream_mode(-1); // for internal use (use by FilterNextFunc)
+  push_stack(stream);
+}
+
+/*****************************************************************************/
+
+int FilterNextFunc::_symid;
+
+FilterNextFunc::FilterNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void FilterNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+
+  /* invoked by next func */
+  reset_stack();
+  AttributeValueList* avl = operand1.stream_list();
+  if (avl) {
+    Iterator i;
+    avl->First(i);
+    AttributeValue* strmval = avl->GetAttrVal(i);
+    avl->Next(i);
+    AttributeValue* filterval = avl->GetAttrVal(i);
+    
+    /* filter stream */
+    if (strmval->is_known()) {
+      if (strmval->is_stream()) {
+
+	boolean done = false;
+	while(!done) {
+	  ComValue strm2filt(*strmval);
+	  NextFunc::execute_impl(comterp(), strm2filt);
+	  if (comterp()->stack_top().is_unknown()) {
+	    *strmval = ComValue::nullval();
+	    push_stack(*strmval);
+	    comterp()->pop_stack();
+	    done = true;
+	  } else {
+	    if (comterp()->stack_top().is_object() &&
+		comterp()->stack_top().class_symid()==filterval->symbol_val()) 
+	      done = true;
+	    else
+	      comterp()->pop_stack();
+	  }
+	}
+
+      } else {
+	push_stack(*strmval);
+	*strmval = ComValue::nullval();
+      }
+    }
+    
+  } else
+    push_stack(ComValue::nullval());
+
+  return;
 }
 

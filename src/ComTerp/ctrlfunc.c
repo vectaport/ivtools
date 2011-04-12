@@ -116,9 +116,9 @@ RemoteFunc::RemoteFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void RemoteFunc::execute() {
-  ComValue hostv(stack_arg(0, true));
-  ComValue portv(stack_arg(1));
-  ComValue cmdstrv(stack_arg(2));
+  ComValue arg1v(stack_arg(0));
+  ComValue arg2v(stack_arg(1));
+  ComValue arg3v(stack_arg(2));
   static int nowait_sym = symbol_add("nowait");
   ComValue nowaitv(stack_key(nowait_sym));
   reset_stack();
@@ -131,63 +131,169 @@ void RemoteFunc::execute() {
   return;
 #endif
 
-  if (hostv.is_string() && portv.is_known() && cmdstrv.is_string()) {
+  ACE_SOCK_STREAM *socket = nil;
+  ACE_SOCK_Connector *conn = nil;
+  SocketObj* socketobj = nil;
+  const char* cmdstr = nil;
+  if (arg1v.is_string() && arg2v.is_num() && arg3v.is_string()) {
 
-    const char* hoststr = hostv.string_ptr();
-    const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
-    u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
+    cmdstr = arg3v.string_ptr();
+    const char* hoststr = arg1v.string_ptr();
+    const char* portstr = arg2v.is_string() ? arg2v.string_ptr() : nil;
+    u_short portnum = portstr ? atoi(portstr) : arg2v.ushort_val();
     ACE_INET_Addr addr (portnum, hoststr);
-    ACE_SOCK_Stream socket;
-    ACE_SOCK_Connector conn;
-    if (conn.connect (socket, addr) == -1) {
+    socket = new ACE_SOCK_STREAM;
+    conn = new ACE_SOCK_Connector;
+    if (conn->connect (*socket, addr) == -1) {
       ACE_ERROR ((LM_ERROR, "%p\n", "open"));
       push_stack(ComValue::nullval());
       return;
     }
 
-#if __GNUC__<3
-    filebuf ofbuf;
-    ofbuf.attach(socket.get_handle());
-#elif __GNUC__<4 && !defined(__CYGWIN__)
-    fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
-			  false, static_cast<size_t>(BUFSIZ));
-#else
-    fileptr_filebuf ofbuf((int)socket.get_handle(), ios_base::out,
-			  static_cast<size_t>(BUFSIZ));
-#endif
-    ostream out(&ofbuf);
-    const char* cmdstr = cmdstrv.string_ptr();
-    out << cmdstr;
-    if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
-    out.flush();
-    if (nowaitv.is_false()) {
-#if __GNUC__<3
-      filebuf ifbuf;
-      ifbuf.attach(socket.get_handle());
-      istream in(&ifbuf);
-      char* buf;
-      in.gets(&buf);
-#else
-      char buf[BUFSIZ];
-      int i=0;
-      do {
-	read(socket.get_handle(), buf+i++, 1);
-      } while (i<BUFSIZ-1 && buf[i-1]!='\n');
-      if (buf[i-1]=='\n') buf[i-1]=0;
-#endif
-      ComValue retval(comterpserv()->run(buf, true));
-      push_stack(retval);
-    }
-
-    if (socket.close () == -1)
-        ACE_ERROR ((LM_ERROR, "%p\n", "close"));
-  } 
+  } else if (arg1v.is_object() && arg2v.is_string()) {
     
+    cmdstr = arg2v.string_ptr();
+    socketobj = (SocketObj*)arg1v.geta(SocketObj::class_symid());
+    if (socketobj) 
+      socket = socketobj->socket();
+    
+  } else
+    return;
+  
+#if 0
+#if __GNUC__<3
+  filebuf ofbuf;
+  ofbuf.attach(socket->get_handle());
+#elif __GNUC__<4 && !defined(__CYGWIN__)
+  fileptr_filebuf ofbuf((int)socket->get_handle(), ios_base::out,
+			false, static_cast<size_t>(BUFSIZ));
+#else
+  fileptr_filebuf ofbuf((int)socket->get_handle(), ios_base::out,
+			static_cast<size_t>(BUFSIZ));
+#endif
+  ostream out(&ofbuf);
+  out << cmdstr;
+  if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
+  out.flush();
+#else
+  int i=0;
+  do {
+    write(socket->get_handle(), cmdstr+i++, 1);
+  } while ( cmdstr[i]!='\0');
+  if (cmdstr[i-1] != '\n')  
+    write(socket->get_handle(), "\n", 1);
+#endif
+  if (nowaitv.is_false()) {
+#if __GNUC__<3
+    filebuf ifbuf;
+    ifbuf.attach(socket->get_handle());
+    istream in(&ifbuf);
+    char* buf;
+    in.gets(&buf);
+#else
+    char buf[BUFSIZ];
+    int i=0;
+    do {
+      read(socket->get_handle(), buf+i++, 1);
+    } while (i<BUFSIZ-1 && buf[i-1]!='\n');
+    if (buf[i-1]=='\n') buf[i]=0;
+#endif
+    ComValue retval(comterpserv()->run(buf, true));
+    push_stack(retval);
+  }
+  
+  if(!socketobj) {
+    if (socket->close () == -1)
+      ACE_ERROR ((LM_ERROR, "%p\n", "close"));
+    delete socket;
+    delete conn;
+  }
+
   return;
 
 #else
 
   cerr << "for the remote command to work rebuild comterp with ACE\n";
+  return;
+
+#endif
+
+}
+
+/*****************************************************************************/
+#ifdef HAVE_ACE
+int SocketObj::_symid = -1;
+
+SocketObj::SocketObj(const char* host, unsigned short port) {
+  _socket = nil; 
+  _conn = nil; 
+  _host = strnew(host); 
+  _port = port; 
+}
+
+SocketObj::~SocketObj() { 
+  if( _socket ) {
+    _socket->close();
+    delete _socket;
+    delete _conn; 
+    delete _host; }
+}
+
+int SocketObj::connect() { 
+  ACE_INET_Addr addr(_port, _host); 
+  _socket = new ACE_SOCK_STREAM;
+  _conn = new ACE_SOCK_Connector; 
+  return _conn->connect(*_socket, addr); 
+}
+
+int SocketObj::close() { 
+  return _socket->close(); 
+}
+
+int SocketObj::get_handle() { 
+  return _socket->get_handle(); 
+}
+#endif
+
+/*****************************************************************************/
+
+SocketFunc::SocketFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+
+void SocketFunc::execute() {
+  ComValue hostv(stack_arg(0));
+  ComValue portv(stack_arg(1));
+  reset_stack();
+
+#ifdef HAVE_ACE
+
+#if __GNUC__==3&&__GNUC_MINOR__<1
+  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
+  push_stack(ComValue::nullval());
+  return;
+#endif
+
+  if (hostv.is_string() && portv.is_known()) {
+
+    const char* hoststr = hostv.string_ptr();
+    const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
+    u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
+    SocketObj* socket = new SocketObj(hoststr, portnum);
+    if (socket->connect() == -1 ) {
+      ACE_ERROR ((LM_ERROR, "%p\n", "open"));
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComValue retval(SocketObj::class_symid(), (void*)socket);
+    push_stack(retval);
+  }
+
+  return;
+
+#else
+  cerr << "for the socket command to work rebuild comterp with ACE\n";
   return;
 
 #endif

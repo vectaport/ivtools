@@ -46,10 +46,14 @@ AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 void AssignFunc::execute() {
     ComValue operand1(stack_arg(0, true));
     if (operand1.type() != ComValue::SymbolType) {
-      operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
+      operand1.assignval(stack_arg_post_eval(0, true /* no symbol or attribute lookup */));
     }
-    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol lookup */));
+    ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */));
+#ifdef POSTEVAL_EXPERIMENT
+    if (operand2->is_attribute() || operand2->is_symbol()) lookup_symval(*operand2);
+#else
     if (operand2->is_attribute()) lookup_symval(*operand2);
+#endif
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();

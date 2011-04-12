@@ -514,9 +514,12 @@ ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
 }
 
 postfix_token* ComTerpServ::gen_code(const char* script, int& ntoken) {
+    push_servstate();
     load_string(script);
     read_expr();
-    return copy_postfix_tokens(ntoken);
+    postfix_token* copied_tokens = copy_postfix_tokens(ntoken);
+    pop_servstate();
+    return copied_tokens;
 }
 
 void ComTerpServ::read_string(const char* script) {
@@ -528,6 +531,7 @@ void ComTerpServ::add_defaults() {
   if (!_defaults_added) {
     ComTerp::add_defaults();
     add_command("remote", new RemoteFunc(this));
+    add_command("socket", new SocketFunc(this));
     add_command("eval", new EvalFunc(this));
   }
 }

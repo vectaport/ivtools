@@ -29,6 +29,11 @@
 #ifndef ovcomps_h
 #define ovcomps_h
 
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
+
 #include <UniIdraw/idcomp.h>
 #include <InterViews/observe.h>
 #include <Attribute/classid.h>
@@ -201,6 +206,13 @@ friend class OverlayScript;
 friend class OverlaysScript;
 
     CLASS_SYMID("OverlayComp"); 
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
+
+
 };
 
 //: composite component, clone of GraphicComps derived from OverlayComp
@@ -227,6 +239,8 @@ public:
     // move Iterator to the previous element in the list.
     virtual boolean Done(Iterator);
     // test Iterator to see if off the end of the list.
+    virtual int Count();
+    // return number of elements
 
     virtual GraphicComp* GetComp(Iterator);
     // return pointer to component within the current element of the list

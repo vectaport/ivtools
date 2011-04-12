@@ -22,7 +22,7 @@
  * 
  */
 
-#include <Unidraw/Components/compview.h>
+#include <Unidraw/Components/grview.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
@@ -91,6 +91,7 @@ ComValue::ComValue(AttributeValueList* avl) : AttributeValue(avl) {zero_vals();}
 ComValue::ComValue(void* funcptr, AttributeValueList* listptr) : AttributeValue(funcptr, listptr) {zero_vals();}
 ComValue::ComValue(const char* string) : AttributeValue(string) {zero_vals();}
 ComValue::ComValue(ComFunc* func) : AttributeValue(ComFunc::class_symid(), func) {zero_vals(); type(ComValue::CommandType); command_symid(func->funcid()); }
+ComValue::ComValue(ComponentView* view, int compid) : AttributeValue(view, compid) {zero_vals();}
 
 ComValue::~ComValue() {
 }
@@ -286,8 +287,18 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
+
+
+
 	    out << "{";
+
+
+
+
 	    while (!avl->Done(i)) {
+
+
+
 	      ComValue val(*avl->GetAttrVal(i));
 	      out << val;
 	      avl->Next(i);

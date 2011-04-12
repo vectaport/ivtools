@@ -36,6 +36,8 @@ public:
     ~TopoEdge();
     
     void attach_nodes(TopoNode* start, TopoNode* end);
+    void remove_nodes();
+
     void attach_faces(TopoFace* left, TopoFace* right);
 
     void attach_start_node(TopoNode* start);

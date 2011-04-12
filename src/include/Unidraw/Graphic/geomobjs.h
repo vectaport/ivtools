@@ -35,6 +35,10 @@
 #include <IV-2_6/_enter.h>
 
 #define GEOMOBJS_DEFINED
+#define LEAKCHECK
+#ifdef LEAKCHECK
+class LeakChecker;
+#endif
 
 class UList;
 #include <iosfwd>
@@ -115,6 +119,7 @@ public:
     Coord* _x, *_y;
     int _count;
     UList* _ulist;
+    int _pts_made;
 
     Coord* x() {return _x;}
     Coord* y() {return _y;}
@@ -130,6 +135,11 @@ protected:
     static UList** _pts_by_n;
     static int _pts_by_n_size;
     static boolean _pts_by_n_enabled;
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
 };
 
 //: filled polygon geometric object

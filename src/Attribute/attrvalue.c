@@ -28,20 +28,24 @@
 #include <Attribute/attrvalue.h>
 #include <Attribute/attrlist.h>
 
+#ifdef RESOURCE_COMPVIEW
+#include <Unidraw/Components/component.h>
+#include <Unidraw/Components/compview.h>
+#endif
+
 #include <iostream.h>
 #if !defined(solaris)
 #include <memory.h>
 #endif
 #include <stdio.h>
 #include <string.h>
-
-//#define LEAKCHECK
+#include <cstdio>
+using namespace std;
 
 #ifdef LEAKCHECK
-#include <ivstd/leakchecker.h>
-LeakChecker AttributeValuechecker("AttributeValue");
+#include <leakchecker.h>
+LeakChecker* AttributeValue::_leakchecker = nil;
 #endif
-
 
 /*****************************************************************************/
 
@@ -49,7 +53,8 @@ int* AttributeValue::_type_syms = nil;
 
 AttributeValue::AttributeValue(ValueType valtype) {
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     type(valtype);
@@ -57,7 +62,8 @@ AttributeValue::AttributeValue(ValueType valtype) {
 
 AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     type(valtype);
@@ -67,14 +73,16 @@ AttributeValue::AttributeValue(ValueType valtype, attr_value value) {
 
 AttributeValue::AttributeValue(AttributeValue& sv) {
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     *this = sv;
 }
 
 AttributeValue::AttributeValue(AttributeValue* sv) {
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     *this = *sv;
     dup_as_needed();
@@ -82,7 +90,8 @@ AttributeValue::AttributeValue(AttributeValue* sv) {
 
 AttributeValue::AttributeValue() {
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     type(UnknownType);
@@ -91,7 +100,8 @@ AttributeValue::AttributeValue() {
 
 AttributeValue::AttributeValue(unsigned char v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::UCharType;
@@ -100,7 +110,8 @@ AttributeValue::AttributeValue(unsigned char v) {
 
 AttributeValue::AttributeValue(char v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::CharType;
@@ -109,7 +120,8 @@ AttributeValue::AttributeValue(char v) {
 
 AttributeValue::AttributeValue(unsigned short v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::UShortType;
@@ -118,7 +130,8 @@ AttributeValue::AttributeValue(unsigned short v) {
 
 AttributeValue::AttributeValue(short v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::ShortType;
@@ -127,7 +140,8 @@ AttributeValue::AttributeValue(short v) {
 
 AttributeValue::AttributeValue(unsigned int v, ValueType type) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = type;
@@ -152,7 +166,8 @@ AttributeValue::AttributeValue(unsigned int v, ValueType type) {
 
 AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = type;
@@ -162,7 +177,8 @@ AttributeValue::AttributeValue(unsigned int kv, unsigned int kn, ValueType type)
 
 AttributeValue::AttributeValue(int v, ValueType type) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = type;
@@ -187,7 +203,8 @@ AttributeValue::AttributeValue(int v, ValueType type) {
 
 AttributeValue::AttributeValue(unsigned long v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::ULongType;
@@ -196,7 +213,8 @@ AttributeValue::AttributeValue(unsigned long v) {
 
 AttributeValue::AttributeValue(long v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::LongType;
@@ -205,7 +223,8 @@ AttributeValue::AttributeValue(long v) {
 
 AttributeValue::AttributeValue(float v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::FloatType;
@@ -214,7 +233,8 @@ AttributeValue::AttributeValue(float v) {
 
 AttributeValue::AttributeValue(double v) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     clear();
     _type = AttributeValue::DoubleType;
@@ -223,7 +243,8 @@ AttributeValue::AttributeValue(double v) {
 
 AttributeValue::AttributeValue(int classid, void* ptr) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     _type = AttributeValue::ObjectType;
     _v.objval.ptr = ptr;
@@ -231,9 +252,22 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
     _object_compview = false;
 }
 
+AttributeValue::AttributeValue(ComponentView* view, int compid) { 
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
+#endif
+    _type = AttributeValue::ObjectType;
+    _v.objval.ptr = view;
+    _v.objval.type = compid;
+    _object_compview = true;
+    Resource::ref(view);
+}
+
 AttributeValue::AttributeValue(AttributeValueList* ptr) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     _type = AttributeValue::ArrayType;
     _v.arrayval.ptr = ptr;
@@ -243,7 +277,8 @@ AttributeValue::AttributeValue(AttributeValueList* ptr) {
 
 AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     _type = AttributeValue::StreamType;
     _v.streamval.funcptr = comfuncptr;
@@ -253,7 +288,8 @@ AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
 
 AttributeValue::AttributeValue(const char* string) { 
 #ifdef LEAKCHECK
-    AttributeValuechecker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
+    _leakchecker->create();
 #endif
     _type = AttributeValue::StringType;
     _v.dfintval = symbol_add((char*)string);
@@ -261,7 +297,7 @@ AttributeValue::AttributeValue(const char* string) {
 
 AttributeValue::~AttributeValue() {
 #ifdef LEAKCHECK
-    AttributeValuechecker.destroy();
+    _leakchecker->destroy();
 #endif
 #if 0  // disable symbol reference counting
     if (_type == StringType || _type == SymbolType) 
@@ -1131,6 +1167,10 @@ void AttributeValue::ref_as_needed() {
       Resource::ref(_v.arrayval.ptr);
     else if (_type == AttributeValue::StreamType)
       Resource::ref(_v.streamval.listptr);
+#ifdef RESOURCE_COMPVIEW
+    else if (_type == AttributeValue::ObjectType && object_compview())
+      Resource::ref((ComponentView*)_v.objval.ptr);
+#endif
 }
 
 void AttributeValue::dup_as_needed() {
@@ -1144,7 +1184,19 @@ void AttributeValue::dup_as_needed() {
     _v.streamval.listptr = new AttributeValueList(avl);
     Resource::ref(_v.streamval.listptr);
     Resource::unref(avl);
+  } 
+#ifdef RESOURCE_COMPVIEW
+  else if (_type == AttributeValue::ObjectType && object_compview()) {
+    ComponentView* oldview = (ComponentView*)_v.objval.ptr;
+    Component* subject = oldview->GetSubject();
+    ComponentView* newview = oldview->Duplicate();
+    newview->SetSubject(subject);
+    subject->Attach(newview);
+    _v.objval.ptr = newview;
+    Resource::ref(newview);
+    Resource::unref(oldview);
   }
+#endif
 }
 
 void AttributeValue::unref_as_needed() {
@@ -1157,6 +1209,10 @@ void AttributeValue::unref_as_needed() {
   }
   else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
+#ifdef RESOURCE_COMPVIEW
+  else if (_type == AttributeValue::ObjectType && object_compview()) 
+       Resource::unref((ComponentView*)_v.objval.ptr);
+#endif
 }
 
 boolean AttributeValue::same_list(const AttributeValue& av) {
@@ -1164,6 +1220,10 @@ boolean AttributeValue::same_list(const AttributeValue& av) {
     return _v.arrayval.ptr == av._v.arrayval.ptr;
   else if (_type == AttributeValue::StreamType)
     return _v.streamval.listptr == av._v.streamval.listptr;
+#ifdef RESOURCE_COMPVIEW
+  else if (_type == AttributeValue::ObjectType && object_compview())
+    return _v.objval.ptr == av._v.objval.ptr;
+#endif
   else
     return false;
 }
@@ -1207,3 +1267,10 @@ boolean AttributeValue::is_object(int class_symid) {
   if (this->class_symid() == class_symid) return true;
   return false;
 }
+
+#if 0
+void AttributeValue::object_compview(boolean flag) { 
+  _object_compview = flag; 
+  if(flag) Resource::ref((ComponentView*)_v.objval.ptr);
+}
+#endif

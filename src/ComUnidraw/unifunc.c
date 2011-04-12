@@ -321,20 +321,18 @@ void ImportFunc::execute() {
       if (nargs()==1 || next_flag) {
 	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
 			  popen_flag)) && cmd->component()) {
-	  ComValue compval(((OverlayComp*)cmd->component())->classid(),
-			   new OverlayView((OverlayComp*)cmd->component()));
+	  ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
+			   ((OverlayComp*)cmd->component())->classid());
 	  delete cmd;
-	  compval.object_compview(true);
 	  push_stack(compval);
 	} else
 	  push_stack(ComValue::nullval());
       } else {
 	for (int i=0; i<nargs(); i++) 
 	  if (cmd = import(stack_arg(i).string_ptr(), popen_flag)) {
-	    ComValue compval(((OverlayComp*)cmd->component())->classid(),
-			     new OverlayView((OverlayComp*)cmd->component()));
+	    ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
+			     ((OverlayComp*)cmd->component())->classid());
 	    delete cmd;
-	    compval.object_compview(true);
 	    push_stack(compval);
 
 	  } else
@@ -347,10 +345,9 @@ void ImportFunc::execute() {
       inlist->First(it);
       while(!inlist->Done(it)) {
 	cmd = import(inlist->GetAttrVal(it)->string_ptr(), popen_flag);
-	ComValue* val = new ComValue(((OverlayComp*)cmd->component())->classid(),
-				     new OverlayView((OverlayComp*)cmd->component()));
+	ComValue* val = new ComValue(new OverlayViewRef((OverlayComp*)cmd->component()),
+				     ((OverlayComp*)cmd->component())->classid());
 	delete cmd;
-	val->object_compview(true);
 	outlist->Append(val);
 	inlist->Next(it);
       }
@@ -633,8 +630,7 @@ void FrameFunc::execute() {
     OverlaysView* frameview = ed->GetFrame(indexv.int_val());
     if (frameview && frameview->GetSubject()) {
       OverlayComp* comp = (OverlayComp*)frameview->GetSubject();
-      ComValue retval(comp->classid(), new OverlayView(comp));
-      retval.object_compview(true);
+      ComValue retval(new OverlayViewRef(comp), comp->classid());
       push_stack(retval);
     } else
       push_stack(ComValue::nullval());
@@ -688,8 +684,7 @@ void AddToolButtonFunc::execute() {
     OverlayEditor* ed = (OverlayEditor*)GetEditor();
     OverlayComp* comp = ed->overlay_kit()->add_tool_button(pathnamev.symbol_ptr());
     if (comp) {
-      ComValue retval(comp->classid(), new OverlayView(comp));
-      retval.object_compview(true);
+      ComValue retval(new OverlayViewRef(comp), comp->classid());
       push_stack(retval);
     } else {
       push_stack(ComValue::nullval());

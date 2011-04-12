@@ -228,7 +228,9 @@ sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id
 
 val|lst=symval(symbol [symbol ...]) -- return value(s) associated with symbol variables(s)
 
-sym|lst=symadd(symbol [symbol ...]) -- create symbol(s) and return without lookup.
+sym|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup.
+
+str=symstr(sym) -- return string version of symbol
 
 lst=split(symbol|string) -- split symbol or string into list of characters.
 
@@ -284,6 +286,10 @@ d=double(num) -- convert any numeric to a double
 sym|lst=type(val [val ...]) -- return type symbol(s) for value(s)
 
 sym|lst=class(val [val ...]) -- return class symbol(s) for value(s) of object type
+
+int=ctoi(char) -- convert character to integer
+
+flag=isspace(char) -- return true if character is whitespace
 
 ONLY IN SERVER MODE
 

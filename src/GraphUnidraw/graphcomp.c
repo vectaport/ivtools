@@ -497,8 +497,10 @@ boolean GraphIdrawScript::Emit (ostream& out) {
     int num_node = 0;
     for (comps->First(i); !comps->Done(i); comps->Next(i)) {
         GraphicComp* comp = comps->GetComp(i);
-	if (comp->IsA(NODE_COMP))
+	if (comp->IsA(NODE_COMP)) {
+	    ((NodeComp*)comp)->index(num_node);
 	    num_node++;
+	}
 	if (comp->IsA(EDGE_COMP))
 	    num_edge++;
     }

@@ -51,6 +51,12 @@ void RandFunc::execute() {
     }
   } 
 
+  ComValue retval(RandFunc::drand(minval, maxval));
+  push_stack(retval);
+
+}
+
+double RandFunc::drand(double minval, double maxval) {
 #ifndef RAND_MAX
 #include <sys/limits.h>
 #define RAND_MAX INT_MAX
@@ -61,10 +67,9 @@ void RandFunc::execute() {
 
   int rnum = rand();
   double rval = rnum*gain+bias;
-  ComValue retval(rval);
-  push_stack(retval);
-
+  return rval;
 }
+
 
 /*****************************************************************************/
 

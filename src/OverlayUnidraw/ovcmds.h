@@ -180,6 +180,7 @@ class OvDeleteCmd : public DeleteCmd {
 public:
     OvDeleteCmd(ControlInfo*, Clipboard* = nil);
     OvDeleteCmd(Editor* = nil, Clipboard* = nil);
+    virtual ~OvDeleteCmd();
 
     virtual Command* Copy();
     virtual ClassId GetClassId();

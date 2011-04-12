@@ -28,6 +28,7 @@
 #define unidraw_components_compview_h
 
 #include <Unidraw/globals.h>
+#include <InterViews/resource.h>
 
 #ifndef UnidrawCommon
 class Command;
@@ -37,7 +38,7 @@ class Iterator;
 
 //: base class for views of objects that model domain-specific elements.
 // <a href=../man3.1/ComponentView.html>man page</a>
-class ComponentView {
+class ComponentView : public Resource {
 public:
     virtual void Update();
 #ifndef UnidrawCommon
@@ -59,6 +60,9 @@ public:
     virtual boolean IsA(ClassId);
 
     ComponentView(Component* subject = nil);
+
+    virtual ComponentView* Duplicate() { return new ComponentView(); }
+
 protected:
 
     friend class Component;

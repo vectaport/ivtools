@@ -66,9 +66,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-1.2.6
+   RELEASE = ivtools-1.2.8
 
-   VERSION = 1.2.6
+   VERSION = 1.2.8
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? CHANGES-1.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -247,9 +247,9 @@ NONSHARED_CCLDFLAGS =
           ABSLIBDIR = /usr/local/lib
        ABSLIBALLDIR = /usr/local/lib/ivtools
        RELLIBALLDIR = $(TOP)/lib/ivtools
-         XCONFIGDIR = /usr/X11R6/lib/X11/config
-            XINCDIR = /Developer/SDKs/MacOSX10.4u.sdk/usr/X11R6/include
-            XLIBDIR = /Developer/SDKs/MacOSX10.4u.sdk/usr/X11R6/lib
+         XCONFIGDIR = /usr/X11/lib/X11/config
+            XINCDIR = /usr/X11/include
+            XLIBDIR = /usr/X11/lib
           PSFONTDIR = /usr/lib/ps
 
   SOCKLEN_T_DEFINED = 1

@@ -73,6 +73,7 @@ OverlayUnidraw::OverlayUnidraw (Catalog* c, int& argc, char** argv,
     _ovviewer = nil;
     _comterp = nil;
     _npause = 0;
+    _run_once = 0;
 
     /* replace default Painter with an OverlayPainter */
     OverlayGraphic::new_painter();
@@ -84,6 +85,7 @@ OverlayUnidraw::OverlayUnidraw (Catalog* c, World* w)
     _ovviewer = nil;
     _comterp = nil;
     _npause = 0;
+    _run_once = 0;
 }
 
 OverlayUnidraw::~OverlayUnidraw () 
@@ -144,6 +146,11 @@ void OverlayUnidraw::Run () {
 
 	if (updated()) {
 	    Update(true);
+	}
+
+	if(run_once()) {
+	  _run_once--;
+	  break;
 	}
     }
     _npause = _comterp ? _comterp->npause() : 0;

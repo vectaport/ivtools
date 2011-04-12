@@ -130,6 +130,8 @@ public:
     // return pointer to NodeView of this component in given viewer.
     boolean RequireLabel() { return _reqlabel; }
     // flag to indicate whether node must have label (text graphic).
+    void RequireLabel(boolean flag) { _reqlabel = flag; }
+    // flag to indicate whether node must have label (text graphic).
 
 #if 0
     void update(Observable*);
@@ -146,6 +148,12 @@ public:
     EdgeComp* EdgeOut(int n) const;
     // return pointer to nth outgoing edge.
 
+    int EdgeInOrder(EdgeComp*) const;
+    // return order of incoming edge.
+
+    int EdgeOutOrder(EdgeComp*) const;
+    // return order of outgoing edge.
+
     void nedges (int &nin, int &nout) const;
     // count number of input and ouput edges
 
@@ -159,11 +167,17 @@ public:
     // return pointer to node on other side of nth outgoing edge.
 
     virtual boolean operator == (OverlayComp&);
+    
+    void index(int i) {_index = i; }
+    // set temporary index for writing to file
+    int index() { return _index; }
+    // get temporary index for writing to file
 protected:
 
     GraphComp* _graph;
     TopoNode* _node;
     boolean _reqlabel;
+    int _index;
 
 protected:
     ParamList* GetParamList();

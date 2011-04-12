@@ -1100,9 +1100,10 @@ void OverlayRasterRect::damage_rect(IntCoord l, IntCoord b,
 /*****************************************************************************/
 
 // #define LEAKCHECK
+#undef LEAKCHECK
 
 #ifdef LEAKCHECK
-#include <OverlayUnidraw/leakchecker.h>
+#include <leakchecker.h>
 static LeakChecker checker("OverlayRaster");
 #endif
 

@@ -1,4 +1,5 @@
 /*
+ * Copyright (c) 2009 Scott E. Johnston
  * Copyright (c) 1997-2000 Vectaport Inc.
  * Copyright (c) 1994, 1995 Vectaport Inc., Cider Press
  *
@@ -414,7 +415,7 @@ CreateMoveFrameCmd::CreateMoveFrameCmd(Editor* e, boolean after)
 
 ClassId CreateMoveFrameCmd::GetClassId() { return CREATEMOVEFRAME_CMD; }
 boolean CreateMoveFrameCmd::IsA(ClassId id) {
-    return id == CREATEMOVEFRAME_CMD || Command::IsA(id);
+    return id == CREATEMOVEFRAME_CMD || MacroCmd::IsA(id);
 }
 
 Command* CreateMoveFrameCmd::Copy() {
@@ -446,7 +447,7 @@ CopyMoveFrameCmd::CopyMoveFrameCmd(Editor* e, boolean after)
 
 ClassId CopyMoveFrameCmd::GetClassId() { return COPYMOVEFRAME_CMD; }
 boolean CopyMoveFrameCmd::IsA(ClassId id) {
-    return id == COPYMOVEFRAME_CMD || Command::IsA(id);
+    return id == COPYMOVEFRAME_CMD || MacroCmd::IsA(id);
 }
 
 Command* CopyMoveFrameCmd::Copy() {
@@ -805,7 +806,7 @@ AutoNewFrameCmd::AutoNewFrameCmd(Editor* e)
 
 ClassId AutoNewFrameCmd::GetClassId() { return AUTONEWFRAME_CMD; }
 boolean AutoNewFrameCmd::IsA(ClassId id) {
-    return id == AUTONEWFRAME_CMD || Command::IsA(id);
+    return id == AUTONEWFRAME_CMD || MacroCmd::IsA(id);
 }
 
 Command* AutoNewFrameCmd::Copy() {

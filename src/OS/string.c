@@ -312,7 +312,7 @@ String String::before(const char* str) const {
  */
 
 String String::from(const char* str) const {
-  char* ptr = strstr(string(), str);
+  const char* ptr = strstr(string(), str);
   if (ptr) {
     int offset = (int)(ptr-string());
     return substr(offset,length()-offset);
@@ -465,7 +465,8 @@ void NullTerminatedString::free() {
 
 
 char* strnew (const char* s) {
-    char* dup = new char[strlen(s) + 1];
-    strcpy(dup, s);
-    return dup;
+  if (!s) return nil;
+  char* dup = new char[strlen(s) + 1];
+  strcpy(dup, s);
+  return dup;
 }

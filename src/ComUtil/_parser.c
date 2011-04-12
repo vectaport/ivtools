@@ -32,6 +32,7 @@ Summary:
 History:        Written by Scott E. Johnston, April 1989
 */
 
+#define DYNAMIC_COMMANDS
 
 #include <stdio.h>
 #include <string.h>
@@ -87,6 +88,21 @@ static int NextOp_ids[OPTYPE_NUM];
 
 /* Parenthesis stack macros */
 #define INITIAL_PAREN_STACK_SIZE 32
+#ifdef PAREN_STACK_EXPERIMENT
+#define PARENSTK_PUSH( paren_val, comm_val, nids_val ) {\
+if( ++TopOfParenStack == SizeOfParenStack ) {\
+   SizeOfParenStack *= 2;\
+   dmm_realloc_size(sizeof(paren_stack));\
+   if( dmm_realloc( (void **) &ParenStack, (long)SizeOfParenStack )) {\
+      COMERR_SET( ERR_MEMORY );\
+      goto error_return;}}\
+ParenStack[TopOfParenStack].paren_type = paren_val;\
+ParenStack[TopOfParenStack].narg = 0;\
+ParenStack[TopOfParenStack].nkey = 0;\
+ParenStack[TopOfParenStack].nids = nids_val;\
+ParenStack[TopOfParenStack].pfnum = *pfnum;\
+ParenStack[TopOfParenStack].comm_id = comm_val;}
+#else
 #define PARENSTK_PUSH( paren_val, comm_val, nids_val ) {\
 if( ++TopOfParenStack == SizeOfParenStack ) {\
    SizeOfParenStack *= 2;\
@@ -99,7 +115,7 @@ ParenStack[TopOfParenStack].narg = 0;\
 ParenStack[TopOfParenStack].nkey = 0;\
 ParenStack[TopOfParenStack].nids = nids_val;\
 ParenStack[TopOfParenStack].comm_id = comm_val;}
-
+#endif
 /* Operator stack macros */
 #define INITIAL_OPER_STACK_SIZE 32
 #define OPERSTK_PUSH( oper_id, type_val ) {\
@@ -158,8 +174,10 @@ else if( toktype == TOK_RBRACKET )\
    errid = ERR_UNEXPECTED_RBRACKET;\
 else if( toktype == TOK_RBRACE )\
    errid = ERR_UNEXPECTED_RBRACE;\
-else\
+else if( toktype == TOK_RANGBRACK )\
    errid = ERR_UNEXPECTED_RANGBRACK;\
+else\
+   errid = ERR_UNEXPECTED_RANGBRACK2;\
 COMERR_SET1( errid, *linenum );\
 goto error_return;}
 
@@ -171,18 +189,20 @@ else if( toktype == TOK_LBRACKET )\
    errid = ERR_UNEXPECTED_LBRACKET;\
 else if( toktype == TOK_LBRACE )\
    errid = ERR_UNEXPECTED_LBRACE;\
-else\
+else if( toktype == TOK_LANGBRACK )\
    errid = ERR_UNEXPECTED_LANGBRACK;\
+else\
+   errid = ERR_UNEXPECTED_LANGBRACK2;\
 COMERR_SET1( errid, *linenum );\
 goto error_return;}
 
 #define INSTACK_PRIORITY_HIGHER( incoming_priority ) rkg_instack( incoming_priority)
 
 #define LEFT_PAREN( toktype ) \
-(toktype == TOK_LPAREN || toktype == TOK_LBRACKET || toktype == TOK_LBRACE || toktype == TOK_LANGBRACK)
+(toktype == TOK_LPAREN || toktype == TOK_LBRACKET || toktype == TOK_LBRACE || toktype == TOK_LANGBRACK || toktype== TOK_LANGBRACK2)
 
 #define RIGHT_PAREN( toktype ) \
-(toktype == TOK_RPAREN || toktype == TOK_RBRACKET || toktype == TOK_RBRACE || toktype == TOK_RANGBRACK)
+(toktype == TOK_RPAREN || toktype == TOK_RBRACKET || toktype == TOK_RBRACE || toktype == TOK_RANGBRACK || toktype == TOK_RANGBRACK2)
 
 #define PROCEEDING_WHITESPACE( tokstart ) \
 (tokstart == 0 || isspace( buffer[tokstart-1] ))
@@ -211,6 +231,12 @@ static int parens_symid = -1;
 static int brackets_symid = -1;
 static int braces_symid = -1;
 static int angbracks_symid = -1;
+static int dblangbracks_symid = -1;
+static int parensplus_symid = -1;
+static int bracketsplus_symid = -1;
+static int bracesplus_symid = -1;
+static int angbracksplus_symid = -1;
+static int dblangbracksplus_symid = -1;
 
 /* === Static functions ================================================== */
 
@@ -928,12 +954,45 @@ int status;
             /* which will trigger the counting of narg and nkey to begin. */
 	    if( LEFT_PAREN( NextToktype )) 
             {
-	       PARENSTK_PUSH( NextToktype, *(int *)token, 1 );
-	       OPERSTK_PUSH ( -NextToktype, LEFTPAREN );
-	       *bufptr    = NextBufptr;
-	       *linenum   = NextLinenum;
-	       NextToklen = 0;
-	       expecting  = OPTYPE_UNARY_PREFIX;
+
+
+#if defined(DYNAMIC_COMMANDS)
+
+	      if ( TopOfOperStack >=0 && INSTACK_PRIORITY_HIGHER(1000)) {
+
+		/* Take all operators off the stack with priority higher than 1000 */
+		while ( TopOfOperStack >= 0 &&
+			INSTACK_PRIORITY_HIGHER(1000))
+		  {
+		    expecting = OPTYPE_BINARY;
+		    PFOUT( TOK_COMMAND, *(int *)token, 0, 0, 1 );
+		    
+		    if (OperStack[TopOfOperStack].oper_type == OPERATOR)
+		      {
+			OPERSTK_POP( temp_id );
+			PFOUT( TOK_COMMAND, opr_tbl_commid( temp_id ),
+			       (opr_tbl_optype( temp_id ) == OPTYPE_BINARY ? 2 : 1), 0, 1 );
+		      }
+		    else
+		      {
+			OPERSTK_POP( temp_id );
+			PFOUT( TOK_KEYWORD, temp_id, 1, 0, 0);
+		      }
+		  }
+	      } else {
+#endif
+		
+		PARENSTK_PUSH( NextToktype, *(int *)token, 1 );
+		OPERSTK_PUSH ( -NextToktype, LEFTPAREN );
+		*bufptr    = NextBufptr;
+		*linenum   = NextLinenum;
+		NextToklen = 0;
+		expecting  = OPTYPE_UNARY_PREFIX;
+
+#if defined(DYNAMIC_COMMANDS)
+	      }
+#endif
+
 	    }
 	    else
             {
@@ -1001,11 +1060,13 @@ int status;
 /*-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-LBRACKET-*/
 /*-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-LBRACE-*/
 /*-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-LANGBRACK-*/
+/*-LANGBRACK2-LANGBRACK2-LANGBRACK2-LANGBRACK2-LANGBRACK2-LANGBRACK2-LANGBRACK2-*/
 
       case TOK_LPAREN:
       case TOK_LBRACKET:
       case TOK_LBRACE:
       case TOK_LANGBRACK:
+      case TOK_LANGBRACK2:
 
       /* Expecting a binary is either an error, or an indicator of  */
       /* separation between free format parameters                  */
@@ -1040,11 +1101,13 @@ int status;
 /*-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-RBRACKET-*/
 /*-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-RBRACE-*/
 /*-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-RANGBRACK-*/
+/*-RANGBRACK2-RANGBRACK2-RANGBRACK2-RANGBRACK2-RANGBRACK2-RANGBRACK2-RANGBRACK2-*/
 
       case TOK_RPAREN:
       case TOK_RBRACKET:
       case TOK_RBRACE:
       case TOK_RANGBRACK:
+      case TOK_RANGBRACK2:
 
       /* Parenthesis integrity checking */
 	 if( TopOfParenStack < 0  ||
@@ -1065,7 +1128,10 @@ int status;
 		ParenStack[TopOfParenStack].paren_type != TOK_LBRACE ||
 
 	     toktype == TOK_RANGBRACK &&
-		ParenStack[TopOfParenStack].paren_type != TOK_LANGBRACK ) {
+		ParenStack[TopOfParenStack].paren_type != TOK_LANGBRACK ||
+
+	     toktype == TOK_RANGBRACK2 &&
+		ParenStack[TopOfParenStack].paren_type != TOK_LANGBRACK2 ) {
 
 	    UNEXPECTED_RPAREN_ERROR(toktype);
 	    }
@@ -1124,16 +1190,39 @@ int status;
 		 } else {
 		   if (parens_symid==-1) {
 		     parens_symid = symbol_add("()");
+		     parensplus_symid = symbol_add("+()");
 		     brackets_symid = symbol_add("[]");
+		     bracketsplus_symid = symbol_add("+[]");
 		     braces_symid = symbol_add("{}");
+		     bracesplus_symid = symbol_add("+{}");
 		     angbracks_symid = symbol_add("<>");
+		     angbracksplus_symid = symbol_add("+<>");
+		     dblangbracks_symid = symbol_add("<<>>");
+		     dblangbracksplus_symid = symbol_add("+<<>>");
 		   }
 		   int commandid = ParenStack[TopOfParenStack].comm_id;
 		   if (commandid<0) {
-		     if (toktype==TOK_RPAREN) commandid = parens_symid;
-		     else if (toktype==TOK_RBRACKET) commandid = brackets_symid;
-		     else if (toktype==TOK_RBRACE) commandid = braces_symid;
-		     else commandid = angbracks_symid;
+#ifdef PAREN_STACK_EXPERIMENT
+		     if (ParenStack[TopOfParenStack].pfnum==0 || TopOfParenStack>0 && ParenStack[TopOfParenStack-1].narg==0) {
+#else
+		     if (*pfnum==0 || TopOfParenStack>0 && ParenStack[TopOfParenStack-1].narg==0) {
+#endif
+		       if (toktype==TOK_RPAREN) commandid = parens_symid;
+		       else if (toktype==TOK_RBRACKET) commandid = brackets_symid;
+		       else if (toktype==TOK_RBRACE) commandid = braces_symid;
+		       else if (toktype==TOK_RANGBRACK) commandid = angbracks_symid;
+		       else commandid = dblangbracks_symid;
+		     } else {
+		       ParenStack[TopOfParenStack].narg++;   // assume associated symbol (or stream) will be on stack
+#ifdef PAREN_STACK_EXPERIMENT
+		       if (TopOfParenStack>0) ParenStack[TopOfParenStack-1].narg--;
+#endif
+		       if (toktype==TOK_RPAREN) commandid = parensplus_symid;
+		       else if (toktype==TOK_RBRACKET) commandid = bracketsplus_symid;
+		       else if (toktype==TOK_RBRACE) commandid = bracesplus_symid;
+		       else if (toktype==TOK_RANGBRACK) commandid = angbracksplus_symid;
+		       else commandid = dblangbracksplus_symid;
+		     }
 		   }
 		   PFOUT( TOK_COMMAND,
 			  commandid,
@@ -1205,7 +1294,6 @@ int status;
    /*   4) If the next token is an operator, it is not a binary operator    */
    /*   5) If _sticky_matched_delims is true, and the next token is not an  */
    /*      operator, then it can't be a matching delimeter.                 */
-   /*      and _delim_concatenation */
       if( !done && TopOfParenStack < 0 && expecting == OPTYPE_BINARY ) {
 
 	 if( NextToklen == 0 ) 

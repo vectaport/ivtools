@@ -57,6 +57,8 @@
 #include <string.h>
 #include <fstream.h>
 #include <iostream>
+#include <cstdio>
+using namespace std;
 
 using std::cerr;
 

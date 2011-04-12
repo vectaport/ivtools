@@ -31,6 +31,7 @@
 #include <DrawServ/drawclasses.h>
 #include <FrameUnidraw/framefile.h>
 #include <GraphUnidraw/graphclasses.h>
+#include <GraphUnidraw/nodecomp.h>
 #include <OverlayUnidraw/paramlist.h>
 #include <Unidraw/clipboard.h>
 #include <Unidraw/iterator.h>
@@ -143,8 +144,10 @@ boolean DrawIdrawScript::Emit (ostream& out) {
 	Iterator j;
 	for(comp->First(j); !comp->Done(j); comp->Next(j)) {
 	  GraphicComp* subcomp = comp->GetComp(j);
-	  if (subcomp->IsA(NODE_COMP))
+	  if (subcomp->IsA(NODE_COMP)) {
+	    ((NodeComp*)subcomp)->index(num_node);
 	    num_node++;
+	  }
 	  else if (subcomp->IsA(EDGE_COMP))
 	    num_edge++;
 	}

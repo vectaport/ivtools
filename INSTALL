@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.2
 
-Instructions for building ivtools-1.2.6 from source, the short version:
+Instructions for building ivtools-1.2.8 from source, the short version:
 
 	./configure
 	make
@@ -25,7 +25,7 @@ BSD-derivative OS.  As of version 1.0.7 ivtools is Jaguar ready.
 with "make -v"
 
 0.c. The gcc compiler.  Almost any recent version of gcc will work, up
-to gcc-4.3.  You will also need an equivalent copy of libstdc++.
+to gcc-4.4.  You will also need an equivalent copy of libstdc++.
 libstdc++ comes bundled with gcc-3.0 and greater.  Before that the
 libstdc++ version numbers stay roughly in synch with the gcc version
 numbers.  If you have gcc-2.8.1 you'd want libstdc++-2.8.1, etc..
@@ -65,12 +65,12 @@ available from:
 
 http://www.cs.wustl.edu/%7Eschmidt/ACE.html
 
-We are currently using ACE-5.1 (or the latest copy of ACE) built
+We are currently using ACE-5.6 (or the latest copy of ACE) built
 without threads support.  Follow these steps to build it from source,
 or use the Debian binary if you happen to be working on that platform
 (libace5.1-dev):
 
-	tar xvfz ACE-5.1.tar.gz
+	tar xvfz ACE-5.6.tar.gz
 	cd ACE_wrappers
 	export ACE_ROOT=`pwd`       # csh: setenv ACE_ROOT `pwd`
 	cd ace

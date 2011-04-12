@@ -31,9 +31,13 @@
 #include <IVGlyph/importchooser.h>
 #include <Unidraw/iterator.h>
 #include <Unidraw/unidraw.h>
-#include <Comterp/comhandler.h>
+#include <ComTerp/comhandler.h>
 #include <fstream.h>
 #include <stdio.h>
+
+#include <iostream>
+using std::cout;
+using std::cerr;
 
 /*****************************************************************************/
 

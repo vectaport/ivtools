@@ -61,10 +61,11 @@ Log: Date.c,v
 */
 
 #include <Time/Date.h>
-#include <Time/Time.h>
+#include <Time/Time_.h>
 #include <OS/string.h>
 
-#include <iomanip.h>
+#include <iomanip>
+using namespace std;
 #include <ctype.h>
 #include <string.h>
 #include <stdio.h>

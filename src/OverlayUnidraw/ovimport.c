@@ -1191,8 +1191,8 @@ void OvImportCmd::Execute () {
 
 boolean OvImportCmd::Reversible () { return false; }
 
-::Command* OvImportCmd::Copy () {
-    OvImportCmd* copy = new OvImportCmd(CopyControlInfo());
+Command* OvImportCmd::Copy () {
+    OvImportCmd* copy = new OvImportCmd(CopyControlInfo(), chooser_);
     InitCopy(copy);
     copy->preserve_selection(preserve_selection_);
     return copy;
