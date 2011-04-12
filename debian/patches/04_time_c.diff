@@ -1,17 +1,15 @@
-Index: ivtools-1.2/src/Time/Time.c
-===================================================================
---- ivtools-1.2.orig/src/Time/Time.c	2009-09-04 13:16:59.000000000 -0400
-+++ ivtools-1.2/src/Time/Time.c	2009-09-04 13:18:29.000000000 -0400
-@@ -28,11 +28,14 @@
+--- a/src/Time/Time.c
++++ b/src/Time/Time.c
+@@ -28,12 +28,15 @@ seconds since January 1, 1901, GMT.
    Modified by Vectaport Inc.  - added operator << plus other small stuff.
  */
  
 +#include <cstdio>
 +
  #include <Time/Date.h>
- #include <Time/Time.h>
--#include <iomanip.h>
-+#include <iomanip>
+ #include <Time/Time_.h>
+ #include <iomanip>
+ using namespace std;
  
 -#include <stdio.h>
 +using std::setfill;

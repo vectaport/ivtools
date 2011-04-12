@@ -1,16 +1,11 @@
-Index: ivtools-1.2/src/DrawServ/rcdialog.c
-===================================================================
---- ivtools-1.2.orig/src/DrawServ/rcdialog.c	2009-09-04 12:41:40.000000000 -0400
-+++ ivtools-1.2/src/DrawServ/rcdialog.c	2009-09-04 12:42:00.000000000 -0400
-@@ -49,9 +49,9 @@
+--- a/src/DrawServ/rcdialog.c
++++ b/src/DrawServ/rcdialog.c
+@@ -49,7 +49,7 @@
  #include <InterViews/style.h>
  #include <InterViews/window.h>
  
 -#include <stdio.h>
 +#include <cstdio>
  #include <stdlib.h>
--#include <vector.h>
-+#include <vector>
- 
- /*****************************************************************************/
- 
+ using namespace std;
+ #include <vector>

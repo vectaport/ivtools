@@ -1,10 +1,8 @@
 Pointer length is different in 32 and 64 bit arches.
 
-Index: ivtools-1.2.6/src/Attribute/attrvalue.c
-===================================================================
---- ivtools-1.2.6.orig/src/Attribute/attrvalue.c	2008-02-12 19:38:19.000000000 +0100
-+++ ivtools-1.2.6/src/Attribute/attrvalue.c	2009-09-27 23:56:17.000000000 +0200
-@@ -357,7 +357,7 @@
+--- a/src/Attribute/attrvalue.c
++++ b/src/Attribute/attrvalue.c
+@@ -393,7 +393,7 @@ boolean AttributeValue::boolean_val() {
      case AttributeValue::StringType:
  	return (boolean) int_val()!=-1;
      case AttributeValue::ObjectType:
@@ -13,7 +11,7 @@ Index: ivtools-1.2.6/src/Attribute/attrvalue.c
      case AttributeValue::StreamType:
  	return stream_mode() != 0;
      default:
-@@ -516,7 +516,7 @@
+@@ -552,7 +552,7 @@ unsigned int AttributeValue::uint_val()
      case AttributeValue::SymbolType:
  	return (unsigned int) int_val();
      case AttributeValue::ObjectType:
@@ -22,7 +20,7 @@ Index: ivtools-1.2.6/src/Attribute/attrvalue.c
      default:
  	return 0;
      }
-@@ -549,7 +549,7 @@
+@@ -585,7 +585,7 @@ int AttributeValue::int_val() {
      case AttributeValue::SymbolType:
  	return int_ref();
      case AttributeValue::ObjectType:

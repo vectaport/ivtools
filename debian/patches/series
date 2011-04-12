@@ -27,7 +27,6 @@
 24_ol_kit_c.diff
 35_OS_string_h.diff
 36_printer_c.diff
-37_Time_h.diff
 38_xdrag_c.diff
 39_iostream_h.diff
 40_fstream_h.diff
@@ -36,7 +35,6 @@
 43_graphcatalog_c.diff
 44_site_def_DEBIAN.diff
 45_site_def_LINUX.diff
-46_comdraw_crash.diff
 47_manpages_whatis.diff
 48_gcc40_int_pointer_errors.diff
 49_string.c_constchar.diff

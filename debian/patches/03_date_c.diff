@@ -1,19 +1,16 @@
-Index: ivtools-1.2/src/Time/Date.c
-===================================================================
---- ivtools-1.2.orig/src/Time/Date.c	2009-09-04 13:45:53.000000000 -0400
-+++ ivtools-1.2/src/Time/Date.c	2009-09-04 13:46:25.000000000 -0400
-@@ -60,14 +60,19 @@
+--- a/src/Time/Date.c
++++ b/src/Time/Date.c
+@@ -60,6 +60,8 @@ Log: Date.c,v
    Modified by Vectaport, Inc.
  */
  
 +#include <cstdio>
 +
  #include <Time/Date.h>
- #include <Time/Time.h>
+ #include <Time/Time_.h>
  #include <OS/string.h>
- 
--#include <iomanip.h>
-+#include <iomanip>
+@@ -68,7 +70,10 @@ Log: Date.c,v
+ using namespace std;
  #include <ctype.h>
  #include <string.h>
 -#include <stdio.h>
