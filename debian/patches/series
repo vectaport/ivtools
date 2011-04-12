@@ -39,3 +39,4 @@
 48_gcc40_int_pointer_errors.diff
 49_string.c_constchar.diff
 50_configure_no_qt.diff
+51_libTIFF_to_libtiff.diff
