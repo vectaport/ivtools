@@ -1,0 +1,79 @@
+Remove autotools qt support.
+
+--- a/config/config.defs.in
++++ b/config/config.defs.in
+@@ -39,12 +39,6 @@
+ #define IueLibDir @IUELIBS@
+ #endif
+ 
+-#if @QT_ENABLED@
+-#define QtDir @QT@
+-#define QtLibDir @QTLIBS@
+-#define QtIncDir @QTINCS@
+-#endif
+-
+ #if @TIFF_ENABLED@
+ #define TiffDir @TIFF@
+ #define TiffLibDir @TIFFLIBS@
+--- a/configure.in
++++ b/configure.in
+@@ -213,59 +213,6 @@ else
+ fi
+ 
+ 
+-QT_ENABLED=0
+-QT=""
+-QTLIBS=""
+-AC_ARG_WITH(qt,     [  --with-qt=<path>    path to QT directory],
+-        QT=$withval
+-	
+-	if test x"$QTLIBS" = x
+-	then
+-		if test -d "$QT"/lib
+-		then
+-			QTLIBS=$QT/lib
+-		else
+-			QTLIBS=$QT/Build/lib
+-		fi
+-	fi
+-)
+-
+-AC_ARG_WITH(qt-libs,[  --with-qt-libs=<path> path to compiled QT libs],
+-	QTLIBS=$withval )
+-
+-## Check qt
+-
+-if test x"$QT" = x
+-then
+-	echo ""
+-	echo "No QT path specified."
+-	echo "Use --with-qt=<path> to point to QT installed directory."
+-else
+-   if test ! -f "$QT"/include/qt.h
+-   then
+-	echo ""
+-	echo "Verify your QT environment and try it again."
+-	echo "(Couldn't find $QT/include/qt.h!)"
+-
+-	echo "Use --with-qt=<path> to point to QT (or set it in the env)."
+-	echo "<path> points to the installed QT version or to a source tree."
+-	echo "You may also use --with-qt-libs to specify the lib directory."
+-   else
+-	QTINCS="$QT/include"
+-   fi
+-
+-   if test ! -d "$QTLIBS"
+-   then
+-        echo "QT directory '$QTLIBS' does not exist (or is not readable)."
+-        echo "Use --with-qt-libs to point to it."
+-   fi
+-   echo "Building with QT support"
+-   echo "QT includes = $QTINCS"
+-   echo "QT libs = $QTLIBS"
+-   QT_ENABLED=1
+-fi
+-
+-
+ # check of the c++ compiler
+ AC_PROG_CXX
+ # check for the c compiler
