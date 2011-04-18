@@ -2,32 +2,301 @@ This package was debianized by Guenter Geiger geiger@debian.org on
 Sun, 25 Jun 2000 16:42:31 +0100.                                                                            
                                                                                                             
 It was downloaded from <http://www.ivtools.org>                                                   
- 
+
+The file README states:
+
+    The overall copyright and permission notice for ivtools can be
+    found in the COPYRIGHT file in this directory.  It is similar to
+    the X11 copyright, otherwise known as non-copylefted freeware.
+
+The contents of the file COPYRIGHT is, in its entirety,
+
+    /*
+     * Copyright (c) 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008 Scott E. Johnston
+     * Copyright (c) 2000  Vectaport Inc., IET Inc
+     * Copyright (c) 1999  Vectaport Inc., IET Inc, R.B. Kissh and Associates
+     * Copyright (c) 1998  Vectaport Inc., R.B. Kissh and Associates, Eric F. Kahler
+     * Copyright (c) 1997  Vectaport Inc., R.B. Kissh and Associates
+     * Copyright (c) 1996  Vectaport Inc., R.B. Kissh and Associates, Cider Press
+     * Copyright (c) 1994, 1995  Vectaport Inc., Cartoactive Systems, Cider Press
+     * Copyright (c) 1993 David B. Hollenbeck
+     * Copyright (c) 1993 Ellemtel Telecommunication Systems Labratories
+     * Copyright (c) 1991, 1992 Sam Leffler
+     * Copyright (c) 1991 Silicon Graphics, Inc.
+     * Copyright (c) 1989 Triple Vision Inc.
+     * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
+     *
+     * Permission to use, copy, modify, distribute, and sell this software and its
+     * related documentation and data files for any purpose is hereby granted
+     * without fee, provided that the above copyright notice appear in all copies
+     * and that both that copyright notice and this permission notice appear in
+     * supporting documentation, and that the names of the copyright holders not
+     * be used in advertising or publicity pertaining to distribution of the
+     * software without specific, written prior permission.  The copyright holders
+     * make no representations about the suitability of this software for any
+     * purpose.  It is provided "as is" without express or implied warranty.
+     *
+     * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+     * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+     * IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL,
+     * INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
+     * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
+     * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+     * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+     */
+
+The file COPYING reads, in its entirety,
+
+    From Sept. 6th 2000 to May 18th 2001 I represented that ivtools was
+    dual-licensed under its original BSD-like license and the GPL.  On May
+    18th 2001 I became aware of the complete requirements for
+    dual-licensing against GPL (in terms of required headers in each
+    source file), and decided to discontinue dual licensing for the time
+    being.  ivtools is still free software, as defined by the Free
+    Software Foundation, it's just not dual-licensed with the GPL.  I
+    would still be amenable to the creation of a dual distribution (with
+    provisions for possible GPL-only enhancements) if requested by other
+    collaborators.
+
+    Scott Johnston
+    http://www.ivtools.org
+
+Some files are, in whole or in part, in the public domain, or in a
+variety of other licenses which are compatible with the contents of
+the COPYRIGHT file.
+
+file src/Time/Date.c
+file src/Time/Date.h
+file src/Time/Time.c
+file src/Time/Time_.h
+
+	THIS SOFTWARE FITS THE DESCRIPTION IN THE U.S. COPYRIGHT ACT OF A
+	"UNITED STATES GOVERNMENT WORK".  IT WAS WRITTEN AS A PART OF THE
+	AUTHOR'S OFFICIAL DUTIES AS A GOVERNMENT EMPLOYEE.  THIS MEANS IT
+	CANNOT BE COPYRIGHTED.  THIS SOFTWARE IS FREELY AVAILABLE TO THE
+	PUBLIC FOR USE WITHOUT A COPYRIGHT NOTICE, AND THERE ARE NO
+	RESTRICTIONS ON ITS USE, NOW OR SUBSEQUENTLY.
+
+	(Authors: Edward M. Persky and K. E. Gorlen)
+
+file src/OverlayUnidraw/algebra3.h
+
+    //      From "Graphics Gems IV / Edited by Paul S. Heckbert
+    //      Academic Press, 1994, ISBN 0-12-336156-9
+    //      "You are free to use and modify this code in any way 
+    //      you like." (p. xv)
+    //
+    //      Modified by J. Nagle, March 1997
+    //      Modified by J. Gautier April 1997
+
+file src/IVGlyph/strchooser.c
+file src/IVGlyph/strchooser.h
+
+    /*
+     * Copyright (c) 1993 David B. Hollenbeck
+     *
+     * Permission to use, copy, modify, distribute, and sell this software and 
+     * its documentation for any purpose is hereby granted without fee, provided
+     * that (i) the above copyright notice and this permission notice appear in
+     * all copies of the software and related documentation, and (ii) the name of
+     * David B. Hollenbeck may not be used in any advertising or
+     * publicity relating to the software without the specific, prior written
+     * permission of David B. Hollenbeck.
+     * 
+     * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+     * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+     * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+     *
+     * IN NO EVENT SHALL DAVID B. HOLLENBECK BE LIABLE FOR
+     * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+     * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+     * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+     * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+     * OF THIS SOFTWARE.
+     */
+    /*
+     * Copyright (c) 1991 Stanford University
+     * Copyright (c) 1991 Silicon Graphics, Inc.
+     *
+     * Permission to use, copy, modify, distribute, and sell this software and 
+     * its documentation for any purpose is hereby granted without fee, provided
+     * that (i) the above copyright notices and this permission notice appear in
+     * all copies of the software and related documentation, and (ii) the names of
+     * Stanford and Silicon Graphics may not be used in any advertising or
+     * publicity relating to the software without the specific, prior written
+     * permission of Stanford and Silicon Graphics.
+     * 
+     * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+     * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+     * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+     *
+     * IN NO EVENT SHALL STANFORD OR SILICON GRAPHICS BE LIABLE FOR
+     * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+     * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+     * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+     * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+     * OF THIS SOFTWARE.
+     */
+
+file src/glyphs/strchooser/main.c
+
+    /*
+     * Copyright (c) 1993 David B. Hollenbeck
+     *
+     * Permission to use, copy, modify, distribute, and sell this software and 
+     * its documentation for any purpose is hereby granted without fee, provided
+     * that (i) the above copyright notice and this permission notice appear in
+     * all copies of the software and related documentation, and (ii) the name of
+     * David B. Hollenbeck may not be used in any advertising or
+     * publicity relating to the software without the specific, prior written
+     * permission of David B. Hollenbeck.
+     * 
+     * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+     * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+     * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+     *
+     * IN NO EVENT SHALL DAVID B. HOLLENBECK BE LIABLE FOR
+     * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+     * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+     * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+     * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+     * OF THIS SOFTWARE.
+     */
+
+The TIFF library was written by Sam Leffler and published with this
+copyright and permission notice:
+
 /*
- * Copyright (c) 1999  Vectaport Inc., R.B. Kissh and Associates
- * Copyright (c) 1998  Vectaport Inc., R.B. Kissh and Associates, Eric F. Kahler
- * Copyright (c) 1997  Vectaport Inc., R.B. Kissh and Associates
- * Copyright (c) 1996  Vectaport Inc., R.B. Kissh and Associates, Cider Press
- * Copyright (c) 1994, 1995  Vectaport Inc., Cartoactive Systems, Cider Press
- * Copyright (c) 1991 Silicon Graphics, Inc.
- * Copyright (c) 1987, 1988, 1989, 1990, 1991 Stanford University
+ * Copyright (c) 1991, 1992 Sam Leffler
+ * Copyright (c) 1991, 1992 Silicon Graphics, Inc.
  *
- * Permission to use, copy, modify, distribute, and sell this software and its
- * related documentation and data files for any purpose is hereby granted
- * without fee, provided that the above copyright notice appear in all copies
- * and that both that copyright notice and this permission notice appear in
- * supporting documentation, and that the names of the copyright holders not
- * be used in advertising or publicity pertaining to distribution of the
- * software without specific, written prior permission.  The copyright holders
- * make no representations about the suitability of this software for any
- * purpose.  It is provided "as is" without express or implied warranty.
+ * Permission to use, copy, modify, distribute, and sell this software and 
+ * its documentation for any purpose is hereby granted without fee, provided
+ * that (i) the above copyright notices and this permission notice appear in
+ * all copies of the software and related documentation, and (ii) the names of
+ * Sam Leffler and Silicon Graphics may not be used in any advertising or
+ * publicity relating to the software without the specific, prior written
+ * permission of Sam Leffler and Silicon Graphics.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+ * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+ * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+ * 
+ * IN NO EVENT SHALL SAM LEFFLER OR SILICON GRAPHICS BE LIABLE FOR
+ * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+ * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+ * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+ * OF THIS SOFTWARE.
+ */
+
+The strchooser example and StrChooser class were contributed by David
+B. Hollenbeck, as well as the glyph-based Motif-look pull-down menus
+of OverlayUnidraw.  Here is his copyright notice:
+
+/*
+ * Copyright (c) 1993 David B. Hollenbeck
  *
- * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+ * Permission to use, copy, modify, distribute, and sell this software and 
+ * its documentation for any purpose is hereby granted without fee, provided
+ * that (i) the above copyright notice and this permission notice appear in
+ * all copies of the software and related documentation, and (ii) the name of
+ * David B. Hollenbeck may not be used in any advertising or
+ * publicity relating to the software without the specific, prior written
+ * permission of David B. Hollenbeck.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS-IS" AND WITHOUT WARRANTY OF ANY KIND, 
+ * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY 
+ * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.  
+ *
+ * IN NO EVENT SHALL DAVID B. HOLLENBECK BE LIABLE FOR
+ * ANY SPECIAL, INCIDENTAL, INDIRECT OR CONSEQUENTIAL DAMAGES OF ANY KIND,
+ * OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ * WHETHER OR NOT ADVISED OF THE POSSIBILITY OF DAMAGE, AND ON ANY THEORY OF 
+ * LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE 
+ * OF THIS SOFTWARE.
+ */
+
+The scrollable example is based on code from Chen Wang
+
+The text-editor example program is by Jan Andersson of Torpa Konsult
+AB.  Here is that copyright notice:
+
+//
+// Simple Text Editor
+//
+//
+// Copyright (C) 1993 Ellemtel Telecommunication Systems Labratories
+//
+// Permission is granted to any individual or institution to use, copy,
+// modify, and distribute this software, provided that this complete
+// copyright and permission notice is maintained, intact, in all copies
+// and supporting documentation.
+//
+// Ellemtel Telecommunication Systems Labratories make no representation
+// of the suitability of this software for any purpose. It is provided
+// "as is" without any expressed or implied warranty.
+//
+// Jan Andersson, Torpa Konsult AB
+// janne at torpa.se - 1993-08-29
+
+The Date and Time classes in the Time library are borrowed from the
+NIHCL class library, written by K. E. Gorlen, Computer Sciences
+Laboratory, DCRT, National Institutes of Health, Bethesda, MD 20892,
+and published with this notice:
+
+     THIS SOFTWARE FITS THE DESCRIPTION IN THE U.S. COPYRIGHT ACT OF A
+     "UNITED STATES GOVERNMENT WORK".  IT WAS WRITTEN AS A PART OF THE
+     AUTHOR'S OFFICIAL DUTIES AS A GOVERNMENT EMPLOYEE.  THIS MEANS IT
+     CANNOT BE COPYRIGHTED.  THIS SOFTWARE IS FREELY AVAILABLE TO THE
+     PUBLIC FOR USE WITHOUT A COPYRIGHT NOTICE, AND THERE ARE NO
+     RESTRICTIONS ON ITS USE, NOW OR SUBSEQUENTLY.
+
+The graylevel raster and painting mechanisms of OverlayUnidraw were
+originated by Richard B. Kissh under contract to Vectaport Inc, as
+well as the shared memory rasters and asychronous incremental download
+of rasters.
+
+The ComUtil library was originally developed at Triple Vision
+Inc. under NSF Grant ISI-8521259 (authors/contributors: Robert
+C. Fitch, Richard A. Fundakowski, Robert K. Graber, Scott
+E. Johnston).
+
+The ivdl URL downloading utility was developed by Eric F. Kahler under
+contract to Vectaport Inc.
+
+The balance of ivtools has been developed by Vectaport Inc. (P.O. Box
+7141, Redwood City, CA 94063), with additional support from IET Inc.
+(P.O.  Box 112450, Campbell, CA 95011) in the form of ARPA
+subcontracts (DACA76-93-C-0025 and DACA76-97-C-0005), as well as
+directly employing Scott Johnston from April 1999 thru August 2000 and
+giving him the freedom to evolve ivtools and related open-source
+frameworks as part of his job. There was also support from Applied
+Sciences Inc, San Francisco, CA, in the form of a subcontract for a
+Phase II SBIR from NASA Ames.
+
+Many files have the following, with variation only in the dates and
+sometimes addition of an author.
+
+/*
+ * Copyright (c) 1999 Vectaport Inc.
+ * Copyright (c) 1990, 1991 Stanford University
+ *
+ * Permission to use, copy, modify, distribute, and sell this software and
+ * its documentation for any purpose is hereby granted without fee, provided
+ * that the above copyright notice appear in all copies and that both that
+ * copyright notice and this permission notice appear in supporting
+ * documentation, and that the names of the copyright holders not be used in
+ * advertising or publicity pertaining to distribution of the software
+ * without specific, written prior permission.  The copyright holders make
+ * no representations about the suitability of this software for any purpose.
+ * It is provided "as is" without express or implied warranty.
+ *
+ * THE COPYRIGHT HOLDERS DISCLAIM ALL WARRANTIES WITH REGARD TO THIS
+ * SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
  * IN NO EVENT SHALL THE COPYRIGHT HOLDERS BE LIABLE FOR ANY SPECIAL,
  * INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING
  * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-
