@@ -1,0 +1,25 @@
+Document: ivtools-reference-manual
+Title: InterViews Reference Manual
+Author: Mark A. Linton, Paul R. Calder, John A. Interrante,
+ Steven Tang, John M. Vlissides
+Abstract: InterViews is a software system for window-based
+ applications.  Like most user environments, InterViews is
+ object-oriented in that components such as windows, buttons, menus,
+ and documents are active elements with inherited behavior. The name
+ "InterViews" comes from the idea of a user interface object
+ presenting an interactive view of some data. For example, a text
+ editor implements an interactive view of the contents of a text file.
+ .
+ InterViews provides a set of classes that define the behavior of user
+ interface objects. We distinguish InterViews classes into two groups:
+ protocols and kits. A protocol defines the set of operations that an
+ object can perform, such as drawing or handling input. A kit defines
+ a set of operations for creating other objects. The idea of a kit is
+ also sometimes referred to as an "object factory". Using kits hides
+ the details of object construction and subclassing-instancing
+ tradeoffs made by the implementation, as well as providing a
+ higher-level organizational structure to the system.
+Section: Programming
+
+Format: PDF
+Files: /usr/share/doc/ivtools-dev/refman.pdf.gz
