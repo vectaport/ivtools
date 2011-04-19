@@ -1,4 +1,4 @@
-ivtools (1.2.8-0.1) unstable; urgency=low
+ivtools (1.2.8-1) unstable; urgency=low
 
   * New upstream release
   * New maintainer
@@ -16,10 +16,15 @@ ivtools (1.2.8-0.1) unstable; urgency=low
     51_libTIFF_to_libtiff.diff
   * Update patches:
     18_timeglyph_c.diff -- refresh
-  * Bump policy, bump to dh 8, misc packaging updates
-  * Source format 3.0 (quilt)
+  * Packaging updates:
+    - grossly expand debian/copyright
+    - bump policy
+    - bump to dh 8
+    - rewrite debian/rules & associated files
+    - convert reference manual from PS to PDF
+    - source format 3.0 (quilt)
 
- -- Barak A. Pearlmutter <bap@debian.org>  Tue, 12 Apr 2011 15:27:46 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 19 Apr 2011 19:28:32 +0100
 
 ivtools (1.2.6-1+nmu3) unstable; urgency=low
 
