@@ -1,0 +1,11 @@
+/*.debhelper
+/*.log
+/*.substvars
+/files
+/glyphs.tar
+/ivtools-bin/
+/ivtools-dev/
+/libiv-unidraw1/
+/libiv1/
+/refman.pdf
+/tmp
