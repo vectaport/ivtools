@@ -21,10 +21,9 @@ override_dh_auto_build:
 	$(MAKE) Makefile  ARCH=LINUX
 	$(MAKE) Makefiles ARCH=LINUX
 	$(MAKE) ARCH=LINUX CCLINKER='$$(CXX)'
-	(cd src/man/refman3.1 && ps2pdf refman.PS refman.pdf)
 
 override_dh_auto_install:
-	dh_auto_install -- ARCH=LINUX CCLINKER='$$(CXX)' \
+	dh_auto_install -- ARCH=LINUX CCLINKER='$$(CXX)'		\
 		     BINDIR=$(CURDIR)/debian/tmp/usr/bin		\
 		  CONFIGDIR=$(CURDIR)/debian/tmp/usr/lib/ivtools/config	\
 		     INCDIR=$(CURDIR)/debian/tmp/usr/include		\
@@ -32,8 +31,6 @@ override_dh_auto_install:
 		  LIBABSDIR=$(CURDIR)/debian/tmp/usr/lib		\
 		  LIBALLDIR=$(CURDIR)/debian/tmp/usr/lib/ivtools	\
 		     MANDIR=$(CURDIR)/debian/tmp/usr/share/man
-	# No idea what this was for...
-	# [ ! -f src/glyphs/Makefile ] || $(MAKE) -C src/glyphs clean
 	@echo remove incorrect executable bit from some random text files
 	chmod --verbose a-x debian/tmp/usr/lib/ivtools/Idemo
 	chmod --verbose a-x debian/tmp/usr/lib/ivtools/comterp.err
@@ -43,17 +40,32 @@ override_dh_auto_install:
 override_dh_install:
 	dh_install
 	@echo prevent executables in ivtools-dev from being duplicated in ivtools-bin
-	find debian/ivtools-dev/usr/bin -type f -o -type l \
-	 | sed s:^debian/ivtools-dev/:debian/ivtools-bin/: \
+	find debian/ivtools-dev/usr/bin -type f -o -type l	\
+	 | sed s:^debian/ivtools-dev/:debian/ivtools-bin/:	\
 	 | xargs --no-run-if-empty rm --verbose
 	@echo prevent library files in libiv1 from being duplicated in libiv-unidraw1
-	find debian/libiv1/usr/lib -type f -o -type l \
-	 | sed s:^debian/libiv1/:debian/libiv-unidraw1/: \
+	find debian/libiv1/usr/lib -type f -o -type l		\
+	 | sed s:^debian/libiv1/:debian/libiv-unidraw1/:	\
 	 | xargs --no-run-if-empty rm --verbose
 
 override_dh_installman:
 	dh_installman
 	@echo prevent man pages in ivtools-dev from being duplicated in ivtools-bin
-	find debian/ivtools-dev/usr/share/man/man1 -type f -o -type l \
-	 | sed s:^debian/ivtools-dev/:debian/ivtools-bin/: \
+	find debian/ivtools-dev/usr/share/man/man1 -type f -o -type l	\
+	 | sed s:^debian/ivtools-dev/:debian/ivtools-bin/:		\
 	 | xargs --no-run-if-empty rm --verbose
+
+override_dh_installdocs: debian/refman.pdf
+	dh_installdocs
+
+override_dh_installexamples: debian/glyphs.tar
+	dh_installexamples
+
+debian/refman.pdf: src/man/refman3.1/refman.PS
+	ps2pdf $< $@
+
+debian/glyphs.tar:
+	tar --create --file=$@ \
+	    --exclude-backups --exclude='*.bak' \
+	    --exclude=Makefile.depend --exclude='*.o' --exclude=a.out \
+	    --directory=src glyphs
