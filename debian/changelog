@@ -1,3 +1,12 @@
+ivtools (1.2.8-3) UNRELEASED; urgency=low
+
+  * Update patches:
+    37_Time_h -- removed (upstream)
+    46_comdraw_crash -- removed (upstream)
+    47_manpages_whatis -- add new pages
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 27 Apr 2011 19:11:28 +0100
+
 ivtools (1.2.8-2) unstable; urgency=low
 
   * build debian-specific things in debian subdir (debian/rules etc)
