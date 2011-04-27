@@ -35,3 +35,28 @@ Index: ivtools-1.2/src/man/man1/drawtool.1
  
  .PP
  "-panner_off" (or "-poff") disables the panner display.
+Index: ivtools-1.2/src/man/man3/BasicDialog.3
+===================================================================
+--- ivtools-1.2.orig/src/man/man3/BasicDialog.3
++++ ivtools-1.2/src/man/man3/BasicDialog.3
+@@ -1,7 +1,7 @@
+ .TH BasicDialog 3U "23 July 1990" "Unidraw" "InterViews Reference Manual"
+ .SH NAME
+ AcknowledgeDialog, BasicDialog, ConfirmDialog, GridDialog, \
+-PrintDialog, UChooser - an assortment of useful dialog boxes
++PrintDialog, UChooser \- an assortment of useful dialog boxes
+ .SH SYNOPSIS
+ .B #include <Unidraw/dialogs.h>
+ .SH DESCRIPTION
+Index: ivtools-1.2/src/man/man3/UnidrawIntro.3
+===================================================================
+--- ivtools-1.2.orig/src/man/man3/UnidrawIntro.3
++++ ivtools-1.2/src/man/man3/UnidrawIntro.3
+@@ -1,6 +1,6 @@
+ .TH UnidrawIntro 3U "11 June 1990" "Unidraw" "InterViews Reference Manual"
+ .SH NAME
+-Unidraw library for graphical object editor development
++Unidraw_Intro \- Unidraw library for graphical object editor development
+ .SH SYNOPSIS
+ .B #include <Unidraw/\fIclass\fP.h>
+ .br
