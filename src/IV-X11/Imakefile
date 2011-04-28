@@ -1,7 +1,0 @@
-XCOMM
-XCOMM IV-X11 source files
-XCOMM
-
-PACKAGE = src_x11
-
-IvmkcmTargets($(PACKAGE))

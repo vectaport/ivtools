@@ -1,9 +1,0 @@
-XCOMM
-XCOMM include files for using classes that encapsulate OS-dependent functions
-XCOMM
-
-PACKAGE = include_os
-
-IvmkcmTargets($(PACKAGE))
-
-InstallIncludes(OS)
