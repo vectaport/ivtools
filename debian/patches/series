@@ -1,6 +1,3 @@
-01_configure.diff
-02_rules_def.diff
-025_params_def.diff
 026_geomobjs_c.diff
 027_regexp_c.diff
 03_date_c.diff
@@ -33,10 +30,6 @@
 41_glyphs_examples_main_c.diff
 42_geomobjs_h.diff
 43_graphcatalog_c.diff
-44_site_def_DEBIAN.diff
-45_site_def_LINUX.diff
 47_manpages_whatis.diff
 48_gcc40_int_pointer_errors.diff
 49_string.c_constchar.diff
-50_configure_no_qt.diff
-51_libTIFF_to_libtiff.diff
