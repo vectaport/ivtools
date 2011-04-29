@@ -1,2 +1,8 @@
-Makefile.bak
-LINUX/
+*.la
+*.lo
+*.o
+.deps/
+.libs/
+/.pc/
+Makefile
+Makefile.in
