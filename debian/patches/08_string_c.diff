@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/OS/string.c
+Index: ivtools-1.2/src/OS/string.cc
 ===================================================================
---- ivtools-1.2.orig/src/OS/string.c	2009-09-04 13:04:56.000000000 -0400
-+++ ivtools-1.2/src/OS/string.c	2009-09-04 13:05:10.000000000 -0400
+--- ivtools-1.2.orig/src/OS/string.cc
++++ ivtools-1.2/src/OS/string.cc
 @@ -22,6 +22,7 @@
   * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
   */

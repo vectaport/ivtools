@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/Attribute/paramlist.c
+Index: ivtools-1.2/src/Attribute/paramlist.cc
 ===================================================================
---- ivtools-1.2.orig/src/Attribute/paramlist.c	2009-09-04 12:57:24.000000000 -0400
-+++ ivtools-1.2/src/Attribute/paramlist.c	2009-09-04 12:57:45.000000000 -0400
+--- ivtools-1.2.orig/src/Attribute/paramlist.cc
++++ ivtools-1.2/src/Attribute/paramlist.cc
 @@ -25,6 +25,7 @@
   * Implementation of ParamList class.
   */

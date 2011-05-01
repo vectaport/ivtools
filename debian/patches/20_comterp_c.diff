@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/ComTerp/comterp.c
+Index: ivtools-1.2/src/ComTerp/comterp.cc
 ===================================================================
---- ivtools-1.2.orig/src/ComTerp/comterp.c	2009-09-04 13:43:48.000000000 -0400
-+++ ivtools-1.2/src/ComTerp/comterp.c	2009-09-04 13:44:04.000000000 -0400
+--- ivtools-1.2.orig/src/ComTerp/comterp.cc
++++ ivtools-1.2/src/ComTerp/comterp.cc
 @@ -23,6 +23,8 @@
   * 
   */

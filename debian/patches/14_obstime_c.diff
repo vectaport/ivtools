@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/Time/obstime.c
+Index: ivtools-1.2/src/Time/obstime.cc
 ===================================================================
---- ivtools-1.2.orig/src/Time/obstime.c	2009-09-04 13:25:45.000000000 -0400
-+++ ivtools-1.2/src/Time/obstime.c	2009-09-04 13:25:59.000000000 -0400
+--- ivtools-1.2.orig/src/Time/obstime.cc
++++ ivtools-1.2/src/Time/obstime.cc
 @@ -21,6 +21,7 @@
   * 
   */

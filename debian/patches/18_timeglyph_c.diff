@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/Time/timeglyph.c
+Index: ivtools-1.2/src/Time/timeglyph.cc
 ===================================================================
---- ivtools-1.2.orig/src/Time/timeglyph.c	2009-09-04 13:36:17.000000000 -0400
-+++ ivtools-1.2/src/Time/timeglyph.c	2009-09-04 13:36:40.000000000 -0400
+--- ivtools-1.2.orig/src/Time/timeglyph.cc
++++ ivtools-1.2/src/Time/timeglyph.cc
 @@ -21,6 +21,8 @@
   * 
   */

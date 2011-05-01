@@ -1,6 +1,6 @@
---- a/src/Time/Date.c
-+++ b/src/Time/Date.c
-@@ -60,6 +60,8 @@ Log: Date.c,v
+--- a/src/Time/Date.cc
++++ b/src/Time/Date.cc
+@@ -60,6 +60,8 @@
    Modified by Vectaport, Inc.
  */
  
@@ -9,7 +9,7 @@
  #include <Time/Date.h>
  #include <Time/Time_.h>
  #include <OS/string.h>
-@@ -68,7 +70,10 @@ Log: Date.c,v
+@@ -68,7 +70,10 @@
  using namespace std;
  #include <ctype.h>
  #include <string.h>

@@ -1,10 +1,10 @@
-Index: ivtools-1.2/src/IVGlyph/bdvalue.c
+Index: ivtools-1.2/src/IVGlyph/bdvalue.cc
 ===================================================================
---- ivtools-1.2.orig/src/IVGlyph/bdvalue.c	2009-09-04 13:27:22.000000000 -0400
-+++ ivtools-1.2/src/IVGlyph/bdvalue.c	2009-09-04 13:27:38.000000000 -0400
+--- ivtools-1.2.orig/src/IVGlyph/bdvalue.cc
++++ ivtools-1.2/src/IVGlyph/bdvalue.cc
 @@ -46,8 +46,8 @@
   */
- /* derived from idemo/main.c */
+ /* derived from idemo/main.cc
  
 -#include <IVGlyph/bdvalue.h>
  #include <cstdio>

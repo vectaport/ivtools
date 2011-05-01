@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/IVGlyph/fieldedit.c
+Index: ivtools-1.2/src/IVGlyph/fieldedit.cc
 ===================================================================
---- ivtools-1.2.orig/src/IVGlyph/fieldedit.c	2009-09-04 13:47:42.000000000 -0400
-+++ ivtools-1.2/src/IVGlyph/fieldedit.c	2009-09-04 13:47:57.000000000 -0400
+--- ivtools-1.2.orig/src/IVGlyph/fieldedit.cc
++++ ivtools-1.2/src/IVGlyph/fieldedit.cc
 @@ -21,6 +21,8 @@
   * 
   */

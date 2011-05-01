@@ -1,5 +1,5 @@
---- a/src/ComTerp/comvalue.c
-+++ b/src/ComTerp/comvalue.c
+--- a/src/ComTerp/comvalue.cc
++++ b/src/ComTerp/comvalue.cc
 @@ -22,6 +22,7 @@
   * 
   */

@@ -1,8 +1,8 @@
 Fix gcc 4.4 'invalid conversion from 'const char*' to 'char*'' errors. 
 This is partially fixed in upstream 1.2.8
 
---- a/src/OS/string.c
-+++ b/src/OS/string.c
+--- a/src/OS/string.cc
++++ b/src/OS/string.cc
 @@ -301,7 +301,7 @@ boolean String::contains(const char* str
   */
  

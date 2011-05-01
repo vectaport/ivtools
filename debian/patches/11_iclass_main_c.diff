@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/iclass/main.c
+Index: ivtools-1.2/src/iclass/main.cc
 ===================================================================
---- ivtools-1.2.orig/src/iclass/main.c	2009-09-04 13:09:11.000000000 -0400
-+++ ivtools-1.2/src/iclass/main.c	2009-09-04 13:09:24.000000000 -0400
+--- ivtools-1.2.orig/src/iclass/main.cc
++++ ivtools-1.2/src/iclass/main.cc
 @@ -24,6 +24,7 @@
   * InterViews class browser main program.
   */

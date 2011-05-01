@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/ComTerp/ctrlfunc.c
+Index: ivtools-1.2/src/ComTerp/ctrlfunc.cc
 ===================================================================
---- ivtools-1.2.orig/src/ComTerp/ctrlfunc.c	2009-09-04 13:23:28.000000000 -0400
-+++ ivtools-1.2/src/ComTerp/ctrlfunc.c	2009-09-04 13:23:45.000000000 -0400
+--- ivtools-1.2.orig/src/ComTerp/ctrlfunc.cc
++++ ivtools-1.2/src/ComTerp/ctrlfunc.cc
 @@ -21,6 +21,7 @@
   * 
   */

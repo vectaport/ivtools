@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/InterViews/regexp.c
+Index: ivtools-1.2/src/InterViews/regexp.cc
 ===================================================================
---- ivtools-1.2.orig/src/InterViews/regexp.c	2009-09-05 19:58:05.000000000 -0400
-+++ ivtools-1.2/src/InterViews/regexp.c	2009-09-05 19:58:41.000000000 -0400
+--- ivtools-1.2.orig/src/InterViews/regexp.cc
++++ ivtools-1.2/src/InterViews/regexp.cc
 @@ -26,9 +26,12 @@
   * Regexp - regular expression searching
   */

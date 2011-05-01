@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/InterViews/printer.c
+Index: ivtools-1.2/src/InterViews/printer.cc
 ===================================================================
---- ivtools-1.2.orig/src/InterViews/printer.c	2009-09-04 14:06:54.000000000 -0400
-+++ ivtools-1.2/src/InterViews/printer.c	2009-09-04 14:07:05.000000000 -0400
+--- ivtools-1.2.orig/src/InterViews/printer.cc
++++ ivtools-1.2/src/InterViews/printer.cc
 @@ -26,6 +26,7 @@
   * Printer - draw for PostScript printer
   */

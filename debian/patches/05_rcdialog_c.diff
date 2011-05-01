@@ -1,5 +1,5 @@
---- a/src/DrawServ/rcdialog.c
-+++ b/src/DrawServ/rcdialog.c
+--- a/src/DrawServ/rcdialog.cc
++++ b/src/DrawServ/rcdialog.cc
 @@ -49,7 +49,7 @@
  #include <InterViews/style.h>
  #include <InterViews/window.h>

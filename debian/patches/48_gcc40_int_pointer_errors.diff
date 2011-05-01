@@ -1,7 +1,7 @@
 Pointer length is different in 32 and 64 bit arches.
 
---- a/src/Attribute/attrvalue.c
-+++ b/src/Attribute/attrvalue.c
+--- a/src/Attribute/attrvalue.cc
++++ b/src/Attribute/attrvalue.cc
 @@ -393,7 +393,7 @@ boolean AttributeValue::boolean_val() {
      case AttributeValue::StringType:
  	return (boolean) int_val()!=-1;

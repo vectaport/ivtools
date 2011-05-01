@@ -1,7 +1,7 @@
-Index: ivtools-1.2/src/InterViews/kit.c
+Index: ivtools-1.2/src/InterViews/kit.cc
 ===================================================================
---- ivtools-1.2.orig/src/InterViews/kit.c	2009-09-04 13:45:12.000000000 -0400
-+++ ivtools-1.2/src/InterViews/kit.c	2009-09-04 13:45:35.000000000 -0400
+--- ivtools-1.2.orig/src/InterViews/kit.cc
++++ ivtools-1.2/src/InterViews/kit.cc
 @@ -26,6 +26,8 @@
   * WidgetKit -- object for creating common UI objects
   */

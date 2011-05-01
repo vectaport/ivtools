@@ -1,5 +1,5 @@
---- a/src/Time/Time.c
-+++ b/src/Time/Time.c
+--- a/src/Time/Time.cc
++++ b/src/Time/Time.cc
 @@ -28,12 +28,15 @@ seconds since January 1, 1901, GMT.
    Modified by Vectaport Inc.  - added operator << plus other small stuff.
  */
