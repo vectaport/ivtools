@@ -179,11 +179,10 @@ libDrawServPART3_la_CPPFLAGS = \
 
 ### libUnidraw
 
-libUnidraw_common_la_SOURCES = src/Unidraw-common/component.cc	\
-src/Unidraw-common/compview.cc src/Unidraw-common/geomobjs.cc	\
-src/Unidraw-common/iterator.cc src/Unidraw-common/uarray.cc	\
-src/Unidraw-common/uhash.cc src/Unidraw-common/ulist.cc		\
-src/Unidraw-common/umap.cc
+libUnidraw_common_la_SOURCES = src/Unidraw/component.cc			\
+src/Unidraw/compview.cc src/Unidraw/geomobjs.cc				\
+src/Unidraw/iterator.cc src/Unidraw/uarray.cc src/Unidraw/uhash.cc	\
+src/Unidraw/ulist.cc src/Unidraw/umap.cc
 
 libUnidraw_common_la_CPPFLAGS = \
  -DUnidrawCommon \
