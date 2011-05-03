@@ -104,11 +104,10 @@ libComTerpPART3_la_CPPFLAGS = \
 
 ### libIV_common
 
-libIV_common_la_SOURCES = src/IV-common/listimpl.cc			\
-src/IV-common/math.cc src/IV-common/memory.cc src/IV-common/regexp.cc	\
-src/IV-common/resource.cc src/IV-common/string.cc			\
-src/IV-common/textbuffer.cc src/IV-common/tform2_6.cc			\
-src/IV-common/transformer.cc
+libIV_common_la_SOURCES = src/OS/listimpl.cc src/OS/math.cc		\
+src/OS/memory.cc src/InterViews/regexp.cc src/InterViews/resource.cc	\
+src/OS/string.cc src/IV-2_6/textbuffer.cc src/IV-2_6/tform2_6.cc	\
+src/InterViews/transformer.cc
 
 libIV_common_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(IVSTD_INCLUDES)
