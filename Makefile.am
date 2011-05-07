@@ -15,21 +15,14 @@
 ## comiled with identical options, and then combined to form the final
 ## library.
 
-## Have not included code to generate internal TIFF or ACE libraries;
-## these are assumed to be available externally.
-
 ## Pending Issues:
 
-## Do these
+## Do
 ##   TIFF/tiff.h TIFF/tiffio.h TIFF/format.h
 ## really belong in the installed include files, even when using an
-## external libtiff?
+## external tiff library?
 
 ## Snatch the source code for refman.PS from the ivtools-doc CVS repo.
-
-## Ensure availability of libtiff, libACE
-
-## Check for, and deal with unavailability of, ps2pdf
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -72,7 +65,7 @@ libComTerp_la_SOURCES =
 
 libComTerp_la_LIBADD = libComTerpPART1.la libComTerpPART2.la libComTerpPART3.la
 
-noinst_LTLIBRARIES += libComTerpPART1.la libComTerpPART2.la libComTerpPART3.la
+noinst_LTLIBRARIES += $(libComTerp_la_LIBADD)
 
 libComTerpPART1_la_SOURCES = src/ComTerp/comhandler.cc	\
 src/ComTerp/comterpserv.cc src/ComTerp/ctrlfunc.cc
@@ -147,7 +140,7 @@ libDrawServ_la_SOURCES =
 
 libDrawServ_la_LIBADD = libDrawServPART1.la libDrawServPART2.la libDrawServPART3.la
 
-noinst_LTLIBRARIES += libDrawServPART1.la libDrawServPART2.la libDrawServPART3.la
+noinst_LTLIBRARIES += $(libDrawServ_la_LIBADD)
 
 libDrawServPART1_la_SOURCES = src/DrawServ/ackback-handler.cc	\
 src/DrawServ/drawfunc.cc src/DrawServ/drawlink.cc		\
@@ -192,7 +185,7 @@ libUnidraw_common_la_CPPFLAGS = \
 libComUnidraw_la_SOURCES =
 libComUnidraw_la_LIBADD = libComUnidrawPART1.la libComUnidrawPART2.la
 
-noinst_LTLIBRARIES += libComUnidrawPART1.la libComUnidrawPART2.la
+noinst_LTLIBRARIES += $(libComUnidraw_la_LIBADD)
 
 libComUnidrawPART1_la_SOURCES = src/ComUnidraw/comeditor.cc		\
 src/ComUnidraw/comterp-iohandler.cc src/ComUnidraw/dialogfunc.cc	\
@@ -227,9 +220,9 @@ libComGlyph_la_CPPFLAGS = \
 
 libIV_la_SOURCES =
 
-libIV_la_LIBADD = libIVPART1.la libIVPART2.la libIVPART3.la libIVPART4.la
+libIV_la_LIBADD = libIVPART1.la libIVPART2.la libIVPART3.la libIVPART4.la libIVPART5.la
 
-noinst_LTLIBRARIES += libIVPART1.la libIVPART2.la libIVPART3.la libIVPART4.la
+noinst_LTLIBRARIES += $(libIV_la_LIBADD)
 
 libIVPART1_la_SOURCES = src/InterViews/session.cc
 
@@ -237,19 +230,19 @@ libIVPART1_la_CPPFLAGS = \
  -DABSLIBALLDIR='"$(pkglibdir)"' \
  -DRELLIBALLDIR='"lib/$(PACKAGE)"' \
  -DX_LIBDIR='"$(libdir)"' \
- -Dcplusplus_2_1 -DEXTERN_TIFF -Isrc/IV $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
 
 libIVPART2_la_SOURCES = src/InterViews/psfont.cc
 
 libIVPART2_la_CPPFLAGS = \
  -Dps_metrics_dir='"$(PSFontDir)"' \
- -Dcplusplus_2_1 -DEXTERN_TIFF -Isrc/IV $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
 
 libIVPART3_la_SOURCES = src/InterViews/dialogs.cc src/InterViews/kit.cc
 
 libIVPART3_la_CPPFLAGS = \
  -Dsgi_motif_kit -Dmotif_kit -Ddefault_kit=SMFKit \
- -Dcplusplus_2_1 -DEXTERN_TIFF -Isrc/IV $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
 
 libIVPART4_la_SOURCES = src/Dispatch/dispatcher.cc			\
 src/Dispatch/iohandler.cc src/IV-2_6/adjuster2_6.cc			\
@@ -303,13 +296,18 @@ src/InterViews/stencil.cc src/InterViews/stepper.cc			\
 src/InterViews/style.cc src/InterViews/superpose.cc			\
 src/InterViews/target.cc src/InterViews/telltale.cc			\
 src/InterViews/texcomp.cc src/InterViews/tformsetter.cc			\
-src/InterViews/tiff.cc src/InterViews/tile.cc				\
-src/InterViews/transformer.cc src/InterViews/xymarker.cc		\
-src/OS/directory.cc src/OS/file.cc src/OS/host.cc src/OS/listimpl.cc	\
-src/OS/math.cc src/OS/memory.cc src/OS/string.cc src/OS/ustring.cc
+src/InterViews/tile.cc src/InterViews/transformer.cc			\
+src/InterViews/xymarker.cc src/OS/directory.cc src/OS/file.cc		\
+src/OS/host.cc src/OS/listimpl.cc src/OS/math.cc src/OS/memory.cc	\
+src/OS/string.cc src/OS/ustring.cc
 
 libIVPART4_la_CPPFLAGS = \
- -Dcplusplus_2_1 -DEXTERN_TIFF -Isrc/IV $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
+
+libIVPART5_la_SOURCES = src/InterViews/tiff.cc
+
+libIVPART5_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(TIFF_LOC_CPPFLAG) -Isrc/IV $(IVSTD_INCLUDES)
 
 ### libUnidraw
 
@@ -365,7 +363,7 @@ libComUtil_la_SOURCES =
 
 libComUtil_la_LIBADD = libComUtilPART1.la libComUtilPART2.la
 
-noinst_LTLIBRARIES += libComUtilPART1.la libComUtilPART2.la
+noinst_LTLIBRARIES += $(libComUtil_la_LIBADD)
 
 libComUtilPART1_la_SOURCES = src/ComUtil/atox.c src/ComUtil/comerr.c	\
 src/ComUtil/dmm.c src/ComUtil/errfile.c src/ComUtil/funcptrs.c		\
@@ -389,23 +387,6 @@ libComUtilPART2_la_CPPFLAGS = \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
 
 # NOTE: inconsistency in whether ABSLIBALLDIR has a trailing slash
-
-pkglib_DATA = src/ComUtil/comterp.err Idemo InterViews
-
-Idemo: src/idemo/Idemo.defaults
-	cp $< $@
-
-InterViews: src/IV/InterViews.defaults
-	cp $< $@
-
-if PS2PDF
-doc_DATA = refman.pdf
-else
-doc_DATA = src/man/refman3.1/refman.PS
-endif
-
-refman.pdf: src/man/refman3.1/refman.PS
-	$(ps2pdf) $< $@
 
 ### libTopoFace
 
@@ -434,7 +415,7 @@ libUniIdraw_la_CPPFLAGS = \
 
 libGraphUnidraw_la_SOURCES =
 libGraphUnidraw_la_LIBADD = libGraphUnidrawPART1.la libGraphUnidrawPART2.la
-noinst_LTLIBRARIES += libGraphUnidrawPART1.la libGraphUnidrawPART2.la
+noinst_LTLIBRARIES += $(libGraphUnidraw_la_LIBADD)
 
 libGraphUnidrawPART1_la_SOURCES = src/GraphUnidraw/edgecomp.cc	\
 src/GraphUnidraw/graphcatalog.cc src/GraphUnidraw/graphcmds.cc	\
@@ -458,7 +439,7 @@ libFrameUnidraw_la_SOURCES =
 
 libFrameUnidraw_la_LIBADD = libFrameUnidrawPART1.la libFrameUnidrawPART2.la
 
-noinst_LTLIBRARIES += libFrameUnidrawPART1.la libFrameUnidrawPART2.la
+noinst_LTLIBRARIES += $(libFrameUnidraw_la_LIBADD)
 
 libFrameUnidrawPART1_la_SOURCES = src/FrameUnidraw/framecatalog.cc	\
 src/FrameUnidraw/framecmds.cc src/FrameUnidraw/framecomps.cc		\
@@ -488,7 +469,7 @@ libOverlayUnidraw_la_SOURCES =
 
 libOverlayUnidraw_la_LIBADD = libOverlayUnidrawPART1.la libOverlayUnidrawPART2.la libOverlayUnidrawPART3.la
 
-noinst_LTLIBRARIES += libOverlayUnidrawPART1.la libOverlayUnidrawPART2.la libOverlayUnidrawPART3.la
+noinst_LTLIBRARIES += $(libOverlayUnidraw_la_LIBADD)
 
 libOverlayUnidrawPART1_la_SOURCES = src/OverlayUnidraw/attrtool.cc	\
 src/OverlayUnidraw/clipline.cc src/OverlayUnidraw/grayraster.cc		\
@@ -558,7 +539,58 @@ src/Attribute/paramlist.cc
 libAttribute_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
+### libTIFF
 
+if EXTERNAL_TIFF
+
+TIFF_LOC_CPPFLAG = -DEXTERN_TIFF
+TIFF_LD = $(EXTERNAL_TIFF_LD)
+
+else
+
+lib_LTLIBRARIES += libTIFF.la
+TIFF_LOC_CPPFLAG =
+TIFF_LD = -lTIFF
+
+endif
+
+libTIFF_la_SOURCES = src/TIFF/tif_aux.c src/TIFF/tif_ccittrle.c		\
+src/TIFF/tif_close.c src/TIFF/tif_compat.c src/TIFF/tif_compress.c	\
+src/TIFF/tif_dir.c src/TIFF/tif_dirinfo.c src/TIFF/tif_dirread.c	\
+src/TIFF/tif_dirwrite.c src/TIFF/tif_dumpmode.c src/TIFF/tif_error.c	\
+src/TIFF/tif_fax3.c src/TIFF/tif_fax4.c src/TIFF/tif_flush.c		\
+src/TIFF/tif_getimage.c src/TIFF/tif_jpeg.c src/TIFF/tif_lzw.c		\
+src/TIFF/tif_next.c src/TIFF/tif_open.c src/TIFF/tif_packbits.c		\
+src/TIFF/tif_print.c src/TIFF/tif_read.c src/TIFF/tif_strip.c		\
+src/TIFF/tif_swab.c src/TIFF/tif_thunder.c src/TIFF/tif_tile.c		\
+src/TIFF/tif_version.c src/TIFF/tif_warning.c src/TIFF/tif_write.c
+
+# Not in libTIFF:
+#  src/TIFF/mkg3states.c src/TIFF/mkspans.c
+#  src/TIFF/tif_machdep.c
+
+libTIFF_la_CPPFLAGS = -Isrc/TIFF -Isrc/include/TIFF -Isrc/include
+
+tif_fax3.$(OBJEXT) : g3states.h
+.libs/libTIFF_la-tif_fax3.lo: g3states.h
+
+g3states.h: mkg3states
+	./mkg3states > $@
+
+mkg3states: src/TIFF/mkg3states.c
+	$(CC) -o $@ $<
+
+### Support files
+
+pkglib_DATA = src/ComUtil/comterp.err Idemo InterViews
+
+Idemo: src/idemo/Idemo.defaults
+	cp $< $@
+
+InterViews: src/IV/InterViews.defaults
+	cp $< $@
+
+### binaries
 
 bin_SCRIPTS = ivgetjpg ivtiftopnm pnmtopgm
 
@@ -659,10 +691,11 @@ flipbook_LDFLAGS	= -lFrameUnidraw -lComUnidraw $(AM_LDFLAGS)
 
 # drawtool_LDADD = $(LIBOBJS)
 
+### directories to recurse into, for installation of include files
 
 SUBDIRS = src src/include
 
-
+### man pages to install
 
 man_MANS = src/man/man1/drawtool.1 src/man/man1/iclass.1		\
 src/man/man1/idraw.1 src/man/man1/comterp.1 src/man/man1/flipbook.1	\
@@ -730,3 +763,13 @@ src/man/man3/Box2_6.3 src/man/man3/Deck2_6.3 src/man/man3/Glue2_6.3	\
 src/man/man3/Rubband.3 src/man/man3/Manipulator.3			\
 src/man/man3/transforms.3 src/man/man3/FileBrowser.3			\
 src/man/man3/Adjuster.3
+
+### other documentation
+
+if PS2PDF
+doc_DATA = refman.pdf
+refman.pdf: src/man/refman3.1/refman.PS
+	$(ps2pdf) $< $@
+else
+doc_DATA = src/man/refman3.1/refman.PS
+endif

@@ -29,15 +29,17 @@ AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
 AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
 AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
 AC_CHECK_LIB([jpeg], [jpeg_read_raw_data], [JPEG_LD=-ljpeg], AC_MSG_ERROR([Cannot find jpeg library]))
-dnl assume external ACE and tiff
+dnl assume external ACE library
 AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_ERROR([Cannot find ACE library]))
-AC_CHECK_LIB([tiff], [TIFFOpen], [TIFF_LD=-ltiff],
- AC_CHECK_LIB([TIFF], [TIFFOpen], [TIFF_LD=-lTIFF], AC_MSG_ERROR([Cannot find tiff or TIFF library])))
+dnl if external TIFF library not found, build internal one
+AC_CHECK_LIB([tiff], [TIFFOpen], [EXTERNAL_TIFF_LD=-ltiff],
+ AC_CHECK_LIB([TIFF], [TIFFOpen], [EXTERNAL_TIFF_LD=-lTIFF], AC_MSG_WARN([Cannot find tiff or TIFF library])))
+AM_CONDITIONAL([EXTERNAL_TIFF], [test x$EXTERNAL_TIFF_LD != x])
 AC_SUBST(XEXT_LD)
 AC_SUBST(X11_LD)
 AC_SUBST(JPEG_LD)
 AC_SUBST(ACE_LD)
-AC_SUBST(TIFF_LD)
+AC_SUBST(EXTERNAL_TIFF_LD)
 
 dnl Q: Assume these are obsolete
 dnl AC_CHECK_LIB(stdc++,peek__7istream,LIBSTDCPLUSPLUS2=1,LIBSTDCPLUSPLUS2=0)
