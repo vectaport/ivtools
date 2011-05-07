@@ -22,7 +22,8 @@
  * 
  */
 
-#include <unistd.h>
+// #include <unistd.h>
+#include <cstdio>
 #include <fstream.h>
 #include <iostream>
 #include <ComTerp/comhandler.h>

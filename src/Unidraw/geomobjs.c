@@ -25,6 +25,8 @@
  * Implementation of geometrical objects used by Graphic.
  */
 
+#include <cstdio>
+
 #include <Unidraw/Graphic/geomobjs.h>
 #include <Unidraw/Graphic/util.h>
 #include <Unidraw/ulist.h>

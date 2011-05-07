@@ -1,3 +1,5 @@
+#include <cstdio>
+
 #include <IV-look/dialogs.h>
 #include <IV-look/kit.h>
 #include <InterViews/background.h>

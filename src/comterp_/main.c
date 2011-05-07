@@ -21,6 +21,8 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <cstdio>
+
 #ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
 #include <ace/SOCK_Connector.h>

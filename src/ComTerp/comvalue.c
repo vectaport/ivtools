@@ -22,6 +22,7 @@
  * 
  */
 
+#include <cstdio>
 #include <Unidraw/Components/grview.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>

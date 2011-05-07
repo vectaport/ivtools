@@ -25,6 +25,7 @@
  * Implementation of ParamList class.
  */
 
+#include <cstdio>
 #include <Attribute/alist.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/paramlist.h>

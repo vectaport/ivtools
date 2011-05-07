@@ -22,6 +22,7 @@
  * 
  */
 
+#include <cstdio>
 #include <vector>
 #include <fstream.h>
 

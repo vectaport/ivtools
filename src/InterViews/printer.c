@@ -26,6 +26,7 @@
  * Printer - draw for PostScript printer
  */
 
+#include <cstdio>
 #include <InterViews/bitmap.h>
 #include <InterViews/brush.h>
 #include <InterViews/color.h>

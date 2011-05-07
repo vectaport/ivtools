@@ -25,6 +25,7 @@
  * Implementation of geometrical objects with floating point coordinates.
  */
 
+#include <cstdio>
 #include <TopoFace/fgeomobjs.h>
 #include <Unidraw/Graphic/util.h>
 #include <Unidraw/ulist.h>
