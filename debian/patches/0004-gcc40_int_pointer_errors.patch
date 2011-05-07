@@ -1,5 +1,14 @@
-Pointer length is different in 32 and 64 bit arches.
+From: Barak A. Pearlmutter <bap@debian.org>
+Date: Sat, 7 May 2011 18:05:45 +0100
+Subject: [PATCH] gcc40_int_pointer_errors
 
+Pointer length is different in 32 and 64 bit arches.
+---
+ src/Attribute/attrvalue.cc |    6 +++---
+ 1 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/Attribute/attrvalue.cc b/src/Attribute/attrvalue.cc
+index 6523295..fbc3d62 100644
 --- a/src/Attribute/attrvalue.cc
 +++ b/src/Attribute/attrvalue.cc
 @@ -393,7 +393,7 @@ boolean AttributeValue::boolean_val() {
@@ -11,7 +20,7 @@ Pointer length is different in 32 and 64 bit arches.
      case AttributeValue::StreamType:
  	return stream_mode() != 0;
      default:
-@@ -552,7 +552,7 @@ unsigned int AttributeValue::uint_val()
+@@ -552,7 +552,7 @@ unsigned int AttributeValue::uint_val() {
      case AttributeValue::SymbolType:
  	return (unsigned int) int_val();
      case AttributeValue::ObjectType:
@@ -29,3 +38,4 @@ Pointer length is different in 32 and 64 bit arches.
      default:
  	return 0;
      }
+-- 

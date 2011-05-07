@@ -1,0 +1,78 @@
+From: Barak A. Pearlmutter <bap@debian.org>
+Date: Sat, 7 May 2011 18:05:45 +0100
+Subject: [PATCH] manpages_whatis
+
+tweak man page headers into conformance with format
+required by whatis, aka, man -k, and correct any roff
+syntax errors.
+---
+ src/man/man1/comdraw.1      |    2 +-
+ src/man/man1/comterp.1      |    2 +-
+ src/man/man1/drawtool.1     |    4 ++--
+ src/man/man3/BasicDialog.3  |    2 +-
+ src/man/man3/UnidrawIntro.3 |    2 +-
+ 5 files changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/src/man/man1/comdraw.1 b/src/man/man1/comdraw.1
+index 70e71a4..fc3ede9 100644
+--- a/src/man/man1/comdraw.1
++++ b/src/man/man1/comdraw.1
+@@ -1,5 +1,5 @@
+ .TH COMDRAW 1 
+-.SH COMDRAW
++.SH NAME
+ comdraw \- drawtool with distributed command interpreter
+ .SH SYNOPSIS
+ .B comdraw 
+diff --git a/src/man/man1/comterp.1 b/src/man/man1/comterp.1
+index 9ba66b1..b426dce 100644
+--- a/src/man/man1/comterp.1
++++ b/src/man/man1/comterp.1
+@@ -1,5 +1,5 @@
+ .TH COMTERP 1 
+-.SH COMTERP
++.SH NAME
+ comterp \- distributed command interpreter demonstrator
+ .SH SYNOPSIS
+ .B comterp
+diff --git a/src/man/man1/drawtool.1 b/src/man/man1/drawtool.1
+index 0266269..994cb33 100644
+--- a/src/man/man1/drawtool.1
++++ b/src/man/man1/drawtool.1
+@@ -104,8 +104,8 @@ interactive transformations of graphics.
+ "-pagerows" (or "-nrows") sets the vertical page extent in pixels.
+ 
+ .PP
+-"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal
+-...") selects the alignment of the panner display.
++"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal...")
++ selects the alignment of the panner display.
+ 
+ .PP
+ "-panner_off" (or "-poff") disables the panner display.
+diff --git a/src/man/man3/BasicDialog.3 b/src/man/man3/BasicDialog.3
+index 31da5e3..fb00fb9 100644
+--- a/src/man/man3/BasicDialog.3
++++ b/src/man/man3/BasicDialog.3
+@@ -1,7 +1,7 @@
+ .TH BasicDialog 3U "23 July 1990" "Unidraw" "InterViews Reference Manual"
+ .SH NAME
+ AcknowledgeDialog, BasicDialog, ConfirmDialog, GridDialog, \
+-PrintDialog, UChooser - an assortment of useful dialog boxes
++PrintDialog, UChooser \- an assortment of useful dialog boxes
+ .SH SYNOPSIS
+ .B #include <Unidraw/dialogs.h>
+ .SH DESCRIPTION
+diff --git a/src/man/man3/UnidrawIntro.3 b/src/man/man3/UnidrawIntro.3
+index a9f473b..802a63f 100644
+--- a/src/man/man3/UnidrawIntro.3
++++ b/src/man/man3/UnidrawIntro.3
+@@ -1,6 +1,6 @@
+ .TH UnidrawIntro 3U "11 June 1990" "Unidraw" "InterViews Reference Manual"
+ .SH NAME
+-Unidraw library for graphical object editor development
++Unidraw_Intro \- Unidraw library for graphical object editor development
+ .SH SYNOPSIS
+ .B #include <Unidraw/\fIclass\fP.h>
+ .br
+-- 

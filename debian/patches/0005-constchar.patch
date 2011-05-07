@@ -1,0 +1,24 @@
+From: Barak A. Pearlmutter <bap@debian.org>
+Date: Sat, 7 May 2011 18:05:45 +0100
+Subject: [PATCH] constchar
+
+Fix gcc 4.4 'invalid conversion from 'const char*' to 'char*'' errors.
+(Was partially fixed in upstream 1.2.8)
+---
+ src/OS/string.cc |    2 +-
+ 1 files changed, 1 insertions(+), 1 deletions(-)
+
+diff --git a/src/OS/string.cc b/src/OS/string.cc
+index 377ae88..b1aee1b 100644
+--- a/src/OS/string.cc
++++ b/src/OS/string.cc
+@@ -301,7 +301,7 @@ boolean String::contains(const char* str, int start) const {
+  */
+ 
+ String String::before(const char* str) const {
+-  char* ptr = strstr(string(), str);
++  const char* ptr = strstr(string(), str);
+   if (ptr) 
+     return substr(0, ptr-string());
+   else
+-- 

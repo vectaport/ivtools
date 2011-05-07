@@ -1,0 +1,507 @@
+From: Barak A. Pearlmutter <bap@debian.org>
+Date: Sat, 7 May 2011 18:05:37 +0100
+Subject: [PATCH] include_cstdio_etc
+
+augment and adjust standard C++ I/O-related include directives
+---
+ src/Attribute/paramlist.cc             |    1 +
+ src/ComTerp/comterp.cc                 |    2 ++
+ src/ComTerp/comvalue.cc                |    1 +
+ src/ComTerp/ctrlfunc.cc                |    1 +
+ src/ComTerp/debugfunc.cc               |    2 ++
+ src/DrawServ/rcdialog.cc               |    2 +-
+ src/GraphUnidraw/graphcatalog.cc       |    2 ++
+ src/IV-X11/xdrag.cc                    |    2 ++
+ src/IVGlyph/bdvalue.cc                 |    2 +-
+ src/IVGlyph/exportchooser.cc           |    3 ++-
+ src/IVGlyph/fieldedit.cc               |    2 ++
+ src/InterViews/fchooser.cc             |    1 +
+ src/InterViews/field.cc                |    3 ++-
+ src/InterViews/kit.cc                  |    3 ++-
+ src/InterViews/ol_kit.cc               |    2 +-
+ src/InterViews/printer.cc              |    1 +
+ src/InterViews/regexp.cc               |    3 +++
+ src/OS/string.cc                       |    1 +
+ src/Time/Date.cc                       |    4 +++-
+ src/Time/Time.cc                       |    4 ++--
+ src/Time/obstime.cc                    |    1 +
+ src/Time/timeglyph.cc                  |    3 ++-
+ src/TopoFace/fgeomobjs.cc              |    1 +
+ src/Unidraw/geomobjs.cc                |    2 ++
+ src/comterp_/main.cc                   |    2 ++
+ src/glyphs/examples3.1/print/main.cc   |    2 ++
+ src/iclass/main.cc                     |    1 +
+ src/idemo/main.cc                      |    2 +-
+ src/include/OS/string.h                |    1 +
+ src/include/Unidraw/Graphic/geomobjs.h |    2 ++
+ src/include/ivstd/fstream.h            |    1 +
+ src/include/ivstd/iostream.h           |    1 +
+ 32 files changed, 50 insertions(+), 11 deletions(-)
+
+diff --git a/src/Attribute/paramlist.cc b/src/Attribute/paramlist.cc
+index 23278d9..92ac7fe 100644
+--- a/src/Attribute/paramlist.cc
++++ b/src/Attribute/paramlist.cc
+@@ -25,6 +25,7 @@
+  * Implementation of ParamList class.
+  */
+ 
++#include <cstdio>
+ #include <Attribute/alist.h>
+ #include <Attribute/aliterator.h>
+ #include <Attribute/paramlist.h>
+diff --git a/src/ComTerp/comterp.cc b/src/ComTerp/comterp.cc
+index a69d18b..7841aee 100644
+--- a/src/ComTerp/comterp.cc
++++ b/src/ComTerp/comterp.cc
+@@ -23,6 +23,8 @@
+  * 
+  */
+ 
++#include <cstdio>
++
+ #include <ctype.h>
+ #include <iostream.h>
+ #include <string.h>
+diff --git a/src/ComTerp/comvalue.cc b/src/ComTerp/comvalue.cc
+index ca64130..01a4d48 100644
+--- a/src/ComTerp/comvalue.cc
++++ b/src/ComTerp/comvalue.cc
+@@ -22,6 +22,7 @@
+  * 
+  */
+ 
++#include <cstdio>
+ #include <Unidraw/Components/grview.h>
+ #include <ComTerp/comfunc.h>
+ #include <ComTerp/comvalue.h>
+diff --git a/src/ComTerp/ctrlfunc.cc b/src/ComTerp/ctrlfunc.cc
+index 1bdb9c5..a444cdc 100644
+--- a/src/ComTerp/ctrlfunc.cc
++++ b/src/ComTerp/ctrlfunc.cc
+@@ -21,6 +21,7 @@
+  * 
+  */
+ 
++#include <cstdio>
+ #include <fstream.h>
+ #include <iostream>
+ #include <ComTerp/comhandler.h>
+diff --git a/src/ComTerp/debugfunc.cc b/src/ComTerp/debugfunc.cc
+index f8f5a5b..aa66ddc 100644
+--- a/src/ComTerp/debugfunc.cc
++++ b/src/ComTerp/debugfunc.cc
+@@ -22,6 +22,8 @@
+  * 
+  */
+ 
++#include <cstdio>
++
+ #if __GNUC__==2 && __GNUC_MINOR__<=7
+ #else
+ #include <vector>
+diff --git a/src/DrawServ/rcdialog.cc b/src/DrawServ/rcdialog.cc
+index a9445ad..56e8401 100644
+--- a/src/DrawServ/rcdialog.cc
++++ b/src/DrawServ/rcdialog.cc
+@@ -49,7 +49,7 @@
+ #include <InterViews/style.h>
+ #include <InterViews/window.h>
+ 
+-#include <stdio.h>
++#include <cstdio>
+ #include <stdlib.h>
+ using namespace std;
+ #include <vector>
+diff --git a/src/GraphUnidraw/graphcatalog.cc b/src/GraphUnidraw/graphcatalog.cc
+index ff4b56f..80d764d 100644
+--- a/src/GraphUnidraw/graphcatalog.cc
++++ b/src/GraphUnidraw/graphcatalog.cc
+@@ -25,6 +25,8 @@
+  * GraphCatalog implementation.
+  */
+ 
++#include <cstdio>
++
+ #include <OverlayUnidraw/paramlist.h>
+ 
+ #include <GraphUnidraw/graphcatalog.h>
+diff --git a/src/IV-X11/xdrag.cc b/src/IV-X11/xdrag.cc
+index 517c78e..d07ccd8 100644
+--- a/src/IV-X11/xdrag.cc
++++ b/src/IV-X11/xdrag.cc
+@@ -21,6 +21,8 @@
+  * SOFTWARE.
+  */
+ 
++#include <cstdio>
++
+ #include <InterViews/cursor.h>
+ #include <InterViews/event.h>
+ #include <InterViews/handler.h>
+diff --git a/src/IVGlyph/bdvalue.cc b/src/IVGlyph/bdvalue.cc
+index 54426f3..1758780 100644
+--- a/src/IVGlyph/bdvalue.cc
++++ b/src/IVGlyph/bdvalue.cc
+@@ -46,8 +46,8 @@
+  */
+ /* derived from idemo/main.c */
+ 
+-#include <IVGlyph/bdvalue.h>
+ #include <cstdio>
++#include <IVGlyph/bdvalue.h>
+ #include <string.h>
+ 
+ /* class BoundedValue */
+diff --git a/src/IVGlyph/exportchooser.cc b/src/IVGlyph/exportchooser.cc
+index c23808a..19ba460 100644
+--- a/src/IVGlyph/exportchooser.cc
++++ b/src/IVGlyph/exportchooser.cc
+@@ -27,6 +27,8 @@
+  * ExportChooser -- select a file/command to export graphics to
+  */
+ 
++#include <cstdio>
++
+ #include <IVGlyph/exportchooser.h>
+ #include <IVGlyph/enumform.h>
+ #include <IVGlyph/textform.h>
+@@ -53,7 +55,6 @@
+ #include <OS/string.h>
+ 
+ #include <iostream.h>
+-#include <stdio.h>
+ #include <string.h>
+ 
+ implementActionCallback(ExportChooserImpl)
+diff --git a/src/IVGlyph/fieldedit.cc b/src/IVGlyph/fieldedit.cc
+index a5e3d32..ba03a97 100644
+--- a/src/IVGlyph/fieldedit.cc
++++ b/src/IVGlyph/fieldedit.cc
+@@ -21,6 +21,8 @@
+  * 
+  */
+ 
++#include <cstdio>
++
+ #include <IVGlyph/fieldedit.h>
+ #include <IVGlyph/figure.h>
+ #include <IVGlyph/textbuff.h>
+diff --git a/src/InterViews/fchooser.cc b/src/InterViews/fchooser.cc
+index 08d1839..06be02f 100644
+--- a/src/InterViews/fchooser.cc
++++ b/src/InterViews/fchooser.cc
+@@ -26,6 +26,7 @@
+  * FileChooser -- select a file
+  */
+ 
++#include <cstdio>
+ #include <IV-look/choice.h>
+ #include <IV-look/dialogs.h>
+ #include <IV-look/fbrowser.h>
+diff --git a/src/InterViews/field.cc b/src/InterViews/field.cc
+index 0a5d797..062427a 100644
+--- a/src/InterViews/field.cc
++++ b/src/InterViews/field.cc
+@@ -26,6 +26,8 @@
+  * FieldEditor -- simple editor for text fields
+  */
+ 
++#include <cstdio>
++
+ #include <Dispatch/dispatcher.h>
+ #include <Dispatch/iocallback.h>
+ #include <IV-look/field.h>
+@@ -60,7 +62,6 @@ extern "C" {
+ 
+ #include <OS/math.h>
+ #include <OS/string.h>
+-#include <cstdio>
+ #include <string.h>
+ 
+ class FieldStringEditor : public StringEditor {
+diff --git a/src/InterViews/kit.cc b/src/InterViews/kit.cc
+index 7284cb0..2f36b69 100644
+--- a/src/InterViews/kit.cc
++++ b/src/InterViews/kit.cc
+@@ -26,6 +26,8 @@
+  * WidgetKit -- object for creating common UI objects
+  */
+ 
++#include <cstdio>
++
+ #ifdef motif_kit
+ #include <IV-look/mf_kit.h>
+ #endif
+@@ -71,7 +73,6 @@
+ #include <OS/list.h>
+ #include <OS/string.h>
+ #include <OS/ustring.h>
+-#include <cstdio>
+ 
+ declareActionCallback(Session)
+ implementActionCallback(Session)
+diff --git a/src/InterViews/ol_kit.cc b/src/InterViews/ol_kit.cc
+index 5f4c382..bd72f3e 100644
+--- a/src/InterViews/ol_kit.cc
++++ b/src/InterViews/ol_kit.cc
+@@ -22,6 +22,7 @@
+  * OF THIS SOFTWARE.
+  */
+ 
++#include <cstdio>
+ #include <Dispatch/dispatcher.h>
+ #include <Dispatch/iocallback.h>
+ #include <IV-look/bevel.h>
+@@ -43,7 +44,6 @@
+ #include <InterViews/telltale.h>
+ #include <InterViews/window.h>
+ #include <OS/string.h>
+-#include <cstdio>
+ 
+ /*
+  * character definitions
+diff --git a/src/InterViews/printer.cc b/src/InterViews/printer.cc
+index 79a3355..55eb07a 100644
+--- a/src/InterViews/printer.cc
++++ b/src/InterViews/printer.cc
+@@ -26,6 +26,7 @@
+  * Printer - draw for PostScript printer
+  */
+ 
++#include <cstdio>
+ #include <InterViews/bitmap.h>
+ #include <InterViews/brush.h>
+ #include <InterViews/color.h>
+diff --git a/src/InterViews/regexp.cc b/src/InterViews/regexp.cc
+index b909723..fee2782 100644
+--- a/src/InterViews/regexp.cc
++++ b/src/InterViews/regexp.cc
+@@ -26,9 +26,12 @@
+  * Regexp - regular expression searching
+  */
+ 
++#include <cstdio>
+ #include <InterViews/regexp.h>
+ #include <stream.h>
+ #include <string.h>
++#include <iostream>
++#include <fstream>
+ using std::cerr;
+ 
+ /*
+diff --git a/src/OS/string.cc b/src/OS/string.cc
+index 65edf87..377ae88 100644
+--- a/src/OS/string.cc
++++ b/src/OS/string.cc
+@@ -22,6 +22,7 @@
+  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  */
+ 
++#include <cstdio>
+ #include <OS/string.h>
+ #include <ctype.h>
+ #include <string.h>
+diff --git a/src/Time/Date.cc b/src/Time/Date.cc
+index cff5274..b0825f5 100644
+--- a/src/Time/Date.cc
++++ b/src/Time/Date.cc
+@@ -60,6 +60,8 @@ Log: Date.c,v
+   Modified by Vectaport, Inc.
+ */
+ 
++#include <cstdio>
++
+ #include <Time/Date.h>
+ #include <Time/Time_.h>
+ #include <OS/string.h>
+@@ -68,7 +70,7 @@ Log: Date.c,v
+ using namespace std;
+ #include <ctype.h>
+ #include <string.h>
+-#include <stdio.h>
++#include <iostream>
+ 
+ #define	THIS	Date
+ #define	BASE	Object
+diff --git a/src/Time/Time.cc b/src/Time/Time.cc
+index a79cb1b..dc3d3ae 100644
+--- a/src/Time/Time.cc
++++ b/src/Time/Time.cc
+@@ -28,13 +28,13 @@ seconds since January 1, 1901, GMT.
+   Modified by Vectaport Inc.  - added operator << plus other small stuff.
+ */
+ 
++#include <cstdio>
++
+ #include <Time/Date.h>
+ #include <Time/Time_.h>
+ #include <iomanip>
+ using namespace std;
+ 
+-#include <stdio.h>
+-
+ const unsigned VERSION =2;
+ 
+ #define	THIS	Time
+diff --git a/src/Time/obstime.cc b/src/Time/obstime.cc
+index aa10938..cb689cb 100644
+--- a/src/Time/obstime.cc
++++ b/src/Time/obstime.cc
+@@ -21,6 +21,7 @@
+  * 
+  */
+ 
++#include <cstdio>
+ #include <Time/obstime.h>
+ 
+ ObservableTime::ObservableTime(Time* th) {
+diff --git a/src/Time/timeglyph.cc b/src/Time/timeglyph.cc
+index 1b4b475..20cdaba 100644
+--- a/src/Time/timeglyph.cc
++++ b/src/Time/timeglyph.cc
+@@ -21,6 +21,8 @@
+  * 
+  */
+ 
++#include <cstdio>
++
+ #include <InterViews/enter-scope.h>
+ #include <Time/Time_.h>
+ #include <Time/Date.h>
+@@ -35,7 +37,6 @@
+ #include <InterViews/layout.h>
+ #include <InterViews/style.h>
+ #include <OS/string.h>
+-#include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ 
+diff --git a/src/TopoFace/fgeomobjs.cc b/src/TopoFace/fgeomobjs.cc
+index 0a1e8d1..f4027de 100644
+--- a/src/TopoFace/fgeomobjs.cc
++++ b/src/TopoFace/fgeomobjs.cc
+@@ -25,6 +25,7 @@
+  * Implementation of geometrical objects with floating point coordinates.
+  */
+ 
++#include <cstdio>
+ #include <TopoFace/fgeomobjs.h>
+ #include <Unidraw/Graphic/util.h>
+ #include <Unidraw/ulist.h>
+diff --git a/src/Unidraw/geomobjs.cc b/src/Unidraw/geomobjs.cc
+index 81d12cf..6c4356e 100644
+--- a/src/Unidraw/geomobjs.cc
++++ b/src/Unidraw/geomobjs.cc
+@@ -25,6 +25,8 @@
+  * Implementation of geometrical objects used by Graphic.
+  */
+ 
++#include <cstdio>
++
+ #include <Unidraw/Graphic/geomobjs.h>
+ #include <Unidraw/Graphic/util.h>
+ #include <Unidraw/ulist.h>
+diff --git a/src/comterp_/main.cc b/src/comterp_/main.cc
+index 3d3ccd0..36235b6 100644
+--- a/src/comterp_/main.cc
++++ b/src/comterp_/main.cc
+@@ -21,6 +21,8 @@
+  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+  */
+ 
++#include <cstdio>
++
+ #ifdef HAVE_ACE
+ #include <ComTerp/comhandler.h>
+ #include <ace/SOCK_Connector.h>
+diff --git a/src/glyphs/examples3.1/print/main.cc b/src/glyphs/examples3.1/print/main.cc
+index f1984ee..468b44d 100644
+--- a/src/glyphs/examples3.1/print/main.cc
++++ b/src/glyphs/examples3.1/print/main.cc
+@@ -1,3 +1,5 @@
++#include <cstdio>
++
+ #include <IV-look/dialogs.h>
+ #include <IV-look/kit.h>
+ #include <InterViews/background.h>
+diff --git a/src/iclass/main.cc b/src/iclass/main.cc
+index 7babbfc..9a07042 100644
+--- a/src/iclass/main.cc
++++ b/src/iclass/main.cc
+@@ -24,6 +24,7 @@
+  * InterViews class browser main program.
+  */
+ 
++#include <cstdio>
+ #include "classbuffer.h"
+ #include "iclass.h"
+ 
+diff --git a/src/idemo/main.cc b/src/idemo/main.cc
+index 814ca2b..d1869c6 100644
+--- a/src/idemo/main.cc
++++ b/src/idemo/main.cc
+@@ -22,6 +22,7 @@
+  * OF THIS SOFTWARE.
+  */
+ 
++#include <cstdio>
+ #include <IV-look/dialogs.h>
+ #include <IV-look/kit.h>
+ #include <IV-look/menu.h>
+@@ -41,7 +42,6 @@
+ #include <InterViews/transformer.h>
+ #include <InterViews/window.h>
+ #include <OS/string.h>
+-#include <cstdio>
+ 
+ static const Coord tool_scale = 12.0;
+ 
+diff --git a/src/include/OS/string.h b/src/include/OS/string.h
+index c8e7d1f..61444d2 100644
+--- a/src/include/OS/string.h
++++ b/src/include/OS/string.h
+@@ -29,6 +29,7 @@
+  * String - simple (non-copying) string class
+  */
+ 
++#include <cstdio>
+ #include <OS/enter-scope.h>
+ 
+ #include <iosfwd>
+diff --git a/src/include/Unidraw/Graphic/geomobjs.h b/src/include/Unidraw/Graphic/geomobjs.h
+index f0b6ea3..a8bed2f 100644
+--- a/src/include/Unidraw/Graphic/geomobjs.h
++++ b/src/include/Unidraw/Graphic/geomobjs.h
+@@ -28,6 +28,8 @@
+ #ifndef unidraw_graphic_geomobjs_h
+ #define unidraw_graphic_geomobjs_h
+ 
++#include <cstdio>
++
+ #include <IV-2_6/InterViews/defs.h>
+ #include <Unidraw/enter-scope.h>
+ #include <InterViews/resource.h>
+diff --git a/src/include/ivstd/fstream.h b/src/include/ivstd/fstream.h
+index 65eba1d..5903d6b 100644
+--- a/src/include/ivstd/fstream.h
++++ b/src/include/ivstd/fstream.h
+@@ -1,5 +1,6 @@
+ #ifndef _iv_fstream_
+ #define _iv_fstream_
++#include <cstdio>
+ #include_next <fstream>
+ #if __GNUC__>=3
+ #define input ios_base::in
+diff --git a/src/include/ivstd/iostream.h b/src/include/ivstd/iostream.h
+index 650807c..6800cd1 100644
+--- a/src/include/ivstd/iostream.h
++++ b/src/include/ivstd/iostream.h
+@@ -1,5 +1,6 @@
+ #ifndef _iv_iostream_h_
+ #define _iv_iostream_h_
++#include <cstdio>
+ #include <iosfwd>
+ #include_next <iostream>
+ 
+-- 

@@ -1,0 +1,39 @@
+From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+Date: Sun, 8 May 2011 14:06:25 +0100
+Subject: [PATCH] using_std_xxx
+
+explicitly import some std:: qualified identifiers
+---
+ src/Time/Date.cc |    3 +++
+ src/Time/Time.cc |    3 +++
+ 2 files changed, 6 insertions(+), 0 deletions(-)
+
+diff --git a/src/Time/Date.cc b/src/Time/Date.cc
+index b0825f5..1954147 100644
+--- a/src/Time/Date.cc
++++ b/src/Time/Date.cc
+@@ -72,6 +72,9 @@ using namespace std;
+ #include <string.h>
+ #include <iostream>
+ 
++using std::setfill;
++using std::setw;
++
+ #define	THIS	Date
+ #define	BASE	Object
+ #define BASE_CLASSES BASE::desc()
+diff --git a/src/Time/Time.cc b/src/Time/Time.cc
+index dc3d3ae..80b27e0 100644
+--- a/src/Time/Time.cc
++++ b/src/Time/Time.cc
+@@ -35,6 +35,9 @@ seconds since January 1, 1901, GMT.
+ #include <iomanip>
+ using namespace std;
+ 
++using std::setfill;
++using std::setw;
++
+ const unsigned VERSION =2;
+ 
+ #define	THIS	Time
+-- 
