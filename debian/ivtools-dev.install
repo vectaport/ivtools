@@ -1,5 +1,4 @@
-/usr/bin/ivmkmf
-/usr/include/*
-/usr/lib/lib*.so
-/usr/lib/ivtools/*
-debian/template /usr/lib/ivtools/config/
+usr/include
+usr/lib/lib*.so
+usr/lib/lib*.a
+usr/lib/ivtools/comterp.err

@@ -1,9 +1,0 @@
-Step into the example-3.1 directory.
-To compile the examples, install the ivtools-dev package.
-Do a 
-> ivmkmf -a
-followed by 
-> make
-
-
-

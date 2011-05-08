@@ -9,33 +9,8 @@ build clean install binary-arch binary-indep binary:
 .PHONY: build clean binary-indep binary-arch binary install
 
 override_dh_auto_configure:
-	dh_auto_configure --						\
-		--prefix=/usr						\
-		--mandir=/usr/share/man					\
-		--x-includes=/usr/include				\
-		--x-libraries=/usr/lib					\
-		--with-tiff=/usr					\
-		--with-ace=/usr/include --with-ace-libs=/usr/lib
-
-override_dh_auto_build:
-	$(MAKE) Makefile  ARCH=LINUX
-	$(MAKE) Makefiles ARCH=LINUX
-	$(MAKE) ARCH=LINUX CCLINKER='$$(CXX)'
-
-override_dh_auto_install:
-	dh_auto_install -- ARCH=LINUX CCLINKER='$$(CXX)'		\
-		     BINDIR=$(CURDIR)/debian/tmp/usr/bin		\
-		  CONFIGDIR=$(CURDIR)/debian/tmp/usr/lib/ivtools/config	\
-		     INCDIR=$(CURDIR)/debian/tmp/usr/include		\
-		     LIBDIR=$(CURDIR)/debian/tmp/usr/lib		\
-		  LIBABSDIR=$(CURDIR)/debian/tmp/usr/lib		\
-		  LIBALLDIR=$(CURDIR)/debian/tmp/usr/lib/ivtools	\
-		     MANDIR=$(CURDIR)/debian/tmp/usr/share/man
-	@echo remove incorrect executable bit from some random text files
-	chmod --verbose a-x debian/tmp/usr/lib/ivtools/Idemo
-	chmod --verbose a-x debian/tmp/usr/lib/ivtools/comterp.err
-	@echo remove libACE link, unneeded since we are using system libACE
-	rm --verbose debian/tmp/usr/lib/libACE.so
+	./autogen.sh
+	dh_auto_configure
 
 override_dh_install:
 	dh_install
@@ -48,21 +23,8 @@ override_dh_install:
 	 | sed s:^debian/libiv1/:debian/libiv-unidraw1/:	\
 	 | xargs --no-run-if-empty rm --verbose
 
-override_dh_installman:
-	dh_installman
-	@echo prevent man pages in ivtools-dev from being duplicated in ivtools-bin
-	find debian/ivtools-dev/usr/share/man/man1 -type f -o -type l	\
-	 | sed s:^debian/ivtools-dev/:debian/ivtools-bin/:		\
-	 | xargs --no-run-if-empty rm --verbose
-
-override_dh_installdocs: debian/refman.pdf
-	dh_installdocs
-
 override_dh_installexamples: debian/glyphs.tar
 	dh_installexamples
-
-debian/refman.pdf: src/man/refman3.1/refman.PS
-	ps2pdf $< $@
 
 debian/glyphs.tar:
 	tar --create --file=$@ \

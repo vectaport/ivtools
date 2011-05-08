@@ -1,2 +1,1 @@
-src/man/man1/ivmkmf.1
-src/man/man3/*.3
+debian/tmp/usr/share/man/man3/*
