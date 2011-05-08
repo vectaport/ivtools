@@ -12,8 +12,8 @@
 ## options cannot be combined into a single set of options that works
 ## for all the files.  This is addressed by breaking up such libraries
 ## into a few "convenience libtool libraries", each made of files
-## comiled with identical options, and then combined to form the final
-## library.
+## compiled with identical options, and then combined to form the
+## final library.
 
 ## Pending Issues:
 
@@ -71,8 +71,8 @@ libComTerpPART1_la_SOURCES = src/ComTerp/comhandler.cc	\
 src/ComTerp/comterpserv.cc src/ComTerp/ctrlfunc.cc
 
 libComTerpPART1_la_CPPFLAGS = \
- -D__ACE_INLINE__ \
- -Dcplusplus_2_1 -DHAVE_ACE $(IVSTD_INCLUDES)
+ $(ACE_INLINE_CPPFLAGS) \
+ -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
 libComTerpPART2_la_SOURCES = src/ComTerp/assignfunc.cc			\
 src/ComTerp/bitfunc.cc src/ComTerp/boolfunc.cc				\
@@ -87,13 +87,13 @@ src/ComTerp/symbolfunc.cc src/ComTerp/typefunc.cc			\
 src/ComTerp/xformfunc.cc
 
 libComTerpPART2_la_CPPFLAGS = \
- -Dcplusplus_2_1 -DHAVE_ACE $(IVSTD_INCLUDES)
+ $(ACE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
 libComTerpPART3_la_SOURCES = src/ComTerp/comterp.cc
 
 libComTerpPART3_la_CPPFLAGS = \
  -Div2_6_incompatible -Isrc/include \
- -Dcplusplus_2_1 -DHAVE_ACE $(IVSTD_INCLUDES)
+ $(ACE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
 ### libIV_common
 
@@ -147,7 +147,7 @@ src/DrawServ/drawfunc.cc src/DrawServ/drawlink.cc		\
 src/DrawServ/drawserv-handler.cc
 
 libDrawServPART1_la_CPPFLAGS = \
- -D__ACE_INLINE__ -Div2_6_compatible -DHAVE_ACE \
+ $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 libDrawServPART2_la_SOURCES = src/DrawServ/drawcatalog.cc	\
@@ -159,14 +159,14 @@ src/DrawServ/grid.cc src/DrawServ/gridlist.cc			\
 src/DrawServ/linkselection.cc src/DrawServ/sid.cc
 
 libDrawServPART2_la_CPPFLAGS = \
- -Div2_6_compatible -DHAVE_ACE \
+ -Div2_6_compatible $(ACE_CPPFLAGS) \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 libDrawServPART3_la_SOURCES = src/DrawServ/drawimport.cc	\
 src/DrawServ/drawkit.cc src/DrawServ/rcdialog.cc
 
 libDrawServPART3_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include -Div2_6_compatible -DHAVE_ACE \
+ -Div2_6_incompatible -Isrc/include -Div2_6_compatible $(ACE_CPPFLAGS) \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 ### libUnidraw
@@ -196,14 +196,14 @@ src/ComUnidraw/nfunc.cc src/ComUnidraw/pixelfunc.cc			\
 src/ComUnidraw/plotfunc.cc src/ComUnidraw/unifunc.cc
 
 libComUnidrawPART1_la_CPPFLAGS = \
- -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE \
+ -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) \
  $(IV2_6_INCLUDES)
 
 libComUnidrawPART2_la_SOURCES = src/ComUnidraw/comterp-acehandler.cc
 
 libComUnidrawPART2_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include -D__ACE_INLINE__ \
- -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE \
+ -Div2_6_incompatible -Isrc/include \
+ -Dcplusplus_2_1 -Div2_6_compatible $(ACE_INLINE_CPPFLAGS) \
  $(IV2_6_INCLUDES)
 
 ### libComGlyph
@@ -496,7 +496,7 @@ src/OverlayUnidraw/rastercmds.cc src/OverlayUnidraw/scriptview.cc	\
 src/OverlayUnidraw/textfile.cc src/OverlayUnidraw/annotate.cc
 
 libOverlayUnidrawPART1_la_CPPFLAGS = \
- -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE \
+ -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) \
  $(IV2_6_INCLUDES)
 
 libOverlayUnidrawPART2_la_SOURCES = src/OverlayUnidraw/grloctool.cc	\
@@ -510,13 +510,13 @@ src/OverlayUnidraw/ovshowhide.cc src/OverlayUnidraw/setattrbyexpr.cc	\
 src/OverlayUnidraw/slctbyattr.cc
 
 libOverlayUnidrawPART2_la_CPPFLAGS = \
- -Div2_6_incompatible -Div2_6_compatible -DHAVE_ACE \
+ -Div2_6_incompatible -Div2_6_compatible $(ACE_CPPFLAGS) \
  -Dcplusplus_2_1 -Isrc/OverlayUnidraw -Isrc/include $(IV2_6_INCLUDES)
 
 libOverlayUnidrawPART3_la_SOURCES = src/OverlayUnidraw/aceimport.cc
 
 libOverlayUnidrawPART3_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include -D__ACE_INLINE__ -Div2_6_compatible -DHAVE_ACE \
+ -Div2_6_incompatible -Isrc/include $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 ### libAceDispatch
@@ -525,7 +525,7 @@ libAceDispatch_la_SOURCES = src/AceDispatch/ace_dispatcher.cc	\
 src/AceDispatch/ace_iohandler.cc
 
 libAceDispatch_la_CPPFLAGS = \
- -DHAVE_ACE \
+ $(ACE_CPPFLAGS) \
  -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
 ### libAttribute
@@ -579,6 +579,16 @@ g3states.h: mkg3states
 
 mkg3states: src/TIFF/mkg3states.c
 	$(CC) -o $@ $<
+
+### libACE Support
+
+if HAVE_ACE
+ACE_CPPFLAGS = -DHAVE_ACE
+ACE_INLINE_CPPFLAGS = -D__ACE_INLINE__ $(ACE_CPPFLAGS)
+else
+ACE_CPPFLAGS =
+ACE_INLINE_CPPFLAGS =
+endif
 
 ### Support files
 
@@ -660,21 +670,21 @@ AM_CXXFLAGS = -Wno-deprecated
 ## different names.  See info: (automake)Top > FAQ > Renamed Objects
 
 gclock_CPPFLAGS		= -Dcplusplus_2_1 -Isrc/glyphs $(IVSTD_INCLUDES)
-graphdraw_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE $(IV2_6_INCLUDES)
-glyphterp_CPPFLAGS	= -Dcplusplus_2_1 -DHAVE_ACE $(IVSTD_INCLUDES)
+graphdraw_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
+glyphterp_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
 stdcmapppm_CPPFLAGS	=
 idemo_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
-comdraw_CPPFLAGS	= -D__ACE_INLINE__ -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE $(IV2_6_INCLUDES)
+comdraw_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 idraw_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 ivtmpnam_CPPFLAGS	=
-comterp_CPPFLAGS	= -D__ACE_INLINE__ -Dcplusplus_2_1 -DHAVE_ACE $(IVSTD_INCLUDES)
-drawserv_CPPFLAGS	= -D__ACE_INLINE__ -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE $(IV2_6_INCLUDES)
+comterp_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+drawserv_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 dclock_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 ivtext_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
-flipbook_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible -DHAVE_ACE $(IV2_6_INCLUDES)
+flipbook_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
 iclass_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-comtest_CPPFLAGS	= -Dcplusplus_2_1 -DHAVE_ACE $(IVSTD_INCLUDES)
-drawtool_CPPFLAGS	= -D__ACE_INLINE__ -Div2_6_compatible -DHAVE_ACE -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+comtest_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
+drawtool_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 AM_LDFLAGS = -lOverlayUnidraw -lAceDispatch -lComGlyph -lComTerp	\
 -lAttrGlyph -lAttribute -lComUtil -lUniIdraw -lIVGlyph -lTopoFace	\

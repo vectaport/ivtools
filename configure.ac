@@ -30,8 +30,9 @@ AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X1
 AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
 AC_CHECK_LIB([jpeg], [jpeg_read_raw_data], [JPEG_LD=-ljpeg], AC_MSG_ERROR([Cannot find jpeg library]))
 dnl assume external ACE library
-AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_ERROR([Cannot find ACE library]))
+AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_WARN([Cannot find ACE library]))
 dnl if external TIFF library not found, build internal one
+AM_CONDITIONAL([HAVE_ACE], [test x$ACE_LD != x])
 AC_CHECK_LIB([tiff], [TIFFOpen], [EXTERNAL_TIFF_LD=-ltiff],
  AC_CHECK_LIB([TIFF], [TIFFOpen], [EXTERNAL_TIFF_LD=-lTIFF], AC_MSG_WARN([Cannot find tiff or TIFF library])))
 AM_CONDITIONAL([EXTERNAL_TIFF], [test x$EXTERNAL_TIFF_LD != x])
