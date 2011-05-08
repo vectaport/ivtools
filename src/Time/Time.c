@@ -35,6 +35,9 @@ seconds since January 1, 1901, GMT.
 #include <iomanip>
 using namespace std;
 
+using std::setfill;
+using std::setw;
+
 const unsigned VERSION =2;
 
 #define	THIS	Time

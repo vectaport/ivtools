@@ -72,6 +72,9 @@ using namespace std;
 #include <string.h>
 #include <iostream>
 
+using std::setfill;
+using std::setw;
+
 #define	THIS	Date
 #define	BASE	Object
 #define BASE_CLASSES BASE::desc()
