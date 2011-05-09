@@ -1,5 +1,6 @@
 0001-include_cstdio_etc.patch
 0002-using_std_xxx.patch
 0003-manpages_whatis.patch
-0004-gcc40_int_pointer_errors.patch
-0005-constchar.patch
+0004-gcc4_x_int_pointer_errors.patch
+0005-const_char.patch
+0006-typo_assigment_assignment.patch
