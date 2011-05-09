@@ -663,7 +663,7 @@ drawtool_SOURCES = src/drawtool/main.cc
 
 
 AM_CPPFLAGS = -Isrc/include
-AM_CXXFLAGS = -Wno-deprecated
+AM_CXXFLAGS = -Wno-write-strings -Wno-deprecated
 
 
 ## Giving per-object flags ensures that all the "main.o" files have
