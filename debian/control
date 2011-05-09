@@ -19,6 +19,7 @@ Package: ivtools-bin
 Section: graphics
 Architecture: any
 Depends: xterm | x-terminal-emulator, ${shlibs:Depends}, ${misc:Depends}
+Conflicts: ivtools-dev (<= 1.2.8-2)
 Suggests: netpbm, libjpeg-progs, pstoedit
 Description: Drawing Editors evolved from idraw
  The drawing editors in this package are idraw, a basic vector graphics
