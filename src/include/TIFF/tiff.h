@@ -198,7 +198,7 @@ typedef	enum {
 #define	TIFFTAG_PREDICTOR		317	/* prediction scheme w/ LZW */
 #define	TIFFTAG_WHITEPOINT		318	/* image white point */
 #define	TIFFTAG_PRIMARYCHROMATICITIES	319	/* !primary chromaticities */
-#define	TIFFTAG_COLORMAP		320	/* RGB map for pallette image */
+#define	TIFFTAG_COLORMAP		320	/* RGB map for palette image */
 #define	TIFFTAG_HALFTONEHINTS		321	/* !highlight+shadow info */
 #define	TIFFTAG_TILEWIDTH		322	/* !rows/data tile */
 #define	TIFFTAG_TILELENGTH		323	/* !cols/data tile */
