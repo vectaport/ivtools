@@ -37,7 +37,7 @@ public:
     virtual boolean post_eval() { return true; }
     virtual void execute();
     virtual const char* docstring() { 
-      return "= is the assigment operator"; }
+      return "= is the assignment operator"; }
 
     CLASS_SYMID("AssignFunc");
 };
