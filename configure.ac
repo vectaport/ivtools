@@ -21,32 +21,20 @@ AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_CC_C_O
 AC_PROG_INSTALL
-# ACLTX_PROG_PS2PDF sets ps2pdf
 ACLTX_PROG_PS2PDF(AC_MSG_WARN([Cannot find ps2pdf]))
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
 
 # Checks for libraries.
-AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
-AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
-AC_CHECK_LIB([jpeg], [jpeg_read_raw_data], [JPEG_LD=-ljpeg], AC_MSG_ERROR([Cannot find jpeg library]))
-dnl assume external ACE library
-AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_WARN([Cannot find ACE library]))
-dnl if external TIFF library not found, build internal one
-AM_CONDITIONAL([HAVE_ACE], [test x$ACE_LD != x])
-AC_CHECK_LIB([tiff], [TIFFOpen], [EXTERNAL_TIFF_LD=-ltiff],
- AC_CHECK_LIB([TIFF], [TIFFOpen], [EXTERNAL_TIFF_LD=-lTIFF], AC_MSG_WARN([Cannot find tiff or TIFF library])))
-AM_CONDITIONAL([EXTERNAL_TIFF], [test x$EXTERNAL_TIFF_LD != x])
-AC_SUBST(XEXT_LD)
-AC_SUBST(X11_LD)
-AC_SUBST(JPEG_LD)
-AC_SUBST(ACE_LD)
-AC_SUBST(EXTERNAL_TIFF_LD)
-
-dnl Q: Assume these are obsolete
-dnl AC_CHECK_LIB(stdc++,peek__7istream,LIBSTDCPLUSPLUS2=1,LIBSTDCPLUSPLUS2=0)
-dnl AC_CHECK_LIB(stdc++,_ZNSi4peekEv,LIBSTDCPLUSPLUS3=1,LIBSTDCPLUSPLUS3=0)
-dnl AC_SUBST(LIBSTDCPLUSPLUS2)
-dnl AC_SUBST(LIBSTDCPLUSPLUS3)
+AC_CHECK_LIB([X11], [XOpenDisplay],, AC_MSG_ERROR([Cannot find X11 library]))
+AC_CHECK_LIB([Xext], [XextFindDisplay],, AC_MSG_ERROR([Cannot find Xext library]))
+AC_CHECK_LIB([jpeg], [jpeg_read_raw_data],, AC_MSG_ERROR([Cannot find jpeg library]))
+AC_CHECK_LIB([ACE], [ace_cleanup_destroyer],,
+ [NO_LIBACE=true; AC_MSG_WARN([Cannot find ACE library])])
+AC_CHECK_LIB([tiff], [TIFFOpen],,
+ AC_CHECK_LIB([TIFF], [TIFFOpen],,
+  [NO_LIBTIFF=true; AC_MSG_WARN([Cannot find tiff or TIFF library])]))
+AM_CONDITIONAL([HAVE_LIBACE], [test x${NO_LIBACE} != xtrue])
+AM_CONDITIONAL([HAVE_LIBTIFF], [test x${NO_LIBTIFF} != xtrue])
 
 LT_INIT
 
@@ -54,9 +42,9 @@ LT_INIT
 dnl This is not the approved way of versioning dynamic libraries
 dnl but we just want to generate version 1.2.8
 
-# LIB_IV_VER=8:0:1		dnl generates 7.1.0
-# LIB_IV_VER=2:8:2		dnl generates 0.2.8
-# LIB_IV_VER=3:8:2		dnl generates 1.2.8
+dnl LIB_IV_VER=8:0:1		# generates 7.1.0
+dnl LIB_IV_VER=2:8:2		# generates 0.2.8
+dnl LIB_IV_VER=3:8:2		# generates 1.2.8
 
 LIB_IV_VER=3:8:2
 AC_SUBST(LIB_IV_VER)

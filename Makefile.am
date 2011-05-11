@@ -34,27 +34,27 @@ libComGlyph.la libIV.la libUnidraw.la libAttrGlyph.la libComUtil.la	\
 libTopoFace.la libUniIdraw.la libGraphUnidraw.la libFrameUnidraw.la	\
 libOverlayUnidraw.la libAceDispatch.la libAttribute.la
 
-IVSTD_LDFLAGS = -lIV $(XEXT_LD) $(X11_LD) $(TIFF_LD) $(JPEG_LD) $(ACE_LD)
+LIBVER = -version-info $(LIB_IV_VER)
 
-libComTerp_la_LDFLAGS		= -version-info $(LIB_IV_VER)
-libIV_common_la_LDFLAGS		= -version-info $(LIB_IV_VER)
-libTime_la_LDFLAGS		= -version-info $(LIB_IV_VER) $(IVSTD_LDFLAGS)
-libIVGlyph_la_LDFLAGS		= -version-info $(LIB_IV_VER) $(IVSTD_LDFLAGS)
-libDrawServ_la_LDFLAGS		= -version-info $(LIB_IV_VER) -lUnidraw $(IVSTD_LDFLAGS)
-libUnidraw_common_la_LDFLAGS	= -version-info $(LIB_IV_VER)
-libComUnidraw_la_LDFLAGS	= -version-info $(LIB_IV_VER) -lUnidraw $(IVSTD_LDFLAGS)
-libComGlyph_la_LDFLAGS		= -version-info $(LIB_IV_VER) $(IVSTD_LDFLAGS)
-libIV_la_LDFLAGS		= -version-info $(LIB_IV_VER)
-libUnidraw_la_LDFLAGS		= -version-info $(LIB_IV_VER)
-libAttrGlyph_la_LDFLAGS		= -version-info $(LIB_IV_VER) $(IVSTD_LDFLAGS)
-libComUtil_la_LDFLAGS		= -version-info $(LIB_IV_VER)
-libTopoFace_la_LDFLAGS		= -version-info $(LIB_IV_VER)
-libUniIdraw_la_LDFLAGS		= -version-info $(LIB_IV_VER) -lUnidraw $(IVSTD_LDFLAGS)
-libGraphUnidraw_la_LDFLAGS	= -version-info $(LIB_IV_VER) -lUnidraw $(IVSTD_LDFLAGS)
-libFrameUnidraw_la_LDFLAGS	= -version-info $(LIB_IV_VER) -lUnidraw $(IVSTD_LDFLAGS)
-libOverlayUnidraw_la_LDFLAGS	= -version-info $(LIB_IV_VER) -lUnidraw $(IVSTD_LDFLAGS)
-libAceDispatch_la_LDFLAGS	= -version-info $(LIB_IV_VER)
-libAttribute_la_LDFLAGS		= -version-info $(LIB_IV_VER)
+libComTerp_la_LDFLAGS		= $(LIBVER)
+libIV_common_la_LDFLAGS		= $(LIBVER)
+libTime_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
+libIVGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
+libDrawServ_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV $(LIBS)
+libUnidraw_common_la_LDFLAGS	= $(LIBVER)
+libComUnidraw_la_LDFLAGS	= $(LIBVER) -lUnidraw -lIV $(LIBS)
+libComGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
+libIV_la_LDFLAGS		= $(LIBVER)
+libUnidraw_la_LDFLAGS		= $(LIBVER)
+libAttrGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
+libComUtil_la_LDFLAGS		= $(LIBVER)
+libTopoFace_la_LDFLAGS		= $(LIBVER)
+libUniIdraw_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV $(LIBS)
+libGraphUnidraw_la_LDFLAGS	= $(LIBVER) -lUnidraw -lIV $(LIBS)
+libFrameUnidraw_la_LDFLAGS	= $(LIBVER) -lUnidraw -lIV $(LIBS)
+libOverlayUnidraw_la_LDFLAGS	= $(LIBVER) -lUnidraw -lIV $(LIBS)
+libAceDispatch_la_LDFLAGS	= $(LIBVER)
+libAttribute_la_LDFLAGS		= $(LIBVER)
 
 IVSTD_INCLUDES = -Isrc -Isrc/include -Isrc/include/ivstd
 IV2_6_INCLUDES = -Isrc -Isrc/include/IV-2_6 -Isrc/include -Isrc/include/ivstd
@@ -541,17 +541,14 @@ libAttribute_la_CPPFLAGS = \
 
 ### libTIFF
 
-if EXTERNAL_TIFF
-
+if HAVE_LIBTIFF
+# use external tiff library
 TIFF_LOC_CPPFLAG = -DEXTERN_TIFF
-TIFF_LD = $(EXTERNAL_TIFF_LD)
-
 else
-
+# build internal tiff library
 lib_LTLIBRARIES += libTIFF.la
 TIFF_LOC_CPPFLAG =
-TIFF_LD = -lTIFF
-
+LIBS += -lTIFF
 endif
 
 libTIFF_la_SOURCES = src/TIFF/tif_aux.c src/TIFF/tif_ccittrle.c		\
@@ -582,7 +579,7 @@ mkg3states: src/TIFF/mkg3states.c
 
 ### libACE Support
 
-if HAVE_ACE
+if HAVE_LIBACE
 ACE_CPPFLAGS = -DHAVE_ACE
 ACE_INLINE_CPPFLAGS = -D__ACE_INLINE__ $(ACE_CPPFLAGS)
 else
@@ -688,7 +685,7 @@ drawtool_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible -Dcplusplus_2_1 $(
 
 AM_LDFLAGS = -lOverlayUnidraw -lAceDispatch -lComGlyph -lComTerp	\
 -lAttrGlyph -lAttribute -lComUtil -lUniIdraw -lIVGlyph -lTopoFace	\
--lUnidraw $(IVSTD_LDFLAGS) -lm
+-lUnidraw -lIV $(LIBS)
 
 stdcmapppm_LDFLAGS =
 ivtmpnam_LDFLAGS =
@@ -698,8 +695,6 @@ gclock_LDFLAGS		= -lTime $(AM_LDFLAGS)
 comdraw_LDFLAGS		= -lComUnidraw $(AM_LDFLAGS)
 drawserv_LDFLAGS	= -lDrawServ -lFrameUnidraw -lGraphUnidraw -lComUnidraw $(AM_LDFLAGS)
 flipbook_LDFLAGS	= -lFrameUnidraw -lComUnidraw $(AM_LDFLAGS)
-
-# drawtool_LDADD = $(LIBOBJS)
 
 ### directories to recurse into, for installation of include files
 
