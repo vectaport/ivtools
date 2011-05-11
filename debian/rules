@@ -14,10 +14,6 @@ override_dh_auto_configure:
 
 override_dh_install:
 	dh_install
-	@echo prevent executables in ivtools-dev from being duplicated in ivtools-bin
-	find debian/ivtools-dev/usr/bin -type f -o -type l	\
-	 | sed s:^debian/ivtools-dev/:debian/ivtools-bin/:	\
-	 | xargs --no-run-if-empty rm --verbose
 	@echo prevent library files in libiv1 from being duplicated in libiv-unidraw1
 	find debian/libiv1/usr/lib -type f -o -type l		\
 	 | sed s:^debian/libiv1/:debian/libiv-unidraw1/:	\
