@@ -32,7 +32,11 @@ lib_LTLIBRARIES = libComTerp.la libIV-common.la libTime.la		\
 libIVGlyph.la libDrawServ.la libUnidraw-common.la libComUnidraw.la	\
 libComGlyph.la libIV.la libUnidraw.la libAttrGlyph.la libComUtil.la	\
 libTopoFace.la libUniIdraw.la libGraphUnidraw.la libFrameUnidraw.la	\
-libOverlayUnidraw.la libAceDispatch.la libAttribute.la
+libOverlayUnidraw.la libAttribute.la
+
+if HAVE_LIBACE
+lib_LTLIBRARIES += libAceDispatch.la
+endif
 
 LIBVER = -version-info $(LIB_IV_VER)
 
@@ -683,7 +687,13 @@ iclass_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 comtest_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
 drawtool_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
-AM_LDFLAGS = -lOverlayUnidraw -lAceDispatch -lComGlyph -lComTerp	\
+if HAVE_LIBACE
+ACE_DISPATCH_LD = -lAceDispatch
+else
+ACE_DISPATCH_LD =
+endif
+
+AM_LDFLAGS = -lOverlayUnidraw $(ACE_DISPATCH_LD) -lComGlyph -lComTerp	\
 -lAttrGlyph -lAttribute -lComUtil -lUniIdraw -lIVGlyph -lTopoFace	\
 -lUnidraw -lIV $(LIBS)
 
