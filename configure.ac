@@ -25,16 +25,18 @@ ACLTX_PROG_PS2PDF(AC_MSG_WARN([Cannot find ps2pdf]))
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
 
 # Checks for libraries.
-AC_CHECK_LIB([X11], [XOpenDisplay],, AC_MSG_ERROR([Cannot find X11 library]))
-AC_CHECK_LIB([Xext], [XextFindDisplay],, AC_MSG_ERROR([Cannot find Xext library]))
-AC_CHECK_LIB([jpeg], [jpeg_read_raw_data],, AC_MSG_ERROR([Cannot find jpeg library]))
-AC_CHECK_LIB([ACE], [ace_cleanup_destroyer],,
- [NO_LIBACE=true; AC_MSG_WARN([Cannot find ACE library])])
-AC_CHECK_LIB([tiff], [TIFFOpen],,
- AC_CHECK_LIB([TIFF], [TIFFOpen],,
-  [NO_LIBTIFF=true; AC_MSG_WARN([Cannot find tiff or TIFF library])]))
-AM_CONDITIONAL([HAVE_LIBACE], [test x${NO_LIBACE} != xtrue])
-AM_CONDITIONAL([HAVE_LIBTIFF], [test x${NO_LIBTIFF} != xtrue])
+AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
+AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
+AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_WARN([Cannot find ACE library]))
+AC_CHECK_LIB([tiff], [TIFFOpen], [TIFF_LD=-ltiff],
+ AC_CHECK_LIB([TIFF], [TIFFOpen], [TIFF_LD=-lTIFF], AC_MSG_WARN([Cannot find tiff or TIFF library])))
+AM_CONDITIONAL([HAVE_LIBACE], [test x${ACE_LD} != x])
+AM_CONDITIONAL([HAVE_LIBTIFF], [test x${TIFF_LD} != x])
+
+AC_SUBST(X11_LD)
+AC_SUBST(XEXT_LD)
+AC_SUBST(ACE_LD)
+AC_SUBST(TIFF_LD)
 
 LT_INIT
 
@@ -51,6 +53,7 @@ AC_SUBST(LIB_IV_VER)
 
 # Checks for header files.
 AC_PATH_X
+AC_PATH_XTRA
 
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h malloc.h memory.h \
 netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/file.h \

@@ -15,6 +15,8 @@
 ## compiled with identical options, and then combined to form the
 ## final library.
 
+## Removed linkage against external jpeg library, as it was not used.
+
 ## Pending Issues:
 
 ## Do
@@ -23,6 +25,8 @@
 ## external tiff library?
 
 ## Snatch the source code for refman.PS from the ivtools-doc CVS repo.
+
+## Comterp is compiled with ACE cpp options, but not linked to ACE.
 
 ACLOCAL_AMFLAGS = -I m4
 
@@ -38,27 +42,29 @@ if HAVE_LIBACE
 lib_LTLIBRARIES += libAceDispatch.la
 endif
 
+
+
 LIBVER = -version-info $(LIB_IV_VER)
 
-libComTerp_la_LDFLAGS		= $(LIBVER)
-libIV_common_la_LDFLAGS		= $(LIBVER)
-libTime_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
-libIVGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
-libDrawServ_la_LDFLAGS		= $(LIBVER) -lFrameUnidraw -lGraphUnidraw -lUnidraw -lIV $(LIBS)
-libUnidraw_common_la_LDFLAGS	= $(LIBVER) -lIV
-libComUnidraw_la_LDFLAGS	= $(LIBVER) -lUnidraw -lIV $(LIBS)
-libComGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
-libIV_la_LDFLAGS		= $(LIBVER)
-libUnidraw_la_LDFLAGS		= $(LIBVER) -lIV
-libAttrGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(LIBS)
+libAceDispatch_la_LDFLAGS	= $(LIBVER) -lIV $(ACE_LD) -lstdc++
+libAttrGlyph_la_LDFLAGS		= $(LIBVER) -lAttribute -lIVGlyph -lUnidraw -lIV -lstdc++
+libAttribute_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV -lComUtil -lstdc++
+libComGlyph_la_LDFLAGS		= $(LIBVER) -lAttribute -lComTerp -lIVGlyph -lIV -lComUtil -lstdc++
+libComTerp_la_LDFLAGS		= $(LIBVER) -lAttribute -lUnidraw -lIV -lComUtil $(ACE_LD) -lstdc++ -lm
+libComUnidraw_la_LDFLAGS	= $(LIBVER) -lAttribute -lComGlyph -lComTerp -lIVGlyph -lOverlayUnidraw -lUniIdraw -lUnidraw -lIV -lComUtil $(ACE_LD) $(X11_LD) -lstdc++
 libComUtil_la_LDFLAGS		= $(LIBVER)
-libTopoFace_la_LDFLAGS		= $(LIBVER) -lIV
-libUniIdraw_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV $(LIBS)
-libGraphUnidraw_la_LDFLAGS	= $(LIBVER) -lComUnidraw -lUnidraw -lIV $(LIBS)
-libFrameUnidraw_la_LDFLAGS	= $(LIBVER) -lComUnidraw -lUnidraw -lIV $(LIBS)
-libOverlayUnidraw_la_LDFLAGS	= $(LIBVER) -lUnidraw -lIV $(LIBS)
-libAceDispatch_la_LDFLAGS	= $(LIBVER) -lIV -lACE
-libAttribute_la_LDFLAGS		= $(LIBVER) -lIV
+libDrawServ_la_LDFLAGS		= $(LIBVER) -lAttribute -lComTerp -lComUnidraw -lFrameUnidraw -lGraphUnidraw -lIVGlyph -lOverlayUnidraw -lTopoFace -lUniIdraw -lUnidraw -lIV -lComUtil $(ACE_LD) -lstdc++
+libFrameUnidraw_la_LDFLAGS	= $(LIBVER) -lAttribute -lComGlyph -lComTerp -lComUnidraw -lIVGlyph -lOverlayUnidraw -lUniIdraw -lUnidraw -lIV -lComUtil -lstdc++
+libGraphUnidraw_la_LDFLAGS	= $(LIBVER) -lAttribute -lComTerp -lComUnidraw -lIVGlyph -lOverlayUnidraw -lTopoFace -lUniIdraw -lUnidraw -lIV -lComUtil -lstdc++
+libIVGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(X11_LD) -lstdc++
+libIV_common_la_LDFLAGS		= $(LIBVER) -lstdc++
+libIV_la_LDFLAGS		= $(LIBVER) $(TIFF_LD) $(XEXT_LD) $(X11_LD) -lstdc++ -lm
+libOverlayUnidraw_la_LDFLAGS	= $(LIBVER) -lAttrGlyph -lAttribute -lComGlyph -lComTerp -lIVGlyph -lTopoFace -lUniIdraw -lUnidraw -lIV -lComUtil $(ACE_LD) $(X11_LD) -lstdc++ -lm
+libTime_la_LDFLAGS		= $(LIBVER) -lIVGlyph -lIV -lstdc++
+libTopoFace_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV -lstdc++
+libUniIdraw_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV -lstdc++
+libUnidraw_common_la_LDFLAGS	= $(LIBVER) -lIV -lstdc++
+libUnidraw_la_LDFLAGS		= $(LIBVER) -lIV -lstdc++ $(X11_LD)
 
 IVSTD_INCLUDES = -Isrc -Isrc/include -Isrc/include/ivstd
 IV2_6_INCLUDES = -Isrc -Isrc/include/IV-2_6 -Isrc/include -Isrc/include/ivstd
@@ -617,50 +623,35 @@ pnmtopgm: src/scripts/pnmtopgm.sh
 	cp $< $@
 	chmod a+x $@
 
-bin_PROGRAMS = gclock graphdraw glyphterp stdcmapppm idemo comdraw	\
-idraw ivtmpnam comterp drawserv dclock ivtext flipbook iclass comtest	\
-drawtool
-
-gclock_SOURCES = src/glyphs/gclock/main.cc
-
-graphdraw_SOURCES = src/graphdraw/main.cc
-
-glyphterp_SOURCES = src/glyphterp/main.cc
-
-stdcmapppm_SOURCES = src/utils/stdcmapppm.c # C
-
-idemo_SOURCES = src/idemo/main.cc
+bin_PROGRAMS = comdraw comterp comtest dclock drawserv drawtool		\
+flipbook gclock glyphterp graphdraw iclass idemo idraw ivtext ivtmpnam	\
+stdcmapppm
 
 comdraw_SOURCES = src/comdraw/main.cc
-
-idraw_SOURCES = src/idraw/main.cc
-
-ivtmpnam_SOURCES = src/utils/ivtmpnam.c # C
-
 comterp_SOURCES = src/comterp_/main.cc
-
-drawserv_SOURCES = src/drawserv_/main.cc
-
+comtest_SOURCES = src/comtest/main.cc
 dclock_SOURCES = src/dclock/clocktime.cc src/dclock/clocktime.h	\
 src/dclock/data.cc src/dclock/data.h src/dclock/dclock.cc	\
 src/dclock/dclock.h src/dclock/dface.cc src/dclock/dface.h	\
 src/dclock/digit.cc src/dclock/digit.h src/dclock/segment.cc	\
 src/dclock/segment.h
-
-ivtext_SOURCES = src/ivtext/main.cc
-
+drawserv_SOURCES = src/drawserv_/main.cc
+drawtool_SOURCES = src/drawtool/main.cc
 flipbook_SOURCES = src/flipbook/main.cc
-
+gclock_SOURCES = src/glyphs/gclock/main.cc
+glyphterp_SOURCES = src/glyphterp/main.cc
+graphdraw_SOURCES = src/graphdraw/main.cc
 iclass_SOURCES = src/iclass/classbuffer.cc src/iclass/classbuffer.h	\
 src/iclass/classeditor.cc src/iclass/classeditor.h			\
 src/iclass/classinfo.cc src/iclass/classinfo.h src/iclass/dialogs.cc	\
 src/iclass/dialogs.h src/iclass/direct.cc src/iclass/direct.h		\
 src/iclass/globals.cc src/iclass/globals.h src/iclass/iclass.cc		\
 src/iclass/iclass.h src/iclass/main.cc
-
-comtest_SOURCES = src/comtest/main.cc
-
-drawtool_SOURCES = src/drawtool/main.cc
+idemo_SOURCES = src/idemo/main.cc
+idraw_SOURCES = src/idraw/main.cc
+ivtext_SOURCES = src/ivtext/main.cc
+ivtmpnam_SOURCES = src/utils/ivtmpnam.c # C
+stdcmapppm_SOURCES = src/utils/stdcmapppm.c # C
 
 
 AM_CPPFLAGS = -Isrc/include
@@ -670,22 +661,22 @@ AM_CXXFLAGS = -Wno-write-strings -Wno-deprecated
 ## Giving per-object flags ensures that all the "main.o" files have
 ## different names.  See info: (automake)Top > FAQ > Renamed Objects
 
-gclock_CPPFLAGS		= -Dcplusplus_2_1 -Isrc/glyphs $(IVSTD_INCLUDES)
-graphdraw_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
-glyphterp_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
-stdcmapppm_CPPFLAGS	=
-idemo_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 comdraw_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-idraw_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-ivtmpnam_CPPFLAGS	=
 comterp_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
-drawserv_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-dclock_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-ivtext_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
-flipbook_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
-iclass_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 comtest_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
+dclock_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+drawserv_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
 drawtool_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+flipbook_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
+gclock_CPPFLAGS		= -Dcplusplus_2_1 -Isrc/glyphs $(IVSTD_INCLUDES)
+glyphterp_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
+graphdraw_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
+iclass_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+idemo_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+idraw_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+ivtext_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+ivtmpnam_CPPFLAGS	=
+stdcmapppm_CPPFLAGS	=
 
 if HAVE_LIBACE
 ACE_DISPATCH_LD = -lAceDispatch
@@ -693,18 +684,24 @@ else
 ACE_DISPATCH_LD =
 endif
 
-AM_LDFLAGS = -lOverlayUnidraw $(ACE_DISPATCH_LD) -lComGlyph -lComTerp	\
--lAttrGlyph -lAttribute -lComUtil -lUniIdraw -lIVGlyph -lTopoFace	\
--lUnidraw -lIV $(LIBS)
+AM_LDFLAGS =
 
-stdcmapppm_LDFLAGS =
-ivtmpnam_LDFLAGS =
-
-graphdraw_LDFLAGS	= -lGraphUnidraw -lComUnidraw $(AM_LDFLAGS)
-gclock_LDFLAGS		= -lTime $(AM_LDFLAGS)
-comdraw_LDFLAGS		= -lComUnidraw $(AM_LDFLAGS)
-drawserv_LDFLAGS	= -lDrawServ -lFrameUnidraw -lGraphUnidraw -lComUnidraw $(AM_LDFLAGS)
-flipbook_LDFLAGS	= -lFrameUnidraw -lComUnidraw $(AM_LDFLAGS)
+comdraw_LDFLAGS		= -lComUnidraw $(ACE_DISPATCH_LD) -lIV
+comterp_LDFLAGS		= -lComTerp -lTopoFace
+comtest_LDFLAGS		= -lAttribute -lComTerp
+dclock_LDFLAGS		= -lIV
+drawserv_LDFLAGS	= -lDrawServ -lFrameUnidraw -lGraphUnidraw -lComUnidraw $(ACE_DISPATCH_LD) -lIV
+drawtool_LDFLAGS	= -lAceDispatch -lComTerp -lOverlayUnidraw -lUnidraw -lIV
+flipbook_LDFLAGS	= -lFrameUnidraw -lComUnidraw $(ACE_DISPATCH_LD) -lIV
+gclock_LDFLAGS		= -lTime -lIV
+glyphterp_LDFLAGS	= -lIVGlyph -lComGlyph -lIV
+graphdraw_LDFLAGS	= -lGraphUnidraw -lComUnidraw -lAceDispatch -lComTerp -lOverlayUnidraw -lUnidraw -lIV
+iclass_LDFLAGS		= -lIV
+idemo_LDFLAGS		= -lIV
+idraw_LDFLAGS		= -lUniIdraw
+ivtext_LDFLAGS		= -lIVGlyph -lIV
+ivtmpnam_LDFLAGS	=
+stdcmapppm_LDFLAGS	=
 
 ### directories to recurse into, for installation of include files
 
