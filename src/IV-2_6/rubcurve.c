@@ -128,7 +128,7 @@ RubberCircle::RubberCircle(
 void RubberCircle::OriginalRadii(int& xr, int& yr) {
     IntCoord dx = radiusx - centerx;
     IntCoord dy = radiusy - centery;
-    int radius = Math::round(sqrt(dx*dx + dy*dy));
+    int radius = Math::round(hypot(dx, dy));
     xr = radius;
     yr = radius;
 }
@@ -136,7 +136,7 @@ void RubberCircle::OriginalRadii(int& xr, int& yr) {
 void RubberCircle::CurrentRadii(int& xr, int& yr) {
     IntCoord dx = trackx - centerx;
     IntCoord dy = tracky - centery;
-    int radius = Math::round(sqrt(dx*dx + dy*dy));
+    int radius = Math::round(hypot(dx, dy));
     xr = radius;
     yr = radius;
 }
@@ -561,7 +561,7 @@ RotatingLineList::~RotatingLineList() {
 }
 
 void RotatingLineList::Update() {
-    float angle = (CurrentAngle() - OriginalAngle()) * M_PI/180.0;
+    float angle = radians(CurrentAngle() - OriginalAngle());
     float cosine = cos(angle);
     float sine = sin(angle);
     float tx, ty;

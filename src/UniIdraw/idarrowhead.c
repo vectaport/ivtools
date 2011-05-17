@@ -97,7 +97,7 @@ float Arrowhead::UnscaledLength (float length, Transformer* t) {
     inverse.Transform(x0, y0, tx0, ty0);
     inverse.Transform(x1, y1, tx1, ty1);
 
-    return hypot(tx0-tx1, ty0-ty1);
+    return hypot(tx0 - tx1, ty0 - ty1);
 }
 
 void Arrowhead::draw (Canvas* c, Graphic* gs) {

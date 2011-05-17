@@ -196,7 +196,7 @@ void RotatingLine::GetCurrent(
     dy1 = double(refy - centery);
     dx2 = double(trackx - centerx);
     dy2 = double(tracky - centery);
-    hprod = sqrt((dx1*dx1 + dy1*dy1) * (dx2*dx2 + dy2*dy2));
+    hprod = hypot(dx1,dy1) * hypot(dx2,dy2);
     if (hprod != 0.0) {
         cos = (dx1*dx2 + dy1*dy2) / hprod;
         sin = (dx1*dy2 - dx2*dy1) / hprod;
