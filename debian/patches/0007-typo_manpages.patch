@@ -1,0 +1,51 @@
+From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+Date: Tue, 17 May 2011 11:17:11 +0100
+Subject: [PATCH] typo_manpages
+
+correct spelling errors in man pages
+---
+ src/man/man1/drawtool.1  |    2 +-
+ src/man/man3/Viewer.3    |    2 +-
+ src/man/man3/statevars.3 |    2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/man/man1/drawtool.1 b/src/man/man1/drawtool.1
+index 8f6f54d..fbf67b0 100644
+--- a/src/man/man1/drawtool.1
++++ b/src/man/man1/drawtool.1
+@@ -20,7 +20,7 @@ the following features:
+ - graphical object attribute annotations
+ .PP
+ drawtool is derived from idraw, and implements the same set of
+-pulldown commands and pallette of toolbuttons.  Read the idraw man
++pulldown commands and palette of toolbuttons.  Read the idraw man
+ page for details on that part of the drawtool user interace.  This
+ page lists only the extensions to idraw embodied in drawtool.
+ .PP
+diff --git a/src/man/man3/Viewer.3 b/src/man/man3/Viewer.3
+index 37b7ea3..13523bf 100644
+--- a/src/man/man3/Viewer.3
++++ b/src/man/man3/Viewer.3
+@@ -106,7 +106,7 @@ Set and get the viewer's orientation parameter, which specifies
+ whether the graphical view, page, and grid will appear in portrait or
+ landscape mode.  No transformation will be applied in portrait mode,
+ while landscape mode will rotate the page -90 degrees and translate it
+-vertically by an amout equal to the width of the page's bounding box.
++vertically by an amount equal to the width of the page's bounding box.
+ .TP
+ .B "virtual Selection* GetSelection()"
+ Return the enclosing editor's selection object; it is equivalent to
+diff --git a/src/man/man3/statevars.3 b/src/man/man3/statevars.3
+index 3af2428..010a097 100644
+--- a/src/man/man3/statevars.3
++++ b/src/man/man3/statevars.3
+@@ -102,7 +102,7 @@ operation is performed on the component.
+ .ns
+ .TP
+ .B "virtual void NameVar::SetName(const char*)"
+-The NameVar constructor takes a string as an optional arguement, while
++The NameVar constructor takes a string as an optional argument, while
+ GetName and SetName retrieve and assign the string.
+ .TP
+ .B "CompNameVar(Component* = nil)"
+-- 

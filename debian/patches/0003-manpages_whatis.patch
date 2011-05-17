@@ -36,7 +36,7 @@ index 9ba66b1..b426dce 100644
  .SH SYNOPSIS
  .B comterp
 diff --git a/src/man/man1/drawtool.1 b/src/man/man1/drawtool.1
-index 0266269..994cb33 100644
+index 0266269..8f6f54d 100644
 --- a/src/man/man1/drawtool.1
 +++ b/src/man/man1/drawtool.1
 @@ -104,8 +104,8 @@ interactive transformations of graphics.
@@ -45,8 +45,8 @@ index 0266269..994cb33 100644
  .PP
 -"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal
 -...") selects the alignment of the panner display.
-+"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal...")
-+ selects the alignment of the panner display.
++"-panner_align tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc" (or "-pal ...")
++selects the alignment of the panner display.
  
  .PP
  "-panner_off" (or "-poff") disables the panner display.
