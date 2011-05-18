@@ -5,3 +5,4 @@
 0005-const_char.patch
 0006-typo_assigment_assignment.patch
 0007-typo_manpages.patch
+0008-math_atan2_hypot_sincos.patch

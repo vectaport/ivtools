@@ -1,0 +1,487 @@
+From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+Date: Tue, 17 May 2011 19:06:25 +0100
+Subject: [PATCH] math_atan2_hypot_sincos
+
+Smooth numeric code:
+ atan2(y,x) in place of atan(y/x) and logic;
+ hypot(x,y) in place of sqrt(x*x+y*y);
+ sincos(a,&s,&c) in place of s=sin(a); c=cos(a);
+ define radian/degree conversion centrally, use throughout;
+ more robust #define M_PI guard
+(Should algebra3.h be deleted?  Seems unused.)
+---
+ src/IV-2_6/rubband.cc              |   24 +++---------------------
+ src/IV-2_6/rubcurve.cc             |    9 ++++-----
+ src/IV-2_6/rubline.cc              |    2 +-
+ src/IV-2_6/rubrect.cc              |    2 +-
+ src/IVGlyph/figure.cc              |   11 ++---------
+ src/IVGlyph/globals.cc             |    2 +-
+ src/IVGlyph/globals.h              |    5 +----
+ src/InterViews/bevel.cc            |    8 ++++----
+ src/InterViews/transformer.cc      |    6 +-----
+ src/OverlayUnidraw/algebra3.h      |   20 +++++++++++---------
+ src/OverlayUnidraw/ovraster.cc     |    2 +-
+ src/TopoFace/fgeomobjs.cc          |    2 +-
+ src/UniIdraw/idarrowhead.cc        |    2 +-
+ src/UniIdraw/idarrows.cc           |   10 +++++-----
+ src/Unidraw/geomobjs.cc            |    2 +-
+ src/Unidraw/grblock.cc             |    2 +-
+ src/Unidraw/pin.cc                 |    2 +-
+ src/Unidraw/slot.cc                |    2 +-
+ src/glyphs/morpher/glyphviewer.cc  |    2 +-
+ src/include/OS/math.h              |   16 ++++++++++++++++
+ src/include/Unidraw/Graphic/util.h |    5 +----
+ 21 files changed, 59 insertions(+), 77 deletions(-)
+
+diff --git a/src/IV-2_6/rubband.cc b/src/IV-2_6/rubband.cc
+index a0f2ba7..7f6de9e 100644
+--- a/src/IV-2_6/rubband.cc
++++ b/src/IV-2_6/rubband.cc
+@@ -28,35 +28,17 @@
+ 
+ #include <IV-2_6/InterViews/rubband.h>
+ #include <IV-2_6/InterViews/painter.h>
++#include <OS/math.h>
+ #include <math.h>
+ 
+-static float DEGS_PER_RAD = 180.0 / M_PI;
+-
+ float Rubberband::Angle (IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1) {
+-    float dx, dy, angle;
+-
+-    dx = float(x1 - x0);
+-    dy = float(y1 - y0);
+-    if (dx != 0) {
+-        angle = DEGS_PER_RAD * atan(dy/dx);
+-    } else if (dy < 0) {
+-        angle = -90;
+-    } else {
+-        angle = 90;
+-    }
+-    if (dx < 0) {
+-        angle += 180;
+-    }
+-    return angle;
++    return degrees(atan2f(y1 - y0, x1 - x0));
+ }
+ 
+ float Rubberband::Distance(
+     IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1
+ ) {
+-    float dx = x0 - x1;
+-    float dy = y0 - y1;
+-
+-    return sqrt(dx*dx + dy*dy);
++    return hypotf(x0-x1, y0-y1);
+ }
+ 
+ Rubberband::Rubberband (Painter* p, Canvas* c, IntCoord x, IntCoord y) {
+diff --git a/src/IV-2_6/rubcurve.cc b/src/IV-2_6/rubcurve.cc
+index ee93817..f310ed1 100644
+--- a/src/IV-2_6/rubcurve.cc
++++ b/src/IV-2_6/rubcurve.cc
+@@ -128,7 +128,7 @@ RubberCircle::RubberCircle(
+ void RubberCircle::OriginalRadii(int& xr, int& yr) {
+     IntCoord dx = radiusx - centerx;
+     IntCoord dy = radiusy - centery;
+-    int radius = Math::round(sqrt(dx*dx + dy*dy));
++    int radius = Math::round(hypot(dx, dy));
+     xr = radius;
+     yr = radius;
+ }
+@@ -136,7 +136,7 @@ void RubberCircle::OriginalRadii(int& xr, int& yr) {
+ void RubberCircle::CurrentRadii(int& xr, int& yr) {
+     IntCoord dx = trackx - centerx;
+     IntCoord dy = tracky - centery;
+-    int radius = Math::round(sqrt(dx*dx + dy*dy));
++    int radius = Math::round(hypot(dx, dy));
+     xr = radius;
+     yr = radius;
+ }
+@@ -561,10 +561,9 @@ RotatingLineList::~RotatingLineList() {
+ }
+ 
+ void RotatingLineList::Update() {
+-    float angle = (CurrentAngle() - OriginalAngle()) * M_PI/180.0;
+-    float cosine = cos(angle);
+-    float sine = sin(angle);
++    float cosine, sine;
+     float tx, ty;
++    sincosf(radians(CurrentAngle() - OriginalAngle()), &sine, &cosine);
+     
+     for (int i = 0; i < count; ++i) {
+ 	tx = float(x[i] - centerx);
+diff --git a/src/IV-2_6/rubline.cc b/src/IV-2_6/rubline.cc
+index 44c2a8f..6664e76 100644
+--- a/src/IV-2_6/rubline.cc
++++ b/src/IV-2_6/rubline.cc
+@@ -196,7 +196,7 @@ void RotatingLine::GetCurrent(
+     dy1 = double(refy - centery);
+     dx2 = double(trackx - centerx);
+     dy2 = double(tracky - centery);
+-    hprod = sqrt((dx1*dx1 + dy1*dy1) * (dx2*dx2 + dy2*dy2));
++    hprod = hypot(dx1,dy1) * hypot(dx2,dy2);
+     if (hprod != 0.0) {
+         cos = (dx1*dx2 + dy1*dy2) / hprod;
+         sin = (dx1*dy2 - dx2*dy1) / hprod;
+diff --git a/src/IV-2_6/rubrect.cc b/src/IV-2_6/rubrect.cc
+index ce2ef81..472f01f 100644
+--- a/src/IV-2_6/rubrect.cc
++++ b/src/IV-2_6/rubrect.cc
+@@ -286,7 +286,7 @@ void RotatingRect::GetCurrent(
+     dy1 = double(refy - centery);
+     dx2 = double(trackx - centerx);
+     dy2 = double(tracky - centery);
+-    hprod = sqrt((dx1*dx1 + dy1*dy1) * (dx2*dx2 + dy2*dy2));
++    hprod = hypot(dx1, dy1) * hypot(dx2, dy2);
+     if (hprod != 0.0) {
+         cos = (dx1*dx2 + dy1*dy2) / hprod;
+         sin = (dx1*dy2 - dx2*dy1) / hprod;
+diff --git a/src/IVGlyph/figure.cc b/src/IVGlyph/figure.cc
+index d8c13f9..cac53e6 100644
+--- a/src/IVGlyph/figure.cc
++++ b/src/IVGlyph/figure.cc
+@@ -217,15 +217,8 @@ boolean Graphic31::manipulating (const Event& e, Tool31& tool) {
+                     float ldy = ly-cy; float ldx = lx-cx;
+                     float dy = y-cy; float dx = x-cx;
+ 
+-                    float cur = atan(ldy/ldx)/pi*180.0;
+-                    float last = atan(dy/dx)/pi*180.0;
+-
+-                    if (ldx < 0.0) {
+-                        cur += 180.0;
+-                    }
+-                    if (dx < 0.0) {
+-                        last += 180.0;
+-                    }
++		    float cur = degrees(atan2f(ldy, ldx));
++		    float last = degrees(atan2f(dy, dx));
+                         
+                     rotate(cur-last, cx, cy);
+                     ts._last = e;
+diff --git a/src/IVGlyph/globals.cc b/src/IVGlyph/globals.cc
+index d8bfe3a..b7947de 100644
+--- a/src/IVGlyph/globals.cc
++++ b/src/IVGlyph/globals.cc
+@@ -15,7 +15,7 @@ PointObj::PointObj (Coord x, Coord y) { _x = x; _y = y; }
+ PointObj::PointObj (PointObj* p) { _x = p->_x; _y = p->_y; }
+ 
+ float PointObj::Distance (PointObj& p) {
+-    return sqrt(float(square(_x - p._x) + square(_y - p._y)));
++    return hypotf(_x - p._x, _y - p._y);
+ }
+ 
+ /*****************************************************************************/
+diff --git a/src/IVGlyph/globals.h b/src/IVGlyph/globals.h
+index b3e5467..454478e 100644
+--- a/src/IVGlyph/globals.h
++++ b/src/IVGlyph/globals.h
+@@ -150,11 +150,8 @@ inline void exch (int& a, int& b) {
+ inline int square(int a) { return a *= a; }
+ inline Coord square(Coord a) { return a *= a; }
+ 
+-inline Coord degrees(Coord rad) { return rad * 180.0 / M_PI; }
+-inline Coord radians(Coord deg) { return deg * M_PI / 180.0; }
+-
+ inline Coord Distance(Coord x0, Coord y0, Coord x1, Coord y1) {
+-    return sqrt(Coord(square(x0 - x1) + square(y0 - y1)));
++    return hypot(x0-x1,y0-y1);
+ }
+ 
+ inline void ArrayCopy (
+diff --git a/src/InterViews/bevel.cc b/src/InterViews/bevel.cc
+index b815b7f..e168790 100644
+--- a/src/InterViews/bevel.cc
++++ b/src/InterViews/bevel.cc
+@@ -247,7 +247,7 @@ void Bevel::left_arrow(
+ ) {
+     Coord center_y = (bottom + top) * 0.5;
+     float slope = ((top - bottom) / (right - left)) * 0.5;
+-    float delta_x = thickness / sqrt(slope * slope + 1);
++    float delta_x = thickness / hypot(slope,1);
+     float delta_y = slope * delta_x;
+ 
+     c->new_path();
+@@ -288,7 +288,7 @@ void Bevel::right_arrow(
+ ) {
+     Coord center_y = (bottom + top) * 0.5;
+     float slope = ((top - bottom) / (right - left)) * 0.5;
+-    float delta_x = thickness / sqrt(slope * slope + 1);
++    float delta_x = thickness / hypot(slope, 1);
+     float delta_y = slope * delta_x;
+ 
+     c->new_path();
+@@ -329,7 +329,7 @@ void Bevel::up_arrow(
+ ) {
+     Coord center_x = (left + right) * 0.5;
+     float slope = 2 * ((top - bottom) / (right - left));
+-    float delta_x = thickness / sqrt(slope * slope + 1);
++    float delta_x = thickness / hypot(slope, 1);
+     float delta_y = slope * delta_x;
+ 
+     c->new_path();
+@@ -370,7 +370,7 @@ void Bevel::down_arrow(
+ ) {
+     Coord center_x = (left + right) * 0.5;
+     float slope = 2* ((top - bottom) / (right - left));
+-    float delta_x = thickness / sqrt(slope * slope + 1);
++    float delta_x = thickness / hypot(slope, 1);
+     float delta_y = slope * delta_x;
+ 
+     c->new_path();
+diff --git a/src/InterViews/transformer.cc b/src/InterViews/transformer.cc
+index 41aaff0..b5cb1a6 100644
+--- a/src/InterViews/transformer.cc
++++ b/src/InterViews/transformer.cc
+@@ -30,8 +30,6 @@
+ #include <OS/math.h>
+ #include <math.h>
+ 
+-static const double RADPERDEG = M_PI/180.0;
+-
+ Transformer::Transformer() {
+     identity_ = true;
+     mat00 = mat11 = 1;
+@@ -141,9 +139,7 @@ void Transformer::skew(float sx, float sy) {
+ void Transformer::rotate(float angle) {
+     float tmp1, tmp2, m00, m01, m10, m11, m20, m21;
+ 
+-    angle *= RADPERDEG;
+-    tmp1 = cos(angle);
+-    tmp2 = sin(angle);
++    sincosf(radians(angle), &tmp2, &tmp1);
+     
+     m00 = mat00*tmp1;
+     m01 = mat01*tmp2;
+diff --git a/src/OverlayUnidraw/algebra3.h b/src/OverlayUnidraw/algebra3.h
+index 8a7e283..a718f51 100644
+--- a/src/OverlayUnidraw/algebra3.h
++++ b/src/OverlayUnidraw/algebra3.h
+@@ -59,13 +59,16 @@ enum {PA, PB, PC, PD};		    // planes
+ enum {RED, GREEN, BLUE};	    // colors
+ enum {KA, KD, KS, ES};		    // phong coefficients
+ 
+-// Linux already defines these
+-#if 0
+ //
+ //	PI
+ //
++#ifndef M_PI
+ const double M_PI = 3.14159265358979323846;		// per CRC handbook, 14th. ed.
++#endif
++#ifndef M_PI_2
+ const double M_PI_2 = (M_PI/2.0);				// PI/2
++#endif
++#ifndef M2_PI
+ const double M2_PI = (M_PI*2.0);				// PI*2
+ #endif
+ 
+@@ -1239,9 +1242,9 @@ inline mat3 translation2D(const vec2& v)
+ 		vec3(0.0, 0.0, 1.0)); }
+ 
+ inline mat3 rotation2D(const vec2& Center, const double angleDeg) {
+-    double  angleRad = angleDeg * M_PI / 180.0,
+-	    c = cos(angleRad),
+-	    s = sin(angleRad);
++    double s, c;
++
++    sincos(radians(angleDeg), &s, &c);
+ 
+     return mat3(vec3(c, -s, Center[VX] * (1.0-c) + Center[VY] * s),
+ 		vec3(s, c, Center[VY] * (1.0-c) - Center[VX] * s),
+@@ -1266,10 +1269,9 @@ inline mat4 translation3D(const vec3& v)
+ 		vec4(0.0, 0.0, 0.0, 1.0)); }
+ 
+ inline mat4 rotation3D(vec3 Axis, const double angleDeg) {
+-    double  angleRad = angleDeg * M_PI / 180.0,
+-	    c = cos(angleRad),
+-	    s = sin(angleRad),
+-	    t = 1.0 - c;
++    double s, c, t;
++    sincos(radians(angleDeg), &s, &c);
++    t = 1 - c;
+ 
+     Axis.normalize();
+     return mat4(vec4(t * Axis[VX] * Axis[VX] + c,
+diff --git a/src/OverlayUnidraw/ovraster.cc b/src/OverlayUnidraw/ovraster.cc
+index 302e85f..127fe44 100644
+--- a/src/OverlayUnidraw/ovraster.cc
++++ b/src/OverlayUnidraw/ovraster.cc
+@@ -1839,7 +1839,7 @@ static float dist(
+ ) {
+     float xd = x2 - x1;
+     float yd = y2 - y1;
+-    return sqrt((xd*xd) + (yd*yd));
++    return hypot(xd, yd);;
+ }
+ 
+ 
+diff --git a/src/TopoFace/fgeomobjs.cc b/src/TopoFace/fgeomobjs.cc
+index f4027de..a9f211b 100644
+--- a/src/TopoFace/fgeomobjs.cc
++++ b/src/TopoFace/fgeomobjs.cc
+@@ -50,7 +50,7 @@ FPointObj::FPointObj (float x, float y) { _x = x; _y = y; }
+ FPointObj::FPointObj (FPointObj* p) { _x = p->_x; _y = p->_y; }
+ 
+ float FPointObj::Distance (FPointObj& p) {
+-    return sqrt(float(square(_x - p._x) + square(_y - p._y)));
++    return hypot(_x - p._x, _y - p._y);
+ }
+ 
+ /*****************************************************************************/
+diff --git a/src/UniIdraw/idarrowhead.cc b/src/UniIdraw/idarrowhead.cc
+index 65a2959..a023289 100644
+--- a/src/UniIdraw/idarrowhead.cc
++++ b/src/UniIdraw/idarrowhead.cc
+@@ -97,7 +97,7 @@ float Arrowhead::UnscaledLength (float length, Transformer* t) {
+     inverse.Transform(x0, y0, tx0, ty0);
+     inverse.Transform(x1, y1, tx1, ty1);
+ 
+-    return hypot(tx0-tx1, ty0-ty1);
++    return hypot(tx0 - tx1, ty0 - ty1);
+ }
+ 
+ void Arrowhead::draw (Canvas* c, Graphic* gs) {
+diff --git a/src/UniIdraw/idarrows.cc b/src/UniIdraw/idarrows.cc
+index fcebfe6..92fe120 100644
+--- a/src/UniIdraw/idarrows.cc
++++ b/src/UniIdraw/idarrows.cc
+@@ -225,7 +225,7 @@ void ArrowLine::SetArrows (boolean h, boolean t) {
+     _head = h ? new Arrowhead(_x0, _y0, width, height) : nil;
+     _tail = t ? new Arrowhead(_x1, _y1, width, height) : nil;
+ 
+-    float angle = atan2(_y0-_y1, _x0-_x1)*180/M_PI;
++    float angle = degrees(atan2f(_y0-_y1, _x0-_x1));
+ 
+     if (h) _head->Rotate(angle-90, _x0, _y0);
+     if (t) _tail->Rotate(angle+90, _x1, _y1);
+@@ -429,8 +429,8 @@ void ArrowMultiLine::SetArrows (boolean h, boolean t) {
+     _head = h ? new Arrowhead(x()[0], y()[0], width, height) : nil;
+     _tail = t ? new Arrowhead(x()[l], y()[l], width, height) : nil;
+ 
+-    float head_angle = atan2(y()[0]-y()[1], x()[0]-x()[1])*180/M_PI;
+-    float tail_angle = atan2(y()[k]-y()[l], x()[k]-x()[l])*180/M_PI;
++    float head_angle = degrees(atan2f(y()[0]-y()[1], x()[0]-x()[1]));
++    float tail_angle = degrees(atan2f(y()[k]-y()[l], x()[k]-x()[l]));
+ 
+     if (h) _head->Rotate(head_angle-90, x()[0], y()[0]);
+     if (t) _tail->Rotate(tail_angle+90, x()[l], y()[l]);
+@@ -623,8 +623,8 @@ void ArrowOpenBSpline::SetArrows (boolean h, boolean t) {
+     _head = h ? new Arrowhead(x()[0], y()[0], width, height) : nil;
+     _tail = t ? new Arrowhead(x()[l], y()[l], width, height) : nil;
+ 
+-    float head_angle = atan2(y()[0]-y()[3], x()[0]-x()[3])*180/M_PI;
+-    float tail_angle = atan2(y()[k]-y()[l], x()[k]-x()[l])*180/M_PI;
++    float head_angle = degrees(atan2f(y()[0]-y()[3], x()[0]-x()[3]));
++    float tail_angle = degrees(atan2f(y()[k]-y()[l], x()[k]-x()[l]));
+ 
+     if (h) _head->Rotate(head_angle-90, x()[0], y()[0]);
+     if (t) _tail->Rotate(tail_angle+90, x()[l], y()[l]);
+diff --git a/src/Unidraw/geomobjs.cc b/src/Unidraw/geomobjs.cc
+index 6c4356e..aec2671 100644
+--- a/src/Unidraw/geomobjs.cc
++++ b/src/Unidraw/geomobjs.cc
+@@ -53,7 +53,7 @@ PointObj::PointObj (Coord x, Coord y) { _x = x; _y = y; }
+ PointObj::PointObj (PointObj* p) { _x = p->_x; _y = p->_y; }
+ 
+ float PointObj::Distance (PointObj& p) {
+-    return sqrt(float(square(_x - p._x) + square(_y - p._y)));
++    return hypot(_x - p._x, _y - p._y);
+ }
+ 
+ /*****************************************************************************/
+diff --git a/src/Unidraw/grblock.cc b/src/Unidraw/grblock.cc
+index 7002800..8a59ee0 100644
+--- a/src/Unidraw/grblock.cc
++++ b/src/Unidraw/grblock.cc
+@@ -468,7 +468,7 @@ void GraphicBlock::RateScroll (Event& e) {
+         if (dx == 0 && dy == 0) {
+             SetCursor(origCursor);
+         } else {
+-            double angle = atan2(dy, dx)*180/M_PI;
++	     double angle = degrees(atan2(dy, dx));
+ 
+             if (angle < -157.5) {
+                 SetCursor(kit.rfast_cursor());
+diff --git a/src/Unidraw/pin.cc b/src/Unidraw/pin.cc
+index b79d291..2c2816b 100644
+--- a/src/Unidraw/pin.cc
++++ b/src/Unidraw/pin.cc
+@@ -386,7 +386,7 @@ void PinGraphic::getExtent (
+ 
+     transform(fx - PIN_RAD, fy, rx, ry, gs);
+     transform(fx, fy, cx, cy, gs);
+-    rad = sqrt(square(rx - cx) + square(ry - cy));
++    rad = hypot(rx - cx, ry - cy);
+     l = cx - rad;
+     b = cy - rad;
+     tol = 0;
+diff --git a/src/Unidraw/slot.cc b/src/Unidraw/slot.cc
+index dcfc23f..e5b1761 100644
+--- a/src/Unidraw/slot.cc
++++ b/src/Unidraw/slot.cc
+@@ -268,7 +268,7 @@ static void Correct (
+ 
+     float x0 = 0, y0 = 0, x1 = length, y1 = 0;
+     corr.TransformRect(x0, y0, x1, y1);
+-    length = Math::round(sqrt(square(x0-x1) + square(y0-y1)));
++    length = Math::round(hypot(x0 - x1, y0 - y1));
+ }
+ 
+ Command* SlotView::InterpGraphicCompManip (Manipulator* m) {
+diff --git a/src/glyphs/morpher/glyphviewer.cc b/src/glyphs/morpher/glyphviewer.cc
+index 5136ce2..3db2ff9 100644
+--- a/src/glyphs/morpher/glyphviewer.cc
++++ b/src/glyphs/morpher/glyphviewer.cc
+@@ -272,7 +272,7 @@ void GlyphViewer::rate_scroll () {
+     Coord dy = _y - _ly;
+     
+     if (dx != 0.0 && dy != 0.0) {
+-        double angle = atan2(dy, dx)*180/M_PI;
++        double angle = degrees(atan2(dy, dx));
+         
+         if (angle < -157.5) {
+             w->cursor(kit->rfast_cursor());
+diff --git a/src/include/OS/math.h b/src/include/OS/math.h
+index 252441e..67f79b5 100644
+--- a/src/include/OS/math.h
++++ b/src/include/OS/math.h
+@@ -107,4 +107,20 @@ inline boolean Math::equal(double x, double y, double e) {
+     return x - y < e && y - x < e;
+ }
+ 
++#ifndef M_PI
++const double M_PI = 3.14159265358979323846;		// per CRC handbook, 14th. ed.
++#endif
++#ifndef M_PI_2
++const double M_PI_2 = (M_PI/2.0);				// PI/2
++#endif
++#ifndef M2_PI
++const double M2_PI = (M_PI*2.0);				// PI*2
++#endif
++
++inline float degrees(float rad) { return rad * (float)(180 / M_PI); }
++inline float radians(float deg) { return deg * (float)(M_PI / 180); }
++
++inline double degrees(double rad) { return rad * (180 / M_PI); }
++inline double radians(double deg) { return deg * (M_PI / 180); }
++
+ #endif
+diff --git a/src/include/Unidraw/Graphic/util.h b/src/include/Unidraw/Graphic/util.h
+index a09b999..a865bdf 100644
+--- a/src/include/Unidraw/Graphic/util.h
++++ b/src/include/Unidraw/Graphic/util.h
+@@ -43,11 +43,8 @@ inline void exch (int& a, int& b) {
+ inline int square(int a) { return a *= a; }
+ inline float square(float a) { return a *= a; }
+ 
+-inline float degrees(float rad) { return rad * 180.0 / M_PI; }
+-inline float radians(float deg) { return deg * M_PI / 180.0; }
+-
+ inline float Distance(Coord x0, Coord y0, Coord x1, Coord y1) {
+-    return sqrt(float(square(x0 - x1) + square(y0 - y1)));
++    return hypotf(x0 - x1, y0 - y1);
+ }
+ 
+ inline void ArrayCopy (
+-- 
