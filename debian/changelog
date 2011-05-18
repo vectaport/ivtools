@@ -1,13 +1,22 @@
-ivtools (1.2.8-3) UNRELEASED; urgency=low
+ivtools (1.2.8a1-1) unstable; urgency=low
 
   * Update patches:
     37_Time_h -- removed (upstream)
     46_comdraw_crash -- removed (upstream)
     47_manpages_whatis -- add new pages
     use gbp-pq import/export to rename/sanitise/refresh/merge-related
-  * New fully-autotools-based build system allows much simplification
+    typo_assigment_assignment -- added
+    typo_manpages -- added
+    math_atan2_hypot_sincos -- added
+  * New fully-autotools-based build system allows much simplification and
+    addresses symlink-based autobuild problem.  Targeted for upstream adoption,
+    and done in consultation with upstream.  Although this is a debian patch
+    for now, the quilt system is unable to conveniently represent these changes
+    as they include many file removals and renames.  For this reason, a fake
+    upstream tarball with the autotools changes is used.
+  * Put static libraries in ivtools-dev, and switch it from arch all to any
 
- -- Barak A. Pearlmutter <bap@debian.org>  Sun, 08 May 2011 16:27:50 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 19 May 2011 08:52:17 +0100
 
 ivtools (1.2.8-2) unstable; urgency=low
 
