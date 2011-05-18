@@ -15,6 +15,12 @@
 ## compiled with identical options, and then combined to form the
 ## final library.
 
+## But unless the libFOO_la_SOURCES has a .cc file in it directly, as
+## opposed to only indirectly via convenience libraries, it will be
+## relinked during installation using gcc rather than g++, causing an
+## error.  So the first part of each broken-into-parts library is the
+## library itself.
+
 ## Removed linkage against external jpeg library, as it was not used.
 
 ## Pending Issues:
@@ -46,45 +52,69 @@ endif
 
 LIBVER = -version-info $(LIB_IV_VER)
 
-libAceDispatch_la_LDFLAGS	= $(LIBVER) -lIV $(ACE_LD) -lstdc++
-libAttrGlyph_la_LDFLAGS		= $(LIBVER) -lAttribute -lIVGlyph -lUnidraw -lIV -lstdc++
-libAttribute_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV -lComUtil -lstdc++
-libComGlyph_la_LDFLAGS		= $(LIBVER) -lAttribute -lComTerp -lIVGlyph -lIV -lComUtil -lstdc++
-libComTerp_la_LDFLAGS		= $(LIBVER) -lAttribute -lUnidraw -lIV -lComUtil $(ACE_LD) -lstdc++ -lm
-libComUnidraw_la_LDFLAGS	= $(LIBVER) -lAttribute -lComGlyph -lComTerp -lIVGlyph -lOverlayUnidraw -lUniIdraw -lUnidraw -lIV -lComUtil $(ACE_LD) $(X11_LD) -lstdc++
+libAceDispatch_la_LDFLAGS	= $(LIBVER)
+libAttrGlyph_la_LDFLAGS		= $(LIBVER)
+libAttribute_la_LDFLAGS		= $(LIBVER)
+libComGlyph_la_LDFLAGS		= $(LIBVER)
+libComTerp_la_LDFLAGS		= $(LIBVER)
+libComUnidraw_la_LDFLAGS	= $(LIBVER)
 libComUtil_la_LDFLAGS		= $(LIBVER)
-libDrawServ_la_LDFLAGS		= $(LIBVER) -lAttribute -lComTerp -lComUnidraw -lFrameUnidraw -lGraphUnidraw -lIVGlyph -lOverlayUnidraw -lTopoFace -lUniIdraw -lUnidraw -lIV -lComUtil $(ACE_LD) -lstdc++
-libFrameUnidraw_la_LDFLAGS	= $(LIBVER) -lAttribute -lComGlyph -lComTerp -lComUnidraw -lIVGlyph -lOverlayUnidraw -lUniIdraw -lUnidraw -lIV -lComUtil -lstdc++
-libGraphUnidraw_la_LDFLAGS	= $(LIBVER) -lAttribute -lComTerp -lComUnidraw -lIVGlyph -lOverlayUnidraw -lTopoFace -lUniIdraw -lUnidraw -lIV -lComUtil -lstdc++
-libIVGlyph_la_LDFLAGS		= $(LIBVER) -lIV $(X11_LD) -lstdc++
-libIV_common_la_LDFLAGS		= $(LIBVER) -lstdc++
-libIV_la_LDFLAGS		= $(LIBVER) $(TIFF_LD) $(XEXT_LD) $(X11_LD) -lstdc++ -lm
-libOverlayUnidraw_la_LDFLAGS	= $(LIBVER) -lAttrGlyph -lAttribute -lComGlyph -lComTerp -lIVGlyph -lTopoFace -lUniIdraw -lUnidraw -lIV -lComUtil $(ACE_LD) $(X11_LD) -lstdc++ -lm
-libTime_la_LDFLAGS		= $(LIBVER) -lIVGlyph -lIV -lstdc++
-libTopoFace_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV -lstdc++
-libUniIdraw_la_LDFLAGS		= $(LIBVER) -lUnidraw -lIV -lstdc++
-libUnidraw_common_la_LDFLAGS	= $(LIBVER) -lIV -lstdc++
-libUnidraw_la_LDFLAGS		= $(LIBVER) -lIV -lstdc++ $(X11_LD)
+libDrawServ_la_LDFLAGS		= $(LIBVER)
+libFrameUnidraw_la_LDFLAGS	= $(LIBVER)
+libGraphUnidraw_la_LDFLAGS	= $(LIBVER)
+libIVGlyph_la_LDFLAGS		= $(LIBVER)
+libIV_common_la_LDFLAGS		= $(LIBVER)
+libIV_la_LDFLAGS		= $(LIBVER)
+libOverlayUnidraw_la_LDFLAGS	= $(LIBVER)
+libTime_la_LDFLAGS		= $(LIBVER)
+libTopoFace_la_LDFLAGS		= $(LIBVER)
+libUniIdraw_la_LDFLAGS		= $(LIBVER)
+libUnidraw_common_la_LDFLAGS	= $(LIBVER)
+libUnidraw_la_LDFLAGS		= $(LIBVER)
+
+if HAVE_LIBACE
+ACEDISPATCH_LA = libAceDispatch.la
+else
+ACEDISPATCH_LA =
+endif
+
+libAceDispatch_la_LIBADD	= libIV.la $(ACE_LD) -lstdc++
+libAttrGlyph_la_LIBADD		= libAttribute.la libIVGlyph.la libUnidraw.la libIV.la -lstdc++
+libAttribute_la_LIBADD		= libUnidraw.la libIV.la libComUtil.la -lstdc++
+libComGlyph_la_LIBADD		= libAttribute.la libComTerp.la libIVGlyph.la libIV.la libComUtil.la -lstdc++
+libComTerp_la_LIBADD		= libAttribute.la libUnidraw.la libIV.la $(ACE_LD) -lstdc++ libComUtil.la -lm
+libComUnidraw_la_LIBADD		= libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) -lstdc++ libComUtil.la $(X11_LD)
+libComUtil_la_LIBADD		= 
+libDrawServ_la_LIBADD		= libAttribute.la libComTerp.la libComUnidraw.la libFrameUnidraw.la libGraphUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la -lstdc++ libComUtil.la $(ACE_LD)
+libFrameUnidraw_la_LIBADD	= libAttribute.la libComGlyph.la libComTerp.la libComUnidraw.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la -lstdc++ libComUtil.la
+libGraphUnidraw_la_LIBADD	= libAttribute.la libComTerp.la libComUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la -lstdc++ libComUtil.la
+libIVGlyph_la_LIBADD		= libIV.la -lstdc++ $(X11_LD)
+libIV_common_la_LIBADD		= -lstdc++
+libIV_la_LIBADD			= -lstdc++ $(TIFF_LD) $(XEXT_LD) $(X11_LD) -lm
+libOverlayUnidraw_la_LIBADD	= libAttrGlyph.la libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) -lstdc++ libComUtil.la $(X11_LD) -lm
+libTime_la_LIBADD		= libIVGlyph.la libIV.la -lstdc++
+libTopoFace_la_LIBADD		= libUnidraw.la libIV.la -lstdc++
+libUniIdraw_la_LIBADD		= libUnidraw.la libIV.la -lstdc++
+libUnidraw_common_la_LIBADD	= libIV.la -lstdc++
+libUnidraw_la_LIBADD		= libIV.la -lstdc++ $(X11_LD)
 
 IVSTD_INCLUDES = -Isrc -Isrc/include -Isrc/include/ivstd
-IV2_6_INCLUDES = -Isrc -Isrc/include/IV-2_6 -Isrc/include -Isrc/include/ivstd
+IV2_6_INCLUDES = -Div2_6_compatible -Isrc -Isrc/include/IV-2_6 -Isrc/include -Isrc/include/ivstd
 
 ### libComTerp
 
-libComTerp_la_SOURCES =
+libComTerp_parts = libComTerpPART1.la libComTerpPART2.la
+libComTerp_la_LIBADD += $(libComTerp_parts)
+noinst_LTLIBRARIES += $(libComTerp_parts)
 
-libComTerp_la_LIBADD = libComTerpPART1.la libComTerpPART2.la libComTerpPART3.la
-
-noinst_LTLIBRARIES += $(libComTerp_la_LIBADD)
-
-libComTerpPART1_la_SOURCES = src/ComTerp/comhandler.cc	\
+libComTerp_la_SOURCES = src/ComTerp/comhandler.cc	\
 src/ComTerp/comterpserv.cc src/ComTerp/ctrlfunc.cc
 
-libComTerpPART1_la_CPPFLAGS = \
+libComTerp_la_CPPFLAGS = \
  $(ACE_INLINE_CPPFLAGS) \
  -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
-libComTerpPART2_la_SOURCES = src/ComTerp/assignfunc.cc			\
+libComTerpPART1_la_SOURCES = src/ComTerp/assignfunc.cc			\
 src/ComTerp/bitfunc.cc src/ComTerp/boolfunc.cc				\
 src/ComTerp/bquotefunc.cc src/ComTerp/charfunc.cc			\
 src/ComTerp/comfunc.cc src/ComTerp/comvalue.cc src/ComTerp/condfunc.cc	\
@@ -96,12 +126,12 @@ src/ComTerp/statfunc.cc src/ComTerp/strmfunc.cc				\
 src/ComTerp/symbolfunc.cc src/ComTerp/typefunc.cc			\
 src/ComTerp/xformfunc.cc
 
-libComTerpPART2_la_CPPFLAGS = \
+libComTerpPART1_la_CPPFLAGS = \
  $(ACE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
-libComTerpPART3_la_SOURCES = src/ComTerp/comterp.cc
+libComTerpPART2_la_SOURCES = src/ComTerp/comterp.cc
 
-libComTerpPART3_la_CPPFLAGS = \
+libComTerpPART2_la_CPPFLAGS = \
  -Div2_6_incompatible -Isrc/include \
  $(ACE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 
@@ -146,21 +176,18 @@ libIVGlyph_la_CPPFLAGS = \
 
 ### libDrawServ
 
-libDrawServ_la_SOURCES =
+libDrawServ_parts = libDrawServPART1.la libDrawServPART2.la
+libDrawServ_la_LIBADD += $(libDrawServ_parts)
+noinst_LTLIBRARIES += $(libDrawServ_parts)
 
-libDrawServ_la_LIBADD = libDrawServPART1.la libDrawServPART2.la libDrawServPART3.la
-
-noinst_LTLIBRARIES += $(libDrawServ_la_LIBADD)
-
-libDrawServPART1_la_SOURCES = src/DrawServ/ackback-handler.cc	\
+libDrawServ_la_SOURCES = src/DrawServ/ackback-handler.cc	\
 src/DrawServ/drawfunc.cc src/DrawServ/drawlink.cc		\
 src/DrawServ/drawserv-handler.cc
 
-libDrawServPART1_la_CPPFLAGS = \
- $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible \
- -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+libDrawServ_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(ACE_INLINE_CPPFLAGS) $(IV2_6_INCLUDES)
 
-libDrawServPART2_la_SOURCES = src/DrawServ/drawcatalog.cc	\
+libDrawServPART1_la_SOURCES = src/DrawServ/drawcatalog.cc	\
 src/DrawServ/drawcmds.cc src/DrawServ/drawcomps.cc		\
 src/DrawServ/drawcreator.cc src/DrawServ/draweditor.cc		\
 src/DrawServ/drawlinkcomp.cc src/DrawServ/drawlinklist.cc	\
@@ -168,16 +195,15 @@ src/DrawServ/drawserv.cc src/DrawServ/drawviews.cc		\
 src/DrawServ/grid.cc src/DrawServ/gridlist.cc			\
 src/DrawServ/linkselection.cc src/DrawServ/sid.cc
 
-libDrawServPART2_la_CPPFLAGS = \
- -Div2_6_compatible $(ACE_CPPFLAGS) \
- -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+libDrawServPART1_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
 
-libDrawServPART3_la_SOURCES = src/DrawServ/drawimport.cc	\
+libDrawServPART2_la_SOURCES = src/DrawServ/drawimport.cc	\
 src/DrawServ/drawkit.cc src/DrawServ/rcdialog.cc
 
-libDrawServPART3_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include -Div2_6_compatible $(ACE_CPPFLAGS) \
- -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+libDrawServPART2_la_CPPFLAGS = \
+ -Dcplusplus_2_1 -Div2_6_incompatible	\
+ -Isrc/include $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
 
 ### libUnidraw
 
@@ -187,17 +213,15 @@ src/Unidraw/iterator.cc src/Unidraw/uarray.cc src/Unidraw/uhash.cc	\
 src/Unidraw/ulist.cc src/Unidraw/umap.cc
 
 libUnidraw_common_la_CPPFLAGS = \
- -DUnidrawCommon \
- -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -DUnidrawCommon $(IVSTD_INCLUDES)
 
 ### libComUnidraw
 
-libComUnidraw_la_SOURCES =
-libComUnidraw_la_LIBADD = libComUnidrawPART1.la libComUnidrawPART2.la
+libComUnidraw_parts = libComUnidrawPART1.la
+libComUnidraw_la_LIBADD += $(libComUnidraw_parts)
+noinst_LTLIBRARIES += $(libComUnidraw_parts)
 
-noinst_LTLIBRARIES += $(libComUnidraw_la_LIBADD)
-
-libComUnidrawPART1_la_SOURCES = src/ComUnidraw/comeditor.cc		\
+libComUnidraw_la_SOURCES = src/ComUnidraw/comeditor.cc			\
 src/ComUnidraw/comterp-iohandler.cc src/ComUnidraw/dialogfunc.cc	\
 src/ComUnidraw/grdotfunc.cc src/ComUnidraw/grfunc.cc			\
 src/ComUnidraw/grlistfunc.cc src/ComUnidraw/groupfunc.cc		\
@@ -205,16 +229,14 @@ src/ComUnidraw/grstatfunc.cc src/ComUnidraw/highlightfunc.cc		\
 src/ComUnidraw/nfunc.cc src/ComUnidraw/pixelfunc.cc			\
 src/ComUnidraw/plotfunc.cc src/ComUnidraw/unifunc.cc
 
+libComUnidraw_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
+
+libComUnidrawPART1_la_SOURCES = src/ComUnidraw/comterp-acehandler.cc
+
 libComUnidrawPART1_la_CPPFLAGS = \
- -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) \
- $(IV2_6_INCLUDES)
-
-libComUnidrawPART2_la_SOURCES = src/ComUnidraw/comterp-acehandler.cc
-
-libComUnidrawPART2_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include \
- -Dcplusplus_2_1 -Div2_6_compatible $(ACE_INLINE_CPPFLAGS) \
- $(IV2_6_INCLUDES)
+ -Dcplusplus_2_1 $(ACE_INLINE_CPPFLAGS) \
+ -Div2_6_incompatible -Isrc/include $(IV2_6_INCLUDES)
 
 ### libComGlyph
 
@@ -223,38 +245,37 @@ src/ComGlyph/comtextedit.cc src/ComGlyph/comtextview.cc	\
 src/ComGlyph/terpdialog.cc
 
 libComGlyph_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include \
- -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -Div2_6_incompatible -Isrc/include $(IVSTD_INCLUDES)
 
 ### libIV
 
-libIV_la_SOURCES =
+libIV_parts = libIVPART1.la libIVPART2.la libIVPART3.la libIVPART4.la
+libIV_la_LIBADD += $(libIV_parts)
+noinst_LTLIBRARIES += $(libIV_parts)
 
-libIV_la_LIBADD = libIVPART1.la libIVPART2.la libIVPART3.la libIVPART4.la libIVPART5.la
+libIV_la_SOURCES = src/InterViews/session.cc
 
-noinst_LTLIBRARIES += $(libIV_la_LIBADD)
-
-libIVPART1_la_SOURCES = src/InterViews/session.cc
-
-libIVPART1_la_CPPFLAGS = \
+libIV_la_CPPFLAGS = \
+ -Dcplusplus_2_1 \
  -DABSLIBALLDIR='"$(pkglibdir)"' \
  -DRELLIBALLDIR='"lib/$(PACKAGE)"' \
  -DX_LIBDIR='"$(libdir)"' \
- -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
+ -Isrc/IV $(IVSTD_INCLUDES)
 
-libIVPART2_la_SOURCES = src/InterViews/psfont.cc
+libIVPART1_la_SOURCES = src/InterViews/psfont.cc
+
+libIVPART1_la_CPPFLAGS = \
+ -Dcplusplus_2_1 \
+ -Dps_metrics_dir='"$(PSFontDir)"' \
+ -Isrc/IV $(IVSTD_INCLUDES)
+
+libIVPART2_la_SOURCES = src/InterViews/dialogs.cc src/InterViews/kit.cc
 
 libIVPART2_la_CPPFLAGS = \
- -Dps_metrics_dir='"$(PSFontDir)"' \
- -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 -Dsgi_motif_kit -Dmotif_kit -Ddefault_kit=SMFKit \
+ -Isrc/IV $(IVSTD_INCLUDES)
 
-libIVPART3_la_SOURCES = src/InterViews/dialogs.cc src/InterViews/kit.cc
-
-libIVPART3_la_CPPFLAGS = \
- -Dsgi_motif_kit -Dmotif_kit -Ddefault_kit=SMFKit \
- -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
-
-libIVPART4_la_SOURCES = src/Dispatch/dispatcher.cc			\
+libIVPART3_la_SOURCES = src/Dispatch/dispatcher.cc			\
 src/Dispatch/iohandler.cc src/IV-2_6/adjuster2_6.cc			\
 src/IV-2_6/banner.cc src/IV-2_6/border2_6.cc src/IV-2_6/box2_6.cc	\
 src/IV-2_6/button2_6.cc src/IV-2_6/compeditor.cc src/IV-2_6/control.cc	\
@@ -311,12 +332,12 @@ src/InterViews/xymarker.cc src/OS/directory.cc src/OS/file.cc		\
 src/OS/host.cc src/OS/listimpl.cc src/OS/math.cc src/OS/memory.cc	\
 src/OS/string.cc src/OS/ustring.cc
 
-libIVPART4_la_CPPFLAGS = \
+libIVPART3_la_CPPFLAGS = \
  -Dcplusplus_2_1 -Isrc/IV $(IVSTD_INCLUDES)
 
-libIVPART5_la_SOURCES = src/InterViews/tiff.cc
+libIVPART4_la_SOURCES = src/InterViews/tiff.cc
 
-libIVPART5_la_CPPFLAGS = \
+libIVPART4_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(TIFF_LOC_CPPFLAG) -Isrc/IV $(IVSTD_INCLUDES)
 
 ### libUnidraw
@@ -364,34 +385,33 @@ libUnidraw_la_CPPFLAGS = \
 libAttrGlyph_la_SOURCES = src/AttrGlyph/attredit.cc
 
 libAttrGlyph_la_CPPFLAGS = \
+ -Dcplusplus_2_1 \
  -DLibStdCPlusPlus2=0 -DLibStdCPlusPlus3=1 \
- -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+ $(IVSTD_INCLUDES)
 
 ### libComUtil
 
-libComUtil_la_SOURCES =
+libComUtil_parts = libComUtilPART1.la
+libComUtil_la_LIBADD += $(libComUtil_parts)
+noinst_LTLIBRARIES += $(libComUtil_parts)
 
-libComUtil_la_LIBADD = libComUtilPART1.la libComUtilPART2.la
-
-noinst_LTLIBRARIES += $(libComUtil_la_LIBADD)
-
-libComUtilPART1_la_SOURCES = src/ComUtil/atox.c src/ComUtil/comerr.c	\
+libComUtil_la_SOURCES = src/ComUtil/atox.c src/ComUtil/comerr.c		\
 src/ComUtil/dmm.c src/ComUtil/errfile.c src/ComUtil/funcptrs.c		\
 src/ComUtil/_lexscan.c src/ComUtil/mblock.c src/ComUtil/optable.c	\
 src/ComUtil/_parser.c src/ComUtil/_scanner.c src/ComUtil/symbols.c	\
 src/ComUtil/txtutil.c src/ComUtil/types.c src/ComUtil/util.c		\
 src/ComUtil/xdll.c
 
-libComUtilPART1_la_CPPFLAGS = \
+libComUtil_la_CPPFLAGS = \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
 
-libComUtilPART2_la_SOURCES = src/ComUtil/errsys.c
+libComUtilPART1_la_SOURCES = src/ComUtil/errsys.c
 
 # was hardwired:
 #  -DABSLIBALLDIR=\"/usr/lib/ivtools/\"
 #  -DRELLIBALLDIR=\"lib/ivtools/\"
 
-libComUtilPART2_la_CPPFLAGS = \
+libComUtilPART1_la_CPPFLAGS = \
  -DABSLIBALLDIR=\"$(pkglibdir)/\" \
  -DRELLIBALLDIR=\"lib/$(PACKAGE)/\" \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
@@ -418,55 +438,51 @@ src/UniIdraw/iddialogs.cc src/UniIdraw/ided.cc src/UniIdraw/idkybd.cc	\
 src/UniIdraw/idvars.cc
 
 libUniIdraw_la_CPPFLAGS = \
- -Div2_6_compatible \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 ### libGraphUnidraw
 
-libGraphUnidraw_la_SOURCES =
-libGraphUnidraw_la_LIBADD = libGraphUnidrawPART1.la libGraphUnidrawPART2.la
-noinst_LTLIBRARIES += $(libGraphUnidraw_la_LIBADD)
+libGraphUnidraw_parts = libGraphUnidrawPART1.la
+libGraphUnidraw_la_LIBADD += $(libGraphUnidraw_parts)
+noinst_LTLIBRARIES += $(libGraphUnidraw_parts)
 
-libGraphUnidrawPART1_la_SOURCES = src/GraphUnidraw/edgecomp.cc	\
+libGraphUnidraw_la_SOURCES = src/GraphUnidraw/edgecomp.cc	\
 src/GraphUnidraw/graphcatalog.cc src/GraphUnidraw/graphcmds.cc	\
 src/GraphUnidraw/graphcomp.cc src/GraphUnidraw/graphcreator.cc	\
 src/GraphUnidraw/graphdata.cc src/GraphUnidraw/grapheditor.cc	\
 src/GraphUnidraw/graphtools.cc src/GraphUnidraw/nodecomp.cc
 
-libGraphUnidrawPART1_la_CPPFLAGS = \
- -Div2_6_compatible -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+libGraphUnidraw_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
-libGraphUnidrawPART2_la_SOURCES = src/GraphUnidraw/graphdialog.cc	\
+libGraphUnidrawPART1_la_SOURCES = src/GraphUnidraw/graphdialog.cc	\
 src/GraphUnidraw/graphimport.cc src/GraphUnidraw/graphkit.cc
 
-libGraphUnidrawPART2_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include \
- -Div2_6_compatible -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+libGraphUnidrawPART1_la_CPPFLAGS = \
+ -Dcplusplus_2_1 \
+ -Div2_6_incompatible -Isrc/include $(IV2_6_INCLUDES)
 
 # libFrameUnidraw
 
-libFrameUnidraw_la_SOURCES =
+libFrameUnidraw_parts = libFrameUnidrawPART1.la
+libFrameUnidraw_la_LIBADD += $(libFrameUnidraw_parts)
+noinst_LTLIBRARIES += $(libFrameUnidraw_parts)
 
-libFrameUnidraw_la_LIBADD = libFrameUnidrawPART1.la libFrameUnidrawPART2.la
-
-noinst_LTLIBRARIES += $(libFrameUnidraw_la_LIBADD)
-
-libFrameUnidrawPART1_la_SOURCES = src/FrameUnidraw/framecatalog.cc	\
+libFrameUnidraw_la_SOURCES = src/FrameUnidraw/framecatalog.cc		\
 src/FrameUnidraw/framecmds.cc src/FrameUnidraw/framecomps.cc		\
 src/FrameUnidraw/framecreator.cc src/FrameUnidraw/frameeditor.cc	\
 src/FrameUnidraw/framefile.cc src/FrameUnidraw/framefunc.cc		\
 src/FrameUnidraw/frameps.cc src/FrameUnidraw/framescripts.cc		\
 src/FrameUnidraw/frameviewer.cc src/FrameUnidraw/frameviews.cc
 
-libFrameUnidrawPART1_la_CPPFLAGS = \
- -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+libFrameUnidraw_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
-libFrameUnidrawPART2_la_SOURCES = src/FrameUnidraw/frameimport.cc	\
+libFrameUnidrawPART1_la_SOURCES = src/FrameUnidraw/frameimport.cc	\
 src/FrameUnidraw/framekit.cc src/FrameUnidraw/framestates.cc
 
-libFrameUnidrawPART2_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include \
- -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+libFrameUnidrawPART1_la_CPPFLAGS = \
+ -Dcplusplus_2_1 -Div2_6_incompatible -Isrc/include $(IV2_6_INCLUDES)
 
 ### libOverlayUnidraw
 
@@ -475,13 +491,11 @@ libFrameUnidrawPART2_la_CPPFLAGS = \
 #  src/OverlayUnidraw/clippoly.cc
 #  src/OverlayUnidraw/ovclip.cc
 
-libOverlayUnidraw_la_SOURCES =
+libOverlayUnidraw_parts = libOverlayUnidrawPART1.la libOverlayUnidrawPART2.la
+libOverlayUnidraw_la_LIBADD += $(libOverlayUnidraw_parts)
+noinst_LTLIBRARIES += $(libOverlayUnidraw_parts)
 
-libOverlayUnidraw_la_LIBADD = libOverlayUnidrawPART1.la libOverlayUnidrawPART2.la libOverlayUnidrawPART3.la
-
-noinst_LTLIBRARIES += $(libOverlayUnidraw_la_LIBADD)
-
-libOverlayUnidrawPART1_la_SOURCES = src/OverlayUnidraw/attrtool.cc	\
+libOverlayUnidraw_la_SOURCES = src/OverlayUnidraw/attrtool.cc		\
 src/OverlayUnidraw/clipline.cc src/OverlayUnidraw/grayraster.cc		\
 src/OverlayUnidraw/indexmixins.cc src/OverlayUnidraw/leafwalker.cc	\
 src/OverlayUnidraw/ovadjuster.cc src/OverlayUnidraw/ovarrow.cc		\
@@ -505,11 +519,10 @@ src/OverlayUnidraw/ovviews.cc src/OverlayUnidraw/ptinpoly.cc		\
 src/OverlayUnidraw/rastercmds.cc src/OverlayUnidraw/scriptview.cc	\
 src/OverlayUnidraw/textfile.cc src/OverlayUnidraw/annotate.cc
 
-libOverlayUnidrawPART1_la_CPPFLAGS = \
- -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) \
- $(IV2_6_INCLUDES)
+libOverlayUnidraw_la_CPPFLAGS = \
+ -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
 
-libOverlayUnidrawPART2_la_SOURCES = src/OverlayUnidraw/grloctool.cc	\
+libOverlayUnidrawPART1_la_SOURCES = src/OverlayUnidraw/grloctool.cc	\
 src/OverlayUnidraw/ovabout.cc src/OverlayUnidraw/ovcamcmds.cc		\
 src/OverlayUnidraw/ovchainview.cc src/OverlayUnidraw/ovcmds.cc		\
 src/OverlayUnidraw/ovctrl.cc src/OverlayUnidraw/ovexport.cc		\
@@ -519,15 +532,15 @@ src/OverlayUnidraw/ovkit.cc src/OverlayUnidraw/ovprint.cc		\
 src/OverlayUnidraw/ovshowhide.cc src/OverlayUnidraw/setattrbyexpr.cc	\
 src/OverlayUnidraw/slctbyattr.cc
 
+libOverlayUnidrawPART1_la_CPPFLAGS = \
+ -Dcplusplus_2_1 -Div2_6_incompatible $(ACE_CPPFLAGS) \
+ -Isrc/OverlayUnidraw -Isrc/include $(IV2_6_INCLUDES)
+
+libOverlayUnidrawPART2_la_SOURCES = src/OverlayUnidraw/aceimport.cc
+
 libOverlayUnidrawPART2_la_CPPFLAGS = \
- -Div2_6_incompatible -Div2_6_compatible $(ACE_CPPFLAGS) \
- -Dcplusplus_2_1 -Isrc/OverlayUnidraw -Isrc/include $(IV2_6_INCLUDES)
-
-libOverlayUnidrawPART3_la_SOURCES = src/OverlayUnidraw/aceimport.cc
-
-libOverlayUnidrawPART3_la_CPPFLAGS = \
- -Div2_6_incompatible -Isrc/include $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible \
- -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+ -Dcplusplus_2_1 -Div2_6_incompatible -Isrc/include \
+ $(ACE_INLINE_CPPFLAGS) $(IV2_6_INCLUDES)
 
 ### libAceDispatch
 
@@ -535,8 +548,7 @@ libAceDispatch_la_SOURCES = src/AceDispatch/ace_dispatcher.cc	\
 src/AceDispatch/ace_iohandler.cc
 
 libAceDispatch_la_CPPFLAGS = \
- $(ACE_CPPFLAGS) \
- -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+ -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
 
 ### libAttribute
 
@@ -558,7 +570,6 @@ else
 # build internal tiff library
 lib_LTLIBRARIES += libTIFF.la
 TIFF_LOC_CPPFLAG =
-LIBS += -lTIFF
 endif
 
 libTIFF_la_SOURCES = src/TIFF/tif_aux.c src/TIFF/tif_ccittrle.c		\
@@ -661,47 +672,41 @@ AM_CXXFLAGS = -Wno-write-strings -Wno-deprecated
 ## Giving per-object flags ensures that all the "main.o" files have
 ## different names.  See info: (automake)Top > FAQ > Renamed Objects
 
-comdraw_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-comterp_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+comdraw_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_INLINE_CPPFLAGS) $(IV2_6_INCLUDES)
+comterp_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_INLINE_CPPFLAGS) $(IVSTD_INCLUDES)
 comtest_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
-dclock_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-drawserv_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
-drawtool_CPPFLAGS	= $(ACE_INLINE_CPPFLAGS) -Div2_6_compatible -Dcplusplus_2_1 $(IV2_6_INCLUDES)
-flipbook_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
+dclock_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+drawserv_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_INLINE_CPPFLAGS) $(IV2_6_INCLUDES)
+drawtool_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_INLINE_CPPFLAGS) $(IV2_6_INCLUDES)
+flipbook_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
 gclock_CPPFLAGS		= -Dcplusplus_2_1 -Isrc/glyphs $(IVSTD_INCLUDES)
 glyphterp_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IVSTD_INCLUDES)
-graphdraw_CPPFLAGS	= -Dcplusplus_2_1 -Div2_6_compatible $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
-iclass_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+graphdraw_CPPFLAGS	= -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
+iclass_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 idemo_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
-idraw_CPPFLAGS		= -Dcplusplus_2_1 -Div2_6_compatible $(IV2_6_INCLUDES)
+idraw_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 ivtext_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 ivtmpnam_CPPFLAGS	=
 stdcmapppm_CPPFLAGS	=
 
-if HAVE_LIBACE
-ACE_DISPATCH_LD = -lAceDispatch
-else
-ACE_DISPATCH_LD =
-endif
+# AM_LDFLAGS =
 
-AM_LDFLAGS =
-
-comdraw_LDFLAGS		= -lComUnidraw $(ACE_DISPATCH_LD) -lIV
-comterp_LDFLAGS		= -lComTerp -lTopoFace
-comtest_LDFLAGS		= -lAttribute -lComTerp
-dclock_LDFLAGS		= -lIV
-drawserv_LDFLAGS	= -lDrawServ -lFrameUnidraw -lGraphUnidraw -lComUnidraw $(ACE_DISPATCH_LD) -lIV
-drawtool_LDFLAGS	= -lAceDispatch -lComTerp -lOverlayUnidraw -lUnidraw -lIV
-flipbook_LDFLAGS	= -lFrameUnidraw -lComUnidraw $(ACE_DISPATCH_LD) -lIV
-gclock_LDFLAGS		= -lTime -lIV
-glyphterp_LDFLAGS	= -lIVGlyph -lComGlyph -lIV
-graphdraw_LDFLAGS	= -lGraphUnidraw -lComUnidraw -lAceDispatch -lComTerp -lOverlayUnidraw -lUnidraw -lIV
-iclass_LDFLAGS		= -lIV
-idemo_LDFLAGS		= -lIV
-idraw_LDFLAGS		= -lUniIdraw
-ivtext_LDFLAGS		= -lIVGlyph -lIV
-ivtmpnam_LDFLAGS	=
-stdcmapppm_LDFLAGS	=
+comdraw_LDADD	= libComUnidraw.la libComTerp.la libOverlayUnidraw.la libUnidraw.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
+comterp_LDADD	= libComTerp.la libTopoFace.la libUnidraw.la $(ACE_LD)
+comtest_LDADD	= libAttribute.la libComTerp.la
+dclock_LDADD	= libIV.la
+drawserv_LDADD	= libDrawServ.la libFrameUnidraw.la libGraphUnidraw.la libOverlayUnidraw.la libComUnidraw.la libUnidraw.la libComTerp.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
+drawtool_LDADD	= libAceDispatch.la libOverlayUnidraw.la libUnidraw.la libComTerp.la libIV.la $(ACE_LD)
+flipbook_LDADD	= libFrameUnidraw.la libComUnidraw.la libOverlayUnidraw.la libUnidraw.la libComTerp.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
+gclock_LDADD	= libTime.la libIV.la
+glyphterp_LDADD= libIVGlyph.la libComGlyph.la libIV.la
+graphdraw_LDADD= libGraphUnidraw.la libComUnidraw.la libAceDispatch.la libComTerp.la libOverlayUnidraw.la libUnidraw.la libIV.la $(ACE_LD)
+iclass_LDADD	= libIV.la
+idemo_LDADD	= libIV.la
+idraw_LDADD	= libUniIdraw.la libUnidraw.la
+ivtext_LDADD	= libIVGlyph.la libIV.la
+ivtmpnam_LDADD	=
+stdcmapppm_LDADD=
 
 ### directories to recurse into, for installation of include files
 
