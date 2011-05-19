@@ -6,7 +6,7 @@ AC_PREREQ([2.67])
 
 AC_INIT([InterViews Application Framework and Drawing Tools],[1.2.8],[johnston@vectaport.com],[ivtools],[http://www.ivtools.org])
 
-AM_INIT_AUTOMAKE
+AM_INIT_AUTOMAKE([subdir-objects])
 
 AC_CONFIG_SRCDIR([src/Unidraw/path.cc])
 
