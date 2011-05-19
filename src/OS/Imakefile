@@ -1,7 +1,0 @@
-XCOMM
-XCOMM OS source files
-XCOMM
-
-PACKAGE = src_os
-
-IvmkcmTargets($(PACKAGE))

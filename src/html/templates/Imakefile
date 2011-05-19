@@ -1,8 +1,0 @@
-XCOMM
-XCOMM html templates directory
-XCOMM
-
-PACKAGE = html_templates_ivtools
-
-IvmkcmTargets($(PACKAGE))
-
