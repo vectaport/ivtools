@@ -3,12 +3,13 @@ Priority: optional
 Section: libs
 Build-Depends: debhelper (>= 8),
 	quilt (>= 0.46-7~),
-	autotools-dev (>= 20100122.1~),
+	autotools-dev (>= 20100122.1~), autoconf (>= 2.67), automake,
 	zlib1g-dev,
 	x11-utils, xutils-dev, x11proto-core-dev,
 	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
 	libtiff4-dev, libjpeg62-dev, libace-dev,
 	ghostscript
+Build-Conflicts: autoconf2.13, automake1.4
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
 Standards-Version: 3.9.2.0
 Homepage: http://www.ivtools.org
