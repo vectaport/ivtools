@@ -1,3 +1,10 @@
+ivtools (1.2.8a1-2) unstable; urgency=low
+
+  * build dependency on autoconf and automake (debian/control).
+    See /usr/share/doc/autotools-dev/README.Debian.gz for details.
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 19 May 2011 20:45:10 +0100
+
 ivtools (1.2.8a1-1) unstable; urgency=low
 
   * Update patches:
