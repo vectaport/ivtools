@@ -36,7 +36,7 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
-noinst_LTLIBRARIES =
+EXTRA_LTLIBRARIES =
 
 lib_LTLIBRARIES = libComTerp.la libIV-common.la libTime.la		\
 libIVGlyph.la libDrawServ.la libUnidraw-common.la libComUnidraw.la	\
@@ -105,7 +105,7 @@ IV2_6_INCLUDES = -Div2_6_compatible -Isrc -Isrc/include/IV-2_6 -Isrc/include -Is
 
 libComTerp_parts = libComTerpPART1.la libComTerpPART2.la
 libComTerp_la_LIBADD += $(libComTerp_parts)
-noinst_LTLIBRARIES += $(libComTerp_parts)
+EXTRA_LTLIBRARIES += $(libComTerp_parts)
 
 libComTerp_la_SOURCES = src/ComTerp/comhandler.cc	\
 src/ComTerp/comterpserv.cc src/ComTerp/ctrlfunc.cc
@@ -178,7 +178,7 @@ libIVGlyph_la_CPPFLAGS = \
 
 libDrawServ_parts = libDrawServPART1.la libDrawServPART2.la
 libDrawServ_la_LIBADD += $(libDrawServ_parts)
-noinst_LTLIBRARIES += $(libDrawServ_parts)
+EXTRA_LTLIBRARIES += $(libDrawServ_parts)
 
 libDrawServ_la_SOURCES = src/DrawServ/ackback-handler.cc	\
 src/DrawServ/drawfunc.cc src/DrawServ/drawlink.cc		\
@@ -219,7 +219,7 @@ libUnidraw_common_la_CPPFLAGS = \
 
 libComUnidraw_parts = libComUnidrawPART1.la
 libComUnidraw_la_LIBADD += $(libComUnidraw_parts)
-noinst_LTLIBRARIES += $(libComUnidraw_parts)
+EXTRA_LTLIBRARIES += $(libComUnidraw_parts)
 
 libComUnidraw_la_SOURCES = src/ComUnidraw/comeditor.cc			\
 src/ComUnidraw/comterp-iohandler.cc src/ComUnidraw/dialogfunc.cc	\
@@ -251,7 +251,7 @@ libComGlyph_la_CPPFLAGS = \
 
 libIV_parts = libIVPART1.la libIVPART2.la libIVPART3.la libIVPART4.la
 libIV_la_LIBADD += $(libIV_parts)
-noinst_LTLIBRARIES += $(libIV_parts)
+EXTRA_LTLIBRARIES += $(libIV_parts)
 
 libIV_la_SOURCES = src/InterViews/session.cc
 
@@ -393,7 +393,7 @@ libAttrGlyph_la_CPPFLAGS = \
 
 libComUtil_parts = libComUtilPART1.la
 libComUtil_la_LIBADD += $(libComUtil_parts)
-noinst_LTLIBRARIES += $(libComUtil_parts)
+EXTRA_LTLIBRARIES += $(libComUtil_parts)
 
 libComUtil_la_SOURCES = src/ComUtil/atox.c src/ComUtil/comerr.c		\
 src/ComUtil/dmm.c src/ComUtil/errfile.c src/ComUtil/funcptrs.c		\
@@ -444,7 +444,7 @@ libUniIdraw_la_CPPFLAGS = \
 
 libGraphUnidraw_parts = libGraphUnidrawPART1.la
 libGraphUnidraw_la_LIBADD += $(libGraphUnidraw_parts)
-noinst_LTLIBRARIES += $(libGraphUnidraw_parts)
+EXTRA_LTLIBRARIES += $(libGraphUnidraw_parts)
 
 libGraphUnidraw_la_SOURCES = src/GraphUnidraw/edgecomp.cc	\
 src/GraphUnidraw/graphcatalog.cc src/GraphUnidraw/graphcmds.cc	\
@@ -466,7 +466,7 @@ libGraphUnidrawPART1_la_CPPFLAGS = \
 
 libFrameUnidraw_parts = libFrameUnidrawPART1.la
 libFrameUnidraw_la_LIBADD += $(libFrameUnidraw_parts)
-noinst_LTLIBRARIES += $(libFrameUnidraw_parts)
+EXTRA_LTLIBRARIES += $(libFrameUnidraw_parts)
 
 libFrameUnidraw_la_SOURCES = src/FrameUnidraw/framecatalog.cc		\
 src/FrameUnidraw/framecmds.cc src/FrameUnidraw/framecomps.cc		\
@@ -493,7 +493,7 @@ libFrameUnidrawPART1_la_CPPFLAGS = \
 
 libOverlayUnidraw_parts = libOverlayUnidrawPART1.la libOverlayUnidrawPART2.la
 libOverlayUnidraw_la_LIBADD += $(libOverlayUnidraw_parts)
-noinst_LTLIBRARIES += $(libOverlayUnidraw_parts)
+EXTRA_LTLIBRARIES += $(libOverlayUnidraw_parts)
 
 libOverlayUnidraw_la_SOURCES = src/OverlayUnidraw/attrtool.cc		\
 src/OverlayUnidraw/clipline.cc src/OverlayUnidraw/grayraster.cc		\
