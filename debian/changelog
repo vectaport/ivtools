@@ -1,3 +1,9 @@
+ivtools (1.2.8a1-3) unstable; urgency=low
+
+  * build dependency on libtool (debian/control)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 19 May 2011 22:42:34 +0100
+
 ivtools (1.2.8a1-2) unstable; urgency=low
 
   * build dependency on autoconf and automake (debian/control).
