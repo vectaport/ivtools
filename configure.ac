@@ -25,6 +25,7 @@ ACLTX_PROG_PS2PDF(AC_MSG_WARN([Cannot find ps2pdf]))
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
 
 # Checks for libraries.
+AC_CHECK_LIB([m], [pow], [MATH_LD=-lm], AC_MSG_WARN([Cannot find math library]))
 AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
 AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
 AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_WARN([Cannot find ACE library]))
@@ -79,7 +80,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([bzero floor getcwd gethostbyname gethostname \
 gettimeofday isascii memchr memmove memset munmap pow realpath \
 regcomp select socket sqrt strcasecmp strchr strcspn strdup strerror \
-strncasecmp strrchr strstr strtol uname])
+strncasecmp strrchr strstr strtol uname hypot hypotf])
 
 # Checks for locations
 AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
