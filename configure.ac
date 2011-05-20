@@ -80,7 +80,7 @@ AC_FUNC_STRTOD
 AC_CHECK_FUNCS([bzero floor getcwd gethostbyname gethostname \
 gettimeofday isascii memchr memmove memset munmap pow realpath \
 regcomp select socket sqrt strcasecmp strchr strcspn strdup strerror \
-strncasecmp strrchr strstr strtol uname])
+strncasecmp strrchr strstr strtol uname hypot hypotf])
 
 # Checks for locations
 AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
