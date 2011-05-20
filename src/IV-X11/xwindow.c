@@ -26,6 +26,9 @@
  * X11-dependent window and display implementation
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 #include "wtable.h"
 #include <InterViews/bitmap.h>
 #include <InterViews/canvas.h>
@@ -56,7 +59,9 @@
 #include <OS/string.h>
 #include <OS/table.h>
 #include <X11/Xatom.h>
+#ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
+#endif
 #include <iostream.h>
 #include <fstream>
 
@@ -69,9 +74,11 @@ using std::cerr;
 #if !defined(__NetBSD__) && !defined(__FreeBSD__) && !defined(__APPLE__)
 #if !defined(__linux__) && !defined(__CYGWIN__)
 /* no standard place for this */
+#ifndef HAVE_SYS_IOCTL_H
 extern "C" {
     extern int ioctl(int, int, ...);
 }
+#endif
 #else 
 #include <asm/socket.h>
 #endif
