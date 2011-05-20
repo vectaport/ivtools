@@ -1,25 +1,24 @@
 From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
 Date: Tue, 17 May 2011 19:06:25 +0100
-Subject: [PATCH] math_atan2_hypot_sincos
+Subject: [PATCH] math_atan2_hypot
 
 Smooth numeric code:
  atan2(y,x) in place of atan(y/x) and logic;
  hypot(x,y) in place of sqrt(x*x+y*y);
- sincos(a,&s,&c) in place of s=sin(a); c=cos(a);
  define radian/degree conversion centrally, use throughout;
  more robust #define M_PI guard
 (Should algebra3.h be deleted?  Seems unused.)
 ---
  src/IV-2_6/rubband.cc              |   24 +++---------------------
- src/IV-2_6/rubcurve.cc             |    9 ++++-----
+ src/IV-2_6/rubcurve.cc             |    6 +++---
  src/IV-2_6/rubline.cc              |    2 +-
  src/IV-2_6/rubrect.cc              |    2 +-
  src/IVGlyph/figure.cc              |   11 ++---------
  src/IVGlyph/globals.cc             |    2 +-
  src/IVGlyph/globals.h              |    5 +----
  src/InterViews/bevel.cc            |    8 ++++----
- src/InterViews/transformer.cc      |    6 +-----
- src/OverlayUnidraw/algebra3.h      |   20 +++++++++++---------
+ src/InterViews/transformer.cc      |    4 +---
+ src/OverlayUnidraw/algebra3.h      |   11 +++++++----
  src/OverlayUnidraw/ovraster.cc     |    2 +-
  src/TopoFace/fgeomobjs.cc          |    2 +-
  src/UniIdraw/idarrowhead.cc        |    2 +-
@@ -31,7 +30,7 @@ Smooth numeric code:
  src/glyphs/morpher/glyphviewer.cc  |    2 +-
  src/include/OS/math.h              |   16 ++++++++++++++++
  src/include/Unidraw/Graphic/util.h |    5 +----
- 21 files changed, 59 insertions(+), 77 deletions(-)
+ 21 files changed, 54 insertions(+), 68 deletions(-)
 
 diff --git a/src/IV-2_6/rubband.cc b/src/IV-2_6/rubband.cc
 index a0f2ba7..7f6de9e 100644
@@ -77,7 +76,7 @@ index a0f2ba7..7f6de9e 100644
  
  Rubberband::Rubberband (Painter* p, Canvas* c, IntCoord x, IntCoord y) {
 diff --git a/src/IV-2_6/rubcurve.cc b/src/IV-2_6/rubcurve.cc
-index ee93817..f310ed1 100644
+index ee93817..8e0d85b 100644
 --- a/src/IV-2_6/rubcurve.cc
 +++ b/src/IV-2_6/rubcurve.cc
 @@ -128,7 +128,7 @@ RubberCircle::RubberCircle(
@@ -98,19 +97,15 @@ index ee93817..f310ed1 100644
      xr = radius;
      yr = radius;
  }
-@@ -561,10 +561,9 @@ RotatingLineList::~RotatingLineList() {
+@@ -561,7 +561,7 @@ RotatingLineList::~RotatingLineList() {
  }
  
  void RotatingLineList::Update() {
 -    float angle = (CurrentAngle() - OriginalAngle()) * M_PI/180.0;
--    float cosine = cos(angle);
--    float sine = sin(angle);
-+    float cosine, sine;
++    float angle = radians(CurrentAngle() - OriginalAngle());
+     float cosine = cos(angle);
+     float sine = sin(angle);
      float tx, ty;
-+    sincosf(radians(CurrentAngle() - OriginalAngle()), &sine, &cosine);
-     
-     for (int i = 0; i < count; ++i) {
- 	tx = float(x[i] - centerx);
 diff --git a/src/IV-2_6/rubline.cc b/src/IV-2_6/rubline.cc
 index 44c2a8f..6664e76 100644
 --- a/src/IV-2_6/rubline.cc
@@ -230,7 +225,7 @@ index b815b7f..e168790 100644
  
      c->new_path();
 diff --git a/src/InterViews/transformer.cc b/src/InterViews/transformer.cc
-index 41aaff0..b5cb1a6 100644
+index 41aaff0..cbd7c82 100644
 --- a/src/InterViews/transformer.cc
 +++ b/src/InterViews/transformer.cc
 @@ -30,8 +30,6 @@
@@ -242,19 +237,17 @@ index 41aaff0..b5cb1a6 100644
  Transformer::Transformer() {
      identity_ = true;
      mat00 = mat11 = 1;
-@@ -141,9 +139,7 @@ void Transformer::skew(float sx, float sy) {
+@@ -141,7 +139,7 @@ void Transformer::skew(float sx, float sy) {
  void Transformer::rotate(float angle) {
      float tmp1, tmp2, m00, m01, m10, m11, m20, m21;
  
 -    angle *= RADPERDEG;
--    tmp1 = cos(angle);
--    tmp2 = sin(angle);
-+    sincosf(radians(angle), &tmp2, &tmp1);
++    angle = radians(angle);
+     tmp1 = cos(angle);
+     tmp2 = sin(angle);
      
-     m00 = mat00*tmp1;
-     m01 = mat01*tmp2;
 diff --git a/src/OverlayUnidraw/algebra3.h b/src/OverlayUnidraw/algebra3.h
-index 8a7e283..a718f51 100644
+index 8a7e283..0097bbe 100644
 --- a/src/OverlayUnidraw/algebra3.h
 +++ b/src/OverlayUnidraw/algebra3.h
 @@ -59,13 +59,16 @@ enum {PA, PB, PC, PD};		    // planes
@@ -276,33 +269,24 @@ index 8a7e283..a718f51 100644
  const double M2_PI = (M_PI*2.0);				// PI*2
  #endif
  
-@@ -1239,9 +1242,9 @@ inline mat3 translation2D(const vec2& v)
+@@ -1239,7 +1242,7 @@ inline mat3 translation2D(const vec2& v)
  		vec3(0.0, 0.0, 1.0)); }
  
  inline mat3 rotation2D(const vec2& Center, const double angleDeg) {
 -    double  angleRad = angleDeg * M_PI / 180.0,
--	    c = cos(angleRad),
--	    s = sin(angleRad);
-+    double s, c;
-+
-+    sincos(radians(angleDeg), &s, &c);
++    double  angleRad = radians(angleDeg),
+ 	    c = cos(angleRad),
+ 	    s = sin(angleRad);
  
-     return mat3(vec3(c, -s, Center[VX] * (1.0-c) + Center[VY] * s),
- 		vec3(s, c, Center[VY] * (1.0-c) - Center[VX] * s),
-@@ -1266,10 +1269,9 @@ inline mat4 translation3D(const vec3& v)
+@@ -1266,7 +1269,7 @@ inline mat4 translation3D(const vec3& v)
  		vec4(0.0, 0.0, 0.0, 1.0)); }
  
  inline mat4 rotation3D(vec3 Axis, const double angleDeg) {
 -    double  angleRad = angleDeg * M_PI / 180.0,
--	    c = cos(angleRad),
--	    s = sin(angleRad),
--	    t = 1.0 - c;
-+    double s, c, t;
-+    sincos(radians(angleDeg), &s, &c);
-+    t = 1 - c;
- 
-     Axis.normalize();
-     return mat4(vec4(t * Axis[VX] * Axis[VX] + c,
++    double  angleRad = radians(angleDeg),
+ 	    c = cos(angleRad),
+ 	    s = sin(angleRad),
+ 	    t = 1.0 - c;
 diff --git a/src/OverlayUnidraw/ovraster.cc b/src/OverlayUnidraw/ovraster.cc
 index 302e85f..127fe44 100644
 --- a/src/OverlayUnidraw/ovraster.cc
