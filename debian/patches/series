@@ -6,3 +6,4 @@
 0006-typo_assigment_assignment.patch
 0007-typo_manpages.patch
 0008-math_atan2_hypot.patch
+0009-autoconf-guard-ioctl.patch
