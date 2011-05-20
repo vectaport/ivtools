@@ -8,7 +8,7 @@ Build-Depends: debhelper (>= 8),
 	zlib1g-dev,
 	x11-utils, xutils-dev, x11proto-core-dev,
 	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
-	libtiff4-dev, libjpeg62-dev, libace-dev,
+	libtiff4-dev | libtiff-dev, libace-dev,
 	ghostscript
 Build-Conflicts: autoconf2.13, automake1.4
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
