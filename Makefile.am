@@ -103,25 +103,25 @@ else
 ACEDISPATCH_LA =
 endif
 
-libAceDispatch_la_LIBADD	= libIV.la $(ACE_LD) -lstdc++
-libAttrGlyph_la_LIBADD		= libAttribute.la libIVGlyph.la libUnidraw.la libIV.la -lstdc++
-libAttribute_la_LIBADD		= libUnidraw.la libIV.la libComUtil.la -lstdc++
-libComGlyph_la_LIBADD		= libAttribute.la libComTerp.la libIVGlyph.la libIV.la libComUtil.la -lstdc++
-libComTerp_la_LIBADD		= libAttribute.la libUnidraw.la libIV.la $(ACE_LD) -lstdc++ libComUtil.la $(MATH_LD)
-libComUnidraw_la_LIBADD		= libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) -lstdc++ libComUtil.la $(X11_LD)
+libAceDispatch_la_LIBADD	= libIV.la $(ACE_LD)
+libAttrGlyph_la_LIBADD		= libAttribute.la libIVGlyph.la libUnidraw.la libIV.la
+libAttribute_la_LIBADD		= libUnidraw.la libIV.la libComUtil.la
+libComGlyph_la_LIBADD		= libAttribute.la libComTerp.la libIVGlyph.la libIV.la libComUtil.la
+libComTerp_la_LIBADD		= libAttribute.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(MATH_LD)
+libComUnidraw_la_LIBADD		= libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(X11_LD)
 libComUtil_la_LIBADD		= 
-libDrawServ_la_LIBADD		= libAttribute.la libComTerp.la libComUnidraw.la libFrameUnidraw.la libGraphUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la -lstdc++ libComUtil.la $(ACE_LD)
-libFrameUnidraw_la_LIBADD	= libAttribute.la libComGlyph.la libComTerp.la libComUnidraw.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la -lstdc++ libComUtil.la
-libGraphUnidraw_la_LIBADD	= libAttribute.la libComTerp.la libComUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la -lstdc++ libComUtil.la
-libIVGlyph_la_LIBADD		= libIV.la -lstdc++ $(X11_LD)
-libIV_common_la_LIBADD		= -lstdc++
-libIV_la_LIBADD			= -lstdc++ $(TIFF_LD) $(XEXT_LD) $(X11_LD) $(MATH_LD)
-libOverlayUnidraw_la_LIBADD	= libAttrGlyph.la libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) -lstdc++ libComUtil.la $(X11_LD) $(MATH_LD)
-libTime_la_LIBADD		= libIVGlyph.la libIV.la -lstdc++
-libTopoFace_la_LIBADD		= libUnidraw.la libIV.la -lstdc++
-libUniIdraw_la_LIBADD		= libUnidraw.la libIV.la -lstdc++
-libUnidraw_common_la_LIBADD	= libIV.la -lstdc++
-libUnidraw_la_LIBADD		= libIV.la -lstdc++ $(X11_LD)
+libDrawServ_la_LIBADD		= libAttribute.la libComTerp.la libComUnidraw.la libFrameUnidraw.la libGraphUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la libComUtil.la $(ACE_LD)
+libFrameUnidraw_la_LIBADD	= libAttribute.la libComGlyph.la libComTerp.la libComUnidraw.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la libComUtil.la
+libGraphUnidraw_la_LIBADD	= libAttribute.la libComTerp.la libComUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la libComUtil.la
+libIVGlyph_la_LIBADD		= libIV.la $(X11_LD)
+libIV_common_la_LIBADD		=
+libIV_la_LIBADD			= $(TIFF_LD) $(XEXT_LD) $(X11_LD) $(MATH_LD)
+libOverlayUnidraw_la_LIBADD	= libAttrGlyph.la libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(X11_LD) $(MATH_LD)
+libTime_la_LIBADD		= libIVGlyph.la libIV.la
+libTopoFace_la_LIBADD		= libUnidraw.la libIV.la
+libUniIdraw_la_LIBADD		= libUnidraw.la libIV.la
+libUnidraw_common_la_LIBADD	= libIV.la
+libUnidraw_la_LIBADD		= libIV.la $(X11_LD)
 
 IVSTD_INCLUDES = -Isrc -Isrc/include -Isrc/include/ivstd
 IV2_6_INCLUDES = -Div2_6_compatible -Isrc -Isrc/include/IV-2_6 -Isrc/include -Isrc/include/ivstd
