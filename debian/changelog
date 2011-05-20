@@ -1,3 +1,13 @@
+ivtools (1.2.8a1-4) unstable; urgency=low
+
+  * autotools updates
+  * Update patches:
+    math_atan2_hypot -- modify, remove sincos() for portability
+    autoconf_guard_ioctl -- added (for non-Linux autobuild issue)
+  * remove libjpeg build dependency
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 21 May 2011 00:14:18 +0100
+
 ivtools (1.2.8a1-3) unstable; urgency=low
 
   * build dependency on libtool (debian/control)
