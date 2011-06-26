@@ -1,6 +1,6 @@
 From: Barak A. Pearlmutter <bap@debian.org>
 Date: Sat, 7 May 2011 18:05:45 +0100
-Subject: [PATCH] manpages_whatis
+Subject: [PATCH] manpage whatis
 
 tweak man page headers into conformance with format
 required by whatis, aka, man -k, and correct any roff

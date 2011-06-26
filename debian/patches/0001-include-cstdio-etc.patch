@@ -1,6 +1,6 @@
 From: Barak A. Pearlmutter <bap@debian.org>
 Date: Sat, 7 May 2011 18:05:37 +0100
-Subject: [PATCH] include_cstdio_etc
+Subject: [PATCH] include cstdio etc
 
 augment and adjust standard C++ I/O-related include directives
 ---
