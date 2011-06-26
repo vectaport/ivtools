@@ -33,7 +33,7 @@ Section: devel
 Architecture: any
 Depends: libiv1 (>= ${source:Version}), libiv1 (<< ${source:Version}.1~),
 	 libiv-unidraw1 (>= ${source:Version}), libiv-unidraw1 (<< ${source:Version}.1~),
-	 libc6-dev, libtiff4-dev, libjpeg62-dev, zlib1g-dev, libace-dev,
+	 libc6-dev, libtiff4-dev, zlib1g-dev, libace-dev,
 	 ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools-bin (<< 0.7.2)
 Description: Development files for the InterViews library
