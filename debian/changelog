@@ -2,8 +2,9 @@ ivtools (1.2.8a1-6) unstable; urgency=low
 
   * add package conflict, as /usr/lib/ivtools/InterViews was moved from
     ivtools-dev into ivtools-bin as part of the autotools transition
+  * add quilt patch for manpage -option to \-option, and rationalise patches
 
- -- Barak A. Pearlmutter <bap@debian.org>  Sun, 26 Jun 2011 22:42:07 +0200
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 26 Jun 2011 23:45:58 +0200
 
 ivtools (1.2.8a1-5) unstable; urgency=low
 
