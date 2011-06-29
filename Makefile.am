@@ -116,7 +116,7 @@ libGraphUnidraw_la_LIBADD	= libAttribute.la libComTerp.la libComUnidraw.la libIV
 libIVGlyph_la_LIBADD		= libIV.la $(X11_LD)
 libIV_common_la_LIBADD		=
 libIV_la_LIBADD			= $(TIFF_LD) $(XEXT_LD) $(X11_LD) $(MATH_LD)
-libOverlayUnidraw_la_LIBADD	= libAttrGlyph.la libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(X11_LD) $(MATH_LD)
+libOverlayUnidraw_la_LIBADD	= libAttrGlyph.la libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(CLIPPOLY_LD) $(X11_LD) $(MATH_LD)
 libTime_la_LIBADD		= libIVGlyph.la libIV.la
 libTopoFace_la_LIBADD		= libUnidraw.la libIV.la
 libUniIdraw_la_LIBADD		= libUnidraw.la libIV.la
@@ -511,11 +511,6 @@ libFrameUnidrawPART1_la_CPPFLAGS = \
 
 ### libOverlayUnidraw
 
-# in directory but not included in build:
-#  src/OverlayUnidraw/cliplinepoly.cc
-#  src/OverlayUnidraw/clippoly.cc
-#  src/OverlayUnidraw/ovclip.cc
-
 libOverlayUnidraw_parts = libOverlayUnidrawPART1.la libOverlayUnidrawPART2.la
 libOverlayUnidraw_la_LIBADD += $(libOverlayUnidraw_parts)
 EXTRA_LTLIBRARIES += $(libOverlayUnidraw_parts)
@@ -544,6 +539,11 @@ src/OverlayUnidraw/ovviews.cc src/OverlayUnidraw/ptinpoly.cc		\
 src/OverlayUnidraw/rastercmds.cc src/OverlayUnidraw/scriptview.cc	\
 src/OverlayUnidraw/textfile.cc src/OverlayUnidraw/annotate.cc
 
+if HAVE_LIBCLIPPOLY
+libOverlayUnidraw_la_SOURCES += src/OverlayUnidraw/cliplinepoly.cc	\
+src/OverlayUnidraw/clippoly.cc src/OverlayUnidraw/ovclip.cc
+endif
+
 libOverlayUnidraw_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
 
@@ -566,6 +566,12 @@ libOverlayUnidrawPART2_la_SOURCES = src/OverlayUnidraw/aceimport.cc
 libOverlayUnidrawPART2_la_CPPFLAGS = \
  -Dcplusplus_2_1 -Div2_6_incompatible -Isrc/include \
  $(ACE_INLINE_CPPFLAGS) $(IV2_6_INCLUDES)
+
+if HAVE_LIBCLIPPOLY
+libOverlayUnidraw_la_CPPFLAGS += -DCLIPPOLY -I/usr/include/clippoly
+libOverlayUnidrawPART1_la_CPPFLAGS += -DCLIPPOLY -I/usr/include/clippoly
+libOverlayUnidrawPART2_la_CPPFLAGS += -DCLIPPOLY -I/usr/include/clippoly
+endif
 
 ### libAceDispatch
 
