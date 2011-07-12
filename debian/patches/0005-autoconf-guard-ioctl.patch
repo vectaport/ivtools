@@ -7,14 +7,14 @@ Subject: [PATCH] autoconf guard ioctl
  1 files changed, 7 insertions(+), 0 deletions(-)
 
 diff --git a/src/IV-X11/xwindow.cc b/src/IV-X11/xwindow.cc
-index 89c9f90..43d051f 100644
+index 89c9f90..39eb98a 100644
 --- a/src/IV-X11/xwindow.cc
 +++ b/src/IV-X11/xwindow.cc
 @@ -26,6 +26,9 @@
   * X11-dependent window and display implementation
   */
  
-+#if HAVE_CONFIG_H
++#ifdef HAVE_CONFIG_H
 +#include "config.h"
 +#endif
  #include "wtable.h"
