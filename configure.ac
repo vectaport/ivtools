@@ -6,7 +6,8 @@ AC_PREREQ([2.67])
 
 AC_INIT([InterViews Application Framework and Drawing Tools],[1.2.8],[johnston@vectaport.com],[ivtools],[http://www.ivtools.org])
 
-AM_INIT_AUTOMAKE([subdir-objects])
+dnl The foreign option allows the follow files to not exist: NEWS AUTHORS ChangeLog
+AM_INIT_AUTOMAKE([subdir-objects foreign])
 
 AC_CONFIG_SRCDIR([src/Unidraw/path.cc])
 
