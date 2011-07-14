@@ -4,13 +4,9 @@
 #export DH_VERBOSE=1
 
 build clean install binary-arch binary-indep binary:
-	dh $@ --with autotools_dev --with quilt --parallel
+	dh $@ --with autotools_dev --with autoreconf --with quilt --parallel
 
 .PHONY: build clean binary-indep binary-arch binary install
-
-override_dh_auto_configure:
-	./autogen.sh
-	dh_auto_configure
 
 override_dh_install:
 	dh_install
