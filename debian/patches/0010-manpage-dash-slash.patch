@@ -6,7 +6,7 @@ In manpages, need to guard dashes before options: not foo --help and
 foo -h, but foo \-\-help and foo \-h.  Ask not what your computer can
 do for you, but what you can do for your computer.
 ---
- src/man/man1/comdraw.1  |    8 ++++----
+ src/man/man1/comdraw.1  |   10 +++++-----
  src/man/man1/drawtool.1 |   42 +++++++++++++++++++++---------------------
  src/man/man1/flipbook.1 |    6 +++---
  src/man/man3/Deck2_6.3  |    4 ++--
@@ -14,10 +14,10 @@ do for you, but what you can do for your computer.
  src/man/man3/UArray.3   |    2 +-
  src/man/man3/Viewer.3   |    2 +-
  src/man/man3/World.3    |    2 +-
- 8 files changed, 35 insertions(+), 35 deletions(-)
+ 8 files changed, 36 insertions(+), 36 deletions(-)
 
 diff --git a/src/man/man1/comdraw.1 b/src/man/man1/comdraw.1
-index fc3ede9..a8f109c 100644
+index fc3ede9..e13ffe6 100644
 --- a/src/man/man1/comdraw.1
 +++ b/src/man/man1/comdraw.1
 @@ -3,7 +3,7 @@
@@ -29,6 +29,15 @@ index fc3ede9..a8f109c 100644
  .SH DESCRIPTION
  comdraw is a drawing editor with integrated command interpreter the
  user can interact with via stdin and stdout (or via telnet if ACE is
+@@ -150,7 +150,7 @@ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str
+ .SH OTHER COMMANDS
+ 
+  acknowledgebox(msgstr) -- popup an acknowledge dialog box
+- confirmbox(msgstr) -- popup a confirmation dialog box, and return 1, 0, or -1 if cancelled
++ confirmbox(msgstr) -- popup a confirmation dialog box, and return 1, 0, or \-1 if cancelled
+ 
+  run(filename) -- run commands from file
+  quit() -- quit this interpreter
 @@ -178,16 +178,16 @@ with ACE.
  processing.
  
