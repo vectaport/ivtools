@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
 Date: Sun, 8 May 2011 14:06:25 +0100
-Subject: [PATCH] using std xxx
+Subject: using std xxx
 
 explicitly import some std:: qualified identifiers
 ---

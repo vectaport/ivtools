@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <bap@debian.org>
+From: "Barak A. Pearlmutter" <bap@debian.org>
 Date: Sat, 7 May 2011 18:05:45 +0100
-Subject: [PATCH] gcc 4 int pointer errors
+Subject: gcc 4 int pointer errors
 
 Avoid compilation issues due to pointer length being different on
 32-bin and 64-bit architectures.  (NOTE: this patch should be

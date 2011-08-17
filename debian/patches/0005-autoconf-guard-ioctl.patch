@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
 Date: Fri, 20 May 2011 15:14:42 +0100
-Subject: [PATCH] autoconf guard ioctl
+Subject: autoconf guard ioctl
 
 ---
  src/IV-X11/xwindow.cc |    7 +++++++

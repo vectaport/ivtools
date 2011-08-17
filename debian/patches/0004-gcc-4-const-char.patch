@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <bap@debian.org>
+From: "Barak A. Pearlmutter" <bap@debian.org>
 Date: Sat, 7 May 2011 18:05:45 +0100
-Subject: [PATCH] gcc 4 const char
+Subject: gcc 4 const char
 
 Fix gcc 4.4 'invalid conversion from 'const char*' to 'char*'' errors.
 (Patch shortened, as this was mostly addressed in upstream 1.2.8)

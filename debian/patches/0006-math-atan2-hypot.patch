@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
 Date: Tue, 17 May 2011 19:06:25 +0100
-Subject: [PATCH] math atan2 hypot
+Subject: math atan2 hypot
 
 Smooth numeric code:
  atan2(y,x) in place of atan(y/x) and logic;

@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
 Date: Mon, 9 May 2011 13:29:19 +0100
-Subject: [PATCH] typo assigment assignment
+Subject: typo assigment assignment
 
 Fix typo: "assigment" to "assignment".
 ---
