@@ -1,6 +1,6 @@
-From: Barak A. Pearlmutter <barak+git@cs.nuim.ie>
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
 Date: Sun, 26 Jun 2011 23:24:37 +0200
-Subject: [PATCH] manpage dash slash
+Subject: manpage dash slash
 
 In manpages, need to guard dashes before options: not foo --help and
 foo -h, but foo \-\-help and foo \-h.  Ask not what your computer can
@@ -9,8 +9,12 @@ do for you, but what you can do for your computer.
  src/man/man1/comdraw.1  |    8 ++++----
  src/man/man1/drawtool.1 |   42 +++++++++++++++++++++---------------------
  src/man/man1/flipbook.1 |    6 +++---
+ src/man/man3/Deck2_6.3  |    4 ++--
+ src/man/man3/Rubband.3  |    4 ++--
+ src/man/man3/UArray.3   |    2 +-
+ src/man/man3/Viewer.3   |    2 +-
  src/man/man3/World.3    |    2 +-
- 4 files changed, 29 insertions(+), 29 deletions(-)
+ 8 files changed, 35 insertions(+), 35 deletions(-)
 
 diff --git a/src/man/man1/comdraw.1 b/src/man/man1/comdraw.1
 index fc3ede9..a8f109c 100644
@@ -180,6 +184,62 @@ index f390a6e..1bb0aa4 100644
  idraw man pages.
  
  .SH SEE ALSO
+diff --git a/src/man/man3/Deck2_6.3 b/src/man/man3/Deck2_6.3
+index 7a7e03e..540261a 100644
+--- a/src/man/man3/Deck2_6.3
++++ b/src/man/man3/Deck2_6.3
+@@ -52,7 +52,7 @@ the deck (the components inserted last), and a negative value specifies a
+ component nearer to the ``top''.  FlipTo specifies a component by its
+ absolute position in the deck.  A positive value of \fIposition\fP specifies
+ a position from the top, starting at 1.  A negative value specifies a
+-position from the bottom, starting at -1.  Top and Bottom are equivalent to
+-FlipTo(1) and FlipTo(-1) respectively.
++position from the bottom, starting at \-1.  Top and Bottom are equivalent to
++FlipTo(1) and FlipTo(\-1) respectively.
+ .SH SEE ALSO
+ Interactor(3I), Scene(3I), Shape(3I)
+diff --git a/src/man/man3/Rubband.3 b/src/man/man3/Rubband.3
+index cb3efb4..43ba398 100644
+--- a/src/man/man3/Rubband.3
++++ b/src/man/man3/Rubband.3
+@@ -344,9 +344,9 @@ the tracking point.
+ GrowingVertices is an abstract rubberband containing a list of
+ vertices that grows or shrinks dynamically.  The \fIpt\fP parameter
+ specifies the index of the vertex that will follow the tracking point;
+-a value of -1 specifies a vertex after the last one in the list.  The
++a value of \-1 specifies a vertex after the last one in the list.  The
+ \fIhandleSize\fP parameter specifies the size of the handle drawn at
+-each vertex (as in RubberHandles above); a value of -1 specifies that
++each vertex (as in RubberHandles above); a value of \-1 specifies that
+ no handles be drawn.
+ 
+ The AddVertex operation adds a new vertex at the tracking point to the
+diff --git a/src/man/man3/UArray.3 b/src/man/man3/UArray.3
+index ae9da66..ea534c8 100644
+--- a/src/man/man3/UArray.3
++++ b/src/man/man3/UArray.3
+@@ -31,7 +31,7 @@ Insert and remove an object at a particular index, moving the
+ succeeding objects up or down one position as required.
+ .TP
+ .B "int Index(void*)"
+-Return the given object's index in the UArray, returning -1 if the
++Return the given object's index in the UArray, returning \-1 if the
+ object does not appear in the UArray.
+ .TP
+ .B "int Count()"
+diff --git a/src/man/man3/Viewer.3 b/src/man/man3/Viewer.3
+index 13523bf..da2e3f2 100644
+--- a/src/man/man3/Viewer.3
++++ b/src/man/man3/Viewer.3
+@@ -105,7 +105,7 @@ editor's MagnifVar, if it defines one.
+ Set and get the viewer's orientation parameter, which specifies
+ whether the graphical view, page, and grid will appear in portrait or
+ landscape mode.  No transformation will be applied in portrait mode,
+-while landscape mode will rotate the page -90 degrees and translate it
++while landscape mode will rotate the page \-90 degrees and translate it
+ vertically by an amount equal to the width of the page's bounding box.
+ .TP
+ .B "virtual Selection* GetSelection()"
 diff --git a/src/man/man3/World.3 b/src/man/man3/World.3
 index 297bd35..dc0d91b 100644
 --- a/src/man/man3/World.3
