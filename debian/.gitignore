@@ -1,11 +1,14 @@
 /*.debhelper
 /*.log
 /*.substvars
+/autoreconf.after
+/autoreconf.before
 /files
 /glyphs.tar
 /ivtools-bin/
 /ivtools-dev/
 /libiv-unidraw1/
 /libiv1/
+/patches/debian-changes-*
 /refman.pdf
 /tmp
