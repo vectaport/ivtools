@@ -8,3 +8,4 @@
 0008-manpage-whatis.patch
 0009-manpage-typos.patch
 0010-manpage-dash-slash.patch
+0011-nofile-for-hurd.patch
