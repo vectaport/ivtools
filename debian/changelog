@@ -1,3 +1,10 @@
+ivtools (1.2.8a1-7) unstable; urgency=low
+
+  * quilt patch for HURD NOFILE issue
+  * merge kfreebsd sig_atomic_t autotools fix
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 26 Sep 2011 11:25:14 +0100
+
 ivtools (1.2.8a1-6) unstable; urgency=low
 
   * add package conflict, as /usr/lib/ivtools/InterViews was moved from
