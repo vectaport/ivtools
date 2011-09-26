@@ -73,6 +73,11 @@ AC_TYPE_PID_T
 AC_TYPE_SIZE_T
 AC_TYPE_UID_T
 
+AH_TEMPLATE([sig_atomic_t], [Define to int if <signal.h> does not define.])
+AC_CHECK_TYPES([sig_atomic_t], [], [AC_DEFINE([sig_atomic_t], [int])], [
+#include <signal.h>
+])
+
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
