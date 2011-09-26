@@ -50,7 +50,6 @@ Description: Development files for the InterViews library
  library links and static libraries.
 
 Package: libiv1
-Section: libs
 Architecture: any
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools
@@ -62,7 +61,6 @@ Description: C++ GUI library with Motif Look and Feel
  This package contains the InterViews dynamic library.
 
 Package: libiv-unidraw1
-Section: libs
 Architecture: any
 Conflicts: ivtools
 Replaces: ivtools
