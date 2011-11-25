@@ -1,3 +1,6 @@
 version=3
 
-http://sf.net/ivtools/ivtools-([\d.]+)\.tgz
+http://www.ivtools.org/ivtools/download.html \
+ .*/ivtools-([\d.]+)\.tgz.*
+
+# http://sf.net/ivtools/ivtools-([\d.]+)\.tgz
