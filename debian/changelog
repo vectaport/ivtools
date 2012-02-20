@@ -1,3 +1,9 @@
+ivtools (1.2.8a1-8) unstable; urgency=low
+
+  * merge automake >= 1.11.3 autotools fix (closes: #660485)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Mon, 20 Feb 2012 09:39:04 +0000
+
 ivtools (1.2.8a1-7) unstable; urgency=low
 
   * quilt patch for HURD NOFILE issue
