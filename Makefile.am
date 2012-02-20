@@ -36,6 +36,9 @@
 
 ACLOCAL_AMFLAGS = -I m4
 
+### Support file location
+programfilesdir = $(pkglibdir)
+
 EXTRA_LTLIBRARIES =
 
 lib_LTLIBRARIES =
@@ -282,7 +285,7 @@ libIV_la_SOURCES = src/InterViews/session.cc
 
 libIV_la_CPPFLAGS = \
  -Dcplusplus_2_1 \
- -DABSLIBALLDIR='"$(pkglibdir)"' \
+ -DABSLIBALLDIR='"$(programfilesdir)"' \
  -DRELLIBALLDIR='"lib/$(PACKAGE)"' \
  -DX_LIBDIR='"$(libdir)"' \
  -Isrc/IV $(IVSTD_INCLUDES)
@@ -437,7 +440,7 @@ libComUtilPART1_la_SOURCES = src/ComUtil/errsys.c
 #  -DRELLIBALLDIR=\"lib/ivtools/\"
 
 libComUtilPART1_la_CPPFLAGS = \
- -DABSLIBALLDIR=\"$(pkglibdir)/\" \
+ -DABSLIBALLDIR=\"$(programfilesdir)/\" \
  -DRELLIBALLDIR=\"lib/$(PACKAGE)/\" \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
 
@@ -641,7 +644,7 @@ endif
 
 ### Support files
 
-pkglib_DATA = src/ComUtil/comterp.err Idemo InterViews
+programfiles_DATA = src/ComUtil/comterp.err Idemo InterViews
 
 Idemo: src/idemo/Idemo.defaults
 	cp $< $@
