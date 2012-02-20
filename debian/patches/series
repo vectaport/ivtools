@@ -4,8 +4,7 @@
 0004-gcc-4-const-char.patch
 0005-autoconf-guard-ioctl.patch
 0006-math-atan2-hypot.patch
-0007-typo-assigment-assignment.patch
+0007-nofile-for-hurd.patch
 0008-manpage-whatis.patch
-0009-manpage-typos.patch
+0009-typos.patch
 0010-manpage-dash-slash.patch
-0011-nofile-for-hurd.patch
