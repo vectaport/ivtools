@@ -123,4 +123,3 @@ index 3af2428..010a097 100644
  GetName and SetName retrieve and assign the string.
  .TP
  .B "CompNameVar(Component* = nil)"
--- 

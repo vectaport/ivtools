@@ -21,4 +21,3 @@ index 377ae88..b1aee1b 100644
    if (ptr) 
      return substr(0, ptr-string());
    else
--- 

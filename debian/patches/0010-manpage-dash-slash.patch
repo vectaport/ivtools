@@ -262,4 +262,3 @@ index 297bd35..dc0d91b 100644
  it was given; otherwise the instance name comes from the environment
  variable RESOURCE_NAME if it is nonnil.  If the name has still not
  been defined, then argv[0] with all leading directories stripped is
--- 

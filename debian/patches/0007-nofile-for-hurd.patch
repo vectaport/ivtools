@@ -21,4 +21,3 @@ index ab92d0e..b853e19 100644
  Dispatcher::Dispatcher() {
      _nfds = 0;
      _rmask = new FdMask;
--- 
