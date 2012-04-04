@@ -660,7 +660,7 @@ void Catalog::ReadExtraData (
     for (int i = 0; !in.eof() && !FoundDelim(delim, *extra_data); ++i) {
         char c;
         in.get(c);
-        extra_data->Insert((void*)(unsigned long)c, i);
+        extra_data->Insert((void*)(unsigned intptr_t)c, i);
     }
 }
 
@@ -1987,16 +1987,16 @@ void Catalog::Register (Tool* o, const char* name) {
 
 class VoidIntElem : public UMapElem {
 public:
-    VoidIntElem(void*, int);
+    VoidIntElem(void*, intptr_t);
 
     virtual void* id();
     virtual void* tag();
 private:
     void* _object;
-    int _id;
+    intptr_t _id;
 };
 
-VoidIntElem::VoidIntElem (void* object, int id) {
+VoidIntElem::VoidIntElem (void* object, intptr_t id) {
     _object = object;
     _id = id;
 }
@@ -2064,8 +2064,8 @@ inline ObjectMapElem* ObjectMap::Find (void* obj) {
     return (ObjectMapElem*) _objKeys.Find(obj);
 }
 
-inline ObjectMapElem* ObjectMap::Find (int id) {
-    return (ObjectMapElem*) _idKeys.Find((void*) (long)id);
+inline ObjectMapElem* ObjectMap::Find (intptr_t id) {
+    return (ObjectMapElem*) _idKeys.Find((void*) id);
 }
 
 ObjectMap::ObjectMap (
@@ -2075,7 +2075,7 @@ ObjectMap::ObjectMap (
     _id = id;
 }
 
-void ObjectMap::Register (void* obj, int id) {
+void ObjectMap::Register (void* obj, intptr_t id) {
     VoidIntElem* elem = new VoidIntElem(obj, id);
     UMap::Register(elem);
     ObjectMapElem* objElem = new ObjectMapElem(elem);
@@ -2085,7 +2085,7 @@ void ObjectMap::Register (void* obj, int id) {
 }
 
 void ObjectMap::Register (
-    void* obj, int id, ClassId orig_id, const char* delim, UArray* extra_data
+    void* obj, intptr_t id, ClassId orig_id, const char* delim, UArray* extra_data
 ) {
     VoidIntElem* elem = new VoidIntElem(obj, id);
     UMap::Register(elem);
@@ -2106,7 +2106,7 @@ void ObjectMap::Unregister (void* obj) {
     }
 }
 
-void ObjectMap::Unregister (int id) {
+void ObjectMap::Unregister (intptr_t id) {
     ObjectMapElem* idElem = Find(id);
 
     if (idElem != nil) {
@@ -2118,7 +2118,7 @@ void ObjectMap::Unregister (int id) {
 void* ObjectMap::GetClient () { return _client; }
 ClassId ObjectMap::GetClientId () { return _id; }
 
-void* ObjectMap::GetObject (int id) { 
+void* ObjectMap::GetObject (intptr_t id) {
     ObjectMapElem* idElem = Find(id);
     return (idElem == nil) ? nil : idElem->GetObject();
 }

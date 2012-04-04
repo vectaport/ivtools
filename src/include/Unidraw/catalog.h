@@ -27,6 +27,7 @@
 #ifndef unidraw_catalog_h
 #define unidraw_catalog_h
 
+#include <inttypes.h>
 #include <Unidraw/classes.h>
 #include <Unidraw/uformat.h>
 #include <Unidraw/uhash.h>
@@ -248,18 +249,18 @@ class ObjectMap : public UMap {
 public:
     ObjectMap(void* client, ClassId clientId);
 
-    void Register(void* obj, int id);
+    void Register(void* obj, intptr_t id);
     void Register(
-        void* obj, int id, ClassId orig_id, const char* delim,
+        void* obj, intptr_t id, ClassId orig_id, const char* delim,
         UArray* extra_data
     );
     void Unregister(void* obj);
-    void Unregister(int id);
+    void Unregister(intptr_t id);
 
     void* GetClient();
     ClassId GetClientId();
 
-    void* GetObject(int id);
+    void* GetObject(intptr_t id);
     unsigned long GetId(void* obj);
 
     ClassId GetOrigClassId(void* obj);
@@ -267,7 +268,7 @@ public:
     UArray* GetExtraData(void* obj);
 protected:
     ObjectMapElem* Find(void*);
-    ObjectMapElem* Find(int);
+    ObjectMapElem* Find(intptr_t);
 protected:
     UHashTable _objKeys, _idKeys;
     void* _client;
