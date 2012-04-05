@@ -4,6 +4,7 @@
 #export DH_VERBOSE=1
 
 export DEB_BUILD_MAINT_OPTIONS=hardening=-format
+export DEB_HOST_MULTIARCH ?= $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 
 dh_targets=binary binary-arch binary-indep build build-arch build-indep clean install
 

@@ -1,4 +1,7 @@
+#! /bin/sh
+cat <<EOF
 usr/include
-usr/lib/lib*.so
-usr/lib/lib*.a
-usr/lib/ivtools/comterp.err
+usr/lib/${DEB_HOST_MULTIARCH}/lib*.so
+usr/lib/${DEB_HOST_MULTIARCH}/lib*.a
+usr/lib/${DEB_HOST_MULTIARCH}/ivtools/comterp.err
+EOF

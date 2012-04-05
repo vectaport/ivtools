@@ -1,3 +1,6 @@
+#! /bin/sh
+cat <<EOF
 usr/bin
-usr/lib/ivtools/Idemo
-usr/lib/ivtools/InterViews
+usr/lib/${DEB_HOST_MULTIARCH}/ivtools/Idemo
+usr/lib/${DEB_HOST_MULTIARCH}/ivtools/InterViews
+EOF
