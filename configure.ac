@@ -60,9 +60,9 @@ AC_SUBST(LIB_IV_VER)
 AC_PATH_X
 AC_PATH_XTRA
 
-AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h malloc.h memory.h \
-netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h sys/file.h \
-sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h \
+AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h inttypes.h malloc.h \
+memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h \
+sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h \
 ace/Acceptor.h ace/ACE.h])
 
 # Checks for typedefs, structures, and compiler characteristics.
