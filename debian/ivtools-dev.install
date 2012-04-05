@@ -3,5 +3,5 @@ cat <<EOF
 usr/include
 usr/lib/${DEB_HOST_MULTIARCH}/lib*.so
 usr/lib/${DEB_HOST_MULTIARCH}/lib*.a
-usr/lib/${DEB_HOST_MULTIARCH}/ivtools/comterp.err
+usr/share/ivtools/comterp.err
 EOF
