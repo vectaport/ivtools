@@ -6,14 +6,22 @@ Avoid compilation issues due to pointer length being different on
 32-bin and 64-bit architectures.  (NOTE: this patch should be
 verified, as the code modified is deliberately doing type punning.)
 ---
- src/Attribute/attrvalue.cc |    6 +++---
- 1 files changed, 3 insertions(+), 3 deletions(-)
+ src/Attribute/attrvalue.cc |    7 ++++---
+ 1 files changed, 4 insertions(+), 3 deletions(-)
 
 diff --git a/src/Attribute/attrvalue.cc b/src/Attribute/attrvalue.cc
-index 6523295..fbc3d62 100644
+index 6523295..d51efbc 100644
 --- a/src/Attribute/attrvalue.cc
 +++ b/src/Attribute/attrvalue.cc
-@@ -393,7 +393,7 @@ boolean AttributeValue::boolean_val() {
+@@ -40,6 +40,7 @@
+ #include <stdio.h>
+ #include <string.h>
+ #include <cstdio>
++#include <inttypes.h>
+ using namespace std;
+ 
+ #ifdef LEAKCHECK
+@@ -393,7 +394,7 @@ boolean AttributeValue::boolean_val() {
      case AttributeValue::StringType:
  	return (boolean) int_val()!=-1;
      case AttributeValue::ObjectType:
@@ -22,7 +30,7 @@ index 6523295..fbc3d62 100644
      case AttributeValue::StreamType:
  	return stream_mode() != 0;
      default:
-@@ -552,7 +552,7 @@ unsigned int AttributeValue::uint_val() {
+@@ -552,7 +553,7 @@ unsigned int AttributeValue::uint_val() {
      case AttributeValue::SymbolType:
  	return (unsigned int) int_val();
      case AttributeValue::ObjectType:
@@ -31,12 +39,12 @@ index 6523295..fbc3d62 100644
      default:
  	return 0;
      }
-@@ -585,7 +585,7 @@ int AttributeValue::int_val() {
+@@ -585,7 +586,7 @@ int AttributeValue::int_val() {
      case AttributeValue::SymbolType:
  	return int_ref();
      case AttributeValue::ObjectType:
 -        return (int)obj_val();
-+      return (intptr_t) obj_val();
++        return (intptr_t) obj_val();
      default:
  	return 0;
      }
