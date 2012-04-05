@@ -8,3 +8,4 @@
 0008-manpage-whatis.patch
 0009-typos.patch
 0010-manpage-dash-slash.patch
+0011-gcc-4-int-pointer-warnings.patch
