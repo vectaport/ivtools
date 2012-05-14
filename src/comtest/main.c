@@ -27,11 +27,16 @@
 #include <string.h>
 #include <fstream>
 
+extern int _empty_statement;
+extern int _detail_matched_delims;
+extern int _colon_ident;
+extern int _whitespace_binding;
+
 using std::cerr;
 using std::cout;
 using std::endl;
 
-char* type_names[] = {
+const char* type_names[] = {
 	"None",
 	"Identifier",
 	"Operator",
@@ -44,6 +49,7 @@ char* type_names[] = {
 	"Float",
 	"Double",
 	"Eof",
+	"Eol",
 	"Whitespace",
 	"Oct",
 	"Hex",
@@ -62,8 +68,9 @@ int main(int argc, char *argv[]) {
 
     if (argc==1 || (strcmp(argv[1], "parser")!=0 &&
 		   strcmp(argv[1], "scanner")!=0 && 
-		   strcmp(argv[1], "lexscan")!=0)) {
-	cerr << "comtest parser|scanner|lexscan\n";
+		   strcmp(argv[1], "lexscan")!=0 && 
+		   strcmp(argv[1], "cparse")!=0)) {
+	cerr << "comtest parser|scanner|lexscan|cparse\n";
 	return -1;
     }
 
@@ -93,7 +100,18 @@ int main(int argc, char *argv[]) {
 	    cout << token << "  (type:  " << type_names[toktype] << ")" << endl;
 	} while (toktype != TOK_EOF);
 
-    }
+    } else if (strcmp(argv[1], "cparse")==0) {
+
+        _empty_statement = 1;
+	_detail_matched_delims = 1; 
+	_whitespace_binding = 1;
+	_colon_ident = 0;
+	// need to add ? and : as operators in a new CParser class.
+	Parser parser;
+
+	while (parser.print_next_expr());
+
+    }   
     return 0;
 }
 

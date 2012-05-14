@@ -94,7 +94,7 @@ TextOvComp::TextOvComp(istream& in, OverlayComp* parent)
 
     /* correct font vertical position */
     PSFont* f = _gr->GetFont();
-    float sep = 1 - f->GetLineHt();
+    float sep = 1 - (f ? f->GetLineHt() : 0);
     Transformer* t = _gr->GetTransformer();
     float dx = 0., dy = sep;
 

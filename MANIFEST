@@ -225,6 +225,8 @@ ivtools-1.2/src/ComUnidraw/groupfunc.c
 ivtools-1.2/src/ComUnidraw/groupfunc.h
 ivtools-1.2/src/ComUnidraw/grstatfunc.c
 ivtools-1.2/src/ComUnidraw/grstatfunc.h
+ivtools-1.2/src/ComUnidraw/grstrmfunc.c
+ivtools-1.2/src/ComUnidraw/grstrmfunc.h
 ivtools-1.2/src/ComUnidraw/highlightfunc.c
 ivtools-1.2/src/ComUnidraw/highlightfunc.h
 ivtools-1.2/src/ComUnidraw/nfunc.c
@@ -368,6 +370,8 @@ ivtools-1.2/src/GraphUnidraw/graphdialog.c
 ivtools-1.2/src/GraphUnidraw/graphdialog.h
 ivtools-1.2/src/GraphUnidraw/grapheditor.c
 ivtools-1.2/src/GraphUnidraw/grapheditor.h
+ivtools-1.2/src/GraphUnidraw/graphexport.c
+ivtools-1.2/src/GraphUnidraw/graphexport.h
 ivtools-1.2/src/GraphUnidraw/graphimport.c
 ivtools-1.2/src/GraphUnidraw/graphimport.h
 ivtools-1.2/src/GraphUnidraw/graphkit.c
@@ -1147,6 +1151,7 @@ ivtools-1.2/src/html/Makefile
 ivtools-1.2/src/html/README
 ivtools-1.2/src/html/getman31.sh
 ivtools-1.2/src/html/getrefman31.sh
+ivtools-1.2/src/html/perceps.pl
 ivtools-1.2/src/html/templates/CLASS.html.tmpl
 ivtools-1.2/src/html/templates/Imakefile
 ivtools-1.2/src/html/templates/Makefile
@@ -1453,6 +1458,7 @@ ivtools-1.2/src/include/OS/math.h
 ivtools-1.2/src/include/OS/memory.h
 ivtools-1.2/src/include/OS/os.h
 ivtools-1.2/src/include/OS/string.h
+ivtools-1.2/src/include/OS/strtable.h
 ivtools-1.2/src/include/OS/table.h
 ivtools-1.2/src/include/OS/table2.h
 ivtools-1.2/src/include/OS/types.h

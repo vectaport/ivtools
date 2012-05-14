@@ -24,6 +24,7 @@
 #include <Attribute/attrvalue.h>
 #include <Attribute/lexscan.h>
 #include <Attribute/_comutil.h>
+#include <OS/math.h>
 
 #include <string.h>
 
@@ -54,8 +55,8 @@ LexScan::~LexScan()
 
 void LexScan::init() 
 {
-    _begcmt = "/*";
-    _endcmt = "*/";
+    _begcmt = (char*) "/*";
+    _endcmt = (char*) "*/";
     _tokbuf = new char[_bufsiz];
 }
 
@@ -63,7 +64,7 @@ attr_value LexScan::get_next_token(unsigned int& toktype)
 {
     unsigned int toklen, tokstart;
     int status = lexscan (_inptr, _infunc, _eoffunc, _errfunc, NULL, NULL,
-			  _begcmt, _endcmt, '#', _buffer, _bufsiz, &_bufptr,
+			  _begcmt, _endcmt, '#', "//", _buffer, _bufsiz, &_bufptr,
 			  _token, _toksiz, &toklen, &toktype, &tokstart, &_linenum);
     attr_value retval;
     switch (toktype) {
@@ -77,6 +78,7 @@ attr_value LexScan::get_next_token(unsigned int& toktype)
     case TOK_FLOAT:       retval.floatval = *(float*)_token; break;
     case TOK_DOUBLE:      retval.doublval = *(double*)_token; break;
     case TOK_OPERATOR:    retval.symval.symid = symbol_add(_token); break;
+    case TOK_EOL:         break;
     case TOK_EOF:         break;
     default:              break;
     }
@@ -87,7 +89,7 @@ const char* LexScan::get_next_token_string(unsigned int& toktype)
 {
     unsigned int toklen, tokstart;
     int status = lexscan (_inptr, _infunc, _eoffunc, _errfunc, NULL, NULL,
-			  _begcmt, _endcmt, '#', _buffer, _bufsiz, &_bufptr,
+			  _begcmt, _endcmt, '#', "//", _buffer, _bufsiz, &_bufptr,
 			  _token, _toksiz, &toklen, &toktype, &tokstart, &_linenum);
     unsigned tok_buflen = _bufptr-tokstart;
     strncpy(_tokbuf, _buffer+tokstart, tok_buflen);
@@ -95,15 +97,22 @@ const char* LexScan::get_next_token_string(unsigned int& toktype)
     return _tokbuf;
 }
 
-AttributeValue* LexScan::get_attr(char* buf, unsigned int bufsiz)
+AttributeValue* LexScan::get_attrval(char* buf, unsigned int bufsiz)
 {
+    static int nilsym = symbol_add("nil");
     reset();
-    memcpy(_buffer, buf, bufsiz);
+    int n = Math::min((int)bufsiz,_bufsiz-2);
+    memcpy(_buffer, buf, n);
+    if (_buffer[n-1]!='\n') {
+      _buffer[n] = '\n';
+      _buffer[n+1] = '\0';
+    } else 
+      _buffer[n] = '\0';
     unsigned int toktype;
     attr_value tokval = get_next_token(toktype);
     AttributeValue::ValueType valtype; 
     switch (toktype) {
-    case TOK_IDENTIFIER:  valtype = AttributeValue::SymbolType; break;
+    case TOK_IDENTIFIER:  valtype = tokval.dfintval==nilsym ? AttributeValue::UnknownType : AttributeValue::SymbolType; break;
     case TOK_STRING:      valtype = AttributeValue::StringType; break;
     case TOK_CHAR:        valtype = AttributeValue::CharType; break;
     case TOK_DFINT:       valtype = AttributeValue::IntType; break;
@@ -120,3 +129,33 @@ AttributeValue* LexScan::get_attr(char* buf, unsigned int bufsiz)
     return new AttributeValue(valtype, tokval);
 }
 
+
+
+const int LexScan::get_next_value(AttributeValue* attrval, char delim)
+{
+    static int minus_symid = symbol_add("-");
+    static int plus_symid = symbol_add("+");
+    attr_value token;
+    unsigned int toktype;
+    int negate = 0;
+    do {
+        token = get_next_token(toktype);
+	if(toktype == TOK_OPERATOR && token.symval.symid==minus_symid) {
+	  negate = 1;
+	  token = get_next_token(toktype);
+	}
+	else if(toktype == TOK_OPERATOR && token.symval.symid==plus_symid) {
+	  token = get_next_token(toktype);
+	}
+    } while(toktype == TOK_OPERATOR && *symbol_pntr(token.symval.symid)==delim);
+    if (toktype==TOK_EOF)
+      return 0;
+    else if (toktype==TOK_EOL)
+      return 2;
+    else {
+      AttributeValue tokval((AttributeValue::ValueType)toktype, token);
+      if (negate) tokval.negate();
+      *attrval = tokval;
+      return 1;
+    }
+}

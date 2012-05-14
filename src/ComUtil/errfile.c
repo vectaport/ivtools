@@ -33,7 +33,7 @@ History:        Written by Scott E. Johnston, March 1989
 #include <string.h>
 #include <ctype.h>
 
-#include "comutil.ci"
+#include "comutil.h"
 
 /* Manifest Constants */
 #define MAX_FORMAT_LENGTH	80	/* Longest possible format string */
@@ -42,7 +42,6 @@ History:        Written by Scott E. Johnston, March 1989
 /* Local Statics */
 static char FormatBuffer[MAX_FORMAT_LENGTH+1];	/* Buffer for format string */
 static char InputBuffer[MAX_INPUT_LENGTH+2];	/* Buffer for input text    */
-
 
 /*! 
 
@@ -131,8 +130,11 @@ int status;                     /* Status from lexscan */
    /* Use lexical scanner to provide next token in error file */
    /* Don't worry about status return, because token_type     */
    /* will be set to TOK_NONE                                 */
-      status = lexscan( errstream, fgets, ffeof, fferror,
-			NULL, NULL, NULL, NULL, 0,
+      status = lexscan( errstream, 
+			(char* (*)(char*, int, void*)) fgets, 
+			(int (*)(void*)) ffeof, 
+			(int (*)(void*)) fferror,
+			NULL, NULL, NULL, NULL, 0, NULL,
 			InputBuffer, MAX_INPUT_LENGTH+2, &colnum,
 			FormatBuffer, MAX_FORMAT_LENGTH+1, &token_length,
 			&token_type, &token_start, &linenum );

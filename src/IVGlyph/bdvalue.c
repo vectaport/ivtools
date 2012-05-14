@@ -61,7 +61,7 @@ BoundedValue::BoundedValue()
 
 BoundedValue::BoundedValue(float lower, float upper,
 			   float scroll, float page, float curvalue,
-			   char* format, float* p)
+			   const char* format, float* p)
 :Adjustable()
 {
     lower_ = lower;

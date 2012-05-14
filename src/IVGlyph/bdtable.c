@@ -73,7 +73,7 @@ void BoundedValueTable::remove(long index) {
 
 /*****************************************************************************/
 
-BoundedValueTableEditor::BoundedValueTableEditor(BoundedValueTable* bvt, char* labl)
+BoundedValueTableEditor::BoundedValueTableEditor(BoundedValueTable* bvt, const char* labl)
 : Patch(nil), Observer()
 {
     _lab = labl;

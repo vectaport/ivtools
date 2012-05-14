@@ -54,7 +54,7 @@ Attribute::~Attribute() {
     delete valueptr;
 }
 
-char* Attribute::Name() {
+const char* Attribute::Name() {
     return symbol_pntr(symbolid);
 }
 

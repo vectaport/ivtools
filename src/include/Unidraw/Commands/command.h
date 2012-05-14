@@ -28,10 +28,7 @@
 #ifndef unidraw_commands_command_h
 #define unidraw_commands_command_h
 
-#define LEAKCHECK
-#ifdef LEAKCHECK
-class LeakChecker;
-#endif
+#include <leakchecker.h>
 
 #include <Unidraw/globals.h>
 

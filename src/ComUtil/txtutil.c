@@ -37,6 +37,7 @@ Author:          Rob Graber   7-89
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include "comutil.ci"
 
@@ -135,7 +136,7 @@ Summary:
 
 */
 
-unsigned int txtread( id, txtstr )
+unsigned int txtread (
 
 
 /*!
@@ -146,8 +147,10 @@ Parameters:
 
 Type       Name               IO    Description
 ----       ----               --    -----------*/
-unsigned   id            ;/*  I     Text ID           */
-char *     txtstr        ;/*  I     String to write.  */
+unsigned   id            ,/*  I     Text ID           */
+char *     txtstr         /*  I     String to write.  */
+
+)
 
 
 /*!

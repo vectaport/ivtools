@@ -52,8 +52,8 @@ Summary:
 #include <comterp/comterp.h>
 */
 
-int scanner(void * infile,char * (*infunc)(),int (*eoffunc)(), 
-	    int (*errfunc)(),FILE * outfile,int (*outfunc)(),
+int scanner(void * infile,char * (*infunc)(char*, int, void*),int (*eoffunc)(void*), 
+	    int (*errfunc)(void*),FILE * outfile,int (*outfunc)(const char*, void*),
 	    char * buffer,unsigned bufsiz,unsigned * bufptr,
 	    char * token,unsigned toksiz,unsigned * toklen,
 	    unsigned * toktype,unsigned * tokstart,unsigned * linenum)
@@ -151,7 +151,7 @@ int status;
    /* Don't worry about status return, because token_type     */
    /* will be set to TOK_NONE                                 */
       status = lexscan( infile, infunc, eoffunc, errfunc, outfile, outfunc,
-                        "/*", "*/", '#', buffer, bufsiz, bufptr,
+                        "/*", "*/", '#', "//", buffer, bufsiz, bufptr,
                         token, toksiz, toklen, toktype,
                         tokstart, linenum );
       if( status != 0 )

@@ -45,7 +45,7 @@ XCOMM from <local.def>:
  */ 
 #undef LanguageCCDefines
 #if LibStdCPlusPlusV3
-#define LanguageCCDefines -Dcplusplus_2_1 -Wno-deprecated
+#define LanguageCCDefines -Dcplusplus_2_1 -Wno-deprecated -DLEAKCHECK
 #else
 #define LanguageCCDefines -Dcplusplus_2_1
 #endif

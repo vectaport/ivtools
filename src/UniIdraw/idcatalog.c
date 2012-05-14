@@ -972,7 +972,7 @@ GraphicComp* IdrawCatalog::ReadRaster (istream& in) {
     Coord w, h;
     in >> w >> h;
 
-    char* sync_string = "colorimage";
+    const char* sync_string = "colorimage";
     int n = strlen(sync_string);
 
     while (GetToken(in, _buf, CHARBUFSIZE) != 0) {

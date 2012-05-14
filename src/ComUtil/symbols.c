@@ -1,6 +1,7 @@
 /*
  * Copyright (c) 1993-1995 Vectaport Inc.
  * Copyright (c) 1989 Triple Vision, Inc.
+ * Copyright (c) 2010 Wave Semiconductor Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided
@@ -31,10 +32,12 @@ Summary:        These functions support the structuring and accessing
 		delete and find symbols of any size.
 
 History:        Written by Robert C. Fitch, 10 April 1989
+                Complete rewritten by Scott Johnston, November 2010
 */
 
 #include        <stdio.h>
 #include	<string.h>
+#include        <errno.h>
 
 #include        "comutil.ci"
 /* comutil.ci includes ComUtil/comutil.h, util.h,stdlib.h and malloc.h */
@@ -44,8 +47,8 @@ History:        Written by Robert C. Fitch, 10 April 1989
 typedef struct _symid symid;
 struct _symid   {
 		  unsigned nchars;	/* number of characters is a string */
-		  int offset;     	/* offset into symbol table */
-					/* -1 means available entry */
+                  char* symstr;         /* pointer to character string */
+					/* NULL means available entry */
 		  unsigned instances;   /* instances of this symbol */
 		};
 /* instances is incremented every symbol_add() and decremented every */
@@ -57,23 +60,25 @@ struct _symid   {
 
 /* some pointers for the different open lists */
 
-static char *sym_beg=NULL;  /* starting address of symbol table array */
-				/* NULL means not allocated yet */
-static unsigned sym_used;   /* Bytes used in symbol table so far */
-static unsigned sym_nbytes;  /* number of total bytes in symbol table */
-
 static symid *symid_beg=NULL;	/* start addr of symbol table id's */
 static unsigned symid_nrecs;	/* number of records in the table */
 
-static int sym_alloc_num;
 static int symid_alloc_num;
 #define LOTS_OF_MEM	32000
 /* These are used when you don't have much memory */
-#define SYM_ALLOC_NUM_LOW	  512
 #define SYMID_ALLOC_NUM_LOW        32
 /* These are used when you have lots of memory */
-#define SYM_ALLOC_NUM_HIGH	 32768
 #define SYMID_ALLOC_NUM_HIGH      256
+
+
+/* reverse index to speed up symbol table insertion */
+#define REVERSE_TABLE
+#if defined(REVERSE_TABLE)
+#include <OS/strtable.h>
+declareStrTable(ReverseSymbolTable,int)
+implementStrTable(ReverseSymbolTable,int)
+ReverseSymbolTable* _reverse_table = nil;
+#endif
 
 /*=============*/
 
@@ -86,7 +91,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_add (char * string)
+int symbol_add (const char * string)
 
 /*!
 Return Value:  >= 0 unique identifier for this symbol, 
@@ -97,7 +102,7 @@ Parameters:
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
 #ifdef DOC
-char	      * string   ;/*  I    NULL terminated string to add */
+const char      * string   ;/*  I    NULL terminated string to add */
 #endif
 
 #ifdef DOC
@@ -106,24 +111,6 @@ Description:
 
 Adds a symbol to the symbol table.  The symbol must be a NULL terminated
 string in the `string` parameter.  
-
-Everytime a symbol is added that already exists, the
-`instances` element of the `symid` structure is incremented.  This prevents
-subsequent deletes for new instances of a symbol from removing the symbol
-entry until all instances are deleted.  It is essentially the difference
-of the number of times a symbol was added and the number of times it was
-deleted.
-
-All symbols are maintained in a character array allocated by this routine.  
-Each symbol is identified by a unique identifier that is an index into the
-`symid` structure.  This `symid` structure contains the number of characters
-in the string (not including the NULL terminator) and the offset to the
-start of the string in the symbol character array.  The identifier cannot be
-the offset into the array since the positions of the strings may be moved
-due to packing the array after symbols are deleted.
-
-The string array and the `symid` structure array are both dynamically and
-automatically allocated by these routines as needed.  
 
 See Also:  symbol_del(), symbol_find()
 
@@ -168,61 +155,38 @@ main()
 !*/
 
 {
-  int retval = -1;
-  unsigned bytes_left;
-  unsigned n;
-  int id,found;
-  symid *pntr;
-  unsigned long nbytes;
-  int i;
+  int n;
+  int id;
+  symid* pntr;
 
-/* don't allow NULL input string */
+  /* don't allow NULL input string */
   n = strlen(string);
   if (string == NULL)
-	goto error_return; /* can't be NULL,zero len or too big */
+    goto error_return; /* can't be NULL,zero len or too big */
 
   if ( (id = symbol_find(string)) >= 0)	/* found it */
   {	/* found an existing string; increment instances */
-      pntr = symid_beg + id;
-      (pntr->instances)++;	/* increment instances */
+    pntr = symid_beg + id;
+    (pntr->instances)++;	/* increment instances */
   }
   else 	/* you have to add the symbol */
   {
-    if (sym_beg == NULL)	/* if NULL, allocate some space for symbol table */
+    int found;
+
+    if (symid_beg == NULL)	/* if NULL, allocate some space for symbol table */
     {
-#if !defined(DMM_OFF)
-      dmm_mblock_stats(NULL,&nbytes,NULL,NULL,NULL);
-      sym_alloc_num = (nbytes < LOTS_OF_MEM) ? SYM_ALLOC_NUM_LOW:
-					       SYM_ALLOC_NUM_HIGH;
-#else
-      sym_alloc_num = SYM_ALLOC_NUM_HIGH;
-#endif
-      if ( dmm_calloc((void**)&sym_beg,(long) sym_alloc_num,sizeof(char)) != 0)
-           goto error_return;	/* goto error return; INSUFFICIENT MEMORY */
-      sym_nbytes = sym_alloc_num;
-      sym_used = 0;
-      symid_alloc_num = (nbytes < LOTS_OF_MEM) ? SYMID_ALLOC_NUM_LOW:
-					         SYMID_ALLOC_NUM_HIGH;
+      symid_alloc_num = SYMID_ALLOC_NUM_HIGH;
       if ( dmm_calloc((void**)&symid_beg,(long) symid_alloc_num,sizeof(symid)) != 0)
          goto error_return;	/* goto error return; INSUFFICIENT MEMORY */
-      for (i=0; i<symid_alloc_num; i++) 
-	 symid_beg[i].offset = -1;  /* set unused */
+      for (int i=0; i<symid_alloc_num; i++) 
+        symid_beg[i].symstr = NULL;;  /* set unused */
       symid_nrecs = symid_alloc_num;
     }
-    if (n > sym_alloc_num)
-      goto error_return;	/* bigger than can be allocated */
-    bytes_left = sym_nbytes - sym_used;
-    if (bytes_left < (n+1)) /* if not enough room left in the symbol array */
-    {	/* realloc some more */
-      dmm_realloc_size(sizeof(char));
-      if ( dmm_realloc((void**)&sym_beg,(long) (sym_nbytes + sym_alloc_num)) != 0)
-	  goto error_return;
-      sym_nbytes += sym_alloc_num;
-    }
+
     /* hunt for empty cell in symid array */
     for (id=found=0, pntr=symid_beg; id<symid_nrecs; id++,pntr++)
     {
-      if (pntr->offset == -1)	/* found one, break */
+      if (pntr->symstr == NULL)	/* found one, break */
       {
 	 found = 1;
          break;
@@ -230,24 +194,28 @@ main()
     }
     if (!found)		/* have to realloc some more symid table space */
     {	/* realloc some more */
-      dmm_realloc_size(sizeof(symid));
-      if ( dmm_realloc((void**)&symid_beg,(long) (symid_nrecs + symid_alloc_num)) != 0)
-	  goto error_return;
+      symid* symid_beg_after;
+      if(!(symid_beg_after = (symid*)realloc(symid_beg, (long) (symid_nrecs + symid_alloc_num) * sizeof(symid))))
+          goto error_return;
+      symid_beg = symid_beg_after;
       id = symid_nrecs;	/* first new one allocated */
       symid_nrecs += symid_alloc_num;
-      for (i=id; i < symid_nrecs; i++)
- 	  symid_beg[i].offset = -1;  /* set unused */
+      for (int i=id; i < symid_nrecs; i++)
+        symid_beg[i].symstr = NULL;  /* set unused */
     }
     pntr = symid_beg + id;	/* index into entry of interest */
     pntr->nchars = n;		/* number of non-NULL characters */
-    pntr->offset = sym_used;	/* start of string */
+    pntr->symstr = strdup(string);	/* make copy of string */
     pntr->instances = 1;		/* set first instance of this symbol */
-    strcpy(sym_beg+sym_used,string);	/* copy in string */
-    sym_used += (n+1);		/* update used byte total; add in NULL byte */
+
+    /* add to reverse index */
+    if(!_reverse_table) _reverse_table = new ReverseSymbolTable(1024);
+    _reverse_table->insert(pntr->symstr, id);
+
   }
-  retval = id;
+  return id;
 error_return:		/* return an error code */
-  return (retval);
+  return -1;
 }
 
 /*!
@@ -280,12 +248,56 @@ can delete a symbol by its string also by first using a `symbol_find()` call
 that returns the id.  The symbol will not be deleted until the `instances`
 element of the `symid` structure goes to zero.
 
-Currently this routine will repack the memory everytime a deletion is made.
-This is fairly efficient since the entire block can be moved down in one
-call versus a fragemented packing approach.  It can be changed to something
-more predicatable later.
-
 See Also:  symbol_add(), symbol_find()
+
+!*/
+{
+   symid *pntr;
+   int retval = FUNCBAD;
+
+   if(symid_beg == NULL || id < 0 || id >= symid_nrecs) /* params out of range */
+      goto error_return;
+   if (	((pntr = symid_beg+id)->symstr) != NULL &&  /* already deleted */
+        --(pntr->instances) == 0)	/* only delete if instances zeroed */
+   {	/* this will delete that actual symbol in the string table */
+     _reverse_table->remove(pntr->symstr);
+     free(pntr->symstr);
+     pntr->symstr = NULL;
+   } 
+   retval = FUNCOK;
+error_return:		/* return an error code */
+   return (retval);
+}
+
+/*!
+
+symbol_reference	Increment reference counter for a symbol in the symbol table.
+
+Summary:
+
+#include <ComUtil/comutil.h>
+*/
+
+int symbol_reference (int id)
+
+/*!
+Return Value:  0 if OK, -1 if error.
+
+Parameters:
+
+Type            Name          IO  Description
+------------    -----------   --  -----------                  */
+#ifdef DOC
+int		id       ;/*   I   Identifier returned by symbol_add() */
+#endif
+
+/*!
+Description:
+
+Increments a reference counter for a symbol previously added with a `symbol_add()` 
+function call.
+
+See Also:  symbol_add(), symbol_del()
 
 !*/
 {
@@ -294,37 +306,64 @@ See Also:  symbol_add(), symbol_find()
    unsigned n,offset;
    unsigned bytes_left;
 
-   if(sym_beg == NULL || id < 0 || id >= symid_nrecs) /* params out of range */
+   if(symid_beg == NULL || id < 0 || id >= symid_nrecs) /* params out of range */
       goto error_return;
-   if (	(n=(pntr = symid_beg+id)->offset) != -1 &&  /* already deleted */
-        --(pntr->instances) == 0)	/* only delete if instances zeroed */
-   {	/* this will delete that actual symbol in the string table */
-     offset = pntr->offset;
-     pntr->offset = -1;		/* set this one empty and available */
-     /* go through every entry in the symid table and subtract n+1 from */
-     /* everyone with an offset > offset */
-     for (id=0, pntr=symid_beg; id<symid_nrecs; id++,pntr++)
-     {
-        if (pntr->offset != -1 && pntr->offset > offset)
-    	    pntr->offset -= (n+1);	/* +1 for NULL byte at the end */
-     }
-     /* now pack memory down */
-     MEMCPY(sym_beg+offset,sym_beg+(offset+n+1),sym_used-(offset+n+1));
-     sym_used -= (n+1);	/* adjust size down */
-     /* now shrink size of symbol string table if too much space left */
-     bytes_left = sym_nbytes - sym_used;	/* bytes remaining */
-     if (bytes_left >= (sym_alloc_num << 1) ) /* same as times 2 */
-     { /* resize if bigger than two blocks; 1 block hysteresis */
-       dmm_realloc_size(sizeof(char));
-       if ( dmm_realloc((void**)&sym_beg,(long) (sym_nbytes - sym_alloc_num)) != 0)
-	   goto error_return;
-       sym_nbytes -= sym_alloc_num;
-     }
-     /* can't do much with resizing symid table, sorry */
-   } 
+   if (	(pntr = symid_beg+id)->symstr != NULL)
+	++(pntr->instances);
+   else
+     goto error_return;
    retval = FUNCOK;
+
 error_return:		/* return an error code */
    return (retval);
+}
+
+/*!
+
+symbol_refcount	  Return current symbol reference count
+
+Summary:
+
+#include <ComUtil/comutil.h>
+*/
+
+int symbol_refcount (int id)
+
+/*!
+Return Value:  reference count, -1 if error
+
+Parameters:
+
+Type            Name          IO  Description
+------------    -----------   --  -----------                  */
+#ifdef DOC
+int		id       ;/*   I   Identifier returned by symbol_add() */
+#endif
+
+/*!
+Description:
+
+Returns current value of a reference counter for a symbol previously added with a `symbol_add()` 
+function call.
+
+See Also:  symbol_reference()
+
+!*/
+{
+   symid *pntr;
+   int retval = FUNCBAD;
+   unsigned n,offset;
+   unsigned bytes_left;
+
+   if(symid_beg == NULL || id < 0 || id >= symid_nrecs) /* params out of range */
+      goto error_return;
+   if (	(pntr = symid_beg+id)->symstr != NULL)
+	return pntr->instances;
+   else
+     goto error_return;
+
+error_return:		/* return an error code */
+   return -1;
 }
 
 /*!
@@ -336,7 +375,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int symbol_find (char * string)
+int symbol_find (const char * string)
 
 /*!
 Return Value:  >=0 unique identifier for symbol if symbol found,
@@ -360,26 +399,12 @@ See Also:  symbol_add(), symbol_del()
 
 !*/
 {
-   symid *pntr;
-   unsigned n;
-   int retval = -1;
-   int id;
-
-   n = strlen(string);
-   if (sym_beg == NULL || string == NULL)
-      goto error_return;
-   /* hunt through the symid table for this string */
-   for (id=0, pntr=symid_beg; id<symid_nrecs; id++,pntr++)
-   {
-      if (pntr->offset != -1 && pntr->nchars == n &&
-	  strcmp(string,sym_beg+pntr->offset) == 0)
-      {	/* all equal, I found it */
-	retval = id;	/* this id is return value */
-        break;
-      }
-   }
-error_return:		/* return an error code */
-   return (retval);
+  if (!_reverse_table) return -1;
+  int sym;
+  if(_reverse_table->find(sym, string))
+    return sym;
+  else
+    return -1;
 }
 
 
@@ -392,7 +417,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-char * symbol_pntr (int id)
+const char * symbol_pntr (int id)
 
 /*!
 Return Value:  Pointer to NULL terminated string if OK, NULL if error.
@@ -418,10 +443,9 @@ See Also:  symbol_add(), symbol_len()
 {
    symid *pntr;
 
-   if (sym_beg == NULL || id < 0 || id >= symid_nrecs ||
-       (pntr = symid_beg+id)->offset == -1)
-         return(NULL);
-   return(sym_beg + pntr->offset);
+   if (symid_beg == NULL || id < 0 || id >= symid_nrecs || (pntr = symid_beg+id)->symstr == NULL)
+       return(NULL);
+   return(pntr->symstr);
 }
 
 
@@ -460,8 +484,8 @@ See Also:  symbol_add(), symbol_pntr()
 {
    symid *pntr;
 
-   if (sym_beg == NULL || id < 0 || id >= symid_nrecs ||
-	(pntr = symid_beg+id)->offset == -1)
+   if (symid_beg == NULL || id < 0 || id >= symid_nrecs ||
+	(pntr = symid_beg+id)->symstr == NULL)
      return(-1);
 
    return(pntr->nchars);
@@ -505,10 +529,43 @@ See Also:  symbol_add(), symbol_pntr()
 {
    symid *pntr;
 
-   if (sym_beg == NULL || id < 0 || id >= symid_nrecs)
+   if (symid_beg == NULL || id < 0 || id >= symid_nrecs)
      return(-1);		/* error */
-   if ( (pntr = symid_beg+id)->offset == -1)
+   if ( (pntr = symid_beg+id)->symstr == NULL)
      return(0);		/* no instances */
    return(pntr->instances);
 }
 
+/*!
+
+symbol_max	Maximum number of currently available symbols.
+
+Summary:
+
+#include <ComUtil/comutil.h>
+*/
+
+int symbol_max ()
+
+/*!
+Return Value:  current size of symbol table.
+
+Parameters:
+
+Type            Name          IO  Description
+------------    -----------   --  -----------                  */
+#ifdef DOC
+#endif
+
+
+/*!
+Description:
+
+Returns the current size of the symbol table.
+
+See Also:  symbol_instances()
+
+!*/
+{
+  return(symid_nrecs);
+}

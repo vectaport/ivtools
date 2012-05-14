@@ -91,5 +91,7 @@ void DrawEditor::AddCommands(ComTerp* comterp) {
   comterp->add_command("grid", new GraphicIdFunc(comterp, this));
   comterp->add_command("chgid", new ChangeIdFunc(comterp, this));
 #endif
+
+  comterp->add_command("points", new DrawPointsFunc(comterp, this));
 }
 

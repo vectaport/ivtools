@@ -147,7 +147,7 @@ void OpenFileChooser::updatecaption() {
 }
 
 boolean OpenFileChooser::url_use_ok() {
-  return bincheck("ivdl") || bincheck("w3c") || bincheck("curl") || bincheck("wget");
+  return bincheck("curl") || bincheck("wget") || bincheck("ivdl") || bincheck("w3c");
 }
 
 boolean OpenFileChooser::urltest(const char* buf) {
@@ -161,7 +161,7 @@ boolean OpenFileChooser::urltest(const char* buf) {
 
 int OpenFileChooser::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "wr=`which %s`; echo $wr", command );
+  sprintf( combuf, "wr=`which %s 2> /dev/null`; echo $wr", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  

@@ -103,6 +103,49 @@ public:
     virtual const char* docstring() { 
       return "; is the sequencing operator"; }
 
+    static boolean continueflag() { return _continueflag; }
+    static void continueflag(boolean flag) { _continueflag = flag; }
+    static boolean breakflag() { return _breakflag; }
+    static void breakflag(boolean flag) { _breakflag = flag; }
+
+protected:
+    static boolean _continueflag;
+    static boolean _breakflag;
+};
+
+//: continue command
+class ContinueFunc : public ComFunc {
+public:
+    ContinueFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s -- skip to next iteration of for or while loop"; }
+
+};
+
+//: break command
+class BreakFunc : public ComFunc {
+public:
+    BreakFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s -- break out of for or while loop"; }
+
+};
+
+//: switch command for ComTerp.
+// switch(val key-body-pairs) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
+class SwitchFunc : public ComFunc {
+public:
+    SwitchFunc(ComTerp*);
+
+    virtual boolean post_eval() { return true; }
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "switch(val key-body-pairs) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)"; }
+
 };
 
 #endif /* !defined(_postfunc_h) */

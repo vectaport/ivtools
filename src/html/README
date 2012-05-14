@@ -50,7 +50,7 @@ ivtools, do the following:
 		perl --version
 
 	
-	2.3 Verify your copy of Perl is installed at /bin/perl:
+	2.3 Verify your copy of Perl is installed at /usr/bin/perl:
 
 		which perl
 
@@ -63,7 +63,7 @@ ivtools, do the following:
 
 		mkdir classes
 		cd ..
-		perceps -d `pwd`/html/classes -o `pwd`/html/templates `cat ../MANIFEST.perceps`
+		html/perceps.pl -t html/templates -d html/classes `cat ../MANIFEST.perceps`
 	        cd html
 
 	    The whole process takes some time, especially the generation of the

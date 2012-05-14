@@ -27,6 +27,8 @@
 #include <Attribute/attrvalue.h>
 #include <Attribute/commodule.h>
 
+class AttributeValue;
+
 //: Lexical scanner for C tokens, with C-style comment skipping.
 class LexScan : public ComTerpModule {
 public:
@@ -47,9 +49,11 @@ public:
     const char* get_next_token_string(unsigned int& toktype);
     // return pointer to next token in internal buffer.
 
-    AttributeValue* get_attr(char* buf, unsigned int bufsiz);
+    AttributeValue* get_attrval(char* buf, unsigned int bufsiz);
     // return token in newly allocated AttributeValue.
 
+    const int get_next_value(AttributeValue* attrval, char delim='\0');
+    // return AttributeValue that represents next token, skipping over delim and whitespace
 protected:
     char* _begcmt;
     char* _endcmt;

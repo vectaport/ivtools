@@ -34,7 +34,7 @@ class Patch;
 
 class ObsTextEditor : public MonoGlyph, public Observer {
 public:
-    ObsTextEditor(ObservableText*, char* labl =nil, int width =125);
+    ObsTextEditor(ObservableText*, const char* labl =nil, int width =125);
     virtual ~ObsTextEditor();
 
     InputHandler* focusable() const;
@@ -48,7 +48,7 @@ protected:
 
 class TextObserver : public MonoGlyph, public Observer {
 public:
-    TextObserver(ObservableText*, char* labl, int max=30);
+    TextObserver(ObservableText*, const char* labl, int max=30);
     virtual ~TextObserver();
 
     virtual void update(Observable*);

@@ -24,6 +24,10 @@
 #include <ComTerp/_comterp.h>
 #include <ComTerp/scanner.h>
 #include <ComTerp/_comutil.h>
+#if 0  // moved to lexscan.c
+#include <Attribute/attrvalue.h>
+#include <ComUtil/comterp.h>
+#endif
 
 #include <string.h>
 
@@ -69,3 +73,24 @@ const char* Scanner::get_next_token_string(unsigned int& toktype)
 }
 
 
+#if 0  // moved to lexscan.c
+const int Scanner::get_next_value(AttributeValue* attrval, char delim)
+{
+
+    const void* token;
+    postfix_token pftok;
+    unsigned int toktype;
+    do {
+        token = get_next_token(toktype);
+	pftok.type = toktype;
+	memcpy(&pftok.v, token, sizeof(pftok.v));
+    } while(toktype == TOK_OPERATOR && *(char*)token==delim);
+    if (toktype==TOK_EOF)
+      return 0;
+    else {
+      AttributeValue tokval(&pftok);
+      *attrval = tokval;
+      return 1;
+    }
+}
+#endif

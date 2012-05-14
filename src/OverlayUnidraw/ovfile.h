@@ -75,7 +75,7 @@ protected:
     char * _pathname;
     boolean _popenflg;
 
-    CLASS_SYMID("OverlayFileComp");
+    CLASS_SYMID2("OverlayFileComp", OVFILE_COMP);
 };
 
 //: graphical view of OverlayFileComp.

@@ -26,7 +26,7 @@
 #if !defined(grfunc_h)
 #define _grfunc_h
 
-#define LEAKCHECK
+#include <leakchecker.h>
 
 #include <ComUnidraw/unifunc.h>
 
@@ -384,6 +384,15 @@ public:
       return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic"; }
 };
 
+//: command to access a graphic's parent
+class GrParentFunc : public ComFunc {
+public:
+    GrParentFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "compview=parent(compview) -- get parent of graphic"; }
+};
+
 #ifdef LEAKCHECK
 //: command to return current number of OverlayComp's
 // compleak() -- current number of OverlayComp's
@@ -454,6 +463,71 @@ public:
     virtual const char* docstring() { 
 	return "%s() -- current number of Command's"; }
 };
+
 #endif
+
+//: command to hide graphic
+// compview=hide(compview) -- hide graphic component
+class HideCompFunc : public UnidrawFunc {
+public:
+    HideCompFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(compview) -- hide graphic component"; }
+
+};
+
+//: command to show hidden graphic
+// compview=show(compview) -- show hidden graphic component
+class ShowCompFunc : public UnidrawFunc {
+public:
+    ShowCompFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(compview) -- show hidden graphic component"; }
+
+};
+
+//: command to desensitize graphic
+// compview=desensitize(compview) -- desensitize graphic component
+class DesensitizeCompFunc : public UnidrawFunc {
+public:
+    DesensitizeCompFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(compview) -- desensitize graphic component"; }
+
+};
+
+//: command to sensitize graphic
+// compview=sensitize(compview) -- sensitize graphic component
+class SensitizeCompFunc : public UnidrawFunc {
+public:
+    SensitizeCompFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "compview=%s(compview) -- sensitize graphic component"; }
+
+};
+
+//: command to horizontally flip current selection in comdraw
+// fliph() -- horizontally flip current selection
+class FlipHorizontalFunc : public UnidrawFunc {
+public:
+    FlipHorizontalFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- horizontally flip current selection"; }
+};
+
+//: command to vertically flip current selection in comdraw
+// flipv() -- vertically flip current selection
+class FlipVerticalFunc : public UnidrawFunc {
+public:
+    FlipVerticalFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s() -- vertically flip current selection"; }
+};
 
 #endif /* !defined(_grfunc_h) */

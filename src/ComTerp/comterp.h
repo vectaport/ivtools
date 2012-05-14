@@ -41,6 +41,7 @@ declareTable(ComValueTable,int,void*)
 
 class AttributeList;
 class AttributeValue;
+class AttributeValueList;
 class ComFunc;
 class ComFuncState;
 class ComTerpState;
@@ -84,6 +85,8 @@ public:
     // read expression from the input, return true if all ok.
     boolean eof();
     // return true when end-of-file found on the input.
+    void increment_linenum();
+    // increment line number when empty line is read
 
     virtual int eval_expr(boolean nested=false);
     // evaluate topmost expression on the stack, with a flag to
@@ -97,6 +100,8 @@ public:
 #endif
 );
     // copy unevaluated expression to the stack and evaluate.
+    void print_post_eval_expr(int tokcnt, int offtop, int pedepth);
+    // print unevaluated expression
     boolean top_expr();
     // return true if the topmost expression is currently being evaluated
 
@@ -171,7 +176,7 @@ public:
     // partial expression parsed, 2 if no result computed, 3 if error in parsing.  
     // 'nested' indicates contents of stack should be preserved.
 
-    virtual int runfile(const char* filename);
+    virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.
     void add_defaults();
     // add default commands (ComFunc objects).
@@ -267,6 +272,12 @@ public:
     boolean delim_func() const { return _delim_func; }
     // return flag that indicates whether to run a delimeter selected func.
 
+    void ignore_commands(boolean flag) { _ignore_commands = flag; }
+    // set flag that indicates whether to ignore all built-in commands
+ 
+    boolean ignore_commands() const { return _ignore_commands; }
+    // return flag that indicates whether to ignore all built-in commands
+
     void autostream(boolean flag) { _autostream = flag; }
     // set flag that indicates whether to run a delimeter selected func.
  
@@ -284,6 +295,31 @@ public:
  
     boolean muted() const { return _muted; }
     // return flag that indicates whether to mute output
+
+    void force_nested(boolean flag) { _force_nested = flag; }
+    // set flag to ensure subsequent calls are nested
+
+    boolean force_nested() { return _force_nested; }
+    // get flag to ensure subsequent calls are nested
+
+    int arg_str(int n);
+    // return nth command line argument
+
+    int narg_str();
+    // return number of command line argument
+
+    void set_args(int argc, char** argv);
+    // set command line arguments
+
+    void set_args(const char* argstr);
+    // set command line arguments
+
+    void clear_top_commands(); 
+    // clear list used to collect list of top-level commands
+
+    AttributeValueList* top_commands() { return _top_commands; }
+    // list of top-most commands for this derived interpreter
+
 
 protected:
     void incr_stack();
@@ -361,6 +397,9 @@ protected:
     boolean _delim_func;
     // use delimeter selected func, passing symbol in ::command_symid()
 
+    boolean _ignore_commands;
+    // ignore any built-in commands.
+
     boolean _autostream;
     // automatically iterates over stream if left on stack
 
@@ -369,6 +408,21 @@ protected:
 
     boolean _muted;
     // flag to mute any response from a ComTerp
+
+    boolean _force_nested;
+    // flag to ensure subsequent calls are nested
+
+    int _fd;
+    // handle for I/O
+
+    int* _arg_strs;
+    // array of string ids for command line arguments
+
+    int _narg_strs;
+    // size of array of string ids for command line arguments
+
+    AttributeValueList* _top_commands;
+    // list of top-most commands for this derived comterp
 
     friend class ComFunc;
     friend class ComterpHandler;
@@ -385,7 +439,8 @@ public:
   // copy constructor.
 
   postfix_token*& pfbuf() { return _pfbuf; }
-  int& pfnum() { return _pfnum; }
+  int& pfsiz() { return _pfsiz;; }
+  int& pfnum() { return _pfnum; }  
   int& pfoff() { return _pfoff; }
   int& bufptr() { return _bufptr; }
   int& bufsiz() { return _bufsiz; }
@@ -397,10 +452,12 @@ public:
   eoffuncptr& eoffunc() { return _eoffunc; }
   errfuncptr& errfunc() { return _errfunc; }
   void*& inptr() { return _inptr; }
+  AttributeList*& alist() { return _alist; }
 
 protected:
 
   postfix_token* _pfbuf;
+  int _pfsiz;
   int _pfnum;
   int _pfoff;
   int _bufptr;
@@ -413,6 +470,7 @@ protected:
   eoffuncptr _eoffunc;
   errfuncptr _errfunc;
   void* _inptr;
+  AttributeList* _alist;
 
 };
 

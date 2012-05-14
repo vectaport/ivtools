@@ -8,8 +8,8 @@ using std::istream;
 using std::ostream;
 #define out_form(ostr,format,value) \
 { \
-char buffer[BUFSIZ]; \
-snprintf(buffer, BUFSIZ, format, value); \
+char buffer[1024]; \
+snprintf(buffer, 1024, format, value); \
 ostr << buffer; \
 }	
 #else

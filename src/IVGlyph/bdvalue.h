@@ -57,7 +57,7 @@ protected:
     BoundedValue();
 public:
     BoundedValue(float lower, float upper, float scroll, float page,
-		 float curvalue, char* format ="%.6f", float* p =nil);
+		 float curvalue, const char* format ="%.6f", float* p =nil);
     virtual ~BoundedValue();
 
     virtual void lower_bound(float);
@@ -93,7 +93,7 @@ protected:
     float scroll_incr_;
     float page_incr_;
     float* ptr;
-    char* format_;
+    const char* format_;
 };
 
 class StrListValue : public BoundedValue {

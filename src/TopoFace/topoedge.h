@@ -37,6 +37,8 @@ public:
     
     void attach_nodes(TopoNode* start, TopoNode* end);
     void remove_nodes();
+    void remove_start_node();
+    void remove_end_node();
 
     void attach_faces(TopoFace* left, TopoFace* right);
 

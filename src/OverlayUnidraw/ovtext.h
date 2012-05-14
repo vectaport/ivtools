@@ -67,7 +67,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("TextComp"); 
+    CLASS_SYMID2("TextComp", OVTEXT_COMP); 
 };
 
 //: graphical view of TextOvComp.

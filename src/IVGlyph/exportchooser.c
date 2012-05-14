@@ -358,7 +358,7 @@ const char* ExportChooserImpl::command(const char* format) {
 declareEnumActionCallback(ExportEnumEditor)
 implementEnumActionCallback(ExportEnumEditor)
 
-ExportEnumEditor::ExportEnumEditor(ObservableEnum* obs, char* labl, ExportChooserImpl* eci)
+ExportEnumEditor::ExportEnumEditor(ObservableEnum* obs, const char* labl, ExportChooserImpl* eci)
 : RadioEnumEditor()
 {
     lab = labl;

@@ -98,7 +98,8 @@ public:
 
     virtual boolean pending() const;
     virtual void read(Event&, boolean (*test)() = nil);
-    virtual boolean read(long sec, long usec, Event&);
+    virtual boolean read(long sec, long usec, Event&, boolean (*test)() = nil);
+    virtual boolean read(long* sec, long* usec, Event&, boolean (*test)() = nil);
     virtual void unread(Event&);
     virtual void poll(Event&);
 

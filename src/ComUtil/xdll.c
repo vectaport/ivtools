@@ -75,8 +75,8 @@ static xdllist xdllist_array[XDLL_LISTS];	/* now a static array */
 /*=============*/
 
 /* Static Functions: */
-static  int next_free_link();
-static  int clear_links();
+static  int next_free_link(int flag);
+static  int clear_links(xdllink * curr,int nlinks,void (*userfunc)(void*));
 
 /* some pointers for the different open lists */
 
@@ -270,7 +270,7 @@ main()
   xdllist_curr->head = xdllist_curr->curr = NULL;
            /* set the head current link in the list to none */
 		/* this means they are empty */
-  clear_links(beg,nlinks,NULL);	/* clear all links in the table */
+  clear_links((xdllink*)beg,nlinks,NULL);	/* clear all links in the table */
   return (xdllist_in_use_id = id);		/* OK return */
 
 error_return:		/* return an error code */
@@ -940,7 +940,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int xdll_clear(int flag,void (*userfunc)())
+int xdll_clear(int flag,void (*userfunc)(void*))
 
 /*!
 Return Value:  0 (FUNCOK) if OK, -1 (FUNCBAD) if no linked list in use.
@@ -1151,7 +1151,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-static int clear_links(xdllink * curr,int nlinks,void (*userfunc)())
+static int clear_links(xdllink * curr,int nlinks,void (*userfunc)(void*))
 
 /*!
 Return Value:  0 always.

@@ -135,6 +135,9 @@ public:
     // indirect command execution for distributed whiteboard mechanism.
     // bulk of mechanism implemented in ComEditor.
 
+    boolean needs_resize() { return _needs_resize; }
+    // goes false after initialization is done
+
 protected:
     virtual void Zoom(Perspective&);
     virtual void Scroll(Perspective&);

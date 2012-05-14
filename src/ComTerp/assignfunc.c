@@ -54,7 +54,6 @@ void AssignFunc::execute() {
 #else
     if (operand2->is_attribute()) lookup_symval(*operand2);
 #endif
-    reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
 	if (attrlist) {
@@ -79,9 +78,12 @@ void AssignFunc::execute() {
       Attribute* attr = (Attribute*)operand1.obj_val();
       attr->Value(operand2);
     } else {
-        cerr << "assignment to something other than a symbol or attribute ignored\n";
+        cerr << "assignment to something other than a symbol or attribute (" <<
+          symbol_pntr(operand1.type_symid()) << ") ignored\n";
+        print_stack_arg_post_eval(0);
 	delete operand2;
     }
+    reset_stack();
     push_stack(*operand2);
 }
 

@@ -148,6 +148,8 @@ boolean OverlayCatalog::Save (Component* comp, const char* name) {
         ok = Catalog::Save(comp, name);
 
     } else {
+        Creator* oldcreator = Creator::instance();
+	Creator::instance(GetCreator());
         ExternView* ev = (ExternView*) comp->Create(SCRIPT_VIEW);
 
         if (ev != nil) {
@@ -172,6 +174,8 @@ boolean OverlayCatalog::Save (Component* comp, const char* name) {
             }
             delete ev;
         }
+	Creator::instance(oldcreator);
+
     }
     return ok;
 }
@@ -584,7 +588,7 @@ GraphicComp* OverlayCatalog::ReadRaster (istream& in) {
     Coord w, h;
     in >> w >> h;
 
-    char* sync_string = "colorimage";
+    const char* sync_string = "colorimage";
     int n = strlen(sync_string);
 
     while (GetToken(in, _buf, CHARBUFSIZE) != 0) {

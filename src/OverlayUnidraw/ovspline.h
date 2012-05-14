@@ -56,7 +56,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("SplineComp"); 
+    CLASS_SYMID2("SplineComp", OVSPLINE_COMP); 
 };
 
 //: graphic view of SplineOvComp.
@@ -125,7 +125,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("ClosedSplineComp"); 
+    CLASS_SYMID2("ClosedSplineComp", OVCLOSEDSPLINE_COMP); 
 };
 
 //: graphic view of ClosedSplineOvComp.

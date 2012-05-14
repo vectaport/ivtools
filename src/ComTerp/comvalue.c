@@ -44,6 +44,7 @@ ComValue ComValue::_unkval(ComValue::UnknownType);
 ComValue ComValue::_oneval(1, ComValue::IntType);
 ComValue ComValue::_zeroval(0, ComValue::IntType);
 ComValue ComValue::_minusoneval(-1, ComValue::IntType);
+ComValue ComValue::_twoval(2, ComValue::IntType);
 
 /*****************************************************************************/
 
@@ -145,8 +146,8 @@ int ComValue::bquote() const { return _bquote; }
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;
-    char* title;
-    char* symbol;
+    const char* title;
+    const char* symbol;
     int counter;
     boolean brief = sv.comterp() ? sv.comterp()->brief() : false;
     switch( svp->type() )
@@ -338,6 +339,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	case ComValue::ObjectType:
 	  if (svp->class_symid() == Attribute::class_symid())
 	    out << *((Attribute*)svp->obj_val())->Value();
+	  else if (svp->class_symid() == AttributeList::class_symid())
+	    out << *((AttributeList*)svp->obj_val());
 	  else
             out << /* "<" << */ symbol_pntr(svp->class_symid()) /* << ">" */ ;
 	  break;
@@ -392,18 +395,28 @@ ComValue& ComValue::minusoneval() {
   return _minusoneval;
 }
 
+ComValue& ComValue::twoval() { 
+  *&_twoval = ComValue(2, ComValue::IntType);
+  return _twoval;
+}
+
 boolean ComValue::is_comfunc(int func_classid) {
   return is_type(CommandType) && 
     func_classid==((ComFunc*)obj_val())->classid(); 
 }
 
-void* ComValue::geta(int id) {
+void* ComValue::geta(int id, int compid) {
   if (is_object(id)) {
     if (object_compview())
       return ((ComponentView*)obj_val())->GetSubject();
     else
       return obj_val();
-  } else
+  } else {
+    if (compid>0 && object_compview()) {
+      if (((ComponentView*)obj_val())->GetSubject()->IsA(compid))
+        return ((ComponentView*)obj_val())->GetSubject();
+    }
     return nil;
+  }
 }
 

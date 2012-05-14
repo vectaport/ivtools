@@ -49,10 +49,18 @@ void TopoEdge::attach_nodes(TopoNode* start, TopoNode* end) {
 }
 
 void TopoEdge::remove_nodes() {
+  remove_start_node();
+  remove_end_node();
+}
+
+void TopoEdge::remove_start_node() {
   if (_start) {
     _start->remove(this);
     _start = nil;
   }
+}
+
+void TopoEdge::remove_end_node() {
   if (_end) {
     _end->remove(this);
     _end = nil;

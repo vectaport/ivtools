@@ -34,7 +34,7 @@
 declareActionCallback(CheckBooleanEditor)
 implementActionCallback(CheckBooleanEditor)
 
-CheckBooleanEditor::CheckBooleanEditor(ObservableBoolean* obs, char* labl)
+CheckBooleanEditor::CheckBooleanEditor(ObservableBoolean* obs, const char* labl)
 : MonoGlyph(), Observer()
 {
     WidgetKit& kit_ = *WidgetKit::instance();
@@ -66,7 +66,7 @@ void CheckBooleanEditor::update(Observable*) {
 declareActionCallback(PaletteBooleanEditor)
 implementActionCallback(PaletteBooleanEditor)
 
-PaletteBooleanEditor::PaletteBooleanEditor(ObservableBoolean* obs, char* labl)
+PaletteBooleanEditor::PaletteBooleanEditor(ObservableBoolean* obs, const char* labl)
 : MonoGlyph(), Observer()
 {
     WidgetKit& kit_ = *WidgetKit::instance();
@@ -95,7 +95,7 @@ void PaletteBooleanEditor::update(Observable*) {
 
 /*****************************************************************************/
 
-BooleanObserver::BooleanObserver(ObservableBoolean* obs, char* labl)
+BooleanObserver::BooleanObserver(ObservableBoolean* obs, const char* labl)
 : MonoGlyph(), Observer()
 {
     WidgetKit& kit_ = *WidgetKit::instance();

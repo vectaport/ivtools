@@ -35,15 +35,90 @@ class ComTerp;
 class ComValue;
 
 //: value printing command for ComTerp.
-// [str]=print(fmtstr val :string|:str :symbol|:sym :err) -- print value with format string
-// [str]=print(val :string|:str :err) -- print value
+// [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj :prefix str) -- print value(s) with optional format string
 class PrintFunc : public ComFunc {
 public:
     PrintFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "[str]=%s(fmtstr val :string|:str :symbol|:sym :err) -- print value with format string"; }
+      return "[str]=%s([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj :prefix str) -- print value with optional format string"; }
+
+    static int format_extent(const char* fstr);
+};
+
+//: open file command
+// fileobj=open([filename modestr] :pipe :out :err) -- open file command
+class OpenFileFunc : public ComFunc {
+public:
+    OpenFileFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "fileobj=open([filename [modestr]] :pipe :in :out :err) -- open file command"; }
+};
+
+//: close file command
+// close(fileobj) -- close file command
+class CloseFileFunc : public ComFunc {
+public:
+    CloseFileFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "close(fileobj) -- close file command"; }
+};
+
+class FileObj {
+ public:
+  FileObj(const char* filename, const char* mode, int pipeflag);
+  FileObj(FILE* fptr);
+  virtual ~FileObj();
+  const char* filename() { return _filename; }
+  const char* mode() { return _mode; }
+  FILE* fptr() { return _fptr; }
+
+ protected:
+  char* _filename;
+  char* _mode;
+  FILE* _fptr;
+  int _pipe;
+
+  CLASS_SYMID("FileObj");
+};
+
+
+//: get string from FileObj
+// str=gets(fileobj) -- gets a new-line terminated string from a file
+class GetStringFunc : public ComFunc {
+public:
+    GetStringFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "str=%s(fileobj) -- gets a new-line terminated string from a file"; }
+};
+
+//: return command line argument
+// str=arg(n) -- return command line argument
+class GetArgFunc : public ComFunc {
+public:
+    GetArgFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "str=%s(n) -- return command line argument"; }
+};
+
+//: return number of command line arguments
+// n=narg() -- return number of command line arguments
+class NumArgFunc : public ComFunc {
+public:
+    NumArgFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "n=%s() -- return number of command line arguments"; }
 };
 
 #endif /* !defined(_iofunc_h) */

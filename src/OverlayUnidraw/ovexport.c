@@ -119,7 +119,7 @@ void OvExportCmd::Execute () {
         const boolean svg_flag = svg_arg && strcmp(svg_arg, "true")==0;
 	const char **formats = svg_flag ? formats_svg : formats_nosvg;
 	int nformats = (svg_flag ? sizeof(formats_svg) : sizeof(formats_nosvg)) / sizeof(char*);
-	const char *commands[] = {"ghostview %s", "idraw %s", "drawtool %s", "netscape %s"};
+	const char *commands[] = {"ghostview %s", "idraw %s", "drawtool %s", "firefox %s"};
 	chooser_ = new ExportChooser(".", WidgetKit::instance(), style,
 				     formats, nformats, commands, nil, true);
 	Resource::ref(chooser_);

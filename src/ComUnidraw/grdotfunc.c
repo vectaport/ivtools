@@ -47,7 +47,10 @@ void GrDotFunc::execute() {
     ComValue& before_part(stack_arg(0, true));
     ComValue& after_part(stack_arg(1, true));
     if (!before_part.is_symbol() && 
-	!(before_part.is_attribute() && ((Attribute*)before_part.obj_val())->Value()->is_attributelist()) &&
+	!(before_part.is_attribute() && 
+          (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
+           ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
+        !(before_part.is_attributelist()) && 
 	!(before_part.object_compview())) {
       cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> or <Component>\n";
       return;

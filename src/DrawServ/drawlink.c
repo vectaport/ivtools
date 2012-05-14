@@ -42,7 +42,7 @@ int DrawLink::_linkcnt = 0;
 
 implementTable(IncomingSidTable,unsigned int,unsigned int)
 
-char* DrawLink::_state_strings[] =  { "new_link", "one_way", "two_way", "redundant" };
+const char* DrawLink::_state_strings[] =  { "new_link", "one_way", "two_way", "redundant" };
 
 /*****************************************************************************/
 

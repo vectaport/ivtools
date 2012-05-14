@@ -62,7 +62,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("ArrowLineComp");
+    CLASS_SYMID2("ArrowLineComp", OVARROWLINE_COMP);
 };
 
 //: graphical view of ArrowLineOvComp.
@@ -141,7 +141,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("ArrowMultiLineComp"); 
+    CLASS_SYMID2("ArrowMultiLineComp", OVARROWMULTILINE_COMP);
 };
 
 //: graphical view of ArrowMultiLineOvComp.
@@ -224,7 +224,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("ArrowSplineComp");
+    CLASS_SYMID2("ArrowSplineComp", OVARROWSPLINE_COMP);
 };
 
 //: graphical view of ArrowSplineOvComp.

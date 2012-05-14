@@ -32,7 +32,7 @@ Summary:
 History:        Written by Scott E. Johnston, April 1989
 */
 
-#define DYNAMIC_COMMANDS
+#define DYNAMIC_COMMANDS // allow for executing commands to resolve a command name
 
 #include <stdio.h>
 #include <string.h>
@@ -46,9 +46,12 @@ int _skip_shell_comments = 0;
 infuncptr _oneshot_infunc = NULL;
 int _detail_matched_delims = 0;
 int _sticky_matched_delims = 0;
+int _no_bracesplus = 0;
+int _empty_statement = 1;
+int _whitespace_binding = 0;
 
-static int get_next_token(void *infile, char *(*infunc)(), int (*eoffunc)(),
-			  int (*errfunc)(), FILE *outfile, int (*outfunc)(),
+static int get_next_token(void *infile, char *(*infunc)(char*, int, void*), int (*eoffunc)(void*),
+			  int (*errfunc)(void*), FILE *outfile, int (*outfunc)(const char*, void*),
                           char *buffer, unsigned bufsiz, unsigned *bufptr,
 			  char *token, unsigned toksiz, unsigned *toklen,
                           unsigned *toktype, unsigned *tokstart, unsigned *linenum,
@@ -153,7 +156,7 @@ while( (OperStack[TopOfOperStack].oper_type != LEFTPAREN) &&\
 }}
 
 #define LOOK_AHEAD {\
-char *(*infunc2)();\
+char *(*infunc2)(char*, int, void*);		\
 if( TopOfParenStack < 0 ) infunc2 = NULL;\
 else infunc2 = infunc;\
 NextBufptr=*bufptr;\
@@ -212,7 +215,7 @@ goto error_return;}
 
 #define UNEXPECTED_NEW_EXPRESSION \
 (TopOfParenStack >= 0 && \
-((ParenStack[ TopOfParenStack ].comm_id < 0 && !_detail_matched_delims) || \
+ ((ParenStack[ TopOfParenStack ].comm_id < 0 && (!_detail_matched_delims^_whitespace_binding)) || \
 ParenStack[ TopOfParenStack ].nkey > 0 ))
 
 
@@ -237,12 +240,12 @@ static int bracketsplus_symid = -1;
 static int bracesplus_symid = -1;
 static int angbracksplus_symid = -1;
 static int dblangbracksplus_symid = -1;
+static int empty_symid = -1;
 
 /* === Static functions ================================================== */
 
 /* Check for instack priority higher */
-static int rkg_instack(prior)
-  int prior;
+static int rkg_instack(int prior)
 {
     int x;
 
@@ -266,16 +269,18 @@ static int rkg_instack(prior)
 if(pfout(pfbuf,pfsiz,pfnum,toktype,tokid,narg_val,nkey_val,nids_val))\
     goto error_return;}
 
-static int pfout( pfbuf, pfsiz, pfnum, toktype, tokid, narg_val, nkey_val, nids_val )
+static int pfout(
 
-postfix_token** pfbuf;	/* Double pointer to buffer to receive postfix expression. */
-unsigned *      pfsiz;  /* Size of `pfbuf`. */
-unsigned *      pfnum;  /* Number of tokens returned in `pfbuf`. */
-unsigned        toktype;/* Token type */
-int             tokid;  /* Identifier that corresponds to this token */
-unsigned        narg_val;/* Number of arguments associated with this token */
-unsigned        nkey_val;/* Number of keywords associated with this token */
-unsigned        nids_val;/* Number of ids associated with this token */
+postfix_token** pfbuf,	 /* Double pointer to buffer to receive postfix expression. */
+unsigned *      pfsiz,   /* Size of `pfbuf`. */
+unsigned *      pfnum,   /* Number of tokens returned in `pfbuf`. */
+unsigned        toktype, /* Token type */
+int             tokid,   /* Identifier that corresponds to this token */
+unsigned        narg_val,/* Number of arguments associated with this token */
+unsigned        nkey_val,/* Number of keywords associated with this token */
+unsigned        nids_val /* Number of ids associated with this token */
+
+		 )
 
 {
 
@@ -324,13 +329,15 @@ if(pfout_literal(pfbuf,pfsiz,pfnum,toktype,token))\
 }
 
 
-static int pfout_literal( pfbuf, pfsiz, pfnum, toktype, token)
+static int pfout_literal(
 
-postfix_token** pfbuf;	/* Double pointer to buffer to receive postfix expression. */
-unsigned *      pfsiz;  /* Size of `pfbuf`. */
-unsigned *      pfnum;  /* Number of tokens returned in `pfbuf`. */
-unsigned        toktype;/* Token type */
-char *          token;  /* Token buffer */
+postfix_token** pfbuf,	/* Double pointer to buffer to receive postfix expression. */
+unsigned *      pfsiz,  /* Size of `pfbuf`. */
+unsigned *      pfnum,  /* Number of tokens returned in `pfbuf`. */
+unsigned        toktype,/* Token type */
+char *          token   /* Token buffer */
+
+)
 
 {
     if(pfout(pfbuf,pfsiz,pfnum,toktype,0,0,0,0))
@@ -349,23 +356,23 @@ status = string_of_ambiguity_check( &ambiguous, &NextBufptr, *bufptr, \
    &NextToklen, &NextToktype,  &NextTokstart, NextOp_ids ); \
 if( status != 0 ) goto error_return;}
 
-static int string_of_ambiguity_check( ambiguous, next_bufptr, bufptr, 
-   next_linenum, linenum, buffer, bufsiz, next_token, toksiz, 
-   next_toklen, next_toktype, next_tokstart, next_op_ids )
+static int string_of_ambiguity_check(
 
-BOOLEAN  *ambiguous;	/* flag returned TRUE if operators are ambiguous */
-unsigned *next_bufptr;	/* pointer to variable to use for temp bufptr    */
-unsigned bufptr;	/* current value of bufptr			 */
-unsigned *next_linenum; /* pointer to variable to use for temp linenum   */
-unsigned linenum;	/* current value of linenum			 */
-char     *buffer;	/* pointer to input character buffer             */
-unsigned  bufsiz;	/* size of buffer				 */
-char     *next_token;   /* pointer to temporary token buffer             */
-unsigned  toksiz;	/* size of next_token				 */
-unsigned *next_toklen;  /* pointer to temporary token length variable    */
-unsigned *next_toktype; /* pointer to temporary token type variable      */
-unsigned *next_tokstart;/* pointer to temporary token start variable     */
-int	 *next_op_ids;  /* pointer to temporary token op ids array       */
+BOOLEAN  *ambiguous,	/* flag returned TRUE if operators are ambiguous */
+unsigned *next_bufptr,	/* pointer to variable to use for temp bufptr    */
+unsigned bufptr,	/* current value of bufptr			 */
+unsigned *next_linenum, /* pointer to variable to use for temp linenum   */
+unsigned linenum,	/* current value of linenum			 */
+char     *buffer,	/* pointer to input character buffer             */
+unsigned  bufsiz,	/* size of buffer				 */
+char     *next_token,   /* pointer to temporary token buffer             */
+unsigned  toksiz,	/* size of next_token				 */
+unsigned *next_toklen,  /* pointer to temporary token length variable    */
+unsigned *next_toktype, /* pointer to temporary token type variable      */
+unsigned *next_tokstart,/* pointer to temporary token start variable     */
+int	 *next_op_ids   /* pointer to temporary token op ids array       */
+
+)
 
 {
 int status;
@@ -411,8 +418,8 @@ Summary:
 */
 
 static int get_next_token(
-   void * infile,char * (*infunc)(),int (*eoffunc)(),int (*errfunc)(), 
-   FILE * outfile, int (*outfunc)(),char * buffer,unsigned bufsiz,
+   void * infile,char * (*infunc)(char*, int, void*),int (*eoffunc)(void*),int (*errfunc)(void*), 
+   FILE * outfile, int (*outfunc)(const char*, void*),char * buffer,unsigned bufsiz,
    unsigned * bufptr,char * token,unsigned toksiz,unsigned * toklen,
    unsigned * toktype, unsigned * tokstart, unsigned * linenum, 
    int * op_ids, unsigned nop_ids )
@@ -519,8 +526,8 @@ Summary:
 #include <comterp/comterp.h>
 */
 
-int parser(void * infile,char * (*infunc)(),int (*eoffunc)(),int (*errfunc)(),
-	   FILE * outfile,int (*outfunc)(),char * buffer,unsigned bufsiz,
+int parser(void * infile,char * (*infunc)(char*, int, void*),int (*eoffunc)(void*),int (*errfunc)(void*),
+	   FILE * outfile,int (*outfunc)(const char*, void*),char * buffer,unsigned bufsiz,
 	   unsigned * bufptr,char * token,unsigned toksiz,unsigned * linenum,
 	   postfix_token ** pfbuf,unsigned * pfsiz,unsigned * pfnum)
 
@@ -614,14 +621,13 @@ int status;
 
    /* Allocate space for look-ahead token */
       NextToklen = 0;
-      if( NextToken != NULL ) 
-         if( dmm_free( (void **)&NextToken ))
-            KAPUT( "Error in freeing NextToken" );
-      if( dmm_calloc( (void **)&NextToken, (long)toksiz, 
-                      (long)sizeof(char))) {
-         COMERR_SET( ERR_MEMORY );
-	 goto error_return;
-         }
+      if( NextToken == NULL ) {
+          if( dmm_calloc( (void **)&NextToken, (long)toksiz, 
+                          (long)sizeof(char))) {
+              COMERR_SET( ERR_MEMORY );
+              goto error_return;
+          }
+      }
      
    /* Initialize parenthesis stack */
       TopOfParenStack = -1;
@@ -879,16 +885,24 @@ int status;
       /* separation between free format parameters                  */
 	 if( expecting == OPTYPE_BINARY ) {
 
-	    if( !PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims ||
+	    /* whitespace could bind things together here */
+	   int whitespace_bound=0;
+	   if( !PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims  ||
 		UNEXPECTED_NEW_EXPRESSION ) {
-	       COMERR_SET2( ERR_UNEXPECTED_IDENTIFIER, *linenum,
-			    symbol_pntr( *(int *)token ) );
-	       goto error_return;
+	       if (UNEXPECTED_NEW_EXPRESSION && _whitespace_binding) {
+		 OPERSTK_PUSH( 0, OPERATOR);
+		 whitespace_bound=1;
+	         } 
+               else {
+	         COMERR_SET2( ERR_UNEXPECTED_IDENTIFIER, *linenum,
+			      symbol_pntr( *(int *)token ) );
+	         goto error_return;
+	         }
 	       }
 
 	 /* End of an argument                     */
 	 /* Clear the stack back down to the paren */
-	    if( TopOfParenStack >= 0 ) {
+	    if( TopOfParenStack >= 0 && !whitespace_bound) {
 	       ParenStack[ TopOfParenStack ].narg++;
 	       OPERSTK_FLUSH;
 	       }
@@ -1071,7 +1085,7 @@ int status;
       /* Expecting a binary is either an error, or an indicator of  */
       /* separation between free format parameters                  */
 	 if( expecting == OPTYPE_BINARY ) {
-	     if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
+	   if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
 		 UNEXPECTED_LPAREN_ERROR( toktype );
 	     }
@@ -1133,14 +1147,34 @@ int status;
 	     toktype == TOK_RANGBRACK2 &&
 		ParenStack[TopOfParenStack].paren_type != TOK_LANGBRACK2 ) {
 
-	    UNEXPECTED_RPAREN_ERROR(toktype);
+	    if (!_empty_statement) {
+	      UNEXPECTED_RPAREN_ERROR(toktype);
+	      } 
+            else {
+	      if( TopOfParenStack >= 0) {
+		ParenStack[ TopOfParenStack ].narg++;
+	      }
+              if(empty_symid==-1) empty_symid=symbol_add("empty");
+              PFOUT( TOK_COMMAND, empty_symid, 0, 0, 0);
+	      }
+
 	    }
 
       /* Its an error if anything is on the operator stack, and a     */
       /* unary prefix was expected                                    */
 	 if( OperStack[TopOfOperStack].oper_type == OPERATOR &&
-	     expecting == OPTYPE_UNARY_PREFIX ) 
-	    UNEXPECTED_RPAREN_ERROR(toktype);
+	     expecting == OPTYPE_UNARY_PREFIX ) {
+	   if (!_empty_statement) {
+	     UNEXPECTED_RPAREN_ERROR(toktype);
+	     }
+	   else {
+	     if( TopOfParenStack >= 0) {
+		ParenStack[ TopOfParenStack ].narg++;
+	     }
+             if(empty_symid==-1) empty_symid=symbol_add("empty");
+             PFOUT( TOK_COMMAND, empty_symid, 0, 0, 0);
+	     }
+	 }
 
       /* Take everything off of the operator stack until the matching */
       /* parenthesis is found.                                        */
@@ -1219,7 +1253,14 @@ int status;
 #endif
 		       if (toktype==TOK_RPAREN) commandid = parensplus_symid;
 		       else if (toktype==TOK_RBRACKET) commandid = bracketsplus_symid;
-		       else if (toktype==TOK_RBRACE) commandid = bracesplus_symid;
+		       else if (toktype==TOK_RBRACE) {
+			 if(_no_bracesplus) {
+			   commandid = braces_symid;
+			   ParenStack[TopOfParenStack].narg--;
+			   if (TopOfParenStack>0) ParenStack[TopOfParenStack-1].narg++;
+			 } else
+			   commandid = bracesplus_symid;
+		       }
 		       else if (toktype==TOK_RANGBRACK) commandid = angbracksplus_symid;
 		       else commandid = dblangbracksplus_symid;
 		     }
@@ -1350,7 +1391,7 @@ int status;
 
 /* Raise exception if expression is incomplete */
    if (toktype == TOK_NONE) {
-       if (infunc != _oneshot_infunc) {
+       if ((void*)infunc != (void*)_oneshot_infunc) {
            COMERR_SET( ERR_INCOMPLETE_EXPRESSION );
 	   goto error_return;
        } else {
@@ -1376,9 +1417,10 @@ error_return:
 
 }
 
-int print_pfbuf(pfbuf, index)
-     postfix_token *pfbuf;
-     int index;
+int print_pfbuf(
+     postfix_token *pfbuf,
+     int index
+)
 {
     int counter;
     

@@ -88,7 +88,7 @@ public:
     const char* text();
     void text(const char*, boolean update =true);
 
-    void insert_string(char* str, int count);
+    void insert_string(const char* str, int count);
 
     InputHandler* focusable();
     TE_View* textview();

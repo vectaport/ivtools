@@ -64,7 +64,7 @@ public:
     virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
     
-    virtual int runfile(const char*);
+    virtual int runfile(const char*, boolean popen_flag=0);
     // run interpreter on commands read from a file.
 
     void add_defaults();
@@ -92,11 +92,11 @@ protected:
     // signature like fputs used to explicitly read from an filedescriptor.
 
 protected:
+    int _linesize;
     char* _instr;
     int _inpos;
     char* _outstr;
     int _outpos;
-    int _fd;
     FILE* _fptr;
     int _instat;
     int _logger_mode;

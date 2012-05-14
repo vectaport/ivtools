@@ -58,6 +58,7 @@ ComUnidraw/grfunc.h
 ComUnidraw/grlistfunc.h
 ComUnidraw/groupfunc.h
 ComUnidraw/grstatfunc.h
+ComUnidraw/grstrmfunc.h
 ComUnidraw/highlightfunc.h
 ComUnidraw/nfunc.h
 ComUnidraw/pixelfunc.h
@@ -110,6 +111,7 @@ GraphUnidraw/graphcreator.h
 GraphUnidraw/graphdata.h
 GraphUnidraw/graphdialog.h
 GraphUnidraw/grapheditor.h
+GraphUnidraw/graphexport.h
 GraphUnidraw/graphimport.h
 GraphUnidraw/graphkit.h
 GraphUnidraw/graphtools.h
@@ -442,6 +444,7 @@ include/OS/math.h
 include/OS/memory.h
 include/OS/os.h
 include/OS/string.h
+include/OS/strtable.h
 include/OS/table.h
 include/OS/table2.h
 include/OS/types.h

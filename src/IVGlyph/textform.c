@@ -44,7 +44,7 @@
 declareFieldEditorCallback(ObsTextEditor)
 implementFieldEditorCallback(ObsTextEditor)
 
-ObsTextEditor::ObsTextEditor(ObservableText* ot, char* labl, int width)
+ObsTextEditor::ObsTextEditor(ObservableText* ot, const char* labl, int width)
 : MonoGlyph(), Observer()
 {
     DialogKit& dk = *DialogKit::instance();
@@ -98,7 +98,7 @@ void ObsTextEditor::cancel_editor(FieldEditor*) {
 
 /*****************************************************************************/
 
-TextObserver::TextObserver(ObservableText* obs, char* labl, int max)
+TextObserver::TextObserver(ObservableText* obs, const char* labl, int max)
 :MonoGlyph(), Observer()
 {
     WidgetKit& wk = *WidgetKit::instance();

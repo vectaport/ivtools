@@ -1644,7 +1644,7 @@ int OverlayKit::bintest(const char* command) {
 #if 0
   sprintf( combuf, "echo -n $PATH; which %s", command );
 #else
-  sprintf( combuf, "which %s", command );
+  sprintf( combuf, "which %s 2> /dev/null", command );
 #endif
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	

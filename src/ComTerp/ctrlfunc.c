@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1994,1995,1998,1999 Vectaport Inc.
+ * Copyright (c) 2011 Wave Semiconductor Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -30,9 +31,12 @@
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
 
+#include <wordexp.h>
+
 #ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
 #endif
+
 
 #define TITLE "CtrlFunc"
 
@@ -103,11 +107,66 @@ RunFunc::RunFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void RunFunc::execute() {
     ComValue runfilename(stack_arg(0));
+    static int str_sym = symbol_add("str");
+    ComValue strv(stack_key(str_sym));
+    static int popen_sym = symbol_add("popen");
+    ComValue popenv(stack_key(popen_sym));
     reset_stack();
 
-    if (runfilename.type() == ComValue::StringType)
-        _comterp->runfile(runfilename.string_ptr());
+    if (runfilename.type() == ComValue::StringType) {
+      const char* path = expand_tilde(runfilename.string_ptr());
+      if (strv.is_true()) {
+	ComValue retval (((ComTerpServ*)_comterp)->run(path, true /* nested */));
+	push_stack(retval);
+      }
+      else {
+        static int depth = 0;
+	static char*  curr_basepath = NULL;
+        char* prev_basepath = NULL;
+        char runpath[BUFSIZ];
+        int bufleft = BUFSIZ-1;
+        *runpath = '\0'; 
+        if(curr_basepath && *path=='.') 
+          strncpy(runpath, curr_basepath, BUFSIZ-1);
+        _comterp->set_args(path);
+        const char* oldptr = path;
+        char* newptr = runpath+strlen(runpath);
+        bufleft -+ strlen(runpath);
+        while(!isspace(*oldptr) && *oldptr && --bufleft)
+            *newptr++ = *oldptr++;
+        *newptr = '\0';
+        prev_basepath = curr_basepath;
+        curr_basepath = new char[BUFSIZ];
+        realpath(runpath, curr_basepath);
+        char* ptr = curr_basepath+strlen(curr_basepath)-1;
+        while(ptr > curr_basepath && *ptr != '/') *ptr--='\0';
+        
+#if 0
+        fprintf(stderr, "READY(%d) prev_basepath %s\n", depth, prev_basepath);
+        fprintf(stderr, "READY(%d) curr_basepath %s\n", depth, curr_basepath);
+        fprintf(stderr, "READY(%d) runpath %s\n", depth, runpath);
+#endif
+        depth++;
+	_comterp->runfile(runpath, popenv.is_true());
+        if(_comterp->quitflag()) _comterp->quitflag(0);
+        depth--;
+
+        delete curr_basepath;
+        curr_basepath = prev_basepath;
+#if 0
+        fprintf(stderr, "DONE(%d) curr_basepath %s\n", depth, curr_basepath);
+#endif
+      }
+    }
     return;
+}
+
+const char* RunFunc::expand_tilde(const char* path) {
+  static wordexp_t p;
+  wordfree(&p);
+  if(wordexp(path, &p, 0)!=0)
+    return path;
+  return p.we_wordv[0];
 }
 
 /*****************************************************************************/
@@ -123,6 +182,7 @@ void RemoteFunc::execute() {
   ComValue nowaitv(stack_key(nowait_sym));
   reset_stack();
 
+
 #ifdef HAVE_ACE
 
 #if __GNUC__==3&&__GNUC_MINOR__<1
@@ -134,10 +194,10 @@ void RemoteFunc::execute() {
   ACE_SOCK_STREAM *socket = nil;
   ACE_SOCK_Connector *conn = nil;
   SocketObj* socketobj = nil;
-  const char* cmdstr = nil;
+  char* cmdstr = nil;
   if (arg1v.is_string() && arg2v.is_num() && arg3v.is_string()) {
 
-    cmdstr = arg3v.string_ptr();
+    cmdstr = (char*)arg3v.string_ptr();
     const char* hoststr = arg1v.string_ptr();
     const char* portstr = arg2v.is_string() ? arg2v.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : arg2v.ushort_val();
@@ -152,7 +212,7 @@ void RemoteFunc::execute() {
 
   } else if (arg1v.is_object() && arg2v.is_string()) {
     
-    cmdstr = arg2v.string_ptr();
+    cmdstr = (char*)arg2v.string_ptr();
     socketobj = (SocketObj*)arg1v.geta(SocketObj::class_symid());
     if (socketobj) 
       socket = socketobj->socket();
@@ -176,12 +236,23 @@ void RemoteFunc::execute() {
   if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
   out.flush();
 #else
+#if 0
   int i=0;
   do {
-    write(socket->get_handle(), cmdstr+i++, 1);
+    if(write(socket->get_handle(), cmdstr+i++, 1)!=1)
+      fprintf(stderr, "Unexpected error writing byte to socket\n");
   } while ( cmdstr[i]!='\0');
   if (cmdstr[i-1] != '\n')  
     write(socket->get_handle(), "\n", 1);
+#else
+  int cmdlen = strlen(cmdstr);
+  int newline_flag = cmdstr[cmdlen-1]=='\n';
+  if (!newline_flag) cmdstr[cmdlen]='\n';
+  int nbytes = write(socket->get_handle(), cmdstr, cmdlen+(newline_flag?0:1));
+  if (nbytes != cmdlen+(newline_flag?0:1))
+      fprintf(stderr, "write to socket failed\n");
+  if (!newline_flag) cmdstr[cmdlen]='\0';
+#endif
 #endif
   if (nowaitv.is_false()) {
 #if __GNUC__<3
@@ -197,6 +268,7 @@ void RemoteFunc::execute() {
       read(socket->get_handle(), buf+i++, 1);
     } while (i<BUFSIZ-1 && buf[i-1]!='\n');
     if (buf[i-1]=='\n') buf[i]=0;
+    // fprintf(stderr, "buf read back from remote %s", buf);
 #endif
     ComValue retval(comterpserv()->run(buf, true));
     push_stack(retval);
@@ -308,12 +380,22 @@ EvalFunc::EvalFunc(ComTerp* comterp) : ComFunc(comterp) {
 void EvalFunc::execute() {
   static int symret_sym = symbol_add("symret");
   ComValue symretv(stack_key(symret_sym));
+  static int alist_sym = symbol_add("alist");
+  ComValue alistv(stack_key(alist_sym));
 
   if (!comterp()->is_serv()) {
     cerr << "need server mode comterp (or remote mode) for eval command\n";
     reset_stack();
     push_stack(ComValue::nullval());
     return;
+  }
+
+  AttributeList* alist = 
+      (AttributeList*) alistv.geta(AttributeList::class_symid());
+  AttributeList* old_alist = NULL;
+  if (alist) {
+      old_alist = comterp()->get_attributes();
+      comterp()->set_attributes(alist);
   }
 
   // evaluate every string fixed argument on the stack and return in array
@@ -357,6 +439,10 @@ void EvalFunc::execute() {
     }
   } else
     reset_stack();
+
+    if (old_alist)
+        comterp()->set_attributes(old_alist);
+    return;
 }
 
 /*****************************************************************************/
@@ -374,6 +460,7 @@ void ShellFunc::execute() {
 	retval.type(ComValue::IntType);
     }
     push_stack(retval);
+
     return;
 }
 
@@ -419,12 +506,19 @@ void MuteFunc::execute() {
     if (mutev.is_unknown())
       comterp()->muted(!comterp()->muted());
     else
-      comterp()->muted(mutev.boolean_val());
+      comterp()->muted(mutev.int_val());
     ComValue retval(comterp()->muted());
     push_stack(retval);
     return;
 }
 
+/*****************************************************************************/
 
+EmptyFunc::EmptyFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
 
+void EmptyFunc::execute() {
+    reset_stack();
+    // fprintf(stderr, "*** empty statement ***\n");
+}
 

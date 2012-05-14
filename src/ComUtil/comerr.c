@@ -24,7 +24,7 @@
 /*
 comerr.c        COMTERP specific error routines
 
-Externals:      char * comerr_read(), void comerr_set(), 
+Externals:      const char * comerr_read(), void comerr_set(), 
                 int comerr_get(), BOOLEAN comerr_chk()
 
 History:        Written by Scott E. Johnston, March 1989
@@ -50,7 +50,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-char * comerr_read( unsigned errnum )
+const char * comerr_read( unsigned errnum )
 
 
 /*!

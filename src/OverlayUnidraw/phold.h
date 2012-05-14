@@ -11,7 +11,7 @@ static unsigned int phold_height = 50;
   pixel[2] = ((((data[2] - 33) & 0x3) << 6) | ((data[3] - 33))); \
   data += 4;
 
-static char *phold_data =
+static const char *phold_data =
 	"`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=("
 	"`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=("
 	"`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=(`Q=("

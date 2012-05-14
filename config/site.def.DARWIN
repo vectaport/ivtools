@@ -32,8 +32,9 @@
 #define SOMAXCONN 5
 
 /* override -ansi -pedantic from xfree86.cf */
+/* use ucontext routines */
 #undef DefaultCCOptions
-#define DefaultCCOptions -fno-common
+#define DefaultCCOptions -fno-common -D_XOPEN_SOURCE
 
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
 #if 0

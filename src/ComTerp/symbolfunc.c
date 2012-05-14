@@ -35,6 +35,7 @@
 
 #include <iostream.h>
 #include <string.h>
+#include <ctype.h>
 
 #define TITLE "SymbolFunc"
 
@@ -44,6 +45,15 @@ SymIdFunc::SymIdFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void SymIdFunc::execute() {
+  static int max_symid = symbol_add("max");
+  boolean max_flag = stack_key(max_symid).is_true();
+  if(max_flag) {
+    reset_stack();
+    ComValue retval(symbol_max(), ComValue::IntType);
+    push_stack(retval);    
+    return;
+  }
+
   // return id of each symbol in the arguments
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
@@ -96,6 +106,8 @@ void SymAddFunc::execute() {
       symbol_ids[i] = val.symbol_val();
     else 
       symbol_ids[i] = -1;
+    if(symbol_ids[i]!=-1) 
+      symbol_reference(symbol_ids[i]);
   }
   reset_stack();
 
@@ -104,7 +116,7 @@ void SymAddFunc::execute() {
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
       ComValue* av = new ComValue(symbol_ids[i], AttributeValue::SymbolType);
-      av->bquote(1);
+      // av->bquote(1);
       if (symbol_ids[i]<0) av->type(ComValue::UnknownType);
       avl->Append(av);
     }
@@ -112,10 +124,14 @@ void SymAddFunc::execute() {
   } else {
     ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
     if (symbol_ids[0]<0) retval.type(ComValue::UnknownType);
-    retval.bquote(1);
+    // retval.bquote(1);
     push_stack(retval);
   }
 
+  for (int i=0; i<numargs; i++)
+    if(symbol_ids[i]!=-1) 
+      symbol_del(symbol_ids[i]);
+    
 }
 
 /*****************************************************************************/
@@ -125,7 +141,6 @@ SymbolFunc::SymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void SymbolFunc::execute() {
   // return symbol for each id argument
-  boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) return;
   int symbol_ids[numargs];
@@ -171,7 +186,7 @@ void SymValFunc::execute() {
 
     // return fully-evaluated value: expression --> symbol --> value
     varvalues[i] = &stack_arg(i, false); 
-    //    lookup_symval(*varvalues[i]);
+    lookup_symval(*varvalues[i]);
   }
 
   if (numargs>1) {
@@ -190,6 +205,18 @@ void SymValFunc::execute() {
 
 /*****************************************************************************/
 
+SymVarFunc::SymVarFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SymVarFunc::execute() {
+  ComValue symv(stack_arg(0));
+  reset_stack();
+  push_stack(symv);
+}
+
+
+/*****************************************************************************/
+
 SymStrFunc::SymStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -203,11 +230,39 @@ void SymStrFunc::execute() {
 
 /*****************************************************************************/
 
+StrRefFunc::StrRefFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void StrRefFunc::execute() {
+  ComValue strv(stack_arg(0));
+  reset_stack();
+  if (strv.type()==ComValue::StringType) {
+    ComValue retval(symbol_refcount(strv.symbol_val()), ComValue::IntType);
+    push_stack(retval);
+  } 
+  else if (strv.type()==ComValue::IntType) {
+    ComValue retval(symbol_refcount(strv.int_val()), ComValue::IntType);
+    push_stack(retval);
+  } else
+    push_stack(ComValue::nullval());
+  return;  
+}
+
+
+/*****************************************************************************/
+
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void SplitStrFunc::execute() {
+  ComValue commav(',');
   ComValue symvalv(stack_arg(0));
+  static int tokstr_symid = symbol_add("tokstr");
+  ComValue tokstrv(stack_key(tokstr_symid, false, commav));
+  boolean tokstrflag = tokstrv.is_known();
+  static int tokval_symid = symbol_add("tokval");
+  ComValue tokvalv(stack_key(tokval_symid, false, commav));
+  boolean tokvalflag = tokvalv.is_known();
   reset_stack();
 
   if (symvalv.is_string()) {
@@ -215,8 +270,75 @@ void SplitStrFunc::execute() {
     ComValue retval(avl);
     const char* str = symvalv.symbol_ptr();
     int len = strlen(str);
-    for (int i=0; i<len; i++)
-      avl->Append(new AttributeValue(str[i]));
+    if (!tokstrflag && !tokvalflag) {
+      for (int i=0; i<len; i++)
+	avl->Append(new AttributeValue(str[i]));
+    } else if (tokstrflag) {
+      char buffer[BUFSIZ];
+      int bufoff = 0;
+      char delim = tokstrv.char_val();
+      while (*str) {
+        int delim1=0;
+        while(*str && (isspace(*str) || *str==delim)) {
+          if (*str==delim) {
+            if ((delim1 || avl->Number()==0) && !isspace(delim) ) {
+              ComValue* comval = new ComValue(ComValue::nullval());
+              avl->Append(comval);
+            } else
+              delim1=1;
+          }
+          str++;
+        }
+	if (!*str) {
+          if (delim1 && !isspace(delim)) {
+            ComValue* comval = new ComValue(ComValue::nullval());
+            avl->Append(comval);
+          }
+          break;
+        }
+        while (*str && !isspace(*str) && *str!=delim && bufoff<BUFSIZ-1) {
+          if(*str=='"') {
+            while(*str && (*str!='"' || *(str-1)!='\\') && bufoff<BUFSIZ-1) 
+              buffer[bufoff++] = *str++;
+          }
+          buffer[bufoff++] = *str++;
+        }
+	buffer[bufoff] = '\0';
+	avl->Append(new AttributeValue(buffer));
+	bufoff=0;
+      }
+    } else {
+      char buffer[BUFSIZ];
+      int bufoff = 0;
+      char delim = tokvalv.char_val();
+      while (*str) {
+        int delim1=0;
+	while(*str && (isspace(*str) || *str==delim)) {
+          if (*str==delim) {
+              if((delim1 || avl->Number()==0) && !isspace(delim)) {
+              ComValue* comval = new ComValue(ComValue::nullval());
+              avl->Append(comval);
+            } else 
+              delim1=1;
+          }
+          str++;
+        }
+	if (!*str) {
+            if (delim1 && !isspace(delim)) {
+            ComValue* comval = new ComValue(ComValue::nullval());
+            avl->Append(comval);
+          }
+          break;
+        }
+	while (*str && !isspace(*str) && *str!=delim && bufoff<BUFSIZ-1) {
+	  buffer[bufoff++] = *str++;
+	}
+	buffer[bufoff] = '\0';
+        ComValue* comval = new ComValue(((ComTerpServ*)_comterp)->run(buffer, true /*nested*/));
+	avl->Append(comval);
+	bufoff=0;
+      }
+    }
     push_stack(retval);
   } else
     push_stack(ComValue::nullval());
@@ -255,10 +377,32 @@ void JoinStrFunc::execute() {
 }
 
 
+/*****************************************************************************/
+
 GlobalSymbolFunc::GlobalSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GlobalSymbolFunc::execute() {
+  static int clear_symid = symbol_add("clear");
+  ComValue clearflagv(stack_key(clear_symid));
+  boolean clearflag = clearflagv.is_true();
+  static int cnt_symid = symbol_add("cnt");
+  ComValue cntflagv(stack_key(cnt_symid));
+  boolean cntflag = cntflagv.is_true();
+
+  if (cntflag) {
+    reset_stack();
+    TableIterator(ComValueTable) it(*comterp()->globaltable());
+    int cnt=0;
+    while(it.more()) {
+      cnt++;
+      it.next();
+    }
+    ComValue retval(cnt);
+    push_stack(retval);
+    return;
+  }
+
   // return symbol(s) with global flag set
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
@@ -280,21 +424,62 @@ void GlobalSymbolFunc::execute() {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
-      ComValue* av = 
-	new ComValue(symbol_ids[i], AttributeValue::SymbolType);
-      av->global_flag(true);
-      av->bquote(1);
-      avl->Append(av);
+      if (!clearflag) {
+	ComValue* av = 
+	  new ComValue(symbol_ids[i], AttributeValue::SymbolType);
+	av->global_flag(true);
+	av->bquote(1);
+	avl->Append(av);
+      } else {
+	void* oldval = nil;
+	comterp()->globaltable()->find_and_remove(oldval, symbol_ids[i]);
+	if (oldval) delete (ComValue*)oldval;
+      }
     }
     push_stack(retval);
   } else {
     
-    ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
-    retval.global_flag(true);
-    retval.bquote(1);
-    push_stack(retval);
+    if (!clearflag) {
+      ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
+      retval.global_flag(true);
+      retval.bquote(1);
+      push_stack(retval);
+    } else {
+      void* oldval = nil;
+      comterp()->globaltable()->find_and_remove(oldval, symbol_ids[0]);
+      if (oldval) delete (ComValue*)oldval;
+    }
   }
 
+}
+
+
+/*****************************************************************************/
+
+SubStrFunc::SubStrFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SubStrFunc::execute() {
+  ComValue strv(stack_arg(0));
+  ComValue nv(stack_arg(1));
+  static int after_symid = symbol_add("after");
+  ComValue afterflagv(stack_key(after_symid));
+  boolean afterflag = afterflagv.is_true();
+  reset_stack();
+
+  if (strv.is_unknown()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  const char* string = strv.symbol_ptr();
+  const int n = !afterflag ? nv.int_val()+1 : strlen(string)-nv.int_val()+1;
+  char buffer[n];
+  strncpy(buffer, string+(afterflag?nv.int_val():0), n-1);
+  buffer[n-1] = '\0';
+
+  ComValue retval(buffer);
+  push_stack(retval);
 }
 
 

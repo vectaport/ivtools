@@ -181,9 +181,8 @@ void DrawCatalog::graph_finish() {
     int end_id = _endnode[i];
     if (start_id < 0 || end_id < 0)
       _comps->AppendEdge(_edges[i]);
-    _edges[i]->Edge()->
-      attach_nodes(start_id < 0 ? nil : _nodes[start_id]->Node(), 
-		   end_id < 0 ? nil : _nodes[end_id]->Node());
+    _edges[i]->AttachNodes(start_id < 0 ? nil : _nodes[start_id], 
+			   end_id < 0 ? nil : _nodes[end_id]);
     #if defined(GRAPH_OBSERVABLES)
     if (start_id >=0 && end_id >=0) 
       _edges[i]->NodeStart()->attach(_edges[i]->NodeEnd());

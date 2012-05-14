@@ -39,7 +39,7 @@
 
 /*****************************************************************************/
 
-BoundedValueEditor::BoundedValueEditor(BoundedValue* bdv, char* labl, boolean scr)
+BoundedValueEditor::BoundedValueEditor(BoundedValue* bdv, const char* labl, boolean scr)
 : MonoGlyph()
 {
     WidgetKit& wk = *WidgetKit::instance();
@@ -92,7 +92,7 @@ void BoundedValueEditor::accept() {
 
 /*****************************************************************************/
 
-BoundedValueObserver::BoundedValueObserver(BoundedValue* bdv, char* labl)
+BoundedValueObserver::BoundedValueObserver(BoundedValue* bdv, const char* labl)
 : MonoGlyph(), Observer()
 {
     WidgetKit& kit_ = *WidgetKit::instance();
@@ -119,7 +119,7 @@ void BoundedValueObserver::update(Observable* obs) {
 
 /*****************************************************************************/
 
-MeterObserver::MeterObserver(BoundedValue* bdv, char* label, boolean int_display) 
+MeterObserver::MeterObserver(BoundedValue* bdv, const char* label, boolean int_display) 
 : MonoGlyph(), Observer() {
     WidgetKit& wk = *WidgetKit::instance();
     const LayoutKit& lk = *LayoutKit::instance();

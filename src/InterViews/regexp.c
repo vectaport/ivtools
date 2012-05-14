@@ -51,7 +51,7 @@ static void regc(char b);
 static void reginsert(char op, char* opnd);
 static void regtail(char* p, char* val);
 static void regoptail(char* p, char* val);
-static void regerror(char* s);
+static void regerror(const char* s);
 static int regexec(register regexp* prog, register char* string);
 static int regtry(regexp* prog, char* string);
 static int regmatch(char* prog);
@@ -352,7 +352,7 @@ int Regexp::EndOfMatch (int subexp) {
 
 #define	UCHARAT(p)	((int)*(p)&RE_CHARBITS)
 
-#define	FAIL(m)	{ regerror(m); return(nil); }
+#define	FAIL(m)	{ regerror((char*)m); return(nil); }
 #define	ISMULT(c)	((c) == '*' || (c) == '+' || (c) == '?')
 #define	META	"^$.[()|?+*\\"
 
@@ -1200,7 +1200,7 @@ regnext(register char* p) {
 }
 
 static void
-regerror(char* s) {
+regerror(const char* s) {
 	cerr << "regexp: " << s << "\n";
 }
 

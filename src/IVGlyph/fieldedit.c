@@ -45,7 +45,7 @@ using std::cerr;
 
 /*****************************************************************************/
 
-GFieldEditor::GFieldEditor(char* init, GFieldEditorAction* act, float minwidth)
+GFieldEditor::GFieldEditor(const char* init, GFieldEditorAction* act, float minwidth)
 : InputHandler(nil, Session::instance()->style())
 {
     field_ = new EivTextBuffer();

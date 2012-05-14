@@ -27,9 +27,9 @@
 #include <stdio.h>
 #include <iostream.h>
 
-extern "C" {
+// extern "C" {
 #include <ComUtil/comterp.h>
-}
+// }
 
 //: pointer to fgets-like function.
 typedef char* (*infuncptr)(char*,int,void*);

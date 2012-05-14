@@ -55,10 +55,10 @@ void BarPlotFunc::execute() {
     ComValue ytitle(stack_key(ytitle_symid));
     ComValue vtitle(stack_key(valtitle_symid));
     ComValue newview_flag(stack_key(newview_symid));
-    char* ts = "";
-    char* xs = "";
-    char* ys = "";
-    char* vs = "";
+    const char* ts = "";
+    const char* xs = "";
+    const char* ys = "";
+    const char* vs = "";
     if (title.is_string())
       ts = (char*)title.string_ptr();
     if (xtitle.is_string())

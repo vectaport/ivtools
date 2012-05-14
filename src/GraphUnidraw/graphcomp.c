@@ -42,6 +42,7 @@
 #include <OverlayUnidraw/paramlist.h>
 
 #include <TopoFace/topoedge.h>
+#include <TopoFace/toponode.h>
 
 #include <UniIdraw/idarrows.h>
 
@@ -154,6 +155,67 @@ Component* GraphComp::Copy () {
 	comps->AppendEdge(edgecomp);
     }
     return comps;
+}
+
+GraphComp* GraphComp::GraphCopy ()  {
+  GraphComp* newgraph = (GraphComp*)Copy();
+
+  // you just copied a graph, reconnect it
+  Iterator it;
+  First(it);
+  Iterator kt;
+  newgraph->First(kt);
+  while(!Done(it)) {
+    OverlayComp* comp = (OverlayComp*)GetComp(it);
+    if (comp->IsA(EDGE_COMP)) {
+
+      EdgeComp* edgecomp = (EdgeComp*)comp;
+      EdgeComp* newedge = (EdgeComp*)GetComp(kt);
+      
+      /* get pointers to upstream and downstream node */
+      NodeComp* startnode = (NodeComp*)((EdgeComp*)comp)->Edge()->start_node()->value();
+      NodeComp* endnode = (NodeComp*)((EdgeComp*)comp)->Edge()->start_node()->value();
+
+      /* find the offset of these nodes in the linked list */
+      int startoff = -1;
+      int endoff = -1;
+      Iterator jt;
+      First(jt);
+      int offset = 0;
+      while(!Done(jt) && (startoff == -1 || endoff == -1)) {
+	OverlayComp* testcomp = (OverlayComp*)GetComp(jt);
+	if (testcomp==startnode) startoff = offset;
+	else if (testcomp==endnode) endoff = offset;
+	Next(jt);
+	offset++;
+      }
+
+      /* find the equivalent nodes in the new linked list */
+      newgraph->First(jt);
+      offset = 0;
+      NodeComp* startnew = nil;
+      NodeComp* endnew = nil;
+      while(!newgraph->Done(jt) && (startoff!=-1 || endoff!=-1)) {
+	if (startoff==offset) {
+	  startnew = (NodeComp*)newgraph->GetComp(jt);
+	  startoff=-1;
+	}
+	else if (endoff==offset) {
+	  endnew = (NodeComp*)newgraph->GetComp(jt);
+	  endoff=-1;
+	}
+	newgraph->Next(jt);
+	offset++;
+      }
+
+      /* hook em up */
+      newedge->AttachNodes(startnew, endnew);
+      
+    }
+    Next(it);
+    newgraph->Next(kt);
+  }
+  return newgraph;
 }
 
 void GraphComp::GrowParamList(ParamList* pl) {
@@ -339,9 +401,8 @@ int GraphScript::ReadChildren (istream& in, void* addr1, void* addr2, void* addr
     int end_id = endnode[i];
     if (start_id < 0 || end_id < 0)
       comps->AppendEdge(edges[i]);
-    edges[i]->Edge()->
-      attach_nodes(start_id < 0 ? nil : nodes[start_id]->Node(), 
-		   end_id < 0 ? nil : nodes[end_id]->Node());
+    edges[i]->AttachNodes(start_id < 0 ? nil : nodes[start_id], 
+			  end_id < 0 ? nil : nodes[end_id]);
   }
   return 0;
 }
@@ -488,7 +549,10 @@ boolean GraphIdrawScript::IsA (ClassId id) {
 }
 
 boolean GraphIdrawScript::Emit (ostream& out) {
-    out << "graphdraw(";
+    if (!dot_format())
+        out << "graphdraw(";
+    else
+        out << "digraph " << "DOTGRAPHNAME" << " {";
 
     GraphicComp* comps = GetGraphicComp();
     Iterator i;
@@ -504,11 +568,15 @@ boolean GraphIdrawScript::Emit (ostream& out) {
 	if (comp->IsA(EDGE_COMP))
 	    num_edge++;
     }
-    out << num_edge << "," << num_node;
+    if (!dot_format())
+        out << num_edge << "," << num_node;
 
     /* make list and output unique graphic states */
-    _gslist = new Clipboard();
-    boolean gsout = EmitGS(out, _gslist, false);
+    boolean gsout=0;
+    if (!dot_format()) {
+        _gslist = new Clipboard();
+        gsout = EmitGS(out, _gslist, false);
+    }
 
     boolean status = true;
     First(i);
@@ -518,18 +586,20 @@ boolean GraphIdrawScript::Emit (ostream& out) {
     }
     for (; status && !Done(i); ) {
 	ExternView* ev = GetView(i);
-	Indent(out);
+	if (!ev->IsA(EDGE_SCRIPT)) 
+            Indent(out);
         status = ev->Definition(out);
 	Next(i);
-	if (!Done(i)) out << ",\n";
+	if (!Done(i) && status) 
+            out << (!dot_format() ? ",\n" : ";\n");
     }
 
-    out << "\n";
+    if(status) out << "\n";
     FullGS(out);
     Annotation(out);
     Attributes(out);
-    out << ")\n";
-    return status;
+    out << (!dot_format() ? ")\n" : "}\n");
+    return out.good();
 }
 
 int GraphIdrawScript::ReadChildren (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
@@ -588,9 +658,8 @@ int GraphIdrawScript::ReadChildren (istream& in, void* addr1, void* addr2, void*
   for (int i=0; i<num_edge; i++) {
     int start_id = startnode[i];
     int end_id = endnode[i];
-    edges[i]->Edge()->
-      attach_nodes(start_id < 0 ? nil : nodes[start_id]->Node(), 
-		   end_id < 0 ? nil : nodes[end_id]->Node());
+    edges[i]->AttachNodes(start_id < 0 ? nil : nodes[start_id], 
+			  end_id < 0 ? nil : nodes[end_id]);
     #if defined(GRAPH_OBSERVABLES)
     if (start_id >=0 && end_id >=0) 
       edges[i]->NodeStart()->attach(edges[i]->NodeEnd());

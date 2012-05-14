@@ -51,11 +51,13 @@ void DotFunc::execute() {
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
 	   ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
-      cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList>\n";
+      cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
+	   << symbol_pntr(before_part.type_symid()) << ")\n";
       return;
     }
     if (nargs()>1 && !after_part.is_symbol()) {
-      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol\n";
+      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
+	   << symbol_pntr(after_part.type_symid()) << "\n";
       return;
     }
 
@@ -128,7 +130,7 @@ DotValFunc::DotValFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void DotValFunc::execute() {
-    ComValue dotted_pair(stack_arg(0));
+    ComValue dotted_pair(stack_arg(0, true));
     reset_stack();
     if (dotted_pair.class_symid() != Attribute::class_symid()) return;
     Attribute *attr = (Attribute*)dotted_pair.obj_val();

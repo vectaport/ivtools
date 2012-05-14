@@ -184,20 +184,21 @@ srand(seedval) -- seed random number generator
 
 LIST COMMANDS:
 
-lst=list([olst|strm|val] :strmlst) -- create list, copy list, or convert stream
+lst=list([olst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream
 
-val=at(list|attrlist n :set val ) -- return (or set) nth item in a list
+val=at(list|attrlist n :set val :ins val) -- return (or set or insert after) nth item in a list
 
-num=size(list|attrlist) -- return size of a list
+num=size(list|attrlist|str) -- return size of a list (or string)
 
+val=index(list|str val|char|str) -- return index of value (or char or string) in list (or string), nil if not found.
 
 STREAM COMMANDS:
 
 val=next(strm) -- return next value from stream
 
-strm=stream(ostrm|list) -- copy stream or convert list
+strm=stream(ostrm|list|attrlist) -- copy stream or convert list
 
-cnt=each(strm) -- traverse the stream returning its length
+cnt=each(strm) -- traverse stream returning its length
 
 CONTROL COMMANDS (using post evaluation):
 
@@ -211,6 +212,12 @@ val=for(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop
 
 val=while([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop
 
+val=switch(val key-body-pairs) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
+
+continue -- skip to next iteration of for or while loop
+
+break -- break out of for or while loop
+
 OTHER COMMANDS
 
 help(cmdname [cmdname ...] :all :posteval) -- help for commands
@@ -219,10 +226,21 @@ optable() -- print contents of operator table
 
 val=trace([flag] :get) -- toggle or set trace mode
 
-[str]=print(fmtstr val :string|:str :err) -- print value with format string
-[str]=print(val :string|:str :err) -- print value with format string
+pause()  -- pause script execution until C/R
 
-int|lst=symid(symbol [symbol ...]) -- return integer id(s) associated with symbol(s)
+step() -- toggle stepwise script execution
+
+fileobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
+
+close(fileobj) -- close file command
+
+[str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :out :err :file fileobj :prefix str) -- print value with optional format string
+
+str=gets(fileobj) -- gets a new-line terminated string from a file
+
+val=global(symbol)|global(symbol)=val|global(symbol :clear)|global(:cnt) -- make symbol global
+
+int|lst=symid(symbol [symbol ...] | :max) -- return integer id(s) associated with symbol(s)
 
 sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 
@@ -230,11 +248,17 @@ val|lst=symval(symbol [symbol ...]) -- return value(s) associated with symbol va
 
 sym|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup.
 
+sym=symvar(sym) -- return symbol as-is
+
 str=symstr(sym) -- return string version of symbol
 
-lst=split(symbol|string) -- split symbol or string into list of characters.
+n=strref(str|symid) -- return string reference count
+
+lst=split(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens).
 
 str=join(clist :sym) -- join list of characters into string
+
+str=substr(str n :after) -- extract characters from a string
 
 bool=eq(str1 str2 :n len) -- partial string comparison
 
@@ -255,7 +279,9 @@ quit() -- quit the interpreter
 
 exit() -- exit entire application
 
-val=run(filename) -- run commands from file
+empty() -- empty statement
+
+val=run(filename :str :popen) -- run commands from file (or string)
 
 val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then 
 locally evaluate result string
@@ -290,6 +316,12 @@ sym|lst=class(val [val ...]) -- return class symbol(s) for value(s) of object ty
 int=ctoi(char) -- convert character to integer
 
 flag=isspace(char) -- return true if character is whitespace
+
+str=arg(n) -- return command line argument
+
+n=narg(n) -- return number of command line arguments
+
+
 
 ONLY IN SERVER MODE
 

@@ -59,7 +59,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("RectComp");
+    CLASS_SYMID2("RectComp", OVRECT_COMP);
 };
 
 //: graphical view of RectOvComp.

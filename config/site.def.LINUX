@@ -23,9 +23,8 @@
 #define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
 #define SOMAXCONN 5
 
-/* override -ansi -pedantic from xfree86.cf */
 #undef DefaultCCOptions
-#define DefaultCCOptions /**/
+#define DefaultCCOptions -lrt
 
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
 #define ToolIncludeDir /usr/local/include

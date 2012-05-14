@@ -58,7 +58,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovline_params;
 
-    CLASS_SYMID("LineComp");
+    CLASS_SYMID2("LineComp", OVLINE_COMP);
 };
 
 //: graphical view of LineOvComp.
@@ -129,7 +129,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _ovmultiline_params;
 
-    CLASS_SYMID("MultiLineComp");
+    CLASS_SYMID2("MultiLineComp", OVMULTILINE_COMP);
 };
 
 //: graphical view of MultiLineOvComp.

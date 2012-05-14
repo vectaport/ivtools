@@ -172,6 +172,10 @@ public:
     // set temporary index for writing to file
     int index() { return _index; }
     // get temporary index for writing to file
+
+    virtual const char* nodename();
+    // Name of node.
+
 protected:
 
     GraphComp* _graph;
@@ -265,6 +269,9 @@ public:
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
+
+    boolean dot_format() { return format() ? strcmp(format(), "dot")==0 : 0; }
+    // test for GraphViz dot format export
 };
 
 #endif

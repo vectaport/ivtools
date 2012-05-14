@@ -43,7 +43,6 @@
 using namespace std;
 
 #ifdef LEAKCHECK
-#include <leakchecker.h>
 LeakChecker* AttributeValue::_leakchecker = nil;
 #endif
 
@@ -76,6 +75,8 @@ AttributeValue::AttributeValue(AttributeValue& sv) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
+    type(UnknownType);
     *this = sv;
 }
 
@@ -84,6 +85,8 @@ AttributeValue::AttributeValue(AttributeValue* sv) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
+    type(UnknownType);
     *this = *sv;
     dup_as_needed();
 }
@@ -199,6 +202,7 @@ AttributeValue::AttributeValue(int v, ValueType type) {
       }
     } else 
       _v.dfintval = v;
+    ref_as_needed(); // when used as a StringType constructor
 }
 
 AttributeValue::AttributeValue(unsigned long v) { 
@@ -246,10 +250,15 @@ AttributeValue::AttributeValue(int classid, void* ptr) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
     _type = AttributeValue::ObjectType;
     _v.objval.ptr = ptr;
     _v.objval.type = classid;
     _object_compview = false;
+    if (classid==Attribute::class_symid())
+      Resource::ref((Attribute*)ptr);
+    else if (classid==AttributeList::class_symid())
+      Resource::ref((AttributeList*)ptr);
 }
 
 AttributeValue::AttributeValue(ComponentView* view, int compid) { 
@@ -257,6 +266,7 @@ AttributeValue::AttributeValue(ComponentView* view, int compid) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
     _type = AttributeValue::ObjectType;
     _v.objval.ptr = view;
     _v.objval.type = compid;
@@ -269,6 +279,7 @@ AttributeValue::AttributeValue(AttributeValueList* ptr) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
     _type = AttributeValue::ArrayType;
     _v.arrayval.ptr = ptr;
     _v.arrayval.type = 0;
@@ -280,6 +291,7 @@ AttributeValue::AttributeValue(void* comfuncptr, AttributeValueList* vallist) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
     _type = AttributeValue::StreamType;
     _v.streamval.funcptr = comfuncptr;
     _v.streamval.listptr = vallist;
@@ -291,6 +303,7 @@ AttributeValue::AttributeValue(const char* string) {
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
     _leakchecker->create();
 #endif
+    clear();
     _type = AttributeValue::StringType;
     _v.dfintval = symbol_add((char*)string);
 }
@@ -298,11 +311,6 @@ AttributeValue::AttributeValue(const char* string) {
 AttributeValue::~AttributeValue() {
 #ifdef LEAKCHECK
     _leakchecker->destroy();
-#endif
-#if 0  // disable symbol reference counting
-    if (_type == StringType || _type == SymbolType) 
-        symbol_del(string_val());
-    else 
 #endif
     unref_as_needed();
     type(UnknownType);
@@ -322,13 +330,6 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
     _command_symid = sv._command_symid;
-#if 0  // disable symbol reference counting
-    if (_type == StringType || _type == SymbolType) {
-        char* sptr = (char *)string_ptr();
-	if (sptr) symbol_add(sptr);
-    }
-    else 
-#endif
     if (!preserve_flag) ref_as_needed();
     return *this;
 }
@@ -393,9 +394,11 @@ boolean AttributeValue::boolean_val() {
     case AttributeValue::StringType:
 	return (boolean) int_val()!=-1;
     case AttributeValue::ObjectType:
-	return (boolean) obj_val();
+        return (boolean) (unsigned long) obj_val();
     case AttributeValue::StreamType:
 	return stream_mode() != 0;
+    case AttributeValue::ListType:
+        return array_val() != 0;
     default:
 	return 0;
     }
@@ -552,7 +555,7 @@ unsigned int AttributeValue::uint_val() {
     case AttributeValue::SymbolType:
 	return (unsigned int) int_val();
     case AttributeValue::ObjectType:
-        return (unsigned int)obj_val();
+        return (unsigned int) (unsigned long) obj_val();
     default:
 	return 0;
     }
@@ -585,7 +588,7 @@ int AttributeValue::int_val() {
     case AttributeValue::SymbolType:
 	return int_ref();
     case AttributeValue::ObjectType:
-        return (int)obj_val();
+        return (int) (long) obj_val();
     default:
 	return 0;
     }
@@ -791,8 +794,8 @@ void AttributeValue::command_symid(int id, boolean alias) {
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
     AttributeValue* svp = (AttributeValue*)&sv;
-    char* title;
-    char* symbol;
+    const char* title;
+    const char* symbol;
     int counter;
 #if 0
     switch( svp->type() )
@@ -894,7 +897,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  
 	case AttributeValue::CommandType:
 	  title = "Command (";
-	  symbol = symbol_pntr( svp->symbol_ref() );
+	  symbol = symbol_pntr( svp->command_symid() );
 	  out << title << symbol;
 	  counter = strlen(title) + strlen(symbol);
 	  while( ++counter < 32 ) out << ' ';
@@ -906,7 +909,19 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 
 	case AttributeValue::StringType:
-	  out << "\"" << svp->string_ptr() << "\"";
+	  {
+	    out << "\"";
+	    const char *ptr = svp->string_ptr();
+	    while (*ptr) {
+	      switch (*ptr) {
+	      case '\t' : out << "\\t"; break;
+	      case '\n' : out << "\\n"; break;
+	      default : out << *ptr;
+	      };
+	      ptr++;
+	    }
+	    out << "\"";
+	  }
 	  break;
 
 	case AttributeValue::CharType:
@@ -1104,11 +1119,6 @@ void AttributeValue::assignval (const AttributeValue& av) {
     memcpy(v1, v2, sizeof(_v));
     _type = av._type;
     _command_symid = av._command_symid;
-#if 0 // this end of reference counting disabled as well
-    if (_type == StringType || _type == SymbolType) 
-	symbol_add((char *)string_ptr());
-    else 
-#endif
     if (!preserve_flag) ref_as_needed();
 }
     
@@ -1167,9 +1177,19 @@ void AttributeValue::ref_as_needed() {
       Resource::ref(_v.arrayval.ptr);
     else if (_type == AttributeValue::StreamType)
       Resource::ref(_v.streamval.listptr);
+    else if (_type == AttributeValue::StringType)
+      symbol_reference(string_val());
+    else if (_type == AttributeValue::SymbolType) // never to be unreferenced
+      symbol_reference(symbol_val());
 #ifdef RESOURCE_COMPVIEW
-    else if (_type == AttributeValue::ObjectType && object_compview())
-      Resource::ref((ComponentView*)_v.objval.ptr);
+    else if (_type == AttributeValue::ObjectType) {
+      if (object_compview())
+	Resource::ref((ComponentView*)_v.objval.ptr);
+      else if (obj_type_val()==AttributeList::class_symid()) 
+	Resource::ref((AttributeList*)_v.objval.ptr);
+      else if (obj_type_val()==Attribute::class_symid()) 
+	Resource::ref((Attribute*)_v.objval.ptr);
+    }
 #endif
 }
 
@@ -1186,15 +1206,29 @@ void AttributeValue::dup_as_needed() {
     Resource::unref(avl);
   } 
 #ifdef RESOURCE_COMPVIEW
-  else if (_type == AttributeValue::ObjectType && object_compview()) {
-    ComponentView* oldview = (ComponentView*)_v.objval.ptr;
-    Component* subject = oldview->GetSubject();
-    ComponentView* newview = oldview->Duplicate();
-    newview->SetSubject(subject);
-    subject->Attach(newview);
-    _v.objval.ptr = newview;
-    Resource::ref(newview);
-    Resource::unref(oldview);
+  else if (_type == AttributeValue::ObjectType) {
+    if (object_compview()) {
+      ComponentView* oldview = (ComponentView*)_v.objval.ptr;
+      Component* subject = oldview->GetSubject();
+      ComponentView* newview = oldview->Duplicate();
+      newview->SetSubject(subject);
+      subject->Attach(newview);
+      _v.objval.ptr = newview;
+      Resource::ref(newview);
+      Resource::unref(oldview);
+    }
+    else if (obj_type_val()==AttributeList::class_symid()) {
+      AttributeList* al = (AttributeList*)_v.objval.ptr;
+      _v.objval.ptr = new AttributeList(al);
+      Resource::ref((AttributeList*)_v.objval.ptr);
+      Resource::unref((AttributeList*)al);
+    }
+    else if (obj_type_val()==Attribute::class_symid()) {
+      Attribute* al = (Attribute*)_v.objval.ptr;
+      _v.objval.ptr = (void*) new Attribute(*al);
+      Resource::ref((Attribute*)_v.objval.ptr);
+      Resource::unref((Attribute*)al);
+    }
   }
 #endif
 }
@@ -1209,21 +1243,31 @@ void AttributeValue::unref_as_needed() {
   }
   else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
+  else if (_type == AttributeValue::StringType)  // only StringType, never for SymbolType
+       symbol_del(string_val());
 #ifdef RESOURCE_COMPVIEW
-  else if (_type == AttributeValue::ObjectType && object_compview()) 
+  else if (_type == AttributeValue::ObjectType) {
+    if (object_compview()) 
        Resource::unref((ComponentView*)_v.objval.ptr);
+    else if (obj_type_val() == AttributeList::class_symid()) 
+       Resource::unref((AttributeList*)_v.objval.ptr);
+    else if (obj_type_val() == Attribute::class_symid()) 
+       Resource::unref((Attribute*)_v.objval.ptr);
+  }
 #endif
 }
 
-boolean AttributeValue::same_list(const AttributeValue& av) {
+const boolean AttributeValue::same_list(const AttributeValue& av) {
   if (_type == AttributeValue::ArrayType)
     return _v.arrayval.ptr == av._v.arrayval.ptr;
   else if (_type == AttributeValue::StreamType)
     return _v.streamval.listptr == av._v.streamval.listptr;
 #ifdef RESOURCE_COMPVIEW
-  else if (_type == AttributeValue::ObjectType && object_compview())
-    return _v.objval.ptr == av._v.objval.ptr;
+  else if (_type == AttributeValue::ObjectType)
+    return _v.objval.ptr == av._v.objval.ptr && _object_compview == av._object_compview;
 #endif
+  else if (_type == AttributeValue::StringType)
+    return _v.symval.symid == av._v.symval.symid;
   else
     return false;
 }
@@ -1274,3 +1318,98 @@ void AttributeValue::object_compview(boolean flag) {
   if(flag) Resource::ref((ComponentView*)_v.objval.ptr);
 }
 #endif
+
+
+AttributeValue::AttributeValue(postfix_token* token) {
+    clear();
+    void* v1 = &_v;
+    void* v2 = &token->v;
+    memcpy(v1, v2, sizeof(_v));
+    switch (token->type) {
+    case TOK_STRING:  type(StringType); symbol_reference(string_val()); break;
+    case TOK_CHAR:    type(CharType); break;
+    case TOK_DFINT:   type(IntType); break;
+    case TOK_DFUNS:   type(UIntType); break;
+    case TOK_LNINT:   type(LongType); break;
+    case TOK_LNUNS:   type(ULongType); break;
+    case TOK_FLOAT:   type(FloatType); break;
+    case TOK_DOUBLE:  type(DoubleType); break;
+    case TOK_EOF:     type(EofType); break;
+    case TOK_COMMAND: type(SymbolType); symbol_reference(symbol_val()); _v.symval.globalflag=0; break;
+    case TOK_KEYWORD: type(KeywordType); break;
+    case TOK_BLANK:   type(BlankType); break;
+    default:          type(UnknownType); break;
+    }
+}
+
+boolean AttributeValue::equal(AttributeValue& av) {
+
+  boolean result;
+  if (av.type()==AttributeValue::UnknownType && type()!=AttributeValue::UnknownType)
+    result = false;
+  
+  else if (av.type()==AttributeValue::BlankType && type()!=AttributeValue::BlankType)
+    result = false;
+  
+  else {
+    switch (type()) {
+    case AttributeValue::CharType:
+      result = char_val() == av.char_val();
+      break;
+    case AttributeValue::UCharType:
+      result = uchar_val() == av.uchar_val();
+      break;
+    case AttributeValue::ShortType:
+      result = short_val() == av.short_val();
+      break;
+    case AttributeValue::UShortType:
+      result = ushort_val() == av.ushort_val();
+      break;
+    case AttributeValue::IntType:
+      result = int_val() == av.int_val();
+      break;
+    case AttributeValue::UIntType:
+      result = uint_val() == av.uint_val();
+      break; 
+    case AttributeValue::LongType:
+      result = long_val() == av.long_val();
+      break;
+    case AttributeValue::ULongType:
+      result = ulong_val() == av.ulong_val();
+      break;
+    case AttributeValue::FloatType:
+      result = float_val() == av.float_val();
+      break;
+    case AttributeValue::DoubleType:
+      result = double_val() == av.double_val();
+      break;
+    case AttributeValue::StringType:
+    case AttributeValue::SymbolType:
+      result = strcmp(symbol_ptr(), av.symbol_ptr())==0;
+      break;
+    case AttributeValue::ArrayType: 
+      result = av.type() == AttributeValue::ArrayType && 
+        (array_val() == av.array_val() ||
+         array_val()->Equal(av.array_val()));
+      break;
+    case AttributeValue::ObjectType:
+      if (!object_compview())
+        result = av.type() == AttributeValue::ObjectType && 
+          obj_val() == av.obj_val() &&
+          class_symid() == av.class_symid();
+      else
+        result = av.type() == AttributeValue::ObjectType && 
+          class_symid() == av.class_symid() &&
+          av.object_compview() &&
+          ((ComponentView*)obj_val())->GetSubject() == 
+          ((ComponentView*)av.obj_val())->GetSubject();
+      break;
+    default:
+      result = 
+        is_type(AttributeValue::UnknownType) && av.is_type(AttributeValue::UnknownType) ||
+        is_type(AttributeValue::BlankType) && av.is_type(AttributeValue::BlankType);
+      break;
+    }
+  }
+  return result;
+}

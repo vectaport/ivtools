@@ -66,9 +66,9 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
 
    PROJECTDIR = /proj
 
-   RELEASE = ivtools-1.2.8
+   RELEASE = ivtools-1.2.10
 
-   VERSION = 1.2.8
+   VERSION = 1.2.10
 
    REPOSITORY_FILES = *.c *.cc *.cxx *.C *.h Imakefile *.def template README INSTALL VERSION MANIFEST COPYRIGHT ANNOUNCE README.ivmkcm *.patch *.bugfix.? *.script *.sed comutil.arg comterp.err comutil.ci comterp.arg comterp.ci site.def.SUN4 site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA site.def.CYGWIN site.def.NETBSD site.def.FREEBSD WishList *.defaults *.cf HOWTO Copyright *.sh CHANGES CHANGES-0.? CHANGES-1.? *.cpp ivmkmf *.bash *.1  *.3 config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp *.mk config.mk.in *.tmpl *.flt *.m4 config.defs.in
 
@@ -114,13 +114,13 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
       DEBUG_CCFLAGS = -gdwarf-2
    OPTIMIZE_CCFLAGS =
      SHARED_CCFLAGS =
-      EXTRA_CCFLAGS = -fno-common
+      EXTRA_CCFLAGS = -fno-common -D_XOPEN_SOURCE
 
           CCDEFINES = $(APP_CCDEFINES) $(IV_CCDEFINES) $(OTHER_CCDEFINES) $(EXTRA_CCDEFINES)
        IV_CCDEFINES = $(LANGUAGE_CCDEFINES) $(BACKWARD_CCDEFINES)
            CDEFINES = $(APP_CCDEFINES) $(IV_CDEFINES) $(OTHER_CCDEFINES) $(EXTRA_CCDEFINES)
         IV_CDEFINES = -D_POSIX_C_SOURCE $(BACKWARD_CCDEFINES)
- LANGUAGE_CCDEFINES = -Dcplusplus_2_1 -Wno-deprecated
+ LANGUAGE_CCDEFINES = -Dcplusplus_2_1 -Wno-deprecated -DLEAKCHECK
  BACKWARD_CCDEFINES =
     EXTRA_CCDEFINES =
 

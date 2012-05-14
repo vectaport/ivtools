@@ -49,6 +49,7 @@ public:
     virtual void Visibility(boolean);
     virtual boolean IsVisible();
     virtual void SetSpacing(float incr, float yincr);
+    virtual void GetSpacing(float& incr, float& yincr);
 protected:
     Grid(Graphic*);
 protected:

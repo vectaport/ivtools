@@ -34,6 +34,7 @@ using namespace std;
 
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
 
 #include <signal.h>
 
@@ -53,7 +54,8 @@ ComterpHandler::ComterpHandler (ComTerpServ* serv)
 : ACE_Svc_Handler<ACE_SOCK_Stream, ACE_NULL_SYNCH>(0,0,ComterpHandler::reactor_singleton())
 #endif
 {
-    comterp_ = serv ? serv : new ComTerpServ(BUFSIZ*BUFSIZ);
+  //comterp_ = serv ? serv : new ComTerpServ(BUFSIZ*BUFSIZ);
+    comterp_ = serv ? serv : new ComTerpServ(BUFSIZ*16);
     comterp_->handler(this);
     comterp_->add_defaults();
     _timeoutscriptid = -1;
@@ -157,34 +159,11 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-    char inv[BUFSIZ];
-    int inv_cnt = 0;
-#else
     vector<char> inv;
-#endif
     char ch;
 
-#if __GNUC__<3
-    filebuf ibuf(fd);
-    istream istr(&ibuf);
-
-    // problem handling new-lines embedded in character strings
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-    while(istr.good() && istr.get(ch),ch!='\n'&&ch!='\0' && inv_cnt<BUFSIZ-1) 
-      inv[inv_cnt++] = ch;
-    inv[inv_cnt++] = '\0';
-#else
-    while(istr.good() && istr.get(ch),ch!='\n'&&ch!='\0') 
-      inv.push_back(ch);
-    inv.push_back('\0');
-#endif
-
-    boolean input_good = istr.good();
-#else
-
     if (!_wrfptr) _wrfptr = fdopen(fd, "w");
-    if (!_rdfptr) _rdfptr = fdopen(fd, "r");
+    // if (!_rdfptr) _rdfptr = fdopen(fd, "r");
 
     ch = '\0';
     int status=1;
@@ -196,36 +175,24 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       
     boolean input_good = status != -1;
 
-#endif
-
     char* inbuf = &inv[0];
     if (!comterp_ || !input_good)
       return -1;
-    else if (!inbuf || !*inbuf) {
-#if 0
-#if __GNUC__<3
-	filebuf obuf(fd ? fd : 1);
-	ostream ostr(&obuf);
-	ostr << "\n";
-	ostr.flush();
-#else
-	fprintf(stderr, "unexpected empty command string\n");
-	fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
-	ostream ostr(&obuf);
-	ostr << "\n";
-	ostr.flush();
-#endif
-#endif
+    else if (!inbuf ) {
 	return -1;
+    }
+    else if ( !*inbuf) {
+	return 0;
     }
     if (!ComterpHandler::logger_mode()) {
       comterp_->load_string(inbuf);
-      if (fd>0 && (!comterp_->_muted || strncmp(inbuf, "ready", 5)!=0))
+      if (fd>0 && !comterp_->muted() && strncmp(inbuf, "ready", 5)!=0)
 	cerr << "(" << fd << "):  " << inbuf << "\n";
       comterp_->_fd = fd;
       comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
 
-      int  status = comterp_->ComTerp::run(false /* !once */, false /* !nested */);
+      int  status = comterp_->ComTerp::run(false /* !once */, comterp_->force_nested() /* !nested */);
+      if(comterp_->force_nested()) ComValue retval(comterp_->pop_stack(false));
       if (comterp_->delete_later()) {
 	delete comterp_;
 	comterp_ = nil;
@@ -234,17 +201,10 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     } else {
       if (inbuf[0]!='\004')
 	cout << inbuf << "\n";
-#if __GNUC__<3
-      filebuf obuf(fd ? fd : 1);
-      ostream ostr(&obuf);
-      ostr << "\n";
-      ostr.flush();
-#else
       fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
       ostream ostr(&obuf);
       ostr << "\n";
       ostr.flush();
-#endif
       return (input_good && inbuf[0]!='\004') ? 0 : -1;
     }
 }

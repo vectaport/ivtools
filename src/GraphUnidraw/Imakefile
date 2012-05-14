@@ -22,6 +22,7 @@ Obj26(graphcomp)
 Obj26(graphdata)
 Obj26(graphcreator)
 Obj26(grapheditor)
+Obj26(graphexport)
 Obj26(graphtools)
 Obj26(nodecomp)
 

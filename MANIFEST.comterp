@@ -257,6 +257,7 @@ src/include/OS/math.h
 src/include/OS/memory.h
 src/include/OS/os.h
 src/include/OS/string.h
+src/include/OS/strtable.h
 src/include/OS/table.h
 src/include/OS/types.h
 src/include/Unidraw/Components/Imakefile

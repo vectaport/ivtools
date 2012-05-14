@@ -184,7 +184,7 @@ public:
     UnidrawPauseFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "pause -- pause script execution until C/R"; }
+	return "pause(:usec usec) -- pause script execution until C/R (or usec)"; }
 
 };
 
@@ -241,6 +241,26 @@ public:
     virtual const char* docstring() { 
 	return "gx,gy=%s(compview dx,dy) -- convert from drawing to graphic coordinates."; }
 
+};
+
+ //: command to turn on or off drawing editor gravity
+// gravity([flag]) -- enable/disable drawing editor gravity
+class GravityFunc : public UnidrawFunc {
+public:
+    GravityFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([flag]) -- enable/disable drawing editor gravity"; }
+};
+
+ //: command to set or get drawing editor grid spacing
+// gridspacing([xsize ysize]) -- set/get drawing editor grid spacing
+class GridSpacingFunc : public UnidrawFunc {
+public:
+    GridSpacingFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([xsize ysize]) -- set/get drawing editor grid spacing"; }
 };
 
 #endif /* !defined(_unifunc_h) */

@@ -583,7 +583,7 @@ void TE_View::free_selection(SelectionManager*)
    selection_buffer_ = nil;
 }
 
-void TE_View::insert_string(char* str, int count)
+void TE_View::insert_string(const char* str, int count)
 {
    int dot = text_editor_->Dot();
    int mark = text_editor_->Mark();

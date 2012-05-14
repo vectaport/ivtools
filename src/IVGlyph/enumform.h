@@ -39,7 +39,7 @@ class TelltaleGroup;
 
 class EnumObserver : public MonoGlyph, public Observer {
 public:
-    EnumObserver(ObservableEnum*, char* labl, Coord minwid = 150);
+    EnumObserver(ObservableEnum*, const char* labl, Coord minwid = 150);
     virtual ~EnumObserver();
 
     virtual void update(Observable*);
@@ -67,7 +67,7 @@ protected:
 
 class RadioEnumEditor : public Patch, public Observer {
 public:
-    RadioEnumEditor(ObservableEnum* obs, char* labl, 
+    RadioEnumEditor(ObservableEnum* obs, const char* labl, 
 		    boolean horiz=false, boolean noframe=false);
     virtual ~RadioEnumEditor();
 
@@ -81,14 +81,14 @@ protected:
     PolyGlyph* mainglyph;
     TelltaleGroup* _group;
     ObservableEnum* _obs;
-    char* lab;
+    const char* lab;
     boolean _horiz;
     boolean _noframe;
 };
 
 class CycleEnumEditor : public MonoGlyph, public Observer {
 public:
-    CycleEnumEditor(ObservableEnum* obs, char* labl);
+    CycleEnumEditor(ObservableEnum* obs, const char* labl);
     virtual ~CycleEnumEditor();
 
     void cycle();

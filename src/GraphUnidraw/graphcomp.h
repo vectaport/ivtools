@@ -45,7 +45,8 @@ public:
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
 
-    Component* Copy();
+    virtual Component* Copy();
+    virtual GraphComp* GraphCopy();
  
     void AppendEdge(EdgeComp*);
     // add edge component to the graph.
@@ -176,6 +177,9 @@ public:
     // for use of GraphIdrawComp istream constructor.
     virtual boolean Emit(ostream&);
     // output graphdraw document.
+
+    boolean dot_format() { return format() ? strcmp(format(), "dot")==0 : 0; }
+    // test for GraphViz dot format export
 };
 
 #endif

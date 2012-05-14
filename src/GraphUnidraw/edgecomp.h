@@ -101,9 +101,16 @@ public:
     // return pointer to end node.
 
     int StartSubEdge() { return _start_subedge; }
-    // index of connected edge in sub-graph of start node
+    // get index of connected edge in sub-graph of start node
+    void StartSubEdge(int index) { _start_subedge = index; }
+    // set index of connected edge in sub-graph of start node
     int EndSubEdge() { return _end_subedge; }
-    // index of connected edge in sub-graph of end node
+    // get index of connected edge in sub-graph of end node
+    void EndSubEdge(int index) { _end_subedge = index; }
+    // set index of connected edge in sub-graph of end node
+
+    void AttachNodes(NodeComp* startnode, NodeComp* endnode);
+    // attach start and end nodes
 
     virtual boolean operator == (OverlayComp&);
 
@@ -199,6 +206,9 @@ public:
 
     virtual ClassId GetClassId();
     virtual boolean IsA(ClassId);
+
+    boolean dot_format() { return format() ? strcmp(format(), "dot")==0 : 0; }
+    // test for GraphViz dot format export
 };
 
 #endif

@@ -1,7 +1,7 @@
 
 			INSTALL for ivtools-1.2
 
-Instructions for building ivtools-1.2.8 from source, the short version:
+Instructions for building ivtools-1.2.10 from source, the short version:
 
 	./configure
 	make
@@ -10,7 +10,7 @@ Instructions for building ivtools-1.2.8 from source, the short version:
 
 And if that doesn't work...
 
-Instructions for building ivtools-1.2.6 from source, the long version:
+Instructions for building ivtools-1.2.10 from source, the long version:
 
 0. Compilation Environment
 
@@ -65,7 +65,7 @@ available from:
 
 http://www.cs.wustl.edu/%7Eschmidt/ACE.html
 
-We are currently using ACE-5.6 (or the latest copy of ACE) built
+We are currently using ACE-6.1.0 (or the latest copy of ACE) built
 without threads support.  Follow these steps to build it from source,
 or use the Debian binary if you happen to be working on that platform
 (libace5.1-dev):

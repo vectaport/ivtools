@@ -17,8 +17,10 @@ int strncasecmp(const char*, const char*,int);
 
 inline char* strlower(char* str) {
   char* s = str;
-  while (*s)
-    *s++ = tolower(*s);
+  while (*s) {
+    *s = tolower(*s);
+    ++s;
+  }
   return str;
 }
 

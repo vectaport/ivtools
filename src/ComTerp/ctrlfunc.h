@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 1994,1995,1998,1999 Vectaport Inc.
+ * Copyright (c) 2011 Wave Semiconductor Inc.
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -65,14 +66,16 @@ public:
 };
 
 //: run command for ComTerp.
-// run(filename) -- run commands from a file.
+// run(filename :str) -- run commands from a file (or string).
 class RunFunc : public ComFunc {
 public:
     RunFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(filename) -- run commands from a file"; }
+      return "%s(filename :str :popen) -- run commands from a file (or string)"; }
+
+    static const char* expand_tilde(const char* path);
 
 };
 
@@ -133,7 +136,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "str|lst=%s(cmdstr :symret) -- evaluate string as commands, optionally return symbol instead of nil"; }
+      return "str|lst=%s(cmdstr :symret :alist attrlist) -- evaluate string as commands, optionally return symbol instead of nil"; }
 
 };
 
@@ -150,14 +153,14 @@ public:
 };
 
 //: usleep sleep microseconds
-// usleep(msec) -- sleep microseconds
+// usleep(usec) -- sleep microseconds
 class USleepFunc : public ComFunc {
 public:
     USleepFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(msec) -- sleep microseconds"; }
+      return "%s(usec) -- sleep microseconds"; }
 
 };
 
@@ -182,7 +185,19 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s([flag]) -- set or toggle mute flag"; }
+      return "%s([flag]) -- set or toggle mute flag (2 disables command echo)"; }
+
+};
+
+//: empty command for ComTerp.
+// empty() -- empty statement
+class EmptyFunc : public ComFunc {
+public:
+    EmptyFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "empty() -- empty statement"; }
 
 };
 

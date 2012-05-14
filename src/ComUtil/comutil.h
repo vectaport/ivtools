@@ -70,22 +70,27 @@
 #define TOK_FLOAT       9       /* Floating point number */
 #define TOK_DOUBLE      10      /* Double-size floating point number */
 #define TOK_EOF         11      /* End of file */
+#define TOK_EOL         12      /* End of line -- only returned if _token_eol is true */
 
 /* Token types never returned from LEXSCAN.C */
-#define TOK_WHITESPACE  12      /* Spaces, tabs, new-lines, control chars */
-#define TOK_OCT         13      /* Octal token */
-#define TOK_HEX         14      /* Hexadecimal token */
-#define TOK_COMMENT     15      /* Comment */
+#define TOK_WHITESPACE  13      /* Spaces, tabs, new-lines, control chars */
+#define TOK_OCT         14      /* Octal token */
+#define TOK_HEX         15      /* Hexadecimal token */
+#define TOK_COMMENT     16      /* Comment */
 
 /* Levels for error system output */
 #define USER_LEVEL	0
 #define	PROG_LEVEL	1
 
 /* Character type checking */
-#define isident( ch )   ( isalpha( ch ) || (ch) == '_' )
+extern int _colon_ident;
+extern int _percent_ident;
+#define isident( ch )   ( isalpha( ch ) || (ch) == '_' || \
+_colon_ident && (ch) == ':' || _percent_ident && (ch) == '%')
 #define isodigit( ch )  ( (ch) >= '0' && (ch) <= '7' )
 #define isquote( ch )   ( (ch) == '\'' || (ch) == '"' )
 #define isrparen( ch )   ( (ch) == ')' || (ch) == ']' || (ch) == '}')
+
 
 
 /* Error handling macros */

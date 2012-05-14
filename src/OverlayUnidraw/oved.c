@@ -242,7 +242,7 @@ int OverlayEditor::panner_align() {
   Alignment alignment = BottomRight;
   if (const char* panner_align = catalog->GetAttribute("panner_align")) {
     const int nalign = 15;
-    char *alignmentstr[nalign] = { 
+    const char *alignmentstr[nalign] = { 
       "tl", "tc", "tr", "cl", "c", "cr", "cl", "bl", "br", 
       "l", "r", "t", "b", "hc", "vc" 
     };

@@ -202,7 +202,7 @@ Session::~Session() {
 Session* Session::instance() { 
   if (SessionRep::instance_==nil) {
     int argc=1;
-    char *argv[1] = {"noivsession"};
+    char *argv[1] = {(char*)"noivsession"};
     SessionRep::instance_ = new Session("noivsession", argc, argv);
   }
   return SessionRep::instance_; 
@@ -350,9 +350,10 @@ void Session::read(Event& e, boolean (*test)()) {
 /*
  * Read an event as above, but time out after a given (sec, usec) delay.
  * Return true if an event was read, false if the time-out expired.
+ * (this version also checks test function) 
  */
 
-boolean Session::read(long sec, long usec, Event& e) {
+boolean Session::read(long sec, long usec, Event& e, boolean (*test)()) {
     long sec_left = sec;
     long usec_left = usec;
     boolean save = rep_->readinput_;
@@ -363,6 +364,28 @@ boolean Session::read(long sec, long usec, Event& e) {
 	    return false;
 	}
 	Dispatcher::instance().dispatch(sec_left, usec_left);
+	if (test && (*test)()) return true;
+    }
+    rep_->readinput_ = save;
+    return true;
+}
+
+/*
+ * Read an event as above, but time out after a given (sec, usec) delay.
+ * Return true if an event was read, false if the time-out expired.
+ * (this version checks test function, and updates sec/usec accounting) 
+ */
+
+boolean Session::read(long* sec, long* usec, Event& e, boolean (*test)()) {
+    boolean save = rep_->readinput_;
+    rep_->readinput_ = false;
+    while (!rep_->done_ && !rep_->check(e) && !rep_->done_) {
+	if (!(*sec > 0 || *usec > 0)) {
+	    rep_->readinput_ = save;
+	    return false;
+	}
+	Dispatcher::instance().dispatch(*sec, *usec);
+	if (test && (*test)()) return true;
     }
     rep_->readinput_ = save;
     return true;

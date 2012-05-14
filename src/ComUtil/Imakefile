@@ -10,13 +10,13 @@ LIB = ComUtil
 
 MakeLibrary($(LIB),$(VERSION))
 
-#define Obj(file) MakeObjectFromCSrcFlags(file,)
+#define Obj(file) MakeObjectFromSrcFlags(file,)
 
 Obj(atox)
 Obj(comerr)
 Obj(dmm)
 Obj(errfile)
-MakeObjectFromCSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
+MakeObjectFromSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
 Obj(funcptrs)
 Obj(_lexscan)
 Obj(mblock)
