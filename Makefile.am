@@ -253,9 +253,10 @@ libComUnidraw_la_SOURCES = src/ComUnidraw/comeditor.cc			\
 src/ComUnidraw/comterp-iohandler.cc src/ComUnidraw/dialogfunc.cc	\
 src/ComUnidraw/grdotfunc.cc src/ComUnidraw/grfunc.cc			\
 src/ComUnidraw/grlistfunc.cc src/ComUnidraw/groupfunc.cc		\
-src/ComUnidraw/grstatfunc.cc src/ComUnidraw/highlightfunc.cc		\
-src/ComUnidraw/nfunc.cc src/ComUnidraw/pixelfunc.cc			\
-src/ComUnidraw/plotfunc.cc src/ComUnidraw/unifunc.cc
+src/ComUnidraw/grstatfunc.cc src/ComUnidraw/grstrmfunc.cc		\
+src/ComUnidraw/highlightfunc.cc src/ComUnidraw/nfunc.cc			\
+src/ComUnidraw/pixelfunc.cc src/ComUnidraw/plotfunc.cc			\
+src/ComUnidraw/unifunc.cc
 
 libComUnidraw_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
