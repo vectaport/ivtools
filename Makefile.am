@@ -484,7 +484,8 @@ libGraphUnidraw_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 libGraphUnidrawPART1_la_SOURCES = src/GraphUnidraw/graphdialog.cc	\
-src/GraphUnidraw/graphimport.cc src/GraphUnidraw/graphkit.cc
+src/GraphUnidraw/graphimport.cc src/GraphUnidraw/graphexport.cc		\
+src/GraphUnidraw/graphkit.cc
 
 libGraphUnidrawPART1_la_CPPFLAGS = \
  -Dcplusplus_2_1 \
