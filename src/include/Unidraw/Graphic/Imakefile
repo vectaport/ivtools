@@ -1,9 +1,0 @@
-XCOMM
-XCOMM Unidraw Graphic include files
-XCOMM
-
-PACKAGE = include_graphic
-
-IvmkcmTargets($(PACKAGE))
-
-InstallIncludes(Unidraw/Graphic)
