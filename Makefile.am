@@ -424,17 +424,17 @@ libComUtil_parts = libComUtilPART1.la
 libComUtil_la_LIBADD += $(libComUtil_parts)
 EXTRA_LTLIBRARIES += $(libComUtil_parts)
 
-libComUtil_la_SOURCES = src/ComUtil/atox.c src/ComUtil/comerr.c		\
-src/ComUtil/dmm.c src/ComUtil/errfile.c src/ComUtil/funcptrs.c		\
-src/ComUtil/_lexscan.c src/ComUtil/mblock.c src/ComUtil/optable.c	\
-src/ComUtil/_parser.c src/ComUtil/_scanner.c src/ComUtil/symbols.c	\
-src/ComUtil/txtutil.c src/ComUtil/types.c src/ComUtil/util.c		\
-src/ComUtil/xdll.c
+libComUtil_la_SOURCES = src/ComUtil/atox.cc src/ComUtil/comerr.cc	\
+src/ComUtil/dmm.cc src/ComUtil/errfile.cc src/ComUtil/funcptrs.cc	\
+src/ComUtil/_lexscan.cc src/ComUtil/mblock.cc src/ComUtil/optable.cc	\
+src/ComUtil/_parser.cc src/ComUtil/_scanner.cc src/ComUtil/symbols.cc	\
+src/ComUtil/txtutil.cc src/ComUtil/types.cc src/ComUtil/util.cc		\
+src/ComUtil/xdll.cc
 
 libComUtil_la_CPPFLAGS = \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
 
-libComUtilPART1_la_SOURCES = src/ComUtil/errsys.c
+libComUtilPART1_la_SOURCES = src/ComUtil/errsys.cc
 
 # was hardwired:
 #  -DABSLIBALLDIR=\"/usr/lib/ivtools/\"
