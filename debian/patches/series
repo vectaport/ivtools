@@ -1,9 +1,9 @@
 0001-include-cstdio-etc.patch
 0002-using-std-xxx.patch
-0005-autoconf-guard-ioctl.patch
-0006-math-atan2-hypot.patch
-0007-nofile-for-hurd.patch
-0008-manpage-whatis.patch
-0009-typos.patch
-0010-manpage-dash-slash.patch
-0011-gcc-4-int-pointer-warnings.patch
+0003-autoconf-guard-ioctl.patch
+0004-math-atan2-hypot.patch
+0005-nofile-for-hurd.patch
+0006-manpage-whatis.patch
+0007-typos.patch
+0008-manpage-dash-slash.patch
+0009-gcc-4-int-pointer-warnings.patch

@@ -4,7 +4,7 @@ Subject: nofile for hurd
 
 ---
  src/Dispatch/dispatcher.cc |    4 ++++
- 1 files changed, 4 insertions(+), 0 deletions(-)
+ 1 file changed, 4 insertions(+)
 
 diff --git a/src/Dispatch/dispatcher.cc b/src/Dispatch/dispatcher.cc
 index ab92d0e..b853e19 100644

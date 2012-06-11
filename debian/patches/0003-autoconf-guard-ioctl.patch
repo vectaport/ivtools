@@ -4,10 +4,10 @@ Subject: autoconf guard ioctl
 
 ---
  src/IV-X11/xwindow.cc |    7 +++++++
- 1 files changed, 7 insertions(+), 0 deletions(-)
+ 1 file changed, 7 insertions(+)
 
 diff --git a/src/IV-X11/xwindow.cc b/src/IV-X11/xwindow.cc
-index 89c9f90..39eb98a 100644
+index 094e0d7..63368fd 100644
 --- a/src/IV-X11/xwindow.cc
 +++ b/src/IV-X11/xwindow.cc
 @@ -26,6 +26,9 @@

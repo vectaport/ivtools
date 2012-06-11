@@ -17,7 +17,7 @@ do for you, but what you can do for your computer.
  8 files changed, 36 insertions(+), 36 deletions(-)
 
 diff --git a/src/man/man1/comdraw.1 b/src/man/man1/comdraw.1
-index fc3ede9..e13ffe6 100644
+index b359b43..4eed5d3 100644
 --- a/src/man/man1/comdraw.1
 +++ b/src/man/man1/comdraw.1
 @@ -3,7 +3,7 @@
@@ -29,7 +29,7 @@ index fc3ede9..e13ffe6 100644
  .SH DESCRIPTION
  comdraw is a drawing editor with integrated command interpreter the
  user can interact with via stdin and stdout (or via telnet if ACE is
-@@ -150,7 +150,7 @@ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str
+@@ -161,7 +161,7 @@ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str
  .SH OTHER COMMANDS
  
   acknowledgebox(msgstr) -- popup an acknowledge dialog box
@@ -38,7 +38,7 @@ index fc3ede9..e13ffe6 100644
  
   run(filename) -- run commands from file
   quit() -- quit this interpreter
-@@ -178,16 +178,16 @@ with ACE.
+@@ -189,16 +189,16 @@ with ACE.
  processing.
  
  .B \-theight n,

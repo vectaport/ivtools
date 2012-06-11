@@ -39,7 +39,7 @@ augment and adjust standard C++ I/O-related include directives
  32 files changed, 50 insertions(+), 11 deletions(-)
 
 diff --git a/src/Attribute/paramlist.cc b/src/Attribute/paramlist.cc
-index 23278d9..92ac7fe 100644
+index 934ff73..ad547f9 100644
 --- a/src/Attribute/paramlist.cc
 +++ b/src/Attribute/paramlist.cc
 @@ -25,6 +25,7 @@
@@ -51,7 +51,7 @@ index 23278d9..92ac7fe 100644
  #include <Attribute/aliterator.h>
  #include <Attribute/paramlist.h>
 diff --git a/src/ComTerp/comterp.cc b/src/ComTerp/comterp.cc
-index a69d18b..7841aee 100644
+index ff8e554..a4acb43 100644
 --- a/src/ComTerp/comterp.cc
 +++ b/src/ComTerp/comterp.cc
 @@ -23,6 +23,8 @@
@@ -64,7 +64,7 @@ index a69d18b..7841aee 100644
  #include <iostream.h>
  #include <string.h>
 diff --git a/src/ComTerp/comvalue.cc b/src/ComTerp/comvalue.cc
-index ca64130..01a4d48 100644
+index e5227c7..11cb581 100644
 --- a/src/ComTerp/comvalue.cc
 +++ b/src/ComTerp/comvalue.cc
 @@ -22,6 +22,7 @@
@@ -76,10 +76,10 @@ index ca64130..01a4d48 100644
  #include <ComTerp/comfunc.h>
  #include <ComTerp/comvalue.h>
 diff --git a/src/ComTerp/ctrlfunc.cc b/src/ComTerp/ctrlfunc.cc
-index 1bdb9c5..a444cdc 100644
+index 7973214..dbd37f1 100644
 --- a/src/ComTerp/ctrlfunc.cc
 +++ b/src/ComTerp/ctrlfunc.cc
-@@ -21,6 +21,7 @@
+@@ -22,6 +22,7 @@
   * 
   */
  
@@ -140,7 +140,7 @@ index 517c78e..d07ccd8 100644
  #include <InterViews/event.h>
  #include <InterViews/handler.h>
 diff --git a/src/IVGlyph/bdvalue.cc b/src/IVGlyph/bdvalue.cc
-index 54426f3..1758780 100644
+index 84069b5..ecd5ae7 100644
 --- a/src/IVGlyph/bdvalue.cc
 +++ b/src/IVGlyph/bdvalue.cc
 @@ -46,8 +46,8 @@
@@ -154,7 +154,7 @@ index 54426f3..1758780 100644
  
  /* class BoundedValue */
 diff --git a/src/IVGlyph/exportchooser.cc b/src/IVGlyph/exportchooser.cc
-index c23808a..19ba460 100644
+index 138d053..f662451 100644
 --- a/src/IVGlyph/exportchooser.cc
 +++ b/src/IVGlyph/exportchooser.cc
 @@ -27,6 +27,8 @@
@@ -175,7 +175,7 @@ index c23808a..19ba460 100644
  
  implementActionCallback(ExportChooserImpl)
 diff --git a/src/IVGlyph/fieldedit.cc b/src/IVGlyph/fieldedit.cc
-index a5e3d32..ba03a97 100644
+index 60d8e07..569a269 100644
 --- a/src/IVGlyph/fieldedit.cc
 +++ b/src/IVGlyph/fieldedit.cc
 @@ -21,6 +21,8 @@
@@ -262,7 +262,7 @@ index 5f4c382..bd72f3e 100644
  /*
   * character definitions
 diff --git a/src/InterViews/printer.cc b/src/InterViews/printer.cc
-index 79a3355..55eb07a 100644
+index 69188eb..732731f 100644
 --- a/src/InterViews/printer.cc
 +++ b/src/InterViews/printer.cc
 @@ -26,6 +26,7 @@
@@ -274,7 +274,7 @@ index 79a3355..55eb07a 100644
  #include <InterViews/brush.h>
  #include <InterViews/color.h>
 diff --git a/src/InterViews/regexp.cc b/src/InterViews/regexp.cc
-index b909723..fee2782 100644
+index 824ad5d..ebe404c 100644
 --- a/src/InterViews/regexp.cc
 +++ b/src/InterViews/regexp.cc
 @@ -26,9 +26,12 @@
@@ -291,7 +291,7 @@ index b909723..fee2782 100644
  
  /*
 diff --git a/src/OS/string.cc b/src/OS/string.cc
-index 65edf87..377ae88 100644
+index 9e4a76a..b1aee1b 100644
 --- a/src/OS/string.cc
 +++ b/src/OS/string.cc
 @@ -22,6 +22,7 @@
@@ -403,7 +403,7 @@ index 81d12cf..6c4356e 100644
  #include <Unidraw/Graphic/util.h>
  #include <Unidraw/ulist.h>
 diff --git a/src/comterp_/main.cc b/src/comterp_/main.cc
-index 3d3ccd0..36235b6 100644
+index 0380970..0b89e6d 100644
 --- a/src/comterp_/main.cc
 +++ b/src/comterp_/main.cc
 @@ -21,6 +21,8 @@
@@ -470,7 +470,7 @@ index c8e7d1f..61444d2 100644
  
  #include <iosfwd>
 diff --git a/src/include/Unidraw/Graphic/geomobjs.h b/src/include/Unidraw/Graphic/geomobjs.h
-index f0b6ea3..a8bed2f 100644
+index fd09794..934f71d 100644
 --- a/src/include/Unidraw/Graphic/geomobjs.h
 +++ b/src/include/Unidraw/Graphic/geomobjs.h
 @@ -28,6 +28,8 @@

@@ -7,7 +7,7 @@ explicitly import some std:: qualified identifiers
  src/OverlayUnidraw/clippoly.cc |    3 +++
  src/Time/Date.cc               |    3 +++
  src/Time/Time.cc               |    3 +++
- 3 files changed, 9 insertions(+), 0 deletions(-)
+ 3 files changed, 9 insertions(+)
 
 diff --git a/src/OverlayUnidraw/clippoly.cc b/src/OverlayUnidraw/clippoly.cc
 index c239894..60266b2 100644

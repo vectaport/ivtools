@@ -288,10 +288,10 @@ index 8a7e283..0097bbe 100644
  	    s = sin(angleRad),
  	    t = 1.0 - c;
 diff --git a/src/OverlayUnidraw/ovraster.cc b/src/OverlayUnidraw/ovraster.cc
-index 302e85f..127fe44 100644
+index 027c233..b78f04c 100644
 --- a/src/OverlayUnidraw/ovraster.cc
 +++ b/src/OverlayUnidraw/ovraster.cc
-@@ -1839,7 +1839,7 @@ static float dist(
+@@ -1845,7 +1845,7 @@ static float dist(
  ) {
      float xd = x2 - x1;
      float yd = y2 - y1;
