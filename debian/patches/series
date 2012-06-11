@@ -1,7 +1,5 @@
 0001-include-cstdio-etc.patch
 0002-using-std-xxx.patch
-0003-gcc-4-int-pointer-errors.patch
-0004-gcc-4-const-char.patch
 0005-autoconf-guard-ioctl.patch
 0006-math-atan2-hypot.patch
 0007-nofile-for-hurd.patch
