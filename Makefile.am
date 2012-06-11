@@ -729,7 +729,7 @@ stdcmapppm_CPPFLAGS	=
 
 comdraw_LDADD	= libComUnidraw.la libComTerp.la libOverlayUnidraw.la libUnidraw.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
 comterp_LDADD	= libComTerp.la libTopoFace.la libUnidraw.la $(ACE_LD)
-comtest_LDADD	= libAttribute.la libComTerp.la
+comtest_LDADD	= libAttribute.la libComTerp.la libComUtil.la
 dclock_LDADD	= libIV.la
 drawserv_LDADD	= libDrawServ.la libFrameUnidraw.la libGraphUnidraw.la libOverlayUnidraw.la libComUnidraw.la libUnidraw.la libComTerp.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
 drawtool_LDADD	= libAceDispatch.la libOverlayUnidraw.la libUnidraw.la libComTerp.la libIV.la $(ACE_LD)
