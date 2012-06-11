@@ -45,7 +45,9 @@
 #include <Unidraw/clipboard.h>
 #include <Unidraw/creator.h>
 #include <Unidraw/globals.h>
+#include <Unidraw/grid.h>
 #include <Unidraw/iterator.h>
+#include <Unidraw/statevars.h>
 #include <Unidraw/Commands/command.h>
 #include <Unidraw/Commands/edit.h>
 #include <Unidraw/Components/compview.h>
@@ -643,8 +645,11 @@ UnidrawPauseFunc::UnidrawPauseFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(c
 
 void UnidrawPauseFunc::execute() {
   ComValue msgstrv(stack_arg(0));
+  static int usec_symid = symbol_add("usec");
+  ComValue usecv(stack_key(usec_symid));
   reset_stack();
   comterpserv()->npause()++;
+  long usec = usecv.is_numeric() ? usecv.long_val() : -1;
 
   ComTextEditor* te = (ComTextEditor*) 
     ((OverlayEditor*)GetEditor())->TextEditor();
@@ -655,18 +660,32 @@ void UnidrawPauseFunc::execute() {
 	tv->insert_string((char*)msgstrv.string_ptr(), strlen(msgstrv.string_ptr()));
 	tv->insert_char('\n');
       }
-      std::ostrstream sbuf_s;
-      sbuf_s << "pause(" << comterpserv()->npause() << "): enter command or press C/R to continue\n";
-      sbuf_s.put('\0');
-      tv->insert_string(sbuf_s.str(), strlen(sbuf_s.str()));
+      long old_sec, old_usec;
+      ((OverlayUnidraw*)unidraw)->get_timeout(old_sec,old_usec);
+      if(usec<0) {
+	std::ostrstream sbuf_s;
+	sbuf_s << "pause(" << comterpserv()->npause() << "): enter command or press C/R to continue\n";
+	sbuf_s.put('\0');
+	tv->insert_string(sbuf_s.str(), strlen(sbuf_s.str()));
+	((OverlayUnidraw*)unidraw)->set_timeout(-1, -1);
+      } else
+	((OverlayUnidraw*)unidraw)->set_timeout(0,usec);
+      int remote_pause = (comterpserv()->handler() && comterpserv()->handler()->get_handle()>0);
       comterpserv()->push_servstate();
+      boolean nested = comterpserv()->force_nested();
+      comterpserv()->force_nested(1);
       unidraw->Run();
+      comterpserv()->force_nested(nested);
+      if (!unidraw->alive()) comterpserv()->exit();
       comterpserv()->pop_servstate();
-      std::ostrstream sbuf_e;
-      sbuf_e << "end of pause(" << comterpserv()->npause()+1 << ")\n";
-      sbuf_e.put('\0');
-      tv->insert_string(sbuf_e.str(), strlen(sbuf_e.str()));
-    }
+      if(usec<0) {
+	std::ostrstream sbuf_e;
+	sbuf_e << "end of pause(" << comterpserv()->npause()+1 << ")\n";
+	sbuf_e.put('\0');
+	tv->insert_string(sbuf_e.str(), strlen(sbuf_e.str()));
+      }
+      ((OverlayUnidraw*)unidraw)->set_timeout(old_sec,old_usec);
+   }
   } else {
     cerr << "this version of pause command only works with ComTextEditor\n";
   }
@@ -820,6 +839,49 @@ void DrawingToGraphicFunc::execute() {
   }
 }
 
+/*****************************************************************************/
 
+GravityFunc::GravityFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
 
+void GravityFunc::execute() {
+  ComValue flag(stack_arg(0));
+  reset_stack();
+
+  GravityVar* gravity = (GravityVar*) GetEditor()->GetState("GravityVar");
+  if(flag.is_known() && flag.is_true() != gravity->IsActive())
+    gravity->Activate(!gravity->IsActive());
+
+  ComValue retval(gravity->IsActive(), ComValue::IntType);
+  push_stack(retval);
+
+}
+
+/*****************************************************************************/
+
+GridSpacingFunc::GridSpacingFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void GridSpacingFunc::execute() {
+  ComValue xsizev(stack_arg(0));
+  ComValue ysizev(stack_arg(1));
+  reset_stack();
+
+  Editor* ed = GetEditor();
+  Viewer* viewer = ed->GetViewer();
+
+  if (xsizev.is_known() && ysizev.is_known()) {
+    viewer->GetGrid()->SetSpacing(xsizev.int_val(), ysizev.int_val());
+    viewer->Draw();
+  }
+
+  AttributeValueList* avl = new AttributeValueList();
+  float xs, ys;
+  viewer->GetGrid()->GetSpacing(xs, ys);
+  avl->Append(new AttributeValue((int)xs, AttributeValue::IntType));
+  avl->Append(new AttributeValue((int)ys, AttributeValue::IntType));
+  ComValue retval(avl);
+  push_stack(retval);
+
+}
 

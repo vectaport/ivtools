@@ -74,7 +74,7 @@ private:
 
 class Valuator : public MonoGlyph, public Observer {
 public:
-    Valuator(BoundedValue*, Style*, char* sample ="100.000000");
+    Valuator(BoundedValue*, Style*, const char* sample ="100.000000");
     virtual ~Valuator();
 
     virtual InputHandler* focusable() const;

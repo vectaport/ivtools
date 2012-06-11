@@ -50,11 +50,14 @@ public:
     boolean skip_matched_parens();
     // support for '()', '{}', and '[]'.
 
-    void check_parser_client();
+    void check_parser_client(boolean restore=false);
     /* set this object as client of underlying C-based scanner/parser */
 
     void save_parser_client();
     /* save current parser info for this client */
+
+    void parser_reset();
+    /* reset parser when needed */
 
 protected:
     void init();
@@ -107,5 +110,33 @@ protected:
     int _NextOp_ids[OPTYPE_NUM];
 
 };
+
+extern int _continuation_prompt;
+extern int _continuation_prompt_disabled;
+extern int _skip_shell_comments;
+extern infuncptr _oneshot_infunc;
+extern int _detail_matched_delims;
+extern int _ignore_numerics;
+extern int _angle_brackets;
+extern unsigned _token_state_save;
+
+extern void* parser_client;             /* pointer to current client */
+extern unsigned expecting;              /* Type of operator expected next */
+
+extern paren_stack *ParenStack;         /* Stack to count args and keywords */
+extern int TopOfParenStack;             /* Top of ParenStack */
+extern int SizeOfParenStack;            /* Allocated size of ParenStack */
+
+extern oper_stack *OperStack;          /* Operator stack */
+extern int TopOfOperStack;             /* Top of OperStack */
+extern int SizeOfOperStack;            /* Allocated size of OperStack */
+
+extern unsigned NextBufptr;            /* Variables for look-ahead token */
+extern char *NextToken;
+extern unsigned NextToklen;    
+extern unsigned NextToktype;
+extern unsigned NextTokstart;
+extern unsigned NextLinenum;
+extern int NextOp_ids[OPTYPE_NUM];
 
 #endif /* !defined(_parser_h) */

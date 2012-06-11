@@ -27,6 +27,8 @@
 #include <ComTerp/comterp.h>
 #include <Unidraw/iterator.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/lexscan.h>
+#include <Attribute/paramlist.h>
 #include <OS/math.h>
 #include <math.h>
 #include <string.h>
@@ -52,6 +54,9 @@ void NumFunc::promote(ComValue& op1, ComValue& op2) {
     boolean op1bigger = op1.type()!=ComValue::BooleanType ? op1.type() > op2.type() : false;
     ComValue* greater = op1bigger ? &op1 : &op2;
     ComValue* lesser =  op1bigger ? &op2 : &op1;
+
+    /* skip promotion if first is string */
+    if (op1.type()==ComValue::StringType) return;
 
     /* first do the integral promotions if necessary */
     switch (greater->type()) {
@@ -232,12 +237,23 @@ void AddFunc::execute() {
 	break;
     case ComValue::StringType:
         { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
-	  int len1 = strlen(operand1.string_ptr()); 
-	  int len2 = strlen(operand2.string_ptr()); 
-	  char buffer[len1+len2+1];
-	  strcpy(buffer, operand1.string_ptr());
-	  strcpy(buffer+len1, operand2.string_ptr());
-	  result.string_ref()  = symbol_add(buffer);
+             if (operand2.is_string()) {
+            int len1 = strlen(operand1.string_ptr()); 
+            int len2 = strlen(operand2.string_ptr()); 
+            char buffer[len1+len2+1];
+            strcpy(buffer, operand1.string_ptr());
+            strcpy(buffer+len1, operand2.string_ptr());
+            result.string_ref()  = symbol_add(buffer);
+            // symbol_reference(result.string_val());
+          } else {
+            int len1 = strlen(operand1.string_ptr()); 
+            char buffer[len1+2];
+            strcpy(buffer, operand1.string_ptr());
+            buffer[len1] = operand2.char_val();
+            buffer[len1+1] = '\0';
+            result.string_ref()  = symbol_add(buffer);
+            // symbol_reference(result.string_val());
+          }
 	}
 	break;
     case ComValue::ArrayType: 
@@ -921,60 +937,105 @@ void AbsFunc::execute() {
 CharFunc::CharFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void CharFunc::execute() {
-    ComValue& operand = stack_arg(0);
+    ComValue operand(stack_arg(0));
+    reset_stack();
+    if (operand.is_string()) {
+      const char* numstr = operand.symbol_ptr();
+      int negflag = *numstr=='-';
+      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
+      operand = ComValue(av->char_val());
+      if (negflag) operand.char_ref() = - operand.char_val();
+      delete av;
+    }
     ComValue result(operand.char_val(), 
 		    operand.is_nil() ? ComValue::UnknownType : ComValue::CharType);
-    reset_stack();
     push_stack(result);
 }
 
 ShortFunc::ShortFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void ShortFunc::execute() {
-    ComValue& operand = stack_arg(0);
+    ComValue operand(stack_arg(0));
+    reset_stack();
+    if (operand.is_string()) {
+      const char* numstr = operand.symbol_ptr();
+      int negflag = *numstr=='-';
+      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
+      operand = ComValue(av->short_val());
+      if (negflag) operand.short_ref() = - operand.short_val();
+      delete av;
+    }
     ComValue result(operand.short_val(), 
 		    operand.is_nil() ? ComValue::UnknownType : ComValue::ShortType);
-    reset_stack();
     push_stack(result);
 }
 
 IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void IntFunc::execute() {
-    ComValue& operand = stack_arg(0);
+    ComValue operand(stack_arg(0));
+    reset_stack();
+    if (operand.is_string()) {
+      const char* numstr = operand.symbol_ptr();
+      int negflag = *numstr=='-';
+      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
+      operand = ComValue(av->int_val(), ComValue::IntType);
+      if (negflag) operand.int_ref() = - operand.int_val();
+      delete av;
+    }
     ComValue result(operand.int_val(),  
 		    operand.is_nil() ? ComValue::UnknownType : ComValue::IntType);
-    reset_stack();
     push_stack(result);
 }
 
 LongFunc::LongFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void LongFunc::execute() {
-    ComValue& operand = stack_arg(0);
-    ComValue result(operand.long_val());
-    if (operand.is_nil()) result.type(ComValue::UnknownType);
+    ComValue operand(stack_arg(0));
     reset_stack();
+    if (operand.is_string()) {
+      const char* numstr = operand.symbol_ptr();
+      int negflag = *numstr=='-';
+      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
+      operand = ComValue(av->long_val());
+      if (negflag) operand.long_ref() = - operand.long_val();
+      delete av;
+    }
+    ComValue result(operand.long_val());
     push_stack(result);
 }
 
 FloatFunc::FloatFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void FloatFunc::execute() {
-    ComValue& operand = stack_arg(0);
-    ComValue result(operand.float_val());
-    if (operand.is_nil()) result.type(ComValue::UnknownType);
+    ComValue operand(stack_arg(0));
     reset_stack();
+    if (operand.is_string()) {
+      const char* numstr = operand.symbol_ptr();
+      int negflag = *numstr=='-';
+      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
+      operand = ComValue(av->float_val());
+      if (negflag) operand.float_ref() = - operand.float_val();
+      delete av;
+    }
+    ComValue result(operand.float_val());
     push_stack(result);
 }
 
 DoubleFunc::DoubleFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void DoubleFunc::execute() {
-    ComValue& operand = stack_arg(0);
-    ComValue result(operand.double_val());
-    if (operand.is_nil()) result.type(ComValue::UnknownType);
+    ComValue operand(stack_arg(0));
     reset_stack();
+    if (operand.is_string()) {
+      const char* numstr = operand.symbol_ptr();
+      int negflag = *numstr=='-';
+      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
+      operand = ComValue(av->double_val());
+      if (negflag) operand.double_ref() = - operand.double_val();
+      delete av;
+    }
+    ComValue result(operand.double_val());
     push_stack(result);
 }
 

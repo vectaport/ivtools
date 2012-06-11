@@ -60,7 +60,7 @@ public:
     static int ReadChildren(istream&, void*, void*, void*, void*);
     virtual boolean EmitPic(ostream&, Clipboard*, Clipboard*, boolean);
 
-    boolean suppress_frame() { _suppress_frame = true; }
+    void suppress_frame() { _suppress_frame = true; }
 protected:
     boolean _suppress_frame;
 };

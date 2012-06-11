@@ -47,7 +47,7 @@
 
 static const int MAXLINELEN = 256;
 
-static char* reencodeISO[] = {
+static const char* reencodeISO[] = {
     "/reencodeISO {",
     "dup dup findfont dup length dict begin",
     "{ 1 index /FID ne { def }{ pop pop } ifelse } forall",
@@ -213,7 +213,7 @@ void PostScriptView::ConstProcs (ostream& out) {
     out << "IdrawDict begin\n\n";
 
     if (nfonts > 0) {
-	for (char** line = reencodeISO; *line != nil; ++line) {
+	for (const char** line = reencodeISO; *line != nil; ++line) {
 	    out << *line << "\n";
 	}
 

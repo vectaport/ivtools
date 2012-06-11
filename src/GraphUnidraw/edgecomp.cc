@@ -92,18 +92,21 @@ EdgeComp::EdgeComp(ArrowLine* g, OverlayComp* parent, int start_subedge,
     int end_subedge) : OverlayComp(g, parent)
 {
     _edge = new TopoEdge(this);
+    _start_node = _end_node = -1;
     _start_subedge = start_subedge;
     _end_subedge = end_subedge;
 }
 
 EdgeComp::EdgeComp(istream& in, OverlayComp* parent) 
     : OverlayComp(nil, parent) {
+    _start_node = _end_node = -1;
     _start_subedge = _end_subedge = -1;
     _edge = new TopoEdge(this);
     _valid = GetParamList()->read_args(in, this);
 }
     
 EdgeComp::EdgeComp(OverlayComp* parent) : OverlayComp(nil, parent) {
+    _start_node = _end_node = -1;
     _start_subedge = _end_subedge = -1;
     _edge = new TopoEdge(this);
 }
@@ -136,7 +139,8 @@ void EdgeComp::GrowParamList(ParamList* pl) {
 }
 
 Component* EdgeComp::Copy() {
-    EdgeComp* comp = NewEdgeComp((ArrowLine*) GetArrowLine()->Copy());
+    
+    EdgeComp* comp = GetArrowLine() ? NewEdgeComp((ArrowLine*) GetArrowLine()->Copy()) : NewEdgeComp();
     if (attrlist()) comp->SetAttributeList(new AttributeList(attrlist()));
     comp->_start_node = _start_node;
     comp->_end_node = _end_node;
@@ -264,7 +268,7 @@ void EdgeComp::Interpret(Command* cmd) {
 	#if defined(GRAPH_OBSERVABLES)
 	if (NodeStart() && NodeEnd()) NodeStart()->detach(NodeEnd());
 	#endif
-	Edge()->attach_nodes(nil, nil);
+	AttachNodes(nil, nil);
     }
     else if (cmd->IsA(EDGECONNECT_CMD)) {
 	EdgeConnectCmd* ecmd = (EdgeConnectCmd*)cmd;
@@ -491,6 +495,12 @@ NodeComp* EdgeComp::NodeEnd() const {
   return nil;
 }
 
+void EdgeComp::AttachNodes(NodeComp* startnode, NodeComp* endnode) {
+  Edge()->attach_nodes(startnode ? startnode->Node() : nil, 
+		       endnode ? endnode->Node() : nil);
+  return;
+}
+
 /*****************************************************************************/
 
 EdgeView::EdgeView(EdgeComp* comp)
@@ -560,19 +570,15 @@ Manipulator* EdgeView::CreateManipulator(
 	    TopoNode* node = nodecmp->Node();
 	    for (node->first(i); !node->done(i); node->next(i)) {
 		TopoEdge* nedge = node->edge(node->elem(i));
-		if (nedge != edge) {
+		EdgeView* edgeview = ((EdgeComp*)nedge->value())->GetEdgeView(GetViewer());
+		if (nedge != edge && edgeview) {
 		    int x0, y0, x1, y1;
-		    if (nedge->end_node() == node) {
-			((EdgeComp*)nedge->value())->GetEdgeView(GetViewer())->GetArrowLine()->
-			    GetOriginal(x0, y0, x1, y1);
-		    }
-		    else {
-			((EdgeComp*)nedge->value())->GetEdgeView(GetViewer())->GetArrowLine()->
-			    GetOriginal(x1, y1, x0, y0);
-		    }
+		    if (nedge->end_node() == node)
+			edgeview->GetArrowLine()->GetOriginal(x0, y0, x1, y1);
+		    else
+			edgeview->GetArrowLine()->GetOriginal(x1, y1, x0, y0);
 		    Transformer trans;
-		    ((EdgeComp*)nedge->value())->GetEdgeView(GetViewer())->GetArrowLine()->
-			TotalTransformation(trans);
+		    edgeview->GetArrowLine()->TotalTransformation(trans);
 		    trans.Transform(x0, y0);
 		    trans.Transform(x1, y1);
 		    RubberLine* rubline = new RubberLine(nil, nil, x0-(x1-e.x), y0-(y1-e.y), x1, y1,
@@ -590,16 +596,13 @@ Manipulator* EdgeView::CreateManipulator(
 	    TopoNode* node = nodecmp->Node();
 	    for (node->first(i); !node->done(i); node->next(i)) {
 		TopoEdge* nedge = node->edge(node->elem(i));
-		if (nedge != edge) {
+		EdgeView* edgeview = ((EdgeComp*)nedge->value())->GetEdgeView(GetViewer());
+		if (nedge != edge && edgeview) {
 		    int x0, y0, x1, y1;
-		    if (nedge->end_node() == node) {
-			((EdgeComp*)nedge->value())->GetEdgeView(GetViewer())->GetArrowLine()->
-			    GetOriginal(x0, y0, x1, y1);
-		    }
-		    else {
-			((EdgeComp*)nedge->value())->GetEdgeView(GetViewer())->GetArrowLine()->
-			    GetOriginal(x1, y1, x0, y0);
-		    }
+		    if (nedge->end_node() == node)
+			edgeview->GetArrowLine()->GetOriginal(x0, y0, x1, y1);
+		    else
+			edgeview->GetArrowLine()->GetOriginal(x1, y1, x0, y0);
 		    Transformer trans;
 		    ((EdgeComp*)nedge->value())->GetEdgeView(GetViewer())->GetArrowLine()->
 			TotalTransformation(trans);
@@ -883,33 +886,39 @@ boolean EdgeScript::IsA (ClassId id) {
 }
 
 boolean EdgeScript::Definition (ostream& out) {
-    EdgeComp* comp = (EdgeComp*) GetSubject();
-    ArrowLine* arrowline = comp->GetArrowLine();
-    int start_node_index = -1;
-    int end_node_index = -1;
-    IndexNodes(start_node_index, end_node_index);
+    if (!dot_format()) {
+        EdgeComp* comp = (EdgeComp*) GetSubject();
+        ArrowLine* arrowline = comp->GetArrowLine();
+        int start_node_index = -1;
+        int end_node_index = -1;
+        IndexNodes(start_node_index, end_node_index);
+        
+        Coord x0, y0, x1, y1;
+        arrowline->GetOriginal(x0, y0, x1, y1);
+        float arrow_scale = arrowline->ArrowScale();
+        boolean head, tail;
+        head = arrowline->Head();
+        tail = arrowline->Tail();
+        
+        out << script_name() << "(";
+        out << x0 << "," << y0 << "," << x1 << "," << y1;
+        if (arrow_scale != 1 )
+            out << " :arrowscale " << arrow_scale;
+        if (head) 
+            out << " :head";
+        if (tail)
+            out << " :tail";
+        out << " :startnode " << start_node_index << " :endnode " << end_node_index;
+        MinGS(out);
+        Annotation(out);
+        out << ")";
+        return out.good();
+    } else {
+        // out << "DOTEDGE";
+        return 0;
+    }
 
-    Coord x0, y0, x1, y1;
-    arrowline->GetOriginal(x0, y0, x1, y1);
-    float arrow_scale = arrowline->ArrowScale();
-    boolean head, tail;
-    head = arrowline->Head();
-    tail = arrowline->Tail();
 
-    out << script_name() << "(";
-    out << x0 << "," << y0 << "," << x1 << "," << y1;
-    if (arrow_scale != 1 )
-	out << " :arrowscale " << arrow_scale;
-    if (head) 
-	out << " :head";
-    if (tail)
-	out << " :tail";
-    out << " :startnode " << start_node_index << " :endnode " << end_node_index;
-    MinGS(out);
-    Annotation(out);
-    out << ")";
-
-    return out.good();
 }
 
 void EdgeScript::IndexNodes(int &start, int &end) {

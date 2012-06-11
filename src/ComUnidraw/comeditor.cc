@@ -27,6 +27,7 @@
 #include <ComUnidraw/grlistfunc.h>
 #include <ComUnidraw/groupfunc.h>
 #include <ComUnidraw/grstatfunc.h>
+#include <ComUnidraw/grstrmfunc.h>
 #include <ComUnidraw/highlightfunc.h>
 #include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/comterp-iohandler.h>
@@ -64,6 +65,8 @@
 #include <iostream>
 
 using std::cout;
+
+#include <leakchecker.h>
 
 /*****************************************************************************/
 
@@ -130,6 +133,7 @@ void ComEditor::InitCommands() {
 void ComEditor::AddCommands(ComTerp* comterp) {
     ((ComTerpServ*)comterp)->add_defaults();
 
+    comterp->add_command("parent", new GrParentFunc(comterp));
     comterp->add_command("rect", new CreateRectFunc(comterp, this));
     comterp->add_command("rectangle", new CreateRectFunc(comterp, this));
     comterp->add_command("line", new CreateLineFunc(comterp, this));
@@ -167,6 +171,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("move", new MoveFunc(comterp, this));
     comterp->add_command("scale", new ScaleFunc(comterp, this));
     comterp->add_command("rotate", new RotateFunc(comterp, this));
+    comterp->add_command("fliph", new FlipHorizontalFunc(comterp, this));
+    comterp->add_command("flipv", new FlipVerticalFunc(comterp, this));
 
     comterp->add_command("pan", new PanFunc(comterp, this));
     comterp->add_command("smallpanup", new PanUpSmallFunc(comterp, this));
@@ -189,8 +195,10 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("nrows", new NRowsFunc(comterp, this));
     comterp->add_command("handles", new HandlesFunc(comterp, this));
 
+#if 0
     if (OverlayKit::bincheck("plotmtv"))
       comterp->add_command("barplot", new BarPlotFunc(comterp, this));
+#endif
 
     comterp->add_command("save", new SaveFileFunc(comterp, this));
     comterp->add_command("import", new ImportFunc(comterp, this));
@@ -200,6 +208,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("attrlist", new GrAttrListFunc(comterp));
     comterp->add_command("at", new GrListAtFunc(comterp));
     comterp->add_command("size", new GrListSizeFunc(comterp));
+    comterp->add_command("stream", new GrStreamFunc(comterp));
 
     comterp->add_command("acknowledgebox", new AcknowledgeBoxFunc(comterp, this));
     comterp->add_command("confirmbox", new ConfirmBoxFunc(comterp, this));
@@ -231,6 +240,14 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("alpha", new AlphaTransFunc(comterp, this));
 
     comterp->add_command("trans", new TransformerFunc(comterp, this));
+
+    comterp->add_command("gravity", new GravityFunc(comterp, this));
+    comterp->add_command("gridspacing", new GridSpacingFunc(comterp, this));
+
+    comterp->add_command("hide", new HideCompFunc(comterp, this));
+    comterp->add_command("show", new ShowCompFunc(comterp, this));
+    comterp->add_command("desensitize", new DesensitizeCompFunc(comterp, this));
+    comterp->add_command("sensitize", new SensitizeCompFunc(comterp, this));
 
     #ifdef LEAKCHECK
     comterp->add_command("compleak", new CompLeakFunc(comterp));

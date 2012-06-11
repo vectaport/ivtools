@@ -30,34 +30,6 @@
 
 #define TITLE "Parser"
 
-extern int _continuation_prompt;
-extern int _continuation_prompt_disabled;
-extern int _skip_shell_comments;
-extern infuncptr _oneshot_infunc;
-extern int _detail_matched_delims;
-extern int _ignore_numerics;
-extern int _angle_brackets;
-extern unsigned _token_state_save;
-
-extern void* parser_client;             /* pointer to current client */
-extern unsigned expecting;              /* Type of operator expected next */
-
-extern paren_stack *ParenStack;         /* Stack to count args and keywords */
-extern int TopOfParenStack;             /* Top of ParenStack */
-extern int SizeOfParenStack;            /* Allocated size of ParenStack */
-
-extern oper_stack *OperStack;          /* Operator stack */
-extern int TopOfOperStack;             /* Top of OperStack */
-extern int SizeOfOperStack;            /* Allocated size of OperStack */
-
-extern unsigned NextBufptr;            /* Variables for look-ahead token */
-extern char *NextToken;
-extern unsigned NextToklen;    
-extern unsigned NextToktype;
-extern unsigned NextTokstart;
-extern unsigned NextLinenum;
-extern int NextOp_ids[OPTYPE_NUM];
-
 #if __GNUC__>=3
 static char newline;
 #endif
@@ -204,10 +176,10 @@ int Parser::istream_ferror(void* instreamp) {
   return !in.good();
 }
 
-void Parser::check_parser_client() {
+void Parser::check_parser_client(boolean restore) {
   if (parser_client==NULL)
     parser_client = (void*)this;
-  else if (parser_client != (void*)this) {
+  else if (parser_client != (void*)this || restore) {
     parser_client = (void*)this;
     _continuation_prompt = __continuation_prompt;
     _continuation_prompt_disabled = __continuation_prompt_disabled;
@@ -272,3 +244,15 @@ void Parser::save_parser_client() {
   _opr_tbl_maxpri = opr_tbl_maxpri_get();
   _opr_tbl_lastop = opr_tbl_lastop_get();
 }
+
+void Parser::parser_reset() {
+    _pfnum = 0;
+    NextToklen = 0;
+    *_buffer = '\0';
+    _continuation_prompt = 0;
+    TopOfOperStack = -1;
+    TopOfParenStack = -1;
+    *_token = '\0';
+    _token_state_save = TOK_WHITESPACE;
+}
+    

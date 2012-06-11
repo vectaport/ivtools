@@ -365,6 +365,10 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
       /* internal execution -- handled by stream func */
       comterp->push_stack(streamv);
+      if(((ComFunc*)streamv.stream_func())->comterp()!=comterp) {
+	((ComFunc*)streamv.stream_func())->comterp(comterp); // just in case
+	 fprintf(stderr, "unexpected need to fix comterp in stream_func\n");
+	 }
       ((ComFunc*)streamv.stream_func())->exec(1, 0);
       if (comterp->stack_top().is_null() && 
 	  comterp->stack_height()>outside_stackh) 

@@ -33,7 +33,7 @@
 
 /*****************************************************************************/
 
-Vertices::Vertices (Graphic* gr) : Graphic(gr) { _extent = nil; }
+Vertices::Vertices (Graphic* gr) : Graphic(gr) { _extent = nil; _pts = nil;}
 
 Vertices::Vertices (Coord* x, Coord* y, int count, Graphic* gr) : Graphic(gr){
     _extent = nil;

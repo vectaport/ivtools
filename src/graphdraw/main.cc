@@ -199,7 +199,7 @@ static OptionDesc options[] = {
 
 
 #ifdef HAVE_ACE
-static char* usage =
+static const char* usage =
 "Usage: graphdraw [any idraw parameter] [-color5] [-color6] [-comdraw port]\n\
 [-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
 [-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\

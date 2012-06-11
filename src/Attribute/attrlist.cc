@@ -43,7 +43,6 @@
 #include <IV-2_6/_enter.h>
 
 #ifdef LEAKCHECK
-#include <leakchecker.h>
 LeakChecker* AttributeValueList::_leakchecker = nil;
 #endif
 
@@ -69,7 +68,7 @@ AttributeList::~AttributeList () {
     if (_alist) {
         ALIterator i;
 	for (First(i); !Done(i); Next(i)) {
-	    delete GetAttr(i);
+	  Resource::unref(GetAttr(i));
 	}
 	delete _alist; 
     }
@@ -83,7 +82,7 @@ void AttributeList::add_attr(const char* name, AttributeValue* value) {
     Attribute* attr = new Attribute(name, value);
     if (add_attr(attr)) {
         attr->valueptr = nil;
-	delete attr;
+	Resource::unref(attr);
     }
 }
 
@@ -95,14 +94,14 @@ void AttributeList::add_attr(int symid, AttributeValue* value) {
     Attribute* attr = new Attribute(symid, value);
     if (add_attr(attr)) {
         attr->valueptr = nil;
-	delete attr;
+	Resource::unref(attr);
     }
 }
 
 void AttributeList::add_attribute(Attribute* attr) {
     if (add_attr(attr)) {
         attr->valueptr = nil;
-	delete attr;
+	Resource::unref(attr);
     }
 }
 
@@ -116,6 +115,7 @@ int AttributeList::add_attr(Attribute* attr) {
 	}
     }
     InsertBefore(i, attr);
+    Resource::ref(attr);
     return 0;
 }
 
@@ -195,7 +195,7 @@ void AttributeList::Last (ALIterator& i) { i.SetValue(_alist->Last()); }
 void AttributeList::Next (ALIterator& i) { i.SetValue(Elem(i)->Next()); }
 void AttributeList::Prev (ALIterator& i) { i.SetValue(Elem(i)->Prev()); }
 boolean AttributeList::Done (ALIterator i) { return Elem(i) == _alist->End(); }
-int AttributeList::Number () { return _count; }
+int AttributeList::Number () const { return _count; }
 
 boolean AttributeList::Includes (Attribute* e) {
     return _alist->Find(e) != nil;
@@ -206,6 +206,10 @@ boolean AttributeList::IsEmpty () { return _alist->IsEmpty(); }
 ostream& operator<< (ostream& out, const AttributeList& al) {
 
     AttributeList* attrlist = (AttributeList*)&al;
+    if (al.Number()==0) {
+        out << "<empty AttributeList>";
+        return out;
+    }
     ALIterator i;
     for (attrlist->First(i); !attrlist->Done(i); attrlist->Next(i)) {
 	Attribute* attr = attrlist->GetAttr(i);
@@ -299,7 +303,7 @@ void AttributeList::clear() {
   for( First(it); !Done(it); ) {
     Attribute* attr = GetAttr(it);
     Remove(it);
-    delete attr;
+    Resource::unref(attr);
   }
 }
 
@@ -312,6 +316,7 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
 #endif
     _alist = new AList;
     _count = 0;
+    _max_out = -1;
     if (s != nil) {
         ALIterator i;
 
@@ -392,7 +397,7 @@ void AttributeValueList::Last (ALIterator& i) { i.SetValue(_alist->Last()); }
 void AttributeValueList::Next (ALIterator& i) { i.SetValue(Elem(i)->Next()); }
 void AttributeValueList::Prev (ALIterator& i) { i.SetValue(Elem(i)->Prev()); }
 boolean AttributeValueList::Done (ALIterator i) { return Elem(i) == _alist->End(); }
-int AttributeValueList::Number () { return _count; }
+const int AttributeValueList::Number () { return _count; }
 
 boolean AttributeValueList::Includes (AttributeValue* e) {
     return _alist->Find(e) != nil;
@@ -403,8 +408,10 @@ boolean AttributeValueList::IsEmpty () { return _alist->IsEmpty(); }
 ostream& operator<< (ostream& out, const AttributeValueList& al) {
 
     AttributeValueList* attrlist = (AttributeValueList*)&al;
+    int maxout = attrlist->max_out();
     ALIterator i;
-    for (attrlist->First(i); !attrlist->Done(i);) {
+    for (attrlist->First(i); !attrlist->Done(i) && maxout!=0;) {
+        maxout--;
 	AttributeValue* attrval = attrlist->GetAttrVal(i);
 
 	char* string;
@@ -420,7 +427,13 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 	        out << attrval->char_ref();
 	        break;
 	    case AttributeValue::UCharType:
-	        out << attrval->char_ref();
+	        out << attrval->uchar_ref();
+	        break;
+	    case AttributeValue::ShortType:
+	        out << attrval->short_ref();
+	        break;
+	    case AttributeValue::UShortType:
+	        out << attrval->ushort_ref();
 	        break;
 	    case AttributeValue::IntType:
 	        out << attrval->int_ref();
@@ -457,6 +470,7 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 	if (!attrlist->Done(i))  out << ",";
 	
     }
+    if(maxout==0 && !attrlist->Done(i)) out << "...";
     return out;
 }
 
@@ -472,15 +486,20 @@ void AttributeValueList::clear() {
 
 AttributeValue* AttributeValueList::Get(unsigned int index) {
   if (Number()<=index) return nil;
-  Iterator it;
-  First(it);
-  for (int i=0; i<index; i++) Next(it);
-  return GetAttrVal(it);
+  ALIterator it;
+  if(Number()<=index*2) {
+      Last(it);
+      for (int i=0; i<Number()-index-1; i++) Prev(it);
+  } else {
+      First(it);
+      for (int i=0; i<index; i++) Next(it);
+  }
+      return GetAttrVal(it);
 }
 
 AttributeValue* AttributeValueList::Set(unsigned int index, AttributeValue* av) {
   if (Number()<=index) {
-    Iterator it;
+    ALIterator it;
     Last(it);
     int padding = index-Number();
     for (int i=0; i<padding; i++) Append(new AttributeValue());
@@ -488,11 +507,24 @@ AttributeValue* AttributeValueList::Set(unsigned int index, AttributeValue* av) 
     return nil;
   }
   else {
-    Iterator it;
+    ALIterator it;
     First(it);
     for (int i=0; i<index; i++) Next(it);
     AttributeValue* oldv = Replace(it, av);
     return oldv;
+  }
+}
+
+void AttributeValueList::Insert(int index, AttributeValue* av) {
+  ALIterator it;
+  First(it);
+  if (index<0) 
+    InsertBefore(it, av);
+  else {
+    if (index>=Number()) index=Number()-1;
+    int i=0;
+    while(i++<index) Next(it);
+    InsertAfter(it, av);
   }
 }
 
@@ -505,4 +537,19 @@ AttributeValue* AttributeValueList::Replace (ALIterator& i, AttributeValue* av) 
     Elem(i)->Append(new AList(av));
     return removed;
 }	
-    
+   
+boolean AttributeValueList::Equal(AttributeValueList* avl) {
+  if(avl->Number()!=Number()) return false;
+  
+  ALIterator it, jt;
+  avl->First(it);
+  First(jt);
+  while(!Done(jt)) {
+    AttributeValue* av = avl->GetAttrVal(it);
+    if (!GetAttrVal(jt)->equal(*av)) return false;
+    avl->Next(it);
+    Next(jt);
+  }
+  
+  return true;
+}

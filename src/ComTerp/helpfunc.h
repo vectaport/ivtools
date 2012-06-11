@@ -42,7 +42,7 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s([command] [command...] :all :posteval) -- help for commands"; }
+      return "%s([command] [command...] :all :posteval :top) -- help for commands"; }
 };
 
 //: print contents of operator table

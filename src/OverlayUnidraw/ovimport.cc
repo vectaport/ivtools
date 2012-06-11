@@ -1256,7 +1256,7 @@ OverlayRaster* OvImportCmd::CreatePlaceImage() {
 
   int x, y;
   int pix[3];
-  char* tmp = phold_data;
+  const char* tmp = phold_data;
   for (y = phold_height - 1; y >= 0; y--) {
     for (x = 0; x < phold_width; x++) {
       HEADER_PIXEL(tmp, pix);

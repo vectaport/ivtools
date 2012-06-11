@@ -73,7 +73,7 @@ protected:
 
 friend class StencilScript;
 
-    CLASS_SYMID("StencilComp"); 
+    CLASS_SYMID2("StencilComp", OVSTENCIL_COMP); 
 };
 
 //: graphical view of StencilOvComp.

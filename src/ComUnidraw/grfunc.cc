@@ -331,7 +331,7 @@ void CreateTextFunc::execute() {
 	avl->Next(i);
     }
 
-    char* txt = symbol_pntr( txtv.symbol_ref() );
+    const char* txt = symbol_pntr( txtv.symbol_ref() );
 
     AttributeList* al = stack_keys();
     Resource::ref(al);
@@ -733,7 +733,7 @@ static char  *psfonttoxfont(char* f)
   int size=0;
   static char copy[256];
   static char name[256];
-  static char *wght[] = { "bold","demi","light","demibold","book",0 };
+  const static char *wght[] = { "bold","demi","light","demibold","book",0 };
   char *s;
   
   if (*f=='-')
@@ -984,9 +984,12 @@ void SelectFunc::execute() {
 	  ComponentView* comview = (ComponentView*)obj.obj_val();
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
-	    newSel->Append(comp->FindView(viewer));
-	    ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-	    avl->Append(compval);
+	    GraphicView* view = comp->FindView(viewer);
+	    if (view) {
+	      newSel->Append(view);
+	      ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
+	      avl->Append(compval);
+	    }
 	  }
 	} else if (obj.is_array()) {
 	  Iterator it;
@@ -997,9 +1000,12 @@ void SelectFunc::execute() {
 	      ComponentView* comview = (ComponentView*)al->GetAttrVal(it)->obj_val();
 	      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	      if (comp) {
-		newSel->Append(comp->FindView(viewer));
-		ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-		avl->Append(compval);
+		GraphicView* view = comp->FindView(viewer);
+		if (view) {
+		  newSel->Append(view);
+		  ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
+		  avl->Append(compval);
+		}
 	      }
 	    }
 	    al->Next(it);
@@ -1239,6 +1245,8 @@ void ZoomFunc::execute() {
 	cmd = new ZoomCmd(_ed, zoom);
 	execute_log(cmd);
     }
+    ComValue retval(_ed->GetViewer()->GetMagnification());
+    push_stack(retval);
     
 }
 
@@ -1251,6 +1259,9 @@ void ZoomInFunc::execute() {
     reset_stack();
     ZoomCmd* cmd = new ZoomCmd(_ed, 2.0);
     execute_log(cmd);
+
+    ComValue retval(_ed->GetViewer()->GetMagnification());
+    push_stack(retval);
 }
 
 /*****************************************************************************/
@@ -1262,6 +1273,9 @@ void ZoomOutFunc::execute() {
     reset_stack();
     ZoomCmd* cmd = new ZoomCmd(_ed, 0.5);
     execute_log(cmd);
+
+    ComValue retval(_ed->GetViewer()->GetMagnification());
+    push_stack(retval);
 }
 
 
@@ -1282,8 +1296,8 @@ void TileFileFunc::execute() {
     ComValue theightv(stack_arg(3, false, five12));
     reset_stack();
 
-    char* ifile = symbol_pntr(ifilev.symbol_ref());
-    char* ofile = symbol_pntr(ofilev.symbol_ref());
+    const char* ifile = symbol_pntr(ifilev.symbol_ref());
+    const char* ofile = symbol_pntr(ofilev.symbol_ref());
 
 #ifndef NDEBUG
     cerr << "tilefile args - ifn: " << ifile << "ofn: " << ofile 
@@ -1376,6 +1390,29 @@ void TransformerFunc::execute() {
 
 /*****************************************************************************/
 
+GrParentFunc::GrParentFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void GrParentFunc::execute() {
+  ComValue compv(stack_arg(0));
+  reset_stack();
+
+  if(compv.is_object() && compv.object_compview()) {
+    ComponentView* compview = (ComponentView*)compv.obj_val();
+    OverlayComp* comp = (OverlayComp*)compview->GetSubject();
+    if (comp && comp->GetParent()) {
+      ComValue retval(new OverlayViewRef((OverlayComp*)comp->GetParent()), 
+		      ((OverlayComp*)comp->GetParent())->classid());
+      push_stack(retval);
+      return;
+    } 
+  }
+  push_stack(ComValue::nullval());
+  return;
+}
+
+/*****************************************************************************/
+
 #ifdef LEAKCHECK
 #include <leakchecker.h>
 
@@ -1454,4 +1491,126 @@ void CommandLeakFunc::execute() {
   push_stack(retval);
 }
 #endif
+
+/*****************************************************************************/
+
+HideCompFunc::HideCompFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void HideCompFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    reset_stack();
+    if (!viewval.is_object()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+
+    if(comp) {
+      comp->GetGraphic()->Hide();
+      comp->Notify();
+    }
+    push_stack(viewval);
+}
+
+/*****************************************************************************/
+
+ShowCompFunc::ShowCompFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void ShowCompFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    reset_stack();
+    if (!viewval.is_object()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+
+    if(comp) {
+      comp->GetGraphic()->Show();
+      comp->Notify();
+    }
+    push_stack(viewval);
+}
+
+/*****************************************************************************/
+
+DesensitizeCompFunc::DesensitizeCompFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void DesensitizeCompFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    reset_stack();
+    if (!viewval.is_object()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+
+    if(comp) {
+      comp->GetGraphic()->Desensitize();
+      comp->Notify();
+    }
+    push_stack(viewval);
+}
+
+/*****************************************************************************/
+
+SensitizeCompFunc::SensitizeCompFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void SensitizeCompFunc::execute() {
+    ComValue viewval(stack_arg(0));
+    reset_stack();
+    if (!viewval.is_object()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    ComponentView* view = (ComponentView*)viewval.obj_val();
+    OverlayComp* comp = (OverlayComp*)view->GetSubject();
+
+    if(comp) {
+      comp->GetGraphic()->Sensitize();
+      comp->Notify();
+    }
+    push_stack(viewval);
+}
+
+/*****************************************************************************/
+
+FlipHorizontalFunc::FlipHorizontalFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void FlipHorizontalFunc::execute() {
+    reset_stack();
+
+    ScaleCmd* cmd = nil;
+
+    cmd = new ScaleCmd(_ed, -1.0, 1.0);
+
+    execute_log(cmd);
+}
+
+/*****************************************************************************/
+
+FlipVerticalFunc::FlipVerticalFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void FlipVerticalFunc::execute() {
+    reset_stack();
+
+    ScaleCmd* cmd = nil;
+
+    cmd = new ScaleCmd(_ed, 1.0, -1.0);
+
+    execute_log(cmd);
+}
 

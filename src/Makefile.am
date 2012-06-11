@@ -43,6 +43,7 @@ GraphUnidraw/graphclasses.h GraphUnidraw/graphcmds.h			\
 GraphUnidraw/graphcomp.h GraphUnidraw/graphcreator.h			\
 GraphUnidraw/graphdata.h GraphUnidraw/graphdialog.h			\
 GraphUnidraw/grapheditor.h GraphUnidraw/graphimport.h			\
+GraphUnidraw/graphexport.h						\
 GraphUnidraw/graphkit.h GraphUnidraw/graphtools.h			\
 GraphUnidraw/nodecomp.h IVGlyph/bdfltform.h IVGlyph/bdtable.h		\
 IVGlyph/bdvalue.h IVGlyph/boolform.h IVGlyph/charfield.h		\

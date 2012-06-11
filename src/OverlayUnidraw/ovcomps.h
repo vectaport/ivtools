@@ -29,10 +29,7 @@
 #ifndef ovcomps_h
 #define ovcomps_h
 
-#define LEAKCHECK
-#ifdef LEAKCHECK
-class LeakChecker;
-#endif
+#include <leakchecker.h>
 
 #include <UniIdraw/idcomp.h>
 #include <InterViews/observe.h>
@@ -80,6 +77,11 @@ public:
     boolean valid();
     // for checking if istream constructor was successfull (if de-serialization
     // was successful).							   
+    boolean visited() { return _valid; }
+    // reuse of valid flag as visited flag
+    void visited(int flag) { _valid = flag; }
+    // reuse of valid flag as visited flag
+
     const char* GetAnnotation();
     // return pointer to annotation string for this component.
     void SetAnnotation(const char*);
@@ -181,6 +183,9 @@ public:
     virtual OverlayComp* DepthPrev(OverlayComp*);
     // return previous node in depth first traversal of tree
 
+    virtual void ClearVisit() { visited(false); }
+    // clear visit mark 
+
 protected:
     ParamList* GetParamList();
     // return ParamList of required/optional/keyword arguments to be read
@@ -205,7 +210,7 @@ protected:
 friend class OverlayScript;
 friend class OverlaysScript;
 
-    CLASS_SYMID("OverlayComp"); 
+    CLASS_SYMID2("OverlayComp", OVERLAY_COMP); 
 
 #ifdef LEAKCHECK
  public:
@@ -245,6 +250,11 @@ public:
     virtual GraphicComp* GetComp(Iterator);
     // return pointer to component within the current element of the list
     // as pointed to by the Iterator.
+    virtual OverlayComp* GetCompForIndex(int index);
+    // return pointer to component within the current element of the list
+    // as pointed to by the index
+    virtual int GetIndexForComp(OverlayComp*);
+    // return index to component within this composite component
     virtual void SetComp(GraphicComp*, Iterator&);
     // set Iterator to point to the element of the list that contains the
     // given component.
@@ -320,6 +330,9 @@ public:
     virtual OverlayComp* DepthPrev(OverlayComp*);
     // return previous node in depth first traversal of tree
 
+    virtual void ClearVisit();
+    // clear visit mark 
+
 protected:
     OverlayComp* Comp(UList*);
     UList* Elem(Iterator);
@@ -352,7 +365,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("OverlaysComp"); 
+    CLASS_SYMID2("OverlaysComp", OVERLAYS_COMP); 
 };
 
 #include <OverlayUnidraw/indexmixins.h>
@@ -418,7 +431,7 @@ protected:
 
 friend class OverlayCatalog;
 
-    CLASS_SYMID("OverlayIdrawComp"); 
+    CLASS_SYMID2("OverlayIdrawComp", OVERLAY_IDRAW_COMP); 
 };
 
 inline boolean OverlayComp::valid() { return _valid; }

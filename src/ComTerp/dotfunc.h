@@ -44,6 +44,7 @@ public:
 };
 
 //: name returns name field of a dotted pair
+//  attrname(attribute) returns name field of a dotted pair
 class DotNameFunc : public ComFunc {
 public:
     DotNameFunc(ComTerp*);
@@ -54,6 +55,7 @@ public:
 };
 
 //: value returns value field of a dotted pair
+// attrval(attribute) returns value field of a dotted pair
 class DotValFunc : public ComFunc {
 public:
     DotValFunc(ComTerp*);

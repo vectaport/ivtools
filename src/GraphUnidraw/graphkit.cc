@@ -31,6 +31,7 @@
 #include <GraphUnidraw/nodecomp.h>
 #include <GraphUnidraw/graphcmds.h>
 #include <GraphUnidraw/graphcomp.h>
+#include <GraphUnidraw/graphexport.h>
 #include <GraphUnidraw/graphimport.h>
 #include <GraphUnidraw/graphkit.h>
 #include <GraphUnidraw/graphtools.h>
@@ -45,7 +46,6 @@
 #include <OverlayUnidraw/ovdoer.h>
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovellipse.h>
-#include <OverlayUnidraw/ovexport.h>
 #include <OverlayUnidraw/ovimport.h>
 #include <OverlayUnidraw/ovpolygon.h>
 #include <OverlayUnidraw/ovprecise.h>
@@ -180,7 +180,7 @@ MenuItem * GraphKit::MakeFileMenu() {
 						  KLBL_IMPORT,
 						  CODE_IMPORT)),
 	     "Import Graphic...   ");
-    MakeMenu(mbi, new OvExportCmd(new ControlInfo("Export Graphic...",
+    MakeMenu(mbi, new GraphExportCmd(new ControlInfo("Export Graphic...",
 						  "^X", "\030")),
 	     "Export Graphic...   ");
     mbi->menu()->append_item(kit.menu_item_separator());

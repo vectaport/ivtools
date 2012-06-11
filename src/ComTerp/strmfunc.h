@@ -49,7 +49,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "strm=%s(ostrm|list) -- copy stream or convert list"; }
+      return "strm=%s(ostrm|list|attrlist) -- copy stream or convert list"; }
 
     CLASS_SYMID("StreamFunc");
 
@@ -135,7 +135,7 @@ protected:
 };
 
 //: traverse stream command for ComTerp.
-// cnt=each(strm) -- traverse list returning its length
+// cnt=each(strm) -- traverse stream returning its length
 class EachFunc : public ComFunc {
 public:
     EachFunc(ComTerp*);
@@ -143,7 +143,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "cnt=%s(strm) -- traverse list returning its length"; }
+      return "cnt=%s(strm) -- traverse stream returning its length"; }
 };
 
 //: stream filter command

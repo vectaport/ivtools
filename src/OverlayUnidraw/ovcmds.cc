@@ -218,7 +218,7 @@ void OvRevertCmd::Execute () {
     const char* name = catalog->GetName(comp);
     ModifStatusVar* mv = (ModifStatusVar*) ed->GetState("ModifStatusVar");
 
-    if (name != nil && (mv == nil || mv->GetModifStatus())) {
+    if (name != nil /* && (mv == nil || mv->GetModifStatus())*/) {
         char buf[CHARBUFSIZE];
         strcpy(buf, name);
 
@@ -424,7 +424,7 @@ void OvSaveCompCmd::Execute () {
     if (name == nil) {
         OvSaveCompAsCmd saveCompAs(ed, chooser_);
         saveCompAs.Execute();
-    } else if (modifVar == nil || modifVar->GetModifStatus()) {
+    } else if ( 1 /*modifVar == nil || modifVar->GetModifStatus()*/) {
         Catalog* catalog = unidraw->GetCatalog();
 
         if (catalog->Retrieve(name, comp_) && catalog->Save(comp_, name)) {

@@ -458,6 +458,29 @@ int ParamList::read_string(istream& in, void* addr1, void* addr2, void* addr3, v
     return (in.good()||in.eof()) ? 0 : -1;
 }
  
+int ParamList::read_symbol(istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    char* s1, s2, s3, s4;
+    char delim;
+    char buffer[BUFSIZ];
+    if (addr1 && in.good()) {
+	if (parse_token(in, buffer, BUFSIZ) == 0)
+	    *(int *)addr1 = symbol_add(buffer);
+	if (addr2 && in.good()) {
+	    if (parse_token(in, buffer, BUFSIZ) == 0)
+		*(int *)addr2 = symbol_add(buffer);
+	    if (addr3 && in.good()) {
+		if (parse_token(in, buffer, BUFSIZ) == 0)
+		    *(int *)addr3 = symbol_add(buffer);
+	        if (addr4 && in.good()) {
+		    if (parse_token(in, buffer, BUFSIZ) == 0)
+			*(int *)addr4 = symbol_add(buffer);
+		}
+	    }
+	}
+    }
+    return (in.good()||in.eof()) ? 0 : -1;
+}
+ 
 int ParamList::read_ints (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
     int bufsiz = 1024;
     int n = 0;
@@ -580,7 +603,7 @@ int ParamList::skip_space (istream& in) {
     return (in.good()||in.eof()) ? 0 : -1;
 }
 
-int ParamList::parse_token (istream& in, char* buf, int buflen, char delim) {
+int ParamList::parse_token (istream& in, char* buf, int buflen, const char delim) {
     char ch;
     int cnt = 0;
     while(!isspace(ch=in.get()) && 
@@ -594,7 +617,7 @@ int ParamList::parse_token (istream& in, char* buf, int buflen, char delim) {
     return (in.good()||in.eof()) && (ch==delim || ch==')') ? 0 : -1;
 }
 
-int ParamList::parse_token (istream& in, char* buf, int buflen, char* delim) {
+int ParamList::parse_token (istream& in, char* buf, int buflen, const char* delim) {
     char ch;
     int cnt = 0;
     while(!isspace(ch=in.get()) && 
@@ -885,7 +908,7 @@ int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* d
 }
 
 boolean ParamList::url_use_ok() {
-  return bincheck("ivdl") || bincheck("w3c") || bincheck("curl") || bincheck("wget");
+  return bincheck("curl") || bincheck("wget") || bincheck("ivdl") || bincheck("w3c");
 }
 
 boolean ParamList::urltest(const char* buf) {
@@ -899,7 +922,7 @@ boolean ParamList::urltest(const char* buf) {
 
 int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "sh -c \"wr=`which %s`; echo $wr\"", command );
+  sprintf( combuf, "sh -c \"wr=`which %s 2> /dev/null`; echo $wr\"", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  

@@ -31,25 +31,25 @@
 #include <ComTerp/listfunc.h>
 
 //: list member command for ComUnidraw
-// val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list.
+// val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list.
 class GrListAtFunc : public ComFunc {
 public:
     GrListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list"; }
+      return "val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list"; }
 };
 
 //: list size command for Unidraw
-// num=size(list|attrlist|compview) -- return size of a list.
+// num=size(list|attrlist|str|compview) -- return size of a list (or string).
 class GrListSizeFunc : public ComFunc {
 public:
     GrListSizeFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=size(list|attrlist|compview) -- return the size of the list"; }
+      return "val=size(list|attrlist|str|compview) -- return the size of the list (or string)"; }
 };
 
 #endif /* !defined(_grlistfunc_h) */

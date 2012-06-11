@@ -34,6 +34,9 @@
 
 ## Comterp is compiled with ACE cpp options, but not linked to ACE.
 
+## Release 1.2.10 added options -D_XOPEN_SOURCE -DLEAKCHECK, perhaps
+## we should adjust Makefile.am to incorporate them.
+
 ACLOCAL_AMFLAGS = -I m4
 
 ### Non-architecture-specific support file location
@@ -253,9 +256,10 @@ libComUnidraw_la_SOURCES = src/ComUnidraw/comeditor.cc			\
 src/ComUnidraw/comterp-iohandler.cc src/ComUnidraw/dialogfunc.cc	\
 src/ComUnidraw/grdotfunc.cc src/ComUnidraw/grfunc.cc			\
 src/ComUnidraw/grlistfunc.cc src/ComUnidraw/groupfunc.cc		\
-src/ComUnidraw/grstatfunc.cc src/ComUnidraw/highlightfunc.cc		\
-src/ComUnidraw/nfunc.cc src/ComUnidraw/pixelfunc.cc			\
-src/ComUnidraw/plotfunc.cc src/ComUnidraw/unifunc.cc
+src/ComUnidraw/grstatfunc.cc src/ComUnidraw/grstrmfunc.cc		\
+src/ComUnidraw/highlightfunc.cc src/ComUnidraw/nfunc.cc			\
+src/ComUnidraw/pixelfunc.cc src/ComUnidraw/plotfunc.cc			\
+src/ComUnidraw/unifunc.cc
 
 libComUnidraw_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(ACE_CPPFLAGS) $(IV2_6_INCLUDES)
@@ -423,17 +427,17 @@ libComUtil_parts = libComUtilPART1.la
 libComUtil_la_LIBADD += $(libComUtil_parts)
 EXTRA_LTLIBRARIES += $(libComUtil_parts)
 
-libComUtil_la_SOURCES = src/ComUtil/atox.c src/ComUtil/comerr.c		\
-src/ComUtil/dmm.c src/ComUtil/errfile.c src/ComUtil/funcptrs.c		\
-src/ComUtil/_lexscan.c src/ComUtil/mblock.c src/ComUtil/optable.c	\
-src/ComUtil/_parser.c src/ComUtil/_scanner.c src/ComUtil/symbols.c	\
-src/ComUtil/txtutil.c src/ComUtil/types.c src/ComUtil/util.c		\
-src/ComUtil/xdll.c
+libComUtil_la_SOURCES = src/ComUtil/atox.cc src/ComUtil/comerr.cc	\
+src/ComUtil/dmm.cc src/ComUtil/errfile.cc src/ComUtil/funcptrs.cc	\
+src/ComUtil/_lexscan.cc src/ComUtil/mblock.cc src/ComUtil/optable.cc	\
+src/ComUtil/_parser.cc src/ComUtil/_scanner.cc src/ComUtil/symbols.cc	\
+src/ComUtil/txtutil.cc src/ComUtil/types.cc src/ComUtil/util.cc		\
+src/ComUtil/xdll.cc
 
 libComUtil_la_CPPFLAGS = \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
 
-libComUtilPART1_la_SOURCES = src/ComUtil/errsys.c
+libComUtilPART1_la_SOURCES = src/ComUtil/errsys.cc
 
 # was hardwired:
 #  -DABSLIBALLDIR=\"/usr/lib/ivtools/\"
@@ -484,7 +488,8 @@ libGraphUnidraw_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 
 libGraphUnidrawPART1_la_SOURCES = src/GraphUnidraw/graphdialog.cc	\
-src/GraphUnidraw/graphimport.cc src/GraphUnidraw/graphkit.cc
+src/GraphUnidraw/graphimport.cc src/GraphUnidraw/graphexport.cc		\
+src/GraphUnidraw/graphkit.cc
 
 libGraphUnidrawPART1_la_CPPFLAGS = \
  -Dcplusplus_2_1 \
@@ -727,7 +732,7 @@ stdcmapppm_CPPFLAGS	=
 
 comdraw_LDADD	= libComUnidraw.la libComTerp.la libOverlayUnidraw.la libUnidraw.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
 comterp_LDADD	= libComTerp.la libTopoFace.la libUnidraw.la $(ACE_LD)
-comtest_LDADD	= libAttribute.la libComTerp.la
+comtest_LDADD	= libAttribute.la libComTerp.la libComUtil.la
 dclock_LDADD	= libIV.la
 drawserv_LDADD	= libDrawServ.la libFrameUnidraw.la libGraphUnidraw.la libOverlayUnidraw.la libComUnidraw.la libUnidraw.la libComTerp.la $(ACEDISPATCH_LA) libIV.la $(ACE_LD)
 drawtool_LDADD	= libAceDispatch.la libOverlayUnidraw.la libUnidraw.la libComTerp.la libIV.la $(ACE_LD)

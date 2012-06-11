@@ -42,13 +42,35 @@
 using std::streambuf;
 
 /*****************************************************************************/
+int FileObj::_symid = -1;
+
+FileObj::FileObj(const char* filename, const char* mode, int pipeflag) {
+  _filename = strnew(filename);
+  _mode = strnew(mode);
+  _pipe = pipeflag;
+  _fptr = _pipe ? popen(filename, mode) : fopen(filename, mode);
+}
+
+FileObj::FileObj(FILE* fptr) {
+  _filename = NULL;
+  _mode = NULL;
+  _pipe = false;
+  _fptr = fptr;
+}
+
+FileObj::~FileObj() { 
+  if( _fptr && _filename) _pipe ? pclose(_fptr) : fclose(_fptr);
+  delete _filename;
+  delete _mode;
+}
+
+/*****************************************************************************/
 
 PrintFunc::PrintFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void PrintFunc::execute() {
   ComValue formatstr(stack_arg(0));
-  ComValue printval(stack_arg(1));
   static int str_symid = symbol_add("str");
   ComValue strflag(stack_key(str_symid));
   static int string_symid = symbol_add("string");
@@ -59,7 +81,12 @@ void PrintFunc::execute() {
   ComValue symbolflag(stack_key(symbol_symid));
   static int err_symid = symbol_add("err");
   ComValue errflag(stack_key(err_symid));
-  reset_stack();
+  static int out_symid = symbol_add("out");
+  ComValue outflag(stack_key(out_symid));
+  static int file_symid = symbol_add("file");
+  ComValue fileobjv(stack_key(file_symid));
+  static int prefix_symid = symbol_add("prefix");
+  ComValue prefixv(stack_key(prefix_symid));
 
   const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
   ComValue::comterp(comterp());
@@ -83,10 +110,13 @@ void PrintFunc::execute() {
   if (stringflag.is_false() && strflag.is_false() &&
       symbolflag.is_false() && symflag.is_false()) {
     fileptr_filebuf * fbuf = nil;
-    if (comterp()->handler()) {
+    if (comterp()->handler() && fileobjv.is_unknown() && errflag.is_false() && outflag.is_false()) {
       fbuf = new fileptr_filebuf(comterp()->handler() && comterp()->handler()->wrfptr() 
 			 ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
-    } else
+    } else if (fileobjv.is_known()) {
+      FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
+      fbuf = new fileptr_filebuf(fileobj ? fileobj->fptr() : stdout, ios_base::out);
+    } else 
       fbuf = new fileptr_filebuf(errflag.is_false() ? stdout : stderr, ios_base::out);
     strmbuf = fbuf;
   } else
@@ -94,90 +124,117 @@ void PrintFunc::execute() {
 #endif
   ostream out(strmbuf);
 
-  int narg = nargs();
+  int narg = nargsfixed();
   if (narg==1) {
 
-    if (formatstr.is_string())
+    if (formatstr.is_string() && !prefixv.is_string())
       out << formatstr.symbol_ptr();
-    else
+    else {
+      if (prefixv.is_string()) out << prefixv.symbol_ptr();
       out << formatstr;  // which could be arbitrary ComValue
+      if (prefixv.is_string()) out << "\n";
+    }
 
   } else {
-    switch( printval.type() )
+    const char* fstrptr = fstr;
+    int curr=1;
+    while (curr<narg) {
+
+      char fbuf[BUFSIZ];
+      ComValue printval(stack_arg(curr));
+      curr++;
+
+      int i=0;
+      if(curr<narg) {
+        int flen;
+        while(*fstrptr && !(flen=format_extent(fstrptr)) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
+        if(*fstrptr && flen+i<BUFSIZ-1) {
+          strncpy(fbuf+i, fstrptr, flen);
+          i += flen;
+          fstrptr += flen;
+        }
+        while(*fstrptr && !format_extent(fstrptr) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
+        fbuf[i] = '\0';
+      } else
+        strncpy(fbuf, fstrptr, BUFSIZ);
+
+      switch( printval.type() )
       {
       case ComValue::SymbolType:
       case ComValue::StringType:
-	out_form(out, fstr, symbol_pntr( printval.symbol_ref()));
+	out_form(out, fbuf, symbol_pntr( printval.symbol_ref()));
 	break;
 	
       case ComValue::BooleanType:
-	out_form(out, fstr, printval.boolean_ref());
+	out_form(out, fbuf, printval.boolean_ref());
 	break;
 	
       case ComValue::CharType:
-	out_form(out, fstr, printval.char_ref());
+	out_form(out, fbuf, printval.char_ref());
 	break;	    
 	
       case ComValue::UCharType:
-	out_form(out, fstr, printval.uchar_ref());
+	out_form(out, fbuf, printval.uchar_ref());
 	break;
 	
       case ComValue::IntType:
-	out_form(out, fstr, printval.int_ref());
+	out_form(out, fbuf, printval.int_ref());
 	break;
 	
       case ComValue::UIntType:
-	out_form(out, fstr, printval.uint_ref());
+	out_form(out, fbuf, printval.uint_ref());
 	break;
 	
       case ComValue::LongType:
-	out_form(out, fstr, printval.long_ref());
+	out_form(out, fbuf, printval.long_ref());
 	break;
 	
       case ComValue::ULongType:
-	out_form(out, fstr, printval.ulong_ref());
+	out_form(out, fbuf, printval.ulong_ref());
 	break;
 	
       case ComValue::FloatType:
-	out_form(out, fstr, printval.float_ref());
+	out_form(out, fbuf, printval.float_ref());
 	break;
 	
       case ComValue::DoubleType:
-	out_form(out, fstr, printval.double_ref());
+	out_form(out, fbuf, printval.double_ref());
 	break;
 	
       case ComValue::ArrayType: 
-	{
-	  
-	  ALIterator i;
-	  AttributeValueList* avl = printval.array_val();
-	  avl->First(i);
-	  boolean first = true;
-	  while (!avl->Done(i)) {
-	    ComValue val(*avl->GetAttrVal(i));
-	    push_stack(formatstr);
-	    push_stack(val);
-	    exec(2,0);
-	    avl->Next(i);
-	    if (!avl->Done(i)) out << "\n";
-	  }
-	}
-	break;
+      {
 	
+        ALIterator i;
+        AttributeValueList* avl = printval.array_val();
+        avl->First(i);
+        boolean first = true;
+        while (!avl->Done(i)) {
+          ComValue val(*avl->GetAttrVal(i));
+          push_stack(formatstr);
+          push_stack(val);
+          exec(2,0);
+          avl->Next(i);
+          if (!avl->Done(i)) out << "\n";
+        }
+      }
+      break;
+      
       case ComValue::BlankType:
 	out << "<blank>";
 	break;
 	
       case ComValue::UnknownType:
-	out_form(out, fstr, nil);
+	out_form(out, fbuf, nil);
 	break;
 	
       default:
 	break;
       }
+    }
   }
 
 
+  reset_stack();
   if (stringflag.is_true() || strflag.is_true()) {
     out << '\0';
     ComValue retval(((std::strstreambuf*)strmbuf)->str());
@@ -187,7 +244,169 @@ void PrintFunc::execute() {
     int symbol_id = symbol_add(((std::strstreambuf*)strmbuf)->str());
     ComValue retval(symbol_id, ComValue::SymbolType);
     push_stack(retval);
-  }
+  } else
+    push_stack(ComValue::blankval());
+
   delete strmbuf;
+
+}
+
+int PrintFunc::format_extent(const char* fstr) {
+
+  /* %[flags][width][.precision][length]specifier */
+  int len=0;
+
+  if (*fstr!='%')
+    return 0;
+  else
+    len++;
+
+  /* flags: minus, plus, space, pound, zero */
+  while(fstr[len] == '-' || fstr[len] == '+' || fstr[len] == ' ' || fstr[len] == '#' || fstr[len] == '0')
+    len++;
+
+  /* width: 0-9 or star */
+  if(fstr[len]=='*') 
+    len++;
+  else 
+    while(fstr[len] >= '0' && fstr[len] <= '9')
+      len++;
+
+  /* .precision */
+  if(fstr[len]=='.') {
+    if(fstr[len]=='*') 
+      len+=2;
+    else {
+      len++;
+      if(fstr[len] < '0' || fstr[len] > '9')
+        return 0;
+      while(fstr[len] >= '0' && fstr[len] <= '9')
+        len++;
+    }
+  }
+  
+  /* length: h, l, or L */
+  while(fstr[len] == 'h' || fstr[len] == 'l' || fstr[len] == 'L')
+    len++;
+
+  /* specifier */
+  if(fstr[len] == 'c' || fstr[len] == 'd' || fstr[len] == 'i' || fstr[len] == 'e' || fstr[len] == 'E' ||
+     fstr[len] == 'f' || fstr[len] == 'g' || fstr[len] == 'G' || fstr[len] == 'o' || fstr[len] == 's' ||
+     fstr[len] == 'u' || fstr[len] == 'x' || fstr[len] == 'X' || fstr[len] == 'p' || fstr[len] == 'n' )
+    return len+1;
+  else
+    return 0;
+  
+}
+
+/*****************************************************************************/
+
+OpenFileFunc::OpenFileFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void OpenFileFunc::execute() {
+  ComValue filenamev(stack_arg(0));
+  ComValue modev(stack_arg(1));
+  static int pipe_symid = symbol_add("pipe");
+  ComValue pipeflagv(stack_key(pipe_symid));
+  static int in_symid = symbol_add("in");
+  ComValue inflagv(stack_key(in_symid));
+  static int out_symid = symbol_add("out");
+  ComValue outflagv(stack_key(out_symid));
+  static int err_symid = symbol_add("err");
+  ComValue errflagv(stack_key(err_symid));
+  reset_stack();
+  
+  if (inflagv.is_true()) {
+      FileObj* fileobj = new FileObj(stdin);
+      ComValue retval(FileObj::class_symid(), (void*)fileobj);
+      push_stack(retval);
+      return;
+  }
+
+  if (outflagv.is_true()) {
+      FileObj* fileobj = new FileObj(stdout);
+      ComValue retval(FileObj::class_symid(), (void*)fileobj);
+      push_stack(retval);
+      return;
+  }
+
+  if (errflagv.is_true()) {
+      FileObj* fileobj = new FileObj(stderr);
+      ComValue retval(FileObj::class_symid(), (void*)fileobj);
+      push_stack(retval);
+      return;
+  }
+
+  FileObj* fileobj = new FileObj(filenamev.string_ptr(), modev.is_string() ? modev.string_ptr() : "r", pipeflagv.is_true());
+  if (fileobj->fptr())  {
+    ComValue retval(FileObj::class_symid(), (void*)fileobj);
+    push_stack(retval);
+  } else {
+    delete fileobj;
+    push_stack(ComValue::nullval());
+  }
+}
+
+/*****************************************************************************/
+
+CloseFileFunc::CloseFileFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void CloseFileFunc::execute() {
+  ComValue fileobjv(stack_arg(0));
+  reset_stack();
+  FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
+  if (fileobj && fileobj->fptr())
+    fclose(fileobj->fptr());
+}
+
+/*****************************************************************************/
+
+GetStringFunc::GetStringFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void GetStringFunc::execute() {
+  ComValue fileobjv(stack_arg(0));
+  reset_stack();
+  FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
+  if (fileobj && fileobj->fptr()) {
+    char buffer[BUFSIZ];
+    char* ptr = fgets(buffer, BUFSIZ, fileobj->fptr());
+    if (ptr)  {
+      ComValue retval(buffer);
+      push_stack(retval);
+    } else
+      push_stack(ComValue::nullval());
+  }
+}
+
+/*****************************************************************************/
+
+GetArgFunc::GetArgFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void GetArgFunc::execute() {
+  ComValue numv(stack_arg(0));
+  reset_stack();
+  int arg_sym = comterp()->arg_str(numv.int_val());
+  if (arg_sym>0) {
+    ComValue retval(comterp()->arg_str(numv.int_val()), ComValue::StringType);
+    push_stack(retval);
+  } else
+    push_stack(ComValue::nullval());
+  return;
+}
+
+/*****************************************************************************/
+
+NumArgFunc::NumArgFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void NumArgFunc::execute() {
+  reset_stack();
+  ComValue retval(comterp()->narg_str(), ComValue::IntType);
+  push_stack(retval);
+  return;
 }
 

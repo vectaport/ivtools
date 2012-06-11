@@ -42,6 +42,9 @@
 
 extern int _detail_matched_delims;
 
+boolean SeqFunc::_continueflag = 0;
+boolean SeqFunc::_breakflag = 0;
+
 /*****************************************************************************/
 
 PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -161,7 +164,9 @@ void ForFunc::execute() {
   static int body_symid = symbol_add("body");
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
-  while (1) {
+  if (nargsfixed()>4) fprintf(stderr, "Unexpected for loop with more than one body\n");
+  while (!SeqFunc::breakflag() && !comterp()->quitflag()) {
+    SeqFunc::continueflag(0);
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
@@ -172,6 +177,7 @@ void ForFunc::execute() {
       bodyexpr = new ComValue(keybody);
     ComValue nextexpr(stack_arg_post_eval(2));
   }
+  SeqFunc::breakflag(0);
   reset_stack();
   if (bodyexpr) {
     push_stack(*bodyexpr);
@@ -192,7 +198,9 @@ void WhileFunc::execute() {
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
   ComValue* bodyexpr = nil;
-  while (1) {
+  if (nargsfixed()>2) fprintf(stderr, "Unexpected while loop with more than one body\n");
+  while (!SeqFunc::breakflag() && !comterp()->quitflag()) {
+    SeqFunc::continueflag(0);
     if (untilflag.is_false()) {
       ComValue doneexpr(stack_arg_post_eval(0));
       if (nilchkflag.is_false() ? doneexpr.is_false() : doneexpr.is_unknown()) break;
@@ -208,6 +216,7 @@ void WhileFunc::execute() {
       if (nilchkflag.is_false() ? doneexpr.is_true() : doneexpr.is_unknown()) break;
     }
   }
+  SeqFunc::breakflag(0);
   reset_stack();
   if (bodyexpr) {
     push_stack(*bodyexpr);
@@ -223,8 +232,76 @@ SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void SeqFunc::execute() {
     ComValue arg1(stack_arg_post_eval(0, true));
-    ComValue arg2(stack_arg_post_eval(1, true));
-    reset_stack();
-    push_stack(arg2);
+    if (SeqFunc::continueflag() || SeqFunc::breakflag() || comterp()->quitflag()) {
+      reset_stack();
+      push_stack(arg1);       
+    }
+    else {
+      ComValue arg2(stack_arg_post_eval(1, true));
+      reset_stack();
+      push_stack(arg2.is_blank() ? arg1 : arg2);
+    }
+}
+
+
+/*****************************************************************************/
+
+ContinueFunc::ContinueFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ContinueFunc::execute() {
+  reset_stack();
+
+  SeqFunc::continueflag(1);
+
+  ComValue retval(ComValue::trueval());
+  push_stack(retval);
+  return;
+}
+
+/*****************************************************************************/
+
+BreakFunc::BreakFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void BreakFunc::execute() {
+  reset_stack();
+
+  SeqFunc::breakflag(1);
+
+  ComValue retval(ComValue::trueval());
+  push_stack(retval);
+  return;
+}
+
+/*****************************************************************************/
+
+SwitchFunc::SwitchFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void SwitchFunc::execute() {
+  ComValue valv(stack_arg_post_eval(0));
+  int case_symid;
+  if(valv.is_int()) {
+    char buffer[BUFSIZ];
+    snprintf(buffer, BUFSIZ, "case%s%d", 
+             valv.int_val()>=0 ? "" : "_", 
+             valv.int_val()>=0 ? valv.int_val() : -valv.int_val());
+    case_symid = symbol_add(buffer);
+  } else if (valv.is_symbol() || valv.is_string()) {
+    case_symid = valv.symbol_val();
+  } else if (valv.is_char()) {
+    char cbuf[2];
+    cbuf[0] = valv.char_val();
+    cbuf[1] = '\0';
+    case_symid = symbol_add(cbuf);
+  }
+  ComValue retval(stack_key_post_eval(case_symid));
+  if (retval.is_unknown()) {
+    static int default_symid = symbol_add("default");
+    retval = stack_key_post_eval(default_symid);
+  }
+  reset_stack();
+  push_stack(retval);
 }
 

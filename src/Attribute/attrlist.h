@@ -29,10 +29,7 @@
 #ifndef attr_list_h
 #define attr_list_h
 
-#define LEAKCHECK
-#ifdef LEAKCHECK
-class LeakChecker;
-#endif
+#include <leakchecker.h>
 
 #include <OS/enter-scope.h>
 #include <InterViews/resource.h>
@@ -92,7 +89,7 @@ public:
     // works for forward and backward traversals.
     boolean IsEmpty();
     // true if no Attribute objects in list.
-    int Number();
+    int Number() const;
     // number of Attribute objects in list.
 
     Attribute* GetAttr(const char*);
@@ -148,7 +145,6 @@ public:
     AttributeValue* find(int symid);
     // find AttributeValue by symbol id.
 
-
 protected:
     int add_attr(Attribute* attr);
     // add attribute, returning 0 if new, -1 if it already existed.
@@ -188,7 +184,7 @@ public:
     // works for forward and backward traversals.
     boolean IsEmpty();
     // true if no AttributeValue objects in list.
-    int Number();
+    const int Number();
     // number of AttributeValue objects in list.
 
     void Append(AttributeValue*);
@@ -224,6 +220,9 @@ public:
     AttributeValue* Set(unsigned int index, AttributeValue* av);
     // set value by index, increase list length if necessary with nil padding,
     // take responsibility for the memory (and return responsibility for old memory)
+    void Insert(int index, AttributeValue* av);
+    // insert value after index, use -1 to insert at beginning
+    // take responsibility for the memory (and return responsibility for old memory)
 
     AList* Elem(ALIterator); 
     // return AList (UList) pointed to by ALIterator (Iterator).
@@ -242,10 +241,18 @@ public:
     boolean nested_insert() { return _nested_insert; }
     // get flag to insert in a nested fashion
 
+    int max_out() { return _max_out; }
+    // get maximum to print 
+    void max_out(int num) { _max_out = num; }
+    // set maximum to print 
+
+    boolean Equal(AttributeValueList* avl);
+
 protected:
     AList* _alist;
     unsigned int _count;
     boolean _nested_insert;
+    int _max_out;
 
 #ifdef LEAKCHECK
  public:

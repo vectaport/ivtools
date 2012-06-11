@@ -25,6 +25,7 @@
 #define _attribute_h
 
 #include <Attribute/classid.h>
+#include <InterViews/resource.h>
 
 class AttributeValue;
 class AttributeList;
@@ -33,7 +34,7 @@ class AttributeList;
 // Attribute consists of a symbol, represented by its index into a symbol table,
 // paired with a value, represented by an AttributeValue.  Memory for the
 // AttributeValue is owned by the Attribute.
-class Attribute {
+class Attribute : public Resource {
 public:
     Attribute(const char* name =0, AttributeValue* value =0);
     // construct an attribute by generating a symbol id for the 'name'
@@ -48,7 +49,7 @@ public:
     virtual ~Attribute();
     // deallocate memory for internal AttributeValue.
 
-    char* Name();
+    const char* Name();
     // look up and return symbol string.
     void Value(AttributeValue*);
     // accept new pointer to an externally allocated AttributeValue,

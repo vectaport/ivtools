@@ -69,6 +69,75 @@ static int ErrorLevel = USER_LEVEL;     /* 0 = user level        */
 					/* 1 = programmers level */
 static FILE *ErrorIOFile = NULL;        /* Pointer to error I/O file */
 
+static struct {
+    int id;
+    const char* msg;
+} default_errmsgs[] = {
+{1000, "Memory limits exceeded"},
+{1100, "(%d) Line greater than %d characters long"},
+{1101, "(%d) Token longer than maximum length of %d"},
+{1102, "(%d) End of file encountered within comment"},
+{1103, "(%d) End of file encountered within string or character constant"},
+{1104, "(%d) Illegal keyword"},
+{1105, "(%d) Illegal character constant"},
+{1106, "(%d) Non-octal digit in octal character constant"},
+{1107, "(%d) Hexadecimal digit must follow \\x"},
+{1108, "(%d) Octal character constant larger than one byte"},
+{1109, "(%d) Hexadecimal character constant larger than one byte"},
+{1110, "(%d) Illegal integer constant"},
+{1111, "(%d) Illegal octal constant"},
+{1112, "(%d) Illegal hexadecimal constant"},
+{1113, "(%d) Illegal floating-point constant"},
+{1114, "(%d) Integer constant exceeds maximum possible size"},
+{1115, "(%d) Octal constant exceeds maximum possible size"},
+{1116, "(%d) Hexadecimal constant exceeds maximum possible size"},
+{1117, "(%d) Floating point constant exceeds maximum possible size"},
+{1118, "(%d) Floating point constant exceeds minimum possible size"},
+{1119, "(%d) Illegal character (ASCII %d)"},
+{1120, "(%d) Unexpected newline in string constant"},
+{1121, "(%d) Unexpected newline in character constant"},
+{1122, "(%d) Insufficient separation from trailing constant"},
+{1123, "(%d) Error in writing to output file"},
+{1124, "(%d) Error in reading input file"},
+{1125, "(%d) New-line expected before end-of-file"},
+{1200, "Illegal operator (%c)"},
+{1201, "Maximum number of operators exceeded (%d)"},
+{1202, "Postfix version of %s can't coexist with binary and prefix versions"},
+{1203, "Binary version of %s can't coexist with both unary versions"},
+{1204, "Postfix version of %s can't coexist with binary version"},
+{1205, "Binary version of %s can't coexist with postfix version"},
+{1206, "Operator table has not been created"},
+{1207, "Priority (%d) out of range"},
+{1300, "(%d) Unexpected operator (%s)"},
+{1301, "(%d) Unexpected identifier (%s)"},
+{1302, "(%d) Unexpected literal constant (%s)"},
+{1303, "(%d) Unexpected keyword (%s)"},
+{1304, "(%d) Unexpected end-of-file"},
+{1305, "(%d) Unexpected right parenthesis"},
+{1306, "(%d) Unexpected right bracket"},
+{1307, "(%d) Unexpected right brace"},
+{1308, "(%d) Ambiguous operator (%s)"},
+{1309, "(%d) Unexpected left parenthesis"},
+{1310, "(%d) Unexpected left bracket"},
+{1311, "(%d) Unexpected left brace"},
+{1312, "(%d) Unexpected right angle bracket"},
+{1313, "(%d) Unexpected left angle bracket"},
+{1314, "(%d) Unexpected double right angle bracket"},
+{1315, "(%d) Unexpected double left angle bracket"},
+{5201, "Bad parameters in function call"},
+{5202, "Illegal symbol identifier in type list"},
+{5203, "Illegal simple type in type identifier list"},
+{5204, "Illegal aggregate type; must be ARRAY or STREAM only"},
+{5205, "Type identifier is outside table limits"},
+{5206, "Type identifier is for an empty table entry"},
+{6000, "Attempted read/write before file open"},
+{6001, "Input string begins with internal delimeter: .!#ID#"},
+{6002, "Error during file open"},
+{3000, "Unknown command supplied to interpreter: %s"},
+{3001, "Divide by zero"},
+{3002, "Incomplete expression"},
+{3003, "Mod by zero"},
+{-1, NULL}};
 
 
 /*! 
@@ -81,7 +150,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int err_open(char * errfile )
+int err_open(const char * errfile )
 
 
 /*!
@@ -94,7 +163,7 @@ Parameters:
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
 #ifdef DOC
-char *          errfile   ;/* I   Filename of error file. */
+const char *    errfile   ;/* I   Filename of error file. */
 #endif
 
 
@@ -156,8 +225,10 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
 	fptr = fopen(fullpath, "r");
     }
    
+#if 0
    if(( ErrorStreams[findex] = fptr) == NULL )
       KAPUT1( "Unable to open error file %s", fullpath );
+#endif
 
    return findex;
 
@@ -176,7 +247,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-char * err_read(int errid,unsigned errnum)
+const char * err_read(int errid,unsigned errnum)
 
 
 /*!
@@ -214,8 +285,18 @@ See Also:  err_readfile, err_open, err_set, err_get, err_print, err_str,
 
 {
 /* Error checking */
-   if( errid < 0 || errid >= MAX_ERROR_OPENS || ErrorStreams[errid] == NULL )
+   if( errid < 0 || errid >= MAX_ERROR_OPENS )
       KANIL( "errid out of bounds" );
+
+/* Allow for missing comterp.err file */
+   if( ErrorStreams[errid] == NULL ) {
+      int i=0;
+      while(default_errmsgs[i].msg!=NULL&&default_errmsgs[i].id!=errnum) i++;
+      if (!default_errmsgs[i].msg) {
+          KANIL1( "errnum not found", errnum );
+      } else 
+          return default_errmsgs[i].msg;
+      }
 
 /* Retrieve and return the string */
    return err_readfile( ErrorStreams[errid], errnum );
@@ -275,7 +356,7 @@ See Also:  err_open, err_read, err_get, err_print, err_str, err_clear,
 {
 
 /* Error checking */
-   if( errid < 0 || errid >= MAX_ERROR_OPENS || ErrorStreams[errid] == NULL ) {
+    if( errid < 0 || errid >= MAX_ERROR_OPENS /* || ErrorStreams[errid] == NULL */) {
       KANRET( "errid out of bounds" );
       return;
       }
@@ -365,7 +446,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-void err_print(FILE * outstream,char * command)
+void err_print(FILE * outstream,const char * command)
 
 
 /*!
@@ -472,7 +553,7 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-void err_str(char * errbuf,int bufsiz,char * command)
+void err_str(char * errbuf,int bufsiz,const char * command)
 
 
 /*!

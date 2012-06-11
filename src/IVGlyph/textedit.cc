@@ -326,7 +326,7 @@ void EivTextEditor::text(const char* txt, boolean update) {
     te_view_->text(txt, update);
 }
 
-void EivTextEditor::insert_string(char* str, int count) {
+void EivTextEditor::insert_string(const char* str, int count) {
     te_view_->insert_string(str, count);
 }
 

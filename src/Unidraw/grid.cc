@@ -45,6 +45,7 @@ public:
     virtual ~GridGraphic();
 
     void SetIncr(float xincr, float yincr);
+    void GetIncr(float& xincr, float& yincr);
     void GetOriginal(float&, float&, float&, float&);
 
     virtual void SetBrush(PSBrush*);
@@ -80,6 +81,11 @@ void GridGraphic::SetIncr(float xincr, float yincr) {
     _xincr = xincr;
     _yincr = yincr;
     invalidateCaches();
+}
+
+void GridGraphic::GetIncr(float& xincr, float& yincr) {
+    xincr = _xincr;
+    yincr = _yincr;
 }
 
 void GridGraphic::GetOriginal (
@@ -202,6 +208,10 @@ void Grid::Constrain (Coord& x, Coord& y) {
 
 void Grid::SetSpacing (float xincr, float yincr) {
     ((GridGraphic*)_graphic)->SetIncr(xincr,yincr);
+}
+
+void Grid::GetSpacing (float& xincr, float& yincr) {
+    ((GridGraphic*)_graphic)->GetIncr(xincr,yincr);
 }
 
 void Grid::Visibility (boolean visible) {

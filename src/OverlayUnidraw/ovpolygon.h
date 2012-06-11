@@ -54,7 +54,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("PolygonComp");
+    CLASS_SYMID2("PolygonComp", OVPOLYGON_COMP);
 };
 
 //: graphical view of PolygonOvComp.

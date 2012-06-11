@@ -67,5 +67,15 @@ public:
 	return "%s(id) -- command to change session (or graphic id) to use local session id"; }
 };
 
+//: command to return point list associated with a graphic
+// ptlist=points(compview) -- return point list from compview graphic
+class DrawPointsFunc : public UnidrawFunc {
+public:
+    DrawPointsFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "ptlist=%s(compview) -- return point list from compview graphic"; }
+};
+
 #endif /* !defined(_drawfunc_h) */
 

@@ -34,7 +34,7 @@
 class ComTerp;
 
 //: symbol id command for ComTerp.
-// int|lst=symid(symbol [symbol ...]) -- return id(s) associated with symbol(s)
+// int|lst=symid(symbol [symbol ...] | :max) -- return id(s) associated with symbol(s)
 class SymIdFunc : public ComFunc {
 public:
     SymIdFunc(ComTerp*);
@@ -42,7 +42,7 @@ public:
 
     // virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "int|lst=%s(symbol [symbol ...]) -- return id(s) associated with symbol(s)"; }
+      return "int|lst=%s(symbol [symbol ...] | :max) -- return id(s) associated with symbol(s)"; }
 };
 
 
@@ -68,6 +68,17 @@ public:
       return "val|lst=%s(symbol_var [symbol_var ...]) -- return value(s) associated with symbol variables(s)"; }
 };
 
+//: return symbol variable as-is
+// sym=symvar(sym) -- return symbol variable as-is
+class SymVarFunc : public ComFunc {
+public:
+    SymVarFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "str=%s(sym) -- return symbol variable as-is"; }
+};
+
 //: return string version of symbol
 // str=symstr(sym) -- return string version of symbol
 class SymStrFunc : public ComFunc {
@@ -77,6 +88,17 @@ public:
 
     virtual const char* docstring() { 
       return "str=%s(sym) -- return string version of symbol"; }
+};
+
+//: return string reference count
+// n=strref(str|symid) -- return string reference count
+class StrRefFunc : public ComFunc {
+public:
+    StrRefFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "n=%s(str|symid) -- return string reference count"; }
 };
 
 //: create symbol command for ComTerp.
@@ -92,14 +114,14 @@ public:
 };
 
 //: command to split a symbol or string into a list of character objects
-// lst=split(symbol|string) -- split symbol or string into list of characters.
+// lst=split(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens).
 class SplitStrFunc : public ComFunc {
 public:
     SplitStrFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "lst=%s(symbol|string) -- split symbol or string into list of characters"; }
+      return "lst=%s(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens)"; }
 };
 
 //: command to join list of characters into a string object
@@ -115,14 +137,26 @@ public:
 
 
 //: command to make assign a global variable
-// val=global(symbol)|global(symbol)=val -- make symbol global
+// val=global(symbol)|global(symbol)=val|global(symbol :clear)|global(:dump) -- make symbol global
 class GlobalSymbolFunc : public ComFunc {
 public:
     GlobalSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "sym=%s(symbol)|global(symbol)=val -- make symbol global"; }
+      return "sym=%s(symbol)|global(symbol)=val|global(symbol :clear)|global(:dump) -- make symbol global"; }
+};
+
+
+//: command to extract a sub string
+// str=substr(str n :after) -- extract characters from a string
+class SubStrFunc : public ComFunc {
+public:
+    SubStrFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "str=%s(str n :after) -- extract characters from a string"; }
 };
 
 

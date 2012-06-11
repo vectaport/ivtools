@@ -36,21 +36,29 @@
 //: && (and) operator.
 class AndFunc : public NumFunc {
 public:
-    AndFunc(ComTerp*);
+    AndFunc(ComTerp*, boolean pre=false);
 
     virtual void execute();
+    virtual boolean post_eval() { return !_pre; }
     virtual const char* docstring() { 
       return "&& is the and operator"; }
+
+protected:
+    boolean _pre;
 };
 
 //: || (or) operator.
 class OrFunc : public NumFunc {
 public:
-    OrFunc(ComTerp*);
+    OrFunc(ComTerp*, boolean pre=false);
 
     virtual void execute();
+    virtual boolean post_eval() { return !_pre; }
     virtual const char* docstring() { 
       return "|| is the or operator"; }
+
+protected:
+    boolean _pre;
 
 };
 

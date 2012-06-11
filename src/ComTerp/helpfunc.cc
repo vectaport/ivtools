@@ -30,6 +30,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
+#include <Unidraw/iterator.h>
 
 #include <OS/math.h>
 
@@ -65,6 +66,9 @@ void HelpFunc::execute() {
   static int aliases_symid = symbol_add("aliases");
   ComValue aliasesflag(stack_key(aliases_symid));
 		   
+  static int top_symid = symbol_add("top");
+  ComValue topflag(stack_key(top_symid));
+		   
   boolean noargs = !nargs() && !nkeys();
   ComFunc** comfuncs= nil;
   int* command_ids = nil;
@@ -72,7 +76,7 @@ void HelpFunc::execute() {
   int nfuncs = 0;
   
   /* build up table of command ids and flags to indicate if its an operator encased in quotes */
-  if (allflag.is_false() && postevalflag.is_false()) {
+  if (allflag.is_false() && postevalflag.is_false() && topflag.is_false()) {
 
     nfuncs = nargs();
     comfuncs = new ComFunc*[nfuncs];
@@ -103,6 +107,33 @@ void HelpFunc::execute() {
 	str_flags[i] = false;
       }
     }
+
+  } else if (topflag.is_true()) {
+      
+    AttributeValueList* avl = comterp()->top_commands();
+    nfuncs = avl->Number();
+    command_ids = new int[nfuncs];
+    comfuncs = new ComFunc*[nfuncs];
+    str_flags = new boolean[nfuncs];
+    Iterator it;
+    avl->First(it);
+    for (int j=0; j<nfuncs; j++) {
+
+      int command_id = avl->GetAttrVal(it)->symbol_val();
+      avl->Next(it);
+      command_ids[j] = command_id;
+
+      void* vptr;
+      comterp()->localtable()->find(vptr, command_id);
+      if (vptr && ((ComValue*)vptr)->is_command()) {
+	comfuncs[j] = (ComFunc*)((ComValue*)vptr)->obj_val();
+	if (postevalflag.is_true() && !comfuncs[j]->post_eval())
+	  comfuncs[j] = nil;
+      } else
+	comfuncs[j] = nil;
+      str_flags[j] = false;
+    }
+
   } else {
     command_ids = comterp()->get_commands(nfuncs, true);
     comfuncs = new ComFunc*[nfuncs];
@@ -117,7 +148,7 @@ void HelpFunc::execute() {
       } else 
 	command_id = command_ids[j];
 
-      void* vptr;
+      void* vptr=NULL;
       comterp()->localtable()->find(vptr, command_id);
       if (vptr && ((ComValue*)vptr)->is_command()) {
 	comfuncs[j] = (ComFunc*)((ComValue*)vptr)->obj_val();
@@ -190,9 +221,9 @@ void HelpFunc::execute() {
 	/* if symid is smaller than the highest operator it must be one */
 	if (command_ids[i]>=0 && command_ids[i]<=opr_tbl_topstr()) {
 	  int op_ids[OPTYPE_NUM];
-	  char* opstr = symbol_pntr(command_ids[i]);
+	  const char* opstr = symbol_pntr(command_ids[i]);
 	  unsigned int charcnt;
-	  opr_tbl_entries(opstr, op_ids, OPTYPE_NUM, &charcnt);
+	  opr_tbl_entries((char*)opstr, op_ids, OPTYPE_NUM, &charcnt);
 	  for (int j=0; j<OPTYPE_NUM; j++) {
 	    if (op_ids[j]>=0) {
 	      ComValue* value = comterp()->localvalue(opr_tbl_commid(op_ids[j]));

@@ -29,6 +29,7 @@
  */
 #include "tiffioP.h"
 #include "prototypes.h"
+#include <math.h>
 
 /*
  * Like TIFFGetField, but return any default

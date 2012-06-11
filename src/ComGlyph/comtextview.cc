@@ -230,7 +230,7 @@ void ComTE_View::newline()
   /* load and interpret if expression closed */
   comterp()->load_string(bufptr);
   int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);
-  comterp()->linenum()--;
+  // comterp()->linenum()--;
 #if 0
   ComValue result(comterp()->stack_top(1));
 #else

@@ -37,6 +37,7 @@
 #include <OS/math.h>
 #include <stream.h>
 #include <string.h>
+#include <stdio.h>
 
 static const float PAGE_WIDTH = 8.5 * 72;
 static const float PAGE_HEIGHT = 11 * 72;

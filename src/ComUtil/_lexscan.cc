@@ -46,6 +46,10 @@ extern int _continuation_prompt_disabled;
 unsigned _token_state_save = TOK_WHITESPACE;
 				/* variable to save token state between calls */
 int _ignore_numerics = 0;
+int _token_eol = 0;
+int _colon_ident = 1;
+int _percent_ident = 0;
+int _ignore_chars = 0;
 
 /* MACROS */
 
@@ -78,9 +82,9 @@ Summary:
 #include <ComUtil/comutil.h>
 */
 
-int lexscan(void * infile,char * (*infunc)(),int (*eoffunc)(), int (*errfunc)(), 
-	    void * outfile,int (*outfunc)(),
-	    char * begcmt,char * endcmt, char linecmt,
+int lexscan(void * infile,char * (*infunc)(char*, int, void*),int (*eoffunc)(void*), int (*errfunc)(void*), 
+	    void * outfile,int (*outfunc)(const char*, void*),
+	    const char * begcmt,const char * endcmt, char linecmtchr, const char* linecmtstr,
             char * buffer,unsigned bufsiz,unsigned * bufptr,char * token,
 	    unsigned toksiz, unsigned * toklen,unsigned * toktype,
 	    unsigned * tokstart,unsigned * linenum )
@@ -107,9 +111,10 @@ void *          outfile   ;/* I   Pointer to output text source.  Typically
 			          a `FILE *` (disabled with a NULL).      */
 int           (*outfunc)();/* I   Function for writing output text
 				  (typically `fputs`). */
-char *	        begcmt    ;/* I   String that begins comment. */
-char *          endcmt    ;/* I   String that ends comment. */
-char            linecmt   ;/* I   Character to start comment line.  */
+const char *    begcmt    ;/* I   String that begins comment. */
+const char *    endcmt    ;/* I   String that ends comment. */
+char            linecmtchr;/* I   Character to start comment.  */
+const char *    linecmtstr;/* I   Character string to start comment line.  */
 char *          buffer    ;/* I   Buffer or file I/O.          */
 unsigned        bufsiz    ;/* I   Size of `buffer` in bytes.   */
 unsigned *      bufptr    ;/* O   Current location in `buffer`.*/
@@ -249,9 +254,11 @@ char* infunc_retval;
 	     (*outfunc) ( "> ", outfile);
 	   _continuation_prompt = 0;
 	 }
-	 if (linecmt)
+	 if (linecmtchr || linecmtstr)
 	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL && 
-		  buffer[0] == linecmt) {} /* skip all script comments */
+		  (buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
+             (*linenum)++;  /* skip all script comments */
+         }
 	 else
 	   infunc_retval = (*infunc)( buffer, bufsiz, infile );
 	 if( infunc_retval == NULL ) {
@@ -279,7 +286,7 @@ char* infunc_retval;
       /* If end-of-file was encountered, yet a legimitate read */
       /* occurred, warn the user that last line in file does   */
       /* not end with new-line char                            */
-	 ++*linenum;
+	 if (buffer[0]!='\0') ++*linenum;  // probably for dealing with sockets
          if( (*eoffunc)( infile ))
             return ERR_EOFNEWLINE;
 
@@ -314,7 +321,6 @@ char* infunc_retval;
 	     _token_state_save = token_state;
 	     token[*toklen] = '\0';
   	    }
-	    *linenum--;
 	    return  FUNCOK;
 	 }
 
@@ -337,6 +343,14 @@ char* infunc_retval;
 
       case TOK_WHITESPACE:     
 
+      /* Check for new-line token if desired */
+	 if(_token_eol && CURR_CHAR=='\n') {
+	    token_state = TOK_EOL;      
+	    TOKEN_ADD('\n');
+	    ADVANCE_CHAR;
+	    goto token_return;
+ 	 }
+
       /* This could be the start of something */
 	 *tokstart = *bufptr;
 
@@ -352,9 +366,16 @@ char* infunc_retval;
 	       ADVANCE_CHAR;
             }
 
+      /* Start of comment until-end-of-line */
+	 else if( !no_comment && 
+		  (linecmtchr && *(buffer+*bufptr)==linecmtchr || 
+		   linecmtstr && strncmp(buffer+*bufptr,linecmtstr,strlen(linecmtstr))==0)) {
+	   while(*(buffer+*bufptr)!= '\n')
+	     ADVANCE_CHAR;
+	 }
+
       /* empty input buffer */
 	 else if ( CURR_CHAR == '\0') {
-	    *linenum--;
 	    return  FUNCOK;
 	    }
 
@@ -365,7 +386,7 @@ char* infunc_retval;
             }
 
       /* Start of identifier */
-	 else if( isident( CURR_CHAR ) || (_ignore_numerics && isdigit( CURR_CHAR))) {
+	 else if( isident( CURR_CHAR ) && CURR_CHAR!=':' || (_ignore_numerics && isdigit( CURR_CHAR))) {
 	    token_state = TOK_IDENTIFIER;
 	    TOKEN_ADD( CURR_CHAR );
 	    }
@@ -404,8 +425,10 @@ char* infunc_retval;
 
 	 /* Start of character constant */
 	    case '\'':
-	       token_state = TOK_CHAR;
-	       break;
+	       if (!_ignore_chars) {
+	           token_state = TOK_CHAR;
+                   break;
+	       }
 
          /* Any other character must be an operator */	 
             default:

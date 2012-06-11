@@ -137,7 +137,7 @@ void MenuEnumEditor::edit(String i) {
 declareEnumActionCallback(RadioEnumEditor)
 implementEnumActionCallback(RadioEnumEditor)
 
-RadioEnumEditor::RadioEnumEditor(ObservableEnum* obs, char* labl,
+RadioEnumEditor::RadioEnumEditor(ObservableEnum* obs, const char* labl,
 				 boolean horiz, boolean noframe)
 : Patch(nil), Observer()
 {
@@ -213,7 +213,7 @@ void RadioEnumEditor::update(Observable* obs) {
 declareActionCallback(CycleEnumEditor)
 implementActionCallback(CycleEnumEditor)
 
-CycleEnumEditor::CycleEnumEditor(ObservableEnum* obs, char* labl)
+CycleEnumEditor::CycleEnumEditor(ObservableEnum* obs, const char* labl)
 : MonoGlyph(), Observer()
 {
     WidgetKit& wk = *WidgetKit::instance();
@@ -334,7 +334,7 @@ void CycleEnumEditor::update(Observable* obs) {
 
 /*****************************************************************************/
 
-EnumObserver::EnumObserver(ObservableEnum* obs, char* labl, Coord minwid)
+EnumObserver::EnumObserver(ObservableEnum* obs, const char* labl, Coord minwid)
 : MonoGlyph(), Observer()
 {
     WidgetKit& kit_ = *WidgetKit::instance();

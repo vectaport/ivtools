@@ -31,11 +31,7 @@
 
 #define TITLE "ComFunc"
 
-//#define LEAKCHECK
-#undef LEAKCHECK
-
 #ifdef LEAKCHECK
-#include <ivstd/leakchecker.h>
 extern LeakChecker AttributeValuechecker;
 #endif
 
@@ -154,6 +150,60 @@ ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
   return comterp()->pop_stack(!symbol);
 }
 
+void ComFunc::print_stack_arg_post_eval(int n) {
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  int argcnt;
+  for (int i=0; i<nkeys(); i++) {
+    argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+  }
+
+  if (n>=nargsfixed()) return;
+
+  for (int j=nargsfixed(); j>n; j--) {
+    argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+  }
+
+  comterp()->print_post_eval_expr(argcnt, offtop, pedepth()+1);
+  return;
+}
+
+ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dflt) {
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  int argcnt;
+  for (int i=0; i<nkeys(); i++) {
+    argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+  }
+
+  int* offtopbuf = new int[nargsfixed()];
+  int* argcntbuf = new int[nargsfixed()];
+  for (int j=nargsfixed(); j>0; j--) {
+    argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+    offtopbuf[j-1] = offtop;
+    argcntbuf[j-1] = argcnt;
+  }
+
+  ComValue** vals = new ComValue*[nargsfixed()];
+
+  for(int i=0; i<nargsfixed(); i++) {
+      comterp()->post_eval_expr(argcntbuf[i], offtopbuf[i], pedepth()+1 
+#ifdef POSTEVAL_EXPERIMENT
+                                , symbol
+#endif
+          );
+      vals[i] = new ComValue(comterp()->pop_stack(!symbol));
+  }
+
+  delete offtopbuf;
+  delete argcntbuf;
+  return vals;
+}
+
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
   ComValue argoff(comterp()->stack_top());
@@ -194,7 +244,8 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
   }
 
   int loc = comterp()->_pfnum + offtop + argcnt-1;
-  return comterp()->_pfcomvals[loc];
+  if (loc<0) fprintf(stderr, "unexpected negative index for _pfcomvals\n");
+  else return comterp()->_pfcomvals[loc];
 }
 
 ComValue& ComFunc::stack_key_post
@@ -301,7 +352,11 @@ void ComFunc::assign_symval(int id, ComValue* sym) {
 
 int ComFunc::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "which %s", command );
+#if 0
+  sprintf( combuf, "echo-n $PATH; which %s", command );
+#else
+  sprintf( combuf, "which %s 2> /dev/null", command );
+#endif
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  

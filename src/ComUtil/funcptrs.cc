@@ -21,6 +21,8 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+extern "C" {
+
 /*
 funcptrs.c      Routines to convert feof and ferror into function pointers
 
@@ -117,3 +119,4 @@ to other functions.
 
 
 
+}

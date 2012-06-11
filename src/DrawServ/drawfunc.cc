@@ -27,10 +27,18 @@
 #include <DrawServ/drawlinkcomp.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
+#include <GraphUnidraw/edgecomp.h>
+#include <GraphUnidraw/graphclasses.h>
+#include <OverlayUnidraw/ovline.h>
 #include <OverlayUnidraw/ovviews.h>
+#include <OverlayUnidraw/ovvertices.h>
+#include <UniIdraw/idarrows.h>
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
+#include <Unidraw/Graphic/graphic.h>
+#include <Unidraw/Graphic/lines.h>
+#include <Unidraw/Graphic/verts.h>
 
 #include <fstream.h>
 #include <cstdio>
@@ -284,4 +292,55 @@ void ChangeIdFunc::execute() {
   }
 }
 
+
+/*****************************************************************************/
+
+DrawPointsFunc::DrawPointsFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void DrawPointsFunc::execute() {
+    
+    Viewer* viewer = _ed->GetViewer();
+    ComValue obj(stack_arg(0));
+    reset_stack();
+    if (obj.object_compview()) {
+      ComponentView* compview = (ComponentView*)obj.obj_val();
+      if (compview && compview->GetSubject()) {
+	GraphicComp* comp = (GraphicComp*)compview->GetSubject();
+	Graphic* gr = comp ? comp->GetGraphic() : nil;
+	AttributeValueList* avl = new AttributeValueList();
+	if (gr && comp->IsA(OVVERTICES_COMP)) {
+	  VerticesOvComp* vertcomp = (VerticesOvComp*)comp;
+	  Vertices* vertgr = vertcomp->GetVertices();
+	  for(int i=0; i<vertgr->count(); i++) {
+	    ComValue* val = new ComValue(vertgr->x()[i]);
+	    avl->Append(val);
+	    val = new ComValue(vertgr->y()[i]);	    
+	    avl->Append(val);
+	  }
+
+	} else if (gr && comp->IsA(OVLINE_COMP)) {
+	  LineOvComp* linecomp = (LineOvComp*)comp;
+	  Coord x0, y0, x1, y1;
+	  linecomp->GetLine()->GetOriginal(x0, y0, x1, y1);
+	  avl->Append(new ComValue(x0));
+	  avl->Append(new ComValue(y0));
+	  avl->Append(new ComValue(x1));
+	  avl->Append(new ComValue(y1));
+
+	} else if (gr && comp->IsA(EDGE_COMP)) {
+	  EdgeComp* edgecomp = (EdgeComp*)comp;
+	  Coord x0, y0, x1, y1;
+	  edgecomp->GetArrowLine()->GetOriginal(x0, y0, x1, y1);
+	  avl->Append(new ComValue(x0));
+	  avl->Append(new ComValue(y0));
+	  avl->Append(new ComValue(x1));
+	  avl->Append(new ComValue(y1));
+	}
+
+	ComValue retval(avl);
+	push_stack(retval);
+      } 	
+    }
+}
 

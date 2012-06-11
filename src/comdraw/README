@@ -69,6 +69,8 @@ delete(compview [compview ...]) -- delete graphic(s)
 move(dx dy) -- move current selection
 scale(xflt yflt) -- scale current selection
 rotate(degflt) -- rotate current selection
+fliph() -- horizontally flip current selection
+flipv() -- vertically flip current selection
 
 GROUP/UNGROUP COMMANDS
 
@@ -80,8 +82,9 @@ COMPONENT AND ATTRIBUTE COMMANDS
 compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
 attrlist(compview) -- return attribute list of component
 compview=frame([index]) -- return composite component for a frame, defaults to current
-val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list.
-num=size(list|attrlist|compview) -- return size of a list.
+val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list.
+num=size(list|attrlist|str|compview) -- return size of a list (or string)
+compview=parent(compview) -- get parent of graphic
 
 VIEWER COMMANDS
 
@@ -120,6 +123,14 @@ largepandown() -- large pan down
 largepanleft() -- large pan left
 largepanright() -- large pan right
 
+gravity([flag]) -- set/get drawing editor gravity
+gridspacing([xsize ysize]) -- set/get drawing editor grid spacing
+
+hide(compview) -- hide graphic component
+show(compview) -- show graphic component
+desensitize(compview) -- desensitize graphic component
+sensitize(compview) -- desensitize graphic component
+
 IMAGING COMMANDS
 
 tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
@@ -143,7 +154,7 @@ OTHER COMMANDS
 run(filename) -- run commands from file
 quit() -- quit this interpreter
 exit() -- exit entire application
-pause([msgstr]) -- pause script execution until C/R
+pause([msgstr] :usec num) -- pause script execution until C/R
 
 OPTIONS
 

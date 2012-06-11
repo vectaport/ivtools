@@ -44,7 +44,7 @@
 
 GraphicIdList* LinkSelection::_locally_selected = nil;
 GraphicIdList* LinkSelection::_waiting_to_be_selected = nil;
-char* LinkSelection::_selected_strings[] =  { "NotSelected", "LocallySelected", "RemotelySelected", "WaitingToBeSelected"};
+const char* LinkSelection::_selected_strings[] =  { "NotSelected", "LocallySelected", "RemotelySelected", "WaitingToBeSelected"};
 
 /*****************************************************************************/
 

@@ -560,7 +560,7 @@ public:
 #pragma __static_class
 #endif
     int value;
-    char* names[6];
+    const char* names[6];
 };
 
 static FontNameSet weight_names [] = {

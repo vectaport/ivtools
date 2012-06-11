@@ -33,7 +33,7 @@ class Patch;
 
 class CheckBooleanEditor : public MonoGlyph, public Observer {
 public:
-    CheckBooleanEditor(ObservableBoolean* obs, char* labl);
+    CheckBooleanEditor(ObservableBoolean* obs, const char* labl);
     virtual ~CheckBooleanEditor();
 
     void edit();
@@ -45,7 +45,7 @@ protected:
 
 class PaletteBooleanEditor : public MonoGlyph, public Observer {
 public:
-    PaletteBooleanEditor(ObservableBoolean* obs, char* labl);
+    PaletteBooleanEditor(ObservableBoolean* obs, const char* labl);
     virtual ~PaletteBooleanEditor();
 
     void edit();
@@ -57,7 +57,7 @@ protected:
 
 class BooleanObserver : public MonoGlyph, public Observer {
 public:
-    BooleanObserver(ObservableBoolean*, char* labl);
+    BooleanObserver(ObservableBoolean*, const char* labl);
     virtual ~BooleanObserver();
 
     virtual void update(Observable*);

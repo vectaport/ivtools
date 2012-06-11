@@ -35,10 +35,7 @@
 #include <IV-2_6/_enter.h>
 
 #define GEOMOBJS_DEFINED
-#define LEAKCHECK
-#ifdef LEAKCHECK
-class LeakChecker;
-#endif
+#include <leakchecker.h>
 
 class UList;
 #include <iosfwd>
@@ -123,7 +120,7 @@ public:
 
     Coord* x() {return _x;}
     Coord* y() {return _y;}
-    const int count() {return _count;}
+    int count() {return _count;}
 
     virtual boolean operator == (MultiLineObj&);
     virtual boolean operator != (MultiLineObj&);

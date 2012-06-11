@@ -27,6 +27,7 @@
 #include <ComTerp/boolfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <Attribute/attrlist.h>
 #include <string.h>
 
 #define TITLE "BoolFunc"
@@ -36,12 +37,20 @@ static int n_symid = symbol_add("n");
 
 /*****************************************************************************/
 
-AndFunc::AndFunc(ComTerp* comterp) : NumFunc(comterp) {
+AndFunc::AndFunc(ComTerp* comterp, boolean pre) : NumFunc(comterp) {
+    _pre = pre;
 }
 
 void AndFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1(_pre ? stack_arg(0) : stack_arg_post_eval(0));
+    if (operand1.is_false()) {
+      reset_stack();
+      push_stack(operand1);
+      return;
+    }
+    ComValue operand2(_pre ? stack_arg(1) : stack_arg_post_eval(1));
+    reset_stack();
+
     promote(operand1, operand2);
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
@@ -81,16 +90,23 @@ void AndFunc::execute() {
         result.boolean_ref() = operand1.boolean_val() && operand2.boolean_val();
 	break;
     }
-    reset_stack();
     push_stack(result);
 }
 
-OrFunc::OrFunc(ComTerp* comterp) : NumFunc(comterp) {
+OrFunc::OrFunc(ComTerp* comterp, boolean pre) : NumFunc(comterp) {
+    _pre = pre;
 }
 
 void OrFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1(_pre ? stack_arg(0) : stack_arg_post_eval(0));
+    if (operand1.is_true()) {
+      reset_stack();
+      push_stack(operand1);
+      return;
+    }
+    ComValue operand2(_pre ? stack_arg(1) : stack_arg_post_eval(1));
+    reset_stack();
+
     promote(operand1, operand2);
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
@@ -130,7 +146,6 @@ void OrFunc::execute() {
         result.boolean_ref() = operand1.boolean_val() || operand2.boolean_val();
 	break;
     }
-    reset_stack();
     push_stack(result);
 }
 
@@ -212,6 +227,9 @@ void EqualFunc::execute() {
     
     else if (operand2.type()==ComValue::BlankType && operand1.type()!=ComValue::BlankType)
       result.boolean_ref() = 0;
+
+    else if (operand1.is_numeric() && !operand2.is_numeric())
+      result.boolean_ref() = 0;
     
     else {
       switch (operand1.type()) {
@@ -257,7 +275,8 @@ void EqualFunc::execute() {
 	break;
       case ComValue::ArrayType: 
 	result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
-	  operand1.array_val() == operand2.array_val();
+          (operand1.array_val() == operand2.array_val() ||
+           operand1.array_val()->Equal(operand2.array_val()));
 	break;
       case ComValue::ObjectType:
 	if (!operand1.object_compview())
@@ -345,7 +364,8 @@ void NotEqualFunc::execute() {
       break;
     case ComValue::ArrayType: 
       result.boolean_ref() = operand2.type() != ComValue::ArrayType || 
-	operand1.array_val() != operand2.array_val();
+	operand1.array_val() != operand2.array_val() &&
+        !operand1.array_val()->Equal(operand2.array_val());
       break;
       case ComValue::ObjectType:
 	if (!operand1.object_compview())

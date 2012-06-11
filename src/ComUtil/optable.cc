@@ -66,7 +66,7 @@ static unsigned MaxPriority;	/* Maximum priority encountered so far */
 static int last_operid = -1;
 
 /* variables for preserving default table once created */
-static opr_tbl_is_default = 0;  
+static int opr_tbl_is_default = 0;  
 static opr_tbl_entry* opr_tbl_default_table = NULL;
 static unsigned opr_tbl_default_numop;
 static unsigned opr_tbl_default_maxop;
@@ -74,7 +74,7 @@ static unsigned opr_tbl_default_maxpri;
 static int opr_tbl_default_lastop;
 
 void* opr_tbl_ptr_get()                  { return (void*)OperatorTable; }
-void opr_tbl_ptr_set(void* ptr)          { OperatorTable = ptr; }
+void opr_tbl_ptr_set(void* ptr)          { OperatorTable = (opr_tbl_entry*)ptr; }
 unsigned opr_tbl_numop_get()             { return NumOperators; }
 void opr_tbl_numop_set(unsigned numop)   { NumOperators = numop; }
 unsigned opr_tbl_maxop_get()             { return MaxOperators; }
@@ -92,12 +92,13 @@ void opr_tbl_lastop_set(int lastop)      { last_operid = lastop; }
 
 /* Default operator table */
 struct _opr_tbl_default_entry {
-  char *opchars;
-  char *opname;
+  const char *opchars;
+  const char *opname;
   unsigned priority;
   BOOLEAN rtol;
   unsigned optype;
 } DefaultOperatorTable[] = {
+  {" ",          "space",              140,        FALSE,      OPTYPE_BINARY },
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
   {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"$",          "stream",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
@@ -263,7 +264,7 @@ Summary:
 #include <ComUtil/comterp.h>
 */
 
-int opr_tbl_insert(char * opstr,char * command,unsigned priority,
+int opr_tbl_insert(const char * opstr,const char * command,unsigned priority,
 		   BOOLEAN rtol,unsigned  optype)
 
 
@@ -276,9 +277,9 @@ Parameters:
 Type            Name          IO  Description
 ------------    -----------   --  -----------                  */
 #ifdef DOC
-char *          opstr	  ;/* I   String of characters that define 
+const char *    opstr	  ;/* I   String of characters that define 
 				  an operator. */
-char *          command   ;/* I   Name of command associated with operator. */
+const char *    command   ;/* I   Name of command associated with operator. */
 unsigned        priority  ;/* I   Relative operator priority. */
 BOOLEAN         rtol      ;/* I   Indicates whether operator associates 
                                   right-to-left or left-to-right. */
@@ -999,7 +1000,7 @@ $          stream             125        Y      UNARY PREFIX
 			 DefaultOperatorTable[index].optype ) != 0 )
         KAPUT1( "Unable to add the %d entry to the default operator table", index );
   opr_tbl_is_default = 1;
-  opr_tbl_default_table = opr_tbl_ptr_get();
+  opr_tbl_default_table = (opr_tbl_entry*)opr_tbl_ptr_get();
   opr_tbl_default_numop = opr_tbl_numop_get();
   opr_tbl_default_maxop = opr_tbl_maxop_get();
   opr_tbl_default_maxpri = opr_tbl_maxpri_get();

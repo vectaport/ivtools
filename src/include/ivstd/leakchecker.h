@@ -24,6 +24,10 @@
 #ifndef leak_checker_h
 #define leak_checker_h
 
+//#define LEAKCHECK
+
+#ifdef LEAKCHECK
+
 #include <stream.h>
 using std::cerr;
 
@@ -54,4 +58,5 @@ inline LeakChecker::~LeakChecker() {
     cerr << "LEAKCHECKER: " << _class << ", " << _alive << "\n";
 }
 
+#endif
 #endif

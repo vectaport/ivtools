@@ -34,7 +34,7 @@ class Valuator;
 
 class BoundedValueEditor : public MonoGlyph {
 public:
-    BoundedValueEditor(BoundedValue*, char* labl =nil, boolean scr =true);
+    BoundedValueEditor(BoundedValue*, const char* labl =nil, boolean scr =true);
     virtual ~BoundedValueEditor();
 
     InputHandler* focusable();
@@ -45,7 +45,7 @@ protected:
 
 class BoundedValueObserver : public MonoGlyph, public Observer {
 public:
-    BoundedValueObserver(BoundedValue*, char* labl);
+    BoundedValueObserver(BoundedValue*, const char* labl);
     virtual ~BoundedValueObserver();
 
     virtual void update(Observable*);
@@ -56,7 +56,7 @@ protected:
 
 class MeterObserver : public MonoGlyph, public Observer {
 public:
-    MeterObserver(BoundedValue*, char* label = "", boolean int_display = true);
+    MeterObserver(BoundedValue*, const char* label = "", boolean int_display = true);
     virtual ~MeterObserver();
 
     virtual void update(Observable*);

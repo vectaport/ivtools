@@ -60,7 +60,6 @@
 #include <stream.h>
 
 #ifdef LEAKCHECK
-#include <leakchecker.h>
 LeakChecker* OverlayView::_leakchecker = nil;
 #endif
 
@@ -374,6 +373,12 @@ OverlayViewRef::OverlayViewRef (OverlayComp* subj) : OverlayView(subj) {
 }
 
 OverlayViewRef::~OverlayViewRef () {}
+
+ClassId OverlayViewRef::GetClassId () { return OVERLAY_VIEW_REF; }
+
+boolean OverlayViewRef::IsA (ClassId id) {
+    return OVERLAY_VIEW_REF == id || OverlayView::IsA(id);
+}
 
 /*****************************************************************************/
 

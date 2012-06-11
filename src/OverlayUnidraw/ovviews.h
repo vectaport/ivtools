@@ -37,10 +37,7 @@
 
 #include <IV-2_6/_enter.h>
 
-#define LEAKCHECK
-#ifdef LEAKCHECK
-class LeakChecker;
-#endif
+#include <leakchecker.h>
 
 class Canvas;
 class OverlayComp;
@@ -164,6 +161,10 @@ class OverlayViewRef : public OverlayView {
  public:
   OverlayViewRef(OverlayComp* = nil);
   virtual ~OverlayViewRef();
+
+  virtual ClassId GetClassId();
+  virtual boolean IsA(ClassId);
+
 };
 
 //: graphical view of OverlaysComp.

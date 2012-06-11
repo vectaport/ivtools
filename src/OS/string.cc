@@ -300,7 +300,7 @@ boolean String::contains(const char* str, int start) const {
  */
 
 String String::before(const char* str) const {
-  char* ptr = strstr(string(), str);
+  const char* ptr = strstr(string(), str);
   if (ptr) 
     return substr(0, ptr-string());
   else

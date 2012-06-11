@@ -208,7 +208,7 @@ int DrawIdrawScript::ReadFrames (istream& in, void* addr1, void* addr2, void* ad
   char buf2[BUFSIZ];
   char* buf = buf1;
 
-  DrawCatalog* catalog = (DrawCatalog*)unidraw->GetCatalog();
+  DrawCatalog* catalog = unidraw ? (DrawCatalog*) unidraw->GetCatalog() : (DrawCatalog*) DrawCatalog::Instance();
   int num_edge = (comps)->GetNumEdge();
   int num_node = (comps)->GetNumNode();
   catalog->graph_init(comps, num_edge, num_node);

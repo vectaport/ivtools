@@ -61,7 +61,7 @@ protected:
 
 friend class OverlaysScript;
 
-    CLASS_SYMID("EllipseComp"); 
+    CLASS_SYMID2("EllipseComp", OVELLIPSE_COMP); 
 };
 
 //: graphical view of EllipseOvComp.

@@ -60,7 +60,7 @@ protected:
   static GraphicIdList* _locally_selected;
   static GraphicIdList* _waiting_to_be_selected;
 
-  static char* _selected_strings[];
+  static const char* _selected_strings[];
 
 };
 #endif /* HAVE_ACE */

@@ -83,6 +83,7 @@ implementList(CopyStringList,CopyString)
 boolean RasterOvComp::_use_gray_raster = false;
 boolean RasterOvComp::_warned = false;
 
+
 /*****************************************************************************/
 
 ParamList* RasterOvComp::_ovraster_params = nil;
@@ -1099,28 +1100,23 @@ void OverlayRasterRect::damage_rect(IntCoord l, IntCoord b,
 
 /*****************************************************************************/
 
-// #define LEAKCHECK
-#undef LEAKCHECK
-
-#ifdef LEAKCHECK
-#include <leakchecker.h>
-static LeakChecker checker("OverlayRaster");
-#endif
-
-
 XColor* OverlayRaster::_gray_map = nil;
 int OverlayRaster::_unique_grays = 0;
 boolean OverlayRaster::_gray_initialized = false;
 XColor* OverlayRaster::_color_map = nil;
 int OverlayRaster::_unique_colors = 0;
+#ifdef LEAKCHECK
+LeakChecker* OverlayRaster::_leakchecker = nil;
+#endif
 
 OverlayRaster::OverlayRaster(unsigned long width, unsigned long height) : Raster (new RasterRep) {
     init_rep(width, height);
-#ifdef LEAKCHECK
-    checker.create();
-#endif
     _grayflag = false;
     _init = true;
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayRaster");
+    _leakchecker->create();
+#endif
 }
 
 OverlayRaster::OverlayRaster(const OverlayRaster& raster) 
@@ -1128,6 +1124,10 @@ OverlayRaster::OverlayRaster(const OverlayRaster& raster)
     construct(raster);
     _grayflag = false;
     _init = true;
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayRaster");
+    _leakchecker->create();
+#endif
 }
 
 OverlayRaster::OverlayRaster(const Raster& raster)
@@ -1135,6 +1135,10 @@ OverlayRaster::OverlayRaster(const Raster& raster)
     construct(raster);
     _grayflag = false;
     _init = true;
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayRaster");
+    _leakchecker->create();
+#endif
 }
 
 
@@ -1144,9 +1148,6 @@ OverlayRaster::OverlayRaster(
   : Raster (new RasterRep) 
 {
     init_rep(width, height);
-#ifdef LEAKCHECK
-    checker.create();
-#endif
     _grayflag = false;
     _init = true;
 
@@ -1234,6 +1235,10 @@ OverlayRaster::OverlayRaster(
             dpy, r->pixmap_, 0, 0, r->pwidth_, r->pheight_, AllPlanes, ZPixmap
         );
     }
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayRaster");
+    _leakchecker->create();
+#endif
 }
 
 
@@ -1281,15 +1286,16 @@ void OverlayRaster::construct(const Raster& raster) {
 	r->image_ = nil;
     }
 #ifdef LEAKCHECK
-    checker.create();
+    if(!_leakchecker) _leakchecker = new LeakChecker("OverlayRaster");
+    _leakchecker->create();
 #endif
 }
 
 OverlayRaster::~OverlayRaster() {
-#ifdef LEAKCHECK
-    checker.destroy();
-#endif
     OverlayPainter::Uncache(this);
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
 }
 
 void OverlayRaster::init_rep(unsigned long w, unsigned long h) {

@@ -160,10 +160,12 @@ NodeComp::NodeComp(Picture* pic, boolean rl, OverlayComp* parent)
     pic->First(it);
     Graphic* first = pic->GetGraphic(it);
     if (first) {
+#if 0
       pic->FillBg(first->BgFilled() && !first->GetBgColor()->None());
       pic->SetColors(first->GetFgColor(), first->GetBgColor());
       pic->SetPattern(first->GetPattern());
       pic->SetBrush(first->GetBrush());
+#endif
       if (GetText()) pic->SetFont(GetText()->GetFont());
     }
     _reqlabel = rl;
@@ -258,8 +260,12 @@ Component* NodeComp::Copy() {
         }
 
     } else {
+#if 0
         comp = NewNodeComp((SF_Ellipse*)GetEllipse()->Copy(), 
-            (TextGraphic*)GetText()->Copy());
+                           (TextGraphic*)GetText()->Copy(), _reqlabel);
+#else
+        comp = NewNodeComp((Picture*)GetGraphic()->Copy(), _reqlabel);
+#endif
     }
     return comp;
 }
@@ -789,6 +795,13 @@ int NodeComp::EdgeOutOrder(EdgeComp* edgecomp) const {
   return -1;
 }
 
+const char* NodeComp::nodename() { 
+  TextGraphic* textgraphic = GetText();
+  const char* text = textgraphic ? textgraphic->GetOriginal() : NULL;
+  return text;
+}
+
+
 /*****************************************************************************/
 
 NodeView::NodeView(NodeComp* comp) : OverlayView(comp) {
@@ -1259,10 +1272,37 @@ void NodeScript::Attributes(ostream& out) {
 }
 
 boolean NodeScript::Definition (ostream& out) {
-    out << script_name() << "(" ;
-    Attributes(out);
-    out << ")";
-    return out.good();
+    if(!dot_format()) {
+        out << script_name() << "(" ;
+        Attributes(out);
+        out << ")";
+        return out.good();
+    } else {
+        int init=0;
+        NodeComp* comp = (NodeComp*) GetSubject();
+        const char* selftext = comp->nodename();
+#if 0
+        if (selftext) {
+            int nin, nout;
+            comp->nedges(nin, nout);
+            for(int i=0; i<nout; i++) {
+                NodeComp* next_comp = comp->NodeOut(i);
+                if (next_comp) {
+                    if (init) out << " ";
+                    out << selftext << "->" << next_comp->nodename() << ";";
+                    init=1;
+                }
+            }
+        }
+        return init;
+#else
+        if (selftext) {
+            out << selftext;
+            return out.good();
+        } else
+            return 0;
+#endif
+    }
 }
 
 boolean NodeScript::EmitGS(ostream& out, Clipboard* cb, boolean prevout) {

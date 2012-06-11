@@ -66,7 +66,7 @@ protected:
 
 friend class TextFileScript;
 
-    CLASS_SYMID("TextFileComp");
+    CLASS_SYMID2("TextFileComp", OVTEXTFILE_COMP);
 };
 
 //: graphical view of a TextOvComp.

@@ -171,6 +171,12 @@ public:
     // set flag for exporting SVG
     // can be overridden by flag associated with Command objects
 
+    static const char* format() { return _format; }
+    // get global format string
+
+    static void format(const char* fmt) { delete _format; _format = strnew(fmt); }
+    // set global format string
+
 protected:
     virtual void FillBg(ostream& out);
     virtual void Brush(ostream& out);
@@ -180,7 +186,7 @@ protected:
     virtual void Font(ostream& out);
     virtual void Pattern(ostream& out);
     virtual void Transformation(ostream& out);
-    virtual void Transformation(ostream& out, char* keyword, Graphic* gr = nil);
+    virtual void Transformation(ostream& out, const char* keyword, Graphic* gr = nil);
     virtual void Annotation(ostream& out);
 
     void Attributes(ostream& out);
@@ -193,7 +199,7 @@ protected:
     OverlayScript* _parent;
 
     static boolean _ptlist_parens;
-    static boolean _svg_format;
+    static char* _format;
 };
 
 //: composite version of OverlayScript.

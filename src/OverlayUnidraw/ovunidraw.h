@@ -65,6 +65,7 @@ public:
     static boolean unidraw_updated_or_command_pushed();
     static boolean unidraw_updated_or_command_pushed_or_npause_lessened();
     static void pointer_tracker_func(Event&);
+    static int npause() { return _npause; }
 
     void CurrentViewer(OverlayViewer* viewer) { _ovviewer = viewer; }
     OverlayViewer* CurrentViewer() { return _ovviewer; }
@@ -85,9 +86,17 @@ public:
     int run_once() { return _run_once; }
     virtual void RunOnce() { run_once(10);Run(); }
     // run OverlayUnidraw just once
+
+    void set_timeout(long sec, long usec) { _sec = sec; _usec = usec; }
+    // set amount of delay before timing out Run()
+
+    void get_timeout(long& sec, long& usec) { sec= _sec; usec = _usec; }
+    // get amount of delay before timing out Run()
     
 protected:
     int _run_once;
+    long _sec; // seconds of delay before exiting Run
+    long _usec; // micro-seconds of delay before exiting Run
     static MacroCmd* _cmdq;
     static boolean* _updated_ptr;
     OverlayViewer* _ovviewer;

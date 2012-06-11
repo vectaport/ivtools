@@ -32,6 +32,7 @@
 
 #include <stdlib.h>
 #include <OS/types.h>
+#include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/classid.h>
 #include <Unidraw/Components/component.h>
@@ -39,7 +40,6 @@
 class AttributeList;
 class ComFuncState;
 class Component;
-class ComTerpServ;
 
 
 //: command base class for extending ComTerp.
@@ -98,6 +98,7 @@ public:
     // return ComTerp this ComFunc is associated with.
     ComTerpServ* comterpserv();
     // return ComTerpServ this ComFunc is associated with.
+    void comterp( ComTerp* comterp) { _comterp = comterp; }
     void comterpserv( ComTerpServ* serv) { _comterp = (ComTerp*)serv; }
 
 
@@ -137,6 +138,8 @@ public:
     ComValue stack_arg_post_eval(int n, boolean symbol=false, 
 				 ComValue& dflt=ComValue::nullval());
     // evaluate the nth argument for this post-evaluating ComFunc.
+    void print_stack_arg_post_eval(int n);
+    // print the expression for the nth argument for this post-evaluating ComFunc.
 
     ComValue stack_key_post_eval(int id, boolean symbol=false, 
 				  ComValue& dflt=ComValue::trueval(), 
@@ -152,6 +155,11 @@ public:
     // that contains a copy of each keyword/value pair in the arguments
     // to the invocation of this ComFunc.  'dflt' is used whenever a 
     // keyword has no matching argument.
+
+    ComValue** stack_arg_post_eval_nargsfixed(boolean symbol=false, 
+                                              ComValue& dflt=ComValue::nullval());
+    // evaluate all nargsfixed arguments for this post-evaluating ComFunc,
+    // and return in newly allocated array of newly allocated pointers.
 
     void funcid(int id) { _funcid = id; }
     // set symbol id of name for func

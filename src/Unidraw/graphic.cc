@@ -30,6 +30,7 @@
 #include <Unidraw/iterator.h>
 #include <Unidraw/Graphic/graphic.h>
 #include <Unidraw/Graphic/util.h>
+#include <Unidraw/Components/component.h>
 
 #include <IV-2_6/InterViews/painter.h>
 #include <InterViews/transformer.h>
@@ -49,6 +50,7 @@ Painter* Graphic::_p;
 BoxObj* Graphic::_clipping;
 unsigned int Graphic::_hide_mask = 0x1;
 unsigned int Graphic::_desensitize_mask = 0x2;
+unsigned int Graphic::_overridegs_mask = 0x4;
 boolean Graphic::_use_iv = true;
 
 Graphic::Graphic (Graphic* gr) {
@@ -67,7 +69,7 @@ Graphic::Graphic (Graphic* gr) {
 	cachingOn();
     }
     
-    if (_p == nil && use_iv()) {
+    if (_p == nil && use_iv() && Component::use_unidraw()) {
         _p = new Painter;
         Ref(_p);
     }
@@ -468,6 +470,7 @@ Graphic& Graphic::operator = (Graphic& g) {
     SetFont(g.GetFont());
     Hide(g.Hidden());
     Desensitize(g.Desensitized());
+    OverrideGS(g.OverriddenGS());
 
     if (g._t == nil) {
         Unref(_t);
@@ -663,28 +666,29 @@ void Graphic::concatGS (Graphic* a, Graphic* b, Graphic* dest) {
     }
     dest->FillBg(fill);
 
-    if ((fg = b->GetFgColor()) == nil) {
+    if ((fg = b->GetFgColor()) == nil || a->OverriddenGS()) {
 	fg = a->GetFgColor();
     }
-    if ((bg = b->GetBgColor()) == nil) {
+    if ((bg = b->GetBgColor()) == nil || a->OverriddenGS()) {
 	bg = a->GetBgColor();
     }
     dest->SetColors(fg, bg);
 
-    if ((pat = b->GetPattern()) == nil) {
+    if ((pat = b->GetPattern()) == nil || a->OverriddenGS()) {
 	pat = a->GetPattern();
     }
     dest->SetPattern(pat);
 
-    if ((font = b->GetFont()) == nil) {
+    if ((font = b->GetFont()) == nil || a->OverriddenGS()) {
 	font = a->GetFont();
     }
     dest->SetFont(font);
 
-    if ((br = b->GetBrush()) == nil) {
+    if ((br = b->GetBrush()) == nil || a->OverriddenGS()) {
 	br = a->GetBrush();
     }
     dest->SetBrush(br);
+
     dest->Hide(a->Hidden()||b->Hidden());
     dest->Desensitize(a->Desensitized()||b->Desensitized());
 }

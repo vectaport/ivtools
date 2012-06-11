@@ -42,6 +42,7 @@
 #include <IVGlyph/textedit.h>
 #include <IVGlyph/textview.h>
 
+#include <ctype.h>
 #include <strstream>
 #include <string.h>
 #if __GNUC__==2 && __GNUC_MINOR__<=7
@@ -94,7 +95,12 @@ void AttributeListEditor::add() {
     if (txt->length() > 0) {
 	char* buf = new char[strlen(_valfe->text()->string())+2];
 	sprintf(buf, "%s\n", _valfe->text()->string());
-	_list->add_attr(txt->string(), ParamList::lexscan()->get_attr(buf, strlen(buf)));
+	while(isspace(*buf) && *buf!='\0') buf++;
+	int negate = *buf=='-';
+	int skip = negate || *buf=='+';
+	AttributeValue* av = ParamList::lexscan()->get_attrval(buf+skip, strlen(buf+skip));
+	if(negate) av->negate();
+	_list->add_attr(txt->string(), av);
 	update_text(true);
     }
 }

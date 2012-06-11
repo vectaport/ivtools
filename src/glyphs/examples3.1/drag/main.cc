@@ -72,7 +72,7 @@ Glyph* DragDemo::dragGlyph() {
 }
 
 void DragDemo::dragData(char*& value, int& length) {
-    value = "howdy";
+    value = strdup("howdy");
     length = 5;
 }
 

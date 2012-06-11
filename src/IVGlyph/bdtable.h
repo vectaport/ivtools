@@ -53,14 +53,14 @@ protected:
 
 class BoundedValueTableEditor : public Patch, public Observer {
 public:
-    BoundedValueTableEditor(BoundedValueTable* bvt, char* labl);
+    BoundedValueTableEditor(BoundedValueTable* bvt, const char* labl);
     virtual ~BoundedValueTableEditor();
 
     void edit(String);
     virtual void update(Observable*);
 protected:
     void build();
-    char* _lab;
+    const char* _lab;
     BoundedValueTable* _obs;
     PolyGlyph* _labelbox;
     PolyGlyph* _editbox;

@@ -246,10 +246,11 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "ivtools-%s comterp: type help for more info\n", VersionString);
       return terp->run();
     } else {
-      ComTerp* terp = new ComTerp();
+      ComTerpServ* terp = new ComTerpServ();
       terp->add_defaults();
       if (run_flag && argc > 2 ) {
         const char *rfile = argv[2];
+	terp->set_args(argc-3, argv+2);
 	terp->runfile(rfile);
 	return 0;
       } else {

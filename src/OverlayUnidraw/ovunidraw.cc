@@ -74,6 +74,7 @@ OverlayUnidraw::OverlayUnidraw (Catalog* c, int& argc, char** argv,
     _comterp = nil;
     _npause = 0;
     _run_once = 0;
+    _sec = _usec = -1;
 
     /* replace default Painter with an OverlayPainter */
     OverlayGraphic::new_painter();
@@ -86,6 +87,7 @@ OverlayUnidraw::OverlayUnidraw (Catalog* c, World* w)
     _comterp = nil;
     _npause = 0;
     _run_once = 0;
+    _sec = _usec = -1;
 }
 
 OverlayUnidraw::~OverlayUnidraw () 
@@ -123,6 +125,7 @@ void OverlayUnidraw::Run () {
     Iterator it;
     alive(true);
     _npause = _comterp ? _comterp->npause() : 0;
+    static long tempsec = 0, tempusec = 0;
 
     while (alive() && !session->done() && !npause_lessened()) {
 	updated(false);
@@ -130,7 +133,19 @@ void OverlayUnidraw::Run () {
 	_updated_ptr = &_updated;
 //	session->read(e, &unidraw_updated);
 //	session->read(e, &unidraw_updated_or_command_pushed);
-	session->read(e, &unidraw_updated_or_command_pushed_or_npause_lessened);
+	if(_sec<0) 
+	  session->read(e, &unidraw_updated_or_command_pushed_or_npause_lessened);
+	else {
+	  if( tempsec==0 && tempusec==0 ) {
+	    tempsec = _sec;
+	    tempusec = _usec;
+	  }
+	  if( !session->read(&tempsec, &tempusec, e, &unidraw_updated_or_command_pushed_or_npause_lessened)){
+	    if(_comterp && _comterp->npause()) _comterp->npause()--;
+	    break;
+	  }
+	}
+	  
 	if (!updated()) {
 	    e.handle();
 	    session->default_display()->flush();
@@ -154,7 +169,6 @@ void OverlayUnidraw::Run () {
 	}
     }
     _npause = _comterp ? _comterp->npause() : 0;
-
 }
 
 void OverlayUnidraw::Log (Command* cmd, boolean dirty) {

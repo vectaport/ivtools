@@ -98,7 +98,7 @@ void DragValuator::disconnect(Observable*) {
 declareGFieldEditorCallback(Valuator)
 implementGFieldEditorCallback(Valuator)
 
-Valuator::Valuator(BoundedValue* bv, Style* style, char* sample) : MonoGlyph(nil) {
+Valuator::Valuator(BoundedValue* bv, Style* style, const char* sample) : MonoGlyph(nil) {
     Style* s = new Style(style);
     s->alias("Valuator");
     bvalue_ = bv;

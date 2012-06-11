@@ -65,7 +65,7 @@ PackBitsPreEncode(tif)
 	if (isTiled(tif))
 		tif->tif_data = (char *) TIFFTileRowSize(tif);
 	else
-		tif->tif_data = (char *) TIFFScanlineSize(tif);
+	        tif->tif_data = (char *) (unsigned long) TIFFScanlineSize(tif);
 	return (1);
 }
 
@@ -83,7 +83,7 @@ PackBitsEncodeChunk(tif, bp, cc, s)
 	int cc;
 	u_int s;
 {
-	int rowsize = (int) tif->tif_data;
+        int rowsize = (int) (long) tif->tif_data;
 
 	assert(rowsize > 0);
 	while (cc > 0) {

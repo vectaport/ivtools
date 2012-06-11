@@ -93,7 +93,7 @@ protected:
 
 class ExportEnumEditor : public RadioEnumEditor {
 public:
-    ExportEnumEditor(ObservableEnum* obs, char* labl, ExportChooserImpl* eci);
+    ExportEnumEditor(ObservableEnum* obs, const char* labl, ExportChooserImpl* eci);
 
     void edit(String);
 protected:

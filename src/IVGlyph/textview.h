@@ -112,7 +112,7 @@ public:
    void free_selection(SelectionManager*);
 
    // text
-   void insert_string(char*, int count);
+   void insert_string(const char*, int count);
    void insert_char(char c);
 
    // various information about displayed lines

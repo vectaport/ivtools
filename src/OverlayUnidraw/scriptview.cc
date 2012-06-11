@@ -73,7 +73,7 @@ using std::cerr;
 /*****************************************************************************/
 
 boolean OverlayScript::_ptlist_parens = true;
-boolean OverlayScript::_svg_format = false;
+char* OverlayScript::_format = NULL;
 
 ClassId OverlayScript::GetClassId () { return OVERLAY_SCRIPT; }
 
@@ -282,7 +282,7 @@ void OverlayScript::Pattern (ostream& out) {
     }
 }
 
-void OverlayScript::Transformation(ostream& out, char* keyword, Graphic* gr) {
+void OverlayScript::Transformation(ostream& out, const char* keyword, Graphic* gr) {
     Transformer* t = gr ? gr->GetTransformer() : GetOverlayComp()->GetGraphic()->GetTransformer();
     Transformer identity;
 
@@ -382,7 +382,8 @@ boolean OverlayScript::skip_comp(istream& in) {
 }
   
 boolean OverlayScript::svg_format() {
-    boolean format = OverlayScript::_svg_format;
+    const char* formatstr = OverlayScript::_format;
+    boolean format = formatstr ? strcmp("svg", formatstr)==0 : 0;
     Command* cmd = GetCommand();
     if (cmd) {
       if (GetCommand()->IsA(OV_EXPORT_CMD))
@@ -391,7 +392,15 @@ boolean OverlayScript::svg_format() {
     return format;
 }
 
-void OverlayScript::svg_format(boolean flag) { _svg_format = flag; }
+void OverlayScript::svg_format(boolean flag) {
+    if(flag)  {
+        delete _format;
+        _format = strnew("svg");
+    } else {
+        delete _format;
+        _format = NULL;
+    }
+}
 
 /*****************************************************************************/
 
@@ -429,6 +438,8 @@ int OverlayScript::ReadFillBg (istream& in, void* addr1, void* addr2, void* addr
 }
 
 int OverlayScript::ReadNoneBr (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
+    if (!Component::use_unidraw()) return 0;
+
     Graphic* gs = *(Graphic**)addr1;
  
     if (!in.good()) {
@@ -443,6 +454,8 @@ int OverlayScript::ReadNoneBr (istream& in, void* addr1, void* addr2, void* addr
 }
 
 int OverlayScript::ReadBrush (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
+    if (!Component::use_unidraw()) return 0;
+
     int p;
     float w;
     char delim;
@@ -462,6 +475,8 @@ int OverlayScript::ReadBrush (istream& in, void* addr1, void* addr2, void* addr3
 }
 
 int OverlayScript::ReadFgColor (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    if (!Component::use_unidraw()) return 0;
+
     char lookahead = '"';
     char name[BUFSIZ];
     boolean name_arg = false;
@@ -507,6 +522,8 @@ int OverlayScript::ReadFgColor (istream& in, void* addr1, void* addr2, void* add
 }
 
 int OverlayScript::ReadBgColor (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
+    if (!Component::use_unidraw()) return 0;
+
     char lookahead = '"';
     char name[BUFSIZ];
     boolean name_arg = false;
@@ -552,6 +569,8 @@ int OverlayScript::ReadBgColor (istream& in, void* addr1, void* addr2, void* add
 }
 
 int OverlayScript::ReadFont (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    if (!Component::use_unidraw()) return 0;
+
     char name[BUFSIZ];
     char printfont[BUFSIZ];
     int printsize;
@@ -587,6 +606,8 @@ int OverlayScript::ReadFont (istream& in, void* addr1, void* addr2, void* addr3,
 }
 
 int OverlayScript::ReadNonePat (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
+    if (!Component::use_unidraw()) return 0;
+
     Graphic* gs = *(Graphic**)addr1;
  
     if (!in.good()) {
@@ -601,6 +622,8 @@ int OverlayScript::ReadNonePat (istream& in, void* addr1, void* addr2, void* add
 }
 
 int OverlayScript::ReadPattern (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
+    if (!Component::use_unidraw()) return 0;
+
     char delim = ',';
     int data[patternHeight];
     int size = 0;
@@ -630,6 +653,8 @@ int OverlayScript::ReadPattern (istream& in, void* addr1, void* addr2, void* add
 }
 
 int OverlayScript::ReadGrayPat (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) { 
+    if (!Component::use_unidraw()) return 0;
+
     Graphic* gs = *(Graphic**)addr1;
     float graylevel;
  
@@ -706,7 +731,7 @@ int OverlayScript::ReadOther(istream& in, void* addr1, void* addr2, void* addr3,
         int negate = sbuf[0] == '-';
 	int slen = strlen(sbuf);
         val = 
-	    ParamList::lexscan()->get_attr(sbuf+negate, slen-negate);
+	    ParamList::lexscan()->get_attrval(sbuf+negate, slen-negate);
 	if (negate) val->negate();
 
 	//attrlist->add_attr(keyword, val);
@@ -932,7 +957,7 @@ void OverlayScript::StencilGS (ostream& out) {
 
 void OverlayScript::Attributes(ostream& out) {
     AttributeList* attrlist = GetOverlayComp()->GetAttributeList();
-    if( !((OverlayUnidraw*)unidraw)->PrintAttributeList(out, attrlist))
+    if( attrlist->Number() && (!unidraw || !((OverlayUnidraw*)unidraw)->PrintAttributeList(out, attrlist)))
       out << *attrlist;
 }
 

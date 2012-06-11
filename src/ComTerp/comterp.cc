@@ -44,7 +44,7 @@
 #include <ComTerp/charfunc.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comterp.h>
-#include <ComTerp/comterpserv.h>
+// #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/condfunc.h>
 #include <ComTerp/ctrlfunc.h>
@@ -84,6 +84,7 @@
 #define STREAM_MECH
 
 extern int _detail_matched_delims;
+extern int _no_bracesplus;
 
 using std::cerr;
 using std::cout;
@@ -131,7 +132,7 @@ void ComTerp::init() {
     /* Allocate servstate stack to initial size */
     _ctsstack_top = -1;
     _ctsstack_siz = 256;
-    if(dmm_calloc((void**)&_ctsstack, _ctsstack_siz, sizeof(ComFuncState)) != 0) 
+    if(dmm_calloc((void**)&_ctsstack, _ctsstack_siz, sizeof(ComTerpState)) != 0) 
 	KANRET("error in call to dmm_calloc");
 
     _pfoff = 0;
@@ -162,9 +163,14 @@ void ComTerp::init() {
     _stepflag = 0;
     _echo_postfix = 0;
     _delim_func = 0;
+    _ignore_commands = 0;
     _autostream = 0;
     _running = 0;
     _muted = 0;
+    _fd = -1;
+    _arg_strs = nil;
+    _narg_strs = 0;
+    _top_commands = NULL;
 }
 
 
@@ -174,8 +180,12 @@ ComTerp::~ComTerp() {
 	KANRET ("error in call to dmm_free");
     if(dmm_free((void**)&_fsstack) != 0) 
 	KANRET ("error in call to dmm_free");
+    if(dmm_free((void**)&_ctsstack) != 0) 
+	KANRET ("error in call to dmm_free");
 
     delete _errbuf;
+    delete _arg_strs;
+    delete _top_commands;
 }
 
 const ComValue* ComTerp::stack(unsigned int &top) const {
@@ -196,6 +206,12 @@ boolean ComTerp::read_expr() {
     return status==0 
       && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF) 
       && _buffer[0] != '\0';
+}
+
+void ComTerp::increment_linenum() {
+    check_parser_client();
+    _linenum++;
+    save_parser_client();    
 }
 
 boolean ComTerp::eof() {
@@ -224,13 +240,7 @@ int ComTerp::eval_expr(boolean nested) {
 boolean ComTerp::top_expr() { return _pfoff >= _pfnum && NextFunc::next_depth()<=1; }
 
 int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
-#if 0
-  int save_pfoff = _pfoff;
-  int save_pfnum = _pfnum;
-  ComValue* save_pfcomvals = _pfcomvals;
-#else
   push_servstate();
-#endif
 
   _pfoff = 0;
   _pfnum = npfvals;
@@ -241,13 +251,7 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
     eval_expr_internals();
   }
 
-#if 0
-  _pfoff = save_pfoff;
-  _pfnum = save_pfnum;
-  _pfcomvals = save_pfcomvals;
-#else
   pop_servstate();
-#endif
 
   return FUNCOK;
 }
@@ -302,6 +306,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     ComFunc* func = nil;
     int nargs = sv.narg();
     int nkeys = sv.nkey();
+    int func_for_next_expr_post_eval = 0;
     if (_func_for_next_expr) {
       func = _func_for_next_expr;
       _func_for_next_expr = nil;
@@ -312,7 +317,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
       if (_delim_func && sv.nids()!=1) {
 	ComValue nameval(sv.command_symid(), ComValue::SymbolType);
 	push_stack(nameval);  // this assumes it will be immediately popped off the stack
-	nargs++;
+	if (!func->post_eval()) 
+	  nargs++;
+	else
+	  func_for_next_expr_post_eval = 1;
       }
       func->push_funcstate(nargs, nkeys, pedepth, func->funcid());
     }
@@ -337,14 +345,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stepflag()) {
-#if __GNUC__<3
-      filebuf fbufout;
-      fbufout.attach(handler() ? Math::max(1, handler()->get_handle()) : fileno(stdout));
-#else
       fileptr_filebuf fbufout(handler() && handler()->wrfptr() 
 		      ? handler()->wrfptr() : stdout, 
 		      ios_base::out);
-#endif
       ostream out(&fbufout);
       out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
       static int pause_symid = symbol_add("pause");
@@ -360,8 +363,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
     int stack_base = _stack_top;
     if (!func->post_eval()) 
       stack_base -= nargs+nkeys;
-    else
+    else {
       stack_base -= 1;
+      stack_base -= func_for_next_expr_post_eval;
+    }
 
     func->execute();
     func->pop_funcstate();
@@ -371,8 +376,12 @@ void ComTerp::eval_expr_internals(int pedepth) {
       _just_reset = false;
     }
 
-    if (stack_base+1 < _stack_top)
+    if (stack_base+1 < _stack_top) {
       fprintf(stderr, "func \"%s\" pushed more than a single value on stack\n", symbol_pntr(func->funcid()));
+      fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
+      for(int i=stack_base+1; i<=_stack_top; i++)
+          std::cerr << i << ":  " << _stack[i] << "\n";
+    }
     else if (stack_base+1 > _stack_top)
       fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
     
@@ -578,6 +587,41 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
   return FUNCOK;
 }
 
+void ComTerp::print_post_eval_expr(int tokcnt, int offtop, int pedepth ) {
+  ComValue topval;
+  if (tokcnt) {
+    int offset = _pfnum+offtop;
+    while (tokcnt>0) {
+      while (tokcnt>0) {
+	if (_pfcomvals[offset].pedepth()==pedepth) {
+	  if (_pfcomvals[offset].is_type(ComValue::CommandType)) {
+	    ComFunc* func = (ComFunc*)_pfcomvals[offset].obj_val();
+	    if (func && func->post_eval()) {
+	      ComValue argoffval(offset);
+	      cout << argoffval << " ";
+              topval = argoffval;
+	    }
+	  }
+	  if (!_pfcomvals[offset].is_blank()) {
+ 	    cout << _pfcomvals[offset] << " ";
+            topval = _pfcomvals[offset];
+          }
+	}
+	tokcnt--;
+	offset++;
+	if (_pfcomvals[offset-1].pedepth()!=pedepth)
+	  continue;
+	if (topval.is_type(ComValue::CommandType) 
+	    && topval.pedepth() == pedepth) break;
+      }
+
+      cout << "| ";
+      
+    }
+  }
+  cout << "\n";
+}
+
 boolean ComTerp::skip_func(ComValue* topval, int& offset, int offlimit) {
   ComValue* sv = topval + offset;
   int nargs = sv->narg();
@@ -736,7 +780,15 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
   if (sv->type() == ComValue::SymbolType) {
     void* vptr = nil;
     unsigned int command_symid = sv->int_val();
-    localtable()->find(vptr, command_symid);
+    if(!ignore_commands()) 
+      localtable()->find(vptr, command_symid);
+    else if (strncmp(sv->symbol_ptr(), "__", 2)==0) {
+      int bufsiz = strlen(sv->symbol_ptr());
+      char buf[bufsiz];
+      strcpy(buf, sv->symbol_ptr()+2);
+      command_symid = symbol_add(buf);
+      localtable()->find(vptr, command_symid);
+    }
 
     /* handle case where symbol has matched parens, and things are set up to invoke a delim-specific func. */
     if (/*!vptr && */ _delim_func && sv->nids() != 1) {
@@ -847,9 +899,12 @@ ComValue ComTerp::pop_stack(boolean lookupsym) {
     #ifdef LEAKCHECK  // destructor called where constructor never called
     AttributeValue::_leakchecker->create();
     #endif
-    if (lookupsym)
+    if (lookupsym && topval.is_symbol()) {
       return lookup_symval(topval);
-    else 
+    } else if (lookupsym && topval.is_attribute()) {
+      topval.assignval(*((Attribute*)topval.obj_val())->Value());
+      return topval;
+    }else 
       return topval;
 
   } else {
@@ -942,8 +997,18 @@ ComValue& ComTerp::pop_symbol() {
         return ComValue::nullval();
 }
 
+void ComTerp::clear_top_commands() {
+    delete _top_commands;
+    _top_commands = nil;
+}
+
 int ComTerp::add_command(const char* name, ComFunc* func, const char* alias) {
     int symid = symbol_add((char *)name);
+
+    if (!_top_commands)
+        _top_commands = new AttributeValueList();
+    _top_commands->Append(new AttributeValue(symid, AttributeValue::SymbolType));
+
     func->funcid(symid);
     ComValue* comval = new ComValue();
     comval->type(ComValue::CommandType);
@@ -1001,7 +1066,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
     fbuf.attach(fileno(stdout));
 #elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3 || defined(__CYGWIN__)
   fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
-	       ? handler()->wrfptr() : stdout, 
+		       ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout), 
 	       ios_base::out);
 #else
   fileptr_filebuf fbuf(handler()&&handler()->get_handle()>0 
@@ -1026,7 +1091,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	if (quitflag()) {
 	  status = -1;
 	  break;
-	} else if (!func_for_next_expr() && val_for_next_func().is_null() && !muted()) {
+	} else if (!func_for_next_expr() && val_for_next_func().is_null() && muted()!=1) {
 	  if (stack_top().is_stream() && autostream()) {
 	    ComValue streamv(stack_top());
 	    do {
@@ -1141,6 +1206,7 @@ void ComTerp::add_defaults() {
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
     add_command("tuple", new TupleFunc(this));
+    add_command("index", new ListIndexFunc(this));
 
     add_command("sum", new SumFunc(this));
     add_command("mean", new MeanFunc(this));
@@ -1189,10 +1255,13 @@ void ComTerp::add_defaults() {
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));
     add_command("symadd", new SymAddFunc(this));
+    add_command("symvar", new SymVarFunc(this));
     add_command("symstr", new SymStrFunc(this));
+    add_command("strref", new StrRefFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
+    add_command("substr", new SubStrFunc(this));
 
     add_command("type", new TypeSymbolFunc(this));
     add_command("class", new ClassSymbolFunc(this));
@@ -1205,8 +1274,12 @@ void ComTerp::add_defaults() {
     add_command("if", new IfThenElseFunc(this));
     add_command("for", new ForFunc(this));
     add_command("while", new WhileFunc(this));
+    add_command("switch", new SwitchFunc(this));
 
+    add_command("open", new OpenFileFunc(this));
+    add_command("close", new CloseFileFunc(this));
     add_command("print", new PrintFunc(this));
+    add_command("gets", new GetStringFunc(this));
 
     add_command("usleep", new USleepFunc(this));
 #ifdef HAVE_ACE
@@ -1218,9 +1291,16 @@ void ComTerp::add_defaults() {
     add_command("quit", new QuitFunc(this));
     add_command("exit", new ExitFunc(this));
     add_command("mute", new MuteFunc(this));
+    add_command("empty", new EmptyFunc(this));
 
     add_command("ctoi", new CtoiFunc(this));
     add_command("isspace", new IsSpaceFunc(this));
+
+    add_command("arg", new GetArgFunc(this));
+    add_command("narg", new NumArgFunc(this));
+
+    add_command("continue", new ContinueFunc(this));
+    add_command("break", new BreakFunc(this));
 
   }
 }
@@ -1234,7 +1314,7 @@ void ComTerp::set_attributes(AttributeList* alist) {
 AttributeList* ComTerp::get_attributes() { return _alist;}
 
 
-int ComTerp::runfile(const char* filename) {
+int ComTerp::runfile(const char* filename, boolean popen_flag) {
     int old_runflag = running();
     running(true);
 
@@ -1244,14 +1324,8 @@ int ComTerp::runfile(const char* filename) {
     int tokoff = _pfoff;
 
     /* swap in input pointer and function */
-#if 0
-    void* save_inptr = _inptr;
-    infuncptr save_infunc = _infunc;
-    outfuncptr save_outfunc = _outfunc;
-#else
     push_servstate();
-#endif
-    FILE* fptr = fopen(filename, "r");
+    FILE* fptr = popen_flag ? popen(filename, "r") : fopen(filename, "r");
     _inptr = fptr;
     _outfunc = nil;
     if (!fptr) cerr << "unable to run from file " << filename << "\n";
@@ -1263,11 +1337,7 @@ int ComTerp::runfile(const char* filename) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
-#if __GNUC__<3
-	        filebuf obuf(1);
-#else
 	        fileptr_filebuf obuf(stdout, ios_base::out);
-#endif
 		ostream ostr(&obuf);
 		ostr << "err\n";
 		ostr.flush();
@@ -1281,14 +1351,12 @@ int ComTerp::runfile(const char* filename) {
 	    }
 	}
     }
+    if (popen_flag)
+        pclose(fptr);
+    else
+        fclose(fptr);
 
-#if 0
-    _inptr = save_inptr;
-    _infunc = save_infunc;
-    _outfunc = save_outfunc;
-#else
     pop_servstate();
-#endif
 
     load_postfix(tokbuf, toklen, tokoff);
     delete tokbuf;
@@ -1333,7 +1401,7 @@ void ComTerp::list_commands(ostream& out, boolean sorted) {
   if (nfuncs) {
     int rowcnt = 0;
     for (int i=0; i<nfuncs; i++) {
-      char* command_name = symbol_pntr(funcids[i]);
+      const char* command_name = symbol_pntr(funcids[i]);
       out << command_name;
       int slen = strlen(command_name);
       int tlen = 8-((slen+1)%8);
@@ -1386,9 +1454,14 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
     int i = 0;  /* operators first */
     int j;
     for (j=0; j< ncomm; j++) sortedbuffer[j] = -1;
-    for (j=0; j< ncomm; j++)
-      if (!isalpha(*symbol_pntr(buffer[j])))
+    for (j=0; j< ncomm; j++) {
+      const char* str = symbol_pntr(buffer[j]);
+      if (!isalpha(*str) && 
+	  strcmp(str,"()")!=0 && strcmp(str,"[]")!=0 && strcmp(str,"{}")!=0 && 
+	  strcmp(str,"<>")!=0 && strcmp(str,"<<>>")!=0 && 
+          *str!='\'')  // for ipl ISA support
 	  sortedbuffer[i++] = buffer[j];
+    }
     if (i != opercnt) cerr << "bad number of operators\n";
       
     for (j=0; j<ncomm; j++) {
@@ -1509,6 +1582,7 @@ void ComTerp::pop_servstate() {
 
     /* restore copies of everything */
     _pfbuf = cts_state->pfbuf();
+    _pfsiz = cts_state->pfsiz();
     _pfnum = cts_state->pfnum();
     _pfoff = cts_state->pfoff();
     _bufptr = cts_state->bufptr();
@@ -1520,6 +1594,7 @@ void ComTerp::pop_servstate() {
     _eoffunc = cts_state->eoffunc();
     _errfunc = cts_state->errfunc();
     _inptr = cts_state->inptr();
+    _alist = cts_state->alist();
     
     _ctsstack_top--;
   }
@@ -1530,6 +1605,7 @@ void ComTerp::push_servstate() {
 
   /* save copies of everything */
   cts_state.pfbuf() = _pfbuf;
+  cts_state.pfsiz() = _pfsiz;
   cts_state.pfnum() = _pfnum;
   cts_state.pfoff() = _pfoff;
   cts_state.bufptr() = _bufptr;
@@ -1541,6 +1617,7 @@ void ComTerp::push_servstate() {
   cts_state.eoffunc() = _eoffunc;
   cts_state.errfunc() = _errfunc;
   cts_state.inptr() = _inptr;
+  cts_state.alist() = _alist;
 
   /* re-initialize */
   if(dmm_calloc((void**)&_pfbuf, _pfsiz, sizeof(postfix_token)) != 0) 
@@ -1570,17 +1647,8 @@ boolean ComTerp::stack_empty() { return _stack_top<0; }
 void ComTerp::postfix_echo() {
   if (!_echo_postfix) return;
   // print everything in the _pfbuf for this function
-#if __GNUC__<3
-  filebuf fbuf;
-  if (handler()) {
-    int fd = Math::max(1, handler()->get_handle());
-    fbuf.attach(fd);
-  } else
-    fbuf.attach(fileno(stdout));
-#else
   fileptr_filebuf fbuf(handler() && handler()->wrfptr()
 	       ? handler()->wrfptr() : stdout, ios_base::out);
-#endif
   ostream out(&fbuf);
  
   boolean oldbrief = brief();
@@ -1625,5 +1693,69 @@ void ComTerp::postfix_echo() {
     out << ((i==_pfnum-1) ? "\n" : " ");
   }
   brief(oldbrief);
+}
+
+int ComTerp::arg_str(int n) {
+  if (n<0 || n>_narg_strs) return -1;
+  return _arg_strs ? _arg_strs[n] : nil;
+}
+
+int ComTerp::narg_str() {
+  return _narg_strs;
+}
+
+void ComTerp::set_args(int argc, char** argv) {
+  if (_arg_strs) delete _arg_strs;
+  _narg_strs = argc;
+  _arg_strs = new int[_narg_strs];
+  for (int i=0; i<_narg_strs; i++) _arg_strs[i] = symbol_add(argv[i]);
+  return;
+}
+
+void ComTerp::set_args(const char* argstr) {
+  int argc = 0;
+  const char* argptr = argstr;
+
+  char buffer[BUFSIZ];
+  int bufoff = 0;
+  while (*argptr) {
+    while(*argptr && isspace(*argptr)) argptr++;
+    if (!*argptr) break;
+    while (*argptr && !isspace(*argptr) && bufoff<BUFSIZ-1) {
+      if(*argptr=='"') {
+        while(*argptr && (*argptr!='"' || *(argptr-1)!='\\') && bufoff<BUFSIZ-1) 
+          buffer[bufoff++] = *argptr++;
+      }
+      buffer[bufoff++] = *argptr++;
+    }
+    buffer[bufoff] = '\0';
+    bufoff=0;
+    argc++;
+  }
+
+  if(argc<=1) return;
+
+  if (_arg_strs) delete _arg_strs;
+  _narg_strs = argc;
+  _arg_strs = new int[_narg_strs];
+
+  argptr = argstr;
+  int curarg=0;
+  while (*argptr) {
+    while(*argptr && isspace(*argptr)) argptr++;
+    if (!*argptr) break;
+    while (*argptr && !isspace(*argptr) && bufoff<BUFSIZ-1) {
+      if(*argptr=='"') {
+        while(*argptr && (*argptr!='"' || *(argptr-1)!='\\') && bufoff<BUFSIZ-1) 
+          buffer[bufoff++] = *argptr++;
+      }
+      buffer[bufoff++] = *argptr++;
+    }
+    buffer[bufoff] = '\0';
+    bufoff=0;
+    _arg_strs[curarg++] = symbol_add(buffer);
+  }
+
+  return;
 }
 

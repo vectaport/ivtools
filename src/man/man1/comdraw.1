@@ -77,6 +77,8 @@ graphical object assigned to an interpreter variable.
  move(dx dy) -- move current selection
  scale(xflt yflt) -- scale current selection
  rotate(degflt) -- rotate current selection
+ fliph() -- horizontally flip current selection
+ flipv() -- vertically flip current selection
 
 .SH GROUP/UNGROUP COMMANDS
 
@@ -88,8 +90,9 @@ graphical object assigned to an interpreter variable.
  compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
  attrlist(compview) -- return attribute list of component
  compview=frame([index]) -- return composite component for a frame, defaults to current
- val=at(list|attrlist|compview n :set val) -- return (or set) the nth item in a list.
+ val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list.
  num=size(list|attrlist|compview) -- return size of a list.
+ compview=parent(compview) -- get parent of graphic
 
 .SH VIEWER COMMANDS
 
@@ -129,6 +132,14 @@ graphical object assigned to an interpreter variable.
  largepanleft() -- large pan left
  largepanright() -- large pan right
 
+ gravity([flag]) -- set/get drawing editor gravity
+ gridspacing([xsize ysize]) -- set/get drawing editor grid spacing
+
+ hide(compview) -- hide graphic component
+ show(compview) -- show graphic component
+ desensitize(compview) -- desensitize graphic component
+ sensitize(compview) -- desensitize graphic component
+
 .SH IMAGING COMMANDS
 
  tilefile(inpath outpath [xsize] [ysiz]) -- tile pgm or ppm image file
@@ -155,7 +166,7 @@ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str
  run(filename) -- run commands from file
  quit() -- quit this interpreter
  exit() -- exit entire application
- pause([msgstr]) -- pause script execution until C/R
+ pause([msgstr] :usec num) -- pause script execution until C/R
 
 .SH OPTIONS
 

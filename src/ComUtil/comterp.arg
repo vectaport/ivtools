@@ -15,7 +15,7 @@ int scanner(void *infile,char *(*infunc)(),int (*eoffunc)(),int (*errfunc)(),
 #endif
 /* OPTABLE.C */
 int opr_tbl_create(unsigned maxop);
-int opr_tbl_insert(char *opstr,char *command,unsigned priority,BOOLEAN rtol,
+int opr_tbl_insert(const char *opstr,const char *command,unsigned priority,BOOLEAN rtol,
 		   unsigned optype);
 int opr_tbl_print(FILE *outfile,unsigned by);
 int opr_tbl_entries(char *opstr,int *op_ids,unsigned nop_ids,unsigned *nchars);

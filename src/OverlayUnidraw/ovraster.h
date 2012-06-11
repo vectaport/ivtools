@@ -123,7 +123,7 @@ protected:
 
 friend class RasterScript;
 
-    CLASS_SYMID("RasterComp");
+    CLASS_SYMID2("RasterComp", OVRASTER_COMP);
 };
 
 //: graphical view of RasterOvComp.
@@ -474,6 +474,13 @@ protected:
 
 friend class OvImportCmd;
 friend class RasterOvComp;
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
+
+
 };
 
 

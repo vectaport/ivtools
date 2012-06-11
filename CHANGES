@@ -1,3 +1,26 @@
+May 12th 2012  ivtools-1.2.10
+
+Many practical and small extensions to comterp, the scripting language embedded in
+comdraw, flipbook, graphdraw, and drawserv.
+
+Dropped complete support for gcc 3.0 and earlier. Things still might work but you'd be better off
+upgradeing to gcc 4.0 or staying with ivtools-1.2.9.
+
+Feb. 23rd, 2010  ivtools-1.2.9
+
+- Debian related changes suggested by Agustin Martin.
+
+- usec timeout on comdraw pause command -- allows for writing loops
+  that can be exited.
+
+- option for an end-of-line token introduced to LexScan.
+
+- port to 64 bit Fedora
+
+- fix problem with negative numbers in attribute editor
+
+- make File/Save and File/Revert always work regardless of modified flag
+
 Nov. 21st, 2009  ivtools-1.2.8
 
 - significant work on keeping up with gcc and libstdc++.  A wrapper

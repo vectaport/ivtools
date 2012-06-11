@@ -72,7 +72,6 @@ extern "C"
 #endif
 
 #ifdef LEAKCHECK
-#include <leakchecker.h>
 LeakChecker* OverlayComp::_leakchecker = nil;
 #endif
 
@@ -966,6 +965,31 @@ boolean OverlaysComp::Done (Iterator i) { return Elem(i) == _comps->End(); }
 OverlayComp* OverlaysComp::Comp (UList* r) { return (OverlayComp*) (*r)(); }
 GraphicComp* OverlaysComp::GetComp (Iterator i) { return Comp(Elem(i)); }
 
+OverlayComp* OverlaysComp::GetCompForIndex (int index)
+{
+  if (index<0) return nil;
+  Iterator it;
+  First(it);
+  while(index-- && !Done(it)) Next(it);
+  if (!Done(it)) return (OverlayComp*)GetComp(it);
+  else return nil;
+}
+
+
+int OverlaysComp::GetIndexForComp (OverlayComp* comp)
+{
+  int index = 0;
+  Iterator it;
+  First(it);
+  while (!Done(it)) {
+    if ((OverlayComp*)GetComp(it)==comp)
+      return index;
+    index++;
+    Next(it);
+  }
+  if (Done(it)) return -1;
+}
+
 int OverlaysComp::Count() {
   Iterator it;
   int i=0;
@@ -1324,6 +1348,16 @@ OverlayComp* OverlaysComp::DepthNext(OverlayComp* before) {
   // or move up
   OverlaysComp* parent = (OverlaysComp*)GetParent();
   return parent;
+}
+
+void OverlaysComp::ClearVisit() {
+  visited(false);
+  Iterator it;
+  First(it);
+  while(!Done(it)) {
+    ((OverlayComp*)GetComp(it))->ClearVisit();
+    Next(it);
+  }
 }
 
 

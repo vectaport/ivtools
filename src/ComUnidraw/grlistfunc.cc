@@ -42,9 +42,17 @@ void GrListAtFunc::execute() {
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval(), true /* return blank if no :set */));
   boolean setflag = !setv.is_blank();
+  static int ins_symid = symbol_add("ins");
+  ComValue insv(stack_key(ins_symid, false, ComValue::blankval(), true /* return blank if no :ins */));
+  boolean insflag = !insv.is_blank();
 
   if (listv.object_compview()) {
     reset_stack();
+    if (setflag || insflag) {
+      fprintf(stderr, ":set and :insert not yet supported for composite graphics\n");
+      push_stack(ComValue::nullval());
+      return;
+    }
     ComponentView* compview = (ComponentView*)listv.obj_val();
     OverlayComp* comp = (OverlayComp*)compview->GetSubject();
     OverlaysComp* comps = (OverlaysComp*) (comp->IsA(OVERLAYS_COMP) ? comp : nil);

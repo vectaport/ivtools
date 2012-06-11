@@ -100,7 +100,7 @@ public:
     ComValue& operator= (const ComValue&);
     // assignment operator.
 
-    void* geta(int type); 
+    virtual void* geta(int type, int compid=-1); 
     // return a pointer if ObjectType matches
 
     int narg() const;
@@ -157,6 +157,8 @@ public:
     // returns reference to IntType ComValue with value of 0.
     static ComValue& minusoneval();
     // returns reference to IntType ComValue with value of -1.
+    static ComValue& twoval();
+    // returns reference to IntType ComValue with value of 2.
 protected:
     void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
 
@@ -175,6 +177,7 @@ protected:
     static ComValue _oneval;
     static ComValue _zeroval;
     static ComValue _minusoneval;
+    static ComValue _twoval;
 };
 
 #endif /* !defined(_comvalue_h) */

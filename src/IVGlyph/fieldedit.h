@@ -92,7 +92,7 @@ class EivTextBuffer;
 
 class GFieldEditor : public InputHandler {
 public:
-    GFieldEditor(char*, GFieldEditorAction* = nil, float minw = 0.0);
+    GFieldEditor(const char*, GFieldEditorAction* = nil, float minw = 0.0);
     ~GFieldEditor();
     const char* text();
     EivTextBuffer* field() { return field_; }

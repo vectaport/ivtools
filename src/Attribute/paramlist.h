@@ -173,29 +173,31 @@ public:
     // pointers of type param_callback.
 
     /* static callback functions */
-    static int read_int(istream&, void*, void*, void*, void*);
+    static int read_int(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read up to four comma-separated integers from istream.
-    static int read_float(istream&, void*, void*, void*, void*);
+    static int read_float(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read up to four comma-separated floats from istream.
-    static int read_double(istream&, void*, void*, void*, void*);
+    static int read_double(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read up to four comma-separated doubles from istream.
-    static int read_string(istream&, void*, void*, void*, void*);
+    static int read_string(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read up to four comma-separated character strings from istream.
-    static int read_ints(istream&, void*, void*, void*, void*);
+    static int read_symbol(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
+    // param_callback to read up to four comma-separated character strings (as symbols) from istream.
+    static int read_ints(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read any number of comma-separated integers from istream.
-    static int read_floats(istream&, void*, void*, void*, void*);
+    static int read_floats(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read any number of comma-separated floats from istream.
-    static int read_doubles(istream&, void*, void*, void*, void*);
+    static int read_doubles(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read any number of comma-separated doubles from istream.
-    static int read_strings(istream&, void*, void*, void*, void*);
+    static int read_strings(istream&, void* p0, void* p1=NULL, void* p2=NULL, void* p3=NULL);
     // param_callback to read any number of comma-separated strings from istream.
 
     /* static functions for use in callbacks */
     static int skip_space(istream& in);
     // skip whitespace in istream, for use of a param_callback.
-    static int parse_token(istream& in, char* buffer, int buflen, char delim = '(');
+    static int parse_token(istream& in, char* buffer, int buflen, const char delim = '(');
     // parse token from istream, for use of a param_callback. 
-    static int parse_token(istream& in, char* buffer, int buflen, char* delim);
+    static int parse_token(istream& in, char* buffer, int buflen, const char* delim);
     // parse token from istream ended by one of a string of delimters, 
     // for use of a param_callback.
     static int parse_string(istream& in, char* buffer, int buflen, boolean keep_backslashes=0);

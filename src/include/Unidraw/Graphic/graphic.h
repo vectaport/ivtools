@@ -29,10 +29,7 @@
 #ifndef unidraw_graphic_graphic_h
 #define unidraw_graphic_graphic_h
 
-#define LEAKCHECK
-#ifdef LEAKCHECK
-class LeakChecker;
-#endif
+#include <leakchecker.h>
 
 #include <Unidraw/globals.h>
 #include <Unidraw/Graphic/geomobjs.h>
@@ -258,13 +255,17 @@ public:
     void Desensitize(boolean desensitize=true);
     void Sensitize(boolean sensitize=true);
     boolean Desensitized();
+    void OverrideGS(boolean overide_flag=true);
+    boolean OverriddenGS();
     void ToggleHide();
     void ToggleDesensitize();
+    void ToggleOverrideGS();
 
 protected:
     unsigned int _flags;
     static unsigned int _hide_mask;
     static unsigned int _desensitize_mask;
+    static unsigned int _overridegs_mask;
     static boolean _use_iv;
 
 #ifdef LEAKCHECK
@@ -362,12 +363,27 @@ inline boolean Graphic::Desensitized(
     return _flags & _desensitize_mask;
 }
 
+inline void Graphic::OverrideGS(boolean override_flag) {
+    if (override_flag)
+        _flags |= _overridegs_mask;
+    else
+        _flags &= ~_overridegs_mask;
+}
+
+inline boolean Graphic::OverriddenGS() {
+    return _flags & _overridegs_mask;
+}
+
 inline void Graphic::ToggleHide() {
   if (Hidden()) Show(); else Hide();
 }
 
 inline void Graphic::ToggleDesensitize() {
   if (Desensitized()) Sensitize(); else Desensitize();
+}
+
+inline void Graphic::ToggleOverrideGS() {
+  OverrideGS(!OverriddenGS());
 }
 
 inline void Graphic::drawGraphic (Graphic* g, Canvas* c, Graphic* gs) {

@@ -83,10 +83,17 @@ void ComTerpModule::init() {
     _errfunc = (errfuncptr)&fferror;
     _outptr = stdout;
     _outfunc = (outfuncptr)&fputs;
+#if 0
     _buffer = new char[BUFSIZ*BUFSIZ];
     _bufsiz = BUFSIZ*BUFSIZ;
     _token = new char[BUFSIZ*BUFSIZ];
     _toksiz = BUFSIZ*BUFSIZ;
+#else
+    _buffer = new char[BUFSIZ*16];
+    _bufsiz = BUFSIZ*16;
+    _token = new char[BUFSIZ*16];
+    _toksiz = BUFSIZ*16;
+#endif
     _linenum = 0;
 }
 
