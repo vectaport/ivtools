@@ -34,6 +34,9 @@
 
 ## Comterp is compiled with ACE cpp options, but not linked to ACE.
 
+## Release 1.2.10 added options -D_XOPEN_SOURCE -DLEAKCHECK, perhaps
+## we should adjust Makefile.am to incorporate them.
+
 ACLOCAL_AMFLAGS = -I m4
 
 ### Non-architecture-specific support file location
