@@ -5,20 +5,15 @@ Subject: include cstdio etc
 augment and adjust standard C++ I/O-related include directives
 ---
  src/Attribute/paramlist.cc             |    1 +
- src/ComTerp/comterp.cc                 |    2 ++
+ src/ComTerp/comterp.cc                 |    1 +
  src/ComTerp/comvalue.cc                |    1 +
  src/ComTerp/ctrlfunc.cc                |    1 +
  src/ComTerp/debugfunc.cc               |    2 ++
  src/DrawServ/rcdialog.cc               |    2 +-
  src/GraphUnidraw/graphcatalog.cc       |    2 ++
  src/IV-X11/xdrag.cc                    |    2 ++
- src/IVGlyph/bdvalue.cc                 |    2 +-
  src/IVGlyph/exportchooser.cc           |    3 ++-
  src/IVGlyph/fieldedit.cc               |    2 ++
- src/InterViews/fchooser.cc             |    1 +
- src/InterViews/field.cc                |    3 ++-
- src/InterViews/kit.cc                  |    3 ++-
- src/InterViews/ol_kit.cc               |    2 +-
  src/InterViews/printer.cc              |    1 +
  src/InterViews/regexp.cc               |    3 +++
  src/OS/string.cc                       |    1 +
@@ -31,12 +26,11 @@ augment and adjust standard C++ I/O-related include directives
  src/comterp_/main.cc                   |    2 ++
  src/glyphs/examples3.1/print/main.cc   |    2 ++
  src/iclass/main.cc                     |    1 +
- src/idemo/main.cc                      |    2 +-
  src/include/OS/string.h                |    1 +
  src/include/Unidraw/Graphic/geomobjs.h |    2 ++
  src/include/ivstd/fstream.h            |    1 +
  src/include/ivstd/iostream.h           |    1 +
- 32 files changed, 50 insertions(+), 11 deletions(-)
+ 26 files changed, 41 insertions(+), 6 deletions(-)
 
 diff --git a/src/Attribute/paramlist.cc b/src/Attribute/paramlist.cc
 index 934ff73..ad547f9 100644
@@ -51,15 +45,14 @@ index 934ff73..ad547f9 100644
  #include <Attribute/aliterator.h>
  #include <Attribute/paramlist.h>
 diff --git a/src/ComTerp/comterp.cc b/src/ComTerp/comterp.cc
-index ff8e554..a4acb43 100644
+index ff8e554..50867bb 100644
 --- a/src/ComTerp/comterp.cc
 +++ b/src/ComTerp/comterp.cc
-@@ -23,6 +23,8 @@
+@@ -23,6 +23,7 @@
   * 
   */
  
 +#include <cstdio>
-+
  #include <ctype.h>
  #include <iostream.h>
  #include <string.h>
@@ -139,20 +132,6 @@ index 517c78e..d07ccd8 100644
  #include <InterViews/cursor.h>
  #include <InterViews/event.h>
  #include <InterViews/handler.h>
-diff --git a/src/IVGlyph/bdvalue.cc b/src/IVGlyph/bdvalue.cc
-index 84069b5..ecd5ae7 100644
---- a/src/IVGlyph/bdvalue.cc
-+++ b/src/IVGlyph/bdvalue.cc
-@@ -46,8 +46,8 @@
-  */
- /* derived from idemo/main.c */
- 
--#include <IVGlyph/bdvalue.h>
- #include <cstdio>
-+#include <IVGlyph/bdvalue.h>
- #include <string.h>
- 
- /* class BoundedValue */
 diff --git a/src/IVGlyph/exportchooser.cc b/src/IVGlyph/exportchooser.cc
 index 138d053..f662451 100644
 --- a/src/IVGlyph/exportchooser.cc
@@ -187,80 +166,6 @@ index 60d8e07..569a269 100644
  #include <IVGlyph/fieldedit.h>
  #include <IVGlyph/figure.h>
  #include <IVGlyph/textbuff.h>
-diff --git a/src/InterViews/fchooser.cc b/src/InterViews/fchooser.cc
-index 08d1839..06be02f 100644
---- a/src/InterViews/fchooser.cc
-+++ b/src/InterViews/fchooser.cc
-@@ -26,6 +26,7 @@
-  * FileChooser -- select a file
-  */
- 
-+#include <cstdio>
- #include <IV-look/choice.h>
- #include <IV-look/dialogs.h>
- #include <IV-look/fbrowser.h>
-diff --git a/src/InterViews/field.cc b/src/InterViews/field.cc
-index 0a5d797..062427a 100644
---- a/src/InterViews/field.cc
-+++ b/src/InterViews/field.cc
-@@ -26,6 +26,8 @@
-  * FieldEditor -- simple editor for text fields
-  */
- 
-+#include <cstdio>
-+
- #include <Dispatch/dispatcher.h>
- #include <Dispatch/iocallback.h>
- #include <IV-look/field.h>
-@@ -60,7 +62,6 @@ extern "C" {
- 
- #include <OS/math.h>
- #include <OS/string.h>
--#include <cstdio>
- #include <string.h>
- 
- class FieldStringEditor : public StringEditor {
-diff --git a/src/InterViews/kit.cc b/src/InterViews/kit.cc
-index 7284cb0..2f36b69 100644
---- a/src/InterViews/kit.cc
-+++ b/src/InterViews/kit.cc
-@@ -26,6 +26,8 @@
-  * WidgetKit -- object for creating common UI objects
-  */
- 
-+#include <cstdio>
-+
- #ifdef motif_kit
- #include <IV-look/mf_kit.h>
- #endif
-@@ -71,7 +73,6 @@
- #include <OS/list.h>
- #include <OS/string.h>
- #include <OS/ustring.h>
--#include <cstdio>
- 
- declareActionCallback(Session)
- implementActionCallback(Session)
-diff --git a/src/InterViews/ol_kit.cc b/src/InterViews/ol_kit.cc
-index 5f4c382..bd72f3e 100644
---- a/src/InterViews/ol_kit.cc
-+++ b/src/InterViews/ol_kit.cc
-@@ -22,6 +22,7 @@
-  * OF THIS SOFTWARE.
-  */
- 
-+#include <cstdio>
- #include <Dispatch/dispatcher.h>
- #include <Dispatch/iocallback.h>
- #include <IV-look/bevel.h>
-@@ -43,7 +44,6 @@
- #include <InterViews/telltale.h>
- #include <InterViews/window.h>
- #include <OS/string.h>
--#include <cstdio>
- 
- /*
-  * character definitions
 diff --git a/src/InterViews/printer.cc b/src/InterViews/printer.cc
 index 69188eb..732731f 100644
 --- a/src/InterViews/printer.cc
@@ -436,26 +341,6 @@ index 7babbfc..9a07042 100644
 +#include <cstdio>
  #include "classbuffer.h"
  #include "iclass.h"
- 
-diff --git a/src/idemo/main.cc b/src/idemo/main.cc
-index 814ca2b..d1869c6 100644
---- a/src/idemo/main.cc
-+++ b/src/idemo/main.cc
-@@ -22,6 +22,7 @@
-  * OF THIS SOFTWARE.
-  */
- 
-+#include <cstdio>
- #include <IV-look/dialogs.h>
- #include <IV-look/kit.h>
- #include <IV-look/menu.h>
-@@ -41,7 +42,6 @@
- #include <InterViews/transformer.h>
- #include <InterViews/window.h>
- #include <OS/string.h>
--#include <cstdio>
- 
- static const Coord tool_scale = 12.0;
  
 diff --git a/src/include/OS/string.h b/src/include/OS/string.h
 index c8e7d1f..61444d2 100644

@@ -185,7 +185,7 @@ index b3e5467..454478e 100644
  
  inline void ArrayCopy (
 diff --git a/src/InterViews/bevel.cc b/src/InterViews/bevel.cc
-index b815b7f..e168790 100644
+index b815b7f..c07153f 100644
 --- a/src/InterViews/bevel.cc
 +++ b/src/InterViews/bevel.cc
 @@ -247,7 +247,7 @@ void Bevel::left_arrow(
@@ -193,7 +193,7 @@ index b815b7f..e168790 100644
      Coord center_y = (bottom + top) * 0.5;
      float slope = ((top - bottom) / (right - left)) * 0.5;
 -    float delta_x = thickness / sqrt(slope * slope + 1);
-+    float delta_x = thickness / hypot(slope,1);
++    float delta_x = thickness / hypot(slope, 1);
      float delta_y = slope * delta_x;
  
      c->new_path();
