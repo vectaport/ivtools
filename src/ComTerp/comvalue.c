@@ -26,12 +26,14 @@
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/postfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/paramlist.h>
 
 #include <iostream.h>
+#include <iomanip>
 #include <memory.h>
 
 #include <string.h>
@@ -196,14 +198,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::CharType:
 	  if (brief)
-	    out << "'" << svp->char_ref() << "'";
+            out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)svp->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;	    
 
 	case ComValue::UCharType:
 	  if (brief)
-	    out << svp->uchar_ref();
+            out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int) svp->uchar_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
@@ -288,18 +290,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-
-
-
 	    out << "{";
-
-
-
-
 	    while (!avl->Done(i)) {
-
-
-
 	      ComValue val(*avl->GetAttrVal(i));
 	      out << val;
 	      avl->Next(i);
@@ -412,7 +404,7 @@ void* ComValue::geta(int id, int compid) {
     else
       return obj_val();
   } else {
-    if (compid>0 && object_compview()) {
+    if (compid>=0 && object_compview()) {
       if (((ComponentView*)obj_val())->GetSubject()->IsA(compid))
         return ((ComponentView*)obj_val())->GetSubject();
     }

@@ -65,6 +65,31 @@ FileObj::~FileObj() {
 }
 
 /*****************************************************************************/
+int PipeObj::_symid = -1;
+
+PipeObj::PipeObj(const char* command) {
+  _command = strnew(command);
+  _pid = popen2(command, &_wrfd, &_rdfd);
+  _wrfptr = _rdfptr = NULL;
+}
+
+void PipeObj::close() {
+  if(_wrfptr) fclose(_wrfptr);
+  if(_rdfptr) fclose(_rdfptr);
+  ::close(_wrfd);
+  ::close(_rdfd);
+  _wrfptr = NULL;
+  _rdfptr = NULL;
+  _wrfd = -1;
+  _rdfd = -1;
+}
+
+PipeObj::~PipeObj() { 
+  delete _command;
+  close();
+}
+
+/*****************************************************************************/
 
 PrintFunc::PrintFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -115,7 +140,12 @@ void PrintFunc::execute() {
 			 ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
     } else if (fileobjv.is_known()) {
       FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
-      fbuf = new fileptr_filebuf(fileobj ? fileobj->fptr() : stdout, ios_base::out);
+      if (fileobj) 
+        fbuf = new fileptr_filebuf(fileobj->fptr(), ios_base::out);
+      else {
+        PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
+        fbuf = new fileptr_filebuf(pipeobj ? pipeobj->wrfptr() : stdout, ios_base::out);
+      }
     } else 
       fbuf = new fileptr_filebuf(errflag.is_false() ? stdout : stderr, ios_base::out);
     strmbuf = fbuf;
@@ -338,13 +368,29 @@ void OpenFileFunc::execute() {
       return;
   }
 
-  FileObj* fileobj = new FileObj(filenamev.string_ptr(), modev.is_string() ? modev.string_ptr() : "r", pipeflagv.is_true());
-  if (fileobj->fptr())  {
-    ComValue retval(FileObj::class_symid(), (void*)fileobj);
+  if (pipeflagv.is_true() && modev.is_string() && 
+      (strcmp(modev.string_ptr(),"rw")==0 || strcmp(modev.string_ptr(),"wr")==0)) {
+    PipeObj* pipeobj = new PipeObj(filenamev.string_ptr());
+    ComValue retval(PipeObj::class_symid(), (void*)pipeobj);
     push_stack(retval);
+    if (Component::use_unidraw()) {
+      ComterpHandler* pipe_handler = new ComterpHandler(comterpserv());
+      if (ComterpHandler::reactor_singleton()->register_handler(pipeobj->rdfd(), pipe_handler, 
+                                                                ACE_Event_Handler::READ_MASK)==-1) {
+        fprintf(stderr, "Trouble opening handler for pipeobj\n");
+      exit(1);
+      }
+      pipe_handler->log_only(1);
+    }
   } else {
-    delete fileobj;
-    push_stack(ComValue::nullval());
+    FileObj* fileobj = new FileObj(filenamev.string_ptr(), modev.is_string() ? modev.string_ptr() : "r", pipeflagv.is_true());
+    if (fileobj->fptr())  {
+      ComValue retval(FileObj::class_symid(), (void*)fileobj);
+      push_stack(retval);
+    } else {
+      delete fileobj;
+      push_stack(ComValue::nullval());
+    }
   }
 }
 
@@ -359,6 +405,10 @@ void CloseFileFunc::execute() {
   FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
   if (fileobj && fileobj->fptr())
     fclose(fileobj->fptr());
+  else {
+    PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
+    pipeobj->close();
+  }
 }
 
 /*****************************************************************************/
@@ -370,15 +420,21 @@ void GetStringFunc::execute() {
   ComValue fileobjv(stack_arg(0));
   reset_stack();
   FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
+  FILE* fptr = NULL;
   if (fileobj && fileobj->fptr()) {
-    char buffer[BUFSIZ];
-    char* ptr = fgets(buffer, BUFSIZ, fileobj->fptr());
-    if (ptr)  {
-      ComValue retval(buffer);
-      push_stack(retval);
-    } else
-      push_stack(ComValue::nullval());
+    fptr = fileobj->fptr();
+  } else {
+    PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
+    if (pipeobj && pipeobj->rdfptr()) 
+      fptr = pipeobj->rdfptr();
   }
+  char buffer[BUFSIZ];
+  char* ptr = fgets(buffer, BUFSIZ, fptr);
+  if (ptr)  {
+    ComValue retval(buffer);
+    push_stack(retval);
+  } else
+    push_stack(ComValue::nullval());
 }
 
 /*****************************************************************************/

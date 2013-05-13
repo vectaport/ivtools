@@ -1,4 +1,4 @@
-ivtools-1.2/CHANGES
+sivtools-1.2/CHANGES
 ivtools-1.2/CHANGES-0.4
 ivtools-1.2/CHANGES-0.5
 ivtools-1.2/CHANGES-0.6
@@ -257,6 +257,7 @@ ivtools-1.2/src/ComUtil/errsys.c
 ivtools-1.2/src/ComUtil/funcptrs.c
 ivtools-1.2/src/ComUtil/mblock.c
 ivtools-1.2/src/ComUtil/optable.c
+ivtools-1.2/src/ComUtil/popen2.c
 ivtools-1.2/src/ComUtil/symbols.c
 ivtools-1.2/src/ComUtil/txtutil.c
 ivtools-1.2/src/ComUtil/types.c

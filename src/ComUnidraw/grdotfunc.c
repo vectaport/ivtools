@@ -49,14 +49,24 @@ void GrDotFunc::execute() {
     if (!before_part.is_symbol() && 
 	!(before_part.is_attribute() && 
           (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
-           ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
+	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist() ||
+          ((Attribute*)before_part.obj_val())->Value()->object_compview())) &&
         !(before_part.is_attributelist()) && 
 	!(before_part.object_compview())) {
-      cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> or <Component>\n";
+      cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
+	   << symbol_pntr(before_part.type_symid());
+      if (before_part.is_object())
+        cerr << " of class " << symbol_pntr(before_part.class_symid());
+      cerr << ") -- grdotfunc.c\n";
+      reset_stack();
       return;
     }
-    if (!after_part.is_symbol()) {
-      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol\n";
+    if (!after_part.is_string()) {
+      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
+	   << symbol_pntr(after_part.type_symid());
+      if (before_part.is_object())
+        cerr << " of class " << symbol_pntr(before_part.class_symid());
+      cerr << ") -- grdotfunc.c\n";
       reset_stack();
       return;
     }
@@ -66,6 +76,21 @@ void GrDotFunc::execute() {
       lookup_symval(before_part);
     if (before_part.is_object() && before_part.object_compview()) {
       ComponentView* compview = (ComponentView*)before_part.obj_val();
+      OverlayComp* comp = (OverlayComp*)compview->GetSubject();
+      if (comp) {
+	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
+	before_part.assignval(stuffval);
+      } else {
+	cerr << "nil subject on compview value\n";
+	reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+
+    } else if (before_part.is_object() && before_part.is_attribute() && 
+	       ((Attribute*)before_part.obj_val())->Value()->object_compview()) {
+      AttributeValue* av = ((Attribute*)before_part.obj_val())->Value();
+      ComponentView* compview = (ComponentView*)av->obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
       if (comp) {
 	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());

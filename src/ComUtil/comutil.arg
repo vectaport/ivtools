@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 /* NUTIL function prototypes */ 
 /* MBLOCK.C */
 int mblock_open(unsigned nel,unsigned size);
@@ -90,4 +92,6 @@ unsigned int txtkwsrch(char *keyword,int bol,char *rdstr);
 unsigned int txtprint(unsigned int id,char *ignorestr,unsigned int pause,unsigned int *nlines);
 /* TYPES.C */
 int print_type(FILE* fptr,unsigned dtype,char* dptr,int offset);
+/* POPEN2.C */
+pid_t popen2(const char *shell_cmd, int *p_fd_in, int *p_fd_out);
 

@@ -49,7 +49,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "exit() -- exit entire application"; }
+      return "exit(status) -- exit entire application"; }
 
 };
 
@@ -129,14 +129,14 @@ public:
 };
 
 //: eval string command for ComTerp.
-// str|lst=eval(cmdstr [cmdstr ...] :symret) -- evaluate string as commands, optionally returning symbol instead of nil.
+// str|lst=eval(cmdstr|tokbuf [cmdstr|tokbuf ...] :symret) -- evaluate string (or tokbuf) as commands, optionally returning symbol instead of nil.
 class EvalFunc : public ComFunc {
 public:
     EvalFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "str|lst=%s(cmdstr :symret :alist attrlist) -- evaluate string as commands, optionally return symbol instead of nil"; }
+      return "str|lst=%s(cmdstr|funcobj [cmdstr|funcobj ...] :symret :alist attrlist) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil"; }
 
 };
 

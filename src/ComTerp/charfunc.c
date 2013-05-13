@@ -49,3 +49,27 @@ void IsSpaceFunc::execute() {
   push_stack(result);
 }
 
+/*****************************************************************************/
+
+IsDigitFunc::IsDigitFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void IsDigitFunc::execute() {
+  ComValue charv(stack_arg(0));
+  reset_stack();
+  int boolval = isdigit(charv.char_val());
+  ComValue result(boolval, ComValue::BooleanType);
+  push_stack(result);
+}
+
+/*****************************************************************************/
+
+IsAlphaFunc::IsAlphaFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void IsAlphaFunc::execute() {
+  ComValue charv(stack_arg(0));
+  reset_stack();
+  int boolval = isalpha(charv.char_val());
+  ComValue result(boolval, ComValue::BooleanType);
+  push_stack(result);
+}
+

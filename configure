@@ -840,7 +840,8 @@ Optional Packages:
   --with-iue-libs=<path> path to compiled IUE libs
   --with-qt=<path>    path to QT directory
   --with-qt-libs=<path> path to compiled QT libs
-  --with-x                use the X Window System
+  --x-libraries=<path>  X Window library path
+  --x-includes=<path>  X Window include path
 
 Some influential environment variables:
   CXX         C++ compiler command

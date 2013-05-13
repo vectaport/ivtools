@@ -48,7 +48,7 @@ class Component;
 class ComFunc {
 public:
     ComFunc(ComTerp*);
-    virtual ~ComFunc() {}
+    virtual ~ComFunc() { delete _docstring2;}
 
     virtual void execute() = 0;
     // method that needs to be filled in, that will take ComValue arguments
@@ -140,6 +140,8 @@ public:
     // evaluate the nth argument for this post-evaluating ComFunc.
     void print_stack_arg_post_eval(int n);
     // print the expression for the nth argument for this post-evaluating ComFunc.
+    postfix_token* copy_stack_arg_post_eval(int n, int& ntoks);
+    // copy the expression for the nth argument for this post-evaluating ComFunc.
 
     ComValue stack_key_post_eval(int id, boolean symbol=false, 
 				  ComValue& dflt=ComValue::trueval(), 
@@ -174,6 +176,8 @@ public:
 
     virtual boolean post_eval() { return false; }
     virtual const char* docstring() { return "%s: no docstring method defined"; }
+    const char* docstring2() { return _docstring2 ? _docstring2 : docstring(); }
+    void docstring2(const char* str) { delete _docstring2; _docstring2 = strnew(str); }
     static int bintest(const char* name);
     static boolean bincheck(const char* name);
     
@@ -224,6 +228,7 @@ protected:
     ComTerp* _comterp;
     int _funcid;
     Component* _context;
+    const char* _docstring2;
 
     CLASS_SYMID("ComFunc");
 };

@@ -35,38 +35,38 @@ class ComTerp;
 class ComValue;
 
 //: value printing command for ComTerp.
-// [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj :prefix str) -- print value(s) with optional format string
+// [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj|pipeobj :prefix str) -- print value(s) with optional format string
 class PrintFunc : public ComFunc {
 public:
     PrintFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "[str]=%s([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj :prefix str) -- print value with optional format string"; }
+      return "[str]=%s([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj|pipeobj :prefix str) -- print value with optional format string"; }
 
     static int format_extent(const char* fstr);
 };
 
 //: open file command
-// fileobj=open([filename modestr] :pipe :out :err) -- open file command
+// fileobj|pipeobj=open([filename modestr] :pipe :out :err) -- open file command
 class OpenFileFunc : public ComFunc {
 public:
     OpenFileFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "fileobj=open([filename [modestr]] :pipe :in :out :err) -- open file command"; }
+      return "fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command"; }
 };
 
 //: close file command
-// close(fileobj) -- close file command
+// close(fileobj|pipeobj) -- close file command
 class CloseFileFunc : public ComFunc {
 public:
     CloseFileFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "close(fileobj) -- close file command"; }
+      return "close(fileobj|pipeobj) -- close file command"; }
 };
 
 class FileObj {
@@ -82,9 +82,35 @@ class FileObj {
   char* _filename;
   char* _mode;
   FILE* _fptr;
+  FILE* _fptr2;
   int _pipe;
+  pid_t _pid;
 
   CLASS_SYMID("FileObj");
+};
+
+
+class PipeObj {
+ public:
+  PipeObj(const char* command);
+  virtual ~PipeObj();
+  const char* command() { return _command; }
+  int pid() { return _pid; }
+  int wrfd() { return _wrfd; }
+  int rdfd() { return _rdfd; }
+  FILE* wrfptr() { return _wrfptr ? _wrfptr : _wrfptr=fdopen(_wrfd, "w"); }
+  FILE* rdfptr() { return _rdfptr ? _rdfptr : _rdfptr=fdopen(_rdfd, "r"); }
+  void close();
+
+ protected:
+  char* _command;
+  pid_t _pid;
+  int _wrfd;
+  int _rdfd;
+  FILE* _wrfptr;
+  FILE* _rdfptr;
+
+  CLASS_SYMID("PipeObj");
 };
 
 
@@ -96,7 +122,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "str=%s(fileobj) -- gets a new-line terminated string from a file"; }
+      return "str=%s(fileobj|pipeobj) -- gets a new-line terminated string from a file"; }
 };
 
 //: return command line argument

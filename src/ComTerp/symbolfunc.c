@@ -221,7 +221,7 @@ SymStrFunc::SymStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void SymStrFunc::execute() {
-  ComValue symv(stack_arg(0));  // will only show up here if backquoted
+  ComValue symv(stack_arg(0));
   reset_stack();
   symv.type(ComValue::StringType);
   push_stack(symv);
@@ -473,13 +473,25 @@ void SubStrFunc::execute() {
   }
 
   const char* string = strv.symbol_ptr();
-  const int n = !afterflag ? nv.int_val()+1 : strlen(string)-nv.int_val()+1;
-  char buffer[n];
-  strncpy(buffer, string+(afterflag?nv.int_val():0), n-1);
-  buffer[n-1] = '\0';
-
-  ComValue retval(buffer);
-  push_stack(retval);
+  int n;
+  int offset;
+  if(!nv.is_string()) {
+    n = !afterflag ? nv.int_val() : strlen(string)-nv.int_val();
+    offset = afterflag ? nv.int_val() : 0;
+  }
+  else {
+    const char* foundstr = strstr(string, nv.symbol_ptr());
+    n = afterflag ?  strlen(string)-(foundstr-string) : foundstr-string;
+    offset = afterflag ? foundstr-string : 0;
+  };
+  if(n>0) { 
+    char buffer[n+1];
+    strncpy(buffer, string+offset, n);
+    buffer[n] = '\0';
+    ComValue retval(buffer);
+    push_stack(retval);
+  } else
+    push_stack(ComValue::nullval());
 }
 
 

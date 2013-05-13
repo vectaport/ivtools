@@ -60,6 +60,7 @@ ComterpHandler::ComterpHandler (ComTerpServ* serv)
     comterp_->add_defaults();
     _timeoutscriptid = -1;
     _wrfptr = _rdfptr = nil;
+    _log_only = 0;
 }
 
 ComterpHandler::~ComterpHandler() {
@@ -159,17 +160,20 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
-    vector<char> inv;
-    char ch;
-
     if (!_wrfptr) _wrfptr = fdopen(fd, "w");
     // if (!_rdfptr) _rdfptr = fdopen(fd, "r");
 
+    vector<char> inv;
+    char ch;
+
     ch = '\0';
     int status=1;
-    while (ch != '\n' && status>0) {
+    int bytesavail=1;
+    while (ch != '\n' && status>0 && bytesavail) {
       status = read(fd, &ch, 1);
       if (status == 1 && ch != '\n') inv.push_back(ch);
+      bytesavail=0;
+      ioctl(fd, FIONREAD, &bytesavail);
     }
     inv.push_back('\0');
       
@@ -184,7 +188,8 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     else if ( !*inbuf) {
 	return 0;
     }
-    if (!ComterpHandler::logger_mode()) {
+
+    if (!ComterpHandler::logger_mode() && !log_only()) {
       comterp_->load_string(inbuf);
       if (fd>0 && !comterp_->muted() && strncmp(inbuf, "ready", 5)!=0)
 	cerr << "(" << fd << "):  " << inbuf << "\n";
@@ -200,7 +205,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       return input_good&&(status==0||status==3||status==2) ? 0 : -1;
     } else {
       if (inbuf[0]!='\004')
-	cout << inbuf << "\n";
+	cout << "from pipe(" << fd << "):  " << inbuf << "\n";
       fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
       ostream ostr(&obuf);
       ostr << "\n";
