@@ -430,9 +430,9 @@ EXTRA_LTLIBRARIES += $(libComUtil_parts)
 libComUtil_la_SOURCES = src/ComUtil/atox.cc src/ComUtil/comerr.cc	\
 src/ComUtil/dmm.cc src/ComUtil/errfile.cc src/ComUtil/funcptrs.cc	\
 src/ComUtil/_lexscan.cc src/ComUtil/mblock.cc src/ComUtil/optable.cc	\
-src/ComUtil/_parser.cc src/ComUtil/_scanner.cc src/ComUtil/symbols.cc	\
-src/ComUtil/txtutil.cc src/ComUtil/types.cc src/ComUtil/util.cc		\
-src/ComUtil/xdll.cc
+src/ComUtil/_parser.cc src/ComUtil/popen2.cc src/ComUtil/_scanner.cc	\
+src/ComUtil/symbols.cc src/ComUtil/txtutil.cc src/ComUtil/types.cc	\
+src/ComUtil/util.cc src/ComUtil/xdll.cc
 
 libComUtil_la_CPPFLAGS = \
  -D_POSIX_C_SOURCE $(IVSTD_INCLUDES)
