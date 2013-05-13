@@ -195,7 +195,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "c=%s(num|str) -- convert any numeric to a char"; }
+      return "c=%s(num|str :u) -- convert any numeric to a char"; }
 
 };
 
@@ -207,7 +207,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "s=%s(num|str) -- convert any numeric to a short"; }
+      return "s=%s(num|str :u) -- convert any numeric to a short"; }
 
 };
 
@@ -219,7 +219,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "i=%s(num|str) -- convert any numeric to an int"; }
+      return "i=%s(num|str :u) -- convert any numeric to an int"; }
 
 };
 
@@ -231,7 +231,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "l=%s(num|str) -- convert any numeric to a long"; }
+      return "l=%s(num|str :u) -- convert any numeric to a long"; }
 
 };
 

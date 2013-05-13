@@ -29,6 +29,7 @@
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/postfunc.h>
 #include <Attribute/attrlist.h>
 
 #include <wordexp.h>
@@ -65,8 +66,13 @@ ExitFunc::ExitFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ExitFunc::execute() {
+    ComValue statusv(stack_arg(0));
     reset_stack();
-    _comterp->exit();
+    if(statusv.is_int())
+        _comterp->exit(statusv.int_val());
+    else
+        _comterp->exit();
+
 }
 
 /*****************************************************************************/
@@ -403,17 +409,21 @@ void EvalFunc::execute() {
   if (numargs>1) {
     AttributeValueList* avl = nil;
     for (int i=0; i<numargs; i++) {
-      ComValue argstrv (stack_arg(i));
-      if (argstrv.is_nil()) break;
-      if (argstrv.is_string()) {
-	ComValue* val = new ComValue(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
-	if (val->is_nil() && symretv.is_true()) {
-	  delete val;
-	  val = new ComValue(argstrv.symbol_val(), AttributeValue::SymbolType);
-	}
-	if (!avl) avl = new AttributeValueList();
-	avl->Append(val);
+      ComValue argv (stack_arg(i));
+      if (argv.is_nil()) break;
+      ComValue* val = NULL;
+      if (argv.is_string()) {
+	val = new ComValue(comterpserv()->run(argv.symbol_ptr(), true /* nested */));
+      } else if (argv.is_object(FuncObj::class_symid())) {
+        FuncObj* tokbuf = (FuncObj*)argv.obj_val();
+        val = new ComValue(comterpserv()->run(tokbuf->toks(), tokbuf->ntoks()));
       }
+      if (val->is_nil() && symretv.is_true()) {
+	delete val;
+	val = new ComValue(argv.symbol_val(), AttributeValue::SymbolType);
+      }
+      if (!avl) avl = new AttributeValueList();
+      avl->Append(val);
     }
     reset_stack();
     if (avl) {
@@ -425,24 +435,31 @@ void EvalFunc::execute() {
   /* unless only single argument */
   else if (numargs==1) {
 
-    ComValue argstrv (stack_arg(0));
+    ComValue argv (stack_arg(0));
     reset_stack();
-    if (argstrv.is_nil()) {
+    if (argv.is_nil()) {
       push_stack(ComValue::nullval());
-    } else if (argstrv.is_string()) {
-	ComValue val(comterpserv()->run(argstrv.symbol_ptr(), true /* nested */));
-	if (val.is_nil() && symretv.is_true()) {
-	  val.assignval(ComValue(argstrv.symbol_val(), AttributeValue::SymbolType));
-	}
-	push_stack(val);
-	
+    } else if (argv.is_string()) {
+      ComValue val(comterpserv()->run(argv.symbol_ptr(), true /* nested */));
+      if (val.is_nil() && symretv.is_true()) {
+	val.assignval(ComValue(argv.symbol_val(), AttributeValue::SymbolType));
+      }
+      comterp()->push_stack(val);
+      
+    } else if (argv.is_object(FuncObj::class_symid())) {
+      FuncObj* tokbuf = (FuncObj*)argv.obj_val();
+      ComValue val(comterpserv()->run(tokbuf->toks(), tokbuf->ntoks()));
+      if (val.is_nil() && symretv.is_true()) {
+	val.assignval(ComValue(argv.symbol_val(), AttributeValue::SymbolType));
+      }
+      comterp()->push_stack(val);
     }
   } else
     reset_stack();
-
-    if (old_alist)
-        comterp()->set_attributes(old_alist);
-    return;
+  
+  if (old_alist)
+    comterp()->set_attributes(old_alist);
+  return;
 }
 
 /*****************************************************************************/

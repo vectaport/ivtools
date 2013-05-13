@@ -330,7 +330,9 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	    timeval_print(&tvParse);
 #endif
 	    if (eval_expr(true)) {
-	        err_print( stderr, "comterp" );
+	        char buf[BUFSIZ];
+	        snprintf(buf, BUFSIZ, "comterp(%s)", filename);
+	        err_print( stderr, buf );
                 FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
 	        fileptr_filebuf obuf(ofptr, ios_base::out);
 		ostream ostr(&obuf);
@@ -365,7 +367,9 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
 	    
 	} else 	if (*inbuf) {
-	  err_print( stderr, "comterp" );
+          char buf[BUFSIZ];
+          snprintf(buf, BUFSIZ, "comterp(%s)", filename);
+	  err_print( stderr, buf );
           FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
 	  fileptr_filebuf obuf(ofptr, ios_base::out);
 	  ostream ostr(&obuf);
@@ -417,29 +421,32 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
         read_expr();
         err_str(_errbuf, BUFSIZ, "comterp");
     }
+    int status;
     if (!*_errbuf) {
-	eval_expr(nested);
+	status = eval_expr(nested);
 	err_str(_errbuf, BUFSIZ, "comterp");
     }
 
     pop_servstate();
 
-    return *_errbuf ? ComValue::nullval() : pop_stack();
+    return (*_errbuf || status!=FUNCOK) ? ComValue::nullval() : pop_stack();
 }
 
 ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _errbuf[0] = '\0';
 
     push_servstate();
-    _pfbuf = tokens;
+    _pfbuf = copy_postfix_tokens(tokens, ntokens);
     _pfnum = ntokens;
     _pfoff = 0;
 
-    eval_expr();
+    eval_expr(/*nested=*/1);
     err_str(_errbuf, BUFSIZ, "comterp");
 
     ComValue retval(*_errbuf ? ComValue::nullval() : pop_stack());
     _pfbuf = nil;
+    _pfnum = 0;
+    _pfoff = 0;
     pop_servstate();
     return retval;
 }

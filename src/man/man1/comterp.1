@@ -197,11 +197,12 @@ Run contents of file then exit.
  
  lst=list([olst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream
 
- val=at(list|attrlist n :set val :ins val) -- return (or set or insert after) nth item in a list
+ val=at(list|attrlist|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
+
 
  num=size(list|attrlist|str) -- return size of a list (or string)
 
- val=index(list|str val|char|str) -- return index of value (or char or string) in list (or string), nil if not found.
+ val=index(list|str val|char|str :last :all) -- return index of value (or char or string) in list (or string), nil if not found.
 
 .SH STREAM COMMANDS:
  
@@ -233,13 +234,13 @@ Run contents of file then exit.
 
  step() -- toggle stepwise script execution
 
- fileobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
+ fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
 
- close(fileobj) -- close file command
+ close(fileobj|pipeobj) -- close file command
 
- [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :out :err :file fileobj :prefix str) -- print value with optional format string
+ [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :out :err :file fileobj|pipeobj :prefix str) -- print value with optional format string
 
- str=gets(fileobj) -- gets a new-line terminated string from a file
+ str=gets(fileobj|pipeobj) -- gets a new-line terminated string from a file
 
  val=global(symbol)|global(symbol)=val|global(symbol :clear)|global(:cnt) -- make symbol global 
   
@@ -261,7 +262,7 @@ Run contents of file then exit.
 
  str=join(clist :sym) -- join list of characters into string
 
- str=substr(str n :after) -- extract characters from a string
+ str=substr(str n|str :after) -- extract characters from a string
 
  bool=eq(str1 str2 :n len) -- partial string comparison
 
@@ -285,7 +286,9 @@ Run contents of file then exit.
 
  val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string
 
- val=eval(cmdstr [cmdstr ...] :symret ) -- evaluate string as commands, optionally return symbol instead of nil
+ val=eval(cmdstr|funcobj [cmdstr|funcobj ...] :symret ) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil
+
+ funcobj=func(body :echo) -- encapsulate a body of commands into an executable object
 
  val=shell(cmdstr) -- evaluate command in shell
 
@@ -295,13 +298,13 @@ Run contents of file then exit.
 
  nil([...]) -- accept any arguments and return nil
 
- c=char(num) -- convert any numeric to a char
+ c=char(num :u) -- convert any numeric to a char
 
- s=short(num) -- convert any numeric to a short
+ s=short(num :u) -- convert any numeric to a short
 
- i=int(num) -- convert any numeric to an int
+ i=int(num :u) -- convert any numeric to an int
 
- l=long(num) -- convert any numeric to a long
+ l=long(num :u) -- convert any numeric to a long
 
  f=float(num) -- convert any numeric to a float
 
@@ -315,9 +318,19 @@ Run contents of file then exit.
 
  flag=isspace(char) -- return true if character is whitespace
 
+ flag=isdigit(char) -- return true if character is a numeric digit
+
+ flag=isspace(char) -- return true if character is alphabetical
+
  str=arg(n) -- return command line argument
 
  n=narg(n) -- return number of command line arguments
+
+ num=nand(a b) -- bitwise NAND(negated AND)
+
+ num=nor(a b) -- bitwise NOR (negated OR)
+
+ num=xnor(a b) -- bitwise XNOR (negated XOR)
 
 .SH ONLY IN SERVER MODE
 

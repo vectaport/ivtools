@@ -104,9 +104,16 @@ int Parser::print_next_expr()
 
 postfix_token* Parser::copy_postfix_tokens(int& ntokens) {
     ntokens = _pfnum;
+    return copy_postfix_tokens(_pfbuf, ntokens);
+}
+
+postfix_token* Parser::copy_postfix_tokens(postfix_token* toks, int ntokens) {
     postfix_token *pfcopy = new postfix_token[ntokens];
-    for (int i=0; i<ntokens; i++) 
-        pfcopy[i] = _pfbuf[i];
+    for (int i=0; i<ntokens; i++) {
+      pfcopy[i] = toks[i];
+      if (pfcopy[i].type==TOK_STRING)
+	symbol_reference(pfcopy[i].v.symbolid);
+    }
     return pfcopy;
 }
 

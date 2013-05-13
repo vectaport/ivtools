@@ -148,4 +148,31 @@ public:
 
 };
 
+class FuncObj {
+ public:
+  FuncObj(postfix_token* toks, int ntoks); 
+  virtual ~FuncObj();
+
+  postfix_token* toks() { return _toks; }
+  int ntoks() { return _ntoks; }
+
+  CLASS_SYMID("FuncObj");
+
+ protected:
+  postfix_token* _toks;
+  int _ntoks;
+};
+  
+//: create token buffer object
+// funcobj=func(body) -- encapsulate a body of commands into an executable object
+class FuncObjFunc : public ComFunc {
+public:
+    FuncObjFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() { 
+      return "funcobj=%s(body :echo) -- encapsulate a body of commands into an executable object"; }
+};
+
 #endif /* !defined(_postfunc_h) */

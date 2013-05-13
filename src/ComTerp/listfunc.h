@@ -49,7 +49,7 @@ public:
 };
 
 //: list member command for ComTerp.
-// val=at(list|attrlist n :set val :ins val) -- return (or set or insert after) the nth item in a list.
+// val=at(list|attrlist|str n :set val :ins val) -- return (or set or insert after) the nth item in a list or string.
 class ListAtFunc : public ComFunc {
 public:
     ListAtFunc(ComTerp*);
@@ -85,14 +85,14 @@ public:
 
 
 //: list index command for ComTerp.
-// val=index(list|str val|char|str) -- return index of value (or char or string) in list (or string), nil if not found.
+// val=index(list|str val|char|str :last :all) -- return index of value (or char or string) in list (or string), nil if not found.
 class ListIndexFunc : public ComFunc {
 public:
     ListIndexFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "num=index(list|str val|char|str) -- return index of value (or char or string) in list (or string), nil if not found"; }
+      return "num=index(list|str val|char|str :last :all) -- return index of value (or char or string) in list (or string), nil if not found"; }
 };
 
 #endif /* !defined(_listfunc_h) */

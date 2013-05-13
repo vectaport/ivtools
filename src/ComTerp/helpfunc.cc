@@ -205,12 +205,12 @@ void HelpFunc::execute() {
 	    *out << '\n';
 #endif
 #if __GNUC__<3
-	  out->form(comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
+	  out->form(comfuncs[i]->docstring2(), symbol_pntr(command_ids[i]));
 #else
 	  {
 	    char buffer[BUFSIZ];
 	    snprintf(buffer, BUFSIZ, 
-		     comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
+		     comfuncs[i]->docstring2(), symbol_pntr(command_ids[i]));
 	    *out << buffer;
 	  }
 #endif
@@ -235,12 +235,12 @@ void HelpFunc::execute() {
 		else
 		  out->put('\n');
 #if __GNUC__<3
-		out->form(comfunc->docstring(), symbol_pntr(value->command_symid()));
+		out->form(comfunc->docstring2(), symbol_pntr(value->command_symid()));
 #else
 		{
 		  char buffer[BUFSIZ];
 		  snprintf(buffer, BUFSIZ, 
-			   comfunc->docstring(), symbol_pntr(value->command_symid()));
+			   comfunc->docstring2(), symbol_pntr(value->command_symid()));
 		  *out << buffer;
 		}
 #endif

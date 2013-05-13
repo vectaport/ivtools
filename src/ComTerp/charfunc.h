@@ -50,4 +50,24 @@ public:
 protected:
 };
 
+class IsDigitFunc : public ComFunc {
+public:
+    IsDigitFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "flag=isdigit(char) -- return true if character is a numeric digit"; }
+
+protected:
+};
+
+class IsAlphaFunc : public ComFunc {
+public:
+    IsAlphaFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "flag=isalpha(char) -- return true if character is alphabetical"; }
+
+protected:
+};
+
 #endif /* !defined(_numfunc_h) */

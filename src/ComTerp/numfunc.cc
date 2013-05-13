@@ -938,6 +938,8 @@ CharFunc::CharFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void CharFunc::execute() {
     ComValue operand(stack_arg(0));
+    static int u_symid = symbol_add("u");
+    int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
     if (operand.is_string()) {
       const char* numstr = operand.symbol_ptr();
@@ -948,7 +950,8 @@ void CharFunc::execute() {
       delete av;
     }
     ComValue result(operand.char_val(), 
-		    operand.is_nil() ? ComValue::UnknownType : ComValue::CharType);
+		    operand.is_nil() ? ComValue::UnknownType : 
+                    (uval_flag ? ComValue::UCharType : ComValue::CharType));
     push_stack(result);
 }
 
@@ -956,6 +959,8 @@ ShortFunc::ShortFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void ShortFunc::execute() {
     ComValue operand(stack_arg(0));
+    static int u_symid = symbol_add("u");
+    int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
     if (operand.is_string()) {
       const char* numstr = operand.symbol_ptr();
@@ -966,7 +971,8 @@ void ShortFunc::execute() {
       delete av;
     }
     ComValue result(operand.short_val(), 
-		    operand.is_nil() ? ComValue::UnknownType : ComValue::ShortType);
+		    operand.is_nil() ? ComValue::UnknownType : 
+                    (uval_flag ? ComValue::UShortType : ComValue::ShortType));
     push_stack(result);
 }
 
@@ -974,6 +980,8 @@ IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void IntFunc::execute() {
     ComValue operand(stack_arg(0));
+    static int u_symid = symbol_add("u");
+    int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
     if (operand.is_string()) {
       const char* numstr = operand.symbol_ptr();
@@ -984,7 +992,8 @@ void IntFunc::execute() {
       delete av;
     }
     ComValue result(operand.int_val(),  
-		    operand.is_nil() ? ComValue::UnknownType : ComValue::IntType);
+		    operand.is_nil() ? ComValue::UnknownType :
+                    (uval_flag ? ComValue::UIntType : ComValue::IntType));
     push_stack(result);
 }
 
@@ -992,6 +1001,8 @@ LongFunc::LongFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void LongFunc::execute() {
     ComValue operand(stack_arg(0));
+    static int u_symid = symbol_add("u");
+    int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
     if (operand.is_string()) {
       const char* numstr = operand.symbol_ptr();
@@ -1002,6 +1013,8 @@ void LongFunc::execute() {
       delete av;
     }
     ComValue result(operand.long_val());
+    if(uval_flag) result.type(ComValue::ULongType);
+
     push_stack(result);
 }
 

@@ -102,6 +102,8 @@ public:
     // copy unevaluated expression to the stack and evaluate.
     void print_post_eval_expr(int tokcnt, int offtop, int pedepth);
     // print unevaluated expression
+    postfix_token* copy_post_eval_expr(int tokcnt, int offtop);
+    // copy unevaluated expression
     boolean top_expr();
     // return true if the topmost expression is currently being evaluated
 
@@ -118,7 +120,7 @@ public:
     void brief(boolean flag) { _brief = flag; }
     // set brief mode flag.
 
-    int add_command(const char* name, ComFunc*, const char* alias = nil);
+    int add_command(const char* name, ComFunc*, const char* alias = nil, const char* docstring2 = nil);
     // add a derived ComFunc to be known by 'name'.
     void list_commands(ostream& out, boolean sorted = false);
     // print an optionally sorted list of commands to an ostream.
@@ -264,6 +266,8 @@ public:
     // return flag that indicates whether to echo contents of postfix buffer
 
     void postfix_echo();
+    // echo the postfix tokens
+    void postfix_echo(postfix_token* pfbuf, int pfnum);
     // echo the postfix tokens
 
     void delim_func(boolean flag) { _delim_func = flag; }

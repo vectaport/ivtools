@@ -156,7 +156,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "str=%s(str n :after) -- extract characters from a string"; }
+      return "str=%s(str n|str :after) -- extract characters from a string"; }
 };
 
 

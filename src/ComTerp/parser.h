@@ -46,6 +46,8 @@ public:
     int print_next_expr();
     postfix_token* copy_postfix_tokens(int& ntokens);
     // make a copy of current buffer of postfix tokens.
+    postfix_token* copy_postfix_tokens(postfix_token* toks, int ntokens);
+    // make a copy of any buffer of postfix tokens.
 
     boolean skip_matched_parens();
     // support for '()', '{}', and '[]'.
