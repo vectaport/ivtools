@@ -49,15 +49,21 @@ void DotFunc::execute() {
     if (!before_part.is_symbol() && 
 	!(before_part.is_attribute() && 
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
-	   ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
+	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
       cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
-	   << symbol_pntr(before_part.type_symid()) << ")\n";
+	   << symbol_pntr(before_part.type_symid());
+      if (before_part.is_object())
+        cerr << " of class " << symbol_pntr(before_part.class_symid());
+      cerr << ")\n";
       return;
     }
-    if (nargs()>1 && !after_part.is_symbol()) {
+    if (nargs()>1 && !after_part.is_string()) {
       cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
-	   << symbol_pntr(after_part.type_symid()) << "\n";
+	   << symbol_pntr(after_part.type_symid());
+      if (before_part.is_object())
+        cerr << " for class " << symbol_pntr(before_part.class_symid());
+      cerr << ")\n";
       return;
     }
 

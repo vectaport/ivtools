@@ -99,6 +99,12 @@ public:
   static ACE_Reactor* reactor_singleton();
   // alternate way of getting at reactor singleton
 
+  int log_only() { return _log_only; }
+  // return flag that indicates whether just this handler is in logging mode 
+
+  void log_only(int flag ) { _log_only = flag; }
+  // set flag that indicates whether just this handler is in logging mode 
+
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
@@ -128,6 +134,8 @@ protected:
   static int _logger_mode;
   // mode for logging commands: 0 = no log, 1 = log only
 
+  int _log_only;
+  // put just this handler into log mode
 };
 
 //: Specialize a ComterpAcceptor.

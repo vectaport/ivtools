@@ -63,6 +63,38 @@ public:
 
 };
 
+//: bitwise nand command.
+class BitNandFunc : public NumFunc {
+public:
+    BitNandFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "val=nand(a b) -- bitwise nand (~(a&b))"; }
+};
+
+//: bitwise xnor command.
+class BitXnorFunc : public NumFunc {
+public:
+    BitXnorFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "val=xnor(a b) -- bitwise xnor (~(a^b))"; }
+
+};
+
+//: bitwise nor command.
+class BitNorFunc : public NumFunc {
+public:
+    BitNorFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "val=nor(a b) -- bitwise nor (~(a|b))"; }
+
+};
+
 //: ~ (bit_not) operator.
 class BitNotFunc : public NumFunc {
 public:

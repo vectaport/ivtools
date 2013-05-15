@@ -82,29 +82,11 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   comterp()->npause()++;
 
   comterp()->push_servstate();
-#if __GNUC__<3
-  filebuf fbufin;
-  if (comterp()->handler()) {
-    int fd = max(0, comterp()->handler()->get_handle());
-    fbufin.attach(fd);
-  } else
-    fbufin.attach(fileno(stdin));
-#else
   fileptr_filebuf fbufin(comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
 		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
-#endif
   istream in(&fbufin);
-#if __GNUC__<3
-  filebuf fbufout;
-  if (comterp()->handler()) {
-    int fd = max(1, comterp()->handler()->get_handle());
-    fbufout.attach(fd);
-  } else
-    fbufout.attach(fileno(stdout));
-#else
   fileptr_filebuf fbufout(comterp()->handler() && comterp()->handler()->wrfptr()
 		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
-#endif
   ostream out(&fbufout);
 
  if (msgstrv.is_string()) {
@@ -121,35 +103,18 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   out << sbuf2_s.str();
   out.flush();
 
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-  char cvect[BUFSIZ];
-  int cvect_cnt = 0;
-#else
   vector<char> cvect;
-#endif
   ComValue retval;
   do {
     char ch;
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-    cvect[0] = '\0';
-#else
     cvect.erase(cvect.begin(), cvect.end());
-#endif
 
 
     /* need to handle embedded newlines differently */
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-    do {
-      ch = in.get();
-      cvect[cvect_cnt++] = ch;
-    } while (in.good() && ch != '\n' && cvect_cnt<BUFSIZ-1);
-    cvect[cvect_cnt]='\0';
-#else
     do {
       ch = in.get();
       cvect.push_back(ch);
     } while (in.good() && ch != '\n');
-#endif
     if (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n')) {
       if (comterpserv()) {
 	retval.assignval(comterpserv()->run(&cvect[0]));

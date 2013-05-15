@@ -224,6 +224,7 @@ boolean ComTerp::brief() const {
 }
 
 int ComTerp::eval_expr(boolean nested) {
+  if(_pfnum==0) return FUNCBAD;
   _pfoff = 0;
   delete [] _pfcomvals;
   _pfcomvals = nil;
@@ -622,6 +623,17 @@ void ComTerp::print_post_eval_expr(int tokcnt, int offtop, int pedepth ) {
   cout << "\n";
 }
 
+postfix_token* ComTerp::copy_post_eval_expr(int tokcnt, int offtop) {
+  postfix_token* tokbuf = new postfix_token[tokcnt];
+  int offset = _pfnum+offtop;
+  for(int i=0; i<tokcnt; i++) {
+    tokbuf[i] = _pfbuf[i+offset];
+    if (tokbuf[i].type==TOK_STRING)
+      symbol_reference(tokbuf[i].v.symbolid);
+  }
+  return tokbuf;
+}
+
 boolean ComTerp::skip_func(ComValue* topval, int& offset, int offlimit) {
   ComValue* sv = topval + offset;
   int nargs = sv->narg();
@@ -1002,8 +1014,10 @@ void ComTerp::clear_top_commands() {
     _top_commands = nil;
 }
 
-int ComTerp::add_command(const char* name, ComFunc* func, const char* alias) {
+int ComTerp::add_command(const char* name, ComFunc* func, const char* alias, const char* docstring2) {
     int symid = symbol_add((char *)name);
+
+    if(docstring2) func->docstring2(docstring2);
 
     if (!_top_commands)
         _top_commands = new AttributeValueList();
@@ -1178,6 +1192,9 @@ void ComTerp::add_defaults() {
     add_command("bit_xor", new BitXorFunc(this));
     add_command("bit_or", new BitOrFunc(this));
     add_command("bit_not", new BitNotFunc(this));
+    add_command("nand", new BitNandFunc(this));
+    add_command("xnor", new BitXnorFunc(this));
+    add_command("nor", new BitNorFunc(this));
     add_command("lshift", new LeftShiftFunc(this));
     add_command("rshift", new RightShiftFunc(this));
     add_command("and", new AndFunc(this));
@@ -1295,12 +1312,16 @@ void ComTerp::add_defaults() {
 
     add_command("ctoi", new CtoiFunc(this));
     add_command("isspace", new IsSpaceFunc(this));
+    add_command("isdigit", new IsDigitFunc(this));
+    add_command("isalpha", new IsAlphaFunc(this));
 
     add_command("arg", new GetArgFunc(this));
     add_command("narg", new NumArgFunc(this));
 
     add_command("continue", new ContinueFunc(this));
     add_command("break", new BreakFunc(this));
+
+    add_command("func", new FuncObjFunc(this));
 
   }
 }
@@ -1646,7 +1667,11 @@ boolean ComTerp::stack_empty() { return _stack_top<0; }
 
 void ComTerp::postfix_echo() {
   if (!_echo_postfix) return;
-  // print everything in the _pfbuf for this function
+  postfix_echo(_pfbuf, _pfnum);
+}
+
+void ComTerp::postfix_echo(postfix_token* pfbuf, int pfnum) {
+  // print everything in the pfbuf for this function
   fileptr_filebuf fbuf(handler() && handler()->wrfptr()
 	       ? handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbuf);
@@ -1655,9 +1680,9 @@ void ComTerp::postfix_echo() {
   brief(true);
 
   ComValue val;
-  for (int i=0; i<_pfnum; i++) {
+  for (int i=0; i<pfnum; i++) {
     ComValue val;
-    token_to_comvalue(_pfbuf+i, &val);
+    token_to_comvalue(pfbuf+i, &val);
     val.comterp(this);
     out << val;
     if (val.is_type(AttributeValue::CommandType) ||
@@ -1690,7 +1715,7 @@ void ComTerp::postfix_echo() {
       out << "{" << val.narg() << "|" << val.nkey() << "}";
     else if (val.is_type(AttributeValue::KeywordType))
       out << "(" << val.keynarg_val() << ")";
-    out << ((i==_pfnum-1) ? "\n" : " ");
+    out << ((i==pfnum-1) ? "\n" : " ");
   }
   brief(oldbrief);
 }

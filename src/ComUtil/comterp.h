@@ -154,6 +154,7 @@ struct _paren_stack
   unsigned paren_type;
   int comm_id;
 #ifdef PAREN_STACK_EXPERIMENT
+
   int pfnum;   // to keep track of postfix output prior this paren pushed on stack
 #endif
 };

@@ -1235,10 +1235,6 @@ void AttributeValue::dup_as_needed() {
 
 void AttributeValue::unref_as_needed() {
   if (_type == AttributeValue::ArrayType) {
-      #if 0
-      if (_v.arrayval.ptr->refcount_==1) 
-	fprintf(stderr, "AttributeValue::ArrayType about to be deleted.\n");
-      #endif
       Resource::unref(_v.arrayval.ptr);
   }
   else if (_type == AttributeValue::StreamType)

@@ -39,6 +39,7 @@
 #include <iostream.h>
 #include <string.h>
 #include <fstream>
+#include <iomanip>
 
 #include <IV-2_6/_enter.h>
 
@@ -424,10 +425,10 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 	        out << "\"" << string << "\"";
 	        break;
 	    case AttributeValue::CharType:
-	        out << attrval->char_ref();
+	        out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)attrval->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);	
 	        break;
 	    case AttributeValue::UCharType:
-	        out << attrval->uchar_ref();
+	        out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int) attrval->uchar_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	        break;
 	    case AttributeValue::ShortType:
 	        out << attrval->short_ref();

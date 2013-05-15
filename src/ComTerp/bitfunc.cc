@@ -80,6 +80,8 @@ void BitAndFunc::execute() {
     push_stack(result);
 }
 
+/*****************************************************************************/
+
 BitXorFunc::BitXorFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
@@ -127,6 +129,8 @@ void BitXorFunc::execute() {
     reset_stack();
     push_stack(result);
 }
+
+/*****************************************************************************/
 
 BitOrFunc::BitOrFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
@@ -216,6 +220,204 @@ void BitOrFunc::execute() {
 	break;
       case ComValue::BooleanType:
         result.boolean_ref() = result.boolean_val() | operand.boolean_val();
+	break;
+      }
+    }
+    reset_stack();
+    push_stack(result);
+  }
+}
+
+/*****************************************************************************/
+
+BitNandFunc::BitNandFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void BitNandFunc::execute() {
+    ComValue& operand1 = stack_arg(0);
+    ComValue& operand2 = stack_arg(1);
+    promote(operand1, operand2);
+    ComValue result(operand1);
+
+    switch (result.type()) {
+    case ComValue::CharType:
+	result.char_ref() = ~(operand1.char_val() & operand2.char_val());
+	break;
+    case ComValue::UCharType:
+	result.uchar_ref() = ~(operand1.uchar_val() & operand2.uchar_val());
+	break;
+    case ComValue::ShortType:
+	result.short_ref() = ~(operand1.short_val() & operand2.short_val());
+	break;
+    case ComValue::UShortType:
+	result.ushort_ref() = ~(operand1.ushort_val() & operand2.ushort_val());
+	break;
+    case ComValue::IntType:
+	result.int_ref() = ~(operand1.int_val() & operand2.int_val());
+	break;
+    case ComValue::UIntType:
+	result.uint_ref() = ~(operand1.uint_val() & operand2.uint_val());
+	break;
+    case ComValue::LongType:
+	result.long_ref() = ~(operand1.long_val() & operand2.long_val());
+	break;
+    case ComValue::ULongType:
+	result.ulong_ref() = ~(operand1.ulong_val() & operand2.ulong_val());
+	break;
+    case ComValue::FloatType:
+	result.type(ComValue::UnknownType);
+	break;
+    case ComValue::DoubleType:
+	result.type(ComValue::UnknownType);
+	break;
+    case ComValue::BooleanType:
+        result.boolean_ref() = ~(operand1.boolean_val() & operand2.boolean_val());
+	break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
+/*****************************************************************************/
+
+BitXnorFunc::BitXnorFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void BitXnorFunc::execute() {
+    ComValue& operand1 = stack_arg(0);
+    ComValue& operand2 = stack_arg(1);
+    promote(operand1, operand2);
+    ComValue result(operand1);
+
+    switch (result.type()) {
+    case ComValue::CharType:
+	result.char_ref() = ~(operand1.char_val() ^ operand2.char_val());
+	break;
+    case ComValue::UCharType:
+	result.uchar_ref() = ~(operand1.uchar_val() ^ operand2.uchar_val());
+	break;
+    case ComValue::ShortType:
+	result.short_ref() = ~(operand1.short_val() ^ operand2.short_val());
+	break;
+    case ComValue::UShortType:
+	result.ushort_ref() = ~(operand1.ushort_val() ^ operand2.ushort_val());
+	break;
+    case ComValue::IntType:
+	result.int_ref() = ~(operand1.int_val() ^ operand2.int_val());
+	break;
+    case ComValue::UIntType:
+	result.uint_ref() = ~(operand1.uint_val() ^ operand2.uint_val());
+	break;
+    case ComValue::LongType:
+	result.long_ref() = ~(operand1.long_val() ^ operand2.long_val());
+	break;
+    case ComValue::ULongType:
+	result.ulong_ref() = ~(operand1.ulong_val() ^ operand2.ulong_val());
+	break;
+    case ComValue::FloatType:
+	result.type(ComValue::UnknownType);
+	break;
+    case ComValue::DoubleType:
+	result.type(ComValue::UnknownType);
+	break;
+    case ComValue::BooleanType:
+        result.boolean_ref() = ~(operand1.boolean_val() ^ operand2.boolean_val());
+	break;
+    }
+    reset_stack();
+    push_stack(result);
+}
+
+/*****************************************************************************/
+
+BitNorFunc::BitNorFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void BitNorFunc::execute() {
+  if (nargs()==2) {
+    ComValue& operand1 = stack_arg(0);
+    ComValue& operand2 = stack_arg(1);
+    promote(operand1, operand2);
+    ComValue result(operand1);
+
+    switch (result.type()) {
+    case ComValue::CharType:
+	result.char_ref() = ~(operand1.char_val() | operand2.char_val());
+	break;
+    case ComValue::UCharType:
+	result.uchar_ref() = ~(operand1.uchar_val() | operand2.uchar_val());
+	break;
+    case ComValue::ShortType:
+	result.short_ref() = ~(operand1.short_val() | operand2.short_val());
+	break;
+    case ComValue::UShortType:
+	result.ushort_ref() = ~(operand1.ushort_val() | operand2.ushort_val());
+	break;
+    case ComValue::IntType:
+	result.int_ref() = ~(operand1.int_val() | operand2.int_val());
+	break;
+    case ComValue::UIntType:
+	result.uint_ref() = ~(operand1.uint_val() | operand2.uint_val());
+	break;
+    case ComValue::LongType:
+	result.long_ref() = ~(operand1.long_val() | operand2.long_val());
+	break;
+    case ComValue::ULongType:
+	result.ulong_ref() = ~(operand1.ulong_val() | operand2.ulong_val());
+	break;
+    case ComValue::FloatType:
+	result.type(ComValue::UnknownType);
+	break;
+    case ComValue::DoubleType:
+	result.type(ComValue::UnknownType);
+	break;
+    case ComValue::BooleanType:
+        result.boolean_ref() = ~(operand1.boolean_val() | operand2.boolean_val());
+	break;
+    }
+    reset_stack();
+    push_stack(result);
+  }
+
+  else {
+    int curarg = 0;
+    ComValue result(stack_arg(curarg++));
+    while(curarg<nargs()) {
+      ComValue operand(stack_arg(curarg++));
+
+      switch (result.type()) {
+      case ComValue::CharType:
+	result.char_ref() = ~(result.char_val() | operand.char_val());
+	break;
+      case ComValue::UCharType:
+	result.uchar_ref() = ~(result.uchar_val() | operand.uchar_val());
+	break;
+      case ComValue::ShortType:
+	result.short_ref() = ~(result.short_val() | operand.short_val());
+	break;
+      case ComValue::UShortType:
+	result.ushort_ref() = ~(result.ushort_val() | operand.ushort_val());
+	break;
+      case ComValue::IntType:
+	result.int_ref() = ~(result.int_val() | operand.int_val());
+	break;
+      case ComValue::UIntType:
+	result.uint_ref() = ~(result.uint_val() | operand.uint_val());
+	break;
+      case ComValue::LongType:
+	result.long_ref() = ~(result.long_val() | operand.long_val());
+	break;
+      case ComValue::ULongType:
+	result.ulong_ref() = ~(result.ulong_val() | operand.ulong_val());
+	break;
+      case ComValue::FloatType:
+	result.type(ComValue::UnknownType);
+	break;
+      case ComValue::DoubleType:
+	result.type(ComValue::UnknownType);
+	break;
+      case ComValue::BooleanType:
+        result.boolean_ref() = ~(result.boolean_val() | operand.boolean_val());
 	break;
       }
     }

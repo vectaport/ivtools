@@ -42,6 +42,7 @@ int ComFunc::_symid = -1;
 ComFunc::ComFunc(ComTerp* comterp) {
     _comterp = comterp;
     _context = nil;
+    _docstring2 = nil;
 }
 
 void ComFunc::reset_stack() {
@@ -168,6 +169,27 @@ void ComFunc::print_stack_arg_post_eval(int n) {
 
   comterp()->print_post_eval_expr(argcnt, offtop, pedepth()+1);
   return;
+}
+
+postfix_token* ComFunc::copy_stack_arg_post_eval(int n, int& ntoks) {
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  int argcnt;
+  for (int i=0; i<nkeys(); i++) {
+    argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+  }
+
+  if (n>=nargsfixed()) return NULL;
+
+  for (int j=nargsfixed(); j>n; j--) {
+    argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+  }
+
+  postfix_token* tokbuf = comterp()->copy_post_eval_expr(argcnt, offtop);
+  ntoks = argcnt;
+  return tokbuf;
 }
 
 ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dflt) {

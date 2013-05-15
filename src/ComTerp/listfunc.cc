@@ -29,6 +29,7 @@
 #include <ComTerp/strmfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/postfunc.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
@@ -161,6 +162,22 @@ void ListAtFunc::execute() {
 	count++;
       }
     }
+  } else if (listv.is_string()) {
+    const char* str = listv.string_ptr();
+    if(!setflag) {
+      if(strlen(str) > nv.int_val()) {
+        ComValue retval(*(str+nv.int_val()), ComValue::CharType);
+        push_stack(retval);
+        return;
+      }
+    } else {
+      if(nv.int_val()<strlen(str) && nv.int_val()>=0) {
+	*((char *)str+nv.int_val()) = setv.char_val();
+	ComValue retval(setv);
+	push_stack(retval);
+	return;
+      }
+    }
   }
   push_stack(ComValue::nullval());
 }
@@ -192,6 +209,13 @@ void ListSizeFunc::execute() {
     ComValue retval((int)strlen(listv.symbol_ptr()), ComValue::IntType);
     push_stack(retval);
     return;
+  } else if (listv.is_object(FuncObj::class_symid())) {
+    FuncObj* tokbuf = (FuncObj*)listv.obj_val();
+    if (tokbuf) {
+      ComValue retval(tokbuf->ntoks());
+      push_stack(retval);
+      return;			  
+    }
   }
   
   push_stack(ComValue::nullval());
@@ -238,50 +262,93 @@ ListIndexFunc::ListIndexFunc(ComTerp* comterp) : ComFunc(comterp) {
 void ListIndexFunc::execute() {
   ComValue listorstrv(stack_arg(0));
   ComValue valv(stack_arg(1));
+  static int last_symid = symbol_add("last");
+  ComValue lastv(stack_key(last_symid));
+  boolean lastflag = lastv.is_true();
+  static int all_symid = symbol_add("all");
+  ComValue allv(stack_key(all_symid));
+  boolean allflag = allv.is_true();
   reset_stack();
 
+  AttributeValueList *nvl = allflag ? new AttributeValueList : nil;
   if (listorstrv.is_array()) {  
       AttributeValueList* avl = listorstrv.array_val();
       Iterator it;
-      avl->First(it);
-      int index=0;
+      if (lastflag)
+        avl->Last(it);
+      else
+	avl->First(it);
+      int index= lastflag ? avl->Number()-1 : 0;
       while(!avl->Done(it)) {
-          AttributeValue* testv = avl->GetAttrVal(it);
-          comterp()->push_stack(*testv);
-          comterp()->push_stack(valv);
-          EqualFunc eqfunc(comterp());
-          eqfunc.exec(2,0);
-          if(comterp()->pop_stack().is_true()) {
-              ComValue retval(index, ComValue::IntType);
-              push_stack(retval);
-              return;
-          }
-          avl->Next(it);
-          index++;
-      }
+	AttributeValue* testv = avl->GetAttrVal(it);
+	comterp()->push_stack(*testv);
+	comterp()->push_stack(valv);
+	EqualFunc eqfunc(comterp());
+	eqfunc.exec(2,0);
+	if(comterp()->pop_stack().is_true()) {
+	  if (allflag)
+	    nvl->Append(new AttributeValue(index, AttributeValue::IntType));
+	  else {
+	    ComValue retval(index, ComValue::IntType);
+	    push_stack(retval);
+	    return;
+	  }
+	}
+	if (lastflag)
+	  avl->Prev(it);
+	else
+	  avl->Next(it);
+	index += lastflag ? -1 : 1;
+      };
+
   } else if (listorstrv.is_string()) {
+
       if (valv.is_char()) {
           const char* string = listorstrv.string_ptr();
-          int i=0;
           int sz=strlen(string);
-          while(i<sz) {
+          int i= lastflag ? sz : 0;
+          while(lastflag ? i>=0 : i<sz) {
               if (string[i]==valv.char_val()) {
+		if(allflag)
+		  nvl->Append(new AttributeValue(i, AttributeValue::IntType));
+		else {
                   ComValue retval(i, ComValue::IntType);
                   push_stack(retval);
                   return;
+		}
               }
-              i++;
+              i = i + (lastflag?-1:1);
           }
       } else if (valv.is_string()) {
           const char* string = listorstrv.string_ptr();          
           const char* foundstr = strstr(string, valv.symbol_ptr());
-          if (foundstr!=NULL) {
-              ComValue retval((int)(foundstr-string), ComValue::IntType);
-              push_stack(retval);
-              return;
-          }
+	  const char* newfoundstr = foundstr;
+          if((lastflag||allflag) && foundstr!=NULL) {
+	    do {
+	      foundstr = newfoundstr;
+	      newfoundstr = strstr(foundstr+strlen(valv.symbol_ptr()), valv.symbol_ptr());
+              if(allflag) {
+                if(lastflag)
+		  nvl->Prepend(new AttributeValue((int)(foundstr-string), AttributeValue::IntType));
+		else
+		  nvl->Append(new AttributeValue((int)(foundstr-string), AttributeValue::IntType));
+	      }             
+	    } while (newfoundstr!=NULL);
+	  }
+	  if(foundstr!=NULL && !allflag) {
+	    ComValue retval((int)(foundstr-string), ComValue::IntType);
+	    push_stack(retval);
+	    return;
+	  }
       }
   }
+  
+  if(allflag) {
+    ComValue retval(nvl);
+    push_stack(retval);
+    return;
+  }
+
   push_stack(ComValue::nullval());
   return;
 }

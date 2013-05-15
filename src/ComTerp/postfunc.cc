@@ -52,17 +52,8 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
-#if __GNUC__<3
-  filebuf fbuf;
-  if (comterp()->handler()) {
-    int fd = Math::max(1, comterp()->handler()->get_handle());
-    fbuf.attach(fd);
-  } else
-    fbuf.attach(fileno(stdout));
-#else
   fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
-#endif
   ostream out(&fbuf);
  
   boolean oldbrief = comterp()->brief();
@@ -303,5 +294,40 @@ void SwitchFunc::execute() {
   }
   reset_stack();
   push_stack(retval);
+}
+
+/*****************************************************************************/
+int FuncObj::_symid = -1;
+
+FuncObj::FuncObj(postfix_token* toks, int ntoks) {
+  _toks = toks;
+  _ntoks = ntoks;
+}
+
+FuncObj::~FuncObj() { 
+  delete [] _toks;
+}
+
+/*****************************************************************************/
+
+FuncObjFunc::FuncObjFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+
+void FuncObjFunc::execute() {
+  int toklen;
+  postfix_token* tokbuf = copy_stack_arg_post_eval(0, toklen);
+  static int echo_symid = symbol_add("echo");
+  ComValue echov(stack_key_post_eval(echo_symid));
+  reset_stack();
+  if (!tokbuf)
+    push_stack(ComValue::nullval());
+  else {
+    if (echov.is_true())
+      comterp()->postfix_echo(tokbuf, toklen);
+    FuncObj* tokbufobj = new FuncObj(tokbuf, toklen);
+    ComValue retval(FuncObj::class_symid(), (void*)tokbufobj);
+    push_stack(retval);
+  }
 }
 
