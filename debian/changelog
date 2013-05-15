@@ -1,3 +1,9 @@
+ivtools (1.2.11a1-1) unstable; urgency=low
+
+  * new upstream release
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 15 May 2013 14:55:20 +0100
+
 ivtools (1.2.10a1-2) unstable; urgency=low
 
   * switch executable debian/*.install files from sh to dh-exec
