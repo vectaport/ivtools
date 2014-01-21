@@ -12,7 +12,7 @@ Build-Depends: debhelper (>= 9),
 	ghostscript
 Build-Conflicts: autoconf2.13, automake1.4
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 3.9.3
+Standards-Version: 3.9.5
 Homepage: http://www.ivtools.org
 Vcs-Git: git://git.debian.org/git/collab-maint/ivtools.git
 Vcs-Browser: http://git.debian.org/?p=collab-maint/ivtools.git
