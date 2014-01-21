@@ -1,3 +1,11 @@
+ivtools (1.2.11a1-2) unstable; urgency=low
+
+  * bump standards version (no changes required)
+  * update packaging repo urls
+  * remove build alt libtiff4-dev (closes: #736016)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 21 Jan 2014 15:36:31 +0000
+
 ivtools (1.2.11a1-1) unstable; urgency=low
 
   * new upstream release
