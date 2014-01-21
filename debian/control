@@ -7,7 +7,7 @@ Build-Depends: debhelper (>= 9),
 	zlib1g-dev,
 	x11-utils, xutils-dev, x11proto-core-dev,
 	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
-	libtiff4-dev | libtiff-dev, libace-dev,
+	libtiff-dev, libace-dev,
 	libclippoly-dev,
 	ghostscript
 Build-Conflicts: autoconf2.13, automake1.4
@@ -38,7 +38,7 @@ Section: devel
 Architecture: any
 Depends: libiv1 (= ${binary:Version}),
 	 libiv-unidraw1 (= ${binary:Version}),
-	 libc6-dev, libtiff4-dev, zlib1g-dev, libace-dev,
+	 libc6-dev, libtiff-dev, zlib1g-dev, libace-dev,
 	 ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools-bin (<< 0.7.2)
 Description: Development files for the InterViews library
