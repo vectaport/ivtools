@@ -52,6 +52,7 @@ Description: Development files for the InterViews library
 
 Package: libiv1
 Architecture: any
+Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools
@@ -64,6 +65,7 @@ Description: C++ GUI library with Motif Look and Feel
 
 Package: libiv-unidraw1
 Architecture: any
+Multi-Arch: same
 Conflicts: ivtools
 Replaces: ivtools
 Pre-Depends: ${misc:Pre-Depends}
