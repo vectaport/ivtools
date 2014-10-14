@@ -1,3 +1,9 @@
+ivtools (1.2.11a1-3) unstable; urgency=medium
+
+  * rebuild with new libace
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 14 Oct 2014 08:51:42 +0100
+
 ivtools (1.2.11a1-2) unstable; urgency=low
 
   * bump standards version (no changes required)
