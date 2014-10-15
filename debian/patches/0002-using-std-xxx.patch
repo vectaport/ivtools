@@ -4,9 +4,9 @@ Subject: using std xxx
 
 explicitly import some std:: qualified identifiers
 ---
- src/OverlayUnidraw/clippoly.cc |    3 +++
- src/Time/Date.cc               |    3 +++
- src/Time/Time.cc               |    3 +++
+ src/OverlayUnidraw/clippoly.cc | 3 +++
+ src/Time/Date.cc               | 3 +++
+ src/Time/Time.cc               | 3 +++
  3 files changed, 9 insertions(+)
 
 diff --git a/src/OverlayUnidraw/clippoly.cc b/src/OverlayUnidraw/clippoly.cc

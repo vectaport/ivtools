@@ -4,32 +4,32 @@ Subject: include cstdio etc
 
 augment and adjust standard C++ I/O-related include directives
 ---
- src/Attribute/paramlist.cc             |    1 +
- src/ComTerp/comterp.cc                 |    1 +
- src/ComTerp/comvalue.cc                |    1 +
- src/ComTerp/ctrlfunc.cc                |    1 +
- src/ComTerp/debugfunc.cc               |    2 ++
- src/DrawServ/rcdialog.cc               |    2 +-
- src/GraphUnidraw/graphcatalog.cc       |    2 ++
- src/IV-X11/xdrag.cc                    |    2 ++
- src/IVGlyph/exportchooser.cc           |    3 ++-
- src/IVGlyph/fieldedit.cc               |    2 ++
- src/InterViews/printer.cc              |    1 +
- src/InterViews/regexp.cc               |    3 +++
- src/OS/string.cc                       |    1 +
- src/Time/Date.cc                       |    4 +++-
- src/Time/Time.cc                       |    4 ++--
- src/Time/obstime.cc                    |    1 +
- src/Time/timeglyph.cc                  |    3 ++-
- src/TopoFace/fgeomobjs.cc              |    1 +
- src/Unidraw/geomobjs.cc                |    2 ++
- src/comterp_/main.cc                   |    2 ++
- src/glyphs/examples3.1/print/main.cc   |    2 ++
- src/iclass/main.cc                     |    1 +
- src/include/OS/string.h                |    1 +
- src/include/Unidraw/Graphic/geomobjs.h |    2 ++
- src/include/ivstd/fstream.h            |    1 +
- src/include/ivstd/iostream.h           |    1 +
+ src/Attribute/paramlist.cc             | 1 +
+ src/ComTerp/comterp.cc                 | 1 +
+ src/ComTerp/comvalue.cc                | 1 +
+ src/ComTerp/ctrlfunc.cc                | 1 +
+ src/ComTerp/debugfunc.cc               | 2 ++
+ src/DrawServ/rcdialog.cc               | 2 +-
+ src/GraphUnidraw/graphcatalog.cc       | 2 ++
+ src/IV-X11/xdrag.cc                    | 2 ++
+ src/IVGlyph/exportchooser.cc           | 3 ++-
+ src/IVGlyph/fieldedit.cc               | 2 ++
+ src/InterViews/printer.cc              | 1 +
+ src/InterViews/regexp.cc               | 3 +++
+ src/OS/string.cc                       | 1 +
+ src/Time/Date.cc                       | 4 +++-
+ src/Time/Time.cc                       | 4 ++--
+ src/Time/obstime.cc                    | 1 +
+ src/Time/timeglyph.cc                  | 3 ++-
+ src/TopoFace/fgeomobjs.cc              | 1 +
+ src/Unidraw/geomobjs.cc                | 2 ++
+ src/comterp_/main.cc                   | 2 ++
+ src/glyphs/examples3.1/print/main.cc   | 2 ++
+ src/iclass/main.cc                     | 1 +
+ src/include/OS/string.h                | 1 +
+ src/include/Unidraw/Graphic/geomobjs.h | 2 ++
+ src/include/ivstd/fstream.h            | 1 +
+ src/include/ivstd/iostream.h           | 1 +
  26 files changed, 41 insertions(+), 6 deletions(-)
 
 diff --git a/src/Attribute/paramlist.cc b/src/Attribute/paramlist.cc
@@ -45,7 +45,7 @@ index 934ff73..ad547f9 100644
  #include <Attribute/aliterator.h>
  #include <Attribute/paramlist.h>
 diff --git a/src/ComTerp/comterp.cc b/src/ComTerp/comterp.cc
-index ff8e554..50867bb 100644
+index 094fad6..216264a 100644
 --- a/src/ComTerp/comterp.cc
 +++ b/src/ComTerp/comterp.cc
 @@ -23,6 +23,7 @@
@@ -57,7 +57,7 @@ index ff8e554..50867bb 100644
  #include <iostream.h>
  #include <string.h>
 diff --git a/src/ComTerp/comvalue.cc b/src/ComTerp/comvalue.cc
-index e5227c7..11cb581 100644
+index 1e2468a..0c9bc5f 100644
 --- a/src/ComTerp/comvalue.cc
 +++ b/src/ComTerp/comvalue.cc
 @@ -22,6 +22,7 @@
@@ -69,7 +69,7 @@ index e5227c7..11cb581 100644
  #include <ComTerp/comfunc.h>
  #include <ComTerp/comvalue.h>
 diff --git a/src/ComTerp/ctrlfunc.cc b/src/ComTerp/ctrlfunc.cc
-index 7973214..dbd37f1 100644
+index 3038989..a09d6b3 100644
 --- a/src/ComTerp/ctrlfunc.cc
 +++ b/src/ComTerp/ctrlfunc.cc
 @@ -22,6 +22,7 @@
@@ -81,7 +81,7 @@ index 7973214..dbd37f1 100644
  #include <iostream>
  #include <ComTerp/comhandler.h>
 diff --git a/src/ComTerp/debugfunc.cc b/src/ComTerp/debugfunc.cc
-index f8f5a5b..aa66ddc 100644
+index 3284be2..f7c93d1 100644
 --- a/src/ComTerp/debugfunc.cc
 +++ b/src/ComTerp/debugfunc.cc
 @@ -22,6 +22,8 @@

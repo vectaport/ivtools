@@ -9,14 +9,14 @@ Change "amout" to "amount".
 Change "arguement" to "argument".
 Change "targetted" to "targeted".
 ---
- CHANGES-0.8                        |    2 +-
- src/ComTerp/assignfunc.h           |    2 +-
- src/InterViews/hit.cc              |    2 +-
- src/OverlayUnidraw/setattrbyexpr.h |    2 +-
- src/man/man1/drawtool.1            |    2 +-
- src/man/man3/Control.3             |    2 +-
- src/man/man3/Viewer.3              |    2 +-
- src/man/man3/statevars.3           |    2 +-
+ CHANGES-0.8                        | 2 +-
+ src/ComTerp/assignfunc.h           | 2 +-
+ src/InterViews/hit.cc              | 2 +-
+ src/OverlayUnidraw/setattrbyexpr.h | 2 +-
+ src/man/man1/drawtool.1            | 2 +-
+ src/man/man3/Control.3             | 2 +-
+ src/man/man3/Viewer.3              | 2 +-
+ src/man/man3/statevars.3           | 2 +-
  8 files changed, 8 insertions(+), 8 deletions(-)
 
 diff --git a/CHANGES-0.8 b/CHANGES-0.8

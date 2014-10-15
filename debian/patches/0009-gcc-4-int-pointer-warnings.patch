@@ -6,11 +6,11 @@ Use intptr_t instead of int for integral values cast to void *,
 avoiding warnings in at least g++ 4.7.  Note that as of g++ 4.7, the
 header file <inttypes.h> is needed to declare intptr_t.
 ---
- src/IV-2_6/button2_6.cc                |   13 +++++++------
- src/Unidraw/catalog.cc                 |   18 +++++++++---------
- src/Unidraw/dialogs.cc                 |    2 +-
- src/include/IV-2_6/InterViews/button.h |   13 +++++++------
- src/include/Unidraw/catalog.h          |   11 ++++++-----
+ src/IV-2_6/button2_6.cc                | 13 +++++++------
+ src/Unidraw/catalog.cc                 | 18 +++++++++---------
+ src/Unidraw/dialogs.cc                 |  2 +-
+ src/include/IV-2_6/InterViews/button.h | 13 +++++++------
+ src/include/Unidraw/catalog.h          | 11 ++++++-----
  5 files changed, 30 insertions(+), 27 deletions(-)
 
 diff --git a/src/IV-2_6/button2_6.cc b/src/IV-2_6/button2_6.cc

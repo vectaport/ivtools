@@ -6,11 +6,11 @@ tweak man page headers into conformance with format
 required by whatis, aka, man -k, and correct any roff
 syntax errors.
 ---
- src/man/man1/comdraw.1      |    2 +-
- src/man/man1/comterp.1      |    2 +-
- src/man/man1/drawtool.1     |    4 ++--
- src/man/man3/BasicDialog.3  |    2 +-
- src/man/man3/UnidrawIntro.3 |    2 +-
+ src/man/man1/comdraw.1      | 2 +-
+ src/man/man1/comterp.1      | 2 +-
+ src/man/man1/drawtool.1     | 4 ++--
+ src/man/man3/BasicDialog.3  | 2 +-
+ src/man/man3/UnidrawIntro.3 | 2 +-
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/man/man1/comdraw.1 b/src/man/man1/comdraw.1
@@ -25,7 +25,7 @@ index 2503151..b359b43 100644
  .SH SYNOPSIS
  .B comdraw 
 diff --git a/src/man/man1/comterp.1 b/src/man/man1/comterp.1
-index 07cecdd..386d877 100644
+index 8f82898..f176568 100644
 --- a/src/man/man1/comterp.1
 +++ b/src/man/man1/comterp.1
 @@ -1,5 +1,5 @@

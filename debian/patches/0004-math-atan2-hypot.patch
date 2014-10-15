@@ -9,27 +9,27 @@ Smooth numeric code:
  more robust #define M_PI guard
 (Should algebra3.h be deleted?  Seems unused.)
 ---
- src/IV-2_6/rubband.cc              |   24 +++---------------------
- src/IV-2_6/rubcurve.cc             |    6 +++---
- src/IV-2_6/rubline.cc              |    2 +-
- src/IV-2_6/rubrect.cc              |    2 +-
- src/IVGlyph/figure.cc              |   11 ++---------
- src/IVGlyph/globals.cc             |    2 +-
- src/IVGlyph/globals.h              |    5 +----
- src/InterViews/bevel.cc            |    8 ++++----
- src/InterViews/transformer.cc      |    4 +---
- src/OverlayUnidraw/algebra3.h      |   11 +++++++----
- src/OverlayUnidraw/ovraster.cc     |    2 +-
- src/TopoFace/fgeomobjs.cc          |    2 +-
- src/UniIdraw/idarrowhead.cc        |    2 +-
- src/UniIdraw/idarrows.cc           |   10 +++++-----
- src/Unidraw/geomobjs.cc            |    2 +-
- src/Unidraw/grblock.cc             |    2 +-
- src/Unidraw/pin.cc                 |    2 +-
- src/Unidraw/slot.cc                |    2 +-
- src/glyphs/morpher/glyphviewer.cc  |    2 +-
- src/include/OS/math.h              |   16 ++++++++++++++++
- src/include/Unidraw/Graphic/util.h |    5 +----
+ src/IV-2_6/rubband.cc              | 24 +++---------------------
+ src/IV-2_6/rubcurve.cc             |  6 +++---
+ src/IV-2_6/rubline.cc              |  2 +-
+ src/IV-2_6/rubrect.cc              |  2 +-
+ src/IVGlyph/figure.cc              | 11 ++---------
+ src/IVGlyph/globals.cc             |  2 +-
+ src/IVGlyph/globals.h              |  5 +----
+ src/InterViews/bevel.cc            |  8 ++++----
+ src/InterViews/transformer.cc      |  4 +---
+ src/OverlayUnidraw/algebra3.h      | 11 +++++++----
+ src/OverlayUnidraw/ovraster.cc     |  2 +-
+ src/TopoFace/fgeomobjs.cc          |  2 +-
+ src/UniIdraw/idarrowhead.cc        |  2 +-
+ src/UniIdraw/idarrows.cc           | 10 +++++-----
+ src/Unidraw/geomobjs.cc            |  2 +-
+ src/Unidraw/grblock.cc             |  2 +-
+ src/Unidraw/pin.cc                 |  2 +-
+ src/Unidraw/slot.cc                |  2 +-
+ src/glyphs/morpher/glyphviewer.cc  |  2 +-
+ src/include/OS/math.h              | 16 ++++++++++++++++
+ src/include/Unidraw/Graphic/util.h |  5 +----
  21 files changed, 54 insertions(+), 68 deletions(-)
 
 diff --git a/src/IV-2_6/rubband.cc b/src/IV-2_6/rubband.cc

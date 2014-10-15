@@ -3,7 +3,7 @@ Date: Thu, 1 Sep 2011 20:25:54 +0100
 Subject: nofile for hurd
 
 ---
- src/Dispatch/dispatcher.cc |    4 ++++
+ src/Dispatch/dispatcher.cc | 4 ++++
  1 file changed, 4 insertions(+)
 
 diff --git a/src/Dispatch/dispatcher.cc b/src/Dispatch/dispatcher.cc
