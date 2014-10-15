@@ -1,0 +1,94 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Wed, 15 Oct 2014 12:46:59 +0100
+Subject: autoconf guard time
+
+Time code should simply #include <sys/time.h> when available.
+Replace brittle OS-specific #ifdefs with an autoconf guard.
+This necessitates avoiding stepping on VERSION defined in config.h by autoconf.
+---
+ src/Time/Time.cc |  2 --
+ src/Time/Time_.h | 38 ++++++++++++++------------------------
+ 2 files changed, 14 insertions(+), 26 deletions(-)
+
+diff --git a/src/Time/Time.cc b/src/Time/Time.cc
+index 80b27e0..af2fbe0 100644
+--- a/src/Time/Time.cc
++++ b/src/Time/Time.cc
+@@ -38,8 +38,6 @@ using namespace std;
+ using std::setfill;
+ using std::setw;
+ 
+-const unsigned VERSION =2;
+-
+ #define	THIS	Time
+ #define	BASE	Object
+ 
+diff --git a/src/Time/Time_.h b/src/Time/Time_.h
+index 0650f9f..7a73a5d 100644
+--- a/src/Time/Time_.h
++++ b/src/Time/Time_.h
+@@ -32,42 +32,33 @@ Author:
+ #define	TIME_H
+ 
+ 
+-#if defined(SYSV) && ! defined(hpux)
+-
+-#include <time.h>
+-
+-#define TIME_ZONE timezone
+-#define DST_OBSERVED daylight
+-#define BASE_CLASSES BASE::desc()
+-#define MEMBER_CLASSES
+-#define VIRTUAL_BASE_CLASSES Object::desc()
+-
++#ifdef HAVE_CONFIG_H
++#include "config.h"
+ #endif
+ 
+-//moved from Time.c
+-
+-#if defined(BSD) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
+-
++#ifdef HAVE_TIME_H
+ #if defined(__APPLE__)
++#include <time.h>
++#else
+ #include_next <time.h>
+ #endif
++#endif
+ 
++#ifdef HAVE_SYS_TIME_H
+ #include <sys/time.h>
+-  #if defined(__NetBSD__)
+-    #include </usr/include/sys/time.h>
+-  #endif
+- 
+ #endif
+ 
++#if defined(SYSV) && ! defined(hpux)
+ 
+-#if defined(hpux)
+-  #include <time.h>
+-#endif
++#define TIME_ZONE timezone
++#define DST_OBSERVED daylight
++#define BASE_CLASSES BASE::desc()
++#define MEMBER_CLASSES
++#define VIRTUAL_BASE_CLASSES Object::desc()
+ 
++#endif
+ 
+ #if defined(linux) || defined(__sun) || defined(__alpha) || defined(__CYGWIN__)
+-#include <sys/time.h>
+-
+   #if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
+     extern "C" {
+     int gettimeofday(struct timeval *tp, struct timezone *tzp);
+@@ -85,7 +76,6 @@ Author:
+ #include <OS/types.h>
+ #if !defined(__APPLE_)
+ #include <iostream.h>
+-#include_next <time.h>
+ #else
+ #include <iosfwd>
+ #include <iostream>

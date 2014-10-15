@@ -1,0 +1,70 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Wed, 15 Oct 2014 13:06:42 +0100
+Subject: autoconf name and version
+
+Use definition put by autoconf into config.h for package name and
+version in dialog.
+---
+ src/UniIdraw/idcmds.cc   |  6 +++++-
+ src/UniIdraw/idversion.h | 28 ----------------------------
+ 2 files changed, 5 insertions(+), 29 deletions(-)
+ delete mode 100644 src/UniIdraw/idversion.h
+
+diff --git a/src/UniIdraw/idcmds.cc b/src/UniIdraw/idcmds.cc
+index d05890d..6c76780 100644
+--- a/src/UniIdraw/idcmds.cc
++++ b/src/UniIdraw/idcmds.cc
+@@ -24,6 +24,10 @@
+  * Implementation of idraw-specific commands.
+  */
+ 
++#ifdef HAVE_CONFIG_H
++#include "config.h"
++#endif
++
+ #include "ided.h"
+ #include "idclasses.h"
+ #include "idcmds.h"
+@@ -285,7 +289,7 @@ Command* AboutCmd::Copy () {
+ 
+ void AboutCmd::Execute () {
+     Editor* ed = GetEditor();
+-    AcknowledgeDialog dialog(VERSION);
++    AcknowledgeDialog dialog(PACKAGE_NAME " (" PACKAGE_TARNAME ") " PACKAGE_VERSION);
+ 
+     ed->InsertDialog(&dialog);
+     dialog.Acknowledge();
+diff --git a/src/UniIdraw/idversion.h b/src/UniIdraw/idversion.h
+deleted file mode 100644
+index b4761d0..0000000
+--- a/src/UniIdraw/idversion.h
++++ /dev/null
+@@ -1,28 +0,0 @@
+-/*
+- * Copyright (c) 1990, 1991 Stanford University
+- *
+- * Permission to use, copy, modify, distribute, and sell this software and its
+- * documentation for any purpose is hereby granted without fee, provided
+- * that the above copyright notice appear in all copies and that both that
+- * copyright notice and this permission notice appear in supporting
+- * documentation, and that the name of Stanford not be used in advertising or
+- * publicity pertaining to distribution of the software without specific,
+- * written prior permission.  Stanford makes no representations about
+- * the suitability of this software for any purpose.  It is provided "as is"
+- * without express or implied warranty.
+- *
+- * STANFORD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
+- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS.
+- * IN NO EVENT SHALL STANFORD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
+- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+- * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+- * OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
+- * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+- */
+-
+-/*
+- * Version number information.
+- */
+-
+-static const char* VERSION =
+-    "idraw - Version 2.1.  By John Vlissides and Scott Stanton.";
