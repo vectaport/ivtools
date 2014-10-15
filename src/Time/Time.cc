@@ -38,8 +38,6 @@ using namespace std;
 using std::setfill;
 using std::setw;
 
-const unsigned VERSION =2;
-
 #define	THIS	Time
 #define	BASE	Object
 

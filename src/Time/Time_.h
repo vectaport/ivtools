@@ -32,9 +32,23 @@ Author:
 #define	TIME_H
 
 
-#if defined(SYSV) && ! defined(hpux)
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
 
+#ifdef HAVE_TIME_H
+#if defined(__APPLE__)
 #include <time.h>
+#else
+#include_next <time.h>
+#endif
+#endif
+
+#ifdef HAVE_SYS_TIME_H
+#include <sys/time.h>
+#endif
+
+#if defined(SYSV) && ! defined(hpux)
 
 #define TIME_ZONE timezone
 #define DST_OBSERVED daylight
@@ -44,30 +58,7 @@ Author:
 
 #endif
 
-//moved from Time.c
-
-#if defined(BSD) || defined(__FreeBSD__) || defined(__NetBSD__) || defined(__APPLE__)
-
-#if defined(__APPLE__)
-#include_next <time.h>
-#endif
-
-#include <sys/time.h>
-  #if defined(__NetBSD__)
-    #include </usr/include/sys/time.h>
-  #endif
- 
-#endif
-
-
-#if defined(hpux)
-  #include <time.h>
-#endif
-
-
 #if defined(linux) || defined(__sun) || defined(__alpha) || defined(__CYGWIN__)
-#include <sys/time.h>
-
   #if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
     extern "C" {
     int gettimeofday(struct timeval *tp, struct timezone *tzp);
@@ -85,7 +76,6 @@ Author:
 #include <OS/types.h>
 #if !defined(__APPLE_)
 #include <iostream.h>
-#include_next <time.h>
 #else
 #include <iosfwd>
 #include <iostream>
