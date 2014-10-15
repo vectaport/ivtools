@@ -54,6 +54,11 @@ extern "C" {
 
 static const unsigned int max_filename_length = 256;
 
+// No MAXPATHLEN on GNU Hurd, cobble something up.
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 4096
+#endif
+
 class FBDirectory {       
 public:
     FBDirectory(const char* name);
