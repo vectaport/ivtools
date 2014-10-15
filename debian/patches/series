@@ -7,3 +7,4 @@
 0007-typos.patch
 0008-manpage-dash-slash.patch
 0009-gcc-4-int-pointer-warnings.patch
+0010-fallback-MAXPATHLEN-definition.patch

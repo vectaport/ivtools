@@ -1,0 +1,61 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Wed, 15 Oct 2014 12:26:58 +0100
+Subject: fallback MAXPATHLEN definition
+
+MAXPATHLEN is not defined on GNU Hurd, reasonably enough.
+Add a catch-all definition of 4k, rather than the "right" fix of
+rewriting the code to allocate avoid any fixed-size buffer.
+---
+ src/IV-2_6/filebrowser.cc     | 5 +++++
+ src/OverlayUnidraw/ovcomps.cc | 5 +++++
+ src/iclass/classbuffer.cc     | 5 +++++
+ 3 files changed, 15 insertions(+)
+
+diff --git a/src/IV-2_6/filebrowser.cc b/src/IV-2_6/filebrowser.cc
+index 826e385..d56f01a 100644
+--- a/src/IV-2_6/filebrowser.cc
++++ b/src/IV-2_6/filebrowser.cc
+@@ -54,6 +54,11 @@ extern "C" {
+ 
+ static const unsigned int max_filename_length = 256;
+ 
++// No MAXPATHLEN on GNU Hurd, cobble something up.
++#ifndef MAXPATHLEN
++#define MAXPATHLEN 4096
++#endif
++
+ class FBDirectory {       
+ public:
+     FBDirectory(const char* name);
+diff --git a/src/OverlayUnidraw/ovcomps.cc b/src/OverlayUnidraw/ovcomps.cc
+index 61a3fb4..3b4cdec 100644
+--- a/src/OverlayUnidraw/ovcomps.cc
++++ b/src/OverlayUnidraw/ovcomps.cc
+@@ -71,6 +71,11 @@ extern "C"
+ }
+ #endif
+ 
++// No MAXPATHLEN on GNU Hurd, cobble something up.
++#ifndef MAXPATHLEN
++#define MAXPATHLEN 4096
++#endif
++
+ #ifdef LEAKCHECK
+ LeakChecker* OverlayComp::_leakchecker = nil;
+ #endif
+diff --git a/src/iclass/classbuffer.cc b/src/iclass/classbuffer.cc
+index 09ed2bf..76aa9a8 100644
+--- a/src/iclass/classbuffer.cc
++++ b/src/iclass/classbuffer.cc
+@@ -46,6 +46,11 @@
+ #define S_ISDIR(mode) (((mode) & S_IFMT) == S_IFDIR)
+ #endif
+ 
++// No MAXPATHLEN on GNU Hurd, cobble something up.
++#ifndef MAXPATHLEN
++#define MAXPATHLEN 4096
++#endif
++
+ /*****************************************************************************/
+ 
+ static const int MINTEXTSIZE = 10000;
