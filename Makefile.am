@@ -659,11 +659,7 @@ InterViews: src/IV/InterViews.defaults
 
 ### binaries
 
-bin_SCRIPTS = ivtiftopnm pnmtopgm
-
-ivtiftopnm: src/scripts/ivtiftopnm.bash
-	cp $< $@
-	chmod a+x $@
+bin_SCRIPTS = pnmtopgm
 
 pnmtopgm: src/scripts/pnmtopgm.sh
 	cp $< $@
