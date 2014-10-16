@@ -9,8 +9,8 @@ case "$#" in
     *)    cd $1
           ;;
 esac
-linecount1=`tmpnam`
-linecount2=`tmpnam`
+linecount1=`tempfile`
+linecount2=`tempfile`
 find . -name \*.c -exec wc -l {} \; >$linecount1
 find . -name \*.h -exec wc -l {} \; >>$linecount1
 find . -name \*.ci -exec wc -l {} \; >>$linecount1
