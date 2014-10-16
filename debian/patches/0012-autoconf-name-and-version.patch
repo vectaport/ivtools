@@ -5,16 +5,27 @@ Subject: autoconf name and version
 Use definition put by autoconf into config.h for package name and
 version in dialog.
 ---
- src/UniIdraw/idcmds.cc   |  6 +++++-
+ src/Makefile.am          |  2 +-
+ src/UniIdraw/idcmds.cc   |  7 +++++--
  src/UniIdraw/idversion.h | 28 ----------------------------
- 2 files changed, 5 insertions(+), 29 deletions(-)
+ 3 files changed, 6 insertions(+), 31 deletions(-)
  delete mode 100644 src/UniIdraw/idversion.h
 
+diff --git a/src/Makefile.am b/src/Makefile.am
+index 271c57e..c7df2d6 100644
+--- a/src/Makefile.am
++++ b/src/Makefile.am
+@@ -97,4 +97,4 @@ TopoFace/toponode.h UniIdraw/idarrow.h UniIdraw/idarrowhead.h		\
+ UniIdraw/idarrows.h UniIdraw/idcatalog.h UniIdraw/idclasses.h		\
+ UniIdraw/idcmds.h UniIdraw/idcomp.h UniIdraw/idcreator.h		\
+ UniIdraw/iddialogs.h UniIdraw/ided.h UniIdraw/idkybd.h			\
+-UniIdraw/idvars.h UniIdraw/idversion.h
++UniIdraw/idvars.h
 diff --git a/src/UniIdraw/idcmds.cc b/src/UniIdraw/idcmds.cc
-index d05890d..6c76780 100644
+index d05890d..1fdfe3f 100644
 --- a/src/UniIdraw/idcmds.cc
 +++ b/src/UniIdraw/idcmds.cc
-@@ -24,6 +24,10 @@
+@@ -24,13 +24,16 @@
   * Implementation of idraw-specific commands.
   */
  
@@ -25,7 +36,14 @@ index d05890d..6c76780 100644
  #include "ided.h"
  #include "idclasses.h"
  #include "idcmds.h"
-@@ -285,7 +289,7 @@ Command* AboutCmd::Copy () {
+ #include "idcomp.h"
+ #include "iddialogs.h"
+ #include "idvars.h"
+-#include "idversion.h"
+ 
+ #include <Unidraw/dialogs.h>
+ #include <Unidraw/catalog.h>
+@@ -285,7 +288,7 @@ Command* AboutCmd::Copy () {
  
  void AboutCmd::Execute () {
      Editor* ed = GetEditor();
