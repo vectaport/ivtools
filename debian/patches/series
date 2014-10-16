@@ -10,3 +10,6 @@
 0010-fallback-MAXPATHLEN-definition.patch
 0011-autoconf-guard-time.patch
 0012-autoconf-name-and-version.patch
+0013-disable-ivgetjpg.patch
+0014-disable-ivtiftopnm.patch
+0015-disable-ivtmpnam.patch

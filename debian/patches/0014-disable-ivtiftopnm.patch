@@ -1,0 +1,30 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Thu, 16 Oct 2014 08:54:31 +0100
+Subject: disable ivtiftopnm
+
+The ivtiftopnm script relies on the absent program tmpnam, and can be
+simply replaced with "convert tif:- pnm:-".  This should be done in
+the invoking code in "src/OverlayUnidraw/ovimport.cc".
+
+See https://bugs.debian.org/323480
+---
+ Makefile.am | 6 +-----
+ 1 file changed, 1 insertion(+), 5 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index bfd9b9b..dbc7b05 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -659,11 +659,7 @@ InterViews: src/IV/InterViews.defaults
+ 
+ ### binaries
+ 
+-bin_SCRIPTS = ivtiftopnm pnmtopgm
+-
+-ivtiftopnm: src/scripts/ivtiftopnm.bash
+-	cp $< $@
+-	chmod a+x $@
++bin_SCRIPTS = pnmtopgm
+ 
+ pnmtopgm: src/scripts/pnmtopgm.sh
+ 	cp $< $@

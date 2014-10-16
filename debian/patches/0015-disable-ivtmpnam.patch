@@ -1,0 +1,140 @@
+From: "Barak A. Pearlmutter" <barak+git@cs.nuim.ie>
+Date: Thu, 16 Oct 2014 09:07:26 +0100
+Subject: disable ivtmpnam
+
+The ivtmpnam program is insecure and its intended functionality exists
+in the tempfile utility.  Disable it, and rewrite its invocations.
+
+See https://bugs.debian.org/323480
+---
+ Makefile.am                    |  5 +----
+ src/OverlayUnidraw/ovimport.cc | 12 ++++++------
+ src/scripts/cntsrclines.bash   |  4 ++--
+ src/scripts/ivgetjpg.bash      |  4 ++--
+ src/scripts/ivtiftopnm.bash    |  2 +-
+ 5 files changed, 12 insertions(+), 15 deletions(-)
+
+diff --git a/Makefile.am b/Makefile.am
+index dbc7b05..f5774a7 100644
+--- a/Makefile.am
++++ b/Makefile.am
+@@ -666,7 +666,7 @@ pnmtopgm: src/scripts/pnmtopgm.sh
+ 	chmod a+x $@
+ 
+ bin_PROGRAMS = comdraw comterp comtest dclock drawserv drawtool		\
+-flipbook gclock glyphterp graphdraw iclass idemo idraw ivtext ivtmpnam	\
++flipbook gclock glyphterp graphdraw iclass idemo idraw ivtext		\
+ stdcmapppm
+ 
+ comdraw_SOURCES = src/comdraw/main.cc
+@@ -692,7 +692,6 @@ src/iclass/iclass.h src/iclass/main.cc
+ idemo_SOURCES = src/idemo/main.cc
+ idraw_SOURCES = src/idraw/main.cc
+ ivtext_SOURCES = src/ivtext/main.cc
+-ivtmpnam_SOURCES = src/utils/ivtmpnam.c # C
+ stdcmapppm_SOURCES = src/utils/stdcmapppm.c # C
+ 
+ 
+@@ -717,7 +716,6 @@ iclass_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+ idemo_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+ idraw_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
+ ivtext_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
+-ivtmpnam_CPPFLAGS	=
+ stdcmapppm_CPPFLAGS	=
+ 
+ # AM_LDFLAGS =
+@@ -736,7 +734,6 @@ iclass_LDADD	= libIV.la
+ idemo_LDADD	= libIV.la
+ idraw_LDADD	= libUniIdraw.la libUnidraw.la
+ ivtext_LDADD	= libIVGlyph.la libIV.la
+-ivtmpnam_LDADD	=
+ stdcmapppm_LDADD=
+ 
+ ### directories to recurse into, for installation of include files
+diff --git a/src/OverlayUnidraw/ovimport.cc b/src/OverlayUnidraw/ovimport.cc
+index 2ce290a..8d349f4 100644
+--- a/src/OverlayUnidraw/ovimport.cc
++++ b/src/OverlayUnidraw/ovimport.cc
+@@ -1547,15 +1547,15 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
+ 	  if (pathname && !return_fd && !cmdflag) {
+ 	    char buffer[BUFSIZ];
+ 	    if (compressed) 
+-	      sprintf(buffer, "tf=`ivtmpnam`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
++	      sprintf(buffer, "tf=`tempname`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+ 	    else
+-	      sprintf(buffer, "tf=`ivtmpnam`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
++	      sprintf(buffer, "tf=`tempname`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+ 	    pptr = popen(buffer, "r");
+ 	    cerr << "input opened with " << buffer << "\n";
+ 	    if (pptr) 
+ 	      new_fd = fileno(pptr);
+ 	  } else 
+-	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
++	    new_fd = Pipe_Filter(*in, "tf=`tempname`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
+ #if __GNUC__<3
+ 	  ifstream new_in;
+           new_in.rdbuf()->attach(new_fd);
+@@ -1646,9 +1646,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
+ 	  char buffer[BUFSIZ];
+ 	  if (dithermap_flag) {
+ 	    if (compressed) 
+-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
++	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
+ 	    else
+-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
++	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
+ 	  } else {
+ 	    if (compressed) 
+ 	      sprintf(buffer, "gunzip -c %s | djpeg  -pnm", pathname);
+@@ -1671,7 +1671,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
+ 	  }
+ 	} else {
+ 	  if (dithermap_flag) 
+-	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
++	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
+ 	  else 
+ 	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "djpeg -pnm");
+ 	}
+diff --git a/src/scripts/cntsrclines.bash b/src/scripts/cntsrclines.bash
+index 00585b1..9e10f5c 100755
+--- a/src/scripts/cntsrclines.bash
++++ b/src/scripts/cntsrclines.bash
+@@ -9,8 +9,8 @@ case "$#" in
+     *)    cd $1
+           ;;
+ esac
+-linecount1=`tmpnam`
+-linecount2=`tmpnam`
++linecount1=`tempfile`
++linecount2=`tempfile`
+ find . -name \*.c -exec wc -l {} \; >$linecount1
+ find . -name \*.h -exec wc -l {} \; >>$linecount1
+ find . -name \*.ci -exec wc -l {} \; >>$linecount1
+diff --git a/src/scripts/ivgetjpg.bash b/src/scripts/ivgetjpg.bash
+index d1a6838..b3aa6cc 100644
+--- a/src/scripts/ivgetjpg.bash
++++ b/src/scripts/ivgetjpg.bash
+@@ -11,8 +11,8 @@
+ url=$1
+ importport=$2
+ echo import $url to port $importport
+-tempfile=`tmpnam`
+-cmapfile=`tmpnam`
++tempfile=`tempfile`
++cmapfile=`tempfile`
+ stdcmapppm >$cmapfile
+ w3c $url >$tempfile; djpeg -map $cmapfile -dither fs -pnm $tempfile | comterp telcat localhost $importport
+ rm $tempfile $cmapfile
+diff --git a/src/scripts/ivtiftopnm.bash b/src/scripts/ivtiftopnm.bash
+index ec894e8..36970cf 100644
+--- a/src/scripts/ivtiftopnm.bash
++++ b/src/scripts/ivtiftopnm.bash
+@@ -8,7 +8,7 @@
+ #     $1 optional tiff image filename
+ #
+ case "$#" in 
+-        0)      tempfile=`tmpnam`
++        0)      tempfile=`tempfile`
+ 		cat >$tempfile
+ 		tifftopnm $tempfile
+ 		rm $tempfile
