@@ -1,3 +1,10 @@
+ivtools (1.2.11a1-5) unstable; urgency=medium
+
+  * bump debian standards version, no changes required
+  * MAXHOSTNAMELEN patch for Hurd
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 19 Oct 2014 16:30:16 +0100
+
 ivtools (1.2.11a1-4) unstable; urgency=medium
 
   * multiarch debian/control tweaks
