@@ -234,3 +234,7 @@ src/comterp_/main.c.orig
 src/ComTerp/iofunc.c.rej
 
 src/ComTerp/ctrlfunc.c.orig
+
+src/ComTerp/comterp.c.orig
+
+src/ComUtil/popen2.c.orig

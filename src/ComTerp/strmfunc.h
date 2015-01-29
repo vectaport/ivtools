@@ -39,6 +39,7 @@ class StrmFunc : public ComFunc {
 public:
     StrmFunc(ComTerp*);
 
+    static void print_stream(std::ostream& out, AttributeValue& streamv);
 };
 
 //: stream command

@@ -38,6 +38,33 @@
 StrmFunc::StrmFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
+void StrmFunc::print_stream(std::ostream& out, AttributeValue& streamv) {
+  static int indent=0;
+  if(!streamv.is_stream()) 
+    out << "NOT A STREAM\n";
+  else {
+    for (int i=0; i<indent; i++) out << ' ';
+    out << "func = " << (streamv.stream_func() ? symbol_pntr(((ComFunc*)streamv.stream_func())->funcid()) : "NOFUNC")
+              << ", avl = " << *streamv.stream_list() << "\n";
+    if (streamv.stream_func()==NULL) 
+      out << "Unexpected NOFUNC\n";
+    Iterator it;
+    streamv.stream_list()->First(it);
+    int j=0;
+    while(!streamv.stream_list()->Done(it)) {
+      if (streamv.stream_list()->GetAttrVal(it)->is_stream()) {
+        indent+=3;
+        out << "depth=" << indent/3 << ", argc="  << j << ":  ";
+        StrmFunc::print_stream(out, *streamv.stream_list()->GetAttrVal(it));
+        indent-=3;
+      }
+      j++;
+      streamv.stream_list()->Next(it);
+    }
+    out.flush();
+  }
+}
+
 /*****************************************************************************/
 
 int StreamFunc::_symid;
@@ -352,6 +379,7 @@ void NextFunc::execute() {
 }
 
 void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
+
     _next_depth++;
 
     if (!streamv.is_stream()) {
@@ -360,6 +388,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
     }
 
     int outside_stackh = comterp->stack_height();
+
+    // fprintf(stderr, "stream:  mode=%d, name=%s, depth=%d\n", streamv.stream_mode(), symbol_pntr(((ComFunc*)streamv.stream_func())->funcid()), _next_depth);
 
     if (streamv.stream_mode()<0) {
 
@@ -397,12 +427,22 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	    if (val->stream_mode()<0 && val->stream_func()) {
 	      /* internal use */
 	      comterp->push_stack(*val);
+
+              // fprintf(stdout, "Stack before stream_func exec\n");
+              // comterp->print_stack();
+
 	      ((ComFunc*)val->stream_func())->exec(1,0);
 	    }else {
 
 	      /* external use */
 	      ComValue cval(*val);
+              // fprintf(stderr, "before: strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
+
+              // fprintf(stdout, "Stack before NextFunc::execute_impl\n");
+              // comterp->print_stack();
+
 	      NextFunc::execute_impl(comterp, cval);
+              // fprintf(stderr, "after:  strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
 
 	    }
 	    
@@ -433,6 +473,9 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	  }
 	  avl->Next(i);
 	}
+
+        // fprintf(stdout, "Stack before streamed func %s\n", symbol_pntr(funcptr->funcid()));
+        // comterp->print_stack();
 
 	funcptr->exec(narg, nkey);
       }

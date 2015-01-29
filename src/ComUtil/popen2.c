@@ -53,11 +53,26 @@ pid_t popen2(const char *shell_cmd, int *p_fd_in, int *p_fd_out)
     exit(1);
   }
    
+#if 0
   if(pipe2(fds_processOutput, O_NONBLOCK) != 0) //create  process  output  pipe
   {
     fprintf(stderr, "pipe (process output) failed\n");
     exit(1);
   }
+#else
+  if(pipe(fds_processOutput) != 0) //create  process  output  pipe
+  {
+    fprintf(stderr, "pipe (process output) failed\n");
+    exit(1);
+  }
+  int flags;
+  for(int i=0; i<2; i++) {
+      flags = fcntl(fds_processOutput[i], F_GETFL, 0);
+      flags |= O_NONBLOCK;
+      fcntl(fds_processOutput[i], F_SETFL, flags);
+  }
+#endif
+
    
   //FORKING  A  CHILD  PROCESS:
   pid_t pid;

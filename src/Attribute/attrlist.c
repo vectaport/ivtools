@@ -204,6 +204,14 @@ boolean AttributeList::Includes (Attribute* e) {
 
 boolean AttributeList::IsEmpty () { return _alist->IsEmpty(); }
 
+void AttributeList::print_attrlist(AttributeList* al) {
+    print_attrlist(std::cout, al);
+}
+
+void AttributeList::print_attrlist(std::ostream& out, AttributeList* al) {
+    out << *al;
+}
+
 ostream& operator<< (ostream& out, const AttributeList& al) {
 
     AttributeList* attrlist = (AttributeList*)&al;
@@ -461,6 +469,12 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
   	        out << "{";
 	        out << *attrval->array_ref();
   	        out << "}";
+	        break;
+	    case AttributeValue::StreamType:
+	        out << "stream";
+	        break;
+	    case AttributeValue::ObjectType:
+	        out << "object(class=" << attrval->obj_type_val() << ", ptr= " << attrval->obj_val() << ")";
 	        break;
             default:
 		out << "nil";

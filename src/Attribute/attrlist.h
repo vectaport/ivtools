@@ -115,6 +115,12 @@ public:
     // merge the contents of another AttributeList into this one,
     // replicating the AttributeValue as needed.
 
+    static void print_attrlist(AttributeList* al);
+    // print AttributeList to stdout
+
+    static void print_attrlist(std::ostream& out, AttributeList* al);
+    // print AttributeList to out
+
 protected:
     void Append(Attribute*);
     // append Attribute to end of list.  Could cause duplicates.

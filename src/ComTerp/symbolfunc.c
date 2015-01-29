@@ -465,6 +465,9 @@ void SubStrFunc::execute() {
   static int after_symid = symbol_add("after");
   ComValue afterflagv(stack_key(after_symid));
   boolean afterflag = afterflagv.is_true();
+  static int nonil_symid = symbol_add("nonil");
+  ComValue nonilflagv(stack_key(nonil_symid));
+  boolean nonilflag = nonilflagv.is_true();
   reset_stack();
 
   if (strv.is_unknown()) {
@@ -482,7 +485,10 @@ void SubStrFunc::execute() {
   else {
     const char* foundstr = strstr(string, nv.symbol_ptr());
     if(foundstr==NULL) {
-      push_stack(ComValue::nullval());
+      if(nonilflag)
+	push_stack(strv);
+      else
+	push_stack(ComValue::nullval());
       return;
     }
     n = afterflag ?  strlen(string)-(foundstr-string)-strlen(nv.symbol_ptr()) : foundstr-string;
@@ -495,7 +501,10 @@ void SubStrFunc::execute() {
     ComValue retval(buffer);
     push_stack(retval);
   } else
-    push_stack(ComValue::nullval());
+    if(nonilflag)
+      push_stack(strv);
+    else
+      push_stack(ComValue::nullval());
 }
 
 

@@ -67,6 +67,18 @@ public:
 
 };
 
+//: logarithmic (base 2) command for ComTerp.
+// dbl=log2(x) -- returns the base-2 logarithm of x.
+class Log2Func : public ComFunc {
+public:
+    Log2Func(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "dbl=%s(x) -- returns the base-2 logarithm of x"; }
+
+};
+
 //: power command for ComTerp.
 // dbl=pow(x y) -- returns the value of x raised to the power of y.
 class PowFunc : public ComFunc {

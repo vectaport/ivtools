@@ -293,7 +293,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	avl->Prepend(new AttributeValue(topval));
       }
 
-      ComValue val(sv.obj_val(), avl);
+      ComValue val((ComFunc*)sv.obj_val(), avl);
+      // fprintf(stderr, "Just packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
       val.stream_mode(1); // for external use
       push_stack(val);
       return;
@@ -675,6 +676,7 @@ boolean ComTerp::skip_key(ComValue* topval, int& offset, int offlimit, int& tokc
 boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokcnt) {
   tokcnt = 0;
   ComValue& curr = *(topval+offset);
+  // fprintf(stderr, "offset is %d, topval is at 0x%lx\n", offset, topval);
   if (curr.is_type(ComValue::KeywordType)) {
     cerr << "unexpected keyword found by ComTerp::skip_arg\n";
     return false;
@@ -744,9 +746,15 @@ ComValue& ComTerp::expr_top(int n) {
 
 
 int ComTerp::print_stack() const {
+    print_stack(cout);
+    return true;
+}
+
+int ComTerp::print_stack(std::ostream& out) const {
     for (int i = _stack_top; i >= 0; i--) {
-	cout << _stack[i] << "\n";
+	out << _stack[i] << "\n";
     }
+    out.flush();
     return true;
 }
 
@@ -1215,6 +1223,7 @@ void ComTerp::add_defaults() {
     add_command("exp", new ExpFunc(this));
     add_command("log", new LogFunc(this));
     add_command("log10", new Log10Func(this));
+    add_command("log2", new Log2Func(this));
     add_command("pow", new PowFunc(this));
 
     add_command("acos", new ACosFunc(this));

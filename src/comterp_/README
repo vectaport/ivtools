@@ -133,6 +133,8 @@ dbl=log(x) -- returns the natural logarithm of x
 
 dbl=log10(x) -- returns the base-10 logarithm of x
 
+dbl=log2(x) -- returns the base-2 logarithm of x
+
 dbl=pow(x y) -- returns the value of x raised to the power of y
 
 dbl=acos(x) -- returns the arc cosine of x in radians
@@ -265,7 +267,7 @@ lst=split(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or stri
 
 str=join(clist :sym) -- join list of characters into string
 
-str=substr(str n|str :after) -- extract characters from a string
+str=substr(str n|str :after :nonil) -- extract characters from a string (:nonil returns string if no match)
 
 bool=eq(str1 str2 :n len) -- partial string comparison
 

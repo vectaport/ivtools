@@ -149,14 +149,14 @@ public:
 
 
 //: command to extract a sub string
-// str=substr(str n :after) -- extract characters from a string
+// str=substr(str n :after :before) -- extract characters from a string
 class SubStrFunc : public ComFunc {
 public:
     SubStrFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "str=%s(str n|str :after) -- extract characters from a string"; }
+      return "str=%s(str n|str :after :nonil) -- extract characters from a string (:nonil return string if no match)"; }
 };
 
 
