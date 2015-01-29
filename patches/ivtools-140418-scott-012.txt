@@ -1,0 +1,27 @@
+Patch:    ivtools-140418-scott-012
+For:      ivtools-1.2.11
+Author:   scott@wavesemi.com
+Subject:  support for ipl development
+
+This is an intermediate patch to ivtools-1.2.11.  To apply, cd to the
+top-level directory of the ivtools source tree (the directory with src
+and config subdirs), and apply like this:
+
+	patch -p0 <ThisFile
+
+Then rebuild with "make;make install"
+
+
+Index: src/Unidraw/ulabel.c
+===================================================================
+--- src/Unidraw/ulabel.c	(revision 8474)
++++ src/Unidraw/ulabel.c	(working copy)
+@@ -42,7 +42,7 @@
+     if (gr != nil) {
+ 	ULabel::SetFont(gr->GetFont());
+     }
+-    _string = s ? strdup(s) : s;
++    _string = strdup(s);
+ }
+ 
+ ULabel::~ULabel () {
