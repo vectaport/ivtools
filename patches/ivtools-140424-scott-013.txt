@@ -1,4 +1,4 @@
-Patch:    ivtools-140418-scott-012
+Patch:    ivtools-140424-scott-013
 For:      ivtools-1.2.11
 Author:   scott@wavesemi.com
 Subject:  support for ipl development
