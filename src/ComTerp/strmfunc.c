@@ -114,6 +114,12 @@ void StreamFunc::execute() {
       ComValue stream(snfunc, avl);
       stream.stream_mode(-1); // for internal use (use by this func)
       push_stack(stream);
+    } else {
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(operand1));
+      ComValue stream(snfunc, avl);
+      stream.stream_mode(-1); // for internal use (use by this func)
+      push_stack(stream);
     }
     
   }
