@@ -256,11 +256,11 @@ BreakFunc::BreakFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void BreakFunc::execute() {
+  ComValue retval(stack_arg(0,true,ComValue::trueval()));
   reset_stack();
 
   SeqFunc::breakflag(1);
 
-  ComValue retval(ComValue::trueval());
   push_stack(retval);
   return;
 }
