@@ -14,7 +14,7 @@ syntax errors.
  5 files changed, 6 insertions(+), 6 deletions(-)
 
 diff --git a/src/man/man1/comdraw.1 b/src/man/man1/comdraw.1
-index 2503151..b359b43 100644
+index 72b1215..0ef5398 100644
 --- a/src/man/man1/comdraw.1
 +++ b/src/man/man1/comdraw.1
 @@ -1,5 +1,5 @@
@@ -25,7 +25,7 @@ index 2503151..b359b43 100644
  .SH SYNOPSIS
  .B comdraw 
 diff --git a/src/man/man1/comterp.1 b/src/man/man1/comterp.1
-index 8f82898..f176568 100644
+index c7a2946..4b9a0f0 100644
 --- a/src/man/man1/comterp.1
 +++ b/src/man/man1/comterp.1
 @@ -1,5 +1,5 @@

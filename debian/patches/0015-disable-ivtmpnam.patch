@@ -52,10 +52,10 @@ index dbc7b05..f5774a7 100644
  
  ### directories to recurse into, for installation of include files
 diff --git a/src/OverlayUnidraw/ovimport.cc b/src/OverlayUnidraw/ovimport.cc
-index 2ce290a..8d349f4 100644
+index e15b43d..b290611 100644
 --- a/src/OverlayUnidraw/ovimport.cc
 +++ b/src/OverlayUnidraw/ovimport.cc
-@@ -1547,15 +1547,15 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
+@@ -1505,15 +1505,15 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
  	  if (pathname && !return_fd && !cmdflag) {
  	    char buffer[BUFSIZ];
  	    if (compressed) 
@@ -71,10 +71,10 @@ index 2ce290a..8d349f4 100644
  	  } else 
 -	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
 +	    new_fd = Pipe_Filter(*in, "tf=`tempname`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
- #if __GNUC__<3
- 	  ifstream new_in;
-           new_in.rdbuf()->attach(new_fd);
-@@ -1646,9 +1646,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
+ 	  FILE* ifptr = fdopen(new_fd, "r");
+ 	  helper.add_file(ifptr);
+ 	  FILEBUF(fbuf, ifptr, ios_base::in);
+@@ -1594,9 +1594,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
  	  char buffer[BUFSIZ];
  	  if (dithermap_flag) {
  	    if (compressed) 
@@ -86,7 +86,7 @@ index 2ce290a..8d349f4 100644
  	  } else {
  	    if (compressed) 
  	      sprintf(buffer, "gunzip -c %s | djpeg  -pnm", pathname);
-@@ -1671,7 +1671,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
+@@ -1614,7 +1614,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
  	  }
  	} else {
  	  if (dithermap_flag) 

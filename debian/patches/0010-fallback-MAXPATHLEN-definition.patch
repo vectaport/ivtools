@@ -28,7 +28,7 @@ index 826e385..d56f01a 100644
  public:
      FBDirectory(const char* name);
 diff --git a/src/OverlayUnidraw/ovcomps.cc b/src/OverlayUnidraw/ovcomps.cc
-index 61a3fb4..3b4cdec 100644
+index 9eaf210..33d4fb4 100644
 --- a/src/OverlayUnidraw/ovcomps.cc
 +++ b/src/OverlayUnidraw/ovcomps.cc
 @@ -71,6 +71,11 @@ extern "C"

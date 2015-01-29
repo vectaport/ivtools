@@ -14,3 +14,4 @@
 0014-disable-ivtiftopnm.patch
 0015-disable-ivtmpnam.patch
 0016-define-MAXHOSTNAMELEN.patch
+0017-ofptr-scope.patch
