@@ -4,3 +4,7 @@ config.log
 config.status
 
 config/config-darwin-gcc.defs
+
+config/config.mk
+
+config/config.mk
