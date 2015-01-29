@@ -186,13 +186,13 @@ void GrDepthNextFunc::execute() {
     avl->Next(i);
     ComValue* stopval = (ComValue*)avl->GetAttrVal(i);
     
-    /* filter stream */
+    /* depth-first seach */
     if (currval->is_known()) {
       OverlayComp* currcomp = (OverlayComp*)currval->geta(OverlayComp::class_symid(), OVERLAY_COMP);
       OverlayComp* prevcomp = (OverlayComp*)prevval->geta(OverlayComp::class_symid(), OVERLAY_COMP);
       OverlayComp* stopcomp = (OverlayComp*)stopval->geta(OverlayComp::class_symid(), OVERLAY_COMP);
       OverlayComp* nextcomp = currcomp->DepthNext(prevcomp);
-      while(nextcomp && nextcomp==(OverlayComp*)currcomp->GetParent()) {
+      while(nextcomp && nextcomp==(OverlayComp*)currcomp->GetUp()) {
 	prevcomp=currcomp;
 	currcomp=nextcomp;
         nextcomp = currcomp->DepthNext(prevcomp);

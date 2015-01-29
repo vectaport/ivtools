@@ -186,6 +186,9 @@ public:
     virtual void ClearVisit() { visited(false); }
     // clear visit mark 
 
+    virtual OverlayComp* GetUp() { return (OverlayComp*)GetParent(); }
+    // usually same as parent
+
 protected:
     ParamList* GetParamList();
     // return ParamList of required/optional/keyword arguments to be read
