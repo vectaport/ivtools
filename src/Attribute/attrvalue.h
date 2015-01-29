@@ -184,6 +184,8 @@ public:
     // return sizeof of value of given type.
     int type_symid() const;
     // return symbol id corresponding to type
+    const char* type_name() { return symbol_pntr(type_symid()); }
+    // type name of object.
 
     void assignval (const AttributeValue&);
     // copy contents of AttributeValue
