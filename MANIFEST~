@@ -1193,9 +1193,6 @@ ivtools-1.2/src/idraw/Imakefile
 ivtools-1.2/src/idraw/Makefile
 ivtools-1.2/src/idraw/README
 ivtools-1.2/src/idraw/main.c
-ivtools-1.2/src/imake/config.h
-ivtools-1.2/src/imake/imake.c
-ivtools-1.2/src/imake/imakemdep.h
 ivtools-1.2/src/include/Dispatch/Imakefile
 ivtools-1.2/src/include/Dispatch/Makefile
 ivtools-1.2/src/include/Dispatch/_defines.h
