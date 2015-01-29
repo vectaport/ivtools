@@ -182,7 +182,7 @@ NodeComp::NodeComp(GraphComp* graph)
       Picture* pic = new Picture();
       SF_Ellipse* ellipse = new SF_Ellipse(0, 0, xradius, yradius, stdgraphic);
       ellipse->SetPattern(unidraw->GetCatalog()->FindGrayLevel(1));
-      TextGraphic* txt = new TextGraphic(graph->GetFile(), stdgraphic);
+      TextGraphic* txt = new TextGraphic(graph->GetFile()?graph->GetFile():"", stdgraphic);
       ellipse->Align(4, txt, 4); // same as Center in IV-2_6/InterViews/alignment.h
       pic->Append(ellipse, txt);
       SetGraphic(pic);

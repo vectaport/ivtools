@@ -42,7 +42,7 @@ ULabel::ULabel (const char* s, Graphic* gr) : Graphic(gr) {
     if (gr != nil) {
 	ULabel::SetFont(gr->GetFont());
     }
-    _string = strdup(s);
+    _string = s ? strdup(s) : s;
 }
 
 ULabel::~ULabel () {

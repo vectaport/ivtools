@@ -1008,7 +1008,7 @@ void OverlaysComp::Append (GraphicComp* comp) {
     Graphic* g = comp->GetGraphic();
 
     _comps->Append(new UList(comp));
-    if (g != nil) GetGraphic()->Append(g);
+    if (g != nil && GetGraphic()) GetGraphic()->Append(g);
 
     SetParent(comp, this);
 }
