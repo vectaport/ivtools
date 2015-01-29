@@ -8,19 +8,22 @@ comterp \- distributed command interpreter demonstrator
 remote
 .br
 .B comterp 
-server 'portnum'
+server "portnum"
 .br
 .B comterp 
-logger 'portnum'
+logger "portnum"
 .br
 .B comterp 
-client 'host' 'portnum' ['file']
+client "host" "portnum" ["file"]
 .br
 .B comterp 
-telcat 'host' 'portnum' ['file']
+telcat "host" "portnum" ["file"]
 .br
 .B comterp 
-run 'file'  
+run "file"  
+.br
+.B comterp 
+"expr"
 .br
 .SH DESCRIPTION
 comterp demonstrates the command interpreter incorporated into
@@ -53,32 +56,35 @@ comterp remote
 Invoke a single command interpreter, like the default, and include a
 remote command for accessing other comterp's in server mode.
 
-comterp server 'portnum'
+comterp server "portnum"
 
 Listens for and accept connections on portnum, then setup a command
 interpreter to wait for and process commands from that connection.
 
-comterp logger 'portnum'
+comterp logger "portnum"
 
 Listens for and accept connections on portnum, then simply forward
 the incoming messages to stdout, while ack'ing back with newlines. For
 debugging purposes, not really a use of the interpreter.
 
-comterp client 'host' 'portnum' ['file']
+comterp client "host" "portnum" ["file"]
 
 Connect to a portnum on a host and send/receive new-line terminated
 text buffers.  For debugging purposes, not really a use of the
 interpreter.
 
-comterp telcat 'host' 'portnum' ['file']
+comterp telcat "host" "portnum" ["file"]
 
 Connect to a portnum on a host, cat the file, then close the
 connection.  Not really a use of the interpreter either.
 
-comterp run 'file'
+comterp run "file"
 
 Run contents of file then exit.
 
+comterp "expr"
+
+Evaluate single expression then exit.
 
 .SH OPERATOR TABLE
 .nf
@@ -202,7 +208,7 @@ Run contents of file then exit.
 
  num=size(list|attrlist|str) -- return size of a list (or string)
 
- val=index(list|str val|char|str :last :all) -- return index of value (or char or string) in list (or string), nil if not found.
+ val=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 
 .SH STREAM COMMANDS:
  
@@ -230,7 +236,7 @@ Run contents of file then exit.
 
  val=trace([flag] :get) -- toggle or set trace mode
 
- pause()  -- pause script execution until C/R
+ pause([msgstr])  -- pause script execution until C/R
 
  step() -- toggle stepwise script execution
 

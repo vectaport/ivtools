@@ -41,6 +41,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #include <version.h>
 
 #include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
 
 
 #if BUFSIZ>1024
@@ -71,6 +72,8 @@ int main(int argc, char *argv[]) {
     boolean client_flag = argc>1 && strcmp(argv[1], "client") == 0;
     boolean telcat_flag = argc>1 && strcmp(argv[1], "telcat") == 0;
     boolean run_flag = argc>1 && strcmp(argv[1], "run") == 0;
+    boolean expr_flag = argc>1 && !server_flag && !logger_flag && 
+                        !remote_flag && !client_flag && !telcat_flag && !run_flag;
 
 #ifdef HAVE_ACE
     if (server_flag || logger_flag) {
@@ -218,6 +221,12 @@ int main(int argc, char *argv[]) {
 	terp->set_args(argc-3, argv+2);
 	terp->runfile(rfile);
 	return 0;
+      } if (expr_flag) {
+	terp->brief(1);
+	ComValue::comterp(terp);
+        ComValue comval(terp->run(argv[1]));
+        cout << comval << '\n';
+        return 0;
       } else {
 	
 	struct stat buf;

@@ -481,8 +481,12 @@ void SubStrFunc::execute() {
   }
   else {
     const char* foundstr = strstr(string, nv.symbol_ptr());
-    n = afterflag ?  strlen(string)-(foundstr-string) : foundstr-string;
-    offset = afterflag ? foundstr-string : 0;
+    if(foundstr==NULL) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    n = afterflag ?  strlen(string)-(foundstr-string)-strlen(nv.symbol_ptr()) : foundstr-string;
+    offset = afterflag ? foundstr-string+strlen(nv.symbol_ptr()) : 0;
   };
   if(n>0) { 
     char buffer[n+1];

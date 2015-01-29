@@ -268,6 +268,9 @@ void ListIndexFunc::execute() {
   static int all_symid = symbol_add("all");
   ComValue allv(stack_key(all_symid));
   boolean allflag = allv.is_true();
+  static int substr_symid = symbol_add("substr");
+  ComValue substrv(stack_key(substr_symid));
+  boolean substrflag = substrv.is_true();
   reset_stack();
 
   AttributeValueList *nvl = allflag ? new AttributeValueList : nil;
@@ -280,12 +283,18 @@ void ListIndexFunc::execute() {
 	avl->First(it);
       int index= lastflag ? avl->Number()-1 : 0;
       while(!avl->Done(it)) {
+        int match;
 	AttributeValue* testv = avl->GetAttrVal(it);
-	comterp()->push_stack(*testv);
-	comterp()->push_stack(valv);
-	EqualFunc eqfunc(comterp());
-	eqfunc.exec(2,0);
-	if(comterp()->pop_stack().is_true()) {
+        if(!substrflag) {
+	  comterp()->push_stack(*testv);
+	  comterp()->push_stack(valv);
+	  EqualFunc eqfunc(comterp());
+	  eqfunc.exec(2,0);
+	  match =  comterp()->pop_stack().is_true();
+	} else {
+	  match = strstr(testv->string_ptr(), valv.string_ptr()) != NULL;
+	}
+	if(match) {
 	  if (allflag)
 	    nvl->Append(new AttributeValue(index, AttributeValue::IntType));
 	  else {
@@ -294,13 +303,14 @@ void ListIndexFunc::execute() {
 	    return;
 	  }
 	}
+	
 	if (lastflag)
 	  avl->Prev(it);
 	else
 	  avl->Next(it);
 	index += lastflag ? -1 : 1;
       };
-
+      
   } else if (listorstrv.is_string()) {
 
       if (valv.is_char()) {

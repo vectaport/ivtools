@@ -228,3 +228,7 @@ src/utils/DARWIN/ivtmpnam
 src/utils/DARWIN/stdcmapppm
 
 *.dylib
+
+src/comterp_/main.c.orig
+
+src/ComTerp/iofunc.c.rej

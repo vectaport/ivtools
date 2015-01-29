@@ -85,14 +85,14 @@ public:
 
 
 //: list index command for ComTerp.
-// val=index(list|str val|char|str :last :all) -- return index of value (or char or string) in list (or string), nil if not found.
+// val=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 class ListIndexFunc : public ComFunc {
 public:
     ListIndexFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "num=index(list|str val|char|str :last :all) -- return index of value (or char or string) in list (or string), nil if not found"; }
+      return "num=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found"; }
 };
 
 #endif /* !defined(_listfunc_h) */

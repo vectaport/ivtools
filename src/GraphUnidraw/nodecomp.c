@@ -178,23 +178,25 @@ NodeComp::NodeComp(GraphComp* graph)
     _node = new TopoNode(this);
     _reqlabel = true;
 
-    Picture* pic = new Picture();
-    SF_Ellipse* ellipse = new SF_Ellipse(0, 0, xradius, yradius, stdgraphic);
-    ellipse->SetPattern(unidraw->GetCatalog()->FindGrayLevel(1));
-    TextGraphic* txt = new TextGraphic(graph->GetFile(), stdgraphic);
-    ellipse->Align(4, txt, 4); // same as Center in IV-2_6/InterViews/alignment.h
-    pic->Append(ellipse, txt);
-    SetGraphic(pic);
-
-    GraphGraphic();
-
-    // kludge to fix ps: fonts are collected from comp\'s graphic, so we
-    // need to add the font to the picture\'s gs
-    pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
-    pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
-    pic->SetPattern(ellipse->GetPattern());
-    pic->SetBrush(ellipse->GetBrush());
-    pic->SetFont(txt->GetFont());
+    if (unidraw) {
+      Picture* pic = new Picture();
+      SF_Ellipse* ellipse = new SF_Ellipse(0, 0, xradius, yradius, stdgraphic);
+      ellipse->SetPattern(unidraw->GetCatalog()->FindGrayLevel(1));
+      TextGraphic* txt = new TextGraphic(graph->GetFile(), stdgraphic);
+      ellipse->Align(4, txt, 4); // same as Center in IV-2_6/InterViews/alignment.h
+      pic->Append(ellipse, txt);
+      SetGraphic(pic);
+      
+      GraphGraphic();
+      
+      // kludge to fix ps: fonts are collected from comp\'s graphic, so we
+      // need to add the font to the picture\'s gs
+      pic->FillBg(ellipse->BgFilled() && !ellipse->GetBgColor()->None());
+      pic->SetColors(ellipse->GetFgColor(), ellipse->GetBgColor());
+      pic->SetPattern(ellipse->GetPattern());
+      pic->SetBrush(ellipse->GetBrush());
+      pic->SetFont(txt->GetFont());
+    }
 }
 
 NodeComp::NodeComp(OverlayComp* parent) : OverlayComp(nil, parent) {
