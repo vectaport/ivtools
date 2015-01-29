@@ -15,8 +15,6 @@ config/config.mk
 
 Makefile.bak
 
-Makefile
-
 *.depend
 
 config/InterViews/Makefile
