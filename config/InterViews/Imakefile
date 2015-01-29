@@ -1,0 +1,18 @@
+XCOMM
+XCOMM config files for building InterViews libraries and applications
+XCOMM
+
+PACKAGE = config_iv
+
+IvmkcmTargets($(PACKAGE))
+
+#if !InstallRelative
+install::
+	MakeDir($(CONFIGDIR)/InterViews)
+	$(INSTALL) -c $(INSTINCFLAGS) *.cf $(CONFIGDIR)/InterViews
+
+uninstall::
+	(cd $(CONFIGDIR)/InterViews; $(RM) *.cf)
+#endif
+
+

@@ -1,0 +1,44 @@
+ivmkcm is a set of Perl scripts that use CVS to manage source tree
+directories.  The Makefile hierarchy of ivtools contains built-in
+targets described below that facilitate the hierarchical use of
+ivmkcm. You can acquire ivmkcm from http://www.ivtools.org/ivmkcm/.
+It is licensed under the GPL.
+
+This file documents the Makefile targets associated with ivmkcm, and
+gives information on how to use them.  For further information on
+ivmkcm see the man pages that come in the tar file as well as on-line.
+
+
+make cmchkin
+
+Create a cm repository under the top-level directory (if none exists)
+and check in this directory and each sub-directory as its own package.
+The package name is defined by a PACKAGE makefile variable in the
+Imakefile.  See the cmchkin man page for further
+details.
+
+make cmadd
+
+Add any new files in this directory (and each sub-directory) to the
+repository.  The list of supported RepositoryFiles is defined in
+config/params.def and can be extended in config/local.def.  See the
+cmadd man page for further details.
+
+make cmupdate
+
+Check the status of this directory (and each sub-directory) relative
+to the repository.  See the cmupdate man page for further details.
+
+make cmcommit [CMMSG=message] [CMFLAGS=-q]
+
+Commit the changes in any files in this directory (and each
+sub-directory) to the repository.  Creates a numbered commit file
+under cm/Patches in a directory of the same name.  These files can be
+concatenated together to create external patches.  See the cmcommit
+man page for further details.
+
+make cmtag CMARGS=tag
+
+Tag the repository files associated with this directory (and each
+sub-directory) with an arbitrary symbol. 
+

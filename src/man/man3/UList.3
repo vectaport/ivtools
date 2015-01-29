@@ -1,0 +1,71 @@
+.TH UList 3U "3 October 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+UList \- circular, doubly-linked list class
+.SH SYNOPSIS
+.B #include <Unidraw/ulist.h>
+.SH DESCRIPTION
+UList implements a circular, doubly-linked list.  The sentinel and
+each entry in the list are instances of the UList class, each
+containing a void pointer to the data they contain as well as pointers
+to the next and previous UList instance in the list.  The sentinel
+UList instance is considered to represent the list.
+.SH PUBLIC OPERATIONS
+.TP
+.B "UList(void* = nil)"
+Create a new UList instance, optionally supplying the value for the
+void pointer it stores.
+.TP
+.B "virtual ~UList()"
+Delete the entire list.  Normally the sentinel, which represents the
+list, is the entry that is deleted explicitly.  Note that the data on
+the list, stored as void*'s, cannot be deleted in this manner.
+.TP
+.B "void Append(UList*)"
+.ns
+.TP
+.B "void Prepend(UList*)"
+When performed on the sentinel, Append appends an element to the end
+of the list and Prepend prepends it to the beginning of the list.
+When performed on a UList instance other than the sentinel, Append has
+the effect of inserting its argument \fIbefore\fP the instance, while
+Prepend has the effect of inserting it \fIafter\fP the instance.
+.TP
+.B "void Remove(UList*)"
+Unlink the specified UList instance from the list it is in.  The
+object on which this operation is called is irrelevant.
+.TP
+.B "void Delete(void*)"
+Find the UList instance in this list containing the given void
+pointer, remove it from the list it is in, and delete it.
+.TP
+.B "UList* Find(void*)"
+Return the UList instance in this list containing the given void
+pointer.
+.TP
+.B "UList* First()"
+.ns
+.TP
+.B "UList* Last()"
+.ns
+.TP
+.B "UList* End()"
+.ns
+.TP
+.B "UList* Next()"
+.ns
+.TP
+.B "UList* Prev()"
+Return various UList instance in the list relative to \fIthis\fP,
+i.e., as if it were the sentinel.  End returns the sentinel
+(\fIthis\fP) and is useful for detecting the end of an iteration
+through the list; the other operations are self-explanatory.
+.TP
+.B "boolean IsEmpty()"
+Return whether or not the list has any elements.
+.TP
+.B "void* operator()()"
+Return the void pointer that the UList stores.
+.TP
+.B "UList* operator[](int i)"
+Return the \fIi\fPth UList in the list, where the next element is the
+first, etc.

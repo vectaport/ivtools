@@ -1,0 +1,129 @@
+.TH Menu 3I "6 December 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Menu, MenuItem, MenuBar, PopupMenu, PulldownMenu, PullrightMenu \- menus
+.SH SYNOPSIS
+.B #include <InterViews/menu.h>
+.SH DESCRIPTION
+N.B.: This Menu class is completely different from the Menu class
+in version 2.5.
+No attempt has been made to be compatible, as this class and its subclasses
+are more powerful and easier to use than the original class.
+.PP
+Menu is a subclass of Control that contains a scene of other controls,
+called its body.
+When a menu is opened, it inserts the body into the world
+with a drop shadow.
+The appearance of the menu itself is defined
+by its interactor component.
+For example, a menu in a menu bar might appear
+as ``File'' and insert a pulldown menu with commands such as ``Save''
+when opened.
+.PP
+MenuItem is a subclass of Control
+for defining the leaves of a menu hierarchy.
+Normally, an application will derive a command class from MenuItem and
+implement the virtual function Do as appropriate.
+One technique is to pass the Command an application object and
+pointer to member function; the Do function calls the member function
+on the application object.
+.PP
+PopupMenu, PulldownMenu, and PullrightMenu are subclasses of Menu
+that implement a common styles of menus.
+MenuBar is a subclass of HBox that manages the control state
+associated with a set of menus.
+PopupMenu has no appearance; it is opened explicitly in response to an
+input event.
+PulldownMenu and PullrightMenu open the menu body below and to the right
+of the menu, respectively.
+These classes make it possible to use menus in an application
+without creating or passing control states explicitly.
+.PP
+.SH PUBLIC OPERATIONS
+.TP
+.B "Menu::Menu(Interactor*)"
+Construct a new menu.
+.TP
+.B "Menu::~Menu()"
+The destructor deletes the menu body in addition to its appearance component.
+.TP
+.B "virtual void Menu::Include(Control*)"
+Add an item to the menu.  If no scene is specified,
+Menu will create a vbox and insert items into it.
+.TP
+.B "virtual void Menu::Popup(Event&)"
+Insert the body into the world centered around the coordinates
+associated with the event and activate the controls in the body.
+The menu is removed from the world when the controls are deactivated
+(normally when a button is released).
+.TP
+.B "void Menu::SetBody(Interactor*)"
+.ns
+.TP
+.B "Interactor* Menu::GetBody()"
+.ns
+.TP
+.B "void Menu::SetAlign(Alignment)"
+.ns
+.TP
+.B "Alignment Menu::GetAlign()"
+.ns
+.TP
+.B "void Menu::SetDepth(int)"
+.ns
+.TP
+.B "int GetDepth()"
+.ns
+.TP
+.B "void Menu::SetBodyState(ControlState*)"
+.ns
+.TP
+.B "ControlState* Menu::GetBodyState()"
+.ns
+.TP
+.B "void Menu::SetScene(Scene*)"
+.ns
+.TP
+.B "Scene* Menu::GetScene()"
+Set or get attributes of the menu.
+The depth of a menu is the number of pixels separating the body and
+the drop shadow.
+.TP
+.B "Coord Menu::InsertX()"
+.ns
+.TP
+.B "Coord Menu::InsertY()"
+Return the coordinates where the menu's body was last inserted
+into the world.
+.TP
+.B "MenuItem::MenuItem(Interactor*)"
+.ns
+.TP
+.B "MenuItem::MenuItem(const char* str, Alignment = Left)"
+Construct a new menu item.  The second constructor defines
+the appearance of the item to be a message containing the text in \fIstr\fP.
+.TP
+.B "PulldownMenu::PulldownMenu(Interactor*)"
+.ns
+.TP
+.B "PulldownMenu::PulldownMenu(const char* str)"
+.ns
+.TP
+.B "PullrightMenu::PullrightMenu(Interactor*)"
+.ns
+.TP
+.B "PullrightMenu::PullrightMenu(const char* str)"
+Construct a new pulldown or pullright menu.  The second constructor defines
+the appearance of the menu to be a message containing the text in \fIstr\fP.
+.TP
+.B "PopupMenu::PopupMenu()"
+Construct a new popup menu.
+.TP
+.B "MenuBar::MenuBar()"
+Construct a new menu bar.
+.TP
+.B "virtual void MenuBar::Include(Control*)"
+Add a control to a menu bar.  In addition to inserting the control
+into the bar's hbox, this operation attaches the control to the bar's
+control state.
+.SH SEE ALSO
+Control(3I), Event(3I)

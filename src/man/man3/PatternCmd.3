@@ -1,0 +1,25 @@
+.TH PatternCmd 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+PatternCmd \- command for setting components' pattern attribute
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/patcmd.h>
+.SH DESCRIPTION
+PatternCmd is a purely interpretive command for setting the pattern
+attribute of selected components.
+.SH PUBLIC OPERATIONS
+.TP
+.B "PatternCmd(ControlInfo*, PSPattern* = nil)"
+.ns
+.TP
+.B "PatternCmd(Editor* = nil, PSPattern* = nil)"
+Create a PatternCmd, optionally specifying the PSPattern that components
+should adopt.
+.TP
+.B "virtual void Execute()"
+PatternCmd extends Execute to set the value of the affected editor's
+PatternVar instance, if it defines one.
+.TP
+.B "PSPattern* GetPattern()"
+Return the PSPattern supplied in the constructor.
+.SH SEE ALSO
+Command(3U), pspaint(3U), statevars(3U)

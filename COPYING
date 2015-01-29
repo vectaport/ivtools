@@ -1,0 +1,14 @@
+From Sept. 6th 2000 to May 18th 2001 I represented that ivtools was
+dual-licensed under its original BSD-like license and the GPL.  On May
+18th 2001 I became aware of the complete requirements for
+dual-licensing against GPL (in terms of required headers in each
+source file), and decided to discontinue dual licensing for the time
+being.  ivtools is still free software, as defined by the Free
+Software Foundation, it's just not dual-licensed with the GPL.  I
+would still be amenable to the creation of a dual distribution (with
+provisions for possible GPL-only enhancements) if requested by other
+collaborators.
+
+Scott Johnston
+http://www.ivtools.org
+

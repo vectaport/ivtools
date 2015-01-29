@@ -1,0 +1,57 @@
+XCOMM
+XCOMM flipbook - frame drawing editor
+XCOMM
+
+PACKAGE = flipbook
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = \
+$(LIBFRAMEUNIDRAW) \
+$(LIBCOMUNIDRAW) \
+$(LIBOVERLAYUNIDRAW) \
+$(LIBACEDISPATCH) \
+$(LIBCOMGLYPH) \
+$(LIBCOMTERP) \
+$(LIBATTRGLYPH) \
+$(LIBATTRIBUTE) \
+$(LIBCOMUTIL) \
+$(LIBUNIIDRAW) \
+$(LIBIVGLYPH) \
+$(LIBTOPOFACE)
+
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = \
+$(DEPFRAMEUNIDRAW) \
+$(DEPCOMUNIDRAW) \
+$(DEPOVERLAYUNIDRAW) \
+$(DEPACEDISPATCH) \
+$(DEPCOMGLYPH) \
+$(DEPCOMTERP) \
+$(DEPATTRGLYPH) \
+$(DEPATTRIBUTE) \
+$(DEPCOMUTIL) \
+$(DEPUNIIDRAW) \
+$(DEPIVGLYPH) \
+$(DEPTOPOFACE)
+#endif
+
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(TIFF_CCLDLIBS)
+
+Use_libUnidraw()
+Use_2_6()
+ComplexProgramTarget(flipbook)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

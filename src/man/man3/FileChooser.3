@@ -1,0 +1,58 @@
+.TH FileChooser 3I "30 November 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+FileChooser \- dialog box for choosing a file name
+.SH SYNOPSIS
+.B #include <InterViews/filechooser.h>
+.SH DESCRIPTION
+FileChooser is a StringChooser that provides a complete dialog box
+interface to selecting a file name.  The interface consists of two
+lines of descriptive text, a StringEditor for entering the file name
+explicitly, a FileBrowser, and two PushButtons, one for accepting and
+one for canceling the dialog.
+.SH PUBLIC OPERATIONS
+.TP
+.B "FileChooser(const char* title, const char* subtitle, const char* dir, \
+int rows, int cols, const char* acceptLabel, Alignment)"
+.ns
+.TP
+.B "FileChooser(const char* name, const char*, const char*, const char*, \
+int, int, const char* accept, Alignment)" 
+Construct a new FileChooser with the given \fItitle\fP and
+\fIsubtitle\fP, search directory \fIdir\fP, FileBrowser size
+specification \fIrows\fP and \fIcols\fP, label for the accept
+PushButton \fIacceptLabel\fP, and pop-up alignment.  These
+constructors create all the elements of the dialog box and compose
+them into a default layout.
+.TP
+.B "void SetTitle(const char*)"
+.ns
+.TP
+.B "void SetSubtitle(const char*)"
+Change the text in title or the subtitle.  The new text will appear
+immediately in the dialog when either function is called.
+.TP
+.B "void SelectFile()"
+Highlight the text in the StringEditor.
+.TP
+.B "void Update()"
+FileChooser's Update simply calls Update on the FileBrowser instance
+to rescan the current directory and update its appearance.
+.SH PROTECTED OPERATIONS
+.TP
+.B "FileChooser(ButtonState*, Alignment = Center)"
+Construct a new FileChooser with the given button state and pop-up
+alignment \fIwithout\fP creating FileBrowser, StringEditor, title,
+subtitle, or PushButton instances.  This constructor should be called
+in subclasses requiring a specialized StringEditor or FileBrowser.
+.TP
+.B "FileChooser(ButtonState*, const char* dir, int rows, int cols, \
+Alignment)" 
+Construct a new FileChooser (along with its StringEditor
+and its FileBrowser) with the given button state, search directory,
+FileBrowser size specification, and pop-up alignment \fIwithout\fP
+composing them into the default layout and without creating the title,
+subtitle, or PushButtons. This constructor should be used by
+FileChooser subclasses that define a specialized look and feel.
+.SH SEE ALSO
+Button(3I), Dialog(3I), FileBrowser(3I), StringChooser(3I),
+StringEditor(3I)

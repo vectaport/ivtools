@@ -1,0 +1,41 @@
+.TH Scroller 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Scroller, HScroller, VScroller \- scrolling an interactor
+.SH SYNOPSIS
+.B #include <InterViews/scroller.h>
+.SH DESCRIPTION
+A scroller is an interactor that manipulates
+the perspective of another interactor.
+It contains a bar whose position and size reflect
+the current origin and size in the interactor's perspective.
+Clicking and dragging in the scroller modifies the attached
+interactor's perspective.
+.B VScroller
+is a class for defining vertical scrollers,
+.B HScroller
+for horizontal scrollers.
+.SH PUBLIC OPERATIONS
+.TP
+.B "HScroller(Interactor*, int size = 0)"
+.ns
+.TP
+.B "VScroller(Interactor*, int size = 0)"
+Create a scroller of a given size (height for a horizontal scroller,
+width for a vertical scroller).
+A zero size means to use the default size.
+.TP
+.B "virtual void Update()"
+Redisplay the scroller to reflect a change
+in the interactor's perspective.
+.SH X DEFAULTS
+The ``syncScroll'' resource specifies whether the scroller should work
+in real-time or not.  When synchronized scrolling is employed the interactor
+scrolls synchronously as the scroller's bar is dragged; otherwise
+the bar's outline follows the mouse during dragging, and
+the interactor is scrolled only after the user stops dragging the bar.
+Scrollers will scroll synchronously if their syncScroll resource is set to
+``on'' or ``true.''
+The state of the syncScroll attribute can be toggled temporarily by
+holding down the ``control'' key while the scroller is manipulated.
+.SH SEE ALSO
+Interactor(3I), Perspective(3I)

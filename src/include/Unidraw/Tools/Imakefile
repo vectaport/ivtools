@@ -1,0 +1,9 @@
+XCOMM
+XCOMM Unidraw Tools include files
+XCOMM
+
+PACKAGE = include_tools
+
+IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(Unidraw/Tools)

@@ -1,0 +1,57 @@
+XCOMM
+XCOMM IVGlyph - InterViews-3.1-derived glyphs, observables, and dialog boxes
+XCOMM
+
+PACKAGE = IVGlyph
+
+#ifdef InObjectCodeDir
+
+LIB = IVGlyph
+
+Use_libInterViews()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(bdfltform)
+Obj(bdtable)
+Obj(bdvalue)
+Obj(boolform)
+Obj(charfield)
+Obj(dragedit)
+Obj(enumform)
+Obj(exportchooser)
+Obj(fieldedit)
+Obj(figure)
+Obj(gdialogs)
+Obj(globals)
+Obj(idraw)
+Obj(importchooser)
+Obj(namestate)
+Obj(observables)
+Obj(odialogs)
+Obj(ofilechooser)
+Obj(printchooser)
+Obj(saveaschooser)
+Obj(scrollable)
+Obj(stredit)
+Obj(strchooser)
+Obj(strlist)
+Obj(texteditor)
+Obj(textform)
+Obj(textbuff)
+Obj(textedit)
+Obj(textview)
+Obj(textwindow)
+Obj(toolbutton)
+Obj(valuator)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

@@ -1,0 +1,21 @@
+/*
+ * Other definitions for gcc/g++.
+ */
+
+          TOOL_INCLUDE_DIR = ToolIncludeDir
+
+#ifndef DependCCFlags
+#if 1 /* without -D__GNUG__ */
+#define DependCCFlags -w -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) \
+		      -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
+#else /* with -D__GNUG__ */
+#define DependCCFlags -D__GNUG__ -DMAKEDEPEND $(CCDEFINES) $(CCINCLUDES) \
+		      -I$(TOOL_INCLUDE_DIR) -UHAVE_ACE
+#endif
+#endif
+
+#undef HasGcc2
+#define HasGcc2 YES
+
+#undef HasGcc
+#define HasGcc HasGcc2

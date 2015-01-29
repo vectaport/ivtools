@@ -1,0 +1,20 @@
+.TH NOPCmd 3U "9 August 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+NOPCmd \- do-nothing command
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/nop.h>
+.SH DESCRIPTION
+NOPCmd is a command that does no work.  It acts as a convenient and harmless
+placeholder.  It is not reversible.
+.SH PUBLIC OPERATIONS
+.TP
+.B "NOPCmd(ControlInfo*)"
+.ns
+.TP
+.B "NOPCmd(Editor* = nil)"
+Create a NOPCmd.
+.TP
+.B "virtual void Execute()"
+NOPCmd's Execute function is empty.
+.SH SEE ALSO
+Command(3U)

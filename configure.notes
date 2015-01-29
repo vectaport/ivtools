@@ -1,0 +1,5 @@
+aclocal.m4 contains an autoconf macro for testing some socket related software conditions.
+
+Most of the --help installation directory arguments are unsupported,
+except for -prefix.  See the INSTALL file for more details.
+

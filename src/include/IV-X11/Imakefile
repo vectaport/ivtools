@@ -1,0 +1,10 @@
+XCOMM
+XCOMM internal include files for direct use of X11 functions
+XCOMM
+
+PACKAGE = include_x11
+
+IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(IV-X11)
+

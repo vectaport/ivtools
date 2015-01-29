@@ -1,0 +1,39 @@
+.TH StateVarView 3U "6 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+StateVarView \- state variable view base class
+.SH SYNOPSIS
+.B #include <Unidraw/stateview.h>
+.SH DESCRIPTION
+StateVarView is the base class for state variable views.  State
+variable views provide a graphical interface to examining and
+potentially modifying a state variable subject.  The StateVarView base
+class is an abstract class derived from MonoScene.  Like MonoScene,
+the StateVarView class is not instantiated; instead, subclasses add
+state and behavior appropriate for displaying and editing their
+subject.  Like other MonoScene subclasses, StateVarView subclasses use
+an interactor composition to define their appearance.
+.SH PUBLIC OPERATIONS
+.TP
+.B "virtual void Update()"
+Update the state variable view in response to a change in state it
+depends on (typically the subject's).  This operation does not
+normally need redefinition if Init and Stale (described below) are
+redefined.
+.SH PROTECTED OPERATIONS
+.TP
+.B "StateVarView(StateVar*)"
+Subclass constructors normally take an instance of the corresponding
+subject as an argument.  The base class constructor automatically
+attaches the view to the subject.
+.TP
+.B "virtual void Init()"
+Initialize the view based on information in the subject.  Subclasses
+redefine this operation according to their semantics; it does nothing
+by default.
+.TP
+.B "virtual boolean Stale()"
+Return whether the view is in any way inconsistent with its subject.
+This operation always returns \fItrue\fP by default; subclasses can
+redefine it to make a more discerning decision.
+.SH SEE ALSO
+MonoScene(3I), StateVar(3U)

@@ -1,0 +1,44 @@
+XCOMM
+XCOMM scripts - miscellaneous shell scripts
+XCOMM
+
+PACKAGE = scripts_ivtools
+
+IvmkcmTargets($(PACKAGE))
+
+PROGRAMS = ivmkmf
+#if InstallRelative
+CONFIGDIRSPEC = -T IMAKE_TEMPLATE -I$(CONFIGDIR) -I$(XCONFIGDIR)
+MAKEMAKESPEC = ARCH=$(CPU) CONFIGSRC=$(CONFIGDIR) XCONFIGDIR=$(XCONFIGDIR)
+#else
+CONFIGDIRSPEC = -T IMAKE_TEMPLATE -I$(CONFIGDIR) -I$(CONFIGDIR)/.. -I$(XCONFIGDIR)
+MAKEMAKESPEC = ARCH=$(CPU) CONFIGSRC=$(CONFIGDIR) XCONFIGDIR=$(XCONFIGDIR)
+#endif
+
+AllTarget($(PROGRAMS))
+
+#if InstallRelative
+CppScriptTarget(ivmkmf,ivmkmf.cpp,-DCONFIGDIRSPEC='$(CONFIGDIRSPEC)' -DMAKEMAKESPEC='$(MAKEMAKESPEC)',)
+#else
+CppScriptTarget(ivmkmf,ivmkmf.cpp,-DCONFIGDIRSPEC='$(CONFIGDIRSPEC)' -DMAKEMAKESPEC='$(MAKEMAKESPEC)' -DUSE_INSTALLED,)
+#endif
+
+InstallMultipleFlags($(PROGRAMS),$(BINDIR),$(INSTBINFLAGS))
+
+LDLIB_SPEC = LD_LIBRARY_PATH='$(LIBABSDIR)':$$LD_LIBRARY_PATH
+PATH_SPEC = PATH='$(BINDIR)':$$PATH
+
+#if InstallRelative
+InstallScriptAs(mkgif89a.bash,$(BINDIR),mkgif89a)
+InstallScriptAs(mkgif89ac.bash,$(BINDIR),mkgif89ac)
+#endif
+InstallScriptAs(ivgetjpg.bash,$(BINDIR),ivgetjpg)
+#if InstallRelative
+InstallScriptAs(cntsrclines.bash,$(BINDIR),cntsrclines)
+#endif
+InstallScriptAs(ivtiftopnm.bash,$(BINDIR),ivtiftopnm)
+
+InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)
+
+clean::
+	$(RM) $(PROGRAMS) $(PROGRAMS2)

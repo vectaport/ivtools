@@ -1,0 +1,192 @@
+.TH BasicDialog 3U "23 July 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+AcknowledgeDialog, BasicDialog, ConfirmDialog, GridDialog, \
+PrintDialog, UChooser - an assortment of useful dialog boxes
+.SH SYNOPSIS
+.B #include <Unidraw/dialogs.h>
+.SH DESCRIPTION
+BasicDialog is the base class for subclasses that implement simple but
+common dialog boxes.  AcknowledgeDialog simply displays a one or two
+line message with a PushButton for dismissing the dialog.
+ConfirmDialog displays one or two lines of descriptive text with three
+pushbuttons marked ``Yes,'' ``No,'' and ``Cancel'', all of which
+dismiss the dialog. ConfirmDialog also provides an interface for
+retrieving the button pushed.  GridDialog lets the user specify the
+resolution of a cartesian grid. PrintDialog is a FileChooser for
+specifying the name of a file or a printer.  Finally, UChooser extends
+the StringChooser protocol to provide additional useful features,
+including support for alphabetizing its StringBrowser's contents and
+for embellishing the dialog with descriptive text.
+.SH BASICDIALOG PUBLIC OPERATIONS
+.TP
+.B "void SetTitle(const char*)"
+.ns
+.TP
+.B "void SetSubtitle(const char*)"
+BasicDialogs can display one or two lines of descriptive text.  These
+functions change the text appearing in these lines.  The change
+appears immediately if the dialog is visible.
+.SH BASICDIALOG PROTECTED OPERATIONS
+.TP
+.B "BasicDialog("
+.ns
+.TP
+.B "    ButtonState*, const char* title = ``'',"
+.ns
+.TP
+.B "    const char* subtitle = ``'', Alignment = Center"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "BasicDialog("
+.ns
+.TP
+.B "    const char*, ButtonState*, const char* title = ``'',"
+.ns
+.TP
+.B "    const char* subtitle = ``'', Alignment = Center"
+.ns
+.TP
+.B ")"
+.br
+Instantiate a BasicDialog, supplying an optional instance name, a
+button state, title and subtitle strings, and the dialog's alignment,
+which is used by its Popup operation.  These operations will
+initialize two protected MarginFrame member variables, \fI_title\fP
+and \fI_subtitle\fP, which will contain either a Message instance with
+the specified string or a piece of glue if the string is null.  These
+MarginFrames will be composed vertically at the top of the dialog, and
+no vertical space will be taken up by a null title or subtitle string.
+.TP
+.B "virtual void Forward(Event&)"
+.ns
+.TP
+.B "boolean IsAChild(Interactor*)"
+These functions are useful for rejecting spurious events while the
+dialog is visible, effectively locking out the rest of the
+application.  If Forward's event argument has \fIx\fP and \fIy\fP
+coordinates that fall within the dialog's canvas, then Forward calls
+Handle on the event's target.  Otherwise the BasicDialog's Handle is
+called.  IsAChild returns true if the given interactor is a child of
+the dialog.
+.SH ACKNOWLEDGEDIALOG PUBLIC OPERATIONS
+.TP
+.B "AcknowledgeDialog(const char* title, const char* subtitle)"
+Construct an AcknowledgeDialog instance with the given title and
+subtitle.
+.TP
+.B "virtual void Acknowledge()"
+Call this function when the application should wait for the user to
+acknowledge the dialog.  It returns when the user has pressed and
+released the dialog's push button.  This function does \fInot\fP
+pop up the dialog.
+.SH CONFIRMDIALOG PUBLIC OPERATIONS
+.TP
+.B "ConfirmDialog(const char* title, const char* subtitle)"
+Construct a ConfirmDialog instance with the given title and subtitle.
+.TP
+.B "virtual char Confirm()"
+Call this function when the application should wait for the user to
+confirm the dialog.  It returns 'y', 'n', or '^G' ('\\007'), depending
+whether the ``Yes,'' ``No,'' or ``Cancel'' push button was pressed,
+respectively. This function does \fInot\fP pop up the dialog.
+.SH GRIDDIALOG PUBLIC OPERATIONS
+.TP
+.B "GridDialog()"
+Construct a GridDialog instance.  The GridDialog contains a
+MatchEditor instance for specifying the size of the grid's graduations
+in the \fIx\fP and \fIy\fP axes.  The user can specify these values in
+pixels, points, centimeters, or inches by clicking on the appropriate
+radio button.
+.TP
+.B "virtual void GetValues(float& xincr, float& yincr)"
+Return the user-specified values for the size of the grid's
+graduations, in pixel units.
+.TP
+.B "void SelectMessage()"
+Highlight the values in the dialog's MatchEditor.
+.SH PRINTDIALOG PUBLIC OPERATIONS
+.TP
+.B "PrintDialog(boolean to_printer = true)"
+Construct a PrintDialog instance, optionally specifying whether the
+dialog should prompt for a printer name or a file name.
+.TP
+.B "void ToPrinter(boolean)"
+.ns
+.TP
+.B "boolean ToPrinter()"
+Specify and Return whether or not the string specified in the
+PrintDialog refers to a printer name.
+.SH UCHOOSER PUBLIC OPERATIONS
+.TP
+.B "UChooser("
+.ns
+.TP
+.B "    const char* title, const char* subtitle,"
+.ns
+.TP
+.B "    const char* acceptLabel, const char* sample"
+.ns
+.TP
+.B ")"
+.br
+Construct a UChooser instance.  The \fItitle\fP and \fIsubtitle\fP
+parameters specify the descriptive text at the top of the dialog box.
+This constructor initializes two protected MarginFrame member
+variables \fI_title\fP and \fI_subtitle\fP that are analogous to the
+corresponding BasicDialog members described above.
+.TP
+.B "void Clear()"
+Removes all strings from the UChooser's string browser.
+.TP
+.B "void Include(const char*)"
+.ns
+.TP
+.B "void Exclude(const char*)"
+Include inserts a string into the string browser at a position defined
+by the UChooser's Position function, described below.  Exclude removes
+the given string from the string browser.  If the string browser
+contains more than one copy of the string, then Exclude removes the
+one with the smallest index.
+.TP
+.B "void SetTitle(const char*)"
+.ns
+.TP
+.B "void SetSubtitle(const char*)"
+These functions change the text appearing in UChooser's title or
+subtitle.  The change appears immediately if the dialog is visible.
+.SH UCHOOSER PROTECTED OPERATIONS
+.TP
+.B "UChooser(ButtonState*, int rows, int cols, Alignment)"
+Direct the UChooser to initialize itself with a string browser of the
+given size \fIwithout\fP initializing the MarginFrame members.
+Subclasses that require a different look-and-feel can use this
+constructor to avoid creating MarginFrames or Messages they don't
+need.  The Init, Interior, and AddScroller functions (described below)
+factor out different parts of the default look and feel, allowing
+subclasses to use parts of it.
+.TP
+.B "void Init(const char* title, const char* subtitle)"
+Explicitly initialize the MarginFrame members to display the given
+title and/or subtitle strings.
+.TP
+.B "Interactor* Interior(const char* acceptLabel)"
+Return an interactor that composes the UChooser's default look and
+feel.
+.TP
+.B "Interactor* AddScroller(Interactor*)"
+Return a composition containing the given interactor with a vertical
+scroll bar and adjusters along its right side, initializing them to
+scroll the interactor.  The Interior function uses this operation to
+provide the string browser's  scrolling interface.
+.TP
+.B "virtual int Position(const char*)"
+Return an appropriate string browser index for the given string.  By
+default, this function returns the index that will place the string in
+alphabetical order among those in the string browser.
+.SH SEE ALSO
+Button(3I), Dialog(3I), Event(3I), FileChooser(3I), Frame(3I),
+MatchEditor(3I), Message(3I), StringBrowser(3I), StringChooser(3I),
+StringEditor(3I)

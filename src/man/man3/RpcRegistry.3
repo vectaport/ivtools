@@ -1,0 +1,40 @@
+.TH RpcRegistry 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+RpcRegistry \- name space for finding RPC services
+.SH SYNOPSIS
+.B #include <Dispatch/rpcregistry.h>
+.SH DESCRIPTION
+RpcRegistry provides a name space for finding RPC services based on
+the use of NFS filesystems among a group of hosts.  When an RPC
+service wishes to record its host name and port number, it will give
+the path of a file in which to store the information.  When a client
+wants to find the RPC service's host name and port number, it will
+give the path of a file from which to read the information.  Usually
+the path will be the name of a file in the current working directory
+since different hosts may have different absolute pathnames for the
+same file in a NFS filesystem.  The RPC service's name space is the
+name space of the host's filesystem and the file's contents provides
+the information needed to open a connection to the RPC service.
+.SH PUBLIC OPERATIONS
+Each function is a static member function, which means a program can
+call it without having to instantiate an RpcRegistry object.  Each
+function returns true if it succeeded or false if some error occurred.
+.TP
+.B "boolean record(const char* path, int port)"
+Record the RPC service's host name and port number in the given file.
+If the file already exists, its previous contents will be lost.
+.TP
+.B "boolean erase(const char* path)"
+Remove the file which stores the RPC service's host name and port
+number so that no more clients will be able to contact the RPC
+service.
+.TP
+.B "boolean find(const char* path, char*& hostname, int& port)"
+Open the file which stores the RPC service's host name and port
+number.  If the file does not exist, return failure silently.  If the
+file does exist, read the RPC service's host name and port address
+from it.  If ``hostname'' is nil upon entry, it will contain the
+address of a dynamically allocated string upon exit (which must be
+freed by the caller).
+.SH SEE ALSO
+RpcService(3I)

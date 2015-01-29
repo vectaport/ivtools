@@ -1,0 +1,333 @@
+.TH Interactor 3I "" "InterViews Reference Manual"
+.SH NAME
+Interactor \- base class for interactive objects
+.SH SYNOPSIS
+.B #include <InterViews/interactor.h>
+.SH DESCRIPTION
+In 2.6,
+.B Interactor
+was the base class for all interactive objects.
+It is currently provided for backward compatibility.
+.PP
+Every interactor has a \fIshape\fP member variable that defines
+the desired characteristics of screen space
+in terms of size, shrinkability, and stretchability.
+This information is used to allocate display space for the interactor
+and the interactor's \fIcanvas\fP member variable is set
+to the actual space obtained.
+The lower left corner of the canvas is addressed by (0,\ 0);
+the upper right by the member variables (\fIxmax\fP,\ \fIymax\fP).
+.PP
+The \fIinput\fP member variable is the normal sensor for reading events.
+The \fIoutput\fP member variable is the standard painter
+for performing graphics operations.
+Interactors generally should not set \fIoutput\fP;
+it will either be inherited (and shared) from the interactor's parent or
+set by user customization attributes.
+.PP
+An interactor may optionally define the \fIperspective\fP member variable
+to represent the portion of total area that the interactor is displaying.
+Perspectives allow interactors to coordinate with other interactors,
+such as scrollers, that want to control the display area.
+.PP
+An interactor also may 
+specify certain characteristics of the interactor's canvas,
+such as whether it is read-only or read/write, whether its contents
+should be saved when not visible.
+Interactors also may specify
+the visual format and interpretation
+of the input pointing device (e.g., mouse cursor)
+when it is inside the interactor's canvas.
+.PP
+To be mapped to some portion of the display,
+an interactor must have been inserted
+into a scene, called its \fIparent\fP.
+The interactor will be mapped when its parent is mapped.
+The root scene for the display can be accessed through a World(3I) object.
+.SH CONSTRUCTORS
+.TP
+.B "Interactor()"
+Construct an interactor.
+The \fIinput\fP sensor and \fIoutput\fP painters
+are initialized to \fInil\fP.
+.TP
+.B "Interactor(const char* name)"
+Construct an interactor associated with the string \fIname\fP.
+The string is used to customize the behavior of the interactor
+according to user preferences.  Behavior can also be customized
+on a per-class basis using the subclass name.
+Although not explicitly documented,
+an instance of any object inheriting from interactor
+may be constructed with an additional argument (appearing first)
+containing the string name.
+For example, both ``HGlue(natural, stretch)'' and
+``HGlue("somename", natural, stretch)'' are valid.
+.TP
+.B "~Interactor()"
+The base destructor automatically deletes the base fields,
+including \fIshape\fP, \fIcanvas\fP, \fIinput\fP, and \fIoutput\fP.
+.SH CONFIGURATION
+.TP
+.B "void Align(Alignment, int w, int h, Coord& l, Coord& b)"
+Return the coordinates at which an object with the given width and
+height will have the given alignment within the interactor's canvas.
+.TP
+.B "void SetClassName(const char*)"
+.ns
+.TP
+.B "const char* GetClassName()"
+.ns
+.TP
+.B "void SetInstance(const char*)"
+.ns
+.TP
+.B "const char* GetInstance()"
+Set/get the class or instance name for an interactor.
+The names are used to determine user style preferences.
+SetClassName and SetInstance
+can only be performed by subclasses.
+.TP
+.B "void Config(Scene* s)"
+Configure this interactor and its descendants
+according to user preferences.
+The scene \fIs\fP is assumed to be the interactor's parent and
+is used to inherit attribute values.
+This operation need not be called explicitly;
+it is called automatically when the ancestors of an interactor
+become known (e.g., when the interactor or an ancestor is
+inserted into a world).
+.PP
+Configuration involves a traversal of the interactor hierarchy.
+For each interactor in the hierarchy, the \fIoutput\fP painter
+is either inherited from its parent or copied from its parent
+if there are user preferences specific to the interactor
+for painter attributes such as colors, font, and brush.
+For example, suppose the user preference is ``A*B*font:9x15'' and
+the interactor hierarchy is ``A.B.C.D'' (each ``.'' representing
+a nesting level in the hierarchy).
+Interactors A and B will share the same output painter,
+C will copy B's output and change the font to ``9x15'', and
+D will share C's output.
+.PP
+After assigning the output painter,
+configuration is performed recursively on any children interactors.
+The final step at each node in the traversal
+is to call the virtual Reconfig operation.
+.TP
+.B "virtual void Reconfig()"
+Perform any configuration specific to a particular interactor.
+This operation should minimally compute the interactor's shape
+based on the shape of its children and/or the characteristics
+of its output painter (e.g., font).
+It can also retrieve user preferences specific to this interactor's
+class or instance name using GetAttribute.
+.TP
+.B "const char* GetAttribute(const char*)"
+Retrieve the value of a user preference with the given name.
+GetAttribute searches for the most specific match to the current context.
+.TP
+.B "virtual void Reshape(Shape&)"
+.ns
+.TP
+.B "Shape* GetShape()"
+Set/get the shape of an interactor.
+Reshape is a a suggestion
+that an interactor's shape should change to the given one.
+The default operation sets the interactor's shape to the new shape and
+calls Scene::Change on the interactor's parent.
+Suggested shape information may be lost when an interactor is configured;
+thus, it is best to avoid use of Reshape.
+The same affect can usually be achieved by putting
+the interactor in a box along with
+a particular shape of glue.
+.TP
+.B "void SetCursor(Cursor*)"
+.ns
+.TP
+.B "Cursor* GetCursor()"
+Set/get the cursor that will be displayed when the pointing device
+is inside the interactor's canvas.
+If the interactor does not explicitly set its cursor,
+it will use its parent's cursor.
+GetCursor returns nil in this case.
+.SH INTERACTOR HIERARCHY
+.TP
+.B "Scene* Parent()"
+Return the interactor's parent or \fInil\fP if the interactor has not
+been inserted into a scene.
+.TP
+.B "World* GetWorld()"
+Return a pointer to the world the interactor has been inserted into or
+\fInil\fP if the interactor's root ancestor is not mapped.
+.TP
+.B "void GetRelative(Coord& x, Coord& y, Interactor* = nil)"
+Map coordinates that are relative to this
+interactor's canvas to be relative to another interactor's canvas.
+If the other interactor is \fInil\fP, then the
+coordinates are made relative to the world.
+.TP
+.B "virtual void GetComponents(Interactor**, int, Interactor**&, int&)"
+Construct an array of pointers to the interactors contained
+within this interactor.
+The first and second parameters specify an array of interactors
+that is already allocated.
+This array is used if it is large enough,
+otherwise a new array is allocated from free store.
+The third and fourth parameters return the
+which array was used and the actual number of components.
+This operation is only defined by scenes;
+the default operation sets the number of elements to zero.
+.SH OUTPUT
+.TP
+.B "Canvas* GetCanvas() const"
+Return the interactor's canvas, which may be \fInil\fP if
+the interactor is not mapped to a display.
+.TP
+.B "ManagedWindow* GetTopLevelWindow() const"
+Return the top-level window associated with the interactor,
+if it is mapped and top-level.
+.TP
+.B "virtual void Draw()"
+Draw is used to display the contents of an interactor, including the
+contents of any interior interactors.  The default Draw operation
+calls Redraw(0,\ 0,\ \fIxmax\fP,\ \fIymax\fP).  Interactors usually
+don't need to redefine Draw unless they contain interior interactors
+(i.e., scene subclasses); most simple interactors redefine only
+Redraw.
+.TP
+.B "virtual void Highlight(boolean)"
+Turn highlighting on or off, depending on whether the parameter
+is true or false.  The default operation is a nop.
+.TP
+.B "void SetCanvasType(CanvasType)"
+.ns
+.TP
+.B "CanvasType GetCanvasType()"
+Set/get the type of canvas desired for an interactor.  This operation
+must be performed before an interactor is mapped.  The possible canvas
+types are CanvasShapeOnly, meaning the interactor performs no input or
+output (e.g., glue), CanvasInputOnly, meaning the interactor performs
+no output, CanvasInputOutput, which is the default, CanvasSaveUnder,
+which suggests that the interactor will be mapped for a short time
+(e.g., a popup menu) and that the information under the canvas should
+be saved, CanvasSaveContents, which suggests that Redraw calls are
+expensive and should be avoided by caching the display, and
+CanvasSaveBoth, which requests both CanvasSaveUnder and
+CanvasSaveContents.
+.TP
+.B "void Sync()"
+.ns
+.TP
+.B "void Flush()"
+Sync waits until any pending operations have completed.
+Flush makes sure the local buffer of pending operations (if any)
+is sent to the display.
+An input operation will do a Sync automatically if it would block;
+thus, applications generally need not call Sync or Flush explicitly.
+.SH INPUT
+.TP
+.B "void Listen(Sensor*)"
+When an interactor is mapped onto a display,
+its input interest is determined by its \fIinput\fP sensor.
+A different sensor can be specified with the Listen operation.
+To switch back to \fIinput\fP, call Listen(\fIinput\fP).
+.TP
+.B "void Read(Event&)"
+.ns
+.TP
+.B "boolean Read(long sec, long usec, Event&)"
+Each application has a single input queue of events.
+Any interactor can use Read to take the next event from the queue.
+Redraw and Resize operations may be called as a side effect
+of a Read (or any input operation).
+The \fItarget\fP field of the event specifies the interactor
+for which the event is intended, which is not necessarily
+the same as the interactor that performed the Read.
+The target is normally the interactor
+whose canvas is under the pointing device.
+The second form of Read behaves differently if there are no events to
+read in that it times out after the given number of seconds
+and microseconds have elapsed and returns false to the calling program.
+.TP
+.B "void UnRead(Event&)"
+UnRead puts an event back on the input queue
+as if it had never been read.
+.TP
+.B "virtual void Handle(Event&)"
+When an interactor wishes to pass an event to another interactor,
+it calls the other interactor's Handle operation.
+Thus, input flow control can be either procedural
+with Read or event-driven with Handle.
+.TP
+.B "void Run()"
+Run implements a simple event dispatching loop.
+It calls Read to get the next event and passes
+the event to the target interactor via Handle.
+The loop terminates if the Handle operation
+sets the event's target to nil.
+.TP
+.B "void QuitRunning(Event&)"
+QuitRunning sets the event's target to nil.  A Handle operation can
+call it to make Run exit its event dispatching loop.
+.TP
+.B "boolean Check()"
+Check determines whether an event of interest has occurred.
+.TP
+.B "void Poll(Event&)"
+Poll sets an event to reflect the current input state.
+Input polling can be wasteful of cycles and should be avoided if possible.
+.TP
+.B "int CheckQueue()"
+CheckQueue returns the number of input packets that have been queued
+within the application.
+The event queue manager always reads as much information as possible
+from input; thus, a single Read might store many events
+in a local buffer.  Subsequent reads can simply access the buffer.
+This buffer can include out-of-band packets, such as those requiring
+a Redraw.  The number returned by CheckQueue does not correspond,
+therefore, to the actual number of input events.
+.SH VIEWS
+.TP
+.B "virtual void Adjust(Perspective&)"
+Adjust suggests to an interactor that its perspective should
+change to the given perspective;
+the interactor may choose to accept any part of the new perspective and
+must ensure that the parameter matches its (new) perspective before returning.
+Adjust can be used by another interactor to scroll, pan, or zoom an interactor.
+.TP
+.B "Perspective* GetPerspective()"
+GetPerspective returns the perspective associated with an interactor
+or nil if the interactor has not assigned one.
+.TP
+.B "virtual void Update()"
+Change the display to reflect some change in state that the interactor
+depends on.
+This operation is used in a number of contexts.
+One example is in managing perspectives.
+If an interactor changes its perspective (e.g.,
+the total of size of what it is displaying changes),
+it must notify its perspective, which in turn calls Update
+on the interactors that access the perspective (such as a scroller).
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual void Redraw(Coord l, Coord b, Coord r, Coord t)"
+The Redraw operation is called when some portion of the Interactor
+needs to be redrawn, presumably because it was previously obscured.
+The Redraw operation should NOT redraw interior interactors; the
+Interviews library or the Draw operation will call their Redraw
+operations automatically.  The default Redraw operation does nothing.
+.TP
+.B "virtual void RedrawList(int n, Coord l[], Coord b[], Coord r[], Coord t[])"
+RedrawList notifies an interactor that several areas of its canvas
+need to be redrawn, presumably because it was raised to the top of
+other canvases.  The default RedrawList operation redraws each area
+separately with Redraw.
+.TP
+.B "virtual void Resize()"
+Resize notifies an interactor that its canvas has been created or
+modified.  Only scenes are typically concerned with Resize, as they
+must place their component interactors within the new or resized
+canvas.  The default Resize operation does nothing.
+.SH SEE ALSO
+\fIInterViews Reference Manual\fR, Perspective(3I),
+Scene(3I), Sensor(3I), Shape(3I), World(3I)

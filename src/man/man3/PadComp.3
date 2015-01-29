@@ -1,0 +1,136 @@
+.TH PadComp 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+PadComp, PadView, PadGraphic, PSPad \- pad connector subject, view,
+structured graphic, and PostScript external representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/pad.h>
+.SH DESCRIPTION
+PadComp is a Connector subclass that supports connectivity with two
+degrees of freedom.  It uses a PadGraphic to store its graphical
+attributes.  PadView is a GraphicView for displaying the pad.  PSPad
+is a PostScriptView that externalizes the subject's information in
+PostScript form.
+.SH PADCOMP PUBLIC OPERATIONS
+.TP
+.B "PadComp(PadGraphic* = nil)"
+The constructor takes an optional PadGraphic that defines the pad's
+graphical attributes.
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+PadComp (un)interprets a subset of commands that connectors can
+generally interpret, namely MoveCmd, BrushCmd, AlignCmd, MobilityCmd,
+DeleteCmd, and CutCmd.
+.TP
+.B "virtual Mobility GetMobility()"
+.ns
+.TP
+.B "virtual void SetMobility(Mobility)"
+PadComp redefines these functions to return and assign its
+\fI_mobility\fP protected member.  The pad has fixed mobility
+initially.
+.TP
+.B "Pad* GetPad()"
+Return the Pad graphic that defines the line's attributes.  GetPad
+is simply a more specific form of the GetGraphic operation.
+.SH PADVIEW PUBLIC OPERATIONS
+.TP
+.B "PadView(PadComp* = nil)"
+Create an PadView, optionally supplying the subject.
+.TP
+.B "virtual void Interpret(Command*)"
+PadView interprets AlignToGridCmd to align its lower left to the
+grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+PadViews respond only to manipulation by GraphicCompTools, MoveTools,
+and ConnectTools. PadView inherits its MoveTool response from
+ConnectorView.  GraphicCompTool will let the user sweep out a
+rectangle that reflects the pad's size.  Creation will be influenced
+by gravity, if any. PadView creates a ConnectManip in response to the
+ConnectTool, which will exhibit a gravational attraction to potential
+target connectors.  PadView will produce a ConnectCmd to connect the
+pad to its target. A pad connected in this way will receive floating
+mobility.
+.TP
+.B "PadComp* GetPadComp()"
+Return the subject.
+.SH PADVIEW PROTECTED OPERATIONS
+.TP
+.B "PadGraphic* GetPad()"
+Return the PadGraphic that defines the pad's attributes.  GetPad is
+simply a more specific form of the GetGraphic operation.
+.TP
+.B "virtual PadComp* NewSubject(PadGraphic*)"
+A helper function that creates a PadComp subject with the given pad
+graphic. This function produces the proper subject when the
+GraphicCompTool's manipulator is interpreted.  Subclasses can redefine
+this operation to return a PadComp subclass, thus eliminating the need
+to reimplement InterpretManipulator.
+.TP
+.B "Manipulator* CreateGraphicCompManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Manipulator* CreateConnectManip("
+.ns
+.TP
+.B "    Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "Command* InterpretGraphicCompManip(Manipulator*)"
+.ns
+.TP
+.B "Command* InterpretConnectManip(Manipulator*)"
+Helper functions used by CreateManipulator and InterpretManipulator to
+create and interpret the manipulators associated with GraphicCompTool
+and ConnectTool.
+.SH PADGRAPHIC PUBLIC OPERATIONS
+.TP
+.B "PadGraphic("
+.ns
+.TP
+.B "    Coord = 0, Coord = 0, Coord = 0, Coord = 0,"
+.ns
+.TP
+.B "    Graphic* = nil
+.ns
+.TP
+.B ")"
+.br
+Create a PadGraphic, optionally specifying lower-left and upper-right
+corners and a graphic from which to obtain its default graphics
+attributes.
+.TP
+.B "void GetOriginal(Coord&, Coord&, Coord&, Coord&)"
+Return the PadGraphic's original coordinates as specified in the
+constructor.
+.SH PSPAD PUBLIC OPERATIONS
+.TP
+.B "PSPad(PadComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+BrushCmd(3U), ConnectTool(3U), Connector(3U), ConnectorView3U),
+Event(3I), Graphic(3U), GraphicCompTool(3U), Grid(3U), MoveTool(3U),
+PatternCmd(3U), PostScriptView(3U), Transformer(3I), Viewer(3U),
+align(3U), edit(3U), manips(3U), transforms(3U)

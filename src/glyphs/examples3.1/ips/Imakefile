@@ -1,0 +1,20 @@
+XCOMM
+XCOMM Simple test case to display a string
+XCOMM
+
+PACKAGE = examples3.1_ips
+
+#ifdef InObjectCodeDir
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(ips)
+
+MakeObjectFromSrc(figure)
+MakeObjectFromSrc(idraw)
+MakeObjectFromSrc(main)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

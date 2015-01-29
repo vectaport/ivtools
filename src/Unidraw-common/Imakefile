@@ -1,0 +1,28 @@
+XCOMM
+XCOMM source files for building the Unidraw-common library
+XCOMM
+
+PACKAGE = Unidraw-common
+NO_IVMKCM = 1
+
+#ifdef InObjectCodeDir
+
+LIB = Unidraw-common
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,-DUnidrawCommon)
+
+Obj(compview)
+Obj(component)
+Obj(geomobjs)
+Obj(iterator)
+Obj(ulist)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

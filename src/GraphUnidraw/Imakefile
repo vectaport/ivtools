@@ -1,0 +1,42 @@
+XCOMM
+XCOMM GraphUnidraw - graph editing operations
+XCOMM
+
+PACKAGE = GraphUnidraw
+
+#ifdef InObjectCodeDir
+
+LIB = GraphUnidraw
+
+Use_libUnidraw()
+Use_2_6()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj26(file) MakeObjectFromSrcFlags(file,)
+
+Obj26(edgecomp)
+Obj26(graphcatalog)
+Obj26(graphcmds)
+Obj26(graphcomp)
+Obj26(graphdata)
+Obj26(graphcreator)
+Obj26(grapheditor)
+Obj26(graphexport)
+Obj26(graphtools)
+Obj26(nodecomp)
+
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+Obj31(graphdialog)
+Obj31(graphimport)
+Obj31(graphkit)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

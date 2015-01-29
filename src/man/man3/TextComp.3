@@ -1,0 +1,102 @@
+.TH TextComp 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+TextComp, TextView, TextGraphic, PSText \- multiline text component
+subject, view, structured graphic, and PostScript external
+representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/text.h>
+.SH DESCRIPTION
+TextComp is a GraphicComp that defines a piece of multiline text.  It
+uses a TextGraphic (a subclass of Label) to store its graphical
+attributes.  TextView is a GraphicView for displaying the text.
+PSText is a PostScriptView that externalizes the subject's information
+in PostScript form.
+.SH TEXTCOMP PUBLIC OPERATIONS
+.TP
+.B "TextComp(TextGraphic* = nil)"
+The constructor takes an optional TextGraphic that defines
+the attributes of the text.
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+TextComp redefines (Un)interpret to ignore BrushCmd and PatternCmd and
+to (un)interpret FontCmd.
+.TP
+.B "TextGraphic* GetText()"
+Return the TextGraphic that defines the text component's attributes.
+GetText is simply a more specific form of the GetGraphic operation.
+.SH TEXTVIEW PUBLIC OPERATIONS
+.TP
+.B "TextView(TextComp* = nil)"
+Create an TextView, optionally supplying the subject.
+.TP
+.B "virtual void Interpret(Command*)"
+TextView interprets AlignToGridCmd to align its lower-left to the
+grid.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*, Tool*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+TextView redefines its response to manipulation with a
+GraphicCompTool. GraphicCompTool will let the user position and type
+out the component's text using TextManip. Positioning of the text will
+be influenced by gravity, if any. TextView also defines a response to
+the ReshapeTool to let the user edit the text.  The subject is
+actually replaced (via ReplaceCmd) with a new TextComp subject
+positioned at the original TextComp's location but reflecting the
+edited text.
+.TP
+.B "TextComp* GetTextComp()"
+Return the subject.
+.SH TEXTVIEW PROTECTED OPERATIONS
+.TP
+.B "virtual boolean TextChanged()"
+Return whether the text in the subject is any different from that in
+the view.
+.SH TEXTGRAPHIC PUBLIC OPERATIONS
+.TP
+.B "TextGraphic(const char*, int h, Graphic* = nil)"
+.ns
+.TP
+.B "TextGraphic(const char*, Graphic*)"
+Create a TextGraphic, specifying its text, optional inter-line
+spacing, and optional graphic from which to obtain default graphics
+attributes.  TextGraphic stores a copy of the given string (behavior
+it inherits from Label).  If inter-line spacing is not specified, then
+lines will be separated to reflect the font height reported by PSFont.
+.TP
+.B "void SetLineHeight(int)"
+.ns
+.TP
+.B "int GetLineHeight()"
+Explicitly set and get the inter-line spacing.
+.TP
+.B "virtual boolean operator == (TextGraphic&)"
+.ns
+.TP
+.B "virtual boolean operator != (TextGraphic&)"
+Report whether the given graphic contains or does not contain an
+identical copy of the text in \fIthis\fP
+.SH PSTEXT PUBLIC OPERATIONS
+.TP
+.B "PSText(TextComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH PSTEXT PROTECTED OPERATIONS
+.TP
+.B "const char* Filter(const char* string, int length)"
+Filter excapes embedded control or other special characters that would
+cause syntax errors in the PostScript output.
+.SH SEE ALSO
+FontCmd(3U), GraphicComp(3U), GraphicCompTool(3U),
+GraphicView(3U), Grid(3U), Label(3U), PostScriptView(3U), ReshapeTool(3U),
+align(3U), edit(3U), manips(3U), pspaint(3U)

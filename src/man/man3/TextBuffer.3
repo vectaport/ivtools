@@ -1,0 +1,211 @@
+.TH TextBuffer 3I "23 May 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+TextBuffer \- operations on unstructured text
+.SH SYNOPSIS
+.B #include <InterViews/textbuffer.h>
+.SH DESCRIPTION
+TextBuffer defines common editing, searching, and text movement
+operations on a buffer of unstructured text.  Text positions are
+specified by an index into the buffer and logically refer to positions
+between characters.  For example, the position referred to by the index
+\fI0\fP is before the first character in the text.  Indices can be
+compared for equality or ordering, but they should not be used to
+directly access the buffer because TextBuffer might rearrange the text
+to improve the efficiency of some operations.
+.SH PUBLIC OPERATIONS
+.TP
+.B "TextBuffer(char* buffer, int length, int size)"
+.ns
+.TP
+.B "~TextBuffer()"
+Create or destroy an instance of TextBuffer.  All operations on the
+text contained in \fIbuffer\fP should be performed through TextBuffer
+functions.  The text is assumed to be of length \fIlength\fP, and the
+total available buffer size is \fIsize\fP.
+.TP
+.B "int Search(Regexp* regexp, int index, int range, int stop)"
+.ns
+.TP
+.B "int ForwardSearch(Regexp* regexp, int index)"
+.ns
+.TP
+.B "int BackwardSearch(Regexp* regexp, int index)"
+Search for a match with the regular expression \fIregexp\fP, beginning
+at position \fIindex\fP.  Search searches the part of the buffer
+specified by \fIrange\fP and \fIstop\fP and returns the index of the
+beginning of the matched text.  Positive values of \fIrange\fP specify
+forward searches, and negative values specify backward searches.  In
+either case, the matched text will not extend beyond the position
+given by \fIstop\fP.  ForwardSearch searches for matches from
+\fIindex\fP to the end of the text and returns the index of the end of
+the match.  BackwardSearch searches from \fIindex\fP to the start of
+the text and returns the index of the beginning of the match.  All
+three functions return a negative number if there was no match.
+.TP
+.B "int Match(Regexp* regexp, int index, int stop)"
+.ns
+.TP
+.B "boolean ForwardMatch(Regexp* regexp, int index)"
+.ns
+.TP
+.B "boolean BackwardMatch(Regexp* regexp, int index)"
+Attempt to match the regular expression \fIregexp\fP at the position
+\fIindex\fP.  Match returns the length of the matching string, or a
+negative number if there was no match.  Matching will not succeed
+beyond the position given by \fIstop\fP.  ForwardMatch looks for a
+match that begins at \fIindex\fP.  BackwardMatch looks for a match
+that ends at \fIindex\fP.
+.TP
+.B "int Insert(int index, const char* string, int count)"
+.ns
+.TP
+.B "int Delete(int index, int count)"
+.ns
+.TP
+.B "int Copy(int index, char* buffer, int count)"
+Edit the text in the buffer.  Insert inserts count characters from
+\fIstring\fP at the position \fIindex\fP.  It returns the actual
+number of characters inserted, which might be less than count if there
+is insufficient space in the buffer.  Delete deletes \fIcount\fP
+characters from the buffer.  A positive \fIcount\fP deletes characters
+after \fIindex\fP, and a negative value deletes character before
+\fIindex\fP.  Delete returns the actual number of characters deleted,
+which might be less than \fIcount\fP if index is near the beginning or
+the end of the text.  Copy copies \fIcount\fP characters into
+\fIbuffer\fP.  A positive \fIcount\fP copies characters after
+\fIindex\fP and a negative \fIcount\fP copies characters before
+\fIindex\fP.  Count returns the actual number of characters copied.
+It is the caller's responsibility to ensure that \fIbuffer\fP contains
+sufficient space for the copied text.
+.TP
+.B "int Height()"
+.ns
+.TP
+.B "int Width()"
+.ns
+.TP
+.B "int Length()"
+Return information about the text.  Height returns the number of lines
+in the text, Width returns the number of characters in the longest
+line, and Length returns the total number of characters.
+.TP
+.B "const char* Text()"
+.ns
+.TP
+.B "const char* Text(int index)"
+.ns
+.TP
+.B "const char* Text(int index1, int index2)"
+.ns
+.TP
+.B "char Char (int index)"
+Access the contents of the text.  Char returns the character
+immediately following \fIindex\fP.  The three Text calls return
+pointers to character strings representing the text.  They make
+various guarantees about the format of the returned string.  With no
+parameters, Text returns a pointer to a string that contains the
+entire text of the buffer.  With a single parameter the string
+contains at least the text from \fIindex\fP to the end of the line.
+With two parameters, the returned string contains at least the text
+between \fIindex1\fP and \fIindex2\fP.  In any case, the returned
+string should be considered temporary and its contents subject to
+change.  To maximize efficiency, you should prefer the more restricted
+forms of Text.
+.TP
+.B "int LineIndex(int line)"
+.ns
+.TP
+.B "int LinesBetween(int index1, int index2)"
+.ns
+.TP
+.B "int LineNumber(int index)"
+.ns
+.TP
+.B "int LineOffset (int index)"
+Map between text indices and line and offset positions.  LineIndex
+returns the index of the beginning of line \fIline\fP.  LineNumber
+returns the number of the line that contains \fIindex\fP.  LineOffset
+returns the offset of \fIindex\fP from the beginning of its containing
+line.  LinesBetween returns the difference between the numbers of the
+lines containings \fIindex1\fP and \fIindex2\fP; a return value of
+zero indicates that \fIindex1\fP and \fIindex2\fP are on the same
+line, and a positive value indicates that the line containing
+\fIindex2\fP is after the line containing \fIindex1\fP.  Lines are
+numbered starting from zero.
+.TP
+.B "int PreviousCharacter(int index)"
+.ns
+.TP
+.B "int NextCharacter(int index)"
+Return the index immediately following or preceding \fIindex\fP.  The
+returned value is never before the beginning or after the end of the text.
+.TP
+.B "boolean IsBeginningOfText(int index)"
+.ns
+.TP
+.B "int BeginningOfText()"
+.ns
+.TP
+.B "boolean IsEndOfText(int index)"
+.ns
+.TP
+.B "int EndOfText()"
+Return the index of the beginning or end of the text, or query whether
+\fIindex\fP is at the beginning or end of the text.
+.TP
+.B "boolean IsBeginningOfLine(int index)"
+.ns
+.TP
+.B "int BeginningOfLine(int index)"
+.ns
+.TP
+.B "int BeginningOfNextLine(int index)"
+.ns
+.TP
+.B "boolean IsEndOfLine(int index)"
+.ns
+.TP
+.B "int EndOfLine(int index)"
+.ns
+.TP
+.B "int EndOfPreviousLine(int index)"
+Return information about the line structure of the text around
+\fIindex\fP.  BeginningOfLine returns the index of the beginning of
+the line containing \fIindex\fP.  BeginningOfNextLine returns the
+index of the beginning of the next line that begins after \fIindex\fP.
+EndOfLine returns the index of the end of the line containing
+\fIindex\fP.  EndOfPreviousLine returns the index of the end of the
+last line that ends before \fIindex\fP.  The beginning of a line is
+logically immediately after a newline character, and the end of a line
+is logically immediately before a newline character.  The beginning
+and end of the text are considered to be the beginning and end of the
+first and last lines, respectively.
+.TP
+.B "boolean IsBeginningOfWord(int index)"
+.ns
+.TP
+.B "int BeginningOfWord(int index)"
+.ns
+.TP
+.B "int BeginningOfNextWord(int index)"
+.ns
+.TP
+.B "boolean IsEndOfWord(int index)"
+.ns
+.TP
+.B "int EndOfWord(int index)"
+.ns
+.TP
+.B "int EndOfPreviousWord(int index)"
+Return information about the word structure of the text around
+\fIindex\fP.  BeginningOfWord returns the index of the beginning of
+the word containing \fIindex\fP.  BeginningOfNextWord return the index
+of the beginning of the nest word that begins after \fIindex\fP.
+EndOfWord returns the index of the end of the word that contains
+\fIindex\fP.  EndOfPreviousWord returns the index of the end of the
+last word that ends before \fIindex\fP.  A word is defined as a
+sequence of alpha-numeric characters.  The beginning and end of the
+text are considered to be the beginning and end of the first and last
+words, respectively.
+.SH SEE ALSO
+Regexp(3I)

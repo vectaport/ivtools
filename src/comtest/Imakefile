@@ -1,0 +1,31 @@
+XCOMM
+XCOMM comtest - test program for components underlying comterp
+XCOMM
+
+PACKAGE = comtest
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS = $(LIBCOMTERP) $(LIBATTRIBUTE) $(LIBCOMUTIL) $(LIBUNIDRAWCOMMON) $(LIBIVCOMMON)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = $(DEPCOMTERP) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIDRAWCOMMON) $(DEPIVCOMMON)
+#endif
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(ACE_CCLDLIBS)
+
+ComplexProgramTarget(comtest)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

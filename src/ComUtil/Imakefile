@@ -1,0 +1,47 @@
+XCOMM
+XCOMM source files for comutil library (written in C)
+XCOMM
+
+PACKAGE = ComUtil
+
+#ifdef InObjectCodeDir
+
+LIB = ComUtil
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(atox)
+Obj(comerr)
+Obj(dmm)
+Obj(errfile)
+MakeObjectFromSrcFlags(errsys,-DABSLIBALLDIR=\"$(ABSLIBALLDIR)/\" -DRELLIBALLDIR=\"$(RELLIBALLDIR)/\")
+Obj(funcptrs)
+Obj(_lexscan)
+Obj(mblock)
+Obj(optable)
+Obj(_parser)
+Obj(popen2)
+Obj(_scanner)
+Obj(symbols)
+Obj(txtutil)
+Obj(types)
+Obj(util)
+Obj(xdll)
+
+IncludeDependencies()
+
+#else
+
+LIB_FILES = comterp.err
+InstallMultiple($(LIB_FILES),$(LIBALLDIR))
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+InstallInclude($(PACKAGE),comterp.arg)
+InstallInclude($(PACKAGE),comterp.err)
+InstallInclude($(PACKAGE),comutil.arg)
+InstallInclude($(PACKAGE),comutil.ci)
+
+#endif

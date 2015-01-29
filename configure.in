@@ -1,0 +1,484 @@
+# ivtools configure.in  (borrowed and modified from Target Jr)
+
+# initialize autoconf  
+AC_INIT(configure.in)
+AC_CONFIG_AUX_DIR(src/scripts)
+# set the canonical host vars
+AC_CANONICAL_HOST
+
+case "$host" in
+    *darwin* ) platform_part=darwin ;; 
+    *freebsd2.1.* ) platform_part=freebsd2.1 ;;
+    *freebsd* ) platform_part=freebsd ;;
+    *hpux*10*20) platform_part=hpux10.20 ;;
+    *hpux* ) platform_part=hpux ;;
+    *netbsd* ) platform_part=netbsd ;;
+    *linux* ) platform_part=linux ;;
+    m88k-*-sysv4 ) platform_part=m88k-sysv4 ;;
+    m88k-*-sysv3 ) platform_part=m88k-sysv3 ;;
+    *osf1*V3.0 ) platform_part=alpha3.0 ;;
+    *osf1*V3.2 | alpha*dec*osf*3.2 ) platform_part=alpha3.2 ;;
+    *osf4.0* ) platform_part=alpha4 ;;
+    *sgi*-irix*5* ) platform_part=irix5 ;;
+    *sgi*-irix*6* ) platform_part=irix6 ;;
+    *sco3.2v4* ) platform_part=sco3.2.4 ;;
+    *solaris*) platform_part=solaris ;;
+    *sunos4* ) platform_part=sunos4 ;;
+    *) platform_part=default ;;
+esac
+
+
+AC_ARG_WITH(ace,[  --with-ace=<path>    Path to ACE include files],
+	ACE=$withval
+	if test -f $ACE/ace/ACE.h ; then
+		AC_MSG_RESULT( Found ace/ACE.h in $ACE )
+	else
+		AC_MSG_ERROR( Can not find ace/ACE.h in $ACE given with option --with-ace=$ACE )
+	fi
+)
+
+AC_ARG_WITH(ace-libs,[  --with-ace-libs=<path>    Path to ACE libraries],
+	ACE_LIBS=$withval
+)
+
+ACE_ENABLED=0
+if test x"$ACE" = x; then
+	echo ""
+	echo "No ACE path specified."
+	echo "Use --with-ace=<path> to point to ACE installed directory."
+	echo ""
+else
+	echo "Building with ACE support ACE=$ACE"
+	if test -f $ACE_LIBS/libACE.a -o -f $ACE_LIBS/libACE.so -o -f $ACE_LIBS/libACE.dll.a -o -f $ACE_LIBS/libACE.dylib ; then
+		AC_MSG_RESULT( Found libACE.* in $ACE_LIBS )
+	        ACE_ENABLED=1
+	else
+	        if test -f $ACE/ace/libACE.a -o -f $ACE/ace/libACE.so -o -f $ACE/ace/libACE.dll.a -o -f $ACE/ace/libACE.dylib ; then
+			AC_MSG_RESULT( Found libACE.* in $ACE/ace )
+		        ACE_ENABLED=1
+			ACE_LIBS=$ACE/ace
+	        else
+			AC_MSG_ERROR( Can not find libACE.a or libACE.so or libACE.dylib in $ACE_LIBS ($ACE).
+			Use --with-ace-libs to specify location of ACE )
+	        fi
+
+	fi
+fi
+
+
+AC_ARG_WITH(clippoly,[  --with-clippoly=<path>    Path to clippoly include file],
+	CLIPPOLY=$withval
+	if test -f $CLIPPOLY/poly.h ; then
+		AC_MSG_RESULT( Found poly.h in $CLIPPOLY )
+	else
+		AC_MSG_ERROR( Can not find poly.h in $CLIPPOLY given with option --with-clippoly=$CLIPPOLY )
+	
+	fi
+
+)
+
+AC_ARG_WITH(clippoly-libs,[  --with-clippoly-libs=<path>    Path to clippoly libraries],
+	CLIPPOLY_LIBS=$withval
+)
+
+CLIPPOLY_ENABLED=0
+if test x"$CLIPPOLY" = x; then
+	echo ""
+	echo "No clippoly path specified."
+	echo "Use --with-clippoly=<path> to point to clippoly installed directory."
+	echo ""
+else
+	echo "Building with clippoly support CLIPPOLY=$CLIPPOLY"
+	if test -f $CLIPPOLY_LIBS/libclippoly.a -o -f $CLIPPOLY_LIBS/libclippoly.so -o -f $CLIPPOLY_LIBS/libclippoly.dylib ; then
+		AC_MSG_RESULT( Found libclippoly.* in $CLIPPOLY_LIBS )
+		CLIPPOLY_ENABLED=1
+	else
+		if test -f $CLIPPOLY/libclippoly.a -o -f $CLIPPOLY/libclippoly.so -o -f $CLIPPOLY/libclippoly.dylib ; then
+			AC_MSG_RESULT( Found libclippoly.* in $CLIPPOLY )
+			CLIPPOLY_ENABLED=1
+			CLIPPOLY_LIBS=$CLIPPOLY
+		else
+
+	        AC_MSG_ERROR( Can not find libclippoly.a or libclippoly.so or libclippoly.dylib in $CLIPPOLY ($CLIPPOLY_LIBS)  
+Use --with-clippoly-libs to specify location of clippoly libraries)
+		fi
+	fi
+fi
+
+
+
+TIFF_ENABLED=0
+TIFF=""
+TIFFLIBS=""
+AC_ARG_WITH(tiff,     [  --with-tiff=<path>    path to installed Tiff files],
+        TIFF=$withval
+	
+	if test x"$TIFFLIBS" = x
+	then
+		if test -d "$TIFF"/lib
+		then
+			TIFFLIBS=$TIFF/lib
+		else
+			TIFFLIBS=$TIFF/Build/lib
+		fi
+	fi
+)
+
+AC_ARG_WITH(tiff-libs,[  --with-tiff-libs=<path> path to compiled Tiff libs],
+	TIFFLIBS=$withval )
+
+## Check tiff
+
+if test x"$TIFF" = x
+then
+	echo ""
+	echo "No Tiff path specified."
+	echo "Use --with-tiff=<path> to point to Tiff installed directory."
+else
+   if test ! -f "$TIFF"/include/tiff.h
+   then
+	echo ""
+	echo "Verify your Tiff environment and try it again."
+	echo "(Couldn't find $TIFF/include/tiff.h!)"
+
+	echo "Use --with-tiff=<path> to point to Tiff (or set it in the env)."
+	echo "<path> points to the installed Tiff version or to a source tree."
+	echo "You may also use --with-tiff-libs to specify the lib directory."
+   else
+	TIFFINCS="$TIFF"/include
+   fi
+
+   if test ! -d "$TIFFLIBS"
+   then
+        echo "Tiff directory '$TIFFLIBS' does not exist (or is not readable)."
+        echo "Use --with-tiff-libs to point to it."
+   fi
+   echo "Building with external Tiff support"
+   echo "TIFF includes = $TIFFINCS"
+   echo "TIFF libs = $TIFFLIBS"
+   TIFF_ENABLED=1
+fi
+
+
+IUE_ENABLED=0
+IUE=""
+IUELIBS=""
+AC_ARG_WITH(iue,     [  --with-iue=<path>    path to IUE directory],
+        IUE=$withval
+	
+	if test x"$IUELIBS" = x
+	then
+		if test -d "$IUE"/lib
+		then
+			IUELIBS=$IUE/lib
+		else
+			IUELIBS=$IUE/Build/lib
+		fi
+	fi
+)
+
+AC_ARG_WITH(iue-libs,[  --with-iue-libs=<path> path to compiled IUE libs],
+	IUELIBS=$withval )
+
+## Check iue
+
+if test x"$IUE" = x
+then
+	echo ""
+	echo "No IUE path specified."
+	echo "Use --with-iue=<path> to point to IUE installed directory."
+else
+   if test ! -f "$IUE"/Image/ImageClasses/Image.h
+   then
+	echo ""
+	echo "Verify your IUE environment and try it again."
+	echo "(Couldn't find $IUE/Image/ImageClasses/Image.h!)"
+
+	echo "Use --with-iue=<path> to point to IUE (or set it in the env)."
+	echo "<path> points to the installed IUE version or to a source tree."
+	echo "You may also use --with-iue-libs to specify the lib directory."
+   else
+	IUEINCS="$IUE"
+   fi
+
+   if test ! -d "$IUELIBS"
+   then
+        echo "IUE directory '$IUELIBS' does not exist (or is not readable)."
+        echo "Use --with-iue-libs to point to it."
+   fi
+   echo "Building with IUE support"
+   echo "IUE includes = $IUEINCS"
+   echo "IUE libs = $IUELIBS"
+   IUE_ENABLED=1
+fi
+
+
+QT_ENABLED=0
+QT=""
+QTLIBS=""
+AC_ARG_WITH(qt,     [  --with-qt=<path>    path to QT directory],
+        QT=$withval
+	
+	if test x"$QTLIBS" = x
+	then
+		if test -d "$QT"/lib
+		then
+			QTLIBS=$QT/lib
+		else
+			QTLIBS=$QT/Build/lib
+		fi
+	fi
+)
+
+AC_ARG_WITH(qt-libs,[  --with-qt-libs=<path> path to compiled QT libs],
+	QTLIBS=$withval )
+
+## Check qt
+
+if test x"$QT" = x
+then
+	echo ""
+	echo "No QT path specified."
+	echo "Use --with-qt=<path> to point to QT installed directory."
+else
+   if test ! -f "$QT"/include/qt.h
+   then
+	echo ""
+	echo "Verify your QT environment and try it again."
+	echo "(Couldn't find $QT/include/qt.h!)"
+
+	echo "Use --with-qt=<path> to point to QT (or set it in the env)."
+	echo "<path> points to the installed QT version or to a source tree."
+	echo "You may also use --with-qt-libs to specify the lib directory."
+   else
+	QTINCS="$QT/include"
+   fi
+
+   if test ! -d "$QTLIBS"
+   then
+        echo "QT directory '$QTLIBS' does not exist (or is not readable)."
+        echo "Use --with-qt-libs to point to it."
+   fi
+   echo "Building with QT support"
+   echo "QT includes = $QTINCS"
+   echo "QT libs = $QTLIBS"
+   QT_ENABLED=1
+fi
+
+
+# check of the c++ compiler
+AC_PROG_CXX
+# check for the c compiler
+AC_PROG_CC
+# check for CPP
+AC_PROG_CXXCPP
+# check for ranlib
+AC_PROG_RANLIB
+# check for X paths
+AC_PATH_X
+# check for bool support in c++
+#AC_CXX_BOOL
+# check for c++ standard headers
+#AC_CXX_HEADERS
+#ICE_CXX_INCLUDE_DIR
+# check for EGCS or gcc 2.8.x
+#AC_CXX_EGCS
+# check for gettimeofday
+#AC_TWO_ARG_TIMEOFDAY
+# check for libstdc++
+AC_CHECK_LIB(stdc++,peek__7istream,LIBSTDCPLUSPLUS2=1,LIBSTDCPLUSPLUS2=0)
+AC_CHECK_LIB(stdc++,_ZNSi4peekEv,LIBSTDCPLUSPLUS3=1,LIBSTDCPLUSPLUS3=0)
+
+# check for bigendian
+#AC_C_BIGENDIAN
+#if test $ac_cv_c_bigendian = yes; then
+#AC_DEFINE(WORDS_BIGENDIAN)
+#else
+#AC_DEFINE(WORDS_LITTLEENDIAN)
+#fi
+
+# check for lex or flex
+#AC_PROG_LEX
+
+# leave these out for the mo -awf
+# AC_CXX_DEFAULT_TEMPLATE_ARGUMENTS
+# AC_CXX_ANSI_TEMPLATE_INSTANTIATION
+
+# set up for include of fragments
+if test "$GXX" = "yes"
+then
+    cc_part="gcc"
+else
+    cc_part=""
+fi
+
+if test "$CXX" = "egcs"
+then
+    cc_part=""
+fi
+
+if test "$cc_part" != ""
+then
+    host_frag=$platform_part-$cc_part.mk
+    host_fragd=$platform_part-$cc_part.defs
+else
+# strip spaces from compiler name
+    host_frag=$platform_part-`echo $CXX | sed "s/ //g"`.mk
+    host_fragd=$platform_part-`echo $CXX | sed "s/ //g"`.defs
+fi
+
+if test -f config/$host_frag; then
+  AC_MSG_RESULT( found config/$host_frag )
+else
+  AC_MSG_RESULT( no config/$host_frag this must be a new architecture.)
+  AC_MSG_ERROR( please create config/$host_frag.)
+fi
+
+
+#AC_ARG_WITH(build-tree,[ --with-build-tree=<path>   path to put object files in],
+#	echo build in $withval;	BUILD_TREE=$withval)
+
+AC_ARG_ENABLE(install-relative,[ --enable-install-relative[=ARG]	enable installation relative to the source tree], INSTALLRELATIVE=YES, INSTALLRELATIVE=NO)
+
+AC_ARG_ENABLE(use-rpath,[ --enable-use-rpath[=ARG]	enable use of -rpath when linking], USERPATH=YES, USERPATH=NO)
+
+AC_ARG_ENABLE(install-subdir,[ --enable-install-subdir[=ARG]	enable installation in an ivtools sub-directory], INSTALLSUBDIR=YES, INSTALLSUBDIR=NO)
+
+# AC_TRY_RUN(int access(); int main() { return access("/bin/bash", 1); },BIN_BASH=1,BIN_BASH=0,BIN_BASH=1)
+
+AC_TYPE_SOCKLEN_T
+
+AC_SUBST(prefix)
+#AC_SUBST(OPENGL)
+#AC_SUBST(XGL)
+#AC_SUBST(TCL)
+#AC_SUBST(CXX_HDRDIR)
+AC_SUBST(CXX_INCLUDE_DIR)
+AC_SUBST(LIBSTDCPLUSPLUS2)
+AC_SUBST(LIBSTDCPLUSPLUS3)
+AC_SUBST(x_includes) 
+AC_SUBST(x_libraries)
+#AC_SUBST(BUILD_TREE)
+AC_SUBST(DEFS)
+AC_SUBST(ACE)
+AC_SUBST(ACE_LIBS)
+AC_SUBST(ACE_ENABLED)
+AC_SUBST(CLIPPOLY)
+AC_SUBST(CLIPPOLY_LIBS)
+AC_SUBST(CLIPPOLY_ENABLED)
+AC_SUBST(TIFF)
+AC_SUBST(TIFFLIBS)
+AC_SUBST(TIFFINCS)
+AC_SUBST(TIFF_ENABLED)
+AC_SUBST(IUE)
+AC_SUBST(IUELIBS)
+AC_SUBST(IUEINCS)
+AC_SUBST(IUE_ENABLED)
+AC_SUBST(QT)
+AC_SUBST(QTLIBS)
+AC_SUBST(QTINCS)
+AC_SUBST(QT_ENABLED)
+AC_SUBST(IV)
+AC_SUBST(IV_LIBS)
+#AC_SUBST(no_x)
+AC_SUBST(NO_BOOL)
+AC_SUBST(PWD)
+AC_SUBST(INSTALLRELATIVE)
+AC_SUBST(USERPATH)
+AC_SUBST(INSTALLSUBDIR)
+#AC_SUBST(BIN_BASH)
+AC_SUBST(ac_cv_type_socklen_t)
+
+#output to config-$host_fragd 
+PWD=`pwd`; export PWD
+AC_OUTPUT(config/config-$host_fragd:config/config.defs.in)
+echo
+
+#make symbolic links if they do not exist
+echo "establishing symbolic link for src/include/IV-3_1/InterViews"
+cd src/include/IV-3_1;
+rm -rf InterViews;
+ln -s ../InterViews;
+cd ../../..;	
+
+if test ! -f src/IV-common/listimpl.c ; then
+	echo "establishing symbolic links for src/IV-common"
+	cd src/IV-common;
+	ln -s ../OS/listimpl.c;
+	ln -s ../OS/math.c;
+	ln -s ../OS/memory.c;
+	ln -s ../InterViews/regexp.c;
+	ln -s ../InterViews/resource.c;
+	ln -s ../InterViews/transformer.c;
+	ln -s ../OS/string.c;
+	ln -s ../IV-2_6/textbuffer.c;
+	ln -s ../IV-2_6/tform2_6.c;
+	cd ../..;
+fi
+
+if test ! -f src/Unidraw-common/component.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/component.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/component.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/compview.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/compview.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/compview.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/geomobjs.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/geomobjs.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/geomobjs.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/iterator.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/iterator.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/iterator.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/uarray.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/uarray.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/uarray.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/uhash.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/uhash.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/uhash.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/ulist.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/ulist.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/ulist.c;
+	cd ../..;
+fi
+if test ! -f src/Unidraw-common/umap.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/umap.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/umap.c;
+	cd ../..;
+fi
+
+#output other stuff to config.mk
+echo
+echo writing constants to be pulled in by each Makefile from config/config.mk:
+echo writing \"XCONFIGDIR = $x_libraries/X11/config\"
+echo XCONFIGDIR = $x_libraries/X11/config >config/config.mk
+echo writing \"ABSTOP = `pwd`\"
+echo ABSTOP = `pwd` >>config/config.mk
+echo writing \"CPU = `make CPU`\"
+echo CPU = `make CPU` >>config/config.mk
+echo writing \"LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2\"
+echo LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2 >>config/config.mk
+echo writing \"LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3\"
+echo LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3 >>config/config.mk
+echo
+echo "now do a \"make\""
+echo
+

@@ -1,0 +1,40 @@
+.TH RasterComp 3U "10 August 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+RasterComp, RasterView, PSRaster \- raster component subject, view,
+and PostScript external representation
+.SH SYNOPSIS
+.B #include <Unidraw/Components/rastercomp.h>
+.SH DESCRIPTION
+RasterComp is a GraphicComp that represents a raster image.  It uses a
+RasterRect graphic to store its graphical attributes.  RasterView is a
+GraphicView for displaying the raster image.  PSRaster is a
+PostScriptView that externalizes the subject's information in
+PostScript form.
+.SH RASTERCOMP PUBLIC OPERATIONS
+.TP
+.B "RasterComp(RasterRect* = nil, const char* filename = nil)"
+The constructor takes an optional RasterRect structured graphic that
+defines the attributes of the raster image.  You can also supply an
+optional file name to associate the component with a file containing
+the (copious) image data.
+.TP
+.B "RasterRect* GetRasterRect()"
+Return the RasterRect graphic that defines the raster's attributes.
+GetRaster is simply a more specific form of the GetGraphic operation.
+.TP
+.B "const char* GetFileName()"
+Return the file name specified in the constructor, if any.
+.SH RASTERVIEW PUBLIC OPERATIONS
+.TP
+.B "RasterView(RasterComp* = nil)"
+Create an RasterView, optionally supplying the subject.
+.TP
+.B "RasterComp* GetRasterComp()"
+Return the subject.
+.SH PSRASTER PUBLIC OPERATIONS
+.TP
+.B "PSRaster(RasterComp* = nil)"
+Construct a PostScript external representation of the given subject,
+if any.
+.SH SEE ALSO
+GraphicComp(3U), GraphicView(3U), PostScriptView(3U), RasterRect(3U)

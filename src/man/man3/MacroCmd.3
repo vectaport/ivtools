@@ -1,0 +1,100 @@
+.TH MacroCmd 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+MacroCmd \- a command that composes other commands
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/macro.h>
+.SH DESCRIPTION
+MacroCmd composes other commands in a linear fashion.  Executing a
+MacroCmd is equivalent to executing its children in preorder.
+.SH PUBLIC OPERATIONS
+.TP
+.B "MacroCmd(ControlInfo*)"
+.ns
+.TP
+.B "MacroCmd("
+.ns
+.TP
+.B "    Editor* = nil,"
+.ns
+.TP
+.B "    Command* first = nil, Command* second = nil,"
+.ns
+.TP
+.B "    Command* third = nil, Command* fourth = nil"
+.ns
+.TP
+.B ")"
+.br
+Construct a MacroCmd instance, optionally supplying up to four of its
+child commands.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+.ns
+.TP
+.B "virtual boolean Reversible()"
+Execute simply executes each child, from first to last.  Unexecute
+calls Unexecute on each child, from last to first.  The MacroCmd is
+reversible if any of its children are.
+.TP
+.B "virtual void SetEditor(Editor*)"
+SetEditor calls SetEditor on each child with the given argument.
+.TP
+.B "Command* GetCommand(Iterator)"
+.ns
+.TP
+.B "void SetCommand(Command*, Iterator&)"
+GetCommand returns the child Command to which an iterator points.
+SetCommand initializes the iterator to point to a particular child
+Command; it initializes the iterator to point to a nil instance if the
+given Command is not a child.
+.TP
+.B "void Append("
+.ns
+.TP
+.B "    Command*, Command* = nil, Command* = nil, Command* = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void Prepend("
+.ns
+.TP
+.B "    Command*, Command* = nil, Command* = nil, Command* = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void InsertAfter(Iterator, Command*)"
+.ns
+.TP
+.B "void InsertBefore(Iterator, Command*)"
+.ns
+.TP
+.B "void Remove(Command*)"
+.ns
+.TP
+.B "void Remove(Iterator&)"
+Operations that modify the MacroCmd's list of children. Append and
+Prepend add up to four Commands to the end and the beginning of the
+list, respectively.  InsertAfter and InsertBefore insert a Command
+after and before the Command pointed to by the iterator, respectively.
+The Remove operations remove a child from the list without deleting
+it.  You can remove a child by referring to it explicitly or by
+specifying an iterator.  If an iterator is supplied, the Remove
+operation should advance it to point to the following child as a side
+effect.
+.SH PROTECTED OPERATIONS
+.TP
+.B "Command* Cmd(UList*)"
+.ns
+.TP
+.B "UList* Elem(Iterator)"
+Convenience functions for extracting a Command from a UList element a
+UList from an iterator, respectively.
+.SH SEE ALSO
+Command(3U), Iterator(3U), UList(3U)

@@ -1,0 +1,28 @@
+XCOMM
+XCOMM scrollable - demo program
+XCOMM
+
+PACKAGE = scrollable
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS = $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(scrollable)
+
+MakeObjectFromSrcFlags(main,)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

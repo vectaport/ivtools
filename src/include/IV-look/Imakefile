@@ -1,0 +1,12 @@
+XCOMM
+XCOMM include files for using look+feel classes
+XCOMM
+
+PACKAGE = include_look
+
+IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(IV-look)
+
+
+

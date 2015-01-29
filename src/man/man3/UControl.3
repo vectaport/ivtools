@@ -1,0 +1,72 @@
+.TH UControl 3U "20 November 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+UControl, UControlInteractor \- base classes for menu and button
+interfaces that work with ControlInfo objects
+.SH SYNOPSIS
+.B #include <Unidraw/uctrl.h>
+.SH DESCRIPTION
+UControl is an abstract class that augments InterViews' Control base
+class to deal with Unidraw's ControlInfo objects, which define a
+keyboard equivalent for the control.  UControlInteractor is an
+abstract base class for interactors that base their appearance on the
+information in a ControlInfo object.  UControl subclasses can use
+UControlInteractor subclasses to define their appearance.
+
+Unidraw-based applications needn't use UControls and
+UControlInteractors to help define their look and feel if Unidraw's
+keyboard equivalent mechanism is not needed.
+.SH UCONTROL PUBLIC OPERATIONS
+.TP
+.B "virtual void SetControlInfo(ControlInfo*)"
+.ns
+.TP
+.B "ControlInfo* GetControlInfo()"
+Assign and retrieve the UControl's ControlInfo object.
+.SH UCONTROL PROTECTED OPERATIONS
+.TP
+.B "UControl(ControlInfo*)"
+.ns
+.TP
+.B "UControl(const char*, ControlInfo*)"
+UControl provides protected constructors that let subclasses
+initialize the ControlInfo object and optionally specify their
+instance name.
+.SH UCONTROLINTERACTOR PUBLIC OPERATIONS
+.TP
+.B "virtual void SetControlInfo(ControlInfo*)"
+.ns
+.TP
+.B "ControlInfo* GetControlInfo()"
+Assign and retrieve the UControlInteractor's ControlInfo object.
+.TP
+.B "virtual void Highlight(boolean)"
+The UControlInteractor's appearance is defined by a Graphic object,
+which it builds from information in its ControlInfo object.  By
+default, UControlInteractor highlights itself by drawing this graphic
+with its foreground and background colors reversed.
+.SH UCONTROLINTERACTOR PROTECTED OPERATIONS
+.TP
+.B "UControlInteractor(ControlInfo*)"
+.ns
+.TP
+.B "UControlInteractor()"
+UControlInteractor defines two protected constructors.  One takes the
+ControlInfo object to use as an argument.  This constructor also
+initializes the UControlInteractor's \fI_label\fP protected member by
+calling InitLabel (described below) with the ControlInfo object.  The
+parameterless constructor initializes \fI_label\fP to nil.  Both
+constructors initialize the UControlInteractor's \fI_picture\fP
+protected member to point to an instance of a Picture object, which
+defines the UControlInteractor's appearance.
+.TP
+.B "virtual void Invert()"
+Invert reverses \fI_picture's\fP colors without drawing it.
+.TP
+.B "Graphic* InitLabel(ControlInfo*)"
+Create a graphic from the information stored in a ControlInfo object
+that defines the UControlInteractor's appearance.  This operation
+creates a GraphicView of the ControlInfo's GraphicComp and returns a
+copy of the view's graphic.
+.SH SEE ALSO
+Control(3I), ControlInfo(3U), Graphic(3U), GraphicComp(3U),
+GraphicView(3U), KeyMap(3U)

@@ -1,0 +1,68 @@
+XCOMM
+XCOMM ivtools utilities
+XCOMM
+
+PACKAGE = utils_ivtools
+
+#ifdef InObjectCodeDir
+
+
+#if !LibStdCPlusPlusV3
+all:: ivtmpnam stdcmapppm ivdl
+#else
+all:: ivtmpnam stdcmapppm
+#endif
+
+BuildProgram(ivtmpnam,NullParameter,ivtmpnam.o,,)
+InstallProgram(ivtmpnam,$(BINDIR),ivtmpnam)
+BuildProgram(stdcmapppm,NullParameter,stdcmapppm.o,,)
+InstallProgram(stdcmapppm,$(BINDIR),stdcmapppm)
+#if !LibStdCPlusPlusV3
+#if defined(SVR4Architecture) && defined(SunArchitecture)
+BuildProgram(ivdl,NullParameter,ivdl.o downloader.o ftp.o http.o sockets.o thrower.o -lsocket -lnsl,$(DEPIVCOMMON),$(LIBIVCOMMON))
+#else
+BuildProgram(ivdl,NullParameter,ivdl.o downloader.o ftp.o http.o sockets.o thrower.o,$(DEPIVCOMMON),$(LIBIVCOMMON))
+#endif
+InstallProgram(ivdl,$(BINDIR),ivdl)
+#endif
+
+DependTarget();
+
+ivtmpnam: ivtmpnam.o
+ivtmpnam.o: ../ivtmpnam.c
+	@$(RM) ivtmpnam.o
+	$(CDRIVER) -c ../ivtmpnam.c
+
+stdcmapppm: stdcmapppm.o
+stdcmapppm.o: ../stdcmapppm.c
+	@$(RM) stdcmapppm.o
+	$(CDRIVER) -c ../stdcmapppm.c
+
+#if !LibStdCPlusPlusV3
+ivdl: ivdl.o downloader.o ftp.o http.o sockets.o thrower.o
+#endif
+
+CCSUFFIX = cc
+
+#define Obj(file) MakeObjectFromSrcFlags(file,-DSOCKLEN_T_DEFINED=$(SOCKLEN_T_DEFINED))
+
+#if !LibStdCPlusPlusV3
+Obj(downloader)
+Obj(ftp)
+Obj(http)
+Obj(ivdl)
+Obj(sockets)
+Obj(thrower)
+#endif
+
+
+IncludeDependencies()
+
+clean::
+	@$(RM) tmpnam.o tmpnam stdcmapppm.o stdcmapppm ivdl.o ivdl downloader.o ftp.o http.o sockets.o throwser.o
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

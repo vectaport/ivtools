@@ -1,0 +1,529 @@
+.TH manips 3U "1 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ConnectManip, DragManip, ManipGroup, TextManip, VertexManip \-
+Manipulator subclasses for defining common direct-manipulation
+semantics
+.SH SYNOPSIS
+.B #include <Unidraw/manips.h>
+.SH DESCRIPTION
+Manipulator is an abstract base class for objects that encapsulate the
+mechanics of direct manipulation.  Subclasses support different
+manipulation semantics.  The DragManip subclass implements a
+downclick-drag-upclick style of interaction, with optional constraints
+on motion (for example, horizontal or vertical only).  ConnectManip is
+a DragManip subclass that adds a gravitational bias towards connector
+views.  VertexManip is a DragManip that supports multiple
+downclick-and-drag interactions terminated by a distinguished
+downclick.  TextManip provides a text editing interface.  Finally,
+ManipGroup composes manipulator instances so that their interaction
+may proceed concurrently.
+.SH DRAGMANIP PUBLIC OPERATIONS
+.TP
+.B "DragManip("
+.ns
+.TP
+.B "    Viewer*, Rubberband*, Transformer* = nil, Tool* = nil,"
+.ns
+.TP
+.B "    DragConstraint = None"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "DragManip("
+.ns
+.TP
+.B "    Viewer*, Rubberband*, Transformer*, Tool*,"
+.ns
+.TP
+.B "    DragConstraint, Coord, Coord"
+.ns
+.TP
+.B ")"
+.br
+A DragManip uses a rubberband to animate the manipulation.  The
+constructor takes the rubberband as a parameter along with the viewer
+in which it should appear, a transformer reflecting the transformation
+that component views undergo in the viewer, the tool that created the
+manipulator, and a DragConstraint that effectively restricts mouse
+motion in one or more ways.  By default, motion is constrained when
+the Shift key is held down.  The second constructor adds two Coord
+parameters.  The DragManip will use these values to override the
+event coordinates when Grasp is first called.
+.TP
+.B "virtual void Grasp(Event&)
+DragManip redefines Grasp operation to call the rubberband's Track
+operation, supplying the coordinates in the event.  Grasp calls
+Constrain (described below) on the event prior to passing the
+coordinate information.  The rubberband will not be drawn until Grasp
+is called.
+.TP
+.B "virtual boolean Manipulating(Event&)"
+If the event is a MotionEvent, Manipulating calls Track with the
+event's coordinates and returns \fItrue\fP.  Manipulating simply
+returns \fIfalse\fP if the event is an UpEvent.  Like
+DragManip::Grasp, this operation calls Constrain on the event prior to
+passing the coordinate information.
+.TP
+.B "virtual void Effect(Event&)"
+Effect simply erases the rubberband by calling its Erase operation.
+.TP
+.B "virtual void SetViewer(Viewer*)"
+.ns
+.TP
+.B "virtual void SetRubberband(Rubberband*)"
+.ns
+.TP
+.B "virtual void SetTransformer(Transformer*)"
+.ns
+.TP
+.B "virtual void SetTool(Tool*)"
+.ns
+.TP
+.B "virtual void SetConstraint(DragConstraint)"
+.TP
+.B "virtual Viewer* GetViewer()"
+.ns
+.TP
+.B "virtual Rubberband* GetRubberband()"
+.ns
+.TP
+.B "virtual Transformer* GetTransformer()"
+.ns
+.TP
+.B "virtual Tool* GetTool()"
+.ns
+.TP
+.B "virtual DragConstraint GetConstraint()"
+Set and get the various parameters supplied to the DragManip in its
+constructor.
+.TP
+.B "const Event& GraspEvent()"
+Return the event supplied to the last call to Grasp.
+.SH DRAGMANIP PROTECTED OPERATIONS
+.TP
+.B "void Init("
+.ns
+.TP
+.B "    Viewer*, Rubberband*, Transformer*, Tool*, DragConstraint"
+.ns
+.TP
+.B ")"
+.br
+Assign the various constructor values common to both DragManip
+constructors.
+.TP
+.B "virtual void Constrain(Event&)"
+Constrain the event to reflect the DragConstraint.  The
+event coordinates are constrained when the event indicates that the
+shift key is held down for all DragConstraint values except Gravity,
+which constrains the coordinates unconditionally with the viewer's
+Constrain operation.
+.SH CONNECTMANIP PUBLIC OPERATIONS
+.TP
+.B "ConnectManip("
+.ns
+.TP
+.B "    Viewer*, Rubberband*, Transformer* = nil, Tool* = nil"
+.ns
+.TP
+.B ")"
+.br
+ConnectManip supports the same type of interaction as DragManip,
+except the rubberband tracking is affected by a graviational bias
+towards connector views.  Whenever the user drags near a connector
+view, the tracking coordinates are suddenly constrained to coincide
+with the center of the connector view.  The rubberband will not change
+its appearance thereafter until the user drags beyond the gravity
+threshold, which corresponds to SLOP (see globals(3U)) units beyond
+the nearest point on the connector view.
+.TP
+.B "virtual boolean Manipulating(Event&)"
+ConnectManip redefines Manipulating to support the gravitational
+effect.
+.TP
+.B "ConnectorView* GetTarget()"
+Return the connector view that has captured the rubberband, if any.
+.SH VERTEXMANIP PUBLIC OPERATIONS
+.TP
+.B "VertexManip("
+.ns
+.TP
+.B "    Viewer*, GrowingVertices*, Transformer* = nil,"
+.ns
+.TP
+.B "    Tool* = nil, DragConstraint = None"
+.ns
+.TP
+.B ")"
+.br
+VertexManip is like DragManip but supports multiple drags and clicks
+in one manipulation.  The VertexManip constructor restricts the
+rubberband to be an instance of GrowingVertices.
+.TP
+.B "virtual boolean Manipulating(Event&)"
+This operation is similar to DragManip's, except it calls AppendVertex
+on the GrowingVertices rubberband on each down-click and returns
+\fIfalse\fP if and only if the middle button is pressed.
+.TP
+.B "GrowingVertices* GetGrowingVertices()"
+Return the GrowingVertices instance.  Use this operation as an
+alternative to GetRubberband when that operation isn't specific enough.
+.SH TEXTMANIP PUBLIC OPERATIONS
+.TP
+.B "TextManip(Viewer*, Painter*, Coord tabwidth, Tool* = nil)"
+.ns
+.TP
+.B "TextManip("
+.ns
+.TP
+.B "    Viewer*, Painter*, Coord lineheight, Coord tabwidth,"
+.ns
+.TP
+.B "    Tool* = nil"
+.ns
+.TP
+.B ")"
+.br
+Create a TextManip, supplying (at minimum) a viewer, a painter with
+which to draw (usually reflecting graphics attributes defined by the
+enclosing editor object), and the width of a tab character.  Tab
+characters in the text will position the following character at an
+integral multiple of \fItabwidth\fP from the beginning of the line.
+The distance between baselines in the text can be specified with the
+second constructor; this value corresponds to the font height by
+default.  These constructors create text manipulators containing no
+text initially; the lower left corner of the first line of text
+(including the descender) will be positioned at the coordinates in the
+event passed to the Grasp operation.
+.TP
+.B "TextManip("
+.ns
+.TP
+.B "    Viewer*, const char* buf, int bufsize, Coord x, Coord y,"
+.ns
+.TP
+.B "    Painter*, Coord tabwidth, Tool* = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "TextManip("
+.ns
+.TP
+.B "    Viewer*, const char* buf, int bufsize, Coord x, Coord y,"
+.ns
+.TP
+.B "    Painter*, Coord lineheight, Coord tabwidth, Tool* = nil"
+.ns
+.TP
+.B ")"
+.br
+Create text manipulators initialized with text by passing a buffer of
+text and its size.  A copy of the buffer is used internally.  The
+\fIx\fP and \fIy\fP parameters specify the position of the lower left
+corner of the first line of text (including the descender).  These
+coordinates will override the coordinates specified by the event
+passed to Grasp.
+.TP
+.B "virtual void Grasp(Event&)"
+Positions and draws the text.  If the position-specifing constructors
+were used to create the instance, then the manipulator will use the event
+coordinates to set the insertion point's position in the text.
+.TP
+.B "virtual boolean Manipulating(Event&)"
+Handle keystrokes and/or mouse motion events to support basic text
+editing.  Motion events are interpreted to support text selection;
+selected text is displayed in reverse colors.  The Manipulating
+operation returns \fIfalse\fP if a downclick is detected outside the
+text or if HandleKey (described below) returns \fIfalse\fP.
+.TP
+.B "virtual void Effect(Event&)"
+Effect damages the viewer area that TextManip corrupted during
+editing.
+.TP
+.B "virtual Painter* GetPainter()"
+.ns
+.TP
+.B "virtual Coord GetLineHeight()"
+.ns
+.TP
+.B "virtual Coord GetTabWidth()"
+.ns
+.TP
+.B "virtual const char* GetText(int&)"
+.ns
+.TP
+.B "virtual void GetPosition(Coord&, Coord&)"
+Return various parameters specified in the constructor.  GetText
+returns a pointer to the internal buffer containing the text;
+the reference parameter returns the buffer's size.
+.TP
+.B "const Event& GraspEvent()"
+Return the event supplied to the last call to Grasp.
+.SH TEXTMANIP PROTECTED OPERATIONS
+.TP
+.B "virtual boolean HandleKey(Event&)"
+This operation defines TextManip's default key bindings as described
+below.  Unless otherwise noted below, this function returns
+\fItrue\fP.
+.sp
+.B "(^P)"
+backward line
+.sp
+.B "(^N)"
+forward line
+.sp
+.B "(^B)"
+backward character
+.sp
+.B "(^F)"
+forward character
+.sp
+.B "(ESC)"
+terminate text entry, causing HandleKey to return \fIfalse\fP
+.sp
+.B "(^A)"
+beginning of line
+.sp
+.B "(^E)"
+end of line
+.sp
+.B "(^D)"
+delete character
+.sp
+.B "(DEL) (^H)"
+delete backward character
+.TP
+.B "int Dot()"
+.ns
+.TP
+.B "int Mark()"
+The current selection is bounded by two indices into the text buffer.
+By convention these indices are called dot and mark.  Dot is the
+position at which text will be inserted and deleted.  Mark locates the
+end of the selection that moves as the selection is modified.  When
+the selection is empty (an insertion point), dot and mark are equal.
+.TP
+.B "void InsertText(const char* string, int count)"
+.ns
+.TP
+.B "void InsertCharacter(char)"
+.ns
+.TP
+.B "void DeleteText(int count)"
+.ns
+.TP
+.B "void DeleteCharacter(int)"
+.ns
+.TP
+.B "void DeleteLine()"
+.ns
+.TP
+.B "void DeleteSelection()"
+Edit the text buffer at the current selection.  InsertText inserts
+count characters from string after dot.  The selection becomes an
+insertion point following the newly inserted text.  InsertCharacter
+replaces the selected characters with a single character. DeleteText
+deletes count characters at dot.  If count is positive, the characters
+following dot are deleted; if count is negative the characters before
+dot are deleted.  The selection becomes an insertion point in the
+place of the deleted text.  DeleteSelection deletes the text between
+dot and mark, changing the selection to an insertion point.
+DeleteCharacter is identical to DeleteText if the dot and mark are not
+the same; otherwise it is identical to DeleteSelection.
+DeleteCharacter provides a convenient way to express the behavior of
+the backspace and delete operations.  Finally, DeleteLine deletes the
+line of text containing mark.  The selection becomes an insertion
+point at mark.
+.TP
+.B "void BackwardCharacter(int count)"
+.ns
+.TP
+.B "void ForwardCharacter(int count)"
+.ns
+.TP
+.B "void BackwardLine(int count)"
+.ns
+.TP
+.B "void ForwardLine(int count)"
+.ns
+.TP
+.B "void BackwardWord(int count)"
+.ns
+.TP
+.B "void ForwardWord(int count)"
+Move the current selection forward or backward by the specified number
+of the specified units.  The default movement is one unit.  The
+selection is not moved before the beginning of after the end of the
+text.
+.TP
+.B "void BeginningOfLine()"
+.ns
+.TP
+.B "void EndOfLine()"
+.ns
+.TP
+.B "void BeginningOfWord()"
+.ns
+.TP
+.B "void EndOfWord()"
+.ns
+.TP
+.B "void BeginningOfSelection()"
+.ns
+.TP
+.B "void EndOfSelection()"
+.ns
+.TP
+.B "void BeginningOfText()"
+.ns
+.TP
+.B "void EndOfText()"
+Move the current selection forwards or backwards to the specified
+feature of the text.
+.TP
+.B "void Select(int dot)"
+.ns
+.TP
+.B "void Select(int dot, int mark)"
+.ns
+.TP
+.B "void SelectMore(int mark)"
+.ns
+.TP
+.B "void SelectAll()"
+Modify the current selection in terms of text indices.  With a single
+parameter, Select moves both dot and mark to the specified index.
+With two parameters, dot and mark can be controlled independently.
+SelectMore leaves dot unchanged and moves mark.  SelectAll sets dot to
+the end of the text and mark to the beginning.
+.TP
+.B "int Locate(Coord x, Coord y)"
+.ns
+.TP
+.B "boolean Contains(Coord, Coord)"
+Locate returns the text index most closely matching the point
+(\fIx\fP, \fIy\fP).  Contains returns whether the text contains the
+point (\fIx\fP, \fIy\fP).
+.SH MANIPGROUP PUBLIC OPERATIONS
+.TP
+.B "ManipGroup(Viewer* = nil, Tool* = nil)"
+Create a ManipGroup, optionally supplying a viewer and a tool.
+.TP
+.B "virtual void Grasp(Event&)"
+The Grasp operation simply calls Grasp on each child in insertion order.
+.TP
+.B "virtual boolean Manipulating(Event&)"
+Manipulating calls the corresponding operation on each child, skipping
+those children that have returned \fIfalse\fP in previous calls (up to
+the last Grasp).  This function returns \fIfalse\fP when all children
+have done so.
+.TP
+.B "virtual void Effect(Event&)"
+ManipGroup's Effect operation calls Effect on each child.
+.TP
+.B "virtual void SetViewer(Viewer*)"
+.ns
+.TP
+.B "virtual void SetTool(Tool*)"
+.ns
+.TP
+.B "virtual Viewer* GetViewer()"
+.ns
+.TP
+.B "virtual Tool* GetTool()"
+Set and get the ManipGroup's viewer and tool.  The set operations set
+the ManipGroup's values for these parameters and call the
+corresponding operations on their children.  The get operations simply
+return the ManipGroup's values.
+.TP
+.B "virtual void First(Iterator&)"
+.ns
+.TP
+.B "virtual void Last(Iterator&)"
+.ns
+.TP
+.B "virtual void Next(Iterator&)"
+.ns
+.TP
+.B "virtual void Prev(Iterator&)"
+.ns
+.TP
+.B "virtual boolean Done(Iterator)"
+Operations for iterating over the ManipGroup's children, if any.
+First and Last initialize an iterator to point to the beginning and
+end of the list of children, respectively.  Next increments the
+iterator to point to the following child, while Prev decrements the
+iterator to point to the preceding child.  Done returns whether or not
+the iterator points beyond the first or last child in the list.
+.TP
+.B "Manipulator* GetManip(Iterator)"
+.ns
+.TP
+.B "void SetManip(Manipulator*, Iterator&)"
+GetManip returns the child manipulator to which an iterator points.
+SetManip initializes an iterator to point to a particular child; it
+initializes the iterator to point to a nil instance if the given
+Manipulator is not a child of the ManipGroup.
+.TP
+.B "void Append("
+.ns
+.TP
+.B "    Manipulator*,"
+.ns
+.TP
+.B "    Manipulator* = nil, Manipulator* = nil, Manipulator* = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void Prepend("
+.ns
+.TP
+.B "    Manipulator*,"
+.ns
+.TP
+.B "    Manipulator* = nil, Manipulator* = nil, Manipulator* = nil"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "void InsertBefore(Iterator, Manipulator*)"
+.ns
+.TP
+.B "void InsertAfter(Iterator, Manipulator*)"
+.ns
+.TP
+.B "void Remove(Manipulator*)"
+.ns
+.TP
+.B "void Remove(Iterator&)"
+Operations for modifying the ManipGroup's list of children.  Append
+and Prepend add up to four child manipulators, in order, to the end
+and the beginning of the list, respectively.  InsertAfter and
+InsertBefore insert a child after and before the manipulator pointed
+to by the iterator, respectively.  The Remove operations remove a
+child from the list (without deleting it).  You can remove a child by
+referring to it explicitly or by specifying an iterator.  If an
+iterator is supplied, the Remove operation will advance it to point to
+the following child as a side effect.
+.SH MANIPGROUP PROTECTED OPERATIONS
+.TP
+.B "UList* Elem(Iterator)"
+.ns
+.TP
+.B "Manipulator* Manip(UList*)"
+ManipGroup stores its children on a UList, which is accessible via the
+\fI_kids\fP protected member.  The Selection's iteration operations
+store the UList containing the current child in their iterator.  Elem
+is a convenience function for returning the UList to which an iterator
+points, and Manip extracts the child that a UList element contains.
+.SH SEE ALSO
+Connector(3U), Event(3I), Iterator(3U), Manipulator(3U), Painter(3I),
+Rubband(3I), Tool(3U), Transformer(3I), UList(3U), Viewer(3U),
+globals(3U)

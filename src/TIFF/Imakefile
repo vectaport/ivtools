@@ -1,0 +1,7 @@
+XCOMM
+XCOMM TIFF source files
+XCOMM
+
+PACKAGE = src_tiff
+
+IvmkcmTargets($(PACKAGE))

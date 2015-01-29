@@ -1,0 +1,72 @@
+.TH flipbook 1
+.SH NAME
+flipbook \- multi-frame editor and viewer derived from drawtool
+.SH SYNOPSIS
+.B flipbook
+.I [-bookgeom] [-slideshow sec] ['X-params'] [file]
+.SH DESCRIPTION
+
+flipbook is a program derived from idraw/drawtool that supports
+multi-frame graphic display.  The zeroth frame is always visible as
+the background frame, and in front of it is displayed the current
+frame (1 thru n).
+.PP
+The Frame menu controls the frame display mechanism.  The operations
+are:
+.PP
+.nf
+Menu Item       Keyboard        Description
+--------------	--------	-----------
+Move Forward	^F              move forward one frame
+Move Backward	^B              move backward one frame
+Goto First Frame                move to the first frame
+Goto Last Frame                 move to the last frame
+New Forward      F              create new frame in front of the current
+                                frame and make it the current frame
+New Backward     B              create new frame in back of the current
+                                frame and make it the current frame
+Copy Forward     X              copy current frame in front of itself
+Copy Backward    Y              copy current frame in back of itself
+Delete           D              delete current frame (the zeroth frame
+                                can never be deleted)
+.fi
+
+By default a flipbook document is positioned on the first frame
+when opened (if one exists).  "Move Backward" can be used to move to
+the background frame when positioned on the first frame.  "Move
+Forward" then returns to the first frame.  
+
+The New command creates a document with only a background frame.  The
+"New After" command can then be used to initialize the first frame
+("New Before" does not work when the current frame is the background
+frame).
+
+flipbook save/restores its documents with a document format specific
+to flipbook (and possibly programs derived from flipbook).  Idraw
+format drawings can be imported via the "Import Graphic" command
+(under the File menu).  The rest of the flexibile import mechanism of
+drawtool is supported as well.  "Export Graphic" exports currently
+selected graphics in idraw or drawtool format.  The Print command
+(under the File menu) generates a multi-page Postscript document, one
+page per frame except for the zeroth frame which is always the
+background.
+
+.SH OPTIONS
+
+"-bookgeom" brings up the flipbook in landscape mode, with a 906 by
+700 pixel page size.  Useful for viewing illustrated books prepared in
+this mode.
+
+"-slideshow sec" continuously plays the contents of a flipbook file
+with "sec" delay between frames (currently only available when built
+with ACE).  
+
+Also see "-help" for more options, and the comdraw, drawtool, and
+idraw man pages.
+
+.SH SEE ALSO
+	drawtool, idraw
+
+.SH WEB PAGE
+	http://www.ivtools.org/ivtools/flipbook.html
+

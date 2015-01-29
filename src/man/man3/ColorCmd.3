@@ -1,0 +1,28 @@
+.TH ColorCmd 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ColorCmd \- command for setting components' color attributes
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/color.h>
+.SH DESCRIPTION
+ColorCmd is a purely interpretive command for setting the foreground
+and background color attributes of selected components.
+.SH PUBLIC OPERATIONS
+.TP
+.B "ColorCmd(ControlInfo*, PSColor* fg = nil, PSColor* bg = nil)"
+.ns
+.TP
+.B "ColorCmd(Editor* = nil, PSColor* fg = nil, PSColor* bg = nil)"
+Create a ColorCmd, optionally specifying the foreground (\fIfg\fP) and
+background (\fIbg\fP) PSColors that components should adopt.
+.TP
+.B "virtual void Execute()"
+ColorCmd extends Execute to set the value of the affected editor's
+ColorVar instance, if it defines one.
+.TP
+.B "PSColor* GetFgColor()"
+.ns
+.TP
+.B "PSColor* GetBgColor()"
+Return the PSColors supplied in the constructor.
+.SH SEE ALSO
+Command(3U), pspaint(3U), statevars(3U)

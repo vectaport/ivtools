@@ -1,0 +1,75 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
+/* gcc command line with -V for version and -O for optimize */
+#undef CCDriver
+#define CCDriver g++
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
+#define SOMAXCONN 5
+
+/* Don't need these for when TIFF built with gcc */
+#undef StandardIncludes
+#define StandardIncludes /**/
+#undef ExtraLibraries
+#define ExtraLibraries /**/
+
+/* machine-specific gcc include directory -- does not change with each new version of gcc */
+#define ToolIncludeDir /usr/local/mips-sgi-irix5.2/include
+
+/* link libraries for the above */
+#undef ExtraCCLdLibs
+#define ExtraCCLdLibs -lstdc++ -lmalloc -lm
+#undef ExtraCCFlags
+#define ExtraCCFlags /**/
+
+/* command to create shared libraries */
+#define SharedLibraryCmd(ldobjs, extra_flags) gcc -shared extra_flags -o $@ ldobjs
+
+/*
+ * Irix strip is broken
+ */
+#undef InstPgmFlags
+#define InstPgmFlags /**/
+
+/* file output by configure script */
+#include "config-irix5-gcc.defs"
+
+/* use symbolic links for relative install of libraries */
+#if !UseRpath
+#if InstallRelative
+#undef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)			@@\
+install:: Concat(lib,libname.so.rev)					@@\
+	MakeDir(dest)							@@\
+	if [ -f dest/Concat(lib,libname.so.rev) ]; then \		@@\
+	$(RM) dest/Concat(lib,libname.so.rev); else exit 0; fi		@@\
+	ln -s $(CURRENT_DIR)/Concat(lib,libname.so.rev) dest/		@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.so.rev)
+#undef InstallNonSharedLibrary	
+#define InstallNonSharedLibrary(libname,dest)				@@\
+install:: Concat(lib,libname.a)						@@\
+	MakeDir(dest)							@@\
+	if [ -f dest/Concat(lib,libname.a) ]; then \			@@\
+	$(RM) dest/Concat(lib,libname.a); else exit 0; fi		@@\
+	ln -s  $(CURRENT_DIR)/Concat(lib,libname.a) dest/		@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.a)
+#endif
+#endif

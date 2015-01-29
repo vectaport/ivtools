@@ -1,0 +1,14 @@
+PACKAGE = examples3.1_box2
+
+#ifdef InObjectCodeDir
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(test)
+
+MakeObjectFromSrc(main)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

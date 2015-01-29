@@ -1,0 +1,28 @@
+.TH Iterator 3U "11 June 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Iterator \- marks a position in a data structure
+.SH SYNOPSIS
+.B #include <Unidraw/iterator.h>
+.SH DESCRIPTION
+An iterator marks a position in a data structure, generally during a
+traversal of some sort.  For example, an iterator keeps track of the
+current position when iterating through a list of elements.  Unidraw's
+Iterator class serves this purpose in conjunction with ULists or
+objects that use them.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Iterator()"
+.ns
+.TP
+.B "Iterator(Iterator&)"
+Construct a new iterator.  The second constructor initializes the
+iterator's value to that of the given iterator.
+.TP
+.B "virtual void SetValue(void*)"
+.ns
+.TP
+.B "virtual void* GetValue()"
+Classes that use an iterator must store position information in it.
+These operations set and get the this information.
+.SH SEE ALSO
+UList(3U)

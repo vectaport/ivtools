@@ -1,0 +1,7 @@
+XCOMM
+XCOMM InterViews source files
+XCOMM
+
+PACKAGE = src_interviews
+
+IvmkcmTargets($(PACKAGE))

@@ -1,0 +1,55 @@
+.TH transforms 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+MoveCmd, RotateCmd, ScaleCmd \- coordinate transformation commands
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/transforms.h>
+.SH DESCRIPTION
+The Unidraw library predefines three purely interpretive commands for
+performing coordinate transformations: MoveCmd defines a translation,
+RotateCmd defines a rotation, and ScaleCmd defines a two-dimensional
+scaling.
+.SH MOVECMD PUBLIC OPERATIONS
+.TP
+.B "MoveCmd(ControlInfo*, float dx = 0, float dy = 0)"
+.ns
+.TP
+.B "MoveCmd(Editor* = nil, float = 0, float = 0)"
+Construct a new MoveCmd, specifying the translation distances in the
+horizontal (\fIdx\fP) and vertical (\fIdy\fP) dimensions.
+.TP
+.B "void GetMovement(float&, float&)"
+Return the translation distances specified in the constructor.
+.SH ROTATECMD PUBLIC OPERATIONS
+.TP
+.B "RotateCmd(ControlInfo*, float = 0)"
+.ns
+.TP
+.B "RotateCmd(Editor* = nil, float = 0)"
+Construct a new RotateCmd, specifying the rotation angle in degrees.
+.TP
+.B "float GetRotation()"
+Return the rotation angle specified in the constructor.
+.SH SCALECMD PUBLIC OPERATIONS
+.TP
+.B "ScaleCmd("
+.ns
+.TP
+.B "    ControlInfo*, float sx = 1, float sy = 1, Alignment = Center"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "ScaleCmd(Editor* = nil, float = 1, float = 1, Alignment = Center)"
+Construct a new ScaleCmd, specifying the scaling factors in the
+horizontal (\fIsx\fP) and vertical (\fIsy\fP) dimensions and an
+alignment suggesting the point about which the component should be
+scaled.
+.TP
+.B "void GetScaleing(float&, float&)"
+.ns
+.TP
+.B "Alignment GetAlignment()"
+Return the scaling factors and alignment specified in the constructor.
+.SH SEE ALSO
+Command(3U)

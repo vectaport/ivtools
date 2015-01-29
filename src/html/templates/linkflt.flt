@@ -1,0 +1,10 @@
+
+# PERL script to remove whitespace from member names to generate link names
+# Malcolm Wilkins, Nov 4, 1997
+
+sub filter {
+	local ($str)=@_;
+	$str =~ s/\s//g;
+	return $str;
+	}
+

@@ -1,0 +1,14 @@
+XCOMM
+XCOMM "make format" formats the man pages.
+XCOMM "make print" formats and sends the man pages to the printer.
+XCOMM
+
+PACKAGE = man_ivtools
+
+SUBDIRS	= \
+	man1 \
+        man3
+
+MakeInSubdirs($(SUBDIRS))
+FormatSubdirs($(SUBDIRS))
+PrintSubdirs($(SUBDIRS))

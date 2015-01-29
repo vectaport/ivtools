@@ -1,0 +1,86 @@
+.TH Subject 3I "29 June 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Subject \- object with views
+.SH SYNOPSIS
+.B #include <InterViews/subject.h>
+.SH DESCRIPTION
+A subject is an object that has one or more views that
+it wishes to notify when it changes.
+The SubjectIteractor class can be used if it is necessary to iterate
+through the views of a subject explicitly.
+.PP
+Because subjects are shared, Subject is a subclass of Resource.
+To allow for the possibility of multiple inheritance, in which case
+only a single copy of resource information should be maintained,
+Resource is a virtual base class.
+.SH PUBLIC OPERATIONS
+.TP
+.B "enum UpdateHint {"
+.ns
+.TP
+.B "    attaching, detaching, setting, changing"
+.ns
+.TP
+.B "}"
+.br
+This type enumerates possible hints when a subject is notifying
+a view that it has changed.
+The attaching hint indicates that a view has attached to the subject.
+The detaching hint means that the subject is being deleted and
+the view should consider itself detached.
+The setting hint means that the subject's value has been set,
+though possibly to the same value as it already has.
+The changing hint means that the value is set to something
+different than it was previously.
+.TP
+.B "virtual void attach(View*)"
+Add a view to the subject's list.
+.TP
+.B "virtual void detach(View*)"
+Remove a view from the subject's list.
+.TP
+.B "virtual void notify(UpdateHint = changing)"
+Notify all the views of a subject that it has been updated.
+.TP
+.B "virtual boolean viewed_by(View*)"
+Return whether a given view is on the subject's list of views.
+.TP
+.B "virtual void Attach(Interactor*)"
+This function is equivalent to attach and is provided solely
+for backward compatibility.  It will be removed in a future version.
+.TP
+.B "virtual void Detach(Interactor*)"
+This function is equivalent to detach and is provided solely
+for backward compatibility.  It will be removed in a future version.
+.TP
+.B "virtual void Notify()"
+This function is equivalent to notify(changing) and is provided solely
+for backward compatibility.  It will be removed in a future version.
+.TP
+.B "boolean IsView(Interactor*)"
+This function is equivalent to viewed_by and is provided solely
+for backward compatibility.  It will be removed in a future version.
+.SH SUBJECTITERATOR OPERATIONS
+A subject iterator can be used to iterate through the views in a subject.
+.TP
+.B "SubjectIterator(Subject*)
+Create a subject iterator for the given subject.
+The iterator is only valid as long as the subject exists.
+.TP
+.B "virtual void init()"
+Reset the iteration to start at the beginning of the list.
+This operation is called by the constructor.
+.TP
+.B "virtual boolean more()"
+Return whether there are more views in the list.
+.TP
+.B "virtual View* cur()"
+Return the current view.
+.TP
+.B "virtual void remove()"
+Remove the current view from the list.
+.TP
+.B "virtual void next()"
+Move the iteration to the next view in the list.
+.SH SEE ALSO
+View(3I)

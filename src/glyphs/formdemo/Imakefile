@@ -1,0 +1,30 @@
+XCOMM
+XCOMM formdemo - form example
+XCOMM
+XCOMM
+
+PACKAGE = formdemo
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS =  $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(formdemo)
+
+MakeObjectFromSrcFlags(main,)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

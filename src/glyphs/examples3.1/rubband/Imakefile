@@ -1,0 +1,17 @@
+PACKAGE = examples3.1_rubband
+
+#ifdef InObjectCodeDir
+
+OBJS = main.o
+
+Use_libInterViews()
+
+ComplexProgramTargetNoInstall(a.out)
+
+MakeObjectFromSrc(main)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

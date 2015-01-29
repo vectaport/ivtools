@@ -1,0 +1,47 @@
+.TH RpcPeer 3I "27 March 1991" "InterViews" "InterViews Reference Manual"
+.SH NAME
+RpcPeer \- support bi-directional RPC between two services
+.SH SYNOPSIS
+.B #include <Dispatch/rpcpeer.h>
+.SH DESCRIPTION
+An RpcPeer (actually, an instance of a derived class) tries to open a
+connection to another RpcPeer.  If the other RpcPeer is not yet
+running, the RpcPeer will create its own port and wait for the other
+RpcPeer to open a connection.  When either RpcPeer opens a connection,
+each RpcPeer will create both a reader and a writer so each RpcPeer
+can send RPC requests to its opposite over the same connection.
+.SH CONSTRUCTOR
+.TP
+.B "RpcPeer(const char* lPath, int lPort = 0)"
+Store the arguments for later use since a base constructor can't call
+a derived class's virtual function.  The derived class's constructor
+should call ``init'', described below.
+.TP
+.B "void init(const char* rPath)"
+Find the host name and port number registered by the other RpcPeer and
+try to open a connection to it.  If it's not running, create our own
+port and wait for the other RpcPeer to open a connection.
+.SH PUBLIC OPERATIONS
+.TP
+.B "void run()"
+.ns
+.TP
+.B "void quitRunning()"
+Read RPC requests continuously until ``quitRunning()'' terminates the
+loop.  If you're using InterViews, you don't have to call ``run()''
+since the InterViews event-reading code will also read RPC requests.
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual boolean createReaderAndWriter(const char* rHost, int rPort) = 0"
+.ns
+.TP
+.B "virtual void createReaderAndWriter(int fd) = 0"
+You must define both functions in a derived class in order to start
+reading and writing RPC requests over the connection.  Typically both
+functions would create a writer using the given parameters and then
+attach a reader to the writer's rpcstream.
+.SH SEE ALSO
+Dispatcher(3I),
+RpcReader(3I),
+RpcRegistry(3I),
+RpcWriter(3I)

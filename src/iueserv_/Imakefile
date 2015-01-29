@@ -1,0 +1,31 @@
+XCOMM
+XCOMM iueserv - command interpreter with IUE capability
+XCOMM
+
+PACKAGE = iueserv
+
+#ifdef InObjectCodeDir
+
+APP_CCLDLIBS = $(LIBIUESERV) $(LIBOVERLAYUNIDRAW) $(LIBCOMGLYPH) $(LIBCOMTERP) $(LIBATTRGLYPH) $(LIBATTRIBUTE) $(LIBCOMUTIL) $(LIBUNIIDRAW) $(LIBIVGLYPH) $(LIBTOPOFACE)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = $(DEPIUESERV) $(DEPOVERLAYUNIDRAW) $(DEPCOMGLYPH) $(DEPCOMTERP) $(DEPATTRGLYPH) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIIDRAW) $(DEPIVGLYPH) $(DEPTOPOFACE)
+#endif
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(IUE_CCLDLIBS) $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(TIFF_CCLDLIBS)
+
+Use_libUnidraw()
+Use_2_6()
+ComplexProgramTarget(iueserv)
+
+#define Obj(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
+
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

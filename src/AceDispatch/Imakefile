@@ -1,0 +1,30 @@
+XCOMM
+XCOMM place to build the AceDispatch library
+XCOMM
+
+PACKAGE = AceDispatch
+
+#ifdef InObjectCodeDir
+
+LIB = AceDispatch
+
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+#ifdef AceDir
+Obj(ace_dispatcher)
+Obj(ace_iohandler)
+#endif
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

@@ -1,0 +1,45 @@
+/*
+ * Definitions for DEC cxx
+ */
+
+#undef LanguageCCDefines
+#define LanguageCCDefines -Dcplusplus_2_1
+
+#undef CCDriver
+#define CCDriver cxx
+
+#undef DependCCFlags
+#define DependCCFlags -I/usr/include/cxx $(CCDEFINES) $(CCINCLUDES)
+
+#undef CCSuffix
+
+/*
+ * When dynamic link works, we might want to change that.
+ */
+#if HasSharedLibraries
+/*#define HasSunOSSharedLibraries     YES */
+#define HasSunOSSharedLibraries       NO
+#endif
+
+#undef SharedCCFlags
+#define SharedCCFlags /**/
+
+#undef NonSharedCCLdFlags
+#if defined(UseNonShared) && defined(InObjectCodeDir)
+#define NonSharedCCLdFlags -batch
+#else
+#define NonSharedCCLdFlags /**/
+#endif
+
+#undef NormalSunOSSharedLibraryTarget
+#define NormalSunOSSharedLibraryTarget(libname,rev,depobjs,ldobjs)    @@\
+AOUT = Concat(lib,libname.so)                                         @@\
+SHARED_CCFLAGS = SharedCCFlags					      @@\
+                                                                      @@\
+AllTarget(Concat(lib,libname.so))                                     @@\
+      $(LD) -shared -no_archive -o $@~ ldobjs                         @@\
+      $(RM) $@                                                        @@\
+      $(MV) $@~ $@                                                    @@\
+                                                                      @@\
+clean::								      @@\
+      $(RM) Concat(lib,libname.so)

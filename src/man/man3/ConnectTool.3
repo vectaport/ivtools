@@ -1,0 +1,30 @@
+.TH ConnectTool 3U "24 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+ConnectTool \- tool for connecting connectors
+.SH SYNOPSIS
+.B #include <Unidraw/Tools/connect.h>
+.SH DESCRIPTION
+ConnectTool lets the user establish a connection between two
+connectors by direct manipulation.
+.SH PUBLIC OPERATIONS
+.TP
+.B "ConnectTool(ControlInfo* = nil)"
+Create a new ConnectTool.
+.TP
+.B "virtual Manipulator* CreateManipulator("
+.ns
+.TP
+.B "   Viewer*, Event&, Transformer*"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "virtual void InterpretManipulator(Manipulator*)"
+CreateManipulator detects whether the user clicked on a connector.  If
+so, it delegates manipulator creation to that connector, and
+InterpretManipulator in turn delegates interpretation to the same
+connector.  CreateManipulator clears the editor's selection and
+returns a nil value if the user did not click on a connector.
+.SH SEE ALSO
+Connector(3U), Tool(3U)

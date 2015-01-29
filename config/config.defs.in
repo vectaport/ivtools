@@ -1,0 +1,77 @@
+/* This file generated from config.defs.in, */
+/* (unless this file *is* config.defs.in :) */
+
+#if !@INSTALLSUBDIR@
+#define Prefix @prefix@
+#define BinDir Prefix/bin
+#define LibDir Prefix/lib
+#define LibAllDir Prefix/lib/ivtools
+#define IncDir Prefix/include
+#define ConfigDir LibAllDir/config
+#define ManDir Prefix/man
+#else
+#define Prefix @prefix@
+#define BinDir Prefix/bin/ivtools
+#define LibDir Prefix/lib/ivtools
+#define LibAllDir Prefix/lib/ivtools
+#define IncDir Prefix/include
+#define ConfigDir LibAllDir/config
+#define ManDir Prefix/man
+#endif
+
+#define XConfigDir @x_libraries@/X11/config
+#define XIncDir @x_includes@
+#define XLibDir @x_libraries@
+
+#if @ACE_ENABLED@
+#define AceDir @ACE@
+#define AceLibDir @ACE_LIBS@
+#define AceEnabled
+#endif
+
+#if @CLIPPOLY_ENABLED@
+#define ClipPolyDir @CLIPPOLY@
+#define ClipPolyLibDir @CLIPPOLY_LIBS@
+#endif
+
+#if @IUE_ENABLED@
+#define IueDir @IUE@
+#define IueLibDir @IUELIBS@
+#endif
+
+#if @QT_ENABLED@
+#define QtDir @QT@
+#define QtLibDir @QTLIBS@
+#define QtIncDir @QTINCS@
+#endif
+
+#if @TIFF_ENABLED@
+#define TiffDir @TIFF@
+#define TiffLibDir @TIFFLIBS@
+#define TiffIncDir @TIFFINCS@
+#endif
+
+#undef CCDriver
+#define CCDriver @CXX@
+
+#undef CDriver
+#define CDriver @CC@
+
+#undef GPlusPlusIncludeDir
+#define GPlusPlusIncludeDir @CXX_INCLUDE_DIR@
+
+#undef LibStdCPlusPlusV3
+#define LibStdCPlusPlusV3 @LIBSTDCPLUSPLUS3@
+
+#undef Typedef_socklen_t
+#define Typedef_socklen_t @ac_cv_type_socklen_t@
+
+#undef InstallRelative
+#define InstallRelative @INSTALLRELATIVE@
+
+#undef UseRpath
+#define UseRpath @USERPATH@
+
+#define IvToolsSrcRoot @PWD@
+
+

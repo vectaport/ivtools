@@ -1,0 +1,29 @@
+XCOMM
+XCOMM source files for building the Time library
+XCOMM
+
+PACKAGE = Time
+
+#ifdef InObjectCodeDir
+
+LIB = Time
+
+Use_libInterViews()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(Date)
+Obj(Time)
+Obj(obstime)
+Obj(timeglyph)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

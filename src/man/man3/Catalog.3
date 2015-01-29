@@ -1,0 +1,405 @@
+.TH Catalog 3U "11 June 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Catalog \- stores and retrieves named objects
+.SH SYNOPSIS
+.B #include <Unidraw/catalog.h>
+.SH DESCRIPTION
+A catalog provides independent name-to-object mappings for component
+subjects, commands, tools, and editor info objects.  Once named, an
+object can be retrieved later, even if the application has been exited
+and restarted.  The catalog thus provides a means for saving objects
+in non-volatile form for subsequent retrieval.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Catalog(const char* domainName, Creator*, float version)"
+Construct a catalog, supplying an application-unique domain name, a
+creator object, and a version number.  Unidraw objects may use the
+domain name for file type checking purposes, and they may rely on the
+version number to handle evolving storage formats.
+.TP
+.B "virtual boolean Save(EditorInfo*, const char*)"
+.ns
+.TP
+.B "virtual boolean Save(Component*, const char*)"
+.ns
+.TP
+.B "virtual boolean Save(Command*, const char*)"
+.ns
+.TP
+.B "virtual boolean Save(Tool*, const char*)"
+Save an object instance under the specified name.  The catalog stores
+a textual representation for the object in a file with the given name;
+therefore a name with embedded slashes corresponds to the path name for
+the file containing the textual representation.  These operations
+return \fIfalse\fP if the file could not be written.
+.TP
+.B "virtual boolean Retrieve(const char*, EditorInfo*&)"
+.ns
+.TP
+.B "virtual boolean Retrieve(const char*, Component*&)"
+.ns
+.TP
+.B "virtual boolean Retrieve(const char*, Command*&)"
+.ns
+.TP
+.B "virtual boolean Retrieve(const char*, Tool*&)"
+Retrieve an object instance having the specified name.  The catalog
+reconstructs an instance of the object from the corresponding file
+when the instance is first retrieved.  Subsequent retrievals with the
+same name return a reference to the instance already in memory.  These
+operations return \fIfalse\fP if the instance could not be reconstructed
+from the file.
+.TP
+.B "virtual void Forget(EditorInfo*, const char* = nil)"
+.ns
+.TP
+.B "virtual void Forget(Component*, const char* = nil)"
+.ns
+.TP
+.B "virtual void Forget(Command*, const char* = nil)"
+.ns
+.TP
+.B "virtual void Forget(Tool*, const char* = nil)"
+Forget the name-to-object mapping for the given instance.  If the
+optional string is supplied, the catalog forgets a specific
+name-to-object mapping, which is useful when an instance has been
+saved under different names.
+.TP
+.B "virtual const char* GetName(EditorInfo*)"
+.ns
+.TP
+.B "virtual const char* GetName(Component*)"
+.ns
+.TP
+.B "virtual const char* GetName(Command*)"
+.ns
+.TP
+.B "virtual const char* GetName(Tool*)"
+Get a name associated with an instance.  These operations do not
+specify which name is returned for instances that have been saved
+under more than one name.
+.TP
+.B "virtual boolean Valid(const char*, EditorInfo*&)"
+.ns
+.TP
+.B "virtual boolean Valid(const char*, Component*&)"
+.ns
+.TP
+.B "virtual boolean Valid(const char*, Command*&)"
+.ns
+.TP
+.B "virtual boolean Valid(const char*, Tool*&)"
+Return whether the given name has an instance already associated with
+it (i.e., it has been saved or retrieved) and if so return that
+instance in the second parameter.
+.TP
+.B "virtual Component* Copy(Component*)"
+.ns
+.TP
+.B "virtual Command* Copy(Command*)"
+.ns
+.TP
+.B "virtual Tool* Copy(Tool*)"
+Copy an instance by saving it under a temporary name, then retrieving
+it, and finally forgetting the temporary name.  A component, command,
+or tools subclass can use the corresponding function to implement
+their Copy function easily, possibly at the expense of run-time
+performance.
+.TP
+.B "virtual boolean Exists(const char*)"
+Return whether a file with the given name exists.  A return value of
+\fItrue\fP does not necessarily mean that an object has been saved
+under the specified name.
+.TP
+.B "virtual boolean Writable(const char*)"
+Return whether it is permitted to save an object under the given name.
+.TP
+.B "void SetClipboard(Clipboard*)"
+.ns
+.TP
+.B "Clipboard* GetClipboard()"
+Set or get a globally-accessible clipboard object.
+.TP
+.B "void SetEditorInfo(EditorInfo*)"
+.ns
+.TP
+.B "EditorInfo* GetEditorInfo()"
+Set or get a globally-accessible editor info object.
+.TP
+.B "const char* GetName()"
+.ns
+.TP
+.B "Creator* GetCreator()"
+.ns
+.TP
+.B "float GetVersion()"
+Return the values of constructor-specified parameters.
+.TP
+.B "float FileVersion()"
+Return the Unidraw version number of the file being read currently.
+.TP
+.B "const char* GetAttribute(const char*)"
+Return the value of a user preference with the given name as stored in
+the global PropertySheet.  This operation is equivalent to the World
+operation of the same name.
+.TP
+.B "void WriteVersion(int, ostream&)"
+.ns
+.TP
+.B "void WriteClassId(ClassId, ostream&, int id = 0)"
+.ns
+.TP
+.B "void WriteComponent(Component*, ostream&)"
+.ns
+.TP
+.B "void WriteCommand(Command*, ostream&)"
+.ns
+.TP
+.B "void WriteTool(Tool*, ostream&)"
+.ns
+.TP
+.B "void WriteStateVar(StateVar*, ostream&)"
+.ns
+.TP
+.B "void WriteTransferFunct(TransferFunct*, ostream&)"
+.ns
+.TP
+.B "void WriteBgFilled(boolean, ostream&)"
+.ns
+.TP
+.B "void WriteBrush(PSBrush*, ostream&)"
+.ns
+.TP
+.B "void WriteColor(PSColor*, ostream&)"
+.ns
+.TP
+.B "void WriteFont(PSFont*, ostream&)"
+.ns
+.TP
+.B "void WritePattern(PSPattern*, ostream&)"
+.ns
+.TP
+.B "void WriteTransformer(Transformer*, ostream&)"
+.ns
+.TP
+.B "void WriteString(const char*, ostream&)"
+.ns
+.TP
+.B "void WriteControlInfo(ControlInfo*, ostream&)"
+.ns
+.TP
+.B "void WriteEditorInfo(EditorInfo*, ostream&)"
+.ns
+.TP
+.B "void WriteBitmap(Bitmap*, ostream&)"
+.ns
+.TP
+.B "void WriteBitmapData(Bitmap*, ostream&)"
+.ns
+.TP
+.B "void WriteGraymap(Raster*, ostream&)"
+.ns
+.TP
+.B "void WriteGraymapData(Raster*, ostream&)"
+.ns
+.TP
+.B "void WriteRaster(Raster*, ostream&)"
+.ns
+.TP
+.B "void WriteRasterData(Raster*, ostream&)"
+.TP
+.B "int ReadVersion(istream&)"
+.ns
+.TP
+.B "ClassId ReadClassId(istream&, int& id)"
+.ns
+.TP
+.B "Component* ReadComponent(istream&)"
+.ns
+.TP
+.B "Command* ReadCommand(istream&)"
+.ns
+.TP
+.B "Tool* ReadTool(istream&)"
+.ns
+.TP
+.B "StateVar* ReadStateVar(istream&)"
+.ns
+.TP
+.B "TransferFunct* ReadTransferFunct(istream&)"
+.ns
+.TP
+.B "int ReadBgFilled(istream&)"
+.ns
+.TP
+.B "PSBrush* ReadBrush(istream&)"
+.ns
+.TP
+.B "PSColor* ReadColor(istream&)"
+.ns
+.TP
+.B "PSFont* ReadFont(istream&)"
+.ns
+.TP
+.B "PSPattern* ReadPattern(istream&)"
+.ns
+.TP
+.B "Transformer* ReadTransformer(istream&)"
+.ns
+.TP
+.B "char* ReadString(istream&)"
+.ns
+.TP
+.B "ControlInfo* ReadControlInfo(istream&)"
+.ns
+.TP
+.B "EditorInfo* ReadEditorInfo(istream&)"
+.ns
+.TP
+.B "Bitmap* ReadBitmap(istream&)"
+.ns
+.TP
+.B "Bitmap* ReadBitmapData(istream&)"
+.ns
+.TP
+.B "Raster* ReadGraymap(istream&)"
+.ns
+.TP
+.B "Raster* ReadGraymapData(istream&)"
+.ns
+.TP
+.B "Raster* ReadRaster(istream&)"
+.ns
+.TP
+.B "Raster* ReadRasterData(istream&)"
+Write and read information via streams.  Catalog-managed classes use
+these operations in their Write and Read functions to write and read
+the objects they contain.  The operations for writing and reading
+bitmaps and rasters have accompanying operations that write and read
+only the ASCII data (i.e., omitting transformation and other Unidraw
+format-specific data) that encodes their information content.
+.TP
+.B "PSBrush* ReadBrush(const char* definition, int index)"
+.ns
+.TP
+.B "PSColor* ReadColor(const char* definition, int index)"
+.ns
+.TP
+.B "PSFont* ReadFont(const char* definition, int index)"
+.ns
+.TP
+.B "PSPattern* ReadPattern(const char*, int index)"
+Return a PostScript paint object corresponding to the value of a user
+preference with the given definition and index number as stored in the
+global PropertySheet.  Each string in the X defaults database of the
+form ``<applicationName>.resource:definition'' sets a resource.  The
+resource names and their definitions are specified as follows:
+.sp
+.BI brush i:
+Define the \fIi\fPth brush resource.  The ReadBrush operation
+retrieves the brush object for this resource given a definition.  The
+definition usually specifies two numbers: a 16-bit hexadecimal number
+to define the brush's line style (each 1 bit draws a dash and each 0
+bit produces a gap), and a decimal integer to define the brush's width
+in pixels.  For example, ``ffff 1'' defines a single pixel wide solid
+line. If the definition specifies only the string ``none'', then it
+defines the nonexistent brush.
+.sp
+.BI fgcolor i:
+Define the \fIi\fPth foreground color resource.  The ReadColor
+operation retrieves the color object for this resource given a
+definition.  The definition contains a string defining the name of the
+color, optionally followed by three decimal numbers between 0 and
+65535 to define the red, green, and blue components of the color's
+intensity.  The intensities override the name; that is, the catalog
+will look the name up in the database of common colors only if you
+omit the intensities.  For example, ``Indigo 48896 0 65280'' defines a
+color which is a mixture of red and blue. You can define shades of
+gray by using equal proportions of each primary color.
+.sp
+.BI bgcolor i:
+The background color resource definition is specified in the same
+manner as the foreground color.
+.sp
+.BI font i:
+Define the \fIi\fPth font resource. The ReadFont operation retrieves
+the font object for this resource given a definition.  The definition
+contains three strings separated by whitespace.  The first string
+defines the font's name, the second string the corresponding print
+font, and the third string the print size.  For example, ``8x13bold
+Courier-Bold 13'' defines the third font entry.
+.sp
+.BI pattern i:
+Define the \fIi\fPth pattern resource. The ReadPattern operation
+retrieves the pattern object for this resource given a definition.
+The definition can specify the pattern for a 16x16 bitmap, a 8x8
+bitmap, a 4x4 bitmap, a grayscale number, or the string ``none''.  You
+specify the 16x16 bitmap with sixteen 16-bit hexadecimal numbers, the
+8x8 bitmap with eight 8-bit hexadecimal numbers, the 4x4 bitmap with a
+single 16-bit hexadecimal number, and the grayscale number with a
+single floating point number.  The floating point number must contain
+a period to distinguish itself from the single hexadecimal number, and
+it must lie between 0.0 and 1.0, where 0.0 corresponds to a solid
+pattern and 1.0 to a clear pattern.  On the printer, the bitmap
+patterns appear as bitmaps, the grayscale patterns appear as halftoned
+shades, and the ``none'' patterns never obscure underlying graphics.
+For example, ``pattern8:8421'' defines a diagonally hatched pattern.
+.PP
+.TP
+.B "PSBrush* FindNoneBrush()"
+.ns
+.TP
+.B "PSBrush* FindBrush(int, int)"
+.ns
+.TP
+.B "PSColor* FindColor(const char*, int = 0, int = 0, int = 0)"
+.ns
+.TP
+.B "PSFont* FindFont(const char*, const char*, const char*)"
+.ns
+.TP
+.B "PSPattern* FindNonePattern()"
+.ns
+.TP
+.B "PSPattern* FindGrayLevel(float)"
+.ns
+.TP
+.B "PSPattern* FindPattern(int[], int)"
+Return a PostScript paint object with the corresponding attributes.
+These operations return a new paint object if no object with the given
+attributes already exists; otherwise the operations return an existing
+instance with matching attributes.
+.TP
+.B "void Skip(istream&)"
+.ns
+.TP
+.B "void Mark(ostream&)"
+Mark injects a synchronization sequence defined by MARK (see
+globals(3U)) into the output stream.  Skip searches for the same
+sequence in the given input stream and position the stream immediately
+after that sequence.
+.SH PROTECTED OPERATIONS
+.TP
+.B "void Register(EditorInfo*, const char*)"
+.ns
+.TP
+.B "void Register(Component*, const char*)"
+.ns
+.TP
+.B "void Register(Command*, const char*)"
+.ns
+.TP
+.B "void Register(Tool*, const char*)"
+Register an object under a particular name in the catalog's internal maps.
+Objects are normally registered automatically when they are stored or
+retrieved.
+.TP
+.B "int GetToken(istream&, char* buf, int buf_size)"
+Search an input stream for a sequence of characters defined in the
+buffer \fIbuf\fP of size \fIbuf_size\fP.  GetToken returns the number
+of characters matched.
+.SH SEE ALSO
+Clipboard(3U), Command(3U), Component(3U), ControlInfo(3U),
+Creator(3U), EditorInfo(3U), Graphic(3U), PropertySheet(3I),
+StateVar(3U), Tool(3U), TransferFunct(3U), World(3I), globals(3U),
+istream(3C++), ostream(3C++)

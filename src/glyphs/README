@@ -1,0 +1,16 @@
+This directory contains all the glyph example programs from ivtools, plus
+all the glyph example programs from InterViews 3.1:
+
+	bdvtable	bounded-value editing
+	examples3.1	sub-directory of InterViews 3.1 examples
+	formdemo	value-editing demo
+	gclock		glyph clock
+	meter		meter example
+	radiogroup	radio-buttons
+	scrollable	2d scrollable glyph
+	scrollfield	scrollable table of field editors
+	strchooser	string chooser
+	text-editor	emacs-like text editor
+	timestamp	editable time glyph
+
+See http://www.ivtools.org/ivtools/glyphs.html for screenshots.

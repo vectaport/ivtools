@@ -1,0 +1,171 @@
+.TH StringBrowser 3I "30 November 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+StringBrowser \- browse and/or select items in a list
+.SH SYNOPSIS
+.B #include <InterViews/strbrowser.h>
+.SH DESCRIPTION
+StringBrowser is an interactor that provides a browsing and selection
+interface to a list of strings.  StringBrowsers are often used in
+dialog boxes to let the user browse and select from an unbounded set
+of textual entries.  A StringBrowser displays the list of strings and
+provides several ways to scroll the list.  The user selects strings
+with either the mouse or the keyboard; the StringBrowser can restrict
+selection to a single string or allow multiple selections. The
+application queries the StringBrowser for the selected string(s).
+.PP
+A StringBrowser contains no entries initially; strings are appended
+consecutively or in random order, and they can be removed in any
+order.  The strings are accessed with a \fB string index\fP from 0 to
+\fIn\fP-1, where \fIn\fP is the total number of strings.  The
+StringBrowser maintains a separate list of strings that have been
+selected; these strings are accessed with a \fBselection index\fP from
+0 to \fIm\fP-1, where m is the total number of selected strings.
+.PP
+Left-clicking inside the StringBrowser (or calling the Browse
+function) makes it interpret subsequent keyboard events as scrolling
+or selection operations on the entries.  StringBrowser relinquishes
+control when it detects a click outside its canvas or when it receives
+a predetermined escape character.
+.PP
+Middle-clicking inside the StringBrowser lets the user ``grab-scroll''
+the entries.  During grab-scrolling, the StringBrowser scrolls the
+entries to follow the mouse position, making it appear as though the
+user is dragging the entries themselves.  Right-clicking engages
+``rate-scrolling,'' a joy-stick-like scrolling interface in which the
+scrolling rate increases as the user drags the mouse away from the
+initial click point.  For example, dragging the mouse downwards after
+the initial click scrolls the browser downwards at an increasing rate;
+dragging upwards thereafter reduces the rate until scrolling stops
+entirely at the initial click point.  Dragging up beyond this point
+makes the browser scroll in the reverse direction.
+.SH KEY BINDINGS
+Below are the key bindings for browsing and selection commands:
+.IP g
+Go to the first string.
+.PP
+.IP G
+Go to the last string.
+.PP
+.IP a
+Select all.
+.PP
+.IP "DEL or BS"
+Unselect all.
+.PP
+.IP p
+Select previous string.
+.PP
+.IP n
+Select next string.
+.PP
+.IP <
+Select topmost-visible string.
+.PP
+.IP >
+Select bottommost-visible string.
+.PP
+.IP j
+Scroll down one string.
+.PP
+.IP k
+Scroll up one string.
+.PP
+.IP SPACE
+Scroll down one screenful.
+.PP
+.IP b
+Scroll up one screenful.
+.PP
+.IP d
+Scroll down one-half screenful.
+.PP
+.IP u
+Scroll up one-half screenful.
+.SH PUBLIC OPERATIONS
+.TP
+.B "StringBrowser(ButtonState*, int rows, int cols, boolean uniqueSel, \
+int highlight, const char* done)"
+.ns
+.TP
+.B "StringBrowser(const char* name, ButtonState*, int, int, \
+boolean, int, const char*)" 
+Create a new StringBrowser object.  The StringBrowser will use the
+ButtonState to communicate the result of browsing operations.  The
+StringBrowser bases its shape on the \fIrows\fP and \fIcols\fP
+parameters: the height equals \fIrows\fP multiplied by the font
+height, and the width equals \fIcols\fP multiplied by the width of an
+average character.  The \fIuniqueSel\fP parameter specifies whether or
+not selection is limited to one string (the default), and the
+\fIhighlight\fP parameter specifies the appearance of selected strings
+(Reversed by default).  Typing any character in the string \fIdone\fP
+will make the StringBrowser stop interpreting keyboard events; the
+ButtonState is set to this terminating character as a side-effect.  A
+double left-click inside the StringBrowser is equivalent to a single
+left-click selection followed by a key press that generates the first
+character in \fIdone\fP.
+To be interpreted as a double-click, two
+clicks must occur not more than \fIclickDelay\fP milliseconds apart.
+The default click delay is 250 ms; a different value can be specified
+via the "clickDelay" user-preference attribute.
+.TP
+.B "void Browse()"
+Initiate browsing.  Subsequent keypresses will be interpreted as
+browsing and selection commands according to the key bindings listed above.
+.TP
+.B "void Insert(const char* string, int index)"
+Insert \fIstring\fP at position \fIindex\fP.  StringBrowser makes a
+copy of the string for internal use.
+.TP
+.B "void Replace(const char* string, int index)"
+Replace the string at position \fIindex\fP with \fIstring\fP.
+StringBrowser makes a copy of the string for internal use.  This
+operation does nothing if the index supplied is not valid.
+.TP
+.B "void Append(const char* string)"
+Insert a copy of \fIstring\fP after the last string.
+.TP
+.B "void Remove(int index)"
+Remove the string at position \fIindex\fP, moving subsequent strings
+up to fill the gap.
+.TP
+.B "int Index(const char* string)"
+Return the index of the first string that matches \fIstring\fP.
+.TP
+.B "char* String(int index)"
+Return the string at the given index.
+.TP
+.B "int Count()"
+Return the total number of strings in the StringBrowser.
+.TP
+.B "void Clear()"
+Remove all strings from the StringBrowser.
+.TP
+.B "void Select(int index)"
+.ns
+.TP
+.B "void Unselect(int index)"
+Select (unselect) the string at the given index. The string will be
+redrawn in the appropriate style.  If multiple selections are not
+allowed and an another string has been selected already, then
+selecting a new string will unselect the original string.
+.TP
+.B "void SelectAll()"
+.ns
+.TP
+.B "void UnselectAll()"
+Select (unselect) all strings.  SelectAll does nothing if multiple
+selections have been disallowed.
+.TP
+.B "int Selection(int n)"
+Return the string index of the \fIn\fPth selected string.
+.TP
+.B "int SelectionIndex(int n)"
+Return the selection index of the \fIn\fPth string.
+.TP
+.B "int Selections()"
+Return the total number of selected strings.
+.TP
+.B "boolean Selected(int n)"
+Return whether the \fIn\fPth string has been selected.
+.SH SEE ALSO
+Interactor(2I), Button(3I)

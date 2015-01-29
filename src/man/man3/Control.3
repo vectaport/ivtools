@@ -1,0 +1,122 @@
+.TH Control 3I "15 September 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Control, ControlState \- select and execute an action
+.SH SYNOPSIS
+.B #include <InterViews/control.h>
+.SH DESCRIPTION
+A control is a monoscene that allows an action to be selected and executed.
+The component of a control determines the appearance associated
+with the control.
+A control state is a subject that coordinates a group of related controls.
+The control state contains a pointer to the currently selected control
+(if any).
+.PP
+Controls are useful for grabbing input and moving over
+potentially selectable items.
+Examples of controls include popup menus, pull-down menus, and menu items.
+It is generally not necessary to call functions directly
+on a control.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Control(Interactor*)"
+Construct a new control with the given interactor
+as the component.
+.TP
+.B "~Control"
+Destruct a control.  Because a control is a monoscene,
+deleting it implies deleting its component interactor.
+.TP
+.B "ControlState* State()"
+.ns
+.TP
+.B "void SetState(ControlState*)"
+Get or set the control state associated with a control.
+.TP
+.B "virtual void Handle(Event&)"
+Controls are initially inactive.
+A DownEvent causes a control to become active.
+If an active control receives an EnterEvent,
+it will set the current selection to itself.
+If an active control receives a LeaveEvent,
+it will set the current selection to \fInil\fP.
+.TP
+.B "virtual void Enable(boolean)"
+.ns
+.TP
+.B "boolean Enabled()"
+Depending on the argument, Enable enables (\fItrue\fP) or disables
+(\fIfalse\fP) the control.  Control subclasses can check whether the
+control is enabled with the Enabled operation and then take whatever
+action is appropriate.
+.TP
+.B "virtual void Select()"
+Highlight the control and call the protected virtual functions Open and Grab
+(see below).
+.TP
+.B "virtual void Unselect()"
+Call the protected virtual function Close and then unhighlight the control.
+.TP
+.B "virtual void Do()"
+Implement a selected action.  When a control sees an UpEvent, it calls
+Do on the current selection.
+.TP
+.B "Control* ParentControl()"
+.ns
+.TP
+.B "Control* RootControl()"
+The control hierarchy does not necessarily correspond to the
+interactor hierarchy.  These operations return the control's parent
+control or the root of the control hierarchy, if any, as defined by
+control subclasses.
+.SH PROTECTED OPERATIONS
+.TP
+.B "virtual void Down()"
+.ns
+.TP
+.B "virtual void Up()"
+Down and Up are called when the control receives a DownEvent and an
+UpEvent, respectively.  By default, Down activates the control if it
+is enabled, and Up deactivates the control and calls Do on the current
+selection. 
+.TP
+.B "virtual void Enter()"
+.ns
+.TP
+.B "virtual void Leave()"
+Enter makes the control the current selection if it is enabled and
+active, while Leave nullifies the current selection if the control is
+enabled and active.
+.TP
+.B "virtual void Open()"
+.ns
+.TP
+.B "virtual void Close()"
+The base class Open and Close do nothing, but subclasses may insert
+and remove an interactor, such as a pull-down menu.
+.TP
+.B "virtual void Grab()"
+Grab reads input and only passes through an event if its target
+is an active control.
+.TP
+.B "virtual void Skip()"
+Skip reads and discards input events until it reads an event targetted
+for a control that is currently grabbing input, as indicated by
+IsGrabbing (see below).
+.TP
+.B "virtual void Busy()"
+.ns
+.TP
+.B "virtual void Done()"
+The Up operation calls Busy just before it calls Do on the target, and
+it calls Done immediately afterwards.  These operations do nothing by
+default; subclasses may reimplement them to start and stop some
+indication that the control is doing its job.
+.TP
+.B "virtual boolean IsGrabbing(Interactor*)"
+IsGrabbing returns true if the given interactor is grabbing control.
+.TP
+.B "void Reparent(Control* target, Control* parent)"
+Set \fItarget\fP's parent to \fIparent\fP.  Controls that compose
+child controls should call this operation on their children.
+.SH SEE ALSO
+Event(3I), Interactor(3I), Menu(3I), Scene(3I)

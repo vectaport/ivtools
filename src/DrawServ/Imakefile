@@ -1,0 +1,62 @@
+XCOMM
+XCOMM DrawServ - comterp and Unidraw
+XCOMM
+
+PACKAGE = DrawServ
+
+#ifdef InObjectCodeDir
+
+LIB = DrawServ
+
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+
+Use_libUnidraw()
+Use_2_6()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj26(file) MakeObjectFromSrcFlags(file,)
+#define Obj26A(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
+
+#ifdef AceEnabled
+Obj26A(ackback-handler)
+#endif
+Obj26(drawcatalog)
+Obj26(drawcreator)
+Obj26(drawcmds)
+Obj26(drawcomps)
+Obj26(draweditor)
+#ifdef AceEnabled
+Obj26A(drawfunc)
+Obj26A(drawlink)
+Obj26(drawlinkcomp)
+Obj26(drawlinklist)
+#endif
+Obj26(drawserv)
+Obj26A(drawserv-handler)
+Obj26(drawviews)
+#ifdef AceEnabled
+Obj26(grid)
+Obj26(gridlist)
+Obj26(linkselection)
+Obj26(sid)
+#endif
+
+
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+Obj31(drawimport)
+Obj31(drawkit)
+#ifdef AceEnabled
+Obj31(rcdialog)
+#endif
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

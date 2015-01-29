@@ -1,0 +1,33 @@
+PACKAGE = ivxt
+
+#ifdef InObjectCodeDir
+
+CCINCLUDES = -I$(PROJECTDIR)/lesstif/include -I$(PROJECTDIR)/ivtools-0.6/src/include -I$(PROJECTDIR)/ivtools-0.6/src/include/IV-2_6 CCIncludes
+
+CCFLAGS = CCFlags  -g -DFUNCPROTO
+CFLAGS = CFlags -g
+
+# CCLDFLAGS = CCLdFlags -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/ComUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/ComUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/UniIdraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/UniIdraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/OverlayUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/OverlayUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/IV/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/IV/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/Unidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/Unidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/lesstif/lib -L$(PROJECTDIR)/lesstif/lib -L$(PROJECTDIR)/clippoly
+
+CCLDFLAGS =  -Wl,-rpath,$(PROJECTDIR)/lesstif/lib -L$(PROJECTDIR)/lesstif/lib -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/ComUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/ComUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/GraphUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/GraphUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/OverlayUnidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/OverlayUnidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/ComGlyph/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/ComGlyph/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/ComTerp/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/ComTerp/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/AttrGlyph/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/AttrGlyph/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/Attribute/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/Attribute/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/ComUtil/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/ComUtil/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/UniIdraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/UniIdraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/IVGlyph/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/IVGlyph/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/TopoFace/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/TopoFace/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/Unidraw/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/Unidraw/$(CPU) -Wl,-rpath,$(PROJECTDIR)/ivtools-0.6/src/IV/$(CPU) -L$(PROJECTDIR)/ivtools-0.6/src/IV/$(CPU) -L/usr/X11R6/lib -L$(PROJECTDIR)/clippoly -L$(PROJECTDIR)/ACE_wrappers/ace
+
+ 
+CCLDLIBS = -lComUnidraw -lGraphUnidraw -lOverlayUnidraw -lComGlyph -lComTerp -lAttrGlyph -lAttribute -lComUtil -lUniIdraw -lIVGlyph -lTopoFace -lUnidraw -lIV -lXm -lXt -lX11 -lclippoly -lstdc++ -lm -lACE
+
+OBJS = \
+	xtudsession.o \
+	main.o \
+	widgetwindow.o \
+	xtsession.o
+
+ComplexProgramTarget(ivxt)
+
+MakeObjectFromSrc(xtudsession)
+MakeObjectFromSrc(main)
+MakeObjectFromSrc(widgetwindow)
+MakeObjectFromSrc(xtsession)
+#else
+
+MakeInObjectCodeDir()
+
+#endif

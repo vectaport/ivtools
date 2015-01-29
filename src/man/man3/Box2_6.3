@@ -1,0 +1,56 @@
+.TH Box 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Box, HBox, VBox \- tile interactors in a box
+.SH SYNOPSIS
+.B #include <InterViews/box.h>
+.SH DESCRIPTION
+A box is a scene of interactors that are tiled side-by-side
+in the available space.
+Interactors are placed left-to-right in a horizontal box, and
+top-to-bottom in a vertical box.
+.PP
+A box will try to stretch or shrink the interactors inside it to fit
+the available space.
+The natural size of a box is the sum of its elements
+along the major axis, and the maximum along its minor axis.
+A box's stretchability (shrinkability) is the sum of its elements
+along its major axis and the minimum of its elements along its minor axis.
+.SH PUBLIC OPERATIONS
+.TP
+.B "HBox(...)"
+.ns
+.TP
+.B "VBox(...)"
+Create a new box.
+Zero to seven interactors may be passed as arguments;
+the interactors are inserted into the box.
+.TP
+.B "void Align(Alignment)"
+Set the alignment mode that the box uses to place elements
+along the minor axis.
+The default alignment for an hbox is \fIBottom\fP;
+other choices are \fITop\fP and \fICenter\fP.
+The default alignment for a vbox is \fILeft\fP;
+other choices are \fIRight\fP and \fICenter\fP.
+.TP
+.B "void Insert(Interactor*)"
+Append an interactor to the box.
+Components of an hbox (vbox) will appear left-to-right (top-to-bottom)
+in the order in which they are inserted.
+.TP
+.B "void Change(Interactor*)"
+Notify the box that the given interactor's shape has changed.
+If change propagation is true, the box will modify its own shape
+to reflect the change and notify its parent.
+Regardless of propagation,
+the box will recompute the positions of the component interactors and
+update any that have changed.
+.TP
+.B "void Remove(Interactor*)"
+Take an element of out a box.
+Remove does not cause any immediate change to the
+other components in the box;
+the Change operation must be called after one or more Removes
+to update the component positions.
+.SH SEE ALSO
+Glue(3I), Interactor(3I), Scene(3I), Shape(3I)

@@ -1,0 +1,71 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
+/* gcc command line with -V for version and -O for optimize */
+#define CCDriver g++
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
+#define SOMAXCONN 5
+
+/* override -ansi -pedantic from xfree86.cf */
+#undef DefaultCCOptions
+#define DefaultCCOptions /**/
+
+#undef OptimizeCCFlags
+#define OptimizeCCFlags -O3
+
+#undef TIFFOptimizeCFlags
+#define TIFFOptimizeCFlags -O3
+
+/* machine-specific gcc include directory -- does not change with each new version of gcc */
+#define ToolIncludeDir /usr/local/hppa1.1-hp-hpux9/include
+
+/* link libraries for the above */
+#undef ExtraCCLdLibs
+#define ExtraCCLdLibs -lstdc++ -lm
+
+/* command to create shared libraries */
+/* notice all dependent libraries need to be supplied */
+#define SharedLibraryCmd(ldobjs) g++ -shared -fPIC -o $@ ldobjs $(CCLDLIBS)
+
+/* Different LdPath for HP */
+#define LdPath(libname) -Wl,+s -L$(LIBSRC)/libname/$(ARCH) Concat(-l,libname)
+
+/*
+ * Install a shared library on HPUX.
+ */
+#ifndef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)			@@\
+install:: Concat(lib,libname.sl.rev)					@@\
+	MakeDir(dest)							@@\
+	if [ -f dest/Concat(lib,libname.sl.rev) ]; then \		@@\
+	$(RM) dest/Concat(lib,libname.sl.rev); else exit 0; fi		@@\
+	$(INSTALL) -c -m555 Concat(lib,libname.sl.rev) dest   		@@\
+	$(LN) dest/Concat(lib,libname.sl.rev) dest/Concat(lib,libname.sl)@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.sl.rev)				@@\
+	$(RM) dest/Concat(lib,libname.sl)
+#endif
+
+#undef BuildProgram
+#define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
+program: depobjs deplibs						@@\
+	RemoveIfUnwritable($@)						@@\
+	g++ $(CCLDFLAGS) -o $@ ldobjs ldlibs
+
+/* file output by configure script */
+#include "config-hpux-gcc.defs"

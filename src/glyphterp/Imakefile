@@ -1,0 +1,30 @@
+XCOMM
+XCOMM glyphterp - glyph-based simterp example program
+XCOMM
+
+PACKAGE = glyphterp
+
+#ifdef InObjectCodeDir
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS = 	$(LIBCOMGLYPH) $(LIBIVGLYPH) $(LIBCOMTERP) $(LIBATTRIBUTE) $(LIBCOMUTIL) $(LIBUNIDRAWCOMMON)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = $(DEPCOMGLYPH) $(DEPIVGLYPH) $(DEPCOMTERP) $(DEPATTRIBUTE) $(DEPCOMUTIL) $(DEPUNIDRAWCOMMON)
+#endif
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCLDLIBS = $(ACE_CCLDLIBS) $(TIFF_CCLDLIBS)
+
+Use_libInterViews()
+
+ComplexProgramTarget(glyphterp)
+
+MakeObjectFromSrcFlags(main,)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

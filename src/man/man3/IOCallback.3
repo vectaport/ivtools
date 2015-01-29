@@ -1,0 +1,41 @@
+.TH IOCallback 3I "21 December 1990" "InterViews" "InterViews Reference Manual"
+.SH NAME
+IOCallback \- generic callback class for readers, writers, or I/O exception handlers
+.SH SYNOPSIS
+.B #include <Dispatch/iocallback.h>
+.SH DESCRIPTION
+For convenience, the macros defined in iocallback.h allow the user to
+define an iohandler which does nothing more than call an arbitrary
+object's member function.  The actual code to read data from a file
+descriptor, write data to a file descriptor, handle an I/O exception
+on a file descriptor, or handle a timer's expiration can reside in any
+arbitrary class rather than in the iohandler.
+.SH MACROS
+.TP
+.B "declareIOCallback(T)"
+Declare an iocallback type for the given class type T.
+.TP
+.B "implementIOCallback(T)"
+Emit code at this point to implement the iocallback's member
+functions.
+.TP
+.B "IOCallback(T)* instance = new IOCallback(T)(...)"
+Define an instance of the iocallback type for the given class type T.
+.SH CONSTRUCTORS
+.TP
+.B "typedef int T::IOReady(T)(int fd)"
+.ns
+.TP
+.B "typedef void T::IOTimer(T)(long sec, long usec)"
+.TP
+.B "IOCallback(T)(T*, IOReady(T)* in, IOReady(T)* out = nil, IOReady(T)* ex = nil)"
+.ns
+.TP
+.B "IOCallback(T)(T*, IOTimer(T)*, IOReady(T)* in = nil, IOReady(T)* out = nil, IOReady(T)* ex = nil)"
+Construct an instance of the iocallback type that will call the given
+member functions of the given class type T's instance.  Note that you
+do not have to use the IOReady(T) or IOTimer(T) macros; rather, you
+only have to pass the address of a T member function, such as
+&T::inputReady.
+.SH SEE ALSO
+Dispatcher(3I), IOHandler(3I)

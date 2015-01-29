@@ -1,0 +1,67 @@
+.TH VerticesComp 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+VerticesComp, VerticesView, PSVertices \- abstract base classes for
+vertexed graphical component subjects and their views and PostScript
+external representations
+.SH SYNOPSIS
+.B #include <Unidraw/Components/vertices.h>
+.SH DESCRIPTION
+VerticesComp is an abstract base class for graphical components whose
+geometry can be expressed as a list of coordinate pairs.  VerticesComp
+uses a Vertices graphic to store its graphical attributes.
+VerticesView is an abstract GraphicView subclass for displaying a
+VerticesComp. PSVertices is an abstract PostScriptView for subclasses
+that externalize VerticesComp information in PostScript form.
+.SH VERTICESCOMP PUBLIC OPERATIONS
+.TP
+.B "Vertices* GetVertices()"
+Return the Vertices graphic that defines the vertices's attributes.
+GetVertices is simply a more specific form of the GetGraphic
+operation.
+.SH VERTICESCOMP PROTECTED OPERATIONS
+.TP
+.B "VerticesComp(Vertices* = nil)"
+The constructor takes an optional vertices graphic that defines the
+component's graphical attributes.
+.SH VERTICESVIEW PUBLIC OPERATIONS
+.TP
+.B "virtual void Interpret(Command*)"
+VerticesView interprets AlignToGridCmd to align its first vertex to
+the grid.
+.TP
+.B "virtual void GetVertices(Coord*& x, Coord*& y, int& count)"
+Return the view's vertices in canvas coordinates.  GetVertices
+allocates new arrays each time it is called.
+.TP
+.B "VerticesComp* GetVerticesComp()"
+Return the subject.
+.SH VERTICESVIEW PROTECTED OPERATIONS
+.TP
+.B "VerticesView(VerticesComp* = nil)"
+Initialize a VerticesView, optionally supplying the subject.
+.TP
+.B "virtual void CreateHandles()"
+VerticesView redefines CreateHandles to create a RubberHandles object
+that draws a handle coinciding with each vertex.
+.TP
+.B "virtual boolean VertexChanged()"
+Returns whether or not the vertices as stored in the view are
+different in any way from those stored in the subject.  The Update
+function relies on the result to determine whether to recreate the
+view's structured graphic based on the subject's.
+VerticesView::VertexChanged (conservatively) returns \fIfalse\fP by
+default; subclasses should redefine this function to make a more
+discerning decision, thereby increasing the efficiency of the update
+operation.
+.SH PSVERTICES PROTECTED OPERATIONS
+.TP
+.B "PSVertices(VerticesComp* = nil)"
+Initialize a PostScript external representation of the given subject,
+if any.
+.TP
+.B "virtual const char* Name()"
+Subclasses should redefine Name to return the proper tag for the
+object in the PostScript output as required for idraw compatibility.
+.SH SEE ALSO
+GraphicComp(3U), GraphicView(3U), Grid(3U),
+PatternCmd(3U), PostScriptView(3U), Vertices(3U), align(3U), idraw(3I)

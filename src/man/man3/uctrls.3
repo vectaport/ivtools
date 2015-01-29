@@ -1,0 +1,97 @@
+.TH uctrls 3U "20 November 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+CommandControl, PanelControl, HPanelControl, VPanelControl,
+CommandInteractor, PanelInteractor \- predefined UControl and
+UControlInteractor subclasses for common controls
+.SH SYNOPSIS
+.B #include <Unidraw/uctrls.h>
+.SH DESCRIPTION
+CommandControl is a UControl subclass that executes a Command.
+CommandControl instances are most commonly used in menus.
+CommandInteractor is a UControlInteractor subclass that
+CommandControls create to define their appearance.
+
+PanelControl is a subclass of UControl that provides a
+radiobutton-like interface to selecting from a set of
+mutually-exclusive choices.  A PanelControl is passed an interactor
+when it is created to define its appearance.  PanelControls are often
+used to create ``palettes'' of interactors that engage the current
+Tool instance.
+
+PanelInteractor is a UControlInteractor subclass that defines an
+appearance that is often appropriate for PanelControls.  HPanelControl
+and VPanelControl are subclasses of PanelControl that use
+PanelInteractor instances by default.
+.SH COMMANDCONTROL PUBLIC OPERATIONS
+.TP
+.B "CommandControl(ControlInfo*)"
+.ns
+.TP
+.B "CommandControl(const char*, ControlInfo*)"
+Create a CommandControl, optionally supplying an instance name.
+The constructors automatically create and insert a ControlInteractor
+to define the CommandControl's appearance.
+.TP
+.B "virtual void Do()"
+If the ControlInfo's owner is a reversible command, then Do will
+create a copy of the command, execute it, and log it (if it remains
+reversible following execution).  If the owner is an irreversible
+command, then Do will execute it without copying or logging it.
+.SH COMMANDINTERACTOR PUBLIC OPERATIONS
+.TP
+.B "CommandInteractor(ControlInfo*)"
+Create a CommandInteractor with the given ControlInfo object.  The
+CommandInteractor displays the ControlInfo's label and keylabel
+side-by-side as would befit a menu entry.
+.SH PANELCONTROL PUBLIC OPERATIONS
+.TP
+.B "PanelControl(Interactor*, ControlInfo*, ControlState* = nil)"
+.ns
+.TP
+.B "PanelControl("
+.ns
+.TP
+.B "    const char*, Interactor*, ControlInfo*,"
+.ns
+.TP
+.B "    ControlState* = nil"
+.ns
+.TP
+.B ")"
+.br
+Create a PanelControl, supplying an interactor that defines its
+appearance, a ControlInfo object, and optionally an instance name and
+a ControlState, which all PanelControls in a palette should share to
+ensure mutual exclusion.
+.TP
+.B "virtual void Do()"
+Do simply calls Down.  Thus when the KeyMap executes the keyboard
+equivalent specified in the ControlInfo, it has the same effect as
+clicking on the PanelControl instance.
+.SH PANELCONTROL SUBCLASS PUBLIC OPERATIONS
+.TP
+.B "HPanelControl(ControlInfo*, ControlState* = nil)"
+.ns
+.TP
+.B "HPanelControl(const char*, ControlInfo*, ControlState* = nil)"
+.TP
+.ns
+.B "VPanelControl(ControlInfo*, ControlState* = nil)"
+.ns
+.TP
+.B "VPanelControl(const char*, ControlInfo*, ControlState* = nil)"
+HPanelControls and VPanelControls simply create an instance of
+PanelInteractor and pass it to the PanelControl constructor.
+HPanelControls should be used in row-oriented palettes, and
+VPanelControls should be used in column-oriented palettes.
+.SH PANELINTERACTOR PUBLIC OPERATIONS
+.TP
+.B "PanelInteractor(ControlInfo*, Orientation)"
+Create a PanelInteractor with the given orientation and ControlInfo
+object. The PanelInteractor will draw the ControlInfo's label in the
+center of its canvas and the keylabel in the lower right.  Horizontal
+orientation is appropriate for row-oriented instances, while Vertical
+orientation is appropriate for column-oriented instances.
+.SH SEE ALSO
+Command(3U), ControlInfo(3U), KeyMap(3U), Tool(3U), UControl(3U),
+globals(3U)

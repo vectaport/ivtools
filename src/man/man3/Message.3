@@ -1,0 +1,18 @@
+.TH Message 3I "28 March 1988" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Message \- interactor containing text
+.SH SYNOPSIS
+.B #include <InterViews/message.h>
+.SH DESCRIPTION
+A message is an interactor that contains a line of text.  The
+alignment of the text with respect to the interactor's canvas
+can be specified in the constructor.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Message(const char*, Alignment = Center, int pad = 0, int hstretch = 0, int vstretch = 0)"
+Construct a new message interactor with the given text string and
+alignment.  The text will be surrounded on all sides by whitespace of
+width \fIpad\fP, and the horizontal and vertical stretchability of the
+message will be set to the indicated values.
+.SH SEE ALSO
+Interactor(3I)

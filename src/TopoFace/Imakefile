@@ -1,0 +1,30 @@
+XCOMM
+XCOMM TopoFace - topology library: nodes, edges, faces
+XCOMM
+
+PACKAGE = TopoFace
+
+#ifdef InObjectCodeDir
+
+LIB = TopoFace
+
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(fgeomobjs)
+Obj(topoedge)
+Obj(topoedgelist)
+Obj(topoelt)
+Obj(topoface)
+Obj(toponode)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

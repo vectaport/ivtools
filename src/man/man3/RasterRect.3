@@ -1,0 +1,20 @@
+.TH RasterRect 3U "2 February 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+RasterRect \- structured graphic displaying a raster image
+.SH SYNOPSIS
+.B #include <Unidraw/Graphic/rasterrect.h>
+.SH DESCRIPTION
+A RasterRect is a Graphic that displays a raster image defined by a
+Raster object.  With no transformation, the raster will be drawn with
+its lower-left corner at the origin.
+.SH PUBLIC OPERATIONS
+.TP
+.B "RasterRect(Raster*, Graphic* = nil)"
+Construct a RasterRect, supplying a Raster object and an optional
+graphic from which to obtain an initial transformation.  The
+RasterRect references the given graphic.
+.TP
+.B "Raster* GetOriginal()"
+Return the raster that defines the image that the RasterRect displays.
+.SH SEE ALSO
+Graphic(3U), Raster(3I)

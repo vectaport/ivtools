@@ -1,0 +1,325 @@
+.TH GraphicComp 3U "24 November 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+GraphicComp, GraphicComps \- base classes for graphical component subjects
+.SH SYNOPSIS
+.B #include <Unidraw/Components/grcomp.h>
+.SH DESCRIPTION
+GraphicComp is an abstract base class for components that store
+graphical information in a Graphic object.  GraphicComp is derived
+from Component and adds operations for manipulating its graphical
+attributes.  GraphicComps is a non-abstract subclass of GraphicComp
+for composite graphical component subjects.
+.SH GRAPHICCOMP PUBLIC OPERATIONS
+.TP
+.B "virtual ~GraphicComp()"
+The destructor deletes the GraphicComp's graphic, if any.
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+GraphicComp objects can (un)interpret the following commands:
+.sp
+.B "AlignCmd"
+aligns the GraphicComp's graphic with respect to the graphic
+in the GraphicComp returned by AlignCmd::GetReference.  The
+alignment's sense is defined by the alignments that the AlignCmd
+specifies: The first Alignment parameter returned by
+AlignCmd::GetAlignment specifies the alignment with respect to the
+reference graphic, while the second Alignment parameter specifies the
+alignment with respect to \fIthis\fP's graphic.
+.sp
+.B "BrushCmd"
+sets the graphic's brush to the BrushCmd's value.
+.sp
+.B "ColorCmd"
+sets the graphic's foreground and background colors.
+.sp
+.B "FontCmd"
+sets the graphic's font.
+.sp
+.B "MobilityCmd"
+sets the GraphicComp's mobility to the MobilityCmd's value.
+.sp
+.B "MoveCmd"
+translates the GraphicComp's graphic by the amounts in the MoveCmd.
+.sp
+.B "PatternCmd"
+sets the graphic's pattern.
+.sp
+.B "RotateCmd"
+rotates the GraphicComp's graphic by the amount in the RotateCmd.
+.sp
+.B "ScaleCmd"
+scales the GraphicComp's graphic by the amounts in the ScaleCmd.
+.TP
+.B "virtual Graphic* GetGraphic()"
+Return the GraphicComp's graphic.  GraphicComp subclass normally
+redefine this operation to return the graphic that defines their
+appearance.
+.TP
+.B "virtual Component* GetParent()"
+GraphicComp redefines GetParent to return its parent.  However,
+GraphicComp does not store a pointer to the parent explicitly;
+instead, it obtains its graphic's parent and obtains the GraphicComp
+associated with the parent graphic.  The graphic stores the
+GraphicComp that contains it in its tag (see SetGraphic below).
+.TP
+.B "GraphicComp* GetComp(Iterator)"
+.ns
+.TP
+.B "void SetComp(GraphicComp*, Iterator&)"
+These operations do nothing by default.  Subclasses that contain
+children should redefine them as follows: GetComp should return the
+GraphicComp to which an iterator points.  SetComp should initialize
+the iterator to point to a particular GraphicComp in the list of
+children; it should initialize the iterator to point to a nil instance
+if the given GraphicComp is not a child.
+.TP
+.B "void Append(GraphicComp*)"
+.ns
+.TP
+.B "void Prepend(GraphicComp*)"
+.ns
+.TP
+.B "void InsertAfter(Iterator, GraphicComp*)"
+.ns
+.TP
+.B "void InsertBefore(Iterator, GraphicComp*)"
+.ns
+.TP
+.B "void Remove(GraphicComp*)"
+.ns
+.TP
+.B "void Remove(Iterator&)"
+Unimplemented operations that composite subclasses should redefine for
+modifying the their (conceptual) list of children.  Note that
+subclasses needn't necessarily store their children in a list data
+structure, but a list maps closely to the semantics of these
+operations.  
+.sp
+Append and Prepend add a GraphicComp to the end and the beginning of
+the list, respectively.  InsertAfter and InsertBefore insert a
+GraphicComp after and before the GraphicComp pointed to by the
+iterator, respectively.  The Remove operations remove a view from the
+list without deleting it.  You can remove a view instance by referring
+to it explicitly or by specifying an iterator.  If an iterator is
+supplied, the Remove operation should advance it to point to the
+following view as a side effect.
+.TP
+.B "virtual void Bequeath()"
+Modify the GraphicComp's graphic state by calling Bequeath on its
+Graphic.  Graphic::Bequeath propagates \fIthis\fP's graphic state to
+its immediate children, nullifying its own graphics state; see
+Graphic(3U) for a more complete description.
+.TP
+.B "virtual Mobility GetMobility()"
+.ns
+.TP
+.B "virtual void SetMobility(Mobility)"
+Get and set the GraphicComp's mobility.  GetMobility returns Undef
+by default, and SetMobility does nothing.
+.SH GRAPHICCOMP PROTECTED OPERATIONS
+.TP
+.B "GraphicComp(Graphic* = nil)"
+The Graphic instance that defines the GraphicComp's graphical
+attributes can be specified in the constructor, which is protected to
+guard against instantiation.
+.TP
+.B "virtual void SetGraphic(Graphic*)"
+.ns
+.TP
+.B "virtual GraphicComp* GetGraphicComp(Graphic*)"
+SetGraphic sets the GraphicComp's graphic to the given one, and store
+\fIthis\fP in the graphic using Graphic::SetTag.  This makes it
+possible to obtain the GraphicComp that owns the graphic from the
+graphic itself.  GetGraphicComp returns the GraphicComp associated
+with the given graphic.
+.TP
+.B "void Skip(istream&)"
+.ns
+.TP
+.B "void Mark(ostream&)"
+Convenience functions that simply call their Catalog counterparts.
+.TP
+.B "int ReadBgFilled(istream&)"
+.ns
+.TP
+.B "PSBrush* ReadBrush(istream&)"
+.ns
+.TP
+.B "PSColor* ReadColor(istream&)"
+.ns
+.TP
+.B "PSFont* ReadFont(istream&)"
+.ns
+.TP
+.B "PSPattern* ReadPattern(istream&)"
+.ns
+.TP
+.B "PSTransformer* ReadTransformer(istream&)"
+.ns
+.TP
+.B "char* ReadString(istream&)"
+.ns
+.TP
+.B "Bitmap* ReadBitmap(istream&)"
+.ns
+.TP
+.B "Raster* ReadGraymap(istream&)"
+.ns
+.TP
+.B "Raster* ReadRaster(istream&)"
+.ns
+.TP
+.B "void ReadVertices(istream&, Coord*&, Coord*&, int&)"
+.TP
+.B "void WriteBgFilled(boolean, ostream&)"
+.ns
+.TP
+.B "void WriteBrush(PSBrush*, ostream&)"
+.ns
+.TP
+.B "void WriteColor(PSColor*, ostream&)"
+.ns
+.TP
+.B "void WriteFont(PSFont*, ostream&)"
+.ns
+.TP
+.B "void WritePattern(PSPattern*, ostream&)"
+.ns
+.TP
+.B "void WriteTransformer(PSTransformer*, ostream&)"
+.ns
+.TP
+.B "void WriteString(const char*, ostream&)"
+.ns
+.TP
+.B "void WriteBitmap(Bitmap*, ostream&)"
+.ns
+.TP
+.B "void WriteGraymap(Raster*, ostream&)"
+.ns
+.TP
+.B "void WriteRaster(Raster*, ostream&)"
+.ns
+.TP
+.B "void WriteVertices(const Coord*, const Coord*, int, ostream&)"
+Convenience functions for reading and writing common GraphicComp
+information.  These operations are most often used in the Read and
+Write calls of GraphicComp subclasses.  The Write... operations send a
+stream of bytes characterizing their first parameter to the ostream.
+The Read... operations reconstruct the object(s) from the bytes that
+the istream supplies.
+.SH GRAPHICCOMPS PUBLIC OPERATIONS
+.TP
+.B "GraphicComps()"
+.ns
+.TP
+.B "GraphicComps(Graphic*)"
+.ns
+.TP
+.B "virtual ~GraphicComps()"
+The parameterless constructor sets the GraphicComps' graphic to a new
+Picture instance, while the other lets you specify the graphic
+explicitly.  The destructor deletes its children.
+.TP
+.B "virtual void Interpret(Command*)"
+.ns
+.TP
+.B "virtual void Uninterpret(Command*)"
+GraphicComps can (un)interpret the following commands in addition to
+those that GraphicComp objects (un)interpret:
+.sp
+.B "BackCmd"
+and
+.B "FrontCmd"
+change the position of the GraphicComps' children that are in the
+command's clipboard object.  If the command has no clipboard, it will
+create one and fill it with the subjects of GraphicViews that are
+selected currently in the command's editor.  Interpreting a BackCmd will
+move the children on the clipboard so that they appear behind the others,
+preserving their relative order; the opposite occurs when interpreting a
+FrontCmd.
+.sp
+.B "CutCmd"
+removes the components in the CutCmd's clipboard from the GraphicComps
+and places them in the catalog's global clipboard.  Interpret will create
+a clipboard containing the subjects of selected GraphicViews if the
+CutCmd has no clipboard initially.
+.sp
+.B "DeleteCmd"
+removes the components in the DeleteCmd's clipboard from the GraphicComps
+and destroys them when the DeleteCmd is destroyed if it has not been
+uninterpreted.  Interpret will create a clipboard containing the subjects
+of selected GraphicViews if the DeleteCmd has no clipboard initially.
+.sp
+.B "DupCmd"
+duplicates the components in the DupCmd's clipboard, appending them to
+the list of children.  Interpret will create a clipboard containing the
+subject of selected GraphicViews if the DupCmd has no clipboard initially.
+.sp
+.B "GroupCmd"
+removes the components in the GroupCmd's clipboard from the GraphicComps
+and inserts them into the destination GraphicComp returned by
+GroupCmd::GetGroup.  The destination is inserted at the position formerly
+occupied by the last component in the clipboard.  If the GroupCmd has no
+clipboard initially, interpret will create a clipboard containing the
+subjects of selected GraphicViews. If GroupCmd does not define a
+destination, Interpret will create a GraphicComps instance and set the
+GroupCmd's destination explicitly.  Interpret does nothing if the
+clipboard contains less than two components.
+.sp
+.B "UngroupCmd"
+extracts the children from components in the UngroupCmd's clipboard and
+inserts them in order immediately after their parents.  The parents are
+then removed from the GraphicComps.  The parents are destroyed along with
+the UngroupCmd if it has not been Uninterpreted.
+.sp
+.B "PasteCmd"
+appends copies of the components in the PasteCmd's clipboard to the
+GraphicComps.  If the PasteCmd has no clipboard initially, it will use
+the global clipboard from the catalog.
+.SH GRAPHICCOMPS PROTECTED OPERATIONS
+.TP
+.B "GraphicComp* Comp(UList*)"
+.ns
+.TP
+.B "UList* Elem(Iterator)"
+Convenience functions for extracting a GraphicComp from a UList element
+and a UList from an iterator.
+.TP
+.B "void SelectViewsOf(GraphicComp*, Editor*)"
+A convenience function for selecting all the views of the given
+GraphicComp that appear in the given editor.  SelectViewsOf clears the
+original contents of the selection.
+.TP
+.B "void SelectClipboard(Clipboard*, Editor)"
+A convenience function for selecting all the views of all the components
+in the given Clipboard that appear in the given editor.  SelectViewsOf
+clears the original contents of the selection.
+.TP
+.B "void StorePosition(GraphicComp*, Command*)"
+Store the given child's position into the given Command with
+Command::Store.
+.TP
+.B "void RestorePosition(GraphicComp*, Command*)"
+Insert the given GraphicComp into \fIthis\fP based on position
+information stored in the given command.  The position information must
+have been stored with StorePosition.
+.TP
+.B "void Group(Clipboard*, GraphicComp* destination, Command*)"
+.ns
+.TP
+.B "void Ungroup(GraphicComp* parent, Clipboard*, Command*)"
+Helper functions used in the interpretation of GroupCmd and UngroupCmd,
+respectively.  Group inserts the components in the clipboard into
+\fIdestination\fP and inserts \fIdestination\fP into \fIthis\fP, storing
+undo information in the command.  Ungroup removes all children from
+\fIparent\fP, puts them on the clipboard, and then removes \fIparent\fP
+from \fIthis\fP.  Ungroup also stores undo information in the command.
+.SH SEE ALSO
+BrushCmd(3U), Catalog(3U), Clipboard(3U), ColorCmd(3U), Component(3U),
+Editor(3U), FontCmd(3U), Iterator(3U), PatternCmd(3U), Picture(3U),
+Selection(3U), UList(3U), align(3U), edit(3U), globals(3U),
+struct(3U), transforms(3U)

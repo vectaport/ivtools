@@ -1,0 +1,53 @@
+NAME
+     graphdraw - directed graph editor derived from drawtool
+
+SYNOPSIS
+     graphdraw ['X-params'] [file]
+
+DESCRIPTION
+
+graphdraw implements a graph (node/edge) editor.  graphdraw adds two new
+graphical objects to idraw/drawtool: an elliptical shaped node and a
+directed edge represented as an arrow line.  Two new tools to create
+these objects are provided at the bottom of the toolbar.  The Node
+tool (selectable by the 'N' key) takes a single mouse click and
+creates a new graph node at the click location.  The Edge tool
+(selectable by the 'E' key) lets you drag a line to create a new graph
+edge.  If an edge is drawn from or to an existing node, it will
+connect itself to the node(s) and maintain that connectivity during
+any later movement of nodes or edges.  The Move tool will move edges
+or nodes, rubberbanding the rest of the graph, and redrawing any
+connected edges to maintain graph connectivity and edge alignment.
+
+Nodes contain a (initially empty) text string which can be edited by
+applying the Alter tool to a node.  A single click on a node while on the
+Alter tool will create a text cursor, possibly within an existing text
+string, and allow editing of the text via the usual Emacs editing commands.
+A click outside the text terminates editing and causes the new text to
+be centered within the node.
+
+For Node and Edge objects, the Selection highlight mechanism has also been
+changed from the usual drawing of "handles" around a graphical object to
+a red foreground color.  When Nodes or Edges are selected, they turn red
+instead of handles being drawn around them.
+
+graphdraw documents are saved/restored in a readable text file.  Some of
+the tokens used in the text file are specific to graphdraw (and possibly
+any program derived from graphdraw).  graph drawings can be exported to
+other idraw/drawtool applications via the "Export Graphic" command
+(under the File menu).  This generates Postscript in a format that
+idraw can read back in, and programs like drawtool can import via
+"Import Graphic" (under the file menu).
+
+A Tools menu has been added to the set of pull-down menus to allow
+switching between a graph editing toolbar and a generic graphics
+editing toolbar.  
+
+
+SEE ALSO
+	-help for more options, and the comdraw, drawtool, idraw man pages
+
+WEB PAGE
+	http://www.ivtools.org/ivtools/graphdraw.html
+
+

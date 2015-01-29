@@ -1,0 +1,70 @@
+/* 
+ * Macro for defining makefile variable for library linking
+ */
+#undef libvar
+#if HasDynamicSharedLibraries
+#if !UseRpath
+#ifdef UseInstalled
+#define libvar(ULIBNAME, PCKGSRC, llibname, liblibname, lllibname) \
+  ULIBNAME = -L$(LIBDIR) lllibname
+#else
+#define libvar(ULIBNAME, PCKGSRC, llibname, liblibname, lllibname) \
+  ULIBNAME = -L$(PCKGSRC)/llibname/$(CPU) lllibname
+#endif
+#else
+#ifdef UseInstalled
+#define libvar(ULIBNAME, PCKGSRC, llibname, liblibname, lllibname) \
+  ULIBNAME = -Wl,-rpath,$(LIBDIR) -L$(LIBDIR) lllibname	
+#else
+#define libvar(ULIBNAME, PCKGSRC, llibname, liblibname, lllibname) \
+  ULIBNAME = -Wl,-rpath,$(PCKGSRC)/llibname/$(CPU) -L$(PCKGSRC)/llibname/$(CPU) lllibname	
+#endif
+#endif
+#else
+#ifdef UseInstalled
+#define libvar(ULIBNAME, PCKGSRC, llibname, liblibname, lllibname) \
+  ULIBNAME = $(LIBDIR)/liblibname.a
+#else
+#define libvar(ULIBNAME, PCKGSRC, llibname, liblibname, lllibname) \
+  ULIBNAME = $(PCKGSRC)/llibname/$(CPU)/liblibname.a
+#endif
+#endif
+
+/*
+ * Macro for defining library dependency make variable.
+ */
+#if defined(HPArchitecture)
+#define SO sl
+#else
+#define SO so
+#endif
+
+#undef depvar
+#if HasDynamicSharedLibraries
+#if !defined(DarwinArchitecture)
+#ifndef UseInstalled
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(PCKGSRC)/llibname/$(CPU)/liblibname.SO.libver
+#else
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(LIBDIR)/liblibname.SO.libver
+#endif
+#else
+#ifndef UseInstalled
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(PCKGSRC)/llibname/$(CPU)/liblibname.libver.dylib
+#else
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(LIBDIR)/liblibname.libver.dylib
+#endif
+#endif
+#else
+#ifndef UseInstalled
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(PCKGSRC)/llibname/$(CPU)/liblibname.a
+#else
+#define depvar(ULIBNAME, PCKGSRC, llibname, liblibname, libver) \
+  ULIBNAME = $(LIBDIR)/liblibname.a
+#endif
+#endif
+

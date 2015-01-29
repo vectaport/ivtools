@@ -1,0 +1,94 @@
+.TH StringChooser 3I "30 November 1989" "InterViews" "InterViews Reference Manual"
+.SH NAME
+StringChooser \- dialog box for choosing items in a list
+.SH SYNOPSIS
+.B #include <InterViews/strchooser.h>
+.SH DESCRIPTION
+StringChooser is a dialog that manages keyboard focus between a
+StringBrowser and a StringEditor to provide a convenient interface to
+selecting strings.  The user can select strings either by selecting
+them in the StringBrowser or by typing them in the StringEditor. Like
+Dialog, StringChooser is an abstract class; programmers must derive
+from StringChooser to add push buttons, etc. and to compose them into
+custom arrangements.
+.PP
+The user can focus keyboard input towards either the StringEditor or
+the StringBrowser.  To set focus to the StringEditor, for example, the
+user left-clicks in its canvas to make it interpret subsequent
+keyboard events.  When either the StringEditor or the StringBrowser
+relinquishes keyboard focus, the other acquires it: for example, the
+user can toggle focus between the two by pressing the tab key
+repeatedly.  If an entry in the StringBrowser is selected when it
+loses focus, the (first) selected string will be transferred into the
+StringEditor.
+.SH PUBLIC OPERATIONS
+.TP
+.B "StringChooser(ButtonState*, int rows, int cols, const char* sample, \
+Alignment)"
+.ns
+.TP
+.B "StringChooser(const char* name, ButtonState*, int rows, int cols, \
+const char* sample, Alignment)"
+.ns
+Construct a new StringChooser with the given button state and pop-up
+alignment.  These constructors create a StringBrowser of the specified
+size and a StringEditor with the given sample string.  The
+StringChooser, StringBrowser, and StringEditor all share the same
+button state.
+.TP
+.B "void Select(int point)"
+.ns
+.TP
+.B "void Select(int left, int right)"
+.ns
+.TP
+.B "void SelectMessage()"
+Select an insertion point, a subrange, or the entire edit buffer in
+the StringEditor.
+.TP
+.B "void Message(const char* text)"
+Set the contents of the StringEditor's edit buffer to \fItext\fP.
+.TP
+.B "virtual const char* Choice()"
+Return the chosen string. The string is returned in a static buffer
+and should be copied before use.
+.SH PROTECTED OPERATIONS
+.TP
+.B "StringChooser(ButtonState*, Alignment = Center)"
+Construct a new StringChooser with the given button state and pop-up
+alignment \fIwithout\fP creating StringBrowser and StringEditor
+instances.  This constructor should be called in subclasses that
+require a specialized StringEditor or StringBrowser or both.
+.TP
+.B "void Init(StringEditor*, StringBrowser*)"
+Initialize the StringEditor and StringBrowser that StringChooser will
+use.  This function is useful in the constructors of StringChooser
+subclasses that require a specialized StringEditor or StringBrowser or
+both.
+.TP
+.B "virtual void SwitchFocus()"
+Prepare to shift keyboard focus to the StringBrowser if the
+StringEditor is focused currently, and vice versa.  Focus actually
+changes when HandleFocus is called (see below).
+.TP
+.B "virtual boolean CanFocus(Interactor*)"
+Return whether or not the given interactor can be focused.  This
+function is used to determine whether the StringChooser should switch
+focus in response to a downclick.
+.TP
+.B "virtual void HandleFocus()"
+Transfer event reading to the StringBrowser or StringEditor, whichever
+is the current focus.
+.TP
+.B "virtual void UpdateEditor()"
+.ns
+.TP
+.B "virtual void UpdateBrowser()"
+Update StringEditor and StringBrowser state when the dialog is
+accepted or in response to a change in focus.  This function
+guarantees that the Choice operation will return the last choice. By
+default, UpdateEditor changes the StringEditor's contents to match the
+StringBrowser selection (if any), and UpdateBrowser clears out any
+selected strings in the StringBrowser.
+.SH SEE ALSO
+Button(3I), Dialog(3I), StringBrowser(3I), StringEditor(3I)

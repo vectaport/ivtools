@@ -1,0 +1,96 @@
+.TH Tray 3I "8 September 1988" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Tray \- compose interactors into arbitrary or constrained layouts
+.SH SYNOPSIS
+.B #include <InterViews/tray.h>
+.SH DESCRIPTION
+A tray is a scene of interactors that overlap, tile, or have other
+constraints on their alignment relative to each other.  One of the
+interactors in a tray can serve as a background for the other
+interactors.
+.PP
+Constraints on the layout of interactors are made by \fIaligning\fP
+interactors to each other.  Two interactors are aligned by specifying
+which edges coincide.  For example, the lower left corner of one
+interactor may be aligned to the upper right of another.  \fBTGlue\fP
+objects can be used to introduce transparent space between aligned
+interactors.  TGlue has a natural size, shrinkability, and
+stretchability (though TGlue objects are \fInot\fP interactors).
+Trays stretch or shrink the TGlue along with the aligned interactors
+to satisfy the alignment constraints.
+.PP
+The tray adopts the shape of the background interactor if there is
+one; otherwise, the tray's shape depends on the shapes of its
+components and potentially on their alignments.  By default, a tray
+without a background takes on a width and height equal to the largest
+of the widths and heights of its components.  However, alignments
+involving the tray can in effect override this default.
+.PP
+For example, if the left and right sides of a particular component are
+aligned to the tray's left and right sides, respectively, then the
+tray's sides are constrained to coincide with the component's sides.
+Thus the tray will adopt the width, horizontal shrinkability, and
+horizontal stretchability of that component.  Another example: To
+ensure that a tray circumscribes a collection of (mutually aligned)
+components, align the outer edges of the components on the periphery
+of the collection to the outer edges of the tray, thereby constraining
+the tray to assume the shape of the collection.
+.SH TGLUE PUBLIC OPERATIONS
+.TP
+.B "TGlue(int w = 0, int h = 0, int hstretch = hfil, int vstretch = vfil);
+Define TGlue of a minimum size.  The TGlue can stretch from the given size
+but cannot shrink.
+.TP
+.B "TGlue(int, int, int hshrink, int hstretch, int vshrink, int vstretch);
+Define general TGlue with a given natural size (width and height),
+shrinkability, and stretchability.
+.SH TRAY PUBLIC OPERATIONS
+.TP
+.B "Tray(Interactor* background = nil)"
+Create a new tray, optionally having an interactor as a background.
+.TP
+.B "void Align(Alignment, Interactor*, TGlue* = nil)"
+.ns
+.TP
+.B "void Align(Alignment, Interactor*, Alignment, Interactor*, TGlue* = nil)"
+Align an interactor to another interactor (the tray itself by default), 
+optionally with TGlue between them.
+Align operations insert interactors into the tray if they have not
+been inserted already.
+.TP
+.B "void Align(Alignment, Interactor*, ..., Interactor* = nil)"
+Apply an alignment to a set of interactors.  This operation is shorthand for
+aligning the interactors to each other explicitly.  For example, Align(Left,
+i1, i2, i3, i4) aligns the left sides of interactors i1 through i4.
+Two to seven interactors can be aligned at once.
+.TP
+.B void HBox(Interactor*, ..., Interactor* = nil)
+.ns
+.TP
+.B void VBox(Interactor*, ..., Interactor* = nil)
+The HBox and VBox operations align the specified interactors such that they
+tile left-to-right and top-to-bottom, respectively.  These operations 
+align in one dimension only.  Two to seven interactors can be aligned at
+once.  If the first (last) component is the tray or the
+background interactor, then the leftmost (rightmost)
+component will be aligned with the
+left (right) side of the tray.
+.TP
+.B "void Insert(Interactor*)"
+Insert an interactor into the tray without an alignment.  The interactor
+will appear in the lower left corner of the tray.
+.TP
+.B "void Change(Interactor*)"
+Notify the tray that the given interactor's shape has changed.  The tray
+will recompute the layout of its component interactors to satisfy any
+alignments.  If the tray does not
+contain a background, then a change in the shape of one of its components 
+may in turn change the tray's shape.  
+If the tray has a background, then the tray's
+shape will change only if the shape of the background changes.
+.TP
+.B "void Remove(Interactor*)"
+Take an interactor out of a tray and eliminate any alignments that
+have been made to it.
+.SH SEE ALSO
+Interactor(3I), Scene(3I), Shape(3I)

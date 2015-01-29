@@ -1,0 +1,31 @@
+XCOMM
+XCOMM idraw - drawing editor built on UniIdraw
+XCOMM
+
+PACKAGE = idraw
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS = 
+
+APP_CCLDLIBS = $(LIBUNIIDRAW)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS = $(DEPUNIIDRAW)
+#endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
+
+Use_libUnidraw()
+Use_2_6()
+ComplexProgramTarget(idraw)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

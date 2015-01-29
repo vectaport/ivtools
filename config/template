@@ -1,0 +1,56 @@
+/*
+ * Define the OS platform and CPU architecture.
+ */
+#include <arch.def>
+
+/* 
+ * ArchitectureName taken from CPU environment variable.
+ * Supported platforms listed in arch.def
+ * Initialize with value returned from `make CPU`
+ * (now automatically set in config.mk by configure script)
+ */
+#include SiteDefCpu
+
+/*
+ * Define platform-specific parameters.
+ */
+#include MacroIncludeFile
+
+/*
+ * Define site-specific parameters.
+ */
+#include <local.def>
+
+/*
+ * Define all remaining parameters.
+ */
+#include <params.def>
+
+/*
+ * Define common rules.
+ */
+#include <rules.def>
+
+/*
+ * Override with things from the configure script
+ */
+include $(RELTOP)/config/config.mk
+
+/*
+ * Define default actions for common targets.
+ */
+all::
+MakefileTarget()
+Makefiles::
+depend::
+install::
+uninstall::
+CleanTarget()
+
+/*
+ * Include the local Imakefile.
+ */
+XCOMM -------------------------------------------------------------------------
+
+#include INCLUDE_IMAKEFILE
+

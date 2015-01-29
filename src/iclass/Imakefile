@@ -1,0 +1,33 @@
+XCOMM
+XCOMM iclass - class browser
+XCOMM
+
+PACKAGE = iclass
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
+
+Use_libInterViews()
+Use_2_6()
+ComplexProgramTarget(iclass)
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(classbuffer)
+Obj(classeditor)
+Obj(classinfo)
+Obj(dialogs)
+Obj(direct)
+Obj(globals)
+Obj(iclass)
+Obj(main)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

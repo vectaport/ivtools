@@ -1,0 +1,25 @@
+.TH Border 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Border, HBorder, VBorder \- visual separators
+.SH SYNOPSIS
+.B #include <InterViews/border.h>
+.SH DESCRIPTION
+.B Border
+is the base class for interactors that simply display
+a line of a given thickness, usually
+to separate other interactors in a scene.
+.B HBorder
+objects have a fixed height and
+are infinitely stretchable and shrinkable horizontally.
+.B VBorder
+objects have a fixed width and
+are infinitely stretchable and shrinkable vertically.
+.SH PUBLIC OPERATIONS
+.TP
+.B "HBorder(int thickness = 1)"
+.ns
+.TP
+.B "VBorder(int thickness = 1)"
+Construct a border with a given thickness (default is one pixel).
+.SH SEE ALSO
+Interactor(3I)

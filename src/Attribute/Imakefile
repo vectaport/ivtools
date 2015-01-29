@@ -1,0 +1,31 @@
+XCOMM
+XCOMM Attribute - attribute/value library
+XCOMM
+
+PACKAGE = Attribute
+
+#ifdef InObjectCodeDir
+
+LIB = Attribute
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(alist)
+Obj(aliterator)
+Obj(attribute)
+Obj(attrlist)
+Obj(attrvalue)
+Obj(commodule)
+Obj(lexscan)
+Obj(paramlist)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

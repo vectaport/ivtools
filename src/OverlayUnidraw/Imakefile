@@ -1,0 +1,111 @@
+XCOMM
+XCOMM OverlayUnidraw - graphic sheet operations
+XCOMM
+
+PACKAGE = OverlayUnidraw
+
+#ifdef InObjectCodeDir
+
+LIB = OverlayUnidraw
+OTHER_CCDEFINES = $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES)
+
+Use_libUnidraw()
+Use_2_6()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj26(file) MakeObjectFromSrcFlags(file,)
+
+
+Obj26(annotate)
+Obj26(attrtool)
+Obj26(clipline)
+Obj26(grayraster)
+Obj26(indexmixins)
+Obj26(leafwalker)
+Obj26(ovadjuster)
+Obj26(ovarrow)
+Obj26(ovcatalog)
+Obj26(ovcomps)
+Obj26(ovcreator)
+Obj26(ovdamage)
+Obj26(ovdialog)
+Obj26(ovdoer)
+Obj26(oved)
+Obj26(ovellipse)
+Obj26(ovfile)
+Obj26(ovhull)
+Obj26(ovline)
+Obj26(ovmanips)
+Obj26(ovpage)
+Obj26(ovpainter)
+Obj26(ovpanner)
+Obj26(ovpolygon)
+Obj26(ovprecise)
+Obj26(ovpspict)
+Obj26(ovpsview)
+Obj26(ovraster)
+Obj26(ovrect)
+Obj26(ovrestimage)
+Obj26(ovselect)
+Obj26(ovselection)
+Obj26(ovspline)
+Obj26(ovstates)
+Obj26(ovstencil)
+Obj26(ovtext)
+Obj26(ovunidraw)
+Obj26(ovvars)
+Obj26(ovvertices)
+Obj26(ovviewer)
+Obj26(ovviews)
+Obj26(ptinpoly)
+Obj26(rastercmds)
+Obj26(scriptview)
+Obj26(textfile)
+
+#ifdef ClipPolyDir
+Obj26(ovclip)
+Obj26(cliplinepoly)
+MakeObjectFromSrcFlags(clippoly,-fno-implicit-templates)
+#endif
+
+
+#define Obj31(file) MakeObjectFromSrcFlags(file,-Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+
+
+Obj31(grloctool)
+Obj31(ovabout)
+Obj31(ovcamcmds)
+Obj31(ovchainview)
+Obj31(ovcmds)
+Obj31(ovctrl)
+Obj31(ovexport)
+Obj31(ovfixview)
+Obj31(ovgdialog)
+Obj31(ovimport)
+Obj31(ovipcmds)
+Obj31(ovkit)
+Obj31(ovprint)
+Obj31(ovshowhide)
+Obj31(setattrbyexpr)
+Obj31(slctbyattr)
+
+#ifdef AceDir
+#define ObjACE(file) MakeObjectFromSrcFlags(file,-Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
+ObjACE(aceimport)
+#endif
+
+IncludeDependencies()
+
+#ifdef ClipPolyDir
+InstallLibLink($(CLIPPOLYLIBDIR),$(CLIPPOLYLIBBASE), $(LIBDIR))
+#endif
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

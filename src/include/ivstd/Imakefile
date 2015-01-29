@@ -1,0 +1,11 @@
+XCOMM
+XCOMM standard include file wrappers for C++
+XCOMM
+
+PACKAGE = include_std
+
+IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(ivstd)
+InstallInclude(ivstd,iosfwd)
+

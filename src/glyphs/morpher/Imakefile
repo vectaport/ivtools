@@ -1,0 +1,29 @@
+XCOMM
+XCOMM morpher: morph between two idraw drawings
+XCOMM
+
+PACKAGE = glyph_morpher
+
+#ifdef InObjectCodeDir
+
+CLIPPOLY_CCLDLIBS =
+
+APP_CCLDLIBS =  $(LIBIVGLYPH)
+#if HasDynamicSharedLibraries
+APP_CCDEPLIBS =  $(DEPIVGLYPH)
+#endif
+OTHER_CCLDLIBS = $(TIFF_CCLDLIBS)
+
+Use_libInterViews()
+ComplexProgramTargetNoInstall(imorpher)
+
+MakeObjectFromSrc(main)
+MakeObjectFromSrc(glypheditor)
+MakeObjectFromSrc(glyphviewer)
+MakeObjectFromSrc(morpher)
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif

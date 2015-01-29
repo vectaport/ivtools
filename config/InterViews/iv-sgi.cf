@@ -1,0 +1,42 @@
+#include <sgi.cf>
+
+#if OSMajorVersion < 4
+
+#define ExtraCCFlags -float
+#define ExtraCCLdLibs -lC -lsun -lmalloc -lc_s
+
+#endif
+
+#if OSMajorVersion == 4
+
+/* force use of K&R cc to avoid cfront bugs */
+#define ExtraCCFlags -float -cckr
+#define ExtraCCLdLibs -lC -lsun -lmalloc -lc_s
+#define Ld_libX11 -lX11_s
+
+#endif
+
+#if OSMajorVersion >= 5
+
+#define CCDriver CC +p
+#define ExtraCCFlags -float
+#define ExtraCCLdLibs -lC -lsun -lmalloc -lc
+#define Ld_libX11 -lX11
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+#define SharedCCFlags /**/
+#define SharedCCLdFlags -shared
+#define SharedCCLdLibs -lm
+
+#endif
+
+#define ExtraCCDefines -DSYSV -Dsigned= -Dvolatile=
+#define ExtraCCIncludes
+#define TIFFExtraCFlags /* can't trust DefaultCCOptions */
+#define BuildGLContext YES
+
+#undef InstallCmd
+#define InstallCmd bsdinst
+
+#include <InterViews/xparams.cf>

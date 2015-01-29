@@ -1,0 +1,107 @@
+/* base directory for software projects */
+#define ProjectDir /proj
+
+/* solaris workarounds */
+#if defined(__svr4__)
+#define SVR4 YES
+#endif
+#if defined(SVR4)
+#define SVR4Architecture YES
+#define HasGcc2 YES
+#define HasGcc HasGcc2
+#define ManSuffix 1x
+#endif
+
+/* gcc command line with -V for version and -O for optimize */
+#define CCDriver g++	
+
+#undef HasDynamicSharedLibraries
+#define HasDynamicSharedLibraries YES
+
+#undef SharedCCFlags
+#define SharedCCFlags -fPIC
+
+#undef SharedCCLdFlags
+#define SharedCCLdFlags
+
+/* 
+ * build RPC classes -- requires iostreams & TCP sockets
+ */
+#undef BuildRPCClasses
+#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
+#define SOMAXCONN 5
+
+/* link libraries for the above */
+#undef ExtraCCLdLibs
+#ifndef SVR4Architecture
+#if 0
+#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -lm -Xlinker -Bdynamic -ldl
+#else
+#define ExtraCCLdLibs -Xlinker -Bstatic -lm -Xlinker -Bdynamic -ldl
+#endif
+#else
+#if 0  /* static linking of libstdc++ not necessarly needed */
+#define ExtraCCLdLibs -Xlinker -Bstatic -lstdc++ -Xlinker -Bdynamic -lsocket -lnsl -lSM -lICE -lm
+#else
+#define ExtraCCLdLibs -lstdc++ -lsocket -lnsl -lSM -lICE -lm
+#endif
+#endif
+
+/* statically or dynamically link libX11 */
+#if HasDynamicSharedLibraries
+#undef Ld_libX11
+#ifndef SVR4Architecture
+#define Ld_libX11 -Xlinker -Bstatic -lX11 -Xlinker -Bdynamic
+#else
+#if 0 /* static linking of X11 libraries not needed for recent versions of Solaris */
+#define Ld_libX11 -Xlinker -Bstatic -lX11 -lSM -lICE -Xlinker -Bdynamic
+#else
+#define Ld_libX11 -lX11 -lSM -lICE
+#endif
+#endif
+#endif
+
+/* link libraries for TIFF */
+#ifndef SVR4Architecture
+#undef TIFFExtraCLdLibs
+#define TIFFExtraCLdLibs -ldl
+#else
+#endif
+
+/* Use native linker for shared libraries */
+#undef LdCmd
+#ifndef SVR4Architecture
+#define LdCmd /bin/ld
+#else
+#define LdCmd /usr/ccs/bin/ld
+#endif
+
+/*
+ * Install a shared library 
+ */
+#ifndef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)                   @@\
+install:: Concat(lib,libname.so.rev)                                    @@\
+	MakeDir(dest)                                                   @@\
+	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest   @@\
+	-@if [ -f dest/Concat(lib,libname.so) ]; then exit 0; else \    @@\
+	cd dest; \                                                   	@@\
+	$(LN) Concat(lib,libname.so.rev) Concat(lib,libname.so); fi	@@\
+									@@\
+uninstall::								@@\
+	$(RM) dest/Concat(lib,libname.so.rev)				@@\
+	$(RM) dest/Concat(lib,libname.so)
+#endif
+
+/* 
+ * Enable/disable relative InterViews-style installation of binaries
+ */
+#undef InstallRelative
+#define InstallRelative YES
+
+/* file output by configure script */
+#ifdef SVR4Architecture
+#include "config-solaris-gcc.defs"
+#else
+#include "config-sunos4-gcc.defs"
+#endif

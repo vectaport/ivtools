@@ -1,0 +1,58 @@
+.TH Manipulator 3U "1 August 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+Manipulator \- base class for defining direct-manipulation semantics
+.SH SYNOPSIS
+.B #include <Unidraw/manip.h>
+.SH DESCRIPTION
+Tools use manipulator objects to encapsulate the mechanics of direct
+manipulation.  Manipulators turn user input events into an animation
+sequence that characterize the manipulation.  Manipulators abstract
+the manipulation into three phases: the \fIgrasping\fP phase, which
+occurs at the start of the manipulation and lets the manipulator
+initialize state it will need in later phases; the \fImanipulating\fP
+phase, during which the manipulator accepts input events and generates
+graphical output that characterizes successive frames of the
+animation; and finally the \fIeffect\fP phase, which occurs at the end
+of the manipulation and lets the manipulator finalize its state.
+Manipulator is an abstract base class.  Subclasses support different
+manipulation semantics.
+.SH MANIPULATOR PUBLIC OPERATIONS
+.TP
+.B "virtual void Grasp(Event&)"
+Grasp is called once at the beginning of direct manipulation to allow
+the manipulator to initialize its internal state based on the
+initiating event.
+.TP
+.B "virtual boolean Manipulating(Event&)"
+Manipulating is called repeatedly during the manipulation whenever a
+new event arrives, until it returns false.  Each call to Manipulating
+should produce a new frame of the animation that characterizes the
+manipulation.
+.TP
+.B "virtual void Effect(Event&)"
+Effect is called once at the end of direct manipulation to allow the
+manipulator to finalize its internal state based on the last event supplied
+to the Manipulating operation.
+.TP
+.B "virtual void SetViewer(Viewer*)"
+.ns
+.TP
+.B "virtual Viewer* GetViewer()"
+.ns
+.TP
+.B "virtual void SetTool(Tool*)"
+.ns
+.TP
+.B "virtual Tool* GetTool()"
+Get and set the viewer, in which the manipulator generates graphical
+output, and the tool that created the manipulator.  These operations
+do nothing by default; subclasses that require this information must
+redefine these operations to assign and retrieve the state they
+require.
+.SH MANIPULATOR PROTECTED OPERATIONS
+.TP
+.B "Manipulator()"
+The constructor is protected to disallow instantiation of abstract
+base class objects.
+.SH SEE ALSO
+Event(3I), Tool(3U), Viewer(3U)

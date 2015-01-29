@@ -1,0 +1,37 @@
+XCOMM
+XCOMM UniIdraw - librarification of IV3.1 idraw drawing editor
+XCOMM
+
+PACKAGE = UniIdraw
+
+#ifdef InObjectCodeDir
+
+LIB = UniIdraw
+
+Use_libUnidraw()
+Use_2_6()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(idarrow)
+Obj(idarrowhead)
+Obj(idarrows)
+Obj(idcatalog)
+Obj(idcmds)
+Obj(idcomp)
+Obj(idcreator)
+Obj(iddialogs)
+Obj(ided)
+Obj(idkybd)
+Obj(idvars)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

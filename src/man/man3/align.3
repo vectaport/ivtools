@@ -1,0 +1,92 @@
+.TH align 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+AlignCmd, AlignToGridCmd \- commands for aligning interactors to each
+other and to a grid
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/align.h>
+.SH DESCRIPTION
+AlignCmd is a purely interpretive command for aligning selected
+components with respect to one another. For example, it can align the
+left sides of selected components so that they coincide.
+AlignToGridCmd is interpreted by selected GraphicView objects to align
+themselves to the grid (if any) associated with the viewer in which
+they appear.  Each component can thus define what it means to align
+itself to the grid.
+.SH ALIGNCMD PUBLIC OPERATIONS
+.TP
+.B "AlignCmd("
+.ns
+.TP
+.B "    ControlInfo*,"
+.ns
+.TP
+.B "    Alignment reference = Left, Alignment affected = Left"
+.ns
+.TP
+.B ")"
+.ns
+.TP
+.B "AlignCmd(Editor* = nil, Alignment = Left, Alignment = Left)"
+The constructor takes optional arguments for specifying the alignment
+desired. The \fIreference\fP parameter specifies a point on a fixed
+reference component.  The \fIaffected\fP parameter specifies a point
+on components that will move to realize the alignment.  The defaults
+for these parameters specify that all affected components should align
+their left sides to reference's left side.
+.TP
+.B "void GetAlignment(Alignment&, Alignment&)"
+Return the alignment parameters specified in the constructor.
+.TP
+.B "GraphicComp* GetReference(GraphicComp* affected)"
+Return the reference component given a potentially affected component.
+If \fIaffected\fP appears in the AlignCmd's clipboard, then
+GetReference returns the GraphicComp preceding it in the clipboard.
+If \fIaffected\fP is the first component in the clipboard or if it is
+not on the clipboard, then GetReference returns the first component on
+the clipboard.
+.SH ALIGNTOGRIDCMD PUBLIC OPERATIONS
+.TP
+.B "AlignToGridCmd(ControlInfo*)"
+.ns
+.TP
+.B "AlignToGridCmd(Editor* = nil)"
+Construct an AlignToGridCmd.
+.TP
+.B "virtual void Execute()"
+.ns
+.TP
+.B "virtual void Unexecute()"
+AlignToGridCmd redefines Execute to let the selected GraphicView
+objects interpret the command the first time.  This lets the
+components determine the proper grid with which to align themselves
+and the amount of movement required.  Execute assumes that GraphicView
+objects will use the Align operation (described below) to compute the
+amount of movement, store it in a MoveData object, and finally issue a
+MoveCmd to the subject for interpretation.  Unexecute simply calls
+Unmove (described below) to reverse the Align's effects.
+.TP
+.B "virtual void Align(GraphicView*, float, float)"
+.ns
+.TP
+.B "virtual void Unalign(GraphicView*)"
+GraphicView objects interpreting the AlignToGridCmd should use the
+Align operation to specify a point to align to the grid that affects
+them.  Align will effectively move the component so that the given
+point falls on the grid.  It will also store the amount of movement in
+\fIthis\fP by calling Store with a MoveData object.  Finally, Align
+calls Move (described below) to actually move the component that
+amount.  Unalign provides a public interface to reversing the effects
+of Align by simply calling Unmove with its argument's subject.
+.SH ALIGNTOGRIDCMD PROTECTED OPERATIONS
+.TP
+.B "void Move(GraphicComp*)"
+.ns
+.TP
+.B "void Unmove(GraphicComp*)"
+Move produces a MoveCmd based on the MoveData stored for the given
+GraphicComp and tells the GraphicComp to interpret the MoveCmd.
+Conversely, Unmove produces a MoveCmd based on the the same
+information and tells the GraphicComp to uninterpret it.
+.SH SEE ALSO
+Command(3U), GraphicComp(3U), GraphicView(3U), Grid(3U), Viewer(3U),
+datas(3U), transforms(3U)

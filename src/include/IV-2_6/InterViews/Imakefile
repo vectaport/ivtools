@@ -1,0 +1,9 @@
+XCOMM
+XCOMM include files for using old 2.6 InterViews classes
+XCOMM
+
+PACKAGE = include_iviv-2_6
+
+IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(IV-2_6/InterViews)

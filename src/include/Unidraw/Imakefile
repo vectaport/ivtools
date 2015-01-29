@@ -1,0 +1,15 @@
+XCOMM
+XCOMM Unidraw include files
+XCOMM
+
+PACKAGE = include_unidraw
+
+SUBDIRS = \
+	Commands \
+	Components \
+	Graphic \
+	Tools
+
+MakeInSubdirs($(SUBDIRS))
+
+InstallIncludes(Unidraw)

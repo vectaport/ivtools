@@ -1,0 +1,25 @@
+.TH BrushCmd 3U "23 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+BrushCmd \- command for setting components' brush attribute
+.SH SYNOPSIS
+.B #include <Unidraw/Commands/brushcmd.h>
+.SH DESCRIPTION
+BrushCmd is a purely interpretive command for setting the brush
+attribute of selected components.
+.SH PUBLIC OPERATIONS
+.TP
+.B "BrushCmd(ControlInfo*, PSBrush* = nil)"
+.ns
+.TP
+.B "BrushCmd(Editor* = nil, PSBrush* = nil)"
+Create a BrushCmd, optionally specifying the PSBrush that components
+should adopt.
+.TP
+.B "virtual void Execute()"
+BrushCmd extends Execute to set the value of the affected editor's
+BrushVar instance, if it defines one.
+.TP
+.B "PSBrush* GetBrush()"
+Return the PSBrush supplied in the constructor.
+.SH SEE ALSO
+Command(3U), pspaint(3U), statevars(3U)

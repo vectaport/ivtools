@@ -1,0 +1,7 @@
+XCOMM
+XCOMM IV-2_6 source files
+XCOMM
+
+PACKAGE = src_iv-2_6
+
+IvmkcmTargets($(PACKAGE))

@@ -1,0 +1,43 @@
+XCOMM
+XCOMM FrameUnidraw - frame editing operations
+XCOMM
+
+PACKAGE = FrameUnidraw
+
+#ifdef InObjectCodeDir
+
+LIB = FrameUnidraw
+
+Use_libUnidraw()
+Use_2_6()
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj26(file) MakeObjectFromSrcFlags(file,)
+
+Obj26(framecmds)
+Obj26(framecomps)
+Obj26(framecatalog)
+Obj26(framecreator)
+Obj26(frameeditor)
+Obj26(framefile)
+Obj26(framefunc)
+Obj26(frameps)
+Obj26(framescripts)
+Obj26(frameviewer)
+Obj26(frameviews)
+
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+Obj31(frameimport)
+Obj31(framekit)
+Obj31(framestates)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif

@@ -1,0 +1,60 @@
+.TH Shape 3I "15 June 1987" "InterViews" "InterViews Reference Manual"
+.SH NAME
+Shape \- what shape a canvas should have
+.SH SYNOPSIS
+.B #include <InterViews/shape.h>
+.SH DESCRIPTION
+A shape specifies the desired characteristics of a canvas.
+An interactor should set the fields of its shape when it is reconfigured and
+should call Change on its parent if any of these fields change.
+.PP
+The dimensions of a shape are defined by a ``natural'' size,
+a stretch amount, and a shrink amount.
+The \fIwidth\fP and \fIheight\fP fields indicate the desired sizes.
+The \fIhstretch\fP, \fIvstretch\fP, \fIhshrink\fP, \fIvshrink\fP fields
+define how flexible these desired sizes are.
+For example, an interactor may have a natural size of 100, but can
+adequately handle any size between 50 and 200.
+The stretchability for this case would be 100 and the shrinkability 50.
+.PP
+The constants \fIhfil\fP and \fIvfil\fP are provided to indicate
+``infinite'' stretching or shrinking.
+They are represented as very large numbers and manipulated exactly
+the same as other stretch and shrink parameters.
+.PP
+The \fIaspect\fP field specifies the desired aspect ratio.
+A value of zero means any aspect is acceptable.
+.PP
+The \fIhunits\fP and \fIvunits\fP fields indicate that
+the canvas dimensions should be multiples of some values.
+.SH PUBLIC OPERATIONS
+.TP
+.B "Shape()"
+.br
+Construct a new shape with undefined natural size and
+infinite stretchability and shrinkability in both directions.
+.TP
+.B "boolean Defined()"
+.ns
+.TP
+.B "boolean Undefined()"
+Test if the shape's natural size is defined or not.
+.TP
+.B "void Rect(int width, int height)"
+.ns
+.TP
+.B "void Square(int side)"
+Short-hand for setting the dimensions of the shape.
+Square sets both dimensions to \fIside\fP and sets the aspect ratio to one.
+.TP
+.B "void Rigid(int hshrink, int hstretch, int vshrink, int vstretch)"
+.ns
+.TP
+.B "void Rigid()"
+Set the stretchability and shrinkability fields of the shape.
+If no arguments are specified, the fields are set to zero.
+.TP
+.B "void SetUndefined()"
+Reset the shape's natural size to be undefined.
+.SH SEE ALSO
+Interactor(3I), Scene(3I)

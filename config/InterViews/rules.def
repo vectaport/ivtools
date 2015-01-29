@@ -1,0 +1,955 @@
+/* This is for the most part a copy of rules.def as distributed with InterViews 3.1
+ * except for the rules that deal with ivmkcm make options (and references to them in
+ * MakeInSubdirs and MakeInObjectCodeDir):
+ * 	CmchkinSubdirs
+ * 	CmtagSubdirs
+ * 	CmaddSubdirs
+ * 	CmupdateSubdirs
+ *      CmcommitSubdirs 
+ * 	CmchkinTarget
+ * 	CmtagTarget
+ *      CmaddTarget
+ *      CmupdateTarget
+ *      CmcommitTarget
+ *      CheckRepository.
+ */
+
+/*
+ * Print the name you should assign to CPU.
+ */
+#ifndef MakeCPU
+#define MakeCPU()							@@\
+CPU:									@@\
+	@$(SHELL) $(SCRIPTSRC)/cpu.sh $(CONFIGSRC)/arch.def
+#endif
+
+/*
+ * Make everything in the normal object code subdirectories.
+ */
+#ifndef MakeNormalWorld
+#define MakeNormalWorld(flags)						@@\
+World::									@@\
+	@echo ""							@@\
+	@echo "Building $(RELEASE) on `date`"				@@\
+	@echo ""							@@\
+	$(MAKE) Makefile CONFIGSRC=$(CONFIGSRC) XCONFIGDIR=$(XCONFIGDIR)@@\
+	@echo ""							@@\
+	$(MAKE) Makefiles						@@\
+	@echo ""							@@\
+	$(MAKE) depend							@@\
+	@echo ""							@@\
+	$(MAKE) flags all						@@\
+	@echo ""							@@\
+	@echo "$(RELEASE) build completed on `date`"			@@\
+	@echo ""
+#endif
+
+/*
+ * Make everything in special object code subdirectories.
+ */
+#ifndef MakeSpecialWorld
+#define MakeSpecialWorld(special,flags)					@@\
+Concat(World,special)::							@@\
+	@echo ""							@@\
+	@echo "Building $(RELEASE) on `date`"				@@\
+	@echo ""							@@\
+	$(MAKE) Makefile XCONFIGDIR=$(XCONFIGDIR)			@@\
+	@echo ""							@@\
+	$(MAKE) Concat(Makefiles,special)				@@\
+	@echo ""							@@\
+	$(MAKE) Concat(depend,special)					@@\
+	@echo ""							@@\
+	$(MAKE) flags Concat(all,special)				@@\
+	@echo ""							@@\
+	@echo "$(RELEASE) build completed on `date`"			@@\
+	@echo ""
+#endif
+
+#ifndef MakeWorld
+#if HasDynamicSharedLibraries
+#define MakeWorld(flags)						@@\
+MakeNormalWorld(flags)							@@\
+MakeSpecialWorld(.debug,flags)						@@\
+MakeSpecialWorld(.noshared,flags)
+#else
+#define MakeWorld(flags)						@@\
+MakeNormalWorld(flags)							@@\
+MakeSpecialWorld(.debug,flags)
+#endif
+#endif
+
+/*
+ * Make the Makefile in the current directory.
+ */
+#ifdef LinuxArchitecture
+#define PWD_VAL shell pwd
+#else
+#define PWD_VAL PWD
+#endif
+
+#ifndef MakefileTarget
+#define MakefileTarget()						@@\
+Makefile::								@@\
+	-@if [ -f Makefile ]; then \					@@\
+		$(RM) Makefile.bak; \					@@\
+		$(MV) Makefile Makefile.bak; \				@@\
+	else exit 0; fi							@@\
+	-@echo "Making Makefile"					@@\
+	-@if [ $(TOP) = $(CURRENT_DIR) ]; then \                        @@\
+	echo >.toplevel-make-makefile; else \				@@\
+	echo >.not-toplevel-make-makefile; fi				@@\
+	-@if [ -f .toplevel-make-makefile ]; then \                     @@\
+	$(IMAKE) $(IMAKEFLAGS) -I$(PWD_VAL)/config \			@@\
+	-DTOPDIR=$(PWD_VAL) -DRELTOPDIR=$(RELTOP) -DCURDIR=$(PWD_VAL);fi@@\
+	-@if [ -f .not-toplevel-make-makefile ]; then \			@@\
+	$(IMAKE) $(IMAKEFLAGS) -DTOPDIR=$(TOP) \                        @@\
+		-DRELTOPDIR=$(RELTOP) -DCURDIR=$(PWD_VAL); fi		@@\
+	-@if [ $(TOP) = $(CURRENT_DIR) ]; then \                        @@\
+	$(RM) .toplevel-make-makefile; else \				@@\
+	$(RM) .not-toplevel-make-makefile; fi				
+#endif
+
+/*
+ * Make the Makefiles in the list of subdirectories.
+ */
+#ifndef MakefilesSubdirs
+#define MakefilesSubdirs(dirs)						@@\
+Makefiles::								@@\
+	-@for i in dirs; \						@@\
+	do \								@@\
+		if [ -d $$i ]; then ( \					@@\
+			echo "Making Makefiles" \			@@\
+			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
+			if [ -f $$i/Makefile ]; then \			@@\
+				$(RM) $$i/Makefile.bak; \		@@\
+				$(MV) $$i/Makefile $$i/Makefile.bak; \	@@\
+			fi; \						@@\
+			$(IMAKE) $(IMAKEFLAGS) \			@@\
+			-DTOPDIR=$(TOP) -DRELTOPDIR=../$(RELTOP) \      @@\
+			-DCURDIR=$(CURRENT_DIR)/$$i \                   @@\
+			-f $$i/Imakefile -s $$i/Makefile; \		@@\
+			cd $$i; \					@@\
+			$(MAKE) $(PASSARCH) Makefiles; \		@@\
+		) else continue; fi; \					@@\
+	done
+#endif
+
+/*
+ * Make the Makefile in the appropriate object code subdirectory.
+ */
+#ifndef MakefileObjectCodeDir
+#define MakefileObjectCodeDir(dir)					@@\
+Makefiles::								@@\
+	@echo "Making Makefiles" \					@@\
+	"for $(ARCH) in $(CURRENT_DIR)/dir"				@@\
+	-@if [ ! -d dir ]; then \					@@\
+		mkdir dir; \						@@\
+		chmod g+w dir; \					@@\
+	fi; \								@@\
+	if [ -f dir/Makefile ]; then \					@@\
+		$(RM) dir/Makefile.bak; \				@@\
+		$(MV) dir/Makefile dir/Makefile.bak; \			@@\
+	fi; \								@@\
+	if [ ! -f dir/Makefile ]; then \				@@\
+		touch dir/Makefile.depend; \				@@\
+	fi; \								@@\
+	$(IMAKE) $(IMAKEFLAGS) \					@@\
+	-DTOPDIR=$(TOP) -DRELTOPDIR=../$(RELTOP) \                      @@\
+	-DCURDIR=$(CURRENT_DIR)/dir \		  			@@\
+	-DInObjectCodeDir -s dir/Makefile
+#endif
+
+/*
+ * Make the given target in the list of subdirectories.
+ */
+#ifndef IntoSubdirs
+#define IntoSubdirs(name,dirs,verb)					@@\
+name::									@@\
+	-@for i in dirs; \						@@\
+	do \								@@\
+		if [ -d $$i ]; then ( \					@@\
+			echo verb \					@@\
+			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
+			cd $$i; \					@@\
+			$(MAKE) $(PASSARCH) name; \			@@\
+		) else continue; fi; \					@@\
+	done
+#endif
+
+#ifndef DependSubdirs
+#define DependSubdirs(dirs)						@@\
+IntoSubdirs(depend,dirs,"depending")
+#endif
+
+#ifndef MakeSubdirs
+#define MakeSubdirs(dirs)						@@\
+IntoSubdirs(all,dirs,"making all")
+#endif
+
+#ifndef InstallSubdirs
+#define InstallSubdirs(dirs)						@@\
+IntoSubdirs(install,dirs,"installing")
+#endif
+
+#ifndef CleanSubdirs
+#define CleanSubdirs(dirs)						@@\
+IntoSubdirs(clean,dirs,"cleaning")
+#endif
+
+#ifndef FormatSubdirs
+#define FormatSubdirs(dirs)						@@\
+IntoSubdirs(format,dirs,"formatting")
+#endif
+
+#ifndef PrintSubdirs
+#define PrintSubdirs(dirs)						@@\
+IntoSubdirs(print,dirs,"printing")
+#endif
+
+#ifndef CmchkinSubdirs
+#define CmchkinSubdirs(dirs)						@@\
+IntoSubdirs(cmchkin,dirs,"checking into the repository")
+#endif
+
+#ifndef CmtagSubdirs
+#define CmtagSubdirs(dirs)						@@\
+IntoSubdirs(cmtag,dirs,"tagging the repository")
+#endif
+
+#ifndef CmaddSubdirs
+#define CmaddSubdirs(dirs)						@@\
+IntoSubdirs(cmadd,dirs,"adding to the repository")
+#endif
+
+#ifndef CmupdateSubdirs
+#define CmupdateSubdirs(dirs)						@@\
+IntoSubdirs(cmupdate,dirs,"updating from repository")
+#endif
+
+#ifndef CmcommitSubdirs
+#define CmcommitSubdirs(dirs)						@@\
+IntoSubdirs(cmcommit,dirs,"committing to repository")
+#endif
+
+/*
+ * Make the above targets in specialized versions of the appropriate
+ * object code subdirectories.
+ */
+#ifndef SpecialTargets
+#define SpecialTargets(special,imakeflags)				@@\
+Makefiles.special:							@@\
+	@$(MAKE) ARCH="$(ARCH).special" \				@@\
+	SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS) imakeflags" \		@@\
+	Makefiles							@@\
+depend.special:								@@\
+	@$(MAKE) ARCH="$(ARCH).special" \				@@\
+	SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS) imakeflags" \		@@\
+	depend								@@\
+all.special:								@@\
+	@$(MAKE) ARCH="$(ARCH).special" \				@@\
+	SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS) imakeflags" \		@@\
+	all								@@\
+install.special:							@@\
+	@$(MAKE) ARCH="$(ARCH).special" \				@@\
+	SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS) imakeflags" \		@@\
+	install								@@\
+clean.special:								@@\
+	@$(MAKE) ARCH="$(ARCH).special" \				@@\
+	SPECIAL_IMAKEFLAGS="$(SPECIAL_IMAKEFLAGS) imakeflags" \		@@\
+	clean
+#endif
+
+/*
+ * Shorthand for making all targets in a list of subdirectories.
+ */
+#ifndef MakeInSubdirs
+#if HasDynamicSharedLibraries
+#define MakeInSubdirs(dirs)						@@\
+MakefilesSubdirs(dirs)							@@\
+DependSubdirs(dirs)							@@\
+MakeSubdirs(dirs)							@@\
+InstallSubdirs(dirs)							@@\
+CleanSubdirs(dirs)							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+SpecialTargets(noshared,-DUseNonShared)					@@\
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
+#else
+#define MakeInSubdirs(dirs)						@@\
+MakefilesSubdirs(dirs)							@@\
+DependSubdirs(dirs)							@@\
+MakeSubdirs(dirs)							@@\
+InstallSubdirs(dirs)							@@\
+CleanSubdirs(dirs)							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+IvmkcmTargets($(PACKAGE))						@@\
+IvmkcmSubdirs(dirs)
+#endif
+#endif
+
+/*
+ * Shorthand for making all targets in the appropriate object code
+ * subdirectory.
+ */
+#ifndef MakeInObjectCodeDir
+#if HasDynamicSharedLibraries
+#define MakeInObjectCodeDir()						@@\
+MakefileObjectCodeDir($(ARCH))						@@\
+DependSubdirs($(ARCH))							@@\
+MakeSubdirs($(ARCH))							@@\
+InstallSubdirs($(ARCH))							@@\
+CleanSubdirs($(ARCH))							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+SpecialTargets(noshared,-DUseNonShared)					@@\
+IvmkcmTargets($(PACKAGE))
+#else
+#define MakeInObjectCodeDir()						@@\
+MakefileObjectCodeDir($(ARCH))						@@\
+DependSubdirs($(ARCH))							@@\
+MakeSubdirs($(ARCH))							@@\
+InstallSubdirs($(ARCH))							@@\
+CleanSubdirs($(ARCH))							@@\
+SpecialTargets(debug,-DUseDebug)					@@\
+IvmkcmTargets($(PACKAGE))
+#endif
+#endif
+
+/*
+ * All the ivmkcm targets for any directory
+ */
+#define IvmkcmTargets(package)						@@\
+CmchkinTarget(package)							@@\
+CmtagTarget()								@@\
+CmaddTarget()								@@\
+CmupdateTarget()							@@\
+CmcommitTarget()							
+
+/*
+ * All the ivmkcm targets for sub-directories
+ */
+#define IvmkcmSubdirs(dirs)						@@\
+CmchkinSubdirs(dirs)							@@\
+CmtagSubdirs(dirs)							@@\
+CmaddSubdirs(dirs)							@@\
+CmupdateSubdirs(dirs)							@@\
+CmcommitSubdirs(dirs)							
+
+/*
+ * Make the given dependencies during make all.
+ */
+#ifndef AllTarget
+#define AllTarget(deps)							@@\
+all:: deps
+#endif
+
+/*
+ * Add automatically generated dependencies to the Makefile.
+ */
+#ifndef DependTarget
+#define DependTarget()							 @@\
+depend::								 @@\
+	gcc -M $(DEPEND_CCFLAGS) $(SRCS) >Makefile.depend
+#endif
+
+/*
+ * include Makefile.depend
+ */
+#ifndef IncludeDependencies
+#define IncludeDependencies()						 @@\
+Makefile.depend:							 @@\
+	touch Makefile.depend						 @@\
+									 @@\
+include Makefile.depend
+#endif
+
+/*
+ * Remove garbage files.  The #* cannot go in the definition of RM_CMD
+ * because System V will treat the pound sign as a comment.
+ */
+#ifndef CleanTarget
+#define CleanTarget()							@@\
+clean::									@@\
+	@$(RM_CMD) "#"*
+#endif
+
+/*
+ * Checkin this directory to the repository.
+ */
+#ifndef CmchkinTarget
+#define CmchkinTarget(package)							@@\
+cmchkin:: 									@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	if [ ! -d $(TOP)/cm ]; then \						@@\
+	(cd $(TOP); cminstall); fi; fi						@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; \ 		@@\
+	cmchkin package $(TOP)/cm $(TOP) $(CURRENT_DIR))'; fi
+#endif
+
+/*
+ * Tag this directoryCheckin this directory to the repository.
+ */
+#ifndef CmtagTarget
+#define CmtagTarget()								@@\
+cmtag:: 									@@\
+	CheckRepository()							@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	cmtag $(CMFLAGS) $(CMARGS); fi
+#endif
+
+/*
+ * Check to see the repository for this directory exists
+ */
+#ifndef CheckRepository
+#define CheckRepository()\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	if [ ! -d $(TOP)/cm ]; then \						@@\
+	(echo "Build repository first with cmchkin"; exit 0;); fi; \ 		@@\
+	if [ ! -d $(CURRENT_DIR)/CVS ]; then \					@@\
+	(echo "Build repository first with cmchkin"; exit 0;); fi; fi
+#endif
+
+/*
+ * Add new files in this directory to the repository.
+ */
+#ifndef CmaddTarget
+#define CmaddTarget()								@@\
+cmadd:: 									@@\
+	CheckRepository()							@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \				@@\
+	csh -c '(setenv REPOSITORY_FILES "$(REPOSITORY_FILES)"; cmadd -m null_message)'; fi
+#endif
+
+/*
+ * Update this directory from the repository.
+ */
+#ifndef CmupdateTarget
+#define CmupdateTarget()							@@\
+cmupdate:: 									@@\
+	CheckRepository()							@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else cmupdate; fi
+#endif
+
+/*
+ * Commit this directory to the repository.
+ */
+#ifndef CmcommitTarget
+#define CmcommitTarget()							@@\
+cmcommit:: 									@@\
+	CheckRepository()							@@\
+	-@if [ $(NO_IVMKCM) ]; then exit 0; else \ 				@@\
+	if [ -z "$(CMMSG)" ]; then cmcommit $(CMFLAGS); \			@@\
+	else cmcommit $(CMFLAGS) -m "$(CMMSG)"; fi; fi 	                                              	
+#endif
+
+/*
+ * Set up $(CCDEPLIBS) and $(CCLDLIBS) for a program using libIV.
+ */
+#ifndef Use_libInterViews
+#define Use_libInterViews() 						@@\
+         DEPLIBIV = Dep_libIV						@@\
+        DEPLIBX11 = Dep_libX11						@@\
+          DEPLIBM = Dep_libm						@@\
+									@@\
+       LIBDIRPATH = LibDirPath						@@\
+          LDLIBIV = Ld_libIV						@@\
+      XLIBDIRPATH = XLibDirPath						@@\
+         LDLIBX11 = Ld_libX11						@@\
+           LDLIBM = Ld_libm						@@\
+    ABSLIBDIRPATH = AbsLibDirPath
+#endif
+
+/*
+ * Set up $(CCDEPLIBS) and $(CCLDLIBS) for a program using libUnidraw.
+ */
+#ifndef Use_libUnidraw
+#define Use_libUnidraw() 						@@\
+    DEPLIBUNIDRAW = Dep_libUnidraw					@@\
+         DEPLIBIV = Dep_libIV						@@\
+        DEPLIBX11 = Dep_libX11						@@\
+          DEPLIBM = Dep_libm						@@\
+									@@\
+       LIBDIRPATH = LibDirPath						@@\
+     LDLIBUNIDRAW = Ld_libUnidraw					@@\
+          LDLIBIV = Ld_libIV						@@\
+      XLIBDIRPATH = XLibDirPath						@@\
+         LDLIBX11 = Ld_libX11						@@\
+           LDLIBM = Ld_libm						@@\
+    ABSLIBDIRPATH = AbsLibDirPath
+#endif
+
+/*
+ * Set up $(CCDEPLIBS) and $(CCLDLIBS) for a program using libgraphic.
+ */
+#ifndef Use_libgraphic
+#define Use_libgraphic() 						@@\
+    DEPLIBGRAPHIC = Dep_libgraphic					@@\
+         DEPLIBIV = Dep_libIV						@@\
+        DEPLIBX11 = Dep_libX11						@@\
+          DEPLIBM = Dep_libm						@@\
+									@@\
+       LIBDIRPATH = LibDirPath						@@\
+     LDLIBGRAPHIC = Ld_libgraphic					@@\
+          LDLIBIV = Ld_libIV						@@\
+      XLIBDIRPATH = XLibDirPath						@@\
+         LDLIBX11 = Ld_libX11						@@\
+           LDLIBM = Ld_libm						@@\
+    ABSLIBDIRPATH = AbsLibDirPath
+#endif
+
+/*
+ * Set up all make variables for a program using 2.6 compatibility.
+ */
+#ifndef Use_2_6
+#define Use_2_6()							@@\
+ BACKWARD_CCDEFINES = BackwardCompatibilityCCDefines			@@\
+BACKWARD_CCINCLUDES = BackwardCompatibilityCCIncludes
+#endif
+
+/*
+ * Make an object file.  $(AOUT) is either a.out or a library and the
+ * dependency allows Imakefiles to avoid having to define OBJS.
+ */
+#ifndef MakeObjectRule
+#define MakeObjectRule(dst,src,flags)					@@\
+$(AOUT): dst.o								@@\
+dst.o: src.$(CCSUFFIX)							@@\
+	@$(RM) dst.o dst..c						@@\
+	$(CCDRIVER) flags $(CCFLAGS) -c src.$(CCSUFFIX)
+#endif
+
+#ifndef MakeObjectRule2
+#define MakeObjectRule2(dst,src,flags1,flags2)				@@\
+$(AOUT): dst.o								@@\
+dst.o: src.$(CCSUFFIX)							@@\
+	@$(RM) dst.o dst..c						@@\
+	$(CCDRIVER) flags1 $(CCFLAGS) flags2 -c src.$(CCSUFFIX)
+#endif
+
+#ifndef MakeCObjectRule
+#define MakeCObjectRule(dst,src,flags)					@@\
+$(AOUT): dst.o								@@\
+dst.o: src.$(CSUFFIX)							@@\
+	@$(RM) dst.o 							@@\
+	$(CDRIVER) flags $(CFLAGS) -c src.$(CSUFFIX)
+#endif
+
+/*
+ * Shorthands for making an object file.
+ */
+#ifndef MakeObjectFromSrcFlags
+#define MakeObjectFromSrcFlags(file,flags)				@@\
+MakeObjectRule(file,$(SRC)/file,flags)
+#endif
+
+#ifndef MakeObjectFromSrcFlags2
+#define MakeObjectFromSrcFlags2(file,flags1,flags2)			@@\
+MakeObjectRule2(file,$(SRC)/file,flags1,flags2)
+#endif
+
+#ifndef MakeObjectFromSrc
+#define MakeObjectFromSrc(file)						@@\
+MakeObjectFromSrcFlags(file,NullParameter)
+#endif
+
+#ifndef MakeObjectFromSrc2_6
+#define MakeObjectFromSrc2_6(file)					@@\
+MakeObjectFromSrcFlags(file,\
+BackwardCompatibilityCCDefines BackwardCompatibilityCCIncludes)
+#endif
+
+#ifndef MakeObjectFromCSrcFlags
+#define MakeObjectFromCSrcFlags(file,flags)				@@\
+MakeCObjectRule(file,$(SRC)/file,flags)
+#endif
+
+/*
+ * Convert an archive to a random library.
+ */
+#ifndef RanLibrary
+#if HasRanlibCmd
+#define RanLibrary(args) $(RANLIB) args
+#else
+#define RanLibrary(args) ar s args
+#endif
+#endif
+
+/* 
+ * Shared library command
+ */
+#ifndef SharedLibraryCmd
+#if defined(SunArchitecture)
+#if OSMajorVersion < 5
+#define SharedLibraryCmd(ldobjs, extra_args)\
+$(LD) -o $@~ -assert pure-text ldobjs
+#else
+#define SharedLibraryCmd(ldobjs, extra_args)\
+$(LD) -o $@~ -G ldobjs
+#endif
+#else
+#define SharedLibraryCmd(ldobjs, extra_args)\
+$(LD) -o $@ $(SHARED_CCLDFLAGS) ldobjs $(SHARED_CCLDLIBS)
+#endif
+#endif
+
+/*
+ * Make a shared library.
+ */
+#ifndef NormalDynamicSharedLibraryTarget
+#if defined(HPArchitecture)
+#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
+AOUT = Concat(lib,libname.so.rev)					@@\
+SHARED_CCFLAGS = SharedCCFlags						@@\
+									@@\
+AllTarget(Concat(lib,libname.sl.rev))					@@\
+									@@\
+Concat(lib,libname.sl.rev): depobjs					@@\
+	@echo "building $@"						@@\
+	$(RM) $@							@@\
+	SharedLibraryCmd(ldobjs,)					@@\
+	chmod 555 $@							@@\
+	$(LN) Concat(lib,libname.sl.rev) Concat(lib,libname.sl)		@@\
+									@@\
+clean::									@@\
+	$(RM) Concat(lib,libname.sl.rev)
+#else
+
+#if defined(SunArchitecture)
+#if OSMajorVersion < 5
+#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
+AOUT = Concat(lib,libname.so.rev)					@@\
+SHARED_CCFLAGS = SharedCCFlags						@@\
+									@@\
+AllTarget(Concat(lib,libname.so.rev))					@@\
+									@@\
+Concat(lib,libname.so.rev): depobjs					@@\
+	@echo "building $@"						@@\
+	$(RM) $@~							@@\
+	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
+	$(RM) $@							@@\
+	$(MV) $@~ $@							@@\
+									@@\
+clean::									@@\
+	$(RM) Concat(lib,libname.so.rev)
+#else
+#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
+AOUT = Concat(lib,libname.so.rev)					@@\
+SHARED_CCFLAGS = SharedCCFlags						@@\
+									@@\
+AllTarget(Concat(lib,libname.so.rev))					@@\
+									@@\
+Concat(lib,libname.so.rev): depobjs					@@\
+	@echo "building $@"						@@\
+	$(RM) $@~							@@\
+	$(RM) Concat(lib,libname.so)					@@\
+	SharedLibraryCmd(ldobjs,-Wl\,-soname=Concat(lib\,libname.so.rev))@@\
+	$(RM) $@							@@\
+	$(MV) $@~ $@							@@\
+ 	$(LN) $@ Concat(lib,libname.so)					@@\
+									@@\
+clean::									@@\
+	$(RM) Concat(lib,libname.so.rev)
+#endif /* defined(SunArchitecture) */
+
+#else
+#define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
+AOUT = Concat(lib,libname.so.rev)					@@\
+SHARED_CCFLAGS = SharedCCFlags						@@\
+									@@\
+AllTarget(Concat(lib,libname.so.rev))					@@\
+									@@\
+Concat(lib,libname.so.rev): depobjs					@@\
+	@echo "building $@"						@@\
+	$(RM) $@							@@\
+	SharedLibraryCmd(ldobjs,)					@@\
+	$(RM) Concat(lib,libname.so)					@@\
+	$(LN) $@ Concat(lib,libname.so)					@@\
+									@@\
+clean::									@@\
+	$(RM) Concat(lib,libname.so.rev)
+#endif
+#endif
+#endif
+
+/*
+ * Make a non-shared library archive.
+ */
+#ifndef NormalNonSharedLibraryTarget
+#define NormalNonSharedLibraryTarget(libname,depobjs,ldobjs)		@@\
+AOUT = Concat(lib,libname.a)						@@\
+									@@\
+AllTarget(Concat(lib,libname.a))					@@\
+									@@\
+Concat(lib,libname.a): depobjs						@@\
+	@echo "building $@"						@@\
+	$(RM) $@							@@\
+	$(AR) $@ ldobjs							@@\
+	RanLibrary($@)
+#endif
+
+/*
+ * Make either a shared library or a non-shared library.
+ */
+#ifndef NormalLibraryTarget
+#if HasDynamicSharedLibraries
+#define NormalLibraryTarget(libname,rev,depobjs,ldobjs)			@@\
+NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)
+#else
+#define NormalLibraryTarget(libname,rev,depobjs,ldobjs)			@@\
+NormalNonSharedLibraryTarget(libname,depobjs,ldobjs)
+#endif
+#endif
+
+/*
+ * Shorthand for building and installing a library.
+ */
+#ifndef MakeLibrary
+#define MakeLibrary(name,rev)						@@\
+NormalLibraryTarget(name,rev,NullParameter,$(OBJS))			@@\
+InstallLibrary(name,rev,$(LIBDIR))					@@\
+DependTarget()
+#endif
+
+/*
+ * Removing an executable before relinking it wastes time if the user's using
+ * an incremental linker smart enough to write only the modified sections.
+ */
+#ifndef RemoveIfUnwritable
+#define RemoveIfUnwritable(program) \
+-@if [ ! -w program ]; then $(RM) program; else exit 0; fi
+#endif
+
+/*
+ * Build a program.
+ */
+#ifndef BuildProgram
+#define BuildProgram(program,depobjs,ldobjs,deplibs,ldlibs)		@@\
+program: depobjs deplibs						@@\
+	RemoveIfUnwritable($@)						@@\
+	$(CCDRIVER) $(CCLDFLAGS) -o $@ ldobjs ldlibs
+#endif
+
+/*
+ * Shorthand for building and installing a complex program.
+ */
+#ifndef ComplexProgramTarget
+#define ComplexProgramTarget(program)					@@\
+PROGRAM	= program							@@\
+									@@\
+AllTarget($(AOUT))							@@\
+BuildProgram($(AOUT),NullParameter,$(OBJS),$(CCDEPLIBS),$(CCLDLIBS))	@@\
+InstallProgram($(AOUT),$(BINDIR),$(PROGRAM))				@@\
+DependTarget()
+#endif
+
+/*
+ * Shorthand for building and not installing a complex program.
+ */
+#ifndef ComplexProgramTargetNoInstall
+#define ComplexProgramTargetNoInstall(program)				@@\
+PROGRAM	= program							@@\
+									@@\
+AllTarget($(AOUT))							@@\
+BuildProgram($(AOUT),NullParameter,$(OBJS),$(CCDEPLIBS),$(CCLDLIBS))	@@\
+DependTarget()
+#endif
+
+/*
+ * Shorthand for building and installing a simple program.
+ */
+#ifndef SimpleProgramTarget
+#define SimpleProgramTarget(program)					@@\
+SRCS	= $(SRC)/program.$(CCSUFFIX)					@@\
+OBJS	= program.o							@@\
+									@@\
+ComplexProgramTarget(program)						@@\
+MakeObjectFromSrc(program)
+#endif
+
+/*
+ * Format or print troff sources.
+ */
+#ifndef TroffSources
+#define TroffSources(formatted)						@@\
+print:									@@\
+	$(TROFF) $(TROFFFLAGS) $(TROFFSRCS)				@@\
+									@@\
+format: formatted							@@\
+									@@\
+formatted: $(TROFFSRCS)							@@\
+	$(RM) formatted							@@\
+	$(TROFF) -t $(TROFFFLAGS) $(TROFFSRCS) > formatted		@@\
+									@@\
+clean::									@@\
+	$(RM) formatted
+#endif
+
+/*
+ * Translate XCOMM into pound sign with sed, rather than passing -DXCOMM=XCOMM
+ * to cpp, because that trick does not work on all ANSI C preprocessors.
+ * Also delete line numbers from the cpp output (-P is not portable, I guess).
+ */
+#ifndef CppSedMagic
+#define CppSedMagic sed -e '/^#  *[0-9][0-9]*  *.*$$/d' \
+		     -e '/^XCOMM$$/s//#/' \
+		     -e '/^XCOMM[^a-zA-Z0-9_]/s/^XCOMM/#/'
+#endif /* CppSedMagic */
+
+/*
+ * Generate a script using cpp.
+ */
+#ifndef CppScriptTarget
+#if ExecableScripts		/* can use #! instead of colon */
+#define CppScriptTarget(dst,src,defs,deplist)				@@\
+dst::  src deplist							@@\
+	$(RM) $@							@@\
+	$(CPP) defs <src | CppSedMagic >$@				@@\
+	chmod a+x $@
+#else
+#define CppScriptTarget(dst,src,defs,deplist)				@@\
+dst::  src deplist							@@\
+	$(RM) $@							@@\
+	echo \: >$@							@@\
+	sed '1d' src | $(CPP) defs | CppSedMagic >>$@			@@\
+	chmod a+x $@
+#endif
+#endif
+
+/*
+ * Create directories if necessary at a step in the build (now
+ * superseded by MakeDir in each of the individual install rules).
+ */
+#ifndef MakeDirectories
+#define MakeDirectories(step,dirs)					@@\
+step::									@@\
+	$(MKDIRHIER) dirs
+#endif
+
+/*
+ * Create a directory if necessary.
+ */
+#ifndef MakeDir
+#define MakeDir(dir) -@if [ -d dir ]; then exit 0; \			@@\
+		else (set -x; $(MKDIRHIER) dir); fi
+#endif
+
+/*
+ * Install a library.
+ */
+#ifndef InstallDynamicSharedLibrary
+#define InstallDynamicSharedLibrary(libname,rev,dest)			@@\
+install:: Concat(lib,libname.so.rev)					@@\
+	MakeDir(dest)							@@\
+	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.so.rev) dest
+#endif
+
+#ifndef InstallNonSharedLibrary
+#define InstallNonSharedLibrary(libname,dest)				@@\
+install:: Concat(lib,libname.a)						@@\
+	MakeDir(dest)							@@\
+	$(INSTALL) -c $(INSTLIBFLAGS) Concat(lib,libname.a) dest	@@\
+	RanLibrary($(RANLIBINSTFLAGS) Concat(dest/lib,libname.a))
+#endif
+
+#ifndef InstallLibrary
+#if HasDynamicSharedLibraries
+#define InstallLibrary(libname,rev,dest)				@@\
+InstallDynamicSharedLibrary(libname,rev,dest)
+#else
+#define InstallLibrary(libname,rev,dest)				@@\
+InstallNonSharedLibrary(libname,dest)
+#endif
+#endif
+
+/*
+ * Install a program with renaming of the installed program.
+ */
+#ifndef InstallProgramWithFlags
+#if RemoveAfterInstall
+#define InstallProgramWithFlags(program,destdir,destname,flags)		@@\
+install:: program							@@\
+	MakeDir(destdir)						@@\
+	$(INSTALL) -c $(INSTPGMFLAGS) flags program destdir/destname	@@\
+	$(RM) program
+#else
+#define InstallProgramWithFlags(program,destdir,destname,flags)		@@\
+install:: program							@@\
+	MakeDir(destdir)						@@\
+	$(INSTALL) -c $(INSTPGMFLAGS) flags program destdir/destname
+#endif
+#endif
+
+#ifndef InstallProgram
+#define InstallProgram(program,destdir,destname)			@@\
+InstallProgramWithFlags(program,destdir,destname,$(INSTBINFLAGS))
+#endif
+
+/*
+ * Install a script (which cannot be stripped like a program).
+ */
+#ifndef InstallScript
+#define InstallScript(script,dest)					@@\
+install:: script							@@\
+	MakeDir(dest)							@@\
+	$(INSTALL) -c $(INSTBINFLAGS) script dest
+#endif
+
+/*
+ * Install and rename a script (which cannot be stripped like a program).
+ */
+#ifndef InstallScriptAs
+#define InstallScriptAs(script,dest,destname)				@@\
+install:: script							@@\
+	MakeDir(dest)							@@\
+	$(INSTALL) -c $(INSTBINFLAGS) script dest/destname
+#endif
+
+/*
+ * Install multiple files.
+ */
+#ifndef InstallMultipleFlags
+#define InstallMultipleFlags(list,dest,flags)				@@\
+install:: list								@@\
+	MakeDir(dest)							@@\
+	@for i in list; do \						@@\
+		(set -x; $(INSTALL) -c flags $$i dest); \		@@\
+	done
+#endif
+
+#ifndef InstallMultiple
+#define InstallMultiple(list,dest)					@@\
+InstallMultipleFlags(list,dest,$(INSTALLFLAGS))
+#endif
+
+/*
+ * Install symbolic link to a library
+ */
+#ifndef InstallLibLink
+#define InstallLibLink(libdir,libbase,dest)				@@\
+install::  								@@\
+	@if [ -f libdir/libbase ]; then \				@@\
+	if [ ! -f dest/libbase ]; then \				@@\
+		 $(LN) libdir/libbase dest/; \				@@\
+		 echo $(LN) libdir/libbase dest/ \			@@\
+	;fi ;fi
+#endif
+
+/*
+ * Install header files on Linux.
+ */
+
+
+#ifndef InstallIncludes
+#if InstallRelative
+#define InstallIncludes(dir)						@@\
+install::								@@\
+	-@if [ -L $(TOP)/include ]; then exit 0; else \                 @@\
+        (cd $(TOP) && $(LN) src/include include); fi
+#else
+#define InstallIncludes(dir)						@@\
+install::								@@\
+	MakeDir($(INCDIR)/dir)						@@\
+	$(INSTALL) $(INSTINCFLAGS) *.h $(INCDIR)/dir		    
+#endif
+#endif
+

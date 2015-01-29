@@ -1,0 +1,253 @@
+.TH PostScriptView 3U "19 January 1991" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+PostScriptView, PostScriptViews \- base classes for external
+representation objects that generate PostScript code
+.SH SYNOPSIS
+.B #include <Unidraw/Components/psview.h>
+.SH DESCRIPTION
+PostScriptView is a PreorderView that serves as the abstract base
+class for external representation objects for emitting PostScript
+code.  A PostScriptView's subject is normally a GraphicComp subclass.
+PostScriptViews is a subclass of PostScriptView for composite
+PostScript external views.
+.SH POSTSCRIPTVIEW PUBLIC OPERATIONS
+.TP
+.B "virtual boolean Emit(ostream&)"
+PostScriptView redefines Emit to generate header information.  Thus
+you can call Emit on any PostScriptView subclass to generate
+encapsulated PostScript.  Subclasses redefine Definition to generate
+the PostScript fragment that defines their basic attributes.
+.TP
+.B "GraphicComp* GetGraphicComp()"
+Return the subject.
+.SH POSTSCRIPTVIEW PROTECTED OPERATIONS
+.TP
+.B "PostScriptView(GraphicComp* = nil)"
+Initialize a PostScriptView, optionally of the given GraphicComp.  The
+constructor is protected to disallow instantiation.
+.SH
+PostScriptView defines numerous protected helper functions to make it
+easier for subclasses to generate the PostScript that describes their
+appearance.  The output conforms to the original idraw PostScript
+format.
+.TP
+.B "virtual void Comments(ostream&)"
+.ns
+.TP
+.B "virtual void PSVersion(ostream&)"
+.ns
+.TP
+.B "virtual void Creator(ostream&)"
+.ns
+.TP
+.B "virtual void FontNames(ostream&)"
+.ns
+.TP
+.B "virtual void Pages(ostream&)"
+.ns
+.TP
+.B "virtual void BoundingBox(ostream&)"
+The Comments operation generates a standard PostScript comments block.
+Comments calls the other operations to generate a complete set of
+comments.
+.TP
+.B "virtual void Prologue(ostream&)"
+.ns
+.TP
+.B "virtual void Version(ostream&)"
+.ns
+.TP
+.B "virtual void GridSpacing(ostream&)"
+.ns
+.TP
+.B "virtual void Trailer(ostream&)"
+Operations that generate global data, procedures, and
+idraw-format-specific information.
+.TP
+.B "virtual void MinGS(ostream&)"
+.ns
+.TP
+.B "virtual void FullGS(ostream&)"
+.ns
+.TP
+.B "virtual void TextGS(ostream&)"
+.ns
+.TP
+.B "virtual void Brush(ostream&)"
+.ns
+.TP
+.B "virtual void FgColor(ostream&)"
+.ns
+.TP
+.B "virtual void BgColor(ostream&)"
+.ns
+.TP
+.B "virtual void Font(ostream&)"
+.ns
+.TP
+.B "virtual void Pattern(ostream&)"
+.ns
+.TP
+.B "virtual void Transformation(ostream&)"
+Operations that generate graphics state information.  All output the
+graphics state attribute that their name suggests, with three
+exceptions: MinGS outputs a minimal set of graphics state defined by
+practical graphic objects, namely a brush, foreground and background
+colors, a pattern, and a transformation matrix. TextGS outputs the
+graphics state required by textual graphics, including a foreground
+color, a font, and a transformation matrix.  FullGS generates a full
+set of graphics state.
+.TP
+.B "virtual void SetPSFonts(UList*)"
+.ns
+.TP
+.B "virtual UList* GetPSFonts()"
+Get and set the list of all PostScript font names required by the
+PostScriptView.  This set of names appears in a comment near the
+beginning of the generated output as required by standard PostScript
+conventions.
+.TP
+.B "virtual void GetBox(Coord&, Coord&, Coord&, Coord&)"
+Return the bounding box of the graphic for which PostScript is being
+generated.  These values also appear in a standard PostScript comment.
+.TP
+.B "virtual void GridSpacing(float&, float&)"
+Return the grid spacing, if applicable.  Idraw requires this
+information, and it is buried in a comment.
+.TP
+.B "virtual void BeginProc(ostream&)"
+.ns
+.TP
+.B "virtual void EndProc(ostream&)"
+Begin and end a scope for defining a graphical object.
+.TP
+.B "virtual void ConstProcs(ostream&)"
+Generate PostScript procedures containing constant information, such
+as the character encoding dictionary, string length limit, etc.
+.TP
+.B "virtual void SetGSProcs(ostream&)"
+.ns
+.TP
+.B "virtual void SetBrushProc(ostream&)"
+.ns
+.TP
+.B "virtual void SetFgColorProc(ostream&)"
+.ns
+.TP
+.B "virtual void SetBgColorProc(ostream&)"
+.ns
+.TP
+.B "virtual void SetFontProc(ostream&)"
+.ns
+.TP
+.B "virtual void SetPatternProc(ostream&)"
+Generate PostScript procedures for setting graphics state attributes.
+.TP
+.B "virtual void ObjectProcs(ostream&)"
+.ns
+.TP
+.B "virtual void BSplineProc(ostream&)"
+.ns
+.TP
+.B "virtual void CircleProc(ostream&)"
+.ns
+.TP
+.B "virtual void ClosedBSplineProc(ostream&)"
+.ns
+.TP
+.B "virtual void EllipseProc(ostream&)"
+.ns
+.TP
+.B "virtual void LineProc(ostream&)"
+.ns
+.TP
+.B "virtual void MultiLineProc(ostream&)"
+.ns
+.TP
+.B "virtual void PolygonProc(ostream&)"
+.ns
+.TP
+.B "virtual void RectangleProc(ostream&)"
+.ns
+.TP
+.B "virtual void TextProc(ostream&)"
+Generate PostScript procedures for instantiating basic graphical objects.
+.TP
+.B "virtual void MiscProcs(ostream&)"
+.ns
+.TP
+.B "virtual void DefinitionProc(ostream&)"
+.ns
+.TP
+.B "virtual void FillProc(ostream&)"
+.ns
+.TP
+.B "virtual void StrokeProc(ostream&)"
+.ns
+.TP
+.B "virtual void ShowProc(ostream&)"
+.ns
+.TP
+.B "virtual void PatternProc(ostream&)"
+.ns
+.TP
+.B "virtual void MinMaxProcs(ostream&)"
+.ns
+.TP
+.B "virtual void MidpointProc(ostream&)"
+.ns
+.TP
+.B "virtual void ThirdpointProc(ostream&)"
+.ns
+.TP
+.B "virtual void SubsplineProc(ostream&)"
+.ns
+.TP
+.B "virtual void StoreVerticesProc(ostream&)"
+MiscProcs encapsulates calls to the subsequent PostScript
+procedure-generating operations shown above.  DefinitionProc generates
+PostScript code that declares a procedure. FillProc and StrokeProc
+fill and stroke the path that a graphical object defines.  ShowProc
+fine-tunes a text object's position.  PatternProc creates a PostScript
+rendition of a pattern.  MinMaxProcs define min and max functions.
+MidpointProc and ThirdpointProc calculate the point midway and
+one-third the way between two points, respectively.  SubsplineProc
+breaks the vertices defining a spline into smaller pieces to allow
+approximating the spline with Bezier curves. Finally,
+StoreVerticesProc stores a set of vertices in arrays.
+.TP
+.B "PSFont* GetFont(UList*)"
+.ns
+.TP
+.B "PostScriptView* View(UList*)"
+Convenience functions that return the PSFont and PostScriptView in
+UList elements, respectively.
+.TP
+.B "PostScriptView* CreatePSView(GraphicComp*)"
+Create the appropriate PostScriptView subclass for the given
+GraphicComp.  The relationship between subjects, views, and view
+categories is encoded in their class identifiers.  See classes(3U) for
+more information on class identifiers and view categories.
+.SH POSTSCRIPTVIEWS PUBLIC OPERATIONS
+.TP
+.B "PostScriptViews(GraphicComps* = nil)~
+The constructor takes the subject as an optional argument.
+.TP
+.B "virtual boolean Update()"
+For simplicity, PostScriptViews reconciles its state with its
+subject's by destroying its children and reconstructing them from
+scratch.
+.SH POSTSCRIPTVIEWS PROTECTED OPERATIONS
+.TP
+.B "UList* Elem(Iterator)"
+A convenience function for extracting a UList from an iterator.
+.TP
+.B "void DeleteView(Iterator&)"
+.ns
+.TP
+.B "void DeleteViews()"
+DeleteView removes a child and deletes it, while DeleteViews removes
+and deletes all children.
+.SH SEE ALSO
+ExternView(3U), GraphicComp(3U), GraphicView(3U),
+UList(3U), classes(3U), idraw(1I), pspaint(3U)

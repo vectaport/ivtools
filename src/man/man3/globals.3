@@ -1,0 +1,141 @@
+.TH globals 3U "30 July 1990" "Unidraw" "InterViews Reference Manual"
+.SH NAME
+globals \- Unidraw global constants, types, instances, and functions.
+.SH SYNOPSIS
+.B #include <Unidraw/globals.h>
+.SH DESCRIPTION
+Several constants and types are used throughout the Unidraw library.
+It also provides global access to one-of-a-kind instances such as the
+unidraw object as well as shared graphics resources.  Finally, there
+are several global functions for common data manipulations.  All of
+these are declared one file for inclusion into other files where they
+are needed.
+.SH CONSTANTS
+.TP
+.B "static const int CHARBUFSIZE"
+Size of standard character buffer.
+.TP
+.B "static const int HANDLE_SIZE"
+Size of selection handles, in pixels.
+.TP
+.B "static const char MARK[]"
+String that delineates data boundaries in the ASCII representation
+that Catalog generates. Used for error checking.
+.TP
+.B "static const int PIN_RAD"
+The radius of a pin, used in its default graphical representation, in
+pixels.
+.TP
+.B "static const int SLOP"
+Tolerance within which a hit on a graphical object will be detected, in pixels.
+.SH TYPES
+.TP
+.B "enum DragConstraint"
+Enumerates orthogonal ways in which cursor movement may be
+constrained, usually during direct manipulation.  Possible values
+include \fBNone\fP, \fBXFixed\fP, \fBYFixed\fP, \fBXYEqual\fP,
+\fBHorizOrVert\fP, or \fBGravity\fP.
+.TP
+.B "enum Mobility"
+Enumerates the three possible component mobilities: \fBFixed\fP,
+\fBFloating\fP, or \fBUndef\fP (undefined).
+.TP
+.B "typedef unsigned Orientation"
+Specifies two kinds of orientation: \fBPortrait\fP or \fBVertical\fP
+(synonymous), and \fBLandscape\fP or \fBHorizontal\fP (synonymous).
+.TP
+.B "enum TransMethod"
+Enumerates the three possible transmission methods for connectors:
+\fBIn\fP, \fBOut\fP, or \fBInOut\fP.
+.TP
+.B "typedef unsigned long ClassId"
+Type for representing unique class names for catalog-managed objects.
+.SH INSTANCES
+.TP
+.B "extern Unidraw* unidraw"
+.ns
+.TP
+.B "extern CSolver* csolver"
+The global unidraw and csolver objects.  These and all other global
+instances are initialized automatically.
+.TP
+.B "extern PSColor* psblack"
+.ns
+.TP
+.B "extern PSColor* pswhite"
+.ns
+.TP
+.B "extern PSPattern* pssolid"
+.ns
+.TP
+.B "extern PSPattern* psclear"
+.ns
+.TP
+.B "extern PSPattern* psnonepat"
+.ns
+.TP
+.B "extern PSBrush* pssingle"
+.ns
+.TP
+.B "extern PSBrush* psnonebr"
+.ns
+.TP
+.B "extern PSFont* psstdfont"
+Predefined graphics resource objects.  The None operation on
+\fIpsnonepat\fP and \fIpsnonebr\fP returns \fItrue\fP.
+.TP
+.B "extern Graphic* stdgraphic"
+A FullGraphic instance with its graphics state set to the global
+values listed above, excluding \fIpsnonepat\fP and \fIpsnonebr\fP.
+.SH FUNCTIONS
+.TP
+.B "extern void NormalRect(Coord& l, Coord& b, Coord& r, Coord& t)"
+Given two coordinate pairs (\fIl\fP, \fIb\fP) and (\fIr\fP,
+\fIt\fP), it checks whether \fIl\fP < \fIr\fP and \fIb\fP < \fIt\fP.
+If not, it swaps the values in the offending inequalities.  This
+function is useful for ensuring that a rectangle is defined by its
+lower-left and upper-right vertices.
+.TP
+.B "extern void GetLine("
+.ns
+.TP
+.B "    const char* buf, int len, int beg, int& end,"
+.ns
+.TP
+.B "    int& size, int& nextBeg"
+.ns
+.TP
+.B ")"
+.br
+This function is convenient for extracting lines from a buffer with a
+minimum of additional math operations. Given a buffer of characters
+\fIbuf\fP of length \fIlen\fP, search for the first newline character
+(or the last character in the buffer) after the character at index
+\fIbeg\fP; return the newline's position in \fIend\fP, the size of the
+run of text terminated by a newline (\fIend\fP + 1 - \fIbeg\fP), and
+the index with which to begin a search for the next newline character
+(\fInextBeg\fP).
+.TP
+.B "extern void GetAlignmentPoint("
+.ns
+.TP
+.B "    Graphic*, Alignment, float&, float&"
+.ns
+.TP
+.B ")"
+.br
+Return the point (in floating point canvas coordinates) on a graphic
+corresponding to the given alignment.  For example, to obtain the
+coordinates of the lower-left of a rectangle graphic, specify the
+graphic and a \fIBottomLeft\fP alignment.
+.TP
+.B "extern void Ref(Resource*)"
+Call the Reference operation on the given instance of a resource
+subclass if the pointer is non-nil.
+.TP
+.B "extern char* strnew(const char*)"
+Duplicate the given null-terminated string, creating a buffer of the
+appropriate size and returning the null-terminated result.
+.SH SEE ALSO
+CSolver(3U), Catalog(3U), Graphic(3U), GraphicView(3U), Pin(3U),
+Resource(3I), Unidraw(3U), InterViews(3I), pspaint(3U)

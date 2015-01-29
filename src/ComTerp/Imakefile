@@ -1,0 +1,65 @@
+XCOMM
+XCOMM source files for building the ComTerp library
+XCOMM
+
+PACKAGE = ComTerp
+
+#ifdef InObjectCodeDir
+
+LIB = ComTerp
+CCSUFFIX = c
+
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+#define ObjA(file) MakeObjectFromSrcFlags(file, -D__ACE_INLINE__)
+
+Obj(assignfunc)
+Obj(bitfunc)
+Obj(boolfunc)
+Obj(bquotefunc)
+Obj(charfunc)
+Obj(comfunc)	
+ObjA(comterpserv)
+Obj(comvalue)
+Obj(condfunc)
+ObjA(ctrlfunc)
+Obj(debugfunc)
+Obj(dotfunc)
+Obj(helpfunc)
+Obj(iofunc)
+Obj(listfunc)
+Obj(mathfunc)
+Obj(numfunc)
+Obj(parser)	
+Obj(postfunc)
+Obj(randfunc)
+Obj(scanner)	
+Obj(statfunc)
+Obj(strmfunc)
+Obj(symbolfunc)
+Obj(typefunc)
+Obj(xformfunc)
+
+#ifdef AceDir
+ObjA(comhandler)
+#endif
+
+#define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
+
+Obj31(comterp)
+IncludeDependencies()
+
+#ifdef AceDir
+InstallLibLink($(ACELIBDIR),$(ACELIBBASE), $(LIBDIR))
+#endif
+
+#else
+
+MakeInObjectCodeDir()
+InstallIncludes($(PACKAGE))
+
+#endif
