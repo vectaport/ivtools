@@ -8,3 +8,7 @@ config/config-darwin-gcc.defs
 config/config.mk
 
 config/config.mk
+
+Makefile.bak
+
+Makefile
