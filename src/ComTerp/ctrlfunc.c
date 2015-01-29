@@ -370,7 +370,7 @@ void EvalFunc::execute() {
         FuncObj* tokbuf = (FuncObj*)argv.obj_val();
         val = new ComValue(comterpserv()->run(tokbuf->toks(), tokbuf->ntoks()));
       }
-      if (val->is_nil() && symretv.is_true()) {
+      if (!val || val->is_nil() && symretv.is_true()) {
 	delete val;
 	val = new ComValue(argv.symbol_val(), AttributeValue::SymbolType);
       }

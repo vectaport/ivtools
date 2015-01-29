@@ -232,3 +232,5 @@ src/utils/DARWIN/stdcmapppm
 src/comterp_/main.c.orig
 
 src/ComTerp/iofunc.c.rej
+
+src/ComTerp/ctrlfunc.c.orig
