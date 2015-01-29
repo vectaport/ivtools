@@ -110,7 +110,7 @@ OPERATOR TABLE
     &&            and                  41          L-to-R      binary
     ||            or                   40          L-to-R      binary
     ,             tuple                35          L-to-R      binary
-    ,,            concat               33          L-to-R      binary
+    ,,            stream concat        33          L-to-R      binary
     %=            mod_assign           30          R-to-L      binary
     *=            mpy_assign           30          R-to-L      binary
     +=            add_assign           30          R-to-L      binary
@@ -204,6 +204,8 @@ val=next(strm) -- return next value from stream
 strm=stream(ostrm|list|attrlist) -- copy stream or convert list
 
 cnt=each(strm) -- traverse stream returning its length
+
+comp=filter(comps classid) -- filter stream of comps for matching classid
 
 CONTROL COMMANDS (using post evaluation):
 

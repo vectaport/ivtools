@@ -44,4 +44,30 @@ public:
 };
 
 
+
+//: stream depth-first command
+class GrDepthFunc : public StreamFunc {
+public:
+    GrDepthFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "strm=depth(compview) -- depth-first walk of comp tree using stream"; }
+
+    CLASS_SYMID("GrDepthFunc");
+
+};
+
+//: hidden func used by next command for stream depth command
+class GrDepthNextFunc : public StrmFunc {
+public:
+    GrDepthNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "hidden func used by next command for depth command"; }
+
+    CLASS_SYMID("GrDepthNextFunc");
+
+};
 #endif /* !defined(_grstrmfunc_h) */

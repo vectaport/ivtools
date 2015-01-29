@@ -76,7 +76,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return ",, is the concat operator"; }
+      return ",, is the stream concat operator"; }
 
     CLASS_SYMID("ConcatFunc");
 
@@ -89,7 +89,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "hidden func used by next command for ,, (concat) operator."; }
+      return "hidden func used by next command for ,, (stream concat) operator."; }
 
     CLASS_SYMID("ConcatNextFunc");
 
@@ -172,5 +172,4 @@ public:
     CLASS_SYMID("FilterNextFunc");
 
 };
-
 #endif /* !defined(_strmfunc_h) */

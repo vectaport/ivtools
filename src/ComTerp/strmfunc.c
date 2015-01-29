@@ -489,10 +489,10 @@ FilterFunc::FilterFunc(ComTerp* comterp) : StrmFunc(comterp) {
 
 void FilterFunc::execute() {
   ComValue streamv(stack_arg_post_eval(0));
-  ComValue filterv(stack_arg(1));
+  ComValue filterv(stack_arg_post_eval(1));
   reset_stack();
 
-  /* setup for filterenation */
+  /* setup for filtering */
   static FilterNextFunc* flfunc = nil;
   
   if (!flfunc) {
