@@ -92,7 +92,6 @@ Evaluate single expression then exit.
     ---------  ------------   --------    -----       ----
     .          dot            130         R-to-L      binary
     `          bquote         125         R-to-L      unary-prefix
-    $          stream         125         R-to-L      unary-prefix
     !          negate         110         R-to-L      unary-prefix
     ~          bit_not        110         R-to-L      unary-prefix
     ++         incr           110         R-to-L      unary-prefix
@@ -122,6 +121,8 @@ Evaluate single expression then exit.
     ||         or             40          L-to-R      binary
     ,          tuple          35          L-to-R      binary
     ,,         stream concat  33          L-to-R      binary
+    $          stream         32          R-to-L      unary-prefix
+    $$         list           32          R-to-L      unary-prefix
     %=         mod_assign     30          R-to-L      binary
     *=         mpy_assign     30          R-to-L      binary
     +=         add_assign     30          R-to-L      binary

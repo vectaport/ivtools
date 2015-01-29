@@ -680,9 +680,11 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokc
   if (curr.is_type(ComValue::KeywordType)) {
     cerr << "unexpected keyword found by ComTerp::skip_arg\n";
     return false;
+#if 0
   } else if (curr.is_type(ComValue::UnknownType)) {
-    cerr << "unexpected unknown found by ComTerp::skip_arg\n";
+    cerr << "unexpected nil found by ComTerp::skip_arg\n";
     return false;
+#endif
   } else if (curr.is_type(ComValue::BlankType)) {
     if (offlimit == offset) {
       cerr << "offlimit hit by ComTerp::skip_arg\n";

@@ -37,7 +37,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "strm=%s(ostrm|list|attrlist|compview) -- copy stream or convert list"; }
+      return "strm=%s(ostrm|list|attrlist|compview) -- copy stream or convert list (unary $)"; }
 
     CLASS_SYMID("GrStreamFunc");
 
