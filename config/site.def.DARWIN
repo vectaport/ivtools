@@ -28,13 +28,14 @@
  * build RPC classes -- requires iostreams & TCP sockets
  */
 #undef BuildRPCClasses
-#define BuildRPCClasses (YES&&!LibStdCPlusPlusV3)
+/* #define BuildRPCClasses (YES&&!LibStdCPlusPlusV3) */
+#define BuildRPCClasses NO
 #define SOMAXCONN 5
 
 /* override -ansi -pedantic from xfree86.cf */
 /* use ucontext routines */
 #undef DefaultCCOptions
-#define DefaultCCOptions -fno-common -D_XOPEN_SOURCE
+#define DefaultCCOptions -fno-common -D_XOPEN_SOURCE -x c++
 
 /* machine-specific gcc include directory -- does not change with each new version of gcc */
 #if 0
@@ -59,7 +60,7 @@
 #if 0
 #define SharedLibraryCmd(ldobjs,extra_flags) $(LD) -r extra_flags -o $@~ ldobjs
 #else
-#define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name @PREFIX@/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
+#define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name Prefix/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
 #endif
 
 #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\

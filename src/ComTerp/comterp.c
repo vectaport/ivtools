@@ -29,9 +29,7 @@
 #include <strstream>
 #include <unistd.h>
 
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 
 #include <ComTerp/comhandler.h>
 
@@ -72,9 +70,7 @@
 #include <string.h>
 #include <strstream>
 #include <unistd.h>
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 
 #ifdef LEAKCHECK
 #include <leakchecker.h>
@@ -346,9 +342,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stepflag()) {
-      fileptr_filebuf fbufout(handler() && handler()->wrfptr() 
-		      ? handler()->wrfptr() : stdout, 
-		      ios_base::out);
+      FILEBUF(fbufout, handler() && handler()->wrfptr() ? handler()->wrfptr() : stdout, ios_base::out);
       ostream out(&fbufout);
       out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
       static int pause_symid = symbol_add("pause");
@@ -1071,22 +1065,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   char errbuf_save[BUFSIZ];
   errbuf_save[0] = '\0';
 
-#if __GNUC__<3
-  filebuf fbuf;
-  if (handler()) {
-    int fd = Math::max(1, handler()->get_handle());
-    fbuf.attach(fd);
-  } else
-    fbuf.attach(fileno(stdout));
-#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3 || defined(__CYGWIN__)
-  fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
-		       ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout), 
-	       ios_base::out);
-#else
-  fileptr_filebuf fbuf(handler()&&handler()->get_handle()>0 
-		       ? handler()->get_handle() : 1, 
-		       ios_base::out, false, static_cast<size_t>(BUFSIZ));
-#endif
+  FILEBUF(fbuf, handler() && handler()->wrfptr() ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout), ios_base::out);
   ostream out(&fbuf);
   boolean eolflag = false;
   boolean errorflag = false;
@@ -1358,7 +1337,7 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
-	        fileptr_filebuf obuf(stdout, ios_base::out);
+		FILEBUF(obuf, stdout, ios_base::out);
 		ostream ostr(&obuf);
 		ostr << "err\n";
 		ostr.flush();
@@ -1672,8 +1651,7 @@ void ComTerp::postfix_echo() {
 
 void ComTerp::postfix_echo(postfix_token* pfbuf, int pfnum) {
   // print everything in the pfbuf for this function
-  fileptr_filebuf fbuf(handler() && handler()->wrfptr()
-	       ? handler()->wrfptr() : stdout, ios_base::out);
+  FILEBUF(fbuf,handler() && handler()->wrfptr() ? handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbuf);
  
   boolean oldbrief = brief();

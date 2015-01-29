@@ -1584,6 +1584,7 @@ ivtools-1.2/src/include/Unidraw/upage.h
 ivtools-1.2/src/include/Unidraw/viewer.h
 ivtools-1.2/src/include/ivstd/Imakefile
 ivtools-1.2/src/include/ivstd/Makefile
+ivtools-1.2/src/include/ivstd/fstream
 ivtools-1.2/src/include/ivstd/fstream.h
 ivtools-1.2/src/include/ivstd/iosfwd
 ivtools-1.2/src/include/ivstd/iostream.h

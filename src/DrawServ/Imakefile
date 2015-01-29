@@ -32,6 +32,8 @@ Obj26A(drawfunc)
 Obj26A(drawlink)
 Obj26(drawlinkcomp)
 Obj26(drawlinklist)
+#else
+Obj26(drawfunc)
 #endif
 Obj26(drawserv)
 Obj26A(drawserv-handler)

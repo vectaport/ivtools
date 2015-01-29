@@ -8,4 +8,5 @@ IvmkcmTargets($(PACKAGE))
 
 InstallIncludes(ivstd)
 InstallInclude(ivstd,iosfwd)
+InstallInclude(ivstd,fstream)
 

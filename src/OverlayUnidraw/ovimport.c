@@ -121,9 +121,7 @@ implementPtrList(FileList,FILE)
 implementPtrList(StreamList,istream)
 implementPtrList(HandlerList,ReadImageHandler)
 
-#if __GNUC__>=3
 static char newline;
-#endif
 
 
 /*****************************************************************************/
@@ -467,14 +465,9 @@ int ReadImageHandler::process(const char* newdat, int len) {
 
     if (pos >= 0) { 
 
-#if __GNUC__<3
-      char* buffer;
-      in.gets(&buffer);
-#else
       char buffer[BUFSIZ];
       in.get(buffer, BUFSIZ);
       in.get(newline);
-#endif
 
       if (strncmp(buffer, "P6", 2)) {
         cerr << "only binary ppms (magic P6) supported at this time" << endl;
@@ -483,21 +476,13 @@ int ReadImageHandler::process(const char* newdat, int len) {
 
       u_long width, height;
       do { 
-#if __GNUC__<3	
-        in.gets(&buffer);
-#else
 	in.get(buffer,BUFSIZ);
 	in.get(newline);
-#endif
       } while (buffer[0] == '#');
       sscanf(buffer, "%d %d", &width, &height);
 
-#if __GNUC__<3	
-      in.gets(&buffer);
-#else
       in.get(buffer,BUFSIZ);
       in.get(newline);
-#endif
       int maxval;
       sscanf(buffer, "%d", &maxval);
       if (maxval != 255) {
@@ -604,18 +589,11 @@ int ReadImageHandler::inputReady(int fd) {
 
     clr_fl(_fd, O_NONBLOCK);
 
-#if __GNUC__<3
-    ifstream* ifs = new ifstream;
-    ifs->rdbuf()->attach(_fd);
-#else
     FILE* ifptr = fdopen(_fd, "r");
-    fileptr_filebuf* fbuf = new fileptr_filebuf(ifptr, ios_base::in);
+    FILEBUFP(fbuf,ifptr, ios_base::in);
     istream* ifs = new istream(fbuf);
-#endif
     _helper.add_stream(ifs);
-#if __GNUC__>=3
     _helper.add_file(ifptr);
-#endif
     boolean empty;
 
     int newfd;
@@ -1098,13 +1076,8 @@ void OvImportCmd::Execute () {
       } else if (!is_url()) {
 	fptr = popen(path_, "r");
 	if (fptr) {
-#if __GNUC__<3
-	  ifstream* ifs = new ifstream;
-          ifs->rdbuf()->attach(fileno(fptr));
-#else
-	  fileptr_filebuf* fbuf = new fileptr_filebuf(fptr, ios_base::in);
+	  FILEBUFP(fbuf, fptr, ios_base::in);
 	  istream* ifs = new istream(fbuf);
-#endif
 	  inptr_ = ifs;
 	}
       }	
@@ -1407,13 +1380,8 @@ GraphicComp* OvImportCmd::Import (const char* path) {
     
 
     if (fptr) {
-#if __GNUC__<3
-      ifstream* in = new ifstream;
-      in->rdbuf()->attach(fileno(fptr));
-#else
-      fileptr_filebuf* fbuf = new fileptr_filebuf(fptr, ios_base::in);
+      FILEBUFP(fbuf, fptr, ios_base::in);
       istream* in = new istream(fbuf);
-#endif
       helper_->add_stream(in);
 
       if ((chooser_ && (chooser_->auto_convert() || chooser_->from_command())))
@@ -1496,28 +1464,18 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	gunzip_fptr = popen(buffer, "r");
         helper.add_pipe(gunzip_fptr);
 	if (gunzip_fptr) {
-#if __GNUC__<3
-	  ifstream* ifs = new ifstream;
-          ifs->rdbuf()->attach(fileno(gunzip_fptr));
-#else
-	  fileptr_filebuf* fbuf = new fileptr_filebuf(gunzip_fptr, ios_base::in);
+	  FILEBUFP(fbuf, gunzip_fptr, ios_base::in);
 	  istream* ifs = new istream(fbuf);
-#endif
           helper.add_stream(ifs);
 	  in = gunzip_in = ifs;
 	}
       } else {
 	int newfd = Pipe_Filter(instrm, "gunzip -c");
 	if (newfd != -1) {
-#if __GNUC__<3
-	  ifstream* ifs = new ifstream;
-          ifs->rdbuf()->attach(newfd);
-#else
 	  FILE* ifptr = fdopen(newfd, "r");
-	  fileptr_filebuf* fbuf = new fileptr_filebuf(ifptr, ios_base::in);
+	  FILEBUFP(fbuf, ifptr, ios_base::in);
 	  istream* ifs = new istream(fbuf);
 	  helper.add_file(ifptr);
-#endif
 	  helper.add_stream(ifs);
 	  in = gunzip_in = ifs;
 	}
@@ -1556,15 +1514,10 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	      new_fd = fileno(pptr);
 	  } else 
 	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
-#if __GNUC__<3
-	  ifstream new_in;
-          new_in.rdbuf()->attach(new_fd);
-#else
 	  FILE* ifptr = fdopen(new_fd, "r");
 	  helper.add_file(ifptr);
-	  fileptr_filebuf fbuf(ifptr, ios_base::in);
+	  FILEBUF(fbuf, ifptr, ios_base::in);
 	  istream new_in(&fbuf);
-#endif
 	  comp = catalog->ReadPostScript(new_in);
 	  if (pptr) pclose(pptr);
 	} else
@@ -1594,13 +1547,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
-#if __GNUC__<3
-	    ifstream new_in;
-            new_in.rdbuf()->attach(fileno(pptr));
-#else
-	    fileptr_filebuf fbuf(pptr, ios_base::in);
+	    FILEBUF(fbuf, pptr, ios_base::in);
 	    istream new_in(&fbuf);
-#endif
 	    comp = PNM_Image(new_in);
 	    pclose(pptr);
 	  }
@@ -1659,13 +1607,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
           helper.add_pipe(pptr);
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
-#if __GNUC__<3
-	    ifstream* new_in = new ifstream;
-            new_in->rdbuf()->attach(fileno(pptr));
-#else
-	    fileptr_filebuf* fbuf = new fileptr_filebuf(pptr, ios_base::in);
+	    FILEBUFP(fbuf, pptr, ios_base::in);
 	    istream* new_in = new istream(fbuf);
-#endif
             helper.add_stream(new_in);
 	    comp = PNM_Image(*new_in);
 	  }
@@ -1689,13 +1632,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
-#if __GNUC__<3
-	    ifstream new_in;
-            new_in.rdbuf()->attach(fileno(pptr));
-#else
-	    fileptr_filebuf fbuf(pptr, ios_base::in);
+	    FILEBUF(fbuf, pptr, ios_base::in);
 	    istream new_in(&fbuf);
-#endif
 	    comp = PNM_Image(new_in);
 	    pclose(pptr);
 	  }
@@ -1952,39 +1890,22 @@ GraphicComp* OvImportCmd::PGM_Image (istream& in, boolean ascii) {
 
 OverlayRaster* OvImportCmd::PGM_Raster (istream& in, boolean ascii) {
  
-#if __GNUC__<3 
-    char* buffer;
-    in.gets(&buffer);
-#else
     char buffer[BUFSIZ];
     in.get(buffer, BUFSIZ);
     in.get(newline);
-#endif
 
     do {  // CREATOR and other comments
-#if __GNUC__<3 
-        in.gets(&buffer);
-#else
 	in.get(buffer, BUFSIZ);
 	in.get(newline);
-#endif
     } while (buffer[0] == '#');
 
     int nrows, ncols;
     if (sscanf(buffer, "%d %d", &ncols, &nrows)==1) {
-#if __GNUC__<3 
-          in.gets(&buffer);
-#else
 	  in.get(buffer, BUFSIZ);
 	  in.get(newline);
-#endif
           sscanf(buffer, "%d", &nrows);
     }
-#if __GNUC__<3 
-    in.gets(&buffer);
-#else
     in.get(buffer, BUFSIZ, '\n');
-#endif
     int maxval;
     sscanf(buffer, "%d", &maxval);
 
@@ -2390,31 +2311,18 @@ GraphicComp* OvImportCmd::PPM_Image (istream& in, boolean ascii) {
 
 
 OverlayRaster* OvImportCmd::PPM_Raster (istream& in, boolean ascii) {
-#if __GNUC__<3
-    char* buffer;
-    in.gets(&buffer); // read magic number
-#else
     char buffer[BUFSIZ];
     in.get(buffer,BUFSIZ);
     in.get(newline);
-#endif
 
     do { // CREATOR and other comments
-#if __GNUC__<3
-        in.gets(&buffer);
-#else
 	in.get(buffer,BUFSIZ);
 	in.get(newline);
-#endif
     } while (buffer[0] == '#');
     int nrows, ncols;
     sscanf(buffer, "%d %d", &ncols, &nrows);
-#if __GNUC__<3
-    in.gets(&buffer);
-#else
     in.get(buffer,BUFSIZ);
     in.get(newline);
-#endif
     int maxval;
     sscanf(buffer, "%d", &maxval);
     if (maxval != 255) {
@@ -2459,22 +2367,15 @@ GraphicComp* OvImportCmd::PNM_Image_Filter (
     fd = outfd;
   }
   else {
-#if __GNUC__<3    
-    ifstream in2;
-    in2.rdbuf()->attach(outfd);
-#else
     FILE* infptr = fdopen(outfd, "r");
-    fileptr_filebuf fbuf(infptr, ios_base::in);
+    FILEBUF(fbuf, infptr, ios_base::in);
     istream in2(&fbuf);
-#endif
 
     comp = PNM_Image(in2);
 
     if(close(outfd)==-1)
       cerr << "error in parent closing last end of the pipes\n";
-#if __GNUC__>=3
     if (infptr) fclose(infptr);
-#endif
   }
 
   return comp;
@@ -2536,24 +2437,12 @@ int OvImportCmd::Pipe_Filter (istream& in, const char* filter)
     } else
       if(close(pipe1[0])==-1) 
 	cerr << "error in child close of front end of pipe\n";
-#if __GNUC__<3
-    ofstream out;
-    out.rdbuf()->attach(pipe1[1]);
-    char buffer[BUFSIZ];
-    while (!in.eof() && in.good()) {
-      in.read(buffer, BUFSIZ);
-      if (!in.eof() || in.gcount())
-	out.write(buffer, in.gcount());
-    }
-    out.flush();
-#else
     char buffer[BUFSIZ];
     while (!in.eof() && in.good()) {
       in.read(buffer, BUFSIZ);
       if (!in.eof() || in.gcount())
 	write(pipe1[1], buffer, in.gcount());
     }
-#endif
     if(close(pipe1[1])==-1)
       cerr << "error in child closing its output pipe\n";
     int status;
@@ -2717,34 +2606,21 @@ GraphicComp* OvImportCmd::PBM_Image (istream& in) {
 Bitmap* OvImportCmd::PBM_Bitmap (istream& in) {
     Bitmap* bitmap = nil;
   
-#if __GNUC__<3
-    char* buffer;
-    in.gets(&buffer);
-#else
     char buffer[BUFSIZ];
     in.get(buffer,BUFSIZ);
     in.get(newline);
-#endif
 
     boolean asciiflag = strncmp("P1", buffer, 2) == 0;
   
     do { // CREATOR and other comments
-#if __GNUC__<3
-        in.gets(&buffer);
-#else
 	in.get(buffer,BUFSIZ);
 	in.get(newline);
-#endif
     } while (buffer[0] == '#');
 
     int nrows, ncols;
     if (sscanf(buffer, "%d %d", &ncols, &nrows)==1) {
-#if __GNUC__<3
-          in.gets(&buffer);
-#else
 	  in.get(buffer,BUFSIZ);
 	  in.get(newline);
-#endif
           sscanf(buffer, "%d", &nrows);
     }
     void* nilpointer = nil;

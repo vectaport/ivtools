@@ -22,6 +22,7 @@
  * 
  */
 
+#include <unistd.h>
 #include <fstream.h>
 #include <iostream>
 #include <ComTerp/comhandler.h>
@@ -41,11 +42,9 @@
 
 #define TITLE "CtrlFunc"
 
-#if __GNUC__>=3
 static char newline;
-#if __GNUC__>3||__GNUC_MINOR_>1
+#ifndef __APPLE__
 #include <ext/stdio_filebuf.h>
-#endif
 #endif
 
 using std::cerr;
@@ -191,12 +190,6 @@ void RemoteFunc::execute() {
 
 #ifdef HAVE_ACE
 
-#if __GNUC__==3&&__GNUC_MINOR__<1
-  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
-  push_stack(ComValue::nullval());
-  return;
-#endif
-
   ACE_SOCK_STREAM *socket = nil;
   ACE_SOCK_Connector *conn = nil;
   SocketObj* socketobj = nil;
@@ -226,31 +219,6 @@ void RemoteFunc::execute() {
   } else
     return;
   
-#if 0
-#if __GNUC__<3
-  filebuf ofbuf;
-  ofbuf.attach(socket->get_handle());
-#elif __GNUC__<4 && !defined(__CYGWIN__)
-  fileptr_filebuf ofbuf((int)socket->get_handle(), ios_base::out,
-			false, static_cast<size_t>(BUFSIZ));
-#else
-  fileptr_filebuf ofbuf((int)socket->get_handle(), ios_base::out,
-			static_cast<size_t>(BUFSIZ));
-#endif
-  ostream out(&ofbuf);
-  out << cmdstr;
-  if (cmdstr[strlen(cmdstr)-1] != '\n') out << "\n";
-  out.flush();
-#else
-#if 0
-  int i=0;
-  do {
-    if(write(socket->get_handle(), cmdstr+i++, 1)!=1)
-      fprintf(stderr, "Unexpected error writing byte to socket\n");
-  } while ( cmdstr[i]!='\0');
-  if (cmdstr[i-1] != '\n')  
-    write(socket->get_handle(), "\n", 1);
-#else
   int cmdlen = strlen(cmdstr);
   int newline_flag = cmdstr[cmdlen-1]=='\n';
   if (!newline_flag) cmdstr[cmdlen]='\n';
@@ -258,16 +226,7 @@ void RemoteFunc::execute() {
   if (nbytes != cmdlen+(newline_flag?0:1))
       fprintf(stderr, "write to socket failed\n");
   if (!newline_flag) cmdstr[cmdlen]='\0';
-#endif
-#endif
   if (nowaitv.is_false()) {
-#if __GNUC__<3
-    filebuf ifbuf;
-    ifbuf.attach(socket->get_handle());
-    istream in(&ifbuf);
-    char* buf;
-    in.gets(&buf);
-#else
     char buf[BUFSIZ];
     int i=0;
     do {
@@ -275,7 +234,6 @@ void RemoteFunc::execute() {
     } while (i<BUFSIZ-1 && buf[i-1]!='\n');
     if (buf[i-1]=='\n') buf[i]=0;
     // fprintf(stderr, "buf read back from remote %s", buf);
-#endif
     ComValue retval(comterpserv()->run(buf, true));
     push_stack(retval);
   }
@@ -345,12 +303,6 @@ void SocketFunc::execute() {
   reset_stack();
 
 #ifdef HAVE_ACE
-
-#if __GNUC__==3&&__GNUC_MINOR__<1
-  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
-  push_stack(ComValue::nullval());
-  return;
-#endif
 
   if (hostv.is_string() && portv.is_known()) {
 

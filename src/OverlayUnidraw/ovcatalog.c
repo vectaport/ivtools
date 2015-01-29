@@ -188,22 +188,6 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
         _valid = true;
 
     } else {
-#if __GNUC__<3	  
-        filebuf fbuf;
-	if (strcmp(name, "-") == 0) {
-	    _valid = fbuf.attach(fileno(stdin)) != 0;
-	    name = nil;
-	} else {
-	    fptr = fopen(name, "r");
-	    fptr = OvImportCmd::CheckCompression(fptr, name, compressed);
-	    _valid = fptr ? fbuf.attach(fileno(fptr)) != 0 : false;
-	    if (compressed) {
-		int namelen = strlen(name);
-		if (strcmp(name+namelen-3,".gz")==0) name[namelen-3] = '\0';
-		else if (strcmp(name+namelen-2,".Z")==0) name[namelen-2] = '\0';
-	    }
-	}
-#else
 	boolean stdin_flag = strcmp(name, "-")==0;
 	if (!stdin_flag) {
 	  fptr = fopen(name, "r");
@@ -219,8 +203,7 @@ boolean OverlayCatalog::Retrieve (const char* filename, Component*& comp) {
 	  name = nil;
 	}
 	if (!_valid && !ParamList::urltest(name)) return false;
-        fileptr_filebuf fbuf(stdin_flag ? stdin : fptr, ios_base::in);
-#endif
+        FILEBUF(fbuf, stdin_flag ? stdin : fptr, ios_base::in);
 	
         if (_valid || ParamList::urltest(name)) {
 	    istream in(&fbuf);
