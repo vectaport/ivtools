@@ -8,13 +8,13 @@
 #define NO 0
 #define NullParameter /**/
 
-#if __STDC__ && !defined(__CYGWIN__)
+#if __STDC__ && !defined(__CYGWIN__) || defined(__APPLE__)
 #define Concat(a,b)a##b
 #else
 #define Concat(a,b)a/**/b
 #endif
 
-#if __STDC__ && !defined(__CYGWIN__)
+#if __STDC__ && !defined(__CYGWIN__) || defined(__APPLE__)
 #define Concat3(a,b,c)a##b##c
 #else
 #define Concat3(a,b,c)a/**/b/**/c

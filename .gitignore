@@ -1,4 +1,8 @@
 
+a.out
+
+*.o
+
 config.log
 
 config.status
@@ -206,3 +210,19 @@ src/drawtool/Makefile
 src/DrawServ/Makefile
 
 src/drawserv_/Makefile
+
+make.makefile
+
+make.makefiles
+
+config/arch.def.dist
+
+*.def~
+
+make.make
+
+src/scripts/ivmkmf
+
+src/utils/DARWIN/ivtmpnam
+
+src/utils/DARWIN/stdcmapppm
