@@ -220,6 +220,9 @@ src/comterp_/README
 src/comterp_/main.c
 src/comtest/Imakefile
 src/comtest/main.c
+src/imake/config.h
+src/imake/imake.c
+src/imake/imakemdep.h
 src/include/IV-2_6/Imakefile
 src/include/IV-2_6/InterViews/Imakefile
 src/include/IV-2_6/InterViews/alignment.h
