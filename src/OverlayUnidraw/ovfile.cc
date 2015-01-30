@@ -223,13 +223,8 @@ int OverlayFileScript::ReadPathName (istream& in, void* addr1, void* addr2, void
       OvImportCmd impcmd((Editor*)nil);
       FILE* fptr = popen(pathname, "r");
       if (fptr) {
-#if __GNUC__<3
-	ifstream ifs;
-	ifs.rdbuf()->attach(fileno(fptr));
-#else
-	fileptr_filebuf fbuf(fptr, ios_base::in);
+	FILEBUF(fbuf, fptr, ios_base::in);
 	istream ifs(&fbuf);
-#endif
 	OverlayComp* child = (OverlayComp*) impcmd.Import(ifs);
 	if (child) {
 	  filecomp->Append(child);

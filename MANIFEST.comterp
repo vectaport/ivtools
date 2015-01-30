@@ -283,6 +283,7 @@ src/include/Unidraw/ulist.h
 src/include/Unidraw/umap.h
 src/include/Unidraw/unidraw.h
 src/include/ivstd/Imakefile
+src/include/ivstd/fstream
 src/include/ivstd/fstream.h
 src/include/ivstd/iosfwd
 src/include/ivstd/math.h

@@ -131,7 +131,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s -- break out of for or while loop"; }
+      return "break([retval]) -- break out of for or while loop"; }
 
 };
 

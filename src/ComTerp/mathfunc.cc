@@ -73,6 +73,20 @@ void Log10Func::execute() {
     push_stack(result);
 }
 
+Log2Func::Log2Func(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void Log2Func::execute() {
+    ComValue operandx = stack_arg(0);
+    reset_stack();
+    if (operandx.is_nil()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    ComValue result(log2(operandx.double_val()));
+    push_stack(result);
+}
+
 PowFunc::PowFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

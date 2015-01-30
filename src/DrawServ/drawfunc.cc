@@ -82,12 +82,6 @@ void DrawLinkFunc::execute() {
   ComValue userv(stack_key(user_sym));
   reset_stack();
 
-#if __GNUC__==3&&__GNUC_MINOR__<1
-  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
-  push_stack(ComValue::nullval());
-  return;
-#endif
-
   DrawLink* link = nil;
 
   /* creating a new link to remote drawserv */
@@ -97,19 +91,11 @@ void DrawLinkFunc::execute() {
     if (statev.int_val()==DrawLink::one_way && 
 	((DrawServ*)unidraw)->cycletest
 	(sidv.uint_val(), hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
-#if 1
-#if __GNUC__<4 && !defined(__CYGWIN__)
-      fileptr_filebuf obuf(comterp()->handler()->get_handle(), ios_base::out, false, static_cast<size_t>(BUFSIZ));
-#else
-      fileptr_filebuf obuf(comterp()->handler()->get_handle(), ios_base::out, static_cast<size_t>(BUFSIZ));
-#endif
+      FILEBUF(obuf, comterp()->handler()->wrfptr(), ios_base::out);
       ostream out(&obuf);
       out << "ackback(cycle)\n";
       out.flush();
       comterp()->quit();
-#else
-      comterp()->handler()->destroy();
-#endif
       return;
     }
     
@@ -203,11 +189,6 @@ void SessionIdFunc::execute() {
 
   reset_stack();
 
-#if __GNUC__==3&&__GNUC_MINOR__<1
-  fprintf(stderr, "Please upgrade to gcc-3.1 or greater\n");
-  push_stack(ComValue::nullval());
-  return;
-#endif
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
   
@@ -233,6 +214,7 @@ void SessionIdFunc::execute() {
 
 /*****************************************************************************/
 
+#ifdef HAVE_ACE
 GraphicIdFunc::GraphicIdFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
@@ -292,6 +274,7 @@ void ChangeIdFunc::execute() {
   }
 }
 
+#endif /* defined(HAVE_ACE) */
 
 /*****************************************************************************/
 

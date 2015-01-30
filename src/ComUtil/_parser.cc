@@ -1098,10 +1098,25 @@ int status;
 	 }
 
       /* If left paren was encountered without a proceeding identifier   */
-      /* it is not to be associated with a command.  Push it on the      */
-      /* paren stack with a -1 indicator for the command id to show such.*/
-      /* Push the negated value of the token type onto the operator      */
-      /* stack, in order to distinguish it from the other operators.     */
+      /* and a binary operator expected, output any current expression.  */
+         if( expecting==OPTYPE_BINARY ) {
+	   while ( (OperStack[TopOfOperStack].oper_type != LEFTPAREN) &&
+		   (TopOfOperStack >= 0 ))
+	     {
+	       if (OperStack[TopOfOperStack].oper_type == OPERATOR)
+		 {
+		   OPERSTK_POP( temp_id );
+		   PFOUT( TOK_COMMAND, opr_tbl_commid( temp_id ),
+			  (opr_tbl_optype( temp_id ) == OPTYPE_BINARY ? 2 : 1), 0, 1 );
+		 }
+	     }
+	 }
+
+      /* If left paren was encountered without a proceeding identifier    */
+      /* it is not to be associated with a command.  Push it on the       */
+      /* paren stack with a -1 indicator for the command id to show that. */
+      /* Push the negated value of the token type onto the operator       */
+      /* stack, in order to distinguish it from the other operators.      */
 	 PARENSTK_PUSH( toktype, -1, 1 );
 	 OPERSTK_PUSH( -toktype, LEFTPAREN );
 

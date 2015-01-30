@@ -52,8 +52,8 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
-  fileptr_filebuf fbuf(comterp()->handler() && comterp()->handler()->wrfptr()
-	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+  FILEBUF(fbuf, comterp()->handler() && comterp()->handler()->wrfptr()
+	  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbuf);
  
   boolean oldbrief = comterp()->brief();
@@ -256,11 +256,11 @@ BreakFunc::BreakFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void BreakFunc::execute() {
+  ComValue retval(stack_arg(0,true,ComValue::trueval()));
   reset_stack();
 
   SeqFunc::breakflag(1);
 
-  ComValue retval(ComValue::trueval());
   push_stack(retval);
   return;
 }

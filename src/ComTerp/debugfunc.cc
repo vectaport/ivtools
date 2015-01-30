@@ -22,13 +22,8 @@
  * 
  */
 
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-#else
 #include <vector>
-#endif
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 
 #include <ComTerp/comhandler.h>
 
@@ -82,10 +77,10 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   comterp()->npause()++;
 
   comterp()->push_servstate();
-  fileptr_filebuf fbufin(comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
+  FILEBUF(fbufin, comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
 		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
   istream in(&fbufin);
-  fileptr_filebuf fbufout(comterp()->handler() && comterp()->handler()->wrfptr()
+  FILEBUF(fbufout, comterp()->handler() && comterp()->handler()->wrfptr()
 		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbufout);
 

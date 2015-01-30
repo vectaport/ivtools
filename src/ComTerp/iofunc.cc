@@ -36,6 +36,7 @@
 #include <fstream.h>
 #endif
 #include <streambuf>
+#include <unistd.h>
 
 #define TITLE "IoFunc"
 
@@ -116,42 +117,27 @@ void PrintFunc::execute() {
   const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
   ComValue::comterp(comterp());
 
-#if __GNUC__<3
-  streambuf* strmbuf = nil;
-  if (stringflag.is_false() && strflag.is_false() &&
-      symbolflag.is_false() && symflag.is_false()) {
-    filebuf * fbuf = new filebuf();
-    strmbuf = fbuf;
-    if (comterp()->handler()) {
-      int fd = Math::max(1, comterp()->handler()->get_handle());
-      fbuf->attach(fd);
-    } else
-      fbuf->attach(fileno(errflag.is_false() ? stdout : stderr));
-  } else {
-    strmbuf = new std::strstreambuf();
-  }
-#else
   streambuf* strmbuf = nil;
   if (stringflag.is_false() && strflag.is_false() &&
       symbolflag.is_false() && symflag.is_false()) {
     fileptr_filebuf * fbuf = nil;
     if (comterp()->handler() && fileobjv.is_unknown() && errflag.is_false() && outflag.is_false()) {
-      fbuf = new fileptr_filebuf(comterp()->handler() && comterp()->handler()->wrfptr() 
-			 ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+      FILEBUFP(fbuf, comterp()->handler() && comterp()->handler()->wrfptr() 
+	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
     } else if (fileobjv.is_known()) {
       FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
-      if (fileobj) 
-        fbuf = new fileptr_filebuf(fileobj->fptr(), ios_base::out);
-      else {
+      if (fileobj) {
+        FILEBUFP(fbuf, fileobj->fptr(), ios_base::out);
+      } else {
         PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
-        fbuf = new fileptr_filebuf(pipeobj ? pipeobj->wrfptr() : stdout, ios_base::out);
+        FILEBUFP(fbuf, pipeobj ? pipeobj->wrfptr() : stdout, ios_base::out);
       }
-    } else 
-      fbuf = new fileptr_filebuf(errflag.is_false() ? stdout : stderr, ios_base::out);
+    } else {
+      FILEBUFP(fbuf, errflag.is_false() ? stdout : stderr, ios_base::out);
+    }
     strmbuf = fbuf;
   } else
     strmbuf = new std::strstreambuf();
-#endif
   ostream out(strmbuf);
 
   int narg = nargsfixed();
@@ -373,6 +359,7 @@ void OpenFileFunc::execute() {
     PipeObj* pipeobj = new PipeObj(filenamev.string_ptr());
     ComValue retval(PipeObj::class_symid(), (void*)pipeobj);
     push_stack(retval);
+#ifdef HAVE_ACE
     if (Component::use_unidraw()) {
       ComterpHandler* pipe_handler = new ComterpHandler(comterpserv());
       if (ComterpHandler::reactor_singleton()->register_handler(pipeobj->rdfd(), pipe_handler, 
@@ -382,6 +369,7 @@ void OpenFileFunc::execute() {
       }
       pipe_handler->log_only(1);
     }
+#endif
   } else {
     FileObj* fileobj = new FileObj(filenamev.string_ptr(), modev.is_string() ? modev.string_ptr() : "r", pipeflagv.is_true());
     if (fileobj->fptr())  {

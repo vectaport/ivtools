@@ -101,7 +101,7 @@ public:
     // assignment operator.
 
     virtual void* geta(int type, int compid=-1); 
-    // return a pointer if ObjectType matches
+    // return a pointer if ObjectType matches or compid is superclass
 
     int narg() const;
     // number of arguments associated with this command or keyword.
