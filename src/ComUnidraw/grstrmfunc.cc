@@ -121,3 +121,98 @@ void GrStreamFunc::execute() {
 
 #endif
 
+/*****************************************************************************/
+
+int GrDepthFunc::_symid;
+
+GrDepthFunc::GrDepthFunc(ComTerp* comterp) : StreamFunc(comterp) {
+}
+
+void GrDepthFunc::execute() {
+  ComValue compsv(stack_arg_post_eval(0));
+  reset_stack();
+  
+  if (compsv.object_compview()) {
+    
+    static GrDepthNextFunc* snfunc = nil;
+    if (!snfunc) {
+      snfunc = new GrDepthNextFunc(comterp());
+      snfunc->funcid(symbol_add("depthnext"));
+    }
+
+    AttributeValueList* avl = new AttributeValueList();
+    Component* comp = ((ComponentView*)compsv.obj_val())->GetSubject();
+    if (!comp->IsA(OVERLAYS_COMP)) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    OverlaysComp* ovcomps = (OverlaysComp*)comp;
+
+    ComValue* av = 
+      new ComValue(new OverlayViewRef(ovcomps), ovcomps->classid());
+    avl->Append(av);
+    avl->Append(new ComValue());
+    ComValue* av2 = 
+      new ComValue(new OverlayViewRef((OverlaysComp*)ovcomps->GetParent()), ovcomps->classid());
+    avl->Append(av2);
+    
+    ComValue stream(snfunc, avl);
+    stream.stream_mode(-1); // for internal use (use by this func)
+    stream.type(ComValue::StreamType);
+    push_stack(stream);
+    
+  }
+}
+
+/*****************************************************************************/
+
+int GrDepthNextFunc::_symid;
+
+GrDepthNextFunc::GrDepthNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void GrDepthNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+
+  /* invoked by next func */
+  reset_stack();
+  AttributeValueList* avl = operand1.stream_list();
+  if (avl) {
+    Iterator i;
+    avl->First(i);
+    ComValue* currval = (ComValue*)avl->GetAttrVal(i);
+    avl->Next(i);
+    ComValue* prevval = (ComValue*)avl->GetAttrVal(i);
+    avl->Next(i);
+    ComValue* stopval = (ComValue*)avl->GetAttrVal(i);
+    
+    /* depth-first seach */
+    if (currval->is_known()) {
+      OverlayComp* currcomp = (OverlayComp*)currval->geta(OverlayComp::class_symid(), OVERLAY_COMP);
+      OverlayComp* prevcomp = (OverlayComp*)prevval->geta(OverlayComp::class_symid(), OVERLAY_COMP);
+      OverlayComp* stopcomp = (OverlayComp*)stopval->geta(OverlayComp::class_symid(), OVERLAY_COMP);
+      OverlayComp* nextcomp = currcomp->DepthNext(prevcomp);
+      while(nextcomp && nextcomp==(OverlayComp*)currcomp->GetUp()) {
+	prevcomp=currcomp;
+	currcomp=nextcomp;
+        nextcomp = currcomp->DepthNext(prevcomp);
+      }
+      if(nextcomp && nextcomp!=stopcomp) {
+        ((OverlayViewRef*)currval->obj_val())->SetSubject(nextcomp);
+        if (!prevcomp) {
+          ComValue new_prevval(new OverlayViewRef(currcomp), currcomp->classid());;
+          *prevval = new_prevval;
+	} else
+	  ((OverlayViewRef*)prevval->obj_val())->SetSubject(currcomp);
+        ComValue av(new OverlayViewRef(nextcomp), nextcomp->classid());
+        push_stack(av);
+        return;
+      }
+    }
+    
+  }
+  push_stack(ComValue::nullval());
+
+  return;
+}
+

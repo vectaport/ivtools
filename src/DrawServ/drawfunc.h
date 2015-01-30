@@ -47,6 +47,7 @@ public:
 	return "%s([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] | :all) -- command to manage session id's"; }
 };
 
+#ifdef HAVE_ACE
 //: command to send message between remote selections
 // grid(id selector :state selected :request newselector :grant oldselector) -- command to send message between remote selections
 class GraphicIdFunc : public UnidrawFunc {
@@ -66,6 +67,7 @@ public:
     virtual const char* docstring() { 
 	return "%s(id) -- command to change session (or graphic id) to use local session id"; }
 };
+#endif /* defined(HAVE_ACE) */
 
 //: command to return point list associated with a graphic
 // ptlist=points(compview) -- return point list from compview graphic

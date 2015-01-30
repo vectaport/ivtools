@@ -1,0 +1,479 @@
+Patch:    ivtools-140307-scott-006
+For:      ivtools-1.2.11
+Author:   scott@wavesemi.com
+Subject:  support for ipl development
+
+This is an intermediate patch to ivtools-1.2.11.  To apply, cd to the
+top-level directory of the ivtools source tree (the directory with src
+and config subdirs), and apply like this:
+
+	patch -p0 <ThisFile
+
+Then rebuild with "make;make install"
+
+
+Index: src/ComTerp/mathfunc.c
+===================================================================
+--- src/ComTerp/mathfunc.c	(revision 8294)
++++ src/ComTerp/mathfunc.c	(working copy)
+@@ -73,6 +73,20 @@
+     push_stack(result);
+ }
+ 
++Log2Func::Log2Func(ComTerp* comterp) : ComFunc(comterp) {
++}
++
++void Log2Func::execute() {
++    ComValue operandx = stack_arg(0);
++    reset_stack();
++    if (operandx.is_nil()) {
++      push_stack(ComValue::nullval());
++      return;
++    }
++    ComValue result(log2(operandx.double_val()));
++    push_stack(result);
++}
++
+ PowFunc::PowFunc(ComTerp* comterp) : ComFunc(comterp) {
+ }
+ 
+Index: src/ComTerp/mathfunc.h
+===================================================================
+--- src/ComTerp/mathfunc.h	(revision 8294)
++++ src/ComTerp/mathfunc.h	(working copy)
+@@ -67,6 +67,18 @@
+ 
+ };
+ 
++//: logarithmic (base 2) command for ComTerp.
++// dbl=log2(x) -- returns the base-2 logarithm of x.
++class Log2Func : public ComFunc {
++public:
++    Log2Func(ComTerp*);
++
++    virtual void execute();
++    virtual const char* docstring() { 
++      return "dbl=%s(x) -- returns the base-2 logarithm of x"; }
++
++};
++
+ //: power command for ComTerp.
+ // dbl=pow(x y) -- returns the value of x raised to the power of y.
+ class PowFunc : public ComFunc {
+Index: src/ComTerp/comfunc.h
+===================================================================
+--- src/ComTerp/comfunc.h	(revision 8294)
++++ src/ComTerp/comfunc.h	(working copy)
+@@ -54,7 +54,7 @@
+     // method that needs to be filled in, that will take ComValue arguments
+     // off the stack, then compute and push a ComValue result on the stack.
+ 
+-    void exec(int nargs, int nkeys, int pedepth=0, int command_symid=0);
++    virtual void exec(int nargs, int nkeys, int pedepth=0, int command_symid=0);
+     // invokes push_funcstate, then plain execute, then pop_funcstate.
+     // for use from the body of regular execute methods.
+ 
+Index: src/ComTerp/strmfunc.c
+===================================================================
+--- src/ComTerp/strmfunc.c	(revision 8294)
++++ src/ComTerp/strmfunc.c	(working copy)
+@@ -38,6 +38,33 @@
+ StrmFunc::StrmFunc(ComTerp* comterp) : ComFunc(comterp) {
+ }
+ 
++void StrmFunc::print_stream(std::ostream& out, AttributeValue& streamv) {
++  static int indent=0;
++  if(!streamv.is_stream()) 
++    out << "NOT A STREAM\n";
++  else {
++    for (int i=0; i<indent; i++) out << ' ';
++    out << "func = " << (streamv.stream_func() ? symbol_pntr(((ComFunc*)streamv.stream_func())->funcid()) : "NOFUNC")
++              << ", avl = " << *streamv.stream_list() << "\n";
++    if (streamv.stream_func()==NULL) 
++      out << "Unexpected NOFUNC\n";
++    Iterator it;
++    streamv.stream_list()->First(it);
++    int j=0;
++    while(!streamv.stream_list()->Done(it)) {
++      if (streamv.stream_list()->GetAttrVal(it)->is_stream()) {
++        indent+=3;
++        out << "depth=" << indent/3 << ", argc="  << j << ":  ";
++        StrmFunc::print_stream(out, *streamv.stream_list()->GetAttrVal(it));
++        indent-=3;
++      }
++      j++;
++      streamv.stream_list()->Next(it);
++    }
++    out.flush();
++  }
++}
++
+ /*****************************************************************************/
+ 
+ int StreamFunc::_symid;
+@@ -352,6 +379,7 @@
+ }
+ 
+ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
++
+     _next_depth++;
+ 
+     if (!streamv.is_stream()) {
+@@ -361,6 +389,8 @@
+ 
+     int outside_stackh = comterp->stack_height();
+ 
++    // fprintf(stderr, "stream:  mode=%d, name=%s, depth=%d\n", streamv.stream_mode(), symbol_pntr(((ComFunc*)streamv.stream_func())->funcid()), _next_depth);
++
+     if (streamv.stream_mode()<0) {
+ 
+       /* internal execution -- handled by stream func */
+@@ -397,12 +427,22 @@
+ 	    if (val->stream_mode()<0 && val->stream_func()) {
+ 	      /* internal use */
+ 	      comterp->push_stack(*val);
++
++              // fprintf(stdout, "Stack before stream_func exec\n");
++              // comterp->print_stack();
++
+ 	      ((ComFunc*)val->stream_func())->exec(1,0);
+ 	    }else {
+ 
+ 	      /* external use */
+ 	      ComValue cval(*val);
++              // fprintf(stderr, "before: strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
++
++              // fprintf(stdout, "Stack before NextFunc::execute_impl\n");
++              // comterp->print_stack();
++
+ 	      NextFunc::execute_impl(comterp, cval);
++              // fprintf(stderr, "after:  strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
+ 
+ 	    }
+ 	    
+@@ -434,6 +474,9 @@
+ 	  avl->Next(i);
+ 	}
+ 
++        // fprintf(stdout, "Stack before streamed func %s\n", symbol_pntr(funcptr->funcid()));
++        // comterp->print_stack();
++
+ 	funcptr->exec(narg, nkey);
+       }
+ 
+Index: src/ComTerp/strmfunc.h
+===================================================================
+--- src/ComTerp/strmfunc.h	(revision 8294)
++++ src/ComTerp/strmfunc.h	(working copy)
+@@ -39,6 +39,7 @@
+ public:
+     StrmFunc(ComTerp*);
+ 
++    static void print_stream(std::ostream& out, AttributeValue& streamv);
+ };
+ 
+ //: stream command
+Index: src/ComTerp/comterp.c
+===================================================================
+--- src/ComTerp/comterp.c	(revision 8294)
++++ src/ComTerp/comterp.c	(working copy)
+@@ -297,7 +297,8 @@
+ 	avl->Prepend(new AttributeValue(topval));
+       }
+ 
+-      ComValue val(sv.obj_val(), avl);
++      ComValue val((ComFunc*)sv.obj_val(), avl);
++      // fprintf(stderr, "Just packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
+       val.stream_mode(1); // for external use
+       push_stack(val);
+       return;
+@@ -681,6 +682,7 @@
+ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokcnt) {
+   tokcnt = 0;
+   ComValue& curr = *(topval+offset);
++  // fprintf(stderr, "offset is %d, topval is at 0x%lx\n", offset, topval);
+   if (curr.is_type(ComValue::KeywordType)) {
+     cerr << "unexpected keyword found by ComTerp::skip_arg\n";
+     return false;
+@@ -750,9 +752,15 @@
+ 
+ 
+ int ComTerp::print_stack() const {
++    print_stack(cout);
++    return true;
++}
++
++int ComTerp::print_stack(std::ostream& out) const {
+     for (int i = _stack_top; i >= 0; i--) {
+-	cout << _stack[i] << "\n";
++	out << _stack[i] << "\n";
+     }
++    out.flush();
+     return true;
+ }
+ 
+@@ -1236,6 +1244,7 @@
+     add_command("exp", new ExpFunc(this));
+     add_command("log", new LogFunc(this));
+     add_command("log10", new Log10Func(this));
++    add_command("log2", new Log2Func(this));
+     add_command("pow", new PowFunc(this));
+ 
+     add_command("acos", new ACosFunc(this));
+Index: src/ComTerp/comterp.h
+===================================================================
+--- src/ComTerp/comterp.h	(revision 8294)
++++ src/ComTerp/comterp.h	(working copy)
+@@ -113,6 +113,8 @@
+     // print the top of the stack to an ostream.
+     int print_stack() const;
+     // print the entire stack to stdout.
++    int print_stack(std::ostream& out) const;
++    // print the entire stack to stdout.
+     int stack_height() { return _stack_top+1; }
+     // return current height of the stack.
+     boolean brief() const;
+Index: src/ComTerp/symbolfunc.c
+===================================================================
+--- src/ComTerp/symbolfunc.c	(revision 8294)
++++ src/ComTerp/symbolfunc.c	(working copy)
+@@ -465,6 +465,9 @@
+   static int after_symid = symbol_add("after");
+   ComValue afterflagv(stack_key(after_symid));
+   boolean afterflag = afterflagv.is_true();
++  static int nonil_symid = symbol_add("nonil");
++  ComValue nonilflagv(stack_key(nonil_symid));
++  boolean nonilflag = nonilflagv.is_true();
+   reset_stack();
+ 
+   if (strv.is_unknown()) {
+@@ -482,7 +485,10 @@
+   else {
+     const char* foundstr = strstr(string, nv.symbol_ptr());
+     if(foundstr==NULL) {
+-      push_stack(ComValue::nullval());
++      if(nonilflag)
++	push_stack(strv);
++      else
++	push_stack(ComValue::nullval());
+       return;
+     }
+     n = afterflag ?  strlen(string)-(foundstr-string)-strlen(nv.symbol_ptr()) : foundstr-string;
+@@ -495,7 +501,10 @@
+     ComValue retval(buffer);
+     push_stack(retval);
+   } else
+-    push_stack(ComValue::nullval());
++    if(nonilflag)
++      push_stack(strv);
++    else
++      push_stack(ComValue::nullval());
+ }
+ 
+ 
+Index: src/ComTerp/symbolfunc.h
+===================================================================
+--- src/ComTerp/symbolfunc.h	(revision 8294)
++++ src/ComTerp/symbolfunc.h	(working copy)
+@@ -149,14 +149,14 @@
+ 
+ 
+ //: command to extract a sub string
+-// str=substr(str n :after) -- extract characters from a string
++// str=substr(str n :after :before) -- extract characters from a string
+ class SubStrFunc : public ComFunc {
+ public:
+     SubStrFunc(ComTerp*);
+     virtual void execute();
+ 
+     virtual const char* docstring() { 
+-      return "str=%s(str n|str :after) -- extract characters from a string"; }
++      return "str=%s(str n|str :after :nonil) -- extract characters from a string (:nonil return string if no match)"; }
+ };
+ 
+ 
+Index: src/man/man1/comterp.1
+===================================================================
+--- src/man/man1/comterp.1	(revision 8294)
++++ src/man/man1/comterp.1	(working copy)
+@@ -145,6 +145,8 @@
+ 
+  dbl=log10(x) -- returns the base-10 logarithm of x
+ 
++ dbl=log2(x) -- returns the base-2 logarithm of x
++
+  dbl=pow(x y) -- returns the value of x raised to the power of y
+ 
+  dbl=acos(x) -- returns the arc cosine of x in radians
+@@ -270,7 +272,7 @@
+ 
+  str=join(clist :sym) -- join list of characters into string
+ 
+- str=substr(str n|str :after) -- extract characters from a string
++ str=substr(str n|str :after :nonil) -- extract characters from a string (:nonil returns string if no match)
+ 
+  bool=eq(str1 str2 :n len) -- partial string comparison
+ 
+Index: src/ComUtil/popen2.c
+===================================================================
+--- src/ComUtil/popen2.c	(revision 8294)
++++ src/ComUtil/popen2.c	(working copy)
+@@ -52,11 +52,26 @@
+     exit(1);
+   }
+    
++#if 0
+   if(pipe2(fds_processOutput, O_NONBLOCK) != 0) //create  process  output  pipe
+   {
+     fprintf(stderr, "pipe (process output) failed\n");
+     exit(1);
+   }
++#else
++  if(pipe(fds_processOutput) != 0) //create  process  output  pipe
++  {
++    fprintf(stderr, "pipe (process output) failed\n");
++    exit(1);
++  }
++  int flags;
++  for(int i=0; i<2; i++) {
++      flags = fcntl(fds_processOutput[i], F_GETFL, 0);
++      flags |= O_NONBLOCK;
++      fcntl(fds_processOutput[i], F_SETFL, flags);
++  }
++#endif
++
+    
+   //FORKING  A  CHILD  PROCESS:
+   pid_t pid;
+Index: src/Attribute/attrlist.c
+===================================================================
+--- src/Attribute/attrlist.c	(revision 8294)
++++ src/Attribute/attrlist.c	(working copy)
+@@ -204,6 +204,14 @@
+ 
+ boolean AttributeList::IsEmpty () { return _alist->IsEmpty(); }
+ 
++void AttributeList::print_attrlist(AttributeList* al) {
++    print_attrlist(std::cout, al);
++}
++
++void AttributeList::print_attrlist(std::ostream& out, AttributeList* al) {
++    out << *al;
++}
++
+ ostream& operator<< (ostream& out, const AttributeList& al) {
+ 
+     AttributeList* attrlist = (AttributeList*)&al;
+@@ -462,6 +470,12 @@
+ 	        out << *attrval->array_ref();
+   	        out << "}";
+ 	        break;
++	    case AttributeValue::StreamType:
++	        out << "stream";
++	        break;
++	    case AttributeValue::ObjectType:
++	        out << "object(class=" << attrval->obj_type_val() << ", ptr= " << attrval->obj_val() << ")";
++	        break;
+             default:
+ 		out << "nil";
+ 	        break;
+Index: src/Attribute/attrvalue.c
+===================================================================
+--- src/Attribute/attrvalue.c	(revision 8294)
++++ src/Attribute/attrvalue.c	(working copy)
+@@ -742,6 +742,10 @@
+     return _v.objval.type;
+ }
+ 
++const char* AttributeValue::class_name() {
++    return symbol_pntr(_v.objval.type);
++}
++
+ AttributeValueList* AttributeValue::array_val() { 
+ 	return array_ref();
+ }
+@@ -792,6 +796,10 @@
+ void AttributeValue::command_symid(int id, boolean alias) { 
+   _command_symid = (alias ? -1 : 1) * id; }
+ 
++const char* AttributeValue::command_name() {
++    return symbol_pntr(_command_symid);
++}
++
+ ostream& operator<< (ostream& out, const AttributeValue& sv) {
+     AttributeValue* svp = (AttributeValue*)&sv;
+     const char* title;
+Index: src/Attribute/attrlist.h
+===================================================================
+--- src/Attribute/attrlist.h	(revision 8294)
++++ src/Attribute/attrlist.h	(working copy)
+@@ -115,6 +115,12 @@
+     // merge the contents of another AttributeList into this one,
+     // replicating the AttributeValue as needed.
+ 
++    static void print_attrlist(AttributeList* al);
++    // print AttributeList to stdout
++
++    static void print_attrlist(std::ostream& out, AttributeList* al);
++    // print AttributeList to out
++
+ protected:
+     void Append(Attribute*);
+     // append Attribute to end of list.  Could cause duplicates.
+Index: src/Attribute/attrvalue.h
+===================================================================
+--- src/Attribute/attrvalue.h	(revision 8294)
++++ src/Attribute/attrvalue.h	(working copy)
+@@ -225,7 +225,6 @@
+     unsigned int symbol_val();	      // symbol id by value.                        
+     void* obj_val();		      // void* pointer to object by value.          
+     unsigned int obj_type_val();      // classid of object by value.                
+-    unsigned int& class_symid();       // classid of object by value.                
+     AttributeValueList* array_val();  // values in list by value.                   
+     unsigned int array_type_val();    // type of values in list by value            
+     AttributeValueList* list_val();   // values in list by value.                   
+@@ -233,6 +232,10 @@
+     unsigned int keyid_val();	      // symbol id of keyword by value.             
+     unsigned int keynarg_val();	      // number of arguments after keyword by value.
+ 
++    unsigned int& class_symid();      // classid of object.
++    const char* class_name();         // class name of object.
++
++
+     const char* string_ptr();
+     // lookup and return pointer to string associated with string.
+     const char* symbol_ptr();
+@@ -249,8 +252,10 @@
+     // symbol id of associated command name, for use with ComTerp.
+     void command_symid(int, boolean alias=false);
+     // set symbol id of associated command name, for use with ComTerp.
+-    boolean command_alias();
++    // boolean command_alias();
+     // returns true if command is an alias, not the first name.
++    const char* command_name();
++    // returns name of command.
+ 
+     const boolean object_compview() { return is_object() && _object_compview; }
+     // true if object is wrapped with a ComponentView
+Index: src/comterp_/README
+===================================================================
+--- src/comterp_/README	(revision 8294)
++++ src/comterp_/README	(working copy)
+@@ -133,6 +133,8 @@
+ 
+ dbl=log10(x) -- returns the base-10 logarithm of x
+ 
++dbl=log2(x) -- returns the base-2 logarithm of x
++
+ dbl=pow(x y) -- returns the value of x raised to the power of y
+ 
+ dbl=acos(x) -- returns the arc cosine of x in radians
+@@ -265,7 +267,7 @@
+ 
+ str=join(clist :sym) -- join list of characters into string
+ 
+-str=substr(str n|str :after) -- extract characters from a string
++str=substr(str n|str :after :nonil) -- extract characters from a string (:nonil returns string if no match)
+ 
+ bool=eq(str1 str2 :n len) -- partial string comparison
+ 

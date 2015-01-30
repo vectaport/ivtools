@@ -52,7 +52,7 @@ public:
     virtual void execute();
     virtual void execute_body(ComValue&);
     virtual const char* docstring() { 
-	return "%s -- pause script execution until C/R"; }
+	return "%s([msgstr]) -- pause script execution until C/R"; }
     virtual boolean stepfunc() { return false; }
 
 };

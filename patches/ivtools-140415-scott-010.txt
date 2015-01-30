@@ -1,0 +1,72 @@
+Patch:    ivtools-140416-scott-010
+For:      ivtools-1.2.11
+Author:   scott@wavesemi.com
+Subject:  support for ipl development
+
+This is an intermediate patch to ivtools-1.2.11.  To apply, cd to the
+top-level directory of the ivtools source tree (the directory with src
+and config subdirs), and apply like this:
+
+	patch -p0 <ThisFile
+
+Then rebuild with "make;make install"
+
+
+Index: src/ComTerp/postfunc.c
+===================================================================
+--- src/ComTerp/postfunc.c	(revision 8435)
++++ src/ComTerp/postfunc.c	(working copy)
+@@ -256,11 +256,11 @@
+ }
+ 
+ void BreakFunc::execute() {
++  ComValue retval(stack_arg(0,true,ComValue::trueval()));
+   reset_stack();
+ 
+   SeqFunc::breakflag(1);
+ 
+-  ComValue retval(ComValue::trueval());
+   push_stack(retval);
+   return;
+ }
+Index: src/ComTerp/postfunc.h
+===================================================================
+--- src/ComTerp/postfunc.h	(revision 8435)
++++ src/ComTerp/postfunc.h	(working copy)
+@@ -131,7 +131,7 @@
+ 
+     virtual void execute();
+     virtual const char* docstring() { 
+-      return "%s -- break out of for or while loop"; }
++      return "break([retval]) -- break out of for or while loop"; }
+ 
+ };
+ 
+Index: src/man/man1/comterp.1
+===================================================================
+--- src/man/man1/comterp.1	(revision 8435)
++++ src/man/man1/comterp.1	(working copy)
+@@ -235,6 +235,10 @@
+ 
+  val=switch(val key-body-pairs) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
+ 
++ continue -- skip to next iteration of for or while loop
++
++ break([retval]) -- break out of for or while loop
++
+ .SH OTHER COMMANDS
+ 
+  help(cmdname [cmdname ...] :all :posteval) -- help for commands
+Index: src/comterp_/README
+===================================================================
+--- src/comterp_/README	(revision 8435)
++++ src/comterp_/README	(working copy)
+@@ -226,7 +226,7 @@
+ 
+ continue -- skip to next iteration of for or while loop
+ 
+-break -- break out of for or while loop
++break([retval]) -- break out of for or while loop
+ 
+ OTHER COMMANDS
+ 

@@ -85,6 +85,8 @@ compview=frame([index]) -- return composite component for a frame, defaults to c
 val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list.
 num=size(list|attrlist|str|compview) -- return size of a list (or string)
 compview=parent(compview) -- get parent of graphic
+strm=depth(comps) -- depth-first walk of comp tree using stream
+
 
 VIEWER COMMANDS
 

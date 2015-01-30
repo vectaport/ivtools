@@ -298,9 +298,11 @@ int main (int argc, char** argv) {
     // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
     // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
+#if 0
     if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
         cerr << "comdraw:  unable to register quit handler with ACE reactor\n";
+#endif
 
 #endif
     int exit_status = 0;

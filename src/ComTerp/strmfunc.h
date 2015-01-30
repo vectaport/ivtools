@@ -39,6 +39,7 @@ class StrmFunc : public ComFunc {
 public:
     StrmFunc(ComTerp*);
 
+    static void print_stream(std::ostream& out, AttributeValue& streamv);
 };
 
 //: stream command
@@ -49,7 +50,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "strm=%s(ostrm|list|attrlist) -- copy stream or convert list"; }
+      return "strm=%s(ostrm|list|attrlist|val) -- copy stream or convert list (unary $)"; }
 
     CLASS_SYMID("StreamFunc");
 
@@ -76,7 +77,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return ",, is the concat operator"; }
+      return ",, is the stream concat operator"; }
 
     CLASS_SYMID("ConcatFunc");
 
@@ -89,7 +90,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "hidden func used by next command for ,, (concat) operator."; }
+      return "hidden func used by next command for ,, (stream concat) operator."; }
 
     CLASS_SYMID("ConcatNextFunc");
 
@@ -172,5 +173,4 @@ public:
     CLASS_SYMID("FilterNextFunc");
 
 };
-
 #endif /* !defined(_strmfunc_h) */
