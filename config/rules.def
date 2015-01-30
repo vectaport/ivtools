@@ -86,6 +86,10 @@ MakeSpecialWorld(.debug,flags)
 #ifndef MakeWorld2
 #define MakeWorld2(flags)						@@\
 all::									@@\
+	-@if [ ! -f make.imake ]; then \				@@\
+	echo ""; \							@@\
+	$(MAKE) imake; \ 						@@\
+	touch make.imake; fi     					@@\
 	-@if [ ! -f make.makefile ]; then \				@@\
 	echo ""; \							@@\
 	echo "Building $(RELEASE) on `date`"; \			@@\
