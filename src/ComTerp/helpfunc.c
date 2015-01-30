@@ -36,9 +36,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 
 #include <iostream.h>
 #include <strstream>
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 #include <streambuf>
 using std::streambuf;
 
@@ -96,7 +94,6 @@ void HelpFunc::execute() {
 	    comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
 	} else
 	  comfuncs[i] = nil;
-	command_ids[i] = val.string_val();
 	str_flags[i] = true;
       } else {
 	comfuncs[i] = nil;
@@ -163,24 +160,11 @@ void HelpFunc::execute() {
   reset_stack();
 
   std::strstreambuf sbuf;
-#if __GNUC__<3
-  filebuf fbuf;
-  if (comterp()->handler() && HELPOUT) {
-    int fd = Math::max(1, comterp()->handler()->get_handle());
-    fbuf.attach(fd);
-  } 
-  ostream outs( (comterp()->handler() && HELPOUT) ? ((streambuf*)&fbuf) : (streambuf*)&sbuf );
-  ostream *out = &outs;
-#else
-  fileptr_filebuf fbuf((comterp()->handler() && HELPOUT) && comterp()->handler()->wrfptr()
+  FILEBUF(fbuf, comterp()->handler() && HELPOUT && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
-#if 1
   ostream outs((comterp()->handler() && HELPOUT) ? (streambuf*)&fbuf : (streambuf*)&sbuf);
-#else
-  ostream outs((streambuf*)&fbuf);
-#endif
   ostream *out = &outs;
-#endif
+
 
   if (noargs) {
 
@@ -199,21 +183,13 @@ void HelpFunc::execute() {
 	  if (first) 
 	    first = false;
 	  else
-#if 0
-	    out->put('\n');
-#else
 	    *out << '\n';
-#endif
-#if __GNUC__<3
-	  out->form(comfuncs[i]->docstring2(), symbol_pntr(command_ids[i]));
-#else
 	  {
 	    char buffer[BUFSIZ];
 	    snprintf(buffer, BUFSIZ, 
 		     comfuncs[i]->docstring2(), symbol_pntr(command_ids[i]));
 	    *out << buffer;
 	  }
-#endif
 	  printed = true;
 	}
       }
@@ -234,16 +210,12 @@ void HelpFunc::execute() {
 		  first = false;
 		else
 		  out->put('\n');
-#if __GNUC__<3
-		out->form(comfunc->docstring2(), symbol_pntr(value->command_symid()));
-#else
 		{
 		  char buffer[BUFSIZ];
 		  snprintf(buffer, BUFSIZ, 
 			   comfunc->docstring2(), symbol_pntr(value->command_symid()));
 		  *out << buffer;
 		}
-#endif
 	      } else 
 		out_form((*out), "unknown operator: %s\n", symbol_pntr(command_ids[i]));
 
@@ -266,8 +238,8 @@ void HelpFunc::execute() {
 
   if (!comterp()->handler() || !HELPOUT) {
     *out << '\0';
-    int help_str_symid = symbol_add(sbuf.str());
-    ComValue retval(sbuf.str()); 
+    // int help_str_symid = symbol_add(sbuf.str());
+    ComValue retval(sbuf.str());
     push_stack(retval);
   } else
     out->flush();

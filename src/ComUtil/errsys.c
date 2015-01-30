@@ -212,14 +212,14 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
     }
 
     if (!fptr) {
-	strcpy( fullpath, RELLIBALLDIR );
+	strcpy( fullpath, "RELLIBALLDIR" );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");
     }
     
     if (!fptr) {
-	strcpy( fullpath, ABSLIBALLDIR );
+	strcpy( fullpath, "ABSLIBALLDIR" );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");

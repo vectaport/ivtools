@@ -26,11 +26,8 @@
 #ifdef HAVE_ACE
 #include <iostream.h>
 #include <fstream.h>
-#if __GNUC__==2 && __GNUC_MINOR__<=7
-#else
 using namespace std;
 #include <vector>
-#endif
 
 #include <ComTerp/comhandler.h>
 #include <ComTerp/comterpserv.h>
@@ -140,11 +137,7 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 	    return -1;
 	} else {
 	    if (!comterp_->stack_empty()) {
-#if __GNUC__<3
-	      filebuf obuf(1);
-#else
-	      fileptr_filebuf obuf(stdout, ios_base::out);
-#endif
+	      FILEBUF(obuf, stdout, ios_base::out);
 	      ostream ostr(&obuf);
 	      ostr << "timeexpr result:  ";
 	      comterp_->print_stack_top(ostr);
@@ -206,7 +199,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     } else {
       if (inbuf[0]!='\004')
 	cout << "from pipe(" << fd << "):  " << inbuf << "\n";
-      fileptr_filebuf obuf(fd ? wrfptr() : stdout, ios_base::out);
+      FILEBUF(obuf, fd ? wrfptr() : stdout, ios_base::out);
       ostream ostr(&obuf);
       ostr << "\n";
       ostr.flush();

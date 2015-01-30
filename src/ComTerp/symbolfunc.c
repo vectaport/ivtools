@@ -255,15 +255,21 @@ SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void SplitStrFunc::execute() {
+  ComValue zerov(0, ComValue::IntType);
   ComValue commav(',');
   ComValue symvalv(stack_arg(0));
   static int tokstr_symid = symbol_add("tokstr");
-  ComValue tokstrv(stack_key(tokstr_symid, false, commav));
+  ComValue tokstrv(stack_key(tokstr_symid, false, zerov));
   boolean tokstrflag = tokstrv.is_known();
   static int tokval_symid = symbol_add("tokval");
-  ComValue tokvalv(stack_key(tokval_symid, false, commav));
+  ComValue tokvalv(stack_key(tokval_symid, false, zerov));
   boolean tokvalflag = tokvalv.is_known();
   reset_stack();
+
+  boolean tokstr_charflag = tokstrv.is_type(ComValue::CharType);
+  if(tokstrv.is_type(ComValue::IntType)) tokstrv = commav;
+  if(tokvalv.is_type(ComValue::IntType)) tokvalv = commav;
+  
 
   if (symvalv.is_string()) {
     AttributeValueList* avl = new AttributeValueList();
@@ -279,7 +285,7 @@ void SplitStrFunc::execute() {
       char delim = tokstrv.char_val();
       while (*str) {
         int delim1=0;
-        while(*str && (isspace(*str) || *str==delim)) {
+        while(*str && isspace(*str) || *str==delim) {
           if (*str==delim) {
             if ((delim1 || avl->Number()==0) && !isspace(delim) ) {
               ComValue* comval = new ComValue(ComValue::nullval());
@@ -296,7 +302,7 @@ void SplitStrFunc::execute() {
           }
           break;
         }
-        while (*str && !isspace(*str) && *str!=delim && bufoff<BUFSIZ-1) {
+        while (*str && (tokstr_charflag?*str!='\n':!isspace(*str)) && *str!=delim && bufoff<BUFSIZ-1) {
           if(*str=='"') {
             while(*str && (*str!='"' || *(str-1)!='\\') && bufoff<BUFSIZ-1) 
               buffer[bufoff++] = *str++;
@@ -465,6 +471,9 @@ void SubStrFunc::execute() {
   static int after_symid = symbol_add("after");
   ComValue afterflagv(stack_key(after_symid));
   boolean afterflag = afterflagv.is_true();
+  static int nonil_symid = symbol_add("nonil");
+  ComValue nonilflagv(stack_key(nonil_symid));
+  boolean nonilflag = nonilflagv.is_true();
   reset_stack();
 
   if (strv.is_unknown()) {
@@ -481,8 +490,15 @@ void SubStrFunc::execute() {
   }
   else {
     const char* foundstr = strstr(string, nv.symbol_ptr());
-    n = afterflag ?  strlen(string)-(foundstr-string) : foundstr-string;
-    offset = afterflag ? foundstr-string : 0;
+    if(foundstr==NULL) {
+      if(nonilflag)
+	push_stack(strv);
+      else
+	push_stack(ComValue::nullval());
+      return;
+    }
+    n = afterflag ?  strlen(string)-(foundstr-string)-strlen(nv.symbol_ptr()) : foundstr-string;
+    offset = afterflag ? foundstr-string+strlen(nv.symbol_ptr()) : 0;
   };
   if(n>0) { 
     char buffer[n+1];
@@ -491,7 +507,10 @@ void SubStrFunc::execute() {
     ComValue retval(buffer);
     push_stack(retval);
   } else
-    push_stack(ComValue::nullval());
+    if(nonilflag)
+      push_stack(strv);
+    else
+      push_stack(ComValue::nullval());
 }
 
 

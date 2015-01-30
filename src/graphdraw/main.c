@@ -270,10 +270,11 @@ int main (int argc, char** argv) {
     // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
     // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
     // exit.
+#if 0
     if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
         cerr << "graphdraw:  unable to register quit handler with ACE reactor\n";
-
+#endif
 #endif
 
     const char* initial_file = (argc == 2) ? argv[1] : nil;

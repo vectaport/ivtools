@@ -113,6 +113,8 @@ public:
     // print the top of the stack to an ostream.
     int print_stack() const;
     // print the entire stack to stdout.
+    int print_stack(std::ostream& out) const;
+    // print the entire stack to stdout.
     int stack_height() { return _stack_top+1; }
     // return current height of the stack.
     boolean brief() const;

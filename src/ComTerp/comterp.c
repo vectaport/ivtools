@@ -29,9 +29,7 @@
 #include <strstream>
 #include <unistd.h>
 
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 
 #include <ComTerp/comhandler.h>
 
@@ -72,9 +70,7 @@
 #include <string.h>
 #include <strstream>
 #include <unistd.h>
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 
 #ifdef LEAKCHECK
 #include <leakchecker.h>
@@ -297,7 +293,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	avl->Prepend(new AttributeValue(topval));
       }
 
-      ComValue val(sv.obj_val(), avl);
+      ComValue val((ComFunc*)sv.obj_val(), avl);
+      // fprintf(stderr, "Just packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
       val.stream_mode(1); // for external use
       push_stack(val);
       return;
@@ -346,9 +343,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stepflag()) {
-      fileptr_filebuf fbufout(handler() && handler()->wrfptr() 
-		      ? handler()->wrfptr() : stdout, 
-		      ios_base::out);
+      FILEBUF(fbufout, handler() && handler()->wrfptr() ? handler()->wrfptr() : stdout, ios_base::out);
       ostream out(&fbufout);
       out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
       static int pause_symid = symbol_add("pause");
@@ -681,12 +676,15 @@ boolean ComTerp::skip_key(ComValue* topval, int& offset, int offlimit, int& tokc
 boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokcnt) {
   tokcnt = 0;
   ComValue& curr = *(topval+offset);
+  // fprintf(stderr, "offset is %d, topval is at 0x%lx\n", offset, topval);
   if (curr.is_type(ComValue::KeywordType)) {
     cerr << "unexpected keyword found by ComTerp::skip_arg\n";
     return false;
+#if 0
   } else if (curr.is_type(ComValue::UnknownType)) {
-    cerr << "unexpected unknown found by ComTerp::skip_arg\n";
+    cerr << "unexpected nil found by ComTerp::skip_arg\n";
     return false;
+#endif
   } else if (curr.is_type(ComValue::BlankType)) {
     if (offlimit == offset) {
       cerr << "offlimit hit by ComTerp::skip_arg\n";
@@ -750,9 +748,15 @@ ComValue& ComTerp::expr_top(int n) {
 
 
 int ComTerp::print_stack() const {
+    print_stack(cout);
+    return true;
+}
+
+int ComTerp::print_stack(std::ostream& out) const {
     for (int i = _stack_top; i >= 0; i--) {
-	cout << _stack[i] << "\n";
+	out << _stack[i] << "\n";
     }
+    out.flush();
     return true;
 }
 
@@ -1071,22 +1075,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   char errbuf_save[BUFSIZ];
   errbuf_save[0] = '\0';
 
-#if __GNUC__<3
-  filebuf fbuf;
-  if (handler()) {
-    int fd = Math::max(1, handler()->get_handle());
-    fbuf.attach(fd);
-  } else
-    fbuf.attach(fileno(stdout));
-#elif (__GNUC__==3 && __GNUC_MINOR__<1) || __GNUC__>3 || defined(__CYGWIN__)
-  fileptr_filebuf fbuf(handler() && handler()->wrfptr() 
-		       ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout), 
-	       ios_base::out);
-#else
-  fileptr_filebuf fbuf(handler()&&handler()->get_handle()>0 
-		       ? handler()->get_handle() : 1, 
-		       ios_base::out, false, static_cast<size_t>(BUFSIZ));
-#endif
+  FILEBUF(fbuf, handler() && handler()->wrfptr() ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout), ios_base::out);
   ostream out(&fbuf);
   boolean eolflag = false;
   boolean errorflag = false;
@@ -1236,6 +1225,7 @@ void ComTerp::add_defaults() {
     add_command("exp", new ExpFunc(this));
     add_command("log", new LogFunc(this));
     add_command("log10", new Log10Func(this));
+    add_command("log2", new Log2Func(this));
     add_command("pow", new PowFunc(this));
 
     add_command("acos", new ACosFunc(this));
@@ -1358,7 +1348,7 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
 	        err_print( stderr, "comterp" );
-	        fileptr_filebuf obuf(stdout, ios_base::out);
+		FILEBUF(obuf, stdout, ios_base::out);
 		ostream ostr(&obuf);
 		ostr << "err\n";
 		ostr.flush();
@@ -1672,8 +1662,7 @@ void ComTerp::postfix_echo() {
 
 void ComTerp::postfix_echo(postfix_token* pfbuf, int pfnum) {
   // print everything in the pfbuf for this function
-  fileptr_filebuf fbuf(handler() && handler()->wrfptr()
-	       ? handler()->wrfptr() : stdout, ios_base::out);
+  FILEBUF(fbuf,handler() && handler()->wrfptr() ? handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbuf);
  
   boolean oldbrief = brief();

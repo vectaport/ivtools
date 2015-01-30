@@ -32,9 +32,7 @@
 #include <OS/math.h>
 #include <iostream.h>
 #include <string.h>
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 
 #if BUFSIZ>1024
 #undef BUFSIZ
@@ -194,7 +192,7 @@ char* ComTerpServ::fd_fgets(char* s, int n, void* serv) {
     int fd = Math::max(server->_fd, 1);
     char instr[BUFSIZ];
     FILE* ifptr = fd==0 ? stdin : server->handler()->rdfptr();
-    fileptr_filebuf fbuf(ifptr, ios_base::in);
+    FILEBUF(fbuf, ifptr, ios_base::in);
     istream in (&fbuf);
     in.get(instr, BUFSIZ, '\n');  // needs to be generalized with <vector.h>
     server->_instat = in.good(); 
@@ -229,7 +227,7 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 
     int fd = (int)server->_fd;
     FILE* ofptr = fd==1 ? stdout : server->handler()->wrfptr();
-    fileptr_filebuf fbuf(ofptr, ios_base::out);
+    FILEBUF(fbuf, ofptr, ios_base::out);
     ostream out(&fbuf);
     for (; outpos < bufsize-1 && s[outpos]; outpos++)
 	out.put(s[outpos]);
@@ -284,7 +282,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
       pop_servstate();
       return -1;
     }
-    fileptr_filebuf ibuf(ifptr, ios_base::in);
+    FILEBUF(ibuf, ifptr, ios_base::in);
     istream istr(&ibuf);
     ComValue* retval = nil;
     int status = 0;
@@ -334,7 +332,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	        snprintf(buf, BUFSIZ, "comterp(%s)", filename);
 	        err_print( stderr, buf );
                 FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
-	        fileptr_filebuf obuf(ofptr, ios_base::out);
+	        FILEBUF(obuf, ofptr, ios_base::out);
 		ostream ostr(&obuf);
 		ostr.flush();
 		status = -1;
@@ -371,7 +369,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
           snprintf(buf, BUFSIZ, "comterp(%s)", filename);
 	  err_print( stderr, buf );
           FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
-	  fileptr_filebuf obuf(ofptr, ios_base::out);
+	  FILEBUF(obuf, ofptr, ios_base::out);
 	  ostream ostr(&obuf);
 	  ostr.flush();
 	  status = -1;

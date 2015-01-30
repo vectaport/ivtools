@@ -742,6 +742,10 @@ unsigned int& AttributeValue::class_symid() {
     return _v.objval.type;
 }
 
+const char* AttributeValue::class_name() {
+    return symbol_pntr(_v.objval.type);
+}
+
 AttributeValueList* AttributeValue::array_val() { 
 	return array_ref();
 }
@@ -791,6 +795,10 @@ int AttributeValue::list_len() {
 int AttributeValue::command_symid() { return _command_symid; }
 void AttributeValue::command_symid(int id, boolean alias) { 
   _command_symid = (alias ? -1 : 1) * id; }
+
+const char* AttributeValue::command_name() {
+    return symbol_pntr(_command_symid);
+}
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
     AttributeValue* svp = (AttributeValue*)&sv;

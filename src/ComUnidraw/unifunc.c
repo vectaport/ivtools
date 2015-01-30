@@ -54,15 +54,14 @@
 #include <Unidraw/Graphic/graphic.h>
 #include <InterViews/transformer.h>
 #include <InterViews/window.h>
+#include <ComTerp/comhandler.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <Attribute/attrlist.h>
 #include <stdio.h>
 #include <strstream>
 #include <unistd.h>
-#if __GNUC__>=3
 #include <fstream.h>
-#endif
 #include <string.h>
 #include <iostream>
 
@@ -409,48 +408,6 @@ void ExportFunc::execute() {
 #endif
 
 
-#if __GNUC__<3
-    filebuf fbuf;
-    if (file.is_type(ComValue::StringType))
-        fbuf.open(file.string_ptr(), "w");
-
-    else if (sock.is_true()) {
-#ifdef HAVE_ACE
-	ComTerpServ* terp = (ComTerpServ*)comterp();
-	ComterpHandler* handler = (ComterpHandler*)terp->handler();
-	if (handler) {
-	  ACE_SOCK_Stream peer = handler->peer();
-	  fbuf.attach(peer.get_handle());
-	}
-	else
-#endif
-	  fbuf.attach(fileno(stdout));
-    }
-
-    else {
-#ifdef HAVE_ACE
-        const char* hoststr = nil;
-        const char* portstr = nil;
-        hoststr = host.type()==ComValue::StringType ? host.string_ptr() : nil;
-        portstr = port.type()==ComValue::StringType ? port.string_ptr() : nil;
-        u_short portnum = portstr ? atoi(portstr) : port.ushort_val();
-    
-        if (portnum) {
-            socket = new ACE_SOCK_Stream;
-            ACE_SOCK_Connector conn;
-            ACE_INET_Addr addr (portnum, hoststr);
-    
-            if (conn.connect (*socket, addr) == -1)
-                ACE_ERROR ((LM_ERROR, "%p\n", "open"));
-            fbuf.attach(socket->get_handle());
-        } else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
-            fbuf.attach(comterp()->handler()->get_handle());
-        } else
-#endif
-            fbuf.attach(fileno(stdout));
-    }
-
-#else
 
     filebuf* pfbuf;
     FILE* ofptr = nil;
@@ -467,11 +424,11 @@ void ExportFunc::execute() {
 	if (handler) {
 	  ACE_SOCK_Stream peer = handler->peer();
 	  ofptr = fdopen(peer.get_handle(), "r");
-	  pfbuf = new fileptr_filebuf(ofptr, output);
+	  FILEBUFP(pfbuf, ofptr, output);
 	}
 	else 
 #endif
-	  pfbuf = new fileptr_filebuf(stdout, output);
+	  FILEBUFP(pfbuf, stdout, output);
     }
 
     else {
@@ -489,24 +446,19 @@ void ExportFunc::execute() {
     
             if (conn.connect (*socket, addr) == -1)
                 ACE_ERROR ((LM_ERROR, "%p\n", "open"));
-            pfbuf = new fileptr_filebuf(ofptr = fdopen(socket->get_handle(), "r"), output);
+            FILEBUFP(pfbuf, ofptr = fdopen(socket->get_handle(), "r"), output);
         } else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
-            pfbuf = new fileptr_filebuf(comterp()->handler()->rdfptr(), output);
+	  FILEBUFP(pfbuf, comterp()->handler()->rdfptr(), output);
         } else
 #endif
-            pfbuf = new fileptr_filebuf(stdout, output);
+	  FILEBUFP(pfbuf, stdout, output);
     }
 
-#endif
     ostream* out;
     if (string.is_true()||str.is_true())
       out = new std::strstream();
     else
-#if __GNUC__<3      
-      out = new ostream(&fbuf);
-#else
       out = new ostream(pfbuf);
-#endif
 
     if (!compviewv.is_array()) {
 
@@ -568,9 +520,7 @@ void ExportFunc::execute() {
     }
     delete out;
 
-#if __GNUC__>=3
     delete pfbuf;
-#endif    
     
 #ifdef HAVE_ACE
     if (sock.is_false() && socket) {

@@ -1,0 +1,83 @@
+Patch:    ivtools-140324-scott-008
+For:      ivtools-1.2.11
+Author:   scott@wavesemi.com
+Subject:  support for ipl development
+
+This is an intermediate patch to ivtools-1.2.11.  To apply, cd to the
+top-level directory of the ivtools source tree (the directory with src
+and config subdirs), and apply like this:
+
+	patch -p0 <ThisFile
+
+Then rebuild with "make;make install"
+
+
+Index: src/ComUnidraw/grstrmfunc.h
+===================================================================
+--- src/ComUnidraw/grstrmfunc.h	(revision 8415)
++++ src/ComUnidraw/grstrmfunc.h	(revision 8421)
+@@ -37,7 +37,7 @@
+ 
+     virtual void execute();
+     virtual const char* docstring() { 
+-      return "strm=%s(ostrm|list|attrlist|compview) -- copy stream or convert list (unary $)"; }
++      return "strm=%s(ostrm|list|attrlist|val|compview) -- copy stream or convert list (unary $)"; }
+ 
+     CLASS_SYMID("GrStreamFunc");
+ 
+Index: src/ComTerp/strmfunc.c
+===================================================================
+--- src/ComTerp/strmfunc.c	(revision 8415)
++++ src/ComTerp/strmfunc.c	(revision 8421)
+@@ -114,6 +114,12 @@
+       ComValue stream(snfunc, avl);
+       stream.stream_mode(-1); // for internal use (use by this func)
+       push_stack(stream);
++    } else {
++      AttributeValueList* avl = new AttributeValueList();
++      avl->Append(new AttributeValue(operand1));
++      ComValue stream(snfunc, avl);
++      stream.stream_mode(-1); // for internal use (use by this func)
++      push_stack(stream);
+     }
+     
+   }
+Index: src/ComTerp/strmfunc.h
+===================================================================
+--- src/ComTerp/strmfunc.h	(revision 8415)
++++ src/ComTerp/strmfunc.h	(revision 8421)
+@@ -50,7 +50,7 @@
+     virtual void execute();
+     virtual boolean post_eval() { return true; }
+     virtual const char* docstring() { 
+-      return "strm=%s(ostrm|list|attrlist) -- copy stream or convert list (unary $)"; }
++      return "strm=%s(ostrm|list|attrlist|val) -- copy stream or convert list (unary $)"; }
+ 
+     CLASS_SYMID("StreamFunc");
+ 
+Index: src/man/man1/comterp.1
+===================================================================
+--- src/man/man1/comterp.1	(revision 8415)
++++ src/man/man1/comterp.1	(revision 8421)
+@@ -217,7 +217,7 @@
+  
+  val=next(stream) -- return next value from stream
+ 
+- strm=stream(ostrm|list|attrlist) -- copy stream or convert list
++ strm=stream(ostrm|list|attrlist|val) -- copy stream or convert list
+ 
+  cnt=each(strm) -- traverse stream returning its length
+ 
+Index: src/comterp_/README
+===================================================================
+--- src/comterp_/README	(revision 8415)
++++ src/comterp_/README	(revision 8421)
+@@ -204,7 +204,7 @@
+ 
+ val=next(strm) -- return next value from stream
+ 
+-strm=stream(ostrm|list|attrlist) -- copy stream or convert list
++strm=stream(ostrm|list|attrlist|val) -- copy stream or convert list
+ 
+ cnt=each(strm) -- traverse stream returning its length
+ 

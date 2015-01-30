@@ -54,7 +54,7 @@ public:
     // method that needs to be filled in, that will take ComValue arguments
     // off the stack, then compute and push a ComValue result on the stack.
 
-    void exec(int nargs, int nkeys, int pedepth=0, int command_symid=0);
+    virtual void exec(int nargs, int nkeys, int pedepth=0, int command_symid=0);
     // invokes push_funcstate, then plain execute, then pop_funcstate.
     // for use from the body of regular execute methods.
 

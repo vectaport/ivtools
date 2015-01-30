@@ -184,6 +184,8 @@ public:
     // return sizeof of value of given type.
     int type_symid() const;
     // return symbol id corresponding to type
+    const char* type_name() { return symbol_pntr(type_symid()); }
+    // type name of object.
 
     void assignval (const AttributeValue&);
     // copy contents of AttributeValue
@@ -225,13 +227,16 @@ public:
     unsigned int symbol_val();	      // symbol id by value.                        
     void* obj_val();		      // void* pointer to object by value.          
     unsigned int obj_type_val();      // classid of object by value.                
-    unsigned int& class_symid();       // classid of object by value.                
     AttributeValueList* array_val();  // values in list by value.                   
     unsigned int array_type_val();    // type of values in list by value            
     AttributeValueList* list_val();   // values in list by value.                   
     unsigned int list_type_val();     // type of values in list by value            
     unsigned int keyid_val();	      // symbol id of keyword by value.             
     unsigned int keynarg_val();	      // number of arguments after keyword by value.
+
+    unsigned int& class_symid();      // classid of object.
+    const char* class_name();         // class name of object.
+
 
     const char* string_ptr();
     // lookup and return pointer to string associated with string.
@@ -249,8 +254,10 @@ public:
     // symbol id of associated command name, for use with ComTerp.
     void command_symid(int, boolean alias=false);
     // set symbol id of associated command name, for use with ComTerp.
-    boolean command_alias();
+    // boolean command_alias();
     // returns true if command is an alias, not the first name.
+    const char* command_name();
+    // returns name of command.
 
     const boolean object_compview() { return is_object() && _object_compview; }
     // true if object is wrapped with a ComponentView
