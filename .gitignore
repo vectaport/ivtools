@@ -382,3 +382,5 @@ src/AceDispatch/DARWIN/Makefile
 src/AceDispatch/Makefile
 
 Makefile
+
+*.c~
