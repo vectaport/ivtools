@@ -21,7 +21,7 @@
  * 
  */
 
-#if !defined(groupfunc_h)
+#if !defined(_groupfunc_h)
 #define _groupfunc_h
 
 #include <ComUnidraw/unifunc.h>

@@ -25,7 +25,7 @@
  * Scanner returns a stream of tokens for the ComTerp language
  */
 
-#if !defined(scanner_h)
+#if !defined(_scanner_h)
 #define _scanner_h
 
 #include <ComTerp/lexscan.h>

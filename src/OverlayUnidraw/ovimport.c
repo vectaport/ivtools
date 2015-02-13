@@ -479,7 +479,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
 	in.get(buffer,BUFSIZ);
 	in.get(newline);
       } while (buffer[0] == '#');
-      sscanf(buffer, "%d %d", &width, &height);
+      sscanf(buffer, "%ld %ld", &width, &height);
 
       in.get(buffer,BUFSIZ);
       in.get(newline);
@@ -653,6 +653,7 @@ int ReadImageHandler::inputReady(int fd) {
       return -1;              // don't ever call me again (i.e., detach me)
     } 
   }
+  return -1;
 }
 
 // -------------------------------------------------------------------------
@@ -978,7 +979,7 @@ const char* OvImportCmd::ReadCreator (istream& in, FileType& ftype) {
 	} else if (strcmp(line, "%%EndComments\n") == 0) {
 	  break;
 	}
-      } while (in.getline(line, linesz) != NULL);
+      } while (in.getline(line, linesz) != 0);
       chcnt = 0;
       if (!*creator) strcpy(creator, "PostScript");
     }
@@ -1446,7 +1447,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
     char buf[len];
 
     char ch;
-    while (isspace(ch = instrm.get())); instrm.putback(ch);
+    while (isspace(ch = instrm.get())) {}; instrm.putback(ch);
 
     OvImportCmd::FileType filetype;
     const char* creator = ReadCreator(instrm, filetype);
@@ -2463,6 +2464,7 @@ int OvImportCmd::Pipe_Filter (istream& in, const char* filter)
     else 
       return pipe1[0]; 
   }
+  return -1;
 }
 
 GraphicComp*  OvImportCmd::PNM_Image (istream& in, const char* creator) {

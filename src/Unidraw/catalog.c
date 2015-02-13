@@ -660,7 +660,7 @@ void Catalog::ReadExtraData (
     for (int i = 0; !in.eof() && !FoundDelim(delim, *extra_data); ++i) {
         char c;
         in.get(c);
-        extra_data->Insert((void*)(unsigned int)c, i);
+        extra_data->Insert((void*)(unsigned long)c, i);
     }
 }
 
@@ -2002,7 +2002,7 @@ VoidIntElem::VoidIntElem (void* object, int id) {
 }
 
 void* VoidIntElem::id () { return _object; }
-void* VoidIntElem::tag () { return (void*) _id; }
+void* VoidIntElem::tag () { return (void*) (long)_id; }
 
 /*****************************************************************************/
 
@@ -2065,7 +2065,7 @@ inline ObjectMapElem* ObjectMap::Find (void* obj) {
 }
 
 inline ObjectMapElem* ObjectMap::Find (int id) {
-    return (ObjectMapElem*) _idKeys.Find((void*) id);
+    return (ObjectMapElem*) _idKeys.Find((void*) (long)id);
 }
 
 ObjectMap::ObjectMap (
@@ -2081,7 +2081,7 @@ void ObjectMap::Register (void* obj, int id) {
     ObjectMapElem* objElem = new ObjectMapElem(elem);
     ObjectMapElem* idElem = new ObjectMapElem(elem);
     _objKeys.Register(obj, objElem);
-    _idKeys.Register((void*) id, idElem);
+    _idKeys.Register((void*) (long) id, idElem);
 }
 
 void ObjectMap::Register (
@@ -2094,7 +2094,7 @@ void ObjectMap::Register (
     );
     ObjectMapElem* idElem = new ObjectMapElem(elem);
     _objKeys.Register(obj, objElem);
-    _idKeys.Register((void*) id, idElem);
+    _idKeys.Register((void*) (long) id, idElem);
 }
 
 void ObjectMap::Unregister (void* obj) {
@@ -2111,7 +2111,7 @@ void ObjectMap::Unregister (int id) {
 
     if (idElem != nil) {
         _objKeys.Unregister(idElem->GetObject());
-        _idKeys.Unregister((void*) id);
+        _idKeys.Unregister((void*) (long) id);
     }
 }
 

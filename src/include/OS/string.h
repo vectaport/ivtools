@@ -29,6 +29,7 @@
  * String - simple (non-copying) string class
  */
 
+#include <ignores.h>
 #include <OS/enter-scope.h>
 
 #include <iosfwd>

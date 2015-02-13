@@ -47,6 +47,10 @@
 declarePtrList(EditorImpl,TransientWindow)
 implementPtrList(EditorImpl,TransientWindow)
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 /*****************************************************************************/
 
 static void DetachComponentViews (Editor* ed) {

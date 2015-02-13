@@ -21,7 +21,7 @@
  * 
  */
 
-#if !defined(framefunc_h)
+#if !defined(_framefunc_h)
 #define _framefunc_h
 
 #include <ComUnidraw/unifunc.h>

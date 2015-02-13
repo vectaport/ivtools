@@ -40,6 +40,11 @@
 #include <OS/memory.h>
 #include <IV-X11/xdisplay.h>
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wswitch"
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #undef max
 #undef min
 

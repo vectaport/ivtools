@@ -12,7 +12,7 @@ Author:
 	Computer Systems Laboratory, DCRT
 	National Institutes of Health
 	Bethesda, MD 20892
-
+*/
 /* Log:	Time.h,v 
  * Revision 3.11  92/07/26  14:33:59  sandy
  * include directive in form '#include <nihcl/foo.h>'

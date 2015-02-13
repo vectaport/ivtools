@@ -988,6 +988,7 @@ int OverlaysComp::GetIndexForComp (OverlayComp* comp)
     Next(it);
   }
   if (Done(it)) return -1;
+  return 0;
 }
 
 int OverlaysComp::Count() {

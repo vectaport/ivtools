@@ -25,7 +25,7 @@
  */
 
 #ifndef unidraw_graphic_util_h
-#define unidraw_util_h
+#define unidraw_graphic_util_h
 
 #include <IV-2_6/InterViews/defs.h>
 #include <Unidraw/enter-scope.h>

@@ -23,7 +23,7 @@ Function:
 	
 Provides an object that represents a Time, stored as the number of
 seconds since January 1, 1901, GMT.
-
+*/
 /*
   Modified by Vectaport Inc.  - added operator << plus other small stuff.
 */

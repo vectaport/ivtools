@@ -879,7 +879,7 @@ Return Value:  maximum priority in operator table
 
 Parameters:  none
 
-
+*/
 /*!
 Description:
 
@@ -916,7 +916,7 @@ Return Value:  0 if OK, -1 if Error
 
 Parameters:  none
 
-
+*/
 /*!
 Description:
 

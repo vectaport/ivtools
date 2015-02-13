@@ -25,6 +25,9 @@
  * Implementation of DrawServ class.
  */
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <DrawServ/ackback-handler.h>
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawkit.h>
@@ -632,9 +635,9 @@ void DrawServ::print_gridtable() {
   printf("----------  ----------  ----------  ----------  --------\n");
   while(it.more()) {
     GraphicId* grid = (GraphicId*)it.cur_value();
-    printf("0x%08x  0x%08x  0x%08x  0x%08x  %s\n", 
-	   (unsigned int)it.cur_key(), grid, grid->grcomp(),
-	   grid->selector(), LinkSelection::selected_string(grid->selected()));
+    printf("0x%08x  0x%08lx  0x%08lx  0x%08lx  %s\n", 
+	   (unsigned int)it.cur_key(), (unsigned long)grid, (unsigned long)grid->grcomp(),
+	   (unsigned long)grid->selector(), LinkSelection::selected_string(grid->selected()));
     it.next();
   }
 }
@@ -647,8 +650,8 @@ void DrawServ::print_sidtable() {
   while(it.more()) {
     SessionId* sid = (SessionId*)it.cur_value();
     DrawLink* link = sid->drawlink();
-    printf("0x%08x  0x%08x  0x%08x  %4d  %4d  %6d  %6d  %16s  %16s\n", 
-	   sid->sid(), sid->osid(), link, 
+    printf("0x%08x  0x%08x  0x%08lx  %4d  %4d  %6d  %6d  %16s  %16s\n", 
+	   sid->sid(), sid->osid(), (unsigned long)link, 
 	   link ? link->local_linkid() : 9999, link ? link->remote_linkid() : 9999, 
 	   sid->pid(), sid->hostid(), sid->username(), sid->hostname());
     it.next();

@@ -113,9 +113,9 @@ private:
 
 class PushButton : public TextButton {
 public:
-    PushButton(const char*, ButtonState*, int);
+    PushButton(const char*, ButtonState*, long);
     PushButton(const char*, ButtonState*, void*);
-    PushButton(const char*, const char*, ButtonState*, int);
+    PushButton(const char*, const char*, ButtonState*, long);
     PushButton(const char*, const char*, ButtonState*, void*);
     virtual ~PushButton();
 
@@ -129,9 +129,9 @@ private:
 
 class RadioButton : public TextButton {
 public:
-    RadioButton(const char*, ButtonState*, int);
+    RadioButton(const char*, ButtonState*, long);
     RadioButton(const char*, ButtonState*, void*);
-    RadioButton(const char*, const char*, ButtonState*, int);
+    RadioButton(const char*, const char*, ButtonState*, long);
     RadioButton(const char*, const char*, ButtonState*, void*);
     virtual ~RadioButton();
 
@@ -145,9 +145,9 @@ private:
 
 class CheckBox : public TextButton {
 public:
-    CheckBox(const char*, ButtonState*, int, int);
+    CheckBox(const char*, ButtonState*, long, long);
     CheckBox(const char*, ButtonState*, void*, void*);
-    CheckBox(const char*, const char*, ButtonState*, int, int);
+    CheckBox(const char*, const char*, ButtonState*, long, long);
     CheckBox(const char*, const char*, ButtonState*, void*, void*);
     virtual ~CheckBox();
 

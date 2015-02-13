@@ -23,9 +23,14 @@
 
 #ifdef HAVE_ACE
 
+#include <iosfwd>
 using namespace std;
 #include <vector>
 #include <err.h>
+
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 
 #include <DrawServ/ackback-handler.h>
 #include <DrawServ/draweditor.h>
@@ -135,7 +140,7 @@ void AckBackHandler::set_handle (ACE_HANDLE handle) {
 
 int  AckBackHandler::handle_close (ACE_HANDLE handle, ACE_Reactor_Mask mask)
 {
-  fprintf(stderr, "AckBackHandler::handle_close called with mask 0x%x\n", mask);
+  fprintf(stderr, "AckBackHandler::handle_close called with mask 0x%lx\n", mask);
   if(_timer_started && !ComterpHandler::reactor_singleton()->cancel_timer(_timerid, nil))
     cerr << "unable to cancel timerid " << _timerid << "\n";
   else

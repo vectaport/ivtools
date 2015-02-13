@@ -136,7 +136,7 @@ void RunFunc::execute() {
         _comterp->set_args(path);
         const char* oldptr = path;
         char* newptr = runpath+strlen(runpath);
-        bufleft -+ strlen(runpath);
+        bufleft -= strlen(runpath);
         while(!isspace(*oldptr) && *oldptr && --bufleft)
             *newptr++ = *oldptr++;
         *newptr = '\0';

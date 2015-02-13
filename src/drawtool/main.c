@@ -30,6 +30,9 @@
 
 
 #ifdef HAVE_ACE
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 #include <ComTerp/comhandler.h>

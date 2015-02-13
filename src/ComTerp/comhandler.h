@@ -30,6 +30,10 @@
 
 #ifdef HAVE_ACE
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <stdio.h>
 #ifdef __alpha__
 #define __USE_GNU
