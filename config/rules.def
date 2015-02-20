@@ -20,6 +20,11 @@
 #ifndef MakeCPU
 #define MakeCPU()							@@\
 CPU:									@@\
+	-@if [ ! -f /usr/local/bin/imake ]; then \			@@\
+	echo building and installing /usr/local/bin/imake; \ 		@@\
+	gcc src/imake/imake.c; \					@@\
+	sudo install -c -m 0755 a.out /usr/local/bin/imake; \		@@\
+	rm a.out; fi 	   	      					@@\
 	@$(SHELL) $(SCRIPTSRC)/cpu.sh $(CONFIGSRC)/arch.def
 #endif
 
