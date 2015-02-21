@@ -60,6 +60,8 @@ Log: Date.c,v
   Modified by Vectaport, Inc.
 */
 
+#include <cstdio>
+
 #include <Time/Date.h>
 #include <Time/Time_.h>
 #include <OS/string.h>
@@ -68,7 +70,10 @@ Log: Date.c,v
 using namespace std;
 #include <ctype.h>
 #include <string.h>
-#include <stdio.h>
+#include <iostream>
+
+using std::setfill;
+using std::setw;
 
 #define	THIS	Date
 #define	BASE	Object

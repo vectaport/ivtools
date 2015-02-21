@@ -386,7 +386,7 @@ void PinGraphic::getExtent (
 
     transform(fx - PIN_RAD, fy, rx, ry, gs);
     transform(fx, fy, cx, cy, gs);
-    rad = sqrt(square(rx - cx) + square(ry - cy));
+    rad = hypot(rx - cx, ry - cy);
     l = cx - rad;
     b = cy - rad;
     tol = 0;

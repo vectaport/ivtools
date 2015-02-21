@@ -1,6 +1,7 @@
 #ifndef _iv_fstream_
 #define _iv_fstream_
 #include <fstream>
+#include <cstdio>
 #define input ios_base::in
 #define output ios_base::out
 #if !defined(__APPLE_CC__) || __APPLE_CC__==1

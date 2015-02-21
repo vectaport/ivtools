@@ -221,8 +221,6 @@ make.make
 
 src/scripts/ivmkmf
 
-src/utils/DARWIN/ivtmpnam
-
 src/utils/DARWIN/stdcmapppm
 
 *.dylib
@@ -396,3 +394,7 @@ src/AceDispatch/Makefile
 MANIFEST.comterp~
 
 MANIFEST~
+
+LINUX/
+
+/config/config-linux-gcc.defs

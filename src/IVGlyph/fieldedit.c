@@ -21,6 +21,8 @@
  * 
  */
 
+#include <cstdio>
+
 #include <IVGlyph/fieldedit.h>
 #include <IVGlyph/figure.h>
 #include <IVGlyph/textbuff.h>

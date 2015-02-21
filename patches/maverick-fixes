@@ -3672,7 +3672,7 @@
 *** 1556,1570 ****
   	      new_fd = fileno(pptr);
   	  } else 
-  	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
+  	    new_fd = Pipe_Filter(*in, "tf=`tempname`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
 - #if __GNUC__<3
 - 	  ifstream new_in;
 -           new_in.rdbuf()->attach(new_fd);
@@ -3688,7 +3688,7 @@
 --- 1514,1523 ----
   	      new_fd = fileno(pptr);
   	  } else 
-  	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
+  	    new_fd = Pipe_Filter(*in, "tf=`tempname`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
   	  FILE* ifptr = fdopen(new_fd, "r");
   	  helper.add_file(ifptr);
 ! 	  FILEBUF(fbuf, ifptr, ios_base::in);

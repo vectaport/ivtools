@@ -59,13 +59,16 @@ enum {PA, PB, PC, PD};		    // planes
 enum {RED, GREEN, BLUE};	    // colors
 enum {KA, KD, KS, ES};		    // phong coefficients
 
-// Linux already defines these
-#if 0
 //
 //	PI
 //
+#ifndef M_PI
 const double M_PI = 3.14159265358979323846;		// per CRC handbook, 14th. ed.
+#endif
+#ifndef M_PI_2
 const double M_PI_2 = (M_PI/2.0);				// PI/2
+#endif
+#ifndef M2_PI
 const double M2_PI = (M_PI*2.0);				// PI*2
 #endif
 
@@ -1239,7 +1242,7 @@ inline mat3 translation2D(const vec2& v)
 		vec3(0.0, 0.0, 1.0)); }
 
 inline mat3 rotation2D(const vec2& Center, const double angleDeg) {
-    double  angleRad = angleDeg * M_PI / 180.0,
+    double  angleRad = radians(angleDeg),
 	    c = cos(angleRad),
 	    s = sin(angleRad);
 
@@ -1266,7 +1269,7 @@ inline mat4 translation3D(const vec3& v)
 		vec4(0.0, 0.0, 0.0, 1.0)); }
 
 inline mat4 rotation3D(vec3 Axis, const double angleDeg) {
-    double  angleRad = angleDeg * M_PI / 180.0,
+    double  angleRad = radians(angleDeg),
 	    c = cos(angleRad),
 	    s = sin(angleRad),
 	    t = 1.0 - c;

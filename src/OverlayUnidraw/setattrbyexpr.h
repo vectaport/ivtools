@@ -37,7 +37,7 @@ class AttrDialog;
 //: command to set attributes on a component by evaluating an expression.
 // This command checks for a non-empty selection in the current editor,
 // then pops up a dialog box for entering attribute expressions to evaluate.
-// symbols on the right hand side of an assigment operator are used to
+// symbols on the right hand side of an assignment operator are used to
 // look up and return values from the property list (AttributeList) of
 // a component.  symbols on the left-hand side of an assignment operator are
 // used to create or modify an entry in the same component property list.

@@ -23,6 +23,7 @@
  * 
  */
 
+#include <cstdio>
 #include <ctype.h>
 #include <iostream.h>
 #include <string.h>

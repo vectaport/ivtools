@@ -25,6 +25,8 @@
  * GraphCatalog implementation.
  */
 
+#include <cstdio>
+
 #include <OverlayUnidraw/paramlist.h>
 
 #include <GraphUnidraw/graphcatalog.h>

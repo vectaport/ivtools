@@ -21,6 +21,8 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <cstdio>
+
 #ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
 #include <ace/SOCK_Connector.h>
@@ -135,9 +137,10 @@ int main(int argc, char *argv[]) {
 
     FILE* inptr = argc>=5 ? fopen(argv[4], "r") : stdin;
 
+    FILE* ofptr = nil;
+
     if (!telcat_flag) {
       
-      FILE* ofptr = nil;
       FILEBUF(obuf, ofptr = fdopen(server.get_handle(), "w"), ios_base::out);
       ostream out(&obuf);
       

@@ -26,9 +26,12 @@
  * Regexp - regular expression searching
  */
 
+#include <cstdio>
 #include <InterViews/regexp.h>
 #include <stream.h>
 #include <string.h>
+#include <iostream>
+#include <fstream>
 using std::cerr;
 
 /*

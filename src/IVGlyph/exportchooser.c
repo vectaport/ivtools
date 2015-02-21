@@ -27,6 +27,8 @@
  * ExportChooser -- select a file/command to export graphics to
  */
 
+#include <cstdio>
+
 #include <IVGlyph/exportchooser.h>
 #include <IVGlyph/enumform.h>
 #include <IVGlyph/textform.h>
@@ -53,7 +55,6 @@
 #include <OS/string.h>
 
 #include <iostream.h>
-#include <stdio.h>
 #include <string.h>
 
 implementActionCallback(ExportChooserImpl)

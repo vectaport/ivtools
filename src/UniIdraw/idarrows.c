@@ -225,7 +225,7 @@ void ArrowLine::SetArrows (boolean h, boolean t) {
     _head = h ? new Arrowhead(_x0, _y0, width, height) : nil;
     _tail = t ? new Arrowhead(_x1, _y1, width, height) : nil;
 
-    float angle = atan2(_y0-_y1, _x0-_x1)*180/M_PI;
+    float angle = degrees(atan2f(_y0-_y1, _x0-_x1));
 
     if (h) _head->Rotate(angle-90, _x0, _y0);
     if (t) _tail->Rotate(angle+90, _x1, _y1);
@@ -429,8 +429,8 @@ void ArrowMultiLine::SetArrows (boolean h, boolean t) {
     _head = h ? new Arrowhead(x()[0], y()[0], width, height) : nil;
     _tail = t ? new Arrowhead(x()[l], y()[l], width, height) : nil;
 
-    float head_angle = atan2(y()[0]-y()[1], x()[0]-x()[1])*180/M_PI;
-    float tail_angle = atan2(y()[k]-y()[l], x()[k]-x()[l])*180/M_PI;
+    float head_angle = degrees(atan2f(y()[0]-y()[1], x()[0]-x()[1]));
+    float tail_angle = degrees(atan2f(y()[k]-y()[l], x()[k]-x()[l]));
 
     if (h) _head->Rotate(head_angle-90, x()[0], y()[0]);
     if (t) _tail->Rotate(tail_angle+90, x()[l], y()[l]);
@@ -623,8 +623,8 @@ void ArrowOpenBSpline::SetArrows (boolean h, boolean t) {
     _head = h ? new Arrowhead(x()[0], y()[0], width, height) : nil;
     _tail = t ? new Arrowhead(x()[l], y()[l], width, height) : nil;
 
-    float head_angle = atan2(y()[0]-y()[3], x()[0]-x()[3])*180/M_PI;
-    float tail_angle = atan2(y()[k]-y()[l], x()[k]-x()[l])*180/M_PI;
+    float head_angle = degrees(atan2f(y()[0]-y()[3], x()[0]-x()[3]));
+    float tail_angle = degrees(atan2f(y()[k]-y()[l], x()[k]-x()[l]));
 
     if (h) _head->Rotate(head_angle-90, x()[0], y()[0]);
     if (t) _tail->Rotate(tail_angle+90, x()[l], y()[l]);

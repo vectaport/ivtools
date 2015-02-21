@@ -30,6 +30,7 @@
  */
 
 #include <ignores.h>
+#include <cstdio>
 #include <OS/enter-scope.h>
 
 #include <iosfwd>

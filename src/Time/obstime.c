@@ -21,6 +21,7 @@
  * 
  */
 
+#include <cstdio>
 #include <Time/obstime.h>
 
 ObservableTime::ObservableTime(Time* th) {

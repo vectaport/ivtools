@@ -31,6 +31,9 @@
 #include <stream.h>
 #include <OS/math.h>
 
+using std::cerr;
+using std::endl;
+
 void clippoly(ClipOperation op, 
 	      int n1, float* x1, float* y1, int n2, float* x2, float* y2,
 	      int& npolys, int*& ni, float**& x, float**& y

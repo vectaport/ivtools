@@ -41,6 +41,7 @@
 #include <InterViews/Bitmaps/radio.bm>
 #include <OS/math.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <IV-2_6/_enter.h>
 
@@ -357,7 +358,7 @@ TextButton::~TextButton() {
 }
 
 PushButton::PushButton(
-    const char* str, ButtonState* s, long v
+    const char* str, ButtonState* s, intptr_t v
 ) : TextButton(str, s, (void*)v) {
     Init();
 }
@@ -369,7 +370,7 @@ PushButton::PushButton(
 }
 
 PushButton::PushButton(
-    const char* name, const char* str, ButtonState* s, long v
+    const char* name, const char* str, ButtonState* s, intptr_t v
 ) : TextButton(name, str, s, (void*)v) {
     Init();
 }
@@ -445,7 +446,7 @@ static Bitmap* radioChosen;
 static Bitmap* radioBoth;
 
 RadioButton::RadioButton(
-    const char* str, ButtonState* s, long v
+    const char* str, ButtonState* s, intptr_t v
 ) : TextButton(str, s, (void*)v) {
     Init();
 }
@@ -457,7 +458,7 @@ RadioButton::RadioButton(
 }
 
 RadioButton::RadioButton(
-    const char* name, const char* str, ButtonState* s, long v
+    const char* name, const char* str, ButtonState* s, intptr_t v
 ) : TextButton(name, str, s, (void*)v) {
     Init();
 }
@@ -533,7 +534,7 @@ void RadioButton::Refresh() {
 }
 
 CheckBox::CheckBox(
-    const char* str, ButtonState* s, long on, long off
+    const char* str, ButtonState* s, intptr_t on, intptr_t off
 ) : TextButton(str, s, (void*)on) {
     Init((void*)off);
 }
@@ -545,7 +546,7 @@ CheckBox::CheckBox(
 }
 
 CheckBox::CheckBox(
-    const char* name, const char* str, ButtonState* s, long on, long off
+    const char* name, const char* str, ButtonState* s, intptr_t on, intptr_t off
 ) : TextButton(name, str, s, (void*)on) {
     Init((void*)off);
 }

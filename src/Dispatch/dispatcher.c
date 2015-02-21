@@ -393,6 +393,10 @@ void ChildQueue::notify() {
 #define NOFILE 256
 #endif
 
+#ifndef NOFILE
+#define NOFILE 256
+#endif
+
 Dispatcher::Dispatcher() {
     _nfds = 0;
     _rmask = new FdMask;
