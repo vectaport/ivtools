@@ -72,7 +72,7 @@ class CSocket {
   void PConnect();  // Sets up a passive socket connection.
   int Listen(); // Blocks until incoming connection is made.
 
-  int ReadWrite(fstream&, String, char*); // Socket reading and file writing. 
+  int ReadWrite(std::fstream&, String, char*); // Socket reading and file writing. 
   
   // Closes a socket connection, given a file descriptor.
   void Shutdown(int);             

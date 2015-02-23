@@ -216,7 +216,7 @@ void clippoly(ClipOperation op,
 	}
 	break;
     default:
-	cerr << "Error: uknown clippoly operation" << endl;
+      std::cerr << "Error: uknown clippoly operation" << std::endl;
 	break;
     }
 

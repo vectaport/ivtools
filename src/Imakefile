@@ -77,7 +77,6 @@ SUBDIRS = \
 	\
 	include \
 	scripts \
-	utils \
 	tests \
 	\
 	ivxt_name \

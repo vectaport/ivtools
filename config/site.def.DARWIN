@@ -63,7 +63,11 @@
 #if 0
 #define SharedLibraryCmd(ldobjs,extra_flags) $(LD) -r extra_flags -o $@~ ldobjs
 #else
+#ifdef InstallRelative
+#define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name Prefix/lib/$(CPU)/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
+#else
 #define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name Prefix/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
+#endif
 #endif
 
 #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
