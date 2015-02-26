@@ -75,6 +75,7 @@ extern "C"
 LeakChecker* OverlayComp::_leakchecker = nil;
 #endif
 
+ComTerp* OverlayComp::_comterp = nil;
 
 /*****************************************************************************/
 

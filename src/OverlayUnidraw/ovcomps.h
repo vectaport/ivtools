@@ -31,6 +31,7 @@
 
 #include <leakchecker.h>
 
+#include <ComTerp/comterp.h>
 #include <UniIdraw/idcomp.h>
 #include <InterViews/observe.h>
 #include <Attribute/classid.h>
@@ -189,6 +190,12 @@ public:
     virtual OverlayComp* GetUp() { return (OverlayComp*)GetParent(); }
     // usually same as parent
 
+    static void comterp(ComTerp* terp) { _comterp = terp; }
+    // set static ComTerp pointer
+
+    static ComTerp* comterp() { return _comterp; }
+    // get static ComTerp pointer
+
 protected:
     ParamList* GetParamList();
     // return ParamList of required/optional/keyword arguments to be read
@@ -209,6 +216,7 @@ protected:
     OverlayComp* _parent;
     AttributeList* _attrlist;
     boolean _notify_deferred;
+    static ComTerp* _comterp;
 
 friend class OverlayScript;
 friend class OverlaysScript;
