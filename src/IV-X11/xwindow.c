@@ -59,9 +59,9 @@
 #include <OS/string.h>
 #include <OS/table.h>
 #include <X11/Xatom.h>
-#ifdef HAVE_SYS_IOCTL_H
+// #ifdef HAVE_SYS_IOCTL_H
 #include <sys/ioctl.h>
-#endif
+// #endif
 #include <iostream.h>
 #include <fstream>
 

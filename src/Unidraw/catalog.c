@@ -660,7 +660,7 @@ void Catalog::ReadExtraData (
     for (int i = 0; !in.eof() && !FoundDelim(delim, *extra_data); ++i) {
         char c;
         in.get(c);
-        extra_data->Insert((void*)(unsigned intptr_t)c, i);
+        extra_data->Insert((void*)(intptr_t)c, i);
     }
 }
 
