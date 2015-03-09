@@ -221,8 +221,6 @@ make.make
 
 src/scripts/ivmkmf
 
-src/utils/DARWIN/ivtmpnam
-
 src/utils/DARWIN/stdcmapppm
 
 *.dylib
@@ -408,3 +406,9 @@ src/IV/DARWIN/g3states.h
 src/IV/DARWIN/g3states.h
 
 src/IV/DARWIN/g3states.h
+
+LINUX/
+
+config/config-linux-gcc.defs
+
+src/utils/DARWIN/ivtmpnam

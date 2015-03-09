@@ -1822,7 +1822,6 @@ ivtools-1.2/src/utils/ftp.h
 ivtools-1.2/src/utils/http.cc
 ivtools-1.2/src/utils/http.h
 ivtools-1.2/src/utils/ivdl.cc
-ivtools-1.2/src/utils/ivtmpnam.c
 ivtools-1.2/src/utils/parse.h
 ivtools-1.2/src/utils/readwrite.h
 ivtools-1.2/src/utils/sockets.cc

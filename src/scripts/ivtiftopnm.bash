@@ -8,7 +8,7 @@
 #     $1 optional tiff image filename
 #
 case "$#" in 
-        0)      tempfile=`tmpnam`
+        0)      tempfile=`tempfile`
 		cat >$tempfile
 		tifftopnm $tempfile
 		rm $tempfile

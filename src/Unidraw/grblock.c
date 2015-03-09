@@ -468,7 +468,7 @@ void GraphicBlock::RateScroll (Event& e) {
         if (dx == 0 && dy == 0) {
             SetCursor(origCursor);
         } else {
-            double angle = atan2(dy, dx)*180/M_PI;
+	     double angle = degrees(atan2(dy, dx));
 
             if (angle < -157.5) {
                 SetCursor(kit.rfast_cursor());

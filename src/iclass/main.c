@@ -24,6 +24,7 @@
  * InterViews class browser main program.
  */
 
+#include <cstdio>
 #include "classbuffer.h"
 #include "iclass.h"
 

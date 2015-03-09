@@ -71,6 +71,11 @@ extern "C"
 }
 #endif
 
+// No MAXPATHLEN on GNU Hurd, cobble something up.
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 4096
+#endif
+
 #ifdef LEAKCHECK
 LeakChecker* OverlayComp::_leakchecker = nil;
 #endif

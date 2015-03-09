@@ -7,14 +7,6 @@ PACKAGE = utils_ivtools
 #ifdef InObjectCodeDir
 
 
-#if !LibStdCPlusPlusV3
-all:: ivtmpnam stdcmapppm ivdl
-#else
-all:: ivtmpnam stdcmapppm
-#endif
-
-BuildProgram(ivtmpnam,NullParameter,ivtmpnam.o,,)
-InstallProgram(ivtmpnam,$(BINDIR),ivtmpnam)
 BuildProgram(stdcmapppm,NullParameter,stdcmapppm.o,,)
 InstallProgram(stdcmapppm,$(BINDIR),stdcmapppm)
 #if !LibStdCPlusPlusV3
@@ -27,11 +19,6 @@ InstallProgram(ivdl,$(BINDIR),ivdl)
 #endif
 
 DependTarget();
-
-ivtmpnam: ivtmpnam.o
-ivtmpnam.o: ../ivtmpnam.c
-	@$(RM) ivtmpnam.o
-	$(CDRIVER) -c ../ivtmpnam.c
 
 stdcmapppm: stdcmapppm.o
 stdcmapppm.o: ../stdcmapppm.c

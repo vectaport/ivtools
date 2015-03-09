@@ -22,6 +22,7 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <cstdio>
 #include <OS/string.h>
 #include <ctype.h>
 #include <string.h>

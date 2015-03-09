@@ -1848,7 +1848,7 @@ static float dist(
 ) {
     float xd = x2 - x1;
     float yd = y2 - y1;
-    return sqrt((xd*xd) + (yd*yd));
+    return hypot(xd, yd);;
 }
 
 

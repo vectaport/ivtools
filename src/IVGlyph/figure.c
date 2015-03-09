@@ -217,15 +217,8 @@ boolean Graphic31::manipulating (const Event& e, Tool31& tool) {
                     float ldy = ly-cy; float ldx = lx-cx;
                     float dy = y-cy; float dx = x-cx;
 
-                    float cur = atan(ldy/ldx)/pi*180.0;
-                    float last = atan(dy/dx)/pi*180.0;
-
-                    if (ldx < 0.0) {
-                        cur += 180.0;
-                    }
-                    if (dx < 0.0) {
-                        last += 180.0;
-                    }
+		    float cur = degrees(atan2f(ldy, ldx));
+		    float last = degrees(atan2f(dy, dx));
                         
                     rotate(cur-last, cx, cy);
                     ts._last = e;

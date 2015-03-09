@@ -1506,15 +1506,15 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  if (pathname && !return_fd && !cmdflag) {
 	    char buffer[BUFSIZ];
 	    if (compressed) 
-	      sprintf(buffer, "tf=`ivtmpnam`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      sprintf(buffer, "tf=`tempname`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    else
-	      sprintf(buffer, "tf=`ivtmpnam`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      sprintf(buffer, "tf=`tempname`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    pptr = popen(buffer, "r");
 	    cerr << "input opened with " << buffer << "\n";
 	    if (pptr) 
 	      new_fd = fileno(pptr);
 	  } else 
-	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
+	    new_fd = Pipe_Filter(*in, "tf=`tempname`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
 	  FILE* ifptr = fdopen(new_fd, "r");
 	  helper.add_file(ifptr);
 	  FILEBUF(fbuf, ifptr, ios_base::in);
@@ -1595,9 +1595,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  char buffer[BUFSIZ];
 	  if (dithermap_flag) {
 	    if (compressed) 
-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
+	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
 	    else
-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
+	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
 	  } else {
 	    if (compressed) 
 	      sprintf(buffer, "gunzip -c %s | djpeg  -pnm", pathname);
@@ -1615,7 +1615,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  }
 	} else {
 	  if (dithermap_flag) 
-	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
+	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
 	  else 
 	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "djpeg -pnm");
 	}

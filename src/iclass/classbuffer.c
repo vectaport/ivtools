@@ -46,6 +46,11 @@
 #define S_ISDIR(mode) (((mode) & S_IFMT) == S_IFDIR)
 #endif
 
+// No MAXPATHLEN on GNU Hurd, cobble something up.
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 4096
+#endif
+
 /*****************************************************************************/
 
 static const int MINTEXTSIZE = 10000;
