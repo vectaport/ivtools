@@ -674,7 +674,7 @@ pnmtopgm: src/scripts/pnmtopgm.sh
 	chmod a+x $@
 
 bin_PROGRAMS = comdraw comterp comtest dclock drawserv drawtool		\
-flipbook gclock glyphterp graphdraw iclass idemo idraw ivtext ivtmpnam	\
+flipbook gclock glyphterp graphdraw iclass idemo idraw ivtext		\
 stdcmapppm
 
 comdraw_SOURCES = src/comdraw/main.cc
@@ -700,7 +700,6 @@ src/iclass/iclass.h src/iclass/main.cc
 idemo_SOURCES = src/idemo/main.cc
 idraw_SOURCES = src/idraw/main.cc
 ivtext_SOURCES = src/ivtext/main.cc
-ivtmpnam_SOURCES = src/utils/ivtmpnam.c # C
 stdcmapppm_SOURCES = src/utils/stdcmapppm.c # C
 
 
@@ -725,7 +724,6 @@ iclass_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 idemo_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
 idraw_CPPFLAGS		= -Dcplusplus_2_1 $(IV2_6_INCLUDES)
 ivtext_CPPFLAGS		= -Dcplusplus_2_1 $(IVSTD_INCLUDES)
-ivtmpnam_CPPFLAGS	=
 stdcmapppm_CPPFLAGS	=
 
 # AM_LDFLAGS =
@@ -744,7 +742,6 @@ iclass_LDADD	= libIV.la
 idemo_LDADD	= libIV.la
 idraw_LDADD	= libUniIdraw.la libUnidraw.la
 ivtext_LDADD	= libIVGlyph.la libIV.la
-ivtmpnam_LDADD	=
 stdcmapppm_LDADD=
 
 ### directories to recurse into, for installation of include files

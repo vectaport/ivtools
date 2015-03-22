@@ -411,8 +411,6 @@ LINUX/
 
 config/config-linux-gcc.defs
 
-src/utils/DARWIN/ivtmpnam
-
 src/IV/DARWIN/mkg3states
 
 *.la
@@ -448,7 +446,6 @@ src/IV/DARWIN/mkg3states
 /ivgetjpg
 /ivtext
 /ivtiftopnm
-/ivtmpnam
 /libtool
 /ltmain.sh
 /m4/
