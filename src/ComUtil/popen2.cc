@@ -42,7 +42,7 @@
  */      
 pid_t popen2(const char *shell_cmd, int *p_fd_in, int *p_fd_out)
 {
-#if 0
+#if 1
   //CREATING  TWO  PIPES:
   int fds_processInput[2];  //pipe  for  process  input
   int fds_processOutput[2]; //pipe  for  process  output

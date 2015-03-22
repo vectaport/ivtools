@@ -30,6 +30,10 @@
 
 #define TITLE "BitFunc"
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 /*****************************************************************************/
 
 BitAndFunc::BitAndFunc(ComTerp* comterp) : NumFunc(comterp) {
@@ -475,7 +479,7 @@ void BitNotFunc::execute() {
 	break;
     case ComValue::SymbolType:
     case ComValue::StringType:
-        result.boolean_ref() = operand1.symbol_val()<0;
+        result.boolean_ref() = operand1.symbol_val()!=0;
 	break;
     }
     reset_stack();

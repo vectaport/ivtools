@@ -21,6 +21,8 @@
  * SOFTWARE.
  */
 
+#include <cstdio>
+
 #include <InterViews/cursor.h>
 #include <InterViews/event.h>
 #include <InterViews/handler.h>

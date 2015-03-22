@@ -79,7 +79,7 @@ public:
     int close();
     // close link to remote DrawServ
 
-    int up() { state() == two_way; }
+    int up() { return state() == two_way; }
     // return 1 if link up, 0 if down
 
     int ok() { return _ok; }

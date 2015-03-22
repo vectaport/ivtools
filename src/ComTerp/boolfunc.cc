@@ -32,6 +32,10 @@
 
 #define TITLE "BoolFunc"
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 static int sym_symid = symbol_add("sym");
 static int n_symid = symbol_add("n");
 
@@ -199,7 +203,7 @@ void NegFunc::execute() {
 	break;
     case ComValue::SymbolType:
     case ComValue::StringType:
-        result.boolean_ref() = operand1.symbol_val()<0;
+        result.boolean_ref() = operand1.symbol_val()==0;
 	break;
     case ComValue::StreamType:
         result.boolean_ref() = !operand1.stream_mode();

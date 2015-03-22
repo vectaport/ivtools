@@ -23,6 +23,10 @@
 
 #ifdef HAVE_ACE
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <OverlayUnidraw/aceimport.h>
 
 #include <OverlayUnidraw/oved.h>

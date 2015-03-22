@@ -25,6 +25,8 @@
  * GraphCatalog implementation.
  */
 
+#include <cstdio>
+
 #include <OverlayUnidraw/paramlist.h>
 
 #include <GraphUnidraw/graphcatalog.h>
@@ -94,7 +96,7 @@ boolean GraphCatalog::Retrieve (const char* pathname, Component*& comp) {
 	    istream in(pfbuf);
 
 	    char ch;
-	    while (isspace(ch = in.get())); in.putback(ch);
+	    while (isspace(ch = in.get())) {}; in.putback(ch);
 	    ParamList::parse_token(in, sbuf, SBUFSIZE);
 	    if (strcmp(sbuf, "graphdraw") == 0 || 
 		strcmp(sbuf, "netdraw") == 0 || 

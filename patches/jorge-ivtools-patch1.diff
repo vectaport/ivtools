@@ -1,0 +1,120 @@
+From f45d99dd43c19be62d06e34e9c5d4ff50c34d9c7 Mon Sep 17 00:00:00 2001
+From: Anon Contrib <cuchifrito@users.noreply.github.com>
+Date: Wed, 18 Feb 2015 17:18:38 -0500
+Subject: [PATCH] Changes to build on Yosemite
+
+---
+ config/site.def.DARWIN        | 2 +-
+ src/OverlayUnidraw/clippoly.c | 2 +-
+ src/glyphs/strchooser/main.c  | 2 +-
+ src/tests/y2k/y2ktest.cc      | 2 +-
+ src/utils/ftp.cc              | 4 ++--
+ src/utils/ivdl.cc             | 4 ++--
+ src/utils/sockets.h           | 2 +-
+ 7 files changed, 9 insertions(+), 9 deletions(-)
+
+diff --git a/config/site.def.DARWIN b/config/site.def.DARWIN
+index 580a7ca..d6036fb 100644
+--- a/config/site.def.DARWIN
++++ b/config/site.def.DARWIN
+@@ -63,7 +63,7 @@
+ #if 0
+ #define SharedLibraryCmd(ldobjs,extra_flags) $(LD) -r extra_flags -o $@~ ldobjs
+ #else
+-#define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name Prefix/lib/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
++#define SharedLibraryCmdDarwin(ldobjs,depobjs,rev,libname) CCDriver -dynamiclib -install_name Prefix/lib/$(CPU)/$(AOUT) -current_version rev -compatibility_version rev -o $@~ ldobjs depobjs -flat_namespace -undefined suppress
+ #endif
+ 
+ #define NormalDynamicSharedLibraryTarget(libname,rev,depobjs,ldobjs)	@@\
+diff --git a/src/OverlayUnidraw/clippoly.c b/src/OverlayUnidraw/clippoly.c
+index c239894..4ee6d63 100644
+--- a/src/OverlayUnidraw/clippoly.c
++++ b/src/OverlayUnidraw/clippoly.c
+@@ -216,7 +216,7 @@ void clippoly(ClipOperation op,
+ 	}
+ 	break;
+     default:
+-	cerr << "Error: uknown clippoly operation" << endl;
++      std::cerr << "Error: uknown clippoly operation" << std::endl;
+ 	break;
+     }
+ 
+diff --git a/src/glyphs/strchooser/main.c b/src/glyphs/strchooser/main.c
+index ed71a65..c8d7b58 100644
+--- a/src/glyphs/strchooser/main.c
++++ b/src/glyphs/strchooser/main.c
+@@ -125,7 +125,7 @@ declareActionCallback(Session)
+ declareActionCallback(App)
+ implementActionCallback(App)
+ 
+-main(int argc, char *argv[]) {
++int main(int argc, char *argv[]) {
+   Session * session =  new Session("strchooser", argc, argv, options, properties);
+   LayoutKit &    lk = *LayoutKit::instance();
+   WidgetKit *    wk =  MFKit::instance();
+diff --git a/src/tests/y2k/y2ktest.cc b/src/tests/y2k/y2ktest.cc
+index 05bbe84..4e7c384 100644
+--- a/src/tests/y2k/y2ktest.cc
++++ b/src/tests/y2k/y2ktest.cc
+@@ -25,7 +25,7 @@
+ using std::cin;
+ using std::cout;
+ 
+-main() {
++int main() {
+   Date date(1, "Jan", 1999);
+ 
+   cout << "Current date initialized to ";
+diff --git a/src/utils/ftp.cc b/src/utils/ftp.cc
+index 3b29b25..4f0d06f 100644
+--- a/src/utils/ftp.cc
++++ b/src/utils/ftp.cc
+@@ -44,7 +44,7 @@ void CFtp::DoRetrieve() {
+   // Connect to host "hostname" at port "port".
+   int control_fd = AConnect(); 
+ 
+-  fstream control_stream(control_fd);
++  std::fstream control_stream(control_fd);
+   
+   // Check for steam's existence
+   if (!control_stream.is_open()) {
+@@ -210,7 +210,7 @@ void CFtp::DoRetrieve() {
+   data_fd = Listen();
+   
+   // Pass Data Connection Stream to ReadWrite().
+-  fstream data_stream(data_fd);
++  std::fstream data_stream(data_fd);
+   if(!(ReadWrite(data_stream, NULL, localfile))) {
+     control_stream.close();
+     Shutdown(control_fd);
+diff --git a/src/utils/ivdl.cc b/src/utils/ivdl.cc
+index c99b351..32e5b2e 100644
+--- a/src/utils/ivdl.cc
++++ b/src/utils/ivdl.cc
+@@ -32,8 +32,8 @@ int main(int argc, char** argv)
+ {
+   
+   if(argc != 3){
+-    cerr << "Wrong number of args.\n";
+-    cerr << "Use:  a.out URL FilenameToSave\n";
++    std::cerr << "Wrong number of args.\n";
++    std::cerr << "Use:  a.out URL FilenameToSave\n";
+     exit(0);
+   }
+ 
+diff --git a/src/utils/sockets.h b/src/utils/sockets.h
+index 77d6185..1213621 100644
+--- a/src/utils/sockets.h
++++ b/src/utils/sockets.h
+@@ -72,7 +72,7 @@ class CSocket {
+   void PConnect();  // Sets up a passive socket connection.
+   int Listen(); // Blocks until incoming connection is made.
+ 
+-  int ReadWrite(fstream&, String, char*); // Socket reading and file writing. 
++  int ReadWrite(std::fstream&, String, char*); // Socket reading and file writing. 
+   
+   // Closes a socket connection, given a file descriptor.
+   void Shutdown(int);             
+-- 
+2.2.1
+

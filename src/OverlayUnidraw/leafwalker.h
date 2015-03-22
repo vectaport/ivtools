@@ -26,7 +26,7 @@
  */
 
 #ifndef leafwalker_h
-#define leafwalke_h
+#define leafwalker_h
 
 #include <OverlayUnidraw/ovcomps.h>
 

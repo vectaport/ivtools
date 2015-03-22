@@ -379,7 +379,7 @@ void HitImpl::add_item(
 
 /*
  * The way we specify targets is the opposite of how we store them:
- * "item(depth, 0)" is the most recently targetted item at that depth.
+ * "item(depth, 0)" is the most recently targeted item at that depth.
  * So, we use "used_ - 1 - t" as the appropriate target index.
  */
 

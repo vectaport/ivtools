@@ -32,8 +32,8 @@ int main(int argc, char** argv)
 {
   
   if(argc != 3){
-    cerr << "Wrong number of args.\n";
-    cerr << "Use:  a.out URL FilenameToSave\n";
+    std::cerr << "Wrong number of args.\n";
+    std::cerr << "Use:  a.out URL FilenameToSave\n";
     exit(0);
   }
 

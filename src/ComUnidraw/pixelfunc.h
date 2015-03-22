@@ -21,7 +21,7 @@
  * 
  */
 
-#if !defined(pixelfunc_h)
+#if !defined(_pixelfunc_h)
 #define _pixelfunc_h
 
 #include <ComUnidraw/unifunc.h>

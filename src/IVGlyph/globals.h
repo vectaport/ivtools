@@ -150,11 +150,8 @@ inline void exch (int& a, int& b) {
 inline int square(int a) { return a *= a; }
 inline Coord square(Coord a) { return a *= a; }
 
-inline Coord degrees(Coord rad) { return rad * 180.0 / M_PI; }
-inline Coord radians(Coord deg) { return deg * M_PI / 180.0; }
-
 inline Coord Distance(Coord x0, Coord y0, Coord x1, Coord y1) {
-    return sqrt(Coord(square(x0 - x1) + square(y0 - y1)));
+    return hypot(x0-x1,y0-y1);
 }
 
 inline void ArrayCopy (

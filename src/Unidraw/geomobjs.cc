@@ -25,6 +25,8 @@
  * Implementation of geometrical objects used by Graphic.
  */
 
+#include <cstdio>
+
 #include <Unidraw/Graphic/geomobjs.h>
 #include <Unidraw/Graphic/util.h>
 #include <Unidraw/ulist.h>
@@ -51,7 +53,7 @@ PointObj::PointObj (Coord x, Coord y) { _x = x; _y = y; }
 PointObj::PointObj (PointObj* p) { _x = p->_x; _y = p->_y; }
 
 float PointObj::Distance (PointObj& p) {
-    return sqrt(float(square(_x - p._x) + square(_y - p._y)));
+    return hypot(_x - p._x, _y - p._y);
 }
 
 /*****************************************************************************/

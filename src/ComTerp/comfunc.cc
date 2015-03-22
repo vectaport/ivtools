@@ -266,7 +266,7 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
   }
 
   int loc = comterp()->_pfnum + offtop + argcnt-1;
-  if (loc<0) fprintf(stderr, "unexpected negative index for _pfcomvals\n");
+  if (loc<0) {fprintf(stderr, "unexpected negative index for _pfcomvals\n"); return ComValue::nullval();}
   else return comterp()->_pfcomvals[loc];
 }
 

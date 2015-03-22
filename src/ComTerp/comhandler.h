@@ -30,6 +30,10 @@
 
 #ifdef HAVE_ACE
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <stdio.h>
 #ifdef __alpha__
 #define __USE_GNU
@@ -41,6 +45,11 @@
 #include <ace/Svc_Handler.h>
 #include <ace/SOCK_Acceptor.h>
 #include <ace/Test_and_Set.h>
+
+// GNU HURD has no fixed limit
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 4096
+#endif
 
 class ComTerpServ;
 

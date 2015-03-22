@@ -21,7 +21,7 @@
  * 
  */
 
-#if !defined(highlightfunc_h)
+#if !defined(_highlightfunc_h)
  #define _highlightfunc_h
 
 #include <ComUnidraw/unifunc.h>

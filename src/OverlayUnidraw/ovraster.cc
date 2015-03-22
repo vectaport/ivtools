@@ -83,6 +83,9 @@ implementList(CopyStringList,CopyString)
 boolean RasterOvComp::_use_gray_raster = false;
 boolean RasterOvComp::_warned = false;
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
 
 /*****************************************************************************/
 
@@ -1845,7 +1848,7 @@ static float dist(
 ) {
     float xd = x2 - x1;
     float yd = y2 - y1;
-    return sqrt((xd*xd) + (yd*yd));
+    return hypot(xd, yd);;
 }
 
 
@@ -2030,9 +2033,8 @@ boolean OverlayRaster::write (ostream& out) {
     ColorIntensity r, g, b;
     int ir, ig, ib;
     float alpha;	
-    for (y; y < h; y++) {
-      x = 0;
-      for (x; x < w; x++) {
+    for (; y < h; y++) {
+      for (x=0; x < w; x++) {
 	peek(x, y, r, g, b, alpha);
 	int ir = (int)(r*255);
 	int ig = (int)(g*255);	
@@ -2049,9 +2051,9 @@ boolean OverlayRaster::write (ostream& out) {
     int x = 0;	
     int y = 0;
     unsigned int byte;
-    for (y; y < h; y++) {
+    for (; y < h; y++) {
       x = 0;
-      for (x; x < w; x++) {
+      for (; x < w; x++) {
 	graypeek(x, y, byte);
 	out << byte;
 	if (!(y == h-1 && x == w-1))

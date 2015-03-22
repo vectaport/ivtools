@@ -23,7 +23,7 @@
  * 
  */
 
-#if !defined(grfunc_h)
+#if !defined(_grfunc_h)
 #define _grfunc_h
 
 #include <leakchecker.h>

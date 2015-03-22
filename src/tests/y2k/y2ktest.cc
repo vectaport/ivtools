@@ -25,7 +25,7 @@
 using std::cin;
 using std::cout;
 
-main() {
+int main() {
   Date date(1, "Jan", 1999);
 
   cout << "Current date initialized to ";

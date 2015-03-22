@@ -221,8 +221,6 @@ make.make
 
 src/scripts/ivmkmf
 
-src/utils/DARWIN/ivtmpnam
-
 src/utils/DARWIN/stdcmapppm
 
 *.dylib
@@ -381,4 +379,38 @@ src/AceDispatch/DARWIN/Makefile
 
 src/AceDispatch/Makefile
 
-Makefile
+*.c~
+
+*.comterp~
+
+*.comterp~
+
+*.comterp~
+
+*.comterp~
+
+*.h~
+
+MANIFEST.comterp~
+
+MANIFEST~
+
+*.cc~
+
+*.DARWIN~
+
+src/IV/DARWIN/g3states.h
+
+src/IV/DARWIN/g3states.h
+
+src/IV/DARWIN/g3states.h
+
+src/IV/DARWIN/g3states.h
+
+LINUX/
+
+config/config-linux-gcc.defs
+
+src/utils/DARWIN/ivtmpnam
+
+src/IV/DARWIN/mkg3states

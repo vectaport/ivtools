@@ -39,6 +39,11 @@ class OvImportCmd;
 #include <fstream.h>
 #include <iosfwd>
 
+// GNU HURD has no fixed limit
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 4096
+#endif
+
 //: handler for import by socket into OverlayUnidraw.
 class UnidrawImportHandler : public ACE_Svc_Handler<ACE_SOCK_STREAM, ACE_NULL_SYNCH>
 {

@@ -120,22 +120,24 @@ void PrintFunc::execute() {
   streambuf* strmbuf = nil;
   if (stringflag.is_false() && strflag.is_false() &&
       symbolflag.is_false() && symflag.is_false()) {
-    fileptr_filebuf * fbuf = nil;
     if (comterp()->handler() && fileobjv.is_unknown() && errflag.is_false() && outflag.is_false()) {
       FILEBUFP(fbuf, comterp()->handler() && comterp()->handler()->wrfptr() 
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
+      strmbuf = fbuf;
     } else if (fileobjv.is_known()) {
       FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
       if (fileobj) {
         FILEBUFP(fbuf, fileobj->fptr(), ios_base::out);
+	strmbuf = fbuf;
       } else {
         PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
         FILEBUFP(fbuf, pipeobj ? pipeobj->wrfptr() : stdout, ios_base::out);
+	strmbuf = fbuf;
       }
     } else {
       FILEBUFP(fbuf, errflag.is_false() ? stdout : stderr, ios_base::out);
+      strmbuf = fbuf;
     }
-    strmbuf = fbuf;
   } else
     strmbuf = new std::strstreambuf();
   ostream out(strmbuf);
@@ -143,8 +145,10 @@ void PrintFunc::execute() {
   int narg = nargsfixed();
   if (narg==1) {
 
-    if (formatstr.is_string() && !prefixv.is_string())
+    if (formatstr.is_string() && !prefixv.is_string()) {
       out << formatstr.symbol_ptr();
+      out.flush();
+    }
     else {
       if (prefixv.is_string()) out << prefixv.symbol_ptr();
       out << formatstr;  // which could be arbitrary ComValue
@@ -243,6 +247,10 @@ void PrintFunc::execute() {
 	out_form(out, fbuf, nil);
 	break;
 	
+      case ComValue::ObjectType:
+	out_form(out, fbuf, symbol_pntr(printval.class_symid()));
+	break;
+	
       default:
 	break;
       }
@@ -260,8 +268,10 @@ void PrintFunc::execute() {
     int symbol_id = symbol_add(((std::strstreambuf*)strmbuf)->str());
     ComValue retval(symbol_id, ComValue::SymbolType);
     push_stack(retval);
-  } else
+  } else {
+    out.flush();
     push_stack(ComValue::blankval());
+  }
 
   delete strmbuf;
 

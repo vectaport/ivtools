@@ -424,7 +424,7 @@ Interactor* PrintDialog::Interior () {
                         "send to printer via a command, or ", _dest, true
                     ),
                     new VGlue(space/3, 0),
-                    new RadioButton("save in file:", _dest, int(false))
+                    new RadioButton("save in file:", _dest, intptr_t(false))
                 )
             ),
             new VGlue(space, 0),

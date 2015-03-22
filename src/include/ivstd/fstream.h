@@ -1,20 +1,16 @@
 #ifndef _iv_fstream_
 #define _iv_fstream_
 #include <fstream>
-#if __GNUC__>=3
+#include <cstdio>
 #define input ios_base::in
 #define output ios_base::out
-#if (__GNUC__>3 || __GNUC__==3 && __GNUC_MINOR__>0) && !defined(__APPLE__)
+#if !defined(__APPLE_CC__) || __APPLE_CC__==1
 #include <ext/stdio_filebuf.h>
 #define fileptr_filebuf __gnu_cxx::stdio_filebuf<char>
 #else
 #define fileptr_filebuf filebuf
 #endif
-#else
-#define input "r"
-#define output "w"
-#endif
-#ifndef __APPLE__
+#if !defined(__APPLE_CC__) || __APPLE_CC__==1
 #define FILEBUF(bufname, fptr, mode)		\
      fileptr_filebuf bufname(fptr, mode)
 #define FILEBUFP(bufname, fptr, mode)	\
@@ -27,4 +23,5 @@
      fileptr_filebuf* bufname = new fileptr_filebuf; \
      bufname -> open(fptr,mode);
 #endif
+
 #endif

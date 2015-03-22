@@ -71,10 +71,16 @@ extern "C"
 }
 #endif
 
+// No MAXPATHLEN on GNU Hurd, cobble something up.
+#ifndef MAXPATHLEN
+#define MAXPATHLEN 4096
+#endif
+
 #ifdef LEAKCHECK
 LeakChecker* OverlayComp::_leakchecker = nil;
 #endif
 
+ComTerp* OverlayComp::_comterp = nil;
 
 /*****************************************************************************/
 
@@ -988,6 +994,7 @@ int OverlaysComp::GetIndexForComp (OverlayComp* comp)
     Next(it);
   }
   if (Done(it)) return -1;
+  return 0;
 }
 
 int OverlaysComp::Count() {

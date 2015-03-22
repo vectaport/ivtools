@@ -25,6 +25,9 @@
  * Implementation of Drawlink class.
  */
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <DrawServ/ackback-handler.h>
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawserv.h>
@@ -148,6 +151,7 @@ int DrawLink::close() {
     if (_socket->close () == -1)
       ACE_ERROR ((LM_ERROR, "%p\n", "close"));
   }
+  return 1;
 }
 
 void DrawLink::hostname(const char* host) {

@@ -23,6 +23,7 @@
  * 
  */
 
+#include <cstdio>
 #include <ctype.h>
 #include <iostream.h>
 #include <string.h>
@@ -739,7 +740,7 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokc
 }
 
 ComValue& ComTerp::expr_top(int n) {
-  if (_pfnum+n < 0 || n>0) {
+  if (((int)_pfnum)+n < 0 || n>0) {
     return ComValue::unkval();    
   }
   else

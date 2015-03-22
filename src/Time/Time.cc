@@ -23,17 +23,20 @@ Function:
 	
 Provides an object that represents a Time, stored as the number of
 seconds since January 1, 1901, GMT.
-
+*/
 /*
   Modified by Vectaport Inc.  - added operator << plus other small stuff.
 */
+
+#include <cstdio>
 
 #include <Time/Date.h>
 #include <Time/Time_.h>
 #include <iomanip>
 using namespace std;
 
-#include <stdio.h>
+using std::setfill;
+using std::setw;
 
 const unsigned VERSION =2;
 

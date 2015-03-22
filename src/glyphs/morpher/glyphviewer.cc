@@ -272,7 +272,7 @@ void GlyphViewer::rate_scroll () {
     Coord dy = _y - _ly;
     
     if (dx != 0.0 && dy != 0.0) {
-        double angle = atan2(dy, dx)*180/M_PI;
+        double angle = degrees(atan2(dy, dx));
         
         if (angle < -157.5) {
             w->cursor(kit->rfast_cursor());

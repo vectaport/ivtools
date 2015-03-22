@@ -1,5 +1,6 @@
 #ifndef _iv_iostream_h_
 #define _iv_iostream_h_
+#include <cstdio>
 #include <iosfwd>
 #include_next <iostream>
 

@@ -28,35 +28,17 @@
 
 #include <IV-2_6/InterViews/rubband.h>
 #include <IV-2_6/InterViews/painter.h>
+#include <OS/math.h>
 #include <math.h>
 
-static float DEGS_PER_RAD = 180.0 / M_PI;
-
 float Rubberband::Angle (IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1) {
-    float dx, dy, angle;
-
-    dx = float(x1 - x0);
-    dy = float(y1 - y0);
-    if (dx != 0) {
-        angle = DEGS_PER_RAD * atan(dy/dx);
-    } else if (dy < 0) {
-        angle = -90;
-    } else {
-        angle = 90;
-    }
-    if (dx < 0) {
-        angle += 180;
-    }
-    return angle;
+    return degrees(atan2f(y1 - y0, x1 - x0));
 }
 
 float Rubberband::Distance(
     IntCoord x0, IntCoord y0, IntCoord x1, IntCoord y1
 ) {
-    float dx = x0 - x1;
-    float dy = y0 - y1;
-
-    return sqrt(dx*dx + dy*dy);
+    return hypotf(x0-x1, y0-y1);
 }
 
 Rubberband::Rubberband (Painter* p, Canvas* c, IntCoord x, IntCoord y) {

@@ -11,8 +11,8 @@
 url=$1
 importport=$2
 echo import $url to port $importport
-tempfile=`tmpnam`
-cmapfile=`tmpnam`
+tempfile=`tempfile`
+cmapfile=`tempfile`
 stdcmapppm >$cmapfile
 w3c $url >$tempfile; djpeg -map $cmapfile -dither fs -pnm $tempfile | comterp telcat localhost $importport
 rm $tempfile $cmapfile

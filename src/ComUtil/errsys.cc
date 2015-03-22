@@ -293,7 +293,7 @@ See Also:  err_readfile, err_open, err_set, err_get, err_print, err_str,
       int i=0;
       while(default_errmsgs[i].msg!=NULL&&default_errmsgs[i].id!=errnum) i++;
       if (!default_errmsgs[i].msg) {
-          KANIL1( "errnum not found", errnum );
+          KANIL1( "errnum not found %d", errnum );
       } else 
           return default_errmsgs[i].msg;
       }
@@ -673,7 +673,7 @@ Return Value:  no error return
 
 Parameters:  none
 
-
+*/
 /*!
 Description:
 
@@ -780,7 +780,7 @@ Return Value:  pointer to error I/O file
 
 Parameters:  none
 
-
+*/
 /*!
 Description:
 
@@ -838,7 +838,7 @@ Return Value:  count of current error messages
 
 Parameters:  none
 
-
+*/
 /*!
 Description:
 

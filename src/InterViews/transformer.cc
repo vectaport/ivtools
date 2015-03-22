@@ -30,8 +30,6 @@
 #include <OS/math.h>
 #include <math.h>
 
-static const double RADPERDEG = M_PI/180.0;
-
 Transformer::Transformer() {
     identity_ = true;
     mat00 = mat11 = 1;
@@ -141,7 +139,7 @@ void Transformer::skew(float sx, float sy) {
 void Transformer::rotate(float angle) {
     float tmp1, tmp2, m00, m01, m10, m11, m20, m21;
 
-    angle *= RADPERDEG;
+    angle = radians(angle);
     tmp1 = cos(angle);
     tmp2 = sin(angle);
     

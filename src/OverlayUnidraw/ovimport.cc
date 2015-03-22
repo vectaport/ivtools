@@ -479,7 +479,7 @@ int ReadImageHandler::process(const char* newdat, int len) {
 	in.get(buffer,BUFSIZ);
 	in.get(newline);
       } while (buffer[0] == '#');
-      sscanf(buffer, "%d %d", &width, &height);
+      sscanf(buffer, "%ld %ld", &width, &height);
 
       in.get(buffer,BUFSIZ);
       in.get(newline);
@@ -653,6 +653,7 @@ int ReadImageHandler::inputReady(int fd) {
       return -1;              // don't ever call me again (i.e., detach me)
     } 
   }
+  return -1;
 }
 
 // -------------------------------------------------------------------------
@@ -978,7 +979,7 @@ const char* OvImportCmd::ReadCreator (istream& in, FileType& ftype) {
 	} else if (strcmp(line, "%%EndComments\n") == 0) {
 	  break;
 	}
-      } while (in.getline(line, linesz) != NULL);
+      } while (in.getline(line, linesz) != 0);
       chcnt = 0;
       if (!*creator) strcpy(creator, "PostScript");
     }
@@ -1446,7 +1447,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
     char buf[len];
 
     char ch;
-    while (isspace(ch = instrm.get())); instrm.putback(ch);
+    while (isspace(ch = instrm.get())) {}; instrm.putback(ch);
 
     OvImportCmd::FileType filetype;
     const char* creator = ReadCreator(instrm, filetype);
@@ -1505,15 +1506,15 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  if (pathname && !return_fd && !cmdflag) {
 	    char buffer[BUFSIZ];
 	    if (compressed) 
-	      sprintf(buffer, "tf=`ivtmpnam`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      sprintf(buffer, "tf=`tempname`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    else
-	      sprintf(buffer, "tf=`ivtmpnam`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      sprintf(buffer, "tf=`tempname`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    pptr = popen(buffer, "r");
 	    cerr << "input opened with " << buffer << "\n";
 	    if (pptr) 
 	      new_fd = fileno(pptr);
 	  } else 
-	    new_fd = Pipe_Filter(*in, "tf=`ivtmpnam`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
+	    new_fd = Pipe_Filter(*in, "tf=`tempname`;pstoedit -f idraw - $tf.%d;cat $tf.*;rm $tf.*");
 	  FILE* ifptr = fdopen(new_fd, "r");
 	  helper.add_file(ifptr);
 	  FILEBUF(fbuf, ifptr, ios_base::in);
@@ -1594,9 +1595,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  char buffer[BUFSIZ];
 	  if (dithermap_flag) {
 	    if (compressed) 
-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
+	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
 	    else
-	      sprintf(buffer, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
+	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
 	  } else {
 	    if (compressed) 
 	      sprintf(buffer, "gunzip -c %s | djpeg  -pnm", pathname);
@@ -1614,7 +1615,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  }
 	} else {
 	  if (dithermap_flag) 
-	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`ivtmpnam`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
+	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm;rm $cm");
 	  else 
 	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "djpeg -pnm");
 	}
@@ -2463,6 +2464,7 @@ int OvImportCmd::Pipe_Filter (istream& in, const char* filter)
     else 
       return pipe1[0]; 
   }
+  return -1;
 }
 
 GraphicComp*  OvImportCmd::PNM_Image (istream& in, const char* creator) {

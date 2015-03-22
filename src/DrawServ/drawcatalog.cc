@@ -82,7 +82,7 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
 	    char buf[len];
 
 	    char ch;
-	    while (isspace(ch = in.get())); in.putback(ch);
+	    while (isspace(ch = in.get())) {}; in.putback(ch);
 	    ParamList::parse_token(in, buf, len);
 	    if (strcmp(buf, "drawserv") == 0) { 
 		comp = new DrawIdrawComp(in, name, _parent);

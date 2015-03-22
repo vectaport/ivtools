@@ -660,7 +660,7 @@ void Catalog::ReadExtraData (
     for (int i = 0; !in.eof() && !FoundDelim(delim, *extra_data); ++i) {
         char c;
         in.get(c);
-        extra_data->Insert((void*)(unsigned int)c, i);
+        extra_data->Insert((void*)(intptr_t)c, i);
     }
 }
 
@@ -1987,22 +1987,22 @@ void Catalog::Register (Tool* o, const char* name) {
 
 class VoidIntElem : public UMapElem {
 public:
-    VoidIntElem(void*, int);
+    VoidIntElem(void*, intptr_t);
 
     virtual void* id();
     virtual void* tag();
 private:
     void* _object;
-    int _id;
+    intptr_t _id;
 };
 
-VoidIntElem::VoidIntElem (void* object, int id) {
+VoidIntElem::VoidIntElem (void* object, intptr_t id) {
     _object = object;
     _id = id;
 }
 
 void* VoidIntElem::id () { return _object; }
-void* VoidIntElem::tag () { return (void*) _id; }
+void* VoidIntElem::tag () { return (void*) (long)_id; }
 
 /*****************************************************************************/
 
@@ -2064,7 +2064,7 @@ inline ObjectMapElem* ObjectMap::Find (void* obj) {
     return (ObjectMapElem*) _objKeys.Find(obj);
 }
 
-inline ObjectMapElem* ObjectMap::Find (int id) {
+inline ObjectMapElem* ObjectMap::Find (intptr_t id) {
     return (ObjectMapElem*) _idKeys.Find((void*) id);
 }
 
@@ -2075,17 +2075,17 @@ ObjectMap::ObjectMap (
     _id = id;
 }
 
-void ObjectMap::Register (void* obj, int id) {
+void ObjectMap::Register (void* obj, intptr_t id) {
     VoidIntElem* elem = new VoidIntElem(obj, id);
     UMap::Register(elem);
     ObjectMapElem* objElem = new ObjectMapElem(elem);
     ObjectMapElem* idElem = new ObjectMapElem(elem);
     _objKeys.Register(obj, objElem);
-    _idKeys.Register((void*) id, idElem);
+    _idKeys.Register((void*) (long) id, idElem);
 }
 
 void ObjectMap::Register (
-    void* obj, int id, ClassId orig_id, const char* delim, UArray* extra_data
+    void* obj, intptr_t id, ClassId orig_id, const char* delim, UArray* extra_data
 ) {
     VoidIntElem* elem = new VoidIntElem(obj, id);
     UMap::Register(elem);
@@ -2094,7 +2094,7 @@ void ObjectMap::Register (
     );
     ObjectMapElem* idElem = new ObjectMapElem(elem);
     _objKeys.Register(obj, objElem);
-    _idKeys.Register((void*) id, idElem);
+    _idKeys.Register((void*) (long) id, idElem);
 }
 
 void ObjectMap::Unregister (void* obj) {
@@ -2106,19 +2106,19 @@ void ObjectMap::Unregister (void* obj) {
     }
 }
 
-void ObjectMap::Unregister (int id) {
+void ObjectMap::Unregister (intptr_t id) {
     ObjectMapElem* idElem = Find(id);
 
     if (idElem != nil) {
         _objKeys.Unregister(idElem->GetObject());
-        _idKeys.Unregister((void*) id);
+        _idKeys.Unregister((void*) (long) id);
     }
 }
 
 void* ObjectMap::GetClient () { return _client; }
 ClassId ObjectMap::GetClientId () { return _id; }
 
-void* ObjectMap::GetObject (int id) { 
+void* ObjectMap::GetObject (intptr_t id) {
     ObjectMapElem* idElem = Find(id);
     return (idElem == nil) ? nil : idElem->GetObject();
 }

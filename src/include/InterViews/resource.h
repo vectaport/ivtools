@@ -29,6 +29,7 @@
 #ifndef iv_resource_h
 #define iv_resource_h
 
+#include <ignores.h>
 #include <InterViews/enter-scope.h>
 
 //: shared reference-counted objects.

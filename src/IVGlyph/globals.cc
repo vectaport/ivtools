@@ -15,7 +15,7 @@ PointObj::PointObj (Coord x, Coord y) { _x = x; _y = y; }
 PointObj::PointObj (PointObj* p) { _x = p->_x; _y = p->_y; }
 
 float PointObj::Distance (PointObj& p) {
-    return sqrt(float(square(_x - p._x) + square(_y - p._y)));
+    return hypotf(_x - p._x, _y - p._y);
 }
 
 /*****************************************************************************/

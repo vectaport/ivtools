@@ -35,6 +35,10 @@
 
 #define TITLE "NumFunc"
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 /*****************************************************************************/
 
 NumFunc::NumFunc(ComTerp* comterp) : ComFunc(comterp) {
