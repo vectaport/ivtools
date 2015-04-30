@@ -93,17 +93,30 @@ regcomp select socket sqrt strcasecmp strchr strcspn strdup strerror \
 strncasecmp strrchr strstr strtol uname hypot hypotf])
 
 # Checks for locations
-AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
- [PSFontDir=/usr/share/fonts/type1/gsfonts],
- AC_CHECK_FILE([/usr/share/ghostscript/fonts/bchr.afm],
-  [PSFontDir=/usr/share/ghostscript/fonts],
-  AC_CHECK_FILE([/usr/lib/ghostscript/fonts/bchr.afm],
-   [PSFontDir=/usr/lib/ghostscript/fonts],
-   AC_CHECK_FILE([/usr/lib/ps/bchr.afm],
-    [PSFontDir=/usr/lib/ps],
-    AC_CHECK_FILE([/usr/lib/X11/fonts/Type1Adobe/afm/bchr.afm],
-     [PSFontDir=/usr/lib/X11/fonts/Type1Adobe/afm],
-     AC_MSG_ERROR([cannot find PS Font Directory]))))))
+AC_MSG_CHECKING([PSFontDir])
+AC_ARG_WITH([PSFontDir],
+       [AS_HELP_STRING([--with-PSFontDir=DIR],[for font metrics (default: searches)])],,
+       [with_PSFontDir=check])
+AC_MSG_RESULT([${with_PSFontDir}])
+AS_IF([test x"${with_PSFontDir}" = xcheck],
+ [AC_MSG_NOTICE([scanning ad-hoc list of locations for PSFontDir])
+  AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
+   [PSFontDir=/usr/share/fonts/type1/gsfonts],
+   AC_CHECK_FILE([/usr/share/ghostscript/fonts/bchr.afm],
+    [PSFontDir=/usr/share/ghostscript/fonts],
+    AC_CHECK_FILE([/usr/lib/ghostscript/fonts/bchr.afm],
+     [PSFontDir=/usr/lib/ghostscript/fonts],
+     AC_CHECK_FILE([/usr/lib/ps/bchr.afm],
+      [PSFontDir=/usr/lib/ps],
+      AC_CHECK_FILE([/usr/lib/X11/fonts/Type1Adobe/afm/bchr.afm],
+       [PSFontDir=/usr/lib/X11/fonts/Type1Adobe/afm],
+       AC_CHECK_FILE([/Library/Fonts/],
+	[PSFontDir=/Library/Fonts],
+	AC_CHECK_FILE([/System/Library/Fonts/],
+	 [PSFontDir=/System/Library/Fonts],
+	 AC_MSG_ERROR([cannot find PS Font Directory]))))))))
+  AC_MSG_NOTICE([Using PSFontDir ${PSFontDir}])],
+ [PSFontDir="${with_PSFontDir}"])
 AC_SUBST(PSFontDir)
 
 # Random noise-control options.
