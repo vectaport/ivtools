@@ -106,6 +106,10 @@ AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
      AC_MSG_ERROR([cannot find PS Font Directory]))))))
 AC_SUBST(PSFontDir)
 
+# Random noise-control options.
+AX_CXXFLAGS_WARN_ALL
+CXXFLAGS="${CXXFLAGS} -Wno-narrowing"
+
 # Trailer
 AC_CONFIG_FILES([Makefile src/Makefile src/include/Makefile])
 
