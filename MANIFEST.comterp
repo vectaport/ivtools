@@ -295,7 +295,6 @@ src/include/ivstd/osfcn.h
 src/include/ivstd/signal.h
 src/include/ivstd/stdio.h
 src/include/ivstd/string.h
-src/include/ivstd/version.h
 src/scripts/Imakefile
 src/scripts/bsdinst.sh
 src/scripts/chgsuffix.sh

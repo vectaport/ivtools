@@ -112,6 +112,6 @@ IV-X11/Xundefs.h IV-X11/xevent.h IV-X11/xpattern.h IV-X11/xwindow.h	\
 IV-X11/xraster.h IV-X11/xdrag.h IV-X11/xfont.h IV-X11/xcursor.h		\
 IV-X11/Xlib.h IV-X11/xbitmap.h IV-X11/xselection.h IV-X11/Xutil.h	\
 ivstd/iosfwd ivstd/signal.h ivstd/string.h ivstd/leakchecker.h		\
-ivstd/version.h ivstd/malloc.h ivstd/stdio.h ivstd/math.h ivstd/nan.h	\
+ivstd/malloc.h ivstd/stdio.h ivstd/math.h ivstd/nan.h			\
 ivstd/iostream.h ivstd/fstream.h ivstd/osfcn.h ivstd/stdlib.h		\
 ivstd/stream.h

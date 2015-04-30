@@ -26,6 +26,10 @@
  * Frame editor main program.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
@@ -44,7 +48,6 @@
 #include <stream.h>
 #include <string.h>
 #include <math.h>
-#include <version.h>
 #include <iostream>
 
 using std::cerr;
@@ -315,7 +318,9 @@ int main (int argc, char** argv) {
 #endif
 	
 
-	fprintf(stderr, "ivtools-%s flipbook: see \"man flipbook\" or type help here for command info\n", VersionString);
+	fprintf(stderr,
+		"ivtools-%s flipbook: see \"man flipbook\" or type help here for command info\n",
+		PACKAGE_VERSION);
 	unidraw->Run();
     }
 
