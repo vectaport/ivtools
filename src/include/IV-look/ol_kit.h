@@ -35,7 +35,7 @@ class OLKit : public WidgetKit {
  *  OpenLook ==> WidgetKit mappings:
  *
  *    exclusive setting	      ==>  radio_button
- *    non-exclusive setting   ==>  pallette_button
+ *    non-exclusive setting   ==>  palette_button
  *    exclusive menu setting  ==>  radio_menu_item
  *    non-exclusive setting   ==>  radio_menu_item(*)
  *    scrolling button	      ==>  {up,down,left,down}_mover

@@ -21,6 +21,11 @@
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+#include <cstdio>
+
 #ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
 #include <ace/SOCK_Connector.h>
@@ -37,8 +42,6 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 
 #include <sys/stat.h>
 #include <unistd.h>
-
-#include <version.h>
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
@@ -135,9 +138,10 @@ int main(int argc, char *argv[]) {
 
     FILE* inptr = argc>=5 ? fopen(argv[4], "r") : stdin;
 
+    FILE* ofptr = nil;
+
     if (!telcat_flag) {
       
-      FILE* ofptr = nil;
       FILEBUF(obuf, ofptr = fdopen(server.get_handle(), "w"), ios_base::out);
       ostream out(&obuf);
       
@@ -211,7 +215,9 @@ int main(int argc, char *argv[]) {
       if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	terp->disable_prompt();
       else
-	fprintf(stderr, "ivtools-%s comterp: type help for more info\n", VersionString);
+	fprintf(stderr,
+		"ivtools-%s comterp: type help for more info\n",
+		PACKAGE_VERSION);
       return terp->run();
     } else {
       ComTerpServ* terp = new ComTerpServ();
@@ -243,7 +249,9 @@ int main(int argc, char *argv[]) {
         if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	  terp->disable_prompt();
 	else
-	  fprintf(stderr, "ivtools-%s comterp:  type help for more info\n", VersionString);
+	  fprintf(stderr,
+		  "ivtools-%s comterp:  type help for more info\n",
+		  PACKAGE_VERSION);
 	return terp->run();
       }
     }

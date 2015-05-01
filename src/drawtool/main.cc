@@ -28,8 +28,14 @@
  * Overlay editor main program.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
 #ifdef HAVE_ACE
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 #include <ComTerp/comhandler.h>
@@ -48,7 +54,6 @@
 #include <stream.h>
 #include <string.h>
 #include <math.h>
-#include <version.h>
 #include <iostream>
 #include <fstream>
 
@@ -280,7 +285,7 @@ int main (int argc, char** argv) {
 	OverlayEditor* ed = new OverlayEditor(initial_file);
 
 	unidraw->Open(ed);
-	cerr << "ivtools-" << VersionString 
+	cerr << "ivtools-" << PACKAGE_VERSION
 	     << " drawtool: see \"man drawtool\" for more info\n"; 
 	unidraw->Run();
     }

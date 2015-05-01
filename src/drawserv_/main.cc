@@ -27,6 +27,10 @@
  * drawserv main program.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef HAVE_ACE
 #include <DrawServ/drawserv-handler.h>
 #include <OverlayUnidraw/aceimport.h>
@@ -56,7 +60,6 @@
 #include <stream.h>
 #include <string.h>
 #include <math.h>
-#include <version.h>
 #include <fstream>
 #include <iostream>
 
@@ -323,9 +326,11 @@ int main (int argc, char** argv) {
 #endif
 	  cerr << "drawserv: unable to open stdin with ACE\n";
 	ed->SetComTerp(stdin_handler->comterp());
-	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
+	fprintf(stderr,
+		"ivtools-%s drawserv: type help here for command info\n",
+		PACKAGE_VERSION);
 #else
-	fprintf(stderr, "ivtools-%s drawserv", VersionString);
+	fprintf(stderr, "ivtools-%s drawserv", PACKAGE_VERSION);
 #endif
 
 	unidraw->Run();

@@ -27,6 +27,8 @@
 #ifndef unidraw_globals_h
 #define unidraw_globals_h
 
+#include <ignores.h>
+
 #include <IV-2_6/InterViews/defs.h>
 #include <Unidraw/enter-scope.h>
 

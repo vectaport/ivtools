@@ -1,5 +1,6 @@
 #ifndef _ivstd_stdlib
 #define _ivstd_stdlib
+#include <ignores.h>
 #if defined(__cplusplus)
 #include_next <stdlib.h>
 #else

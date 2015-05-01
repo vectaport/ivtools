@@ -1,9 +1,9 @@
 .TH COMDRAW 1 
-.SH COMDRAW
+.SH NAME
 comdraw \- drawtool with distributed command interpreter
 .SH SYNOPSIS
 .B comdraw 
-[-port n] [-import n] ['X-params'] [file]
+[\-port n] [\-import n] ['X-params'] [file]
 .SH DESCRIPTION
 comdraw is a drawing editor with integrated command interpreter the
 user can interact with via stdin and stdout (or via telnet if ACE is
@@ -163,7 +163,7 @@ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str
 .SH OTHER COMMANDS
 
  acknowledgebox(msgstr) -- popup an acknowledge dialog box
- confirmbox(msgstr) -- popup a confirmation dialog box, and return 1, 0, or -1 if cancelled
+ confirmbox(msgstr) -- popup a confirmation dialog box, and return 1, 0, or \-1 if cancelled
 
  run(filename) -- run commands from file
  quit() -- quit this interpreter
@@ -191,16 +191,16 @@ with ACE.
 processing.
 
 .B \-theight n,
-(or "-th n") selects the automatic raster tiling height.
+(or "\-th n") selects the automatic raster tiling height.
 
 .B \-twidth n,
-(or "-tw n") selects the automatic raster tiling width.
+(or "\-tw n") selects the automatic raster tiling width.
 
 .B \-tile,
  enables the automatic raster tiling.
 
 .PP
-Also see the -help message and the drawtool and idraw man pages for
+Also see the \-help message and the drawtool and idraw man pages for
 further options.
 
 .SH SEE ALSO  

@@ -22,6 +22,10 @@
  */
 
 #ifdef HAVE_ACE
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 #include <AceDispatch/ace_dispatcher.h>
 #include <AceDispatch/ace_iohandler.h>
 #include <ace/Event_Handler.h>

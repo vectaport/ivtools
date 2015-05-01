@@ -23,6 +23,10 @@
  * 
  */
 
+#ifdef __llvm__
+#pragma GCC diagnostic ignored "-Wswitch"
+#endif
+
 #include <Attribute/aliterator.h>
 #include <Attribute/attribute.h>
 #include <Attribute/attrvalue.h>

@@ -26,6 +26,7 @@
  * Printer - draw for PostScript printer
  */
 
+#include <cstdio>
 #include <InterViews/bitmap.h>
 #include <InterViews/brush.h>
 #include <InterViews/color.h>
@@ -373,7 +374,7 @@ void Printer::character(
         out << "\\" << char(c);
     } else if (c > 127) {
 #ifdef __GNUC__
-	out_form(out, "\\%03o", c);
+	out_form(out, "\\%03lo", c);
 #else
 	out << "\\";
         int old_width = out.width(3);

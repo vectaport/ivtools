@@ -25,6 +25,7 @@
  * Implementation of geometrical objects with floating point coordinates.
  */
 
+#include <cstdio>
 #include <TopoFace/fgeomobjs.h>
 #include <Unidraw/Graphic/util.h>
 #include <Unidraw/ulist.h>
@@ -49,7 +50,7 @@ FPointObj::FPointObj (float x, float y) { _x = x; _y = y; }
 FPointObj::FPointObj (FPointObj* p) { _x = p->_x; _y = p->_y; }
 
 float FPointObj::Distance (FPointObj& p) {
-    return sqrt(float(square(_x - p._x) + square(_y - p._y)));
+    return hypot(_x - p._x, _y - p._y);
 }
 
 /*****************************************************************************/

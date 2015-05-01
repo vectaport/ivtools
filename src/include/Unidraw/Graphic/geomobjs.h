@@ -28,6 +28,8 @@
 #ifndef unidraw_graphic_geomobjs_h
 #define unidraw_graphic_geomobjs_h
 
+#include <cstdio>
+
 #include <IV-2_6/InterViews/defs.h>
 #include <Unidraw/enter-scope.h>
 #include <InterViews/resource.h>

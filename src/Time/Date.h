@@ -15,7 +15,7 @@ Author:
 	Computer Systems Laboratory, DCRT
 	National Institutes of Health
 	Bethesda, MD 20892
-
+*/
 /* Log:	Date.h,v 
  * Revision 3.11  92/07/26  14:32:05  sandy
  * include directive in form '#include <nihcl/foo.h>'

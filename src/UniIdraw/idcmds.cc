@@ -24,13 +24,16 @@
  * Implementation of idraw-specific commands.
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include "ided.h"
 #include "idclasses.h"
 #include "idcmds.h"
 #include "idcomp.h"
 #include "iddialogs.h"
 #include "idvars.h"
-#include "idversion.h"
 
 #include <Unidraw/dialogs.h>
 #include <Unidraw/catalog.h>
@@ -285,7 +288,7 @@ Command* AboutCmd::Copy () {
 
 void AboutCmd::Execute () {
     Editor* ed = GetEditor();
-    AcknowledgeDialog dialog(VERSION);
+    AcknowledgeDialog dialog(PACKAGE_NAME " (" PACKAGE_TARNAME ") " PACKAGE_VERSION);
 
     ed->InsertDialog(&dialog);
     dialog.Acknowledge();

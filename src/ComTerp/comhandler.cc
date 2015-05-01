@@ -90,15 +90,18 @@ void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
 void
 ComterpHandler::destroy (void)
 {
-    if (ComterpHandler::logger_mode()==0)
-        ACE_DEBUG ((LM_DEBUG, 
-		    "(%P|%t) disconnected from %s\n", this->peer_name_));
+  if (ComterpHandler::logger_mode()==0) {
+      const char* peer_name = this->peer_name_;
+      if (*peer_name == '\0') peer_name = "stdio";
+      ACE_DEBUG ((LM_DEBUG, 
+		  "(%P|%t) disconnected from %s\n", peer_name));
+  }
 #if 0
     ComterpHandler::reactor_singleton()->cancel_timer (this);
 #endif
     this->peer ().close ();
     if (_timeoutscriptid<0) {
-      if (comterp_->running()) 
+      if (comterp_ && comterp_->running()) 
 	comterp_->delete_later(1);
       else {
 	delete comterp_;

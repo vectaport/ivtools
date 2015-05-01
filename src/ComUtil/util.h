@@ -313,7 +313,11 @@ struct token
 #define         EXPR_TYPE       struct token
 
 /* Error handling macros */
-#define TITLE_PRINT {if( TITLE ) fprintf( stderr, "%s:  ", TITLE ); }
+#if defined(TITLE)
+#define TITLE_PRINT { fprintf( stderr, "%s:  ", TITLE ); }
+#else
+#define TITLE_PRINT {}
+#endif
 
 #define breakpt() {}
 

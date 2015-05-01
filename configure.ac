@@ -4,10 +4,10 @@
 # Header
 AC_PREREQ([2.67])
 
-AC_INIT([InterViews Application Framework and Drawing Tools],[1.2.8],[johnston@vectaport.com],[ivtools],[http://www.ivtools.org])
+AC_INIT([InterViews Application Framework and Drawing Tools],[1.2.11],[johnston@vectaport.com],[ivtools],[http://www.ivtools.org])
 
 dnl The foreign option allows the follow files to not exist: NEWS AUTHORS ChangeLog
-AM_INIT_AUTOMAKE([subdir-objects foreign])
+AM_INIT_AUTOMAKE([subdir-objects foreign -Wall])
 
 AC_CONFIG_SRCDIR([src/Unidraw/path.cc])
 
@@ -21,6 +21,7 @@ AC_LANG([C++])
 AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_CC_C_O
+AM_PROG_AR
 AC_PROG_INSTALL
 ACLTX_PROG_PS2PDF(AC_MSG_WARN([Cannot find ps2pdf]))
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
@@ -92,18 +93,35 @@ regcomp select socket sqrt strcasecmp strchr strcspn strdup strerror \
 strncasecmp strrchr strstr strtol uname hypot hypotf])
 
 # Checks for locations
-AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
- [PSFontDir=/usr/share/fonts/type1/gsfonts],
- AC_CHECK_FILE([/usr/share/ghostscript/fonts/bchr.afm],
-  [PSFontDir=/usr/share/ghostscript/fonts],
-  AC_CHECK_FILE([/usr/lib/ghostscript/fonts/bchr.afm],
-   [PSFontDir=/usr/lib/ghostscript/fonts],
-   AC_CHECK_FILE([/usr/lib/ps/bchr.afm],
-    [PSFontDir=/usr/lib/ps],
-    AC_CHECK_FILE([/usr/lib/X11/fonts/Type1Adobe/afm/bchr.afm],
-     [PSFontDir=/usr/lib/X11/fonts/Type1Adobe/afm],
-     AC_MSG_ERROR([cannot find PS Font Directory]))))))
+AC_MSG_CHECKING([PSFontDir])
+AC_ARG_WITH([PSFontDir],
+       [AS_HELP_STRING([--with-PSFontDir=DIR],[for font metrics (default: searches)])],,
+       [with_PSFontDir=check])
+AC_MSG_RESULT([${with_PSFontDir}])
+AS_IF([test x"${with_PSFontDir}" = xcheck],
+ [AC_MSG_NOTICE([scanning ad-hoc list of locations for PSFontDir])
+  AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
+   [PSFontDir=/usr/share/fonts/type1/gsfonts],
+   AC_CHECK_FILE([/usr/share/ghostscript/fonts/bchr.afm],
+    [PSFontDir=/usr/share/ghostscript/fonts],
+    AC_CHECK_FILE([/usr/lib/ghostscript/fonts/bchr.afm],
+     [PSFontDir=/usr/lib/ghostscript/fonts],
+     AC_CHECK_FILE([/usr/lib/ps/bchr.afm],
+      [PSFontDir=/usr/lib/ps],
+      AC_CHECK_FILE([/usr/lib/X11/fonts/Type1Adobe/afm/bchr.afm],
+       [PSFontDir=/usr/lib/X11/fonts/Type1Adobe/afm],
+       AC_CHECK_FILE([/Library/Fonts/],
+	[PSFontDir=/Library/Fonts],
+	AC_CHECK_FILE([/System/Library/Fonts/],
+	 [PSFontDir=/System/Library/Fonts],
+	 AC_MSG_ERROR([cannot find PS Font Directory]))))))))
+  AC_MSG_NOTICE([Using PSFontDir ${PSFontDir}])],
+ [PSFontDir="${with_PSFontDir}"])
 AC_SUBST(PSFontDir)
+
+# Random noise-control options.
+AX_CXXFLAGS_WARN_ALL
+CXXFLAGS="${CXXFLAGS} -Wno-narrowing"
 
 # Trailer
 AC_CONFIG_FILES([Makefile src/Makefile src/include/Makefile])

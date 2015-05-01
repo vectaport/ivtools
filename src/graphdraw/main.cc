@@ -26,6 +26,10 @@
  * Graph editor main program.
  */
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
@@ -43,7 +47,6 @@
 #include <stream.h>
 #include <string.h>
 #include <math.h>
-#include <version.h>
 
 #include <iostream>
 #include <fstream>
@@ -295,7 +298,7 @@ int main (int argc, char** argv) {
 	ed->SetComTerp(stdin_handler->comterp());
 #endif
 	
-    cerr << "ivtools-" << VersionString 
+    cerr << "ivtools-" << PACKAGE_VERSION
 	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
     unidraw->Run();
 

@@ -107,4 +107,20 @@ inline boolean Math::equal(double x, double y, double e) {
     return x - y < e && y - x < e;
 }
 
+#ifndef M_PI
+const double M_PI = 3.14159265358979323846;		// per CRC handbook, 14th. ed.
+#endif
+#ifndef M_PI_2
+const double M_PI_2 = (M_PI/2.0);				// PI/2
+#endif
+#ifndef M2_PI
+const double M2_PI = (M_PI*2.0);				// PI*2
+#endif
+
+inline float degrees(float rad) { return rad * (float)(180 / M_PI); }
+inline float radians(float deg) { return deg * (float)(M_PI / 180); }
+
+inline double degrees(double rad) { return rad * (180 / M_PI); }
+inline double radians(double deg) { return deg * (M_PI / 180); }
+
 #endif

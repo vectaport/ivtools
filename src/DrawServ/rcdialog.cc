@@ -49,7 +49,7 @@
 #include <InterViews/style.h>
 #include <InterViews/window.h>
 
-#include <stdio.h>
+#include <cstdio>
 #include <stdlib.h>
 using namespace std;
 #include <vector>

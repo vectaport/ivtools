@@ -40,6 +40,12 @@
 #if defined(__linux__) || defined(__FreeBSD__)
 #include <stdio.h>
 #endif
+
+// GNU HURD has no fixed limit
+#ifndef MAXHOSTNAMELEN
+#define MAXHOSTNAMELEN 4096
+#endif
+
 // Print a short error message describing the last error encountered
 // during a call to a system function.
 

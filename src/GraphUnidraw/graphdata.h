@@ -39,6 +39,7 @@ class GraphData {
 public:
     GraphData() {}
     virtual boolean IsA(ClassId) = 0;
+    virtual ~GraphData() {}
 };
 
 //: command data for storing edge information.

@@ -25,7 +25,7 @@
  */
 
 #ifndef unidraw_graphic_util_h
-#define unidraw_util_h
+#define unidraw_graphic_util_h
 
 #include <IV-2_6/InterViews/defs.h>
 #include <Unidraw/enter-scope.h>
@@ -43,11 +43,8 @@ inline void exch (int& a, int& b) {
 inline int square(int a) { return a *= a; }
 inline float square(float a) { return a *= a; }
 
-inline float degrees(float rad) { return rad * 180.0 / M_PI; }
-inline float radians(float deg) { return deg * M_PI / 180.0; }
-
 inline float Distance(Coord x0, Coord y0, Coord x1, Coord y1) {
-    return sqrt(float(square(x0 - x1) + square(y0 - y1)));
+    return hypotf(x0 - x1, y0 - y1);
 }
 
 inline void ArrayCopy (

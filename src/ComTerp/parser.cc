@@ -97,7 +97,7 @@ int Parser::print_next_expr()
 	err_print( stdout, "parser" );
     else
 	for (int i = 0; i < _pfnum; i++) print_pfbuf(_pfbuf,i);
-    return _pfbuf[_pfnum-1].type != TOK_EOF;
+    return _pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF;
 }
 
 postfix_token* Parser::copy_postfix_tokens(int& ntokens) {

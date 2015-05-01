@@ -97,4 +97,4 @@ TopoFace/toponode.h UniIdraw/idarrow.h UniIdraw/idarrowhead.h		\
 UniIdraw/idarrows.h UniIdraw/idcatalog.h UniIdraw/idclasses.h		\
 UniIdraw/idcmds.h UniIdraw/idcomp.h UniIdraw/idcreator.h		\
 UniIdraw/iddialogs.h UniIdraw/ided.h UniIdraw/idkybd.h			\
-UniIdraw/idvars.h UniIdraw/idversion.h
+UniIdraw/idvars.h

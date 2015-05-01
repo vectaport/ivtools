@@ -30,6 +30,7 @@
 #ifndef ivlook2_6_button_h
 #define ivlook2_6_button_h
 
+#include <inttypes.h>
 #include <IV-2_6/InterViews/interactor.h>
 #include <IV-2_6/InterViews/subject.h>
 
@@ -113,9 +114,9 @@ private:
 
 class PushButton : public TextButton {
 public:
-    PushButton(const char*, ButtonState*, int);
+    PushButton(const char*, ButtonState*, intptr_t);
     PushButton(const char*, ButtonState*, void*);
-    PushButton(const char*, const char*, ButtonState*, int);
+    PushButton(const char*, const char*, ButtonState*, intptr_t);
     PushButton(const char*, const char*, ButtonState*, void*);
     virtual ~PushButton();
 
@@ -129,9 +130,9 @@ private:
 
 class RadioButton : public TextButton {
 public:
-    RadioButton(const char*, ButtonState*, int);
+    RadioButton(const char*, ButtonState*, intptr_t);
     RadioButton(const char*, ButtonState*, void*);
-    RadioButton(const char*, const char*, ButtonState*, int);
+    RadioButton(const char*, const char*, ButtonState*, intptr_t);
     RadioButton(const char*, const char*, ButtonState*, void*);
     virtual ~RadioButton();
 
@@ -145,9 +146,9 @@ private:
 
 class CheckBox : public TextButton {
 public:
-    CheckBox(const char*, ButtonState*, int, int);
+    CheckBox(const char*, ButtonState*, intptr_t, intptr_t);
     CheckBox(const char*, ButtonState*, void*, void*);
-    CheckBox(const char*, const char*, ButtonState*, int, int);
+    CheckBox(const char*, const char*, ButtonState*, intptr_t, intptr_t);
     CheckBox(const char*, const char*, ButtonState*, void*, void*);
     virtual ~CheckBox();
 

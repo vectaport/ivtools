@@ -21,7 +21,7 @@
  * 
  */
 
-#if !defined(grstatfunc_h)
+#if !defined(_grstatfunc_h)
 #define _grstatfunc_h
 
 #include <ComUnidraw/unifunc.h>

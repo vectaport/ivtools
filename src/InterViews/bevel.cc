@@ -247,7 +247,7 @@ void Bevel::left_arrow(
 ) {
     Coord center_y = (bottom + top) * 0.5;
     float slope = ((top - bottom) / (right - left)) * 0.5;
-    float delta_x = thickness / sqrt(slope * slope + 1);
+    float delta_x = thickness / hypot(slope, 1);
     float delta_y = slope * delta_x;
 
     c->new_path();
@@ -288,7 +288,7 @@ void Bevel::right_arrow(
 ) {
     Coord center_y = (bottom + top) * 0.5;
     float slope = ((top - bottom) / (right - left)) * 0.5;
-    float delta_x = thickness / sqrt(slope * slope + 1);
+    float delta_x = thickness / hypot(slope, 1);
     float delta_y = slope * delta_x;
 
     c->new_path();
@@ -329,7 +329,7 @@ void Bevel::up_arrow(
 ) {
     Coord center_x = (left + right) * 0.5;
     float slope = 2 * ((top - bottom) / (right - left));
-    float delta_x = thickness / sqrt(slope * slope + 1);
+    float delta_x = thickness / hypot(slope, 1);
     float delta_y = slope * delta_x;
 
     c->new_path();
@@ -370,7 +370,7 @@ void Bevel::down_arrow(
 ) {
     Coord center_x = (left + right) * 0.5;
     float slope = 2* ((top - bottom) / (right - left));
-    float delta_x = thickness / sqrt(slope * slope + 1);
+    float delta_x = thickness / hypot(slope, 1);
     float delta_y = slope * delta_x;
 
     c->new_path();

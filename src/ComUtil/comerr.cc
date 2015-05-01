@@ -171,7 +171,7 @@ Return Value:  error number if last error was from COMTERP,
 
 Parameters:  none
 
-
+*/
 /*!
 Description:
 

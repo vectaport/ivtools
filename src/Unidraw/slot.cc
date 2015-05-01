@@ -268,7 +268,7 @@ static void Correct (
 
     float x0 = 0, y0 = 0, x1 = length, y1 = 0;
     corr.TransformRect(x0, y0, x1, y1);
-    length = Math::round(sqrt(square(x0-x1) + square(y0-y1)));
+    length = Math::round(hypot(x0 - x1, y0 - y1));
 }
 
 Command* SlotView::InterpGraphicCompManip (Manipulator* m) {

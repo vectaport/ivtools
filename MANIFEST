@@ -1,4 +1,4 @@
-sivtools-1.2/CHANGES
+ivtools-1.2/CHANGES
 ivtools-1.2/CHANGES-0.4
 ivtools-1.2/CHANGES-0.5
 ivtools-1.2/CHANGES-0.6
@@ -1589,6 +1589,7 @@ ivtools-1.2/src/include/ivstd/Imakefile
 ivtools-1.2/src/include/ivstd/Makefile
 ivtools-1.2/src/include/ivstd/fstream
 ivtools-1.2/src/include/ivstd/fstream.h
+ivtools-1.2/src/include/ivstd/ignores.h
 ivtools-1.2/src/include/ivstd/iosfwd
 ivtools-1.2/src/include/ivstd/iostream.h
 ivtools-1.2/src/include/ivstd/leakchecker.h
@@ -1601,7 +1602,6 @@ ivtools-1.2/src/include/ivstd/stdio.h
 ivtools-1.2/src/include/ivstd/stdlib.h
 ivtools-1.2/src/include/ivstd/stream.h
 ivtools-1.2/src/include/ivstd/string.h
-ivtools-1.2/src/include/ivstd/version.h
 ivtools-1.2/src/iueserv_/Imakefile
 ivtools-1.2/src/iueserv_/Makefile
 ivtools-1.2/src/iueserv_/README
@@ -1821,7 +1821,6 @@ ivtools-1.2/src/utils/ftp.h
 ivtools-1.2/src/utils/http.cc
 ivtools-1.2/src/utils/http.h
 ivtools-1.2/src/utils/ivdl.cc
-ivtools-1.2/src/utils/ivtmpnam.c
 ivtools-1.2/src/utils/parse.h
 ivtools-1.2/src/utils/readwrite.h
 ivtools-1.2/src/utils/sockets.cc
