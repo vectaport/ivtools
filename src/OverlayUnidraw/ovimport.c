@@ -1562,18 +1562,10 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
 	comp = TIFF_Image(pathname);
       else {
-	/* ivtiftopnm (part of ivtools) is a stdin/stdout wrapper to tifftopnm */
-	/* tiftopnm is the older name for ivtiftopnm */
-	if (OverlayKit::bincheck("tifftopnm")) { 
-	  if (OverlayKit::bincheck("ivtiftopnm"))
-	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "ivtiftopnm");
-	  else if (OverlayKit::bincheck("tiftopnm"))
-	    comp = PNM_Image_Filter(*in, return_fd, pnmfd, "tiftopnm");
-	  else
-	    cerr << "ivtiftopnm or tiftopnm not found (part of ivtools)\n";
-	} else {
-	    cerr << "tifftopnm not found (part of netpbm)\n";
-	}
+	if (OverlayKit::bincheck("convert"))
+	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "convert tiff:- pnm:-");
+	else
+	  cerr << "convert(1), part of ImageMagick(1), not found\n";
       }
 
     } else if (strncmp(creator, "X11", 3)==0) {
