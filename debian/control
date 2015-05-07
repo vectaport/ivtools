@@ -22,7 +22,7 @@ Section: graphics
 Architecture: any
 Depends: xterm | x-terminal-emulator, ${shlibs:Depends}, ${misc:Depends}
 Conflicts: ivtools-dev (<< 1.2.8a1)
-Suggests: netpbm, libjpeg-progs, pstoedit
+Suggests: imagemagick, libjpeg-progs, pstoedit
 Description: Drawing Editors evolved from idraw
  InterViews is written in C++ and portable to several different Unix
  platforms.
