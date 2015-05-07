@@ -1633,7 +1633,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	} else	
 	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "pngtopnm");
       } else 
-	cerr << "pnmtopgm not found (part of ivtools)\n";
+	cerr << "pngtopnm not found\n";
     }
 
 
