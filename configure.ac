@@ -27,6 +27,11 @@ ACLTX_PROG_PS2PDF(AC_MSG_WARN([Cannot find ps2pdf]))
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
 
 # Checks for libraries.
+AC_PATH_XTRA
+CFLAGS="${X_CFLAGS} ${CFLAGS}"
+CXXFLAGS="${X_CFLAGS} ${CXXFLAGS}"
+LDFLAGS="${X_LIBS} ${LDFLAGS}"
+
 AC_CHECK_LIB([m], [pow], [MATH_LD=-lm], AC_MSG_WARN([Cannot find math library]))
 AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
 AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
@@ -58,9 +63,6 @@ LIB_IV_VER=3:8:2
 AC_SUBST(LIB_IV_VER)
 
 # Checks for header files.
-AC_PATH_X
-AC_PATH_XTRA
-
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h inttypes.h malloc.h \
 memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h \
 sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h \
