@@ -17,6 +17,13 @@ AC_CONFIG_MACRO_DIR([m4])
 
 AC_LANG([C++])
 
+# Process options
+AC_MSG_CHECKING([with_ace])
+AC_ARG_WITH([ace],
+       [AS_HELP_STRING([--with-ace],[use the ACE library (default: check)])],,
+       [with_ace=check])
+AC_MSG_RESULT([${with_ace}])
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
@@ -35,11 +42,18 @@ LDFLAGS="${X_LIBS} ${LDFLAGS}"
 AC_CHECK_LIB([m], [pow], [MATH_LD=-lm], AC_MSG_WARN([Cannot find math library]))
 AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
 AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
-AC_CHECK_LIB([ACE], [ace_cleanup_destroyer], [ACE_LD=-lACE], AC_MSG_WARN([Cannot find ACE library]))
+AS_IF([test ${with_ace} != no],
+ [AC_CHECK_LIB([ACE], [ace_cleanup_destroyer],
+  [with_ace=yes
+   ACE_LD=-lACE],
+  [AS_IF([test ${with_ace} = check],
+    [with_ace=no
+     AC_MSG_WARN([Cannot find ACE library])],
+    [AC_MSG_ERROR([Cannot find ACE library])])])])
 AC_CHECK_LIB([tiff], [TIFFOpen], [TIFF_LD=-ltiff],
  AC_CHECK_LIB([TIFF], [TIFFOpen], [TIFF_LD=-lTIFF], AC_MSG_WARN([Cannot find tiff or TIFF library])))
 AC_CHECK_LIB([clippoly], [clippoly_version], [CLIPPOLY_LD=-lclippoly], AC_MSG_WARN([Cannot find clippoly library]))
-AM_CONDITIONAL([HAVE_LIBACE], [test x${ACE_LD} != x])
+AM_CONDITIONAL([HAVE_LIBACE], [test ${with_ace} = yes])
 AM_CONDITIONAL([HAVE_LIBTIFF], [test x${TIFF_LD} != x])
 AM_CONDITIONAL([HAVE_LIBCLIPPOLY], [test x${CLIPPOLY_LD} != x])
 
