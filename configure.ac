@@ -24,6 +24,18 @@ AC_ARG_WITH([ace],
        [with_ace=check])
 AC_MSG_RESULT([${with_ace}])
 
+AC_MSG_CHECKING([with_tiff])
+AC_ARG_WITH([tiff],
+       [AS_HELP_STRING([--with-tiff],[use the TIFF library (default: check)])],,
+       [with_tiff=check])
+AC_MSG_RESULT([${with_tiff}])
+
+AC_MSG_CHECKING([with_clippoly])
+AC_ARG_WITH([clippoly],
+       [AS_HELP_STRING([--with-clippoly],[use the CLIPPOLY library (default: check)])],,
+       [with_clippoly=check])
+AC_MSG_RESULT([${with_clippoly}])
+
 # Checks for programs.
 AC_PROG_CXX
 AC_PROG_CC
@@ -42,6 +54,7 @@ LDFLAGS="${X_LIBS} ${LDFLAGS}"
 AC_CHECK_LIB([m], [pow], [MATH_LD=-lm], AC_MSG_WARN([Cannot find math library]))
 AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
 AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
+
 AS_IF([test ${with_ace} != no],
  [AC_CHECK_LIB([ACE], [ace_cleanup_destroyer],
   [with_ace=yes
@@ -50,12 +63,31 @@ AS_IF([test ${with_ace} != no],
     [with_ace=no
      AC_MSG_WARN([Cannot find ACE library])],
     [AC_MSG_ERROR([Cannot find ACE library])])])])
-AC_CHECK_LIB([tiff], [TIFFOpen], [TIFF_LD=-ltiff],
- AC_CHECK_LIB([TIFF], [TIFFOpen], [TIFF_LD=-lTIFF], AC_MSG_WARN([Cannot find tiff or TIFF library])))
-AC_CHECK_LIB([clippoly], [clippoly_version], [CLIPPOLY_LD=-lclippoly], AC_MSG_WARN([Cannot find clippoly library]))
+
+AS_IF([test ${with_tiff} != no],
+ [AC_CHECK_LIB([tiff], [TIFFOpen],
+   [with_tiff=yes
+    TIFF_LD=-ltiff],
+   [AC_CHECK_LIB([TIFF], [TIFFOpen],
+     [with_tiff=yes
+      TIFF_LD=-lTIFF],
+     [AS_IF([test ${with_tiff} = check],
+       [with_tiff=no
+        AC_MSG_WARN([Cannot find tiff or TIFF library])],
+       [AC_MSG_ERROR([Cannot find tiff or TIFF library])])])])])
+
+AS_IF([test ${with_clippoly} != no],
+ [AC_CHECK_LIB([clippoly], [clippoly_version],
+   [with_clippoly=yes
+    CLIPPOLY_LD=-lclippoly],
+   [AS_IF([test ${with_ace} = check],
+     [with_clippoly=no
+      AC_MSG_WARN([Cannot find clippoly library])],
+     [AC_MSG_ERROR([Cannot find clippoly library])])])])
+
 AM_CONDITIONAL([HAVE_LIBACE], [test ${with_ace} = yes])
-AM_CONDITIONAL([HAVE_LIBTIFF], [test x${TIFF_LD} != x])
-AM_CONDITIONAL([HAVE_LIBCLIPPOLY], [test x${CLIPPOLY_LD} != x])
+AM_CONDITIONAL([HAVE_LIBTIFF], [test ${with_tiff} = yes])
+AM_CONDITIONAL([HAVE_LIBCLIPPOLY], [test ${with_clippoly} = yes])
 
 AC_SUBST(X11_LD)
 AC_SUBST(XEXT_LD)
