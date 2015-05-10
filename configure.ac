@@ -42,7 +42,7 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AM_PROG_AR
 AC_PROG_INSTALL
-ACLTX_PROG_PS2PDF(AC_MSG_WARN([Cannot find ps2pdf]))
+ACLTX_PROG_PS2PDF([AC_MSG_WARN([Cannot find ps2pdf])])
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
 
 # Checks for libraries.
@@ -51,9 +51,9 @@ CFLAGS="${X_CFLAGS} ${CFLAGS}"
 CXXFLAGS="${X_CFLAGS} ${CXXFLAGS}"
 LDFLAGS="${X_LIBS} ${LDFLAGS}"
 
-AC_CHECK_LIB([m], [pow], [MATH_LD=-lm], AC_MSG_WARN([Cannot find math library]))
-AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], AC_MSG_ERROR([Cannot find X11 library]))
-AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], AC_MSG_ERROR([Cannot find Xext library]))
+AC_CHECK_LIB([m], [pow], [MATH_LD=-lm], [AC_MSG_WARN([Cannot find math library])])
+AC_CHECK_LIB([X11], [XOpenDisplay], [X11_LD=-lX11], [AC_MSG_ERROR([Cannot find X11 library])])
+AC_CHECK_LIB([Xext], [XextFindDisplay], [XEXT_LD=-lXext], [AC_MSG_ERROR([Cannot find Xext library])])
 
 AS_IF([test ${with_ace} != no],
  [AC_CHECK_LIB([ACE], [ace_cleanup_destroyer],
@@ -150,19 +150,19 @@ AS_IF([test x"${with_PSFontDir}" = xcheck],
  [AC_MSG_NOTICE([scanning ad-hoc list of locations for PSFontDir])
   AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
    [PSFontDir=/usr/share/fonts/type1/gsfonts],
-   AC_CHECK_FILE([/usr/share/ghostscript/fonts/bchr.afm],
-    [PSFontDir=/usr/share/ghostscript/fonts],
-    AC_CHECK_FILE([/usr/lib/ghostscript/fonts/bchr.afm],
-     [PSFontDir=/usr/lib/ghostscript/fonts],
-     AC_CHECK_FILE([/usr/lib/ps/bchr.afm],
-      [PSFontDir=/usr/lib/ps],
-      AC_CHECK_FILE([/usr/lib/X11/fonts/Type1Adobe/afm/bchr.afm],
-       [PSFontDir=/usr/lib/X11/fonts/Type1Adobe/afm],
-       AC_CHECK_FILE([/Library/Fonts/],
-	[PSFontDir=/Library/Fonts],
-	AC_CHECK_FILE([/System/Library/Fonts/],
-	 [PSFontDir=/System/Library/Fonts],
-	 AC_MSG_ERROR([cannot find PS Font Directory]))))))))
+   [AC_CHECK_FILE([/usr/share/ghostscript/fonts/bchr.afm],
+     [PSFontDir=/usr/share/ghostscript/fonts],
+     [AC_CHECK_FILE([/usr/lib/ghostscript/fonts/bchr.afm],
+       [PSFontDir=/usr/lib/ghostscript/fonts],
+       [AC_CHECK_FILE([/usr/lib/ps/bchr.afm],
+	 [PSFontDir=/usr/lib/ps],
+	 [AC_CHECK_FILE([/usr/lib/X11/fonts/Type1Adobe/afm/bchr.afm],
+	   [PSFontDir=/usr/lib/X11/fonts/Type1Adobe/afm],
+	   [AC_CHECK_FILE([/Library/Fonts/],
+	     [PSFontDir=/Library/Fonts],
+	     [AC_CHECK_FILE([/System/Library/Fonts/],
+	       [PSFontDir=/System/Library/Fonts],
+	       [AC_MSG_ERROR([cannot find PS Font Directory])])])])])])])])
   AC_MSG_NOTICE([Using PSFontDir ${PSFontDir}])],
  [PSFontDir="${with_PSFontDir}"])
 AC_SUBST(PSFontDir)
