@@ -8,14 +8,9 @@ AC_INIT([InterViews Application Framework and Drawing Tools],[1.2.11],[johnston@
 
 dnl The foreign option allows the follow files to not exist: NEWS AUTHORS ChangeLog
 AM_INIT_AUTOMAKE([subdir-objects foreign -Wall])
-
 AC_CONFIG_SRCDIR([src/Unidraw/path.cc])
-
 AC_CONFIG_HEADERS([config.h])
-
 AC_CONFIG_MACRO_DIR([m4])
-
-AC_LANG([C++])
 
 # Process options
 AC_MSG_CHECKING([with_ace])
@@ -36,7 +31,14 @@ AC_ARG_WITH([clippoly],
        [with_clippoly=check])
 AC_MSG_RESULT([${with_clippoly}])
 
+AC_MSG_CHECKING([PSFontDir])
+AC_ARG_WITH([PSFontDir],
+       [AS_HELP_STRING([--with-PSFontDir=DIR],[for font metrics (default: searches)])],,
+       [with_PSFontDir=check])
+AC_MSG_RESULT([${with_PSFontDir}])
+
 # Checks for programs.
+AC_LANG([C++])
 AC_PROG_CXX
 AC_PROG_CC
 AM_PROG_CC_C_O
@@ -44,6 +46,7 @@ AM_PROG_AR
 AC_PROG_INSTALL
 ACLTX_PROG_PS2PDF([AC_MSG_WARN([Cannot find ps2pdf])])
 AM_CONDITIONAL([PS2PDF], [test x$ps2pdf != xno])
+LT_INIT
 
 # Checks for libraries.
 AC_PATH_XTRA
@@ -95,8 +98,6 @@ AC_SUBST(ACE_LD)
 AC_SUBST(TIFF_LD)
 AC_SUBST(CLIPPOLY_LD)
 
-LT_INIT
-
 # Generated dynamic library version
 dnl This is not the approved way of versioning dynamic libraries
 dnl but we just want to generate version 1.2.8
@@ -111,8 +112,9 @@ AC_SUBST(LIB_IV_VER)
 # Checks for header files.
 AC_CHECK_HEADERS([arpa/inet.h fcntl.h float.h inttypes.h malloc.h \
 memory.h netdb.h netinet/in.h stddef.h stdlib.h string.h strings.h \
-sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h \
-ace/Acceptor.h ace/ACE.h])
+sys/file.h sys/ioctl.h sys/param.h sys/socket.h sys/time.h unistd.h])
+AS_IF([test ${with_ace} = yes],
+ [AC_CHECK_HEADERS([ace/Acceptor.h ace/ACE.h])])
 
 # Checks for typedefs, structures, and compiler characteristics.
 AC_HEADER_STDBOOL
@@ -141,11 +143,6 @@ regcomp select socket sqrt strcasecmp strchr strcspn strdup strerror \
 strncasecmp strrchr strstr strtol uname hypot hypotf])
 
 # Checks for locations
-AC_MSG_CHECKING([PSFontDir])
-AC_ARG_WITH([PSFontDir],
-       [AS_HELP_STRING([--with-PSFontDir=DIR],[for font metrics (default: searches)])],,
-       [with_PSFontDir=check])
-AC_MSG_RESULT([${with_PSFontDir}])
 AS_IF([test x"${with_PSFontDir}" = xcheck],
  [AC_MSG_NOTICE([scanning ad-hoc list of locations for PSFontDir])
   AC_CHECK_FILE([/usr/share/fonts/type1/gsfonts/a010015l.afm],
