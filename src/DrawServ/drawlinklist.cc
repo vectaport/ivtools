@@ -60,10 +60,14 @@ void DrawLinkList::add_drawlink(DrawLink* new_link) {
 }
 
 DrawLink* DrawLinkList::find_drawlink(GraphicId* grid) {
+#ifdef HAVE_ACE
   void* ptr = nil;
   ((DrawServ*)unidraw)->sessionidtable()->find(ptr, grid->selector());
   SessionId* sessionid = (SessionId*)ptr;
   return (DrawLink*) (sessionid ? sessionid->drawlink() : nil);
+#else
+  return NULL;
+#endif
 }
 
 DrawLink* DrawLinkList::Link (UList* r) {

@@ -29,6 +29,8 @@
 #ifndef rcdialog_h
 #define rcdialog_h
 
+#ifdef HAVE_ACE
+
 #include <InterViews/action.h>
 #include <Unidraw/editor.h>
 
@@ -76,4 +78,5 @@ protected:
 
 #include <InterViews/_leave.h>
 
+#endif
 #endif

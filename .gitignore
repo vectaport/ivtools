@@ -457,3 +457,5 @@ src/IV/DARWIN/mkg3states
 /stdcmapppm
 Makefile
 Makefile.in
+
+src/man/refman3.1/refman.pdf
