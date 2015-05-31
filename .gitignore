@@ -459,7 +459,3 @@ Makefile
 Makefile.in
 
 src/man/refman3.1/refman.pdf
-
-*.sh~
-
-.gitignore~
