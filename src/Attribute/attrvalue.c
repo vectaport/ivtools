@@ -1321,9 +1321,7 @@ void AttributeValue::state(int val) {
 }
 
 boolean AttributeValue::is_object(int class_symid) { 
-  if (!is_type(ObjectType)) return false;
-  if (this->class_symid() == class_symid) return true;
-  return false;
+  return is_type(ObjectType) && this->class_symid() == class_symid;
 }
 
 #if 0

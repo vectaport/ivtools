@@ -89,9 +89,5 @@ boolean MatchEditor::HandleChar (char c) {
             Select(length, text->Length());
         }
     }
-    if (done && left == right) {
-        return true;
-    } else {
-        return false;
-    }
+    return (done && left == right);
 }
