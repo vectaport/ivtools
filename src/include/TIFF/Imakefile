@@ -1,9 +1,0 @@
-XCOMM
-XCOMM include files for the TIFF package
-XCOMM
-
-PACKAGE = include_tiff
-
-IvmkcmTargets($(PACKAGE))
-
-InstallIncludes(TIFF)

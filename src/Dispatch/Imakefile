@@ -1,7 +1,0 @@
-XCOMM
-XCOMM Dispatch source files
-XCOMM
-
-PACKAGE = src_dispatch
-
-IvmkcmTargets($(PACKAGE))

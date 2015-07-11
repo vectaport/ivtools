@@ -1,9 +1,0 @@
-XCOMM
-XCOMM include files for using the Dispatcher and Rpc classes
-XCOMM
-
-PACKAGE = include_dispatch
-
-IvmkcmTargets($(PACKAGE))
-
-InstallIncludes(Dispatch)

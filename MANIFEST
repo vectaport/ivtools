@@ -1602,7 +1602,6 @@ ivtools-1.2/src/include/ivstd/stdio.h
 ivtools-1.2/src/include/ivstd/stdlib.h
 ivtools-1.2/src/include/ivstd/stream.h
 ivtools-1.2/src/include/ivstd/string.h
-ivtools-1.2/src/include/ivstd/version.h
 ivtools-1.2/src/iueserv_/Imakefile
 ivtools-1.2/src/iueserv_/Makefile
 ivtools-1.2/src/iueserv_/README

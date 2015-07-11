@@ -128,7 +128,7 @@ public:
     virtual Glyph* MakeStates();
     // make state views in the chrome.
     virtual Glyph* MakeToolbar();
-    // make tool pallette.
+    // make tool palette.
 
     static OverlayKit* Instance();
     // default instance of OverlayKit.

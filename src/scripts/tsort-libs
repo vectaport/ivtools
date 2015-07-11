@@ -1,0 +1,19 @@
+#! /bin/sh -f
+
+# This lovely little script grovels through Makefile.am to find the
+# mutual dependencies between the generated libraries.  It uses this
+# information to topologically sort them, and outputs the result in a
+# form suitable for inclusion in Makefile.am.
+#
+# The reason for this is that these must be in dependency order in
+# Makefile.am to avoid a known but undocumented bug which generates an
+# install-time link error.
+
+egrep 'la_LIBADD[[:blank:]]*=' Makefile.am \
+    | sed 's/-l[^[:blank:]]*\|_la_LIBADD[[:blank:]]*=\|[.]la\|[$][(][^)]*[)]//g' \
+    | awk '{for (i=1; i<=NF; i++) print $1, $i}' \
+    | sed 's/_/-/g' \
+    | tsort | tac \
+    | awk '{ if ($1 == "libAceDispatch") print "if HAVE_LIBACE";
+	     print "lib_LTLIBRARIES +=", $1 ".la";
+	     if ($1 == "libAceDispatch") print "endif" }'
