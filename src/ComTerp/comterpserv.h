@@ -63,6 +63,9 @@ public:
     // re-initialization.
     virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
+
+    AttributeValueList* parse_next_expr(FILE*);
+    // parse the next expression from a file.
     
     virtual int runfile(const char*, boolean popen_flag=0);
     // run interpreter on commands read from a file.

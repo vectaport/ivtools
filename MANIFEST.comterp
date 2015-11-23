@@ -139,6 +139,8 @@ src/ComTerp/mathfunc.c
 src/ComTerp/mathfunc.h
 src/ComTerp/numfunc.c
 src/ComTerp/numfunc.h
+src/ComTerp/parsefunc.c
+src/ComTerp/parsefunc.h
 src/ComTerp/parser.c
 src/ComTerp/parser.h
 src/ComTerp/postfunc.c

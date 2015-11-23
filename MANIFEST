@@ -187,6 +187,8 @@ ivtools-1.2/src/ComTerp/mathfunc.c
 ivtools-1.2/src/ComTerp/mathfunc.h
 ivtools-1.2/src/ComTerp/numfunc.c
 ivtools-1.2/src/ComTerp/numfunc.h
+ivtools-1.2/src/ComTerp/parsefunc.c
+ivtools-1.2/src/ComTerp/parsefunc.h
 ivtools-1.2/src/ComTerp/parser.c
 ivtools-1.2/src/ComTerp/parser.h
 ivtools-1.2/src/ComTerp/postfunc.c

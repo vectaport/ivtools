@@ -264,6 +264,9 @@ void SplitStrFunc::execute() {
   static int tokval_symid = symbol_add("tokval");
   ComValue tokvalv(stack_key(tokval_symid, false, zerov));
   boolean tokvalflag = tokvalv.is_known();
+  static int ws_symid = symbol_add("ws");
+  ComValue wsflagv(stack_key(ws_symid));
+  boolean wsflag = wsflagv.is_true();
   reset_stack();
 
   boolean tokstr_charflag = tokstrv.is_type(ComValue::CharType);
@@ -302,7 +305,7 @@ void SplitStrFunc::execute() {
           }
           break;
         }
-        while (*str && (tokstr_charflag?*str!='\n':!isspace(*str)) && *str!=delim && bufoff<BUFSIZ-1) {
+        while (*str && (/*tokstr_charflag?*str!='\n':*/!isspace(*str)) && *str!=delim && bufoff<BUFSIZ-1) {
           if(*str=='"') {
             while(*str && (*str!='"' || *(str-1)!='\\') && bufoff<BUFSIZ-1) 
               buffer[bufoff++] = *str++;

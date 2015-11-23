@@ -122,12 +122,13 @@ void ListAtFunc::execute() {
 
   reset_stack();
 
-  if (listv.is_type(ComValue::ArrayType) && !nv.is_nil() && 
-      (nv.int_val()>=0 || insflag)) {
+  if (listv.is_type(ComValue::ArrayType) && 
+      (nv.is_nil() || nv.int_val()>=0 )) {
     AttributeValueList* avl = listv.array_val();
+    int nvv = nv.is_nil() ? avl->Number()-1 : nv.int_val();
     if (avl) {
       if (insflag) {
-	avl->Insert(nv.int_val(), new AttributeValue(insv));
+	avl->Insert(nvv, new AttributeValue(insv));
 	push_stack(insv);
 	return;
       } else if (setflag) {
@@ -136,7 +137,7 @@ void ListAtFunc::execute() {
 	push_stack(setv);
 	return;
       } else {
-	AttributeValue* retv = avl->Get(nv.int_val());
+	AttributeValue* retv = avl->Get(nvv);
 	if (retv)
 	  push_stack(*retv);
 	else
@@ -146,11 +147,12 @@ void ListAtFunc::execute() {
     }
   } else if (listv.is_object(AttributeList::class_symid())) {
     AttributeList* al = (AttributeList*)listv.obj_val();
-    if (al && nv.int_val()<al->Number()) {
+    int nvv = nv.is_nil() ? al->Number()-1 : nv.int_val();
+    if (al && nvv<al->Number()) {
       int count = 0;
       Iterator it;
       for (al->First(it); !al->Done(it); al->Next(it)) {
-	if (count==nv.int_val()) {
+	if (count==nvv) {
 	  ComValue retval(Attribute::class_symid(), (void*) al->GetAttr(it));
 	  if (insflag) {
 	    fprintf(stderr, "Insert not yet supported for AttributeList\n");
@@ -164,15 +166,16 @@ void ListAtFunc::execute() {
     }
   } else if (listv.is_string()) {
     const char* str = listv.string_ptr();
+    int nvv = nv.is_nil() ? strlen(str)-1 : nv.int_val();
     if(!setflag) {
       if(strlen(str) > nv.int_val()) {
-        ComValue retval(*(str+nv.int_val()), ComValue::CharType);
+        ComValue retval(*(str+nvv), ComValue::CharType);
         push_stack(retval);
         return;
       }
     } else {
-      if(nv.int_val()<strlen(str) && nv.int_val()>=0) {
-	*((char *)str+nv.int_val()) = setv.char_val();
+      if(nvv<strlen(str) && nvv>=0) {
+	*((char *)str+nvv) = setv.char_val();
 	ComValue retval(setv);
 	push_stack(retval);
 	return;

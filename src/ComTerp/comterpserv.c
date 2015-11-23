@@ -29,6 +29,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/strmfunc.h>
+#include <Attribute/attrlist.h>
 #include <OS/math.h>
 #include <iostream.h>
 #include <string.h>
@@ -470,4 +471,45 @@ void ComTerpServ::add_defaults() {
     add_command("socket", new SocketFunc(this));
     add_command("eval", new EvalFunc(this));
   }
+}
+
+AttributeValueList* ComTerpServ::parse_next_expr(FILE* fptr) {
+
+    /* save state for this interpreter */
+    push_servstate();
+    
+    /* install different inputs */
+    _inptr = fptr;
+    _infunc = (infuncptr)&fgets;
+    _eoffunc = (eoffuncptr)&feof;
+    _errfunc = (errfuncptr)&ferror;
+    _outfunc = nil;
+
+    /* save tokens to restore after the file has run */
+    int toklen;
+    postfix_token* tokbuf = copy_postfix_tokens(toklen);
+    int tokoff = _pfoff;
+    
+    /* parse a complete expression */
+    int status=0;
+    do {
+	status = parser(_inptr,	 _infunc, _eoffunc, _errfunc, NULL, NULL,
+			_buffer, _bufsiz, &_bufptr, _token, _toksiz, &_linenum,
+			&_pfbuf, &_pfsiz, &_pfnum);
+	if (status) 
+	    err_print( stdout, "parser" );
+	else
+	    for (int i = 0; i < _pfnum; i++) print_pfbuf(_pfbuf,i);
+    } while (status==0 && strlen(_buffer)>_bufptr);
+    // return _pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF;
+
+    /* restore tokens */
+    load_postfix(tokbuf, toklen, tokoff);
+    delete tokbuf;
+    
+    /* restore state for this interpreter */
+    pop_servstate();
+
+    return nil;
+
 }
