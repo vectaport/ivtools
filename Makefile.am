@@ -151,7 +151,8 @@ src/ComTerp/bquotefunc.cc src/ComTerp/charfunc.cc			\
 src/ComTerp/comfunc.cc src/ComTerp/comvalue.cc src/ComTerp/condfunc.cc	\
 src/ComTerp/debugfunc.cc src/ComTerp/dotfunc.cc				\
 src/ComTerp/helpfunc.cc src/ComTerp/iofunc.cc src/ComTerp/listfunc.cc	\
-src/ComTerp/mathfunc.cc src/ComTerp/numfunc.cc src/ComTerp/parser.cc	\
+src/ComTerp/mathfunc.cc src/ComTerp/numfunc.cc				\
+src/ComTerp/parsefunc.cc src/ComTerp/parser.cc				\
 src/ComTerp/postfunc.cc src/ComTerp/randfunc.cc src/ComTerp/scanner.cc	\
 src/ComTerp/statfunc.cc src/ComTerp/strmfunc.cc				\
 src/ComTerp/symbolfunc.cc src/ComTerp/typefunc.cc			\

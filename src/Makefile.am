@@ -13,6 +13,7 @@ ComTerp/_comutil.h ComTerp/comvalue.h ComTerp/condfunc.h		\
 ComTerp/ctrlfunc.h ComTerp/debugfunc.h ComTerp/dotfunc.h		\
 ComTerp/helpfunc.h ComTerp/iofunc.h ComTerp/lexscan.h			\
 ComTerp/listfunc.h ComTerp/mathfunc.h ComTerp/numfunc.h			\
+ComTerp/parsefunc.h							\
 ComTerp/parser.h ComTerp/postfunc.h ComTerp/randfunc.h			\
 ComTerp/scanner.h ComTerp/statfunc.h ComTerp/strmfunc.h			\
 ComTerp/symbolfunc.h ComTerp/typefunc.h ComTerp/xformfunc.h		\
