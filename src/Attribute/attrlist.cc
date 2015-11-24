@@ -474,7 +474,7 @@ ostream& operator<< (ostream& out, const AttributeValueList& al) {
 	        out << "stream";
 	        break;
 	    case AttributeValue::ObjectType:
-	        out << "object(class=" << attrval->obj_type_val() << ", ptr= " << attrval->obj_val() << ")";
+  	        out << "object(class=" << symbol_pntr(attrval->obj_type_val()) << ", ptr= " << attrval->obj_val() << ")";
 	        break;
             default:
 		out << "nil";

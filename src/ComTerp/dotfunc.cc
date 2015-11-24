@@ -32,6 +32,7 @@
 
 #define TITLE "DotFunc"
 
+using std::cout;
 using std::cerr;
 
 /*****************************************************************************/
@@ -51,19 +52,19 @@ void DotFunc::execute() {
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
-      cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
+      cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
-        cerr << " of class " << symbol_pntr(before_part.class_symid());
-      cerr << ")\n";
+        cout << " of class " << symbol_pntr(before_part.class_symid());
+      cout << ")\n";
       return;
     }
     if (nargs()>1 && !after_part.is_string()) {
-      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
+      cout << "WARNING: expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
 	   << symbol_pntr(after_part.type_symid());
       if (before_part.is_object())
-        cerr << " for class " << symbol_pntr(before_part.class_symid());
-      cerr << ")\n";
+        cout << " for class " << symbol_pntr(before_part.class_symid());
+      cout << ")\n";
       return;
     }
 

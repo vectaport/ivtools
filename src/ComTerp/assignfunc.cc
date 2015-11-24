@@ -31,6 +31,7 @@
 
 #include <fstream>
 #include <iostream>
+using std::cout;
 using std::cerr;
 
 #define TITLE "AssignFunc"
@@ -78,7 +79,7 @@ void AssignFunc::execute() {
       Attribute* attr = (Attribute*)operand1.obj_val();
       attr->Value(operand2);
     } else {
-        cerr << "assignment to something other than a symbol or attribute (" <<
+        cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
           symbol_pntr(operand1.type_symid()) << ") ignored\n";
         print_stack_arg_post_eval(0);
 	delete operand2;

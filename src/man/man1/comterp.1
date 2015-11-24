@@ -285,6 +285,8 @@ Evaluate single expression then exit.
 
  postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
 
+ parse(fileobj) -- parse a single expression from a file
+
  arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
 				 
  sym=attrname(attribute) -- return name field of dotted pair
