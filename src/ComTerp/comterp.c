@@ -54,6 +54,7 @@
 #include <ComTerp/listfunc.h>
 #include <ComTerp/mathfunc.h>
 #include <ComTerp/numfunc.h>
+#include <ComTerp/parsefunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/randfunc.h>
 #include <ComTerp/statfunc.h>
@@ -1278,6 +1279,7 @@ void ComTerp::add_defaults() {
 
     add_command("postfix", new PostFixFunc(this));
     add_command("posteval", new PostEvalFunc(this));
+    add_command("parse", new ParseFunc(this));
 
     add_command("if", new IfThenElseFunc(this));
     add_command("for", new ForFunc(this));

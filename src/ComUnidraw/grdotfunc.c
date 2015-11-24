@@ -31,6 +31,7 @@
 #include <fstream>
 #include <iostream>
 
+using std::cout;
 using std::cerr;
 
 #define TITLE "GrDotFunc"
@@ -53,20 +54,20 @@ void GrDotFunc::execute() {
           ((Attribute*)before_part.obj_val())->Value()->object_compview())) &&
         !(before_part.is_attributelist()) && 
 	!(before_part.object_compview())) {
-      cerr << "expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
+      cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
-        cerr << " of class " << symbol_pntr(before_part.class_symid());
-      cerr << ") -- grdotfunc.c\n";
+        cout << " of class " << symbol_pntr(before_part.class_symid());
+      cout << ") -- grdotfunc.c\n";
       reset_stack();
       return;
     }
     if (!after_part.is_string()) {
-      cerr << "expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
+      cout << "WARNING: expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
 	   << symbol_pntr(after_part.type_symid());
       if (before_part.is_object())
-        cerr << " of class " << symbol_pntr(before_part.class_symid());
-      cerr << ") -- grdotfunc.c\n";
+        cout << " of class " << symbol_pntr(before_part.class_symid());
+      cout << ") -- grdotfunc.c\n";
       reset_stack();
       return;
     }
