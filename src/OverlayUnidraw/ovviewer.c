@@ -365,7 +365,7 @@ void OverlayViewer::Manipulate (Manipulator* m, Event& e) {
     GetCanvas()->window()->ungrab_pointer();
 
     m->Effect(e);
-    Listen(input);
+    Listen(input_);
 }
 
 void OverlayViewer::ScreenToDrawing(float xscreen, float yscreen, 

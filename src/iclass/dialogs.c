@@ -59,8 +59,8 @@ static const int MAX_PATH_LENGTH = 256;
 /*****************************************************************************/
 
 BasicDialog::BasicDialog () : Dialog(new ButtonState, nil) {
-    input = new Sensor;
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(KeyEvent);
 }
 
 boolean BasicDialog::Accept () {
@@ -148,8 +148,8 @@ void AcknowledgeDialog::Acknowledge () {
 
 ConfirmDialog::ConfirmDialog (const char* msg) {
     Insert(Interior(msg));
-    input = new Sensor(noEvents);
-    input->Catch(KeyEvent);
+    input_ = new Sensor(noEvents);
+    input_->Catch(KeyEvent);
 }    
 
 inline boolean Confirmed (int v) {

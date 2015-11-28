@@ -57,8 +57,8 @@ StringChooser::StringChooser(
 StringChooser::~StringChooser() { }
 
 void StringChooser::Init(StringEditor* se, StringBrowser* sb) {
-    input = new Sensor;
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(KeyEvent);
     _sedit = se;
     _browser = sb;
     _focus = _sedit;

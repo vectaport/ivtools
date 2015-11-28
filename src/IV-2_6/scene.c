@@ -221,7 +221,7 @@ void MonoScene::DoInsert(Interactor* i, boolean, IntCoord&, IntCoord&) {
 }
 
 void MonoScene::DoChange(Interactor*) {
-    if (output != nil) {
+    if (output_ != nil) {
 	Reconfig();
     }
 }
@@ -237,8 +237,8 @@ void MonoScene::Reconfig() {
 }
 
 void MonoScene::Resize() {
-    if (output != nil && GetCanvasType() != CanvasInputOnly) {
-	canvas->SetBackground(output->GetBgColor());
+    if (output_ != nil && GetCanvasType() != CanvasInputOnly) {
+	canvas->SetBackground(output_->GetBgColor());
     }
     if (interior_ != nil) {
 	Place(interior_, 0, 0, xmax, ymax);

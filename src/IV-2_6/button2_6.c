@@ -158,9 +158,9 @@ void Button::Init(ButtonState* s, void* v) {
     hit = false;
     subject->Attach(this);
     Update();
-    input = new Sensor(updownEvents);
-    input->Catch(EnterEvent);
-    input->Catch(LeaveEvent);
+    input_ = new Sensor(updownEvents);
+    input_->Catch(EnterEvent);
+    input_->Catch(LeaveEvent);
 }
 
 Button::~Button() {
@@ -326,9 +326,9 @@ void TextButton::Reconfig() {
 
 void TextButton::MakeBackground() {
     Unref(background);
-    background = new Painter(output);
+    background = new Painter(output_);
     background->Reference();
-    background->SetColors(output->GetBgColor(), output->GetFgColor());
+    background->SetColors(output_->GetBgColor(), output_->GetFgColor());
 
     static Pattern* gray_pat;
     if (gray_pat == nil) {
@@ -344,7 +344,7 @@ void TextButton::MakeBackground() {
 
 void TextButton::MakeShape() {
     if (text != nil) {
-	const Font* f = output->GetFont();
+	const Font* f = output_->GetFont();
 	shape->width += f->Width(text);
 	shape->height += f->Height();
     }
@@ -392,13 +392,13 @@ void PushButton::Reconfig() {
     MakeBackground();
     if (shape->Undefined()) {
 	MakeShape();
-	shape->width += output->GetFont()->Width("    ");
+	shape->width += output_->GetFont()->Width("    ");
 	shape->height += 2*pad;
     }
 }
 
 void PushButton::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    output->ClearRect(canvas, x1, y1, x2, y2);
+    output_->ClearRect(canvas, x1, y1, x2, y2);
     Refresh();
 }
 
@@ -424,15 +424,15 @@ void PushButton::Refresh() {
     x[13] = xmax - r - r; y[13] = 0;
     x[14] = r + r; y[14] = 0;
     x[15] = r; y[15] = 0;
-    tx = (xmax - output->GetFont()->Width(text))/2;
+    tx = (xmax - output_->GetFont()->Width(text))/2;
     ty = pad;
     if (chosen || hit) {
-	output->FillBSpline(canvas, x, y, 16);
+	output_->FillBSpline(canvas, x, y, 16);
 	background->Text(canvas, text, tx, ty);
     } else {
 	background->FillRect(canvas, 0, 0, xmax, ymax);
-	output->ClosedBSpline(canvas, x, y, 16);
-	output->Text(canvas, text, tx, ty);
+	output_->ClosedBSpline(canvas, x, y, 16);
+	output_->Text(canvas, text, tx, ty);
     }
     if (!enabled) {
 	grayout->FillRect(canvas, 0, 0, xmax, ymax);
@@ -507,12 +507,12 @@ void RadioButton::Reconfig() {
 }
 
 void RadioButton::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    int h = output->GetFont()->Height();
+    int h = output_->GetFont()->Height();
     int r = radio_plain_width;
-    output->ClearRect(canvas, x1, y1, x2, y2);
+    output_->ClearRect(canvas, x1, y1, x2, y2);
     IntCoord tx = r + sep;
     IntCoord ty = (ymax + 1 - h) / 2;
-    output->Text(canvas, text, tx, ty);
+    output_->Text(canvas, text, tx, ty);
     Refresh();
 }
 
@@ -520,13 +520,13 @@ void RadioButton::Refresh() {
     IntCoord x = 0;
     IntCoord y = (ymax+1 - radio_plain_height)/2;
     if (!hit && !chosen) {
-        output->Stencil(canvas, x, y, radioPlain, radioMask);
+        output_->Stencil(canvas, x, y, radioPlain, radioMask);
     } else if (hit && !chosen) {
-        output->Stencil(canvas, x, y, radioHit, radioMask);
+        output_->Stencil(canvas, x, y, radioHit, radioMask);
     } else if (!hit && chosen) {
-        output->Stencil(canvas, x, y, radioChosen, radioMask);
+        output_->Stencil(canvas, x, y, radioChosen, radioMask);
     } else if (hit && chosen) {
-        output->Stencil(canvas, x, y, radioBoth, radioMask);
+        output_->Stencil(canvas, x, y, radioBoth, radioMask);
     }
     if (!enabled) {
 	grayout->FillRect(canvas, 0, 0, xmax, ymax);
@@ -595,17 +595,17 @@ void CheckBox::Update() {
 }
 
 void CheckBox::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    int h = output->GetFont()->Height();
+    int h = output_->GetFont()->Height();
     int t = HalfCheckBoxSize(h);
-    output->ClearRect(canvas, x1, y1, x2, y2);
+    output_->ClearRect(canvas, x1, y1, x2, y2);
     IntCoord tx = 2*t + sep;
     IntCoord ty = (ymax + 1 - h) / 2;
-    output->Text(canvas, text, tx, ty);
+    output_->Text(canvas, text, tx, ty);
     Refresh();
 }
 
 void CheckBox::Refresh() {
-    int h = output->GetFont()->Height();
+    int h = output_->GetFont()->Height();
     int t = HalfCheckBoxSize(h);
     IntCoord cx = t;
     IntCoord cy = (ymax + 1)/2;
@@ -613,14 +613,14 @@ void CheckBox::Refresh() {
     IntCoord right = cx + t;
     IntCoord bottom = cy - t;
     IntCoord top = cy + t;
-    output->Rect(canvas, left, bottom, right, top);
+    output_->Rect(canvas, left, bottom, right, top);
     background->FillRect(canvas, left+1, bottom+1, right-1, top-1);
     if (hit) {
-	output->Rect(canvas, left+1, bottom+1, right-1, top-1);
+	output_->Rect(canvas, left+1, bottom+1, right-1, top-1);
     }
     if (chosen) {
-	output->Line(canvas, left, bottom, right, top);
-	output->Line(canvas, left, top, right, bottom);
+	output_->Line(canvas, left, bottom, right, top);
+	output_->Line(canvas, left, top, right, bottom);
     }
     if (!enabled) {
 	grayout->FillRect(canvas, 0, 0, xmax, ymax);

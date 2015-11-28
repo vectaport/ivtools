@@ -78,7 +78,7 @@ void TE_Editor::Reconfig()
    WidgetKit& kit = *WidgetKit::instance();
    kit.push_style();
    kit.style(style_);
-   Painter* p = new Painter(output);
+   Painter* p = new Painter(output_);
 //   p->SetColors(kit.foreground(), kit.background());
    Display* d = Session::instance()->default_display();
    const Color* bg = Color::lookup(d, "#aaaaaa");
@@ -87,8 +87,8 @@ void TE_Editor::Reconfig()
    p->SetColors(kit.foreground(), bg);
    if (font_ != nil)
       p->SetFont(font_);
-   Resource::unref(output);
-   output = p;
+   Resource::unref(output_);
+   output_ = p;
    TextEditor::Reconfig();
    kit.pop_style();
 }

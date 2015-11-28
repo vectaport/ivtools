@@ -54,9 +54,9 @@ MoveDialog::MoveDialog () : BasicDialog(
     _medit->Match("%f %f", false);
 
     _units = new ButtonState('p');
-    input = new Sensor;
-    Ref(input);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    Ref(input_);
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();
@@ -151,9 +151,9 @@ ScaleDialog::ScaleDialog () : BasicDialog(
     _medit->Message("");
     _medit->Match("%f %f", false);
 
-    input = new Sensor;
-    Ref(input);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    Ref(input_);
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();
@@ -225,9 +225,9 @@ RotateDialog::RotateDialog () : BasicDialog(
     _medit->Message("");
     _medit->Match("%f", false);
 
-    input = new Sensor;
-    Ref(input);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    Ref(input_);
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();

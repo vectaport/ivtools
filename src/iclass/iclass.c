@@ -167,8 +167,8 @@ void IClass::Init (ClassBuffer* cb) {
     _lastFile = nil;
     _completions = nil;
 
-    input = new Sensor;
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     UpdateClassesBrowser();
@@ -688,7 +688,7 @@ void IClass::BackwardSearchCmd () {
 
 void IClass::GotoCmd () {
     if (_goto == nil) {
-        int width = output->GetFont()->Width("9999999");
+        int width = output_->GetFont()->Width("9999999");
         _goto = new StringDialog("Go to line:", width);
     }
 

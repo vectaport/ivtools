@@ -174,10 +174,10 @@ PSColor* ArrowInteractor::GetFgColor () { return _fg; }
 PSColor* ArrowInteractor::GetBgColor () { return _bg; }
 
 void ArrowInteractor::Reconfig () { 
-    Painter* p = new Painter(output);
+    Painter* p = new Painter(output_);
     Ref(p);
-    Unref(output);
-    output = p;
+    Unref(output_);
+    output_ = p;
 }
 
 void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
@@ -185,36 +185,36 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
     Coord x[3], y[3];
 
     if (canvas != nil) {
-	output->ClearRect(canvas, 0, 0, xmax, ymax);
+	output_->ClearRect(canvas, 0, 0, xmax, ymax);
 
 	if (_brush->None()) {
-	    const Font* f = output->GetFont();
+	    const Font* f = output_->GetFont();
 	    int width = f->Width(none);
 	    int height = f->Height();
 
-	    output->MoveTo((xmax - width + 1)/2, (ymax - height + 1)/2);
-	    output->Text(canvas, none);
+	    output_->MoveTo((xmax - width + 1)/2, (ymax - height + 1)/2);
+	    output_->Text(canvas, none);
 
 	} else {
-            const Color* origfg = output->GetFgColor();
-            const Color* origbg = output->GetBgColor();
+            const Color* origfg = output_->GetFgColor();
+            const Color* origbg = output_->GetBgColor();
             Resource::ref(origfg);
             Resource::ref(origbg);
 
-	    output->SetBrush(_brush);
-            output->SetColors(_fg, _bg);
+	    output_->SetBrush(_brush);
+            output_->SetColors(_fg, _bg);
 #if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
-	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
+	    output_->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #define Line _lib_iv(Line)
 #else
-	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
+	    output_->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #endif /* Line */
 
 	    /* remove the dashing for the arrowheads */
 	    if (_head || _tail) 
 	        if (_brush->dashed())
-		    output->SetBrush(new PSBrush(0, _brush->Width()));
+		    output_->SetBrush(new PSBrush(0, _brush->Width()));
 
 	    if (_head) {
 		x[2] = x[0] = xmax-ARROWX;
@@ -224,10 +224,10 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
 		y[2] = ymax/2 + ARROWY;
 #if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
-		output->MultiLine(canvas, x, y, 3);
+		output_->MultiLine(canvas, x, y, 3);
 #define MultiLine _lib_iv(MultiLine)
 #else
-		output->MultiLine(canvas, x, y, 3);
+		output_->MultiLine(canvas, x, y, 3);
 #endif /* MultiLine */
 	    }
 	    if (_tail) {
@@ -238,19 +238,19 @@ void ArrowInteractor::Redraw (Coord, Coord, Coord, Coord) {
 		y[2] = ymax/2 + ARROWY;
 #if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef MultiLine
-		output->MultiLine(canvas, x, y, 3);
+		output_->MultiLine(canvas, x, y, 3);
 #define MultiLine _lib_iv(MultiLine)
 #else
-		output->MultiLine(canvas, x, y, 3);
+		output_->MultiLine(canvas, x, y, 3);
 #endif /* MultiLine */
 	    }
 
             if (_brush->Width() == 0) {
-                CenterText("0", output, xmax, ymax);
-                output->Text(canvas, "0");
+                CenterText("0", output_, xmax, ymax);
+                output_->Text(canvas, "0");
             }
 
-            output->SetColors(origfg, origbg);
+            output_->SetColors(origfg, origbg);
             Resource::unref(origfg);
             Resource::unref(origbg);
 	}

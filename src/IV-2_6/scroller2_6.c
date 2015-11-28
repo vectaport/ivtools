@@ -59,10 +59,10 @@ void Scroller::Init() {
     view->Attach(this);
     shown = new Perspective;
     shape->Rigid();
-    input = new Sensor;
-    input->Catch(DownEvent);
-    input->Catch(UpEvent);
-    input->Catch(MotionEvent);
+    input_ = new Sensor;
+    input_->Catch(DownEvent);
+    input_->Catch(UpEvent);
+    input_->Catch(MotionEvent);
 }
 
 Scroller::~Scroller() {
@@ -71,16 +71,16 @@ Scroller::~Scroller() {
 }
 
 void Scroller::MakeBackground() {
-    Painter* bg = new Painter(output);
+    Painter* bg = new Painter(output_);
     bg->ref();
-    Resource::unref(output);
-    output = bg;
+    Resource::unref(output_);
+    output_ = bg;
     static Pattern* pat;
     if (pat == nil) {
 	pat = new Pattern(Pattern::lightgray);
 	pat->Reference();
     }
-    output->SetPattern(pat);
+    output_->SetPattern(pat);
 }
 
 void Scroller::Resize() {
@@ -90,7 +90,7 @@ void Scroller::Resize() {
 inline void Scroller::Background(
     IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2
 ) {
-    output->FillRect(canvas, x1, y1, x2, y2);
+    output_->FillRect(canvas, x1, y1, x2, y2);
 }
 
 HScroller::HScroller(Interactor* i, int n) : Scroller(i, n) {
@@ -188,37 +188,37 @@ void VScroller::GetBarInfo(
 }
 
 inline void HScroller::Bar(IntCoord x, int width) {
-    output->ClearRect(canvas, x, inset+1, x+width-1, ymax-inset-1);
+    output_->ClearRect(canvas, x, inset+1, x+width-1, ymax-inset-1);
 }
 
 inline void VScroller::Bar(IntCoord y, int height) {
-    output->ClearRect(canvas, inset+1, y, xmax-inset-1, y+height-1);
+    output_->ClearRect(canvas, inset+1, y, xmax-inset-1, y+height-1);
 }
 
 inline void HScroller::Outline(IntCoord x, int width) {
-    output->Rect(canvas, x, inset, x+width-1, ymax-inset);
+    output_->Rect(canvas, x, inset, x+width-1, ymax-inset);
 }
 
 inline void VScroller::Outline(IntCoord y, int height) {
-    output->Rect(canvas, inset, y, xmax-inset, y+height-1);
+    output_->Rect(canvas, inset, y, xmax-inset, y+height-1);
 }
 
 inline void HScroller::Border(IntCoord x) {
-    output->Line(canvas, x, inset, x, ymax-inset);
+    output_->Line(canvas, x, inset, x, ymax-inset);
 }
 
 inline void VScroller::Border(IntCoord y) {
-    output->Line(canvas, inset, y, xmax-inset, y);
+    output_->Line(canvas, inset, y, xmax-inset, y);
 }
 
 inline void HScroller::Sides(IntCoord x1, IntCoord x2) {
-    output->Line(canvas, x1, inset, x2, inset);
-    output->Line(canvas, x1, ymax-inset, x2, ymax-inset);
+    output_->Line(canvas, x1, inset, x2, inset);
+    output_->Line(canvas, x1, ymax-inset, x2, ymax-inset);
 }
 
 inline void VScroller::Sides(IntCoord y1, IntCoord y2) {
-    output->Line(canvas, inset, y1, inset, y2);
-    output->Line(canvas, xmax-inset, y1, xmax-inset, y2);
+    output_->Line(canvas, inset, y1, inset, y2);
+    output_->Line(canvas, xmax-inset, y1, xmax-inset, y2);
 }
 
 void HScroller::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
@@ -290,7 +290,7 @@ IntCoord HScroller::Slide(register Event& e) {
     w = e.x - x1;
 
     boolean syncing = (syncScroll && !e.control) || (!syncScroll && e.control);
-    SlidingRect r(output, canvas, x1+1, inset+1, x2-1, ymax-inset-1, e.x, 0);
+    SlidingRect r(output_, canvas, x1+1, inset+1, x2-1, ymax-inset-1, e.x, 0);
     r.Draw();
 
     for (;;) {
@@ -343,7 +343,7 @@ IntCoord VScroller::Slide(register Event& e) {
     h = e.y - y1;
 
     boolean syncing = (syncScroll && !e.control) || (!syncScroll && e.control);
-    SlidingRect r(output, canvas, inset+1, y1+1, xmax-inset-1, y2-1, 0, e.y );
+    SlidingRect r(output_, canvas, inset+1, y1+1, xmax-inset-1, y2-1, 0, e.y );
     r.Draw();
 
     for (;;) {
