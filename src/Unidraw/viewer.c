@@ -208,7 +208,7 @@ void Viewer::Init(
     }
     _damage = new Damage;
     _orientation = orientation;
-    input = new Sensor(updownEvents);
+    input_ = new Sensor(updownEvents);
 
     Init(ed, gv, page, grid);
     shape->width = w;
@@ -239,7 +239,7 @@ Viewer::~Viewer () {
     delete _gview;
 }
 
-void Viewer::Reconfig () { _damage->SetPainter(output); }
+void Viewer::Reconfig () { _damage->SetPainter(output_); }
 
 void Viewer::Update () {
     Selection* s = GetSelection();
@@ -337,7 +337,7 @@ void Viewer::InitRubberband (Rubberband* r) {
 void Viewer::InitTextDisplay (TextDisplay* td, Painter* p) {
     if (!p->BgFilled()) {
         p->FillBg(true);
-        p->SetColors(nil, output->GetBgColor());
+        p->SetColors(nil, output_->GetBgColor());
     }
     td->Draw(p, canvas);
 }
@@ -521,7 +521,7 @@ void Viewer::Manipulate (Manipulator* m, Event& e) {
     } while (b);
 
     m->Effect(e);
-    Listen(input);
+    Listen(input_);
 }
 
 static Transformer* ComputeRel (Viewer* v, Transformer* t) {

@@ -135,8 +135,8 @@ protected:
     Perspective* perspective;		/* portion displayed */
     Coord xmax;				/* canvas->Width() - 1 */
     Coord ymax;				/* canvas->Height() - 1 */
-    Sensor* input;			/* normal input event interest */
-    Painter* output;			/* normal output parameters */
+    Sensor* input_;			/* normal input event interest */
+    Painter* output_;			/* normal output parameters */
 
     virtual void Redraw(Coord left, Coord bottom, Coord right, Coord top);
     virtual void RedrawList(int n, Coord[], Coord[], Coord[], Coord[]);

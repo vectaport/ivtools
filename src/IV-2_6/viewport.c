@@ -80,7 +80,7 @@ void Viewport::Reconfig() {
     perspective->curheight = cheight;
     perspective->sx = s->hunits;
     perspective->sy = s->vunits;
-    background = new Painter(output);
+    background = new Painter(output_);
     background->Reference();
     background->SetPattern(new Pattern(Pattern::lightgray));
 }
@@ -128,7 +128,7 @@ static void AlignHelper(Alignment a, int& x, int& y, int width, int height) {
 }
 
 void Viewport::Resize() {
-    canvas->SetBackground(output->GetBgColor());
+    canvas->SetBackground(output_->GetBgColor());
     float px = XPos();
     float py = YPos();
     float zx = XMag();

@@ -243,7 +243,7 @@ void GraphicBlock::Update () {
 
 void GraphicBlock::Draw () {
     if (canvas != nil) {
-	output->ClearRect(canvas, 0, 0, xmax, ymax);
+	output_->ClearRect(canvas, 0, 0, xmax, ymax);
 	if (_graphic != nil) {
 	    _graphic->Draw(canvas, 0, 0, xmax, ymax);
 	}
@@ -252,7 +252,7 @@ void GraphicBlock::Draw () {
 
 void GraphicBlock::Redraw (Coord l, Coord b, Coord r, Coord t) {
     if (canvas != nil) {
-	output->ClearRect(canvas, l, b, r, t);
+	output_->ClearRect(canvas, l, b, r, t);
 	if (_graphic != nil) {
 	    _graphic->DrawClipped(canvas, l, b, r, t);
 	}
@@ -382,9 +382,9 @@ void GraphicBlock::Highlight (boolean on) {
     if (_highlighted != on) {
         _highlighted = on;
 
-        const Color* fg = output->GetFgColor();
-        const Color* bg = output->GetBgColor();
-        output->SetColors(bg, fg);
+        const Color* fg = output_->GetFgColor();
+        const Color* bg = output_->GetBgColor();
+        output_->SetColors(bg, fg);
 
         if (_graphic != nil) {
             PSColor* fg = _graphic->GetFgColor();

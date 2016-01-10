@@ -74,7 +74,7 @@ void Message::Reconfig () {
     if (a != nil) {
 	pad = atoi(a);
     }
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     shape->width = pad + f->Width(text) + pad;
     shape->height = pad + f->Height() + pad;
     shape->hshrink = pad + pad;
@@ -89,16 +89,16 @@ void Message::Realign (Alignment a) {
 void Message::Redraw (IntCoord l, IntCoord b, IntCoord r, IntCoord t) {
     IntCoord x = 0, y = 0;
     Align(alignment, shape->width, shape->height, x, y);
-    output->Clip(canvas, l, b, r, t);
+    output_->Clip(canvas, l, b, r, t);
     if (highlighted) {
-	output->SetColors(output->GetBgColor(), output->GetFgColor());
+	output_->SetColors(output_->GetBgColor(), output_->GetFgColor());
     }
-    output->ClearRect(canvas, l, b, r, t);
-    output->Text(canvas, text, x + pad, y + pad);
+    output_->ClearRect(canvas, l, b, r, t);
+    output_->Text(canvas, text, x + pad, y + pad);
     if (highlighted) {
-	output->SetColors(output->GetBgColor(), output->GetFgColor());
+	output_->SetColors(output_->GetBgColor(), output_->GetFgColor());
     }
-    output->NoClip();
+    output_->NoClip();
 }
 
 void Message::Highlight (boolean b) {
