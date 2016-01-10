@@ -75,16 +75,16 @@ void Adjuster::Init(Interactor* i, int d) {
     plain = nil;
     hit = nil;
     mask = nil;
-    input = new Sensor(onoffEvents);
-    input->Catch(UpEvent);
-    input->Catch(DownEvent);
+    input_ = new Sensor(onoffEvents);
+    input_->Catch(UpEvent);
+    input_->Catch(DownEvent);
 }    
 
 void Adjuster::Reconfig() {
-    Painter* p = new Painter(output);
+    Painter* p = new Painter(output_);
     p->Reference();
-    Unref(output);
-    output = p;
+    Unref(output_);
+    output_ = p;
     shape->width = mask->Width();
     shape->height = mask->Height();
 }
@@ -190,9 +190,9 @@ void Adjuster::Redraw(IntCoord, IntCoord, IntCoord, IntCoord) {
     IntCoord x = (xmax+1 - mask->Width())/2;
     IntCoord y = (ymax+1 - mask->Height())/2;
     if (highlighted) {
-        output->Stencil(canvas, x, y, hit, mask);
+        output_->Stencil(canvas, x, y, hit, mask);
     } else {
-        output->Stencil(canvas, x, y, plain, mask);
+        output_->Stencil(canvas, x, y, plain, mask);
     }
 }
 

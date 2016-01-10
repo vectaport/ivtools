@@ -89,7 +89,7 @@ void TextInteractor::SetText (const char* t) {
 const char* TextInteractor::GetText () { return _text; }
 
 void TextInteractor::Align () {
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     int width = f->Width(_text);
     int height = f->Height();
     Coord x;
@@ -105,11 +105,11 @@ void TextInteractor::Align () {
         x = xmax - width - HPAD;
         break;
     }
-    output->MoveTo(x, (ymax - height+ 1)/2);
+    output_->MoveTo(x, (ymax - height+ 1)/2);
 }
 
 void TextInteractor::Reconfig () {
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     int width = f->Width(_text);
 
     shape->Rect(width + 2*HPAD, f->Height() + 2*VPAD);
@@ -119,8 +119,8 @@ void TextInteractor::Reconfig () {
 void TextInteractor::Redraw (Coord, Coord, Coord, Coord) {
     if (canvas != nil) {
 	Align();
-        output->ClearRect(canvas, 0, 0, xmax, ymax);
-	output->Text(canvas, _text);
+        output_->ClearRect(canvas, 0, 0, xmax, ymax);
+	output_->Text(canvas, _text);
     }
 }
 
@@ -339,13 +339,13 @@ void FontVarView::Init () {
 /*****************************************************************************/
 
 static void CenterText (
-    const char* text, Painter* output, Coord xmax, Coord ymax
+    const char* text, Painter* output_, Coord xmax, Coord ymax
 ) {
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     int width = f->Width(text);
     int height = f->Height();
 
-    output->MoveTo((xmax - width + 1)/2, (ymax - height + 1)/2);
+    output_->MoveTo((xmax - width + 1)/2, (ymax - height + 1)/2);
 }
 
 /*****************************************************************************/
@@ -406,12 +406,12 @@ PSColor* BrushInteractor::GetFgColor () { return _fg; }
 PSColor* BrushInteractor::GetBgColor () { return _bg; }
 
 void BrushInteractor::Reconfig () { 
-    Painter* tmp = output;
-    output = new Painter(tmp);
-    Ref(output);
+    Painter* tmp = output_;
+    output_ = new Painter(tmp);
+    Ref(output_);
     Unref(tmp);
 
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     shape->width = max(f->Width(NONE) + 2*HPAD, VIEW_WIDTH);
     shape->height = max(f->Height() + 2*VPAD, VIEW_HEIGHT);
 
@@ -420,34 +420,34 @@ void BrushInteractor::Reconfig () {
 
 void BrushInteractor::Redraw (Coord, Coord, Coord, Coord) {
     if (canvas != nil) {
-	output->ClearRect(canvas, 0, 0, xmax, ymax);
+	output_->ClearRect(canvas, 0, 0, xmax, ymax);
 
 	if (_brush->None()) {
-	    CenterText(NONE, output, xmax, ymax);
-	    output->Text(canvas, NONE);
+	    CenterText(NONE, output_, xmax, ymax);
+	    output_->Text(canvas, NONE);
 
 	} else {
-            const Color* origfg = output->GetFgColor();
-            const Color* origbg = output->GetBgColor();
+            const Color* origfg = output_->GetFgColor();
+            const Color* origbg = output_->GetBgColor();
             Resource::ref(origfg);
             Resource::ref(origbg);
 
-	    output->SetBrush(_brush);
-            output->SetColors(_fg, _bg);
+	    output_->SetBrush(_brush);
+            output_->SetColors(_fg, _bg);
 #if __GNUC__>=2 && __GNUC_MINOR__>=5 || __GNUC__>=3
 #undef Line
-	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
+	    output_->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #define Line _lib_iv(Line)
 #else
-	    output->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
+	    output_->Line(canvas, HPAD, ymax/2, xmax-HPAD, ymax/2);
 #endif /* Line */
 
             if (_brush->Width() == 0) {
-                CenterText("0", output, xmax, ymax);
-                output->Text(canvas, "0");
+                CenterText("0", output_, xmax, ymax);
+                output_->Text(canvas, "0");
             }
 
-            output->SetColors(origfg, origbg);
+            output_->SetColors(origfg, origbg);
             Resource::unref(origfg);
             Resource::unref(origbg);
 	}
@@ -559,12 +559,12 @@ PSColor* PatternInteractor::GetFgColor () { return _fg; }
 PSColor* PatternInteractor::GetBgColor () { return _bg; }
 
 void PatternInteractor::Reconfig () {
-    Painter* tmp = output;
-    output = new Painter(tmp);
-    Ref(output);
+    Painter* tmp = output_;
+    output_ = new Painter(tmp);
+    Ref(output_);
     Unref(tmp);
 
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     shape->width = max(f->Width(NONE) + 2*HPAD, VIEW_WIDTH);
     shape->height = max(f->Height() + 2*VPAD, VIEW_HEIGHT);
 
@@ -573,24 +573,24 @@ void PatternInteractor::Reconfig () {
 
 void PatternInteractor::Redraw (Coord, Coord, Coord, Coord) {
     if (canvas != nil) {
-	output->ClearRect(canvas, 0, 0, xmax, ymax);
+	output_->ClearRect(canvas, 0, 0, xmax, ymax);
 
 	if (_pattern->None()) {
-	    CenterText(NONE, output, xmax, ymax);
-	    output->Text(canvas, NONE);
+	    CenterText(NONE, output_, xmax, ymax);
+	    output_->Text(canvas, NONE);
 
 	} else {
-            const Color* origfg = output->GetFgColor();
-            const Color* origbg = output->GetBgColor();
+            const Color* origfg = output_->GetFgColor();
+            const Color* origbg = output_->GetBgColor();
             Resource::ref(origfg);
             Resource::ref(origbg);
 
-	    output->SetPattern(_pattern);
-            output->SetColors(_fg, _bg);
-	    output->FillRect(canvas, HPAD, VPAD, xmax-HPAD, ymax-VPAD);
-	    output->Rect(canvas, HPAD, VPAD, xmax-HPAD, ymax-VPAD);
+	    output_->SetPattern(_pattern);
+            output_->SetColors(_fg, _bg);
+	    output_->FillRect(canvas, HPAD, VPAD, xmax-HPAD, ymax-VPAD);
+	    output_->Rect(canvas, HPAD, VPAD, xmax-HPAD, ymax-VPAD);
 
-            output->SetColors(origfg, origbg);
+            output_->SetColors(origfg, origbg);
             Resource::unref(origfg);
             Resource::unref(origbg);
 	}

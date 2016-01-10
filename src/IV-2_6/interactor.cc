@@ -61,8 +61,8 @@ void Interactor::Init() {
     perspective = nil;
     xmax = 0;
     ymax = 0;
-    input = nil;
-    output = nil;
+    input_ = nil;
+    output_ = nil;
     classname = nil;
     instance = nil;
     style = new Style;
@@ -80,8 +80,8 @@ void Interactor::Init() {
 }
 
 Interactor::~Interactor() {
-    Resource::unref(input);
-    Resource::unref(output);
+    Resource::unref(input_);
+    Resource::unref(output_);
     delete window;
     delete shape;
     Resource::unref(style);
@@ -309,8 +309,8 @@ void Interactor::Config(World* w) {
 	parent = nil;
     }
     world = w;
-    Resource::unref(output);
-    output = nil;
+    Resource::unref(output_);
+    output_ = nil;
     DoConfig(false);
 }
 
@@ -332,10 +332,10 @@ void Interactor::DoConfig(boolean parentReversed) {
     boolean reversed = parentReversed;
     if (parent != nil) {
 	/* cast to workaround DEC C++ compiler bug */
-	output = ((Interactor*)parent)->output;
+	output_ = ((Interactor*)parent)->output_;
     }
     DefaultConfig(reversed);
-    Resource::ref(output);
+    Resource::ref(output_);
 
     Interactor* children[100];
     Interactor** a;
@@ -412,18 +412,18 @@ void Interactor::DefaultConfig(boolean& reversed) {
 	}
     }
 
-    if (output == nil) {
-	output = new Painter;
-    } else if (!swap_colors && f == output->GetFont() &&
-	fg == output->GetFgColor() && bg == output->GetBgColor()
+    if (output_ == nil) {
+	output_ = new Painter;
+    } else if (!swap_colors && f == output_->GetFont() &&
+	fg == output_->GetFgColor() && bg == output_->GetBgColor()
     ) {
 	return;
     } else {
-	output = new Painter(output);
+	output_ = new Painter(output_);
     }
 
     if (f != nil) {
-	output->SetFont(f);
+	output_->SetFont(f);
     }
 
     if (swap_colors) {
@@ -431,7 +431,7 @@ void Interactor::DefaultConfig(boolean& reversed) {
 	fg = bg;
 	bg = c;
     }
-    output->SetColors(fg, bg);
+    output_->SetColors(fg, bg);
 }
 
 /*

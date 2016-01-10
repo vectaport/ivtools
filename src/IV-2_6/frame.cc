@@ -74,7 +74,7 @@ void Frame::Reconfig() {
 }
 
 void Frame::Resize() {
-    canvas->SetBackground(output->GetBgColor());
+    canvas->SetBackground(output_->GetBgColor());
     Place(interior(), left, bottom, xmax - right, ymax - top);
 }
 
@@ -83,16 +83,16 @@ void Frame::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
     register IntCoord t = ymax - top;
 
     if (x1 < left) {
-        output->FillRect(canvas, 0, 0, left-1, t);
+        output_->FillRect(canvas, 0, 0, left-1, t);
     }
     if (y1 < bottom) {
-        output->FillRect(canvas, left, 0, xmax, bottom-1);
+        output_->FillRect(canvas, left, 0, xmax, bottom-1);
     }
     if (x2 > r) {
-        output->FillRect(canvas, r+1, bottom, xmax, ymax);
+        output_->FillRect(canvas, r+1, bottom, xmax, ymax);
     }
     if (y2 > t) {
-        output->FillRect(canvas, 0, t+1, r, ymax);
+        output_->FillRect(canvas, 0, t+1, r, ymax);
     }
 }
 
@@ -105,8 +105,8 @@ void Frame::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
 ShowFrame::~ShowFrame() { }
 
 void ShowFrame::Init() {
-    input = onoffEvents;
-    input->Reference();
+    input_ = onoffEvents;
+    input_->Reference();
 }
 
 void ShowFrame::Handle(Event& e) {
@@ -196,11 +196,11 @@ void BorderFrame::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
     if (normal) {
 	Frame::Redraw(x1, y1, x2, y2);
     } else {
-	const Pattern* save = output->GetPattern();
+	const Pattern* save = output_->GetPattern();
 	Resource::ref(save);
-	output->SetPattern(new Pattern(Pattern::gray));
+	output_->SetPattern(new Pattern(Pattern::gray));
 	Frame::Redraw(x1, y1, x2, y2);
-	output->SetPattern(save);
+	output_->SetPattern(save);
 	Resource::unref(save);
     }
 }
@@ -245,41 +245,41 @@ void ShadowFrame::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
 
     /* borders */
     if (x1 < left) {
-        output->FillRect(canvas, left-1, bottom-1, left-1, t);
+        output_->FillRect(canvas, left-1, bottom-1, left-1, t);
     }
     if (y1 < bottom) {
-        output->FillRect(canvas, left, bottom-1, r+1, bottom-1);
+        output_->FillRect(canvas, left, bottom-1, r+1, bottom-1);
     }
     if (x2 > r) {
-        output->FillRect(canvas, r+1, bottom, r+1, t+1);
+        output_->FillRect(canvas, r+1, bottom, r+1, t+1);
     }
     if (y2 > t) {
-        output->FillRect(canvas, left-1, t+1, r, t+1);
+        output_->FillRect(canvas, left-1, t+1, r, t+1);
     }
 
     /* shadows */
     if (left > 1 && x1 < left-1) {
-        output->FillRect(canvas, 0, v, left-2, ymax-v);
+        output_->FillRect(canvas, 0, v, left-2, ymax-v);
     }
     if (bottom > 1 && y1 < bottom-1) {
-        output->FillRect(canvas, h, 0, xmax-h, bottom-2);
+        output_->FillRect(canvas, h, 0, xmax-h, bottom-2);
     }
     if (right > 1 && x2 > r+1) {
-        output->FillRect(canvas, r+2, v, xmax, ymax-v);
+        output_->FillRect(canvas, r+2, v, xmax, ymax-v);
     }
     if (top > 1 && y2 > t+1) {
-        output->FillRect(canvas, h, t+2, xmax-h, ymax);
+        output_->FillRect(canvas, h, t+2, xmax-h, ymax);
     }
 
     /* corner */
     if (left > 1 && bottom > 1 && x1 < left-1 && y1 < bottom-1) {
-        output->FillRect(canvas, 0, 0, h - 1, v - 1);
+        output_->FillRect(canvas, 0, 0, h - 1, v - 1);
     } else if (left > 1 && top > 1 && x1 < left-1 && y2 > t+1) {
-        output->FillRect(canvas, 0, ymax - v + 1, h - 1, ymax);
+        output_->FillRect(canvas, 0, ymax - v + 1, h - 1, ymax);
     } else if (right > 1 && bottom > 1 && x2 > r+1 && y1 < bottom-1) {
-        output->FillRect(canvas, xmax - h + 1, 0, xmax, v - 1);
+        output_->FillRect(canvas, xmax - h + 1, 0, xmax, v - 1);
     } else if (right > 1 && top > 1 && x1 > r+1 && y2 > t+1) {
-        output->FillRect(canvas, xmax - h + 1, ymax - v + 1, xmax, ymax);
+        output_->FillRect(canvas, xmax - h + 1, ymax - v + 1, xmax, ymax);
     }
 }
 
@@ -361,7 +361,7 @@ void MarginFrame::Reconfig() {
 }
 
 void MarginFrame::Resize() {
-    canvas->SetBackground(output->GetBgColor());
+    canvas->SetBackground(output_->GetBgColor());
 
     IntCoord hextra = (xmax+1) - shape->width;
     IntCoord h = hmargin;

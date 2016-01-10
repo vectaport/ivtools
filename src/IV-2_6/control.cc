@@ -43,11 +43,11 @@ void Control::Init(const char* name, Interactor* i) {
     parent_ = nil;
     state_ = new ControlState;
     state_->Attach(this);
-    input = new Sensor;
-    input->Catch(EnterEvent);
-    input->Catch(LeaveEvent);
-    input->Catch(DownEvent);
-    input->Catch(UpEvent);
+    input_ = new Sensor;
+    input_->Catch(EnterEvent);
+    input_->Catch(LeaveEvent);
+    input_->Catch(DownEvent);
+    input_->Catch(UpEvent);
     if (i != nil) {
 	Insert(i);
     }

@@ -78,9 +78,9 @@ void StringEditor::Init (ButtonState* s, const char* samp, const char* d) {
     done = strcpy(new char[strlen(d) + 1], d);
     display = new TextDisplay();
     display->CaretStyle(NoCaret);
-    input = new Sensor();
-    input->Catch(KeyEvent);
-    input->Catch(DownEvent);
+    input_ = new Sensor();
+    input_->Catch(KeyEvent);
+    input_->Catch(DownEvent);
     Message(sample);
 }
 
@@ -106,7 +106,7 @@ void StringEditor::Reconfig () {
 		hand_bits, hand_width, hand_height, hand_x_hot, hand_y_hot
 	    ),
 	    new Bitmap(hand_mask_bits, hand_mask_width, hand_mask_height),
-	    output->GetFgColor(), output->GetBgColor()
+	    output_->GetFgColor(), output_->GetBgColor()
 	);
 
         leftCursor = new Cursor(
@@ -114,7 +114,7 @@ void StringEditor::Reconfig () {
 		lfast_bits, lfast_width, lfast_height, lfast_x_hot, lfast_y_hot
 	    ),
 	    new Bitmap(lfast_mask_bits, lfast_mask_width, lfast_mask_height),
-	    output->GetFgColor(), output->GetBgColor()
+	    output_->GetFgColor(), output_->GetBgColor()
         );
 
         rightCursor = new Cursor(
@@ -122,24 +122,24 @@ void StringEditor::Reconfig () {
 		rfast_bits, rfast_width, rfast_height, rfast_x_hot, rfast_y_hot
 	    ),
 	    new Bitmap(rfast_mask_bits, rfast_mask_width, rfast_mask_height),
-            output->GetFgColor(), output->GetBgColor()
+            output_->GetFgColor(), output_->GetBgColor()
         );
     }
 
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     shape->Rect(f->Width(sample), f->Height());
     shape->Rigid(hfil, hfil, 0, 0);
     display->LineHeight(f->Height());
 }
 
 void StringEditor::Resize () {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Resize(0, 0, xmax, ymax);
     Select(left, right);
 }
 
 void StringEditor::Redraw (IntCoord l, IntCoord b, IntCoord r, IntCoord t) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Redraw(l, b, r, t);
 }
 
@@ -148,7 +148,7 @@ void StringEditor::Message (const char* t) {
     text->Insert(0, t, strlen(t));
     int bol = text->BeginningOfLine(0);
     int eol = text->EndOfLine(0);
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->ReplaceText(0, text->Text(bol, eol), eol - bol);
     Select(eol);
 }
@@ -158,7 +158,7 @@ void StringEditor::Select (int l) {
 }
 
 void StringEditor::Select (int l, int r) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     int origin = display->Left(0, 0);
     if (display->Left(0, r - 1) < 0) {
         origin += xmax/2 - display->Left(0, r - 1);
@@ -173,7 +173,7 @@ void StringEditor::Select (int l, int r) {
 }
 
 void StringEditor::DoSelect (int l, int r) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     if (l > r) {
         int tmp = r;
         r = l;
@@ -283,7 +283,7 @@ boolean StringEditor::HandleChar (char c) {
 }
 
 void StringEditor::InsertText (const char* t, int len) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     if (left != right) {
         text->Delete(left, right-left);
         display->DeleteText(0, left, right-left);
@@ -301,7 +301,7 @@ void StringEditor::InsertText (const char* t, int len) {
 void StringEditor::Handle (Event& e) {
     boolean done = false;
     World* world = GetWorld();
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->CaretStyle(BarCaret);
     do {
         switch (e.eventType) {

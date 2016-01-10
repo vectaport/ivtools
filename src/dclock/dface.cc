@@ -38,12 +38,12 @@ implementIOCallback(DFace)
 static const int FadeDelay = 10000;
 
 void DFace::DrawFace () {
-    output->ClearRect(canvas, 0, 0, xmax, ymax);
+    output_->ClearRect(canvas, 0, 0, xmax, ymax);
 }
 
 void DFace::DrawColon () {
-    output->FillPolygon(canvas, colon[0].x, colon[0].y, colon[0].count);
-    output->FillPolygon(canvas, colon[1].x, colon[1].y, colon[1].count);
+    output_->FillPolygon(canvas, colon[0].x, colon[0].y, colon[0].count);
+    output_->FillPolygon(canvas, colon[1].x, colon[1].y, colon[1].count);
 }
 
 void DFace::DrawAMPM (Painter *painter) {
@@ -61,7 +61,7 @@ void DFace::DrawAMPM (Painter *painter) {
 
 void DFace::DrawDate () {
     if (showDate && date.len != 0) {
-	const Font* f = output->GetFont();
+	const Font* f = output_->GetFont();
 	Coord dateYPos = ymax - f->Height();
 	Coord dateXPos = 2;
 
@@ -70,21 +70,21 @@ void DFace::DrawDate () {
 	int dayDateWidth = f->Width( date.text, 10 );
 	int wholeWidth = f->Width( date.text, date.len );
 
-	output->ClearRect(canvas, 0, ymax - f->Height(), xmax, ymax);
+	output_->ClearRect(canvas, 0, ymax - f->Height(), xmax, ymax);
 	if (wholeWidth < availWidth) {
-	    output->Text(canvas, date.text, date.len, dateXPos, dateYPos);
+	    output_->Text(canvas, date.text, date.len, dateXPos, dateYPos);
 	} else if (dayDateWidth < availWidth) {
-	    output->Text(canvas, date.text, 10, dateXPos, dateYPos);
+	    output_->Text(canvas, date.text, 10, dateXPos, dateYPos);
 	} else if (dayWidth < availWidth) {
-	    output->Text(canvas, date.text, 3, dateXPos, dateYPos);
+	    output_->Text(canvas, date.text, 3, dateXPos, dateYPos);
 	}
     }
 }
 
 void DFace::DrawBorder () {
     if (showDate && showTime) {
-	int ypos = ymax - output->GetFont()->Height() - 2;
-	output->Line(canvas, 0, ypos, xmax, ypos);
+	int ypos = ymax - output_->GetFont()->Height() - 2;
+	output_->Line(canvas, 0, ypos, xmax, ypos);
     }
 }
 
@@ -140,11 +140,11 @@ void DFace::Set (char *today, int hours, int minutes) {
 
 	if (AMPMmode == BLANK) {
 	    AMPMmode = newAMPM;
-	    DrawAMPM(output);
+	    DrawAMPM(output_);
 	} else if (AMPMmode != newAMPM) {
 	    DrawAMPM(invertor);				// erase old
 	    AMPMmode = newAMPM;
-	    DrawAMPM(output);				// draw new
+	    DrawAMPM(output_);				// draw new
 	}
     }
     if (showDate && strcmp(date.text, today) != 0) {
@@ -182,20 +182,20 @@ DFace::DFace (
     shape->Rect(width, height);
     shape->Rigid(hfil, hfil, vfil, vfil);
     invertor = nil;
-    input = new Sensor;
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(KeyEvent);
     tick = new IOCallback(DFace)(this, &DFace::Tick);
 }
 
 void DFace::Reconfig () {
     Unref(invertor);
-    invertor = new Painter(output);
+    invertor = new Painter(output_);
     invertor->Reference();
     invertor->SetColors(invertor->GetBgColor(), invertor->GetFgColor());
-    ht->Reconfig(output);
-    hu->Reconfig(output);
-    mt->Reconfig(output);
-    mu->Reconfig(output);
+    ht->Reconfig(output_);
+    hu->Reconfig(output_);
+    mt->Reconfig(output_);
+    mu->Reconfig(output_);
 }
 
 DFace::~DFace () {
@@ -214,7 +214,7 @@ void DFace::Resize () {
     int h = ymax;
     if (showDate) {
 	// adjust vertical size for date
-	h -= output->GetFont()->Height();
+	h -= output_->GetFont()->Height();
     }
     // resize colon
     for (i = 0; i < colon[0].count; i++) {
@@ -241,9 +241,9 @@ void DFace::Resize () {
 }
 
 void DFace::Redraw (Coord left, Coord bottom, Coord right, Coord top) {
-    output->Clip(canvas, left, bottom, right, top);
+    output_->Clip(canvas, left, bottom, right, top);
     Draw();
-    output->NoClip();
+    output_->NoClip();
 }
 
 void DFace::RedrawList (int, Coord[], Coord[], Coord[], Coord[]) {
@@ -257,7 +257,7 @@ void DFace::Draw () {
     }
     if (showTime) {
 	DrawColon();
-	DrawAMPM(output);
+	DrawAMPM(output_);
 	ht->Redraw();
 	hu->Redraw();
 	mt->Redraw();

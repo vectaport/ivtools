@@ -49,9 +49,9 @@ PanDialog::PanDialog () : BasicDialog(
     _medit->Message("");
     _medit->Match("%f %f", false);
 
-    input = new Sensor;
-    Ref(input);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    Ref(input_);
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();
@@ -123,9 +123,9 @@ ZoomDialog::ZoomDialog () : BasicDialog(
     _medit->Message("");
     _medit->Match("%f", false);
 
-    input = new Sensor;
-    Ref(input);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    Ref(input_);
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();
@@ -197,9 +197,9 @@ PageDialog::PageDialog () : BasicDialog(
     _medit->Message("");
     _medit->Match("%f %f", false);
 
-    input = new Sensor;
-    Ref(input);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    Ref(input_);
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();

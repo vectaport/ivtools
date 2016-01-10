@@ -2010,7 +2010,7 @@ void Tray::DoRemove(Interactor* i) {
 void Tray::Resize() {
     register TrayElement* e;
 
-    canvas->SetBackground(output->GetBgColor());
+    canvas->SetBackground(output_->GetBgColor());
     if (bg != nil) {
 	Place(bg, 0, 0, xmax, ymax);
     }

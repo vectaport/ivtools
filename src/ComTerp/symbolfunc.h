@@ -121,7 +121,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "lst=%s(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens)"; }
+      return "lst=%s(symbol|string :tokstr [delim] :tokval [delim] :keep) -- split symbol or string into list of characters (or tokens)"; }
 };
 
 //: command to join list of characters into a string object

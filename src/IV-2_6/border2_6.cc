@@ -43,7 +43,7 @@ Border::Border(const char* name, int t) {
 Border::~Border() { }
 
 void Border::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    output->FillRect(canvas, x1, y1, x2, y2);
+    output_->FillRect(canvas, x1, y1, x2, y2);
 }
 
 void Border::DefaultThickness(int t) {
