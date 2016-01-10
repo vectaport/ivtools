@@ -172,14 +172,14 @@ void OverlaySlider::Init (Interactor* i) {
     *shown = *view;
     shape->vstretch = shape->vshrink = 0;
     prevl = prevb = prevr = prevt = 0;
-    input = new Sensor(updownEvents);
+    input_ = new Sensor(updownEvents);
 }
 
 void OverlaySlider::Reconfig () {
-    Painter* p = new Painter(output);
+    Painter* p = new Painter(output_);
     p->Reference();
-    Unref(output);
-    output = p;
+    Unref(output_);
+    output_ = p;
 
     const char* attrib = GetAttribute("syncScroll");
     syncScroll = attrib != nil &&
@@ -205,20 +205,20 @@ void OverlaySlider::Reshape (Shape& ns) {
 
 void OverlaySlider::Draw () {
     if (canvas != nil) {
-	output->SetPattern(new Pattern(Pattern::lightgray));
-	output->FillRect(canvas, 0, 0, xmax, ymax);
-	output->SetPattern(new Pattern(Pattern::clear));
-	output->FillRect(canvas, left, bottom, right, top);
-	output->SetPattern(new Pattern(Pattern::solid));
-	output->Rect(canvas, left, bottom, right, top);
+	output_->SetPattern(new Pattern(Pattern::lightgray));
+	output_->FillRect(canvas, 0, 0, xmax, ymax);
+	output_->SetPattern(new Pattern(Pattern::clear));
+	output_->FillRect(canvas, left, bottom, right, top);
+	output_->SetPattern(new Pattern(Pattern::solid));
+	output_->Rect(canvas, left, bottom, right, top);
 #ifdef Line
 #undef Line
-	output->Line(canvas, left+1, bottom-1, right+1, bottom-1);
-	output->Line(canvas, right+1, bottom-1, right+1, top-1);
+	output_->Line(canvas, left+1, bottom-1, right+1, bottom-1);
+	output_->Line(canvas, right+1, bottom-1, right+1, top-1);
 #define Line _lib_iv(Line)
 #else
-	output->Line(canvas, left+1, bottom-1, right+1, bottom-1);
-	output->Line(canvas, right+1, bottom-1, right+1, top-1);
+	output_->Line(canvas, left+1, bottom-1, right+1, bottom-1);
+	output_->Line(canvas, right+1, bottom-1, right+1, top-1);
 #endif
 
 	prevl = left; prevb = bottom;
@@ -229,9 +229,9 @@ void OverlaySlider::Draw () {
 void OverlaySlider::Redraw (
     IntCoord left, IntCoord bottom, IntCoord right, IntCoord top
 ) {
-    output->Clip(canvas, left, bottom, right, top);
+    output_->Clip(canvas, left, bottom, right, top);
     Draw();
-    output->NoClip();
+    output_->NoClip();
 }
 
 inline IntCoord OverlaySlider::ViewX (IntCoord x) {
@@ -310,7 +310,7 @@ void OverlaySlider::Slide (Event& e) {
     boolean control = e.control;
 
     Listen(allEvents);
-    SlidingRect r(output, canvas, left, bottom, right, top, e.x, e.y);
+    SlidingRect r(output_, canvas, left, bottom, right, top, e.x, e.y);
     CalcLimits(e);
     do {
 	switch (e.eventType) {
@@ -335,7 +335,7 @@ void OverlaySlider::Slide (Event& e) {
 
     r.GetCurrent(newleft, newbot, dummy, dummy);
     Move(ViewX(newleft - left), ViewY(newbot - bottom));
-    Listen(input);
+    Listen(input_);
 }
 
 void OverlaySlider::Jump (Event& e) {

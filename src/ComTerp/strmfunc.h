@@ -155,7 +155,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "val=filter(strm classid)"; }
+      return "val=filter(strm classid) filter a stream for a given classid"; }
 
     CLASS_SYMID("FilterFunc");
 

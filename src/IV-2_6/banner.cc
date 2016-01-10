@@ -55,7 +55,7 @@ void Banner::Init(char* lt, char* m, char* rt) {
 void Banner::Reconfig() {
     int w;
 
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     lw = left == nil ? 0 : f->Width(left);
     mw = middle == nil ? 0 : f->Width(middle);
     rw = right == nil ? 0 : f->Width(right);
@@ -68,9 +68,9 @@ void Banner::Reconfig() {
     shape->height = f->Height() + 2*pad;
     shape->Rigid(0, hfil, 0, 0);
     Unref(inverse);
-    inverse = new Painter(output);
+    inverse = new Painter(output_);
     inverse->Reference();
-    inverse->SetColors(output->GetBgColor(), output->GetFgColor());
+    inverse->SetColors(output_->GetBgColor(), output_->GetFgColor());
 }
 
 Banner::~Banner() {
@@ -78,7 +78,7 @@ Banner::~Banner() {
 }
 
 void Banner::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    Painter* p = highlight ? inverse : output;
+    Painter* p = highlight ? inverse : output_;
     p->ClearRect(canvas, x1, y1, x2, y2);
     if (right != nil && rx <= x2) {
 	p->MoveTo(rx, pad);

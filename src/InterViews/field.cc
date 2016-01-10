@@ -106,8 +106,8 @@ FieldStringEditor::FieldStringEditor(
     kit_ = kit;
     style_ = style;
     Resource::ref(style);
-    delete input;
-    input = nil;
+    delete input_;
+    input_ = nil;
 }
 
 FieldStringEditor::~FieldStringEditor() {
@@ -115,8 +115,8 @@ FieldStringEditor::~FieldStringEditor() {
 }
 
 void FieldStringEditor::print(Printer* p, const Allocation& a) const {
-    const Font* f = output->GetFont();
-    const Color* fg = output->GetFgColor();
+    const Font* f = output_->GetFont();
+    const Color* fg = output_->GetFgColor();
     FontBoundingBox b;
     f->font_bbox(b);
     Coord x = a.left(), y = a.bottom() + b.font_descent();
@@ -141,7 +141,7 @@ void FieldStringEditor::pick(
 
 void FieldStringEditor::press(const Event& event) {
     Event e;
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     switch (event.pointer_button()) {
     case Event::left:
 	do_select(e);
@@ -301,11 +301,11 @@ void FieldStringEditor::paste(SelectionManager*) {
 void FieldStringEditor::Reconfig() {
     kit_->push_style();
     kit_->style(style_);
-    Painter* p = new Painter(output);
+    Painter* p = new Painter(output_);
     p->SetColors(kit_->foreground(), kit_->background());
     p->SetFont(kit_->font());
-    Resource::unref(output);
-    output = p;
+    Resource::unref(output_);
+    output_ = p;
     StringEditor::Reconfig();
     kit_->pop_style();
 }

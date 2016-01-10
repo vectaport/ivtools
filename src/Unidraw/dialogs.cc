@@ -122,8 +122,8 @@ AcknowledgeDialog::AcknowledgeDialog (
     const char* title, const char* subtitle
 ) : BasicDialog(new ButtonState, title, subtitle) {
     Insert(Interior());
-    input = new Sensor(noEvents);
-    input->Catch(KeyEvent);
+    input_ = new Sensor(noEvents);
+    input_->Catch(KeyEvent);
 }    
 
 void AcknowledgeDialog::Acknowledge () {
@@ -165,8 +165,8 @@ ConfirmDialog::ConfirmDialog (
     const char* title, const char* subtitle
 ) : BasicDialog(new ButtonState, title, subtitle) {
     Insert(Interior());
-    input = new Sensor(noEvents);
-    input->Catch(KeyEvent);
+    input_ = new Sensor(noEvents);
+    input_->Catch(KeyEvent);
 }    
 
 inline boolean Confirmed (int v) {
@@ -454,8 +454,8 @@ GridDialog::GridDialog () : BasicDialog(
     _medit->Match("%f %f");
 
     _units = new ButtonState('p');
-    input = new Sensor;
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(KeyEvent);
 
     Insert(Interior());
     SelectMessage();

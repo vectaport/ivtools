@@ -64,7 +64,7 @@ boolean Interactor::ValidCanvas(Canvas* c) {
 }
 
 void Interactor::request(Requisition& r) const {
-    if (output == nil) {
+    if (output_ == nil) {
 	Interactor* i = (Interactor*)this;
 	i->Config(World::current());
     }
@@ -234,7 +234,7 @@ void Interactor::pick(Canvas*, const Allocation& a, int depth, Hit& h) {
     ) {
 	Event& e = *(Event*)ep;
 	e.GetInfo();
-	Sensor* s = cursensor == nil ? input : cursensor;
+	Sensor* s = cursensor == nil ? input_ : cursensor;
 	if ((s != nil && s->Caught(e)) || grabbing) {
 	    e.target = this;
 	    e.y = ymax - e.y;
@@ -275,7 +275,7 @@ boolean InteractorHandler::event(Event& e) {
     default:
 	break;
     }
-    Sensor* s = i->cursensor == nil ? i->input : i->cursensor;
+    Sensor* s = i->cursensor == nil ? i->input_ : i->cursensor;
     if (s != nil && s->Caught(e)) {
 	i->Handle(e);
     }
@@ -362,7 +362,7 @@ void InteractorWindow::set_attributes() {
     Mask m = ExposureMask;
     Sensor* input = i->cursensor;
     if (input == nil) {
-	input = i->input;
+	input = i->input_;
 	i->cursensor = input;
     }
     if (input != nil) {

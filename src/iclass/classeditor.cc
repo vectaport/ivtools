@@ -64,9 +64,9 @@ ClassEditor::ClassEditor (
 
 void ClassEditor::Init (ButtonState* bs, const char* done) {
     SetClassName("ClassEditor");
-    input = new Sensor;
-    input->Catch(DownEvent);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(DownEvent);
+    input_->Catch(KeyEvent);
 
     _state = bs;
     _done = done;

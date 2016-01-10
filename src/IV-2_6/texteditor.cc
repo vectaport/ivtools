@@ -134,7 +134,7 @@ void TextEditor::Reconfig () {
 		hand_bits, hand_width, hand_height, hand_x_hot, hand_y_hot
 	    ),
 	    new Bitmap(hand_mask_bits, hand_mask_width, hand_mask_height),
-            output->GetFgColor(), output->GetBgColor()
+            output_->GetFgColor(), output_->GetBgColor()
         );
 
         upCursor = new Cursor(
@@ -142,7 +142,7 @@ void TextEditor::Reconfig () {
 		ufast_bits, ufast_width, ufast_height, ufast_x_hot, ufast_y_hot
 	    ),
 	    new Bitmap(ufast_mask_bits, ufast_mask_width, ufast_mask_height),
-            output->GetFgColor(), output->GetBgColor()
+            output_->GetFgColor(), output_->GetBgColor()
         );
 
         dnCursor = new Cursor(
@@ -150,11 +150,11 @@ void TextEditor::Reconfig () {
 		dfast_bits, dfast_width, dfast_height, dfast_x_hot, dfast_y_hot
 	    ),
 	    new Bitmap(dfast_mask_bits, dfast_mask_width, dfast_mask_height),
-            output->GetFgColor(), output->GetBgColor()
+            output_->GetFgColor(), output_->GetBgColor()
         );
     }
 
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     shape->hunits = f->Width("n");
     shape->vunits = f->Height();
     shape->Rect(shape->hunits*shapecolumns, shape->vunits*shaperows);
@@ -166,7 +166,7 @@ void TextEditor::Reconfig () {
 
 void TextEditor::Resize () {
     if (canvas != nil) {
-        display->Draw(output, canvas);
+        display->Draw(output_, canvas);
         display->Resize(0, 0, xmax, ymax);
         int topmargin = (
             perspective->height - perspective->curheight - perspective->cury
@@ -188,7 +188,7 @@ void TextEditor::Resize () {
 
 void TextEditor::Redraw (IntCoord l, IntCoord b, IntCoord r, IntCoord t) {
     if (canvas != nil) {
-        display->Draw(output, canvas);
+        display->Draw(output_, canvas);
         display->Redraw(l, b, r, t);
     }
 }
@@ -205,7 +205,7 @@ void TextEditor::Adjust (Perspective& np) {
 void TextEditor::Edit (TextBuffer* t, int index) {
     delete display;
     display = new TextDisplay();
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->LineHeight(lineheight);
     display->TabWidth(tabsize * shape->hunits);
     text = t;
@@ -229,7 +229,7 @@ void TextEditor::Edit (TextBuffer* t, int index) {
     Select(index);
     ScrollToSelection(true);
     canvas = c;
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Redraw(0, 0, xmax, ymax);
 }
 
@@ -237,7 +237,7 @@ void TextEditor::InsertText (const char* s, int count) {
     count = text->Insert(dot, s, count);
     int sline = text->LineNumber(dot);
     int fline = text->LineNumber(dot + count);
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     if (sline == fline) {
         int offset = text->LineOffset(dot);
         display->InsertText(sline, offset, text->Text(dot), count);
@@ -278,7 +278,7 @@ void TextEditor::DeleteText (int count) {
     int sline = text->LineNumber(start);
     int fline = text->LineNumber(finish);
     text->Delete(start, count);
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     if (sline == fline) {
         int offset = text->LineOffset(start);
         display->DeleteText(sline, offset, count);
@@ -444,7 +444,7 @@ void TextEditor::BackwardPage (int count) {
 }
 
 void TextEditor::ScrollToSelection (boolean always) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     int line = text->LineNumber(dot);
     int offset = text->LineOffset(dot);
     IntCoord l = display->Left(line, offset);
@@ -509,7 +509,7 @@ void TextEditor::Select (int d, int m) {
     int oldr = Math::max(dot, mark);
     int newl = Math::min(d, m);
     int newr = Math::max(d, m);
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     if (oldl == oldr && newl != newr) {
         display->CaretStyle(NoCaret);
     }
@@ -568,7 +568,7 @@ void TextEditor::Select (int d, int m) {
 }
 
 int TextEditor::Locate (IntCoord x, IntCoord y) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     int line = display->LineNumber(y);
     int index = display->LineIndex(line, x);
     int l = text->LineIndex(line);

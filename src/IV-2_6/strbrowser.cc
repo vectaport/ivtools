@@ -68,9 +68,9 @@ void StringBrowser::Init (
     const int defaultSize = 256;
 
     SetClassName("StringBrowser");
-    input = new Sensor;
-    input->Catch(DownEvent);
-    input->Catch(KeyEvent);
+    input_ = new Sensor;
+    input_->Catch(DownEvent);
+    input_->Catch(KeyEvent);
 
     strbufsize = selbufsize = defaultSize;
     strbuf = new char*[strbufsize];
@@ -95,7 +95,7 @@ void StringBrowser::Init (
 void StringBrowser::InitTextDisplay () {
     delete display;
     display = new TextDisplay;
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->CaretStyle(NoCaret);
 
     for (int i = 0; i < strcount; ++i) {
@@ -103,7 +103,7 @@ void StringBrowser::InitTextDisplay () {
     }
 
     if (canvas != nil) {
-        output->ClearRect(canvas, 0, 0, xmax, ymax);
+        output_->ClearRect(canvas, 0, 0, xmax, ymax);
     }
 }
 
@@ -174,15 +174,15 @@ static int BufFind (
 }
 
 void StringBrowser::Insert (const char* s, int index) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     register Perspective* p = perspective;
 
     char* copy = new char[strlen(s)+1];
     strcpy(copy, s);
     BufInsert(copy, index, strbuf, strbufsize, strcount);
 
-    if (output != nil) {
-	p->width = Math::max(p->width, output->GetFont()->Width(s));
+    if (output_ != nil) {
+	p->width = Math::max(p->width, output_->GetFont()->Width(s));
     }
     p->height += lineheight;
     p->cury += lineheight;
@@ -196,7 +196,7 @@ void StringBrowser::Insert (const char* s, int index) {
 
 void StringBrowser::Replace (const char* s, int index) {
     if (index < strcount) {
-	display->Draw(output, canvas);
+	display->Draw(output_, canvas);
 	register Perspective* p = perspective;
 
 	char* old_string = String(index);
@@ -205,8 +205,8 @@ void StringBrowser::Replace (const char* s, int index) {
 	strcpy(copy, s);
 	strbuf[index] = copy;
 
-	if (output != nil) {
-	    p->width = Math::max(p->width, output->GetFont()->Width(s));
+	if (output_ != nil) {
+	    p->width = Math::max(p->width, output_->GetFont()->Width(s));
 	}
 	p->Update();
 
@@ -216,13 +216,13 @@ void StringBrowser::Replace (const char* s, int index) {
 
 void StringBrowser::Remove (int index) {
     if (0 <= index && index < strcount) {
-        display->Draw(output, canvas);
+        display->Draw(output_, canvas);
         register Perspective* p = perspective;
 	char* string = String(index);
 
 	if (
-	    output != nil && p->width > columns * shape->hunits &&
-	    p->width == output->GetFont()->Width(string)
+	    output_ != nil && p->width > columns * shape->hunits &&
+	    p->width == output_->GetFont()->Width(string)
 	) {
 	    UpdateWidth();
 	}
@@ -265,7 +265,7 @@ void StringBrowser::Clear () {
 void StringBrowser::Select (int index) {
     if (index < strcount && !Selected(index)) {
         BufInsert(String(index), selcount, selbuf, selbufsize, selcount);
-        display->Draw(output, canvas);
+        display->Draw(output_, canvas);
         display->Style(index, 0, index+1, -1, highlight);
     }
 }
@@ -275,7 +275,7 @@ void StringBrowser::Unselect (int index) {
 
     if (index < strcount && (selindex = SelectionIndex(index)) >= 0) {
         BufRemove(selindex, selbuf, selcount);
-        display->Draw(output, canvas);
+        display->Draw(output_, canvas);
         display->Style(index, 0, index+1, -1, Plain);
     }
 }
@@ -438,7 +438,7 @@ void StringBrowser::Reconfig () {
 		hand_bits, hand_width, hand_height, hand_x_hot, hand_y_hot
 	    ),
 	    new Bitmap(hand_mask_bits, hand_mask_width, hand_mask_height),
-	    output->GetFgColor(), output->GetBgColor()
+	    output_->GetFgColor(), output_->GetBgColor()
         );
 
         upCursor = new Cursor(
@@ -446,7 +446,7 @@ void StringBrowser::Reconfig () {
 		ufast_bits, ufast_width, ufast_height, ufast_x_hot, ufast_y_hot
 	    ),
 	    new Bitmap(ufast_mask_bits, ufast_mask_width, ufast_mask_height),
-            output->GetFgColor(), output->GetBgColor()
+            output_->GetFgColor(), output_->GetBgColor()
         );
 
         dnCursor = new Cursor(
@@ -454,11 +454,11 @@ void StringBrowser::Reconfig () {
 		dfast_bits, dfast_width, dfast_height, dfast_x_hot, dfast_y_hot
 	    ),
 	    new Bitmap(dfast_mask_bits, dfast_mask_width, dfast_mask_height),
-            output->GetFgColor(), output->GetBgColor()
+            output_->GetFgColor(), output_->GetBgColor()
         );
     }
 
-    const Font* f = output->GetFont();
+    const Font* f = output_->GetFont();
     shape->hunits = f->Width("n");
     shape->vunits = f->Height();
     lineheight = shape->vunits;
@@ -471,9 +471,9 @@ void StringBrowser::Reconfig () {
 }
 
 void StringBrowser::UpdateWidth () {
-    if (output != nil) {
+    if (output_ != nil) {
 	Perspective* p = perspective;
-	const Font* f = output->GetFont();
+	const Font* f = output_->GetFont();
 	p->width = columns * shape->hunits;
 
 	for (int i = 0; i < Count(); ++i) {
@@ -509,14 +509,14 @@ void StringBrowser::Resize () {
     InitPerspective(perspective->curwidth == 0);
 
     if (lineheight != 0) {
-	display->Draw(output, canvas);
+	display->Draw(output_, canvas);
 	display->LineHeight(lineheight);
 	display->Resize(0, -lineheight, xmax, ymax);
     }
 }
 
 void StringBrowser::Redraw (IntCoord l, IntCoord b, IntCoord r, IntCoord t) {
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Redraw(l, b, r, t);
 }
 
@@ -531,7 +531,7 @@ void StringBrowser::SelectAll () {
     for (int i = 0; i < strcount; ++i) {
         BufInsert(strbuf[i], i, selbuf, selbufsize, selcount);
     }
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Style(0, 0, strcount, -1, highlight);
 }
 
@@ -543,7 +543,7 @@ void StringBrowser::Unselect (int dot, int mark) {
 
 void StringBrowser::UnselectAll () {
     selcount = 0;
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Style(0, 0, strcount, 0, Plain);
 }
 
@@ -570,7 +570,7 @@ void StringBrowser::ScrollTo (int x, int y) {
     int topmargin = p->height - p->curheight - p->cury;
     int line = (lineheight == 0) ? 0 : topmargin / lineheight;
 
-    display->Draw(output, canvas);
+    display->Draw(output_, canvas);
     display->Scroll(line, -p->curx, ymax);
 }
 
