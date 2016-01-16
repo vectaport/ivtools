@@ -56,7 +56,7 @@ void DotFunc::execute() {
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
-      cout << ")\n";
+      cout << ") -- line " << funcstate()->linenum() << "\n";
       return;
     }
     if (nargs()>1 && !after_part.is_string()) {
@@ -64,7 +64,7 @@ void DotFunc::execute() {
 	   << symbol_pntr(after_part.type_symid());
       if (before_part.is_object())
         cout << " for class " << symbol_pntr(before_part.class_symid());
-      cout << ")\n";
+      cout << ") -- line " << funcstate()->linenum() << "\n";
       return;
     }
 

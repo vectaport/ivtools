@@ -159,6 +159,12 @@ public:
     // returns reference to IntType ComValue with value of -1.
     static ComValue& twoval();
     // returns reference to IntType ComValue with value of 2.
+
+    unsigned linenum() const { return _linenum; }
+    // Get line number of command in script file.
+    void linenum(unsigned ln) { _linenum=ln; }
+    // Set line number of command in script file.
+
 protected:
     void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
 
@@ -167,6 +173,7 @@ protected:
     int _nids;
     int _pedepth;
     int _bquote;
+    unsigned _linenum;
 
     static const ComTerp* _comterp;
     static ComValue _nullval;

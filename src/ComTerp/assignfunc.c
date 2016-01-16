@@ -80,7 +80,7 @@ void AssignFunc::execute() {
       attr->Value(operand2);
     } else {
         cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
-          symbol_pntr(operand1.type_symid()) << ") ignored -- assignfunc.c\n";
+          symbol_pntr(operand1.type_symid()) << ") ignored -- line " << funcstate()->linenum() << "\n";
 	cout << "comterp stack:  ";
         print_stack_arg_post_eval(0);
 	delete operand2;
