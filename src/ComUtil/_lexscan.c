@@ -50,6 +50,7 @@ int _token_eol = 0;
 int _colon_ident = 1;
 int _percent_ident = 0;
 int _ignore_chars = 0;
+int _backslash_ids = 0;
 
 /* MACROS */
 
@@ -169,6 +170,7 @@ unsigned no_comment =           /* TRUE if comments are disabled */
    (begcmt_len == 0 || endcmt_len == 0);
 int index;
 char* infunc_retval;
+int bs_ident = 0;
 
 
 /* ----------------------------------------------------------------------- */
@@ -423,11 +425,20 @@ char* infunc_retval;
 	       token_state = TOK_STRING;
 	       break;
 
-	 /* Start of character constant */
+	       /* Start of character constant */
 	    case '\'':
 	       if (!_ignore_chars) {
 	           token_state = TOK_CHAR;
                    break;
+	       }
+
+	 /* Start of back-slashed identifier */
+	    case '\\':
+	       if (_backslash_ids) {
+	           token_state = TOK_IDENTIFIER;
+   	           TOKEN_ADD( CURR_CHAR );
+                   bs_ident=1;
+		   break;
 	       }
 
          /* Any other character must be an operator */	 
@@ -457,10 +468,13 @@ char* infunc_retval;
       /*-IDENTIFIER-IDENTIFIER-IDENTIFIER-IDENTIFIER-IDENTIFIER-IDENTIFIER-*/
 
       case TOK_IDENTIFIER:
-	 if( isident( CURR_CHAR ) || isdigit( CURR_CHAR ))
+         if( bs_ident && !isspace( CURR_CHAR) || 
+	     isident( CURR_CHAR ) || isdigit( CURR_CHAR ))
 	    TOKEN_ADD( CURR_CHAR )
-         else 
+         else {
+  	    bs_ident = 0;
             goto token_return;
+	 }
 	 break; /* end of TOK_KEYWORD and TOK_IDENTIFIER case */
 
 
