@@ -400,9 +400,9 @@ ComFuncState* ComFunc::funcstate() {
 }
 
 void ComFunc::push_funcstate(int nargs, int nkeys, int pedepth,
-			     int command_symid) {
+			     int command_symid, unsigned linenum) {
   ComFuncState cfs(nargs, nkeys, pedepth, 
-		   command_symid==0 ? classid() : command_symid );
+		   command_symid==0 ? classid() : command_symid, linenum );
   _comterp->push_funcstate(cfs);
 }
 
@@ -412,7 +412,7 @@ void ComFunc::pop_funcstate() {
 
 void ComFunc::exec(int nargs, int nkeys, int pedepth,
 		   int command_symid) {
-  push_funcstate(nargs, nkeys, pedepth, command_symid);
+  push_funcstate(nargs, nkeys, pedepth, command_symid, 0);
   execute();
   pop_funcstate();
 }
@@ -526,7 +526,7 @@ ostream& operator<< (ostream& out, const ComFunc& cf) {
 /*****************************************************************************/
 
 ComFuncState::ComFuncState(int narg, int nkey, int pedepth, 
-			   int command_symid) {
+			   int command_symid, unsigned linenum) {
   _nargs = narg;
   _nkeys = nkey;
   _npops = 0;
@@ -534,6 +534,7 @@ ComFuncState::ComFuncState(int narg, int nkey, int pedepth,
   _nargspost = -1;
   _pedepth = pedepth;
   _command_symid = command_symid;
+  _linenum=linenum;
 }
 
 ComFuncState::ComFuncState(const ComFuncState& cfs) {

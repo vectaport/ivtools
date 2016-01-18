@@ -89,7 +89,7 @@ public:
     ComFuncState* funcstate();
     // current ComFuncState for use of current ComFunc.
     void push_funcstate(int nargs, int nkeys, int pedepth=0, 
-                        int command_symid=0);
+                        int command_symid=0, unsigned linenum=0);
     // push new ComFuncState on a stack of them.
     void pop_funcstate();
     // pop the top one off the ComFuncState stack.
@@ -238,7 +238,7 @@ protected:
 // which allows for nested and recursive use of a singular ComFunc.
 class ComFuncState {
 public:
-  ComFuncState(int nargs, int nkeys, int pedepth=0, int command_symid=0);
+  ComFuncState(int nargs, int nkeys, int pedepth=0, int command_symid=0, unsigned linenum=0);
   // initialize with number of arguments (including arguments following
   // keywords), number of keywords, an option post-eval depth (nesting
   // within blocks of post-evaluation commands), and an optional 
@@ -257,10 +257,11 @@ public:
   int& nargspost() { return _nargspost; }
   // number of unevaluated ComValue objects input to a post-evaluation ComFunc.
   int& pedepth() { return _pedepth; }
-  // post-evaluation depth: the nesting within blocks of post-evaluation commands,
-  // within blocks of conditionally executing control commands.
+  // post-evaluation depth: the nesting within blocks of post-evaluation commands  // within blocks of conditionally executing control commands.
   int& command_symid() { return _command_symid; }
   // symbol id associated with the ComFunc.
+  unsigned int& linenum() { return _linenum; }
+  // original line number of command
   
   friend ostream& operator << (ostream& s, const ComFuncState&);
   // print contents to ostream, brief or not depending on
@@ -275,5 +276,6 @@ protected:
   int _nargspost;
   int _pedepth;
   int _command_symid;
+  unsigned _linenum;
 };
 #endif /* !defined(_comfunc_h) */
