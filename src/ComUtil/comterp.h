@@ -140,6 +140,7 @@ typedef struct postfix_token_struct
    int narg;            /* Number of arguments to command */
    int nkey;		/* Number of keywords to command */
    int nids;		/* Number of ids in compound command name */
+   int ln;		/* Line number */
 } postfix_token;
 
 #define PAREN_STACK_EXPERIMENT
