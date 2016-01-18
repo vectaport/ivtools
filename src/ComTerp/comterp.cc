@@ -322,7 +322,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	else
 	  func_for_next_expr_post_eval = 1;
       }
-      func->push_funcstate(nargs, nkeys, pedepth, func->funcid());
+      func->push_funcstate(nargs, nkeys, pedepth, func->funcid(), sv.linenum());
     }
 
     /* output execution trace */

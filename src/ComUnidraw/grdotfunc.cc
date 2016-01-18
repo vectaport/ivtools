@@ -58,7 +58,7 @@ void GrDotFunc::execute() {
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
-      cout << ") -- grdotfunc.c\n";
+      cout << ") -- line " << funcstate()->linenum() << "\n";
       reset_stack();
       return;
     }
@@ -67,7 +67,7 @@ void GrDotFunc::execute() {
 	   << symbol_pntr(after_part.type_symid());
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
-      cout << ") -- grdotfunc.c\n";
+      cout << ") -- line " << funcstate()->linenum() << "\n";
       reset_stack();
       return;
     }

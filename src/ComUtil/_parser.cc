@@ -266,7 +266,7 @@ static int rkg_instack(int prior)
 
 /* Output a token in its postfix order */
 #define PFOUT( toktype, tokid, narg_val, nkey_val, nids_val ) {\
-if(pfout(pfbuf,pfsiz,pfnum,toktype,tokid,narg_val,nkey_val,nids_val))\
+    if(pfout(pfbuf,pfsiz,pfnum,toktype,tokid,narg_val,nkey_val,nids_val,*linenum)) \
     goto error_return;}
 
 static int pfout(
@@ -278,7 +278,8 @@ unsigned        toktype, /* Token type */
 int             tokid,   /* Identifier that corresponds to this token */
 unsigned        narg_val,/* Number of arguments associated with this token */
 unsigned        nkey_val,/* Number of keywords associated with this token */
-unsigned        nids_val /* Number of ids associated with this token */
+unsigned        nids_val, /* Number of ids associated with this token */
+unsigned        linenum   /* Line number */
 
 		 )
 
@@ -300,6 +301,7 @@ unsigned        nids_val /* Number of ids associated with this token */
    (*pfbuf+*pfnum)->narg = narg_val;
    (*pfbuf+*pfnum)->nkey = nkey_val;
    (*pfbuf+*pfnum)->v.symbolid = tokid;
+   (*pfbuf+*pfnum)->ln = linenum;
    ++*pfnum;
 
    return FUNCOK;
@@ -308,7 +310,7 @@ unsigned        nids_val /* Number of ids associated with this token */
 
 /* set value in literal token */
 #define PFOUT_LITERAL( toktype, token ) {\
-if(pfout_literal(pfbuf,pfsiz,pfnum,toktype,token))\
+if(pfout_literal(pfbuf,pfsiz,pfnum,toktype,token,*linenum))	\
    goto error_return;}
 
 #define EMPTY_OPER_STACK {\
@@ -335,12 +337,13 @@ postfix_token** pfbuf,	/* Double pointer to buffer to receive postfix expression
 unsigned *      pfsiz,  /* Size of `pfbuf`. */
 unsigned *      pfnum,  /* Number of tokens returned in `pfbuf`. */
 unsigned        toktype,/* Token type */
-char *          token   /* Token buffer */
+char *          token,  /* Token buffer */
+unsigned        linenum /* Line number */
 
 )
 
 {
-    if(pfout(pfbuf,pfsiz,pfnum,toktype,0,0,0,0))
+    if(pfout(pfbuf,pfsiz,pfnum,toktype,0,0,0,0,linenum))
 	return FUNCBAD;
     memcpy(&(*pfbuf+*pfnum-1)->v.doublval, token, sizeof(double));
     return FUNCOK;

@@ -123,6 +123,7 @@ ComValue::ComValue(postfix_token* token) {
     _narg = token->narg;
     _nkey = token->nkey;
     _nids = token->nids;  // nids not always used for number-of-ids
+    _linenum = token->ln;
 
     _command_symid = -1;
     _pedepth = 0;
@@ -136,6 +137,7 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nids = sv._nids;
     _pedepth = sv._pedepth;
     _bquote = sv._bquote;
+    _linenum = sv._linenum;
     #if 0  // duplicated ref_as_needed call in assignval()
     ref_as_needed();
     #endif
