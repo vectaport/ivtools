@@ -367,6 +367,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     func->execute();
+    int linenum = func->funcstate()->linenum();
     func->pop_funcstate();
 
     if (_just_reset && !_func_for_next_expr) {
@@ -375,7 +376,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stack_base+1 < _stack_top) {
-      fprintf(stderr, "func \"%s\" pushed more than a single value on stack\n", symbol_pntr(func->funcid()));
+      fprintf(stderr, "func \"%s\" pushed more than a single value on stack (line %d)\n", symbol_pntr(func->funcid()), linenum);
       fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
       for(int i=stack_base+1; i<=_stack_top; i++)
           std::cerr << i << ":  " << _stack[i] << "\n";
@@ -401,6 +402,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     } else {
       
       if (_alist) {
+	// cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
 	int id = sv.symbol_val();
 	AttributeValue* val = _alist->find(id);  
 	if (val) {
