@@ -267,6 +267,9 @@ void SplitStrFunc::execute() {
   static int keep_symid = symbol_add("keep");
   ComValue keepflagv(stack_key(keep_symid));
   boolean keepflag = keepflagv.is_true();
+  static int reverse_symid = symbol_add("reverse");
+  ComValue reverseflagv(stack_key(reverse_symid));
+  boolean reverseflag = reverseflagv.is_true();
   reset_stack();
 
   boolean tokstr_charflag = tokstrv.is_type(ComValue::CharType);
@@ -286,7 +289,10 @@ void SplitStrFunc::execute() {
     delimstr[1] = '\0';
     if (!tokstrflag && !tokvalflag) {
       for (int i=0; i<len; i++)
-	avl->Append(new AttributeValue(str[i]));
+        if (reverseflag) 
+	  avl->Prepend(new AttributeValue(str[i]));
+	else
+	  avl->Append(new AttributeValue(str[i]));
     } else if (tokstrflag) {
       char buffer[BUFSIZ];
       int bufoff = 0;
@@ -297,10 +303,16 @@ void SplitStrFunc::execute() {
             if ((delim1 || avl->Number()==0) && !isspace(delim) ) {
 	      if (keepflag) {
 		ComValue* comval = new ComValue(delimstr);
-		avl->Append(comval);
+		if (reverseflag) 
+		  avl->Prepend(comval);
+		else
+		  avl->Append(comval);
 	      } else {
 		ComValue* comval = new ComValue(ComValue::nullval());
-		avl->Append(comval);
+		if (reverseflag) 
+		  avl->Prepend(comval);
+		else
+		  avl->Append(comval);
 	      }
             } else
               delim1=1;
@@ -311,10 +323,16 @@ void SplitStrFunc::execute() {
           if (delim1 && !isspace(delim)) {
 	    if (keepflag) {
 	      ComValue* comval = new ComValue(delimstr);
-	      avl->Append(comval);
+	      if (reverseflag)
+		avl->Prepend(comval);
+	      else
+		avl->Append(comval);
 	    } else {
 	      ComValue* comval = new ComValue(ComValue::nullval());
-	      avl->Append(comval);
+	      if (reverseflag) 
+		avl->Prepend(comval);
+	      else
+		avl->Append(comval);
 	    }
           }
           break;
@@ -330,7 +348,10 @@ void SplitStrFunc::execute() {
           buffer[bufoff++] = *str++;
         }
  	if (keepflag & avl->Number()>0 ) {
-	  avl->Append(new ComValue(*str==delim ? delimstr : " "));
+	  if (reverseflag)
+	    avl->Prepend(new ComValue(*str==delim ? delimstr : " "));
+	  else
+	    avl->Append(new ComValue(*str==delim ? delimstr : " "));
 	}
 	buffer[bufoff] = '\0';
 	avl->Append(new ComValue(buffer));
@@ -346,7 +367,10 @@ void SplitStrFunc::execute() {
           if (*str==delim) {
               if((delim1 || avl->Number()==0) && !isspace(delim)) {
               ComValue* comval = new ComValue(ComValue::nullval());
-              avl->Append(comval);
+	      if (reverseflag) 
+		avl->Prepend(comval);
+	      else
+		avl->Append(comval);
             } else 
               delim1=1;
           }
@@ -355,8 +379,11 @@ void SplitStrFunc::execute() {
 	if (!*str) {
             if (delim1 && !isspace(delim)) {
             ComValue* comval = new ComValue(ComValue::nullval());
-            avl->Append(comval);
-          }
+	    if (reverseflag) 
+	      avl->Prepend(comval);
+	    else
+	      avl->Append(comval);
+	    }
           break;
         }
 	while (*str && !isspace(*str) && *str!=delim && bufoff<BUFSIZ-1) {
@@ -364,11 +391,17 @@ void SplitStrFunc::execute() {
 	}
 	if (keepflag) {
 	  ComValue* comval = new ComValue(*str==delim ? delimstr : " ");
-	  avl->Append(comval);
+	  if (reverseflag)
+	    avl->Prepend(comval);
+	  else
+	    avl->Append(comval);
 	}
 	buffer[bufoff] = '\0';
         ComValue* comval = new ComValue(((ComTerpServ*)_comterp)->run(buffer, true /*nested*/));
-	avl->Append(comval);
+	if (reverseflag) 
+	  avl->Prepend(comval);
+	else
+	  avl->Append(comval);
 	bufoff=0;
       }
     }
