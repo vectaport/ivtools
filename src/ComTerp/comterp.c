@@ -327,20 +327,24 @@ void ComTerp::eval_expr_internals(int pedepth) {
 
     /* output execution trace */
     if (this->trace_mode()) {
-      for(int i=0; i<pedepth; i++) cerr << "    ";
-      cerr << symbol_pntr(sv.command_symid());
+      int ln = func->funcstate()->linenum();
+      if(ln<100) cout << " ";
+      if(ln<10) cout << " ";
+      cout << func->funcstate()->linenum() << ":  ";
+      for(int i=0; i<pedepth; i++) cout << "    ";
+      cout << symbol_pntr(sv.command_symid());
       if (func->post_eval()) 
-	cerr << ": nargs=" << nargs << " nkeys=" << nkeys << "\n";
+	cout << ": nargs=" << nargs << " nkeys=" << nkeys << "\n";
       else {
 	int ntotal = func->nargs() + func->nkeys();
 	for(int i=0; i<ntotal; i++) {
 	  if (i) 
-	    cerr << " ";
+	    cout << " ";
 	  else 
-	    cerr << "(";
-	  cerr << stack_top(i-ntotal+1);
+	    cout << "(";
+	  cout << stack_top(i-ntotal+1);
 	}
-	cerr << ")\n";
+	cout << ")\n";
       }
     }
 
