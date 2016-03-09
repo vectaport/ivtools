@@ -354,6 +354,7 @@ void EvalFunc::execute() {
   AttributeList* old_alist = NULL;
   if (alist) {
       old_alist = comterp()->get_attributes();
+      Resource::ref(old_alist);
       comterp()->set_attributes(alist);
   }
 
@@ -410,8 +411,9 @@ void EvalFunc::execute() {
   } else
     reset_stack();
   
-  if (old_alist)
-    comterp()->set_attributes(old_alist);
+  comterp()->set_attributes(old_alist);
+  Unref(old_alist);
+
   return;
 }
 

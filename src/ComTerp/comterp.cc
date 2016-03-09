@@ -327,20 +327,24 @@ void ComTerp::eval_expr_internals(int pedepth) {
 
     /* output execution trace */
     if (this->trace_mode()) {
-      for(int i=0; i<pedepth; i++) cerr << "    ";
-      cerr << symbol_pntr(sv.command_symid());
+      int ln = func->funcstate()->linenum();
+      if(ln<100) cout << " ";
+      if(ln<10) cout << " ";
+      cout << func->funcstate()->linenum() << ":  ";
+      for(int i=0; i<pedepth; i++) cout << "    ";
+      cout << symbol_pntr(sv.command_symid());
       if (func->post_eval()) 
-	cerr << ": nargs=" << nargs << " nkeys=" << nkeys << "\n";
+	cout << ": nargs=" << nargs << " nkeys=" << nkeys << "\n";
       else {
 	int ntotal = func->nargs() + func->nkeys();
 	for(int i=0; i<ntotal; i++) {
 	  if (i) 
-	    cerr << " ";
+	    cout << " ";
 	  else 
-	    cerr << "(";
-	  cerr << stack_top(i-ntotal+1);
+	    cout << "(";
+	  cout << stack_top(i-ntotal+1);
 	}
-	cerr << ")\n";
+	cout << ")\n";
       }
     }
 
@@ -367,6 +371,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     func->execute();
+    int linenum = func->funcstate()->linenum();
     func->pop_funcstate();
 
     if (_just_reset && !_func_for_next_expr) {
@@ -375,7 +380,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stack_base+1 < _stack_top) {
-      fprintf(stderr, "func \"%s\" pushed more than a single value on stack\n", symbol_pntr(func->funcid()));
+      fprintf(stderr, "func \"%s\" pushed more than a single value on stack (line %d)\n", symbol_pntr(func->funcid()), linenum);
       fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
       for(int i=stack_base+1; i<=_stack_top; i++)
           std::cerr << i << ":  " << _stack[i] << "\n";
@@ -401,6 +406,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     } else {
       
       if (_alist) {
+	// cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
 	int id = sv.symbol_val();
 	AttributeValue* val = _alist->find(id);  
 	if (val) {
