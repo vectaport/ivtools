@@ -264,7 +264,7 @@ str=symstr(sym) -- return string version of symbol
 
 n=strref(str|symid) -- return string reference count
 
-lst=split(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens).
+lst=split(symbol|string :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 
 str=join(clist :sym) -- join list of characters into string
 

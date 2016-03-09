@@ -208,7 +208,7 @@ void ListSizeFunc::execute() {
       push_stack(retval);
       return;			  
     }
-  } else if (listv.is_string()) {
+  } else if (listv.is_string() || listv.is_symbol()) {
     ComValue retval((int)strlen(listv.symbol_ptr()), ComValue::IntType);
     push_stack(retval);
     return;
