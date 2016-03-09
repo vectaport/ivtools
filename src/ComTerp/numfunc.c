@@ -59,8 +59,8 @@ void NumFunc::promote(ComValue& op1, ComValue& op2) {
     ComValue* greater = op1bigger ? &op1 : &op2;
     ComValue* lesser =  op1bigger ? &op2 : &op1;
 
-    /* skip promotion if first is string */
-    if (op1.type()==ComValue::StringType) return;
+    /* skip promotion if first is string or symbol */
+    if (op1.type()==ComValue::StringType || op1.type()==ComValue::SymbolType) return;
 
     /* first do the integral promotions if necessary */
     switch (greater->type()) {
@@ -193,13 +193,16 @@ AddFunc::AddFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void AddFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
+    const char* s1 = operand1.type_name();
+    const char* s2 = operand2.type_name();
     promote(operand1, operand2);
     ComValue result(operand1);
+    reset_stack();
 
     if (operand1.is_unknown() || operand2.is_unknown()) {
-      reset_stack();
+      fprintf(stderr, "Unknown add operand:  %s+%s (line %d)\n", s1, s2, funcstate()->linenum());
       push_stack(ComValue::nullval());
       return;
     }
@@ -240,14 +243,16 @@ void AddFunc::execute() {
 	result.double_ref() = operand1.double_val() + operand2.double_val();
 	break;
     case ComValue::StringType:
+    case ComValue::SymbolType:
         { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
-             if (operand2.is_string()) {
+          if (operand2.is_string()) {
             int len1 = strlen(operand1.string_ptr()); 
             int len2 = strlen(operand2.string_ptr()); 
             char buffer[len1+len2+1];
             strcpy(buffer, operand1.string_ptr());
             strcpy(buffer+len1, operand2.string_ptr());
             result.string_ref()  = symbol_add(buffer);
+	    result.ref_as_needed();
             // symbol_reference(result.string_val());
           } else {
             int len1 = strlen(operand1.string_ptr()); 
@@ -256,6 +261,7 @@ void AddFunc::execute() {
             buffer[len1] = operand2.char_val();
             buffer[len1+1] = '\0';
             result.string_ref()  = symbol_add(buffer);
+	    result.ref_as_needed();
             // symbol_reference(result.string_val());
           }
 	}
@@ -273,8 +279,11 @@ void AddFunc::execute() {
         }
         break;
 
+    default: {
+        fprintf(stderr, "Unhandled add operand1 type %s (line %d)\n", operand1.type_name(), funcstate()->linenum());
+        }
+        break;
     }
-    reset_stack();
     push_stack(result);
 }
 
