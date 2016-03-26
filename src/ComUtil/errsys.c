@@ -131,7 +131,7 @@ static struct {
 {5205, "Type identifier is outside table limits"},
 {5206, "Type identifier is for an empty table entry"},
 {6000, "Attempted read/write before file open"},
-{6001, "Input string begins with internal delimeter: .!#ID#"},
+{6001, "Input string begins with internal delimiter: .!#ID#"},
 {6002, "Error during file open"},
 {3000, "Unknown command supplied to interpreter: %s"},
 {3001, "Divide by zero"},

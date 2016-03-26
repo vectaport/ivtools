@@ -171,7 +171,7 @@ public:
     virtual void uncacheChildren();
     virtual void invalidateCaches();
 /*
- * Graphics state concatentation operations.
+ * Graphics state concatenation operations.
  */
 public:
     virtual void concatGS(Graphic* a, Graphic* b, Graphic* dest);

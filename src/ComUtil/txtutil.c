@@ -101,10 +101,10 @@ returned, otherwise `txtstr` is appended to the previous entry.
         return(-1);
     }
 
-    /* Check for string beginning with internal delimeter */
+    /* Check for string beginning with internal delimiter */
     if ( !strncmp(txtstr, ".!#ID#",6))
     {
-        /* String begins with internal delimeter string */
+        /* String begins with internal delimiter string */
         COMERR_SET(ERR_TXTUT_DELIM);
         return(-1);
     }
@@ -191,7 +191,7 @@ the current file position to be reset.
         Currid = id;
         fseek(fd,0L,SEEK_SET);
 
-        /* Search for .!#ID#id delimeter */
+        /* Search for .!#ID#id delimiter */
         sprintf( cmpstr, ".!#ID#%d\n",id);
         while( (tst = fgets(txtstr, 256, fd)) != NULL )
             if (!strcmp(txtstr, cmpstr)) break;
@@ -361,7 +361,7 @@ kwsearch.
     while( (tst = fgets(rdptr, 256, fd)) != NULL )
     {
 
-        /* Check for .!#ID#id delimeter */
+        /* Check for .!#ID#id delimiter */
         if (!strncmp(rdptr, ".!#ID#",6)) 
             id = atoi(&rdptr[6]);
         else
@@ -422,7 +422,7 @@ Description:
 
 `txtprint` searchs the text table and prints out entry `id`.
 Any string beginning with `ignorestr` are NOT printed.  This is
-useful for user defined delimeters within a block of text, specifically
+useful for user-defined delimiters within a block of text, specifically
 the .!#KW# identifiers for COMTERP.
 !*/
 

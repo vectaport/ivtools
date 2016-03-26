@@ -42,7 +42,7 @@ public:
     ~LexScan();
 
     void init();
-    // intialize comment delimeters and internal token buffer.
+    // intialize comment delimiters and internal token buffer.
 
     attr_value get_next_token(unsigned int& toktype);         
     // return token in structure ready for constructing an AttributeValue.
