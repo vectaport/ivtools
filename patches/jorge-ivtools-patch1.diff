@@ -34,8 +34,8 @@ index c239894..4ee6d63 100644
  	}
  	break;
      default:
--	cerr << "Error: uknown clippoly operation" << endl;
-+      std::cerr << "Error: uknown clippoly operation" << std::endl;
+-	cerr << "Error: unknown clippoly operation" << endl;
++	std::cerr << "Error: unknown clippoly operation" << std::endl;
  	break;
      }
  
