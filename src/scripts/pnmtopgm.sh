@@ -14,14 +14,14 @@
 
 if [ ! $# = 1 ] ; then
     echo "usage: $0 <file>" 1>&2
-    exit 1
+    exit 64
 fi
 
 origfile="$1"
 file="$origfile"
 tmpfiles=""
 
-    filetype=`file "$file"`
+    filetype=$(file "$file")
 
     case "$filetype" in
 
@@ -42,4 +42,4 @@ tmpfiles=""
 
     esac
 
-exit -1
+exit 65
