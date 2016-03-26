@@ -273,10 +273,10 @@ public:
     // echo the postfix tokens
 
     void delim_func(boolean flag) { _delim_func = flag; }
-    // set flag that indicates whether to run a delimeter selected func.
+    // set flag that indicates whether to run a delimiter-selected func.
  
     boolean delim_func() const { return _delim_func; }
-    // return flag that indicates whether to run a delimeter selected func.
+    // return flag that indicates whether to run a delimiter-selected func.
 
     void ignore_commands(boolean flag) { _ignore_commands = flag; }
     // set flag that indicates whether to ignore all built-in commands
@@ -285,16 +285,16 @@ public:
     // return flag that indicates whether to ignore all built-in commands
 
     void autostream(boolean flag) { _autostream = flag; }
-    // set flag that indicates whether to run a delimeter selected func.
+    // set flag that indicates whether to run a delimiter-selected func.
  
     boolean autostream() const { return _autostream; }
-    // return flag that indicates whether to run a delimeter selected func.
+    // return flag that indicates whether to run a delimiter-selected func.
 
     void running(boolean flag) { _running = flag; }
-    // set flag that indicates whether to run a delimeter selected func.
+    // set flag that indicates whether to run a delimiter-selected func.
  
     boolean running() const { return _running; }
-    // return flag that indicates whether to run a delimeter selected func.
+    // return flag that indicates whether to run a delimiter-selected func.
 
     void muted(boolean flag) { _muted = flag; }
     // set flag that indicates whether to mute output
@@ -401,7 +401,7 @@ protected:
     // echos postfix tokens if true
 
     boolean _delim_func;
-    // use delimeter selected func, passing symbol in ::command_symid()
+    // use delimiter-selected func, passing symbol in ::command_symid()
 
     boolean _ignore_commands;
     // ignore any built-in commands.
