@@ -2,7 +2,7 @@ Source: ivtools
 Priority: optional
 Section: libs
 Build-Depends: debhelper (>= 9),
-	dh-autoreconf,
+	dh-autoreconf, autoconf-archive,
 	dh-exec,
 	zlib1g-dev,
 	x11-utils, xutils-dev, x11proto-core-dev,
