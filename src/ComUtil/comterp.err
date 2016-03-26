@@ -176,7 +176,7 @@
 /* "Attempted read/write before file open" */
 
 #define ERR_TXTUT_DELIM			 6001
-/* "Input string begins with internal delimeter: .!#ID#" */
+/* "Input string begins with internal delimiter: .!#ID#" */
 
 #define ERR_TXTUT_FOPEN			 6002
 /* "Error during file open" */
