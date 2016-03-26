@@ -1,9 +1,13 @@
-ivtools (1.2.12-0.1) unstable; urgency=medium
+ivtools (1.2.11a1-6) unstable; urgency=medium
 
   * merge upstream changes from
     git://github.com/vectaport/ivtools-1.2.git
+  * specify PSFontDir explicitly at conf time (closes: #818514)
+  * bump debian standards version, no changes required
+  * remove bashism negative exit code (closes: #772340)
+  * build dependency for AX_ autoconf macro
 
- -- Barak A. Pearlmutter <bap@debian.org>  Fri, 30 Jan 2015 01:32:03 +0200
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 26 Mar 2016 22:19:56 +0000
 
 ivtools (1.2.11a1-5) unstable; urgency=medium
 
