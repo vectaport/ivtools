@@ -619,5 +619,21 @@ void LessThanOrEqualFunc::execute() {
     push_stack(result);
 }
 
+TrueFunc::TrueFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void TrueFunc::execute() {
+    reset_stack();
+    push_stack(ComValue::trueval());
+}
+
+FalseFunc::FalseFunc(ComTerp* comterp) : NumFunc(comterp) {
+}
+
+void FalseFunc::execute() {
+    reset_stack();
+    push_stack(ComValue::falseval());
+}
+
 
 
