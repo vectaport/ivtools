@@ -153,7 +153,11 @@ void RunFunc::execute() {
         fprintf(stderr, "READY(%d) runpath %s\n", depth, runpath);
 #endif
         depth++;
-	_comterp->runfile(runpath, popenv.is_true());
+	if( access( runpath, F_OK ) != -1 ) {
+	  _comterp->runfile(runpath, popenv.is_true());
+	} else {
+	  _comterp->runfile(runfilename.string_ptr(), popenv.is_true());
+	}
         if(_comterp->quitflag()) _comterp->quitflag(0);
         depth--;
 
@@ -361,7 +365,8 @@ void EvalFunc::execute() {
   // evaluate every string fixed argument on the stack and return in array
   int numargs = nargsfixed();
   if (numargs>1) {
-    AttributeValueList* avl = nil;
+
+   AttributeValueList* avl = nil;
     for (int i=0; i<numargs; i++) {
       ComValue argv (stack_arg(i));
       if (argv.is_nil()) break;

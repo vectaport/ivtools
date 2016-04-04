@@ -431,10 +431,14 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     return (*_errbuf || status!=FUNCOK) ? ComValue::nullval() : pop_stack();
 }
 
+#include "/usr/include/malloc.h"
+
 ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _errbuf[0] = '\0';
 
     push_servstate();
+
+    delete _pfbuf;
     _pfbuf = copy_postfix_tokens(tokens, ntokens);
     _pfnum = ntokens;
     _pfoff = 0;
@@ -443,10 +447,12 @@ ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     err_str(_errbuf, BUFSIZ, "comterp");
 
     ComValue retval(*_errbuf ? ComValue::nullval() : pop_stack());
+    delete _pfbuf;
     _pfbuf = nil;
     _pfnum = 0;
     _pfoff = 0;
     pop_servstate();
+
     return retval;
 }
 
