@@ -1421,6 +1421,10 @@ CompLeakFunc::CompLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void CompLeakFunc::execute() {
   reset_stack();
+  if (OverlayComp::_leakchecker==nil) {
+    push_stack(ComValue::zeroval());
+    return;
+  }
   ComValue retval(OverlayComp::_leakchecker->alive(), ComValue::IntType);
   push_stack(retval);
 }
@@ -1432,6 +1436,10 @@ ViewLeakFunc::ViewLeakFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ViewLeakFunc::execute() {
   reset_stack();
+  if (OverlayView::_leakchecker==nil) {
+    push_stack(ComValue::zeroval());
+    return;
+  }
   ComValue retval(OverlayView::_leakchecker->alive(), ComValue::IntType);
   push_stack(retval);
 }
