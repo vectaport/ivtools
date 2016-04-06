@@ -78,4 +78,14 @@ public:
 	return "%s -- return stack height for debug purposes"; }
 };
 
+//: command to return attribute list of malloc info
+// mallinfo -- return attribute list of malloc info
+class ComterpMallInfoFunc : public ComFunc {
+public:
+    ComterpMallInfoFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s -- return attribute list of malloc info"; }
+};
+
 #endif /* !defined(_debugfunc_h) */
