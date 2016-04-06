@@ -1203,6 +1203,8 @@ void ComTerp::add_defaults() {
     add_command("gt_or_eq", new GreaterThanOrEqualFunc(this));
     add_command("lt", new LessThanFunc(this));
     add_command("lt_or_eq", new LessThanOrEqualFunc(this));
+    add_command("true", new TrueFunc(this));
+    add_command("false", new FalseFunc(this));
 
     add_command("stream", new StreamFunc(this));
     add_command("concat", new ConcatFunc(this));
@@ -1266,6 +1268,7 @@ void ComTerp::add_defaults() {
     add_command("pause", new ComterpPauseFunc(this));
     add_command("step", new ComterpStepFunc(this));
     add_command("stackheight", new ComterpStackHeightFunc(this));
+    // add_command("mallinfo", new ComterpMallInfoFunc(this));
     add_command("symid", new SymIdFunc(this));
     add_command("symval", new SymValFunc(this));
     add_command("symbol", new SymbolFunc(this));
@@ -1648,7 +1651,7 @@ void ComTerp::push_servstate() {
   _linenum = 0;
   // _just_reset = false;
   _pfcomvals = nil;
-
+  
   if (_ctsstack_top+1 == _ctsstack_siz) {
     _ctsstack_siz *= 2;
     dmm_realloc_size(sizeof(ComTerpState));

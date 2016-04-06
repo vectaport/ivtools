@@ -82,16 +82,16 @@ void HelpFunc::execute() {
     str_flags = new boolean[nfuncs];
 
     for (int i=0; i<nfuncs; i++) {
-      ComValue& val = stack_arg(i, true);
+      ComValue val = stack_arg(i, true);
       if (val.is_type(AttributeValue::CommandType)) {
 	comfuncs[i] = (ComFunc*)val.obj_val();
 	command_ids[i] = val.command_symid();
 	str_flags[i] = false;
       } else if (val.is_type(AttributeValue::StringType)) {
-	void *vptr = nil;
+ 	void *vptr = nil;
 	comterp()->localtable()->find(vptr, val.string_val());
 	if (vptr && ((ComValue*)vptr)->is_command()) {
-	    comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
+	  comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
 	} else
 	  comfuncs[i] = nil;
 	str_flags[i] = true;
@@ -193,9 +193,11 @@ void HelpFunc::execute() {
 	  printed = true;
 	}
       }
-      if (!printed && command_ids[i]>=0) {
+     if (!printed && command_ids[i]>=0) {
+
 	/* if symid is smaller than the highest operator it must be one */
 	if (command_ids[i]>=0 && command_ids[i]<=opr_tbl_topstr()) {
+	  fprintf(stderr, "READY FOR OPER STUFF\n");
 	  int op_ids[OPTYPE_NUM];
 	  const char* opstr = symbol_pntr(command_ids[i]);
 	  unsigned int charcnt;

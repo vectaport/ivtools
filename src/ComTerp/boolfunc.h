@@ -160,6 +160,30 @@ public:
 
 };
 
+//: returns true
+class TrueFunc : public NumFunc {
+// Accepts any arguments and returns true
+public:
+    TrueFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "true([...]) -- accepts any arguments and returns true"; }
+
+};
+
+//: returns false
+class FalseFunc : public NumFunc {
+// Accepts any arguments and returns false
+public:
+    FalseFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "false([...]) -- accepts any arguments and returns false"; }
+
+};
+
 
 #endif /* !defined(_boolfunc_h) */
 

@@ -250,7 +250,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("desensitize", new DesensitizeCompFunc(comterp, this));
     comterp->add_command("sensitize", new SensitizeCompFunc(comterp, this));
 
-    #ifdef LEAKCHECK
+    #if defined(LEAKCHECK) 
     comterp->add_command("compleak", new CompLeakFunc(comterp));
     comterp->add_command("viewleak", new ViewLeakFunc(comterp));
     comterp->add_command("alistleak", new AlistLeakFunc(comterp));
