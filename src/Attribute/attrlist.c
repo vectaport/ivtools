@@ -28,7 +28,6 @@
 
 
 #include <Attribute/alist.h>
-#include <Attribute/aliterator.h>
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
@@ -334,6 +333,7 @@ AttributeValueList::AttributeValueList (AttributeValueList* s) {
 	}
     }
     _nested_insert = false;
+    _prevget_i = -1;
 }
 
 AttributeValueList::~AttributeValueList () { 
@@ -358,21 +358,25 @@ AList* AttributeValueList::Elem (ALIterator i) { return (AList*) i.GetValue(); }
 void AttributeValueList::Append (AttributeValue* v) {
     _alist->Append(new AList(v));
     ++_count;
+    _prevget_i = -1;
 }
 
 void AttributeValueList::Prepend (AttributeValue* v) {
     _alist->Prepend(new AList(v));
     ++_count;
+    _prevget_i = -1;
 }
 
 void AttributeValueList::InsertAfter (ALIterator i, AttributeValue* v) {
     Elem(i)->Prepend(new AList(v));
     ++_count;
+    _prevget_i = -1;
 }
 
 void AttributeValueList::InsertBefore (ALIterator i, AttributeValue* v) {
     Elem(i)->Append(new AList(v));
     ++_count;
+    _prevget_i = -1;
 }
 
 void AttributeValueList::Remove (ALIterator& i) {
@@ -382,6 +386,7 @@ void AttributeValueList::Remove (ALIterator& i) {
     _alist->Remove(doomed);
     delete doomed;
     --_count;
+    _prevget_i = -1;
 }	
     
 void AttributeValueList::Remove (AttributeValue* p) {
@@ -392,6 +397,7 @@ void AttributeValueList::Remove (AttributeValue* p) {
         delete temp;
 	--_count;
     }
+    _prevget_i = -1;
 }
 
 AttributeValue* AttributeValueList::GetAttrVal (ALIterator i) { return AttrVal
@@ -497,19 +503,32 @@ void AttributeValueList::clear() {
     Remove(it);
     delete av;
   }
+  _prevget_i = -1;
 }
 
 AttributeValue* AttributeValueList::Get(unsigned int index) {
   if (Number()<=index) return nil;
   ALIterator it;
-  if(Number()<=index*2) {
-      Last(it);
-      for (int i=0; i<Number()-index-1; i++) Prev(it);
+  int delta = abs(index-_prevget_i);
+  if(_prevget_i!=-1 && (delta<<1)<Number()) {
+    it = _prevget_it;
+    if(_prevget_i>index) {
+        for (int i=0; i<delta; i++) Prev(it);
+    } else {
+        for (int i=0; i<delta; i++) Next(it);
+    }
   } else {
-      First(it);
-      for (int i=0; i<index; i++) Next(it);
+    if(Number()<=index*2) {
+        Last(it);
+        for (int i=0; i<Number()-index-1; i++) Prev(it);
+    } else {
+        First(it);
+        for (int i=0; i<index; i++) Next(it);
+    }
   }
-      return GetAttrVal(it);
+  _prevget_i = index;
+  _prevget_it = it;
+  return GetAttrVal(it);
 }
 
 AttributeValue* AttributeValueList::Set(unsigned int index, AttributeValue* av) {
@@ -541,6 +560,7 @@ void AttributeValueList::Insert(int index, AttributeValue* av) {
     while(i++<index) Next(it);
     InsertAfter(it, av);
   }
+  _prevget_i = -1;
 }
 
 AttributeValue* AttributeValueList::Replace (ALIterator& i, AttributeValue* av) {
@@ -550,6 +570,7 @@ AttributeValue* AttributeValueList::Replace (ALIterator& i, AttributeValue* av) 
     _alist->Remove(doomed);
     delete doomed;
     Elem(i)->Append(new AList(av));
+    _prevget_i = -1;
     return removed;
 }	
    
