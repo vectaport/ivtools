@@ -34,6 +34,7 @@
 #include <OS/enter-scope.h>
 #include <InterViews/resource.h>
 #include <Attribute/classid.h>
+#include <Attribute/aliterator.h>
 
 #ifndef ALITERATOR
 #define ALIterator _lib_iv(Iterator)
@@ -42,6 +43,7 @@
 
 class ALIterator;
 class AList;
+
 #include <iosfwd>
 
 class Attribute;
@@ -259,6 +261,8 @@ protected:
     unsigned int _count;
     boolean _nested_insert;
     int _max_out;
+    int _prevget_i;
+    ALIterator _prevget_it;
 
 #ifdef LEAKCHECK
  public:
