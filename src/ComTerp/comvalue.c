@@ -416,3 +416,15 @@ void* ComValue::geta(int id, int compid) {
   }
 }
 
+boolean ComValue::isa(int id, int compid) {
+  if (is_object(id)) {
+    return true;
+  }
+  if (compid>=0 && object_compview()) {
+    if (((ComponentView*)obj_val())->GetSubject() && 
+	((ComponentView*)obj_val())->GetSubject()->IsA(compid))
+      return true;
+  }
+  return false;
+}
+

@@ -414,8 +414,31 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	  push_stack(newval);
 	} else
 	  push_stack(ComValue::nullval());
-      } else 
-	push_stack(lookup_symval(sv));
+      } else {
+        ComValue val = lookup_symval(sv);
+        if(val.is_object(FuncObj::class_symid())) {
+          EvalFunc ef(this);
+          if(val.narg()!=val.nkey()) {
+            fprintf(stderr, "narg doesn't match nkey\n");
+            exit(1);
+	  }
+          AttributeList* al = new AttributeList();
+          for(int i=0; i<val.narg(); i++) {
+            ComValue keyv(pop_stack());
+            ComValue valv(pop_stack());
+            al->add_attr(keyv.keyid_val(), valv);
+          }
+	  push_stack(val);
+          ComValue alv(AttributeList::class_symid(), al);
+          push_stack(alv);
+	  static int alist_symid = symbol_add("alist");
+	  ComValue alkeyv(alist_symid, 1);
+	  push_stack(alkeyv);
+          ef.exec(2, 1);
+        } else {
+	  push_stack(val);
+	}
+      }
     }
     
   } else if (sv.is_object(Attribute::class_symid())) {
@@ -943,16 +966,18 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
 
-	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
-	  comval.assignval(*(ComValue*)vptr);
-	  return comval;
-	} else  if (_alist) {
+	if (_alist) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = _alist->find(id);  
 	  if (aval) {
 	    ComValue newval(*aval);
 	    *&comval = newval;
+	    return comval;
 	  }
+	}
+
+	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
+	  comval.assignval(*(ComValue*)vptr);
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
 	  comval.assignval(*(ComValue*)vptr);

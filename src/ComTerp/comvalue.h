@@ -102,6 +102,8 @@ public:
 
     virtual void* geta(int type, int compid=-1); 
     // return a pointer if ObjectType matches or compid is superclass
+    virtual boolean isa(int type, int compid=-1); 
+    // return true if ObjectType matches or compid is superclass
 
     int narg() const;
     // number of arguments associated with this command or keyword.
