@@ -419,7 +419,11 @@ void ComTerp::eval_expr_internals(int pedepth) {
         if(val.is_object(FuncObj::class_symid())) {
           EvalFunc ef(this);
           if(val.narg()!=val.nkey()) {
-            fprintf(stderr, "narg doesn't match nkey\n");
+            fprintf(stderr, "free format args not yet supported for custom funcs\n");
+            exit(1);
+	  }
+          if(val.narg()==0) {
+            fprintf(stderr, "keyword arguments needed for custom func invoking\n");
             exit(1);
 	  }
           AttributeList* al = new AttributeList();
@@ -511,7 +515,7 @@ void ComTerp::load_sub_expr() {
       } 
     }
     _pfoff++;
-    if (stack_top().type() == ComValue::CommandType && 
+    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj()) && 
 	!_pfcomvals[_pfoff-1].pedepth()) break;
   }
   

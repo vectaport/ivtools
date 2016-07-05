@@ -428,3 +428,11 @@ boolean ComValue::isa(int id, int compid) {
   return false;
 }
 
+boolean ComValue::is_funcobj() {
+  ComValue tv = *this;
+  if (is_symbol())
+    tv = ((ComTerp*)comterp())->lookup_symval(tv);
+  else
+    tv = *this;
+  return tv.is_object(FuncObj::class_symid());
+}

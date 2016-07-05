@@ -167,6 +167,9 @@ public:
     void linenum(unsigned ln) { _linenum=ln; }
     // Set line number of command in script file.
 
+    boolean is_funcobj();
+    // return true if ObjectType of FuncObj
+
 protected:
     void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
 
