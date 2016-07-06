@@ -430,6 +430,7 @@ boolean ComValue::isa(int id, int compid) {
 
 boolean ComValue::is_funcobj() {
   ComValue tv = *this;
+  if (!comterp()) return false;  // required for FuncObj in a ComValue
   if (is_symbol())
     tv = ((ComTerp*)comterp())->lookup_symval(tv);
   else

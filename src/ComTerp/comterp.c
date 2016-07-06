@@ -605,7 +605,7 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	offset++;
 	if (_pfcomvals[offset-1].pedepth()!=pedepth)
 	  continue;
-	if (stack_top().is_type(ComValue::CommandType) 
+	if ((stack_top().is_type(ComValue::CommandType) || stack_top().is_funcobj()) 
 	    && stack_top().pedepth() == pedepth) break;
       }
 #ifdef POSTEVAL_EXPERIMENT 
