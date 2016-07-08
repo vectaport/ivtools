@@ -446,7 +446,6 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
     
   } else if (sv.is_object(Attribute::class_symid())) {
-    
 
     push_stack(*((Attribute*)sv.obj_val())->Value());
     

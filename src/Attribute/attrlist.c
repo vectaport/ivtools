@@ -219,9 +219,11 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
         return out;
     }
     ALIterator i;
+    int init=0;
     for (attrlist->First(i); !attrlist->Done(i); attrlist->Next(i)) {
 	Attribute* attr = attrlist->GetAttr(i);
-	out << " :" << attr->Name() << " ";
+        if(init) out << " "; else init=1;
+	out << ":" << attr->Name() << " ";
 
 	AttributeValue* attrval = attr->Value();
 #if 1
