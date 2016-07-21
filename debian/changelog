@@ -1,3 +1,15 @@
+ivtools (1.2.11a1-7) unstable; urgency=medium
+
+  * merge upstream changes from
+    git://github.com/vectaport/ivtools-1.2.git
+  * use unsigned char in xbm files (closes: #811717)
+  * bump debian standards version, no changes required
+  * avoid unnecessary use of dh-exec
+  * secure repo URL
+  * enable some hardening options
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 21 Jul 2016 12:11:35 +0200
+
 ivtools (1.2.11a1-6) unstable; urgency=medium
 
   * merge upstream changes from
