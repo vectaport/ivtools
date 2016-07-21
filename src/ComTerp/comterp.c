@@ -414,12 +414,38 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	  push_stack(newval);
 	} else
 	  push_stack(ComValue::nullval());
-      } else 
-	push_stack(lookup_symval(sv));
+      } else {
+        ComValue val = lookup_symval(sv);
+        if(val.is_object(FuncObj::class_symid())) {
+          EvalFunc ef(this);
+          if(val.narg()!=val.nkey()) {
+            fprintf(stderr, "free format args not yet supported for custom funcs\n");
+            exit(1);
+	  }
+          if(val.narg()==0) {
+            fprintf(stderr, "keyword arguments needed for custom func invoking\n");
+            exit(1);
+	  }
+          AttributeList* al = new AttributeList();
+          for(int i=0; i<val.narg(); i++) {
+            ComValue keyv(pop_stack());
+            ComValue valv(pop_stack());
+            al->add_attr(keyv.keyid_val(), valv);
+          }
+	  push_stack(val);
+          ComValue alv(AttributeList::class_symid(), al);
+          push_stack(alv);
+	  static int alist_symid = symbol_add("alist");
+	  ComValue alkeyv(alist_symid, 1);
+	  push_stack(alkeyv);
+          ef.exec(2, 1);
+        } else {
+	  push_stack(val);
+	}
+      }
     }
     
   } else if (sv.is_object(Attribute::class_symid())) {
-    
 
     push_stack(*((Attribute*)sv.obj_val())->Value());
     
@@ -488,7 +514,7 @@ void ComTerp::load_sub_expr() {
       } 
     }
     _pfoff++;
-    if (stack_top().type() == ComValue::CommandType && 
+    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj()) && 
 	!_pfcomvals[_pfoff-1].pedepth()) break;
   }
   
@@ -578,7 +604,7 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	offset++;
 	if (_pfcomvals[offset-1].pedepth()!=pedepth)
 	  continue;
-	if (stack_top().is_type(ComValue::CommandType) 
+	if ((stack_top().is_type(ComValue::CommandType) || stack_top().is_funcobj()) 
 	    && stack_top().pedepth() == pedepth) break;
       }
 #ifdef POSTEVAL_EXPERIMENT 
@@ -943,16 +969,18 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
 
-	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
-	  comval.assignval(*(ComValue*)vptr);
-	  return comval;
-	} else  if (_alist) {
+	if (_alist) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = _alist->find(id);  
 	  if (aval) {
 	    ComValue newval(*aval);
 	    *&comval = newval;
+	    return comval;
 	  }
+	}
+
+	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
+	  comval.assignval(*(ComValue*)vptr);
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
 	  comval.assignval(*(ComValue*)vptr);

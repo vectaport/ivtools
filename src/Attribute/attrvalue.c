@@ -1150,6 +1150,12 @@ void* AttributeValue::geta(int id) {
     return nil;
 }
 
+boolean AttributeValue::isa(int id) {
+  if (is_object(id))
+    return true;
+  return false;
+}
+
 int AttributeValue::type_symid() const {
   if (!_type_syms) {
     int i = 0;
