@@ -416,3 +416,24 @@ void* ComValue::geta(int id, int compid) {
   }
 }
 
+boolean ComValue::isa(int id, int compid) {
+  if (is_object(id)) {
+    return true;
+  }
+  if (compid>=0 && object_compview()) {
+    if (((ComponentView*)obj_val())->GetSubject() && 
+	((ComponentView*)obj_val())->GetSubject()->IsA(compid))
+      return true;
+  }
+  return false;
+}
+
+boolean ComValue::is_funcobj() {
+  ComValue tv = *this;
+  if (!comterp()) return false;  // required for FuncObj in a ComValue
+  if (is_symbol())
+    tv = ((ComTerp*)comterp())->lookup_symval(tv);
+  else
+    tv = *this;
+  return tv.is_object(FuncObj::class_symid());
+}

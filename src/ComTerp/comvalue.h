@@ -102,6 +102,8 @@ public:
 
     virtual void* geta(int type, int compid=-1); 
     // return a pointer if ObjectType matches or compid is superclass
+    virtual boolean isa(int type, int compid=-1); 
+    // return true if ObjectType matches or compid is superclass
 
     int narg() const;
     // number of arguments associated with this command or keyword.
@@ -164,6 +166,9 @@ public:
     // Get line number of command in script file.
     void linenum(unsigned ln) { _linenum=ln; }
     // Set line number of command in script file.
+
+    boolean is_funcobj();
+    // return true if ObjectType of FuncObj
 
 protected:
     void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }

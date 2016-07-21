@@ -381,6 +381,8 @@ public:
 
     virtual void* geta(int type); 
     // return a pointer if ObjectType matches or is a parent class
+    virtual boolean isa(int type); 
+    // return true if ObjectType matches or is a parent class
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.
