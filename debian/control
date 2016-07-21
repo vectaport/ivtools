@@ -3,7 +3,6 @@ Priority: optional
 Section: libs
 Build-Depends: debhelper (>= 9),
 	dh-autoreconf, autoconf-archive,
-	dh-exec,
 	zlib1g-dev,
 	x11-utils, xutils-dev, x11proto-core-dev,
 	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
