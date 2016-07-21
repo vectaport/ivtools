@@ -327,6 +327,7 @@ void FuncObjFunc::execute() {
       comterp()->postfix_echo(tokbuf, toklen);
     FuncObj* tokbufobj = new FuncObj(tokbuf, toklen);
     ComValue retval(FuncObj::class_symid(), (void*)tokbufobj);
+    retval.comterp(comterp());
     push_stack(retval);
   }
 }

@@ -138,9 +138,11 @@ void ListAtFunc::execute() {
 	return;
       } else {
 	AttributeValue* retv = avl->Get(nvv);
-	if (retv)
-	  push_stack(*retv);
-	else
+	if (retv) {
+          ComValue rv = *retv;
+          if(rv.is_symbol()) rv.bquote(1);
+	  push_stack(rv);
+	} else
 	  push_stack(ComValue::blankval());
 	return;
       }
