@@ -511,7 +511,7 @@ void AttributeValueList::clear() {
 AttributeValue* AttributeValueList::Get(unsigned int index) {
   if (Number()<=index) return nil;
   ALIterator it;
-  int delta = abs(index-_prevget_i);
+  int delta = abs(((int)index)-_prevget_i);
   if(_prevget_i!=-1 && (delta<<1)<Number()) {
     it = _prevget_it;
     if(_prevget_i>index) {
