@@ -979,7 +979,7 @@ const char* OvImportCmd::ReadCreator (istream& in, FileType& ftype) {
 	} else if (strcmp(line, "%%EndComments\n") == 0) {
 	  break;
 	}
-      } while (in.getline(line, linesz) != 0);
+      } while (in.getline(line, linesz));
       chcnt = 0;
       if (!*creator) strcpy(creator, "PostScript");
     }
