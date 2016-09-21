@@ -1,3 +1,11 @@
+ivtools (1.2.11a1-8) unstable; urgency=medium
+
+  * address GCC-6 errors, abs(unsigned) and zero comparison (closes: #835747)
+    - commit 9741bca, GCC-6 zero comparison
+    - commit 5dd153e, GCC-6 abs(unsigned)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 21 Sep 2016 11:46:02 +0100
+
 ivtools (1.2.11a1-7) unstable; urgency=medium
 
   * merge upstream changes from
