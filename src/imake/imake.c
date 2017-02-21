@@ -769,7 +769,7 @@ optional_include(FILE *inFile, const char *defsym, const char *fname)
 }
 
 void
-doit(FILE *outfd, const char *cmd, const char **argv)
+doit(FILE *outfd, const char *cmd, const char *const *argv)
 {
 	int		pid;
 	waitType	status;
