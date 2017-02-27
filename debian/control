@@ -1,8 +1,8 @@
 Source: ivtools
 Priority: optional
 Section: libs
-Build-Depends: debhelper (>= 9),
-	dh-autoreconf, autoconf-archive,
+Build-Depends: debhelper (>= 10),
+	autoconf-archive,
 	zlib1g-dev,
 	x11-utils, xutils-dev, x11proto-core-dev,
 	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
