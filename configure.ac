@@ -165,8 +165,9 @@ AS_IF([test x"${with_PSFontDir}" = xcheck],
 AC_SUBST(PSFontDir)
 
 # Random noise-control options.
+AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
-CXXFLAGS="${CXXFLAGS} -Wno-narrowing"
+AX_CHECK_COMPILE_FLAG([-Wno-narrowing], [CXXFLAGS="${CXXFLAGS} -Wno-narrowing"])
 
 # Trailer
 AC_CONFIG_FILES([Makefile src/Makefile src/include/Makefile])
