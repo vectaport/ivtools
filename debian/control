@@ -4,8 +4,8 @@ Section: libs
 Build-Depends: debhelper (>= 10),
 	autoconf-archive,
 	zlib1g-dev,
-	x11-utils, xutils-dev, x11proto-core-dev,
-	libx11-dev, libxext-dev, libxmu-dev, libxt-dev,
+	x11-utils, x11proto-core-dev,
+	libx11-dev, libxext-dev,
 	libtiff-dev, libace-dev,
 	libclippoly-dev,
 	ghostscript
