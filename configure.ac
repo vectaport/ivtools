@@ -168,6 +168,8 @@ AC_SUBST(PSFontDir)
 AX_CFLAGS_WARN_ALL
 AX_CXXFLAGS_WARN_ALL
 AX_CHECK_COMPILE_FLAG([-Wno-narrowing], [CXXFLAGS="${CXXFLAGS} -Wno-narrowing"])
+AX_CHECK_COMPILE_FLAG([-Wunused-variable], [CXXFLAGS="${CXXFLAGS} -Wunused-variable"])
+AX_CHECK_COMPILE_FLAG([-Wchar-subscripts], [CXXFLAGS="${CXXFLAGS} -Wchar-subscripts"])
 
 # Trailer
 AC_CONFIG_FILES([Makefile src/Makefile src/include/Makefile])
