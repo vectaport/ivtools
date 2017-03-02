@@ -3,6 +3,7 @@
 /*.substvars
 /autoreconf.after
 /autoreconf.before
+/debhelper-build-stamp
 /files
 /glyphs.tar
 /ivtools-bin/
@@ -10,5 +11,4 @@
 /libiv-unidraw1/
 /libiv1/
 /patches/debian-changes-*
-/refman.pdf
 /tmp
