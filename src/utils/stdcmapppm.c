@@ -22,7 +22,7 @@
 
 #include <stdio.h>
 
-main() {
+int main(int argc, char **argv) {
   int r, g, b;
   printf("P3\n# CREATOR: stdcmapppm\n6 36\n255\n");
   for (r=0; r<=255; r+=51) {
