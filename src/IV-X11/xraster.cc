@@ -191,10 +191,7 @@ boolean Raster::init_shared_memory() {
     DisplayRep* dr = idpy.rep();
     XDisplay* dpy = dr->display_;
 
-    int i;
     shared_memory = XShmQueryExtension(dpy) ? true : false; 
-    boolean pixmaps;
-    int *major, *minor;
     if (shared_memory) {
       int major, minor, pixmaps;
       XShmQueryVersion(dpy, &major, &minor, &pixmaps);

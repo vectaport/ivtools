@@ -328,7 +328,7 @@ int String::freq(const char* t) const {
   int count=0;
   char* oldptr = (char *)string();
   char* newptr;
-  while(newptr = strstr(oldptr, t)) {
+  while((newptr = strstr(oldptr, t))) {
     oldptr = newptr;
     count++;
   }

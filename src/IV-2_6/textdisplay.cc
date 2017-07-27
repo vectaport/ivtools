@@ -619,7 +619,7 @@ int TextLine::Index (TextDisplay* display, IntCoord x, boolean between) {
             }
             ++i;
         }
-        if (between && i <= lastchar && x > w - cw/2 || !between && x > w) {
+        if ((between && i <= lastchar && x > w - cw/2) || (!between && x > w)) {
             return i+1;
         } else {
             return i;

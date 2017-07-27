@@ -123,7 +123,6 @@ const char* FBDirectory::RealPath(const char* path) {
 
 boolean FBDirectory::LoadDirectory(const char* name) {
     char buf[max_filename_length+2];
-    const char* path = buf;
 
     strcpy(buf, ValidDirectories(RealPath(name)));
     return Reset(buf);
