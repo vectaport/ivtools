@@ -86,7 +86,7 @@
 extern int _colon_ident;
 extern int _percent_ident;
 #define isident( ch )   ( isalpha( ch ) || (ch) == '_' || \
-_colon_ident && (ch) == ':' || _percent_ident && (ch) == '%')
+(_colon_ident && (ch) == ':') || (_percent_ident && (ch) == '%'))
 #define isodigit( ch )  ( (ch) >= '0' && (ch) <= '7' )
 #define isquote( ch )   ( (ch) == '\'' || (ch) == '"' )
 #define isrparen( ch )   ( (ch) == ')' || (ch) == ']' || (ch) == '}')

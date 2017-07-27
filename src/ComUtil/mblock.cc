@@ -114,7 +114,7 @@ main()
 
 	extern void *mblock_pntr();
 
-	/* open a memory block with 2000 bytes in it */
+	// open a memory block with 2000 bytes in it
 
 	if ( (id1 = mblock_open(2000,sizeof(char))) == -1)
 	{
@@ -122,7 +122,7 @@ main()
 	  return(-1);
 	}
 
-	/* open a 2nd memory block with 1000 integers */
+	// open a 2nd memory block with 1000 integers
 
 	if ( (id1 = mblock_open(1000,sizeof(int))) == -1)
 	{
@@ -130,23 +130,23 @@ main()
 	  return(-1);
 	}
 
-	/* get the starting address of the memory blocks */
+	// get the starting address of the memory blocks
 	pntr1 = (char *) mblock_pntr(id1);
 	pntr2 = (int *) mblock_pntr(id2);
 
-	/* get the size of the memory blocks in bytes and print out */
-	/* get the number of elements in the mblock and the total */
-	/* number of bytes used for block 1 but do not get size of element */
-	/* get just the total bytes for block 2 */
+	// get the size of the memory blocks in bytes and print out
+	// get the number of elements in the mblock and the total
+	// number of bytes used for block 1 but do not get size of element
+	// get just the total bytes for block 2
 
-	mblock_sizes(id1,&nel1,NULL,&nbytes1);	/* NULL says don't return it */
+	mblock_sizes(id1,&nel1,NULL,&nbytes1);	// NULL says don't return it
 	mblock_sizes(id2,NULL,NULL,&nbytes2);
 
 	printf("Mblock 1 id# %d has %u records and %lu bytes\n",
 		id1,nel,nbytes1);
 	printf("Mblock 2 id# %d has %lu bytes\n",id2,nbytes2);
 
-	/* increase the size of the second mem block to 3000 integers */
+	// increase the size of the second mem block to 3000 integers
 
 	if ( mblock_resize(id2,3000)) != 0)
 	{
@@ -154,7 +154,7 @@ main()
 	  return(-1);
 	}
 
-	/* close both memory blocks */
+	// close both memory blocks
 
 	mblock_close(id1);
 	mblock_close(id2);

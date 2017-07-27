@@ -153,8 +153,8 @@ void LRMarker::mark(
                 left_, right_, x1, y1, y1 + h1, x2, y2, y2 + h2
             );
         } else if (
-            (y2 > y1_ || y2 == y1_ && x2 < x1_)
-            || (y1 < y2_ || y1 == y2_ && x1 > x2_)
+            (y2 > y1_ || (y2 == y1_ && x2 < x1_))
+            || (y1 < y2_ || (y1 == y2_ && x1 > x2_))
         ) {
             do_damage(
                 canvas_,

@@ -1476,11 +1476,11 @@ Returns information in the `dmmwalk` structure as follows:
 
 typedef struct _dmmwalk dmmwalk;
 struct _dmmwalk {
-                int useflag;    /* false (0) is FREE, true (1) means USED */
-                void *mentry;    /* entry point address for area allocated */
-                unsigned long nbytes;  /* total bytes in the alloc'd area */
-                unsigned long nrecs;   /* actual records in the area */
-                unsigned int  nsize;   /* actual size of each record */
+                int useflag;    // false (0) is FREE, true (1) means USED
+                void *mentry;    // entry point address for area allocated
+                unsigned long nbytes;  // total bytes in the alloc'd area
+                unsigned long nrecs;   // actual records in the area
+                unsigned int  nsize;   // actual size of each record
                         };
 
 See also:  dmm_mblock_alloc().
