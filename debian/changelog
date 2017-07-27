@@ -1,3 +1,9 @@
+ivtools (1.2.11a1-10) unstable; urgency=medium
+
+  * minor cleanups
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 27 Jul 2017 18:43:02 +0100
+
 ivtools (1.2.11a1-9) unstable; urgency=medium
 
   * bump to debhelper 10
