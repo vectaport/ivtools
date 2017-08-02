@@ -84,7 +84,7 @@ error message format strings for access once an error occurs.  An example
 entry in this file is as follows:
 
 	#define ERR_OUTOFBOUNDS         12
-	/* "process1:  Input size parameter out of bounds (%d)" */
+	// "process1:  Input size parameter out of bounds (%d)"
 
 `err_readfile` searches for definitions of macros that begin with "ERR_", then
 reads the positive integer value that follows.  When the entry that matches 

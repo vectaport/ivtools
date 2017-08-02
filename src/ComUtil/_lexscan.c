@@ -370,8 +370,8 @@ int bs_ident = 0;
 
       /* Start of comment until-end-of-line */
 	 else if( !no_comment && 
-		  (linecmtchr && *(buffer+*bufptr)==linecmtchr || 
-		   linecmtstr && strncmp(buffer+*bufptr,linecmtstr,strlen(linecmtstr))==0)) {
+		  ((linecmtchr && *(buffer+*bufptr)==linecmtchr) ||
+		   (linecmtstr && strncmp(buffer+*bufptr,linecmtstr,strlen(linecmtstr))==0))) {
 	   while(*(buffer+*bufptr)!= '\n')
 	     ADVANCE_CHAR;
 	 }
@@ -388,7 +388,7 @@ int bs_ident = 0;
             }
 
       /* Start of identifier */
-	 else if( isident( CURR_CHAR ) && CURR_CHAR!=':' || (_ignore_numerics && isdigit( CURR_CHAR))) {
+	 else if( (isident( CURR_CHAR ) && CURR_CHAR!=':') || (_ignore_numerics && isdigit( CURR_CHAR))) {
 	    token_state = TOK_IDENTIFIER;
 	    TOKEN_ADD( CURR_CHAR );
 	    }

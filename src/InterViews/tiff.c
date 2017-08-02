@@ -204,7 +204,7 @@ Raster* TIFFRasterImpl::load(const char* filename) {
 	for (long i = height - 1; i >= 0; i--) {
 	    u_char* c = (u_char*) (raster_ + i*width);
 	    /* should use a lookup table here */
-	    for (long j = 0; j < width; j++) {
+	    for (u_long j = 0; j < width; j++) {
 		r->poke(
 		    j, i,
 		    ColorIntensity(float(c[3]) / float(0xff)),

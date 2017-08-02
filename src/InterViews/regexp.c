@@ -396,7 +396,7 @@ regcomp(char* exp) {
 	register regexp *r;
 	register char *scan;
 	register char *longest;
-	register int len;
+	register size_t len;
 	int flags;
 
 	if (exp == nil)

@@ -229,7 +229,6 @@ void ImportCmd::Execute () {
 boolean ImportCmd::Reversible () { return false; }
 
 GraphicComp* ImportCmd::PostDialog () {
-    boolean imported = false;
     GraphicComp* comp = nil;
     Editor* ed = GetEditor();
 
