@@ -239,7 +239,7 @@ TIFFSetField1(tif, tag, ap)
 			td->td_orientation = v;
 		break;
 	case TIFFTAG_SAMPLESPERPIXEL:
-		/* XXX should cross check -- e.g. if pallette, then 1 */
+		/* XXX should cross check -- e.g. if palette, then 1 */
 		v = va_arg(ap, int);
 		if (v == 0)
 			goto badvalue;

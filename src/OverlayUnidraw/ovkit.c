@@ -509,7 +509,7 @@ Glyph* OverlayKit::MakeToolbar() {
     const LayoutKit& layout = *LayoutKit::instance();
     Style* s = kit.style();
 
-    /* tools shared between pallettes */
+    /* tools shared between palettes */
     ToolButton* select;
     ToolButton* move;
     ToolButton* scale;
