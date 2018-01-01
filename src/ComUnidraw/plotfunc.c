@@ -47,7 +47,8 @@ void BarPlotFunc::execute() {
 
   if (Component::use_unidraw()) {
     boolean ok;
-    char* tmpfilename = tempnam(NULL,"plot");
+    char tmpfilename[] = "/tmp/plivXXXX";
+    mkstemp(tmpfilename);
     ofstream out(tmpfilename);
 
     ComValue title(stack_key(title_symid));
@@ -89,13 +90,15 @@ void BarPlotFunc::execute() {
     out.close();
 
     char cmd[256];
-    char* pstmp = tempnam(NULL,"ps");
+    char pstmp[] = "/tmp/psivXXXX";
+    mkstemp(pstmp);
     sprintf(cmd, "plotmtv -noxplot -color -o %s %s", pstmp, tmpfilename);
     FILE* plotp = popen(cmd, "w");
     fprintf(plotp, "n\n");
     pclose(plotp);
 
-    char* idtmp = tempnam(NULL,"idraw");
+    char idtmp[] = "/tmp/idivXXXX";
+    mkstemp(idtmp);
     sprintf(cmd, "pstoedit -f idraw < %s > %s", pstmp, idtmp);
 fprintf(stderr, "%s\n", cmd);
     system(cmd);

@@ -493,7 +493,7 @@ int ParamList::read_ints (istream& in, void* addr1, void* addr2, void* addr3, vo
 	    int* newnums = new int[bufsiz*2];
 	    for (int i=0; i<bufsiz; i++) 
 		newnums[i] = nums[i];
-	    delete nums;
+	    delete [] nums;
 	    nums = newnums;
 	    bufsiz *= 2;
 	}
@@ -521,7 +521,7 @@ int ParamList::read_floats (istream& in, void* addr1, void* addr2, void* addr3, 
 	    float* newnums = new float[bufsiz*2];
 	    for (int i=0; i<bufsiz; i++) 
 		newnums[i] = nums[i];
-	    delete nums;
+	    delete [] nums;
 	    nums = newnums;
 	    bufsiz *= 2;
 	}
@@ -549,7 +549,7 @@ int ParamList::read_doubles (istream& in, void* addr1, void* addr2, void* addr3,
 	    double* newnums = new double[bufsiz*2];
 	    for (int i=0; i<bufsiz; i++) 
 		newnums[i] = nums[i];
-	    delete nums;
+	    delete [] nums;
 	    nums = newnums;
 	    bufsiz *= 2;
 	}
@@ -577,7 +577,7 @@ int ParamList::read_strings (istream& in, void* addr1, void* addr2, void* addr3,
 	    char** newstrings = new char*[bufsiz*2];
 	    for (int i=0; i<bufsiz; i++) 
 		newstrings[i] = strings[i];
-	    delete strings;
+	    delete [] strings;
 	    strings = newstrings;
 	    bufsiz *= 2;
 	}
@@ -831,7 +831,7 @@ char* ParamList::parse_textbuf(istream& in) {
 			buflen *= 2;
 			char* newbuf = new char[buflen];
 			memcpy(newbuf, buffer, dot);
-			delete buffer;
+			delete [] buffer;
 			buffer = newbuf;
 		    }
 		}
@@ -841,7 +841,7 @@ char* ParamList::parse_textbuf(istream& in) {
 		buflen *= 2;
 		char* newbuf = new char[buflen];
 		memcpy(newbuf, buffer, dot);
-		delete buffer;
+		delete [] buffer;
 		buffer = newbuf;
 	    }
         }
@@ -853,7 +853,7 @@ char* ParamList::parse_textbuf(istream& in) {
 		buflen *= 2;
 		char* newbuf = new char[buflen];
 		memcpy(newbuf, buffer, dot);
-		delete buffer;
+		delete [] buffer;
 		buffer = newbuf;
 	    }
 	}
@@ -864,7 +864,7 @@ char* ParamList::parse_textbuf(istream& in) {
     if (in.good()) 
 	return buffer;
     else {
-	delete buffer;
+	delete [] buffer;
 	return nil;
     }
 }

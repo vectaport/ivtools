@@ -171,12 +171,15 @@ void ComterpStackHeightFunc::execute() {
 
 /*****************************************************************************/
 
-#include "/usr/include/malloc.h"
+// #include "malloc/malloc.h"
 
 ComterpMallInfoFunc::ComterpMallInfoFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ComterpMallInfoFunc::execute() {
+#if 1
+  printf("mallinfo disabled\n");
+#else
   reset_stack();
   struct mallinfo mi;
   mi = mallinfo();
@@ -191,6 +194,7 @@ void ComterpMallInfoFunc::execute() {
   printf("Total free space (fordblks):           %d\n", mi.fordblks);
   printf("Topmost releasable block (keepcost):   %d\n", mi.keepcost);
   push_stack(ComValue::zeroval());
+#endif
 }
 
 

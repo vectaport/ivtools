@@ -60,7 +60,7 @@ void Group::request(Requisition& requisition) const {
             }
         }
         layout_->request(count_, r, requisition);
-        delete r;
+        delete [] r;
     }
 }
 
@@ -81,7 +81,7 @@ void Group::allocate(Canvas*, const Allocation& allocation, Extension&) {
                 map_.item(i), dimension_, allocations[i].allotment(dimension_)
             );
         }
-        delete allocations;
-        delete requisitions;
+        delete [] allocations;
+        delete [] requisitions;
     }
 }

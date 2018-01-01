@@ -408,7 +408,7 @@ boolean TIFFRasterImpl::gtTileContig(const RGBvalue* Map, u_long h, u_long w) {
 	}
 	y += (orientation_ == ORIENTATION_TOPLEFT ? -nrow : nrow);
     }
-    delete buf;
+    delete [] buf;
     return true;
 }
 
@@ -468,7 +468,7 @@ boolean TIFFRasterImpl::gtTileSeparate(
 	}
 	y += (orientation_ == ORIENTATION_TOPLEFT ? -nrow : nrow);
     }
-    delete buf;
+    delete [] buf;
     return true;
 }
 
@@ -505,7 +505,7 @@ boolean TIFFRasterImpl::gtStripContig(
 	(this->*put)(raster_ + y*w, buf, Map, w, nrow, fromskew, toskew);
 	y += (orientation_ == ORIENTATION_TOPLEFT ? -nrow : nrow);
     }
-    delete buf;
+    delete [] buf;
     return true;
 }
 
@@ -552,7 +552,7 @@ boolean TIFFRasterImpl::gtStripSeparate(
 	(this->*put)(raster_ + y*w, r, g, b, Map, w, nrow, fromskew, toskew);
 	y += (orientation_ == ORIENTATION_TOPLEFT ? -nrow : nrow);
     }
-    delete buf;
+    delete [] buf;
     return true;
 }
 

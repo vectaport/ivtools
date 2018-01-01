@@ -354,7 +354,7 @@ void	catch(int sig);
 #endif
 void	showargs(const char **argv);
 boolean optional_include(FILE *inFile, const char *defsym, const char *fname);
-void	  doit(FILE *outfd, const char *cmd, const char **argv);
+void	  doit(FILE *outfd, const char *cmd, const char *const *argv);
 boolean define_os_defaults(FILE *inFile);
 #ifdef CROSSCOMPILE
 static void get_cross_compile_dir(FILE *inFile);
@@ -800,10 +800,10 @@ doit(FILE *outfd, const char *cmd, const char *const *argv)
 	}
 	else {	/* child... dup and exec cmd */
 		if (verbose)
-			showargs(argv);
+		  showargs((const char **)argv);
 		if (outfd)
 			dup2(fileno(outfd), 1);
-		execvp(cmd, argv);
+		execvp(cmd, (char *const *)argv);
 		LogFatal("Cannot exec %s.", cmd);
 	}
 #endif

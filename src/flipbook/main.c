@@ -213,7 +213,7 @@ static OptionDesc options[] = {
 };
 
 #ifdef HAVE_ACE
-static const char* usage =
+static const char usage[] =
 "Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] [-color5]\n\
 [-color6] [-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
 [-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
@@ -222,7 +222,7 @@ static const char* usage =
 [-stdin_off] [-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
 [-twidth|-tw n] [-zoomer_off|-zoff] [file]";
 #else
-static char* usage =
+static char usage[] =
 "Usage: flipbook [any idraw parameter] [-bookgeom]\n\
 [-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
 [-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\

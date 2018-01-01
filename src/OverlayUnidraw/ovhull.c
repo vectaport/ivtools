@@ -87,8 +87,9 @@ void ConvexHullCmd::Execute() {
 
 int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& hy) {
   if (np > 2 && OverlayKit::bincheck("qhull") ) {
-    char* tnam = tempnam("/tmp", "qhin");
-    if (tnam) {
+    char tnam[] = "/tmp/qhinXXXX";
+    int status = mkstemp(tnam);
+    if (!status) {
       FILE* fp = fopen(tnam, "w");
       if (fp) {
 	fprintf(fp, "%d\n%d\n", 2, np);

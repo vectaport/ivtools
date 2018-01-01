@@ -121,10 +121,10 @@ void OvPrintCmd::Execute () {
 	    if (ok) { 
 
 		filebuf fbuf;
-		char* tmpfilename;
+		char tmpfilename[] = "/tmp/privXXXX";
 		
 		if (chooser_->to_printer()) {
-		    tmpfilename = tmpnam(nil);
+		    mkstemp(tmpfilename);
 		    ok = fbuf.open(tmpfilename, output) != 0;
 		} else {
 		    ok = fbuf.open(ns.string(), output) != 0;

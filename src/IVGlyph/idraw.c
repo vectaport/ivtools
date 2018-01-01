@@ -270,13 +270,13 @@ Graphic31* IdrawReaderImpl::load(
                     bufsize = bufsize*2;
                     char* newbuf = new char[bufsize];
                     Memory::copy(buf, newbuf, i*sizeof(char));
-                    delete buf;
+                    delete [] buf;
                     buf = newbuf;
                 }
             }
             buf[i] = '\0';
             glyph = new Text31(f, fg, buf, tx);
-            delete buf;
+            delete [] buf;
         } else {
             skip();
             int c = fig->coords;
@@ -330,8 +330,8 @@ Graphic31* IdrawReaderImpl::load(
             } else {
                 glyph = nil;
             }
-            delete x;
-            delete y;
+            delete [] x;
+            delete [] y;
         }
         for (int extra = fig->skip; extra > 0; --extra) {
             skip();

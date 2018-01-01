@@ -415,3 +415,5 @@ config/config-linux-gcc.defs
 src/utils/DARWIN/ivtmpnam
 
 src/IV/DARWIN/mkg3states
+src/GraphUnidraw/DARWIN/graphcmds.o-7f5490ff
+src/iclass/DARWIN/classinfo.o-9f882d1e
