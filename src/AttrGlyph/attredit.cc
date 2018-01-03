@@ -176,7 +176,7 @@ void AttributeListEditor::update_text(boolean update) {
     _ete->text(buf, update);
 #else
     vbuf.push_back('\0');
-    _ete->text(&vbuf[0] ? &vbuf[0] : "", update);
+    _ete->text(&vbuf[0], update);
 #endif
 }
 

@@ -448,7 +448,7 @@ void OpenFileChooserImpl::accept_browser() {
     } else {
 	fchooser_->dismiss(true);
     }
-    delete tmp;
+    delete [] tmp;
 }
 
 void OpenFileChooserImpl::cancel_browser() {

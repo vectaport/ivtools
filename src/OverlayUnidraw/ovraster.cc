@@ -1512,7 +1512,7 @@ int OverlayRaster::gray_init(int nbits)
     unsigned long* indices = new unsigned long[_unique_grays+1];
     if( XAllocColorCells(Session::instance()->default_display()->rep()->display_, 
 			 colormap, true, 0, 0, indices, _unique_grays+1 ) == 0 ) {
-	delete indices;	
+	delete [] indices;	
 	return -1;
     }
     
@@ -1582,7 +1582,7 @@ int OverlayRaster::gray_init(int nbits)
 	
     }
 
-    delete indices;
+    delete [] indices;
     _gray_initialized = true;
     return 0;
 }
@@ -1605,7 +1605,7 @@ int OverlayRaster::color_init(int nlevels)
     unsigned long* indices = new unsigned long[_unique_colors+1];
     if( XAllocColorCells(Session::instance()->default_display()->rep()->display_, 
 			 colormap, true, 0, 0, indices, _unique_colors+1 ) == 0 ) {
-	delete indices;	
+	delete [] indices;	
 	return -1;
     }
     
@@ -1675,7 +1675,7 @@ int OverlayRaster::color_init(int nlevels)
 
     }
     
-    delete indices;
+    delete [] indices;
     return 0;
 }
 

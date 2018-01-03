@@ -1206,4 +1206,3 @@ static void
 regerror(const char* s) {
 	cerr << "regexp: " << s << "\n";
 }
-

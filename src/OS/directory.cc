@@ -216,7 +216,7 @@ boolean Directory::is_directory(int i) const {
 	char* tmp = new char[d.name_->length() + e.name_->length() + 2];
 	sprintf(tmp, "%s/%s", d.name_->string(), e.name_->string());
 	stat(tmp, e.info_);
-	delete tmp;
+	delete [] tmp;
     }
     return S_ISDIR(e.info_->st_mode);
 }
