@@ -209,7 +209,8 @@ boolean OvExportCmd::Export (const char* pathname) {
       char* tmpfilename;
       
       if (chooser_->to_printer()) {
-	tmpfilename = tmpnam(nil);
+	char tmpfilename[] = "/tmp/exinXXXX";
+        mkstemp(tmpfilename);
 	false_top->SetPathName(tmpfilename);
 	ok = fbuf.open(tmpfilename, output) != 0;
       } else {

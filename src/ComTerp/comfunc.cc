@@ -221,8 +221,8 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
       vals[i] = new ComValue(comterp()->pop_stack(!symbol));
   }
 
-  delete offtopbuf;
-  delete argcntbuf;
+  delete [] offtopbuf;
+  delete [] argcntbuf;
   return vals;
 }
 

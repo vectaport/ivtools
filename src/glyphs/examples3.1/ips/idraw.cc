@@ -308,8 +308,8 @@ Glyph* IdrawReaderImpl::load(
             } else {
                 glyph = nil;
             }
-            delete x;
-            delete y;
+            delete [] x;
+            delete [] y;
         }
         for (int extra = fig->skip; extra > 0; --extra) {
             skip();
@@ -347,6 +347,7 @@ boolean IdrawReaderImpl::read(String& s) {
     }
     cur_ = p2;
     s = String(p1, p2 - p1);
+    return true;
 }
 
 boolean IdrawReaderImpl::read(char& c) {

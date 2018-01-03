@@ -1493,7 +1493,7 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
 	for (int j=0; j<bufsiz; j++) 
 	  newbuf[j] = buffer[j];
 	bufsiz *= 2;
-	delete buffer;
+	delete [] buffer;
 	buffer = newbuf;
       }
       buffer[ncomm++] = key;
@@ -1526,7 +1526,7 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
       }
       sortedbuffer[count] = buffer[j];
     }
-    delete buffer;
+    delete [] buffer;
 
     /* one more pass over the sorted buffer to remove duplicates */
     int copydist = 0;

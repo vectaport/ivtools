@@ -406,8 +406,8 @@ void SlidingPointList::Draw() {
 		oy[i] = y[i] + offy;
 	    }
 	    output->MultiPoint(canvas, ox, oy, count);
-	    delete ox;
-	    delete oy;
+	    delete [] ox;
+	    delete [] oy;
 	}
 	drawn = true;
     }
@@ -454,8 +454,8 @@ void SlidingLineList::Draw() {
 		oy[i] = y[i] + offy;
 	    }
 	    output->MultiLine(canvas, ox, oy, count);
-	    delete ox;
-	    delete oy;
+	    delete [] ox;
+	    delete [] oy;
 	}
 	drawn = true;
     }

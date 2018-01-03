@@ -431,7 +431,7 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     return (*_errbuf || status!=FUNCOK) ? ComValue::nullval() : pop_stack();
 }
 
-#include "/usr/include/malloc.h"
+// #include "/usr/include/malloc.h"
 
 ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _errbuf[0] = '\0';

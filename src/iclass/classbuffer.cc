@@ -298,7 +298,7 @@ void ClassBuffer::SearchFile (const char* path, struct stat&) {
 
     SearchTextBuffer(&textbuf, path);
 
-    delete tbuf;
+    delete [] tbuf;
     f->close();
     delete f;
 }

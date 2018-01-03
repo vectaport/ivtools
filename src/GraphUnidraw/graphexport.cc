@@ -199,10 +199,10 @@ boolean GraphExportCmd::Export (const char* pathname) {
     if (ovpsv != nil) {
       
       filebuf fbuf;
-      char* tmpfilename;
+      char tmpfilename[] = "/tmp/grivXXXX";
       
       if (chooser_->to_printer()) {
-	tmpfilename = tmpnam(nil);
+	mkstemp(tmpfilename);
 	false_top->SetPathName(tmpfilename);
 	ok = fbuf.open(tmpfilename, output) != 0;
       } else {

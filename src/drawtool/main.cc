@@ -216,14 +216,14 @@ static OptionDesc options[] = {
 
 
 #ifdef HAVE_ACE
-static const char* usage =
+static const char usage[] =
 "Usage: drawtool [any idraw parameter] [-color5] [-dithermap] [-gray5] [-gray6] \n\
 [-gray7] [-import port] [-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
 [-pagerows|-nrows n] [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
 [-panner_off|-poff] [-ptrloc] [-scribble_pointer|-scrpt ] [-slider_off|-soff]\n\
 [-svgexport] [-toolbarloc|-tbl r|l ] [-zoomer_off|-zoff] [file]";
 #else
-static char* usage =
+static char usage[] =
 "Usage: drawtool [any idraw parameter] [-color5] [-dithermap] [-gray5] [-gray6] \n\
 [-gray7] [-nocolor6] [-opaque_off|-opoff] [-pagecols|-ncols n] \n\
 [-pagerows|-nrows n] [-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\

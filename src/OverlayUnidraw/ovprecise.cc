@@ -209,7 +209,7 @@ void OvPrecisePageCmd::Execute () {
     if (!default_pagestr) {
       OverlayPage* page = (OverlayPage*) GetEditor()->GetViewer()->GetPage();
       char buffer[BUFSIZ];
-      sprintf( buffer, "%d %d\0", (int) ((PageGraphic*)page->GetGraphic())->Width(), 
+      sprintf( buffer, "%d %d", (int) ((PageGraphic*)page->GetGraphic())->Width(), 
 	(int) ((PageGraphic*)page->GetGraphic())->Height());
       default_pagestr = strdup(buffer);
     }
