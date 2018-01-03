@@ -1,3 +1,9 @@
+ivtools (1.2.11a1-11) unstable; urgency=medium
+
+  * merge upstream mods
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 03 Jan 2018 22:39:28 +0100
+
 ivtools (1.2.11a1-10) unstable; urgency=medium
 
   * minor cleanups
