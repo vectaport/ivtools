@@ -1,5 +1,6 @@
 *.la
 *.lo
+*.o
 .deps/
 .dirstamp
 .libs/
@@ -15,6 +16,8 @@
 /config.guess
 /config.h
 /config.h.in
+/config.log
+/config.status
 /config.sub
 /configure
 /dclock
@@ -38,9 +41,8 @@
 /missing
 /pnmtopgm
 /refman.pdf
+/src/man/refman3.1/refman.pdf
 /stamp-h1
 /stdcmapppm
 Makefile
 Makefile.in
-
-src/man/refman3.1/refman.pdf
