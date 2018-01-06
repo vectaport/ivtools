@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 10),
 	zlib1g-dev,
 	x11-utils, x11proto-core-dev,
 	libx11-dev, libxext-dev,
-	libtiff-dev, libace-dev,
+	libtiff-dev, libace-dev, libice-dev,
 	libclippoly-dev,
 	ghostscript
 Build-Conflicts: autoconf2.13, automake1.4
