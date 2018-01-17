@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
       terp->add_defaults();
       if (run_flag && argc > 2 ) {
         const char *rfile = argv[2];
-	terp->set_args(argc-3, argv+2);
+	terp->set_args(argc-2, argv+2);
 	terp->runfile(rfile);
 	return 0;
       } if (expr_flag) {
