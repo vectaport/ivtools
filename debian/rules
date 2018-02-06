@@ -25,6 +25,7 @@ override_dh_installexamples: debian/glyphs.tar
 debian/glyphs.tar:
 	tar --create --file=$@ \
 	    --mtime="@$(SOURCE_DATE_EPOCH)" --clamp-mtime \
+	    --sort=name --owner=0 --group=0 --numeric-owner \
 	    --exclude-backups --exclude='*.bak' \
 	    --exclude=Makefile.depend --exclude='*.o' --exclude=a.out \
 	    --directory=src glyphs
