@@ -1,3 +1,9 @@
+ivtools (1.2.11a1-11) unstable; urgency=medium
+
+  * nan.h FTBFS glibc 2.27 patch from Aurelien Jarno (closes: #891274)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 24 Feb 2018 16:44:14 +0000
+
 ivtools (1.2.11a1-10) unstable; urgency=medium
 
   * minor cleanups
