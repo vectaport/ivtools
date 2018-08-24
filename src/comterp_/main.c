@@ -220,8 +220,17 @@ int main(int argc, char *argv[]) {
       ComTerpServ* terp = new ComTerpServ();
       terp->add_defaults();
       if (run_flag && argc > 2 ) {
+	int endcnt=0;
+	for(int i=argc-1; i>2; i--) {
+	  if(*argv[i]=='\0') {
+	    endcnt++;
+          } else {
+	    break;
+	  }
+	    
+	}
         const char *rfile = argv[2];
-	terp->set_args(argc-2, argv+2);
+	terp->set_args(argc-2-endcnt, argv+2);
 	terp->runfile(rfile);
 	return 0;
       } if (expr_flag) {
