@@ -1,3 +1,9 @@
+ivtools (1.2.11a1-12) UNRELEASED; urgency=medium
+
+  * d/watch: Use https protocol
+
+ -- Ondřej Nový <onovy@debian.org>  Mon, 01 Oct 2018 10:10:55 +0200
+
 ivtools (1.2.11a1-11) unstable; urgency=medium
 
   * nan.h FTBFS glibc 2.27 patch from Aurelien Jarno (closes: #891274)

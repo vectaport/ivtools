@@ -3,4 +3,4 @@ version=3
 http://www.ivtools.org/ivtools/download.html \
  .*/ivtools-([\d.]+)\.tgz.*
 
-# http://sf.net/ivtools/ivtools-([\d.]+)\.tgz
+# https://sf.net/ivtools/ivtools-([\d.]+)\.tgz
