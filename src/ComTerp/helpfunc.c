@@ -92,8 +92,10 @@ void HelpFunc::execute() {
 	comterp()->localtable()->find(vptr, val.string_val());
 	if (vptr && ((ComValue*)vptr)->is_command()) {
 	  comfuncs[i] = (ComFunc*)((ComValue*)vptr)->obj_val();
-	} else
+	} else {
+	  command_ids[i] = val.symbol_val();
 	  comfuncs[i] = nil;
+	}
 	str_flags[i] = true;
       } else {
 	comfuncs[i] = nil;
@@ -197,7 +199,6 @@ void HelpFunc::execute() {
 
 	/* if symid is smaller than the highest operator it must be one */
 	if (command_ids[i]>=0 && command_ids[i]<=opr_tbl_topstr()) {
-	  fprintf(stderr, "READY FOR OPER STUFF\n");
 	  int op_ids[OPTYPE_NUM];
 	  const char* opstr = symbol_pntr(command_ids[i]);
 	  unsigned int charcnt;
