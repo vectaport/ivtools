@@ -146,9 +146,12 @@ void SymbolFunc::execute() {
   int symbol_ids[numargs];
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i, true);
-    if (val.is_char() || val.is_short() || val.is_int())
+    if (val.is_symbol()) {
+      lookup_symval(val);
+    }
+    if (val.is_char() || val.is_short() || val.is_int()) {
       symbol_ids[i] = val.int_val();
-    else 
+    } else 
       symbol_ids[i] = -1;
   }
   reset_stack();
