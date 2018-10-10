@@ -1,8 +1,16 @@
-ivtools (1.2.11a1-12) UNRELEASED; urgency=medium
+ivtools (1.2.11a2-1) unstable; urgency=medium
 
+  [ Ondřej Nový ]
   * d/watch: Use https protocol
 
- -- Ondřej Nový <onovy@debian.org>  Mon, 01 Oct 2018 10:10:55 +0200
+  [ Barak A. Pearlmutter ]
+  * bump policy, no changes required
+  * generate new upstream tarball, for cleanliness
+  * track true upstream changes
+  * swizzle packaging repo to salsa
+  * configure git-buildpackage, debian on branch: debian
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Wed, 10 Oct 2018 21:34:24 +0100
 
 ivtools (1.2.11a1-11) unstable; urgency=medium
 
