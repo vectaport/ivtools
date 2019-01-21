@@ -1330,7 +1330,7 @@ TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(com
 void TransformerFunc::execute() {
     
     ComValue objv(stack_arg(0));
-    ComValue transv(stack_arg(0));
+    ComValue transv(stack_arg(1));
     reset_stack();
     if (objv.object_compview()) {
       ComponentView* compview = (ComponentView*)objv.obj_val();
@@ -1379,6 +1379,7 @@ void TransformerFunc::execute() {
 
 	    Transformer t(a00, a01, a10, a11, a20, a21);
 	    *gr->GetTransformer()=t;
+	    comp->Notify();
 
 	    ComValue compval(new OverlayViewRef(comp), comp->class_symid());
 	    push_stack(compval);
