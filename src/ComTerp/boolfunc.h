@@ -91,7 +91,7 @@ public:
 
 //: != (non-equality) operator.
 // also useful for partial string comparison with :n keyword.
-// neq("string1" "string2" :n 6) returns false.
+// not_eq("string1" "string2" :n 6) returns false.
 // also useful for symbol comparison with :sym keyword.
 class NotEqualFunc : public NumFunc {
 public:
@@ -99,7 +99,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "!= is the not-equal operator\nbool=neq(str1 str2 :n len) -- partial string comparison\nbool=neq(sym1 sym2 :sym) -- symbol comparison"; }
+      return "!= is the not-equal operator\nbool=not_eq(str1 str2 :n len) -- partial string comparison\nbool=not_eq(sym1 sym2 :sym) -- symbol comparison"; }
 
 };
 

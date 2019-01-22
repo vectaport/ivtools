@@ -303,7 +303,7 @@ void SplitStrFunc::execute() {
         int delim1=0;
         while(*str && isspace(*str) || *str==delim) {
           if (*str==delim) {
-            if ((delim1 || avl->Number()==0) && !isspace(delim) ) {
+            if ((delim1 || avl->Number()==0) && delim!=' ') {
 	      if (keepflag) {
 		ComValue* comval = new ComValue(delimstr);
 		if (reverseflag) 
