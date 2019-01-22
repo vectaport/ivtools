@@ -1,3 +1,11 @@
+ivtools (1.2.11a2-2) unstable; urgency=medium
+
+  * track upstream changes (minor bug fix for duck issue)
+  * bump policy
+  * bump debhelper version
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Tue, 22 Jan 2019 13:45:36 +0000
+
 ivtools (1.2.11a2-1) unstable; urgency=medium
 
   [ Ondřej Nový ]
