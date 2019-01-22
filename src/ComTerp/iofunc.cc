@@ -49,7 +49,11 @@ FileObj::FileObj(const char* filename, const char* mode, int pipeflag) {
   _filename = strnew(filename);
   _mode = strnew(mode);
   _pipe = pipeflag;
-  _fptr = _pipe ? popen(filename, mode) : fopen(filename, mode);
+  if (strcmp(filename,"-")!=0 ) { 
+    _fptr = _pipe ? popen(filename, mode) : fopen(filename, mode);
+  } else {
+    _fptr = stdin;
+  }
 }
 
 FileObj::FileObj(FILE* fptr) {
@@ -60,7 +64,7 @@ FileObj::FileObj(FILE* fptr) {
 }
 
 FileObj::~FileObj() { 
-  if( _fptr && _filename) _pipe ? pclose(_fptr) : fclose(_fptr);
+  if( _fptr && _fptr!=stdin && _filename) _pipe ? pclose(_fptr) : fclose(_fptr);
   delete _filename;
   delete _mode;
 }
