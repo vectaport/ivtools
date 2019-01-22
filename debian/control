@@ -1,7 +1,7 @@
 Source: ivtools
 Priority: optional
 Section: libs
-Build-Depends: debhelper (>= 11),
+Build-Depends: debhelper (>= 12),
 	autoconf-archive,
 	zlib1g-dev,
 	x11-utils, x11proto-core-dev,
@@ -11,7 +11,7 @@ Build-Depends: debhelper (>= 11),
 	ghostscript
 Build-Conflicts: autoconf2.13, automake1.4
 Maintainer: Barak A. Pearlmutter <bap@debian.org>
-Standards-Version: 4.2.1
+Standards-Version: 4.3.0
 Homepage: http://www.ivtools.org
 Vcs-Git: https://salsa.debian.org/debian/ivtools.git
 Vcs-Browser: https://salsa.debian.org/debian/ivtools
