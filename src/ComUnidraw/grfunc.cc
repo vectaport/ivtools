@@ -936,7 +936,7 @@ void SelectFunc::execute() {
     ComValue clear_flagv(stack_key(clear_symid));
     boolean clear_flag = clear_flagv.is_true();
 
-    Selection* sel = _ed->GetViewer()->GetSelection();
+    OverlaySelection* sel = (OverlaySelection*)_ed->GetViewer()->GetSelection();
     if (clear_flag) {
       sel->Clear();
       unidraw->Update();
@@ -945,6 +945,9 @@ void SelectFunc::execute() {
     }
       
     OverlaySelection* newSel = ((OverlayEditor*)_ed)->overlay_kit()->MakeSelection();
+    if (sel->HandlesDisabled()) {
+      newSel->DisableHandles();
+    }
     
     Viewer* viewer = _ed->GetViewer();
     AttributeValueList* avl = new AttributeValueList();
@@ -1339,6 +1342,9 @@ void TransformerFunc::execute() {
 	Graphic* gr = comp->GetGraphic();
 	if (gr) {
 	  Transformer* trans = gr->GetTransformer();
+	  if (trans == nil) {
+	    trans = new Transformer();
+	  }
 	  if (transv.is_unknown() || !transv.is_array() || transv.array_val()->Number()!=6) {
 	    AttributeValueList* avl = new AttributeValueList();
 	    float a00, a01, a10, a11, a20, a21;
@@ -1377,8 +1383,8 @@ void TransformerFunc::execute() {
 	    av = avl->GetAttrVal(it);
 	    a21 = av->float_val();
 
-	    Transformer t(a00, a01, a10, a11, a20, a21);
-	    *gr->GetTransformer()=t;
+	    Transformer* t = new Transformer(a00, a01, a10, a11, a20, a21);
+	    gr->SetTransformer(t);
 	    comp->Notify();
 
 	    ComValue compval(new OverlayViewRef(comp), comp->class_symid());
