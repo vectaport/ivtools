@@ -1,3 +1,9 @@
+ivtools (1.2.11a2-3) unstable; urgency=medium
+
+  * track upstream changes
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 07 Feb 2019 05:02:16 +0000
+
 ivtools (1.2.11a2-2) unstable; urgency=medium
 
   * track upstream changes (minor bug fix for duck issue)
