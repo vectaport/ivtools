@@ -59,6 +59,8 @@ void GrDotFunc::execute() {
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
+      cout << "expression after dot:  ";
+      cout << after_part << "\n";
       reset_stack();
       return;
     }
