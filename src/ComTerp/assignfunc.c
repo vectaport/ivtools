@@ -68,7 +68,6 @@ void AssignFunc::execute() {
 	    comterp()->globaltable()->find(oldval, operand1.symbol_val());
 	    if (oldval) {
 	      comterp()->globaltable()->remove(operand1.symbol_val());
-	      // ((AttributeValue*)oldval)->unref_as_needed();
 	      delete (ComValue*)oldval;
 	    }
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
@@ -78,7 +77,6 @@ void AssignFunc::execute() {
 	    comterp()->localtable()->find(oldval, operand1.symbol_val());
 	    if (oldval) {
 	      comterp()->localtable()->remove(operand1.symbol_val());
-	      // ((AttributeValue*)oldval)->unref_as_needed();
 	      delete (ComValue*)oldval;
 	    }
             comterp()->localtable()->insert(operand1.symbol_val(), operand2);
