@@ -57,6 +57,9 @@ void DotFunc::execute() {
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
+      cout << "expression after dot:  ";
+      cout << after_part << "\n";
+
       return;
     }
     if (nargs()>1 && !after_part.is_string()) {
