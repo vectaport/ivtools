@@ -66,18 +66,22 @@ void AssignFunc::execute() {
 	} else if (operand1.global_flag()) {
 	    void* oldval = nil;
 	    comterp()->globaltable()->find(oldval, operand1.symbol_val());
-	    if (oldval) 
-	      *(ComValue*)oldval = operand2;
-	    else
-  	      comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
+	    if (oldval) {
+	      comterp()->globaltable()->remove(operand1.symbol_val());
+	      // ((AttributeValue*)oldval)->unref_as_needed();
+	      delete (ComValue*)oldval;
+	    }
+	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
 	}
 	else {
 	    void* oldval = nil;
 	    comterp()->localtable()->find(oldval, operand1.symbol_val());
-	    if (oldval) 
-	      *(ComValue*)oldval = operand2;
-	    else
-	      comterp()->localtable()->insert(operand1.symbol_val(), operand2);
+	    if (oldval) {
+	      comterp()->localtable()->remove(operand1.symbol_val());
+	      // ((AttributeValue*)oldval)->unref_as_needed();
+	      delete (ComValue*)oldval;
+	    }
+            comterp()->localtable()->insert(operand1.symbol_val(), operand2);
 	}
     } else if (operand1.is_object(Attribute::class_symid())) {
       Attribute* attr = (Attribute*)operand1.obj_val();
