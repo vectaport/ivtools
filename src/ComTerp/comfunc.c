@@ -338,6 +338,8 @@ ComValue ComFunc::pop_stack() {
 }
 
 ComValue ComFunc::pop_symbol() {
+    return _comterp->pop_symbol();
+#if 0  
     /* get rid of keywords -- use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
@@ -355,6 +357,7 @@ ComValue ComFunc::pop_symbol() {
 	return _comterp->pop_symbol();
     } else 
         return ComValue::nullval();
+#endif    
 }
 
 void ComFunc::push_stack(ComValue& val) {
