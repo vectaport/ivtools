@@ -314,7 +314,9 @@ boolean ComFunc::skip_arg_in_expr(int& offtop, int& argcnt) {
 }
 
 ComValue ComFunc::pop_stack() {
+    return _comterp->pop_stack();
 
+#if 0
     /* get rid of keywords -- use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
@@ -332,6 +334,7 @@ ComValue ComFunc::pop_stack() {
 	return _comterp->pop_stack();
     } else 
         return ComValue::nullval();
+#endif
 }
 
 ComValue ComFunc::pop_symbol() {

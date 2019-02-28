@@ -255,8 +255,7 @@ void IncrFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val) 
 	    push_stack(ComValue::nullval());
 	else {
@@ -279,15 +278,19 @@ void IncrFunc::execute() {
 IncrAfterFunc::IncrAfterFunc(ComTerp* comterp) : AssignFunc(comterp) {
 }
 
+FILE* dbgfp = NULL;
 void IncrAfterFunc::execute() {
     ComValue operand1(stack_arg(0, true));
+    static int dbg_symid = symbol_add("dbg");
+    ComValue dbgflag(stack_key(dbg_symid));
+    if (dbgflag.is_true()) {dbgfp=fopen("incrafterdebug.log", "a"); }
+
     if (operand1.type() != ComValue::SymbolType) {
       operand1.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
@@ -300,11 +303,12 @@ void IncrAfterFunc::execute() {
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
 	    push_stack(*(ComValue*)op1val);
+	    if(dbgfp) {fprintf(dbgfp, "STACK TOP[%d] %s(%d)\n", _comterp->_stack_top, _comterp->_stack[_comterp->_stack_top].type_name(),_comterp->_stack[_comterp->_stack_top].int_val()); }
             *(ComValue*)op1val = result;
 	}
     } else 
         push_stack(ComValue::nullval());
-
+    if (dbgfp) {fclose(dbgfp);dbgfp=NULL;}
 }
 
 DecrFunc::DecrFunc(ComTerp* comterp) : AssignFunc(comterp) {
@@ -317,8 +321,7 @@ void DecrFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
@@ -348,8 +351,7 @@ void DecrAfterFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
