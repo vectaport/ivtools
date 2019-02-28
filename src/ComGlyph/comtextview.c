@@ -257,6 +257,6 @@ void ComTE_View::newline()
   insert_string(sout->str(), strlen(sout->str()));
   comterp()->brief(old_brief);
   delete out; 
-  delete buffer;
+  delete[] buffer;
 }
 
