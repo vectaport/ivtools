@@ -47,9 +47,7 @@ AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 void AssignFunc::execute() {
     ComValue operand1(stack_arg(0, true));
     if (operand1.is_command() && stack_arg_post_eval_size(0)==1) {
-        cout << "WARNING:  assignment to command without args not allowed -- line " << funcstate()->linenum() << "\n";
-	cout << "comterp stack:  ";
-        print_stack_arg_post_eval(0);
+        cout << "WARNING:  assignment to command \"" << operand1.command_name() << "\" without args not allowed -- line " << funcstate()->linenum() << "\n";
 	reset_stack();
 	push_stack(ComValue::nullval());
 	return;
