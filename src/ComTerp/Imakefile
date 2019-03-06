@@ -42,6 +42,7 @@ Obj(scanner)
 Obj(statfunc)
 Obj(strmfunc)
 Obj(symbolfunc)
+Obj(timefunc)
 Obj(typefunc)
 Obj(xformfunc)
 

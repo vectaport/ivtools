@@ -253,10 +253,11 @@ Date::julTy Date::parseDate(istream& strm)
 	const char* mon;		// name of month 
 	if (strm.good()) {
 		skipDelim(strm);
-		strm >> m;		// try to parse day or month number 
+		strm >> m;		// try to parse day or month number
 		skipDelim(strm);
 		if (strm.eof()) return 0;
-		if (strm.fail()) {	// parse <monthName><day><year> 
+		if (strm.fail()) {	// 
+ 		        fprintf (stderr, "parse <monthName><day><year> \n");
 			strm.clear();
 			mon = parseMonth(strm);	// parse month name 
 			skipDelim(strm);
@@ -277,7 +278,7 @@ Date::julTy Date::parseDate(istream& strm)
 		skipDelim(strm);
 		strm >> y;
 	}
-	if (!strm.good()) return 0;
+	if (!strm.eof() && !strm.good()) return 0;
 	return Date(d,mon,y).julnum;
 }
 

@@ -44,6 +44,7 @@ Obj(textbuff)
 Obj(textedit)
 Obj(textview)
 Obj(textwindow)
+Obj(timeglyph)
 Obj(toolbutton)
 Obj(valuator)
 

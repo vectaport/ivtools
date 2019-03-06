@@ -172,6 +172,8 @@ ivtools-1.2/src/ComTerp/condfunc.c
 ivtools-1.2/src/ComTerp/condfunc.h
 ivtools-1.2/src/ComTerp/ctrlfunc.c
 ivtools-1.2/src/ComTerp/ctrlfunc.h
+ivtools-1.2/src/ComTerp/timefunc.c
+ivtools-1.2/src/ComTerp/timefunc.h
 ivtools-1.2/src/ComTerp/debugfunc.c
 ivtools-1.2/src/ComTerp/debugfunc.h
 ivtools-1.2/src/ComTerp/dotfunc.c
@@ -453,6 +455,7 @@ ivtools-1.2/src/IV-common/Makefile
 ivtools-1.2/src/IV-common/listimpl.c
 ivtools-1.2/src/IV-common/math.c
 ivtools-1.2/src/IV-common/memory.c
+ivtools-1.2/src/IV-common/observe.c
 ivtools-1.2/src/IV-common/regexp.c
 ivtools-1.2/src/IV-common/resource.c
 ivtools-1.2/src/IV-common/string.c
@@ -526,6 +529,8 @@ ivtools-1.2/src/IVGlyph/textview.c
 ivtools-1.2/src/IVGlyph/textview.h
 ivtools-1.2/src/IVGlyph/textwindow.c
 ivtools-1.2/src/IVGlyph/textwindow.h
+ivtools-1.2/src/IVGlyph/timeglyph.c
+ivtools-1.2/src/IVGlyph/timeglyph.h
 ivtools-1.2/src/IVGlyph/toolbutton.c
 ivtools-1.2/src/IVGlyph/toolbutton.h
 ivtools-1.2/src/IVGlyph/valuator.c
@@ -814,8 +819,6 @@ ivtools-1.2/src/Time/Time.c
 ivtools-1.2/src/Time/Time_.h
 ivtools-1.2/src/Time/obstime.c
 ivtools-1.2/src/Time/obstime.h
-ivtools-1.2/src/Time/timeglyph.c
-ivtools-1.2/src/Time/timeglyph.h
 ivtools-1.2/src/TopoFace/Imakefile
 ivtools-1.2/src/TopoFace/Makefile
 ivtools-1.2/src/TopoFace/fgeomobjs.c
