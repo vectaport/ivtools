@@ -219,7 +219,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dbl=%s(x) -- convert radians to degrees"; }
+      return "dbl=%s(x) -- convert degrees to radians"; }
 
 };
 

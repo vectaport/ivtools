@@ -5094,6 +5094,12 @@ if test ! -f src/Unidraw-common/geomobjs.c ; then
 	ln -s ../Unidraw/geomobjs.c;
 	cd ../..;
 fi
+if test ! -f src/Unidraw-common/global.c ; then
+	echo "establishing symbolic link for src/Unidraw-common/globals.c"
+	cd src/Unidraw-common;
+	ln -s ../Unidraw/globals.c;
+	cd ../..;
+fi
 if test ! -f src/Unidraw-common/iterator.c ; then
 	echo "establishing symbolic link for src/Unidraw-common/iterator.c"
 	cd src/Unidraw-common;

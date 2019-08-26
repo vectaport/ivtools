@@ -864,6 +864,7 @@ ivtools-1.2/src/Unidraw-common/Makefile
 ivtools-1.2/src/Unidraw-common/component.c
 ivtools-1.2/src/Unidraw-common/compview.c
 ivtools-1.2/src/Unidraw-common/geomobjs.c
+ivtools-1.2/src/Unidraw-common/globals.c
 ivtools-1.2/src/Unidraw-common/iterator.c
 ivtools-1.2/src/Unidraw-common/uarray.c
 ivtools-1.2/src/Unidraw-common/uhash.c

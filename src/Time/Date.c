@@ -257,7 +257,6 @@ Date::julTy Date::parseDate(istream& strm)
 		skipDelim(strm);
 		if (strm.eof()) return 0;
 		if (strm.fail()) {	// 
- 		        fprintf (stderr, "parse <monthName><day><year> \n");
 			strm.clear();
 			mon = parseMonth(strm);	// parse month name 
 			skipDelim(strm);

@@ -78,9 +78,9 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   comterp()->npause()++;
 
   comterp()->push_servstate();
-  FILEBUF(fbufin, comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
-		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
-  istream in(&fbufin);
+  FILE* fpin = comterp() && comterp()->handler() && comterp()->handler()->rdfptr()
+    ? comterp()->handler()->rdfptr() : stdin;
+
   FILEBUF(fbufout, comterp()->handler() && comterp()->handler()->wrfptr()
 		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbufout);
@@ -99,18 +99,13 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   out << sbuf2_s.str();
   out.flush();
 
-  vector<char> cvect;
+  char cvect[BUFSIZ];
   ComValue retval;
   do {
     char ch;
-    cvect.erase(cvect.begin(), cvect.end());
-
 
     /* need to handle embedded newlines differently */
-    do {
-      ch = in.get();
-      cvect.push_back(ch);
-    } while (in.good() && ch != '\n');
+    fgets(cvect, BUFSIZ, fpin);
     if (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n')) {
       if (comterpserv()) {
 	retval.assignval(comterpserv()->run(&cvect[0]));
@@ -127,6 +122,7 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   sbuf_e << (stepfunc() ? "end of step(" : "end of pause(") << comterp()->npause()-- << ")\n";
   sbuf_e.put('\0');
   out << sbuf_e.str();
+  out.flush();
   push_stack(retval);
 }
 

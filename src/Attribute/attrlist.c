@@ -223,7 +223,14 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
     for (attrlist->First(i); !attrlist->Done(i); attrlist->Next(i)) {
 	Attribute* attr = attrlist->GetAttr(i);
         if(init) out << " "; else init=1;
-	out << ":" << attr->Name() << " ";
+	const char* nm = attr->Name();
+	int nmsz = strlen(nm);
+	out << ":";
+        for(int i=0; i<nmsz; i++) {
+	  if (nm[i]==' ') out << "\\";
+	   out << nm[i];
+	}
+	out << " ";
 
 	AttributeValue* attrval = attr->Value();
 #if 1

@@ -107,6 +107,9 @@ void DotFunc::execute() {
 
     if (nargs()>1) {
       int after_symid = after_part.symbol_val();
+      if (after_part.type()==ComValue::StringType) {
+        symbol_reference(after_symid);	
+      }
       Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
       if (!attr) {
 	attr = new Attribute(after_symid, new AttributeValue());
@@ -146,8 +149,3 @@ void DotValFunc::execute() {
     Attribute *attr = (Attribute*)dotted_pair.obj_val();
     push_stack(*attr->Value());
 }
-
-
-
-
-

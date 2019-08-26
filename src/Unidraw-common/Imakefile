@@ -16,6 +16,7 @@ MakeLibrary($(LIB),$(VERSION))
 Obj(compview)
 Obj(component)
 Obj(geomobjs)
+Obj(globals)
 Obj(iterator)
 Obj(ulist)
 

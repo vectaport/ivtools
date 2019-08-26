@@ -1,4 +1,4 @@
-#if  !defined(__APPLE_CC__) || __APPLE_CC__==1
+#if  !defined(__APPLE_CC__) || __APPLE_CC__==1 || 0
 #include_next <fstream>
 #else
 // -*- C++ -*-
@@ -179,7 +179,7 @@ typedef basic_fstream<wchar_t> wfstream;
 #include <__locale>
 #include <cstdio>
 
-#include <__undef_min_max>
+// #include <__undef_min_max>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
 #pragma GCC system_header
@@ -216,11 +216,11 @@ public:
     void swap(basic_filebuf& __rhs);
 
     // 27.9.1.4 Members:
-    bool is_open() const;
-    basic_filebuf* open(const char* __s, ios_base::openmode __mode);
-    basic_filebuf* open(const string& __s, ios_base::openmode __mode);
-    basic_filebuf* open(FILE* fd, ios_base::openmode __mode);
-    basic_filebuf* close();
+    inline _LIBCPP_INLINE_VISIBILITY bool is_open() const;
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf* open(const char* __s, ios_base::openmode __mode);
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf* open(const string& __s, ios_base::openmode __mode);
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf* open(FILE* fd, ios_base::openmode __mode);
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf* close();
 
 protected:
     // 27.9.1.5 Overridden virtual functions:
@@ -1103,24 +1103,24 @@ public:
     typedef typename traits_type::pos_type pos_type;
     typedef typename traits_type::off_type off_type;
 
-    basic_ifstream();
-    explicit basic_ifstream(const char* __s, ios_base::openmode __mode = ios_base::in);
-    explicit basic_ifstream(const string& __s, ios_base::openmode __mode = ios_base::in);
+    inline _LIBCPP_INLINE_VISIBILITY basic_ifstream();
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_ifstream(const char* __s, ios_base::openmode __mode = ios_base::in);
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_ifstream(const string& __s, ios_base::openmode __mode = ios_base::in);
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_ifstream(basic_ifstream&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_ifstream(basic_ifstream&& __rhs);
 #endif
 
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
     basic_ifstream& operator=(basic_ifstream&& __rhs);
 #endif
-    void swap(basic_ifstream& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY void swap(basic_ifstream& __rhs);
 
-    basic_filebuf<char_type, traits_type>* rdbuf() const;
-    bool is_open() const;
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf<char_type, traits_type>* rdbuf() const;
+    inline _LIBCPP_INLINE_VISIBILITY bool is_open() const;
     void open(const char* __s, ios_base::openmode __mode = ios_base::in);
     void open(const string& __s, ios_base::openmode __mode = ios_base::in);
     void open(int fd, ios_base::openmode __mode = ios_base::in);
-    void close();
+    inline _LIBCPP_INLINE_VISIBILITY void close();
 
 private:
     basic_filebuf<char_type, traits_type> __sb_;
@@ -1259,9 +1259,9 @@ public:
     typedef typename traits_type::pos_type pos_type;
     typedef typename traits_type::off_type off_type;
 
-    basic_ofstream();
-    explicit basic_ofstream(const char* __s, ios_base::openmode __mode = ios_base::out);
-    explicit basic_ofstream(const string& __s, ios_base::openmode __mode = ios_base::out);
+    inline _LIBCPP_INLINE_VISIBILITY basic_ofstream();
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_ofstream(const char* __s, ios_base::openmode __mode = ios_base::out);
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_ofstream(const string& __s, ios_base::openmode __mode = ios_base::out);
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
     basic_ofstream(basic_ofstream&& __rhs);
 #endif
@@ -1269,14 +1269,14 @@ public:
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
     basic_ofstream& operator=(basic_ofstream&& __rhs);
 #endif
-    void swap(basic_ofstream& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY void swap(basic_ofstream& __rhs);
 
-    basic_filebuf<char_type, traits_type>* rdbuf() const;
-    bool is_open() const;
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf<char_type, traits_type>* rdbuf() const;
+    inline _LIBCPP_INLINE_VISIBILITY bool is_open() const;
     void open(const char* __s, ios_base::openmode __mode = ios_base::out);
     void open(const string& __s, ios_base::openmode __mode = ios_base::out);
     void open(int fd, ios_base::openmode __mode = ios_base::out);
-    void close();
+    inline _LIBCPP_INLINE_VISIBILITY void close();
 
 private:
     basic_filebuf<char_type, traits_type> __sb_;
@@ -1415,10 +1415,10 @@ public:
     typedef typename traits_type::pos_type pos_type;
     typedef typename traits_type::off_type off_type;
 
-    basic_fstream();
-    explicit basic_fstream(const char* __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
-    explicit basic_fstream(const string& __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
-    explicit basic_fstream(int fd, ios_base::openmode __mode = ios_base::in | ios_base::out);
+    inline _LIBCPP_INLINE_VISIBILITY basic_fstream();
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_fstream(const char* __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_fstream(const string& __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
+    inline _LIBCPP_INLINE_VISIBILITY explicit basic_fstream(int fd, ios_base::openmode __mode = ios_base::in | ios_base::out);
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
     basic_fstream(basic_fstream&& __rhs);
 #endif
@@ -1426,14 +1426,14 @@ public:
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
     basic_fstream& operator=(basic_fstream&& __rhs);
 #endif
-    void swap(basic_fstream& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY void swap(basic_fstream& __rhs);
 
-    basic_filebuf<char_type, traits_type>* rdbuf() const;
-    bool is_open() const;
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf<char_type, traits_type>* rdbuf() const;
+    inline _LIBCPP_INLINE_VISIBILITY bool is_open() const;
     void open(const char* __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
     void open(const string& __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
     void open(int fd, ios_base::openmode __mode = ios_base::in | ios_base::out);
-    void close();
+    inline _LIBCPP_INLINE_VISIBILITY void close();
 
 private:
     basic_filebuf<char_type, traits_type> __sb_;
