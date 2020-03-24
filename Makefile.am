@@ -155,7 +155,7 @@ src/ComTerp/mathfunc.cc src/ComTerp/numfunc.cc				\
 src/ComTerp/parsefunc.cc src/ComTerp/parser.cc				\
 src/ComTerp/postfunc.cc src/ComTerp/randfunc.cc src/ComTerp/scanner.cc	\
 src/ComTerp/statfunc.cc src/ComTerp/strmfunc.cc				\
-src/ComTerp/symbolfunc.cc src/ComTerp/typefunc.cc			\
+src/ComTerp/symbolfunc.cc src/ComTerp/timefunc.cc src/ComTerp/typefunc.cc			\
 src/ComTerp/xformfunc.cc
 
 libComTerpPART1_la_CPPFLAGS = \
@@ -180,7 +180,7 @@ libIV_common_la_CPPFLAGS = \
 ### libTime
 
 libTime_la_SOURCES = src/Time/Date.cc src/Time/obstime.cc	\
-src/Time/Time.cc src/Time/timeglyph.cc
+src/Time/Time.cc src/IVGlyph/timeglyph.cc
 
 libTime_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(IVSTD_INCLUDES)

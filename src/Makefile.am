@@ -16,7 +16,7 @@ ComTerp/listfunc.h ComTerp/mathfunc.h ComTerp/numfunc.h			\
 ComTerp/parsefunc.h							\
 ComTerp/parser.h ComTerp/postfunc.h ComTerp/randfunc.h			\
 ComTerp/scanner.h ComTerp/statfunc.h ComTerp/strmfunc.h			\
-ComTerp/symbolfunc.h ComTerp/typefunc.h ComTerp/xformfunc.h		\
+ComTerp/symbolfunc.h ComTerp/timefunc.h ComTerp/typefunc.h ComTerp/xformfunc.h		\
 ComUnidraw/comeditor.h ComUnidraw/comterp-acehandler.h			\
 ComUnidraw/comterp-iohandler.h ComUnidraw/dialogfunc.h			\
 ComUnidraw/grdotfunc.h ComUnidraw/grfunc.h ComUnidraw/grlistfunc.h	\
@@ -91,7 +91,7 @@ OverlayUnidraw/ovviews.h OverlayUnidraw/paramlist.h			\
 OverlayUnidraw/phold.h OverlayUnidraw/ptinpoly.h			\
 OverlayUnidraw/rastercmds.h OverlayUnidraw/scriptview.h			\
 OverlayUnidraw/setattrbyexpr.h OverlayUnidraw/slctbyattr.h		\
-OverlayUnidraw/textfile.h Time/Date.h Time/obstime.h Time/timeglyph.h	\
+OverlayUnidraw/textfile.h Time/Date.h Time/obstime.h IVGlyph/timeglyph.h	\
 Time/Time_.h TopoFace/fgeomobjs.h TopoFace/topoedge.h			\
 TopoFace/topoedgelist.h TopoFace/topoelt.h TopoFace/topoface.h		\
 TopoFace/toponode.h UniIdraw/idarrow.h UniIdraw/idarrowhead.h		\

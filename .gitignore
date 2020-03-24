@@ -1,5 +1,7 @@
 *.la
 *.lo
+DARWIN
+a.out
 *.o
 .deps/
 .dirstamp

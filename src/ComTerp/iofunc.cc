@@ -201,6 +201,14 @@ void PrintFunc::execute() {
 	out_form(out, fbuf, printval.uchar_ref());
 	break;
 	
+      case ComValue::ShortType:
+	out_form(out, fbuf, printval.short_ref());
+	break;	    
+	
+      case ComValue::UShortType:
+	out_form(out, fbuf, printval.ushort_ref());
+	break;
+	
       case ComValue::IntType:
 	out_form(out, fbuf, printval.int_ref());
 	break;

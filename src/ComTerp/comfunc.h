@@ -138,6 +138,8 @@ public:
     ComValue stack_arg_post_eval(int n, boolean symbol=false, 
 				 ComValue& dflt=ComValue::nullval());
     // evaluate the nth argument for this post-evaluating ComFunc.
+    int stack_arg_post_eval_size(int n);
+    // return the stack size of the nth argument for this post-evaluating ComFunc.
     void print_stack_arg_post_eval(int n);
     // print the expression for the nth argument for this post-evaluating ComFunc.
     postfix_token* copy_stack_arg_post_eval(int n, int& ntoks);
