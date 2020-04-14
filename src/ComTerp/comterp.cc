@@ -60,6 +60,7 @@
 #include <ComTerp/statfunc.h>
 #include <ComTerp/strmfunc.h>
 #include <ComTerp/symbolfunc.h>
+#include <ComTerp/timefunc.h>
 #include <ComTerp/typefunc.h>
 #include <ComTerp/xformfunc.h>
 #include <Attribute/attrlist.h>
@@ -1352,6 +1353,8 @@ void ComTerp::add_defaults() {
     add_command("break", new BreakFunc(this));
 
     add_command("func", new FuncObjFunc(this));
+    
+    add_command("date", new DateFunc(this));
 
   }
 }

@@ -28,6 +28,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Attribute/aliterator.h>
@@ -336,7 +337,9 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    out << *((Attribute*)svp->obj_val())->Value();
 	  else if (svp->class_symid() == AttributeList::class_symid())
 	    out << *((AttributeList*)svp->obj_val());
-	  else
+	  else if (svp->class_symid() == DateObj::class_symid()) {
+	    ((DateObj*)svp->obj_val())->date()->printOn(out);
+	  } else
             out << /* "<" << */ symbol_pntr(svp->class_symid()) /* << ">" */ ;
 	  break;
 

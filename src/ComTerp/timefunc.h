@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1994 Vectaport Inc.
+ * Copyright (c) 2019 Scott E. Johnston
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -21,26 +21,39 @@
  * 
  */
 
-#include <InterViews/enter-scope.h>
-#include <Time/Time_.h>
-#include <Time/Date.h>
-#include <IVGlyph/timeglyph.h>
-#include <IV-look/kit.h>
-#include <InterViews/background.h>
-#include <InterViews/color.h>
-#include <InterViews/session.h>
-#include <InterViews/window.h>
+/* 
+ * time funcs
+ */
 
-static OptionDesc options[] = {
-    { nil }
+#if !defined(_timefunc_h)
+#define _timefunc_h
+
+#include <ComTerp/comfunc.h>
+#include <Time/Date.h>
+
+class DateObj {
+ public:
+  DateObj(const char* datestr);
+  DateObj(long datenum); // 1/1/1901 is day zero
+  virtual ~DateObj();
+
+  Date *date() {return _date;}
+
+ protected:  
+  Date *_date;
+
+  CLASS_SYMID("DateObj");
 };
 
-int main(int argc, char** argv) {
-    Session* session = new Session("timestamp", argc, argv, options);
-    WidgetKit& kit = *WidgetKit::instance();
+//: date makes date from days since 1/1/1901 or string.
+class DateFunc : public ComFunc {
+public:
+    DateFunc(ComTerp*);
 
-    ApplicationWindow* win = new ApplicationWindow(new Background(
-	new TimeGlyph(session->style(), nil, true),
-	kit.background()));
-    return session->run_window(win);
-}
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "dateobj|int = %s(num|str|dateobj :day :month :year :daymo) -- create date from days since 1/1/1901 or string"; }
+};
+
+#endif /* !defined(_datefunc_h) */
+

@@ -27,7 +27,7 @@
 #include <Time/Time_.h>
 #include <Time/Date.h>
 #include <Time/obstime.h>
-#include <Time/timeglyph.h>
+#include <IVGlyph/timeglyph.h>
 #include <IVGlyph/bdvalue.h>
 #include <IVGlyph/valuator.h>
 #include <IV-look/kit.h>

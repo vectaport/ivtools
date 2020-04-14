@@ -27,7 +27,7 @@
 #include <Time/Time_.h>
 #include <Time/Date.h>
 #include <Time/obstime.h>
-#include <Time/timeglyph.h>
+#include <IVGlyph/timeglyph.h>
 #include <IV-look/kit.h>
 #include <InterViews/background.h>
 #include <InterViews/color.h>

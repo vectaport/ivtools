@@ -151,6 +151,23 @@ ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
   return comterp()->pop_stack(!symbol);
 }
 
+int ComFunc::stack_arg_post_eval_size(int n) {
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  int argcnt;
+  for (int i=0; i<nkeys(); i++) {
+    argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+  }
+
+  for (int j=nargsfixed(); j>n; j--) {
+    argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+  }
+
+  return argcnt;
+}
+
 void ComFunc::print_stack_arg_post_eval(int n) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
@@ -314,7 +331,9 @@ boolean ComFunc::skip_arg_in_expr(int& offtop, int& argcnt) {
 }
 
 ComValue ComFunc::pop_stack() {
+    return _comterp->pop_stack();
 
+#if 0
     /* get rid of keywords -- use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
@@ -332,9 +351,12 @@ ComValue ComFunc::pop_stack() {
 	return _comterp->pop_stack();
     } else 
         return ComValue::nullval();
+#endif
 }
 
 ComValue ComFunc::pop_symbol() {
+    return _comterp->pop_symbol();
+#if 0  
     /* get rid of keywords -- use stack_key and stack_arg to get those */
     if (!npops() && nkeys()) {
         int count = nargs() + nkeys();
@@ -352,6 +374,7 @@ ComValue ComFunc::pop_symbol() {
 	return _comterp->pop_symbol();
     } else 
         return ComValue::nullval();
+#endif    
 }
 
 void ComFunc::push_stack(ComValue& val) {

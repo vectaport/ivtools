@@ -62,8 +62,9 @@ lib_LTLIBRARIES =
 lib_LTLIBRARIES += libIV.la
 lib_LTLIBRARIES += libUnidraw.la
 lib_LTLIBRARIES += libComUtil.la
-lib_LTLIBRARIES += libAttribute.la
 lib_LTLIBRARIES += libIVGlyph.la
+lib_LTLIBRARIES += libAttribute.la
+lib_LTLIBRARIES += libTime.la
 lib_LTLIBRARIES += libComTerp.la
 lib_LTLIBRARIES += libAttrGlyph.la
 lib_LTLIBRARIES += libComGlyph.la
@@ -74,7 +75,6 @@ lib_LTLIBRARIES += libComUnidraw.la
 lib_LTLIBRARIES += libFrameUnidraw.la
 lib_LTLIBRARIES += libGraphUnidraw.la
 lib_LTLIBRARIES += libUnidraw-common.la
-lib_LTLIBRARIES += libTime.la
 lib_LTLIBRARIES += libIV-common.la
 lib_LTLIBRARIES += libDrawServ.la
 if HAVE_LIBACE
@@ -86,6 +86,7 @@ LIBVER = -version-info $(LIB_IV_VER)
 libAceDispatch_la_LDFLAGS	= $(LIBVER)
 libAttrGlyph_la_LDFLAGS		= $(LIBVER)
 libAttribute_la_LDFLAGS		= $(LIBVER)
+libTime_la_LDFLAGS		= $(LIBVER)
 libComGlyph_la_LDFLAGS		= $(LIBVER)
 libComTerp_la_LDFLAGS		= $(LIBVER)
 libComUnidraw_la_LDFLAGS	= $(LIBVER)
@@ -97,7 +98,6 @@ libIVGlyph_la_LDFLAGS		= $(LIBVER)
 libIV_common_la_LDFLAGS		= $(LIBVER)
 libIV_la_LDFLAGS		= $(LIBVER)
 libOverlayUnidraw_la_LDFLAGS	= $(LIBVER)
-libTime_la_LDFLAGS		= $(LIBVER)
 libTopoFace_la_LDFLAGS		= $(LIBVER)
 libUniIdraw_la_LDFLAGS		= $(LIBVER)
 libUnidraw_common_la_LDFLAGS	= $(LIBVER)
@@ -113,7 +113,7 @@ libAceDispatch_la_LIBADD	= libIV.la $(ACE_LD)
 libAttrGlyph_la_LIBADD		= libAttribute.la libIVGlyph.la libUnidraw.la libIV.la
 libAttribute_la_LIBADD		= libUnidraw.la libIV.la libComUtil.la
 libComGlyph_la_LIBADD		= libAttribute.la libComTerp.la libIVGlyph.la libIV.la libComUtil.la
-libComTerp_la_LIBADD		= libAttribute.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(MATH_LD)
+libComTerp_la_LIBADD		= libAttribute.la libTime.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(MATH_LD)
 libComUnidraw_la_LIBADD		= libAttribute.la libComGlyph.la libComTerp.la libIVGlyph.la libOverlayUnidraw.la libUniIdraw.la libUnidraw.la libIV.la $(ACE_LD) libComUtil.la $(X11_LD)
 libComUtil_la_LIBADD		= 
 libDrawServ_la_LIBADD		= libAttribute.la libComTerp.la libComUnidraw.la libFrameUnidraw.la libGraphUnidraw.la libIVGlyph.la libOverlayUnidraw.la libTopoFace.la libUniIdraw.la libUnidraw.la libIV.la libComUtil.la $(ACE_LD)
@@ -155,7 +155,7 @@ src/ComTerp/mathfunc.cc src/ComTerp/numfunc.cc				\
 src/ComTerp/parsefunc.cc src/ComTerp/parser.cc				\
 src/ComTerp/postfunc.cc src/ComTerp/randfunc.cc src/ComTerp/scanner.cc	\
 src/ComTerp/statfunc.cc src/ComTerp/strmfunc.cc				\
-src/ComTerp/symbolfunc.cc src/ComTerp/typefunc.cc			\
+src/ComTerp/symbolfunc.cc src/ComTerp/timefunc.cc src/ComTerp/typefunc.cc			\
 src/ComTerp/xformfunc.cc
 
 libComTerpPART1_la_CPPFLAGS = \
@@ -180,7 +180,7 @@ libIV_common_la_CPPFLAGS = \
 ### libTime
 
 libTime_la_SOURCES = src/Time/Date.cc src/Time/obstime.cc	\
-src/Time/Time.cc src/Time/timeglyph.cc
+src/Time/Time.cc src/IVGlyph/timeglyph.cc
 
 libTime_la_CPPFLAGS = \
  -Dcplusplus_2_1 $(IVSTD_INCLUDES)
