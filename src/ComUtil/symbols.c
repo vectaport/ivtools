@@ -62,6 +62,7 @@ struct _symid   {
 
 static symid *symid_beg=NULL;	/* start addr of symbol table id's */
 static unsigned symid_nrecs;	/* number of records in the table */
+static unsigned symbol_count;	/* current count of symbols in table */
 
 static int symid_alloc_num;
 #define LOTS_OF_MEM	32000
@@ -172,6 +173,7 @@ main()
   else 	/* you have to add the symbol */
   {
     int found;
+    symbol_count++;
 
     if (symid_beg == NULL)	/* if NULL, allocate some space for symbol table */
     {
@@ -263,6 +265,7 @@ See Also:  symbol_add(), symbol_find()
      _reverse_table->remove(pntr->symstr);
      free(pntr->symstr);
      pntr->symstr = NULL;
+     symbol_count--;
    } 
    retval = FUNCOK;
 error_return:		/* return an error code */
@@ -563,9 +566,43 @@ Description:
 
 Returns the current size of the symbol table.
 
-See Also:  symbol_instances()
+See Also:  symbol_cnt()
 
 !*/
 {
   return(symid_nrecs);
+}
+
+/*!
+
+symbol_cnt     Number of symbols in table.
+
+Summary:
+
+#include <ComUtil/comutil.h>
+*/
+
+int symbol_cnt ()
+
+/*!
+Return Value:  current number of symbols in the table
+
+Parameters:
+
+Type            Name          IO  Description
+------------    -----------   --  -----------                  */
+#ifdef DOC
+#endif
+
+
+/*!
+Description:
+
+Returns the current number of symbols in the table.
+
+See Also:  symbol_max()
+
+!*/
+{
+  return(symbol_count);
 }

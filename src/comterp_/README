@@ -200,6 +200,12 @@ num=size(list|attrlist|str) -- return size of a list (or string)
 
 val=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 
+num=symmax() -- return current size of symbol table
+
+num=symcnt() -- return number of symbols in table
+
+
+
 STREAM COMMANDS:
 
 val=next(strm) -- return next value from stream

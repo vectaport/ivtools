@@ -16,6 +16,7 @@ int symbol_len (int id);
 const char *symbol_pntr(int id);
 int symbol_instances(int id);
 int symbol_max();
+int symbol_cnt();
 int symbol_refcount(int id);
 /* DMM.C */ 
 int dmm_mblock_alloc(unsigned long nbytes);
