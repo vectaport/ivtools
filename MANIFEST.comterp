@@ -229,7 +229,6 @@ src/Unidraw-common/uhash.c
 src/Unidraw-common/ulist.c
 src/Unidraw-common/umap.c
 src/comterp_/Imakefile
-src/comterp_/README
 src/comterp_/main.c
 src/comtest/Imakefile
 src/comtest/main.c

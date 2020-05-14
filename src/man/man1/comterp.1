@@ -275,6 +275,8 @@ Evaluate single expression then exit.
  sym=symvar(sym) -- return symbol as-is
 
  str=symstr(sym) -- return string version of symbol
+ 
+ sym=bquote(sym) -- LISP-like backquote operator
 
  n=strref(str|symid) -- return string reference count
 
@@ -295,8 +297,10 @@ Evaluate single expression then exit.
  arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
 				 
  sym=attrname(attribute) -- return name field of dotted pair
+
  val=attrval(attribute) -- return value field of dotted pair
- dotlst=dot(name) -- construct empty dotted pair list	
+
+ dotlst=dot(name) -- construct empty dotted pair list
 
  quit() -- quit the interpreter
 

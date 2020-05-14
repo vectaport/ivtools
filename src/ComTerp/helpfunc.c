@@ -175,7 +175,7 @@ void HelpFunc::execute() {
 
   if (noargs) {
 
-    *out << "help available on these commands:\n";
+    *out << "help available on these operators and commands:\n";
     comterp()->list_commands(*out, true);
     *out << "\n(provide any of the above, operators in quotes, as arguments to help,\ni.e. help(help) or help(\"++\"))\n";
 

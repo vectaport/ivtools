@@ -968,11 +968,9 @@ ivtools-1.2/src/Unidraw/viewcmds.c
 ivtools-1.2/src/Unidraw/viewer.c
 ivtools-1.2/src/comdraw/Imakefile
 ivtools-1.2/src/comdraw/Makefile
-ivtools-1.2/src/comdraw/README
 ivtools-1.2/src/comdraw/main.c
 ivtools-1.2/src/comterp_/Imakefile
 ivtools-1.2/src/comterp_/Makefile
-ivtools-1.2/src/comterp_/README
 ivtools-1.2/src/comterp_/main.c
 ivtools-1.2/src/comtest/Imakefile
 ivtools-1.2/src/comtest/Makefile
@@ -996,11 +994,9 @@ ivtools-1.2/src/drawserv_/Makefile
 ivtools-1.2/src/drawserv_/main.c
 ivtools-1.2/src/drawtool/Imakefile
 ivtools-1.2/src/drawtool/Makefile
-ivtools-1.2/src/drawtool/README
 ivtools-1.2/src/drawtool/main.c
 ivtools-1.2/src/flipbook/Imakefile
 ivtools-1.2/src/flipbook/Makefile
-ivtools-1.2/src/flipbook/README
 ivtools-1.2/src/flipbook/main.c
 ivtools-1.2/src/glyphs/Imakefile
 ivtools-1.2/src/glyphs/Makefile
@@ -1151,7 +1147,6 @@ ivtools-1.2/src/glyphterp/Makefile
 ivtools-1.2/src/glyphterp/main.c
 ivtools-1.2/src/graphdraw/Imakefile
 ivtools-1.2/src/graphdraw/Makefile
-ivtools-1.2/src/graphdraw/README
 ivtools-1.2/src/graphdraw/main.c
 ivtools-1.2/src/html/Imakefile
 ivtools-1.2/src/html/Makefile
@@ -1197,7 +1192,6 @@ ivtools-1.2/src/idemo/Makefile
 ivtools-1.2/src/idemo/main.c
 ivtools-1.2/src/idraw/Imakefile
 ivtools-1.2/src/idraw/Makefile
-ivtools-1.2/src/idraw/README
 ivtools-1.2/src/idraw/main.c
 ivtools-1.2/src/imake/config.h
 ivtools-1.2/src/imake/imake.c
