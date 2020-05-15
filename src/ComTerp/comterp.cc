@@ -1309,6 +1309,8 @@ void ComTerp::add_defaults() {
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
     add_command("substr", new SubStrFunc(this));
+    add_command("symmax", new SymMaxFunc(this));
+    add_command("symcnt", new SymCntFunc(this));
 
     add_command("type", new TypeSymbolFunc(this));
     add_command("class", new ClassSymbolFunc(this));
@@ -1488,6 +1490,7 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
       int opid = opr_tbl_opstr(key);
       const char* operator_name = symbol_pntr(opr_tbl_operid(opid));
       if (operator_name) {
+        buffer[ncomm++] = key;
 	key = opr_tbl_operid(opid);
 	opercnt++;
       }
@@ -1503,6 +1506,7 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
     }
     i.next();
   }
+  
   if (sort) {
     int* sortedbuffer = new int[ncomm];
     int i = 0;  /* operators first */
