@@ -1,7 +1,7 @@
 Source: ivtools
 Priority: optional
 Section: libs
-Build-Depends: debhelper-compat (= 12),
+Build-Depends: debhelper-compat (= 13),
 	autoconf-archive,
 	zlib1g-dev,
 	x11-utils, x11proto-core-dev,
