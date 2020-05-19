@@ -29,41 +29,35 @@ graphical object assigned to an interpreter variable.
  compview=rectangle(x0,y0,x1,y1) -- same as rect
  compview=line(x0,y0,x1,y1) -- create a line
  compview=arrowline(x0,y0,x1,y1) -- create line with arrows
- compview=ellipse(x0,y0,r1,r2) -- create a rectangle
+ compview=ellipse(x0,y0,r1,r2) -- create an ellipse
  compview=text(x0,y0 textstr) -- create a text string
- compview=multiline(x0,y0[,x1,y1,...]) -- 
-    create a multiline
- compview=arrowmultiline(x0,y0[,x1,y1,...]) -- 
-    create a multiline with arrows
- compview=openspline(x0,y0[,x1,y1,...]) --
-    create an open spline
- compview=arrowspline(x0,y0[,x1,y1,...]) -- 
-    create an open spline with arrows
- compview=polygon(x0,y0[,x1,y1,...]) -- 
-    create a polygon
- compview=closedspline(x0,y0[,x1,y1,...]) -- 
-    create a closed spline
- compview=raster(x0,y0,x1,y1) -- 
-    create an empty raster
+ compview=multiline(x0,y0[,x1,y1,...]) -- create a multiline
+ compview=arrowmultiline(x0,y0[,x1,y1,...]) -- create multiline with arrows
+ compview=openspline(x0,y0[,x1,y1,...]) -- create an open spline
+ compview=arrowspline(x0,y0[,x1,y1,...]) -- create open spline with arrows
+ compview=polygon(x0,y0[,x1,y1,...]) -- create a polygon
+ compview=closedspline(x0,y0[,x1,y1,...]) -- create a closed spline
+ compview=raster(x0,y0,x1,y1) -- create an empty raster
 
 .SH GRAPHIC STATS COMMANDS
 
- xylist=center(compview :xy :yx :x :y :scrn) -- center of compview (dflt :xy)
- rectlist=mbr(compview :lbrt :lrbt :scrn) -- minimum bounding rectangle of compview (dflt :lbrt)
- ptlist=points(compview) -- return point list from compview graphic
+ xylist=center(compview :xy :yx :x :y :scrn)
+    -- center of compview (dflt :xy)
+ rectlist=mbr(compview :lbrt :lrbt :scrn)
+    -- minimum bounding rectangle of compview (dflt :lbrt)
+ ptlist=points(compview)
+    -- return point list from compview graphic
 
 .SH GRAPHIC STATE COMMANDS
 
  font(fontnum) -- set current font from menu
  brush(brushnum) -- set current brush from menu
- pattern(patternnum) -- 
-   set current pattern from menu
- colors(fgcolornum bgcolornum) -- 
-   set current colors from menu
- colorsrgb(fgcolornum bgcolornum) -- set current colors by RGB name.
-	 The colorname format is "#RGB" for 4 bits, "#RRGGBB" for 8 bits,
-	 #RRRGGGBBB for 12 bits, #RRRRGGGGBBBB for 16 bits
-
+ pattern(patternnum) --  set current pattern from menu
+ colors(fgcolornum bgcolornum) -- set current colors from menu
+ colorsrgb(fgcolornum bgcolornum)
+   -- set current colors by RGB name.
+      The colorname format is "#RGB" for 4 bits, "#RRGGBB" for 8 bits,
+      #RRRGGGBBB for 12 bits, #RRRRGGGGBBBB for 16 bits
  nfonts() -- return size of font menu
  nbrushes() -- return size of brush menu
  npatterns() -- return size of pattern menu
@@ -71,8 +65,8 @@ graphical object assigned to an interpreter variable.
 
 .SH DIRECT MANIPULATION COMMANDS
 
- select([compview ...] :all :clear) -- 
-    make these graphics the current selection
+ select([compview ...] :all :clear)
+   -- make these graphics the current selection
  delete(compview [compview ...]) -- delete graphic(s)
  move(dx dy) -- move current selection
  scale(xflt yflt) -- scale current selection
@@ -82,15 +76,21 @@ graphical object assigned to an interpreter variable.
 
 .SH GROUP/UNGROUP COMMANDS
 
- newgroup=growgroup(groupview compview) -- add graphic to existing group graphic
- newgroup=trimgroup(groupview compview) -- remove graphic from existing group graphic
+ newgroup=growgroup(groupview compview)
+   -- add graphic to existing group graphic
+ newgroup=trimgroup(groupview compview)
+   -- remove graphic from existing group graphic
 
 .SH COMPONENT AND ATTRIBUTE COMMANDS
 
- compview=setattr(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component
- attrlist(compview) -- return attribute list of component
- compview=frame([index]) -- return composite component for a frame, defaults to current
- val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list.
+ compview=setattr(compview [:keyword value [:keyword value [...]]])
+   -- set attributes of a graphic component
+ attrlist(compview)
+   -- return attribute list of component
+ compview=frame([index])
+   -- return composite component for a frame, defaults to current
+ val=at(list|attrlist|compview n :set val :ins val)
+   -- return (or set or insert after) the nth item in a list.
  num=size(list|attrlist|compview) -- return size of a list.
  compview=parent(compview) -- get parent of graphic
  comp=depth(comps) -- depth-first walk of comp tree
@@ -101,11 +101,16 @@ graphical object assigned to an interpreter variable.
  update() -- update viewer
 
  error=save([pathstr]) -- command to save document (to pathname)	
- compview=import(pathstr :popen :next) -- import graphic file from pathname or URL, or from a command if :popen
- (:next imports next in numeric series)
- export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- remote in drawtool (or other) format
- compview=paste(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer
- val=pastemode([val] :get) -- toggle or set paste mode, default is 0, always paste new graphics
+ compview=import(pathstr :popen :next)
+   -- import graphic file from pathname or URL, or from a command if :popen
+      (:next imports next in numeric series)
+ export(compview[,compview[,...compview]] [path]
+ :host host_str :port port_int :socket :string|:str :eps :idraw)
+   -- remote in drawtool (or other) format
+ compview=paste(compview [xscl yscl xoff yoff | a00,a01,a10,a11,a20,a21])
+   -- paste graphic into the viewer
+ val=pastemode([val] :get)
+   -- toggle or set paste mode, default is 0, always paste new graphics
 
  ncols() -- onscreen horizontal extent in pixels
  nrows() -- onscreen vertical extent in pixels
@@ -116,9 +121,10 @@ graphical object assigned to an interpreter variable.
  gx,gy=dtog(compview dx,dy) -- convert from drawing to graphic coordinates
 
  handles(flag) --     
-    enable/disable current selection tic marks 
-    and/or highlighting
- highlight(compview compviewgs) -- set the highlight graphic state for a graphic
+   -- enable/disable current selection tic marks 
+      and/or highlighting
+ highlight(compview compviewgs)
+   -- set the highlight graphic state for a graphic
 
  zoom(zoomflt) -- zoom by factor
  zoomin() -- zoom-in by 2
@@ -156,15 +162,16 @@ graphical object assigned to an interpreter variable.
 
 .SH PLOTTING COMMANDS
 
--- requires plotmtv and pstoedit --
-barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str 
-	:ytitle ytitle_str :valtitle valtitle_str :newview) -- display a barplot
+ ** requires plotmtv and pstoedit **
+ barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str 
+	:ytitle ytitle_str :valtitle valtitle_str :newview)
+  -- display a barplot
 
 .SH OTHER COMMANDS
 
  acknowledgebox(msgstr) -- popup an acknowledge dialog box
- confirmbox(msgstr) -- popup a confirmation dialog box, and return 1, 0, or \-1 if cancelled
-
+ confirmbox(msgstr)
+   -- popup a confirmation dialog box, and return 1, 0, or \-1 if cancelled
  run(filename) -- run commands from file
  quit() -- quit this interpreter
  exit() -- exit entire application

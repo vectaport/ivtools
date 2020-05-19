@@ -663,7 +663,7 @@ int Dispatcher::waitFor(
 #endif
 #else
 #ifdef SA_NOCLDSTOP                   /* POSIX */
-#if defined(__CYGWIN__) || defined(hpux) || defined(linux) || defined(sun) && defined(__svr4__)
+#if defined(__CYGWIN__) || defined(hpux) || defined(linux) || defined(sun) && defined(__svr4__) || 1 // stop supporting special POSIX CASE
 	sa.sa_handler = (void (*)(int))(&Dispatcher::sigCLD);
 #else
 	sa.sa_handler = fxSIGACTIONHANDLER(&Dispatcher::sigCLD);

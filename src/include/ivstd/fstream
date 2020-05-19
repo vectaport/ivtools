@@ -1,4 +1,4 @@
-#if  !defined(__APPLE_CC__) || __APPLE_CC__==1 || 0
+#if  !defined(__APPLE_CC__) || __APPLE_CC__==1
 #include_next <fstream>
 #else
 // -*- C++ -*-
