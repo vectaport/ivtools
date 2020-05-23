@@ -71,6 +71,7 @@ static int symid_alloc_num;
 /* These are used when you have lots of memory */
 #define SYMID_ALLOC_NUM_HIGH      256
 
+
 /* reverse index to speed up symbol table insertion */
 #define REVERSE_TABLE
 #if defined(REVERSE_TABLE)
@@ -79,8 +80,6 @@ declareStrTable(ReverseSymbolTable,int)
 implementStrTable(ReverseSymbolTable,int)
 ReverseSymbolTable* _reverse_table = nil;
 #endif
-
-char	*strnew(const char *);
 
 /*=============*/
 
@@ -208,7 +207,7 @@ main()
     }
     pntr = symid_beg + id;	/* index into entry of interest */
     pntr->nchars = n;		/* number of non-NULL characters */
-    pntr->symstr = strnew(string);	/* make copy of string */
+    pntr->symstr = strdup(string);	/* make copy of string */
     pntr->instances = 1;		/* set first instance of this symbol */
 
     /* add to reverse index */
