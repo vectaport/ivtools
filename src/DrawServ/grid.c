@@ -40,6 +40,7 @@
 
 GraphicId::GraphicId (unsigned int sessionid) 
 {
+#ifdef HAVE_ACE
   _comp = nil;
   if (sessionid != 0) {
     _id = DrawServ::unique_grid();
@@ -49,21 +50,26 @@ GraphicId::GraphicId (unsigned int sessionid)
   } else {
     _id = _sid = 0;
   }
+#endif
 }
 
 GraphicId::~GraphicId () 
 {
+#ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
   table->remove(_id&_sid);
+#endif
 }
 
 void GraphicId::id(unsigned int id) {
+#ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
   if (_id!=0 && _sid!=0) 
     table->remove(_id&_sid);
   _id = id & DrawServ::GraphicIdMask;
   _sid = id & DrawServ::SessionIdMask;
   table->insert(id, this);
+#endif
 }
 
 /*****************************************************************************/
@@ -92,6 +98,7 @@ GraphicIds::~GraphicIds ()
 }
 
 void GraphicId::grcomp(GraphicComp* comp) {
+#ifdef HAVE_ACE
   if (comp==_comp) return;
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
   if (_comp) {
@@ -100,4 +107,5 @@ void GraphicId::grcomp(GraphicComp* comp) {
   } 
   _comp = comp;
   table->insert((void*)comp, (void*)this);
+#endif
 }

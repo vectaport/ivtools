@@ -59,9 +59,11 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   _remote_linkid = -1;
   _state = state;
 
+#ifdef HAVE_ACE
   _addr = nil;
   _socket = nil;
   _conn = nil;
+#endif
 
   _comhandler = nil;
   _ackhandler = nil;
@@ -137,6 +139,7 @@ int DrawLink::open() {
 }
 
 int DrawLink::close() {
+#ifdef HAVE_ACE
   fprintf(stderr, "Closing link to %s (%s) port # %d (lid=%d, rid=%d)\n", 
 	  hostname(), althostname(), portnum(), local_linkid(), remote_linkid());
   if (comhandler()) comhandler()->drawlink(nil);
@@ -151,6 +154,7 @@ int DrawLink::close() {
     if (_socket->close () == -1)
       ACE_ERROR ((LM_ERROR, "%p\n", "close"));
   }
+#endif
   return 1;
 }
 
@@ -169,8 +173,12 @@ void DrawLink::althostname(const char* althost) {
 }
 
 int DrawLink::handle() {
-  if (_socket) return _socket->get_handle();
-  else return -1;
+#ifdef HAVE_ACE
+  if (_socket) 
+    return _socket->get_handle();
+  else 
+#endif
+    return -1;
 }
 
 unsigned DrawLink::sid_lookup(unsigned int sid) {
@@ -181,8 +189,10 @@ unsigned DrawLink::sid_lookup(unsigned int sid) {
 }
 
 void DrawLink::sid_change(unsigned int& id) {
+#ifdef HAVE_ACE
   if (_incomingsidtable_size==0) return;
   id = sid_lookup(id & DrawServ::SessionIdMask) | (id & DrawServ::GraphicIdMask);
+#endif
   return;
 }
 

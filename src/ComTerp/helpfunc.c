@@ -161,17 +161,12 @@ void HelpFunc::execute() {
   
   reset_stack();
 
+  std::strstreambuf sbuf;
   FILEBUF(fbuf, comterp()->handler() && HELPOUT && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
-  ostream *out = NULL;
-  if ((comterp()->handler() && HELPOUT)) {
-    ostream outs(&fbuf);
-    out = &outs;
-  } else {
-    extern char sbuf[SBUFSIZE];
-    std::ostrstream outs(sbuf, SBUFSIZE, ios_base::out);
-    out = &outs;
-  }
+  ostream outs((comterp()->handler() && HELPOUT) ? (streambuf*)&fbuf : (streambuf*)&sbuf);
+  ostream *out = &outs;
+
 
   if (noargs) {
 
@@ -245,9 +240,9 @@ void HelpFunc::execute() {
 
 
   if (!comterp()->handler() || !HELPOUT) {
-    
     *out << '\0';
-    ComValue retval(sbuf);
+    // int help_str_symid = symbol_add(sbuf.str());
+    ComValue retval(sbuf.str());
     push_stack(retval);
   } else
     out->flush();

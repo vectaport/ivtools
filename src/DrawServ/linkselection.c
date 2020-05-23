@@ -25,6 +25,8 @@
  * Implementation of LinkSelection class.
  */
 
+#ifdef HAVE_ACE
+
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/grid.h>
@@ -184,3 +186,5 @@ void LinkSelection::AddComp(OverlayComp* comp) {
   Append(ov);
   Update(_editor->GetViewer());
 }
+
+#endif
