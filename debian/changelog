@@ -1,3 +1,12 @@
+ivtools (1.2.11a3-3) unstable; urgency=medium
+
+  * address build reproducibility: modes of files in glyphs tarball
+  * track upstream changes
+  * clip trailing whitespace in debian/copyright
+  * address lintian tag quoted-placeholder-in-mailcap-entry
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 24 May 2020 15:49:21 +0100
+
 ivtools (1.2.11a3-2) unstable; urgency=medium
 
   * track minor upstream changes
