@@ -78,9 +78,9 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   comterp()->npause()++;
 
   comterp()->push_servstate();
-  FILE* fpin = comterp() && comterp()->handler() && comterp()->handler()->rdfptr()
-    ? comterp()->handler()->rdfptr() : stdin;
-
+  FILEBUF(fbufin, comterp() && comterp()->handler() && comterp()->handler()->rdfptr() 
+		 ? comterp()->handler()->rdfptr() : stdin, ios_base::in);
+  istream in(&fbufin);
   FILEBUF(fbufout, comterp()->handler() && comterp()->handler()->wrfptr()
 		  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
   ostream out(&fbufout);
@@ -99,13 +99,18 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   out << sbuf2_s.str();
   out.flush();
 
-  char cvect[BUFSIZ];
+  vector<char> cvect;
   ComValue retval;
   do {
     char ch;
+    cvect.erase(cvect.begin(), cvect.end());
+
 
     /* need to handle embedded newlines differently */
-    fgets(cvect, BUFSIZ, fpin);
+    do {
+      ch = in.get();
+      cvect.push_back(ch);
+    } while (in.good() && ch != '\n');
     if (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n')) {
       if (comterpserv()) {
 	retval.assignval(comterpserv()->run(&cvect[0]));
