@@ -1,4 +1,4 @@
-application/comterp; /usr/bin/comterp run '%s'
-application/ov-idraw; /usr/bin/drawtool '%s' ; test=test "$DISPLAY" != ""
-application/frame-idraw; /usr/bin/flipbook '%s' ; test=test "$DISPLAY" != ""
-application/graph-idraw; /usr/bin/graphdraw '%s' ; test=test "$DISPLAY" != ""
+application/comterp; /usr/bin/comterp run %s
+application/ov-idraw; /usr/bin/drawtool %s ; test=test "$DISPLAY" != ""
+application/frame-idraw; /usr/bin/flipbook %s ; test=test "$DISPLAY" != ""
+application/graph-idraw; /usr/bin/graphdraw %s ; test=test "$DISPLAY" != ""
