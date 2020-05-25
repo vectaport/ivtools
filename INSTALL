@@ -11,15 +11,15 @@ Instructions for building ivtools-1.2.11 from source, the short version:
 
 ** notes on the short version relative to distributing ivtools via github **
 
-1. If you want to try an autotools build, work with the autotools branch set up by Barak Perlmutter.
+1. If you want to try an autotools build, work with the autotools branch set up by Barak Pearlmutter.
    You may have to download some archived m4 macros (AX_*) and run aclocal, before doing:
        autoreconf --install
        ./configure
        make
-       
+
 2. The configure script tests for the presence of imake, and builds it from a source copy
    within ivtools if necessary.
-   
+
 3. The usual two struggles with the configure script are defining CPU and XCONFIGDIR. If
    they fail they can be manually edited into config/config.mk after running configure.
    CPU has to match one of the config/site.def.$CPU files.  XCONFIGDIR is the complete
@@ -96,13 +96,13 @@ or use the Debian binary if you happen to be working on that platform
 	cd ace
 	cp config-linux.h config.h  # substitute appropriate OS name
 	cd ../include/makeinclude
-	cp platform_linux.GNU platform_macros.GNU  # substitute OS	
+	cp platform_linux.GNU platform_macros.GNU  # substitute OS
 	emacs platform_macros.GNU   # add "threads = 0" near top of file, step may no longer be needed
 	cd ../../ace
 	make
 
 Then use "--with-ace=$ACE_ROOT" when running the configure script as
-described below.  
+described below.
 
 0.g if you want to build the ivxt example program, which demonstrates
 the embedding of a ivtools drawing editor inside Motif widgets, you'll
@@ -153,7 +153,7 @@ arguments are recognized as --enable as well):
 
   --enable-use-rpath[=ARG]        use -rpath when linking, to
 				  embed shared-library pathnames
-				  in executable. 
+				  in executable.
 
 ARG can be 0 or 1, default is 1 when not specified.  The configure
 script is usually able to automatically determine --x-includes and
@@ -193,19 +193,19 @@ directory after running the configure script).
 2.b. Compile it with a "make" command.  The first time it is run it
 does all these individual steps (the equivalent of "make World"):
 
-	- regenerates the top-level Makefile to snap it to 
+	- regenerates the top-level Makefile to snap it to
 	  the current directory ("make Makefile").
 
-	- runs through the source tree and generates all 
+	- runs through the source tree and generates all
 	  the other Makefile's ("make Makefiles").
 
-	- generates compilation dependencies for each 
+	- generates compilation dependencies for each
 	  directory with code to compile -- see the
 	  Makefile.depend file in each <CPU> sub-directory
 	  ("make depend").
 
 	- compiles and links everything ("make -k").
-	
+
 If you have any trouble at this stage take a look at:
 
   http://www.ivtools.org/ivtools/faq.html#SourceBuild
@@ -261,7 +261,3 @@ must be installed (either relative or non-relative) for the program to
 find them at runtime.  drawtool relies on several scripts and
 utilities for accessing graphics and image files that must be
 installed as well for them to work.
-
-
-
-
