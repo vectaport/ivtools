@@ -1,11 +1,31 @@
 
 			INSTALL for ivtools-1.2
 
+
 Instructions for building ivtools-1.2.11 from source, the short version:
 
+        cp Makefile.orig Makefile
 	./configure
 	make
 	su -c "make install"
+
+** notes on the short version relative to distributing ivtools via github **
+
+1. If you want to try an autotools build, work with the autotools branch set up by Barak Perlmutter.
+   You may have to download some archived m4 macros (AX_*) and run aclocal, before doing:
+       autoreconf --install
+       ./configure
+       make
+       
+2. The configure script tests for the presence of imake, and builds it from a source copy
+   within ivtools if necessary.
+   
+3. The usual two struggles with the configure script are defining CPU and XCONFIGDIR. If
+   they fail they can be manually edited into config/config.mk after running configure.
+   CPU has to match one of the config/site.def.$CPU files.  XCONFIGDIR is the complete
+   pathname for wherever you have X11/lib/X11/config.
+
+- Scott Johnston, May 2020
 
 
 And if that doesn't work...
