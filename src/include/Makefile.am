@@ -114,4 +114,4 @@ IV-X11/Xlib.h IV-X11/xbitmap.h IV-X11/xselection.h IV-X11/Xutil.h	\
 ivstd/iosfwd ivstd/signal.h ivstd/string.h ivstd/leakchecker.h		\
 ivstd/malloc.h ivstd/stdio.h ivstd/math.h ivstd/nan.h			\
 ivstd/iostream.h ivstd/fstream.h ivstd/osfcn.h ivstd/stdlib.h		\
-ivstd/stream.h
+ivstd/stream.h ivstd/fstream ivstd/ignores.h
