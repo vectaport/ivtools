@@ -111,13 +111,6 @@ build, change line 7 of src/Imakefile from "#if 0" to "#if 1". Without
 these libraries and include files the build of ivxt will fail, which
 can be safely ignored.
 
-0.h Finally, you might have an interest in building the IueServ
-library and iueserv program, a networked command interpreter wrapped
-around the class libraries of the Image Understanding Environment.
-See http://www.aai.com/AAI/IUE/IUE.html for details on acquiring and
-building this sizeable collection of public-domain and free software
-class libraries for image understanding application development.
-
 1. Configuring ivtools:
 
 1.a. You no longer need to set your CPU environment variable to build
@@ -149,8 +142,6 @@ arguments are recognized as --enable as well):
   --with-ace-libs=<path>           Path to ACE libraries
   --with-clippoly=<path>           Path to clippoly source
   --with-clippoly-libs=<path>      Path to clippoly libraries
-  --with-iue=<path>                Path to IUE source
-  --with-iue-libs=<path>           Path to IUE libraries
 
   --x-includes=DIR        X include files are in DIR
   --x-libraries=DIR       X library files are in DIR
@@ -166,8 +157,8 @@ arguments are recognized as --enable as well):
 
 ARG can be 0 or 1, default is 1 when not specified.  The configure
 script is usually able to automatically determine --x-includes and
---x-libraries (except on DEC Alpha). If the arguments for ACE,
-clippoly, or IUE are not supplied, the configure script prints a
+--x-libraries (except on DEC Alpha). If the arguments for ACE or
+clippoly are not supplied, the configure script prints a
 reminder, then proceeds to set up to build ivtools without these
 libraries.
 

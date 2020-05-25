@@ -160,59 +160,6 @@ else
 fi
 
 
-IUE_ENABLED=0
-IUE=""
-IUELIBS=""
-AC_ARG_WITH(iue,     [  --with-iue=<path>    path to IUE directory],
-        IUE=$withval
-	
-	if test x"$IUELIBS" = x
-	then
-		if test -d "$IUE"/lib
-		then
-			IUELIBS=$IUE/lib
-		else
-			IUELIBS=$IUE/Build/lib
-		fi
-	fi
-)
-
-AC_ARG_WITH(iue-libs,[  --with-iue-libs=<path> path to compiled IUE libs],
-	IUELIBS=$withval )
-
-## Check iue
-
-if test x"$IUE" = x
-then
-	echo ""
-	echo "No IUE path specified."
-	echo "Use --with-iue=<path> to point to IUE installed directory."
-else
-   if test ! -f "$IUE"/Image/ImageClasses/Image.h
-   then
-	echo ""
-	echo "Verify your IUE environment and try it again."
-	echo "(Couldn't find $IUE/Image/ImageClasses/Image.h!)"
-
-	echo "Use --with-iue=<path> to point to IUE (or set it in the env)."
-	echo "<path> points to the installed IUE version or to a source tree."
-	echo "You may also use --with-iue-libs to specify the lib directory."
-   else
-	IUEINCS="$IUE"
-   fi
-
-   if test ! -d "$IUELIBS"
-   then
-        echo "IUE directory '$IUELIBS' does not exist (or is not readable)."
-        echo "Use --with-iue-libs to point to it."
-   fi
-   echo "Building with IUE support"
-   echo "IUE includes = $IUEINCS"
-   echo "IUE libs = $IUELIBS"
-   IUE_ENABLED=1
-fi
-
-
 QT_ENABLED=0
 QT=""
 QTLIBS=""
@@ -370,10 +317,6 @@ AC_SUBST(TIFF)
 AC_SUBST(TIFFLIBS)
 AC_SUBST(TIFFINCS)
 AC_SUBST(TIFF_ENABLED)
-AC_SUBST(IUE)
-AC_SUBST(IUELIBS)
-AC_SUBST(IUEINCS)
-AC_SUBST(IUE_ENABLED)
 AC_SUBST(QT)
 AC_SUBST(QTLIBS)
 AC_SUBST(QTINCS)

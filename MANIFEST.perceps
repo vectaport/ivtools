@@ -148,13 +148,6 @@ IVGlyph/textview.h
 IVGlyph/textwindow.h
 IVGlyph/toolbutton.h
 IVGlyph/valuator.h
-IueServ/exportfunc.h
-IueServ/ipfunc.h
-IueServ/iueclasses.h
-IueServ/iuecomps.h
-IueServ/iuefunc.h
-IueServ/iuehandler.h
-IueServ/roifunc.h
 OverlayUnidraw/aceimport.h
 OverlayUnidraw/annotate.h
 OverlayUnidraw/attrtool.h

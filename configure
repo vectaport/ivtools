@@ -272,7 +272,7 @@ PACKAGE_STRING=
 PACKAGE_BUGREPORT=
 
 ac_unique_file="configure.in"
-ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT CC CFLAGS ac_ct_CC CXXCPP RANLIB ac_ct_RANLIB CPP CXX_INCLUDE_DIR LIBSTDCPLUSPLUS2 LIBSTDCPLUSPLUS3 x_includes x_libraries ACE ACE_LIBS ACE_ENABLED CLIPPOLY CLIPPOLY_LIBS CLIPPOLY_ENABLED TIFF TIFFLIBS TIFFINCS TIFF_ENABLED IUE IUELIBS IUEINCS IUE_ENABLED QT QTLIBS QTINCS QT_ENABLED IV IV_LIBS NO_BOOL PWD INSTALLRELATIVE USERPATH INSTALLSUBDIR ac_cv_type_socklen_t LIBOBJS LTLIBOBJS'
+ac_subst_vars='SHELL PATH_SEPARATOR PACKAGE_NAME PACKAGE_TARNAME PACKAGE_VERSION PACKAGE_STRING PACKAGE_BUGREPORT exec_prefix prefix program_transform_name bindir sbindir libexecdir datadir sysconfdir sharedstatedir localstatedir libdir includedir oldincludedir infodir mandir build_alias host_alias target_alias DEFS ECHO_C ECHO_N ECHO_T LIBS build build_cpu build_vendor build_os host host_cpu host_vendor host_os CXX CXXFLAGS LDFLAGS CPPFLAGS ac_ct_CXX EXEEXT OBJEXT CC CFLAGS ac_ct_CC CXXCPP RANLIB ac_ct_RANLIB CPP CXX_INCLUDE_DIR LIBSTDCPLUSPLUS2 LIBSTDCPLUSPLUS3 x_includes x_libraries ACE ACE_LIBS ACE_ENABLED CLIPPOLY CLIPPOLY_LIBS CLIPPOLY_ENABLED TIFF TIFFLIBS TIFFINCS TIFF_ENABLED QT QTLIBS QTINCS QT_ENABLED IV IV_LIBS NO_BOOL PWD INSTALLRELATIVE USERPATH INSTALLSUBDIR ac_cv_type_socklen_t LIBOBJS LTLIBOBJS'
 ac_subst_files=''
 
 # Initialize some variables set by options.
@@ -836,8 +836,6 @@ Optional Packages:
   --with-clippoly-libs=<path>    Path to clippoly libraries
   --with-tiff=<path>    path to installed Tiff files
   --with-tiff-libs=<path> path to compiled Tiff libs
-  --with-iue=<path>    path to IUE directory
-  --with-iue-libs=<path> path to compiled IUE libs
   --with-qt=<path>    path to QT directory
   --with-qt-libs=<path> path to compiled QT libs
   --x-libraries=<path>  X Window library path
@@ -1565,67 +1563,6 @@ else
    echo "TIFF includes = $TIFFINCS"
    echo "TIFF libs = $TIFFLIBS"
    TIFF_ENABLED=1
-fi
-
-
-IUE_ENABLED=0
-IUE=""
-IUELIBS=""
-
-# Check whether --with-iue or --without-iue was given.
-if test "${with_iue+set}" = set; then
-  withval="$with_iue"
-  IUE=$withval
-
-	if test x"$IUELIBS" = x
-	then
-		if test -d "$IUE"/lib
-		then
-			IUELIBS=$IUE/lib
-		else
-			IUELIBS=$IUE/Build/lib
-		fi
-	fi
-
-fi;
-
-
-# Check whether --with-iue-libs or --without-iue-libs was given.
-if test "${with_iue_libs+set}" = set; then
-  withval="$with_iue_libs"
-  IUELIBS=$withval
-fi;
-
-## Check iue
-
-if test x"$IUE" = x
-then
-	echo ""
-	echo "No IUE path specified."
-	echo "Use --with-iue=<path> to point to IUE installed directory."
-else
-   if test ! -f "$IUE"/Image/ImageClasses/Image.h
-   then
-	echo ""
-	echo "Verify your IUE environment and try it again."
-	echo "(Couldn't find $IUE/Image/ImageClasses/Image.h!)"
-
-	echo "Use --with-iue=<path> to point to IUE (or set it in the env)."
-	echo "<path> points to the installed IUE version or to a source tree."
-	echo "You may also use --with-iue-libs to specify the lib directory."
-   else
-	IUEINCS="$IUE"
-   fi
-
-   if test ! -d "$IUELIBS"
-   then
-        echo "IUE directory '$IUELIBS' does not exist (or is not readable)."
-        echo "Use --with-iue-libs to point to it."
-   fi
-   echo "Building with IUE support"
-   echo "IUE includes = $IUEINCS"
-   echo "IUE libs = $IUELIBS"
-   IUE_ENABLED=1
 fi
 
 
@@ -4771,10 +4708,6 @@ s,@TIFF@,$TIFF,;t t
 s,@TIFFLIBS@,$TIFFLIBS,;t t
 s,@TIFFINCS@,$TIFFINCS,;t t
 s,@TIFF_ENABLED@,$TIFF_ENABLED,;t t
-s,@IUE@,$IUE,;t t
-s,@IUELIBS@,$IUELIBS,;t t
-s,@IUEINCS@,$IUEINCS,;t t
-s,@IUE_ENABLED@,$IUE_ENABLED,;t t
 s,@QT@,$QT,;t t
 s,@QTLIBS@,$QTLIBS,;t t
 s,@QTINCS@,$QTINCS,;t t

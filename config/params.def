@@ -473,14 +473,6 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
-#ifndef IueCCDefines
-#ifdef IueDir
-#define IueCCDefines -DIUE -DGCC272
-#else
-#define IueCCDefines /**/
-#endif
-#endif
-
 #ifndef QtCCDefines
 #ifdef QtDir
 #define QtCCDefines /**/
@@ -498,7 +490,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 
 #ifndef OtherCCDefines
-#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(IUE_DEFINES) $(QT_DEFINES) $(TIFF_CCDEFINES)
+#define OtherCCDefines $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES) $(QT_DEFINES) $(TIFF_CCDEFINES)
 #endif
 
           CCDEFINES = CCDefines
@@ -514,7 +506,6 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 
  CLIPPOLY_CCDEFINES = ClipPolyCCDefines
       ACE_CCDEFINES = AceCCDefines
-      IUE_CCDEFINES = IueCCDefines
        QT_CCDEFINES = QtCCDefines
      TIFF_CCDEFINES = TiffCCDefines
 
@@ -571,14 +562,6 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
-#ifndef IueCCIncludes
-#ifdef IueDir
-#define IueCCIncludes -I$(IUEDIR)/COOL -I$(IUEDIR)/GeneralUtility -I$(IUEDIR)/Image -I$(IUEDIR)/Smallg++ -I$(IUEDIR)/Tasks-IUE/RegionsOfInterest-AAI -I$(IUEDIR)/Image-IUE -I$(IUEDIR)/Basics-IUE -I$(IUEDIR)/Dex2
-#else
-#define IueCCIncludes /**/
-#endif
-#endif
-
 #ifndef QtCCIncludes
 #ifdef QtDir
 #define QtCCIncludes -I$(QTINCS)
@@ -596,7 +579,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 
 #ifndef OtherCCIncludes
-#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(IUE_CCINCLUDES) $(QT_CCINCLUDES) $(TIFF_CCINCLUDES)
+#define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(QT_CCINCLUDES) $(TIFF_CCINCLUDES)
 #endif
 
          CCINCLUDES = CCIncludes
@@ -611,7 +594,6 @@ BACKWARD_CCINCLUDES = /* defined when Use_2_6() is used in Imakefile */
 
 CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
      ACE_CCINCLUDES = AceCCIncludes
-     IUE_CCINCLUDES = IueCCIncludes
       QT_CCINCLUDES = QtCCIncludes
     TIFF_CCINCLUDES = TiffCCIncludes
 #ifdef ClipPolyDir
@@ -622,9 +604,6 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
 #endif
 #ifdef AceLibDir
           ACELIBDIR = AceLibDir
-#endif
-#ifdef IueDir
-             IUEDIR = IueDir
 #endif
 #ifdef QtDir
               QTDIR = QtDir
@@ -871,177 +850,6 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #define AceLibBase libACE.so  /* only for installing symbolic link */
 #endif
 
-#ifndef IueCCLdLibs
-#ifdef IueDir
-#if UseRpath
-#define _arg -Wl,-rpath,$(IUEDIR)/lib.$(CPU) -L$(IUELIBDIR)
-#else
-#define _arg -L$(IUELIBDIR)
-#endif
-#if 0
-#define IueCCLdLibs  _arg \
--lArcInfoIO \
--lBasicRelation \
--lBasics \
--lCOOL \
--lChangeDetection-AAI \
--lCompGeom \
--lCurveFormation-Brunel \
--lCurveFormation-CSU \
--lCurveFormation-IUE \
--lCurveFormation-Stanford \
--lDEXTableIO \
--lDXFIO \
--lDex2 \
--lDex2Test \
--lDexTestIUE \
--lDexTestNonIUE \
--lDigitalGeometry \
--lDigitalSurface \
--lEasyImage \
--lEdgeDetection-IUE \
--lFEXIO \
--lFitting-IUE \
--lFredIO \
--lGeometry \
--lGraphTools \
--lGroups \
--lIPGeneric \
--lIUCameras \
--lIUCamerasDEX \
--lIUE-CS-Base \
--lIUE-CS-CartesianSystem \
--lIUE-CS-ColorSystem \
--lIUE-CS-ColorTransform \
--lIUE-CS-Functional-Transform \
--lIUE-CS-GeographicSystem \
--lIUE-CS-GeographicTransform \
--lIUE-CS-GeometricSystem \
--lIUE-CS-GeometricTransform \
--lIUE-CS-HomogeneousTransform \
--lIUE-CS-NonHomogeneousTransform \
--lIUE-Container \
--lIUE-IF-Curve \
--lIUE-IF-Edgel \
--lIUE-IF-ImageFeature \
--lIUE-IF-Point \
--lIUE-IF-Region \
--lIUE-IF-Topology \
--lIUE-Image \
--lIUE-Math-Basics \
--lIUE-Root \
--lIUE-\SO-AxisAlignedBox \
--lIUE-\SO-Base \
--lIUE-\SO-BinaryOps \
--lIUE-\SO-CellLattice \
--lIUE-\SO-Conic \
--lIUE-\SO-Curve \
--lIUE-\SO-FunctionalSurface \
--lIUE-\SO-Line \
--lIUE-\SO-PlanarPatch \
--lIUE-\SO-Plane \
--lIUE-\SO-Point \
--lIUE-\SO-Rectangle \
--lIUE-\SO-Sample \
--lIUE-\SO-SampledCurve \
--lIUE-\SO-Spline \
--lIUE-\SO-Surface \
--lIUE-\SO-Topology \
--lIUE-\SO-Volume \
--lIUE-SpatialIndex \
--lIUE-Stat \
--lIUE-Unit \
--lIUE-templates \
--lIaf \
--lImageClasses \
--lImageDEX \
--lImageGeneration \
--lImageProcessing \
--lImageProcessingBasics \
--lInstances01 \
--lJPEG \
--lLineDetection-USC \
--lNumerics \
--lPointDetection-AAI \
--lPointDetection-IUE \
--lPrinting \
--lQv \
--lRegionFormation-IUE \
--lRegionsOfInterest-AAI \
--lSmallg++ \
--lSolarFeatureDetection-AAI \
--lSolver \
--lSpatialBasics \
--lSpatialObjectDEX \
--lStat \
--lSurfaceTest \
--lTIFF \
--lTargetDetection-CSU \
--lTopology \
--lTraits \
--lVRMLIO \
--lbyteTest \
--ldex_generic \
--liue-math-extensions \
--liue-math \
--lnetlib
-#else
-#define IueCCLdLibs  _arg \
--lCOOL \
--liue-math \
--lnetlib \
--lJPEG \
--lSmallg++ \
--lBasics \
--lNumerics \
--lImageClasses \
--lEasyImage \
--lImageProcessing \
--lInstances01 \
--lIPGeneric \
--lIUE-Image \
--lIUE-Root \
--lStat \
--lDex2 \
--lTraits \
--lIaf \
--lIUE-Container \
--lIUE-Math-Basics \
--lRegionsOfInterest-AAI \
--lIUE-\SO-CellLattice \
--lIUE-\SO-BinaryOps \
--lIUE-\SO-AxisAlignedBox \
--lIUE-\SO-Base \
--lIUE-CS-Base \
--lIUE-\SO-Point \
--lIUE-\SO-Line \
--lIUE-\SO-Curve \
--lIUE-\SO-Plane \
--lIUE-\SO-Sample \
--lIUE-\SO-Surface \
--lIUE-IF-ImageFeature \
--lIUE-IF-Region \
--lDexTestIUE \
--lIUE-Unit \
--lTIFF
-#endif
-#else
-#define IueCCLdLibs /**/
-#endif
-#endif
-
-#ifndef IueLibDir
-#ifdef IueDir
-#define IueLibDir IueDir/lib.$(CPU)
-#else
-#define IueLibDir /**/
-#endif
-#endif
-
-#ifndef IueLibBase 
-#define IueLibBase libIUE.so   /* only for installing symbolic link */
-#endif
-
 #ifndef QtLibDir
 #ifdef QtDir
 #define QtLibDir $(QTLIBS)
@@ -1075,7 +883,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #endif
 
 #ifndef OtherCCLdLibs
-#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(IUE_CCLDLIBS) $(QT_CCLDLIBS) $(TIFF_CCLDLIBS)
+#define OtherCCLdLibs $(CLIPPOLY_CCLDLIBS) $(ACE_CCLDLIBS) $(QT_CCLDLIBS) $(TIFF_CCLDLIBS)
 #endif
 
 #ifndef SharedCCLdLibs
@@ -1100,9 +908,6 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
        ACE_CCLDLIBS = AceCCLdLibs
           ACELIBDIR = AceLibDir
          ACELIBBASE = AceLibBase
-       IUE_CCLDLIBS = IueCCLdLibs
-          IUELIBDIR = IueLibDir
-         IUELIBBASE = IueLibBase
         QT_CCLDLIBS = QtCCLdLibs
            QTLIBDIR = QtLibDir
           QTLIBBASE = QtLibBase

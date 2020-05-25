@@ -34,11 +34,6 @@
 #define ClipPolyLibDir @CLIPPOLY_LIBS@
 #endif
 
-#if @IUE_ENABLED@
-#define IueDir @IUE@
-#define IueLibDir @IUELIBS@
-#endif
-
 #if @QT_ENABLED@
 #define QtDir @QT@
 #define QtLibDir @QTLIBS@

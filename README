@@ -264,9 +264,6 @@ libraries:
 	* ACE from Doug Schmidt for middleware networking frameworks
 	(licensed similar to X Windows)
 
-	* IUE (the Image Understanding Environment) from Amerinex
-	(half public-domain, half licensed similar to X Windows)
-
 ivtools detects and uses at runtime a variety of third-party executables:
 
 	* qhull from the University of Minnesota Geometry Center

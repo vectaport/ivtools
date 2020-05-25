@@ -125,7 +125,6 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
 
  CLIPPOLY_CCDEFINES =
       ACE_CCDEFINES =
-      IUE_CCDEFINES =
        QT_CCDEFINES =
      TIFF_CCDEFINES =
 
@@ -138,7 +137,6 @@ BACKWARD_CCINCLUDES =
 
 CLIPPOLY_CCINCLUDES =
      ACE_CCINCLUDES =
-     IUE_CCINCLUDES =
       QT_CCINCLUDES =
     TIFF_CCINCLUDES =
 
@@ -182,9 +180,6 @@ NONSHARED_CCLDFLAGS =
        ACE_CCLDLIBS =
           ACELIBDIR =
          ACELIBBASE = libACE.so
-       IUE_CCLDLIBS =
-          IUELIBDIR =
-         IUELIBBASE = libIUE.so
         QT_CCLDLIBS = QtCCLdLibs
            QTLIBDIR =
           QTLIBBASE = libQt.so
