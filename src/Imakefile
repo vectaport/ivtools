@@ -23,6 +23,7 @@ SUBDIRS = \
 	ComUtil \
 	Attribute \
 	TopoFace \
+	Time \
 	ComTerp \
 	comtest \
 	comterp_ \
@@ -38,7 +39,6 @@ SUBDIRS = \
 	iclass \
 	idemo \
 	\
-	Time \
 	IVGlyph \
 	ivtext \
 	glyphs \
