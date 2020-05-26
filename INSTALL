@@ -4,7 +4,7 @@
 
 Instructions for building ivtools-1.2.11 from source, the short version:
 
-        cp Makefile.orig Makefile
+        cp Makefile.orig Makefile // if cloned from github
 	./configure
 	make
 	su -c "make install"
@@ -23,7 +23,9 @@ Instructions for building ivtools-1.2.11 from source, the short version:
 3. The usual two struggles with the configure script are defining CPU and XCONFIGDIR. If
    they fail they can be manually edited into config/config.mk after running configure.
    CPU has to match one of the config/site.def.$CPU files.  XCONFIGDIR is the complete
-   pathname for wherever you have X11/lib/X11/config.
+   pathname for wherever you have X11/lib/X11/config (if you know where X11/lib is, but
+   it has not X11/config under it, just pretend like it does and enter that path, i.e.
+   /usr/lib/X11/lib/X11/config or /opt/lib/X11/lib/X11/config).
 
 - Scott Johnston, May 2020
 
