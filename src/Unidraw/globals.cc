@@ -86,6 +86,7 @@ void GetLine (
     lineSize = i - begin;
 }
 
+#ifndef UnidrawCommon
 void GetAlignmentPoint (Graphic* gr, Alignment a, float& x, float& y) {
     float l, b, r, t;
 
@@ -131,6 +132,7 @@ void GetAlignmentPoint (Graphic* gr, Alignment a, float& x, float& y) {
 	    break;
     }
 }
+#endif
 
 void Ref (Resource* r) {
     if (r != nil) {
