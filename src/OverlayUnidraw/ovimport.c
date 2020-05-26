@@ -144,13 +144,13 @@ const char PBMA_MAGIC_BYTES[2] = {'P', '1'};
 const char PGMA_MAGIC_BYTES[2] = {'P', '2'};
 const char PPMA_MAGIC_BYTES[2] = {'P', '3'};
 
-const char GZIP_MAGIC_BYTES[2] = {0x1f, 0x8b};
-const char COMPRESS_MAGIC_BYTES[2] = {0x1f, 0x9d};
+const char GZIP_MAGIC_BYTES[2] = {(char)0x1f, (char)0x8b};
+const char COMPRESS_MAGIC_BYTES[2] = {(char)0x1f, (char)0x9d};
 
-const char TIFF1_MAGIC_BYTES[2] = {0x4d, 0x4d}; /* TIFF with BIGENDIAN byte order */
-const char TIFF2_MAGIC_BYTES[2] = {0x49, 0x49}; /* TIFF with LITLEENDIAN byte order */
-const char SUN_MAGIC_BYTES[2] = {0x59, 0xa6}; /* Sun rasterfile (0x59a66a95) */
-const char JPEG_MAGIC_BYTES[2] = {0xff, 0xd8}; 
+const char TIFF1_MAGIC_BYTES[2] = {(char)0x4d, (char)0x4d}; /* TIFF with BIGENDIAN byte order */
+const char TIFF2_MAGIC_BYTES[2] = {(char)0x49, (char)0x49}; /* TIFF with LITLEENDIAN byte order */
+const char SUN_MAGIC_BYTES[2] = {(char)0x59, (char)0xa6}; /* Sun rasterfile (0x59a66a95) */
+const char JPEG_MAGIC_BYTES[2] = {(char)0xff, (char)0xd8}; 
 /*****************************************************************************/
 
 static void closef(FILE* file, boolean compressed) {
