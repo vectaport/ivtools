@@ -98,7 +98,7 @@ struct _opr_tbl_default_entry {
   BOOLEAN rtol;
   unsigned optype;
 } DefaultOperatorTable[] = {
-  {" ",          "space",              140,        FALSE,      OPTYPE_BINARY },
+  // {" ",          "space",              140,        FALSE,      OPTYPE_BINARY }, // I have no recall why this is here
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
   {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
