@@ -258,8 +258,21 @@ void HelpFunc::execute() {
 OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-void OptableFunc::execute() {
+  void OptableFunc::execute() {
+    
+  static int bypri_symid = symbol_add("bypri");
+  ComValue bypriflag(stack_key(bypri_symid));
+  static int byopr_symid = symbol_add("byopr");
+  ComValue byoprflag(stack_key(byopr_symid));
+  static int bycom_symid = symbol_add("bycom");
+  ComValue bycomflag(stack_key(bycom_symid));
+  
   reset_stack();
-  opr_tbl_print(stdout, OPBY_PRIORITY);
+  int sort = OPBY_PRIORITY;
+  if (bycomflag.is_true()) { sort = OPBY_COMMAND; }
+  if (byoprflag.is_true()) { sort = OPBY_OPERATOR; }
+  if (bypriflag.is_true()) { sort = OPBY_PRIORITY; }
+  
+  opr_tbl_print(stdout, sort);
   return;
 }
