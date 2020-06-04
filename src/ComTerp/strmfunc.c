@@ -23,8 +23,10 @@
  */
 
 #include <ComTerp/strmfunc.h>
+#include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/iofunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
@@ -101,7 +103,9 @@ void StreamFunc::execute() {
       ComValue stream(snfunc, avl);
       stream.stream_mode(-1); // for internal use (use by this func)
       push_stack(stream);
-    } else if (operand1.is_attributelist()) {
+    } 
+
+    else if (operand1.is_attributelist()) {
       AttributeValueList* avl = new AttributeValueList();
       AttributeList* al = (AttributeList*)operand1.obj_val();
       Iterator i;
@@ -114,7 +118,9 @@ void StreamFunc::execute() {
       ComValue stream(snfunc, avl);
       stream.stream_mode(-1); // for internal use (use by this func)
       push_stack(stream);
-    } else {
+    }
+
+    else {
       AttributeValueList* avl = new AttributeValueList();
       avl->Append(new AttributeValue(operand1));
       ComValue stream(snfunc, avl);
@@ -143,6 +149,24 @@ void StreamNextFunc::execute() {
     Iterator i;
     avl->First(i);
     AttributeValue* retval = avl->Done(i) ? nil : avl->GetAttrVal(i);
+
+    if (((ComValue*)retval)->is_fileobj() || ((ComValue*)retval)->is_pipeobj()) {
+      ComValue fpobj((ComValue*)retval);
+      comterp()->push_stack(fpobj);
+      GetStringFunc func(comterp());
+      func.exec(1,0);
+      if (comterp()->stack_top().is_null()) {
+	if (fpobj.is_fileobj()) {
+	  FileObj *fileobj = (FileObj*)fpobj.geta(FileObj::class_symid());
+	  fileobj->close();
+	} else if (fpobj.is_pipeobj()) {
+	  PipeObj *pipeobj = (PipeObj*)fpobj.geta(PipeObj::class_symid());
+	  pipeobj->close();
+	}
+      }
+      return;
+    }
+    
     if (retval) {
       push_stack(*retval);
       avl->Remove(retval);

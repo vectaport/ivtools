@@ -77,6 +77,7 @@ class FileObj {
   const char* filename() { return _filename; }
   const char* mode() { return _mode; }
   FILE* fptr() { return _fptr; }
+  void close();
 
  protected:
   char* _filename;

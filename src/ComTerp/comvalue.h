@@ -169,6 +169,10 @@ public:
 
     boolean is_funcobj();
     // return true if ObjectType of FuncObj
+    boolean is_fileobj();
+    // return true if ObjectType of FileObj
+    boolean is_pipeobj();
+    // return true if ObjectType of PipeObj
 
 protected:
     void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
