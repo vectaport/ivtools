@@ -98,7 +98,7 @@ struct _opr_tbl_default_entry {
   BOOLEAN rtol;
   unsigned optype;
 } DefaultOperatorTable[] = {
-  {" ",          "space",              140,        FALSE,      OPTYPE_BINARY },
+  // {" ",          "space",              140,        FALSE,      OPTYPE_BINARY }, // I have no recall why this is here
   {".",          "dot",                130,        FALSE,      OPTYPE_BINARY },
   {"`",          "bquote",             125,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"!",          "negate",             110,        TRUE,       OPTYPE_UNARY_PREFIX },
@@ -443,6 +443,66 @@ int commid;			/* Id of command in symbol table */
 
 }
 
+static void merge_sort(int* arr, int l, int r, int(*gtfunc)(int a, int b)) {
+  if (r>l) {
+    // Find the middle point to divide the array into two halves:
+    int m = (l+r)/2;
+
+    // First half
+    merge_sort(arr, l, m, gtfunc);
+
+    // Second half
+    merge_sort(arr, m+1, r, gtfunc);
+    
+    // Merge the two halves
+    int nf = m-l+1;
+    int front[nf];
+    for(int i=0; i<nf; i++) {
+      front[i]=arr[l+i];
+    }
+      
+    int nb = r-m;
+    int back[nb];
+    for(int i=0; i<nb; i++) {
+      back[i]=arr[m+i+1];
+     }
+
+    int fi = 0;
+    int bi = 0;
+    int curr = l;
+    
+     while(fi<nf || bi<nb) {
+      if(fi==nf) {
+	arr[curr] = back[bi++];
+      } else if (bi==nb) {
+	arr[curr] = front[fi++];
+      } else if ((*gtfunc)(front[fi], back[bi])) {
+	arr[curr] = front[fi++];
+      } else {
+	arr[curr] = back[bi++];
+      }
+       curr++;
+    }
+   }
+}
+
+static int gt_pri(int a, int b) {
+  return OperatorTable[a].priority > OperatorTable[b].priority;
+}
+
+static int gt_com(int a, int b) {
+  char *astr = (char*)COMMAND(a);
+  char *bstr = (char*)COMMAND(b);
+  while (*astr != '\0' || *bstr != '\0') {
+    if(*astr=='\0') { return 1; }
+    if(*bstr=='\0') { return 0; }
+    if (*astr<*bstr) { return 1; }
+    if (*astr>*bstr) { return 0; }
+    astr++;
+    bstr++;
+  }
+  return 0;
+}
 
 
 /*!
@@ -501,21 +561,34 @@ int counter;
       return FUNCOK;
       }
 
+/* Create indirect for index to reflect sort if needed */
+   int indirect[NumOperators];
+   for(int i=0; i<NumOperators; i++) {
+      indirect[i]=i;
+   }
+
+/* merge sort by priority or command name if needed */ 
+   if (by==OPBY_PRIORITY ) {
+     merge_sort(indirect, 0, NumOperators-1, &gt_pri);
+   } else if (by==OPBY_COMMAND) {
+     merge_sort(indirect, 0, NumOperators-1, &gt_com);
+   }
+
 /* Print contents of table sorted by operator */
    fprintf( outfile, "Operator   Command            Priority   RtoL   Type\n" );
    fprintf( outfile, "--------   -------            --------   ----   ----\n" );
    for( index=0; index<NumOperators; index++ ) {
-      counter = fprintf( outfile, "%s", OPSTR( index )); 
+      counter = fprintf( outfile, "%s", OPSTR( indirect[index] )); 
       while( counter++ < 11 ) putc( ' ', outfile );
-      counter += fprintf( outfile, "%s", COMMAND( index ));
+      counter += fprintf( outfile, "%s", COMMAND( indirect[index] ));
       while( counter++ < 31 ) putc( ' ', outfile );
-      counter += fprintf( outfile, "%d", OperatorTable[ index ].priority );
+      counter += fprintf( outfile, "%d", OperatorTable[ indirect[index] ].priority );
       while( counter++ < 43 ) putc( ' ', outfile );
       fprintf( outfile, "%c      %s\n",
-	 OperatorTable[ index ].rtol ? 'Y' : 'N',
-	 OperatorTable[ index ].optype == OPTYPE_UNARY_POSTFIX
+	 OperatorTable[ indirect[index] ].rtol ? 'Y' : 'N',
+	 OperatorTable[ indirect[index] ].optype == OPTYPE_UNARY_POSTFIX
 	    ? "UNARY POSTFIX"
-	    : ( OperatorTable[ index ].optype == OPTYPE_UNARY_PREFIX
+	    : ( OperatorTable[ indirect[index] ].optype == OPTYPE_UNARY_PREFIX
 	       ? "UNARY PREFIX" : "BINARY" ));
       }
 

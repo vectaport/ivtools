@@ -53,7 +53,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "%s() -- print contents of operator table"; }
+      return "%s(:bypri :byopr :bycom) -- print contents of operator table"; }
 };
 
 #endif /* !defined(_helpfunc_h) */
