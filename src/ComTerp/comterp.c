@@ -416,16 +416,20 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	} else
 	  push_stack(ComValue::nullval());
       } else {
+	// cerr << "looking up " << sv.symbol_ptr() << "\n";
+	const char* funcname = sv.symbol_ptr();
         ComValue val = lookup_symval(sv);
         if(val.is_object(FuncObj::class_symid())) {
           EvalFunc ef(this);
           if(val.narg()!=val.nkey()) {
-            fprintf(stderr, "free format args not yet supported for custom funcs\n");
-            exit(1);
+            fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
+            push_stack(ComValue::nullval());
+	    return;
 	  }
           if(val.narg()==0) {
-            fprintf(stderr, "keyword arguments needed for custom func invoking\n");
-            exit(1);
+            fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
+            push_stack(ComValue::nullval());
+	    return;
 	  }
           AttributeList* al = new AttributeList();
           for(int i=0; i<val.narg(); i++) {
