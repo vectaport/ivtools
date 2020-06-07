@@ -188,8 +188,12 @@ void HelpFunc::execute() {
 	    *out << '\n';
 	  {
 	    char buffer[BUFSIZ];
-	    snprintf(buffer, BUFSIZ, 
-		     comfuncs[i]->docstring2(), symbol_pntr(command_ids[i]));
+	    if (comfuncs[i]->docstring2()!=NULL) {
+	      strncpy(buffer, comfuncs[i]->docstring2(), BUFSIZ-1);
+	    } else {
+	      snprintf(buffer, BUFSIZ, 
+		       comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
+	    }
 	    *out << buffer;
 	  }
 	  printed = true;
@@ -215,8 +219,12 @@ void HelpFunc::execute() {
 		  out->put('\n');
 		{
 		  char buffer[BUFSIZ];
-		  snprintf(buffer, BUFSIZ, 
-			   comfunc->docstring2(), symbol_pntr(value->command_symid()));
+		  if (comfunc->docstring2()!=NULL) {
+		    strncpy(buffer, comfunc->docstring2(), BUFSIZ-1);
+		  } else {
+  		    snprintf(buffer, BUFSIZ, 
+			     comfunc->docstring(), symbol_pntr(value->command_symid()));
+		  }
 		  *out << buffer;
 		}
 	      } else 

@@ -178,7 +178,7 @@ public:
 
     virtual boolean post_eval() { return false; }
     virtual const char* docstring() { return "%s: no docstring method defined"; }
-    const char* docstring2() { return _docstring2 ? _docstring2 : docstring(); }
+    const char* docstring2() { return _docstring2; }
     void docstring2(const char* str) { delete _docstring2; _docstring2 = strnew(str); }
     static int bintest(const char* name);
     static boolean bincheck(const char* name);

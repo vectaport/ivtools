@@ -27,6 +27,8 @@
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/ctrlfunc.h>
+#include <ComTerp/iofunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
@@ -315,7 +317,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::StreamType:
-	  out << "<stream:" << svp->stream_mode() << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
+	  // out << "<stream:" << (svp->stream_mode()<0?"int":"ext") << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
+	  out << "StreamObj";
 	  break;
 	    
 	case ComValue::CommandType:
@@ -431,12 +434,30 @@ boolean ComValue::isa(int id, int compid) {
   return false;
 }
 
-boolean ComValue::is_funcobj() {
+boolean ComValue::is_funcobj(ComTerp* comterp) {
   ComValue tv = *this;
-  if (!comterp()) return false;  // required for FuncObj in a ComValue
   if (is_symbol())
-    tv = ((ComTerp*)comterp())->lookup_symval(tv);
-  else
-    tv = *this;
+    tv = comterp->lookup_symval(tv);
   return tv.is_object(FuncObj::class_symid());
 }
+
+boolean ComValue::is_fileobj() {
+  ComValue tv = *this;
+  return tv.is_object(FileObj::class_symid());
+}
+
+boolean ComValue::is_pipeobj() {
+  ComValue tv = *this;
+  return tv.is_object(PipeObj::class_symid());
+}
+
+boolean ComValue::is_socketobj() {
+  ComValue tv = *this;
+  return tv.is_object(SocketObj::class_symid());
+}
+
+boolean ComValue::is_dateobj() {
+  ComValue tv = *this;
+  return tv.is_object(DateObj::class_symid());
+}
+

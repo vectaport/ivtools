@@ -35,6 +35,8 @@ class DateObj {
  public:
   DateObj(const char* datestr);
   DateObj(long datenum); // 1/1/1901 is day zero
+  DateObj(DateObj*); // copy
+  DateObj(); // today
   virtual ~DateObj();
 
   Date *date() {return _date;}
@@ -52,7 +54,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "dateobj|int = %s(num|str|dateobj :day :month :year :daymo) -- create date from days since 1/1/1901 or string"; }
+      return "dateobj|int = %s([num|str|dateobj] :day :month :year :daymo) -- create date from days since 1/1/1901 or string"; }
 };
 
 #endif /* !defined(_datefunc_h) */

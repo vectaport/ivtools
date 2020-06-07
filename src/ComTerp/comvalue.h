@@ -167,8 +167,16 @@ public:
     void linenum(unsigned ln) { _linenum=ln; }
     // Set line number of command in script file.
 
-    boolean is_funcobj();
-    // return true if ObjectType of FuncObj
+    boolean is_funcobj(ComTerp*);
+    // return true if ObjectType of FuncObj of symbol resolves to same
+    boolean is_fileobj();
+    // return true if ObjectType of FileObj
+    boolean is_pipeobj();
+    // return true if ObjectType of PipeObj
+    boolean is_socketobj();
+    // return true if ObjectType of SocketObj
+    boolean is_dateobj();
+    // return true if ObjectType of DateObj
 
 protected:
     void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
