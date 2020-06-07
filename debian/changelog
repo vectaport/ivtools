@@ -1,8 +1,9 @@
 ivtools (1.2.11a4-1) unstable; urgency=medium
 
   * new upstream release, removes (unused) IUE support
+  * track upstream changes (bug fixes)
 
- -- Barak A. Pearlmutter <bap@debian.org>  Mon, 25 May 2020 17:01:00 +0100
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 07 Jun 2020 22:08:43 +0100
 
 ivtools (1.2.11a3-3) unstable; urgency=medium
 
