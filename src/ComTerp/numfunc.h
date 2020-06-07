@@ -111,7 +111,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s is the mod operator"; }
+      return "%s (%) is the mod operator"; }
 
 };
 

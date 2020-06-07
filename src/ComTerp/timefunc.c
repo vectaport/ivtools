@@ -40,6 +40,14 @@ DateObj::DateObj(long datenum) {
   _date = new Date(datenum);
 }
 
+DateObj::DateObj(DateObj *dateobj) {
+  _date = new Date(*dateobj->date());
+}
+
+DateObj::DateObj() {
+  _date = new Date();
+}
+
 DateObj::~DateObj() {
   delete _date;
 }
@@ -71,6 +79,8 @@ void DateFunc::execute() {
   } else if (datev.is_string()) {
     dateobj = new DateObj(datev.string_ptr());
     fresh = true;
+  } else if (datev.is_null()) {
+    dateobj = new DateObj();
   } else {
     dateobj = (DateObj*)datev.geta(DateObj::class_symid());
   }

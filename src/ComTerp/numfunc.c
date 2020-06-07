@@ -25,6 +25,7 @@
 #include <ComTerp/numfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/timefunc.h>
 #include <Unidraw/iterator.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/lexscan.h>
@@ -279,6 +280,19 @@ void AddFunc::execute() {
         }
         break;
 
+    case ComValue::ObjectType:
+      {
+	if (operand1.is_dateobj() && operand2.is_int()) {
+	  DateObj *dateobj = new DateObj((DateObj*)operand1.geta(DateObj::class_symid()));
+          int addend = operand2.int_val();
+	  *dateobj->date() = ((const Date)*dateobj->date()) + addend;
+	  result = ComValue(DateObj::class_symid(), (void*)dateobj);
+	} else {
+	  fprintf(stderr, "Unhandled add operand1 of class %s (line %d)\n", operand1.class_name(), funcstate()->linenum());
+	}
+      }
+      break;
+
     default: {
         fprintf(stderr, "Unhandled add operand1 type %s (line %d)\n", operand1.type_name(), funcstate()->linenum());
         }
@@ -310,8 +324,8 @@ SubFunc::SubFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void SubFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
 
@@ -352,6 +366,23 @@ void SubFunc::execute() {
     case ComValue::DoubleType:
 	result.double_ref() = operand1.double_val() - operand2.double_val();
 	break;
+    case ComValue::ObjectType:
+      {
+        if (operand1.is_dateobj() && operand2.is_int()) {
+	  DateObj *dateobj = new DateObj((DateObj*)operand1.geta(DateObj::class_symid()));
+          int subtrahend = operand2.int_val();
+	  *dateobj->date() = ((const Date)*dateobj->date()) - subtrahend;
+	  result = ComValue(DateObj::class_symid(), (void*)dateobj);
+	} else {
+	  fprintf(stderr, "Unhandled subtraction operand1 of class %s (line %d)\n", operand1.class_name(), funcstate()->linenum());
+	}
+      }
+      break;
+
+    default: {
+        fprintf(stderr, "Unhandled subtraction operand1 type %s (line %d)\n", operand1.type_name(), funcstate()->linenum());
+        }
+        break;
     }
     reset_stack();
     push_stack(result);
@@ -361,7 +392,7 @@ MinusFunc::MinusFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void MinusFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
+    ComValue operand1 = stack_arg(0);
     ComValue result(operand1);
 
     if (operand1.is_unknown()) {
@@ -410,8 +441,8 @@ MpyFunc::MpyFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void MpyFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
 
@@ -615,8 +646,8 @@ DivFunc::DivFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void DivFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
 
     if (operand1.is_unknown() || operand2.is_unknown()) {
@@ -697,8 +728,8 @@ ModFunc::ModFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void ModFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
 
@@ -778,8 +809,8 @@ MinFunc::MinFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void MinFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
 
@@ -842,8 +873,8 @@ MaxFunc::MaxFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void MaxFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
-    ComValue& operand2 = stack_arg(1);
+    ComValue operand1 = stack_arg(0);
+    ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
 
@@ -907,7 +938,7 @@ AbsFunc::AbsFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void AbsFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
+    ComValue operand1 = stack_arg(0);
     ComValue result(operand1);
 
     if (operand1.is_unknown()) {
@@ -1069,7 +1100,7 @@ FloorFunc::FloorFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void FloorFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
+    ComValue operand1 = stack_arg(0);
     ComValue result(operand1);
     switch (result.type()) {
     case ComValue::CharType:
@@ -1102,7 +1133,7 @@ CeilFunc::CeilFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void CeilFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
+    ComValue operand1 = stack_arg(0);
     ComValue result(operand1);
     switch (result.type()) {
     case ComValue::CharType:
@@ -1135,7 +1166,7 @@ RoundFunc::RoundFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void RoundFunc::execute() {
-    ComValue& operand1 = stack_arg(0);
+    ComValue operand1 = stack_arg(0);
     ComValue result(operand1);
     switch (result.type()) {
     case ComValue::CharType:
