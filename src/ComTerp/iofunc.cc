@@ -63,8 +63,12 @@ FileObj::FileObj(FILE* fptr) {
   _fptr = fptr;
 }
 
-FileObj::~FileObj() { 
+void FileObj::close() {
   if( _fptr && _fptr!=stdin && _filename) _pipe ? pclose(_fptr) : fclose(_fptr);
+}
+
+FileObj::~FileObj() { 
+  close();
   delete _filename;
   delete _mode;
 }
@@ -380,6 +384,7 @@ void OpenFileFunc::execute() {
       (strcmp(modev.string_ptr(),"rw")==0 || strcmp(modev.string_ptr(),"wr")==0)) {
     PipeObj* pipeobj = new PipeObj(filenamev.string_ptr());
     ComValue retval(PipeObj::class_symid(), (void*)pipeobj);
+    fprintf(stderr, "ready to push retval of type %s and class %s\n", retval.type_name(), retval.class_name());
     push_stack(retval);
 #ifdef HAVE_ACE
     if (Component::use_unidraw()) {

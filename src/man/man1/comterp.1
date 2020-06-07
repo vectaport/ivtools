@@ -204,7 +204,7 @@ Evaluate single expression then exit.
 
 .SH LIST COMMANDS:
  
- lst=list([olst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream
+ lst=list([olst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
 
  val=at(list|attrlist|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
 
@@ -364,7 +364,7 @@ Evaluate single expression then exit.
 
  num=xnor(a b) -- bitwise XNOR (negated XOR)
 
- dateobj|int = date(num|str|dateobj :day :month :year :daymo :weekday) -- create date from days since 1/1/1901 or string
+ dateobj|int = date([num|str|dateobj] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901 or string
 
 
 .SH ONLY IN SERVER MODE

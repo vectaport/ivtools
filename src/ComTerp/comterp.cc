@@ -416,16 +416,20 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	} else
 	  push_stack(ComValue::nullval());
       } else {
+	// cerr << "looking up " << sv.symbol_ptr() << "\n";
+	const char* funcname = sv.symbol_ptr();
         ComValue val = lookup_symval(sv);
         if(val.is_object(FuncObj::class_symid())) {
           EvalFunc ef(this);
           if(val.narg()!=val.nkey()) {
-            fprintf(stderr, "free format args not yet supported for custom funcs\n");
-            exit(1);
+            fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
+            push_stack(ComValue::nullval());
+	    return;
 	  }
           if(val.narg()==0) {
-            fprintf(stderr, "keyword arguments needed for custom func invoking\n");
-            exit(1);
+            fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
+            push_stack(ComValue::nullval());
+	    return;
 	  }
           AttributeList* al = new AttributeList();
           for(int i=0; i<val.narg(); i++) {
@@ -515,7 +519,7 @@ void ComTerp::load_sub_expr() {
       } 
     }
     _pfoff++;
-    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj()) && 
+    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj(this)) && 
 	!_pfcomvals[_pfoff-1].pedepth()) break;
   }
   
@@ -605,7 +609,7 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	offset++;
 	if (_pfcomvals[offset-1].pedepth()!=pedepth)
 	  continue;
-	if ((stack_top().is_type(ComValue::CommandType) || stack_top().is_funcobj()) 
+	if ((stack_top().is_type(ComValue::CommandType) || stack_top().is_funcobj(this)) 
 	    && stack_top().pedepth() == pedepth) break;
       }
 #ifdef POSTEVAL_EXPERIMENT 
@@ -1198,13 +1202,14 @@ void ComTerp::add_defaults() {
     add_command("minus", new MinusFunc(this));
     add_command("mpy", new MpyFunc(this));
     add_command("div", new DivFunc(this));
-    add_command("mod", new ModFunc(this));
+    add_command("mod", new ModFunc(this), NULL, "mod (%) is the mod operator");
     add_command("min", new MinFunc(this));
     add_command("max", new MaxFunc(this));
     add_command("abs", new AbsFunc(this));
 
     add_command("assign", new AssignFunc(this));
-    add_command("mod_assign", new ModAssignFunc(this));
+    add_command("mod_assign", new ModAssignFunc(this), NULL, "mod_assign (%=) is the mod assign operator");
+    
     add_command("mpy_assign", new MpyAssignFunc(this));
     add_command("add_assign", new AddAssignFunc(this));
     add_command("sub_assign", new SubAssignFunc(this));
