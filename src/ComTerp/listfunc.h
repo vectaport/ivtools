@@ -37,7 +37,7 @@ class ComTerp;
 class ComValue;
 
 //: create list command for ComTerp.
-// lst=list([olst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream
+// lst=list([lst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream
 class ListFunc : public ComFunc {
 public:
     ListFunc(ComTerp*);
@@ -45,29 +45,29 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "lst=%s([olst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream (unary $$)"; }
+      return "lst=%s([lst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream (unary $$)"; }
 };
 
 //: list member command for ComTerp.
-// val=at(list|attrlist|str n :set val :ins val) -- return (or set or insert after) the nth item in a list or string.
+// val=at(lst|attrlst|str n :set val :ins val) -- return (or set or insert after) the nth item in a list or string.
 class ListAtFunc : public ComFunc {
 public:
     ListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=at(list|attrlist n :set val :ins val) -- return (or set or insert after) the nth item in a list"; }
+      return "val=at(lst|attrlst n :set val :ins val) -- return (or set or insert after) the nth item in a list"; }
 };
 
 //: list size command for ComTerp.
-// num=size(list|attrlist|string) -- return size of a list (or string).
+// num=size(lst|attrlst|string) -- return size of a list (or string).
 class ListSizeFunc : public ComFunc {
 public:
     ListSizeFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=size(list|attrlist|string) -- return the size of the list (or string)"; }
+      return "val=size(lst|attrlst|string) -- return the size of the list (or string)"; }
 };
 
 //: , (tuple) operator.
@@ -85,14 +85,14 @@ public:
 
 
 //: list index command for ComTerp.
-// val=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
+// val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 class ListIndexFunc : public ComFunc {
 public:
     ListIndexFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "num=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found"; }
+      return "num=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found"; }
 };
 
 #endif /* !defined(_listfunc_h) */

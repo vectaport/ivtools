@@ -204,14 +204,14 @@ Evaluate single expression then exit.
 
 .SH LIST COMMANDS:
  
- lst=list([olst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
+ lst=list([lst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
 
- val=at(list|attrlist|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
+ val=at(lst|attrlst|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
 
 
- num=size(list|attrlist|str) -- return size of a list (or string)
+ num=size(lst|attrlst|str) -- return size of a list (or string)
 
- val=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
+ val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 
  num=symmax() -- return current size of symbol table
 
@@ -222,7 +222,7 @@ Evaluate single expression then exit.
  
  val=next(stream) -- return next value from stream
 
- strm=stream(ostrm|list|attrlist|val) -- copy stream or convert list
+ strm=stream(ostrm|lst|attrlst|val) -- copy stream or convert list
 
  cnt=each(strm) -- traverse stream returning its length
 
@@ -264,27 +264,27 @@ Evaluate single expression then exit.
 
  str=gets(fileobj|pipeobj) -- gets a new-line terminated string from a file
 
- val=global(symbol)|global(symbol)=val|global(symbol :clear)|global(:cnt) -- make symbol global 
+ val=global(sym)|global(sym)=val|global(sym :clear)|global(:cnt) -- make symbol global 
   
- int|lst=symid(symbol [symbol ...] | :max) -- return integer id(s) associated with symbol(s)
+ int|lst=symid(sym [sym ...] | :max) -- return integer id(s) associated with symbol(s)
 
  sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 
- val|lst=symval(symbol [symbol ...]) -- return value(s) associated with symbol variables(s)
+ val|lst=symval(symv [symv ...]) -- return value(s) associated with symbol variables(s)
 
- sym|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup.
+ symv|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup.
 
- sym=symvar(sym) -- return symbol as-is
+ sym=symvar(symv) -- return symbol of symbol variable without lookup, for use on left hand side of assignment
 
- str=symstr(sym) -- return string version of symbol
+ str=symstr(symv) -- return string version of symbol in symbol variable
  
- sym=bquote(sym) -- LISP-like backquote operator
+ sym=bquote(sym) -- LISP-like backquote operator, returns symbol without lookup
 
  n=strref(str|symid) -- return string reference count
 
- lst=split(symbol|string :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
+ lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 
- str=join(clist :sym) -- join list of characters into string
+ str=join(lst :sym) -- join list of characters into string
 
  str=substr(str n|str :after :nonil) -- extract characters from a string (:nonil returns string if no match)
 

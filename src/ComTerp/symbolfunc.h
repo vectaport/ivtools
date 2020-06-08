@@ -34,7 +34,7 @@
 class ComTerp;
 
 //: symbol id command for ComTerp.
-// int|lst=symid(symbol [symbol ...] | :max) -- return id(s) associated with symbol(s)
+// int|lst=symid(sym [sym ...] | :max) -- return id(s) associated with symbol(s)
 class SymIdFunc : public ComFunc {
 public:
     SymIdFunc(ComTerp*);
@@ -42,7 +42,7 @@ public:
 
     // virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "int|lst=%s(symbol [symbol ...] | :max) -- return id(s) associated with symbol(s)"; }
+      return "int|lst=%s(sym [sym ...] | :max) -- return id(s) associated with symbol(s)"; }
 };
 
 
@@ -58,29 +58,29 @@ public:
 };
 
 //: lookup symbol value command for ComTerp.
-// val|lst=symval(symbol_var [symbol_var ...]) -- return value(s) associated with symbol variable(s)
+// val|lst=symval(symv [symv ...]) -- return value(s) associated with symbol variable(s)
 class SymValFunc : public ComFunc {
 public:
     SymValFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "val|lst=%s(symbol_var [symbol_var ...]) -- return value(s) associated with symbol variables(s)"; }
+      return "val|lst=%s(symv [symv ...]) -- return value(s) associated with symbol variables(s)"; }
 };
 
-//: return symbol variable as-is
-// sym=symvar(sym) -- return symbol variable as-is
+//: return symbol of a symbol variable as-is, for left hand side of assignment
+// sym=symvar(symv) -- return symbol of symbol variable without lookup, for use on left hand side of assignment
 class SymVarFunc : public ComFunc {
 public:
     SymVarFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "str=%s(sym) -- return symbol variable as-is"; }
+      return "sym=%s(symv) -- return symbol of symbol variable without lookup, for use on left hand side of assignment"; }
 };
 
 //: return string version of symbol
-// str=symstr(sym) -- return string version of symbol
+// str=symstr(symv) -- return string version of symbol in symbol variable
 class SymStrFunc : public ComFunc {
 public:
     SymStrFunc(ComTerp*);
@@ -102,7 +102,7 @@ public:
 };
 
 //: create symbol command for ComTerp.
-// sym|lst=symadd(syml|str [sym|str ...]) -- create symbol(s) and return without lookup
+// symv|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup
 class SymAddFunc : public ComFunc {
 public:
     SymAddFunc(ComTerp*);
@@ -110,41 +110,41 @@ public:
 
     // virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "sym|lst=%s(sym|str [sym|str ...]) -- create symbol(s) and return without lookup"; }
+      return "symv|lst=%s(sym|str [sym|str ...]) -- create symbol(s) and return without lookup"; }
 };
 
 //: command to split a symbol or string into a list of character objects
-// lst=split(symbol|string :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens).
+// lst=split(sym|str :tokstr [delim] :tokval [delim]) -- split symbol or string into list of characters (or tokens).
 class SplitStrFunc : public ComFunc {
 public:
     SplitStrFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "lst=%s(symbol|string :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens)"; }
+      return "lst=%s(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens)"; }
 };
 
 //: command to join list of characters into a string object
-// str=join(clist) -- join list of characters into string
+// str=join(lst) -- join list of characters into string
 class JoinStrFunc : public ComFunc {
 public:
     JoinStrFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "str=%s(clist) -- join list of characters into string"; }
+      return "str=%s(lst) -- join list of characters into string"; }
 };
 
 
 //: command to make assign a global variable
-// val=global(symbol)|global(symbol)=val|global(symbol :clear)|global(:dump) -- make symbol global
+// val=global(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global
 class GlobalSymbolFunc : public ComFunc {
 public:
     GlobalSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "sym=%s(symbol)|global(symbol)=val|global(symbol :clear)|global(:dump) -- make symbol global"; }
+      return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global"; }
 };
 
 
