@@ -12,15 +12,13 @@ include /usr/share/dpkg/pkg-info.mk
 override_dh_auto_configure:
 	dh_auto_configure -- --with-PSFontDir=/usr/share/fonts/type1/gsfonts
 
-override_dh_install:
-	dh_install
+execute_after_dh_install:
 	@echo prevent library files in libiv1 from being duplicated in libiv-unidraw1
 	find debian/libiv1/usr/lib -type f -o -type l		\
 	 | sed s:^debian/libiv1/:debian/libiv-unidraw1/:	\
 	 | xargs --no-run-if-empty rm --verbose
 
-override_dh_installexamples: debian/glyphs.tar
-	dh_installexamples
+execute_before_dh_installexamples: debian/glyphs.tar
 
 debian/glyphs.tar:
 	tar --create --file=$@ \
