@@ -33,8 +33,6 @@
 
 #define TITLE "StrmFunc"
 
-#define STREAM_MECH
-
 /*****************************************************************************/
 
 StrmFunc::StrmFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -271,9 +269,9 @@ RepeatFunc::RepeatFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void RepeatFunc::execute() {
+    fprintf(stderr, "RepeatFunc::execute\n");
     ComValue operand1(stack_arg(0));
 
-#ifdef STREAM_MECH
     if (operand1.is_stream() && nargs()==1) {
       reset_stack();
       AttributeValueList* avl = operand1.stream_list();
@@ -296,7 +294,6 @@ void RepeatFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     }
-#endif
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -309,20 +306,12 @@ void RepeatFunc::execute() {
     int n = operand2.int_val();
     if (n<=0) return;
 
-#ifdef STREAM_MECH
     AttributeValueList* avl = new AttributeValueList();
     avl->Append(new AttributeValue(operand1));
     avl->Append(new AttributeValue(operand2));
     ComValue stream(this, avl);
     stream.stream_mode(-1); // for internal use (use by this func)
     push_stack(stream);
-#else
-    AttributeValueList* avl = new AttributeValueList();
-    for (int i=0; i<n; i++) 
-        avl->Append(new ComValue(operand1));
-    ComValue array(avl);
-    push_stack(array);
-#endif
 }
 
 /*****************************************************************************/
@@ -331,9 +320,9 @@ IterateFunc::IterateFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void IterateFunc::execute() {
+    fprintf(stderr, "IterateFunc::execute\n");
     ComValue operand1(stack_arg(0));
 
-#ifdef STREAM_MECH
     if (operand1.is_stream() && nargs()==1) {
       reset_stack();
       AttributeValueList* avl = operand1.stream_list();
@@ -362,7 +351,6 @@ void IterateFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     }
-#endif
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -374,7 +362,6 @@ void IterateFunc::execute() {
 
     int start = operand1.int_val();
     int stop = operand2.int_val();
-#ifdef STREAM_MECH
     AttributeValueList* avl = new AttributeValueList();
     avl->Append(new AttributeValue(operand1));
     avl->Append(new AttributeValue(operand2));
@@ -382,16 +369,6 @@ void IterateFunc::execute() {
     ComValue stream(this, avl);
     stream.stream_mode(-1); // for internal use (use by this func)
     push_stack(stream);
-#else
-    int dir = start>stop ? -1 : 1;
-
-    AttributeValueList* avl = new AttributeValueList();
-    for (int i=start; i!=stop; i+=dir) 
-        avl->Append(new ComValue(i, ComValue::IntType));
-    avl->Append(new ComValue(stop, ComValue::IntType));
-    ComValue array(avl);
-    push_stack(array);
-#endif
 }
 
 /*****************************************************************************/

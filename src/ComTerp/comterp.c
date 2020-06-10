@@ -80,7 +80,6 @@
 #endif
 
 #define TITLE "ComTerp"
-#define STREAM_MECH
 
 extern int _detail_matched_delims;
 extern int _no_bracesplus;
@@ -262,7 +261,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
   
   if (sv.type() == ComValue::CommandType) {
 
-#ifdef STREAM_MECH
+    // cerr << "Ready to run command:  " << sv << "\n";
+      
+
     /* if func has StreamType ComValue's for arguments */
     /* create another StreamType ComValue to hold all its */
     /* arguments, along with a pointer to the func. */
@@ -302,7 +303,6 @@ void ComTerp::eval_expr_internals(int pedepth) {
       push_stack(val);
       return;
     }
-#endif
 
     ComFunc* func = nil;
     int nargs = sv.narg();
