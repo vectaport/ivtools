@@ -148,6 +148,7 @@ void StreamNextFunc::execute() {
     avl->First(i);
     AttributeValue* retval = avl->Done(i) ? nil : avl->GetAttrVal(i);
 
+    // if FileObj or PipeObj read next newline terminated string and return
     if (((ComValue*)retval)->is_fileobj() || ((ComValue*)retval)->is_pipeobj()) {
       ComValue fpobj((ComValue*)retval);
       comterp()->push_stack(fpobj);
@@ -157,14 +158,19 @@ void StreamNextFunc::execute() {
 	if (fpobj.is_fileobj()) {
 	  FileObj *fileobj = (FileObj*)fpobj.geta(FileObj::class_symid());
 	  fileobj->close();
+	  avl->Remove(retval);
+	  delete retval;
 	} else if (fpobj.is_pipeobj()) {
 	  PipeObj *pipeobj = (PipeObj*)fpobj.geta(PipeObj::class_symid());
 	  pipeobj->close();
+          avl->Remove(retval);
+          delete retval;
 	}
       }
       return;
     }
-    
+
+    // if ListType remove and return the front of the list
     if (retval) {
       push_stack(*retval);
       avl->Remove(retval);

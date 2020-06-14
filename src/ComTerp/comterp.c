@@ -261,9 +261,6 @@ void ComTerp::eval_expr_internals(int pedepth) {
   
   if (sv.type() == ComValue::CommandType) {
 
-    // cerr << "Ready to run command:  " << sv << "\n";
-      
-
     /* if func has StreamType ComValue's for arguments */
     /* create another StreamType ComValue to hold all its */
     /* arguments, along with a pointer to the func. */
