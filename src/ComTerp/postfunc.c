@@ -100,6 +100,7 @@ void PostFixFunc::execute() {
   }
   comterp()->brief(oldbrief);
   reset_stack();
+  out.flush();
 }
 
 /*****************************************************************************/
