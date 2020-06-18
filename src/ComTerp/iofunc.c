@@ -259,6 +259,7 @@ void PrintFunc::execute() {
 	out << "<blank>";
 	break;
 	
+      case ComValue::StreamType:
       case ComValue::UnknownType:
 	out_form(out, fbuf, nil);
 	break;

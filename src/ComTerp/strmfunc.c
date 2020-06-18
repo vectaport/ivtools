@@ -93,13 +93,13 @@ void StreamFunc::execute() {
     static StreamNextFunc* snfunc = nil;
     if (!snfunc) {
       snfunc = new StreamNextFunc(comterp());
-      snfunc->funcid(symbol_add("stream"));
+      snfunc->funcid(symbol_add("streamnext"));
     }
 
     if (operand1.is_array()) {
       AttributeValueList* avl = new AttributeValueList(operand1.array_val());
       ComValue stream(snfunc, avl);
-      stream.stream_mode(-1); // for internal use (use by this func)
+      stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
       push_stack(stream);
     } 
 
@@ -114,7 +114,7 @@ void StreamFunc::execute() {
 	avl->Append(av);
       }
       ComValue stream(snfunc, avl);
-      stream.stream_mode(-1); // for internal use (use by this func)
+      stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
       push_stack(stream);
     }
 
@@ -122,7 +122,7 @@ void StreamFunc::execute() {
       AttributeValueList* avl = new AttributeValueList();
       avl->Append(new AttributeValue(operand1));
       ComValue stream(snfunc, avl);
-      stream.stream_mode(-1); // for internal use (use by this func)
+      stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
       push_stack(stream);
     }
     
@@ -207,7 +207,7 @@ void ConcatFunc::execute() {
   avl->Append(new AttributeValue(operand1));
   avl->Append(new AttributeValue(operand2));
   ComValue stream(cnfunc, avl);
-  stream.stream_mode(-1); // for internal use (use by ConcatNextFunc)
+  stream.stream_mode(STREAM_INTERNAL); // for internal use (use by ConcatNextFunc)
   push_stack(stream);
 }
 
@@ -236,7 +236,7 @@ void ConcatNextFunc::execute() {
     if (oneval->is_known()) {
       if (oneval->is_stream()) {
 	ComValue valone(*oneval);
-	NextFunc::execute_impl(comterp(), valone);
+	NextFunc::execute_impl(comterp(), valone, false);
 	if (comterp()->stack_top().is_unknown()) {
 	  *oneval = ComValue::nullval();
 	  comterp()->pop_stack();
@@ -253,7 +253,7 @@ void ConcatNextFunc::execute() {
     if (twoval->is_known() && !done) {
       if (twoval->is_stream()) {
 	ComValue valtwo(*twoval);
-	NextFunc::execute_impl(comterp(), valtwo);
+	NextFunc::execute_impl(comterp(), valtwo, false);
 	if (comterp()->stack_top().is_unknown())
 	  *twoval = ComValue::nullval();
       } else {
@@ -275,7 +275,7 @@ RepeatFunc::RepeatFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void RepeatFunc::execute() {
-    fprintf(stderr, "RepeatFunc::execute\n");
+    // fprintf(stderr, "RepeatFunc::execute nargs()=%d\n", nargs());
     ComValue operand1(stack_arg(0));
 
     if (operand1.is_stream() && nargs()==1) {
@@ -316,7 +316,7 @@ void RepeatFunc::execute() {
     avl->Append(new AttributeValue(operand1));
     avl->Append(new AttributeValue(operand2));
     ComValue stream(this, avl);
-    stream.stream_mode(-1); // for internal use (use by this func)
+    stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
     push_stack(stream);
 }
 
@@ -326,7 +326,11 @@ IterateFunc::IterateFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void IterateFunc::execute() {
+<<<<<<< HEAD
     fprintf(stderr, "IterateFunc::execute\n");
+=======
+    // fprintf(stderr, "IterateFunc::execute nargs()=%d\n", nargs());
+>>>>>>> deepstrm
     ComValue operand1(stack_arg(0));
 
     if (operand1.is_stream() && nargs()==1) {
@@ -373,7 +377,7 @@ void IterateFunc::execute() {
     avl->Append(new AttributeValue(operand2));
     avl->Append(new AttributeValue(operand1));
     ComValue stream(this, avl);
-    stream.stream_mode(-1); // for internal use (use by this func)
+    stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
     push_stack(stream);
 }
 
@@ -386,12 +390,14 @@ NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 
 void NextFunc::execute() {
     ComValue streamv(stack_arg_post_eval(0));
+    static int skim_symid = symbol_add("skim");
+    ComValue skimflag(stack_key(skim_symid));
     reset_stack();
 
-    execute_impl(comterp(), streamv);
+    execute_impl(comterp(), streamv, skimflag.is_true());
 }
 
-void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
+void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
 
     _next_depth++;
 
@@ -400,13 +406,35 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       return;
     }
 
+    // handle nested stream
+    if (!skim) {
+      AttributeValueList* avl = streamv.stream_list();
+      Iterator i;
+      avl->First(i);
+      if (!avl->Done(i)) {
+	AttributeValue* val =  avl->GetAttrVal(i);
+	if (val->is_stream() && val->stream_mode()&STREAM_NESTED) {
+	  // fprintf(stderr, "NextFunc: Handling nested stream\n");
+	  ComValue cval(*val);
+	  NextFunc::execute_impl(comterp, cval, false);
+	  if (!comterp->stack_top().is_null()) {
+	    return;
+	  }
+	  avl->Remove(val);
+          delete val;
+	  comterp->pop_stack();
+	}
+      }
+    }
+
+
     int outside_stackh = comterp->stack_height();
 
-    // fprintf(stderr, "stream:  mode=%d, name=%s, depth=%d\n", streamv.stream_mode(), symbol_pntr(((ComFunc*)streamv.stream_func())->funcid()), _next_depth);
+    // fprintf(stderr, "NextFunc:  stream:  mode=%d, name=%s, depth=%d\n", streamv.stream_mode(), symbol_pntr(((ComFunc*)streamv.stream_func())->funcid()), _next_depth);
 
-    if (streamv.stream_mode()<0) {
+    if (streamv.stream_mode()&STREAM_INTERNAL) {
 
-      /* internal execution -- handled by stream func */
+      /* internal execution of next mechanism -- handled by stream func */
       comterp->push_stack(streamv);
       if(((ComFunc*)streamv.stream_func())->comterp()!=comterp) {
 	((ComFunc*)streamv.stream_func())->comterp(comterp); // just in case
@@ -419,9 +447,14 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       else if (comterp->stack_height()==outside_stackh)
 	comterp->push_stack(ComValue::blankval());
 
-    } else if (streamv.stream_mode()>0) {
+      // fprintf(stderr, "NextFunc: after next on internal stack top of type %s\n", comterp->stack_top().type_name());
+      if (comterp->stack_top().is_stream()) {
+	fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, internal type\n");
+      }
 
-      /* external execution -- handled by this func */
+    } else if (streamv.stream_mode()&STREAM_EXTERNAL) {
+
+      /* external execution of stream mechanism -- handled by this func */
       ComFunc* funcptr = (ComFunc*)streamv.stream_func();
       AttributeValueList* avl = streamv.stream_list();
       int narg=0;
@@ -437,7 +470,8 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	    int inside_stackh = comterp->stack_height();
 
 	    /* stream argument, use stream func to get next one */
-	    if (val->stream_mode()<0 && val->stream_func()) {
+	    if (val->stream_mode()&STREAM_INTERNAL && val->stream_func()) {
+	      // fprintf(stderr, "NextFunc: handling internal mode stream argument\n");
 	      /* internal use */
 	      comterp->push_stack(*val);
 
@@ -445,7 +479,13 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
               // comterp->print_stack();
 
 	      ((ComFunc*)val->stream_func())->exec(1,0);
-	    }else {
+
+      	      if (comterp->stack_top().is_stream()) {
+		fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, internal argument type\n");
+	      }
+
+	    } else {
+	      // fprintf(stderr, "NextFunc: handling external mode stream argument\n");
 
 	      /* external use */
 	      ComValue cval(*val);
@@ -454,15 +494,19 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
               // fprintf(stdout, "Stack before NextFunc::execute_impl\n");
               // comterp->print_stack();
 
-	      NextFunc::execute_impl(comterp, cval);
+	      NextFunc::execute_impl(comterp, cval, false);
               // fprintf(stderr, "after:  strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
+
+	      if (comterp->stack_top().is_stream()) {
+		fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, external argument type\n");
+	      }
 
 	    }
 	    
 	    if (comterp->stack_top().is_null() && 
 		comterp->stack_height()>inside_stackh) {
 	      
-	      /* sub-stream returnnull, zero it, and return null for this one */
+	      /* sub-stream return null, zero it, and return null for this one */
 	      val->stream_list()->clear();
 	      streamv.stream_list()->clear();
 	      while (comterp->stack_height()>outside_stackh) comterp->pop_stack();
@@ -491,6 +535,17 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
         // comterp->print_stack();
 
 	funcptr->exec(narg, nkey);
+
+	// recurse until not a stream
+	while (comterp->stack_top().is_stream() && !skim) {
+	  ComValue *newstream = new ComValue(comterp->pop_stack());
+	  execute_impl(comterp, *newstream, false);
+
+  	  // insert this stream at the front of the parent stream, to be recognized and dealt with by NextFunc
+	  newstream->stream_mode(newstream->stream_mode()|STREAM_NESTED);
+          streamv.stream_list()->Prepend(newstream);
+
+	}
       }
 
       if (comterp->stack_top().is_null() &&
@@ -513,6 +568,8 @@ EachFunc::EachFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void EachFunc::execute() {
   ComValue strmv(stack_arg_post_eval(0));
+  static int skim_symid = symbol_add("skim");
+  ComValue skimflag(stack_key(skim_symid));
   reset_stack();
 
   if (strmv.is_stream()) {
@@ -521,7 +578,7 @@ void EachFunc::execute() {
     /* traverse stream */
     boolean done = false;
     while (!done) {
-      NextFunc::execute_impl(comterp(), strmv);
+      NextFunc::execute_impl(comterp(), strmv, skimflag.is_true());
       if (comterp()->pop_stack().is_unknown())
 	done = true;
       else
@@ -559,7 +616,7 @@ void FilterFunc::execute() {
   avl->Append(new AttributeValue(streamv));
   avl->Append(new AttributeValue(filterv));
   ComValue stream(flfunc, avl);
-  stream.stream_mode(-1); // for internal use (use by FilterNextFunc)
+  stream.stream_mode(STREAM_INTERNAL); // for internal use (use by FilterNextFunc)
   push_stack(stream);
 }
 
@@ -590,7 +647,7 @@ void FilterNextFunc::execute() {
 	boolean done = false;
 	while(!done) {
 	  ComValue strm2filt(*strmval);
-	  NextFunc::execute_impl(comterp(), strm2filt);
+	  NextFunc::execute_impl(comterp(), strm2filt, false);
 	  if (comterp()->stack_top().is_unknown()) {
 	    *strmval = ComValue::nullval();
 	    push_stack(*strmval);
