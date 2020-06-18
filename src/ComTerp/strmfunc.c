@@ -326,11 +326,7 @@ IterateFunc::IterateFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void IterateFunc::execute() {
-<<<<<<< HEAD
-    fprintf(stderr, "IterateFunc::execute\n");
-=======
     // fprintf(stderr, "IterateFunc::execute nargs()=%d\n", nargs());
->>>>>>> deepstrm
     ComValue operand1(stack_arg(0));
 
     if (operand1.is_stream() && nargs()==1) {
