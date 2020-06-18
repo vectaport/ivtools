@@ -295,8 +295,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
 
       ComValue val((ComFunc*)sv.obj_val(), avl);
-      // fprintf(stderr, "Just packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
-      val.stream_mode(1); // for external use
+      // fprintf(stderr, "comterp::eval_expr_internals:  packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
+      val.stream_mode(STREAM_EXTERNAL); // for external use
       push_stack(val);
       return;
     }
@@ -1137,7 +1137,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    ComValue streamv(stack_top());
 	    do {
 	      pop_stack();
-	      NextFunc::execute_impl(this, streamv);
+	      NextFunc::execute_impl(this, streamv, false);
 	      if (stack_top().is_known()) {
 		print_stack_top(out);
 		out << "\n"; out.flush(); 

@@ -220,9 +220,9 @@ Evaluate single expression then exit.
 
 .SH STREAM COMMANDS:
  
- val=next(stream) -- return next value from stream
+ strm=stream(strm|lst|attrlst|val|fileobj|pipeobj) -- copy stream or convert list (unary $)
 
- strm=stream(ostrm|lst|attrlst|val) -- copy stream or convert list
+ val=next(stream :skim) -- return next value from stream, don't recurse if :skim
 
  cnt=each(strm) -- traverse stream returning its length
 
@@ -244,25 +244,7 @@ Evaluate single expression then exit.
 
  break([retval]) -- break out of for or while loop
 
-.SH OTHER COMMANDS
-
- help(cmdname [cmdname ...] :all :posteval) -- help for commands
-
- optable(:bypri :byopr :bycom) -- print contents of operator table
-
- val=trace([flag] :get) -- toggle or set trace mode
-
- pause([msgstr])  -- pause script execution until C/R
-
- step() -- toggle stepwise script execution
-
- fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
-
- close(fileobj|pipeobj) -- close file command
-
- [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :out :err :file fileobj|pipeobj :prefix str) -- print value with optional format string
-
- str=gets(fileobj|pipeobj) -- gets a new-line terminated string from a file
+.SH SYMBOL COMMANDS
 
  val=global(sym)|global(sym)=val|global(sym :clear)|global(:cnt) -- make symbol global 
   
@@ -282,6 +264,20 @@ Evaluate single expression then exit.
 
  n=strref(str|symid) -- return string reference count
 
+ bool=eq(sym1 sym2 :sym) -- symbol comparison
+
+.SH FILE COMMANDS
+
+ fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
+
+ close(fileobj|pipeobj) -- close file command
+
+ [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :out :err :file fileobj|pipeobj :prefix str) -- print value with optional format string
+
+ str=gets(fileobj|pipeobj) -- gets a new-line terminated string from a file
+
+.SH STRING COMMANDS
+
  lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 
  str=join(lst :sym) -- join list of characters into string
@@ -290,20 +286,38 @@ Evaluate single expression then exit.
 
  bool=eq(str1 str2 :n len) -- partial string comparison
 
- bool=eq(sym1 sym2 :sym) -- symbol comparison
+.SH ATTRIBUTE COMMANDS
 
- postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
-
- parse(fileobj) -- parse a single expression from a file
-
- arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
-				 
  sym=attrname(attribute) -- return name field of dotted pair
 
  val=attrval(attribute) -- return value field of dotted pair
 
  dotlst=dot(name) -- construct empty dotted pair list
 
+.SH INFO COMMANDS
+
+ help(cmdname [cmdname ...] :all :posteval) -- help for commands
+
+ optable(:bypri :byopr :bycom) -- print contents of operator table
+
+.SH DEBUG COMMANDS
+
+ val=trace([flag] :get) -- toggle or set trace mode
+
+ pause([msgstr])  -- pause script execution until C/R
+
+ step() -- toggle stepwise script execution
+
+ mute([flag]) -- set or toggle mute flag
+
+ postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
+
+ parse(fileobj) -- parse a single expression from a file
+
+.SH CONTROL COMMANDS
+
+ arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
+				 
  quit() -- quit the interpreter
 
  exit() -- exit entire application
@@ -322,7 +336,7 @@ Evaluate single expression then exit.
 
  usleep(msec) -- sleep microseconds
 
- mute([flag]) -- set or toggle mute flag
+.SH UTILITY COMMANDS
 
  nil([...]) -- accept any arguments and return nil
 
