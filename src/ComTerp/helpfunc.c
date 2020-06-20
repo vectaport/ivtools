@@ -167,7 +167,6 @@ void HelpFunc::execute() {
   ostream outs((comterp()->handler() && HELPOUT) ? (streambuf*)&fbuf : (streambuf*)&sbuf);
   ostream *out = &outs;
 
-
   if (noargs) {
 
     *out << "help available on these operators and commands:\n";
@@ -195,6 +194,14 @@ void HelpFunc::execute() {
 		       comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
 	    }
 	    *out << buffer;
+	    const char** keydoc = comfuncs[i]->dockeys();
+	    if (keydoc != nil) {
+  	      while(*keydoc !=nil) {
+	        *out << '\n';
+	        *out << "        " << keydoc[0];
+	        keydoc++;
+	      }
+	    }
 	  }
 	  printed = true;
 	}
@@ -245,8 +252,7 @@ void HelpFunc::execute() {
       }
     }
   }
-
-
+  
   if (!comterp()->handler() || !HELPOUT) {
     *out << '\0';
     // int help_str_symid = symbol_add(sbuf.str());
@@ -258,6 +264,8 @@ void HelpFunc::execute() {
   delete command_ids;
   delete comfuncs;
   delete str_flags;
+
+  fprintf(stderr, "helpfunc:  top_of_stack %d\n", comterp()->stack_height());
 
 }
 

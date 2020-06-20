@@ -89,6 +89,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(hoststr|sockobj [portnum] cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":nowait do not wait for response from other end",
+	":str    return response string without evaluation",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -125,7 +133,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(hoststr portnum ) -- create and open socket object"; }
+      return "sockobj=%s(hoststr portnum ) -- create and open socket object"; }
 };
 
 //: eval string command for ComTerp.

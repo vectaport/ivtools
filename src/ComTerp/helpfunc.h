@@ -43,6 +43,15 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "%s([command] [command...] :all :posteval :top) -- help for commands"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":all       return help on every command",
+	":posteval  return help on commands that post evaluate there arguments",
+	":top       return help on top-level commands specific to this program",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: print contents of operator table

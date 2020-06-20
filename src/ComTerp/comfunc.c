@@ -546,6 +546,8 @@ ostream& operator<< (ostream& out, const ComFunc& cf) {
     return out;
 }
 
+
+
 /*****************************************************************************/
 
 ComFuncState::ComFuncState(int narg, int nkey, int pedepth, 
