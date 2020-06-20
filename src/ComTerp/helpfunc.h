@@ -43,6 +43,15 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "%s([command] [command...] :all :posteval :top) -- help for commands"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":all       return help on every command",
+	":posteval  return help on commands that post evaluate arguments",
+	":top       return help on top-level commands specific to this program",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: print contents of operator table
@@ -54,6 +63,15 @@ public:
 
     virtual const char* docstring() { 
       return "%s(:bypri :byopr :bycom) -- print contents of operator table"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":bypri     sort by priority",
+	":byopr     sort by operator name",
+	":bycom     sort by command name",
+	nil
+      };
+      return keys;
+    }
 };
 
 #endif /* !defined(_helpfunc_h) */

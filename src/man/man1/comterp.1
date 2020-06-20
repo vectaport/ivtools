@@ -208,15 +208,9 @@ Evaluate single expression then exit.
 
  val=at(lst|attrlst|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
 
-
  num=size(lst|attrlst|str) -- return size of a list (or string)
 
  val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
-
- num=symmax() -- return current size of symbol table
-
- num=symcnt() -- return number of symbols in table
-
 
 .SH STREAM COMMANDS:
  
@@ -248,7 +242,7 @@ Evaluate single expression then exit.
 
  val=global(sym)|global(sym)=val|global(sym :clear)|global(:cnt) -- make symbol global 
   
- int|lst=symid(sym [sym ...] | :max) -- return integer id(s) associated with symbol(s)
+ int|lst=symid([sym [sym ...]] :max :cnt) -- return integer id(s) associated with symbol(s)
 
  sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 
@@ -265,6 +259,10 @@ Evaluate single expression then exit.
  n=strref(str|symid) -- return string reference count
 
  bool=eq(sym1 sym2 :sym) -- symbol comparison
+
+ num=symmax() -- return current size of symbol table
+
+ num=symcnt() -- return number of symbols in table
 
 .SH FILE COMMANDS
 
@@ -326,7 +324,9 @@ Evaluate single expression then exit.
 
  val=run(filename :str :popen) -- run commands from file (or string)
 
- val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string
+ sockobj=%s(hoststr portnum ) -- create and open socket object
+
+ val=remote(hoststr|sockobj [portnum] cmdstr :nowait :str) -- remotely evaluate command string then locally evaluate result string
 
  val=eval(cmdstr|funcobj [cmdstr|funcobj ...] :symret ) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil
 

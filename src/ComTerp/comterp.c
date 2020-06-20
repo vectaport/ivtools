@@ -1756,6 +1756,7 @@ void ComTerp::postfix_echo(postfix_token* pfbuf, int pfnum) {
     out << ((i==pfnum-1) ? "\n" : " ");
   }
   brief(oldbrief);
+  out.flush();
 }
 
 int ComTerp::arg_str(int n) {

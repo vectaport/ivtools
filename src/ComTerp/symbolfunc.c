@@ -47,9 +47,17 @@ SymIdFunc::SymIdFunc(ComTerp* comterp) : ComFunc(comterp) {
 void SymIdFunc::execute() {
   static int max_symid = symbol_add("max");
   boolean max_flag = stack_key(max_symid).is_true();
+  static int cnt_symid = symbol_add("cnt");
+  boolean cnt_flag = stack_key(cnt_symid).is_true();
   if(max_flag) {
     reset_stack();
     ComValue retval(symbol_max(), ComValue::IntType);
+    push_stack(retval);    
+    return;
+  }
+  if(cnt_flag) {
+    reset_stack();
+    ComValue retval(symbol_cnt(), ComValue::IntType);
     push_stack(retval);    
     return;
   }
@@ -577,24 +585,3 @@ void SubStrFunc::execute() {
 }
 
 
-/*****************************************************************************/
-
-SymMaxFunc::SymMaxFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SymMaxFunc::execute() {
-  ComValue retval(symbol_max());
-  push_stack(retval);
-  return;
-}
-
-/*****************************************************************************/
-
-SymCntFunc::SymCntFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SymCntFunc::execute() {
-  ComValue retval(symbol_cnt());
-  push_stack(retval);
-  return;
-}

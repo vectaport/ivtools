@@ -67,6 +67,14 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "val=%s(testexpr :then expr :else expr) -- evaluate testexpr and\nexecute the :then expression if true, the :else expression if false."; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":then expr expression to use if testexpr is true",
+	":else expr expression to use if testexpr is fale",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: for-loop command for ComTerp.
@@ -79,6 +87,13 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "val=%s(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":body expr explicit keyword for body of for loop",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: while-loop command for ComTerp.
@@ -91,6 +106,15 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "val=%s([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":nilchk    check testexpr for nil instead of false",
+	":until     evaluate testexpr after bodyexpr",
+	":body expr explicit keyword for body of for loop",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: ; (sequence) operator.
@@ -173,6 +197,13 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "funcobj=%s(body :echo) -- encapsulate a body of commands into an executable object"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":echo      echo the postfix version of parsed body",
+	nil
+      };
+      return keys;
+    }
 };
 
 #endif /* !defined(_postfunc_h) */

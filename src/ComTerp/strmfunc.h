@@ -132,6 +132,13 @@ public:
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "val=%s(stream :skim) -- return next value from stream, don't recurse if :skim"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":skim      do not recurse into nexted streams",
+	nil
+      };
+      return keys;
+    }
 
     static int next_depth() { return _next_depth; }
 protected:
