@@ -208,10 +208,10 @@ void HelpFunc::execute() {
       }
      if (!printed && command_ids[i]>=0) {
 
-	/* if symid is smaller than the highest operator it must be one */
-	if (command_ids[i]>=0 && command_ids[i]<=opr_tbl_topstr()) {
+        /* if symid is smaller than the highest operator (and it doesnt' start with a letter) it must be one */
+        const char* opstr = symbol_pntr(command_ids[i]);
+	if (command_ids[i]>=0 && command_ids[i]<=opr_tbl_topstr() && !isalpha(opstr[0])) {
 	  int op_ids[OPTYPE_NUM];
-	  const char* opstr = symbol_pntr(command_ids[i]);
 	  unsigned int charcnt;
 	  opr_tbl_entries((char*)opstr, op_ids, OPTYPE_NUM, &charcnt);
 	  for (int j=0; j<OPTYPE_NUM; j++) {
@@ -264,8 +264,6 @@ void HelpFunc::execute() {
   delete command_ids;
   delete comfuncs;
   delete str_flags;
-
-  fprintf(stderr, "helpfunc:  top_of_stack %d\n", comterp()->stack_height());
 
 }
 

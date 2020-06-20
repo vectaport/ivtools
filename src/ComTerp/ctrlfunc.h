@@ -62,6 +62,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(comstr :sec n) -- command string to execute at intervals"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":sec n     seconds between execution (default is 0?)",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -74,6 +81,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(filename :str :popen) -- run commands from a file (or string)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":str       run commands from string",
+	":popen     run commands from pipe command",
+	nil
+      };
+      return keys;
+    }
 
     static const char* expand_tilde(const char* path);
 
@@ -91,8 +106,8 @@ public:
       return "%s(hoststr|sockobj [portnum] cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":nowait do not wait for response from other end",
-	":str    return response string without evaluation",
+	":nowait    do not wait for response from other end",
+	":str       return response string without evaluation",
 	nil
       };
       return keys;
@@ -145,6 +160,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "str|lst=%s(cmdstr|funcobj [cmdstr|funcobj ...] :symret :alist attrlist) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":symret         return symbol without evalation",
+	":alist attrlist use attribute list for local variables",
+	nil
+      };
+      return keys;
+    }
 
 };
 

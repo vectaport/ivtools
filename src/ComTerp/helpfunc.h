@@ -46,7 +46,7 @@ public:
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":all       return help on every command",
-	":posteval  return help on commands that post evaluate there arguments",
+	":posteval  return help on commands that post evaluate arguments",
 	":top       return help on top-level commands specific to this program",
 	nil
       };
@@ -63,6 +63,15 @@ public:
 
     virtual const char* docstring() { 
       return "%s(:bypri :byopr :bycom) -- print contents of operator table"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":bypri     sort by priority",
+	":byopr     sort by operator name",
+	":bycom     sort by command name",
+	nil
+      };
+      return keys;
+    }
 };
 
 #endif /* !defined(_helpfunc_h) */

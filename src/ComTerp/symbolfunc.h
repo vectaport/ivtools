@@ -34,7 +34,7 @@
 class ComTerp;
 
 //: symbol id command for ComTerp.
-// int|lst=symid(sym [sym ...] | :max) -- return id(s) associated with symbol(s)
+// int|lst=symid([sym [sym ...]] :max :cnt) -- return id(s) associated with symbol(s)
 class SymIdFunc : public ComFunc {
 public:
     SymIdFunc(ComTerp*);
@@ -42,7 +42,15 @@ public:
 
     // virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "int|lst=%s(sym [sym ...] | :max) -- return id(s) associated with symbol(s)"; }
+      return "int|lst=%s([sym [sym ...]] :max :cnt) -- return id(s) associated with symbol(s)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":max       return max number of symbol ids in table",
+	":cnt       return current number of symbol ids in table",
+	nil
+      };
+      return keys;
+    }
 };
 
 
@@ -122,6 +130,16 @@ public:
 
     virtual const char* docstring() { 
       return "lst=%s(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":tokstr [delim]   split into strings, deliminated by delim, default delim is white-space or comma",
+	":tokval [delim]   split into values, deliminated by delim, default delim is white-space or comma",
+	":keep             keep delims in list",
+	":reverse          reverse list of split characters",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to join list of characters into a string object
@@ -145,6 +163,14 @@ public:
 
     virtual const char* docstring() { 
       return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":clear     clear symbol from global table",
+	":dump      dump global symbol table",
+	nil
+      };
+      return keys;
+    }
 };
 
 
@@ -156,31 +182,15 @@ public:
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "str=%s(str n|str :after :nonil) -- extract characters from a string (:nonil return string if no match)"; }
-};
-
-
-//: command to return current size of symbol table
-// num=symmax() -- return current size of symbol table
-class SymMaxFunc : public ComFunc {
-public:
-    SymMaxFunc(ComTerp*);
-    virtual void execute();
-
-    virtual const char* docstring() { 
-      return "num=%s() -- return current size of symbol table"; }
-};
-
-
-//: command to return number of symbols in table
-// num=symcnt() -- return number of symbols in table
-class SymCntFunc : public ComFunc {
-public:
-    SymCntFunc(ComTerp*);
-    virtual void execute();
-
-    virtual const char* docstring() { 
-      return "num=%s() -- return number of symbols in table"; }
+      return "str=%s(str n|str :after :nonil) -- extract characters from a string (:nonil return string if no match)";     virtual const char** dockeys() {
+      static const char* keys[] = {
+	":after     return sub-string after match",
+	":nonil     return entire string if no match",
+	nil
+      };
+      return keys;
+    }
+}
 };
 
 
