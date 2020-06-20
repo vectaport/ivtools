@@ -452,8 +452,12 @@ boolean ComValue::is_pipeobj() {
 }
 
 boolean ComValue::is_socketobj() {
+#ifdef HAVE_ACE
   ComValue tv = *this;
   return tv.is_object(SocketObj::class_symid());
+#else
+  return false;
+#endif
 }
 
 boolean ComValue::is_dateobj() {
