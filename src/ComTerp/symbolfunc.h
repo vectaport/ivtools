@@ -182,7 +182,9 @@ public:
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "str=%s(str n|str :after :nonil) -- extract characters from a string (:nonil return string if no match)";     virtual const char** dockeys() {
+      return "str=%s(str n|str :after :nonil) -- extract characters from a string (:nonil return string if no match)";
+    }
+    virtual const char** dockeys() {
       static const char* keys[] = {
 	":after     return sub-string after match",
 	":nonil     return entire string if no match",
@@ -190,8 +192,30 @@ public:
       };
       return keys;
     }
-}
 };
 
+
+//: command to return current size of symbol table
+// num=symmax() -- return current size of symbol table
+class SymMaxFunc : public ComFunc {
+public:
+    SymMaxFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "num=%s() -- return current size of symbol table"; }
+};
+
+
+//: command to return number of symbols in table
+// num=symcnt() -- return number of symbols in table
+class SymCntFunc : public ComFunc {
+public:
+    SymCntFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() { 
+      return "num=%s() -- return number of symbols in table"; }
+};
 
 #endif /* !defined(_symbolfunc_h) */
