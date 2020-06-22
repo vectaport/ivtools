@@ -80,7 +80,6 @@
 #endif
 
 #define TITLE "ComTerp"
-#define STREAM_MECH
 
 extern int _detail_matched_delims;
 extern int _no_bracesplus;
@@ -262,7 +261,6 @@ void ComTerp::eval_expr_internals(int pedepth) {
   
   if (sv.type() == ComValue::CommandType) {
 
-#ifdef STREAM_MECH
     /* if func has StreamType ComValue's for arguments */
     /* create another StreamType ComValue to hold all its */
     /* arguments, along with a pointer to the func. */
@@ -297,12 +295,11 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
 
       ComValue val((ComFunc*)sv.obj_val(), avl);
-      // fprintf(stderr, "Just packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
-      val.stream_mode(1); // for external use
+      // fprintf(stderr, "comterp::eval_expr_internals:  packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
+      val.stream_mode(STREAM_EXTERNAL); // for external use
       push_stack(val);
       return;
     }
-#endif
 
     ComFunc* func = nil;
     int nargs = sv.narg();
@@ -1140,7 +1137,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    ComValue streamv(stack_top());
 	    do {
 	      pop_stack();
-	      NextFunc::execute_impl(this, streamv);
+	      NextFunc::execute_impl(this, streamv, false);
 	      if (stack_top().is_known()) {
 		print_stack_top(out);
 		out << "\n"; out.flush(); 
@@ -1759,6 +1756,7 @@ void ComTerp::postfix_echo(postfix_token* pfbuf, int pfnum) {
     out << ((i==pfnum-1) ? "\n" : " ");
   }
   brief(oldbrief);
+  out.flush();
 }
 
 int ComTerp::arg_str(int n) {

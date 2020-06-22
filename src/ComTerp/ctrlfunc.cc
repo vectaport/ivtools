@@ -190,6 +190,8 @@ void RemoteFunc::execute() {
   ComValue arg3v(stack_arg(2));
   static int nowait_sym = symbol_add("nowait");
   ComValue nowaitv(stack_key(nowait_sym));
+  static int str_sym = symbol_add("str");
+  ComValue strv(stack_key(str_sym));
   reset_stack();
 
 
@@ -239,8 +241,13 @@ void RemoteFunc::execute() {
     } while (i<BUFSIZ-1 && buf[i-1]!='\n');
     if (buf[i-1]=='\n') buf[i]=0;
     // fprintf(stderr, "buf read back from remote %s", buf);
-    ComValue retval(comterpserv()->run(buf, true));
-    push_stack(retval);
+    if (strv.is_false()) {
+      ComValue retval(comterpserv()->run(buf, true));
+      push_stack(retval);
+    } else {
+      ComValue retval(buf);
+      push_stack(retval);
+    }
   }
   
   if(!socketobj) {

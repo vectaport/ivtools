@@ -71,8 +71,7 @@ void AssignFunc::execute() {
 	    attrlist->add_attribute(attr);
 	    Unref(attrlist);
 	} else if (operand1.global_flag()) {
-	    void* oldval = nil;
-	    comterp()->globaltable()->find(oldval, operand1.symbol_val());
+	    AttributeValue* oldval = comterp()->lookup_symval(&operand1);
 	    if (oldval) {
 	      comterp()->globaltable()->remove(operand1.symbol_val());
 	      delete (ComValue*)oldval;
@@ -80,8 +79,7 @@ void AssignFunc::execute() {
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
 	}
 	else {
-	    void* oldval = nil;
-	    comterp()->localtable()->find(oldval, operand1.symbol_val());
+	    AttributeValue* oldval = comterp()->lookup_symval(&operand1);
 	    if (oldval) {
 	      comterp()->localtable()->remove(operand1.symbol_val());
 	      delete (ComValue*)oldval;
@@ -115,9 +113,8 @@ void ModAssignFunc::execute() {
     if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
-	if (!op1val) {
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
+        if (!op1val) {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
@@ -146,8 +143,7 @@ void MpyAssignFunc::execute() {
     if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val) {
 	    push_stack(ComValue::nullval());
 	    return;
@@ -175,9 +171,8 @@ void AddAssignFunc::execute() {
     if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
-	if (!op1val) {
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
+        if (!op1val) {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
@@ -205,9 +200,8 @@ void SubAssignFunc::execute() {
     if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
-	if (!op1val) {
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
+        if (!op1val) {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
@@ -235,8 +229,7 @@ void DivAssignFunc::execute() {
     if (operand2.is_attribute()) lookup_symval(operand2);
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        void* op1val = nil;
-        _comterp->localtable()->find(op1val, operand1.symbol_val());
+	AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val) {
 	    push_stack(ComValue::nullval());
 	    return;

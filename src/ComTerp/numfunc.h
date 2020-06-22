@@ -188,7 +188,7 @@ public:
 };
 
 //: character conversion command for ComTerp.
-// c=char(num|str) -- convert any numeric to a char.
+// c=char(num|str :u) -- convert any numeric to a char.
 class CharFunc : public ComFunc {
 public:
     CharFunc(ComTerp*);
@@ -196,11 +196,18 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "c=%s(num|str :u) -- convert any numeric to a char"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":u         convert to unsigned short",
+	nil
+      };
+      return keys;
+    }
 
 };
 
 //: short integer conversion command for ComTerp.
-// s=short(num|str) -- convert any numeric to a short.
+// s=short(num|str :u) -- convert any numeric to a short.
 class ShortFunc : public ComFunc {
 public:
     ShortFunc(ComTerp*);
@@ -208,11 +215,18 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "s=%s(num|str :u) -- convert any numeric to a short"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":u         convert to unsigned short",
+	nil
+      };
+      return keys;
+    }
 
 };
 
 //: integer conversion command for ComTerp.
-// i=int(num|str) -- convert any numeric to an int.
+// i=int(num|str :u) -- convert any numeric to an int.
 class IntFunc : public ComFunc {
 public:
     IntFunc(ComTerp*);
@@ -220,11 +234,18 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "i=%s(num|str :u) -- convert any numeric to an int"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":u         convert to unsigned int",
+	nil
+      };
+      return keys;
+    }
 
 };
 
 //: long integer conversion command for ComTerp.
-// l=long(num|str) -- convert any numeric to a long.
+// l=long(num|str :u) -- convert any numeric to a long.
 class LongFunc : public ComFunc {
 public:
     LongFunc(ComTerp*);
@@ -232,6 +253,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "l=%s(num|str :u) -- convert any numeric to a long"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":u         convert to unsigned short",
+	nil
+      };
+      return keys;
+    }
 
 };
 

@@ -55,6 +55,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "dateobj|int = %s([num|str|dateobj] :day :month :year :daymo) -- create date from days since 1/1/1901 or string"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":day       return day of year in dateobj",
+	":month     return month of year in dateobj",
+	":year      return year in dateobj",
+	":daymo     return day of month in dateobj",
+	nil
+      };
+      return keys;
+    }
 };
 
 #endif /* !defined(_datefunc_h) */

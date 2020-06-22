@@ -27,7 +27,15 @@ Instructions for building ivtools-1.2.11 from source, the short version:
    find X11/lib/X11/config.  If editing XCONFIGDIR in config.mk doesn't work, try explicitly
    providing --x-includes and --x-libraries to the configure script.
 
-- Scott Johnston, May 2020
+4. If building on a Debian-based Linux system, you'll first need to:
+       sudo apt update
+       sudo apt-get install libx11-dev
+       sudo apt-get install xutils-dev
+       sudo apt-get install libxext-dev
+   (if you're in a root only docker container, don't use the sudo, and you'll have to
+   edit sudo out of the Makefile as well)
+
+- Scott Johnston, May-June 2020
 
 
 Instructions for building ivtools-1.2.11 from source, the long version:

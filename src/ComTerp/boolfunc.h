@@ -85,6 +85,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "== is the equal operator\nbool=eq(str1 str2 :n len) -- partial string comparison\nbool=eq(sym1 sym2 :sym) -- symbol comparison"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":n num     compare first n characters",
+	":sym       compare symbols",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -100,6 +108,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "!= is the not-equal operator\nbool=not_eq(str1 str2 :n len) -- partial string comparison\nbool=not_eq(sym1 sym2 :sym) -- symbol comparison"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":n num     compare first n characters",
+	":sym       compare symbols",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -115,6 +131,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "> is the greater-than operator\nbool=gt(str1 str2 :n len) -- partial string comparison\nbool=gt(sym1 sym2 :sym) -- symbol comparison"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":n num     compare first n characters",
+	":sym       compare symbols",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -129,6 +153,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return ">= is the greater-than-or-equal operator\nbool=gt_or_eq(str1 str2 :n len) -- partial string comparison\nbool=gt_or_eq(sym1 sym2 :sym) -- symbol comparison"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":n num     compare first n characters",
+	":sym       compare symbols",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -144,6 +176,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "< is the less-than operator\nbool=lt(str1 str2 :n len) -- partial string comparison\nbool=lt(sym1 sym2 :sym) -- symbol comparison"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":n num     compare first n characters",
+	":sym       compare symbols",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -157,6 +197,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "<= is the less-than-or-equal operator\nbool=lt_or_eq(str1 str2 :n len) -- partial string comparison\nbool=lt_or_eq(sym1 sym2 :sym) -- symbol comparison"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":n num     compare first n characters",
+	":sym       compare symbols",
+	nil
+      };
+      return keys;
+    }
 
 };
 

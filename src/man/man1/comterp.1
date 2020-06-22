@@ -204,25 +204,19 @@ Evaluate single expression then exit.
 
 .SH LIST COMMANDS:
  
- lst=list([olst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
+ lst=list([lst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
 
- val=at(list|attrlist|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
+ val=at(lst|attrlst|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
 
+ num=size(lst|attrlst|str) -- return size of a list (or string)
 
- num=size(list|attrlist|str) -- return size of a list (or string)
-
- val=index(list|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
-
- num=symmax() -- return current size of symbol table
-
- num=symcnt() -- return number of symbols in table
-
+ val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 
 .SH STREAM COMMANDS:
  
- val=next(stream) -- return next value from stream
+ strm=stream(strm|lst|attrlst|val|fileobj|pipeobj) -- copy stream or convert list (unary $)
 
- strm=stream(ostrm|list|attrlist|val) -- copy stream or convert list
+ val=next(stream :skim) -- return next value from stream, don't recurse if :skim
 
  cnt=each(strm) -- traverse stream returning its length
 
@@ -244,17 +238,33 @@ Evaluate single expression then exit.
 
  break([retval]) -- break out of for or while loop
 
-.SH OTHER COMMANDS
+.SH SYMBOL COMMANDS
 
- help(cmdname [cmdname ...] :all :posteval) -- help for commands
+ val=global(sym)|global(sym)=val|global(sym :clear)|global(:cnt) -- make symbol global 
+  
+ int|lst=symid([sym [sym ...]] :max :cnt) -- return integer id(s) associated with symbol(s)
 
- optable(:bypri :byopr :bycom) -- print contents of operator table
+ sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
 
- val=trace([flag] :get) -- toggle or set trace mode
+ val|lst=symval(symv [symv ...]) -- return value(s) associated with symbol variables(s)
 
- pause([msgstr])  -- pause script execution until C/R
+ symv|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup.
 
- step() -- toggle stepwise script execution
+ sym=symvar(symv) -- return symbol of symbol variable without lookup, for use on left hand side of assignment
+
+ str=symstr(symv) -- return string version of symbol in symbol variable
+ 
+ sym=bquote(sym) -- LISP-like backquote operator, returns symbol without lookup
+
+ n=strref(str|symid) -- return string reference count
+
+ bool=eq(sym1 sym2 :sym) -- symbol comparison
+
+ num=symmax() -- return current size of symbol table
+
+ num=symcnt() -- return number of symbols in table
+
+.SH FILE COMMANDS
 
  fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
 
@@ -264,46 +274,48 @@ Evaluate single expression then exit.
 
  str=gets(fileobj|pipeobj) -- gets a new-line terminated string from a file
 
- val=global(symbol)|global(symbol)=val|global(symbol :clear)|global(:cnt) -- make symbol global 
-  
- int|lst=symid(symbol [symbol ...] | :max) -- return integer id(s) associated with symbol(s)
+.SH STRING COMMANDS
 
- sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)
+ lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 
- val|lst=symval(symbol [symbol ...]) -- return value(s) associated with symbol variables(s)
-
- sym|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup.
-
- sym=symvar(sym) -- return symbol as-is
-
- str=symstr(sym) -- return string version of symbol
- 
- sym=bquote(sym) -- LISP-like backquote operator
-
- n=strref(str|symid) -- return string reference count
-
- lst=split(symbol|string :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
-
- str=join(clist :sym) -- join list of characters into string
+ str=join(lst :sym) -- join list of characters into string
 
  str=substr(str n|str :after :nonil) -- extract characters from a string (:nonil returns string if no match)
 
  bool=eq(str1 str2 :n len) -- partial string comparison
 
- bool=eq(sym1 sym2 :sym) -- symbol comparison
+.SH ATTRIBUTE COMMANDS
 
- postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
-
- parse(fileobj) -- parse a single expression from a file
-
- arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
-				 
  sym=attrname(attribute) -- return name field of dotted pair
 
  val=attrval(attribute) -- return value field of dotted pair
 
  dotlst=dot(name) -- construct empty dotted pair list
 
+.SH INFO COMMANDS
+
+ help(cmdname [cmdname ...] :all :posteval) -- help for commands
+
+ optable(:bypri :byopr :bycom) -- print contents of operator table
+
+.SH DEBUG COMMANDS
+
+ val=trace([flag] :get) -- toggle or set trace mode
+
+ pause([msgstr])  -- pause script execution until C/R
+
+ step() -- toggle stepwise script execution
+
+ mute([flag]) -- set or toggle mute flag
+
+ postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands, (narg) after keys, and a * following post-evaluation commands)
+
+ parse(fileobj) -- parse a single expression from a file
+
+.SH CONTROL COMMANDS
+
+ arr=posteval(arg1 [arg2 [arg3 ... [argn]]]) -- post-evaluate every fixed argument (until nil) and return array
+				 
  quit() -- quit the interpreter
 
  exit() -- exit entire application
@@ -312,7 +324,9 @@ Evaluate single expression then exit.
 
  val=run(filename :str :popen) -- run commands from file (or string)
 
- val=remote(hoststr portnum cmdstr :nowait) -- remotely evaluate command string then locally evaluate result string
+ sockobj=%s(hoststr portnum ) -- create and open socket object
+
+ val=remote(hoststr|sockobj [portnum] cmdstr :nowait :str) -- remotely evaluate command string then locally evaluate result string
 
  val=eval(cmdstr|funcobj [cmdstr|funcobj ...] :symret ) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil
 
@@ -322,7 +336,7 @@ Evaluate single expression then exit.
 
  usleep(msec) -- sleep microseconds
 
- mute([flag]) -- set or toggle mute flag
+.SH UTILITY COMMANDS
 
  nil([...]) -- accept any arguments and return nil
 

@@ -89,7 +89,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "/= is the minus assignment operator"; }
+      return "/= is the division assignment operator"; }
 };
 
 //: ++(increment before) operator.

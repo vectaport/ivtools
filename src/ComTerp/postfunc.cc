@@ -98,8 +98,10 @@ void PostFixFunc::execute() {
       out << "(" << val.keynarg_val() << ")";
     out << ((i+1>topptr) ? "\n" : " ");
   }
+  out.flush();
   comterp()->brief(oldbrief);
   reset_stack();
+  out.flush();
 }
 
 /*****************************************************************************/
