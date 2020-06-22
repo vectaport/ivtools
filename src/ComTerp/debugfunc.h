@@ -42,6 +42,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "val=%s([flag] :get) -- toggle or set trace mode"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":get       get trace mode",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to pause script execution until C/R
@@ -64,7 +71,7 @@ public:
     ComterpStepFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s -- toggle stepwise script execution"; }
+	return "%s() -- toggle stepwise script execution"; }
     virtual boolean stepfunc() { return true; }
 };
 
@@ -75,7 +82,7 @@ public:
     ComterpStackHeightFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s -- return stack height for debug purposes"; }
+	return "%s() -- return stack height for debug purposes"; }
 };
 
 //: command to return attribute list of malloc info
@@ -85,7 +92,7 @@ public:
     ComterpMallInfoFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s -- return attribute list of malloc info"; }
+	return "%s() -- return attribute list of malloc info"; }
 };
 
 #endif /* !defined(_debugfunc_h) */

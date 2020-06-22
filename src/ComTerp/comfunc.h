@@ -190,6 +190,9 @@ public:
     Component* context() { return _context; }
     void context(Component* comp) { _context = comp; }
 
+    virtual const char** dockeys() { return nil; };
+    // return nil-terminated array of keyword documentation strings
+    
 protected:
 
     int& npops();
@@ -226,6 +229,7 @@ protected:
     // skip an argument in unevaluated ComValue objects, 
     // decrementing an index into a buffer set up to hold the
     // currently interpreting expression.
+    
 
     ComTerp* _comterp;
     int _funcid;

@@ -40,7 +40,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "` is the LISP-like backquote operator"; }
+      return "` is the LISP-like backquote operator, return symbol without lookup"; }
 };
 
 

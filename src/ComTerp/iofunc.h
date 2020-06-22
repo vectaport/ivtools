@@ -43,6 +43,18 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "[str]=%s([fmtstr] [val [val1 [... valn]]] :string|:str :symbol|:sym :out :err :file fileobj|pipeobj :prefix str) -- print value with optional format string"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":string|:str           print to string",
+	":symbol|:sym           print to symbol",
+	":out                   print to stdout",
+	":err                   print to stderr",
+	":file fileobj|pipeobj  print to fileobj or pipeobj",
+	":prefix str            insert str before and new-line after",
+	nil
+      };
+      return keys;
+    }
 
     static int format_extent(const char* fstr);
 };
@@ -56,6 +68,16 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":pipe      open pipe command",
+	":in        open stdin",
+	":out       open stdout",
+	":err       open stderr",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: close file command

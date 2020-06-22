@@ -69,7 +69,7 @@ typedef struct {
   unsigned int type;
 } arrayval_struct;
 
-//: void* pointer to ComFunc object plus optional type id
+//: void* pointer to ComFunc object plus optional stream data list
 // used in attr_value.
 typedef struct {
        void *funcptr;

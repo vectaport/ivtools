@@ -34,6 +34,10 @@
 class ComTerp;
 class ComValue;
 
+#define STREAM_EXTERNAL 1
+#define STREAM_INTERNAL 2
+#define STREAM_NESTED   4
+
 //: base class for ComTerp stream commands.
 class StrmFunc : public ComFunc {
 public:
@@ -50,7 +54,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "strm=%s(ostrm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $)"; }
+      return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $)"; }
 
     CLASS_SYMID("StreamFunc");
 
@@ -124,10 +128,17 @@ public:
     NextFunc(ComTerp*);
 
     virtual void execute();
-    static  void execute_impl(ComTerp*, ComValue& strmv);
+    static  void execute_impl(ComTerp*, ComValue& strmv, boolean skim);
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "val=%s(stream) -- return next value from stream"; }
+      return "val=%s(stream :skim) -- return next value from stream, don't recurse if :skim"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":skim      do not recurse into nexted streams",
+	nil
+      };
+      return keys;
+    }
 
     static int next_depth() { return _next_depth; }
 protected:
