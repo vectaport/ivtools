@@ -16,6 +16,7 @@ $(LIBATTRIBUTE) \
 $(LIBCOMUTIL) \
 $(LIBUNIIDRAW) \
 $(LIBIVGLYPH) \
+$(LIBTIME) \
 $(LIBTOPOFACE)
 
 #if HasDynamicSharedLibraries
@@ -29,6 +30,7 @@ $(DEPATTRIBUTE) \
 $(DEPCOMUTIL) \
 $(DEPUNIIDRAW) \
 $(DEPIVGLYPH) \
+$(DEPTIME) \
 $(DEPTOPOFACE)
 #endif
 
