@@ -260,10 +260,6 @@ Evaluate single expression then exit.
 
  bool=eq(sym1 sym2 :sym) -- symbol comparison
 
- num=symmax() -- return current size of symbol table
-
- num=symcnt() -- return number of symbols in table
-
 .SH FILE COMMANDS
 
  fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command
@@ -272,7 +268,7 @@ Evaluate single expression then exit.
 
  [str]=print([fmtstr] [val [val1 [... valn]]] :string|:str :out :err :file fileobj|pipeobj :prefix str) -- print value with optional format string
 
- str=gets(fileobj|pipeobj) -- gets a new-line terminated string from a file
+ str=gets(fileobj|pipeobj|sockobj) -- gets a new-line terminated string from a file
 
 .SH STRING COMMANDS
 

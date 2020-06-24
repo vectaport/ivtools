@@ -4,7 +4,7 @@
 # Header
 AC_PREREQ([2.67])
 
-AC_INIT([InterViews Application Framework and Drawing Tools],[1.2.11],[johnston@vectaport.com],[ivtools],[http://www.ivtools.org])
+AC_INIT([InterViews Application Framework and Drawing Tools],[2.0.0],[johnston@vectaport.com],[ivtools],[http://www.ivtools.org])
 
 dnl The foreign option allows the follow files to not exist: NEWS AUTHORS ChangeLog
 AM_INIT_AUTOMAKE([subdir-objects foreign -Wall])
@@ -98,15 +98,10 @@ AC_SUBST(ACE_LD)
 AC_SUBST(TIFF_LD)
 AC_SUBST(CLIPPOLY_LD)
 
-# Generated dynamic library version
-dnl This is not the approved way of versioning dynamic libraries
-dnl but we just want to generate version 1.2.8
+# Generated dynamic library version; in general, LIB_IV_VER=a:b:c
+# generates (a-c).c.b
 
-dnl LIB_IV_VER=8:0:1		# generates 7.1.0
-dnl LIB_IV_VER=2:8:2		# generates 0.2.8
-dnl LIB_IV_VER=3:8:2		# generates 1.2.8
-
-LIB_IV_VER=3:8:2
+LIB_IV_VER=2:0:0
 AC_SUBST(LIB_IV_VER)
 
 # Checks for header files.

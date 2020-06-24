@@ -24,6 +24,7 @@
 
 #include <ComTerp/comhandler.h>
 
+#include <ComTerp/ctrlfunc.h>
 #include <ComTerp/iofunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
@@ -435,22 +436,45 @@ GetStringFunc::GetStringFunc(ComTerp* comterp) : ComFunc(comterp) {
 void GetStringFunc::execute() {
   ComValue fileobjv(stack_arg(0));
   reset_stack();
-  FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
   FILE* fptr = NULL;
-  if (fileobj && fileobj->fptr()) {
-    fptr = fileobj->fptr();
-  } else {
-    PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
-    if (pipeobj && pipeobj->rdfptr()) 
-      fptr = pipeobj->rdfptr();
+  if (fileobjv.is_fileobj() || fileobjv.is_pipeobj()) {
+    if (fileobjv.is_fileobj()) {
+      FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
+      fptr = fileobj->fptr();
+    } else if (fileobjv.is_pipeobj()){
+      PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
+      if (pipeobj && pipeobj->rdfptr()) 
+	fptr = pipeobj->rdfptr();
+    }
+    char buffer[BUFSIZ];
+    char* ptr = fgets(buffer, BUFSIZ, fptr);
+    if (ptr)  {
+      ComValue retval(buffer);
+      push_stack(retval);
+    } else
+      push_stack(ComValue::nullval());
+    return;
   }
-  char buffer[BUFSIZ];
-  char* ptr = fgets(buffer, BUFSIZ, fptr);
-  if (ptr)  {
-    ComValue retval(buffer);
+
+#ifdef HAVE_ACE  
+  if (fileobjv.is_socketobj()) {
+    char buf[BUFSIZ];
+    int i=0;
+    ACE_SOCK_STREAM *socket = nil;
+    SocketObj* socketobj = (SocketObj*)fileobjv.geta(SocketObj::class_symid());
+    if (socketobj) 
+      socket = socketobj->socket();
+    do {
+      read(socket->get_handle(), buf+i++, 1);
+    } while (i<BUFSIZ-1 && buf[i-1]!='\n');
+    if (buf[i-1]=='\n') buf[i]=0;
+    ComValue retval(buf);
     push_stack(retval);
-  } else
-    push_stack(ComValue::nullval());
+    return;
+  }
+#endif
+
+  push_stack(ComValue::nullval());
 }
 
 /*****************************************************************************/
