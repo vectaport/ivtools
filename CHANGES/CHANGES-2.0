@@ -1,0 +1,24 @@
+June 21st 2020 ivtools-2.0.0
+
+Non-backward compatible changes from ivtools-1.2.11:
+
+* Swap "$$" and "$" operators in comterp.  The "$$" operator is now stream() (which matches
+  the other double-character stream operators - "..", "**", and ",,") and "$" is now list().
+
+* Reverse the priority of ".." (iterate()) and "**" (repeat()), giving ".." precedence over "**".
+  The reason is because ".." is more complex than "**", like multiplication is more complex than
+  addition.
+
+* Remove symmax() and symcnt() commands because they were redundant with symid() which accepts
+  :max and :cnt keywords.
+
+Other changes;
+
+* remove patches directory, sourceforge102203.xml, aclocal.m4, README.cygwin, README.ivmkcm, and comtop.tgz
+
+* migrated all CHANGES-* files to a CHANGES directory
+
+
+
+
+

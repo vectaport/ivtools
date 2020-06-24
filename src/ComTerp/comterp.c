@@ -1311,8 +1311,6 @@ void ComTerp::add_defaults() {
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
     add_command("substr", new SubStrFunc(this));
-    add_command("symmax", new SymMaxFunc(this));
-    add_command("symcnt", new SymCntFunc(this));
 
     add_command("type", new TypeSymbolFunc(this));
     add_command("class", new ClassSymbolFunc(this));
