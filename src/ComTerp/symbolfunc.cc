@@ -585,24 +585,3 @@ void SubStrFunc::execute() {
 }
 
 
-/*****************************************************************************/
-
-SymMaxFunc::SymMaxFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SymMaxFunc::execute() {
-  ComValue retval(symbol_max());
-  push_stack(retval);
-  return;
-}
-
-/*****************************************************************************/
-
-SymCntFunc::SymCntFunc(ComTerp* comterp) : ComFunc(comterp) {
-}
-
-void SymCntFunc::execute() {
-  ComValue retval(symbol_cnt());
-  push_stack(retval);
-  return;
-}
