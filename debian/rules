@@ -19,6 +19,7 @@ execute_after_dh_install:
 	 | xargs --no-run-if-empty rm --verbose
 
 execute_before_dh_installexamples: debian/glyphs.tar
+	@echo "build glyphs tar file before trying to install it"
 
 debian/glyphs.tar:
 	tar --create --file=$@ \
