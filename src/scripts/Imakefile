@@ -37,7 +37,7 @@ InstallScriptAs(ivgetjpg.bash,$(BINDIR),ivgetjpg)
 InstallScriptAs(cntsrclines.bash,$(BINDIR),cntsrclines)
 #endif
 InstallScriptAs(ivtiftopnm.bash,$(BINDIR),ivtiftopnm)
-InstallScriptAs(comterp_run.bash,$(BINDIR),comterp)
+InstallScriptAs(comterp_run.bash,$(BINDIR),comterp_run)
 
 InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)
 
