@@ -1,3 +1,10 @@
+June 30th 2020 ivtools-2.0.1
+
+* Fix nested user defined funcs in comterp (the func() command).
+
+* Change isalpha(), isdigit(), and isspace() funcs to return 0 or 1
+  (instead of the bitmask which is returned for C).
+
 June 21st 2020 ivtools-2.0.0
 
 Non-backward compatible changes from ivtools-1.2.11:
