@@ -255,67 +255,6 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   return FUNCOK;
 }
 
-void ComTerp::load_sub_expr() {
-
-  /* initialize arrays of ComValue's wrapped around ComFunc's */
-  /* and counters that indicate depth of post-eval operators  */
-  if (!_pfcomvals) {
-    _pfcomvals = new ComValue[_pfnum];
-    for (int i=_pfnum-1; i>=0; i--) {
-      ComValue* sv = _pfcomvals + i;
-      token_to_comvalue(_pfbuf+i, sv);
-    }
-    int offset = 0;
-    for (int j=_pfnum-1; j>=0; j--) {
-      ComValue* sv = _pfcomvals + j;
-      if (sv->is_type(ComValue::CommandType)) {
-	ComFunc* func = (ComFunc*)sv->obj_val();
-	if (func && func->post_eval()) {
-	  int newoffset = offset;
-	  skip_func(_pfcomvals+_pfnum-1, newoffset, -_pfnum);
-	  int start = j-1;
-	  int stop = _pfnum+newoffset;
-	  for (int k=start; k>=stop; k--) 
-	    _pfcomvals[k].pedepth()++;
- 	}
-      }
-    }
-    offset--;
-  }
-  
-  /* skip pushing values on stack until _postevaldepth is 0 */
-  /* push all the zero-depth things until you get a CommandType */
-  while (_pfoff < _pfnum ) {
-    if (_pfcomvals[_pfoff].pedepth()) {
-      _pfoff++;
-      continue;
-    }
-    if (_pfcomvals[_pfoff].is_type(ComValue::CommandType)) {
-      ComFunc* func = (ComFunc*)_pfcomvals[_pfoff].obj_val();
-      if (func && func->post_eval()) {
-	ComValue argoffval(_pfoff);
-	push_stack(argoffval);
-      }
-    }
-    if (!_pfcomvals[_pfoff].is_blank()) {
-      push_stack(_pfcomvals[_pfoff]);
-    } else {
-      /* to handle a list as the 1st operand of the tuple operator */
-      if (stack_top(0).is_array()) {
-	stack_top(0).array_val()->nested_insert(true);
-      } else if (stack_top(0).is_symbol()) {
-        AttributeValue* av = lookup_symval(&stack_top(0));
-	if (av && av->is_array()) av->array_val()->nested_insert(true);
-      } 
-    }
-    _pfoff++;
-    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj(this)) && 
-	!_pfcomvals[_pfoff-1].pedepth()) break;
-  }
-  
-}
-
-
 void ComTerp::eval_expr_internals(int pedepth) {
   static int step_symid = symbol_add("step");
   ComValue sv = pop_stack(false);
@@ -359,6 +298,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
       // fprintf(stderr, "comterp::eval_expr_internals:  packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
       val.stream_mode(STREAM_EXTERNAL); // for external use
       push_stack(val);
+      return;
     }
 
     ComFunc* func = nil;
@@ -445,11 +385,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
     else if (stack_base+1 > _stack_top)
       fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
-    return;
     
-  }
-
-  if (sv.type() == ComValue::SymbolType) {
+  } else if (sv.type() == ComValue::SymbolType) {
 
     if (_func_for_next_expr) {
       ComFunc* func = _func_for_next_expr;
@@ -463,68 +400,174 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	push_stack(ComValue::blankval());
 	_just_reset = false;
       }
-      return;
-    }
-      
-    if (_alist) {
-    // cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
-      int id = sv.symbol_val();
-      AttributeValue* av = _alist->find(id);  
-      if (av) {
-	ComValue newval(*av);
-	push_stack(newval);
-	return;
-      }
-    }
-      
-    // cerr << "looking up " << sv.symbol_ptr() << "\n";
-    const char* funcname = sv.symbol_ptr();
-    ComValue val = lookup_symval(sv);
-    if(val.is_object(FuncObj::class_symid())) {
-      EvalFunc ef(this);
-      if(val.narg()!=val.nkey()) {
-	fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
-	push_stack(ComValue::nullval());
-	return;
-      }
-      if(val.narg()==0) {
-	fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
-	push_stack(ComValue::nullval());
-	return;
-      }
-      AttributeList* al = new AttributeList();
-      for(int i=0; i<val.narg(); i++) {
-	ComValue keyv(pop_stack());
-	ComValue valv(pop_stack());
-	al->add_attr(keyv.keyid_val(), valv);
-      }
-      push_stack(val);
-      ComValue alv(AttributeList::class_symid(), al);
-      push_stack(alv);
-      static int alist_symid = symbol_add("alist");
-      ComValue alkeyv(alist_symid, 1);
-      push_stack(alkeyv);
-      ef.exec(2, 1);
+
     } else {
-      push_stack(val);
+      
+      if (_alist) {
+	// cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
+	int id = sv.symbol_val();
+	AttributeValue* val = _alist->find(id);  
+	if (val) {
+	  ComValue newval(*val);
+	  push_stack(newval);
+	  return;
+	}
+      }
+      // cerr << "looking up " << sv.symbol_ptr() << "\n";
+      const char* funcname = sv.symbol_ptr();
+      ComValue val = lookup_symval(sv);
+      if(val.is_object(FuncObj::class_symid())) {
+	EvalFunc ef(this);
+	if(val.narg()!=val.nkey()) {
+	  fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
+	  push_stack(ComValue::nullval());
+	  return;
+	}
+	if(val.narg()==0) {
+	  fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
+	  push_stack(ComValue::nullval());
+	  return;
+	}
+	AttributeList* al = new AttributeList();
+	for(int i=0; i<val.narg(); i++) {
+	  ComValue keyv(pop_stack());
+	  ComValue valv(pop_stack());
+	  al->add_attr(keyv.keyid_val(), valv);
+	}
+	push_stack(val);
+	ComValue alv(AttributeList::class_symid(), al);
+	push_stack(alv);
+	static int alist_symid = symbol_add("alist");
+	ComValue alkeyv(alist_symid, 1);
+	push_stack(alkeyv);
+	ef.exec(2, 1);
+      } else {
+	push_stack(val);
+      }
     }
-    return;
-  }
+    
+  } else if (sv.is_object(Attribute::class_symid())) {
 
-  if (sv.is_object(Attribute::class_symid())) {
     push_stack(*((Attribute*)sv.obj_val())->Value());
-    return;
-  }
+    
+  } else if (sv.type() == ComValue::BlankType) {
 
-  if (sv.type() == ComValue::BlankType) {
     if (!stack_empty()) eval_expr_internals(pedepth);
-    return;
+
+  } else {  /* everything else*/
+    
+    push_stack(sv);
+    
+  }
+}
+
+void ComTerp::load_sub_expr() {
+
+  /* initialize arrays of ComValue's wrapped around ComFunc's */
+  /* and counters that indicate depth of post-eval operators  */
+  if (!_pfcomvals) {
+    _pfcomvals = new ComValue[_pfnum];
+    for (int i=_pfnum-1; i>=0; i--) {
+      ComValue* sv = _pfcomvals + i;
+      token_to_comvalue(_pfbuf+i, sv);
+    }
+    int offset = 0;
+    for (int j=_pfnum-1; j>=0; j--) {
+      ComValue* sv = _pfcomvals + j;
+      if (sv->is_type(ComValue::CommandType)) {
+	ComFunc* func = (ComFunc*)sv->obj_val();
+	if (func && func->post_eval()) {
+	  int newoffset = offset;
+	  skip_func(_pfcomvals+_pfnum-1, newoffset, -_pfnum);
+	  int start = j-1;
+	  int stop = _pfnum+newoffset;
+	  for (int k=start; k>=stop; k--) 
+	    _pfcomvals[k].pedepth()++;
+	}
+      }
+      offset--;
+    }
   }
 
-  /* everything else*/
-  push_stack(sv);
-  return;
+  /* skip pushing values on stack until _postevaldepth is 0 */
+  /* push all the zero-depth things until you get a CommandType */
+  while (_pfoff < _pfnum ) {
+    if (_pfcomvals[_pfoff].pedepth()) {
+      _pfoff++;
+      continue;
+    }
+    if (_pfcomvals[_pfoff].is_type(ComValue::CommandType)) {
+      ComFunc* func = (ComFunc*)_pfcomvals[_pfoff].obj_val();
+      if (func && func->post_eval()) {
+	ComValue argoffval(_pfoff);
+	push_stack(argoffval);
+      }
+    }
+    if (!_pfcomvals[_pfoff].is_blank()) {
+      push_stack(_pfcomvals[_pfoff]);
+    } else {
+      /* to handle a list as the 1st operand of the tuple operator */
+      if (stack_top(0).is_array()) {
+	stack_top(0).array_val()->nested_insert(true);
+      } else if (stack_top(0).is_symbol()) {
+        AttributeValue* av = lookup_symval(&stack_top(0));
+	if (av && av->is_array()) av->array_val()->nested_insert(true);
+      } 
+    }
+    _pfoff++;
+    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj(this)) && 
+	!_pfcomvals[_pfoff-1].pedepth()) break;
+  }
+  
+#if 0
+
+    /* find the index of the last (or outermost) */
+    /* post_eval command in the postfix buffer */
+    int top_post_eval = -1;
+    int pfptr = _pfnum-1;
+    while (pfptr > _pfoff ) {
+      
+        void *vptr = nil;
+
+	/* look up ComFunc and check post_eval flag */
+        if (_pfbuf[pfptr].type==TOK_COMMAND)
+	  localtable()->find(vptr, _pfbuf[pfptr].v.dfintval);
+        ComValue* comptr = (ComValue*)vptr;
+
+        if (comptr && comptr->is_type(AttributeValue::CommandType)) {
+	    ComFunc* comfunc = (ComFunc*)comptr->obj_val();
+	    if (comfunc && comfunc->post_eval()) {
+	        top_post_eval = pfptr;
+		break;
+	    }
+	}
+        pfptr--;
+    }
+
+    /* push tokens onto the stack until the last post_eval command is pushed */
+    /* or if none, the first !post_eval command is pushed */
+    while (_pfoff < _pfnum ) {
+        push_stack(_pfbuf + _pfoff);
+        _pfoff++;
+	if (stack_top().type() == ComValue::CommandType && 
+	(top_post_eval<0 || top_post_eval == _pfoff-1) ) break;
+    }
+
+    /* count down on stack to determine the number of */
+    /* args associated with keywords for this command */
+    if (stack_top().type() == ComValue::CommandType && top_post_eval<0) {
+      int nargs_after_key = 0;
+      for (int i=0; i<_pfbuf[_pfoff-1].narg+_pfbuf[_pfoff-1].nkey; i++) {
+	ComValue& val = stack_top(-i-1);
+	if (val.is_type(ComValue::KeywordType))
+	  nargs_after_key += val.keynarg_val();
+      }
+      return nargs_after_key;
+    } else
+      return 0;
+#endif    
 }
+
 
 int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth 
 #ifdef POSTEVAL_EXPERIMENT
@@ -670,7 +713,7 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokc
   ComValue& curr = *(topval+offset);
   // fprintf(stderr, "offset is %d, topval is at 0x%lx\n", offset, topval);
   if (curr.is_type(ComValue::KeywordType)) {
-    cerr << "Unexpected keyword :" <<  symbol_pntr(curr.keyid_val()) << " found by ComTerp::skip_arg at line " << _linenum << "\n";
+    cerr << "unexpected keyword found by ComTerp::skip_arg\n";
     return false;
 #if 0
   } else if (curr.is_type(ComValue::UnknownType)) {

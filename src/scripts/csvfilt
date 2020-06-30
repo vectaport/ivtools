@@ -1,0 +1,71 @@
+#! /usr/bin/env comterp_run
+#
+# csvfilt  process .csv file
+#
+
+/* command line help */
+if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil || arg(1)=="?" ||
+  arg(1)=="-help" || arg(1)=="--help" || arg(1)=="-?" :then
+  
+    print("csvfilt  process .csv file\n");
+    print("Usage:  csvfilt csvfile --header --keys [keylist]\n\n");
+    print("--header\t\tPrint header record that names each column\n");
+    print("--keys [keylist]\tFilter for given keys\n");
+    exit)
+
+fp=open(arg(1) "r")
+if(fp==null :then
+  print("csvfilt:  unable to open csv file %s\n" arg(1) :err);
+  exit)
+
+header_flag=false
+keys_flag=false
+for(i=2 i<narg() i++
+  switch(substr(arg(i) 2 :after)
+    :header  header_flag=true
+    :keys  keys_flag=true;if(substr(arg(i+1) 2)=="--" :then continue);i++;keys_val=arg(i)
+    :default print("csvfilt:  Unknown argument %s\n" arg(i) :err)))
+
+// grab title
+s=gets(fp)
+hdrtoks=split(s :tokstr ',')
+if(header_flag :then
+  ss=$$hdrtoks;
+  init=false;
+  while((v=next(ss))!=nil
+    if(init :then print(",") :else init=true);
+    print(v));
+  print("\n");
+  exit)
+
+// list fields
+indexl=list
+if(keys_flag :then
+    keyl=split(keys_val :tokstr ',');
+    ks=$$keyl;
+    while((vk=next(ks))!=nil
+      hs=$$hdrtoks;
+      hcnt=0;
+      while((vh=next(hs))!=nil
+        if(vk==vh :then
+	  indexl,hcnt;
+	  break);
+	hcnt++);
+	if(vh==nil :then
+	  print("csvfilt:  Key not found (%s)\n" vk :err);
+	  exit(1))))
+
+// Print out selected header keys
+for(i=0 i<size(indexl) i++
+  if(i!=0 :then print(","));
+  print(at(hdrtoks at(indexl i))))
+print("\n")
+
+// Print out key-selected fields
+while((s=gets(fp))!=nil
+  toks=split(s :tokstr ',');
+  for(i=0 i<size(indexl) i++
+    if(i!=0 :then print(","));
+    print(at(toks at(indexl i))));
+  print("\n"))
+  
