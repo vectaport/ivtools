@@ -385,8 +385,12 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
     else if (stack_base+1 > _stack_top)
       fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
+
+    return;
     
-  } else if (sv.type() == ComValue::SymbolType) {
+  }
+
+  if (sv.type() == ComValue::SymbolType) {
 
     if (_func_for_next_expr) {
       ComFunc* func = _func_for_next_expr;
@@ -413,6 +417,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	  return;
 	}
       }
+      
       // cerr << "looking up " << sv.symbol_ptr() << "\n";
       const char* funcname = sv.symbol_ptr();
       ComValue val = lookup_symval(sv);
@@ -445,20 +450,29 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	push_stack(val);
       }
     }
-    
-  } else if (sv.is_object(Attribute::class_symid())) {
 
-    push_stack(*((Attribute*)sv.obj_val())->Value());
-    
-  } else if (sv.type() == ComValue::BlankType) {
-
-    if (!stack_empty()) eval_expr_internals(pedepth);
-
-  } else {  /* everything else*/
-    
-    push_stack(sv);
+    return;
     
   }
+
+  if (sv.is_object(Attribute::class_symid())) {
+
+    push_stack(*((Attribute*)sv.obj_val())->Value());
+    return;
+    
+  }
+
+  if (sv.type() == ComValue::BlankType) {
+
+    if (!stack_empty()) eval_expr_internals(pedepth);
+    return;
+
+  }
+
+  /* everything else*/
+  push_stack(sv);
+  return;
+
 }
 
 void ComTerp::load_sub_expr() {

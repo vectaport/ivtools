@@ -1771,6 +1771,7 @@ ivtools-2.0/src/scripts/comterp_run.bash
 ivtools-2.0/src/scripts/config.guess
 ivtools-2.0/src/scripts/config.sub
 ivtools-2.0/src/scripts/cpu.sh
+ivtools-2.0/src/scripts/csvfilt
 ivtools-2.0/src/scripts/install-sh
 ivtools-2.0/src/scripts/ivcd.cpp
 ivtools-2.0/src/scripts/ivct.cpp
