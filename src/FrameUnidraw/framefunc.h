@@ -34,6 +34,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s([num] :abs) -- move frame by num or to num if :abs"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":abs       move to absolute frame",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: interpreter command to create new frame.
@@ -44,6 +51,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(:before) -- create and move to new frame"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":before    create frame before current frame",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: interpreter command to toggle the autonewframe flag
@@ -54,6 +68,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s(:on :off) -- command to toggle autonewframe"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":on        set autonewframe on",
+	":off       set autonewframe off",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: interpreter command to return number of frames in viewer

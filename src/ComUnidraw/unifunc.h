@@ -84,14 +84,21 @@ protected:
 };
 
 //: command for toggling or setting paste mode
-// val=paste([flag] :val) -- toggle or set paste mode, default is 0, always paste new graphics
+// val=pastemode([flag] :get) -- toggle or set paste mode, default is 0, always paste new graphics
 class PasteModeFunc : public UnidrawFunc {
 public:
     PasteModeFunc(ComTerp*, Editor*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=%s([flag] :val) -- toggle or set paste mode, default is 0, always paste new graphics"; }
+      return "val=%s([flag] :get) -- toggle or set paste mode, default is 0, always paste new graphics"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":get       return paste mode",
+	nil
+      };
+      return keys;
+    }
     static int paste_mode() { return _paste_mode; }
     static void paste_mode(int mode) { _paste_mode = mode; }
  protected:
@@ -99,13 +106,20 @@ public:
 };
 
 //: command to make a graphic read-only in comdraw.
-// compview=readonly(compview :clear) -- set or clear the readonly attribute of a graphic component
+// compview=readonly(compview :clear) -- set or clear the read-only attribute of a graphic component
 class ReadOnlyFunc : public UnidrawFunc {
 public:
     ReadOnlyFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "compview=%s(compview :clear) -- set or clear the readonly attribute of a graphic component"; }
+	return "compview=%s(compview :clear) -- set or clear the read-only attribute of a graphic component"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":clear     clear read-only attribute",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -133,17 +147,26 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "compview=%s(pathname :popen :next) -- import graphic file from pathname or URL, or from a command if :popen\n(:next imports next in numeric series)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":popen     open as pipe",
+	":next      import next in numeric series",
+	nil
+      };
+      return keys;
+    }
 
 };
 
 //: command to export a graphic file
-// export(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- export in drawtool (or other) format "; 
+// export(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :eps :idraw) -- export in drawtool (or other) format "; 
 class ExportFunc : public UnidrawFunc {
 public:
   ExportFunc(ComTerp* c, Editor* e, const char* appname=nil);
   virtual ~ExportFunc() { delete _docstring; }
   virtual void execute();
   virtual const char* docstring();
+  virtual const char** dockeys();
   const char* appname() { return _appname ? _appname : "drawtool"; }
   void appname(const char* name) 
     { _appname = name; delete _docstring; _docstring=nil;}
@@ -163,6 +186,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "compview=%s(compview [:keyword value [:keyword value [...]]]) -- set attributes of a graphic component"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":keyword value         keyword/value to set attribute on graphic",
+	nil
+      };
+      return keys;
+    }
 
 };
 
@@ -185,6 +215,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "pause(:usec usec) -- pause script execution until C/R (or usec)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":usec      microseconds to pause",
+	nil
+      };
+      return keys;
+    }
 
 };
 

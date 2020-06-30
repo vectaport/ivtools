@@ -202,6 +202,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s([compview ... | compview,compview[,... compview]] :all :clear) -- make these graphics the current selection (dflt is current)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":all       select all graphics",
+	":clear     clear current selection",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to delete graphics in comdraw.

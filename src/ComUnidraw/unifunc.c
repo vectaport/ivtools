@@ -368,7 +368,7 @@ ExportFunc::ExportFunc(ComTerp* comterp, Editor* editor,
 const char* ExportFunc::docstring() { 
   const char* df = 
 #ifdef HAVE_ACE
-    "%s(compview[,compview[,...compview]] [path] :host host_str :port port_int :socket :string|:str :eps :idraw) -- export in %s format ";
+    "%s(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :eps :idraw) -- export in %s format ";
 #else
   "%s(compview[,compview[,...compview]] [path] :string|:str :eps :idraw) -- export in %s format ";
 #endif
@@ -377,6 +377,21 @@ const char* ExportFunc::docstring() {
     sprintf(_docstring, df, "%s", appname() );
   }
   return _docstring;
+}
+
+const char** ExportFunc::dockeys() {
+  static const char* keys[] = {
+#ifdef HAVE_ACE
+    ":host str              hostname for remote export\n",
+    ":port int              port number on remote host\n",
+    ":socket                use existing socket connection\n",
+#endif
+    ":string|str            export to string\n",
+    ":eps                   export in EPS format\n",
+    ":idraw                 export in idraw format\n",
+    nil
+  };
+  return keys;
 }
 
 void ExportFunc::execute() {
