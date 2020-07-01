@@ -1,7 +1,8 @@
 version=4
 
-http://www.ivtools.org/@PACKAGE@/download.html .*/ivtools-([\d.]+)\.tgz.*
-
 # https://sf.net/@PACKAGE@/@PACKAGE@-([\d.]+)\.tgz
+# http://www.ivtools.org/@PACKAGE@/download.html .*/ivtools-([\d.]+)\.tgz.*
+# https://github.com/vectaport/@PACKAGE@/tags (?:.*/)?@PACKAGE@-@ANY_VERSION@@ARCHIVE_EXT@
+# https://github.com/vectaport/@PACKAGE@/tags (?:.*/)?upstream/@ANY_VERSION@@ARCHIVE_EXT@
 
-https://github.com/vectaport/@PACKAGE@/tags (?:.*/)?@PACKAGE@-@ANY_VERSION@@ARCHIVE_EXT@
+https://github.com/vectaport/@PACKAGE@/tags (?:.*/(v|@PACKAGE@-|upstream/))?@ANY_VERSION@@ARCHIVE_EXT@
