@@ -1,3 +1,18 @@
+June 30th 2020 ivtools-2.0.1
+
+* Fix nested user defined funcs in comterp (the func() command).
+
+* Change isalpha(), isdigit(), and isspace() funcs to return 0 or 1
+  (instead of the bitmask which is returned for C).
+
+* Add comterp_run utility script for hands-free launching of comterp scripts.
+  Write scripts with this header:
+
+   #! /usr/bin/env comterp_run
+
+* Add csvfilt comterp script as an example of using comterp_run.
+  After installing both try "csvfilt --help".
+
 June 21st 2020 ivtools-2.0.0
 
 Non-backward compatible changes from ivtools-1.2.11:

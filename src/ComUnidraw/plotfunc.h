@@ -27,13 +27,24 @@
 #include <ComUnidraw/unifunc.h>
 
 //: command to plot a barchart in comdraw using plotmtv/pstoedit
-// barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str :ytitle ytitle_str :valtitle valtitle_str :newview) -- display a barplot
+// barplot([var_str value_float] [...] :title str :xtitle str :ytitle str :valtitle str :newview) -- display a barplot
 class BarPlotFunc : public UnidrawFunc {
 public:
     BarPlotFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([var_str value_float] [...] :title title_str :xtitle xtitle_str :ytitle ytitle_str :valtitle valtitle_str :newview) -- display a barplot"; }
+	return "%s([var_str value_float] [...] :title str :xtitle str :ytitle str :valtitle str :newview) -- display a barplot"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":title str             plot title",
+	":xtitle str            x axis title",
+	":ytitle str            y axis title",
+	":valtitle str          value title",
+	":newview               create new viewer",
+	nil
+      };
+      return keys;
+    }
 };
 
 #endif /* !defined(_plotfunc_h) */

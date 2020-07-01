@@ -45,7 +45,7 @@ void IsSpaceFunc::execute() {
   ComValue charv(stack_arg(0));
   reset_stack();
   int boolval = isspace(charv.char_val());
-  ComValue result(boolval, ComValue::BooleanType);
+  ComValue result(boolval?1:0, ComValue::BooleanType);
   push_stack(result);
 }
 
@@ -57,7 +57,7 @@ void IsDigitFunc::execute() {
   ComValue charv(stack_arg(0));
   reset_stack();
   int boolval = isdigit(charv.char_val());
-  ComValue result(boolval, ComValue::BooleanType);
+  ComValue result(boolval?1:0, ComValue::BooleanType);
   push_stack(result);
 }
 
@@ -69,7 +69,7 @@ void IsAlphaFunc::execute() {
   ComValue charv(stack_arg(0));
   reset_stack();
   int boolval = isalpha(charv.char_val());
-  ComValue result(boolval, ComValue::BooleanType);
+  ComValue result(boolval?1:0, ComValue::BooleanType);
   push_stack(result);
 }
 

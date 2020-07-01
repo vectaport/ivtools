@@ -71,8 +71,10 @@ void PostFixFunc::execute() {
 	val.nids() >= TOK_RPAREN )) {
       if (!_detail_matched_delims) {
 	out << "[" << val.narg() << "|" << val.nkey() << "]";
-	ComFunc* func = (ComFunc*)val.obj_val();
-	if (func->post_eval()) out << "*";
+	if (val.is_type(AttributeValue::CommandType)) {
+  	  ComFunc* func = (ComFunc*)val.obj_val();
+	  if (func->post_eval()) out << "*";
+	}
       } else {
 	char ldelim, rdelim;
 	boolean dbldelim = 0;
