@@ -660,9 +660,13 @@ InterViews: src/IV/InterViews.defaults
 
 ### binaries
 
-bin_SCRIPTS = pnmtopgm
+bin_SCRIPTS = pnmtopgm comterp_run src/scripts/csvfilt
 
 pnmtopgm: src/scripts/pnmtopgm.sh
+	cp $< $@
+	chmod a+x $@
+
+comterp_run: src/scripts/comterp_run.bash
 	cp $< $@
 	chmod a+x $@
 
