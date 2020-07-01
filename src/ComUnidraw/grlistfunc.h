@@ -39,6 +39,14 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":set val   set val in list",
+	":ins val   insert val in list",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: list size command for Unidraw

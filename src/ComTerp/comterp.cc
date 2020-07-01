@@ -385,8 +385,12 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
     else if (stack_base+1 > _stack_top)
       fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
+
+    return;
     
-  } else if (sv.type() == ComValue::SymbolType) {
+  }
+
+  if (sv.type() == ComValue::SymbolType) {
 
     if (_func_for_next_expr) {
       ComFunc* func = _func_for_next_expr;
@@ -410,56 +414,65 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	if (val) {
 	  ComValue newval(*val);
 	  push_stack(newval);
-	} else
-	  push_stack(ComValue::nullval());
-      } else {
-	// cerr << "looking up " << sv.symbol_ptr() << "\n";
-	const char* funcname = sv.symbol_ptr();
-        ComValue val = lookup_symval(sv);
-        if(val.is_object(FuncObj::class_symid())) {
-          EvalFunc ef(this);
-          if(val.narg()!=val.nkey()) {
-            fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
-            push_stack(ComValue::nullval());
-	    return;
-	  }
-          if(val.narg()==0) {
-            fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
-            push_stack(ComValue::nullval());
-	    return;
-	  }
-          AttributeList* al = new AttributeList();
-          for(int i=0; i<val.narg(); i++) {
-            ComValue keyv(pop_stack());
-            ComValue valv(pop_stack());
-            al->add_attr(keyv.keyid_val(), valv);
-          }
-	  push_stack(val);
-          ComValue alv(AttributeList::class_symid(), al);
-          push_stack(alv);
-	  static int alist_symid = symbol_add("alist");
-	  ComValue alkeyv(alist_symid, 1);
-	  push_stack(alkeyv);
-          ef.exec(2, 1);
-        } else {
-	  push_stack(val);
+	  return;
 	}
       }
+      
+      // cerr << "looking up " << sv.symbol_ptr() << "\n";
+      const char* funcname = sv.symbol_ptr();
+      ComValue val = lookup_symval(sv);
+      if(val.is_object(FuncObj::class_symid())) {
+	EvalFunc ef(this);
+	if(val.narg()!=val.nkey()) {
+	  fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
+	  push_stack(ComValue::nullval());
+	  return;
+	}
+	if(val.narg()==0) {
+	  fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
+	  push_stack(ComValue::nullval());
+	  return;
+	}
+	AttributeList* al = new AttributeList();
+	for(int i=0; i<val.narg(); i++) {
+	  ComValue keyv(pop_stack());
+	  ComValue valv(pop_stack());
+	  al->add_attr(keyv.keyid_val(), valv);
+	}
+	push_stack(val);
+	ComValue alv(AttributeList::class_symid(), al);
+	push_stack(alv);
+	static int alist_symid = symbol_add("alist");
+	ComValue alkeyv(alist_symid, 1);
+	push_stack(alkeyv);
+	ef.exec(2, 1);
+      } else {
+	push_stack(val);
+      }
     }
-    
-  } else if (sv.is_object(Attribute::class_symid())) {
 
-    push_stack(*((Attribute*)sv.obj_val())->Value());
-    
-  } else if (sv.type() == ComValue::BlankType) {
-
-    if (!stack_empty()) eval_expr_internals(pedepth);
-
-  } else {  /* everything else*/
-    
-    push_stack(sv);
+    return;
     
   }
+
+  if (sv.is_object(Attribute::class_symid())) {
+
+    push_stack(*((Attribute*)sv.obj_val())->Value());
+    return;
+    
+  }
+
+  if (sv.type() == ComValue::BlankType) {
+
+    if (!stack_empty()) eval_expr_internals(pedepth);
+    return;
+
+  }
+
+  /* everything else*/
+  push_stack(sv);
+  return;
+
 }
 
 void ComTerp::load_sub_expr() {

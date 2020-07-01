@@ -34,6 +34,17 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "xylist=%s(compview :xy :yx :x :y :scrn) -- center of compview (dflt :xy)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":xy        return x,y of center",
+	":yx        return y,x of center",
+	":x         return x of center",
+	":y         return y of center",
+	":scrn      return center in screen coordinates",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to return minimum-bounding rectangle of graphics in comdraw.
@@ -44,6 +55,15 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "rectlist=%s(compview :lbrt :lrbt :scrn) -- minimum-bounding rectangle of compview (dflt :lbrt :lrbt)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":lbrt      return left,bottom,right,top of mbr",
+	":lrbt      return left,right,bottom,top of mbr",
+	":scrn      return mbr in screen coordinates",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to return point list associated with a graphic

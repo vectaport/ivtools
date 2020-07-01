@@ -105,12 +105,14 @@ graphical object assigned to an interpreter variable.
    -- import graphic file from pathname or URL, or from a command if :popen
       (:next imports next in numeric series)
  export(compview[,compview[,...compview]] [path]
- :host host_str :port port_int :socket :string|:str :eps :idraw)
+ :host str :port int :socket :string|:str :eps :idraw)
    -- remote in drawtool (or other) format
  compview=paste(compview [xscl yscl xoff yoff | a00,a01,a10,a11,a20,a21])
    -- paste graphic into the viewer
  val=pastemode([val] :get)
    -- toggle or set paste mode, default is 0, always paste new graphics
+ compview=readonly(compview :clear)
+   -- set or clear the read-only attribute of a graphic component
 
  ncols() -- onscreen horizontal extent in pixels
  nrows() -- onscreen vertical extent in pixels
@@ -163,8 +165,8 @@ graphical object assigned to an interpreter variable.
 .SH PLOTTING COMMANDS
 
  ** requires plotmtv and pstoedit **
- barplot([var_str value_float] [...] :title title_str :xtitle xtitle_str 
-	:ytitle ytitle_str :valtitle valtitle_str :newview)
+ barplot([var_str value_float] [...] :title str :xtitle str 
+	:ytitle str :valtitle str :newview)
   -- display a barplot
 
 .SH OTHER COMMANDS
