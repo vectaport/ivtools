@@ -307,14 +307,7 @@ public:
     ScreenSizeFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-      return "sx,sy=%s(:chkmap) -- size of screen"; }
-    virtual const char** dockeys() {
-      static const char* keys[] = {
-        ":chkmap    return nil if screen not yet fully mapped",
-	nil
-      };
-      return keys;
-    }
+      return "sx,sy=%s() -- size of screen"; }
 };
 
 //: command to return drawing size

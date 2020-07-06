@@ -858,8 +858,6 @@ ScreenSizeFunc::ScreenSizeFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comte
 }
 
 void ScreenSizeFunc::execute() {
-  static int chkmap_symid = symbol_add("chkmap");
-  ComValue chkmapv(stack_key(chkmap_symid));
   reset_stack();
   OverlayEditor* ed = (OverlayEditor*)GetEditor();
   OverlayViewer* viewer = ed ? (OverlayViewer*)ed->GetViewer() : nil;
@@ -867,7 +865,7 @@ void ScreenSizeFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  if(chkmapv.is_true() && !((OverlayUnidraw*)unidraw)->fully_mapped()) {
+  if(!((OverlayUnidraw*)unidraw)->fully_mapped()) {
     push_stack(ComValue::nullval());
     return;
   }

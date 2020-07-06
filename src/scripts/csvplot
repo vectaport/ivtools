@@ -40,7 +40,6 @@ hdrtoks=split(s :tokstr ',')
 
 // check if comdraw already running
 sock=socket(host_name port_num)
-chkmap=sock==nil
 if(sock==nil&&host_name=="localhost" :then
   shell(print("comdraw -stripped -geometry %s -comdraw %d &" geom_str port_num :str));
   n=10;
@@ -56,7 +55,7 @@ xwin=int(substr(geom_str "x"))
 ywin=int(substr(geom_str "x" :after))
 
 // get screen size
-while((scrdim=remote(sock cond(chkmap "ssize(:chkmap)" "ssize()")))==nil
+while((scrdim=remote(sock "ssize()"))==nil
   usleep(100000))
 xscr=at(scrdim)
 yscr=at(scrdim 1)
@@ -68,5 +67,36 @@ ybeg=int(yscr*margin)
 xend=int(xscr*(1-margin))
 yend=int(yscr*(1-margin))
 remote(sock print("rect(%d,%d,%d,%d)" xbeg ybeg xend yend :str))
+
+// read in x,y columns
+xdata=list
+ydata=list
+while((s=gets(fp))!=nil
+  toks=split(s :tokval);
+  xval=at(toks);
+  yval=at(toks 1);
+  xmin=cond(xmin!=nil cond(xmin>xval xval xmin) xval);
+  ymin=cond(ymin!=nil cond(ymin>yval yval ymin) yval);
+  xmax=cond(xmax!=nil cond(xmax<xval xval xmax) xval);
+  ymax=cond(ymax!=nil cond(ymax<yval yval ymax) yval);
+  xdata,xval;
+  ydata,yval)
+
+xgain=float(xend-xbeg)/(xmax-xmin)
+ygain=float(yend-ybeg)/(ymax-ymin)
+
+print("xmin,xmax %d,%d\n" xmin xmax)
+print("ymin,ymax %d,%d\n" ymin ymax)
+print("xbeg,xend %d,%d\n" xbeg xend)
+print("ybeg,yend %d,%d\n" ybeg yend)
+print("xgain,ygain %f,%f\n" xgain ygain)
+
+
+n=size(xdata)
+for(i=0 i<n i++
+  xval=int((at(xdata i)-xmin)*xgain+xbeg);
+  yval=int((at(ydata i)-ymin)*ygain+ybeg);
+  remote(sock print("ellipse(%d,%d,4,4)" xval yval :str) :str))
+  
                                                              
 close(sock)
