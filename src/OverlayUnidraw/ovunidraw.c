@@ -63,6 +63,7 @@ boolean* OverlayUnidraw::_updated_ptr = nil;
 ComTerpServ* OverlayUnidraw::_comterp = nil;
 int OverlayUnidraw::_npause = nil;
 boolean OverlayUnidraw::_deferred_notifications = 0;
+int OverlayUnidraw::_configure_notify_count = 0;
 
 /*****************************************************************************/
 
@@ -147,6 +148,7 @@ void OverlayUnidraw::Run () {
 	}
 	  
 	if (!updated()) {
+   	    if (_configure_notify_count<4 && e.rep()->xevent_.type==ConfigureNotify) { _configure_notify_count++; }
 	    e.handle();
 	    session->default_display()->flush();
 	}

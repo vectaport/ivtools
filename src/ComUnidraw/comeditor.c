@@ -230,6 +230,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("stod", new ScreenToDrawingFunc(comterp, this));
     comterp->add_command("dtog", new DrawingToGraphicFunc(comterp, this));
     comterp->add_command("gtod", new GraphicToDrawingFunc(comterp, this));
+    comterp->add_command("ssize", new ScreenSizeFunc(comterp, this));
+    comterp->add_command("dsize", new DrawingSizeFunc(comterp, this));
 
     comterp->add_command("poke", new PixelPokeFunc(comterp, this));
     comterp->add_command("peek", new PixelPeekFunc(comterp, this));

@@ -1,0 +1,22 @@
+// Generate a unit size five-pointed start centered around 0,0
+s18=sin(degtorad(18));
+c18=cos(degtorad(18));
+s36=sin(degtorad(36));
+c36=cos(degtorad(36));
+pts=0,0;
+pts,s18,c18;
+pts,s18*2,0;
+pts,s18*2-c36,s36;
+pts,s18*2-c36+1,s36;
+pts,0,0;
+smx=0;
+smy=0;
+for(ii=0 ii<5 ii++
+  smx+=at(pts ii*2);
+  smy+=at(pts ii*2+1));
+avgx=smx/5;avgy=smy/5;
+for(ii=0 ii<6 ii++
+  at(pts ii*2 :set at(pts ii*2)-avgx);
+  at(pts ii*2+1 :set at(pts ii*2+1)-avgy));
+pts
+

@@ -417,14 +417,23 @@ CloseFileFunc::CloseFileFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void CloseFileFunc::execute() {
-  ComValue fileobjv(stack_arg(0));
+  ComValue objv(stack_arg(0));
   reset_stack();
-  FileObj *fileobj = (FileObj*)fileobjv.geta(FileObj::class_symid());
-  if (fileobj && fileobj->fptr())
-    fclose(fileobj->fptr());
-  else {
-    PipeObj *pipeobj = (PipeObj*)fileobjv.geta(PipeObj::class_symid());
+  if (objv.is_fileobj()) {
+    FileObj *fileobj = (FileObj*)objv.geta(FileObj::class_symid());
+    if (fileobj->fptr())
+      fclose(fileobj->fptr());
+    return;
+  }
+  if (objv.is_pipeobj()) {
+    PipeObj *pipeobj = (PipeObj*)objv.geta(PipeObj::class_symid());
     pipeobj->close();
+    return;
+  }
+  if (objv.is_socketobj()) {
+    SocketObj *sockobj = (SocketObj*)objv.geta(SocketObj::class_symid());
+    sockobj->close();
+    return;
   }
 }
 

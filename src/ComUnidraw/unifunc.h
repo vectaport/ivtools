@@ -280,7 +280,7 @@ public:
 
 };
 
- //: command to turn on or off drawing editor gravity
+//: command to turn on or off drawing editor gravity
 // gravity([flag]) -- enable/disable drawing editor gravity
 class GravityFunc : public UnidrawFunc {
 public:
@@ -298,6 +298,34 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s([xsize ysize]) -- set/get drawing editor grid spacing"; }
+};
+
+//: command to return screen size
+// sx,sy=ssize() -- size of screen
+class ScreenSizeFunc : public UnidrawFunc {
+public:
+    ScreenSizeFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "sx,sy=%s(:chkmap) -- size of screen"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+        ":chkmap    return nil if screen not yet fully mapped",
+	nil
+      };
+      return keys;
+    }
+};
+
+//: command to return drawing size
+// dx,dy=ssize() -- size of drawing
+class DrawingSizeFunc : public UnidrawFunc {
+public:
+    DrawingSizeFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "dx,dy=%s() -- size of drawing."; }
+
 };
 
 #endif /* !defined(_unifunc_h) */

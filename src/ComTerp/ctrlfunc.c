@@ -323,7 +323,7 @@ void SocketFunc::execute() {
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
     SocketObj* socket = new SocketObj(hoststr, portnum);
     if (socket->connect() == -1 ) {
-      ACE_ERROR ((LM_ERROR, "%p\n", "open"));
+      // ACE_ERROR ((LM_ERROR, "%p\n", "open"));
       push_stack(ComValue::nullval());
       return;
     }

@@ -92,6 +92,8 @@ public:
 
     void get_timeout(long& sec, long& usec) { sec= _sec; usec = _usec; }
     // get amount of delay before timing out Run()
+
+    boolean fully_mapped() {return _configure_notify_count==4;}
     
 protected:
     int _run_once;
@@ -103,6 +105,7 @@ protected:
     static ComTerpServ* _comterp;
     static int _npause;
     static boolean _deferred_notifications;
+    static int _configure_notify_count;
 };
 
 #endif
