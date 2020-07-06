@@ -1,3 +1,7 @@
+July 5th 2020 ivtools-2.0.2
+
+* Change priority of "$$" (stream) operator to line up with other stream operators (i.e. ".." and "**").
+
 June 30th 2020 ivtools-2.0.1
 
 * Fix nested user defined funcs in comterp (the func() command).
