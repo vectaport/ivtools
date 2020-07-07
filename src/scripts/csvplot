@@ -85,13 +85,6 @@ while((s=gets(fp))!=nil
 xgain=float(xend-xbeg)/(xmax-xmin)
 ygain=float(yend-ybeg)/(ymax-ymin)
 
-print("xmin,xmax %d,%d\n" xmin xmax)
-print("ymin,ymax %d,%d\n" ymin ymax)
-print("xbeg,xend %d,%d\n" xbeg xend)
-print("ybeg,yend %d,%d\n" ybeg yend)
-print("xgain,ygain %f,%f\n" xgain ygain)
-
-
 n=size(xdata)
 for(i=0 i<n i++
   xval=int((at(xdata i)-xmin)*xgain+xbeg);
