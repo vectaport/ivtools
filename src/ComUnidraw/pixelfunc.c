@@ -242,6 +242,7 @@ void PixelClipFunc::execute() {
     }
     rastrect->clippts(x, y, n);
     rastcomp->Notify();
+    push_stack(rastcompv);
   } else 
     push_stack(ComValue::nullval());
 

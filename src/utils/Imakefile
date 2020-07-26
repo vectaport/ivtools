@@ -9,6 +9,7 @@ PACKAGE = utils_ivtools
 
 BuildProgram(stdcmapppm,NullParameter,stdcmapppm.o,,)
 InstallProgram(stdcmapppm,$(BINDIR),stdcmapppm)
+#if 0
 #if !LibStdCPlusPlusV3
 #if defined(SVR4Architecture) && defined(SunArchitecture)
 BuildProgram(ivdl,NullParameter,ivdl.o downloader.o ftp.o http.o sockets.o thrower.o -lsocket -lnsl,$(DEPIVCOMMON),$(LIBIVCOMMON))
@@ -16,6 +17,7 @@ BuildProgram(ivdl,NullParameter,ivdl.o downloader.o ftp.o http.o sockets.o throw
 BuildProgram(ivdl,NullParameter,ivdl.o downloader.o ftp.o http.o sockets.o thrower.o,$(DEPIVCOMMON),$(LIBIVCOMMON))
 #endif
 InstallProgram(ivdl,$(BINDIR),ivdl)
+#endif
 #endif
 
 DependTarget();
@@ -25,8 +27,10 @@ stdcmapppm.o: ../stdcmapppm.c
 	@$(RM) stdcmapppm.o
 	$(CDRIVER) -c ../stdcmapppm.c
 
+#if 0
 #if !LibStdCPlusPlusV3
 ivdl: ivdl.o downloader.o ftp.o http.o sockets.o thrower.o
+#endif
 #endif
 
 CCSUFFIX = cc

@@ -171,6 +171,36 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(patternnum) -- set current pattern from menu order"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	"1  None",
+	"2  Black (Foreground)",
+	"3  White (Background)",
+	"4  Light Hatch",
+	"5  Medium Hatch",
+	"6  Dark Hatch",
+	"7  Back Slash",
+	"8  Forward Slash",
+	"9  Horizontal",
+	"10 Vertical",
+        "11 Grid",
+        "12 Light CrosshHatch",
+        "13 Medium Crosshatch",
+        "14 Dark Crosshatch",
+	nil
+      };
+      return keys;
+    }
+};
+
+//: command for setting pattern state variable in comdraw.
+// patternmask(int|list) -- set current pattern from a 16 bit int (4x4)  or a list of 16 ints (16x16).
+class PatternMaskFunc : public UnidrawFunc {
+public:
+    PatternMaskFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s(int|list) -- set current pattern from a 16 bit int (4x4) or a list of 16 ints (16x16)"; }
 };
 
 //: command for setting color state variables in comdraw.
@@ -181,6 +211,24 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s(fgcolornum bgcolornum) -- set current colors from menu order"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	"1  Black",
+	"2  Brown",
+	"3  Red",
+	"4  Orange",
+	"5  Yellow",
+	"6  Green",
+	"7  Blue",
+	"8  Indigo",
+	"9  Violet",
+	"10 White",
+        "11 Light Gray",
+        "12 Dark Gray",
+	nil
+      };
+      return keys;
+    }
 };
 
 //:comand for setting color state variables by RGB name in comdraw.

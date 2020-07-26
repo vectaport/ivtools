@@ -157,6 +157,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("font", new FontFunc(comterp, this));
     comterp->add_command("brush", new BrushFunc(comterp, this));
     comterp->add_command("pattern", new PatternFunc(comterp, this));
+    comterp->add_command("patternmask", new PatternMaskFunc(comterp, this));
     comterp->add_command("colors", new ColorFunc(comterp, this));
     comterp->add_command("fontbyname", new FontByNameFunc(comterp, this));
     comterp->add_command("colorsrgb", new ColorRgbFunc(comterp, this));

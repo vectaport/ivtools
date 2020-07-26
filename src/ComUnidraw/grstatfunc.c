@@ -38,6 +38,8 @@
 #include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 
+#include <IV-2_6/InterViews/painter.h>
+
 #define TITLE "GrStatFunc"
 
 static int scrn_symid = symbol_add("scrn");
@@ -149,7 +151,10 @@ void PointsFunc::execute() {
     
     Viewer* viewer = _ed->GetViewer();
     ComValue obj(stack_arg(0));
+    static int raw_symval = symbol_add("raw");
+    boolean raw_flag = stack_key(raw_symval).is_true();
     reset_stack();
+    
     if (obj.object_compview()) {
       ComponentView* compview = (ComponentView*)obj.obj_val();
       if (compview && compview->GetSubject()) {
@@ -159,11 +164,28 @@ void PointsFunc::execute() {
 	if (gr && comp->IsA(OVVERTICES_COMP)) {
 	  VerticesOvComp* vertcomp = (VerticesOvComp*)comp;
 	  Vertices* vertgr = vertcomp->GetVertices();
-	  for(int i=0; i<vertgr->count(); i++) {
-	    ComValue* val = new ComValue(vertgr->x()[i]);
-	    avl->Append(val);
-	    val = new ComValue(vertgr->y()[i]);	    
-	    avl->Append(val);
+	  if (raw_flag || !(comp->IsA(OVSPLINE_COMP) || comp->IsA(OVCLOSEDSPLINE_COMP))) {
+	    for(int i=0; i<vertgr->count(); i++) {
+	      ComValue* val = new ComValue(vertgr->x()[i]);
+	      avl->Append(val);
+	      val = new ComValue(vertgr->y()[i]);	    
+	      avl->Append(val);
+	    }
+	  } else {
+	    int* x;
+	    int* y;
+	    int cnt;
+	    if (comp->IsA(OVSPLINE_COMP)) {
+	      Painter::BSplinePts(vertgr->x(), vertgr->y(), vertgr->count(), x, y, cnt);
+	    } else {
+	      Painter::ClosedBSplinePts(vertgr->x(), vertgr->y(), vertgr->count(), x, y, cnt);
+	    }
+	    for(int i=0; i<cnt; i++) {
+	      ComValue* val = new ComValue(x[i]);
+	      avl->Append(val);
+	      val = new ComValue(y[i]);
+	      avl->Append(val);
+	    }
 	  }
 
 	} else if (gr && comp->IsA(OVLINE_COMP)) {

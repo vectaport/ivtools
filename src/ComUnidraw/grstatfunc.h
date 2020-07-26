@@ -74,6 +74,13 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "ptlist=%s(compview) -- return point list from compview graphic"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":raw       return original points",
+	nil
+      };
+      return keys;
+    }
 };
 
 #endif /* !defined(_grstatfunc_h) */

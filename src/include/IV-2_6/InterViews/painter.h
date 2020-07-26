@@ -144,12 +144,14 @@ public:
 #endif /* Polygon */
     virtual void FillPolygon(Canvas*, Coord x[], Coord y[], int n);
     virtual void BSpline(Canvas*, Coord x[], Coord y[], int n);
+    static void BSplinePts(Coord x[], Coord y[], int n, Coord* &sx, Coord* &sy, int &scount);
 #ifdef ClosedBSpline
 #undef ClosedBSpline
     virtual void ClosedBSpline(Canvas*, Coord x[], Coord y[], int n);
 #define ClosedBSpline _lib_iv(ClosedBSpline)
 #else
     virtual void ClosedBSpline(Canvas*, Coord x[], Coord y[], int n);
+    static void ClosedBSplinePts(Coord x[], Coord y[], int n, Coord* &sx, Coord* &sy, int &scount);
 #endif /* ClosedBSpline */
     virtual void FillBSpline(Canvas*, Coord x[], Coord y[], int n);
     virtual void Curve(Canvas*,
