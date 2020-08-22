@@ -174,6 +174,7 @@ void PrintFunc::execute() {
       curr++;
 
       int i=0;
+      boolean vflag = false;
       if(curr<narg) {
         int flen;
         while(*fstrptr && !(flen=format_extent(fstrptr)) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
@@ -186,6 +187,15 @@ void PrintFunc::execute() {
         fbuf[i] = '\0';
       } else
         strncpy(fbuf, fstrptr, BUFSIZ);
+
+      // implement Golang style %v
+      char *vptr = strstr(fbuf, "%v");
+      if(vptr!=NULL) {
+	*vptr = '\0';
+	vptr+=2;
+	out << fbuf << printval << vptr;
+	continue;
+      }
 
       switch( printval.type() )
       {
@@ -336,7 +346,8 @@ int PrintFunc::format_extent(const char* fstr) {
   /* specifier */
   if(fstr[len] == 'c' || fstr[len] == 'd' || fstr[len] == 'i' || fstr[len] == 'e' || fstr[len] == 'E' ||
      fstr[len] == 'f' || fstr[len] == 'g' || fstr[len] == 'G' || fstr[len] == 'o' || fstr[len] == 's' ||
-     fstr[len] == 'u' || fstr[len] == 'x' || fstr[len] == 'X' || fstr[len] == 'p' || fstr[len] == 'n' )
+     fstr[len] == 'u' || fstr[len] == 'x' || fstr[len] == 'X' || fstr[len] == 'p' || fstr[len] == 'n' ||
+     fstr[len] == 'v') // golang any type 
     return len+1;
   else
     return 0;
