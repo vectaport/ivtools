@@ -1,3 +1,7 @@
+August 22nd 2020 ivtools-2.0.3
+
+* add Golang style "%v" format descriptor to comterp print func.
+
 July 5th 2020 ivtools-2.0.2
 
 * Change priority of "$$" (stream) operator to line up with other stream operators (i.e. ".." and "**").
