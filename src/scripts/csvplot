@@ -8,10 +8,12 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil || arg(1)=="?" ||
   arg(1)=="-help" || arg(1)=="--help" || arg(1)=="-?" :then
   
     print("csvplot  plot .csv file in comdraw\n");
-    print("Usage:  csvplot csvfile [keylist] --port num -geometry str\n\n");
+    print("Usage:  csvplot csvfile [keylist] --port num -geometry str --stats --line\n\n");
     print("--host str\tcomdraw host name (default is \"localhost\")\n");
     print("--port num\tcomdraw port number (default is 20002)\n");
-    print("--geometry str  X11 window geometry argument\n");
+    print("--geometry str\tX11 window geometry argument\n");
+    print("--stats\t\tprint statistics of plot\n");
+    print("--line\t\tline plot\n");
     exit)
 
 fp=open(arg(1) "r")
@@ -19,29 +21,71 @@ if(fp==null :then
   print("csvplot:  unable to open csv file %s\n" arg(1) :err);
   exit)
 
-dummy_flag=false
+keylist=nil
+argoff=2
+if(narg()>2 && substr(arg(2) 2)!="--" :then
+  keylist=split(arg(2) :tokstr);
+  argoff++)
+
 host_flag=false
 host_name="localhost"
 port_flag=false
-port_num=20002
+port_num="20002"
 geom_flag=false
 geom_str="1000x1000"
-for(i=2 i<narg() i++
+stats_flag=false
+line_flag=false
+for(i=argoff i<narg() i++
   switch(substr(arg(i) 2 :after)
-    :dummy  dummy_flag=true
     :host  host_flag=true;if(substr(arg(i+1) 2)=="--" :then continue);i++;host_name=arg(i)
     :port  port_flag=true;if(substr(arg(i+1) 2)=="--" :then continue);i++;port_num=arg(i)
     :geometry  geom_flag=true;if(substr(arg(i+1) 2)=="--" :then continue);i++;geom_str=arg(i)
+    :stats stats_flag=true
+    :line line_flag=true
     :default print("csvplot:  Unknown argument %s\n" arg(i) :err)))
 
 // grab title
 s=gets(fp)
 hdrtoks=split(s :tokstr ',')
+if(keylist!=nil :then
+  if(line_flag :then
+    yoff=index(hdrtoks at(keylist))
+  :else
+    xoff=index(hdrtoks at(keylist));
+    yoff=index(hdrtoks at(keylist 1))))
+if(yoff==nil :then
+  xoff = 0;
+  yoff = 1)
+
+// read in x,y columns
+xdata=list
+ydata=list
+cnt=0
+while((s=gets(fp))!=nil
+  toks=split(s :tokval);
+  if(xoff!=nil :then 
+    xval=at(toks xoff)
+  :else
+    xval=cnt);
+  yval=at(toks yoff);
+  print("cnt,xval,yval %d,%d,%d\n" cnt xval yval);
+  xmin=cond(xmin!=nil cond(xmin>xval xval xmin) xval);
+  ymin=cond(ymin!=nil cond(ymin>yval yval ymin) yval);
+  xmax=cond(xmax!=nil cond(xmax<xval xval xmax) xval);
+  ymax=cond(ymax!=nil cond(ymax<yval yval ymax) yval);
+  xdata,xval;
+  ydata,yval;
+  cnt++)
+
+if(stats_flag :then
+  print("xmin,xmax = %d,%d\n" xmin xmax);
+  print("ymin,ymax = %d,%d\n" ymin ymax);
+  exit(0))
 
 // check if comdraw already running
 sock=socket(host_name port_num)
 if(sock==nil&&host_name=="localhost" :then
-  shell(print("comdraw -stripped -geometry %s -comdraw %d &" geom_str port_num :str));
+  shell(print("comdraw -stripped -geometry %s -comdraw %s &" geom_str port_num :str));
   n=10;
   while(n-- && sock==nil
      usleep(100000);
@@ -67,20 +111,6 @@ ybeg=int(yscr*margin)
 xend=int(xscr*(1-margin))
 yend=int(yscr*(1-margin))
 remote(sock print("rect(%d,%d,%d,%d)" xbeg ybeg xend yend :str))
-
-// read in x,y columns
-xdata=list
-ydata=list
-while((s=gets(fp))!=nil
-  toks=split(s :tokval);
-  xval=at(toks);
-  yval=at(toks 1);
-  xmin=cond(xmin!=nil cond(xmin>xval xval xmin) xval);
-  ymin=cond(ymin!=nil cond(ymin>yval yval ymin) yval);
-  xmax=cond(xmax!=nil cond(xmax<xval xval xmax) xval);
-  ymax=cond(ymax!=nil cond(ymax<yval yval ymax) yval);
-  xdata,xval;
-  ydata,yval)
 
 xgain=float(xend-xbeg)/(xmax-xmin)
 ygain=float(yend-ybeg)/(ymax-ymin)
