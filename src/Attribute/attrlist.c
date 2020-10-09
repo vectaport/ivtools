@@ -598,3 +598,40 @@ boolean AttributeValueList::Equal(AttributeValueList* avl) {
   
   return true;
 }
+
+boolean AttributeValueList::GreaterThan(AttributeValueList* avl) {
+
+  ALIterator it, jt;
+  First(it);
+  avl->First(jt);
+  while (true) {
+    if (Done(it) && avl->Done(jt)) { return false; }
+    if (Done(it)                 ) { return false; }
+    if (avl->Done(jt)            ) { return true; }
+    AttributeValue* av = avl->GetAttrVal(jt);
+    if (GetAttrVal(it)->greaterthan(*av)) { return true; }
+    if (GetAttrVal(it)->notequal(*av)) { return false; }
+    Next(it);
+    avl->Next(jt);
+  }
+  
+}
+
+boolean AttributeValueList::LesserThan(AttributeValueList* avl) {
+  
+  ALIterator it, jt;
+  First(it);
+  avl->First(jt);
+  while (true) {
+    if (Done(it) && avl->Done(jt)) { return false; }
+    if (Done(it)                 ) { return true; }
+    if (avl->Done(jt)            ) { return false; }
+    AttributeValue* av = avl->GetAttrVal(jt);
+    if (GetAttrVal(it)->lesserthan(*av)) { return true; }
+    if (GetAttrVal(it)->notequal(*av)) { return false; }
+    Next(it);
+    avl->Next(jt);
+  }
+  
+}
+
