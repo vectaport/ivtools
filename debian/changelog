@@ -1,3 +1,9 @@
+ivtools (2.0.4a1-1) unstable; urgency=medium
+
+  * new upstream release
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sat, 10 Oct 2020 14:04:38 +0100
+
 ivtools (2.0.3a1-1) unstable; urgency=medium
 
   * new upstream release
