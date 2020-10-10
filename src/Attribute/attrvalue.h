@@ -401,6 +401,12 @@ public:
 
     boolean equal(AttributeValue& av);
     // return true if values of both are the same
+    boolean notequal(AttributeValue& av);
+    // return true if values are not equal
+    boolean greaterthan(AttributeValue& av);
+    // return true if greater than argument
+    boolean lesserthan(AttributeValue& av);
+    // return true if less than argument
 
 protected:
 
