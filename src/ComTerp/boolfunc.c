@@ -93,6 +93,9 @@ void AndFunc::execute() {
     case ComValue::BooleanType:
         result.boolean_ref() = operand1.boolean_val() && operand2.boolean_val();
 	break;
+    default:
+      result = ComValue::nullval();
+      break;
     }
     push_stack(result);
 }
@@ -149,6 +152,9 @@ void OrFunc::execute() {
     case ComValue::BooleanType:
         result.boolean_ref() = operand1.boolean_val() || operand2.boolean_val();
 	break;
+    default:
+      result = ComValue::nullval();
+      break;
     }
     push_stack(result);
 }
@@ -208,6 +214,9 @@ void NegFunc::execute() {
     case ComValue::StreamType:
         result.boolean_ref() = !operand1.stream_mode();
         break;
+    default:
+      result = ComValue::nullval();
+      break;
     }
     reset_stack();
     push_stack(result);
@@ -371,7 +380,7 @@ void NotEqualFunc::execute() {
 	operand1.array_val() != operand2.array_val() &&
         !operand1.array_val()->Equal(operand2.array_val());
       break;
-      case ComValue::ObjectType:
+    case ComValue::ObjectType: {
 	if (!operand1.object_compview())
 	  result.boolean_ref() = operand2.type() != ComValue::ObjectType || 
 	    operand1.obj_val() != operand2.obj_val() ||
@@ -383,9 +392,13 @@ void NotEqualFunc::execute() {
 	    ((ComponentView*)operand1.obj_val())->GetSubject() != 
 	    ((ComponentView*)operand2.obj_val())->GetSubject();
 	break;
+    }
     case ComValue::UnknownType:
 	result.boolean_ref() = operand2.is_known();
 	break;
+    default:
+      result = ComValue::nullval();
+      break;
     }
     reset_stack();
     push_stack(result);
@@ -435,7 +448,7 @@ void GreaterThanFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() > operand2.double_val();
 	break;
-    case ComValue::SymbolType:
+    case ComValue::SymbolType: {
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.symbol_ptr();
 	if (nval.is_unknown())
@@ -443,6 +456,15 @@ void GreaterThanFunc::execute() {
 	else
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())>0;
 	break;
+    }
+    case ComValue::ArrayType: 
+      result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
+	operand1.array_val() != operand2.array_val() &&
+        operand1.array_val()->GreaterThan(operand2.array_val());
+      break;
+    default:
+      result = ComValue::nullval();
+      break;
     }
     reset_stack();
     push_stack(result);
@@ -492,7 +514,7 @@ void GreaterThanOrEqualFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() >= operand2.double_val();
 	break;
-    case ComValue::SymbolType:
+    case ComValue::SymbolType: {
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.symbol_ptr();
 	if (nval.is_unknown())
@@ -500,6 +522,10 @@ void GreaterThanOrEqualFunc::execute() {
 	else
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())>=0;
 	break;
+    }
+    default:
+      result = ComValue::nullval();
+      break;
     }
     reset_stack();
     push_stack(result);
@@ -549,7 +575,7 @@ void LessThanFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() < operand2.double_val();
 	break;
-    case ComValue::SymbolType:
+    case ComValue::SymbolType: {
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.symbol_ptr();
 	if (nval.is_unknown())
@@ -557,6 +583,15 @@ void LessThanFunc::execute() {
 	else
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())<0;
 	break;
+    }
+    case ComValue::ArrayType: 
+      result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
+	operand1.array_val() != operand2.array_val() &&
+        operand1.array_val()->LesserThan(operand2.array_val());
+      break;
+    default:
+      result = ComValue::nullval();
+      break;
     }
     reset_stack();
     push_stack(result);
@@ -606,7 +641,7 @@ void LessThanOrEqualFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() <= operand2.double_val();
 	break;
-    case ComValue::SymbolType:
+    case ComValue::SymbolType: {
 	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.symbol_ptr();
 	if (nval.is_unknown())
@@ -614,6 +649,10 @@ void LessThanOrEqualFunc::execute() {
 	else
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())<=0;
 	break;
+    }
+    default:
+      result = ComValue::nullval();
+      break;
     }
     reset_stack();
     push_stack(result);
