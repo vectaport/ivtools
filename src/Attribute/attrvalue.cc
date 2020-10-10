@@ -1425,3 +1425,156 @@ boolean AttributeValue::equal(AttributeValue& av) {
   }
   return result;
 }
+
+boolean AttributeValue::notequal(AttributeValue& av) {
+  return !equal(av);
+}
+
+boolean AttributeValue::greaterthan(AttributeValue& av) {
+
+  boolean result;
+  if (av.type()==AttributeValue::UnknownType && type()!=AttributeValue::UnknownType)
+    result = false;
+  
+  else if (av.type()==AttributeValue::BlankType && type()!=AttributeValue::BlankType)
+    result = false;
+  
+  else {
+    switch (type()) {
+    case AttributeValue::CharType:
+      result = char_val() > av.char_val();
+      break;
+    case AttributeValue::UCharType:
+      result = uchar_val() > av.uchar_val();
+      break;
+    case AttributeValue::ShortType:
+      result = short_val() > av.short_val();
+      break;
+    case AttributeValue::UShortType:
+      result = ushort_val() > av.ushort_val();
+      break;
+    case AttributeValue::IntType:
+      result = int_val() > av.int_val();
+      break;
+    case AttributeValue::UIntType:
+      result = uint_val() > av.uint_val();
+      break; 
+    case AttributeValue::LongType:
+      result = long_val() > av.long_val();
+      break;
+    case AttributeValue::ULongType:
+      result = ulong_val() > av.ulong_val();
+      break;
+    case AttributeValue::FloatType:
+      result = float_val() > av.float_val();
+      break;
+    case AttributeValue::DoubleType:
+      result = double_val() > av.double_val();
+      break;
+    case AttributeValue::StringType:
+    case AttributeValue::SymbolType: {
+      
+      char *a = (char *) symbol_ptr();
+      char *b = (char *) av.symbol_ptr();
+      while (true) {
+	if (*a=='\0' && *b=='\0') { result = false; break; }
+	if (*a=='\0'            ) { result = false; break; }
+	if (*b=='\0'            ) { result = true; break; }
+	if (*a>*b               ) { result = true; break; }
+	if (*a<*b               ) { result = false; break; }
+	a++;
+	b++;
+      }
+      }
+      break;
+    case AttributeValue::ArrayType: 
+      result = av.type() == AttributeValue::ArrayType && 
+        (array_val() != av.array_val() &&
+         array_val()->GreaterThan(av.array_val()));
+      break;
+    case AttributeValue::ObjectType:
+      result = false;
+      break;
+    default:
+      result = 
+        is_type(AttributeValue::UnknownType) && av.is_type(AttributeValue::UnknownType) ||
+        is_type(AttributeValue::BlankType) && av.is_type(AttributeValue::BlankType);
+      break;
+    }
+  }
+  return result;
+}
+
+boolean AttributeValue::lesserthan(AttributeValue& av) {
+
+  boolean result;
+  if (av.type()==AttributeValue::UnknownType && type()!=AttributeValue::UnknownType)
+    result = false;
+  
+  else if (av.type()==AttributeValue::BlankType && type()!=AttributeValue::BlankType)
+    result = false;
+  
+  else {
+    switch (type()) {
+    case AttributeValue::CharType:
+      result = char_val() < av.char_val();
+      break;
+    case AttributeValue::UCharType:
+      result = uchar_val() < av.uchar_val();
+      break;
+    case AttributeValue::ShortType:
+      result = short_val() < av.short_val();
+      break;
+    case AttributeValue::UShortType:
+      result = ushort_val() < av.ushort_val();
+      break;
+    case AttributeValue::IntType:
+      result = int_val() < av.int_val();
+      break;
+    case AttributeValue::UIntType:
+      result = uint_val() < av.uint_val();
+      break; 
+    case AttributeValue::LongType:
+      result = long_val() < av.long_val();
+      break;
+    case AttributeValue::ULongType:
+      result = ulong_val() < av.ulong_val();
+      break;
+    case AttributeValue::FloatType:
+      result = float_val() < av.float_val();
+      break;
+    case AttributeValue::DoubleType:
+      result = double_val() < av.double_val();
+      break;
+    case AttributeValue::StringType:
+    case AttributeValue::SymbolType: {
+      char *a = (char *) symbol_ptr();
+      char *b = (char *) av.symbol_ptr();
+      while (true) {
+	if (*a=='\0' && *b=='\0') { result = false; break; }
+	if (*a=='\0'            ) { result = true; break; }
+	if (*b=='\0'            ) { result = false; break; }
+	if (*a>*b               ) { result = false; break; }
+	if (*a<*b               ) { result = true; break; }
+	a++;
+	b++;
+	}
+      }
+      break;
+    case AttributeValue::ArrayType: 
+      result = av.type() == AttributeValue::ArrayType && 
+        (array_val() != av.array_val() &&
+         array_val()->LesserThan(av.array_val()));
+      break;
+    case AttributeValue::ObjectType:
+      result = false;
+      break;
+    default:
+      result = 
+        is_type(AttributeValue::UnknownType) && av.is_type(AttributeValue::UnknownType) ||
+        is_type(AttributeValue::BlankType) && av.is_type(AttributeValue::BlankType);
+      break;
+    }
+  }
+  return result;
+}

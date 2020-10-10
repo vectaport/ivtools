@@ -255,6 +255,8 @@ public:
     // set maximum to print 
 
     boolean Equal(AttributeValueList* avl);
+    boolean GreaterThan(AttributeValueList* avl);
+    boolean LesserThan(AttributeValueList* avl);
 
 protected:
     AList* _alist;
