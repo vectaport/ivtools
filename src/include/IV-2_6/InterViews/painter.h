@@ -151,8 +151,8 @@ public:
 #define ClosedBSpline _lib_iv(ClosedBSpline)
 #else
     virtual void ClosedBSpline(Canvas*, Coord x[], Coord y[], int n);
-    static void ClosedBSplinePts(Coord x[], Coord y[], int n, Coord* &sx, Coord* &sy, int &scount);
 #endif /* ClosedBSpline */
+    static void ClosedBSplinePts(Coord x[], Coord y[], int n, Coord* &sx, Coord* &sy, int &scount);
     virtual void FillBSpline(Canvas*, Coord x[], Coord y[], int n);
     virtual void Curve(Canvas*,
 	Coord x0, Coord y0, Coord x1, Coord y1,
