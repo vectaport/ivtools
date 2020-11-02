@@ -26,6 +26,7 @@
  * TIFF Library.
  */
 #include "tiffioP.h"
+extern	int TIFFFlushData1(TIFF *);
 
 TIFFFlush(tif)
 	TIFF *tif;

@@ -35,8 +35,10 @@
  */
 #include "tiffioP.h"
 #include "prototypes.h"
+extern ssize_t read(int fildes, void *buf, size_t nbyte);
 
-static
+extern	int TIFFSetCompressionScheme(TIFF *, int);
+
 DECLARE2(setString, char**, cpp, char*, cp)
 {
 	if (*cpp)

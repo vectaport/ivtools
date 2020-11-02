@@ -28,6 +28,10 @@
 #include "tiffioP.h"
 #include "prototypes.h"
 
+extern ssize_t read(int fildes, void *buf, size_t nbyte);
+extern ssize_t write(int fildes, const void *buf, size_t nbyte);
+extern int close(int fildes);
+
 #if USE_PROTOTYPES
 extern	int TIFFDefaultDirectory(TIFF*);
 #else

@@ -27,6 +27,7 @@
  * Scanline-oriented Read Support
  */
 #include "tiffioP.h"
+extern ssize_t read(int fildes, void *buf, size_t nbyte);
 
 #if USE_PROTOTYPES
 static	TIFFSeek(TIFF *, u_int, u_int);

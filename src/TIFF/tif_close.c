@@ -33,6 +33,8 @@ extern	int TIFFFreeDirectory(TIFF*);
 extern	int TIFFFreeDirectory();
 #endif
 
+extern int close(int);
+
 void
 TIFFClose(tif)
 	TIFF *tif;

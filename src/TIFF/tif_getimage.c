@@ -53,6 +53,122 @@ static	u_long **PALmap;
 
 static	int gt();
 
+#define	PACK(r,g,b)	((u_long)(r)|((u_long)(g)<<8)|((u_long)(b)<<16))
+
+/*
+ * Greyscale images with less than 8 bits/sample are handled
+ * with a table to avoid lots of shifts and masks.  The table
+ * is setup so that put*bwtile (below) can retrieve 8/bitspersample
+ * pixel values simply by indexing into the table with one
+ * number.
+ */
+int makebwmap(Map)
+	RGBvalue *Map;
+{
+	register int i;
+	int nsamples = 8 / bitspersample;
+	register u_long *p;
+
+	BWmap = (u_long **)malloc(
+	    256*sizeof (u_long *)+(256*nsamples*sizeof(u_long)));
+	if (BWmap == NULL) {
+		TIFFError(filename, "No space for B&W mapping table");
+		return (0);
+	}
+	p = (u_long *)(BWmap + 256);
+	for (i = 0; i < 256; i++) {
+		BWmap[i] = p;
+		switch (bitspersample) {
+			register RGBvalue c;
+#define	GREY(x)	c = Map[x]; *p++ = PACK(c,c,c);
+		case 1:
+			GREY(i>>7);
+			GREY((i>>6)&1);
+			GREY((i>>5)&1);
+			GREY((i>>4)&1);
+			GREY((i>>3)&1);
+			GREY((i>>2)&1);
+			GREY((i>>1)&1);
+			GREY(i&1);
+			break;
+		case 2:
+			GREY(i>>6);
+			GREY((i>>4)&3);
+			GREY((i>>2)&3);
+			GREY(i&3);
+			break;
+		case 4:
+			GREY(i>>4);
+			GREY(i&0xf);
+			break;
+		case 8:
+			GREY(i);
+			break;
+		}
+#undef	GREY
+	}
+	return (1);
+}
+
+/*
+ * Palette images with <= 8 bits/sample are handled
+ * with a table to avoid lots of shifts and masks.  The table
+ * is setup so that put*cmaptile (below) can retrieve 8/bitspersample
+ * pixel values simply by indexing into the table with one
+ * number.
+ */
+int makecmap(rmap, gmap, bmap)
+	u_short *rmap, *gmap, *bmap;
+{
+	register int i;
+	int nsamples = 8 / bitspersample;
+	register u_long *p;
+
+	PALmap = (u_long **)malloc(
+	    256*sizeof (u_long *)+(256*nsamples*sizeof(u_long)));
+	if (PALmap == NULL) {
+		TIFFError(filename, "No space for Palette mapping table");
+		return (0);
+	}
+	p = (u_long *)(PALmap + 256);
+	for (i = 0; i < 256; i++) {
+		PALmap[i] = p;
+#define	CMAP(x)	\
+c = x; *p++ = PACK(rmap[c]&0xff, gmap[c]&0xff, bmap[c]&0xff);
+		switch (bitspersample) {
+			register RGBvalue c;
+		case 1:
+			CMAP(i>>7);
+			CMAP((i>>6)&1);
+			CMAP((i>>5)&1);
+			CMAP((i>>4)&1);
+			CMAP((i>>3)&1);
+			CMAP((i>>2)&1);
+			CMAP((i>>1)&1);
+			CMAP(i&1);
+			break;
+		case 2:
+			CMAP(i>>6);
+			CMAP((i>>4)&3);
+			CMAP((i>>2)&3);
+			CMAP(i&3);
+			break;
+		case 4:
+			CMAP(i>>4);
+			CMAP(i&0xf);
+			break;
+		case 8:
+			CMAP(i);
+			break;
+		}
+#undef CMAP
+	}
+	return (1);
+}
+
+
+
+
 TIFFReadRGBAImage(tif, rwidth, rheight, raster, stop)
 	TIFF *tif;
 	u_long rwidth, rheight;
@@ -509,119 +625,6 @@ gtStripSeparate(tif, raster, Map, h, w)
 		y += (orientation == ORIENTATION_TOPLEFT ? -nrow : nrow);
 	}
 	free(buf);
-	return (1);
-}
-
-#define	PACK(r,g,b)	((u_long)(r)|((u_long)(g)<<8)|((u_long)(b)<<16))
-
-/*
- * Greyscale images with less than 8 bits/sample are handled
- * with a table to avoid lots of shifts and masks.  The table
- * is setup so that put*bwtile (below) can retrieve 8/bitspersample
- * pixel values simply by indexing into the table with one
- * number.
- */
-makebwmap(Map)
-	RGBvalue *Map;
-{
-	register int i;
-	int nsamples = 8 / bitspersample;
-	register u_long *p;
-
-	BWmap = (u_long **)malloc(
-	    256*sizeof (u_long *)+(256*nsamples*sizeof(u_long)));
-	if (BWmap == NULL) {
-		TIFFError(filename, "No space for B&W mapping table");
-		return (0);
-	}
-	p = (u_long *)(BWmap + 256);
-	for (i = 0; i < 256; i++) {
-		BWmap[i] = p;
-		switch (bitspersample) {
-			register RGBvalue c;
-#define	GREY(x)	c = Map[x]; *p++ = PACK(c,c,c);
-		case 1:
-			GREY(i>>7);
-			GREY((i>>6)&1);
-			GREY((i>>5)&1);
-			GREY((i>>4)&1);
-			GREY((i>>3)&1);
-			GREY((i>>2)&1);
-			GREY((i>>1)&1);
-			GREY(i&1);
-			break;
-		case 2:
-			GREY(i>>6);
-			GREY((i>>4)&3);
-			GREY((i>>2)&3);
-			GREY(i&3);
-			break;
-		case 4:
-			GREY(i>>4);
-			GREY(i&0xf);
-			break;
-		case 8:
-			GREY(i);
-			break;
-		}
-#undef	GREY
-	}
-	return (1);
-}
-
-/*
- * Palette images with <= 8 bits/sample are handled
- * with a table to avoid lots of shifts and masks.  The table
- * is setup so that put*cmaptile (below) can retrieve 8/bitspersample
- * pixel values simply by indexing into the table with one
- * number.
- */
-makecmap(rmap, gmap, bmap)
-	u_short *rmap, *gmap, *bmap;
-{
-	register int i;
-	int nsamples = 8 / bitspersample;
-	register u_long *p;
-
-	PALmap = (u_long **)malloc(
-	    256*sizeof (u_long *)+(256*nsamples*sizeof(u_long)));
-	if (PALmap == NULL) {
-		TIFFError(filename, "No space for Palette mapping table");
-		return (0);
-	}
-	p = (u_long *)(PALmap + 256);
-	for (i = 0; i < 256; i++) {
-		PALmap[i] = p;
-#define	CMAP(x)	\
-c = x; *p++ = PACK(rmap[c]&0xff, gmap[c]&0xff, bmap[c]&0xff);
-		switch (bitspersample) {
-			register RGBvalue c;
-		case 1:
-			CMAP(i>>7);
-			CMAP((i>>6)&1);
-			CMAP((i>>5)&1);
-			CMAP((i>>4)&1);
-			CMAP((i>>3)&1);
-			CMAP((i>>2)&1);
-			CMAP((i>>1)&1);
-			CMAP(i&1);
-			break;
-		case 2:
-			CMAP(i>>6);
-			CMAP((i>>4)&3);
-			CMAP((i>>2)&3);
-			CMAP(i&3);
-			break;
-		case 4:
-			CMAP(i>>4);
-			CMAP(i&0xf);
-			break;
-		case 8:
-			CMAP(i);
-			break;
-		}
-#undef CMAP
-	}
 	return (1);
 }
 
