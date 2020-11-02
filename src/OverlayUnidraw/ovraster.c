@@ -120,7 +120,7 @@ boolean RasterOvComp::IsA (ClassId id) {
 
 Component* RasterOvComp::Copy () {
     RasterOvComp* nc = new RasterOvComp(
-        (OverlayRasterRect*) GetGraphic()->Copy(), _pathname, (OverlayComp*)GetParent()
+	(OverlayRasterRect*) GetGraphic()->Copy(), _pathname, (OverlayComp*)GetParent()
     );
     if (attrlist()) nc->SetAttributeList(new AttributeList(attrlist()));
 
@@ -188,6 +188,9 @@ void RasterOvComp::GrowParamList(ParamList* pl) {
 		  this, this);
 
     pl->add_param("alpha", ParamStruct::keyword, &RasterScript::ReadAlpha,
+		  this, this);
+
+    pl->add_param("clippts", ParamStruct::keyword, &RasterScript::ReadClipPts,
 		  this, this);
 
     pl->add_param("proc", ParamStruct::keyword, &RasterScript::ReadProcess,
@@ -911,6 +914,40 @@ int RasterScript::ReadAlpha (istream& in, void* addr1, void* addr2, void* addr3,
 }
 
 
+int RasterScript::ReadClipPts (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    RasterOvComp* comp = (RasterOvComp*)addr1;
+    OverlayRasterRect* gr = comp ? (OverlayRasterRect*) comp->GetGraphic() : nil;
+    MultiLineObj *mlo = new MultiLineObj();
+    if (!gr) {
+      return -1;
+    }
+
+    char ch;
+    ParamList::skip_space(in);
+    int x0, y0;
+    int x1, y1;
+    in >> x0;
+    in >> ch; if (ch!=',') { return -1; }
+    in >> y0;
+    in >> ch; if (ch!=',') { return -1; }
+    in >> x1;
+    in >> ch; if (ch!=',') { return -1; }
+    in >> y1;
+    while (in.good()) {
+      mlo->AddLine(x0, y0, x1, y1);
+      x0=x1; y0=y1;
+      in >> ch; if (ch!=',') { break; }
+      if (in.good()) {
+	in >> x1;
+	in >> ch; if (ch!=',') { return -1; }
+	in >> y1;
+      }
+    }
+    gr->clippts(mlo);
+    return 0;
+}
+
+
 int RasterScript::ReadProcess (
     istream& in, void* addr1, void*, void*, void*
 ) {
@@ -980,6 +1017,7 @@ Graphic* OverlayRasterRect::Copy () {
     new_rr->yend(_yend);
     new_rr->clippts(_clippts);
     new_rr->alphaval(_alphaval);
+    new_rr->clippts(_clippts);
     return new_rr;
 }
 
