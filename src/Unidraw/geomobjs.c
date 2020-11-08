@@ -196,7 +196,7 @@ MultiLineObj::MultiLineObj (Coord* x, Coord* y, int count) {
     if(!_leakchecker) _leakchecker = new LeakChecker("MultiLineObj");
     _leakchecker->create();
 #endif
-    _x = x; _y = y; _count = count;
+    _x = x; _y = y; _count = count; _size = count;
     _ulist = nil;
     _pts_made = 0;
 }
