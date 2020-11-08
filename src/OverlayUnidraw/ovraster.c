@@ -991,6 +991,7 @@ OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect
 OverlayRasterRect::~OverlayRasterRect () { Unref(_clippts);}
 
 void OverlayRasterRect::clippts(MultiLineObj* pts) {
+  Resource::unref(_clippts);
   _clippts = pts;
   Resource::ref(_clippts);
 }
@@ -1017,7 +1018,6 @@ Graphic* OverlayRasterRect::Copy () {
     new_rr->yend(_yend);
     new_rr->clippts(_clippts);
     new_rr->alphaval(_alphaval);
-    new_rr->clippts(_clippts);
     return new_rr;
 }
 
