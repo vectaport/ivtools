@@ -936,7 +936,7 @@ int RasterScript::ReadClipPts (istream& in, void* addr1, void* addr2, void* addr
     while (in.good()) {
       mlo->AddLine(x0, y0, x1, y1);
       x0=x1; y0=y1;
-      in >> ch; if (ch!=',') { break; }
+      in >> ch; if (ch!=',') { in.putback(ch); break; }
       if (in.good()) {
 	in >> x1;
 	in >> ch; if (ch!=',') { return -1; }
