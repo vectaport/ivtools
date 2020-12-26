@@ -92,6 +92,7 @@ protected:
     float _alpha;
     float _oldalpha;
     boolean _alpha_set;
+    RasterOvComp* _rastcomp;
 };
 
 

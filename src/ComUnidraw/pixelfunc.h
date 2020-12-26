@@ -107,4 +107,5 @@ public:
     virtual const char* docstring() { 
 	return "%s(compview [alphaval]) -- set/get alpha transparency value"; }
 };
+
 #endif /* !defined(_pixelfunc_h) */

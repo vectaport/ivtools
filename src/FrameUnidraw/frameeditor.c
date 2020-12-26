@@ -30,8 +30,9 @@
 #include <FrameUnidraw/framestates.h>
 #include <FrameUnidraw/frameviews.h>
 
+#include <ComUnidraw/comkit.h>
+
 #include <OverlayUnidraw/ovcomps.h>
-#include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovunidraw.h>
 

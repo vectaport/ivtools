@@ -7,8 +7,8 @@ PACKAGE = ComUnidraw
 #ifdef InObjectCodeDir
 
 LIB = ComUnidraw
-OTHER_CCDEFINES = $(ACE_CCDEFINES)
-OTHER_CCINCLUDES = $(ACE_CCINCLUDES)
+OTHER_CCDEFINES = $(CLIPPOLY_CCDEFINES) $(ACE_CCDEFINES)
+OTHER_CCINCLUDES = $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES)
 
 Use_libUnidraw()
 Use_2_6()
@@ -28,6 +28,7 @@ Obj26(comeditor)
 Obj26(comterp-iohandler)
 Obj26(dialogfunc)
 Obj26(nfunc)
+Obj26(pixelcmds)
 Obj26(pixelfunc)
 Obj26(plotfunc)
 Obj26(unifunc)
@@ -39,7 +40,12 @@ ObjACE(comterp-acehandler)
 
 #define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
+Obj31(comkit)
+
 IncludeDependencies()
+#ifdef ClipPolyDir
+InstallLibLink($(CLIPPOLYLIBDIR),$(CLIPPOLYLIBBASE), $(LIBDIR))
+#endif
 
 #else
 
