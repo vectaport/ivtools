@@ -996,6 +996,7 @@ void OverlayRasterRect::clippts(MultiLineObj* pts) {
 
 void OverlayRasterRect::clippts(int* x, int* y, int n) {
   Resource::unref(_clippts);
+  _clippts = nil;
   if (x && y) {
     _clippts = MultiLineObj::make_pts(x, y, n);
     Resource::ref(_clippts);

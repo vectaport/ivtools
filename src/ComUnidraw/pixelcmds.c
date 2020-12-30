@@ -37,6 +37,8 @@
 /*-----------------------------------------------------------------*/
 
 PolyClipRasterCmd::PolyClipRasterCmd(ControlInfo* ci) : Command(ci) {
+  _rastcomp = NULL;
+  _vertcomp = NULL;
 }
 
 Command* PolyClipRasterCmd::Copy() {
@@ -57,13 +59,17 @@ boolean PolyClipRasterCmd::Reversible() {
 
 void PolyClipRasterCmd::Execute() {
 
+  fprintf(stderr, "PolyClipRasterCmd::Execute START\n");
+
   OverlayEditor* ed = (OverlayEditor*)GetEditor();
   OverlaySelection* sel = (OverlaySelection*) ed->GetSelection();
   Iterator i;
-  RasterOvComp* rastcomp = nil;
-  VerticesOvComp* vertcomp = nil;
+  RasterOvComp* rastcomp = _rastcomp;
+  VerticesOvComp* vertcomp = _vertcomp;
 
+  fprintf(stderr, "Rastcomp AT START is now %lx, Vertcomp is now %lx\n", rastcomp, vertcomp);
   for (sel->First(i); !sel->Done(i); sel->Next(i)) {
+    if (rastcomp != nil && vertcomp != nil) { break; }
     GraphicView* view = sel->GetView(i);
 
     if (view->IsA(OVRASTER_VIEW)) {
@@ -82,35 +88,29 @@ void PolyClipRasterCmd::Execute() {
     
   }
 
+  fprintf(stderr, "Rastcomp is now %lx, Vertcomp is now %lx\n", rastcomp, vertcomp);
+
   if (rastcomp != nil && vertcomp != nil) {
+    _rastcomp = rastcomp;
+    _vertcomp = vertcomp;
+    fprintf(stderr, "PolyClipRasterCmd::Execute just assigned _rastcomp and _vertcomp\n");
     ComTerpServ *comterp = ((OverlayUnidraw*)unidraw)->comterp();
     ComValue rastval(new OverlayViewRef(rastcomp), rastcomp->classid());
     ComValue vertval(new OverlayViewRef(vertcomp), vertcomp->classid());
     comterp->push_stack(rastval);
     comterp->push_stack(vertval);
     PixelClipFunc clipfunc(comterp, ed);
+    fprintf(stderr, "PolyClipRasterCmd::Execute ready clipfunc.exec\n");
     clipfunc.exec(2, 0);
   }
+  fprintf(stderr, "PolyClipRasterCmd::Execute done\n");
 }
 
 void PolyClipRasterCmd::Unexecute() {
-
-  OverlayEditor* ed = (OverlayEditor*)GetEditor();
-  OverlaySelection* sel = (OverlaySelection*) ed->GetSelection();
-  Iterator i;
-  for (sel->First(i); !sel->Done(i); sel->Next(i)) {
-    GraphicView* view = sel->GetView(i);
-    if (view->IsA(OVRASTER_VIEW)) {
-      RasterOvView* rastview = (RasterOvView*)view;
-      if (rastview) {
-	RasterOvComp* rastcomp = (RasterOvComp*)rastview->GetSubject();
-	OverlayRasterRect* rr = rastcomp->GetOverlayRasterRect();
-	if (rr) {
-	  rastcomp->Notify();
-	  unidraw->Update();
-	}
-      }
-    }
+  OverlayRasterRect* rastrect = _rastcomp->GetOverlayRasterRect();
+  if (rastrect) {
+    rastrect->clippts(nil, nil, 0);
   }
+  _rastcomp->Notify();
 }
 

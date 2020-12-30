@@ -289,7 +289,11 @@ void PixelClipFunc::execute() {
       return;
     }
   }
-  push_stack(ComValue::nullval());
+
+  rastrect->clippts(NULL, NULL, 0);
+  rastcomp->Notify();
+  push_stack(rastcompv);
+  unidraw->Update();
 
 }
 

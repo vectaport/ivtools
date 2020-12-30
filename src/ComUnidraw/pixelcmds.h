@@ -26,6 +26,9 @@
 
 #include <Unidraw/Commands/command.h>
 
+class RasterOvComp;
+class VerticesOvComp;
+
 //: Unidraw command to clip raster with polygon
 class PolyClipRasterCmd : public Command {
 public:
@@ -40,7 +43,9 @@ public:
 
     virtual boolean Reversible();
 
-protected: 
+protected:
+    RasterOvComp* _rastcomp;
+    VerticesOvComp* _vertcomp;
 
 };
 #endif /* !defined(_pixelcmds_h) */
