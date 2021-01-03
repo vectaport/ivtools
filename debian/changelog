@@ -1,3 +1,10 @@
+ivtools (2.0.4a1-2) unstable; urgency=medium
+
+  * bump policy
+  * stop using libclippoly, see bug 976540
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Sun, 03 Jan 2021 13:11:50 +0000
+
 ivtools (2.0.4a1-1) unstable; urgency=medium
 
   * new upstream release
