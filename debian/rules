@@ -10,7 +10,9 @@ include /usr/share/dpkg/pkg-info.mk
 	dh $@
 
 override_dh_auto_configure:
-	dh_auto_configure -- --with-PSFontDir=/usr/share/fonts/type1/gsfonts
+	dh_auto_configure --					\
+		--with-PSFontDir=/usr/share/fonts/type1/gsfonts	\
+		--with-clippoly=no
 
 execute_after_dh_install:
 	@echo prevent library files in libiv2 from being duplicated in libiv-unidraw2
