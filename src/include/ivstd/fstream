@@ -211,7 +211,7 @@ public:
 
     // 27.9.1.3 Assign/swap:
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_filebuf& operator=(basic_filebuf&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_filebuf& operator=(basic_filebuf&& __rhs);
 #endif
     void swap(basic_filebuf& __rhs);
 
@@ -1111,7 +1111,7 @@ public:
 #endif
 
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_ifstream& operator=(basic_ifstream&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_ifstream& operator=(basic_ifstream&& __rhs);
 #endif
     inline _LIBCPP_INLINE_VISIBILITY void swap(basic_ifstream& __rhs);
 
@@ -1263,11 +1263,11 @@ public:
     inline _LIBCPP_INLINE_VISIBILITY explicit basic_ofstream(const char* __s, ios_base::openmode __mode = ios_base::out);
     inline _LIBCPP_INLINE_VISIBILITY explicit basic_ofstream(const string& __s, ios_base::openmode __mode = ios_base::out);
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_ofstream(basic_ofstream&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_ofstream(basic_ofstream&& __rhs);
 #endif
 
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_ofstream& operator=(basic_ofstream&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_ofstream& operator=(basic_ofstream&& __rhs);
 #endif
     inline _LIBCPP_INLINE_VISIBILITY void swap(basic_ofstream& __rhs);
 
@@ -1420,11 +1420,11 @@ public:
     inline _LIBCPP_INLINE_VISIBILITY explicit basic_fstream(const string& __s, ios_base::openmode __mode = ios_base::in | ios_base::out);
     inline _LIBCPP_INLINE_VISIBILITY explicit basic_fstream(int fd, ios_base::openmode __mode = ios_base::in | ios_base::out);
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_fstream(basic_fstream&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_fstream(basic_fstream&& __rhs);
 #endif
 
 #ifndef _LIBCPP_HAS_NO_RVALUE_REFERENCES
-    basic_fstream& operator=(basic_fstream&& __rhs);
+    inline _LIBCPP_INLINE_VISIBILITY basic_fstream& operator=(basic_fstream&& __rhs);
 #endif
     inline _LIBCPP_INLINE_VISIBILITY void swap(basic_fstream& __rhs);
 
