@@ -1,3 +1,10 @@
+ivtools (2.0.4a1-3) unstable; urgency=medium
+
+  * bump policy
+  * merge autoconf 2.70 fix (closes: #978839)
+
+ -- Barak A. Pearlmutter <bap@debian.org>  Fri, 27 Aug 2021 10:08:58 +0100
+
 ivtools (2.0.4a1-2) unstable; urgency=medium
 
   * bump policy
