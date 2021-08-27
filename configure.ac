@@ -127,9 +127,7 @@ AC_CHECK_TYPES([sig_atomic_t], [], [AC_DEFINE([sig_atomic_t], [int])], [
 # Checks for library functions.
 AC_FUNC_ERROR_AT_LINE
 AC_FUNC_FORK
-AC_FUNC_MALLOC
 AC_FUNC_MMAP
-AC_FUNC_REALLOC
 AC_FUNC_STRTOD
 
 AC_CHECK_FUNCS([bzero floor getcwd gethostbyname gethostname \
