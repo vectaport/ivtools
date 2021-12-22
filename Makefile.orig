@@ -598,7 +598,7 @@ cmcommit::
 	done
 
 imake::
-	-@if [ ! -f /usr/local/bin/imake ]; then  	echo building and installing /usr/local/bin/imake;  	gcc src/imake/imake.c;  	sudo install -c -m 0755 a.out /usr/local/bin/imake;  	rm a.out; fi
+	-@echo building imake; 	gcc -I ${XINCDIR} src/imake/imake.c -o imake
 
 clean::
 	@$(RM_CMD) make.makefile make.makefiles make.depend make.make make.imake

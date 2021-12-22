@@ -171,7 +171,7 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
  * execute recursive make commands.
  */
 #ifndef ImakeCmd
-#define ImakeCmd imake
+#define ImakeCmd $(TOP)/imake
 #endif
 
 #ifndef ImakeFlags
