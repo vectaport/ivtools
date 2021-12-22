@@ -31,6 +31,9 @@
 #include "tiffioP.h"
 #include "tif_fax3.h"
 
+int TIFFFlushData1(TIFF *);
+int TIFFInitCCITTFax3(TIFF*);
+
 #if USE_PROTOTYPES
 static	int Fax4Decode(TIFF*, u_char *, int, u_int);
 static	int Fax4Encode(TIFF*, u_char *, int, u_int);
