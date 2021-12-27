@@ -26,6 +26,8 @@
  * TIFF Library.
  */
 #include "tiffioP.h"
+int close(int fildes);
+
 
 #if USE_PROTOTYPES
 extern	int TIFFFreeDirectory(TIFF*);
