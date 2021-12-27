@@ -1,3 +1,11 @@
+December 27th 2021 ivtools-2.0.6
+
+* second attempt at a release that might build with homebrew
+
+December 27th 2021 ivtools-2.0.5
+
+* first attempt at a release that might build with homebrew
+
 October 11th 2020 ivtools-2.0.4
 
 * list (or array) comparison operators '<', '>', and '!=' for comterp.
