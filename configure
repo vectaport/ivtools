@@ -5071,8 +5071,8 @@ echo writing \"XCONFIGDIR = $x_libraries/X11/config\"
 echo XCONFIGDIR = $x_libraries/X11/config >config/config.mk
 echo writing \"ABSTOP = `pwd`\"
 echo ABSTOP = `pwd` >>config/config.mk
-echo writing \"CPU = `make CPU XINCLUDES=$x_includes`\"
-echo CPU = `make CPU XINCLUDES=$x_includes` >>config/config.mk
+echo writing \"CPU = `make CPU XINCDIR=$x_includes`\"
+echo CPU = `make CPU XINCDIR=$x_includes` >>config/config.mk
 echo writing \"LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2\"
 echo LIBSTDCPLUSPLUS2 = $LIBSTDCPLUSPLUS2 >>config/config.mk
 echo writing \"LIBSTDCPLUSPLUS3 = $LIBSTDCPLUSPLUS3\"
