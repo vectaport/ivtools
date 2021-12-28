@@ -21,7 +21,7 @@ imake::
 	fi
 
 clean::
-	@$(RM_CMD) make.makefile make.makefiles make.depend make.make make.imake
+	@$(RM_CMD) make.makefile make.makefiles make.depend make.make make.imake imake
 
 
 
