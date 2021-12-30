@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1999 Vectaport Inc.
@@ -441,11 +442,13 @@ void CloseFileFunc::execute() {
     pipeobj->close();
     return;
   }
+#ifdef HAVE_ACE  
   if (objv.is_socketobj()) {
     SocketObj *sockobj = (SocketObj*)objv.geta(SocketObj::class_symid());
     sockobj->close();
     return;
   }
+#endif
 }
 
 /*****************************************************************************/

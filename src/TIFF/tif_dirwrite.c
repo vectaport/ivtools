@@ -35,6 +35,12 @@
 #include "tiffioP.h"
 #include "prototypes.h"
 
+ssize_t write(int fildes, const void *buf, size_t nbyte);
+ssize_t read(int fildes, void *buf, size_t nbyte);
+TIFFDefaultDirectory(TIFF *tif);
+int TIFFFreeDirectory(TIFF*);
+int TIFFFlushData1(TIFF *);
+
 #if HAVE_IEEEFP
 #define	TIFFCvtNativeToIEEEFloat(tif, n, fp)
 #endif
