@@ -16,7 +16,6 @@ MakeInSubdirsTop($(SUBDIRS))
 
 imake::
 	-@if [ ! -f ./imake ]; then \
-	echo building and installing ./imake; \
 	gcc -I$(XINCDIR) src/imake/imake.c -o imake; \
 	fi
 
