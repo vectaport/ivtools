@@ -31,6 +31,8 @@
 #include <stdio.h>
 #include <assert.h>
 
+int TIFFFlushData1(TIFF *);
+
 #if USE_PROTOTYPES
 static	int PackBitsPreEncode(TIFF *);
 static	int PackBitsEncode(TIFF *, u_char *, int, u_int);
