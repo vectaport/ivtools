@@ -1,8 +1,9 @@
 ivtools (2.0.10a1-1) unstable; urgency=medium
 
   * new upstream release
+  * remove ancient Conflicts: from debian/control
 
- -- Barak A. Pearlmutter <bap@debian.org>  Thu, 30 Dec 2021 17:50:56 +0000
+ -- Barak A. Pearlmutter <bap@debian.org>  Thu, 30 Dec 2021 20:19:59 +0000
 
 ivtools (2.0.4a1-3) unstable; urgency=medium
 

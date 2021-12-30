@@ -20,13 +20,12 @@ Package: ivtools-bin
 Section: graphics
 Architecture: any
 Depends: xterm | x-terminal-emulator, ${shlibs:Depends}, ${misc:Depends}
-Conflicts: ivtools-dev (<< 1.2.8a1)
 Suggests: imagemagick, libjpeg-progs, pstoedit
 Description: Drawing Editors evolved from idraw
  InterViews is written in C++ and portable to several different Unix
  platforms.
  Applications written with the InterViews library can be configured to
- provide a special "Look and Feel", such as SGI-Motif and normal Motif.
+ provide a special “Look and Feel”, such as SGI-Motif and normal Motif.
  This package contains mainly drawing programs written using the
  InterViews library: idraw, a basic vector graphics editor, graphdraw,
  flipbook, a vector graphics animation tool, a vector graphics server,
@@ -39,7 +38,6 @@ Depends: libiv2 (= ${binary:Version}),
 	 libiv-unidraw2 (= ${binary:Version}),
 	 libc6-dev, libtiff-dev, zlib1g-dev, libace-dev,
 	 ${shlibs:Depends}, ${misc:Depends}
-Conflicts: ivtools-bin (<< 0.7.2)
 Description: Development files for the InterViews library
  InterViews is written in C++ and portable to several different Unix
  platforms.
@@ -54,7 +52,6 @@ Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
-Conflicts: ivtools
 Description: C++ GUI library with Motif Look and Feel
  InterViews is written in C++ and portable to several different Unix
  platforms.
@@ -65,8 +62,6 @@ Description: C++ GUI library with Motif Look and Feel
 Package: libiv-unidraw2
 Architecture: any
 Multi-Arch: same
-Conflicts: ivtools
-Replaces: ivtools
 Pre-Depends: ${misc:Pre-Depends}
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Description: Application Frameworks layered on Unidraw
