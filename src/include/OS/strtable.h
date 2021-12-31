@@ -122,13 +122,13 @@ StrTable::StrTable(int n) { \
     first_ = new StrTableEntry(StrTable)*[size_]; \
     --size_; \
     last_ = &first_[size_]; \
-    for (register StrTableEntry(StrTable)** e = first_; e <= last_; e++) { \
+    for (StrTableEntry(StrTable)** e = first_; e <= last_; e++) { \
 	*e = nil; \
     } \
 } \
 \
 StrTable::~StrTable() { \
-    for (register StrTableEntry(StrTable)** e = first_; e <= last_; e++) { \
+    for (StrTableEntry(StrTable)** e = first_; e <= last_; e++) { \
 	StrTableEntry(StrTable)* t = *e; \
 	delete t; \
     } \
@@ -140,16 +140,16 @@ inline StrTableEntry(StrTable)*& StrTable::probe(const char* i) { \
 } \
 \
 void StrTable::insert(const char* k, Value v) { \
-    register StrTableEntry(StrTable)* e = new StrTableEntry(StrTable); \
+    StrTableEntry(StrTable)* e = new StrTableEntry(StrTable); \
     e->key_ = k; \
     e->value_ = v; \
-    register StrTableEntry(StrTable)** a = &probe(k); \
+    StrTableEntry(StrTable)** a = &probe(k); \
     e->chain_ = *a; \
     *a = e; \
 } \
 \
 boolean StrTable::find(Value& v, const char* k) { \
-    for (register StrTableEntry(StrTable)* e = probe(k); e != nil; e = e->chain_) { \
+    for (StrTableEntry(StrTable)* e = probe(k); e != nil; e = e->chain_) { \
         if (strcmp(e->key_,k)==0) {						\
 	    v = e->value_; \
 	    return true; \
@@ -160,7 +160,7 @@ boolean StrTable::find(Value& v, const char* k) { \
 \
 boolean StrTable::find_and_remove(Value& v, const char* k) { \
     StrTableEntry(StrTable)** a = &probe(k); \
-    register StrTableEntry(StrTable)* e = *a; \
+    StrTableEntry(StrTable)* e = *a; \
     if (e != nil) { \
         if (strcmp(e->key_, k)==0) {			\
 	    v = e->value_; \
@@ -168,7 +168,7 @@ boolean StrTable::find_and_remove(Value& v, const char* k) { \
 	    delete e; \
 	    return true; \
 	} else { \
-	    register StrTableEntry(StrTable)* prev; \
+	    StrTableEntry(StrTable)* prev; \
 	    do { \
 		prev = e; \
 		e = e->chain_; \
@@ -186,13 +186,13 @@ boolean StrTable::find_and_remove(Value& v, const char* k) { \
 \
 void StrTable::remove(const char* k) { \
     StrTableEntry(StrTable)** a = &probe(k); \
-    register StrTableEntry(StrTable)* e = *a; \
+    StrTableEntry(StrTable)* e = *a; \
     if (e != nil) { \
         if (strcmp(e->key_,k)==0) {			\
 	    *a = e->chain_; \
 	    delete e; \
 	} else { \
-	    register StrTableEntry(StrTable)* prev; \
+	    StrTableEntry(StrTable)* prev; \
 	    do { \
 		prev = e; \
 		e = e->chain_; \

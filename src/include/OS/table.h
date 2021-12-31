@@ -114,13 +114,13 @@ Table::Table(int n) { \
     first_ = new TableEntry(Table)*[size_]; \
     --size_; \
     last_ = &first_[size_]; \
-    for (register TableEntry(Table)** e = first_; e <= last_; e++) { \
+    for (TableEntry(Table)** e = first_; e <= last_; e++) { \
 	*e = nil; \
     } \
 } \
 \
 Table::~Table() { \
-    for (register TableEntry(Table)** e = first_; e <= last_; e++) { \
+    for (TableEntry(Table)** e = first_; e <= last_; e++) { \
 	TableEntry(Table)* t = *e; \
 	delete t; \
     } \
@@ -132,16 +132,16 @@ inline TableEntry(Table)*& Table::probe(Key i) { \
 } \
 \
 void Table::insert(Key k, Value v) { \
-    register TableEntry(Table)* e = new TableEntry(Table); \
+    TableEntry(Table)* e = new TableEntry(Table); \
     e->key_ = k; \
     e->value_ = v; \
-    register TableEntry(Table)** a = &probe(k); \
+    TableEntry(Table)** a = &probe(k); \
     e->chain_ = *a; \
     *a = e; \
 } \
 \
 boolean Table::find(Value& v, Key k) { \
-    for (register TableEntry(Table)* e = probe(k); e != nil; e = e->chain_) { \
+    for (TableEntry(Table)* e = probe(k); e != nil; e = e->chain_) { \
 	if (e->key_ == k) { \
 	    v = e->value_; \
 	    return true; \
@@ -152,7 +152,7 @@ boolean Table::find(Value& v, Key k) { \
 \
 boolean Table::find_and_remove(Value& v, Key k) { \
     TableEntry(Table)** a = &probe(k); \
-    register TableEntry(Table)* e = *a; \
+    TableEntry(Table)* e = *a; \
     if (e != nil) { \
 	if (e->key_ == k) { \
 	    v = e->value_; \
@@ -160,7 +160,7 @@ boolean Table::find_and_remove(Value& v, Key k) { \
 	    delete e; \
 	    return true; \
 	} else { \
-	    register TableEntry(Table)* prev; \
+	    TableEntry(Table)* prev; \
 	    do { \
 		prev = e; \
 		e = e->chain_; \
@@ -178,13 +178,13 @@ boolean Table::find_and_remove(Value& v, Key k) { \
 \
 void Table::remove(Key k) { \
     TableEntry(Table)** a = &probe(k); \
-    register TableEntry(Table)* e = *a; \
+    TableEntry(Table)* e = *a; \
     if (e != nil) { \
 	if (e->key_ == k) { \
 	    *a = e->chain_; \
 	    delete e; \
 	} else { \
-	    register TableEntry(Table)* prev; \
+	    TableEntry(Table)* prev; \
 	    do { \
 		prev = e; \
 		e = e->chain_; \

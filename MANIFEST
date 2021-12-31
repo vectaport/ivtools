@@ -95,6 +95,7 @@ ivtools-2.0/config/solaris-gcc.mk
 ivtools-2.0/config/sunos4-gcc.mk
 ivtools-2.0/config/template
 ivtools-2.0/configure
+ivtools-2.0/configure.hd
 ivtools-2.0/configure.in
 ivtools-2.0/configure.notes
 ivtools-2.0/src/AceDispatch/Imakefile
@@ -1773,14 +1774,7 @@ ivtools-2.0/src/scripts/config.sub
 ivtools-2.0/src/scripts/cpu.sh
 ivtools-2.0/src/scripts/csvfilt
 ivtools-2.0/src/scripts/install-sh
-ivtools-2.0/src/scripts/ivcd.cpp
-ivtools-2.0/src/scripts/ivct.cpp
-ivtools-2.0/src/scripts/ivds.cpp
-ivtools-2.0/src/scripts/ivdt.cpp
-ivtools-2.0/src/scripts/ivfb.cpp
-ivtools-2.0/src/scripts/ivgd.cpp
 ivtools-2.0/src/scripts/ivgetjpg.bash
-ivtools-2.0/src/scripts/ivmkmf.cpp
 ivtools-2.0/src/scripts/ivtiftopnm.bash
 ivtools-2.0/src/scripts/mkdirhier.sh
 ivtools-2.0/src/scripts/mkgif89a.bash
