@@ -3,5 +3,5 @@
 #
 # $1 prefix
 # $2 mandir
-./configure --prefix=$1 --mandir=$2 --with-ace=/usr/local/Cellar/ace/7.0.5/include --with-ace-libs=/usr/local/Cellar/ace/7.0.5/lib
+./configure --prefix=$1 --mandir=$2 --with-ace=/usr/local/include --with-ace-libs=/usr/local/lib
 
