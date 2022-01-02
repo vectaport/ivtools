@@ -8,6 +8,9 @@ PACKAGE = Unidraw
 
 LIB = Unidraw
 
+Use_libInterViews()
+DYLDLIBS = -L$(XLIBDIR) $(LDLIBX11) $(LDLIBXEXT) $(LDLIBIV)
+
 MakeLibrary($(LIB),$(VERSION))
 
 #define Obj(file) MakeObjectFromSrcFlags(file,)

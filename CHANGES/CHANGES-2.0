@@ -1,4 +1,13 @@
-December 31st 2021 ivtools-2.0.10
+January 2nd, 2022 ivtools-2.0.11b
+
+* ninth attempt at homebrew build, this time getting rid of --flat_namespace when building
+dynamic libraries.
+
+December 31st 2021 ivtools-2.0.11a
+
+* eight attempt at homebrew build, add workaround for 118 character limit.
+
+December 31st 2021 ivtools-2.0.11
 
 * seventh and maybe last attempt at a release that might build with homebrew, before ivtools-2.1.0
 

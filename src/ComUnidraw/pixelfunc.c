@@ -68,7 +68,7 @@ void PixelPokeLineFunc::execute() {
     for(int j=0; j<wval; j++){
       ColorIntensity r,g,b;
       int pixelcolor = pixelvals[j];
-      char colorname[7];
+      char colorname[8];
       sprintf(colorname,"#%06x",pixelcolor);
       Color::find(World::current()->display(),colorname, r, g, b);
       raster->poke(xval+j, yval, r, g, b, 1.0);
@@ -100,7 +100,7 @@ void PixelPokeFunc::execute() {
   if (raster) {
     ColorIntensity r,g,b;
     int pixelcolor = valv.int_val();
-    char colorname[7];
+    char colorname[8];
     sprintf(colorname,"#%06x",pixelcolor);
     Color::find(World::current()->display(),colorname, r, g, b);
     raster->poke(xv.int_val(), yv.int_val(), r, g, b, 1.0);

@@ -11,6 +11,8 @@ LIB = UniIdraw
 Use_libUnidraw()
 Use_2_6()
 
+DYLDLIBS = -L$(XLIBDIR) $(LDLIBX11) $(LDLIBXEXT) $(LDLIBIV) $(LDLIBUNIDRAW)
+
 MakeLibrary($(LIB),$(VERSION))
 
 #define Obj(file) MakeObjectFromSrcFlags(file,)

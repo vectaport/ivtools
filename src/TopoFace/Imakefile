@@ -8,6 +8,7 @@ PACKAGE = TopoFace
 
 LIB = TopoFace
 
+DYLDLIBS = ${LIBIVCOMMON} ${LIBUNIDRAWCOMMON} ${LIBTOPOFACE}
 
 MakeLibrary($(LIB),$(VERSION))
 
