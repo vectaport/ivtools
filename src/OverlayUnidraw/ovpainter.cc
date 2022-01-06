@@ -783,7 +783,7 @@ void OvPixmapTable::remove(const Raster* r) {
     XDisplay* dpy = d.rep()->display_;
 
     OvPixmapTableBase_Entry** a;
-    register OvPixmapTableBase_Entry* e;
+    OvPixmapTableBase_Entry* e;
 
     for (a = first_; a <= last_; a++) {
         e = *a;
@@ -794,7 +794,7 @@ void OvPixmapTable::remove(const Raster* r) {
                 delete e;
                 e = *a;
             } else {
-                register OvPixmapTableBase_Entry* prev;
+                OvPixmapTableBase_Entry* prev;
                 do {
                     prev = e;
                     e = e->chain_;

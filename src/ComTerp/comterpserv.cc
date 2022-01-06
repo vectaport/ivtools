@@ -263,7 +263,8 @@ int ComTerpServ::run(boolean one_expr, boolean nested) {
 }
 
 int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
-    /* save enough state as needed by this interpreter */
+
+  /* save enough state as needed by this interpreter */
     push_servstate();
     _inptr = this;
     _infunc = (infuncptr)&ComTerpServ::s_fgets;
@@ -283,8 +284,6 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
       pop_servstate();
       return -1;
     }
-    FILEBUF(ibuf, ifptr, ios_base::in);
-    istream istr(&ibuf);
     ComValue* retval = nil;
     int status = 0;
    
@@ -295,13 +294,14 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     int tokoff = _pfoff;
 
     int last_status = 0;
-    while( istr.good()) {
+    while( !feof(ifptr) ) {
 #if defined(TIMING_TEST)
         static struct timeval tvBefore, tvAfter, tvParse, tvConvert, tvDiff;
 #endif
         *inbuf='\0';
-        istr.getline(inbuf, _linesize-1);
-	if (istr.eof() && !*inbuf)  // deal with last line without new-line
+        fgets(inbuf, _linesize-1, ifptr);
+
+ 	if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
 	  break;
         if (_linenum==0 && !*inbuf) { // run a dummy space in to initialize parser
             inbuf[0]=' ';
@@ -386,7 +386,6 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
     load_postfix(tokbuf, toklen, tokoff);
     delete tokbuf;
-    ibuf.close();
     if (ifptr) 
         if(popen_flag)
             pclose(ifptr);
