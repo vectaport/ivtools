@@ -225,7 +225,7 @@ void OverlayViewer::UseTool (Tool* t, Event& e) {
 void OverlayViewer::Zoom (Perspective& np) {
     float factor = ScaleFactor(np);
     factor = LimitMagnification(GetMagnification() * factor)/GetMagnification();
-    register Perspective* p = perspective;
+    Perspective* p = perspective;
     IntCoord halfw, halfh;
     halfw = p->curwidth/2;
     halfh = p->curheight/2;
@@ -234,7 +234,7 @@ void OverlayViewer::Zoom (Perspective& np) {
 }
 
 void OverlayViewer::Scroll (Perspective& np) {
-    register Perspective* p = perspective;
+    Perspective* p = perspective;
     Coord dx, dy;
     dx = p->curx - np.curx;
     dy = p->cury - np.cury;
@@ -482,7 +482,7 @@ void OverlayViewer::SetMagnification (float newmag) {
   
   GraphicView* topview = GetGraphicView();
   if (topview) {
-    register Perspective* p = perspective;
+    Perspective* p = perspective;
     IntCoord halfw, halfh;
     halfw = p->curwidth/2;
     halfh = p->curheight/2;
