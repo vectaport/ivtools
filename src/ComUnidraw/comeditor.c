@@ -22,6 +22,7 @@
  * 
  */
 
+#include <ComUnidraw/comkit.h>
 #include <ComUnidraw/grdotfunc.h>
 #include <ComUnidraw/grfunc.h>
 #include <ComUnidraw/grlistfunc.h>

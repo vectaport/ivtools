@@ -25,6 +25,7 @@
 #define comeditor_h
 
 #include <OverlayUnidraw/oved.h>
+#include <ComUnidraw/comkit.h>
 
 class ComTerpIOHandler;
 class ComTerp;
@@ -33,11 +34,11 @@ class ComTerpServ;
 //: editor that integrates ComTerp into the drawing editor framework.
 class ComEditor : public OverlayEditor {
 public:
-    ComEditor(OverlayComp*, OverlayKit* = OverlayKit::Instance());
+    ComEditor(OverlayComp*, OverlayKit* = ComKit::Instance());
     // constructor for using existing component.
-    ComEditor(const char* file, OverlayKit* = OverlayKit::Instance());
+    ComEditor(const char* file, OverlayKit* = ComKit::Instance());
     // constructor for building top-level component from a file.
-    ComEditor(boolean initflag, OverlayKit* = OverlayKit::Instance());
+    ComEditor(boolean initflag, OverlayKit* = ComKit::Instance());
     // constructor for use of derived classes.
     void Init(OverlayComp* = nil, const char* name = "ComEditor");
     virtual void InitCommands();

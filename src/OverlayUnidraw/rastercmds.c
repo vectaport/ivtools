@@ -215,6 +215,7 @@ void AlphaTransparentRasterCmd::Execute() {
 	RasterOvComp* rastcomp = (RasterOvComp*)rastview->GetSubject();
 	OverlayRasterRect* rr = rastcomp->GetOverlayRasterRect();
 	if (rr) {
+	  _rastcomp = rastcomp;
 	  _oldalpha = rr->alphaval();
 	  rr->alphaval(_alpha);
 	  rastcomp->Notify();
@@ -227,23 +228,11 @@ void AlphaTransparentRasterCmd::Execute() {
 
 void AlphaTransparentRasterCmd::Unexecute() {
 
-  OverlayEditor* ed = (OverlayEditor*)GetEditor();
-  OverlaySelection* sel = (OverlaySelection*) ed->GetSelection();
-  Iterator i;
-  for (sel->First(i); !sel->Done(i); sel->Next(i)) {
-    GraphicView* view = sel->GetView(i);
-    if (view->IsA(OVRASTER_VIEW)) {
-      RasterOvView* rastview = (RasterOvView*)view;
-      if (rastview) {
-	RasterOvComp* rastcomp = (RasterOvComp*)rastview->GetSubject();
-	OverlayRasterRect* rr = rastcomp->GetOverlayRasterRect();
-	if (rr) {
-	  rr->alphaval(_oldalpha);
-	  rastcomp->Notify();
-	  unidraw->Update();
-	}
-      }
-    }
+  OverlayRasterRect* rr = _rastcomp->GetOverlayRasterRect();
+  if (rr) {
+    rr->alphaval(_oldalpha);
+    _rastcomp->Notify();
+    unidraw->Update();
   }
 }
 

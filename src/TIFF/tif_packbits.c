@@ -30,6 +30,7 @@
 #include "tiffioP.h"
 #include <stdio.h>
 #include <assert.h>
+extern	int TIFFFlushData1(TIFF *);
 
 int TIFFFlushData1(TIFF *);
 

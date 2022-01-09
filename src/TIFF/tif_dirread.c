@@ -35,6 +35,8 @@
 #include "tiffioP.h"
 ssize_t read(int fildes, void *buf, size_t nbyte);
 
+extern ssize_t read(int fildes, void *buf, size_t nbyte);
+
 #define	IGNORE	0		/* tag placeholder used below */
 
 #if HAVE_IEEEFP

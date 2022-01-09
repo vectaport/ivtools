@@ -100,15 +100,15 @@ public:
     boolean Within(BoxObj&);
     void SplineToMultiLine(Coord* cpx, Coord* cpy, int cpcount);
     void ClosedSplineToPolygon(Coord* cpx, Coord* cpy, int cpcount);
-protected:
-    void GrowBuf();
-    boolean CanApproxWithLine(
-	double x0, double y0, double x2, double y2, double x3, double y3
-    );
     void AddLine(double x0, double y0, double x1, double y1);
     void AddBezierArc(
         double x0, double y0, double x1, double y1,
         double x2, double y2, double x3, double y3
+    );
+protected:
+    void GrowBuf();
+    boolean CanApproxWithLine(
+	double x0, double y0, double x2, double y2, double x3, double y3
     );
     void CalcSection(
 	Coord cminus1x, Coord cminus1y, Coord cx, Coord cy,
@@ -117,6 +117,7 @@ protected:
 public:
     Coord* _x, *_y;
     int _count;
+    int _size;
     UList* _ulist;
     int _pts_made;
 

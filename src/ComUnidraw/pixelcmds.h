@@ -1,7 +1,5 @@
 /*
- * Copyright (c) 2002 Scott E. Johnston
- * Copyright (c) 1999 Vectaport Inc.
- * Copyright (c) 1997 Vectaport Inc., R.B. Kissh & Associates
+ * Copyright (c) 2001,2020 Scott E. Johnston
  *
  * Permission to use, copy, modify, distribute, and sell this software and
  * its documentation for any purpose is hereby granted without fee, provided
@@ -20,27 +18,21 @@
  * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
  * NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
  * WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
- *
+ * 
  */
 
-#ifndef rastercmds_h
-#define rastercmds_h
+#if !defined(_pixelcmds_h)
+#define _pixelcmds_h
 
 #include <Unidraw/Commands/command.h>
 
-class ControlInfo;
 class RasterOvComp;
-class OverlayRaster;
+class VerticesOvComp;
 
-//: command to replace raster in a component.
-class ReplaceRasterCmd : public Command {
+//: Unidraw command to clip raster with polygon
+class PolyClipRasterCmd : public Command {
 public:
-    ReplaceRasterCmd();
-    ReplaceRasterCmd(ControlInfo*); 
-    ReplaceRasterCmd(ControlInfo* c, RasterOvComp* comp, OverlayRaster* nras);
-    ReplaceRasterCmd(Editor* ed, RasterOvComp* comp, OverlayRaster* nras);
-
-    virtual ~ReplaceRasterCmd();
+    PolyClipRasterCmd(ControlInfo* ci); 
 
     virtual void Execute();
     virtual void Unexecute();
@@ -50,52 +42,10 @@ public:
     virtual boolean IsA(ClassId);
 
     virtual boolean Reversible();
+
 protected:
-    OverlayRaster* _orig;
-
-    RasterOvComp* _comp;
-    OverlayRaster* _nras;
-};
-
-//: command to unhighlight a raster.
-class UnhighlightRasterCmd : public Command {
-public:
-    UnhighlightRasterCmd();
-    UnhighlightRasterCmd(ControlInfo*); 
-
-    virtual void Execute();
-
-    virtual Command* Copy();
-    virtual ClassId GetClassId();
-    virtual boolean IsA(ClassId);
-
-    virtual boolean Reversible();
-};
-
-
-
-//: command to make raster alpha-transparent
-class AlphaTransparentRasterCmd : public Command {
-public:
-    AlphaTransparentRasterCmd(ControlInfo* ci); 
-
-    virtual void Execute();
-    virtual void Unexecute();
-
-    virtual Command* Copy();
-    virtual ClassId GetClassId();
-    virtual boolean IsA(ClassId);
-
-    virtual boolean Reversible();
-
-protected: 
-    float _alpha;
-    float _oldalpha;
-    boolean _alpha_set;
     RasterOvComp* _rastcomp;
+    VerticesOvComp* _vertcomp;
+
 };
-
-
-
-#endif
-
+#endif /* !defined(_pixelcmds_h) */

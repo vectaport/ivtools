@@ -27,6 +27,7 @@
  * Scanline-oriented Read Support
  */
 #include "tiffioP.h"
+
 ssize_t read(int fildes, void *buf, size_t nbyte);
 
 #if USE_PROTOTYPES

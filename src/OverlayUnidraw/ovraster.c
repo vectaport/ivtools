@@ -120,7 +120,7 @@ boolean RasterOvComp::IsA (ClassId id) {
 
 Component* RasterOvComp::Copy () {
     RasterOvComp* nc = new RasterOvComp(
-        (OverlayRasterRect*) GetGraphic()->Copy(), _pathname, (OverlayComp*)GetParent()
+	(OverlayRasterRect*) GetGraphic()->Copy(), _pathname, (OverlayComp*)GetParent()
     );
     if (attrlist()) nc->SetAttributeList(new AttributeList(attrlist()));
 
@@ -188,6 +188,9 @@ void RasterOvComp::GrowParamList(ParamList* pl) {
 		  this, this);
 
     pl->add_param("alpha", ParamStruct::keyword, &RasterScript::ReadAlpha,
+		  this, this);
+
+    pl->add_param("clippts", ParamStruct::keyword, &RasterScript::ReadClipPts,
 		  this, this);
 
     pl->add_param("proc", ParamStruct::keyword, &RasterScript::ReadProcess,
@@ -541,6 +544,20 @@ boolean RasterScript::Definition (ostream& out) {
 	    rr->ybeg() << "," <<
 	    rr->yend();
 
+    if (rr->clippts()!=nil) {
+      MultiLineObj* mlo = rr->clippts();
+      if (mlo->count()>0) {
+	  out << " :clippts ";
+	  for(int i=0; i<mlo->count(); i++) {
+	    if (i!=0) {
+	      out << ",";
+	    }
+	    out << mlo->x()[i] << "," << mlo->y()[i];
+	  }
+      }
+    }
+
+      
     MinGS(out);
     Annotation(out);
 
@@ -897,6 +914,38 @@ int RasterScript::ReadAlpha (istream& in, void* addr1, void* addr2, void* addr3,
 }
 
 
+int RasterScript::ReadClipPts (istream& in, void* addr1, void* addr2, void* addr3, void* addr4) {
+    RasterOvComp* comp = (RasterOvComp*)addr1;
+    OverlayRasterRect* gr = comp ? (OverlayRasterRect*) comp->GetGraphic() : nil;
+    MultiLineObj *mlo = new MultiLineObj();
+    if (!gr) {
+      return -1;
+    }
+
+    char ch;
+    ParamList::skip_space(in);
+    int x0, y0;
+    int x1, y1;
+    in >> x0;
+    in >> ch; if (ch!=',') { return -1; }
+    in >> y0;
+    in >> ch; if (ch!=',') { return -1; }
+    in >> x1;
+    in >> ch; if (ch!=',') { return -1; }
+    in >> y1;
+    while (in.good()) {
+      mlo->AddLine(x0, y0, x1, y1);
+      x0=x1; y0=y1;
+      in >> ch; if (ch!=',') { in.putback(ch); break; }
+      in >> x1;
+      in >> ch; if (ch!=',') { return -1; }
+      in >> y1;
+    }
+    gr->clippts(mlo);
+    return 0;
+}
+
+
 int RasterScript::ReadProcess (
     istream& in, void* addr1, void*, void*, void*
 ) {
@@ -935,27 +984,19 @@ OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect
     _damage_done = 0;
     _clippts = nil;
     _alphaval = 1.0;
-    #if 0  // test of  clippts
-    float L = r->rep()->left_;
-    float B = r->rep()->bottom_;
-    float R = r->rep()->right_;
-    float T = r->rep()->top_;
-    fprintf(stderr,"raster L,B,R,T -- %f,%f,%f,%f\n", L,B,R,T);
-    int x[5] = {int(L),int((R+L)/2),int(R),int((R+L)/2),int(L)};
-    int y[5] = {int((B+T)/2),int(T),int((B+T)/2),int(B),int((B+T)/2)};
-    this->clippts(x,y,5);
-    #endif
 }
 
 OverlayRasterRect::~OverlayRasterRect () { Unref(_clippts);}
 
 void OverlayRasterRect::clippts(MultiLineObj* pts) {
+  Resource::unref(_clippts);
   _clippts = pts;
   Resource::ref(_clippts);
 }
 
 void OverlayRasterRect::clippts(int* x, int* y, int n) {
   Resource::unref(_clippts);
+  _clippts = nil;
   if (x && y) {
     _clippts = MultiLineObj::make_pts(x, y, n);
     Resource::ref(_clippts);
