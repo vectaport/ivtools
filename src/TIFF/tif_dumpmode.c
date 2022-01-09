@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-extern	int TIFFFlushData1(TIFF *);
+int TIFFFlushData1(TIFF *);
 
 #if USE_PROTOTYPES
 static	int DumpModeEncode(TIFF *, u_char *, int, u_int);

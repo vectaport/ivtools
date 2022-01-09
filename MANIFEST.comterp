@@ -74,6 +74,7 @@ config/solaris-gcc.mk
 config/sunos4-gcc.mk
 config/template
 configure
+configure.hd
 configure.in
 configure.notes
 src/Attribute/Imakefile
@@ -316,14 +317,7 @@ src/scripts/config.guess
 src/scripts/config.sub
 src/scripts/cpu.sh
 src/scripts/install-sh
-src/scripts/ivcd.cpp
-src/scripts/ivct.cpp
-src/scripts/ivds.cpp
-src/scripts/ivdt.cpp
-src/scripts/ivfb.cpp
-src/scripts/ivgd.cpp
 src/scripts/ivgetjpg.bash
-src/scripts/ivmkmf.cpp
 src/scripts/mkdirhier.sh
 src/scripts/mkgif89a.bash
 src/scripts/mkgif89ac.bash

@@ -339,7 +339,7 @@ void OverlaySlider::Slide (Event& e) {
 }
 
 void OverlaySlider::Jump (Event& e) {
-    register Perspective* s = shown;
+    Perspective* s = shown;
     IntCoord dx, dy;
     
     if (e.button == RIGHTMOUSE) {
@@ -405,7 +405,7 @@ void OverlaySlider::Handle (Event& e) {
 static const int MIN_SIZE = 2;
 
 void OverlaySlider::SizeKnob () {
-    register Perspective* s = shown;
+    Perspective* s = shown;
     
     if (canvas != nil) {
 	left = SliderX(s->curx - s->x0);
@@ -416,7 +416,7 @@ void OverlaySlider::SizeKnob () {
 }    
 #include <stdio.h>
 void OverlaySlider::Update () {
-    register Perspective* p = shown;
+    Perspective* p = shown;
     int h, oldwidth, oldheight;
     float aspect;
     Scene* s;

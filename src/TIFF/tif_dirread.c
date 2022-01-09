@@ -33,6 +33,7 @@
  *     are busted in one way or another (e.g. SGI/MIPS).
  */
 #include "tiffioP.h"
+ssize_t read(int fildes, void *buf, size_t nbyte);
 
 extern ssize_t read(int fildes, void *buf, size_t nbyte);
 

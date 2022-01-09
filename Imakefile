@@ -15,14 +15,12 @@ MakeWorld2($(WORLDOPTS))
 MakeInSubdirsTop($(SUBDIRS))
 
 imake::
-	-@if [ ! -f /usr/local/bin/imake ]; then \
-	echo building and installing /usr/local/bin/imake; \
-	gcc src/imake/imake.c; \
-	sudo install -c -m 0755 a.out /usr/local/bin/imake; \
-	rm a.out; fi
+	-@if [ ! -f ./imake ]; then \
+	gcc -I$(XINCDIR) src/imake/imake.c -o imake; \
+	fi
 
 clean::
-	@$(RM_CMD) make.makefile make.makefiles make.depend make.make make.imake
+	@$(RM_CMD) make.makefile make.makefiles make.depend make.make make.imake imake
 
 
 

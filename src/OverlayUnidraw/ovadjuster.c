@@ -91,7 +91,7 @@ void OvMover::Init(int mt) {
 }
 
 void OvMover::AdjustView(Event& e) {
-    register Perspective* basep = shown;
+    Perspective* basep = shown;
     int amtx, amty;
 
     *basep = *view->GetPerspective();

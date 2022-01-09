@@ -31,10 +31,9 @@
 #include "tiffioP.h"
 #include "tif_fax3.h"
 
-extern	int TIFFInitCCITTRLE(TIFF*), TIFFInitCCITTRLEW(TIFF*);
 extern	int TIFFInitCCITTFax3(TIFF*), TIFFInitCCITTFax4(TIFF*);
 
-int TIFFInitCCITTRLE(tif)
+TIFFInitCCITTRLE(tif)
 	TIFF *tif;
 {
 	TIFFInitCCITTFax3(tif);		/* reuse G3 compression */

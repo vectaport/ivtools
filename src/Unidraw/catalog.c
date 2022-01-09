@@ -280,7 +280,7 @@ Catalog::Catalog (const char* domainName, Creator* creator, float version) {
     _substMap = new ObjectMap(nil, COMPONENT);
     _clipboard = new Clipboard;
 #ifdef __GNUC__
-    _tmpfile = nil;
+    strcmp(_tmpfile, "/tmp/XXXXXX");
 #endif
 
     _edInfoMap = new NameMap;
@@ -371,9 +371,10 @@ Catalog::~Catalog () {
     delete _toolMap;
 
 #ifdef __GNUC__
-    if (_tmpfile != nil) {
+    if (strcmp(_tmpfile, "/tmp/XXXXXX") != 0) {
         unlink(_tmpfile);
         free(_tmpfile);
+	strcpy(_tmpfile, "/tmp/XXXXXX");
     }
 #endif
 }
@@ -674,11 +675,10 @@ void* Catalog::CopyObject (void* obj, ClassId base_id) {
 #ifdef __GNUC__
     filebuf obuf, ibuf;
     ObjectMap* prevMap = _curMap;
-    char* prevTmp = _tmpfile;
     static int stackLvl;
 
-    if (_tmpfile == nil || ++stackLvl > 1) {
-        _tmpfile = tempnam("/tmp", ".udcp");
+    if (strcmp(_tmpfile, "/tmp/XXXXXX")==0 || ++stackLvl > 1) {
+      mkstemp(_tmpfile);
     }
     boolean ok = obuf.open(_tmpfile, output) != 0;
 
@@ -702,9 +702,7 @@ void* Catalog::CopyObject (void* obj, ClassId base_id) {
         cerr << "Unidraw error: couldn't copy object (/tmp unwritable?)\n";
     }
     if (--stackLvl > 0 || !ok) {
-        prevTmp = (_tmpfile == prevTmp) ? nil : prevTmp;
-        delete _tmpfile;
-        _tmpfile = prevTmp;
+        strcpy(_tmpfile, "/tmp/XXXXXX");
     }
     _curMap = prevMap;
 #else

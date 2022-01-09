@@ -30,7 +30,8 @@
 #include "tiffioP.h"
 #include <stdio.h>
 #include <assert.h>
-extern ssize_t write(int fildes, const void *buf, size_t nbyte);
+
+ssize_t write(int fildes, const void *buf, size_t nbyte);
 
 #define	STRIPINCR	20		/* expansion factor on strip array */
 

@@ -31,6 +31,9 @@
 #include "tiffcompat.h"
 #include "prototypes.h"
 
+int makecmap();
+int makebwmap();
+
 typedef	u_char RGBvalue;
 
 static	u_long width, height;		/* image width & height */

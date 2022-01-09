@@ -233,7 +233,7 @@ public:
 
     static const char* filter(const char* string, int len);
     // filter text buffer for octal constants.
-    static char* octal(unsigned char c, register char* p);
+    static char* octal(unsigned char c, char* p);
     // convert a character to an octal string.
     static char octal(const char* p);
     // convert string of three octal digits to a character.

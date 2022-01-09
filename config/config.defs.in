@@ -8,7 +8,7 @@
 #define LibAllDir Prefix/lib/ivtools
 #define IncDir Prefix/include
 #define ConfigDir LibAllDir/config
-#define ManDir Prefix/man
+#define ManDir Prefix/share/man
 #else
 #define Prefix @prefix@
 #define BinDir Prefix/bin/ivtools
@@ -16,7 +16,7 @@
 #define LibAllDir Prefix/lib/ivtools
 #define IncDir Prefix/include
 #define ConfigDir LibAllDir/config
-#define ManDir Prefix/man
+#define ManDir Prefix/share/man
 #endif
 
 #define XConfigDir @x_libraries@/X11/config
