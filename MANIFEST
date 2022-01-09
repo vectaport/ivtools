@@ -1773,7 +1773,6 @@ ivtools-2.0/src/scripts/config.guess
 ivtools-2.0/src/scripts/config.sub
 ivtools-2.0/src/scripts/cpu.sh
 ivtools-2.0/src/scripts/csvfilt
-ivtools-2.0/src/scripts/csvplot
 ivtools-2.0/src/scripts/install-sh
 ivtools-2.0/src/scripts/ivgetjpg.bash
 ivtools-2.0/src/scripts/ivtiftopnm.bash
@@ -1781,6 +1780,7 @@ ivtools-2.0/src/scripts/mkdirhier.sh
 ivtools-2.0/src/scripts/mkgif89a.bash
 ivtools-2.0/src/scripts/mkgif89ac.bash
 ivtools-2.0/src/scripts/pnmtopgm.sh
+ivtools-2.0/src/scripts/starpts
 ivtools-2.0/src/tests/Imakefile
 ivtools-2.0/src/tests/Makefile
 ivtools-2.0/src/tests/y2k/Imakefile

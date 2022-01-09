@@ -865,7 +865,7 @@ void ScreenSizeFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  if(!((OverlayUnidraw*)unidraw)->fully_mapped()) {
+  if(!OverlayUnidraw::fully_mapped()) {
     push_stack(ComValue::nullval());
     return;
   }

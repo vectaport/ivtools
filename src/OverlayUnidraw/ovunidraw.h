@@ -82,6 +82,9 @@ public:
     static void deferred_notifications(boolean flag) { _deferred_notifications = flag; }
     // set flag that indicates deferred notifications
 
+    static boolean fully_mapped() { return _configure_notify_count==4; }
+    // true if X window is fully mapped.
+    
     void run_once(int flag) { _run_once = true; }
     int run_once() { return _run_once; }
     virtual void RunOnce() { run_once(10);Run(); }
@@ -93,8 +96,6 @@ public:
     void get_timeout(long& sec, long& usec) { sec= _sec; usec = _usec; }
     // get amount of delay before timing out Run()
 
-    boolean fully_mapped() {return _configure_notify_count==4;}
-    
 protected:
     int _run_once;
     long _sec; // seconds of delay before exiting Run
