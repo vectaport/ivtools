@@ -157,6 +157,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("font", new FontFunc(comterp, this));
     comterp->add_command("brush", new BrushFunc(comterp, this));
     comterp->add_command("pattern", new PatternFunc(comterp, this));
+    comterp->add_command("patternmask", new PatternMaskFunc(comterp, this));
     comterp->add_command("colors", new ColorFunc(comterp, this));
     comterp->add_command("fontbyname", new FontByNameFunc(comterp, this));
     comterp->add_command("colorsrgb", new ColorRgbFunc(comterp, this));
@@ -230,6 +231,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("stod", new ScreenToDrawingFunc(comterp, this));
     comterp->add_command("dtog", new DrawingToGraphicFunc(comterp, this));
     comterp->add_command("gtod", new GraphicToDrawingFunc(comterp, this));
+    comterp->add_command("ssize", new ScreenSizeFunc(comterp, this));
+    comterp->add_command("dsize", new DrawingSizeFunc(comterp, this));
 
     comterp->add_command("poke", new PixelPokeFunc(comterp, this));
     comterp->add_command("peek", new PixelPeekFunc(comterp, this));

@@ -411,6 +411,19 @@ void Painter::BSpline(Canvas* c, IntCoord x[], IntCoord y[], int count) {
     }
 }
 
+void Painter::BSplinePts(IntCoord x[], IntCoord y[], int count, IntCoord* &sx, IntCoord* &sy, int &scount) {
+    if (count < 3) {
+      sx = x;
+      sy = y;
+      scount = count;
+    } else {
+      CreateOpenLineList(x, y, count);
+      sx = llx;
+      sy = lly;
+      scount = llcount;
+    }
+}
+
 void Painter::ClosedBSpline(Canvas* c, IntCoord x[], IntCoord y[], int count) {
     CheckBufs(bufx, bufy, bufsize, count);
     MapList(c, x, y, count, bufx, bufy);
@@ -419,6 +432,19 @@ void Painter::ClosedBSpline(Canvas* c, IntCoord x[], IntCoord y[], int count) {
     } else {
         CreateClosedLineList(bufx, bufy, count);
         MultiLineNoMap(c, llx, lly, llcount);
+    }
+}
+
+void Painter::ClosedBSplinePts(IntCoord x[], IntCoord y[], int count, IntCoord* &sx, IntCoord* &sy, int &scount) {
+    if (count < 3) {
+      sx = x;
+      sy = y;
+      scount = count;
+    } else {
+      CreateClosedLineList(x, y, count);
+      sx = llx;
+      sy = lly;
+      scount = llcount;
     }
 }
 

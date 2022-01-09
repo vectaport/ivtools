@@ -144,6 +144,7 @@ public:
 #endif /* Polygon */
     virtual void FillPolygon(Canvas*, Coord x[], Coord y[], int n);
     virtual void BSpline(Canvas*, Coord x[], Coord y[], int n);
+    static void BSplinePts(Coord x[], Coord y[], int n, Coord* &sx, Coord* &sy, int &scount);
 #ifdef ClosedBSpline
 #undef ClosedBSpline
     virtual void ClosedBSpline(Canvas*, Coord x[], Coord y[], int n);
@@ -151,6 +152,7 @@ public:
 #else
     virtual void ClosedBSpline(Canvas*, Coord x[], Coord y[], int n);
 #endif /* ClosedBSpline */
+    static void ClosedBSplinePts(Coord x[], Coord y[], int n, Coord* &sx, Coord* &sy, int &scount);
     virtual void FillBSpline(Canvas*, Coord x[], Coord y[], int n);
     virtual void Curve(Canvas*,
 	Coord x0, Coord y0, Coord x1, Coord y1,

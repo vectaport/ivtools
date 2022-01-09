@@ -95,6 +95,7 @@ public:
     virtual boolean is_grabbing(Handler*) const;
 
     virtual EventType type() const;
+    virtual const char* typestr() const;
     virtual unsigned long time() const;
     virtual Coord pointer_x() const;
     virtual Coord pointer_y() const;

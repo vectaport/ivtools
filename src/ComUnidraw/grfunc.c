@@ -903,6 +903,46 @@ void PatternFunc::execute() {
 
 /*****************************************************************************/
 
+PatternMaskFunc::PatternMaskFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void PatternMaskFunc::execute() {
+    ComValue bitsv(stack_arg(0));
+    reset_stack();
+
+    PSPattern* pattern = nil;
+
+    if (bitsv.is_int()) {
+      pattern = new PSPattern(bitsv.int_val(), -1);
+    } else if (bitsv.is_array()) {
+      AttributeValueList* avl = bitsv.array_val();
+      if (avl->Number()!=16) {
+	fprintf(stderr, "patternbits list not 16 ints\n");
+	push_stack(ComValue::nullval());
+	return;
+      }
+      int mask[16];
+      for(int i=0; i<16; i++) {
+	mask[i] = avl->Get(i)->int_val();
+      }
+      pattern = new PSPattern(mask, 16);
+    } else {
+      fprintf(stderr, "patternbits argument not int or list\n");
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    PatternCmd* cmd = nil;
+
+    if (pattern) {
+	cmd = new PatternCmd(_ed, pattern);
+	execute_log(cmd);
+    }
+
+}
+
+/*****************************************************************************/
+
 ColorFunc::ColorFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 

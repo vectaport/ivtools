@@ -17,5 +17,6 @@ InstallScriptAs(cntsrclines.bash,$(BINDIR),cntsrclines)
 InstallScriptAs(ivtiftopnm.bash,$(BINDIR),ivtiftopnm)
 InstallScriptAs(comterp_run.bash,$(BINDIR),comterp_run)
 InstallScriptAs(csvfilt,$(BINDIR),csvfilt)
+InstallScriptAs(csvplot,$(BINDIR),csvplot)
 
 InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)

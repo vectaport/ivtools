@@ -21,14 +21,20 @@
  * 
  */
 
+#include <ComUnidraw/comeditor.h>
+#include <ComUnidraw/grstatfunc.h>
 #include <ComUnidraw/pixelfunc.h>
 
+#include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovraster.h>
+#include <OverlayUnidraw/ovviewer.h>
 #include <Unidraw/Graphic/damage.h>
 #include <Unidraw/iterator.h>
+#include <Unidraw/unidraw.h>
 #include <Unidraw/viewer.h>
 #include <Attribute/attrlist.h>
 #include <IV-2_6/InterViews/world.h>
+
 /*****************************************************************************/
 PixelPokeLineFunc::PixelPokeLineFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
@@ -223,7 +229,7 @@ void PixelClipFunc::execute() {
   ComValue rastcompv(stack_arg(0));
   ComValue ptsv(stack_arg(1));
   reset_stack();
-  
+
   RasterOvComp* rastcomp = (RasterOvComp*) rastcompv.geta(RasterOvComp::class_symid());
   OverlayRasterRect* rastrect = rastcomp ? rastcomp->GetOverlayRasterRect() : nil;
   OverlayRaster* raster = rastrect ? rastrect->GetOriginal() : nil;
@@ -242,8 +248,48 @@ void PixelClipFunc::execute() {
     }
     rastrect->clippts(x, y, n);
     rastcomp->Notify();
-  } else 
-    push_stack(ComValue::nullval());
+    push_stack(rastcompv);
+    return;
+  }
+  
+  if (rastrect && ptsv.is_compview()) {
+    OverlayComp* ovcomp = (OverlayComp*)ptsv.geta(OverlayComp::class_symid(), OVERLAY_COMP);
+    Graphic* pgr = ovcomp->GetGraphic();
+    OverlayEditor* ed = (OverlayEditor*)GetEditor();
+    OverlayViewer* viewer = ed ? (OverlayViewer*)ed->GetViewer() : nil;
+    
+    push_stack(ptsv);
+    PointsFunc ptsfunc(comterp(), editor());
+    ptsfunc.exec(1,0);
+    ComValue newptsv = comterp()->pop_stack();
+
+    if (newptsv.is_array()) {
+      int n = newptsv.array_val()->Number()/2;
+      IntCoord x[n], y[n];
+      AttributeValueList *alist = newptsv.array_val();
+      ALIterator it;
+      int i=0;
+      alist->First(it);
+      while (!alist->Done(it)) {
+	float gx = alist->GetAttrVal(it)->float_val();
+	alist->Next(it);
+	float gy = alist->GetAttrVal(it)->float_val();
+	alist->Next(it);
+	float sx, sy, dx, dy, rx, ry;
+	viewer->GraphicToScreen(pgr, gx, gy, sx, sy);
+	viewer->ScreenToGraphic(sx, sy, rastrect, rx, ry);
+	x[i] = int(rx);
+	y[i] = int(ry);
+	i++;
+      }
+      rastrect->clippts(x, y, n);
+      rastcomp->Notify();
+      push_stack(rastcompv);
+      unidraw->Update();
+      return;
+    }
+  }
+  push_stack(ComValue::nullval());
 
 }
 

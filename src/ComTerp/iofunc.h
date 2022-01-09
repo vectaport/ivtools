@@ -81,14 +81,14 @@ public:
 };
 
 //: close file command
-// close(fileobj|pipeobj) -- close file command
+// close(fileobj|pipeobj|sockobj) -- close file command
 class CloseFileFunc : public ComFunc {
 public:
     CloseFileFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "close(fileobj|pipeobj) -- close file command"; }
+      return "close(fileobj|pipeobj|sockobj) -- close file command"; }
 };
 
 class FileObj {

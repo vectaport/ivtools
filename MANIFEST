@@ -1780,6 +1780,7 @@ ivtools-2.0/src/scripts/mkdirhier.sh
 ivtools-2.0/src/scripts/mkgif89a.bash
 ivtools-2.0/src/scripts/mkgif89ac.bash
 ivtools-2.0/src/scripts/pnmtopgm.sh
+ivtools-2.0/src/scripts/starpts
 ivtools-2.0/src/tests/Imakefile
 ivtools-2.0/src/tests/Makefile
 ivtools-2.0/src/tests/y2k/Imakefile

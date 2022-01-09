@@ -935,6 +935,16 @@ OverlayRasterRect::OverlayRasterRect(OverlayRaster* r, Graphic* gr) : RasterRect
     _damage_done = 0;
     _clippts = nil;
     _alphaval = 1.0;
+    #if 0  // test of  clippts
+    float L = r->rep()->left_;
+    float B = r->rep()->bottom_;
+    float R = r->rep()->right_;
+    float T = r->rep()->top_;
+    fprintf(stderr,"raster L,B,R,T -- %f,%f,%f,%f\n", L,B,R,T);
+    int x[5] = {int(L),int((R+L)/2),int(R),int((R+L)/2),int(L)};
+    int y[5] = {int((B+T)/2),int(T),int((B+T)/2),int(B),int((B+T)/2)};
+    this->clippts(x,y,5);
+    #endif
 }
 
 OverlayRasterRect::~OverlayRasterRect () { Unref(_clippts);}
