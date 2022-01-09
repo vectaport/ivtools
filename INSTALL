@@ -2,7 +2,7 @@
 			INSTALL for ivtools-2.0
 
 
-Instructions for building ivtools-2.0.4 from source, the short version:
+Instructions for building ivtools-2.0.11 from source, the short version:
 
         cp Makefile.orig Makefile // if cloned from github
 	./configure
@@ -38,7 +38,7 @@ Instructions for building ivtools-2.0.4 from source, the short version:
 - Scott Johnston, May-June 2020
 
 
-Instructions for building ivtools-2.0.4 from source, the long version:
+Instructions for building ivtools-2.0.11 from source, the long version:
 
 0. Compilation Environment
 

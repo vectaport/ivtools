@@ -31,6 +31,8 @@
 #include "tiffioP.h"
 #include "tif_fax3.h"
 
+extern	int TIFFInitCCITTFax3(TIFF*), TIFFInitCCITTFax4(TIFF*);
+
 TIFFInitCCITTRLE(tif)
 	TIFF *tif;
 {

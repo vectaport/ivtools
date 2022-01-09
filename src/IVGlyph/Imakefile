@@ -8,6 +8,8 @@ PACKAGE = IVGlyph
 
 LIB = IVGlyph
 
+DYLDLIBS = -L$(XLIBDIR) -lX11 -lXext $(LDLIBIV) $(LIBTIME)
+
 Use_libInterViews()
 
 MakeLibrary($(LIB),$(VERSION))

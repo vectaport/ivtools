@@ -6,6 +6,8 @@ PACKAGE = src_iv
 
 #ifdef InObjectCodeDir
 
+DYLDLIBS = -L$(XLIBDIR) -lX11 -lXext
+
 #ifdef TiffDir
 OTHER_CCDEFINES = $(TIFF_CCDEFINES)
 OTHER_CCINCLUDES = $(TIFF_CCINCLUDES)

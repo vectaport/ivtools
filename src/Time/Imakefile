@@ -8,6 +8,8 @@ PACKAGE = Time
 
 LIB = Time
 
+DYLDLIBS = ${LIBIVCOMMON}
+
 Use_libInterViews()
 
 MakeLibrary($(LIB),$(VERSION))

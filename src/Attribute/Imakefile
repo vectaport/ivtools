@@ -8,6 +8,8 @@ PACKAGE = Attribute
 
 LIB = Attribute
 
+DYLDLIBS = ${LIBIVCOMMON} ${LIBUNIDRAWCOMMON} ${LIBCOMUTIL}
+
 MakeLibrary($(LIB),$(VERSION))
 
 #define Obj(file) MakeObjectFromSrcFlags(file,)

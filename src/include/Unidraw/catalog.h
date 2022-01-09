@@ -229,7 +229,7 @@ protected:
     ObjectMap* _substMap;
     float _fileVersion;
 #ifdef __GNUC__
-    char* _tmpfile;
+    char _tmpfile[12]; // "/tmp/XXXXXX"
 #endif
 
     NameMap* _edInfoMap;

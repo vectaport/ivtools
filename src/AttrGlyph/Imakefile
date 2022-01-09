@@ -8,6 +8,8 @@ PACKAGE = AttrGlyph
 
 LIB = AttrGlyph
 
+DYLDLIBS = -L$(XLIBDIR) -lX11 -lXext $(LDLIBIV) $(LIBATTRIBUTE) $(LIBUNIDRAWCOMMON) $(LIBIVGLYPH)
+
 Use_libInterViews()
 
 MakeLibrary($(LIB),$(VERSION))

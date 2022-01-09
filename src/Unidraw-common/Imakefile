@@ -9,6 +9,8 @@ NO_IVMKCM = 1
 
 LIB = Unidraw-common
 
+DYLDLIBS = ${LIBIVCOMMON}
+
 MakeLibrary($(LIB),$(VERSION))
 
 #define Obj(file) MakeObjectFromSrcFlags(file,-DUnidrawCommon)
