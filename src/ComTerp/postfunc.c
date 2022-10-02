@@ -162,14 +162,17 @@ void ForFunc::execute() {
   if (nargsfixed()>4) fprintf(stderr, "Unexpected for loop with more than one body\n");
   while (!SeqFunc::breakflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
+    
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
     ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval(), true));
-    if (keybody.is_unknown() && nargsfixed()>= 4)
+    if (keybody.is_unknown() && nargsfixed()>= 4) {
       bodyexpr = new ComValue(stack_arg_post_eval(3));
-    else
+    } 
+    else {
       bodyexpr = new ComValue(keybody);
+    }
     ComValue nextexpr(stack_arg_post_eval(2));
   }
   SeqFunc::breakflag(0);
@@ -179,6 +182,7 @@ void ForFunc::execute() {
     delete bodyexpr;
   } else 
     push_stack(ComValue::nullval());
+
 }
 
 /*****************************************************************************/

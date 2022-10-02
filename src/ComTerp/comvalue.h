@@ -136,6 +136,8 @@ public:
     friend ostream& operator << (ostream& s, const ComValue&);
     // print contents to ostream, brief or not depending on
     // associated ComTerp brief flag.
+    virtual const char* String();
+    // generate string using << operator
 
     static void comterp(const ComTerp* comterp) { _comterp = comterp; }
     // set static pointer to ComTerp used to provide brief flag.

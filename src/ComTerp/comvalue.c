@@ -41,6 +41,9 @@
 #include <memory.h>
 
 #include <string.h>
+#include <iostream.h>
+#include <strstream>
+using namespace std;
 
 ComValue ComValue::_nullval;
 ComValue ComValue::_trueval(1, ComValue::BooleanType);
@@ -355,6 +358,16 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	}
     return out;
 }
+
+const char* ComValue::String() {
+    streambuf* strmbuf = nil;
+    strmbuf = new std::strstreambuf();
+    ostream out(strmbuf);
+    out << this;
+    return ((std::strstreambuf*)strmbuf)->str();
+}
+
+
 
 ComValue& ComValue::nullval() { 
   *&_nullval = ComValue();

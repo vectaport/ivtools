@@ -44,6 +44,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <cstdio>
+#include <iostream.h>
+#include <strstream>
 using namespace std;
 
 #ifdef LEAKCHECK
@@ -1051,6 +1053,15 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	}
 #endif
     return out;
+}
+
+
+const char* AttributeValue::String() {
+    streambuf* strmbuf = nil;
+    strmbuf = new std::strstreambuf();
+    ostream out(strmbuf);
+    out << *this;
+    return ((std::strstreambuf*)strmbuf)->str();
 }
 
 void AttributeValue::negate() { 

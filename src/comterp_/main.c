@@ -45,6 +45,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 
+#include <execinfo.h>
 
 #if BUFSIZ>1024
 #undef BUFSIZ
@@ -66,8 +67,24 @@ static char newline;
 using std::cout;
 using std::cerr;
 
+void stack_trace_handler(int sig) {
+  void *array[10];
+  size_t size;
+
+  // get void*'s for all entries on the stack
+  size = backtrace(array, 10);
+
+  // print out all the frames to stderr
+  fprintf(stderr, "Error: signal %d:\n", sig);
+  backtrace_symbols_fd(array, size, STDERR_FILENO);
+  exit(1);
+}
+
+
 int main(int argc, char *argv[]) {
 
+    signal(SIGSEGV, stack_trace_handler);
+    
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;
     boolean logger_flag = argc>1 && strcmp(argv[1], "logger") == 0;
     boolean remote_flag = argc>1 && strcmp(argv[1], "remote") == 0;
