@@ -384,6 +384,8 @@ public:
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
     // output AttributeValue to ostream.
+    virtual const char* String();
+    // generate string using << operator
 
     void* value_ptr() { return &_v; }
     // returns void* pointer to value struct.
