@@ -13,11 +13,11 @@
 #endif
 
 #if defined(__sun__) && defined(__svr4__) || defined(__CYGWIN__) || defined(__linux__) || defined(__NetBSD__) || defined(__FreeBSD__) || defined(__APPLE__)
-#define isnanorinf(dval) (!finite(dval))
+#define isnanorinf(dval) (dval==NAN || dval==INFINITY )
 #elif defined(__alpha)
 #define isnanorinf(dval) (IsNANorINF(dval))
 #else
-#define isnanorinf(dval) (!finite(dval)) /* (dval==NAN || dval==INF ) */
+#define isnanorinf(dval) (dval==NAN || dval==INFINITY )
 #endif
 
 
