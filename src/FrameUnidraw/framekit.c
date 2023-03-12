@@ -85,6 +85,8 @@
 
 #undef None
 
+extern int inlineTextEditor;
+
 /******************************************************************************/
 
 static const char* page_width_attrib = "pagewidth";
@@ -193,7 +195,7 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 	  ed->body(menus);
 	  ed->GetKeyMap()->Execute(CODE_SELECT);
 	  topbox->append(ed);
-	  if (!bookgeom) {
+	  if (!bookgeom && inlineTextEditor) {
 	    boolean set_flag = kit->set_button_flag();
 	    boolean clr_flag = kit->clr_button_flag();
 	    EivTextEditor* texteditor = nil;

@@ -205,7 +205,7 @@ static OptionDesc options[] = {
     { "-theight", "*theight", OptionValueNext },
     { "-tile", "*tile", OptionValueImplicit, "true" },
     { "-toolbarloc", "*toolbarloc", OptionValueNext },
-    { "-tw", "*theight", OptionValueNext },
+    { "-th", "*theight", OptionValueNext },
     { "-tw", "*twidth", OptionValueNext },
     { "-twidth", "*twidth", OptionValueNext },
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },

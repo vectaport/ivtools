@@ -231,6 +231,7 @@ const char* OverlayKit::mouse_custom = "l-click: Drop icon; m-drag: Move; r-clic
 /*****************************************************************************/
 
 OverlayKit* OverlayKit::_overlaykit = nil;
+int inlineTextEditor = false;
 
 OverlayKit::OverlayKit () {
     WidgetKit& kit = *WidgetKit::instance();
@@ -371,7 +372,7 @@ void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
 
       ed->GetKeyMap()->Execute(CODE_SELECT);
 	
-      if (ed->comterp()) {
+      if (ed->comterp() && inlineTextEditor) {
 	    boolean set_flag = kit->_set_button_flag;
 	    boolean clr_flag = kit->_clr_button_flag;
 	    EivTextEditor* texteditor = nil;
