@@ -1,8 +1,8 @@
 
-			INSTALL for ivtools-2.0
+			INSTALL for ivtools-2.1
 
 
-Instructions for building ivtools-2.0.11 from source, the short version:
+Instructions for building ivtools-2.1.0 from source, the short version:
 
         cp Makefile.orig Makefile // if cloned from github
 	./configure
@@ -38,7 +38,7 @@ Instructions for building ivtools-2.0.11 from source, the short version:
 - Scott Johnston, May-June 2020
 
 
-Instructions for building ivtools-2.0.11 from source, the long version:
+Instructions for building ivtools-2.1.0 from source, the long version:
 
 0. Compilation Environment
 
@@ -195,7 +195,7 @@ site.def.<CPU> file to see if they are good defaults for your system.
 
 2. Compiling ivtools:
 
-2.a. cd to the ivtools-2.0/ directory (you'd already be in this
+2.a. cd to the ivtools/ directory (you'd already be in this
 directory after running the configure script).
 
 2.b. Compile it with a "make" command.  The first time it is run it
@@ -226,14 +226,14 @@ If you have any trouble at this stage take a look at:
 
 3. Testing:
 
-Each directory under ivtools-2.0/src that begins in lower case (except
+Each directory under ivtools/src that begins in lower case (except
 for "include" and "scripts") contains executables that exercise some
 particular functionality.  "cd" to each particular directory, type
 "<CPU>/a.out" and see what happens (the utils directory contains more
 than one executable, things named other than a.out).  Quite a few
 directories have README's that go into further detail on how to use
-the programs.  ivtools-2.0/src/glyphs contains sub-directories of
-glyph example programs.  ivtools-2.0/src/glyphs/examples3.1 contains
+the programs.  ivtools/src/glyphs contains sub-directories of
+glyph example programs.  ivtools/src/glyphs/examples3.1 contains
 most of the simple example programs that were originally distributed
 with InterViews 3.1.
 
@@ -255,9 +255,9 @@ uninstall" is supported as well.
 
 When relative install is enabled (--enable-install-relative for the
 configure script), the binaries are installed in
-ivtools-2.0/bin/<CPU>, the libraries are installed in
-ivtools-2.0/lib/<CPU>, and the run-time X resource and config files
-are installed in ivtools-2.0/lib/ivtools.
+ivtools/bin/<CPU>, the libraries are installed in
+ivtools/lib/<CPU>, and the run-time X resource and config files
+are installed in ivtools/lib/ivtools.
 
 When relative install is disabled (the default for the configure
 script) the binaries are installed as stripped executables in `prefix`/bin
