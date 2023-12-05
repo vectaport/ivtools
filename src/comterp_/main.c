@@ -36,6 +36,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 
 #include <iostream.h>
 #include <string.h>
+#include <signal.h>
 
 #include <sys/stat.h>
 #include <unistd.h>

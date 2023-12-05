@@ -1133,7 +1133,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   ostream out(&fbuf);
 #else
   FILE *fp = handler() && handler()->wrfptr() ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout);
-  streambuf* strmbuf = new std::strstreambuf();
+  std::streambuf* strmbuf = new std::strstreambuf();
   ostream out(strmbuf);
 #endif
   boolean eolflag = false;
