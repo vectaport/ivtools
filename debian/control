@@ -1,7 +1,7 @@
 Source: ivtools
 Priority: optional
 Section: libs
-Build-Depends: debhelper-compat (= 13),
+Build-Depends: dpkg-dev (>= 1.22.5), debhelper-compat (= 13),
 	autoconf-archive,
 	zlib1g-dev,
 	x11-utils, x11proto-core-dev,
@@ -34,8 +34,8 @@ Description: Drawing Editors evolved from idraw
 Package: ivtools-dev
 Section: devel
 Architecture: any
-Depends: libiv2 (= ${binary:Version}),
-	 libiv-unidraw2 (= ${binary:Version}),
+Depends: libiv2t64 (= ${binary:Version}),
+	 libiv-unidraw2t64 (= ${binary:Version}),
 	 libc6-dev, libtiff-dev, zlib1g-dev, libace-dev,
 	 ${shlibs:Depends}, ${misc:Depends}
 Description: Development files for the InterViews library
@@ -47,7 +47,10 @@ Description: Development files for the InterViews library
  applications with the ivtools library, along with appropriate dynamic
  library links and static libraries.
 
-Package: libiv2
+Package: libiv2t64
+Provides: ${t64:Provides}
+Replaces: libiv2
+Breaks: libiv2 (<< ${source:Version})
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}
@@ -59,7 +62,10 @@ Description: C++ GUI library with Motif Look and Feel
  provide a special "Look and Feel", such as SGI-Motif and normal Motif.
  This package contains the InterViews dynamic library.
 
-Package: libiv-unidraw2
+Package: libiv-unidraw2t64
+Provides: ${t64:Provides}
+Replaces: libiv-unidraw2
+Breaks: libiv-unidraw2 (<< ${source:Version})
 Architecture: any
 Multi-Arch: same
 Pre-Depends: ${misc:Pre-Depends}

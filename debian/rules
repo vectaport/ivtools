@@ -16,8 +16,8 @@ override_dh_auto_configure:
 
 execute_after_dh_install:
 	@echo prevent library files in libiv2 from being duplicated in libiv-unidraw2
-	find debian/libiv2/usr/lib -type f -o -type l		\
-	 | sed s:^debian/libiv2/:debian/libiv-unidraw2/:	\
+	find debian/libiv2t64/usr/lib -type f -o -type l		\
+	 | sed s:^debian/libiv2t64/:debian/libiv-unidraw2t64/:	\
 	 | xargs --no-run-if-empty rm --verbose
 
 execute_before_dh_installexamples: debian/glyphs.tar
