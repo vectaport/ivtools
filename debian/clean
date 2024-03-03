@@ -1,1 +1,7 @@
 debian/glyphs.tar
+refman.pdf
+*.la
+pnmtopgm
+Idemo
+InterViews
+comterp_run
