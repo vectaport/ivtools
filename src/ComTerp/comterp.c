@@ -1133,8 +1133,6 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   ostream out(&fbuf);
 #else
   FILE *fp = handler() && handler()->wrfptr() ? handler()->wrfptr() : (_fd>0 ? fdopen(_fd, "w") : stdout);
-  std::streambuf* strmbuf = new std::strstreambuf();
-  ostream out(strmbuf);
 #endif
   boolean eolflag = false;
   boolean errorflag = false;
@@ -1160,11 +1158,15 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	      pop_stack();
 	      NextFunc::execute_impl(this, streamv, false);
 	      if (stack_top().is_known()) {
+		#ifdef USE_FDSTREAMS
 		print_stack_top(out);
 		out << "\n";
-		#ifdef USE_FDSTREAMS
 		out.flush();
 		#else
+		std::streambuf* strmbuf = new std::strstreambuf();
+		ostream out(strmbuf);
+		print_stack_top(out);
+		out << "\n";
 		out << '\0';
 		const char *str = ((std::strstreambuf*)strmbuf)->str();
 		fprintf(fp, "%s", str);
@@ -1172,11 +1174,15 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	      }
 	    } while (stack_top().is_known());
 	  } else {
+	    #ifdef USE_FDSTREAMS
 	    print_stack_top(out);
 	    out << "\n"; 
-	    #ifdef USE_FDSTREAMS
 	    out.flush();
 	    #else
+	    std::streambuf* strmbuf = new std::strstreambuf();
+	    ostream out(strmbuf);
+	    print_stack_top(out);
+	    out << "\n"; 
 	    out << '\0';
 	    const char *str = ((std::strstreambuf*)strmbuf)->str();
 	    fprintf(fp, "%s", str);
@@ -1184,10 +1190,13 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	  }
 	}
       } else {
-	out << _errbuf << "\n";
 	#ifdef USE_FDSTREAMS
+	out << _errbuf << "\n";
 	out.flush();
 	#else
+	std::streambuf* strmbuf = new std::strstreambuf();
+	ostream out(strmbuf);
+	out << _errbuf << "\n";
 	out << '\0';
 	const char *str = ((std::strstreambuf*)strmbuf)->str();
 	fprintf(fp, "%s", str);
@@ -1199,10 +1208,13 @@ int ComTerp::run(boolean one_expr, boolean nested) {
       err_str( _errbuf, BUFSIZ, "comterp" );
       if (strlen(_errbuf)>0) {
 	errorflag = true;
-	out << _errbuf << "\n";
 	#ifdef USE_FDSTREAMS
+	out << _errbuf << "\n";
 	out.flush();
 	#else
+	std::streambuf* strmbuf = new std::strstreambuf();
+	ostream out(strmbuf);
+	out << _errbuf << "\n";
 	out << '\0';
 	const char *str = ((std::strstreambuf*)strmbuf)->str();
 	fprintf(fp, "%s", str);
