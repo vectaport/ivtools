@@ -45,20 +45,20 @@ extern ssize_t read(int fildes, void *buf, size_t nbyte);
 
 #include "prototypes.h"
 #if USE_PROTOTYPES
-static	EstimateStripByteCounts(TIFF *, TIFFDirEntry *, u_int);
-static	MissingRequired(TIFF *, char *);
-static	CheckDirCount(TIFF *, TIFFDirEntry *, u_long);
-static	TIFFFetchData(TIFF *, TIFFDirEntry *, char *);
-static	TIFFFetchString(TIFF *, TIFFDirEntry *, char *);
+static	int EstimateStripByteCounts(TIFF *, TIFFDirEntry *, u_int);
+static	int MissingRequired(TIFF *, char *);
+static	int CheckDirCount(TIFF *, TIFFDirEntry *, u_long);
+static	int TIFFFetchData(TIFF *, TIFFDirEntry *, char *);
+static	int TIFFFetchString(TIFF *, TIFFDirEntry *, char *);
 static	float TIFFFetchRational(TIFF *, TIFFDirEntry *);
-static	TIFFFetchNormalTag(TIFF *, TIFFDirEntry *);
-static	TIFFFetchPerSampleShorts(TIFF *, TIFFDirEntry *, long *);
-static	TIFFFetchShortArray(TIFF *, TIFFDirEntry *, u_short []);
-static	TIFFFetchStripThing(TIFF *, TIFFDirEntry *, long, u_long **);
-static	TIFFFetchRefBlackWhite(TIFF *, TIFFDirEntry *);
-static	TIFFFetchJPEGQTables(TIFF *, TIFFDirEntry *);
-static	TIFFFetchJPEGCTables(TIFF *, TIFFDirEntry *, u_char ***);
-static	TIFFFetchExtraSamples(TIFF *, TIFFDirEntry *);
+static	int TIFFFetchNormalTag(TIFF *, TIFFDirEntry *);
+static	int TIFFFetchPerSampleShorts(TIFF *, TIFFDirEntry *, long *);
+static	int TIFFFetchShortArray(TIFF *, TIFFDirEntry *, u_short []);
+static	int TIFFFetchStripThing(TIFF *, TIFFDirEntry *, long, u_long **);
+static	int TIFFFetchRefBlackWhite(TIFF *, TIFFDirEntry *);
+static	int TIFFFetchJPEGQTables(TIFF *, TIFFDirEntry *);
+static	int TIFFFetchJPEGCTables(TIFF *, TIFFDirEntry *, u_char ***);
+static	int TIFFFetchExtraSamples(TIFF *, TIFFDirEntry *);
 static	float TIFFFetchFloat(TIFF *, TIFFDirEntry *);
 static	int TIFFFetchFloatArray(TIFF *, TIFFDirEntry *, float *);
 extern	int TIFFSetCompressionScheme(TIFF *, int);
@@ -103,7 +103,7 @@ CheckMalloc(tif, n, what)
  * and convert it to the internal format.
  * We read directories sequentially.
  */
-TIFFReadDirectory(tif)
+int TIFFReadDirectory(tif)
 	TIFF *tif;
 {
 	register TIFFDirEntry *dp;
@@ -530,7 +530,7 @@ bad:
 }
 
 static
-EstimateStripByteCounts(tif, dir, dircount)
+int EstimateStripByteCounts(tif, dir, dircount)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	u_int dircount;
@@ -575,7 +575,7 @@ EstimateStripByteCounts(tif, dir, dircount)
 }
 
 static
-MissingRequired(tif, tagname)
+int MissingRequired(tif, tagname)
 	TIFF *tif;
 	char *tagname;
 {
@@ -590,7 +590,7 @@ MissingRequired(tif, tagname)
  * there is a mismatch.
  */
 static
-CheckDirCount(tif, dir, count)
+int CheckDirCount(tif, dir, count)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	u_long count;
@@ -609,7 +609,7 @@ CheckDirCount(tif, dir, count)
  * Fetch a contiguous directory item.
  */
 static
-TIFFFetchData(tif, dir, cp)
+int TIFFFetchData(tif, dir, cp)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	char *cp;
@@ -658,7 +658,7 @@ bad:
  * Fetch an ASCII item from the file.
  */
 static
-TIFFFetchString(tif, dir, cp)
+int TIFFFetchString(tif, dir, cp)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	char *cp;
@@ -734,7 +734,7 @@ TIFFFetchFloat(tif, dir)
  * Fetch an array of BYTE or SBYTE values.
  */
 static
-TIFFFetchByteArray(tif, dir, v)
+int TIFFFetchByteArray(tif, dir, v)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	u_short v[];
@@ -768,7 +768,7 @@ TIFFFetchByteArray(tif, dir, v)
  * Fetch an array of SHORT or SSHORT values.
  */
 static
-TIFFFetchShortArray(tif, dir, v)
+int TIFFFetchShortArray(tif, dir, v)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	u_short v[];
@@ -794,7 +794,7 @@ TIFFFetchShortArray(tif, dir, v)
  * Fetch an array of LONG or SLONG values.
  */
 static
-TIFFFetchLongArray(tif, dir, v)
+int TIFFFetchLongArray(tif, dir, v)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	u_long v[];
@@ -810,7 +810,7 @@ TIFFFetchLongArray(tif, dir, v)
  * Fetch an array of RATIONAL or SRATIONAL values.
  */
 static
-TIFFFetchRationalArray(tif, dir, v)
+int TIFFFetchRationalArray(tif, dir, v)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	float v[];
@@ -840,7 +840,7 @@ TIFFFetchRationalArray(tif, dir, v)
  * Fetch an array of FLOAT values.
  */
 static
-TIFFFetchFloatArray(tif, dir, v)
+int TIFFFetchFloatArray(tif, dir, v)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	float v[];
@@ -858,7 +858,7 @@ TIFFFetchFloatArray(tif, dir, v)
  * NB: DOUBLE and UNDEFINED types are not handled.
  */
 static
-TIFFFetchNormalTag(tif, dp)
+int TIFFFetchNormalTag(tif, dp)
 	TIFF *tif;
 	TIFFDirEntry *dp;
 {
@@ -954,7 +954,7 @@ TIFFFetchNormalTag(tif, dp)
  * all values are the same.
  */
 static
-TIFFFetchPerSampleShorts(tif, dir, pl)
+int TIFFFetchPerSampleShorts(tif, dir, pl)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	long *pl;
@@ -984,7 +984,7 @@ TIFFFetchPerSampleShorts(tif, dir, pl)
  * in fact it's also used for tiles.
  */
 static
-TIFFFetchStripThing(tif, dir, nstrips, lpp)
+int TIFFFetchStripThing(tif, dir, nstrips, lpp)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	long nstrips;
@@ -1179,7 +1179,7 @@ TIFFFetchJPEGCTables(tif, dir, ptab)
  * Accept matteing-only ExtraSamples tag.
  */
 static
-TIFFFetchExtraSamples(tif, dp)
+int TIFFFetchExtraSamples(tif, dp)
 	TIFF *tif;
 	TIFFDirEntry *dp;
 {

@@ -172,7 +172,7 @@ c = x; *p++ = PACK(rmap[c]&0xff, gmap[c]&0xff, bmap[c]&0xff);
 
 
 
-TIFFReadRGBAImage(tif, rwidth, rheight, raster, stop)
+int TIFFReadRGBAImage(tif, rwidth, rheight, raster, stop)
 	TIFF *tif;
 	u_long rwidth, rheight;
 	u_long *raster;
@@ -244,14 +244,14 @@ checkcmap(n, r, g, b)
 	return (8);
 }
 
-static	gtTileContig();
-static	gtTileSeparate();
-static	gtStripContig();
-static	gtStripSeparate();
+static	int gtTileContig();
+static	int gtTileSeparate();
+static	int gtStripContig();
+static	int gtStripSeparate();
 static	void initYCbCrConversion();
 
 static
-gt(tif, w, h, raster)
+int gt(tif, w, h, raster)
 	TIFF *tif;
 	int w, h;
 	u_long *raster;
@@ -401,7 +401,7 @@ static tileContigRoutine pickTileContigCase();
  *	SamplesPerPixel == 1
  */	
 static
-gtTileContig(tif, raster, Map, h, w)
+int gtTileContig(tif, raster, Map, h, w)
 	TIFF *tif;
 	u_long *raster;
 	RGBvalue *Map;
@@ -467,7 +467,7 @@ static tileSeparateRoutine pickTileSeparateCase();
  * We assume that all such images are RGB.
  */	
 static
-gtTileSeparate(tif, raster, Map, h, w)
+int gtTileSeparate(tif, raster, Map, h, w)
 	TIFF *tif;
 	u_long *raster;
 	RGBvalue *Map;
@@ -533,7 +533,7 @@ gtTileSeparate(tif, raster, Map, h, w)
  *	SamplesPerPixel == 1
  */	
 static
-gtStripContig(tif, raster, Map, h, w)
+int gtStripContig(tif, raster, Map, h, w)
 	TIFF *tif;
 	u_long *raster;
 	RGBvalue *Map;
@@ -580,7 +580,7 @@ gtStripContig(tif, raster, Map, h, w)
  * We assume that all such images are RGB.
  */
 static
-gtStripSeparate(tif, raster, Map, h, w)
+int gtStripSeparate(tif, raster, Map, h, w)
 	TIFF *tif;
 	u_long *raster;
 	register RGBvalue *Map;

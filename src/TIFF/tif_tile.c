@@ -72,7 +72,7 @@ TIFFComputeTile(tif, x, y, s, z)
  * Check an (x,y,z,s) coordinate
  * against the image bounds.
  */
-TIFFCheckTile(tif, x, y, z, s)
+int TIFFCheckTile(tif, x, y, z, s)
 	TIFF *tif;
 	u_long x, y, z;
 	u_int s;

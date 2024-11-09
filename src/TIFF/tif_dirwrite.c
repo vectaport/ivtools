@@ -37,7 +37,7 @@
 
 ssize_t write(int fildes, const void *buf, size_t nbyte);
 ssize_t read(int fildes, void *buf, size_t nbyte);
-TIFFDefaultDirectory(TIFF *tif);
+int TIFFDefaultDirectory(TIFF *tif);
 int TIFFFreeDirectory(TIFF*);
 int TIFFFlushData1(TIFF *);
 
@@ -46,49 +46,49 @@ int TIFFFlushData1(TIFF *);
 #endif
 
 #if USE_PROTOTYPES
-static	TIFFWriteNormalTag(TIFF*, TIFFDirEntry*, TIFFFieldInfo*);
-static	TIFFSetupShortLong(TIFF *, u_short, TIFFDirEntry *, u_long);
-static	TIFFSetupShortPair(TIFF *, u_short, TIFFDirEntry *);
-static	TIFFWriteRational(TIFF *,
+static	int TIFFWriteNormalTag(TIFF*, TIFFDirEntry*, TIFFFieldInfo*);
+static	int TIFFSetupShortLong(TIFF *, u_short, TIFFDirEntry *, u_long);
+static	int TIFFSetupShortPair(TIFF *, u_short, TIFFDirEntry *);
+static	int TIFFWriteRational(TIFF *,
 	    TIFFDataType, u_short, TIFFDirEntry *, float);
-static	TIFFWritePerSampleShorts(TIFF *, u_short, TIFFDirEntry *);
-static	TIFFWriteShortTable(TIFF *, u_short, TIFFDirEntry *, int, u_short **);
-static	TIFFWriteShortArray(TIFF *,
+static	int TIFFWritePerSampleShorts(TIFF *, u_short, TIFFDirEntry *);
+static	int TIFFWriteShortTable(TIFF *, u_short, TIFFDirEntry *, int, u_short **);
+static	int TIFFWriteShortArray(TIFF *,
 	    TIFFDataType, u_short, TIFFDirEntry *, int, u_short *);
-static	TIFFWriteLongArray(TIFF *,
+static	int TIFFWriteLongArray(TIFF *,
 	    TIFFDataType, u_short, TIFFDirEntry *, int, u_long *);
-static	TIFFWriteRationalArray(TIFF *,
+static	int TIFFWriteRationalArray(TIFF *,
 	    TIFFDataType, u_short, TIFFDirEntry *, int, float *);
-static	TIFFWriteFloatArray(TIFF *,
+static	int TIFFWriteFloatArray(TIFF *,
 	    TIFFDataType, u_short, TIFFDirEntry *, int, float *);
-static	TIFFWriteString(TIFF *, u_short, TIFFDirEntry *, char *);
+static	int TIFFWriteString(TIFF *, u_short, TIFFDirEntry *, char *);
 #ifdef JPEG_SUPPORT
-static	TIFFWriteJPEGQTables(TIFF *, TIFFDirEntry *);
-static	TIFFWriteJPEGCTables(TIFF *, u_short, TIFFDirEntry *, u_char **);
+static	int TIFFWriteJPEGQTables(TIFF *, TIFFDirEntry *);
+static	int TIFFWriteJPEGCTables(TIFF *, u_short, TIFFDirEntry *, u_char **);
 #endif
 #ifdef COLORIMETRY_SUPPORT
-static	TIFFWriteTransferFunction(TIFF*, TIFFDirEntry*);
+static	int TIFFWriteTransferFunction(TIFF*, TIFFDirEntry*);
 #endif
-static	TIFFWriteData(TIFF *, TIFFDirEntry *, char *);
-static	TIFFLinkDirectory(TIFF *);
+static	int TIFFWriteData(TIFF *, TIFFDirEntry *, char *);
+static	int TIFFLinkDirectory(TIFF *);
 #else
-static	TIFFWriteNormalTag();
-static	TIFFSetupShortLong();
-static	TIFFSetupShortPair();
-static	TIFFWriteRational();
-static	TIFFWritePerSampleShorts();
-static	TIFFWriteShortTable();
-static	TIFFWriteShortArray();
-static	TIFFWriteLongArray();
-static	TIFFWriteRationalArray();
-static	TIFFWriteFloatArray();
-static	TIFFWriteString();
+static int TIFFWriteNormalTag();
+static int TIFFSetupShortLong();
+static int TIFFSetupShortPair();
+static int TIFFWriteRational();
+static int TIFFWritePerSampleShorts();
+static int TIFFWriteShortTable();
+static int TIFFWriteShortArray();
+static int TIFFWriteLongArray();
+static int TIFFWriteRationalArray();
+static int TIFFWriteFloatArray();
+static int TIFFWriteString();
 #ifdef JPEG_SUPPORT
-static	TIFFWriteJPEGQTables();
-static	TIFFWriteJPEGCTables();
+static int TIFFWriteJPEGQTables();
+static int TIFFWriteJPEGCTables();
 #endif
-static	TIFFWriteData();
-static	TIFFLinkDirectory();
+static int TIFFWriteData();
+static int TIFFLinkDirectory();
 #endif
 
 #define	WriteRationalPair(type, tag1, v1, tag2, v2) {		\
@@ -106,7 +106,7 @@ static	long dataoff;
  * handle overwriting a directory with auxiliary
  * storage that's been changed.
  */
-TIFFWriteDirectory(tif)
+int TIFFWriteDirectory(tif)
 	TIFF *tif;
 {
 	short dircount, tag;
@@ -354,7 +354,7 @@ bad:
  * Process tags that are not special cased.
  */
 static
-DECLARE3(TIFFWriteNormalTag,
+int DECLARE3(TIFFWriteNormalTag,
     TIFF*, tif, TIFFDirEntry*, dir, TIFFFieldInfo*, fip)
 {
 	TIFFDirectory* td = &tif->tif_dir;
@@ -452,7 +452,7 @@ DECLARE3(TIFFWriteNormalTag,
  * or LONG type according to the value.
  */
 static
-DECLARE4(TIFFSetupShortLong,
+int DECLARE4(TIFFSetupShortLong,
     TIFF*, tif, u_short, tag, TIFFDirEntry*, dir, u_long, v)
 {
 	dir->tdir_tag = tag;
@@ -472,7 +472,7 @@ DECLARE4(TIFFSetupShortLong,
  * write the associated indirect value.
  */
 static
-DECLARE5(TIFFWriteRational,
+int DECLARE5(TIFFWriteRational,
     TIFF*, tif, TIFFDataType, type, u_short, tag, TIFFDirEntry*, dir, float, v)
 {
 	u_long t[2];
@@ -497,7 +497,7 @@ DECLARE5(TIFFWriteRational,
  * values.
  */
 static
-DECLARE3(TIFFWritePerSampleShorts,
+int DECLARE3(TIFFWritePerSampleShorts,
     TIFF*, tif, u_short, tag, TIFFDirEntry*, dir)
 {
 	u_short w[4], v;
@@ -515,7 +515,7 @@ DECLARE3(TIFFWritePerSampleShorts,
  * value, rather than as a reference to an array.
  */
 static
-DECLARE3(TIFFSetupShortPair,
+int DECLARE3(TIFFSetupShortPair,
     TIFF*, tif, u_short, tag, TIFFDirEntry*, dir)
 {
 	u_short v[2];
@@ -530,7 +530,7 @@ DECLARE3(TIFFSetupShortPair,
  * the associated indirect data.
  */
 static
-DECLARE5(TIFFWriteShortTable,
+int DECLARE5(TIFFWriteShortTable,
     TIFF*, tif, u_short, tag, TIFFDirEntry*, dir, int, n, u_short**, table)
 {
 	u_long off;
@@ -554,7 +554,7 @@ DECLARE5(TIFFWriteShortTable,
  * and write any associated indirect value.
  */
 static
-DECLARE4(TIFFWriteString,
+int DECLARE4(TIFFWriteString,
     TIFF*, tif, u_short, tag, TIFFDirEntry*, dir, char*, cp)
 {
 	dir->tdir_tag = tag;
@@ -573,7 +573,7 @@ DECLARE4(TIFFWriteString,
  * or SSHORT and write the associated indirect values.
  */
 static
-DECLARE6(TIFFWriteShortArray, TIFF*, tif,
+int DECLARE6(TIFFWriteShortArray, TIFF*, tif,
     TIFFDataType, type, u_short, tag, TIFFDirEntry*, dir, int, n, u_short*, v)
 {
 	dir->tdir_tag = tag;
@@ -599,7 +599,7 @@ DECLARE6(TIFFWriteShortArray, TIFF*, tif,
  * or SLONG and write the associated indirect values.
  */
 static
-DECLARE6(TIFFWriteLongArray, TIFF*, tif,
+int DECLARE6(TIFFWriteLongArray, TIFF*, tif,
     TIFFDataType, type, u_short, tag, TIFFDirEntry*, dir, int, n, u_long*, v)
 {
 	dir->tdir_tag = tag;
@@ -617,7 +617,7 @@ DECLARE6(TIFFWriteLongArray, TIFF*, tif,
  * or SRATIONAL and write the associated indirect values.
  */
 static
-DECLARE6(TIFFWriteRationalArray, TIFF*, tif,
+int DECLARE6(TIFFWriteRationalArray, TIFF*, tif,
     TIFFDataType, type, u_short, tag, TIFFDirEntry*, dir, int, n, float*, v)
 {
 	int i, status;
@@ -638,7 +638,7 @@ DECLARE6(TIFFWriteRationalArray, TIFF*, tif,
 }
 
 static
-DECLARE6(TIFFWriteFloatArray, TIFF *, tif,
+int DECLARE6(TIFFWriteFloatArray, TIFF *, tif,
     TIFFDataType, type, u_short, tag, TIFFDirEntry *, dir, int, n, float *, v)
 {
 	dir->tdir_tag = tag;
@@ -733,7 +733,7 @@ DECLARE2(TIFFWriteTransferFunction, TIFF*, tif, TIFFDirEntry*, dir)
  * Write a contiguous directory item.
  */
 static
-TIFFWriteData(tif, dir, cp)
+int TIFFWriteData(tif, dir, cp)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	char *cp;
@@ -757,7 +757,7 @@ TIFFWriteData(tif, dir, cp)
  * directory chain for the file.
  */
 static
-TIFFLinkDirectory(tif)
+int TIFFLinkDirectory(tif)
 	register TIFF *tif;
 {
 	static char module[] = "TIFFLinkDirectory";

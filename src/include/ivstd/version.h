@@ -1,3 +1,3 @@
-#define IvtoolsVersion 2.1.0
-#define VersionString "2.1.0"
-#define ReleaseString "ivtools-2.1.0"
+#define IvtoolsVersion 2.1.1
+#define VersionString "2.1.1"
+#define ReleaseString "ivtools-2.1.1"

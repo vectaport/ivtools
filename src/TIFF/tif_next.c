@@ -35,7 +35,7 @@ static	int NeXTDecode(TIFF *, u_char *, int, u_int);
 static	int NeXTDecode();
 #endif
 
-TIFFInitNeXT(tif)
+int TIFFInitNeXT(tif)
 	TIFF *tif;
 {
 	tif->tif_decoderow = NeXTDecode;

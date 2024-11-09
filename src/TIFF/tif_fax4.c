@@ -44,7 +44,7 @@ static	int Fax4Encode();
 static	int Fax4PostEncode();
 #endif
 
-TIFFInitCCITTFax4(tif)
+int TIFFInitCCITTFax4(tif)
 	TIFF *tif;
 {
 	TIFFInitCCITTFax3(tif);		/* reuse G3 compression */
@@ -111,7 +111,7 @@ Fax4Encode(tif, bp, cc, s)
 }
 
 static
-Fax4PostEncode(tif)
+int Fax4PostEncode(tif)
 	TIFF *tif;
 {
 	Fax3BaseState *sp = (Fax3BaseState *)tif->tif_data;

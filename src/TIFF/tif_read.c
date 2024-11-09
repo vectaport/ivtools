@@ -31,27 +31,27 @@
 ssize_t read(int fildes, void *buf, size_t nbyte);
 
 #if USE_PROTOTYPES
-static	TIFFSeek(TIFF *, u_int, u_int);
+static	int TIFFSeek(TIFF *, u_int, u_int);
 static	int TIFFReadRawStrip1(TIFF *, u_int, u_char *, u_int, char []);
 static	int TIFFReadRawTile1(TIFF *, u_int, u_char *, u_int, char []);
-static	TIFFFillStrip(TIFF *, u_int);
-static	TIFFFillTile(TIFF *, u_int);
-static	TIFFStartStrip(TIFF *, u_int);
-static	TIFFStartTile(TIFF *, u_int);
-static	TIFFCheckRead(TIFF *, int);
+static	int TIFFFillStrip(TIFF *, u_int);
+static	int TIFFFillTile(TIFF *, u_int);
+static	int TIFFStartStrip(TIFF *, u_int);
+static	int TIFFStartTile(TIFF *, u_int);
+static	int TIFFCheckRead(TIFF *, int);
 #else
-static	TIFFSeek();
+static	int TIFFSeek();
 static	int TIFFReadRawStrip1();
 static	int TIFFReadRawTile1();
-static	TIFFFillStrip();
-static	TIFFFillTile();
-static	TIFFStartStrip();
-static	TIFFStartTile();
-static	TIFFCheckRead();
+static	int TIFFFillStrip();
+static	int TIFFFillTile();
+static	int TIFFStartStrip();
+static	int TIFFStartTile();
+static	int TIFFCheckRead();
 #endif
 
 /*VARARGS3*/
-TIFFReadScanline(tif, buf, row, sample)
+int TIFFReadScanline(tif, buf, row, sample)
 	register TIFF *tif;
 	u_char *buf;
 	u_int row, sample;
@@ -75,7 +75,7 @@ TIFFReadScanline(tif, buf, row, sample)
  */
 static
 /*VARARGS2*/
-TIFFSeek(tif, row, sample)
+int TIFFSeek(tif, row, sample)
 	register TIFF *tif;
 	u_int row, sample;
 {
@@ -133,7 +133,7 @@ TIFFSeek(tif, row, sample)
  * Read a strip of data and decompress the specified
  * amount into the user-supplied buffer.
  */
-TIFFReadEncodedStrip(tif, strip, buf, size)
+int TIFFReadEncodedStrip(tif, strip, buf, size)
 	TIFF *tif;
 	u_int strip;
 	u_char *buf;
@@ -165,7 +165,7 @@ TIFFReadEncodedStrip(tif, strip, buf, size)
 /*
  * Read a strip of data from the file.
  */
-TIFFReadRawStrip(tif, strip, buf, size)
+int TIFFReadRawStrip(tif, strip, buf, size)
 	TIFF *tif;
 	u_int strip;
 	u_char *buf;
@@ -230,7 +230,7 @@ TIFFReadRawStrip1(tif, strip, buf, size, module)
  * hold the strip's data.
  */
 static
-TIFFFillStrip(tif, strip)
+int TIFFFillStrip(tif, strip)
 	TIFF *tif;
 	u_int strip;
 {
@@ -309,7 +309,7 @@ TIFFFillStrip(tif, strip)
  * Read and decompress a tile of data.  The
  * tile is selected by the (x,y,z,s) coordinates.
  */
-TIFFReadTile(tif, buf, x, y, z, s)
+int TIFFReadTile(tif, buf, x, y, z, s)
 	TIFF *tif;
 	u_char *buf;
 	u_long x, y, z;
@@ -334,7 +334,7 @@ TIFFReadTile(tif, buf, x, y, z, s)
  * Read a tile of data and decompress the specified
  * amount into the user-supplied buffer.
  */
-TIFFReadEncodedTile(tif, tile, buf, size)
+int TIFFReadEncodedTile(tif, tile, buf, size)
 	TIFF *tif;
 	u_int tile;
 	u_char *buf;
@@ -362,7 +362,7 @@ TIFFReadEncodedTile(tif, tile, buf, size)
 /*
  * Read a tile of data from the file.
  */
-TIFFReadRawTile(tif, tile, buf, size)
+int TIFFReadRawTile(tif, tile, buf, size)
 	TIFF *tif;
 	u_int tile;
 	u_char *buf;
@@ -427,7 +427,7 @@ TIFFReadRawTile1(tif, tile, buf, size, module)
  * hold the tile's data.
  */
 static
-TIFFFillTile(tif, tile)
+int TIFFFillTile(tif, tile)
 	TIFF *tif;
 	u_int tile;
 {
@@ -537,7 +537,7 @@ TIFFReadBufferSetup(tif, bp, size)
  * strip has just been read in.
  */
 static
-TIFFStartStrip(tif, strip)
+int TIFFStartStrip(tif, strip)
 	register TIFF *tif;
 	u_int strip;
 {
@@ -555,7 +555,7 @@ TIFFStartStrip(tif, strip)
  * tile has just been read in.
  */
 static
-TIFFStartTile(tif, tile)
+int TIFFStartTile(tif, tile)
 	register TIFF *tif;
 	u_int tile;
 {
@@ -574,7 +574,7 @@ TIFFStartTile(tif, tile)
 }
 
 static
-TIFFCheckRead(tif, tiles)
+int TIFFCheckRead(tif, tiles)
 	TIFF *tif;
 	int tiles;
 {

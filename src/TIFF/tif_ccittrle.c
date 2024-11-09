@@ -33,8 +33,7 @@
 
 extern	int TIFFInitCCITTFax3(TIFF*), TIFFInitCCITTFax4(TIFF*);
 
-TIFFInitCCITTRLE(tif)
-	TIFF *tif;
+int TIFFInitCCITTRLE(TIFF *tif)
 {
 	TIFFInitCCITTFax3(tif);		/* reuse G3 compression */
 	tif->tif_preencode = NULL;
@@ -53,7 +52,7 @@ TIFFInitCCITTRLE(tif)
 	return (1);
 }
 
-int TIFFInitCCITTRLEW(tif)
+int xxuTIFFInitCCITTRLEW(tif)
 	TIFF *tif;
 {
 	TIFFInitCCITTFax3(tif);		/* reuse G3 compression */

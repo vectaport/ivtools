@@ -91,7 +91,7 @@ static const int litTypeshift[13] = {
  * contents and the machine architecture.
  */
 static
-DECLARE3(TIFFInitOrder, register TIFF*, tif, int, magic, int, bigendian)
+int DECLARE3(TIFFInitOrder, register TIFF*, tif, int, magic, int, bigendian)
 {
 	/* XXX how can we deduce this dynamically? */
 	tif->tif_fillorder = FILLORDER_MSB2LSB;
@@ -292,7 +292,7 @@ bad2:
 	return ((TIFF *)0);
 }
 
-TIFFScanlineSize(tif)
+int TIFFScanlineSize(tif)
 	TIFF *tif;
 {
 	TIFFDirectory *td = &tif->tif_dir;

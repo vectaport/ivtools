@@ -39,10 +39,7 @@
  *	explcit values so that defaults exist only one
  *	place in the library -- in TIFFDefaultDirectory.
  */
-TIFFVGetFieldDefaulted(tif, tag, ap)
-	TIFF *tif;
-	int tag;
-	va_list ap;
+int TIFFVGetFieldDefaulted(TIFF* tif, int tag, va_list ap)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	int i;
@@ -166,7 +163,7 @@ TIFFVGetFieldDefaulted(tif, tag, ap)
  * value if the tag is not present in the directory.
  */
 /*VARARGS2*/
-DECLARE2V(TIFFGetFieldDefaulted, TIFF*, tif, int, tag)
+DECLARE2V(int TIFFGetFieldDefaulted, TIFF*, tif, int, tag)
 {
 	int ok;
 	va_list ap;

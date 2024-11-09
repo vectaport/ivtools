@@ -46,7 +46,7 @@ extern "C" {
 #if defined(hpux)
 //    extern int select(size_t, int*, int*, int*, struct timeval*);
 #else
-#if !defined(AIXV3) && !defined(svr4) && !defined(__lucid) && !defined(linux)
+#if !defined(AIXV3) && !defined(svr4) && !defined(__lucid) && !defined(linux) && 0
     extern int select(int, fd_set*, fd_set*, fd_set*, struct timeval*);
 #endif
 #endif

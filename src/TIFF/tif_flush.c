@@ -29,7 +29,7 @@
 
 int TIFFFlushData1(TIFF *);
 
-TIFFFlush(tif)
+int TIFFFlush(tif)
 	TIFF *tif;
 {
 
@@ -46,7 +46,7 @@ TIFFFlush(tif)
 /*
  * Flush buffered data to the file.
  */
-TIFFFlushData(tif)
+int TIFFFlushData(tif)
 	TIFF *tif;
 {
 	if ((tif->tif_flags & TIFF_BEENWRITING) == 0)
