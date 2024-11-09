@@ -1186,6 +1186,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    out << '\0';
 	    const char *str = ((std::strstreambuf*)strmbuf)->str();
 	    fprintf(fp, "%s", str);
+	    fflush(fp);
 	    #endif
 	  }
 	}
@@ -1200,6 +1201,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	out << '\0';
 	const char *str = ((std::strstreambuf*)strmbuf)->str();
 	fprintf(fp, "%s", str);
+        fflush(fp);
 	#endif
 	strcpy(errbuf_save, _errbuf);
 	_errbuf[0] = '\0';
@@ -1218,6 +1220,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	out << '\0';
 	const char *str = ((std::strstreambuf*)strmbuf)->str();
 	fprintf(fp, "%s", str);
+        fflush(fp);
 	#endif
 	strcpy(errbuf_save, _errbuf);
 	_errbuf[0] = '\0';
