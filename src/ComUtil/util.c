@@ -25,3 +25,26 @@
 int   Kaput_On = 1;
 int   TITLE = 0;
 
+#include <execinfo.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+void print_stack_trace() {
+    void *buffer[10];
+    int nptrs = backtrace(buffer, 10);
+    char **symbols = backtrace_symbols(buffer, nptrs);
+
+    if (symbols == NULL) {
+        perror("backtrace_symbols");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(stderr, "Stack trace:\n");
+    for (int i = 0; i < nptrs; i++) {
+        fprintf(stderr, "%s\n", symbols[i]);
+    }
+    fflush(stderr);
+
+    free(symbols);
+}
+

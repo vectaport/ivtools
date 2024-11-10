@@ -592,4 +592,6 @@ dlnode *dll_tail();
 unsigned long TIMER_READ();
 #endif
 
+void print_stack_trace();
+
 #endif /* not UTIL_INCLUDED */
