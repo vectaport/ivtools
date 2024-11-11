@@ -19,6 +19,8 @@ imake::
 	gcc -I$(XINCDIR) src/imake/imake.c -o imake; \
 	fi
 
+InstallProgram(imake,$(BINDIR),imake)
+
 clean::
 	@$(RM_CMD) make.makefile make.makefiles make.depend make.make make.imake imake
 
