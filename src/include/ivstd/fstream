@@ -1,3 +1,6 @@
+#include_next <fstream>
+
+#if 0
 #if  !defined(__APPLE_CC__) || __APPLE_CC__==1
 #include_next <fstream>
 #else
@@ -1572,3 +1575,4 @@ _LIBCPP_END_NAMESPACE_STD
 
 #endif  // _LIBCPP_FSTREAM
 #endif  // defined(__APPLE__)
+#endif

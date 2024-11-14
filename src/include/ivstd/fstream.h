@@ -2,8 +2,8 @@
 #define _iv_fstream_
 #include <fstream>
 #include <cstdio>
-#define input ios_base::in
-#define output ios_base::out
+#define input std::ios::in
+#define output std::ios::out
 #if !defined(__APPLE_CC__) || __APPLE_CC__==1
 #include <ext/stdio_filebuf.h>
 #define fileptr_filebuf __gnu_cxx::stdio_filebuf<char>
@@ -18,10 +18,10 @@
 #else
 #define FILEBUF(bufname, fptr, mode)		\
      fileptr_filebuf bufname; \
-     bufname.open(fptr, mode); 
+     bufname.__open(fileno(fptr), mode); 
 #define FILEBUFP(bufname, fptr, mode) \
      fileptr_filebuf* bufname = new fileptr_filebuf; \
-     bufname -> open(fptr,mode);
+     bufname -> __open(fileno(fptr),mode);
 #endif
 
 #endif

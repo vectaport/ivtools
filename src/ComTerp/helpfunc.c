@@ -162,9 +162,13 @@ void HelpFunc::execute() {
   reset_stack();
 
   std::strstreambuf sbuf;
+  #if HELPOUT
   FILEBUF(fbuf, comterp()->handler() && HELPOUT && comterp()->handler()->wrfptr()
 	       ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
   ostream outs((comterp()->handler() && HELPOUT) ? (streambuf*)&fbuf : (streambuf*)&sbuf);
+  #else
+  ostream outs((streambuf*)&sbuf);
+  #endif
   ostream *out = &outs;
 
   if (noargs) {
