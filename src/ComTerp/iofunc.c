@@ -106,7 +106,7 @@ PrintFunc::PrintFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void PrintFunc::execute() {
-  ComValue formatstr(stack_arg(0));
+ ComValue formatstr(stack_arg(0));
   static int str_symid = symbol_add("str");
   ComValue strflag(stack_key(str_symid));
   static int string_symid = symbol_add("string");
@@ -169,6 +169,7 @@ void PrintFunc::execute() {
       if (prefixv.is_string()) out << prefixv.symbol_ptr();
       out << formatstr;  // which could be arbitrary ComValue
       if (prefixv.is_string()) out << "\n";
+      out.flush();
     }
 
   } else {
@@ -323,7 +324,8 @@ void PrintFunc::execute() {
       fp = errflag.is_false() ? stdout : stderr;
     }
     fputs(str, fp);
-#endif
+    fflush(fp);
+ #endif
     push_stack(ComValue::blankval());
   }
 

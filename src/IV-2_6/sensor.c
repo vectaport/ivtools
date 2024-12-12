@@ -65,6 +65,8 @@ Sensor& Sensor::operator =(register const Sensor& s) {
 Sensor* allEvents;
 Sensor* onoffEvents;
 Sensor* updownEvents;
+Sensor* updownmotionEvents;
+Sensor* allbutkeyEvents;
 Sensor* noEvents;
 
 void Sensor::init() {
@@ -81,6 +83,16 @@ void Sensor::init() {
     updownEvents = new Sensor;
     updownEvents->Catch(UpEvent);
     updownEvents->Catch(DownEvent);
+    updownmotionEvents = new Sensor;
+    updownmotionEvents->Catch(UpEvent);
+    updownmotionEvents->Catch(DownEvent);
+    updownmotionEvents->Catch(MotionEvent);
+    allbutkeyEvents = new Sensor;
+    allbutkeyEvents->Catch(MotionEvent);
+    allbutkeyEvents->Catch(DownEvent);
+    allbutkeyEvents->Catch(UpEvent);
+    allbutkeyEvents->Catch(EnterEvent);
+    allbutkeyEvents->Catch(LeaveEvent);
     noEvents = new Sensor;
 }
 

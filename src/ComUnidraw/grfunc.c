@@ -1114,13 +1114,13 @@ void MoveFunc::execute() {
     int dely = delyv.int_val();
     reset_stack();
 
-
     MoveCmd* cmd = nil;
 
     if (delx != 0  || dely != 0) {
 	cmd = new MoveCmd(_ed, delx, dely);
 	execute_log(cmd);
     }
+
 
 }
 

@@ -87,7 +87,7 @@ void UnidrawFunc::execute_log(Command* cmd) {
 	} else {
 	    delete cmd;
 	}
-    }
+    }p
 #else
     unidraw->ExecuteCmd(cmd);
 #endif
@@ -109,8 +109,19 @@ UpdateFunc::UpdateFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) 
 }
 
 void UpdateFunc::execute() {
+  ComValue longzero = ComValue(0L);
+  ComValue usecv(stack_arg(0, false, longzero));
+  long usec = usecv.long_val();
   reset_stack();
+
   unidraw->Update(true);
+
+  // check for incoming X Event with a timeout
+  long oldsec, oldusec;
+  ((OverlayUnidraw*)unidraw)->get_timeout(oldsec, oldusec);
+  ((OverlayUnidraw*)unidraw)->set_timeout(0, usec);
+  ((OverlayUnidraw*)unidraw)->Run();
+  ((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
   
 }
 
@@ -120,12 +131,13 @@ HandlesFunc::HandlesFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 }
 
 void HandlesFunc::execute() {
-    ComValue& flag = stack_arg(0);
+  ComValue dflt(0);
+  ComValue flag(stack_arg(0, false, dflt));
+    reset_stack();
     if (flag.int_val()) 
 	((OverlaySelection*)_ed->GetSelection())->EnableHandles();
     else
 	((OverlaySelection*)_ed->GetSelection())->DisableHandles();
-    reset_stack();
 }
 
 /*****************************************************************************/
@@ -896,6 +908,27 @@ void DrawingSizeFunc::execute() {
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue((int)pg->Width(), AttributeValue::IntType));
   avl->Append(new AttributeValue((int)pg->Height(), AttributeValue::IntType));
+  ComValue retval(avl);
+  push_stack(retval);
+    
+}
+
+/*****************************************************************************/
+
+PointerLocFunc::PointerLocFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void PointerLocFunc::execute() {
+  reset_stack();
+  OverlayEditor* ed = (OverlayEditor*)GetEditor();
+  OverlayViewer* viewer = ed ? (OverlayViewer*)ed->GetViewer() : nil;
+  if (viewer==nil) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(viewer->pointerx(), AttributeValue::IntType));
+  avl->Append(new AttributeValue(viewer->pointery(), AttributeValue::IntType));
   ComValue retval(avl);
   push_stack(retval);
     

@@ -54,6 +54,7 @@
 #include <InterViews/transformer.h>
 #include <InterViews/window.h>
 #include <IV-X11/xcanvas.h>
+#include <IV-X11/xevent.h>
 #include <IV-X11/xwindow.h>
 #include <IV-2_6/InterViews/painter.h>
 #include <IV-2_6/InterViews/sensor.h>
@@ -490,4 +491,29 @@ void OverlayViewer::SetMagnification (float newmag) {
   }
   Viewer::SetMagnification(newmag);
 }    
+
+void OverlayViewer::Handle (Event& e) {
+
+    if (e.rep()->xevent_.type == MotionNotify) {
+	int x = e.rep()->xevent_.xmotion.x;
+	int y = ymax - e.rep()->xevent_.xmotion.y;
+	if (x >= 0 && x <= xmax && y >= 0 && y <= ymax) {
+	    _xpos = x;
+	    _ypos = y;
+	}
+	return;
+    } 
+
+    if (e.rep()->xevent_.type == EnterNotify) {
+	int x = e.rep()->xevent_.xcrossing.x;
+	int y = ymax - e.rep()->xevent_.xcrossing.y;
+	if (x >= 0 && x <= xmax && y >= 0 && y <= ymax) {
+	    _xpos = x;
+	    _ypos = y;
+	}
+    } 
+
+    Viewer::Handle(e);
+    
+}
 

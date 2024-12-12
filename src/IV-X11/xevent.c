@@ -181,7 +181,17 @@ Handler* Event::handler() const {
     Handler* h = nil;
     Window* w = rep()->window_;
     if (w != nil) {
-	h = w->target(*this);
+#if 0      
+      if (rep()->xevent_.type == ButtonPress) {
+	fprintf(stderr, "*************** ButtonPress *** %d,%d *********************\n",
+		rep()->xevent_.xbutton.x, rep()->xevent_.xbutton.y);
+      }
+      if (rep()->xevent_.type == MotionNotify) {
+	fprintf(stderr, "*************** MotionNotify *** %d,%d *********************\n",
+		rep()->xevent_.xmotion.x, rep()->xevent_.xmotion.y);
+      }
+#endif
+      h = w->target(*this);
     }
     return h;
 }

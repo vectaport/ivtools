@@ -87,7 +87,7 @@ public:
     
     void run_once(int flag) { _run_once = true; }
     int run_once() { return _run_once; }
-    virtual void RunOnce() { run_once(10);Run(); }
+    virtual void RunOnce() { run_once(1);Run(); }
     // run OverlayUnidraw just once
 
     void set_timeout(long sec, long usec) { _sec = sec; _usec = usec; }

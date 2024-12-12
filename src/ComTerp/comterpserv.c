@@ -311,7 +311,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
             load_string(inbuf);
         else
             increment_linenum();
-	if (*inbuf && (last_status=read_expr())) {
+    	if (*inbuf && (last_status=read_expr())) {
 #if defined(TIMING_TEST)
 	    static int initialized=0;
 	    if (!initialized) {
@@ -369,10 +369,15 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
           char buf[BUFSIZ];
           snprintf(buf, BUFSIZ, "comterp(%s)", filename);
 	  err_print( stderr, buf );
+#if 0
+	  // this is removed because when there is no handler
+	  // it closes stdout when things are deconstructed,
+	  // and it seems to do nothing
           FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
 	  FILEBUF(obuf, ofptr, ios_base::out);
 	  ostream ostr(&obuf);
 	  ostr.flush();
+#endif
 	  status = -1;
 	}
 

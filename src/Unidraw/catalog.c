@@ -373,7 +373,6 @@ Catalog::~Catalog () {
 #ifdef __GNUC__
     if (strcmp(_tmpfile, "/tmp/XXXXXX") != 0) {
         unlink(_tmpfile);
-        free(_tmpfile);
 	strcpy(_tmpfile, "/tmp/XXXXXX");
     }
 #endif

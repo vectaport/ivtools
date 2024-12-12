@@ -57,6 +57,8 @@
 #include <ComTerp/comterpserv.h>
 
 #include <iostream.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 MacroCmd* OverlayUnidraw::_cmdq = nil;
 boolean* OverlayUnidraw::_updated_ptr = nil;
@@ -120,35 +122,49 @@ boolean OverlayUnidraw::unidraw_updated_or_command_pushed_or_npause_lessened()
   return !_cmdq->Done(it) || unidraw_updated() || npause_lessened();
 }
 
+// Function to calculate elapsed time in microseconds
+long elapsedMicroseconds(struct timeval start, struct timeval end) {
+    return (end.tv_sec - start.tv_sec) * 1000000L + (end.tv_usec - start.tv_usec);
+}
+
 void OverlayUnidraw::Run () {
     Session* session = GetWorld()->session();
     Event e;
     Iterator it;
     alive(true);
     _npause = _comterp ? _comterp->npause() : 0;
-    static long tempsec = 0, tempusec = 0;
+
+    struct timeval start;
+    gettimeofday(&start, NULL);
+    long target_usec = (long)_sec * 1000000L + _usec;
+    long remaining_usec = target_usec;
 
     while (alive() && !session->done() && !npause_lessened()) {
 	updated(false);
-
 	_updated_ptr = &_updated;
-//	session->read(e, &unidraw_updated);
-//	session->read(e, &unidraw_updated_or_command_pushed);
+	
 	if(_sec<0) 
 	  session->read(e, &unidraw_updated_or_command_pushed_or_npause_lessened);
 	else {
-	  if( tempsec==0 && tempusec==0 ) {
-	    tempsec = _sec;
-	    tempusec = _usec;
-	  }
-	  if( !session->read(&tempsec, &tempusec, e, &unidraw_updated_or_command_pushed_or_npause_lessened)){
+	  if( !session->read(0L, remaining_usec, e, &unidraw_updated_or_command_pushed_or_npause_lessened)){
 	    if(_comterp && _comterp->npause()) _comterp->npause()--;
+
+	    // break if past timeout
+	    struct timeval now;
+	    gettimeofday(&now, NULL);
+	    long elapsed_usec = elapsedMicroseconds(start, now);
+	    
+	    remaining_usec = target_usec - elapsed_usec;
+	    // fprintf(stderr, "AFTER NO EVENT remaining_usec %ld\n", remaining_usec);
+	    if ( remaining_usec > 0 ) continue;
 	    break;
 	  }
 	}
 	  
 	if (!updated()) {
-   	    if (_configure_notify_count<4 && e.rep()->xevent_.type==ConfigureNotify) { _configure_notify_count++; }
+   	    if (_configure_notify_count<4 && e.rep()->xevent_.type==ConfigureNotify) {
+	      _configure_notify_count++;
+	    }
 	    e.handle();
 	    session->default_display()->flush();
 	}
@@ -166,10 +182,21 @@ void OverlayUnidraw::Run () {
 	}
 
 	if(run_once()) {
-	  _run_once--;
-	  break;
+	    _run_once = 0;
+	    break;
+	}
+
+	// break if past timeout
+	if (_sec>=0 ) {
+	    struct timeval now;
+	    gettimeofday(&now, NULL);
+	    long elapsed_usec = elapsedMicroseconds(start, now);
+	    
+	    remaining_usec = target_usec - elapsed_usec;
+	    if ( remaining_usec < 0 ) break;
 	}
     }
+    
     _npause = _comterp ? _comterp->npause() : 0;
 }
 

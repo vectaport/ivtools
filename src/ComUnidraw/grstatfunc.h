@@ -54,7 +54,7 @@ public:
     MbrFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-      return "rectlist=%s(compview :lbrt :lrbt :scrn) -- minimum-bounding rectangle of compview (dflt :lbrt :lrbt)"; }
+      return "rectlist=%s(compview :lbrt :lrbt :scrn) -- minimum-bounding rectangle of compview (dflt :lbrt)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":lbrt      return left,bottom,right,top of mbr",

@@ -57,7 +57,7 @@ public:
     UpdateFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() -- update viewers"; }
+	return "%s([usec]) -- update viewer with optional delay"; }
 };
 
 //: command to turn on or off the selection tic marks in comdraw.
@@ -67,7 +67,7 @@ public:
     HandlesFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(flag) -- enable/disable current selection tic marks and/or highlighting"; }
+	return "%s([flag]) -- disable/enable current selection tic marks and/or highlighting"; }
 };
 
 //: command to paste a graphic in comdraw.
@@ -318,6 +318,17 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "dx,dy=%s() -- size of drawing."; }
+
+};
+
+//: command to return location of last pointer motion
+// x,y=pointer() -- x,y location of last pointer motion
+class PointerLocFunc : public UnidrawFunc {
+public:
+    PointerLocFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "x,y=%s() -- x,y location of last pointer motion."; }
 
 };
 

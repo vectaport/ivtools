@@ -68,7 +68,6 @@ public:
     // start up double buffering.  All subsequent draws go to an offscreen buffer.
     virtual void FinishBuffering(boolean);
     // finish up double buffering, and copy modified part of buffer to the screen.
-
     virtual OverlayView* GetOverlayView();
 
     void Chain(boolean pan = true, boolean zoom = true);
@@ -138,6 +137,14 @@ public:
     boolean needs_resize() { return _needs_resize; }
     // goes false after initialization is done
 
+    virtual void Handle(Event&);
+    // handle event
+  
+    int pointerx() { return _xpos; }
+    // return x position of last pointer movement
+    int pointery() { return _ypos; }
+    // return y position of last pointer movement
+
 protected:
     virtual void Zoom(Perspective&);
     virtual void Scroll(Perspective&);
@@ -149,6 +156,7 @@ protected:
     boolean _pan_chain;
     boolean _zoom_chain;
     boolean _scribble_pointer;
+    int _xpos, _ypos; // position of last pointer movement
 
     static Painter* xorPainter;
 

@@ -99,7 +99,7 @@ graphical object assigned to an interpreter variable.
 
 .SH VIEWER COMMANDS
 
- update() -- update viewer
+ update([usec]) -- update viewer with optional delay
 
  error=save([pathstr]) -- command to save document (to pathname)	
  compview=import(pathstr :popen :next)
@@ -125,8 +125,8 @@ graphical object assigned to an interpreter variable.
  sx,sy=ssize() -- size of screen
  dx,dy=dsize() -- size of drawing
 
- handles(flag) --     
-   -- enable/disable current selection tic marks 
+ handles([flag]) --     
+   -- disable/enable current selection tic marks 
       and/or highlighting
  highlight(compview compviewgs)
    -- set the highlight graphic state for a graphic

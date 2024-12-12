@@ -264,6 +264,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     comterp->add_command("commandleak", new CommandLeakFunc(comterp));
     #endif
 
+    comterp->add_command("pointer", new PointerLocFunc(comterp, this));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {

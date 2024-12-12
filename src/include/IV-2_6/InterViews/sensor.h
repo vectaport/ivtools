@@ -85,6 +85,8 @@ private:
 extern Sensor* allEvents;
 extern Sensor* onoffEvents;
 extern Sensor* updownEvents;
+extern Sensor* updownmotionEvents;
+extern Sensor* allbutkeyEvents;
 extern Sensor* noEvents;
 
 #include <InterViews/_leave.h>

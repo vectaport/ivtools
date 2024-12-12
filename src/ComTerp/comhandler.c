@@ -90,8 +90,8 @@ void ComterpHandler::timeoutscriptid(int timeoutscriptid) {
 void
 ComterpHandler::destroy (void)
 {
+  const char* peer_name = this->peer_name_;
   if (ComterpHandler::logger_mode()==0) {
-      const char* peer_name = this->peer_name_;
       if (*peer_name == '\0') peer_name = "stdio";
       ACE_DEBUG ((LM_DEBUG, 
 		  "(%P|%t) disconnected from %s\n", peer_name));

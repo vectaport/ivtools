@@ -208,7 +208,8 @@ void Viewer::Init(
     }
     _damage = new Damage;
     _orientation = orientation;
-    input_ = new Sensor(updownEvents);
+    //input_ = new Sensor(updownEvents);
+    input_ = new Sensor(allbutkeyEvents);
 
     Init(ed, gv, page, grid);
     shape->width = w;

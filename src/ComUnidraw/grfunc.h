@@ -271,7 +271,7 @@ public:
 };
 
 //: command to move current selection in comdraw
-// move(dx dy) -- move current selection
+// move(dx dy :abs) -- move current selection
 class MoveFunc : public UnidrawFunc {
 public:
     MoveFunc(ComTerp*,Editor*);
