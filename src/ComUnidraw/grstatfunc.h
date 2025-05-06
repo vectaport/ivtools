@@ -67,13 +67,13 @@ public:
 };
 
 //: command to return point list associated with a graphic
-// ptlist=points(compview) -- return point list from compview graphic
+// ptlist=points(compview :raw) -- return point list from compview graphic
 class PointsFunc : public UnidrawFunc {
 public:
     PointsFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-      return "ptlist=%s(compview) -- return point list from compview graphic"; }
+      return "ptlist=%s(compview :raw) -- return point list from compview graphic"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":raw       return original points",

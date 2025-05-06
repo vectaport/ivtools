@@ -1619,9 +1619,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
-	    sprintf(buffer, "gunzip -c %s | pngtopnm", pathname);
+	    sprintf(buffer, "gunzip -c \"%s\" | pngtopnm", pathname);
 	  else
-	    sprintf(buffer, "pngtopnm %s", pathname);
+	    sprintf(buffer, "pngtopnm \"%s\"", pathname);
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
