@@ -92,12 +92,12 @@ int TIFFInitCCITTFax3(tif)
 	tif->tif_decodestrip = Fax3Decode;
 	tif->tif_decodetile = Fax3Decode;
 	tif->tif_preencode = Fax3PreEncode;
-	tif->tif_postencode = Fax3PostEncode;
+	tif->tif_postencode = (int (*)(struct tiff *))Fax3PostEncode;
 	tif->tif_encoderow = Fax3Encode;
 	tif->tif_encodestrip = Fax3Encode;
 	tif->tif_encodetile = Fax3Encode;
-	tif->tif_close = Fax3Close;
-	tif->tif_cleanup = Fax3Cleanup;
+	tif->tif_close = (int (*)(struct tiff *))Fax3Close;
+	tif->tif_cleanup = (int (*)(struct tiff *))Fax3Cleanup;
 	tif->tif_options |= FAX3_CLASSF;	/* default */
 	tif->tif_flags |= TIFF_NOBITREV;	/* we handle bit reversal */
 	return (1);

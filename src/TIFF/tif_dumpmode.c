@@ -53,7 +53,7 @@ int TIFFInitDumpMode(tif)
 	tif->tif_encoderow = DumpModeEncode;
 	tif->tif_encodestrip = DumpModeEncode;
 	tif->tif_encodetile = DumpModeEncode;
-	tif->tif_seek = DumpModeSeek;
+	tif->tif_seek = (int (*)(struct tiff *, u_int))DumpModeSeek;
 	return (1);
 }
 

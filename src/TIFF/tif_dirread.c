@@ -1024,7 +1024,7 @@ int TIFFFetchStripThing(tif, dir, nstrips, lpp)
 
 #ifdef COLORIMETRY_SUPPORT
 static
-TIFFFetchRefBlackWhite(tif, dir)
+int TIFFFetchRefBlackWhite(tif, dir)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 {
@@ -1065,7 +1065,7 @@ TIFFFetchRefBlackWhite(tif, dir)
  * allocated as a side effect.
  */
 static
-TIFFFetchJPEGQTables(tif, dir)
+int TIFFFetchJPEGQTables(tif, dir)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 {
@@ -1110,7 +1110,7 @@ TIFFFetchJPEGQTables(tif, dir)
  * the tables are allocated as a side effect.
  */
 static
-TIFFFetchJPEGCTables(tif, dir, ptab)
+int TIFFFetchJPEGCTables(tif, dir, ptab)
 	TIFF *tif;
 	TIFFDirEntry *dir;
 	u_char ***ptab;

@@ -33,7 +33,7 @@
 
 #ifdef JPEG_SUPPORT
 static
-JPEGPrintQTable(fd, tab)
+void JPEGPrintQTable(fd, tab)
 	FILE *fd;
 	u_char tab[64];
 {
@@ -52,7 +52,7 @@ JPEGPrintQTable(fd, tab)
 }
 
 static
-JPEGPrintCTable(fd, tab)
+void JPEGPrintCTable(fd, tab)
 	FILE *fd;
 	u_char *tab;
 {

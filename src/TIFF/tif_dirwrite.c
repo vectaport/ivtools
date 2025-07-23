@@ -658,7 +658,7 @@ int DECLARE6(TIFFWriteFloatArray, TIFF *, tif,
  * tables and write the associated indirect values.
  */
 static
-DECLARE2(TIFFWriteJPEGQTables, TIFF*, tif, TIFFDirEntry*, dir)
+int DECLARE2(TIFFWriteJPEGQTables, TIFF*, tif, TIFFDirEntry*, dir)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	TIFFDirEntry tdir;
@@ -682,7 +682,7 @@ DECLARE2(TIFFWriteJPEGQTables, TIFF*, tif, TIFFDirEntry*, dir)
  * tables and write the associated indirect values.
  */
 static
-DECLARE4(TIFFWriteJPEGCTables,
+int DECLARE4(TIFFWriteJPEGCTables,
     TIFF*, tif, u_short, tag, TIFFDirEntry*, dir, u_char **, tab)
 {
 	TIFFDirectory *td = &tif->tif_dir;
@@ -707,7 +707,7 @@ DECLARE4(TIFFWriteJPEGCTables,
 
 #ifdef COLORIMETRY_SUPPORT
 static
-DECLARE2(TIFFWriteTransferFunction, TIFF*, tif, TIFFDirEntry*, dir)
+int DECLARE2(TIFFWriteTransferFunction, TIFF*, tif, TIFFDirEntry*, dir)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	int j, ncols;
