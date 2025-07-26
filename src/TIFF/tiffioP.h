@@ -248,18 +248,18 @@ struct tiff {
 	int 	tif_curtile;		/* current tile for read/write */
 	long 	tif_tilesize;		/* # of bytes in a tile */
 /* compression scheme hooks */
-	int	(*tif_predecode)();	/* pre row/strip/tile decoding */
-	int	(*tif_preencode)();	/* pre row/strip/tile encoding */
-	int	(*tif_postencode)();	/* post row/strip/tile encoding */
-	int	(*tif_decoderow)();	/* scanline decoding routine */
-	int	(*tif_encoderow)();	/* scanline encoding routine */
-	int	(*tif_decodestrip)();	/* strip decoding routine */
-	int	(*tif_encodestrip)();	/* strip encoding routine */
-	int	(*tif_decodetile)();	/* tile decoding routine */
-	int	(*tif_encodetile)();	/* tile encoding routine */
-	int	(*tif_close)();		/* cleanup-on-close routine */
-	int	(*tif_seek)();		/* position within a strip routine */
-	int	(*tif_cleanup)();	/* routine called to cleanup state */
+	int	(*tif_predecode)(struct tiff *);	/* pre row/strip/tile decoding */
+	int	(*tif_preencode)(struct tiff *);	/* pre row/strip/tile encoding */
+	int	(*tif_postencode)(struct tiff *);	/* post row/strip/tile encoding */
+	int	(*tif_decoderow)(struct tiff *, u_char*, int, u_int);	/* scanline decoding routine */
+	int	(*tif_encoderow)(struct tiff*, u_char*, int, u_int);	/* scanline encoding routine */
+	int	(*tif_decodestrip)(struct tiff*, u_char*, int, u_int);	/* strip decoding routine */
+	int	(*tif_encodestrip)(struct tiff*, u_char*, int, u_int);	/* strip encoding routine */
+	int	(*tif_decodetile)(struct tiff *, u_char*, int, u_int);	/* tile decoding routine */
+	int	(*tif_encodetile)(struct tiff *, u_char*, int, u_int);	/* tile encoding routine */
+	int	(*tif_close)(struct tiff *);		/* cleanup-on-close routine */
+	int	(*tif_seek)(struct tiff *, u_int);		/* position within a strip routine */
+	int	(*tif_cleanup)(struct tiff *);	/* routine called to cleanup state */
 	char	*tif_data;		/* compression scheme private data */
 /* input/output buffering */
 	int	tif_scanlinesize;	/* # of bytes in a scanline */

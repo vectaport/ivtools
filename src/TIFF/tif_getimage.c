@@ -31,11 +31,7 @@
 #include "tiffcompat.h"
 #include "prototypes.h"
 
-int makecmap();
-int makebwmap();
-
 typedef	u_char RGBvalue;
-
 static	u_long width, height;		/* image width & height */
 static	u_short bitspersample;
 static	u_short samplesperpixel;
@@ -54,7 +50,9 @@ static	float *refBlackWhite;
 static	u_long **BWmap;
 static	u_long **PALmap;
 
-static	int gt();
+int makecmap(u_short *rmap, u_short *gmap, u_short *bmap);
+int makebwmap(RGBvalue *Map);
+static	int gt(TIFF *, int, int, u_long *);
 
 #define	PACK(r,g,b)	((u_long)(r)|((u_long)(g)<<8)|((u_long)(b)<<16))
 
@@ -244,10 +242,10 @@ checkcmap(n, r, g, b)
 	return (8);
 }
 
-static	int gtTileContig();
-static	int gtTileSeparate();
-static	int gtStripContig();
-static	int gtStripSeparate();
+static	int gtTileContig(TIFF *tif, u_long *raster, RGBvalue *Map, u_long h, u_long w);
+static	int gtTileSeparate(TIFF *tif, u_long *raster, RGBvalue *Map, u_long h, u_long w);
+static	int gtStripContig(TIFF *tif, u_long *raster, RGBvalue *Map, u_long h, u_long w);
+static	int gtStripSeparate(TIFF *tif, u_long *raster, register RGBvalue *Map, u_long h, u_long w);
 static	void initYCbCrConversion();
 
 static

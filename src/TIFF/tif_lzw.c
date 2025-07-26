@@ -198,11 +198,11 @@ int TIFFInitLZW(tif)
 	tif->tif_decodestrip = LZWDecode;
 	tif->tif_decodetile = LZWDecode;
 	tif->tif_preencode = LZWPreEncode;
-	tif->tif_postencode = LZWPostEncode;
+	tif->tif_postencode = (int (*)(TIFF *))LZWPostEncode;
 	tif->tif_encoderow = LZWEncode;
 	tif->tif_encodestrip = LZWEncode;
 	tif->tif_encodetile = LZWEncode;
-	tif->tif_cleanup = LZWCleanup;
+	tif->tif_cleanup = (int (*)(TIFF *))LZWCleanup;
 	return (1);
 }
 

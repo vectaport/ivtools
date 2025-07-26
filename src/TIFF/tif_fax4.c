@@ -54,7 +54,7 @@ int TIFFInitCCITTFax4(tif)
 	tif->tif_encoderow = Fax4Encode;
 	tif->tif_encodestrip = Fax4Encode;
 	tif->tif_encodetile = Fax4Encode;
-	tif->tif_postencode = Fax4PostEncode;
+	tif->tif_postencode = (int (*)(struct tiff *))Fax4PostEncode;
 	/*
 	 * FAX3_NOEOL causes the regular G3 decompression
 	 * code to not skip to the EOL mark at the end of

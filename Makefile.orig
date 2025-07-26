@@ -11,13 +11,15 @@
  # -------------------------------------------------------------------------
 # from <local.def>:
 
+SOURCE_DIR=/home/yottzumm/src
+
           TOOL_INCLUDE_DIR = /usr/include
 
     NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../..  -I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include -I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES)
 
     APP_CCINCLUDES = $(NORM_CCINCLUDES)
 
-             IVTOOLSSRC = /Users/scott/src/ivtools/src
+             IVTOOLSSRC = $(SOURCE_DIR)/ivtools/src
 
 LIBUNIDRAWCOMMON = -L$(IVTOOLSSRC)/Unidraw-common/$(CPU) -lUnidraw-common
 LIBIVCOMMON = -L$(IVTOOLSSRC)/IV-common/$(CPU) -lIV-common
@@ -91,7 +93,7 @@ DEPDRAWSERV = $(IVTOOLSSRC)/DrawServ/$(CPU)/libDrawServ.$(VERSION).dylib
            CCSUFFIX = c
             CDRIVER = gcc
             CSUFFIX = c
-                SRC = /Users/scott/src/ivtools/.
+                SRC = $(SOURCE_DIR)/ivtools/.
               SLASH = /
                SRCS = $(SRC)$(SLASH)*.$(CCSUFFIX)
                OBJS = *.o
@@ -140,7 +142,7 @@ CLIPPOLY_CCINCLUDES = -I$(CLIPPOLYDIR)
       QT_CCINCLUDES =
     TIFF_CCINCLUDES =
 
-        CLIPPOLYDIR = /Users/scott/src/clippoly-pl11
+        CLIPPOLYDIR = $(SOURCE_DIR)/clippoly-pl11
 
              ACEDIR = /usr/local/include
 
@@ -181,7 +183,7 @@ NONSHARED_CCLDFLAGS =
      EXTRA_CCLDLIBS = -lstdc++ -lm
 
   CLIPPOLY_CCLDLIBS = -L$(CLIPPOLYLIBDIR) -lclippoly
-     CLIPPOLYLIBDIR = /Users/scott/src/clippoly-pl11
+     CLIPPOLYLIBDIR = $(SOURCE_DIR)/clippoly-pl11
     CLIPPOLYLIBBASE = libclippoly.so
        ACE_CCLDLIBS = -L$(ACELIBDIR) -lACE
           ACELIBDIR = /usr/local/lib
@@ -219,11 +221,11 @@ NONSHARED_CCLDFLAGS =
              RM_CMD = $(RM) ,* .emacs_* *..c *.BAK *.CKP *.a *.bak *.ln *.o a.out core errs make.log make.out tags TAGS
               TROFF = groff
 
-                TOP = /Users/scott/src/ivtools
+                TOP = $(SOURCE_DIR)/ivtools
              RELTOP = .
-        CURRENT_DIR = /Users/scott/src/ivtools
+        CURRENT_DIR = $(SOURCE_DIR)/ivtools
 
-              IVSRC = /Users/scott/src/ivtools/src
+              IVSRC = $(SOURCE_DIR)/ivtools/src
              BINSRC = $(IVSRC)/bin
           CONFIGSRC = $(RELTOP)/config
              INCSRC = $(IVSRC)/include

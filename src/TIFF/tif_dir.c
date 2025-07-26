@@ -88,7 +88,7 @@ int DECLARE3(setFloatArray, float**, wpp, float*, wp, long, n)
  * and that is to be stored in the file.
  */
 static
-DECLARE3(setJPEGQTable, u_char***, wpp, u_char**, wp, int, nc)
+void DECLARE3(setJPEGQTable, u_char***, wpp, u_char**, wp, int, nc)
 {
 	static u_char zigzag[64] = {
 	    0,  1,  5,  6, 14, 15, 27, 28,
@@ -120,7 +120,7 @@ DECLARE3(setJPEGQTable, u_char***, wpp, u_char**, wp, int, nc)
  * Install a JPEG Coefficient table.
  */
 static
-DECLARE3(setJPEGCTable, u_char***, cpp, u_char**, cp, int, nc)
+void DECLARE3(setJPEGCTable, u_char***, cpp, u_char**, cp, int, nc)
 {
 	u_char *tab;
 	int i, j, nw;
