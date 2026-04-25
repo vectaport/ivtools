@@ -228,11 +228,8 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 
     int fd = (int)server->_fd;
     FILE* ofptr = fd==1 ? stdout : server->handler()->wrfptr();
-    FILEBUF(fbuf, ofptr, ios_base::out);
-    ostream out(&fbuf);
-    for (; outpos < bufsize-1 && s[outpos]; outpos++)
-	out.put(s[outpos]);
-    out.flush();
+    fputs(s, ofptr);
+    fflush(ofptr);
     outpos = 0;
     return 1;
 }
