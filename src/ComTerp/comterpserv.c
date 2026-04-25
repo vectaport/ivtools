@@ -228,8 +228,8 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 
     int fd = (int)server->_fd;
     FILE* ofptr = fd==1 ? stdout : server->handler()->wrfptr();
-    fputs(s, ofptr);
-    fflush(ofptr);
+    if (fputs(s, ofptr)<0) return -1;
+    if (fflush(ofptr)<0) return -1;
     outpos = 0;
     return 1;
 }
