@@ -79,9 +79,11 @@ void iosb::swapped(boolean swapped) {
 // Provide a constructor for derived classes to use and a constructor
 // for public use.
 
-istreamb::istreamb() {}
+// default constructor - pass nil/nullptr to istream
+istreamb::istreamb() : istream(nullptr) {}
 
-istreamb::istreamb(streambuf* b) {
+// streambuf constructor - pass b up to istream
+istreamb::istreamb(streambuf* b) : istream(b) {
     init(b);
 }
 
@@ -254,9 +256,11 @@ istreamb& istreamb::operator>>(ios& (*f)(ios&)) {
 // Provide a constructor for derived classes to use and a constructor
 // for public use.
 
-ostreamb::ostreamb() {}
+// default constructor - pass nil/nullptr to istream
+ostreamb::ostreamb() : ostream(nullptr) {}
 
-ostreamb::ostreamb(streambuf* b) {
+// streambuf constructor - pass b up to istream
+ostreamb::ostreamb(streambuf* b) : ostream(b) {
     init(b);
 }
 
@@ -434,9 +438,11 @@ ostreamb& ostreamb::operator<<(ios& (*f)(ios&)) {
 // Provide a constructor for derived classes to use and a constructor
 // for public use.
 
-iostreamb::iostreamb() {}
+// default constructor - pass nil/nullptr to istream
+iostreamb::iostreamb() : istreamb(), ostreamb() {}
 
-iostreamb::iostreamb(streambuf* b) {
+// streambuf constructor - pass b up to istream
+iostreamb::iostreamb(streambuf* b) : istreamb(b), ostreamb(b) {
     init(b);
 }
 
