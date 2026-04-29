@@ -156,7 +156,8 @@ ComterpHandler::handle_timeout (const ACE_Time_Value &,
 int
 ComterpHandler::handle_input (ACE_HANDLE fd)
 {
-    if (!_wrfptr) _wrfptr = fdopen(fd, "w");
+    _wrfd = fd;
+    if (!_wrfptr) _wrfptr = fdopen(dup(fd), "w");
     // if (!_rdfptr) _rdfptr = fdopen(fd, "r");
 
     vector<char> inv;
@@ -202,10 +203,9 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     } else {
       if (inbuf[0]!='\004')
 	cout << "from pipe(" << fd << "):  " << inbuf << "\n";
-      FILEBUF(obuf, fd ? wrfptr() : stdout, ios_base::out);
-      ostream ostr(&obuf);
-      ostr << "\n";
-      ostr.flush();
+      FILE* fp = fd ? fdopen(dup(fd), "w") : stdout;
+      fputs("\n", fp);
+      fclose(fp);
       return (input_good && inbuf[0]!='\004') ? 0 : -1;
     }
 }

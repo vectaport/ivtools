@@ -348,7 +348,9 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     if (stepflag()) {
-      FILEBUF(fbufout, handler() && handler()->wrfptr() ? handler()->wrfptr() : stdout, ios_base::out);
+      int fd = 	handler() ? handler()->wrfd() : 1;
+      FILE* fp = fdopen(dup(fd), "w");
+      FILEBUF(fbufout, fp, ios_base::out);
       ostream out(&fbufout);
       out << ">>> " << *func << "(" << *func->funcstate() << ")\n";
       static int pause_symid = symbol_add("pause");

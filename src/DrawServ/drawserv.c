@@ -371,11 +371,10 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
     if (link && link != orglink && link->state()==DrawLink::two_way) {
       int fd = link->handle();
       if (fd>=0) {
-	FILEBUF(fbuf, fdopen(fd, "w"), ios_base::out);
-	ostream out(&fbuf);
-	out << cmdstring;
-	out << "\n";
-	out.flush();
+	FILE* fp=fdopen(dup(fd), "w");
+	fputs(cmdstring, fp);
+	fputs("\n", fp);
+	fclose(fp);
 	link->ackhandler()->start_timer();
       }
     }
@@ -389,11 +388,10 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
   if (link) {
     int fd = link->handle();
     if (fd>=0) {
-      FILEBUF(fbuf, fdopen(fd, "w"), ios_base::out);
-      ostream out(&fbuf);
-      out << cmdstring;
-      out << "\n";
-      out.flush();
+	FILE* fp=fdopen(dup(fd), "w");
+      fputs(cmdstring, fp);
+      fputs("\n", fp);
+      fclose(fp);
       link->ackhandler()->start_timer();
     }
   }

@@ -99,6 +99,9 @@ public:
   static int logger_mode() { return _logger_mode; }
   // return flag that indicates comterp is in logging-only mode
 
+  int wrfd() { return _wrfd; }
+  // file descriptorr for writing to handle
+
   FILE* wrfptr() { return _wrfptr; }
   // file pointer for writing to handle
 
@@ -133,6 +136,9 @@ protected:
 
   int _seconds;
   // timeout in seconds
+
+  int _wrfd;
+  // file descriptor for writing to handle
 
   FILE* _wrfptr;
   // file pointer for writing to handle

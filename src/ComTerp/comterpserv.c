@@ -226,10 +226,9 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
     int& outpos = server->_outpos;
     int& bufsize = server->_bufsiz;
 
-    int fd = (int)server->_fd;
-    FILE* ofptr = fd==1 ? stdout : server->handler()->wrfptr();
+    FILE* ofptr = server->_fd==1 ? stdout : fdopen(dup(server->_fd), "w");
     if (fputs(s, ofptr)<0) return -1;
-    if (fflush(ofptr)<0) return -1;
+    if (ofptr != stdout) fclose(ofptr);
     outpos = 0;
     return 1;
 }
@@ -329,10 +328,11 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	        char buf[BUFSIZ];
 	        snprintf(buf, BUFSIZ, "comterp(%s)", filename);
 	        err_print( stderr, buf );
-                FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
+                FILE* ofptr = handler() ? fdopen(dup(_fd), "w") : stdout; 
 	        FILEBUF(obuf, ofptr, ios_base::out);
 		ostream ostr(&obuf);
 		ostr.flush();
+		if (ofptr != stdout) fclose(ofptr);
 		status = -1;
 	    } else if (quitflag()) {
                 delete retval; retval = nil; // remove prior retval
@@ -366,15 +366,9 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
           char buf[BUFSIZ];
           snprintf(buf, BUFSIZ, "comterp(%s)", filename);
 	  err_print( stderr, buf );
-#if 0
-	  // this is removed because when there is no handler
-	  // it closes stdout when things are deconstructed,
-	  // and it seems to do nothing
           FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
-	  FILEBUF(obuf, ofptr, ios_base::out);
-	  ostream ostr(&obuf);
-	  ostr.flush();
-#endif
+	  fputs(buf, ofptr);
+      	  if (ofptr!=stdout) fclose(ofptr);
 	  status = -1;
 	}
 

@@ -104,7 +104,7 @@ int DrawLink::open() {
     if (ComterpHandler::reactor_singleton()->register_handler(ackhandler(), ACE_Event_Handler::READ_MASK|ACE_Event_Handler::TIMER_MASK)==-1)
       fprintf(stderr, "drawserv: error registering ackback handler (handle==%d)\n", _socket->get_handle());
 
-    FILEBUF(obuf, fdopen(_socket->get_handle(), "w"), ios_base::out);
+    FILEBUF(obuf, fdopen(dup(_socket->get_handle()), "w"), ios_base::out);
     ostream out(&obuf);
     out << "drawlink(\"";
     char buffer[HOST_NAME_MAX];
