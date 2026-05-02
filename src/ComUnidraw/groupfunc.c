@@ -162,5 +162,60 @@ void TrimGroupFunc::execute() {
 }
 
 
+/*****************************************************************************/
+
+BackSelectionFunc::BackSelectionFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void BackSelectionFunc::execute() {
+    ComValue grval(stack_arg(0));
+    reset_stack();
+    
+    OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
+
+    ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
+    OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+
+    Clipboard* cb = new Clipboard();
+    if (grval.is_known())
+	cb->Append(grcomp);
+    else
+	cb->Init(viewer->GetSelection());
+    BackCmd* cmd = new BackCmd(GetEditor());
+    cmd->SetClipboard(cb);
+    
+    execute_log(cmd);
+    push_stack(ComValue::oneval());
+    return;
+}
+
+/*****************************************************************************/
+
+FrontSelectionFunc::FrontSelectionFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void FrontSelectionFunc::execute() {
+    ComValue grval(stack_arg(0));
+    reset_stack();
+    
+    OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
+
+    ComponentView* grview = grval.is_known() ? (ComponentView*)grval.obj_val() : nil;
+    OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+
+    Clipboard* cb = new Clipboard();
+    if (grval.is_known())
+	cb->Append(grcomp);
+    else
+	cb->Init(viewer->GetSelection());
+    FrontCmd* cmd = new FrontCmd(GetEditor());
+    cmd->SetClipboard(cb);
+    
+    execute_log(cmd);
+    push_stack(ComValue::oneval());
+    return;
+}
+
+
 
 

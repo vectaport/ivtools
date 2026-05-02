@@ -46,4 +46,24 @@ public:
 	return "newgroup=%s(groupview compview) -- remove graphic from existing group graphic"; }
 };
 
+//: command to move selection or graphic to the front
+// front() -- move selection or graphic to the front
+class FrontSelectionFunc : public UnidrawFunc {
+public:
+    FrontSelectionFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([compview]) -- move selection or graphic to the front"; }
+};
+
+//: command to move selection or graphic to the back
+// back() -- move seledction or graphic to the back
+class BackSelectionFunc : public UnidrawFunc {
+public:
+    BackSelectionFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "%s([compview]) -- move selection or graphic to the back"; }
+};
+
 #endif /* !defined(_groupfunc_h) */
