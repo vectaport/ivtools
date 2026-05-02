@@ -91,10 +91,8 @@ void DrawLinkFunc::execute() {
     if (statev.int_val()==DrawLink::one_way && 
 	((DrawServ*)unidraw)->cycletest
 	(sidv.uint_val(), hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
-      FILEBUF(obuf, comterp()->handler()->wrfptr(), ios_base::out);
-      ostream out(&obuf);
-      out << "ackback(cycle)\n";
-      out.flush();
+      fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+      fflush(comterp()->handler()->wrfptr());
       comterp()->quit();
       return;
     }
@@ -131,15 +129,28 @@ void DrawLinkFunc::execute() {
     
   }
 
-  /* set state to complete linkup */
-  else if (statev.int_val()==DrawLink::two_way) {
+ /* set state to complete linkup */
+  if (statev.int_val()==DrawLink::two_way) {
     DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
-    DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
-    link->state(DrawLink::two_way);
+    if (handler) {
+	DrawLink* link = (DrawLink*)handler->drawlink();
+	if (link != NULL) {
+	    link->state(DrawLink::two_way);
+	    
+	    // at this point paste all graphics to new connection
+	    DrawServ* drawserv = (DrawServ*)unidraw;
+	    if (hostv.is_string())
+		drawserv->SendAllToBackgroundEditor(link, (DrawEditor*)GetEditor());
+	    else 
+		drawserv->SendAllToForegroundEditor(link, (DrawEditor*)GetEditor());
+	    comterpserv()->run("select(:all)\n", true);
+
+	}
+    }
   }
 
   /* dump DrawLink table to stderr */
-  else 
+  else if(nargs()==0) 
     ((DrawServ*)unidraw)->linkdump(stderr);
   
   if (link) {
@@ -183,7 +194,7 @@ void SessionIdFunc::execute() {
   ComValue hostv(stack_key(host_sym));
   static int hostid_sym = symbol_add("hostid");
   ComValue hostidv(stack_key(hostid_sym));
-
+ 
   ComValue sidv(stack_arg(0));
   ComValue osidv(stack_arg(1));
 

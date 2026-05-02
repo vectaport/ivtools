@@ -29,6 +29,7 @@
 
 #include <OverlayUnidraw/ovunidraw.h>
 #include <stdio.h>
+#include <strstream>
 
 #include <OS/table.h>
 declareTable(GraphicIdTable,int,void*)
@@ -42,10 +43,12 @@ declareTable(CompIdTable,void*,void*);
 
 class AttributeValueList;
 class ComTerp;
+class DrawEditor;
 class DrawLink;
 class DrawLinkList;
 class GraphicId;
 class GraphicIdList;
+class OverlayComp;
 
 #if !defined (HOST_NAME_MAX)
 #  define HOST_NAME_MAX 256
@@ -95,6 +98,12 @@ public:
   
   virtual void SendCmdString(DrawLink* link, const char* cmdstring);
   // execute command string on one remote DrawServ
+
+  virtual void SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged);
+  // send copies of everything to remote DrawServ to paste on front
+
+  virtual void SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged);
+  // send copies of everything to remote DrawServ to paste in back
 
   DrawLinkList* linklist() { return _linklist; }
   // return pointer to list of DrawLink's
