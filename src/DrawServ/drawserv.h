@@ -185,6 +185,8 @@ public:
   // returns false if really not there.
 
 protected:
+    boolean add_grid(OverlayComp* comp);
+
     DrawLinkList* _linklist;
     // DrawLink list
     GraphicIdTable* _gridtable;

@@ -143,8 +143,6 @@ void DrawLinkFunc::execute() {
 		drawserv->SendAllToBackgroundEditor(link, (DrawEditor*)GetEditor());
 	    else 
 		drawserv->SendAllToForegroundEditor(link, (DrawEditor*)GetEditor());
-	    comterpserv()->run("select(:all)\n", true);
-
 	}
     }
   }

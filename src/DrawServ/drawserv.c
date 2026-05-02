@@ -333,10 +333,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       }
       if (original || linklist()->Number()>1) {
 	if (!scripted)
-	  sbuf << "print(\"Failed attempt to generate script for a PASTE_CMD\\n\" :err)";
-	sbuf.put('\0');
-	cout << sbuf.str() << "\n";
-	cout.flush();
+          fprintf(stderr, "Failed attempt to generate script for a PASTE_CMD\n");
       }
 
       /* first execute here */
@@ -354,11 +351,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       }
       break;
     default:
-      sbuf << "print(\"Attempt to convert unknown command (id == %d) to interpretable script\\n\" " << cmd->GetClassId() << " :err)";
-      cmd->Execute();
-      cout << sbuf.str() << "\n";
-      cout.flush();
-      break;
+	cmd->Execute();
+	break;
     }
 
     if (cmd->Reversible()) {
@@ -735,10 +729,7 @@ boolean DrawServ::PrintAttributeList(ostream& out, AttributeList* attrlist) {
 
 void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 
-    static int grid_sym = symbol_add("grid");
-    static int sid_sym = symbol_add("sid");
     boolean original = false;
-    unsigned int from_sid = 0;
 
     fged->GetSelection()->Clear();
     
@@ -755,36 +746,8 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 	if (bgfcomp) {
 	    for (bgfcomp->First(it); !bgfcomp->Done(it); bgfcomp->Next(it)) {
 		OverlayComp* comp = (OverlayComp*)bgfcomp->GetComp(it);
-		AttributeList* al = comp->GetAttributeList();
-		AttributeValue* idv = al->find(grid_sym);
-		AttributeValue* sidv = al->find(sid_sym);
-		int from_sid = sidv ? sidv->uint_val() : 0;
-		
-		/* unique id already assigned */
-		if (idv && idv->uint_val() !=0 && sidv && sidv->uint_val() !=0) {
-		    GraphicId* graphicid = new GraphicId();
-		    graphicid->grcomp(comp);
-		    graphicid->id(idv->uint_val());
-		    graphicid->selector(sidv->uint_val());
-		    graphicid->selected(LinkSelection::RemotelySelected);
-		} 
-		
-		/* generate unique id and add as attribute */
-		/* also mark with selector id */
-		else {
-		    GraphicId* graphicid = new GraphicId(sessionid());
-		    graphicid->grcomp(comp);
-		    graphicid->selector(((DrawServ*)unidraw)->sessionid());
-		    AttributeValue* gridv = new AttributeValue(graphicid->id(), AttributeValue::UIntType);
-		    gridv->state(AttributeValue::HexState);
-		    al->add_attr(grid_sym, gridv);
-		    AttributeValue* sidv = new AttributeValue(graphicid->selector(), AttributeValue::UIntType);
-		    sidv->state(AttributeValue::HexState);
-		    al->add_attr(sid_sym, sidv);
-		    original = true;
-		    graphicid->selected(LinkSelection::LocallySelected);
-		}
-		
+		original = add_grid(comp);
+
 		if (comp && (original || linklist()->Number()>1)) {
 		    Creator* creator = unidraw->GetCatalog()->GetCreator();
 		    OverlayScript* scripter = (OverlayScript*)
@@ -804,12 +767,97 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
     }
 
     /* then send to new background connection pasted in front */
-    if (original || linklist()->Number()>1) 
+    if (original || linklist()->Number()>1) {
+	sbuf << "\n";
 	SendCmdString(link, sbuf.str());
+    }
     
 }
     
 void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
+
+    boolean original = false;
+
+    bged->GetSelection()->Clear();
+    
+    std::ostrstream sbuf;
+    boolean oldflag = OverlayScript::ptlist_parens();
+    OverlayScript::ptlist_parens(false);
+    boolean scripted = false;
+    DrawIdrawComp* idrawcomp = (DrawIdrawComp*)(bged->GetComponent()->IsA(DRAW_IDRAW_COMP) ? bged->GetComponent() : nil);
+    
+    if (idrawcomp) {
+	Iterator it;
+	idrawcomp->First(it);
+	FrameComp* bgfcomp = (FrameComp*)idrawcomp->GetComp(it);
+	if (bgfcomp) {
+	    for (bgfcomp->Last(it); !bgfcomp->Done(it); bgfcomp->Prev(it)) {
+		OverlayComp* comp = (OverlayComp*)bgfcomp->GetComp(it);
+		original = add_grid(comp);
+
+		if (comp && (original || linklist()->Number()>1)) {
+		    Creator* creator = unidraw->GetCatalog()->GetCreator();
+		    OverlayScript* scripter = (OverlayScript*)
+			creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
+		    if (scripter) {
+			scripter->SetSubject(comp);
+			if (scripted) 
+			    sbuf << ';';
+			else 
+			    scripted = true;
+			sbuf << "_comp=";
+			boolean status = scripter->Definition(sbuf);
+			sbuf << ";back(_comp)";
+			delete scripter;
+		    }
+		}
+	    }
+	}
+    }
+
+    /* then send to new foreground connection pasted in front and moved to back */
+    if (original || linklist()->Number()>1) {
+	sbuf << "\n";
+	SendCmdString(link, sbuf.str());
+    }
+    
+}
+    
+boolean DrawServ::add_grid(OverlayComp* comp) {
+    boolean original = false;
+    static int grid_sym = symbol_add("grid");
+    static int sid_sym = symbol_add("sid");
+    AttributeList* al = comp->GetAttributeList();
+    AttributeValue* gridv = al->find(grid_sym);
+    AttributeValue* sidv = al->find(sid_sym);
+    int grid = gridv ? gridv->uint_val() : 0;
+    int sid = sidv ? sidv->uint_val() : 0;
+    
+    /* unique id already assigned */
+    if (grid != 0 && sid !=0) {
+	GraphicId* graphicid = new GraphicId();
+	graphicid->grcomp(comp);
+	graphicid->id(grid);
+	graphicid->selector(sid);
+	graphicid->selected(LinkSelection::RemotelySelected);
+    } 
+    
+    /* generate unique id and add as attribute */
+    /* also mark with selector id */
+    else {
+	GraphicId* graphicid = new GraphicId(sessionid());
+	graphicid->grcomp(comp);
+	graphicid->selector(((DrawServ*)unidraw)->sessionid());
+	AttributeValue* gridv = new AttributeValue(graphicid->id(), AttributeValue::UIntType);
+	gridv->state(AttributeValue::HexState);
+	al->add_attr(grid_sym, gridv);
+	AttributeValue* sidv = new AttributeValue(graphicid->selector(), AttributeValue::UIntType);
+	sidv->state(AttributeValue::HexState);
+	al->add_attr(sid_sym, sidv);
+	original = true;
+	graphicid->selected(LinkSelection::LocallySelected);
+    }
+    return original;
 }
     
 #endif /* HAVE_ACE */
