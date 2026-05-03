@@ -274,7 +274,7 @@ void ChangeIdFunc::execute() {
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
   
-  if (idv.is_known()) {
+  if (link != NULL && idv.is_known()) {
     unsigned int id = idv.uint_val();
     link->sid_change(id);
     ComValue result(id, ComValue::UIntType);

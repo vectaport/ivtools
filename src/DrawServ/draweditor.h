@@ -27,6 +27,7 @@
 #include <FrameUnidraw/frameeditor.h>
 
 class DrawKit;
+class DrawLink;
 class Selection;
 
 //: editor for DrawServ application
@@ -48,6 +49,7 @@ public:
 
     Selection* last_selection() { return _last_selection; }
     // return point to Selection that shadows the last setting.
+  
 protected:
     Selection* _last_selection;
 

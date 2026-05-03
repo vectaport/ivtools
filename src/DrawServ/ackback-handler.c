@@ -67,6 +67,7 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
     char ch;
     int status;
     while((status = read(fd, &ch, 1))==1) inv.push_back(ch);
+    inv.pop_back();
     inv.push_back('\0');
     if (strcmp((char*)&inv[0], "ackback(cycle)\n")==0) {
       char buffer[BUFSIZ];

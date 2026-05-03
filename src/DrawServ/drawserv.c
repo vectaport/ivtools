@@ -265,14 +265,14 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   static int sid_sym = symbol_add("sid");
   boolean original = false;
   unsigned int from_sid = 0;
-
+  
   if(!_linklist || _linklist->Number()==0) 
-
+    
     /* normal Unidraw command execution */
     Unidraw::ExecuteCmd(cmd);
-
+  
   else {
-
+    
     /* indirect command execution, all by script */
     std::ostrstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
@@ -280,81 +280,73 @@ void DrawServ::ExecuteCmd(Command* cmd) {
     switch (cmd->GetClassId()) {
     case PASTE_CMD:
       {
-      boolean scripted = false;
-      Clipboard* cb = cmd->GetClipboard();
-      if (cb) {
-	Iterator it;
-	for (cb->First(it); !cb->Done(it); cb->Next(it)) {
-	  OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
-	  AttributeList* al = comp->GetAttributeList();
-	  AttributeValue* idv = al->find(grid_sym);
-	  AttributeValue* sidv = al->find(sid_sym);
-	  from_sid = sidv ? sidv->uint_val() : 0;
-	  
-	  /* unique id already remotely assigned */
-	  if (idv && idv->uint_val() !=0 && sidv && sidv->uint_val() !=0) {
-	    GraphicId* graphicid = new GraphicId();
-	    graphicid->grcomp(comp);
-	    graphicid->id(idv->uint_val());
-	    graphicid->selector(sidv->uint_val());
-	    graphicid->selected(LinkSelection::RemotelySelected);
-	  } 
-	  
-	  /* generate unique id and add as attribute */
-	  /* also mark with selector id */
-	  else {
-	    GraphicId* graphicid = new GraphicId(sessionid());
-	    graphicid->grcomp(comp);
-	    graphicid->selector(((DrawServ*)unidraw)->sessionid());
-	    AttributeValue* gridv = new AttributeValue(graphicid->id(), AttributeValue::UIntType);
-	    gridv->state(AttributeValue::HexState);
-	    al->add_attr(grid_sym, gridv);
-	    AttributeValue* sidv = new AttributeValue(graphicid->selector(), AttributeValue::UIntType);
-	    sidv->state(AttributeValue::HexState);
-	    al->add_attr(sid_sym, sidv);
-	    original = true;
-	  }
+	boolean scripted = false;
+	Clipboard* cb = cmd->GetClipboard();
+	if (cb) {
+	  Iterator it;
+	  for (cb->First(it); !cb->Done(it); cb->Next(it)) {
+	    OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
+	    original = add_grid(comp);
 	    
-	  if (comp && (original || linklist()->Number()>1)) {
-	    Creator* creator = unidraw->GetCatalog()->GetCreator();
-	    OverlayScript* scripter = (OverlayScript*)
-	      creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
-	    if (scripter) {
-	      scripter->SetSubject(comp);
+	    if (comp && (original || linklist()->Number()>1)) {
+	      Creator* creator = unidraw->GetCatalog()->GetCreator();
+	      OverlayScript* scripter = (OverlayScript*)
+		creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
+	      if (scripter) {
+		scripter->SetSubject(comp);
+		if (scripted) 
+		  sbuf << ';';
+		else 
+		  scripted = true;
+		boolean status = scripter->Definition(sbuf);
+		delete scripter;
+	      }
+	    }
+	  }
+	}
+	if (original || linklist()->Number()>1) {
+	  if (!scripted)
+	    fprintf(stderr, "Failed attempt to generate script for a PASTE_CMD\n");
+	}
+	
+	break;
+      }
+      
+      case BRUSH_CMD:
+      {
+	boolean scripted = false;
+	Iterator it;
+	First(it);
+	Selection* s = GetEditor(it)->GetSelection(); // only 1 Editor per Unidraw
+	if (s) {
+	  Iterator it;
+	  for (s->First(it); !s->Done(it); s->Next(it)) {
+	    OverlayView* compview = (OverlayView*)s->GetView(it);
+	    if (compview && linklist()->Number()>0) {
 	      if (scripted) 
 		sbuf << ';';
 	      else 
 		scripted = true;
-	      boolean status = scripter->Definition(sbuf);
-	      delete scripter;
+	      sbuf << "print(\"BRUSH_CMD\")";  // change to select();brush() call
 	    }
 	  }
 	}
-      }
-      if (original || linklist()->Number()>1) {
 	if (!scripted)
-          fprintf(stderr, "Failed attempt to generate script for a PASTE_CMD\n");
-      }
-
-      /* first execute here */
-#if 0
-      ((ComEditor*)cmd->GetEditor())->GetComTerp()->run(sbuf.str());
-      ((PasteCmd*)cmd)->executed(true);
-#else
-      cmd->Execute();
-#endif
-
-      /* then send everywhere else */
-      if (original || linklist()->Number()>1) 
-	DistributeCmdString(sbuf.str(), linkget(from_sid));
-      
-      }
-      break;
-    default:
-	cmd->Execute();
+	  fprintf(stderr, "Failed attempt to generate script for a BRUSH_CMD\n");
+	
 	break;
+      }
+      
+      default:
+	  break;
+      
     }
-
+    cmd->Execute();
+    
+    /* then send everywhere else */
+    if (original || linklist()->Number()>0) 
+      DistributeCmdString(sbuf.str(), linkget(from_sid));
+    
     if (cmd->Reversible()) {
       cmd->Log();
     } else {
@@ -839,7 +831,7 @@ boolean DrawServ::add_grid(OverlayComp* comp) {
 	graphicid->grcomp(comp);
 	graphicid->id(grid);
 	graphicid->selector(sid);
-	graphicid->selected(LinkSelection::RemotelySelected);
+	graphicid->selected(LinkSelection::NotSelected);
     } 
     
     /* generate unique id and add as attribute */
@@ -855,7 +847,7 @@ boolean DrawServ::add_grid(OverlayComp* comp) {
 	sidv->state(AttributeValue::HexState);
 	al->add_attr(sid_sym, sidv);
 	original = true;
-	graphicid->selected(LinkSelection::LocallySelected);
+	graphicid->selected(LinkSelection::NotSelected);
     }
     return original;
 }
