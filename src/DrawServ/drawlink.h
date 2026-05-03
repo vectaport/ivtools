@@ -94,9 +94,9 @@ public:
     // get remote DrawLink id
 
     void local_linkid(int id) { _local_linkid = id; }
-    // get local DrawLink id
+    // set local DrawLink id
     void remote_linkid(int id) { _remote_linkid = id; }
-    // get remote DrawLink id
+    // set remote DrawLink id
 
     void comhandler(DrawServHandler* handler) { _comhandler = handler; }
     // set DrawServHandler associated with incoming connection

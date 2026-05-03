@@ -22,6 +22,8 @@
  */
 
 #include <DrawServ/draweditor.h>
+#include <DrawServ/drawclasses.h>
+#include <DrawServ/drawfunc.h>
 #include <DrawServ/drawfunc.h>
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawlinkcomp.h>
@@ -61,6 +63,7 @@ void DrawLinkFunc::execute() {
 
   ComValue hostv(stack_arg(0, true));
   static int port_sym = symbol_add("port");
+  ComValue portinlinev(stack_arg(1, true));
   ComValue default_port(20002);
   ComValue portv(stack_key(port_sym, false, default_port, true));
   static int state_sym = symbol_add("state");
@@ -96,7 +99,10 @@ void DrawLinkFunc::execute() {
       comterp()->quit();
       return;
     }
-    
+
+    if (portv.is_unknown() && portinlinev.is_known()) {
+      portv = portinlinev;
+    }
     const char* hoststr = hostv.string_ptr();
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
@@ -269,10 +275,27 @@ ChangeIdFunc::ChangeIdFunc(ComTerp* comterp, DrawEditor* ed) : UnidrawFunc(comte
 void ChangeIdFunc::execute() {
 
   ComValue idv(stack_arg(0));
+  static int link_sym = symbol_add("link");
+  ComValue default_link(0);
+  ComValue linkv(stack_key(link_sym, false, default_link, true));
   reset_stack();
 
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
+  if (link == NULL) {
+    if (linkv.object_compview()) {
+      ComponentView* compview = (ComponentView*)linkv.obj_val();
+      if (compview && compview->GetSubject()) {
+	GraphicComp* comp = (GraphicComp*)compview->GetSubject();
+	Graphic* gr = comp ? comp->GetGraphic() : nil;
+	AttributeValueList* avl = new AttributeValueList();
+	if (comp && comp->IsA(DRAWLINK_COMP)) {
+	  DrawLinkComp* dlcomp = (DrawLinkComp*)comp;
+          if (dlcomp) link = dlcomp->drawlink();
+	}
+      }
+    }
+  }
   
   if (link != NULL && idv.is_known()) {
     unsigned int id = idv.uint_val();
@@ -335,4 +358,6 @@ void DrawPointsFunc::execute() {
       } 	
     }
 }
+
+
 

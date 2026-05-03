@@ -206,7 +206,7 @@ void DrawLink::sid_insert(unsigned int sid, unsigned int alt_sid) {
 
 void DrawLink::dump(FILE* fptr) {
   fprintf(fptr, "Host                            Alt.                            Port    LID  RID  State\n");
-  fprintf(fptr, "------------------------------  ------------------------------  ------  ---  ---  -----\n");
+  fprintf(fptr, "------------------------------  ------------------------------  ------ n ---  ---  -----\n");
   fprintf(fptr, "%-30.30s  %-30.30s  %-6d  %-3d  %-3d  %-3d\n", 
 	  hostname(), althostname(), portnum(),
 	  local_linkid(), remote_linkid(), state());

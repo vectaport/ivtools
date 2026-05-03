@@ -34,7 +34,7 @@ public:
     DrawLinkFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([hoststr] :port portnum :state num :lid num :rid num :close :dump) -- connect to remote drawserv"; }
+	return "%s([hoststr] [portnum] :port portnum :state num :lid num :rid num :close :dump) -- connect to remote drawserv"; }
 };
 
 //: command to reserve unique session id
@@ -59,13 +59,13 @@ public:
 };
 
 //: command to change session (or graphic id) to use local session id
-// chgid(id) -- command to change session (or graphic id) to use local session id
+// chgid(id :link drawlink) -- command to change session (or graphic id) to use local session id
 class ChangeIdFunc : public UnidrawFunc {
 public:
     ChangeIdFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id) -- command to change session (or graphic id) to use local session id"; }
+	return "%s(id :link drawlink) -- command to change session (or graphic id) to use local session id"; }
 };
 #endif /* defined(HAVE_ACE) */
 

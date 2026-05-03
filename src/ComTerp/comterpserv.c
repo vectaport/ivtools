@@ -227,7 +227,7 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
     int& bufsize = server->_bufsiz;
 
     FILE* ofptr = server->_fd==1 ? stdout : fdopen(dup(server->_fd), "w");
-    if (fputs(s, ofptr)<0) return -1;
+    if (ofptr==NULL || fputs(s, ofptr)<0) return -1;
     if (ofptr != stdout) fclose(ofptr);
     outpos = 0;
     return 1;
