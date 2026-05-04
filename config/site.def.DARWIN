@@ -44,6 +44,8 @@
 #define ToolIncludeDir /usr/include
 #endif
 
+#define AceCCLdLibs $(ACELIBDIR)/libACE.dylib
+
 /* link libraries for the above */
 #undef ExtraCCLdLibs
 #define ExtraCCLdLibs -lstdc++ -lm

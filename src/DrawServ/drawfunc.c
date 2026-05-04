@@ -63,9 +63,9 @@ void DrawLinkFunc::execute() {
 
   ComValue hostv(stack_arg(0, true));
   static int port_sym = symbol_add("port");
-  ComValue portinlinev(stack_arg(1, true));
   ComValue default_port(20002);
-  ComValue portv(stack_key(port_sym, false, default_port, true));
+  ComValue portfixed(stack_arg(1, true, default_port));
+  ComValue portv(stack_key(port_sym, false, portfixed, true));
   static int state_sym = symbol_add("state");
   ComValue default_state(0);
   ComValue statev(stack_key(state_sym, false, default_state, true));
@@ -100,9 +100,6 @@ void DrawLinkFunc::execute() {
       return;
     }
 
-    if (portv.is_unknown() && portinlinev.is_known()) {
-      portv = portinlinev;
-    }
     const char* hoststr = hostv.string_ptr();
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
@@ -206,6 +203,7 @@ void SessionIdFunc::execute() {
 
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
+  fprintf(stderr, "LINK is now %lx\n", link);
   
   if (allv.is_true()) {
     ((DrawServ*)unidraw)->sessionid_register(link);

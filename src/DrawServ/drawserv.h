@@ -157,9 +157,10 @@ public:
   // generate unique graphic id.
   static int test_grid(unsigned int id);
   // test candidate graphic id for local uniqueness
-  static unsigned int unique_sessionid();
+  
+  unsigned int unique_sessionid();
   // generate unique session id.
-  static int test_sessionid(unsigned int id);
+  int test_sessionid(unsigned int id);
   // test candidate session id for local uniqueness
   
   static unsigned int GraphicIdMask;

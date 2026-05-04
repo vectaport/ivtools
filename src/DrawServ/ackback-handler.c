@@ -102,7 +102,7 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
 void AckBackHandler::start_timer() {
   if (!_timer_started) {
     _timerid = ComterpHandler::reactor_singleton()->schedule_timer
-      (this, (const void *) this, ACE_Time_Value (5), ACE_Time_Value (5));
+      (this, (const void *) this, ACE_Time_Value (10), ACE_Time_Value (10));
     _timer_started = true;
     _ackback_arrived = false;
   }
