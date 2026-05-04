@@ -64,9 +64,10 @@ GraphicId::~GraphicId ()
 void GraphicId::id(unsigned int id) {
 #ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
-  void* existing = nil;
-  table->find(existing, id);
-  if (existing) table->remove(id);  // already registered, don't insert duplicate
+  if (id !=0 )
+    table->remove(id);
+  _id = id & DrawServ::GraphicIdMask;
+  _sid = id & DrawServ::SessionIdMask;
   table->insert(id, this);
 #endif
 }
