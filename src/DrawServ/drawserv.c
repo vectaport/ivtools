@@ -813,7 +813,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 			creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
 		    if (scripter) {
 			scripter->SetSubject(comp);
-			if (comp->IsA(RASTER_COMP))
+			if (comp->IsA(OVRASTER_COMP))
 			  ((RasterScript*)scripter)->SetCommandSerialize(true);
 			if (scripted) 
 			    sbuf << ';';
