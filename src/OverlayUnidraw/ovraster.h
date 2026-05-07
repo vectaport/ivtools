@@ -204,8 +204,8 @@ public:
     boolean GetByPathnameFlag();
     boolean GetFromCommandFlag();
 
-    boolean CommandSerialize() { return _command_serialize; }
-    void CommandSerialize(boolean command_serialize) { _command_serialize = command_serialize; }
+    boolean GetCommandSerialize() { return _command_serialize; }
+    void SetCommandSerialize(boolean command_serialize) { _command_serialize = command_serialize; }
 
 protected:
     boolean _command_serialize;

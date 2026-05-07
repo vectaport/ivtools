@@ -476,20 +476,18 @@ boolean RasterScript::IsA (ClassId id) {
     return RASTER_SCRIPT == id || OverlayScript::IsA(id);
 }
 
-RasterScript::RasterScript (RasterOvComp* subj) : OverlayScript(subj) { }
+RasterScript::RasterScript (RasterOvComp* subj) : OverlayScript(subj) {
+  _command_serialize = false;
+}
 
 boolean RasterScript::Definition (ostream& out) {
     RasterOvComp* comp = (RasterOvComp*) GetSubject();
     OverlayRasterRect* rr = comp->GetOverlayRasterRect();
     OverlayRaster* raster = (OverlayRaster*)rr->GetOriginal();
 
-#if 0
     out << (GetFromCommandFlag() && GetByPathnameFlag() && comp->GetPathName()
-	    ? "ovfile(:popen " : "raster(");
-#else
-    out << (GetFromCommandFlag() && GetByPathnameFlag() && comp->GetPathName()
-	    ? "import(" : "raster(");
-#endif
+	    ? (GetCommandSerialize() ? "import(" : "ovfile(:popen " ) : "raster(");
+    
     if (GetByPathnameFlag() && comp->GetPathName()){
       out << "\"" << comp->GetPathName() << "\"";
 

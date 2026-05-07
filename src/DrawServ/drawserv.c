@@ -45,6 +45,7 @@
 #include <FrameUnidraw/framecomps.h>
 
 #include <OverlayUnidraw/ovclasses.h>
+#include <OverlayUnidraw/ovraster.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <OverlayUnidraw/scriptview.h>
 
@@ -294,6 +295,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 		creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
 	      if (scripter) {
 		scripter->SetSubject(comp);
+		if (comp->IsA(RASTER_COMP))
+		  ((RasterScript*)scripter)->SetCommandSerialize(true);
 		if (scripted) 
 		  sbuf << ';';
 		else 
@@ -763,6 +766,8 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 			creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
 		    if (scripter) {
 			scripter->SetSubject(comp);
+			if (comp->IsA(OVRASTER_COMP))
+			  ((RasterScript*)scripter)->SetCommandSerialize(true);
 			if (scripted) 
 			    sbuf << ';';
 			else 
@@ -808,6 +813,8 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 			creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
 		    if (scripter) {
 			scripter->SetSubject(comp);
+			if (comp->IsA(RASTER_COMP))
+			  ((RasterScript*)scripter)->SetCommandSerialize(true);
 			if (scripted) 
 			    sbuf << ';';
 			else 
