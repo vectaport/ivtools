@@ -137,6 +137,10 @@ int Regexp::Search (const char* text, int length, int index, int range) {
     }
 
     /* Mark end of text string so search will stop */
+    if (searchLimit==NULL) {
+      fprintf(stderr, "Regexp::Search -- searchLimit unexpected NULL, SEGFAULT would have occurred, set breakpt here\n");
+      abort();
+    }
     char save = *searchLimit;
     *searchLimit = '\0';
 
@@ -151,7 +155,7 @@ int Regexp::Search (const char* text, int length, int index, int range) {
 
 	if (endAnchored && (endOfLine = FindNewline(searchStart)) != nil) {
 	    csave = *endOfLine;
-	    *endOfLine = '\0';
+	   *endOfLine = '\0';
 	}
 
 	result = regexec(c_pattern, searchStart);

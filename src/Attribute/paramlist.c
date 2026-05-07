@@ -916,6 +916,7 @@ boolean ParamList::urltest(const char* buf) {
   if (!buf) return false;
   static boolean file_url_ok = url_use_ok();
   return 
+    strncasecmp("https://", buf, 7)==0 || 
     strncasecmp("http://", buf, 7)==0 || 
     strncasecmp("ftp://", buf, 6)==0 || 
     file_url_ok && strncasecmp("file:/", buf, 6)==0 ;

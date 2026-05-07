@@ -30,6 +30,7 @@
 
 #include <ComUnidraw/unifunc.h>
 
+class RasterOvComp;
 class Transformer;
 
 //: base class for graphic construction func's
@@ -131,6 +132,7 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
 	return "compview=%s(x0,y0,x1,y1) -- create an empty raster"; }
+    RasterOvComp* create_from_rgb(ComValue& rgbv, AttributeList* al);
 };
 
 //: command for setting font state variable in comdraw.

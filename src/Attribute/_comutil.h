@@ -15,6 +15,8 @@ public: \
     { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
   virtual int classid()\
     { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
+  virtual const char* GetClassName()\
+  { return symbol_pntr(classid()); }	\
 protected: \
   static int _symid;
 
@@ -30,6 +32,8 @@ public: \
     { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
   virtual int classid()\
     { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
+  virtual const char* GetClassName()\
+  { return symbol_pntr(classid()); }		\
 protected: \
   static int _symid;
 

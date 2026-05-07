@@ -44,6 +44,7 @@
 #include <OverlayUnidraw/oved.h>
 #include <OverlayUnidraw/ovviewer.h>
 #include <OverlayUnidraw/ovunidraw.h>
+#include <OverlayUnidraw/vecstream.h>
 
 #include <IVGlyph/gdialogs.h>
 #include <IVGlyph/importchooser.h>
@@ -249,7 +250,7 @@ void FileHelper::add_stream(istream* is) {
 class ReadPpmIterator {
 public:
   ReadPpmIterator(OverlayRaster*);
-  void getPixels(std::strstream&);
+  void getPixels(vecstream&);
   OverlayRaster* raster() const;
   u_long xcur() { return _xcur; }
   u_long ycur() { return _ycur; }
@@ -285,7 +286,7 @@ ReadPpmIterator::ReadPpmIterator(OverlayRaster* r)
 {
 }
 
-void ReadPpmIterator::getPixels(std::strstream& in) {
+void ReadPpmIterator::getPixels(vecstream& in) {
   // cerr << "pcount: " << in.pcount() << "\ttellg: " << in.tellg() << endl;
   while((in.pcount() - in.tellg()) >= 3 && in.good() && !in.eof()) { 
     u_char r, g, b;
@@ -360,7 +361,7 @@ protected:
 
   ReadPpmIterator* _itr;
 
-  std::ostrstream _save;
+  vecstream _save;
 };
 
 HandlerList ReadImageHandler::_handlers;
@@ -443,9 +444,8 @@ void ReadImageHandler::timerExpired(long, long) {
   delete i;
 }
 
-
 int ReadImageHandler::process(const char* newdat, int len) {
-  std::strstream in;
+  vecstream in;
   in.write(_save.str(), _save.tellp());
   _save.freeze(0);
   in.write(newdat, len);
@@ -458,16 +458,15 @@ int ReadImageHandler::process(const char* newdat, int len) {
     std::ostrstream tmp;  // need to placate Regexp :-(
     tmp.write(in.str(), in.pcount());
     in.freeze(0);
-    int pos = endOfHeader.Search(
-      tmp.str(), tmp.pcount() - 1, 0, tmp.pcount() - 1
-    );
+    unsigned int minp = min(tmp.pcount()-1, BUFSIZ);
+    int pos = endOfHeader.Search(tmp.str(), minp, 0, minp);
     tmp.freeze(0);
 
     if (pos >= 0) { 
-
-      char buffer[BUFSIZ];
-      in.get(buffer, BUFSIZ);
-      in.get(newline);
+	
+	char buffer[BUFSIZ];
+	in.get(buffer, BUFSIZ);
+	in.get(newline);
 
       if (strncmp(buffer, "P6", 2)) {
         cerr << "only binary ppms (magic P6) supported at this time" << endl;
@@ -520,9 +519,9 @@ int ReadImageHandler::process(const char* newdat, int len) {
     int xend = w-1;
     int ybeg = _itr->ycur() + 1;
 
-    // cerr << "xbeg,ybeg,xend,yend" 
-	 // << xbeg << "," << ybeg << ","
-	 // << xend << "," << yend << "\n";
+    //cerr << "xbeg,ybeg,xend,yend" 
+    //	 << xbeg << "," << ybeg << ","
+    //	 << xend << "," << yend << "\n";
     // damage for partial flush
     if (mag == _lastmag)
       rr->damage_rect(xbeg,ybeg,xend,yend);
@@ -572,7 +571,6 @@ int ReadImageHandler::process(const char* newdat, int len) {
 
   return 0;   // call me only when more data arrives
 }
-
 
 // note that this will get called when EOF is reached even if there are no
 // bytes to be read

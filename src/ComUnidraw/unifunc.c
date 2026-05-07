@@ -307,7 +307,6 @@ void ImportFunc::execute() {
     boolean popen_flag = stack_key(popen_symid).is_true();
     static int next_symid = symbol_add("next");
     boolean next_flag = stack_key(next_symid).is_true();
-    reset_stack();
 
     if (next_flag) {
       if (lastpath) {
@@ -334,6 +333,7 @@ void ImportFunc::execute() {
     OvImportCmd* cmd;
     if (!pathnamev.is_array()) {
       if (nargs()==1 || next_flag) {
+        reset_stack();
 	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
 			  popen_flag)) && cmd->component()) {
 	  ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
@@ -343,17 +343,22 @@ void ImportFunc::execute() {
 	} else
 	  push_stack(ComValue::nullval());
       } else {
-	for (int i=0; i<nargs(); i++) 
-	  if (cmd = import(stack_arg(i).string_ptr(), popen_flag)) {
+	for (int i=0; i<(nargs()-nkeys()); i++) 
+	  if ((cmd = import(stack_arg(i).string_ptr(), popen_flag))!=NULL &&
+	      cmd->component()!=NULL) {
 	    ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
 			     ((OverlayComp*)cmd->component())->classid());
 	    delete cmd;
+            reset_stack();
 	    push_stack(compval);
 
-	  } else
+	  } else {
+            reset_stack();
 	    push_stack(ComValue::nullval());
+	  }
       }
     } else   {
+      reset_stack();
       AttributeValueList* outlist = new AttributeValueList();
       AttributeValueList* inlist = pathnamev.array_val();
       Iterator it;

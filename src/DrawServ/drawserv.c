@@ -388,7 +388,7 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
       fputs("\n", fp);
       fclose(fp);
       link->ackhandler()->start_timer();
-      fprintf(stdout, "SENT TO %d: %s\n", fd, cmdstring);
+      fprintf(stdout, "<%d>: %s\n", link->portnum(), cmdstring);
     }
   }
 }
@@ -587,7 +587,7 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
 
       /* else pass the request on to the target selector */
       else {
-	fprintf(stderr, "grid:  request passed along to targeted selector");
+	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :request chgid(0x%08x))%c",
 		 grid->id(), selector, newselector, '\0');
@@ -629,13 +629,26 @@ void DrawServ::grid_message_callback(DrawLink* link, unsigned int id, unsigned i
 void DrawServ::print_gridtable() {
   GraphicIdTable* table = gridtable();
   GraphicIdTable_Iterator it(*table);
+  #if 0
   printf("id          &grid       &grcomp     selector    selected\n");
   printf("----------  ----------  ----------  ----------  --------\n");
+  #else
+  printf("id          comptype              selector    selected\n");
+  printf("----------  --------------------  ----------  --------\n");
+  #endif
   while(it.more()) {
     GraphicId* grid = (GraphicId*)it.cur_value();
+    #if 0
     printf("0x%08x  0x%08lx  0x%08lx  0x%08lx  %s\n", 
 	   (unsigned int)it.cur_key(), (unsigned long)grid, (unsigned long)grid->grcomp(),
 	   (unsigned long)grid->selector(), LinkSelection::selected_string(grid->selected()));
+    #else
+    OverlayComp* comp = (OverlayComp*)grid->grcomp();
+    const char* comptype = comp ? comp->GetClassName() : "nil";
+    printf("0x%08x  %-20s  0x%08x  %s\n",
+ 	   (unsigned int)it.cur_key(), comptype,
+ 	   (unsigned int)grid->selector(), LinkSelection::selected_string(grid->selected()));
+    #endif
     it.next();
   }
 }
@@ -727,7 +740,7 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 
     boolean original = false;
 
-    fged->GetSelection()->Clear();
+    // fged->GetSelection()->Clear();
     
     std::ostrstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
@@ -773,8 +786,6 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 
     boolean original = false;
-
-    bged->GetSelection()->Clear();
     
     std::ostrstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
@@ -851,9 +862,21 @@ boolean DrawServ::add_grid(OverlayComp* comp) {
 	sidv->state(AttributeValue::HexState);
 	al->add_attr(sid_sym, sidv);
 	original = true;
-	graphicid->selected(LinkSelection::NotSelected);
+	
+     	Editor* ed = DrawKit::Instance()->GetEditor();
+	OverlaySelection* sel = (OverlaySelection*)ed->GetViewer()->GetSelection();
+	Iterator it;
+	boolean is_selected = false;
+	for (sel->First(it); !sel->Done(it); sel->Next(it)) {
+	  OverlayView* view = (OverlayView*)sel->GetView(it);
+	  if (view && view->GetOverlayComp() == comp) {
+	    is_selected = true;
+	    break;
+	  }
+	}
+	graphicid->selected(is_selected ? LinkSelection::LocallySelected : LinkSelection::NotSelected);
     }
     return original;
 }
-    
+
 #endif /* HAVE_ACE */

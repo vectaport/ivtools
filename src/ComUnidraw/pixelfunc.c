@@ -136,8 +136,26 @@ void PixelPeekFunc::execute() {
 
   if (raster) {
     ComValue retval;
-    raster->graypeek(xv.int_val(), yv.int_val(), retval);
-    push_stack(retval);
+    if (raster->gray_flag()) {
+      raster->graypeek(xv.int_val(), yv.int_val(), retval);
+      push_stack(retval);
+    }
+    else {
+      ColorIntensity r, g, b;
+      float alpha;
+      raster->peek(xv.int_val(), yv.int_val(), r, g, b, alpha);
+      
+      // put r,g,b,alpha in a list return
+      AttributeValueList* al = new AttributeValueList();
+      al->Append(new AttributeValue((float)r));
+      al->Append(new AttributeValue((float)g));
+      al->Append(new AttributeValue((float)b));
+      al->Append(new AttributeValue(alpha));
+
+      ComValue retval(al);		   
+      push_stack(retval);
+    }
+      
   } else 
     push_stack(ComValue::nullval());
 

@@ -642,20 +642,8 @@ void CreateRasterFunc::execute() {
     const int y1 = 3;  
     const int n = 4;
     int coords[n];
-    ComValue& vect = stack_arg(0);
-    if (!vect.is_type(ComValue::ArrayType) || vect.array_len() != n) {
-        reset_stack();
-	push_stack(ComValue::nullval());
-	return;
-    }
-
-    ALIterator i;
-    AttributeValueList* avl = vect.array_val();
-    avl->First(i);
-    for (int j=0; j<n && !avl->Done(i); j++) {
-        coords[j] = avl->GetAttrVal(i)->int_val();
-	avl->Next(i);
-    }
+    ComValue vect = stack_arg(0);
+    ComValue rgbv(stack_key(symbol_add("rgb")));
 
     AttributeList* al = stack_keys();
     Resource::ref(al);
@@ -663,41 +651,100 @@ void CreateRasterFunc::execute() {
 
     PasteCmd* cmd = nil;
 
+    if (rgbv.is_type(ComValue::ArrayType)) {
+      
+      RasterOvComp* comp = create_from_rgb(rgbv, al);
+      if (PasteModeFunc::paste_mode() == 0)
+        cmd = new PasteCmd(_ed, new Clipboard(comp));
+      ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
+      push_stack(compval);
+      execute_log(cmd);
+      Unref(al);
+      return;
+    }
+
+    if (!vect.is_type(ComValue::ArrayType) || vect.array_len() != n) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      Unref(al);
+      return;
+    }
+    ALIterator i;
+    AttributeValueList* avl = vect.array_val();
+    avl->First(i);
+    for (int j=0; j<n && !avl->Done(i); j++) {
+      coords[j] = avl->GetAttrVal(i)->int_val();
+      avl->Next(i);
+    }
+    
     if (coords[x0] != coords[x1] || coords[y0] != coords[y1]) {
-
-	float dcoords[n];
-	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing
-	  (coords[x0], coords[y0], dcoords[x0], dcoords[y0]);
-	((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing
-	  (coords[x1], coords[y1], dcoords[x1], dcoords[y1]);
-	
-	OverlayRaster* raster = 
-	  new OverlayRaster((int)(dcoords[x1]-dcoords[x0]+1), 
-			    (int)(dcoords[y1]-dcoords[y0]+1), 
-			    2 /* initialize with border of 2 */);
-
-	OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
-
+      
+      float dcoords[n];
+      ((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing
+	(coords[x0], coords[y0], dcoords[x0], dcoords[y0]);
+      ((OverlayViewer*)GetEditor()->GetViewer())->ScreenToDrawing
+	(coords[x1], coords[y1], dcoords[x1], dcoords[y1]);
+      
+      OverlayRaster* raster = 
+	new OverlayRaster((int)(dcoords[x1]-dcoords[x0]+1), 
+			  (int)(dcoords[y1]-dcoords[y0]+1), 
+			  2 /* initialize with border of 2 */);
+      
+      OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
+      
 #if 1
-	Transformer* t = new Transformer();
-	t->Translate(dcoords[x0], dcoords[y0]);
-	rasterrect->SetTransformer(t);
-	Unref(t);
+      Transformer* t = new Transformer();
+      t->Translate(dcoords[x0], dcoords[y0]);
+      rasterrect->SetTransformer(t);
+      Unref(t);
 #else
-        Transformer* rel = get_transformer(al);
+      Transformer* rel = get_transformer(al);
 #endif
-
-	RasterOvComp* comp = new RasterOvComp(rasterrect);
-	comp->SetAttributeList(al);
-	if (PasteModeFunc::paste_mode()==0)
-	  cmd = new PasteCmd(_ed, new Clipboard(comp));
-	ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
-	push_stack(compval);
-	execute_log(cmd);
+      
+      RasterOvComp* comp = new RasterOvComp(rasterrect);
+      comp->SetAttributeList(al);
+      if (PasteModeFunc::paste_mode()==0)
+	cmd = new PasteCmd(_ed, new Clipboard(comp));
+      ComValue compval(new OverlayViewRef(comp), symbol_add("RasterComp"));
+      push_stack(compval);
+      execute_log(cmd);
     } else 
-	push_stack(ComValue::nullval());
-
+      push_stack(ComValue::nullval());
+    
     Unref(al);
+}
+
+RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* al) {
+    AttributeValueList* avl = rgbv.array_val();
+    ALIterator i;
+    avl->First(i);
+
+    int w = avl->GetAttrVal(i)->int_val(); avl->Next(i);
+    int h = avl->GetAttrVal(i)->int_val(); avl->Next(i);
+
+    OverlayRaster* raster = new OverlayRaster(w, h, 0);
+    OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
+
+    for (int row = 0; row < h && !avl->Done(i); row++) {
+        for (int col = 0; col < w && !avl->Done(i); col++) {
+            AttributeValue* triple = avl->GetAttrVal(i); avl->Next(i);
+            AttributeValueList* rgb = triple->array_val();
+            ALIterator j;
+            rgb->First(j);
+            float r = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+            float g = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+            float b = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+            raster->poke(col, row, r, g, b, 1.0);
+        }
+    }
+    raster->flush();
+
+    Transformer* rel = get_transformer(al);
+    if (rel) rasterrect->SetTransformer(rel);
+
+    RasterOvComp* comp = new RasterOvComp(rasterrect);
+    comp->SetAttributeList(al);
+    return comp;
 }
 
 /*****************************************************************************/

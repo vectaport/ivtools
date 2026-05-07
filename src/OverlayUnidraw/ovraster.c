@@ -483,9 +483,13 @@ boolean RasterScript::Definition (ostream& out) {
     OverlayRasterRect* rr = comp->GetOverlayRasterRect();
     OverlayRaster* raster = (OverlayRaster*)rr->GetOriginal();
 
+#if 0
     out << (GetFromCommandFlag() && GetByPathnameFlag() && comp->GetPathName()
 	    ? "ovfile(:popen " : "raster(");
-    
+#else
+    out << (GetFromCommandFlag() && GetByPathnameFlag() && comp->GetPathName()
+	    ? "import(" : "raster(");
+#endif
     if (GetByPathnameFlag() && comp->GetPathName()){
       out << "\"" << comp->GetPathName() << "\"";
 
@@ -964,7 +968,8 @@ int RasterScript::ReadProcess (
 
 boolean RasterScript::GetByPathnameFlag() {
     RasterOvComp* comp = (RasterOvComp*) GetSubject();
-    return comp->GetByPathnameFlag() && ((OverlayScript*)GetParent())->GetByPathnameFlag();
+    return comp->GetByPathnameFlag() &&
+      (GetParent() != NULL ? ((OverlayScript*)GetParent())->GetByPathnameFlag() : true);
 }
 
 boolean RasterScript::GetFromCommandFlag() {

@@ -203,7 +203,6 @@ void SessionIdFunc::execute() {
 
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
-  fprintf(stderr, "LINK is now %lx\n", link);
   
   if (allv.is_true()) {
     ((DrawServ*)unidraw)->sessionid_register(link);
