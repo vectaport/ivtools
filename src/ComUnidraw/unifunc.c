@@ -292,7 +292,7 @@ OvImportCmd* ImportFunc::import(const char* path, boolean popen) {
   OvImportCmd* cmd = new OvImportCmd(editor());
   cmd->pathname(path, popen);
   cmd->Execute();
-  cmd->Log()
+  cmd->Log();
   if (cmd->component()) {
     ((OverlayComp*)cmd->component())->SetPathName(path);
     ((OverlayComp*)cmd->component())->SetByPathnameFlag(!popen);
