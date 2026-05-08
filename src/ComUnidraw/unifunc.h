@@ -142,7 +142,7 @@ public:
 class ImportFunc : public UnidrawFunc {
 public:
     ImportFunc(ComTerp*,Editor*);
-    OvImportCmd* import(const char* path, boolean popen=false);
+    OvImportCmd* import(const char* path, boolean popen=false, AttributeList* al=nil);
     // helper method to import from path
     virtual void execute();
     virtual const char* docstring() { 

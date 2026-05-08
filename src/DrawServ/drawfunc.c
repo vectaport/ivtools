@@ -296,7 +296,7 @@ void ChangeIdFunc::execute() {
   
   if (link != NULL && idv.is_known()) {
     unsigned int id = idv.uint_val();
-    link->sid_change(id);
+    link->sid_change_inplace(id);
     ComValue result(id, ComValue::UIntType);
     result.state(AttributeValue::HexState);
     push_stack(result);

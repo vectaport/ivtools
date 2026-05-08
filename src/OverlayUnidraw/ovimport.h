@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 
+class AttributeList;
 class Bitmap;
 class Component;
 class Editor;
@@ -68,6 +69,10 @@ public:
     // return pointer to pathname.
     void preserve_selection(boolean);
     // set flag to import without changing current selection in editor.
+    void SetAttributeList(AttributeList* al);
+    // set AttributeList to be transferred to new comp
+     AttributeList* GetAttributeList();
+    // get AttributeList to be transferred to new comp
 
     virtual Command* Copy();
     virtual ClassId GetClassId();
@@ -255,6 +260,7 @@ protected:
     boolean popen_;
     boolean preserve_selection_;
     Component* comp_;
+    AttributeList* _al;
 };
 
 

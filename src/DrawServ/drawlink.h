@@ -127,7 +127,7 @@ public:
     unsigned int sid_lookup(unsigned int sid);
     // map incoming sid to local sid.
 
-    void sid_change(unsigned int& id);
+    void sid_change_inplace(unsigned int& id);
     // change sid portion of an id to use local sid.
 
     void sid_insert(unsigned int sid, unsigned int alt_sid);

@@ -188,11 +188,21 @@ unsigned DrawLink::sid_lookup(unsigned int sid) {
   return local_sid ? local_sid : sid;
 }
 
-void DrawLink::sid_change(unsigned int& id) {
+void DrawLink::sid_change_inplace(unsigned int& id) {
 #ifdef HAVE_ACE
   if (_incomingsidtable_size==0) return;
-  // cleans out any other flags (??) before sid_lookup
-  id = sid_lookup(id & DrawServ::SessionIdMask) | (id & DrawServ::GraphicIdMask);
+  void* ptr = nil;
+
+  // check if graphic exists with remote session id (incoming, not yet translated)
+  ((DrawServ*)unidraw)->gridtable()->find(ptr, id);
+  if (ptr) return;  // found with remote sid, pass through unchanged
+
+  // check if graphic exists with local session id (already translated)
+  unsigned int lookup_id = sid_lookup(id & DrawServ::SessionIdMask) | (id & DrawServ::GraphicIdMask);
+  ((DrawServ*)unidraw)->gridtable()->find(ptr, lookup_id);
+  if (ptr) id = lookup_id;  // found with local sid, use translated value
+
+  // else not found at all, pass through unchanged (new graphic)
 #endif
   return;
 }

@@ -288,12 +288,19 @@ void SaveFileFunc::execute() {
 ImportFunc::ImportFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
-OvImportCmd* ImportFunc::import(const char* path, boolean popen) {
+OvImportCmd* ImportFunc::import(const char* path, boolean popen, AttributeList* al) {
   OvImportCmd* cmd = new OvImportCmd(editor());
   cmd->pathname(path, popen);
+  cmd->SetAttributeList(al);
+  #if 1
   cmd->Execute();
   cmd->Log();
+  #else
+  execute_log(cmd);
+  #endif
+
   if (cmd->component()) {
+    ((OverlayComp*)cmd->component())->SetAttributeList(al);
     ((OverlayComp*)cmd->component())->SetPathName(path);
     ((OverlayComp*)cmd->component())->SetByPathnameFlag(!popen);
   }
@@ -309,6 +316,9 @@ void ImportFunc::execute() {
     static int next_symid = symbol_add("next");
     boolean next_flag = stack_key(next_symid).is_true();
 
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
+    
     if (next_flag) {
       if (lastpath) {
         char* ptr = lastpath + strlen(lastpath) - 1;
@@ -336,7 +346,7 @@ void ImportFunc::execute() {
       if (nargs()==1 || next_flag) {
         reset_stack();
 	if ((cmd = import(next_flag ? lastpath : pathnamev.string_ptr(), 
-			  popen_flag)) && cmd->component()) {
+			  popen_flag, al)) && cmd->component()) {
 	  ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
 			   ((OverlayComp*)cmd->component())->classid());
 	  delete cmd;
@@ -345,7 +355,7 @@ void ImportFunc::execute() {
 	  push_stack(ComValue::nullval());
       } else {
 	for (int i=0; i<(nargs()-nkeys()); i++) 
-	  if ((cmd = import(stack_arg(i).string_ptr(), popen_flag))!=NULL &&
+	  if ((cmd = import(stack_arg(i).string_ptr(), popen_flag, al))!=NULL &&
 	      cmd->component()!=NULL) {
 	    ComValue compval(new OverlayViewRef((OverlayComp*)cmd->component()),
 			     ((OverlayComp*)cmd->component())->classid());
@@ -366,6 +376,7 @@ void ImportFunc::execute() {
       inlist->First(it);
       while(!inlist->Done(it)) {
 	cmd = import(inlist->GetAttrVal(it)->string_ptr(), popen_flag);
+	((OverlayComp*)cmd->component())->SetAttributeList(al);
 	ComValue* val = new ComValue(new OverlayViewRef((OverlayComp*)cmd->component()),
 				     ((OverlayComp*)cmd->component())->classid());
 	delete cmd;
@@ -373,6 +384,7 @@ void ImportFunc::execute() {
 	inlist->Next(it);
       }
     }
+    Unref(al);
 }
 
 /*****************************************************************************/
