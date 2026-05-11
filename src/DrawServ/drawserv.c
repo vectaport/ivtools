@@ -262,10 +262,9 @@ void DrawServ::linkdump(FILE* fptr) {
 }
 
 void DrawServ::ExecuteCmd(Command* cmd) {
-  static int grid_sym = symbol_add("grid");
-  static int sid_sym = symbol_add("sid");
+  int sid = 0;
+  int grid = 0;
   boolean original = false;
-  unsigned int from_sid = 0;
   
   if(!_linklist || _linklist->Number()==0) 
     
@@ -287,7 +286,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	  Iterator it;
 	  for (cb->First(it); !cb->Done(it); cb->Next(it)) {
 	    OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
-	    original = add_grid(comp);
+	    
+	    original = add_grid(comp, grid, sid);
 	    
 	    if (comp && (original || linklist()->Number()>1)) {
 	      Creator* creator = unidraw->GetCatalog()->GetCreator();
@@ -295,7 +295,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 		creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
 	      if (scripter) {
 		scripter->SetSubject(comp);
-		if (comp->IsA(RASTER_COMP))
+		if (comp->IsA(OVRASTER_COMP))
 		  ((RasterScript*)scripter)->SetCommandSerialize(true);
 		if (scripted) 
 		  sbuf << ';';
@@ -309,7 +309,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	}
 	if (original || linklist()->Number()>1) {
 	  if (!scripted)
-	    fprintf(stderr, "Failed attempt to generate script for a PASTE_CMD\n");
+	    fprintf(stderr, "Failed attempt to generate script for a PASTE_CMD|OV_IMPORT_CMD\n");
 	}
 	
 	break;
@@ -348,7 +348,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
     
     /* then send everywhere else */
     if (original || linklist()->Number()>0) 
-      DistributeCmdString(sbuf.str(), linkget(from_sid));
+      DistributeCmdString(sbuf.str(), linkget(sid));
     
     if (cmd->Reversible()) {
       cmd->Log();
@@ -361,6 +361,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 }
 
 void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
+
+  if (cmdstring==NULL || *cmdstring=='\0') return;
 
   Iterator i;
   _linklist->First(i);
@@ -382,6 +384,8 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 }
 
 void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
+
+  if (cmdstring==NULL || *cmdstring=='\0') return;
 
   if (link) {
     int fd = link->handle();
@@ -742,6 +746,8 @@ boolean DrawServ::PrintAttributeList(ostream& out, AttributeList* attrlist) {
 void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 
     boolean original = false;
+    int grid = 0;
+    int sid = 0;
 
     // fged->GetSelection()->Clear();
     
@@ -758,7 +764,7 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 	if (bgfcomp) {
 	    for (bgfcomp->First(it); !bgfcomp->Done(it); bgfcomp->Next(it)) {
 		OverlayComp* comp = (OverlayComp*)bgfcomp->GetComp(it);
-		original = add_grid(comp);
+		original = add_grid(comp, grid, sid);
 
 		if (comp && (original || linklist()->Number()>1)) {
 		    Creator* creator = unidraw->GetCatalog()->GetCreator();
@@ -791,6 +797,8 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 
     boolean original = false;
+    int grid = 0;
+    int sid = 0;
     
     std::ostrstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
@@ -805,7 +813,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 	if (bgfcomp) {
 	    for (bgfcomp->Last(it); !bgfcomp->Done(it); bgfcomp->Prev(it)) {
 		OverlayComp* comp = (OverlayComp*)bgfcomp->GetComp(it);
-		original = add_grid(comp);
+		original = add_grid(comp, grid, sid);
 
 		if (comp && (original || linklist()->Number()>1)) {
 		    Creator* creator = unidraw->GetCatalog()->GetCreator();
@@ -837,15 +845,21 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
     
 }
     
-boolean DrawServ::add_grid(OverlayComp* comp) {
+boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
     boolean original = false;
     static int grid_sym = symbol_add("grid");
     static int sid_sym = symbol_add("sid");
+
     AttributeList* al = comp->GetAttributeList();
-    AttributeValue* gridv = al->find(grid_sym);
-    AttributeValue* sidv = al->find(sid_sym);
-    int grid = gridv ? gridv->uint_val() : 0;
-    int sid = sidv ? sidv->uint_val() : 0;
+    if (al!=NULL) {
+      
+      AttributeValue *gridv = al->find(grid_sym);
+      if (gridv!=NULL) grid = gridv->uint_val();
+      
+      AttributeValue *sidv = al->find(sid_sym);
+      if (sidv!=NULL) sid = sidv->uint_val();
+      
+    }
     
     /* unique id already assigned */
     if (grid != 0 && sid !=0) {
@@ -862,10 +876,10 @@ boolean DrawServ::add_grid(OverlayComp* comp) {
 	GraphicId* graphicid = new GraphicId(sessionid());
 	graphicid->grcomp(comp);
 	graphicid->selector(((DrawServ*)unidraw)->sessionid());
-	AttributeValue* gridv = new AttributeValue(graphicid->id(), AttributeValue::UIntType);
+	AttributeValue* gridv = new AttributeValue(grid=graphicid->id(), AttributeValue::UIntType);
 	gridv->state(AttributeValue::HexState);
 	al->add_attr(grid_sym, gridv);
-	AttributeValue* sidv = new AttributeValue(graphicid->selector(), AttributeValue::UIntType);
+	AttributeValue* sidv = new AttributeValue(sid=graphicid->selector(), AttributeValue::UIntType);
 	sidv->state(AttributeValue::HexState);
 	al->add_attr(sid_sym, sidv);
 	original = true;

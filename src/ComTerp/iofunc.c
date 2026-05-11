@@ -29,6 +29,7 @@
 #include <ComTerp/iofunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/socket.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
@@ -510,7 +511,7 @@ void GetStringFunc::execute() {
   if (fileobjv.is_socketobj()) {
     char buf[BUFSIZ];
     int i=0;
-    ACE_SOCK_STREAM *socket = nil;
+    ACE_SOCK_Stream *socket = nil;
     SocketObj* socketobj = (SocketObj*)fileobjv.geta(SocketObj::class_symid());
     if (socketobj) 
       socket = socketobj->socket();

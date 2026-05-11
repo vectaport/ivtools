@@ -92,9 +92,9 @@ ComterpHandler::destroy (void)
 {
   const char* peer_name = this->peer_name_;
   if (ComterpHandler::logger_mode()==0) {
-      if (*peer_name == '\0') peer_name = "stdio";
-      ACE_DEBUG ((LM_DEBUG, 
-		  "(%P|%t) disconnected from %s\n", peer_name));
+      if (*peer_name != '\0')
+	ACE_DEBUG ((LM_DEBUG, 
+		    "(%P|%t) disconnected from %s\n", peer_name));
   }
 #if 0
     ComterpHandler::reactor_singleton()->cancel_timer (this);

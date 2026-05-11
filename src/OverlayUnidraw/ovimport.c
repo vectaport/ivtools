@@ -46,6 +46,8 @@
 #include <OverlayUnidraw/ovunidraw.h>
 #include <OverlayUnidraw/vecstream.h>
 
+#include <Attribute/attrlist.h>
+
 #include <IVGlyph/gdialogs.h>
 #include <IVGlyph/importchooser.h>
 
@@ -1033,6 +1035,7 @@ void OvImportCmd::Init(ImportChooser* f) {
     popen_ = false;
     preserve_selection_ = false;
     helper_ = new FileHelper;
+    _al = nil;
 }
 
 OvImportCmd::~OvImportCmd() {
@@ -1041,12 +1044,13 @@ OvImportCmd::~OvImportCmd() {
   helper_->close_all();
   delete helper_;
   helper_ = nil;
+  Unref(_al);
 }
 
 void OvImportCmd::instream(istream* in) { inptr_ = in; }
 
 void OvImportCmd::pathname(const char* path, boolean popen) {
-  path_ = path ? strdup(path) : nil; 
+  path_ = path!=NULL ? strdup(path) : nil; 
   popen_ = popen;
 }
 
@@ -1094,15 +1098,26 @@ void OvImportCmd::Execute () {
       comp_ = Import(*inptr_, empty);
     
     if (comp_ != nil) {
-        OverlaySelection* oldsel;
+
+        // pre-load the component with the extra keywords from any scripted command
+        if ( (((OverlayComp*)comp_)->GetAttributeList()==nil
+	      || ((OverlayComp*)comp_)->GetAttributeList()->Number()==0)
+	     && GetAttributeList()!=nil) {
+	  ((OverlayComp*)comp_)->SetAttributeList(GetAttributeList());
+	}
+	
+	OverlaySelection* oldsel;
 	if (preserve_selection_)
 	  oldsel = ((OverlayEditor*)GetEditor())->overlay_kit()->
 	    MakeSelection((OverlaySelection*)GetEditor()->GetSelection());
 	((OverlayEditor*)GetEditor())->DoAutoNewFrame();
 	if (comp_->IsA(GRAPHIC_COMP)) {
+
+	    if (comp_->IsA(OVRASTER_COMP))
+  	        ((RasterOvComp*)comp_)->SetPathName(path_);
+	    
 	    PasteCmd* paste_cmd = new PasteCmd(GetEditor(), new Clipboard((GraphicComp*)comp_));
-	    paste_cmd->Execute();
-	    paste_cmd->Log();
+	    unidraw->ExecuteCmd(paste_cmd);
 	} else 
 	  cerr << "something other than a GraphicComp imported\n";
 #if 0      
@@ -1389,6 +1404,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
 	helper_->add_file(fptr);
 
       comp = Import(*in);
+      ((OverlayComp*)comp)->SetAttributeList(GetAttributeList());
     }    
 
     if (comp && !incremental_flag) {
@@ -1404,7 +1420,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
 	}
       }
     }
-    pathname(nil, popen_);
+    // pathname(nil, popen_);
 
     return comp;
 #endif
@@ -2652,4 +2668,21 @@ Bitmap* OvImportCmd::PBM_Bitmap (istream& in) {
 
 boolean OvImportCmd::is_url() {
   return ParamList::urltest(pathname());
+}
+
+#include <InterViews/resource.h>
+// set AttributeList to be transferred to new comp
+void OvImportCmd::SetAttributeList(AttributeList* al) {
+  if (_al != NULL) {
+    Unref(_al);
+  }
+  _al = al;
+  Resource::ref(_al);
+
+}
+  
+
+// get AttributeList to be transferred to new comp
+AttributeList* OvImportCmd::GetAttributeList() {
+  return _al;
 }

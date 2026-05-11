@@ -36,6 +36,7 @@
 #include <OverlayUnidraw/ovvertices.h>
 #include <UniIdraw/idarrows.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/socket.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 #include <Unidraw/Graphic/graphic.h>
@@ -62,6 +63,7 @@ void DrawLinkFunc::execute() {
 #else
 
   ComValue hostv(stack_arg(0, true));
+  ComValue linkv(stack_arg(0, false));
   static int port_sym = symbol_add("port");
   ComValue default_port(20002);
   ComValue portfixed(stack_arg(1, true, default_port));
@@ -75,17 +77,53 @@ void DrawLinkFunc::execute() {
   ComValue ridv(stack_key(rid_sym));
   static int close_sym = symbol_add("close");
   ComValue closev(stack_key(close_sym));
-  static int dump_sym = symbol_add("dump");
-  ComValue dumpv(stack_key(dump_sym));
   static int pid_sym = symbol_add("pid");
   ComValue pidv(stack_key(pid_sym));
   static int sid_sym = symbol_add("sid");
   ComValue sidv(stack_key(sid_sym));
   static int user_sym = symbol_add("user");
   ComValue userv(stack_key(user_sym));
+  static int socket_sym = symbol_add("socket");
+  ComValue socketv(stack_key(socket_sym));
+  static int timer_sym = symbol_add("timer");
+  ComValue default_timer(5);
+  ComValue timerv(stack_key(timer_sym, false, default_timer, true));
   reset_stack();
 
   DrawLink* link = nil;
+
+  /* introspect existing link from DrawLinkComp argument */
+  if (linkv.is_compview()) {
+    ComponentView* compview = (ComponentView*)linkv.obj_val();
+    if (compview && compview->GetSubject() && 
+        ((GraphicComp*)compview->GetSubject())->IsA(DRAWLINK_COMP)) {
+      DrawLinkComp* dlcomp = (DrawLinkComp*)compview->GetSubject();
+      link = dlcomp ? dlcomp->drawlink() : nil;
+      if (link) {
+        if (closev.is_true()) {
+          ((DrawServ*)unidraw)->linkdown(link);
+	  push_stack(ComValue::nullval());
+	}
+	else if (socketv.is_true()) {
+	  SocketObj* sockobj = new SocketObj();
+	  sockobj->socket(link->socket());
+	  ComValue result(SocketObj::class_symid(), sockobj);
+	  push_stack(result);
+	} else if (timerv.is_known()) {
+	  int sec = timerv.int_val();
+	  link->start_timer(sec);
+	  push_stack(ComValue::nullval());
+	} else {
+          link->dump(stderr);
+	  push_stack(ComValue::nullval());
+        }
+        return;
+      }
+    }
+    push_stack(ComValue::nullval());
+    return;
+  }
+  
 
   /* creating a new link to remote drawserv */
   if (hostv.is_string() && portv.is_known() && statev.is_known()) {
@@ -126,7 +164,7 @@ void DrawLinkFunc::execute() {
       link = nil;
     }
     
-    else if (link && dumpv.is_true()) {
+    else if (link) {
       link->dump(stderr);
     }
     
@@ -296,7 +334,7 @@ void ChangeIdFunc::execute() {
   
   if (link != NULL && idv.is_known()) {
     unsigned int id = idv.uint_val();
-    link->sid_change(id);
+    link->sid_change_inplace(id);
     ComValue result(id, ComValue::UIntType);
     result.state(AttributeValue::HexState);
     push_stack(result);

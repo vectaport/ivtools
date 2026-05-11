@@ -1253,6 +1253,7 @@ void ComTerp::add_defaults() {
     _defaults_added = true;
 
     add_command("nil", new NilFunc(this));
+    add_command("blank", new BlankFunc(this));
     add_command("char", new CharFunc(this));
     add_command("short", new ShortFunc(this));
     add_command("int", new IntFunc(this));

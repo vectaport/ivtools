@@ -115,30 +115,6 @@ public:
 
 };
 
-#ifdef HAVE_ACE
-class ACE_SOCK_STREAM;
-class ACE_SOCK_Connector;
-
-class SocketObj {
- public:
-  SocketObj(const char* host, unsigned short port); 
-  virtual ~SocketObj();
-  ACE_SOCK_STREAM* socket() { return _socket; }
-  int connect();
-  int close();
-  const char* host() { return _host; }
-  unsigned short port() { return _port; }
-  int get_handle();
-
-  ACE_SOCK_STREAM* _socket;
-  ACE_SOCK_Connector* _conn;
-  char* _host;
-  unsigned short _port;
-
-  CLASS_SYMID("SocketObj");
-};
-#endif
-  
 //: create socket object
 // sockobj=socket(hoststr portnum) -- create and open socket object
 // create and open socket object
@@ -148,7 +124,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "sockobj=%s(hoststr portnum ) -- create and open socket object"; }
+      return "sockobj=%s(hoststr portnum) -- create and open socket object"; }
 };
 
 //: eval string command for ComTerp.
@@ -179,7 +155,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(cmdstr) -- evaluate command in shell"; }
+      return "status=%s(cmdstr) -- evaluate command in shell"; }
 
 };
 
@@ -205,6 +181,19 @@ public:
     virtual void execute();
     virtual const char* docstring() { 
       return "%s([...]) -- accept any arguments and return nil"; }
+
+};
+
+//: blank command for ComTerp.
+// blank([...]) -- accept any arguments and return blank.
+class BlankFunc : public ComFunc {
+public:
+    BlankFunc(ComTerp*);
+
+    virtual boolean post_eval() { return true; }
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "%s([...]) -- accept any arguments and return blank"; }
 
 };
 

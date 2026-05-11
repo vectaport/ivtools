@@ -110,6 +110,9 @@ public:
     AckBackHandler* ackhandler() { return _ackhandler; }
     // get AckBackHandler associated with incoming connection
 
+    void start_timer(int seconds = 5);
+    // Start timer waiting for ackback
+
     IncomingSidTable* incomingsidtable() { return _incomingsidtable; }
     // return pointer to table mapping incoming sessionid's to locally unique sessionid's
 
@@ -127,7 +130,7 @@ public:
     unsigned int sid_lookup(unsigned int sid);
     // map incoming sid to local sid.
 
-    void sid_change(unsigned int& id);
+    void sid_change_inplace(unsigned int& id);
     // change sid portion of an id to use local sid.
 
     void sid_insert(unsigned int sid, unsigned int alt_sid);

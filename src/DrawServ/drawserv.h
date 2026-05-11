@@ -186,26 +186,26 @@ public:
   // returns false if really not there.
 
 protected:
-    boolean add_grid(OverlayComp* comp);
-
-    DrawLinkList* _linklist;
-    // DrawLink list
-    GraphicIdTable* _gridtable;
-    // table of all GraphicId's.
-    // maps from id to GraphicId*
-    SessionIdTable* _sessionidtable;
-    // table of all session id's.
-    // maps from session id to SessionId*
-    CompIdTable* _compidtable;
-    // table of all GraphicComp's associated with a GraphicId.
-    // maps from GraphicComp* to GraphicId*
-
-    int _sessionid;
-    // unique session id.
-
-    int _comdraw_port;
-    // port used for comdraw command interpreter
-
+  boolean add_grid(OverlayComp* comp, int& grid, int& sid);
+  
+  DrawLinkList* _linklist;
+  // DrawLink list
+  GraphicIdTable* _gridtable;
+  // table of all GraphicId's.
+  // maps from id to GraphicId*
+  SessionIdTable* _sessionidtable;
+  // table of all session id's.
+  // maps from session id to SessionId*
+  CompIdTable* _compidtable;
+  // table of all GraphicComp's associated with a GraphicId.
+  // maps from GraphicComp* to GraphicId*
+  
+  int _sessionid;
+  // unique session id.
+  
+  int _comdraw_port;
+  // port used for comdraw command interpreter
+  
 #endif /* HAVE_ACE */
 };
 
