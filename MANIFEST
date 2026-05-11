@@ -197,6 +197,8 @@ ivtools/src/ComTerp/randfunc.c
 ivtools/src/ComTerp/randfunc.h
 ivtools/src/ComTerp/scanner.c
 ivtools/src/ComTerp/scanner.h
+ivtools/src/ComTerp/socket.c
+ivtools/src/ComTerp/socket.h
 ivtools/src/ComTerp/statfunc.c
 ivtools/src/ComTerp/statfunc.h
 ivtools/src/ComTerp/strmfunc.c

@@ -287,19 +287,6 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	  for (cb->First(it); !cb->Done(it); cb->Next(it)) {
 	    OverlayComp* comp = (OverlayComp*)cb->GetComp(it);
 	    
-	    AttributeList* al = comp->GetAttributeList();
-	    if (al!=NULL) {
-	      
-	      static int grid_sym = symbol_add("grid");
-	      AttributeValue *gridv = al->find(grid_sym);
-	      if (gridv!=NULL) grid = gridv->uint_val();
-	      
-	      static int sid_sym = symbol_add("sid");
-	      AttributeValue *sidv = al->find(sid_sym);
-	      if (sidv!=NULL) sid = sidv->uint_val();
-	      
-	    }
-	    
 	    original = add_grid(comp, grid, sid);
 	    
 	    if (comp && (original || linklist()->Number()>1)) {
@@ -308,7 +295,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 		creator->Create(Combine(comp->GetClassId(), SCRIPT_VIEW));
 	      if (scripter) {
 		scripter->SetSubject(comp);
-		if (comp->IsA(RASTER_COMP))
+		if (comp->IsA(OVRASTER_COMP))
 		  ((RasterScript*)scripter)->SetCommandSerialize(true);
 		if (scripted) 
 		  sbuf << ';';
@@ -375,6 +362,8 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 
 void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 
+  if (cmdstring==NULL || *cmdstring=='\0') return;
+
   Iterator i;
   _linklist->First(i);
   while (!_linklist->Done(i)) {
@@ -395,6 +384,8 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 }
 
 void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
+
+  if (cmdstring==NULL || *cmdstring=='\0') return;
 
   if (link) {
     int fd = link->handle();
@@ -858,12 +849,18 @@ boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
     boolean original = false;
     static int grid_sym = symbol_add("grid");
     static int sid_sym = symbol_add("sid");
-    AttributeList* al = comp->GetAttributeList();
-    AttributeValue* gridv = al->find(grid_sym);
-    AttributeValue* sidv = al->find(sid_sym);
-    grid = gridv ? gridv->uint_val() : 0;
-    sid = sidv ? sidv->uint_val() : 0;
 
+    AttributeList* al = comp->GetAttributeList();
+    if (al!=NULL) {
+      
+      AttributeValue *gridv = al->find(grid_sym);
+      if (gridv!=NULL) grid = gridv->uint_val();
+      
+      AttributeValue *sidv = al->find(sid_sym);
+      if (sidv!=NULL) sid = sidv->uint_val();
+      
+    }
+    
     /* unique id already assigned */
     if (grid != 0 && sid !=0) {
 	GraphicId* graphicid = new GraphicId();
@@ -879,10 +876,10 @@ boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
 	GraphicId* graphicid = new GraphicId(sessionid());
 	graphicid->grcomp(comp);
 	graphicid->selector(((DrawServ*)unidraw)->sessionid());
-	AttributeValue* gridv = new AttributeValue(graphicid->id(), AttributeValue::UIntType);
+	AttributeValue* gridv = new AttributeValue(grid=graphicid->id(), AttributeValue::UIntType);
 	gridv->state(AttributeValue::HexState);
 	al->add_attr(grid_sym, gridv);
-	AttributeValue* sidv = new AttributeValue(graphicid->selector(), AttributeValue::UIntType);
+	AttributeValue* sidv = new AttributeValue(sid=graphicid->selector(), AttributeValue::UIntType);
 	sidv->state(AttributeValue::HexState);
 	al->add_attr(sid_sym, sidv);
 	original = true;

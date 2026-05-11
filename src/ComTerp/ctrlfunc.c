@@ -32,6 +32,7 @@
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/socket.h>
 #include <Attribute/attrlist.h>
 
 #include <wordexp.h>
@@ -269,41 +270,6 @@ void RemoteFunc::execute() {
 }
 
 /*****************************************************************************/
-#ifdef HAVE_ACE
-int SocketObj::_symid= -1;
-
-SocketObj::SocketObj(const char* host, unsigned short port) {
-  _socket = nil; 
-  _conn = nil; 
-  _host = strnew(host); 
-  _port = port; 
-}
-
-SocketObj::~SocketObj() { 
-  if( _socket ) {
-    _socket->close();
-    delete _socket;
-    delete _conn; 
-    delete _host; }
-}
-
-int SocketObj::connect() { 
-  ACE_INET_Addr addr(_port, _host); 
-  _socket = new ACE_SOCK_STREAM;
-  _conn = new ACE_SOCK_Connector; 
-  return _conn->connect(*_socket, addr); 
-}
-
-int SocketObj::close() { 
-  return _socket->close(); 
-}
-
-int SocketObj::get_handle() { 
-  return _socket->get_handle(); 
-}
-#endif
-
-/*****************************************************************************/
 
 SocketFunc::SocketFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -476,6 +442,16 @@ void NilFunc::execute() {
       cerr << "unknown command \"" << symbol_pntr(comm_symid)
 	<< "\" returned nil\n";
     push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
+BlankFunc::BlankFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void BlankFunc::execute() {
+    reset_stack();
+    push_stack(ComValue::blankval());
 }
 
 /*****************************************************************************/

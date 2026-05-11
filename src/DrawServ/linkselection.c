@@ -157,6 +157,7 @@ void LinkSelection::Reserve() {
 	if (grid->selected()==NotSelected) {
 	  
 	  /* make a request to select this in the future */
+	  /* mostly as a way of confirming it being put into RemotelySelected */
 	  grid->selected(WaitingToBeSelected);
 	  ((DrawServ*)unidraw)->grid_message(grid);
 	} 

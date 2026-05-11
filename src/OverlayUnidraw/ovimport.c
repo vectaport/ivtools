@@ -1050,7 +1050,7 @@ OvImportCmd::~OvImportCmd() {
 void OvImportCmd::instream(istream* in) { inptr_ = in; }
 
 void OvImportCmd::pathname(const char* path, boolean popen) {
-  path_ = path ? strdup(path) : nil; 
+  path_ = path!=NULL ? strdup(path) : nil; 
   popen_ = popen;
 }
 
@@ -1112,6 +1112,10 @@ void OvImportCmd::Execute () {
 	    MakeSelection((OverlaySelection*)GetEditor()->GetSelection());
 	((OverlayEditor*)GetEditor())->DoAutoNewFrame();
 	if (comp_->IsA(GRAPHIC_COMP)) {
+
+	    if (comp_->IsA(OVRASTER_COMP))
+  	        ((RasterOvComp*)comp_)->SetPathName(path_);
+	    
 	    PasteCmd* paste_cmd = new PasteCmd(GetEditor(), new Clipboard((GraphicComp*)comp_));
 	    unidraw->ExecuteCmd(paste_cmd);
 	} else 
@@ -1416,7 +1420,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
 	}
       }
     }
-    pathname(nil, popen_);
+    // pathname(nil, popen_);
 
     return comp;
 #endif

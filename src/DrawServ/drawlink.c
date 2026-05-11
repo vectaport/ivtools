@@ -235,3 +235,7 @@ void DrawLink::dump_incomingsidtable(FILE* fptr) {
     it.next();
   }
 }
+
+void DrawLink::start_timer(int seconds) {
+  ackhandler()->start_timer(seconds);
+}

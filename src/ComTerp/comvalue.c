@@ -30,6 +30,7 @@
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/iofunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>

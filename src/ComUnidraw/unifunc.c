@@ -316,6 +316,12 @@ void ImportFunc::execute() {
     static int next_symid = symbol_add("next");
     boolean next_flag = stack_key(next_symid).is_true();
 
+    // acknowledge back quickly with a blank if over socket
+    if (comterp() && comterp()->handler() && comterp()->handler()->wrfptr()) {
+      fputs("blank\n", comterp()->handler()->wrfptr());
+      fflush(comterp()->handler()->wrfptr());
+    }
+    
     AttributeList* al = stack_keys();
     Resource::ref(al);
     

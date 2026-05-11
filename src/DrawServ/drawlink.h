@@ -110,6 +110,9 @@ public:
     AckBackHandler* ackhandler() { return _ackhandler; }
     // get AckBackHandler associated with incoming connection
 
+    void start_timer(int seconds = 5);
+    // Start timer waiting for ackback
+
     IncomingSidTable* incomingsidtable() { return _incomingsidtable; }
     // return pointer to table mapping incoming sessionid's to locally unique sessionid's
 

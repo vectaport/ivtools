@@ -55,7 +55,7 @@ AckBackHandler::AckBackHandler ()
 }
 
 AckBackHandler::~AckBackHandler() {
-  fprintf(stderr, "AckBackHandler deleted\n");
+  // fprintf(stderr, "AckBackHandler deleted\n");
 }
 
 // Called when input becomes available on fd.
@@ -70,12 +70,14 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
       if (ch != '\n')
 	inv.push_back(ch);
     inv.push_back('\0');
+    
     if (strcmp((char*)&inv[0], "ackback(cycle)\n")==0) {
       char buffer[BUFSIZ];
       snprintf(buffer, BUFSIZ, "%s:%d", drawlink()->hostname(), drawlink()->portnum());
       GAcknowledgeDialog::map(DrawKit::Instance()->GetEditor()->GetWindow(), "Redundant connection rejected", buffer, "Redundant connection rejected");
       _eof_expected = true;
     }
+    
     if (status == 0) {
       if (!_eof_expected) {
 	char buffer[BUFSIZ];
@@ -90,6 +92,13 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
     } else if (errno != EAGAIN)
       warn(nil);
     else {
+      
+      if (strcmp((char*)&inv[0], "blank\n")==0) {
+	if(_timer_started && !ComterpHandler::reactor_singleton()->cancel_timer(_timerid, nil))
+	  cerr << "unable to cancel timerid " << _timerid << "\n";
+	_timer_started = false;
+      }
+      
       cerr << "AckBack:  [" << (char*)&inv[0] << "]\n";
       _ackback_arrived = true;
     }
@@ -100,10 +109,10 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
   }
 }
 
-void AckBackHandler::start_timer() {
+void AckBackHandler::start_timer(int seconds) {
   if (!_timer_started) {
     _timerid = ComterpHandler::reactor_singleton()->schedule_timer
-      (this, (const void *) this, ACE_Time_Value (10), ACE_Time_Value (10));
+      (this, (const void *) this, ACE_Time_Value (seconds), ACE_Time_Value (seconds));
     _timer_started = true;
     _ackback_arrived = false;
   }
@@ -142,7 +151,7 @@ void AckBackHandler::set_handle (ACE_HANDLE handle) {
 
 int  AckBackHandler::handle_close (ACE_HANDLE handle, ACE_Reactor_Mask mask)
 {
-  fprintf(stderr, "AckBackHandler::handle_close called with mask 0x%lx\n", mask);
+  //fprintf(stderr, "AckBackHandler::handle_close called with mask 0x%lx\n", mask);
   if(_timer_started && !ComterpHandler::reactor_singleton()->cancel_timer(_timerid, nil))
     cerr << "unable to cancel timerid " << _timerid << "\n";
   else

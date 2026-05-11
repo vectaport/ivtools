@@ -328,13 +328,15 @@ Evaluate single expression then exit.
 
  funcobj=func(body :echo) -- encapsulate a body of commands into an executable object
 
- val=shell(cmdstr) -- evaluate command in shell
+ status=shell(cmdstr) -- evaluate command in shell
 
  usleep(msec) -- sleep microseconds
 
 .SH UTILITY COMMANDS
 
  nil([...]) -- accept any arguments and return nil
+
+ blank([...]) -- accept any arguments and return blank
 
  true([...]) -- accept any arguments and return true
 

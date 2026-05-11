@@ -245,7 +245,7 @@ boolean Raster::init_shared_memory() {
         shmctl(shminfo.shmid, IPC_RMID, 0);
     }
 
-#if 1
+#if 0
     static boolean announce;
     if (!announce) {
         if (shared_memory) {

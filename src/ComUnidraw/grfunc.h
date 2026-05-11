@@ -131,7 +131,7 @@ public:
     CreateRasterFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "compview=%s(x0,y0,x1,y1) -- create an empty raster"; }
+	return "compview=%s([x0,y0,x1,y1] :rgb w,h,triplet[,triplet[,...]]) -- create a raster"; }
     RasterOvComp* create_from_rgb(ComValue& rgbv, AttributeList* al);
 };
 
@@ -349,7 +349,7 @@ public:
     PanRightSmallFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s() - small pan right"; }
+	return "%s() -- small pan right"; }
 };
 
 //: command to pan viewer upward a large fixed amount in comdraw.
