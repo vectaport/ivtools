@@ -109,7 +109,12 @@ int DrawLink::open() {
     out << "drawlink(\"";
     char buffer[HOST_NAME_MAX];
     gethostname(buffer, HOST_NAME_MAX);
+    
     unsigned int sid = ((DrawServ*)unidraw)->sessionid();
+    uuid_t& suuid = ((DrawServ*)unidraw)->sessionuuid();
+    uuid_string_t suuid_str;
+    uuid_unparse(suuid, suuid_str);
+    
     void* ptr = nil;
     ((DrawServ*)unidraw)->sessionidtable()->find(ptr, sid);
     SessionId* sessionid = (SessionId*)ptr;
@@ -119,6 +124,7 @@ int DrawLink::open() {
     out << " :rid " << _local_linkid;
     out << " :lid " << _remote_linkid;
     out << " :sid 0x" << std::hex << sid << std::dec;
+    out << " :suuid \"" << suuid_str << "\"";
     if (sessionid) {
       out << " :pid " << sessionid->pid();
       out << " :user \"" << sessionid->username() << "\"";

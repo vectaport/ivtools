@@ -52,6 +52,7 @@ AckBackHandler::AckBackHandler ()
   _timer_started = false;
   _ackback_arrived = false;
   _eof_expected = false;
+  _period_count = 0;
 }
 
 AckBackHandler::~AckBackHandler() {
@@ -98,8 +99,17 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
 	  cerr << "unable to cancel timerid " << _timerid << "\n";
 	_timer_started = false;
       }
-      
-      cerr << "AckBack:  [" << (char*)&inv[0] << "]\n";
+
+      if (*(char*)&inv[0]!='\0') {
+	cerr << "AckBack:  [";
+	for(int i=0; i<_period_count; i++)  cerr << '.';
+	_period_count = 0;
+        cerr << (char*)&inv[0] << "]\n";
+      } else {
+	_period_count = 1;
+      }
+	
+	
       _ackback_arrived = true;
     }
     return 0;

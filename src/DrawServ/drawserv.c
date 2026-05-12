@@ -70,6 +70,7 @@
 #include <unistd.h>
 #include <iostream>
 #include <stdio.h>
+#include <uuid/uuid.h>
 
 using std::cout;
 using std::cerr;
@@ -107,6 +108,7 @@ void DrawServ::Init() {
   _compidtable = new CompIdTable(1024);
 
   _sessionid = unique_sessionid();
+  uuid_generate(_sessionuuid);
 #if 0
   _sessionid = 0xfff00000;  // for testing purposes
 #endif
@@ -138,8 +140,6 @@ DrawServ::~DrawServ ()
   delete _compidtable;
 #endif /* HAVE_ACE */
 }
-
-#ifdef HAVE_ACE
 
 DrawLink* DrawServ::linkup(const char* hostname, int portnum, 
 		     int state, int local_id, int remote_id,
@@ -375,27 +375,32 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 	fputs(cmdstring, fp);
 	fputs("\n", fp);
 	fclose(fp);
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+        fprintf(stderr, "[%ld.%06ld] >%d: %s\n", tv.tv_sec%100, tv.tv_usec, link->portnum(), cmdstring);
 	link->ackhandler()->start_timer();
       }
     }
     _linklist->Next(i);
   }
-
+  
 }
 
 void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
 
   if (cmdstring==NULL || *cmdstring=='\0') return;
-
+  
   if (link) {
     int fd = link->handle();
     if (fd>=0) {
-	FILE* fp=fdopen(dup(fd), "w");
+      FILE* fp=fdopen(dup(fd), "w");
       fputs(cmdstring, fp);
       fputs("\n", fp);
       fclose(fp);
       link->ackhandler()->start_timer();
-      fprintf(stdout, "<%d>: %s\n", link->portnum(), cmdstring);
+      struct timeval tv;
+      gettimeofday(&tv, NULL);
+      fprintf(stderr, "[%ld.%06ld] >%d: %s\n", tv.tv_sec%100, tv.tv_usec, link->portnum(), cmdstring);
     }
   }
 }
@@ -636,26 +641,17 @@ void DrawServ::grid_message_callback(DrawLink* link, unsigned int id, unsigned i
 void DrawServ::print_gridtable() {
   GraphicIdTable* table = gridtable();
   GraphicIdTable_Iterator it(*table);
-  #if 0
-  printf("id          &grid       &grcomp     selector    selected\n");
-  printf("----------  ----------  ----------  ----------  --------\n");
-  #else
-  printf("id          comptype              selector    selected\n");
-  printf("----------  --------------------  ----------  --------\n");
-  #endif
+  printf("id          uuid8    comptype              selector    selected\n");
+  printf("----------  -------- --------------------  ----------  --------\n");
   while(it.more()) {
     GraphicId* grid = (GraphicId*)it.cur_value();
-    #if 0
-    printf("0x%08x  0x%08lx  0x%08lx  0x%08lx  %s\n", 
-	   (unsigned int)it.cur_key(), (unsigned long)grid, (unsigned long)grid->grcomp(),
-	   (unsigned long)grid->selector(), LinkSelection::selected_string(grid->selected()));
-    #else
     OverlayComp* comp = (OverlayComp*)grid->grcomp();
     const char* comptype = comp ? comp->GetClassName() : "nil";
-    printf("0x%08x  %-20s  0x%08x  %s\n",
- 	   (unsigned int)it.cur_key(), comptype,
+    uuid_string_t uuidstr;
+    uuid_unparse(grid->uuid(), uuidstr);
+    printf("0x%08x  %.8s %-20s  0x%08x  %s\n",
+ 	   (unsigned int)it.cur_key(), uuidstr, comptype,
  	   (unsigned int)grid->selector(), LinkSelection::selected_string(grid->selected()));
-    #endif
     it.next();
   }
 }
@@ -795,7 +791,7 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 }
     
 void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
-
+  
     boolean original = false;
     int grid = 0;
     int sid = 0;
@@ -814,7 +810,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 	    for (bgfcomp->Last(it); !bgfcomp->Done(it); bgfcomp->Prev(it)) {
 		OverlayComp* comp = (OverlayComp*)bgfcomp->GetComp(it);
 		original = add_grid(comp, grid, sid);
-
+		
 		if (comp && (original || linklist()->Number()>1)) {
 		    Creator* creator = unidraw->GetCatalog()->GetCreator();
 		    OverlayScript* scripter = (OverlayScript*)
@@ -822,7 +818,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 		    if (scripter) {
 			scripter->SetSubject(comp);
 			if (comp->IsA(OVRASTER_COMP))
-			  ((RasterScript*)scripter)->SetCommandSerialize(true);
+			    ((RasterScript*)scripter)->SetCommandSerialize(true);
 			if (scripted) 
 			    sbuf << ';';
 			else 
@@ -836,7 +832,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
 	    }
 	}
     }
-
+    
     /* then send to new foreground connection pasted in front and moved to back */
     if (original || linklist()->Number()>1) {
 	sbuf << "\n";
@@ -844,21 +840,28 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
     }
     
 }
-    
+
 boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
     boolean original = false;
     static int grid_sym = symbol_add("grid");
     static int sid_sym = symbol_add("sid");
-
+    static int uuid_sym = symbol_add("uuid");
+    uuid_t uuid;
+    
     AttributeList* al = comp->GetAttributeList();
     if (al!=NULL) {
-      
-      AttributeValue *gridv = al->find(grid_sym);
-      if (gridv!=NULL) grid = gridv->uint_val();
-      
-      AttributeValue *sidv = al->find(sid_sym);
-      if (sidv!=NULL) sid = sidv->uint_val();
-      
+	
+	AttributeValue *gridv = al->find(grid_sym);
+	if (gridv!=NULL) grid = gridv->uint_val();
+	
+	AttributeValue *sidv = al->find(sid_sym);
+	if (sidv!=NULL) sid = sidv->uint_val();
+	
+	AttributeValue *uuidv = al->find(uuid_sym);
+	if (uuidv!=NULL) {
+	  uuid_parse(uuidv->string_ptr(), uuid);
+	}
+	
     }
     
     /* unique id already assigned */
@@ -866,6 +869,7 @@ boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
 	GraphicId* graphicid = new GraphicId();
 	graphicid->grcomp(comp);
 	graphicid->id(grid);
+	graphicid->uuid(uuid);
 	graphicid->selector(sid);
 	graphicid->selected(LinkSelection::NotSelected);
     } 
@@ -873,31 +877,37 @@ boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
     /* generate unique id and add as attribute */
     /* also mark with selector id */
     else {
+	original = true;
 	GraphicId* graphicid = new GraphicId(sessionid());
 	graphicid->grcomp(comp);
 	graphicid->selector(((DrawServ*)unidraw)->sessionid());
+	
 	AttributeValue* gridv = new AttributeValue(grid=graphicid->id(), AttributeValue::UIntType);
 	gridv->state(AttributeValue::HexState);
 	al->add_attr(grid_sym, gridv);
+	
 	AttributeValue* sidv = new AttributeValue(sid=graphicid->selector(), AttributeValue::UIntType);
 	sidv->state(AttributeValue::HexState);
 	al->add_attr(sid_sym, sidv);
-	original = true;
+
+	uuid_string_t uuid_str;
+	uuid_unparse(graphicid->uuid(), uuid_str);
+	AttributeValue* uuidv = new AttributeValue((const char*)uuid_str);
+	al->add_attr(uuid_sym, uuidv);
 	
      	Editor* ed = DrawKit::Instance()->GetEditor();
 	OverlaySelection* sel = (OverlaySelection*)ed->GetViewer()->GetSelection();
 	Iterator it;
 	boolean is_selected = false;
 	for (sel->First(it); !sel->Done(it); sel->Next(it)) {
-	  OverlayView* view = (OverlayView*)sel->GetView(it);
-	  if (view && view->GetOverlayComp() == comp) {
-	    is_selected = true;
-	    break;
-	  }
+	    OverlayView* view = (OverlayView*)sel->GetView(it);
+	    if (view && view->GetOverlayComp() == comp) {
+		is_selected = true;
+		break;
+	    }
 	}
-	graphicid->selected(is_selected ? LinkSelection::LocallySelected : LinkSelection::NotSelected);
-    }
+	graphicid->selected(is_selected ? 
+			    (graphicid->selector() == sessionid() ? LinkSelection::LocallySelected : LinkSelection::WaitingToBeSelected) : 
+			    LinkSelection::NotSelected);    }
     return original;
 }
-
-#endif /* HAVE_ACE */
