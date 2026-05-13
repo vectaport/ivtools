@@ -30,6 +30,7 @@
 #include <OverlayUnidraw/ovunidraw.h>
 #include <stdio.h>
 #include <strstream>
+#include <uuid/uuid.h>
 
 #include <OS/table.h>
 declareTable(GraphicIdTable,int,void*)
@@ -133,6 +134,9 @@ public:
   unsigned int sessionid() { return _sessionid; }
   // current unique session id.
 
+  uuid_t& sessionuuid() { return _sessionuuid; }
+  // current unique session id.
+
   void remove_sids(DrawLink*);
   // remove all SessionId's associated with this DrawLink
 
@@ -202,6 +206,8 @@ protected:
   
   int _sessionid;
   // unique session id.
+  uuid_t _sessionuuid;
+  // universally unique session id.
   
   int _comdraw_port;
   // port used for comdraw command interpreter

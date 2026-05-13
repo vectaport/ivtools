@@ -76,6 +76,7 @@ protected:
   long _timerid;
   ACE_HANDLE _handle;
   int _eof_expected;
+  int _period_count;
 
 };
 

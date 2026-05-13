@@ -28,6 +28,7 @@
 #define grid_h
 
 #include <Unidraw/globals.h>
+#include <uuid/uuid.h>
 
 class DrawLink;
 class GraphicComp;
@@ -36,7 +37,7 @@ class GraphicIdList;
 //: object to encapsulate unique graphic id
 class GraphicId {
 public:
-  GraphicId(unsigned int sessionid=0);
+  GraphicId(unsigned int sessionid=0, uuid_t sessionuuid=nil);
   virtual ~GraphicId();
   
   unsigned int id() { return _id|_sid; }
@@ -45,12 +46,24 @@ public:
   void id(unsigned int id);
   // set associated unique composite integer id
 
+  const uuid_t& uuid() { return _uuid; }
+  // get associated universally unique composite integer id
+
+  void uuid(uuid_t uuid);
+  // set associated universally unique composite integer id
+
   unsigned int grid() { return _id; }
   // return graphic id portion of composite id
   // unique only to this process
 
   unsigned int sessionid() { return _sid; }
   // return session id portion of composite id
+
+  const uuid_t& sessionuuid() { return _suuid; }
+  // get associated universally unique session
+
+  void sessionuuid(uuid_t uuid) { uuid_copy(_suuid, uuid); }
+  // set associated universally unique session id
 
   virtual int is_list() { return 0; }
   // return true if can be cast to GraphicIds
@@ -79,8 +92,13 @@ public:
 protected:
   unsigned int _id;
   unsigned int _sid;
+  
+  uuid_t _uuid;
+  uuid_t  _suuid;
+  
   unsigned int _selector;
   int _selected;
+  
   GraphicComp* _comp;
 
 };

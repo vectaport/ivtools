@@ -188,10 +188,25 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 
     if (!ComterpHandler::logger_mode() && !log_only()) {
       comterp_->load_string(inbuf);
+
+      // this hides the logging of a ready command, interesting
+      #if 0
       if (fd>0 && !comterp_->muted() && strncmp(inbuf, "ready", 5)!=0)
 	cerr << "(" << fd << "):  " << inbuf << "\n";
+      #else
+      if (fd>0 && !comterp_->muted() ) { // && strncmp(inbuf, "ready", 5)!=0)
+	  struct timeval tv;
+	  ::gettimeofday(&tv, NULL);
+	  cerr << "[" << tv.tv_sec%100 << "." << tv.tv_usec << "] <" << fd << ":  " << inbuf << "\n";
+      }
+      #endif
+
+      
       comterp_->_fd = fd;
       comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
+
+
+
 
       int  status = comterp_->ComTerp::run(false /* !once */, comterp_->force_nested() /* !nested */);
       if(comterp_->force_nested()) ComValue retval(comterp_->pop_stack(false));

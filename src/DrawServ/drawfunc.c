@@ -162,10 +162,8 @@ void DrawLinkFunc::execute() {
     if (link && closev.is_true()) {
       ((DrawServ*)unidraw)->linkdown(link);
       link = nil;
-    }
-    
-    else if (link) {
-      link->dump(stderr);
+      push_stack(ComValue::nullval());
+      return;
     }
     
   }
@@ -174,7 +172,7 @@ void DrawLinkFunc::execute() {
   if (statev.int_val()==DrawLink::two_way) {
     DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
     if (handler) {
-	DrawLink* link = (DrawLink*)handler->drawlink();
+	if (link==NULL) link  = (DrawLink*)handler->drawlink();
 	if (link != NULL) {
 	    link->state(DrawLink::two_way);
 	    
