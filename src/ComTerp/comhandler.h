@@ -117,6 +117,12 @@ public:
   void log_only(int flag ) { _log_only = flag; }
   // set flag that indicates whether just this handler is in logging mode 
 
+  int alt_fd() { return _alt_fd; }
+  // return number used to log command lines sent or received
+
+  void alt_fd(int num ) { _alt_fd = num; }
+  // set number used to log command lines sent or received (default is fd)
+
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
@@ -151,6 +157,9 @@ protected:
 
   int _log_only;
   // put just this handler into log mode
+
+  int _alt_fd;
+  // alternate fd (or portnum) to use when logging command lines
 };
 
 //: Specialize a ComterpAcceptor.

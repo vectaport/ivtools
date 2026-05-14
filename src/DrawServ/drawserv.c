@@ -76,15 +76,22 @@ using std::cout;
 using std::cerr;
 
 #ifdef HAVE_ACE
-implementTable(GraphicIdTable,int,void*)
-implementTable(SessionIdTable,int,void*)
+implementTable(GraphicIdTable,uint32_t,void*)
+implementTable(SessionIdTable,uint32_t,void*)
 implementTable(CompIdTable,void*,void*)
-
-unsigned int DrawServ::GraphicIdMask = 0x000fffff;
-unsigned int DrawServ::SessionIdMask = 0xfff00000;
 
 static int seed=0;
 #endif /* HAVE_ACE */
+
+// utility function for grabbing key from uuid_t.
+// Only needed until tables can be keyed on all 64 bits of the UUID.
+// You win a lollipop if UUID8 fails you in the meantime.
+extern uint32_t uuid_key(const uuid_t u)
+{
+    uint32_t v;
+    memcpy(&v, u, sizeof(v));
+    return ntohl(v);
+}
 
 /*****************************************************************************/
 
@@ -107,18 +114,14 @@ void DrawServ::Init() {
   _sessionidtable = new SessionIdTable(256);
   _compidtable = new CompIdTable(1024);
 
-  _sessionid = unique_sessionid();
-  uuid_generate(_sessionuuid);
-#if 0
-  _sessionid = 0xfff00000;  // for testing purposes
-#endif
+  create_unique_sessionid();
   char hostbuf[HOST_NAME_MAX];
   gethostname(hostbuf, HOST_NAME_MAX);
   char* username = getlogin();
   int pid = getpid();
   int hostid = gethostid();
-  SessionId* sid = new SessionId(_sessionid, _sessionid, pid, username, hostbuf, hostid);
-  _sessionidtable->insert(_sessionid, sid);
+  SessionId* sid = new SessionId(_sessionid, pid, username, hostbuf, hostid);
+  _sessionidtable->insert(uuid_key(_sessionid), sid);
 
   _comdraw_port = atoi(unidraw->GetCatalog()->GetAttribute("comdraw"));
 #endif /* HAVE_ACE */
@@ -142,34 +145,41 @@ DrawServ::~DrawServ ()
 }
 
 DrawLink* DrawServ::linkup(const char* hostname, int portnum, 
-		     int state, int local_id, int remote_id,
-		     ComTerp* comterp) {
+		     int state, uuid_t link_id,  ComTerp* comterp) {
+
+  if (comterp!=NULL) comterp->handler()->alt_fd(portnum);
+  
   if (state == DrawLink::new_link || state == DrawLink::one_way) {
+    
     DrawLink* link = new DrawLink(hostname, portnum, state);
-    link->remote_linkid(remote_id);
     if (state==DrawLink::one_way && comterp && comterp->handler()) {
       ((DrawServHandler*)comterp->handler())->drawlink(link);
       link->comhandler((DrawServHandler*)comterp->handler());
     }
-    if (link->open()==0 && link->ok()) {
+    if (state == DrawLink::new_link) {
+      uuid_generate(link->linkid());
+    } else {
+      uuid_copy(link->linkid(), link_id);
+    }
+    if (link->open(link->linkid())==0 && link->ok()) {  //
       _linklist->add_drawlink(link);
       return link;
     } else {
       delete link;
       return nil;
     }
-  } else {
+  } else if (state == DrawLink::two_way) {
 
     // search for existing link with matching local_id
     Iterator i;
     _linklist->First(i);
-    while(!_linklist->Done(i) && _linklist->GetDrawLink(i)->local_linkid()!=local_id)
+    while(!_linklist->Done(i) && uuid_compare(_linklist->GetDrawLink(i)->linkid(), link_id)!=0)
       _linklist->Next(i);
 
     /* if found, finalize linkup */
     if (!_linklist->Done(i)) {
       DrawLink* curlink = _linklist->GetDrawLink(i);
-      curlink->remote_linkid(remote_id);
+      curlink->linkid(link_id);
       curlink->althostname(hostname);
       curlink->state(DrawLink::two_way);
       if (comterp && comterp->handler()) {
@@ -178,14 +188,13 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
       }
       fprintf(stderr, "link up with %s(%s) via port %d\n", 
 	      curlink->hostname(), curlink->althostname(), portnum);
-      fprintf(stderr, "local id %d, remote id %d\n", curlink->local_linkid(), 
-	      curlink->remote_linkid());
+      fprintf(stderr, "link id %.8s\n", curlink->linkid_str());
 
       /* register all sessionid's with other DrawServ */
       sessionid_register(curlink);
       SendCmdString(curlink, "sid(:all)");
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "drawlink(:lid %d :rid %d :state 2)\n", curlink->remote_linkid(), curlink->local_linkid());
+      snprintf(buf, BUFSIZ, "drawlink(:linkid %.8s :state 2)\n", curlink->linkid_str());
       SendCmdString(curlink, buf);
 
       return curlink;
@@ -193,6 +202,9 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
       fprintf(stderr, "confirmation of two-way link\n");
       return nil;
     }
+  } else {
+    fprintf(stderr, "unexpected state of %d, nothing done\n", state);
+    abort();
   }
 }
 
@@ -205,23 +217,6 @@ int DrawServ::linkdown(DrawLink* link) {
     return 0;
   } else
     return -1;
-}
-
-DrawLink* DrawServ::linkget(int local_id, int remote_id) {
-  DrawLink* link = nil;
-  if (_linklist) {
-    Iterator(i);
-    _linklist->First(i);
-    while (!_linklist->Done(i) && !link) {
-      DrawLink* l = _linklist->GetDrawLink(i);
-      if (l->local_linkid()==local_id && remote_id==-1 ||
-	  local_id==-1 && l->remote_linkid()==remote_id ||
-	  l->local_linkid()==local_id && l->remote_linkid()==remote_id)
-	link = l;
-      _linklist->Next(i);
-    }
-  }
-  return link;
 }
 
 DrawLink* DrawServ::linkget(const char* hostname, int portnum) {
@@ -239,31 +234,34 @@ DrawLink* DrawServ::linkget(const char* hostname, int portnum) {
   return link;
 }
 
-DrawLink* DrawServ::linkget(unsigned int sessionid) {
+DrawLink* DrawServ::linkget(uuid_t sessionid) {
   void* ptr = nil;
-  if (sessionid>0) sessionidtable()->find(ptr, sessionid);
+  sessionidtable()->find(ptr, uuid_key(sessionid));
   return ptr ? ((SessionId*)ptr)->drawlink() : nil;
 }
 
 void DrawServ::linkdump(FILE* fptr) {
-  fprintf(fptr, "Host                            Alt.                            Port    LID  RID  State\n");
-  fprintf(fptr, "------------------------------  ------------------------------  ------  ---  ---  -----\n");
+  fprintf(fptr, "Host                            Alt.                            Port    LID       State\n");
+  fprintf(fptr, "------------------------------  ------------------------------  ------  --------  -----\n");
   if (_linklist) {
     Iterator i;
     _linklist->First(i);
     while(!_linklist->Done(i)) {
       DrawLink* link = _linklist->GetDrawLink(i);
-      fprintf(fptr, "%-30.30s  %-30.30s  %-6d  %-3d  %-3d  %-3d\n", 
+      fprintf(fptr, "%-30.30s  %-30.30s  %-6d  %.8s  %-3d\n", 
 	      link->hostname(), link->althostname(), link->portnum(),
-	      link->local_linkid(), link->remote_linkid(), link->state());
+	      link->linkid_str(), link->state());
       _linklist->Next(i);
     }
   }
 }
 
 void DrawServ::ExecuteCmd(Command* cmd) {
-  int sid = 0;
-  int grid = 0;
+  uuid_t sid;
+  uuid_t grid;
+  uuid_clear(sid);
+  uuid_clear(grid);
+  
   boolean original = false;
   
   if(!_linklist || _linklist->Number()==0) 
@@ -377,7 +375,7 @@ void DrawServ::DistributeCmdString(const char* cmdstring, DrawLink* orglink) {
 	fclose(fp);
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-        fprintf(stderr, "[%ld.%06ld] >%d: %s\n", tv.tv_sec%100, tv.tv_usec, link->portnum(), cmdstring);
+        fprintf(stderr, "[%ld.%06ld] >%d: %s\n", tv.tv_sec%100, (long)tv.tv_usec, (int)link->portnum(), cmdstring);
 	link->ackhandler()->start_timer();
       }
     }
@@ -400,7 +398,7 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
       link->ackhandler()->start_timer();
       struct timeval tv;
       gettimeofday(&tv, NULL);
-      fprintf(stderr, "[%ld.%06ld] >%d: %s\n", tv.tv_sec%100, tv.tv_usec, link->portnum(), cmdstring);
+      fprintf(stderr, "[%ld.%06ld] >%d: %s\n", tv.tv_sec%100, (long)tv.tv_usec, link->portnum(), cmdstring);
     }
   }
 }
@@ -414,9 +412,10 @@ void DrawServ::sessionid_register(DrawLink* link) {
       SessionId* sessionid = (SessionId*)it.cur_value();
       if (sessionid && sessionid->drawlink() != link) {
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "sid(0x%08x 0x%08x :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", 
-		 sessionid->sid(), sessionid->osid(), 
-		 sessionid->pid(), sessionid->username(),
+	uuid_string_t sid_str;
+	uuid_unparse(sessionid->sid(), sid_str);
+	snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", 
+		 sid_str, sessionid->pid(), sessionid->username(),
 		 sessionid->hostname(), sessionid->hostid(), '\0');
 	SendCmdString(link, buf);
       }
@@ -427,88 +426,65 @@ void DrawServ::sessionid_register(DrawLink* link) {
 
 // handle request to register session id
 void DrawServ::sessionid_register_handle
-(DrawLink* link, unsigned int sid, unsigned osid, int pid, 
+(DrawLink* link, uuid_t sid, int pid, 
  const char* username, const char* hostname, int hostid) 
 {
   if (link) {
     SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
-    unsigned int alt_id = sid;
-    if (!DrawServ::test_sessionid(sid)) 
-      alt_id = DrawServ::unique_sessionid();
-    SessionId* session_id = new SessionId(alt_id, osid, pid, username, hostname, hostid, link);
-    sidtable->insert(alt_id, session_id);
-    link->sid_insert(sid, alt_id);
-    if (sid != alt_id) {
-      char buffer[BUFSIZ];
-      snprintf(buffer, BUFSIZ, "sid(0x%08x 0x%08x :remap)%c", sid, alt_id, '\0');
-      SendCmdString(link, buffer);
-    }
+    SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
+    sidtable->insert(uuid_key(sid), session_id);
 
     /* propagate */
-    sessionid_register_propagate(link, alt_id, osid, pid, username,
+    sessionid_register_propagate(link, sid, pid, username,
 				 hostname, hostid);
   }
 }
 
 // propagate request to register session id
 void DrawServ::sessionid_register_propagate
-(DrawLink* link, unsigned int sid, unsigned int osid, int pid, 
+(DrawLink* link, uuid_t sid, int pid, 
  const char* username, const char* hostname, int hostid)
 {
   Iterator it;
   _linklist->First(it);
+
+  uuid_string_t sid_str;
+  uuid_unparse(sid, sid_str);
+  
   while (!_linklist->Done(it)) {
     char buf[BUFSIZ];
     DrawLink* otherlink = _linklist->GetDrawLink(it);
     if (otherlink != link) {
-      snprintf(buf, BUFSIZ, "sid(0x%08x 0x%08x :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", sid, osid, pid, username, hostname, hostid, '\0');
+      snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", sid_str, pid, username, hostname, hostid, '\0');
       SendCmdString(otherlink, buf);
     }
     _linklist->Next(it);
   }
 }
 
-unsigned int DrawServ::unique_grid() {
-  if (!seed) {
-    seed = time(nil) & (time(nil) << 16);
-    srand(seed);
-  }
-  unsigned int retval;
-  do {
-    static int flip=0;
-    while ((retval=rand()&GraphicIdMask)<=1);
-
-  } while (!test_grid(retval));
-  return retval;
+void DrawServ::unique_grid(uuid_t uuid) {
+  uuid_generate(uuid);
 }
 
-int DrawServ::test_grid(unsigned int id) {
+int DrawServ::test_grid(uuid_t id) {
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
   void* ptr = nil;
-  table->find(ptr, id);
+  table->find(ptr, uuid_key(id));
   if (ptr) 
     return 0;
   else
     return 1;
 }
 
-unsigned int DrawServ::unique_sessionid() {
-  if (!seed) {
-    seed = time(nil) & (time(nil) << 16);
-    srand(seed);
-  }
-  int retval;
-  do {
-    while ((retval=rand()&SessionIdMask)==0);
-
-  } while (!test_sessionid(retval));
-  return retval;
+void DrawServ::create_unique_sessionid() {
+  uuid_generate(_sessionid);
+  uuid_unparse(_sessionid, _sessionid_str);
 }
 
-int DrawServ::test_sessionid(unsigned int id) {
+int DrawServ::test_sessionid(uuid_t id) {
   SessionIdTable* table = ((DrawServ*)unidraw)->sessionidtable();
   void* ptr = nil;
-  table->find(ptr, id);
+  table->find(ptr, uuid_key(id));
   if (ptr) 
     return 0;
   else
@@ -519,7 +495,7 @@ void DrawServ::grid_message(GraphicId* grid) {
   char buf[BUFSIZ];
   if (grid->selected()==LinkSelection::LocallySelected ||
       (grid->selector()==sessionid() && grid->selected()==LinkSelection::NotSelected)) {
-    snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :state %d )%c", grid->id(), grid->selector(), 
+    snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d )%c", grid->id(), grid->selectorstr(), 
 	     grid->selected()==LinkSelection::LocallySelected ? 
 	     LinkSelection::RemotelySelected : LinkSelection::NotSelected, '\0');
     DistributeCmdString(buf);
@@ -529,19 +505,19 @@ void DrawServ::grid_message(GraphicId* grid) {
     DrawLink* link = _linklist->find_drawlink(grid);
     
     if (link) {
-      snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :request chgid(0x%08x))%c", grid->id(), 
-	       grid->selector(), sessionid(), '\0');
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\")%c", grid->id(), 
+	       grid->selectorstr(), sessionidstr(), '\0');
       SendCmdString(link, buf);
     }
   }
 }
   
 // handle reserve request from remote DrawLink.
-void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int selector, 
-				   int state, unsigned int newselector)
+void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
+				   int state, uuid_t newselector)
 {
   void* ptr = nil;
-  gridtable()->find(ptr, id);
+  gridtable()->find(ptr, uuid_key(id));
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
@@ -557,7 +533,7 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
 	  grid->selected(LinkSelection::NotSelected);
 	  grid->selector(newselector);
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :grant chgid(0x%08x))%c",
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\")%c",
 		   grid->id(), newselector, sessionid(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request granted\n");
@@ -566,7 +542,7 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
 	  /* else deny it, because it is selected */
 	else {
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :state %d)%c",
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d)%c",
 		   grid->id(), sessionid(), LinkSelection::RemotelySelected, '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
@@ -577,7 +553,7 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
       else {
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :request chgid(0x%08x))%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\")%c",
 		 grid->id(), grid->selector(), newselector, '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
@@ -592,7 +568,7 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
 	grid->selector(selector);
 	grid->selected(state);
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :state %d)%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d)%c",
 		 grid->id(), grid->selector(), grid->selected(), '\0');
 	DistributeCmdString(buf, link);
       } 
@@ -601,7 +577,7 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
       else {
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :request chgid(0x%08x))%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\")%c",
 		 grid->id(), selector, newselector, '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
@@ -610,11 +586,11 @@ void DrawServ::grid_message_handle(DrawLink* link, unsigned int id, unsigned int
 }
 
 // handle callback from remote DrawLink.
-void DrawServ::grid_message_callback(DrawLink* link, unsigned int id, unsigned int selector, 
-				     int state, unsigned int oldselector)
+void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
+				     int state, uuid_t oldselector)
 {
   void* ptr = nil;
-  gridtable()->find(ptr, id);
+  gridtable()->find(ptr, uuid_key(id));
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
@@ -631,7 +607,7 @@ void DrawServ::grid_message_callback(DrawLink* link, unsigned int id, unsigned i
     else {
       fprintf(stderr, "grid:  pass grant request along\n");
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :grant chgid(0x%08x))%c",
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\")%c",
 	       grid->id(), selector, oldselector, '\0');
       SendCmdString(linkget(selector), buf);
     }
@@ -647,11 +623,11 @@ void DrawServ::print_gridtable() {
     GraphicId* grid = (GraphicId*)it.cur_value();
     OverlayComp* comp = (OverlayComp*)grid->grcomp();
     const char* comptype = comp ? comp->GetClassName() : "nil";
-    uuid_string_t uuidstr;
-    uuid_unparse(grid->uuid(), uuidstr);
-    printf("0x%08x  %.8s %-20s  0x%08x  %s\n",
- 	   (unsigned int)it.cur_key(), uuidstr, comptype,
- 	   (unsigned int)grid->selector(), LinkSelection::selected_string(grid->selected()));
+    uuid_string_t idstr;
+    uuid_unparse(grid->id(), idstr);
+    printf("%.8s %-20s  %.8s  %s\n",
+ 	   idstr, comptype,
+ 	   grid->selectorstr(), LinkSelection::selected_string(grid->selected()));
     it.next();
   }
 }
@@ -659,14 +635,14 @@ void DrawServ::print_gridtable() {
 void DrawServ::print_sidtable() {
   SessionIdTable* table = sessionidtable();
   SessionIdTable_Iterator it(*table);
-  printf("sid         osid        &DrawLink   lid   rid   pid     hostid  user              host            \n");
-  printf("----------  ----------  ----------  ----  ----  ------  ------  ----              ----            \n");
+  printf("sid       linkid   pid    hostid user             host            \n");
+  printf("--------  -------- ------ ------ ----             ----            \n");
   while(it.more()) {
     SessionId* sid = (SessionId*)it.cur_value();
     DrawLink* link = sid->drawlink();
-    printf("0x%08x  0x%08x  0x%08lx  %4d  %4d  %6d  %6d  %16s  %16s\n", 
-	   sid->sid(), sid->osid(), (unsigned long)link, 
-	   link ? link->local_linkid() : 9999, link ? link->remote_linkid() : 9999, 
+    
+    printf("%.8s  %.8s %6d %6d %-16s %-16s\n", 
+	   sid->sidstr(), link ? link->linkid_str() : "00000000", 
 	   sid->pid(), sid->hostid(), sid->username(), sid->hostname());
     it.next();
   }
@@ -687,7 +663,7 @@ void DrawServ::remove_sids(DrawLink* link) {
   }
 }
 
-boolean DrawServ::cycletest(unsigned int sid, const char* host,
+boolean DrawServ::cycletest(uuid_t sid, const char* host,
 			    const char* user, int pid) 
 {
   boolean found = false;
@@ -695,7 +671,7 @@ boolean DrawServ::cycletest(unsigned int sid, const char* host,
   SessionIdTable_Iterator it(*table);
   while(it.more() && !found) {
     SessionId* sessionid = (SessionId*)it.cur_value();
-    if (sessionid->osid()==sid) {
+    if (sessionid->sid()==sid) {
       if (strcmp(host, sessionid->hostname())==0 && 
 	  strcmp(user, sessionid->username())==0 &&
 	  pid==sessionid->pid())
@@ -742,8 +718,8 @@ boolean DrawServ::PrintAttributeList(ostream& out, AttributeList* attrlist) {
 void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 
     boolean original = false;
-    int grid = 0;
-    int sid = 0;
+    uuid_t grid; uuid_clear(grid);
+    uuid_t sid; uuid_clear(sid);
 
     // fged->GetSelection()->Clear();
     
@@ -793,8 +769,8 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
   
     boolean original = false;
-    int grid = 0;
-    int sid = 0;
+    uuid_t grid; uuid_clear(grid);
+    uuid_t sid; uuid_clear(sid);
     
     std::ostrstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
@@ -841,7 +817,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
     
 }
 
-boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
+boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {
     boolean original = false;
     static int grid_sym = symbol_add("grid");
     static int sid_sym = symbol_add("sid");
@@ -852,24 +828,23 @@ boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
     if (al!=NULL) {
 	
 	AttributeValue *gridv = al->find(grid_sym);
-	if (gridv!=NULL) grid = gridv->uint_val();
+	if (gridv!=NULL && gridv->is_string()) {
+	  uuid_parse(gridv->string_ptr(), grid);
+	}
 	
 	AttributeValue *sidv = al->find(sid_sym);
-	if (sidv!=NULL) sid = sidv->uint_val();
-	
-	AttributeValue *uuidv = al->find(uuid_sym);
-	if (uuidv!=NULL) {
-	  uuid_parse(uuidv->string_ptr(), uuid);
+	if (sidv!=NULL && sidv->is_string()) {
+	  uuid_parse(sidv->string_ptr(), sid);
 	}
+	
 	
     }
     
     /* unique id already assigned */
-    if (grid != 0 && sid !=0) {
+    if (!uuid_is_null(grid) && !uuid_is_null(sid)) {
 	GraphicId* graphicid = new GraphicId();
 	graphicid->grcomp(comp);
 	graphicid->id(grid);
-	graphicid->uuid(uuid);
 	graphicid->selector(sid);
 	graphicid->selected(LinkSelection::NotSelected);
     } 
@@ -881,20 +856,19 @@ boolean DrawServ::add_grid(OverlayComp* comp, int& grid, int& sid) {
 	GraphicId* graphicid = new GraphicId(sessionid());
 	graphicid->grcomp(comp);
 	graphicid->selector(((DrawServ*)unidraw)->sessionid());
-	
-	AttributeValue* gridv = new AttributeValue(grid=graphicid->id(), AttributeValue::UIntType);
-	gridv->state(AttributeValue::HexState);
+
+	uuid_copy(grid, graphicid->id());
+	uuid_string_t grid_str;
+	uuid_unparse(grid, grid_str);
+	AttributeValue* gridv = new AttributeValue(grid_str);
 	al->add_attr(grid_sym, gridv);
 	
-	AttributeValue* sidv = new AttributeValue(sid=graphicid->selector(), AttributeValue::UIntType);
-	sidv->state(AttributeValue::HexState);
+	uuid_copy(sid, graphicid->selector());
+	uuid_string_t sid_str;
+	uuid_unparse(sid, sid_str);
+	AttributeValue* sidv = new AttributeValue(sid_str);
 	al->add_attr(sid_sym, sidv);
 
-	uuid_string_t uuid_str;
-	uuid_unparse(graphicid->uuid(), uuid_str);
-	AttributeValue* uuidv = new AttributeValue((const char*)uuid_str);
-	al->add_attr(uuid_sym, uuidv);
-	
      	Editor* ed = DrawKit::Instance()->GetEditor();
 	OverlaySelection* sel = (OverlaySelection*)ed->GetViewer()->GetSelection();
 	Iterator it;

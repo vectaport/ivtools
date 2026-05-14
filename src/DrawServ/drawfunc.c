@@ -48,6 +48,7 @@
 
 #define TITLE "DrawLinkFunc"
 
+#if 1
 /*****************************************************************************/
 
 DrawLinkFunc::DrawLinkFunc(ComTerp* comterp, DrawEditor* ed) : UnidrawFunc(comterp, ed) {
@@ -71,10 +72,8 @@ void DrawLinkFunc::execute() {
   static int state_sym = symbol_add("state");
   ComValue default_state(0);
   ComValue statev(stack_key(state_sym, false, default_state, true));
-  static int lid_sym = symbol_add("lid");
-  ComValue lidv(stack_key(lid_sym));
-  static int rid_sym = symbol_add("rid");
-  ComValue ridv(stack_key(rid_sym));
+  static int linkid_sym = symbol_add("linkid");
+  ComValue linkidv(stack_key(linkid_sym));
   static int close_sym = symbol_add("close");
   ComValue closev(stack_key(close_sym));
   static int pid_sym = symbol_add("pid");
@@ -127,65 +126,50 @@ void DrawLinkFunc::execute() {
 
   /* creating a new link to remote drawserv */
   if (hostv.is_string() && portv.is_known() && statev.is_known()) {
-
-    /* cast of this link if it is a duplicate or cycle */
+    
+    /* cast off this link if it is a duplicate or cycle */
+    uuid_t sid;
+    uuid_parse(sidv.string_ptr(), sid);
     if (statev.int_val()==DrawLink::one_way && 
 	((DrawServ*)unidraw)->cycletest
-	(sidv.uint_val(), hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
+	(sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
       fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
       fflush(comterp()->handler()->wrfptr());
       comterp()->quit();
       return;
     }
-
+    
     const char* hoststr = hostv.string_ptr();
     const char* portstr = portv.is_string() ? portv.string_ptr() : nil;
     u_short portnum = portstr ? atoi(portstr) : portv.ushort_val();
     u_short statenum = statev.ushort_val();
-    int lidnum = lidv.is_known() ? lidv.int_val() : -1;
-    int ridnum = ridv.is_known() ? ridv.int_val() : -1;
-
-    link = 
-      ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, 
-				   lidnum, ridnum, this->comterp());
-  
-     
-  } 
-
-  /* return pointer to existing link */
-  else if (ridv.is_known() || lidv.is_known()) {
-    link = ((DrawServ*)unidraw)->linkget
-      (lidv.is_known() ? lidv.int_val() : -1, 
-       ridv.is_known() ? ridv.int_val() : -1);
     
-    /* close if that flag is set. */
-    if (link && closev.is_true()) {
-      ((DrawServ*)unidraw)->linkdown(link);
-      link = nil;
-      push_stack(ComValue::nullval());
-      return;
+    uuid_t linkid; uuid_clear(linkid);
+    if (linkidv.is_string()) {
+	uuid_parse(linkidv.string_ptr(),linkid);
     }
-    
-  }
-
- /* set state to complete linkup */
+	
+    link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
+  } 
+  
+  /* set state to complete linkup */
   if (statev.int_val()==DrawLink::two_way) {
     DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
     if (handler) {
-	if (link==NULL) link  = (DrawLink*)handler->drawlink();
-	if (link != NULL) {
-	    link->state(DrawLink::two_way);
-	    
-	    // at this point paste all graphics to new connection
-	    DrawServ* drawserv = (DrawServ*)unidraw;
+      if (link==NULL) link  = (DrawLink*)handler->drawlink();
+      if (link != NULL) {
+	link->state(DrawLink::two_way);
+	
+	// at this point paste all graphics to new connection
+	DrawServ* drawserv = (DrawServ*)unidraw;
 	    if (hostv.is_string())
-		drawserv->SendAllToBackgroundEditor(link, (DrawEditor*)GetEditor());
+	      drawserv->SendAllToBackgroundEditor(link, (DrawEditor*)GetEditor());
 	    else 
-		drawserv->SendAllToForegroundEditor(link, (DrawEditor*)GetEditor());
-	}
+	      drawserv->SendAllToForegroundEditor(link, (DrawEditor*)GetEditor());
+      }
     }
   }
-
+  
   /* dump DrawLink table to stderr */
   else if(nargs()==0) 
     ((DrawServ*)unidraw)->linkdump(stderr);
@@ -197,14 +181,15 @@ void DrawLinkFunc::execute() {
   }
   else
     push_stack(ComValue::nullval());
-
+  
   return;
-
+  
 #endif
-
+  
 }
 
-
+#endif
+  
 /*****************************************************************************/
 
 SessionIdFunc::SessionIdFunc(ComTerp* comterp, DrawEditor* ed) : UnidrawFunc(comterp, ed) {
@@ -220,9 +205,6 @@ void SessionIdFunc::execute() {
 #else
   static int all_sym = symbol_add("all");
   ComValue allv(stack_key(all_sym));
-  static int remap_sym = symbol_add("remap");
-  ComValue remapv(stack_key(remap_sym));
-
   static int pid_sym = symbol_add("pid");
   ComValue pidv(stack_key(pid_sym));
   static int user_sym = symbol_add("user");
@@ -233,7 +215,6 @@ void SessionIdFunc::execute() {
   ComValue hostidv(stack_key(hostid_sym));
  
   ComValue sidv(stack_arg(0));
-  ComValue osidv(stack_arg(1));
 
   reset_stack();
 
@@ -245,14 +226,16 @@ void SessionIdFunc::execute() {
     return;
   }
 
-  if (sidv.is_known() && osidv.is_known()) {
-    if (remapv.is_false()) 
-      ((DrawServ*)unidraw)->sessionid_register_handle
-	(link, sidv.uint_val(), osidv.uint_val(), pidv.int_val(), 
-	 userv.string_ptr(), hostv.string_ptr(), 
-	 hostidv.int_val());
-    else
-      link->sid_insert(osidv.uint_val(), sidv.uint_val());
+  if (sidv.is_known()) {
+
+    uuid_t sid;
+    uuid_parse(sidv.string_ptr(), sid);
+    
+    ((DrawServ*)unidraw)->sessionid_register_handle
+      (link, sid, pidv.int_val(), 
+       userv.string_ptr(), hostv.string_ptr(), 
+       hostidv.int_val());
+    
   } else {
     ((DrawServ*)unidraw)->print_sidtable();
   }
@@ -283,59 +266,36 @@ void GraphicIdFunc::execute() {
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
 
   if (idv.is_known() && selectorv.is_known()) {
+    uuid_t id;
+    uuid_parse(idv.string_ptr(), id);
+    
+    uuid_t sid;
+    uuid_parse(selectorv.string_ptr(), sid);
+    
     if (grantv.is_unknown()) {
-      if (requestv.is_unknown()) 
+      
+      if (requestv.is_unknown())  {
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, idv.uint_val(), selectorv.uint_val(), statev.int_val());
-      else
+	  (link, id, sid, statev.int_val());
+      }
+      
+      else {
+	uuid_t rid;
+	uuid_parse(requestv.string_ptr(), rid);
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, idv.uint_val(), selectorv.uint_val(), statev.int_val(), 
-	   requestv.uint_val());
-    } else 
-    ((DrawServ*)unidraw)->grid_message_callback
-      (link, idv.uint_val(), selectorv.uint_val(), statev.int_val(), 
-       grantv.uint_val());
+	  (link, id, sid, statev.int_val(), rid);
+      }
+      
+    } else {
+      uuid_t gid;
+      uuid_parse(grantv.string_ptr(), gid);
+      
+      ((DrawServ*)unidraw)->grid_message_callback
+	(link, id, sid, statev.int_val(), gid);
+    }
+    
   } else if (idv.is_unknown()) {
     ((DrawServ*)unidraw)->print_gridtable();
-  }
-}
-
-/*****************************************************************************/
-
-ChangeIdFunc::ChangeIdFunc(ComTerp* comterp, DrawEditor* ed) : UnidrawFunc(comterp, ed) {
-}
-
-void ChangeIdFunc::execute() {
-
-  ComValue idv(stack_arg(0));
-  static int link_sym = symbol_add("link");
-  ComValue default_link(0);
-  ComValue linkv(stack_key(link_sym, false, default_link, true));
-  reset_stack();
-
-  DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
-  DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
-  if (link == NULL) {
-    if (linkv.object_compview()) {
-      ComponentView* compview = (ComponentView*)linkv.obj_val();
-      if (compview && compview->GetSubject()) {
-	GraphicComp* comp = (GraphicComp*)compview->GetSubject();
-	Graphic* gr = comp ? comp->GetGraphic() : nil;
-	AttributeValueList* avl = new AttributeValueList();
-	if (comp && comp->IsA(DRAWLINK_COMP)) {
-	  DrawLinkComp* dlcomp = (DrawLinkComp*)comp;
-          if (dlcomp) link = dlcomp->drawlink();
-	}
-      }
-    }
-  }
-  
-  if (link != NULL && idv.is_known()) {
-    unsigned int id = idv.uint_val();
-    link->sid_change_inplace(id);
-    ComValue result(id, ComValue::UIntType);
-    result.state(AttributeValue::HexState);
-    push_stack(result);
   }
 }
 

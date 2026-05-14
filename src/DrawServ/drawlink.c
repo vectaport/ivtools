@@ -43,8 +43,6 @@ using std::cerr;
 
 int DrawLink::_linkcnt = 0;
 
-implementTable(IncomingSidTable,unsigned int,unsigned int)
-
 const char* DrawLink::_state_strings[] =  { "new_link", "one_way", "two_way", "redundant" };
 
 /*****************************************************************************/
@@ -55,8 +53,7 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   _althost = nil;
   _port = portnum;
   _ok = false;
-  _local_linkid = _linkcnt++;
-  _remote_linkid = -1;
+  uuid_clear(_linkid);
   _state = state;
 
 #ifdef HAVE_ACE
@@ -67,8 +64,6 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
 
   _comhandler = nil;
   _ackhandler = nil;
-  _incomingsidtable = new IncomingSidTable(32);
-  _incomingsidtable_size = 0;
 }
 
 DrawLink::~DrawLink () 
@@ -82,10 +77,9 @@ DrawLink::~DrawLink ()
     delete _host;
     delete _althost;
 #endif
-    delete _incomingsidtable;
 }
 
-int DrawLink::open() {
+int DrawLink::open(uuid_t linkid) {
 
 #if defined(HAVE_ACE) && (__GNUC__>3 || __GNUC__==3 && __GNUC_MINOR__>0)
   _addr = new ACE_INET_Addr(_port, _host);
@@ -110,21 +104,21 @@ int DrawLink::open() {
     char buffer[HOST_NAME_MAX];
     gethostname(buffer, HOST_NAME_MAX);
     
-    unsigned int sid = ((DrawServ*)unidraw)->sessionid();
-    uuid_t& suuid = ((DrawServ*)unidraw)->sessionuuid();
-    uuid_string_t suuid_str;
-    uuid_unparse(suuid, suuid_str);
+    uuid_t& sid = ((DrawServ*)unidraw)->sessionid();
+    uuid_string_t sid_str;
+    uuid_unparse(sid, sid_str);
+    
+    uuid_string_t linkid_str;
+    uuid_unparse(linkid, linkid_str);
     
     void* ptr = nil;
-    ((DrawServ*)unidraw)->sessionidtable()->find(ptr, sid);
+    ((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
     SessionId* sessionid = (SessionId*)ptr;
     out << buffer << "\"";
     out << " :port " << ((DrawServ*)unidraw)->comdraw_port();
     out << " :state " << _state+1;
-    out << " :rid " << _local_linkid;
-    out << " :lid " << _remote_linkid;
-    out << " :sid 0x" << std::hex << sid << std::dec;
-    out << " :suuid \"" << suuid_str << "\"";
+    out << " :sid " << "\"" << sid_str << "\"";
+    out << " :linkid " << "\"" << linkid_str << "\"";
     if (sessionid) {
       out << " :pid " << sessionid->pid();
       out << " :user \"" << sessionid->username() << "\"";
@@ -146,8 +140,8 @@ int DrawLink::open() {
 
 int DrawLink::close() {
 #ifdef HAVE_ACE
-  fprintf(stderr, "Closing link to %s (%s) port # %d (lid=%d, rid=%d)\n", 
-	  hostname(), althostname(), portnum(), local_linkid(), remote_linkid());
+  fprintf(stderr, "Closing link to %s (%s) port # %d (lid=%.8s)\n", 
+	  hostname(), althostname(), portnum(), linkid_str());
   if (comhandler()) comhandler()->drawlink(nil);
   if (_socket) {
     if (ackhandler()) {
@@ -187,61 +181,24 @@ int DrawLink::handle() {
     return -1;
 }
 
-unsigned DrawLink::sid_lookup(unsigned int sid) {
-  unsigned int local_sid = 0;
-  if (_incomingsidtable_size==0) return sid;
-  incomingsidtable()->find(local_sid, sid);
-  return local_sid ? local_sid : sid;
-}
-
-void DrawLink::sid_change_inplace(unsigned int& id) {
-#ifdef HAVE_ACE
-  if (_incomingsidtable_size==0) return;
-  void* ptr = nil;
-
-  // check if graphic exists with remote session id (incoming, not yet translated)
-  ((DrawServ*)unidraw)->gridtable()->find(ptr, id);
-  if (ptr) return;  // found with remote sid, pass through unchanged
-
-  // check if graphic exists with local session id (already translated)
-  unsigned int lookup_id = sid_lookup(id & DrawServ::SessionIdMask) | (id & DrawServ::GraphicIdMask);
-  ((DrawServ*)unidraw)->gridtable()->find(ptr, lookup_id);
-  if (ptr) id = lookup_id;  // found with local sid, use translated value
-
-  // else not found at all, pass through unchanged (new graphic)
-#endif
-  return;
-}
-
-void DrawLink::sid_insert(unsigned int sid, unsigned int alt_sid) {
-  if (sid!=alt_sid) {
-    _incomingsidtable_size++;
-    _incomingsidtable->insert(sid, alt_sid);
-  }
-}
-
 void DrawLink::dump(FILE* fptr) {
-  fprintf(fptr, "Host                            Alt.                            Port    LID  RID  State\n");
-  fprintf(fptr, "------------------------------  ------------------------------  ------  ---  ---  -----\n");
-  fprintf(fptr, "%-30.30s  %-30.30s  %-6d  %-3d  %-3d  %-3d\n", 
+  fprintf(fptr, "Host                            Alt.                            Port    LID       State\n");
+  fprintf(fptr, "------------------------------  ------------------------------  ------  --------  -----\n");
+  fprintf(fptr, "%-30.30s  %-30.30s  %-6d  %.8s  %-3d\n", 
 	  hostname(), althostname(), portnum(),
-	  local_linkid(), remote_linkid(), state());
-  dump_incomingsidtable(fptr);
-}
-
-void DrawLink::dump_incomingsidtable(FILE* fptr) {
-  IncomingSidTable* table = incomingsidtable();
-  IncomingSidTable_Iterator it(*table);
-  printf("sid         osid\n");
-  printf("----------  ----------\n");
-  while(it.more()) {
-    unsigned int osid = (unsigned int)it.cur_value();
-    unsigned int sid = (unsigned int)it.cur_key();
-    fprintf(fptr, "0x%08x  0x%08x\n", sid, osid);
-    it.next();
-  }
+	  linkid_str(), state());
 }
 
 void DrawLink::start_timer(int seconds) {
   ackhandler()->start_timer(seconds);
+}
+
+const char* DrawLink::linkid_str() {
+  if (!uuid_is_null(_linkid)) {
+    if (_linkid_str[0] == '\0') {
+      uuid_unparse(_linkid, _linkid_str);
+    }
+    return _linkid_str;
+  } else
+    return "";
 }

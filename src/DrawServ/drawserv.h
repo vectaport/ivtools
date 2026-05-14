@@ -32,9 +32,12 @@
 #include <strstream>
 #include <uuid/uuid.h>
 
+// utility function for grabbing key from uuid_t.
+extern uint32_t uuid_key(const uuid_t u);
+
 #include <OS/table.h>
-declareTable(GraphicIdTable,int,void*)
-declareTable(SessionIdTable,int,void*)
+declareTable(GraphicIdTable,uint32_t,void*)
+declareTable(SessionIdTable,uint32_t,void*)
 declareTable(CompIdTable,void*,void*);
      
 
@@ -68,8 +71,7 @@ public:
   
 #ifdef HAVE_ACE
   DrawLink* linkup(const char* hostname, int portnum, 
-		   int state, int local_id=-1, int remote_id=-1,
-		   ComTerp* comterp=nil);
+		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil);
   // Create new link to remote drawserv, return -1 if error
   // state: 0==new_link, 1==one_way, 2==two_way.
   // Let DrawLink assign local_id by passing -1 for local_id.
@@ -79,13 +81,10 @@ public:
   int linkdown(DrawLink* link);
   // shut down existing link to remote drawserv
   
-  DrawLink* linkget(int local_id, int remote_id=-1);
-  // return pointer to existing DrawLink
-
   DrawLink* linkget(const char* hostname, int portnum);
   // return pointer to existing DrawLink
   
-  DrawLink* linkget(unsigned int sessionid);
+  DrawLink* linkget(uuid_t sessionid);
   // return pointer to existing DrawLink given a sessionid.
   
   void linkdump(FILE*);
@@ -121,21 +120,23 @@ public:
   void sessionid_register(DrawLink* link);
   // register all sessionid's used by this DrawServ with remote DrawServ
   
-  void sessionid_register_handle(DrawLink* link, unsigned int sid, 
-				 unsigned int osid, int pid, const char* user, 
+  void sessionid_register_handle(DrawLink* link, uuid_t sid,
+				 int pid, const char* user, 
 				 const char* host, int hostid);
   // handle request to register unique session id
   
-  void sessionid_register_propagate(DrawLink* link, unsigned int sid, 
-				    unsigned int osid, int pid, 
+  void sessionid_register_propagate(DrawLink* link, uuid_t sid, int pid, 
 				    const char* user, const char *host, int hostid);
   // propagate a newly registered session id to all other DrawLink's
   
-  unsigned int sessionid() { return _sessionid; }
-  // current unique session id.
+  uuid_t& sessionid() { return _sessionid; }
+  // get universally unique session id.
 
-  uuid_t& sessionuuid() { return _sessionuuid; }
-  // current unique session id.
+  const char* sessionidstr() { return (const char*) _sessionid_str; }
+  // get universally unique session id.
+
+  uint32_t sessionidkey() { int32_t key;memcpy(&key, _sessionid, sizeof(key)); return key; }
+  // get universally unique session id.
 
   void remove_sids(DrawLink*);
   // remove all SessionId's associated with this DrawLink
@@ -143,29 +144,24 @@ public:
   void grid_message(GraphicId* grid);
   // generate graphic id selection message
 
-  void grid_message_handle(DrawLink* link, unsigned int id, unsigned int selector, 
-			   int state, unsigned int newselector=0);
+  void grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
+			   int state, uuid_t newselector=NULL);
   // handle graphic id selection message
 
-  void grid_message_callback(DrawLink* link, unsigned int id, unsigned int selector, 
-			     int state, unsigned int oldselector);
+  void grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
+			     int state, uuid_t oldselector);
   // callback for graphic id selection message 
 
-#if 0
-  void grid_message_propagate(DrawLink* link, unsigned int id, unsigned int selector, 
-			      int state, unsigned int otherselector=0);
-  // propagate graphic id selection message
-#endif
-
-  static unsigned int unique_grid();
+  void unique_grid(uuid_t grid);
   // generate unique graphic id.
-  static int test_grid(unsigned int id);
+  
+  static int test_grid(uuid_t gid);
+  // test candidate graphic id for local uniqueness
+  static int test_sessionid(uuid_t sid);
   // test candidate graphic id for local uniqueness
   
-  unsigned int unique_sessionid();
-  // generate unique session id.
-  int test_sessionid(unsigned int id);
-  // test candidate session id for local uniqueness
+  void  create_unique_sessionid();
+  // generate and assign unique session id.
   
   static unsigned int GraphicIdMask;
   static unsigned int SessionIdMask;
@@ -179,7 +175,7 @@ public:
   int comdraw_port() { return _comdraw_port; }
   // return port used for comdraw command interpreter
 
-  boolean cycletest(unsigned int sid, const char* host, const char* user, int pid);
+  boolean cycletest(uuid_t sid, const char* host, const char* user, int pid);
   // test for new incoming link that would establish a cycle
 
   boolean selftest(const char* host, unsigned int portnum);
@@ -190,7 +186,7 @@ public:
   // returns false if really not there.
 
 protected:
-  boolean add_grid(OverlayComp* comp, int& grid, int& sid);
+  boolean add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid);
   
   DrawLinkList* _linklist;
   // DrawLink list
@@ -204,10 +200,11 @@ protected:
   // table of all GraphicComp's associated with a GraphicId.
   // maps from GraphicComp* to GraphicId*
   
-  int _sessionid;
-  // unique session id.
-  uuid_t _sessionuuid;
+  uuid_t _sessionid;
   // universally unique session id.
+  
+  uuid_string_t _sessionid_str;
+  // universally unique session id in string form.
   
   int _comdraw_port;
   // port used for comdraw command interpreter

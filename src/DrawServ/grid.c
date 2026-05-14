@@ -38,23 +38,22 @@
 
 /*****************************************************************************/
 
-GraphicId::GraphicId (unsigned int sessionid, uuid_t sessionuuid) 
+GraphicId::GraphicId (uuid_t sessionid) 
 {
 #ifdef HAVE_ACE
   _comp = nil;
-  if (sessionid != 0) {
+  if (!uuid_is_null(sessionid)) {
 
-    _id = DrawServ::unique_grid();
-    uuid_generate(_uuid);
+    ((DrawServ*)unidraw)->unique_grid(_id);
     
-    _sid = sessionid&DrawServ::SessionIdMask;
-    if (sessionuuid!=NULL) uuid_copy(_suuid, sessionuuid);
+    uuid_copy(_sid, sessionid);
     
     GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
-    table->insert(_id|_sid, this);
+    table->insert(uuid_key(_id), this);
     
   } else {
-    _id = _sid = 0;
+    uuid_clear(_id);
+    uuid_clear(_sid);
   }
 #endif
 }
@@ -63,30 +62,41 @@ GraphicId::~GraphicId ()
 {
 #ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
-  table->remove(_id|_sid);
+  table->remove(uuid_key(_id));
 #endif
 }
 
-void GraphicId::id(unsigned int id) {
+void GraphicId::id(uuid_t id) {
 #ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
-  if (id !=0 )
-    table->remove(id);
-  _id = id & DrawServ::GraphicIdMask;
-  _sid = id & DrawServ::SessionIdMask;
-  table->insert(id, this);
+
+  if (!uuid_is_null(id)) {
+    
+    void *ptr = NULL;
+    table->find(ptr, uuid_key(id));
+    if (ptr != NULL) {
+      fprintf(stderr, "UNEXPECTED COLLISION ON UUID8, NEED TO REWRITE TABLES FOR FULL UUID\n");
+      abort();
+    }
+    
+    table->remove(uuid_key(id));
+  }
+
+  
+  uuid_copy(_id, id);
+  table->insert(uuid_key(id), this);
 #endif
 }
 
-void GraphicId::uuid(uuid_t uuid) {
-#ifdef HAVE_ACE
-  uuid_copy(_uuid, uuid);
-#endif
+void GraphicId::selector(uuid_t sid) {
+  uuid_copy(_selector, sid);
+  uuid_parse(_selectorstr, _selector);
 }
+
 
 /*****************************************************************************/
 
-GraphicIds::GraphicIds(unsigned int sessionid, GraphicId* subids, int nsubs) : GraphicId (sessionid)
+GraphicIds::GraphicIds(uuid_t sessionid, GraphicId* subids, int nsubs) : GraphicId (sessionid)
 {
   if (nsubs>0) {
     _sublist = new GraphicIdList();
@@ -96,7 +106,7 @@ GraphicIds::GraphicIds(unsigned int sessionid, GraphicId* subids, int nsubs) : G
   Resource::ref(_sublist);
 }
 
-GraphicIds::GraphicIds(unsigned int sessionid, GraphicIdList* sublist) : GraphicId (sessionid)
+GraphicIds::GraphicIds(uuid_t sessionid, GraphicIdList* sublist) : GraphicId (sessionid)
 {
   if (!sublist) sublist = new GraphicIdList;
   _sublist = sublist;
