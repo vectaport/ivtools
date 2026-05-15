@@ -26,6 +26,7 @@
 
 #include "clocktime.h"
 #include <string.h>
+#include <stdio.h>
 
 #if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
 extern "C" int gettimeofday(struct timeval*, struct timezone*);
@@ -65,10 +66,7 @@ void Clock::GetTime (char* date, int& h, int& m, int& s) {
     m = local.tm_min;
     s = local.tm_sec;
     char ds[26];
-    strcpy(ds, asctime(&local));
-    strncpy(date, ds, 10);		/* day, month, day of month */
-    date[10] = '\0';
-    strncat(date, ds+19, 5);		/* year */
-    date[15] = '\0';
+    snprintf(ds, sizeof(ds), "%s", asctime(&local));
+    snprintf(date, 16, "%.10s%.5s", ds, ds + 19); /* day, month, day of month, year */
     nextMinute = gmt.tv_sec + (60 - s);
 }
