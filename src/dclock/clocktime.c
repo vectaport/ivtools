@@ -26,6 +26,7 @@
 
 #include "clocktime.h"
 #include <string.h>
+#include <stdio.h>
 
 #if defined(__DECCXX) || (defined(__sun) && !defined(__svr4__))
 extern "C" int gettimeofday(struct timeval*, struct timezone*);
