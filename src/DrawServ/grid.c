@@ -53,8 +53,10 @@ GraphicId::GraphicId (uuid_t sid)
   } else {
     uuid_clear(_id);
     uuid_clear(_sid);
+    uuid_clear(_selector);
     _id_str[0] = '\0';
     _sid_str[0] = '\0';
+    _selector_str[0] = '\0';
   }
 #endif
 }
