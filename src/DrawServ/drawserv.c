@@ -161,7 +161,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
     } else {
       uuid_copy(link->linkid(), link_id);
     }
-    if (link->open(link->linkid())==0 && link->ok()) {  //
+    if (link->open(link->linkid())==0 && link->ok()) {
       _linklist->add_drawlink(link);
       return link;
     } else {
@@ -194,7 +194,7 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
       sessionid_register(curlink);
       SendCmdString(curlink, "sid(:all)");
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "drawlink(:linkid %.8s :state 2)\n", curlink->linkid_str());
+      snprintf(buf, BUFSIZ, "drawlink(:linkid \"%s\" :state 2)\n", curlink->linkid_str());
       SendCmdString(curlink, buf);
 
       return curlink;
@@ -429,7 +429,7 @@ void DrawServ::sessionid_register_handle
 (DrawLink* link, uuid_t sid, int pid, 
  const char* username, const char* hostname, int hostid) 
 {
-  if (link) {
+  if (link != NULL) {
     SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
     SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
     sidtable->insert(uuid_key(sid), session_id);
@@ -617,8 +617,8 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 void DrawServ::print_gridtable() {
   GraphicIdTable* table = gridtable();
   GraphicIdTable_Iterator it(*table);
-  printf("id          uuid8    comptype              selector    selected\n");
-  printf("----------  -------- --------------------  ----------  --------\n");
+  printf("grid     comptype              selector    selected\n");
+  printf("-------- --------------------  ----------  --------\n");
   while(it.more()) {
     GraphicId* grid = (GraphicId*)it.cur_value();
     OverlayComp* comp = (OverlayComp*)grid->grcomp();
@@ -708,9 +708,7 @@ boolean DrawServ::PrintAttributeList(ostream& out, AttributeList* attrlist) {
     out << " :" << attr->Name() << " ";
     AttributeValue* attrval = attr->Value();
     boolean special = attr->SymbolId()==grid_sym || attr->SymbolId()==sid_sym;
-    if (special) out << "chgid(";
     out << *attrval;
-    if (special) out << ")";
   }
   return true;
 }

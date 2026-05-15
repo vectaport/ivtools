@@ -92,7 +92,7 @@ public:
     // set local DrawLink id
     uuid_t& linkid() { return _linkid; }
     // get DrawLink id
-     const char * linkid_str();
+    const char * linkid_str();
     // get local DrawLink id string
 
 

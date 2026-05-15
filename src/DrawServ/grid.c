@@ -42,7 +42,7 @@ GraphicId::GraphicId (uuid_t sessionid)
 {
 #ifdef HAVE_ACE
   _comp = nil;
-  if (!uuid_is_null(sessionid)) {
+  if (sessionid!=NULL && !uuid_is_null(sessionid)) {
 
     ((DrawServ*)unidraw)->unique_grid(_id);
     
