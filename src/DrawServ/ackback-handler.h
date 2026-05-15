@@ -66,7 +66,7 @@ public:
   virtual void set_handle (ACE_HANDLE);
   // Set the I/O handle.
 
-  void start_timer(int seconds = 5);
+  void start_timer(int seconds = 60);
   // Start timer waiting for ackback
 
 protected:

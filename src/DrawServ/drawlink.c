@@ -189,10 +189,6 @@ void DrawLink::dump(FILE* fptr) {
 	  linkid_str(), state());
 }
 
-void DrawLink::start_timer(int seconds) {
-  ackhandler()->start_timer(seconds);
-}
-
 const char* DrawLink::linkid_str() {
   if (!uuid_is_null(_linkid)) {
     if (_linkid_str[0] == '\0') {

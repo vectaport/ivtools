@@ -38,15 +38,17 @@
 
 /*****************************************************************************/
 
-GraphicId::GraphicId (uuid_t sessionid) 
+GraphicId::GraphicId (uuid_t sid) 
 {
 #ifdef HAVE_ACE
   _comp = nil;
-  if (sessionid!=NULL && !uuid_is_null(sessionid)) {
+  if (sid!=NULL && !uuid_is_null(sid)) {
 
-    ((DrawServ*)unidraw)->unique_grid(_id);
+    uuid_t tempid;
+    ((DrawServ*)unidraw)->unique_grid(tempid);
+    id(tempid);
     
-    uuid_copy(_sid, sessionid);
+    sessionid(sid);
     
     GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
     table->insert(uuid_key(_id), this);
@@ -54,6 +56,8 @@ GraphicId::GraphicId (uuid_t sessionid)
   } else {
     uuid_clear(_id);
     uuid_clear(_sid);
+    _id_str[0] = '\0';
+    _sid_str[0] = '\0';
   }
 #endif
 }

@@ -21,6 +21,7 @@
  * 
  */
 
+#include <DrawServ/ackback-handler.h>
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawclasses.h>
 #include <DrawServ/drawfunc.h>
@@ -110,7 +111,7 @@ void DrawLinkFunc::execute() {
 	  push_stack(result);
 	} else if (timerv.is_known()) {
 	  int sec = timerv.int_val();
-	  link->start_timer(sec);
+	  link->ackhandler()->start_timer(sec);
 	  push_stack(ComValue::nullval());
 	} else {
           link->dump(stderr);
