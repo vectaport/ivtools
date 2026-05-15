@@ -50,9 +50,6 @@ GraphicId::GraphicId (uuid_t sid)
     
     sessionid(sid);
     
-    GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
-    table->insert(uuid_key(_id), this);
-    
   } else {
     uuid_clear(_id);
     uuid_clear(_sid);
