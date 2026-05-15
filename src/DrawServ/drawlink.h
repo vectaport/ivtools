@@ -92,7 +92,7 @@ public:
     // set local DrawLink id
     uuid_t& linkid() { return _linkid; }
     // get DrawLink id
-     const char * linkid_str();
+    const char * linkid_str();
     // get local DrawLink id string
 
 
@@ -107,9 +107,6 @@ public:
 
     AckBackHandler* ackhandler() { return _ackhandler; }
     // get AckBackHandler associated with incoming connection
-
-    void start_timer(int seconds = 5);
-    // Start timer waiting for ackback
 
     void state(int val) { _state = val; notify(); }
     // set state of DrawLink

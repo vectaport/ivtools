@@ -78,7 +78,6 @@ void LinkSelection::Clear(Viewer* viewer) {
 #if 0
   fprintf(stderr, "LinkSelection::Clear\n");
 #endif
-#if 0
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
   Iterator it;
   First(it);
@@ -92,13 +91,12 @@ void LinkSelection::Clear(Viewer* viewer) {
       if (grid->selected()==LocallySelected || grid->selected()==WaitingToBeSelected) 
 	grid->selected(NotSelected);
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(chgid(0x%08x) chgid(0x%08x) :state %d)%c",
-	       grid->id(), grid->selector(), grid->selected(), '\0');
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d)%c",
+	       grid->idstr(), grid->selectorstr(), grid->selected(), '\0');
       ((DrawServ*)unidraw)->DistributeCmdString(buf);
     }
     Next(it);
   }
-#endif
   OverlaySelection::Clear(viewer);
   Reserve();
 }
