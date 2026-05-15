@@ -171,7 +171,7 @@ public:
   
   void print_sidtable();
   // print contents of table of SessionId's
-
+ 
   int comdraw_port() { return _comdraw_port; }
   // return port used for comdraw command interpreter
 

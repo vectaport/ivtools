@@ -663,15 +663,15 @@ void DrawServ::remove_sids(DrawLink* link) {
   }
 }
 
-boolean DrawServ::cycletest(uuid_t sid, const char* host,
-			    const char* user, int pid) 
+boolean DrawServ::cycletest(uuid_t sid, const char* host, const char* user, int pid) 
 {
   boolean found = false;
   SessionIdTable* table = sessionidtable();
   SessionIdTable_Iterator it(*table);
   while(it.more() && !found) {
     SessionId* sessionid = (SessionId*)it.cur_value();
-    if (sessionid->sid()==sid) {
+    uuid_t& ssid = sessionid->sid();
+    if (uuid_compare(ssid, sid)==0) {
       if (strcmp(host, sessionid->hostname())==0 && 
 	  strcmp(user, sessionid->username())==0 &&
 	  pid==sessionid->pid())
