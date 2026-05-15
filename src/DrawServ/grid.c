@@ -42,6 +42,10 @@ GraphicId::GraphicId (uuid_t sid)
 {
 #ifdef HAVE_ACE
   _comp = nil;
+  uuid_clear(_selector);
+  memset(_selector_str, 0, sizeof(_selector_str));
+  _selected = 0;
+  
   if (sid!=NULL && !uuid_is_null(sid)) {
 
     uuid_t tempid;
@@ -54,13 +58,10 @@ GraphicId::GraphicId (uuid_t sid)
     uuid_clear(_id);
     uuid_clear(_sid);
     uuid_clear(_selector);
-    _id_str[0] = '\0';
-    _sid_str[0] = '\0';
+    memset(_id_str, 0, sizeof(_id_str));
+    memset(_sid_str, 0, sizeof(_sid_str));
     
   }
-  uuid_clear(_selector);
-  _selector_str[0] = '\0';
-  _selected = 0;
 
 #endif
 }
