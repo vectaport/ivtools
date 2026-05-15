@@ -108,7 +108,7 @@ public:
     AckBackHandler* ackhandler() { return _ackhandler; }
     // get AckBackHandler associated with incoming connection
 
-    void start_timer(int seconds = 5);
+    void start_timer(int seconds = 60);
     // Start timer waiting for ackback
 
     void state(int val) { _state = val; notify(); }

@@ -47,15 +47,21 @@ public:
   void id(uuid_t id);
   // set associated unique id
 
+  const char* idstr();
+  // get associated unique id in string form
+
   uuid_t& grid() { return _id; }
   // return graphic id portion of composite id
   // unique only to this process
 
-  const uuid_t& sessionid() { return _sid; }
+  const uuid_t& sessionid();
   // get associated universally unique session
 
-  void sessionid(uuid_t id) { uuid_copy(_sid, id); }
+  void sessionid(uuid_t id);
   // set associated universally unique session id
+
+  const char* sessionidstr() { return _sid_str; }
+  // get associated universally unique session id in string form
 
   virtual int is_list() { return 0; }
   // return true if can be cast to GraphicIds
@@ -90,6 +96,8 @@ public:
 protected:
   uuid_t _id;
   uuid_t _sid;
+  uuid_string_t _id_str;
+  uuid_string_t _sid_str;
   
   uuid_t _selector;
   uuid_string_t _selectorstr;

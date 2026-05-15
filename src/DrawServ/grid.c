@@ -84,13 +84,19 @@ void GraphicId::id(uuid_t id) {
 
   
   uuid_copy(_id, id);
+  uuid_unparse(_id, _id_str);
   table->insert(uuid_key(id), this);
 #endif
 }
 
+void GraphicId::sessionid(uuid_t sid) {
+  uuid_copy(_sid, sid);
+  uuid_unparse(_sid, _sid_str);
+}
+
 void GraphicId::selector(uuid_t sid) {
   uuid_copy(_selector, sid);
-  uuid_parse(_selectorstr, _selector);
+  uuid_unparse(_selector, _selectorstr);
 }
 
 
