@@ -47,18 +47,21 @@ GraphicId::GraphicId (uuid_t sid)
     uuid_t tempid;
     ((DrawServ*)unidraw)->unique_grid(tempid);
     id(tempid);
-    
     sessionid(sid);
     
   } else {
+    
     uuid_clear(_id);
     uuid_clear(_sid);
     uuid_clear(_selector);
     _id_str[0] = '\0';
     _sid_str[0] = '\0';
-    _selector_str[0] = '\0';
-    _selected = 0;
+    
   }
+  uuid_clear(_selector);
+  _selector_str[0] = '\0';
+  _selected = 0;
+
 #endif
 }
 
