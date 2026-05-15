@@ -47,7 +47,7 @@ public:
   void id(uuid_t id);
   // set associated unique id
 
-  const char* idstr();
+  const char* idstr() { return _id_str; }
   // get associated unique id in string form
 
   uuid_t& grid() { return _id; }
