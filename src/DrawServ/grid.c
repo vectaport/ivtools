@@ -95,8 +95,8 @@ void GraphicId::sessionid(uuid_t sid) {
   uuid_unparse(_sid, _sid_str);
 }
 
-void GraphicId::selector(uuid_t sid) {
-  uuid_copy(_selector, sid);
+void GraphicId::selector(uuid_t selector) {
+  uuid_copy(_selector, selector);
   uuid_unparse(_selector, _selectorstr);
 }
 
