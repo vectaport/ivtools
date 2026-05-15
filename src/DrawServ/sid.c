@@ -30,12 +30,12 @@
 
 /*****************************************************************************/
 
-SessionId::SessionId (unsigned int sid, unsigned int osid, int pid, 
+SessionId::SessionId (uuid_t sid, int pid, 
 		      const char* username, const char* hostname, 
 		      int hostid, DrawLink* link)
 {
-  _sid = sid;
-  _osid = osid;
+  uuid_copy(_sid, sid);
+  uuid_unparse(_sid, _sid_str);
   _pid = pid;
   _username = strnew(username);
   _hostname = strnew(hostname);

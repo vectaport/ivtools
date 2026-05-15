@@ -28,19 +28,20 @@
 #define sid_h
 
 #include <Unidraw/globals.h>
+#include <uuid/uuid.h>
 
 //: object to encapsulate session member info
 class SessionId {
 public:
-  SessionId(unsigned int sid, unsigned int osid, int pid, 
+  SessionId(uuid_t sid, int pid,
 	    const char* username, const char* hostname, 
 	    int hostid, DrawLink* link = nil);
   virtual ~SessionId();
   
-  unsigned int sid() { return _sid; }
+  const char * sidstr() { return _sid_str; }
   // return session id
-  unsigned int osid() { return _osid; }
-  // return original session id
+  uuid_t& sid() { return _sid; }
+  // return session id
   unsigned int pid() { return _pid; }
   // return associated process id
   const char* username() { return _username; }
@@ -54,8 +55,8 @@ public:
   void drawlink(DrawLink* link) {_drawlink =  link; }
   // set associated DrawLink
 protected:
-  unsigned int _sid;
-  unsigned int _osid;
+  uuid_t _sid;
+  uuid_string_t _sid_str;
   int _pid;
   char* _username;
   char* _hostname;

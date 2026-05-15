@@ -29,6 +29,7 @@
 
 #include <Unidraw/globals.h>
 #include <uuid/uuid.h>
+#include <cstdint>
 
 class DrawLink;
 class GraphicComp;
@@ -37,32 +38,23 @@ class GraphicIdList;
 //: object to encapsulate unique graphic id
 class GraphicId {
 public:
-  GraphicId(unsigned int sessionid=0, uuid_t sessionuuid=nil);
+  GraphicId(uuid_t sessionid=NULL);
   virtual ~GraphicId();
   
-  unsigned int id() { return _id|_sid; }
-  // get associated unique composite integer id
+  const uuid_t& id() { return _id; }
+  // get associated unique id
 
-  void id(unsigned int id);
-  // set associated unique composite integer id
+  void id(uuid_t id);
+  // set associated unique id
 
-  const uuid_t& uuid() { return _uuid; }
-  // get associated universally unique composite integer id
-
-  void uuid(uuid_t uuid);
-  // set associated universally unique composite integer id
-
-  unsigned int grid() { return _id; }
+  uuid_t& grid() { return _id; }
   // return graphic id portion of composite id
   // unique only to this process
 
-  unsigned int sessionid() { return _sid; }
-  // return session id portion of composite id
-
-  const uuid_t& sessionuuid() { return _suuid; }
+  const uuid_t& sessionid() { return _sid; }
   // get associated universally unique session
 
-  void sessionuuid(uuid_t uuid) { uuid_copy(_suuid, uuid); }
+  void sessionid(uuid_t id) { uuid_copy(_sid, id); }
   // set associated universally unique session id
 
   virtual int is_list() { return 0; }
@@ -77,10 +69,16 @@ public:
   GraphicComp* grcomp() { return _comp; }
   // get pointer to associated GraphicComp
 
-  void selector(unsigned int sid) { _selector = sid; }
+  void selector(uuid_t sid);
   // set session id of current selector
 
-  unsigned int selector() { return _selector; }
+  uuid_t& selector() { return _selector; }
+  // get session id of current selector
+
+  uint32_t selectorkey() { uint32_t key; memcpy(&key, _selector, sizeof(key)); return key; }
+  // get session id of current selector
+
+  const char* selectorstr() { return _selectorstr; }
   // get session id of current selector
 
   void selected(int state) { _selected = state; }
@@ -90,13 +88,11 @@ public:
   // get selected state
 
 protected:
-  unsigned int _id;
-  unsigned int _sid;
+  uuid_t _id;
+  uuid_t _sid;
   
-  uuid_t _uuid;
-  uuid_t  _suuid;
-  
-  unsigned int _selector;
+  uuid_t _selector;
+  uuid_string_t _selectorstr;
   int _selected;
   
   GraphicComp* _comp;
@@ -106,8 +102,8 @@ protected:
 //: object to encapsulate a set of graphic ids
 class GraphicIds : public GraphicId {
 public:
-  GraphicIds(unsigned int sessionid, GraphicId* subids, int nsubids); 
-  GraphicIds(unsigned int sessionid, GraphicIdList* sublist=nil);
+  GraphicIds(uuid_t sessionid, GraphicId* subids, int nsubids); 
+  GraphicIds(uuid_t sessionid, GraphicIdList* sublist=nil);
   virtual ~GraphicIds();
 
   virtual int is_list() { return 1; }

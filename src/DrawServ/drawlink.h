@@ -73,7 +73,7 @@ public:
     int portnum() { return _port; }
     // return port on remote host
 
-    int open();
+    int open(uuid_t linkid);
     // open link to remote DrawServ
 
     int close();
@@ -88,15 +88,13 @@ public:
     int handle();
     // return file descriptor associated with link
 
-    int local_linkid() { return _local_linkid; }
-    // get local DrawLink id
-    int remote_linkid() { return _remote_linkid; }
-    // get remote DrawLink id
-
-    void local_linkid(int id) { _local_linkid = id; }
+    void linkid(uuid_t id) { uuid_copy(_linkid, id); }
     // set local DrawLink id
-    void remote_linkid(int id) { _remote_linkid = id; }
-    // set remote DrawLink id
+    uuid_t& linkid() { return _linkid; }
+    // get DrawLink id
+     const char * linkid_str();
+    // get local DrawLink id string
+
 
     void comhandler(DrawServHandler* handler) { _comhandler = handler; }
     // set DrawServHandler associated with incoming connection
@@ -113,9 +111,6 @@ public:
     void start_timer(int seconds = 5);
     // Start timer waiting for ackback
 
-    IncomingSidTable* incomingsidtable() { return _incomingsidtable; }
-    // return pointer to table mapping incoming sessionid's to locally unique sessionid's
-
     void state(int val) { _state = val; notify(); }
     // set state of DrawLink
 
@@ -126,15 +121,6 @@ public:
     ACE_SOCK_Stream* socket() { return _socket; }
     // return pointer to connected socket.
 #endif
-
-    unsigned int sid_lookup(unsigned int sid);
-    // map incoming sid to local sid.
-
-    void sid_change_inplace(unsigned int& id);
-    // change sid portion of an id to use local sid.
-
-    void sid_insert(unsigned int sid, unsigned int alt_sid);
-    // insert new sid pair into table
 
     void dump(FILE*);
     // dump complete information on this DrawLink
@@ -148,11 +134,9 @@ protected:
     int _port;
     int _ok;
     static int _linkcnt;
-    int _local_linkid;
-    int _remote_linkid;
+    uuid_t _linkid;
+    uuid_string_t _linkid_str;
     int _state;
-    IncomingSidTable* _incomingsidtable;
-    int _incomingsidtable_size;
 
 #ifdef HAVE_ACE
     ACE_INET_Addr* _addr;

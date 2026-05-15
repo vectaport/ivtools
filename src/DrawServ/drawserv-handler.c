@@ -23,6 +23,7 @@
 
 #ifdef HAVE_ACE
 
+#include <DrawServ/drawlink.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
 
@@ -50,6 +51,21 @@ int DrawServHandler::open (void * ptr)
 {
   ComterpHandler::open(ptr);
   return 0;
+}
+
+int
+DrawServHandler::handle_input (ACE_HANDLE fd) {
+  int save_alt_fd = _alt_fd;
+  if (_drawlink != NULL) {
+    _alt_fd = _drawlink->portnum();
+  } else {
+    _alt_fd = 99999;
+  }
+    
+  int status = UnidrawComterpHandler::handle_input(fd);
+  
+  _alt_fd = save_alt_fd;
+  return status;
 }
 
 void DrawServHandler::destroy (void) {

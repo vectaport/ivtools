@@ -89,7 +89,7 @@ RemoteConnectAction::RemoteConnectAction(StrEditDialog* dialog) : Action() {
 void RemoteConnectAction::execute() {
 
   if (_dialog && _dialog->text()) 
-    ((DrawServ*)unidraw)->linkup(_dialog->text(), 20002, 0);
+    ((DrawServ*)unidraw)->linkup(_dialog->text(), 99999/*20002*/, 0);
 
 }
 

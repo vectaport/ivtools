@@ -50,6 +50,9 @@ public:
   virtual int open (void *);
   // open handler hook.
 
+  virtual int handle_input (ACE_HANDLE);
+  // called when input ready on ACE_HANDLE.
+
   virtual int handle_signal(int, siginfo_t*, ucontext_t*);
   // handle signals
 

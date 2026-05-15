@@ -58,6 +58,7 @@ ComterpHandler::ComterpHandler (ComTerpServ* serv)
     _timeoutscriptid = -1;
     _wrfptr = _rdfptr = nil;
     _log_only = 0;
+    _alt_fd = -1;
 }
 
 ComterpHandler::~ComterpHandler() {
@@ -197,7 +198,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       if (fd>0 && !comterp_->muted() ) { // && strncmp(inbuf, "ready", 5)!=0)
 	  struct timeval tv;
 	  ::gettimeofday(&tv, NULL);
-	  cerr << "[" << tv.tv_sec%100 << "." << tv.tv_usec << "] <" << fd << ":  " << inbuf << "\n";
+	  cerr << "[" << tv.tv_sec%100 << "." << tv.tv_usec << "] <" << (_alt_fd>-1 ? _alt_fd : fd) << ":  " << inbuf << "\n";
       }
       #endif
 
