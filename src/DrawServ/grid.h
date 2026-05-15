@@ -54,7 +54,7 @@ public:
   // return graphic id portion of composite id
   // unique only to this process
 
-  const uuid_t& sessionid();
+  const uuid_t& sessionid() {return _sid;};
   // get associated universally unique session
 
   void sessionid(uuid_t id);
