@@ -84,7 +84,7 @@ public:
   uint32_t selectorkey() { uint32_t key; memcpy(&key, _selector, sizeof(key)); return key; }
   // get session id of current selector
 
-  const char* selectorstr() { return _selectorstr; }
+  const char* selectorstr() { return _selector_str; }
   // get session id of current selector
 
   void selected(int state) { _selected = state; }
@@ -100,7 +100,7 @@ protected:
   uuid_string_t _sid_str;
   
   uuid_t _selector;
-  uuid_string_t _selectorstr;
+  uuid_string_t _selector_str;
   int _selected;
   
   GraphicComp* _comp;
