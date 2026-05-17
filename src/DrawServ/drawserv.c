@@ -599,18 +599,18 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
   gridtable()->find(ptr, uuid_key(id));
   uuid_string_t selector_str;
   selector_str[0] = '\0';
-  if (((const char*)selector)!= NULL) 
+  if (selector!= NULL) 
     uuid_unparse(selector, selector_str);
   uuid_string_t oldselector_str;
   oldselector_str[0] = '\0';
-  if (((const char*)oldselector)!= NULL) 
+  if (oldselector!= NULL) 
     uuid_unparse(oldselector, oldselector_str);
   
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
 
     /* if request is granted, add to selection */
-    if (grid->selected()==LinkSelection::WaitingToBeSelected && uuid_compare(selector, sessionid())==0) {
+    if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL && uuid_compare(selector, sessionid())==0) {
       grid->selector(selector);
       fprintf(stderr, "grid:  request granted, add to selection now\n");
       OverlayComp* comp = (OverlayComp*)grid->grcomp();
