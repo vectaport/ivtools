@@ -86,6 +86,7 @@ void GraphicId::set_id(uuid_t id) {
 }
 
 uuid_t& GraphicId::generate_id() {
+#ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
 
   uuid_generate(_id);
@@ -99,6 +100,7 @@ uuid_t& GraphicId::generate_id() {
   }
   uuid_unparse(_id, _id_str);
   table->insert(uuid_key(_id), this);
+#endif
   return _id;
 }
 

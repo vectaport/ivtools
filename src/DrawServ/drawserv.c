@@ -527,7 +527,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
     GraphicId* grid = (GraphicId*)ptr;
 
     /* if this request is aimed here */
-    if (uuid_compare(selector,sessionid())==0 && !uuid_is_null(newselector)) {
+    if (uuid_compare(selector,sessionid())==0 &&
+	newselector != NULL && !uuid_is_null(newselector)) {
 
       /* if graphic is still locally owned */
 	if (uuid_compare(grid->selector(), sessionid())==0) {
