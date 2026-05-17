@@ -558,7 +558,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\")%c",
-		 grid->idstr(), grid->selectorstr(), newselector, '\0');
+		 grid->idstr(), grid->selectorstr(), newselector_str, '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -566,7 +566,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
     /* else this request and/or simple state update should be passed along */
     else {
       /* if simple state, set the values here, and pass it on to everyone else */
-      if (newselector==0) {
+      if (((const char *)newselector)==NULL || uuid_is_null(newselector)) {
 	if (linklist()->Number()>1)
 	  fprintf(stderr, "grid: state change passed along to everyone else\n");
 	grid->selector(selector);
@@ -582,7 +582,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\")%c",
-		 grid->idstr(), selector_str, newselector, '\0');
+		 grid->idstr(), selector_str, newselector_str, '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -596,9 +596,11 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
   uuid_string_t selector_str;
-  uuid_unparse(selector, selector_str);
+  if (((const char*)selector)!= NULL) 
+    uuid_unparse(selector, selector_str);
   uuid_string_t oldselector_str;
-  uuid_unparse(oldselector, oldselector_str);
+  if (((const char*)oldselector)!= NULL) 
+    uuid_unparse(oldselector, oldselector_str);
   
   if (ptr) {
     GraphicId* grid = (GraphicId*)ptr;
