@@ -125,7 +125,17 @@ public:
     void dump_incomingsidtable(FILE*);
     // dump complete information on this DrawLink's IncomingSidTable
 
+    void log_outgoing_command(const char* cmd);
+    // log an outgoing command with timestamp
+
+    void log_incoming_command(const char* cmd);
+    // log an incoming command with timestamp
+
 protected:
+
+    void log_command(const char* cmd, const char* port_prefix);
+    // log an incoming or outgoing command with timestamp
+
     const char* _host;
     const char* _althost;
     int _port;
