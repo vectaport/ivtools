@@ -78,7 +78,7 @@ void LinkSelection::Clear(Viewer* viewer) {
 #if 0
   fprintf(stderr, "LinkSelection::Clear\n");
 #endif
-#if 0  
+#if 0
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
   Iterator it;
   First(it);
