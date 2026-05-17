@@ -42,6 +42,8 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
+#include <IV-2_6/InterViews/world.h>
+
 #include <stdio.h>
 
 GraphicIdList* LinkSelection::_locally_selected = nil;
@@ -152,6 +154,9 @@ void LinkSelection::Reserve() {
 	Remove(it);
 	removed = true;
 	
+	if (grid->selected()==RemotelySelected)
+	  unidraw->GetWorld()->RingBell(1);
+
 	if (grid->selected()==NotSelected) {
 	  
 	  /* make a request to select this in the future */
@@ -163,9 +168,7 @@ void LinkSelection::Reserve() {
       } else {
 	if (grid->selected()!=LocallySelected) {
 	  grid->selected(WaitingToBeSelected);
-	  // fprintf(stderr, ">>>>>>>>>>>>> CALLING GRID MESSAGE >>>>>>>>>>>>>>>>>\n");
 	  ((DrawServ*)unidraw)->grid_message(grid);
-	  // fprintf(stderr, ">>>>>>>>>>>>> DONE CALLING GRID MESSAGE >>>>>>>>>>>>>>>>>\n");
 	}
       }
       

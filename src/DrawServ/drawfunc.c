@@ -30,6 +30,8 @@
 #include <DrawServ/drawlinkcomp.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
+#include <DrawServ/grid.h>
+#include <DrawServ/linkselection.h>
 #include <GraphUnidraw/edgecomp.h>
 #include <GraphUnidraw/graphclasses.h>
 #include <OverlayUnidraw/ovline.h>
@@ -257,12 +259,31 @@ void GraphicIdFunc::execute() {
   ComValue grantv(stack_key(grant_sym));
   static int state_sym = symbol_add("state");
   ComValue statev(stack_key(state_sym));
-
+  static int deny_sym = symbol_add("deny");
+  ComValue denyv(stack_key(deny_sym));
+ 
   ComValue idv(stack_arg(0));
   ComValue selectorv(stack_arg(1));
 
   reset_stack();
 
+  if (denyv.is_true()) {
+    uuid_t id;
+    uuid_parse(idv.string_ptr(), id);
+    uuid_t sid;
+    uuid_parse(selectorv.string_ptr(), sid);
+    
+    void* ptr = nil;
+    ((DrawServ*)unidraw)->gridtable()->find(ptr, uuid_key(id));
+    if (ptr) {
+      GraphicId* grid = (GraphicId*)ptr;
+      grid->selected(LinkSelection::RemotelySelected);
+      grid->selector(sid);
+      fprintf(stderr, "grid: request denied, ringing bell\n");
+    }
+    return;
+  }
+  
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
 

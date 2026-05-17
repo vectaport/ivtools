@@ -548,8 +548,8 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  /* else deny it, because it is selected */
 	else {
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d)%c",
-		   grid->idstr(), sessionidstr(), LinkSelection::RemotelySelected, '\0');
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny)%c",
+		   grid->idstr(), sessionidstr(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
 	}	
