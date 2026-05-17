@@ -214,7 +214,7 @@ void DrawLink::log_incoming_command(const char* cmdstring) {
 
 void DrawLink::log_command(const char* cmdstring, const char* port_prefix) {
   if (_comhandler != NULL) {
-    _comhandler->log_command(cmdstring, port_prefix, port());
+    _comhandler->log_command(cmdstring, port_prefix, portnum());
   }
 }
 

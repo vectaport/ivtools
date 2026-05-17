@@ -55,7 +55,7 @@ public:
     GraphicIdFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id :selector selector :state selected :request newselector :grant oldselector) -- command to send message between remote selections"; }
+	return "%s(id selector :state selected :request newselector :grant oldselector) -- command to send message between remote selections"; }
 };
 #endif /* defined(HAVE_ACE) */
 
