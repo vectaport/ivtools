@@ -516,9 +516,11 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
   uuid_string_t selector_str;
+  selector_str[0] = '\0';
   if (selector != NULL && !uuid_is_null(selector))
     uuid_unparse(selector, selector_str);
   uuid_string_t newselector_str;
+  newselector_str[0] = '\0';
   if ((newselector!= NULL) && !uuid_is_null(newselector))
     uuid_unparse(newselector, newselector_str);
   
@@ -852,7 +854,7 @@ boolean DrawServ::add_grid(OverlayComp* comp, uuid_t grid, uuid_t sid) {
 	void *ptr = nil;
 	if (gridtable()->find(ptr, uuid_key(grid))) {
 	    GraphicId* graphicid = (GraphicId*)ptr;
-	    graphicid->selected(LinkSelection::WaitingToBeSelected);
+	    // graphicid->selected(LinkSelection::WaitingToBeSelected);
 	} else {
 	    GraphicId* graphicid = new GraphicId(sid);
 	    graphicid->grcomp(comp);
