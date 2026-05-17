@@ -612,7 +612,9 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     /* if request is granted, add to selection */
     if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL && uuid_compare(selector, sessionid())==0) {
       grid->selector(selector);
+      grid->selected(LinkSelection::LocallySelected);
       fprintf(stderr, "grid:  request granted, add to selection now\n");
+      grid_message(grid);
       OverlayComp* comp = (OverlayComp*)grid->grcomp();
       LinkSelection* sel = (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
       sel->AddComp(comp);

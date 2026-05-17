@@ -78,6 +78,7 @@ void LinkSelection::Clear(Viewer* viewer) {
 #if 0
   fprintf(stderr, "LinkSelection::Clear\n");
 #endif
+#if 0  
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
   Iterator it;
   First(it);
@@ -97,6 +98,7 @@ void LinkSelection::Clear(Viewer* viewer) {
     }
     Next(it);
   }
+#endif
   OverlaySelection::Clear(viewer);
   Reserve();
 }
@@ -163,9 +165,7 @@ void LinkSelection::Reserve() {
       } else {
 	if (grid->selected()!=LocallySelected) {
 	  grid->selected(WaitingToBeSelected);
-	  // fprintf(stderr, ">>>>>>>>>>>>> CALLING GRID MESSAGE >>>>>>>>>>>>>>>>>\n");
 	  ((DrawServ*)unidraw)->grid_message(grid);
-	  // fprintf(stderr, ">>>>>>>>>>>>> DONE CALLING GRID MESSAGE >>>>>>>>>>>>>>>>>\n");
 	}
       }
       
