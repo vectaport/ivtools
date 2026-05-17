@@ -66,7 +66,7 @@
 #include <Attribute/attrvalue.h>
 
 #include <fstream.h>
-#include <strstream>
+#include <sstream>
 #include <unistd.h>
 #include <iostream>
 #include <stdio.h>
@@ -272,7 +272,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
   else {
     
     /* indirect command execution, all by script */
-    std::ostrstream sbuf;
+    std::ostringstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
     OverlayScript::ptlist_parens(false);
     switch (cmd->GetClassId()) {
@@ -346,7 +346,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
     
     /* then send everywhere else */
     if (original || linklist()->Number()>0) 
-      DistributeCmdString(sbuf.str(), linkget(sid));
+      DistributeCmdString(sbuf.str().c_str(), linkget(sid));
     
     if (cmd->Reversible()) {
       cmd->Log();
@@ -428,7 +428,6 @@ void DrawServ::sessionid_register_handle
   if (link != NULL) {
     SessionIdTable* sidtable = ((DrawServ*)unidraw)->sessionidtable();
     SessionId* session_id = new SessionId(sid, pid, username, hostname, hostid, link);
-    fprintf(stderr, "inserting into SID TABLE with uuid_key(sid) of 0x%x\n", uuid_key(sid));
     sidtable->insert(uuid_key(sid), session_id);
 
     /* propagate */
@@ -598,9 +597,11 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
   uuid_string_t selector_str;
+  selector_str[0] = '\0';
   if (((const char*)selector)!= NULL) 
     uuid_unparse(selector, selector_str);
   uuid_string_t oldselector_str;
+  oldselector_str[0] = '\0';
   if (((const char*)oldselector)!= NULL) 
     uuid_unparse(oldselector, oldselector_str);
   
@@ -734,7 +735,7 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
 
     // fged->GetSelection()->Clear();
     
-    std::ostrstream sbuf;
+    std::ostringstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
     OverlayScript::ptlist_parens(false);
     boolean scripted = false;
@@ -772,7 +773,7 @@ void DrawServ::SendAllToBackgroundEditor(DrawLink* link, DrawEditor* fged) {
     /* then send to new background connection pasted in front */
     if (original || linklist()->Number()>1) {
 	sbuf << "\n";
-	SendCmdString(link, sbuf.str());
+	SendCmdString(link, sbuf.str().c_str());
     }
     
 }
@@ -783,7 +784,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
     uuid_t grid; uuid_clear(grid);
     uuid_t sid; uuid_clear(sid);
     
-    std::ostrstream sbuf;
+    std::ostringstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
     OverlayScript::ptlist_parens(false);
     boolean scripted = false;
@@ -823,7 +824,7 @@ void DrawServ::SendAllToForegroundEditor(DrawLink* link, DrawEditor* bged) {
     /* then send to new foreground connection pasted in front and moved to back */
     if (original || linklist()->Number()>1) {
 	sbuf << "\n";
-	SendCmdString(link, sbuf.str());
+	SendCmdString(link, sbuf.str().c_str());
     }
     
 }

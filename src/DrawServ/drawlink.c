@@ -37,6 +37,7 @@
 #include <fstream.h>
 #include <unistd.h>
 #include <iostream>
+#include <sstream>
 
 using std::cout;
 using std::cerr;
@@ -100,7 +101,7 @@ int DrawLink::open(uuid_t linkid) {
 
     FILEBUF(obuf, fdopen(dup(_socket->get_handle()), "w"), ios_base::out);
     ostream out(&obuf);
-    std::ostrstream sbuf;
+    std::ostringstream sbuf;
     sbuf << "drawlink(\"";
     char buffer[HOST_NAME_MAX];
     gethostname(buffer, HOST_NAME_MAX);
@@ -125,9 +126,9 @@ int DrawLink::open(uuid_t linkid) {
       sbuf << " :user \"" << sessionid->username() << "\"";
     }
     sbuf << ")";
-    log_outgoing_command(sbuf.str());
+    log_outgoing_command(sbuf.str().c_str());
     sbuf << "\n";
-    out << sbuf.str();
+    out << sbuf.str().c_str();
     out.flush();
     _ok = true;
 
