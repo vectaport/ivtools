@@ -44,8 +44,11 @@ public:
   const uuid_t& id() { return _id; }
   // get associated unique id
 
-  void id(uuid_t id);
-  // set associated unique id
+  uuid_t& generate_id();
+  // generate unique id and assign it
+
+  void set_id(uuid_t id);
+  // sete unique id
 
   const char* idstr() { return _id_str; }
   // get associated unique id in string form
@@ -53,15 +56,6 @@ public:
   uuid_t& grid() { return _id; }
   // return graphic id portion of composite id
   // unique only to this process
-
-  const uuid_t& sessionid() {return _sid;};
-  // get associated universally unique session
-
-  void sessionid(uuid_t id);
-  // set associated universally unique session id
-
-  const char* sessionidstr() { return _sid_str; }
-  // get associated universally unique session id in string form
 
   virtual int is_list() { return 0; }
   // return true if can be cast to GraphicIds
@@ -81,8 +75,8 @@ public:
   uuid_t& selector() { return _selector; }
   // get session id of current selector
 
-  uint32_t selectorkey() { uint32_t key; memcpy(&key, _selector, sizeof(key)); return key; }
-  // get session id of current selector
+  uint32_t selectorkey();
+  // get key of session id of current selector
 
   const char* selectorstr() { return _selector_str; }
   // get session id of current selector
@@ -95,12 +89,11 @@ public:
 
 protected:
   uuid_t _id;
-  uuid_t _sid;
   uuid_string_t _id_str;
-  uuid_string_t _sid_str;
   
   uuid_t _selector;
   uuid_string_t _selector_str;
+  
   int _selected;
   
   GraphicComp* _comp;

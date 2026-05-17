@@ -45,22 +45,11 @@ GraphicId::GraphicId (uuid_t sid)
   uuid_clear(_selector);
   memset(_selector_str, 0, sizeof(_selector_str));
   _selected = 0;
+  uuid_clear(_id);
+  memset(_id_str, 0, sizeof(_id_str));
   
   if (sid!=NULL && !uuid_is_null(sid)) {
-
-    uuid_t tempid;
-    ((DrawServ*)unidraw)->unique_grid(tempid);
-    id(tempid);
-    sessionid(sid);
-    
-  } else {
-    
-    uuid_clear(_id);
-    uuid_clear(_sid);
-    uuid_clear(_selector);
-    memset(_id_str, 0, sizeof(_id_str));
-    memset(_sid_str, 0, sizeof(_sid_str));
-    
+    selector(sid);
   }
 
 #endif
@@ -74,7 +63,7 @@ GraphicId::~GraphicId ()
 #endif
 }
 
-void GraphicId::id(uuid_t id) {
+void GraphicId::set_id(uuid_t id) {
 #ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
 
@@ -86,26 +75,44 @@ void GraphicId::id(uuid_t id) {
       fprintf(stderr, "UNEXPECTED COLLISION ON UUID8, NEED TO REWRITE TABLES FOR FULL UUID\n");
       abort();
     }
+    // table->remove(uuid_key(id));
     
-    table->remove(uuid_key(id));
   }
 
-  
   uuid_copy(_id, id);
   uuid_unparse(_id, _id_str);
   table->insert(uuid_key(id), this);
 #endif
 }
 
-void GraphicId::sessionid(uuid_t sid) {
-  uuid_copy(_sid, sid);
-  uuid_unparse(_sid, _sid_str);
+uuid_t& GraphicId::generate_id() {
+#ifdef HAVE_ACE
+  GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
+
+  uuid_generate(_id);
+  
+  void *ptr = NULL;
+  table->find(ptr, uuid_key(_id));
+  if (ptr != NULL) {
+    // table->remove(uuid_key(id));
+    fprintf(stderr, "UNEXPECTED COLLISION ON UUID8, NEED TO REWRITE TABLES FOR FULL UUID\n");
+    abort();
+  }
+  uuid_unparse(_id, _id_str);
+  table->insert(uuid_key(_id), this);
+#endif
+  return _id;
 }
 
 void GraphicId::selector(uuid_t selector) {
   uuid_copy(_selector, selector);
   uuid_unparse(_selector, _selector_str);
 }
+
+uint32_t GraphicId::selectorkey() {
+  return uuid_key(_selector);
+}
+
 
 
 /*****************************************************************************/

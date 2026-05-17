@@ -37,6 +37,7 @@
 #include <fstream.h>
 #include <unistd.h>
 #include <iostream>
+#include <sstream>
 
 using std::cout;
 using std::cerr;
@@ -100,7 +101,8 @@ int DrawLink::open(uuid_t linkid) {
 
     FILEBUF(obuf, fdopen(dup(_socket->get_handle()), "w"), ios_base::out);
     ostream out(&obuf);
-    out << "drawlink(\"";
+    std::ostringstream sbuf;
+    sbuf << "drawlink(\"";
     char buffer[HOST_NAME_MAX];
     gethostname(buffer, HOST_NAME_MAX);
     
@@ -114,16 +116,19 @@ int DrawLink::open(uuid_t linkid) {
     void* ptr = nil;
     ((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
     SessionId* sessionid = (SessionId*)ptr;
-    out << buffer << "\"";
-    out << " :port " << ((DrawServ*)unidraw)->comdraw_port();
-    out << " :state " << _state+1;
-    out << " :sid " << "\"" << sid_str << "\"";
-    out << " :linkid " << "\"" << linkid_str << "\"";
+    sbuf << buffer << "\"";
+    sbuf << " :port " << ((DrawServ*)unidraw)->comdraw_port();
+    sbuf << " :state " << _state+1;
+    sbuf << " :sid " << "\"" << sid_str << "\"";
+    sbuf << " :linkid " << "\"" << linkid_str << "\"";
     if (sessionid) {
-      out << " :pid " << sessionid->pid();
-      out << " :user \"" << sessionid->username() << "\"";
+      sbuf << " :pid " << sessionid->pid();
+      sbuf << " :user \"" << sessionid->username() << "\"";
     }
-    out << ")\n";
+    sbuf << ")";
+    log_outgoing_command(sbuf.str().c_str());
+    sbuf << "\n";
+    out << sbuf.str().c_str();
     out.flush();
     _ok = true;
 
@@ -198,3 +203,18 @@ const char* DrawLink::linkid_str() {
   } else
     return "";
 }
+
+void DrawLink::log_outgoing_command(const char* cmdstring) {
+  log_command(cmdstring, ">");
+}
+
+void DrawLink::log_incoming_command(const char* cmdstring) {
+  log_command(cmdstring, "<");
+}
+
+void DrawLink::log_command(const char* cmdstring, const char* port_prefix) {
+  if (_comhandler != NULL) {
+    _comhandler->log_command(cmdstring, port_prefix, portnum());
+  }
+}
+

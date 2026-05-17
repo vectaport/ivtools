@@ -135,7 +135,7 @@ public:
   const char* sessionidstr() { return (const char*) _sessionid_str; }
   // get universally unique session id.
 
-  uint32_t sessionidkey() { int32_t key;memcpy(&key, _sessionid, sizeof(key)); return key; }
+  uint32_t sessionidkey() { return uuid_key(_sessionid); }
   // get universally unique session id.
 
   void remove_sids(DrawLink*);

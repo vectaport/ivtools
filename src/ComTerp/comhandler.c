@@ -197,8 +197,9 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       #else
       if (fd>0 && !comterp_->muted() ) { // && strncmp(inbuf, "ready", 5)!=0)
 	  struct timeval tv;
-	  ::gettimeofday(&tv, NULL);
-	  cerr << "[" << tv.tv_sec%100 << "." << tv.tv_usec << "] <" << (_alt_fd>-1 ? _alt_fd : fd) << ":  " << inbuf << "\n";
+	  log_command(inbuf, "<", (_alt_fd>-1 ? _alt_fd : fd));
+	  // ::gettimeofday(&tv, NULL);
+	  //cerr << "[" << tv.tv_sec%100 << "." << tv.tv_usec << "] <" << (_alt_fd>-1 ? _alt_fd : fd) << ":  " << inbuf << "\n";
       }
       #endif
 
@@ -278,6 +279,12 @@ REACTOR;
 
 ACE_Reactor* ComterpHandler::reactor_singleton() {
   return REACTOR::instance();
+}
+
+void ComterpHandler::log_command(const char* cmdstring, const char* fd_or_port_prefix, int fd_or_port) {
+  struct timeval tv;
+  ::gettimeofday(&tv, NULL);
+  fprintf(stderr, "[%ld.%06ld] %s%d: %s\n", tv.tv_sec%100, (long)tv.tv_usec, fd_or_port_prefix, fd_or_port, cmdstring);
 }
 
 #endif /* HAVE_ACE */

@@ -146,8 +146,8 @@ void LinkSelection::Reserve() {
     table->find(ptr, (void*)comp);
     if (ptr) {
       GraphicId* grid = (GraphicId*)ptr;
-      if (grid->selector() && 
-	  ((DrawServ*)unidraw)->sessionid()!=grid->selector()) {
+      if (!uuid_is_null(grid->selector()) && 
+	  uuid_compare(((DrawServ*)unidraw)->sessionid(), grid->selector())) {
 	
 	Remove(it);
 	removed = true;
@@ -162,8 +162,10 @@ void LinkSelection::Reserve() {
 	
       } else {
 	if (grid->selected()!=LocallySelected) {
-	  grid->selected(LocallySelected);
+	  grid->selected(WaitingToBeSelected);
+	  // fprintf(stderr, ">>>>>>>>>>>>> CALLING GRID MESSAGE >>>>>>>>>>>>>>>>>\n");
 	  ((DrawServ*)unidraw)->grid_message(grid);
+	  // fprintf(stderr, ">>>>>>>>>>>>> DONE CALLING GRID MESSAGE >>>>>>>>>>>>>>>>>\n");
 	}
       }
       
