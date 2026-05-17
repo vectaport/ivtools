@@ -213,7 +213,8 @@ void DrawLink::log_incoming_command(const char* cmdstring) {
 }
 
 void DrawLink::log_command(const char* cmdstring, const char* port_prefix) {
-  struct timeval tv;
-  gettimeofday(&tv, NULL);
-  fprintf(stderr, "[%ld.%06ld] %s%d: %s\n", tv.tv_sec%100, (long)tv.tv_usec, port_prefix, portnum(), cmdstring);
+  if (_comhandler != NULL) {
+    _comhandler->log_command(cmdstring, port_prefix, port());
+  }
 }
+

@@ -123,6 +123,9 @@ public:
   void alt_fd(int num ) { _alt_fd = num; }
   // set number used to log command lines sent or received (default is fd)
 
+  void log_command(const char* cmdstring, const char* fd_or_port_prefix, int fd_or_port);
+  // utility function to log/timestamp outgoing or incoming command
+  
 protected:
   // = Demultiplexing hooks.
   virtual int handle_input (ACE_HANDLE);
