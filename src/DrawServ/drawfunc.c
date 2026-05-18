@@ -269,9 +269,9 @@ void GraphicIdFunc::execute() {
 
   if (denyv.is_true()) {
     uuid_t id;
-    uuid_parse(idv.string_ptr(), id);
+    if (id != NULL) uuid_parse(idv.string_ptr(), id) else uuid_clear(id);
     uuid_t sid;
-    uuid_parse(selectorv.string_ptr(), sid);
+    if (sid != NULL) uuid_parse(idv.string_ptr(), id) else uuid_clear(sid);
     
     void* ptr = nil;
     ((DrawServ*)unidraw)->gridtable()->find(ptr, uuid_key(id));
