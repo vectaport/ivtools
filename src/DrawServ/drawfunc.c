@@ -270,7 +270,7 @@ void GraphicIdFunc::execute() {
   uuid_t id;
   if (idv.is_string()) uuid_parse(idv.string_ptr(), id); else uuid_clear(id);
   uuid_t selector;
-  if (selectorv.is_string()) uuid_parse(idv.string_ptr(), id); else uuid_clear(selector);
+  if (selectorv.is_string()) uuid_parse(selectorv.string_ptr(), selector); else uuid_clear(selector);
 
   if (denyv.is_true()) {
     void* ptr = nil;
