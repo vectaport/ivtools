@@ -30,6 +30,8 @@
 #include <DrawServ/drawlinkcomp.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
+#include <DrawServ/grid.h>
+#include <DrawServ/linkselection.h>
 #include <GraphUnidraw/edgecomp.h>
 #include <GraphUnidraw/graphclasses.h>
 #include <OverlayUnidraw/ovline.h>
@@ -257,34 +259,48 @@ void GraphicIdFunc::execute() {
   ComValue grantv(stack_key(grant_sym));
   static int state_sym = symbol_add("state");
   ComValue statev(stack_key(state_sym));
-
+  static int deny_sym = symbol_add("deny");
+  ComValue denyv(stack_key(deny_sym));
+ 
   ComValue idv(stack_arg(0));
   ComValue selectorv(stack_arg(1));
 
   reset_stack();
 
+  uuid_t id;
+  if (idv.is_string()) uuid_parse(idv.string_ptr(), id); else uuid_clear(id);
+  uuid_t selector;
+  if (selectorv.is_string()) uuid_parse(selectorv.string_ptr(), selector); else uuid_clear(selector);
+
+  if (denyv.is_true()) {
+    void* ptr = nil;
+    ((DrawServ*)unidraw)->gridtable()->find(ptr, uuid_key(id));
+    if (ptr) {
+      GraphicId* grid = (GraphicId*)ptr;
+      grid->selected(LinkSelection::RemotelySelected);
+      grid->selector(selector);
+      fprintf(stderr, "grid: request denied\n");
+    }
+    return;
+  }
+  
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
 
   if (idv.is_known() && selectorv.is_known()) {
-    uuid_t id;
-    uuid_parse(idv.string_ptr(), id);
-    
-    uuid_t sid;
-    uuid_parse(selectorv.string_ptr(), sid);
     
     if (grantv.is_unknown()) {
       
       if (requestv.is_unknown())  {
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, id, sid, statev.int_val());
+	  (link, id, selector, statev.int_val());
       }
       
       else {
 	uuid_t rid;
 	uuid_parse(requestv.string_ptr(), rid);
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, id, sid, statev.int_val(), rid);
+	  (link, id, selector, statev.int_val(), rid);
       }
       
     } else {
@@ -292,7 +308,7 @@ void GraphicIdFunc::execute() {
       uuid_parse(grantv.string_ptr(), gid);
       
       ((DrawServ*)unidraw)->grid_message_callback
-	(link, id, sid, statev.int_val(), gid);
+	(link, id, selector, statev.int_val(), gid);
     }
     
   } else if (idv.is_unknown()) {
