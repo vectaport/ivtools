@@ -279,7 +279,7 @@ void GraphicIdFunc::execute() {
       GraphicId* grid = (GraphicId*)ptr;
       grid->selected(LinkSelection::RemotelySelected);
       grid->selector(sid);
-      fprintf(stderr, "grid: request denied, ringing bell\n");
+      fprintf(stderr, "grid: request denied\n");
     }
     return;
   }
