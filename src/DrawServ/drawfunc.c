@@ -267,18 +267,18 @@ void GraphicIdFunc::execute() {
 
   reset_stack();
 
+  uuid_t id;
+  if (idv.is_string()) uuid_parse(idv.string_ptr(), id); else uuid_clear(id);
+  uuid_t selector;
+  if (selectorv.is_string()) uuid_parse(idv.string_ptr(), id); else uuid_clear(selector);
+
   if (denyv.is_true()) {
-    uuid_t id;
-    if (id != NULL) uuid_parse(idv.string_ptr(), id) else uuid_clear(id);
-    uuid_t sid;
-    if (sid != NULL) uuid_parse(idv.string_ptr(), id) else uuid_clear(sid);
-    
     void* ptr = nil;
     ((DrawServ*)unidraw)->gridtable()->find(ptr, uuid_key(id));
     if (ptr) {
       GraphicId* grid = (GraphicId*)ptr;
       grid->selected(LinkSelection::RemotelySelected);
-      grid->selector(sid);
+      grid->selector(selector);
       fprintf(stderr, "grid: request denied\n");
     }
     return;
@@ -288,24 +288,19 @@ void GraphicIdFunc::execute() {
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
 
   if (idv.is_known() && selectorv.is_known()) {
-    uuid_t id;
-    uuid_parse(idv.string_ptr(), id);
-    
-    uuid_t sid;
-    uuid_parse(selectorv.string_ptr(), sid);
     
     if (grantv.is_unknown()) {
       
       if (requestv.is_unknown())  {
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, id, sid, statev.int_val());
+	  (link, id, selector, statev.int_val());
       }
       
       else {
 	uuid_t rid;
 	uuid_parse(requestv.string_ptr(), rid);
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, id, sid, statev.int_val(), rid);
+	  (link, id, selector, statev.int_val(), rid);
       }
       
     } else {
@@ -313,7 +308,7 @@ void GraphicIdFunc::execute() {
       uuid_parse(grantv.string_ptr(), gid);
       
       ((DrawServ*)unidraw)->grid_message_callback
-	(link, id, sid, statev.int_val(), gid);
+	(link, id, selector, statev.int_val(), gid);
     }
     
   } else if (idv.is_unknown()) {
