@@ -21,8 +21,8 @@
  * 
  */
 
-#if !defined(_soundfunc_h)
-#define _soundfunc_h
+#if !defined(_comdraw_soundfunc_h)
+#define _comdraw_soundfunc_h
 
 
 #include <ComUnidraw/unifunc.h>
@@ -50,4 +50,4 @@ public:
 };
 
 
-#endif /* !defined(_soundfunc_h) */
+#endif /* !defined(_comdraw_soundfunc_h) */

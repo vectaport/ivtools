@@ -87,6 +87,9 @@ public:
   int selected() { return _selected; }
   // get selected state
 
+  const char* compclass();
+  // return name of comp's class
+
 protected:
   uuid_t _id;
   uuid_string_t _id_str;

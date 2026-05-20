@@ -503,7 +503,7 @@ void DrawServ::grid_message(GraphicId* grid) {
     snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c", grid->idstr(), grid->selectorstr(), 
 	     grid->selected()==LinkSelection::LocallySelected ? 
 	     LinkSelection::RemotelySelected : LinkSelection::NotSelected,
-	     grid->grcomp()->GetClassName(), '\0');
+	     grid->compclass(), '\0');
     DistributeCmdString(buf);
   } else {
     
@@ -512,7 +512,7 @@ void DrawServ::grid_message(GraphicId* grid) {
     
     if (link) {
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c", grid->idstr(), 
-	       grid->selectorstr(), sessionidstr(), grid->grcomp()->GetClassName(), '\0');
+	       grid->selectorstr(), sessionidstr(), grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
   }
@@ -551,7 +551,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  char buf[BUFSIZ];
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :class \"%s\")%c",
 		   grid->idstr(), newselector_str, sessionidstr(),
-		   grid->grcomp()->GetClassName(), '\0');
+		   grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request granted\n");
 	} 
@@ -560,7 +560,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	else {
 	  char buf[BUFSIZ];
 	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny :class \"%s\")%c",
-		   grid->idstr(), sessionidstr(), grid->grcomp()->GetClassName(), '\0');
+		   grid->idstr(), sessionidstr(), grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
 	}	
@@ -572,7 +572,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c",
 		 grid->idstr(), grid->selectorstr(), newselector_str,
-		 grid->grcomp()->GetClassName(), '\0');
+		 grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -588,7 +588,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c",
 		 grid->idstr(), grid->selectorstr(), grid->selected(),
-		 grid->grcomp()->GetClassName(), '\0');
+		 grid->compclass(), '\0');
 	DistributeCmdString(buf, link);
       } 
 
@@ -598,7 +598,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c",
 	  grid->idstr(), selector_str, newselector_str,
-	  grid->grcomp()->GetClassName(), '\0');
+	  grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -643,7 +643,7 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
       char buf[BUFSIZ];
       snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :class \"%s\")%c",
 	       grid->idstr(), selector_str, oldselector_str,
-	       grid->grcomp()->GetClassName(), '\0');
+	       grid->compclass(), '\0');
       SendCmdString(linkget(selector), buf);
     }
   }

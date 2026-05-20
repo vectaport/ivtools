@@ -85,8 +85,8 @@ void log_with_timestamp(const char* msg) {
   int n = strlen(msg);
   struct timeval tv;
   gettimeofday(&tv, NULL);
-  fprintf(stderr, "[%ld.%06ld] %s", tv.tv_sec%100, (long)tv.tv_usec, msg);
-  if (msg[n-1]!='\n') {
+  fprintf(stderr, "[%ld.%06ld] %s", tv.tv_sec%100, (long)tv.tv_usec, n==0 ? "NULL MESSAGE" : msg);
+  if (n==0 || msg[n-1]!='\n') {
     fprintf(stderr, "\n");
   }
 }
