@@ -287,7 +287,7 @@ int LinkSelection::all_requests_resolved(boolean granted) {
   if (waiting_count() > 0)
     waiting_count()--;
   if (waiting_count() == 0) {
-    boolean all_denied = granted_count() == 0 && !wtbs_flag();
+    boolean all_denied = granted_count() == 0; // && !wtbs_flag();
     wtbs_flag() = false;
     remote_flag() = false;
     granted_count() = 0;

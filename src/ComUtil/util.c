@@ -71,6 +71,7 @@ const char* local_hostname() {
     static bool ready = false;
     if (!ready) {
         strncpy(buffer, name, MAXHOSTNAMELEN);
+	buffer[MAXHOSTNAMELEN-1] = '\0'; // guarding against strncpy overwrite
         strncat(buffer, ".local", MAXHOSTNAMELEN - strlen(buffer) - 1);
 	ready = true;
     }

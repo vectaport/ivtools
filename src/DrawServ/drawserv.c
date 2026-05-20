@@ -312,10 +312,11 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 
 	Iterator it;
 	First(it);
-	Selection* sel = GetEditor(it)->GetSelection(); // only 1 Editor per Unidraw
-	((LinkSelection*)sel)->paste_in_progress_flag() = true;
+	Editor* ed = GetEditor(it); // only 1 Editor per Unidraw
+	Selection* sel = ed ? ed->GetSelection() : nil;
+	if (sel) ((LinkSelection*)sel)->paste_in_progress_flag() = true;
 	cmd->Execute();
-	((LinkSelection*)sel)->paste_in_progress_flag() = false;
+	if (sel) ((LinkSelection*)sel)->paste_in_progress_flag() = false;
 	
 	break;
       }

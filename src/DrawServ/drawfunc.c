@@ -283,7 +283,7 @@ void GraphicIdFunc::execute() {
       grid->selected(LinkSelection::RemotelySelected);
       grid->selector(selector);
       fprintf(stderr, "grid: request denied\n");
-      sel->request_resolved_check(false, FILELINE);
+      if (sel) sel->request_resolved_check(false, FILELINE);
     }
     return;
   }
