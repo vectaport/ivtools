@@ -411,3 +411,16 @@ void OverlayEditor::UpdateText(OverlayComp* comp, boolean update) {
     }
 }
 
+void OverlayEditor::Beep() {
+    unidraw->GetWorld()->RingBell(1);
+}
+
+void OverlayEditor::Ding() {
+#ifdef __APPLE__
+    system("afplay /System/Library/Sounds/Funk.aiff &");
+#else
+    // TODO: replace with QSoundEffect on Qt migration
+    unidraw->GetWorld()->RingBell(3);
+#endif
+}
+

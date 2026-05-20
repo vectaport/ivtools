@@ -51,6 +51,7 @@ GraphicId::GraphicId (uuid_t sid)
   if (sid!=NULL && !uuid_is_null(sid)) {
     selector(sid);
   }
+  _beep_on_deny = false;
 
 #endif
 }
@@ -140,7 +141,7 @@ GraphicIds::~GraphicIds ()
   _sublist = nil;
 }
 
-void GraphicId::grcomp(GraphicComp* comp) {
+void GraphicId::grcomp(OverlayComp* comp) {
 #ifdef HAVE_ACE
   if (comp==_comp) return;
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();

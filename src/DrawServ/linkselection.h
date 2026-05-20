@@ -38,22 +38,57 @@ class DrawLinkList;
 // between two remote drawing editors that are linked together.
 class LinkSelection: public OverlaySelection {
 public:
-    LinkSelection(DrawEditor* ed, LinkSelection* = nil);
-    LinkSelection(DrawEditor* ed, Selection*);
+  LinkSelection(DrawEditor* ed, LinkSelection* = nil);
+  LinkSelection(DrawEditor* ed, Selection*);
+  
+  void Init(DrawEditor*);
+  
+  virtual void Update(Viewer* = nil); 
+  virtual void Clear(Viewer* = nil);
+  
+  virtual void Reserve();
+  // reserve newly created graphics in selection across the network
+  
+  virtual void CopyFlags(OverlaySelection* from);
 
-    virtual void Update(Viewer* = nil); 
-    virtual void Clear(Viewer* = nil);
-
-    virtual void Reserve();
-    // reserve newly created graphics in selection across the network
-
-    void AddComp(OverlayComp*);
-    // add this graphic to the Selection.
-
+  void AddComp(OverlayComp*);
+  // add this graphic to the Selection.
+  
   enum { NotSelected, LocallySelected, RemotelySelected, WaitingToBeSelected };
 
   static const char* selected_string(int state) 
     { return state>=0 && state<=WaitingToBeSelected ?  _selected_strings[state] : nil; }
+
+  int& waiting_count() {return _waiting_count; }
+  // return waiting_count by reference
+
+  int& granted_count() {return _granted_count; }
+  // return granted_count by reference
+
+  boolean& wtbs_flag() {return _wtbs_flag; }
+  // return true if a new graphic just got selected.
+
+  boolean& remote_flag() {return _remote_flag; }
+  // return true if a remotely selected graphic is detected
+
+  boolean& paste_in_progress_flag() {return _paste_in_progress_flag; }
+  // return true if a programmatic paste is in progress.
+
+  void Beep(const char* debugstr = NULL);
+  // make alert sound
+
+  void Ding(const char* debugstr = NULL);
+  // make confirmation sound
+
+  int all_requests_resolved(boolean granted);
+  // check if all requests have been denied.
+  // return values:
+  //  0 = still waiting (more requests in flight)
+  //  1 = all resolved, at least one granted (ding)
+  // -1 = all resolved, all denied (beep)
+  
+  boolean request_resolved_check(boolean granted, const char* fileline);
+  // make beep/ding sound when request resolved and response is known
 
 protected:
   DrawEditor* _editor;
@@ -62,6 +97,12 @@ protected:
 
   static const char* _selected_strings[];
 
+  int _waiting_count;
+  int _granted_count;
+  boolean _wtbs_flag;
+  boolean _remote_flag;
+  boolean _paste_in_progress_flag;
+  
 };
 #endif /* HAVE_ACE */
 #endif

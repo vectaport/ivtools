@@ -1514,7 +1514,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 
       /* any other format PostScript */
       else {
-	if (OverlayKit::bincheck("pstoedit")) {
+	static boolean pstoedit = OverlayKit::bincheck("pstoedit");
+	if (pstoedit) {
 	  FILE* pptr = nil;
 	  int new_fd;
 	  if (pathname && !return_fd && !cmdflag) {
@@ -1552,7 +1553,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	comp = PNM_Image(*in, creator);
 
     } else if (strncmp(creator, "GIF", 3)==0) {
-      if (OverlayKit::bincheck("giftopnm")) {
+      static boolean giftopnm = OverlayKit::bincheck("giftopnm");
+      if (giftopnm) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
@@ -1576,7 +1578,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
 	comp = TIFF_Image(pathname);
       else {
-	if (OverlayKit::bincheck("convert"))
+	static boolean convert = OverlayKit::bincheck("convert");
+	if (convert)
 	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "convert tiff:- pnm:-");
 	else
 	  cerr << "convert(1), part of ImageMagick(1), not found\n";
@@ -1586,15 +1589,16 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       if (pathname && !return_fd && strcmp(pathname,"-")!=0 && !compressed) 
 	comp = XBitmap_Image(pathname);
       else {
-	if (OverlayKit::bincheck("xbmtopbm"))
+	static boolean xbmtopbm = OverlayKit::bincheck("xbmtopbm");
+	if (xbmtopbm)
 	  comp = PNM_Image_Filter(*in, return_fd, pnmfd, "xbmtopbm");
 	else
 	  cerr << "xbmtopbm not found (part of netpbm)\n";
       }
 
     } else if (strncmp(creator, "JPEG", 4)==0) {
-      boolean stdcmapppm_flag = OverlayKit::bincheck("stdcmapppm");
-      boolean djpeg_flag = OverlayKit::bincheck("djpeg");
+      static boolean stdcmapppm_flag = OverlayKit::bincheck("stdcmapppm");
+      static boolean djpeg_flag = OverlayKit::bincheck("djpeg");
       if (stdcmapppm_flag && djpeg_flag) {
 
 	if (pathname && !return_fd) {
@@ -1629,7 +1633,8 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	cerr << "djpeg (part of libjpeg) or stdcmapppm (part of ivtools) not found\n";
 
     } else if (strncmp(creator, "PNG", 3)==0) {
-      if (OverlayKit::bincheck("pngtopnm")) {
+      static boolean pngtopnm = OverlayKit::bincheck("pngtopnm");
+      if (pngtopnm) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)

@@ -1032,6 +1032,7 @@ void SelectFunc::execute() {
     }
       
     OverlaySelection* newSel = ((OverlayEditor*)_ed)->overlay_kit()->MakeSelection();
+    newSel->CopyFlags(sel);
     if (sel->HandlesDisabled()) {
       newSel->DisableHandles();
     }

@@ -28,6 +28,9 @@ int   TITLE = 0;
 #include <execinfo.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <sys/param.h>
+#include <unistd.h>
+#include <sys/time.h>
 
 void print_stack_trace() {
     void *buffer[10];
@@ -48,3 +51,42 @@ void print_stack_trace() {
     free(symbols);
 }
 
+const char* shell_string(const char* cmd) {
+    static char buffer[BUFSIZ];
+    FILE* fp = popen(cmd, "r");
+    if (fp) {
+        if (!fgets(buffer, BUFSIZ, fp))
+            buffer[0] = '\0';
+        buffer[strcspn(buffer, "\n")] = 0;  // strip newline
+        pclose(fp);
+    } else
+        buffer[0] = '\0';
+    return buffer;
+}
+
+const char* local_hostname() {
+    static char buffer[MAXHOSTNAMELEN];
+#ifdef __APPLE__
+    static const char* name = shell_string("scutil --get LocalHostName");
+    static bool ready = false;
+    if (!ready) {
+        strncpy(buffer, name, MAXHOSTNAMELEN);
+        strncat(buffer, ".local", MAXHOSTNAMELEN - strlen(buffer) - 1);
+	ready = true;
+    }
+    if (name && *name) 
+      return buffer;
+#endif
+    gethostname(buffer, MAXHOSTNAMELEN);
+    return buffer;
+}
+
+void log_with_timestamp(const char* msg) {
+  int n = strlen(msg);
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  fprintf(stderr, "[%ld.%06ld] %s", tv.tv_sec%100, (long)tv.tv_usec, msg);
+  if (msg[n-1]!='\n') {
+    fprintf(stderr, "\n");
+  }
+}

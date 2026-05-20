@@ -58,6 +58,7 @@
 #include <ComTerp/parsefunc.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/randfunc.h>
+#include <ComTerp/soundfunc.h>
 #include <ComTerp/statfunc.h>
 #include <ComTerp/strmfunc.h>
 #include <ComTerp/symbolfunc.h>
@@ -1424,6 +1425,9 @@ void ComTerp::add_defaults() {
     add_command("func", new FuncObjFunc(this));
     
     add_command("date", new DateFunc(this));
+
+    add_command("beep", new BeepFunc(this));
+    add_command("ding", new DingFunc(this));
 
   }
 }

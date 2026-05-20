@@ -191,18 +191,10 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       comterp_->load_string(inbuf);
 
       // this hides the logging of a ready command, interesting
-      #if 0
-      if (fd>0 && !comterp_->muted() && strncmp(inbuf, "ready", 5)!=0)
-	cerr << "(" << fd << "):  " << inbuf << "\n";
-      #else
-      if (fd>0 && !comterp_->muted() ) { // && strncmp(inbuf, "ready", 5)!=0)
+      if (fd>0 && !comterp_->muted() ) {
 	  struct timeval tv;
 	  log_command(inbuf, "<", (_alt_fd>-1 ? _alt_fd : fd));
-	  // ::gettimeofday(&tv, NULL);
-	  //cerr << "[" << tv.tv_sec%100 << "." << tv.tv_usec << "] <" << (_alt_fd>-1 ? _alt_fd : fd) << ":  " << inbuf << "\n";
       }
-      #endif
-
       
       comterp_->_fd = fd;
       comterp_->_outfunc = (outfuncptr)&ComTerpServ::fd_fputs;
@@ -282,9 +274,9 @@ ACE_Reactor* ComterpHandler::reactor_singleton() {
 }
 
 void ComterpHandler::log_command(const char* cmdstring, const char* fd_or_port_prefix, int fd_or_port) {
-  struct timeval tv;
-  ::gettimeofday(&tv, NULL);
-  fprintf(stderr, "[%ld.%06ld] %s%d: %s\n", tv.tv_sec%100, (long)tv.tv_usec, fd_or_port_prefix, fd_or_port, cmdstring);
+  char buffer[BUFSIZ];
+  snprintf(buffer, BUFSIZ, "%s%d: %s", fd_or_port_prefix, fd_or_port, cmdstring);
+  log_with_timestamp(buffer);
 }
 
 #endif /* HAVE_ACE */

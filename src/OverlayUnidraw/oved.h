@@ -175,6 +175,13 @@ public:
     OverlayKit* overlay_kit() { return _overlay_kit; }
     // return pointer to paired OverlayKit
 
+    void Beep();
+    // make alert/bell sound
+
+    void Ding();
+    // make confirmation/approval sound
+
+     
 protected:
     void Init(OverlayComp* = nil, const char* = "OverlayEditor");
     // construct empty component tree if necessary, and pass to
@@ -197,6 +204,7 @@ protected:
     // do nothing because this is not a ComEditor
     virtual void comterp(ComTerpServ* terp) { }
     // do nothing because this is not a ComEditor
+
 
 protected: 
     OverlayKit* _overlay_kit;

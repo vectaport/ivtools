@@ -34,6 +34,7 @@ Obj26(nfunc)
 Obj26(pixelcmds)
 Obj26(pixelfunc)
 Obj26(plotfunc)
+Obj26(soundfunc)
 Obj26(unifunc)
 
 #ifdef AceDir

@@ -57,4 +57,16 @@ friend class DrawKit;
 
 };
 
+#include <string>
+
+// utility function and macro for generated file:linenum string for debug purposes
+inline const char* fileline(const char* file, int line)
+{
+    static std::string buf;
+    buf = std::string(file) + ":" + std::to_string(line);
+    return buf.c_str();
+}
+
+#define FILELINE fileline(__FILE__, __LINE__)
+
 #endif
