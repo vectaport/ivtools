@@ -75,8 +75,7 @@ const char* local_hostname() {
         strncat(buffer, ".local", MAXHOSTNAMELEN - strlen(buffer) - 1);
 	ready = true;
     }
-    if (name && *name) 
-      return buffer;
+    if (ready) return buffer;
 #endif
     gethostname(buffer, MAXHOSTNAMELEN);
     return buffer;
