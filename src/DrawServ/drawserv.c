@@ -634,7 +634,6 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
       sel->request_resolved_check(true, FILELINE); // kaching upon 
       OverlayComp* comp = (OverlayComp*)grid->grcomp();
       sel->AddComp(comp);
-      sel->granted_count()++;
       grid_message(grid);
     }
 

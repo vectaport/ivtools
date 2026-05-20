@@ -197,7 +197,7 @@ void LinkSelection::Reserve() {
       } else {
 	if (grid->selected()!=LocallySelected) {
 	  grid->selected(WaitingToBeSelected);
-	  if (paste_in_progress_flag()) {
+	  if (!paste_in_progress_flag()) {
 	    waiting_count()++;
 	    wtbs_flag() = true;
 	  }

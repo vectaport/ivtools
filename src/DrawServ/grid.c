@@ -51,7 +51,6 @@ GraphicId::GraphicId (uuid_t sid)
   if (sid!=NULL && !uuid_is_null(sid)) {
     selector(sid);
   }
-  _beep_on_deny = false;
 
 #endif
 }

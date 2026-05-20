@@ -87,12 +87,6 @@ public:
   int selected() { return _selected; }
   // get selected state
 
-  void beep_on_deny(int state) { _beep_on_deny = state; }
-  // set beep_on_deny state
-
-  int beep_on_deny() { return _beep_on_deny; }
-  // get beep_on_deny state
-
 protected:
   uuid_t _id;
   uuid_string_t _id_str;
@@ -103,8 +97,6 @@ protected:
   int _selected;
   
   OverlayComp* _comp;
-
-  boolean _beep_on_deny;
 
 };
 
