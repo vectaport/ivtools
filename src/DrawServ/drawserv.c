@@ -632,10 +632,12 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
       
       fprintf(stderr, "grid:  request granted, add to selection now\n");
       LinkSelection* sel = (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
-      sel->request_resolved_check(true, FILELINE); // kaching upon 
-      OverlayComp* comp = (OverlayComp*)grid->grcomp();
-      sel->AddComp(comp);
-      grid_message(grid);
+      if (sel) {
+	sel->request_resolved_check(true, FILELINE); // kaching upon 
+	OverlayComp* comp = (OverlayComp*)grid->grcomp();
+	sel->AddComp(comp);
+	grid_message(grid);
+      }
     }
 
     /* otherwise, pass the granting message along */

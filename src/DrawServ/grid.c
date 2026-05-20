@@ -120,7 +120,7 @@ void GraphicId::grcomp(OverlayComp* comp) {
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
   if (_comp) {
     void* ptr = nil;
-    table->find_and_remove(ptr, comp);
+    table->find_and_remove(ptr, _comp);
   } 
   _comp = comp;
   table->insert((void*)comp, (void*)this);
