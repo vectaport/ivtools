@@ -31,6 +31,7 @@
 #include <DrawServ/grid.h>
 #include <DrawServ/gridlist.h>
 
+#include <OverlayUnidraw/ovcomps.h>
 #include <Unidraw/iterator.h>
 
 #include <stdlib.h>
@@ -113,6 +114,23 @@ uint32_t GraphicId::selectorkey() {
   return uuid_key(_selector);
 }
 
+void GraphicId::grcomp(OverlayComp* comp) {
+#ifdef HAVE_ACE
+  if (comp==_comp) return;
+  CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
+  if (_comp) {
+    void* ptr = nil;
+    table->find_and_remove(ptr, _comp);
+  } 
+  _comp = comp;
+  table->insert((void*)comp, (void*)this);
+#endif
+}
+
+const char* GraphicId::compclass() {
+  return grcomp() ? grcomp()->GetClassName() : "NOCOMP";
+}
+
 
 
 /*****************************************************************************/
@@ -140,15 +158,3 @@ GraphicIds::~GraphicIds ()
   _sublist = nil;
 }
 
-void GraphicId::grcomp(GraphicComp* comp) {
-#ifdef HAVE_ACE
-  if (comp==_comp) return;
-  CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
-  if (_comp) {
-    void* ptr = nil;
-    table->find_and_remove(ptr, comp);
-  } 
-  _comp = comp;
-  table->insert((void*)comp, (void*)this);
-#endif
-}

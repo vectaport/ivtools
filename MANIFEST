@@ -199,6 +199,8 @@ ivtools/src/ComTerp/scanner.c
 ivtools/src/ComTerp/scanner.h
 ivtools/src/ComTerp/socket.c
 ivtools/src/ComTerp/socket.h
+ivtools/src/ComTerp/soundfunc.c
+ivtools/src/ComTerp/soundfunc.h
 ivtools/src/ComTerp/statfunc.c
 ivtools/src/ComTerp/statfunc.h
 ivtools/src/ComTerp/strmfunc.c

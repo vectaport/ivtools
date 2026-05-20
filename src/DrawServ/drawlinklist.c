@@ -62,8 +62,6 @@ void DrawLinkList::add_drawlink(DrawLink* new_link) {
 DrawLink* DrawLinkList::find_drawlink(GraphicId* grid) {
 #ifdef HAVE_ACE
   void* ptr = nil;
-  // fprintf(stderr, "searching into SID TABLE with uuid_key(sid) of 0x%x\n", grid->selectorkey());
-  //  fprintf(stderr, "COMPARED TO %.8s\n", grid->selectorstr());
   ((DrawServ*)unidraw)->sessionidtable()->find(ptr, grid->selectorkey());
   SessionId* sessionid = (SessionId*)ptr;
   return (DrawLink*) (sessionid ? sessionid->drawlink() : nil);

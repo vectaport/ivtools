@@ -36,6 +36,7 @@
 #include <ComUnidraw/nfunc.h>
 #include <ComUnidraw/pixelfunc.h>
 #include <ComUnidraw/plotfunc.h>
+#include <ComUnidraw/soundfunc.h>
 
 #include <ComTerp/ctrlfunc.h>
 #include <ComTerp/comterpserv.h>
@@ -267,6 +268,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     #endif
 
     comterp->add_command("pointer", new PointerLocFunc(comterp, this));
+
+    comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
+    comterp->add_command("ding", new ComdrawDingFunc(comterp, this));
 }
 
 /* virtual */ void ComEditor::ExecuteCmd(Command* cmd) {

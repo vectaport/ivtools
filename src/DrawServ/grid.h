@@ -32,7 +32,7 @@
 #include <cstdint>
 
 class DrawLink;
-class GraphicComp;
+class OverlayComp;
 class GraphicIdList;
 
 //: object to encapsulate unique graphic id
@@ -63,11 +63,11 @@ public:
   virtual GraphicIdList* sublist() { return nil; }
   // returns pointer to sublist of GraphicId's, if any
 
-  void grcomp(GraphicComp* comp);
-  // set pointer to associated GraphicComp
+  void grcomp(OverlayComp* comp);
+  // set pointer to associated OverlayComp
 
-  GraphicComp* grcomp() { return _comp; }
-  // get pointer to associated GraphicComp
+  OverlayComp* grcomp() { return _comp; }
+  // get pointer to associated OverlayComp
 
   void selector(uuid_t sid);
   // set session id of current selector
@@ -87,6 +87,9 @@ public:
   int selected() { return _selected; }
   // get selected state
 
+  const char* compclass();
+  // return name of comp's class
+
 protected:
   uuid_t _id;
   uuid_string_t _id_str;
@@ -96,7 +99,7 @@ protected:
   
   int _selected;
   
-  GraphicComp* _comp;
+  OverlayComp* _comp;
 
 };
 

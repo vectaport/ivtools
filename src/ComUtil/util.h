@@ -594,4 +594,9 @@ unsigned long TIMER_READ();
 
 void print_stack_trace();
 
+const char* shell_string(const char* cmd);  // returns first line of output from shell command
+const char* local_hostname();               // returns fully qualified local hostname
+void log_with_timestamp(const char* msg);   // log timestamped message
+
+
 #endif /* not UTIL_INCLUDED */

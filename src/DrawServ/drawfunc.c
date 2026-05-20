@@ -45,6 +45,7 @@
 #include <Unidraw/Graphic/graphic.h>
 #include <Unidraw/Graphic/lines.h>
 #include <Unidraw/Graphic/verts.h>
+#include <IV-2_6/InterViews/world.h>
 
 #include <fstream.h>
 #include <cstdio>
@@ -272,7 +273,9 @@ void GraphicIdFunc::execute() {
   uuid_t selector;
   if (selectorv.is_string()) uuid_parse(selectorv.string_ptr(), selector); else uuid_clear(selector);
 
-  if (denyv.is_true()) {
+  LinkSelection* sel = (LinkSelection*)_ed->GetSelection();
+  
+ if (denyv.is_true()) {
     void* ptr = nil;
     ((DrawServ*)unidraw)->gridtable()->find(ptr, uuid_key(id));
     if (ptr) {
@@ -280,10 +283,11 @@ void GraphicIdFunc::execute() {
       grid->selected(LinkSelection::RemotelySelected);
       grid->selector(selector);
       fprintf(stderr, "grid: request denied\n");
+      if (sel) sel->request_resolved_check(false, FILELINE);
     }
     return;
   }
-  
+
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
 
@@ -314,6 +318,7 @@ void GraphicIdFunc::execute() {
   } else if (idv.is_unknown()) {
     ((DrawServ*)unidraw)->print_gridtable();
   }
+
 }
 
 #endif /* defined(HAVE_ACE) */
