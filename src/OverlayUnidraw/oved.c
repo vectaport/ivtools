@@ -81,6 +81,9 @@
 
 implementActionCallback(OverlayEditor)
 
+int OverlayEditor::_beep_count = 0;
+int OverlayEditor::_ding_count = 0;
+
 /*****************************************************************************/
 
 inline void InsertSeparator (PulldownMenu* pdm) {
@@ -412,10 +415,12 @@ void OverlayEditor::UpdateText(OverlayComp* comp, boolean update) {
 }
 
 void OverlayEditor::Beep() {
+    _beep_count++;
     unidraw->GetWorld()->RingBell(1);
 }
 
 void OverlayEditor::Ding() {
+    _ding_count++;
 #ifdef __APPLE__
     system("afplay /System/Library/Sounds/Funk.aiff &");
 #else
