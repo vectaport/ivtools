@@ -42,7 +42,6 @@ void BeepFunc::execute() {
     push_stack(retval);
     return;
   }
-  _beep_count++;
   static boolean afplay = bincheck("afplay");
   if (afplay)
     system("afplay /System/Library/Sounds/Pop.aiff &");
@@ -54,6 +53,7 @@ void BeepFunc::execute() {
       fclose(tty);
     }
   }
+  _beep_count++;
 }
 
 
@@ -71,7 +71,6 @@ void DingFunc::execute() {
     push_stack(retval);
     return;
   }
-  _ding_count++;
   static boolean afplay = bincheck("afplay");
   if (afplay)
       system("afplay /System/Library/Sounds/Funk.aiff &");
@@ -83,5 +82,6 @@ void DingFunc::execute() {
       fclose(tty);
     }
   }
+  _ding_count++;
 }
     
