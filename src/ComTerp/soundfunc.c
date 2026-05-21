@@ -25,24 +25,35 @@
 
 #define TITLE "SoundFunc"
 
+int BeepFunc::_beep_count = 0;
+int DingFunc::_ding_count = 0;
+
 /*****************************************************************************/
 
 BeepFunc::BeepFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void BeepFunc::execute() {
-    reset_stack();
-    static boolean afplay = bincheck("afplay");
-    if (afplay)
-      system("afplay /System/Library/Sounds/Pop.aiff &");
-    else {
-      FILE* tty = fopen("/dev/tty", "w");
-      if (tty) {
-        fputs("\a", tty);
-        fflush(tty);
-        fclose(tty);
-      }
+  static int count_sym = symbol_add("count");
+  ComValue countv(stack_key(count_sym));
+  reset_stack();
+  if (countv.is_true()) {
+    ComValue retval(_beep_count, ComValue::IntType);
+    push_stack(retval);
+    return;
+  }
+  static boolean afplay = bincheck("afplay");
+  if (afplay)
+    system("afplay /System/Library/Sounds/Pop.aiff &");
+  else {
+    FILE* tty = fopen("/dev/tty", "w");
+    if (tty) {
+      fputs("\a", tty);
+      fflush(tty);
+      fclose(tty);
     }
+  }
+  _beep_count++;
 }
 
 
@@ -52,17 +63,25 @@ DingFunc::DingFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void DingFunc::execute() {
-    reset_stack();
-    static boolean afplay = bincheck("afplay");
-    if (afplay)
+  static int count_sym = symbol_add("count");
+  ComValue countv(stack_key(count_sym));
+  reset_stack();
+  if (countv.is_true()) {
+    ComValue retval(_ding_count, ComValue::IntType);
+    push_stack(retval);
+    return;
+  }
+  static boolean afplay = bincheck("afplay");
+  if (afplay)
       system("afplay /System/Library/Sounds/Funk.aiff &");
-    else {
-      FILE* tty = fopen("/dev/tty", "w");
-      if (tty) {
-        fputs("\a\a\a", tty);
-        fflush(tty);
-        fclose(tty);
-      }
+  else {
+    FILE* tty = fopen("/dev/tty", "w");
+    if (tty) {
+      fputs("\a\a\a", tty);
+      fflush(tty);
+      fclose(tty);
     }
+  }
+  _ding_count++;
 }
     

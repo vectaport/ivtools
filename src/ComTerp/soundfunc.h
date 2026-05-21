@@ -40,7 +40,9 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s() -- beep sound"; }
+      return "[cnt]=%s(:count) -- beep sound"; }
+protected:
+  static int _beep_count;
 
 };
 
@@ -52,7 +54,9 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s() -- ding sound"; }
+      return "[cnt]=%s(:count) -- ding sound"; }
+protected:
+  static int _ding_count;
 
 };
 

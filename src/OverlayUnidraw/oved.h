@@ -181,7 +181,11 @@ public:
     void Ding();
     // make confirmation/approval sound
 
-     
+    static int beep_count() {return _beep_count;} 
+    // number of beeps so far
+    static int ding_count() {return _ding_count;} 
+    // number of dings so far
+
 protected:
     void Init(OverlayComp* = nil, const char* = "OverlayEditor");
     // construct empty component tree if necessary, and pass to
@@ -205,7 +209,6 @@ protected:
     virtual void comterp(ComTerpServ* terp) { }
     // do nothing because this is not a ComEditor
 
-
 protected: 
     OverlayKit* _overlay_kit;
     Tool* _curtool;
@@ -214,6 +217,8 @@ protected:
     EivTextEditor* _texteditor;
     static AttributeList* _edlauncherlist;
     static AttributeList* _comterplist;
+    static int _beep_count;
+    static int _ding_count;
 
 friend class OverlayKit;
 };

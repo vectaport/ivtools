@@ -34,7 +34,7 @@ public:
     ComdrawBeepFunc(ComTerp*, Editor*);
     virtual void execute();
     virtual const char* docstring() {
-        return "%s() -- ring bell to indicate error or failure";
+        return "[cnt]=%s(:count) -- ring bell to indicate error or failure";
     }
 };
 
@@ -45,7 +45,7 @@ public:
     ComdrawDingFunc(ComTerp*, Editor*);
     virtual void execute();
     virtual const char* docstring() {
-        return "%s() -- play success sound, cha-ching";
+        return "[cnt]=%s(:count) -- play success sound, cha-ching";
     }
 };
 

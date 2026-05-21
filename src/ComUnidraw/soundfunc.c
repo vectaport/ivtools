@@ -33,8 +33,15 @@ ComdrawBeepFunc::ComdrawBeepFunc(ComTerp* comterp, Editor* ed)
 }
 
 void ComdrawBeepFunc::execute() {
-    reset_stack();
-    ((OverlayEditor*)_ed)->Beep();
+  static int count_sym = symbol_add("count");
+  ComValue countv(stack_key(count_sym));
+  reset_stack();
+  if (countv.is_true()) {
+    ComValue retval(OverlayEditor::beep_count(), ComValue::IntType);
+    push_stack(retval);
+    return;
+  }
+  ((OverlayEditor*)_ed)->Beep();
 }
 
 /*****************************************************************************/
@@ -44,6 +51,13 @@ ComdrawDingFunc::ComdrawDingFunc(ComTerp* comterp, Editor* ed)
 }
 
 void ComdrawDingFunc::execute() {
-    reset_stack();
-    ((OverlayEditor*)_ed)->Ding();
+  static int count_sym = symbol_add("count");
+  ComValue countv(stack_key(count_sym));
+  reset_stack();
+  if (countv.is_true()) {
+    ComValue retval(OverlayEditor::ding_count(), ComValue::IntType);
+    push_stack(retval);
+    return;
+  }
+  ((OverlayEditor*)_ed)->Ding();
 }
