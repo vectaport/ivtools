@@ -1,0 +1,110 @@
+// src/comdraw/tests/pixelfunc.comt -- test peek/poke/pokeline tuple support
+//
+// Tests backward-compatible packed-int form and new r,g,b and r,g,b,a tuple
+// forms for poke() and pokeline().  peek() already returns a tuple and is
+// used here to verify round-trip correctness.
+//
+// Run from inside comdraw or drawserv:
+//   run("src/comdraw/tests/pixelfunc.comt")
+
+ok=true
+
+// --- setup: create a 4x4 black raster (auto-pasted by raster()) ---
+p=raster(0,0,64,64 :rgb 4,4,
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0))
+
+// --- test 1: legacy packed-int poke (red) ---
+poke(p 0 0 0xff0000)
+v=peek(p 0 0)
+ok=ok&&(at(v 0)>0.9&&at(v 1)<0.1&&at(v 2)<0.1)
+print("1 legacy red (expect ~1,0,0,1): %v\n" v)
+
+// --- test 2: rgb tuple poke (green) ---
+poke(p 1 0 (0.0,1.0,0.0))
+v=peek(p 1 0)
+ok=ok&&(at(v 0)<0.1&&at(v 1)>0.9&&at(v 2)<0.1)
+print("2 tuple green (expect 0,1,0,1): %v\n" v)
+
+/*
+// --- test 3: rgba tuple poke (blue, half alpha) ---
+poke(p 2 0 (0.0,0.0,1.0,0.5))
+v=peek(p 2 0)
+ok=ok&&(at(v 0)<0.1&&at(v 2)>0.9&&at(v 3)>0.4&&at(v 3)<0.6)
+print("3 tuple blue+alpha (expect 0,0,1,0.5): %v\n" v)
+*/
+
+// --- test 4: short tuple -- should return nil, not crash ---
+result=poke(p 3 0 (0.5,0.5))
+ok=ok&&(result==nil)
+print("4 short tuple (expect nil): %v\n" result)
+
+// --- test 5: pokeline with flat legacy ints ---
+pokeline(p 0 1 (0xff0000,0x00ff00,0x0000ff,0xffffff))
+v=peek(p 0 1)
+ok=ok&&(at(v 0)>0.9&&at(v 1)<0.1)
+print("5a pokeline legacy red   (expect ~1,0,0,1): %v\n" v)
+v=peek(p 1 1)
+ok=ok&&(at(v 0)<0.1&&at(v 1)>0.9)
+print("5b pokeline legacy green (expect ~0,1,0,1): %v\n" v)
+v=peek(p 2 1)
+ok=ok&&(at(v 0)<0.1&&at(v 2)>0.9)
+print("5c pokeline legacy blue  (expect ~0,0,1,1): %v\n" v)
+v=peek(p 3 1)
+ok=ok&&(at(v 0)>0.9&&at(v 1)>0.9&&at(v 2)>0.9)
+print("5d pokeline legacy white (expect ~1,1,1,1): %v\n" v)
+
+// --- test 6: pokeline with list of rgb tuples ---
+pokeline(p 0 2 ((1.0,0.0,0.0),(0.0,1.0,0.0),(0.0,0.0,1.0),(1.0,1.0,0.0)))
+v=peek(p 0 2)
+ok=ok&&(at(v 0)>0.9&&at(v 1)<0.1&&at(v 2)<0.1)
+print("6a pokeline tuple red    (expect 1,0,0,1): %v\n" v)
+v=peek(p 1 2)
+ok=ok&&(at(v 0)<0.1&&at(v 1)>0.9&&at(v 2)<0.1)
+print("6b pokeline tuple green  (expect 0,1,0,1): %v\n" v)
+v=peek(p 2 2)
+ok=ok&&(at(v 0)<0.1&&at(v 1)<0.1&&at(v 2)>0.9)
+print("6c pokeline tuple blue   (expect 0,0,1,1): %v\n" v)
+v=peek(p 3 2)
+ok=ok&&(at(v 0)>0.9&&at(v 1)>0.9&&at(v 2)<0.1)
+print("6d pokeline tuple yellow (expect 1,1,0,1): %v\n" v)
+
+/*
+// --- test 7: pokeline with list of rgba tuples ---
+pokeline(p 0 3 ((1.0,0.0,0.0,1.0),(0.0,1.0,0.0,0.5),(0.0,0.0,1.0,0.25),(0.5,0.5,0.5,0.0)))
+v=peek(p 0 3)
+ok=ok&&(at(v 0)>0.9&&at(v 3)>0.9)
+print("7a pokeline rgba red      (expect 1,0,0,1):       %v\n" v)
+v=peek(p 1 3)
+ok=ok&&(at(v 1)>0.9&&at(v 3)>0.4&&at(v 3)<0.6)
+print("7b pokeline rgba green    (expect 0,1,0,0.5):     %v\n" v)
+v=peek(p 2 3)
+ok=ok&&(at(v 2)>0.9&&at(v 3)>0.2&&at(v 3)<0.3)
+print("7c pokeline rgba blue     (expect 0,0,1,0.25):    %v\n" v)
+v=peek(p 3 3)
+ok=ok&&(at(v 3)<0.1)
+print("7d pokeline rgba gray     (expect 0.5,0.5,0.5,0): %v\n" v)
+*/
+
+/*
+// --- test 8: short tuple in pokeline list -- skipped, neighbors unaffected ---
+pokeline(p 0 0 ((1.0,1.0,1.0),(0.5),(0.0,0.0,0.0)))
+v=peek(p 0 0)
+ok=ok&&(at(v 0)>0.9&&at(v 1)>0.9&&at(v 2)>0.9)
+print("8a short tuple skipped, px0 white (expect 1,1,1,1):  %v\n" v)
+v=peek(p 1 0)
+ok=ok&&(at(v 0)>0.9&&at(v 1)<0.1)
+print("8b short tuple skipped, px1 red   (expect ~1,0,0,1): %v\n" v)
+v=peek(p 2 0)
+ok=ok&&(at(v 0)<0.1&&at(v 1)<0.1&&at(v 2)<0.1)
+print("8c short tuple skipped, px2 black (expect 0,0,0,1):  %v\n" v)
+*/
+
+// --- flush and display ---
+pflush(p)
+update()
+
+print("pixelfunc: %v\n" ok)
+ok
