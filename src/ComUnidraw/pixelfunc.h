@@ -27,8 +27,8 @@
 #include <ComUnidraw/unifunc.h>
 
 //: command to poke a line of pixel values into raster
-// pokeline(compview x y vallist) -- poke pixel values of a line listed in vallist into raster.
-
+// pokeline(compview x y vallist) -- poke list of values into a raster line
+//   (each val is packed 0xRRGGBB int, or r,g,b,a tuple of floats in [0.0,1.0])
 class PixelPokeLineFunc : public UnidrawFunc {
  public:
   PixelPokeLineFunc(ComTerp*,Editor*);
@@ -39,7 +39,8 @@ class PixelPokeLineFunc : public UnidrawFunc {
 };
 
 //: command to poke pixel values into raster
-// poke(compview x y val) -- poke pixel value into raster
+//  poke(compview x y val|r,g,b|r,g,b,a) -- poke pixel value into raster
+//    (val is packed 0xRRGGBB int, or r,g,b,a tuple of floats in [0.0,1.0])
 class PixelPokeFunc : public UnidrawFunc {
 public:
     PixelPokeFunc(ComTerp*,Editor*);
