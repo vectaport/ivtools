@@ -170,6 +170,10 @@ public:
     // set flag that will cause a quit to happen as soon as possible.
     boolean quitflag();
     // return value of flag that will cause a quit to happen as soon as possible.
+    void returnflag(boolean flag) { _returnflag = flag; }
+    // set flag that will cause runfile() to stop and return current value.
+    boolean returnflag() { return _returnflag; }
+    // return value of flag set by return() command.
     virtual void exit(int status=0);
     // call _exit().
 
@@ -354,6 +358,7 @@ protected:
     int _stack_top; // current top of stack, -1 indicates empty
     unsigned int _stack_siz; // current maximum stack size
     boolean _quitflag; // flag that can be set to terminate interpreter
+    boolean _returnflag; // flag set by return() to unwind to runfile() boundary
     char* _errbuf; // buffer used for rendering error messages
     char* _errbuf2; // ancillary buffer for rendering error messages
     int _pfoff; // current offset in _pfbuf

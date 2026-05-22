@@ -159,6 +159,17 @@ public:
 
 };
 
+//: return command
+class ReturnFunc : public ComFunc {
+public:
+    ReturnFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "return([retval]) -- return from func or file, with optional return value"; }
+
+};
+
 //: switch command for ComTerp.
 // switch(val key-body-pairs) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
 class SwitchFunc : public ComFunc {

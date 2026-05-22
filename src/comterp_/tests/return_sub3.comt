@@ -1,0 +1,4 @@
+// return from inside a for loop -- expect 3
+for(i=0 i<10 i++
+  if(i==3 :then return(i)))
+print("should not reach here")

@@ -1,0 +1,41 @@
+// src/comterp_/tests/return.comt -- test return() command
+//
+// Tests early return from .comt scripts with and without a return value,
+// and from inside loops.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/return.comt")
+
+ok=true
+
+// --- test 1: return with value ---
+val=run("return_sub1.comt")
+ok=ok&&(val==42)
+print("1 return with value (expect 42): %v\n\n" val)
+
+// --- test 2: return with no value returns blank ---
+val=run("return_sub2.comt")
+ok=ok&&(type(val)==`BlankType)
+print("2 return no value (expect nil/blank): %v\n\n" type(val))
+
+// --- test 3: return from inside a for loop ---
+val=run("return_sub3.comt")
+ok=ok&&(val==3)
+print("3 return from for loop (expect 3): %v\n\n" val)
+
+// --- test 4: return from inside a while loop ---
+val=run("return_sub4.comt")
+ok=ok&&(val==7)
+print("4 return from while loop (expect 7): %v\n\n" val)
+
+
+// --- test 5: return from user-defined func ---
+f=func(if(x>5 :then return(x*2)))
+v=f(:x 6)
+ok=ok&&(v==12)
+print("5a func return early (expect 12): %v\n" v)
+v=f(:x 3)
+ok=ok&&(v==nil||v==0)
+print("5b func no early return (expect nil/blank): %v\n\n" v)
+
+ok

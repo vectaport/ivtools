@@ -20,26 +20,26 @@ p=raster(0,0,64,64 :rgb 4,4,
 poke(p 0 0 0xff0000)
 v=peek(p 0 0)
 ok=ok&&(at(v 0)>0.9&&at(v 1)<0.1&&at(v 2)<0.1)
-print("1 legacy red (expect ~1,0,0,1): %v\n" v)
+print("1 legacy red (expect ~1,0,0,1): %v\n\n" v)
 
 // --- test 2: rgb tuple poke (green) ---
 poke(p 1 0 (0.0,1.0,0.0))
 v=peek(p 1 0)
 ok=ok&&(at(v 0)<0.1&&at(v 1)>0.9&&at(v 2)<0.1)
-print("2 tuple green (expect 0,1,0,1): %v\n" v)
+print("2 tuple green (expect 0,1,0,1): %v\n\n" v)
 
 /*
 // --- test 3: rgba tuple poke (blue, half alpha) ---
 poke(p 2 0 (0.0,0.0,1.0,0.5))
 v=peek(p 2 0)
 ok=ok&&(at(v 0)<0.1&&at(v 2)>0.9&&at(v 3)>0.4&&at(v 3)<0.6)
-print("3 tuple blue+alpha (expect 0,0,1,0.5): %v\n" v)
+print("3 tuple blue+alpha (expect 0,0,1,0.5): %v\n\n" v)
 */
 
 // --- test 4: short tuple -- should return nil, not crash ---
 result=poke(p 3 0 (0.5,0.5))
 ok=ok&&(result==nil)
-print("4 short tuple (expect nil): %v\n" result)
+print("4 short tuple (expect nil): %v\n\n" result)
 
 // --- test 5: pokeline with flat legacy ints ---
 pokeline(p 0 1 (0xff0000,0x00ff00,0x0000ff,0xffffff))
@@ -54,7 +54,7 @@ ok=ok&&(at(v 0)<0.1&&at(v 2)>0.9)
 print("5c pokeline legacy blue  (expect ~0,0,1,1): %v\n" v)
 v=peek(p 3 1)
 ok=ok&&(at(v 0)>0.9&&at(v 1)>0.9&&at(v 2)>0.9)
-print("5d pokeline legacy white (expect ~1,1,1,1): %v\n" v)
+print("5d pokeline legacy white (expect ~1,1,1,1): %v\n\n" v)
 
 // --- test 6: pokeline with list of rgb tuples ---
 pokeline(p 0 2 ((1.0,0.0,0.0),(0.0,1.0,0.0),(0.0,0.0,1.0),(1.0,1.0,0.0)))
@@ -69,7 +69,7 @@ ok=ok&&(at(v 0)<0.1&&at(v 1)<0.1&&at(v 2)>0.9)
 print("6c pokeline tuple blue   (expect 0,0,1,1): %v\n" v)
 v=peek(p 3 2)
 ok=ok&&(at(v 0)>0.9&&at(v 1)>0.9&&at(v 2)<0.1)
-print("6d pokeline tuple yellow (expect 1,1,0,1): %v\n" v)
+print("6d pokeline tuple yellow (expect 1,1,0,1): %v\n\n" v)
 
 /*
 // --- test 7: pokeline with list of rgba tuples ---
@@ -85,7 +85,7 @@ ok=ok&&(at(v 2)>0.9&&at(v 3)>0.2&&at(v 3)<0.3)
 print("7c pokeline rgba blue     (expect 0,0,1,0.25):    %v\n" v)
 v=peek(p 3 3)
 ok=ok&&(at(v 3)<0.1)
-print("7d pokeline rgba gray     (expect 0.5,0.5,0.5,0): %v\n" v)
+print("7d pokeline rgba gray     (expect 0.5,0.5,0.5,0): %v\n\n" v)
 */
 
 /*
@@ -99,7 +99,7 @@ ok=ok&&(at(v 0)>0.9&&at(v 1)<0.1)
 print("8b short tuple skipped, px1 red   (expect ~1,0,0,1): %v\n" v)
 v=peek(p 2 0)
 ok=ok&&(at(v 0)<0.1&&at(v 1)<0.1&&at(v 2)<0.1)
-print("8c short tuple skipped, px2 black (expect 0,0,0,1):  %v\n" v)
+print("8c short tuple skipped, px2 black (expect 0,0,0,1):  %v\n\n" v)
 */
 
 // --- flush and display ---

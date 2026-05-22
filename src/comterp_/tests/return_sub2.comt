@@ -1,0 +1,3 @@
+// return with no argument
+return()
+print("should not reach here")
