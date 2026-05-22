@@ -254,6 +254,7 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   while (_pfoff < _pfnum) {
     load_sub_expr();
     eval_expr_internals();
+    if (returnflag()) break;
   }
 
   pop_servstate();
@@ -1150,6 +1151,15 @@ int ComTerp::run(boolean one_expr, boolean nested) {
       status = 0;
       int top_before = _stack_top;
       eval_expr(nested);
+
+      if (returnflag()) {
+        returnflag(false);  // return() at prompt: clear and ignore
+        err_str(_errbuf, BUFSIZ, "comterp");  // clear any error state
+        _errbuf[0] = '\0';
+        if (one_expr) break;
+        continue;
+      }
+
       if (top_before == _stack_top)
 	status = 2;
       err_str( _errbuf, BUFSIZ, "comterp" );
