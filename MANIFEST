@@ -956,6 +956,7 @@ ivtools/src/Unidraw/viewer.c
 ivtools/src/comdraw/Imakefile
 ivtools/src/comdraw/Makefile
 ivtools/src/comdraw/main.c
+ivtools/src/comdraw/tests/pixelfunc.comt
 ivtools/src/comterp_/Imakefile
 ivtools/src/comterp_/Makefile
 ivtools/src/comterp_/main.c

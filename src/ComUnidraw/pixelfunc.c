@@ -49,21 +49,12 @@ void PixelPokeLineFunc::execute() {
   int xval = xv.int_val();
   int yval = yv.int_val();
   
-  if(!vallistv.is_type(ComValue::ArrayType) || vallistv.array_len() <= 1){
+  if(!vallistv.is_type(ComValue::ArrayType) || vallistv.array_len() <= 0){
     reset_stack();
     push_stack(ComValue::nullval());
     return;
   }
 
-  ALIterator i;
-  AttributeValueList* avl = vallistv.array_val();
-  avl->First(i);
-  int wval = avl->Number();
-  int pixelvals[wval];
-  for (int j=0; j<wval && !avl->Done(i); j++){
-    pixelvals[j]= avl->GetAttrVal(i)->int_val();
-    avl->Next(i);
-  }
   reset_stack();
   
   RasterOvComp* rastcomp = (RasterOvComp*) rastcompv.geta(RasterOvComp::class_symid());
@@ -71,13 +62,39 @@ void PixelPokeLineFunc::execute() {
   OverlayRaster* raster = rastrect ? rastrect->GetOriginal() : nil;
   
   if (raster) {
-    for(int j=0; j<wval; j++){
-      ColorIntensity r,g,b;
-      int pixelcolor = pixelvals[j];
-      char colorname[8];
-      sprintf(colorname,"#%06x",pixelcolor);
-      Color::find(World::current()->display(),colorname, r, g, b);
-      raster->poke(xval+j, yval, r, g, b, 1.0);
+    ALIterator i;
+    AttributeValueList* avl = vallistv.array_val();
+    avl->First(i);
+    int wval = avl->Number();
+
+    for (int j = 0; j < wval && !avl->Done(i); j++) {
+      AttributeValue* elem = avl->GetAttrVal(i);
+      avl->Next(i);
+
+      ColorIntensity r, g, b;
+      float alpha = 1.0;
+
+      if (elem->is_array()) {
+        // tuple form: r,g,b or r,g,b,alpha  (values in 0.0..1.0)
+        AttributeValueList* tavl = elem->array_val();
+        int n = tavl->Number();
+        if (n < 3) continue;
+        ALIterator ti;
+        tavl->First(ti);
+        r = (ColorIntensity) tavl->GetAttrVal(ti)->float_val(); tavl->Next(ti);
+        g = (ColorIntensity) tavl->GetAttrVal(ti)->float_val(); tavl->Next(ti);
+        b = (ColorIntensity) tavl->GetAttrVal(ti)->float_val(); tavl->Next(ti);
+        if (n >= 4 && !tavl->Done(ti))
+          alpha = tavl->GetAttrVal(ti)->float_val();
+      } else {
+        // legacy packed-int form: 0xRRGGBB
+        int pixelcolor = elem->int_val();
+        char colorname[8];
+        sprintf(colorname,"#%06x",pixelcolor);
+        Color::find(World::current()->display(),colorname, r, g, b);
+      }
+
+      raster->poke(xval+j, yval, r, g, b, alpha);
     }
     push_stack(rastcompv);
   } 
@@ -104,17 +121,36 @@ void PixelPokeFunc::execute() {
   OverlayRaster* raster = rastrect ? rastrect->GetOriginal() : nil;
 
   if (raster) {
-    ColorIntensity r,g,b;
-    int pixelcolor = valv.int_val();
-    char colorname[8];
-    sprintf(colorname,"#%06x",pixelcolor);
-    Color::find(World::current()->display(),colorname, r, g, b);
-    raster->poke(xv.int_val(), yv.int_val(), r, g, b, 1.0);
+    ColorIntensity r, g, b;
+    float alpha = 1.0;
+
+    if (valv.is_array()) {
+      // tuple form: r,g,b or r,g,b,alpha  (values in 0.0..1.0)
+      AttributeValueList* avl = valv.array_val();
+      int n = avl->Number();
+      if (n < 3) {
+        push_stack(ComValue::nullval());
+        return;
+      }
+      ALIterator it;
+      avl->First(it);
+      r = (ColorIntensity) avl->GetAttrVal(it)->float_val(); avl->Next(it);
+      g = (ColorIntensity) avl->GetAttrVal(it)->float_val(); avl->Next(it);
+      b = (ColorIntensity) avl->GetAttrVal(it)->float_val(); avl->Next(it);
+      if (n >= 4 && !avl->Done(it))
+        alpha = avl->GetAttrVal(it)->float_val();
+    } else {
+      // legacy packed-int form: 0xRRGGBB
+      int pixelcolor = valv.int_val();
+      char colorname[8];
+      sprintf(colorname,"#%06x",pixelcolor);
+      Color::find(World::current()->display(),colorname, r, g, b);
+    }
+
+    raster->poke(xv.int_val(), yv.int_val(), r, g, b, alpha);
     push_stack(rastcompv);
   } else 
     push_stack(ComValue::nullval());
-
-
 }
 
 /*****************************************************************************/

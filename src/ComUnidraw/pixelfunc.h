@@ -34,7 +34,7 @@ class PixelPokeLineFunc : public UnidrawFunc {
   PixelPokeLineFunc(ComTerp*,Editor*);
   virtual void execute();
   virtual const char* docstring() {
-    return "%s(compview x y vallist) -- poke list of values into a raster line.";
+    return "%s(compview x y vallist) -- poke list of values into a raster line (each val is packed 0xRRGGBB int, or r,g,b,a tuple of floats in [0.0,1.0]).";
   }
 };
 
@@ -45,7 +45,7 @@ public:
     PixelPokeFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(compview x y val) -- poke pixel value into raster"; }
+	return "%s(compview x y val|r,g,b|r,g,b,a) -- poke pixel value into raster (val is packed 0xRRGGBB int, or r,g,b,a tuple of floats in [0.0,1.0])"; }
 };
 
 //: command to peek pixel values from raster
