@@ -138,6 +138,7 @@ void ComTerp::init() {
     _pfoff = 0;
     _pfnum = 0;
     _quitflag = false;
+    _returnflag = false;
 
     _pfcomvals = nil;
 
@@ -234,6 +235,9 @@ int ComTerp::eval_expr(boolean nested) {
   while (_pfoff < _pfnum) {
     load_sub_expr();
     eval_expr_internals();
+    if (returnflag()) {
+      break;
+    }
   }
   return FUNCOK;
 }
@@ -250,6 +254,7 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   while (_pfoff < _pfnum) {
     load_sub_expr();
     eval_expr_internals();
+    if (returnflag()) break;
   }
 
   pop_servstate();
@@ -1146,6 +1151,15 @@ int ComTerp::run(boolean one_expr, boolean nested) {
       status = 0;
       int top_before = _stack_top;
       eval_expr(nested);
+
+      if (returnflag()) {
+        returnflag(false);  // return() at prompt: clear and ignore
+        err_str(_errbuf, BUFSIZ, "comterp");  // clear any error state
+        _errbuf[0] = '\0';
+        if (one_expr) break;
+        continue;
+      }
+
       if (top_before == _stack_top)
 	status = 2;
       err_str( _errbuf, BUFSIZ, "comterp" );
@@ -1429,6 +1443,8 @@ void ComTerp::add_defaults() {
     add_command("beep", new BeepFunc(this));
     add_command("ding", new DingFunc(this));
 
+    add_command("return", new ReturnFunc(this));
+
   }
 }
 
@@ -1472,6 +1488,9 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
 	    } else if (quitflag()) {
 	        status = 1;
 	        break;
+	    } else if (returnflag()) {
+	        retval = new ComValue(pop_stack());
+	        break;
 	    } else {
 	        /* save last thing on stack */
 	        retval = new ComValue(pop_stack());
@@ -1482,6 +1501,8 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
         pclose(fptr);
     else
         fclose(fptr);
+
+    returnflag(false);
 
     pop_servstate();
 

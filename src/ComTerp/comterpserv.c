@@ -255,6 +255,7 @@ int ComTerpServ::run(boolean one_expr, boolean nested) {
     _errfunc = (errfuncptr)&ComTerpServ::s_ferror;
     _outptr = this;
     _outfunc = (outfuncptr)&ComTerpServ::s_fputs;
+    returnflag(false);
     return status;
 }
 
@@ -307,7 +308,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
             load_string(inbuf);
         else
             increment_linenum();
-    	if (*inbuf && (last_status=read_expr())) {
+       if (*inbuf && (last_status=read_expr())) {
 #if defined(TIMING_TEST)
 	    static int initialized=0;
 	    if (!initialized) {
@@ -338,6 +339,12 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
                 delete retval; retval = nil; // remove prior retval
 	        status = 1;
 	        break;
+	    } else if (returnflag()) {
+	        status = 0;
+		if(retval) delete retval;
+	        retval = new ComValue(pop_stack());
+		returnflag(false);
+	        break;
 	    } else if (!func_for_next_expr() && val_for_next_func().is_null() /* && muted()!=1 */) {
 #if defined(TIMING_TEST)
 	        gettimeofday(&tvAfter, NULL);
@@ -361,17 +368,20 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 		}
 	    }
 
-	    
-	} else 	if (*inbuf) {
-          char buf[BUFSIZ];
-          snprintf(buf, BUFSIZ, "comterp(%s)", filename);
-	  err_print( stderr, buf );
-          FILE* ofptr = handler() ? handler()->wrfptr() : stdout; 
-	  fputs(buf, ofptr);
-      	  if (ofptr!=stdout) fclose(ofptr);
-	  status = -1;
+       } else 	if (*inbuf) {
+	 status = -1;
+	 char errbuf[BUFSIZ];
+	 errbuf[0] = '\0';
+	 char location[BUFSIZ];
+	 snprintf(location, BUFSIZ, "error in %s:%d", filename, _linenum);
+	 err_str(errbuf, BUFSIZ, location);
+	 if (*errbuf) {
+	   fprintf(stderr, "%s\n", errbuf);   // instead of err_print
+	   FILE* ofptr = handler() ? handler()->wrfptr() : stdout;
+	   fputs(errbuf, ofptr);
+	   // if (ofptr != stdout) fclose(ofptr);
+	 }
 	}
-
     }
 
     if(last_status==0 && *inbuf) {
@@ -422,6 +432,7 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     }
 
     pop_servstate();
+    returnflag(false);
 
     return (*_errbuf || status!=FUNCOK) ? ComValue::nullval() : pop_stack();
 }
@@ -448,6 +459,7 @@ ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _pfoff = 0;
     pop_servstate();
 
+    returnflag(false);
     return retval;
 }
 

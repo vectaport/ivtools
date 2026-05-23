@@ -1,0 +1,7 @@
+// src/comterp/tests/hello.comt -- hello world test script
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp/tests/hello.comt")
+
+print("hello world\n")
+true

@@ -1,0 +1,21 @@
+// src/comterp/tests/run_all.comt -- run all comterp tests
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp/tests/run_all.comt")
+
+ok=true
+
+if(run("./hello.comt")
+  :then printf("pass: hello\n")
+  :else printf("FAIL: hello\n");ok=false)
+
+if(run("./return.comt")
+  :then printf("pass: return\n")
+  :else printf("FAIL: return\n");ok=false)
+
+if(run("./stream.comt")
+  :then printf("pass: stream\n")
+  :else printf("FAIL: stream\n");ok=false)
+
+printf("\nrun_all: %v\n" ok)
+ok

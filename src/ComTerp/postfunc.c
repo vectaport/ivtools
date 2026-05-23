@@ -160,7 +160,7 @@ void ForFunc::execute() {
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
   if (nargsfixed()>4) fprintf(stderr, "Unexpected for loop with more than one body\n");
-  while (!SeqFunc::breakflag() && !comterp()->quitflag()) {
+  while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
     
     ComValue whileexpr(stack_arg_post_eval(1));
@@ -198,7 +198,7 @@ void WhileFunc::execute() {
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
   ComValue* bodyexpr = nil;
   if (nargsfixed()>2) fprintf(stderr, "Unexpected while loop with more than one body\n");
-  while (!SeqFunc::breakflag() && !comterp()->quitflag()) {
+  while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
     if (untilflag.is_false()) {
       ComValue doneexpr(stack_arg_post_eval(0));
@@ -231,7 +231,7 @@ SeqFunc::SeqFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void SeqFunc::execute() {
     ComValue arg1(stack_arg_post_eval(0, true));
-    if (SeqFunc::continueflag() || SeqFunc::breakflag() || comterp()->quitflag()) {
+    if (SeqFunc::continueflag() || SeqFunc::breakflag() || comterp()->returnflag() || comterp()->quitflag()) {
       reset_stack();
       push_stack(arg1);       
     }
@@ -268,6 +268,21 @@ void BreakFunc::execute() {
   reset_stack();
 
   SeqFunc::breakflag(1);
+
+  push_stack(retval);
+  return;
+}
+
+/*****************************************************************************/
+
+ReturnFunc::ReturnFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ReturnFunc::execute() {
+  ComValue retval(stack_arg(0, true, ComValue::blankval()));
+  reset_stack();
+
+  comterp()->returnflag(true);
 
   push_stack(retval);
   return;

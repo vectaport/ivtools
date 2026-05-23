@@ -1,0 +1,6 @@
+// return from inside a while loop -- expect 7
+i=0
+while(i<20
+  i++;
+  if(i==7 :then return(i)))
+print("should not reach here")

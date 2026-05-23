@@ -134,7 +134,7 @@ public:
       return "val=%s(stream :skim) -- return next value from stream, don't recurse if :skim"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":skim      do not recurse into nexted streams",
+	":skim      do not recurse into nested streams",
 	nil
       };
       return keys;
