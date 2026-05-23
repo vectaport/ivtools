@@ -154,6 +154,31 @@ void DrawLinkFunc::execute() {
     }
 	
     link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
+
+    /* wait for two_way handshake to complete */
+    if (link && statenum == DrawLink::new_link) {
+      static int max_wait_usec = 5000000;  // 5 second overall timeout
+      static int slice_usec    =    5000;  // 5ms per slice
+      int elapsed = 0;
+      
+      long oldsec, oldusec;
+      ((OverlayUnidraw*)unidraw)->get_timeout(oldsec, oldusec);
+      
+      while (link->state() != DrawLink::two_way && elapsed < max_wait_usec) {
+        ((OverlayUnidraw*)unidraw)->set_timeout(0, slice_usec);
+        ((OverlayUnidraw*)unidraw)->Run();
+        elapsed += slice_usec;
+      }
+      
+      ((OverlayUnidraw*)unidraw)->set_timeout(oldsec, oldusec);
+      
+      if (link->state() != DrawLink::two_way) {
+        fprintf(stderr, "drawlink: timed out waiting for two_way handshake\n");
+        ((DrawServ*)unidraw)->linkdown(link);
+        push_stack(ComValue::nullval());
+        return;
+      }
+    }
   } 
   
   /* set state to complete linkup */
