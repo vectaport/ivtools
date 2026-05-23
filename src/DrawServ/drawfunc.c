@@ -177,6 +177,7 @@ void DrawLinkFunc::execute() {
         fprintf(stderr, "drawlink: timed out waiting for two_way handshake\n");
         ((DrawServ*)unidraw)->linkdown(link);
         push_stack(ComValue::nullval());
+	Resource::unref(link); // unreference here because Run calls are done
         return;
       }
     }

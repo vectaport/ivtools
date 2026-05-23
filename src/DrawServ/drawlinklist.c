@@ -139,7 +139,6 @@ void DrawLinkList::Remove (DrawLink* p) {
 DrawLink* DrawLinkList::GetDrawLink (Iterator i) { return Link(Elem(i)); }
 
 void DrawLinkList::SetDrawLink (DrawLink* dl, Iterator& i) {
-    Resource::ref(dl);
     i.SetValue(_ulist->Find(dl));
 }
 
