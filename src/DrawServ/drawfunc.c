@@ -154,11 +154,12 @@ void DrawLinkFunc::execute() {
     }
 	
     link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
+    Resource::ref(link); // reference here if calling Run makes linkdown()
 
     /* wait for two_way handshake to complete */
     if (link && statenum == DrawLink::new_link) {
-      static int max_wait_usec = 5000000;  // 5 second overall timeout
-      static int slice_usec    =    5000;  // 5ms per slice
+      static const int max_wait_usec = 5000000;  // 5 second overall timeout
+      static const int slice_usec    =    5000;  // 5ms per slice
       int elapsed = 0;
       
       long oldsec, oldusec;
@@ -179,6 +180,7 @@ void DrawLinkFunc::execute() {
         return;
       }
     }
+    Resource::unref(link); // unreference here because Run calls are done
   } 
   
   /* set state to complete linkup */

@@ -22,7 +22,9 @@
  */
 
 #include <DrawServ/drawclasses.h>
+#include <DrawServ/drawlink.h>
 #include <DrawServ/drawlinkcomp.h>
+#include <InterViews/resource.h>
 
 /****************************************************************************/
 
@@ -31,10 +33,12 @@ int DrawLinkComp::_symid = -1;
 
 DrawLinkComp::DrawLinkComp(DrawLink* link) : OverlayComp() {
   _drawlink = link;
+  Resource::ref(_drawlink);
   _gr = nil;
 }
 
 DrawLinkComp::~DrawLinkComp() {
+  Resource::unref(_drawlink);
 }
 
 Component* DrawLinkComp::Copy() {

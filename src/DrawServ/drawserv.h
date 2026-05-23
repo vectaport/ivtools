@@ -74,9 +74,6 @@ public:
 		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil);
   // Create new link to remote drawserv, return -1 if error
   // state: 0==new_link, 1==one_way, 2==two_way.
-  // Let DrawLink assign local_id by passing -1 for local_id.
-  // The local_id argument is for verification purposes once
-  // two-way link is established.
   
   int linkdown(DrawLink* link);
   // shut down existing link to remote drawserv

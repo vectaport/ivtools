@@ -41,7 +41,7 @@ public:
 
   DrawLink* drawlink() { return _drawlink; }
   // get DrawLink associated with this handler
-  void drawlink(DrawLink* link) { _drawlink = link; }
+  void drawlink(DrawLink* link);
   // set DrawLink associated with this handler
 
   virtual void destroy (void);

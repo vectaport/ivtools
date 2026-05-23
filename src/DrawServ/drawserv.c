@@ -210,10 +210,11 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
 
 int DrawServ::linkdown(DrawLink* link) {
   if (link && _linklist->Includes(link)) {
+    Resource::ref(link);  // stops _linklist->Remove from deleting it right away
     _linklist->Remove(link);
     link->close();
     remove_sids(link);
-    delete link;
+    Resource::unref(link);
     return 0;
   } else
     return -1;

@@ -57,6 +57,7 @@ void DrawLinkList::add_drawlink(DrawLink* new_link) {
   Iterator i;
   First(i);
   InsertBefore(i, new_link);
+  Resource::ref(new_link);
 }
 
 DrawLink* DrawLinkList::find_drawlink(GraphicId* grid) {
@@ -77,6 +78,7 @@ DrawLink* DrawLinkList::Link (UList* r) {
 UList* DrawLinkList::Elem (Iterator i) { return (UList*) i.GetValue(); }
 
 void DrawLinkList::Append (DrawLink* v) {
+    Resource::ref(v);
     _ulist->Append(new UList(v));
     ++_count;
     v->attach(this);
@@ -84,6 +86,7 @@ void DrawLinkList::Append (DrawLink* v) {
 }
 
 void DrawLinkList::Prepend (DrawLink* v) {
+    Resource::ref(v);
     _ulist->Prepend(new UList(v));
     ++_count;
     v->attach(this);
@@ -91,6 +94,7 @@ void DrawLinkList::Prepend (DrawLink* v) {
 }
 
 void DrawLinkList::InsertAfter (Iterator i, DrawLink* v) {
+    Resource::ref(v);
     Elem(i)->Prepend(new UList(v));
     ++_count;
     v->attach(this);
@@ -98,6 +102,7 @@ void DrawLinkList::InsertAfter (Iterator i, DrawLink* v) {
 }
 
 void DrawLinkList::InsertBefore (Iterator i, DrawLink* v) {
+    Resource::ref(v);
     Elem(i)->Append(new UList(v));
     ++_count;
     v->attach(this);
@@ -105,19 +110,21 @@ void DrawLinkList::InsertBefore (Iterator i, DrawLink* v) {
 }
 
 void DrawLinkList::Remove (Iterator& i) {
-    GetDrawLink(i)->detach(this);
+    DrawLink* link = GetDrawLink(i);
+    link->detach(this);
+    Resource::unref(link);
 
     UList* doomed = Elem(i);
 
     Next(i);
     _ulist->Remove(doomed);
-    delete doomed;
     --_count;
     notify();
 }	
     
 void DrawLinkList::Remove (DrawLink* p) {
     p->detach(this);
+    Resource::unref(p);
 
     UList* temp;
 
@@ -131,8 +138,9 @@ void DrawLinkList::Remove (DrawLink* p) {
 
 DrawLink* DrawLinkList::GetDrawLink (Iterator i) { return Link(Elem(i)); }
 
-void DrawLinkList::SetDrawLink (DrawLink* gv, Iterator& i) {
-    i.SetValue(_ulist->Find(gv));
+void DrawLinkList::SetDrawLink (DrawLink* dl, Iterator& i) {
+    Resource::ref(dl);
+    i.SetValue(_ulist->Find(dl));
 }
 
 void DrawLinkList::First (Iterator& i) { i.SetValue(_ulist->First()); }
