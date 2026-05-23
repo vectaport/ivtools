@@ -115,9 +115,9 @@ void DrawLinkList::Remove (Iterator& i) {
     Resource::unref(link);
 
     UList* doomed = Elem(i);
-
     Next(i);
     _ulist->Remove(doomed);
+    delete doomed;
     --_count;
     notify();
 }	
