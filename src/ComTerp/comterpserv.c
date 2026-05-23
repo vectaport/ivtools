@@ -340,7 +340,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	        status = 1;
 	        break;
 	    } else if (returnflag()) {
-	        status = 1;
+	        status = 0;
 	        retval = new ComValue(pop_stack());
 		returnflag(false);
 	        break;

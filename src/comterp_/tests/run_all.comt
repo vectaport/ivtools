@@ -5,15 +5,15 @@
 
 ok=true
 
-if(run("hello.comt")
+if(run("./hello.comt")
   :then printf("pass: hello\n")
   :else printf("FAIL: hello\n");ok=false)
 
-if(run("return.comt")
+if(run("./return.comt")
   :then printf("pass: return\n")
   :else printf("FAIL: return\n");ok=false)
 
-if(run("stream.comt")
+if(run("./stream.comt")
   :then printf("pass: stream\n")
   :else printf("FAIL: stream\n");ok=false)
 

@@ -9,22 +9,22 @@
 ok=true
 
 // --- test 1: return with value ---
-val=run("return_sub1.comt")
+val=run("./return_sub1.comt")
 ok=ok&&(val==42)
 print("1 return with value (expect 42): %v\n\n" val)
 
 // --- test 2: return with no value returns blank ---
-val=run("return_sub2.comt")
+val=run("./return_sub2.comt")
 ok=ok&&(type(val)==`BlankType)
 print("2 return no value (expect nil/blank): %v\n\n" type(val))
 
 // --- test 3: return from inside a for loop ---
-val=run("return_sub3.comt")
+val=run("./return_sub3.comt")
 ok=ok&&(val==3)
 print("3 return from for loop (expect 3): %v\n\n" val)
 
 // --- test 4: return from inside a while loop ---
-val=run("return_sub4.comt")
+val=run("./return_sub4.comt")
 ok=ok&&(val==7)
 print("4 return from while loop (expect 7): %v\n\n" val)
 
