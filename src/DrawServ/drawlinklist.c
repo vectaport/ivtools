@@ -46,7 +46,8 @@ DrawLinkList::~DrawLinkList ()
   if (_ulist) {
     Iterator i;
     for (First(i); !Done(i); Next(i)) {
-      delete GetDrawLink(i);
+      DrawLink* l = GetDrawLink(i);
+      Resource::unref(l);
     }
     delete _ulist; 
   }
@@ -57,7 +58,6 @@ void DrawLinkList::add_drawlink(DrawLink* new_link) {
   Iterator i;
   First(i);
   InsertBefore(i, new_link);
-  Resource::ref(new_link);
 }
 
 DrawLink* DrawLinkList::find_drawlink(GraphicId* grid) {
