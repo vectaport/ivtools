@@ -123,16 +123,16 @@ void DrawLinkList::Remove (Iterator& i) {
 }	
     
 void DrawLinkList::Remove (DrawLink* p) {
-    p->detach(this);
-
     UList* temp;
 
     if ((temp = _ulist->Find(p)) != nil) {
 	_ulist->Remove(temp);
         delete temp;
 	--_count;
+	p->detach(this);
+	Resource::unref(p);
     }
-    Resource::unref(p);
+
     notify();
 }
 
