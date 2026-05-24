@@ -46,7 +46,8 @@ DrawLinkList::~DrawLinkList ()
   if (_ulist) {
     Iterator i;
     for (First(i); !Done(i); Next(i)) {
-      delete GetDrawLink(i);
+      DrawLink* l = GetDrawLink(i);
+      Resource::unref(l);
     }
     delete _ulist; 
   }
@@ -77,6 +78,7 @@ DrawLink* DrawLinkList::Link (UList* r) {
 UList* DrawLinkList::Elem (Iterator i) { return (UList*) i.GetValue(); }
 
 void DrawLinkList::Append (DrawLink* v) {
+    Resource::ref(v);
     _ulist->Append(new UList(v));
     ++_count;
     v->attach(this);
@@ -84,6 +86,7 @@ void DrawLinkList::Append (DrawLink* v) {
 }
 
 void DrawLinkList::Prepend (DrawLink* v) {
+    Resource::ref(v);
     _ulist->Prepend(new UList(v));
     ++_count;
     v->attach(this);
@@ -91,6 +94,7 @@ void DrawLinkList::Prepend (DrawLink* v) {
 }
 
 void DrawLinkList::InsertAfter (Iterator i, DrawLink* v) {
+    Resource::ref(v);
     Elem(i)->Prepend(new UList(v));
     ++_count;
     v->attach(this);
@@ -98,6 +102,7 @@ void DrawLinkList::InsertAfter (Iterator i, DrawLink* v) {
 }
 
 void DrawLinkList::InsertBefore (Iterator i, DrawLink* v) {
+    Resource::ref(v);
     Elem(i)->Append(new UList(v));
     ++_count;
     v->attach(this);
@@ -105,10 +110,11 @@ void DrawLinkList::InsertBefore (Iterator i, DrawLink* v) {
 }
 
 void DrawLinkList::Remove (Iterator& i) {
-    GetDrawLink(i)->detach(this);
+    DrawLink* link = GetDrawLink(i);
+    link->detach(this);
+    Resource::unref(link);
 
     UList* doomed = Elem(i);
-
     Next(i);
     _ulist->Remove(doomed);
     delete doomed;
@@ -117,22 +123,23 @@ void DrawLinkList::Remove (Iterator& i) {
 }	
     
 void DrawLinkList::Remove (DrawLink* p) {
-    p->detach(this);
-
     UList* temp;
 
     if ((temp = _ulist->Find(p)) != nil) {
 	_ulist->Remove(temp);
         delete temp;
 	--_count;
+	p->detach(this);
+	Resource::unref(p);
     }
+
     notify();
 }
 
 DrawLink* DrawLinkList::GetDrawLink (Iterator i) { return Link(Elem(i)); }
 
-void DrawLinkList::SetDrawLink (DrawLink* gv, Iterator& i) {
-    i.SetValue(_ulist->Find(gv));
+void DrawLinkList::SetDrawLink (DrawLink* dl, Iterator& i) {
+    i.SetValue(_ulist->Find(dl));
 }
 
 void DrawLinkList::First (Iterator& i) { i.SetValue(_ulist->First()); }

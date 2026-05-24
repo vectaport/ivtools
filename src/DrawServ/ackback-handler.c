@@ -53,13 +53,22 @@ AckBackHandler::AckBackHandler ()
   _ackback_arrived = false;
   _eof_expected = false;
   _period_count = 0;
+  _drawlink = nil;
 }
 
 AckBackHandler::~AckBackHandler() {
   // fprintf(stderr, "AckBackHandler deleted\n");
+  Resource::unref(_drawlink);
 }
 
+// set DrawLink associated with this handler
 // Called when input becomes available on fd.
+void AckBackHandler::drawlink(DrawLink* link) {
+  Resource::unref(_drawlink);
+  _drawlink = link;
+  Resource::ref(_drawlink);
+}
+
 
 int AckBackHandler::handle_input (ACE_HANDLE fd)
 {

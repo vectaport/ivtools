@@ -39,6 +39,7 @@ declareTable(IncomingSidTable,unsigned int,unsigned int)
 
 #ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
+#include <InterViews/resource.h>
 #include <ace/SOCK_Connector.h>
 
 class ACE_INET_Addr;
@@ -48,7 +49,7 @@ class ACE_SOCK_Stream;
 #include <stdio.h>
 
 //: object to encapsulate 2-way link with remote drawserv
-class DrawLink : public Observable {
+class DrawLink : public Observable, public Resource {
 public:
     DrawLink(const char* hostname, int portnum, int state);
     virtual ~DrawLink();

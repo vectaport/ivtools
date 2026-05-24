@@ -47,6 +47,14 @@ DrawServHandler::DrawServHandler (ComTerpServ* serv) : UnidrawComterpHandler(ser
     _sigpipe_handler = 0;
 }
 
+// set DrawLink associated with this handler
+void DrawServHandler::drawlink(DrawLink* link) {
+  Resource::unref(_drawlink);
+  _drawlink = link;
+  Resource::ref(_drawlink);
+}
+
+
 int DrawServHandler::open (void * ptr)
 {
   ComterpHandler::open(ptr);
