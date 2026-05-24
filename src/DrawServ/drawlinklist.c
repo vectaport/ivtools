@@ -124,7 +124,6 @@ void DrawLinkList::Remove (Iterator& i) {
     
 void DrawLinkList::Remove (DrawLink* p) {
     p->detach(this);
-    Resource::unref(p);
 
     UList* temp;
 
@@ -133,6 +132,7 @@ void DrawLinkList::Remove (DrawLink* p) {
         delete temp;
 	--_count;
     }
+    Resource::unref(p);
     notify();
 }
 
