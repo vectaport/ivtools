@@ -26,7 +26,6 @@
 #include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/grid.h>
-#include <DrawServ/linkselection.h>
 #include <OverlayUnidraw/ovcomps.h>
 #include <OverlayUnidraw/ovviews.h>
 #include <Unidraw/Graphic/pspaint.h>
