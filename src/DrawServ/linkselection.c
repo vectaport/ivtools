@@ -353,10 +353,10 @@ void LinkSelection::lock_key(const char* keystr) {
     GraphicId* grid = (GraphicId*)it.cur_value();
     if (grid && grid->unlocked()) {
       if (grid->selectorkey() != key)
-        fprintf(stderr, "lock_key: unexpected unlock on non-matching graphic\n");
-      grid->unlocked(false);
+	fprintf(stderr, "lock_key: unexpected unlock on non-matching graphic\n");
+      else
+	grid->unlocked(false);
     }
   }
 }
-
 #endif
