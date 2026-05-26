@@ -198,12 +198,14 @@ void HelpFunc::execute() {
 		       comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
 	    }
 	    *out << buffer;
-	    const char** keydoc = comfuncs[i]->dockeys();
-	    if (keydoc != nil) {
-  	      while(*keydoc !=nil) {
-	        *out << '\n';
-	        *out << "        " << keydoc[0];
-	        keydoc++;
+	    if (comfuncs[i]->docstring2()==NULL) {
+	      const char** keydoc = comfuncs[i]->dockeys();
+	      if (keydoc != nil) {
+		while(*keydoc !=nil) {
+		  *out << '\n';
+		  *out << "        " << keydoc[0];
+		  keydoc++;
+		}
 	      }
 	    }
 	  }
