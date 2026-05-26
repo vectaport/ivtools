@@ -55,7 +55,7 @@ public:
     GraphicIdFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id) -- lookup compview by uuid\n\t%s(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections"; }
+	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections"; }
 };
 #endif /* defined(HAVE_ACE) */
 
