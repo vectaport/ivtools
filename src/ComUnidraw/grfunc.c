@@ -34,6 +34,7 @@
 #include <OverlayUnidraw/ovcmds.h>
 #include <OverlayUnidraw/ovselection.h>
 #include <OverlayUnidraw/ovviewer.h>
+#include <OverlayUnidraw/ovkit.h>
 #include <OverlayUnidraw/ovellipse.h>
 #include <OverlayUnidraw/ovrect.h>
 #include <OverlayUnidraw/ovpolygon.h>
@@ -910,18 +911,42 @@ BrushFunc::BrushFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void BrushFunc::execute() {
-    ComValue& bnum =stack_arg(0);
-    int bn = bnum.int_val();
+    ComValue bnum(stack_arg(0));
+    static int none_sym = symbol_add("none");
+    ComValue nonev(stack_key(none_sym));
     reset_stack();
 
-    Catalog* catalog = unidraw->GetCatalog();
-    PSBrush* brush = catalog->ReadBrush("brush", bn);
+    PSBrush* brush = nil;
+
+    if (nonev.is_true()) {
+        /* brush(:none) -- none brush */
+        brush = new PSBrush();
+
+    } else if (bnum.is_array()) {
+        /* brush(linepat,width) -- brush by value */
+        AttributeValueList* avl = bnum.array_val();
+        if (avl && avl->Number() >= 2) {
+            Iterator it;
+            avl->First(it);
+            int linepat = avl->GetAttrVal(it)->int_val();
+            avl->Next(it);
+            int width = avl->GetAttrVal(it)->int_val();
+            brush = new PSBrush(linepat, width);
+        }
+
+    } else {
+        /* brush(brushnum) -- brush by menu index */
+        int bn = bnum.int_val();
+        Catalog* catalog = unidraw->GetCatalog();
+        brush = catalog->ReadBrush("brush", bn);
+    }
 
     BrushCmd* cmd = nil;
 
     if (brush) {
-	cmd = new BrushCmd(_ed, brush);
-	execute_log(cmd);
+        OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+        cmd = kit->make_brush_cmd(_ed, brush);
+        execute_log(cmd);
     }
 
 }
@@ -1022,7 +1047,11 @@ void SelectFunc::execute() {
     static int clear_symid = symbol_add("clear");
     ComValue clear_flagv(stack_key(clear_symid));
     boolean clear_flag = clear_flagv.is_true();
-
+    static int unlock_symid = symbol_add("unlock");
+    ComValue unlockv(stack_key(unlock_symid));
+    static int lock_symid = symbol_add("lock");
+    ComValue lockv(stack_key(lock_symid));
+    
     OverlaySelection* sel = (OverlaySelection*)_ed->GetViewer()->GetSelection();
     if (clear_flag) {
       sel->Clear();
@@ -1106,10 +1135,14 @@ void SelectFunc::execute() {
     }
 
     if (newSel){
+      if (unlockv.is_string())
+        newSel->unlock_key(unlockv.string_ptr());
       sel->Clear();
       delete sel;
       _ed->SetSelection(newSel);
-      newSel->Update(viewer);
+      newSel->Update(viewer);   // Reserve() runs here, sees unlocked()==true
+      if (lockv.is_string())
+        newSel->lock_key(lockv.string_ptr());  // clear after Reserve()
       unidraw->Update();
     }
     reset_stack();

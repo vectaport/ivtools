@@ -74,6 +74,11 @@ public:
 
     virtual void CopyFlags(OverlaySelection* from) {}  // no-op base
 
+    virtual void unlock_key(const char* keystr) {}
+    // unlock graphics owned by keystr for local modification; no-op in base class
+    virtual void lock_key(const char* keystr) {}
+    // re-lock graphics previously unlocked by keystr; no-op in base class
+
 protected:
     boolean _clear_to_repair;
     boolean _handles_disabled;

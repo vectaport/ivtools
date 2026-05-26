@@ -90,6 +90,11 @@ public:
   const char* compclass();
   // return name of comp's class
 
+  void unlocked(boolean flag) { _unlocked = flag; }
+  // set flag indicating remote lock temporarily suspended for local modification
+  boolean unlocked() { return _unlocked; }
+  // return true if remote lock temporarily suspended for local modification
+
 protected:
   uuid_t _id;
   uuid_string_t _id_str;
@@ -100,6 +105,8 @@ protected:
   int _selected;
   
   OverlayComp* _comp;
+  boolean _unlocked;
+  // true when remote lock temporarily suspended for local modification
 
 };
 

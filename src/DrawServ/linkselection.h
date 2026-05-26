@@ -31,7 +31,10 @@
 #ifdef HAVE_ACE
 #include <OverlayUnidraw/ovselection.h>
 
+class DrawEditor;
 class DrawLinkList;
+class GraphicIdList;
+class OverlayComp;
 
 //: distributed Selection class
 // specialized Selection class with support for coordinating the selection of graphics
@@ -90,6 +93,11 @@ public:
   boolean request_resolved_check(boolean granted, const char* fileline);
   // make beep/ding sound when request resolved and response is known
 
+  virtual void unlock_key(const char* keystr);
+  // unlock graphics owned by keystr for local modification without grid messages
+  virtual void lock_key(const char* keystr);
+  // re-lock graphics previously unlocked by keystr
+
 protected:
   DrawEditor* _editor;
   static GraphicIdList* _locally_selected;
@@ -102,7 +110,7 @@ protected:
   boolean _wtbs_flag;
   boolean _remote_flag;
   boolean _paste_in_progress_flag;
-  
+
 };
 #endif /* HAVE_ACE */
 #endif

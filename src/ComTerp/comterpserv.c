@@ -369,13 +369,13 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	    }
 
        } else 	if (*inbuf) {
-	 status = -1;
 	 char errbuf[BUFSIZ];
 	 errbuf[0] = '\0';
 	 char location[BUFSIZ];
 	 snprintf(location, BUFSIZ, "error in %s:%d", filename, _linenum);
 	 err_str(errbuf, BUFSIZ, location);
 	 if (*errbuf) {
+	   status = -1;
 	   fprintf(stderr, "%s\n", errbuf);   // instead of err_print
 	   FILE* ofptr = handler() ? handler()->wrfptr() : stdout;
 	   fputs(errbuf, ofptr);

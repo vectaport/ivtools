@@ -30,6 +30,7 @@
 #define draw_kit_h
 
 #include <FrameUnidraw/framekit.h>
+#include <DrawServ/linkcmd.h>
 
 #include <InterViews/_enter.h>
 
@@ -48,6 +49,10 @@ public:
     virtual MenuItem* MakeFrameMenu();
     virtual MenuItem* MakeToolsMenu();
     virtual MenuItem* MakeViewersMenu();
+    virtual BrushCmd* make_brush_cmd(ControlInfo*, PSBrush*);
+    // override to create LinkBrushCmd for distributed brush changes
+    virtual BrushCmd* make_brush_cmd(Editor*, PSBrush*);
+    // override to create LinkBrushCmd for distributed brush changes
 
     static DrawKit* Instance();
 

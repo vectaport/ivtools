@@ -43,6 +43,7 @@ Obj26(drawviews)
 #ifdef AceEnabled
 Obj26(grid)
 Obj26(gridlist)
+Obj26(linkcmd)
 Obj26(linkselection)
 Obj26(sid)
 #endif
