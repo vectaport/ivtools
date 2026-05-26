@@ -205,8 +205,6 @@ void LinkSelection::Reserve() {
 
       } else {
         if (grid->selected()!=LocallySelected) {
-          fprintf(stderr, "Reserve else: grid=%p selected=%d selector=%s\n", 
-                  grid, grid->selected(), grid->selectorstr());
           grid->selected(WaitingToBeSelected);
           if (!paste_in_progress_flag()) {
             waiting_count()++;

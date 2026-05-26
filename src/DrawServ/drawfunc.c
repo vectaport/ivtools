@@ -347,13 +347,10 @@ void GraphicIdFunc::execute() {
     /* single uuid arg -- lookup and return compview */
     void* ptr = nil;
     uint32_t key = uuid_key(id);
-    fprintf(stderr, "grid lookup: uuid=%s key=0x%08x\n", idv.string_ptr(), key);
     ((DrawServ*)unidraw)->gridtable()->find(ptr, key);
-    fprintf(stderr, "grid lookup: ptr=%p\n", ptr);
     if (ptr) {
         GraphicId* grid = (GraphicId*)ptr;
         OverlayComp* comp = grid->grcomp();
-        fprintf(stderr, "grid lookup: comp=%p\n", comp);
         if (comp) {
             ComValue result(new OverlayViewRef(comp), comp->classid());
             push_stack(result);
