@@ -5,7 +5,7 @@
  * runs of zeros and ones in Group 3 Fax encoding.
  */
 
-dumparray(char * name, runs)
+void dumparray(char * name, unsigned char runs[])
 {
 	register int i;
 	register char *sep;
@@ -14,7 +14,7 @@ dumparray(char * name, runs)
 	for (i = 0; i < 256; i++) {
 		printf("%s%d", sep, runs[i]);
 		if (((i + 1) % 16) == 0) {
-			printf(",	/* 0x%02x - 0x%02x */\n", i-15, i);
+			printf(",\t/* 0x%02x - 0x%02x */\n", i-15, i);
 			sep = "    ";
 		} else
 			sep = ", ";
@@ -22,7 +22,7 @@ dumparray(char * name, runs)
 	printf("\n};\n");
 }
 
-main()
+int main(void)
 {
 	unsigned char runs[2][256];
 
@@ -41,4 +41,5 @@ main()
 	}
 	dumparray("bruns", runs[0]);
 	dumparray("wruns", runs[1]);
+	return 0;
 }

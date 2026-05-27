@@ -260,6 +260,7 @@ TIFFObj(tif_tile)
 TIFFObj(tif_warning)
 TIFFObj(tif_write)
 TIFFObj(tif_version)
+TIFFObj(mkspans)
 
 tif_fax3.o: g3states.h
 g3states.h: $(TIFF)/mkg3states.c $(TIFF)/t4.h
