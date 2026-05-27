@@ -6,16 +6,20 @@
 ok=true
 
 if(run("./hello.comt")
-  :then printf("pass: hello\n")
-  :else printf("FAIL: hello\n");ok=false)
+  :then print("pass: hello\n")
+  :else print("FAIL: hello\n");ok=false)
 
 if(run("./return.comt")
-  :then printf("pass: return\n")
-  :else printf("FAIL: return\n");ok=false)
+  :then print("pass: return\n")
+  :else print("FAIL: return\n");ok=false)
 
 if(run("./stream.comt")
-  :then printf("pass: stream\n")
-  :else printf("FAIL: stream\n");ok=false)
+  :then print("pass: stream\n")
+  :else print("FAIL: stream\n");ok=false)
 
-printf("\nrun_all: %v\n" ok)
+if(run("./string.comt")
+  :then print("pass: string\n")
+  :else print("FAIL: string\n");ok=false)
+
+print("\nrun_all: %v\n" ok)
 ok
