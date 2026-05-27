@@ -3,13 +3,12 @@
 
 
 
-1. Instructions for building ivtools-2.1.1 from source, the short version:
+Instructions for building ivtools-2.1.1 from source, the short version:
 
  	autoreconf -i    // only needed if ./configure does not exist
 	./configure
 	make
 	su -c "make install"
-
 
 1. autoreconf -i requires autoconf 2.70 or later.
     On macOS: brew install autoconf
@@ -34,6 +33,13 @@
        sudo apt-get install libxext-dev
    (if you're in a root only docker container, don't use the sudo, and you'll have to
    edit sudo out of the Makefile as well)
+
+5. If all else fails you can always install the binaries directly from Debian or
+   homebrew on MacOS, either:
+
+   On Debian: sudo apt install ivtools-bin
+   On MacOs: brew install ivtools
+   
 
 - Scott Johnston, May-June 2020, updated 2026
 
