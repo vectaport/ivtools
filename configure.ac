@@ -204,10 +204,13 @@ AC_PROG_RANLIB
 AC_PATH_X
 
 if test x"$x_libraries" = x; then
-    AC_MSG_ERROR([Cannot find X11 libraries. Use --x-libraries=<path> to specify.])
+    AC_MSG_WARN([Cannot find X11 libraries. Use --x-libraries=<path> to specify.])
+    AC_MSG_WARN([You may need to manually set XCONFIGDIR in config/config.mk after configure completes.])
+    x_libraries="/usr/lib"
 fi
 if test x"$x_includes" = x; then
-    AC_MSG_ERROR([Cannot find X11 includes. Use --x-includes=<path> to specify.])
+    AC_MSG_WARN([Cannot find X11 includes. Use --x-includes=<path> to specify.])
+    x_includes="/usr/include"
 fi
 
 # ---------------------------------------------------------------------------
@@ -315,34 +318,38 @@ fi
 
 # ---------------------------------------------------------------------------
 # Establish required symbolic links in src/
+# All cd+modify sequences use subshells to prevent bare cd failures from
+# executing destructive commands in the wrong directory.
 # ---------------------------------------------------------------------------
 AC_MSG_NOTICE([Establishing symbolic links in src/])
 
-cd src/include/IV-3_1
-rm -rf InterViews
-ln -s ../InterViews
-cd ../../..
+(cd src/include/IV-3_1 && rm -rf InterViews && ln -s ../InterViews) \
+    || AC_MSG_ERROR([Failed to establish src/include/IV-3_1/InterViews symlink])
 
 for f in listimpl.c math.c memory.c string.c; do
     if test ! -f src/IV-common/$f; then
-        (cd src/IV-common && ln -s ../OS/$f)
+        (cd src/IV-common && ln -s ../OS/$f) \
+            || AC_MSG_ERROR([Failed to symlink $f in src/IV-common])
     fi
 done
 for f in regexp.c resource.c transformer.c; do
     if test ! -f src/IV-common/$f; then
-        (cd src/IV-common && ln -s ../InterViews/$f)
+        (cd src/IV-common && ln -s ../InterViews/$f) \
+            || AC_MSG_ERROR([Failed to symlink $f in src/IV-common])
     fi
 done
 for f in textbuffer.c tform2_6.c; do
     if test ! -f src/IV-common/$f; then
-        (cd src/IV-common && ln -s ../IV-2_6/$f)
+        (cd src/IV-common && ln -s ../IV-2_6/$f) \
+            || AC_MSG_ERROR([Failed to symlink $f in src/IV-common])
     fi
 done
 
 for f in component.c compview.c geomobjs.c globals.c iterator.c uarray.c uhash.c ulist.c umap.c; do
     base=`basename $f`
     if test ! -f src/Unidraw-common/$base; then
-        (cd src/Unidraw-common && ln -s ../Unidraw/$base)
+        (cd src/Unidraw-common && ln -s ../Unidraw/$base) \
+            || AC_MSG_ERROR([Failed to symlink $base in src/Unidraw-common])
     fi
 done
 
