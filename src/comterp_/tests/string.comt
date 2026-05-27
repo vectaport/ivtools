@@ -109,13 +109,15 @@ ok=ok&&(s=="hello")
 print("12 join round-trip (expect 'hello'): %v\n\n" s)
 
 // --- test 13: eq partial string comparison :n ---
-ok=ok&&eq("foobar" "foo" :n 3)
-ok=ok&&(!eq("foobar" "fox" :n 3))
-print("13 eq :n partial (expect true then false): %v\n\n" ok)
+r13a=eq("foobar" "foo" :n 3)
+r13b=eq("foobar" "fox" :n 3)
+ok=ok&&r13a&&(!r13b)
+print("13 eq :n partial (expect true, false): %v, %v\n\n" r13a r13b)
 
 // --- test 14: size of string returns character count ---
-ok=ok&&(size("hello")==5)
-print("14 size string (expect 5): %v\n\n" ok)
+n14=size("hello")
+ok=ok&&(n14==5)
+print("14 size string (expect 5): %v\n\n" n14)
 
 // --- test 15: print :str returns string ---
 s=print("value=%v" 42 :str)
