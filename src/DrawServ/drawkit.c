@@ -604,4 +604,12 @@ MenuItem * DrawKit::MakeViewersMenu() {
 #endif
 }
 
+/*****************************************************************************/
 
+BrushCmd* DrawKit::make_brush_cmd(ControlInfo* ctrlInfo, PSBrush* br) {
+    return new LinkBrushCmd(ctrlInfo, br);
+}
+
+BrushCmd* DrawKit::make_brush_cmd(Editor* ed, PSBrush* br) {
+    return new LinkBrushCmd(ed, br);
+}

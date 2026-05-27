@@ -36,6 +36,7 @@
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
+#include <DrawServ/linkcmd.h>
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/grid.h>
 #include <DrawServ/gridlist.h>
@@ -318,34 +319,14 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	if (sel) ((LinkSelection*)sel)->paste_in_progress_flag() = true;
 	cmd->Execute();
 	if (sel) ((LinkSelection*)sel)->paste_in_progress_flag() = false;
-	
 	break;
       }
       
-      case BRUSH_CMD:
+      case LINK_BRUSH_CMD:
       {
-	boolean scripted = false;
-	Iterator it;
-	First(it);
-	Selection* s = GetEditor(it)->GetSelection(); // only 1 Editor per Unidraw
-	if (s) {
-	  Iterator it;
-	  for (s->First(it); !s->Done(it); s->Next(it)) {
-	    OverlayView* compview = (OverlayView*)s->GetView(it);
-	    if (compview && linklist()->Number()>0) {
-	      if (scripted) 
-		sbuf << ';';
-	      else 
-		scripted = true;
-	      sbuf << "print(\"BRUSH_CMD\")";  // change to select();brush() call
-	    }
-	  }
-	}
-	if (!scripted)
-	  fprintf(stderr, "Failed attempt to generate script for a BRUSH_CMD\n");
-
+	const char* script = ((LinkBrushCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
 	cmd->Execute();
-	
 	break;
       }
       

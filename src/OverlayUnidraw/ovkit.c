@@ -1102,6 +1102,14 @@ MenuItem* OverlayKit::MakeFontMenu() {
     return mbi;
 }
 
+BrushCmd* OverlayKit::make_brush_cmd(ControlInfo* ctrlInfo, PSBrush* br) {
+    return new BrushCmd(ctrlInfo, br);
+}
+
+BrushCmd* OverlayKit::make_brush_cmd(Editor* ed, PSBrush* br) {
+    return new BrushCmd(ed, br);
+}
+
 MenuItem* OverlayKit::MakeBrushMenu() {
     LayoutKit& lk = *LayoutKit::instance();
     WidgetKit& kit = *WidgetKit::instance();
@@ -1123,7 +1131,7 @@ MenuItem* OverlayKit::MakeBrushMenu() {
 	    line->SetBrush(br);
 	    ctrlInfo = new ControlInfo(new ArrowLineComp(line));
 	}
-	MakeMenu(mbi, new BrushCmd(ctrlInfo, br), MenuLine(br));
+	MakeMenu(mbi, make_brush_cmd(ctrlInfo, br), MenuLine(br));
 	br = catalog->ReadBrush(brAttrib, ++i);
     }
     

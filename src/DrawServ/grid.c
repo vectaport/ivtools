@@ -43,6 +43,7 @@ GraphicId::GraphicId (uuid_t sid)
 {
 #ifdef HAVE_ACE
   _comp = nil;
+  _unlocked = false;
   uuid_clear(_selector);
   memset(_selector_str, 0, sizeof(_selector_str));
   _selected = 0;

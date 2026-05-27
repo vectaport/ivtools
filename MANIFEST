@@ -321,6 +321,8 @@ ivtools/src/DrawServ/grid.c
 ivtools/src/DrawServ/grid.h
 ivtools/src/DrawServ/gridlist.c
 ivtools/src/DrawServ/gridlist.h
+ivtools/src/DrawServ/linkcmd.c
+ivtools/src/DrawServ/linkcmd.h
 ivtools/src/DrawServ/linkselection.c
 ivtools/src/DrawServ/linkselection.h
 ivtools/src/DrawServ/rcdialog.c

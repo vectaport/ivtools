@@ -343,6 +343,22 @@ void GraphicIdFunc::execute() {
 	(link, id, selector, statev.int_val(), gid);
     }
     
+  } else if (idv.is_known() && selectorv.is_unknown()) {
+    /* single uuid arg -- lookup and return compview */
+    void* ptr = nil;
+    uint32_t key = uuid_key(id);
+    ((DrawServ*)unidraw)->gridtable()->find(ptr, key);
+    if (ptr) {
+        GraphicId* grid = (GraphicId*)ptr;
+        OverlayComp* comp = grid->grcomp();
+        if (comp) {
+            ComValue result(new OverlayViewRef(comp), comp->classid());
+            push_stack(result);
+            return;
+        }
+    }
+    push_stack(ComValue::nullval());
+
   } else if (idv.is_unknown()) {
     ((DrawServ*)unidraw)->print_gridtable();
   }

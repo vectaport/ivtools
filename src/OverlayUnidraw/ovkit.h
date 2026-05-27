@@ -35,7 +35,9 @@
 #include <Unidraw/enter-scope.h>
 #include <InterViews/_enter.h>
 
+class BrushCmd;
 class Command;
+class ControlInfo;
 class Deck;
 class Editor;
 class Glyph;
@@ -202,6 +204,12 @@ public:
 
     virtual OverlaySelection* MakeSelection(Selection* sel = nil);
     // make Selection of the proper derivation.
+
+    virtual BrushCmd* make_brush_cmd(ControlInfo*, PSBrush*);
+    // factory method for creating BrushCmd from menu path (ControlInfo form)
+    virtual BrushCmd* make_brush_cmd(Editor*, PSBrush*);
+    // factory method for creating BrushCmd from ComTerp path (Editor form)
+  
 protected:
     Glyph* MenuLine(PSBrush*);
     // create line to put in a pulldown menu.

@@ -145,8 +145,12 @@ void LinkSelection::Reserve() {
       table->find(ptr, (void*)comp);
       if (ptr) {
 	GraphicId* grid = (GraphicId*)ptr;
-	grid->selected(NotSelected);
-	((DrawServ*)unidraw)->grid_message(grid);
+	if (grid->unlocked()) {
+	  /* was temporarily unlocked for distributed cmd -- silent drop */
+	} else {
+	  grid->selected(NotSelected);
+	  ((DrawServ*)unidraw)->grid_message(grid);
+	}
       }
     }
     lastsel->Remove(lt);
@@ -172,39 +176,43 @@ void LinkSelection::Reserve() {
         ((DrawServ*)unidraw)->grid_message(grid);
       }
 
-      /* remote selector */
+      /* remote selector -- bypass if graphic has been unlocked */
       else if (!uuid_is_null(grid->selector()) && 
 	       uuid_compare(((DrawServ*)unidraw)->sessionid(), grid->selector())) {
-	
-	Remove(it);
-	removed = true;
-	
-	if (grid->selected()==RemotelySelected) {
-	  remote_flag() = true; // immediate refusal, remote deteted
+
+	if (grid->unlocked()) {
+	  /* unlocked: allow without BEEP or grid messages */
+
+	} else {
+	  Remove(it);
+	  removed = true;
+
+	  if (grid->selected()==RemotelySelected) {
+	    remote_flag() = true; // immediate refusal, remote detected
+	  }
+
+	  if (grid->selected()==NotSelected) {
+	    /* make a request to select this in the future */
+	    /* mostly as a way of confirming it being put into RemotelySelected */
+	    grid->selected(WaitingToBeSelected);
+	    if (!paste_in_progress_flag()) {
+	      waiting_count()++;
+	      wtbs_flag() = true;
+	    }
+	    ((DrawServ*)unidraw)->grid_message(grid);
+	  }
 	}
 
-	if (grid->selected()==NotSelected) {
-	  /* make a request to select this in the future */
-	  /* mostly as a way of confirming it being put into RemotelySelected */
-	  grid->selected(WaitingToBeSelected);
-	  if (!paste_in_progress_flag()) {
-	    waiting_count()++;
-	    wtbs_flag() = true;
-	  }
-	  ((DrawServ*)unidraw)->grid_message(grid);
-	} 
-	
       } else {
-	if (grid->selected()!=LocallySelected) {
-	  grid->selected(WaitingToBeSelected);
-	  if (!paste_in_progress_flag()) {
-	    waiting_count()++;
-	    wtbs_flag() = true;
-	  }
-	  ((DrawServ*)unidraw)->grid_message(grid);
-	}
+        if (grid->selected()!=LocallySelected) {
+          grid->selected(WaitingToBeSelected);
+          if (!paste_in_progress_flag()) {
+            waiting_count()++;
+            wtbs_flag() = true;
+          }
+          ((DrawServ*)unidraw)->grid_message(grid);
+        }
       }
-      
     }
     if (!removed) 
       Next(it);
@@ -320,4 +328,35 @@ void LinkSelection::CopyFlags(OverlaySelection* from) {
   }
 }
 
+void LinkSelection::unlock_key(const char* keystr) {
+  unsigned int key = (unsigned int)strtoul(keystr, nil, 16);
+  CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
+  Iterator it;
+  First(it);
+  while (!Done(it)) {
+    OverlayView* view = (OverlayView*)GetView(it);
+    OverlayComp* comp = view ? (OverlayComp*)view->GetOverlayComp() : nil;
+    void* ptr = nil;
+    if (comp) table->find(ptr, (void*)comp);
+    GraphicId* grid = (GraphicId*)ptr;
+    if (grid && grid->selectorkey() == key)
+      grid->unlocked(true);
+    Next(it);
+  }
+}
+
+void LinkSelection::lock_key(const char* keystr) {
+  unsigned int key = (unsigned int)strtoul(keystr, nil, 16);
+  GraphicIdTable* gtable = ((DrawServ*)unidraw)->gridtable();
+  TableIterator(GraphicIdTable) it(*gtable);
+  for (; it.more(); it.next()) {
+    GraphicId* grid = (GraphicId*)it.cur_value();
+    if (grid && grid->unlocked()) {
+      if (grid->selectorkey() != key)
+	fprintf(stderr, "lock_key: unexpected unlock on non-matching graphic\n");
+      else
+	grid->unlocked(false);
+    }
+  }
+}
 #endif
