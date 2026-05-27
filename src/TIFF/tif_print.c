@@ -32,10 +32,7 @@
 #include "tiffioP.h"
 
 #ifdef JPEG_SUPPORT
-static
-void JPEGPrintQTable(fd, tab)
-	FILE *fd;
-	u_char tab[64];
+static void JPEGPrintQTable(FILE *fd, u_char tab[64])
 {
 	int i, j;
 	char *sep;
