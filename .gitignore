@@ -10,8 +10,6 @@ config.log
 
 config.status
 
-config/config-darwin-gcc.defs
-
 config/config.mk
 
 config/config.mk
@@ -412,8 +410,6 @@ src/IV/DARWIN/g3states.h
 
 LINUX/
 
-config/config-linux-gcc.defs
-
 src/utils/DARWIN/ivtmpnam
 
 src/IV/DARWIN/mkg3states
@@ -430,6 +426,4 @@ configure
 
 configure.in
 configure~
-config.log
-config.status
 config/config-*.defs
