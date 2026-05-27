@@ -190,8 +190,7 @@ static	void cl_hash();
 extern	int TIFFFlushData1();
 #endif
 
-int TIFFInitLZW(tif)
-	TIFF *tif;
+int TIFFInitLZW(TIFF * tif)
 {
 	tif->tif_predecode = LZWPreDecode;
 	tif->tif_decoderow = LZWDecode;
@@ -361,9 +360,7 @@ DECLARE3(horizontalAccumulate16,
 /*
  * Setup state for decoding a strip.
  */
-static
-int LZWPreDecode(tif)
-	TIFF *tif;
+static int LZWPreDecode(TIFF * tif)
 {
 	register LZWDecodeState *sp = (LZWDecodeState *)tif->tif_data;
 
@@ -445,7 +442,7 @@ int LZWPreDecode(tif)
 	sp->dec_bitsleft = tif->tif_rawdatasize << 3;
 #endif
 	sp->dec_free_entp = sp->dec_codetab + CODE_FIRST;
-	sp->dec_oldcodep = &sp->dec_codetab[-1];
+	sp->dec_oldcodep = (code_t *)((char *)sp->dec_codetab - sizeof(code_t)); /* intentional -1 index */
 	sp->dec_maxcodep = &sp->dec_codetab[sp->dec_nbitsmask-1];
 	return (1);
 }
@@ -562,7 +559,7 @@ int LZWDecode(TIFF *tif, u_char *op0, int occ0, u_int s)
 			maxcodep = sp->dec_codetab + nbitsmask-1;
 		}
 		oldcodep = codep;
-		if (code >= 256) {
+		if ((code >= 256)) {
 			/*
 		 	 * Code maps to a string, copy string
 			 * value to output (written in reverse).
@@ -727,7 +724,7 @@ int LZWDecodeCompat(TIFF *tif, u_char *op0, int occ0, u_int s)
 			maxcodep = sp->dec_codetab + nbitsmask;
 		}
 		oldcodep = codep;
-		if (code >= 256) {
+		if ((code >= 256)) {
 			/*
 		 	 * Code maps to a string, copy string
 			 * value to output (written in reverse).
@@ -755,7 +752,7 @@ int LZWDecodeCompat(TIFF *tif, u_char *op0, int occ0, u_int s)
 			tp = op;
 			do {
 				*--tp = codep->value;
-			} while (codep = codep->next);
+			} while ((codep = codep->next));
 		} else
 			*op++ = code, occ--;
 	}
@@ -897,9 +894,7 @@ DECLARE3(horizontalDifference16,
 /*
  * Reset encoding state at the start of a strip.
  */
-static
-int LZWPreEncode(tif)
-	TIFF *tif;
+static int LZWPreEncode(TIFF * tif)
 {
 	register LZWEncodeState *sp = (LZWEncodeState *)tif->tif_data;
 
@@ -951,7 +946,7 @@ int LZWPreEncode(tif)
 	nextbits += nbits;					\
 	*op++ = nextdata >> (nextbits-8);			\
 	nextbits -= 8;						\
-	if (nextbits >= 8) {					\
+	if ((nextbits >= 8)) {					\
 		*op++ = nextdata >> (nextbits-8);		\
 		nextbits -= 8;					\
 	}							\
@@ -972,12 +967,7 @@ int LZWPreEncode(tif)
  * are re-sized at this point, and a CODE_CLEAR is generated
  * for the decoder. 
  */
-static
-int LZWEncode(tif, bp, cc, s)
-	TIFF *tif;
-	u_char *bp;
-	int cc;
-	u_int s;
+static int LZWEncode(TIFF * tif, u_char * bp, int cc, u_int s)
 {
 	static char module[] = "LZWEncode";
 	register LZWEncodeState *sp = (LZWEncodeState *)tif->tif_data;
@@ -1024,7 +1014,7 @@ int LZWEncode(tif, bp, cc, s)
 			ent = hp->code;
 			continue;
 		}
-		if (hp->hash >= 0) {
+		if ((hp->hash >= 0)) {
 			/*
 			 * Primary hash failed, check secondary hash.
 			 */
@@ -1077,7 +1067,7 @@ int LZWEncode(tif, bp, cc, s)
 				nbits++;
 				assert(nbits <= BITS_MAX);
 				maxcode = MAXCODE(nbits);
-			} else if (incount >= checkpoint) {
+			} else if ((incount >= checkpoint)) {
 				long rat;
 				/*
 				 * Check compression ratio and, if things seem
@@ -1087,7 +1077,7 @@ int LZWEncode(tif, bp, cc, s)
 				 */
 				checkpoint = incount+CHECK_GAP;
 				CALCRATIO(sp, rat);
-				if (rat <= sp->enc_ratio) {
+				if ((rat <= sp->enc_ratio)) {
 					cl_hash(sp);
 					sp->enc_ratio = 0;
 					incount = 0;
@@ -1122,12 +1112,7 @@ int LZWEncode(tif, bp, cc, s)
 	return (1);
 }
 
-static
-int LZWEncodePredRow(tif, bp, cc, s)
-	TIFF *tif;
-	u_char *bp;
-	int cc;
-	u_int s;
+static int LZWEncodePredRow(TIFF * tif, u_char * bp, int cc, u_int s)
 {
 	LZWEncodeState *sp = (LZWEncodeState *)tif->tif_data;
 
@@ -1138,12 +1123,7 @@ int LZWEncodePredRow(tif, bp, cc, s)
 	return (LZWEncode(tif, bp, cc, s));
 }
 
-static
-int LZWEncodePredTile(tif, bp0, cc0, s)
-	TIFF *tif;
-	u_char *bp0;
-	int cc0;
-	u_int s;
+static int LZWEncodePredTile(TIFF * tif, u_char * bp0, int cc0, u_int s)
 {
 	LZWEncodeState *sp = (LZWEncodeState *)tif->tif_data;
 	int cc = cc0, rowsize;
@@ -1165,9 +1145,7 @@ int LZWEncodePredTile(tif, bp0, cc0, s)
  * Finish off an encoded strip by flushing the last
  * string and tacking on an End Of Information code.
  */
-static
-int LZWPostEncode(tif)
-	TIFF *tif;
+static int LZWPostEncode(TIFF * tif)
 {
 	register LZWEncodeState *sp = (LZWEncodeState *)tif->tif_data;
 	char *op = tif->tif_rawcp;
@@ -1196,8 +1174,7 @@ int LZWPostEncode(tif)
  * Reset encoding hash table.
  */
 static void
-cl_hash(sp)
-	LZWEncodeState *sp;
+cl_hash(LZWEncodeState * sp)
 {
 	register hash_t *hp = &sp->enc_hashtab[HSIZE-1];
 	register long i = HSIZE-8;
@@ -1218,14 +1195,13 @@ cl_hash(sp)
 		hp->hash = -1;
 }
 
-static
-int LZWCleanup(tif)
-	TIFF *tif;
+static int LZWCleanup(TIFF * tif)
 {
 	if (tif->tif_data) {
 		free(tif->tif_data);
 		tif->tif_data = NULL;
 	}
+	return 0;
 }
 
 /*

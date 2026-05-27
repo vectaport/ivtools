@@ -52,8 +52,7 @@ int TIFFInitCCITTRLE(TIFF *tif)
 	return (1);
 }
 
-int xxuTIFFInitCCITTRLEW(tif)
-	TIFF *tif;
+int xxuTIFFInitCCITTRLEW(TIFF * tif)
 {
 	TIFFInitCCITTFax3(tif);		/* reuse G3 compression */
 	tif->tif_preencode = NULL;

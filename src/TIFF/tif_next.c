@@ -35,8 +35,7 @@ static	int NeXTDecode(TIFF *, u_char *, int, u_int);
 static	int NeXTDecode();
 #endif
 
-int TIFFInitNeXT(tif)
-	TIFF *tif;
+int TIFFInitNeXT(TIFF * tif)
 {
 	tif->tif_decoderow = NeXTDecode;
 	tif->tif_decodestrip = NeXTDecode;
@@ -58,11 +57,7 @@ int TIFFInitNeXT(tif)
 #define WHITE   	((1<<2)-1)
 
 static int
-NeXTDecode(tif, buf, occ, s)
-	TIFF *tif;
-	u_char *buf;
-	int occ;
-	u_int s;
+NeXTDecode(TIFF * tif, u_char * buf, int occ, u_int s)
 {
 	register u_char *bp, *op;
 	register int cc, n;

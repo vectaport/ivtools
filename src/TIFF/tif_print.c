@@ -51,10 +51,7 @@ void JPEGPrintQTable(fd, tab)
 	}
 }
 
-static
-void JPEGPrintCTable(fd, tab)
-	FILE *fd;
-	u_char *tab;
+static void JPEGPrintCTable(FILE * fd, u_char * tab)
 {
 	int i, n, count;
 	char *sep;
@@ -62,7 +59,7 @@ void JPEGPrintCTable(fd, tab)
 	fprintf(fd, "\n    Bits:");
 	count = 0;
 	for (i = 0; i < 16; i++) {
-		fprintf(fd, " %u", tab[i]);
+		fprintf(fd, " %lu", tab[i]);
 		count += tab[i];
 	}
 	n = 0;
@@ -112,17 +109,14 @@ static const char *orientNames[] = {
  * to the specified stdio file stream.
  */
 void
-TIFFPrintDirectory(tif, fd, flags)
-	TIFF *tif;
-	FILE *fd;
-	long flags;
+TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 {
 	register TIFFDirectory *td;
 	char *sep;
 	int i, j;
 	long n;
 
-	fprintf(fd, "TIFF Directory at offset 0x%x\n", tif->tif_diroff);
+	fprintf(fd, "TIFF Directory at offset 0x%lx\n", tif->tif_diroff);
 	td = &tif->tif_dir;
 	if (TIFFFieldSet(tif,FIELD_SUBFILETYPE)) {
 		fprintf(fd, "  Subfile Type:");
@@ -246,13 +240,13 @@ TIFFPrintDirectory(tif, fd, flags)
 	if (TIFFFieldSet(tif,FIELD_PHOTOMETRIC)) {
 		fprintf(fd, "  Photometric Interpretation: ");
 		if (td->td_photometric < NPHOTONAMES)
-			fprintf(fd, "%s\n", photoNames[td->td_photometric]);
+			fprintf(fd, "%s\n", photoNames[(unsigned long)td->td_photometric]);
 		else
 			fprintf(fd, "%u (0x%x)\n",
 			    td->td_photometric, td->td_photometric);
 	}
 	if (TIFFFieldSet(tif,FIELD_MATTEING))
-		fprintf(fd, "  Matteing: %s\n", td->td_matteing ?
+		fprintf(fd, "  Matteing: %s\n", (unsigned long)td->td_matteing ?
 		    "pre-multiplied with alpha channel" : "none");
 #ifdef CMYK_SUPPORT
 	if (TIFFFieldSet(tif,FIELD_INKSET)) {
@@ -270,9 +264,9 @@ TIFFPrintDirectory(tif, fd, flags)
 	if (TIFFFieldSet(tif,FIELD_INKNAMES)) {
 		char *cp;
 		fprintf(fd, "  Ink Names: ");
-		i = td->td_samplesperpixel;
+		i = (unsigned long)td->td_samplesperpixel;
 		sep = "";
-		for (cp = td->td_inknames; i > 0; cp = strchr(cp, '\0')) {
+		for (cp = (unsigned long)td->td_inknames; i > 0; cp = strchr(cp, '\0')) {
 			fprintf(fd, "%s%s", sep, cp);
 			sep = ", ";
 		}
@@ -345,7 +339,7 @@ TIFFPrintDirectory(tif, fd, flags)
 			fprintf(fd, "cosited\n");
 			break;
 		default:
-			fprintf(fd, "%u (0x%x)\n",
+			fprintf(fd, "%lu (0x%lx)\n",
 			    td->td_ycbcrpositioning, td->td_ycbcrpositioning);
 			break;
 		}
@@ -367,7 +361,7 @@ TIFFPrintDirectory(tif, fd, flags)
 			fprintf(fd, "lossless algorithm with Huffman coding\n");
 			break;
 		default:
-			fprintf(fd, "%u (0x%x)\n",
+			fprintf(fd, "%lu (0x%lx)\n",
 			    td->td_jpegproc, td->td_jpegproc);
 			break;
 		}
@@ -375,31 +369,31 @@ TIFFPrintDirectory(tif, fd, flags)
 	if (TIFFFieldSet(tif,FIELD_JPEGRESTARTINTERVAL)) {
 		fprintf(fd, "  JPEG Restart Interval: ");
 		if (td->td_jpegrestartinterval)
-			fprintf(fd, "%u\n", td->td_jpegrestartinterval);
+			fprintf(fd, "%lu\n", td->td_jpegrestartinterval);
 		else
 			fprintf(fd, "(no restart markers)\n");
 	}
 	if (TIFFFieldSet(tif,FIELD_JPEGQTABLES)) {
 		fprintf(fd, "  JPEG Quantization Tables: ");
 		if (flags & TIFFPRINT_JPEGQTABLES) {
-			for (i = 0; i < td->td_samplesperpixel; i++)
-				JPEGPrintQTable(fd, td->td_qtab[i]);
+			for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
+				JPEGPrintQTable(fd, (unsigned long)td->td_qtab[i]);
 		} else
 			fprintf(fd, "(present)\n");
 	}
 	if (TIFFFieldSet(tif,FIELD_JPEGDCTABLES)) {
 		fprintf(fd, "  JPEG DC Tables: ");
 		if (flags & TIFFPRINT_JPEGDCTABLES) {
-			for (i = 0; i < td->td_samplesperpixel; i++)
-				JPEGPrintCTable(fd, td->td_dctab[i]);
+			for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
+				JPEGPrintCTable(fd, (unsigned long)td->td_dctab[i]);
 		} else
 			fprintf(fd, "(present)\n");
 	}
 	if (TIFFFieldSet(tif,FIELD_JPEGACTABLES)) {
 		fprintf(fd, "  JPEG AC Tables: ");
 		if (flags & TIFFPRINT_JPEGACTABLES) {
-			for (i = 0; i < td->td_samplesperpixel; i++)
-				JPEGPrintCTable(fd, td->td_actab[i]);
+			for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
+				JPEGPrintCTable(fd, (unsigned long)td->td_actab[i]);
 		} else
 			fprintf(fd, "(present)\n");
 	}
@@ -427,7 +421,7 @@ TIFFPrintDirectory(tif, fd, flags)
 	if (TIFFFieldSet(tif,FIELD_ORIENTATION)) {
 		fprintf(fd, "  Orientation: ");
 		if (td->td_orientation < NORIENTNAMES)
-			fprintf(fd, "%s\n", orientNames[td->td_orientation]);
+			fprintf(fd, "%s\n", orientNames[(unsigned long)td->td_orientation]);
 		else
 			fprintf(fd, "%u (0x%x)\n",
 			    td->td_orientation, td->td_orientation);
@@ -439,12 +433,12 @@ TIFFPrintDirectory(tif, fd, flags)
 		if (td->td_rowsperstrip == 0xffffffffL)
 			fprintf(fd, "(infinite)\n");
 		else
-			fprintf(fd, "%u\n", td->td_rowsperstrip);
+			fprintf(fd, "%lu\n", td->td_rowsperstrip);
 	}
 	if (TIFFFieldSet(tif,FIELD_MINSAMPLEVALUE))
-		fprintf(fd, "  Min Sample Value: %u\n", td->td_minsamplevalue);
+		fprintf(fd, "  Min Sample Value: %lu\n", td->td_minsamplevalue);
 	if (TIFFFieldSet(tif,FIELD_MAXSAMPLEVALUE))
-		fprintf(fd, "  Max Sample Value: %u\n", td->td_maxsamplevalue);
+		fprintf(fd, "  Max Sample Value: %lu\n", td->td_maxsamplevalue);
 	if (TIFFFieldSet(tif,FIELD_PLANARCONFIG)) {
 		fprintf(fd, "  Planar Configuration: ");
 		switch (td->td_planarconfig) {
@@ -471,7 +465,7 @@ TIFFPrintDirectory(tif, fd, flags)
 			fprintf(fd, "%sEOL padding", sep), sep = "+";
 		if (td->td_group3options & GROUP3OPT_UNCOMPRESSED)
 			fprintf(fd, "%suncompressed data", sep);
-		fprintf(fd, " (%u = 0x%x)\n",
+		fprintf(fd, " (%lu = 0x%lx)\n",
 		    td->td_group3options, td->td_group3options);
 	}
 	if (TIFFFieldSet(tif,FIELD_CLEANFAXDATA)) {
@@ -493,7 +487,7 @@ TIFFPrintDirectory(tif, fd, flags)
 		}
 	}
 	if (TIFFFieldSet(tif,FIELD_BADFAXLINES))
-		fprintf(fd, "  Bad Fax Lines: %u\n", td->td_badfaxlines);
+		fprintf(fd, "  Bad Fax Lines: %lu\n", td->td_badfaxlines);
 	if (TIFFFieldSet(tif,FIELD_BADFAXRUN))
 		fprintf(fd, "  Consecutive Bad Fax Lines: %u\n",
 		    td->td_badfaxrun);
@@ -501,7 +495,7 @@ TIFFPrintDirectory(tif, fd, flags)
 		fprintf(fd, "  Group 4 Options:");
 		if (td->td_group4options & GROUP4OPT_UNCOMPRESSED)
 			fprintf(fd, "uncompressed data");
-		fprintf(fd, " (%u = 0x%x)\n",
+		fprintf(fd, " (%lu = 0x%lx)\n",
 		    td->td_group4options, td->td_group4options);
 	}
 	if (TIFFFieldSet(tif,FIELD_PAGENUMBER))
@@ -511,7 +505,7 @@ TIFFPrintDirectory(tif, fd, flags)
 		fprintf(fd, "  Color Map: ");
 		if (flags & TIFFPRINT_COLORMAP) {
 			fprintf(fd, "\n");
-			n = 1L<<td->td_bitspersample;
+			n = 1L<<(unsigned long)td->td_bitspersample;
 			for (i = 0; i < n; i++)
 				fprintf(fd, "   %5d: %5u %5u %5u\n",
 				    i,
@@ -532,7 +526,7 @@ TIFFPrintDirectory(tif, fd, flags)
 		    td->td_primarychromas[4], td->td_primarychromas[5]);
 	if (TIFFFieldSet(tif,FIELD_REFBLACKWHITE)) {
 		fprintf(fd, "  Reference Black/White:\n");
-		for (i = 0; i < td->td_samplesperpixel; i++)
+		for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
 			fprintf(fd, "    %2d: %5g %5g\n",
 			    i,
 			    td->td_refblackwhite[2*i+0],
@@ -542,11 +536,11 @@ TIFFPrintDirectory(tif, fd, flags)
 		fprintf(fd, "  Transfer Function: ");
 		if (flags & TIFFPRINT_CURVES) {
 			fprintf(fd, "\n");
-			n = 1L<<td->td_bitspersample;
+			n = 1L<<(unsigned long)td->td_bitspersample;
 			for (i = 0; i < n; i++) {
 				fprintf(fd, "    %2d: %5u",
 				    i, td->td_transferfunction[0][i]);
-				for (j = 1; j < td->td_samplesperpixel; j++)
+				for (j = 1; j < (unsigned long)td->td_samplesperpixel; j++)
 					fprintf(fd, " %5u",
 					    td->td_transferfunction[j][i]);
 				putc('\n', fd);
@@ -557,11 +551,11 @@ TIFFPrintDirectory(tif, fd, flags)
 #endif
 	if ((flags & TIFFPRINT_STRIPS) &&
 	    TIFFFieldSet(tif,FIELD_STRIPOFFSETS)) {
-		fprintf(fd, "  %u %s:\n",
+		fprintf(fd, "  %lu %s:\n",
 		    td->td_nstrips,
 		    isTiled(tif) ? "Tiles" : "Strips");
-		for (i = 0; i < td->td_nstrips; i++)
-			fprintf(fd, "    %3d: [%8u, %8u]\n",
+		for (i = 0; i < (unsigned long)td->td_nstrips; i++)
+			fprintf(fd, "    %3d: [%8lu, %8lu]\n",
 			    i, td->td_stripoffset[i], td->td_stripbytecount[i]);
 	}
 }

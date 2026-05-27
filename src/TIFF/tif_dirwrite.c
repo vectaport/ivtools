@@ -106,8 +106,7 @@ static	long dataoff;
  * handle overwriting a directory with auxiliary
  * storage that's been changed.
  */
-int TIFFWriteDirectory(tif)
-	TIFF *tif;
+int TIFFWriteDirectory(TIFF * tif)
 {
 	short dircount, tag;
 	int nfields, dirsize;
@@ -442,6 +441,8 @@ int DECLARE3(TIFFWriteNormalTag,
 			return (0);
 		break;
 	}
+	default:
+		break;
 	}
 	return (1);
 }
@@ -460,9 +461,12 @@ int DECLARE4(TIFFSetupShortLong,
 	if (v > 0xffffL) {
 		dir->tdir_type = (short)TIFF_LONG;
 		dir->tdir_offset = v;
+		return 0;
 	} else {
 		dir->tdir_type = (short)TIFF_SHORT;
 		dir->tdir_offset = TIFFInsertData(tif, (int)TIFF_SHORT, v);
+		return 0;
+		return 0;
 	}
 }
 #undef MakeShortDirent
@@ -732,11 +736,7 @@ int DECLARE2(TIFFWriteTransferFunction, TIFF*, tif, TIFFDirEntry*, dir)
 /*
  * Write a contiguous directory item.
  */
-static
-int TIFFWriteData(tif, dir, cp)
-	TIFF *tif;
-	TIFFDirEntry *dir;
-	char *cp;
+static int TIFFWriteData(TIFF * tif, TIFFDirEntry * dir, char * cp)
 {
 	int cc;
 
@@ -756,9 +756,7 @@ int TIFFWriteData(tif, dir, cp)
  * Link the current directory into the
  * directory chain for the file.
  */
-static
-int TIFFLinkDirectory(tif)
-	register TIFF *tif;
+static int TIFFLinkDirectory(TIFF * tif)
 {
 	static char module[] = "TIFFLinkDirectory";
 	u_short dircount;

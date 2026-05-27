@@ -44,8 +44,7 @@ static	int Fax4Encode();
 static	int Fax4PostEncode();
 #endif
 
-int TIFFInitCCITTFax4(tif)
-	TIFF *tif;
+int TIFFInitCCITTFax4(TIFF * tif)
 {
 	TIFFInitCCITTFax3(tif);		/* reuse G3 compression */
 	tif->tif_decoderow = Fax4Decode;
@@ -69,11 +68,7 @@ int TIFFInitCCITTFax4(tif)
  * Decode the requested amount of data.
  */
 static int
-Fax4Decode(tif, buf, occ, s)
-	TIFF *tif;
-	u_char *buf;
-	int occ;
-	u_int s;
+Fax4Decode(TIFF * tif, u_char * buf, int occ, u_int s)
 {
 	Fax3BaseState *sp = (Fax3BaseState *)tif->tif_data;
 
@@ -92,11 +87,7 @@ Fax4Decode(tif, buf, occ, s)
  * Encode the requested amount of data.
  */
 static int
-Fax4Encode(tif, bp, cc, s)
-	TIFF *tif;
-	u_char *bp;
-	int cc;
-	u_int s;
+Fax4Encode(TIFF * tif, u_char * bp, int cc, u_int s)
 {
 	Fax3BaseState *sp = (Fax3BaseState *)tif->tif_data;
 
@@ -110,9 +101,7 @@ Fax4Encode(tif, bp, cc, s)
 	return (1);
 }
 
-static
-int Fax4PostEncode(tif)
-	TIFF *tif;
+static int Fax4PostEncode(TIFF * tif)
 {
 	Fax3BaseState *sp = (Fax3BaseState *)tif->tif_data;
 

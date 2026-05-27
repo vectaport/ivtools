@@ -31,8 +31,7 @@
 #include <sys/stat.h>
 
 long
-TIFFGetFileSize(fd)
-	int fd;
+TIFFGetFileSize(int fd)
 {
 	struct stat sb;
 
@@ -44,10 +43,7 @@ TIFFGetFileSize(fd)
 #include <sys/mman.h>
 
 int
-TIFFMapFileContents(fd, pbase, psize)
-	int fd;
-	char **pbase;
-	long *psize;
+TIFFMapFileContents(int fd, char ** pbase, long * psize)
 {
 	long size = TIFFGetFileSize(fd);
 	if (size != -1) {
@@ -61,9 +57,7 @@ TIFFMapFileContents(fd, pbase, psize)
 }
 
 void
-TIFFUnmapFileContents(base, size)
-	char *base;
-	long size;
+TIFFUnmapFileContents(char * base, long size)
 {
 	(void) munmap(base, size);
 }
@@ -99,10 +93,7 @@ static struct {
  *   size of the file
  */
 int
-TIFFMapFileContents(fd, pbase, psize)
-	int fd;
-	char **pbase;
-	long *psize;
+TIFFMapFileContents(int fd, char ** pbase, long * psize)
 {
 	char name[256];
 	struct FAB fab;
@@ -161,9 +152,7 @@ TIFFMapFileContents(fd, pbase, psize)
  * call to TIFFMapFileContents.
  */
 void
-TIFFUnmapFileContents(base, size)
-	char *base;
-	long size;
+TIFFUnmapFileContents(char * base, long size)
 {
 	void *inadr[2];
 	int i, j;

@@ -5,9 +5,7 @@
  * runs of zeros and ones in Group 3 Fax encoding.
  */
 
-dumparray(name, runs)
-	char *name;
-	unsigned char runs[256];
+dumparray(char * name, runs)
 {
 	register int i;
 	register char *sep;
