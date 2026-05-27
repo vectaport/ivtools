@@ -5,18 +5,16 @@
 
 Instructions for building ivtools-2.1.1 from source, the short version:
 
-        cp Makefile.orig Makefile // if cloned from github
+ 	autoreconf -i    // only needed if ./configure does not exist
 	./configure
 	make
 	su -c "make install"
 
-** notes on the short version relative to distributing ivtools via github **
-
-1. If you want to try an autotools build, work with the autotools branch set up by Barak Pearlmutter.
-   You may have to download some archived m4 macros (AX_*) and run aclocal, before doing:
-       autoreconf --install
-       ./configure
-       make
+1. autoreconf -i requires autoconf 2.70 or later.
+    On macOS: brew install autoconf
+    On Debian/Ubuntu: sudo apt install autoconf
+    This generates ./configure from configure.ac. Once generated, ./configure
+    can be used directly without repeating autoreconf -i.
 
 2. The configure script tests for the presence of imake, and builds it from a source copy
    within ivtools if necessary.
@@ -36,7 +34,14 @@ Instructions for building ivtools-2.1.1 from source, the short version:
    (if you're in a root only docker container, don't use the sudo, and you'll have to
    edit sudo out of the Makefile as well)
 
-- Scott Johnston, May-June 2020
+5. If all else fails you can always install the binaries directly from Debian or
+   homebrew on MacOS, either:
+
+   On Debian: sudo apt install ivtools-bin
+   On MacOs: brew install ivtools
+   
+
+- Scott Johnston, May-June 2020, updated 2026
 
 
 Instructions for building ivtools-2.1.0 from source, the long version:
