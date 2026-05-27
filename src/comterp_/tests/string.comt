@@ -1,0 +1,133 @@
+// src/comterp_/tests/string.comt -- test string commands
+//
+// Tests: index(), substr(), split(), join(), eq(), size(), print(:str)
+//
+// Documentation notes (improvements suggested to help strings):
+//
+//   index(lst|str val|char|str :last :all :substr)
+//     - When both args are strings, substring search is performed by
+//       default using strstr() -- :substr is NOT needed and is redundant.
+//       :substr is only meaningful when the first arg is a list, where
+//       it switches element comparison from equality to strstr().
+//       Suggest clarifying help, e.g.:
+//       "index(str fragment) -- returns 0-based char index of fragment
+//        in str, or nil if not found. :substr only needed for list arg."
+//
+//   substr(str n|str :after :nonil)
+//     - Two-arg form with int n is undocumented: does it extract n chars
+//       from start, or index from a position? Needs clarification.
+//     - :nonil says "return string if no match" but doesn't say which
+//       string -- the entire input str is returned. Suggest clarifying:
+//       ":nonil   return entire input string if no match (instead of nil)"
+//
+//   split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse)
+//     - Does not clarify whether consecutive delimiters produce empty
+//       tokens or collapse. Suggest adding a note.
+//     - :tokval vs :tokstr distinction (typed values vs strings)
+//       could be made clearer with an example in the help string.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/string.comt")
+
+ok=true
+
+// --- test 1: index string-in-string (no :substr needed) ---
+s="hello world"
+i=index(s "world")
+ok=ok&&(i==6)
+print("1a index string match (expect 6): %v\n" i)
+i=index(s "xyz")
+ok=ok&&(i==nil)
+print("1b index no match (expect nil): %v\n\n" i)
+
+// --- test 2: index :last finds last occurrence ---
+s="abcabc"
+i=index(s "b" :last)
+ok=ok&&(i==4)
+print("2 index :last (expect 4): %v\n\n" i)
+
+// --- test 3: index :all returns list of positions ---
+s="abcabc"
+lst=index(s "b" :all)
+ok=ok&&(at(lst 0)==1)
+ok=ok&&(at(lst 1)==4)
+print("3 index :all (expect {1,4}): %v\n\n" lst)
+
+// --- test 4: index char-in-string ---
+s="hello"
+i=index(s char(108))
+ok=ok&&(i==2)
+print("4 index char (expect 2 for first 'l'): %v\n\n" i)
+
+// --- test 5: index :substr on list matches element substrings ---
+lst=list("foobar","bazquux","hello")
+i=index(lst "bar" :substr)
+ok=ok&&(i==0)
+print("5 index :substr on list (expect 0): %v\n\n" i)
+
+// --- test 6: substr :after match ---
+s="brush 65535,0"
+tail=substr(s "brush" :after)
+ok=ok&&(index(tail "65535")!=nil)
+print("6 substr :after match (expect \" 65535,0\"): %v\n\n" tail)
+
+// --- test 7: substr :nonil returns input on no match ---
+s="hello"
+result=substr(s "xyz" :nonil)
+ok=ok&&(result=="hello")
+print("7 substr :nonil no match (expect \"hello\"): %v\n\n" result)
+
+// --- test 8: substr returns nil on no match without :nonil ---
+result=substr(s "xyz")
+ok=ok&&(result==nil)
+print("8 substr no match no :nonil (expect nil): %v\n\n" result)
+
+// --- test 9: split into characters ---
+lst=split("abc")
+ok=ok&&(size(lst)==3)
+ok=ok&&(at(lst 0)=='a')
+ok=ok&&(at(lst 2)=='c')
+print("9 split chars (expect 'a','b','c'): '%c','%c','%c'\n\n" at(lst 0) at(lst 1) at(lst 2))
+
+// --- test 10: split :tokstr by whitespace ---
+lst=split("foo bar baz" :tokstr)
+ok=ok&&(size(lst)==3)
+ok=ok&&(at(lst 0)=="foo")
+ok=ok&&(at(lst 2)=="baz")
+print("10 split :tokstr whitespace (expect {\"foo\",\"bar\",\"baz\"}): %v\n\n" lst)
+
+// --- test 11: split :tokstr by semi-colon delimiter ---
+lst=split("a;b;c" :tokstr ';')
+ok=ok&&(size(lst)==3)
+ok=ok&&(at(lst 1)=="b")
+print("11 split :tokstr semi-colon (expect {a,b,c}): %v\n\n" lst)
+
+// --- test 12: join list of chars back to string ---
+lst=split("hello")
+s=join(lst)
+ok=ok&&(s=="hello")
+print("12 join round-trip (expect 'hello'): %v\n\n" s)
+
+// --- test 13: eq partial string comparison :n ---
+r13a=eq("foobar" "foo" :n 3)
+r13b=eq("foobar" "fox" :n 3)
+ok=ok&&r13a&&(!r13b)
+print("13 eq :n partial (expect true, false): %v, %v\n\n" r13a r13b)
+
+// --- test 14: size of string returns character count ---
+n14=size("hello")
+ok=ok&&(n14==5)
+print("14 size string (expect 5): %v\n\n" n14)
+
+// --- test 15: print :str returns string ---
+s=print("value=%v" 42 :str)
+ok=ok&&(index(s "42")!=nil)
+print("15 print :str (expect string with '42'): %v\n\n" s)
+
+// --- test 16: string concatenation with + ---
+s="foo"+"bar"
+ok=ok&&(s=="foobar")
+print("16 string concat + (expect 'foobar'): %v\n\n" s)
+
+print("\nstring: %v\n" ok)
+ok
