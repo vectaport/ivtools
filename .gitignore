@@ -423,3 +423,13 @@ src/iclass/DARWIN/classinfo.o-9f882d1e
 imake
 
 .DS_Store
+
+autom4te.cache/
+
+configure
+
+configure.in
+configure~
+config.log
+config.status
+config/config-*.defs
