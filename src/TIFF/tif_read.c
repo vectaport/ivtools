@@ -270,8 +270,8 @@ static int TIFFFillStrip(TIFF * tif, u_int strip)
 		if (TIFFReadRawStrip1(tif, strip, (u_char *)tif->tif_rawdata,
 		    bytecount, module) != bytecount)
 			return (0);
-		if ((td->td_fillorder != tif->tif_fillorder &&
-		    (tif->tif_flags & TIFF_NOBITREV)) == 0)
+		if (td->td_fillorder != tif->tif_fillorder &&
+		    !(tif->tif_flags & TIFF_NOBITREV))
 			TIFFReverseBits((u_char *)tif->tif_rawdata, bytecount);
 #ifdef MMAP_SUPPORT
 	}
@@ -441,8 +441,8 @@ static int TIFFFillTile(TIFF * tif, u_int tile)
 		if (TIFFReadRawTile1(tif, tile, (u_char *)tif->tif_rawdata,
 		    bytecount, module) != bytecount)
 			return (0);
-		if ((td->td_fillorder != tif->tif_fillorder &&
-		    (tif->tif_flags & TIFF_NOBITREV)) == 0)
+		if (td->td_fillorder != tif->tif_fillorder &&
+		    !(tif->tif_flags & TIFF_NOBITREV))
 			TIFFReverseBits((u_char *)tif->tif_rawdata, bytecount);
 #ifdef MMAP_SUPPORT
 	}

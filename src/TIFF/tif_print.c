@@ -59,7 +59,7 @@ static void JPEGPrintCTable(FILE * fd, u_char * tab)
 	fprintf(fd, "\n    Bits:");
 	count = 0;
 	for (i = 0; i < 16; i++) {
-		fprintf(fd, " %lu", tab[i]);
+		fprintf(fd, " %u", tab[i]);
 		count += tab[i];
 	}
 	n = 0;
