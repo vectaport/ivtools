@@ -44,9 +44,10 @@ int DECLARE2(setString, char**, cpp, char*, cp)
 		free(*cpp), *cpp = 0;
 	if (cp) {
 		int len = strlen(cp)+1;
-		if (*cpp = malloc(len))
+		if ((*cpp = malloc(len)))
 			bcopy(cp, *cpp, len);
 	}
+	return 0;
 }
 
 static
@@ -57,6 +58,7 @@ int DECLARE3(setShortArray, u_short**, wpp, u_short*, wp, long, n)
 	n *= sizeof (u_short);
 	if (wp && (*wpp = (u_short *)malloc(n)))
 		bcopy(wp, *wpp, n);
+	return 0;
 }
 
 static
@@ -67,6 +69,7 @@ int DECLARE3(setLongArray, u_long**, wpp, u_long*, wp, long, n)
 	n *= sizeof (u_long);
 	if (wp && (*wpp = (u_long *)malloc(n)))
 		bcopy(wp, *wpp, n);
+	return 0;
 }
 
 static
@@ -77,6 +80,7 @@ int DECLARE3(setFloatArray, float**, wpp, float*, wp, long, n)
 	n *= sizeof (float);
 	if (wp && (*wpp = (float *)malloc(n)))
 		bcopy(wp, *wpp, n);
+	return 0;
 }
 
 #ifdef JPEG_SUPPORT
@@ -152,11 +156,7 @@ void DECLARE3(setJPEGCTable, u_char***, cpp, u_char**, cp, int, nc)
 }
 #endif
 
-static
-int TIFFSetField1(tif, tag, ap)
-	TIFF *tif;
-	int tag;
-	va_list ap;
+static int TIFFSetField1(TIFF * tif, int tag, va_list ap)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	int i, status = 1;
@@ -191,7 +191,7 @@ int TIFFSetField1(tif, tag, ap)
 		/*
 		 * Setup new compression routine state.
 		 */
-		if (status = TIFFSetCompressionScheme(tif, v))
+		if ((status = TIFFSetCompressionScheme(tif, v)))
 			td->td_compression = v;
 		break;
 	case TIFFTAG_PHOTOMETRIC:
@@ -467,10 +467,7 @@ badvalue:
  * has commenced, unless its value has no effect
  * on the format of the data that is written.
  */
-static
-int OkToChangeTag(tif, tag)
-	TIFF *tif;
-	int tag;
+static int OkToChangeTag(TIFF * tif, int tag)
 {
 	if (tag != TIFFTAG_IMAGELENGTH &&
 	    (tif->tif_flags & TIFF_BEENWRITING)) {
@@ -521,10 +518,7 @@ int DECLARE2V(TIFFSetField, TIFF*, tif, int, tag)
  * for building higher-level interfaces on
  * top of the library.
  */
-int TIFFVSetField(tif, tag, ap)
-	TIFF *tif;
-	int tag;
-	va_list ap;
+int TIFFVSetField(TIFF *tif, int tag, va_list ap)
 {
 	int status = 0;
 
@@ -539,11 +533,7 @@ int TIFFVSetField(tif, tag, ap)
 	return (status);
 }
 
-static
-int TIFFGetField1(td, tag, ap)
-	TIFFDirectory *td;
-	int tag;
-	va_list ap;
+static int TIFFGetField1(TIFFDirectory * td, int tag, va_list ap)
 {
 
 	switch (tag) {
@@ -765,6 +755,7 @@ int TIFFGetField1(td, tag, ap)
 		break;
 	}
 	va_end(ap);
+	return 0;
 }
 
 /*
@@ -796,10 +787,7 @@ int DECLARE2V(TIFFGetField, TIFF*, tif, int, tag)
  * for building higher-level interfaces on
  * top of the library.
  */
-int TIFFVGetField(tif, tag, ap)
-	TIFF *tif;
-	int tag;
-	va_list ap;
+int TIFFVGetField(TIFF *tif, int tag, va_list ap)
 {
 	TIFFFieldInfo const *fip = TIFFFindFieldInfo(tag, TIFF_ANY);
 
@@ -826,6 +814,7 @@ DECLARE2V(_TIFFgetfield, TIFFDirectory*, td, int, tag)
 	VA_START(ap, tag);
 	(void) TIFFGetField1(td, tag, ap);
 	va_end(ap);
+	return 0;
 }
 
 #define	CleanupField(member) {		\
@@ -838,8 +827,7 @@ DECLARE2V(_TIFFgetfield, TIFFDirectory*, td, int, tag)
 /*
  * Release storage associated with a directory.
  */
-int TIFFFreeDirectory(tif)
-	TIFF *tif;
+int TIFFFreeDirectory(TIFF *tif)
 {
 	register TIFFDirectory *td = &tif->tif_dir;
 
@@ -878,14 +866,14 @@ int TIFFFreeDirectory(tif)
 #endif
 	CleanupField(td_stripoffset);
 	CleanupField(td_stripbytecount);
+	return 0;
 }
 #undef CleanupField
 
 /*
  * Setup a default directory structure.
  */
-int TIFFDefaultDirectory(tif)
-	TIFF *tif;
+int TIFFDefaultDirectory(TIFF *tif)
 {
 	register TIFFDirectory *td = &tif->tif_dir;
 
@@ -928,9 +916,7 @@ int TIFFDefaultDirectory(tif)
  * Set the n-th directory as the current directory.
  * NB: Directories are numbered starting at 0.
  */
-int TIFFSetDirectory(tif, dirn)
-	register TIFF *tif;
-	int dirn;
+int TIFFSetDirectory(TIFF *tif, int dirn)
 {
 	static char module[] = "TIFFSetDirectory";
 	u_short dircount;

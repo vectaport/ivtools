@@ -51,16 +51,13 @@ static	int TIFFCheckRead();
 #endif
 
 /*VARARGS3*/
-int TIFFReadScanline(tif, buf, row, sample)
-	register TIFF *tif;
-	u_char *buf;
-	u_int row, sample;
+int TIFFReadScanline(TIFF * tif, u_char * buf, u_int row, u_int sample)
 {
 	int e;
 
 	if (!TIFFCheckRead(tif, 0))
 		return (-1);
-	if (e = TIFFSeek(tif, row, sample)) {
+	if ((e = TIFFSeek(tif, row, sample))) {
 		/*
 		 * Decompress desired row into user buffer.
 		 */
@@ -75,20 +72,18 @@ int TIFFReadScanline(tif, buf, row, sample)
  */
 static
 /*VARARGS2*/
-int TIFFSeek(tif, row, sample)
-	register TIFF *tif;
-	u_int row, sample;
+int TIFFSeek(TIFF * tif, u_int row, u_int sample)
 {
 	register TIFFDirectory *td = &tif->tif_dir;
 	int strip;
 
-	if (row >= td->td_imagelength) {	/* out of range */
+	if ((row >= td->td_imagelength)) {	/* out of range */
 		TIFFError(tif->tif_name, "%d: Row out of range, max %d",
 		    row, td->td_imagelength);
 		return (0);
 	}
 	if (td->td_planarconfig == PLANARCONFIG_SEPARATE) {
-		if (sample >= td->td_samplesperpixel) {
+		if ((sample >= td->td_samplesperpixel)) {
 			TIFFError(tif->tif_name,
 			    "%d: Sample out of range, max %d",
 			    sample, td->td_samplesperpixel);
@@ -133,18 +128,14 @@ int TIFFSeek(tif, row, sample)
  * Read a strip of data and decompress the specified
  * amount into the user-supplied buffer.
  */
-int TIFFReadEncodedStrip(tif, strip, buf, size)
-	TIFF *tif;
-	u_int strip;
-	u_char *buf;
-	u_int size;
+int TIFFReadEncodedStrip(TIFF * tif, u_int strip, u_char * buf, u_int size)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	u_int stripsize = TIFFStripSize(tif);
 
 	if (!TIFFCheckRead(tif, 0))
 		return (-1);
-	if (strip >= td->td_nstrips) {
+	if ((strip >= td->td_nstrips)) {
 		TIFFError(tif->tif_name, "%d: Strip out of range, max %d",
 		    strip, td->td_nstrips);
 		return (-1);
@@ -165,11 +156,7 @@ int TIFFReadEncodedStrip(tif, strip, buf, size)
 /*
  * Read a strip of data from the file.
  */
-int TIFFReadRawStrip(tif, strip, buf, size)
-	TIFF *tif;
-	u_int strip;
-	u_char *buf;
-	u_int size;
+int TIFFReadRawStrip(TIFF * tif, u_int strip, u_char * buf, u_int size)
 {
 	static char module[] = "TIFFReadRawStrip";
 	TIFFDirectory *td = &tif->tif_dir;
@@ -177,7 +164,7 @@ int TIFFReadRawStrip(tif, strip, buf, size)
 
 	if (!TIFFCheckRead(tif, 0))
 		return (-1);
-	if (strip >= td->td_nstrips) {
+	if ((strip >= td->td_nstrips)) {
 		TIFFError(tif->tif_name, "%d: Strip out of range, max %d",
 		    strip, td->td_nstrips);
 		return (-1);
@@ -189,12 +176,7 @@ int TIFFReadRawStrip(tif, strip, buf, size)
 }
 
 static int
-TIFFReadRawStrip1(tif, strip, buf, size, module)
-	TIFF *tif;
-	u_int strip;
-	u_char *buf;
-	u_int size;
-	char module[];
+TIFFReadRawStrip1(TIFF * tif, u_int strip, u_char * buf, u_int size, char module[])
 {
 	TIFFDirectory *td = &tif->tif_dir;
 
@@ -229,10 +211,7 @@ TIFFReadRawStrip1(tif, strip, buf, size, module)
  * The data buffer is expanded, as necessary, to
  * hold the strip's data.
  */
-static
-int TIFFFillStrip(tif, strip)
-	TIFF *tif;
-	u_int strip;
+static int TIFFFillStrip(TIFF * tif, u_int strip)
 {
 	static char module[] = "TIFFFillStrip";
 	TIFFDirectory *td = &tif->tif_dir;
@@ -292,7 +271,7 @@ int TIFFFillStrip(tif, strip)
 		    bytecount, module) != bytecount)
 			return (0);
 		if (td->td_fillorder != tif->tif_fillorder &&
-		    (tif->tif_flags & TIFF_NOBITREV) == 0)
+		    !(tif->tif_flags & TIFF_NOBITREV))
 			TIFFReverseBits((u_char *)tif->tif_rawdata, bytecount);
 #ifdef MMAP_SUPPORT
 	}
@@ -309,18 +288,14 @@ int TIFFFillStrip(tif, strip)
  * Read and decompress a tile of data.  The
  * tile is selected by the (x,y,z,s) coordinates.
  */
-int TIFFReadTile(tif, buf, x, y, z, s)
-	TIFF *tif;
-	u_char *buf;
-	u_long x, y, z;
-	u_int s;
+int TIFFReadTile(TIFF * tif, u_char * buf, u_long x, u_long y, u_long z, u_int s)
 {
 	u_int tile;
 
 	if (!TIFFCheckRead(tif, 1) || !TIFFCheckTile(tif, x, y, z, s))
 		return (-1);
 	tile = TIFFComputeTile(tif, x, y, z, s);
-	if (tile >= tif->tif_dir.td_nstrips) {
+	if ((tile >= tif->tif_dir.td_nstrips)) {
 		TIFFError(tif->tif_name, "%d: Tile out of range, max %d",
 		    tile, tif->tif_dir.td_nstrips);
 		return (-1);
@@ -334,18 +309,14 @@ int TIFFReadTile(tif, buf, x, y, z, s)
  * Read a tile of data and decompress the specified
  * amount into the user-supplied buffer.
  */
-int TIFFReadEncodedTile(tif, tile, buf, size)
-	TIFF *tif;
-	u_int tile;
-	u_char *buf;
-	u_int size;
+int TIFFReadEncodedTile(TIFF * tif, u_int tile, u_char * buf, u_int size)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 	int tilesize = tif->tif_tilesize;
 
 	if (!TIFFCheckRead(tif, 1))
 		return (-1);
-	if (tile >= td->td_nstrips) {
+	if ((tile >= td->td_nstrips)) {
 		TIFFError(tif->tif_name, "%d: Tile out of range, max %d",
 		    tile, td->td_nstrips);
 		return (-1);
@@ -362,11 +333,7 @@ int TIFFReadEncodedTile(tif, tile, buf, size)
 /*
  * Read a tile of data from the file.
  */
-int TIFFReadRawTile(tif, tile, buf, size)
-	TIFF *tif;
-	u_int tile;
-	u_char *buf;
-	u_int size;
+int TIFFReadRawTile(TIFF * tif, u_int tile, u_char * buf, u_int size)
 {
 	static char module[] = "TIFFReadRawTile";
 	TIFFDirectory *td = &tif->tif_dir;
@@ -374,7 +341,7 @@ int TIFFReadRawTile(tif, tile, buf, size)
 
 	if (!TIFFCheckRead(tif, 1))
 		return (-1);
-	if (tile >= td->td_nstrips) {
+	if ((tile >= td->td_nstrips)) {
 		TIFFError(tif->tif_name, "%d: Tile out of range, max %d",
 		    tile, td->td_nstrips);
 		return (-1);
@@ -386,12 +353,7 @@ int TIFFReadRawTile(tif, tile, buf, size)
 }
 
 static int
-TIFFReadRawTile1(tif, tile, buf, size, module)
-	TIFF *tif;
-	u_int tile;
-	u_char *buf;
-	u_int size;
-	char module[];
+TIFFReadRawTile1(TIFF * tif, u_int tile, u_char * buf, u_int size, char module[])
 {
 	TIFFDirectory *td = &tif->tif_dir;
 
@@ -426,10 +388,7 @@ TIFFReadRawTile1(tif, tile, buf, size, module)
  * The data buffer is expanded, as necessary, to
  * hold the tile's data.
  */
-static
-int TIFFFillTile(tif, tile)
-	TIFF *tif;
-	u_int tile;
+static int TIFFFillTile(TIFF * tif, u_int tile)
 {
 	static char module[] = "TIFFFillTile";
 	TIFFDirectory *td = &tif->tif_dir;
@@ -483,7 +442,7 @@ int TIFFFillTile(tif, tile)
 		    bytecount, module) != bytecount)
 			return (0);
 		if (td->td_fillorder != tif->tif_fillorder &&
-		    (tif->tif_flags & TIFF_NOBITREV) == 0)
+		    !(tif->tif_flags & TIFF_NOBITREV))
 			TIFFReverseBits((u_char *)tif->tif_rawdata, bytecount);
 #ifdef MMAP_SUPPORT
 	}
@@ -501,10 +460,7 @@ int TIFFFillTile(tif, tile)
  * raw data.
  */
 int
-TIFFReadBufferSetup(tif, bp, size)
-	TIFF *tif;
-	char *bp;
-	u_int size;
+TIFFReadBufferSetup(TIFF * tif, char * bp, u_int size)
 {
 	static char module[] = "TIFFReadBufferSetup";
 
@@ -536,10 +492,7 @@ TIFFReadBufferSetup(tif, bp, size)
  * Set state to appear as if a
  * strip has just been read in.
  */
-static
-int TIFFStartStrip(tif, strip)
-	register TIFF *tif;
-	u_int strip;
+static int TIFFStartStrip(TIFF * tif, u_int strip)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 
@@ -554,10 +507,7 @@ int TIFFStartStrip(tif, strip)
  * Set state to appear as if a
  * tile has just been read in.
  */
-static
-int TIFFStartTile(tif, tile)
-	register TIFF *tif;
-	u_int tile;
+static int TIFFStartTile(TIFF * tif, u_int tile)
 {
 	TIFFDirectory *td = &tif->tif_dir;
 
@@ -573,10 +523,7 @@ int TIFFStartTile(tif, tile)
 	return (tif->tif_predecode == NULL || (*tif->tif_predecode)(tif));
 }
 
-static
-int TIFFCheckRead(tif, tiles)
-	TIFF *tif;
-	int tiles;
+static int TIFFCheckRead(TIFF * tif, int tiles)
 {
 	if (tif->tif_mode == O_WRONLY) {
 		TIFFError(tif->tif_name, "File not open for reading");

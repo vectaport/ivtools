@@ -63,8 +63,7 @@ static	int gt(TIFF *, int, int, u_long *);
  * pixel values simply by indexing into the table with one
  * number.
  */
-int makebwmap(Map)
-	RGBvalue *Map;
+int makebwmap(RGBvalue * Map)
 {
 	register int i;
 	int nsamples = 8 / bitspersample;
@@ -118,8 +117,7 @@ int makebwmap(Map)
  * pixel values simply by indexing into the table with one
  * number.
  */
-int makecmap(rmap, gmap, bmap)
-	u_short *rmap, *gmap, *bmap;
+int makecmap(u_short * rmap, u_short * gmap, u_short * bmap)
 {
 	register int i;
 	int nsamples = 8 / bitspersample;
@@ -170,11 +168,7 @@ c = x; *p++ = PACK(rmap[c]&0xff, gmap[c]&0xff, bmap[c]&0xff);
 
 
 
-int TIFFReadRGBAImage(tif, rwidth, rheight, raster, stop)
-	TIFF *tif;
-	u_long rwidth, rheight;
-	u_long *raster;
-	int stop;
+int TIFFReadRGBAImage(TIFF * tif, u_long rwidth, u_long rheight, u_long * raster, int stop)
 {
 	int ok;
 	u_long width, height;
@@ -231,9 +225,7 @@ int TIFFReadRGBAImage(tif, rwidth, rheight, raster, stop)
 }
 
 static int
-checkcmap(n, r, g, b)
-	int n;
-	u_short *r, *g, *b;
+checkcmap(int n, u_short * r, u_short * g, u_short * b)
 {
 	while (n-- > 0)
 		if (*r++ >= 256 || *g++ >= 256 || *b++ >= 256)
@@ -248,11 +240,7 @@ static	int gtStripContig(TIFF *tif, u_long *raster, RGBvalue *Map, u_long h, u_l
 static	int gtStripSeparate(TIFF *tif, u_long *raster, register RGBvalue *Map, u_long h, u_long w);
 static	void initYCbCrConversion();
 
-static
-int gt(tif, w, h, raster)
-	TIFF *tif;
-	int w, h;
-	u_long *raster;
+static int gt(TIFF * tif, int w, int h, u_long * raster)
 {
 	u_short minsamplevalue, maxsamplevalue, planarconfig;
 	RGBvalue *Map;
@@ -352,9 +340,7 @@ int gt(tif, w, h, raster)
 }
 
 u_long
-setorientation(tif, h)
-	TIFF *tif;
-	u_long h;
+setorientation(TIFF * tif, u_long h)
 {
 	u_long y;
 
@@ -398,12 +384,7 @@ static tileContigRoutine pickTileContigCase();
  * or
  *	SamplesPerPixel == 1
  */	
-static
-int gtTileContig(tif, raster, Map, h, w)
-	TIFF *tif;
-	u_long *raster;
-	RGBvalue *Map;
-	u_long h, w;
+static int gtTileContig(TIFF * tif, u_long * raster, RGBvalue * Map, u_long h, u_long w)
 {
 	u_long col, row, y;
 	u_long tw, th;
@@ -464,12 +445,7 @@ static tileSeparateRoutine pickTileSeparateCase();
  *	 PlanarConfiguration separated
  * We assume that all such images are RGB.
  */	
-static
-int gtTileSeparate(tif, raster, Map, h, w)
-	TIFF *tif;
-	u_long *raster;
-	RGBvalue *Map;
-	u_long h, w;
+static int gtTileSeparate(TIFF * tif, u_long * raster, RGBvalue * Map, u_long h, u_long w)
 {
 	u_long col, row, y;
 	u_long tw, th;
@@ -530,12 +506,7 @@ int gtTileSeparate(tif, raster, Map, h, w)
  * or
  *	SamplesPerPixel == 1
  */	
-static
-int gtStripContig(tif, raster, Map, h, w)
-	TIFF *tif;
-	u_long *raster;
-	RGBvalue *Map;
-	u_long h, w;
+static int gtStripContig(TIFF * tif, u_long * raster, RGBvalue * Map, u_long h, u_long w)
 {
 	u_long row, y, nrow;
 	u_char *buf;
@@ -577,12 +548,7 @@ int gtStripContig(tif, raster, Map, h, w)
  *	 PlanarConfiguration separated
  * We assume that all such images are RGB.
  */
-static
-int gtStripSeparate(tif, raster, Map, h, w)
-	TIFF *tif;
-	u_long *raster;
-	register RGBvalue *Map;
-	u_long h, w;
+static int gtStripSeparate(TIFF * tif, u_long * raster, RGBvalue * Map, u_long h, u_long w)
 {
 	u_char *buf;
 	u_char *r, *g, *b;
@@ -691,12 +657,7 @@ int gtStripSeparate(tif, raster, Map, h, w)
  * 8-bit palette => colormap/RGB
  */
 static void
-put8bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put8bitcmaptile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	while (h-- > 0) {
 		UNROLL8(w,, *cp++ = PALmap[*pp++][0]);
@@ -709,12 +670,7 @@ put8bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
  * 4-bit palette => colormap/RGB
  */
 static void
-put4bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put4bitcmaptile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_long *bw;
 
@@ -730,12 +686,7 @@ put4bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
  * 2-bit palette => colormap/RGB
  */
 static void
-put2bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put2bitcmaptile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_long *bw;
 
@@ -751,12 +702,7 @@ put2bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
  * 1-bit palette => colormap/RGB
  */
 static void
-put1bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put1bitcmaptile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_long *bw;
 
@@ -772,12 +718,7 @@ put1bitcmaptile(cp, pp, Map, w, h, fromskew, toskew)
  * 8-bit greyscale => colormap/RGB
  */
 static void
-putgreytile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+putgreytile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	while (h-- > 0) {
 		register u_long x;
@@ -792,12 +733,7 @@ putgreytile(cp, pp, Map, w, h, fromskew, toskew)
  * 1-bit bilevel => colormap/RGB
  */
 static void
-put1bitbwtile(cp, pp, Map, w, h, fromskew, toskew)
-	u_long *cp;
-	u_char *pp;
-	RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put1bitbwtile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_long *bw;
 
@@ -813,12 +749,7 @@ put1bitbwtile(cp, pp, Map, w, h, fromskew, toskew)
  * 2-bit greyscale => colormap/RGB
  */
 static void
-put2bitbwtile(cp, pp, Map, w, h, fromskew, toskew)
-	u_long *cp;
-	u_char *pp;
-	RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put2bitbwtile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_long *bw;
 
@@ -834,12 +765,7 @@ put2bitbwtile(cp, pp, Map, w, h, fromskew, toskew)
  * 4-bit greyscale => colormap/RGB
  */
 static void
-put4bitbwtile(cp, pp, Map, w, h, fromskew, toskew)
-	u_long *cp;
-	u_char *pp;
-	RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+put4bitbwtile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_long *bw;
 
@@ -855,12 +781,7 @@ put4bitbwtile(cp, pp, Map, w, h, fromskew, toskew)
  * 8-bit packed samples => RGB
  */
 static void
-putRGBcontig8bittile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+putRGBcontig8bittile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	fromskew *= samplesperpixel;
 	if (Map) {
@@ -888,12 +809,7 @@ putRGBcontig8bittile(cp, pp, Map, w, h, fromskew, toskew)
  * 16-bit packed samples => RGB
  */
 static void
-putRGBcontig16bittile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	u_char *pp;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+putRGBcontig16bittile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_short *wp = (u_short *)pp;
 	register u_int x;
@@ -924,12 +840,7 @@ putRGBcontig16bittile(cp, pp, Map, w, h, fromskew, toskew)
  * 8-bit unpacked samples => RGB
  */
 static void
-putRGBseparate8bittile(cp, r, g, b, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *r, *g, *b;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+putRGBseparate8bittile(u_long * cp, u_char * r, u_char * g, u_char * b, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 
 {
 	if (Map) {
@@ -953,12 +864,7 @@ putRGBseparate8bittile(cp, r, g, b, Map, w, h, fromskew, toskew)
  * 16-bit unpacked samples => RGB
  */
 static void
-putRGBseparate16bittile(cp, br, bg, bb, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	u_char *br, *bg, *bb;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+putRGBseparate16bittile(u_long * cp, u_char * br, u_char * bg, u_char * bb, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	register u_short *r = (u_short *)br;
 	register u_short *g = (u_short *)bg;
@@ -1003,12 +909,7 @@ initYCbCrConversion()
 }
 
 static void
-putRGBContigYCbCrClump(cp, pp, cw, ch, w, n, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	int cw, ch;
-	u_long w;
-	int n, fromskew, toskew;
+putRGBContigYCbCrClump(u_long * cp, u_char * pp, int cw, int ch, u_long w, int n, int fromskew, int toskew)
 {
 	float Cb, Cr;
 	int j, k;
@@ -1041,12 +942,7 @@ putRGBContigYCbCrClump(cp, pp, cw, ch, w, n, fromskew, toskew)
  * 8-bit packed YCbCr samples => RGB
  */
 static void
-putcontig8bitYCbCrtile(cp, pp, Map, w, h, fromskew, toskew)
-	register u_long *cp;
-	register u_char *pp;
-	register RGBvalue *Map;
-	u_long w, h;
-	int fromskew, toskew;
+putcontig8bitYCbCrtile(u_long * cp, u_char * pp, RGBvalue * Map, u_long w, u_long h, int fromskew, int toskew)
 {
 	u_int Coff = YCbCrVertSampling * YCbCrHorizSampling;
 	u_long *tp;

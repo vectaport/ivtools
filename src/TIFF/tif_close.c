@@ -38,8 +38,7 @@ extern	int TIFFFreeDirectory();
 extern int close(int);
 
 void
-TIFFClose(tif)
-	TIFF *tif;
+TIFFClose(TIFF * tif)
 {
 	if (tif->tif_mode != O_RDONLY)
 		/*

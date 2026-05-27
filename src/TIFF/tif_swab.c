@@ -31,32 +31,30 @@
 #include "tiffio.h"
 
 #ifndef TIFFSwabShort
-int TIFFSwabShort(wp)
-	unsigned short *wp;
+int TIFFSwabShort(unsigned short * wp)
 {
 	register unsigned char *cp = (unsigned char *)wp;
 	int t;
 
 	t = cp[1]; cp[1] = cp[0]; cp[0] = t;
+	return 0;
 }
 #endif
 
 #ifndef TIFFSwabLong
-int TIFFSwabLong(lp)
-	unsigned long *lp;
+int TIFFSwabLong(unsigned long * lp)
 {
 	register unsigned char *cp = (unsigned char *)lp;
 	int t;
 
 	t = cp[3]; cp[3] = cp[0]; cp[0] = t;
 	t = cp[2]; cp[2] = cp[1]; cp[1] = t;
+	return 0;
 }
 #endif
 
 #ifndef TIFFSwabArrayOfShort
-int TIFFSwabArrayOfShort(wp, n)
-	unsigned short *wp;
-	register int n;
+int TIFFSwabArrayOfShort(unsigned short * wp, int n)
 {
 	register unsigned char *cp;
 	register int t;
@@ -67,13 +65,12 @@ int TIFFSwabArrayOfShort(wp, n)
 		t = cp[1]; cp[1] = cp[0]; cp[0] = t;
 		wp++;
 	}
+	return 0;
 }
 #endif
 
 #ifndef TIFFSwabArrayOfLong
-int TIFFSwabArrayOfLong(lp, n)
-	register unsigned long *lp;
-	register int n;
+int TIFFSwabArrayOfLong(unsigned long * lp, int n)
 {
 	register unsigned char *cp;
 	register int t;
@@ -85,6 +82,7 @@ int TIFFSwabArrayOfLong(lp, n)
 		t = cp[2]; cp[2] = cp[1]; cp[1] = t;
 		lp++;
 	}
+	return 0;
 }
 #endif
 
@@ -174,9 +172,7 @@ unsigned char TIFFNoBitRevTable[256] = {
     0xf8, 0xf9, 0xfa, 0xfb, 0xfc, 0xfd, 0xfe, 0xff, 
 };
 
-int TIFFReverseBits(cp, n)
-	register unsigned char *cp;
-	register int n;
+int TIFFReverseBits(unsigned char * cp, int n)
 {
 	for (; n > 8; n -= 8) {
 		cp[0] = TIFFBitRevTable[cp[0]];
@@ -191,4 +187,5 @@ int TIFFReverseBits(cp, n)
 	}
 	while (n-- > 0)
 		*cp = TIFFBitRevTable[*cp], cp++;
+	return 0;
 }

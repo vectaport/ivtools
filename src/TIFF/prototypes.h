@@ -22,6 +22,12 @@
  * OF THIS SOFTWARE.
  */
 
+
+/* Always use prototypes -- K&R style removed in C23 */
+#ifndef USE_PROTOTYPES
+#define USE_PROTOTYPES 1
+#endif
+
 #if USE_PROTOTYPES
 #define	DECLARE1(f,t1,a1)		f(t1 a1)
 #define	DECLARE2(f,t1,a1,t2,a2)		f(t1 a1, t2 a2)

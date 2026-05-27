@@ -61,10 +61,7 @@ static const int threebitdeltas[8] = { 0, 1, 2, 3, 0, -3, -2, -1 };
 }
 
 static int
-ThunderDecode(tif, op, maxpixels)
-	TIFF *tif;
-	register u_char *op;
-	int maxpixels;
+ThunderDecode(TIFF * tif, u_char * op, int maxpixels)
 {
 	register u_char *bp;
 	register int n, cc, lastpixel, npixels, delta;
@@ -124,11 +121,7 @@ ThunderDecode(tif, op, maxpixels)
 }
 
 static int
-ThunderDecodeRow(tif, buf, occ, s)
-	TIFF *tif;
-	u_char *buf;
-	int occ;
-	u_int s;
+ThunderDecodeRow(TIFF * tif, u_char * buf, int occ, u_int s)
 {
 	u_char *row = buf;
 	
@@ -141,8 +134,7 @@ ThunderDecodeRow(tif, buf, occ, s)
 	return (1);
 }
 
-int TIFFInitThunderScan(tif)
-	TIFF *tif;
+int TIFFInitThunderScan(TIFF * tif)
 {
 	tif->tif_decoderow = ThunderDecodeRow;
 	tif->tif_decodestrip = ThunderDecodeRow;
