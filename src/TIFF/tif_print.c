@@ -266,7 +266,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 		fprintf(fd, "  Ink Names: ");
 		i = (unsigned long)td->td_samplesperpixel;
 		sep = "";
-		for (cp = (unsigned long)td->td_inknames; i > 0; cp = strchr(cp, '\0')) {
+		for (cp = td->td_inknames; i > 0; cp = strchr(cp, '\0')) {
 			fprintf(fd, "%s%s", sep, cp);
 			sep = ", ";
 		}
@@ -339,7 +339,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 			fprintf(fd, "cosited\n");
 			break;
 		default:
-			fprintf(fd, "%lu (0x%lx)\n",
+			fprintf(fd, "%u (0x%x)\n",
 			    td->td_ycbcrpositioning, td->td_ycbcrpositioning);
 			break;
 		}
@@ -361,7 +361,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 			fprintf(fd, "lossless algorithm with Huffman coding\n");
 			break;
 		default:
-			fprintf(fd, "%lu (0x%lx)\n",
+			fprintf(fd, "%u (0x%x)\n",
 			    td->td_jpegproc, td->td_jpegproc);
 			break;
 		}
@@ -369,7 +369,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 	if (TIFFFieldSet(tif,FIELD_JPEGRESTARTINTERVAL)) {
 		fprintf(fd, "  JPEG Restart Interval: ");
 		if (td->td_jpegrestartinterval)
-			fprintf(fd, "%lu\n", td->td_jpegrestartinterval);
+			fprintf(fd, "%u\n", td->td_jpegrestartinterval);
 		else
 			fprintf(fd, "(no restart markers)\n");
 	}
@@ -377,7 +377,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 		fprintf(fd, "  JPEG Quantization Tables: ");
 		if (flags & TIFFPRINT_JPEGQTABLES) {
 			for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
-				JPEGPrintQTable(fd, (unsigned long)td->td_qtab[i]);
+				JPEGPrintQTable(fd, td->td_qtab[i]);
 		} else
 			fprintf(fd, "(present)\n");
 	}
@@ -385,7 +385,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 		fprintf(fd, "  JPEG DC Tables: ");
 		if (flags & TIFFPRINT_JPEGDCTABLES) {
 			for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
-				JPEGPrintCTable(fd, (unsigned long)td->td_dctab[i]);
+				JPEGPrintCTable(fd, td->td_dctab[i]);
 		} else
 			fprintf(fd, "(present)\n");
 	}
@@ -393,7 +393,7 @@ TIFFPrintDirectory(TIFF * tif, FILE * fd, long flags)
 		fprintf(fd, "  JPEG AC Tables: ");
 		if (flags & TIFFPRINT_JPEGACTABLES) {
 			for (i = 0; i < (unsigned long)td->td_samplesperpixel; i++)
-				JPEGPrintCTable(fd, (unsigned long)td->td_actab[i]);
+				JPEGPrintCTable(fd, td->td_actab[i]);
 		} else
 			fprintf(fd, "(present)\n");
 	}

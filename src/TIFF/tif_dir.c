@@ -800,7 +800,6 @@ int TIFFVGetField(TIFF *tif, int tag, va_list ap)
 	} else
 		TIFFError("TIFFGetField", "Unknown field, tag 0x%x", tag);
 	return (0);
-	return 0;
 }
 
 /*
