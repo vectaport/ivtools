@@ -466,7 +466,6 @@ int DECLARE4(TIFFSetupShortLong,
 		dir->tdir_type = (short)TIFF_SHORT;
 		dir->tdir_offset = TIFFInsertData(tif, (int)TIFF_SHORT, v);
 		return 0;
-		return 0;
 	}
 }
 #undef MakeShortDirent
