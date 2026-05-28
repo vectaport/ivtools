@@ -413,20 +413,24 @@ int main (int argc, char** argv) {
 
 	fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	XSync(unidraw->GetWorld()->display()->rep()->display_,false);
-
+	
 	/* execute -runfile or -runexpr after editor is fully initialized */
 	ComTerpServ* terp = ed->GetComTerp();
 	if (terp) {
 	    const char* runfile = catalog->GetAttribute("runfile");
-	    if (runfile && *runfile)
-	        terp->runfile(runfile);
+	    if (runfile && *runfile) {
+		if (terp->runfile(runfile) < 0)
+		    cerr << "comdraw: error running script file: " << runfile << "\n";
+	    }
 	    const char* runexpr = catalog->GetAttribute("runexpr");
 	    if (runexpr && *runexpr) {
-	      int bufsize;
-	      char* runexpr_nl = restore_escapes(runexpr, bufsize);
-	      strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
-	      terp->run(runexpr_nl);
-	      delete [] runexpr_nl;
+	        int bufsize;
+	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
+	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
+	        ComValue result = terp->run(runexpr_nl);
+	        if (result.is_null())
+	            cerr << "comdraw: error running expression: " << runexpr << "\n";
+	        delete [] runexpr_nl;
 	    }
 	}
 	unidraw->Run();
