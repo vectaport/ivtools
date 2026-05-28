@@ -69,7 +69,7 @@ would close a real gap.
 ## Coverage Header Format
 
 Each test script (except `run_all.comt` and sub-scripts) carries a
-three-line coverage summary in its header:
+three-item coverage summary in its header:
 
     // coverage: N/T (P%)
     // funcs: func1 func2 func3 ...
