@@ -1,5 +1,10 @@
 // src/comterp_/tests/stream.comt -- test streaming operators and commands
 //
+// coverage: 24/33 (72%)
+// funcs: $$ $ ,, next each size
+// missing: $(attrlist) ,,(empty-stream,#46) next(:skim,#45) size(attrlist,compview)
+//          ,,->next ,,->each next->if
+//
 // Tests: $ (stream), $$ (list), ,, (stream concat), next(), each()
 // and their interactions with tuple , operator and list structures.
 //
