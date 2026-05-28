@@ -297,8 +297,10 @@ any idraw parameter is also accepted (see idraw man page)";
 
 /* restore escape sequences converted to ASCII by shell/option parser */
 /* so downstream interpreters can do their own correct conversion */
-static char* restore_escapes(const char* str) {
-    char* dst = new char[strlen(str)*2+2];
+/* returns allocated buffer and its size via bufsize */
+static char* restore_escapes(const char* str, int& bufsize) {
+    bufsize = strlen(str)*2+2;
+    char* dst = new char[bufsize];
     char* dptr = dst;
     const char* src = str;
     while (*src) {
@@ -420,13 +422,13 @@ int main (int argc, char** argv) {
 	        terp->runfile(runfile);
 	    const char* runexpr = catalog->GetAttribute("runexpr");
 	    if (runexpr && *runexpr) {
-	        char* runexpr_nl = restore_escapes(runexpr);
-	        strcat(runexpr_nl, "\n");
-	        terp->run(runexpr_nl);
-	        delete [] runexpr_nl;
+	      int bufsize;
+	      char* runexpr_nl = restore_escapes(runexpr, bufsize);
+	      strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
+	      terp->run(runexpr_nl);
+	      delete [] runexpr_nl;
 	    }
 	}
-
 	unidraw->Run();
     }
 
