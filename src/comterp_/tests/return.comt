@@ -1,5 +1,10 @@
 // src/comterp_/tests/return.comt -- test return() command
 //
+// coverage: 27/42 (64%)
+// funcs: return func if for while run
+// missing: func(:echo) func(rettype) if(:then-alone) while(:nilchk,:until,:body) run(:str,:popen)
+//          func->for func->while if->for run->if
+//
 // Tests early return from .comt scripts with and without a return value,
 // and from inside loops.
 //

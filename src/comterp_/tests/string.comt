@@ -29,6 +29,15 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/string.comt")
 
+// coverage: 25/66 (37%)
+// funcs: index substr split join eq size print(+:str) +
+// missing: index(list-eq-baseline) substr(str+int,:nonil+match,:after-absent)
+//          split(:tokval,:keep,:reverse) eq(full,:sym) size(attrlist) join(empty)
+//          ~index(:last-absent) ~index(:all-absent)
+//          join->split join->index join->eq substr->index substr->split
+//          index->substr print->split +->index +->split +->size split->index
+
+
 ok=true
 
 // --- test 1: index string-in-string (no :substr needed) ---
