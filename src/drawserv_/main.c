@@ -60,6 +60,10 @@
 #include <fstream>
 #include <iostream>
 
+#include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
+#include <ComUtil/util.h>
+
 using std::cerr;
 
 static int nmsg = 0;
@@ -178,38 +182,131 @@ static PropertyData properties[] = {
     { "*gray7",         "false" },
     { "*gray6",         "false" },
     { "*gray5",         "false" },
+    { "*pagecols",      "0" },
+    { "*pagerows",      "0" },
+    { "*panner_off",    "false"  },
+    { "*panner_align",  "br"  },
+    { "*ramp_size",     "20"  },
+    { "*scribble_pointer", "false" },
+    { "*slider_off",    "false"  },
     { "*tile",          "false" },
     { "*twidth",        "512" },
     { "*theight",       "512" },
+    { "*toolbarloc",    "l"  },
+    { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
+    { "*stripped",      "false"  },
     { "*stdin_off",   "false"  },
 #ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",          "20002" },
 #endif
+    { "*help",          "false"  },
+    { "*runfile",       ""  },
+    { "*runexpr",       ""  },
     { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
 
 static OptionDesc options[] = {
-    { "-color6", "*color6", OptionValueImplicit, "true" },
     { "-color5", "*color5", OptionValueImplicit, "true" },
-    { "-gray7", "*gray7", OptionValueImplicit, "true" },
-    { "-gray6", "*gray6", OptionValueImplicit, "true" },
+    { "-color6", "*color6", OptionValueImplicit, "true" },
     { "-gray5", "*gray5", OptionValueImplicit, "true" },
-    { "-tile", "*tile", OptionValueImplicit, "true" },
-    { "-twidth", "*twidth", OptionValueNext },
+    { "-gray6", "*gray6", OptionValueImplicit, "true" },
+    { "-gray7", "*gray7", OptionValueImplicit, "true" },
+    { "-ncols", "*pagecols", OptionValueNext },
+    { "-nrows", "*pagerows", OptionValueNext },
+    { "-pagecols", "*pagecols", OptionValueNext },
+    { "-pagerows", "*pagerows", OptionValueNext },
+    { "-pal", "*panner_align", OptionValueNext },
+    { "-panner_align", "*panner_align", OptionValueNext },
+    { "-panner_off", "*panner_off", OptionValueImplicit, "true" },
+    { "-poff", "*panner_off", OptionValueImplicit, "true" },
+    { "-rampsize", "*rampsize", OptionValueNext },
+    { "-scribble_pointer", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-scrpt", "*scribble_pointer", OptionValueImplicit, "true" },
+    { "-slider_off", "*slider_off", OptionValueImplicit, "true" },
+    { "-soff", "*slider_off", OptionValueImplicit, "true" },
+    { "-tbl", "*toolbarloc", OptionValueNext },
     { "-theight", "*theight", OptionValueNext },
+    { "-th", "*theight", OptionValueNext },
+    { "-tile", "*tile", OptionValueImplicit, "true" },
+    { "-toolbarloc", "*toolbarloc", OptionValueNext },
+    { "-twidth", "*twidth", OptionValueNext },
+    { "-tw", "*twidth", OptionValueNext },
+    { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
+    { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
+    { "-stripped", "*stripped", OptionValueImplicit, "true" },
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
 #ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
 #endif
+    { "-help", "*help", OptionValueImplicit, "true" },
+    { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
+    { "-runfile", "*runfile", OptionValueNext },
+    { "-runexpr", "*runexpr", OptionValueNext },
     { nil }
 };
+
+/*****************************************************************************/
+
+#ifdef HAVE_ACE
+static const char usage[] =
+"drawserv  distributed drawing editor with comterp scripting\n\
+Usage:  drawserv [file] [options]\n\n\
+-comdraw port               port number for comdraw command socket\n\
+-import portnum             port number for import socket\n\
+-color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
+-gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
+-opaque_off | -opoff        disable opaque moving/reshaping\n\
+-pagecols | -ncols n        number of page columns in tiled view\n\
+-pagerows | -nrows n        number of page rows in tiled view\n\
+-panner_off | -poff         disable panner\n\
+-panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
+                            panner alignment\n\
+-rampsize n                 size of color ramp\n\
+-scribble_pointer | -scrpt  enable scribble pointer\n\
+-slider_off | -soff         disable slider\n\
+-stdin_off                  disable stdin command socket\n\
+-stripped                   stripped-down tool palette\n\
+-toolbarloc | -tbl r|l      toolbar location left or right\n\
+-theight | -th n            tile height in pixels\n\
+-tile                       enable tiled page view\n\
+-twidth | -tw n             tile width in pixels\n\
+-zoomer_off | -zoff         disable zoomer\n\
+-runfile file               run script file after startup\n\
+-runexpr cmdstr             run command string after startup\n\n\
+any idraw parameter is also accepted (see idraw man page)";
+#else
+static const char usage[] =
+"drawserv  distributed drawing editor with comterp scripting\n\
+Usage:  drawserv [file] [options]\n\n\
+-color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
+-gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
+-opaque_off | -opoff        disable opaque moving/reshaping\n\
+-pagecols | -ncols n        number of page columns in tiled view\n\
+-pagerows | -nrows n        number of page rows in tiled view\n\
+-panner_off | -poff         disable panner\n\
+-panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
+                            panner alignment\n\
+-rampsize n                 size of color ramp\n\
+-scribble_pointer | -scrpt  enable scribble pointer\n\
+-slider_off | -soff         disable slider\n\
+-stdin_off                  disable stdin command socket\n\
+-stripped                   stripped-down tool palette\n\
+-toolbarloc | -tbl r|l      toolbar location left or right\n\
+-theight | -th n            tile height in pixels\n\
+-tile                       enable tiled page view\n\
+-twidth | -tw n             tile width in pixels\n\
+-zoomer_off | -zoff         disable zoomer\n\
+-runfile file               run script file after startup\n\
+-runexpr cmdstr             run command string after startup\n\n\
+any idraw parameter is also accepted (see idraw man page)";
+#endif
 
 /*****************************************************************************/
 
@@ -246,6 +343,11 @@ int main (int argc, char** argv) {
     DrawServ* unidraw = new DrawServ(
         catalog, argc, argv, options, properties
     );
+
+    if (strcmp(catalog->GetAttribute("help"), "true")==0) {
+      cerr << usage << "\n";
+      return 0;
+    }
 
 #ifdef HAVE_ACE
 
@@ -299,7 +401,7 @@ int main (int argc, char** argv) {
     int exit_status = 0;
 
     if (argc > 2) {
-	cerr << "Usage: drawserv [file]" << "\n";
+	cerr << usage << "\n";
 	exit_status = 1;
 
     } else {
@@ -327,6 +429,26 @@ int main (int argc, char** argv) {
 #else
 	fprintf(stderr, "ivtools-%s drawserv", VersionString);
 #endif
+
+	/* execute -runfile or -runexpr after editor is fully initialized */
+	ComTerpServ* terp = ed->GetComTerp();
+	if (terp) {
+	    const char* runfile = catalog->GetAttribute("runfile");
+	    if (runfile && *runfile) {
+	        if (terp->runfile(runfile) < 0)
+	            cerr << "drawserv: error running script file: " << runfile << "\n";
+	    }
+	    const char* runexpr = catalog->GetAttribute("runexpr");
+	    if (runexpr && *runexpr) {
+	        int bufsize;
+	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
+	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
+	        ComValue result = terp->run(runexpr_nl);
+	        if (result.is_null())
+	            cerr << "drawserv: error running expression: " << runexpr << "\n";
+	        delete [] runexpr_nl;
+	    }
+	}
 
 	unidraw->Run();
     }

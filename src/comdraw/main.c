@@ -50,6 +50,7 @@
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <ComUtil/util.h>
 
 #include <stream.h>
 #include <string.h>
@@ -292,35 +293,6 @@ Usage:  comdraw [file] [options]\n\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
 #endif
-
-/*****************************************************************************/
-
-/* restore escape sequences converted to ASCII by shell/option parser */
-/* so downstream interpreters can do their own correct conversion */
-/* returns allocated buffer and its size via bufsize */
-static char* restore_escapes(const char* str, int& bufsize) {
-    bufsize = strlen(str)*2+2;
-    char* dst = new char[bufsize];
-    char* dptr = dst;
-    const char* src = str;
-    while (*src) {
-        if (*src == '\n') {
-            *dptr++ = '\\';
-            *dptr++ = 'n';
-        } else if (*src == '\t') {
-            *dptr++ = '\\';
-            *dptr++ = 't';
-        } else if (*src == '\r') {
-            *dptr++ = '\\';
-            *dptr++ = 'r';
-        } else {
-            *dptr++ = *src;
-        }
-        src++;
-    }
-    *dptr = '\0';
-    return dst;
-}
 
 /*****************************************************************************/
 

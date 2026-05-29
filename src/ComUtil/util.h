@@ -597,6 +597,7 @@ void print_stack_trace();
 const char* shell_string(const char* cmd);  // returns first line of output from shell command
 const char* local_hostname();               // returns fully qualified local hostname
 void log_with_timestamp(const char* msg);   // log timestamped message
+char* restore_escapes(const char* str, int& bufsize);  // restore escape sequences converted to ASCII by shell/option parser
 
 
 #endif /* not UTIL_INCLUDED */
