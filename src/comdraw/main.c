@@ -48,6 +48,9 @@
 #include <AceDispatch/ace_dispatcher.h>
 #endif
 
+#include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
+
 #include <stream.h>
 #include <string.h>
 #include <math.h>
@@ -178,6 +181,8 @@ static PropertyData properties[] = {
     { "*wbport",        "20002" },
 #endif
     { "*help",          "false"  },
+    { "*runfile",       ""  },
+    { "*runexpr",       ""  },
     { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
 };
@@ -223,29 +228,99 @@ static OptionDesc options[] = {
     { "-wbport", "*wbport", OptionValueNext },
 #endif
     { "-help", "*help", OptionValueImplicit, "true" },
+    { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
+    { "-runfile", "*runfile", OptionValueNext },
+    { "-runexpr", "*runexpr", OptionValueNext },
     { nil }
 };
 
 #ifdef HAVE_ACE
 static const char usage[] =
-"Usage: comdraw [any idraw parameter] [-comdraw port] [-color5]\n\
- [-color6] [-import portnum] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
-[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc]\n\
-[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
-[-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile] [-twidth|-tw n]\n\
-[-wbhost host] [-wbmaster] [-wbslave] [-wbport port] [-zoomer_off|-zoff] [file]";
+"comdraw  drawing editor with comterp scripting\n\
+Usage:  comdraw [file] [options]\n\n\
+-comdraw port               port number for comdraw command socket\n\
+-import portnum             port number for import socket\n\
+-color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
+-gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
+-opaque_off | -opoff        disable opaque moving/reshaping\n\
+-pagecols | -ncols n        number of page columns in tiled view\n\
+-pagerows | -nrows n        number of page rows in tiled view\n\
+-panner_off | -poff         disable panner\n\
+-panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
+                            panner alignment\n\
+-rampsize n                 size of color ramp\n\
+-scribble_pointer | -scrpt  enable scribble pointer\n\
+-slider_off | -soff         disable slider\n\
+-stdin_off                  disable stdin command socket\n\
+-stripped                   stripped-down tool palette\n\
+-toolbarloc | -tbl r|l      toolbar location left or right\n\
+-theight | -th n            tile height in pixels\n\
+-tile                       enable tiled page view\n\
+-twidth | -tw n             tile width in pixels\n\
+-wbhost host                whiteboard host to connect to\n\
+-wbmaster                   run as whiteboard master\n\
+-wbslave                    run as whiteboard slave\n\
+-wbport port                whiteboard port number\n\
+-zoomer_off | -zoff         disable zoomer\n\
+-runfile file               run script file after startup\n\
+-runexpr cmdstr             run command string after startup\n\n\
+any idraw parameter is also accepted (see idraw man page)";
 #else
-static char usage[] =
-"Usage: comdraw [any idraw parameter] [-color5] [-color6] \n\
-[-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] \n\
-[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff] \n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc] \n\
-[-rampsize n ] [-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
-[-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
-[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
+static const char usage[] =
+"comdraw  drawing editor with comterp scripting\n\
+Usage:  comdraw [file] [options]\n\n\
+-color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
+-gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
+-opaque_off | -opoff        disable opaque moving/reshaping\n\
+-pagecols | -ncols n        number of page columns in tiled view\n\
+-pagerows | -nrows n        number of page rows in tiled view\n\
+-panner_off | -poff         disable panner\n\
+-panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
+                            panner alignment\n\
+-rampsize n                 size of color ramp\n\
+-scribble_pointer | -scrpt  enable scribble pointer\n\
+-slider_off | -soff         disable slider\n\
+-stdin_off                  disable stdin command socket\n\
+-stripped                   stripped-down tool palette\n\
+-toolbarloc | -tbl r|l      toolbar location left or right\n\
+-theight | -th n            tile height in pixels\n\
+-tile                       enable tiled page view\n\
+-twidth | -tw n             tile width in pixels\n\
+-zoomer_off | -zoff         disable zoomer\n\
+-runfile file               run script file after startup\n\
+-runexpr cmdstr             run command string after startup\n\n\
+any idraw parameter is also accepted (see idraw man page)";
 #endif
+
+/*****************************************************************************/
+
+/* restore escape sequences converted to ASCII by shell/option parser */
+/* so downstream interpreters can do their own correct conversion */
+/* returns allocated buffer and its size via bufsize */
+static char* restore_escapes(const char* str, int& bufsize) {
+    bufsize = strlen(str)*2+2;
+    char* dst = new char[bufsize];
+    char* dptr = dst;
+    const char* src = str;
+    while (*src) {
+        if (*src == '\n') {
+            *dptr++ = '\\';
+            *dptr++ = 'n';
+        } else if (*src == '\t') {
+            *dptr++ = '\\';
+            *dptr++ = 't';
+        } else if (*src == '\r') {
+            *dptr++ = '\\';
+            *dptr++ = 'r';
+        } else {
+            *dptr++ = *src;
+        }
+        src++;
+    }
+    *dptr = '\0';
+    return dst;
+}
 
 /*****************************************************************************/
 
@@ -338,6 +413,27 @@ int main (int argc, char** argv) {
 
 	fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	XSync(unidraw->GetWorld()->display()->rep()->display_,false);
+	
+	/* execute -runfile or -runexpr after editor is fully initialized */
+	ComTerpServ* terp = ed->GetComTerp();
+	if (terp) {
+	    const char* runfile = catalog->GetAttribute("runfile");
+	    if (runfile && *runfile) {
+		if (terp->runfile(runfile) < 0)
+		    cerr << "comdraw: error running script file: " << runfile << "\n";
+	    }
+	    const char* runexpr = catalog->GetAttribute("runexpr");
+	    if (runexpr && *runexpr) {
+	        int bufsize;
+	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
+	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
+	        ComValue result = terp->run(runexpr_nl);
+	        if (result.is_null())
+	            cerr << "comdraw: error running expression: " << runexpr << "\n";
+	        delete [] runexpr_nl;
+	    }
+	}
+	
 	unidraw->Run();
     }
 
