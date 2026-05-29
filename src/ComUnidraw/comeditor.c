@@ -194,7 +194,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("tilefile", new TileFileFunc(comterp, this));
 
-    comterp->add_command("update", new UpdateFunc(comterp, this));
+    comterp->add_command("update", new UpdateUnidrawFunc(comterp, this));
     comterp->add_command("ncols", new NColsFunc(comterp, this));
     comterp->add_command("nrows", new NRowsFunc(comterp, this));
     comterp->add_command("handles", new HandlesFunc(comterp, this));

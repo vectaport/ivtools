@@ -105,10 +105,10 @@ void UnidrawFunc::menulength_execute(const char* kind) {
 
 /*****************************************************************************/
 
-UpdateFunc::UpdateFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+UpdateUnidrawFunc::UpdateUnidrawFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
-void UpdateFunc::execute() {
+void UpdateUnidrawFunc::execute() {
   ComValue longzero = ComValue(0L);
   ComValue usecv(stack_arg(0, false, longzero));
   long usec = usecv.long_val();

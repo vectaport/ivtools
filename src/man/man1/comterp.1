@@ -78,13 +78,17 @@ comterp telcat "host" "portnum" ["file"]
 Connect to a portnum on a host, cat the file, then close the
 connection.  Not really a use of the interpreter either.
 
-comterp run "file"
+comterp run "file" [arg1 [arg2 [...argn]]]
 
 Run contents of file then exit.
 
 comterp "expr"
 
 Evaluate single expression then exit.
+
+comterp listen "portnum" "file" [arg1 [arg2 [...argn]]]
+
+Run contents of file then exit.
 
 .SH OPERATOR TABLE
 .nf

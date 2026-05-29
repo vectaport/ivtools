@@ -1415,6 +1415,7 @@ void ComTerp::add_defaults() {
 
     add_command("usleep", new USleepFunc(this));
 #ifdef HAVE_ACE
+    add_command("update", new UpdateFunc(this));
     add_command("timeexpr", new TimeExprFunc(this));
 #endif
 

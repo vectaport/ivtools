@@ -1777,6 +1777,7 @@ ivtools/src/scripts/Makefile
 ivtools/src/scripts/bsdinst.sh
 ivtools/src/scripts/chgsuffix.sh
 ivtools/src/scripts/cntsrclines.bash
+ivtools/src/scripts/comterp_listen.bash
 ivtools/src/scripts/comterp_run.bash
 ivtools/src/scripts/config.guess
 ivtools/src/scripts/config.sub

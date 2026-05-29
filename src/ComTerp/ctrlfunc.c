@@ -431,6 +431,29 @@ void USleepFunc::execute() {
 
 /*****************************************************************************/
 
+UpdateFunc::UpdateFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void UpdateFunc::execute() {
+    ComValue longzero(0L);
+    ComValue usecv(stack_arg(0, false, longzero));
+    long usec = usecv.long_val();
+    reset_stack();
+#ifdef HAVE_ACE
+    if (usec > 0) {
+        ACE_Time_Value timeout(0, usec);
+        ComterpHandler::reactor_singleton()->handle_events(timeout);
+    } else {
+        ACE_Time_Value timeout(ACE_Time_Value::zero);
+        ComterpHandler::reactor_singleton()->handle_events(timeout);
+    }
+#endif
+    push_stack(ComValue::zeroval());
+    return;
+}
+
+/*****************************************************************************/
+
 NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

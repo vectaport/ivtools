@@ -91,8 +91,9 @@ int main(int argc, char *argv[]) {
     boolean client_flag = argc>1 && strcmp(argv[1], "client") == 0;
     boolean telcat_flag = argc>1 && strcmp(argv[1], "telcat") == 0;
     boolean run_flag = argc>1 && strcmp(argv[1], "run") == 0;
-    boolean expr_flag = argc>1 && !server_flag && !logger_flag && 
-                        !remote_flag && !client_flag && !telcat_flag && !run_flag;
+    boolean listen_flag = argc>1 && strcmp(argv[1], "listen") == 0;
+    boolean expr_flag = argc>1 && !server_flag && !logger_flag &&
+                        !remote_flag && !client_flag && !telcat_flag && !run_flag && !listen_flag;
 
 #ifdef HAVE_ACE
     if (server_flag || logger_flag) {
@@ -131,6 +132,54 @@ int main(int argc, char *argv[]) {
 	}
 
         // Perform logging service until COMTERP_QUIT_HANDLER receives SIGINT.
+        while (COMTERP_QUIT_HANDLER::instance ()->is_set () == 0) {
+            ComterpHandler::reactor_singleton()->handle_events ();
+	}
+        return 0;
+    }
+    if (listen_flag) {
+        int portnum = argc > 2 ? atoi(argv[2]) : atoi(ACE_DEFAULT_SERVER_PORT_STR);
+        const char* rfile = argc > 3 ? argv[3] : nil;
+
+        ComterpAcceptor* peer_acceptor =
+	    new ComterpAcceptor(ComterpHandler::reactor_singleton());
+
+        if (peer_acceptor->open(ACE_INET_Addr(portnum),
+				ComterpHandler::reactor_singleton()) == -1)
+            cerr << "comterp: unable to open port " << portnum << " with ACE\n";
+
+#if !defined(__NetBSD__)
+        else if (ComterpHandler::reactor_singleton()->register_handler
+                  (peer_acceptor, ACE_Event_Handler::READ_MASK) == -1)
+          cerr << "comterp: error registering acceptor with ACE reactor\n";
+#endif
+
+	else
+	  cerr << "accepting comterp port (" << portnum << ") connections\n";
+
+        if (ComterpHandler::reactor_singleton()->register_handler
+	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
+          ACE_ERROR_RETURN ((LM_ERROR,
+			 "registering service with ACE_Reactor\n"), -1);
+
+	ComterpHandler* stdin_handler = new ComterpHandler();
+	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
+							    ACE_Event_Handler::READ_MASK)==-1)
+	  cerr << "comterp: unable to open stdin with ACE\n";
+
+	/* run script after all reactor registrations are in place */
+	if (rfile) {
+	    ComTerpServ* terp = stdin_handler->comterp();
+	    int endcnt = 0;
+	    for (int i=argc-1; i>3; i--) {
+	        if (*argv[i]=='\0') endcnt++;
+	        else break;
+	    }
+	    terp->set_args(argc-3-endcnt, argv+3);
+	    terp->runfile(rfile);
+	}
+
+        // Run event loop until COMTERP_QUIT_HANDLER receives SIGINT.
         while (COMTERP_QUIT_HANDLER::instance ()->is_set () == 0) {
             ComterpHandler::reactor_singleton()->handle_events ();
 	}
