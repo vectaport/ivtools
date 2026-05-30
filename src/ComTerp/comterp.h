@@ -199,8 +199,13 @@ public:
     ComValue* globalvalue(int symid);
     // value associated with a symbol id in the global symbol table.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
+    void in_lvalue_assign(boolean f) { _in_lvalue_assign = f; }
+    // set flag indicating the next global() call is in lvalue (assignment) context.
+    boolean in_lvalue_assign() { return _in_lvalue_assign; }
+    // return true if next global() call is in lvalue (assignment) context.
     // value associated with a symbol id in either symbol table.
-
+    boolean next_is_assign();
+    // return true if the next token in the postfix buffer is the assign operator.
     const char* errmsg() { return _errbuf; }
     // current error message buffer.
 
@@ -365,6 +370,7 @@ protected:
     boolean _brief; // when used to produce ComValue output
     boolean _just_reset; // flag that gets set after call to ::reset_stack()
     boolean _defaults_added; // flag for base set of commands added 
+    boolean _in_lvalue_assign; // flag set by AssignFunc before evaluating lhs
 
     ComValueTable* _localtable; // per interpreter symbol table
     static ComValueTable* _globaltable; // interpreter shared symbol table

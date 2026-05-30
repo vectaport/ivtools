@@ -54,7 +54,8 @@ void AssignFunc::execute() {
     }
     
     if (operand1.type() != ComValue::SymbolType) {
-      operand1.assignval(stack_arg_post_eval(0, true /* no symbol or attribute lookup */));
+        comterp()->in_lvalue_assign(true);
+        operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
     }
     ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */));
 #ifdef POSTEVAL_EXPERIMENT
