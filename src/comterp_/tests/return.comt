@@ -1,9 +1,16 @@
 // src/comterp_/tests/return.comt -- test return() command
 //
-// coverage: 27/42 (64%)
+// coverage: 34/50 (68%)
 // funcs: return func if for while run
-// missing: func(:echo) func(rettype) if(:then-alone) while(:nilchk,:until,:body) run(:str,:popen)
+// missing: func(:echo) func(rettype) if(:then-alone) run(:str,:popen)
 //          func->for func->while if->for run->if
+//          ~while(:nilchk-absent,:until-absent,:body-absent)
+//          !if(:then+:else -- sequential not independently combinable)
+//          !run(:str+:popen -- mutually exclusive)
+//
+// slot 10 keyword compatibility groups for while:
+//   :nilchk, :until, :body -- all behavioral modifiers, combinable with each other
+//   covered combos: :nilchk+:until, :nilchk+:body, :until+:body, :nilchk+:until+:body
 //
 // Tests early return from .comt scripts with and without a return value,
 // and from inside loops.
@@ -11,28 +18,32 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/return.comt")
 
+run("testlib.comt")
 ok=true
 
 // --- test 1: return with value ---
 val=run("./return_sub1.comt")
 ok=ok&&(val==42)
 print("1 return with value (expect 42): %v\n\n" val)
+check_fail(:dummy 0)
 
 // --- test 2: return with no value returns blank ---
 val=run("./return_sub2.comt")
 ok=ok&&(type(val)==`BlankType)
 print("2 return no value (expect nil/blank): %v\n\n" type(val))
+check_fail(:dummy 0)
 
 // --- test 3: return from inside a for loop ---
 val=run("./return_sub3.comt")
 ok=ok&&(val==3)
 print("3 return from for loop (expect 3): %v\n\n" val)
+check_fail(:dummy 0)
 
 // --- test 4: return from inside a while loop ---
 val=run("./return_sub4.comt")
 ok=ok&&(val==7)
 print("4 return from while loop (expect 7): %v\n\n" val)
-
+check_fail(:dummy 0)
 
 // --- test 5: return from user-defined func ---
 f=func(if(x>5 :then return(x*2)))
@@ -42,5 +53,62 @@ print("5a func return early (expect 12): %v\n" v)
 v=f(:x 3)
 ok=ok&&(v==nil||v==0)
 print("5b func no early return (expect nil/blank): %v\n\n" v)
+check_fail(:dummy 0)
 
+// --- slot 10: while() keyword compatibility group tests ---
+
+// --- test 6: while :nilchk -- stop on nil instead of false ---
+s=list(1,2,3,nil,5)
+i=0
+while((v=at(s i)) (i=i+1) :nilchk)
+ok=ok&&(i==3)
+print("6 while :nilchk stops on nil (expect i=3): %v\n\n" i)
+check_fail(:dummy 0)
+
+// --- test 7: while :until -- run body first, stop when testexpr true ---
+i=0
+while(i>=3 (i=i+1) :until)
+ok=ok&&(i==3)
+print("7 while :until (expect i=3): %v\n\n" i)
+check_fail(:dummy 0)
+
+// --- test 8: while :body -- return body expression value ---
+i=0
+r=while(i<3 (i=i+1) :body)
+ok=ok&&(r==3)
+print("8 while :body returns body value (expect 3): %v\n\n" r)
+check_fail(:dummy 0)
+
+// --- test 9: while :nilchk+:until ---
+s=list(1,2,3,nil,5)
+i=0
+while(at(s i) (i=i+1) :nilchk :until)
+ok=ok&&(i==3)
+print("9 while :nilchk+:until (expect i=3): %v\n\n" i)
+check_fail(:dummy 0)
+
+// --- test 10: while :nilchk+:body ---
+s=list(1,2,3,nil,5)
+i=0
+r=while((v=at(s i)) (i=i+1) :nilchk :body)
+ok=ok&&(i==3)
+print("10 while :nilchk+:body (expect i=3): %v\n\n" i)
+check_fail(:dummy 0)
+
+// --- test 11: while :until+:body ---
+i=0
+r=while(i>=3 (i=i+1) :until :body)
+ok=ok&&(i==3)
+print("11 while :until+:body (expect i=3): %v\n\n" i)
+check_fail(:dummy 0)
+
+// --- test 12: while :nilchk+:until+:body ---
+s=list(1,2,3,nil,5)
+i=0
+r=while(at(s i) (i=i+1) :nilchk :until :body)
+ok=ok&&(i==3)
+print("12 while :nilchk+:until+:body (expect i=3): %v\n\n" i)
+check_fail(:dummy 0)
+
+print("\nreturn: %v\n" ok)
 ok

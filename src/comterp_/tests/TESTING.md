@@ -119,6 +119,7 @@ To add a new test script:
 
 | script        | funcs                                          | covered | total |  %  |
 |---------------|------------------------------------------------|---------|-------|-----|
-| return.comt   | return func if for while run                   |      27 |    42 | 64% |
-| stream.comt   | $$ $ ,, next each size                         |      24 |    33 | 72% |
-| string.comt   | index substr split join eq size print(+:str) + |      25 |    66 | 37% |
+| return.comt   | return func if for while run                   |      34 |    50 | 68% |
+| stream.comt   | $$ $ ,, next each size                         |      24 |    34 | 71% |
+| string.comt   | index substr split join eq size print(+:str) + |      78 |    97 | 80% |
+| global.comt   | global                                         |      13 |    14 | 93% |
