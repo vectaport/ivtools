@@ -183,7 +183,8 @@ int main(int argc, char *argv[]) {
 	        else break;
 	    }
 	    terp->set_args(argc-3-endcnt, argv+3);
-	    terp->runfile(rfile);
+	    if (terp->runfile(rfile) < 0)
+	        cerr << "comterp: error running script file: " << rfile << "\n";
 	}
 
         // Run event loop until COMTERP_QUIT_HANDLER receives SIGINT.
