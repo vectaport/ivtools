@@ -201,9 +201,9 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::BooleanType:
 	  if (brief)
-	    out << svp->boolean_ref();
+	    out << (svp->boolean_ref() ? "true" : "false");
 	  else
-	    out << "boolean( " << svp->boolean_ref() << " )";
+	    out << "boolean( " << (svp->boolean_ref() ? "true" : "false") << " )";
 	  break;
 	    
 	case ComValue::CharType:

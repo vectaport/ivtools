@@ -837,7 +837,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	    break;
 	    
 	case AttributeValue::BooleanType:
-	    out << "boolean (" << svp->boolean_ref() << ")";
+	    out << "boolean (" << (svp->boolean_ref() ? "true" : "false") << ")";
 	    break;
 	    
 	case AttributeValue::CharType:
@@ -960,7 +960,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  break;
 
 	case AttributeValue::BooleanType:
-	  out << svp->uint_ref();
+	  out << (svp->uint_ref() ? "true" : "false");
 	  break;
 
 	case AttributeValue::ShortType:
