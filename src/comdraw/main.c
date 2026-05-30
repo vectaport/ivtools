@@ -399,8 +399,8 @@ int main (int argc, char** argv) {
 	        int bufsize;
 	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
 	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
-	        ComValue result = terp->run(runexpr_nl);
-	        if (result.is_null())
+	        terp->run(runexpr_nl);
+	        if (*terp->errmsg())
 	            cerr << "comdraw: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;
 	    }
