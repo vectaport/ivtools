@@ -497,6 +497,8 @@ void GlobalSymbolFunc::execute() {
   }
   reset_stack();
 
+  boolean assign_next = comterp()->next_is_assign();
+
   if (numargs>1) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
@@ -504,8 +506,16 @@ void GlobalSymbolFunc::execute() {
       if (!clearflag) {
 	ComValue* av = 
 	  new ComValue(symbol_ids[i], AttributeValue::SymbolType);
-	av->global_flag(true);
-	av->bquote(1);
+	if (assign_next) {
+	  av->global_flag(true);
+	  av->bquote(1);
+	} else {
+	  ComValue* gval = comterp()->globalvalue(symbol_ids[i]);
+	  if (gval && !gval->is_unknown())
+	    *av = *gval;
+	  else
+	    av->type(ComValue::UnknownType);
+	}
 	avl->Append(av);
       } else {
 	void* oldval = nil;
@@ -517,10 +527,18 @@ void GlobalSymbolFunc::execute() {
   } else {
     
     if (!clearflag) {
-      ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
-      retval.global_flag(true);
-      retval.bquote(1);
-      push_stack(retval);
+      if (assign_next) {
+        ComValue retval(symbol_ids[0], AttributeValue::SymbolType);
+        retval.global_flag(true);
+        retval.bquote(1);
+        push_stack(retval);
+      } else {
+        ComValue* gval = comterp()->globalvalue(symbol_ids[0]);
+        if (gval && !gval->is_unknown())
+          push_stack(*gval);
+        else
+          push_stack(ComValue::nullval());
+      }
     } else {
       void* oldval = nil;
       comterp()->globaltable()->find_and_remove(oldval, symbol_ids[0]);
