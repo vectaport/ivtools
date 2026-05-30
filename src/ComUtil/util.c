@@ -90,3 +90,27 @@ void log_with_timestamp(const char* msg) {
     fprintf(stderr, "\n");
   }
 }
+
+char* restore_escapes(const char* str, int& bufsize) {
+    bufsize = strlen(str)*2+2;
+    char* dst = new char[bufsize];
+    char* dptr = dst;
+    const char* src = str;
+    while (*src) {
+        if (*src == '\n') {
+            *dptr++ = '\\';
+            *dptr++ = 'n';
+        } else if (*src == '\t') {
+            *dptr++ = '\\';
+            *dptr++ = 't';
+        } else if (*src == '\r') {
+            *dptr++ = '\\';
+            *dptr++ = 'r';
+        } else {
+            *dptr++ = *src;
+        }
+        src++;
+    }
+    *dptr = '\0';
+    return dst;
+}

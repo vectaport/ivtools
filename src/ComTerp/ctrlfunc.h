@@ -171,6 +171,18 @@ public:
 
 };
 
+//: update event loop for usec microseconds
+// update([usec]) -- yield to ACE reactor event loop for usec microseconds
+class UpdateFunc : public ComFunc {
+public:
+    UpdateFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "%s([usec]) -- yield to ACE reactor event loop for usec microseconds"; }
+
+};
+
 //: nil command for ComTerp.
 // nil([...]) -- accept any arguments and return nil.
 class NilFunc : public ComFunc {

@@ -50,6 +50,7 @@
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <ComUtil/util.h>
 
 #include <stream.h>
 #include <string.h>
@@ -295,35 +296,6 @@ any idraw parameter is also accepted (see idraw man page)";
 
 /*****************************************************************************/
 
-/* restore escape sequences converted to ASCII by shell/option parser */
-/* so downstream interpreters can do their own correct conversion */
-/* returns allocated buffer and its size via bufsize */
-static char* restore_escapes(const char* str, int& bufsize) {
-    bufsize = strlen(str)*2+2;
-    char* dst = new char[bufsize];
-    char* dptr = dst;
-    const char* src = str;
-    while (*src) {
-        if (*src == '\n') {
-            *dptr++ = '\\';
-            *dptr++ = 'n';
-        } else if (*src == '\t') {
-            *dptr++ = '\\';
-            *dptr++ = 't';
-        } else if (*src == '\r') {
-            *dptr++ = '\\';
-            *dptr++ = 'r';
-        } else {
-            *dptr++ = *src;
-        }
-        src++;
-    }
-    *dptr = '\0';
-    return dst;
-}
-
-/*****************************************************************************/
-
 int main (int argc, char** argv) {
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
@@ -427,8 +399,8 @@ int main (int argc, char** argv) {
 	        int bufsize;
 	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
 	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
-	        ComValue result = terp->run(runexpr_nl);
-	        if (result.is_null())
+	        terp->run(runexpr_nl);
+	        if (*terp->errmsg())
 	            cerr << "comdraw: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;
 	    }

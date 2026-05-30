@@ -52,9 +52,9 @@ protected:
 
 //: command to update Unidraw from comdraw.
 // update() -- update viewers
-class UpdateFunc : public UnidrawFunc {
+class UpdateUnidrawFunc : public UnidrawFunc {
 public:
-    UpdateFunc(ComTerp*,Editor*);
+    UpdateUnidrawFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
 	return "%s([usec]) -- update viewer with optional delay"; }
