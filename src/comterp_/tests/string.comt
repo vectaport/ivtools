@@ -98,7 +98,6 @@ ok=ok&&(at(lst 0)=='a')
 ok=ok&&(at(lst 2)=='c')
 print("9 split chars (expect 'a','b','c'): '%c','%c','%c'\n\n" at(lst 0) at(lst 1) at(lst 2))
 prev_ok=check_fail(:ok ok)
-prev_ok=check_fail(:ok ok)
 
 // --- test 10: split :tokstr by whitespace ---
 lst=split("foo bar baz" :tokstr)
