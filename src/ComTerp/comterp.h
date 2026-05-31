@@ -369,7 +369,6 @@ protected:
     boolean _brief; // when used to produce ComValue output
     boolean _just_reset; // flag that gets set after call to ::reset_stack()
     boolean _defaults_added; // flag for base set of commands added 
-    int _lvalue_assign_depth; // nesting depth of lvalue assignment evaluation
 
     ComValueTable* _localtable; // per interpreter symbol table
     static ComValueTable* _globaltable; // interpreter shared symbol table

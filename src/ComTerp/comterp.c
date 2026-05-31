@@ -172,7 +172,6 @@ void ComTerp::init() {
     _arg_strs = nil;
     _narg_strs = 0;
     _top_commands = NULL;
-    _lvalue_assign_depth = 0;
 }
 
 
