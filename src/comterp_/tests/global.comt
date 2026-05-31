@@ -1,0 +1,89 @@
+// src/comterp_/tests/global.comt -- test global() command
+//
+// coverage: 13/14 (93%)
+// funcs: global
+// missing: ~global(lvalue-return-type) -- in global(sym)=val the return value belongs
+//          to the assign operator, not global(); untestable in isolation for global() alone
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/global.comt")
+
+run("testlib.comt")
+ok=true
+
+// --- test 1: global lvalue assignment stores in global table ---
+global(gflag)=true
+ok=ok&&(global(gflag)==true)
+print("1 global lvalue assign (expect true): %v\n\n" global(gflag))
+check_fail(:ok ok)
+
+// --- test 2: global rvalue read returns value not echoed expression ---
+global(gnum)=42
+r2=global(gnum)
+ok=ok&&(r2==42)
+print("2 global rvalue read (expect 42): %v\n\n" r2)
+check_fail(:ok ok)
+
+// --- test 3: global read is not shadowed by local variable ---
+glocal=99
+global(glocal)=123
+r3=global(glocal)
+ok=ok&&(r3==123)
+print("3 global not shadowed by local (expect 123): %v\n\n" r3)
+check_fail(:ok ok)
+
+// --- test 4: unset global returns nil ---
+r4=global(gnever_set)
+ok=ok&&(r4==nil)
+print("4 unset global returns nil (expect nil): %v\n\n" r4)
+check_fail(:ok ok)
+
+// --- test 5: global :cnt returns count of global entries ---
+n5=global(:cnt)
+ok=ok&&(n5>0)
+print("5 global :cnt (expect >0): %v\n\n" n5)
+check_fail(:ok ok)
+
+// --- test 6: global :clear removes entry from global table ---
+global(gtmp)=55
+global(gtmp :clear)
+r6=global(gtmp)
+ok=ok&&(r6==nil)
+print("6 global :clear then read (expect nil): %v\n\n" r6)
+check_fail(:ok ok)
+
+// --- test 7: global works with string value ---
+global(gstr)="hello"
+r7=global(gstr)
+ok=ok&&(r7=="hello")
+print("7 global string value (expect \"hello\"): %v\n\n" r7)
+check_fail(:ok ok)
+
+// --- test 8: global value survives reassignment ---
+global(gnum)=99
+r8=global(gnum)
+ok=ok&&(r8==99)
+print("8 global reassign (expect 99): %v\n\n" r8)
+check_fail(:ok ok)
+
+// --- test 9: multi-arg global rvalue returns list of values ---
+global(ga)=10
+global(gb)=20
+lst9=global(ga gb)
+ok=ok&&(at(lst9 0)==10)
+ok=ok&&(at(lst9 1)==20)
+print("9 multi-arg global rvalue (expect {10,20}): %v\n\n" lst9)
+check_fail(:ok ok)
+
+// --- test 10: global value set from separate eval context visible to polling loop ---
+// (simulates the drawmo use case: a value written via global() in one context
+//  is readable via global() in another)
+global(gevt)=false
+global(gevt)=true
+r10=global(gevt)
+ok=ok&&(r10==true)
+print("10 global cross-context visibility (expect true): %v\n\n" r10)
+check_fail(:ok ok)
+
+print("\nglobal: %v\n" ok)
+ok

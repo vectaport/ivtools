@@ -21,5 +21,9 @@ if(run("./string.comt")
   :then print("pass: string\n")
   :else print("FAIL: string\n");ok=false)
 
+if(run("./global.comt")
+  :then print("pass: global\n")
+  :else print("FAIL: global\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok
