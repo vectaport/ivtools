@@ -199,15 +199,6 @@ public:
     ComValue* globalvalue(int symid);
     // value associated with a symbol id in the global symbol table.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
-    void incr_lvalue_assign() { _lvalue_assign_depth++; }
-    // increment lvalue assignment depth before evaluating lhs of assignment.
-    void decr_lvalue_assign() { _lvalue_assign_depth--; }
-    // decrement lvalue assignment depth after evaluating lhs of assignment.
-    boolean in_lvalue_assign() { return _lvalue_assign_depth > 0; }
-    // return true if currently evaluating lhs of an assignment expression.
-    // value associated with a symbol id in either symbol table.
-    boolean next_is_assign();
-    // return true if the next token in the postfix buffer is the assign operator.
     const char* errmsg() { return _errbuf; }
     // current error message buffer.
 
