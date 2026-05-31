@@ -54,7 +54,22 @@ void AssignFunc::execute() {
     }
     
     if (operand1.type() != ComValue::SymbolType) {
-      operand1.assignval(stack_arg_post_eval(0, true /* no symbol or attribute lookup */));
+        // if lhs is a global() call, set lhs_assign flag on its ComValue
+        // so GlobalSymbolFunc can distinguish lhs from rhs context
+        static int global_symid = symbol_add("global");
+        ComValue argoff(comterp()->stack_top());
+        int offtop = argoff.int_val() - comterp()->pfnum();
+        int arg0top = offtop;
+        int argcnt = 0;
+        skip_arg_in_expr(arg0top, argcnt);
+        int startidx = comterp()->pfnum() - 1 + arg0top;
+        ComValue& startval = comterp()->pfcomvals()[startidx];
+        if (startval.is_type(ComValue::CommandType)) {
+            ComFunc* func = (ComFunc*)startval.obj_val();
+            if (func->funcid() == global_symid)
+                startval.lhs_assign(1);
+        }
+        operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
     }
     ComValue* operand2 = new ComValue(stack_arg_post_eval(1, true /* no symbol or attribute lookup */));
 #ifdef POSTEVAL_EXPERIMENT

@@ -199,8 +199,6 @@ public:
     ComValue* globalvalue(int symid);
     // value associated with a symbol id in the global symbol table.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
-    // value associated with a symbol id in either symbol table.
-
     const char* errmsg() { return _errbuf; }
     // current error message buffer.
 
@@ -330,6 +328,12 @@ public:
     AttributeValueList* top_commands() { return _top_commands; }
     // list of top-most commands for this derived interpreter
 
+
+    int pfoff() { return _pfoff; }
+    // return value of postfix offset in pfcomvals
+  
+    ComValue* pfcomvals() { return _pfcomvals; }
+    // return pointer to buffer of postfix comvals
 
 protected:
     void incr_stack();

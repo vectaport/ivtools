@@ -28,26 +28,26 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/string.comt")
 
+run("testlib.comt")
 ok=true
-prev_ok=true
 
 // --- test 1: index string-in-string ---
 s="hello world"
 i=index(s "world")
 ok=ok&&(i==6)
 print("1a index string match (expect 6): %v\n" i)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 i=index(s "xyz")
 ok=ok&&(i==nil)
 print("1b index no match (expect nil): %v\n\n" i)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 2: index :last finds last occurrence ---
 s="abcabc"
 i=index(s "b" :last)
 ok=ok&&(i==4)
 print("2 index :last (expect 4): %v\n\n" i)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 3: index :all returns list of positions ---
 s="abcabc"
@@ -55,41 +55,41 @@ lst=index(s "b" :all)
 ok=ok&&(at(lst 0)==1)
 ok=ok&&(at(lst 1)==4)
 print("3 index :all (expect {1,4}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 4: index char-in-string ---
 s="hello"
 i=index(s char(108))
 ok=ok&&(i==2)
 print("4 index char (expect 2 for first 'l'): %v\n\n" i)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 5: index :substr on list matches element substrings ---
 lst=list("foobar","bazquux","hello")
 i=index(lst "bar" :substr)
 ok=ok&&(i==0)
 print("5 index :substr on list (expect 0): %v\n\n" i)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 6: substr :after match ---
 s="brush 65535,0"
 tail=substr(s "brush" :after)
 ok=ok&&(index(tail "65535")!=nil)
+prev_ok=check_fail(:ok ok)
 print("6 substr :after match (expect \" 65535,0\"): %v\n\n" tail)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
 
 // --- test 7: substr :nonil returns input on no match ---
 s="hello"
 result=substr(s "xyz" :nonil)
 ok=ok&&(result=="hello")
 print("7 substr :nonil no match (expect \"hello\"): %v\n\n" result)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 8: substr returns nil on no match without :nonil ---
 result=substr(s "xyz")
 ok=ok&&(result==nil)
 print("8 substr no match no :nonil (expect nil): %v\n\n" result)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 9: split into characters ---
 lst=split("abc")
@@ -97,7 +97,7 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)=='a')
 ok=ok&&(at(lst 2)=='c')
 print("9 split chars (expect 'a','b','c'): '%c','%c','%c'\n\n" at(lst 0) at(lst 1) at(lst 2))
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 10: split :tokstr by whitespace ---
 lst=split("foo bar baz" :tokstr)
@@ -105,46 +105,46 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)=="foo")
 ok=ok&&(at(lst 2)=="baz")
 print("10 split :tokstr whitespace (expect {\"foo\",\"bar\",\"baz\"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 11: split :tokstr by semi-colon delimiter ---
 lst=split("a;b;c" :tokstr ';')
 ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 1)=="b")
 print("11 split :tokstr semi-colon (expect {a,b,c}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 12: join list of chars back to string ---
 lst=split("hello")
 s=join(lst)
 ok=ok&&(s=="hello")
 print("12 join round-trip (expect 'hello'): %v\n\n" s)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 13: eq partial string comparison :n ---
 r13a=eq("foobar" "foo" :n 3)
 r13b=eq("foobar" "fox" :n 3)
 ok=ok&&r13a&&(!r13b)
 print("13 eq :n partial (expect true, false): %v, %v\n\n" r13a r13b)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 14: size of string returns character count ---
 n14=size("hello")
 ok=ok&&(n14==5)
 print("14 size string (expect 5): %v\n\n" n14)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 15: print :str returns string ---
 s=print("value=%v" 42 :str)
 ok=ok&&(index(s "42")!=nil)
 print("15 print :str (expect string with '42'): %v\n\n" s)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 16: string concatenation with + ---
 s="foo"+"bar"
 ok=ok&&(s=="foobar")
 print("16 string concat + (expect 'foobar'): %v\n\n" s)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- slot 10: keyword compatibility group tests for split ---
 
@@ -157,7 +157,7 @@ ok=ok&&(at(lst 2)=="b")
 ok=ok&&(at(lst 3)==",")
 ok=ok&&(at(lst 4)=="c")
 print("17 split :tokstr+:keep (expect {a,\",\",b,\",\",c}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 18: split :tokstr+:reverse ---
 lst=split("foo bar baz" :tokstr :reverse)
@@ -165,7 +165,7 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)=="baz")
 ok=ok&&(at(lst 2)=="foo")
 print("18 split :tokstr+:reverse (expect {\"baz\",\"bar\",\"foo\"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 19: split :tokstr+:keep+:reverse ---
 lst=split("a,b" :tokstr ',' :keep :reverse)
@@ -174,7 +174,7 @@ ok=ok&&(at(lst 0)=="b")
 ok=ok&&(at(lst 1)==",")
 ok=ok&&(at(lst 2)=="a")
 print("19 split :tokstr+:keep+:reverse (expect {\"b\",\",\",\"a\"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 20: split :reverse in char mode ---
 lst=split("abc" :reverse)
@@ -182,7 +182,7 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)=='c')
 ok=ok&&(at(lst 2)=='a')
 print("20 split :reverse char mode (expect 'c','b','a'): '%c','%c','%c'\n\n" at(lst 0) at(lst 1) at(lst 2))
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 21: split :tokval returns typed values ---
 lst=split("1 2 3" :tokval)
@@ -190,7 +190,7 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)==1)
 ok=ok&&(type(at(lst 0))==`IntType)
 print("21 split :tokval typed values (expect {1,2,3}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 22: split :tokval+:reverse ---
 lst=split("1 2 3" :tokval :reverse)
@@ -198,7 +198,7 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)==3)
 ok=ok&&(at(lst 2)==1)
 print("22 split :tokval+:reverse (expect {3,2,1}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 23: split :tokval+:keep -- delim returned as CharType ---
 lst=split("1,2,3" :tokval ',' :keep)
@@ -209,7 +209,7 @@ ok=ok&&(at(lst 2)==2)
 ok=ok&&(at(lst 3)==',')
 ok=ok&&(at(lst 4)==3)
 print("23 split :tokval+:keep (expect {1,',',2,',',3}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- whitespace interaction tests ---
 // note: trailing spaces included in token when char delim specified with :tokstr
@@ -221,7 +221,7 @@ ok=ok&&(at(lst 0)=="a ")
 ok=ok&&(at(lst 1)==",")
 ok=ok&&(at(lst 2)=="b ")
 print("24 split :tokstr+:keep spaces around delim (expect {\"a \",\",\",\"b \",\",\",\"c\"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 25: :tokval+:keep with spaces around delimiter ---
 lst=split("1 , 2 , 3" :tokval ',' :keep)
@@ -230,7 +230,7 @@ ok=ok&&(at(lst 0)==1)
 ok=ok&&(at(lst 1)==',')
 ok=ok&&(at(lst 2)==2)
 print("25 split :tokval+:keep spaces around delim (expect {1,',',2,',',3}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 26: :tokstr multiple spaces between tokens ---
 lst=split("a  b  c" :tokstr)
@@ -238,7 +238,7 @@ ok=ok&&(size(lst)==3)
 ok=ok&&(at(lst 0)=="a")
 ok=ok&&(at(lst 2)=="c")
 print("26 split :tokstr multiple spaces (expect {\"a\",\"b\",\"c\"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 27: :tokstr leading/trailing spaces with char delim ---
 lst=split(" a , b " :tokstr ',' :keep)
@@ -247,7 +247,7 @@ ok=ok&&(at(lst 0)=="a ")
 ok=ok&&(at(lst 1)==",")
 ok=ok&&(at(lst 2)=="b ")
 print("27 split :tokstr leading/trailing spaces (expect {\"a \",\",\",\"b \"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 // --- test 28: :tokstr with multi-word tokens separated by comma ---
 lst=split("foo bar,baz qux" :tokstr ',')
@@ -255,7 +255,7 @@ ok=ok&&(size(lst)==2)
 ok=ok&&(at(lst 0)=="foo bar")
 ok=ok&&(at(lst 1)=="baz qux")
 print("28 split :tokstr multi-word tokens (expect {\"foo bar\",\"baz qux\"}): %v\n\n" lst)
-if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok
+prev_ok=check_fail(:ok ok)
 
 print("\nstring: %v\n" ok)
 ok

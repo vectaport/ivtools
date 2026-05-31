@@ -134,7 +134,7 @@ ComValue::ComValue(postfix_token* token) {
 
     _command_symid = -1;
     _pedepth = 0;
-    _bquote = 0;
+    _flags = 0;
 }
 
 ComValue& ComValue::operator= (const ComValue& sv) {
@@ -143,7 +143,7 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     _nkey = sv._nkey;
     _nids = sv._nids;
     _pedepth = sv._pedepth;
-    _bquote = sv._bquote;
+    _flags = sv._flags;
     _linenum = sv._linenum;
     #if 0  // duplicated ref_as_needed call in assignval()
     ref_as_needed();
@@ -154,7 +154,8 @@ ComValue& ComValue::operator= (const ComValue& sv) {
 int ComValue::narg() const { return _narg; }
 int ComValue::nkey() const { return _nkey; }
 int ComValue::nids() const { return _nids; }
-int ComValue::bquote() const { return _bquote; }
+int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
+int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;
@@ -201,9 +202,9 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::BooleanType:
 	  if (brief)
-	    out << svp->boolean_ref();
+	    out << (svp->boolean_ref() ? "true" : "false");
 	  else
-	    out << "boolean( " << svp->boolean_ref() << " )";
+	    out << "boolean( " << (svp->boolean_ref() ? "true" : "false") << " )";
 	  break;
 	    
 	case ComValue::CharType:

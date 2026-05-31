@@ -1,0 +1,11 @@
+// src/comterp_/tests/testlib.comt -- shared test utilities
+//
+// Usage: run("testlib.comt") at the top of each test script
+// Provides: prev_ok, check_fail(:ok ok)
+//
+// check_fail reads ok and prev_ok from the enclosing scope.
+// Call as check_fail(:ok ok) after each test's print statement.
+
+prev_ok=true
+
+check_fail=func(if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n"));ok)

@@ -43,6 +43,9 @@ class ComTerp;
 // as four integers (narg(), nkey(), nids(), pedepth()) used for storing
 // necessary command and keyword state after code conversion and during 
 // interpretation.  
+#define COMVALUE_BQUOTE_FLAG     0x01  // backquote -- return symbol without lookup
+#define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() ComValue in lhs context
+
 class ComValue : public AttributeValue {
 public:
     ComValue(const ComValue&);
@@ -112,6 +115,7 @@ public:
     int nids() const;
     // number of subordinate identifiers associated with this identifier (not used).
     int bquote() const;
+    int lhs_assign() const;
     // return backquote flag
     void narg(int n) {_narg = n; }
     // set number of arguments associated with this command or keyword.
@@ -119,7 +123,8 @@ public:
     // set number of keywords associated with this command.
     void nids(int n) {_nids = n; }
     // set number of subordinate identifiers associated with this identifier (not used).
-    void bquote(int flag) {_bquote = flag; }
+    void bquote(int flag) { if(flag) _flags |= COMVALUE_BQUOTE_FLAG; else _flags &= ~COMVALUE_BQUOTE_FLAG; }
+    void lhs_assign(int flag) { if(flag) _flags |= COMVALUE_LHS_ASSIGN_FLAG; else _flags &= ~COMVALUE_LHS_ASSIGN_FLAG; }
     // set backquote flag
 
     int& pedepth() { return _pedepth; }
@@ -181,13 +186,13 @@ public:
     // return true if ObjectType of DateObj
 
 protected:
-    void zero_vals() { _narg = _nkey = _nids = _pedepth = _bquote = 0; }
+    void zero_vals() { _narg = _nkey = _nids = _pedepth = _flags = 0; }
 
     int _narg;
     int _nkey;
     int _nids;
     int _pedepth;
-    int _bquote;
+    int _flags;  // bitfield: COMVALUE_BQUOTE_FLAG, COMVALUE_LHS_ASSIGN_FLAG, ...
     unsigned _linenum;
 
     static const ComTerp* _comterp;

@@ -291,6 +291,9 @@ void EqualFunc::execute() {
           (operand1.array_val() == operand2.array_val() ||
            operand1.array_val()->Equal(operand2.array_val()));
 	break;
+      case ComValue::BooleanType:
+	result.boolean_ref() = operand1.boolean_val() == operand2.boolean_val();
+	break;
       case ComValue::ObjectType:
 	if (!operand1.object_compview())
 	  result.boolean_ref() = operand2.type() == ComValue::ObjectType && 
@@ -393,6 +396,9 @@ void NotEqualFunc::execute() {
 	    ((ComponentView*)operand2.obj_val())->GetSubject();
 	break;
     }
+    case ComValue::BooleanType:
+	result.boolean_ref() = operand1.boolean_val() != operand2.boolean_val();
+	break;
     case ComValue::UnknownType:
 	result.boolean_ref() = operand2.is_known();
 	break;
@@ -457,6 +463,9 @@ void GreaterThanFunc::execute() {
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())>0;
 	break;
     }
+    case ComValue::BooleanType:
+	result.boolean_ref() = operand1.boolean_val() > operand2.boolean_val();
+	break;
     case ComValue::ArrayType: 
       result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
 	operand1.array_val() != operand2.array_val() &&
@@ -523,6 +532,9 @@ void GreaterThanOrEqualFunc::execute() {
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())>=0;
 	break;
     }
+    case ComValue::BooleanType:
+	result.boolean_ref() = operand1.boolean_val() >= operand2.boolean_val();
+	break;
     default:
       result = ComValue::nullval();
       break;
@@ -584,6 +596,9 @@ void LessThanFunc::execute() {
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())<0;
 	break;
     }
+    case ComValue::BooleanType:
+	result.boolean_ref() = operand1.boolean_val() < operand2.boolean_val();
+	break;
     case ComValue::ArrayType: 
       result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
 	operand1.array_val() != operand2.array_val() &&
@@ -650,6 +665,9 @@ void LessThanOrEqualFunc::execute() {
 	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())<=0;
 	break;
     }
+    case ComValue::BooleanType:
+	result.boolean_ref() = operand1.boolean_val() <= operand2.boolean_val();
+	break;
     default:
       result = ComValue::nullval();
       break;
