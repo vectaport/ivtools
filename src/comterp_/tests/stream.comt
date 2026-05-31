@@ -32,7 +32,7 @@ check_fail(:ok ok)
 l3=$($$(10,20,30))
 ok=ok&&(l3==(10,20,30))
 print("2 round-trip (expect {10,20,30}): %v\n" l3)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 3: next() pull one at a time ---
 s=$$(1,2,3)
@@ -48,14 +48,14 @@ print("3c next (expect 3): %v\n" v)
 v=next(s)
 ok=ok&&(v==nil)
 print("3d next exhausted (expect nil): %v\n" v)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 4: each() traversal returns count ---
 s=$$(10,20,30,40)
 cnt=each(s)
 ok=ok&&(cnt==4)
 print("4 each count (expect 4): %v\n" cnt)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 5: ,, stream concat ---
 s1=$$(1,2,3)
@@ -63,13 +63,13 @@ s2=$$(4,5,6)
 l5=$( s1,,s2)
 ok=ok&&(l5==(1,2,3,4,5,6))
 print("5 concat stream (expect {1,2,3,4,5,6}): %v\n" l5)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 6: ,, concat three ---
 l6=$( ($$( 1,2)),,($$( 3,4)),,($$( 5,6)))
 ok=ok&&(l6==(1,2,3,4,5,6))
 print("6 triple concat (expect {1,2,3,4,5,6}): %v\n" l6)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 7: stream of tuples ---
 l=(1,2,3),(4,5,6),(7,8,9)
@@ -80,14 +80,14 @@ print("7a first tuple (expect {1,2,3}): %v\n" v)
 v=next(s)
 ok=ok&&(v==(4,5,6))
 print("7b second tuple (expect {4,5,6}): %v\n" v)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 8: $$ collects stream of tuples ---
 l=(10,20),(30,40),(50,60)
 result=$($$l)
 ok=ok&&(size(result)==3)
 print("8 list of tuples size (expect 3): %v\n" size(result))
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 9: next() with :skim on nested streams ---
 print("9 ERROR: next(:skim) bug to investigate - ivtools issue #45\n")
@@ -109,14 +109,14 @@ while((v=next(s))!=nil
   total=total+v)
 ok=ok&&(total==15)
 print("10 sum via next/while (expect 15): %v\n" total)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 11: stream length via each() ---
 s=$$(100,200,300,400,500)
 n=each(s)
 ok=ok&&(n==5)
 print("11 stream length (expect 5): %v\n" n)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 // --- test 12: ,, concat empty and non-empty ---
 print("12 ERROR: empty list bug to investigate, $$() - ivtools issue #46\n")
@@ -131,7 +131,7 @@ l=(1,2,3)
 result=$($$( $($$l)))
 ok=ok&&(result==(1,2,3))
 print("13 nested round-trip (expect {1,2,3}): %v\n" result)
-check_fail(:ok ok)
+prev_ok=check_fail(:ok ok)
 
 print("stream: %v\n" ok)
 ok
