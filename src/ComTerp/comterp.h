@@ -338,6 +338,12 @@ public:
     // list of top-most commands for this derived interpreter
 
 
+    int pfoff() { return _pfoff; }
+    // return value of postfix offset in pfcomvals
+  
+    ComValue* pfcomvals() { return _pfcomvals; }
+    // return pointer to buffer of postfix comvals
+
 protected:
     void incr_stack();
     void incr_stack(int n);

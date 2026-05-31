@@ -8,4 +8,4 @@
 
 prev_ok=true
 
-check_fail=func(if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n")); prev_ok=ok)
+check_fail=func(if(!ok && prev_ok :then print("    ^^^ FIRST FAIL ^^^\n"));ok)

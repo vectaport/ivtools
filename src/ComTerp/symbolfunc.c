@@ -496,9 +496,9 @@ void GlobalSymbolFunc::execute() {
     else 
       symbol_ids[i] = -1;
   }
-  reset_stack();
+  boolean assign_next = comterp()->stack_top(nargs()+nkeys()).lhs_assign();
 
-  boolean assign_next = comterp()->in_lvalue_assign();
+  reset_stack();
 
   if (numargs>1) {
     AttributeValueList* avl = new AttributeValueList();
