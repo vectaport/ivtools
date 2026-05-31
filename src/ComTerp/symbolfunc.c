@@ -309,36 +309,27 @@ void SplitStrFunc::execute() {
       int bufoff = 0;
       while (*str) {
         int delim1=0;
+        boolean delim_seen=false;
         while(*str && isspace(*str) || *str==delim) {
           if (*str==delim) {
             if ((delim1 || avl->Number()==0) && delim!=' ') {
-	      if (keepflag) {
-		ComValue* comval = new ComValue(delimstr);
-		if (reverseflag) 
-		  avl->Prepend(comval);
-		else
-		  avl->Append(comval);
-	      } else {
+	      if (!keepflag) {
 		ComValue* comval = new ComValue(ComValue::nullval());
 		if (reverseflag) 
 		  avl->Prepend(comval);
 		else
 		  avl->Append(comval);
 	      }
-            } else
+            } else {
               delim1=1;
+              delim_seen=true;
+            }
           }
           str++;
         }
 	if (!*str) {
           if (delim1 && !isspace(delim)) {
-	    if (keepflag) {
-	      ComValue* comval = new ComValue(delimstr);
-	      if (reverseflag)
-		avl->Prepend(comval);
-	      else
-		avl->Append(comval);
-	    } else {
+	    if (!keepflag) {
 	      ComValue* comval = new ComValue(ComValue::nullval());
 	      if (reverseflag) 
 		avl->Prepend(comval);
@@ -348,6 +339,12 @@ void SplitStrFunc::execute() {
           }
           break;
         }
+	if (keepflag && delim_seen && avl->Number()>0) {
+	  if (reverseflag)
+	    avl->Prepend(new ComValue(delimstr));
+	  else
+	    avl->Append(new ComValue(delimstr));
+	}
         // some uses need this, can't remember which
          while (*str && (/**/tokstr_charflag?(*str!='\n'&&*str!='\r'):/**/!isspace(*str)) && *str!=delim && bufoff<BUFSIZ-1) {
           if(*str=='"') {
@@ -358,14 +355,11 @@ void SplitStrFunc::execute() {
           }
           buffer[bufoff++] = *str++;
         }
- 	if (keepflag & avl->Number()>0 ) {
-	  if (reverseflag)
-	    avl->Prepend(new ComValue(*str==delim ? delimstr : " "));
-	  else
-	    avl->Append(new ComValue(*str==delim ? delimstr : " "));
-	}
 	buffer[bufoff] = '\0';
-	avl->Append(new ComValue(buffer));
+	if (reverseflag)
+	  avl->Prepend(new ComValue(buffer));
+	else
+	  avl->Append(new ComValue(buffer));
 	bufoff=0;
       }
     } else {
@@ -374,38 +368,45 @@ void SplitStrFunc::execute() {
       char delim = tokvalv.char_val();
       while (*str) {
         int delim1=0;
+        boolean delim_seen=false;
 	while(*str && (isspace(*str) || *str==delim)) {
           if (*str==delim) {
               if((delim1 || avl->Number()==0) && !isspace(delim)) {
-              ComValue* comval = new ComValue(ComValue::nullval());
-	      if (reverseflag) 
-		avl->Prepend(comval);
-	      else
-		avl->Append(comval);
-            } else 
+	      if (!keepflag) {
+                ComValue* comval = new ComValue(ComValue::nullval());
+	        if (reverseflag) 
+		  avl->Prepend(comval);
+	        else
+		  avl->Append(comval);
+	      }
+            } else {
               delim1=1;
+              delim_seen=true;
+            }
           }
           str++;
         }
 	if (!*str) {
             if (delim1 && !isspace(delim)) {
-            ComValue* comval = new ComValue(ComValue::nullval());
-	    if (reverseflag) 
-	      avl->Prepend(comval);
-	    else
-	      avl->Append(comval);
+	    if (!keepflag) {
+              ComValue* comval = new ComValue(ComValue::nullval());
+	      if (reverseflag) 
+	        avl->Prepend(comval);
+	      else
+	        avl->Append(comval);
+	    }
 	    }
           break;
         }
-	while (*str && !isspace(*str) && *str!=delim && bufoff<BUFSIZ-1) {
-	  buffer[bufoff++] = *str++;
-	}
-	if (keepflag) {
-	  ComValue* comval = new ComValue(*str==delim ? delimstr : " ");
+	if (keepflag && delim_seen && avl->Number()>0) {
+	  ComValue* comval = new ComValue(delim);
 	  if (reverseflag)
 	    avl->Prepend(comval);
 	  else
 	    avl->Append(comval);
+	}
+	while (*str && !isspace(*str) && *str!=delim && bufoff<BUFSIZ-1) {
+	  buffer[bufoff++] = *str++;
 	}
 	buffer[bufoff] = '\0';
         ComValue* comval = new ComValue(((ComTerpServ*)_comterp)->run(buffer, true /*nested*/));
