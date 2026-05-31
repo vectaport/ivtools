@@ -518,7 +518,7 @@ void GlobalSymbolFunc::execute() {
   } else {
     
     if (!clearflag) {
-      ComValue retval (symbol_ids[0], AttributeValue::SymbolType);
+      ComValue retval(symbol_ids[0], AttributeValue::SymbolType);
       retval.global_flag(true);
       retval.bquote(1);
       push_stack(retval);
