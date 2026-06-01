@@ -44,6 +44,7 @@
 #include <ComTerp/charfunc.h>
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comterp.h>
+#include <ComUtil/comutil.h>
 // #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/condfunc.h>
@@ -1264,6 +1265,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 }
 
 void ComTerp::add_defaults() {
+  set_command_prompt("(comt) ");
   if (!_defaults_added) {
     _defaults_added = true;
 
@@ -1662,10 +1664,8 @@ ComValue* ComTerp::globalvalue(int symid) {
     return &ComValue::unkval();
 }
 
-extern int _continuation_prompt_disabled;  // from ComUtil/parser.c
-
-void ComTerp::disable_prompt() { _continuation_prompt_disabled = 1; }
-void ComTerp::enable_prompt() { _continuation_prompt_disabled = 0; }
+void ComTerp::disable_prompt() { set_continuation_prompt_disabled(1); }
+void ComTerp::enable_prompt() { set_continuation_prompt_disabled(0); }
 
 ComFuncState* ComTerp::top_funcstate() {
   return _fsstack_top < 0 ? nil : _fsstack+_fsstack_top;

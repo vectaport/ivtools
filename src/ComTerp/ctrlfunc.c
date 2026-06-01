@@ -112,6 +112,22 @@ void TimeExprFunc::execute() {
 RunFunc::RunFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
+static int _run_depth = 0;
+static char* _run_curr_basepath = NULL;
+
+void RunFunc::set_basepath(const char* path) {
+    char abspath[BUFSIZ];
+    if (!realpath(path, abspath)) {
+        strncpy(abspath, path, BUFSIZ-1);
+        abspath[BUFSIZ-1] = '\0';
+    }
+    char* ptr = abspath + strlen(abspath) - 1;
+    while (ptr > abspath && *ptr != '/') *ptr-- = '\0';
+    delete[] _run_curr_basepath;
+    _run_curr_basepath = new char[strlen(abspath)+1];
+    strcpy(_run_curr_basepath, abspath);
+}
+
 void RunFunc::execute() {
     ComValue runfilename(stack_arg(0));
     static int str_sym = symbol_add("str");
@@ -127,8 +143,8 @@ void RunFunc::execute() {
 	push_stack(retval);
       }
       else {
-        static int depth = 0;
-	static char*  curr_basepath = NULL;
+        int& depth = _run_depth;
+	char*& curr_basepath = _run_curr_basepath;
         char* prev_basepath = NULL;
         char runpath[BUFSIZ];
         int bufleft = BUFSIZ-1;

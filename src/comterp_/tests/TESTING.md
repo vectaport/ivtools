@@ -3,9 +3,10 @@
 ## Overview
 
 Each `.comt` test script covers a defined set of ComTerp functions.
-Coverage is measured by how many testable slots have at least one test.
-The goal is not exhaustive combinatorics but systematic slot coverage —
-one good test per slot, not ten redundant ones.
+Coverage is measured against the semantically valid combinatorial space
+for each function — arities, keyword combinations, value classes, and
+compositional pairings. Numbers are intentionally humbling; the goal is
+honest tracking, not bragging. One good test per slot, not ten redundant ones.
 
 ## Coverage Taxonomy
 
@@ -59,12 +60,64 @@ with an input type of B.
 
 ## Scoring
 
-    coverage = covered_slots / total_slots
+### Combinatorial Space
 
-Partial credit (marked `~`) is given when a slot is implicitly exercised
-as a side effect of another test but never explicitly asserted. Partials
-count as 0 in the score — they are noted to flag where a small addition
-would close a real gap.
+The theoretical worst-case test space for a function is the product of
+all valid argument arities, keyword presence/absence states, keyword
+values, and argument type combinations. For a function with N keywords
+this grows as 2^N before any value or type axes are added.
+
+In practice most of this space is semantically invalid — combinations
+that either can never occur (mutually exclusive keywords), produce
+trivially identical behavior (`:reverse` on a single-element result),
+or require inputs that don't exist (`:keep` without a delimiter in
+char mode of split()). These are excluded from the denominator and
+documented with a `!` prefix in the `missing:` header line.
+
+A combination is considered **semantically valid** if there exists at
+least one input for which both (or all) of the combined options
+independently affect the output. Any combination that fails this test
+is excluded with a `!` annotation.
+
+After semantic filtering the combinatorial space is still large — a
+function with 4 independent keywords has up to 16 valid combinations
+in slot 10 alone, before arities or value axes are considered. Coverage
+numbers are intentionally humbling. The goal is not 100% but honest
+tracking of progress through a space that can never be fully exhausted.
+
+### Coverage Formula
+
+    coverage = covered_slots / total_valid_slots
+
+Where `total_valid_slots` is the count of semantically valid slot
+instances after `!` exclusions. Partial credit (marked `~`) is given
+when a slot is implicitly exercised as a side effect of another test
+but never explicitly asserted. Partials count as 0 in the score.
+
+### Slot Priority
+
+Slots are numbered in priority order. A script that covers slots 1-7
+for all its functions is more useful than one that covers slot 10 for
+one function and nothing else. The coverage number reflects breadth
+across all slots, not depth in any one slot.
+
+### 10. Keyword compatibility groups
+For each function, test combinations of keywords that can be used
+together. One slot per valid combination. Mutually exclusive keywords
+are excluded with a `!` annotation.
+
+### 11. Argument value stress
+For each fixed argument and keyword value, exercise boundary value
+classes: absent, default, zero, neg, pos, bool-t, bool-f, nil,
+wrong-type, fake-key. One slot per value class per argument position.
+
+### 12. Random sampling
+Run the function with randomly sampled argument combinations. Uses a
+random seed printed at the start of the run so failures are
+reproducible — if a test fails, rerun with `srand(seed)` to reproduce.
+Random tests assert no crash and known return type, not specific values.
+Random tests contribute to coverage when they exercise combinations not
+covered by slots 1-11.
 
 ## Coverage Header Format
 
@@ -117,8 +170,10 @@ To add a new test script:
 
 ## Current Coverage Summary
 
-| script        | funcs                                          | covered | total |  %  |
-|---------------|------------------------------------------------|---------|-------|-----|
-| return.comt   | return func if for while run                   |      27 |    42 | 64% |
-| stream.comt   | $$ $ ,, next each size                         |      24 |    33 | 72% |
-| string.comt   | index substr split join eq size print(+:str) + |      25 |    66 | 37% |
+| script        | funcs                                          | slots   | covered | total |  %  |
+|---------------|------------------------------------------------|---------|---------|-------|-----|
+| return.comt   | return func if for while run                   | 1-10,11 |      34 |    50 | 68% |
+| stream.comt   | $$ $ ,, next each size                         | 1-10    |      24 |    34 | 71% |
+| string.comt   | index substr split join eq size print(+:str) + | 1-10,11 |      78 |    97 | 80% |
+| global.comt   | global                                         | 1-10,11 |      15 |    15 |100% |
+| random.comt   | all of the above                               | 12      |      24 |    24 |100% |
