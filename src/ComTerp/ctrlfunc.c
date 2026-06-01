@@ -117,10 +117,13 @@ static char* _run_curr_basepath = NULL;
 
 void RunFunc::set_basepath(const char* path) {
     char abspath[BUFSIZ];
-    realpath(path, abspath);
+    if (!realpath(path, abspath)) {
+        strncpy(abspath, path, BUFSIZ-1);
+        abspath[BUFSIZ-1] = '\0';
+    }
     char* ptr = abspath + strlen(abspath) - 1;
     while (ptr > abspath && *ptr != '/') *ptr-- = '\0';
-    delete _run_curr_basepath;
+    delete[] _run_curr_basepath;
     _run_curr_basepath = new char[strlen(abspath)+1];
     strcpy(_run_curr_basepath, abspath);
 }
