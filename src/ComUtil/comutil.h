@@ -182,5 +182,16 @@ typedef int (*outfuncptr)(const char*, void*);
 
 extern infuncptr _oneshot_infunc;  /* to inform parser of one-shot infunc */
 
+/* accessor functions for prompt control (from _parser.c) */
+void set_continuation_prompt_disabled(int val);
+int get_continuation_prompt_disabled();
+void set_command_prompt(const char* prompt);
+const char* get_command_prompt();
+
+/* stdout_puts: outfunc wrapper that always writes to stdout.
+   Use as outfunc for interactive stdin mode -- its identity as a
+   function pointer signals to lexscan that (comt) prompt should print. */
+int stdout_puts(const char* s, void* ignored);
+
 #endif /* not COMUTIL_INCLUDED */
 

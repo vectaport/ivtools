@@ -43,6 +43,8 @@ History:        Written by Scott E. Johnston, March 1989
 
 extern int _continuation_prompt;
 extern int _continuation_prompt_disabled;
+extern const char* get_command_prompt();
+extern int stdout_puts(const char* s, void* ignored);
 unsigned _token_state_save = TOK_WHITESPACE;
 				/* variable to save token state between calls */
 int _ignore_numerics = 0;
@@ -254,8 +256,8 @@ int bs_ident = 0;
 	 if (outfunc && !_continuation_prompt_disabled) {
 	   if (_continuation_prompt)
 	     (*outfunc) ( "> ", outfile);
-	   else
-	     (*outfunc) ( "(comt) ", outfile);
+	   else if (outfunc == (int(*)(const char*,void*))&stdout_puts && *get_command_prompt())
+	     (*outfunc) ( get_command_prompt(), outfile);
 	 }
 	 _continuation_prompt = 0;
 	 if (linecmtchr || linecmtstr)
