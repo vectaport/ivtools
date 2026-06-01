@@ -30,10 +30,16 @@ for(i=2 i<narg() i++
 if(!tests_flag :then tests_flag=true;tests_val=`all);
 if(tests_flag && tests_val==nil :then tests_val=`all)
 
+/* select port probe command based on available tools */
+port_probe=if(shell("which lsof > /dev/null 2>&1")==0 :then
+  "lsof -i :%d > /dev/null 2>&1"
+:else
+  "nc -z localhost %d > /dev/null 2>&1")
+
 /* find an open port starting from base_port, stepping by 10 */
 find_open_port=func(
   port=base_port;
-  while(shell(print("lsof -i :%d > /dev/null 2>&1" port :str))==0
+  while(shell(print(port_probe port :str))==0
     port=port+10);
   port)
 
