@@ -22,12 +22,10 @@ callback_port=10002;
 tests_flag=false;
 tests_val=nil;
 for(i=1 i<narg() i++
-  if(type(arg(i))==`IntType || type(arg(i))==`DfintType :then
-    callback_port=arg(i)
-  :else
-    switch(substr(arg(i) 2 :after)
-      :tests tests_flag=true;if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;tests_val=arg(i)
-      :default print("drawmo:  Unknown argument %s\n" arg(i) :err))))
+  switch(substr(arg(i) 2 :after)
+    :tests tests_flag=true;if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;tests_val=arg(i)
+    :port if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;callback_port=int(arg(i))
+    :default print("drawmo:  Unknown argument %s\n" arg(i) :err)))
 
 /* default to all tests if no --tests flag or if --tests given with no value */
 if(!tests_flag :then tests_flag=true;tests_val=`all);

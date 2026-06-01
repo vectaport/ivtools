@@ -89,6 +89,7 @@ void log_with_timestamp(const char* msg) {
   if (n==0 || msg[n-1]!='\n') {
     fprintf(stderr, "\n");
   }
+  fflush(stderr);
 }
 
 char* restore_escapes(const char* str, int& bufsize) {
