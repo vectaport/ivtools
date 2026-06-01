@@ -45,6 +45,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/ctrlfunc.h>
 
 #include <execinfo.h>
 
@@ -306,6 +307,7 @@ int main(int argc, char *argv[]) {
 	}
         const char *rfile = argv[2];
 	terp->set_args(argc-2-endcnt, argv+2);
+	RunFunc::set_basepath(rfile);
 	terp->runfile(rfile);
 	return 0;
       } if (expr_flag) {

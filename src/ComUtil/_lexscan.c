@@ -251,11 +251,13 @@ int bs_ident = 0;
       /* If error returned from infunc, return current token as is */
 	 if( token_state != TOK_STRING && token_state != TOK_CHAR )
 	    *tokstart = 0;
-	 if (_continuation_prompt && outfunc) {
-	   if (!_continuation_prompt_disabled) 
+	 if (outfunc && !_continuation_prompt_disabled) {
+	   if (_continuation_prompt)
 	     (*outfunc) ( "> ", outfile);
-	   _continuation_prompt = 0;
+	   else
+	     (*outfunc) ( "(comt) ", outfile);
 	 }
+	 _continuation_prompt = 0;
 	 if (linecmtchr || linecmtstr)
 	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL && 
 		  (buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {

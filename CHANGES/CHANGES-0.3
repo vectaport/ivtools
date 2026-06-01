@@ -1,0 +1,97 @@
+This documents what was new in ivtools-0.3 relative to iv-3.2a, the
+InterViews 3.2a release from Stanford that ivtools was originally built
+on top of.  ivtools-0.3 ran from January 1994 to August 1994, and
+represented approximately the third time the team had librarified idraw
+in preparation for constructing vertical applications on top.
+
+No change logs remain from this period.  This file is a reconstruction
+based on the ivtools changelog history page and comparison with iv-3.2a.
+
+iv-3.2a contained the following libraries:
+    InterViews  -- core widget/event library (IV, IV-2_6, IV-X11, IV-look, OS)
+    Dispatch    -- socket/signal dispatching
+    Unidraw     -- structured graphics editing framework
+    TIFF        -- TIFF image support
+
+iv-3.2a contained the following programs:
+    idraw       -- drawing editor built on Unidraw
+    iclass      -- C++ class browser
+    ibuild      -- GUI builder
+    idemo       -- glyph demo
+    dclock      -- digital clock
+    doc         -- document editor
+    edraw       -- early experimental drawing editor
+    alert       -- notification utility
+    (plus many glyph/layout demo programs)
+
+ivtools-0.3 added the following new libraries on top of iv-3.2a:
+
+    OverlayUnidraw -- extended Unidraw framework adding:
+                   - overlay-aware component/view hierarchy:
+                     OverlayComp, OverlayView, OverlayViewer
+                   - OverlayKit: glyph-based menus and toolbars
+                     replacing iv-3.2a's Interactor-based menus
+                   - OverlayEditor: extended editor base class
+                   - OverlaySelection: extended selection
+                   - OverlayCatalog: extended catalog
+                   - ScriptView: textual save/restore transcription
+                     mechanism producing a script format for all
+                     graphic types (later unified with comterp syntax)
+                   - OvPostScriptView: PostScript output for overlays
+                   - Hide/Desensitize capability for graphics and views
+                   - NameView/NameState: named graphic views and
+                     observable state (migrated from earlier maptools)
+
+    FrameUnidraw -- multi-frame display framework built on OverlayUnidraw:
+                   - FrameComp, FrameView: frame-oriented component hierarchy
+                   - FrameEditor, FrameKit: frame-aware editor and kit
+                   - frame creation, navigation, and manipulation commands
+
+    GraphUnidraw -- graph-node editing framework built on OverlayUnidraw:
+                   - NodeComp, NodeView: graph node components
+                   - EdgeComp, EdgeView: directed edge components
+                   - GraphEditor, GraphKit: graph-aware editor and kit
+                   - graph connectivity and topology
+                   - graph-specific commands
+
+    IVGlyph     -- a library of extended glyph examples was created
+                   during this period (the "glyphs" demo library).
+                   The formal IVGlyph library with EivTextEditor and
+                   other reusable glyph classes was organized during
+                   ivtools-0.4 (fix-02j).
+
+Note: ComTerp (command interpreter), IVGlyph (formal library), and
+the Attribute library (AttributeList, AttributeValue, ParamList) were
+NOT present in ivtools-0.3.  ComTerp arrived as a standalone library
+late in ivtools-0.4, IVGlyph was organized in early ivtools-0.4, the
+Attribute library arrived mid ivtools-0.4, and ComTerp integration
+with the drawing editors (ComUnidraw, comdraw) arrived at the end of
+ivtools-0.4 / beginning of ivtools-0.5.
+
+ivtools-0.3 added the following new programs:
+
+    ov-idraw    -- extended idraw built on OverlayUnidraw (later renamed
+                   drawtool).  Glyph-based menus and toolbars, scriptable
+		   save/restore format.
+
+    frame-idraw -- multi-frame drawing editor built on FrameUnidraw
+                   (later renamed flipbook).
+
+    graph-idraw -- graph browser/editor built on GraphUnidraw (later
+                   renamed graphdraw).
+
+Key Architectural Additions
+
+    ScriptView  -- the textual save/restore mechanism established the
+                   foundation for ivtools' serialization format.  When
+                   ComTerp was integrated in ivtools-0.5, the script
+                   format was unified with comterp command syntax,
+                   enabling copy/paste over the wire, remote scripting
+                   of graphic state, and human/LLM-readable descriptions
+                   of graphic documents.  This format has remained
+                   consistent throughout 40 years of ivtools development.
+
+    OverlayKit  -- replaced iv-3.2a's Interactor-based menus with a
+                   flexible glyph-based layout framework, enabling
+                   derived programs to customize menus and toolbars
+                   without subclassing the editor.
