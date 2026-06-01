@@ -153,8 +153,10 @@ int main(int argc, char *argv[]) {
 	    new ComterpAcceptor(ComterpHandler::reactor_singleton());
 
         if (peer_acceptor->open(ACE_INET_Addr(portnum),
-				ComterpHandler::reactor_singleton()) == -1)
+				ComterpHandler::reactor_singleton()) == -1) {
             cerr << "comterp: unable to open port " << portnum << " with ACE\n";
+            return 1;
+        }
 
 #if !defined(__NetBSD__)
         else if (ComterpHandler::reactor_singleton()->register_handler

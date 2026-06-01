@@ -7,8 +7,8 @@
 #
 
 /* command line help */
-if(arg(1)=="help" || arg(1)=="-h" || arg(1)=="?" ||
-  arg(1)=="-help" || arg(1)=="--help" || arg(1)=="-?" :then
+if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
+  arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
     print("Usage:  drawmo [--tests all|updown] --port [portnum] --help\n\n");
     print("  (no args)            run all tests\n");
@@ -17,14 +17,13 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)=="?" ||
     print("--help\t\t\tprint this help message\n");
     exit)
 
-/* parse arguments */
-callback_port=10002;
+/* parse arguments -- arg(1) is the listen port injected by comterp_listen.bash */
+callback_port=int(arg(1));
 tests_flag=false;
 tests_val=nil;
-for(i=1 i<narg() i++
+for(i=2 i<narg() i++
   switch(substr(arg(i) 2 :after)
     :tests tests_flag=true;if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;tests_val=arg(i)
-    :port if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;callback_port=int(arg(i))
     :default print("drawmo:  Unknown argument %s\n" arg(i) :err)))
 
 /* default to all tests if no --tests flag or if --tests given with no value */
@@ -69,13 +68,15 @@ updown_test=func(
   sock=socket("localhost" ds_port);
   if(type(sock)==`BlankType :then
     print("updown: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" ds_port :str));
     return(false));
-    
+
   result=remote(sock "sid()");
   if(type(result)==`BlankType :then
     print("updown: FAIL drawserv not responding on port %d\n" ds_port :err);
+    remote(sock "exit" :nowait);
     return(false));
-    
+
   print("updown: drawserv up and responding\n" :err);
   remote(sock "exit" :nowait);
   print("updown: drawserv shut down\n" :err);
@@ -85,13 +86,15 @@ updown_test=func(
 ok=true;
 if(tests_flag :then
   testlist=split(tests_val :tokstr ',');
-  ts=$$testlist;
-  while((t=next(ts))!=nil
+  for(i=0 i<size(testlist) i++
+    t=at(testlist i);
     if(t==`updown || t==`all :then
       print("running updown test\n" :err);
       if(updown_test(:dummy 0) :then
         print("updown: pass\n" :err)
       :else
         print("updown: FAIL\n" :err);
-        ok=false)));
-  if(ok :then exit(0) :else exit(1)))
+        ok=false))))
+
+exit(!ok)
+
