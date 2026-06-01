@@ -11,7 +11,7 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
     print("Usage:  drawmo [--tests all|updown] --port [portnum] --help\n\n");
-    print("  (no args)            run all tests\n");
+    print("  (no args)             run all tests\n");
     print("--tests [all|updown]\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
@@ -81,10 +81,12 @@ updown_test=func(
   if(type(result)==`BlankType :then
     print("updown: FAIL drawserv not responding on port %d\n" ds_port :err);
     remote(sock "exit" :nowait);
+    close(sock);
     return(false));
 
   print("updown: drawserv up and responding\n" :err);
   remote(sock "exit" :nowait);
+  close(sock);
   print("updown: drawserv shut down\n" :err);
   true)
 
