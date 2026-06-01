@@ -42,7 +42,6 @@ while true; do
     if [ $status -ne 1 ]; then
         break
     fi
-    # port open failed -- try next
     port=$((port + 10000))
     while lsof -i :$port > /dev/null 2>&1; do
         port=$((port + 10000))
