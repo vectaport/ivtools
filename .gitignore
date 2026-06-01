@@ -427,3 +427,5 @@ configure
 configure.in
 configure~
 config/config-*.defs
+
+*.zip
