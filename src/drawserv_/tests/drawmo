@@ -30,11 +30,15 @@ for(i=2 i<narg() i++
 if(!tests_flag :then tests_flag=true;tests_val=`all);
 if(tests_flag && tests_val==nil :then tests_val=`all)
 
-/* select port probe command based on available tools */
-port_probe=if(shell("which lsof > /dev/null 2>&1")==0 :then
+/* select port probe and kill commands based on available tools */
+have_lsof=shell("which lsof > /dev/null 2>&1")==0;
+have_nc=shell("which nc > /dev/null 2>&1")==0;
+port_probe=if(have_lsof :then
   "lsof -i :%d > /dev/null 2>&1"
+:else if(have_nc :then
+  "nc -z localhost %d > /dev/null 2>&1"
 :else
-  "nc -z localhost %d > /dev/null 2>&1")
+  "false"))
 
 /* find an open port starting from base_port, stepping by 10 */
 find_open_port=func(
@@ -74,7 +78,7 @@ updown_test=func(
   sock=socket("localhost" ds_port);
   if(type(sock)==`BlankType :then
     print("updown: FAIL could not connect to drawserv on port %d\n" ds_port :err);
-    shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" ds_port :str));
+    if(have_lsof :then shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" ds_port :str)));
     return(false));
 
   result=remote(sock "sid()");
