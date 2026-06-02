@@ -121,6 +121,13 @@ becomes a local variable within the scope of the func body.
 The func returns information by pushing a result on the stack, the value
 that results from executing the body of the func.
 
+Similar to most any command line processing, the keyword arguments
+(and eventually the fixed-format arguments at the start of the
+command) are not declared in the func() call or its body.  It is only the
+subsequent attempt to retrieve known values associated with a symbol
+that resolves whether it is keyword/value pair stored in the func()'s
+AttributeList, or a local variable, or a global variable.
+
 ## func() improvements
 
 Currently the narg() and arg() commands only work for the command line.
@@ -140,6 +147,13 @@ level func body) but that seems complicated to use as a programmer.  If
 an escape to a larger namespace is needed, having a two tier system of
 global() and local() is enough, and otherwise variables created or update
 within a func body are invisible unless returned.
+
+Another thing to consider is if any declaration of expected arguments
+is required or useful.  Right now there is no :help supported as a
+special keyword parameter for all func()'s and there probably never
+will be.  The model for help within comterp is using the help() func,
+and :docstr could be added to the func command that inserts that help
+string into the help system.
 
 ## Global Variable Lhs/Rhs Context
 

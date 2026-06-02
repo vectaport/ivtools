@@ -1,0 +1,125 @@
+#! /usr/bin/env comterp_listen
+#
+# drawmo  drawserv orchestrator and test suite
+#
+# Usage:  drawmo [--tests all|updown] --port [portnum] --help
+#   no args runs all tests, portnum defaults to 10002
+#
+
+/* command line help */
+if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
+  arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
+    print("drawmo  drawserv orchestrator and test suite\n");
+    print("Usage:  drawmo [--tests all|updown] --port [portnum] --help\n\n");
+    print("  (no args)             run all tests\n");
+    print("--tests [all|updown]\ttests to run (comma-separated), returns -1 on error\n");
+    print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
+    print("--help\t\t\tprint this help message\n");
+    exit)
+
+/* parse arguments -- arg(1) is the listen port injected by comterp_listen.bash */
+callback_port=int(arg(1));
+tests_flag=false;
+tests_val=nil;
+for(i=2 i<narg() i++
+  switch(substr(arg(i) 2 :after)
+    :tests tests_flag=true;if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;tests_val=arg(i)
+    :default print("drawmo:  Unknown argument %s\n" arg(i) :err)))
+
+/* default to all tests if no --tests flag or if --tests given with no value */
+if(!tests_flag :then tests_flag=true;tests_val=`all);
+if(tests_flag && tests_val==nil :then tests_val=`all)
+
+/* select port probe and kill commands based on available tools */
+have_lsof=shell("which lsof > /dev/null 2>&1")==0;
+have_nc=shell("which nc > /dev/null 2>&1")==0;
+port_probe=if(have_lsof :then
+  "lsof -i :%d > /dev/null 2>&1"
+:else if(have_nc :then
+  "nc -z localhost %d > /dev/null 2>&1"
+:else
+  "false"));
+
+/* kill_port: kill process listening on a port, portable across lsof/nc */
+kill_port=func(
+  if(have_lsof :then
+    shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" kill_port_num :str))
+  :else
+    /* no lsof: best effort via fuser if available */
+    shell(print("fuser -k %d/tcp > /dev/null 2>&1" kill_port_num :str))))
+
+/* find an open port starting from base_port, stepping by 10.
+   checks both ds_port and ds_port-1 (import port) are free */
+find_open_port=func(
+  port=base_port;
+  while(shell(print(port_probe port :str))==0 ||
+        shell(print(port_probe port-1 :str))==0
+    port=port+10);
+  port)
+
+/* updown test -- launch a drawserv, wait for callback, shut it down */
+updown_test=func(
+
+  /* port convention: drawmo uses 10001/10002, drawservs start at 20001/20002
+     stepping by 10000 per instance: 20001/20002, 30001/30002, etc.
+     find_open_port steps by 10 within a range if base is taken */
+  ds_port=find_open_port(:base_port 20002);
+  ds_import=ds_port-1;
+  global(drawserv_up)=false;
+  print("updown: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("updown: cmdstr=[%s]\n" cmdstr);
+  shell(cmdstr);
+  print("updown: waiting for drawserv callback on port %d\n" callback_port :err);
+  
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_up) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+    
+  if(!global(drawserv_up) :then
+    print("updown: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+    
+  print("updown: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("localhost" ds_port);
+  if(type(sock)==`BlankType :then
+    print("updown: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  result=remote(sock "sid()");
+  if(type(result)==`BlankType :then
+    print("updown: FAIL drawserv not responding on port %d\n" ds_port :err);
+    remote(sock "exit" :nowait);
+    close(sock);
+    return(false));
+
+  print("updown: drawserv up and responding\n" :err);
+  remote(sock "exit" :nowait);
+  close(sock);
+  print("updown: drawserv shut down\n" :err);
+  true)
+
+/* run selected tests */
+ok=true;
+if(tests_flag :then
+  testlist=split(tests_val :tokstr ',');
+  for(i=0 i<size(testlist) i++
+    t=at(testlist i);
+    if(t==`updown || t==`all :then
+      print("running updown test\n" :err);
+      if(updown_test(:dummy 0) :then
+        print("updown: pass\n" :err)
+      :else
+        print("updown: FAIL\n" :err);
+        ok=false))))
+
+exit(if(ok :then 0 :else 1))
+

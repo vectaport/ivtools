@@ -1,33 +1,60 @@
 #!/bin/bash
-# comterp_listen -- shebang wrapper for comterp listen mode
+# comterp_listen -- shebang wrapper for "comterp listen" mode
 #
-# Usage:
-#   comterp_listen [portnum] [script.comt] [args...]
-#   #!/usr/bin/env comterp_listen   (as shebang in .comt scripts)
+# Usage as shebang: #!/usr/bin/env comterp_listen
 #
-# If the first argument is a port number, use it as the listen port;
-# otherwise default to port 10002 and pass all arguments as the script
-# file and its args.
+# Finds a free listen port starting at 10002 (stepping by 10000 if taken).
+# If --port portnum is supplied it is used as the starting port, and stripped
+# from the args before passing to the script.
 #
-# When used as a shebang, the OS supplies the script path as the first
-# argument, so the script listens on the default port 10002:
+# CONVENTION: the resolved listen port is injected as arg(1) in the script
+# (before any user-supplied arguments) so shebang scripts can access it
+# via arg(1) to use in callback commands, e.g.:
 #
-#   #!/usr/bin/env comterp_listen
+#   callback_port=int(arg(1))
 #
-# To specify a port, invoke directly on the command line:
+# The --port keyword arg can be used to request a specific base port:
 #
-#   comterp_listen 10003 script.comt
+#   drawmo --port 20002 --tests updown
 #
-# Note: passing a port number in the shebang line itself
-# (e.g. #!/usr/bin/env comterp_listen 10003) is not portable --
-# on Linux the kernel passes all shebang arguments as a single token.
-# Use #!/usr/bin/env -S comterp_listen 10003 if GNU coreutils >= 8.30
-# is available and Linux portability is required.
 
-if [[ "$1" =~ ^[0-9]+$ ]]; then
-    port="$1"
-    shift
-    comterp listen "$port" "$@"
-else
-    comterp listen 10002 "$@"
-fi
+port=10002
+newargs=()
+skip_next=false
+for i in "$@"; do
+    if $skip_next; then
+        port="$i"
+        skip_next=false
+        continue
+    fi
+    if [ "$i" = "--port" ]; then
+        skip_next=true
+        continue
+    fi
+    newargs+=("$i")
+done
+# portable port-in-use check: prefer lsof, fall back to nc, then fuser
+port_in_use() {
+    if command -v lsof > /dev/null 2>&1; then
+        lsof -i :$1 > /dev/null 2>&1
+    elif command -v nc > /dev/null 2>&1; then
+        nc -z localhost $1 > /dev/null 2>&1
+    else
+        fuser $1/tcp > /dev/null 2>&1
+    fi
+}
+
+while port_in_use $port; do
+    port=$((port + 10000))
+done
+while true; do
+    comterp listen $port "${newargs[0]}" $port "${newargs[@]:1}"
+    status=$?
+    if [ $status -ne 75 ]; then
+        break
+    fi
+    port=$((port + 10000))
+    while port_in_use $port; do
+        port=$((port + 10000))
+    done
+done
