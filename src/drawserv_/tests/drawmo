@@ -68,7 +68,7 @@ updown_test=func(
   global(drawserv_up)=false;
   print("updown: launching drawserv on port %d\n" ds_port :err);
   cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up)=true\\\")\" &" ds_port ds_import callback_port :str);
-  print("updown: cmdstr=[%s]\n" cmdstr);
+  print("updown: cmdstr=[%s]\n" cmdstr :err);
   shell(cmdstr);
   print("updown: waiting for drawserv callback on port %d\n" callback_port :err);
   

@@ -107,6 +107,19 @@ void ListFunc::execute() {
 
 /*****************************************************************************/
 
+AttrListFunc::AttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void AttrListFunc::execute() {
+    AttributeList* al = stack_keys();
+    Resource::ref(al);
+    reset_stack();
+    ComValue retval(AttributeList::class_symid(), al);
+    push_stack(retval);
+}
+
+/*****************************************************************************/
+
 ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
