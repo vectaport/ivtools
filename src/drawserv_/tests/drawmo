@@ -48,10 +48,12 @@ kill_port=func(
     /* no lsof: best effort via fuser if available */
     shell(print("fuser -k %d/tcp > /dev/null 2>&1" kill_port_num :str))))
 
-/* find an open port starting from base_port, stepping by 10 */
+/* find an open port starting from base_port, stepping by 10.
+   checks both ds_port and ds_port-1 (import port) are free */
 find_open_port=func(
   port=base_port;
-  while(shell(print(port_probe port :str))==0
+  while(shell(print(port_probe port :str))==0 ||
+        shell(print(port_probe port-1 :str))==0
     port=port+10);
   port)
 
@@ -119,5 +121,5 @@ if(tests_flag :then
         print("updown: FAIL\n" :err);
         ok=false))))
 
-exit(!ok)
+exit(if(ok :then 0 :else 1))
 
