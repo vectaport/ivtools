@@ -283,26 +283,25 @@ int main (int argc, char** argv) {
     GraphEditor* ed = new GraphEditor(initial_file);
     
     unidraw->Open(ed);
-
+    
 #ifdef HAVE_ACE
-	/*  Start up one on stdin */
-	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
-#if 0
-	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
-#else
-	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
-							  ACE_Event_Handler::READ_MASK)==-1)
+    /*  Start up one on stdin */
+    UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
+    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
+							      ACE_Event_Handler::READ_MASK)==-1)
+      cerr << "graphdraw: unable to open stdin with ACE\n";
+    ed->stdio_setup(stdin_handler);
 #endif
-	  cerr << "graphdraw: unable to open stdin with ACE\n";
-
-#endif
-	
+    
     cerr << "ivtools-" << VersionString 
 	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
-    ed->stdio_setup(stdin_handler);
-
+    
+#ifdef HAVE_ACE
+    ed->stdio_prompt(stdin_handler);
+#endif
+    
     unidraw->Run();
-
+    
     delete unidraw;
     return exit_status;
 }

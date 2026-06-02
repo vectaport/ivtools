@@ -417,16 +417,14 @@ int main (int argc, char** argv) {
 #ifdef HAVE_ACE
 	/*  Start up one on stdin */
 	DrawServHandler* stdin_handler = new DrawServHandler();
-#if 0
-	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
-#else
 	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
-#endif
           cerr << "drawserv: unable to open stdin with ACE\n";
 	
-	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
 	ed->stdio_setup(stdin_handler);
+	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
+	ed->stdio_prompt(stdin_handler);
+
 #else
 	fprintf(stderr, "ivtools-%s drawserv", VersionString);
 #endif
