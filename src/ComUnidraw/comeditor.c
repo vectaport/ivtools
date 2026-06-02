@@ -349,10 +349,15 @@ boolean ComEditor::whiteboard() {
 }
 
 void ComEditor::stdio_setup(UnidrawComterpHandler* handler) {
-  SetComTerp(handler->comterp());
-  handler->comterp()->outfunc() = (outfuncptr)&stdout_puts;
+  if (handler) {
+    SetComTerp(handler->comterp());
+    handler->comterp()->outfunc() = (outfuncptr)&stdout_puts;
+  }
 }
 
 void ComEditor::stdio_prompt(UnidrawComterpHandler* handler) {
-  (*handler->comterp()->outfunc()) (get_command_prompt(), nil);
+  if (handler!=NULL) 
+    (*handler->comterp()->outfunc()) (get_command_prompt(), nil);
+  else
+    fprintf(stdout, get_command_prompt());
 }
