@@ -72,7 +72,7 @@ public:
     // operator string.
 
     outfuncptr& outfunc() { return _outfunc; }
-    // return outfuncptr by value
+    // return outfuncptr by reference
 
 protected:
     void init();
