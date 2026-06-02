@@ -423,9 +423,10 @@ int main (int argc, char** argv) {
 	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
-	  cerr << "drawserv: unable to open stdin with ACE\n";
-	ed->SetComTerp(stdin_handler->comterp());
+          cerr << "drawserv: unable to open stdin with ACE\n";
+	
 	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
+	ed->stdio_setup(stdin_handler);
 #else
 	fprintf(stderr, "ivtools-%s drawserv", VersionString);
 #endif

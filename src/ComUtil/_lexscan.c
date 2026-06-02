@@ -256,7 +256,8 @@ int bs_ident = 0;
 	 if (outfunc && !_continuation_prompt_disabled) {
 	   if (_continuation_prompt)
 	     (*outfunc) ( "> ", outfile);
-	   else if (outfunc == (int(*)(const char*,void*))&stdout_puts && *get_command_prompt())
+	   else if (outfunc == (int(*)(const char*,void*))&stdout_puts && *get_command_prompt()
+		    && buffer[0] != '\0')
 	     (*outfunc) ( get_command_prompt(), outfile);
 	 }
 	 _continuation_prompt = 0;

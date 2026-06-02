@@ -38,6 +38,8 @@
 
 #include <OverlayUnidraw/ovunidraw.h>
 
+#include <ComTerp/comterpserv.h>
+
 #include <InterViews/world.h>
 
 #include <stream.h>
@@ -292,11 +294,13 @@ int main (int argc, char** argv) {
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
 	  cerr << "graphdraw: unable to open stdin with ACE\n";
-	ed->SetComTerp(stdin_handler->comterp());
+
 #endif
 	
     cerr << "ivtools-" << VersionString 
 	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
+    ed->stdio_setup(stdin_handler);
+
     unidraw->Run();
 
     delete unidraw;

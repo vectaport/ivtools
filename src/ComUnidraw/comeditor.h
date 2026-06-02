@@ -30,6 +30,7 @@
 class ComTerpIOHandler;
 class ComTerp;
 class ComTerpServ;
+class UnidrawComterpHandler;
 
 //: editor that integrates ComTerp into the drawing editor framework.
 class ComEditor : public OverlayEditor {
@@ -63,6 +64,9 @@ public:
     boolean whiteboard();
     // test for distributed whiteboard mode, which only exists when
     // used with a ComEditor.
+
+    void stdio_setup(UnidrawComterpHandler* handler);
+    // initial setup of stdio handler that writes to stdout.
 
 protected:
 

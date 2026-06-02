@@ -23,6 +23,7 @@
  */
 
 #include <ComUnidraw/comkit.h>
+#include <ComUnidraw/comterp-acehandler.h>
 #include <ComUnidraw/grdotfunc.h>
 #include <ComUnidraw/grfunc.h>
 #include <ComUnidraw/grlistfunc.h>
@@ -345,4 +346,10 @@ boolean ComEditor::whiteboard() {
       _whiteboard = 0;
   }
   return _whiteboard;
+}
+
+void ComEditor::stdio_setup(UnidrawComterpHandler* handler) {
+  SetComTerp(handler->comterp());
+  handler->comterp()->outfunc() = (outfuncptr)&stdout_puts;
+  (*handler->comterp()->outfunc()) (get_command_prompt(), nil);
 }

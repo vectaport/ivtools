@@ -355,6 +355,7 @@ int main (int argc, char** argv) {
 
 #endif
     int exit_status = 0;
+    boolean starter_line = false;
 
     if (argc > 2) {
 	cerr << usage << "\n";
@@ -379,11 +380,15 @@ int main (int argc, char** argv) {
 							  ACE_Event_Handler::READ_MASK)==-1)
 #endif
 	      cerr << "comdraw: unable to open stdin with ACE\n";
-	  ed->SetComTerp(stdin_handler->comterp());
+
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	  starter_line = true;
+	  ed->stdio_setup(stdin_handler);
 	}
 #endif
-
-	fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	if (!starter_line) {
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	}
 	XSync(unidraw->GetWorld()->display()->rep()->display_,false);
 	
 	/* execute -runfile or -runexpr after editor is fully initialized */

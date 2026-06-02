@@ -247,6 +247,8 @@ int ComTerpServ::run(boolean one_expr, boolean nested) {
     if (_fptr == stdin && !handler()) {
         _outptr = stdout;
         _outfunc = (outfuncptr)&stdout_puts;
+    } else if (handler() && handler()->get_handle() == 0) {
+        _outfunc = (outfuncptr)&stdout_puts;
     } else {
         _outfunc = (outfuncptr)&fd_fputs;
     }
