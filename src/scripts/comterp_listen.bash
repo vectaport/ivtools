@@ -33,7 +33,18 @@ for i in "$@"; do
     fi
     newargs+=("$i")
 done
-while lsof -i :$port > /dev/null 2>&1; do
+# portable port-in-use check: prefer lsof, fall back to nc, then fuser
+port_in_use() {
+    if command -v lsof > /dev/null 2>&1; then
+        lsof -i :$1 > /dev/null 2>&1
+    elif command -v nc > /dev/null 2>&1; then
+        nc -z localhost $1 > /dev/null 2>&1
+    else
+        fuser $1/tcp > /dev/null 2>&1
+    fi
+}
+
+while port_in_use $port; do
     port=$((port + 10000))
 done
 while true; do
@@ -43,7 +54,7 @@ while true; do
         break
     fi
     port=$((port + 10000))
-    while lsof -i :$port > /dev/null 2>&1; do
+    while port_in_use $port; do
         port=$((port + 10000))
     done
 done

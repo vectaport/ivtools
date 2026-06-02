@@ -38,7 +38,15 @@ port_probe=if(have_lsof :then
 :else if(have_nc :then
   "nc -z localhost %d > /dev/null 2>&1"
 :else
-  "false"))
+  "false"));
+
+/* kill_port: kill process listening on a port, portable across lsof/nc */
+kill_port=func(
+  if(have_lsof :then
+    shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" kill_port_num :str))
+  :else
+    /* no lsof: best effort via fuser if available */
+    shell(print("fuser -k %d/tcp > /dev/null 2>&1" kill_port_num :str))))
 
 /* find an open port starting from base_port, stepping by 10 */
 find_open_port=func(
@@ -72,13 +80,16 @@ updown_test=func(
     
   if(!global(drawserv_up) :then
     print("updown: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
     return(false));
     
   print("updown: drawserv callback received after %d polls\n" cnt :err);
   sock=socket("localhost" ds_port);
   if(type(sock)==`BlankType :then
     print("updown: FAIL could not connect to drawserv on port %d\n" ds_port :err);
-    if(have_lsof :then shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" ds_port :str)));
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
     return(false));
 
   result=remote(sock "sid()");
@@ -108,5 +119,5 @@ if(tests_flag :then
         print("updown: FAIL\n" :err);
         ok=false))))
 
-exit(if(ok :then 0 :else 1))
+exit(!ok)
 
