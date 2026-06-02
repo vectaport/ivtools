@@ -114,3 +114,9 @@ char* restore_escapes(const char* str, int& bufsize) {
     *dptr = '\0';
     return dst;
 }
+
+int stdout_puts(const char* s, void* ignored) { 
+    int ret = fputs(s, stdout);
+    fflush(stdout);
+    return ret;
+}

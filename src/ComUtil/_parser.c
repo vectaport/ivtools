@@ -37,6 +37,7 @@ History:        Written by Scott E. Johnston, April 1989
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
 
 #include "comterp.ci"
 
@@ -49,7 +50,6 @@ int get_continuation_prompt_disabled() { return _continuation_prompt_disabled; }
 void set_command_prompt(const char* prompt) { _command_prompt_string = prompt; }
 const char* get_command_prompt() { return _command_prompt_string; }
 
-int stdout_puts(const char* s, void* ignored) { return fputs(s, stdout); }
 int _skip_shell_comments = 0;
 infuncptr _oneshot_infunc = NULL;
 int _detail_matched_delims = 0;

@@ -40,6 +40,8 @@
 
 #include <InterViews/world.h>
 
+#include <ComTerp/comterpserv.h>
+
 #include <stdio.h>
 #include <stream.h>
 #include <string.h>
@@ -304,18 +306,18 @@ int main (int argc, char** argv) {
 #ifdef HAVE_ACE
 	/*  Start up one on stdin */
 	UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
-#if 0
-	if (ACE::register_stdin_handler(stdin_handler, ComterpHandler::reactor_singleton(), nil) == -1)
-#else
 	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
 							  ACE_Event_Handler::READ_MASK)==-1)
-#endif
 	  cerr << "flipbook: unable to open stdin with ACE\n";
-	ed->SetComTerp(stdin_handler->comterp());
+	ed->stdio_setup(stdin_handler);
 #endif
-	
 
 	fprintf(stderr, "ivtools-%s flipbook: see \"man flipbook\" or type help here for command info\n", VersionString);
+	
+#ifdef HAVE_ACE
+	ed->stdio_prompt(stdin_handler);
+#endif
+	
 	unidraw->Run();
     }
 

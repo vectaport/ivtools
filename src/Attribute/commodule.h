@@ -71,6 +71,9 @@ public:
     // symbol ids for binary infix, unary prefix and postfix for a given
     // operator string.
 
+    outfuncptr& outfunc() { return _outfunc; }
+    // return outfuncptr by reference
+
 protected:
     void init();
     // allocate internal buffers and initialize internal pointers.
