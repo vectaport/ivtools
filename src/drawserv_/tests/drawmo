@@ -108,5 +108,5 @@ if(tests_flag :then
         print("updown: FAIL\n" :err);
         ok=false))))
 
-exit(!ok)
+exit(if(ok :then 0 :else 2))
 

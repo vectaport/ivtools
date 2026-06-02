@@ -39,7 +39,7 @@ done
 while true; do
     comterp listen $port "${newargs[0]}" $port "${newargs[@]:1}"
     status=$?
-    if [ $status -ne 1 ]; then
+    if [ $status -ne 75 ]; then
         break
     fi
     port=$((port + 10000))

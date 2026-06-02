@@ -40,6 +40,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 
 #include <sys/stat.h>
 #include <unistd.h>
+#include <sysexits.h>
 
 #include <version.h>
 
@@ -155,7 +156,7 @@ int main(int argc, char *argv[]) {
         if (peer_acceptor->open(ACE_INET_Addr(portnum),
 				ComterpHandler::reactor_singleton()) == -1) {
             cerr << "comterp: unable to open port " << portnum << " with ACE\n";
-            return 1;
+            return EX_TEMPFAIL;  // signal comterp_listen.bash to retry on next port
         }
 
 #if !defined(__NetBSD__)
