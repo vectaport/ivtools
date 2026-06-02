@@ -197,6 +197,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       }
       
       comterp_->_fd = fd;
+      comterp_->_outfunc = (fd == 0) ? (outfuncptr)&stdout_puts : (outfuncptr)&ComTerpServ::fd_fputs;
       int  status = comterp_->ComTerp::run(false /* !once */, comterp_->force_nested() /* !nested */);
       if(comterp_->force_nested()) ComValue retval(comterp_->pop_stack(false));
       if (comterp_->delete_later()) {
