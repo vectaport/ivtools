@@ -168,7 +168,11 @@ void PrintFunc::execute() {
     }
     else {
       if (prefixv.is_string()) out << prefixv.symbol_ptr();
-      out << formatstr;  // which could be arbitrary ComValue
+      if (!formatstr.is_string())
+	out << formatstr;  // which could be arbitrary ComValue
+      else
+	out << formatstr.string_ptr();
+	    
       if (prefixv.is_string()) out << "\n";
       out.flush();
     }
