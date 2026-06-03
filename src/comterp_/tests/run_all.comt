@@ -25,5 +25,13 @@ if(run("./global.comt")
   :then print("pass: global\n")
   :else print("FAIL: global\n");ok=false)
 
+if(run("./attrlist.comt")
+  :then print("pass: attrlist\n")
+  :else print("FAIL: attrlist\n");ok=false)
+
+if(run("./print.comt")
+  :then print("pass: print\n")
+  :else print("FAIL: print\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

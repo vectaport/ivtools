@@ -17,7 +17,7 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream.comt")
 
-run("testlib.comt")
+run("./testlib.comt")
 ok=true
 
 // --- test 1: basic $ stream from list ---

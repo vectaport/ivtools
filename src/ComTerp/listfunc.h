@@ -121,4 +121,16 @@ public:
     }
 };
 
+
+//: attrlist command for ComTerp.
+// attrlst=attrlist([:<name> [val]] ...) -- create attribute list from keyword/value pairs.
+// Keyword-only (no value) sets attribute to true. Missing attribute returns nil.
+class AttrListFunc : public ComFunc {
+public:
+    AttrListFunc(ComTerp*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "alst=%s([:<name> [val]] ...) -- create attribute list from keyword/value pairs"; }
+};
+
 #endif /* !defined(_listfunc_h) */

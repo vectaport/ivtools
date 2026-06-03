@@ -292,7 +292,7 @@ int main(int argc, char *argv[]) {
       if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	terp->disable_prompt();
       else
-	fprintf(stderr, "ivtools-%s comterp: type help for more info\n", VersionString);
+	fprintf(stdout, "ivtools-%s comterp: type help for more info\n%s", VersionString, get_command_prompt());
       return terp->run();
     } else {
 
@@ -334,8 +334,9 @@ int main(int argc, char *argv[]) {
 #endif
         if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	  terp->disable_prompt();
-	else
-	  fprintf(stderr, "ivtools-%s comterp:  type help for more info\n", VersionString);
+	else {
+	  fprintf(stdout, "ivtools-%s comterp:  type help for more info\n%s", VersionString, get_command_prompt());
+	}
 	return terp->run();
       }
     }
