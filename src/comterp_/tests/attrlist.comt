@@ -1,7 +1,7 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
 // coverage: 0/0 (placeholder -- slots TBD after initial run)
-// funcs: dot list(:attr) attrlist
+// funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: TBD
 //
 // Tests the dot (.) compound variable / attribute list access operator,
@@ -145,6 +145,89 @@ al1.x=1
 al2.x=1
 ok=ok&&(al1.x==al2.x)
 print("19 list(:attr) vs attrlist() compatible (expect 1==1): %v %v\n\n" al1.x al2.x)
+prev_ok=check_fail(:ok ok)
+
+
+// --- test 20: size() on attrlist returns attribute count ---
+al=attrlist(:foo 42 :bar "hello" :baz true)
+ok=ok&&(size(al)==3)
+print("20 size of attrlist (expect 3): %v\n\n" size(al))
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: at() on attrlist returns nth dotted pair ---
+al=attrlist(:foo 42 :bar "hello")
+attr=at(al 0)
+ok=ok&&(attr!=nil)
+print("21 at(attrlist 0) returns dotted pair (expect non-nil): %v\n\n" attr)
+prev_ok=check_fail(:ok ok)
+
+// --- test 22: attrname() returns name of dotted pair ---
+al=attrlist(:foo 42 :bar "hello")
+n=attrname(at(al 1))
+ok=ok&&(n==`foo)
+print("22 attrname (expect foo): %v\n\n" n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 23: attrval() returns value of dotted pair ---
+al=attrlist(:foo 42 :bar "hello")
+v=attrval(at(al 1))
+ok=ok&&(v==42)
+print("23 attrval (expect 42): %v\n\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 24: at() second element name and value ---
+al=attrlist(:foo 42 :bar "hello")
+ok=ok&&(attrname(at(al 0))==`bar)
+ok=ok&&(attrval(at(al 0))=="hello")
+print("24 at(1) name/val (expect bar, hello): %v, %v\n\n" attrname(at(al 0)) attrval(at(al 0)))
+prev_ok=check_fail(:ok ok)
+
+// --- test 25: at(:set) modifies nth attribute value ---
+al=attrlist(:foo 42 :bar "hello")
+at(al 0 :set 99)
+ok=ok&&(attrval(at(al 0))==99)
+print("25 at(:set) modifies value (expect 99): %v\n\n" attrval(at(al 0)))
+prev_ok=check_fail(:ok ok)
+
+// --- test 26: enumerate attrlist via size/at/attrname/attrval ---
+al=attrlist(:x 1 :y 2 :z 3)
+total=0
+for(i=0 i<size(al) i++
+  total=total+attrval(at(al i)))
+ok=ok&&(total==6)
+print("26 enumerate attrlist sum (expect 6): %v\n\n" total)
+prev_ok=check_fail(:ok ok)
+
+// --- test 27: + merges two attrlists into a new one ---
+al1=attrlist(:a 1 :b 2)
+al2=attrlist(:c 3 :d 4)
+merged=al1+al2
+ok=ok&&(size(merged)==4)
+ok=ok&&(merged.a==1)
+ok=ok&&(merged.d==4)
+ok=ok&&(size(al1)==2)
+ok=ok&&(size(al2)==2)
+print("27 attrlist + merge (expect size 4, a=1, d=4, operands unchanged): %v %v %v %v %v\n\n" size(merged) merged.a merged.d size(al1) size(al2))
+prev_ok=check_fail(:ok ok)
+
+// --- test 28: - removes keys from attrlist ---
+al1=attrlist(:a 1 :b 2 :c 3)
+al2=attrlist(:b 0 :c 0)
+diff=al1-al2
+ok=ok&&(size(diff)==1)
+ok=ok&&(diff.a==1)
+ok=ok&&(diff.b==nil)
+ok=ok&&(size(al1)==3)
+print("28 attrlist - remove keys (expect size 1, a=1, b=nil, al1 unchanged size 3): %v %v %v %v\n\n" size(diff) diff.a diff.b size(al1))
+prev_ok=check_fail(:ok ok)
+
+// --- test 29: + operands are unchanged (deep copy verified) ---
+al1=attrlist(:x 10)
+al2=attrlist(:y 20)
+merged=al1+al2
+merged.x=99
+ok=ok&&(al1.x==10)
+print("29 + operands unchanged after merge (expect al1.x still 10): %v\n\n" al1.x)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)

@@ -27,6 +27,7 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/timefunc.h>
 #include <Unidraw/iterator.h>
+#include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/lexscan.h>
 #include <Attribute/paramlist.h>
@@ -269,6 +270,20 @@ void AddFunc::execute() {
 	break;
     case ComValue::ArrayType: 
         {
+	  if (operand1.is_attributelist() && operand2.is_attributelist()) {
+	    // merge two attrlists: + is to attrlist as + is to string
+	    // deep copy al1, then deep copy each attr from al2 into merged
+	    AttributeList* al1 = (AttributeList*)operand1.obj_val();
+	    AttributeList* al2 = (AttributeList*)operand2.obj_val();
+	    AttributeList* merged = new AttributeList(al1);
+	    Iterator it;
+	    for (al2->First(it); !al2->Done(it); al2->Next(it))
+	        merged->add_attr(new Attribute(*al2->GetAttr(it)));
+	    Resource::ref(merged);
+	    result = ComValue(AttributeList::class_symid(), (void*)merged);
+	    push_stack(result);
+	    return;
+	  }
 	  if (operand2.is_array()) {
 	    Resource::unref(result.array_val());
 	    result.array_ref() = 
@@ -287,6 +302,18 @@ void AddFunc::execute() {
           int addend = operand2.int_val();
 	  *dateobj->date() = ((const Date)*dateobj->date()) + addend;
 	  result = ComValue(DateObj::class_symid(), (void*)dateobj);
+
+	} else if (operand1.is_attributelist() && operand2.is_attributelist()) {
+	  // merge two attrlists: + is to attrlist as + is to string
+	  // deep copy al1, then deep copy each attr from al2 into merged
+	  AttributeList* al1 = (AttributeList*)operand1.obj_val();
+	  AttributeList* al2 = (AttributeList*)operand2.obj_val();
+	  AttributeList* merged = new AttributeList(al1);
+	  Iterator it;
+	  for (al2->First(it); !al2->Done(it); al2->Next(it))
+	      merged->add_attr(new Attribute(*al2->GetAttr(it)));
+	  result = ComValue(AttributeList::class_symid(), (void*)merged);
+
 	} else {
 	  fprintf(stderr, "Unhandled add operand1 of class %s (line %d)\n", operand1.class_name(), funcstate()->linenum());
 	}
@@ -368,21 +395,35 @@ void SubFunc::execute() {
 	break;
     case ComValue::ObjectType:
       {
-        if (operand1.is_dateobj() && operand2.is_int()) {
+	if (operand1.is_dateobj() && operand2.is_int()) {
 	  DateObj *dateobj = new DateObj((DateObj*)operand1.geta(DateObj::class_symid()));
-          int subtrahend = operand2.int_val();
+	  int subtrahend = operand2.int_val();
 	  *dateobj->date() = ((const Date)*dateobj->date()) - subtrahend;
 	  result = ComValue(DateObj::class_symid(), (void*)dateobj);
+	  
+	} else if (operand1.is_attributelist() && operand2.is_attributelist()) {
+	  // subtract attrlist: remove from al1 any keys present in al2
+	  AttributeList* al1 = (AttributeList*)operand1.obj_val();
+	  AttributeList* al2 = (AttributeList*)operand2.obj_val();
+	  AttributeList* result_al = new AttributeList(al1);
+	  Iterator it;
+	  for (al2->First(it); !al2->Done(it); al2->Next(it)) {
+	    Attribute* attr = al2->GetAttr(it);
+	    Attribute* found = result_al->GetAttr(attr->Name());
+	    if (found) result_al->Remove(found);
+	  }
+	  result = ComValue(AttributeList::class_symid(), (void*)result_al);
+	  
 	} else {
 	  fprintf(stderr, "Unhandled subtraction operand1 of class %s (line %d)\n", operand1.class_name(), funcstate()->linenum());
 	}
       }
+      
       break;
-
     default: {
-        fprintf(stderr, "Unhandled subtraction operand1 type %s (line %d)\n", operand1.type_name(), funcstate()->linenum());
-        }
-        break;
+      fprintf(stderr, "Unhandled subtraction operand1 type %s (line %d)\n", operand1.type_name(), funcstate()->linenum());
+    }
+      break;
     }
     reset_stack();
     push_stack(result);

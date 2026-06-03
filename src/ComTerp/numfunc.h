@@ -52,7 +52,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "+ is the add operator for numerics and matrices, and the concatenation operator for strings"; }
+      return "+ is the add operator for numerics and matrices, the concatenation operator for strings, and the merge operator for attrlists"; }
 
     AttributeValueList* matrix_add(AttributeValueList*, AttributeValueList*);
 
@@ -65,7 +65,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "- is the minus operator"; }
+      return "- is the minus operator for numerics and matrices, and the key-removal operator for attrlists"; }
 
 };
 

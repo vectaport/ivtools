@@ -52,9 +52,8 @@ x=42
 s="hello"
 ```
 
-Variables can be reassigned to any type at any time. A symbol bound to
-a registered command (built-in or added via `comterp->add_command()`)
-cannot be reassigned.
+Variables can be reassigned to any type at any time. A symbol bound to a registered command cannot be reassigned.
+See `ARCHITECTURE.md` for how commands are registered.
 
 ### Global variables
 
@@ -73,7 +72,7 @@ interpreters (e.g. UI and network interpreters in drawserv).
 
 Every ComTerp command accepts fixed positional arguments followed by
 keyword arguments. This ordering is enforced and consistent across all
-commands:
+commands — unlike Unix shell commands:
 
 ```
 print("value=%v" 42 :str)     // correct
@@ -84,8 +83,9 @@ Keywords come in two forms:
 - `:keyword` — flag (presence is meaningful, value is `true`)
 - `:keyword value` — keyword with an associated value
 
-[Unknown keywords are silently ignored by `reset_stack()`, which enables
-layered keyword extension across the library hierarchy.]
+Unknown keywords are silently ignored, which enables layered keyword
+extension across the library hierarchy. See `ARCHITECTURE.md` for how
+this works internally.
 
 ## Operators
 
@@ -221,6 +221,34 @@ attrlist on first use:
 ```
 point.x=10
 point.y=20
+```
+
+### Enumerating an attrlist
+
+Use `size()`, `at()`, `attrname()`, and `attrval()` to enumerate:
+
+```
+al=attrlist(:x 1 :y 2 :z 3)
+for(i=0 i<size(al) i++
+  print("%v=%v
+" attrname(at(al i)) attrval(at(al i))))
+```
+
+`at(attrlist n)` is the escape mechanism into the raw `Attribute` layer.
+`attrname()` and `attrval()` are the only commands that receive it before
+auto-dereference — any other command gets the dereferenced value instead.
+Note that `type(at(al n))` returns the value's type, not an attribute type,
+and enumeration order may not match insertion order.
+
+### Portable key/value pairs
+
+A single-element attrlist is the idiomatic portable key/value pair —
+it passes anywhere as a first-class value:
+
+```
+pair=attrlist(:foo 42)
+attrname(at(pair))   // "foo"
+attrval(at(pair))    // 42
 ```
 
 Scope rules: the dot namespace is scoped with its root symbol. Inside a

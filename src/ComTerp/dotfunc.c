@@ -131,7 +131,11 @@ DotNameFunc::DotNameFunc(ComTerp* comterp) : ComFunc(comterp) {
 void DotNameFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
     reset_stack();
-    if (dotted_pair.class_symid() != Attribute::class_symid()) return;
+    if (dotted_pair.class_symid() != Attribute::class_symid()) {
+        fprintf(stderr, "attrname: argument is not a dotted pair attribute (line %d)\n", funcstate()->linenum());
+        push_stack(ComValue::nullval());
+        return;
+    }
     Attribute *attr = (Attribute*)dotted_pair.obj_val();
     ComValue retval(attr->SymbolId(), ComValue::StringType);
     push_stack(retval);
@@ -145,7 +149,11 @@ DotValFunc::DotValFunc(ComTerp* comterp) : ComFunc(comterp) {
 void DotValFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
     reset_stack();
-    if (dotted_pair.class_symid() != Attribute::class_symid()) return;
+    if (dotted_pair.class_symid() != Attribute::class_symid()) {
+        fprintf(stderr, "attrval: argument is not a dotted pair attribute (line %d)\n", funcstate()->linenum());
+        push_stack(ComValue::nullval());
+        return;
+    }
     Attribute *attr = (Attribute*)dotted_pair.obj_val();
     push_stack(*attr->Value());
 }
