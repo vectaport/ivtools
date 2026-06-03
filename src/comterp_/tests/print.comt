@@ -25,12 +25,12 @@ prev_ok=check_fail(:ok ok)
 // --- test 2: %v with float ---
 s=print("%v" 3.14 :str)
 ok=ok&&(index(s "3.14")!=nil)
-print("2 \%v float (expect 3.14): %v\n\n" s)
+print("2 %s float (expect 3.14): %v\n\n" "%v" s)
 prev_ok=check_fail(:ok ok)
 
 // --- test 3: %v with string -- does it add quotes? ---
 s=print("%v" "hello" :str)
-print("3 \%v string (observe -- quoted or bare?): %v\n\n" s)
+print("3 %s string (observe -- quoted or bare?): %v\n\n" "%v" s)
 prev_ok=check_fail(:ok ok)
 
 // --- test 4: %s with string -- does it strip quotes? ---
@@ -41,12 +41,12 @@ prev_ok=check_fail(:ok ok)
 // --- test 5: %v with boolean ---
 s=print("%v" true :str)
 ok=ok&&(s=="true")
-print("5 \%v bool (expect true): %v\n\n" s)
+print("5 %s bool (expect true): %v\n\n" "%v" s)
 prev_ok=check_fail(:ok ok)
 
 // --- test 6: %v with nil ---
 s=print("%v" nil :str)
-print("6 \%v nil (observe): %v\n\n" s)
+print("6 %s nil (observe): %v\n\n" "%v" s)
 prev_ok=check_fail(:ok ok)
 
 // --- test 7: %d with int ---
@@ -122,8 +122,9 @@ print("18 print without :str return (observe): %v\n\n" v)
 prev_ok=check_fail(:ok ok)
 
 // --- test 19: :prefix inserts prefix and newline ---
-print("hello" :prefix "PREFIX")
-print("19 :prefix (observe above line -- should show PREFIX then newline):\n\n")
+v=print("hello" :prefix "PREFIX" :str)
+ok=ok&&(v=="PREFIXhello\n")
+print("19 :prefix (expect PREFIXhello\\n): %v\n\n" v)
 prev_ok=check_fail(:ok ok)
 
 print("print: %v\n" ok)
