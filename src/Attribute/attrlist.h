@@ -153,12 +153,12 @@ public:
     AttributeValue* find(int symid);
     // find AttributeValue by symbol id.
 
+protected:
     int add_attr(Attribute* attr);
     // add attribute, returning 0 if new, -1 if it already existed.
     // When -1 is returned you need to clear the valueptr of 'attr' before 
-    // deleting it.
+    // deleting it.  That's why this is protected.
 
-protected:
     AList* _alist;
     unsigned int _count;
 

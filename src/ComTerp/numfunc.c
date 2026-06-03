@@ -297,7 +297,7 @@ void AddFunc::execute() {
 	  AttributeList* merged = new AttributeList(al1);
 	  Iterator it;
 	  for (al2->First(it); !al2->Done(it); al2->Next(it))
-	      merged->add_attr(new Attribute(*al2->GetAttr(it)));
+	      merged->add_attribute(new Attribute(*al2->GetAttr(it)));
 	  result = ComValue(AttributeList::class_symid(), (void*)merged);
 	} else {
 	  fprintf(stderr, "Unhandled add operand1 of class %s (line %d)\n", operand1.class_name(), funcstate()->linenum());
