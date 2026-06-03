@@ -179,7 +179,7 @@ prev_ok=check_fail(:ok ok)
 al=attrlist(:foo 42 :bar "hello")
 ok=ok&&(attrname(at(al 0))==`bar)
 ok=ok&&(attrval(at(al 0))=="hello")
-print("24 at(1) name/val (expect bar, hello): %v, %v\n\n" attrname(at(al 0)) attrval(at(al 0)))
+print("24 at(0) name/val (expect bar, hello): %v, %v\n\n" attrname(at(al 0)) attrval(at(al 0)))
 prev_ok=check_fail(:ok ok)
 
 // --- test 25: at(:set) modifies nth attribute value ---
