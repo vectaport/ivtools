@@ -22,7 +22,7 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/random.comt")
 
-run("testlib.comt")
+run("./testlib.comt")
 ok=true
 seed=int(date()*1000%1000000)
 srand(seed)

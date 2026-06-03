@@ -130,7 +130,7 @@ public:
     AttrListFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "attrlst=%s([:<name> [val]] ...) -- create attribute list from keyword/value pairs"; }
+      return "alst=%s([:<name> [val]] ...) -- create attribute list from keyword/value pairs"; }
 };
 
 #endif /* !defined(_listfunc_h) */

@@ -8,7 +8,7 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/global.comt")
 
-run("testlib.comt")
+run("./testlib.comt")
 ok=true
 
 // --- test 1: global lvalue assignment stores in global table ---

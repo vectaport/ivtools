@@ -1,0 +1,130 @@
+// src/comterp_/tests/print.comt -- test print() format verbs
+//
+// coverage: 0/0 (placeholder -- slots TBD after initial run)
+// funcs: print
+// missing: TBD
+//
+// Verifies behavior of print() format verbs: %v %d %f %s %c %g %x %o
+// and keywords :str :err :out :file :prefix :flush
+//
+// Key question: does %v print strings with or without surrounding quotes?
+// Does %s strip quotes that %v adds?
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/print.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: %v with int ---
+s=print("%v" 42 :str)
+ok=ok&&(s=="42")
+print("1 %s int (expect 42): %v\n\n" "%v" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: %v with float ---
+s=print("%v" 3.14 :str)
+ok=ok&&(index(s "3.14")!=nil)
+print("2 \%v float (expect 3.14): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: %v with string -- does it add quotes? ---
+s=print("%v" "hello" :str)
+print("3 \%v string (observe -- quoted or bare?): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: %s with string -- does it strip quotes? ---
+s=print("%s" "hello" :str)
+print("4 \%s string (observe -- quoted or bare?): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: %v with boolean ---
+s=print("%v" true :str)
+ok=ok&&(s=="true")
+print("5 \%v bool (expect true): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: %v with nil ---
+s=print("%v" nil :str)
+print("6 \%v nil (observe): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: %d with int ---
+s=print("%d" 42 :str)
+ok=ok&&(s=="42")
+print("7 \%d int (expect 42): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: %f with float ---
+s=print("%f" 3.14 :str)
+ok=ok&&(index(s "3.14")!=nil)
+print("8 \%f float (expect contains 3.14): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: %g with float ---
+s=print("%g" 3.14 :str)
+ok=ok&&(index(s "3.14")!=nil)
+print("9 \%g float (expect contains 3.14): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: %c with char ---
+s=print("%c" 'a' :str)
+ok=ok&&(s=="a")
+print("10 \%c char (expect a): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: %x hex format ---
+s=print("%x" 255 :str)
+ok=ok&&(s=="ff")
+print("11 \%x hex (expect ff): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: %o octal format ---
+s=print("%o" 8 :str)
+ok=ok&&(s=="10")
+print("12 \%o octal (expect 10): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 13: multiple values in one print ---
+s=print("%v %v %v" 1 2 3 :str)
+ok=ok&&(s=="1 2 3")
+print("13 multiple values (expect 1 2 3): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: \n in format string produces newline ---
+s=print("a\nb" :str)
+ok=ok&&(size(s)==3)
+print("14 \\n produces newline (expect size 3): %v\n\n" size(s))
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: \t in format string produces tab ---
+s=print("a\tb" :str)
+ok=ok&&(size(s)==3)
+print("15 \\t produces tab (expect size 3): %v\n\n" size(s))
+prev_ok=check_fail(:ok ok)
+
+// --- test 16: \% produces literal percent ---
+s=print("\%" :str)
+ok=ok&&(s=="%")
+print("16 \\\% produces \% (expect \%): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 17: :str returns string not nil ---
+s=print("hello" :str)
+ok=ok&&(s!=nil)
+ok=ok&&(type(s)==`StringType)
+print("17 :str return type (expect StringType): %v\n\n" type(s))
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: print without :str returns nil or blank ---
+v=print("hello\n")
+print("18 print without :str return (observe): %v\n\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: :prefix inserts prefix and newline ---
+print("hello" :prefix "PREFIX")
+print("19 :prefix (observe above line -- should show PREFIX then newline):\n\n")
+prev_ok=check_fail(:ok ok)
+
+print("print: %v\n" ok)
+ok
