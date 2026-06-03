@@ -56,7 +56,6 @@ void ListFunc::execute() {
 
   if (attrflag) {
       AttributeList* al = new AttributeList();
-      Resource::ref(al);
       ComValue retval(AttributeList::class_symid(), al);
       push_stack(retval);
       return;
@@ -112,7 +111,6 @@ AttrListFunc::AttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void AttrListFunc::execute() {
     AttributeList* al = stack_keys();
-    Resource::ref(al);
     reset_stack();
     ComValue retval(AttributeList::class_symid(), al);
     push_stack(retval);

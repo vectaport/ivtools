@@ -87,7 +87,6 @@ void DotFunc::execute() {
 	al = (AttributeList*) ((ComValue*) vptr)->obj_val();
       } else {
 	al = new AttributeList();
-	Resource::ref(al);
 	ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
 	if (!global)
 	  comterp()->localtable()->insert(before_symid, comval);
