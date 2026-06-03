@@ -156,7 +156,7 @@ public:
     int add_attr(Attribute* attr);
     // add attribute, returning 0 if new, -1 if it already existed.
     // When -1 is returned you need to clear the valueptr of 'attr' before 
-    // deleting it.  That's why this is protected.
+    // deleting it.
 
 protected:
     AList* _alist;
