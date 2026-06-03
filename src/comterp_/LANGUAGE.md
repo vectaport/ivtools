@@ -240,6 +240,19 @@ auto-dereference — any other command gets the dereferenced value instead.
 Note that `type(at(al n))` returns the value's type, not an attribute type,
 and enumeration order may not match insertion order.
 
+### Merging and subtracting attrlists
+
+`+` merges two attrlists into a new one — the second operand wins on key collision.
+`-` removes from the first attrlist any keys present in the second. Both operands
+are unchanged; a new attrlist is returned:
+
+```
+al1=attrlist(:a 1 :b 2)
+al2=attrlist(:b 99 :c 3)
+merged=al1+al2       // :a 1 :b 99 :c 3  (al2's :b wins)
+diff=al1-al2         // :a 1              (:b removed)
+```
+
 ### Portable key/value pairs
 
 A single-element attrlist is the idiomatic portable key/value pair —

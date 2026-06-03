@@ -198,7 +198,7 @@ ok=ok&&(total==6)
 print("26 enumerate attrlist sum (expect 6): %v\n\n" total)
 prev_ok=check_fail(:ok ok)
 
-// --- test 27: + merges two attrlists into a new one ---
+// --- test 27a: + merges two attrlists into a new one ---
 al1=attrlist(:a 1 :b 2)
 al2=attrlist(:c 3 :d 4)
 merged=al1+al2
@@ -207,9 +207,23 @@ ok=ok&&(merged.a==1)
 ok=ok&&(merged.d==4)
 ok=ok&&(size(al1)==2)
 ok=ok&&(size(al2)==2)
-print("27 attrlist + merge (expect size 4, a=1, d=4, operands unchanged): %v %v %v %v %v\n\n" size(merged) merged.a merged.d size(al1) size(al2))
+print("27a attrlist + merge (expect size 4, a=1, d=4, operands unchanged): %v %v %v %v %v\n\n" size(merged) merged.a merged.d size(al1) size(al2))
 prev_ok=check_fail(:ok ok)
 
+// --- test 27b: + merges two overlapping attrlists into a new one ---
+al1=attrlist(:a 1 :b 2)
+al2=attrlist(:b 7 :c 3 :d 4)
+merged=al1+al2
+ok=ok&&(size(merged)==4)
+ok=ok&&(merged.a==1)
+ok=ok&&(merged.d==4)
+ok=ok&&(size(al1)==2)
+ok=ok&&(size(al2)==3)
+ok=ok&&(merged.b==7)
+print("27b attrlist + overlapping merge (expect size 4, a=1, d=4, operands unchanged): %v %v %v %v %v\n\n" size(merged) merged.a merged.d size(al1) size(al2))
+prev_ok=check_fail(:ok ok)
+
+// --- test 28: - removes keys from attrlist ---
 // --- test 28: - removes keys from attrlist ---
 al1=attrlist(:a 1 :b 2 :c 3)
 al2=attrlist(:b 0 :c 0)

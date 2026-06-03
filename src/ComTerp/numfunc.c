@@ -270,20 +270,6 @@ void AddFunc::execute() {
 	break;
     case ComValue::ArrayType: 
         {
-	  if (operand1.is_attributelist() && operand2.is_attributelist()) {
-	    // merge two attrlists: + is to attrlist as + is to string
-	    // deep copy al1, then deep copy each attr from al2 into merged
-	    AttributeList* al1 = (AttributeList*)operand1.obj_val();
-	    AttributeList* al2 = (AttributeList*)operand2.obj_val();
-	    AttributeList* merged = new AttributeList(al1);
-	    Iterator it;
-	    for (al2->First(it); !al2->Done(it); al2->Next(it))
-	        merged->add_attr(new Attribute(*al2->GetAttr(it)));
-	    Resource::ref(merged);
-	    result = ComValue(AttributeList::class_symid(), (void*)merged);
-	    push_stack(result);
-	    return;
-	  }
 	  if (operand2.is_array()) {
 	    Resource::unref(result.array_val());
 	    result.array_ref() = 
@@ -313,7 +299,6 @@ void AddFunc::execute() {
 	  for (al2->First(it); !al2->Done(it); al2->Next(it))
 	      merged->add_attr(new Attribute(*al2->GetAttr(it)));
 	  result = ComValue(AttributeList::class_symid(), (void*)merged);
-
 	} else {
 	  fprintf(stderr, "Unhandled add operand1 of class %s (line %d)\n", operand1.class_name(), funcstate()->linenum());
 	}
