@@ -181,6 +181,7 @@ void AttributeList::Remove (Attribute* p) {
 	_alist->Remove(temp);
         delete temp;
 	--_count;
+        Resource::unref(p);
     }
 }
 
