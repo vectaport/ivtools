@@ -55,7 +55,11 @@ public:
 ```
 
 The `%s` in `docstring()` is replaced with the command name by
-`help()`. Square brackets denote optional args.
+`help()`. Square brackets denote optional fixed arguments. Keyword
+arguments (`:keyword`) are never wrapped in brackets — they are always
+optional by nature and the brackets would be redundant and misleading.
+Only fixed positional arguments need brackets when optional, e.g.
+`func(arg [optarg] :keyword)`.
 
 ### Registration
 

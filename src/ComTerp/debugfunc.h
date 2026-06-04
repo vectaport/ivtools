@@ -102,11 +102,11 @@ public:
     ErrMsgFunc(ComTerp*);
     virtual void execute();
     virtual const char* docstring() {
-      return "str=%s([:keep] [:last] [:num] [:cnt]) -- return current or last error message as string"; }
+      return "str=%s(:keep :last :num :cnt) -- return current or last error message as string"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":keep      return message without clearing error state",
-	":last      return last saved error (_errbuf2), bypass current error check",
+	":last      return last saved error, bypass current error check",
 	":num       return error number instead of message string",
 	":cnt       return number of errors on stack",
 	nil
