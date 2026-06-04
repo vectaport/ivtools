@@ -200,6 +200,12 @@ public:
     // value associated with a symbol id in the global symbol table.
     ComValue* eithervalue(int symid, boolean globalfirst=false);
     const char* errmsg() { return _errbuf; }
+    const char* last_errmsg() { return _errbuf2; }
+    void clear_last_errmsg() { _errbuf2[0] = '\0'; }
+    void err_str(char* buf, int bufsiz, const char* cmd);
+    // wrap ComUtil err_str, saving result to _errbuf2.
+    void err_print(FILE* out, const char* cmd);
+    // wrap ComUtil err_print, saving result to _errbuf2.
     // current error message buffer.
 
     void set_attributes(AttributeList*);

@@ -124,6 +124,7 @@ static struct {
 {1313, "(%d) Unexpected left angle bracket"},
 {1314, "(%d) Unexpected double right angle bracket"},
 {1315, "(%d) Unexpected double left angle bracket"},
+{1316, "(%d) attribute literal must start with :key"},
 {5201, "Bad parameters in function call"},
 {5202, "Illegal symbol identifier in type list"},
 {5203, "Illegal simple type in type identifier list"},

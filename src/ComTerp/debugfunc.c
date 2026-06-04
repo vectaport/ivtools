@@ -39,6 +39,11 @@ using std::vector;
 
 #define TITLE "DebugFunc"
 
+extern void err_str(char*, int, const char*);
+extern void err_clear();
+extern int err_cnt();
+extern int comerr_get();
+
 /*****************************************************************************/
 
 ComterpTraceFunc::ComterpTraceFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -198,7 +203,61 @@ void ComterpMallInfoFunc::execute() {
 #endif
 }
 
+/*****************************************************************************/
 
+ErrMsgFunc::ErrMsgFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
 
+void ErrMsgFunc::execute() {
+    static int keep_symid = symbol_add("keep");
+    ComValue keepv(stack_key(keep_symid));
+    boolean keepflag = keepv.is_true();
+    static int last_symid = symbol_add("last");
+    ComValue lastv(stack_key(last_symid));
+    boolean lastflag = lastv.is_true();
+    static int num_symid = symbol_add("num");
+    ComValue numv(stack_key(num_symid));
+    boolean numflag = numv.is_true();
+    static int cnt_symid = symbol_add("cnt");
+    ComValue cntv(stack_key(cnt_symid));
+    boolean cntflag = cntv.is_true();
+    reset_stack();
 
+    if (cntflag) {
+        ComValue retval(err_cnt(), ComValue::IntType);
+        push_stack(retval);
+        return;
+    }
 
+    if (numflag) {
+        ComValue retval((int)comerr_get(), ComValue::IntType);
+        push_stack(retval);
+        return;
+    }
+
+    char errbuf[BUFSIZ];
+    errbuf[0] = '\0';
+
+    if (lastflag) {
+        // :last -- read _errbuf2 directly, bypass current error state
+        strncpy(errbuf, comterp()->last_errmsg(), BUFSIZ-1);
+        if (!keepflag)
+            comterp()->clear_last_errmsg();
+    } else {
+        // check current error first, fall back to last reported error
+        err_str(errbuf, BUFSIZ, "comterp");
+        if (strlen(errbuf) == 0)
+            strncpy(errbuf, comterp()->last_errmsg(), BUFSIZ-1);
+        if (!keepflag) {
+            err_clear();
+            comterp()->clear_last_errmsg();
+        }
+    }
+
+    if (strlen(errbuf) > 0) {
+        int symid = symbol_add(errbuf);
+        ComValue retval(symid, ComValue::StringType);
+        push_stack(retval);
+    } else
+        push_stack(ComValue::nullval());
+}

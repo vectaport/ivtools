@@ -152,6 +152,8 @@ void ComTerp::init() {
 #endif
 
     _errbuf = new char[BUFSIZ];
+    _errbuf2 = new char[BUFSIZ];
+    _errbuf2[0] = '\0';
 
     _alist = nil;
     _brief = true;
@@ -1155,7 +1157,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 
       if (returnflag()) {
         returnflag(false);  // return() at prompt: clear and ignore
-        err_str(_errbuf, BUFSIZ, "comterp");  // clear any error state
+        this->err_str(_errbuf, BUFSIZ, "comterp");  // clear any error state
         _errbuf[0] = '\0';
         if (one_expr) break;
         continue;
@@ -1163,7 +1165,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 
       if (top_before == _stack_top)
 	status = 2;
-      err_str( _errbuf, BUFSIZ, "comterp" );
+      this->err_str( _errbuf, BUFSIZ, "comterp" );
       errno = 0;
       if (strlen(_errbuf)==0) {
 	if (quitflag()) {
@@ -1225,7 +1227,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	_errbuf[0] = '\0';
       }
     } else {
-      err_str( _errbuf, BUFSIZ, "comterp" );
+      this->err_str( _errbuf, BUFSIZ, "comterp" );
       if (strlen(_errbuf)>0) {
 	errorflag = true;
 	#ifdef USE_FDSTREAMS
@@ -1381,6 +1383,7 @@ void ComTerp::add_defaults() {
     add_command("help", new HelpFunc(this));
     add_command("optable", new OptableFunc(this));
     add_command("trace", new ComterpTraceFunc(this));
+    add_command("errmsg", new ErrMsgFunc(this));
     add_command("pause", new ComterpPauseFunc(this));
     add_command("step", new ComterpStepFunc(this));
     add_command("stackheight", new ComterpStackHeightFunc(this));
@@ -1483,7 +1486,7 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
     while( fptr && !feof(fptr)) {
 	if (read_expr()) {
 	    if (eval_expr(true)) {
-	        err_print( stderr, "comterp" );
+	        this->err_print( stderr, "comterp" );
 		FILEBUF(obuf, stdout, ios_base::out);
 		ostream ostr(&obuf);
 		ostr << "err\n";
@@ -1915,3 +1918,20 @@ void ComTerp::set_args(const char* argstr) {
   return;
 }
 
+
+void ComTerp::err_str(char* buf, int bufsiz, const char* cmd) {
+    ::err_str(buf, bufsiz, cmd);
+    if (strlen(buf) > 0)
+        strncpy(_errbuf2, buf, BUFSIZ-1);
+}
+
+void ComTerp::err_print(FILE* out, const char* cmd) {
+    char buf[BUFSIZ];
+    buf[0] = '\0';
+    ::err_str(buf, BUFSIZ, cmd);
+    if (strlen(buf) > 0) {
+        strncpy(_errbuf2, buf, BUFSIZ-1);
+        fprintf(out, "%s\n", buf);
+        ::err_clear();
+    }
+}

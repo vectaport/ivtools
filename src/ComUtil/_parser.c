@@ -1036,12 +1036,17 @@ int status;
       /* Must be inside parenthesis associated with a command */
       /* for a keyword to be legal                            */
 	 if( TopOfParenStack < 0 || ParenStack[ TopOfParenStack ].comm_id < 0 ) {
-	    /* Allow keyword as first token in parens -- implicit attrlist() literal */
+	    /* Allow keyword as first token in bare parens -- implicit attrlist() literal */
 	    if( TopOfParenStack >= 0 &&
-	        ParenStack[ TopOfParenStack ].narg == 0 &&
-	        ParenStack[ TopOfParenStack ].nkey == 0 ) {
+	        ParenStack[ TopOfParenStack ].nkey == 0 &&
+	        expecting == OPTYPE_UNARY_PREFIX ) {
 	      if( attrlist_symid == -1 ) attrlist_symid = symbol_add("attrlist");
 	      ParenStack[ TopOfParenStack ].comm_id = attrlist_symid;
+	    } else if( TopOfParenStack >= 0 &&
+	        ParenStack[ TopOfParenStack ].comm_id < 0 &&
+	        expecting == OPTYPE_BINARY ) {
+	      COMERR_SET1( ERR_ATTRLIT_VALUE_BEFORE_KEY, *linenum );
+	      goto error_return;
 	    } else {
 	      COMERR_SET2( ERR_UNEXPECTED_KEYWORD, *linenum,
 			   symbol_pntr( *(int *)token ) );
