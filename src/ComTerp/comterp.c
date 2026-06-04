@@ -1921,8 +1921,10 @@ void ComTerp::set_args(const char* argstr) {
 
 void ComTerp::err_str(char* buf, int bufsiz, const char* cmd) {
     ::err_str(buf, bufsiz, cmd);
-    if (strlen(buf) > 0)
+    if (strlen(buf) > 0) {
         strncpy(_errbuf2, buf, BUFSIZ-1);
+	_errbuf2[BUFSIZ-1] = '\0';
+    }
 }
 
 void ComTerp::err_print(FILE* out, const char* cmd) {
@@ -1931,7 +1933,8 @@ void ComTerp::err_print(FILE* out, const char* cmd) {
     ::err_str(buf, BUFSIZ, cmd);
     if (strlen(buf) > 0) {
         strncpy(_errbuf2, buf, BUFSIZ-1);
-        fprintf(out, "%s\n", buf);
+	_errbuf2[BUFSIZ-1] = '\0';
+	fprintf(out, "%s\n", buf);
         ::err_clear();
     }
 }
