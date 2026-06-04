@@ -37,6 +37,7 @@
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
+#include <strstream>
 
 #define TITLE "PostFunc"
 
@@ -52,9 +53,9 @@ PostFixFunc::PostFixFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void PostFixFunc::execute() {
   // print everything on the stack for this function
-  FILEBUF(fbuf, comterp()->handler() && comterp()->handler()->wrfptr()
-	  ? comterp()->handler()->wrfptr() : stdout, ios_base::out);
-  ostream out(&fbuf);
+  // use strstreambuf + fputs to avoid FILEBUF destructor closing stdout fd
+  std::strstreambuf sbuf;
+  ostream out(&sbuf);
  
   boolean oldbrief = comterp()->brief();
   comterp()->brief(true);
@@ -100,10 +101,13 @@ void PostFixFunc::execute() {
       out << "(" << val.keynarg_val() << ")";
     out << ((i+1>topptr) ? "\n" : " ");
   }
-  out.flush();
+  out << '\0';
+  FILE* fp = comterp()->handler() && comterp()->handler()->wrfptr()
+    ? comterp()->handler()->wrfptr() : stdout;
+  fputs(sbuf.str(), fp);
+  fflush(fp);
   comterp()->brief(oldbrief);
   reset_stack();
-  out.flush();
 }
 
 /*****************************************************************************/

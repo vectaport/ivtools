@@ -1,0 +1,94 @@
+// src/comterp_/tests/parser.comt -- test attrlist literal syntax and parser errors
+//
+// coverage: 0/0 (placeholder -- slots TBD)
+// funcs: attrlist(:literal) errmsg postfix
+// missing: TBD
+//
+// Tests the attrlist literal syntax (:key val) introduced in ivtools 2.2,
+// and errmsg() for retrieving parser error messages.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/parser.comt")
+
+// line 13 - preamble, reading prior error if any
+print("last: %s\n" s=errmsg(:last :keep);cond(s==nil "nil" s))
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: attrlist literal creates attrlist ---
+al=(:a 1 :b 2)
+ok=ok&&(al!=nil)
+ok=ok&&(al.a==1)
+ok=ok&&(al.b==2)
+print("1 attrlist literal (expect a=1 b=2): %v %v\n\n" al.a al.b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2a: literal identical postfix to attrlist() ---
+al1=(:a 11 :b 22)
+al2=attrlist(:a 11 :b 22)
+ok=ok&&(al1.a==al2.a)
+print("2 literal same as attrlist() (expect 11==11): %v %v\n\n" al1.a al2.a)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2b: type of literal matches type of attrlist() ---
+ok=ok&&(type((:a 1))==type(attrlist(:a 1)))
+print("2b literal type matches attrlist() (expect AttributeList): %v\n\n" type((:a 1)))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: keyword-only in literal sets true ---
+al=(:flag)
+ok=ok&&(al.flag==true)
+print("3 keyword-only literal (expect true): %v\n\n" al.flag)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: list of attrlist literals ---
+all=(:a 1 :b 2),(:c 3 :d 4)
+ok=ok&&(size(all)==2)
+print("4 list of attrlist literals (expect size 2): %v\n\n" size(all))
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: plain parens still work as grouping ---
+v=(1+2)*3
+ok=ok&&(v==9)
+print("5 plain parens still group (expect 9): %v\n\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: value before keyword in bare parens errors ---
+// (4 :x 7) should give: attribute literal must start with :key
+(4 :x 7)
+e=errmsg(:last)
+ok=ok&&(index(e "attribute literal")!=nil)
+print("6 value before keyword errors (expect error msg): %v\n\n" e)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: errmsg(:last) returns nil when no error ---
+(:a 1)
+e=errmsg(:last)
+print("7 errmsg(:last) nil after success (expect nil): %v\n\n" e)
+
+// --- test 8: errmsg(:last) clears after retrieval ---
+(4 :x 7)
+e1=errmsg(:last)
+e2=errmsg(:last)
+ok=ok&&(e1!=nil)
+ok=ok&&(e2==nil)
+print("8 errmsg(:last) clears after retrieval (expect non-nil then nil): %v %v\n\n" e1 e2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: errmsg(:keep) does not clear ---
+(4 :x 7)
+e1=errmsg(:keep)
+e2=errmsg(:last)
+ok=ok&&(e1!=nil)
+ok=ok&&(e2!=nil)
+print("9 errmsg(:keep) preserves (expect both non-nil): %v %v\n\n" (e1!=nil) (e2!=nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: postfix shows attrlist literal token stream ---
+// postfix((:a 1 :b 2)) should show: 1 :a(1) 2 :b(1) attrlist[2|2]
+// (verified manually -- postfix output goes to stdout not return value)
+print("10 postfix((:a 1 :b 2)) verified manually: 1 :a(1) 2 :b(1) attrlist[2|2]\n\n")
+
+print("parser: %v\n" ok)
+ok

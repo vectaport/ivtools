@@ -154,6 +154,9 @@
 #define ERR_UNEXPECTED_LANGBRACK2	1315
 /* "(%d) Unexpected double left angle bracket" */
 
+#define ERR_ATTRLIT_VALUE_BEFORE_KEY	1316
+/* "(%d) attribute literal must start with :key" */
+
 #define ERR_TYPE_BADPARAMS		5201
 /* "Bad parameters in function call" */
 

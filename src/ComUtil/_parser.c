@@ -249,6 +249,7 @@ static int bracesplus_symid = -1;
 static int angbracksplus_symid = -1;
 static int dblangbracksplus_symid = -1;
 static int empty_symid = -1;
+static int attrlist_symid = -1;
 
 /* === Static functions ================================================== */
 
@@ -1035,15 +1036,29 @@ int status;
       /* Must be inside parenthesis associated with a command */
       /* for a keyword to be legal                            */
 	 if( TopOfParenStack < 0 || ParenStack[ TopOfParenStack ].comm_id < 0 ) {
-	    COMERR_SET2( ERR_UNEXPECTED_KEYWORD, *linenum,
-			 symbol_pntr( *(int *)token ) );
-	    goto error_return;
+	    /* Allow keyword as first token in bare parens -- implicit attrlist() literal */
+	    if( TopOfParenStack >= 0 &&
+	        ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	        ParenStack[ TopOfParenStack ].nkey == 0 &&
+	        expecting == OPTYPE_UNARY_PREFIX ) {
+	      if( attrlist_symid == -1 ) attrlist_symid = symbol_add("attrlist");
+	      ParenStack[ TopOfParenStack ].comm_id = attrlist_symid;
+	    } else if( TopOfParenStack >= 0 &&
+	        ParenStack[ TopOfParenStack ].comm_id < 0 &&
+	        expecting == OPTYPE_BINARY ) {
+	      COMERR_SET1( ERR_ATTRLIT_VALUE_BEFORE_KEY, *linenum );
+	      goto error_return;
+	    } else {
+	      COMERR_SET2( ERR_UNEXPECTED_KEYWORD, *linenum,
+			   symbol_pntr( *(int *)token ) );
+	      goto error_return;
 	    }
-
+	 }
+	    
       /* Increment the number of keywords associated with this */
       /* level of parens                                       */
 	 ParenStack[ TopOfParenStack ].nkey++;
-
+	 
          /* Its an error if anything is on the operator */
          /* stack and a unary prefix was expected.      */
 	 if( OperStack[TopOfOperStack].oper_type == OPERATOR &&
