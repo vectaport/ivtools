@@ -1038,6 +1038,7 @@ int status;
 	 if( TopOfParenStack < 0 || ParenStack[ TopOfParenStack ].comm_id < 0 ) {
 	    /* Allow keyword as first token in bare parens -- implicit attrlist() literal */
 	    if( TopOfParenStack >= 0 &&
+	        ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
 	        ParenStack[ TopOfParenStack ].nkey == 0 &&
 	        expecting == OPTYPE_UNARY_PREFIX ) {
 	      if( attrlist_symid == -1 ) attrlist_symid = symbol_add("attrlist");
