@@ -198,9 +198,9 @@ evaluates the string back. Together they form the round-trip test
 available in pure ComTerp:
 
 ```
-s=print(:str lst)      // serialize
-lst2=run(:str s)       // deserialize
-ok=ok&&(lst2[0].a==4)  // assert round-trip
+s=print(lst :str)      // serialize
+lst2=run(s :str)       // deserialize
+ok=ok&&(at(lst2 0).a==4)  // assert round-trip
 ```
 
 This is the canonical approach for testing serialization in
@@ -210,8 +210,12 @@ This is the canonical approach for testing serialization in
 
 | script        | funcs                                          | slots   | covered | total |  %  |
 |---------------|------------------------------------------------|---------|---------|-------|-----|
+| hello.comt    | (smoke test only)                              | —       |       — |     — |  —  |
 | return.comt   | return func if for while run                   | 1-10,11 |      34 |    50 | 68% |
 | stream.comt   | $$ $ ,, next each size                         | 1-10    |      24 |    34 | 71% |
 | string.comt   | index substr split join eq size print(+:str) + | 1-10,11 |      78 |    97 | 80% |
-| global.comt   | global                                         | 1-10,11 |      15 |    15 |100% |
+| global.comt   | global                                         | 1-10,11 |      13 |    14 | 93% |
+| attrlist.comt | dot list(:attr) attrlist at size attrname attrval + - | 1-10 | 42 |    55 | 76% |
+| print.comt    | print                                          | 1-9     |      22 |    35 | 63% |
+| parser.comt   | attrlist(:literal) errmsg postfix class type   | 1-9     |      24 |    38 | 63% |
 | random.comt   | all of the above                               | 12      |      24 |    24 |100% |

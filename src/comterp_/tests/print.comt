@@ -1,8 +1,9 @@
 // src/comterp_/tests/print.comt -- test print() format verbs
 //
-// coverage: 0/0 (placeholder -- slots TBD after initial run)
+// coverage: 22/35 (63%)
 // funcs: print
-// missing: TBD
+// missing: print(:err) print(:file) print(:flush) print(:sym) print(%s-bool)
+//          print(%s-int) print(%v-attrlist) print(%v-list)
 //
 // Verifies behavior of print() format verbs: %v %d %f %s %c %g %x %o
 // and keywords :str :err :out :file :prefix :flush

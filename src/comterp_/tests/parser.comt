@@ -1,8 +1,9 @@
 // src/comterp_/tests/parser.comt -- test attrlist literal syntax and parser errors
 //
-// coverage: 0/0 (placeholder -- slots TBD)
+// coverage: 24/38 (63%)
 // funcs: attrlist(:literal) errmsg postfix class type
-// missing: TBD
+// missing: errmsg(:cnt) errmsg(:num) postfix(return-value) type(non-object)
+//          class(non-object) ~type(list) ~type(stream)
 //
 // Tests the attrlist literal syntax (:key val) introduced in ivtools 2.2,
 // and errmsg() for retrieving parser error messages.
