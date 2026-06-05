@@ -251,6 +251,115 @@ Never hand-write unified diff hunk headers (`@@ -n,m +n,m @@`) —
 they are computed from the actual file contents and will be wrong if
 typed manually.
 
+## Empty Delimiter Literals
+
+`{}` and `()` as standalone expressions produce empty containers:
+
+- `{}` → empty `AttributeValueList` (`ListType`), equivalent to `list()`
+- `()` → empty `AttributeList` (`ObjectType`), equivalent to `attrlist()`
+- `[]` and `<>` → reserved for flowtran flowgraph syntax; currently emit `TOK_BLANK`
+
+This is implemented in `_parser.c` in the empty delimiter `else` branch — when
+a closing delimiter is seen with `narg==0` and no `comm_id`, the parser emits
+`COMMAND(list) narg 0` for `}` and `COMMAND(attrlist) narg 0` for `)` rather
+than `TOK_BLANK`.
+
+Prior to this fix, `{}` produced a `TOK_BLANK` which caused `offlimit` warnings
+in `skip_arg` and failed to assign or round-trip. If you see `offlimit hit by
+ComTerp::skip_arg` followed by `stack empty, blank returned`, an empty delimiter
+pair reaching evaluation without this fix is the likely cause.
+
+## remote() Return Values and Wire Protocol
+
+`RemoteFunc::execute()` sends a command string over a socket, reads back one
+line terminated by `\n`, then calls `comterpserv()->run(buf, true)` to evaluate
+the response string locally. This means **the return value must be something the
+local ComTerp parser can parse back**.
+
+Types that round-trip cleanly:
+- Integers, floats, booleans, strings — print and re-parse correctly
+- `{}` (empty list) — works after the empty delimiter fix in `_parser.c`
+- `{1 2 3}` (non-empty list) — works
+- `nil` — works
+
+Types that do **not** round-trip:
+- `ObjectType` wrapping an `AttributeList` row — prints as `:key val :key val`
+  without delimiters, which the remote parser sees as keyword arguments to
+  nothing and fails. If you need to return a table of attrlists, wrap them in
+  an `AttributeValueList` (`ArrayType`) — the outer `{}` gives the parser
+  something to hang the rows on.
+- `BlankType` — prints as nothing, `run("")` returns blank, caller sees
+  `stack empty, blank returned`.
+
+When `drawlink(:table)` returns an empty list, the drawserv writes `{}\n`.
+The receiving `remote()` calls `run("{}", true)` — which only works because
+of the `_parser.c` empty delimiter fix. Without it, `{}` parsed to `TOK_BLANK`
+and the result was lost.
+
+## Resource ref/unref and AttributeValue Constructors
+
+`AttributeValue` manages refcounting automatically for two `ObjectType` classes:
+
+```cpp
+// Constructor calls Resource::ref(ptr) automatically:
+AttributeValue(AttributeList::class_symid(), (void*)row)   // ref'd
+AttributeValue(Attribute::class_symid(), (void*)attr)       // ref'd
+
+// Destructor calls Resource::unref via unref_as_needed():
+// -- fires for AttributeList and Attribute ObjectType only,
+//    and only when RESOURCE_COMPVIEW is defined
+```
+
+`ComValue(AttributeValueList* avl)` uses the `ArrayType` constructor — also
+ref-managed automatically.
+
+**Do not** add explicit `Resource::ref()`/`Resource::unref()` at the call site
+for these types — the `AttributeValue` constructor and destructor handle it.
+Doing so double-refs and leaks.
+
+For any other `ObjectType` (custom class, DrawLink, etc.) the caller is
+responsible for refcounting — `AttributeValue` will not do it.
+
+## Eager vs Post-Eval Commands
+
+Most commands are **eager** — arguments are evaluated before `execute()` fires,
+and `stack_arg(n)` retrieves the nth already-evaluated argument. This is the
+default and covers the vast majority of cases.
+
+Use `post_eval() { return true; }` and `stack_arg_post_eval(n)` only when:
+- The command conditionally evaluates an argument (`if`, `while`, `for`)
+- The command captures an unevaluated body for later execution (`func`)
+- The command needs to evaluate an argument zero or more than once (`while` body)
+- The command needs to inspect the argument's token structure, not its value
+
+`ListFunc` uses `stack_arg_post_eval` not because it needs lazy evaluation but
+because it accepts an optional stream argument and needs to handle the case
+where no argument is provided without triggering stream consumption. When in
+doubt, use eager — post_eval adds complexity and the `pedepth` / argoffval
+machinery has subtle edge cases (see `offlimit` warnings).
+
+The quick test: if your command would work identically with pre-evaluated
+arguments in all cases, use eager `stack_arg`.
+
+## nargspost() vs nargsfixed()
+
+Inside a `post_eval` command's `execute()`:
+
+- `nargsfixed()` — number of fixed positional arguments actually passed by
+  the caller. Use this to check whether an optional argument was supplied.
+- `nargspost()` — total number of post-eval argument slots, including the
+  argoffval bookmark. **Do not use this to count caller-supplied arguments.**
+  It counts tokens in the postfix buffer scope, not what the caller passed.
+- `nargs()` — for eager commands, the number of evaluated arguments on the
+  stack. For post_eval commands, unreliable before `reset_stack()`.
+- `nkeys()` — number of keyword arguments passed by the caller, for both
+  eager and post_eval commands.
+
+The common mistake is using `nargspost()` where `nargsfixed()` is intended,
+which gives wrong counts when optional arguments are omitted. If you see a
+post_eval command behaving as if an optional argument was always supplied,
+check which of these is being used to test for its presence.
+
 ## ComTerpServ vs ComTerp
 
 `ComTerpServ` subclasses `ComTerp` and adds server-mode execution with

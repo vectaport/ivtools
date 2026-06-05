@@ -168,6 +168,44 @@ To add a new test script:
 3. Enumerate slots from the taxonomy above
 4. Write tests, add the coverage header, add the script to `run_all.comt`
 
+## Layered Test Hierarchy
+
+The test suite mirrors the library layer hierarchy. Each layer has its
+own tests directory and its own `run_all.comt`. Tests at a given layer
+use only the interpreter and functions available at that layer — they
+do not reach up into higher layers.
+
+| Layer    | Directory                   | Interpreter | Example functions |
+|----------|-----------------------------|-------------|-------------------|
+| ComTerp  | `src/comterp_/tests/`       | `comterp`   | all core language, math, string, stream, global |
+| DrawServ | `src/drawserv_/tests/`      | `drawserv`  | `sid()`, `select()`, `drawlink()`, distributed commands |
+
+DrawServ tests use the `drawmo` orchestrator script which launches live
+`drawserv` instances and exercises them via `remote()`. They are
+integration tests, not unit tests — they require a display and manage
+process lifecycle.
+
+**Rule:** if a function is only registered at a higher layer, its tests
+belong there. `sid()` is DrawServ-only; testing it in a comterp script
+will fail with "unknown command". Use `print(:str)`/`run(:str)` for
+serialization round-trip tests at the ComTerp layer instead.
+
+## Serialization Testing at the ComTerp Layer
+
+`print(:str val)` serializes any value via `operator<<` in brief mode —
+the same path used by `sid()` and wire protocol output. `run(:str s)`
+evaluates the string back. Together they form the round-trip test
+available in pure ComTerp:
+
+```
+s=print(:str lst)      // serialize
+lst2=run(:str s)       // deserialize
+ok=ok&&(lst2[0].a==4)  // assert round-trip
+```
+
+This is the canonical approach for testing serialization in
+`src/comterp_/tests/` scripts.
+
 ## Current Coverage Summary
 
 | script        | funcs                                          | slots   | covered | total |  %  |

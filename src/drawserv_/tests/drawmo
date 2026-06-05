@@ -2,7 +2,7 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown] --port [portnum] --help
+# Usage:  drawmo [--tests all|updown|updown1] --port [portnum] --help
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,9 +10,9 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests all|updown|updown1] --port [portnum] --help\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown]\ttests to run (comma-separated), returns -1 on error\n");
+    print("--tests [all|updown|updown1]\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
     exit)
@@ -107,6 +107,57 @@ updown_test=func(
   print("updown: drawserv shut down\n" :err);
   true)
 
+/* updown1 test -- launch a drawserv, verify empty drawlink table, shut down */
+updown1_test=func(
+
+  ds_port=find_open_port(:base_port 20002);
+  ds_import=ds_port-1;
+  global(drawserv_up)=false;
+  print("updown1: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("updown1: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("updown1: waiting for drawserv callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_up) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown1: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(!global(drawserv_up) :then
+    print("updown1: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  print("updown1: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("localhost" ds_port);
+  if(type(sock)==`BlankType :then
+    print("updown1: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  table=remote(sock "drawlink(:table)");
+  ok=eq(size(table) 0);
+  print("updown1: drawlink table empty: %v\n" ok :err);
+  if(!ok :then
+    print("updown1: FAIL drawlink table not empty (size=%d)\n" size(table) :err));
+
+  sidtable=remote(sock "sid(:table)");
+  ok=ok && eq(size(sidtable) 1);
+  print("updown1: sid table has 1 entry: %v\n" eq(size(sidtable) 1) :err);
+  if(!eq(size(sidtable) 1) :then
+    print("updown1: FAIL sid table size=%d (expected 1)\n" size(sidtable) :err));
+
+  remote(sock "exit" :nowait);
+  close(sock);
+  print("updown1: drawserv shut down\n" :err);
+  ok)
+
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -119,6 +170,13 @@ if(tests_flag :then
         print("updown: pass\n" :err)
       :else
         print("updown: FAIL\n" :err);
+        ok=false));
+    if(t==`updown1 || t==`all :then
+      print("running updown1 test\n" :err);
+      if(updown1_test(:dummy 0) :then
+        print("updown1: pass\n" :err)
+      :else
+        print("updown1: FAIL\n" :err);
         ok=false))))
 
 exit(if(ok :then 0 :else 1))

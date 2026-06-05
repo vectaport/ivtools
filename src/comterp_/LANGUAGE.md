@@ -35,9 +35,9 @@ expression evaluated. By convention test scripts return `ok` (a boolean).
 | boolean | `true` `false` | |
 | nil | `nil` | no value |
 | blank | `BlankType` | return of `return()` with no arg |
-| list | `(1,2,3)` | comma operator |
-| stream | `$$(1,2,3)` | sequence of values produced and consumed one at a time |
-| attrlist | `attrlist(:x 1)` | key/value store |
+| list | `1,2,3` or `(1,2,3)` | comma operator |
+| stream | `$$(1,2,3)` or (1 2 3) | sequence of values produced and consumed one at a time |
+| attrlist | `(:x 1)` or `attrlist(:x 1)` | key/value store |
 | compview | returned by drawing commands | graphic component handle |
 
 Use `type(val)` to inspect the type of any value. Use `class(val)` for
@@ -191,6 +191,22 @@ do not escape to the caller's scope. This includes dot-notation
 attributes: a dot namespace rooted at a local symbol is local to the
 call.
 
+### Multi-value returns
+
+A func returns a single value — the result of its last expression. To
+return multiple values, return an attrlist and access individual fields
+with `.` at the call site:
+
+```
+f=func((:x x*2 :y x+1))
+result=f(:x 5)
+result.x               // 10
+result.y               // 6
+```
+
+This avoids the overhead of always unpacking a full attrlist when only
+one field is needed: `f(:x 5).x` works directly.
+
 To work with an attrlist across a func boundary, pass it as a keyword
 arg — it is a reference type and writes inside the func are visible
 after the call:
@@ -205,7 +221,19 @@ f(:al al)
 ## Attribute Lists
 
 An attrlist is a key/value store. Create one with `attrlist()` or
-`list(:attr)`:
+`list(:attr)`, or with the **attrlist literal** syntax — parentheses
+whose first token is a keyword:
+
+```
+al=(:a 1 :b 2)         // literal, same postfix as attrlist(:a 1 :b 2)
+al=(:flag)             // keyword-only sets value to true
+al=attrlist(:a 1 :b 2) // equivalent command form
+```
+
+The parser distinguishes an attrlist literal from a grouping expression
+by the presence of a leading keyword. Plain grouping `(1+2)*3` is
+unaffected. A value before the first keyword is an error:
+`(4 :x 7)` → parse error "attribute literal must start with :key".
 
 ```
 al=attrlist(:foo 42 :bar "hello" :flag)
@@ -240,6 +268,32 @@ auto-dereference — any other command gets the dereferenced value instead.
 Note that `type(at(al n))` returns the value's type, not an attribute type,
 and enumeration order may not match insertion order.
 
+`Attribute` objects can live on the stack and be passed to any command.
+Whether the key is preserved depends on whether the receiving command
+explicitly checks for `AttributeType` before dereferencing — `attrname()`
+and `attrval()` do this; all other current built-in commands dereference
+immediately via `stack_arg()`, losing the key. A custom `ComFunc` could
+preserve the key by inspecting the `ComValue` type before calling
+`stack_arg()`. In practice, for the built-in scripting layer, `attrname()`
+and `attrval()` are the only commands that see the key.
+
+### Stream enumeration of an attrlist
+
+`attrname()` and `attrval()` also accept a stream of attributes
+directly, returning a stream of keys or values respectively. An attrlist
+literal used as a stream source yields its entries as `Attribute` objects:
+
+```
+$list(attrname($$(:a 4 :b 7)))   // {"b","a"}
+$list(attrval($$(:a 4 :b 7)))    // {7,4}
+```
+
+The two streams are consistent with each other — the nth name corresponds
+to the nth value — so they can be zipped or processed in parallel.
+Note that the order is reverse insertion order (last key first), which
+reflects the underlying attrlist storage. If you need both key and value
+together, use the `for`/`at()`/`size()` loop form above instead.
+
 ### Merging and subtracting attrlists
 
 `+` merges two attrlists into a new one — the second operand wins on key collision.
@@ -267,6 +321,36 @@ attrval(at(pair))    // 42
 Scope rules: the dot namespace is scoped with its root symbol. Inside a
 `func()` body, dot attributes on a local symbol are local to that call.
 Use `global()` or pass an attrlist via keyword arg to share state.
+
+### Lists of attrlists
+
+A list of attrlists uses the tuple `,` operator between attrlist literals:
+
+```
+lst=(:a 1),(:b 2)      // 2-element list, size(lst)==2
+lst[0].a               // 1
+lst[1].b               // 2
+```
+
+For a **singleton list** (one attrlist), a trailing `,` inside `{}` is
+required to force the parser to produce a list rather than a bare attrlist:
+
+```
+lst={(:a 4),}          // 1-element list, size(lst)==1
+lst[0].a               // 4
+```
+
+Without the trailing comma, `{(:a 4)}` passes the attrlist through
+unwrapped — the `{}` adds nothing for a single non-list value.
+
+The serializer (`print(:str)`) emits the trailing comma automatically
+for singleton lists, so `print(:str)`/`run(:str)` round-trips correctly:
+
+```
+s=print(:str lst)      // produces "{(:a 4),}"
+lst2=run(:str s)       // recovers the 1-element list
+lst2[0].a              // 4
+```
 
 ## Strings
 

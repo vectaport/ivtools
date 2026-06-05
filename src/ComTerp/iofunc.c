@@ -218,7 +218,11 @@ void PrintFunc::execute() {
 	break;
 	
       case ComValue::BooleanType:
-	out_form(out, fbuf, printval.boolean_ref());
+	if (strstr(fbuf, "%s")) {
+	  out_form(out, fbuf, printval.boolean_ref() ? "true" : "false");
+	} else {
+	  out_form(out, fbuf, printval.boolean_ref());
+	}
 	break;
 	
       case ComValue::CharType:

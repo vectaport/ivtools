@@ -249,7 +249,9 @@ static int bracesplus_symid = -1;
 static int angbracksplus_symid = -1;
 static int dblangbracksplus_symid = -1;
 static int empty_symid = -1;
-static int attrlist_symid = -1;
+
+static int attrlist_symid = symbol_add("attrlist");
+static int list_symid = symbol_add("list");
 
 /* === Static functions ================================================== */
 
@@ -1041,7 +1043,6 @@ int status;
 	        ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
 	        ParenStack[ TopOfParenStack ].nkey == 0 &&
 	        expecting == OPTYPE_UNARY_PREFIX ) {
-	      if( attrlist_symid == -1 ) attrlist_symid = symbol_add("attrlist");
 	      ParenStack[ TopOfParenStack ].comm_id = attrlist_symid;
 	    } else if( TopOfParenStack >= 0 &&
 	        ParenStack[ TopOfParenStack ].comm_id < 0 &&
@@ -1327,14 +1328,20 @@ int status;
          }
          else
          {
-
-	   PFOUT_LITERAL( TOK_BLANK, token );
-	   --TopOfParenStack;
-#if 0
-	   if (TopOfParenStack>=0) {
-	        ParenStack[TopOfParenStack].narg++;
+	   if (expecting != OPTYPE_BINARY &&
+	       ParenStack[TopOfParenStack].narg == 0 &&
+	       ParenStack[TopOfParenStack].nkey == 0) {
+	     if (toktype == TOK_RBRACE) {
+	       PFOUT( TOK_COMMAND, list_symid, 0, 0, toktype );
+	     } else if (toktype == TOK_RPAREN) {
+	       PFOUT( TOK_COMMAND, attrlist_symid, 0, 0, toktype );
+	     } else {
+	       PFOUT_LITERAL( TOK_BLANK, token );
+	     }
+	   } else {
+	     PFOUT_LITERAL( TOK_BLANK, token );
 	   }
-#endif
+	   --TopOfParenStack;
          }
 
       /* Set up to expect a binary */
