@@ -464,8 +464,10 @@ print("fmt" val [val...] :str)     // print to string and return it
 print("fmt" val [val...] :err)     // print to stderr
 ```
 
-Format verbs: `%v` (any value), `%d` (int), `%f` (float), `%s` (string),
-`%c` (char). Fixed args always before `:str`, `:err`, `:file` keywords.
+Format verbs: %v (any value), %d %i %u %o %x %X (integer),
+%f %e %E %g %G (float), %s (string), %c (char).
+
+Use \% for a literal percent sign. %% is not supported
 
 ## Conventions for .comt Scripts
 
