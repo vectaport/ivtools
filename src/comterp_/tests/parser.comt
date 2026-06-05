@@ -95,7 +95,6 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 10: postfix shows attrlist literal token stream ---
 // postfix((:a 1 :b 2)) should show: 1 :a(1) 2 :b(1) attrlist[2|2]
-// (verified manually -- postfix output goes to stdout not return value)
 ok=true
 print("10 postfix((:a 1 :b 2)) verified manually: 1 :a(1) 2 :b(1) attrlist[2|2]\n")
 prev_ok=check_fail(:ok ok)
