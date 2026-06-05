@@ -1,11 +1,23 @@
 # ComTerp Language Guide
 
-ComTerp is an embedded scripting language with a compiler pipeline
-(scanner → parser → code_conversion → interpreter). Each top-level
-expression is scanned, parsed, and converted to a flat postfix token
-stream, then interpreted iteratively. Nesting depth in the original
-expression does not affect the interpreter's call stack — everything
-is a token stream and an operand stack.
+ComTerp is a scripting language where the syntax is also the wire
+protocol. Every value — integer, string, list, attrlist, boolean —
+serializes back to valid ComTerp syntax that can be parsed and
+evaluated again. This means a terminal session on stdin/stdout and
+a programmatic session over a TCP socket are the same thing: send
+an expression, get back a value that is itself an expression.
+
+This property makes distributed computation natural. DrawServ uses
+it to propagate drawing commands between peers — a brush change on
+one node is just a ComTerp expression sent to all connected nodes,
+evaluated in place. The drawmo test orchestrator drives drawserv
+instances the same way a human would from a terminal.
+
+ComTerp achieves this with a compiler pipeline (scanner → parser →
+code_conversion → interpreter) that converts each top-level expression
+to a flat postfix token stream, then evaluates it iteratively. Nesting
+depth in the original expression does not affect the interpreter's
+call stack — everything is a token stream and an operand stack.
 
 ## Expressions and Sequencing
 
@@ -128,8 +140,8 @@ type(val)==`IntType
 
 Control flow commands use `post_eval` — they receive unevaluated token
 streams for their body expressions and choose when to evaluate them.
-This is what makes `if`, `for`, and `while` work as language constructs
-rather than ordinary functions.
+This is what makes `if`, `for`, `while` and `switch` work as language
+constructs rather than ordinary functions.
 
 ### if
 
@@ -193,19 +205,38 @@ call.
 
 ### Multi-value returns
 
-A func returns a single value — the result of its last expression. To
-return multiple values, return an attrlist and access individual fields
-with `.` at the call site:
+A func returns a single value — the result of its last expression. Two
+clean patterns exist for returning or receiving multiple values:
+
+**Pull — dot on return value.** Return an attrlist, caller uses `.` to
+extract just the field it needs. Good for functional style where the
+caller picks what it wants:
 
 ```
 f=func((:x x*2 :y x+1))
 result=f(:x 5)
 result.x               // 10
 result.y               // 6
+f(:x 5).x              // 10 -- extract inline, no intermediate variable
 ```
 
-This avoids the overhead of always unpacking a full attrlist when only
-one field is needed: `f(:x 5).x` works directly.
+**Push — pass in an attrlist to update.** Caller passes an existing
+attrlist as a keyword arg; func writes into it via the reference. Good
+for updating a running accumulator or shared context, or when setting
+one field in a larger attrlist without disturbing the rest:
+
+```
+al=attrlist(:x 0 :y 0)
+f=func(al.x=x*2; al.y=x+1)
+f(:al al :x 5)
+al.x                   // 10
+al.y                   // 6
+```
+
+The push pattern is also the idiomatic way to set a single field in an
+existing attrlist — "set a needle in a haystack" — without constructing
+a new one. The pull pattern with `.` is the corresponding "get a needle
+in a haystack" from a func that returns a rich result.
 
 To work with an attrlist across a func boundary, pass it as a keyword
 arg — it is a reference type and writes inside the func are visible
