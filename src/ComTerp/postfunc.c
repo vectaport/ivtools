@@ -99,15 +99,15 @@ void PostFixFunc::execute() {
       out << "{" << val.narg() << "|" << val.nkey() << "}";
     else if (val.is_type(AttributeValue::KeywordType))
       out << "(" << val.keynarg_val() << ")";
-    out << ((i+1>topptr) ? "\n" : " ");
+    if (i<topptr-1) 
+      out << " ";
   }
   out << '\0';
-  FILE* fp = comterp()->handler() && comterp()->handler()->wrfptr()
-    ? comterp()->handler()->wrfptr() : stdout;
-  fputs(sbuf.str(), fp);
-  fflush(fp);
   comterp()->brief(oldbrief);
   reset_stack();
+  ComValue retval(sbuf.str());
+  push_stack(retval);
+  
 }
 
 /*****************************************************************************/

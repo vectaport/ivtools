@@ -30,7 +30,7 @@
 class ComTerp;
 
 //: echo postfix output of parser.
-// postfix(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments
+// postfix(arg1 [arg2 [arg3 ... [argn]]]) -- return unevaluated postfix arguments as string
 // (with [narg|nkey] after defined commands, {narg|nkey} after undefined commands
 // (narg) after keys).
 class PostFixFunc : public ComFunc {
@@ -40,7 +40,7 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "%s(arg1 [arg2 [arg3 ... [argn]]]) -- echo unevaluated postfix arguments\n(with [narg|nkey] after defined commands, {narg|nkey} after undefined commands\n(narg) after keys)"; }
+      return "str=%s(arg1 [arg2 [arg3 ... [argn]]]) -- return unevaluated postfix arguments as string\n(with [narg|nkey] after defined commands, {narg|nkey} after undefined commands\n(narg) after keys)"; }
 };
 
 //: post-evaluate command for ComTerp.
