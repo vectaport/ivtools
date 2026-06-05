@@ -304,10 +304,18 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    out << "{";
 	    while (!avl->Done(i)) {
 	      ComValue val(*avl->GetAttrVal(i));
-	      out << val;
+	      
+	      if (val.type() == ComValue::ObjectType &&
+	          val.class_symid() == AttributeList::class_symid() &&
+	          val.obj_val() != nil)
+	        out << "(" << *((AttributeList*)val.obj_val()) << ")";
+	      else
+	        out << val;
+	      
 	      avl->Next(i);
 	      if (!avl->Done(i)) out << ",";
 	    };
+	    if (avl->Number() == 1) out << ",";
 	    out << "}";
 	  } else {
 	    out << "list of length " << svp->array_len();

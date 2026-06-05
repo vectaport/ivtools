@@ -1,8 +1,9 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 0/0 (placeholder -- slots TBD after initial run)
+// coverage: 42/55 (76%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
-// missing: TBD
+// missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
+//          dot(func-local-scope-isolation) -(empty-rhs)
 //
 // Tests the dot (.) compound variable / attribute list access operator,
 // list(:attr) attribute list construction, and the attrlist() command

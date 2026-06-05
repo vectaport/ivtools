@@ -8,6 +8,13 @@ combination gives it the efficiency of a stack-based VM with the expressive
 power of a lazy interpreter — without the overhead of either continuations
 or tree-walking.
 
+The language-as-protocol property follows from this model: because
+every type has a brief serialization that is valid ComTerp syntax,
+values round-trip through `print()`/`run()` and through the TCP wire
+protocol identically. There is no separate encoding layer. A terminal
+session on stdin/stdout and a programmatic session over a socket are
+the same thing.
+
 ## Postfix Execution Model
 
 ComTerp parses input into a flat array of postfix tokens (`_pfbuf`), then
@@ -189,6 +196,56 @@ ComTerp maintains two variable tables per interpreter instance:
 `globaltable()`.
 
 
+## Symbol Registration Pattern
+
+ComTerp uses a global string-interning table where every identifier, operator
+name, and command name is stored exactly once and referred to by integer symid.
+`symbol_add(str)` is idempotent — calling it twice with the same string returns
+the same id both times. `symbol_pntr(id)` is the inverse.
+
+The canonical pattern for a ComFunc implementor is a function-local static,
+so the `symbol_add` call fires exactly once per process lifetime regardless
+of how many times `execute()` is called:
+
+```cpp
+void ListFunc::execute() {
+  ComValue listv(stack_arg_post_eval(0));
+  static int strmlst_symid = symbol_add("strmlst"); // hidden debug keyword
+  ComValue strmlstv(stack_key_post_eval(strmlst_symid));
+  static int attr_symid = symbol_add("attr");
+  ComValue attrv(stack_key_post_eval(attr_symid));
+  static int size_symid = symbol_add("size");
+  ComValue sizev(stack_key_post_eval(size_symid));
+  reset_stack();
+  ...
+}
+```
+
+Every keyword a command accepts is registered this way. The symid is then
+passed to `stack_key()` or `stack_key_post_eval()` to retrieve the keyword's
+value from the stack. Symids registered via the static pattern live for the
+process lifetime — `symbol_del()` is reference-counted but ComFunc code
+almost never calls it.
+
+## Delimiter Semantics
+
+ComTerp treats `()`, `{}`, `[]`, and `<>` as equivalent nesting delimiters
+at the parser level — the parser requires open/close pairs to match type, but
+all four pairs have equal precedence and nesting behavior. By convention:
+
+- `()` — grouping and attrlist literals: `(:a 1 :b 2)` constructs an
+  `AttributeList`. An empty `()` constructs an empty `AttributeList`.
+- `{}` — list literals: `{1 2 3}` constructs an `AttributeValueList`.
+  An empty `{}` constructs an empty list, equivalent to `list()`.
+- `[]` — reserved for flowtran flowgraph syntax
+- `<>` — reserved for flowtran flowgraph syntax
+
+The parser emits a `COMMAND` token for each closing delimiter. For non-empty
+`{}`, the command resolves to the `+{}` (bracesplus) operator which builds
+the list from its args. For empty `{}`, the parser emits a `COMMAND` with
+`list_symid` and `narg 0`, producing an empty `AttributeValueList` directly.
+Similarly, empty `()` emits `attrlist` with `narg 0`.
+
 ## Key Files
 
 | File | Contents |
@@ -200,3 +257,4 @@ ComTerp maintains two variable tables per interpreter instance:
 | `symbolfunc.c` | `GlobalSymbolFunc`, `SplitStrFunc`, and other symbol/string commands |
 | `ctrlfunc.c` | `IfFunc`, `ForFunc`, `WhileFunc`, `RunFunc` — all post_eval control flow |
 | `boolfunc.c` | Comparison and boolean operators |
+| `_parser.c` | Postfix parser — delimiter pair handling, operator substitution, `PFOUT` macros |

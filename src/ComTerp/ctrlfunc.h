@@ -80,7 +80,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "%s(filename :str :popen) -- run commands from a file (or string)"; }
+      return "%s(filename|cmdstr :str :popen) -- run commands from a file (or string)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":str       run commands from string",

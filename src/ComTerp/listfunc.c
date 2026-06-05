@@ -250,6 +250,16 @@ void TupleFunc::execute() {
     ComValue* operand2 = new ComValue(stack_arg(1));
     reset_stack();
 
+    /* trailing comma -- wrap operand1 in a single-element list */
+    if (operand2->is_blank()) {
+        AttributeValueList* avl = new AttributeValueList();
+        avl->Append(operand1);
+        ComValue retval(avl);
+        push_stack(retval);
+        delete operand2;
+        return;
+    }
+
     if (!operand1->is_array() || 
 	operand1->array_val()->nested_insert()) {
 	AttributeValueList* avl = new AttributeValueList();

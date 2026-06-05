@@ -28,10 +28,12 @@
 #include <DrawServ/drawfunc.h>
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawlinkcomp.h>
+#include <DrawServ/drawlinklist.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/grid.h>
 #include <DrawServ/linkselection.h>
+#include <DrawServ/sid.h>
 #include <GraphUnidraw/edgecomp.h>
 #include <GraphUnidraw/graphclasses.h>
 #include <OverlayUnidraw/ovline.h>
@@ -91,6 +93,8 @@ void DrawLinkFunc::execute() {
   static int timer_sym = symbol_add("timer");
   ComValue default_timer(5);
   ComValue timerv(stack_key(timer_sym, false, default_timer, true));
+  static int table_sym = symbol_add("table");
+  ComValue tablev(stack_key(table_sym));
   reset_stack();
 
   DrawLink* link = nil;
@@ -202,9 +206,40 @@ void DrawLinkFunc::execute() {
     }
   }
   
-  /* dump DrawLink table to stderr */
-  else if(nargs()==0) 
-    ((DrawServ*)unidraw)->linkdump(stderr);
+  /* dump DrawLink table to stderr, or return as list of attrlists */
+  else if(nargs()==0) {
+    if (tablev.is_true()) {
+      static int host_row_sym   = symbol_add("host");
+      static int alt_row_sym    = symbol_add("alt");
+      static int port_row_sym   = symbol_add("port");
+      static int lid_row_sym    = symbol_add("lid");
+      static int state_row_sym  = symbol_add("state");
+      DrawServ* drawserv = (DrawServ*)unidraw;
+      AttributeValueList* avl = new AttributeValueList();
+      if (drawserv->linklist()) {
+        Iterator i;
+        drawserv->linklist()->First(i);
+        while (!drawserv->linklist()->Done(i)) {
+          DrawLink* link = drawserv->linklist()->GetDrawLink(i);
+          AttributeList* row = new AttributeList();
+          row->add_attr(host_row_sym,  new AttributeValue(link->hostname()    ? link->hostname()    : ""));
+          row->add_attr(alt_row_sym,   new AttributeValue(link->althostname() ? link->althostname() : ""));
+          row->add_attr(port_row_sym,  new AttributeValue((int)link->portnum(), AttributeValue::IntType));
+          row->add_attr(lid_row_sym,   new AttributeValue(link->linkid_str()  ? link->linkid_str()  : ""));
+          row->add_attr(state_row_sym, new AttributeValue((int)link->state(),  AttributeValue::IntType));
+          avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)row));
+          drawserv->linklist()->Next(i);
+        }
+      }
+      ComValue result(avl);
+      push_stack(result);
+      return;
+    } else {
+      ((DrawServ*)unidraw)->linkdump(stderr);
+      push_stack(ComValue::nullval());
+      return;
+    }
+  }
   
   if (link) {
     DrawLinkComp* linkcomp = new DrawLinkComp(link);
@@ -245,6 +280,8 @@ void SessionIdFunc::execute() {
   ComValue hostv(stack_key(host_sym));
   static int hostid_sym = symbol_add("hostid");
   ComValue hostidv(stack_key(hostid_sym));
+  static int table_sym2 = symbol_add("table");
+  ComValue tablev(stack_key(table_sym2));
  
   ComValue sidv(stack_arg(0));
 
@@ -269,7 +306,38 @@ void SessionIdFunc::execute() {
        hostidv.int_val());
     
   } else {
-    ((DrawServ*)unidraw)->print_sidtable();
+    if (tablev.is_true()) {
+      static int key_row_sym    = symbol_add("key");
+      static int sid_row_sym    = symbol_add("sid");
+      static int linkid_row_sym = symbol_add("linkid");
+      static int pid_row_sym    = symbol_add("pid");
+      static int hostid_row_sym = symbol_add("hostid");
+      static int user_row_sym   = symbol_add("user");
+      static int host_row_sym   = symbol_add("host");
+      DrawServ* drawserv = (DrawServ*)unidraw;
+      AttributeValueList* avl = new AttributeValueList();
+      SessionIdTable* table = drawserv->sessionidtable();
+      SessionIdTable_Iterator it(*table);
+      while (it.more()) {
+        SessionId* sid = (SessionId*)it.cur_value();
+        DrawLink* lnk = sid->drawlink();
+        AttributeList* row = new AttributeList();
+        row->add_attr(key_row_sym,    new AttributeValue((int)it.cur_key(),   AttributeValue::IntType));
+        row->add_attr(sid_row_sym,    new AttributeValue(sid->sidstr()        ? sid->sidstr()           : ""));
+        row->add_attr(linkid_row_sym, new AttributeValue(lnk                  ? lnk->linkid_str()       : "00000000"));
+        row->add_attr(pid_row_sym,    new AttributeValue((int)sid->pid(),     AttributeValue::IntType));
+        row->add_attr(hostid_row_sym, new AttributeValue((int)sid->hostid(),  AttributeValue::IntType));
+        row->add_attr(user_row_sym,   new AttributeValue(sid->username()      ? sid->username()         : ""));
+        row->add_attr(host_row_sym,   new AttributeValue(sid->hostname()      ? sid->hostname()         : ""));
+        avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)row));
+        it.next();
+      }
+      ComValue result(avl);
+      push_stack(result);
+    } else {
+      ((DrawServ*)unidraw)->print_sidtable();
+      push_stack(ComValue::nullval());
+    }
   }
 #endif
 }
