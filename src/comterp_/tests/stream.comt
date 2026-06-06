@@ -186,9 +186,6 @@ print("22 $list(attrname($$(:a 1 :b 2 :c 3))) (observe reverse order): %v\n" key
 print("22 $list(attrval($$(:a 1 :b 2 :c 3))) (observe reverse order): %v\n" vals)
 prev_ok=check_fail(:ok ok)
 
-print("stream: %v\n" ok)
-ok
-
 // --- test 23: a=0;b=10;c=1000; list((a..b)+c) -- parameterized ramp ---
 a=0; b=10; c=1000
 ss=(a..b)+c
@@ -314,3 +311,7 @@ ok=ok&&(v2==3)
 print("38a next(s1);next(s1); s2=$$s1; next(s2) pos preserved (expect 3): %v\n" v)
 print("38b next(s1) original also at 3 (expect 3): %v\n" v2)
 prev_ok=check_fail(:ok ok)
+
+print("stream: %v\n" ok)
+ok
+
