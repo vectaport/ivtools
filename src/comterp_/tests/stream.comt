@@ -251,7 +251,7 @@ al=(:vals (1..5)+10)
 ok=ok&&(type(al)==`ObjectType && class(al)==`AttributeList)
 n=0;while((v=next(al))!=nil n++;lastvals=v.vals)
 ok=ok&&(n==5 && lastvals==15)
-print("32 al=(:vals (1..5)*10); al.vals (expect StreamObj): %v\n" al.vals)
+print("32 al=(:vals (1..5)+10); al.vals (expect StreamObj): %v\n" al.vals)
 print("32 last val in stream (expect 15): %v\n" lastvals)
 prev_ok=check_fail(:ok ok)
 
