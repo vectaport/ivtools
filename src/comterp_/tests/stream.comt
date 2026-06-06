@@ -222,7 +222,6 @@ prev_ok=check_fail(:ok ok)
 // --- test 27: list((10..12)/2) -- integer division ---
 result=list((10..12)/2)
 print("27 list((10..12)/2) integer div (expect {5,5,6}): %v\n" result)
-ok=true
 
 // --- test 28: list((1..3)+(10..12)) -- two streams zip ---
 result=list((1..3)+(10..12))
@@ -251,7 +250,6 @@ prev_ok=check_fail(:ok ok)
 // --- test 32: al=(:vals (1..5)); al.vals -- stream as attrlist value ---
 al=(:vals (1..5))
 print("32 al=(:vals (1..5)); al.vals (observe): %v\n" al.vals)
-ok=true
 
 // --- test 33: string+range via next/while -- str() not stream-aware ---
 // "node"+(1..3) gives char codes not digit strings
@@ -262,7 +260,6 @@ result=list()
 while((v=next(s))!=nil
   result=list(result "node"+print(v :str)))
 print("33 \"node\"+str(v) via next/while (observe): %v\n" result)
-ok=true
 
 print("stream exploratory: done\n")
 
