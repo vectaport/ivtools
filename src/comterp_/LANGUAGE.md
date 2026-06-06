@@ -525,6 +525,141 @@ When both args are strings, substring search is the default behavior.
 
 Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
 
+## Symbols
+
+A symbol is an interned string — a unique integer id associated with a
+name, stored once in a global symbol table. Symbols are the basis of
+variable names, command names, keywords, and type names in ComTerp.
+
+### Creating and converting symbols
+
+```
+`foo                   // backquote returns symbol without lookup
+symadd("foo")          // create symbol from string, return without lookup
+                       // symadd is idempotent -- safe to call on existing symbol
+symstr(`foo)           // symbol -> string: "foo"
+symid(`foo)            // symbol -> integer id
+symbol(id)             // integer id -> symbol
+```
+
+Round-trip: `symstr(symbol(symid(`foo)))` → `"foo"`.
+
+`symadd` is idempotent — calling it on an already-existing symbol returns
+the existing id rather than creating a duplicate. There is no need to
+check whether a symbol exists before calling `symadd`.
+
+To unbind a symbol from its value, assign nil:
+
+```
+myvar=42
+myvar=nil              // unbind
+```
+
+### Symbol variables
+
+```
+myvar=42
+symval(myvar)          // 42 -- value of symbol variable, NO backquote
+symvar(`dynvar)=99     // assign to symbol variable by name, WITH backquote
+dynvar                 // 99
+```
+
+Note the asymmetry: `symval` takes the variable directly (no backquote),
+while `symvar` takes a backquoted symbol. This is because `symval` receives
+the variable's value — which is already a symbol — while `symvar` needs the
+symbol identity to avoid looking up the variable first.
+
+The `symvar`+`symadd` combination enables runtime variable creation:
+
+```
+name=symadd("runtime_var")
+symvar(name)=123
+runtime_var            // 123
+```
+
+### Symbol table introspection
+
+```
+symid(:cnt)            // current number of symbols in table
+symid(:max)            // maximum capacity of symbol table
+strref("hello")        // reference count for a string
+```
+
+### Symbol comparison
+
+Use `==` for symbol equality — it works reliably for all symbol values:
+
+```
+`foo==`foo             // true
+`foo==`bar             // false
+symbol(symid(`foo))==`foo  // true
+```
+
+The `:sym` keyword on comparison operators (`eq`, `lt`, `gt`, etc.) is
+intended for symbol comparison but has a known bug: `eq(:sym)` returns
+false for symbols returned by `symbol()` even when `==` returns true.
+Use `==` instead until this is resolved.
+
+Lexicographic symbol ordering:
+
+```
+lt(`aaa `bbb :sym)     // true
+gt(`bbb `aaa :sym)     // true
+lt_or_eq(`aaa `aaa :sym) // true
+```
+
+### Symbols as type and class names
+
+`type()` and `class()` return symbols, which can be compared with backquote:
+
+```
+type(42)==`IntType        // true
+type(3.14)==`DoubleType   // true  (3.14 is double, not float)
+type("hello")==`StringType // true
+type(true)==`BooleanType  // true
+type(`foo)==`SymbolType   // true
+class(attrlist())==`AttributeList // true
+
+float(3.14)            // explicit conversion to FloatType
+double(3)              // explicit conversion to DoubleType
+```
+
+### print(:sym) — materializing symbols from formatted strings
+
+`print(:sym)` returns its output as a symbol rather than printing it.
+This enables dynamic symbol construction from formatted strings:
+
+```
+s=print("val=%v" 42 :sym)  // symbol whose name is "val=42"
+symstr(s)                  // "val=42"
+```
+
+Combined with `symvar`, this enables fully dynamic dispatch:
+
+```
+key=print("handler_%v" type(x) :sym)
+symvar(key)=func(...)      // register handler for type
+```
+
+### switch and cond
+
+`switch` dispatches on string, symbol, integer, or char value:
+
+```
+switch("red" :red "stop" :green "go" :blue "sky")  // "stop"
+switch(2 :case1 "one" :case2 "two" :case3 "three") // "two"
+switch(`unknown :red "stop" :default "unknown")     // "unknown"
+```
+
+`cond` is an inline ternary — eagerly evaluated unlike `if`:
+
+```
+cond(x>0 "positive" "non-positive")
+cond(nil "yes" "no")   // "no" -- nil is false
+```
+
+Use `if(:then :else)` when the branches should be lazily evaluated.
+
 ## Streams
 
 Streams are lazy — values are produced and consumed one at a time,
