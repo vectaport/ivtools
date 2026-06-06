@@ -91,6 +91,14 @@ shut it down.
 - `remote(sock "sid(:table)")` returns a list with exactly 1 entry
   (the freshly-opened empty drawing)
 
+**Note on serialization:** `sid(:table)` returns a list of attrlists.
+For a freshly-launched drawserv with one drawing, that is a singleton
+list serialized as `{(:key ... :sid ...),}` — the trailing comma is
+required for the remote parser to reconstruct it as a list rather than
+a bare attrlist. This relies on the `comvalue.c` singleton list
+trailing-comma fix and the attrlist-in-list parenthesization fix. The
+assertion is `size(sidtable)==1`.
+
 **Purpose:** Verifies that a freshly-launched drawserv has a clean
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.

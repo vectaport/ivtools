@@ -8,13 +8,6 @@ combination gives it the efficiency of a stack-based VM with the expressive
 power of a lazy interpreter — without the overhead of either continuations
 or tree-walking.
 
-The language-as-protocol property follows from this model: because
-every type has a brief serialization that is valid ComTerp syntax,
-values round-trip through `print()`/`run()` and through the TCP wire
-protocol identically. There is no separate encoding layer. A terminal
-session on stdin/stdout and a programmatic session over a socket are
-the same thing.
-
 ## Postfix Execution Model
 
 ComTerp parses input into a flat array of postfix tokens (`_pfbuf`), then
@@ -258,3 +251,105 @@ Similarly, empty `()` emits `attrlist` with `narg 0`.
 | `ctrlfunc.c` | `IfFunc`, `ForFunc`, `WhileFunc`, `RunFunc` — all post_eval control flow |
 | `boolfunc.c` | Comparison and boolean operators |
 | `_parser.c` | Postfix parser — delimiter pair handling, operator substitution, `PFOUT` macros |
+
+## Language as Protocol
+
+The language-as-protocol property follows from this model: because
+every type has a brief serialization that is valid ComTerp syntax,
+values round-trip through `print()`/`run()` and through the TCP wire
+protocol identically. There is no separate encoding layer. A terminal
+session on stdin/stdout and a programmatic session over a socket are
+the same thing.
+
+Because the scanner and parser are runtime-configurable — operator
+precedence, associativity, and delimiter meanings can all be changed
+between parse passes from a script — ComTerp can be reconfigured to
+interpret other wire protocols and domain-specific languages, not just
+its own syntax. A domain-specific language is a small language tailored
+to a particular problem domain: JSON, SQL, the DrawServ drawing command
+protocol, or a custom image processing command set are all examples.
+Point ComTerp at a different token shape, reconfigure the delimiters,
+define the operator precedence, and it becomes the interpreter for that
+language without any recompilation.
+
+This reconfiguration can happen in two distinct modes:
+
+**One-way reconfiguration.** Boot ComTerp into a new interpreter
+permanently by running a setup script that reconfigures the scanner and
+parser before any user input is processed. ComTerp becomes the runtime
+for the target language — a flowgraph interpreter, a JSON reader, a
+custom DSL — and stays there. The original ComTerp syntax is gone;
+the new language is what the interpreter speaks.
+
+**Block-scoped reconfiguration.** A `post_eval` command receives its
+argument as an unevaluated postfix block, reconfigures the parser,
+evaluates the block under the new interpretation, then restores the
+previous configuration. The outer function is the context switch — the
+block executes in a different language, and on return the caller's
+language is back in effect. This is how a `json()` command could work:
+
+```
+json({
+  "name": "foo",
+  "values": [1, 2, 3]
+})
+```
+
+`json()` reconfigures `[` and `]` as list delimiters before evaluating
+its block, the block is parsed and executed as JSON, and the result is
+returned as a ComTerp attrlist/list. The surrounding script never knew
+anything changed.
+
+## Runtime Operator Table Mutation
+
+The operator table is not fixed at compile time. It is runtime-mutable
+and readable via `optable()`. This means the language itself can be
+reconfigured at boot time from a script — new operators, changed
+precedence, domain-specific syntax — and the parser reads the current
+table on each parse, so changes take effect immediately for subsequent
+expressions without recompilation.
+
+This is the same property that made the `nids()` mechanism sufficient
+for the Wave instruction set and IPL: the token structure carries enough
+information to reconstruct operator meaning without baking it into a
+static grammar.
+
+## Stream-Driven Flowgraph Generation
+
+The streaming algebra combined with string concatenation makes
+programmatic flowgraph layout natural. A stream ranges over node
+indices or positions, string concatenation assembles the connection
+expressions, and `<<>>` angle bracket delimiters serve as template
+fill-in points for parameterized variants. The result is a complete
+graph description — fan-out, fan-in, grid, tree — without explicit
+loop bookkeeping.
+
+Binary tree layout is the canonical example: a stream over node indices
+drives string concatenation to assemble parent-child connection
+expressions, producing a full tree description in a handful of
+expressions. The language consumes itself to generate programs.
+
+The ComUtil package contains the Xgraph structure that was the original
+intended target for code generation from the Fischer-LeBlanc compiler
+pipeline. ComValues and ComFuncs were wired up as an interpreter
+instead, producing the REPL — but the streaming algebra retains the
+pipeline semantics of the original design. The streams were the graph
+running eagerly before the graph existed.
+
+This design intent predates the 1988 paper — the Xgraph structure in
+ComUtil was flowgraph thinking developed at Honeywell IRL in the early
+1980s, running in parallel with Karl Fant's NCL work. Fant was working
+on dataflow at the circuit/logic level; the Xgraph was the language-level
+counterpart, intended as the code generation target for the
+Fischer-LeBlanc compiler pipeline. Honeywell allowed Fant to take NCL
+when he left, and it became the basis of his subsequent work. The 1988
+paper was a crystallization of the language side of these ideas. See
+"Command Language for Developing Real-Time Signal and Image Processing
+Applications", Scott E. Johnston and Robert C. Fitch, SPIE Proceedings
+on Automated Inspection and High Speed Vision Architectures II, vol.
+1004, November 1988.
+
+Fant's second book in the 2000s gave explicit flowgraph thinking a
+broader vocabulary, and the IPL interpreter/simulator/emulator followed
+as a direct realization of what the Xgraph had always been pointing
+toward.

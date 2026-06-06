@@ -104,6 +104,63 @@ this works internally.
 Standard arithmetic, comparison, and logical operators work as expected.
 String concatenation uses `+`.
 
+### Precedence Table
+
+Operators are listed highest to lowest priority. RtoL means right-to-left
+associativity. Run `optable()` inside comterp to see the live table.
+
+| Priority | Operator | Command       | Assoc | Type            |
+|----------|----------|---------------|-------|-----------------|
+| 130      | `.`      | dot           | LtoR  | BINARY          |
+| 125      | `` ` ``  | bquote        | RtoL  | UNARY PREFIX    |
+| 110      | `~`      | bit_not       | RtoL  | UNARY PREFIX    |
+| 110      | `--`     | decr_after    | RtoL  | UNARY POSTFIX   |
+| 110      | `--`     | decr          | RtoL  | UNARY PREFIX    |
+| 110      | `-`      | minus         | RtoL  | UNARY PREFIX    |
+| 110      | `++`     | incr_after    | RtoL  | UNARY POSTFIX   |
+| 110      | `++`     | incr          | RtoL  | UNARY PREFIX    |
+| 110      | `!`      | negate        | RtoL  | UNARY PREFIX    |
+| 100      | `$$`     | stream        | RtoL  | UNARY PREFIX    |
+| 90       | `..`     | iterate       | LtoR  | BINARY          |
+| 80       | `**`     | repeat        | LtoR  | BINARY          |
+| 75       | `,,`     | concat        | LtoR  | BINARY          |
+| 70       | `/`      | div           | LtoR  | BINARY          |
+| 70       | `*`      | mpy           | LtoR  | BINARY          |
+| 70       | `%`      | mod           | LtoR  | BINARY          |
+| 60       | `-`      | sub           | LtoR  | BINARY          |
+| 60       | `+`      | add           | LtoR  | BINARY          |
+| 55       | `>>`     | rshift        | LtoR  | BINARY          |
+| 55       | `<<`     | lshift        | LtoR  | BINARY          |
+| 50       | `>=`     | gt_or_eq      | LtoR  | BINARY          |
+| 50       | `>`      | gt            | LtoR  | BINARY          |
+| 50       | `<=`     | lt_or_eq      | LtoR  | BINARY          |
+| 50       | `<`      | lt            | LtoR  | BINARY          |
+| 45       | `==`     | eq            | LtoR  | BINARY          |
+| 45       | `!=`     | not_eq        | LtoR  | BINARY          |
+| 44       | `&`      | bit_and       | LtoR  | BINARY          |
+| 43       | `^`      | bit_xor       | LtoR  | BINARY          |
+| 42       | `\|`     | bit_or        | LtoR  | BINARY          |
+| 41       | `&&`     | and           | LtoR  | BINARY          |
+| 40       | `\|\|`   | or            | LtoR  | BINARY          |
+| 35       | `,`      | tuple         | LtoR  | BINARY          |
+| 32       | `$`      | list          | RtoL  | UNARY PREFIX    |
+| 30       | `=`      | assign        | RtoL  | BINARY          |
+| 30       | `/=`     | div_assign    | RtoL  | BINARY          |
+| 30       | `-=`     | sub_assign    | RtoL  | BINARY          |
+| 30       | `+=`     | add_assign    | RtoL  | BINARY          |
+| 30       | `*=`     | mpy_assign    | RtoL  | BINARY          |
+| 30       | `%=`     | mod_assign    | RtoL  | BINARY          |
+| 10       | `;`      | seq           | LtoR  | BINARY          |
+
+A few things worth noting:
+
+- `.` binds tightest — `f(:x 5).x` works without parens
+- `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
+- `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
+- `=` is right-associative and below `,` — `a=b=1` chains correctly
+- `;` binds lowest of all — everything to its left and right is a complete expression
+- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without parens
+
 ### Streaming operators
 
 | Operator | Description |
@@ -138,10 +195,16 @@ type(val)==`IntType
 
 ## Control Flow
 
-Control flow commands use `post_eval` — they receive unevaluated token
-streams for their body expressions and choose when to evaluate them.
-This is what makes `if`, `for`, `while` and `switch` work as language
-constructs rather than ordinary functions.
+Control flow commands use `post_eval` — they receive an offset into
+the read-only postfix buffer for their body expressions and choose
+when to evaluate them.  This is what makes `if`, `for`, `while` and
+`switch` work as language constructs rather than ordinary functions.
+
+The postfix buffer at this stage of the Fischer/Leblanc pipelines
+is made of values ready to be pushed on the comterp stack and
+interpreted, which adds to its efficiency along with the only
+storing an offset to switch from lazy to eager interpretation and
+back again.
 
 ### if
 
@@ -237,17 +300,6 @@ The push pattern is also the idiomatic way to set a single field in an
 existing attrlist — "set a needle in a haystack" — without constructing
 a new one. The pull pattern with `.` is the corresponding "get a needle
 in a haystack" from a func that returns a rich result.
-
-To work with an attrlist across a func boundary, pass it as a keyword
-arg — it is a reference type and writes inside the func are visible
-after the call:
-
-```
-al=attrlist(:x 0)
-f=func(al.x=99)
-f(:al al)
-// al.x is now 99
-```
 
 ## Attribute Lists
 
@@ -359,28 +411,31 @@ A list of attrlists uses the tuple `,` operator between attrlist literals:
 
 ```
 lst=(:a 1),(:b 2)      // 2-element list, size(lst)==2
-lst[0].a               // 1
-lst[1].b               // 2
+at(lst 0).a            // 1
+at(lst 1).b            // 2
 ```
+
+Note: `[]` is reserved for flowtran flowgraph syntax and is not a
+subscript operator. Use `at(lst n)` to index into a list.
 
 For a **singleton list** (one attrlist), a trailing `,` inside `{}` is
 required to force the parser to produce a list rather than a bare attrlist:
 
 ```
 lst={(:a 4),}          // 1-element list, size(lst)==1
-lst[0].a               // 4
+at(lst 0).a            // 4
 ```
 
 Without the trailing comma, `{(:a 4)}` passes the attrlist through
 unwrapped — the `{}` adds nothing for a single non-list value.
 
-The serializer (`print(:str)`) emits the trailing comma automatically
-for singleton lists, so `print(:str)`/`run(:str)` round-trips correctly:
+The serializer (`print()`) emits the trailing comma automatically
+for singleton lists, so `print()`/`run()` round-trips correctly:
 
 ```
-s=print(:str lst)      // produces "{(:a 4),}"
-lst2=run(:str s)       // recovers the 1-element list
-lst2[0].a              // 4
+s=print(lst :str)      // produces "{(:a 4),}"
+lst2=run(s :str)       // recovers the 1-element list
+at(lst2 0).a           // 4
 ```
 
 ## Strings
@@ -415,28 +470,95 @@ Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
 
 ## Streams
 
-A stream is a sequence of values produced and consumed one at a time, rather than all at once. Unlike a list which holds all its values in memory, a stream yields the next value only when asked — via `next()` or `each()`. This makes streams suitable for processing large or unbounded sequences without materializing the whole thing.
+Streams are lazy — values are produced and consumed one at a time,
+rather than all at once. Unlike a list which holds all its values in
+memory, a stream yields the next value only when asked. This makes
+streams suitable for processing large or unbounded sequences without
+materializing the whole thing.
 
 The streaming algebra:
 
 ```
-s=$$(1,2,3,4,5)    // create stream
+s=$$(1,2,3,4,5)    // create stream from list
 l=$s                // collect stream into list
 s1,,s2              // concatenate two streams
 next(s)             // pull next value, nil when exhausted
 each(s)             // traverse stream, return count
+1..5                // range stream: 1,2,3,4,5
+3**5                // repeat stream: 3,3,3,3,3
 ```
 
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
-Drive a loop with `next`:
+### Scalar overdrive
+
+A stream on either side of a scalar operator vectorizes it — the
+operator is applied once per element, producing a stream of results.
+This is the core design intent: streams overdrive scalar operations
+without the scalar operator knowing anything about streams.
+
+```
+list((2..4)*5)         // {10,15,20}  -- scaled ramp
+list(100-(100..0))     // {0,1,...,100} -- inverted ramp
+list((1..5)+10)        // {11,12,13,14,15}
+list((1..5)*10)        // {10,20,30,40,50}
+list(0**5+1)           // {1,1,1,1,1}
+```
+
+Parameterized ramp — the `setbuf` pattern:
+
+```
+a=0; b=10; c=1000
+ss=(a..b)+c            // lazy -- not yet consumed
+list(ss)               // {1000,1001,...,1010}
+```
+
+### Two-stream binary ops zip element-wise
+
+When both operands are streams, the operator is applied pairwise —
+not a cross-product:
+
+```
+list((1..3)+(10..12))  // {11,13,15}  -- zipped add
+list((1..3)*(1..3))    // {1,4,9}     -- element-wise multiply (squares)
+```
+
+### Streams are single-pass
+
+A stream is exhausted after consumption. `next()` returns `nil` on an
+exhausted stream. Reassign to replay:
+
+```
+ss=(1..5)*2
+list(ss)               // {2,4,6,8,10} -- consumed
+next(ss)               // nil -- exhausted
+ss=(1..5)*2            // reassign to replay
+```
+
+### String concatenation with streams
+
+`+` between a string and an integer stream produces char codes, not
+digit strings. Use `str()` to convert:
+
+```
+list("node"+(1..3))        // {"node\001","node\002","node\003"} -- char codes
+list("node"+str(1..3))     // observe -- str() over a stream
+```
+
+### next() as escape hatch
+
+When stream algebra coordination is too complex to model at parse or
+runtime, `next()`/`while` always works:
 
 ```
 total=0
 s=$$(1,2,3,4,5)
 while((v=next(s))!=nil
-  total=total+v)
+  total=total+v)            // total==15
 ```
+
+This is the reliable fallback when operator-level stream driving doesn't
+coordinate as expected.
 
 ## Running Scripts
 
@@ -464,10 +586,12 @@ print("fmt" val [val...] :str)     // print to string and return it
 print("fmt" val [val...] :err)     // print to stderr
 ```
 
-Format verbs: %v (any value), %d %i %u %o %x %X (integer),
-%f %e %E %g %G (float), %s (string), %c (char).
-
-Use \% for a literal percent sign. %% is not supported
+Format verbs: `%v` (any value), `%d` `%i` (decimal int), `%u` (unsigned int),
+`%o` (octal int), `%x` `%X` (hex int lower/upper), `%f` (decimal float),
+`%e` `%E` (scientific float), `%g` `%G` (shorter of `%e`/`%f`),
+`%s` (string), `%c` (char). `%v` is a ComTerp extension; all others are
+standard C `printf` verbs passed through to the underlying C library.
+Use `\%` for a literal percent sign — `%%` is not supported.
 
 ## Conventions for .comt Scripts
 

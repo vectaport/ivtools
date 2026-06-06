@@ -152,6 +152,28 @@ These conventions apply to all `.comt` test scripts:
 - Scripts return `ok` as the last expression for use by `run_all.comt`
 - Sub-scripts (e.g. `return_sub1.comt`) are not subject to coverage measurement
 
+### Test label convention
+
+The print label for each test should show the actual ComTerp expression
+being tested, not just a prose description. This makes the test output
+self-documenting — reading the log is another way to learn the language:
+
+```
+// good -- shows the expression
+print("14 list((2..4)*5) (expect {10,15,20}): %v\n" result)
+
+// avoid -- prose description only
+print("14 scaled ramp multiply (expect {10,15,20}): %v\n" result)
+```
+
+For multi-line expressions, show the key expression and summarize the
+setup in the comment above:
+
+```
+// s=$$(1,2,3,4,5)
+print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
+```
+
 ## Adding Coverage
 
 To improve coverage on an existing script:
@@ -168,54 +190,16 @@ To add a new test script:
 3. Enumerate slots from the taxonomy above
 4. Write tests, add the coverage header, add the script to `run_all.comt`
 
-## Layered Test Hierarchy
-
-The test suite mirrors the library layer hierarchy. Each layer has its
-own tests directory and its own `run_all.comt`. Tests at a given layer
-use only the interpreter and functions available at that layer — they
-do not reach up into higher layers.
-
-| Layer    | Directory                   | Interpreter | Example functions |
-|----------|-----------------------------|-------------|-------------------|
-| ComTerp  | `src/comterp_/tests/`       | `comterp`   | all core language, math, string, stream, global |
-| DrawServ | `src/drawserv_/tests/`      | `drawserv`  | `sid()`, `select()`, `drawlink()`, distributed commands |
-
-DrawServ tests use the `drawmo` orchestrator script which launches live
-`drawserv` instances and exercises them via `remote()`. They are
-integration tests, not unit tests — they require a display and manage
-process lifecycle.
-
-**Rule:** if a function is only registered at a higher layer, its tests
-belong there. `sid()` is DrawServ-only; testing it in a comterp script
-will fail with "unknown command". Use `print(:str)`/`run(:str)` for
-serialization round-trip tests at the ComTerp layer instead.
-
-## Serialization Testing at the ComTerp Layer
-
-`print(:str val)` serializes any value via `operator<<` in brief mode —
-the same path used by `sid()` and wire protocol output. `run(:str s)`
-evaluates the string back. Together they form the round-trip test
-available in pure ComTerp:
-
-```
-s=print(lst :str)      // serialize
-lst2=run(s :str)       // deserialize
-ok=ok&&(at(lst2 0).a==4)  // assert round-trip
-```
-
-This is the canonical approach for testing serialization in
-`src/comterp_/tests/` scripts.
-
 ## Current Coverage Summary
 
-| script        | funcs                                          | slots   | covered | total |  %  |
-|---------------|------------------------------------------------|---------|---------|-------|-----|
-| hello.comt    | (smoke test only)                              | —       |       — |     — |  —  |
-| return.comt   | return func if for while run                   | 1-10,11 |      34 |    50 | 68% |
-| stream.comt   | $$ $ ,, next each size                         | 1-10    |      24 |    34 | 71% |
-| string.comt   | index substr split join eq size print(+:str) + | 1-10,11 |      78 |    97 | 80% |
-| global.comt   | global                                         | 1-10,11 |      13 |    14 | 93% |
-| attrlist.comt | dot list(:attr) attrlist at size attrname attrval + - | 1-10 | 42 |    55 | 76% |
-| print.comt    | print                                          | 1-9     |      22 |    35 | 63% |
-| parser.comt   | attrlist(:literal) errmsg postfix class type   | 1-9     |      24 |    38 | 63% |
-| random.comt   | all of the above                               | 12      |      24 |    24 |100% |
+| script        | funcs                                                        | slots   | covered | total |  %  |
+|---------------|--------------------------------------------------------------|---------|---------|-------|-----|
+| hello.comt    | (smoke test only)                                            | —       |       — |     — |  —  |
+| return.comt   | return func if for while run                                 | 1-10,11 |      34 |    50 | 68% |
+| stream.comt   | $$ $ ,, next each size .. **                                 | 1-10    |      46 |    50 | 92% |
+| string.comt   | index substr split join eq size print(+:str) +               | 1-10,11 |      78 |    97 | 80% |
+| global.comt   | global                                                       | 1-10,11 |      13 |    14 | 93% |
+| attrlist.comt | dot list(:attr) attrlist at size attrname attrval + -        | 1-10    |      42 |    55 | 76% |
+| print.comt    | print                                                        | 1-9     |      22 |    35 | 63% |
+| parser.comt   | attrlist(:literal) errmsg postfix class type                 | 1-9     |      28 |    38 | 74% |
+| random.comt   | (slot 12 stress: all funcs from return/stream/string/global) | 12      |      24 |    24 |100% |

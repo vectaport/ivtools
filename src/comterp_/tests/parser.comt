@@ -1,9 +1,9 @@
 // src/comterp_/tests/parser.comt -- test attrlist literal syntax and parser errors
 //
-// coverage: 24/38 (63%)
+// coverage: 28/38 (74%)
 // funcs: attrlist(:literal) errmsg postfix class type
-// missing: errmsg(:cnt) errmsg(:num) postfix(return-value) type(non-object)
-//          class(non-object) ~type(list) ~type(stream)
+// missing: errmsg(:cnt) errmsg(:num) type(non-object) class(non-object)
+//          ~type(list) ~type(stream)
 //
 // Tests the attrlist literal syntax (:key val) introduced in ivtools 2.2,
 // and errmsg() for retrieving parser error messages.
@@ -22,42 +22,42 @@ al=(:a 1 :b 2)
 ok=ok&&(al!=nil)
 ok=ok&&(al.a==1)
 ok=ok&&(al.b==2)
-print("1 attrlist literal (expect a=1 b=2): %v %v\n" al.a al.b)
+print("1 al=(:a 1 :b 2); al.a al.b attrlist literal (expect a=1 b=2): %v %v\n" al.a al.b)
 prev_ok=check_fail(:ok ok)
 
 // --- test 2a: literal identical postfix to attrlist() ---
 al1=(:a 11 :b 22)
 al2=attrlist(:a 11 :b 22)
 ok=ok&&(al1.a==al2.a)
-print("2a literal same as attrlist() (expect 11==11): %v %v\n" al1.a al2.a)
+print("2a (:a 11 :b 22).a == attrlist(:a 11 :b 22).a (expect 11==11): %v %v\n" al1.a al2.a)
 prev_ok=check_fail(:ok ok)
 
 // --- test 2b: type of literal matches type of ObjectType() ---
 ok=ok&&(type((:a 1))==type(attrlist(:a 1)))
-print("2b literal type matches attrlist() (expect ObjectType): %v\n" type((:a 1)))
+print("2b type((:a 1)) == type(attrlist(:a 1)) (expect ObjectType): %v\n" type((:a 1)))
 prev_ok=check_fail(:ok ok)
 
 // --- test 2c: class of literal matches class of attrlist() ---
 ok=ok&&(class((:a 1))==class(attrlist(:a 1)))
-print("2b literal class matches attrlist() (expect AttributeList): %v\n" class((:a 1)))
+print("2c class((:a 1)) == class(attrlist(:a 1)) (expect AttributeList): %v\n" class((:a 1)))
 prev_ok=check_fail(:ok ok)
 
 // --- test 3: keyword-only in literal sets true ---
 al=(:flag)
 ok=ok&&(al.flag==true)
-print("3 keyword-only literal (expect true): %v\n" al.flag)
+print("3 (:flag).flag keyword-only literal (expect true): %v\n" al.flag)
 prev_ok=check_fail(:ok ok)
 
 // --- test 4: list of attrlist literals ---
 all=(:a 1 :b 2),(:c 3 :d 4)
 ok=ok&&(size(all)==2)
-print("4 list of attrlist literals (expect size 2): %v\n" size(all))
+print("4 size((:a 1 :b 2),(:c 3 :d 4)) list of attrlist literals (expect 2): %v\n" size(all))
 prev_ok=check_fail(:ok ok)
 
 // --- test 5: plain parens still work as grouping ---
 v=(1+2)*3
 ok=ok&&(v==9)
-print("5 plain parens still group (expect 9): %v\n" v)
+print("5 (1+2)*3 plain parens group (expect 9): %v\n" v)
 prev_ok=check_fail(:ok ok)
 
 // --- test 6: value before keyword in bare parens errors ---
@@ -65,14 +65,14 @@ prev_ok=check_fail(:ok ok)
 (4 :x 7)
 e=errmsg(:last)
 ok=ok&&(index(e "attribute literal")!=nil)
-print("6 value before keyword errors (expect error msg): %v\n" e)
+print("6 (4 :x 7) value before keyword errors (expect error msg): %v\n" e)
 prev_ok=check_fail(:ok ok)
 
 // --- test 7: errmsg(:last) returns nil when no error ---
 (:a 1)
 e=errmsg(:last)
 ok=true
-print("7 errmsg(:last) nil after success (expect nil): %v\n" e)
+print("7 (:a 1); errmsg(:last) nil after success (expect nil): %v\n" e)
 prev_ok=check_fail(:ok ok)
 
 // --- test 8: errmsg(:last) clears after retrieval ---
@@ -81,7 +81,7 @@ e1=errmsg(:last)
 e2=errmsg(:last)
 ok=ok&&(e1!=nil)
 ok=ok&&(e2==nil)
-print("8 errmsg(:last) clears after retrieval (expect non-nil then nil): %v %v\n" e1 e2)
+print("8 errmsg(:last) then errmsg(:last) clears after retrieval (expect non-nil nil): %v %v\n" e1 e2)
 prev_ok=check_fail(:ok ok)
 
 // --- test 9: errmsg(:keep) does not clear ---
@@ -90,13 +90,15 @@ e1=errmsg(:keep)
 e2=errmsg(:last)
 ok=ok&&(e1!=nil)
 ok=ok&&(e2!=nil)
-print("9 errmsg(:keep) preserves (expect both non-nil): %v %v\n" (e1!=nil) (e2!=nil))
+print("9 errmsg(:keep) then errmsg(:last) preserves (expect both non-nil): %v %v\n" (e1!=nil) (e2!=nil))
 prev_ok=check_fail(:ok ok)
 
-// --- test 10: postfix shows attrlist literal token stream ---
-// postfix((:a 1 :b 2)) should show: 1 :a(1) 2 :b(1) attrlist[2|2]
-ok=true
-print("10 postfix((:a 1 :b 2)) verified manually: 1 :a(1) 2 :b(1) attrlist[2|2]\n")
+// --- test 10: postfix returns attrlist literal token stream as string ---
+s=postfix((:a 1 :b 2))
+ok=ok&&(index(s "attrlist")!=nil)
+ok=ok&&(index(s ":a")!=nil)
+ok=ok&&(index(s ":b")!=nil)
+print("10 postfix((:a 1 :b 2)) contains attrlist :a :b (expect true): %v\n" s)
 prev_ok=check_fail(:ok ok)
 
 // --- test 11: singleton list with trailing comma round-trips as list ---
@@ -106,7 +108,7 @@ lst={(:a 4),}
 ok=ok&&(lst!=nil)
 ok=ok&&(type(lst)==type(list()))
 ok=ok&&(size(lst)==1)
-print("11 singleton list {(:a 4),} is a list of size 1 (expect 1): %v\n" size(lst))
+print("11 size({(:a 4),}) singleton list (expect 1): %v\n" size(lst))
 prev_ok=check_fail(:ok ok)
 
 // --- test 12: element of singleton list is an attrlist ---
@@ -114,7 +116,7 @@ lst={(:a 4),}
 el=at(lst 0)
 ok=ok&&(type(el)==type(attrlist()))
 ok=ok&&(el.a==4)
-print("12 element of at({(:a 4),} 0) is attrlist with .a==4 (expect 4): %v\n" el.a)
+print("12 at({(:a 4),} 0).a singleton element (expect 4): %v\n" el.a)
 prev_ok=check_fail(:ok ok)
 
 // --- test 13: multi-element list of attrlists ---
@@ -122,7 +124,7 @@ lst=(:a 1),(:b 2)
 ok=ok&&(size(lst)==2)
 ok=ok&&(at(lst 0).a==1)
 ok=ok&&(at(lst 1).b==2)
-print("13 two-element list of attrlists (expect 1 2): %v %v\n" at(lst 0).a at(lst 1).b)
+print("13 at(((:a 1),(:b 2)) 0).a at(...1).b (expect 1 2): %v %v\n" at(lst 0).a at(lst 1).b)
 prev_ok=check_fail(:ok ok)
 
 // --- test 14: serialization of singleton list has trailing comma ---
@@ -132,7 +134,7 @@ prev_ok=check_fail(:ok ok)
 lst={(:a 4),}
 s=print(lst :str)
 ok=ok&&(index(s ",}")!=nil)
-print("14 print(:str) of singleton list contains trailing comma (expect ,}): %v\n" s)
+print("14 print({(:a 4),} :str) contains trailing comma (expect ,}): %v\n" s)
 prev_ok=check_fail(:ok ok)
 
 // --- test 15: print(:str)/run(:str) round-trip of singleton list ---
@@ -143,17 +145,20 @@ lst2=run(s :str)
 ok=ok&&(type(lst2)==type(list()))
 ok=ok&&(size(lst2)==1)
 ok=ok&&(at(lst2 0).a==4)
-print("15 print(:str)/run(:str) round-trip singleton list (expect 4): %v\n" at(lst2 0).a)
+print("15 at(run(print({(:a 4),} :str) :str) 0).a round-trip (expect 4): %v\n" at(lst2 0).a)
 prev_ok=check_fail(:ok ok)
 
-// --- test 16: explore [] vs at() -- [] is flowtran syntax, not subscript ---
-// postfix shows what [] actually parses to
-print("16a postfix of at(lst 0) (observe token stream):\n")
-postfix(at(lst 0))
-print("\n")
+// --- test 16: [] is flowtran syntax not subscript -- at() is the list indexer ---
+// postfix now returns a string so we can assert on token stream content
+s=postfix(at(lst 0))
+ok=ok&&(index(s "at")!=nil)
+print("16a postfix of at(lst 0) contains 'at' (expect true): %v\n" s)
+prev_ok=check_fail(:ok ok)
 lst={(:a 4),}
 v1=at(lst 0)
-print("16b at(lst 0) gives (expect attrlist): %v  type: %v\n" v1 type(v1))
+ok=ok&&(type(v1)==type(attrlist()))
+print("16b at(lst 0) type (expect ObjectType): %v\n" type(v1))
+prev_ok=check_fail(:ok ok)
 
 // --- test 17: type of at() element and dot access ---
 lst={(:a 4),}
