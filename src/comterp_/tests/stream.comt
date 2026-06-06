@@ -103,10 +103,10 @@ print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
 prev_ok=check_fail(:ok ok)
 
 // --- test 11: each($$(100,200,300,400,500)) ---
-s=$$(100,200,300,400,500)
+s=$$(1..5)*100
 n=each(s)
 ok=ok&&(n==5)
-print("11 each($$(100..500 step 100)) (expect 5): %v\n" n)
+print("11 each($$(1..5)**100) (expect 5): %v\n" n)
 prev_ok=check_fail(:ok ok)
 
 // --- test 12: $$() empty stream -- deferred ---
