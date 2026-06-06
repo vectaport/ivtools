@@ -202,4 +202,5 @@ To add a new test script:
 | attrlist.comt | dot list(:attr) attrlist at size attrname attrval + -        | 1-10    |      42 |    55 | 76% |
 | print.comt    | print                                                        | 1-9     |      22 |    35 | 63% |
 | parser.comt   | attrlist(:literal) errmsg postfix class type                 | 1-9     |      28 |    38 | 74% |
+| symbol.comt   | ` symadd symid symbol symstr symval symvar strref eq(:sym) lt gt switch cond | 1-9 |  36 |    42 | 86% |
 | random.comt   | (slot 12 stress: all funcs from return/stream/string/global) | 12      |      24 |    24 |100% |

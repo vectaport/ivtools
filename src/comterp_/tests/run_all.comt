@@ -37,5 +37,9 @@ if(run("./parser.comt")
   :then print("pass: parser\n")
   :else print("FAIL: parser\n");ok=false)
 
+if(run("./symbol.comt")
+  :then print("pass: symbol\n")
+  :else print("FAIL: symbol\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok
