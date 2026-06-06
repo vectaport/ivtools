@@ -102,11 +102,11 @@ ok=ok&&(total==15)
 print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
 prev_ok=check_fail(:ok ok)
 
-// --- test 11: each($$(100,200,300,400,500)) ---
+// --- test 11: each($$(1..5)*100) ---
 s=$$(1..5)*100
 n=each(s)
 ok=ok&&(n==5)
-print("11 each($$(1..5)**100) (expect 5): %v\n" n)
+print("11 each($$(1..5)*100) (expect 5): %v\n" n)
 prev_ok=check_fail(:ok ok)
 
 // --- test 12: $$() empty stream -- deferred ---
@@ -257,12 +257,13 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 33: string+range via next/while -- str() not stream-aware ---
 // "node"+(1..3) gives char codes not digit strings
+// use , (tuple) to accumulate -- list() only wraps its first arg, doesn't append
 s=1..3
 result=list()
 while((v=next(s))!=nil
   result=result,"node"+print(v :str))
 ok=ok&&(result=="node1","node2","node3")
-print("33 \"node\"+str(v) via next/while (expect \"node1\",\"node2\",\"node3\"): %v\n" result)
+print("33 result=result,\"node\"+print(v :str) (expect {node1,node2,node3}): %v\n" result)
 prev_ok=check_fail(:ok ok)
 
 // --- stream copy tests ---
