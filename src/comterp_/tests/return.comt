@@ -24,35 +24,35 @@ ok=true
 // --- test 1: return with value ---
 val=run("./return_sub1.comt")
 ok=ok&&(val==42)
-print("1 return with value (expect 42): %v\n\n" val)
+print("1 run(\"./return_sub1.comt\") return with value (expect 42): %v\n\n" val)
 check_fail(:ok ok)
 
 // --- test 2: return with no value returns blank ---
 val=run("./return_sub2.comt")
 ok=ok&&(type(val)==`BlankType)
-print("2 return no value (expect nil/blank): %v\n\n" type(val))
+print("2 run(\"./return_sub2.comt\") return no value (expect nil/blank): %v\n\n" type(val))
 check_fail(:ok ok)
 
 // --- test 3: return from inside a for loop ---
 val=run("./return_sub3.comt")
 ok=ok&&(val==3)
-print("3 return from for loop (expect 3): %v\n\n" val)
+print("3 run(\"./return_sub3.comt\") return from for loop (expect 3): %v\n\n" val)
 check_fail(:ok ok)
 
 // --- test 4: return from inside a while loop ---
 val=run("./return_sub4.comt")
 ok=ok&&(val==7)
-print("4 return from while loop (expect 7): %v\n\n" val)
+print("4 run(\"./return_sub4.comt\") return from while loop (expect 7): %v\n\n" val)
 check_fail(:ok ok)
 
 // --- test 5: return from user-defined func ---
 f=func(if(x>5 :then return(x*2)))
 v=f(:x 6)
 ok=ok&&(v==12)
-print("5a func return early (expect 12): %v\n" v)
+print("5a f=func(if(x>5 :then return(x*2))); f(:x 6) early return (expect 12): %v\n" v)
 v=f(:x 3)
 ok=ok&&(v==nil||v==0)
-print("5b func no early return (expect nil/blank): %v\n\n" v)
+print("5b f(:x 3) no early return (expect nil/blank): %v\n\n" v)
 check_fail(:ok ok)
 
 // --- slot 10: while() keyword compatibility group tests ---
@@ -62,21 +62,21 @@ s=list(1,2,3,nil,5)
 i=0
 while((v=at(s i)) (i=i+1) :nilchk)
 ok=ok&&(i==3)
-print("6 while :nilchk stops on nil (expect i=3): %v\n\n" i)
+print("6 while(at(s i) (i=i+1) :nilchk) stops on nil (expect i=3): %v\n\n" i)
 check_fail(:ok ok)
 
 // --- test 7: while :until -- run body first, stop when testexpr true ---
 i=0
 while(i>=3 (i=i+1) :until)
 ok=ok&&(i==3)
-print("7 while :until (expect i=3): %v\n\n" i)
+print("7 while(i>=3 (i=i+1) :until) runs body first (expect i=3): %v\n\n" i)
 check_fail(:ok ok)
 
 // --- test 8: while :body -- return body expression value ---
 i=0
 r=while(i<3 (i=i+1) :body)
 ok=ok&&(r==3)
-print("8 while :body returns body value (expect 3): %v\n\n" r)
+print("8 r=while(i<3 (i=i+1) :body) returns body value (expect 3): %v\n\n" r)
 check_fail(:ok ok)
 
 // --- test 9: while :nilchk+:until ---
@@ -84,7 +84,7 @@ s=list(1,2,3,nil,5)
 i=0
 while(at(s i) (i=i+1) :nilchk :until)
 ok=ok&&(i==3)
-print("9 while :nilchk+:until (expect i=3): %v\n\n" i)
+print("9 while(at(s i) (i=i+1) :nilchk :until) (expect i=3): %v\n\n" i)
 check_fail(:ok ok)
 
 // --- test 10: while :nilchk+:body ---
@@ -92,14 +92,14 @@ s=list(1,2,3,nil,5)
 i=0
 r=while((v=at(s i)) (i=i+1) :nilchk :body)
 ok=ok&&(i==3)
-print("10 while :nilchk+:body (expect i=3): %v\n\n" i)
+print("10 while((v=at(s i)) (i=i+1) :nilchk :body) (expect i=3): %v\n\n" i)
 check_fail(:ok ok)
 
 // --- test 11: while :until+:body ---
 i=0
 r=while(i>=3 (i=i+1) :until :body)
 ok=ok&&(i==3)
-print("11 while :until+:body (expect i=3): %v\n\n" i)
+print("11 while(i>=3 (i=i+1) :until :body) (expect i=3): %v\n\n" i)
 check_fail(:ok ok)
 
 // --- test 12: while :nilchk+:until+:body ---
@@ -107,7 +107,7 @@ s=list(1,2,3,nil,5)
 i=0
 r=while(at(s i) (i=i+1) :nilchk :until :body)
 ok=ok&&(i==3)
-print("12 while :nilchk+:until+:body (expect i=3): %v\n\n" i)
+print("12 while(at(s i) (i=i+1) :nilchk :until :body) (expect i=3): %v\n\n" i)
 check_fail(:ok ok)
 
 print("\nreturn: %v\n" ok)

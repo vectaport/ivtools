@@ -1,9 +1,9 @@
 // src/comterp_/tests/stream.comt -- test streaming operators and commands
 //
-// coverage: 24/34 (71%)
-// funcs: $$ $ ,, next each size
-// missing: $(attrlist) size(attrlist,compview)
-//          ,,->next ,,->each next->if
+// coverage: 46/50 (92%)
+// funcs: $$ $ ,, next each size .. **
+// missing: str()->(stream) -- str() not stream-aware (test 33 deferred)
+//          $(attrlist) size(attrlist,compview)
 //          !,,(empty-stream -- bug #46)
 //          !next(:skim -- bug #45)
 //
@@ -11,8 +11,9 @@
 //   next(:skim) -- single keyword, no combinations; excluded due to bug #45
 //   all other funcs have no keywords
 //
-// Tests: $ (stream), $$ (list), ,, (stream concat), next(), each()
-// and their interactions with tuple , operator and list structures.
+// Tests: $$ $ ,, next() each() .. ** and their interactions.
+// Also tests streams overdriving scalar operators (implicit vectorization),
+// stream copying via $$, and position-preserving copy semantics.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream.comt")
@@ -20,118 +21,303 @@
 run("./testlib.comt")
 ok=true
 
-// --- test 1: basic $ stream from list ---
+// --- test 1: l=(1,2,3,4,5); $($$(l)) ---
 l=(1,2,3,4,5)
 s=$$l
 l2=$s
 ok=ok&&(l2==(1,2,3,4,5))
-print("1 stream->list round-trip (expect {1,2,3,4,5}): %v\n" l2)
+print("1 l=(1,2,3,4,5); $($$(l)) (expect {1,2,3,4,5}): %v\n" l2)
 check_fail(:ok ok)
 
-// --- test 2: round-trip list->stream->list ---
+// --- test 2: $($$(10,20,30)) ---
 l3=$($$(10,20,30))
 ok=ok&&(l3==(10,20,30))
-print("2 round-trip (expect {10,20,30}): %v\n" l3)
+print("2 $($$(10,20,30)) (expect {10,20,30}): %v\n" l3)
 prev_ok=check_fail(:ok ok)
 
-// --- test 3: next() pull one at a time ---
+// --- test 3: s=$$(1,2,3); next(s) x4 ---
 s=$$(1,2,3)
 v=next(s)
 ok=ok&&(v==1)
-print("3a next (expect 1): %v\n" v)
+print("3a s=$$(1,2,3); next(s) (expect 1): %v\n" v)
 v=next(s)
 ok=ok&&(v==2)
-print("3b next (expect 2): %v\n" v)
+print("3b next(s) (expect 2): %v\n" v)
 v=next(s)
 ok=ok&&(v==3)
-print("3c next (expect 3): %v\n" v)
+print("3c next(s) (expect 3): %v\n" v)
 v=next(s)
 ok=ok&&(v==nil)
-print("3d next exhausted (expect nil): %v\n" v)
+print("3d next(s) exhausted (expect nil): %v\n" v)
 prev_ok=check_fail(:ok ok)
 
-// --- test 4: each() traversal returns count ---
+// --- test 4: s=$$(10,20,30,40); each(s) ---
 s=$$(10,20,30,40)
 cnt=each(s)
 ok=ok&&(cnt==4)
-print("4 each count (expect 4): %v\n" cnt)
+print("4 each($$(10,20,30,40)) (expect 4): %v\n" cnt)
 prev_ok=check_fail(:ok ok)
 
-// --- test 5: ,, stream concat ---
+// --- test 5: $($$(1,2,3),,$$(4,5,6)) ---
 s1=$$(1,2,3)
 s2=$$(4,5,6)
-l5=$( s1,,s2)
+l5=$(s1,,s2)
 ok=ok&&(l5==(1,2,3,4,5,6))
-print("5 concat stream (expect {1,2,3,4,5,6}): %v\n" l5)
+print("5 $($$(1,2,3),,$$(4,5,6)) (expect {1,2,3,4,5,6}): %v\n" l5)
 prev_ok=check_fail(:ok ok)
 
-// --- test 6: ,, concat three ---
-l6=$( ($$( 1,2)),,($$( 3,4)),,($$( 5,6)))
+// --- test 6: $($$( 1,2),, $$(3,4),,$$(5,6)) ---
+l6=$(($$( 1,2)),,($$( 3,4)),,($$( 5,6)))
 ok=ok&&(l6==(1,2,3,4,5,6))
-print("6 triple concat (expect {1,2,3,4,5,6}): %v\n" l6)
+print("6 triple ,, concat (expect {1,2,3,4,5,6}): %v\n" l6)
 prev_ok=check_fail(:ok ok)
 
-// --- test 7: stream of tuples ---
+// --- test 7: stream of tuples via next() ---
 l=(1,2,3),(4,5,6),(7,8,9)
 s=$$l
 v=next(s)
 ok=ok&&(v==(1,2,3))
-print("7a first tuple (expect {1,2,3}): %v\n" v)
+print("7a s=$$((1,2,3),(4,5,6),(7,8,9)); next(s) (expect {1,2,3}): %v\n" v)
 v=next(s)
 ok=ok&&(v==(4,5,6))
-print("7b second tuple (expect {4,5,6}): %v\n" v)
+print("7b next(s) (expect {4,5,6}): %v\n" v)
 prev_ok=check_fail(:ok ok)
 
-// --- test 8: $$ collects stream of tuples ---
+// --- test 8: size($($$((10,20),(30,40),(50,60)))) ---
 l=(10,20),(30,40),(50,60)
 result=$($$l)
 ok=ok&&(size(result)==3)
-print("8 list of tuples size (expect 3): %v\n" size(result))
+print("8 size($($$(tuples))) (expect 3): %v\n" size(result))
 prev_ok=check_fail(:ok ok)
 
-// --- test 9: next() with :skim on nested streams ---
+// --- test 9: next(:skim) -- deferred ---
 print("9 ERROR: next(:skim) bug to investigate - ivtools issue #45\n")
-/*
-inner=$$(1,2,3)
-outer=$$(inner,(4,5,6))
-v=next(outer :skim)
-ok=ok&&(v!=nil)
-print("9a skim top level (expect non-nil): %v\n" v)
-v=next(outer :skim)
-ok=ok&&(v==(4,5,6))
-print("9b skim second (expect {4,5,6}): %v\n" v)
-*/
 
-// --- test 10: sum via next/while ---
+// --- test 10: total=0; while((v=next($$(1,2,3,4,5)))!=nil total=total+v) ---
 total=0
 s=$$(1,2,3,4,5)
 while((v=next(s))!=nil
   total=total+v)
 ok=ok&&(total==15)
-print("10 sum via next/while (expect 15): %v\n" total)
+print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
 prev_ok=check_fail(:ok ok)
 
-// --- test 11: stream length via each() ---
-s=$$(100,200,300,400,500)
+// --- test 11: each($$(1..5)*100) ---
+s=$$(1..5)*100
 n=each(s)
 ok=ok&&(n==5)
-print("11 stream length (expect 5): %v\n" n)
+print("11 each($$(1..5)*100) (expect 5): %v\n" n)
 prev_ok=check_fail(:ok ok)
 
-// --- test 12: ,, concat empty and non-empty ---
+// --- test 12: $$() empty stream -- deferred ---
 print("12 ERROR: empty list bug to investigate, $$() - ivtools issue #46\n")
-/*
-l12=$( ($$()),,($$( 1,2,3)))
-ok=ok&&(size(l12)==3)
-print("12 concat empty+list size (expect 3): %v\n" size(l12))
-*/
 
-// --- test 13: nested $$ and $ cancel out ---
+// --- test 13: $($$($($$l))) nested cancel ---
 l=(1,2,3)
 result=$($$( $($$l)))
 ok=ok&&(result==(1,2,3))
-print("13 nested round-trip (expect {1,2,3}): %v\n" result)
+print("13 $($$( $($$l))) nested cancel (expect {1,2,3}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- scalar overdrive: streams vectorize scalar operators ---
+
+// --- test 14: list((2..4)*5) -- scaled ramp ---
+result=list((2..4)*5)
+ok=ok&&(result==(10,15,20))
+print("14 list((2..4)*5) (expect {10,15,20}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: list(100-(100..0)) -- inverted ramp ---
+result=list(100-(100..0))
+ok=ok&&(size(result)==101)
+ok=ok&&(at(result 0)==0)
+ok=ok&&(at(result 100)==100)
+print("15 size(list(100-(100..0))) (expect 101): %v\n" size(result))
+print("15 at(result 0) (expect 0): %v  at(result 100) (expect 100): %v\n" at(result 0) at(result 100))
+prev_ok=check_fail(:ok ok)
+
+// --- test 16: list((1..5)+10) ---
+result=list((1..5)+10)
+ok=ok&&(result==(11,12,13,14,15))
+print("16 list((1..5)+10) (expect {11,12,13,14,15}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 17: squares via next/while -- escape hatch ---
+s=$$(1,2,3,4,5)
+result=list()
+while((v=next(s))!=nil
+  result=list(result,v*v))
+ok=ok&&(at(result 0)==1)
+ok=ok&&(at(result 4)==25)
+print("17 while(v=next(s)) result=list(result v*v) (expect {1,4,9,16,25}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: $($$("a","b","c")+"_suffix") -- string overdrive ---
+result=$($$( "a","b","c")+"_suffix")
+ok=ok&&(size(result)==3)
+print("18 $($$( \"a\",\"b\",\"c\")+\"_suffix\") (expect 3 strings): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: list(1..5) -- inclusive bounds ---
+result=list(1..5)
+ok=ok&&(result==(1,2,3,4,5))
+print("19 list(1..5) (expect {1,2,3,4,5}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 20: list((1..5)*10) ---
+result=list((1..5)*10)
+ok=ok&&(result==(10,20,30,40,50))
+print("20 list((1..5)*10) (expect {10,20,30,40,50}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: list(3**5) -- repeat ---
+result=list(3**5)
+ok=ok&&(result==(3,3,3,3,3))
+print("21 list(3**5) (expect {3,3,3,3,3}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 22: $list(attrname($$al)) -- attrlist stream ---
+al=(:a 1 :b 2 :c 3)
+keys=$list(attrname($$al))
+vals=$list(attrval($$al))
+ok=ok&&(size(keys)==3)
+ok=ok&&(size(vals)==3)
+print("22 $list(attrname($$(:a 1 :b 2 :c 3))) (observe reverse order): %v\n" keys)
+print("22 $list(attrval($$(:a 1 :b 2 :c 3))) (observe reverse order): %v\n" vals)
+prev_ok=check_fail(:ok ok)
+
+// --- test 23: a=0;b=10;c=1000; list((a..b)+c) -- parameterized ramp ---
+a=0; b=10; c=1000
+ss=(a..b)+c
+result=list(ss)
+ok=ok&&(size(result)==11)
+ok=ok&&(at(result 0)==1000)
+ok=ok&&(at(result 10)==1010)
+print("23 a=0;b=10;c=1000; list((a..b)+c) (expect 1000..1010): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 24: single-pass -- list(ss) then next(ss)==nil ---
+ss=(a..b)+c
+list(ss)
+v=next(ss)
+ok=ok&&(v==nil)
+print("24 list(ss); next(ss) exhausted (expect nil): %v\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 25: list($$(1,2,3)) ---
+result=list($$(1,2,3))
+ok=ok&&(result==(1,2,3))
+print("25 list($$(1,2,3)) (expect {1,2,3}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 26: list((10..14)-1) ---
+result=list((10..14)-1)
+ok=ok&&(result==(9,10,11,12,13))
+print("26 list((10..14)-1) (expect {9,10,11,12,13}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 27: list((10..12)/2) -- integer division ---
+result=list((10..12)/2)
+ok=ok&&(result==(5,5,6))
+print("27 list((10..12)/2) integer div (expect {5,5,6}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 28: list((1..3)+(10..12)) -- two streams zip ---
+result=list((1..3)+(10..12))
+ok=ok&&(result==(11,13,15))
+print("28 list((1..3)+(10..12)) zips (expect {11,13,15}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 29: list(0**5+1) ---
+result=list(0**5+1)
+ok=ok&&(result==(1,1,1,1,1))
+print("29 list(0**5+1) (expect {1,1,1,1,1}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 30: list((1..3)*(1..3)) -- element-wise squares ---
+result=list((1..3)*(1..3))
+ok=ok&&(result==(1,4,9))
+print("30 list((1..3)*(1..3)) element-wise (expect {1,4,9}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 31: list((1..3),,(10..12)) -- ,, of range streams ---
+result=list((1..3),,(10..12))
+ok=ok&&(result==(1,2,3,10,11,12))
+print("31 list((1..3),,(10..12)) (expect {1,2,3,10,11,12}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- test 32: al=(:vals (1..5)); al.vals -- stream as attrlist value ---
+al=(:vals (1..5)+10)
+ok=ok&&(type(al)==`ObjectType && class(al)==`AttributeList)
+n=0;while((v=next(al))!=nil n++;lastvals=v.vals)
+ok=ok&&(n==5 && lastvals==15)
+print("32 al=(:vals (1..5)+10); al.vals (expect StreamObj): %v\n" al.vals)
+print("32 last val in stream (expect 15): %v\n" lastvals)
+prev_ok=check_fail(:ok ok)
+
+// --- test 33: string+range via next/while -- str() not stream-aware ---
+// "node"+(1..3) gives char codes not digit strings
+// use , (tuple) to accumulate -- list() only wraps its first arg, doesn't append
+s=1..3
+result=list()
+while((v=next(s))!=nil
+  result=result,"node"+print(v :str))
+ok=ok&&(result==("node1","node2","node3"))
+print("33 result=result,\"node\"+print(v :str) (expect {node1,node2,node3}): %v\n" result)
+prev_ok=check_fail(:ok ok)
+
+// --- stream copy tests ---
+
+// --- test 34: s2=$$s1; list(s1); next(s2) -- $$ copies at current position ---
+s1=(1..5)
+s2=$$s1
+list(s1)
+v=next(s2)
+ok=ok&&(v==1)
+print("34 s2=$$s1; list(s1); next(s2) (expect 1, copy from start): %v\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 35: s2=$$s1; list(s1); list(s2) -- independent consumption ---
+s1=(1..5)
+s2=$$s1
+r1=list(s1)
+r2=list(s2)
+ok=ok&&(r1==(1,2,3,4,5))
+ok=ok&&(r2==(1,2,3,4,5))
+print("35 s2=$$s1; list(s1) list(s2) independent (expect both {1,2,3,4,5}): %v %v\n" r1 r2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 36: list(s1); s2=$$s1; next(s2) -- $$ of exhausted stream ---
+s1=(1..3)
+list(s1)
+s2=$$s1
+v=next(s2)
+ok=ok&&(v==nil)
+print("36 list(s1); s2=$$s1; next(s2) exhausted (expect nil): %v\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 37: l=list(s1); s2=$$l; list(s2) -- safe copy via materialize ---
+s1=(1..5)
+l=list(s1)
+s2=$$l
+r=list(s2)
+ok=ok&&(r==(1,2,3,4,5))
+print("37 l=list(s1); s2=$$l; list(s2) safe copy (expect {1,2,3,4,5}): %v\n" r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 38: next(s1);next(s1); s2=$$s1 -- copy preserves position ---
+s1=(1..5)
+next(s1)
+next(s1)
+s2=$$s1
+v=next(s2)
+ok=ok&&(v==3)
+v2=next(s1)
+ok=ok&&(v2==3)
+print("38a next(s1);next(s1); s2=$$s1; next(s2) pos preserved (expect 3): %v\n" v)
+print("38b next(s1) original also at 3 (expect 3): %v\n" v2)
 prev_ok=check_fail(:ok ok)
 
 print("stream: %v\n" ok)
 ok
+

@@ -39,8 +39,8 @@ expression evaluated. By convention test scripts return `ok` (a boolean).
 | Type | Example | Notes |
 |------|---------|-------|
 | int | `42` | |
-| float | `3.14` | |
-| double | `3.14` | |
+| float | `float(3.14)` | 32-bit, via float() conversion |
+| double | `3.14` | 64-bit, default for numeric literals |
 | string | `"hello"` | double-quoted |
 | symbol | `` `foo `` | backquote suppresses lookup |
 | char | `'a'` | single-quoted, format with `%c` |
@@ -104,6 +104,63 @@ this works internally.
 Standard arithmetic, comparison, and logical operators work as expected.
 String concatenation uses `+`.
 
+### Precedence Table
+
+Operators are listed highest to lowest priority. RtoL means right-to-left
+associativity. Run `optable()` inside comterp to see the live table.
+
+| Priority | Operator | Command       | Assoc | Type            |
+|----------|----------|---------------|-------|-----------------|
+| 130      | `.`      | dot           | LtoR  | BINARY          |
+| 125      | `` ` ``  | bquote        | RtoL  | UNARY PREFIX    |
+| 110      | `~`      | bit_not       | RtoL  | UNARY PREFIX    |
+| 110      | `--`     | decr_after    | RtoL  | UNARY POSTFIX   |
+| 110      | `--`     | decr          | RtoL  | UNARY PREFIX    |
+| 110      | `-`      | minus         | RtoL  | UNARY PREFIX    |
+| 110      | `++`     | incr_after    | RtoL  | UNARY POSTFIX   |
+| 110      | `++`     | incr          | RtoL  | UNARY PREFIX    |
+| 110      | `!`      | negate        | RtoL  | UNARY PREFIX    |
+| 100      | `$$`     | stream        | RtoL  | UNARY PREFIX    |
+| 90       | `..`     | iterate       | LtoR  | BINARY          |
+| 80       | `**`     | repeat        | LtoR  | BINARY          |
+| 75       | `,,`     | concat        | LtoR  | BINARY          |
+| 70       | `/`      | div           | LtoR  | BINARY          |
+| 70       | `*`      | mpy           | LtoR  | BINARY          |
+| 70       | `%`      | mod           | LtoR  | BINARY          |
+| 60       | `-`      | sub           | LtoR  | BINARY          |
+| 60       | `+`      | add           | LtoR  | BINARY          |
+| 55       | `>>`     | rshift        | LtoR  | BINARY          |
+| 55       | `<<`     | lshift        | LtoR  | BINARY          |
+| 50       | `>=`     | gt_or_eq      | LtoR  | BINARY          |
+| 50       | `>`      | gt            | LtoR  | BINARY          |
+| 50       | `<=`     | lt_or_eq      | LtoR  | BINARY          |
+| 50       | `<`      | lt            | LtoR  | BINARY          |
+| 45       | `==`     | eq            | LtoR  | BINARY          |
+| 45       | `!=`     | not_eq        | LtoR  | BINARY          |
+| 44       | `&`      | bit_and       | LtoR  | BINARY          |
+| 43       | `^`      | bit_xor       | LtoR  | BINARY          |
+| 42       | `\|`     | bit_or        | LtoR  | BINARY          |
+| 41       | `&&`     | and           | LtoR  | BINARY          |
+| 40       | `\|\|`   | or            | LtoR  | BINARY          |
+| 35       | `,`      | tuple         | LtoR  | BINARY          |
+| 32       | `$`      | list          | RtoL  | UNARY PREFIX    |
+| 30       | `=`      | assign        | RtoL  | BINARY          |
+| 30       | `/=`     | div_assign    | RtoL  | BINARY          |
+| 30       | `-=`     | sub_assign    | RtoL  | BINARY          |
+| 30       | `+=`     | add_assign    | RtoL  | BINARY          |
+| 30       | `*=`     | mpy_assign    | RtoL  | BINARY          |
+| 30       | `%=`     | mod_assign    | RtoL  | BINARY          |
+| 10       | `;`      | seq           | LtoR  | BINARY          |
+
+A few things worth noting:
+
+- `.` binds tightest — `f(:x 5).x` works without parens
+- `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
+- `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
+- `=` is right-associative and below `,` — `a=b=1` chains correctly
+- `;` binds lowest of all — everything to its left and right is a complete expression
+- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without parens
+
 ### Streaming operators
 
 | Operator | Description |
@@ -138,10 +195,16 @@ type(val)==`IntType
 
 ## Control Flow
 
-Control flow commands use `post_eval` — they receive unevaluated token
-streams for their body expressions and choose when to evaluate them.
-This is what makes `if`, `for`, `while` and `switch` work as language
-constructs rather than ordinary functions.
+Control flow commands use `post_eval` — they receive an offset into
+the read-only postfix buffer for their body expressions and choose
+when to evaluate them.  This is what makes `if`, `for`, `while` and
+`switch` work as language constructs rather than ordinary functions.
+
+The postfix buffer at this stage of the Fischer/Leblanc pipelines
+is made of values ready to be pushed on the comterp stack and
+interpreted, which adds to its efficiency along with the only
+storing an offset to switch from lazy to eager interpretation and
+back again.
 
 ### if
 
@@ -181,6 +244,53 @@ continue           // skip to next iteration
 
 `return()` with no argument returns `BlankType`. The `_returnflag`
 propagates through `SeqFunc`, `ForFunc`, `WhileFunc`, and `runfile()`.
+
+### switch and cond
+
+`switch` dispatches on string, symbol, integer, or char value:
+
+```
+switch("red" :red "stop" :green "go" :blue "sky")  // "stop"
+switch(2 :case1 "one" :case2 "two" :case3 "three") // "two"
+switch(`unknown :red "stop" :default "unknown")     // "unknown"
+```
+
+`cond` is an inline ternary — eagerly evaluated unlike `if`:
+
+```
+cond(x>0 "positive" "non-positive")
+cond(nil "yes" "no")   // "no" -- nil is false
+```
+
+Use `if(:then :else)` when the branches should be lazily evaluated.
+
+## print()
+
+```
+print("fmt" val [val...])          // print to stdout
+print("fmt" val [val...] :str)     // print to string and return it
+print("fmt" val [val...] :err)     // print to stderr
+```
+
+Format verbs: `%v` (any value), `%d` `%i` (decimal int), `%u` (unsigned int),
+`%o` (octal int), `%x` `%X` (hex int lower/upper), `%f` (decimal float),
+`%e` `%E` (scientific float), `%g` `%G` (shorter of `%e`/`%f`),
+`%s` (string), `%c` (char). `%v` is a ComTerp extension; all others are
+standard C `printf` verbs passed through to the underlying C library.
+Use `\%` for a literal percent sign — `%%` is not supported.
+
+## help()
+
+```
+help(funcname)       // help for one command
+help(:all)           // help for every registered command
+help(:top)           // help for top-level commands in this program
+help(:posteval)      // help for post_eval commands
+```
+
+`help()` is the primary reference for command signatures. The docstring
+format is: `retval=name(arg [optarg] :keyword :keyword value) -- description`.
+Square brackets indicate optional fixed args.
 
 ## Functions
 
@@ -238,15 +348,242 @@ existing attrlist — "set a needle in a haystack" — without constructing
 a new one. The pull pattern with `.` is the corresponding "get a needle
 in a haystack" from a func that returns a rich result.
 
-To work with an attrlist across a func boundary, pass it as a keyword
-arg — it is a reference type and writes inside the func are visible
-after the call:
+## Streams
+
+Streams are lazy — values are produced and consumed one at a time,
+rather than all at once. Unlike a list which holds all its values in
+memory, a stream yields the next value only when asked. This makes
+streams suitable for processing large or unbounded sequences without
+materializing the whole thing.
+
+The streaming algebra:
 
 ```
-al=attrlist(:x 0)
-f=func(al.x=99)
-f(:al al)
-// al.x is now 99
+s=$$(1,2,3,4,5)    // create stream from list
+l=$s                // collect stream into list
+s1,,s2              // concatenate two streams
+next(s)             // pull next value, nil when exhausted
+each(s)             // traverse stream, return count
+1..5                // range stream: 1,2,3,4,5
+3**5                // repeat stream: 3,3,3,3,3
+```
+
+Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
+
+### Scalar overdrive
+
+A stream on either side of a scalar operator vectorizes it — the
+operator is applied once per element, producing a stream of results.
+This is the core design intent: streams overdrive scalar operations
+without the scalar operator knowing anything about streams.
+
+```
+list((2..4)*5)         // {10,15,20}  -- scaled ramp
+list(100-(100..0))     // {0,1,...,100} -- inverted ramp
+list((1..5)+10)        // {11,12,13,14,15}
+list((1..5)*10)        // {10,20,30,40,50}
+list(0**5+1)           // {1,1,1,1,1}
+```
+
+Parameterized ramp — the `setbuf` pattern:
+
+```
+a=0; b=10; c=1000
+ss=(a..b)+c            // lazy -- not yet consumed
+list(ss)               // {1000,1001,...,1010}
+```
+
+### Two-stream binary ops zip element-wise
+
+When both operands are streams, the operator is applied pairwise —
+not a cross-product:
+
+```
+list((1..3)+(10..12))  // {11,13,15}  -- zipped add
+list((1..3)*(1..3))    // {1,4,9}     -- element-wise multiply (squares)
+```
+
+### Streams are single-pass
+
+A stream is exhausted after consumption. `next()` returns `nil` on an
+exhausted stream. Reassign to replay:
+
+```
+ss=(1..5)*2
+list(ss)               // {2,4,6,8,10} -- consumed
+next(ss)               // nil -- exhausted
+ss=(1..5)*2            // reassign to replay
+```
+
+### String concatenation with streams
+
+`+` between a string and an integer stream produces char codes, not
+digit strings. Use `str()` to convert:
+
+```
+list("node"+(1..3))        // {"node\001","node\002","node\003"} -- char codes
+list("node"+str(1..3))     // observe -- str() over a stream
+```
+
+### next() as escape hatch
+
+When stream algebra coordination is too complex to model at parse or
+runtime, `next()`/`while` always works:
+
+```
+total=0
+s=$$(1,2,3,4,5)
+while((v=next(s))!=nil
+  total=total+v)            // total==15
+```
+
+This is the reliable fallback when operator-level stream driving doesn't
+coordinate as expected.
+
+## Strings
+
+String literals use double-quotes. Escape sequences: `\"` for a literal
+double-quote, `\n` for newline, `\t` for tab, `\\` for a literal
+backslash before `n`, `r`, or `t`.
+
+Key string commands:
+
+```
+index(str fragment)           // 0-based position of fragment, nil if not found
+index(str fragment :last)     // last occurrence
+index(str fragment :all)      // list of all positions
+index(lst val :substr)        // strstr match on list elements
+substr(str match :after)      // string after match
+substr(str match :nonil)      // return input string if no match (instead of nil)
+split("a;b;c" :tokstr ';')    // split by single-char delimiter (single-quoted)
+split("foo bar" :tokstr)      // split by whitespace
+split("abc")                  // list of char codes
+join(lst)                     // join list of chars back to string
+eq(str1 str2 :n len)          // partial string comparison
+size("hello")                 // 5
+"foo"+"bar"                   // "foobar"
+print("val=%v" 42 :str)       // returns formatted string
+```
+
+Note: `:substr` is only needed when the first arg to `index` is a list.
+When both args are strings, substring search is the default behavior.
+
+Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
+
+## Symbols
+
+A symbol is an interned string — a unique integer id associated with a
+name, stored once in a global symbol table. Symbols are the basis of
+variable names, command names, keywords, and type names in ComTerp.
+
+### Creating and converting symbols
+
+```
+`foo                   // backquote returns symbol without lookup
+symadd("foo")          // create symbol from string, return without lookup
+                       // symadd is idempotent -- safe to call on existing symbol
+symstr(`foo)           // symbol -> string: "foo"
+symid(`foo)            // symbol -> integer id
+symbol(id)             // integer id -> symbol
+```
+
+Round-trip: `symstr(symbol(symid(`foo)))` → `"foo"`.
+
+`symadd` is idempotent — calling it on an already-existing symbol returns
+the existing id rather than creating a duplicate. There is no need to
+check whether a symbol exists before calling `symadd`.
+
+To unbind a symbol from its value, assign nil:
+
+```
+myvar=42
+myvar=nil              // unbind
+```
+
+### Symbol variables
+
+```
+myvar=42
+symval(myvar)          // 42 -- value of symbol variable, NO backquote
+symvar(`dynvar)=99     // assign to symbol variable by name, WITH backquote
+dynvar                 // 99
+```
+
+Note the asymmetry: `symval` takes the variable directly (no backquote),
+while `symvar` takes a backquoted symbol. This is because `symval` receives
+the variable's value — which is already a symbol — while `symvar` needs the
+symbol identity to avoid looking up the variable first.
+
+The `symvar`+`symadd` combination enables runtime variable creation:
+
+```
+name=symadd("runtime_var")
+symvar(name)=123
+runtime_var            // 123
+```
+
+### Symbol table introspection
+
+```
+symid(:cnt)            // current number of symbols in table
+symid(:max)            // maximum capacity of symbol table
+strref("hello")        // reference count for a string
+```
+
+### Symbol comparison
+
+Use `==` for symbol equality — it works reliably for all symbol values:
+
+```
+`foo==`foo             // true
+`foo==`bar             // false
+symbol(symid(`foo))==`foo  // true
+```
+
+The `:sym` keyword on comparison operators (`eq`, `lt`, `gt`, etc.) is
+intended for symbol comparison but has a known bug: `eq(:sym)` returns
+false for symbols returned by `symbol()` even when `==` returns true.
+Use `==` instead until this is resolved.
+
+Lexicographic symbol ordering:
+
+```
+lt(`aaa `bbb :sym)     // true
+gt(`bbb `aaa :sym)     // true
+lt_or_eq(`aaa `aaa :sym) // true
+```
+
+### Symbols as type and class names
+
+`type()` and `class()` return symbols, which can be compared with backquote:
+
+```
+type(42)==`IntType        // true
+type(3.14)==`DoubleType   // true  (3.14 is double, not float)
+type("hello")==`StringType // true
+type(true)==`BooleanType  // true
+type(`foo)==`SymbolType   // true
+class(attrlist())==`AttributeList // true
+
+float(3.14)            // explicit conversion to FloatType
+double(3)              // explicit conversion to DoubleType
+```
+
+### print(:sym) — materializing symbols from formatted strings
+
+`print(:sym)` returns its output as a symbol rather than printing it.
+This enables dynamic symbol construction from formatted strings:
+
+```
+s=print("val=%v" 42 :sym)  // symbol whose name is "val=42"
+symstr(s)                  // "val=42"
+```
+
+Combined with `symvar`, this enables fully dynamic dispatch:
+
+```
+key=print("handler_%v" type(x) :sym)
+symvar(key)=func(...)      // register handler for type
 ```
 
 ## Attribute Lists
@@ -359,115 +696,32 @@ A list of attrlists uses the tuple `,` operator between attrlist literals:
 
 ```
 lst=(:a 1),(:b 2)      // 2-element list, size(lst)==2
-lst[0].a               // 1
-lst[1].b               // 2
+at(lst 0).a            // 1
+at(lst 1).b            // 2
 ```
+
+Note: `[]` is reserved for flowtran flowgraph syntax and is not a
+subscript operator. Use `at(lst n)` to index into a list.
 
 For a **singleton list** (one attrlist), a trailing `,` inside `{}` is
 required to force the parser to produce a list rather than a bare attrlist:
 
 ```
 lst={(:a 4),}          // 1-element list, size(lst)==1
-lst[0].a               // 4
+at(lst 0).a            // 4
 ```
 
 Without the trailing comma, `{(:a 4)}` passes the attrlist through
 unwrapped — the `{}` adds nothing for a single non-list value.
 
-The serializer (`print(:str)`) emits the trailing comma automatically
-for singleton lists, so `print(:str)`/`run(:str)` round-trips correctly:
+The serializer (`print()`) emits the trailing comma automatically
+for singleton lists, so `print()`/`run()` round-trips correctly:
 
 ```
-s=print(:str lst)      // produces "{(:a 4),}"
-lst2=run(:str s)       // recovers the 1-element list
-lst2[0].a              // 4
+s=print(lst :str)      // produces "{(:a 4),}"
+lst2=run(s :str)       // recovers the 1-element list
+at(lst2 0).a           // 4
 ```
-
-## Strings
-
-String literals use double-quotes. Escape sequences: `\"` for a literal
-double-quote, `\n` for newline, `\t` for tab, `\\` for a literal
-backslash before `n`, `r`, or `t`.
-
-Key string commands:
-
-```
-index(str fragment)           // 0-based position of fragment, nil if not found
-index(str fragment :last)     // last occurrence
-index(str fragment :all)      // list of all positions
-index(lst val :substr)        // strstr match on list elements
-substr(str match :after)      // string after match
-substr(str match :nonil)      // return input string if no match (instead of nil)
-split("a;b;c" :tokstr ';')    // split by single-char delimiter (single-quoted)
-split("foo bar" :tokstr)      // split by whitespace
-split("abc")                  // list of char codes
-join(lst)                     // join list of chars back to string
-eq(str1 str2 :n len)          // partial string comparison
-size("hello")                 // 5
-"foo"+"bar"                   // "foobar"
-print("val=%v" 42 :str)       // returns formatted string
-```
-
-Note: `:substr` is only needed when the first arg to `index` is a list.
-When both args are strings, substring search is the default behavior.
-
-Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
-
-## Streams
-
-A stream is a sequence of values produced and consumed one at a time, rather than all at once. Unlike a list which holds all its values in memory, a stream yields the next value only when asked — via `next()` or `each()`. This makes streams suitable for processing large or unbounded sequences without materializing the whole thing.
-
-The streaming algebra:
-
-```
-s=$$(1,2,3,4,5)    // create stream
-l=$s                // collect stream into list
-s1,,s2              // concatenate two streams
-next(s)             // pull next value, nil when exhausted
-each(s)             // traverse stream, return count
-```
-
-Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
-
-Drive a loop with `next`:
-
-```
-total=0
-s=$$(1,2,3,4,5)
-while((v=next(s))!=nil
-  total=total+v)
-```
-
-## Running Scripts
-
-```
-run("path/to/script.comt")         // run from file
-run("path/to/script.comt" :str)    // run from string
-```
-
-**Path resolution:** when running interactively, relative paths in
-`run()` resolve relative to the directory of the calling script. When
-invoking `comterp run script.comt` from the command line, `./`-relative
-paths resolve relative to the process working directory, not the script
-directory. Run interactively with a full path to avoid this:
-
-```
-// from inside comterp:
-run("src/comterp_/tests/run_all.comt")
-```
-
-## print()
-
-```
-print("fmt" val [val...])          // print to stdout
-print("fmt" val [val...] :str)     // print to string and return it
-print("fmt" val [val...] :err)     // print to stderr
-```
-
-Format verbs: %v (any value), %d %i %u %o %x %X (integer),
-%f %e %E %g %G (float), %s (string), %c (char).
-
-Use \% for a literal percent sign. %% is not supported
 
 ## Conventions for .comt Scripts
 
@@ -479,16 +733,3 @@ Use \% for a literal percent sign. %% is not supported
 - Deferred/broken tests: comment out with `/* */`, reference the issue number
 - Return `ok` as the last expression for use by `run_all.comt`
 - Sub-scripts are not subject to coverage measurement
-
-## help()
-
-```
-help(funcname)       // help for one command
-help(:all)           // help for every registered command
-help(:top)           // help for top-level commands in this program
-help(:posteval)      // help for post_eval commands
-```
-
-`help()` is the primary reference for command signatures. The docstring
-format is: `retval=name(arg [optarg] :keyword :keyword value) -- description`.
-Square brackets indicate optional fixed args.
