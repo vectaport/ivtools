@@ -279,20 +279,60 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
   void OptableFunc::execute() {
-    
+
   static int bypri_symid = symbol_add("bypri");
   ComValue bypriflag(stack_key(bypri_symid));
   static int byopr_symid = symbol_add("byopr");
   ComValue byoprflag(stack_key(byopr_symid));
   static int bycom_symid = symbol_add("bycom");
   ComValue bycomflag(stack_key(bycom_symid));
-  
+  static int table_symid = symbol_add("table");
+  ComValue tableflag(stack_key(table_symid));
+
   reset_stack();
+
+  if (tableflag.is_true()) {
+    // return list of attrlists, one per operator entry
+    static int opr_symid = symbol_add("opr");
+    static int cmd_symid = symbol_add("cmd");
+    static int pri_symid = symbol_add("pri");
+    static int rtol_symid = symbol_add("rtol");
+    static int type_symid = symbol_add("type");
+    static int binary_symid = symbol_add("BINARY");
+    static int prefix_symid = symbol_add("UNARY PREFIX");
+    static int postfix_symid = symbol_add("UNARY POSTFIX");
+
+    AttributeValueList* avl = new AttributeValueList();
+    unsigned n = opr_tbl_numop_get();
+    for (unsigned i = 0; i < n; i++) {
+      AttributeList* al = new AttributeList();
+      AttributeValue opr_val((const char *)symbol_pntr(opr_tbl_operid(i)));
+      AttributeValue cmd_val((const char *)symbol_pntr(opr_tbl_commid(i)));
+      AttributeValue pri_val((int)opr_tbl_priority(i), AttributeValue::IntType);
+      AttributeValue rtol_val((boolean)opr_tbl_rtol(i), AttributeValue::BooleanType);
+      al->add_attr(opr_symid, opr_val);
+      al->add_attr(cmd_symid, cmd_val);
+      al->add_attr(pri_symid,  pri_val);
+      al->add_attr(rtol_symid, rtol_val);
+      int optype = opr_tbl_optype(i);
+      int type_symval = optype == OPTYPE_UNARY_POSTFIX ? postfix_symid
+                      : optype == OPTYPE_UNARY_PREFIX  ? prefix_symid
+                      : binary_symid;
+      AttributeValue type_val(type_symval, AttributeValue::SymbolType);
+      al->add_attr(type_symid, type_val);
+      AttributeValue* av = new AttributeValue(AttributeList::class_symid(), al);
+      avl->Append(av);
+    }
+    ComValue retval(avl);
+    push_stack(retval);
+    return;
+  }
+
   int sort = OPBY_PRIORITY;
   if (bycomflag.is_true()) { sort = OPBY_COMMAND; }
   if (byoprflag.is_true()) { sort = OPBY_OPERATOR; }
   if (bypriflag.is_true()) { sort = OPBY_PRIORITY; }
-  
+
   opr_tbl_print(stdout, sort);
   return;
 }

@@ -169,5 +169,29 @@ ok=ok&&(type(el)==type(attrlist()))
 ok=ok&&(el.a==4)
 prev_ok=check_fail(:ok ok)
 
+// --- test 18: dot rhs bare name vs explicit parens should differ ---
+// a.type should emit rhs as SymbolType (key lookup intent)
+// a.type() should emit rhs as CommandType (call intent)
+// currently they are identical -- this test fails until _parser.c fix applied
+s_bare=postfix(a.type)
+s_call=postfix(a.type())
+ok=ok&&(s_bare!=s_call)
+print("18a postfix(a.type) (expect SymbolType rhs): %v\n" s_bare)
+print("18b postfix(a.type()) (expect CommandType rhs): %v\n" s_call)
+print("18c bare != call (expect true after fix, false before): %v\n" (s_bare!=s_call))
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: dot rhs chained -- a.type.class.exit all rhs should be SymbolType ---
+// each bare name after . should emit as symbol, not command
+// a.type.class.exit() -- final explicit parens should still be CommandType
+s_chain=postfix(a.type.class.exit)
+s_chain_call=postfix(a.type.class.exit())
+ok=ok&&(index(s_chain "type{") != nil || index(s_chain "type ") != nil)
+print("19a postfix(a.type.class.exit) (expect all rhs as symbols): %v\n" s_chain)
+print("19b postfix(a.type.class.exit()) (expect exit as command): %v\n" s_chain_call)
+ok=ok&&(s_chain!=s_chain_call)
+print("19c chained bare != chained call (expect true after fix): %v\n" (s_chain!=s_chain_call))
+prev_ok=check_fail(:ok ok)
+
 print("parser: %v\n" ok)
 ok

@@ -899,7 +899,8 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
       localtable()->find(vptr, nil_symid);
     }
 
-    if (vptr && ((ComValue*)vptr)->type() == ComValue::CommandType) {
+    // convert to command if it has parens
+    if (vptr && ((ComValue*)vptr)->type() == ComValue::CommandType && sv->nids() >= 0) {
       sv->obj_ref() = ((ComValue*)vptr)->obj_ref();
       sv->type(ComValue::CommandType);
       sv->command_symid(command_symid);
@@ -943,8 +944,8 @@ void ComTerp::incr_stack() {
     ComValue& sv = stack_top();
 
     /* See if this really is a command with a ComFunc */
-    if (sv.type() == ComValue::SymbolType) {
-        void* vptr = nil;
+    if (sv.type() == ComValue::SymbolType && sv.nids() >= 0) {
+	void* vptr = nil;
 	localtable()->find(vptr, sv.int_val());
 	if (vptr && ((ComValue*)vptr)->type() == ComValue::CommandType) {
 	    sv.obj_ref() = ((ComValue*)vptr)->obj_ref();

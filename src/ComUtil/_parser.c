@@ -252,6 +252,7 @@ static int empty_symid = -1;
 
 static int attrlist_symid = -1;
 static int list_symid = -1;
+static int dot_symid = -1;
 
 /* === Static functions ================================================== */
 
@@ -1025,7 +1026,15 @@ int status;
 	    else
             {
 	       expecting = OPTYPE_BINARY;
-  	       PFOUT( TOK_COMMAND, *(int *)token, 0, 0, 1 );
+	       if(dot_symid==-1) dot_symid = symbol_add("dot");
+	       if(TopOfOperStack >= 0 &&
+		  OperStack[TopOfOperStack].oper_type == OPERATOR &&
+		  opr_tbl_commid(OperStack[TopOfOperStack].id) == dot_symid) {
+		 PFOUT( TOK_COMMAND, *(int *)token, 0, 0, -1 );
+	       }
+	       else {
+  		 PFOUT( TOK_COMMAND, *(int *)token, 0, 0, 1 );
+	       }
 	    }
          }
 	 break;

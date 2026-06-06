@@ -90,6 +90,29 @@ postfix token), flags set on a specific `ComValue` in the array persist
 for the lifetime of the expression and are copied when that `ComValue` is
 pushed onto the eval stack.
 
+### nids() Values
+
+`nids()` is copied from `postfix_token.nids` into `ComValue` and has
+accumulated meaning over time:
+
+| nids | meaning |
+|------|---------|
+| `-1` | dot-rhs bare identifier — suppress `SymbolType` → `CommandType` promotion in `code_conversion()` (ivtools 2.2+) |
+| `0` | default/unset — used by `empty` (trailing comma sentinel) |
+| `1` | one argument list: `func(args)` — normal command |
+| `2-17` | multiple argument lists: `func(list1)(list2)` — number of paren-delimited groups following the command token; used for ipl and the Wave instruction set, and available for any domain needing multi-list dispatch |
+| `>= 18` | delimiter token type (`TOK_RPAREN`=18, `TOK_RBRACE`=22 etc.) for bracket-matching dispatch via `_delim_func` in `code_conversion()` |
+
+The `-1` convention was introduced to allow `a.type` to do a key lookup
+against an attrlist rather than dispatch the `type()` command. The
+parser emits `nids=-1` for bare identifiers on the rhs of `.`; the
+promotion guard in `code_conversion()` checks `sv->nids() != -1` before
+converting `SymbolType` to `CommandType`.
+
+The `2-17` range preserves the original intent of the field name —
+"number of ids" meaning number of argument lists. The `>= 18` overload
+and `-1` extension are the only departures from that original meaning.
+
 ## func() command for user written commands
 
 The func() command:
@@ -345,7 +368,7 @@ Fischer-LeBlanc compiler pipeline. Honeywell allowed Fant to take NCL
 when he left, and it became the basis of his subsequent work. The 1988
 paper was a crystallization of the language side of these ideas. See
 "Command Language for Developing Real-Time Signal and Image Processing
-Applications", Scott E. Johnston and Robert C. Fitch, SPIE Proceedings
+ Applications", Scott E. Johnston and Robert C. Fitch, SPIE Proceedings
 on Automated Inspection and High Speed Vision Architectures II, vol.
 1004, November 1988.
 

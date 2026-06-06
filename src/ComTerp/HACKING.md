@@ -204,6 +204,11 @@ ivtools. Use virtual dispatch instead.
 
 ## Naming Conventions
 
+- `comterp` (lowercase) — the interpreter: the binary, the `comterp_`
+  directory, `.comt` scripts, `comterp_listen`, the REPL. Use this in
+  user-facing docs, issue descriptions, and script comments.
+- `ComTerp` (PascalCase) — the C++ library: `src/ComTerp/`, class names
+  (`ComFunc`, `ComValue`, `ComTerp`), HACKING.md, ARCHITECTURE.md.
 - PascalCase for classes inherited from Unidraw/InterViews heritage
   (`ComValue`, `ComFunc`, `DrawServCmd`)
 - snake_case for newer additions (`dist_script()`, `make_brush_cmd()`,
@@ -250,6 +255,33 @@ EOF
 Never hand-write unified diff hunk headers (`@@ -n,m +n,m @@`) —
 they are computed from the actual file contents and will be wrong if
 typed manually.
+
+## Dot Operator Rhs — Symbol vs Command Dispatch
+
+On the rhs of `.`, the parser distinguishes bare identifiers from
+command calls with explicit parens:
+
+- **Bare identifier** (`a.type`, `a.exit`) — emits `TOK_COMMAND`
+  with nids set to -1  used as a key lookup against the attrlist.
+  Never dispatches as a command, even if the name is a registered
+  zero-arg command.
+- **Command with parens** (`a.type()`, `a.print("k_%v" n :sym)`) —
+  emits `TOK_COMMAND`, dispatches normally, result used as key.
+
+This is implemented in `_parser.c` at the bare identifier emission
+point (line ~1028): when the top of the operator stack is the `dot`
+operator and no left paren follows, emit `TOK_COMMANDL` with nids
+set to -1 instead of `TOK_COMMAND`. A `dot_symid` static
+(initialized lazily) identifies the dot operator by its command
+symid via `opr_tbl_commid()`.
+
+The chain form `a.type.class.exit` works automatically — each bare
+identifier after `.` hits the same emission point with dot on top of
+the operator stack.
+
+**Assignment to commands** is separately blocked in the evaluator:
+`false=7` produces a warning and returns nil. This is independent of
+the parser fix.
 
 ## Empty Delimiter Literals
 
@@ -369,3 +401,61 @@ behavior in `ComTerp::run()` or `ComTerp::runfile()`, check whether
 change. The two `runfile()` implementations are parallel but not
 identical — `ComTerpServ::runfile()` handles line-by-line buffering
 and has its own `err_str` call sites.
+
+## Deferred symbol_add in _parser.c
+
+Static symbol IDs in `_parser.c` that are needed during parsing must
+not be initialized at file scope with `symbol_add()` — the symbol table
+may not be ready yet at static init time. Instead initialize to `-1`
+and call `symbol_add()` lazily on first use:
+
+```c
+static int dot_symid = -1;
+// ...
+if (dot_symid == -1) dot_symid = symbol_add("dot");
+```
+
+This is the established pattern for all parser symbol IDs in that file:
+`attrlist_symid`, `list_symid`, `dot_symid`, and the delimiter symids.
+
+## String Return Values from Commands
+
+To return a string from a `ComFunc`, use:
+
+```cpp
+ComValue retval(mystr, ComValue::StringType);
+push_stack(retval);
+```
+
+`postfix()` is the canonical example — it captures its output in a
+`strstreambuf`, then pushes the result as `StringType` rather than
+writing to stdout. This makes the return value testable and composable
+with other string commands.
+
+## Commands Without Parentheses — Design Implications
+
+Some commands fire without parentheses: `exit`, `beep`, `true`,
+`false`, `nil`. This is intentional. The implications reach further
+than they might seem:
+
+**Zero-arg commands are symbolic constants.** `true`, `false`, `nil`
+are not keywords — they are registered commands that return values.
+Any zero-arg command can serve as a symbolic constant in an expression.
+
+**The dot operator creates a clean namespace boundary.** Because `.`
+suppresses command dispatch on its rhs for bare identifiers, attrlist
+keys can freely use any name — including command names like `type`,
+`class`, `exit`, `true`, `false`. The dot operator is a namespace
+escape hatch that makes attrlists safe to use as general-purpose
+key/value stores without collision.
+
+**Runtime operator table mutation makes this composable.** Because
+the operator table is mutable, new zero-arg commands could be registered
+as operators, extending the "symbolic constant" set in a domain-specific
+way. A boot script could define a vocabulary of named constants that
+look and behave like language keywords.
+
+**The lhs-of-assignment block is the safety valve.** The warning on
+`false=7` prevents accidental rebinding of constants. Combined with the
+dot-rhs symbol emission, the language has three well-defined contexts
+for bare identifiers with consistent, predictable behavior.
