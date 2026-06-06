@@ -245,6 +245,53 @@ continue           // skip to next iteration
 `return()` with no argument returns `BlankType`. The `_returnflag`
 propagates through `SeqFunc`, `ForFunc`, `WhileFunc`, and `runfile()`.
 
+### switch and cond
+
+`switch` dispatches on string, symbol, integer, or char value:
+
+```
+switch("red" :red "stop" :green "go" :blue "sky")  // "stop"
+switch(2 :case1 "one" :case2 "two" :case3 "three") // "two"
+switch(`unknown :red "stop" :default "unknown")     // "unknown"
+```
+
+`cond` is an inline ternary — eagerly evaluated unlike `if`:
+
+```
+cond(x>0 "positive" "non-positive")
+cond(nil "yes" "no")   // "no" -- nil is false
+```
+
+Use `if(:then :else)` when the branches should be lazily evaluated.
+
+## print()
+
+```
+print("fmt" val [val...])          // print to stdout
+print("fmt" val [val...] :str)     // print to string and return it
+print("fmt" val [val...] :err)     // print to stderr
+```
+
+Format verbs: `%v` (any value), `%d` `%i` (decimal int), `%u` (unsigned int),
+`%o` (octal int), `%x` `%X` (hex int lower/upper), `%f` (decimal float),
+`%e` `%E` (scientific float), `%g` `%G` (shorter of `%e`/`%f`),
+`%s` (string), `%c` (char). `%v` is a ComTerp extension; all others are
+standard C `printf` verbs passed through to the underlying C library.
+Use `\%` for a literal percent sign — `%%` is not supported.
+
+## help()
+
+```
+help(funcname)       // help for one command
+help(:all)           // help for every registered command
+help(:top)           // help for top-level commands in this program
+help(:posteval)      // help for post_eval commands
+```
+
+`help()` is the primary reference for command signatures. The docstring
+format is: `retval=name(arg [optarg] :keyword :keyword value) -- description`.
+Square brackets indicate optional fixed args.
+
 ## Functions
 
 Define a function with `func()`:
@@ -301,142 +348,97 @@ existing attrlist — "set a needle in a haystack" — without constructing
 a new one. The pull pattern with `.` is the corresponding "get a needle
 in a haystack" from a func that returns a rich result.
 
-## Attribute Lists
+## Streams
 
-An attrlist is a key/value store. Create one with `attrlist()` or
-`list(:attr)`, or with the **attrlist literal** syntax — parentheses
-whose first token is a keyword:
+Streams are lazy — values are produced and consumed one at a time,
+rather than all at once. Unlike a list which holds all its values in
+memory, a stream yields the next value only when asked. This makes
+streams suitable for processing large or unbounded sequences without
+materializing the whole thing.
 
-```
-al=(:a 1 :b 2)         // literal, same postfix as attrlist(:a 1 :b 2)
-al=(:flag)             // keyword-only sets value to true
-al=attrlist(:a 1 :b 2) // equivalent command form
-```
-
-The parser distinguishes an attrlist literal from a grouping expression
-by the presence of a leading keyword. Plain grouping `(1+2)*3` is
-unaffected. A value before the first keyword is an error:
-`(4 :x 7)` → parse error "attribute literal must start with :key".
+The streaming algebra:
 
 ```
-al=attrlist(:foo 42 :bar "hello" :flag)
-al.foo             // 42
-al.bar             // "hello"
-al.flag            // true (keyword-only sets true)
-al.missing         // nil
+s=$$(1,2,3,4,5)    // create stream from list
+l=$s                // collect stream into list
+s1,,s2              // concatenate two streams
+next(s)             // pull next value, nil when exhausted
+each(s)             // traverse stream, return count
+1..5                // range stream: 1,2,3,4,5
+3**5                // repeat stream: 3,3,3,3,3
 ```
 
-Dot notation on any symbol creates a compound variable backed by an
-attrlist on first use:
+Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
+
+### Scalar overdrive
+
+A stream on either side of a scalar operator vectorizes it — the
+operator is applied once per element, producing a stream of results.
+This is the core design intent: streams overdrive scalar operations
+without the scalar operator knowing anything about streams.
 
 ```
-point.x=10
-point.y=20
+list((2..4)*5)         // {10,15,20}  -- scaled ramp
+list(100-(100..0))     // {0,1,...,100} -- inverted ramp
+list((1..5)+10)        // {11,12,13,14,15}
+list((1..5)*10)        // {10,20,30,40,50}
+list(0**5+1)           // {1,1,1,1,1}
 ```
 
-### Enumerating an attrlist
-
-Use `size()`, `at()`, `attrname()`, and `attrval()` to enumerate:
+Parameterized ramp — the `setbuf` pattern:
 
 ```
-al=attrlist(:x 1 :y 2 :z 3)
-for(i=0 i<size(al) i++
-  print("%v=%v
-" attrname(at(al i)) attrval(at(al i))))
+a=0; b=10; c=1000
+ss=(a..b)+c            // lazy -- not yet consumed
+list(ss)               // {1000,1001,...,1010}
 ```
 
-`at(attrlist n)` is the escape mechanism into the raw `Attribute` layer.
-`attrname()` and `attrval()` are the only commands that receive it before
-auto-dereference — any other command gets the dereferenced value instead.
-Note that `type(at(al n))` returns the value's type, not an attribute type,
-and enumeration order may not match insertion order.
+### Two-stream binary ops zip element-wise
 
-`Attribute` objects can live on the stack and be passed to any command.
-Whether the key is preserved depends on whether the receiving command
-explicitly checks for `AttributeType` before dereferencing — `attrname()`
-and `attrval()` do this; all other current built-in commands dereference
-immediately via `stack_arg()`, losing the key. A custom `ComFunc` could
-preserve the key by inspecting the `ComValue` type before calling
-`stack_arg()`. In practice, for the built-in scripting layer, `attrname()`
-and `attrval()` are the only commands that see the key.
-
-### Stream enumeration of an attrlist
-
-`attrname()` and `attrval()` also accept a stream of attributes
-directly, returning a stream of keys or values respectively. An attrlist
-literal used as a stream source yields its entries as `Attribute` objects:
+When both operands are streams, the operator is applied pairwise —
+not a cross-product:
 
 ```
-$list(attrname($$(:a 4 :b 7)))   // {"b","a"}
-$list(attrval($$(:a 4 :b 7)))    // {7,4}
+list((1..3)+(10..12))  // {11,13,15}  -- zipped add
+list((1..3)*(1..3))    // {1,4,9}     -- element-wise multiply (squares)
 ```
 
-The two streams are consistent with each other — the nth name corresponds
-to the nth value — so they can be zipped or processed in parallel.
-Note that the order is reverse insertion order (last key first), which
-reflects the underlying attrlist storage. If you need both key and value
-together, use the `for`/`at()`/`size()` loop form above instead.
+### Streams are single-pass
 
-### Merging and subtracting attrlists
-
-`+` merges two attrlists into a new one — the second operand wins on key collision.
-`-` removes from the first attrlist any keys present in the second. Both operands
-are unchanged; a new attrlist is returned:
+A stream is exhausted after consumption. `next()` returns `nil` on an
+exhausted stream. Reassign to replay:
 
 ```
-al1=attrlist(:a 1 :b 2)
-al2=attrlist(:b 99 :c 3)
-merged=al1+al2       // :a 1 :b 99 :c 3  (al2's :b wins)
-diff=al1-al2         // :a 1              (:b removed)
+ss=(1..5)*2
+list(ss)               // {2,4,6,8,10} -- consumed
+next(ss)               // nil -- exhausted
+ss=(1..5)*2            // reassign to replay
 ```
 
-### Portable key/value pairs
+### String concatenation with streams
 
-A single-element attrlist is the idiomatic portable key/value pair —
-it passes anywhere as a first-class value:
-
-```
-pair=attrlist(:foo 42)
-attrname(at(pair))   // "foo"
-attrval(at(pair))    // 42
-```
-
-Scope rules: the dot namespace is scoped with its root symbol. Inside a
-`func()` body, dot attributes on a local symbol are local to that call.
-Use `global()` or pass an attrlist via keyword arg to share state.
-
-### Lists of attrlists
-
-A list of attrlists uses the tuple `,` operator between attrlist literals:
+`+` between a string and an integer stream produces char codes, not
+digit strings. Use `str()` to convert:
 
 ```
-lst=(:a 1),(:b 2)      // 2-element list, size(lst)==2
-at(lst 0).a            // 1
-at(lst 1).b            // 2
+list("node"+(1..3))        // {"node\001","node\002","node\003"} -- char codes
+list("node"+str(1..3))     // observe -- str() over a stream
 ```
 
-Note: `[]` is reserved for flowtran flowgraph syntax and is not a
-subscript operator. Use `at(lst n)` to index into a list.
+### next() as escape hatch
 
-For a **singleton list** (one attrlist), a trailing `,` inside `{}` is
-required to force the parser to produce a list rather than a bare attrlist:
-
-```
-lst={(:a 4),}          // 1-element list, size(lst)==1
-at(lst 0).a            // 4
-```
-
-Without the trailing comma, `{(:a 4)}` passes the attrlist through
-unwrapped — the `{}` adds nothing for a single non-list value.
-
-The serializer (`print()`) emits the trailing comma automatically
-for singleton lists, so `print()`/`run()` round-trips correctly:
+When stream algebra coordination is too complex to model at parse or
+runtime, `next()`/`while` always works:
 
 ```
-s=print(lst :str)      // produces "{(:a 4),}"
-lst2=run(s :str)       // recovers the 1-element list
-at(lst2 0).a           // 4
+total=0
+s=$$(1,2,3,4,5)
+while((v=next(s))!=nil
+  total=total+v)            // total==15
 ```
+
+This is the reliable fallback when operator-level stream driving doesn't
+coordinate as expected.
 
 ## Strings
 
@@ -584,149 +586,142 @@ key=print("handler_%v" type(x) :sym)
 symvar(key)=func(...)      // register handler for type
 ```
 
-### switch and cond
+## Attribute Lists
 
-`switch` dispatches on string, symbol, integer, or char value:
-
-```
-switch("red" :red "stop" :green "go" :blue "sky")  // "stop"
-switch(2 :case1 "one" :case2 "two" :case3 "three") // "two"
-switch(`unknown :red "stop" :default "unknown")     // "unknown"
-```
-
-`cond` is an inline ternary — eagerly evaluated unlike `if`:
+An attrlist is a key/value store. Create one with `attrlist()` or
+`list(:attr)`, or with the **attrlist literal** syntax — parentheses
+whose first token is a keyword:
 
 ```
-cond(x>0 "positive" "non-positive")
-cond(nil "yes" "no")   // "no" -- nil is false
+al=(:a 1 :b 2)         // literal, same postfix as attrlist(:a 1 :b 2)
+al=(:flag)             // keyword-only sets value to true
+al=attrlist(:a 1 :b 2) // equivalent command form
 ```
 
-Use `if(:then :else)` when the branches should be lazily evaluated.
-
-## Streams
-
-Streams are lazy — values are produced and consumed one at a time,
-rather than all at once. Unlike a list which holds all its values in
-memory, a stream yields the next value only when asked. This makes
-streams suitable for processing large or unbounded sequences without
-materializing the whole thing.
-
-The streaming algebra:
+The parser distinguishes an attrlist literal from a grouping expression
+by the presence of a leading keyword. Plain grouping `(1+2)*3` is
+unaffected. A value before the first keyword is an error:
+`(4 :x 7)` → parse error "attribute literal must start with :key".
 
 ```
-s=$$(1,2,3,4,5)    // create stream from list
-l=$s                // collect stream into list
-s1,,s2              // concatenate two streams
-next(s)             // pull next value, nil when exhausted
-each(s)             // traverse stream, return count
-1..5                // range stream: 1,2,3,4,5
-3**5                // repeat stream: 3,3,3,3,3
+al=attrlist(:foo 42 :bar "hello" :flag)
+al.foo             // 42
+al.bar             // "hello"
+al.flag            // true (keyword-only sets true)
+al.missing         // nil
 ```
 
-Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
-
-### Scalar overdrive
-
-A stream on either side of a scalar operator vectorizes it — the
-operator is applied once per element, producing a stream of results.
-This is the core design intent: streams overdrive scalar operations
-without the scalar operator knowing anything about streams.
+Dot notation on any symbol creates a compound variable backed by an
+attrlist on first use:
 
 ```
-list((2..4)*5)         // {10,15,20}  -- scaled ramp
-list(100-(100..0))     // {0,1,...,100} -- inverted ramp
-list((1..5)+10)        // {11,12,13,14,15}
-list((1..5)*10)        // {10,20,30,40,50}
-list(0**5+1)           // {1,1,1,1,1}
+point.x=10
+point.y=20
 ```
 
-Parameterized ramp — the `setbuf` pattern:
+### Enumerating an attrlist
+
+Use `size()`, `at()`, `attrname()`, and `attrval()` to enumerate:
 
 ```
-a=0; b=10; c=1000
-ss=(a..b)+c            // lazy -- not yet consumed
-list(ss)               // {1000,1001,...,1010}
+al=attrlist(:x 1 :y 2 :z 3)
+for(i=0 i<size(al) i++
+  print("%v=%v
+" attrname(at(al i)) attrval(at(al i))))
 ```
 
-### Two-stream binary ops zip element-wise
+`at(attrlist n)` is the escape mechanism into the raw `Attribute` layer.
+`attrname()` and `attrval()` are the only commands that receive it before
+auto-dereference — any other command gets the dereferenced value instead.
+Note that `type(at(al n))` returns the value's type, not an attribute type,
+and enumeration order may not match insertion order.
 
-When both operands are streams, the operator is applied pairwise —
-not a cross-product:
+`Attribute` objects can live on the stack and be passed to any command.
+Whether the key is preserved depends on whether the receiving command
+explicitly checks for `AttributeType` before dereferencing — `attrname()`
+and `attrval()` do this; all other current built-in commands dereference
+immediately via `stack_arg()`, losing the key. A custom `ComFunc` could
+preserve the key by inspecting the `ComValue` type before calling
+`stack_arg()`. In practice, for the built-in scripting layer, `attrname()`
+and `attrval()` are the only commands that see the key.
 
-```
-list((1..3)+(10..12))  // {11,13,15}  -- zipped add
-list((1..3)*(1..3))    // {1,4,9}     -- element-wise multiply (squares)
-```
+### Stream enumeration of an attrlist
 
-### Streams are single-pass
-
-A stream is exhausted after consumption. `next()` returns `nil` on an
-exhausted stream. Reassign to replay:
-
-```
-ss=(1..5)*2
-list(ss)               // {2,4,6,8,10} -- consumed
-next(ss)               // nil -- exhausted
-ss=(1..5)*2            // reassign to replay
-```
-
-### String concatenation with streams
-
-`+` between a string and an integer stream produces char codes, not
-digit strings. Use `str()` to convert:
+`attrname()` and `attrval()` also accept a stream of attributes
+directly, returning a stream of keys or values respectively. An attrlist
+literal used as a stream source yields its entries as `Attribute` objects:
 
 ```
-list("node"+(1..3))        // {"node\001","node\002","node\003"} -- char codes
-list("node"+str(1..3))     // observe -- str() over a stream
+$list(attrname($$(:a 4 :b 7)))   // {"b","a"}
+$list(attrval($$(:a 4 :b 7)))    // {7,4}
 ```
 
-### next() as escape hatch
+The two streams are consistent with each other — the nth name corresponds
+to the nth value — so they can be zipped or processed in parallel.
+Note that the order is reverse insertion order (last key first), which
+reflects the underlying attrlist storage. If you need both key and value
+together, use the `for`/`at()`/`size()` loop form above instead.
 
-When stream algebra coordination is too complex to model at parse or
-runtime, `next()`/`while` always works:
+### Merging and subtracting attrlists
 
-```
-total=0
-s=$$(1,2,3,4,5)
-while((v=next(s))!=nil
-  total=total+v)            // total==15
-```
-
-This is the reliable fallback when operator-level stream driving doesn't
-coordinate as expected.
-
-## Running Scripts
+`+` merges two attrlists into a new one — the second operand wins on key collision.
+`-` removes from the first attrlist any keys present in the second. Both operands
+are unchanged; a new attrlist is returned:
 
 ```
-run("path/to/script.comt")         // run from file
-run("path/to/script.comt" :str)    // run from string
+al1=attrlist(:a 1 :b 2)
+al2=attrlist(:b 99 :c 3)
+merged=al1+al2       // :a 1 :b 99 :c 3  (al2's :b wins)
+diff=al1-al2         // :a 1              (:b removed)
 ```
 
-**Path resolution:** when running interactively, relative paths in
-`run()` resolve relative to the directory of the calling script. When
-invoking `comterp run script.comt` from the command line, `./`-relative
-paths resolve relative to the process working directory, not the script
-directory. Run interactively with a full path to avoid this:
+### Portable key/value pairs
+
+A single-element attrlist is the idiomatic portable key/value pair —
+it passes anywhere as a first-class value:
 
 ```
-// from inside comterp:
-run("src/comterp_/tests/run_all.comt")
+pair=attrlist(:foo 42)
+attrname(at(pair))   // "foo"
+attrval(at(pair))    // 42
 ```
 
-## print()
+Scope rules: the dot namespace is scoped with its root symbol. Inside a
+`func()` body, dot attributes on a local symbol are local to that call.
+Use `global()` or pass an attrlist via keyword arg to share state.
+
+### Lists of attrlists
+
+A list of attrlists uses the tuple `,` operator between attrlist literals:
 
 ```
-print("fmt" val [val...])          // print to stdout
-print("fmt" val [val...] :str)     // print to string and return it
-print("fmt" val [val...] :err)     // print to stderr
+lst=(:a 1),(:b 2)      // 2-element list, size(lst)==2
+at(lst 0).a            // 1
+at(lst 1).b            // 2
 ```
 
-Format verbs: `%v` (any value), `%d` `%i` (decimal int), `%u` (unsigned int),
-`%o` (octal int), `%x` `%X` (hex int lower/upper), `%f` (decimal float),
-`%e` `%E` (scientific float), `%g` `%G` (shorter of `%e`/`%f`),
-`%s` (string), `%c` (char). `%v` is a ComTerp extension; all others are
-standard C `printf` verbs passed through to the underlying C library.
-Use `\%` for a literal percent sign — `%%` is not supported.
+Note: `[]` is reserved for flowtran flowgraph syntax and is not a
+subscript operator. Use `at(lst n)` to index into a list.
+
+For a **singleton list** (one attrlist), a trailing `,` inside `{}` is
+required to force the parser to produce a list rather than a bare attrlist:
+
+```
+lst={(:a 4),}          // 1-element list, size(lst)==1
+at(lst 0).a            // 4
+```
+
+Without the trailing comma, `{(:a 4)}` passes the attrlist through
+unwrapped — the `{}` adds nothing for a single non-list value.
+
+The serializer (`print()`) emits the trailing comma automatically
+for singleton lists, so `print()`/`run()` round-trips correctly:
+
+```
+s=print(lst :str)      // produces "{(:a 4),}"
+lst2=run(s :str)       // recovers the 1-element list
+at(lst2 0).a           // 4
+```
 
 ## Conventions for .comt Scripts
 
@@ -738,16 +733,3 @@ Use `\%` for a literal percent sign — `%%` is not supported.
 - Deferred/broken tests: comment out with `/* */`, reference the issue number
 - Return `ok` as the last expression for use by `run_all.comt`
 - Sub-scripts are not subject to coverage measurement
-
-## help()
-
-```
-help(funcname)       // help for one command
-help(:all)           // help for every registered command
-help(:top)           // help for top-level commands in this program
-help(:posteval)      // help for post_eval commands
-```
-
-`help()` is the primary reference for command signatures. The docstring
-format is: `retval=name(arg [optarg] :keyword :keyword value) -- description`.
-Square brackets indicate optional fixed args.
