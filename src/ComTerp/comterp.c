@@ -1031,15 +1031,18 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
     if (comval->type() == ComValue::SymbolType) {
         void* vptr = nil;
 
-	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val()) ) {
-	  return (AttributeValue*)vptr;
-	} else  if (_alist) {
+	/* search order: func scope (_alist) -> local -> global.
+	   _alist must be checked first so that a func-local variable
+	   shadows a same-named variable in localtable() (outer scope).
+	   Without this, ++ inside a func body finds and mutates the outer
+	   variable instead of the func-local one, causing infinite loops. */
+	if (!comval->global_flag() && _alist) {
 	  int id = comval->symbol_val();
-	  AttributeValue* aval = _alist->find(id);  
-	  if (aval) {
-	    return aval;
-	  }
-	  return nil;
+	  AttributeValue* aval = _alist->find(id);
+	  if (aval) return aval;
+	}
+	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
+	  return (AttributeValue*)vptr;
 	} else if (globaltable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
 	} else

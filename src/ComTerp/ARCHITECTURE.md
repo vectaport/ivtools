@@ -333,9 +333,82 @@ table on each parse, so changes take effect immediately for subsequent
 expressions without recompilation.
 
 This is the same property that made the `nids()` mechanism sufficient
-for the Wave instruction set and IPL: the token structure carries enough
+for the Wave instruction set and ipl: the token structure carries enough
 information to reconstruct operator meaning without baking it into a
 static grammar.
+
+## Delimiter Semantics
+
+Parentheses `()`, braces `{}`, and brackets `[]` have no inherent
+meaning in the ComTerp grammar. They are not syntax — they are
+**delimiter tokens** that the parser interprets entirely based on
+their content and which closing character is seen. In the empty case
+where no command name is associated with the matcing delimiter, their
+meaning is assigned by slipping a command symid into the postfix stream
+at the point where the parser recognizes what kind of literal is being
+constructed.  The empty case is described below.  The disambiguation
+rules in the table below explain the rest.
+
+This is the same mechanism used for `attrlist_symid`, `list_symid`,
+`dot_symid`, and (in ivtools-3.0) `stream_symid` — a static integer
+initialized to -1, lazily populated on first use via `symbol_add()`,
+and emitted as a `COMMAND` token into `_pfbuf` when the parser
+recognizes the pattern.
+
+Bottom line if the matching delimeters with no command name
+associated with them contain one expression it's a scalar single value
+(even if its an arbitrary expression), if it starts with a :keyword
+it's an attribute list literal, if it doesn't start with a :keyword
+and has more than one expression separated by spaces, it is
+a stream literal (coming in ivtools-3.0).
+
+### Disambiguation rules
+
+The parser resolves delimiter content by inspecting the first token
+after the opening delimiter and the `narg`/`nkey` counts at closing:
+
+| Opening | First token | Content | Result |
+|---------|-------------|---------|--------|
+| `(` | — | empty | empty `AttributeList` → `attrlist()` |
+| `(` | `:key` | keywords only | attrlist literal → `attrlist(:key val ...)` |
+| `(` | value | values ± trailing keywords | stream literal → `stream(...)` *(ivtools-3.0)* |
+| `{` | — | empty | empty `AttributeValueList` → `list()` |
+| `{` | any | values | list literal via `bracesplus` operator |
+| `[` | — | any | reserved for flowtran hub srclist/dstlist |
+| `<>` | — | any | reserved for flowtran template fill-in |
+
+Outside of these literal cases, `(...)` is pure grouping — the parens
+affect operator precedence only and leave no token in `_pfbuf`.
+
+### The empty case
+
+Empty delimiters are handled by a special branch in `_parser.c`: when
+a closing delimiter is seen with `narg==0` and no `comm_id` already
+set, the parser emits a zero-arg command rather than `TOK_BLANK`:
+
+- `()` → `COMMAND(attrlist) narg 0` — empty `AttributeList`
+- `{}` → `COMMAND(list) narg 0` — empty `AttributeValueList`
+- `[]` → `TOK_BLANK` (reserved, not yet active)
+
+Prior to this fix, `{}` produced `TOK_BLANK` which caused `offlimit`
+warnings in `skip_arg` and failed to assign or round-trip correctly.
+
+### What this means for the language
+
+Because delimiters carry no intrinsic meaning, the language can assign
+new meanings to them by registering new symids and extending the
+parser's dispatch — without adding new syntax or changing the lexer.
+The flowtran `[]` activation for ivtools-4.0 will follow this
+pattern: `[` and `]` are already tokenized, already reserved, and will
+gain meaning by slip-in of a `hub_symid` command when the flowtran
+layer is enabled.
+
+This also means there is no "tuple syntax" or "block syntax" baked into
+the grammar. A `(...)` that looks like a block is not a block — it is
+either grouping (if it contains operators) or a literal (if the parser
+recognizes a slip-in pattern). The `;` sequence operator is what creates
+multi-statement bodies, not the parens that surround them.
+
 
 ## Stream-Driven Flowgraph Generation
 
