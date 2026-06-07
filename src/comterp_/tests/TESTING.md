@@ -204,3 +204,16 @@ To add a new test script:
 | parser.comt   | attrlist(:literal) errmsg postfix class type                 | 1-9     |      28 |    38 | 74% |
 | symbol.comt   | ` symadd symid symbol symstr symval symvar strref eq(:sym) lt gt switch cond | 1-9 |  36 |    42 | 86% |
 | random.comt   | (slot 12 stress: all funcs from return/stream/string/global) | 12      |      24 |    24 |100% |
+
+### Planned coverage (ivtools-2.2)
+
+| script        | funcs                                                                         | notes                                                      |
+|---------------|-------------------------------------------------------------------------------|------------------------------------------------------------|
+| parser.comt   | attrlist(:literal) parse error lock-in via errmsg()                           | add errmsg() assertions for bare-value-after-keyword cases |
+| return.comt   | func() empty parens, func() positional varargs, arg(`sym) keyword lookup      | see issue #94                                              |
+
+### Planned coverage (ivtools-3.0)
+
+| script      | funcs                                                                                                          | notes         |
+|-------------|----------------------------------------------------------------------------------------------------------------|---------------|
+| stream.comt | stream literal `(0 1 2 3)`, mixed `(0 :flag 1 :color red)`, keyword element detection via class()/attrname()/attrval() | see issue #94 |

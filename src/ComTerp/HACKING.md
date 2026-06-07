@@ -270,7 +270,7 @@ command calls with explicit parens:
 
 This is implemented in `_parser.c` at the bare identifier emission
 point (line ~1028): when the top of the operator stack is the `dot`
-operator and no left paren follows, emit `TOK_COMMANDL` with nids
+operator and no left paren follows, emit `TOK_COMMAND` with nids
 set to -1 instead of `TOK_COMMAND`. A `dot_symid` static
 (initialized lazily) identifies the dot operator by its command
 symid via `opr_tbl_commid()`.

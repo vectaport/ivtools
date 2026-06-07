@@ -352,6 +352,51 @@ drives string concatenation to assemble parent-child connection
 expressions, producing a full tree description in a handful of
 expressions. The language consumes itself to generate programs.
 
+### Stream literals as wiring diagrams (ivtools-3.0)
+
+Stream literals make the flowgraph construction story more direct. Node
+indices are no longer threaded through arithmetic expressions — they are
+declared inline as a stream, and the stream drives the wiring:
+
+```
+// pipeline: connect nodes 0..3 in series
+nodes=(0 1 2 3)
+while((n=next(nodes))!=nil
+  run("pipe(node"+print(n :str)+" node"+print(n+1 :str)+")"))
+```
+
+The key property is that `(0 1 2 3)` reads as data — a description of
+what is to be wired — not as control flow. There is no loop counter, no
+index variable, no fence-post arithmetic visible at the call site. The
+stream literal *is* the wiring diagram; `next()` is the act of reading
+it.
+
+Note: `str()` is not stream-aware — integer-to-string conversion over a
+stream uses `print(v :str)` to convert each value as it is consumed.
+`"node"+(1..3)` produces char codes, not digit strings; the
+`print(v :str)` pattern inside `next()`/`while` is the correct idiom.
+
+With scalar overdrive the same pattern generalizes to arbitrary
+topologies. A stream of node indices drives string concatenation to
+assemble connection expressions for fan-out, fan-in, grid, or tree
+layouts without any additional bookkeeping:
+
+```
+// fan-out: connect source to nodes 1..4
+src=0
+result=list()
+s=(1 2 3 4)
+while((n=next(s))!=nil
+  result=list(result "fanout("+print(src :str)+" "+print(n :str)+")"))
+// {fanout(0 1), fanout(0 2), fanout(0 3), fanout(0 4)}
+```
+
+This is `setbuf` as syntax rather than API — the buffer contents are
+declared where they are used, the connections flow from the declaration,
+and the runtime executes what the stream describes. No visible control,
+no explicit graph object, no separate wiring step. The data flow *is*
+the program.
+
 The ComUtil package contains the Xgraph structure that was the original
 intended target for code generation from the Fischer-LeBlanc compiler
 pipeline. ComValues and ComFuncs were wired up as an interpreter
