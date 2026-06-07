@@ -270,7 +270,7 @@ command calls with explicit parens:
 
 This is implemented in `_parser.c` at the bare identifier emission
 point (line ~1028): when the top of the operator stack is the `dot`
-operator and no left paren follows, emit `TOK_COMMAND` with nids
+operator and no left paren follows, emit `TOK_COMMANDL` with nids
 set to -1 instead of `TOK_COMMAND`. A `dot_symid` static
 (initialized lazily) identifies the dot operator by its command
 symid via `opr_tbl_commid()`.
@@ -489,3 +489,23 @@ for(i=0 i<n i++ lst,i)
 // wrong -- builds nested list structure:
 for(i=0 i<n i++ lst=list(lst i))
 ```
+
+## Commit Message Convention
+
+Commit messages are one-liners, as long as needed. Call out every
+significant change — bug fixes, new files, and doc sections — separated
+by semicolons:
+
+```
+Fix <bug summary>; add <new file/feature>; add <doc section> to <file>
+```
+
+Example from the `comterp-lookup-symval-scope-fix-and-docs` branch:
+
+```
+Fix lookup_symval func-scope order (++ infinite loop); add deeptest.comt stress suite; add Delimiter Semantics/func scoping/list idioms to ARCHITECTURE.md, LANGUAGE.md, HACKING.md
+```
+
+The PR description carries the full narrative — what broke, why, how it
+was fixed, and what else changed. The commit message is the scannable
+one-line summary that shows up in `git log`.
