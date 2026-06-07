@@ -413,7 +413,7 @@ Fischer-LeBlanc compiler pipeline. Honeywell allowed Fant to take NCL
 when he left, and it became the basis of his subsequent work. The 1988
 paper was a crystallization of the language side of these ideas. See
 "Command Language for Developing Real-Time Signal and Image Processing
- Applications", Scott E. Johnston and Robert C. Fitch, SPIE Proceedings
+Applications", Scott E. Johnston and Robert C. Fitch, SPIE Proceedings
 on Automated Inspection and High Speed Vision Architectures II, vol.
 1004, November 1988.
 
