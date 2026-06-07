@@ -54,7 +54,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $)"; }
+      return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $$)"; }
 
     CLASS_SYMID("StreamFunc");
 

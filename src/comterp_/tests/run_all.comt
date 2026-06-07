@@ -41,5 +41,9 @@ if(run("./symbol.comt")
   :then print("pass: symbol\n")
   :else print("FAIL: symbol\n");ok=false)
 
+if(run("./help.comt")
+  :then print("pass: help\n")
+  :else print("FAIL: help\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

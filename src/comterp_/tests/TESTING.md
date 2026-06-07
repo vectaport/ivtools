@@ -203,6 +203,7 @@ To add a new test script:
 | print.comt    | print                                                        | 1-9     |      22 |    35 | 63% |
 | parser.comt   | attrlist(:literal) errmsg postfix class type                 | 1-9     |      28 |    38 | 74% |
 | symbol.comt   | ` symadd symid symbol symstr symval symvar strref eq(:sym) lt gt switch cond | 1-9 |  36 |    42 | 86% |
+| help.comt     | help() help(:posteval) help(:top) help("op") optable(:table) optable(:bypri :byopr :bycom) | 1-14 | 14 | 14 |100% |
 | random.comt   | (slot 12 stress: all funcs from return/stream/string/global) | 12      |      24 |    24 |100% |
 
 ### Planned coverage (ivtools-2.2)

@@ -47,7 +47,7 @@ expression evaluated. By convention test scripts return `ok` (a boolean).
 | boolean | `true` `false` | |
 | nil | `nil` | no value |
 | blank | `BlankType` | return of `return()` with no arg |
-| list | `1,2,3` or `(1,2,3)` | comma operator |
+| list | `1,2,3` or `(1,2,3)` or $1,2,3| comma operator |
 | stream | `$$(1,2,3)` or `(1 2 3)` *(ivtools-3.0)* | sequence of values produced and consumed one at a time |
 | attrlist | `(:x 1)` or `attrlist(:x 1)` | key/value store |
 | compview | returned by drawing commands | graphic component handle |
