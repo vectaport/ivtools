@@ -104,6 +104,7 @@ both until exit.
     -          minus          110         R-to-L      unary-prefix
     --         decr           110         R-to-L      unary-prefix
     --         decr_after     110         R-to-L      unary-postfix
+    $$         stream         100         R-to-L      unary-prefix
     **         repeat         90          L-to-R      binary
     ..         iterate        80          L-to-R      binary
     %          mod            70          L-to-R      binary
@@ -126,8 +127,7 @@ both until exit.
     ||         or             40          L-to-R      binary
     ,          tuple          35          L-to-R      binary
     ,,         stream concat  33          L-to-R      binary
-    $          stream         32          R-to-L      unary-prefix
-    $$         list           32          R-to-L      unary-prefix
+    $          list           32          R-to-L      unary-prefix
     %=         mod_assign     30          R-to-L      binary
     *=         mpy_assign     30          R-to-L      binary
     +=         add_assign     30          R-to-L      binary

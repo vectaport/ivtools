@@ -71,7 +71,7 @@ void PostFixFunc::execute() {
        (_detail_matched_delims && val.is_type(AttributeValue::SymbolType) && 
 	val.nids() >= TOK_RPAREN )) {
       if (!_detail_matched_delims) {
-	out << "[" << val.narg() << "|" << val.nkey() << "]";
+	out << "[" << val.narg() << "|" << val.nkey() << "|" << val.nids() << "]";
 	if (val.is_type(AttributeValue::CommandType)) {
   	  ComFunc* func = (ComFunc*)val.obj_val();
 	  if (func->post_eval()) out << "*";

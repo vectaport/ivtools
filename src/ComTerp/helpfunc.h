@@ -62,12 +62,13 @@ public:
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "%s(:bypri :byopr :bycom) -- print contents of operator table"; }
+      return "%s(:bypri :byopr :bycom :table) -- print contents of operator table\n(or return as list of attrlists with :table)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":bypri     sort by priority",
 	":byopr     sort by operator name",
 	":bycom     sort by command name",
+	":table     return as list of attrlists (:opr :cmd :pri :rtol :type)",
 	nil
       };
       return keys;
