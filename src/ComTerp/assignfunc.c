@@ -260,19 +260,6 @@ void DivAssignFunc::execute() {
 
 }
 
-/* Belt-and-suspenders scope-aware lookup for read-modify-write operators.
-   Now that lookup_symval() itself checks _alist (func scope) before
-   localtable(), this helper is redundant but kept for clarity and
-   defense in depth. */
-static AttributeValue* lookup_symval_in_scope(ComTerp* comterp, ComValue& sym) {
-    AttributeList* attrlist = comterp->get_attributes();
-    if (attrlist) {
-        AttributeValue* val = attrlist->find(sym.symbol_val());
-        if (val) return val;
-    }
-    return comterp->lookup_symval(&sym);
-}
-
 IncrFunc::IncrFunc(ComTerp* comterp) : AssignFunc(comterp) {
 }
 
@@ -283,7 +270,7 @@ void IncrFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        AttributeValue* op1val = lookup_symval_in_scope(comterp(), operand1);
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val) 
 	    push_stack(ComValue::nullval());
 	else {
@@ -314,7 +301,7 @@ void IncrAfterFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        AttributeValue* op1val = lookup_symval_in_scope(comterp(), operand1);
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
@@ -343,7 +330,7 @@ void DecrFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        AttributeValue* op1val = lookup_symval_in_scope(comterp(), operand1);
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
@@ -373,7 +360,7 @@ void DecrAfterFunc::execute() {
     }
     reset_stack();
     if (operand1.type() == ComValue::SymbolType) {
-        AttributeValue* op1val = lookup_symval_in_scope(comterp(), operand1);
+        AttributeValue* op1val = comterp()->lookup_symval(&operand1);
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
