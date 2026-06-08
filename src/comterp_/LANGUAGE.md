@@ -34,6 +34,46 @@ A script file (`.comt`) is a sequence of top-level expressions consumed
 one at a time. The return value of the script is the value of the last
 expression evaluated. By convention test scripts return `ok` (a boolean).
 
+The body argument to a control command (`for`, `while`, `if`, `switch`, `func`)
+is a **single expression**. The canonical way to express a
+multi-statement body is semicolons with no enclosing delimiters —
+the least punctuation needed:
+
+```
+for(i=0 i<10 i++ lst,i; total=total+i)   // canonical two-statement body
+for(i=0 i<10 i++ lst,i)                  // one statement, no ; needed
+```
+
+**Parens have no special body-grouping role.** Their purposes in
+ComTerp are:
+
+1. **Argument lists** — enclose arguments to a command: `f(a b c)`
+2. **Attrlist literals** — `(:key val)` when first token is a keyword
+3. **Stream literals** — `(val val ...)` when first token is a value *(ivtools-3.0)*
+4. **Precedence override** — `(a+b)*c` to override operator priority
+
+That's it. A body does not need parens. `(lst,i; total=total+i)` is
+a single `;`-sequence expression that happens to be wrapped in parens,
+but the parens add nothing — the semicolons do all the work:
+
+```
+for(i=0 i<10 i++ (lst,i; total=total+i))  // works but parens unnecessary
+```
+
+**Warning:** a space between two expressions inside parens — without a
+semicolon — is not a two-statement body. It is currently an error and
+will become a stream literal in ivtools-3.0:
+
+```
+for(i=0 i<10 i++ (lst,i total=total+i))   // error now, stream literal in 3.0
+for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with two bodies
+```
+
+**Warning (ivtools-3.0):** Once stream literals land, `(ding beep)`
+will be parsed as a stream literal of two values, not a grouped
+two-statement body. Any code using space-separated statements inside
+parens without semicolons must be fixed before 3.0. See issue #103.
+
 ## Types
 
 | Type | Example | Notes |
@@ -300,7 +340,69 @@ Define a function with `func()`:
 f=func(body)
 ```
 
-The body is the first positional argument. Call with keyword args:
+The body is the first positional argument. There is no formal parameter
+list — any symbol used in the body is a local variable. Call with
+keyword args to initialize locals before the body runs:
+
+```
+f=func(if(x>5 :then return(x*2)))
+v=f(:x 6)          // x is set to 6 before body runs, returns 12
+v=f(:x 3)          // returns nil (no early return taken)
+v=f()              // x is nil, condition is false, returns nil (ivtools-2.2 or >)
+```
+
+### Scoping rules
+
+Variable lookup follows a three-level priority chain:
+
+- **func scope** — variables local to this invocation, including any
+  `:key val` args set before the body runs
+- **local scope** — the caller's symbol table
+- **global scope** — symbols declared with `global()`
+
+A variable can be **read** from any level — func scope wins over local,
+local wins over global. A variable **written** inside a func always goes
+to func scope only, never propagating outward. The only exception is
+`global()` which explicitly reaches the global scope.
+
+Writing through a reference passed in as a keyword arg is not an
+exception to this rule — the symbol is local, but the attrlist object
+it points to lives outside the func and is mutated via that reference:
+
+```
+al=attrlist(:x 0)
+f=func(al.x=99)    // al is local symbol pointing to outer object
+f(:al al)
+al.x               // 99 -- the object was mutated, not the scope
+```
+
+A symbol not supplied by the caller and not yet written in the body
+reads as nil:
+
+```
+f=func(x*2)
+f()                // nil*2 -- x is nil, result is nil
+f(:x 5)            // 10
+```
+
+This means a func can close over outer variables for reading without
+declaring them, but any write stays local:
+
+```
+scale=3
+f=func(x*scale)    // reads outer 'scale'
+f(:x 7)            // 21 -- scale read from local/global scope
+scale=10
+f(:x 7)            // 70 -- picks up new value of scale
+
+g=func(scale=99)   // writes to func-local 'scale'
+g()
+scale              // still 10 -- write did not escape
+```
+
+The body is the first positional argument. There is no formal parameter
+list — any symbol used in the body is a local variable. Call with
+keyword args to initialize locals before the body runs:
 
 ```
 f=func(if(x>5 :then return(x*2)))
@@ -356,19 +458,69 @@ memory, a stream yields the next value only when asked. This makes
 streams suitable for processing large or unbounded sequences without
 materializing the whole thing.
 
-The streaming algebra:
+### The Streaming Algebra
+
+The streaming algebra is the set of operations that construct, compose,
+and consume streams. Understanding the algebra — what operations exist,
+how they compose, and what the laws are — is the core of ComTerp's
+stream model.
+
+**Construction** — creating a stream from a source:
 
 ```
-s=$$(1,2,3,4,5)    // create stream from list
-l=$s                // collect stream into list
-s1,,s2              // concatenate two streams
-next(s)             // pull next value, nil when exhausted
-each(s)             // traverse stream, return count
-1..5                // range stream: 1,2,3,4,5
-3**5                // repeat stream: 3,3,3,3,3
+s=$$(1,2,3,4,5)    // stream from list (materialized source)
+s=1..5              // range stream: 1,2,3,4,5 (iterate)
+s=3**5              // repeat stream: 3,3,3,3,3 (repeat)
+s=(0 1 2 3)         // stream literal (ivtools-3.0, lazy source)
 ```
+
+**Consumption** — pulling values out:
+
+```
+next(s)             // pull next value, nil when exhausted
+l=$s                // collect stream into list
+each(s)             // traverse stream, return count
+```
+
+**Composition** — combining streams:
+
+```
+s1,,s2              // concatenate: s1 elements then s2 elements
+(1..3)+(10..12)     // zip: element-wise binary op → {11,13,15}
+$$s                 // copy stream at current position (checkpoint)
+```
+
+**Scalar overdrive** — vectorizing scalar operators:
+
+```
+(1..5)*2            // {2,4,6,8,10} -- scalar op over stream
+"node"+(1..4)       // char codes, not strings -- see str() note
+```
+
+**Nil termination** — streams end naturally:
+
+```
+next(exhausted)     // nil -- end of stream signal
+```
+
+For unknown-length streams (stream literals, file/pipe streams), nil
+is not an error — it is the natural end-of-stream. A stream literal
+element that evaluates to nil terminates the stream early, leaving
+remaining elements unevaluated in the token buffer.
+
+**Two stream kinds:**
+
+- *Known-length* — `$$list`, `..`, `**`: length fixed at construction
+- *Unknown-length* — stream literals `(...)`, file/pipe streams:
+  length unknown, terminates on nil
 
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
+
+The streaming algebra is still being formalized. The stream literal
+syntax (ivtools-3.0) completes the source end of the algebra; bugs
+found during implementation will clarify the composition laws,
+particularly around nil propagation through composed operations and
+zip semantics between lazy and materialized sources.
 
 ### Scalar overdrive
 
@@ -413,6 +565,66 @@ ss=(1..5)*2
 list(ss)               // {2,4,6,8,10} -- consumed
 next(ss)               // nil -- exhausted
 ss=(1..5)*2            // reassign to replay
+```
+
+### List construction and growth with `,`
+
+The canonical way to build a list is with the `,` (tuple) operator.
+`list()` with no arguments creates an empty list to start from; `,`
+appends to it **in place**:
+
+```
+lst=list()             // empty list -- use list() only for this
+lst,1                  // {1}
+lst,2                  // {1,2}
+lst,"hello"            // {1,2,"hello"}
+```
+
+Since `,` mutates and returns the same object, reassignment is optional:
+
+```
+lst=list()
+for(i=0 i<10 i++ lst,i)
+// lst == {0,1,2,3,4,5,6,7,8,9}
+```
+
+A literal list without a prior `list()`:
+
+```
+lst=1,2,3,nil,5        // {1,nil,3,nil,5} -- nil is a valid list element
+```
+
+The `,` operator binds below all arithmetic and comparison operators
+(precedence 35), so expressions on either side are fully evaluated first:
+
+```
+lst,x*2+1              // appends (x*2+1), not x*(2+1)
+```
+
+**`list()` vs `,`**: `list()` with no args creates an empty list.
+`list()` with space-separated args treats them like a stream — it stops
+at the first `nil` argument:
+
+```
+list(1 nil 3 nil 5)    // {1,} -- stops at first nil!
+1,nil,3,nil,5          // {1,nil,3,nil,5} -- correct, use , instead
+```
+
+`list(lst x)` does not append — it constructs a new 2-element list
+containing `lst` and `x`. Use `,` to append:
+
+```
+lst=list(1 2 3)        // {1,2,3} -- new list from args (no nils here)
+lst,4                  // {1,2,3,4} -- append via ,
+list(lst 4)            // {{1,2,3},4} -- wraps lst, does not append
+```
+
+Out-of-bounds `at()` access returns `BlankType`, not `nil`. Test with
+`empty()`:
+
+```
+e=list()
+at(e 0)==empty()       // true -- BlankType, not nil
 ```
 
 ### String concatenation with streams
@@ -927,12 +1139,4 @@ It is hoped that not using `[` and ` ]` and `<<` and `>>` before now
 in the public use of comterp will make any conflicts between comterp and
 flowtran resolvable.
 
-### Target backends
 
-- **ipl simulator** — when ComTerp is linked with the ipl library,
-  `def()` and hub invocation compile to IPL node/arc creation calls
-  directly.
-- **vectaport/flowgraph** — hub definitions export to Go source
-  implementing the `flowgraph.Hub` interface, with pipes as
-  `flowgraph.Edge` channels. The exported package is runnable as
-  a standalone Go program.

@@ -459,3 +459,53 @@ look and behave like language keywords.
 `false=7` prevents accidental rebinding of constants. Combined with the
 dot-rhs symbol emission, the language has three well-defined contexts
 for bare identifiers with consistent, predictable behavior.
+
+## Contributor Note: `list()` vs `,` for List Growth
+
+**Do not use `list(lst x)` to append to a list.** `list()` constructs
+a new list from its arguments verbatim — if `lst` is already a list,
+`list(lst x)` produces a 2-element list `{lst, x}` (a list-of-lists),
+not `lst` with `x` appended.
+
+Use the `,` (tuple) operator to append:
+
+```
+lst,x          // appends x to lst in place -- correct
+list(lst x)    // wraps lst and x as two elements -- almost certainly wrong
+```
+
+This distinction has been considered for change and rejected (see
+issue on list append semantics). The `,` operator is the correct and
+efficient idiom — it mutates the existing `AttributeValueList` in place
+via `TupleFunc::execute()` without allocation. `list()` always
+allocates a new list.
+
+The same applies inside loops and func bodies:
+
+```
+// correct:
+for(i=0 i<n i++ lst,i)
+
+// wrong -- builds nested list structure:
+for(i=0 i<n i++ lst=list(lst i))
+```
+
+## Commit Message Convention
+
+Commit messages are one-liners, as long as needed. Call out every
+significant change — bug fixes, new files, and doc sections — separated
+by semicolons:
+
+```
+Fix <bug summary>; add <new file/feature>; add <doc section> to <file>
+```
+
+Example from the `comterp-lookup-symval-scope-fix-and-docs` branch:
+
+```
+Fix lookup_symval func-scope order (++ infinite loop); add deeptest.comt stress suite; add Delimiter Semantics/func scoping/list idioms to ARCHITECTURE.md, LANGUAGE.md, HACKING.md
+```
+
+The PR description carries the full narrative — what broke, why, how it
+was fixed, and what else changed. The commit message is the scannable
+one-line summary that shows up in `git log`.
