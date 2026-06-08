@@ -400,6 +400,10 @@ g()
 scale              // still 10 -- write did not escape
 ```
 
+The body is the first positional argument. There is no formal parameter
+list — any symbol used in the body is a local variable. Call with
+keyword args to initialize locals before the body runs:
+
 ```
 f=func(if(x>5 :then return(x*2)))
 v=f(:x 6)          // returns 12
