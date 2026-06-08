@@ -317,7 +317,7 @@ both until exit.
 
  parse(fileobj) -- parse a single expression from a file
 
- str=errmsg(:keep :num :cnt :last) -- return current error message as string
+ str=errmsg(:keep :num :cnt :last :clear) -- return current error message as string
 
 .SH CONTROL COMMANDS
 
@@ -327,7 +327,7 @@ both until exit.
 
  exit() -- exit entire application
 
- empty() -- empty statement
+ empty() -- empty statement, returns blank type object
 
  val=run(filename|cmdstr :str :popen) -- run commands from file (or string)
 

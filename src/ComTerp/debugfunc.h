@@ -109,6 +109,7 @@ public:
 	":last      return last saved error, bypass current error check",
 	":num       return error number instead of message string",
 	":cnt       return number of errors on stack",
+	":clear     clear both current and last error state, return nil",
 	nil
       };
       return keys;

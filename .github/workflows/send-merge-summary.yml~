@@ -1,0 +1,37 @@
+name: Send Merge Summary to Mailing List
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  send-email:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email Summary
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # Your corporate or personal SMTP mail server details
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          
+          # Email Content Setup
+          subject: "[PR Merged] #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          body: |
+            A Pull Request has been successfully merged!
+            
+            PR TITLE: ${{ github.event.pull_request.title }}
+            MERGED BY: ${{ github.actor }}
+            URL: ${{ github.event.pull_request.html_url }}
+            
+            --------------------------------------------------
+            CHANGES SUMMARY:
+            --------------------------------------------------
+            ${{ github.event.pull_request.body }}
+            
+          # Target Mailing List
+          to: your-mailing-list-address@example.com
+          from: GitHub Robot <your-sender-email@example.com>

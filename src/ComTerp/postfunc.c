@@ -104,7 +104,11 @@ void PostFixFunc::execute() {
   out << '\0';
   comterp()->brief(oldbrief);
   reset_stack();
-  ComValue retval(sbuf.str());
+  /* trim trailing space if present */
+  char* str = sbuf.str();
+  int len = strlen(str);
+  while (len > 0 && str[len-1] == ' ') { str[--len] = '\0'; }
+  ComValue retval(str);
   push_stack(retval);
   
 }
@@ -162,7 +166,12 @@ void ForFunc::execute() {
   static int body_symid = symbol_add("body");
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
-  if (nargsfixed()>4) fprintf(stderr, "Unexpected for loop with more than one body\n");
+  if (nargsfixed()>4) {
+    fprintf(stderr, "Error: for loop with more than one body -- missing semicolon between statements (line %d)\n", funcstate()->linenum());
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
     
@@ -200,7 +209,12 @@ void WhileFunc::execute() {
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
   ComValue* bodyexpr = nil;
-  if (nargsfixed()>2) fprintf(stderr, "Unexpected while loop with more than one body\n");
+  if (nargsfixed()>2) {
+    fprintf(stderr, "Error: while loop with more than one body -- missing semicolon between statements (line %d)\n", funcstate()->linenum());
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
     if (untilflag.is_false()) {
