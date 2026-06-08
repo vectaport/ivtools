@@ -34,7 +34,7 @@ A script file (`.comt`) is a sequence of top-level expressions consumed
 one at a time. The return value of the script is the value of the last
 expression evaluated. By convention test scripts return `ok` (a boolean).
 
-The body argument to a control command (`for`, `while`, `if`, `func`)
+The body argument to a control command (`for`, `while`, `if`, `switch`, `func`)
 is a **single expression**. The canonical way to express a
 multi-statement body is semicolons with no enclosing delimiters —
 the least punctuation needed:
@@ -55,9 +55,6 @@ ComTerp are:
 That's it. A body does not need parens. `(lst,i; total=total+i)` is
 a single `;`-sequence expression that happens to be wrapped in parens,
 but the parens add nothing — the semicolons do all the work:
-
-Embedding in parens also works because `(lst,i; total=total+i)` is
-a single grouped expression, but the parens add nothing:
 
 ```
 for(i=0 i<10 i++ (lst,i; total=total+i))  // works but parens unnecessary
@@ -457,28 +454,69 @@ memory, a stream yields the next value only when asked. This makes
 streams suitable for processing large or unbounded sequences without
 materializing the whole thing.
 
-The streaming algebra:
+### The Streaming Algebra
+
+The streaming algebra is the set of operations that construct, compose,
+and consume streams. Understanding the algebra — what operations exist,
+how they compose, and what the laws are — is the core of ComTerp's
+stream model.
+
+**Construction** — creating a stream from a source:
 
 ```
-s=$$(1,2,3,4,5)    // create stream from list
-l=$s                // collect stream into list
-s1,,s2              // concatenate two streams
-next(s)             // pull next value, nil when exhausted
-each(s)             // traverse stream, return count
-1..5                // range stream: 1,2,3,4,5
-3**5                // repeat stream: 3,3,3,3,3
+s=$$(1,2,3,4,5)    // stream from list (materialized source)
+s=1..5              // range stream: 1,2,3,4,5 (iterate)
+s=3**5              // repeat stream: 3,3,3,3,3 (repeat)
+s=(0 1 2 3)         // stream literal (ivtools-3.0, lazy source)
 ```
+
+**Consumption** — pulling values out:
+
+```
+next(s)             // pull next value, nil when exhausted
+l=$s                // collect stream into list
+each(s)             // traverse stream, return count
+```
+
+**Composition** — combining streams:
+
+```
+s1,,s2              // concatenate: s1 elements then s2 elements
+(1..3)+(10..12)     // zip: element-wise binary op → {11,13,15}
+$$s                 // copy stream at current position (checkpoint)
+```
+
+**Scalar overdrive** — vectorizing scalar operators:
+
+```
+(1..5)*2            // {2,4,6,8,10} -- scalar op over stream
+"node"+(1..4)       // char codes, not strings -- see str() note
+```
+
+**Nil termination** — streams end naturally:
+
+```
+next(exhausted)     // nil -- end of stream signal
+```
+
+For unknown-length streams (stream literals, file/pipe streams), nil
+is not an error — it is the natural end-of-stream. A stream literal
+element that evaluates to nil terminates the stream early, leaving
+remaining elements unevaluated in the token buffer.
+
+**Two stream kinds:**
+
+- *Known-length* — `$$list`, `..`, `**`: length fixed at construction
+- *Unknown-length* — stream literals `(...)`, file/pipe streams:
+  length unknown, terminates on nil
 
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
-Don't confuse the "," (or tuple) operator from the ",," the
-stream concatenation operator.
-
-```
-lst,some_stream        // appends the stream object as one element
-strm1,,strm2           // concatenates two streams end-to-end
-```
-
+The streaming algebra is still being formalized. The stream literal
+syntax (ivtools-3.0) completes the source end of the algebra; bugs
+found during implementation will clarify the composition laws,
+particularly around nil propagation through composed operations and
+zip semantics between lazy and materialized sources.
 
 ### Scalar overdrive
 
@@ -1097,12 +1135,4 @@ It is hoped that not using `[` and ` ]` and `<<` and `>>` before now
 in the public use of comterp will make any conflicts between comterp and
 flowtran resolvable.
 
-### Target backends
 
-- **ipl simulator** — when ComTerp is linked with the ipl library,
-  `def()` and hub invocation compile to IPL node/arc creation calls
-  directly.
-- **vectaport/flowgraph** — hub definitions export to Go source
-  implementing the `flowgraph.Hub` interface, with pipes as
-  `flowgraph.Edge` channels. The exported package is runnable as
-  a standalone Go program.

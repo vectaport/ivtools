@@ -230,12 +230,11 @@ prev_ok=check_fail(:ok ok)
 make_node=func(attrlist(:id n :left n*2+1 :right n*2+2 :depth int(n>0)))
 nodes=list()
 for(i=0 i<127 i++ nodes,make_node(:n i))
-print("%v\n" nodes)
 ok=ok&&(size(nodes)==127)
 ok=ok&&(at(nodes 0).id==0)
 ok=ok&&(at(nodes 0).left==1)
 ok=ok&&(at(nodes 62).right==126)
-print("20 func building binary tree nodes (expect size=127, root.left=1, node62.right=126): %v %v %v\n\n" size(nodes) at(nodes 0).left at(nodes 63).right)
+print("20 func building binary tree nodes (expect size=127, root.left=1, node62.right=126): %v %v %v\n\n" size(nodes) at(nodes 0).left at(nodes 62).right)
 prev_ok=check_fail(:ok ok)
 
 // =========================================================
