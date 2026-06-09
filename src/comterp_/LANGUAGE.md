@@ -491,7 +491,6 @@ an attrlist literal, not a stream literal:
 (:key 99 :flag)   // attrlist -- first token is a keyword
 (0 :key 99)       // stream literal -- first token is a value
 ```
-```
 
 **Consumption** — pulling values out:
 
