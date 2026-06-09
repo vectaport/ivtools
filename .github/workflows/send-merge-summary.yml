@@ -4,7 +4,7 @@ on:
   pull_request:
     types: [closed]
     branches:
-      - main # Change to 'master' if your default branch uses the legacy name
+      - master
 
 jobs:
   send-email:
@@ -15,7 +15,7 @@ jobs:
         uses: dawidd6/action-send-mail@v3
         with:
           # Google Workspace Server Routing
-          server_address: ://gmail.com
+          server_address: smtp.gmail.com
           server_port: 465
           username: ${{ secrets.MAIL_USERNAME }}
           password: ${{ secrets.MAIL_PASSWORD }}
