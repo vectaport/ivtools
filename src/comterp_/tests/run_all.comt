@@ -47,7 +47,7 @@ if(run("./help.comt")
 
 if(run("./stream-literal.comt")
   :then print("pass: stream-literal\n")
-  :else print("FAIL: help\n");ok=false)
+  :else print("FAIL: stream-literal\n");ok=false)
 
 print("\nrun_all: %v\n" ok)
 ok
