@@ -221,7 +221,17 @@ void ErrMsgFunc::execute() {
     static int cnt_symid = symbol_add("cnt");
     ComValue cntv(stack_key(cnt_symid));
     boolean cntflag = cntv.is_true();
+    static int clear_symid = symbol_add("clear");
+    ComValue clearv(stack_key(clear_symid));
+    boolean clearflag = clearv.is_true();
     reset_stack();
+
+    if (clearflag) {
+        err_clear();
+        comterp()->clear_last_errmsg();
+        push_stack(ComValue::nullval());
+        return;
+    }
 
     if (cntflag) {
         ComValue retval(err_cnt(), ComValue::IntType);

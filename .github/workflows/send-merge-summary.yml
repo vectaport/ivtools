@@ -1,0 +1,39 @@
+name: Send Merge Summary to Mailing List
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - master
+
+jobs:
+  send-email:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Email Summary
+        uses: dawidd6/action-send-mail@v3
+        with:
+          # Google Workspace Server Routing
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          
+          # Outbound Content Configuration
+          subject: "[ivtools Patch Merged] #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}"
+          body: |
+            A new patch has been successfully merged into ivtools!
+            
+            PR TITLE: ${{ github.event.pull_request.title }}
+            MERGED BY: ${{ github.actor }}
+            URL: ${{ github.event.pull_request.html_url }}
+            
+            --------------------------------------------------
+            CHANGES SUMMARY:
+            --------------------------------------------------
+            ${{ github.event.pull_request.body }}
+            
+          # Target Distribution & Routing
+          to: ivtools-patch@lists.sourceforge.net
+          from: GitHub Robot <${{ secrets.MAIL_USERNAME }}>

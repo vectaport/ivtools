@@ -253,6 +253,7 @@ static int empty_symid = -1;
 static int attrlist_symid = -1;
 static int list_symid = -1;
 static int dot_symid = -1;
+static int stream_symid = -1;
 
 /* === Static functions ================================================== */
 
@@ -869,10 +870,19 @@ int status;
 
 	    if( !PROCEEDING_WHITESPACE( tokstart ) ||
                 UNEXPECTED_NEW_EXPRESSION ) {
-	       strncpy( token, buffer+tokstart, *bufptr-tokstart );
-	       token[*bufptr-tokstart] = '\0';
-	       COMERR_SET2( ERR_UNEXPECTED_LITERAL, *linenum, token);
-	       goto error_return;
+	       /* stream literal: bare LPAREN, first value seen, second arriving */
+	       if( TopOfParenStack >= 0 &&
+	           ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
+	           ParenStack[ TopOfParenStack ].narg == 0 ) {
+	         if(stream_symid==-1) stream_symid = symbol_add("stream");
+	         ParenStack[ TopOfParenStack ].comm_id = stream_symid;
+	         } else {
+	         strncpy( token, buffer+tokstart, *bufptr-tokstart );
+	         token[*bufptr-tokstart] = '\0';
+	         COMERR_SET2( ERR_UNEXPECTED_LITERAL, *linenum, token);
+	         goto error_return;
+	         }
 	       }
 
 	 /* End of an argument                     */
@@ -907,8 +917,14 @@ int status;
 	       if (UNEXPECTED_NEW_EXPRESSION && _whitespace_binding) {
 		 OPERSTK_PUSH( 0, OPERATOR);
 		 whitespace_bound=1;
-	         } 
-               else {
+	         } else if( TopOfParenStack >= 0 &&
+	             ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	             ParenStack[ TopOfParenStack ].comm_id == -1 &&
+	             ParenStack[ TopOfParenStack ].narg == 0 ) {
+	           /* stream literal: bare LPAREN, first value seen */
+	           if(stream_symid==-1) stream_symid = symbol_add("stream");
+	           ParenStack[ TopOfParenStack ].comm_id = stream_symid;
+	         } else {
 	         COMERR_SET2( ERR_UNEXPECTED_IDENTIFIER, *linenum,
 			      symbol_pntr( *(int *)token ) );
 	         goto error_return;
@@ -1055,10 +1071,12 @@ int status;
 	      if(attrlist_symid==-1) attrlist_symid = symbol_add("attrlist");
 	      ParenStack[ TopOfParenStack ].comm_id = attrlist_symid;
 	    } else if( TopOfParenStack >= 0 &&
-	        ParenStack[ TopOfParenStack ].comm_id < 0 &&
+	        ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	        ParenStack[ TopOfParenStack ].comm_id == -1 &&
 	        expecting == OPTYPE_BINARY ) {
-	      COMERR_SET1( ERR_ATTRLIT_VALUE_BEFORE_KEY, *linenum );
-	      goto error_return;
+	      /* keyword after value(s) -- stream literal (0 :key val) or (0 :flag) */
+	      if(stream_symid==-1) stream_symid = symbol_add("stream");
+	      ParenStack[ TopOfParenStack ].comm_id = stream_symid;
 	    } else {
 	      COMERR_SET2( ERR_UNEXPECTED_KEYWORD, *linenum,
 			   symbol_pntr( *(int *)token ) );

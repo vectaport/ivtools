@@ -292,12 +292,13 @@ int main(int argc, char *argv[]) {
       if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	terp->disable_prompt();
       else
-	fprintf(stdout, "ivtools-%s comterp: type help for more info\n%s", VersionString, get_command_prompt());
+	fprintf(stdout, "ivtools-%s comterp: type help for more info (:built %s %s)\n%s", VersionString, __DATE__, __TIME__, get_command_prompt());
       return terp->run();
     } else {
 
       ComTerpServ* terp = new ComTerpServ();
       terp->add_defaults();
+      fprintf(stderr, "ivtools-%s comterp (built: %s %s)\n", VersionString, __DATE__, __TIME__);
       if (run_flag && argc > 2 ) {
 	int endcnt=0;
 	for(int i=argc-1; i>2; i--) {
@@ -335,7 +336,7 @@ int main(int argc, char *argv[]) {
         if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	  terp->disable_prompt();
 	else {
-	  fprintf(stdout, "ivtools-%s comterp:  type help for more info\n%s", VersionString, get_command_prompt());
+	  fprintf(stdout, "ivtools-%s comterp:  type help for more info (built: %s %s)\n%s", VersionString, __DATE__, __TIME__, get_command_prompt());
 	}
 	return terp->run();
       }

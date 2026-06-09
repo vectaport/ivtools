@@ -400,10 +400,6 @@ g()
 scale              // still 10 -- write did not escape
 ```
 
-The body is the first positional argument. There is no formal parameter
-list — any symbol used in the body is a local variable. Call with
-keyword args to initialize locals before the body runs:
-
 ```
 f=func(if(x>5 :then return(x*2)))
 v=f(:x 6)          // returns 12
@@ -471,7 +467,29 @@ stream model.
 s=$$(1,2,3,4,5)    // stream from list (materialized source)
 s=1..5              // range stream: 1,2,3,4,5 (iterate)
 s=3**5              // repeat stream: 3,3,3,3,3 (repeat)
-s=(0 1 2 3)         // stream literal (ivtools-3.0, lazy source)
+s=(0 1 2 3)         // stream literal (lazy source)
+```
+
+Stream literals can include keyword elements. Positional values come
+through as-is; each keyword-value pair becomes a singleton attrlist
+element; a bare keyword (flag) becomes `(:flag true)`:
+
+```
+s=(0 1 :key 99 :flag)
+// s is a stream that produces: 0, 1, (:key 99), (:flag true)
+next(s)   // 0
+next(s)   // 1
+next(s)   // (:key 99)
+next(s)   // (:flag true)
+next(s)   // nil -- end of stream
+```
+
+If there are no positional values before the first keyword, it is
+an attrlist literal, not a stream literal:
+
+```
+(:key 99 :flag)   // attrlist -- first token is a keyword
+(0 :key 99)       // stream literal -- first token is a value
 ```
 
 **Consumption** — pulling values out:
@@ -480,6 +498,26 @@ s=(0 1 2 3)         // stream literal (ivtools-3.0, lazy source)
 next(s)             // pull next value, nil when exhausted
 l=$s                // collect stream into list
 each(s)             // traverse stream, return count
+```
+
+`each()` is the idiomatic way to consume an entire stream when you
+want the count or just the side effects:
+
+```
+each(1..10 * 2)     // 10 -- traverses stream, returns count
+```
+
+`empty()` is an empty statement that returns a BlankType object —
+used when something other than nil is needed to indicate nothing was
+returned. Test for it with `==empty()`:
+
+```
+s=(0 nil 2)
+v=next(s); v==empty()      // false -- 0 is a real value
+v=next(s); v==empty()      // true -- nil terminates stream early,
+                           //         next() returns BlankType
+e=list()
+at(e 0)==empty()           // true -- out-of-bounds returns BlankType
 ```
 
 **Composition** — combining streams:

@@ -509,3 +509,43 @@ Fix lookup_symval func-scope order (++ infinite loop); add deeptest.comt stress 
 The PR description carries the full narrative — what broke, why, how it
 was fixed, and what else changed. The commit message is the scannable
 one-line summary that shows up in `git log`.
+
+## C++ vs ComTerp naming convention
+
+When referring to implementation internals, use C++ qualified syntax to
+distinguish from ComTerp commands:
+
+- **C++ methods**: `ComTerp::runfile()`, `ComTerpServ::run()`,
+  `EvalFunc::execute()` — class-qualified
+- **ComTerp commands**: `errmsg()`, `run()`, `postfix()`, `for()` —
+  unqualified, in `code` formatting in prose
+
+Never write `run()` when you mean `ComTerpServ::run()` in the same
+sentence as the ComTerp `run()` command — they are different things at
+different levels.
+
+## Testing Parse Errors with errmsg()
+
+Parse errors from expressions evaluated inline in a `.comt` script file
+are consumed by `ComTerp::runfile()` before the ComTerp command
+`errmsg()` can retrieve them. By the time the next line of the script
+executes, the error has already been reported to stderr and cleared.
+
+To reliably test that an expression produces a parse error, wrap it in
+the ComTerp `run()` command with `:str` to force an isolated nested
+evaluation via `ComTerpServ::run()`:
+
+```
+errmsg(:clear)
+run("(0 :flag 1)" :str)      // ComTerp run() calls ComTerpServ::run() -- isolated context
+e=errmsg(:last)              // error is now retrievable
+ok=ok&&(e!=nil)
+```
+
+In interactive mode `errmsg()` works directly because each expression
+is a complete round-trip. In a script file, `run(:str)` is the only
+reliable way to isolate a parse error for assertion.
+
+`errmsg(:clear)` before the test ensures no prior error bleeds in.
+`errmsg(:last)` retrieves the most recent error without clearing it.
+`errmsg(:clear)` again after cleans up for the next test.

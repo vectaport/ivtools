@@ -1,0 +1,103 @@
+// src/comterp_/tests/stream-literal.comt -- stream literal syntax tests
+//
+// coverage: 8 parser tests (ivtools-3.0 stream literal feature)
+// funcs: postfix() errmsg() index()
+//
+// BEFORE _parser.c patch: tests 2 3 5 6 fail; test 7 passes for wrong reason
+// AFTER  _parser.c patch: all 8 pass
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/stream-literal.comt")
+
+// clear any prior error
+errmsg(:clear)
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: (42) is still a scalar -- no stream command in postfix ---
+// BEFORE: passes  AFTER: passes  (single value, not a stream literal)
+v=(42)
+ok=ok&&(v==42)
+p=postfix((42))
+ok=ok&&(index(p "stream")==nil)
+print("1 postfix((42)) -- scalar not stream (expect no 'stream' in postfix and v==42): %v %v\n" v p)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: (0 1) has stream command in postfix ---
+// BEFORE: fails -- "Unexpected literal constant"
+// AFTER:  passes -- stream[2|0|1]* in postfix
+errmsg(:clear)
+p=nil
+p=postfix((0 1))
+errmsg(:clear)
+ok=ok&&(index(p "stream")!=nil)
+print("2 postfix((0 1)) -- stream literal (expect 'stream' in postfix): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: (0 1 2 3) has stream command with narg=4 ---
+// BEFORE: fails
+// AFTER:  passes -- stream[4|0|1]* in postfix
+errmsg(:clear)
+p=nil
+p=postfix((0 1 2 3))
+errmsg(:clear)
+ok=ok&&(index(p "stream[4|0|1]")!=nil)
+print("3 postfix((0 1 2 3)) -- stream[4|0|1] (expect stream[4|0|1] in postfix): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: (42) postfix is just the literal ---
+// BEFORE: passes  AFTER: passes
+p=postfix((42))
+ok=ok&&(p=="42")
+print("4 postfix((42)) -- just literal (expect \"42\"): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: (0 :flag 1) no error, stream literal narg=1 nkey=1 ---
+// BEFORE: fails -- p=nil (error from run() prevents postfix from working)
+// AFTER:  passes -- no error, stream[1|1|1]* in postfix
+errmsg(:clear)
+run("(0 :flag 1)" :str)
+errmsg(:clear)
+p=nil
+p=postfix((0 :flag 1))
+errmsg(:clear)
+ok=ok&&(index(p "stream")!=nil)
+print("5 postfix((0 :flag 1)) -- stream literal (expect 'stream' in postfix): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: (0 1 :key 99) stream[3|1|1] in postfix ---
+// BEFORE: fails -- p=nil
+// AFTER:  passes -- stream[3|1|1]* in postfix
+errmsg(:clear)
+run("(0 1 :key 99)" :str)
+errmsg(:clear)
+p=nil
+p=postfix((0 1 :key 99))
+errmsg(:clear)
+ok=ok&&(index(p "stream[3|1|1]")!=nil)
+print("6 postfix((0 1 :key 99)) -- stream[2|1|1] (expect stream[3|1|1] in postfix): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: (0 :key 1 2) still errors -- bare value after keyword ---
+// BEFORE: passes  AFTER: passes  (always an error regardless of patch)
+errmsg(:clear)
+run("(0 :key 1 2)" :str)
+e7=errmsg(:last)
+ok=ok&&(e7!=nil)
+print("7 (0 :key 1 2) -- error preserved (expect error): %v\n" e7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: (:key val) still produces attrlist not stream ---
+// BEFORE: passes  AFTER: passes  (keyword-first path unchanged)
+errmsg(:last)
+al=(:a 1 :b 2)
+ok=ok&&(class(al)==`AttributeList)
+p=postfix((:a 1 :b 2))
+ok=ok&&(index(p "attrlist")!=nil)
+ok=ok&&(index(p "stream")==nil)
+print("8 (:a 1 :b 2) -- attrlist not stream (expect attrlist no stream in postfix): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+print("stream-literal: %v\n" ok)
+ok
