@@ -52,6 +52,7 @@ public:
     StreamFunc(ComTerp*);
 
     virtual void execute();
+    void execute_literal();  // handle (val val ...) stream literal syntax
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
       return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $$)"; }
@@ -184,4 +185,16 @@ public:
     CLASS_SYMID("FilterNextFunc");
 
 };
+//: hidden func used by next command for stream literal (val val ...) syntax
+class StreamLiteralNextFunc : public StrmFunc {
+public:
+    StreamLiteralNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for stream literal"; }
+
+    CLASS_SYMID("StreamLiteralNextFunc");
+};
+
 #endif /* !defined(_strmfunc_h) */

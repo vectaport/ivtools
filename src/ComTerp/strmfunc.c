@@ -27,6 +27,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/iofunc.h>
+#include <ComTerp/postfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
@@ -73,6 +74,13 @@ StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
 void StreamFunc::execute() {
+
+  /* stream literal: (val val ...) -- delegate to execute_literal() */
+  if (nargsfixed() > 1) {
+    execute_literal();
+    return;
+  }
+
   ComValue operand1(stack_arg_post_eval(0));
   
   reset_stack();
@@ -127,6 +135,74 @@ void StreamFunc::execute() {
     }
     
   }
+}
+
+/*****************************************************************************/
+
+void StreamFunc::execute_literal() {
+  /* Handle (val val ...) stream literal syntax.
+     Scans _pfbuf to find per-element (offset, count) pairs,
+     stores in AVL for lazy per-element evaluation by StreamLiteralNextFunc. */
+
+  static StreamLiteralNextFunc* slnfunc = nil;
+  if (!slnfunc) {
+    slnfunc = new StreamLiteralNextFunc(comterp());
+    slnfunc->funcid(symbol_add("streamliteralnext"));
+  }
+
+  /* find start of argument region in _pfbuf */
+  ComValue argoffv(comterp()->stack_top());
+  int offtop = argoffv.int_val() - comterp()->pfnum();
+  int saved_offtop = offtop;
+  int argcnt = 0;
+  int total = 0;
+
+  /* skip keys (keywords become attrlist singletons at consume time) */
+  for (int i = 0; i < nkeys(); i++) {
+    argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+    total += argcnt + 1;
+  }
+  /* skip positionals to find start of arg region */
+  for (int j = 0; j < nargsfixed(); j++) {
+    argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+    total += argcnt;
+  }
+
+  /* copy entire arg region from _pfbuf */
+  postfix_token* tokbuf = comterp()->copy_post_eval_expr(total, offtop);
+
+  /* build AVL: [0]=FuncObj(tokbuf), [1]=nremaining, [2n/2n+1]=offset/count pairs */
+  AttributeValueList* avl = new AttributeValueList();
+
+  FuncObj* fo = new FuncObj(tokbuf, total);
+  ComValue tokval(FuncObj::class_symid(), (void*)fo);
+  avl->Append(new AttributeValue(tokval));
+
+  int nfixed = nargsfixed();
+  avl->Append(new AttributeValue(nfixed, AttributeValue::IntType));
+
+  /* record each positional's span */
+  int elem_offset = 0;
+  int rescan = saved_offtop;
+  for (int k = 0; k < nkeys(); k++) {
+    argcnt = 0;
+    skip_key_in_expr(rescan, argcnt);
+  }
+  for (int m = nfixed; m > 0; m--) {
+    argcnt = 0;
+    skip_arg_in_expr(rescan, argcnt);
+    avl->Append(new AttributeValue(elem_offset, AttributeValue::IntType));
+    avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
+    elem_offset += argcnt;
+  }
+
+  reset_stack();
+
+  ComValue stream(slnfunc, avl);
+  stream.stream_mode(STREAM_INTERNAL);
+  push_stack(stream);
 }
 
 /*****************************************************************************/
@@ -670,3 +746,68 @@ void FilterNextFunc::execute() {
   return;
 }
 
+
+/*****************************************************************************/
+
+int StreamLiteralNextFunc::_symid = -1;
+
+StreamLiteralNextFunc::StreamLiteralNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void StreamLiteralNextFunc::execute() {
+    /* AVL layout:
+         [0]       FuncObj wrapping postfix_token* (entire arg buffer)
+         [1]       nremaining -- int, decremented each call
+         [2n]      offset_n   -- int offset into tokbuf for element n
+         [2n+1]    count_n    -- int token count for element n
+       Elements consumed by removing front offset/count pair each next() call.
+    */
+    ComValue streamv(stack_arg(0));
+    reset_stack();
+
+    AttributeValueList* avl = streamv.stream_list();
+    if (!avl) { push_stack(ComValue::nullval()); return; }
+
+    Iterator it;
+    avl->First(it);
+
+    /* [0] tokbuf */
+    AttributeValue* tokval = avl->GetAttrVal(it);
+    if (!tokval || !tokval->is_object(FuncObj::class_symid())) {
+        push_stack(ComValue::nullval()); return;
+    }
+    FuncObj* fo = (FuncObj*)tokval->obj_val();
+    postfix_token* tokbuf = fo->toks();
+
+    /* [1] nremaining */
+    avl->Next(it);
+    AttributeValue* nremval = avl->GetAttrVal(it);
+    int nrem = nremval->int_val();
+    if (nrem <= 0) { push_stack(ComValue::nullval()); return; }
+
+    /* [2] offset, [3] count for current element */
+    avl->Next(it);
+    AttributeValue* offval = avl->GetAttrVal(it);
+    int offset = offval->int_val();
+
+    avl->Next(it);
+    AttributeValue* cntval = avl->GetAttrVal(it);
+    int cnt = cntval->int_val();
+
+    /* lazy evaluation -- run exactly cnt tokens from tokbuf+offset */
+    ComValue result(comterpserv()->run(tokbuf + offset, cnt));
+
+    /* nil terminates stream early */
+    if (result.is_nil()) {
+        nremval->int_ref() = 0;
+        push_stack(ComValue::nullval());
+        return;
+    }
+
+    /* consume: remove this element's offset/count from AVL */
+    avl->Remove(offval); delete offval;
+    avl->Remove(cntval); delete cntval;
+    nremval->int_ref()--;
+
+    push_stack(result);
+}
