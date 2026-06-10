@@ -76,7 +76,7 @@ StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 void StreamFunc::execute() {
 
   /* stream literal: (val val ...) -- delegate to execute_literal() */
-  if (nargs() > 1) {
+  if (nargsfixed() > 1) {
     execute_literal();
     return;
   }
@@ -160,13 +160,15 @@ void StreamFunc::execute_literal() {
   /* scan to find total tokens and bottom of arg region.
      nargsfixed() counts fixed-format args + keyword values.
      Compute true positional count by subtracting keyword value count. */
+  int nkeyvals = 0;
   for (int i = 0; i < nkeys(); i++) {
+    ComValue& kt = comterp()->pfcomvals()[comterp()->pfnum()-1+offtop];
+    nkeyvals += kt.keynarg_val();
     argcnt = 0;
     skip_key_in_expr(offtop, argcnt);
     total += argcnt + 1;
   }
-  /* nargsfixed() = nargs() - nargskey() already excludes keyword values */
-  int npositionals = nargsfixed();
+  int npositionals = nargsfixed() - nkeyvals;
   for (int j = 0; j < npositionals; j++) {
     argcnt = 0;
     skip_arg_in_expr(offtop, argcnt);
@@ -190,28 +192,10 @@ void StreamFunc::execute_literal() {
   int rescan = saved_offtop;
   int nelem = 0;
 
-/* skip keywords to reach positionals */
-  int keys_start = rescan;
-  for (int ki = 0; ki < nkeys(); ki++) {
-    argcnt = 0;
-    skip_key_in_expr(rescan, argcnt);
-  }
-
-  /* fixed-format (positional) args first */
-  for (int pi = 0; pi < npositionals; pi++) {
-    argcnt = 0;
-    skip_arg_in_expr(rescan, argcnt);
-    avl->Append(new AttributeValue(elem_offset, AttributeValue::IntType));
-    avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
-    elem_offset += argcnt;
-    nelem++;
-  }
-
-  /* keywords second */
-  rescan = keys_start;
+  /* keywords */
   for (int ki = 0; ki < nkeys(); ki++) {
     ComValue& keytoken = comterp()->pfcomvals()[comterp()->pfnum()-1+rescan];
-    int key_symid = keytoken.keyid_val();
+    int key_symid = keytoken.symbol_val();
     int key_narg = keytoken.keynarg_val();
     argcnt = 0;
     skip_key_in_expr(rescan, argcnt);
@@ -225,6 +209,16 @@ void StreamFunc::execute_literal() {
       avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
       elem_offset += argcnt;
     }
+    nelem++;
+  }
+
+  /* fixed-format args: exactly npositionals of them */
+  for (int pi = 0; pi < npositionals; pi++) {
+    argcnt = 0;
+    skip_arg_in_expr(rescan, argcnt);
+    avl->Append(new AttributeValue(elem_offset, AttributeValue::IntType));
+    avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
+    elem_offset += argcnt;
     nelem++;
   }
 
@@ -691,7 +685,7 @@ void EachFunc::execute() {
     ComValue retval(cnt, ComValue::IntType);
     push_stack(retval);
 
-  } else if (nargs() > 1) {
+  } else if (nargsfixed() > 1) {
     /* implicit stream literal -- evaluate remaining fixed-format args.
        First arg already evaluated (strmv). Count it if non-nil. */
     int cnt = strmv.is_nil() ? 0 : 1;
@@ -848,14 +842,14 @@ void StreamLiteralNextFunc::execute() {
     AttributeValue* firstval = avl->GetAttrVal(it);
 
     if (firstval->is_type(ComValue::KeywordType)) {
-      /* keyword element -- build singleton attrlist (:key val) in C++ */
-      int key_symid = firstval->keyid_val();
+      /* keyword element -- build singleton attrlist in C++ */
+      int key_symid = firstval->symbol_val();
       int key_narg = firstval->keynarg_val();
       avl->Remove(firstval); delete firstval;
 
       ComValue keyval(ComValue::trueval()); /* bare flag defaults to true */
       if (key_narg > 0) {
-        /* re-navigate fresh after remove */
+        /* re-navigate to get value offset and count */
         avl->First(it); avl->Next(it); avl->Next(it);
         AttributeValue* offval = avl->GetAttrVal(it);
         int offset = offval->int_val();
