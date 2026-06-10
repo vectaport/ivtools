@@ -187,6 +187,7 @@ int main(int argc, char *argv[]) {
 	        else break;
 	    }
 	    terp->set_args(argc-3-endcnt, argv+3);
+	    fprintf(stdout, "ivtools-%s comterp: type help for more info (:built %s %s)\n%s", VersionString, __DATE__, __TIME__, get_command_prompt());
 	    if (terp->runfile(rfile) < 0)
 	        cerr << "comterp: error running script file: " << rfile << "\n";
 	}
@@ -298,8 +299,8 @@ int main(int argc, char *argv[]) {
 
       ComTerpServ* terp = new ComTerpServ();
       terp->add_defaults();
-      fprintf(stderr, "ivtools-%s comterp (built: %s %s)\n", VersionString, __DATE__, __TIME__);
       if (run_flag && argc > 2 ) {
+	fprintf(stderr, "ivtools-%s comterp (built: %s %s)\n", VersionString, __DATE__, __TIME__);
 	int endcnt=0;
 	for(int i=argc-1; i>2; i--) {
 	  if(*argv[i]=='\0') {
@@ -314,7 +315,9 @@ int main(int argc, char *argv[]) {
 	RunFunc::set_basepath(rfile);
 	terp->runfile(rfile);
 	return 0;
-      } if (expr_flag) {
+      }
+
+      if (expr_flag) {
 	terp->brief(1);
 	ComValue::comterp(terp);
         ComValue comval(terp->run(argv[1]));

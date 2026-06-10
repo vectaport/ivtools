@@ -159,6 +159,188 @@ help(stream)
 
 ---
 
+## Symbol constants, symbol values, and indirect assignment
+
+ComTerp distinguishes between:
+
+* a symbol constant
+* the value associated with a symbol
+* a reference suitable for assignment through a symbol
+
+Backquote creates a symbol constant:
+
+```
+// myvar currently contains 42
+myvar=42
+
+dynvar=`myvar
+```
+
+Now `dynvar` contains the symbol `myvar` itself, not the value `42`.
+
+The same symbol can then be interpreted in two different ways.
+
+`symval()` follows the symbol to obtain its current value:
+
+```
+symval(dynvar)      // 42
+```
+
+`symvar()` follows the symbol to obtain an assignable reference:
+
+```
+symvar(dynvar)=99
+```
+
+After the assignment:
+
+```
+myvar              // 99
+```
+
+This allows indirect access to variables through symbols stored in other variables.
+
+A useful way to think about the three operations is:
+
+```
+`myvar     // create a symbol constant
+
+symval(s)  // interpret symbol as a value
+symvar(s)  // interpret symbol as a variable reference
+```
+
+The distinction is subtle but important. A backquoted symbol is not merely a symbol variable that has been protected from lookup. It is a literal symbol constant. `symval()` and `symvar()` then provide two different interpretations of that symbol: one for reading and one for assignment.
+
+This capability makes it possible to construct variable names dynamically and then either read from them or assign through them without requiring a separate pointer or reference type.
+
+---
+
+## Execution model and parser semantics (ComTerp as a live system)
+
+ComTerp is not built on a fixed execution substrate. The parser, operator table,
+precedence rules, and evaluation strategy are all runtime-modifiable components.
+This is a core architectural property: the language is a live system, not a frozen
+syntax mapped onto a runtime.
+
+The REPL is the wire protocol. There is no distinction between:
+
+- interactive execution
+- programmatic invocation
+- IPC or networked execution
+
+All of them reduce to the same mechanism:
+
+    send expression → evaluate → return expression
+
+This collapses the traditional separation between program, shell, runtime, and IPC.
+The language itself is the protocol.
+
+---
+
+### Parser as a mutable system
+
+The parser is not fixed. It can be reconfigured at runtime by changing:
+
+- symbol bindings
+- operator precedence
+- associativity flags (including right-to-left mode)
+- parsing modes (e.g. switching into instruction-level grammars via `ipl()`)
+
+This allows a single runtime to host multiple syntaxes, including:
+
+- instruction-level flowgraph assembly languages
+- embedded domain-specific grammars
+- experimental or temporary syntactic overlays
+
+The parser is therefore part of the running program state, not a static compiler phase.
+
+---
+
+### Stream overloading as structural expansion
+
+ComTerp supports stream overloading, where a single expression may expand into
+multiple execution steps. This is conceptually similar to Verilog `generate`, but
+it occurs at runtime rather than compile time.
+
+This enables:
+
+- one expression → multiple instructions
+- implicit replication of computation graphs
+- symbolic expansion of execution structure
+
+---
+
+### Visual and textual verification
+
+ComTerp emphasizes observability of execution. Both textual and visual inspection
+are first-class debugging tools, with visual confirmation often primary in systems
+like DrawServ.
+
+The `postfix()` command exposes the parsed representation of any expression,
+allowing deterministic verification of parser behavior independent of execution.
+
+The system can always be understood as:
+
+    source → postfix → execution
+
+---
+
+### Runtime-modifiable components
+
+The following system components may be changed at runtime without restarting:
+
+- operator precedence table
+- associativity rules (`rtol`)
+- symbol table entries
+- parser mode switches
+- command dispatch bindings
+
+These changes propagate immediately into all subsequent evaluation contexts.
+
+---
+
+### Semantic rules: whitespace, parentheses, and streams
+
+Whitespace has no semantic meaning except at top level, where newline
+terminates an expression.
+
+Parentheses do not define scope or blocks. They define token coherence
+and interpretation context.
+
+Key rules:
+
+- `(a b)` is a stream literal when evaluated in stream context
+- `(a b)` is a grouped expression when embedded as a subexpression
+- `(a b)` inside a command argument list is a literal argument group
+- `cmd(a b)` is a command invocation with two arguments
+
+Thus:
+
+    cmd1(a b)
+
+is a single invocation with two arguments.
+
+But:
+
+    (a b)
+
+is context-dependent and may represent a stream literal.
+
+---
+
+### Structural principle
+
+ComTerp treats program text, data, and control flow as a single unified token system.
+The distinction between them is not syntactic, but contextual.
+
+All structures reduce to:
+
+    tokens → postfix stream → stack evaluation
+
+This unification is what allows the REPL, IPC system, and language runtime to be identical.
+
+---
+
 ## Driving a drawing session from ComTerp
 
 DrawServ registers additional commands that operate on the live drawing.

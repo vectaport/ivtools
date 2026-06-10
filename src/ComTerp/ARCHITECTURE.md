@@ -73,6 +73,10 @@ tokens with `pedepth > 0` are skipped — they are only evaluated when a
 Nested `post_eval` commands increment the depth further, allowing arbitrary
 nesting of lazy constructs.
 
+Post-eval evaluation does not alter the execution model or execution
+structure; it only changes when argument sub-expressions are evaluated
+relative to a fixed execution substrate.
+
 ## ComValue and _flags
 
 `ComValue` extends `AttributeValue` with command/keyword metadata:
@@ -336,4 +340,98 @@ This is the same property that made the `nids()` mechanism sufficient
 for the Wave instruction set and ipl: the token structure carries enough
 information to reconstruct operator meaning without baking it into a
 static grammar.
+
+## Interaction Model and Command Serialization Boundary
+
+ComTerp defines a system in which multiple interaction models coexist
+independently while sharing a common semantic serialization format for
+all meaningful state-changing operations. The GUI, ComTerp command
+language, and network interfaces are parallel entry points into the
+same execution engine rather than layered abstractions over one
+another.
+
+### Independent GUI Model
+
+The graphical interface is a fully autonomous interaction system. It
+maintains its own internal state for tools, selections, and user
+interaction flow. It does not require knowledge of the ComTerp command
+system to function, and it is not implemented as a thin layer over a
+command interpreter.
+
+The GUI is therefore not a visualization of the command system, nor
+does it depend on ComTerp semantics for its internal operation.
+
+### Command System as Semantic Representation
+
+The ComTerp command system defines a structured, deterministic model
+of operations on documents and data. Commands are executed within the
+interpreter and produce state changes in the underlying model.
+
+Critically, (most) every semantically meaningful operation available in the
+GUI can be expressed as a ComTerp command sequence. This establishes a
+lossless semantic encoding boundary:
+
+* GUI operations → can be serialized into command streams
+* Command streams → can be replayed to reproduce equivalent state transitions
+
+### Shared Serialization Boundary
+
+The key architectural invariant is not coupling, but equivalence of expressible operations:
+
+> The GUI and ComTerp command system are independent interaction
+  domains that share a common serialization format for all meaningful
+  state-changing operations.
+
+This implies:
+
+* The GUI can operate without the command system
+* The command system can operate without the GUI
+* The command stream is sufficient to reconstruct system state transitions
+
+### Replay, Persistence, and External Control
+
+Because all semantically relevant operations can be expressed in the
+command stream, that stream becomes a universal interface for:
+
+* persistence
+* replay
+* debugging
+* network transmission
+* automation
+
+Any external system capable of generating valid command sequences can
+interact with ComTerp at the same semantic level as the GUI.
+
+### Architectural Implication
+
+This design yields a system where:
+
+* Interaction is multi-modal (GUI, REPL, network)
+* Semantics are centralized in the command model
+* Representation is uniform across all interfaces
+* No single interface is privileged as the source of truth
+
+The result is not a GUI-driven system with scripting support, but a
+system where multiple independent interfaces converge on a shared
+executable representation of operations.
+
+## Relationship to the Execution Model
+
+This interaction model is tightly coupled to ComTerp’s execution architecture.
+
+ComTerp’s postfix evaluation model, lazy argument evaluation system,
+and deterministic command execution semantics ensure that command
+streams are stable, replayable, and context-independent. Because
+execution is defined entirely in terms of a linearized sequence of
+`ComValue` operations over an immutable postfix buffer, the system
+naturally supports serialization of all meaningful computation steps.
+
+As a result, the command stream is not an external API layer; it is a
+direct expression of the interpreter’s execution model. This is what
+allows GUI actions, REPL input, and network messages to be treated as
+equivalent sources of computation.
+
+Both command histories and snapshot documents are first-class,
+executable ComTerp representations of drawing state.
+
 

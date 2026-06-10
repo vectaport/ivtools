@@ -1,10 +1,11 @@
+// stream-literal.comt version 1
+print("stream-literal.comt version 1\n")
+
 // src/comterp_/tests/stream-literal.comt -- stream literal syntax tests
 //
-// coverage: 8 parser tests (ivtools-3.0 stream literal feature)
+// coverage: 14 parser tests of stream literal feature
 // funcs: postfix() errmsg() index()
 //
-// BEFORE _parser.c patch: tests 2 3 5 6 fail; test 7 passes for wrong reason
-// AFTER  _parser.c patch: all 8 pass
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream-literal.comt")
@@ -76,7 +77,7 @@ p=nil
 p=postfix((0 1 :key 99))
 errmsg(:clear)
 ok=ok&&(index(p "stream[3|1|1]")!=nil)
-print("6 postfix((0 1 :key 99)) -- stream[2|1|1] (expect stream[3|1|1] in postfix): %v\n" p)
+print("6 postfix((0 1 :key 99)) -- stream[3|1|1] (expect stream[3|1|1] in postfix): %v\n" p)
 prev_ok=check_fail(:ok ok)
 
 // --- test 7: (0 :key 1 2) still errors -- bare value after keyword ---
@@ -97,6 +98,80 @@ p=postfix((:a 1 :b 2))
 ok=ok&&(index(p "attrlist")!=nil)
 ok=ok&&(index(p "stream")==nil)
 print("8 (:a 1 :b 2) -- attrlist not stream (expect attrlist no stream in postfix): %v\n" p)
+prev_ok=check_fail(:ok ok)
+
+// =========================================================
+// PART 2: Stream literal actual stream behavior
+// (requires StreamLiteralNextFunc in strmfunc.c)
+// =========================================================
+
+// --- test 9: stream literal produces a working stream ---
+// BEFORE strmfunc patch: next() returns nil (no StreamLiteralNextFunc)
+// AFTER:  next() returns values lazily one at a time
+s=(10 20 30)
+v1=next(s); v2=next(s); v3=next(s); v4=next(s)
+ok=ok&&(v1==10)
+ok=ok&&(v2==20)
+ok=ok&&(v3==30)
+ok=ok&&(v4==nil)
+print("9 next() on (10 20 30) (expect 10 20 30 nil): %v %v %v %v\n" v1 v2 v3 v4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: stream literal is lazy -- rand evaluated fresh each next() ---
+// BEFORE: nil
+// AFTER:  three independently evaluated rand values
+srand(42)
+s=(rand rand rand)
+r1=next(s)
+r2=next(s)
+r3=next(s)
+ok=ok&&(r1!=empty())
+ok=ok&&(r2!=empty())
+ok=ok&&(r3!=empty())
+print("10 lazy eval (expect 3 rand values): %v %v %v\n" r1 r2 r3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: nil in stream terminates early ---
+// BEFORE: nil
+// AFTER:  stream stops at nil, returns empty() on next call
+s=(1 nil 3)
+v1=next(s); v2=next(s)
+ok=ok&&(v1==1)
+ok=ok&&(v2==nil)
+print("11 nil terminates stream (expect 1 then nil): %v %v\n" v1 v2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: each() on stream literal returns count ---
+// BEFORE: 0 or error
+// AFTER:  4
+ok=ok&&(each((10 20 30 40))==4)
+print("12 each((10 20 30 40)) (expect 4): %v\n" each((10 20 30 40)))
+prev_ok=check_fail(:ok ok)
+
+// --- test 13: keyword element becomes singleton attrlist ---
+// BEFORE fix: stream terminates after positionals, keyword element missing
+// AFTER fix:  (0 :key 1) yields 0 then (:key 1) then nil
+s=(0 :key 1)
+v1=next(s); v2=next(s); v3=next(s)
+ok=ok&&(v1==0)
+ok=ok&&(class(v2)==`AttributeList)
+ok=ok&&(v2.key==1)
+ok=ok&&(v3==nil)
+print("13 (0 :key 1) keyword element (expect 0 :key 1 nil): %v %v %v\n" v1 v2 v3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: stream literal and list duality ---
+// (4 :b 3) as stream materializes to same list as {4,(:b 3)}
+// BEFORE: stream literals didn't work
+// AFTER:  list((4 :b 3)) == {4,(:b 3)}
+l1=list((4 :b 3))
+l2=list(4,((:b 3)))
+ok=ok&&(size(l1)==2)
+ok=ok&&(at(l1 0)==4)
+ok=ok&&(class(at(l1 1))==`AttributeList)
+ok=ok&&(at(l1 0)==at(l2 0))
+ok=ok&&(class(at(l2 1))==`AttributeList)
+print("14 list duality list((4 :b 3)) (expect {4,(:b 3)}): %v\n" l1)
 prev_ok=check_fail(:ok ok)
 
 print("stream-literal: %v\n" ok)

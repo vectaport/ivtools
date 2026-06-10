@@ -4,7 +4,7 @@ ivtools is a distributed, live drawing system where the same command
 language you type in a terminal is also the protocol that synchronizes
 shared graphical scenes across the network. There is no distinction
 between interactive computation and distributed computation. A REPL
-session and a networked session are the same system.
+(read-eval-print-loop) session and a networked session are the same system.
 
 You do not need to understand all of it at once. Start anywhere.
 
@@ -59,7 +59,7 @@ The word "command" has two distinct meanings in ivtools. A **ComTerp
 command** is any registered function in the interpreter — `add`, `for`,
 `rect`, `sid`. A **drawing Command** (capital C, Unidraw terminology) is
 a structured action on the drawing that carries history, supports undo,
-and propagates across the network. Every drawing Command is invoked via
+and propagates across the network. Most every drawing Command can be invoked via
 a ComTerp command, but not every ComTerp command is a drawing Command.
 
 **The streaming algebra** is actively being experimented with to see
@@ -120,10 +120,11 @@ f=func(x*x); f(:x 7)
 optable(:table)
 ```
 
-The `help()` command works on everything. `postfix()` shows you what
-the parser actually produced. `errmsg()` tells you what went wrong.
-These three are your tools for understanding the language from the
-inside.
+The `help()` command works on everything and can be used to inspect
+what commands are available with what fixed and keyword arguments.
+`postfix()` shows you what the parser actually produced. `errmsg()`
+tells you what went wrong. These three are your tools for understanding
+the language from the inside.
 
 The test suite in `src/comterp_/tests/` is full of working examples.
 `run("src/comterp_/tests/stream.comt")` runs the stream tests and shows
