@@ -1,10 +1,11 @@
+// stream-literal.comt version 1
+print("stream-literal.comt version 1\n")
+
 // src/comterp_/tests/stream-literal.comt -- stream literal syntax tests
 //
-// coverage: 8 parser tests (ivtools-3.0 stream literal feature)
+// coverage: 14 parser tests of stream literal feature
 // funcs: postfix() errmsg() index()
 //
-// BEFORE _parser.c patch: tests 2 3 5 6 fail; test 7 passes for wrong reason
-// AFTER  _parser.c patch: all 8 pass
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream-literal.comt")
@@ -66,9 +67,9 @@ ok=ok&&(index(p "stream")!=nil)
 print("5 postfix((0 :flag 1)) -- stream literal (expect 'stream' in postfix): %v\n" p)
 prev_ok=check_fail(:ok ok)
 
-// --- test 6: (0 1 :key 99) stream[2|1|1] in postfix ---
+// --- test 6: (0 1 :key 99) stream[3|1|1] in postfix ---
 // BEFORE: fails -- p=nil
-// AFTER:  passes -- stream[2|1|1]* in postfix
+// AFTER:  passes -- stream[3|1|1]* in postfix
 errmsg(:clear)
 run("(0 1 :key 99)" :str)
 errmsg(:clear)
@@ -158,9 +159,6 @@ ok=ok&&(v2.key==1)
 ok=ok&&(v3==nil)
 print("13 (0 :key 1) keyword element (expect 0 :key 1 nil): %v %v %v\n" v1 v2 v3)
 prev_ok=check_fail(:ok ok)
-
-print("stream-literal: %v\n" ok)
-ok
 
 // --- test 14: stream literal and list duality ---
 // (4 :b 3) as stream materializes to same list as {4,(:b 3)}
