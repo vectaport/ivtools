@@ -1,13 +1,13 @@
-// stream-literal.comt version 3
-print("stream-literal.comt version 3\n")
+// stream-literal.comt version 4
+print("stream-literal.comt version 4\n")
 
 // src/comterp_/tests/stream-literal.comt -- stream literal syntax tests
 //
-// coverage: 17 tests of stream literal feature
-// funcs: postfix() errmsg() index() next() list() each() size() class()
+// coverage: 18 tests of stream literal feature
+// funcs: postfix() errmsg() index() next() list() each() size() class() trace()
 // tests 1-8:   parser tests (postfix inspection)
 // tests 9-14:  stream literal runtime behavior
-// tests 15-17: stream-of-streams construction and zip behavior
+// tests 15-18: stream-of-streams construction, zip behavior, mixed elements
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream-literal.comt")
@@ -223,6 +223,35 @@ l17=list(ss3)
 ok17=(l17==((1,4,{11,14}),(2,5,{12,15}),(3,6,{13,16})))
 ok=ok&&ok17
 print("17 $$(($$(1,2,3),$$(4,5,6)),($$(11,12,13),$$(14,15,16))) -- double zipper (expect {{1,4,11,14},{2,5,12,15},{3,6,13,16}} actual {{1,4,{11,14}},...}): %v\n" l17)
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: mixed scalar + nested stream literal ---
+// (1 (2 3) :key 4) -- a stream containing a scalar, an inner stream
+// literal, and a keyword element, in that source order.
+// next() yields 1, then StreamObj{2,3}, then (:key 4), then nil.
+//
+// Previously this corrupted the stack ("func next pushed more than a
+// single value on stack", leaving {1,2,3}).  Root cause: execute_literal()
+// discovers positionals via backward postfix traversal (pi=0 = LAST source
+// element), but assigned (offset,count) pairs as if discovery order
+// matched tokbuf's forward order.  Correct only when all positionals are
+// the same width -- (10 20 30) and ((1 2 3)(4 5 6)) (tests 9, 15) are both
+// uniform-width and worked "by coincidence".  Fixed by collecting sizes
+// then assigning offsets via reverse accumulation, appended in reverse-pi
+// order so AVL element 0 = source positional 0.
+errmsg(:clear)
+s18=(1 (2 3) :key 4)
+ok18=(class(s18)==`StreamObj)
+r18a=next(s18)
+ok18=ok18&&(r18a==1)
+r18b=next(s18)
+ok18=ok18&&(class(r18b)==`StreamObj)&&(list(r18b)==(2,3))
+r18c=next(s18)
+ok18=ok18&&(class(r18c)==`AttributeList)
+r18d=next(s18)
+ok18=ok18&&(r18d==nil)
+ok=ok&&ok18
+print("18 next((1 (2 3) :key 4)) -- mixed scalar+stream+keyword (expect 1 StreamObj{2,3} (:key 4) nil): %v %v %v %v\n" r18a r18b r18c r18d)
 prev_ok=check_fail(:ok ok)
 
 print("stream-literal: %v\n" ok)

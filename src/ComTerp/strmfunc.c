@@ -197,15 +197,35 @@ void StreamFunc::execute_literal() {
     skip_key_in_expr(rescan, argcnt);
   }
 
-  /* fixed-format (positional) args first */
+  /* fixed-format (positional) args first.
+     skip_arg_in_expr walks the postfix buffer BACKWARD from the command,
+     so pi=0 discovers the LAST source positional, pi=1 the second-to-last,
+     etc -- discovery order is the reverse of source order.  tokbuf (from
+     copy_post_eval_expr) is in FORWARD source order, so a naive running
+     elem_offset assigns (offset,count) pairs as if discovery order matched
+     tokbuf order -- correct only when all positionals are the same width
+     (e.g. (10 20 30), or ((1 2 3)(4 5 6)) where both elements are width 3),
+     and silently wrong for mixed-width elements like (1 (2 3)).
+
+     Fix: collect each pi's size, then compute true forward offsets via a
+     reverse-accumulation pass, and append to the AVL in reverse-pi order
+     so AVL element 0 corresponds to source positional 0. */
+  int* possizes = npositionals>0 ? new int[npositionals] : nil;
   for (int pi = 0; pi < npositionals; pi++) {
     argcnt = 0;
     skip_arg_in_expr(rescan, argcnt);
-    avl->Append(new AttributeValue(elem_offset, AttributeValue::IntType));
-    avl->Append(new AttributeValue(argcnt, AttributeValue::IntType));
-    elem_offset += argcnt;
+    possizes[pi] = argcnt;
+  }
+  int posoffsets_running = 0;
+  for (int pi = npositionals-1; pi >= 0; pi--) {
+    int off = posoffsets_running;
+    posoffsets_running += possizes[pi];
+    avl->Append(new AttributeValue(off, AttributeValue::IntType));
+    avl->Append(new AttributeValue(possizes[pi], AttributeValue::IntType));
     nelem++;
   }
+  elem_offset = posoffsets_running;
+  delete [] possizes;
 
   /* keywords second */
   rescan = keys_start;
