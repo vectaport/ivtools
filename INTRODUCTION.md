@@ -66,8 +66,7 @@ a ComTerp command, but not every ComTerp command is a drawing Command.
 what uses it can be put to beyond those already discovered. Streams are
 lazy sequences — values produced and consumed one at a time. They
 compose with scalar operators, zip element-wise, concatenate, and
-terminate on nil. Stream literals `(0 1 2 3)` make it possible to
-describe dataflow graphs directly in the language.
+terminate on nil.
 
 Each stage of the system's development added one of three core ideas:
 commands-as-evaluation, streaming evaluation, and distributed state
@@ -169,12 +168,12 @@ language actually works rather than how it was intended to work.
 
 A note on that process: the documentation, test suite, design issues,
 and architectural writeups in this release were produced in
-collaboration with an LLM used as a programming and writing tool —
-the same way one might use a compiler or a debugger. The LLM found
-the same things surprising that a new human programmer would find
+collaboration with an LLM used as a programming and writing tool — the
+same way one might use a compiler or a debugger. The LLM found the
+same things surprising that a new human programmer would find
 surprising. The places where it needed correction were the places
-where the language most rewards attention. Those corrections became
-the documentation.
+where the language most rewards attention to simplicity. Those
+corrections became the documentation.
 
 It is as exciting as any marble run you can think of. You set up the
 tracks, release the marble, and watch where it goes. Sometimes it goes
@@ -230,7 +229,7 @@ makes sense in a way that most languages do not.
 
 ---
 
-## A note on the documentation
+## Continued Reading
 
 `src/comterp_/LANGUAGE.md` is the language reference. Start there for
 syntax, types, operators, control flow, streams, and functions.
@@ -243,8 +242,10 @@ the way it does.
 `src/ComTerp/HACKING.md` is for contributors — how to add a command,
 how to test, how to avoid the common mistakes.
 
-The test files in `src/comterp_/tests/` are the living specification.
-When the docs and the tests disagree, the tests are right.
+The test files in `src/comterp_/tests/` are the living specification
+of what the language does (`TESTING.md` in that directory describes
+the test procedures and coverage standards).  When the docs and the
+tests disagree, the tests are right.
 
 ---
 
