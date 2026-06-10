@@ -247,3 +247,24 @@ To add a new test script:
 | script      | funcs                                                                                                          | notes         |
 |-------------|----------------------------------------------------------------------------------------------------------------|---------------|
 | stream.comt | stream literal `(0 1 2 3)`, mixed `(0 :flag 1 :color red)`, keyword element detection via class()/attrname()/attrval() | see issue #94 |
+
+## The Self-Hosted Test Suite
+
+The ComTerp test suite is written in ComTerp. This is not just a
+convenience — it is the same bootstrap insight that underlies a C
+compiler compiling itself, or yacc processing its own grammar. You
+cannot use the test harness to test the test harness until the test
+harness works well enough to run. The scaffolding (`testlib.comt`,
+`run_all.comt`, `ok=ok&&(...)`, `check_fail()`) had to be bootstrapped
+from a working-enough ComTerp before it could test ComTerp.
+
+The payoff is that the test suite is also the most honest documentation
+of what the language actually does. Any discrepancy between prose docs
+and tests, the tests win — they run. And because the tests are written
+in ComTerp, reading them teaches ComTerp in a way no external test
+framework could. The test suite is also the tutorial.
+
+Most languages never achieve this. Their test suites are written in
+some other language, which means there is always a translation layer
+between "what the tests say" and "what the language means." ComTerp
+tests mean exactly what they say, in the language they are testing.
