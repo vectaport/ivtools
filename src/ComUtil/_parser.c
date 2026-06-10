@@ -1142,7 +1142,19 @@ int status;
 	 if( expecting == OPTYPE_BINARY ) {
 	   if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
-		 UNEXPECTED_LPAREN_ERROR( toktype );
+		 /* stream literal: bare LPAREN, first element is also LPAREN */
+		 if( toktype == TOK_LPAREN &&
+		     TopOfParenStack >= 0 &&
+		     ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+		     ParenStack[ TopOfParenStack ].comm_id == -1 &&
+		     ParenStack[ TopOfParenStack ].narg == 0 ) {
+		   if(stream_symid==-1) stream_symid = symbol_add("stream");
+		   ParenStack[ TopOfParenStack ].comm_id = stream_symid;
+		 /* nested paren is a valid element inside an existing stream literal */
+		 } else if( !(TopOfParenStack >= 0 &&
+		              ParenStack[ TopOfParenStack ].comm_id == stream_symid) ) {
+		   UNEXPECTED_LPAREN_ERROR( toktype );
+		 }
 	     }
 
              /* End of an argument                     */
