@@ -870,7 +870,14 @@ int status;
 
 	    if( !PROCEEDING_WHITESPACE( tokstart ) ||
                 UNEXPECTED_NEW_EXPRESSION ) {
-	       /* stream literal: bare LPAREN, first value seen, second arriving */
+	      
+              /* stream literal: slip in stream_symid when a nested LPAREN arrives
+		 as the first element (narg==0, comm_id==-1).  This mirrors the
+		 scalar/identifier slip-in above and enables both all-stream
+		 ((a b)(c d)) and mixed scalar+stream (1 (2 3)) literals --
+		 the mixed case is consistent with how (a b) detects the stream
+		 on the second element with the first already on the stack. */
+
 	       if( TopOfParenStack >= 0 &&
 	           ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
 	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
@@ -1142,7 +1149,19 @@ int status;
 	 if( expecting == OPTYPE_BINARY ) {
 	   if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
-		 UNEXPECTED_LPAREN_ERROR( toktype );
+		 /* stream literal: bare LPAREN, first element is also LPAREN */
+		 if( toktype == TOK_LPAREN &&
+		     TopOfParenStack >= 0 &&
+		     ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+		     ParenStack[ TopOfParenStack ].comm_id == -1 &&
+		     ParenStack[ TopOfParenStack ].narg == 0 ) {
+		   if(stream_symid==-1) stream_symid = symbol_add("stream");
+		   ParenStack[ TopOfParenStack ].comm_id = stream_symid;
+		 /* nested paren is a valid element inside an existing stream literal */
+		 } else if( !(TopOfParenStack >= 0 &&
+		              ParenStack[ TopOfParenStack ].comm_id == stream_symid) ) {
+		   UNEXPECTED_LPAREN_ERROR( toktype );
+		 }
 	     }
 
              /* End of an argument                     */

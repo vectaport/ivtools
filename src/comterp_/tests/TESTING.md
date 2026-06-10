@@ -174,6 +174,35 @@ setup in the comment above:
 print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
 ```
 
+### Rules for LLM-assisted authoring
+
+When an LLM generates or edits a `.comt` test script, it must follow
+these four rules without exception. They are mechanical checklist items,
+not stylistic suggestions — violating any one of them produces a broken
+or misleading test file:
+
+1. **Update the test number in the version header and coverage comment.**
+   Every new test increments the count in `// coverage: N tests of ...`
+   and in `print("scriptname.comt version N\n")` if the version bumps.
+   Do not leave a stale count.
+
+2. **Move the final summary line to the very end.**
+   The `print("scriptname: %v\n" ok)` / `ok` footer must always be the
+   last two lines of the file. When appending new tests, remove the old
+   footer before appending, then re-add it after the new tests.
+
+3. **Update the coverage stats in the header.**
+   The `// coverage:`, `// funcs:`, and `// missing:` header lines must
+   reflect the new test count and any new functions exercised. If a
+   previously-missing slot is now covered, remove it from `// missing:`.
+
+4. **Embed the original ComTerp expression in the print label.**
+   The `print()` call for each test must show the actual expression being
+   tested as the first element of the label string, not just prose.
+   Followed by descriptive text if needed. This makes the test log
+   self-documenting. See the **Test label convention** section above for
+   examples.
+
 ## Adding Coverage
 
 To improve coverage on an existing script:
@@ -218,3 +247,24 @@ To add a new test script:
 | script      | funcs                                                                                                          | notes         |
 |-------------|----------------------------------------------------------------------------------------------------------------|---------------|
 | stream.comt | stream literal `(0 1 2 3)`, mixed `(0 :flag 1 :color red)`, keyword element detection via class()/attrname()/attrval() | see issue #94 |
+
+## The Self-Hosted Test Suite
+
+The ComTerp test suite is written in ComTerp. This is not just a
+convenience — it is the same bootstrap insight that underlies a C
+compiler compiling itself, or yacc processing its own grammar. You
+cannot use the test harness to test the test harness until the test
+harness works well enough to run. The scaffolding (`testlib.comt`,
+`run_all.comt`, `ok=ok&&(...)`, `check_fail()`) had to be bootstrapped
+from a working-enough ComTerp before it could test ComTerp.
+
+The payoff is that the test suite is also the most honest documentation
+of what the language actually does. Any discrepancy between prose docs
+and tests, the tests win — they run. And because the tests are written
+in ComTerp, reading them teaches ComTerp in a way no external test
+framework could. The test suite is also the tutorial.
+
+Most languages never achieve this. Their test suites are written in
+some other language, which means there is always a translation layer
+between "what the tests say" and "what the language means." ComTerp
+tests mean exactly what they say, in the language they are testing.

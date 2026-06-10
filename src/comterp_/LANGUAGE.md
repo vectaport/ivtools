@@ -19,6 +19,62 @@ to a flat postfix token stream, then evaluates it iteratively. Nesting
 depth in the original expression does not affect the interpreter's
 call stack — everything is a token stream and an operand stack.
 
+### The REPL is the wire protocol
+
+"The syntax is the wire protocol" has a concrete meaning that goes
+beyond serialization. In most distributed systems there are two
+distinct layers: an expression language for local computation, and a
+separate serialization format (JSON, protobuf, XML) for sending values
+over the wire. ComTerp collapses these into one. The value returned by
+any expression is itself a valid ComTerp expression — so sending a
+value and sending an expression are the same act.
+
+This is demonstrated completely by `remote()`:
+
+```
+remote(hoststr|sockobj [portnum] cmdstr :nowait :str)
+```
+
+`remote()` sends `cmdstr` to another ComTerp instance over a TCP
+socket and — by default — waits for the response, evaluates it
+locally, and pushes the result onto the operand stack as a live
+ComTerp value:
+
+```
+// ask a remote node for its drawlink connection table, use it locally
+t=remote("peer" 9988 "drawlink(:table)")
+// t is a live list of attrlists -- at(t).host
+```
+
+That last step — evaluating the returned string and pushing it on the
+stack — is what makes the protocol self-consistent. The remote node
+doesn't return a serialized blob that needs to be deserialized by a
+separate layer. It returns a ComTerp expression that the local
+interpreter evaluates directly, because every ComTerp value round-trips
+through its own syntax.
+
+The `:str` keyword skips the local evaluation and returns the raw
+response string instead — useful when you want to inspect the wire
+traffic or defer evaluation:
+
+```
+raw=remote("peer" 9988 "drawlink(:table)" :str)
+// raw is something like "(:nlinks 2 :host0 \"peer2\" :port0 9988 ...)"
+// a ComTerp expression string -- parse or log it, or run() it later
+run(raw :str)   // evaluate it now -- same result as without :str
+```
+
+`:nowait` fires and forgets — sends the expression without waiting for
+a response. Used for one-way commands like brush propagation in
+DrawServ where the sender doesn't need the return value.
+
+The same property makes the `drawmo` test orchestrator work — it drives
+drawserv instances over stdin pipes using the same expressions a human
+would type at the REPL, and the responses come back as ComTerp values
+that the orchestrator can inspect, compare, and branch on. There is no
+separate test protocol, no mock layer, no serialization adapter. The
+REPL session and the wire session are the same thing.
+
 ## Expressions and Sequencing
 
 The basic unit of execution is an expression. Multiple expressions are
@@ -582,6 +638,64 @@ a=0; b=10; c=1000
 ss=(a..b)+c            // lazy -- not yet consumed
 list(ss)               // {1000,1001,...,1010}
 ```
+
+
+### Design Provenance and Prior Art
+
+The automatic scalar overdrive mechanism — where any scalar operator
+applies element-wise over a stream without the operator knowing anything
+about streams — is an original invention of Scott Johnston. The
+conceptual lineage traces to a SPIE paper in 1988 and the command
+interpreter work at Honeywell and Triple Vision that preceded ComTerp.
+The working `$$` stream mechanism with lazy evaluation and automatic
+scalar overdrive was developed and refined well into the 2000s and
+continues to be extended in the ivtools-2.x series.
+
+**What existed before:**
+
+- **APL/J/K** — automatic broadcasting over arrays, but eager and fully
+  materialized. The spirit is the same but the execution model is
+  opposite: arrays are computed all at once, not lazily on demand.
+- **MATLAB** — closest in surface syntax (`a*2` broadcasts over a
+  vector), but eager, and `*` vs `.*` means the programmer must
+  explicitly signal element-wise intent. Not automatic.
+- **Lucid (language, Wadge and Ashcroft, 1985)** — a dataflow language
+  where every variable is implicitly a stream and operators apply
+  element-wise. A whole-language commitment, not an embeddable
+  mechanism, and never became practical. Intellectually in the same
+  lineage as Karl Fant's NCL work which also influenced ComTerp.
+- **Haskell/Clojure** — lazy sequences, but explicit lifting required.
+  The programmer must write `fmap (*2) list` or `(map #(* % 2) coll)` —
+  the operator does not overdrive automatically.
+
+**What is distinctive about ComTerp's overdrive:**
+
+- **Automatic** — `(1..5)*2` just works. No `fmap`, no `.*`, no lifting.
+  The scalar operator `*` is oblivious to streams entirely.
+- **Lazy** — streams are single-pass and evaluate on demand. No full
+  materialization required.
+- **Post-eval flag** — a clean architectural separation between operators
+  that are overdriven by streams (scalar operators, non-post-eval
+  commands) and consumers that receive the stream intact (post-eval
+  commands like `list()`, `sum()`, `each()`). The flag is per-command
+  and controls the overdrive boundary.
+- **Three-level hierarchy** — scalar (fully overdriven), post-eval
+  (receives stream intact, consumes one level), deep (receives full
+  nested structure, traverses itself). This is a runtime dispatch
+  mechanism, not a type system feature.
+- **Embeddable** — ComTerp is a scripting layer on top of a C++
+  application framework. The stream algebra is available wherever
+  ComTerp expressions are evaluated, including over TCP sockets.
+- **nd by composition** — higher-dimensional array operations emerge
+  from composing zip (`,` overdriven by n streams) and cross product
+  (`for`/`while` overdriven by a stream in the body). No special nd
+  array type required.
+
+The combination of laziness, automatic overdrive without explicit
+lifting, the post-eval/deep distinction as an explicit architectural
+flag, and nd structure emerging from stream composition rather than
+being declared upfront — this specific architecture has no known prior
+art.
 
 ### Two-stream binary ops zip element-wise
 

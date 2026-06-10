@@ -111,6 +111,76 @@ saved_offtop
 `skip_arg_in_expr()` skips one fixed-format argument expression.
 Both decrement the offset (scan toward lower indices).
 
+## Why the Pipeline Is So Clean: Fischer-LeBlanc and argoff
+
+Most language implementations interpose several layers between source
+text and execution: a parse tree (AST), a tree-walking or lowering pass
+to produce an intermediate representation, and then either compilation
+or interpretation of that IR. Each layer adds complexity and each
+crossing between layers requires a translation.
+
+ComTerp has none of that. The pipeline is:
+
+```
+source text → scanner → Fischer-LeBlanc parser → postfix token array → evaluator
+```
+
+The Fischer-LeBlanc parser (from the scanner/parser library developed
+at Triple Vision in the late 1980s, acquired by Scott Johnston at
+dissolution and carried forward into ComTerp) produces postfix-ordered
+tokens directly as it parses. There is no separately allocated AST. The tree structure is implicit
+in the postfix ordering — token sequence and argument counts
+(`[narg|nkey|nids]`) encode the full topology without ever
+materializing heap-allocated nodes with pointers. The "code conversion"
+step that would normally transform an explicit parse tree into an
+executable form is trivially thin — the parser is already building
+postfix order as it goes, and the postfix buffer it emits *is* the
+executable form.
+
+This has two consequences that compound each other:
+
+**The wire protocol is free.** Because the postfix buffer is the
+executable form, sending an expression over a socket and evaluating it
+locally are the same operation. There is no separate serialization
+layer, no marshalling, no protocol adapter. `remote()` sends the
+expression string, receives a ComTerp value string back, and evaluates
+it — one pipeline, both directions.
+
+**`argoff` unifies all lazy evaluation.** When the evaluator reaches a
+post-eval command in the postfix buffer, instead of having already
+evaluated and pushed all of the command's arguments onto the operand
+stack, it pushes a single integer: `argoff` — the offset into the
+static postfix buffer where the command's unevaluated arguments begin.
+
+The command receives `argoff` and can do whatever it likes with the
+buffer: evaluate one argument now and save the rest for later, evaluate
+an argument repeatedly (as `while` does for its condition and body),
+capture a slice as a `FuncObj` for deferred execution, or skip
+arguments entirely (as `if` does for the untaken branch).
+
+This is what makes `if`, `for`, `while`, `func`, stream literals, and
+`remote()` all work through the same mechanism rather than requiring
+special cases in the evaluator:
+
+- `if(:then :else)` — evaluates only the selected branch via `argoff`
+- `while(cond body)` — re-evaluates both from the buffer on each iteration
+- `func` — captures the body token buffer as a `FuncObj` via `argoff`
+- Stream literals — `StreamLiteralNextFunc` re-evaluates each element
+  token lazily via `comterpserv()->run(tokbuf+offset, cnt)`
+- `remote()` — the returned string is evaluated by the same pipeline
+
+In Lisp, special forms and macros achieve some of this, but each is
+baked into the evaluator as a special case. `argoff` is a uniform
+mechanism: any `ComFunc` subclass opts in by returning `true` from
+`post_eval()`, and the same `argoff` machinery handles it. No special
+cases in the evaluator, no privileged syntax.
+
+The simplicity compounds: the Fischer-LeBlanc parser encodes the tree
+implicitly in a flat buffer → the buffer is directly addressable by
+integer offset → `argoff` is just an integer → post-eval commands are
+just commands with one extra method → lazy evaluation, streaming, and
+distributed execution all fall out of the same mechanism.
+
 ## FuncObj and Lazy Evaluation
 
 `FuncObj` (defined in `postfunc.h`) is the mechanism for storing an
@@ -427,6 +497,35 @@ In all these cases the key facts to keep in mind:
 
 The stream literal implementation in `StreamFunc::execute_literal()` is
 the worked example of all four of these at once.
+
+## Generating Patches for git apply
+
+When producing a patch for `git apply`, the `---` and `+++` header lines
+must use `a/` and `b/` prefixes with paths relative to the repo root.
+Files uploaded to Claude land at `/mnt/user-data/uploads/` and patched
+copies are written to `/home/claude/`. Use `sed` to fix the paths:
+
+```bash
+diff -u /mnt/user-data/uploads/filename.c /home/claude/filename.c \
+  | sed 's|/mnt/user-data/uploads/filename.c|a/src/SubDir/filename.c|; \
+         s|/home/claude/filename.c|b/src/SubDir/filename.c|' \
+  > filename.patch
+```
+
+For `_parser.c` specifically:
+
+```bash
+diff -u /mnt/user-data/uploads/_parser.c /home/claude/_parser.c \
+  | sed 's|/mnt/user-data/uploads/_parser.c|a/src/ComUtil/_parser.c|; \
+         s|/home/claude/_parser.c|b/src/ComUtil/_parser.c|' \
+  > patch.patch
+```
+
+Apply with:
+
+```bash
+git apply patch.patch
+```
 
 ## See Also
 
