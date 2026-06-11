@@ -1,4 +1,4 @@
-name: Send Merge Summary to Mailing List
+name: Send Merge Summary to Self
 on:
   pull_request:
     types: [closed]
@@ -39,5 +39,5 @@ jobs:
           # due to spam attrition).  Redirecting to self for now until a
           # lighter-weight notification mechanism (GitHub Discussions, RSS)
           # is decided on.
-          to: johnston@vectaport.com
+          to: <${{ secrets.MAIL_USERNAME }}>
           from: GitHub Robot <${{ secrets.MAIL_USERNAME }}>
