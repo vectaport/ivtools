@@ -1,11 +1,9 @@
 name: Send Merge Summary to Mailing List
-
 on:
   pull_request:
     types: [closed]
     branches:
       - master
-
 jobs:
   send-email:
     if: github.event.pull_request.merged == true
@@ -35,5 +33,11 @@ jobs:
             ${{ github.event.pull_request.body }}
             
           # Target Distribution & Routing
-          to: ivtools-patch@lists.sourceforge.net
+          # was: ivtools-patch@lists.sourceforge.net
+          # SourceForge mailing list moderation/admin became unworkable
+          # (20-year-old Mailman instance, likely zero active subscribers
+          # due to spam attrition).  Redirecting to self for now until a
+          # lighter-weight notification mechanism (GitHub Discussions, RSS)
+          # is decided on.
+          to: johnston@vectaport.com
           from: GitHub Robot <${{ secrets.MAIL_USERNAME }}>
