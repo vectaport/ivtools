@@ -43,7 +43,8 @@ ComTerp value:
 ```
 // ask a remote node for its drawlink connection table, use it locally
 t=remote("peer" 9988 "drawlink(:table)")
-// t is a live list of attrlists -- at(t).host
+// t is a live list of attrlists -- dot-access works immediately
+if(size(t)>0 :then at(t).host)
 ```
 
 That last step — evaluating the returned string and pushing it on the
@@ -639,6 +640,95 @@ ss=(a..b)+c            // lazy -- not yet consumed
 list(ss)               // {1000,1001,...,1010}
 ```
 
+### Files and pipes as streams
+
+`open()` returns a `fileobj` or `pipeobj` (`help(open)`:
+`fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err)`).
+`stream()`/`$$` accepts either as a source (`help(stream)`:
+`strm=stream(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or
+convert list`), converting it to a lazy stream of lines:
+
+```
+ff=open("/tmp/diffs")
+list($$ff)              // {"line one","line two",...}
+
+pp=open("ls -l" :pipe)
+list($$pp)               // lines of command output
+```
+
+Each `next()` on `$$ff` (or `$$pp`) reads one line lazily -- the same
+lazy, single-pass model as any other stream, just backed by file or pipe
+I/O instead of a token buffer. This is the same `$$` used to convert a
+list to a stream (`$$(1,2,3)`); here the source is a `fileobj`/`pipeobj`
+instead of a list.
+
+### Overdrive rules: post-eval vs non-post-eval commands
+
+Whether a command can be overdriven by one of its own arguments depends
+on whether it is post-eval. This is inspectable directly: `postfix(help)`
+shows a trailing `*` on post-eval commands, e.g. `"each[0|0|1]*"`,
+`"stream[2|0|1]*"`. Commands without the trailing `*` are non-post-eval.
+
+**Non-post-eval commands** are overdrivable by any stream argument --
+internal overdrive. This covers every scalar operator (`*`, `+`, etc.)
+and any other non-post-eval command, since the only requirement is "be a
+command with arguments." The operator/command itself is oblivious; the
+evaluator peels one stream element at a time and calls the command once
+per element, assembling the results back into a stream.
+
+**Post-eval commands** cannot be overdriven by their own arguments --
+they receive arguments as unevaluated token regions (`argoff`) and decide
+for themselves what to do with any stream found there. But a post-eval
+command is not exempt from streams entirely:
+
+- it can be **externally overdriven**: combined via a non-post-eval
+  scalar operator with a stream operand, that operator drives repeated
+  calls to the post-eval command as a whole
+- it can **return a stream**, becoming the overdrive source for whatever
+  it is combined with downstream
+
+In short: streams overdrive *into* non-post-eval commands through their
+arguments, and *around* post-eval commands through external combination
+or return values -- never *through* a post-eval command's own arguments.
+
+### Stream as an extra loop around for/while (currently broken)
+
+External overdrive of a post-eval command by a stream argument should
+let the stream act as an outer loop wrapped around whatever the command
+does -- including a `for` or `while` loop used as that command's body.
+`each` is post-eval (`each[0|0|1]*`); given a stream first-argument and a
+body expression, each iteration of the outer stream should run the body
+to completion:
+
+```
+each((i=0..3);for(j=0 j<4 j++ print("i,j %d,%d\n" i j)))
+```
+
+EXPECTED: 16 lines, the cross product of `i=0..3` and `j=0..3` -- the
+outer stream `(i=0..3)` overdrives the entire `for(j=0 j<4 j++ ...)`
+loop, running it to completion four times.
+
+ACTUAL: 4 lines, `j` always shows the loop-exit value `4`:
+
+```
+i,j 0,4
+i,j 1,4
+i,j 2,4
+i,j 3,4
+```
+
+`each` correctly iterates `i` over `0..3` (4 lines, one per outer
+iteration), but `print(...)` appears to execute only once per outer
+iteration, after `for`'s loop has already exited with `j=4` -- as if
+`print(...)` is not being captured as part of `for`'s body argument.
+Needs investigation in `ctrlfunc.c` (`for`'s argument/body capture),
+likely related to the multi-statement `func` body issues seen earlier
+in `matrixmult.comt`.
+
+This is the cross-product primitive from the stream algebra design
+discussion: once fixed, `for`/`while` overdriven by an external stream
+is the cross product, complementing zip (`,` overdriven by streams) as
+the other half of nd composition.
 
 ### Design Provenance and Prior Art
 
