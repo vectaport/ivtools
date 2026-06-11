@@ -612,10 +612,10 @@ remaining elements unevaluated in the token buffer.
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
 The streaming algebra is still being formalized. The stream literal
-syntax (ivtools-3.0) completes the source end of the algebra; bugs
-found during implementation will clarify the composition laws,
-particularly around nil propagation through composed operations and
-zip semantics between lazy and materialized sources.
+syntax (ivtools-3.0) completes the source end of the algebra; ongoing
+work continues to clarify the composition laws, particularly around nil
+propagation through composed operations and zip semantics between lazy
+and materialized sources.
 
 ### Scalar overdrive
 
@@ -691,44 +691,43 @@ In short: streams overdrive *into* non-post-eval commands through their
 arguments, and *around* post-eval commands through external combination
 or return values -- never *through* a post-eval command's own arguments.
 
-### Stream as an extra loop around for/while (currently broken)
+### Stream-scalar broadcast via replay
 
-External overdrive of a post-eval command by a stream argument should
-let the stream act as an outer loop wrapped around whatever the command
-does -- including a `for` or `while` loop used as that command's body.
-`each` is post-eval (`each[0|0|1]*`); given a stream first-argument and a
-body expression, each iteration of the outer stream should run the body
-to completion:
+When a non-post-eval binary operator (`+`, `*`, `,`, `**`, etc.) finds
+that exactly one of its two operands `is_stream()` and the other is a
+plain scalar, the runtime constructs a per-element stream from the
+scalar operand and hands two streams to the operator's existing
+stream-zip path -- the same path that already handles `(10**4)*(1..4)`
+correctly, producing `10,20,30,40`.
 
-```
-each((i=0..3);for(j=0 j<4 j++ print("i,j %d,%d\n" i j)))
-```
-
-EXPECTED: 16 lines, the cross product of `i=0..3` and `j=0..3` -- the
-outer stream `(i=0..3)` overdrives the entire `for(j=0 j<4 j++ ...)`
-loop, running it to completion four times.
-
-ACTUAL: 4 lines, `j` always shows the loop-exit value `4`:
+The scalar operand's *first* value is whatever was already computed by
+normal evaluation (no extra cost -- "the first draw is done"). For each
+subsequent element, the scalar operand's postfix token-slice is replayed
+via the same mechanism stream literals already use for lazy per-element
+evaluation (`StreamLiteralNextFunc`'s `comterpserv()->run(tokbuf+offset,
+cnt)`, proven by `(rand rand rand)` giving three distinct values).
 
 ```
-i,j 0,4
-i,j 1,4
-i,j 2,4
-i,j 3,4
+s=10**4*rand()
+list(s)     // four independently-drawn random values, each *10
 ```
 
-`each` correctly iterates `i` over `0..3` (4 lines, one per outer
-iteration), but `print(...)` appears to execute only once per outer
-iteration, after `for`'s loop has already exited with `j=4` -- as if
-`print(...)` is not being captured as part of `for`'s body argument.
-Needs investigation in `ctrlfunc.c` (`for`'s argument/body capture),
-likely related to the multi-statement `func` body issues seen earlier
-in `matrixmult.comt`.
+The operator (`*`) never sees anything but two streams -- it is
+unchanged, oblivious, and identical to the `(10**4)*(1..4)` case.
 
-This is the cross-product primitive from the stream algebra design
-discussion: once fixed, `for`/`while` overdriven by an external stream
-is the cross product, complementing zip (`,` overdriven by streams) as
-the other half of nd composition.
+**The stream is what makes the sibling operand post-eval.** `for` and
+`while` are post-eval commands that replay their body argument's
+token-slice once per iteration -- the loop construct itself decides to
+replay. Here, the *same replay mechanism* applies to the scalar operand,
+but the *trigger* is different: not the construct's own post-eval-ness,
+but the presence of a stream sibling. A stream operand effectively
+extends post-eval-style replay to whatever it's combined with -- the
+operator stays oblivious and non-post-eval throughout; only the sibling
+operand's evaluation pattern changes, from "once" to "replayed per
+element," exactly as a loop body goes from "once" to "replayed per
+iteration." Same mechanism (token-slice replay via the static postfix
+buffer -- see *Why the Pipeline Is So Clean: Fischer-LeBlanc and argoff*
+in APPENDIX-C), different trigger.
 
 ### Design Provenance and Prior Art
 
@@ -993,11 +992,6 @@ Use `==` for symbol equality — it works reliably for all symbol values:
 `foo==`bar             // false
 symbol(symid(`foo))==`foo  // true
 ```
-
-The `:sym` keyword on comparison operators (`eq`, `lt`, `gt`, etc.) is
-intended for symbol comparison but has a known bug: `eq(:sym)` returns
-false for symbols returned by `symbol()` even when `==` returns true.
-Use `==` instead until this is resolved.
 
 Lexicographic symbol ordering:
 

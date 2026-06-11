@@ -141,8 +141,24 @@ void StreamFunc::execute() {
 
 void StreamFunc::execute_literal() {
   /* Handle (val val ...) stream literal syntax.
-     Scans _pfbuf to find per-element (offset, count) pairs,
-     stores in AVL for lazy per-element evaluation by StreamLiteralNextFunc. */
+     Scans _pfbuf to find per-element (offset, count) pairs and stores
+     them in an immutable AVL for lazy per-element evaluation.
+
+     AVL layout (never mutated after construction):
+       [0]  FuncObj(tokbuf, total_tokens)
+       [1]  current_element_index  (starts 0, incremented per next())
+       [2]  total_element_count    (-1 = unbounded for broadcast streams)
+       [3]  first_val              (pre-evaluated element 0, never re-run)
+       [4+] element entries:
+              positional:           offset(Int), count(Int)   -- 2 entries
+              keyword flag:         KeywordType(keynarg=0)    -- 1 entry
+              keyword with value:   KeywordType(keynarg>0),
+                                    offset(Int), count(Int)   -- 3 entries
+
+     StreamLiteralNextFunc advances [1] each call, navigates to the
+     current element by walking forward from [4], runs its token slice.
+     Element 0 returns pre-evaluated [3] directly (side effects happen
+     exactly once at construction, consistent with stream-scalar broadcast). */
 
   static StreamLiteralNextFunc* slnfunc = nil;
   if (!slnfunc) {
@@ -157,59 +173,43 @@ void StreamFunc::execute_literal() {
   int argcnt = 0;
   int total = 0;
 
-  /* scan to find total tokens and bottom of arg region.
-     nargsfixed() counts fixed-format args + keyword values.
-     Compute true positional count by subtracting keyword value count. */
   for (int i = 0; i < nkeys(); i++) {
     argcnt = 0;
     skip_key_in_expr(offtop, argcnt);
     total += argcnt + 1;
   }
-  /* nargsfixed() = nargs() - nargskey() already excludes keyword values */
   int npositionals = nargsfixed();
   for (int j = 0; j < npositionals; j++) {
     argcnt = 0;
     skip_arg_in_expr(offtop, argcnt);
     total += argcnt;
   }
-  /* offtop is now the bottom of the entire arg region */
 
   /* copy entire arg region from _pfbuf */
   postfix_token* tokbuf = comterp()->copy_post_eval_expr(total, offtop);
 
-  /* build AVL: [0]=FuncObj(tokbuf), [1]=nremaining (set after scan) */
+  /* build AVL header: [0]=FuncObj, [1]=cur_idx=0, [2]=total_placeholder, [3]=first_val_placeholder */
   AttributeValueList* avl = new AttributeValueList();
   FuncObj* fo = new FuncObj(tokbuf, total);
   ComValue tokval(FuncObj::class_symid(), (void*)fo);
-  avl->Append(new AttributeValue(tokval));
-  avl->Append(new AttributeValue(0, AttributeValue::IntType)); /* nremaining */
+  avl->Append(new AttributeValue(tokval));                        /* [0] FuncObj */
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));   /* [1] current_index */
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));   /* [2] total_count (set below) */
+  avl->Append(new AttributeValue(ComValue::nullval()));           /* [3] first_val (set below) */
 
-  /* recording scan: start at saved_offtop.
-     Keywords first (nkeys() of them), then fixed-format args until offtop. */
+  /* build element entries [4+] */
   int elem_offset = 0;
   int rescan = saved_offtop;
   int nelem = 0;
 
-/* skip keywords to reach positionals */
+  /* skip keywords to reach positionals first */
   int keys_start = rescan;
   for (int ki = 0; ki < nkeys(); ki++) {
     argcnt = 0;
     skip_key_in_expr(rescan, argcnt);
   }
 
-  /* fixed-format (positional) args first.
-     skip_arg_in_expr walks the postfix buffer BACKWARD from the command,
-     so pi=0 discovers the LAST source positional, pi=1 the second-to-last,
-     etc -- discovery order is the reverse of source order.  tokbuf (from
-     copy_post_eval_expr) is in FORWARD source order, so a naive running
-     elem_offset assigns (offset,count) pairs as if discovery order matched
-     tokbuf order -- correct only when all positionals are the same width
-     (e.g. (10 20 30), or ((1 2 3)(4 5 6)) where both elements are width 3),
-     and silently wrong for mixed-width elements like (1 (2 3)).
-
-     Fix: collect each pi's size, then compute true forward offsets via a
-     reverse-accumulation pass, and append to the AVL in reverse-pi order
-     so AVL element 0 corresponds to source positional 0. */
+  /* positional args: collect sizes then lay out in forward source order */
   int* possizes = npositionals>0 ? new int[npositionals] : nil;
   for (int pi = 0; pi < npositionals; pi++) {
     argcnt = 0;
@@ -227,7 +227,7 @@ void StreamFunc::execute_literal() {
   elem_offset = posoffsets_running;
   delete [] possizes;
 
-  /* keywords second */
+  /* keyword entries */
   rescan = keys_start;
   for (int ki = 0; ki < nkeys(); ki++) {
     ComValue& keytoken = comterp()->pfcomvals()[comterp()->pfnum()-1+rescan];
@@ -248,8 +248,19 @@ void StreamFunc::execute_literal() {
     nelem++;
   }
 
-  /* set nremaining now that we know total element count */
-  ((AttributeValue*)avl->Get(1))->int_ref() = nelem;
+  /* set total_count at [2] */
+  ((AttributeValue*)avl->Get(2))->int_ref() = nelem;
+
+  /* pre-evaluate element 0 at construction time.
+     Element 0 is always a positional at avl[4],[5] (keywords follow positionals).
+     Stores the result at [3] so StreamLiteralNextFunc returns it on the first
+     next() without re-running the expression -- side effects happen once. */
+  if (nelem > 0 && comterpserv()) {
+    int off0 = ((AttributeValue*)avl->Get(4))->int_val();
+    int cnt0 = ((AttributeValue*)avl->Get(5))->int_val();
+    ComValue first_val(comterpserv()->run(tokbuf + off0, cnt0));
+    *((AttributeValue*)avl->Get(3)) = AttributeValue(first_val);
+  }
 
   reset_stack();
 
@@ -832,93 +843,131 @@ StreamLiteralNextFunc::StreamLiteralNextFunc(ComTerp* comterp) : StrmFunc(comter
 }
 
 void StreamLiteralNextFunc::execute() {
-    /* AVL layout:
-         [0]       FuncObj wrapping postfix_token* (entire arg buffer)
-         [1]       nremaining -- int, decremented each call
-         [2..]     element entries -- (offset,count) for positionals,
-                   (KeywordType,offset,count) or (KeywordType) for keywords
-       Always re-navigate from AVL start to avoid stale iterators after Remove().
-    */
-    ComValue streamv(stack_arg(0));
-    reset_stack();
+  /* AVL layout (immutable after construction by execute_literal):
+       [0]  FuncObj(tokbuf, ntoks)
+       [1]  current_element_index  (0..total-1, incremented each call)
+       [2]  total_element_count    (-1 = unbounded broadcast)
+       [3]  first_val              (pre-evaluated element 0)
+       [4+] element entries:
+              positional:           offset(Int), count(Int)
+              keyword flag:         KeywordType(keynarg=0)
+              keyword with value:   KeywordType(keynarg>0), offset(Int), count(Int)
+     Never removes entries -- only advances [1]. */
 
-    AttributeValueList* avl = streamv.stream_list();
-    if (!avl) { push_stack(ComValue::nullval()); return; }
+  ComValue streamv(stack_arg(0));
+  reset_stack();
 
-    /* navigate fresh from start each time */
-    Iterator it;
-    avl->First(it);
+  AttributeValueList* avl = streamv.stream_list();
+  if (!avl) { push_stack(ComValue::nullval()); return; }
 
-    /* [0] tokbuf */
-    AttributeValue* tokval = avl->GetAttrVal(it);
-    if (!tokval || !tokval->is_object(FuncObj::class_symid())) {
-        push_stack(ComValue::nullval()); return;
-    }
-    FuncObj* fo = (FuncObj*)tokval->obj_val();
-    postfix_token* tokbuf = fo->toks();
+  /* read header */
+  FuncObj* fo = (FuncObj*)((ComValue*)avl->Get(0))->obj_val();
+  if (!fo) { push_stack(ComValue::nullval()); return; }
+  postfix_token* tokbuf = fo->toks();
 
-    /* [1] nremaining */
+  AttributeValue* cur_entry = (AttributeValue*)avl->Get(1);
+  int cur = cur_entry->int_val();
+
+  int total = ((AttributeValue*)avl->Get(2))->int_val();
+
+  /* termination: finite stream exhausted */
+  if (total >= 0 && cur >= total) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  /* element 0: return pre-evaluated first_val */
+  if (cur == 0) {
+    ComValue result(*((AttributeValue*)avl->Get(3)));
+    cur_entry->int_ref()++;
+    push_stack(result);
+    return;
+  }
+
+  /* elements 1+: walk forward from [4] past (cur) entries to find element cur.
+     Each positional occupies 2 AVL slots (offset, count).
+     Each keyword occupies 1 slot (keynarg=0) or 3 slots (keynarg>0 + offset + count).
+     For unbounded broadcast (total==-1): always use the one entry at [4],[5]. */
+  Iterator it;
+  avl->First(it);
+  avl->Next(it); /* [1] cur_idx */
+  avl->Next(it); /* [2] total */
+  avl->Next(it); /* [3] first_val */
+  avl->Next(it); /* [4] first element entry */
+
+  if (total == -1) {
+    /* broadcast: single element definition at [4],[5], replay forever */
+    int offset = avl->GetAttrVal(it)->int_val();
     avl->Next(it);
-    AttributeValue* nremval = avl->GetAttrVal(it);
-    int nrem = nremval->int_val();
-    if (nrem <= 0) { push_stack(ComValue::nullval()); return; }
-
-    /* [2] first element entry -- re-fetch iterator fresh */
-    avl->Next(it);
-    AttributeValue* firstval = avl->GetAttrVal(it);
-
-    if (firstval->is_type(ComValue::KeywordType)) {
-      /* keyword element -- build singleton attrlist (:key val) in C++ */
-      int key_symid = firstval->keyid_val();
-      int key_narg = firstval->keynarg_val();
-      avl->Remove(firstval); delete firstval;
-
-      ComValue keyval(ComValue::trueval()); /* bare flag defaults to true */
-      if (key_narg > 0) {
-        /* re-navigate fresh after remove */
-        avl->First(it); avl->Next(it); avl->Next(it);
-        AttributeValue* offval = avl->GetAttrVal(it);
-        int offset = offval->int_val();
-        avl->Remove(offval); delete offval;
-
-        avl->First(it); avl->Next(it); avl->Next(it);
-        AttributeValue* cntval = avl->GetAttrVal(it);
-        int cnt = cntval->int_val();
-        avl->Remove(cntval); delete cntval;
-
-        keyval = comterpserv()->run(tokbuf + offset, cnt);
-      }
-
-      /* construct singleton attrlist (:key val) */
-      AttributeList* al = new AttributeList();
-      al->add_attr(key_symid, keyval);
-      Resource::ref(al);
-      ComValue result(AttributeList::class_symid(), (void*)al);
-      nremval->int_ref()--;
-      push_stack(result);
+    int cnt = avl->GetAttrVal(it)->int_val();
+    ComValue result(comterpserv()->run(tokbuf + offset, cnt));
+    if (result.is_nil()) {
+      cur_entry->int_ref() = 0; /* reset -- broadcast never truly ends */
+      push_stack(ComValue::nullval());
       return;
     }
-
-    /* positional element -- (offset, count) pair */
-    int offset = firstval->int_val();
-    avl->Remove(firstval); delete firstval;
-
-    /* re-navigate fresh for count */
-    avl->First(it); avl->Next(it); avl->Next(it);
-    AttributeValue* cntval = avl->GetAttrVal(it);
-    int cnt = cntval->int_val();
-    avl->Remove(cntval); delete cntval;
-
-    /* lazy evaluation -- run exactly cnt tokens from tokbuf+offset */
-    ComValue result(comterpserv()->run(tokbuf + offset, cnt));
-
-    /* nil terminates stream early */
-    if (result.is_nil()) {
-        nremval->int_ref() = 0;
-        push_stack(ComValue::nullval());
-        return;
-    }
-
-    nremval->int_ref()--;
+    cur_entry->int_ref()++;
     push_stack(result);
+    return;
+  }
+
+  /* walk past (cur) elements to reach element at index cur */
+  int elem_idx = 0;
+  while (elem_idx < cur && !avl->Done(it)) {
+    AttributeValue* entry = avl->GetAttrVal(it);
+    if (entry->is_type(ComValue::KeywordType)) {
+      if (entry->keynarg_val() > 0) {
+        avl->Next(it); /* offset */
+        avl->Next(it); /* count */
+      }
+    } else {
+      avl->Next(it); /* count (offset was current entry) */
+    }
+    avl->Next(it); /* advance to next element */
+    elem_idx++;
+  }
+
+  if (avl->Done(it)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  AttributeValue* entry = avl->GetAttrVal(it);
+
+  if (entry->is_type(ComValue::KeywordType)) {
+    int key_symid = entry->keyid_val();
+    int key_narg = entry->keynarg_val();
+    ComValue keyval(ComValue::trueval());
+    if (key_narg > 0) {
+      avl->Next(it);
+      int offset = avl->GetAttrVal(it)->int_val();
+      avl->Next(it);
+      int cnt = avl->GetAttrVal(it)->int_val();
+      keyval = comterpserv()->run(tokbuf + offset, cnt);
+    }
+    AttributeList* al = new AttributeList();
+    al->add_attr(key_symid, keyval);
+    Resource::ref(al);
+    ComValue result(AttributeList::class_symid(), (void*)al);
+    cur_entry->int_ref()++;
+    push_stack(result);
+    return;
+  }
+
+  /* positional element */
+  int offset = entry->int_val();
+  avl->Next(it);
+  int cnt = avl->GetAttrVal(it)->int_val();
+  ComValue result(comterpserv()->run(tokbuf + offset, cnt));
+
+  /* nil terminates finite stream early */
+  if (result.is_nil()) {
+    cur_entry->int_ref() = total; /* mark exhausted */
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  cur_entry->int_ref()++;
+  push_stack(result);
 }
+
