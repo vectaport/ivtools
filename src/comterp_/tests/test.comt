@@ -1,0 +1,4 @@
+instruments=("piano" "violin" "trumpet")
+each(m=("beethoven" "brahms" "miles"),
+  icopy=$$instruments,
+  each(i=icopy,print("%v plays %v\n" m i)))

@@ -321,11 +321,13 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	 the same mechanism used by stream literals (test 10).
 	 nremaining=-1 means unbounded; the zip terminates when the
 	 stream operand returns nil. */
-      static StreamLiteralNextFunc* slnfunc_bc = nil;
-      if (!slnfunc_bc) {
-	slnfunc_bc = new StreamLiteralNextFunc(this);
-	slnfunc_bc->funcid(symbol_add("streamliteralnext"));
-      }
+      /* construct StreamLiteralNextFunc bound to the current interpreter.
+         Avoids the static-binding-to-first-instance problem noted for the
+         pre-existing slnfunc in execute_literal (tracked separately).
+         Broadcast streams are constructed infrequently so per-call
+         allocation is acceptable. */
+      StreamLiteralNextFunc* slnfunc_bc = new StreamLiteralNextFunc(this);
+      slnfunc_bc->funcid(symbol_add("streamliteralnext"));
 
       /* walk postfix buffer backward to find per-operand token slices.
          sv_idx was captured from the argoffval pushed by load_sub_expr --

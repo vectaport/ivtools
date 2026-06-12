@@ -160,11 +160,12 @@ void StreamFunc::execute_literal() {
      Element 0 returns pre-evaluated [3] directly (side effects happen
      exactly once at construction, consistent with stream-scalar broadcast). */
 
-  static StreamLiteralNextFunc* slnfunc = nil;
-  if (!slnfunc) {
-    slnfunc = new StreamLiteralNextFunc(comterp());
-    slnfunc->funcid(symbol_add("streamliteralnext"));
-  }
+  /* construct StreamLiteralNextFunc bound to the current interpreter.
+     Avoids static binding to the first ComTerp instance, which breaks
+     multi-connection server use where each connection has its own
+     interpreter with its own stack and symbol table. */
+  StreamLiteralNextFunc* slnfunc = new StreamLiteralNextFunc(comterp());
+  slnfunc->funcid(symbol_add("streamliteralnext"));
 
   /* find start of argument region in _pfbuf */
   ComValue argoffv(comterp()->stack_top());
