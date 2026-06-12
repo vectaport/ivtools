@@ -160,12 +160,24 @@ void StreamFunc::execute_literal() {
      Element 0 returns pre-evaluated [3] directly (side effects happen
      exactly once at construction, consistent with stream-scalar broadcast). */
 
-  /* construct StreamLiteralNextFunc bound to the current interpreter.
-     Avoids static binding to the first ComTerp instance, which breaks
-     multi-connection server use where each connection has its own
-     interpreter with its own stack and symbol table. */
-  StreamLiteralNextFunc* slnfunc = new StreamLiteralNextFunc(comterp());
-  slnfunc->funcid(symbol_add("streamliteralnext"));
+  /* obtain StreamLiteralNextFunc bound to the current interpreter.
+     Look it up in the local command table first; if not found, create and
+     register it so the interpreter owns it and frees it on destruction.
+     This avoids both the static-binding-to-first-instance problem and the
+     per-call allocation leak. */
+  static int slnfunc_symid = -1;
+  if (slnfunc_symid == -1) slnfunc_symid = symbol_add("streamliteralnext");
+  void* slnfunc_vptr = nil;
+  comterp()->localtable()->find(slnfunc_vptr, slnfunc_symid);
+  StreamLiteralNextFunc* slnfunc = slnfunc_vptr
+    ? (StreamLiteralNextFunc*)((ComValue*)slnfunc_vptr)->obj_val()
+    : nil;
+  if (!slnfunc) {
+    slnfunc = new StreamLiteralNextFunc(comterp());
+    slnfunc->funcid(slnfunc_symid);
+    ComValue* slnval = new ComValue(slnfunc_symid, (void*)slnfunc);
+    comterp()->localtable()->insert(slnfunc_symid, slnval);
+  }
 
   /* find start of argument region in _pfbuf */
   ComValue argoffv(comterp()->stack_top());
@@ -907,7 +919,10 @@ void StreamLiteralNextFunc::execute() {
     int cnt = avl->GetAttrVal(it)->int_val();
     ComValue result(comterpserv()->run(tokbuf + offset, cnt));
     if (result.is_nil()) {
-      cur_entry->int_ref() = 0; /* reset -- broadcast never truly ends */
+      /* scalar expression returned nil -- propagate nil but do NOT reset
+         cur to 0, which would inject a stale first_val on the next call.
+         Broadcast termination is driven by the zip partner (stream operand)
+         returning nil; if the scalar itself returns nil, just pass it through. */
       push_stack(ComValue::nullval());
       return;
     }

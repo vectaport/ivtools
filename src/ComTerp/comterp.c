@@ -276,8 +276,11 @@ void ComTerp::eval_expr_internals(int pedepth) {
   if (!stack_empty() && stack_top().is_int() &&
       sv.type() == ComValue::CommandType) {
     sv_idx = stack_top().int_val();
-    if (!((ComFunc*)sv.obj_val())->post_eval())
+    ComFunc* svfunc = sv.obj_val() ? (ComFunc*)sv.obj_val() : nil;
+    if (svfunc && !svfunc->post_eval())
       pop_stack();  /* consume argoffval for non-post-eval */
+    else if (!svfunc)
+      pop_stack();  /* no registered func -- consume argoffval defensively */
     /* post-eval: leave argoffval on stack for stack_arg_post_eval */
   }
   
@@ -288,7 +291,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
     /* arguments, along with a pointer to the func. */
     boolean has_streams = false;
     int streamid = -1;
-    if (!((ComFunc*)sv.obj_val())->post_eval())
+    ComFunc* svfunc2 = sv.obj_val() ? (ComFunc*)sv.obj_val() : nil;
+    if (svfunc2 && !svfunc2->post_eval())
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
 	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
 	  has_streams = stack_top(-i).is_stream();
@@ -321,13 +325,22 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	 the same mechanism used by stream literals (test 10).
 	 nremaining=-1 means unbounded; the zip terminates when the
 	 stream operand returns nil. */
-      /* construct StreamLiteralNextFunc bound to the current interpreter.
-         Avoids the static-binding-to-first-instance problem noted for the
-         pre-existing slnfunc in execute_literal (tracked separately).
-         Broadcast streams are constructed infrequently so per-call
-         allocation is acceptable. */
-      StreamLiteralNextFunc* slnfunc_bc = new StreamLiteralNextFunc(this);
-      slnfunc_bc->funcid(symbol_add("streamliteralnext"));
+      /* obtain StreamLiteralNextFunc from this interpreter's local table,
+         creating and registering it on first use so the interpreter owns
+         and frees it -- avoids both static-binding and per-call leak. */
+      static int slnfunc_bc_symid = -1;
+      if (slnfunc_bc_symid == -1) slnfunc_bc_symid = symbol_add("streamliteralnext");
+      void* slnfunc_bc_vptr = nil;
+      localtable()->find(slnfunc_bc_vptr, slnfunc_bc_symid);
+      StreamLiteralNextFunc* slnfunc_bc = slnfunc_bc_vptr
+        ? (StreamLiteralNextFunc*)((ComValue*)slnfunc_bc_vptr)->obj_val()
+        : nil;
+      if (!slnfunc_bc) {
+        slnfunc_bc = new StreamLiteralNextFunc(this);
+        slnfunc_bc->funcid(slnfunc_bc_symid);
+        ComValue* slnval = new ComValue(slnfunc_bc_symid, (void*)slnfunc_bc);
+        localtable()->insert(slnfunc_bc_symid, slnval);
+      }
 
       /* walk postfix buffer backward to find per-operand token slices.
          sv_idx was captured from the argoffval pushed by load_sub_expr --
