@@ -255,7 +255,11 @@ void StreamFunc::execute_literal() {
      Element 0 is always a positional at avl[4],[5] (keywords follow positionals).
      Stores the result at [3] so StreamLiteralNextFunc returns it on the first
      next() without re-running the expression -- side effects happen once. */
-  if (nelem > 0 && comterpserv()) {
+  /* only pre-evaluate if there is at least one positional element.
+     keyword-only streams (npositionals==0) have no positional at [4],[5] --
+     their first element is a KeywordType marker and is evaluated lazily on
+     the first next() call instead. */
+  if (npositionals > 0 && comterpserv()) {
     int off0 = ((AttributeValue*)avl->Get(4))->int_val();
     int cnt0 = ((AttributeValue*)avl->Get(5))->int_val();
     ComValue first_val(comterpserv()->run(tokbuf + off0, cnt0));
