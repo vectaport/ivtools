@@ -268,6 +268,21 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
 void ComTerp::eval_expr_internals(int pedepth) {
   static int step_symid = symbol_add("step");
   ComValue sv = pop_stack(false);
+
+  /* argoffval is always pushed by load_sub_expr just before the command.
+     For non-post-eval commands: pop it now (saves sv's pfcomvals index).
+     For post-eval commands: leave it on stack for stack_arg_post_eval. */
+  int sv_idx = -1;
+  if (!stack_empty() && stack_top().is_int() &&
+      sv.type() == ComValue::CommandType) {
+    sv_idx = stack_top().int_val();
+    ComFunc* svfunc = sv.obj_val() ? (ComFunc*)sv.obj_val() : nil;
+    if (svfunc && !svfunc->post_eval())
+      pop_stack();  /* consume argoffval for non-post-eval */
+    else if (!svfunc)
+      pop_stack();  /* no registered func -- consume argoffval defensively */
+    /* post-eval: leave argoffval on stack for stack_arg_post_eval */
+  }
   
   if (sv.type() == ComValue::CommandType) {
 
@@ -276,7 +291,8 @@ void ComTerp::eval_expr_internals(int pedepth) {
     /* arguments, along with a pointer to the func. */
     boolean has_streams = false;
     int streamid = -1;
-    if (!((ComFunc*)sv.obj_val())->post_eval())
+    ComFunc* svfunc2 = sv.obj_val() ? (ComFunc*)sv.obj_val() : nil;
+    if (svfunc2 && !svfunc2->post_eval())
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
 	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
 	  has_streams = stack_top(-i).is_stream();
@@ -299,10 +315,114 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	avl->Prepend(new AttributeValue(nameval));
       }
 
-      for(int i=0; i<sv.narg()+sv.nkey(); i++) {
-	ComValue topval(pop_stack(i==streamid));
-	avl->Prepend(new AttributeValue(topval));
+      /* For scalar operands in a stream-scalar binary op, capture the
+	 operand's postfix token-slice as a replayable single-element
+	 stream (backed by StreamLiteralNextFunc) so that each next()
+	 on the resulting zip stream re-evaluates the scalar expression
+	 independently -- e.g. 10**4*rand() gives 4 distinct values.
+	 The already-computed value is element 0 (free); subsequent
+	 elements replay the token-slice via copy_post_eval_expr/FuncObj,
+	 the same mechanism used by stream literals (test 10).
+	 nremaining=-1 means unbounded; the zip terminates when the
+	 stream operand returns nil. */
+      /* obtain StreamLiteralNextFunc from this interpreter's local table,
+         creating and registering it on first use so the interpreter owns
+         and frees it -- avoids both static-binding and per-call leak. */
+      static int slnfunc_bc_symid = -1;
+      if (slnfunc_bc_symid == -1) slnfunc_bc_symid = symbol_add("streamliteralnext");
+      void* slnfunc_bc_vptr = nil;
+      localtable()->find(slnfunc_bc_vptr, slnfunc_bc_symid);
+      StreamLiteralNextFunc* slnfunc_bc = slnfunc_bc_vptr
+        ? (StreamLiteralNextFunc*)((ComValue*)slnfunc_bc_vptr)->obj_val()
+        : nil;
+      if (!slnfunc_bc) {
+        slnfunc_bc = new StreamLiteralNextFunc(this);
+        slnfunc_bc->funcid(slnfunc_bc_symid);
+        ComValue* slnval = new ComValue(slnfunc_bc_symid, (void*)slnfunc_bc);
+        localtable()->insert(slnfunc_bc_symid, slnval);
       }
+
+      /* walk postfix buffer backward to find per-operand token slices.
+         sv_idx was captured from the argoffval pushed by load_sub_expr --
+         the exact position of sv in _pfcomvals, valid whether called from
+         the outer eval_expr loop or from inside post_eval_expr. */
+      int noperands = sv.narg() + sv.nkey();
+
+      int* pfstarts = nullptr;
+      int* pfcounts = nullptr;
+      if (sv_idx < 0) {
+        /* no argoffval available -- skip broadcast, fall through to normal path */
+        for(int i=0; i<noperands; i++) {
+          ComValue topval(pop_stack(i==streamid));
+          avl->Prepend(new AttributeValue(topval));
+        }
+        ComValue val((ComFunc*)sv.obj_val(), avl);
+        val.stream_mode(STREAM_EXTERNAL);
+        push_stack(val);
+        return;
+      }
+      ComValue* pfanchor = &_pfcomvals[sv_idx];
+      /* pflimit is first INVALID offset from pfanchor: index -1 = offset -(sv_idx+1) */
+      int pflimit = -(int)(sv_idx + 1);
+
+      /* collect (pfstart, pfcount) for each operand in discovery order
+	 (rightmost first, i.e. i=0 is rightmost/last-pushed operand) */
+      pfstarts = new int[noperands];
+      pfcounts = new int[noperands];
+      int walk = -1; /* start one before sv */
+      for (int i = 0; i < noperands; i++) {
+	int cnt = 0;
+	if (stack_top(-i).is_type(ComValue::KeywordType))
+	  skip_key(pfanchor, walk, pflimit, cnt);
+	else
+	  skip_arg(pfanchor, walk, pflimit, cnt);
+	/* walk is now at start-1 of this operand;
+	   absolute pfbuf index = pfanchor_abs + (walk+1)
+	                        = sv_idx + (walk+1) = sv_idx + walk + 1 */
+	/* only record pfstarts/pfcounts for non-stream operands -- the
+	   stream operand's token slice is never replayed, only its value
+	   is used, so walking it is wasted work and can hit offlimit */
+	if (i != streamid) {
+	  pfstarts[i] = sv_idx + walk + 1;
+	  pfcounts[i] = cnt;
+	}
+      }
+
+
+      for(int i=0; i<noperands; i++) {
+	ComValue topval(pop_stack(i==streamid));
+	if (i != streamid && topval.is_known() && !topval.is_stream() &&
+	    !topval.is_symbol() && !topval.is_attribute()) {
+	  /* wrap computed scalar operand as a replayable broadcast stream.
+	     Uses the same AVL layout as stream literals (execute_literal):
+	       [0]  FuncObj(fullbuf)       -- full postfix buffer for symbol resolution
+	       [1]  current_index = 0      -- advances per next()
+	       [2]  total = -1             -- unbounded broadcast
+	       [3]  first_val = topval     -- already-computed first draw, never re-run
+	       [4]  offset into fullbuf    -- token slice start for replay
+	       [5]  count                  -- token slice length for replay
+	     Symbols/attributes excluded -- already late-bound by symbol-lookup path. */
+	  AttributeValueList* scalar_avl = new AttributeValueList();
+	  int fullcnt;
+	  postfix_token* fullbuf = copy_postfix_tokens(fullcnt);
+	  FuncObj* fo = new FuncObj(fullbuf, fullcnt);
+	  ComValue tokval(FuncObj::class_symid(), (void*)fo);
+	  scalar_avl->Append(new AttributeValue(tokval));                       /* [0] FuncObj */
+	  scalar_avl->Append(new AttributeValue(0, AttributeValue::IntType));   /* [1] cur_idx=0 */
+	  scalar_avl->Append(new AttributeValue(-1, AttributeValue::IntType));  /* [2] total=-1 unbounded */
+	  scalar_avl->Append(new AttributeValue(topval));                       /* [3] first_val */
+	  scalar_avl->Append(new AttributeValue(pfstarts[i], AttributeValue::IntType)); /* [4] offset */
+	  scalar_avl->Append(new AttributeValue(pfcounts[i], AttributeValue::IntType)); /* [5] count */
+	  ComValue scalar_stream(slnfunc_bc, scalar_avl);
+	  scalar_stream.stream_mode(STREAM_INTERNAL);
+	  avl->Prepend(new AttributeValue(scalar_stream));
+	} else {
+	  avl->Prepend(new AttributeValue(topval));
+	}
+      }
+
+      delete [] pfstarts;
+      delete [] pfcounts;
 
       ComValue val((ComFunc*)sv.obj_val(), avl);
       // fprintf(stderr, "comterp::eval_expr_internals:  packed up stream for %s\n", symbol_pntr(((ComFunc*)sv.obj_val())->funcid()));
@@ -524,7 +644,10 @@ void ComTerp::load_sub_expr() {
     }
     if (_pfcomvals[_pfoff].is_type(ComValue::CommandType)) {
       ComFunc* func = (ComFunc*)_pfcomvals[_pfoff].obj_val();
-      if (func && func->post_eval()) {
+      if (func) {
+	/* always push argoffval so eval_expr_internals can find sv's
+	   position in _pfcomvals regardless of whether it is post-eval
+	   or non-post-eval (needed for stream-scalar broadcast) */
 	ComValue argoffval(_pfoff);
 	push_stack(argoffval);
       }
@@ -610,7 +733,10 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	if (_pfcomvals[offset].pedepth()==pedepth) {
 	  if (_pfcomvals[offset].is_type(ComValue::CommandType)) {
 	    ComFunc* func = (ComFunc*)_pfcomvals[offset].obj_val();
-	    if (func && func->post_eval()) {
+	    if (func) {
+	      /* always push argoffval for all commands (post-eval and non-post-eval)
+	         so eval_expr_internals can find sv's position for stream-scalar
+	         broadcast -- mirrors the same change in load_sub_expr */
 	      ComValue argoffval(offset);
 	      push_stack(argoffval);
 	    }
@@ -1334,6 +1460,7 @@ void ComTerp::add_defaults() {
     add_command("next", new NextFunc(this));
     add_command("each", new EachFunc(this));
     add_command("filter", new FilterFunc(this));
+    add_command("info", new InfoFunc(this));
 
     add_command("dot", new DotFunc(this));
     add_command("attrname", new DotNameFunc(this));

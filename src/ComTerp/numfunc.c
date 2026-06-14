@@ -200,7 +200,7 @@ void AddFunc::execute() {
     const char* s1 = operand1.type_name();
     const char* s2 = operand2.type_name();
     promote(operand1, operand2);
-    ComValue result(operand1);
+    ComValue result(operand2.is_list() ? operand2 : operand1);
     reset_stack();
 
     if (operand1.is_unknown() || operand2.is_unknown()) {
@@ -270,7 +270,7 @@ void AddFunc::execute() {
 	break;
     case ComValue::ArrayType: 
         {
-	  if (operand2.is_array()) {
+	  if (operand1.is_array() && operand2.is_array()) {
 	    Resource::unref(result.array_val());
 	    result.array_ref() = 
 	      AddFunc::matrix_add(operand1.array_val(), operand2.array_val());
@@ -470,7 +470,7 @@ void MpyFunc::execute() {
     ComValue operand1 = stack_arg(0);
     ComValue operand2 = stack_arg(1);
     promote(operand1, operand2);
-    ComValue result(operand1);
+    ComValue result(operand2.is_list() ? operand2 : operand1);
 
     if (operand1.is_unknown() || operand2.is_unknown()) {
       reset_stack();
@@ -511,7 +511,7 @@ void MpyFunc::execute() {
 	break;
     case ComValue::ArrayType: 
         {
-	  if (operand2.is_array()) {
+	  if (operand1.is_array() && operand2.is_array()) {
 	    Resource::unref(result.array_val());
 	    AttributeValueList* avl = 
 	      MpyFunc::matrix_mpy(operand1.array_val(), operand2.array_val());
@@ -548,8 +548,8 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
     list1->GetAttrVal(it1)->array_val() ? 
     list1->GetAttrVal(it1)->array_val()->Number() : 0;
   j2max = list2->GetAttrVal(it2)->is_array() &&
-    list1->GetAttrVal(it2)->array_val() ? 
-    list1->GetAttrVal(it2)->array_val()->Number() : 0;
+    list2->GetAttrVal(it2)->array_val() ? 
+    list2->GetAttrVal(it2)->array_val()->Number() : 0;
 
   /* ensure inner dimension is the same */
   /* allow for vector argument on rhs */
@@ -605,7 +605,7 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
 	  Iterator iti2, itj2;
 	  list2->First(iti2);
 	  for (int i=0; i<n; i++) list2->Next(iti2);
-	  AttributeValue* row2v = list1->GetAttrVal(iti2);
+	  AttributeValue* row2v = list2->GetAttrVal(it2);
 	  AttributeValueList* row2 = row2v && row2v->is_array() ? 
 	    row2v->array_val() : nil;
 	  if (row2) {
@@ -642,7 +642,7 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
 	Iterator iti2;
 	list2->First(iti2);
 	for (int i=0; i<n; i++) list2->Next(iti2);
-	AttributeValue* val2v = list1->GetAttrVal(iti2);
+	AttributeValue* val2v = list2->GetAttrVal(iti2);
 	if ((row1 || !j1max) && val2v) {
 	  if (row1) 
 	    comterp()->push_stack(*row1->GetAttrVal(itj1));

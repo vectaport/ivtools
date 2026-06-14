@@ -197,4 +197,25 @@ public:
     CLASS_SYMID("StreamLiteralNextFunc");
 };
 
+//: info command for stream objects
+// attrlst=info(streamobj) -- return AttributeList describing stream's internal AVL structure
+class InfoFunc : public StrmFunc {
+public:
+    InfoFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "attrlst=%s(strm :raw) -- return attrlist describing stream's internal list structure"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+        ":raw       return raw internal list directly",
+        nil
+      };
+      return keys;
+    }
+
+    CLASS_SYMID("InfoFunc");
+};
+
 #endif /* !defined(_strmfunc_h) */

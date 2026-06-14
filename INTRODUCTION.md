@@ -36,11 +36,17 @@ list(1..5 * 1..5)         // {1,4,9,16,25} -- squares, no loop needed
 distribute over it, and two streams zip element-wise. No loop, no
 index, no accumulator.
 
-It is also its own wire protocol. Every value serializes back to valid
-ComTerp syntax. A terminal session on stdin and a programmatic session
-over a TCP socket are the same thing. This makes distributed computation
-natural — DrawServ uses it to propagate drawing operations between peers
-over the network.
+It is also its own wire protocol. Many languages can serialize a value;
+ComTerp may be the only one where a fixed-plus-keyword *command* syntax
+is at once the REPL you type at, the serialization format, and the live
+protocol between distributed peers — one language, no read/eval split, no
+second dialect for the wire. Every value prints back as valid ComTerp, so
+a terminal session on stdin and a programmatic session over a TCP socket
+are the same act: send an expression, receive a value that is itself an
+expression. Distributed computation falls out of this rather than being
+bolted on — DrawServ propagates drawing operations between peers as
+ordinary ComTerp expressions, not serialized blobs that need decoding on
+the far end.
 
 **DrawServ** is the distributed drawing editor that runs on top of
 ComTerp. Multiple peers connect and share a drawing session. Drawing
@@ -74,19 +80,60 @@ synchronization. They fit together.
 
 ---
 
-## Where it is going
+## Five ideas, and what each one buys you
 
-Stream literals `(0 1 2 3)` complete the streaming algebra by giving
-lazy sequences a first-class syntax — nil-termination and keyword
-elements included. This opens the door to inline dataflow graph
-construction directly in the language.
+ComTerp is small because a few ideas do all the work. Here they are, each
+with what it gets you.
 
-**Flowmove** (forthcoming) is a live networked environment for building,
-rendering, and running dynamic dataflow graphs interactively. ComTerp
-and a flowtran graph description layer on the frontend, Go goroutines
-and channels on the backend, DrawServ as the distributed rendering
-layer. Graphs built, modified, and executed at runtime — not just
-described and then frozen.
+**1. Everything is a C expression.** Names, operators, control flow,
+assignment, `++` — all of it is a command invocation over ordinary
+expression syntax with unary prefix, unary postfix, and binary operators.
+Only the literals are not commands: integers, floats, strings, symbols,
+nil. Keywords with optional values always follow the positional
+arguments. *What this buys you:* one grammar to learn, and the operator
+table itself is a runtime object you can read and modify
+(`optable(:table)`).
+
+**2. Operators build structure; brackets group.** Two binary operators
+build structure with no brackets needed: a comma binds a list
+(`1,2,3`) and a semicolon binds a block (`a; b; c`). A stream literal
+(and an attribute list literal) needs its parentheses — `(0 1 2 3)` —
+recognized by the parser from its contents, not assembled by an
+operator; whitespace separates its elements but never binds
+them. Round brackets, braces, and square brackets are otherwise
+interchangeable grouping — `(5)`, `{5}`, and `[5]` all just mean `5` —
+and only the empty `{}` (empty list) and `()` (empty attrlist) carry
+meaning of their own. *What this buys you:* lists, blocks, streams,
+and attribute lists are all the one expression grammar, told apart by
+operator and leading token rather than by a separate syntax per type.
+
+**3. Evaluation is eager or lazy, on the same machine.** Most commands
+run eagerly on a postfix stack. A *post-eval* command instead receives
+the offset of its still-unevaluated arguments in the immutable postfix
+buffer, and replays them as often as it likes — zero, one, or many times.
+`if`, `cond`, `switch`, `while`, `for`, and user-defined `func`s are all
+just post-eval commands using that one mechanism. *What this buys you:*
+control flow is not a privileged special form; you can write your own.
+
+**4. Streams are first class and they overdrive.** `(0 1 2 3)` is a live
+stream object, and any expression it joins distributes over it:
+`(0 1 2 3)*10` yields `(0 10 20 30)`, a new stream ready to flow onward.
+*What this buys you:* dataflow without loops, indices, or accumulators —
+the same implicit expansion a Unix shell gives you with `*.txt`, but
+inside the expression language itself. (Post-eval commands are the
+deliberate exception: a stream handed to `for` arrives as a stream object
+to work with, not as something that fans the loop out N times — though a
+post-eval command can still be overdriven by a stream it is combined
+with, and can return one.)
+
+**5. The REPL is the wire protocol.** Every value prints back as valid
+ComTerp, so the language you type, the format you serialize, and the
+protocol between distributed peers are one thing. *What this buys you:*
+distributed computation with no second dialect — DrawServ syncs drawing
+state by sending ordinary ComTerp expressions, and you debug a live
+networked session by typing at it.
+
+Each section below expands one of these. Read them in any order.
 
 ---
 
@@ -202,12 +249,17 @@ command with arguments `1` and `2`. The operator table is a runtime
 object you can inspect and modify. `optable(:table)` returns it as a
 list of attrlists.
 
-**Parens are not needed to group commands into a body.** They have
-four specific purposes: argument lists, attrlist literals `(:key val)`,
-stream literals `(0 1 2 3)`, and precedence override. In fact, bare
-parens with more than one space-separated item inside them become a
-stream literal — which is exactly what you want when you want it.
-Semicolons sequence statements; that is all you need for a body.
+**Brackets group; the operators build.** A comma binds a list (`1,2,3`)
+and a semicolon binds a block (`a; b; c`), neither needing brackets at
+all. Brackets have only a few jobs: argument lists `f(a b c)`, attrlist
+literals `(:key val)`, stream literals `(0 1 2 3)`, and precedence
+override `(a+b)*c`. Round brackets, braces, and square brackets are
+interchangeable for content — `(5)`, `{5}`, and `[5]` all mean `5` — and
+only the empty `{}` (empty list) and `()` (empty attrlist) carry their
+own meaning. Whitespace itself never binds: a
+stream literal is recognized by the parser from the parenthesized form
+and its leading value, not assembled by a whitespace operator. Semicolons
+sequence statements; that is all you need for a body.
 
 **The comma is the list operator.** `1,2,3` is a list. `lst,x` appends
 to an existing list in place. `list()` with no arguments creates an

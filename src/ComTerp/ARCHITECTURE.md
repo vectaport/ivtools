@@ -255,16 +255,24 @@ all four pairs have equal precedence and nesting behavior. By convention:
 
 - `()` — grouping and attrlist literals: `(:a 1 :b 2)` constructs an
   `AttributeList`. An empty `()` constructs an empty `AttributeList`.
-- `{}` — list literals: `{1 2 3}` constructs an `AttributeValueList`.
-  An empty `{}` constructs an empty list, equivalent to `list()`.
-- `[]` — reserved for flowtran flowgraph syntax
-- `<>` — reserved for flowtran flowgraph syntax
+- `{}` — an empty `{}` constructs an empty list, equivalent to `list()`.
+  With content, the brace is interchangeable grouping like the others,
+  and what gets built is decided by the operator inside, not the brace:
+  `{1,2,3}` (comma operator) is a list, while `{1 2 3}` (space-separated
+  values) is a stream — exactly as `(1,2,3)` and `(1 2 3)` are.
+- `[]` — interchangeable grouping like the others for non-empty content
+  (`[5]` is `5`, the same as `(5)` and `{5}`); only the empty `[]` is
+  left undefined, its meaning held in reserve for a possible future
+  flowtran flowgraph layer (see LANGUAGE.md, *ipl, and a future flowtran
+  layer*).
+- `<>` — likewise; only the empty `<>` is held in reserve.
 
-The parser emits a `COMMAND` token for each closing delimiter. For non-empty
-`{}`, the command resolves to the `+{}` (bracesplus) operator which builds
-the list from its args. For empty `{}`, the parser emits a `COMMAND` with
-`list_symid` and `narg 0`, producing an empty `AttributeValueList` directly.
-Similarly, empty `()` emits `attrlist` with `narg 0`.
+The parser emits a `COMMAND` token for each closing delimiter. For empty
+`{}`, it emits a `COMMAND` with `list_symid` and `narg 0`, producing an
+empty `AttributeValueList` directly; empty `()` similarly emits `attrlist`
+with `narg 0`. Non-empty content is built by the operators inside the
+delimiter — the `,` list operator, the stream-literal form, the `:key`
+attrlist form — not by the delimiter itself.
 
 ## Key Files
 

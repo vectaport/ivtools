@@ -289,7 +289,7 @@ the parser fix.
 
 - `{}` → empty `AttributeValueList` (`ListType`), equivalent to `list()`
 - `()` → empty `AttributeList` (`ObjectType`), equivalent to `attrlist()`
-- `[]` and `<>` → reserved for flowtran flowgraph syntax; currently emit `TOK_BLANK`
+- `[]` and `<>` → only the *empty* pairs are left undefined; their meaning is held in reserve for a possible future flowtran flowgraph layer (see LANGUAGE.md, *ipl, and a future flowtran layer*). The bracket tokens emit `TOK_BLANK`, so non-empty `[5]` passes through as ordinary grouping (just `5`, the same as `(5)` and `{5}`) — it is specifically the empty pair that has no defined meaning.
 
 This is implemented in `_parser.c` in the empty delimiter `else` branch — when
 a closing delimiter is seen with `narg==0` and no `comm_id`, the parser emits
@@ -311,7 +311,7 @@ local ComTerp parser can parse back**.
 Types that round-trip cleanly:
 - Integers, floats, booleans, strings — print and re-parse correctly
 - `{}` (empty list) — works after the empty delimiter fix in `_parser.c`
-- `{1 2 3}` (non-empty list) — works
+- `{1,2,3}` (non-empty list) — works
 - `nil` — works
 
 Types that do **not** round-trip:

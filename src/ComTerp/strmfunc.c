@@ -141,13 +141,42 @@ void StreamFunc::execute() {
 
 void StreamFunc::execute_literal() {
   /* Handle (val val ...) stream literal syntax.
-     Scans _pfbuf to find per-element (offset, count) pairs,
-     stores in AVL for lazy per-element evaluation by StreamLiteralNextFunc. */
+     Scans _pfbuf to find per-element (offset, count) pairs and stores
+     them in an immutable AVL for lazy per-element evaluation.
 
-  static StreamLiteralNextFunc* slnfunc = nil;
+     AVL layout (never mutated after construction):
+       [0]  FuncObj(tokbuf, total_tokens)
+       [1]  current_element_index  (starts 0, incremented per next())
+       [2]  total_element_count    (-1 = unbounded for broadcast streams)
+       [3]  first_val              (pre-evaluated element 0, never re-run)
+       [4+] element entries:
+              positional:           offset(Int), count(Int)   -- 2 entries
+              keyword flag:         KeywordType(keynarg=0)    -- 1 entry
+              keyword with value:   KeywordType(keynarg>0),
+                                    offset(Int), count(Int)   -- 3 entries
+
+     StreamLiteralNextFunc advances [1] each call, navigates to the
+     current element by walking forward from [4], runs its token slice.
+     Element 0 returns pre-evaluated [3] directly (side effects happen
+     exactly once at construction, consistent with stream-scalar broadcast). */
+
+  /* obtain StreamLiteralNextFunc bound to the current interpreter.
+     Look it up in the local command table first; if not found, create and
+     register it so the interpreter owns it and frees it on destruction.
+     This avoids both the static-binding-to-first-instance problem and the
+     per-call allocation leak. */
+  static int slnfunc_symid = -1;
+  if (slnfunc_symid == -1) slnfunc_symid = symbol_add("streamliteralnext");
+  void* slnfunc_vptr = nil;
+  comterp()->localtable()->find(slnfunc_vptr, slnfunc_symid);
+  StreamLiteralNextFunc* slnfunc = slnfunc_vptr
+    ? (StreamLiteralNextFunc*)((ComValue*)slnfunc_vptr)->obj_val()
+    : nil;
   if (!slnfunc) {
     slnfunc = new StreamLiteralNextFunc(comterp());
-    slnfunc->funcid(symbol_add("streamliteralnext"));
+    slnfunc->funcid(slnfunc_symid);
+    ComValue* slnval = new ComValue(slnfunc_symid, (void*)slnfunc);
+    comterp()->localtable()->insert(slnfunc_symid, slnval);
   }
 
   /* find start of argument region in _pfbuf */
@@ -157,59 +186,43 @@ void StreamFunc::execute_literal() {
   int argcnt = 0;
   int total = 0;
 
-  /* scan to find total tokens and bottom of arg region.
-     nargsfixed() counts fixed-format args + keyword values.
-     Compute true positional count by subtracting keyword value count. */
   for (int i = 0; i < nkeys(); i++) {
     argcnt = 0;
     skip_key_in_expr(offtop, argcnt);
     total += argcnt + 1;
   }
-  /* nargsfixed() = nargs() - nargskey() already excludes keyword values */
   int npositionals = nargsfixed();
   for (int j = 0; j < npositionals; j++) {
     argcnt = 0;
     skip_arg_in_expr(offtop, argcnt);
     total += argcnt;
   }
-  /* offtop is now the bottom of the entire arg region */
 
   /* copy entire arg region from _pfbuf */
   postfix_token* tokbuf = comterp()->copy_post_eval_expr(total, offtop);
 
-  /* build AVL: [0]=FuncObj(tokbuf), [1]=nremaining (set after scan) */
+  /* build AVL header: [0]=FuncObj, [1]=cur_idx=0, [2]=total_placeholder, [3]=first_val_placeholder */
   AttributeValueList* avl = new AttributeValueList();
   FuncObj* fo = new FuncObj(tokbuf, total);
   ComValue tokval(FuncObj::class_symid(), (void*)fo);
-  avl->Append(new AttributeValue(tokval));
-  avl->Append(new AttributeValue(0, AttributeValue::IntType)); /* nremaining */
+  avl->Append(new AttributeValue(tokval));                        /* [0] FuncObj */
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));   /* [1] current_index */
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));   /* [2] total_count (set below) */
+  avl->Append(new AttributeValue(ComValue::nullval()));           /* [3] first_val (set below) */
 
-  /* recording scan: start at saved_offtop.
-     Keywords first (nkeys() of them), then fixed-format args until offtop. */
+  /* build element entries [4+] */
   int elem_offset = 0;
   int rescan = saved_offtop;
   int nelem = 0;
 
-/* skip keywords to reach positionals */
+  /* skip keywords to reach positionals first */
   int keys_start = rescan;
   for (int ki = 0; ki < nkeys(); ki++) {
     argcnt = 0;
     skip_key_in_expr(rescan, argcnt);
   }
 
-  /* fixed-format (positional) args first.
-     skip_arg_in_expr walks the postfix buffer BACKWARD from the command,
-     so pi=0 discovers the LAST source positional, pi=1 the second-to-last,
-     etc -- discovery order is the reverse of source order.  tokbuf (from
-     copy_post_eval_expr) is in FORWARD source order, so a naive running
-     elem_offset assigns (offset,count) pairs as if discovery order matched
-     tokbuf order -- correct only when all positionals are the same width
-     (e.g. (10 20 30), or ((1 2 3)(4 5 6)) where both elements are width 3),
-     and silently wrong for mixed-width elements like (1 (2 3)).
-
-     Fix: collect each pi's size, then compute true forward offsets via a
-     reverse-accumulation pass, and append to the AVL in reverse-pi order
-     so AVL element 0 corresponds to source positional 0. */
+  /* positional args: collect sizes then lay out in forward source order */
   int* possizes = npositionals>0 ? new int[npositionals] : nil;
   for (int pi = 0; pi < npositionals; pi++) {
     argcnt = 0;
@@ -227,7 +240,7 @@ void StreamFunc::execute_literal() {
   elem_offset = posoffsets_running;
   delete [] possizes;
 
-  /* keywords second */
+  /* keyword entries */
   rescan = keys_start;
   for (int ki = 0; ki < nkeys(); ki++) {
     ComValue& keytoken = comterp()->pfcomvals()[comterp()->pfnum()-1+rescan];
@@ -248,8 +261,23 @@ void StreamFunc::execute_literal() {
     nelem++;
   }
 
-  /* set nremaining now that we know total element count */
-  ((AttributeValue*)avl->Get(1))->int_ref() = nelem;
+  /* set total_count at [2] */
+  ((AttributeValue*)avl->Get(2))->int_ref() = nelem;
+
+  /* pre-evaluate element 0 at construction time.
+     Element 0 is always a positional at avl[4],[5] (keywords follow positionals).
+     Stores the result at [3] so StreamLiteralNextFunc returns it on the first
+     next() without re-running the expression -- side effects happen once. */
+  /* only pre-evaluate if there is at least one positional element.
+     keyword-only streams (npositionals==0) have no positional at [4],[5] --
+     their first element is a KeywordType marker and is evaluated lazily on
+     the first next() call instead. */
+  if (npositionals > 0 && comterpserv()) {
+    int off0 = ((AttributeValue*)avl->Get(4))->int_val();
+    int cnt0 = ((AttributeValue*)avl->Get(5))->int_val();
+    ComValue first_val(comterpserv()->run(tokbuf + off0, cnt0));
+    *((AttributeValue*)avl->Get(3)) = AttributeValue(first_val);
+  }
 
   reset_stack();
 
@@ -832,93 +860,278 @@ StreamLiteralNextFunc::StreamLiteralNextFunc(ComTerp* comterp) : StrmFunc(comter
 }
 
 void StreamLiteralNextFunc::execute() {
-    /* AVL layout:
-         [0]       FuncObj wrapping postfix_token* (entire arg buffer)
-         [1]       nremaining -- int, decremented each call
-         [2..]     element entries -- (offset,count) for positionals,
-                   (KeywordType,offset,count) or (KeywordType) for keywords
-       Always re-navigate from AVL start to avoid stale iterators after Remove().
-    */
-    ComValue streamv(stack_arg(0));
-    reset_stack();
+  /* AVL layout (immutable after construction by execute_literal):
+       [0]  FuncObj(tokbuf, ntoks)
+       [1]  current_element_index  (0..total-1, incremented each call)
+       [2]  total_element_count    (-1 = unbounded broadcast)
+       [3]  first_val              (pre-evaluated element 0)
+       [4+] element entries:
+              positional:           offset(Int), count(Int)
+              keyword flag:         KeywordType(keynarg=0)
+              keyword with value:   KeywordType(keynarg>0), offset(Int), count(Int)
+     Never removes entries -- only advances [1]. */
 
-    AttributeValueList* avl = streamv.stream_list();
-    if (!avl) { push_stack(ComValue::nullval()); return; }
+  ComValue streamv(stack_arg(0));
+  reset_stack();
 
-    /* navigate fresh from start each time */
-    Iterator it;
-    avl->First(it);
+  AttributeValueList* avl = streamv.stream_list();
+  if (!avl) { push_stack(ComValue::nullval()); return; }
 
-    /* [0] tokbuf */
-    AttributeValue* tokval = avl->GetAttrVal(it);
-    if (!tokval || !tokval->is_object(FuncObj::class_symid())) {
-        push_stack(ComValue::nullval()); return;
-    }
-    FuncObj* fo = (FuncObj*)tokval->obj_val();
-    postfix_token* tokbuf = fo->toks();
+  /* read header */
+  FuncObj* fo = (FuncObj*)((ComValue*)avl->Get(0))->obj_val();
+  if (!fo) { push_stack(ComValue::nullval()); return; }
+  postfix_token* tokbuf = fo->toks();
 
-    /* [1] nremaining */
+  AttributeValue* cur_entry = (AttributeValue*)avl->Get(1);
+  int cur = cur_entry->int_val();
+
+  int total = ((AttributeValue*)avl->Get(2))->int_val();
+
+  /* termination: finite stream exhausted */
+  if (total >= 0 && cur >= total) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  /* element 0: return pre-evaluated first_val */
+  if (cur == 0) {
+    ComValue result(*((AttributeValue*)avl->Get(3)));
+    cur_entry->int_ref()++;
+    push_stack(result);
+    return;
+  }
+
+  /* elements 1+: walk forward from [4] past (cur) entries to find element cur.
+     Each positional occupies 2 AVL slots (offset, count).
+     Each keyword occupies 1 slot (keynarg=0) or 3 slots (keynarg>0 + offset + count).
+     For unbounded broadcast (total==-1): always use the one entry at [4],[5]. */
+  Iterator it;
+  avl->First(it);
+  avl->Next(it); /* [1] cur_idx */
+  avl->Next(it); /* [2] total */
+  avl->Next(it); /* [3] first_val */
+  avl->Next(it); /* [4] first element entry */
+
+  if (total == -1) {
+    /* broadcast: single element definition at [4],[5], replay forever */
+    int offset = avl->GetAttrVal(it)->int_val();
     avl->Next(it);
-    AttributeValue* nremval = avl->GetAttrVal(it);
-    int nrem = nremval->int_val();
-    if (nrem <= 0) { push_stack(ComValue::nullval()); return; }
-
-    /* [2] first element entry -- re-fetch iterator fresh */
-    avl->Next(it);
-    AttributeValue* firstval = avl->GetAttrVal(it);
-
-    if (firstval->is_type(ComValue::KeywordType)) {
-      /* keyword element -- build singleton attrlist (:key val) in C++ */
-      int key_symid = firstval->keyid_val();
-      int key_narg = firstval->keynarg_val();
-      avl->Remove(firstval); delete firstval;
-
-      ComValue keyval(ComValue::trueval()); /* bare flag defaults to true */
-      if (key_narg > 0) {
-        /* re-navigate fresh after remove */
-        avl->First(it); avl->Next(it); avl->Next(it);
-        AttributeValue* offval = avl->GetAttrVal(it);
-        int offset = offval->int_val();
-        avl->Remove(offval); delete offval;
-
-        avl->First(it); avl->Next(it); avl->Next(it);
-        AttributeValue* cntval = avl->GetAttrVal(it);
-        int cnt = cntval->int_val();
-        avl->Remove(cntval); delete cntval;
-
-        keyval = comterpserv()->run(tokbuf + offset, cnt);
-      }
-
-      /* construct singleton attrlist (:key val) */
-      AttributeList* al = new AttributeList();
-      al->add_attr(key_symid, keyval);
-      Resource::ref(al);
-      ComValue result(AttributeList::class_symid(), (void*)al);
-      nremval->int_ref()--;
-      push_stack(result);
+    int cnt = avl->GetAttrVal(it)->int_val();
+    ComValue result(comterpserv()->run(tokbuf + offset, cnt));
+    if (result.is_nil()) {
+      /* scalar expression returned nil -- propagate nil but do NOT reset
+         cur to 0, which would inject a stale first_val on the next call.
+         Broadcast termination is driven by the zip partner (stream operand)
+         returning nil; if the scalar itself returns nil, just pass it through. */
+      push_stack(ComValue::nullval());
       return;
     }
-
-    /* positional element -- (offset, count) pair */
-    int offset = firstval->int_val();
-    avl->Remove(firstval); delete firstval;
-
-    /* re-navigate fresh for count */
-    avl->First(it); avl->Next(it); avl->Next(it);
-    AttributeValue* cntval = avl->GetAttrVal(it);
-    int cnt = cntval->int_val();
-    avl->Remove(cntval); delete cntval;
-
-    /* lazy evaluation -- run exactly cnt tokens from tokbuf+offset */
-    ComValue result(comterpserv()->run(tokbuf + offset, cnt));
-
-    /* nil terminates stream early */
-    if (result.is_nil()) {
-        nremval->int_ref() = 0;
-        push_stack(ComValue::nullval());
-        return;
-    }
-
-    nremval->int_ref()--;
+    cur_entry->int_ref()++;
     push_stack(result);
+    return;
+  }
+
+  /* walk past (cur) elements to reach element at index cur */
+  int elem_idx = 0;
+  while (elem_idx < cur && !avl->Done(it)) {
+    AttributeValue* entry = avl->GetAttrVal(it);
+    if (entry->is_type(ComValue::KeywordType)) {
+      if (entry->keynarg_val() > 0) {
+        avl->Next(it); /* offset */
+        avl->Next(it); /* count */
+      }
+    } else {
+      avl->Next(it); /* count (offset was current entry) */
+    }
+    avl->Next(it); /* advance to next element */
+    elem_idx++;
+  }
+
+  if (avl->Done(it)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  AttributeValue* entry = avl->GetAttrVal(it);
+
+  if (entry->is_type(ComValue::KeywordType)) {
+    int key_symid = entry->keyid_val();
+    int key_narg = entry->keynarg_val();
+    ComValue keyval(ComValue::trueval());
+    if (key_narg > 0) {
+      avl->Next(it);
+      int offset = avl->GetAttrVal(it)->int_val();
+      avl->Next(it);
+      int cnt = avl->GetAttrVal(it)->int_val();
+      keyval = comterpserv()->run(tokbuf + offset, cnt);
+    }
+    AttributeList* al = new AttributeList();
+    al->add_attr(key_symid, keyval);
+    Resource::ref(al);
+    ComValue result(AttributeList::class_symid(), (void*)al);
+    cur_entry->int_ref()++;
+    push_stack(result);
+    return;
+  }
+
+  /* positional element */
+  int offset = entry->int_val();
+  avl->Next(it);
+  int cnt = avl->GetAttrVal(it)->int_val();
+  ComValue result(comterpserv()->run(tokbuf + offset, cnt));
+
+  /* nil terminates finite stream early */
+  if (result.is_nil()) {
+    cur_entry->int_ref() = total; /* mark exhausted */
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  cur_entry->int_ref()++;
+  push_stack(result);
+}
+
+/*****************************************************************************/
+
+int InfoFunc::_symid = -1;
+
+InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void InfoFunc::execute() {
+  /* info(streamobj :raw) -- return AttributeList describing stream's internal
+     AVL structure for StreamLiteralNextFunc-backed streams (literals and broadcast):
+       [0]  FuncObj(tokbuf, ntoks)
+       [1]  current_index
+       [2]  total (-1=unbounded broadcast)
+       [3]  first_val (pre-evaluated element 0)
+       [4+] element entries: positional=(off,cnt), keyword=KeywordType[,off,cnt]
+     :raw returns the raw internal AVL directly for quick inspection.
+     Other stream types (IterateFunc, RepeatFunc, etc.) return (:mode "external"
+     :func "funcname") since their AVL layouts differ. */
+  /* fetch :raw keyword from post-eval region BEFORE reset_stack() clears it.
+     InfoFunc is post_eval so keywords are in the post-eval buffer, not the
+     pre-eval stack -- use stack_key_post_eval.  Must be called before
+     stack_arg_post_eval(0) evaluates the stream (which may modify the region)
+     or before reset_stack() which clears it entirely. */
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key_post_eval(raw_symid));
+  boolean rawflag = rawv.is_true();
+
+  ComValue streamv(stack_arg_post_eval(0));
+  reset_stack();
+
+  if (!streamv.is_stream()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  AttributeValueList* avl = streamv.stream_list();
+
+  /* :raw -- return the raw internal AVL directly */
+  if (rawflag && avl) {
+    ComValue retval(avl);
+    push_stack(retval);
+    return;
+  }
+
+  /* only interpret AVL for StreamLiteralNextFunc-backed streams --
+     other stream types have different AVL layouts */
+  static int slnf_symid = -1;
+  if (slnf_symid == -1) slnf_symid = symbol_add("streamliteralnext");
+  ComFunc* sfunc = streamv.stream_func() ? (ComFunc*)streamv.stream_func() : nil;
+  boolean is_literal = sfunc && sfunc->funcid() == slnf_symid;
+
+  if (!avl || !is_literal) {
+    AttributeList* al = new AttributeList();
+    static int mode_sym = symbol_add("mode");
+    static int func_sym = symbol_add("func");
+    int sfunc_symid = sfunc ? sfunc->funcid() : symbol_add("unknown");
+    ComValue* modeval = new ComValue(is_literal ? "internal" : "external");
+    ComValue* funcval = new ComValue(sfunc_symid, ComValue::SymbolType);
+    funcval->bquote(1);
+    al->add_attr(mode_sym, modeval);
+    al->add_attr(func_sym, funcval);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  AttributeList* al = new AttributeList();
+  static int func_sym2 = symbol_add("func");
+  static int ntoks_sym = symbol_add("ntoks");
+  static int cur_sym   = symbol_add("current_index");
+  static int total_sym = symbol_add("total");
+  static int fval_sym  = symbol_add("first_val");
+  static int nelem_sym = symbol_add("nelem");
+
+  /* func name of the stream's backing NextFunc -- returned as back-quoted symbol */
+  int sfunc_symid2 = sfunc ? sfunc->funcid() : symbol_add("unknown");
+  ComValue* funcnamev = new ComValue(sfunc_symid2, ComValue::SymbolType);
+  funcnamev->bquote(1);
+  al->add_attr(func_sym2, funcnamev);
+
+  /* [0] FuncObj */
+  FuncObj* fo = avl->Number() > 0
+    ? (FuncObj*)((ComValue*)avl->Get(0))->obj_val() : nil;
+  ComValue ntoksv(fo ? fo->ntoks() : 0);
+  al->add_attr(ntoks_sym, ntoksv);
+
+  /* [1] current_index */
+  if (avl->Number() > 1) {
+    ComValue curv(*((AttributeValue*)avl->Get(1)));
+    al->add_attr(cur_sym, curv);
+  }
+
+  /* [2] total */
+  if (avl->Number() > 2) {
+    ComValue totalv(*((AttributeValue*)avl->Get(2)));
+    al->add_attr(total_sym, totalv);
+  }
+
+  /* [3] first_val */
+  if (avl->Number() > 3) {
+    ComValue fvalv(*((AttributeValue*)avl->Get(3)));
+    al->add_attr(fval_sym, fvalv);
+  }
+
+  /* [4+] element entries */
+  int nelem = 0;
+  int pos = 4;
+  char keybuf[64];
+  while (pos < avl->Number()) {
+    AttributeValue* entry = (AttributeValue*)avl->Get(pos);
+    if (entry->is_type(ComValue::KeywordType)) {
+      snprintf(keybuf, sizeof(keybuf), "key%d", nelem);
+      int ksym = symbol_add(keybuf);
+      ComValue kv(entry->keyid_val(), ComValue::SymbolType);
+      al->add_attr(ksym, kv);
+      if (entry->keynarg_val() > 0) {
+        snprintf(keybuf, sizeof(keybuf), "key%d_off", nelem);
+        ComValue kov(*((AttributeValue*)avl->Get(pos+1)));
+        al->add_attr(symbol_add(keybuf), kov);
+        snprintf(keybuf, sizeof(keybuf), "key%d_cnt", nelem);
+        ComValue kcv(*((AttributeValue*)avl->Get(pos+2)));
+        al->add_attr(symbol_add(keybuf), kcv);
+        pos += 3;
+      } else {
+        pos += 1;
+      }
+    } else {
+      snprintf(keybuf, sizeof(keybuf), "elem%d_off", nelem);
+      ComValue ov(*entry);
+      al->add_attr(symbol_add(keybuf), ov);
+      snprintf(keybuf, sizeof(keybuf), "elem%d_cnt", nelem);
+      ComValue cv(*((AttributeValue*)avl->Get(pos+1)));
+      al->add_attr(symbol_add(keybuf), cv);
+      pos += 2;
+    }
+    nelem++;
+  }
+
+  ComValue nelemv(nelem);
+  al->add_attr(nelem_sym, nelemv);
+
+  ComValue retval(AttributeList::class_symid(), (void*)al);
+  push_stack(retval);
 }

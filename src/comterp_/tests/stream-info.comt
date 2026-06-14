@@ -1,0 +1,96 @@
+// stream-info.comt version 1
+print("stream-info.comt version 1\n")
+
+// src/comterp_/tests/stream-info.comt -- tests for info() command
+//
+// coverage: 10 tests verifying info() and info(:raw) for stream literal
+//           and non-literal (IterateFunc) streams
+// funcs: info() next() class() size() print() check_fail()
+// tests 1-7:  info() AttributeList fields for stream literals
+// tests 8-9:  info(:raw) returns raw AVL as array
+// test 10:    info() on non-literal stream reports :func name
+
+errmsg(:clear)
+run("./testlib.comt")
+ok=true
+
+// --- test 1: info() returns AttributeList for stream literal ---
+s=(10 20 30)
+i=info(s)
+ok1=(class(i)==`AttributeList)
+ok=ok&&ok1
+print("1 class(info((10 20 30)))==`AttributeList (expect true): %v\n" ok1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: :func field is back-quoted symbol streamliteralnext ---
+ok2=(i.func==`streamliteralnext)
+ok=ok&&ok2
+print("2 info((10 20 30)).func==`streamliteralnext (expect true): %v\n" ok2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: :current_index starts at 0 ---
+ok3=(i.current_index==0)
+ok=ok&&ok3
+print("3 info((10 20 30)).current_index==0 (expect true): %v\n" ok3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: :total equals element count ---
+ok4=(i.total==3)
+ok=ok&&ok4
+print("4 info((10 20 30)).total==3 (expect true): %v\n" ok4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: :first_val equals pre-evaluated element 0 ---
+ok5=(i.first_val==10)
+ok=ok&&ok5
+print("5 info((10 20 30)).first_val==10 (expect true): %v\n" ok5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: :nelem equals element count ---
+ok6=(i.nelem==3)
+ok=ok&&ok6
+print("6 info((10 20 30)).nelem==3 (expect true): %v\n" ok6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: :current_index advances after next() ---
+s7=(10 20 30)
+next(s7)
+i7=info(s7)
+ok7=(i7.current_index==1)
+ok=ok&&ok7
+print("7 info(s) after next() -- current_index==1 (expect true): %v\n" ok7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: info(:raw) returns array (raw internal AVL) ---
+s8=(10 20 30)
+r8=info(s8 :raw)
+ok8=(type(r8)==`ListType)
+ok=ok&&ok8
+print("8 info((10 20 30) :raw) -- type==`ListType (expect true): %v\n" ok8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: info(:raw) AVL has 10 entries ---
+// [0]=FuncObj [1]=cur_idx [2]=total [3]=first_val
+// [4][5]=elem0(off,cnt) [6][7]=elem1(off,cnt) [8][9]=elem2(off,cnt)
+ok9=(size(r8)==10)
+ok=ok&&ok9
+print("9 info((10 20 30) :raw) -- size==10 (expect true): %v\n" ok9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: info() on non-literal stream reports :func `iterate ---
+// note: test 10b compares SymbolType values directly (symid equality) so
+// it passes even though the REPL serializes `iterate without the backtick.
+// The missing backtick in printed output is a separate known bug
+// (back-quoted symbol serialization loses the backtick) -- will be `iterate
+// in printed output once that bug is fixed.
+i10=info(0..4)
+ok10a=(class(i10)==`AttributeList)
+ok10b=(i10.func==`iterate)
+ok10=ok10a&&ok10b
+ok=ok&&ok10
+print("10a info(0..4) -- class==`AttributeList (expect true): %v\n" ok10a)
+print("10b info(0..4) -- func==`iterate (prints as iterate, will be `iterate after bquote fix): %v\n" ok10b)
+prev_ok=check_fail(:ok ok)
+
+print("stream-info: %v\n" ok)
+ok
