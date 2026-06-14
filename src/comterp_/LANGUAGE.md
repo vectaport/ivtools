@@ -76,6 +76,26 @@ that the orchestrator can inspect, compare, and branch on. There is no
 separate test protocol, no mock layer, no serialization adapter. The
 REPL session and the wire session are the same thing.
 
+## Introspecting the running system
+
+The language describes itself at runtime. Five commands cover the common
+questions, each aimed at a different layer:
+
+| Command | Answers |
+|---------|---------|
+| `type(val)` | the type of a value |
+| `class(val)` | the class of a value, when its type is an object type |
+| `help(cmd)` | a command's fixed and keyword arguments |
+| `postfix(expr)` | the token stream the parser actually produced |
+| `optable()` | the operators, their precedence, and their associativity |
+
+`type()` and `class()` answer "what is this value." `help()` answers
+"how do I call this command." The last two are the ones that demystify
+surprises: `postfix()` shows what the parser made of an expression, and
+`optable()` shows which operator binds first and in which direction —
+together they explain almost any "why did it parse *that* way" question.
+Each has a fuller treatment in its own section below.
+
 ## Expressions and Sequencing
 
 The basic unit of execution is an expression. Multiple expressions are
@@ -106,7 +126,7 @@ ComTerp are:
 
 1. **Argument lists** — enclose arguments to a command: `f(a b c)`
 2. **Attrlist literals** — `(:key val)` when first token is a keyword
-3. **Stream literals** — `(val val ...)` when first token is a value *(ivtools-3.0)*
+3. **Stream literals** — `(val val ...)` when first token is a value
 4. **Precedence override** — `(a+b)*c` to override operator priority
 
 That's it. A body does not need parens. `(lst,i; total=total+i)` is
@@ -117,19 +137,85 @@ but the parens add nothing — the semicolons do all the work:
 for(i=0 i<10 i++ (lst,i; total=total+i))  // works but parens unnecessary
 ```
 
-**Warning:** a space between two expressions inside parens — without a
-semicolon — is not a two-statement body. It is currently an error and
-will become a stream literal in ivtools-3.0:
+**Watch the space.** Two expressions separated by a space inside parens —
+with no semicolon — are not a two-statement body. They are a stream
+literal of two values. Use semicolons when you mean a body:
 
 ```
-for(i=0 i<10 i++ (lst,i total=total+i))   // error now, stream literal in 3.0
-for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with two bodies
+for(i=0 i<10 i++ (lst,i total=total+i))   // stream literal of two values, not a body
+for(i=0 i<10 i++ (lst,i; total=total+i))  // two-statement body -- use ;
+for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop given two bodies
 ```
 
-**Warning (ivtools-3.0):** Once stream literals land, `(ding beep)`
-will be parsed as a stream literal of two values, not a grouped
-two-statement body. Any code using space-separated statements inside
-parens without semicolons must be fixed before 3.0. See issue #103.
+So `(ding beep)` is a stream literal of two values, not a grouped
+two-statement body. A single expression inside any bracket is just that
+expression — `(5)`, `{5}`, and `[5]` all equal the scalar `5`, and
+`(1+2)` is `3`; this is plain precedence grouping, not a one-element
+list. To force a one-element list, add a trailing comma: `(5,)` is the
+one-element list, which prints as `{5,}` (the trailing comma is how a
+singleton list is distinguished from the bare scalar `{5}`).
+
+### Brackets, braces, and the empty forms
+
+Round brackets, braces, and square brackets are interchangeable as
+grouping delimiters for non-empty content — the shape does not change the
+meaning. `(5)`, `{5}`, and `[5]` all evaluate to the scalar `5`. What a
+bracketed form *becomes* is decided by the operators among its elements
+and by its leading token, not by which bracket you chose. The two binary
+constructors need no brackets at all:
+
+```
+1,2,3       // list      -- the , operator
+a; b; c     // block     -- the ; operator
+```
+
+Whitespace is not a third constructor — it never binds. A stream literal
+needs its parentheses; the parser recognizes it from the parenthesized
+form whose leading token is a value, not from a whitespace operator:
+
+```
+(1,2,3)        // list of three     -- comma operator
+(0 1 2 3)      // stream literal     -- leading value, parens required
+(:a 1 :b 2)    // attrlist literal   -- leading keyword
+```
+
+Only the *empty* forms `{}` and `()` carry meaning of their own — that
+is where bracket shape matters:
+
+```
+{}    // empty list       -- same as list()
+()    // empty attrlist    -- same as attrlist()
+```
+
+Square brackets have no special meaning in ComTerp: `[5]` is `5`, the
+same as `(5)` and `{5}`. Only the *empty* bare `[]` is left undefined —
+its meaning is held in reserve for a possible future flowtran flowgraph
+layer. The flowgraph model that already exists today is ipl (ipl-1.1).
+See **ipl, and a future flowtran layer** near the end of this file.
+
+A single expression inside any bracket is just that expression — `(5)`,
+`{5}`, and `[5]` are all the scalar `5`, and `(1+2)` is `3` — ordinary
+precedence grouping, not a one-element list. To get a singleton list, add
+a trailing comma: `(5,)` is the one-element list, which prints as `{5,}`.
+The trailing comma is what distinguishes the singleton list from the bare
+scalar `{5}`. More generally, a trailing `,` (in a list) or `;` (in a
+block) is always allowed, so multi-line lists and code blocks can end
+every line the same way:
+
+```
+lst=(1,
+     2,
+     3,)        // {1,2,3} -- trailing comma is fine
+blk=(a;
+     b;
+     c;)        // block; trailing semicolon is fine
+```
+
+A note on the resemblance: at the top level, whitespace between
+expressions still has a stream-like effect — `a b c` evaluates them one
+after another. That is a coincidence of how the REPL consumes successive
+top-level expressions, not the stream constructor at work and not
+whitespace binding anything. A stream *literal* still requires the parens.
 
 ## Types
 
@@ -145,7 +231,7 @@ parens without semicolons must be fixed before 3.0. See issue #103.
 | nil | `nil` | no value |
 | blank | `BlankType` | return of `return()` with no arg |
 | list | `1,2,3` or `(1,2,3)` or $1,2,3| comma operator |
-| stream | `$$(1,2,3)` or `(1 2 3)` *(ivtools-3.0)* | sequence of values produced and consumed one at a time |
+| stream | `$$(1,2,3)` or `(1 2 3)` | sequence of values produced and consumed one at a time |
 | attrlist | `(:x 1)` or `attrlist(:x 1)` | key/value store |
 | compview | returned by drawing commands | graphic component handle |
 
@@ -271,15 +357,23 @@ A few things worth noting:
 
 ### Dot operator
 
-`.` accesses attributes on a compound variable or attrlist:
+The dot operator is to attribute lists what overdrive is to streams: the
+elemental way you work with the type. `.` reads and writes a field on a
+compound variable or attrlist:
 
 ```
 foo.bar=42
 foo.bar          // returns 42
+a=(:x 4 :y 5)
+a.x              // 4
+a.x=9            // updates the field
+a.missing        // nil -- absent keys read as nil
 ```
 
-The dot namespace rooted at a symbol is scoped with that symbol — see
-**Attribute Lists** below.
+The right-hand side of `.` is taken as a key name (a symbol), not
+evaluated as a variable. The dot namespace rooted at a symbol is scoped
+with that symbol, and merge/subtract with `+` and `-` round out the
+attrlist operators — see **Attribute Lists** below.
 
 ### Backquote
 
@@ -527,9 +621,13 @@ s=3**5              // repeat stream: 3,3,3,3,3 (repeat)
 s=(0 1 2 3)         // stream literal (lazy source)
 ```
 
-Stream literals can include keyword elements. Positional values come
-through as-is; each keyword-value pair becomes a singleton attrlist
-element; a bare keyword (flag) becomes `(:flag true)`:
+**Keywords follow positionals — the same rule as command arguments.** A
+stream literal is a run of positional values followed by a run of
+keyword/value pairs, exactly as a command invocation takes its fixed
+arguments before its keyword arguments. Positional values come through
+as-is; each keyword/value pair surfaces as a one-element attrlist
+singleton in the position where it appears; a bare keyword (flag) becomes
+`(:flag true)`:
 
 ```
 s=(0 1 :key 99 :flag)
@@ -539,6 +637,13 @@ next(s)   // 1
 next(s)   // (:key 99)
 next(s)   // (:flag true)
 next(s)   // nil -- end of stream
+```
+
+A positional value after the first keyword is an error, just as
+`f(a :k v b)` is in a command invocation — the parser catches it:
+
+```
+(0 :a 1 2)        // error: "Unexpected literal constant (2)"
 ```
 
 If there are no positional values before the first keyword, it is
@@ -612,10 +717,10 @@ remaining elements unevaluated in the token buffer.
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
 The streaming algebra is still being formalized. The stream literal
-syntax (ivtools-3.0) completes the source end of the algebra; ongoing
-work continues to clarify the composition laws, particularly around nil
-propagation through composed operations and zip semantics between lazy
-and materialized sources.
+syntax completes the source end of the algebra; ongoing work continues to
+clarify the composition laws, particularly around nil propagation through
+composed operations and zip semantics between lazy and materialized
+sources.
 
 ### Scalar overdrive
 
@@ -1036,6 +1141,12 @@ symvar(key)=func(...)      // register handler for type
 
 ## Attribute Lists
 
+Attribute lists are one of the two elemental compound types in ComTerp,
+alongside streams: where a stream is the lazy, ordered spine, an attrlist
+is the named, random-access store. Both share the parenthesized literal
+form and are told apart by their leading token — a value opens a stream,
+a keyword opens an attrlist.
+
 An attrlist is a key/value store. Create one with `attrlist()` or
 `list(:attr)`, or with the **attrlist literal** syntax *(ivtools-2.2)* — parentheses
 whose first token is a keyword:
@@ -1046,10 +1157,26 @@ al=(:flag)             // keyword-only sets value to true
 al=attrlist(:a 1 :b 2) // equivalent command form
 ```
 
-The parser distinguishes an attrlist literal from a grouping expression
-by the presence of a leading keyword. Plain grouping `(1+2)*3` is
-unaffected. A value before the first keyword is an error:
-`(4 :x 7)` → parse error "attribute literal must start with :key".
+The parser distinguishes an attrlist literal from a stream literal and
+from plain grouping by the leading token. A leading keyword makes an
+attrlist literal; plain grouping `(1+2)*3` is unaffected. A leading
+*value* makes a **stream literal**, so `(4 :x 7)` is not an error and not
+an attrlist — it is a stream whose first element is `4` and whose second
+element is the embedded keyword `:x 7`, yielded as a one-element
+`AttributeList` singleton:
+
+```
+s=(4 :x 7)             // StreamObj
+next(s)                // 4
+v=next(s)              // :x 7  -- an AttributeList singleton
+next(s)                // nil   -- stream ends
+class(v)               // AttributeList
+attrname(at(v 0))      // "x"
+attrval(at(v 0))       // 7
+```
+
+A keyword inside a stream literal always surfaces this way: as an
+attrlist singleton in the element position where it appears.
 
 ```
 al=attrlist(:foo 42 :bar "hello" :flag)
@@ -1148,8 +1275,9 @@ at(lst 0).a            // 1
 at(lst 1).b            // 2
 ```
 
-Note: `[]` is reserved for flowtran flowgraph syntax and is not a
-subscript operator. Use `at(lst n)` to index into a list.
+Note: `[]` is not a subscript operator — `[5]` is just `5`, ordinary
+grouping, and only the empty bare `[]` is held in reserve (see **ipl, and
+a future flowtran layer**). Use `at(lst n)` to index into a list.
 
 For a **singleton list** (one attrlist), a trailing `,` inside `{}` is
 required to force the parser to produce a list rather than a bare attrlist:
@@ -1184,195 +1312,33 @@ at(lst2 0).a           // 4
 
 ---
 
-## Flowtran: Flowgraph Composition Language *(reserved, ivtools-4.0)*
+## ipl, and a future flowtran layer
 
-ComTerp is designed to evolve into a flowgraph composition language —
-**flowtran** — that can drive the
-[ipl simulator](https://ipl.sourceforge.net/ipl/IPL_Home.html) directly
-(when linked) and export executable
-[vectaport/flowgraph](https://github.com/vectaport/flowgraph) goroutines.
+This family of languages descends from **ipl**, the Invocation
+(Programming) Language — Karl Fant's concurrent dataflow language from
+Chapter 12 of *Computer Science Reconsidered: The Invocation Model of
+Process Expression* (Wiley-Interscience, 2007), closely related to his
+Null-Convention Logic. ipl is realized on top of ivtools as a C++ class
+hierarchy (`IplServ`), a parser/interpreter (`iplserv`), and a graphical
+program-drawing editor (`ipledit`) that reads and writes `.ipd` program
+drawings. It is the existing flowgraph system in this lineage; see
+[vectaport/ipl-1.1](https://github.com/vectaport/ipl-1.1).
 
-The flowtran syntax is reserved in the current parser. This section
-documents the intended design.
+The longer-term intent is a flowgraph composition layer — *flowtran* —
+in which ComTerp would express and drive flowgraphs directly: hubs (units
+of computation) wired by pipes, mapping onto the Hub/Stream model of the
+Go package [vectaport/flowgraph](https://github.com/vectaport/flowgraph).
+That layer is future work and is **not** part of ComTerp today; it is
+mentioned here only so the one piece of syntax held in reserve for it
+makes sense.
 
-### Concepts
+### Reserved syntax
 
-A flowgraph is made up of **hubs** and **pipes**. A hub is a unit of
-computation; pipes are the typed channels connecting hubs. This maps
-directly to the `vectaport/flowgraph` Hub and Stream model and to the
-ipl (pipe|invo),connector model.  What was called first pipe, then
-invocation in ipl, became node and edge in vectaport/fgbase then Hub
-and Stream in vectaport/flowgraph.  In ipl it was realized that the
-nodes between edges were the place of buffering, so they were the
-pipe holding value.  You would think the edges/Stream should be the
-pipe but buffering is done at the node/Hub and edge/Stream is just
-the instantaneous interconnect, the wire.
-
-ComTerp streams (`..`, `**`, `$$`, `,,`) are a separate concept —
-they are evaluation-time value sequences within ComTerp expressions.
-Flowtran pipes are persistent communication channels between hubs in
-a running flowgraph. The two levels interact: ComTerp stream algebra
-is used to *construct* flowgraphs (replicating hubs and wiring pipes),
-while the flowgraph itself executes asynchronously once assembled.
-
-### Hub definition: `def()`
-
-```
-def(hubname[srclist][dstlist](hubbody))
-```
-
-Defines a hub type. `srclist` is the list of input pipes; `dstlist` is
-the list of output pipes. `hubbody` is a ComTerp expression that runs
-when the hub fires. A hub with no destinations has an empty `dstlist`.
-
-By convention, input pipes are named `a`, `b`, `c` and output pipes
-`x`, `y`, `z` in hub definitions — the Steve Johnson compiler tradition.
-At invocation sites, pipes are given names that make sense from both
-ends of the connection.
-
-Def's with no body must link to a language primitive and are just there to
-declare the API.   Otherwise def's can be a comterp expression that is a
-FuncObj to be fired when AllOf or OneOf is satisfied on inputs arriving,
-the result getting marshalled out on the destination list.  Or the body can
-be an ongoing nested declaration of a flowgraph connected up to the streams
-in the srclist and dstlist.  The primitives are flowtran's bottoming out,
-the comterp expressions are the comterp programmer's way of bottoming out,
-everything above that is a flowgraph.
-
-Any side effects from an embedded comterp fragment would not fit the model 
-so they will all be pre-evaluated down to the code fragment waiting for stream
-input.  For example:
-
-```
-def(area[r][a](a=pi()*r*r))
-```
-
-will get evaluated at "compile" time, and symbols not in the stream lists will
-be evaluated and stored in an internalized representation, i.e.:
-
-```
-area[r][a](a=3.141519*r*r)
-```
-
-A less useful but more illustrative example might be a hub that returned the
-date it was compiled forever:
-
-```
-datecompiled[][d](d=print("%v" date :str))
-```
-
-which becomes:
-
-```
-datecompiled[][d](d=" 6-Jun-2026")
-```
-
-The two canonical Invocation Language primitives illustrate the full syntax:
-
-```
-def(ARBIT[a | b][x](x=a||b))        // OneOf input, single output
-def(STRVAL[a b][x | y](if(a :then x=b :else y=b)))  // AllOf input, OneOf output
-```
-
-The `|` operator separates **firing groups** within a srclist or
-dstlist. Space separates pipes within a group (AllOf — all must be
-present). `|` separates groups (OneOf — any one group fires the hub).
-The rule "no bare values after keywords begin" applies within each
-group, as elsewhere in ComTerp.
-
-```
-def(sink[a][](print(a)))              // AllOf-1 input, no output
-def(double[a][x](x=a*2))             // AllOf-1 in, AllOf-1 out
-def(add[a b][x](x=a+b))              // AllOf-2 in, AllOf-1 out
-def(merge[a | b][x](x=a||b))         // OneOf-2 in (either fires), AllOf-1 out
-def(route[a b][x | y](if(a :then x=b :else y=b)))  // AllOf-2 in, OneOf-2 out
-```
-
-`|` between two sublists means the hub fires on whichever group
-arrives — useful for multiplexing normal data flow with a heartbeat
-or control path:
-
-```
-def(watchdog[data | heartbeat][x](x=data||heartbeat))
-// fires on normal data OR on the watchdog pulse, whichever arrives
-```
-
-Pipes in `srclist` and `dstlist` can include keywords for configuration
-values that are set at wiring time rather than flowing per-token:
-
-```
-def(scale[a :factor][x](x=a*factor))
-```
-
-### Hub invocation: `hubname[srclist][dstlist]`
-
-```
-hubname[srclist][dstlist]
-```
-
-Instantiates a hub and wires it into the flowgraph. The hub name leads
-— you read the topology as *what* fires, then what flows in, then what
-flows out. A stream symbol is created the first time it appears in any
-srclist or dstlist and updated as both ends become connected.
-
-The two NCL primitives invoked in a small flowgraph:
-
-```
-ARBIT[raw_a | raw_b][arbitrated]
-STRVAL[direction arbitrated][to_x | to_y]
-```
-
-`arbitrated` is the stream connecting `ARBIT`'s output to `STRVAL`'s
-input — named from the perspective of what it carries. `direction` is
-a control input; `to_x` and `to_y` are the two steered outputs.
-Reading top to bottom: arbitrate between two raw inputs, then steer
-the result based on a direction signal.
-
-A simple pipeline:
-
-```
-double[raw][scaled]
-sink[scaled][]
-```
-
-`scaled` is created as `double`'s output and simultaneously wired as
-`sink`'s input. Pipes are fully connected when both ends are bound.
-
-### Range replication: `<<` and `>>`
-
-`<<` and `>>` are added to the operator table as flowtran range
-operators, used to replicate hub names and pipe names across a range.
-Combined with ComTerp's `..` stream, they expand to indexed variants:
-
-```
-sink<<0..9>>=sink[input<<0..9>>][]
-```
-
-Expands to `sink0` through `sink9`, each wired to `input0` through
-`input9`. The ten input pipes are left unconnected on their source
-end — other hubs will wire into them. This is the `setbuf` pattern:
-declare the pipes where they are consumed, let the producer side wire
-to them later.
-
-`<<` and `>>` apply to any identifier in a hub or pipe position:
-
-```
-add<<0..3>>[a<<0..3>> b<<0..3>>][sum<<0..3>>]
-```
-
-Creates four `add` hubs, each with its own `a`, `b`, and `sum` pipes.
-
-### Relationship to existing reserved syntax
-
-The following are already reserved in the current parser and will
-be activated for flowtran:
-
-- `[]` — hub srclist and dstlist delimiters
-- `<>` — reserved (angle bracket template fill-in, complementing `<<`/`>>`)
-- `<<` / `>>` — added to the operator table as flowtran range operators
-
-It is hoped that not using `[` and ` ]` and `<<` and `>>` before now
-in the public use of comterp will make any conflicts between comterp and
-flowtran resolvable.
-
-
+Just one thing is held back in the current parser for that future: the
+meaning of the **empty bare `[]`**. Non-empty square brackets are
+ordinary grouping — `[5]` is just `5`, interchangeable with `(5)` and
+`{5}` (see *Brackets, braces, and the empty forms*) — so nothing written
+with content inside `[...]` is reserved in ComTerp. It is specifically
+the definition of empty `[]` that is left open, against a future flowtran
+use. The tokens `<>`, `<<`, and `>>` are likewise unused in ComTerp today
+and earmarked for the same future.

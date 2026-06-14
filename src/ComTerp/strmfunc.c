@@ -991,3 +991,147 @@ void StreamLiteralNextFunc::execute() {
   push_stack(result);
 }
 
+/*****************************************************************************/
+
+int InfoFunc::_symid = -1;
+
+InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void InfoFunc::execute() {
+  /* info(streamobj :raw) -- return AttributeList describing stream's internal
+     AVL structure for StreamLiteralNextFunc-backed streams (literals and broadcast):
+       [0]  FuncObj(tokbuf, ntoks)
+       [1]  current_index
+       [2]  total (-1=unbounded broadcast)
+       [3]  first_val (pre-evaluated element 0)
+       [4+] element entries: positional=(off,cnt), keyword=KeywordType[,off,cnt]
+     :raw returns the raw internal AVL directly for quick inspection.
+     Other stream types (IterateFunc, RepeatFunc, etc.) return (:mode "external"
+     :func "funcname") since their AVL layouts differ. */
+  /* fetch :raw keyword from post-eval region BEFORE reset_stack() clears it.
+     InfoFunc is post_eval so keywords are in the post-eval buffer, not the
+     pre-eval stack -- use stack_key_post_eval.  Must be called before
+     stack_arg_post_eval(0) evaluates the stream (which may modify the region)
+     or before reset_stack() which clears it entirely. */
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key_post_eval(raw_symid));
+  boolean rawflag = rawv.is_true();
+
+  ComValue streamv(stack_arg_post_eval(0));
+  reset_stack();
+
+  if (!streamv.is_stream()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  AttributeValueList* avl = streamv.stream_list();
+
+  /* :raw -- return the raw internal AVL directly */
+  if (rawflag && avl) {
+    ComValue retval(avl);
+    push_stack(retval);
+    return;
+  }
+
+  /* only interpret AVL for StreamLiteralNextFunc-backed streams --
+     other stream types have different AVL layouts */
+  static int slnf_symid = -1;
+  if (slnf_symid == -1) slnf_symid = symbol_add("streamliteralnext");
+  ComFunc* sfunc = streamv.stream_func() ? (ComFunc*)streamv.stream_func() : nil;
+  boolean is_literal = sfunc && sfunc->funcid() == slnf_symid;
+
+  if (!avl || !is_literal) {
+    AttributeList* al = new AttributeList();
+    static int mode_sym = symbol_add("mode");
+    static int func_sym = symbol_add("func");
+    int sfunc_symid = sfunc ? sfunc->funcid() : symbol_add("unknown");
+    ComValue* modeval = new ComValue(is_literal ? "internal" : "external");
+    ComValue* funcval = new ComValue(sfunc_symid, ComValue::SymbolType);
+    funcval->bquote(1);
+    al->add_attr(mode_sym, modeval);
+    al->add_attr(func_sym, funcval);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  AttributeList* al = new AttributeList();
+  static int func_sym2 = symbol_add("func");
+  static int ntoks_sym = symbol_add("ntoks");
+  static int cur_sym   = symbol_add("current_index");
+  static int total_sym = symbol_add("total");
+  static int fval_sym  = symbol_add("first_val");
+  static int nelem_sym = symbol_add("nelem");
+
+  /* func name of the stream's backing NextFunc -- returned as back-quoted symbol */
+  int sfunc_symid2 = sfunc ? sfunc->funcid() : symbol_add("unknown");
+  ComValue* funcnamev = new ComValue(sfunc_symid2, ComValue::SymbolType);
+  funcnamev->bquote(1);
+  al->add_attr(func_sym2, funcnamev);
+
+  /* [0] FuncObj */
+  FuncObj* fo = avl->Number() > 0
+    ? (FuncObj*)((ComValue*)avl->Get(0))->obj_val() : nil;
+  ComValue ntoksv(fo ? fo->ntoks() : 0);
+  al->add_attr(ntoks_sym, ntoksv);
+
+  /* [1] current_index */
+  if (avl->Number() > 1) {
+    ComValue curv(*((AttributeValue*)avl->Get(1)));
+    al->add_attr(cur_sym, curv);
+  }
+
+  /* [2] total */
+  if (avl->Number() > 2) {
+    ComValue totalv(*((AttributeValue*)avl->Get(2)));
+    al->add_attr(total_sym, totalv);
+  }
+
+  /* [3] first_val */
+  if (avl->Number() > 3) {
+    ComValue fvalv(*((AttributeValue*)avl->Get(3)));
+    al->add_attr(fval_sym, fvalv);
+  }
+
+  /* [4+] element entries */
+  int nelem = 0;
+  int pos = 4;
+  char keybuf[64];
+  while (pos < avl->Number()) {
+    AttributeValue* entry = (AttributeValue*)avl->Get(pos);
+    if (entry->is_type(ComValue::KeywordType)) {
+      snprintf(keybuf, sizeof(keybuf), "key%d", nelem);
+      int ksym = symbol_add(keybuf);
+      ComValue kv(entry->keyid_val(), ComValue::SymbolType);
+      al->add_attr(ksym, kv);
+      if (entry->keynarg_val() > 0) {
+        snprintf(keybuf, sizeof(keybuf), "key%d_off", nelem);
+        ComValue kov(*((AttributeValue*)avl->Get(pos+1)));
+        al->add_attr(symbol_add(keybuf), kov);
+        snprintf(keybuf, sizeof(keybuf), "key%d_cnt", nelem);
+        ComValue kcv(*((AttributeValue*)avl->Get(pos+2)));
+        al->add_attr(symbol_add(keybuf), kcv);
+        pos += 3;
+      } else {
+        pos += 1;
+      }
+    } else {
+      snprintf(keybuf, sizeof(keybuf), "elem%d_off", nelem);
+      ComValue ov(*entry);
+      al->add_attr(symbol_add(keybuf), ov);
+      snprintf(keybuf, sizeof(keybuf), "elem%d_cnt", nelem);
+      ComValue cv(*((AttributeValue*)avl->Get(pos+1)));
+      al->add_attr(symbol_add(keybuf), cv);
+      pos += 2;
+    }
+    nelem++;
+  }
+
+  ComValue nelemv(nelem);
+  al->add_attr(nelem_sym, nelemv);
+
+  ComValue retval(AttributeList::class_symid(), (void*)al);
+  push_stack(retval);
+}
