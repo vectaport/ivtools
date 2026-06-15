@@ -605,7 +605,7 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
 	  Iterator iti2, itj2;
 	  list2->First(iti2);
 	  for (int i=0; i<n; i++) list2->Next(iti2);
-	  AttributeValue* row2v = list2->GetAttrVal(it2);
+	  AttributeValue* row2v = list2->GetAttrVal(iti2);
 	  AttributeValueList* row2 = row2v && row2v->is_array() ? 
 	    row2v->array_val() : nil;
 	  if (row2) {
