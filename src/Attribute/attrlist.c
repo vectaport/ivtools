@@ -216,7 +216,7 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
 
     AttributeList* attrlist = (AttributeList*)&al;
     if (al.Number()==0) {
-        out << "<empty AttributeList>";
+        out << "()";
         return out;
     }
     ALIterator i;
