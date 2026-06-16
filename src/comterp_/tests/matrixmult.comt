@@ -11,7 +11,7 @@ print("matrixmult.comt version 6\n")
 // test 4:     identity matrix multiply
 // test 5:     1x1 * 1x1 single-element tuple
 // test 6:     vector + and matrix + (built-in +)
-// approaches 1-3: explicit stream literal dot-product construction
+// approaches 1-4: explicit stream literal dot-product construction
 
 errmsg(:clear)
 
@@ -105,7 +105,7 @@ ok=ok&&ok_a2
 print("approach 2: matrow/matcol: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" c00b c01b c10b c11b)
 prev_ok=check_fail(:ok ok)
 
-// --- approach 3: full matmul 2x3 matrix (m=2, n=3) ---
+// --- approach 3: full matmul 2x2 * 2x2
 matmul=func(
   C=list();
   for(i=0 i<mA i++
@@ -116,16 +116,16 @@ matmul=func(
 C=matmul(:A A :B B :mA 2 :nA 2 :mB 2 :nB 2)
 ok_a3=(at(C 0)==19)&&(at(C 1)==22)&&(at(C 2)==43)&&(at(C 3)==50)
 ok=ok&&ok_a3
-print("approach 3: matmul: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" at(C 0) at(C 1) at(C 2) at(C 3))
+print("approach 3: matmul 2x2*2x2: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" at(C 0) at(C 1) at(C 2) at(C 3))
 prev_ok=check_fail(:ok ok)
 
-// --- approach 4: full matmul on 3x2 ---
+// --- approach 4: full matmul 2x3 * 3x2
 AA=1,2,3,4,5,6
 BB=7,8,9,10,11,12
 CC=matmul(:A AA :B BB :mA 2 :nA 3 :mB 3 :nB 2)
 ok_a4=CC=={58,64,139,154}
 ok=ok&&ok_a4
-print("approach 4: matmul: CC=[%v %v; %v %v] (expect [58 64; 139 154])\n" at(CC 0) at(CC 1) at(CC 2) at(CC 3))
+print("approach 4: matmul 2x3*3x2 : CC=[%v %v; %v %v] (expect [58 64; 139 154])\n" at(CC 0) at(CC 1) at(CC 2) at(CC 3))
 prev_ok=check_fail(:ok ok)
 
 print("matrixmult: %v\n" ok)
