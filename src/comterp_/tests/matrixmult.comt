@@ -1,74 +1,132 @@
-// matrixmult.comt version 5
-print("matrixmult.comt version 5\n")
+// matrixmult.comt version 6
+print("matrixmult.comt version 6\n")
 
-// Matrix multiplication C = A * B:
-//   C[i][j] = sum of A[i][r] * B[r][j] for r = 0..k-1
-//   Each element of C is a DOT PRODUCT of a row of A with a column of B.
+// src/comterp_/tests/matrixmult.comt -- matrix multiply and add tests
 //
-// Key constraint: streams are single-pass. Reconstruct for each use.
+// coverage: 6 tests of built-in matrix * and + operators,
+//           3 approaches via explicit stream literal dot products
+// funcs: sum() list() at() func() for() print() check_fail()
+// tests 1-2:  non-square and square matrix multiply (built-in *)
+// test 3:     1x3 * 3x1 dot product via list-of-list
+// test 4:     identity matrix multiply
+// test 5:     1x1 * 1x1 single-element tuple
+// test 6:     vector + and matrix + (built-in +)
+// approaches 1-4: explicit stream literal dot-product construction
 
-// A = [1 2; 3 4]  (2x2), B = [5 6; 7 8]  (2x2)
-// Expected C = [19 22; 43 50]
+errmsg(:clear)
+
+run("./testlib.comt")
+ok=true
+
+// =========================================================
+// Tests 1-6: built-in matrix * and + operators
+// =========================================================
+
+// --- test 1: 2x3 * 3x2 ---
+// ((1,2,3),(3,4,5))*((6,7),(8,9),(10,12)) == {{52,61},{100,117}}
+t1=((1,2,3),(3,4,5))*((6,7),(8,9),(10,12))
+ok1=(t1==((52,61),(100,117)))
+ok=ok&&ok1
+print("1 ((1,2,3),(3,4,5))*((6,7),(8,9),(10,12)) -- 2x3 * 3x2 (expect {{52,61},{100,117}}): %v\n" t1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: 2x2 * 2x2 ---
+// ((1,2),(3,4))*((5,6),(7,8)) == {{19,22},{43,50}}
+t2=((1,2),(3,4))*((5,6),(7,8))
+ok2=(t2==((19,22),(43,50)))
+ok=ok&&ok2
+print("2 ((1,2),(3,4))*((5,6),(7,8)) -- 2x2 * 2x2 (expect {{19,22},{43,50}}): %v\n" t2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: 1x3 * 3x1 dot product via list-of-list ---
+// ((1,2,3),)*((4,),(5,),(6,)) == {{32,},}
+t3=((1,2,3),)*((4,),(5,),(6,))
+ok3=(t3==((32,),))
+ok=ok&&ok3
+print("3 ((1,2,3),)*((4,),(5,),(6,)) -- 1x3 * 3x1 dot product (expect {{32,},}): %v\n" t3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: identity * 2x2 ---
+// ((1,0),(0,1))*((3,4),(5,6)) == {{3,4},{5,6}}
+t4=((1,0),(0,1))*((3,4),(5,6))
+ok4=(t4==((3,4),(5,6)))
+ok=ok&&ok4
+print("4 ((1,0),(0,1))*((3,4),(5,6)) -- identity * 2x2 (expect {{3,4},{5,6}}): %v\n" t4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: 1x1 * 1x1 via single-element tuple ---
+// (3,)*(7,) == {{21,},}
+t5=(3,)*(7,)
+ok5=(t5==((21,),))
+ok=ok&&ok5
+print("5 (3,)*(7,) -- 1x1 * 1x1 (expect {{21,},}): %v\n" t5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: vector + and matrix + ---
+// (1,2,3)+(4,5,6) == {5,7,9}
+// ((1,2),(3,4))+((5,6),(7,8)) == {{6,8},{10,12}}
+t6a=(1,2,3)+(4,5,6)
+t6b=((1,2),(3,4))+((5,6),(7,8))
+ok6=(t6a==(5,7,9))&&(t6b==((6,8),(10,12)))
+ok=ok&&ok6
+print("6a (1,2,3)+(4,5,6) -- vector + (expect {5,7,9}): %v\n" t6a)
+print("6b ((1,2),(3,4))+((5,6),(7,8)) -- matrix + (expect {{6,8},{10,12}}): %v\n" t6b)
+prev_ok=check_fail(:ok ok)
+
+// =========================================================
+// Approaches 1-3: dot product via explicit stream literals
+// A = [1 2; 3 4], B = [5 6; 7 8], expected C = [19 22; 43 50]
+// =========================================================
 
 A=list(1,2,3,4)
 B=list(5,6,7,8)
 
-// =========================================================
-// Approach 1: explicit -- streams must be reconstructed each use
-// =========================================================
-
-// c00 = row0(A) . col0(B) = (1,2).(5,7) = 5+14 = 19
+// --- approach 1: explicit stream literals (reconstruct each use) ---
 c00=sum(list((at(A 0) at(A 1))*(at(B 0) at(B 2))))
 c01=sum(list((at(A 0) at(A 1))*(at(B 1) at(B 3))))
 c10=sum(list((at(A 2) at(A 3))*(at(B 0) at(B 2))))
 c11=sum(list((at(A 2) at(A 3))*(at(B 1) at(B 3))))
+ok_a1=(c00==19)&&(c01==22)&&(c10==43)&&(c11==50)
+ok=ok&&ok_a1
+print("approach 1: explicit stream literals: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" c00 c01 c10 c11)
+prev_ok=check_fail(:ok ok)
 
-print("Approach 1: explicit stream literals (reconstruct each use)\n")
-print("C = [%v %v; %v %v]\n" c00 c01 c10 c11)
-print("Expected: [19 22; 43 50]\n\n")
+// --- approach 2: matrow/matcol funcs ---
+matrow=func(r=list(); for(j=0 j<n j++ r,at(M i*n+j)); $$r)
+matcol=func(c=list(); for(i=0 i<m i++ c,at(M i*n+j)); $$c)
 
-// =========================================================
-// Approach 2: matrow/matcol via list->stream
-// func has no formal argument list -- keywords from call site
-// become local variables in the body
-// =========================================================
+c00b=sum(list(matrow(:M A :m 2 :n 2 :i 0)*matcol(:M B :m 2 :n 2 :j 0)))
+c01b=sum(list(matrow(:M A :m 2 :n 2 :i 0)*matcol(:M B :m 2 :n 2 :j 1)))
+c10b=sum(list(matrow(:M A :m 2 :n 2 :i 1)*matcol(:M B :m 2 :n 2 :j 0))) 
+c11b=sum(list(matrow(:M A :m 2 :n 2 :i 1)*matcol(:M B :m 2 :n 2 :j 1)))
 
-// matrow: keywords :M :k :i -- build list of row i, return as stream
-func matrow (r=list(); for(j=0 j<k j++ r=list(r,at(M,i*k+j))); $$r)
+ok_a2=(c00b==19)&&(c01b==22)&&(c10b==43)&&(c11b==50)
+ok=ok&&ok_a2
+print("approach 2: matrow/matcol: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" c00b c01b c10b c11b)
+prev_ok=check_fail(:ok ok)
 
-// matcol: keywords :M :k :j -- build list of col j, return as stream
-func matcol (c=list(); for(i=0 i<k i++ c=list(c,at(M,j+i*k))); $$c)
-
-c00b=sum(list(matrow(:M A :k 2 :i 0)*matcol(:M B :k 2 :j 0)))
-c01b=sum(list(matrow(:M A :k 2 :i 0)*matcol(:M B :k 2 :j 1)))
-c10b=sum(list(matrow(:M A :k 2 :i 1)*matcol(:M B :k 2 :j 0)))
-c11b=sum(list(matrow(:M A :k 2 :i 1)*matcol(:M B :k 2 :j 1)))
-
-print("Approach 2: matrow/matcol funcs\n")
-print("C = [%v %v; %v %v]\n" c00b c01b c10b c11b)
-print("Expected: [19 22; 43 50]\n\n")
-
-// =========================================================
-// Approach 3: full matmul
-// keywords :A :B :m :k :n
-// =========================================================
-
-func matmul (
+// --- approach 3: full matmul 2x2 * 2x2
+matmul=func(
   C=list();
-  for(i=0 i<m i++
-    for(j=0 j<n j++
-      C=list(C,sum(list(matrow(:M A :k k :i i)*matcol(:M B :k k :j j))))));
+  for(i=0 i<mA i++
+    for(j=0 j<nB j++
+      C,sum(list(matrow(:M A :m mA :n nA :i i)*matcol(:M B :m mB :n nB :j j)))));
   C)
 
-C=matmul(:A A :B B :m 2 :k 2 :n 2)
-print("Approach 3: matmul via nested for\n")
-print("C = [%v %v; %v %v]\n" at(C 0) at(C 1) at(C 2) at(C 3))
-print("Expected: [19 22; 43 50]\n\n")
+C=matmul(:A A :B B :mA 2 :nA 2 :mB 2 :nB 2)
+ok_a3=(at(C 0)==19)&&(at(C 1)==22)&&(at(C 2)==43)&&(at(C 3)==50)
+ok=ok&&ok_a3
+print("approach 3: matmul 2x2*2x2: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" at(C 0) at(C 1) at(C 2) at(C 3))
+prev_ok=check_fail(:ok ok)
 
-// =========================================================
-// Streaming algebra note:
-// The inner loop (dot product) is native streaming: row*col zips element-wise.
-// The outer loop (all i,j pairs) is a cross product -- currently requires
-// explicit for loops. Once stream overdrive through for/while lands,
-// the outer loop could become a stream too.
-// =========================================================
+// --- approach 4: full matmul 2x3 * 3x2
+AA=1,2,3,4,5,6
+BB=7,8,9,10,11,12
+CC=matmul(:A AA :B BB :mA 2 :nA 3 :mB 3 :nB 2)
+ok_a4=CC=={58,64,139,154}
+ok=ok&&ok_a4
+print("approach 4: matmul 2x3*3x2 : CC=[%v %v; %v %v] (expect [58 64; 139 154])\n" at(CC 0) at(CC 1) at(CC 2) at(CC 3))
+prev_ok=check_fail(:ok ok)
+
+print("matrixmult: %v\n" ok)
+ok

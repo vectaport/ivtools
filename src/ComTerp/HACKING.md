@@ -460,7 +460,68 @@ look and behave like language keywords.
 dot-rhs symbol emission, the language has three well-defined contexts
 for bare identifiers with consistent, predictable behavior.
 
+## Everything Is an Expression — There Are No Declarations
+
+ComTerp has no statement grammar and no declaration grammar. There are
+only expressions and commands, and **a command is itself an expression**
+that returns a value. There is nothing in the language shaped like a C/
+Scheme/Python *declaration* — no `func name(args) { ... }`, no `int x;`,
+no special binding forms. Anything that looks like one is being
+mis-parsed.
+
+This is the single most common source of errors when ComTerp is written
+by someone (or something) whose instincts come from C-family languages,
+because those languages reach for declaration and constructor syntax by
+default. Two specific traps follow directly from it: `func` (below) and
+`list()` vs `,` (next section). Both are the same mistake — importing
+statement/declaration grammar into a language that has neither.
+
+## Contributor Note: `func` Is a Command, Not a Declaration
+
+`func` is an ordinary command like every other. It takes a **body** and
+returns a `FuncObj`. It has **no name slot and no argument-list slot** in
+its syntax. The name comes from the assignment you wrap around it, and
+the "parameters" are simply the keyword locals the body references — they
+materialize at call time from the `:keyword value` pairs at the call
+site.
+
+```
+// correct -- func returns a FuncObj, assigned to a symbol with =:
+matrow=func(r=list(); for(j=0 j<k j++ r,at(M i*k+j)); $$r)
+
+// wrong -- this is C/Scheme declaration syntax; there is no such form.
+// `matrow` is not a name slot here; the FuncObj is never bound to it,
+// and call sites that use matrow(...) resolve to nil:
+func matrow (r=list(); for(...); $$r)
+```
+
+Note what is *not* present in the correct form:
+
+- **No formal argument list.** `M`, `k`, `i` are never declared. They
+  appear as locals when the call passes `:M ... :k ... :i ...`. See the
+  Keyword Arguments section — keyword names become body-local variables.
+- **No name in the `func` call.** The binding is the outer `=`. `func`
+  itself only ever produces an anonymous `FuncObj`.
+- **Statements inside the body are separated by `;`** and the body is a
+  sequence of expressions; the last expression's value (here `$$r`) is
+  what the func yields.
+
+The diagnostic signature of the declaration-syntax mistake is a func that
+"returns nil" — the FuncObj was built but never bound to the symbol the
+call sites name, so the call resolves to an unbound symbol. If a
+`func`-based helper returns nil for no obvious reason, check first that it
+was written as `name=func(...)` and not `func name (...)`.
+
+For verifying the parse directly, `postfix("name=func(...)")` shows `func`
+as a command token producing a value that `=` binds — confirming there is
+no declaration node. This is exactly the kind of invariant the planned
+`operators.comt` conformance suite should pin with a golden.
+
 ## Contributor Note: `list()` vs `,` for List Growth
+
+(The same everything-is-an-expression principle drives this one — `list()`
+is a constructor *command*, not a statement, so nesting it grows
+structure rather than appending.)
 
 **Do not use `list(lst x)` to append to a list.** `list()` constructs
 a new list from its arguments verbatim — if `lst` is already a list,
