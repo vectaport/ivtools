@@ -92,31 +92,40 @@ print("approach 1: explicit stream literals: C=[%v %v; %v %v] (expect [19 22; 43
 prev_ok=check_fail(:ok ok)
 
 // --- approach 2: matrow/matcol funcs ---
-matrow=func(r=list(); for(j=0 j<m j++ r,at(M i*m+j)); $$r)
-matcol=func(c=list(); for(i=0 i<n i++ c,at(M i*n+j)); $$c)
+matrow=func(r=list(); for(j=0 j<n j++ r,at(M i*n+j)); $$r)
+matcol=func(c=list(); for(i=0 i<m i++ c,at(M i*n+j)); $$c)
 
-c00b=sum(list(matrow(:M A :m 2 :i 0)*matcol(:M B :n 2 :j 0)))
-c01b=sum(list(matrow(:M A :m 2 :i 0)*matcol(:M B :n 2 :j 1)))
-c10b=sum(list(matrow(:M A :m 2 :i 1)*matcol(:M B :n 2 :j 0))) 
-c11b=sum(list(matrow(:M A :m 2 :i 1)*matcol(:M B :n 2 :j 1)))
+c00b=sum(list(matrow(:M A :m 2 :n 2 :i 0)*matcol(:M B :m 2 :n 2 :j 0)))
+c01b=sum(list(matrow(:M A :m 2 :n 2 :i 0)*matcol(:M B :m 2 :n 2 :j 1)))
+c10b=sum(list(matrow(:M A :m 2 :n 2 :i 1)*matcol(:M B :m 2 :n 2 :j 0))) 
+c11b=sum(list(matrow(:M A :m 2 :n 2 :i 1)*matcol(:M B :m 2 :n 2 :j 1)))
 
 ok_a2=(c00b==19)&&(c01b==22)&&(c10b==43)&&(c11b==50)
 ok=ok&&ok_a2
 print("approach 2: matrow/matcol: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" c00b c01b c10b c11b)
 prev_ok=check_fail(:ok ok)
 
-// --- approach 3: full matmul ---
+// --- approach 3: full matmul 2x3 matrix (m=2, n=3) ---
 matmul=func(
   C=list();
-  for(i=0 i<m i++
-    for(j=0 j<n j++
-      C,sum(list(matrow(:M A :m m :i i)*matcol(:M B :n n :j j)))));
+  for(i=0 i<mA i++
+    for(j=0 j<nB j++
+      C,sum(list(matrow(:M A :m mA :n nA :i i)*matcol(:M B :m mB :n nB :j j)))));
   C)
 
-C=matmul(:A A :B B :m 2 :n 2)
+C=matmul(:A A :B B :mA 2 :nA 2 :mB 2 :nB 2)
 ok_a3=(at(C 0)==19)&&(at(C 1)==22)&&(at(C 2)==43)&&(at(C 3)==50)
 ok=ok&&ok_a3
 print("approach 3: matmul: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" at(C 0) at(C 1) at(C 2) at(C 3))
+prev_ok=check_fail(:ok ok)
+
+// --- approach 4: full matmul on 3x2 ---
+AA=1,2,3,4,5,6
+BB=7,8,9,10,11,12
+CC=matmul(:A AA :B BB :mA 2 :nA 3 :mB 3 :nB 2)
+ok_a4=CC=={58,64,139,154}
+ok=ok&&ok_a4
+print("approach 4: matmul: CC=[%v %v; %v %v] (expect [58 64; 139 154])\n" at(CC 0) at(CC 1) at(CC 2) at(CC 3))
 prev_ok=check_fail(:ok ok)
 
 print("matrixmult: %v\n" ok)
