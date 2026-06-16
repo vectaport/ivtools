@@ -92,13 +92,13 @@ print("approach 1: explicit stream literals: C=[%v %v; %v %v] (expect [19 22; 43
 prev_ok=check_fail(:ok ok)
 
 // --- approach 2: matrow/matcol funcs ---
-matrow=func(r=list(); for(j=0 j<k j++ r,at(M i*k+j)); $$r)
-matcol=func(c=list(); for(i=0 i<k i++ c,at(M i*k+j)); $$c)
+matrow=func(r=list(); for(j=0 j<m j++ r,at(M i*m+j)); $$r)
+matcol=func(c=list(); for(i=0 i<n i++ c,at(M i*n+j)); $$c)
 
-c00b=sum(list(matrow(:M A :k 2 :i 0)*matcol(:M B :k 2 :j 0)))
-c01b=sum(list(matrow(:M A :k 2 :i 0)*matcol(:M B :k 2 :j 1)))
-c10b=sum(list(matrow(:M A :k 2 :i 1)*matcol(:M B :k 2 :j 0))) 
-c11b=sum(list(matrow(:M A :k 2 :i 1)*matcol(:M B :k 2 :j 1)))
+c00b=sum(list(matrow(:M A :m 2 :i 0)*matcol(:M B :n 2 :j 0)))
+c01b=sum(list(matrow(:M A :m 2 :i 0)*matcol(:M B :n 2 :j 1)))
+c10b=sum(list(matrow(:M A :m 2 :i 1)*matcol(:M B :n 2 :j 0))) 
+c11b=sum(list(matrow(:M A :m 2 :i 1)*matcol(:M B :n 2 :j 1)))
 
 ok_a2=(c00b==19)&&(c01b==22)&&(c10b==43)&&(c11b==50)
 ok=ok&&ok_a2
@@ -110,10 +110,10 @@ matmul=func(
   C=list();
   for(i=0 i<m i++
     for(j=0 j<n j++
-      C,sum(list(matrow(:M A :k n :i i)*matcol(:M B :k n :j j)))));
+      C,sum(list(matrow(:M A :m m :i i)*matcol(:M B :n n :j j)))));
   C)
 
-C=matmul(:A A :B B :m 2 :k 2 :n 2)
+C=matmul(:A A :B B :m 2 :n 2)
 ok_a3=(at(C 0)==19)&&(at(C 1)==22)&&(at(C 2)==43)&&(at(C 3)==50)
 ok=ok&&ok_a3
 print("approach 3: matmul: C=[%v %v; %v %v] (expect [19 22; 43 50])\n" at(C 0) at(C 1) at(C 2) at(C 3))
