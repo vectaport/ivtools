@@ -1030,6 +1030,8 @@ void InfoFunc::execute() {
       ComValue kv(entry->keyid_val(), ComValue::SymbolType);
       al->add_attr(symbol_add(keybuf), kv);
       if (entry->keynarg_val() > 0) {
+        /* keyword-with-value needs two trailing slots; stop on a short tail */
+        if (pos+2 >= avl->Number()) break;
         snprintf(keybuf, sizeof(keybuf), "key%d_off", nelem);
         ComValue kov(*((AttributeValue*)avl->Get(pos+1)));
         al->add_attr(symbol_add(keybuf), kov);
@@ -1041,6 +1043,8 @@ void InfoFunc::execute() {
         pos += 1;
       }
     } else {
+      /* positional needs one trailing slot (count); stop on a short tail */
+      if (pos+1 >= avl->Number()) break;
       snprintf(keybuf, sizeof(keybuf), "elem%d_off", nelem);
       ComValue ov(*entry);
       al->add_attr(symbol_add(keybuf), ov);
