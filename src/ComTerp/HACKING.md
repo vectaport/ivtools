@@ -487,7 +487,7 @@ site.
 
 ```
 // correct -- func returns a FuncObj, assigned to a symbol with =:
-matrow=func(r=list(); for(j=0 j<k j++ r,at(M i*k+j)); $$r)
+matrow=func(r=list(); for(j=0 j<n j++ r,at(M i*n+j)); $$r)
 
 // wrong -- this is C/Scheme declaration syntax; there is no such form.
 // `matrow` is not a name slot here; the FuncObj is never bound to it,
@@ -497,8 +497,8 @@ func matrow (r=list(); for(...); $$r)
 
 Note what is *not* present in the correct form:
 
-- **No formal argument list.** `M`, `k`, `i` are never declared. They
-  appear as locals when the call passes `:M ... :k ... :i ...`. See the
+- **No formal argument list.** `M`, `n`, `i` are never declared. They
+  appear as locals when the call passes `:M ... :n ... :i ...`. See the
   Keyword Arguments section — keyword names become body-local variables.
 - **No name in the `func` call.** The binding is the outer `=`. `func`
   itself only ever produces an anonymous `FuncObj`.

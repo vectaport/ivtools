@@ -61,6 +61,31 @@ public:
 
 };
 
+//: info command for stream objects.
+// attrlst=info(streamobj)      -- AttributeList describing a literal stream's
+//                                 directory: func, ntoks, nremaining,
+//                                 elemN_off/elemN_cnt..., nelem.  Non-literal
+//                                 streams report (:mode :func).
+// lst=info(streamobj :raw) -- the raw internal directory list, layout-
+//                                 agnostic; the probe used by regression tests.
+class InfoFunc : public StrmFunc {
+public:
+    InfoFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "attrlst|lst=%s(strm :raw) -- return internal list of a stream"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+        ":raw       return raw internal list directly",
+        nil };
+      return keys; }
+
+    CLASS_SYMID("InfoFunc");
+
+};
+
 //: hidden func used by next command for stream command
 class StreamNextFunc : public StrmFunc {
 public:

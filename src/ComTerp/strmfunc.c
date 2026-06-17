@@ -922,3 +922,143 @@ void StreamLiteralNextFunc::execute() {
     nremval->int_ref()--;
     push_stack(result);
 }
+
+/*****************************************************************************/
+
+int InfoFunc::_symid = -1;
+
+InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void InfoFunc::execute() {
+  /* attrlst=info(streamobj [:raw]) -- inspect a stream's internal directory.
+
+     Directory layout for StreamLiteralNextFunc-backed streams (the current
+     diminishing-directory design):
+       [0]    FuncObj(tokbuf, ntoks)
+       [1]    nremaining  (starts at element count, decremented as consumed)
+       [2..]  element entries: positional = (offset,count) = 2 slots;
+              keyword = KeywordType marker [+ (offset,count) if it has a value]
+
+     :raw returns the raw internal list directly -- layout-agnostic, so it works
+     unchanged as the directory evolves and is the probe used by regression
+     tests.  Without :raw, a named-field AttributeList is returned describing the
+     directory in the layout above.  Non-literal streams report (:mode "external"
+     :func `funcname) since their list layouts differ. */
+
+  /* fetch :raw from the post-eval region BEFORE reset_stack() clears it.
+     InfoFunc is post_eval, so the keyword lives in the post-eval buffer. */
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key_post_eval(raw_symid));
+  boolean rawflag = rawv.is_true();
+
+  ComValue streamv(stack_arg_post_eval(0));
+  reset_stack();
+
+  if (!streamv.is_stream()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  AttributeValueList* avl = streamv.stream_list();
+
+  /* :raw -- return the raw internal list directly */
+  if (rawflag) {
+    if (avl) {
+      ComValue retval(avl);
+      push_stack(retval);
+    } else {
+      push_stack(ComValue::nullval());
+    }
+    return;
+  }
+
+  /* identify a literal-backed stream; others have different list layouts */
+  static int slnf_symid = -1;
+  if (slnf_symid == -1) slnf_symid = symbol_add("streamliteralnext");
+  ComFunc* sfunc = streamv.stream_func() ? (ComFunc*)streamv.stream_func() : nil;
+  boolean is_literal = sfunc && sfunc->funcid() == slnf_symid;
+
+  if (!avl || !is_literal) {
+    AttributeList* al = new AttributeList();
+    static int mode_sym = symbol_add("mode");
+    static int func_sym = symbol_add("func");
+    int sfunc_symid = sfunc ? sfunc->funcid() : symbol_add("unknown");
+    ComValue modeval(is_literal ? "internal" : "external");
+    ComValue funcval(sfunc_symid, ComValue::SymbolType);
+    funcval.bquote(1);
+    al->add_attr(mode_sym, modeval);
+    al->add_attr(func_sym, funcval);
+    ComValue retval(AttributeList::class_symid(), (void*)al);
+    push_stack(retval);
+    return;
+  }
+
+  /* field-aware report for the literal directory layout */
+  AttributeList* al = new AttributeList();
+  static int func_sym2  = symbol_add("func");
+  static int ntoks_sym  = symbol_add("ntoks");
+  static int nrem_sym   = symbol_add("nremaining");
+  static int nelem_sym  = symbol_add("nelem");
+
+  /* func name of the backing NextFunc -- back-quoted symbol */
+  int sfunc_symid2 = sfunc ? sfunc->funcid() : symbol_add("unknown");
+  ComValue* funcnamev = new ComValue(sfunc_symid2, ComValue::SymbolType);
+  funcnamev->bquote(1);
+  al->add_attr(func_sym2, funcnamev);
+
+  /* [0] FuncObj -> ntoks */
+  FuncObj* fo = avl->Number() > 0
+    ? (FuncObj*)((AttributeValue*)avl->Get(0))->obj_val() : nil;
+  ComValue ntoksv(fo ? fo->ntoks() : 0);
+  al->add_attr(ntoks_sym, ntoksv);
+
+  /* [1] nremaining */
+  if (avl->Number() > 1) {
+    ComValue nremv(*((AttributeValue*)avl->Get(1)));
+    al->add_attr(nrem_sym, nremv);
+  }
+
+  /* [2..] element entries */
+  int nelem = 0;
+  int pos = 2;
+  char keybuf[64];
+  while (pos < avl->Number()) {
+    AttributeValue* entry = (AttributeValue*)avl->Get(pos);
+    if (entry->is_type(ComValue::KeywordType)) {
+      /* keyword-with-value needs two trailing slots; stop before adding
+         anything so a short tail leaves no orphaned key entry */
+      if (entry->keynarg_val() > 0 && pos+2 >= avl->Number()) break;
+      snprintf(keybuf, sizeof(keybuf), "key%d", nelem);
+      ComValue kv(entry->keyid_val(), ComValue::SymbolType);
+      al->add_attr(symbol_add(keybuf), kv);
+      if (entry->keynarg_val() > 0) {
+        ComValue kov(*((AttributeValue*)avl->Get(pos+1)));
+        al->add_attr(symbol_add(keybuf), kov);
+        snprintf(keybuf, sizeof(keybuf), "key%d_cnt", nelem);
+        ComValue kcv(*((AttributeValue*)avl->Get(pos+2)));
+        al->add_attr(symbol_add(keybuf), kcv);
+        pos += 3;
+      } else {
+        pos += 1;
+      }
+    } else {
+      /* positional needs one trailing slot (count); stop on a short tail */
+      if (pos+1 >= avl->Number()) break;
+      snprintf(keybuf, sizeof(keybuf), "elem%d_off", nelem);
+      ComValue ov(*entry);
+      al->add_attr(symbol_add(keybuf), ov);
+      snprintf(keybuf, sizeof(keybuf), "elem%d_cnt", nelem);
+      ComValue cv(*((AttributeValue*)avl->Get(pos+1)));
+      al->add_attr(symbol_add(keybuf), cv);
+      pos += 2;
+    }
+    nelem++;
+  }
+
+  ComValue nelemv(nelem);
+  al->add_attr(nelem_sym, nelemv);
+
+  ComValue retval(AttributeList::class_symid(), (void*)al);
+  push_stack(retval);
+}
