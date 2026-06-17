@@ -43,7 +43,7 @@ void BackQuoteFunc::execute() {
      without flooding stderr from a loop.  To silence: comment this out. */
   static int streamobj_symid = symbol_add("StreamObj");
   static boolean streamobj_warned = false;
-  if (!streamobj_warned &&retval.type() == ComValue::SymbolType &&
+  if (!streamobj_warned && retval.type() == ComValue::SymbolType &&
       retval.symbol_val() == streamobj_symid) {
     fprintf(stderr, "warning: `StreamObj is obsolete; use `StreamType\n");
     streamobj_warned = true;
