@@ -34,17 +34,21 @@ BackQuoteFunc::BackQuoteFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void BackQuoteFunc::execute() {
-#if 0  // maybe, maybe not
-  ComValue topval(stack_arg(0, true));
-  if (topval.is_command())
-      topval.assignval(stack_arg_post_eval(0, true /* no symbol lookup */));
-  reset_stack();
-  topval.bquote(1);
-  push_stack(topval);
-#else
   ComValue retval(stack_arg(0, true));
   reset_stack();
+
+  /* `StreamObj is the obsolete name for `StreamType (the printed name of
+     a StreamType value, as returned by class()).  Warn once per session
+     so scripts still carrying the old back-quoted name are nudged forward
+     without flooding stderr from a loop.  To silence: comment this out. */
+  static int streamobj_symid = symbol_add("StreamObj");
+  static boolean streamobj_warned = false;
+  if (!streamobj_warned &&retval.type() == ComValue::SymbolType &&
+      retval.symbol_val() == streamobj_symid) {
+    fprintf(stderr, "warning: `StreamObj is obsolete; use `StreamType\n");
+    streamobj_warned = true;
+  }
+  
   retval.bquote(1);
   push_stack(retval);
-#endif  
 }

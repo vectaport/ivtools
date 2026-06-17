@@ -993,7 +993,9 @@ ComValue ComTerp::pop_stack(boolean lookupsym) {
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
-    if (comval.bquote()) return comval;
+    if (comval.bquote()) {
+        return comval;
+    }
 
     if (comval.type() == ComValue::SymbolType) {
         void* vptr = nil;
