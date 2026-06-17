@@ -76,6 +76,83 @@ that the orchestrator can inspect, compare, and branch on. There is no
 separate test protocol, no mock layer, no serialization adapter. The
 REPL session and the wire session are the same thing.
 
+## Background: how ComTerp got its streams
+
+ComTerp's design did not start where it ended. It began with a dream,
+set the dream aside to build something tractable, and only years later
+discovered that the tractable thing had quietly become the foundation
+the dream required. The order matters, because it explains why the
+implementation looks the way it does — much of the machinery that powers
+streams was built for other purposes first.
+
+**The original dream: stream-overdriven operators.** The starting vision
+was dataflow all the way down — operators like `*` and `+` as inherently
+stream operators, operands flowing through them. This traces to the
+NCL/dataflow lineage (Karl Fant, Honeywell) and the command-interpreter
+work at Honeywell IRL and Triple Vision. But an operator cannot flow
+operands through itself until there is a defined notion of what an
+operand *is* — its type, its evaluation, its timing. The dream was set
+aside, not abandoned. It was waiting for a substrate.
+
+**Layer 1 — the expression interpreter.** What got built instead was a
+sober, C-like expression evaluator on a Fischer-LeBlanc scanner/parser
+pipeline: postfix, arity-counted, evaluated left to right. The governing
+rule — *everything is a C-like expression; there are no declarations* —
+is this layer. Unglamorous next to the dataflow dream, but it is bedrock:
+a stream element turns out to be nothing more than a *deferred
+expression*, and you cannot defer an expression you cannot first
+evaluate definitely.
+
+**Layer 2 — post-eval control commands.** Control flow (`if`, `for`,
+`while`, conditional and lazy evaluation — the post_eval mechanism
+synthesized from the lazy-vs-eager evaluation literature) required
+commands that receive their operands *unevaluated* and drive evaluation
+themselves. That deferral machinery — hold the operand's tokens,
+evaluate them when and how it chooses — is exactly what a lazy stream
+needs. A stream literal's `next()` *is* a post-eval: it holds an
+element's token span and evaluates one element on demand. The post-eval
+apparatus (the argoff bookmark, the backward span-finding walk) was built
+for control flow and turned out to be stream infrastructure under another
+name.
+
+**Layer 3 — the duck-typed value model.** A single `ComValue` type
+carrying any value (int, float, string, symbol, list, attrlist, object,
+command, stream) via a `void*`/`interface{}`-style union with runtime
+`isa`/`geta` dispatch. Streams are heterogeneous and polymorphic — an
+element may be an int, a list, an attrlist, a FuncObj, or another stream.
+Without a uniform any-value type, "a stream of whatever" is not
+expressible, and `next()` could not return a value without the iteration
+machinery knowing its type.
+
+**Layer 4 — builtin primitives and user functions.** `func` is a command
+that returns a `FuncObj` you bind with `=` (there is no function
+*declaration* — see the function section). The `FuncObj` carries its own
+copy of the postfix token buffer. This is the last brick, and it is the
+one that finally made streams first-class: a stream that outlives the
+expression that created it needs an owned, reference-counted, lifetime-
+managed copy of its tokens — which is precisely what `FuncObj` already
+was, built for user functions. A first-class stream literal *is* a
+`FuncObj` wrapping a token buffer plus a consumption cursor.
+
+**Why it took so long to make streams first-class.** A first-class stream
+is the intersection of all four layers at once: a `FuncObj` (layer 4)
+holding deferred token spans (layer 2) of arbitrary expressions (layer 1)
+that yield any-typed values (layer 3), flowed through ordinary operators
+(the original dream). Four of the five things a stream is made of did not
+exist when the dream was first conceived. The foundation got built by
+solving four other problems that each looked unrelated at the time, and
+the streams could only become first-class once all four were in place.
+
+The dream was not compromised — it was *deferred*, fittingly the same
+move as post-eval: the stream-operator idea was held unevaluated until a
+substrate that could evaluate it existed. Today, `((1,2,3),)*((4,),(5,),(6,))`
+performing a matrix multiply through the ordinary `*` operator is that
+original dream finally running, on top of the four layers it needed.
+
+For how the resulting overdrive compares to APL, Lucid, MATLAB, and
+Haskell — and what is genuinely without prior art — see *Design
+Provenance and Prior Art* under Streams below.
+
 ## Expressions and Sequencing
 
 The basic unit of execution is an expression. Multiple expressions are
@@ -511,6 +588,50 @@ memory, a stream yields the next value only when asked. This makes
 streams suitable for processing large or unbounded sequences without
 materializing the whole thing.
 
+### The stream contract
+
+A stream is a **monotonic, nil-terminated, forkable** sequence. These are
+not three separate features; they are one shape stated three ways, and
+together they define what it means to be a stream in ComTerp.
+
+- **Monotonic** — consumption only moves forward. `next()` advances the
+  position; there is no rewind or seek in the contract. (A backing source
+  may happen to be seekable, but the stream abstraction does not expose
+  it.) To replay, reassign the stream.
+
+- **Nil-terminated** — the forward motion has a defined end. An exhausted
+  stream yields `nil` from `next()` and stays exhausted. `nil` is the
+  universal terminator; it is what makes a stream finite *in contract*
+  even when the underlying source is unbounded.
+
+- **Forkable** — at any position a stream can be split (`$$s` /
+  `stream(s)`) into independent continuations, each of which is itself a
+  monotonic, nil-terminated, forkable stream. Forkability is part of the
+  definition, not an added feature: a sequence that cannot be forked is
+  not a stream.
+
+The contract is **closed**: a fork of a stream is a stream, and a fork of
+a fork is a stream, all the way down.
+
+**The mechanism that delivers forkability** is a shared growing-shrinking
+buffer of elements. A fork copies the stream's *current* position (see
+*Stream copy forks at the current position*), and the buffer retains
+exactly those elements that some forks have consumed but not yet all —
+freeing each element once every fork has passed it. This lets any
+streamable source satisfy the fork contract regardless of its nature:
+
+- a **stream literal**'s buffer is born full and only shrinks as it is
+  consumed (the degenerate case — all production happened up front);
+- a **file or pipe** stream's buffer both grows at the front as elements
+  are produced and shrinks at the back as the slowest fork advances,
+  bounded by the spread between the fastest and slowest fork.
+
+The literal mechanism and the file/pipe mechanism are therefore the same
+structure at different settings: a shared ordered buffer with per-fork
+positions and front-reclamation by the slowest fork. (File/pipe stream
+forking is specified in a separate issue and may not yet be implemented;
+the contract above is what any such implementation must satisfy.)
+
 ### The Streaming Algebra
 
 The streaming algebra is the set of operations that construct, compose,
@@ -612,10 +733,10 @@ remaining elements unevaluated in the token buffer.
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
 The streaming algebra is still being formalized. The stream literal
-syntax (ivtools-3.0) completes the source end of the algebra; bugs
-found during implementation will clarify the composition laws,
-particularly around nil propagation through composed operations and
-zip semantics between lazy and materialized sources.
+syntax (ivtools-3.0) completes the source end of the algebra; ongoing
+work continues to clarify the composition laws, particularly around nil
+propagation through composed operations and zip semantics between lazy
+and materialized sources.
 
 ### Scalar overdrive
 
@@ -691,44 +812,43 @@ In short: streams overdrive *into* non-post-eval commands through their
 arguments, and *around* post-eval commands through external combination
 or return values -- never *through* a post-eval command's own arguments.
 
-### Stream as an extra loop around for/while (currently broken)
+### Stream-scalar broadcast via replay
 
-External overdrive of a post-eval command by a stream argument should
-let the stream act as an outer loop wrapped around whatever the command
-does -- including a `for` or `while` loop used as that command's body.
-`each` is post-eval (`each[0|0|1]*`); given a stream first-argument and a
-body expression, each iteration of the outer stream should run the body
-to completion:
+When a non-post-eval binary operator (`+`, `*`, `,`, `**`, etc.) finds
+that exactly one of its two operands `is_stream()` and the other is a
+plain scalar, the runtime constructs a per-element stream from the
+scalar operand and hands two streams to the operator's existing
+stream-zip path -- the same path that already handles `(10**4)*(1..4)`
+correctly, producing `10,20,30,40`.
 
-```
-each((i=0..3);for(j=0 j<4 j++ print("i,j %d,%d\n" i j)))
-```
-
-EXPECTED: 16 lines, the cross product of `i=0..3` and `j=0..3` -- the
-outer stream `(i=0..3)` overdrives the entire `for(j=0 j<4 j++ ...)`
-loop, running it to completion four times.
-
-ACTUAL: 4 lines, `j` always shows the loop-exit value `4`:
+The scalar operand's *first* value is whatever was already computed by
+normal evaluation (no extra cost -- "the first draw is done"). For each
+subsequent element, the scalar operand's postfix token-slice is replayed
+via the same mechanism stream literals already use for lazy per-element
+evaluation (`StreamLiteralNextFunc`'s `comterpserv()->run(tokbuf+offset,
+cnt)`, proven by `(rand rand rand)` giving three distinct values).
 
 ```
-i,j 0,4
-i,j 1,4
-i,j 2,4
-i,j 3,4
+s=10**4*rand()
+list(s)     // four independently-drawn random values, each *10
 ```
 
-`each` correctly iterates `i` over `0..3` (4 lines, one per outer
-iteration), but `print(...)` appears to execute only once per outer
-iteration, after `for`'s loop has already exited with `j=4` -- as if
-`print(...)` is not being captured as part of `for`'s body argument.
-Needs investigation in `ctrlfunc.c` (`for`'s argument/body capture),
-likely related to the multi-statement `func` body issues seen earlier
-in `matrixmult.comt`.
+The operator (`*`) never sees anything but two streams -- it is
+unchanged, oblivious, and identical to the `(10**4)*(1..4)` case.
 
-This is the cross-product primitive from the stream algebra design
-discussion: once fixed, `for`/`while` overdriven by an external stream
-is the cross product, complementing zip (`,` overdriven by streams) as
-the other half of nd composition.
+**The stream is what makes the sibling operand post-eval.** `for` and
+`while` are post-eval commands that replay their body argument's
+token-slice once per iteration -- the loop construct itself decides to
+replay. Here, the *same replay mechanism* applies to the scalar operand,
+but the *trigger* is different: not the construct's own post-eval-ness,
+but the presence of a stream sibling. A stream operand effectively
+extends post-eval-style replay to whatever it's combined with -- the
+operator stays oblivious and non-post-eval throughout; only the sibling
+operand's evaluation pattern changes, from "once" to "replayed per
+element," exactly as a loop body goes from "once" to "replayed per
+iteration." Same mechanism (token-slice replay via the static postfix
+buffer -- see *Why the Pipeline Is So Clean: Fischer-LeBlanc and argoff*
+in APPENDIX-C), different trigger.
 
 ### Design Provenance and Prior Art
 
@@ -808,6 +928,47 @@ list(ss)               // {2,4,6,8,10} -- consumed
 next(ss)               // nil -- exhausted
 ss=(1..5)*2            // reassign to replay
 ```
+
+### Stream copy forks at the current position
+
+`$$s` (equivalently `stream(s)`) copies a stream **at its current state of
+consumption** — not from the beginning. The copy is an independent
+continuation from wherever `s` has been consumed to, and the two streams
+thereafter advance without affecting each other.
+
+```
+s=(10 20 30)
+next(s)                // 10  -- s is now at {20,30}
+t=$$s                  // t forks here: t is {20,30}, NOT {10,20,30}
+next(s)                // 20  -- s advances
+next(t)                // 20  -- t advances independently
+next(s)                // 30
+next(t)                // 30
+next(s)                // nil -- s exhausted; t was unaffected by s
+```
+
+This is the property cross-products rely on: copy the inner stream at the
+point the outer loop has reached, drain the copy, leave the original at
+its position for the next outer step.
+
+Mechanically, a stream's unconsumed remainder *is* its state — consumption
+diminishes the stream's internal directory in place, so "copy at current
+position" is simply a deep copy of whatever remains. The copy duplicates
+that remaining directory but **shares the underlying token buffer by
+reference** (it is immutable and reference-counted), so forking is cheap
+and never duplicates the elements' code — only the small record of which
+elements are left. A fresh full copy is therefore just a copy taken before
+any `next()`:
+
+```
+s=(10 20 30)
+t=$$s                  // copy before consuming -- t is a full {10,20,30}
+```
+
+This is the consume-once contract (above) made forkable: single-pass means
+each stream is consumed once and is gone as it flows by; copy-at-position
+means you may fork the *unconsumed* part into an independent stream at any
+point, and each fork is then itself single-pass.
 
 ### List construction and growth with `,`
 
@@ -993,11 +1154,6 @@ Use `==` for symbol equality — it works reliably for all symbol values:
 `foo==`bar             // false
 symbol(symid(`foo))==`foo  // true
 ```
-
-The `:sym` keyword on comparison operators (`eq`, `lt`, `gt`, etc.) is
-intended for symbol comparison but has a known bug: `eq(:sym)` returns
-false for symbols returned by `symbol()` even when `==` returns true.
-Use `==` instead until this is resolved.
 
 Lexicographic symbol ordering:
 

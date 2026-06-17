@@ -61,6 +61,30 @@ public:
 
 };
 
+//: info command for stream objects.
+// attrlst=info(streamobj :raw) -- inspect a stream's internal directory list.
+// Step 1 (this commit) implements only the :raw path, which returns the raw
+// internal AVL directly and is layout-agnostic -- usable as a structural probe
+// for regression tests regardless of the directory layout.  Field-aware
+// reporting is added with the directory rewrite it describes.
+class InfoFunc : public StrmFunc {
+public:
+    InfoFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "attrlst=%s(strm :raw) -- return raw internal list of a stream"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+        ":raw       return raw internal list directly",
+        nil };
+      return keys; }
+
+    CLASS_SYMID("InfoFunc");
+
+};
+
 //: hidden func used by next command for stream command
 class StreamNextFunc : public StrmFunc {
 public:
