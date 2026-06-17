@@ -1018,9 +1018,8 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  return ComValue::nullval();
 
     } else if (comval.is_object(Attribute::class_symid())) {
-
-      comval.assignval(*((Attribute*)comval.obj_val())->Value());
-
+      ComValue attrval = *((Attribute*)comval.obj_val())->Value(); 
+      comval.assignval(attrval);
     }       
     return comval;
 }

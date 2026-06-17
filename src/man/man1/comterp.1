@@ -227,6 +227,8 @@ both until exit.
 
  comp=filter(comps classid) -- filter stream of comps for matching classid
 
+ attrlst|lst=info(strm :raw) -- return internal list of a stream
+
 .SH CONTROL COMMANDS (using post evaluation):
 
  val=cond(testexpr trueexpr falseexpr) -- evaluate testexpr, and if true, evaluate and return trueexpr, otherwise evaluate and return falseexpr
