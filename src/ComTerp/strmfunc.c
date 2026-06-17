@@ -1026,13 +1026,13 @@ void InfoFunc::execute() {
   while (pos < avl->Number()) {
     AttributeValue* entry = (AttributeValue*)avl->Get(pos);
     if (entry->is_type(ComValue::KeywordType)) {
+      /* keyword-with-value needs two trailing slots; stop before adding
+         anything so a short tail leaves no orphaned key entry */
+      if (entry->keynarg_val() > 0 && pos+2 >= avl->Number()) break;
       snprintf(keybuf, sizeof(keybuf), "key%d", nelem);
       ComValue kv(entry->keyid_val(), ComValue::SymbolType);
       al->add_attr(symbol_add(keybuf), kv);
       if (entry->keynarg_val() > 0) {
-        /* keyword-with-value needs two trailing slots; stop on a short tail */
-        if (pos+2 >= avl->Number()) break;
-        snprintf(keybuf, sizeof(keybuf), "key%d_off", nelem);
         ComValue kov(*((AttributeValue*)avl->Get(pos+1)));
         al->add_attr(symbol_add(keybuf), kov);
         snprintf(keybuf, sizeof(keybuf), "key%d_cnt", nelem);
