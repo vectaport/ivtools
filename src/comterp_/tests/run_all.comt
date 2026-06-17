@@ -54,8 +54,8 @@ if(run("./stream-info.comt")
   :else print("FAIL: stream-info\n");ok=false)
 
 if(run("./stream-argcnt.comt")
-  :then print("pass: stream-argcnt.comt\n")
-  :else print("FAIL: stream-argcnt.comt\n");ok=false)
+  :then print("pass: stream-argcnt\n")
+  :else print("FAIL: stream-argcnt\n");ok=false)
 
 if(run("./matrixmult.comt")
   :then print("pass: matrixmult\n")
