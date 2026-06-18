@@ -981,7 +981,8 @@ ComValue ComTerp::pop_stack(boolean lookupsym) {
     if (lookupsym && topval.is_symbol()) {
       return lookup_symval(topval);
     } else if (lookupsym && topval.is_attribute()) {
-      topval.assignval(*((Attribute*)topval.obj_val())->Value());
+      ComValue attrval = *((Attribute*)topval.obj_val())->Value();
+      topval.assignval(attrval);
       return topval;
     }else 
       return topval;
