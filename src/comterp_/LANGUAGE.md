@@ -1,5 +1,23 @@
 # ComTerp Language Guide
 
+ComTerp is the embedded scripting layer of the ivtools toolkit — the
+scriptable nervous system of its vector-graphics and distributed-drawing
+tools (comdraw, drawtool, DrawServ, and the drawmo orchestrator). It is
+not a language built to be admired as a language; it exists to let those
+tools be driven, automated, and coordinated across the wire. Everything
+below — the expression model, the streams, the value union — is in
+service of a tool above it that moves pixels and coordinates drawing.
+Read it as a tool's mind, not as a language for its own sake.
+
+In character it is, roughly, a Lisp for C: it keeps the interpreted,
+expression-all-the-way-down, read-eval-print quality that makes an
+interpreter pleasant to drive a tool with, but it is built in C and
+stays in close, transparent contact with the machine — a powerful
+orchestrator of sequences of instructions, not a self-describing model.
+The aim throughout is precise yet elegant interaction with the
+instruction set: enough of the interpreter's allure to be scriptable,
+none of the apparatus a tool's scripting layer does not need.
+
 ComTerp is a scripting language where the syntax is also the wire
 protocol. Every value — integer, string, list, attrlist, boolean —
 serializes back to valid ComTerp syntax that can be parsed and
@@ -123,6 +141,22 @@ element may be an int, a list, an attrlist, a FuncObj, or another stream.
 Without a uniform any-value type, "a stream of whatever" is not
 expressible, and `next()` could not return a value without the iteration
 machinery knowing its type.
+
+`StreamType` is the *last* first-class type added to this union. After it,
+the extension mechanism changed: rather than keep growing the closed set
+of built-in union types — each with its own slot and per-type handling —
+a single open-ended `ObjectType` was added as the one extension point.
+Its contract is "give me an object tagged by class symbol and I will
+reflect it back if I recognize it" (the `class_symid()` plus the
+`_as_needed` recognition in the printer and elsewhere). So the union
+being *full* is not an accident or a limit bumped into; it is a deliberate
+boundary. `StreamType` marks the end of one extension era (more union
+types) and the start of another (`ObjectType`, bounded reflection). This
+is why `ObjectType` is the sole remaining extension point, and why
+payloads carried through it must honor a uniform contract (see the
+Resource discussion in `HACKING.md`). The name `StreamType` — rather than
+the older printed name `StreamObj` — reflects that it is, correctly, the
+last of the union *types*.
 
 **Layer 4 — builtin primitives and user functions.** `func` is a command
 that returns a `FuncObj` you bind with `=` (there is no function
@@ -273,6 +307,14 @@ Unknown keywords are silently ignored, which enables layered keyword
 extension across the library hierarchy. See `ARCHITECTURE.md` for how
 this works internally.
 
+The same ordering applies inside a **stream literal**: positional values
+first, keywords after. A stream literal may end with keywords —
+`(a b :key v)` — but keywords belong after the positional content, never
+before or among it. Keep to positionals-then-keywords here as everywhere;
+a keyword in the position that decides a construct's kind (the second
+element, which is what tips grouping into a stream) is the one case the
+rule protects against, and following the rule keeps it out of reach.
+
 ## Operators
 
 Standard arithmetic, comparison, and logical operators work as expected.
@@ -366,6 +408,10 @@ The dot namespace rooted at a symbol is scoped with that symbol — see
 `foo             // the symbol foo, not its value
 type(val)==`IntType
 ```
+
+`StreamObj` was temporarily exported as the literal for a `StreamType`,
+and a warning will be printed if a script makes use of it as a symbol (by
+prefixing it with a back-quote). Use `` `StreamType `` instead.
 
 ## Control Flow
 
@@ -669,6 +715,27 @@ an attrlist literal, not a stream literal:
 (:key 99 :flag)   // attrlist -- first token is a keyword
 (0 :key 99)       // stream literal -- first token is a value
 ```
+
+**Element spans.** Each element of a stream literal is an expression of
+arbitrary depth, and its size is the number of postfix tokens that
+expression occupies — not a fixed stride. The same counting applies
+whether the element is a positional or a keyword's value:
+
+```
+(3 ...)              // element 3        -- 1 token
+(x,y ...)            // element x,y      -- 3 tokens (x y ,; comma is a binary op)
+(1+2+3+5 ...)        // element 1+2+3+5  -- 7 tokens (1 2 + 3 + 5 +)
+(0 :key 1+2+3+5)     // the keyword's value is the same 7-token span
+(0 :key 3)           // the keyword's value is 1 token
+(0 :standalonekey)   // a bare keyword has no value span (0 tokens)
+```
+
+A keyword value and the identical expression as a standalone positional
+have the same span — a value expression has one postfix length regardless
+of how it arrives. A bare keyword contributes no value span. (This is why
+keyword elements belong after positionals: see *Arguments: Fixed Before
+Keywords*. A bare keyword in the element that decides stream-ness — the
+second element — is the one shape to avoid.)
 
 **Consumption** — pulling values out:
 
