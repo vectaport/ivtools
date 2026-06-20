@@ -44,7 +44,7 @@ public:
     SessionIdFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] :table | :all | :table) -- command to manage session id's"; }
+	return "%s([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] :all | :table) -- command to manage session id's"; }
 };
 
 #ifdef HAVE_ACE
