@@ -358,6 +358,8 @@ void GraphicIdFunc::execute() {
   ComValue statev(stack_key(state_sym));
   static int deny_sym = symbol_add("deny");
   ComValue denyv(stack_key(deny_sym));
+  static int table_sym = symbol_add("table");
+  ComValue tablev(stack_key(table_sym));
  
   ComValue idv(stack_arg(0));
   ComValue selectorv(stack_arg(1));
@@ -428,7 +430,45 @@ void GraphicIdFunc::execute() {
     push_stack(ComValue::nullval());
 
   } else if (idv.is_unknown()) {
-    ((DrawServ*)unidraw)->print_gridtable();
+    if (tablev.is_true()) {
+      /* return the gridtable as a list of rows, mirroring the columns of
+         print_gridtable(): grid (8-char uuid prefix), comptype, selector,
+         selected.  same idiom as sid(:table). */
+      static int grid_row_sym     = symbol_add("grid");
+      static int comptype_row_sym = symbol_add("comptype");
+      static int selector_row_sym = symbol_add("selector");
+      static int selected_row_sym = symbol_add("selected");
+      DrawServ* drawserv = (DrawServ*)unidraw;
+      AttributeValueList* avl = new AttributeValueList();
+      GraphicIdTable* table = drawserv->gridtable();
+      GraphicIdTable_Iterator it(*table);
+      while (it.more()) {
+        GraphicId* grid = (GraphicId*)it.cur_value();
+        OverlayComp* comp = (OverlayComp*)grid->grcomp();
+        const char* comptype = comp ? comp->GetClassName() : "nil";
+        /* first 8 chars of the uuid, matching print_gridtable() and the
+           uuid_key granularity the gridtable itself is keyed on.  a prefix
+           collision in the small set of linked drawservs is expected and
+           simply triggers the normal merge, where the full uuid surfaces. */
+        char id8[9];
+        const char* idfull = grid->idstr() ? grid->idstr() : "";
+        strncpy(id8, idfull, 8); id8[8] = '\0';
+        char sel8[9];
+        const char* selfull = grid->selectorstr() ? grid->selectorstr() : "";
+        strncpy(sel8, selfull, 8); sel8[8] = '\0';
+        AttributeList* row = new AttributeList();
+        row->add_attr(grid_row_sym,     new AttributeValue(id8));
+        row->add_attr(comptype_row_sym, new AttributeValue(comptype));
+        row->add_attr(selector_row_sym, new AttributeValue(sel8));
+        row->add_attr(selected_row_sym, new AttributeValue(LinkSelection::selected_string(grid->selected())));
+        avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)row));
+        it.next();
+      }
+      ComValue result(avl);
+      push_stack(result);
+    } else {
+      ((DrawServ*)unidraw)->print_gridtable();
+    }
   }
 
 }

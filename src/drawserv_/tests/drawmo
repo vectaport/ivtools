@@ -2,7 +2,7 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown|updown1] --port [portnum] --help
+# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C] --port [portnum] --help
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,9 +10,9 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown|updown1] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C] --port [portnum] --help\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown|updown1]\ttests to run (comma-separated), returns -1 on error\n");
+    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C]\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
     exit)
@@ -167,6 +167,838 @@ updown1_test=func(
   print("updown1: drawserv shut down\n" :err);
   ok)
 
+/* updown2 test -- launch two drawservs, link ds1->ds2, verify the link is
+   visible in the drawlink table on both ends, shut both down.
+   reuses the canonical port pair (20002/30002); find_open_port only steps
+   away if a canonical port is unexpectedly still held -- a held port means
+   a prior test did not shut down cleanly, which we want to surface.
+   written with the same literal idioms as updown/updown1 (no global-name
+   indirection) so it relies only on syntax already proven in this suite. */
+updown2_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 on canonical base 20002 --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_up2a)=false;
+  print("updown2: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up2a)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  print("updown2: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("updown2: waiting for ds1 callback on port %d\n" callback_port :err);
+  cnt=0;
+  while(!global(drawserv_up2a) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown2: still waiting for ds1 after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up2a) :then
+    print("updown2: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);
+    kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("updown2: ds1 callback received after %d polls\n" cnt :err);
+
+  /* --- launch ds2 on canonical base 30002 --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_up2b)=false;
+  print("updown2: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up2b)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  print("updown2: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("updown2: waiting for ds2 callback on port %d\n" callback_port :err);
+  cnt=0;
+  while(!global(drawserv_up2b) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown2: still waiting for ds2 after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up2b) :then
+    print("updown2: FAIL timeout waiting for ds2 callback\n" :err);
+    /* ds1 is up; shut it down so its port is freed */
+    s1=socket("localhost" ds1_port);
+    if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);
+    kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("updown2: ds2 callback received after %d polls\n" cnt :err);
+
+  /* --- connect to both --- */
+  sock1=socket("localhost" ds1_port);
+  if(type(sock1)==`UnknownType :then
+    print("updown2: FAIL could not connect to ds1 on port %d\n" ds1_port :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  sock2=socket("localhost" ds2_port);
+  if(type(sock2)==`UnknownType :then
+    print("updown2: FAIL could not connect to ds2 on port %d\n" ds2_port :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    kill_port(:kill_port_num ds2_port);
+    return(false));
+
+  /* --- establish the link ds1 -> ds2 --- */
+  print("updown2: linking ds1(%d) -> ds2(%d)\n" ds1_port ds2_port :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+
+  /* drawlink blocks until the two-way handshake completes (its own spin-loop),
+     so the link is established by the time the command returns -- no settle. */
+
+  /* --- verify the link is visible on both ends: one link == one row --- */
+  table1=remote(sock1 "drawlink(:table)");
+  ok=eq(size(table1) 1);
+  print("updown2: ds1 drawlink table has 1 row: %v\n" eq(size(table1) 1) :err);
+  if(!ok :then
+    print("updown2: FAIL ds1 drawlink table size=%d (expected 1)\n" size(table1) :err));
+
+  table2=remote(sock2 "drawlink(:table)");
+  ok=ok && eq(size(table2) 1);
+  print("updown2: ds2 drawlink table has 1 row: %v\n" eq(size(table2) 1) :err);
+  if(!eq(size(table2) 1) :then
+    print("updown2: FAIL ds2 drawlink table size=%d (expected 1)\n" size(table2) :err));
+
+  if(ok :then print("updown2: link established and visible on both ends\n" :err));
+
+  /* --- tear both down, waiting for each process to clear so the canonical
+     ports are free for the next test --- */
+  remote(sock1 "exit" :nowait);
+  close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0
+    update(200000));
+  print("updown2: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);
+  close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0
+    update(200000));
+  print("updown2: ds2 shut down\n" :err);
+  ok)
+
+/* grid_has_id: poll a far node's grid table until a row's :grid (8-char
+   prefix) matches the wanted id, or timeout.  returns true if found.
+   reads via the dot operator: at(grid(:table) i).grid  */
+grid_has_id=func(
+  found=false;
+  poll_usec=2000000;
+  timeout=30*1000000/poll_usec;
+  cnt=0;
+  while(!found && cnt<timeout
+    t=remote(gh_sock "grid(:table)");
+    n=size(t);
+    for(j=0 j<n j++
+      if(at(t j).grid==gh_id :then found=true));
+    if(!found :then update(poll_usec);cnt++));
+  found)
+
+/* updown3A test -- CHAIN topology: ds1 -> ds2 -> ds3.
+   create a graphic on ds1, verify it propagates two hops to ds3.
+   each drawlink command is sent to the node that must initiate it:
+   ds1->ds2 runs on ds1, ds2->ds3 runs on ds2.
+   canonical ports 20002/30002/40002, reused not reallocated. */
+updown3A_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_up3a1)=false;
+  print("updown3A: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3a1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up3a1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3A: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up3a1) :then
+    print("updown3A: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("updown3A: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_up3a2)=false;
+  print("updown3A: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3a2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up3a2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3A: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up3a2) :then
+    print("updown3A: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("updown3A: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_up3a3)=false;
+  print("updown3A: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3a3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up3a3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3A: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up3a3) :then
+    print("updown3A: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("updown3A: ds3 up on %d\n" ds3_port :err);
+
+  /* --- connect to all three --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
+    print("updown3A: FAIL could not connect to all three drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
+    return(false));
+
+  /* --- build the chain: ds1->ds2 (on ds1), then ds2->ds3 (on ds2) --- */
+  print("updown3A: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
+
+  /* --- create a graphic on ds1; PasteCmd propagates it along the chain --- */
+  remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("updown3A: created ellipse on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("updown3A: FAIL could not read grid id from ds1 (got %v) -- is grid(:table) built in?\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    return(false));
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("updown3A: graphic on ds2 (hop 1): %v\n" on2 :err);
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  print("updown3A: graphic on ds3 (hop 2): %v\n" on3 :err);
+  ok=on2 && on3;
+  if(!on2 :then print("updown3A: FAIL graphic did not reach ds2\n" :err));
+  if(!on3 :then print("updown3A: FAIL graphic did not propagate to ds3\n" :err));
+  if(ok :then print("updown3A: graphic propagated two hops along the chain\n" :err));
+
+  /* --- tear all three down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("updown3A: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("updown3A: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("updown3A: ds3 shut down\n" :err);
+  ok)
+
+/* updown3B test -- TREE topology: ds1 -> ds2 and ds1 -> ds3 (ds1 is hub).
+   create a graphic on ds1, verify it fans out to BOTH ds2 and ds3.
+   both drawlink commands are initiated from ds1. */
+updown3B_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_up3b1)=false;
+  print("updown3B: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3b1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up3b1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3B: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up3b1) :then
+    print("updown3B: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("updown3B: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_up3b2)=false;
+  print("updown3B: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3b2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up3b2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3B: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up3b2) :then
+    print("updown3B: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("updown3B: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_up3b3)=false;
+  print("updown3B: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3b3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up3b3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3B: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up3b3) :then
+    print("updown3B: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("updown3B: ds3 up on %d\n" ds3_port :err);
+
+  /* --- connect to all three --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
+    print("updown3B: FAIL could not connect to all three drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
+    return(false));
+
+  /* --- build the tree: both links from ds1 (hub) --- */
+  print("updown3B: tree ds1(%d) -> ds2(%d), ds3(%d)\n" ds1_port ds2_port ds3_port :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
+
+  /* --- create a graphic on ds1; PasteCmd fans it out to both branches --- */
+  remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("updown3B: created ellipse on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("updown3B: FAIL could not read grid id from ds1 (got %v) -- is grid(:table) built in?\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    return(false));
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("updown3B: graphic on ds2 (branch 1): %v\n" on2 :err);
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  print("updown3B: graphic on ds3 (branch 2): %v\n" on3 :err);
+  ok=on2 && on3;
+  if(!on2 :then print("updown3B: FAIL graphic did not reach ds2\n" :err));
+  if(!on3 :then print("updown3B: FAIL graphic did not reach ds3\n" :err));
+  if(ok :then print("updown3B: graphic fanned out to both branches\n" :err));
+
+  /* --- tear all three down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("updown3B: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("updown3B: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("updown3B: ds3 shut down\n" :err);
+  ok)
+
+/* updown4A test -- CHAIN topology: ds1->ds2->ds3->ds4.  create a graphic on ds1, verify it propagates three hops to ds4 (and through ds2, ds3).  each drawlink runs on the upstream node.
+   4 drawservs on canonical 20002/30002/40002/50002, reused not reallocated. */
+updown4A_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_up4a1)=false;
+  print("updown4A: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4a1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4a1) :then
+    print("updown4A: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("updown4A: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_up4a2)=false;
+  print("updown4A: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4a2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4a2) :then
+    print("updown4A: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("updown4A: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_up4a3)=false;
+  print("updown4A: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4a3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4a3) :then
+    print("updown4A: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("updown4A: ds3 up on %d\n" ds3_port :err);
+
+  /* --- launch ds4 (50002) --- */
+  ds4_port=find_open_port(:base_port 50002);
+  ds4_import=ds4_port-1;
+  global(drawserv_up4a4)=false;
+  print("updown4A: launching ds4 on port %d\n" ds4_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4a4) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds4 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4a4) :then
+    print("updown4A: FAIL timeout waiting for ds4 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s3=socket("localhost" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds4_port);kill_port(:kill_port_num ds4_import);
+    return(false));
+  print("updown4A: ds4 up on %d\n" ds4_port :err);
+
+  /* --- connect to all four --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  sock4=socket("localhost" ds4_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType || type(sock4)==`UnknownType :then
+    print("updown4A: FAIL could not connect to all four drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds4_port);
+    return(false));
+
+  /* --- build topology --- */
+  print("updown4A: wiring topology\n" :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock3 print("drawlink(\"localhost\" %d)" ds4_port :str));
+
+  /* --- create a graphic on ds1; PasteCmd propagates it --- */
+  remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("updown4A: created ellipse on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("updown4A: FAIL could not read grid id from ds1 (got %v) -- is grid(:table) built in?\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    remote(sock4 "exit" :nowait);close(sock4);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+    return(false));
+
+  /* --- verify propagation to leaf nodes --- */
+  ok=true;
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("updown4A: graphic on ds2: %v\n" on2 :err);
+  ok=ok && on2;
+  if(!on2 :then print("updown4A: FAIL graphic did not reach ds2\n" :err));
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  print("updown4A: graphic on ds3: %v\n" on3 :err);
+  ok=ok && on3;
+  if(!on3 :then print("updown4A: FAIL graphic did not reach ds3\n" :err));
+  on4=grid_has_id(:gh_sock sock4 :gh_id id1);
+  print("updown4A: graphic on ds4: %v\n" on4 :err);
+  ok=ok && on4;
+  if(!on4 :then print("updown4A: FAIL graphic did not reach ds4\n" :err));
+  if(ok :then print("updown4A: graphic propagated to all expected nodes\n" :err));
+
+  /* --- tear all four down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("updown4A: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("updown4A: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("updown4A: ds3 shut down\n" :err);
+  remote(sock4 "exit" :nowait);close(sock4);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+  print("updown4A: ds4 shut down\n" :err);
+  ok)
+
+/* updown4B test -- TREE topology: ds1 hub -> ds2, ds3, ds4.  create a graphic on ds1, verify it fans out to all three leaves.  all drawlinks initiated from ds1.
+   4 drawservs on canonical 20002/30002/40002/50002, reused not reallocated. */
+updown4B_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_up4b1)=false;
+  print("updown4B: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4b1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4b1) :then
+    print("updown4B: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("updown4B: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_up4b2)=false;
+  print("updown4B: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4b2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4b2) :then
+    print("updown4B: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("updown4B: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_up4b3)=false;
+  print("updown4B: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4b3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4b3) :then
+    print("updown4B: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("updown4B: ds3 up on %d\n" ds3_port :err);
+
+  /* --- launch ds4 (50002) --- */
+  ds4_port=find_open_port(:base_port 50002);
+  ds4_import=ds4_port-1;
+  global(drawserv_up4b4)=false;
+  print("updown4B: launching ds4 on port %d\n" ds4_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4b4) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds4 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4b4) :then
+    print("updown4B: FAIL timeout waiting for ds4 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s3=socket("localhost" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds4_port);kill_port(:kill_port_num ds4_import);
+    return(false));
+  print("updown4B: ds4 up on %d\n" ds4_port :err);
+
+  /* --- connect to all four --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  sock4=socket("localhost" ds4_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType || type(sock4)==`UnknownType :then
+    print("updown4B: FAIL could not connect to all four drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds4_port);
+    return(false));
+
+  /* --- build topology --- */
+  print("updown4B: wiring topology\n" :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds4_port :str));
+
+  /* --- create a graphic on ds1; PasteCmd propagates it --- */
+  remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("updown4B: created ellipse on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("updown4B: FAIL could not read grid id from ds1 (got %v) -- is grid(:table) built in?\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    remote(sock4 "exit" :nowait);close(sock4);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+    return(false));
+
+  /* --- verify propagation to leaf nodes --- */
+  ok=true;
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("updown4B: graphic on ds2: %v\n" on2 :err);
+  ok=ok && on2;
+  if(!on2 :then print("updown4B: FAIL graphic did not reach ds2\n" :err));
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  print("updown4B: graphic on ds3: %v\n" on3 :err);
+  ok=ok && on3;
+  if(!on3 :then print("updown4B: FAIL graphic did not reach ds3\n" :err));
+  on4=grid_has_id(:gh_sock sock4 :gh_id id1);
+  print("updown4B: graphic on ds4: %v\n" on4 :err);
+  ok=ok && on4;
+  if(!on4 :then print("updown4B: FAIL graphic did not reach ds4\n" :err));
+  if(ok :then print("updown4B: graphic propagated to all expected nodes\n" :err));
+
+  /* --- tear all four down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("updown4B: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("updown4B: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("updown4B: ds3 shut down\n" :err);
+  remote(sock4 "exit" :nowait);close(sock4);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+  print("updown4B: ds4 shut down\n" :err);
+  ok)
+
+/* updown4C test -- TRIDENT topology: ds1->ds2 (shaft), then ds2->ds3 and ds2->ds4 (prongs).  create a graphic on ds1, verify it travels one hop to ds2 then forks to both ds3 and ds4.
+   4 drawservs on canonical 20002/30002/40002/50002, reused not reallocated. */
+updown4C_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_up4c1)=false;
+  print("updown4C: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4c1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4c1) :then
+    print("updown4C: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("updown4C: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_up4c2)=false;
+  print("updown4C: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4c2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4c2) :then
+    print("updown4C: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("updown4C: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_up4c3)=false;
+  print("updown4C: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4c3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4c3) :then
+    print("updown4C: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("updown4C: ds3 up on %d\n" ds3_port :err);
+
+  /* --- launch ds4 (50002) --- */
+  ds4_port=find_open_port(:base_port 50002);
+  ds4_import=ds4_port-1;
+  global(drawserv_up4c4)=false;
+  print("updown4C: launching ds4 on port %d\n" ds4_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_up4c4) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds4 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_up4c4) :then
+    print("updown4C: FAIL timeout waiting for ds4 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s3=socket("localhost" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds4_port);kill_port(:kill_port_num ds4_import);
+    return(false));
+  print("updown4C: ds4 up on %d\n" ds4_port :err);
+
+  /* --- connect to all four --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  sock4=socket("localhost" ds4_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType || type(sock4)==`UnknownType :then
+    print("updown4C: FAIL could not connect to all four drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds4_port);
+    return(false));
+
+  /* --- build topology --- */
+  print("updown4C: wiring topology\n" :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock2 print("drawlink(\"localhost\" %d)" ds4_port :str));
+
+  /* --- create a graphic on ds1; PasteCmd propagates it --- */
+  remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("updown4C: created ellipse on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("updown4C: FAIL could not read grid id from ds1 (got %v) -- is grid(:table) built in?\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    remote(sock4 "exit" :nowait);close(sock4);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+    return(false));
+
+  /* --- verify propagation: the hub ds2 (graphic routes through it) and
+     both prongs ds3, ds4 --- */
+  ok=true;
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("updown4C: graphic on ds2 (hub): %v\n" on2 :err);
+  ok=ok && on2;
+  if(!on2 :then print("updown4C: FAIL graphic did not reach ds2\n" :err));
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  print("updown4C: graphic on ds3: %v\n" on3 :err);
+  ok=ok && on3;
+  if(!on3 :then print("updown4C: FAIL graphic did not reach ds3\n" :err));
+  on4=grid_has_id(:gh_sock sock4 :gh_id id1);
+  print("updown4C: graphic on ds4: %v\n" on4 :err);
+  ok=ok && on4;
+  if(!on4 :then print("updown4C: FAIL graphic did not reach ds4\n" :err));
+  if(ok :then print("updown4C: graphic propagated to all expected nodes\n" :err));
+
+  /* --- tear all four down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("updown4C: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("updown4C: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("updown4C: ds3 shut down\n" :err);
+  remote(sock4 "exit" :nowait);close(sock4);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+  print("updown4C: ds4 shut down\n" :err);
+  ok)
+
+
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -186,6 +1018,48 @@ if(tests_flag :then
         print("updown1: pass\n" :err)
       :else
         print("updown1: FAIL\n" :err);
+        ok=false));
+    if(t==`updown2 || t==`all :then
+      print("running updown2 test\n" :err);
+      if(updown2_test(:dummy 0) :then
+        print("updown2: pass\n" :err)
+      :else
+        print("updown2: FAIL\n" :err);
+        ok=false));
+    if(t==`updown3A || t==`all :then
+      print("running updown3A test\n" :err);
+      if(updown3A_test(:dummy 0) :then
+        print("updown3A: pass\n" :err)
+      :else
+        print("updown3A: FAIL\n" :err);
+        ok=false));
+    if(t==`updown3B || t==`all :then
+      print("running updown3B test\n" :err);
+      if(updown3B_test(:dummy 0) :then
+        print("updown3B: pass\n" :err)
+      :else
+        print("updown3B: FAIL\n" :err);
+        ok=false));
+    if(t==`updown4A || t==`all :then
+      print("running updown4A test\n" :err);
+      if(updown4A_test(:dummy 0) :then
+        print("updown4A: pass\n" :err)
+      :else
+        print("updown4A: FAIL\n" :err);
+        ok=false));
+    if(t==`updown4B || t==`all :then
+      print("running updown4B test\n" :err);
+      if(updown4B_test(:dummy 0) :then
+        print("updown4B: pass\n" :err)
+      :else
+        print("updown4B: FAIL\n" :err);
+        ok=false));
+    if(t==`updown4C || t==`all :then
+      print("running updown4C test\n" :err);
+      if(updown4C_test(:dummy 0) :then
+        print("updown4C: pass\n" :err)
+      :else
+        print("updown4C: FAIL\n" :err);
         ok=false))))
 
 exit(if(ok :then 0 :else 1))
