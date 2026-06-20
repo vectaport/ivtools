@@ -610,3 +610,35 @@ reliable way to isolate a parse error for assertion.
 `errmsg(:clear)` before the test ensures no prior error bleeds in.
 `errmsg(:last)` retrieves the most recent error without clearing it.
 `errmsg(:clear)` again after cleans up for the next test.
+
+### CLASS_SYMID and _symid
+
+If the new command class uses `CLASS_SYMID("MyCmd")` in its header,
+add the static initializer in the `.c` file alongside the other `_symid`
+definitions:
+
+```cpp
+int LinkColorCmd::_symid = -1;
+```
+
+Without this the linker produces an undefined symbol error.
+
+### localtable()->insert() requires ComValue*
+
+When storing a value in the interpreter's local symbol table, always
+heap-allocate the `ComValue`:
+
+```cpp
+// correct:
+ComValue* val = new ComValue(symid, (void*)ptr);
+localtable()->insert(symid, val);
+
+// wrong -- stack ComValue is destroyed, localtable holds dangling ptr:
+ComValue val(symid, (void*)ptr);
+localtable()->insert(symid, val);  // DO NOT DO THIS
+```
+## See Also
+
+- `src/DrawServ/HACKING.md`
+- `APPENDIX-A-DRAWING-EDITOR.md`
+- `INTRODUCTION.md` — project overview and history

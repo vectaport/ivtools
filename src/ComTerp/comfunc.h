@@ -99,7 +99,9 @@ public:
     ComTerpServ* comterpserv();
     // return ComTerpServ this ComFunc is associated with.
     void comterp( ComTerp* comterp) { _comterp = comterp; }
+    // set a new comterp (still works if you pass it a ComTerpServ
     void comterpserv( ComTerpServ* serv) { _comterp = (ComTerp*)serv; }
+    // set a new ComTerpServ
 
 
     ComValue pop_stack(); 

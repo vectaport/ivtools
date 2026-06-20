@@ -36,6 +36,7 @@
 #include <InterViews/_enter.h>
 
 class BrushCmd;
+class ColorCmd;
 class Command;
 class ControlInfo;
 class Deck;
@@ -209,6 +210,10 @@ public:
     // factory method for creating BrushCmd from menu path (ControlInfo form)
     virtual BrushCmd* make_brush_cmd(Editor*, PSBrush*);
     // factory method for creating BrushCmd from ComTerp path (Editor form)
+    virtual ColorCmd* make_color_cmd(ControlInfo*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
+    // factory method for creating ColorCmd; fgnum/bgnum are menu indices from colors() command
+    virtual ColorCmd* make_color_cmd(Editor*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
+    // factory method for creating ColorCmd; fgnum/bgnum are menu indices from colors() command
   
 protected:
     Glyph* MenuLine(PSBrush*);

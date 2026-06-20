@@ -162,7 +162,7 @@ public:
     BrushFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(brushnum) -- set current brush from menu order"; }
+	return "%s(brushnum|:none|linepat,width) -- set current brush from menu order, none brush, or by pattern/width"; }
 };
 
 //: command for setting pattern state variable in comdraw.
@@ -212,7 +212,7 @@ public:
     ColorFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(fgcolornum bgcolornum) -- set current colors from menu order"; }
+	return "%s(fgcolornum bgcolornum | fgcolorname bgcolorname) -- set current colors from menu order or by RGB name"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	"1  Black",

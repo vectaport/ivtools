@@ -917,6 +917,58 @@ iteration." Same mechanism (token-slice replay via the static postfix
 buffer -- see *Why the Pipeline Is So Clean: Fischer-LeBlanc and argoff*
 in APPENDIX-C), different trigger.
 
+### Writable (bidirectional) streams *(planned, ivtools-3.x)*
+
+The `[]` empty bracket form — currently reserved — is proposed as the
+syntax for an empty writable stream:
+
+```comterp
+s=[]          // empty writable stream (bidirectional channel)
+push(s 10)    // write a value
+push(s 20)
+push(s 30)
+next(s)       // 10
+next(s)       // 20
+```
+
+`push(strm val)` / `next(strm)` form a producer/consumer pair
+analogous to `print` / `eval` on the wire protocol.  The stream
+accumulates values until `close(strm)` seals it, after which
+subsequent `next()` returns nil.
+
+#### next(:nowait) — non-exhausting peek
+
+A plain `next()` on an empty-but-not-closed writable stream returns nil
+and marks the stream exhausted immediately -- no blocking anywhere.
+`next(:nowait)` is the "peek without exhausting" primitive using a
+three-way distinction:
+
+- value ready → returns the value
+- empty (not yet closed) → returns `blank`
+- closed and exhausted → returns `nil`
+
+This preserves `nil` as the exclusive exhaustion sentinel and avoids the
+race between "stream is done" and "value hasn't arrived yet."  The
+consumer pattern in reactor mode:
+
+```comterp
+while(1
+  v=next(strm :nowait);
+  if(v==nil :then break());
+  if(type(v)!=`BlankType :then process(v));
+  update())     // yield to ACE reactor
+```
+
+`update()` yields to the ACE event loop between polls, so `push()` from
+a callback or remote connection can arrive without blocking the REPL.
+This is the same pattern used by `remote(:nowait)` and the `drawmo`
+orchestrator.
+
+Bidirectional streams work naturally in `comterp listen` / ACE reactor
+mode.  In the plain REPL, `:nowait` with `update()` polling is the
+correct approach (same as `remote(:nowait)` already works).
+
+
 ### Design Provenance and Prior Art
 
 The automatic scalar overdrive mechanism — where any scalar operator
@@ -1605,3 +1657,11 @@ in the public use of comterp will make any conflicts between comterp and
 flowtran resolvable.
 
 
+## See Also
+
+- `INTRODUCTION.md` — project overview and history
+- `APPENDIX-B-COMTERP-EXAMPLES.md` -- how to learn comterp command language
+
+- `src/comterp_/tests/TESTING.md` -- comterp self regression tests
+- `src/ComTerp/ARCHITECTURE.md` -- ComTerp C++ design
+- `src/ComTerp/HACKING.md` -- comterp programming

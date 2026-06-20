@@ -262,3 +262,12 @@ The REPL is fast, `help()` is always available, and `postfix()` will
 show you exactly what the parser made of your expression.
 
 Welcome.
+
+
+## See Also
+
+- `APPENDIX-A-DRAWING-EDITOR.md` -- history of drawing editor embedded in ivtools
+- `APPENDIX-B-COMTERP-EXAMPLES.md` -- how to learn comterp command language
+- `APPENDIX-C-IVTOOLS-PROGRAMMING.md` -- how to extend both commands and drawing editors
+
+- `src/comterp_/LANGUAGE.md` -- the comterp language

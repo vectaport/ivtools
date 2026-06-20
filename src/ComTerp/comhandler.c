@@ -175,7 +175,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     }
     inv.push_back('\0');
       
-    boolean input_good = status != -1;
+    boolean input_good = status > 0;
 
     char* inbuf = &inv[0];
     if (!comterp_ || !input_good)

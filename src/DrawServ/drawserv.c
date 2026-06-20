@@ -329,6 +329,14 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	cmd->Execute();
 	break;
       }
+
+      case LINK_COLOR_CMD:
+      {
+	const char* script = ((LinkColorCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	cmd->Execute();
+	break;
+      }
       
       default:
 	cmd->Execute();

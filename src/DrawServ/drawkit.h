@@ -53,6 +53,10 @@ public:
     // override to create LinkBrushCmd for distributed brush changes
     virtual BrushCmd* make_brush_cmd(Editor*, PSBrush*);
     // override to create LinkBrushCmd for distributed brush changes
+    virtual ColorCmd* make_color_cmd(ControlInfo*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
+    // override to create LinkColorCmd for distributed color changes
+    virtual ColorCmd* make_color_cmd(Editor*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
+    // override to create LinkColorCmd for distributed color changes
 
     static DrawKit* Instance();
 

@@ -457,7 +457,7 @@ void UpdateFunc::execute() {
     reset_stack();
 #ifdef HAVE_ACE
     if (usec > 0) {
-        ACE_Time_Value timeout(0, usec);
+        ACE_Time_Value timeout(usec/1000000, usec%1000000);
         ComterpHandler::reactor_singleton()->handle_events(timeout);
     } else {
         ACE_Time_Value timeout(ACE_Time_Value::zero);

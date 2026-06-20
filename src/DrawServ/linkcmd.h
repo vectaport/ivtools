@@ -29,6 +29,7 @@
 #define linkcmd_h
 
 #include <Unidraw/Commands/brushcmd.h>
+#include <Unidraw/Commands/colorcmd.h>
 #include <string>
 
 //: mixin for Commands that generate distributed scripts in DrawServ
@@ -58,6 +59,30 @@ public:
 
 protected:
     std::string _dist_script_buf;
+};
+
+//: ColorCmd with distributed script generation for DrawServ
+// Mixes ColorCmd with DrawServCmd to provide dist_script() that
+// serializes the color change for distribution to remote drawservs.
+// fgnum/bgnum are the menu indices from colors() -- carried through
+// from ColorFunc::execute() so dist_script() can emit colors(fgn bgn)
+// matching the local command exactly, same pattern as LinkBrushCmd.
+class LinkColorCmd : public ColorCmd, public DrawServCmd {
+public:
+    LinkColorCmd(ControlInfo*, PSColor* fg, PSColor* bg, int fgnum, int bgnum);
+    LinkColorCmd(Editor* = nil, PSColor* fg = nil, PSColor* bg = nil, int fgnum = 0, int bgnum = 0);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),...:unlock key);colors(fgnum bgnum);select(s :lock key)"
+    // for all LocallySelected graphics, or empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+    int _fgnum, _bgnum;
 };
 
 #endif

@@ -331,7 +331,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::StreamType:
 	  // out << "<stream:" << (svp->stream_mode()<0?"int":"ext") << "(" << symbol_pntr(((ComFunc*)svp->stream_func())->funcid()) << ")" << ">";
-	  out << "StreamType";
+	  out << "[]";
 	  break;
 	    
 	case ComValue::CommandType:
