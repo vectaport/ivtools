@@ -34,17 +34,17 @@ public:
     DrawLinkFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([hoststr [portnum]|link] :port [portnum] :state num :linkid uuid :close :socket :timer [sec=5]) -- connect to remote drawserv"; }
+	return "%s([hoststr [portnum]|link] :port [portnum] :state num :linkid uuid :close :socket :timer [sec=5] :table) -- connect to remote drawserv"; }
 };
 
 //: command to reserve unique session id
-// sid([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] |  :all) -- command to manage session id's
+// sid([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] :table | :all | :table) -- command to manage session id's
 class SessionIdFunc : public UnidrawFunc {
 public:
     SessionIdFunc(ComTerp*,DrawEditor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] | :all) -- command to manage session id's"; }
+	return "%s([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] :table | :all | :table) -- command to manage session id's"; }
 };
 
 #ifdef HAVE_ACE
@@ -55,7 +55,7 @@ public:
     GraphicIdFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections"; }
+	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
 };
 #endif /* defined(HAVE_ACE) */
 
