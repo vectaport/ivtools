@@ -106,6 +106,40 @@ boolean LinkBrushCmd::IsA(ClassId id) { return id == LINK_BRUSH_CMD || BrushCmd:
 
 /*****************************************************************************/
 
+/* format a PSColor as "#RRGGBB".  Prefer the color's own name when it is
+   already a clean "#" + 6 hex-digit string (the colors("#RRGGBB") path) so
+   it round-trips exactly; otherwise derive from intensities (0..1 floats),
+   which is the reliable ground truth for the menu path where the name is a
+   palette label like "Black".  Intensity derivation can lose a least-
+   significant bit through the 8->16->8 bit X11 color path, so the name is
+   preferred when it is itself an exact hex spec. */
+static boolean is_hex6(const char* s) {
+    if (!s || s[0] != '#') return false;
+    int i;
+    for (i = 1; i <= 6; i++) {
+        char c = s[i];
+        if (!((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f') ||
+              (c >= 'A' && c <= 'F')))
+            return false;
+    }
+    return s[7] == '\0';
+}
+
+static void color_to_hex(PSColor* c, char* out /* >= 8 bytes */) {
+    if (!c || c->None()) { strcpy(out, "None"); return; }
+    const char* name = c->GetName();
+    if (is_hex6(name)) { strcpy(out, name); return; }
+    ColorIntensity r, g, b;
+    c->GetIntensities(r, g, b);
+    int ri = (int)(r * 255.0 + 0.5);
+    int gi = (int)(g * 255.0 + 0.5);
+    int bi = (int)(b * 255.0 + 0.5);
+    if (ri < 0) ri = 0; if (ri > 255) ri = 255;
+    if (gi < 0) gi = 0; if (gi > 255) gi = 255;
+    if (bi < 0) bi = 0; if (bi > 255) bi = 255;
+    snprintf(out, 8, "#%02x%02x%02x", ri, gi, bi);
+}
+
 LinkColorCmd::LinkColorCmd(ControlInfo* ci, PSColor* fg, PSColor* bg, int fgnum, int bgnum)
     : ColorCmd(ci, fg, bg), _fgnum(fgnum), _bgnum(bgnum) {}
 LinkColorCmd::LinkColorCmd(Editor* ed, PSColor* fg, PSColor* bg, int fgnum, int bgnum)
@@ -149,7 +183,13 @@ const char* LinkColorCmd::dist_script() {
         char keystr[9];
         snprintf(keystr, sizeof(keystr), "%08X", drawserv->sessionidkey());
         sbuf << " :unlock \"" << keystr << "\")";
-        sbuf << ";colors(" << _fgnum << " " << _bgnum << ")";
+        /* serialize by RGB intensities so both the menu path and the
+           colors("#RRGGBB") path distribute identically, exactly, and
+           palette-independently */
+        char fghex[8], bghex[8];
+        color_to_hex(GetFgColor(), fghex);
+        color_to_hex(GetBgColor(), bghex);
+        sbuf << ";colors(\"" << fghex << "\" \"" << bghex << "\")";
         sbuf << ";select(s :lock \"" << keystr << "\")";
         _dist_script_buf = sbuf.str();
     }

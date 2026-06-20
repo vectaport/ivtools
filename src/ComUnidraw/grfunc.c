@@ -902,7 +902,11 @@ void ColorRgbFunc::execute() {
   if (bgname && strcmp(bgname,"sym")!=0){
     bgcolor = catalog->FindColor(bgname);
   }
-  ColorCmd* cmd = new ColorCmd(_ed, fgcolor, bgcolor);
+  /* route through the kit factory so DrawKit produces a LinkColorCmd for
+     distribution; LinkColorCmd::dist_script() serializes by RGB intensities
+     so the colors("#RRGGBB") form distributes correctly */
+  OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+  ColorCmd* cmd = kit->make_color_cmd(_ed, fgcolor, bgcolor, 0, 0);
   execute_log(cmd);
 }
 /*****************************************************************************/
