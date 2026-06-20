@@ -1110,6 +1110,14 @@ BrushCmd* OverlayKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new BrushCmd(ed, br);
 }
 
+ColorCmd* OverlayKit::make_color_cmd(ControlInfo* ctrlInfo, PSColor* fg, PSColor* bg, int fgnum, int bgnum) {
+    return new ColorCmd(ctrlInfo, fg, bg);
+}
+
+ColorCmd* OverlayKit::make_color_cmd(Editor* ed, PSColor* fg, PSColor* bg, int fgnum, int bgnum) {
+    return new ColorCmd(ed, fg, bg);
+}
+
 MenuItem* OverlayKit::MakeBrushMenu() {
     LayoutKit& lk = *LayoutKit::instance();
     WidgetKit& kit = *WidgetKit::instance();
@@ -1205,8 +1213,8 @@ MenuItem* OverlayKit::MakeFgColorMenu() {
 	
 	SF_Rect* sfr = new SF_Rect(0, 0, w, h, stdgraphic);
 	sfr->SetColors(color, color);
-	MakeMenu(mbi, new ColorCmd(new ControlInfo(new RectOvComp(sfr), color->GetName()),
-			   color, nil),
+	MakeMenu(mbi, make_color_cmd(new ControlInfo(new RectOvComp(sfr), color->GetName()),
+				   color, nil, i, 0),
 		 lk.hbox(MenuRect(color),
 			 kit.label("  "),
 			 kit.label(color->GetName()),
@@ -1241,7 +1249,7 @@ MenuItem* OverlayKit::MakeBgColorMenu() {
 	  sfr->SetColors(color, color);
 	  ctrlInfo = new ControlInfo(new RectOvComp(sfr), color->GetName());
 	}
-	MakeMenu(mbi, new ColorCmd( ctrlInfo, nil, color),
+	MakeMenu(mbi, make_color_cmd( ctrlInfo, nil, color, 0, i),
 		 lk.hbox(MenuRect(color),
 			 kit.label("  "),
 			 kit.label(color->GetName()),

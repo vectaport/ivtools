@@ -88,7 +88,7 @@ updown_test=func(
     
   print("updown: drawserv callback received after %d polls\n" cnt :err);
   sock=socket("localhost" ds_port);
-  if(type(sock)==`BlankType :then
+  if(type(sock)==`UnknownType :then
     print("updown: FAIL could not connect to drawserv on port %d\n" ds_port :err);
     kill_port(:kill_port_num ds_port);
     kill_port(:kill_port_num ds_import);
@@ -104,17 +104,19 @@ updown_test=func(
   print("updown: drawserv up and responding\n" :err);
   remote(sock "exit" :nowait);
   close(sock);
+  while(shell(print(port_probe ds_port :str))==0
+    update(200000));
   print("updown: drawserv shut down\n" :err);
   true)
 
 /* updown1 test -- launch a drawserv, verify empty drawlink table, shut down */
 updown1_test=func(
 
-  ds_port=find_open_port(:base_port 20002);
+  ds_port=find_open_port(:base_port 21002);
   ds_import=ds_port-1;
-  global(drawserv_up)=false;
+  global(drawserv_up1)=false;
   print("updown1: launching drawserv on port %d\n" ds_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up)=true\\\")\" &" ds_port ds_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up1)=true\\\")\" &" ds_port ds_import callback_port :str);
   print("updown1: cmdstr=[%s]\n" cmdstr :err);
   shell(cmdstr);
   print("updown1: waiting for drawserv callback on port %d\n" callback_port :err);
@@ -124,10 +126,10 @@ updown1_test=func(
   timeout=timeout_secs*1000000/poll_usec;
   progress_interval=10*1000000/poll_usec;
   cnt=0;
-  while(!global(drawserv_up) && cnt<timeout
+  while(!global(drawserv_up1) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown1: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
 
-  if(!global(drawserv_up) :then
+  if(!global(drawserv_up1) :then
     print("updown1: FAIL timeout waiting for drawserv callback\n" :err);
     kill_port(:kill_port_num ds_port);
     kill_port(:kill_port_num ds_import);
@@ -135,7 +137,7 @@ updown1_test=func(
 
   print("updown1: drawserv callback received after %d polls\n" cnt :err);
   sock=socket("localhost" ds_port);
-  if(type(sock)==`BlankType :then
+  if(type(sock)==`UnknownType :then
     print("updown1: FAIL could not connect to drawserv on port %d\n" ds_port :err);
     kill_port(:kill_port_num ds_port);
     kill_port(:kill_port_num ds_import);
@@ -155,6 +157,8 @@ updown1_test=func(
 
   remote(sock "exit" :nowait);
   close(sock);
+  while(shell(print(port_probe ds_port :str))==0
+    update(200000));
   print("updown1: drawserv shut down\n" :err);
   ok)
 

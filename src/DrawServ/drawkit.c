@@ -613,3 +613,11 @@ BrushCmd* DrawKit::make_brush_cmd(ControlInfo* ctrlInfo, PSBrush* br) {
 BrushCmd* DrawKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new LinkBrushCmd(ed, br);
 }
+
+ColorCmd* DrawKit::make_color_cmd(ControlInfo* ctrlInfo, PSColor* fg, PSColor* bg, int fgnum, int bgnum) {
+    return new LinkColorCmd(ctrlInfo, fg, bg, fgnum, bgnum);
+}
+
+ColorCmd* DrawKit::make_color_cmd(Editor* ed, PSColor* fg, PSColor* bg, int fgnum, int bgnum) {
+    return new LinkColorCmd(ed, fg, bg, fgnum, bgnum);
+}

@@ -1015,23 +1015,38 @@ void PatternMaskFunc::execute() {
 
 /*****************************************************************************/
 
+static ColorRgbFunc* _color_rgb_func = NULL;
+
 ColorFunc::ColorFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void ColorFunc::execute() {
-    ComValue& fgv = stack_arg(0);
-    ComValue& bgv = stack_arg(1);
-    int fgn = fgv.int_val();
-    int bgn = bgv.int_val();
-    reset_stack();
+    ComValue& fgv = stack_arg(0, true);
+    if (fgv.is_string()) {
+        if (_color_rgb_func == NULL) {
+            _color_rgb_func = new ColorRgbFunc(comterp(), editor());
+        } else {
+            _color_rgb_func->comterp(comterp());
+            _color_rgb_func->editor(editor());
+        }
+        _color_rgb_func->execute();
+        return;
+    }
 
+    ComValue fgnum(stack_arg(0));
+    ComValue bgnum(stack_arg(1));
+    int fgn = fgnum.int_val();
+    int bgn = bgnum.int_val();
+    reset_stack();
 
     Catalog* catalog = unidraw->GetCatalog();
     PSColor* fgcolor = catalog->ReadColor("fgcolor", fgn);
     PSColor* bgcolor = catalog->ReadColor("bgcolor", bgn);
 
-    ColorCmd* cmd = new ColorCmd(_ed, fgcolor, bgcolor);
-
+    /* pass fgn/bgn through to make_color_cmd so LinkColorCmd can emit
+       colors(fgn bgn) on the wire -- same pattern as brush(pat,width) */
+    OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+    ColorCmd* cmd = kit->make_color_cmd(_ed, fgcolor, bgcolor, fgn, bgn);
     execute_log(cmd);
 }
 

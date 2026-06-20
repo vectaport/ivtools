@@ -121,3 +121,15 @@ via `remote()`.
 
 The same wire protocol that the test suite uses is the same protocol
 that human users interact with. There is no separate testing API.
+
+## See Also
+
+- `INTRODUCTION.md` — project overview and history
+- `APPENDIX-B-COMTERP-EXAMPLES.md` -- how to learn comterp command language
+- `APPENDIX-C-IVTOOLS-PROGRAMMING.md` -- how to extend both commands and drawing editors
+
+- `src/comterp_/LANGUAGE.md` -- the comterp language
+- `src/comterp_/tests/TESTING.md` -- comterp self regression tests
+- `src/drawserv_/tests/TESTING.md` -- drawmo testing utility for drawserv
+- `src/DrawServ/HACKING.md` -- drawserv programming
+

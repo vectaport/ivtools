@@ -44,6 +44,7 @@ public:
 
     Editor* GetEditor() { return editor(); }
     Editor* editor() { return _ed; }
+    void editor(Editor* ed) { _ed=ed; }
 protected:
     void menulength_execute(const char* kind);
     Editor* _ed;

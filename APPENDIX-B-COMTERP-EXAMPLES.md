@@ -437,3 +437,14 @@ result     // {"fanout(0 1)","fanout(0 2)","fanout(0 3)","fanout(0 4)"}
 The stream literal is the wiring diagram. `next()` is the act of
 reading it. No visible loop counter, no index arithmetic, no
 fence-post errors. The data flow is the program.
+
+## See Also
+
+- `INTRODUCTION.md` — project overview and history
+- `APPENDIX-A-DRAWING-EDITOR.md` -- history of drawing editor embedded in ivtools
+- `APPENDIX-C-IVTOOLS-PROGRAMMING.md` -- how to extend both commands and drawing editors
+
+- `src/comterp_/LANGUAGE.md` -- the comterp language
+- `src/comterp_/tests/TESTING.md` -- comterp self regression tests
+- `src/ComTerp/ARCHITECTURE.md` -- ComTerp C++ design
+- `src/ComTerp/HACKING.md` -- comterp programming

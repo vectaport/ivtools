@@ -433,5 +433,3 @@ equivalent sources of computation.
 
 Both command histories and snapshot documents are first-class,
 executable ComTerp representations of drawing state.
-
-

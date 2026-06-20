@@ -103,3 +103,69 @@ Command* LinkBrushCmd::Copy() {
 
 ClassId LinkBrushCmd::GetClassId() { return LINK_BRUSH_CMD; }
 boolean LinkBrushCmd::IsA(ClassId id) { return id == LINK_BRUSH_CMD || BrushCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkColorCmd::LinkColorCmd(ControlInfo* ci, PSColor* fg, PSColor* bg, int fgnum, int bgnum)
+    : ColorCmd(ci, fg, bg), _fgnum(fgnum), _bgnum(bgnum) {}
+LinkColorCmd::LinkColorCmd(Editor* ed, PSColor* fg, PSColor* bg, int fgnum, int bgnum)
+    : ColorCmd(ed, fg, bg), _fgnum(fgnum), _bgnum(bgnum) {}
+
+const char* LinkColorCmd::dist_script() {
+    _dist_script_buf = "";
+
+    Editor* ed = GetEditor();
+    if (!ed) return _dist_script_buf.c_str();
+
+    LinkSelection* sel = (LinkSelection*)ed->GetSelection();
+    if (!sel) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf;
+    boolean any = false;
+    Iterator it;
+
+    for (sel->First(it); !sel->Done(it); sel->Next(it)) {
+        OverlayView* view = (OverlayView*)sel->GetView(it);
+        OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+        void* ptr = nil;
+        if (comp) drawserv->compidtable()->find(ptr, comp);
+        GraphicId* grid = (GraphicId*)ptr;
+        if (grid && grid->selected() == LinkSelection::LocallySelected) {
+            if (!any) {
+                sbuf << "s=select();select(grid(";
+                any = true;
+            } else {
+                sbuf << ",grid(";
+            }
+            sbuf << "\"" << grid->idstr() << "\")";
+        }
+    }
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", drawserv->sessionidkey());
+        sbuf << " :unlock \"" << keystr << "\")";
+        sbuf << ";colors(" << _fgnum << " " << _bgnum << ")";
+        sbuf << ";select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkColorCmd::Copy() {
+    LinkColorCmd* copy = new LinkColorCmd(CopyControlInfo(),
+                                          GetFgColor(), GetBgColor(),
+                                          _fgnum, _bgnum);
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkColorCmd::GetClassId() { return LINK_COLOR_CMD; }
+boolean LinkColorCmd::IsA(ClassId id) {
+    return id == LINK_COLOR_CMD || ColorCmd::IsA(id);
+}

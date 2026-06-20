@@ -529,8 +529,11 @@ git apply patch.patch
 
 ## See Also
 
-- `src/comterp/LANGUAGE.md` — ComTerp user-level language reference
-- `src/ComTerp/ARCHITECTURE.md` — delimiter semantics, Flowmove architecture
-- `src/ComTerp/HACKING.md` — commit conventions, patch workflow, test patterns
 - `INTRODUCTION.md` — project overview and history
+- `APPENDIX-A-DRAWING-EDITOR.md` -- history of drawing editor embedded in ivtools
+- `APPENDIX-B-COMTERP-EXAMPLES.md` -- how to learn comterp command language
+
+- `src/ComUtil/ARCHITECTURE.md` -- scanner/parser and utilities
+- `src/ComTerp/ARCHITECTURE.md` -- ComTerp C++ design
+- `src/ComTerp/HACKING.md` -- comterp programming
 
