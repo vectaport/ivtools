@@ -104,7 +104,11 @@ updown_test=func(
   print("updown: drawserv up and responding\n" :err);
   remote(sock "exit" :nowait);
   close(sock);
-  while(shell(print(port_probe ds_port :str))==0
+  /* wait for the drawserv PROCESS to be gone, matched by its unique
+     -comdraw port on the command line.  the comdraw socket closes early,
+     before the process releases X11; pgrep watches the actual process so
+     the next test can't launch into a still-held X11. */
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
     update(200000));
   print("updown: drawserv shut down\n" :err);
   true)
@@ -157,7 +161,8 @@ updown1_test=func(
 
   remote(sock "exit" :nowait);
   close(sock);
-  while(shell(print(port_probe ds_port :str))==0
+  /* wait for the drawserv PROCESS to be gone (see updown_test) */
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
     update(200000));
   print("updown1: drawserv shut down\n" :err);
   ok)
