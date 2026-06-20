@@ -239,9 +239,8 @@ updown2_test=func(
   print("updown2: linking ds1(%d) -> ds2(%d)\n" ds1_port ds2_port :err);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
 
-  /* the link handshake is two-way and asynchronous; give both ends a moment
-     to settle before querying their tables */
-  update(2000000);
+  /* drawlink blocks until the two-way handshake completes (its own spin-loop),
+     so the link is established by the time the command returns -- no settle. */
 
   /* --- verify the link is visible on both ends: one link == one row --- */
   table1=remote(sock1 "drawlink(:table)");
@@ -365,12 +364,18 @@ updown3A_test=func(
   /* --- build the chain: ds1->ds2 (on ds1), then ds2->ds3 (on ds2) --- */
   print("updown3A: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  update(2000000);
   remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  update(2000000);
 
   /* --- create a graphic on ds1; PasteCmd propagates it along the chain --- */
   remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown3A: created ellipse on ds1, grid id=%v\n" id1 :err);
@@ -479,12 +484,18 @@ updown3B_test=func(
   /* --- build the tree: both links from ds1 (hub) --- */
   print("updown3B: tree ds1(%d) -> ds2(%d), ds3(%d)\n" ds1_port ds2_port ds3_port :err);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  update(2000000);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  update(2000000);
 
   /* --- create a graphic on ds1; PasteCmd fans it out to both branches --- */
   remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown3B: created ellipse on ds1, grid id=%v\n" id1 :err);
@@ -615,14 +626,19 @@ updown4A_test=func(
   /* --- build topology --- */
   print("updown4A: wiring topology\n" :err);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  update(2000000);
   remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  update(2000000);
   remote(sock3 print("drawlink(\"localhost\" %d)" ds4_port :str));
-  update(2000000);
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4A: created ellipse on ds1, grid id=%v\n" id1 :err);
@@ -766,14 +782,19 @@ updown4B_test=func(
   /* --- build topology --- */
   print("updown4B: wiring topology\n" :err);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  update(2000000);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  update(2000000);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds4_port :str));
-  update(2000000);
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4B: created ellipse on ds1, grid id=%v\n" id1 :err);
@@ -917,14 +938,19 @@ updown4C_test=func(
   /* --- build topology --- */
   print("updown4C: wiring topology\n" :err);
   remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  update(2000000);
   remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  update(2000000);
   remote(sock2 print("drawlink(\"localhost\" %d)" ds4_port :str));
-  update(2000000);
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
+  /* one reasoned settle: command distribution is fire-and-forget
+     (DrawServ::DistributeCmdString writes to the peer socket and returns,
+     with an async ack timer; it does not wait for the remote to apply).
+     give propagation a head start before polling the far nodes below.
+     this goes away once the per-drawserv history-count barrier is
+     installed (see history-count issue) -- then we poll the count
+     instead of sleeping. drawlink settles were removed: drawlink
+     already blocks until two_way via its own spin-loop. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4C: created ellipse on ds1, grid id=%v\n" id1 :err);
@@ -940,8 +966,13 @@ updown4C_test=func(
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
     return(false));
 
-  /* --- verify propagation to leaf nodes --- */
+  /* --- verify propagation: the hub ds2 (graphic routes through it) and
+     both prongs ds3, ds4 --- */
   ok=true;
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  print("updown4C: graphic on ds2 (hub): %v\n" on2 :err);
+  ok=ok && on2;
+  if(!on2 :then print("updown4C: FAIL graphic did not reach ds2\n" :err));
   on3=grid_has_id(:gh_sock sock3 :gh_id id1);
   print("updown4C: graphic on ds3: %v\n" on3 :err);
   ok=ok && on3;
