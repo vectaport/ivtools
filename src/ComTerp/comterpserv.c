@@ -271,6 +271,13 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
   /* save enough state as needed by this interpreter */
     push_servstate();
+    /* mark the interpreter as running for the duration -- mirrors the base
+       ComTerp::runfile bracket, which this override otherwise drops.  Without
+       it ComterpHandler::destroy() sees running()==false and frees this live
+       comterp_ if a reactor event (e.g. stdin EOF) fires inside a nested
+       handle_events() during the file's execution -- a use-after-free. */
+    int old_runflag = running();
+    running(true);
     _inptr = this;
     _infunc = (infuncptr)&ComTerpServ::s_fgets;
     _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -283,6 +290,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     if (!ifptr) {
       fprintf(stderr, "Unable to open file %s to run\n", filename);
       pop_servstate();
+      running(old_runflag);
       return -1;
     }
     /* line buffer grows on demand (doubling) for long lines; back out the old
@@ -429,6 +437,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
     delete [] inbuf;
     pop_servstate();
+    running(old_runflag);
 
     return status;
 }
