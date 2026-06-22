@@ -456,62 +456,13 @@ void ExportFunc::execute() {
         return;
     }
 
-#ifdef HAVE_ACE
-    ACE_SOCK_Stream* socket = nil;
-#endif
-
-
-
-    filebuf* pfbuf;
-    FILE* ofptr = nil;
-
-    if (file.is_type(ComValue::StringType)) {
-      pfbuf = new filebuf();
-      pfbuf->open(file.string_ptr(), input);
-    }
-
-    else if (sock.is_true()) {
-#ifdef HAVE_ACE
-	ComTerpServ* terp = (ComTerpServ*)comterp();
-	ComterpHandler* handler = (ComterpHandler*)terp->handler();
-	if (handler) {
-	  ACE_SOCK_Stream peer = handler->peer();
-	  ofptr = fdopen(peer.get_handle(), "r");
-	  FILEBUFP(pfbuf, ofptr, output);
-	}
-	else 
-#endif
-	  FILEBUFP(pfbuf, stdout, output);
-    }
-
-    else {
-#ifdef HAVE_ACE
-        const char* hoststr = nil;
-        const char* portstr = nil;
-        hoststr = host.type()==ComValue::StringType ? host.string_ptr() : nil;
-        portstr = port.type()==ComValue::StringType ? port.string_ptr() : nil;
-        u_short portnum = portstr ? atoi(portstr) : port.ushort_val();
-    
-        if (portnum) {
-            socket = new ACE_SOCK_Stream;
-            ACE_SOCK_Connector conn;
-            ACE_INET_Addr addr (portnum, hoststr);
-    
-            if (conn.connect (*socket, addr) == -1)
-                ACE_ERROR ((LM_ERROR, "%p\n", "open"));
-            FILEBUFP(pfbuf, ofptr = fdopen(socket->get_handle(), "r"), output);
-        } else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
-	  FILEBUFP(pfbuf, comterp()->handler()->rdfptr(), output);
-        } else
-#endif
-	  FILEBUFP(pfbuf, stdout, output);
-    }
-
-    ostream* out;
-    if (string.is_true()||str.is_true())
-      out = new std::strstream();
-    else
-      out = new ostream(pfbuf);
+    /* Accumulate the export into an in-memory strstream, then emit it below --
+       never wrap a live output fd in a FILEBUF, whose destructor closes that fd
+       (closing the handler socket / stdout and damaging the comterp connection
+       the command arrived on, seen as a nil result and a corrupted command
+       stream).  Same idiom as PostFixFunc::execute. */
+    boolean string_mode = string.is_true() || str.is_true();
+    ostream* out = new std::strstream();
 
     if (!compviewv.is_array()) {
 
@@ -566,22 +517,66 @@ void ExportFunc::execute() {
 
     }
     
-    if (string.is_true()||str.is_true()) {
-      *out << '\0'; out->flush();
-      ComValue retval(((std::strstream*)out)->str());
-      push_stack(retval);
-    }
-    delete out;
+    *out << '\0'; out->flush();
+    const char* result = ((std::strstream*)out)->str();
 
-    delete pfbuf;
-    
+    if (string_mode) {
+      ComValue retval(result);
+      push_stack(retval);
+    } else {
+      /* resolve the destination FILE* and write with fputs/fflush.  close only
+	 fds we open here -- a named file, or a host/port socket we connect --
+	 never stdout or a live handler/peer fd. */
+      FILE* fp = nil;
+      boolean close_fp = false;
 #ifdef HAVE_ACE
-    if (sock.is_false() && socket) {
-      if (socket->close () == -1)
-	ACE_ERROR ((LM_ERROR, "%p\n", "close"));
-      delete(socket);
-    }
+      ACE_SOCK_Stream* socket = nil;
 #endif
+      if (file.is_type(ComValue::StringType)) {
+	fp = fopen(file.string_ptr(), "w");
+	close_fp = (fp != nil);
+      }
+      else if (sock.is_true()) {
+#ifdef HAVE_ACE
+	ComTerpServ* terp = (ComTerpServ*)comterp();
+	ComterpHandler* handler = (ComterpHandler*)terp->handler();
+	if (handler)
+	  fp = fdopen(handler->peer().get_handle(), "w");   /* live peer: do not close */
+	else
+#endif
+	  fp = stdout;
+      }
+      else {
+#ifdef HAVE_ACE
+	const char* hoststr = host.type()==ComValue::StringType ? host.string_ptr() : nil;
+	const char* portstr = port.type()==ComValue::StringType ? port.string_ptr() : nil;
+	u_short portnum = portstr ? atoi(portstr) : port.ushort_val();
+	if (portnum) {
+	  socket = new ACE_SOCK_Stream;
+	  ACE_SOCK_Connector conn;
+	  ACE_INET_Addr addr (portnum, hoststr);
+	  if (conn.connect (*socket, addr) == -1)
+	    ACE_ERROR ((LM_ERROR, "%p\n", "open"));
+	  fp = fdopen(socket->get_handle(), "w");
+	} else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
+	  fp = comterp()->handler()->wrfptr();              /* live handler: do not close */
+	} else
+#endif
+	  fp = stdout;
+      }
+
+      if (fp) { fputs(result, fp); fflush(fp); }
+      if (close_fp) fclose(fp);
+#ifdef HAVE_ACE
+      if (socket) {
+	if (socket->close () == -1)
+	  ACE_ERROR ((LM_ERROR, "%p\n", "close"));
+	delete socket;
+      }
+#endif
+    }
+
+    delete out;
 }
 
 void ExportFunc::compout(OverlayComp* comp, ostream* out) {
