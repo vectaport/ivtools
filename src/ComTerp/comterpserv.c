@@ -123,22 +123,23 @@ ComTerpServ::~ComTerpServ() {
 void ComTerpServ::load_string(const char* expr) {
     _inpos = 0;
 
-    /* copy string into buffer, ensuring it ends with a newline */
-    int count=0;
-    char* inptr = _instr;
-    char* exptr = (char*) expr;
-    char ch;
-    do {
-        ch = *exptr++;
-	*inptr++ = ch;
-    } while (ch && count++<_linesize-2);
-    if (!ch && count>0 && *(inptr-2) != '\n') {
-	    *(inptr-1) = '\n';
-	    *(inptr) = '\0';
-    } else if (count==_linesize-2) {
-            *(inptr) = '\n';
-	    *(inptr+1) = '\0';
+    /* grow _instr/_outstr (doubling) so the string plus a trailing newline and
+       null always fit.  the buffers are sized to _linesize, so keep _linesize in
+       step with them -- this is the invariant ComTerpServ::runfile used to break
+       by bumping _linesize without resizing the buffers, which masked an _instr
+       overflow until the line buffers were shrunk from BUFSIZ*BUFSIZ. */
+    int len = strlen(expr);
+    if (len+2 > _linesize) {
+	while (_linesize < len+2) _linesize *= 2;
+	delete [] _instr;  _instr  = new char[_linesize];
+	delete [] _outstr; _outstr = new char[_linesize];
     }
+
+    /* copy string into buffer, ensuring it ends with a newline */
+    memcpy(_instr, expr, len);
+    if (len==0 || _instr[len-1] != '\n')
+	_instr[len++] = '\n';
+    _instr[len] = '\0';
 }
 
 char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
@@ -277,10 +278,6 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     _outfunc = nil;
     _linenum = 0;
 
-    _linesize = BUFSIZ*BUFSIZ;
-    char inbuf[_linesize];
-    char outbuf[_linesize];
-    inbuf[0] = '\0';
     FILE* ifptr = NULL;
     ifptr = popen_flag ? popen(filename, "r") : fopen(filename, "r");
     if (!ifptr) {
@@ -288,6 +285,11 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
       pop_servstate();
       return -1;
     }
+    /* line buffer grows on demand (doubling) for long lines; back out the old
+       BUFSIZ*BUFSIZ square that masked the _instr overflow (see load_string). */
+    int inbufsiz = _linesize;
+    char* inbuf = new char[inbufsiz];
+    inbuf[0] = '\0';
     ComValue* retval = nil;
     int status = 0;
    
@@ -302,8 +304,21 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 #if defined(TIMING_TEST)
         static struct timeval tvBefore, tvAfter, tvParse, tvConvert, tvDiff;
 #endif
+        /* read a complete line, doubling inbuf for long lines so a single long
+           expression isn't split at the buffer boundary */
         *inbuf='\0';
-        fgets(inbuf, _linesize-1, ifptr);
+        int rlen=0;
+        for (;;) {
+            if (rlen >= inbufsiz-1) {
+                inbufsiz *= 2;
+                char* nb = new char[inbufsiz];
+                memcpy(nb, inbuf, rlen+1);
+                delete [] inbuf; inbuf = nb;
+            }
+            if (!fgets(inbuf+rlen, inbufsiz-rlen, ifptr)) break;
+            rlen += strlen(inbuf+rlen);
+            if ((rlen>0 && inbuf[rlen-1]=='\n') || feof(ifptr)) break;
+        }
 
  	if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
 	  break;
@@ -409,9 +424,10 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
         push_stack(*retval);
 	delete retval;
     } else
-        if (!quitflag()) 
+        if (!quitflag())
             push_stack(ComValue::nullval());
 
+    delete [] inbuf;
     pop_servstate();
 
     return status;
