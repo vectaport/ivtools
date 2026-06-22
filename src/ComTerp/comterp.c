@@ -800,8 +800,12 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokc
 }
 
 ComValue& ComTerp::expr_top(int n) {
-  if (((int)_pfnum)+n < 0 || n>0) {
-    return ComValue::unkval();    
+  /* the slot actually read is _pfcomvals[_pfnum-1+n], so that index must be >=0:
+     reject _pfnum+n < 1, not < 0.  the old < 0 let _pfnum+n==0 through and read
+     _pfcomvals[-1] (unmapped) -- the SIGBUS seen when a corrupt/zero stack anchor
+     drives offtop to -_pfnum.  n>0 still rejects reads above the post-eval top. */
+  if (((int)_pfnum)+n < 1 || n>0) {
+    return ComValue::unkval();
   }
   else
     return _pfcomvals[_pfnum-1+n];
@@ -838,13 +842,21 @@ int ComTerp::print_stack_top(ostream& out) const {
 
 void ComTerp::push_stack(postfix_token* token) {
     if (_stack_top+1 == _stack_siz) {
+	int old_siz = _stack_siz;
 	_stack_siz *= 2;
 	dmm_realloc_size(sizeof(ComValue));
 	if(dmm_realloc((void**)&_stack, (unsigned long)_stack_siz) != 0) {
 	    KANRET("error in call to dmm_realloc");
 	    return;
 	}
-    } 
+	/* dmm_realloc leaves the grown region raw, unlike the initial dmm_calloc.
+	   the slots are assigned via operator=, whose assignval calls
+	   unref_as_needed() on the *destination* -- on garbage that reads back as a
+	   ref-counted _type that path does Resource::unref(garbage_ptr) and crashes.
+	   zero the new slots so _type==UnknownType(0) makes that unref a no-op,
+	   matching the calloc'd initial region and the destructor's type(UnknownType). */
+	memset(_stack + old_siz, 0, (size_t)(_stack_siz - old_siz) * sizeof(ComValue));
+    }
     _stack_top++;
     token_to_comvalue(token, _stack + _stack_top);
 
@@ -912,13 +924,19 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
 
 void ComTerp::push_stack(ComValue& value) {
     if (_stack_top+1 == _stack_siz) {
+	int old_siz = _stack_siz;
 	_stack_siz *= 2;
 	dmm_realloc_size(sizeof(ComValue));
 	if(dmm_realloc((void**)&_stack, (unsigned long)_stack_siz) != 0) {
 	    KANRET("error in call to dmm_realloc");
 	    return;
 	}
-    } 
+	/* zero the grown region: dmm_realloc leaves it raw, and the first
+	   *sv = ComValue(value) assignment runs assignval->unref_as_needed() on the
+	   destination -- garbage that looks like a ref-counted _type crashes in
+	   Resource::unref().  see the matching note in push_stack(postfix_token*). */
+	memset(_stack + old_siz, 0, (size_t)(_stack_siz - old_siz) * sizeof(ComValue));
+    }
     _stack_top++;
 
     if (_stack_top<0) {
