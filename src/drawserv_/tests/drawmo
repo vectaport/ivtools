@@ -2,7 +2,7 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C] --port [portnum] --help
+# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|gsexim] --port [portnum] --help
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,9 +10,10 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|gsexim] --port [portnum] --help\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C]\ttests to run (comma-separated), returns -1 on error\n");
+    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|gsexim]\n");
+    print("\t\t\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
     exit)
@@ -999,6 +1000,92 @@ updown4C_test=func(
   ok)
 
 
+/* gsexim test -- graphic-state export/import round-trip (first thread / first light).
+   single drawserv, no links, no file.  THE THESIS: the string that export(:string)
+   produces IS the command that recreates the graphic -- the script is the picture.
+   build a rect with brush+color, export it to a string (s1), send that string back
+   to the same drawserv as a command (which should re-create the graphic), export
+   again (s2), and PASS iff s1==s2.
+   this asserts that the serialization language and the creation language are one:
+   that rect() reads back the :brush/:fgcolor/:bgcolor/:graypat keywords that
+   export() writes, and that the drawserv(...)/frame(...) wrapper evaluates.
+   it should be true.  it may not be true yet.  the test is how we find out:
+   see it go red, make it go green.  scope: rect with brush and color. */
+gsexim_test=func(
+
+  ds_port=find_open_port(:base_port 26002);
+  ds_import=ds_port-1;
+  global(drawserv_upgsx)=false;
+  print("gsexim: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("gsexim: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("gsexim: waiting for drawserv callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_upgsx) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(!global(drawserv_upgsx) :then
+    print("gsexim: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  print("gsexim: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("localhost" ds_port);
+  if(type(sock)==`UnknownType :then
+    print("gsexim: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  /* --- build a rect with brush + color on the (empty) drawing.
+         the newly-created rect is the selected thing, so brush()/colors()
+         act on it. --- */
+  print("gsexim: building rect with brush+color\n" :err);
+  r=remote(sock "r=rect(0,0,100,100)");
+  remote(sock "brush(65535,0)");
+  remote(sock print("colors(%cRed %cWhite)" 96 96 :str));
+
+  /* --- first serialization (s1): the script that IS this picture --- */
+  s1=remote(sock "export(r :string)");
+  print("gsexim: s1=[%s]\n" s1 :err);
+  if(type(s1)!=`StringType :then
+    print("gsexim: FAIL export(r :string) did not return a string (got %v)\n" s1 :err);
+    remote(sock "exit" :nowait);close(sock);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0 update(200000));
+    return(false));
+
+  /* --- THE THESIS: send the script back as a command; it should rebuild the
+         graphic (the recreated rect becomes the selected thing) --- */
+  print("gsexim: feeding s1 back as a command (the script is the picture)\n" :err);
+  remote(sock s1);
+
+  /* --- second serialization (s2): export the now-selected recreated graphic --- */
+  s2=remote(sock "export(at(select(:all)) :string)");
+  print("gsexim: s2=[%s]\n" s2 :err);
+
+  /* --- the round-trip assertion --- */
+  ok=eq(s1 s2);
+  print("gsexim: s1==s2: %v\n" ok :err);
+  if(!ok :then
+    print("gsexim: FAIL round-trip mismatch (the script did not reproduce the picture)\n" :err);
+    print("gsexim:   s1=[%s]\n" s1 :err);
+    print("gsexim:   s2=[%s]\n" s2 :err));
+
+  /* --- tear down --- */
+  remote(sock "exit" :nowait);
+  close(sock);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+    update(200000));
+  print("gsexim: drawserv shut down\n" :err);
+  ok)
+
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -1053,6 +1140,13 @@ if(tests_flag :then
         print("updown4B: pass\n" :err)
       :else
         print("updown4B: FAIL\n" :err);
+        ok=false));
+    if(t==`gsexim || t==`all :then
+      print("running gsexim test\n" :err);
+      if(gsexim_test(:dummy 0) :then
+        print("gsexim: pass\n" :err)
+      :else
+        print("gsexim: FAIL\n" :err);
         ok=false));
     if(t==`updown4C || t==`all :then
       print("running updown4C test\n" :err);
