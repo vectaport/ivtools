@@ -92,6 +92,42 @@ void log_with_timestamp(const char* msg) {
   fflush(stderr);
 }
 
+/* ca_tz: California build-timezone hint derived from the build month.  __DATE__
+   carries no zone, so this is a hint, correct for a California build clock:
+   Pacific Daylight (PDT) ~ mid-Mar..early-Nov, Pacific Standard (PST) otherwise.
+   The two switch months (Mar, Nov) can't be exact from the month alone; Apr..Oct
+   are unambiguously PDT, Dec..Feb unambiguously PST, and Mar/Nov default to PST
+   (the standard side).  Emitted as the trailing element of the timestamp
+   colon-chain -- month opens the date, timezone closes the time.  See the ":"
+   operator timezone extension. */
+static const char* ca_tz(const char* mon) {
+  /* PDT for Apr,May,Jun,Jul,Aug,Sep,Oct; PST otherwise (incl. Mar,Nov defaults) */
+  static const char* pdt[] = {"Apr","May","Jun","Jul","Aug","Sep","Oct"};
+  for (int i=0; i<7; i++)
+    if (mon[0]==pdt[i][0] && mon[1]==pdt[i][1] && mon[2]==pdt[i][2]) return "PDT";
+  return "PST";
+}
+
+/* build_stamp: build identity as a string in comterp attrlist-literal notation --
+   (:built YYYY:Mon:DD:HH:MM:SS:TZ :patch "key").  The colon-chain is the readable
+   date/time/zone literal the post-eval ":" operator consumes (TZ a trailing
+   timezone symbol, like the month, closing the timestamp); nothing here evaluates
+   it -- the banner just prints a string comterp *could* parse once ":" knows the
+   timezone vocabulary.  date/time are a caller's __DATE__/__TIME__ ("Mon DD YYYY"
+   day space-padded, "HH:MM:SS") and patch_key its PATCH_KEY -- those stay in each
+   main.c so bumping PATCH_KEY there recompiles that main.c and refreshes its
+   __DATE__/__TIME__; only this formatter lives here. */
+const char* build_stamp(const char* date, const char* time, const char* patch_key) {
+  static char buf[160];
+  char mon[4]; mon[0]=date[0]; mon[1]=date[1]; mon[2]=date[2]; mon[3]=0;
+  int day = atoi(date+4);
+  int year = atoi(date+7);
+  snprintf(buf, sizeof(buf),
+           "(:built %d:%s:%d:%s:%s :patch \"%s\")",
+           year, mon, day, time, ca_tz(mon), patch_key);
+  return buf;
+}
+
 char* restore_escapes(const char* str, int& bufsize) {
     bufsize = strlen(str)*2+2;
     char* dst = new char[bufsize];
