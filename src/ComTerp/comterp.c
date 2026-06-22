@@ -172,6 +172,9 @@ void ComTerp::init() {
     _autostream = 0;
     _running = 0;
     _muted = 0;
+    _force_nested = 0;  /* read on every ComterpHandler::handle_input; left
+                           uninitialized it intermittently nested/reset the stack
+                           and added a stray pop_stack -> reactor-reentrancy crash */
     _fd = -1;
     _arg_strs = nil;
     _narg_strs = 0;
