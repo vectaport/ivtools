@@ -1,0 +1,71 @@
+// src/comdraw/tests/gsexim.comt -- graphic-state export/import round-trip and the
+// select(:all)/at() selection accessors, exercised in-process.
+//
+// comdraw IS comterp + graphics in one process, so this tests the purely
+// graphical scripting -- create, select, index, export, re-create -- with no
+// drawserv and no sockets.  (drawmo's gsexim test is the distributed cousin: it
+// must round-trip the command string over a socket, where live compviews don't
+// survive serialization, so it can't lean on select()/at() the way this can.)
+//
+// THE THESIS: the string export(:string :percomp) produces IS the command that
+// recreates the graphic -- the script is the picture.  CreateRectFunc reads back
+// the :brush/:fgcolor/:bgcolor/:graypat keywords that export() writes
+// (CreateGraphicFunc::set_graphic_gs), applying them to the graphic instead of
+// pulling editor state.
+//
+// select() touches the GUI selection, so it needs a mapped window; comdraw's
+// startup seed update() (main.c) realizes the canvas before any script runs, so
+// -runfile / -runexpr / the interactive prompt all work.  See run_all.comt.
+//   run("src/comdraw/tests/gsexim.comt")
+
+ok=true
+
+// clear the drawing.  select(:all) returns a stream of compviews; $$ overdrives
+// delete across that stream (delete runs once per element, yielding a stream of
+// results) and each() forces that stream so every delete actually executes.
+// (the canvas is already realized by comdraw's seed update() at startup.)
+each(delete($$select(:all)))
+
+// --- test 1: rect() creates a selectable, exportable graphic; at(select(:all))
+//             returns it (the no-index form -- "the first selected thing") ---
+r=rect(0,0,100,100)
+ok=ok&&(at(select(:all))!=nil)
+e=export(r :string :percomp)
+ok=ok&&(type(e)==`StringType)
+print("1 rect()+export(r :percomp) (expect a rect(...) string): %v\n\n" e)
+
+// --- test 2: select(:all) lists ALL components; at(... N) indexes into them.
+//             two rects at distinct coords -- at(...0) and at(...1) must return
+//             the two different rects ---
+rect(200,200,300,300)
+e0=export(at(select(:all) 0) :string :percomp)
+e1=export(at(select(:all) 1) :string :percomp)
+ok=ok&&(type(e0)==`StringType)&&(type(e1)==`StringType)&&(e0!=e1)
+ok=ok&&(index(e0 "0,0,100,100")!=nil||index(e1 "0,0,100,100")!=nil)
+ok=ok&&(index(e0 "200,200,300,300")!=nil||index(e1 "200,200,300,300")!=nil)
+print("2a at(select(:all) 0): %v\n" e0)
+print("2b at(select(:all) 1): %v\n" e1)
+print("2c indexes return the two distinct rects (expect true): %v\n\n" ok)
+
+// --- test 3: gs round-trip -- export a rect with brush+color, re-create it from
+//             that very string with run(:str), export again, expect equal ---
+each(delete($$select(:all)))
+ra=rect(0,0,100,100); brush(65535,0); colors(`Red `White)
+s1=export(ra :string :percomp)
+s2=export(run(s1 :str) :string :percomp)
+ok=ok&&(eq(s1 s2))
+print("3a s1 = %s\n" s1)
+print("3b s2 = %s\n" s2)
+print("3c export==reimport==export (expect equal): %v\n\n" eq(s1 s2))
+
+// --- test 4: discrimination -- the gs rides in on the command, not editor state.
+//             set the editor to B (Blue/Yellow), re-create the A-command, and
+//             confirm the new rect still exports as A ---
+select(:none); brush(0,0); colors(`Blue `Yellow)
+s3=export(run(s1 :str) :string :percomp)
+ok=ok&&(eq(s1 s3))
+print("4a s3 (imported while editor was gs B) = %s\n" s3)
+print("4b import stayed gs A despite editor B (expect equal): %v\n\n" eq(s1 s3))
+
+print("gsexim: %v\n" ok)
+ok

@@ -30,6 +30,7 @@
 
 #include <ComUnidraw/unifunc.h>
 
+class Graphic;
 class RasterOvComp;
 class Transformer;
 
@@ -38,6 +39,11 @@ class CreateGraphicFunc : public UnidrawFunc {
 public:
     CreateGraphicFunc(ComTerp*,Editor*);
     Transformer* get_transformer(AttributeList*);
+    void set_graphic_gs(AttributeList*, Graphic*);
+    // read the graphic-state keywords (:brush/:nonebr, :fgcolor/:bgcolor/:fillbg,
+    // :pattern/:graypat/:nonepat) off the list, apply them to the graphic, and
+    // remove them from the list so a subsequent export round-trips them through
+    // the graphic's MinGS instead of duplicating them as leftover attributes.
 };
 
 //: rectangle drawing command for comdraw.

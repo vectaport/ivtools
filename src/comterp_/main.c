@@ -44,6 +44,8 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 
 #include <version.h>
 
+#include <ComUtil/util.h>
+
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
@@ -66,6 +68,13 @@ FPointObj fp(0.,0.);
 #if __GNUC__>=3
 static char newline;
 #endif
+
+/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the banner so
+   a running binary proves which patch built it.  The patch FILENAME is stable;
+   only this key changes -- read the latest key off the banner to confirm the
+   newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
+   refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
+#define PATCH_KEY "fac4fd14"
 
 using std::cout;
 using std::cerr;
@@ -187,7 +196,7 @@ int main(int argc, char *argv[]) {
 	        else break;
 	    }
 	    terp->set_args(argc-3-endcnt, argv+3);
-	    fprintf(stdout, "ivtools-%s comterp: type help for more info (:built %s %s)\n%s", VersionString, __DATE__, __TIME__, get_command_prompt());
+	    fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
 	    if (terp->runfile(rfile) < 0)
 	        cerr << "comterp: error running script file: " << rfile << "\n";
 	}
@@ -293,14 +302,14 @@ int main(int argc, char *argv[]) {
       if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	terp->disable_prompt();
       else
-	fprintf(stdout, "ivtools-%s comterp: type help for more info (:built %s %s)\n%s", VersionString, __DATE__, __TIME__, get_command_prompt());
+	fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
       return terp->run();
     } else {
 
       ComTerpServ* terp = new ComTerpServ();
       terp->add_defaults();
       if (run_flag && argc > 2 ) {
-	fprintf(stderr, "ivtools-%s comterp (built: %s %s)\n", VersionString, __DATE__, __TIME__);
+	fprintf(stderr, "ivtools-%s comterp %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	int endcnt=0;
 	for(int i=argc-1; i>2; i--) {
 	  if(*argv[i]=='\0') {
@@ -339,7 +348,7 @@ int main(int argc, char *argv[]) {
         if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	  terp->disable_prompt();
 	else {
-	  fprintf(stdout, "ivtools-%s comterp:  type help for more info (built: %s %s)\n%s", VersionString, __DATE__, __TIME__, get_command_prompt());
+	  fprintf(stdout, "ivtools-%s comterp:  type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
 	}
 	return terp->run();
       }

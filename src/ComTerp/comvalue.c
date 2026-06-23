@@ -352,7 +352,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  if (svp->class_symid() == Attribute::class_symid())
 	    out << *((Attribute*)svp->obj_val())->Value();
 	  else if (svp->class_symid() == AttributeList::class_symid())
-	    out << *((AttributeList*)svp->obj_val());
+	    ((AttributeList*)svp->obj_val())->serialize(out, true);
 	  else if (svp->class_symid() == DateObj::class_symid()) {
 	    ((DateObj*)svp->obj_val())->date()->printOn(out);
 	  } else

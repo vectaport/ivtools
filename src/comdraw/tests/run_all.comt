@@ -1,0 +1,27 @@
+// src/comdraw/tests/run_all.comt -- run all comdraw graphical-scripting tests
+//
+// comdraw is comterp + graphics in one process; these tests exercise the purely
+// graphical scripting (raster pixels, graphic create/select/export).  select()
+// and display touch the GUI, so they need a mapped window -- comdraw's startup
+// seed update() (main.c) realizes the canvas before any -runfile/-runexpr or
+// interactive script runs, so all of these work:
+//
+//   comdraw -runfile src/comdraw/tests/run_all.comt        (interactive)
+//   comdraw -stdin_off -runfile src/comdraw/tests/run_all.comt   (scripted/CI)
+//   run("src/comdraw/tests/run_all.comt")                  (from the prompt/socket)
+//
+// Use -stdin_off for non-interactive runs: with stdin closed (piped/backgrounded)
+// comdraw quits on the stdin EOF.
+
+ok=true
+
+if(run("./pixelfunc.comt")
+  :then print("pass: pixelfunc\n")
+  :else print("FAIL: pixelfunc\n");ok=false)
+
+if(run("./gsexim.comt")
+  :then print("pass: gsexim\n")
+  :else print("FAIL: gsexim\n");ok=false)
+
+print("\nrun_all: %v\n" ok)
+ok

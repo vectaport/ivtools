@@ -396,6 +396,14 @@ int main (int argc, char** argv) {
 	/* execute -runfile or -runexpr after editor is fully initialized */
 	ComTerpServ* terp = ed->GetComTerp();
 	if (terp) {
+	    /* Seed update: the mandatory first update() that wins the X11
+	       map/realize race.  It pumps the event loop so the window maps and the
+	       viewer's canvas is bound before any -runfile/-runexpr script can drive
+	       GUI commands (select(), etc.) that would otherwise dereference a null
+	       canvas and crash.  (Over the command socket the reactor is already
+	       pumping, so this only matters for the pre-Run() script path.) */
+	    terp->run("update(1000000)\n");
+
 	    const char* runfile = catalog->GetAttribute("runfile");
 	    if (runfile && *runfile) {
 		if (terp->runfile(runfile) < 0)

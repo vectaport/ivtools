@@ -193,5 +193,17 @@ ok=ok&&(s_chain!=s_chain_call)
 print("19c chained bare != chained call (expect true after fix): %v\n" (s_chain!=s_chain_call))
 prev_ok=check_fail(:ok ok)
 
+// --- test 20: keyword with a comma-list value parses to an array attribute ---
+// this is the parse contract the drawserv gs-keyword round-trip relies on:
+// "rect(... :brush 65535,0 :fgcolor \"Red\",1,0,0 ...)" must land :brush as the
+// array [65535,0] and :fgcolor as ["Red",1,0,0] so CreateRectFunc::set_graphic_gs
+// can read them back off the attribute list (al->find(sym)->array_val()).
+gs=(:brush 65535,0 :fgcolor "Red",1,0,0)
+ok=ok&&(at(gs.brush 0)==65535)&&(at(gs.brush 1)==0)
+ok=ok&&(at(gs.fgcolor 0)=="Red")&&(at(gs.fgcolor 1)==1)
+print("20a (:brush 65535,0).brush as array (expect 65535 0): %v %v\n" at(gs.brush 0) at(gs.brush 1))
+print("20b (:fgcolor \"Red\",1,0,0).fgcolor as array (expect Red 1): %v %v\n" at(gs.fgcolor 0) at(gs.fgcolor 1))
+prev_ok=check_fail(:ok ok)
+
 print("parser: %v\n" ok)
 ok

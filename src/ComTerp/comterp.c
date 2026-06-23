@@ -29,6 +29,7 @@
 #include <string.h>
 #include <strstream>
 #include <streambuf>
+#include <new>
 #include <unistd.h>
 
 #include <fstream.h>
@@ -171,6 +172,9 @@ void ComTerp::init() {
     _autostream = 0;
     _running = 0;
     _muted = 0;
+    _force_nested = 0;  /* read on every ComterpHandler::handle_input; left
+                           uninitialized it intermittently nested/reset the stack
+                           and added a stray pop_stack -> reactor-reentrancy crash */
     _fd = -1;
     _arg_strs = nil;
     _narg_strs = 0;
@@ -800,8 +804,12 @@ boolean ComTerp::skip_arg(ComValue* topval, int& offset, int offlimit, int& tokc
 }
 
 ComValue& ComTerp::expr_top(int n) {
-  if (((int)_pfnum)+n < 0 || n>0) {
-    return ComValue::unkval();    
+  /* the slot actually read is _pfcomvals[_pfnum-1+n], so that index must be >=0:
+     reject _pfnum+n < 1, not < 0.  the old < 0 let _pfnum+n==0 through and read
+     _pfcomvals[-1] (unmapped) -- the SIGBUS seen when a corrupt/zero stack anchor
+     drives offtop to -_pfnum.  n>0 still rejects reads above the post-eval top. */
+  if (((int)_pfnum)+n < 1 || n>0) {
+    return ComValue::unkval();
   }
   else
     return _pfcomvals[_pfnum-1+n];
@@ -838,13 +846,23 @@ int ComTerp::print_stack_top(ostream& out) const {
 
 void ComTerp::push_stack(postfix_token* token) {
     if (_stack_top+1 == _stack_siz) {
+	int old_siz = _stack_siz;
 	_stack_siz *= 2;
 	dmm_realloc_size(sizeof(ComValue));
 	if(dmm_realloc((void**)&_stack, (unsigned long)_stack_siz) != 0) {
 	    KANRET("error in call to dmm_realloc");
 	    return;
 	}
-    } 
+	/* dmm_realloc leaves the grown region raw, unlike the initial dmm_calloc.
+	   the slots are assigned via operator=, whose assignval calls
+	   unref_as_needed() on the *destination* -- on garbage that reads back as a
+	   ref-counted _type that path does Resource::unref(garbage_ptr) and crashes.
+	   default-construct each grown slot to a clean UnknownType (vtable intact,
+	   _v zeroed) so that unref is a no-op -- matching the calloc'd initial region
+	   and the destructor's type(UnknownType). */
+	for (int k = old_siz; k < _stack_siz; k++)
+	    new (_stack + k) ComValue();
+    }
     _stack_top++;
     token_to_comvalue(token, _stack + _stack_top);
 
@@ -912,13 +930,21 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
 
 void ComTerp::push_stack(ComValue& value) {
     if (_stack_top+1 == _stack_siz) {
+	int old_siz = _stack_siz;
 	_stack_siz *= 2;
 	dmm_realloc_size(sizeof(ComValue));
 	if(dmm_realloc((void**)&_stack, (unsigned long)_stack_siz) != 0) {
 	    KANRET("error in call to dmm_realloc");
 	    return;
 	}
-    } 
+	/* default-construct the grown region to clean UnknownType slots: dmm_realloc
+	   leaves it raw, and the first *sv = ComValue(value) runs
+	   assignval->unref_as_needed() on the destination, which crashes on garbage
+	   that looks like a ref-counted _type.  see the note in
+	   push_stack(postfix_token*). */
+	for (int k = old_siz; k < _stack_siz; k++)
+	    new (_stack + k) ComValue();
+    }
     _stack_top++;
 
     if (_stack_top<0) {

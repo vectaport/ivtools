@@ -394,7 +394,7 @@ boolean RectScript::Definition (ostream& out) {
     comp->GetRect()->GetOriginal(l, b, r, t);
 
     if (!svg_format()) {
-      out << "rectangle(";
+      out << (percomp_format() ? "rect(" : "rectangle(");
       out << l << "," << b << "," << r << "," << t;
     } else {
       out << "<rect x=\"" << l << "\" y=\"" << b

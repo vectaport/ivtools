@@ -143,7 +143,14 @@ protected:
 
 public:
     friend ostream& operator << (ostream& s, const AttributeList&);
-    // print list to ostream.
+    // print list to ostream (bare ":key val ..." form, for a list serialized
+    // nested inside another argument list).
+
+    ostream& serialize(ostream& out, boolean parens = false) const;
+    // write the list as ":key val ..."; with parens=true wrap it in "(...)"
+    // (empty -> "()") so it round-trips as an attribute-list literal.  The
+    // friend operator<< uses the bare form; turn parens on only where the list
+    // is printed as a standalone value (see ComValue::operator<<).
 
     void dump();
     // utility method to call ostream output method.

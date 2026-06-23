@@ -1,0 +1,27 @@
+// six petals, drawn in comterp.
+// the script is the picture.
+closedspline(160,160, 160,40, 220,55, 264,100, 160,160)
+colors(3 10)  // Red
+pattern(2) // Solid
+
+closedspline(160,160, 264,100, 288,160, 264,220, 160,160)
+colors(6 10)  // Green
+
+closedspline(160,160, 264,220, 220,265, 160,280, 160,160)
+colors(5 10)  // Yellow
+
+closedspline(160,160, 160,280, 100,265, 56,220, 160,160)
+colors(4 10)  // Orange
+
+closedspline(160,160, 56,220, 32,160, 56,100, 160,160)
+colors(7 10)  // Blue
+
+closedspline(160,160, 56,100, 100,55, 160,40, 160,160)
+colors(2 10)  // Brown
+
+ellipse(160,160, 120,120)
+colors(1 10)  // Black circle, around it
+pattern(1)    // None
+brush(5)      // Thick
+
+select(:clear)

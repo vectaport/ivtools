@@ -212,13 +212,24 @@ void AttributeList::print_attrlist(std::ostream& out, AttributeList* al) {
     out << *al;
 }
 
-ostream& operator<< (ostream& out, const AttributeList& al) {
+ostream& AttributeList::serialize(ostream& out, boolean parens) const {
 
-    AttributeList* attrlist = (AttributeList*)&al;
-    if (al.Number()==0) {
-        out << "()";
-        return out;
-    }
+    /* bare mode (parens=false, the operator<< default) emits an empty list as
+       NOTHING -- not "()".  Every bare call site was audited and none depends on
+       "()" as a sentinel:
+         - ExportFunc::compout (unifunc.c) and OverlayScript::Attributes
+           (scriptview.c): per-component attrs trailing a command, read back as
+           bare ":key val" keywords, never as a "()" literal -- the stray "()" was
+           in fact the bug this split removed;
+         - ovcmds.c: the "# ..." imagemap comment lines (not parsed) and the
+           polygon(...) command (empty -> clean "polygon(...)", not "...()").
+       The value-display paths explicitly wrap and so still show "()" for an empty
+       list (round-trippable as an attribute-list literal): ComValue::operator<<
+       via serialize(out, true), and its brief "{...}" element form
+       ("(" << *al << ")", comvalue.c) -- which the bare inner now renders as a
+       single "()" instead of the old double "(())". */
+    AttributeList* attrlist = (AttributeList*)this;
+    if (parens) out << "(";
     ALIterator i;
     int init=0;
     for (attrlist->First(i); !attrlist->Done(i); attrlist->Next(i)) {
@@ -227,62 +238,19 @@ ostream& operator<< (ostream& out, const AttributeList& al) {
 	const char* nm = attr->Name();
 	int nmsz = strlen(nm);
 	out << ":";
-        for(int i=0; i<nmsz; i++) {
-	  if (nm[i]==' ') out << "\\";
-	   out << nm[i];
+        for(int j=0; j<nmsz; j++) {
+	  if (nm[j]==' ') out << "\\";
+	   out << nm[j];
 	}
 	out << " ";
-
-	AttributeValue* attrval = attr->Value();
-#if 1
-	out << *attrval;
-#else
-	char* string;
-        switch(attr->Value()->type()) {
-	    case AttributeValue::SymbolType:
-	        out << attrval->symbol_ptr();
-	        break;
-	    case AttributeValue::StringType:
-	      string = (char *) attrval->string_ptr();
-	        out << "\"" << string << "\"";
-	        break;
-	    case AttributeValue::CharType:
-	        out << "'" << attrval->char_ref() << "'";
-	        break;
-	    case AttributeValue::UCharType:
-	        out << "'" << attrval->char_ref() << "'";
-	        break;
-	    case AttributeValue::IntType:
-	        out << attrval->int_ref();
-	        break;
-	    case AttributeValue::UIntType:
-	        out << attrval->uint_ref();
-	        break;
-	    case AttributeValue::ShortType:
-	        out << attrval->short_ref();
-	        break;
-	    case AttributeValue::UShortType:
-	        out << attrval->ushort_ref();
-	        break;
-	    case AttributeValue::LongType:
-	        out << attrval->long_ref();
-	        break;
-	    case AttributeValue::ULongType:
-	        out << attrval->ulong_ref();
-	        break;
-	    case AttributeValue::FloatType:
-	        out.form("%.6", attrval->float_val());
-	        break;
-	    case AttributeValue::DoubleType:
-	        out << attrval->double_ref();
-	        break;
-            default:
-		out << "Unknown type";
-	        break;
-	}
-#endif
+	out << *attr->Value();
     }
+    if (parens) out << ")";
     return out;
+}
+
+ostream& operator<< (ostream& out, const AttributeList& al) {
+    return al.serialize(out, false);
 }
 
 void AttributeList::dump() {

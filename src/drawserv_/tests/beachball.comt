@@ -1,0 +1,67 @@
+/* beachball.comt -- a spinning beach ball, drawn and animated in comterp.
+ *
+ *   run("beachball.comt")
+ *
+ * Six wedges fanning from the center + a white pole cap, then a for-loop
+ * that rotates the whole ball a few degrees per frame, paced by update(usec).
+ *
+ * polygon takes ONE argument: a list.  A list is built by the "," operator
+ * (LANGUAGE.md: list = 1,2,3).  So a wedge is polygon(cx,cy,x1,y1,x2,y2,...)
+ * where the commas construct the single list argument.  (Note: spaces would
+ * build a *stream*, not a list -- coordinates must be comma-joined.)
+ *
+ * Confirmed against LANGUAGE.md and help(): pi(), cos/sin (radians),
+ * polygon(list), "," list operator, for, update, at(list i), func keyword
+ * args, rotate(degflt) -- rotate current selection by degrees.
+ */
+
+cx = 300;            // center x
+cy = 300;            // center y
+r  = 150;            // ball radius
+nw = 6;              // wedges
+
+wcols = ("#e63946","#f4a261","#e9c46a","#2a9d8f","#457b9d","#5e548e");
+
+/* draw one wedge i (0..nw-1): center point, then an arc of points,
+   all comma-joined into the single list polygon expects. */
+draw_wedge = func(
+  step = 360/nw;
+  a0 = wi*step;
+  na = 10;                          // arc samples
+  da = step/na;
+
+  // start the list at the center point (two coords)
+  coords = cx,cy;
+
+  // walk the arc; "," extends the list (associative list construction)
+  k = 0;
+  for(k=0 k<=na k++
+    ang = (a0 + k*da)*pi()/180;     // degrees -> radians
+    coords = coords,cx+r*cos(ang),cy+r*sin(ang));
+
+  // one list argument -> one filled wedge
+  w = polygon(coords);
+  select(w);
+  colors(at(wcols wi) at(wcols wi));   // fg=bg = wedge color, solid fill
+  w);
+
+/* --- build the ball --- */
+print("DEBUG::READY TO BUILD BALL\n");
+i = 0;
+for(i=0 i<nw i++ draw_wedge(:wi i));
+
+/* --- white pole cap so the wedges read as a sphere --- */
+cap = ellipse(cx cy r/6 r/6);
+select(cap);
+colors("#ffffff" "#ffffff");
+
+/* --- spin: select all, rotate per frame, pace with update(usec).
+ *   rotate(degflt) rotates the current selection by degrees -- 3 deg/frame. */
+frames = 1200;
+f = 0;
+for(f=0 f<frames f++
+  select(:all);
+  rotate(3);
+  update(30000));         // 30 ms / frame
+
+print("beachball: done spinning\n" :err)

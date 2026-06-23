@@ -247,6 +247,19 @@ ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
+  /* guard the anchor-recovered offtop: a bad/missing argoff anchor (e.g. left by
+     an upstream command that failed to push its bookmark -- a nil remote() return
+     is one cause) yields a wild offtop, and expr_top(offtop) would then read
+     unmapped memory.  mirror the loc<0 guard in stack_arg_post (below) and warn
+     so the cause can be tracked down.  match expr_top's real bound: the slot it
+     reads is _pfcomvals[_pfnum-1+offtop], so _pfnum+offtop must be >=1. */
+  if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
+    fprintf(stderr, "comterp: stack_key_post_eval: offtop out of range "
+            "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
+            "or corrupt; upstream command likely failed to push its bookmark\n",
+            offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
+    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+  }
   int count = 0;
   while (count < nkeys()) {
     ComValue& curr = comterp()->expr_top(offtop);
@@ -291,6 +304,14 @@ ComValue& ComFunc::stack_key_post
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
+  /* same anchor-recovered-offtop guard as stack_key_post_eval; see note there. */
+  if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
+    fprintf(stderr, "comterp: stack_key_post: offtop out of range "
+            "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
+            "or corrupt; upstream command likely failed to push its bookmark\n",
+            offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
+    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+  }
   int count = 0;
   while (count < nkeys()) {
     ComValue& curr = comterp()->expr_top(offtop);
