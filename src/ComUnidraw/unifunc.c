@@ -440,6 +440,7 @@ void ExportFunc::execute() {
     static int _str_symid = symbol_add("str");
     static int _eps_symid = symbol_add("eps");
     static int _idraw_symid = symbol_add("idraw");
+    static int _percomp_symid = symbol_add("percomp");
     ComValue compviewv(stack_arg(0));
     ComValue file(stack_arg(1));
     ComValue host(stack_key(_host_symid));
@@ -449,6 +450,7 @@ void ExportFunc::execute() {
     ComValue str(stack_key(_str_symid));
     ComValue eps_flag(stack_key(_eps_symid));
     ComValue idraw_flag(stack_key(_idraw_symid));
+    ComValue percomp(stack_key(_percomp_symid));
     reset_stack();
     if (nargs()==0 || compviewv.null() 
 	|| compviewv.type() == ComValue::BlankType) {
@@ -462,17 +464,23 @@ void ExportFunc::execute() {
        the command arrived on, seen as a nil result and a corrupted command
        stream).  Same idiom as PostFixFunc::execute. */
     boolean string_mode = string.is_true() || str.is_true();
+    /* :percomp emits each component as its own runnable command (rect, not
+       rectangle) with no enclosing appname()(...) wrapper -- a script block ready
+       to run, vs the drawtool() document the default/socket export sends to
+       another editor's import port. */
+    boolean percomp_mode = percomp.is_true();
+    if (percomp_mode) OverlayScript::percomp_format(true);
     ostream* out = new std::strstream();
 
     if (!compviewv.is_array()) {
 
       ComponentView* view = (ComponentView*)compviewv.obj_val();
       OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-      if (!comp) return;
+      if (!comp) { if (percomp_mode) OverlayScript::percomp_format(false); delete out; return; }
       if (!eps_flag.is_true() && !idraw_flag.is_true()) {
-	*out << appname() << "(\n";
+	if (!percomp_mode) *out << appname() << "(\n";
 	compout(comp, out);
-	*out << ")\n";
+	if (!percomp_mode) *out << ")\n";
       } else {
 	OverlayPS* psv = (OverlayPS*) comp->Create(POSTSCRIPT_VIEW);
 	psv->idraw_format(idraw_flag.is_true());
@@ -486,7 +494,7 @@ void ExportFunc::execute() {
     } else {
 
       if (!eps_flag.is_true() && !idraw_flag.is_true()) {
-	*out << appname() << "(\n";
+	if (!percomp_mode) *out << appname() << "(\n";
 	AttributeValueList* avl = compviewv.array_val();
 	Iterator i;
 	for(avl->First(i);!avl->Done(i); ) {
@@ -495,9 +503,9 @@ void ExportFunc::execute() {
 	  if (!comp) break;
 	  compout(comp, out);
 	  avl->Next(i);
-	  if (!avl->Done(i)) *out << ",\n";
+	  if (!avl->Done(i)) *out << (percomp_mode ? ";\n" : ",\n");
 	}
-	*out << ")\n";
+	if (!percomp_mode) *out << ")\n";
       } else {
 	AttributeValueList* avl = compviewv.array_val();
 	Iterator i;
@@ -517,6 +525,7 @@ void ExportFunc::execute() {
 
     }
     
+    if (percomp_mode) OverlayScript::percomp_format(false);
     *out << '\0'; out->flush();
     const char* result = ((std::strstream*)out)->str();
 

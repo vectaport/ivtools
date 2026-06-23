@@ -165,11 +165,18 @@ public:
     static void ptlist_parens(boolean flag) { _ptlist_parens = flag; }
     // set flag that indicates putting parens around pointlist's
 
-    boolean svg_format(); 
+    boolean svg_format();
     // true if exporting SVG
-    void svg_format(boolean); 
+    void svg_format(boolean);
     // set flag for exporting SVG
     // can be overridden by flag associated with Command objects
+
+    static boolean percomp_format();
+    // true if exporting each component as its own runnable command (e.g. "rect"
+    // not "rectangle", and no enclosing drawtool() wrapper) -- see export(:percomp).
+    // static (only consults the global _format), unlike svg_format().
+    static void percomp_format(boolean);
+    // set/clear the per-component command export format
 
     static const char* format() { return _format; }
     // get global format string

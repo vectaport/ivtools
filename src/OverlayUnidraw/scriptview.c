@@ -282,6 +282,11 @@ void OverlayScript::Pattern (ostream& out) {
     }
 }
 
+/* negative zero is numerically equal to 0 but serializes as "-0", which then
+   reads back as plain 0 -- breaking exact export/import round-trips.  fold it to
+   +0 so transforms (and any other float gs) round-trip exactly. */
+static inline float no_neg_zero(float v) { return v == 0.0 ? 0.0f : v; }
+
 void OverlayScript::Transformation(ostream& out, const char* keyword, Graphic* gr) {
     Transformer* t = gr ? gr->GetTransformer() : GetOverlayComp()->GetGraphic()->GetTransformer();
     Transformer identity;
@@ -292,8 +297,8 @@ void OverlayScript::Transformation(ostream& out, const char* keyword, Graphic* g
 	float a00, a01, a10, a11, a20, a21;
 	t->GetEntries(a00, a01, a10, a11, a20, a21);
 	out << key;
-	out << a00 << "," << a01 << "," << a10 << ",";
-	out << a11 << "," << a20 << "," << a21;
+	out << no_neg_zero(a00) << "," << no_neg_zero(a01) << "," << no_neg_zero(a10) << ",";
+	out << no_neg_zero(a11) << "," << no_neg_zero(a20) << "," << no_neg_zero(a21);
     }
 }
 
@@ -307,12 +312,12 @@ void OverlayScript::Transformation (ostream& out) {
       t->GetEntries(a00, a01, a10, a11, a20, a21);
       if (!svg_format()) {
 	out << " :transform ";
-	out << a00 << "," << a01 << "," << a10 << ",";
-	out << a11 << "," << a20 << "," << a21;
+	out << no_neg_zero(a00) << "," << no_neg_zero(a01) << "," << no_neg_zero(a10) << ",";
+	out << no_neg_zero(a11) << "," << no_neg_zero(a20) << "," << no_neg_zero(a21);
       } else {
 	out << "transform=\"matrix(";
-	out << a00 << " " << a01 << " " << a10 << " ";
-	out << a11 << " " << a20 << " " << a21 << ")\"";
+	out << no_neg_zero(a00) << " " << no_neg_zero(a01) << " " << no_neg_zero(a10) << " ";
+	out << no_neg_zero(a11) << " " << no_neg_zero(a20) << " " << no_neg_zero(a21) << ")\"";
       }
     }
 }
@@ -390,6 +395,16 @@ boolean OverlayScript::svg_format() {
 	format = ((OvExportCmd*)GetCommand())->svg_format();
     }
     return format;
+}
+
+boolean OverlayScript::percomp_format() {
+    const char* formatstr = OverlayScript::_format;
+    return formatstr ? strcmp("percomp", formatstr)==0 : 0;
+}
+
+void OverlayScript::percomp_format(boolean flag) {
+    delete _format;
+    _format = flag ? strnew("percomp") : NULL;
 }
 
 void OverlayScript::svg_format(boolean flag) {
