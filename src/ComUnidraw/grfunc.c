@@ -108,7 +108,107 @@ Transformer* CreateGraphicFunc::get_transformer(AttributeList* al) {
     }
   }
   return rel;
-  
+
+}
+
+/* remove an attribute by symbol id; Remove(Attribute*) unrefs it for us */
+static void remove_key(AttributeList* al, int symid) {
+    Attribute* a = al->GetAttr(symid);
+    if (a) al->Remove(a);
+}
+
+/* build a PSColor from a [name,r,g,b] keyword array; FindColor resolves by name
+   first (catalog, then X11 -- which parses "#RRGGBB"), falling back to the rgb
+   intensities (0..1, scaled to 0..0xffff as FindColor expects) */
+static PSColor* color_from_attrval(Catalog* catalog, AttributeValue* v) {
+    if (!v || !v->is_array()) return nil;
+    AttributeValueList* avl = v->array_val();
+    if (!avl) return nil;
+    Iterator it; avl->First(it);
+    if (avl->Done(it)) return nil;
+    const char* name = avl->GetAttrVal(it)->string_ptr();
+    int ir=0, ig=0, ib=0;
+    if (avl->Number() >= 4) {
+	avl->Next(it); ir = (int)(avl->GetAttrVal(it)->float_val()*0xffff);
+	avl->Next(it); ig = (int)(avl->GetAttrVal(it)->float_val()*0xffff);
+	avl->Next(it); ib = (int)(avl->GetAttrVal(it)->float_val()*0xffff);
+    }
+    return name ? catalog->FindColor(name, ir, ig, ib) : nil;
+}
+
+void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
+    if (!al || !gr) return;
+    Catalog* catalog = unidraw->GetCatalog();
+
+    static int brush_sym   = symbol_add("brush");
+    static int nonebr_sym  = symbol_add("nonebr");
+    static int fgcolor_sym = symbol_add("fgcolor");
+    static int bgcolor_sym = symbol_add("bgcolor");
+    static int fillbg_sym  = symbol_add("fillbg");
+    static int pattern_sym = symbol_add("pattern");
+    static int graypat_sym = symbol_add("graypat");
+    static int nonepat_sym = symbol_add("nonepat");
+
+    AttributeValue* v;
+
+    /* brush: :nonebr  or  :brush linepat,width */
+    if (al->find(nonebr_sym)) {
+	gr->SetBrush(new PSBrush());
+	remove_key(al, nonebr_sym);
+    } else if ((v = al->find(brush_sym)) && v->is_array()) {
+	AttributeValueList* avl = v->array_val();
+	if (avl && avl->Number() >= 2) {
+	    Iterator it; avl->First(it);
+	    int linepat = avl->GetAttrVal(it)->int_val();
+	    avl->Next(it);
+	    float width = avl->GetAttrVal(it)->float_val();
+	    gr->SetBrush(new PSBrush(linepat, width));
+	}
+	remove_key(al, brush_sym);
+    }
+
+    /* colors: :fgcolor name,r,g,b  :bgcolor name,r,g,b (fall back to the graphic's
+       existing color for whichever one is absent) */
+    AttributeValue* fgv = al->find(fgcolor_sym);
+    AttributeValue* bgv = al->find(bgcolor_sym);
+    if (fgv || bgv) {
+	PSColor* fg = fgv ? color_from_attrval(catalog, fgv) : gr->GetFgColor();
+	PSColor* bg = bgv ? color_from_attrval(catalog, bgv) : gr->GetBgColor();
+	if (fg && bg) gr->SetColors(fg, bg);
+	remove_key(al, fgcolor_sym);
+	remove_key(al, bgcolor_sym);
+    }
+
+    /* :fillbg flag */
+    if ((v = al->find(fillbg_sym))) {
+	gr->FillBg(v->int_val());
+	remove_key(al, fillbg_sym);
+    }
+
+    /* :transform was already consumed by get_transformer and applied to the
+       graphic -- strip it here too so it doesn't re-serialize on export */
+    remove_key(al, symbol_add("transform"));
+
+    /* pattern: :nonepat  or  :graypat level  or  :pattern bits... */
+    if (al->find(nonepat_sym)) {
+	gr->SetPattern(new PSPattern());
+	remove_key(al, nonepat_sym);
+    } else if ((v = al->find(graypat_sym))) {
+	gr->SetPattern(catalog->FindGrayLevel(v->float_val()));
+	remove_key(al, graypat_sym);
+    } else if ((v = al->find(pattern_sym)) && v->is_array()) {
+	AttributeValueList* avl = v->array_val();
+	if (avl && avl->Number()==16) {
+	    int mask[16]; int i=0; Iterator it;
+	    for (avl->First(it); !avl->Done(it) && i<16; avl->Next(it))
+		mask[i++] = avl->GetAttrVal(it)->int_val();
+	    gr->SetPattern(new PSPattern(mask, 16));
+	} else if (avl && avl->Number()>=1) {
+	    Iterator it; avl->First(it);
+	    gr->SetPattern(new PSPattern(avl->GetAttrVal(it)->int_val(), -1));
+	}
+	remove_key(al, pattern_sym);
+    }
 }
 
 /*****************************************************************************/
@@ -162,6 +262,9 @@ void CreateRectFunc::execute() {
             }
 	rect->SetTransformer(rel);
 	Unref(rel);
+	/* command-supplied gs keywords win over editor state, and are stripped
+	   from al so they round-trip via the graphic, not as leftover attributes */
+	set_graphic_gs(al, rect);
 	RectOvComp* comp = new RectOvComp(rect);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
