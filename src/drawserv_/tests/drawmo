@@ -1000,90 +1000,117 @@ updown4C_test=func(
   ok)
 
 
-/* gsexim test -- graphic-state export/import round-trip (first thread / first light).
-   single drawserv, no links, no file.  THE THESIS: the string that export(:string)
-   produces IS the command that recreates the graphic -- the script is the picture.
-   build a rect with brush+color, export it to a string (s1), send that string back
-   to the same drawserv as a command (which should re-create the graphic), export
-   again (s2), and PASS iff s1==s2.
-   this asserts that the serialization language and the creation language are one:
-   that rect() reads back the :brush/:fgcolor/:bgcolor/:graypat keywords that
-   export() writes, and that the drawserv(...)/frame(...) wrapper evaluates.
-   it should be true.  it may not be true yet.  the test is how we find out:
-   see it go red, make it go green.  scope: rect with brush and color. */
+/* gsexim test -- graphic-state export/import round-trip ACROSS two drawservs.
+   THE THESIS: the string that export(:string :percomp) produces IS the command
+   that recreates the graphic -- the script is the picture.  ds1 builds a rect
+   with gs A (brush+color) and exports it to a single-line command (s1); ds2 -- a
+   separate editor process whose state is set to gs B -- imports s1 and exports
+   the recreated rect (s2); PASS iff s1==s2.  this is drawmo's distributed value
+   over the single-process comdraw test (src/comdraw/tests/gsexim.comt): the gs
+   crosses a process boundary as text and is rebuilt faithfully.  because ds2's
+   editor is gs B, equality also proves rect()/CreateRectFunc read the
+   :brush/:fgcolor/:bgcolor keywords out of the command (set_graphic_gs) rather
+   than pulling ds2's editor state.  scope: rect with brush and color. */
 gsexim_test=func(
 
-  ds_port=find_open_port(:base_port 26002);
-  ds_import=ds_port-1;
-  global(drawserv_upgsx)=false;
-  print("gsexim: launching drawserv on port %d\n" ds_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx)=true\\\")\" &" ds_port ds_import callback_port :str);
-  print("gsexim: cmdstr=[%s]\n" cmdstr :err);
-  shell(cmdstr);
-  print("gsexim: waiting for drawserv callback on port %d\n" callback_port :err);
-
   poll_usec=2000000;
-  timeout_secs=60;
-  timeout=timeout_secs*1000000/poll_usec;
+  timeout=60*1000000/poll_usec;
   progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (source) on canonical base 26002 --- */
+  ds1_port=find_open_port(:base_port 26002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upgsx1)=false;
+  print("gsexim: launching ds1 (source) on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
   cnt=0;
-  while(!global(drawserv_upgsx) && cnt<timeout
-    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+  while(!global(drawserv_upgsx1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting for ds1 after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgsx1) :then
+    print("gsexim: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("gsexim: ds1 callback received after %d polls\n" cnt :err);
 
-  if(!global(drawserv_upgsx) :then
-    print("gsexim: FAIL timeout waiting for drawserv callback\n" :err);
-    kill_port(:kill_port_num ds_port);
-    kill_port(:kill_port_num ds_import);
+  /* --- launch ds2 (dest) on canonical base 36002 --- */
+  ds2_port=find_open_port(:base_port 36002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upgsx2)=false;
+  print("gsexim: launching ds2 (dest) on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgsx2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgsx2) :then
+    print("gsexim: FAIL timeout waiting for ds2 callback\n" :err);
+    s1s=socket("localhost" ds1_port);
+    if(type(s1s)!=`UnknownType :then remote(s1s "exit" :nowait);close(s1s));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("gsexim: ds2 callback received after %d polls\n" cnt :err);
+
+  /* --- connect to both --- */
+  sock1=socket("localhost" ds1_port);
+  if(type(sock1)==`UnknownType :then
+    print("gsexim: FAIL could not connect to ds1 on port %d\n" ds1_port :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  sock2=socket("localhost" ds2_port);
+  if(type(sock2)==`UnknownType :then
+    print("gsexim: FAIL could not connect to ds2 on port %d\n" ds2_port :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    kill_port(:kill_port_num ds2_port);
     return(false));
 
-  print("gsexim: drawserv callback received after %d polls\n" cnt :err);
-  sock=socket("localhost" ds_port);
-  if(type(sock)==`UnknownType :then
-    print("gsexim: FAIL could not connect to drawserv on port %d\n" ds_port :err);
-    kill_port(:kill_port_num ds_port);
-    kill_port(:kill_port_num ds_import);
-    return(false));
-
-  /* --- build a rect with brush + color on the (empty) drawing.
-         the newly-created rect is the selected thing, so brush()/colors()
-         act on it. --- */
-  print("gsexim: building rect with brush+color\n" :err);
-  r=remote(sock "r=rect(0,0,100,100)");
-  remote(sock "brush(65535,0)");
-  remote(sock print("colors(%cRed %cWhite)" 96 96 :str));
-
-  /* --- first serialization (s1): the script that IS this picture --- */
-  s1=remote(sock "export(r :string)");
-  print("gsexim: s1=[%s]\n" s1 :err);
+  /* --- ds1 (source): build a rect with gs A, export the single-line command.
+         :percomp emits a runnable rect(...) command (one line, no drawtool()
+         wrapper) -- the plain export(:string) form is a multi-line document that
+         remote() would truncate at the first newline. --- */
+  print("gsexim: ds1 building rect with gs A (Red/White, solid brush)\n" :err);
+  remote(sock1 "r=rect(0,0,100,100)");
+  remote(sock1 "brush(65535,0)");
+  remote(sock1 print("colors(%cRed %cWhite)" 96 96 :str));
+  s1=remote(sock1 "export(r :string :percomp)");
+  print("gsexim: s1 (from ds1) = %s\n" s1 :err);
   if(type(s1)!=`StringType :then
-    print("gsexim: FAIL export(r :string) did not return a string (got %v)\n" s1 :err);
-    remote(sock "exit" :nowait);close(sock);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0 update(200000));
+    print("gsexim: FAIL ds1 export(r :string :percomp) did not return a string (got %v)\n" s1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);remote(sock2 "exit" :nowait);close(sock2);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     return(false));
 
-  /* --- THE THESIS: send the script back as a command; it should rebuild the
-         graphic (the recreated rect becomes the selected thing) --- */
-  print("gsexim: feeding s1 back as a command (the script is the picture)\n" :err);
-  remote(sock s1);
+  /* --- ds2 (dest): set the editor to gs B, then import s1 (naming the result r2
+         so we can export exactly the imported rect).  ds2 is a separate process;
+         if the import read ds2's editor state the rect would come back gs B. --- */
+  print("gsexim: ds2 editor set to gs B (Blue/Yellow) before import\n" :err);
+  remote(sock2 "brush(0,0)");
+  remote(sock2 print("colors(%cBlue %cYellow)" 96 96 :str));
+  print("gsexim: ds2 importing the command from ds1 (the script is the picture)\n" :err);
+  remote(sock2 print("r2=%s" s1 :str));
+  s2=remote(sock2 "export(r2 :string :percomp)");
+  print("gsexim: s2 (from ds2) = %s\n" s2 :err);
 
-  /* --- second serialization (s2): export the now-selected recreated graphic --- */
-  s2=remote(sock "export(at(select(:all)) :string)");
-  print("gsexim: s2=[%s]\n" s2 :err);
-
-  /* --- the round-trip assertion --- */
+  /* --- the cross-drawserv round-trip assertion --- */
   ok=eq(s1 s2);
-  print("gsexim: s1==s2: %v\n" ok :err);
+  print("gsexim: s1==s2 (gs A survived ds1->ds2 export/import): %v\n" ok :err);
   if(!ok :then
-    print("gsexim: FAIL round-trip mismatch (the script did not reproduce the picture)\n" :err);
+    print("gsexim: FAIL cross-drawserv round-trip mismatch (ds2 did not rebuild gs A from the command)\n" :err);
     print("gsexim:   s1=[%s]\n" s1 :err);
     print("gsexim:   s2=[%s]\n" s2 :err));
 
-  /* --- tear down --- */
-  remote(sock "exit" :nowait);
-  close(sock);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+  /* --- tear both down, waiting for each process to clear so the canonical ports
+     are free for the next test --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0
     update(200000));
-  print("gsexim: drawserv shut down\n" :err);
+  print("gsexim: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0
+    update(200000));
+  print("gsexim: ds2 shut down\n" :err);
   ok)
 
 /* run selected tests */

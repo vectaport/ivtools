@@ -97,3 +97,34 @@ Guard Malloc.  ASan named it immediately:
 
 i.e. `load_string` writing past the fixed `_instr` buffer — the line the crash
 was nowhere near.
+
+## Worked example 2 — a use-after-free that needs real timing
+
+The `ComTerpServ::runfile` reactor-reentrancy UAF (the script interpreter freed
+out from under itself when stdin hits EOF inside an `update()` poll's
+`handle_events()`) only reproduces with drawserv's real timing — pure-comterp
+poller reproducers never hit the race.  The trick is to **force** the race:
+run the `drawmo` orchestrator in listen mode with **stdin closed** so the
+reactor dispatches the fd-0 EOF during the very first `update()` poll.
+
+Because `drawmo` shells out to a (non-instrumented) `drawserv`, that child must
+still resolve the ASan symbols in the instrumented dylibs it loads, so add
+`DYLD_INSERT_LIBRARIES` pointing at the ASan runtime:
+
+    ASAN_OPTIONS=detect_leaks=0:abort_on_error=0 \
+    DYLD_LIBRARY_PATH=src/ComTerp/DARWIN:src/Attribute/DARWIN:src/ComUtil/DARWIN \
+    DYLD_INSERT_LIBRARIES=$(dirname $(otool -L src/comterp_/DARWIN/a.out \
+        | awk '/asan/{print $1}'))/libclang_rt.asan_osx_dynamic.dylib \
+    src/comterp_/DARWIN/a.out listen 10002 \
+        src/drawserv_/tests/drawmo 10002 --tests gsexim < /dev/null
+
+Pre-fix this aborts within the first poll; ASan names it exactly:
+
+    ERROR: AddressSanitizer: heap-use-after-free ... comterp.c:932 in ComTerp::push_stack
+      freed by ... ~ComTerpServ() <- ComterpHandler::destroy() comhandler.c:108
+              <- handle_close <- handle_events <- UpdateFunc::execute ctrlfunc.c:461
+      previously allocated by ... ComterpHandler::ComterpHandler <- main.c:185
+
+Post-fix (the `running()` bracket restored in `ComTerpServ::runfile`) the same
+command runs clean — the stdin-EOF is deferred instead of freeing the live
+interpreter.

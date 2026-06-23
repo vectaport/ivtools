@@ -1,0 +1,22 @@
+// src/comdraw/tests/run_all.comt -- run all comdraw graphical-scripting tests
+//
+// comdraw is comterp + graphics in one process; these tests exercise the purely
+// graphical scripting (raster pixels, graphic create/select/export).  They need
+// a LIVE comdraw or drawserv -- the interactive prompt or the command socket,
+// where the reactor/event loop is running (select() and display touch the GUI).
+// Sourcing them from a pre-loop -runexpr would hang on the first select(:all).
+//
+//   run("src/comdraw/tests/run_all.comt")
+
+ok=true
+
+if(run("./pixelfunc.comt")
+  :then print("pass: pixelfunc\n")
+  :else print("FAIL: pixelfunc\n");ok=false)
+
+if(run("./gsexim.comt")
+  :then print("pass: gsexim\n")
+  :else print("FAIL: gsexim\n");ok=false)
+
+print("\nrun_all: %v\n" ok)
+ok
