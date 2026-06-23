@@ -214,6 +214,20 @@ void AttributeList::print_attrlist(std::ostream& out, AttributeList* al) {
 
 ostream& AttributeList::serialize(ostream& out, boolean parens) const {
 
+    /* bare mode (parens=false, the operator<< default) emits an empty list as
+       NOTHING -- not "()".  Every bare call site was audited and none depends on
+       "()" as a sentinel:
+         - ExportFunc::compout (unifunc.c) and OverlayScript::Attributes
+           (scriptview.c): per-component attrs trailing a command, read back as
+           bare ":key val" keywords, never as a "()" literal -- the stray "()" was
+           in fact the bug this split removed;
+         - ovcmds.c: the "# ..." imagemap comment lines (not parsed) and the
+           polygon(...) command (empty -> clean "polygon(...)", not "...()").
+       The value-display paths explicitly wrap and so still show "()" for an empty
+       list (round-trippable as an attribute-list literal): ComValue::operator<<
+       via serialize(out, true), and its brief "{...}" element form
+       ("(" << *al << ")", comvalue.c) -- which the bare inner now renders as a
+       single "()" instead of the old double "(())". */
     AttributeList* attrlist = (AttributeList*)this;
     if (parens) out << "(";
     ALIterator i;
