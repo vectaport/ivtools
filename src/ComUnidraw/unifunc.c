@@ -550,7 +550,9 @@ void ExportFunc::execute() {
 	ComTerpServ* terp = (ComTerpServ*)comterp();
 	ComterpHandler* handler = (ComterpHandler*)terp->handler();
 	if (handler)
-	  fp = fdopen(handler->peer().get_handle(), "w");   /* live peer: do not close */
+	  fp = handler->wrfptr();   /* persistent peer FILE*: do not close.  (was a
+				       fresh fdopen() per export -- the FILE* leaked,
+				       accumulating in a long-running server.) */
 	else
 #endif
 	  fp = stdout;
@@ -566,7 +568,10 @@ void ExportFunc::execute() {
 	  ACE_INET_Addr addr (portnum, hoststr);
 	  if (conn.connect (*socket, addr) == -1)
 	    ACE_ERROR ((LM_ERROR, "%p\n", "open"));
-	  fp = fdopen(socket->get_handle(), "w");
+	  /* dup the handle so this FILE* can be fclosed (below) without closing the
+	     socket fd we close/delete separately -- otherwise the FILE* leaked */
+	  fp = fdopen(dup(socket->get_handle()), "w");
+	  close_fp = (fp != nil);
 	} else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
 	  fp = comterp()->handler()->wrfptr();              /* live handler: do not close */
 	} else

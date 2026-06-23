@@ -167,13 +167,16 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
 	remove_key(al, brush_sym);
     }
 
-    /* colors: :fgcolor name,r,g,b  :bgcolor name,r,g,b (fall back to the graphic's
-       existing color for whichever one is absent) */
+    /* colors: :fgcolor name,r,g,b  :bgcolor name,r,g,b -- fall back to the
+       graphic's existing color whenever a key is absent OR its lookup fails, so a
+       failed fg lookup doesn't also drop a good bg (or vice versa) */
     AttributeValue* fgv = al->find(fgcolor_sym);
     AttributeValue* bgv = al->find(bgcolor_sym);
     if (fgv || bgv) {
-	PSColor* fg = fgv ? color_from_attrval(catalog, fgv) : gr->GetFgColor();
-	PSColor* bg = bgv ? color_from_attrval(catalog, bgv) : gr->GetBgColor();
+	PSColor* fg_resolved = fgv ? color_from_attrval(catalog, fgv) : nil;
+	PSColor* bg_resolved = bgv ? color_from_attrval(catalog, bgv) : nil;
+	PSColor* fg = fg_resolved ? fg_resolved : gr->GetFgColor();
+	PSColor* bg = bg_resolved ? bg_resolved : gr->GetBgColor();
 	if (fg && bg) gr->SetColors(fg, bg);
 	remove_key(al, fgcolor_sym);
 	remove_key(al, bgcolor_sym);

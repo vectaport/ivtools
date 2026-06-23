@@ -402,9 +402,22 @@ boolean OverlayScript::percomp_format() {
     return formatstr ? strcmp("percomp", formatstr)==0 : 0;
 }
 
+/* prior _format saved across a percomp_format(true)/(false) bracket, so an svg
+   (or other) mode active before a :percomp export is restored after it, not
+   silently wiped.  single slot -- percomp brackets are not nested. */
+static char* percomp_saved_format = NULL;
+
 void OverlayScript::percomp_format(boolean flag) {
-    delete _format;
-    _format = flag ? strnew("percomp") : NULL;
+    if (flag) {
+	delete percomp_saved_format;
+	percomp_saved_format = _format ? strnew(_format) : NULL;
+	delete _format;
+	_format = strnew("percomp");
+    } else {
+	delete _format;
+	_format = percomp_saved_format;   /* restore prior (ownership transferred) */
+	percomp_saved_format = NULL;
+    }
 }
 
 void OverlayScript::svg_format(boolean flag) {
