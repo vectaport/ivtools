@@ -13,16 +13,18 @@
 // (CreateGraphicFunc::set_graphic_gs), applying them to the graphic instead of
 // pulling editor state.
 //
-// Run from inside a live comdraw or drawserv -- the interactive prompt or the
-// command socket, where the reactor/event loop is running.  select() touches the
-// GUI selection, so it needs that loop; sourcing this from a pre-loop -runexpr
-// would hang on the first select(:all).
+// select() touches the GUI selection, so it needs a mapped window; comdraw's
+// startup seed update() (main.c) realizes the canvas before any script runs, so
+// -runfile / -runexpr / the interactive prompt all work.  See run_all.comt.
 //   run("src/comdraw/tests/gsexim.comt")
 
 ok=true
 
-// start from an empty drawing so select(:all) counts are exact
-delete(select(:all))
+// clear the drawing.  select(:all) returns a stream of compviews; $$ overdrives
+// delete across that stream (delete runs once per element, yielding a stream of
+// results) and each() forces that stream so every delete actually executes.
+// (the canvas is already realized by comdraw's seed update() at startup.)
+each(delete($$select(:all)))
 
 // --- test 1: rect() creates a selectable, exportable graphic; at(select(:all))
 //             returns it (the no-index form -- "the first selected thing") ---
@@ -47,7 +49,7 @@ print("2c indexes return the two distinct rects (expect true): %v\n\n" ok)
 
 // --- test 3: gs round-trip -- export a rect with brush+color, re-create it from
 //             that very string with run(:str), export again, expect equal ---
-delete(select(:all))
+each(delete($$select(:all)))
 ra=rect(0,0,100,100); brush(65535,0); colors(`Red `White)
 s1=export(ra :string :percomp)
 s2=export(run(s1 :str) :string :percomp)
