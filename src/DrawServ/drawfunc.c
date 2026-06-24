@@ -360,7 +360,7 @@ void GraphicIdFunc::execute() {
   ComValue denyv(stack_key(deny_sym));
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
- 
+
   ComValue idv(stack_arg(0));
   ComValue selectorv(stack_arg(1));
 
@@ -414,9 +414,14 @@ void GraphicIdFunc::execute() {
     }
     
   } else if (idv.is_known() && selectorv.is_unknown()) {
-    /* single uuid arg -- lookup and return compview */
+    /* single id arg -- look up and return the compview.  accept either a full
+       uuid or its 8-char index: inside a linkup the distributed traffic carries
+       only the 8-char, and the gridtable is keyed on it (uuid_key = first 4
+       bytes).  uuid_parse can't parse the 8-char prefix, so for an 8-char id
+       parse it straight to the key. */
     void* ptr = nil;
-    uint32_t key = uuid_key(id);
+    const char* idstr = idv.is_string() ? idv.string_ptr() : nil;
+    uint32_t key = (idstr && strlen(idstr)==8) ? (uint32_t)strtoul(idstr, nil, 16) : uuid_key(id);
     ((DrawServ*)unidraw)->gridtable()->find(ptr, key);
     if (ptr) {
         GraphicId* grid = (GraphicId*)ptr;

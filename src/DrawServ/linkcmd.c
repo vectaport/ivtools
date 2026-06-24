@@ -44,6 +44,7 @@ LinkBrushCmd::LinkBrushCmd(Editor* ed, PSBrush* br) : BrushCmd(ed, br) {}
 
 const char* LinkBrushCmd::dist_script() {
     _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
 
     PSBrush* brush = GetBrush();
     if (!brush) return _dist_script_buf.c_str();
@@ -60,19 +61,45 @@ const char* LinkBrushCmd::dist_script() {
 
     std::ostringstream sbuf;
     boolean any = false;
+    uint32_t owner_key = 0;
     Iterator it;
 
-    /* collect all LocallySelected comps */
+    /* Collect the comps whose brush change to propagate.  Originating: comps we
+       own (LocallySelected).  Relaying along a chain: comps a remote owner has
+       temporarily unlocked through us (grid->unlocked()) via the incoming
+       select(:unlock) -- forward those onward so a chain ds1->ds2->ds3 carries
+       the change past the first hop.  Stamp the OWNER's key, not ours, so the
+       forwarded :unlock/:lock bracket stays valid at the next hop; today that
+       key is derivable (selectorkey), but once it becomes a per-owner signature
+       (issue #163, the atomic select(:body :sign) follow-on) only the owner
+       could mint it, so the relay must forward, never re-derive.  Record the
+       owner sid so
+       ExecuteCmd can exclude the link back toward the origin. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
         void* ptr = nil;
         if (comp) drawserv->compidtable()->find(ptr, comp);
         GraphicId* grid = (GraphicId*)ptr;
-        if (grid && grid->selected() == LinkSelection::LocallySelected) {
-	     if (!any) {
+        if (grid && (grid->selected() == LinkSelection::LocallySelected ||
+                     grid->unlocked())) {
+            if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
+                /* INTERIM LIMITATION: the owner key+sid are captured from the
+                   FIRST matching comp only, so the whole dance relays under one
+                   owner's :unlock/:lock key and ExecuteCmd excludes one back-
+                   link.  Correct today, when a selection's comps share an owner;
+                   a mixed-ownership selection would mis-stamp the rest.  Revisit
+                   when per-owner signatures land (issue #163) -- the dance would
+                   then have to group comps by owner and emit one bracket each. */
+                if (grid->selected() == LinkSelection::LocallySelected) {
+                    owner_key = drawserv->sessionidkey();
+                    uuid_copy(_dist_owner_sid, drawserv->sessionid());
+                } else {
+                    owner_key = grid->selectorkey();
+                    uuid_copy(_dist_owner_sid, grid->selector());
+                }
             } else {
                 sbuf << ",grid(";
             }
@@ -82,7 +109,7 @@ const char* LinkBrushCmd::dist_script() {
 
     if (any) {
         char keystr[9];
-        snprintf(keystr, sizeof(keystr), "%08X", drawserv->sessionidkey());
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
 	sbuf << " :unlock \"" << keystr << "\")";
         if (brush->None())
             sbuf << ";brush(:none);select(s :lock \"" << keystr << "\")";
@@ -147,6 +174,7 @@ LinkColorCmd::LinkColorCmd(Editor* ed, PSColor* fg, PSColor* bg, int fgnum, int 
 
 const char* LinkColorCmd::dist_script() {
     _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
 
     Editor* ed = GetEditor();
     if (!ed) return _dist_script_buf.c_str();
@@ -160,18 +188,37 @@ const char* LinkColorCmd::dist_script() {
 
     std::ostringstream sbuf;
     boolean any = false;
+    uint32_t owner_key = 0;
     Iterator it;
 
+    /* same originate-or-relay collection as LinkBrushCmd::dist_script(): own
+       (LocallySelected) comps when originating, plus remote-owner comps we hold
+       unlocked when relaying onward, stamped with the owner's key. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
         void* ptr = nil;
         if (comp) drawserv->compidtable()->find(ptr, comp);
         GraphicId* grid = (GraphicId*)ptr;
-        if (grid && grid->selected() == LinkSelection::LocallySelected) {
+        if (grid && (grid->selected() == LinkSelection::LocallySelected ||
+                     grid->unlocked())) {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
+                /* INTERIM LIMITATION: the owner key+sid are captured from the
+                   FIRST matching comp only, so the whole dance relays under one
+                   owner's :unlock/:lock key and ExecuteCmd excludes one back-
+                   link.  Correct today, when a selection's comps share an owner;
+                   a mixed-ownership selection would mis-stamp the rest.  Revisit
+                   when per-owner signatures land (issue #163) -- the dance would
+                   then have to group comps by owner and emit one bracket each. */
+                if (grid->selected() == LinkSelection::LocallySelected) {
+                    owner_key = drawserv->sessionidkey();
+                    uuid_copy(_dist_owner_sid, drawserv->sessionid());
+                } else {
+                    owner_key = grid->selectorkey();
+                    uuid_copy(_dist_owner_sid, grid->selector());
+                }
             } else {
                 sbuf << ",grid(";
             }
@@ -181,7 +228,7 @@ const char* LinkColorCmd::dist_script() {
 
     if (any) {
         char keystr[9];
-        snprintf(keystr, sizeof(keystr), "%08X", drawserv->sessionidkey());
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
         sbuf << " :unlock \"" << keystr << "\")";
         /* serialize by RGB intensities so both the menu path and the
            colors("#RRGGBB") path distribute identically, exactly, and

@@ -93,9 +93,14 @@ void stack_trace_handler(int sig) {
 }
 
 int main(int argc, char *argv[]) {
- 
+
     signal(SIGSEGV, stack_trace_handler);
-    
+    /* ignore SIGPIPE: a peer that closed its socket should make a write return
+       EPIPE (which remote()/the socket path handles) instead of terminating the
+       interpreter.  matters for `comterp listen` driving multiple drawservs --
+       e.g. drawmo's gsbrushB, where a far node's connection can drop mid-run. */
+    signal(SIGPIPE, SIG_IGN);
+
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;
     boolean logger_flag = argc>1 && strcmp(argv[1], "logger") == 0;
     boolean remote_flag = argc>1 && strcmp(argv[1], "remote") == 0;

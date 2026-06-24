@@ -415,13 +415,21 @@ int main (int argc, char** argv) {
 	unidraw->Open(ed);
 
 #ifdef HAVE_ACE
-	/*  Start up one on stdin */
-	DrawServHandler* stdin_handler = new DrawServHandler();
-	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
+	/*  Start up one on stdin, unless -stdin_off (mirror comdraw).  Registering
+	    a live fd-0 handler under -stdin_off means a closed/EOF stdin -- as when
+	    drawmo launches us detached -- fires DrawServHandler::handle_input, which
+	    pops the "unexpected EOF" dialog and, if it fires while the seed update()
+	    below is pumping the event loop, re-enters comterp on the shared eval
+	    stack and corrupts it (SIGSEGV).  honor what -stdin_off documents. */
+	const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
+	DrawServHandler* stdin_handler = nil;
+	if (!stdin_off_str || strcmp(stdin_off_str, "false")==0) {
+	    stdin_handler = new DrawServHandler();
+	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							  ACE_Event_Handler::READ_MASK)==-1)
-          cerr << "drawserv: unable to open stdin with ACE\n";
-	
-	ed->stdio_setup(stdin_handler);
+	      cerr << "drawserv: unable to open stdin with ACE\n";
+	    ed->stdio_setup(stdin_handler);
+	}
 	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
 	ed->stdio_prompt(stdin_handler);
 
@@ -432,6 +440,18 @@ int main (int argc, char** argv) {
 	/* execute -runfile or -runexpr after editor is fully initialized */
 	ComTerpServ* terp = ed->GetComTerp();
 	if (terp) {
+	    /* Seed update: the mandatory first update() that wins the X11
+	       map/realize race (see comdraw/main.c).  It pumps the event loop so the
+	       window maps and the viewer's canvas is bound before any GUI command
+	       can run.  For a drawserv this guards more than the -runfile/-runexpr
+	       path: a freshly-launched node can receive a relayed GUI command over a
+	       drawlink (e.g. the select()/brush() fan-out in drawmo's gsbrushB tree)
+	       as the very first event it processes inside Run(), before its window's
+	       Configure/Expose has bound the canvas -- OverlaySelection::Update()
+	       then repairs damage through a null canvas and segfaults.  Mapping the
+	       window here, before Run() owns the loop, closes that window. */
+	    terp->run("update(1000000)\n");
+
 	    const char* runfile = catalog->GetAttribute("runfile");
 	    if (runfile && *runfile) {
 	        if (terp->runfile(runfile) < 0)
