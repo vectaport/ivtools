@@ -326,6 +326,10 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       {
 	const char* script = ((LinkBrushCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
+	/* exclude the link back toward the change's owner so a relayed brush
+	   flows onward along a chain instead of echoing to its origin (on the
+	   originating node the owner is self -> linkget()==nil -> send to all). */
+	uuid_copy(sid, ((LinkBrushCmd*)cmd)->dist_owner_sid());
 	cmd->Execute();
 	break;
       }
@@ -334,6 +338,7 @@ void DrawServ::ExecuteCmd(Command* cmd) {
       {
 	const char* script = ((LinkColorCmd*)cmd)->dist_script();
 	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkColorCmd*)cmd)->dist_owner_sid());
 	cmd->Execute();
 	break;
       }

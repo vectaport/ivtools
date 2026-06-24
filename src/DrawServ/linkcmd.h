@@ -31,14 +31,24 @@
 #include <Unidraw/Commands/brushcmd.h>
 #include <Unidraw/Commands/colorcmd.h>
 #include <string>
+#include <uuid/uuid.h>
 
 //: mixin for Commands that generate distributed scripts in DrawServ
 // Mix into any Command subclass to provide dist_script() for use
 // by DrawServ::ExecuteCmd when distributing commands to remote drawservs.
 class DrawServCmd {
 public:
+    DrawServCmd() { uuid_clear(_dist_owner_sid); }
     virtual const char* dist_script() = 0;
     // return ComTerp script to distribute, or empty string if none.
+
+    const uuid_t& dist_owner_sid() { return _dist_owner_sid; }
+    // session id of the owner the most recent dist_script() was generated for
+    // (cleared if none).  DrawServ::ExecuteCmd excludes the link toward this
+    // session so a relayed change flows onward along a chain without looping
+    // back to its origin.
+protected:
+    uuid_t _dist_owner_sid;
 };
 
 //: BrushCmd with distributed script generation for DrawServ
