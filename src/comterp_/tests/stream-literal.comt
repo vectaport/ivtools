@@ -182,7 +182,7 @@ prev_ok=check_fail(:ok ok)
 
 // --- test 15: nested stream literal syntax ((1 2 3)(4 5 6)) ---
 // BEFORE fix: parse error -- "Unexpected left parenthesis"
-// AFTER fix:  outer stream yields two independent inner StreamObjs lazily,
+// AFTER fix:  outer stream yields two independent inner StreamTypes lazily,
 //             next() on each inner stream gives {1,2,3} and {4,5,6}
 errmsg(:clear)
 ss=nil
@@ -191,13 +191,13 @@ e15=errmsg(:last)
 errmsg(:clear)
 ok15=(e15==nil)
 r0=next(ss); r1=next(ss); eot=next(ss)
-ok15=ok15&&(class(r0)==`StreamObj)
-ok15=ok15&&(class(r1)==`StreamObj)
+ok15=ok15&&(class(r0)==`StreamType)
+ok15=ok15&&(class(r1)==`StreamType)
 ok15=ok15&&(eot==nil)
 ok15=ok15&&(list(r0)==(1,2,3))
 ok15=ok15&&(list(r1)==(4,5,6))
 ok=ok&&ok15
-print("15 ((1 2 3)(4 5 6)) -- nested stream literal (expect StreamObj StreamObj nil): %v %v %v\n" r0 r1 eot)
+print("15 ((1 2 3)(4 5 6)) -- nested stream literal (expect StreamType StreamType nil): %v %v %v\n" r0 r1 eot)
 prev_ok=check_fail(:ok ok)
 
 // --- test 16: $$(1,2,3),$$(4,5,6) -- comma overdriven by two streams zips them ---
@@ -215,7 +215,7 @@ prev_ok=check_fail(:ok ok)
 // $$(($$(1,2,3),$$(4,5,6)),($$(11,12,13),$$(14,15,16)))
 // EXPECTED if double zip were symmetric: {{1,4,11,14},{2,5,12,15},{3,6,13,16}}
 // ACTUAL: {{1,4,{11,14}},{2,5,{12,15}},{3,6,{13,16}}}
-// Second group arrives as StreamObj and is appended as nested element
+// Second group arrives as StreamType and is appended as nested element
 // rather than being zipped peer-to-peer with the first group.
 // Root cause unknown -- preserved as regression/investigation anchor.
 ss3=$$(($$(1,2,3),$$(4,5,6)),($$(11,12,13),$$(14,15,16)))
@@ -228,7 +228,7 @@ prev_ok=check_fail(:ok ok)
 // --- test 18: mixed scalar + nested stream literal ---
 // (1 (2 3) :key 4) -- a stream containing a scalar, an inner stream
 // literal, and a keyword element, in that source order.
-// next() yields 1, then StreamObj{2,3}, then (:key 4), then nil.
+// next() yields 1, then StreamType{2,3}, then (:key 4), then nil.
 //
 // Previously this corrupted the stack ("func next pushed more than a
 // single value on stack", leaving {1,2,3}).  Root cause: execute_literal()
@@ -241,17 +241,17 @@ prev_ok=check_fail(:ok ok)
 // order so AVL element 0 = source positional 0.
 errmsg(:clear)
 s18=(1 (2 3) :key 4)
-ok18=(class(s18)==`StreamObj)
+ok18=(class(s18)==`StreamType)
 r18a=next(s18)
 ok18=ok18&&(r18a==1)
 r18b=next(s18)
-ok18=ok18&&(class(r18b)==`StreamObj)&&(list(r18b)==(2,3))
+ok18=ok18&&(class(r18b)==`StreamType)&&(list(r18b)==(2,3))
 r18c=next(s18)
 ok18=ok18&&(class(r18c)==`AttributeList)
 r18d=next(s18)
 ok18=ok18&&(r18d==nil)
 ok=ok&&ok18
-print("18 next((1 (2 3) :key 4)) -- mixed scalar+stream+keyword (expect 1 StreamObj{2,3} (:key 4) nil): %v %v %v %v\n" r18a r18b r18c r18d)
+print("18 next((1 (2 3) :key 4)) -- mixed scalar+stream+keyword (expect 1 StreamType{2,3} (:key 4) nil): %v %v %v %v\n" r18a r18b r18c r18d)
 prev_ok=check_fail(:ok ok)
 
 print("stream-literal: %v\n" ok)
