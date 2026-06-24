@@ -72,6 +72,15 @@ instance evaluates it in its own interpreter — the REPL IS the wire
 protocol.  This means the script must be valid ComTerp and must
 produce the same visual result as the local command.
 
+The same REPL-as-interpreter model is why the `drawmo` test orchestrator can
+split its test groups into `run("./updown.comt")` / `run("./gstests.comt")`
+files: each `run()` streams its func-objects into the one interpreter, resolved
+lazily at call time.  Heed the streaming/`;`-fusion rule when doing so — a
+`run()` load must be its own top-level expression with no trailing `;`, or the
+dispatch that calls the loaded funcs is parsed before they exist and silently
+resolves to nil.  See `src/comterp_/LANGUAGE.md`, "A definition goes live one
+top-level expression at a time."
+
 ## See Also
 
 - `src/ComTerp/HACKING.md`

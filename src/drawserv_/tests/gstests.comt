@@ -1,0 +1,384 @@
+// gstests.comt -- drawserv graphic-state propagation tests for drawmo.
+//
+// Loaded by ./drawmo via run("./gstests.comt"); defines the gsexim and
+// gsbrush* test func-objects plus the brush_on_node helper.  Shared helpers
+// (find_open_port, kill_port, port_probe, grid_has_id) live in drawmo.
+
+
+
+/* brush_on_node -- read the propagated graphic's serialized gs on a far node by
+   grid id and confirm its brush contains the expected ":brush p,w".  the far
+   node's editor defaults to a different brush, so a match proves the brush
+   graphic-state rode along with the graphic, not the far editor's state.
+
+   grid(uuid) resolves the comp by id and hands it to export -- a read-only path,
+   so unlike export(at(select(:all))) there is no distributive select() to collide
+   with the distribution locks; polling is safe even mid-distribution.  the brush
+   is a separate command from the create, so it can lag the grid-id arrival. */
+brush_on_node=func(
+  found=false;
+  poll_usec=2000000;
+  timeout=20*1000000/poll_usec;
+  cnt=0;
+  expr=print("export(grid(%c%s%c) :string :percomp)" 34 bn_id 34 :str);
+  while(!found && cnt<timeout
+    e=remote(bn_sock expr);
+    if(type(e)==`StringType && index(e bn_brush)!=nil :then found=true);
+    if(!found :then update(poll_usec);cnt++));
+  found)
+
+/* gsbrushA test -- graphic-state BRUSH propagation, CHAIN topology ds1->ds2->ds3.
+   create a rect carrying a distinctive brush on ds1; verify the graphic AND its
+   brush propagate two hops to ds3.  parallels updown3A (chain) but checks the
+   brush gs at the far nodes, not just grid-id arrival.  ports 20002/30002/40002. */
+gsbrushA_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upgba1)=false;
+  print("gsbrushA: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgba1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgba1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushA: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgba1) :then
+    print("gsbrushA: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("gsbrushA: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upgba2)=false;
+  print("gsbrushA: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgba2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgba2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushA: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgba2) :then
+    print("gsbrushA: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("gsbrushA: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_upgba3)=false;
+  print("gsbrushA: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgba3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgba3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushA: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgba3) :then
+    print("gsbrushA: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("gsbrushA: ds3 up on %d\n" ds3_port :err);
+
+  /* --- connect to all three --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
+    print("gsbrushA: FAIL could not connect to all three drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
+    return(false));
+
+  /* --- build the chain: ds1->ds2 (on ds1), then ds2->ds3 (on ds2) --- */
+  print("gsbrushA: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
+
+  /* --- create a rect on ds1 with a distinctive dashed brush (linepat 65520,
+     width 2).  far nodes default to a solid brush, so a match downstream proves
+     the BRUSH graphic-state propagated with the graphic. --- */
+  brushstr=":brush 65520,2";
+  remote(sock1 "r=rect(20,20,80,80)");
+  remote(sock1 "brush(65520,2)");
+  /* one reasoned settle (see updown3A): command distribution is fire-and-forget;
+     give the create+brush a head start before polling the far nodes. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("gsbrushA: created rect+brush on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("gsbrushA: FAIL could not read grid id from ds1 (got %v)\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    return(false));
+
+  /* --- verify arrival (by grid id) then the brush gs at each far node --- */
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  b2=on2 && brush_on_node(:bn_sock sock2 :bn_id id1 :bn_brush brushstr);
+  print("gsbrushA: ds2 (hop 1) has graphic=%v with brush=%v\n" on2 b2 :err);
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  b3=on3 && brush_on_node(:bn_sock sock3 :bn_id id1 :bn_brush brushstr);
+  print("gsbrushA: ds3 (hop 2) has graphic=%v with brush=%v\n" on3 b3 :err);
+  ok=b2 && b3;
+  if(!b2 :then print("gsbrushA: FAIL brush did not reach ds2 intact\n" :err));
+  if(!b3 :then print("gsbrushA: FAIL brush did not propagate to ds3 intact\n" :err));
+  if(ok :then print("gsbrushA: brush propagated two hops along the chain\n" :err));
+
+  /* --- tear all three down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("gsbrushA: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("gsbrushA: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("gsbrushA: ds3 shut down\n" :err);
+  ok)
+
+/* gsbrushB test -- graphic-state BRUSH propagation, TREE topology: ds1 -> ds2 and
+   ds1 -> ds3 (ds1 hub).  create a rect carrying a distinctive brush on ds1; verify
+   the graphic AND its brush fan out to BOTH branches.  parallels updown3B. */
+gsbrushB_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (20002) --- */
+  ds1_port=find_open_port(:base_port 20002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upgbb1)=false;
+  print("gsbrushB: launching ds1 on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgbb1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgbb1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushB: still waiting for ds1 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgbb1) :then
+    print("gsbrushB: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("gsbrushB: ds1 up on %d\n" ds1_port :err);
+
+  /* --- launch ds2 (30002) --- */
+  ds2_port=find_open_port(:base_port 30002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upgbb2)=false;
+  print("gsbrushB: launching ds2 on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgbb2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgbb2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushB: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgbb2) :then
+    print("gsbrushB: FAIL timeout waiting for ds2 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("gsbrushB: ds2 up on %d\n" ds2_port :err);
+
+  /* --- launch ds3 (40002) --- */
+  ds3_port=find_open_port(:base_port 40002);
+  ds3_import=ds3_port-1;
+  global(drawserv_upgbb3)=false;
+  print("gsbrushB: launching ds3 on port %d\n" ds3_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgbb3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgbb3) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushB: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgbb3) :then
+    print("gsbrushB: FAIL timeout waiting for ds3 callback\n" :err);
+    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+    return(false));
+  print("gsbrushB: ds3 up on %d\n" ds3_port :err);
+
+  /* --- connect to all three --- */
+  sock1=socket("localhost" ds1_port);
+  sock2=socket("localhost" ds2_port);
+  sock3=socket("localhost" ds3_port);
+  if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
+    print("gsbrushB: FAIL could not connect to all three drawservs\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
+    return(false));
+
+  /* --- build the tree: both links from ds1 (hub) --- */
+  print("gsbrushB: tree ds1(%d) -> ds2(%d), ds3(%d)\n" ds1_port ds2_port ds3_port :err);
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
+
+  /* --- create a rect on ds1 with a distinctive dashed brush (linepat 65520,
+     width 2); it fans out to both branches. --- */
+  brushstr=":brush 65520,2";
+  remote(sock1 "r=rect(20,20,80,80)");
+  remote(sock1 "brush(65520,2)");
+  /* one reasoned settle (see updown3B): fire-and-forget distribution. */
+  update(2000000);
+  id1=remote(sock1 "at(grid(:table)).grid");
+  print("gsbrushB: created rect+brush on ds1, grid id=%v\n" id1 :err);
+  if(type(id1)!=`StringType :then
+    print("gsbrushB: FAIL could not read grid id from ds1 (got %v)\n" id1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    remote(sock2 "exit" :nowait);close(sock2);
+    remote(sock3 "exit" :nowait);close(sock3);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    return(false));
+
+  /* --- verify arrival then the brush gs on BOTH branches --- */
+  on2=grid_has_id(:gh_sock sock2 :gh_id id1);
+  b2=on2 && brush_on_node(:bn_sock sock2 :bn_id id1 :bn_brush brushstr);
+  print("gsbrushB: ds2 (branch 1) has graphic=%v with brush=%v\n" on2 b2 :err);
+  on3=grid_has_id(:gh_sock sock3 :gh_id id1);
+  b3=on3 && brush_on_node(:bn_sock sock3 :bn_id id1 :bn_brush brushstr);
+  print("gsbrushB: ds3 (branch 2) has graphic=%v with brush=%v\n" on3 b3 :err);
+  ok=b2 && b3;
+  if(!b2 :then print("gsbrushB: FAIL brush did not reach ds2 intact\n" :err));
+  if(!b3 :then print("gsbrushB: FAIL brush did not reach ds3 intact\n" :err));
+  if(ok :then print("gsbrushB: brush fanned out to both branches\n" :err));
+
+  /* --- tear all three down --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  print("gsbrushB: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  print("gsbrushB: ds2 shut down\n" :err);
+  remote(sock3 "exit" :nowait);close(sock3);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  print("gsbrushB: ds3 shut down\n" :err);
+  ok)
+
+/* gsexim test -- graphic-state export/import round-trip ACROSS two drawservs.
+   THE THESIS: the string that export(:string :percomp) produces IS the command
+   that recreates the graphic -- the script is the picture.  ds1 builds a rect
+   with gs A (brush+color) and exports it to a single-line command (s1); ds2 -- a
+   separate editor process whose state is set to gs B -- imports s1 and exports
+   the recreated rect (s2); PASS iff s1==s2.  this is drawmo's distributed value
+   over the single-process comdraw test (src/comdraw/tests/gsexim.comt): the gs
+   crosses a process boundary as text and is rebuilt faithfully.  because ds2's
+   editor is gs B, equality also proves rect()/CreateRectFunc read the
+   :brush/:fgcolor/:bgcolor keywords out of the command (set_graphic_gs) rather
+   than pulling ds2's editor state.  scope: rect with brush and color. */
+gsexim_test=func(
+
+  poll_usec=2000000;
+  timeout=60*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+
+  /* --- launch ds1 (source) on canonical base 26002 --- */
+  ds1_port=find_open_port(:base_port 26002);
+  ds1_import=ds1_port-1;
+  global(drawserv_upgsx1)=false;
+  print("gsexim: launching ds1 (source) on port %d\n" ds1_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgsx1) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting for ds1 after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgsx1) :then
+    print("gsexim: FAIL timeout waiting for ds1 callback\n" :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds1_import);
+    return(false));
+  print("gsexim: ds1 callback received after %d polls\n" cnt :err);
+
+  /* --- launch ds2 (dest) on canonical base 36002 --- */
+  ds2_port=find_open_port(:base_port 36002);
+  ds2_import=ds2_port-1;
+  global(drawserv_upgsx2)=false;
+  print("gsexim: launching ds2 (dest) on port %d\n" ds2_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  shell(cmdstr);
+  cnt=0;
+  while(!global(drawserv_upgsx2) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
+  if(!global(drawserv_upgsx2) :then
+    print("gsexim: FAIL timeout waiting for ds2 callback\n" :err);
+    s1s=socket("localhost" ds1_port);
+    if(type(s1s)!=`UnknownType :then remote(s1s "exit" :nowait);close(s1s));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
+    return(false));
+  print("gsexim: ds2 callback received after %d polls\n" cnt :err);
+
+  /* --- connect to both --- */
+  sock1=socket("localhost" ds1_port);
+  if(type(sock1)==`UnknownType :then
+    print("gsexim: FAIL could not connect to ds1 on port %d\n" ds1_port :err);
+    kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
+    return(false));
+  sock2=socket("localhost" ds2_port);
+  if(type(sock2)==`UnknownType :then
+    print("gsexim: FAIL could not connect to ds2 on port %d\n" ds2_port :err);
+    remote(sock1 "exit" :nowait);close(sock1);
+    kill_port(:kill_port_num ds2_port);
+    return(false));
+
+  /* --- ds1 (source): build a rect with gs A, export the single-line command.
+         :percomp emits a runnable rect(...) command (one line, no drawtool()
+         wrapper) -- the plain export(:string) form is a multi-line document that
+         remote() would truncate at the first newline. --- */
+  print("gsexim: ds1 building rect with gs A (Red/White, solid brush)\n" :err);
+  remote(sock1 "r=rect(0,0,100,100)");
+  remote(sock1 "brush(65535,0)");
+  remote(sock1 print("colors(%cRed %cWhite)" 96 96 :str));
+  s1=remote(sock1 "export(r :string :percomp)");
+  print("gsexim: s1 (from ds1) = %s\n" s1 :err);
+  if(type(s1)!=`StringType :then
+    print("gsexim: FAIL ds1 export(r :string :percomp) did not return a string (got %v)\n" s1 :err);
+    remote(sock1 "exit" :nowait);close(sock1);remote(sock2 "exit" :nowait);close(sock2);
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    return(false));
+
+  /* --- ds2 (dest): set the editor to gs B, then import s1 (naming the result r2
+         so we can export exactly the imported rect).  ds2 is a separate process;
+         if the import read ds2's editor state the rect would come back gs B. --- */
+  print("gsexim: ds2 editor set to gs B (Blue/Yellow) before import\n" :err);
+  remote(sock2 "brush(0,0)");
+  remote(sock2 print("colors(%cBlue %cYellow)" 96 96 :str));
+  print("gsexim: ds2 importing the command from ds1 (the script is the picture)\n" :err);
+  remote(sock2 print("r2=%s" s1 :str));
+  s2=remote(sock2 "export(r2 :string :percomp)");
+  print("gsexim: s2 (from ds2) = %s\n" s2 :err);
+
+  /* --- the cross-drawserv round-trip assertion --- */
+  ok=eq(s1 s2);
+  print("gsexim: s1==s2 (gs A survived ds1->ds2 export/import): %v\n" ok :err);
+  if(!ok :then
+    print("gsexim: FAIL cross-drawserv round-trip mismatch (ds2 did not rebuild gs A from the command)\n" :err);
+    print("gsexim:   s1=[%s]\n" s1 :err);
+    print("gsexim:   s2=[%s]\n" s2 :err));
+
+  /* --- tear both down, waiting for each process to clear so the canonical ports
+     are free for the next test --- */
+  remote(sock1 "exit" :nowait);close(sock1);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0
+    update(200000));
+  print("gsexim: ds1 shut down\n" :err);
+  remote(sock2 "exit" :nowait);close(sock2);
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0
+    update(200000));
+  print("gsexim: ds2 shut down\n" :err);
+  ok)
