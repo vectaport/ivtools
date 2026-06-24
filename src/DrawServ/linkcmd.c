@@ -86,6 +86,13 @@ const char* LinkBrushCmd::dist_script() {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
+                /* INTERIM LIMITATION: the owner key+sid are captured from the
+                   FIRST matching comp only, so the whole dance relays under one
+                   owner's :unlock/:lock key and ExecuteCmd excludes one back-
+                   link.  Correct today, when a selection's comps share an owner;
+                   a mixed-ownership selection would mis-stamp the rest.  Revisit
+                   when per-owner signatures land (issue #163) -- the dance would
+                   then have to group comps by owner and emit one bracket each. */
                 if (grid->selected() == LinkSelection::LocallySelected) {
                     owner_key = drawserv->sessionidkey();
                     uuid_copy(_dist_owner_sid, drawserv->sessionid());
@@ -198,6 +205,13 @@ const char* LinkColorCmd::dist_script() {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
+                /* INTERIM LIMITATION: the owner key+sid are captured from the
+                   FIRST matching comp only, so the whole dance relays under one
+                   owner's :unlock/:lock key and ExecuteCmd excludes one back-
+                   link.  Correct today, when a selection's comps share an owner;
+                   a mixed-ownership selection would mis-stamp the rest.  Revisit
+                   when per-owner signatures land (issue #163) -- the dance would
+                   then have to group comps by owner and emit one bracket each. */
                 if (grid->selected() == LinkSelection::LocallySelected) {
                     owner_key = drawserv->sessionidkey();
                     uuid_copy(_dist_owner_sid, drawserv->sessionid());
