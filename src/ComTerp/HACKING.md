@@ -517,6 +517,31 @@ as a command token producing a value that `=` binds — confirming there is
 no declaration node. This is exactly the kind of invariant the planned
 `operators.comt` conformance suite should pin with a golden.
 
+## Contributor Note: A `;`-Chain Resolves Names Before It Runs
+
+The *other* way a `func`-based helper "returns nil for no obvious reason" is a
+timing one, and it bites hardest when a script is split into files loaded with
+`run()`. Top-level expressions are **evaluated one at a time, each before the
+next is parsed**, so a definition is live for the *parse* of the following
+expression. But `;` (`seq`) fuses expressions into a *single* top-level
+expression parsed as a whole before any of it runs — so a name defined and used
+within one `;`-chain is resolved at parse time, before its own definition has
+executed:
+
+```
+x=func(10+2);x(:dummy 0)     // fused: x(...) parsed before x=func(...) runs -> nil
+x=func(10+2) x(:dummy 0)     // separate: def runs, then x(...) parses live -> 12
+```
+
+The practical rule for loaders: write `run("./helpers.comt")` on its own line
+with **no trailing `;`**, so the load finishes evaluating (populating the symbol
+table) before the dispatch that calls those helpers is parsed. A stray `;` after
+the `run()` silently reverts every helper call to nil — the same nil signature
+as the declaration-syntax mistake above, but a different cause. The full
+treatment, plus the companion funcobj bare-fire / backquote-rebind behavior,
+is in `src/comterp_/LANGUAGE.md` ("A definition goes live one top-level
+expression at a time"). The eval-time-resolution fix is tracked in #94/#13.
+
 ## Contributor Note: `list()` vs `,` for List Growth
 
 (The same everything-is-an-expression principle drives this one — `list()`

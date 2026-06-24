@@ -202,6 +202,37 @@ A script file (`.comt`) is a sequence of top-level expressions consumed
 one at a time. The return value of the script is the value of the last
 expression evaluated. By convention test scripts return `ok` (a boolean).
 
+### A definition goes live one top-level expression at a time
+
+"Consumed one at a time" is literal, and laziness has been baked into the
+interpreter from the start: each top-level expression is **evaluated before
+the next is parsed**, so a name defined in one top-level expression is live
+for the *parse* of the next. The `;` sequence operator fuses expressions into
+a **single** top-level expression that is parsed as a whole *before* any of it
+runs — so a name defined and used within one `;`-chain is resolved before its
+own definition has executed:
+
+```
+(comt) x=func(10+2);x(:dummy 0)     // ';' fuses into one parse unit:
+x=func(10+2);x(:dummy 0)            //   x(...) is parsed before x=func(...) runs
+nil                                 //   -> x unresolved at parse -> nil
+
+(comt) x=func(10+2) x(:dummy 0)     // two top-level expressions: the def
+x=func(10+2) x(:dummy 0)            //   evaluates, THEN x(...) is parsed, x live
+FuncObj
+12
+```
+
+The line comterp echoes back is the *re-serialized parse*, so when it differs
+from your source (e.g. a dropped argument value) the call was bound against
+stale parser state. The rule that falls out: **define in one top-level
+expression, use in the next** — never `;`-chain a definition to the code that
+consumes it. This is why a dispatcher that loads its helpers with
+`run("./helpers.comt")` writes the `run()` on its own line with **no trailing
+`;`**: the load must finish evaluating, populating the symbol table, before the
+code that calls those helpers is parsed. (The deeper fix — resolving a
+`name(...)` call at eval time rather than parse time — is tracked in #94/#13.)
+
 The body argument to a control command (`for`, `while`, `if`, `switch`, `func`)
 is a **single expression**. The canonical way to express a
 multi-statement body is semicolons with no enclosing delimiters —
@@ -409,6 +440,16 @@ The dot namespace rooted at a symbol is scoped with that symbol — see
 type(val)==`IntType
 ```
 
+Because a symbol bound to a `FuncObj` *fires* when merely named (see
+[A funcobj fires when named](#a-funcobj-fires-when-named)), backquote is also
+how you **rebind** such a name — without it the bare left-hand side would
+invoke the old function instead of naming the variable:
+
+```
+`x=func(10*2)     // bind the symbol x; a bare `x=...` would fire the old func
+x(:dummy 0)       // 20
+```
+
 `StreamObj` was temporarily exported as the literal for a `StreamType`,
 and a warning will be printed if a script makes use of it as a symbol (by
 prefixing it with a back-quote). Use `` `StreamType `` instead.
@@ -530,6 +571,32 @@ v=f(:x 6)          // x is set to 6 before body runs, returns 12
 v=f(:x 3)          // returns nil (no early return taken)
 v=f()              // x is nil, condition is false, returns nil (ivtools-2.2 or >)
 ```
+
+### A funcobj fires when named
+
+A symbol bound to a `FuncObj` is *evaluated* — called with no arguments — the
+moment it is referenced bare, a Lisp-ish consequence of names resolving lazily.
+The assignment itself returns the `FuncObj`; it is a *later bare reference* that
+fires:
+
+```
+x=func(10*2)       // FuncObj  (the binding; does not fire)
+x                  // 20       (bare reference fires it with no args)
+```
+
+This is why putting a fresh `func()` on the right-hand side of a name that
+already holds one does not rebind it — the bare left-hand `x` fires the old
+function first. To refer to such a name *without* firing it (to rebind, or to
+pass it along), quote it with backquote (see [Backquote](#backquote)):
+
+```
+`x=func(10*2)      // FuncObj  -- ` names the symbol instead of firing it
+x(:dummy 0)        // 20       -- now bound to the new func
+```
+
+An explicit (keyword) argument list always invokes the body regardless:
+`x(:k v)`. Once `FuncObj` grows its own `arg()`/`narg()` the bare-fire rule may
+relax, but today the backquote is the escape hatch.
 
 ### Scoping rules
 
