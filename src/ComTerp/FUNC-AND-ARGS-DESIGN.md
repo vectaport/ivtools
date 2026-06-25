@@ -23,22 +23,33 @@ naming concepts: same mechanism ≠ same thing):
 |---|---|---|
 | **stream literal** | a `FuncObj` | *lazily* — `next()` one element at a time (streaming) |
 | **func bodies** | a `FuncObj` | *eagerly* — invoked, run to the last value (not streaming) |
-| **func actual parameter list** | a *proto*-`FuncObj`, in place in the read-only postfix buffer | post-eval-indexed on demand by `arg()` |
+| **func actual parameter list** | **eagerly-evaluated values on the stack** (postfix order) | indexed on demand by `arg(n)` = `stack_arg(n)` |
 
-`FuncObj` is the underlying abstraction: a held span of tokens to evaluate
-later. "Stream a literal," "run a body," "pull an actual arg" are three
-readings of that one deferred-span thing.
+`FuncObj` is the underlying abstraction for the first two: a held span of tokens
+to evaluate later. The actual parameter list is the odd one out — **by default
+it is *not* deferred**: a FuncObj invocation is an eager evaluation, so the
+positionals are computed up front and sit on the stack in postfix order, and
+`arg(n)` is simply `stack_arg(n)` reading the already-computed value. The
+deferred-span reading of the actual-param list (a proto-`FuncObj` post-eval-
+indexed out of the read-only postfix buffer) is the **`:posteval` future**
+(§ below), not today's behavior.
 
 ## The func IO contract
 
 **In — exactly two channels:**
 
-- **positionals → the `arg()` bell.** Indexed, *re-readable*. `arg(n)`
-  post-evals the n-th positional's token span out of the **read-only** postfix
-  buffer; `narg()` is the count. It rings as many times as you like, in any
-  order, with no consumption — the bell falls out of the buffer's immutability
-  for free. A func positional is a real `ComValue` (the script-level `arg()`
-  returns a string symbol; this one returns the value).
+- **positionals → `arg(n)`, indexed and re-readable.** A FuncObj invocation is
+  **eager**: the positionals are evaluated up front and sit on the stack in
+  postfix order, so `arg(n)` is just `stack_arg(n)` and `narg()` is the
+  positional count. You can read `arg(2)` first, `arg(0)` three times, any order
+  — but because the values are *already computed*, re-reading returns the **same
+  value** each time; it does **not** re-run the expression. So `c(beep ding)`
+  with `arg(0),arg(1),arg(0),arg(1)` in the body yields the four computed values
+  but **beeps/dings once**, not "beep ding beep ding". The true re-*firing* bell
+  — re-running a positional's expression on each read — needs deferred
+  evaluation, which is the **`:posteval`** future keyword (§ below). A func
+  positional is a real `ComValue` (the script-level `arg()` returns a string
+  symbol; this one returns the value).
 - **keywords → func-scoped variables, auto-created.** There is *no querying* of
   a keyword inside a body — no `stack_key`. `f(:x 5)` simply means `x` is `5` as
   a local. The keyword **is** the variable.

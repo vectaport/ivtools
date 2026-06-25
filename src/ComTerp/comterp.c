@@ -178,6 +178,9 @@ void ComTerp::init() {
     _fd = -1;
     _arg_strs = nil;
     _narg_strs = 0;
+    _funcobj_argvals = nil;
+    _funcobj_nargs = 0;
+    _funcobj_active = false;
     _top_commands = NULL;
 }
 
@@ -439,22 +442,27 @@ void ComTerp::eval_expr_internals(int pedepth) {
       ComValue val = lookup_symval(sv);
       if(val.is_object(FuncObj::class_symid())) {
 	EvalFunc ef(this);
-	if(val.narg()!=val.nkey()) {
-	  fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
-	  push_stack(ComValue::nullval());
-	  return;
-	}
-	if(val.narg()==0) {
-	  fprintf(stderr, "keyword arguments needed for custom func invoking (%s)\n", funcname);
-	  push_stack(ComValue::nullval());
-	  return;
-	}
+	/* keywords still build the body's locals (the _alist); the fixed
+	   positionals become the func's eager actual args, captured here so
+	   arg(n)/narg() can serve them inside the body (see funcobj_arg).
+	   Keyword pairs sit above the positionals on the stack (no positionals
+	   after keywords), so pop the nkey pairs first, leaving the positionals. */
+	int npos = val.narg() - val.nkey();
+	if (npos<0) npos = 0;
 	AttributeList* al = new AttributeList();
-	for(int i=0; i<val.narg(); i++) {
+	for(int i=0; i<val.nkey(); i++) {
 	  ComValue keyv(pop_stack());
 	  ComValue valv(pop_stack());
 	  al->add_attr(keyv.keyid_val(), valv);
 	}
+	ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
+	for(int i=npos-1; i>=0; i--) posvals[i] = pop_stack();
+	ComValue* saved_argvals = _funcobj_argvals;
+	int saved_nargs = _funcobj_nargs;
+	boolean saved_active = _funcobj_active;
+	_funcobj_argvals = posvals;
+	_funcobj_nargs = npos;
+	_funcobj_active = true;
 	push_stack(val);
 	ComValue alv(AttributeList::class_symid(), al);
 	push_stack(alv);
@@ -462,6 +470,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	ComValue alkeyv(alist_symid, 1);
 	push_stack(alkeyv);
 	ef.exec(2, 1);
+	_funcobj_argvals = saved_argvals;
+	_funcobj_nargs = saved_nargs;
+	_funcobj_active = saved_active;
+	delete [] posvals;
       } else {
 	push_stack(val);
       }
@@ -1894,6 +1906,12 @@ int ComTerp::arg_str(int n) {
 
 int ComTerp::narg_str() {
   return _narg_strs;
+}
+
+ComValue& ComTerp::funcobj_arg(int n) {
+  if (!_funcobj_argvals || n<0 || n>=_funcobj_nargs)
+    return ComValue::nullval();
+  return _funcobj_argvals[n];
 }
 
 void ComTerp::set_args(int argc, char** argv) {

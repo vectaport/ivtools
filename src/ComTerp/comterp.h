@@ -322,6 +322,14 @@ public:
     int narg_str();
     // return number of command line argument
 
+    boolean funcobj_active() { return _funcobj_active; }
+    // true while executing inside a FuncObj invocation, so arg()/narg()
+    // serve the func's positionals instead of the script argv.
+    int funcobj_narg() { return _funcobj_nargs; }
+    // number of positional args of the current FuncObj invocation.
+    ComValue& funcobj_arg(int n);
+    // nth positional arg (eager value) of the current FuncObj invocation.
+
     void set_args(int argc, char** argv);
     // set command line arguments
 
@@ -441,6 +449,13 @@ protected:
 
     int _narg_strs;
     // size of array of string ids for command line arguments
+
+    ComValue* _funcobj_argvals;
+    // captured positional args of the current FuncObj invocation (nil at top)
+    int _funcobj_nargs;
+    // number of positional args of the current FuncObj invocation
+    boolean _funcobj_active;
+    // true while executing inside a FuncObj invocation
 
     AttributeValueList* _top_commands;
     // list of top-most commands for this derived comterp

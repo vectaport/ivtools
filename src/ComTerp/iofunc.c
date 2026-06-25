@@ -544,9 +544,16 @@ GetArgFunc::GetArgFunc(ComTerp* comterp) : ComFunc(comterp) {
 void GetArgFunc::execute() {
   ComValue numv(stack_arg(0));
   reset_stack();
-  int arg_sym = comterp()->arg_str(numv.int_val());
+  int n = numv.int_val();
+  if (comterp()->funcobj_active()) {
+    /* inside a FuncObj body: nth eager positional (a real value) */
+    ComValue retval(comterp()->funcobj_arg(n));
+    push_stack(retval);
+    return;
+  }
+  int arg_sym = comterp()->arg_str(n);
   if (arg_sym>0) {
-    ComValue retval(comterp()->arg_str(numv.int_val()), ComValue::StringType);
+    ComValue retval(comterp()->arg_str(n), ComValue::StringType);
     push_stack(retval);
   } else
     push_stack(ComValue::nullval());
@@ -560,6 +567,11 @@ NumArgFunc::NumArgFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void NumArgFunc::execute() {
   reset_stack();
+  if (comterp()->funcobj_active()) {
+    ComValue retval(comterp()->funcobj_narg(), ComValue::IntType);
+    push_stack(retval);
+    return;
+  }
   ComValue retval(comterp()->narg_str(), ComValue::IntType);
   push_stack(retval);
   return;
