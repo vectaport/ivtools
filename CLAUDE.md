@@ -69,9 +69,9 @@ Violations*.
 | `comdraw`, `drawtool`, `idraw`, `graphdraw`, `flipbook` | editor binaries |
 | `tests` | top-level / cross-cutting tests (e.g. y2k) |
 
-Note the trailing-underscore convention: `comterp_`, `drawserv_`, `comterp_`
-are the **program** directories; `ComTerp`, `DrawServ` are the **library**
-directories. See the naming convention below.
+Note the trailing-underscore convention: `comterp_` and `drawserv_` are the
+**program** directories; `ComTerp` and `DrawServ` are the corresponding
+**library** directories. See the naming convention below.
 
 ---
 
@@ -119,7 +119,7 @@ written in ComTerp itself.
 `.comt` scripts run from inside a built `comterp`/`comdraw`/`drawserv`:
 
 ```
-run("src/comterp/tests/run_all.comt")   # runs every script, prints pass/FAIL
+run("src/comterp_/tests/run_all.comt")   # runs every script, prints pass/FAIL
 ```
 
 Each script returns a boolean `ok`; `run_all.comt` aggregates them. The full
@@ -228,10 +228,11 @@ C++ work. The essentials:
 
 ## Git / workflow
 
-- Active development branch for this task: **`claude/claude-md-docs-nukptb`**.
-  Develop, commit, and push there; create it locally if missing. Never push to
-  another branch without explicit permission. Push with
-  `git push -u origin <branch>`.
+- Work on a dedicated feature branch, never directly on `master`. Develop,
+  commit, and push to that branch (create it locally if missing); push with
+  `git push -u origin <branch>`. Never push to another branch without explicit
+  permission. (A task that assigns you a specific branch overrides this — use
+  the branch it names.)
 - Do **not** open a pull request unless explicitly asked.
 - CI is light: `.github/workflows/send-merge-summary.yml` emails a summary when
   a PR is merged to `master` (using the PR body as the changelog). There is no
