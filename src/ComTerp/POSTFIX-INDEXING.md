@@ -235,10 +235,93 @@ work, which makes every ObjectType payload — FuncObj included — a `Resource`
 shrinks on `next()`, exhaustion yields nil, and a mid-stream `$$` fork continues
 from the current position independently.
 
-## 9. Stale-doc fixes to make alongside
+## Trailing positionals and the POSIX `--` parallel
 
-- `comvalue.h` `nids()` "(not used)" comment — it is used (`comterp.c:297`).
-- HACKING `## nargspost() vs nargsfixed()` documents only the funcstate family.
-  Add the ComValue token family (`narg/nkey/nids/pedepth`) and state plainly that
-  the *walk* reads the token family while `execute()` bodies read the funcstate
-  family.
+ComTerp's call convention is **positionals first, then keywords, and the keyword
+block is terminal** — no positional ever follows a keyword. This is not a
+convention authors are trusted to follow: **the parser rejects trailing
+positionals.** A positional after a keyword does not parse; it never reaches the
+postfix buffer, the arity bookkeeping, or the post-eval accessors.
+
+This is the same ambiguity POSIX solves with `--`, solved at a different layer.
+Unix permits options and operands to interleave, so it cannot always tell an
+option-looking operand (`-rf` as a filename) from an option, and standardized `--`
+as a **runtime, user-supplied** fence: everything after `--` is positional. The
+ambiguity lives forever, patched per-invocation by the user.
+
+ComTerp instead makes the ambiguous construct **unspeakable** — the parser won't
+accept positionals-after-keywords at all — so everything downstream gets to
+*assume* well-formed positionals-then-keywords and never re-check it. The
+disambiguator is at the parser (the earliest, cheapest chokepoint), enforced once,
+trusted everywhere after. That is what lets the dense post-eval machinery be dense:
+the front door already guaranteed the invariant.
+
+### Consequence for the arity walk
+
+Because the parser rejects trailing positionals, a post-keyword positional cannot
+occur in any well-formed postfix buffer, and malformed input cannot reach the walk
+to produce one. The `nargs -= tokcnt ? 1 : 0` correction in `skip_func` (which
+discounts a post-keyword positional so it is not double-counted against `narg()`)
+is therefore handling a state the front end already excludes. It is a candidate
+for removal as vestigial — gated on confirming that *no* path bypasses the
+parser's rejection (distributed command strings, `remote()` payloads, and `run()`
+of arbitrary files all re-enter through the parser, so the guarantee should hold,
+but the audit is the precondition for removing the correction).
+
+Relatedly, `nargsfixed() = nargs() - nargskey()` is the pre-keyword positional
+count — the order-dependent operands — and is the right count to use wherever
+"args before keywords" is meant (vs. `narg()`, which includes post-keyword args
+the grammar now forbids anyway).
+
+## Failure mode: corrupt argoff anchor → wild offtop
+
+The post-eval accessors recover position anchor-relative, not cursor-relative
+(§4–§5): `offtop = argoff.int_val() - _pfnum`, where `argoff` is read from
+`stack_top()`. This is load-bearing and correct *when the anchor is sound*. It has
+one sharp failure mode worth recording, because the symptom is a wild memory read
+far from its cause.
+
+If an upstream command returns nil/empty in a way that leaves the argoff bookmark
+unpushed or wrong on the stack (an empty `remote()` return is one observed cause),
+`argoff.int_val()` is garbage, and `argoff.int_val() - _pfnum` recovers a wild
+`offtop` — not off-by-one, but arbitrarily out of range (a real instance:
+`offtop = -317`, `nkeys() = 2`). `expr_top(offtop)` (comterp.c) then indexes
+`_pfcomvals[_pfnum-1+offtop]`. The guard that makes this safe rejects both ends —
+`_pfnum+offtop < 1` (low; **`< 1`, not `< 0`** — `< 0` would let
+`_pfnum+offtop == 0` read `_pfcomvals[-1]`) and `offtop > 0` (above the post-eval
+top). The crash predated that guard on this path, so the wild offtop indexed
+straight into unmapped memory:
+
+```
+EXC_BAD_ACCESS  AttributeValue::type()  (reading _type off a wild this)
+  <- AttributeValue::is_type(KeywordType)
+  <- ComFunc::stack_key_post_eval  (curr = expr_top(offtop); curr.is_type(...))
+```
+
+The crash is in `AttributeValue::type()`, three frames below the actual fault
+(the bad anchor). The `this` pointer is in unmapped space and lldb cannot read
+`*this` at all (vs. freed-heap garbage, which reads as *something*) — that
+distinguishes "indexed off the stack into unmapped memory" from "read freed
+object."
+
+### Containment
+
+`stack_arg_post` already guards its recovered index (`if (loc<0) { warn; return
+nullval(); }`). The `stack_key_post*` siblings recover the same `offtop` and must
+guard it the same way before `expr_top(offtop)`: reject `offtop > 0 ||
+_pfnum + offtop < 1` (exactly the range `expr_top` itself rejects), warn, and
+return the no-key default. The warning should print `offtop`, `nkeys()`,
+`argoff.int_val()`, and `_pfnum` — those four numbers identify whether the anchor
+was unpushed (garbage `int_val`) or `_pfnum` was off, which is the only fast way
+to find the *upstream* under-push from the downstream crash site. Containment stops
+the crash and reports it; it does not fix the upstream under-push that corrupted
+the anchor — the warning is what makes that findable.
+
+### A diagnostic aid for nil returns
+
+Calling `type()`, `%v`-print, or `eq()` on a raw nil/empty value returned from
+`remote()` is what triggers the keyword-post-eval path that overruns. `%s`-print
+tolerates nil (renders `(null)`) and does not. When testing whether a remote call
+returned a usable value, render with `%s` and compare rendered strings rather than
+touching the raw return with type-dispatching operators.
+
