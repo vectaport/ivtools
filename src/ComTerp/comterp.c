@@ -458,6 +458,11 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	  if (knarg==0) {
 	    al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
 	  } else {
+	    /* knarg>1 (multi-value keyword) is an unused shape; each add_attr
+	       here dedups by key (AttributeList::add_attr replaces a matching
+	       symid rather than appending), so the keyword binds a single value,
+	       not duplicate entries.  Every value is still popped so the
+	       positional count (npos) stays correct. */
 	    for(int j=0; j<knarg; j++) {
 	      ComValue valv(pop_stack());
 	      al->add_attr(keyv.keyid_val(), valv);
