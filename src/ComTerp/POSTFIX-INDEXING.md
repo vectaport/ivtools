@@ -286,9 +286,11 @@ unpushed or wrong on the stack (an empty `remote()` return is one observed cause
 `argoff.int_val()` is garbage, and `argoff.int_val() - _pfnum` recovers a wild
 `offtop` — not off-by-one, but arbitrarily out of range (a real instance:
 `offtop = -317`, `nkeys() = 2`). `expr_top(offtop)` (comterp.c) then indexes
-`_pfcomvals[_pfnum-1+offtop]`. Its guard checks the lower bound (`_pfnum+n < 0`)
-but a wild value can land at a positive-but-out-of-allocation index, so the access
-reads unmapped memory:
+`_pfcomvals[_pfnum-1+offtop]`. The guard that makes this safe rejects both ends —
+`_pfnum+offtop < 1` (low; **`< 1`, not `< 0`** — `< 0` would let
+`_pfnum+offtop == 0` read `_pfcomvals[-1]`) and `offtop > 0` (above the post-eval
+top). The crash predated that guard on this path, so the wild offtop indexed
+straight into unmapped memory:
 
 ```
 EXC_BAD_ACCESS  AttributeValue::type()  (reading _type off a wild this)
@@ -307,7 +309,7 @@ object."
 `stack_arg_post` already guards its recovered index (`if (loc<0) { warn; return
 nullval(); }`). The `stack_key_post*` siblings recover the same `offtop` and must
 guard it the same way before `expr_top(offtop)`: reject `offtop > 0 ||
-_pfnum + offtop < 0` (exactly the range `expr_top` itself rejects), warn, and
+_pfnum + offtop < 1` (exactly the range `expr_top` itself rejects), warn, and
 return the no-key default. The warning should print `offtop`, `nkeys()`,
 `argoff.int_val()`, and `_pfnum` — those four numbers identify whether the anchor
 was unpushed (garbage `int_val`) or `_pfnum` was off, which is the only fast way

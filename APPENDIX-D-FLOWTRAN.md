@@ -65,7 +65,7 @@ will get evaluated at "compile" time, and symbols not in the stream lists will
 be evaluated and stored in an internalized representation, i.e.:
 
 ```
-area[r][a](a=3.141519*r*r)
+area[r][a](a=3.141592*r*r)
 ```
 
 A less useful but more illustrative example might be a hub that returned the
