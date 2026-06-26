@@ -75,6 +75,11 @@ print("8 pp=func(arg(0)); pp(7 :flag) flag leaves positional intact (expect 7): 
 check_fail(:ok ok)
 
 // --- test 9: an unsupplied keyword reads nil (basis of optional params) ---
+// In a flat run() scope variables are shared across test files, and an unset
+// func-local name falls through to the outer scope -- so a test that reads a
+// name "when absent" must initialize it to nil first (it's an uninitialized C
+// variable, in effect: if you test for nil, set it nil).
+flag=nil
 pf=func(flag)
 r=pf()
 ok=ok&&(r==nil)
@@ -82,6 +87,7 @@ print("9 pf=func(flag); pf() keyword absent (expect nil): %v\n\n" r)
 check_fail(:ok ok)
 
 // --- test 10: lazy-init / optional-parameter-with-default idiom ---
+x=nil   // initialize before testing x==nil (see the test 9 note)
 ini=func(if(x==nil :then 99 :else x))
 r1=ini()
 r2=ini(:x 5)

@@ -69,5 +69,9 @@ if(run("./bigbuf.comt")
   :then print("pass: bigbuf\n")
   :else print("FAIL: bigbuf\n");topok=false)
 
+if(run("./funcarg.comt")
+  :then print("pass: funcarg\n")
+  :else print("FAIL: funcarg\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok
