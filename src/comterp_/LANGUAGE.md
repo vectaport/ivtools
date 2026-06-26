@@ -565,6 +565,26 @@ f()                // nil*2 -- x is nil, result is nil
 f(:x 5)            // 10
 ```
 
+But that nil is the func-scope **miss** falling through to local/global —
+the very close-over described next — so "reads as nil" holds **only when
+no outer variable of that name exists**. If the surrounding scope already
+holds an `x`, an unsupplied `x` reads *that value*, not nil. The slot is
+not zero-initialized; treat it as an uninitialized variable in the C/C++
+sense.
+
+The optional-parameter-with-default idiom rests on exactly this nil:
+
+```
+f=func(if(x==nil :then 99 :else x))   // default 99 when x not supplied
+f()                // 99   -- only if no outer x is in scope
+f(:x 5)            // 5
+```
+
+So when an outer `x` might be present — e.g. several scripts sharing one
+flat ComTerp through `run()` — **initialize it first** (`x=nil` before the
+call) or the default silently won't fire. Rule of thumb: *if you test a
+name for nil, set it nil.*
+
 This means a func can close over outer variables for reading without
 declaring them, but any write stays local:
 

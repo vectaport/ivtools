@@ -76,7 +76,7 @@ print("7 (:a 1); errmsg(:last) nil after success (expect nil): %v\n" e)
 prev_ok=check_fail(:ok ok)
 
 // --- test 8: errmsg(:last) clears after retrieval ---
-(4 :x 7)
+(4 :x 7 8)  // intentional parser error generation, do not remove
 e1=errmsg(:last)
 e2=errmsg(:last)
 ok=ok&&(e1!=nil)
@@ -85,7 +85,7 @@ print("8 errmsg(:last) then errmsg(:last) clears after retrieval (expect non-nil
 prev_ok=check_fail(:ok ok)
 
 // --- test 9: errmsg(:keep) does not clear ---
-(4 :x 7)
+(4 :x 7 8) // intentional parser error generation, do not remove
 e1=errmsg(:keep)
 e2=errmsg(:last)
 ok=ok&&(e1!=nil)
