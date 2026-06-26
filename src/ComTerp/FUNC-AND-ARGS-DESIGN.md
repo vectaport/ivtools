@@ -98,39 +98,40 @@ across a stream — one finite invocation per element. That streams the
   bell; ring `arg(2)` first, `arg(0)` thrice, bind no names at all. No formal
   parameter structure is imposed; you bolt one on only if you feel like it.
 
-## The `arg()`/`narg()` patch (in flight)
+## The `arg()`/`narg()` patch (landed — eager)
 
 **Strategy (S. Johnston):** *let the positionals do what the guard stops, and
-tie `narg()`/`arg()` to looking up — and running — the positionals in the
-postfix buffer.*
+tie `narg()`/`arg()` to the eager actuals.*
 
-Touchpoints:
+What landed (on `comterp-arg-narg-for-func`):
 
 1. **`comterp.c`, the FuncObj invocation** (the `val.is_object(FuncObj::...)`
-   branch, ~line 440). It currently bails on any positional:
-   ```c
-   if(val.narg()!=val.nkey()) {
-     fprintf(stderr, "free format args not yet supported for custom funcs (%s)\n", funcname);
-     push_stack(ComValue::nullval()); return;
-   }
-   ```
-   Remove that guard; let the positionals through. Keyword pairs still build the
-   `AttributeList` that becomes the body's locals (via `_alist`); the positional
-   spans stay addressable in the read-only postfix buffer (`_pfbuf`).
-2. **`arg()`/`narg()`** (`iofunc.c`, `GetArgFunc`/`NumArgFunc`). Today they read
-   the *script* argv (`comterp->arg_str(n)` / `narg_str()` over `_arg_strs`).
-   Add the func-invocation path: when inside a func, `arg(n)` post-evals the
-   n-th positional span via `post_eval_expr(tokcnt, offtop, pedepth)` against
-   `_pfbuf`; `narg()` is the positional count. Fall back to the script argv at
+   branch). The guards that bailed on positionals are removed. Keyword pairs
+   build the `AttributeList` that becomes the body's locals (via `_alist`),
+   split by each keyword's `keynarg` (`0` = bare flag → `true`); the fixed
+   positionals are **captured eagerly** into a per-invocation channel on the
+   ComTerp (`_funcobj_argvals` / `_funcobj_nargs` / `_funcobj_active`), saved and
+   restored around `ef.exec` so nesting and recursion work.
+2. **`arg()`/`narg()`** (`iofunc.c`, `GetArgFunc`/`NumArgFunc`). Serve from the
+   funcobj channel when inside a body (`funcobj_arg(n)` / `funcobj_narg()`), and
+   fall back to the script argv (`arg_str(n)` / `narg_str()` over `_arg_strs`) at
    top level (so `drawmo`'s `arg(1)` is untouched).
-3. The **bell is free** because `_pfbuf` is read-only — re-indexing the same
-   immutable span re-runs it, no consumption, no captured side array.
+3. **Re-readable, not re-firing.** The invocation is *eager*: positionals are
+   evaluated up front and captured, so re-reading `arg(0)` returns the **same
+   already-computed value** — no consumption, but no re-run either. A
+   side-effecting positional fires **once**, not per read.
 
-Tests to satisfy: `f=func(arg(0)+arg(1)) f(3 4)` → 7; re-readable
-`c=func(arg(0),arg(1),arg(0),arg(1)) c(beep ding)` → beep ding beep ding;
-multi-body `f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with
-`l==(1,2,3)` true. (Note `==` (45) binds tighter than `,` (35), so the literal
-needs the parens.)
+> The "Three different things" table above imagined the actuals as a deferred
+> span post-eval-indexed out of the read-only `_pfbuf` (a captured-side-array-free
+> "bell"). That is **not** what landed — the landed form is eager capture. The
+> `_pfbuf` re-index / re-firing bell is the future `:posteval` keyword.
+
+Tests it satisfies (`funcarg.comt`): `f=func(arg(0)+arg(1)) f(3 4)` → 7;
+re-readable `c=func(arg(0),arg(1),arg(0),arg(1)) c(5 6)` → `(5,6,5,6)` (and a
+side-effecting `c(beep ding)` beeps/dings **once**, not "beep ding beep ding" —
+that awaits `:posteval`); multi-body
+`f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with `l==(1,2,3)`.
+(Note `==` (45) binds tighter than `,` (35), so the literal needs the parens.)
 
 ## Confirmed: `assign` guards against re-binding a func-bound variable
 
