@@ -54,6 +54,18 @@ indexed out of the read-only postfix buffer) is the **`:posteval` future**
   a keyword inside a body — no `stack_key`. `f(:x 5)` simply means `x` is `5` as
   a local. The keyword **is** the variable.
 
+  *Read-side caveat (the slot is not zero-initialized).* The scope shadows on
+  **write**, and for any **passed** keyword — but it does **not** shield an
+  *unset, unwritten* name on **read**: reading such a name falls through
+  `_alist` → localtable → globaltable to whatever the outer scope holds. So
+  "an unsupplied keyword reads nil" — the basis of the
+  `if(x==nil :then default …)` optional-parameter idiom — holds **only when the
+  name isn't also a live outer variable**. It is an *uninitialized variable* in
+  the exact C/C++ sense: if code (or a test) branches on `x==nil`, **set `x=nil`
+  first** rather than assume the slot starts empty. (This is precisely what bit
+  `funcarg.comt` test 10 once it was spliced into the flat `run()` scope behind
+  a file that had left `x` set — see that test's nil-init and `run_all.comt`.)
+
 **Out — one channel by default, because the scope does not leak:**
 
 - a plain `x=…` inside the body stays *local* — scratch, not output;
