@@ -1,0 +1,100 @@
+// src/comterp_/tests/funcarg.comt -- test positional args to FuncObj bodies
+//
+// funcs: func arg narg if
+//
+// Exercises the arg()/narg() feature: a FuncObj invocation is an EAGER
+// evaluation, so its positional actual args are computed up front and
+// served to the body by arg(n) (the nth positional) and narg() (their
+// count).  Keywords still become func-scoped locals; bare flags read true;
+// an unsupplied keyword reads nil (the basis of optional parameters).
+//
+// Note: positionals are eager, so re-reading arg(0) returns the SAME
+// already-computed value -- a side-effecting positional fires once, not
+// per read.  The re-firing form awaits a future :posteval keyword.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./funcarg.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a body reads its positionals via arg(0)/arg(1) ---
+f=func(arg(0)+arg(1))
+r=f(3 4)
+ok=ok&&(r==7)
+print("1 f=func(arg(0)+arg(1)); f(3 4) positional args (expect 7): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 2: narg() reports how many positionals were supplied ---
+g=func(narg())
+r=g(1 2 3)
+ok=ok&&(r==3)
+print("2 g=func(narg()); g(1 2 3) positional count (expect 3): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 3: arg(n) past the end returns nil ---
+o=func(arg(5))
+r=o(1 2)
+ok=ok&&(r==nil)
+print("3 o=func(arg(5)); o(1 2) out of range (expect nil): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 4: positionals are eager and re-readable, same value each read ---
+c=func(arg(0),arg(1),arg(0),arg(1))
+r=c(5 6)
+ok=ok&&(r==(5,6,5,6))
+print("4 c=func(arg(0),arg(1),arg(0),arg(1)); c(5 6) re-read (expect 5,6,5,6): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 5: a keyword becomes a func-scoped local, usable beside a positional ---
+h=func(arg(0)+k)
+r=h(10 :k 5)
+ok=ok&&(r==15)
+print("5 h=func(arg(0)+k); h(10 :k 5) positional + keyword local (expect 15): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 6: keyword-only -- the keyword IS the variable ---
+kf=func(x)
+r=kf(:x 99)
+ok=ok&&(r==99)
+print("6 kf=func(x); kf(:x 99) keyword as variable (expect 99): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 7: a bare flag keyword sets its variable true ---
+ff=func(flag)
+r=ff(:flag)
+ok=ok&&(r==true)
+print("7 ff=func(flag); ff(:flag) bare flag (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 8: a bare flag does not consume a fixed positional ---
+pp=func(arg(0))
+r=pp(7 :flag)
+ok=ok&&(r==7)
+print("8 pp=func(arg(0)); pp(7 :flag) flag leaves positional intact (expect 7): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 9: an unsupplied keyword reads nil (basis of optional params) ---
+pf=func(flag)
+r=pf()
+ok=ok&&(r==nil)
+print("9 pf=func(flag); pf() keyword absent (expect nil): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 10: lazy-init / optional-parameter-with-default idiom ---
+ini=func(if(x==nil :then 99 :else x))
+r1=ini()
+r2=ini(:x 5)
+ok=ok&&(r1==99)&&(r2==5)
+print("10 ini=func(if(x==nil :then 99 :else x)); ini()/ini(:x 5) default vs supplied (expect 99 5): %v %v\n\n" r1 r2)
+check_fail(:ok ok)
+
+// --- test 11: narg() counts fixed positionals only, not keyword values ---
+n2=func(narg())
+r=n2(1 2 :k 3)
+ok=ok&&(r==2)
+print("11 n2=func(narg()); n2(1 2 :k 3) narg excludes keyword value (expect 2): %v\n\n" r)
+check_fail(:ok ok)
+
+print("funcarg: %v\n" ok)
+ok
