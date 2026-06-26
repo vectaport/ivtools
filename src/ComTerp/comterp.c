@@ -575,7 +575,17 @@ void ComTerp::load_sub_expr() {
       } 
     }
     _pfoff++;
-    if ((stack_top().type() == ComValue::CommandType || stack_top().is_funcobj(this)) && 
+    /* A bare funcobj that is the RHS of a dot is an attribute name, not a
+       call: don't fire it -- leave it on the stack as a symbol for the dot
+       command (the next token) to read.  The RHS of a dot attribute should
+       not look up a zero-arg funcobj. */
+    boolean funcobj_top = stack_top().is_funcobj(this);
+    if (funcobj_top && _pfoff < _pfnum &&
+	_pfcomvals[_pfoff].is_type(ComValue::CommandType)) {
+      static int dot_symid = symbol_add("dot");
+      if (_pfcomvals[_pfoff].command_symid() == dot_symid) funcobj_top = false;
+    }
+    if ((stack_top().type() == ComValue::CommandType || funcobj_top) &&
 	!_pfcomvals[_pfoff-1].pedepth()) break;
   }
   
@@ -665,7 +675,16 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	offset++;
 	if (_pfcomvals[offset-1].pedepth()!=pedepth)
 	  continue;
-	if ((stack_top().is_type(ComValue::CommandType) || stack_top().is_funcobj(this)) 
+	/* same dot-RHS funcobj suppression as the main push loop: a bare funcobj
+	   that is the RHS of a dot is an attribute name, not a call (here in the
+	   post-eval path, e.g. inside && / if). */
+	boolean pe_funcobj_top = stack_top().is_funcobj(this);
+	if (pe_funcobj_top && offset < _pfnum &&
+	    _pfcomvals[offset].is_type(ComValue::CommandType)) {
+	  static int dot_symid = symbol_add("dot");
+	  if (_pfcomvals[offset].command_symid() == dot_symid) pe_funcobj_top = false;
+	}
+	if ((stack_top().is_type(ComValue::CommandType) || pe_funcobj_top)
 	    && stack_top().pedepth() == pedepth) break;
       }
 #ifdef POSTEVAL_EXPERIMENT 

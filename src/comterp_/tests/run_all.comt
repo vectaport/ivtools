@@ -3,71 +3,71 @@
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp/tests/run_all.comt")
 
-ok=true
+topok=true
 
 if(run("./hello.comt")
   :then print("pass: hello\n")
-  :else print("FAIL: hello\n");ok=false)
+  :else print("FAIL: hello\n");topok=false)
 
 if(run("./return.comt")
   :then print("pass: return\n")
-  :else print("FAIL: return\n");ok=false)
+  :else print("FAIL: return\n");topok=false)
 
 if(run("./stream.comt")
   :then print("pass: stream\n")
-  :else print("FAIL: stream\n");ok=false)
+  :else print("FAIL: stream\n");topok=false)
 
 if(run("./string.comt")
   :then print("pass: string\n")
-  :else print("FAIL: string\n");ok=false)
+  :else print("FAIL: string\n");topok=false)
 
 if(run("./global.comt")
   :then print("pass: global\n")
-  :else print("FAIL: global\n");ok=false)
+  :else print("FAIL: global\n");topok=false)
 
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
-  :else print("FAIL: attrlist\n");ok=false)
+  :else print("FAIL: attrlist\n");topok=false)
 
 if(run("./print.comt")
   :then print("pass: print\n")
-  :else print("FAIL: print\n");ok=false)
+  :else print("FAIL: print\n");topok=false)
 
 if(run("./parser.comt")
   :then print("pass: parser\n")
-  :else print("FAIL: parser\n");ok=false)
+  :else print("FAIL: parser\n");topok=false)
 
 if(run("./symbol.comt")
   :then print("pass: symbol\n")
-  :else print("FAIL: symbol\n");ok=false)
+  :else print("FAIL: symbol\n");topok=false)
 
 if(run("./help.comt")
   :then print("pass: help\n")
-  :else print("FAIL: help\n");ok=false)
+  :else print("FAIL: help\n");topok=false)
 
 if(run("./stream-literal.comt")
   :then print("pass: stream-literal\n")
-  :else print("FAIL: stream-literal\n");ok=false)
+  :else print("FAIL: stream-literal\n");topok=false)
 
 if(run("./stream-info.comt")
   :then print("pass: stream-info\n")
-  :else print("FAIL: stream-info\n");ok=false)
+  :else print("FAIL: stream-info\n");topok=false)
 
 if(run("./stream-argcnt.comt")
   :then print("pass: stream-argcnt\n")
-  :else print("FAIL: stream-argcnt\n");ok=false)
+  :else print("FAIL: stream-argcnt\n");topok=false)
 
 if(run("./matrixmult.comt")
   :then print("pass: matrixmult\n")
-  :else print("FAIL: matrixmult\n");ok=false)
+  :else print("FAIL: matrixmult\n");topok=false)
 
 if(run("./deeptest.comt")
   :then print("pass: deeptest\n")
-  :else print("FAIL: deeptest\n");ok=false)
+  :else print("FAIL: deeptest\n");topok=false)
 
 if(run("./bigbuf.comt")
   :then print("pass: bigbuf\n")
-  :else print("FAIL: bigbuf\n");ok=false)
+  :else print("FAIL: bigbuf\n");topok=false)
 
-print("\nrun_all: %v\n" ok)
-ok
+print("\nrun_all: %v\n" topok)
+topok
