@@ -133,22 +133,35 @@ that awaits `:posteval`); multi-body
 `f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with `l==(1,2,3)`.
 (Note `==` (45) binds tighter than `,` (35), so the literal needs the parens.)
 
-## Confirmed: `assign` guards against re-binding a func-bound variable
+## Corrected: `assign` blocks clobbering a registered command — *not* rebinding a funcobj
 
-`AssignFunc::execute` (`assignfunc.c:47`) opens with:
+`AssignFunc::execute` (`assignfunc.c:49`) opens with:
 
 ```c
+ComValue operand1(stack_arg(0, true));   // LHS, symbol-preserving
 if (operand1.is_command() && stack_arg_post_eval_size(0)==1) {
     cout << "WARNING:  assignment to command \"" << ... << "\" without args not allowed ...";
     reset_stack(); push_stack(ComValue::nullval()); return;
 }
 ```
 
-So a bare `x=…` where `x` holds a `FuncObj` (which resolves as a command) is
-**blocked** — warn + nil. Backquote bypasses it: `` `x `` makes `operand1` a
-`SymbolType`, so `is_command()` is false, and control reaches the `SymbolType`
-branch, which removes the old value and inserts the new (`localtable`/
-`globaltable`). That is exactly why rebinding a funcobj-bound name needs `` ` ``.
+What this actually blocks is assigning to a **bare registered command** —
+`print=5` / `func=5` → *"assignment to command \"print\" without args not
+allowed"*. `operand1` is read symbol-preserving; a registered command resolves
+to a `CommandType` token (`is_command()` true) and the size-1 check catches the
+bare form, so a built-in can't be clobbered.
+
+It does **not** block reassigning a funcobj-bound *variable*. A funcobj variable
+on the LHS is a plain `SymbolType` (not `is_command()`), so the guard is skipped
+and the assignment proceeds normally. Verified:
+
+- `f=func(19); f=func(20); f==20` → **true** (funcobj → funcobj)
+- `f=func(19); f=5; f==5` → **true** (funcobj → value)
+- `f=5; f=func(20); f==20` → **true** (value → funcobj)
+
+No backquote is needed to rebind a funcobj-bound name. (An earlier draft of this
+section claimed the opposite — that a funcobj LHS was blocked and `` ` `` was
+required — which was wrong.)
 
 ## Future: `DuckType` — run-time method dispatch
 
