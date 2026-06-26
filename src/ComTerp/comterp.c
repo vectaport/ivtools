@@ -445,16 +445,27 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	/* keywords still build the body's locals (the _alist); the fixed
 	   positionals become the func's eager actual args, captured here so
 	   arg(n)/narg() can serve them inside the body (see funcobj_arg).
-	   Keyword pairs sit above the positionals on the stack (no positionals
-	   after keywords), so pop the nkey pairs first, leaving the positionals. */
-	int npos = val.narg() - val.nkey();
-	if (npos<0) npos = 0;
+	   The keywords sit above the positionals on the stack (no positionals
+	   after keywords), so pop them first.  narg() counts non-keyword args
+	   *including* values that follow keywords, and each keyword carries its
+	   own keynarg (0 for a bare flag), so the fixed-positional count is narg
+	   minus the keyword values actually consumed -- not narg-nkey. */
+	int npos = val.narg();
 	AttributeList* al = new AttributeList();
 	for(int i=0; i<val.nkey(); i++) {
 	  ComValue keyv(pop_stack());
-	  ComValue valv(pop_stack());
-	  al->add_attr(keyv.keyid_val(), valv);
+	  int knarg = keyv.keynarg_val();
+	  if (knarg==0) {
+	    al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
+	  } else {
+	    for(int j=0; j<knarg; j++) {
+	      ComValue valv(pop_stack());
+	      al->add_attr(keyv.keyid_val(), valv);
+	      npos--;   /* a post-keyword value, not a fixed positional */
+	    }
+	  }
 	}
+	if (npos<0) npos = 0;
 	ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
 	for(int i=npos-1; i>=0; i--) posvals[i] = pop_stack();
 	ComValue* saved_argvals = _funcobj_argvals;
