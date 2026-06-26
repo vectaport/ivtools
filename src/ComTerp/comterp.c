@@ -458,11 +458,13 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	  if (knarg==0) {
 	    al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
 	  } else {
-	    /* knarg>1 (multi-value keyword) is an unused shape; each add_attr
-	       here dedups by key (AttributeList::add_attr replaces a matching
-	       symid rather than appending), so the keyword binds a single value,
-	       not duplicate entries.  Every value is still popped so the
-	       positional count (npos) stays correct. */
+	    /* knarg is 0 or 1 by construction: the parser emits every keyword
+	       token with narg 0 (bare flag) or 1 (keyword+value) -- the
+	       TOK_KEYWORD PFOUT sites in ComUtil/_parser.c -- and keynarg is set
+	       from token->narg (comterp.c:927).  So knarg>1 is unreachable; this
+	       loop is written generally only.  Even if it ran, add_attr dedups by
+	       symid (replaces, never appends), binding a single value, and every
+	       value is popped so the positional count (npos) stays correct. */
 	    for(int j=0; j<knarg; j++) {
 	      ComValue valv(pop_stack());
 	      al->add_attr(keyv.keyid_val(), valv);
