@@ -304,7 +304,7 @@ void OvViewCompCmd::Execute () {
 	char buf[CHARBUFSIZE];
 	const char* domain = unidraw->GetCatalog()->GetAttribute("domain");
 	domain = (domain == nil) ? "component" : domain;
-	sprintf(buf, "Select a %s to open:", domain);
+	snprintf(buf, sizeof(buf), "Select a %s to open:", domain);
 	style->attribute("caption", "            ");
 	style->attribute("subcaption", buf);
     } else {
@@ -480,7 +480,7 @@ void OvSaveCompAsCmd::Execute () {
     char buf[CHARBUFSIZE];
     const char* domain = unidraw->GetCatalog()->GetAttribute("domain");
     domain = (domain == nil) ? "component" : domain;
-    sprintf(buf, "Save this %s as:", domain);
+    snprintf(buf, sizeof(buf), "Save this %s as:", domain);
 
     boolean reset_caption = false;
     Style* style = new Style(Session::instance()->style());
@@ -513,7 +513,7 @@ void OvSaveCompAsCmd::Execute () {
 
         if (catalog->Exists(name) && catalog->Writable(name)) {
             char buf[CHARBUFSIZE];
-            sprintf(buf, "\"%s\" already exists.", name);
+            snprintf(buf, sizeof(buf), "\"%s\" already exists.", name);
 	    GConfirmDialog* dialog = new GConfirmDialog(buf, "Overwrite?");
 	    Resource::ref(dialog);
 
@@ -1084,7 +1084,7 @@ void OvWindowDumpAsCmd::Execute () {
     Editor* ed = GetEditor();
 
     char buf[CHARBUFSIZE];
-    sprintf(buf, "Dump canvas in .xwd format to:");
+    snprintf(buf, sizeof(buf), "Dump canvas in .xwd format to:");
 
     boolean reset_caption = false;
     Style* style = new Style(Session::instance()->style());
@@ -1107,7 +1107,7 @@ void OvWindowDumpAsCmd::Execute () {
 
         if (catalog->Exists(name) && catalog->Writable(name)) {
             char buf[CHARBUFSIZE];
-            sprintf(buf, "\"%s\" already exists.", name);
+            snprintf(buf, sizeof(buf), "\"%s\" already exists.", name);
 	    GConfirmDialog* dialog = new GConfirmDialog(buf, "Overwrite?");
 	    Resource::ref(dialog);
 
@@ -1124,7 +1124,7 @@ void OvWindowDumpAsCmd::Execute () {
 		style->attribute("caption", "Couldn't save to file!" );
             } else {
 	      char cmdbuf[CHARBUFSIZE];
-	      sprintf(cmdbuf, "xwd -id %ld -out %s",
+	      snprintf(cmdbuf, sizeof(cmdbuf), "xwd -id %ld -out %s",
 		     ed->GetViewer()->GetCanvas()->window()->rep()->xwindow_,
 		     name);
 	      ed->GetWindow()->cursor(hourglass);
@@ -1173,7 +1173,7 @@ void OvImageMapCmd::Execute () {
     Editor* ed = GetEditor();
 
     char buf[CHARBUFSIZE];
-    sprintf(buf, "Save ImageMap template to file:");
+    snprintf(buf, sizeof(buf), "Save ImageMap template to file:");
 
     boolean reset_caption = false;
     Style* style = new Style(Session::instance()->style());
@@ -1197,7 +1197,7 @@ void OvImageMapCmd::Execute () {
 
         if (catalog->Exists(name) && catalog->Writable(name)) {
             char buf[CHARBUFSIZE];
-            sprintf(buf, "\"%s\" already exists.", name);
+            snprintf(buf, sizeof(buf), "\"%s\" already exists.", name);
 	    GConfirmDialog* dialog = new GConfirmDialog(buf, "Overwrite?");
 	    Resource::ref(dialog);
 

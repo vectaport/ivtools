@@ -240,7 +240,7 @@ void MoveFrameCmd::Execute() {
     const char* funcformat = MoveFuncFormat();
     if (funcformat && comterp) {
       char buf[BUFSIZ];
-      sprintf(buf, funcformat, _requestmotion);
+      snprintf(buf, sizeof(buf), funcformat, _requestmotion);
       ComValue retval(comterp->run(buf));
     }
     unidraw->Update();
@@ -270,7 +270,7 @@ void MoveFrameCmd::Unexecute() {
     const char* funcformat = MoveFuncFormat();
     if (funcformat && comterp) {
       char buf[BUFSIZ];
-      sprintf(buf, funcformat, -_requestmotion);
+      snprintf(buf, sizeof(buf), funcformat, -_requestmotion);
       ComValue retval(comterp->run(buf));
     }
     unidraw->Update();
@@ -336,7 +336,7 @@ void FrameBeginCmd::Execute() {
     ComTerpServ* comterp = ed->GetComTerp();
     if (funcformat && comterp) {
       char buf[BUFSIZ];
-      sprintf(buf, funcformat, _allowbg ? 0 : 1);
+      snprintf(buf, sizeof(buf), funcformat, _allowbg ? 0 : 1);
       ComValue retval (comterp->run(buf));
     }
     unidraw->Update();
@@ -389,7 +389,7 @@ void FrameEndCmd::Execute() {
     ComTerpServ* comterp = ed->GetComTerp();
     if (funcformat && comterp) {
       char buf[BUFSIZ];
-      sprintf(buf, funcformat, fnum);
+      snprintf(buf, sizeof(buf), funcformat, fnum);
       ComValue retval(comterp->run(buf));
     }
     unidraw->Update();

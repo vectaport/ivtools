@@ -58,8 +58,8 @@ Box::Box() {
 }
 
 Box::~Box() {
-    register BoxElement* e;
-    register BoxElement* next;
+    BoxElement* e;
+    BoxElement* next;
 
     for (e = head; e != nil; e = next) {
 	next = e->next;
@@ -73,7 +73,7 @@ void Box::Align(Alignment a) {
 }
 
 void Box::DoInsert(Interactor* i, boolean, IntCoord&, IntCoord&) {
-    register BoxElement* e;
+    BoxElement* e;
 
     ++nelements;
     e = new BoxElement;
@@ -93,7 +93,7 @@ void Box::DoChange(Interactor*) {
 }
 
 void Box::DoRemove(Interactor* i) {
-    register BoxElement* e, * prev;
+    BoxElement* e, * prev;
 
     --nelements;
     prev = nil;
@@ -120,17 +120,17 @@ void Box::Reconfig() {
 }
 
 void Box::Resize() {
-    register BoxElement* e;	/* box element */
+    BoxElement* e;	/* box element */
     Shape aggrshape;		/* combined shape of components */
     BoxCanonical total;		/* components' shape along major axis */
     int major, minor;		/* actual dimensions of box */
-    register int have;		/* how much box is willing to change */
-    register int need;		/* how much box needs to change to fit */
+    int have;		/* how much box is willing to change */
+    int need;		/* how much box needs to change to fit */
     boolean grow;		/* true if stretching, false if shrinking */
     BoxCanonical s;		/* element shape along major axis */
-    register int pos;		/* where to put next element on major axis */
-    register int len;		/* size of element along major axis */
-    register int n;		/* temporary variable */
+    int pos;		/* where to put next element on major axis */
+    int len;		/* size of element along major axis */
+    int n;		/* temporary variable */
 
     ComputeShape(&aggrshape);
     GetActual(major, minor);
@@ -182,7 +182,7 @@ void Box::Resize() {
 }
 
 void Box::Draw() {
-    register BoxElement* e;
+    BoxElement* e;
 
     for (e = head; e != nil; e = e->next) {
 	if (e->visible) {
@@ -192,8 +192,8 @@ void Box::Draw() {
 }
 
 void Box::GetComponents(Interactor** c, int nc, Interactor**& a, int& n) {
-    register BoxElement* e;
-    register Interactor** ap;
+    BoxElement* e;
+    Interactor** ap;
 
     n = nelements;
     a = (n <= nc) ? c : new Interactor*[n];
@@ -292,10 +292,10 @@ HBox::HBox(
 
 HBox::~HBox() { }
 
-void HBox::ComputeShape(register Shape* box) {
-    register BoxElement* e;
-    register Shape* s;
-    register int vmin, vmax;
+void HBox::ComputeShape(Shape* box) {
+    BoxElement* e;
+    Shape* s;
+    int vmin, vmax;
 
     box->width = 0;
     box->height = 0;
@@ -320,7 +320,7 @@ void HBox::GetActual(int& major, int& minor) {
     minor = ymax + 1;
 }
 
-void HBox::GetCanonical(register Shape* s, register BoxCanonical& b) {
+void HBox::GetCanonical(Shape* s, BoxCanonical& b) {
     b.major.natural = s->width;
     b.major.shrink = s->hshrink;
     b.major.stretch = s->hstretch;
@@ -423,10 +423,10 @@ VBox::VBox(
 
 VBox::~VBox() { }
 
-void VBox::ComputeShape(register Shape* box) {
-    register BoxElement* e;
-    register Shape* s;
-    register int hmin, hmax;
+void VBox::ComputeShape(Shape* box) {
+    BoxElement* e;
+    Shape* s;
+    int hmin, hmax;
 
     box->width = 0;
     box->height = 0;
@@ -451,7 +451,7 @@ void VBox::GetActual(int& major, int& minor) {
     minor = xmax + 1;
 }
 
-void VBox::GetCanonical(register Shape* s, register BoxCanonical& b) {
+void VBox::GetCanonical(Shape* s, BoxCanonical& b) {
     b.major.natural = s->height;
     b.major.shrink = s->vshrink;
     b.major.stretch = s->vstretch;

@@ -51,6 +51,7 @@
 
 #include <assert.h>
 #include <iostream.h>
+#include <vector>
 
 #undef RasterRect
 
@@ -1144,14 +1145,14 @@ void OverlayPainter::DoRasterRect(
 
     if (r_r && r_r->clippts()) {
       MultiLineObj* mlo = r_r->clippts();
-      XPoint polypts[mlo->count()];
+      std::vector<XPoint> polypts(mlo->count());
       for (int i=0; i<mlo->count(); i++) {
 	IntCoord x, y;
 	MapRoundUp(c, mlo->x()[i], mlo->y()[i], x, y);
 	polypts[i].x = x;
 	polypts[i].y = y;
       }
-      Region poly = XPolygonRegion(polypts, mlo->count(), EvenOddRule);
+      Region poly = XPolygonRegion(&polypts[0], mlo->count(), EvenOddRule);
       XIntersectRegion(rg, poly, rg);
       XDestroyRegion(poly);
     }

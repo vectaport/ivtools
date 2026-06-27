@@ -196,13 +196,13 @@ int status;                     /* Status from lexscan */
 
 /* Finalize format string (if necessary) and return pointer to it */
    if( status != 0 )
-      sprintf( FormatBuffer, "Status %d returned from error system",
+      snprintf(FormatBuffer, sizeof(FormatBuffer), "Status %d returned from error system",
 	 status );
    else if( token_type == TOK_EOF )
-       sprintf( FormatBuffer, "Error number %d (no error message)",
+       snprintf(FormatBuffer, sizeof(FormatBuffer), "Error number %d (no error message)",
 		errnum );
    else if( ferror( errstream ))
-       sprintf( FormatBuffer, "Error in accessing error message file" );
+       snprintf(FormatBuffer, sizeof(FormatBuffer), "Error in accessing error message file" );
    return FormatBuffer;
 
 }

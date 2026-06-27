@@ -643,9 +643,9 @@ FontFamilyRep* FontFamily::rep(Display* d) const {
 }
 
 FontFamilyRep* FontFamily::create(Display* d) const {
-    register FontFamilyRep* r = new FontFamilyRep;
+    FontFamilyRep* r = new FontFamilyRep;
     char buffer[256];
-    sprintf(buffer, "*-*-%s-*-*-*-*-75-75-*-*-*-*", impl_->name);
+    snprintf(buffer, sizeof(buffer), "*-*-%s-*-*-*-*-75-75-*-*-*-*", impl_->name);
     char** fonts = XListFonts(
 	d->rep()->display_, buffer, 100, &r->count_
     );

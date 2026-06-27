@@ -556,7 +556,11 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 
 #ifndef AceCCIncludes
 #ifdef AceDir
-#define AceCCIncludes -I$(ACEDIR)
+/* -isystem (not -I) so ACE's own headers count as system headers and their
+   internal deprecation warnings (e.g. vsprintf/mktemp) are suppressed, while
+   -Wdeprecated-declarations stays live for ivtools' own code.  Works for both
+   clang and g++. */
+#define AceCCIncludes -isystem $(ACEDIR)
 #else
 #define AceCCIncludes /**/
 #endif

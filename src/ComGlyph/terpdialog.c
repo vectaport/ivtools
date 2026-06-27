@@ -347,7 +347,7 @@ void TerpDialogImpl::sign() {
     char exprbuf[BUFSIZ];
     const char* expr = expredit_->text();
     if (sign_ > 0) {
-        sprintf(exprbuf, "-%s", expr);
+        snprintf(exprbuf, sizeof(exprbuf), "-%s", expr);
         exprbuf[strlen(exprbuf)] = '\0';
 	sign_ = -1;
     } else {
@@ -430,9 +430,9 @@ void TerpDialogImpl::eval() {
     char exprbuf[BUFSIZ];
     const char* expr = expredit_->text();
     if (expr[strlen(expr)-1] != '\n') 
-        sprintf(exprbuf, "%s\n", expr);
+        snprintf(exprbuf, sizeof(exprbuf), "%s\n", expr);
     else
-        sprintf(exprbuf, "%s", expr);
+        snprintf(exprbuf, sizeof(exprbuf), "%s", expr);
 
     ComValue retval(terpserv_->run(exprbuf));
 
@@ -446,7 +446,10 @@ void TerpDialogImpl::eval() {
     } else {
         char buf[BUFSIZ];
         buf[0] = '\0';
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
         std::ostrstream ostr(buf, BUFSIZ);
+#pragma GCC diagnostic pop
 	
         ostr << retval;
 	ostr << '\0';

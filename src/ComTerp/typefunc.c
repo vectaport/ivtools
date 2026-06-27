@@ -32,6 +32,7 @@
 #include <Unidraw/iterator.h>
 
 #include <iostream.h>
+#include <vector>
 
 #define TITLE "TypeFunc"
 
@@ -45,7 +46,7 @@ void TypeSymbolFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) return;
-  int type_syms[numargs];
+  std::vector<int> type_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
     type_syms[i] = val.type_symid();
@@ -86,7 +87,7 @@ void ClassSymbolFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) return;
-  int class_syms[numargs];
+  std::vector<int> class_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue val = stack_arg(i);
     if (val.is_object()) 

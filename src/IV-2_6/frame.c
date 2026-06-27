@@ -79,8 +79,8 @@ void Frame::Resize() {
 }
 
 void Frame::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    register IntCoord r = xmax - right;
-    register IntCoord t = ymax - top;
+    IntCoord r = xmax - right;
+    IntCoord t = ymax - top;
 
     if (x1 < left) {
         output_->FillRect(canvas, 0, 0, left-1, t);
@@ -238,10 +238,10 @@ void ShadowFrame::Init(Interactor* i, int h, int v) {
 }
 
 void ShadowFrame::Redraw(IntCoord x1, IntCoord y1, IntCoord x2, IntCoord y2) {
-    register IntCoord r = xmax - right;
-    register IntCoord t = ymax - top;
-    register IntCoord v = bottom + top - 2;
-    register IntCoord h = left + right - 2;
+    IntCoord r = xmax - right;
+    IntCoord t = ymax - top;
+    IntCoord v = bottom + top - 2;
+    IntCoord h = left + right - 2;
 
     /* borders */
     if (x1 < left) {

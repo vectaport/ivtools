@@ -128,7 +128,7 @@ void GraphExportCmd::Execute () {
 
 	    if (!chooser_->to_printer() && catalog->Exists(name) && catalog->Writable(name)) {
 		char buf[CHARBUFSIZE];
-		sprintf(buf, "\"%s\" already exists,", name);
+		snprintf(buf, sizeof(buf), "\"%s\" already exists,", name);
 		GConfirmDialog* dialog = new GConfirmDialog(buf, "Overwrite?");
 	    	Resource::ref(dialog);
 	    	ok = dialog->post_for(ed->GetWindow());
@@ -223,10 +223,10 @@ boolean GraphExportCmd::Export (const char* pathname) {
 	  char cmd[CHARBUFSIZE];
 	  if (strstr(pathname, "%s")) {
 	    char buf[CHARBUFSIZE];
-	    sprintf(buf, pathname, tmpfilename);    
-	    sprintf(cmd, "(%s;rm %s)&", buf, tmpfilename);
+	    snprintf(buf, sizeof(buf), pathname, tmpfilename);    
+	    snprintf(cmd, sizeof(cmd), "(%s;rm %s)&", buf, tmpfilename);
 	  } else
-	    sprintf(cmd, "(%s %s;rm %s)&", pathname, tmpfilename, tmpfilename);
+	    snprintf(cmd, sizeof(cmd), "(%s %s;rm %s)&", pathname, tmpfilename, tmpfilename);
 	  ok = system(cmd) == 0;
 	}
       } 

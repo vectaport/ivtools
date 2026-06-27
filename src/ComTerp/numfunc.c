@@ -34,6 +34,7 @@
 #include <OS/math.h>
 #include <math.h>
 #include <string.h>
+#include <vector>
 
 #define TITLE "NumFunc"
 
@@ -250,19 +251,19 @@ void AddFunc::execute() {
           if (operand2.is_string()) {
             int len1 = strlen(operand1.string_ptr()); 
             int len2 = strlen(operand2.string_ptr()); 
-            char buffer[len1+len2+1];
-            strcpy(buffer, operand1.string_ptr());
-            strcpy(buffer+len1, operand2.string_ptr());
-            result.string_ref()  = symbol_add(buffer);
+            std::vector<char> buffer(len1+len2+1);
+            strcpy(&buffer[0], operand1.string_ptr());
+            strcpy(&buffer[0]+len1, operand2.string_ptr());
+            result.string_ref()  = symbol_add(&buffer[0]);
 	    result.ref_as_needed();
             // symbol_reference(result.string_val());
           } else {
             int len1 = strlen(operand1.string_ptr()); 
-            char buffer[len1+2];
-            strcpy(buffer, operand1.string_ptr());
+            std::vector<char> buffer(len1+2);
+            strcpy(&buffer[0], operand1.string_ptr());
             buffer[len1] = operand2.char_val();
             buffer[len1+1] = '\0';
-            result.string_ref()  = symbol_add(buffer);
+            result.string_ref()  = symbol_add(&buffer[0]);
 	    result.ref_as_needed();
             // symbol_reference(result.string_val());
           }

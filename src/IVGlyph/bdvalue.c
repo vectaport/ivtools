@@ -123,7 +123,7 @@ void BoundedValue::page_backward(DimensionName d) {
 
 const char* BoundedValue::valuestring() {
     static char buf[20];
-    sprintf(buf, format_, curvalue_);
+    snprintf(buf, sizeof(buf), format_, curvalue_);
     return buf;
 }
 
@@ -149,7 +149,7 @@ String StrListValue::current() {
 
 const char* StrListValue::valuestring() {
     static char buf[40];
-    sprintf(buf, "%s", current().string());
+    snprintf(buf, sizeof(buf), "%s", current().string());
     return buf;
 }
 

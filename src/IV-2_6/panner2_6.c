@@ -291,7 +291,7 @@ void Slider::Slide (Event& e) {
 }
 
 void Slider::Jump (Event& e) {
-    register Perspective* s = shown;
+    Perspective* s = shown;
     IntCoord dx, dy;
     
     if (e.button == RIGHTMOUSE) {
@@ -342,7 +342,7 @@ void Slider::Handle (Event& e) {
 static const int MIN_SIZE = 2;
 
 void Slider::SizeKnob () {
-    register Perspective* s = shown;
+    Perspective* s = shown;
     
     if (canvas != nil) {
 	left = SliderX(s->curx - s->x0);
@@ -353,7 +353,7 @@ void Slider::SizeKnob () {
 }    
 
 void Slider::Update () {
-    register Perspective* p = shown;
+    Perspective* p = shown;
     int h, oldwidth, oldheight;
     float aspect;
     Scene* s;

@@ -371,10 +371,13 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 
 const char* ComValue::String() {
     streambuf* strmbuf = nil;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     strmbuf = new std::strstreambuf();
     ostream out(strmbuf);
     out << this;
     return ((std::strstreambuf*)strmbuf)->str();
+#pragma GCC diagnostic pop
 }
 
 

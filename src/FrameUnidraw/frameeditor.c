@@ -139,7 +139,7 @@ void FrameEditor::InitCommands() {
   if (secs && _terp) {
     MoveFrameCmd::default_instance()->set_wraparound();
     char buffer[BUFSIZ];
-    sprintf(buffer, "timeexpr(\"moveframe(1)\" :sec %d)", secs);
+    snprintf(buffer, sizeof(buffer), "timeexpr(\"moveframe(1)\" :sec %d)", secs);
     _terp->run(buffer);
   }
 }

@@ -404,7 +404,7 @@ void FMultiLineObj::CalcSection (
 }
 
 void FMultiLineObj::SplineToMultiLine (float* cpx, float* cpy, int cpcount) {
-    register int cpi;
+    int cpi;
 
     if (cpcount < 3) {
         _x = cpx;
@@ -439,7 +439,7 @@ void FMultiLineObj::SplineToMultiLine (float* cpx, float* cpy, int cpcount) {
 }
 
 void FMultiLineObj::ClosedSplineToPolygon (float* cpx, float* cpy, int cpcount){
-    register int cpi;
+    int cpi;
 
     if (cpcount < 3) {
         _x = cpx;
@@ -484,7 +484,7 @@ void FMultiLineObj::GetBox (FBoxObj& b) {
 
 
 boolean FMultiLineObj::Contains (FPointObj& p) {
-    register int i;
+    int i;
     FBoxObj b;
     
     GetBox(b);
@@ -500,7 +500,7 @@ boolean FMultiLineObj::Contains (FPointObj& p) {
 }
 
 boolean FMultiLineObj::Intersects (FLineObj& l) {
-    register int i;
+    int i;
     FBoxObj b;
     
     GetBox(b);
@@ -517,7 +517,7 @@ boolean FMultiLineObj::Intersects (FLineObj& l) {
 }
 
 boolean FMultiLineObj::Intersects (FBoxObj& userb) {
-    register int i;
+    int i;
     FBoxObj b;
     
     GetBox(b);
@@ -686,7 +686,7 @@ FFillPolygonObj::~FFillPolygonObj () {
 }
 
 static int LowestLeft (float* x, float* y, int count) {
-    register int i;
+    int i;
     int lowestLeft = 0;
     float lx = *x;
     float ly = *y;
@@ -703,7 +703,7 @@ static int LowestLeft (float* x, float* y, int count) {
 
 void FFillPolygonObj::Normalize () {
     if (_count != 0) {
-        register int i, newcount = 1;
+        int i, newcount = 1;
         int lowestLeft, limit = _count;
 
 	if (*_x == _x[_count - 1] && *_y == _y[_count - 1]) {

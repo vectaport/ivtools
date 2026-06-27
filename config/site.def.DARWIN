@@ -11,8 +11,10 @@
 #undef SharedCCFlags
 #define SharedCCFlags
 
+/* -bind_at_load is deprecated on modern macOS (binds at load by default);
+   dropping it silences the "ld: warning: -bind_at_load is deprecated" noise. */
 #undef SharedCCLdFlags
-#define SharedCCLdFlags -Wl,-bind_at_load
+#define SharedCCLdFlags
 
 #undef CppCmd
 #define CppCmd c++ -E
@@ -51,7 +53,7 @@
 #define ExtraCCLdLibs -lstdc++ -lm
 
 #undef ExtraCCLdFlags
-#define ExtraCCLdFlags -Wl,-bind_at_load
+#define ExtraCCLdFlags
 
 #undef ExtraCCFlags
 #define ExtraCCFlags -x c++

@@ -1594,7 +1594,7 @@ MenuItem * OverlayKit::MakeViewersMenu() {
       while (!edlaunchlist->Done(i)) {
 	Attribute* attr = edlaunchlist->GetAttr(i);
 	char buf[BUFSIZ];
-	sprintf(buf, "%s Editor", attr->Name());
+	snprintf(buf, sizeof(buf), "%s Editor", attr->Name());
 	MenuItem* menu_item = kit.menu_item(kit.label(buf));
 	menu_item->action(new EditorLauncherAction((editor_launcher)attr->Value()->obj_val()));
 	mbi->menu()->append_item(menu_item);
@@ -1612,7 +1612,7 @@ MenuItem * OverlayKit::MakeViewersMenu() {
 	Attribute* attr = comterplist->GetAttr(i);
 	AttrDialog* attrdialog = new AttrDialog((ComTerpServ*)attr->Value()->obj_val());
 	char buf[BUFSIZ];
-	sprintf(buf, "%s Interpreter", attr->Name());
+	snprintf(buf, sizeof(buf), "%s Interpreter", attr->Name());
 	MakeMenu(mbi, new SetAttrByExprCmd(new ControlInfo(buf, "", ""), attrdialog),
 		 buf);
 	comterplist->Next(i);
@@ -1661,7 +1661,7 @@ int OverlayKit::bintest(const char* command) {
 #if 0
   sprintf( combuf, "echo -n $PATH; which %s", command );
 #else
-  sprintf( combuf, "which %s 2> /dev/null", command );
+  snprintf(combuf, sizeof(combuf), "which %s 2> /dev/null", command );
 #endif
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	

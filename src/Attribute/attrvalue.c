@@ -1058,10 +1058,13 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 
 const char* AttributeValue::String() {
     streambuf* strmbuf = nil;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     strmbuf = new std::strstreambuf();
     ostream out(strmbuf);
     out << *this;
     return ((std::strstreambuf*)strmbuf)->str();
+#pragma GCC diagnostic pop
 }
 
 void AttributeValue::negate() { 

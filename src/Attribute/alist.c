@@ -67,7 +67,7 @@ void AList::Remove (AList* e) {
 }
 
 void AList::Delete (void* p) {
-    register AList* e;
+    AList* e;
 
     e = Find(p);
     if (e != nil) {
@@ -77,7 +77,7 @@ void AList::Delete (void* p) {
 }
 
 AList* AList::Find (void* p) {
-    register AList* e;
+    AList* e;
 
     for (e = _next; e != this; e = e->_next) {
 	if (e->_object == p) {

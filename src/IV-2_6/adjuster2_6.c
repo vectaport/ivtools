@@ -229,7 +229,7 @@ void Zoomer::Init(float f) {
 }
 
 void Zoomer::AdjustView(Event&) {
-    register Perspective* s = shown;
+    Perspective* s = shown;
     IntCoord cx, cy;
 
     *s = *view->GetPerspective();
@@ -336,7 +336,7 @@ void Mover::Init(int mt) {
 }
 
 void Mover::AdjustView(Event& e) {
-    register Perspective* s = shown;
+    Perspective* s = shown;
     int amtx, amty;
 
     *s = *view->GetPerspective();

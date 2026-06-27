@@ -54,7 +54,7 @@ void Deck::Init() {
     SetClassName("Deck");
     top = nil;
     cards = new Card;
-    register Perspective* p = new Perspective;
+    Perspective* p = new Perspective;
     perspective = p;
     p->sx = p->lx = 1;
     p->sy = p->ly = 1;
@@ -65,7 +65,7 @@ void Deck::Init() {
 }
 
 Deck::~Deck() {
-    register Card* c, * next;
+    Card* c, * next;
 
     for (c = cards->next; c != cards; c = next) {
 	next = c->next;
@@ -100,7 +100,7 @@ void Deck::Reconfig() {
 }
 
 void Deck::FixPerspective() {
-    register Perspective* p = perspective;
+    Perspective* p = perspective;
     p->curx = Math::max(p->x0, Math::min(p->width, p->curx));
     p->cury = p->y0 + p->height - (p->curx - p->x0) - p->curheight;
     p->Update();
@@ -185,8 +185,8 @@ void Deck::Draw() {
 }
 
 void Deck::GetComponents(Interactor** c, int nc, Interactor**& a, int& n) {
-    register Card* card;
-    register Interactor** ap;
+    Card* card;
+    Interactor** ap;
 
     n = perspective->width;
     if (n > 0) {

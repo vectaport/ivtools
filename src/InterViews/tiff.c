@@ -254,7 +254,7 @@ boolean TIFFRasterImpl::gt(u_long w, u_long h) {
 	/* fall thru... */
     case PHOTOMETRIC_MINISBLACK:
     case PHOTOMETRIC_MINISWHITE: {
-	register int x, range;
+	int x, range;
 
 	range = maxsamplevalue - minsamplevalue;
 	Map = new RGBvalue[range + 1];
@@ -566,7 +566,7 @@ boolean TIFFRasterImpl::gtStripSeparate(
  * number.
  */
 boolean TIFFRasterImpl::makebwmap(RGBvalue* Map) {
-    register int i;
+    int i;
     int nsamples = 8 / bitspersample_;
 
     BWmap_ = (u_long **)malloc(
@@ -576,11 +576,11 @@ boolean TIFFRasterImpl::makebwmap(RGBvalue* Map) {
 	TIFFError(TIFFFileName(tif_), "No space for B&W mapping table");
 	return false;
     }
-    register u_long* p = (u_long*)(BWmap_ + 256);
+    u_long* p = (u_long*)(BWmap_ + 256);
     for (i = 0; i < 256; i++) {
 	BWmap_[i] = p;
 	switch (bitspersample_) {
-	    register RGBvalue c;
+	    RGBvalue c;
 #define	GREY(x)	c = Map[x]; *p++ = PACK(c,c,c);
 	case 1:
 	    GREY(i>>7);
@@ -618,9 +618,9 @@ boolean TIFFRasterImpl::makebwmap(RGBvalue* Map) {
 boolean TIFFRasterImpl::makecmap(
     const u_short* rmap, const u_short* gmap, const u_short* bmap
 ) {
-    register int i;
+    int i;
     int nsamples = 8 / bitspersample_;
-    register u_long *p;
+    u_long *p;
 
     PALmap_ = (u_long **)malloc(
 	256*sizeof (u_long *)+(256*nsamples*sizeof(u_long))
@@ -635,7 +635,7 @@ boolean TIFFRasterImpl::makecmap(
 #define	CMAP(x)	\
 c = x; *p++ = PACK(rmap[c]&0xff, gmap[c]&0xff, bmap[c]&0xff);
 	switch (bitspersample_) {
-	    register RGBvalue c;
+	    RGBvalue c;
 	case 1:
 	    CMAP(i>>7);
 	    CMAP((i>>6)&1);

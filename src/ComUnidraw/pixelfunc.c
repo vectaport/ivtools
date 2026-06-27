@@ -34,6 +34,7 @@
 #include <Unidraw/viewer.h>
 #include <Attribute/attrlist.h>
 #include <IV-2_6/InterViews/world.h>
+#include <vector>
 
 /*****************************************************************************/
 PixelPokeLineFunc::PixelPokeLineFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
@@ -90,7 +91,7 @@ void PixelPokeLineFunc::execute() {
         // legacy packed-int form: 0xRRGGBB
         int pixelcolor = elem->int_val();
         char colorname[8];
-        sprintf(colorname,"#%06x",pixelcolor);
+        snprintf(colorname, sizeof(colorname),"#%06x",pixelcolor);
         Color::find(World::current()->display(),colorname, r, g, b);
       }
 
@@ -143,7 +144,7 @@ void PixelPokeFunc::execute() {
       // legacy packed-int form: 0xRRGGBB
       int pixelcolor = valv.int_val();
       char colorname[8];
-      sprintf(colorname,"#%06x",pixelcolor);
+      snprintf(colorname, sizeof(colorname),"#%06x",pixelcolor);
       Color::find(World::current()->display(),colorname, r, g, b);
     }
 
@@ -290,7 +291,7 @@ void PixelClipFunc::execute() {
 
   if (rastrect && ptsv.is_array() && ptsv.array_val()->Number()>2 ) {
     int n = ptsv.array_val()->Number()/2;
-    IntCoord x[n], y[n];
+    std::vector<IntCoord> x(n); std::vector<IntCoord> y(n);
     Iterator it;
     AttributeValueList* avl = ptsv.array_val();
     avl->First(it);
@@ -300,7 +301,7 @@ void PixelClipFunc::execute() {
       y[i] = avl->GetAttrVal(it)->int_val();
       avl->Next(it);
     }
-    rastrect->clippts(x, y, n);
+    rastrect->clippts(&x[0], &y[0], n);
     rastcomp->Notify();
     push_stack(rastcompv);
     return;
@@ -319,7 +320,7 @@ void PixelClipFunc::execute() {
 
     if (newptsv.is_array()) {
       int n = newptsv.array_val()->Number()/2;
-      IntCoord x[n], y[n];
+      std::vector<IntCoord> x(n); std::vector<IntCoord> y(n);
       AttributeValueList *alist = newptsv.array_val();
       ALIterator it;
       int i=0;
@@ -336,7 +337,7 @@ void PixelClipFunc::execute() {
 	y[i] = int(ry);
 	i++;
       }
-      rastrect->clippts(x, y, n);
+      rastrect->clippts(&x[0], &y[0], n);
       rastcomp->Notify();
       push_stack(rastcompv);
       unidraw->Update();

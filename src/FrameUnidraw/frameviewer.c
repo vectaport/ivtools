@@ -132,7 +132,7 @@ void FrameViewer::SetGraphicView (GraphicView* gv) {
     Reorient();
     GraphicBlock::Init();
 
-    register Perspective* p = perspective;
+    Perspective* p = perspective;
     Perspective ptmp;
     
     if (canvas == nil) {

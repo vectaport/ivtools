@@ -192,7 +192,7 @@ the current file position to be reset.
         fseek(fd,0L,SEEK_SET);
 
         /* Search for .!#ID#id delimiter */
-        sprintf( cmpstr, ".!#ID#%d\n",id);
+        snprintf(cmpstr, sizeof(cmpstr), ".!#ID#%d\n",id);
         while( (tst = fgets(txtstr, 256, fd)) != NULL )
             if (!strcmp(txtstr, cmpstr)) break;
 

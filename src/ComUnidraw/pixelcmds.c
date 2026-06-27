@@ -67,7 +67,7 @@ void PolyClipRasterCmd::Execute() {
   RasterOvComp* rastcomp = _rastcomp;
   VerticesOvComp* vertcomp = _vertcomp;
 
-  fprintf(stderr, "Rastcomp AT START is now %lx, Vertcomp is now %lx\n", rastcomp, vertcomp);
+  fprintf(stderr, "Rastcomp AT START is now %lx, Vertcomp is now %lx\n", (unsigned long)rastcomp, (unsigned long)vertcomp);
   for (sel->First(i); !sel->Done(i); sel->Next(i)) {
     if (rastcomp != nil && vertcomp != nil) { break; }
     GraphicView* view = sel->GetView(i);
@@ -88,7 +88,7 @@ void PolyClipRasterCmd::Execute() {
     
   }
 
-  fprintf(stderr, "Rastcomp is now %lx, Vertcomp is now %lx\n", rastcomp, vertcomp);
+  fprintf(stderr, "Rastcomp is now %lx, Vertcomp is now %lx\n", (unsigned long)rastcomp, (unsigned long)vertcomp);
 
   if (rastcomp != nil && vertcomp != nil) {
     _rastcomp = rastcomp;

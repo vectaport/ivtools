@@ -682,7 +682,7 @@ void SessionRep::load_path(
     String h(head);
     String t(tail);
     char* buf = new char[h.length() + t.length() + 1];
-    sprintf(buf, "%s%s", h.string(), t.string());
+    snprintf(buf, h.length() + t.length() + 1, "%s%s", h.string(), t.string());
     s->load_file(String(buf), priority);
     delete[] buf;
 }
@@ -703,7 +703,7 @@ void SessionRep::load_path(
     String m(middle);
     String t(tail);
     char* buf = new char[h.length() + m.length() + t.length() + 1];
-    sprintf(buf, "%s%s%s", h.string(), m.string(), t.string());
+    snprintf(buf, h.length() + m.length() + t.length() + 1, "%s%s%s", h.string(), m.string(), t.string());
     s->load_file(String(buf), priority);
     delete[] buf;
 }

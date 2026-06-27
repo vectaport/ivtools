@@ -105,7 +105,7 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 
 	fclose(fp);
 	char qhcmd[100];
-	sprintf(qhcmd, "qhull Fx < %s", tnam);
+	snprintf(qhcmd, sizeof(qhcmd), "qhull Fx < %s", tnam);
 	FILE* pp = popen(qhcmd, "r");
 	int nhp;
 	if (pp) {

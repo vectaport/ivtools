@@ -150,7 +150,7 @@ void VScroller::Reconfig() {
 }
 
 void HScroller::GetBarInfo(
-    register Perspective* s, IntCoord& left, int& width
+    Perspective* s, IntCoord& left, int& width
 ) {
     IntCoord maxwidth = xmax + 1;
 
@@ -169,7 +169,7 @@ void HScroller::GetBarInfo(
 }
 
 void VScroller::GetBarInfo(
-    register Perspective* s, IntCoord& bot, int& height
+    Perspective* s, IntCoord& bot, int& height
 ) {
     IntCoord maxheight = ymax + 1;
 
@@ -269,7 +269,7 @@ void VScroller::Handle(Event& e) {
     }
 }
 
-IntCoord HScroller::Slide(register Event& e) {
+IntCoord HScroller::Slide(Event& e) {
     IntCoord x1, y1, x2, y2;
     IntCoord oldx, minx, maxx;
     int width, w;
@@ -322,7 +322,7 @@ IntCoord HScroller::Slide(register Event& e) {
     return shown->x0 + Math::round(double(x1-1) / scale);
 }
 
-IntCoord VScroller::Slide(register Event& e) {
+IntCoord VScroller::Slide(Event& e) {
     IntCoord x1, y1, x2, y2;
     IntCoord oldy, miny, maxy;
     int height, h;
