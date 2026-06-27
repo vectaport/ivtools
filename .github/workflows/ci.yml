@@ -82,7 +82,9 @@ jobs:
       # land in per-CPU subdirs (LINUX/) under each program directory; installing
       # is the simplest way to satisfy drawmo's "binaries on PATH" requirement.
       - name: Install binaries
-        run: sudo make install
+        run: |
+          sudo make install
+          sudo ldconfig   # refresh linker cache so /usr/local/lib *.so are found at runtime
 
       - name: Test - comterp unit suite
         run: |
