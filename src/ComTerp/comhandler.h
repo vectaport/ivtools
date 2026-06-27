@@ -182,6 +182,7 @@ public:
     ComterpHandler(ComTerpServ* serv=nil) {comterp_ = serv ? serv : new ComTerpServ(); _handle = 0; comterp_->add_defaults();}
     ComterpHandler(int id, ComTerpServ* serv = nil) { comterp_ = serv ? serv : new ComTerpServ(); _handle = id; comterp_->add_defaults();}
     int get_handle() { return _handle;}
+    int wrfd() { return get_handle(); }   // mirror the ACE handler's interface so comterp.c compiles ACE-free
 
     FILE* wrfptr() { return nil; }
     // file pointer for writing to handle
