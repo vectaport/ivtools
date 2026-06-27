@@ -91,10 +91,12 @@ jobs:
         run: |
           set -o pipefail
           cd src/comterp_/tests
-          # stdin is the piped echo, so comterp gets EOF and exits after the run
-          echo 'run("run_all.comt")' | comterp 2>&1 | tee run.log
-          # run_all.comt prints "FAIL: <name>" per failure and "run_all: 1" on full pass
-          if grep -q '^FAIL' run.log || ! grep -q 'run_all: 1' run.log; then
+          # `comterp run <file>` seeds the relative-path base and exits cleanly.
+          # (The piped REPL form `echo ... | comterp` segfaults on Linux at
+          # stdin-EOF teardown -- a separate glibc-specific bug, tracked apart.)
+          comterp run run_all.comt 2>&1 | tee run.log
+          # the suite prints "FAIL: <name>" per failure and "run_all: true" on full pass
+          if grep -q '^FAIL' run.log || ! grep -q 'run_all: true' run.log; then
             echo "comterp suite FAILED"; exit 1
           fi
 
