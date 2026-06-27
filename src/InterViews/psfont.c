@@ -77,7 +77,7 @@ PSFont31::PSFont31(
 ) : Font(name, scale) {
     PSFontImpl* p = new PSFontImpl;
     impl_ = p;
-    p->name_ = nullptr;
+    p->name_ = strdup(psname);   /* default; name() never returns null */
     p->encoding_ = "Unknown";
     p->size_ = size;
     memset(p->widths_, 0, sizeof(p->widths_));
@@ -95,9 +95,18 @@ PSFont31::PSFont31(
     FT_Face face;
     if (FT_New_Face(library, filepath, 0, &face) == 0) {
         const char* psn = FT_Get_Postscript_Name(face);
-        p->name_ = strdup(psn ? psn : psname);
+        if (psn) { free(p->name_); p->name_ = strdup(psn); }
+
+        /* idraw reencodes PostScript fonts to ISO-8859-1, whose byte values
+           0..255 coincide with Unicode U+0000..U+00FF -- so select the Unicode
+           charmap and index it by byte.  Symbol-class fonts have no Unicode cmap
+           (and idraw leaves those in their native encoding); fall back to the
+           font's own charmap so their byte codes still resolve. */
+        if (FT_Select_Charmap(face, FT_ENCODING_UNICODE) != 0 && face->num_charmaps > 0)
+            FT_Set_Charmap(face, face->charmaps[0]);
         if (face->charmap)
             p->encoding_ = ft_encoding_name(face->charmap->encoding);
+
         for (int c = 0; c < 256; c++) {
             FT_UInt gi = FT_Get_Char_Index(face, (FT_ULong)c);
             if (gi && FT_Load_Glyph(face, gi, FT_LOAD_NO_SCALE) == 0)
