@@ -32,7 +32,7 @@ jobs:
             build-essential autoconf \
             xutils-dev libx11-dev libxext-dev \
             uuid-dev libace-dev \
-            xvfb lsof groff
+            xvfb lsof groff gdb
 
       - name: Generate ./configure
         run: autoreconf -i
@@ -97,6 +97,23 @@ jobs:
           if grep -q '^FAIL' run.log || ! grep -q 'run_all: 1' run.log; then
             echo "comterp suite FAILED"; exit 1
           fi
+
+      # Diagnostic: the comterp suite segfaults on Linux/g++ at stream-literal
+      # (passes on macOS/clang). The build is -g, so grab a backtrace without an
+      # instrumented rebuild. `comterp run <file>` seeds the basepath then runs.
+      - name: Debug - gdb backtrace of comterp crash
+        if: always()
+        run: |
+          cd src/comterp_/tests
+          gdb -batch -nx \
+            -ex 'set pagination off' \
+            -ex run \
+            -ex 'printf "\n==== backtrace ====\n"' \
+            -ex 'bt full' \
+            -ex 'printf "\n==== faulting frame ====\n"' \
+            -ex 'frame 0' \
+            -ex 'info locals' \
+            --args comterp run run_all.comt 2>&1 | tail -120 || true
 
       - name: Test - comdraw graphical-scripting suite
         if: always()
