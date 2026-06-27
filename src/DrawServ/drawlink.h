@@ -47,6 +47,11 @@ class ACE_SOCK_Stream;
 class ACE_SOCK_Stream;
 #endif
 #include <stdio.h>
+#include <uuid/uuid.h>   /* declares uuid_t / uuid_copy; pulled in transitively on macOS, not on Linux */
+#if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
+#define IV_UUID_STRING_T_DEFINED
+typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
+#endif
 
 //: object to encapsulate 2-way link with remote drawserv
 class DrawLink : public Observable, public Resource {
