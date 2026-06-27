@@ -104,9 +104,9 @@ jobs:
         run: |
           set -o pipefail   # don't let `| tee` mask a missing/crashing comdraw
           cd src/comdraw/tests
-          # comdraw is a GUI app: with stdin closed (< /dev/null) it quits on EOF
-          # after the runfile instead of dropping into its interactive event loop.
-          xvfb-run -a comdraw -stdin_off -runfile run_all.comt < /dev/null 2>&1 | tee run.log
+          # comdraw is a GUI app that would otherwise drop into its event loop and
+          # never return; -runexpr "...;exit" runs the suite then exits cleanly.
+          xvfb-run -a comdraw -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi
 
       - name: Test - drawserv integration suite (drawmo)
