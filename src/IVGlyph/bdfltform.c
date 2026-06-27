@@ -61,8 +61,8 @@ BoundedValueEditor::BoundedValueEditor(BoundedValue* bdv, const char* labl, bool
     }
     char bufmax[40];
     char bufmin[40];
-    sprintf(bufmin, bdv->format(), bdv->lower(Dimension_X));
-    sprintf(bufmax, bdv->format(), bdv->upper(Dimension_X));
+    snprintf(bufmin, sizeof(bufmin), bdv->format(), bdv->lower(Dimension_X));
+    snprintf(bufmax, sizeof(bufmax), bdv->format(), bdv->upper(Dimension_X));
     ebox->append(
 	lk.hcenter(
 	    lk.overlay(
@@ -148,7 +148,7 @@ MeterObserver::MeterObserver(BoundedValue* bdv, const char* label, boolean int_d
 
     Coord v = _value->cur_lower(Dimension_Y);
     char buf[40];
-    _int_display ? sprintf(buf, "%i", (int)v) : sprintf(buf, "%.2f", v);
+    _int_display ? snprintf(buf, sizeof(buf), "%i", (int)v) : snprintf(buf, sizeof(buf), "%.2f", v);
     _view->body(wk.label(buf));
     _view->redraw();
 }
@@ -162,7 +162,7 @@ void MeterObserver::update(Observable* o) {
 
     Coord v = _value->cur_lower(Dimension_Y);
     char buf[40];
-    _int_display ? sprintf(buf, "%i", (int)v) : sprintf(buf, "%.2f", v);
+    _int_display ? snprintf(buf, sizeof(buf), "%i", (int)v) : snprintf(buf, sizeof(buf), "%.2f", v);
     _view->body(wk.label(buf));
     _view->reallocate();
     _view->redraw();

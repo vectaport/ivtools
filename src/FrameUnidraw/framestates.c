@@ -40,9 +40,9 @@ FrameNumberState::FrameNumberState(int fn, const char* desc, int usebg)
     _usebg = usebg;
     _bgstr = nil;
     if (_usebg && fn == 0)
-	sprintf(buf, "%s: %s", _desc, "background");
+	snprintf(buf, sizeof(buf), "%s: %s", _desc, "background");
     else
-        sprintf(buf, "%s: %d", _desc, _number);
+        snprintf(buf, sizeof(buf), "%s: %d", _desc, _number);
     name(buf, false);
 }
 
@@ -51,9 +51,9 @@ int FrameNumberState::number() { return _number; }
 void FrameNumberState::number(int fn, boolean notif) {
     _number = fn;
     if (_usebg && fn == 0)
-	sprintf(buf, "%s: background", _desc);
+	snprintf(buf, sizeof(buf), "%s: background", _desc);
     else
-        sprintf(buf, "%s: %d", _desc, _number);
+        snprintf(buf, sizeof(buf), "%s: %d", _desc, _number);
     name(buf, notif);
 }
 
@@ -65,7 +65,7 @@ void FrameNumberState::set_bgstr(const char* str) {
   if (_bgstr) delete _bgstr;
   _bgstr = strdup(str);
   if (_usebg && _number == 0)
-    sprintf(buf, "%s: %s", _desc, _bgstr);
+    snprintf(buf, sizeof(buf), "%s: %s", _desc, _bgstr);
 }
 
 /*****************************************************************************/
@@ -74,7 +74,7 @@ FrameListState::FrameListState(int fn)
 :NameState(nil)
 {
     _framenumber = fn;
-    sprintf(buf, "Number of Frames: %d", _framenumber-1);
+    snprintf(buf, sizeof(buf), "Number of Frames: %d", _framenumber-1);
     name(buf, false);
 }
 
@@ -82,7 +82,7 @@ int FrameListState::framenumber() { return _framenumber; }
 
 void FrameListState::framenumber(int fn, boolean notif) {
     _framenumber = fn;
-    sprintf(buf, "Number of Frames: %d", _framenumber-1);
+    snprintf(buf, sizeof(buf), "Number of Frames: %d", _framenumber-1);
     name(buf, notif);
 }
 

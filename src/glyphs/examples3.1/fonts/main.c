@@ -44,8 +44,8 @@ int main(int argc, char** argv) {
 	printf("font '%s', scale %.2f\n", name, scale);
     } else {
 	printf(
-	    "no match for %.*s-%.*s-%d\n", family.length(), family.string(),
-	    face.length(), face.string(), size
+	    "no match for %.*s-%.*s-%d\n", (int)family.length(), family.string(),
+	    (int)face.length(), face.string(), (int)size
 	);
     }
 }

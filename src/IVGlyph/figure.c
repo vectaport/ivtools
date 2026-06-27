@@ -828,7 +828,7 @@ static void Xform_gs(
 ) {
     Transformer* t = g->transformer();
     if (t != nil) {
-        register Coord* ox, * oy, *nx, *ny;
+        Coord* ox, * oy, *nx, *ny;
         Coord* lim;
         
         lim = &x[n];

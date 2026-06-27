@@ -33,6 +33,7 @@
                                    // incremental download
 
 #include <OverlayUnidraw/grayraster.h>
+#include <vector>
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovclasses.h>
 #include <OverlayUnidraw/ovfile.h>
@@ -457,12 +458,15 @@ int ReadImageHandler::process(const char* newdat, int len) {
       "^[ \f\n\r\t\v]*[0-9]+[ \f\n\r\t\v]+[0-9]+[ \f\n\r\t\v]+[0-9]+"
     );
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
     std::ostrstream tmp;  // need to placate Regexp :-(
     tmp.write(in.str(), in.pcount());
     in.freeze(0);
     unsigned int minp = min(tmp.pcount()-1, BUFSIZ);
     int pos = endOfHeader.Search(tmp.str(), minp, 0, minp);
     tmp.freeze(0);
+#pragma GCC diagnostic pop
 
     if (pos >= 0) { 
 	
@@ -723,7 +727,7 @@ FILE* OvImportCmd::CheckCompression(
 
     } else if (CheckMagicBytes(COMPRESS_MAGIC_BYTES, cmd)) {
         fclose (file);
-        sprintf (cmd, "uncompress < %s", pathname);
+        snprintf(cmd, sizeof(cmd), "uncompress < %s", pathname);
         file = popen (cmd, "r");
 
         if (!file) {
@@ -733,7 +737,7 @@ FILE* OvImportCmd::CheckCompression(
 
     } else if (CheckMagicBytes(GZIP_MAGIC_BYTES, cmd)) {
         fclose (file);
-        sprintf (cmd, "gunzip -c %s", pathname);
+        snprintf(cmd, sizeof(cmd), "gunzip -c %s", pathname);
         file = popen (cmd, "r");
 
         if (!file) {
@@ -1346,7 +1350,7 @@ GraphicComp* OvImportCmd::Import (const char* path) {
     popen_ = false; 
     if (chooser_ && chooser_->auto_convert() && use_anytopnm) {
       char buffer[BUFSIZ];
-      sprintf( buffer, "anytopnm %s", path );
+      snprintf(buffer, sizeof(buffer), "anytopnm %s", path );
       fptr = popen(buffer, "r");
     } else if (chooser_ && chooser_->from_command()) {
       incremental_flag = false;  // will work for binary PPM if true
@@ -1360,13 +1364,13 @@ GraphicComp* OvImportCmd::Import (const char* path) {
       static boolean use_curl = OverlayKit::bincheck("curl");
       static boolean use_wget = OverlayKit::bincheck("wget");
       if (use_curl)
-	sprintf(buffer,"curl -s %s", path);
+	snprintf(buffer, sizeof(buffer),"curl -s %s", path);
       else if (use_w3c) 
-	sprintf(buffer,"w3c -q %s", path);
+	snprintf(buffer, sizeof(buffer),"w3c -q %s", path);
       else if (use_wget) 
-	sprintf(buffer,"wget -q -O - %s", path);
+	snprintf(buffer, sizeof(buffer),"wget -q -O - %s", path);
       else
-	sprintf(buffer,"ivdl %s -", path);
+	snprintf(buffer, sizeof(buffer),"ivdl %s -", path);
       cerr << buffer << "\n";
       fptr = popen(buffer, "r");
     } 
@@ -1458,7 +1462,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       strcmp(catalog->GetAttribute("dithermap"),"false")!=0;
 
     int len = 255;
-    char buf[len];
+    std::vector<char> buf(len);
 
     char ch;
     while (isspace(ch = instrm.get())) {}; instrm.putback(ch);
@@ -1475,7 +1479,7 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
       compressed = true;
       if (pathname && !return_fd) {
 	char buffer[BUFSIZ];
-	sprintf(buffer, "gunzip -c %s", pathname);
+	snprintf(buffer, sizeof(buffer), "gunzip -c %s", pathname);
 	gunzip_fptr = popen(buffer, "r");
         helper.add_pipe(gunzip_fptr);
 	if (gunzip_fptr) {
@@ -1521,9 +1525,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  if (pathname && !return_fd && !cmdflag) {
 	    char buffer[BUFSIZ];
 	    if (compressed) 
-	      sprintf(buffer, "tf=`tempname`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      snprintf(buffer, sizeof(buffer), "tf=`tempname`;gunzip -c %s | pstoedit -f idraw - $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    else
-	      sprintf(buffer, "tf=`tempname`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
+	      snprintf(buffer, sizeof(buffer), "tf=`tempname`;pstoedit -f idraw %s $tf.%s;cat $tf.*;rm $tf.*", pathname, "%d");
 	    pptr = popen(buffer, "r");
 	    cerr << "input opened with " << buffer << "\n";
 	    if (pptr) 
@@ -1558,9 +1562,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
-	    sprintf(buffer, "gunzip -c %s | giftopnm", pathname);
+	    snprintf(buffer, sizeof(buffer), "gunzip -c %s | giftopnm", pathname);
 	  else
-	    sprintf(buffer, "giftopnm %s", pathname);
+	    snprintf(buffer, sizeof(buffer), "giftopnm %s", pathname);
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";
@@ -1605,14 +1609,14 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	  char buffer[BUFSIZ];
 	  if (dithermap_flag) {
 	    if (compressed) 
-	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
+	      snprintf(buffer, sizeof(buffer), "cm=`tempname`;stdcmapppm>$cm;gunzip -c %s | djpeg -map $cm -dither fs -pnm;rm $cm", pathname);
 	    else
-	      sprintf(buffer, "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
+	      snprintf(buffer, sizeof(buffer), "cm=`tempname`;stdcmapppm>$cm;djpeg -map $cm -dither fs -pnm %s;rm $cm", pathname);
 	  } else {
 	    if (compressed) 
-	      sprintf(buffer, "gunzip -c %s | djpeg  -pnm", pathname);
+	      snprintf(buffer, sizeof(buffer), "gunzip -c %s | djpeg  -pnm", pathname);
 	    else
-	      sprintf(buffer, "djpeg -pnm %s", pathname);
+	      snprintf(buffer, sizeof(buffer), "djpeg -pnm %s", pathname);
 	  }
 	  FILE* pptr = popen(buffer, "r");
           helper.add_pipe(pptr);
@@ -1638,9 +1642,9 @@ GraphicComp* OvImportCmd::Import (istream& instrm, boolean& empty) {
 	if (pathname && !return_fd) {
 	  char buffer[BUFSIZ];
 	  if (compressed)
-	    sprintf(buffer, "gunzip -c \"%s\" | pngtopnm", pathname);
+	    snprintf(buffer, sizeof(buffer), "gunzip -c \"%s\" | pngtopnm", pathname);
 	  else
-	    sprintf(buffer, "pngtopnm \"%s\"", pathname);
+	    snprintf(buffer, sizeof(buffer), "pngtopnm \"%s\"", pathname);
 	  FILE* pptr = popen(buffer, "r");
 	  if (pptr) {
 	    cerr << "input opened with " << buffer << "\n";

@@ -211,7 +211,7 @@ void Importer::execute () {
         _chooser = DialogKit::instance()->file_chooser(".", style);
         Resource::ref(_chooser);
         char buf[256];
-	std::sprintf(buf, "Select an idraw drawing to import:");
+	std::snprintf(buf, sizeof(buf), "Select an idraw drawing to import:");
         style->attribute("caption", "");
         style->attribute("subcaption", buf);
     } else {

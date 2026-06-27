@@ -125,7 +125,7 @@ void App::build() {
 	for (int j=0; j<ncols; j++) {
 	    char str[10];
 	    str[3] = '\0';
-	    sprintf(str, "%d:%x", j,i);
+	    snprintf(str, sizeof(str), "%d:%x", j,i);
 	    GFieldEditor* gfield =  new GFieldEditor(str, nil, feditor_width);
 	    pg->insert(index, layout.fixed_span(gfield, feditor_width, feditor_height));
 	    pg->move(index, j*feditor_width, scrollable_height - feditor_height/2 - feditor_height*i);
@@ -194,7 +194,7 @@ void App::add() {
     for (int j=0; j<ncols; j++) {
 	char str[10];
 	str[3] = '\0';
-	sprintf(str, "%d:%x", j,i);
+	snprintf(str, sizeof(str), "%d:%x", j,i);
 	GFieldEditor* gfield =  new GFieldEditor(str, nil, feditor_width);
 	pg->insert(index,
 		  layout.fixed_span(gfield, feditor_width, feditor_height));

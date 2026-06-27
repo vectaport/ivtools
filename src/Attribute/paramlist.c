@@ -924,7 +924,7 @@ boolean ParamList::urltest(const char* buf) {
 
 int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "sh -c \"wr=`which %s 2> /dev/null`; echo $wr\"", command );
+  snprintf(combuf, sizeof(combuf), "sh -c \"wr=`which %s 2> /dev/null`; echo $wr\"", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  
@@ -943,7 +943,7 @@ boolean ParamList::bincheck(const char* command) {
 
 // octal converts a character to the string \ddd where d is an octal digit.
 
-char* ParamList::octal(unsigned char c, register char* p) {
+char* ParamList::octal(unsigned char c, char* p) {
     *p-- = '\0';		// backwards from terminating null...
     *p-- = (char)('0' + c%8);
     *p-- = (char)('0' + (c >>= 3)%8);

@@ -30,8 +30,10 @@
 #define ToolIncludeDir /usr/local/include
 
 /* link libraries for the above */
+/* -luuid: on Linux the uuid_* functions live in a separate libuuid; on macOS
+   they are in libSystem (linked by default), so this is Linux-only. */
 #undef ExtraCCLdLibs
-#define ExtraCCLdLibs -lstdc++ -lm
+#define ExtraCCLdLibs -lstdc++ -lm -luuid
 
 /* command to create shared libraries */
 #define SharedLibraryCmd(ldobjs,extra_flags) gcc -shared extra_flags -o $@ ldobjs

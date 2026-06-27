@@ -38,6 +38,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <fstream.h>
+#include <vector>
 
 /*****************************************************************************/
 
@@ -79,12 +80,12 @@ boolean DrawCatalog::Retrieve (const char* filename, Component*& comp) {
 	    istream in(pfbuf);
 	    const char* command = "drawserv";
 	    int len = strlen(command)+1;
-	    char buf[len];
+	    std::vector<char> buf(len);
 
 	    char ch;
 	    while (isspace(ch = in.get())) {}; in.putback(ch);
-	    ParamList::parse_token(in, buf, len);
-	    if (strcmp(buf, "drawserv") == 0) { 
+	    ParamList::parse_token(in, &buf[0], len);
+	    if (strcmp(&buf[0], "drawserv") == 0) {
 		comp = new DrawIdrawComp(in, name, _parent);
 		_valid = in.good() && ((OverlayComp*)comp)->valid();
 	    } else 

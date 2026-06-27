@@ -166,8 +166,8 @@ void GridGraphic::drawClipped (
 
 	++r; ++t;
 
-        for (register float x = x0; x <= r; x += xincr) {
-            for (register float y = y0; y <= t; y += yincr) {
+        for (float x = x0; x <= r; x += xincr) {
+            for (float y = y0; y <= t; y += yincr) {
 #if __GNUC__>=2 && __GNUC_MINOR__>=5  || __GNUC__>=3
 #undef Point
                 _p->Point(c, Math::round(x), Math::round(y));

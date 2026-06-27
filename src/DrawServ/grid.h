@@ -29,6 +29,10 @@
 
 #include <Unidraw/globals.h>
 #include <uuid/uuid.h>
+#if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
+#define IV_UUID_STRING_T_DEFINED
+typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
+#endif
 #include <cstdint>
 
 class DrawLink;

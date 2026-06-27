@@ -253,8 +253,8 @@ BitmapRep::BitmapRep(BitmapRep* b, unsigned int t) {
 
     b->fill();
     fill();
-    for (register int bx = 0; bx < pwidth_; bx++) {
-	for (register int by = 0; by < pheight_; by++) {
+    for (int bx = 0; bx < pwidth_; bx++) {
+	for (int by = 0; by < pheight_; by++) {
             unsigned long pixel;
 	    if (bx >= 0 && bx < b->pwidth_ && by >= 0 && by < b->pheight_) {
 		pixel = XGetPixel(b->image_, bx, b->pheight_ - by - 1);

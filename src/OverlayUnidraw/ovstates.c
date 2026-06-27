@@ -55,6 +55,6 @@ PtrLocState::~PtrLocState() {
 
 void PtrLocState::ptrcoords(PixelCoord x, PixelCoord y) {
   ((OverlayViewer*)_ed->GetViewer())->ScreenToDrawing(x, y, _x, _y);
-  sprintf(_buf, "%.2f %.2f", _x, _y);
+  snprintf(_buf, 256, "%.2f %.2f", _x, _y);
   name(_buf, true);
 }

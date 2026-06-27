@@ -76,7 +76,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <iostream.h>
-#include <strstream>
+#include <sstream>
 
 
 RasterTerp::RasterTerp(Editor* ed) : _editor(ed) {
@@ -151,7 +151,7 @@ ScaleGrayFunc::ScaleGrayFunc(
 /* static */ const char* ScaleGrayFunc::CommandString(
     ColorIntensity mingray, ColorIntensity maxgray
 ) {
-    sprintf(sbuf,"%s(%.3f %.3f)", Tag(), mingray, maxgray);
+    snprintf(sbuf, sizeof(sbuf),"%s(%.3f %.3f)", Tag(), mingray, maxgray);
     return sbuf;
 }
 
@@ -209,7 +209,7 @@ PseudocolorFunc::PseudocolorFunc(
 /* static */ const char* PseudocolorFunc::CommandString(
     ColorIntensity mingray, ColorIntensity maxgray
 ) {
-    sprintf(sbuf,"%s(%.3f %.3f)", Tag(), mingray, maxgray);
+    snprintf(sbuf, sizeof(sbuf),"%s(%.3f %.3f)", Tag(), mingray, maxgray);
     return sbuf;
 }
 
@@ -269,7 +269,7 @@ LogScaleFunc::LogScaleFunc(
 /* static */ const char* LogScaleFunc::CommandString(
     ColorIntensity mingray, ColorIntensity maxgray)
 {
-    sprintf(sbuf,"%s(%.3f %.3f)", Tag(), mingray, maxgray);
+    snprintf(sbuf, sizeof(sbuf),"%s(%.3f %.3f)", Tag(), mingray, maxgray);
     return sbuf;
 }
 
@@ -332,7 +332,7 @@ GrayRampFunc::GrayRampFunc(
 /* static */ const char* GrayRampFunc::CommandString(
     RampAlignment align
 ) {
-    sprintf(sbuf,"%s(\\\"%s\\\")", Tag(), rpos[align]);
+    snprintf(sbuf, sizeof(sbuf),"%s(\\\"%s\\\")", Tag(), rpos[align]);
     return sbuf;
 }
 
@@ -639,7 +639,7 @@ OverlayRaster* ScaleGrayCmd::Process(OverlayRaster* rast, CopyString& scmd) {
        "Enter min and max for linear scaling of gray values",
        "0.0 1.0");
     if (newminmax) {
-      std::istrstream in(newminmax);
+      std::istringstream in(newminmax);
       float fmin, fmax;
       in >> fmin >> fmax;
       if (in.good()) {
@@ -731,7 +731,7 @@ OverlayRaster* PseudocolorCmd::Process(OverlayRaster* rast, CopyString& scmd) {
     char* newminmax = StrEditDialog::post
       (GetEditor()->GetWindow(), message, range);
     if (newminmax) {
-      std::istrstream in(newminmax);
+      std::istringstream in(newminmax);
       float fmin, fmax;
       in >> fmin >> fmax;
       if (in.good()) {
@@ -815,7 +815,7 @@ OverlayRaster* LogScaleCmd::Process(OverlayRaster* rast, CopyString& scmd) {
        "Enter min and max for logarithmic scaling of gray values",
        "0.0 1.0");
     if (newminmax) {
-      std::istrstream in(newminmax);
+      std::istringstream in(newminmax);
       float fmin, fmax;
       in >> fmin >> fmax;
       if (in.good()) {

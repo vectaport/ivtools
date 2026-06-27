@@ -81,6 +81,7 @@
 
 #ifdef LEAKCHECK
 #include <leakchecker.h>
+#include <vector>
 #endif
 
 #define TITLE "ComTerp"
@@ -929,9 +930,9 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
       localtable()->find(vptr, command_symid);
     else if (strncmp(sv->symbol_ptr(), "__", 2)==0) {
       int bufsiz = strlen(sv->symbol_ptr());
-      char buf[bufsiz];
-      strcpy(buf, sv->symbol_ptr()+2);
-      command_symid = symbol_add(buf);
+      std::vector<char> buf(bufsiz);
+      strcpy(&buf[0], sv->symbol_ptr()+2);
+      command_symid = symbol_add(&buf[0]);
       localtable()->find(vptr, command_symid);
     }
 

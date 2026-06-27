@@ -29,8 +29,13 @@
 
 #include <OverlayUnidraw/ovunidraw.h>
 #include <stdio.h>
+#include <stdint.h>   /* uint32_t -- pulled in transitively on macOS, not on Linux */
 #include <strstream>
 #include <uuid/uuid.h>
+#if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
+#define IV_UUID_STRING_T_DEFINED
+typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
+#endif
 
 // utility function for grabbing key from uuid_t.
 extern uint32_t uuid_key(const uuid_t u);

@@ -36,6 +36,7 @@
 #include <iostream.h>
 #include <string.h>
 #include <ctype.h>
+#include <vector>
 
 #define TITLE "SymbolFunc"
 
@@ -66,7 +67,7 @@ void SymIdFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) return;
-  int symbol_ids[numargs];
+  std::vector<int> symbol_ids(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i, true);
     if (val.is_type(AttributeValue::CommandType))
@@ -103,7 +104,7 @@ void SymAddFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) return;
-  int symbol_ids[numargs];
+  std::vector<int> symbol_ids(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
     if (val.is_type(AttributeValue::CommandType))
@@ -151,7 +152,7 @@ void SymbolFunc::execute() {
   // return symbol for each id argument
   int numargs = nargs();
   if (!numargs) return;
-  int symbol_ids[numargs];
+  std::vector<int> symbol_ids(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i, true);
     if (val.is_symbol()) {
@@ -192,7 +193,7 @@ void SymValFunc::execute() {
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) return;
-  ComValue* varvalues[numargs];
+  std::vector<ComValue*> varvalues(numargs);
   for (int i=0; i<numargs; i++) {
 
     // return fully-evaluated value: expression --> symbol --> value
@@ -437,7 +438,7 @@ void JoinStrFunc::execute() {
   if (listv.is_array()) {
     AttributeValueList* avl = listv.array_val();
     if (avl) {
-      char cbuf[avl->Number()+1];
+      std::vector<char> cbuf(avl->Number()+1);
       Iterator i;
       int cnt=0;
       for (avl->First(i); !avl->Done(i); avl->Next(i)) {
@@ -446,7 +447,7 @@ void JoinStrFunc::execute() {
       }
       cbuf[cnt] = '\0';
 
-    ComValue retval(symbol_add(cbuf), symflag ? ComValue::SymbolType : ComValue::StringType);
+    ComValue retval(symbol_add(&cbuf[0]), symflag ? ComValue::SymbolType : ComValue::StringType);
     push_stack(retval);
     return;
     }
@@ -488,7 +489,7 @@ void GlobalSymbolFunc::execute() {
     reset_stack();
     return;
   }
-  int symbol_ids[numargs];
+  std::vector<int> symbol_ids(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i, true);
     if (val.is_symbol())
@@ -591,10 +592,10 @@ void SubStrFunc::execute() {
     offset = afterflag ? foundstr-string+strlen(nv.symbol_ptr()) : 0;
   };
   if(n>0) { 
-    char buffer[n+1];
-    strncpy(buffer, string+offset, n);
+    std::vector<char> buffer(n+1);
+    strncpy(&buffer[0], string+offset, n);
     buffer[n] = '\0';
-    ComValue retval(buffer);
+    ComValue retval(&buffer[0]);
     push_stack(retval);
   } else
     if(nonilflag)

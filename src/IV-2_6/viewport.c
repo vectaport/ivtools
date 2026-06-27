@@ -160,8 +160,8 @@ void Viewport::Adjust(Perspective& np) {
 }
 
 void Viewport::DoAdjust(float px, float py, float zx, float zy) {
-    register Perspective* p = perspective;
-    register Shape* s = interior()->GetShape();
+    Perspective* p = perspective;
+    Shape* s = interior()->GetShape();
     cwidth = s->width;
     cheight = s->height;
 

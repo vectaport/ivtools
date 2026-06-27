@@ -85,7 +85,7 @@ InputHandler* DragValuator::focusable() const {
 
 void DragValuator::update(Observable*) {
     char buf[40];
-    sprintf(buf, "%s", bvalue_->valuestring());
+    snprintf(buf, sizeof(buf), "%s", bvalue_->valuestring());
     editor_->field(buf);
 }
 

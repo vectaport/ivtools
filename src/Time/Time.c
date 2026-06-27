@@ -281,7 +281,7 @@ Time Time::min(const Time& t) const
 
 void Time::printOn(ostream& strm) const
 {
-	register unsigned hh = hour();
+	unsigned hh = hour();
 	this->date().printOn(strm);
  	strm << ' ' << ((hh <= 12) ? hh : hh-12) << ':';
  	strm << setfill('0') << setw(2) << minute() << ':';

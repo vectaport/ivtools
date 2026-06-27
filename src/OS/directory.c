@@ -214,7 +214,7 @@ boolean Directory::is_directory(int i) const {
     if (e.info_ == nil) {
 	e.info_ = new (struct stat);
 	char* tmp = new char[d.name_->length() + e.name_->length() + 2];
-	sprintf(tmp, "%s/%s", d.name_->string(), e.name_->string());
+	snprintf(tmp, d.name_->length() + e.name_->length() + 2, "%s/%s", d.name_->string(), e.name_->string());
 	stat(tmp, e.info_);
 	delete [] tmp;
     }
@@ -240,15 +240,15 @@ String* Directory::canonical(const String& name) {
     s = DirectoryImpl::eliminate_dot_dot(s);
     s = DirectoryImpl::interpret_tilde(s);
     if (s[0] == '\0') {
-	sprintf(newpath, "./");
+	snprintf(newpath, sizeof(newpath), "./");
     } else if (!DirectoryImpl::dot_slash(s) &&
 	!DirectoryImpl::dot_dot_slash(s) && s[0] != '/'
     ) {
-	sprintf(newpath, "./%s", s);
+	snprintf(newpath, sizeof(newpath), "./%s", s);
     } else if (DirectoryImpl::ifdir(s) && s[strlen(s) - 1] != '/') {
-	sprintf(newpath, "%s/", s);
+	snprintf(newpath, sizeof(newpath), "%s/", s);
     } else {
-	sprintf(newpath, "%s", s);
+	snprintf(newpath, sizeof(newpath), "%s", s);
     }
     return new CopyString(newpath);
 }

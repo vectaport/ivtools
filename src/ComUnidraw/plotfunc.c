@@ -92,14 +92,14 @@ void BarPlotFunc::execute() {
     char cmd[256];
     char pstmp[] = "/tmp/psivXXXX";
     mkstemp(pstmp);
-    sprintf(cmd, "plotmtv -noxplot -color -o %s %s", pstmp, tmpfilename);
+    snprintf(cmd, sizeof(cmd), "plotmtv -noxplot -color -o %s %s", pstmp, tmpfilename);
     FILE* plotp = popen(cmd, "w");
     fprintf(plotp, "n\n");
     pclose(plotp);
 
     char idtmp[] = "/tmp/idivXXXX";
     mkstemp(idtmp);
-    sprintf(cmd, "pstoedit -f idraw < %s > %s", pstmp, idtmp);
+    snprintf(cmd, sizeof(cmd), "pstoedit -f idraw < %s > %s", pstmp, idtmp);
 fprintf(stderr, "%s\n", cmd);
     system(cmd);
 

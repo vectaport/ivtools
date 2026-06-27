@@ -237,6 +237,8 @@ void ComTE_View::newline()
   // don't evaluate
   ComValue result(comterp()->pop_stack(false));
 #endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
   ostream* out = new std::strstream();
   if (*comterp()->errmsg()) {
     *out << comterp()->errmsg() << "\n";
@@ -255,6 +257,7 @@ void ComTE_View::newline()
   out->flush();
   std::strstream* sout = (std::strstream*)out;
   insert_string(sout->str(), strlen(sout->str()));
+#pragma GCC diagnostic pop
   comterp()->brief(old_brief);
   delete out; 
   delete[] buffer;

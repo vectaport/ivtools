@@ -530,7 +530,7 @@ void Interactor::Resize() { }
 void Interactor::RedrawList(
     int n, IntCoord left[], IntCoord bottom[], IntCoord right[], IntCoord top[]
 ) {
-    register int i;
+    int i;
 
     for (i = 0; i < n; i++) {
 	Redraw(left[i], bottom[i], right[i], top[i]);

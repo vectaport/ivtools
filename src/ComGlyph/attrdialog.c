@@ -160,9 +160,9 @@ void AttrDialogImpl::eval() {
     char exprbuf[BUFSIZ];
     const char* expr = expredit_->text();
     if (expr[strlen(expr)-1] != '\n') 
-        sprintf(exprbuf, "%s\n", expr);
+        snprintf(exprbuf, sizeof(exprbuf), "%s\n", expr);
     else
-        sprintf(exprbuf, "%s", expr);
+        snprintf(exprbuf, sizeof(exprbuf), "%s", expr);
 
     
     int exprlen;
@@ -186,7 +186,10 @@ void AttrDialogImpl::eval() {
 
 	    const int bufsiz = BUFSIZ;
 	    char buf[bufsiz];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	    std::strstream outstr(buf, bufsiz);
+#pragma GCC diagnostic pop
 	    outstr << retval;
 	    outstr.put('\0');
             result_->textvalue(buf);

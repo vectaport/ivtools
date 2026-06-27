@@ -67,6 +67,7 @@
 #include <string.h>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 using std::cerr;
 
@@ -256,14 +257,14 @@ void OverlayScript::Pattern (ostream& out) {
 	  
 	  if (size <= 8) {
 	    for (int i = 0; i < 8; i++) {
-	      sprintf(buf, "0x%02x", data[i] & 0xff);
+	      snprintf(buf, sizeof(buf), "0x%02x", data[i] & 0xff);
 	      out << buf;
 	      if (i < 7 ) out << ",";
 	    }
 	    
 	  } else {
 	    for (int i = 0; i < patternHeight; i++) {
-	      sprintf(buf, "0x%0*x", patternWidth/4, data[i]);
+	      snprintf(buf, sizeof(buf), "0x%0*x", patternWidth/4, data[i]);
 	      if (i != patternHeight - 1) {
 		out << buf << ",";
 	      } else {
@@ -292,11 +293,11 @@ void OverlayScript::Transformation(ostream& out, const char* keyword, Graphic* g
     Transformer identity;
 
     if (t != nil && *t != identity) {
-	char key[strlen(keyword)+4];
-	sprintf(key," :%s ",keyword);
+	std::vector<char> key(strlen(keyword)+4);
+	snprintf(&key[0], strlen(keyword)+4," :%s ",keyword);
 	float a00, a01, a10, a11, a20, a21;
 	t->GetEntries(a00, a01, a10, a11, a20, a21);
-	out << key;
+	out << &key[0];
 	out << no_neg_zero(a00) << "," << no_neg_zero(a01) << "," << no_neg_zero(a10) << ",";
 	out << no_neg_zero(a11) << "," << no_neg_zero(a20) << "," << no_neg_zero(a21);
     }
@@ -619,7 +620,7 @@ int OverlayScript::ReadFont (istream& in, void* addr1, void* addr2, void* addr3,
 	if (in.good() && delim == ',') {
 	    in >> printsize;
 	    ps = true;
-	    sprintf(printsizebuf, "%d", printsize);
+	    snprintf(printsizebuf, sizeof(printsizebuf), "%d", printsize);
 	}
     }
     if (!in.good()) {

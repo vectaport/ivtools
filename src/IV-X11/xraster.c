@@ -278,7 +278,7 @@ void Raster::peek(
     ColorIntensity& red, ColorIntensity& green, ColorIntensity& blue,
     float& alpha
 ) const {
-    register RasterRep* r = rep();
+    RasterRep* r = rep();
     unsigned long pixel = XGetPixel(
 	r->image_, (unsigned int)x, r->pheight_ - (unsigned int)y - 1
     );

@@ -158,7 +158,7 @@ must terminate with a '\n'.
 !*/
 
 {
-register char ch;		/* For efficient access of latest char */
+char ch;		/* For efficient access of latest char */
 unsigned double_state = FLOAT_INTEGER;
 				/* Extra state variable for float parsing */
 BOOLEAN long_num = FALSE;       /* Indicates long integer to be used */

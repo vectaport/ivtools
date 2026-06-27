@@ -230,8 +230,8 @@ void ConnectionsDialogImpl::connect() {
   /* remove terminating spaces */
   int hostlen = strlen(hoststr->string())+1;
   int portlen = strlen(portstr->string())+1;
-  char hostbuf[hostlen];
-  char portbuf[portlen];
+  char* hostbuf = new char[hostlen];
+  char* portbuf = new char[portlen];
   strcpy(hostbuf, hoststr->string());
   strcpy(portbuf, portstr->string());
   char *ptr;
@@ -248,6 +248,8 @@ void ConnectionsDialogImpl::connect() {
       char buffer[BUFSIZ];
       snprintf(buffer, BUFSIZ, "%s:%d", hostbuf, portnum);
       GAcknowledgeDialog::map(dialog_->GetEditor()->GetWindow(), "Can't connect to self", buffer, "Can't connect to self");
+      delete[] hostbuf;
+      delete[] portbuf;
       return;
     }
 
@@ -257,6 +259,8 @@ void ConnectionsDialogImpl::connect() {
       GAcknowledgeDialog::map(dialog_->GetEditor()->GetWindow(), "Connection refused", buffer, "Connection refused");
     }
   }
+  delete[] hostbuf;
+  delete[] portbuf;
 }
 
 void ConnectionsDialogImpl::disconnect() {
@@ -266,8 +270,8 @@ void ConnectionsDialogImpl::disconnect() {
   /* remove terminating spaces */
   int hostlen = strlen(hoststr->string())+1;
   int portlen = strlen(portstr->string())+1;
-  char hostbuf[hostlen];
-  char portbuf[portlen];
+  char* hostbuf = new char[hostlen];
+  char* portbuf = new char[portlen];
   strcpy(hostbuf, hoststr->string());
   strcpy(portbuf, portstr->string());
   char *ptr;
@@ -280,9 +284,11 @@ void ConnectionsDialogImpl::disconnect() {
     int portnum=20002;
     if (strlen(portbuf) > 0) portnum = atoi(portbuf);
     DrawLink* link = ((DrawServ*)unidraw)->linkget(hostbuf, portnum);
-    if (link) 
+    if (link)
       ((DrawServ*)unidraw)->linkdown(link);
   }
+  delete[] hostbuf;
+  delete[] portbuf;
 }
 
 void ConnectionsDialogImpl::close() {
@@ -384,7 +390,7 @@ void ConnectionsDialogImpl::update_text(boolean update) {
     for(int i=0; i<strlen(buf); i++) vbuf.push_back(buf[i]);
   }
   vbuf.push_back('\0');
-  ete_->text(&vbuf[0] ? &vbuf[0] : "", update);
+  ete_->text(vbuf.empty() ? "" : &vbuf[0], update);
 }
 
 #endif

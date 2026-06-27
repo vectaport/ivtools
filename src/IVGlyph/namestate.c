@@ -46,9 +46,9 @@ NameView::NameView(NameState* s1) :MonoGlyph(), Observer()
 	len = strlen(st1->name())+1;
     char str1[len];
     if (st1 && st1->name())
-	sprintf(str1,"%s", st1->name());
+	snprintf(str1, sizeof(str1),"%s", st1->name());
     else
-	sprintf(str1,"");
+	snprintf(str1, sizeof(str1),"");
     _label = new Patch(
 	lk.hbox(
 	    kit.label(str1),
@@ -70,9 +70,9 @@ void NameView::update(Observable* obs) {
 	len = strlen(st1->name())+1;
     char str1[len];
     if (st1 && st1->name())
-	sprintf(str1,"%s", st1->name());
+	snprintf(str1, sizeof(str1),"%s", st1->name());
     else
-	sprintf(str1,"");
+	snprintf(str1, sizeof(str1),"");
     Glyph* text;
     if (_blink_state) {
       if (_blink_in)

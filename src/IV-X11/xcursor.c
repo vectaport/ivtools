@@ -234,8 +234,8 @@ Pixmap CursorRepData::make_cursor_pixmap(
     XFillRectangle(dpy, dst, g, 0, 0, cursorWidth, cursorHeight);
     XSetForeground(dpy, g, 1);
 
-    register int i, j;
-    register unsigned s1, s2;
+    int i, j;
+    unsigned s1, s2;
     for (i = 0; i < cursorHeight; i++) {
 	s1 = scanline[i];
 	s2 = 1;

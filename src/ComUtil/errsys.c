@@ -604,9 +604,9 @@ char buffer[bufsiz];
 
 /* Print overflow messages */
    if( TooManyErrors ) {
-      sprintf( errbuf, "*** Warning:  Error depth greater than %d ***\n", 
+      snprintf( errbuf, bufsiz, "*** Warning:  Error depth greater than %d ***\n",
                MAX_ERROR_SETS );
-      sprintf( errbuf, "     *** Unable to print all errors ***\n" );
+      snprintf( errbuf, bufsiz, "     *** Unable to print all errors ***\n" );
       }
 #if 0
 /* If programmer level error reporting dump the entire stack */
@@ -639,7 +639,7 @@ char buffer[bufsiz];
 	 }
       else
 	 ptr = buffer;
-      sprintf( errbuf, "%s:  %s", command, ptr );
+      snprintf( errbuf, bufsiz, "%s:  %s", command, ptr );
 #if 0
       }
 #endif
@@ -693,8 +693,14 @@ See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
    TopError = -1;
    NextErrOff = 0;
    TooManyErrors = FALSE;
-   fclose( ErrorIOFile );
-   ErrorIOFile = NULL;
+/* ErrorIOFile is opened lazily and is NULL until the first error is stored.
+   Guard the close: glibc's fclose(NULL) dereferences the null FILE* and
+   crashes (macOS libc happens to tolerate it).  Mirrors the NULL checks the
+   other err_* routines already do. */
+   if( ErrorIOFile != NULL ) {
+      fclose( ErrorIOFile );
+      ErrorIOFile = NULL;
+      }
 #if 0
    unlink( ERROR_IO_FILE );
 #endif

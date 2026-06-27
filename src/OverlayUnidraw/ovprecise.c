@@ -39,7 +39,7 @@
 #include <InterViews/window.h>
 #include <stdio.h>
 #include <string.h>
-#include <strstream>
+#include <sstream>
 
 /*****************************************************************************/
 
@@ -90,7 +90,7 @@ void OvPreciseMoveCmd::Execute () {
     _default_enumval = cur_unit;
 
     if (movestr) {
-      std::istrstream in(movestr);
+      std::istringstream in(movestr);
       float xmove = 0, ymove = 0;
       in >> xmove >> ymove;
 
@@ -135,7 +135,7 @@ void OvPreciseScaleCmd::Execute () {
 			  "Enter X and Y scaling:",
 			  default_scalestr, "Precise Scale");
     if (scalestr) {
-      std::istrstream in(scalestr);
+      std::istringstream in(scalestr);
       float xscale = 0.0, yscale = 0.0;
       in >> xscale >> yscale;
       if (xscale !=0.0 && yscale != 0.0) {
@@ -173,7 +173,7 @@ void OvPreciseRotateCmd::Execute () {
 			  "Enter rotation in degrees:",
 			  default_rotatestr, "Precise Rotate");
     if (rotatestr) {
-      std::istrstream in(rotatestr);
+      std::istringstream in(rotatestr);
       float angle = 0.0;
       in >> angle;
       if (angle!=0.0) {
@@ -209,7 +209,7 @@ void OvPrecisePageCmd::Execute () {
     if (!default_pagestr) {
       OverlayPage* page = (OverlayPage*) GetEditor()->GetViewer()->GetPage();
       char buffer[BUFSIZ];
-      sprintf( buffer, "%d %d", (int) ((PageGraphic*)page->GetGraphic())->Width(), 
+      snprintf(buffer, sizeof(buffer), "%d %d", (int) ((PageGraphic*)page->GetGraphic())->Width(), 
 	(int) ((PageGraphic*)page->GetGraphic())->Height());
       default_pagestr = strdup(buffer);
     }
@@ -218,7 +218,7 @@ void OvPrecisePageCmd::Execute () {
 			  "Enter width and height of page:",
 			  default_pagestr);
     if (pagestr) {
-      std::istrstream in(pagestr);
+      std::istringstream in(pagestr);
       int xpage = 0, ypage = 0;
       in >> xpage >> ypage;
       if (xpage !=0 && ypage != 0) {
@@ -256,7 +256,7 @@ void OvPreciseBrushCmd::Execute () {
 			  "Enter brush width in pixels:",
 			  default_widthstr);
     if (widthstr) {
-      std::istrstream in(widthstr);
+      std::istringstream in(widthstr);
       float width = 0;
       in >> width;
       if (width>=0.0) {

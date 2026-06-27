@@ -94,7 +94,7 @@ void AttributeListEditor::add() {
     const String* txt = _namefe->text();
     if (txt->length() > 0) {
 	char* buf = new char[strlen(_valfe->text()->string())+2];
-	sprintf(buf, "%s\n", _valfe->text()->string());
+	snprintf(buf, strlen(_valfe->text()->string())+2, "%s\n", _valfe->text()->string());
 	while(isspace(*buf) && *buf!='\0') buf++;
 	int negate = *buf=='-';
 	int skip = negate || *buf=='+';
@@ -149,9 +149,12 @@ void AttributeListEditor::update_text(boolean update) {
 #else
         vbuf.push_back(' ');
 #endif
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	std::strstream valstr;
 	valstr << *attr->Value() << '\0';
 	const char* val = valstr.str();
+#pragma GCC diagnostic pop
 	int vallen = val ? strlen(val) : 0;
 	if (val)
 #ifndef STL_VECTOR

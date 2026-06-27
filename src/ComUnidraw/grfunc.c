@@ -24,6 +24,7 @@
  */
 
 #include <ComUnidraw/grfunc.h>
+#include <vector>
 
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
@@ -491,8 +492,8 @@ void CreateMultiLineFunc::execute() {
 
     const int len = vect.array_len();
     const int npts = len/2;
-    int x[npts];
-    int y[npts];
+    std::vector<int> x(npts);
+    std::vector<int> y(npts);
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
     avl->First(i);
@@ -517,7 +518,7 @@ void CreateMultiLineFunc::execute() {
         Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
-	ArrowMultiLine* multiline = new ArrowMultiLine(x, y, npts, aVar->Head(), aVar->Tail(), 
+	ArrowMultiLine* multiline = new ArrowMultiLine(&x[0], &y[0], npts, aVar->Head(), aVar->Tail(),
 					_ed->GetViewer()->GetMagnification(), stdgraphic);
 
 	if (brVar != nil) multiline->SetBrush(brVar->GetBrush());
@@ -557,8 +558,8 @@ void CreateOpenSplineFunc::execute() {
 
     const int len = vect.array_len();
     const int npts = len/2;
-    int x[npts];
-    int y[npts];
+    std::vector<int> x(npts);
+    std::vector<int> y(npts);
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
     avl->First(i);
@@ -583,7 +584,7 @@ void CreateOpenSplineFunc::execute() {
         Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
-	ArrowOpenBSpline* openspline = new ArrowOpenBSpline(x, y, npts, aVar->Head(), aVar->Tail(), 
+	ArrowOpenBSpline* openspline = new ArrowOpenBSpline(&x[0], &y[0], npts, aVar->Head(), aVar->Tail(),
 					_ed->GetViewer()->GetMagnification(), stdgraphic);
 
 	if (brVar != nil) openspline->SetBrush(brVar->GetBrush());
@@ -623,8 +624,8 @@ void CreatePolygonFunc::execute() {
 
     const int len = vect.array_len();
     const int npts = len/2;
-    int x[npts];
-    int y[npts];
+    std::vector<int> x(npts);
+    std::vector<int> y(npts);
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
     avl->First(i);
@@ -648,7 +649,7 @@ void CreatePolygonFunc::execute() {
 
         Transformer* rel = get_transformer(al);
 
-	SF_Polygon* polygon = new SF_Polygon(x, y, npts, stdgraphic);
+	SF_Polygon* polygon = new SF_Polygon(&x[0], &y[0], npts, stdgraphic);
 
 	if (brVar != nil) polygon->SetBrush(brVar->GetBrush());
 	if (patVar != nil) polygon->SetPattern(patVar->GetPattern());
@@ -687,8 +688,8 @@ void CreateClosedSplineFunc::execute() {
 
     const int len = vect.array_len();
     const int npts = len/2;
-    int x[npts];
-    int y[npts];
+    std::vector<int> x(npts);
+    std::vector<int> y(npts);
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
     avl->First(i);
@@ -713,7 +714,7 @@ void CreateClosedSplineFunc::execute() {
         Transformer* rel = get_transformer(al);
 
 	ArrowVar* aVar = (ArrowVar*) _ed->GetState("ArrowVar");
-	SFH_ClosedBSpline* closedspline = new SFH_ClosedBSpline(x, y, npts, stdgraphic);
+	SFH_ClosedBSpline* closedspline = new SFH_ClosedBSpline(&x[0], &y[0], npts, stdgraphic);
 
 	if (brVar != nil) closedspline->SetBrush(brVar->GetBrush());
 	if (patVar != nil) closedspline->SetPattern(patVar->GetPattern());
@@ -938,7 +939,7 @@ static char  *psfonttoxfont(char* f)
   f[0] = 0;
   if (f[-1]=='-')
     f[-1] = 0;
-  sprintf(name,"-*-%s-%s-normal-*-%d-*",
+  snprintf(name, sizeof(name),"-*-%s-%s-normal-*-%d-*",
 	  copy, type, size );
   return name;
 }
@@ -976,7 +977,7 @@ void FontByNameFunc::execute() {
     strcpy(fontname, XGetAtomName(dpy, (Atom)value));
     
     XGetFontProperty(xfs,XA_POINT_SIZE, &value);
-    sprintf(fontsizeptr,"%d",(unsigned int)(value/10));
+    snprintf(fontsizeptr, sizeof(fontsizeptr),"%d",(unsigned int)(value/10));
     
     font = catalog->FindFont(fontvaldup,fontname,fontsizeptr);
     delete fontvaldup;

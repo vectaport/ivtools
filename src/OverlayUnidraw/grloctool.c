@@ -88,7 +88,7 @@ Manipulator* GrLocTool::CreateManipulator (
     Graphic* gr;
     if (view && (gr = view->GetGraphic())) {
       viewer->ScreenToGraphic(e.x, e.y, gr, xgr, ygr);
-      sprintf( _buffer, "x,y:  %.2f %.2f", xgr, ygr);
+      snprintf(_buffer, _bufsiz, "x,y:  %.2f %.2f", xgr, ygr);
       _otext->accept();
       if (!dialog()->mapped())
 	dialog()->map_for(v->GetEditor()->GetWindow());

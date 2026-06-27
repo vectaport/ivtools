@@ -23,7 +23,7 @@
 
 #include <ComTerp/timefunc.h>
 #include <Time/Date.h>
-#include <strstream>
+#include <sstream>
 
 #define TITLE "TimeFunc"
 
@@ -32,7 +32,7 @@
 int DateObj::_symid= -1;
 
 DateObj::DateObj(const char* datestr) {
-  std::istrstream in(datestr);
+  std::istringstream in(datestr);
   _date = new Date(in);
 }
 

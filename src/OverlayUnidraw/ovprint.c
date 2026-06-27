@@ -111,7 +111,7 @@ void OvPrintCmd::Execute () {
 
 	    if (!chooser_->to_printer() && catalog->Exists(name) && catalog->Writable(name)) {
 		char buf[CHARBUFSIZE];
-		sprintf(buf, "\"%s\" already exists,", name);
+		snprintf(buf, sizeof(buf), "\"%s\" already exists,", name);
 		GConfirmDialog* dialog = new GConfirmDialog(buf, "Overwrite?");
 	    	Resource::ref(dialog);
 	    	ok = dialog->post_for(ed->GetWindow());
@@ -176,10 +176,10 @@ int OvPrintCmd::print (const char* print_cmd, const char* file) {
     char cmd[CHARBUFSIZE];
     if (strstr(print_cmd, "%s")) {
         char buf[CHARBUFSIZE];
-	sprintf(buf, print_cmd, file);
-        sprintf(cmd, "(%s;rm %s)&", buf, file);
+	snprintf(buf, sizeof(buf), print_cmd, file);
+        snprintf(cmd, sizeof(cmd), "(%s;rm %s)&", buf, file);
     } else 
-        sprintf(cmd, "(%s %s ;rm %s)&", print_cmd, file, file);
+        snprintf(cmd, sizeof(cmd), "(%s %s ;rm %s)&", print_cmd, file, file);
     return system(cmd);
 }
 

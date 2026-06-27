@@ -180,7 +180,7 @@ void TE_View::load_popup()
     }
     char buf[256];
     boolean error = true;
-    sprintf(buf, "Load File:");
+    snprintf(buf, sizeof(buf), "Load File:");
     style_->attribute("open", "Load");
     style_->attribute("caption", "");
     style_->attribute("subcaption", buf);
@@ -218,7 +218,7 @@ void TE_View::save_popup()
     }
     char buf[256];
     boolean error = true;
-    sprintf(buf, "Save To File:");
+    snprintf(buf, sizeof(buf), "Save To File:");
     style_->attribute("open", "Save");
     style_->attribute("caption", "");
     style_->attribute("subcaption", buf);

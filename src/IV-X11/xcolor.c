@@ -213,7 +213,7 @@ ColorRep* Color::create(
     unsigned short red = (unsigned short)Math::round(r * float(0xffff));
     unsigned short green = (unsigned short)Math::round(g * float(0xffff));
     unsigned short blue = (unsigned short)Math::round(b * float(0xffff));
-    register ColorRep* c = new ColorRep;
+    ColorRep* c = new ColorRep;
     wv->find_color(red, green, blue, c->xcolor_);
     c->visual_ = wv;
     switch (op) {

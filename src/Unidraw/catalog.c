@@ -63,7 +63,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stream.h>
-#include <strstream>
+#include <sstream>
 #ifdef SYSV
 #include <OS/types.h>
 #include <unistd.h>
@@ -892,7 +892,7 @@ const char* Catalog::GetAttribute (const char* a) {
 }
 
 const char* Catalog::Name (const char* name, int index) {
-    sprintf(buf, "%s%d", name, index);
+    snprintf(buf, sizeof(buf), "%s%d", name, index);
     return buf;
 }
 
@@ -1470,7 +1470,7 @@ static const int* ExpandToFullSize (const int* orig_data, int size) {
 	}
 
     } else if (size == patternHeight) {
-	const unsigned int patternWidthMask = ~(~0 << patternWidth);
+	const unsigned int patternWidthMask = ~(~0u << patternWidth);
 
 	for (int i = 0; i < patternHeight; i++) {
 	    data[i] &= patternWidthMask;
@@ -1500,13 +1500,13 @@ void Catalog::WritePattern (PSPattern* pattern, ostream& out) {
 
         if (size <= 8) {
             for (int i = 0; i < 8; i++) {
-                sprintf(buf, "%02x", data[i] & 0xff);
+                snprintf(buf, sizeof(buf), "%02x", data[i] & 0xff);
                 out << buf << " ";
             }
 
         } else {
             for (int i = 0; i < patternHeight; i++) {
-                sprintf(buf, "%0*x", patternWidth/4, data[i]);
+                snprintf(buf, sizeof(buf), "%0*x", patternWidth/4, data[i]);
                 out << buf << " ";
             }
         }
@@ -1660,7 +1660,7 @@ PSPattern* Catalog::ReadPattern (const char* n, int index) {
 	    }
 
 	} else {
-	    std::istrstream in(definition, strlen(definition) + 1);
+	    std::istringstream in(definition);
             int data[patternHeight];
             int i;
 	    for (i = 0; !in.eof() && in.good() && i < patternHeight; i++) {

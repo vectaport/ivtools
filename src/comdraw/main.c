@@ -50,6 +50,7 @@
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/ctrlfunc.h>
 #include <ComUtil/util.h>
 
 #include <stream.h>
@@ -406,6 +407,10 @@ int main (int argc, char** argv) {
 
 	    const char* runfile = catalog->GetAttribute("runfile");
 	    if (runfile && *runfile) {
+		/* seed the base for relative pathnames so run("./x") inside the
+		   script resolves against the script's directory, not the cwd
+		   (mirrors comterp's `run` subcommand -- see comterp_/main.c). */
+		RunFunc::set_basepath(runfile);
 		if (terp->runfile(runfile) < 0)
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
 	    }

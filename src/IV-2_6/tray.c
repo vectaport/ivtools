@@ -137,7 +137,7 @@ void TElement::VSetShape() {
 
 TElement* TElement::Series(TElement* e) {
     TElement* combo = new TElement;
-    register TElement* c;
+    TElement* c;
     
     combo->combinable = combinable || e->combinable;
     
@@ -158,7 +158,7 @@ TElement* TElement::Series(TElement* e) {
 
 TElement* TElement::Parallel(TElement* e) {
     TElement* combo = new TElement;
-    register TElement* c;
+    TElement* c;
     float emin, emax;
     
     emin = Math::max(nat - shrink, e->nat - e->shrink);
@@ -262,7 +262,7 @@ TList::~TList() {
 }
 
 void TList::Delete(void* o) {
-    register TList* e;
+    TList* e;
 
     e = Find(o);
     if (e != nil) {
@@ -272,7 +272,7 @@ void TList::Delete(void* o) {
 }
 
 TList* TList::Find(void* o) {
-    register TList* e;
+    TList* e;
 
     for (e = next; e != this; e = e->next) {
 	if (e->GetContents() == o) {
@@ -323,7 +323,7 @@ inline boolean TElementList::OnlyTwo()
 TElementList::TElementList(TElement* o) : TList(o) { }
 
 TElementList* TElementList::Copy() {
-    register TElementList* t;
+    TElementList* t;
     TElementList* newlist = new TElementList;
     
     for (t = First(); t != End(); t = t->Next()) {
@@ -333,7 +333,7 @@ TElementList* TElementList::Copy() {
 }
 
 boolean TElementList::Includes(Interactor* i, TElement*& e) {
-    register TElementList* t;
+    TElementList* t;
 
     for (t = First(); t != End(); t = t->Next()) {
 	e = t->GetElem();
@@ -449,7 +449,7 @@ TNode::TNode(Alignment a1, TElement* e1, Alignment a2, TElement* e2) {
 TNode::~TNode() { delete lbElems; delete rtElems; }
 
 void TNode::DeleteElements() {
-    register TElementList* t;
+    TElementList* t;
     
     for (t = lbElems->First(); t != lbElems->End(); t = t->Next()) {
         rtElems->Delete(t->GetElem());
@@ -459,7 +459,7 @@ void TNode::DeleteElements() {
 }
 
 void TNode::DeleteElements(TElementList* elems) {
-    register TElementList* t;
+    TElementList* t;
 
     for (t = elems->First(); t != elems->End(); t = t->Next()) {
         delete t->GetElem();
@@ -473,7 +473,7 @@ TNode* TNode::Copy() {
 }
 
 void TNode::Merge(TNode* n) {
-    register TElementList* nelems, *next;
+    TElementList* nelems, *next;
     TElementList* cur;
     
     nelems = n->lbElems;
@@ -515,8 +515,8 @@ boolean TNode::Includes(Alignment& a, TElement* e) {
 }
 
 boolean TNode::Overlaps(TNode* n) {
-    register TElementList* nelems;
-    register TElementList* cur;
+    TElementList* nelems;
+    TElementList* cur;
     
     nelems = n->lbElems;
     for (cur = nelems->First(); cur != nelems->End(); cur = cur->Next()) {
@@ -583,7 +583,7 @@ boolean TNode::Stub(TElement*& e) {
 }
 
 boolean TNode::Loop(TElement*& e) {
-    register TElementList* cur;
+    TElementList* cur;
     
     for (cur = lbElems->First(); cur != lbElems->End(); cur = cur->Next()) {
 	e = cur->GetElem();
@@ -680,7 +680,7 @@ inline Alignment TNodeList::Inverse(Alignment a)
 TNodeList::TNodeList(TNode* o) : TList(o) { }
 
 TNodeList* TNodeList::Copy() {
-    register TNodeList* t;
+    TNodeList* t;
     TNodeList* newlist = new TNodeList;
     TNode* node;
     
@@ -694,7 +694,7 @@ TNodeList* TNodeList::Copy() {
 void TNodeList::Include(
     Alignment a1, TElement* e1, Alignment a2, TElement* e2
 ) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode pass1(a1, e1, a2, e2);
     TNode* node, *pass2;
     
@@ -723,7 +723,7 @@ void TNodeList::Include(
 }
 
 void TNodeList::Exclude(TElement* e) {
-    register TNodeList* t, *next;
+    TNodeList* t, *next;
     TNode* node;
     int n = 0;
     
@@ -755,7 +755,7 @@ boolean TNodeList::Degenerate(TElement*& e) {
 boolean TNodeList::FoundTermination(
     TTermination*& term, TNode* lbMagic, TNode* rtMagic
 ) {
-    register TNodeList* t;
+    TNodeList* t;
     TElement* dangling, *attached;
     Alignment a, toAttached;
     TNode* degenTest, *attachment;
@@ -781,7 +781,7 @@ boolean TNodeList::FoundTermination(
 boolean TNodeList::FoundSeries(
     TElement*& e1, TElement*& e2, TNode* lbMagic, TNode* rtMagic
 ) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* node;
     
     for (t = First(); t != End(); t = t->Next()) {
@@ -794,7 +794,7 @@ boolean TNodeList::FoundSeries(
 }
 
 boolean TNodeList::FoundStub(TElement*& e) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* node;
     
     for (t = First(); t != End(); t = t->Next()) {
@@ -807,7 +807,7 @@ boolean TNodeList::FoundStub(TElement*& e) {
 }
 
 boolean TNodeList::FoundParallel(TElement*& e1, TElement*& e2) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* node;
     
     for (t = First(); t != End(); t = t->Next()) {
@@ -822,7 +822,7 @@ boolean TNodeList::FoundParallel(TElement*& e1, TElement*& e2) {
 boolean TNodeList::FoundParallel(
     TElementList* elems, TNode* n, TElement*& e1, TElement*& e2
 ) {
-    register TElementList* cur, *test;
+    TElementList* cur, *test;
     TNode* ncur, *ntest;
     
     for (cur = elems->First(); cur != elems->End(); cur = cur->Next()) {
@@ -847,7 +847,7 @@ boolean TNodeList::FoundParallel(
 }
 
 boolean TNodeList::FoundCrossover(TElement*& e) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* node;
     
     for (t = First(); t != End(); t = t->Next()) {
@@ -860,7 +860,7 @@ boolean TNodeList::FoundCrossover(TElement*& e) {
 }
 
 boolean TNodeList::FoundLoop(TLoop*& loop) {
-    register TNodeList* t;
+    TNodeList* t;
     TElement* looped, *attached;
     Alignment toAttached;
     TNode* loopTest;
@@ -906,7 +906,7 @@ boolean TNodeList::FoundCrossover(TNode* n, TElement*& e1) {
 }
 
 TNode* TNodeList::OtherNode(TElement* e, TNode* n) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* ntest;
     
     for (t = First(); t != End(); t = t->Next()) {
@@ -1057,7 +1057,7 @@ void TNodeList::ReplaceLoop(TLoop* l) {
 void TNodeList::FindElements(
     Interactor* i, TElement*& lbElem, TElement*& rtElem
 ) {
-    register TNodeList* nl;
+    TNodeList* nl;
     TNode* node;
     TElementList* el;
 
@@ -1080,7 +1080,7 @@ void TNodeList::FindElements(
 }	    
 
 void TNodeList::FindElement(TGlue* tg, TElement*& elem) {
-    register TNodeList* nl;
+    TNodeList* nl;
     TNode* node;
     TElementList* el;
 
@@ -1101,7 +1101,7 @@ void TNodeList::FindElement(TGlue* tg, TElement*& elem) {
 void TNodeList::FindElements(
     TElementList* el, Interactor* i, TElement*& lbElem, TElement*& rtElem
 ) {
-    register TElementList* cur;
+    TElementList* cur;
     TElement* test;
 
     for (
@@ -1121,7 +1121,7 @@ void TNodeList::FindElements(
 }
 
 void TNodeList::FindElement(TElementList* el, TGlue* tg, TElement*& elem) {
-    register TElementList* cur;
+    TElementList* cur;
     TElement* test;
 
     for (cur = el->First(); cur != el->End(); cur = cur->Next()) {
@@ -1134,7 +1134,7 @@ void TNodeList::FindElement(TElementList* el, TGlue* tg, TElement*& elem) {
 }
 
 void TNodeList::Nodes(TElement* e, TNode*& nlb, TNode*& nrt) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* node;
     Alignment a;
     
@@ -1152,7 +1152,7 @@ void TNodeList::Nodes(TElement* e, TNode*& nlb, TNode*& nrt) {
 }
 
 TNode* TNodeList::Node(Alignment a, TElement* e) {
-    register TNodeList* t;
+    TNodeList* t;
     TNode* node;
     Alignment test;
     
@@ -1188,7 +1188,7 @@ void TNodeList::AddMissingNodes(TElement* e) {
 void TNodeList::GetElemOtherThan(
     TElement* avoid, TNode* n, Alignment& a, TElement*& e
 ) {
-    register TElementList* cur;
+    TElementList* cur;
     TElementList* lbElems, *rtElems;
     
     lbElems = n->LeftBottomElements();
@@ -1331,7 +1331,7 @@ TSolver::~TSolver() {
 
 void TSolver::DeleteNodesAndElements(TNodeList* nodes) {
     TNode* merged;
-    register TNodeList* t = nodes->First();
+    TNodeList* t = nodes->First();
     
     if (t == nodes->End()) {
         return;
@@ -1910,7 +1910,7 @@ void Tray::Init(Interactor* b) {
 }
 
 Tray::~Tray() {
-    register TrayElement* e, *next;
+    TrayElement* e, *next;
 
     delete tsolver;
 
@@ -1925,7 +1925,7 @@ Tray::~Tray() {
 }
 
 void Tray::ComponentBounds(int& w, int& h) {
-    register TrayElement* e, *next;
+    TrayElement* e, *next;
     Shape* s;
     
     w = h = 0;
@@ -1952,7 +1952,7 @@ void Tray::CalcShape() {
 }
 
 void Tray::Reconfig() {
-    register TrayElement* e;
+    TrayElement* e;
 
     for (e = head; e != nil; e = e->next) {
 	tsolver->SetShape(e->child);
@@ -1962,7 +1962,7 @@ void Tray::Reconfig() {
 
 void Tray::DoInsert(Interactor* i, boolean, IntCoord&, IntCoord&) {
     ++nelements;
-    register TrayElement* e = new TrayElement;
+    TrayElement* e = new TrayElement;
     e->child = i;
     e->next = nil;
     if (head == nil) {
@@ -1980,7 +1980,7 @@ void Tray::DoChange(Interactor* i) {
 }
 
 void Tray::DoRemove(Interactor* i) {
-    register TrayElement* e, * prev;
+    TrayElement* e, * prev;
 
     if (i == bg) {
 	bg = nil;
@@ -2008,7 +2008,7 @@ void Tray::DoRemove(Interactor* i) {
 }
 
 void Tray::Resize() {
-    register TrayElement* e;
+    TrayElement* e;
 
     canvas->SetBackground(output_->GetBgColor());
     if (bg != nil) {
@@ -2027,7 +2027,7 @@ void Tray::Resize() {
 }
 
 boolean Tray::AlreadyInserted(Interactor* i) {
-    register TrayElement* e;
+    TrayElement* e;
 
     if (i == this || i == bg) {
 	return true;
@@ -2063,7 +2063,7 @@ void Tray::PlaceElement(TrayElement* e) {
 }
 
 void Tray::Draw() {
-    register TrayElement* e;
+    TrayElement* e;
 
     if (bg != nil) {
 	bg->Draw();
@@ -2084,8 +2084,8 @@ void Tray::Reshape(Shape& s) {
 }
 
 void Tray::GetComponents(Interactor** c, int nc, Interactor**& a, int& n) {
-    register TrayElement* e;
-    register Interactor** ap;
+    TrayElement* e;
+    Interactor** ap;
 
     n = nelements;
     if (bg != nil) {

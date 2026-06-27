@@ -224,7 +224,7 @@ static const char* parseMonth(istream& strm)
 */
 {
 	static char month[10];
-	register char* p = month;
+	char* p = month;
 	char c;
 	skipDelim(strm);
 	strm.get(c);
@@ -294,9 +294,9 @@ Date::dayTy Date::dayOfWeek(const char* nameOfDay)
 {
 	{
 		String s(nameOfDay);
-		register unsigned len = s.length();
+		unsigned len = s.length();
 		if (len > 2) {
-			for (register unsigned i =0; i<7; i++)
+			for (unsigned i =0; i<7; i++)
 			if (s.case_insensitive_equal(uc_week_day_names[i])) return i+1;
 		}
 	}
@@ -329,12 +329,12 @@ Date::monthTy Date::numberOfMonth(const char* nameOfMonth)
 */
 {
 	{
-		register unsigned len = strlen(nameOfMonth);
+		unsigned len = strlen(nameOfMonth);
 		if (len > 2) {
 			char p[len+1];
 			for (int j = 0; j < len+1; j++)
 			    p[j] = toupper(nameOfMonth[j]);
-			for (register unsigned i =0; i<12; i++)
+			for (unsigned i =0; i<12; i++)
 				if (strncmp(p,uc_month_names[i],len)==0) return i+1;
 		}
 	}

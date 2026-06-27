@@ -131,10 +131,13 @@ static void setDragProperty(
     Atom property = None;
     if (length != 0) {
 	char buffer[256];
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 	std::ostrstream name(buffer, 256);
 	name << dragName << "_" << Host::name() << "_" << getpid() << "_"  <<
 	    dropUid++ << '\0';
 	property = XInternAtom(display, name.str(), False);
+#pragma GCC diagnostic pop
 
 	XChangeProperty(
 	    display, destination, property, XA_STRING, 8,

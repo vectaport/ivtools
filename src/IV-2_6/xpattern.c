@@ -50,8 +50,8 @@ Pattern::Pattern(int pattern) {
 Pattern::Pattern(const int* pattern) {
     char p[32];
 
-    register char* pp = p;
-    for (register int i = 0; i < 16; i++) {
+    char* pp = p;
+    for (int i = 0; i < 16; i++) {
 	int scanline = pattern[i];
 	*pp++ = (scanline & 0xff00) >> 8;
 	*pp++ = scanline & 0x00ff;
@@ -65,7 +65,7 @@ static boolean is_solid(
     unsigned int nbits = width * height;
     unsigned int n_whole_bytes = nbits >> 3;
     unsigned char* last_byte = &pat[n_whole_bytes];
-    for (register unsigned char* cp = pat; cp < last_byte; cp++) {
+    for (unsigned char* cp = pat; cp < last_byte; cp++) {
 	if (*cp != 0xff) {
 	    return false;
 	}

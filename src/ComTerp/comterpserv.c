@@ -46,6 +46,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#include <vector>
 
 /* Return 1 if the difference is negative, otherwise 0.  */
 int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
@@ -235,8 +236,8 @@ int ComTerpServ::fd_fputs(const char* s, void* serv) {
 }
 
 int ComTerpServ::run(boolean one_expr, boolean nested) {
-    char buffer[_linesize];
-    char errbuf[_linesize];
+    std::vector<char> buffer(_linesize);
+    std::vector<char> errbuf(_linesize);
     errbuf[0] = '\0';
     int status = 0;
 

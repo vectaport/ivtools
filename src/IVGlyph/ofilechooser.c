@@ -161,7 +161,7 @@ boolean OpenFileChooser::urltest(const char* buf) {
 
 int OpenFileChooser::bintest(const char* command) {
   char combuf[BUFSIZ];
-  sprintf( combuf, "wr=`which %s 2> /dev/null`; echo $wr", command );
+  snprintf(combuf, sizeof(combuf), "wr=`which %s 2> /dev/null`; echo $wr", command );
   FILE* fptr = popen(combuf, "r");
   char testbuf[BUFSIZ];	
   fgets(testbuf, BUFSIZ, fptr);  
@@ -432,8 +432,7 @@ void OpenFileChooserImpl::accept_browser() {
     const String& name = *dir_->name(i);
     int length = path.length() + name.length();
     char* tmp = new char[length + 1];
-    sprintf(
-	tmp, "%.*s%.*s",
+    snprintf(tmp, length + 1, "%.*s%.*s",
 	path.length(), path.string(), name.length(), name.string()
     );
     editor_->field(tmp);

@@ -282,7 +282,7 @@ void ViewCompCmd::Execute () {
 	char buf[CHARBUFSIZE];
 	const char* domain = unidraw->GetCatalog()->GetAttribute("domain");
 	domain = (domain == nil) ? "component" : domain;
-	sprintf(buf, "Select a %s to open:", domain);
+	snprintf(buf, sizeof(buf), "Select a %s to open:", domain);
 	style->attribute("caption", "");
 	style->attribute("subcaption", buf);
     } else {
@@ -366,12 +366,12 @@ void SaveCompCmd::Execute () {
         } else {
             char title[CHARBUFSIZE];
             const char* reason = !Writable(comp) ? "(File not writable.)" : "";
-            sprintf(title, "Couldn't save! %s", reason);
+            snprintf(title, sizeof(title), "Couldn't save! %s", reason);
 
             char subtitle[CHARBUFSIZE];
             const char* domain = unidraw->GetCatalog()->GetAttribute("domain");
             domain = (domain == nil) ? "component" : domain;
-            sprintf(subtitle, "Save this %s as:", domain);
+            snprintf(subtitle, sizeof(subtitle), "Save this %s as:", domain);
 
 	    Style* s = new Style(Session::instance()->style());
 	    s->attribute("caption", title);
@@ -420,7 +420,7 @@ void SaveCompAsCmd::Execute () {
     char buf[CHARBUFSIZE];
     const char* domain = unidraw->GetCatalog()->GetAttribute("domain");
     domain = (domain == nil) ? "component" : domain;
-    sprintf(buf, "Save this %s as:", domain);
+    snprintf(buf, sizeof(buf), "Save this %s as:", domain);
 
     boolean reset_caption = false;
     Style* style = new Style(Session::instance()->style());
@@ -439,7 +439,7 @@ void SaveCompAsCmd::Execute () {
 
         if (catalog->Exists(name) && catalog->Writable(name)) {
             char buf[CHARBUFSIZE];
-            sprintf(buf, "\"%s\" already exists.", name);
+            snprintf(buf, sizeof(buf), "\"%s\" already exists.", name);
             ConfirmDialog dialog(buf, "Overwrite?");
             ed->InsertDialog(&dialog);
             char confirmation = dialog.Confirm();
@@ -537,7 +537,10 @@ void PrintCmd::Execute () {
         char* tmpfilename;
 
         if (_dialog->ToPrinter()) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
             tmpfilename = tmpnam(nil);
+#pragma GCC diagnostic pop
             ok = fbuf.open(tmpfilename, output) != 0;
         } else {
             ok = fbuf.open((char*) _dialog->Choice(), output) != 0;
@@ -566,7 +569,7 @@ void PrintCmd::Execute () {
 
 int PrintCmd::print (const char* print_cmd, const char* file) {
     char cmd[CHARBUFSIZE];
-    sprintf(cmd, "%s %s", print_cmd, file);
+    snprintf(cmd, sizeof(cmd), "%s %s", print_cmd, file);
     return system(cmd);
 }
 
