@@ -55,7 +55,10 @@
    $(XLIBDIR), already on the link line.  (Defined here, before params.def, so it
    overrides the Linux default.) */
 #define FontCCIncludes -I$(XINCDIR)/freetype2
-#define FontCCLdLibs -lfreetype -lfontconfig
+/* carry the -L: leaner programs (e.g. comterp) link the font libs without
+   otherwise pulling in -L$(XLIBDIR), so the macOS linker can't find them in
+   XQuartz's lib dir unless it travels with them. */
+#define FontCCLdLibs -L$(XLIBDIR) -lfreetype -lfontconfig
 
 /* link libraries for the above */
 #undef ExtraCCLdLibs
