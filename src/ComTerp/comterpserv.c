@@ -34,6 +34,7 @@
 #include <iostream.h>
 #include <string.h>
 #include <fstream.h>
+#include <unistd.h>   /* dup() in the server fdopen paths -- was coming in only transitively */
 
 #if BUFSIZ>1024
 #undef BUFSIZ
