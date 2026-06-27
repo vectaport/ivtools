@@ -750,6 +750,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 		      $(LDLIBUNIDRAW)\					@@\
 		      $(LDLIBGRAPHIC)\					@@\
 		      $(LDLIBIV)\					@@\
+		      $(FONT_CCLDLIBS)\					@@\
 		      $(XLIBDIRPATH)\					@@\
 		      $(LDLIBXEXT)\					@@\
 		      $(LDLIBX11)\					@@\
