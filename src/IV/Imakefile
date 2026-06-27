@@ -6,11 +6,15 @@ PACKAGE = src_iv
 
 #ifdef InObjectCodeDir
 
-DYLDLIBS = -L$(XLIBDIR) -lX11 -lXext
+/* $(FONT_CCLDLIBS) = freetype2 + fontconfig, for InterViews/psfont.c metrics */
+DYLDLIBS = -L$(XLIBDIR) -lX11 -lXext $(FONT_CCLDLIBS)
 
+/* psfont.c always needs the freetype2/fontconfig headers; TIFF is optional */
 #ifdef TiffDir
 OTHER_CCDEFINES = $(TIFF_CCDEFINES)
-OTHER_CCINCLUDES = $(TIFF_CCINCLUDES)
+OTHER_CCINCLUDES = $(TIFF_CCINCLUDES) $(FONT_CCINCLUDES)
+#else
+OTHER_CCINCLUDES = $(FONT_CCINCLUDES)
 #endif
 
 #if BuildIV_2_6

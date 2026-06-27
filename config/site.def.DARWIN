@@ -48,6 +48,18 @@
 
 #define AceCCLdLibs $(ACELIBDIR)/libACE.dylib
 
+/* freetype2 + fontconfig for InterViews/psfont.c.  XQuartz already ships both
+   (headers and libs), and ivtools requires XQuartz anyway, so use those rather
+   than add a Homebrew dependency: fontconfig.h is found via the existing
+   -I$(XINCDIR), ft2build.h needs the freetype2 subdir, and the libs are on
+   $(XLIBDIR), already on the link line.  (Defined here, before params.def, so it
+   overrides the Linux default.) */
+#define FontCCIncludes -I$(XINCDIR)/freetype2
+/* carry the -L: leaner programs (e.g. comterp) link the font libs without
+   otherwise pulling in -L$(XLIBDIR), so the macOS linker can't find them in
+   XQuartz's lib dir unless it travels with them. */
+#define FontCCLdLibs -L$(XLIBDIR) -lfreetype -lfontconfig
+
 /* link libraries for the above */
 #undef ExtraCCLdLibs
 #define ExtraCCLdLibs -lstdc++ -lm

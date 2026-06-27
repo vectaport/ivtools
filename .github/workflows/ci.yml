@@ -38,6 +38,7 @@ jobs:
             build-essential autoconf \
             xutils-dev libx11-dev libxext-dev \
             uuid-dev libace-dev \
+            libfreetype-dev libfontconfig1-dev \
             xvfb lsof groff gdb
 
       - name: Generate ./configure
