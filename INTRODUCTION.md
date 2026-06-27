@@ -269,5 +269,7 @@ Welcome.
 - `APPENDIX-A-DRAWING-EDITOR.md` -- history of drawing editor embedded in ivtools
 - `APPENDIX-B-COMTERP-EXAMPLES.md` -- how to learn comterp command language
 - `APPENDIX-C-IVTOOLS-PROGRAMMING.md` -- how to extend both commands and drawing editors
+- `APPENDIX-E-LAYOUT-AS-COMMAND.md` -- why layout is a command, not an engine: unifying structured documents and structured graphics
 
+- `CONTRIBUTING.md` -- how to land a change (build, test, PR, the green gate)
 - `src/comterp_/LANGUAGE.md` -- the comterp language
