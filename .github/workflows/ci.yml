@@ -87,8 +87,11 @@ jobs:
           sudo ldconfig   # refresh linker cache so /usr/local/lib *.so are found at runtime
 
       - name: Test - comterp unit suite
+        timeout-minutes: 3   # safety net: fail fast if the interpreter hangs
         run: |
+          set -o pipefail
           cd src/comterp_/tests
+          # stdin is the piped echo, so comterp gets EOF and exits after the run
           echo 'run("run_all.comt")' | comterp 2>&1 | tee run.log
           # run_all.comt prints "FAIL: <name>" per failure and "run_all: 1" on full pass
           if grep -q '^FAIL' run.log || ! grep -q 'run_all: 1' run.log; then
@@ -97,18 +100,22 @@ jobs:
 
       - name: Test - comdraw graphical-scripting suite
         if: always()
+        timeout-minutes: 4
         run: |
           set -o pipefail   # don't let `| tee` mask a missing/crashing comdraw
           cd src/comdraw/tests
-          xvfb-run -a comdraw -stdin_off -runfile run_all.comt 2>&1 | tee run.log
+          # comdraw is a GUI app: with stdin closed (< /dev/null) it quits on EOF
+          # after the runfile instead of dropping into its interactive event loop.
+          xvfb-run -a comdraw -stdin_off -runfile run_all.comt < /dev/null 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi
 
       - name: Test - drawserv integration suite (drawmo)
         if: always()
+        timeout-minutes: 6
         run: |
           cd src/drawserv_/tests
           # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
-          xvfb-run -a ./drawmo
+          xvfb-run -a ./drawmo < /dev/null
 
       - name: Upload build log
         if: always()
