@@ -19,6 +19,12 @@ on:
   pull_request:
   workflow_dispatch:   # allow manual runs from the Actions tab
 
+# A new push to the same ref cancels the previous in-flight run instead of
+# letting it grind to completion (the build alone is several minutes).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
