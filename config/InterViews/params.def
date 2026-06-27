@@ -495,11 +495,7 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 
 #ifndef AceCCIncludes
 #ifdef AceDir
-/* -isystem (not -I) so ACE's own headers count as system headers and their
-   internal deprecation warnings (e.g. vsprintf/mktemp) are suppressed, while
-   -Wdeprecated-declarations stays live for ivtools' own code.  Works for both
-   clang and g++. */
-#define AceCCIncludes -isystem $(ACEDIR)
+#define AceCCIncludes -I$(ACEDIR)
 #else
 #define AceCCIncludes /**/
 #endif

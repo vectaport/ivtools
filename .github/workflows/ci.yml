@@ -63,6 +63,21 @@ jobs:
           echo '```' >> "$GITHUB_STEP_SUMMARY"
           echo "total: $(grep -cE 'warning:' build.log) warning lines" >> "$GITHUB_STEP_SUMMARY"
 
+      # imake's recursive `make` keeps going past a failed subdirectory and
+      # still exits 0, so a broken compile can leave the Build step green.
+      # Gate on the actual program binaries existing (each lands as LINUX/a.out
+      # in its program dir, renamed to the program name only at install time).
+      - name: Verify program binaries built
+        run: |
+          missing=0
+          for p in comterp_ comdraw drawserv_; do
+            if [ ! -x "src/$p/LINUX/a.out" ]; then
+              echo "::error::$p failed to build (src/$p/LINUX/a.out missing)"
+              missing=1
+            fi
+          done
+          [ "$missing" = 0 ] || { echo "build incomplete -- see build.log"; exit 1; }
+
       # Put the freshly built binaries on PATH for the test suites. Binaries
       # land in per-CPU subdirs (LINUX/) under each program directory; installing
       # is the simplest way to satisfy drawmo's "binaries on PATH" requirement.
@@ -81,6 +96,7 @@ jobs:
       - name: Test - comdraw graphical-scripting suite
         if: always()
         run: |
+          set -o pipefail   # don't let `| tee` mask a missing/crashing comdraw
           cd src/comdraw/tests
           xvfb-run -a comdraw -stdin_off -runfile run_all.comt 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi

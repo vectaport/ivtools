@@ -110,5 +110,17 @@ uninstall::								@@\
 /* file output by configure script */
 #include "config-darwin-gcc.defs"
 
+/* macOS-only: Homebrew installs ACE at a non-system path, so use -isystem
+   (not -I) to mark ACE's own headers as system headers -- this silences their
+   internal deprecation warnings (vsprintf/mktemp) while -Wdeprecated-declarations
+   stays live for ivtools' own code.  Defined here (site.def is included before
+   params.def) so it overrides the plain -I$(ACEDIR) default.  Do NOT do this on
+   Linux: there ACE lives in /usr/include, and -isystem on a default system dir
+   breaks libstdc++'s #include_next chain (cstdlib can't find stdlib.h). */
+#ifdef AceDir
+#undef AceCCIncludes
+#define AceCCIncludes -isystem $(ACEDIR)
+#endif
+
 
 
