@@ -120,14 +120,19 @@ jobs:
           xvfb-run -a comdraw -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi
 
-      - name: Test - drawserv integration suite (drawmo)
+      # Smoke test only (one drawmo case) while the update() UAF is unfixed: each
+      # drawmo test waits 60s for a drawserv callback that never comes, so the
+      # full `all` suite (11 tests) would grind ~11 min every run for no signal.
+      # `--tests updown` fails in ~60s but still exercises launch -> callback.
+      # Restore the full `./drawmo` and flip to blocking once the UAF is fixed.
+      - name: Test - drawserv smoke (drawmo updown)
         if: always()
         continue-on-error: true   # same pre-existing update() UAF -- see note above
-        timeout-minutes: 6
+        timeout-minutes: 2
         run: |
           cd src/drawserv_/tests
           # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
-          xvfb-run -a ./drawmo < /dev/null
+          xvfb-run -a ./drawmo --tests updown < /dev/null
 
       - name: Upload build log
         if: always()
