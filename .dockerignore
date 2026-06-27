@@ -1,0 +1,3 @@
+# Dockerfile.ci installs only the toolchain (no COPY of the repo), so send an
+# empty build context -- the repo is bind-mounted at run time instead.
+**

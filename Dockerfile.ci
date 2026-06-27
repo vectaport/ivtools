@@ -1,0 +1,43 @@
+# Reproduces the Linux CI build/test environment (.github/workflows/ci.yml) for
+# interactive debugging -- real glibc/g++, gdb and xvfb, but with instant
+# iteration instead of the push/wait CI loop.
+#
+# Build the image once (from the repo root, for build context):
+#   docker build -t ivtools-ci -f Dockerfile.ci .
+#
+# Run with the repo bind-mounted, so you edit on the host and rebuild/debug
+# inside the container:
+#   docker run --rm -it -v "$PWD":/src -w /src ivtools-ci
+#
+# Inside the container, build the tree (mirrors the CI steps):
+#   autoreconf -i
+#   ./configure --with-ace=/usr/include --with-ace-libs=/usr/lib/x86_64-linux-gnu
+#   make && make Makefiles && make
+#   make install && ldconfig
+#
+# Then debug interactively, e.g. the comterp crash:
+#   cd src/comterp_/tests
+#   gdb -ex run -ex 'bt full' --args comterp run run_all.comt
+#
+# ...or a single drawmo test under a virtual X server:
+#   cd src/drawserv_/tests
+#   xvfb-run -a ./drawmo --tests updown
+#
+# Note: object files land in per-CPU LINUX/ subdirs that are git-ignored, so a
+# bind-mounted build does not pollute your host checkout's tracked files -- but
+# it does drop LINUX/ dirs in the working tree; `make clean` clears them.
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Same packages the CI installs, plus gdb/ca-certificates for debugging.
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        build-essential autoconf \
+        xutils-dev libx11-dev libxext-dev \
+        uuid-dev libace-dev \
+        xvfb lsof groff gdb \
+        ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+CMD ["/bin/bash"]
