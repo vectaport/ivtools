@@ -98,8 +98,9 @@ jobs:
           set -o pipefail
           cd src/comterp_/tests
           # `comterp run <file>` seeds the relative-path base and exits cleanly.
-          # (The piped REPL form `echo ... | comterp` segfaults on Linux at
-          # stdin-EOF teardown -- a separate glibc-specific bug, tracked apart.)
+          # (An earlier stdin-EOF teardown segfault in the piped REPL form
+          # `echo ... | comterp` no longer reproduces on x86_64 -- verified bare
+          # and under a core dump -- but `run` stays as the deterministic form.)
           comterp run run_all.comt 2>&1 | tee run.log
           # the suite prints "FAIL: <name>" per failure and "run_all: true" on full pass
           if grep -q '^FAIL' run.log || ! grep -q 'run_all: true' run.log; then
