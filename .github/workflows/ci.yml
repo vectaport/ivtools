@@ -107,17 +107,15 @@ jobs:
             echo "comterp suite FAILED"; exit 1
           fi
 
-      # comdraw and drawserv hit a pre-existing memory-corruption bug on Linux:
-      # comdraw's startup seed `update(1000000)` pumps the event loop and the
-      # ComTerp object's vtable is clobbered, so the next virtual call segfaults
-      # (gdb: garbage, unaligned vtable ptr -- a use-after-free, needs an ASan
-      # build per config/SANITIZE.md to pin the culprit). Unrelated to the warning
-      # cleanup; reached before any changed code runs. Until it's fixed these two
-      # suites are non-blocking (continue-on-error) -- they still run and report,
-      # but don't fail CI. Flip back to blocking once the update() UAF is fixed.
+      # The comdraw/drawserv startup seed `update(1000000)` use-after-free is
+      # FIXED: the inline-eval ComTerpServ::run() overloads now hold the
+      # running() bracket, so a reactor close (e.g. stdin EOF) firing inside
+      # update()'s handle_events() makes ComterpHandler::destroy() defer via
+      # delete_later() instead of freeing the live interpreter out from under the
+      # eval loop (see src/ComTerp/comterpserv.c). comdraw runs the full suite and
+      # blocks CI again.
       - name: Test - comdraw graphical-scripting suite
         if: always()
-        continue-on-error: true   # pre-existing update() UAF -- see note above
         timeout-minutes: 4
         run: |
           set -o pipefail   # don't let `| tee` mask a missing/crashing comdraw
@@ -127,14 +125,28 @@ jobs:
           xvfb-run -a comdraw -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi
 
-      # Smoke test only (one drawmo case) while the update() UAF is unfixed: each
-      # drawmo test waits 60s for a drawserv callback that never comes, so the
-      # full `all` suite (11 tests) would grind ~11 min every run for no signal.
-      # `--tests updown` fails in ~60s but still exercises launch -> callback.
-      # Restore the full `./drawmo` and flip to blocking once the UAF is fixed.
-      - name: Test - drawserv smoke (drawmo updown)
+      # drawserv startup smoke: with the UAF fixed, drawserv must build, map under
+      # X, and run an expression without the seed-update crash. This is a single
+      # process with no cross-process callback, so it's deterministic under xvfb
+      # and BLOCKS CI.
+      - name: Test - drawserv startup smoke
         if: always()
-        continue-on-error: true   # same pre-existing update() UAF -- see note above
+        timeout-minutes: 2
+        run: |
+          set -o pipefail
+          xvfb-run -a drawserv -stdin_off -runexpr 'print("DRAWSERV-ALIVE\n");exit' 2>&1 | tee ds.log
+          grep -q 'DRAWSERV-ALIVE' ds.log || { echo "drawserv failed to start"; exit 1; }
+
+      # drawmo updown exercises the full distributed path: drawmo shells out a
+      # child drawserv that must map under xvfb and call back over TCP within 60s.
+      # That timing passes on a real X11 display (verified: `./drawmo --tests
+      # updown` -> "updown: pass") but is flaky under CI's headless xvfb, so this
+      # stays non-blocking. Restore the full `./drawmo` here once CI runs against a
+      # real X server. (The child runs -stdin_off, so the fixed UAF never applied
+      # to it -- this is purely an environment limitation, not a code bug.)
+      - name: Test - drawserv drawmo updown (TCP callback)
+        if: always()
+        continue-on-error: true   # flaky under headless xvfb; passes on real X11
         timeout-minutes: 2
         run: |
           cd src/drawserv_/tests
