@@ -35,6 +35,7 @@
 #include <string.h>
 #include <fstream.h>
 #include <unistd.h>   /* dup() in the server fdopen paths -- was coming in only transitively */
+#include <vector>     /* std::vector buffers in run()/runfile() */
 
 #if BUFSIZ>1024
 #undef BUFSIZ
@@ -47,7 +48,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <vector>
 
 /* Return 1 if the difference is negative, otherwise 0.  */
 int timeval_subtract(struct timeval *result, struct timeval *t2, struct timeval *t1)
