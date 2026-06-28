@@ -450,6 +450,16 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     push_servstate();
     _pfcomvals = nil;
 
+    /* mark the interpreter running for the duration -- mirrors the base
+       ComTerp::run / ComTerpServ::runfile bracket, which this inline-eval
+       override otherwise drops.  Without it, a reactor event (e.g. stdin EOF)
+       firing inside a nested handle_events() -- comdraw's startup seed
+       update(1000000) is the classic trigger -- makes ComterpHandler::destroy()
+       see running()==false and free this live interpreter out from under the
+       eval loop, a use-after-free that clobbers the ComTerp vtable. */
+    int old_runflag = running();
+    running(true);
+
     if (expression) {
         load_string(expression);
 	_infunc = (infuncptr)&ComTerpServ::s_fgets;
@@ -466,6 +476,7 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     }
 
     pop_servstate();
+    running(old_runflag);
     returnflag(false);
 
     return (*_errbuf || status!=FUNCOK) ? ComValue::nullval() : pop_stack();
@@ -483,7 +494,13 @@ ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _pfnum = ntokens;
     _pfoff = 0;
 
+    /* same running() bracket as ComTerpServ::run(const char*) above -- protect
+       these pre-parsed tokens from a reactor event freeing the interpreter
+       during a nested handle_events() (the drawserv dist-command path). */
+    int old_runflag = running();
+    running(true);
     eval_expr(/*nested=*/1);
+    running(old_runflag);
     err_str(_errbuf, BUFSIZ, "comterp");
 
     ComValue retval(*_errbuf ? ComValue::nullval() : pop_stack());
