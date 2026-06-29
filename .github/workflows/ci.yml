@@ -167,16 +167,9 @@ jobs:
         if: always()
         timeout-minutes: 6
         run: |
-          set +e
           cd src/drawserv_/tests
-          xvfb-run -a ./drawmo --tests updown < /dev/null & dm=$!
-          sleep 40
-          echo "=== live processes ==="; ps -eo pid,args | grep -iE 'drawserv|comterp|sleep|pgrep' | grep -v grep
-          echo "=== drawserv alive? ==="; pgrep -af 'drawserv -comdraw' || echo "(drawserv gone)"
-          pid=$(pgrep -f 'comterp listen 10002' | head -1)
-          echo "=== drawmo interp pid=$pid wchan=$(cat /proc/$pid/wchan 2>/dev/null) ==="
-          [ -n "$pid" ] && sudo gdb -p "$pid" -batch -ex 'set pagination off' -ex 'bt' 2>&1 | grep -aE '^#|in [A-Za-z_]' | head -25
-          sudo pkill -9 -f drawserv; sudo pkill -9 -f 'comterp listen'; kill -9 "$dm" 2>/dev/null; sudo pkill -9 Xvfb 2>/dev/null; true
+          # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
+          xvfb-run -a ./drawmo < /dev/null
 
       - name: Upload build log
         if: always()

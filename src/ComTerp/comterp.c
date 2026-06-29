@@ -1206,9 +1206,9 @@ void ComTerp::exit(int status) {
      same use-after-free class fixed elsewhere in this layer).  But _exit() also
      skips the stdio flush, so a final print() before exit could be lost from a
      block-buffered stdout (e.g. when piped) -- flush it (and stderr) first.
-     NOT fflush(NULL): a server interpreter holds FILE* streams wrapping live
-     client sockets, and flushing one whose peer has stalled blocks the exit
-     forever (drawserv hung exactly this way during drawmo's teardown). */
+     Deliberately NOT fflush(NULL): a server interpreter can hold FILE* streams
+     wrapping live client sockets, and flushing one whose peer has stalled could
+     block the exit -- stdout/stderr are all a final print() needs. */
   fflush(stdout);
   fflush(stderr);
   _exit( status );
