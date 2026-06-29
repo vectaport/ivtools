@@ -38,25 +38,22 @@ them down. Each test function manages its own process lifecycle.
 `drawmo` exits 0 on full pass, 1 on any failure. All test progress and
 failure messages go to stderr; the exit code is the CI signal.
 
-### Not run in GitHub Actions CI
+### Runs in GitHub Actions CI (headless, under xvfb)
 
-The hosted CI (`.github/workflows/ci.yml`) does **not** run this suite. drawmo
-shells out a child `drawserv` that must call back over a loopback TCP socket
-within 60s per test; on a GitHub-hosted runner the child starts fine (maps a
-window, prints its banner, under Xvfb or a real dummy-driver Xorg) but its
-`remote("localhost" <port> ...)` never reaches drawmo's listener -- almost
-certainly an IPv4/IPv6 `localhost` mismatch (the child connects to `::1` while
-the ACE listener is bound IPv4-only), so every test just burns its 60s timeout.
+The hosted CI (`.github/workflows/ci.yml`) runs the full suite under xvfb and
+blocks on it. This was thought to need a real X server, but the blocker turned
+out to be networking, not the GUI: drawmo dialed `"localhost"`, which on the
+runner resolves to IPv6 `::1` first, while the comterp/drawserv acceptors bind
+IPv4 only (`ACE_INET_Addr(port)` → `INADDR_ANY`). Every callback hit
+`ECONNREFUSED`, so the child `drawserv` looked like it "never called back" when in
+fact it had started fine. The harness now uses `127.0.0.1` literals (no resolver
+in the path), so the child maps its window under xvfb and calls back over IPv4
+loopback exactly as on a real display.
 
-What *is* CI-hostile here is the GUI/X coupling, not the networking: the
-wire protocol itself is exercised headless and blocking by
-`src/comterp_/tests/remote_loopback.sh` (a `comterp server` answering an
-expression sent over a loopback TCP socket). CI gates that plus the deterministic
-single-process pieces -- the comterp suite, the comdraw graphical-scripting
-suite, and a `drawserv` startup smoke. The full drawmo suite, which adds the
-GUI-coupled distributed path on top, runs on a real environment -- a dev box with
-real X (verified on XQuartz: all tests pass) or a self-hosted runner, gated e.g.
-`if: runner.environment == 'self-hosted'`.
+The deeper fix -- have the listener accept IPv6 too (dual-stack), so `"localhost"`
+works regardless of resolver order -- is ACE-build-dependent (`ACE_HAS_IPV6`) and
+is left to the in-tree ACE-lite work (issue #147). Until then, distributed
+ivtools across IPv6-preferring hosts should use IPv4 literals.
 
 ## Port Convention
 

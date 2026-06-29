@@ -961,8 +961,23 @@ char ParamList::octal(const char* p) {
     return c;
 }
 
-// filter escapes embedded special characters
-
+// filter escapes a raw byte string so it can be embedded inside a double-quoted
+// ComTerp string literal and survive being re-parsed by the scanner.  It is the
+// escaping behind ComValue string output (operator<< StringType -> output_text
+// -> filter), so any value serialized through ComValue is safe to write to a
+// file or send over a comterp connection; text that is hand-assembled into a
+// command (snprintf/ostream) without passing through here is NOT escaped.
+//
+// Each non-ASCII or control byte becomes an octal escape "\NNN" (so a raw
+// newline -- which also delimits commands on a socket -- can't break the frame
+// or the parse), and a literal backslash or double-quote is backslash-escaped
+// (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
+// all of these when it reads the string back.
+//
+// Caveat: it builds into a fixed-size static buffer and clamps rather than
+// grows, so an input whose escaped form exceeds BUFSIZE is silently truncated
+// (see issue #183 for the growable-buffer rewrite).
+//
 const char* ParamList::filter (const char* string, int len) {
     TextBuffer text(textbuf, 0, BUFSIZE);
     int dot;

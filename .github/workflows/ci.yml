@@ -116,9 +116,9 @@ jobs:
 
       # Wire-protocol test: ivtools' defining idea is that the command language IS
       # the wire protocol, so this exercises a `comterp server` over a real
-      # loopback TCP socket -- no X, no drawserv, fully deterministic, so it blocks
-      # CI. (This is the network half of what drawmo covers; drawmo's GUI/X
-      # coupling is what keeps the full drawmo suite out of hosted CI -- see below.)
+      # loopback TCP socket -- no X, no drawserv, fully deterministic. A fast,
+      # focused check of the protocol on its own, ahead of the heavier full drawmo
+      # distributed suite below.
       - name: Test - comterp networking (wire protocol over TCP)
         timeout-minutes: 2
         run: sh src/comterp_/tests/remote_loopback.sh
@@ -153,20 +153,31 @@ jobs:
           xvfb-run -a drawserv -stdin_off -runexpr 'print("DRAWSERV-ALIVE\n");exit' 2>&1 | tee ds.log
           grep -q 'DRAWSERV-ALIVE' ds.log || { echo "drawserv failed to start"; exit 1; }
 
-      # The full drawmo distributed suite (src/drawserv_/tests/drawmo) is NOT run
-      # here. It's an integration test: drawmo shells out a child drawserv that
-      # must call back over a loopback TCP socket within 60s per test. On a hosted
-      # runner that callback never completes -- the child starts fine (it maps a
-      # window and prints its banner, under either Xvfb or a real dummy-driver
-      # Xorg), but its remote("localhost" <port> ...) never reaches drawmo's
-      # listener, almost certainly an IPv4/IPv6 `localhost` mismatch on the runner
-      # (child connects to ::1 while the ACE listener is bound IPv4-only). So every
-      # test just burns its 60s timeout -- ~11 min of red for no signal.
-      #
-      # drawmo passes in full on a real environment -- verified locally on XQuartz
-      # (all 11 tests). Run it there, or on a self-hosted runner with real X and
-      # working loopback, gated e.g. `if: runner.environment == 'self-hosted'`.
-      # See src/drawserv_/tests/TESTING.md.
+      # Full drawmo distributed suite -- now runs headless under xvfb and BLOCKS.
+      # It was thought to need real X, but the real blocker was networking, not the
+      # GUI: drawmo dialed "localhost", which on this runner resolves to IPv6 ::1
+      # first, while the comterp/drawserv acceptors bind IPv4 only -- so every
+      # callback hit ECONNREFUSED and the child appeared to "never call back."
+      # drawmo now uses 127.0.0.1 literals (no resolver in the path), so the child
+      # drawserv it spawns under xvfb maps its window and calls back over IPv4
+      # loopback exactly as it does on a real display. (The deeper fix -- accept
+      # IPv6 on the listener side -- is ACE-build-dependent and rides with the
+      # in-tree ACE-lite, issue #147.)
+      - name: Test - drawserv drawmo full suite
+        if: always()
+        timeout-minutes: 6
+        run: |
+          set -o pipefail
+          cd src/drawserv_/tests
+          # drawmo exits 0 on full pass, 1 on any failure (the comterp_listen
+          # wrapper now propagates that status).  Belt-and-suspenders: also grep
+          # the log for ': FAIL' like the comdraw suite, so a regression anywhere
+          # in the xvfb-run -> wrapper -> comterp exit-code chain can't fake green.
+          xvfb-run -a ./drawmo < /dev/null 2>&1 | tee drawmo.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ] || grep -q ': FAIL' drawmo.log; then
+            echo "drawmo suite FAILED (rc=$rc)"; exit 1
+          fi
 
       - name: Upload build log
         if: always()

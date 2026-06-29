@@ -105,7 +105,8 @@ int DrawLink::open(uuid_t linkid) {
     sbuf << "drawlink(\"";
     char buffer[HOST_NAME_MAX];
     gethostname(buffer, HOST_NAME_MAX);
-    
+    buffer[HOST_NAME_MAX-1] = '\0';  // gethostname needn't NUL-terminate on truncation
+
     uuid_t& sid = ((DrawServ*)unidraw)->sessionid();
     uuid_string_t sid_str;
     uuid_unparse(sid, sid_str);
@@ -123,7 +124,13 @@ int DrawLink::open(uuid_t linkid) {
     sbuf << " :linkid " << "\"" << linkid_str << "\"";
     if (sessionid) {
       sbuf << " :pid " << sessionid->pid();
-      sbuf << " :user \"" << sessionid->username() << "\"";
+      // On a host with no login/USER the username is a NULL pointer, and
+      // ostream operator<<(const char*) on NULL sets the stream's badbit -- the
+      // closing quote, the ')', and the newline then silently vanish, leaving a
+      // truncated, unframed command the receiver can't parse, which stalls the
+      // two-way handshake.  Emit "" for a NULL username so the stream stays good.
+      const char* uname = sessionid->username();
+      sbuf << " :user \"" << (uname ? uname : "") << "\"";
     }
     sbuf << ")";
     log_outgoing_command(sbuf.str().c_str());
