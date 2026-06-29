@@ -167,6 +167,7 @@ jobs:
         if: always()
         timeout-minutes: 6
         run: |
+          set +e   # don't let `timeout` (rc 124) abort the step before the probe runs
           cd src/drawserv_/tests
           # DIAG: cap updown, then gdb the drawserv that wouldn't die on `exit`.
           timeout 100 xvfb-run -a ./drawmo --tests updown < /dev/null; echo "drawmo rc=$?"
