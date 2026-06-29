@@ -108,9 +108,13 @@ updown_test=func(
   /* wait for the drawserv PROCESS to be gone, matched by its unique
      -comdraw port on the command line.  the comdraw socket closes early,
      before the process releases X11; pgrep watches the actual process so
-     the next test can't launch into a still-held X11. */
+     the next test can't launch into a still-held X11.  pace the poll with a
+     shell sleep, NOT update(): by this point drawserv and its sockets are gone,
+     and on some ACE builds (Debian's libACE-7.1.2) handle_events() on an empty
+     reactor blocks instead of honoring its timeout -- it hangs.  We don't need
+     to pump the reactor just to wait on a PID.  (cf. ACE-lite, issue #147.) */
   while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
-    update(200000));
+    shell("sleep 0.2"));
   print("updown: drawserv shut down\n" :err);
   true)
 
@@ -164,7 +168,7 @@ updown1_test=func(
   close(sock);
   /* wait for the drawserv PROCESS to be gone (see updown_test) */
   while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
-    update(200000));
+    shell("sleep 0.2"));
   print("updown1: drawserv shut down\n" :err);
   ok)
 
@@ -217,7 +221,7 @@ updown2_test=func(
     /* ds1 is up; shut it down so its port is freed */
     s1=socket("127.0.0.1" ds1_port);
     if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);
     kill_port(:kill_port_num ds2_import);
     return(false));
@@ -263,12 +267,12 @@ updown2_test=func(
   remote(sock1 "exit" :nowait);
   close(sock1);
   while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0
-    update(200000));
+    shell("sleep 0.2"));
   print("updown2: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);
   close(sock2);
   while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0
-    update(200000));
+    shell("sleep 0.2"));
   print("updown2: ds2 shut down\n" :err);
   ok)
 
@@ -328,7 +332,7 @@ updown3A_test=func(
   if(!global(drawserv_up3a2) :then
     print("updown3A: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("updown3A: ds2 up on %d\n" ds2_port :err);
@@ -347,8 +351,8 @@ updown3A_test=func(
     print("updown3A: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("updown3A: ds3 up on %d\n" ds3_port :err);
@@ -385,9 +389,9 @@ updown3A_test=func(
     remote(sock1 "exit" :nowait);close(sock1);
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     return(false));
   on2=grid_has_id(:gh_sock sock2 :gh_id id1);
   print("updown3A: graphic on ds2 (hop 1): %v\n" on2 :err);
@@ -400,13 +404,13 @@ updown3A_test=func(
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("updown3A: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("updown3A: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("updown3A: ds3 shut down\n" :err);
   ok)
 
@@ -448,7 +452,7 @@ updown3B_test=func(
   if(!global(drawserv_up3b2) :then
     print("updown3B: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("updown3B: ds2 up on %d\n" ds2_port :err);
@@ -467,8 +471,8 @@ updown3B_test=func(
     print("updown3B: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("updown3B: ds3 up on %d\n" ds3_port :err);
@@ -505,9 +509,9 @@ updown3B_test=func(
     remote(sock1 "exit" :nowait);close(sock1);
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     return(false));
   on2=grid_has_id(:gh_sock sock2 :gh_id id1);
   print("updown3B: graphic on ds2 (branch 1): %v\n" on2 :err);
@@ -520,13 +524,13 @@ updown3B_test=func(
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("updown3B: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("updown3B: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("updown3B: ds3 shut down\n" :err);
   ok)
 
@@ -567,7 +571,7 @@ updown4A_test=func(
   if(!global(drawserv_up4a2) :then
     print("updown4A: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("updown4A: ds2 up on %d\n" ds2_port :err);
@@ -586,8 +590,8 @@ updown4A_test=func(
     print("updown4A: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("updown4A: ds3 up on %d\n" ds3_port :err);
@@ -607,9 +611,9 @@ updown4A_test=func(
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     s3=socket("127.0.0.1" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds4_port);kill_port(:kill_port_num ds4_import);
     return(false));
   print("updown4A: ds4 up on %d\n" ds4_port :err);
@@ -649,10 +653,10 @@ updown4A_test=func(
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
     remote(sock4 "exit" :nowait);close(sock4);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 shell("sleep 0.2"));
     return(false));
 
   /* --- verify propagation to leaf nodes --- */
@@ -673,16 +677,16 @@ updown4A_test=func(
 
   /* --- tear all four down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("updown4A: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("updown4A: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("updown4A: ds3 shut down\n" :err);
   remote(sock4 "exit" :nowait);close(sock4);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 shell("sleep 0.2"));
   print("updown4A: ds4 shut down\n" :err);
   ok)
 
@@ -723,7 +727,7 @@ updown4B_test=func(
   if(!global(drawserv_up4b2) :then
     print("updown4B: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("updown4B: ds2 up on %d\n" ds2_port :err);
@@ -742,8 +746,8 @@ updown4B_test=func(
     print("updown4B: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("updown4B: ds3 up on %d\n" ds3_port :err);
@@ -763,9 +767,9 @@ updown4B_test=func(
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     s3=socket("127.0.0.1" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds4_port);kill_port(:kill_port_num ds4_import);
     return(false));
   print("updown4B: ds4 up on %d\n" ds4_port :err);
@@ -805,10 +809,10 @@ updown4B_test=func(
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
     remote(sock4 "exit" :nowait);close(sock4);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 shell("sleep 0.2"));
     return(false));
 
   /* --- verify propagation to leaf nodes --- */
@@ -829,16 +833,16 @@ updown4B_test=func(
 
   /* --- tear all four down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("updown4B: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("updown4B: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("updown4B: ds3 shut down\n" :err);
   remote(sock4 "exit" :nowait);close(sock4);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 shell("sleep 0.2"));
   print("updown4B: ds4 shut down\n" :err);
   ok)
 
@@ -879,7 +883,7 @@ updown4C_test=func(
   if(!global(drawserv_up4c2) :then
     print("updown4C: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("updown4C: ds2 up on %d\n" ds2_port :err);
@@ -898,8 +902,8 @@ updown4C_test=func(
     print("updown4C: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("updown4C: ds3 up on %d\n" ds3_port :err);
@@ -919,9 +923,9 @@ updown4C_test=func(
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     s3=socket("127.0.0.1" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds4_port);kill_port(:kill_port_num ds4_import);
     return(false));
   print("updown4C: ds4 up on %d\n" ds4_port :err);
@@ -961,10 +965,10 @@ updown4C_test=func(
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
     remote(sock4 "exit" :nowait);close(sock4);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 shell("sleep 0.2"));
     return(false));
 
   /* --- verify propagation: the hub ds2 (graphic routes through it) and
@@ -986,16 +990,16 @@ updown4C_test=func(
 
   /* --- tear all four down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("updown4C: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("updown4C: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("updown4C: ds3 shut down\n" :err);
   remote(sock4 "exit" :nowait);close(sock4);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds4_port :str))==0 shell("sleep 0.2"));
   print("updown4C: ds4 shut down\n" :err);
   ok)
 
@@ -1060,7 +1064,7 @@ gsbrushA_test=func(
   if(!global(drawserv_upgba2) :then
     print("gsbrushA: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("gsbrushA: ds2 up on %d\n" ds2_port :err);
@@ -1079,8 +1083,8 @@ gsbrushA_test=func(
     print("gsbrushA: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("gsbrushA: ds3 up on %d\n" ds3_port :err);
@@ -1115,9 +1119,9 @@ gsbrushA_test=func(
     remote(sock1 "exit" :nowait);close(sock1);
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     return(false));
 
   /* --- verify arrival (by grid id) then the brush gs at each far node --- */
@@ -1134,13 +1138,13 @@ gsbrushA_test=func(
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("gsbrushA: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("gsbrushA: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("gsbrushA: ds3 shut down\n" :err);
   ok)
 
@@ -1182,7 +1186,7 @@ gsbrushB_test=func(
   if(!global(drawserv_upgbb2) :then
     print("gsbrushB: FAIL timeout waiting for ds2 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("gsbrushB: ds2 up on %d\n" ds2_port :err);
@@ -1201,8 +1205,8 @@ gsbrushB_test=func(
     print("gsbrushB: FAIL timeout waiting for ds3 callback\n" :err);
     s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
     return(false));
   print("gsbrushB: ds3 up on %d\n" ds3_port :err);
@@ -1235,9 +1239,9 @@ gsbrushB_test=func(
     remote(sock1 "exit" :nowait);close(sock1);
     remote(sock2 "exit" :nowait);close(sock2);
     remote(sock3 "exit" :nowait);close(sock3);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
     return(false));
 
   /* --- verify arrival then the brush gs on BOTH branches --- */
@@ -1254,13 +1258,13 @@ gsbrushB_test=func(
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
   print("gsbrushB: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
   print("gsbrushB: ds2 shut down\n" :err);
   remote(sock3 "exit" :nowait);close(sock3);
-  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
+  while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 shell("sleep 0.2"));
   print("gsbrushB: ds3 shut down\n" :err);
   ok)
 
@@ -1311,7 +1315,7 @@ gsexim_test=func(
     print("gsexim: FAIL timeout waiting for ds2 callback\n" :err);
     s1s=socket("127.0.0.1" ds1_port);
     if(type(s1s)!=`UnknownType :then remote(s1s "exit" :nowait);close(s1s));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
   print("gsexim: ds2 callback received after %d polls\n" cnt :err);
@@ -1342,8 +1346,8 @@ gsexim_test=func(
   if(type(s1)!=`StringType :then
     print("gsexim: FAIL ds1 export(r :string :percomp) did not return a string (got %v)\n" s1 :err);
     remote(sock1 "exit" :nowait);close(sock1);remote(sock2 "exit" :nowait);close(sock2);
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
-    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 shell("sleep 0.2"));
+    while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 shell("sleep 0.2"));
     return(false));
 
   /* --- ds2 (dest): set the editor to gs B, then import s1 (naming the result r2
@@ -1369,11 +1373,11 @@ gsexim_test=func(
      are free for the next test --- */
   remote(sock1 "exit" :nowait);close(sock1);
   while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0
-    update(200000));
+    shell("sleep 0.2"));
   print("gsexim: ds1 shut down\n" :err);
   remote(sock2 "exit" :nowait);close(sock2);
   while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0
-    update(200000));
+    shell("sleep 0.2"));
   print("gsexim: ds2 shut down\n" :err);
   ok)
 
