@@ -19,10 +19,14 @@ on:
   pull_request:
   workflow_dispatch:   # allow manual runs from the Actions tab
 
-# A new push to the same ref cancels the previous in-flight run instead of
-# letting it grind to completion (the build alone is several minutes).
+# A new push to the same branch cancels the previous in-flight run instead of
+# letting it grind to completion (the build alone is several minutes).  Key on
+# the branch name (head_ref on pull_request events, ref_name on push events)
+# rather than github.ref: a push to a branch with an open PR fires both the
+# `push` and `pull_request` triggers on different refs, and keying on the shared
+# branch name collapses those two into one run instead of building twice.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
