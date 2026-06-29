@@ -416,6 +416,13 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
   if (link) {
     int fd = link->handle();
     if (fd>=0) {
+      /* DIAG: dump outgoing command bytes, non-printables shown as \NNN */
+      { fprintf(stderr, "SENDCMD fd=%d [", fd);
+        for (const char* p=cmdstring; *p; p++) {
+          unsigned char c=(unsigned char)*p;
+          if (c>=32 && c<127) fputc(c, stderr); else fprintf(stderr, "\\%03o", c);
+        }
+        fprintf(stderr, "]\n"); fflush(stderr); }
       link->log_outgoing_command(cmdstring);
       FILE* fp=fdopen(dup(fd), "w");
       fputs(cmdstring, fp);
