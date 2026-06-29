@@ -128,6 +128,10 @@ int DrawLink::open(uuid_t linkid) {
     sbuf << ")";
     log_outgoing_command(sbuf.str().c_str());
     sbuf << "\n";
+    { std::string d=sbuf.str(); fprintf(stderr,"LINKUPCMD[");      /* DIAG */
+      for(size_t k=0;k<d.size();k++){unsigned char c=d[k];
+        if(c>=32&&c<127)fputc(c,stderr); else fprintf(stderr,"\\%03o",c);}
+      fprintf(stderr,"]\n"); fflush(stderr); }
     out << sbuf.str().c_str();
     out.flush();
     _ok = true;
