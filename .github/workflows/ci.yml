@@ -38,7 +38,8 @@ jobs:
             build-essential autoconf \
             xutils-dev libx11-dev libxext-dev \
             uuid-dev libace-dev \
-            xvfb lsof groff gdb
+            xvfb lsof groff gdb \
+            xserver-xorg-core xserver-xorg-video-dummy x11-xserver-utils
 
       - name: Generate ./configure
         run: autoreconf -i
@@ -137,21 +138,50 @@ jobs:
           xvfb-run -a drawserv -stdin_off -runexpr 'print("DRAWSERV-ALIVE\n");exit' 2>&1 | tee ds.log
           grep -q 'DRAWSERV-ALIVE' ds.log || { echo "drawserv failed to start"; exit 1; }
 
-      # drawmo updown exercises the full distributed path: drawmo shells out a
-      # child drawserv that must map under xvfb and call back over TCP within 60s.
-      # That timing passes on a real X11 display (verified: `./drawmo --tests
-      # updown` -> "updown: pass") but is flaky under CI's headless xvfb, so this
-      # stays non-blocking. Restore the full `./drawmo` here once CI runs against a
-      # real X server. (The child runs -stdin_off, so the fixed UAF never applied
-      # to it -- this is purely an environment limitation, not a code bug.)
-      - name: Test - drawserv drawmo updown (TCP callback)
+      # drawmo runs the full distributed suite: it shells out a child drawserv
+      # that must map a window and call back over TCP within 60s per test. That
+      # cross-process timing is flaky under headless Xvfb but reliable on a real X
+      # server, so this runs against a real Xorg (dummy video driver) -- an actual
+      # X server implementation rendering to a dummy device -- and BLOCKS CI.
+      # Verified locally on XQuartz: all 11 tests pass.
+      - name: Test - drawserv drawmo full suite (real Xorg)
         if: always()
-        continue-on-error: true   # flaky under headless xvfb; passes on real X11
-        timeout-minutes: 2
+        timeout-minutes: 8
         run: |
+          set -o pipefail
+          # A real Xorg with the dummy driver, not Xvfb. -ac disables access
+          # control so clients started as the runner user can connect to the
+          # root-owned server without xauth setup.
+          cat > /tmp/dummy-xorg.conf <<'CONF'
+          Section "Device"
+            Identifier "dummy"
+            Driver     "dummy"
+            VideoRam   256000
+          EndSection
+          Section "Monitor"
+            Identifier "mon"
+            HorizSync  5.0-1000.0
+            VertRefresh 5.0-200.0
+            Modeline "1024x768" 65.0 1024 1048 1184 1344 768 771 777 806 -hsync -vsync
+          EndSection
+          Section "Screen"
+            Identifier "screen"
+            Device     "dummy"
+            Monitor    "mon"
+            DefaultDepth 24
+            SubSection "Display"
+              Depth  24
+              Modes  "1024x768"
+            EndSubSection
+          EndSection
+          CONF
+          sudo Xorg :99 -config /tmp/dummy-xorg.conf -logfile /tmp/xorg.log -ac -noreset &
+          export DISPLAY=:99
+          for i in $(seq 1 15); do xdpyinfo >/dev/null 2>&1 && break; sleep 1; done
+          xdpyinfo >/dev/null 2>&1 || { echo "Xorg failed to start"; sudo cat /tmp/xorg.log; exit 1; }
           cd src/drawserv_/tests
           # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
-          xvfb-run -a ./drawmo --tests updown < /dev/null
+          ./drawmo < /dev/null
 
       - name: Upload build log
         if: always()
