@@ -1205,9 +1205,12 @@ void ComTerp::exit(int status) {
      atexit handlers / C++ static destructors over a still-live interpreter (the
      same use-after-free class fixed elsewhere in this layer).  But _exit() also
      skips the stdio flush, so a final print() before exit could be lost from a
-     block-buffered stdout (e.g. when piped).  Flush every output stream first so
-     the buffered output reaches the pipe regardless of buffering mode. */
-  fflush(NULL);
+     block-buffered stdout (e.g. when piped) -- flush it (and stderr) first.
+     NOT fflush(NULL): a server interpreter holds FILE* streams wrapping live
+     client sockets, and flushing one whose peer has stalled blocks the exit
+     forever (drawserv hung exactly this way during drawmo's teardown). */
+  fflush(stdout);
+  fflush(stderr);
   _exit( status );
 }
 
