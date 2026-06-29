@@ -38,6 +38,26 @@ them down. Each test function manages its own process lifecycle.
 `drawmo` exits 0 on full pass, 1 on any failure. All test progress and
 failure messages go to stderr; the exit code is the CI signal.
 
+### Not run in GitHub Actions CI
+
+The hosted CI (`.github/workflows/ci.yml`) does **not** run this suite. drawmo
+shells out a child `drawserv` that must call back over a loopback TCP socket
+within 60s per test; on a GitHub-hosted runner the child starts fine (maps a
+window, prints its banner, under Xvfb or a real dummy-driver Xorg) but its
+`remote("localhost" <port> ...)` never reaches drawmo's listener -- almost
+certainly an IPv4/IPv6 `localhost` mismatch (the child connects to `::1` while
+the ACE listener is bound IPv4-only), so every test just burns its 60s timeout.
+
+What *is* CI-hostile here is the GUI/X coupling, not the networking: the
+wire protocol itself is exercised headless and blocking by
+`src/comterp_/tests/remote_loopback.sh` (a `comterp server` answering an
+expression sent over a loopback TCP socket). CI gates that plus the deterministic
+single-process pieces -- the comterp suite, the comdraw graphical-scripting
+suite, and a `drawserv` startup smoke. The full drawmo suite, which adds the
+GUI-coupled distributed path on top, runs on a real environment -- a dev box with
+real X (verified on XQuartz: all tests pass) or a self-hosted runner, gated e.g.
+`if: runner.environment == 'self-hosted'`.
+
 ## Port Convention
 
 drawmo listens on port 10002 for callbacks from drawserv instances.
