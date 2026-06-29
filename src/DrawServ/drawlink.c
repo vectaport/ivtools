@@ -33,7 +33,9 @@
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/sid.h>
+#include <Attribute/paramlist.h>
 #include <Unidraw/globals.h>
+#include <string.h>
 #include <fstream.h>
 #include <unistd.h>
 #include <iostream>
@@ -105,7 +107,8 @@ int DrawLink::open(uuid_t linkid) {
     sbuf << "drawlink(\"";
     char buffer[HOST_NAME_MAX];
     gethostname(buffer, HOST_NAME_MAX);
-    
+    buffer[HOST_NAME_MAX-1] = '\0';  // gethostname needn't NUL-terminate on truncation
+
     uuid_t& sid = ((DrawServ*)unidraw)->sessionid();
     uuid_string_t sid_str;
     uuid_unparse(sid, sid_str);
@@ -116,22 +119,23 @@ int DrawLink::open(uuid_t linkid) {
     void* ptr = nil;
     ((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
     SessionId* sessionid = (SessionId*)ptr;
-    sbuf << buffer << "\"";
+    sbuf << ParamList::filter(buffer, strlen(buffer)) << "\"";
     sbuf << " :port " << ((DrawServ*)unidraw)->comdraw_port();
     sbuf << " :state " << _state+1;
     sbuf << " :sid " << "\"" << sid_str << "\"";
     sbuf << " :linkid " << "\"" << linkid_str << "\"";
     if (sessionid) {
       sbuf << " :pid " << sessionid->pid();
-      sbuf << " :user \"" << sessionid->username() << "\"";
+      // username() is NULL on a runner with no login/USER; ostream << (char*)NULL
+      // sets badbit and silently truncates the rest of the command (closing quote,
+      // ')', newline all dropped -> an unframed, unparseable command).  NUL-safe,
+      // and escaped through the same filter ComValue string output uses.
+      const char* uname = sessionid->username();
+      sbuf << " :user \"" << ParamList::filter(uname ? uname : "", uname ? strlen(uname) : 0) << "\"";
     }
     sbuf << ")";
     log_outgoing_command(sbuf.str().c_str());
     sbuf << "\n";
-    { std::string d=sbuf.str(); fprintf(stderr,"LINKUPCMD[");      /* DIAG */
-      for(size_t k=0;k<d.size();k++){unsigned char c=d[k];
-        if(c>=32&&c<127)fputc(c,stderr); else fprintf(stderr,"\\%03o",c);}
-      fprintf(stderr,"]\n"); fflush(stderr); }
     out << sbuf.str().c_str();
     out.flush();
     _ok = true;
