@@ -167,9 +167,17 @@ jobs:
         if: always()
         timeout-minutes: 6
         run: |
+          set -o pipefail
           cd src/drawserv_/tests
-          # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
-          xvfb-run -a ./drawmo < /dev/null
+          # drawmo exits 0 on full pass, 1 on any failure (the comterp_listen
+          # wrapper now propagates that status).  Belt-and-suspenders: also grep
+          # the log for ': FAIL' like the comdraw suite, so a regression anywhere
+          # in the xvfb-run -> wrapper -> comterp exit-code chain can't fake green.
+          xvfb-run -a ./drawmo < /dev/null 2>&1 | tee drawmo.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ] || grep -q ': FAIL' drawmo.log; then
+            echo "drawmo suite FAILED (rc=$rc)"; exit 1
+          fi
 
       - name: Upload build log
         if: always()
