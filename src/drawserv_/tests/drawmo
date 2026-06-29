@@ -37,7 +37,7 @@ have_nc=shell("which nc > /dev/null 2>&1")==0;
 port_probe=if(have_lsof :then
   "lsof -i :%d > /dev/null 2>&1"
 :else if(have_nc :then
-  "nc -z localhost %d > /dev/null 2>&1"
+  "nc -z 127.0.0.1 %d > /dev/null 2>&1"
 :else
   "false"));
 
@@ -68,7 +68,7 @@ updown_test=func(
   ds_import=ds_port-1;
   global(drawserv_up)=false;
   print("updown: launching drawserv on port %d\n" ds_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up)=true\\\")\" &" ds_port ds_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up)=true\\\")\" &" ds_port ds_import callback_port :str);
   print("updown: cmdstr=[%s]\n" cmdstr :err);
   shell(cmdstr);
   print("updown: waiting for drawserv callback on port %d\n" callback_port :err);
@@ -88,7 +88,7 @@ updown_test=func(
     return(false));
     
   print("updown: drawserv callback received after %d polls\n" cnt :err);
-  sock=socket("localhost" ds_port);
+  sock=socket("127.0.0.1" ds_port);
   if(type(sock)==`UnknownType :then
     print("updown: FAIL could not connect to drawserv on port %d\n" ds_port :err);
     kill_port(:kill_port_num ds_port);
@@ -121,7 +121,7 @@ updown1_test=func(
   ds_import=ds_port-1;
   global(drawserv_up1)=false;
   print("updown1: launching drawserv on port %d\n" ds_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up1)=true\\\")\" &" ds_port ds_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up1)=true\\\")\" &" ds_port ds_import callback_port :str);
   print("updown1: cmdstr=[%s]\n" cmdstr :err);
   shell(cmdstr);
   print("updown1: waiting for drawserv callback on port %d\n" callback_port :err);
@@ -141,7 +141,7 @@ updown1_test=func(
     return(false));
 
   print("updown1: drawserv callback received after %d polls\n" cnt :err);
-  sock=socket("localhost" ds_port);
+  sock=socket("127.0.0.1" ds_port);
   if(type(sock)==`UnknownType :then
     print("updown1: FAIL could not connect to drawserv on port %d\n" ds_port :err);
     kill_port(:kill_port_num ds_port);
@@ -186,7 +186,7 @@ updown2_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_up2a)=false;
   print("updown2: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up2a)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up2a)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   print("updown2: cmdstr=[%s]\n" cmdstr :err);
   shell(cmdstr);
   print("updown2: waiting for ds1 callback on port %d\n" callback_port :err);
@@ -205,7 +205,7 @@ updown2_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_up2b)=false;
   print("updown2: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up2b)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up2b)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   print("updown2: cmdstr=[%s]\n" cmdstr :err);
   shell(cmdstr);
   print("updown2: waiting for ds2 callback on port %d\n" callback_port :err);
@@ -215,7 +215,7 @@ updown2_test=func(
   if(!global(drawserv_up2b) :then
     print("updown2: FAIL timeout waiting for ds2 callback\n" :err);
     /* ds1 is up; shut it down so its port is freed */
-    s1=socket("localhost" ds1_port);
+    s1=socket("127.0.0.1" ds1_port);
     if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);
@@ -224,12 +224,12 @@ updown2_test=func(
   print("updown2: ds2 callback received after %d polls\n" cnt :err);
 
   /* --- connect to both --- */
-  sock1=socket("localhost" ds1_port);
+  sock1=socket("127.0.0.1" ds1_port);
   if(type(sock1)==`UnknownType :then
     print("updown2: FAIL could not connect to ds1 on port %d\n" ds1_port :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
     return(false));
-  sock2=socket("localhost" ds2_port);
+  sock2=socket("127.0.0.1" ds2_port);
   if(type(sock2)==`UnknownType :then
     print("updown2: FAIL could not connect to ds2 on port %d\n" ds2_port :err);
     remote(sock1 "exit" :nowait);close(sock1);
@@ -238,7 +238,7 @@ updown2_test=func(
 
   /* --- establish the link ds1 -> ds2 --- */
   print("updown2: linking ds1(%d) -> ds2(%d)\n" ds1_port ds2_port :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
 
   /* drawlink blocks until the two-way handshake completes (its own spin-loop),
      so the link is established by the time the command returns -- no settle. */
@@ -304,7 +304,7 @@ updown3A_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_up3a1)=false;
   print("updown3A: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3a1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up3a1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up3a1) && cnt<timeout
@@ -320,14 +320,14 @@ updown3A_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_up3a2)=false;
   print("updown3A: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3a2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up3a2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up3a2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3A: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up3a2) :then
     print("updown3A: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -338,15 +338,15 @@ updown3A_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_up3a3)=false;
   print("updown3A: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3a3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up3a3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up3a3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3A: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up3a3) :then
     print("updown3A: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -354,9 +354,9 @@ updown3A_test=func(
   print("updown3A: ds3 up on %d\n" ds3_port :err);
 
   /* --- connect to all three --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
     print("updown3A: FAIL could not connect to all three drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
@@ -364,8 +364,8 @@ updown3A_test=func(
 
   /* --- build the chain: ds1->ds2 (on ds1), then ds2->ds3 (on ds2) --- */
   print("updown3A: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
 
   /* --- create a graphic on ds1; PasteCmd propagates it along the chain --- */
   remote(sock1 "ellipse(100,100,40,40)");
@@ -424,7 +424,7 @@ updown3B_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_up3b1)=false;
   print("updown3B: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3b1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up3b1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up3b1) && cnt<timeout
@@ -440,14 +440,14 @@ updown3B_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_up3b2)=false;
   print("updown3B: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3b2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up3b2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up3b2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3B: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up3b2) :then
     print("updown3B: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -458,15 +458,15 @@ updown3B_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_up3b3)=false;
   print("updown3B: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up3b3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up3b3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up3b3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown3B: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up3b3) :then
     print("updown3B: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -474,9 +474,9 @@ updown3B_test=func(
   print("updown3B: ds3 up on %d\n" ds3_port :err);
 
   /* --- connect to all three --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
     print("updown3B: FAIL could not connect to all three drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
@@ -484,8 +484,8 @@ updown3B_test=func(
 
   /* --- build the tree: both links from ds1 (hub) --- */
   print("updown3B: tree ds1(%d) -> ds2(%d), ds3(%d)\n" ds1_port ds2_port ds3_port :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
 
   /* --- create a graphic on ds1; PasteCmd fans it out to both branches --- */
   remote(sock1 "ellipse(100,100,40,40)");
@@ -543,7 +543,7 @@ updown4A_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_up4a1)=false;
   print("updown4A: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4a1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4a1) && cnt<timeout
@@ -559,14 +559,14 @@ updown4A_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_up4a2)=false;
   print("updown4A: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4a2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4a2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4a2) :then
     print("updown4A: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -577,15 +577,15 @@ updown4A_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_up4a3)=false;
   print("updown4A: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4a3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4a3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4a3) :then
     print("updown4A: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -597,16 +597,16 @@ updown4A_test=func(
   ds4_import=ds4_port-1;
   global(drawserv_up4a4)=false;
   print("updown4A: launching ds4 on port %d\n" ds4_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4a4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4a4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4a4) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4A: still waiting for ds4 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4a4) :then
     print("updown4A: FAIL timeout waiting for ds4 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    s3=socket("localhost" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s3=socket("127.0.0.1" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
@@ -615,10 +615,10 @@ updown4A_test=func(
   print("updown4A: ds4 up on %d\n" ds4_port :err);
 
   /* --- connect to all four --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
-  sock4=socket("localhost" ds4_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
+  sock4=socket("127.0.0.1" ds4_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType || type(sock4)==`UnknownType :then
     print("updown4A: FAIL could not connect to all four drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds4_port);
@@ -626,9 +626,9 @@ updown4A_test=func(
 
   /* --- build topology --- */
   print("updown4A: wiring topology\n" :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  remote(sock3 print("drawlink(\"localhost\" %d)" ds4_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
+  remote(sock3 print("drawlink(\"127.0.0.1\" %d)" ds4_port :str));
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
@@ -699,7 +699,7 @@ updown4B_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_up4b1)=false;
   print("updown4B: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4b1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4b1) && cnt<timeout
@@ -715,14 +715,14 @@ updown4B_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_up4b2)=false;
   print("updown4B: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4b2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4b2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4b2) :then
     print("updown4B: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -733,15 +733,15 @@ updown4B_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_up4b3)=false;
   print("updown4B: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4b3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4b3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4b3) :then
     print("updown4B: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -753,16 +753,16 @@ updown4B_test=func(
   ds4_import=ds4_port-1;
   global(drawserv_up4b4)=false;
   print("updown4B: launching ds4 on port %d\n" ds4_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4b4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4b4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4b4) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4B: still waiting for ds4 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4b4) :then
     print("updown4B: FAIL timeout waiting for ds4 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    s3=socket("localhost" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s3=socket("127.0.0.1" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
@@ -771,10 +771,10 @@ updown4B_test=func(
   print("updown4B: ds4 up on %d\n" ds4_port :err);
 
   /* --- connect to all four --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
-  sock4=socket("localhost" ds4_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
+  sock4=socket("127.0.0.1" ds4_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType || type(sock4)==`UnknownType :then
     print("updown4B: FAIL could not connect to all four drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds4_port);
@@ -782,9 +782,9 @@ updown4B_test=func(
 
   /* --- build topology --- */
   print("updown4B: wiring topology\n" :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds4_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds4_port :str));
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
@@ -855,7 +855,7 @@ updown4C_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_up4c1)=false;
   print("updown4C: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4c1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4c1) && cnt<timeout
@@ -871,14 +871,14 @@ updown4C_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_up4c2)=false;
   print("updown4C: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4c2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4c2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4c2) :then
     print("updown4C: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -889,15 +889,15 @@ updown4C_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_up4c3)=false;
   print("updown4C: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4c3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4c3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4c3) :then
     print("updown4C: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -909,16 +909,16 @@ updown4C_test=func(
   ds4_import=ds4_port-1;
   global(drawserv_up4c4)=false;
   print("updown4C: launching ds4 on port %d\n" ds4_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_up4c4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_up4c4)=true\\\")\" &" ds4_port ds4_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_up4c4) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("updown4C: still waiting for ds4 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_up4c4) :then
     print("updown4C: FAIL timeout waiting for ds4 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
-    s3=socket("localhost" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s3=socket("127.0.0.1" ds3_port);if(type(s3)!=`UnknownType :then remote(s3 "exit" :nowait);close(s3));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 update(200000));
@@ -927,10 +927,10 @@ updown4C_test=func(
   print("updown4C: ds4 up on %d\n" ds4_port :err);
 
   /* --- connect to all four --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
-  sock4=socket("localhost" ds4_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
+  sock4=socket("127.0.0.1" ds4_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType || type(sock4)==`UnknownType :then
     print("updown4C: FAIL could not connect to all four drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds4_port);
@@ -938,9 +938,9 @@ updown4C_test=func(
 
   /* --- build topology --- */
   print("updown4C: wiring topology\n" :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
-  remote(sock2 print("drawlink(\"localhost\" %d)" ds4_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
+  remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds4_port :str));
 
   /* --- create a graphic on ds1; PasteCmd propagates it --- */
   remote(sock1 "ellipse(100,100,40,40)");
@@ -1036,7 +1036,7 @@ gsbrushA_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_upgba1)=false;
   print("gsbrushA: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgba1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgba1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgba1) && cnt<timeout
@@ -1052,14 +1052,14 @@ gsbrushA_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_upgba2)=false;
   print("gsbrushA: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgba2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgba2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgba2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushA: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_upgba2) :then
     print("gsbrushA: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -1070,15 +1070,15 @@ gsbrushA_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_upgba3)=false;
   print("gsbrushA: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgba3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgba3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgba3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushA: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_upgba3) :then
     print("gsbrushA: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -1086,9 +1086,9 @@ gsbrushA_test=func(
   print("gsbrushA: ds3 up on %d\n" ds3_port :err);
 
   /* --- connect to all three --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
     print("gsbrushA: FAIL could not connect to all three drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
@@ -1096,8 +1096,8 @@ gsbrushA_test=func(
 
   /* --- build the chain: ds1->ds2 (on ds1), then ds2->ds3 (on ds2) --- */
   print("gsbrushA: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock2 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
 
   /* --- create a rect on ds1 with a distinctive dashed brush (linepat 65520,
      width 2).  far nodes default to a solid brush, so a match downstream proves
@@ -1158,7 +1158,7 @@ gsbrushB_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_upgbb1)=false;
   print("gsbrushB: launching ds1 on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgbb1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgbb1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgbb1) && cnt<timeout
@@ -1174,14 +1174,14 @@ gsbrushB_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_upgbb2)=false;
   print("gsbrushB: launching ds2 on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgbb2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgbb2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgbb2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushB: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_upgbb2) :then
     print("gsbrushB: FAIL timeout waiting for ds2 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
     return(false));
@@ -1192,15 +1192,15 @@ gsbrushB_test=func(
   ds3_import=ds3_port-1;
   global(drawserv_upgbb3)=false;
   print("gsbrushB: launching ds3 on port %d\n" ds3_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgbb3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgbb3)=true\\\")\" &" ds3_port ds3_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgbb3) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsbrushB: still waiting for ds3 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_upgbb3) :then
     print("gsbrushB: FAIL timeout waiting for ds3 callback\n" :err);
-    s1=socket("localhost" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
-    s2=socket("localhost" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
+    s1=socket("127.0.0.1" ds1_port);if(type(s1)!=`UnknownType :then remote(s1 "exit" :nowait);close(s1));
+    s2=socket("127.0.0.1" ds2_port);if(type(s2)!=`UnknownType :then remote(s2 "exit" :nowait);close(s2));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 update(200000));
     kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
@@ -1208,9 +1208,9 @@ gsbrushB_test=func(
   print("gsbrushB: ds3 up on %d\n" ds3_port :err);
 
   /* --- connect to all three --- */
-  sock1=socket("localhost" ds1_port);
-  sock2=socket("localhost" ds2_port);
-  sock3=socket("localhost" ds3_port);
+  sock1=socket("127.0.0.1" ds1_port);
+  sock2=socket("127.0.0.1" ds2_port);
+  sock3=socket("127.0.0.1" ds3_port);
   if(type(sock1)==`UnknownType || type(sock2)==`UnknownType || type(sock3)==`UnknownType :then
     print("gsbrushB: FAIL could not connect to all three drawservs\n" :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds3_port);
@@ -1218,8 +1218,8 @@ gsbrushB_test=func(
 
   /* --- build the tree: both links from ds1 (hub) --- */
   print("gsbrushB: tree ds1(%d) -> ds2(%d), ds3(%d)\n" ds1_port ds2_port ds3_port :err);
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds2_port :str));
-  remote(sock1 print("drawlink(\"localhost\" %d)" ds3_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
 
   /* --- create a rect on ds1 with a distinctive dashed brush (linepat 65520,
      width 2); it fans out to both branches. --- */
@@ -1286,7 +1286,7 @@ gsexim_test=func(
   ds1_import=ds1_port-1;
   global(drawserv_upgsx1)=false;
   print("gsexim: launching ds1 (source) on port %d\n" ds1_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgsx1)=true\\\")\" &" ds1_port ds1_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgsx1) && cnt<timeout
@@ -1302,14 +1302,14 @@ gsexim_test=func(
   ds2_import=ds2_port-1;
   global(drawserv_upgsx2)=false;
   print("gsexim: launching ds2 (dest) on port %d\n" ds2_port :err);
-  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"localhost\\\" %d \\\"global(drawserv_upgsx2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upgsx2)=true\\\")\" &" ds2_port ds2_import callback_port :str);
   shell(cmdstr);
   cnt=0;
   while(!global(drawserv_upgsx2) && cnt<timeout
     update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("gsexim: still waiting for ds2 after %d secs\n" cnt*poll_usec/1000000 :err)));
   if(!global(drawserv_upgsx2) :then
     print("gsexim: FAIL timeout waiting for ds2 callback\n" :err);
-    s1s=socket("localhost" ds1_port);
+    s1s=socket("127.0.0.1" ds1_port);
     if(type(s1s)!=`UnknownType :then remote(s1s "exit" :nowait);close(s1s));
     while(shell(print("pgrep -f 'drawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 update(200000));
     kill_port(:kill_port_num ds2_port);kill_port(:kill_port_num ds2_import);
@@ -1317,12 +1317,12 @@ gsexim_test=func(
   print("gsexim: ds2 callback received after %d polls\n" cnt :err);
 
   /* --- connect to both --- */
-  sock1=socket("localhost" ds1_port);
+  sock1=socket("127.0.0.1" ds1_port);
   if(type(sock1)==`UnknownType :then
     print("gsexim: FAIL could not connect to ds1 on port %d\n" ds1_port :err);
     kill_port(:kill_port_num ds1_port);kill_port(:kill_port_num ds2_port);
     return(false));
-  sock2=socket("localhost" ds2_port);
+  sock2=socket("127.0.0.1" ds2_port);
   if(type(sock2)==`UnknownType :then
     print("gsexim: FAIL could not connect to ds2 on port %d\n" ds2_port :err);
     remote(sock1 "exit" :nowait);close(sock1);
