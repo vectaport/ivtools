@@ -175,18 +175,18 @@ jobs:
           xvfb-run -a ./drawmo --tests updown < /dev/null & dm=$!
           sleep 45
           echo "=== live processes ==="
-          ps -eo pid,comm,args | grep -iE 'drawserv|comterp' | grep -v grep
-          for pat in 'drawserv -comdraw' 'comterp_listen'; do
-            pid=$(pgrep -f "$pat" | head -1)
-            echo "=== wchan + backtrace: [$pat] pid=$pid ==="
-            if [ -n "$pid" ]; then
-              echo "wchan: $(cat /proc/$pid/wchan 2>/dev/null)"
-              sudo gdb -p "$pid" -batch -ex 'set pagination off' -ex 'thread apply all bt' 2>&1 \
-                | grep -aE '^#|^Thread|signal|in [a-zA-Z]' | head -45
-            fi
-          done
-          sudo pkill -9 -f 'drawserv -comdraw'; kill -9 "$dm" 2>/dev/null; sudo pkill -9 Xvfb 2>/dev/null
-          true
+          ps -eo pid,args | grep -iE 'drawserv|comterp' | grep -v grep
+          echo "=== drawserv still alive? ==="; pgrep -af 'drawserv -comdraw' || echo "(drawserv gone -- it exited)"
+          # the drawmo interpreter is `comterp listen 10002 ./drawmo` (space), NOT
+          # the `comterp_listen` (underscore) bash wrapper.
+          pid=$(pgrep -f 'comterp listen 10002' | head -1)
+          echo "=== drawmo interpreter pid=$pid wchan=$(cat /proc/$pid/wchan 2>/dev/null) ==="
+          if [ -n "$pid" ]; then
+            sudo gdb -p "$pid" -batch -ex 'set pagination off' -ex 'thread apply all bt' 2>&1 \
+              | grep -aE '^#|^Thread|signal|in [A-Za-z]' | head -50
+          fi
+          sudo pkill -9 -f drawserv; kill -9 "$dm" 2>/dev/null; sudo pkill -9 Xvfb 2>/dev/null
+          sudo pkill -9 -f 'comterp listen'; true
 
       - name: Upload build log
         if: always()
