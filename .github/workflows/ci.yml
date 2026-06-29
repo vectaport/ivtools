@@ -168,8 +168,17 @@ jobs:
         timeout-minutes: 6
         run: |
           cd src/drawserv_/tests
-          # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
-          xvfb-run -a ./drawmo < /dev/null
+          # DIAG: cap updown, then gdb the drawserv that wouldn't die on `exit`.
+          timeout 100 xvfb-run -a ./drawmo --tests updown < /dev/null; echo "drawmo rc=$?"
+          echo "=== surviving drawserv ==="; pgrep -af drawserv || echo "(none)"
+          pid=$(pgrep -f 'drawserv -comdraw' | head -1)
+          if [ -n "$pid" ]; then
+            echo "=== /proc/$pid/wchan ==="; cat /proc/$pid/wchan; echo
+            echo "=== open fds ==="; sudo ls -l /proc/$pid/fd 2>&1 | head -30
+            echo "=== backtrace (all threads) ==="
+            sudo gdb -p "$pid" -batch -ex 'thread apply all bt' 2>&1 | grep -aE '^#|Thread|^Program|signal' | head -60 || true
+            sudo kill -9 "$pid" 2>/dev/null || true
+          fi
 
       - name: Upload build log
         if: always()
