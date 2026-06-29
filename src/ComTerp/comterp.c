@@ -1201,6 +1201,13 @@ void ComTerp::quit(boolean quitflag) {
 }
 
 void ComTerp::exit(int status) {
+  /* Use _exit(), not exit(): exiting from inside a reactor callback must not run
+     atexit handlers / C++ static destructors over a still-live interpreter (the
+     same use-after-free class fixed elsewhere in this layer).  But _exit() also
+     skips the stdio flush, so a final print() before exit could be lost from a
+     block-buffered stdout (e.g. when piped).  Flush every output stream first so
+     the buffered output reaches the pipe regardless of buffering mode. */
+  fflush(NULL);
   _exit( status );
 }
 
