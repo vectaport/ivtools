@@ -65,7 +65,6 @@
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
-#include <Attribute/paramlist.h>
 
 #include <fstream.h>
 #include <sstream>
@@ -98,23 +97,6 @@ extern uint32_t uuid_key(const uuid_t u)
     memcpy(&v, u, sizeof(v));
     return ntohl(v);
 }
-
-#ifdef HAVE_ACE
-// Escape a (possibly NULL) string field for a command going onto a link, via
-// ParamList::filter (the same escaping ComValue string output uses).  filter()
-// octal-escapes control/8-bit bytes and backslash-escapes \ and ", so a field
-// can't smuggle a raw newline (the frame delimiter) or an unbalanced quote into
-// the command -- the receiving comterp parses it back as a clean string.  These
-// link commands are hand-assembled with snprintf("%s") and otherwise bypass that
-// escaping.  filter() returns a shared static buffer, so copy each field out
-// before the next filter() call (don't call it twice in one snprintf).
-static const char* ds_filter(char* out, int outsz, const char* s) {
-    const char* f = ParamList::filter(s ? s : "", s ? strlen(s) : 0);
-    strncpy(out, f, outsz - 1);
-    out[outsz - 1] = '\0';
-    return out;
-}
-#endif /* HAVE_ACE */
 
 /*****************************************************************************/
 
@@ -437,11 +419,9 @@ void DrawServ::sessionid_register(DrawLink* link) {
 	char buf[BUFSIZ];
 	uuid_string_t sid_str;
 	uuid_unparse(sessionid->sid(), sid_str);
-	char e_user[BUFSIZ], e_host[BUFSIZ];  // escape so a stray byte can't break the parse
-	ds_filter(e_user, sizeof(e_user), sessionid->username());
-	ds_filter(e_host, sizeof(e_host), sessionid->hostname());
-	snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c",
-		 sid_str, sessionid->pid(), e_user, e_host, sessionid->hostid(), '\0');
+	snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", 
+		 sid_str, sessionid->pid(), sessionid->username(),
+		 sessionid->hostname(), sessionid->hostid(), '\0');
 	SendCmdString(link, buf);
       }
     }
@@ -480,10 +460,7 @@ void DrawServ::sessionid_register_propagate
     char buf[BUFSIZ];
     DrawLink* otherlink = _linklist->GetDrawLink(it);
     if (otherlink != link) {
-      char e_user[BUFSIZ], e_host[BUFSIZ];
-      ds_filter(e_user, sizeof(e_user), username);
-      ds_filter(e_host, sizeof(e_host), hostname);
-      snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", sid_str, pid, e_user, e_host, hostid, '\0');
+      snprintf(buf, BUFSIZ, "sid(\"%s\" :pid %d :user \"%s\" :host \"%s\" :hostid 0x%08x)%c", sid_str, pid, username, hostname, hostid, '\0');
       SendCmdString(otherlink, buf);
     }
     _linklist->Next(it);

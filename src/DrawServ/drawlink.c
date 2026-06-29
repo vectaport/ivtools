@@ -33,9 +33,7 @@
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/sid.h>
-#include <Attribute/paramlist.h>
 #include <Unidraw/globals.h>
-#include <string.h>
 #include <fstream.h>
 #include <unistd.h>
 #include <iostream>
@@ -119,19 +117,20 @@ int DrawLink::open(uuid_t linkid) {
     void* ptr = nil;
     ((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
     SessionId* sessionid = (SessionId*)ptr;
-    sbuf << ParamList::filter(buffer, strlen(buffer)) << "\"";
+    sbuf << buffer << "\"";
     sbuf << " :port " << ((DrawServ*)unidraw)->comdraw_port();
     sbuf << " :state " << _state+1;
     sbuf << " :sid " << "\"" << sid_str << "\"";
     sbuf << " :linkid " << "\"" << linkid_str << "\"";
     if (sessionid) {
       sbuf << " :pid " << sessionid->pid();
-      // username() is NULL on a runner with no login/USER; ostream << (char*)NULL
-      // sets badbit and silently truncates the rest of the command (closing quote,
-      // ')', newline all dropped -> an unframed, unparseable command).  NUL-safe,
-      // and escaped through the same filter ComValue string output uses.
+      // On a host with no login/USER the username is a NULL pointer, and
+      // ostream operator<<(const char*) on NULL sets the stream's badbit -- the
+      // closing quote, the ')', and the newline then silently vanish, leaving a
+      // truncated, unframed command the receiver can't parse, which stalls the
+      // two-way handshake.  Emit "" for a NULL username so the stream stays good.
       const char* uname = sessionid->username();
-      sbuf << " :user \"" << ParamList::filter(uname ? uname : "", uname ? strlen(uname) : 0) << "\"";
+      sbuf << " :user \"" << (uname ? uname : "") << "\"";
     }
     sbuf << ")";
     log_outgoing_command(sbuf.str().c_str());
