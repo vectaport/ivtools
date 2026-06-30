@@ -33,6 +33,7 @@ public:
             return -1;
         }
         if (r && r->register_handler(this, ACE_Event_Handler::READ_MASK) == -1) {
+            peer_acceptor_.close();   // don't leak the bound listen fd
             return -1;
         }
         return 0;

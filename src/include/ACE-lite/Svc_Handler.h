@@ -44,6 +44,12 @@ public:
                 this->get_handle(),
                 ACE_Event_Handler::RWE_MASK | ACE_Event_Handler::DONT_CALL);
         }
+        // Close the connected socket fd: ACE_SOCK_Stream has no closing
+        // destructor, so without this the accepted fd leaks when the reactor
+        // retires a handler (handle_close -> close -> destroy -> delete this).
+        // After remove_handler so get_handle() above is still valid, and here
+        // (not in close()) so a direct destroy() is covered too.
+        peer_.close();
         delete this;
     }
 

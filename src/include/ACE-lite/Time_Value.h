@@ -101,5 +101,14 @@ inline int operator<(const ACE_Time_Value& a, const ACE_Time_Value& b) {
 inline int operator==(const ACE_Time_Value& a, const ACE_Time_Value& b) {
     return a.tv_.tv_sec == b.tv_.tv_sec && a.tv_.tv_usec == b.tv_.tv_usec;
 }
+inline int operator!=(const ACE_Time_Value& a, const ACE_Time_Value& b) {
+    return !(a == b);
+}
+inline int operator>=(const ACE_Time_Value& a, const ACE_Time_Value& b) {
+    return !(a < b);
+}
+inline int operator<=(const ACE_Time_Value& a, const ACE_Time_Value& b) {
+    return !(a > b);
+}
 
 #endif /* _acelite_Time_Value_h */
