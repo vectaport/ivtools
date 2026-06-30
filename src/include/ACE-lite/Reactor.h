@@ -17,6 +17,7 @@
 #include <ACE-lite/OS.h>
 #include <ACE-lite/Event_Handler.h>
 #include <ACE-lite/Time_Value.h>
+#include <ACE-lite/Log_Msg.h>   // ACE_DEBUG/ACE_ERROR arrive transitively, as in ACE
 #include <map>
 #include <vector>
 
