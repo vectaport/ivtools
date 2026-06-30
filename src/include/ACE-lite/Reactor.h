@@ -18,6 +18,8 @@
 #include <ACE-lite/Event_Handler.h>
 #include <ACE-lite/Time_Value.h>
 #include <ACE-lite/Log_Msg.h>   // ACE_DEBUG/ACE_ERROR arrive transitively, as in ACE
+#include <ACE-lite/Singleton.h>
+#include <ACE-lite/Synch.h>
 #include <map>
 #include <vector>
 
@@ -56,6 +58,12 @@ public:
     int handle_events(ACE_Time_Value* max_wait_time);
     int handle_events(ACE_Time_Value& max_wait_time);
 
+    // The global reactor singleton (ACE's ACE_Reactor::instance()).  Same object
+    // ivtools reaches via ComterpHandler::reactor_singleton(), so the default
+    // reactor used by ACE_Acceptor::open() and the one the event loop drives are
+    // one and the same.
+    static ACE_Reactor* instance();
+
 private:
     struct Timer {
         int id;
@@ -78,5 +86,14 @@ private:
     std::vector<Timer> timers_;
     int next_timer_id_;
 };
+
+// Defined inline (not in libACE-lite) so each consumer that needs the default
+// reactor -- e.g. ACE_Acceptor::open()'s default arg -- emits its own copy and
+// needs no exported symbol, exactly as ComterpHandler::reactor_singleton()'s
+// REACTOR::instance() does.  Both resolve to the one ACE_Singleton<ACE_Reactor>,
+// so the default reactor and the reactor the loop drives are the same object.
+inline ACE_Reactor* ACE_Reactor::instance() {
+    return ACE_Singleton<ACE_Reactor, ACE_Null_Mutex>::instance();
+}
 
 #endif /* _acelite_Reactor_h */

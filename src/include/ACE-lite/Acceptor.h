@@ -23,9 +23,11 @@ public:
     ACE_Acceptor(ACE_Reactor* r = 0) : ACE_Event_Handler(r) {}
     virtual ~ACE_Acceptor() {}
 
-    // Open the listen socket on `local_addr' and register for READ on `r'.
+    // Open the listen socket on `local_addr' and register for READ on `r'
+    // (defaulting to the global reactor, as ACE does, so callers may omit it).
     // 0 on success, -1 on failure.
-    int open(const ACE_INET_Addr& local_addr, ACE_Reactor* r) {
+    int open(const ACE_INET_Addr& local_addr,
+             ACE_Reactor* r = ACE_Reactor::instance()) {
         this->reactor(r);
         if (peer_acceptor_.open(local_addr) == -1) {
             return -1;
