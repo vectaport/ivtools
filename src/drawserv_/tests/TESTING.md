@@ -133,8 +133,14 @@ communication, or a DrawServ-specific command.
 
 ## Adding a New Test
 
-1. Write a `funcname_test=func(...)` in `drawmo` following the updown
-   launch pattern above
+1. Write a `funcname_test=func(...)` following the updown launch pattern above,
+   in **`updown.comt`** (link/propagation tests) or **`gstests.comt`**
+   (graphic-state tests). `drawmo` itself keeps only the arg parsing, the shared
+   helpers (`kill_port`, `find_open_port`, `grid_has_id`), the two `run()` loaders
+   that pull in those files, and the dispatch block. (The loaders are separate
+   top-level statements with no trailing `;` on purpose: a func binds its symbol
+   only when evaluated, but a caller resolves that symbol at parse time, so each
+   file must finish loading before the dispatch is parsed.)
 2. Add it to the `switch` in the argument parser:
    `:tests_flag tests_flag=true; ...`
 3. Add it to the `if(t==\`name || t==\`all ...)` dispatch block
