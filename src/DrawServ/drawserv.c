@@ -730,6 +730,7 @@ boolean DrawServ::selftest(const char* host, unsigned int portnum)
     else {
       char hostbuf[HOST_NAME_MAX];
       gethostname(hostbuf, HOST_NAME_MAX);
+      hostbuf[HOST_NAME_MAX-1] = '\0';  // gethostname needn't NUL-terminate on truncation
       if (strcmp(host, hostbuf)==0)
 	return 1;
     }
