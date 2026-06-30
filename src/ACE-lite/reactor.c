@@ -213,19 +213,28 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
     FD_ZERO(&wset);
     FD_ZERO(&eset);
 
+    // FD_SET/FD_ISSET on a descriptor >= FD_SETSIZE indexes past the fixed-size
+    // fd_set -- undefined behavior (stack corruption).  Guard every use: a fd
+    // that large is skipped rather than corrupting memory.  ivtools' workloads
+    // keep fd numbers well under FD_SETSIZE; lifting the limit entirely means
+    // moving this select() loop to poll() (no FD_SETSIZE bound), noted as future
+    // work in issue #147.
     int maxfd = -1;
     for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.begin();
          it != read_.end(); ++it) {
+        if (it->first < 0 || it->first >= FD_SETSIZE) continue;
         FD_SET(it->first, &rset);
         if (it->first > maxfd) maxfd = it->first;
     }
     for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = write_.begin();
          it != write_.end(); ++it) {
+        if (it->first < 0 || it->first >= FD_SETSIZE) continue;
         FD_SET(it->first, &wset);
         if (it->first > maxfd) maxfd = it->first;
     }
     for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = except_.begin();
          it != except_.end(); ++it) {
+        if (it->first < 0 || it->first >= FD_SETSIZE) continue;
         FD_SET(it->first, &eset);
         if (it->first > maxfd) maxfd = it->first;
     }
@@ -272,13 +281,16 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
         std::vector<ACE_HANDLE> rfds, wfds, efds;
         for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.begin();
              it != read_.end(); ++it)
-            if (FD_ISSET(it->first, &rset)) rfds.push_back(it->first);
+            if (it->first >= 0 && it->first < FD_SETSIZE && FD_ISSET(it->first, &rset))
+                rfds.push_back(it->first);
         for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = write_.begin();
              it != write_.end(); ++it)
-            if (FD_ISSET(it->first, &wset)) wfds.push_back(it->first);
+            if (it->first >= 0 && it->first < FD_SETSIZE && FD_ISSET(it->first, &wset))
+                wfds.push_back(it->first);
         for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = except_.begin();
              it != except_.end(); ++it)
-            if (FD_ISSET(it->first, &eset)) efds.push_back(it->first);
+            if (it->first >= 0 && it->first < FD_SETSIZE && FD_ISSET(it->first, &eset))
+                efds.push_back(it->first);
 
         for (size_t i = 0; i < rfds.size(); i++) {
             if (retiring.count(rfds[i])) continue;
