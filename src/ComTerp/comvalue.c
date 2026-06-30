@@ -209,7 +209,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::CharType:
 	  if (brief)
-            out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)svp->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
+            out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)(unsigned char)svp->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;	    

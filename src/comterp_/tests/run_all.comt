@@ -41,6 +41,10 @@ if(run("./symbol.comt")
   :then print("pass: symbol\n")
   :else print("FAIL: symbol\n");topok=false)
 
+if(run("./char.comt")
+  :then print("pass: char\n")
+  :else print("FAIL: char\n");topok=false)
+
 if(run("./help.comt")
   :then print("pass: help\n")
   :else print("FAIL: help\n");topok=false)
