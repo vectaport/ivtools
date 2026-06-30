@@ -31,8 +31,14 @@ public:
     int register_handler(ACE_HANDLE handle, ACE_Event_Handler* eh,
                          ACE_Reactor_Mask mask);
 
-    // Stop dispatching `handle' for the events in `mask'.
+    // Stop dispatching `handle' (or `eh' by its get_handle()) for `mask' events.
     int remove_handler(ACE_HANDLE handle, ACE_Reactor_Mask mask);
+    int remove_handler(ACE_Event_Handler* eh, ACE_Reactor_Mask mask);
+
+    // Install `new_sh' as the handler for signal `signum' (its handle_signal is
+    // invoked from the signal trampoline).  ivtools registers the SIGINT quit
+    // flag this way.  0 on success, -1 on failure.
+    int register_handler(int signum, ACE_Event_Handler* new_sh);
 
     // Schedule `eh' to fire handle_timeout after `delay' (and every `interval'
     // thereafter, if nonzero).  Returns a timer id (>=0), or -1 on failure.

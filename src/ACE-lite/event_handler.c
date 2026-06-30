@@ -26,3 +26,5 @@ int ACE_Event_Handler::handle_exception(ACE_HANDLE) { return -1; }
 int ACE_Event_Handler::handle_timeout(const ACE_Time_Value&, const void*) { return -1; }
 
 int ACE_Event_Handler::handle_close(ACE_HANDLE, ACE_Reactor_Mask) { return 0; }
+
+int ACE_Event_Handler::handle_signal(int, void*, void*) { return 0; }

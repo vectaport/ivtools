@@ -17,11 +17,30 @@
 
 #include <ACE-lite/Reactor.h>
 
+#include <signal.h>
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <set>
 #include <vector>
+
+#ifndef NSIG
+#define NSIG 64
+#endif
+
+// ACE_Time_Value::zero -- the shared 0 duration declared in Time_Value.h.
+const ACE_Time_Value ACE_Time_Value::zero;
+
+// Signal handlers are process-global, so the signum->handler table and the
+// trampoline are file-static.  handle_signal must be async-signal-safe (the
+// only registered use, ACE_Test_and_Set, just sets a sig_atomic_t flag).
+static ACE_Event_Handler* acelite_sig_handlers[NSIG];
+
+extern "C" void acelite_sig_trampoline(int signo) {
+    if (signo >= 0 && signo < NSIG && acelite_sig_handlers[signo]) {
+        acelite_sig_handlers[signo]->handle_signal(signo);
+    }
+}
 
 ACE_Reactor::ACE_Reactor() : next_timer_id_(1) {}
 
@@ -58,6 +77,20 @@ int ACE_Reactor::remove_handler(ACE_HANDLE handle, ACE_Reactor_Mask mask) {
     if (mask & ACE_Event_Handler::WRITE_MASK)  write_.erase(handle);
     if (mask & ACE_Event_Handler::EXCEPT_MASK) except_.erase(handle);
     return 0;
+}
+
+int ACE_Reactor::remove_handler(ACE_Event_Handler* eh, ACE_Reactor_Mask mask) {
+    if (eh == 0) return -1;
+    return remove_handler(eh->get_handle(), mask);
+}
+
+int ACE_Reactor::register_handler(int signum, ACE_Event_Handler* new_sh) {
+    if (signum < 0 || signum >= NSIG || new_sh == 0) {
+        return -1;
+    }
+    new_sh->reactor(this);
+    acelite_sig_handlers[signum] = new_sh;
+    return ::signal(signum, acelite_sig_trampoline) == SIG_ERR ? -1 : 0;
 }
 
 // Retire a handle on the -1/EOF path: drop every mask and notify the handler

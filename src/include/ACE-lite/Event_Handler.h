@@ -48,6 +48,9 @@ public:
     // Called by the reactor when the handler is removed.
     virtual int handle_close(ACE_HANDLE fd = ACE_INVALID_HANDLE,
                              ACE_Reactor_Mask mask = ALL_EVENTS_MASK);
+    // Called from the signal trampoline when a registered signal fires
+    // (ivtools registers the SIGINT quit flag this way).  Keep it async-safe.
+    virtual int handle_signal(int signum, void* = 0, void* = 0);
 
     ACE_Reactor* reactor() const { return reactor_; }
     void reactor(ACE_Reactor* r) { reactor_ = r; }

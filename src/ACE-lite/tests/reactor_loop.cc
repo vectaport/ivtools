@@ -14,7 +14,10 @@
 #include <ACE-lite/Reactor.h>
 #include <ACE-lite/Event_Handler.h>
 #include <ACE-lite/Time_Value.h>
+#include <ACE-lite/Test_and_Set.h>
+#include <ACE-lite/Synch.h>
 
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
@@ -156,6 +159,31 @@ int main() {
     check(rw.outputs_ == 0, "retired fd stays out of write dispatch");
     close(sv2[0]);
     close(sv2[1]);
+
+    // --- remove_handler(eh) by handler pointer (the drawlink form) ---
+    int sv3[2];
+    socketpair(AF_UNIX, SOCK_STREAM, 0, sv3);
+    ReadHandler rh2(sv3[0]);
+    reactor.register_handler(sv3[0], &rh2, ACE_Event_Handler::READ_MASK);
+    reactor.remove_handler(&rh2, ACE_Event_Handler::READ_MASK);  // by handler, not fd
+    write(sv3[1], "x", 1);
+    ACE_Time_Value w10(0, 1000);
+    reactor.handle_events(&w10);
+    check(rh2.inputs_ == 0, "remove_handler(eh) by pointer stops dispatch");
+    close(sv3[0]);
+    close(sv3[1]);
+
+    // --- ACE_Time_Value::zero ---
+    check(ACE_Time_Value::zero.sec() == 0 && ACE_Time_Value::zero.usec() == 0,
+          "ACE_Time_Value::zero is 0");
+
+    // --- signal handler: register an ACE_Test_and_Set, raise the signal,
+    //     verify handle_signal set the flag (the SIGINT quit pattern) ---
+    ACE_Test_and_Set<ACE_Null_Mutex, sig_atomic_t> quit;
+    check(quit.is_set() == 0, "Test_and_Set flag starts clear");
+    reactor.register_handler(SIGUSR1, &quit);
+    raise(SIGUSR1);
+    check(quit.is_set() == 1, "register_handler(signum) -> handle_signal sets the flag");
 
     printf("\nreactor_loop: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;

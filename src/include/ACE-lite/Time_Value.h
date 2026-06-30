@@ -17,6 +17,10 @@ public:
     ACE_Time_Value(long sec, long usec = 0) { set(sec, usec); }
     ACE_Time_Value(const timeval& tv) { set(tv.tv_sec, tv.tv_usec); }
 
+    // A shared zero duration (consumer code uses it as a poll timeout, e.g.
+    // ctrlfunc.c's UpdateFunc).  Defined in reactor.c.
+    static const ACE_Time_Value zero;
+
     void set(long sec, long usec) {
         tv_.tv_sec = sec;
         tv_.tv_usec = usec;
