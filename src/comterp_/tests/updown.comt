@@ -92,9 +92,9 @@ updown2_test=func(
   ok)
 
 ok=true
-if(updown_test(:dummy 0) :then print("updown: pass\n") :else print("updown: FAIL\n");ok=false)
-if(updown1_test(:dummy 0) :then print("updown1: pass\n") :else print("updown1: FAIL\n");ok=false)
-if(updown2_test(:dummy 0) :then print("updown2: pass\n") :else print("updown2: FAIL\n");ok=false)
+if(updown_test :then print("updown: pass\n") :else print("updown: FAIL\n");ok=false)
+if(updown1_test :then print("updown1: pass\n") :else print("updown1: FAIL\n");ok=false)
+if(updown2_test :then print("updown2: pass\n") :else print("updown2: FAIL\n");ok=false)
 
 print("updown: %v\n" ok)
 ok
