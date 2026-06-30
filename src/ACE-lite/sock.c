@@ -1,5 +1,7 @@
 /*
  * ACE-lite (issue #147).  src/ACE-lite/sock.c
+ * (ACE-lite reimplements a subset of the ACE interface; ACE is (c) the DOC
+ * group -- see src/ACE-lite/NOTICE for attribution and the relationship.)
  * Implementations of the ACE-lite address and socket classes
  * (ACE_INET_Addr, ACE_SOCK_Stream, ACE_SOCK_Connector, ACE_SOCK_Acceptor).
  * ACE_Time_Value is header-inline; the templates are header-only.
