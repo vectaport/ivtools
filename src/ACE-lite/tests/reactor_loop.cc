@@ -185,6 +185,18 @@ int main() {
     raise(SIGUSR1);
     check(quit.is_set() == 1, "register_handler(signum) -> handle_signal sets the flag");
 
+    // --- a timer already OVERDUE when handle_events runs must still fire ---
+    // Regression: an overdue timer yields wait = (sec=0, usec<0); a negative
+    // tv_usec makes select() return EINVAL, which dropped the timer before
+    // expire_timers() ran.  Schedule, then sleep well past the fire time so the
+    // wait is negative-but-within-a-second, then dispatch.
+    TimerHandler tov;
+    reactor.schedule_timer(&tov, 0, ACE_Time_Value(0, 5000));  // due in 5ms
+    usleep(30000);                                             // now ~25ms overdue
+    ACE_Time_Value w_ov(1, 0);
+    reactor.handle_events(&w_ov);
+    check(tov.fires_ == 1, "overdue timer fires (wait clamped, no select() EINVAL drop)");
+
     printf("\nreactor_loop: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;
 }

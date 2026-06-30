@@ -175,25 +175,34 @@ int ACE_Reactor::expire_timers() {
         for (size_t i = 0; i < timers_.size(); i++) {
             if (timers_[i].id == due[k]) { idx = (int)i; break; }
         }
-        if (idx < 0) continue;  // already cancelled by an earlier callback
+        if (idx < 0) continue;  // already cancelled/fired by an earlier callback
         ACE_Event_Handler* eh = timers_[idx].eh;
         const void* arg = timers_[idx].arg;
         ACE_Time_Value interval = timers_[idx].interval;
         int id = timers_[idx].id;
+        bool oneshot = (interval.sec() == 0 && interval.usec() == 0);
+
+        // Retire/reschedule BEFORE firing.  handle_timeout can re-enter
+        // handle_events() (e.g. via update()), and the nested expire_timers()
+        // would otherwise still see this timer as due and fire it again --
+        // unbounded recursion.  A one-shot is removed; an interval timer is
+        // pushed to its next expiry (so the reentrant pass sees it in the
+        // future).
+        if (oneshot) {
+            timers_.erase(timers_.begin() + idx);
+        } else {
+            timers_[idx].expire = now + interval;
+        }
 
         int rc = eh->handle_timeout(now, arg);
         fired++;
 
-        // Re-find: handle_timeout may have cancelled/rescheduled.
-        idx = -1;
-        for (size_t i = 0; i < timers_.size(); i++) {
-            if (timers_[i].id == id) { idx = (int)i; break; }
-        }
-        if (idx < 0) continue;
-        if (rc < 0 || (interval.sec() == 0 && interval.usec() == 0)) {
-            timers_.erase(timers_.begin() + idx);
-        } else {
-            timers_[idx].expire = now + interval;
+        // An interval timer whose handler asked to stop (rc < 0) is cancelled
+        // now (re-find: the callback may already have removed it).
+        if (!oneshot && rc < 0) {
+            for (size_t i = 0; i < timers_.size(); i++) {
+                if (timers_[i].id == id) { timers_.erase(timers_.begin() + i); break; }
+            }
         }
     }
     return fired;
@@ -248,7 +257,13 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
         timeval nowtv;
         gettimeofday(&nowtv, 0);
         ACE_Time_Value wait = timer_at - ACE_Time_Value(nowtv);
-        if (wait.sec() < 0) wait.set(0, 0);
+        // Clamp any non-positive wait to zero.  A timer that's already due (or
+        // fired a few usec late) gives wait <= 0, often as (sec=0, usec<0) -- a
+        // negative tv_usec makes select() fail with EINVAL, which would drop the
+        // overdue timer.  `<= zero` catches the (0, usec<0) case that a plain
+        // `sec() < 0` test misses; a 0 timeout makes select() return at once so
+        // expire_timers() runs.
+        if (wait <= ACE_Time_Value::zero) wait.set(0, 0);
         tvbuf = (timeval)wait;
         tvp = &tvbuf;
     }
