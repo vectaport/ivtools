@@ -23,10 +23,16 @@
 #define XIncDir @x_includes@
 #define XLibDir @x_libraries@
 
+/* ACE-lite (#147): AceEnabled is the imake-time "networking is available" flag
+   (it gates the ACE/distributed object builds in DrawServ etc.).  Networking is
+   always available now -- the in-tree ACE-lite subset by default, or external
+   libACE -- so define it unconditionally, the imake-layer mirror of HAVE_ACE
+   always being defined at compile time.  AceDir/AceLibDir stay external-only
+   (they carry the path to a real libACE). */
+#define AceEnabled
 #if @ACE_ENABLED@
 #define AceDir @ACE@
 #define AceLibDir @ACE_LIBS@
-#define AceEnabled
 #endif
 
 #if @CLIPPOLY_ENABLED@
