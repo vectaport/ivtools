@@ -5,6 +5,7 @@ XCOMM
 PACKAGE = include_ivtools
 
 SUBDIRS = \
+	ACE-lite \
 	Dispatch \
 	IV-3_1 \
 	IV-2_6 \

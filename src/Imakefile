@@ -25,6 +25,7 @@ SUBDIRS = \
 	TopoFace \
 	Time \
 	ComTerp \
+	ACE-lite \
 	comtest \
 	comterp_ \
 	\
