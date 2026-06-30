@@ -1,0 +1,100 @@
+// src/comterp_/tests/updown.comt -- bring a `comterp server` UP, round-trip
+// expressions over a real TCP socket with remote(), bring it DOWN.  This is the
+// comterp-level analog of the drawserv/drawmo updown test, but with NO
+// comterp_listen/shebang orchestration layer: it runs under `comterp run` (via
+// run_all.comt) and manages the child server inline with shell() + socket() +
+// remote() + usleep().  It exercises the networking path end to end -- "the
+// command language is the wire protocol" -- over whichever ACE backend is built
+// (external libACE, or the in-tree ACE-lite, issue #147).
+//
+// funcs: shell()  socket()  remote()  remote(:nowait)  close()  usleep()  type()
+
+// lsof present?  (used to pick a free port and to wait for LISTEN / force-kill)
+have_lsof=shell("which lsof > /dev/null 2>&1")==0
+
+// pick a free-ish port at/above `base', stepping up past any already in use
+pick_port=func(
+  p=base;
+  if(have_lsof :then
+    while(shell(print("lsof -i :%d > /dev/null 2>&1" p :str))==0 p=p+1));
+  p)
+
+// FAIL-path cleanup: kill whatever holds a port
+kill_port=func(
+  if(have_lsof :then shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" kp_port :str))))
+
+// launch `comterp server PORT' in the background and wait until it is listening,
+// then connect.  returns the connected socket, or nil on timeout.
+server_up=func(
+  shell(print("comterp server %d </dev/null > /dev/null 2>&1 &" su_port :str));
+  if(have_lsof :then
+    cnt=0;
+    while(cnt<40 && shell(print("lsof -iTCP:%d -sTCP:LISTEN > /dev/null 2>&1" su_port :str))!=0
+      usleep(250000);cnt++)
+  :else
+    usleep(1000000));
+  s=socket("127.0.0.1" su_port);
+  if(type(s)==`UnknownType :then nil :else s))
+
+// tell a server to exit and close our end of the socket
+server_down=func(
+  remote(sd_sock "exit" :nowait);
+  close(sd_sock))
+
+// --- updown: server up, one wire round-trip, server down ---
+updown_test=func(
+  port=pick_port(:base 22001);
+  sock=server_up(:su_port port);
+  if(sock==nil :then
+    print("updown: FAIL server never listened on %d\n" port :err);
+    kill_port(:kp_port port);
+    return(false));
+  r=remote(sock "111+222");
+  ok=(r==333);
+  print("updown: remote(sock \"111+222\")==333 -> %v (got %v)\n" ok r :err);
+  server_down(:sd_sock sock);
+  ok)
+
+// --- updown1: several round-trips, checking expression evaluation over the wire ---
+updown1_test=func(
+  port=pick_port(:base 22101);
+  sock=server_up(:su_port port);
+  if(sock==nil :then
+    print("updown1: FAIL server never listened on %d\n" port :err);
+    kill_port(:kp_port port);
+    return(false));
+  ok=true;
+  r1=remote(sock "2+3*4");      ok=ok&&(r1==14);
+  print("updown1: remote(\"2+3*4\")==14 -> %v (got %v)\n" r1==14 r1 :err);
+  r2=remote(sock "(2+3)*4");    ok=ok&&(r2==20);
+  print("updown1: remote(\"(2+3)*4\")==20 -> %v (got %v)\n" r2==20 r2 :err);
+  server_down(:sd_sock sock);
+  ok)
+
+// --- updown2: two servers up at once, independent round-trips, both down ---
+updown2_test=func(
+  pa=pick_port(:base 22201);
+  sa=server_up(:su_port pa);
+  pb=pick_port(:base pa+1);
+  sb=server_up(:su_port pb);
+  if(sa==nil || sb==nil :then
+    print("updown2: FAIL could not bring up both servers\n" :err);
+    if(sa!=nil :then server_down(:sd_sock sa));
+    if(sb!=nil :then server_down(:sd_sock sb));
+    kill_port(:kp_port pa);kill_port(:kp_port pb);
+    return(false));
+  ra=remote(sa "100+1");
+  rb=remote(sb "200+2");
+  ok=(ra==101)&&(rb==202);
+  print("updown2: A \"100+1\"==101 -> %v ; B \"200+2\"==202 -> %v\n" ra==101 rb==202 :err);
+  server_down(:sd_sock sa);
+  server_down(:sd_sock sb);
+  ok)
+
+ok=true
+if(updown_test(:dummy 0) :then print("updown: pass\n") :else print("updown: FAIL\n");ok=false)
+if(updown1_test(:dummy 0) :then print("updown1: pass\n") :else print("updown1: FAIL\n");ok=false)
+if(updown2_test(:dummy 0) :then print("updown2: pass\n") :else print("updown2: FAIL\n");ok=false)
+
+print("updown: %v\n" ok)
+ok
