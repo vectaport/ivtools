@@ -61,6 +61,23 @@ public:
     ACE_Reactor* reactor_for_reentry_;
 };
 
+// Registered for READ+WRITE; returns -1 on input (asks to retire).  Its
+// handle_output must NOT fire in the same cycle once it has retired.
+class RWHandler : public ACE_Event_Handler {
+public:
+    RWHandler(ACE_HANDLE fd) : fd_(fd), outputs_(0) {}
+    virtual ACE_HANDLE get_handle() const { return fd_; }
+    virtual int handle_input(ACE_HANDLE) {
+        char b[16];
+        ssize_t n = ::read(fd_, b, sizeof(b));
+        (void)n;
+        return -1;             // retire me
+    }
+    virtual int handle_output(ACE_HANDLE) { outputs_++; return 0; }
+    ACE_HANDLE fd_;
+    int outputs_;
+};
+
 int main() {
     ACE_Reactor reactor;
 
@@ -121,6 +138,24 @@ int main() {
     ACE_Time_Value w7(1, 0);
     reactor.handle_events(&w7);
     check(th3.fires_ == 1, "reentrant handle_events inside a callback is safe");
+
+    // --- a -1 from handle_input must exclude the fd from same-cycle output ---
+    int sv2[2];
+    socketpair(AF_UNIX, SOCK_STREAM, 0, sv2);
+    RWHandler rw(sv2[0]);
+    reactor.register_handler(sv2[0], &rw,
+                             ACE_Event_Handler::READ_MASK | ACE_Event_Handler::WRITE_MASK);
+    write(sv2[1], "x", 1);     // read-ready; the socket is also write-ready
+    ACE_Time_Value w8(1, 0);
+    reactor.handle_events(&w8);
+    check(rw.outputs_ == 0,
+          "handle_input -1 excludes the fd from handle_output in the same cycle");
+    // And it is fully retired: another turn produces no further output.
+    ACE_Time_Value w9(0, 1000);
+    reactor.handle_events(&w9);
+    check(rw.outputs_ == 0, "retired fd stays out of write dispatch");
+    close(sv2[0]);
+    close(sv2[1]);
 
     printf("\nreactor_loop: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;

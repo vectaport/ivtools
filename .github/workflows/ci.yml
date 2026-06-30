@@ -55,7 +55,7 @@ jobs:
       - name: Test - ACE-lite standalone units
         run: |
           set -e
-          for t in sock_loopback reactor_loop acceptor_spawn; do
+          for t in sock_loopback reactor_loop acceptor_spawn log_fmt; do
             echo "=== ACE-lite: $t ==="
             g++ -std=c++14 -Wall -I src -I src/include \
               src/ACE-lite/reactor.c src/ACE-lite/event_handler.c \

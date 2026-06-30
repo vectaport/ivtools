@@ -20,6 +20,7 @@
 #include <sys/select.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <set>
 #include <vector>
 
 ACE_Reactor::ACE_Reactor() : next_timer_id_(1) {}
@@ -226,7 +227,11 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
     }
 
     int dispatched = 0;
-    std::vector<ACE_HANDLE> to_retire;
+    // Once a handler returns -1 in any of read/write/except, it is retiring:
+    // exclude it from the remaining masks this same cycle (ACE removes a
+    // handler on the first -1; calling its other hooks afterward -- on an
+    // object about to be torn down -- is wrong), and retire each fd once.
+    std::set<ACE_HANDLE> retiring;
 
     if (nready > 0) {
         // Snapshot ready fds, then dispatch re-verifying registration each
@@ -243,30 +248,34 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
             if (FD_ISSET(it->first, &eset)) efds.push_back(it->first);
 
         for (size_t i = 0; i < rfds.size(); i++) {
+            if (retiring.count(rfds[i])) continue;
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.find(rfds[i]);
             if (it == read_.end()) continue;  // removed mid-dispatch
             int rc = it->second->handle_input(rfds[i]);
             dispatched++;
-            if (rc < 0) to_retire.push_back(rfds[i]);
+            if (rc < 0) retiring.insert(rfds[i]);
         }
         for (size_t i = 0; i < wfds.size(); i++) {
+            if (retiring.count(wfds[i])) continue;  // already retiring from read
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = write_.find(wfds[i]);
             if (it == write_.end()) continue;
             int rc = it->second->handle_output(wfds[i]);
             dispatched++;
-            if (rc < 0) to_retire.push_back(wfds[i]);
+            if (rc < 0) retiring.insert(wfds[i]);
         }
         for (size_t i = 0; i < efds.size(); i++) {
+            if (retiring.count(efds[i])) continue;
             std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = except_.find(efds[i]);
             if (it == except_.end()) continue;
             int rc = it->second->handle_exception(efds[i]);
             dispatched++;
-            if (rc < 0) to_retire.push_back(efds[i]);
+            if (rc < 0) retiring.insert(efds[i]);
         }
     }
 
-    for (size_t i = 0; i < to_retire.size(); i++) {
-        retire(to_retire[i], ACE_Event_Handler::RWE_MASK);
+    for (std::set<ACE_HANDLE>::iterator it = retiring.begin();
+         it != retiring.end(); ++it) {
+        retire(*it, ACE_Event_Handler::RWE_MASK);
     }
 
     dispatched += expire_timers();
