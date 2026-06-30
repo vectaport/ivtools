@@ -46,7 +46,12 @@
 #define ToolIncludeDir /usr/include
 #endif
 
+/* ACE-lite (#147): only override the link for the external libACE backend.
+   In-tree (no AceLibDir) this must fall through to params.def's $(LIBACE_LITE)
+   -- gate it like the -isystem AceCCIncludes override below. */
+#ifdef AceLibDir
 #define AceCCLdLibs $(ACELIBDIR)/libACE.dylib
+#endif
 
 /* link libraries for the above.  No explicit -lstdc++: the g++ driver is clang
    on macOS and links libc++ automatically, so listing it just produced

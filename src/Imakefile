@@ -10,11 +10,9 @@ PACKAGE = src_ivtools
 #define ivxt_name /**/
 #endif
 
-#ifdef AceDir
+/* ACE-lite (#147): AceDispatch (the ACE<->Dispatcher bridge) builds for either
+   backend now, not just external libACE. */
 ACEDISPATCH = AceDispatch
-#else
-ACEDISPATCH =
-#endif
 
 SUBDIRS = \
 	IV-common \
