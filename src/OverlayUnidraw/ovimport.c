@@ -1746,9 +1746,9 @@ int PPM_Helper::bytes_per_pixel() {
 
 int PortableImageHelper::read_ascii_component( FILE* file ) {
     int v;
-    if (fscanf(file, "%d", &v) != 1) {
-        v = 0;                            // black on a truncated/malformed stream
-        if (!_truncated) {
+    if (fscanf(file, "%d", &v) != 1 || v < 0) {   // a pixel component is never
+        v = 0;                            // negative -- treat one as malformed;
+        if (!_truncated) {                // black on a truncated/malformed stream
             fprintf(stderr, "ovimport: truncated or malformed ASCII pixel data; "
                             "substituting black\n");
             _truncated = true;
@@ -1827,7 +1827,9 @@ const char* PGM_Helper::magic() {
 void PGM_Helper::read_poke(
     OverlayRaster* raster, FILE* file, u_long x, u_long y
 ) {
-    int gray;   // match read_ascii_component()/getc() return type (no implicit unsigned wrap)
+    unsigned int gray;   // graypoke() is overloaded (unsigned int/long/float/...),
+                         // so `int' would make the call ambiguous.  read_ascii_component()
+                         // clamps negatives to 0 at the source, so nothing wraps here.
     if (is_ascii()) {
         gray = read_ascii_component(file);
 #if 0
