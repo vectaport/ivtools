@@ -79,9 +79,22 @@ boolean MatchEditor::HandleChar (char c) {
         strncpy(buf, text->Text(), length);
         while (length > 0) {
             buf[length] = '\0';
+            /* `pattern' is an internally-built scanf MATCH template: every
+               conversion is suppressed (see Match() above -- it inserts `*'
+               before each `%', and appends "%*c"), so there are deliberately no
+               assigning arguments.  It is a legitimately dynamic format, not a
+               user-supplied one, so -Wformat-security's injection concern does
+               not apply; silence it locally rather than break the match. */
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-security"
+#endif
             if (sscanf(buf, pattern) == EOF) {
                 break;
             }
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
             --length;
         }
         if (length != text->Length()) {

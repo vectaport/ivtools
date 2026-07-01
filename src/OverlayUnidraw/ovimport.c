@@ -2058,7 +2058,7 @@ const char* OvImportCmd::Create_Tiled_File(
         return "error opening the output file";
     }
 
-    fprintf(outfile, pih->magic());
+    fprintf(outfile, "%s", pih->magic());
     // insert a comment to include the tile size
     fprintf(outfile,"# tile %d %d\n", twidth, theight);
     fprintf(outfile,"%d %d\n", width, height);

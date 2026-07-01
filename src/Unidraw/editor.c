@@ -41,6 +41,13 @@
 #include <InterViews/window.h>
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xevent.h>
+/* XkbKeycodeToKeysym (replaces deprecated XKeycodeToKeysym).  Bracket the XKB
+   header with Xdefs/Xundefs exactly as IV-X11/Xlib.h does for <X11/Xlib.h>, so
+   its Display parameter resolves to X11's XDisplay -- the type of the raw
+   handle we pass -- rather than InterViews' own Display class (ivDisplay). */
+#include <IV-X11/Xdefs.h>
+#include <X11/XKBlib.h>
+#include <IV-X11/Xundefs.h>
 #include <OS/list.h>
 #include <string.h>
 
@@ -124,8 +131,8 @@ void Editor::keystroke(const Event& e) {
 	buf[n] = '\0';
 	GetKeyMap()->Execute(buf);
     } else if (e.rep()->xevent_.type == KeyPress) {
-      KeySym ks = XKeycodeToKeysym(e.rep()->display_->rep()->display_,
-				   e.rep()->xevent_.xkey.keycode, 0);
+      KeySym ks = XkbKeycodeToKeysym(e.rep()->display_->rep()->display_,
+				     e.rep()->xevent_.xkey.keycode, 0, 0);
       if (ks) {
 	strncpy(buf, (const char*)&ks, 2);
 	n = 2;

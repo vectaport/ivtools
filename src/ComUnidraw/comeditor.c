@@ -359,5 +359,5 @@ void ComEditor::stdio_prompt(UnidrawComterpHandler* handler) {
   if (handler!=NULL) 
     (*handler->comterp()->outfunc()) (get_command_prompt(), nil);
   else
-    fprintf(stdout, get_command_prompt());
+    fprintf(stdout, "%s", get_command_prompt());
 }
