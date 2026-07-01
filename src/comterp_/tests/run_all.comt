@@ -77,5 +77,11 @@ if(run("./funcarg.comt")
   :then print("pass: funcarg\n")
   :else print("FAIL: funcarg\n");topok=false)
 
+// networking: remote() round-trip over a real socket to a `comterp server`
+// child (launches/tears down its own servers; needs comterp on PATH)
+if(run("./updown.comt")
+  :then print("pass: updown\n")
+  :else print("FAIL: updown\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

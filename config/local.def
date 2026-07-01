@@ -127,11 +127,11 @@ libvar(LIBGLYPHTERP,IVTOOLSSRC,GlyphTerp,libGlyphTerp,-lGlyphTerp)
 libvar(LIBUNIIDRAW,IVTOOLSSRC,UniIdraw,libUniIdraw,-lUniIdraw)
 libvar(LIBTOPOFACE,IVTOOLSSRC,TopoFace,libTopoFace,-lTopoFace)
 libvar(LIBOVERLAYUNIDRAW,IVTOOLSSRC,OverlayUnidraw,libOverlayUnidraw,-lOverlayUnidraw)
-#ifdef AceLibDir
+/* ACE-lite (#147): libAceDispatch is the ACE<->Dispatcher bridge for *either*
+   backend, so it is always linked now (was external-libACE-only).  libACE-lite
+   is the bundled ACE subset, linked in-tree via $(ACE_CCLDLIBS). */
 libvar(LIBACEDISPATCH,IVTOOLSSRC,AceDispatch,libAceDispatch,-lAceDispatch)
-#else
-  LIBACEDISPATCH =
-#endif
+libvar(LIBACE_LITE,IVTOOLSSRC,ACE-lite,libACE-lite,-lACE-lite)
 libvar(LIBCOMUNIDRAW,IVTOOLSSRC,ComUnidraw,libComUnidraw,-lComUnidraw)
 libvar(LIBFRAMEUNIDRAW,IVTOOLSSRC,FrameUnidraw,libFrameUnidraw,-lFrameUnidraw)
 libvar(LIBGRAPHUNIDRAW,IVTOOLSSRC,GraphUnidraw,libGraphUnidraw,-lGraphUnidraw)
@@ -153,11 +153,8 @@ depvar(DEPGLYPHTERP,IVTOOLSSRC,GlyphTerp,libGlyphTerp,$(VERSION))
 depvar(DEPUNIIDRAW,IVTOOLSSRC,UniIdraw,libUniIdraw,$(VERSION))
 depvar(DEPTOPOFACE,IVTOOLSSRC,TopoFace,libTopoFace,$(VERSION))
 depvar(DEPOVERLAYUNIDRAW,IVTOOLSSRC,OverlayUnidraw,libOverlayUnidraw,$(VERSION))
-#ifdef AceLibDir
 depvar(DEPACEDISPATCH,IVTOOLSSRC,AceDispatch,libAceDispatch,$(VERSION))
-#else
-    DEPACEDISPATCH =
-#endif
+depvar(DEPACE_LITE,IVTOOLSSRC,ACE-lite,libACE-lite,$(VERSION))
 depvar(DEPCOMUNIDRAW,IVTOOLSSRC,ComUnidraw,libComUnidraw,$(VERSION))
 depvar(DEPFRAMEUNIDRAW,IVTOOLSSRC,FrameUnidraw,libFrameUnidraw,$(VERSION))
 depvar(DEPGRAPHUNIDRAW,IVTOOLSSRC,GraphUnidraw,libGraphUnidraw,$(VERSION))

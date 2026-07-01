@@ -37,10 +37,9 @@ Obj26(plotfunc)
 Obj26(soundfunc)
 Obj26(unifunc)
 
-#ifdef AceDir
+/* ACE-lite (#147): built for either backend now (was external-libACE-only). */
 #define ObjACE(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
 ObjACE(comterp-acehandler)
-#endif
 
 #define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))
 
