@@ -45,7 +45,18 @@ jobs:
             build-essential autoconf \
             xutils-dev libx11-dev libxext-dev \
             uuid-dev libace-dev \
-            xvfb lsof groff gdb netcat-openbsd
+            xvfb lsof groff gdb netcat-openbsd \
+            xfonts-75dpi xfonts-100dpi xfonts-scalable
+          # The Unidraw editors (idraw/comdraw/drawserv) load X11 core fonts by
+          # XLFD -- e.g. "-*-courier-medium-r-normal-*-8-..." (main.c), pinned to
+          # exact pixel sizes 8/10/12/14, which are the 75dpi adobe bitmaps. A
+          # bare Debian/CI image ships none of these (ivtools-bin itself declares
+          # no font dependency -- it relied on the desktop pulling them in), so
+          # Catalog::FindFont's "substituting fixed font" fallback fired for every
+          # font and the editors ran with only "fixed". xfonts-75dpi provides the
+          # sizes idraw asks for; -100dpi and -scalable round out the set. They
+          # register under /etc/X11/fontpath.d, which the xvfb-run'd server (started
+          # after this step) picks up via its default catalogue -- no -fp needed.
 
       # ACE-lite (issue #147) standalone unit tests: self-contained g++ builds of
       # the in-tree ACE subset (value/socket types, the select reactor, and the
@@ -157,6 +168,16 @@ jobs:
           # never return; -runexpr "...;exit" runs the suite then exits cleanly.
           xvfb-run -a comdraw -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi
+          # Fonts must actually resolve now that xfonts-75dpi et al. are installed:
+          # comdraw builds its font menu at editor startup, and a missing core font
+          # makes Catalog::FindFont fall back to "fixed" with this exact warning.
+          # Its presence means the xfonts packages aren't on the X server's font
+          # path -- fail loudly rather than silently run on "fixed" again.
+          if grep -q 'substituting fixed font' run.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run.log
+            exit 1
+          fi
 
       # drawserv startup smoke: with the UAF fixed, drawserv must build, map under
       # X, and run an expression without the seed-update crash. This is a single
@@ -169,6 +190,14 @@ jobs:
           set -o pipefail
           xvfb-run -a drawserv -stdin_off -runexpr 'print("DRAWSERV-ALIVE\n");exit' 2>&1 | tee ds.log
           grep -q 'DRAWSERV-ALIVE' ds.log || { echo "drawserv failed to start"; exit 1; }
+          # Same core-font regression guard as the comdraw step: drawserv builds
+          # the same font menus at startup, so a missing core font surfaces here
+          # too -- don't let it slip past just because comdraw happened to pass.
+          if grep -q 'substituting fixed font' ds.log; then
+            echo "FAIL: drawserv fell back to the fixed font -- xfonts missing from the X font path"
+            grep 'substituting fixed font' ds.log
+            exit 1
+          fi
 
       # Full drawmo distributed suite -- now runs headless under xvfb and BLOCKS.
       # It was thought to need real X, but the real blocker was networking, not the
@@ -194,6 +223,14 @@ jobs:
           rc=${PIPESTATUS[0]}
           if [ "$rc" -ne 0 ] || grep -q ': FAIL' drawmo.log; then
             echo "drawmo suite FAILED (rc=$rc)"; exit 1
+          fi
+          # Core-font regression guard (see the comdraw step): the drawserv
+          # instances drawmo spawns tee their stderr into drawmo.log, so a font
+          # fallback shows up here as well -- fail rather than run on "fixed".
+          if grep -q 'substituting fixed font' drawmo.log; then
+            echo "drawmo suite FAILED: a core font fell back to fixed -- xfonts missing from the X font path"
+            grep 'substituting fixed font' drawmo.log
+            exit 1
           fi
 
       - name: Upload build log
