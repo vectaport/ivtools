@@ -190,6 +190,14 @@ jobs:
           set -o pipefail
           xvfb-run -a drawserv -stdin_off -runexpr 'print("DRAWSERV-ALIVE\n");exit' 2>&1 | tee ds.log
           grep -q 'DRAWSERV-ALIVE' ds.log || { echo "drawserv failed to start"; exit 1; }
+          # Same core-font regression guard as the comdraw step: drawserv builds
+          # the same font menus at startup, so a missing core font surfaces here
+          # too -- don't let it slip past just because comdraw happened to pass.
+          if grep -q 'substituting fixed font' ds.log; then
+            echo "FAIL: drawserv fell back to the fixed font -- xfonts missing from the X font path"
+            grep 'substituting fixed font' ds.log
+            exit 1
+          fi
 
       # Full drawmo distributed suite -- now runs headless under xvfb and BLOCKS.
       # It was thought to need real X, but the real blocker was networking, not the
@@ -215,6 +223,14 @@ jobs:
           rc=${PIPESTATUS[0]}
           if [ "$rc" -ne 0 ] || grep -q ': FAIL' drawmo.log; then
             echo "drawmo suite FAILED (rc=$rc)"; exit 1
+          fi
+          # Core-font regression guard (see the comdraw step): the drawserv
+          # instances drawmo spawns tee their stderr into drawmo.log, so a font
+          # fallback shows up here as well -- fail rather than run on "fixed".
+          if grep -q 'substituting fixed font' drawmo.log; then
+            echo "drawmo suite FAILED: a core font fell back to fixed -- xfonts missing from the X font path"
+            grep 'substituting fixed font' drawmo.log
+            exit 1
           fi
 
       - name: Upload build log
