@@ -1,0 +1,45 @@
+ACE-lite -- attribution and relationship to ACE
+================================================
+
+ACE-lite (in src/ACE-lite/ and src/include/ACE-lite/, ivtools issue #147) is an
+independent, clean-room reimplementation of a small subset of the *interface* of
+ACE (the ADAPTIVE Communication Environment): the Reactor / Socket / Acceptor /
+Service-Handler classes that ivtools actually uses. It is written from scratch
+for ivtools and contains no ACE source code -- it is layered over the existing
+InterViews Dispatcher select loop and POSIX sockets.
+
+It deliberately declares the same public names and signatures ACE uses (the
+ACE_* classes and methods) for one reason only: so ivtools' existing consumer
+source compiles unchanged against either backend. ivtools selects ACE-lite by
+default and the real ACE when built with --with-ace=<path> (which sets
+-DEXTERN_ACE so the consumer headers include <ace/...> instead of <ACE-lite/...>).
+
+
+Acknowledgment of ACE
+---------------------
+
+ACE is the work of Douglas C. Schmidt and his research group at Washington
+University, the University of California Irvine, and Vanderbilt University,
+Copyright (c) 1993-2018. ACE is open-source software; its full copyright and
+licensing terms are at:
+
+    https://www.dre.vanderbilt.edu/~schmidt/ACE-copying.html
+
+We gratefully acknowledge that body of work, whose published interface ACE-lite
+reimplements.
+
+
+What ACE-lite is NOT
+--------------------
+
+  * ACE-lite is NOT ACE, and is NOT derived from ACE source code.
+  * ACE-lite is NOT affiliated with, sponsored by, or endorsed by Douglas C.
+    Schmidt, the DOC group, or Washington University / UC Irvine / Vanderbilt
+    University. Those names are used here only to credit the authors of ACE, not
+    to endorse or promote ACE-lite.
+  * "ACE", "TAO", etc. are the marks of the DOC group; ACE-lite does not claim
+    them. The name "ACE-lite" and the ACE_* identifiers denote source-level
+    compatibility with the ACE interface, nothing more.
+
+We make no claim of authorship over ACE and intend nothing here to impede ACE's
+free distribution.

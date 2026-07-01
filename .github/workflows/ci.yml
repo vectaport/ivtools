@@ -47,6 +47,23 @@ jobs:
             uuid-dev libace-dev \
             xvfb lsof groff gdb netcat-openbsd
 
+      # ACE-lite (issue #147) standalone unit tests: self-contained g++ builds of
+      # the in-tree ACE subset (value/socket types, the select reactor, and the
+      # acceptor/svc_handler accept-and-spawn + EOF lifecycle), independent of the
+      # imake tree build and of libACE. A fast gate that runs before the heavy
+      # build; each test program exits nonzero on failure, so `set -e` fails here.
+      - name: Test - ACE-lite standalone units
+        run: |
+          set -e
+          for t in sock_loopback reactor_loop acceptor_spawn log_fmt; do
+            echo "=== ACE-lite: $t ==="
+            g++ -std=c++14 -Wall -I src -I src/include \
+              src/ACE-lite/reactor.c src/ACE-lite/event_handler.c \
+              src/ACE-lite/sock.c src/ACE-lite/log_msg.c \
+              "src/ACE-lite/tests/$t.cc" -o "$RUNNER_TEMP/acelite_$t"
+            "$RUNNER_TEMP/acelite_$t"
+          done
+
       - name: Generate ./configure
         run: autoreconf -i
 
