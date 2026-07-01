@@ -79,9 +79,11 @@ updown2_test=func(
   sb=server_up(:su_port pb);
   if(sa==nil || sb==nil :then
     print("updown2: FAIL could not bring up both servers\n" :err);
-    if(sa!=nil :then server_down(:sd_sock sa));
-    if(sb!=nil :then server_down(:sd_sock sb));
-    kill_port(:kp_port pa);kill_port(:kp_port pb);
+    // for each server: shut it down gracefully if it came up, else force-kill
+    // whatever holds its port -- never both (a kill after a graceful exit is
+    // redundant and could hit an unrelated process that reused the port).
+    if(sa!=nil :then server_down(:sd_sock sa) :else kill_port(:kp_port pa));
+    if(sb!=nil :then server_down(:sd_sock sb) :else kill_port(:kp_port pb));
     return(false));
   ra=remote(sa "100+1");
   rb=remote(sb "200+2");
