@@ -1744,13 +1744,26 @@ int PPM_Helper::bytes_per_pixel() {
     return 3;
 }
 
+int PortableImageHelper::read_ascii_component( FILE* file ) {
+    int v;
+    if (fscanf(file, "%d", &v) != 1) {
+        v = 0;                            // black on a truncated/malformed stream
+        if (!_truncated) {
+            fprintf(stderr, "ovimport: truncated or malformed ASCII pixel data; "
+                            "substituting black\n");
+            _truncated = true;
+        }
+    }
+    return v;
+}
+
 void PPM_Helper::read_write_pixel( FILE* infile, FILE* outfile ) {
     int red, green, blue;
-    if (is_ascii()) fscanf(infile, "%d", &red); else red = getc(infile);
+    if (is_ascii()) red = read_ascii_component(infile); else red = getc(infile);
     putc(red, outfile);
-    if (is_ascii()) fscanf(infile, "%d", &green); else green = getc(infile);
+    if (is_ascii()) green = read_ascii_component(infile); else green = getc(infile);
     putc(green, outfile);
-    if (is_ascii()) fscanf(infile, "%d", &blue); else blue = getc(infile);
+    if (is_ascii()) blue = read_ascii_component(infile); else blue = getc(infile);
     putc(blue, outfile);
 }
 
@@ -1762,10 +1775,10 @@ void PPM_Helper::read_poke(
     OverlayRaster* raster, FILE* file, u_long x, u_long y
 ) {
     int red, green, blue;
-    if (is_ascii()) { 
-      fscanf(file, "%d", &red); 
-      fscanf(file, "%d", &green); 
-      fscanf(file, "%d", &blue);  
+    if (is_ascii()) {
+      red = read_ascii_component(file);
+      green = read_ascii_component(file);
+      blue = read_ascii_component(file);
       raster->poke( x, y,
 		   float(red)/0xffff, float(green)/0xffff, float(blue)/0xffff, 
 		   1.0 );
@@ -1801,7 +1814,7 @@ int PGM_Helper::bytes_per_pixel() {
 void PGM_Helper::read_write_pixel( FILE* infile, FILE* outfile ) {
     int gray;
     if (is_ascii())
-        fscanf(infile, "%d", &gray);
+        gray = read_ascii_component(infile);
     else
         gray = getc(infile);
     putc(gray, outfile);
@@ -1816,7 +1829,7 @@ void PGM_Helper::read_poke(
 ) {
     unsigned int gray;
     if (is_ascii()) {
-        fscanf(file, "%d", &gray);
+        gray = read_ascii_component(file);
 #if 0
 	if (maxval()==65535) 
 	  gray = gray >> 8;
@@ -2157,7 +2170,7 @@ FILE* OvImportCmd::Portable_Raster_Open(
 
     if (file != nil) {
         char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, file);
+	if (!fgets(buffer, BUFSIZ, file)) { closef(file, compressed); return nil; }
 
         int is_ppm = (!strcmp("P6\n", buffer) || !strcmp("P3\n", buffer));
         int is_pgm = !strcmp("P5\n", buffer) || !strcmp("P2\n", buffer);
@@ -2177,7 +2190,7 @@ FILE* OvImportCmd::Portable_Raster_Open(
 	      : (PortableImageHelper*) new PPM_Helper(is_ascii);
 
 
-	fgets(buffer, BUFSIZ, file);                  // check for tiled file
+	if (!fgets(buffer, BUFSIZ, file)) { closef(file, compressed); return nil; }  // check for tiled file
         if (!strncmp(buffer, "# tile", 6)) {
             tiled = true;
 	    int check = sscanf(buffer+7, "%d %d", &twidth, &theight);
@@ -2188,15 +2201,15 @@ FILE* OvImportCmd::Portable_Raster_Open(
         }
 
         while (buffer[0] == '#') {               // CREATOR and other comments
-	    fgets(buffer, BUFSIZ, file);                
+	    if (!fgets(buffer, BUFSIZ, file)) { closef(file, compressed); return nil; }
 	}
 
         if (sscanf(buffer, "%d %d", &ncols, &nrows)==1) {
-            fgets(buffer, BUFSIZ, file);
+            if (!fgets(buffer, BUFSIZ, file)) { closef(file, compressed); return nil; }
             sscanf(buffer, "%d", &nrows);
         }
 
-        fgets(buffer, BUFSIZ, file);                 
+        if (!fgets(buffer, BUFSIZ, file)) { closef(file, compressed); return nil; }
         int maxval;
         sscanf(buffer, "%d", &maxval);
         if (maxval != 255 && maxval != 65535) {
@@ -2457,7 +2470,10 @@ int OvImportCmd::Pipe_Filter (istream& in, const char* filter)
     while (!in.eof() && in.good()) {
       in.read(buffer, BUFSIZ);
       if (!in.eof() || in.gcount())
-	write(pipe1[1], buffer, in.gcount());
+	if (write(pipe1[1], buffer, in.gcount()) == -1) {
+	  cerr << "error in child writing to filter pipe\n";
+	  break;
+	}
     }
     if(close(pipe1[1])==-1)
       cerr << "error in child closing its output pipe\n";
@@ -2548,23 +2564,32 @@ Bitmap* OvImportCmd::PBM_Bitmap (const char* pathname) {
 
     if (file != nil) {
         char buffer[BUFSIZ];
-	fgets(buffer, BUFSIZ, file);
+	if (!fgets(buffer, BUFSIZ, file)) {
+	    if (compressed) pclose(file); else fclose(file);
+	    return nil;
+	}
 
-	if (strcmp("P4\n", buffer) != 0 && 
+	if (strcmp("P4\n", buffer) != 0 &&
 	    strcmp("P1\n", buffer) != 0) {              // magic number
-	    if (compressed) 
-		pclose(file); 
-	    else 
+	    if (compressed)
+		pclose(file);
+	    else
 		fclose(file);
 	    return nil;
 	}
 	boolean asciiflag = strcmp("P1\n", buffer)==0;
 	do {                                            // CREATOR and other comments
-	    fgets(buffer, BUFSIZ, file);                
+	    if (!fgets(buffer, BUFSIZ, file)) {          // stop at EOF, don't spin
+		if (compressed) pclose(file); else fclose(file);
+		return nil;
+	    }
 	} while (buffer[0] == '#');
 	int nrows, ncols;
         if (sscanf(buffer, "%d %d", &ncols, &nrows)==1) {
-          fgets(buffer, BUFSIZ, file);
+          if (!fgets(buffer, BUFSIZ, file)) {
+	      if (compressed) pclose(file); else fclose(file);
+	      return nil;
+	  }
           sscanf(buffer, "%d", &nrows);
         }
         void* nilpointer = nil;
