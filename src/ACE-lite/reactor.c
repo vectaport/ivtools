@@ -67,7 +67,7 @@ int ACE_Reactor::register_handler(ACE_Event_Handler* eh,
 
 int ACE_Reactor::register_handler(ACE_HANDLE handle, ACE_Event_Handler* eh,
                                   ACE_Reactor_Mask mask) {
-    if (handle == ACE_INVALID_HANDLE) return -1;
+    if (handle == ACE_INVALID_HANDLE || eh == 0) return -1;  // never bind a null
     bind(handle, eh, mask);
     return 0;
 }

@@ -205,6 +205,20 @@ int main() {
     check(budget < ACE_Time_Value(0, 20000),
           "handle_events(ACE_Time_Value&) decrements the remaining-time budget");
 
+    // --- 3-arg register_handler rejects a null handler (no null in the table,
+    //     so the next dispatch on that fd can't deref null) ---
+    int sv4[2];
+    socketpair(AF_UNIX, SOCK_STREAM, 0, sv4);
+    check(reactor.register_handler(sv4[0], (ACE_Event_Handler*)0,
+                                   ACE_Event_Handler::READ_MASK) == -1,
+          "register_handler(fd, null, mask) is rejected");
+    write(sv4[1], "x", 1);
+    ACE_Time_Value w_nn(0, 1000);
+    reactor.handle_events(&w_nn);   // must not crash: no null was bound
+    check(1, "dispatch after a rejected null registration doesn't crash");
+    close(sv4[0]);
+    close(sv4[1]);
+
     printf("\nreactor_loop: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;
 }
