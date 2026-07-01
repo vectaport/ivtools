@@ -926,11 +926,16 @@ int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
   snprintf(combuf, sizeof(combuf), "sh -c \"wr=`which %s 2> /dev/null`; echo $wr\"", command );
   FILE* fptr = popen(combuf, "r");
-  char testbuf[BUFSIZ];	
-  fgets(testbuf, BUFSIZ, fptr);  
+  if (fptr == 0) return -1;                       // popen failed -> not found
+  char testbuf[BUFSIZ];
+  if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
-	      command, strlen(command)) != 0) {
+  // guard the tail comparison so an empty/short `which' result (here the shell
+  // echoes a bare newline when nothing is found) can't index before testbuf.
+  size_t tlen = strlen(testbuf);
+  size_t clen = strlen(command);
+  if (tlen < clen + 1 ||
+      strncmp(testbuf + tlen - clen - 1, command, clen) != 0) {
     return -1;
   }
   return 0;

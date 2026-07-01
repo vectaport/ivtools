@@ -524,9 +524,10 @@ void GetStringFunc::execute() {
     if (socketobj) 
       socket = socketobj->socket();
     do {
-      read(socket->get_handle(), buf+i++, 1);
+      if (read(socket->get_handle(), buf+i, 1) <= 0) break;  // peer closed/error:
+      i++;                                                    // stop, don't spin
     } while (i<BUFSIZ-1 && buf[i-1]!='\n');
-    if (buf[i-1]=='\n') buf[i]=0;
+    buf[i]=0;   // NUL-terminate whatever arrived (a partial reply on early EOF)
     ComValue retval(buf);
     push_stack(retval);
     return;
