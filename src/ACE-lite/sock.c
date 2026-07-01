@@ -94,6 +94,29 @@ u_short ACE_INET_Addr::get_port_number() const {
     return ntohs(inet_addr_.sin_port);
 }
 
+/* ------------------------------------------------------------ SIGPIPE guard */
+
+// Writing to a socket whose peer has closed raises SIGPIPE, whose default
+// action terminates the process -- unacceptable for a long-running server that
+// a peer can disconnect at any time.  Two mechanisms, because no single one is
+// portable: Linux passes MSG_NOSIGNAL on the send() call; macOS/BSD lack that
+// flag and instead set SO_NOSIGPIPE once on the socket.  Apply both where each
+// exists so send() returns EPIPE instead of signalling on every platform.
+#ifdef MSG_NOSIGNAL
+static const int ace_lite_send_flags = MSG_NOSIGNAL;
+#else
+static const int ace_lite_send_flags = 0;
+#endif
+
+static void ace_lite_no_sigpipe(ACE_HANDLE h) {
+#ifdef SO_NOSIGPIPE
+    int one = 1;
+    setsockopt(h, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#else
+    (void)h;
+#endif
+}
+
 /* -------------------------------------------------------------- SOCK_Stream */
 
 ssize_t ACE_SOCK_Stream::recv(void* buf, size_t n) const {
@@ -101,7 +124,7 @@ ssize_t ACE_SOCK_Stream::recv(void* buf, size_t n) const {
 }
 
 ssize_t ACE_SOCK_Stream::send(const void* buf, size_t n) const {
-    return ::send(handle_, buf, n, 0);
+    return ::send(handle_, buf, n, ace_lite_send_flags);
 }
 
 int ACE_SOCK_Stream::enable(int value) const {
@@ -143,6 +166,7 @@ int ACE_SOCK_Connector::connect(ACE_SOCK_Stream& stream,
         ::close(h);
         return -1;
     }
+    ace_lite_no_sigpipe(h);
     stream.set_handle(h);
     return 0;
 }
@@ -175,6 +199,7 @@ int ACE_SOCK_Acceptor::accept(ACE_SOCK_Stream& new_stream,
     if (h == ACE_INVALID_HANDLE) {
         return -1;
     }
+    ace_lite_no_sigpipe(h);
     new_stream.set_handle(h);
     if (remote_addr != 0) {
         remote_addr->set_addr(sin);

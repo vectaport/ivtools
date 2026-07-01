@@ -101,6 +101,13 @@ void ACE_Reactor::retire(ACE_HANDLE h, ACE_Reactor_Mask mask) {
     if (!eh) { it = write_.find(h);  if (it != write_.end())  eh = it->second; }
     if (!eh) { it = except_.find(h); if (it != except_.end()) eh = it->second; }
     remove_handler(h, ACE_Event_Handler::RWE_MASK);
+    // Cancel any timers this handler still has scheduled BEFORE handle_close --
+    // handle_close can delete the handler (ACE_Svc_Handler::handle_close ->
+    // destroy -> delete this), and expire_timers() runs AFTER the retire loop
+    // in handle_events(), so a surviving timer would fire handle_timeout() on
+    // freed memory.  A handler registered for both I/O and a timer is the case
+    // that trips this (e.g. ComterpHandler: READ plus a timeout script timer).
+    if (eh) cancel_timer(eh);
     if (eh && !(mask & ACE_Event_Handler::DONT_CALL)) {
         eh->handle_close(h, mask);
     }

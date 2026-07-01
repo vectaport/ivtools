@@ -81,6 +81,26 @@ public:
     int outputs_;
 };
 
+// Registered for READ *and* a timer.  Returns -1 on input (asks to retire);
+// its timer must be cancelled by the retire so handle_timeout never fires on a
+// handler the reactor has torn down (would be use-after-free once deleted).
+class IoTimerHandler : public ACE_Event_Handler {
+public:
+    IoTimerHandler(ACE_HANDLE fd) : fd_(fd), fires_(0) {}
+    virtual ACE_HANDLE get_handle() const { return fd_; }
+    virtual int handle_input(ACE_HANDLE) {
+        char b[16];
+        ssize_t n = ::read(fd_, b, sizeof(b));
+        (void)n;
+        return -1;                // EOF/retire me
+    }
+    virtual int handle_timeout(const ACE_Time_Value&, const void*) {
+        fires_++; return 0;
+    }
+    ACE_HANDLE fd_;
+    int fires_;
+};
+
 int main() {
     ACE_Reactor reactor;
 
@@ -218,6 +238,28 @@ int main() {
     check(1, "dispatch after a rejected null registration doesn't crash");
     close(sv4[0]);
     close(sv4[1]);
+
+    // --- retiring a handler cancels its still-pending timer ---
+    // A handler registered for both READ and a timer returns -1 on input.  The
+    // retire (remove + handle_close, which for a real Svc_Handler deletes it)
+    // must cancel the timer first, else expire_timers() -- which runs after the
+    // retire loop in handle_events() -- would fire handle_timeout() on freed
+    // memory.  Here the handler is stack-allocated, so a stale fire is visible
+    // as fires_ > 0 rather than a crash.
+    int sv5[2];
+    socketpair(AF_UNIX, SOCK_STREAM, 0, sv5);
+    IoTimerHandler iot(sv5[0]);
+    reactor.register_handler(sv5[0], &iot, ACE_Event_Handler::READ_MASK);
+    reactor.schedule_timer(&iot, 0, ACE_Time_Value(0, 30000));  // due in 30ms
+    close(sv5[1]);                                              // EOF -> retire
+    ACE_Time_Value w_iot(1, 0);
+    reactor.handle_events(&w_iot);     // dispatch EOF: handle_input -1 -> retire
+    usleep(50000);                     // past the 30ms timer
+    ACE_Time_Value w_iot2(0, 1000);
+    reactor.handle_events(&w_iot2);    // timer would fire here if not cancelled
+    check(iot.fires_ == 0,
+          "retiring a handler cancels its pending timer (no fire after handle_close)");
+    close(sv5[0]);
 
     printf("\nreactor_loop: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;
