@@ -677,7 +677,8 @@ void* Catalog::CopyObject (void* obj, ClassId base_id) {
     static int stackLvl;
 
     if (strcmp(_tmpfile, "/tmp/XXXXXX")==0 || ++stackLvl > 1) {
-      mkstemp(_tmpfile);
+      int fd = mkstemp(_tmpfile);
+      if (fd >= 0) close(fd);   // reopened by name via obuf; -1 -> obuf.open fails
     }
     boolean ok = obuf.open(_tmpfile, output) != 0;
 

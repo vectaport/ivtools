@@ -61,6 +61,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fstream.h>
+#include <unistd.h>    // mkstemp, close
 
 /*****************************************************************************/
 
@@ -209,10 +210,15 @@ boolean OvExportCmd::Export (const char* pathname) {
       char* tmpfilename;
       
       if (chooser_->to_printer()) {
-	char tmpfilename[] = "/tmp/exinXXXX";
-        mkstemp(tmpfilename);
-	false_top->SetPathName(tmpfilename);
-	ok = fbuf.open(tmpfilename, output) != 0;
+	char tmpfilename[] = "/tmp/exinXXXXXX";  // 6 X's for mkstemp
+        int fd = mkstemp(tmpfilename);
+	if (fd < 0)
+	  ok = false;
+	else {
+	  close(fd);                             // reopened by name below
+	  false_top->SetPathName(tmpfilename);
+	  ok = fbuf.open(tmpfilename, output) != 0;
+	}
       } else {
 	ok = fbuf.open(pathname, output) != 0;
       }
