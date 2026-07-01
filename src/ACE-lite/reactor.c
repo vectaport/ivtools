@@ -213,7 +213,18 @@ int ACE_Reactor::expire_timers() {
 int ACE_Reactor::handle_events() { return handle_events((ACE_Time_Value*)0); }
 
 int ACE_Reactor::handle_events(ACE_Time_Value& max_wait_time) {
-    return handle_events(&max_wait_time);
+    // The reference form decrements the caller's budget by the time actually
+    // spent, as real ACE does, so a loop like `while (tv > zero)
+    // handle_events(tv)` terminates instead of spinning.
+    timeval before;
+    gettimeofday(&before, 0);
+    int n = handle_events(&max_wait_time);
+    timeval after;
+    gettimeofday(&after, 0);
+    ACE_Time_Value elapsed = ACE_Time_Value(after) - ACE_Time_Value(before);
+    if (elapsed >= max_wait_time) max_wait_time = ACE_Time_Value::zero;
+    else max_wait_time -= elapsed;
+    return n;
 }
 
 int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {

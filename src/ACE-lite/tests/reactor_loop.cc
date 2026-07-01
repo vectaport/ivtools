@@ -197,6 +197,14 @@ int main() {
     reactor.handle_events(&w_ov);
     check(tov.fires_ == 1, "overdue timer fires (wait clamped, no select() EINVAL drop)");
 
+    // --- handle_events(ACE_Time_Value&) decrements the caller's budget ---
+    // (no fds/timers -> it waits the whole budget out, so the reference is
+    //  reduced toward zero; the pointer form leaves it untouched)
+    ACE_Time_Value budget(0, 20000);   // 20ms
+    reactor.handle_events(budget);
+    check(budget < ACE_Time_Value(0, 20000),
+          "handle_events(ACE_Time_Value&) decrements the remaining-time budget");
+
     printf("\nreactor_loop: %s\n", failures == 0 ? "PASS" : "FAIL");
     return failures == 0 ? 0 : 1;
 }

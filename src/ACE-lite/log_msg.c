@@ -48,13 +48,16 @@ void ace_lite_log(int /*severity*/, const char* format, ...) {
         spec[si] = '\0';
 
         // Length modifier sits in the 1-2 chars just before the conversion.
+        // 't' is deliberately NOT treated as a length modifier here: ACE uses %t
+        // for the thread id (it's in the stop-set and has its own case below), so
+        // it can never reach this point as C's ptrdiff length prefix.  I.e. C's
+        // %td/%ti aren't supported -- ivtools uses ACE's %t, not that modifier.
         char m1 = (si >= 3) ? spec[si - 2] : 0;
         char m0 = (si >= 4) ? spec[si - 3] : 0;
         bool is_ll = (m1 == 'l' && m0 == 'l');
         bool is_l  = (m1 == 'l' && !is_ll);
         bool is_z  = (m1 == 'z');
         bool is_j  = (m1 == 'j');
-        bool is_t  = (m1 == 't');
         bool is_L  = (m1 == 'L');
         bool is_unsigned = (conv == 'u' || conv == 'x' || conv == 'X' || conv == 'o');
 
@@ -91,8 +94,6 @@ void ace_lite_log(int /*severity*/, const char* format, ...) {
                 fprintf(stderr, spec, va_arg(ap, size_t));
             } else if (is_j) {
                 fprintf(stderr, spec, va_arg(ap, intmax_t));
-            } else if (is_t) {
-                fprintf(stderr, spec, va_arg(ap, ptrdiff_t));
             } else {                  // default argument promotions: int width
                 if (is_unsigned) fprintf(stderr, spec, va_arg(ap, unsigned int));
                 else             fprintf(stderr, spec, va_arg(ap, int));
