@@ -107,19 +107,19 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 	char qhcmd[100];
 	snprintf(qhcmd, sizeof(qhcmd), "qhull Fx < %s", tnam);
 	FILE* pp = popen(qhcmd, "r");
-	int nhp;
+	int nhp = 0;
 	if (pp) {
 	  char line[80];
-	  fgets(line, 80, pp);
-	  sscanf(line, "%d", &nhp);
+	  if (!fgets(line, 80, pp) || sscanf(line, "%d", &nhp) != 1) nhp = 0;
 	  if (nhp) {
-	    
+
 	    hx = new float[nhp];
 	    hy = new float[nhp];
 	    for (int i = 0; i < nhp; i++) {
-	      int idx;
-	      fgets(line, 80, pp);
-	      sscanf(line, "%d", &idx);
+	      int idx = 0;
+	      // default idx=0 on a short read so a truncated qhull result can't
+	      // index fx/fy out of bounds
+	      if (!fgets(line, 80, pp) || sscanf(line, "%d", &idx) != 1) idx = 0;
 	      hx[i] = fx[idx];
 	      hy[i] = fy[idx];
 	    }
