@@ -95,7 +95,7 @@ extern int _percent_ident;
 
 /* Error handling macros */
 #define COMERR_SET( status )\
-comerr_set( status, fprintf( err_fileio(), comerr_read( status )))
+comerr_set( status, fprintf( err_fileio(), "%s", comerr_read( status )))
 
 #define COMERR_SET1( status, val1 )\
 comerr_set( status, fprintf( err_fileio(), comerr_read( status ), val1 ))
