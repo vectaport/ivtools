@@ -1827,14 +1827,14 @@ const char* PGM_Helper::magic() {
 void PGM_Helper::read_poke(
     OverlayRaster* raster, FILE* file, u_long x, u_long y
 ) {
-    unsigned int gray;
+    int gray;   // match read_ascii_component()/getc() return type (no implicit unsigned wrap)
     if (is_ascii()) {
         gray = read_ascii_component(file);
 #if 0
-	if (maxval()==65535) 
+	if (maxval()==65535)
 	  gray = gray >> 8;
 #endif
-    } else 
+    } else
         gray = getc(file);
     raster->graypoke( x, y, gray );
 }

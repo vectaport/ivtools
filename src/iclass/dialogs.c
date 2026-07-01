@@ -384,10 +384,15 @@ const char* FileDialog::FullPath (const char* relpath) {
 const char* FileDialog::FullPath (FileBrowser* fb, const char* rp) {
     const char* relpath = (rp == nil) ? fb->GetDirectory() : rp;
     char path[MAX_PATH_LENGTH];
-    if (!getcwd(path, sizeof(path) - strlen(relpath) - 1))
-        path[0] = '\0';   // getcwd failed: build a relative path rather than
-                          // strcat onto an uninitialized buffer
-    strcat(path, "/");
-    strcat(path, relpath);
+    if (getcwd(path, sizeof(path) - strlen(relpath) - 1)) {
+        strcat(path, "/");
+        strcat(path, relpath);
+    } else {
+        // getcwd failed: fall back to relpath as-is.  Prefixing "/" here would
+        // yield an absolute path rooted at / (e.g. "/./foo"), not the relative
+        // path we intend; strcat onto an uninitialized buffer would be worse.
+        strncpy(path, relpath, sizeof(path) - 1);
+        path[sizeof(path) - 1] = '\0';
+    }
     return fb->Normalize(path);
 }

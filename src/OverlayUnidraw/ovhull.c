@@ -115,14 +115,23 @@ int ConvexHullCmd::ConvexHull(int np, float* fx, float* fy, float*& hx, float*& 
 
 	    hx = new float[nhp];
 	    hy = new float[nhp];
-	    for (int i = 0; i < nhp; i++) {
+	    // A truncated or out-of-range qhull index would otherwise be silently
+	    // clamped to point 0, yielding a valid-but-wrong hull.  Stop at the
+	    // last good point instead and warn once (matching read_ascii_component's
+	    // truncation reporting), so the caller knows the hull is short.
+	    int i = 0;
+	    for (; i < nhp; i++) {
 	      int idx = 0;
-	      // default idx=0 on a short read so a truncated qhull result can't
-	      // index fx/fy out of bounds
-	      if (!fgets(line, 80, pp) || sscanf(line, "%d", &idx) != 1) idx = 0;
+	      if (!fgets(line, 80, pp) || sscanf(line, "%d", &idx) != 1
+		  || idx < 0 || idx >= np) {
+		fprintf(stderr, "ovhull: truncated/invalid qhull output -- "
+			"convex hull clamped to %d of %d points\n", i, nhp);
+		break;
+	      }
 	      hx[i] = fx[idx];
 	      hy[i] = fy[idx];
 	    }
+	    nhp = i;   // clamp to the points actually read
 #ifdef DEBUG
 	    cerr << "convex hull output\n";
 	    for (int i=0; i<np; i++) 
