@@ -41,7 +41,13 @@
 #include <InterViews/window.h>
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xevent.h>
-#include <X11/XKBlib.h>        /* XkbKeycodeToKeysym (replaces deprecated XKeycodeToKeysym) */
+/* XkbKeycodeToKeysym (replaces deprecated XKeycodeToKeysym).  Bracket the XKB
+   header with Xdefs/Xundefs exactly as IV-X11/Xlib.h does for <X11/Xlib.h>, so
+   its Display parameter resolves to X11's XDisplay -- the type of the raw
+   handle we pass -- rather than InterViews' own Display class (ivDisplay). */
+#include <IV-X11/Xdefs.h>
+#include <X11/XKBlib.h>
+#include <IV-X11/Xundefs.h>
 #include <OS/list.h>
 #include <string.h>
 
