@@ -232,6 +232,19 @@ jobs:
             grep 'substituting fixed font' drawmo.log
             exit 1
           fi
+          # "The command language is the wire protocol": remote() de-serializes a
+          # reply by re-entering the interpreter, and a returned LIST literal (the
+          # (:table) introspection commands -- drawlink/sid -- return lists) used to
+          # trip the argoff-anchor range guard in stack_key_post_eval, printing
+          # "offtop out of range ... argoff anchor missing or corrupt" once per
+          # keyword probe.  Benign in updown1 (its empty table still read as size 0,
+          # a false green) but noise that would mask a genuine anchor corruption.
+          # Fixed in comfunc.c (nkeys()==0 short-circuit); fail if it ever returns.
+          if grep -qE 'offtop out of range|argoff anchor' drawmo.log; then
+            echo "drawmo suite FAILED: comterp argoff/anchor warning during remote() de-serialization"
+            grep -nE 'offtop out of range|argoff anchor' drawmo.log | head
+            exit 1
+          fi
 
       - name: Upload build log
         if: always()

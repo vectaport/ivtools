@@ -245,6 +245,20 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
 
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+  /* No keyword tokens for this command -> the sought keyword is definitively
+     absent, and an absent keyword is a normal, silent result in comterp -- not
+     an error.  Return the not-found default WITHOUT reading the operand stack.
+     This also disarms the offtop guard below for the benign case it kept
+     tripping on: when remote() re-enters the interpreter to de-serialize a
+     returned list literal, the argoff anchor on the shared operand stack still
+     belongs to the outer in-flight command (the whole reply evaluates inside
+     it), so the anchor read here is bogus -- but with nkeys()==0 there is
+     nothing to find anyway, so skip the read and stay quiet.  The guard's
+     warning is preserved only for nkeys()>0, where a bad anchor is a genuine
+     anomaly and not just proof that a keyword is missing. */
+  if (nkeys() == 0)
+    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
   /* guard the anchor-recovered offtop: a bad/missing argoff anchor (e.g. left by
@@ -302,6 +316,13 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
 
 ComValue& ComFunc::stack_key_post
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+  /* nkeys()==0 -> keyword definitively absent; return the not-found default
+     without touching the operand stack (an absent keyword is silent by design,
+     and the offtop guard below would otherwise warn on the benign re-entrant
+     de-serialization case).  See the fuller note in stack_key_post_eval. */
+  if (nkeys() == 0)
+    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
   /* same anchor-recovered-offtop guard as stack_key_post_eval; see note there. */
