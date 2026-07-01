@@ -3,7 +3,7 @@
 This document covers what you need to know to write, patch, and debug
 C++ code in the ComTerp/ComUtil layer of ivtools. It complements
 `ARCHITECTURE.md` (which explains the evaluation model) and
-`LANGUAGE.md` (which covers the scripting language from the user side).
+`doc/LANGUAGE.md` (which covers the scripting language from the user side).
 
 ## Adding a New Command
 
@@ -640,5 +640,5 @@ localtable()->insert(symid, val);  // DO NOT DO THIS
 ## See Also
 
 - `src/DrawServ/HACKING.md`
-- `APPENDIX-A-DRAWING-EDITOR.md`
-- `INTRODUCTION.md` — project overview and history
+- `doc/APPENDIX-A-DRAWING-EDITOR.md`
+- `doc/INTRODUCTION.md` — project overview and history
