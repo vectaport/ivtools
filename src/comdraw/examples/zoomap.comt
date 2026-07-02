@@ -98,11 +98,42 @@ update()
 //          reads the facts, and flashes what matches)
 // ============================================================
 
-// flash(:things lst) -- blink the matching graphics on the canvas
+// flash(:things lst) -- circle each match in red marker.
+// For every match this draws a temporary unfilled thick-red ellipse
+// sized from its bounding box (mbr), blinks the rings with hide/show,
+// then erases them -- the animals underneath never change.
+// (center()/mbr() report drawing coordinates, which include the page
+// transform that creation coordinates will get ADDED to them -- so the
+// ring is created first, then move()d by the difference between where
+// it landed and where the animal is.)
 flash=func(
+  handles(false);
+  rings=list();
+  nt=size(things);
+  for(ri=0 ri<nt ri++
+    g=at(things ri);
+    gc=center(g);
+    box=mbr(g);
+    rx=(at(box 2)-at(box 0))/2+10;
+    ry=(at(box 3)-at(box 1))/2+10;
+    ring=ellipse(at(gc 0),at(gc 1), rx,ry);
+    colorsrgb("#FF0000" "#FFFFFF");
+    brush(5);
+    pattern(1);
+    rc=center(ring);
+    move(at(gc 0)-at(rc 0) at(gc 1)-at(rc 1));
+    rings,ring);
+  select(:clear);
+  update();
   for(bi=0 bi<3 bi++
-    select(:clear); update(150000);
-    select(things); update(350000)))
+    for(rj=0 rj<size(rings) rj++ hide(at(rings rj)));
+    update(150000);
+    for(rj=0 rj<size(rings) rj++ show(at(rings rj)));
+    update(350000));
+  // delete() wants graphics one at a time, not a list variable
+  for(rj=0 rj<size(rings) rj++ delete(at(rings rj)));
+  handles(true);
+  update())
 
 // who("swims") who("bugs") who("Ellie") -- find by name, motion, or food
 who=func(
@@ -119,7 +150,7 @@ who=func(
     if((g.name==target)||(g.moves==target)||(g.eats==target) :then matches,g));
   if(size(matches)==0
     :then print("Hmm, nobody in this zoo matches that. Try zoohelp()\n")
-    :else print("Found %v! Watch the map flash...\n" size(matches)));
+    :else print("Found %v! Look for the red circles!\n" size(matches)));
   if(size(matches)>0 :then flash(:things matches));
   size(matches))
 
@@ -136,7 +167,7 @@ haslegs=func(
     if((g.legs!=nil)&&(g.legs==want) :then matches,g));
   if(size(matches)==0
     :then print("No animal here has %v legs!\n" want)
-    :else print("Found %v! Watch the map flash...\n" size(matches)));
+    :else print("Found %v! Look for the red circles!\n" size(matches)));
   if(size(matches)>0 :then flash(:things matches));
   size(matches))
 
@@ -151,12 +182,17 @@ countlegs=func(
   total)
 
 // dance() -- everybody wiggle!
+// handles(false) turns off selection feedback (tic marks and red
+// circles) while everybody moves; handles(true) restores it at the
+// end -- who()'s red circles need it back on!
 dance=func(
+  handles(false);
   for(di=0 di<6 di++
     select(:all); rotate(6); update(80000);
     rotate(-12); update(80000);
     rotate(6); update(80000));
   select(:clear);
+  handles(true);
   update())
 
 // oops() -- ask the map to explain the last error message.
