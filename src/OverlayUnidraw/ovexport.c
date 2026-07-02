@@ -61,6 +61,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fstream.h>
+#include <unistd.h>    // mkstemp, close
 
 /*****************************************************************************/
 
@@ -206,13 +207,22 @@ boolean OvExportCmd::Export (const char* pathname) {
     if (ovpsv != nil) {
       
       filebuf fbuf;
-      char* tmpfilename;
-      
+      // One outer array (6 X's for mkstemp), also referenced by the print
+      // command below.  Previously this was an uninitialized `char*` shadowed
+      // by an inner array in the to_printer() branch, so the print command read
+      // the uninitialized outer pointer -- latent while mkstemp always failed,
+      // now live.  Single scope like ovprint.c/graphexport.c.
+      char tmpfilename[] = "/tmp/exinXXXXXX";
+
       if (chooser_->to_printer()) {
-	char tmpfilename[] = "/tmp/exinXXXX";
-        mkstemp(tmpfilename);
-	false_top->SetPathName(tmpfilename);
-	ok = fbuf.open(tmpfilename, output) != 0;
+        int fd = mkstemp(tmpfilename);
+	if (fd < 0)
+	  ok = false;
+	else {
+	  close(fd);                             // reopened by name below
+	  false_top->SetPathName(tmpfilename);
+	  ok = fbuf.open(tmpfilename, output) != 0;
+	}
       } else {
 	ok = fbuf.open(pathname, output) != 0;
       }

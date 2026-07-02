@@ -59,6 +59,7 @@
 #include <stream.h>
 #include <string.h>
 #include <fstream.h>
+#include <unistd.h>    // mkstemp, close
 
 /*****************************************************************************/
 
@@ -121,11 +122,16 @@ void OvPrintCmd::Execute () {
 	    if (ok) { 
 
 		filebuf fbuf;
-		char tmpfilename[] = "/tmp/privXXXX";
-		
+		char tmpfilename[] = "/tmp/privXXXXXX";  // 6 X's for mkstemp
+
 		if (chooser_->to_printer()) {
-		    mkstemp(tmpfilename);
-		    ok = fbuf.open(tmpfilename, output) != 0;
+		    int fd = mkstemp(tmpfilename);
+		    if (fd < 0)
+			ok = false;
+		    else {
+			close(fd);                   // reopened by name below
+			ok = fbuf.open(tmpfilename, output) != 0;
+		    }
 		} else {
 		    ok = fbuf.open(ns.string(), output) != 0;
 		}
