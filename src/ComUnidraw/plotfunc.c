@@ -98,6 +98,7 @@ void BarPlotFunc::execute() {
     close(psfd);                              // plotmtv writes it by name
     snprintf(cmd, sizeof(cmd), "plotmtv -noxplot -color -o %s %s", pstmp, tmpfilename);
     FILE* plotp = popen(cmd, "w");
+    if (plotp == nil) { unlink(pstmp); unlink(tmpfilename); reset_stack(); return; }
     fprintf(plotp, "n\n");
     pclose(plotp);
 
