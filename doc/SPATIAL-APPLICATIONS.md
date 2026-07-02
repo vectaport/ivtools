@@ -270,7 +270,7 @@ four rungs of fidelity:
    video-rate hardware pipelines comterp originally fronted; a
    from-scratch implementation of that scanline engine is the heart
    of this rung.  For what the technique can do, see PixelCoaster
-   (vectaport.com/pixelcoaster) — real-time perspective image
+   ([vectaport.com/pixelcoaster](https://vectaport.com/pixelcoaster)) — real-time perspective image
    transformation built on it, outperforming bicubic filtering in
    both speed and quality.  Note the provenance constraint, though:
    PixelCoaster rests on an engine copyrighted by Karl Fant (Theseus

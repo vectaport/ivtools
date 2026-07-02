@@ -106,8 +106,9 @@ update()
 // transform that creation coordinates will get ADDED to them -- so the
 // ring is created first, then move()d by the difference between where
 // it landed and where the animal is.)
+// No handles() suppression needed: the screen only redraws at update(),
+// and every update() here happens with the selection already cleared.
 flash=func(
-  handles(false);
   rings=list();
   nt=size(things);
   for(ri=0 ri<nt ri++
@@ -132,7 +133,6 @@ flash=func(
     update(350000));
   // delete() wants graphics one at a time, not a list variable
   for(rj=0 rj<size(rings) rj++ delete(at(rings rj)));
-  handles(true);
   update())
 
 // who("swims") who("bugs") who("Ellie") -- find by name, motion, or food
@@ -182,9 +182,8 @@ countlegs=func(
   total)
 
 // dance() -- everybody wiggle!
-// handles(false) turns off selection feedback (tic marks and red
-// circles) while everybody moves; handles(true) restores it at the
-// end -- who()'s red circles need it back on!
+// handles(false) hides the selection tic marks while everybody is
+// selected and moving; handles(true) restores them at the end.
 dance=func(
   handles(false);
   for(di=0 di<6 di++
@@ -212,6 +211,7 @@ zoohelp=func(
   print("  who(\"swims\")     -- who swims?  (also: flies, climbs, slides, stomps, prowls)\n");
   print("  who(\"bugs\")      -- who eats bugs?  (also: bananas, plants, meat)\n");
   print("  who(\"Ellie\")     -- find an animal by name (Mo, Fin, Zig, Bella, Leo)\n");
+  print("  who(\"the pond\")  -- even the scenery answers! (the tree, the sun)\n");
   print("  haslegs(4)       -- who has 4 legs? (try 0 and 2 too!)\n");
   print("  countlegs()      -- count every leg in the zoo\n");
   print("  dance()          -- everybody wiggle!\n");
