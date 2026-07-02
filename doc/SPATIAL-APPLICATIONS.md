@@ -23,17 +23,27 @@ genre below is a different way of cashing that premise in.
 
 An askable map is a drawing you can question.  Every graphic on the
 canvas carries facts about itself; small typed words walk the drawing,
-read the facts, and answer *on the canvas* — the matches flash, the
-answer is a place, not a table.
+read the facts, and answer *on the canvas* — the matches get circled
+in red marker, the answer is a place, not a table.
 
 ```
 (comt) who("swims")
-Found 1! Watch the map flash...        // Fin blinks in the pond
+Found 1! Look for the red circles!     // a ring blinks around Fin in the pond
 (comt) haslegs(4)
-Found 2! Watch the map flash...        // Ellie and Leo blink
+Found 2! Look for the red circles!     // rings blink around Ellie and Leo
 (comt) countlegs()
 All the legs in the zoo add up to: 12
 ```
+
+Historically, the example is a deliberate graft: an Adventure-era TUI
+(typed magic words, prose answers, a parser that scolds you) hooked to
+a MacDraw-era GUI (a direct-manipulation canvas with tools, menus, and
+selection).  Those two interface eras barely overlapped in the wild,
+and each is one-eyed alone — the text adventure can't show you *where*,
+the drawing editor can't tell you *what it knows*.  Here they share one
+interpreter and one component tree, so the graft takes: the typed words
+and the mouse gestures operate on the same graphics, and each half
+answers the question the other half can't ask.
 
 ### Anatomy: three layers on one canvas
 
@@ -57,8 +67,11 @@ All the legs in the zoo add up to: 12
 
 3. **The questions** — one-screen funcs that walk the component tree
    (`frame()`, `size()`, `at()`), read facts back with dot-access
-   (`g.eats=="bugs"`), collect matches, and answer with display acts
-   (`select()` + `update()` flashing):
+   (`g.eats=="bugs"`), collect matches, and answer with display acts:
+   each match gets a temporary red marker ring — an unfilled
+   thick-brush ellipse sized from its `mbr()`, blinked with
+   `hide()`/`show()`, then deleted, so the animals underneath never
+   change:
 
    ```
    who=func(
@@ -161,8 +174,9 @@ by re-running the file.
 
 1. Facts live on the graphics (`setattr`) — never in a parallel
    structure the canvas can drift away from.
-2. Answers happen on the canvas; print only what can't be shown
-   (counts, sums).
+2. Answers happen on the canvas, as drawn marks — zoomap circles
+   matches with temporary ring graphics rather than leaning on
+   selection tic marks; print only what can't be shown (counts, sums).
 3. Queries are one-screen funcs with names you can say out loud
    (`who`, `haslegs`, `countlegs`, `dance`).
 4. Help ends with a your-turn recipe that extends the app using only
@@ -174,7 +188,8 @@ by re-running the file.
    the last-created graphic silently changes color.
 7. Append to match-lists with bare `lst,x` — parenthesized `(lst,x)`
    silently drops appends.  Creation coordinates are comma-tuples
-   (`rect(0,0, 50,50)`), not space-separated.
+   (`rect(0,0, 50,50)`), not space-separated.  `delete()` takes
+   graphics one at a time — a list variable doesn't unpack.
 8. Give the app a recovery word.  `errmsg(:last)` makes even parser
    errors part of the applet's pedagogy — an `oops()` that replays
    the saved message with a checklist costs six lines.
@@ -183,6 +198,35 @@ The same skeleton re-skins freely: a treasure map (`dig("palm tree")`),
 a neighborhood map (`who("sells ice cream")`), a solar system
 (`hasmoons(2)`), a garden planner (`blooms("May")`).  Swap the facts
 and the questions; the three layers and the rules stay.
+
+### Future work: the mouse half of the dialogue
+
+So far the conversation runs one way — words in, canvas out.  But the
+MacDraw half of the graft is an *input* device too, and the genre's
+next moves put the mouse into the dialogue:
+
+- **Select-then-ask.**  `select()` with no arguments returns the
+  current selection — including one made by clicking.  A `tellme()`
+  that walks the selection and speaks each graphic's facts turns any
+  mouse click into a query: point at the thing instead of naming it.
+  Scriptable today.
+
+- **Pens and misplacement.**  Draw enclosures that carry facts of
+  their own (`setattr(cage :kind "pen" :holds "flies")`).  Now the kid
+  can *drag* an animal somewhere wrong — Zig in the bird cage — and a
+  `wrongpen()` query catches it, because containment falls out of
+  comparing `center()` points against pen `mbr()` boxes.  This is the
+  genre's deepest question shape: a mismatch between where things
+  *are* (geometry) and where their facts say they *belong*
+  (attributes).  The mouse creates the puzzle; the words find it.
+  Scriptable today.
+
+- **The map that notices.**  True direct manipulation closes the loop
+  without typing: the drop itself makes the map speak — "Zig doesn't
+  fly!"  That needs an editor-side hook, a manipulator/Command
+  callback that hands drag-and-drop events to interpreter funcs the
+  way `errmsg(:last)` hands over parser errors.  The natural C++ next
+  step for the genre.
 
 ---
 
