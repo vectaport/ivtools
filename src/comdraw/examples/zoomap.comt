@@ -107,6 +107,10 @@ flash=func(
 // who("swims") who("bugs") who("Ellie") -- find by name, motion, or food
 who=func(
   target=arg(0);
+  // forgot the quotes?  who(swims) hands us an unbound symbol -- nil --
+  // and nil==nil would "match" every no-facts graphic (all the name tags!)
+  if(target==nil :then print("Oops! Put quotes around your word, like this:  who(\"swims\")\n"));
+  if(target==nil :then return(0));
   select(:clear);
   matches=list();
   n=size(frame());
@@ -122,6 +126,8 @@ who=func(
 // haslegs(4) -- find every animal with that many legs
 haslegs=func(
   want=arg(0);
+  if(want==nil :then print("Oops! Give me a number, like this:  haslegs(4)\n"));
+  if(want==nil :then return(0));
   select(:clear);
   matches=list();
   n=size(frame());
