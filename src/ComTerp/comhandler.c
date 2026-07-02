@@ -238,7 +238,12 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	comterp_->pop_servstate();
       } else if (comterp_->force_nested())
 	ComValue retval(comterp_->pop_stack(false));
-      if (comterp_->delete_later()) {
+      /* delete_later() is a request for the OUTERMOST active context to
+         delete the interpreter once it is truly idle.  When re-entrant, the
+         suspended outer script still holds this interpreter live -- deleting
+         here would be a use-after-free when it resumes.  Leave the flag set;
+         the outer frame's own check (or shutdown) performs the delete. */
+      if (!reentrant && comterp_->delete_later()) {
 	delete comterp_;
 	comterp_ = nil;
       }
