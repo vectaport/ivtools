@@ -28,3 +28,7 @@ the drawing (and any funcs the script defined) live in the session.
   `who("swims")`, `haslegs(4)`, `countlegs()`, `dance()`.  Written to be
   buildable-along by a kid: the drawing is the database, the queries are
   one-screen funcs.  *The drawing is the datastore.*
+
+zoomap.comt is the reference implementation of the "Askable Map"
+pattern; the genre write-up (anatomy, error pedagogy, design rules,
+the drawserv distribution path) is `doc/SPATIAL-APPLICATIONS.md`.
