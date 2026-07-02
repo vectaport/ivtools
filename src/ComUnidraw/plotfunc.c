@@ -121,6 +121,7 @@ void BarPlotFunc::execute() {
     imp->pathname(idtmp);
     imp->Execute();
 
+    unlink(idtmp);      // now that 6-X mkstemp actually creates it, clean it up too
     unlink(pstmp);
     unlink(tmpfilename);
   }
