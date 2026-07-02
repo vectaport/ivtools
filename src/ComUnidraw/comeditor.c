@@ -223,6 +223,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("growgroup", new GrowGroupFunc(comterp, this));
     comterp->add_command("trimgroup", new TrimGroupFunc(comterp, this));
+    comterp->add_command("group", new GroupFunc(comterp, this));
+    comterp->add_command("ungroup", new UngroupFunc(comterp, this));
     comterp->add_command("front", new FrontSelectionFunc(comterp, this));
     comterp->add_command("back", new BackSelectionFunc(comterp, this));
 

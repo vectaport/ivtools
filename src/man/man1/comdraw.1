@@ -77,9 +77,11 @@ graphical object assigned to an interpreter variable.
 
 .SH GROUP/UNGROUP COMMANDS
 
- newgroup=growgroup(groupview compview)
+ newgrp=group() -- group the current selection into a single group graphic
+ ungroup([compview]) -- ungroup the selected group (or given group) into its members
+ newgrp=growgroup(groupview compview)
    -- add graphic to existing group graphic
- newgroup=trimgroup(groupview compview)
+ newgrp=trimgroup(groupview compview)
    -- remove graphic from existing group graphic
  front([compview]) -- move selection or graphic to front
  back([compview]) -- move selection or graphic to back
