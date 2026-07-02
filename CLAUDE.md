@@ -21,7 +21,7 @@ The defining idea: **the command language is also the wire protocol.** Every
 ComTerp value serializes back to valid ComTerp syntax, so a terminal REPL
 session and a TCP session between drawing servers are the same act — send an
 expression, get back a value that is itself an expression. See
-`INTRODUCTION.md` for the conceptual tour and `src/comterp_/LANGUAGE.md` for the
+`doc/INTRODUCTION.md` for the conceptual tour and `doc/LANGUAGE.md` for the
 language from the user's side.
 
 This is a mature, ~30-year-old codebase (ComUtil dates to 1989). Match the
@@ -36,8 +36,7 @@ src/                  all libraries and example programs (48 subdirs)
 config/               imake build configuration (per-platform site.def.*, *.mk)
 CHANGES/              per-release changelogs (CHANGES-0.3 ... CHANGES-2.1)
 INSTALL               build instructions (short + long form)
-INTRODUCTION.md       project overview & philosophy
-APPENDIX-A/B/C-*.md   drawing-editor, comterp-examples, programming guides
+doc/                  narrative docs: INTRODUCTION, APPENDIX-A..E, LANGUAGE, WAVE-CONTRIBUTION
 configure.ac          autoconf input -> ./configure
 Imakefile             top-level imake target
 VERSION               "Release 2.1.1"
@@ -61,7 +60,7 @@ Violations*.
 | `IV`, `IV-2_6`, `IV-X11`, `IV-common`, `InterViews`, `OS`, `Dispatch`, `TIFF` | InterViews 3.1 / 2.6 base libraries, borrowed whole |
 | `ComUtil` | C-level interpreter engine: scanner, parser, postfix codegen, error system (1989 SBIR code) |
 | `ComTerp` | C++ command-interpreter library (`ComFunc`, `ComValue`, `ComTerp`) |
-| `comterp_` | the `comterp` / `comterp_listen` binaries + `LANGUAGE.md` + `tests/` |
+| `comterp_` | the `comterp` / `comterp_listen` binaries + `tests/` (language ref now in `doc/LANGUAGE.md`) |
 | `Attribute`, `AttrGlyph`, `ComGlyph`, `IVGlyph` | property lists, glyphs |
 | `Unidraw`, `UniIdraw`, `OverlayUnidraw`, `ComUnidraw` | drawing-editor frameworks |
 | `GraphUnidraw`, `FrameUnidraw`, `TopoFace` | graph/frame/spatial-network editors |
@@ -164,11 +163,12 @@ C++ in a layer, read its docs:
 |-----|--------|
 | `src/ComUtil/ARCHITECTURE.md` | the 1989 compiler chain: scanner, parser (shunting-yard), postfix codegen, error system |
 | `src/ComTerp/ARCHITECTURE.md` | the evaluation model: postfix execution, the argoffval bookmark, eager vs. lazy (`post_eval`) commands, pedepth |
-| `src/ComTerp/POSTFIX-INDEXING.md` | ground-truth on postfix buffer layout & the two arity families (token counts vs. stack counts) |
+| `doc/POSTFIX-INDEXING.md` | ground-truth on postfix buffer layout & the two arity families (token counts vs. stack counts) |
 | `src/ComTerp/HACKING.md` | **the practical C++ how-to**: adding commands, keywords, error codes, refcounting, the patch workflow, naming, commit conventions |
-| `src/comterp_/LANGUAGE.md` | the ComTerp language from the user side |
+| `doc/LANGUAGE.md` | the ComTerp language from the user side |
 | `src/DrawServ/HACKING.md` | adding distributed commands via the `DrawServCmd` mixin and `dist_script()`; the *REPL is the wire protocol* model |
-| `APPENDIX-A/B/C-*.md` | drawing-editor usage, comterp examples, ivtools programming |
+| `doc/APPENDIX-A..E-*.md` | drawing-editor usage, comterp examples, ivtools programming, Flowtran, layout-as-command |
+| `doc/ARG-LEVELS.md`, `doc/FUNC-AND-ARGS-DESIGN.md` | arg/keyword counting levels and the func-and-args design |
 
 ---
 
@@ -249,7 +249,7 @@ C++ work. The essentials:
   (`DrawServCmd` mixin + `dist_script()`), add a `drawmo` test per
   `src/drawserv_/tests/TESTING.md`.
 - **Understand evaluation/parsing behavior** → `src/ComTerp/ARCHITECTURE.md`
-  and `POSTFIX-INDEXING.md`; confirm against the tests.
+  and `doc/POSTFIX-INDEXING.md`; confirm against the tests.
 - **Debug memory corruption** → `config/SANITIZE.md` (AddressSanitizer).
-- **Learn the language to write scripts** → `src/comterp_/LANGUAGE.md`, then
+- **Learn the language to write scripts** → `doc/LANGUAGE.md`, then
   read the `.comt` files in `src/comterp_/tests/` (the suite is the tutorial).

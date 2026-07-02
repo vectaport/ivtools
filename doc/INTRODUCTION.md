@@ -231,7 +231,7 @@ makes sense in a way that most languages do not.
 
 ## Continued Reading
 
-`src/comterp_/LANGUAGE.md` is the language reference. Start there for
+`LANGUAGE.md` is the language reference. Start there for
 syntax, types, operators, control flow, streams, and functions.
 
 `src/ComTerp/ARCHITECTURE.md` explains how the evaluator works — the
@@ -271,5 +271,5 @@ Welcome.
 - `APPENDIX-C-IVTOOLS-PROGRAMMING.md` -- how to extend both commands and drawing editors
 - `APPENDIX-E-LAYOUT-AS-COMMAND.md` -- why layout is a command, not an engine: unifying structured documents and structured graphics
 
-- `CONTRIBUTING.md` -- how to land a change (build, test, PR, the green gate)
-- `src/comterp_/LANGUAGE.md` -- the comterp language
+- `../CONTRIBUTING.md` -- how to land a change (build, test, PR, the green gate)
+- `LANGUAGE.md` -- the comterp language
