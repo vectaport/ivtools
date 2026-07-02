@@ -315,30 +315,36 @@ GraphicComp* ImportCmd::PGM_Image (const char* filename) {
 
     if (file != nil) {
         char line[1000];
-        do {
-            fgets(line, 1000, file);
-        } while (strcmp(line, "gsave\n") != 0);
-
-        fgets(line, 1000, file);                    // translate
-        fgets(line, 1000, file);                    // scale
-        fgets(line, 1000, file);                    // sizes
         int w, h, d;
-        sscanf(line, "%d %d %d", &w, &h, &d);
-        fgets(line, 1000, file);                    // [ ... ]
-        fgets(line, 1000, file);                    // { ... }
-        fgets(line, 1000, file);                    // image
-
-        Raster* raster = new Raster(w, h);
-
-        for (int row = h - 1; row >= 0; --row) {
-            for (int column = 0; column < w; ++column) {
-                int byte = gethex(file);
-                float g = float(byte) / 0xff;
-                raster->poke(column, row, g, g, g, 1.0);
+        boolean found = false;
+        while (fgets(line, 1000, file) != nil)      // seek the gsave marker;
+            if (strcmp(line, "gsave\n") == 0) {      // stop at EOF rather than
+                found = true; break;                 // spin on a stale line
             }
+        // Each fgets/sscanf return is checked so a truncated or non-idraw file
+        // bails to the nil return below instead of reading past the header into
+        // garbage sizes.  On a well-formed export none of these guards fire.
+        if (found
+            && fgets(line, 1000, file)               // translate
+            && fgets(line, 1000, file)               // scale
+            && fgets(line, 1000, file)               // sizes
+            && sscanf(line, "%d %d %d", &w, &h, &d) == 3
+            && fgets(line, 1000, file)               // [ ... ]
+            && fgets(line, 1000, file)               // { ... }
+            && fgets(line, 1000, file)) {            // image
+
+            Raster* raster = new Raster(w, h);
+
+            for (int row = h - 1; row >= 0; --row) {
+                for (int column = 0; column < w; ++column) {
+                    int byte = gethex(file);
+                    float g = float(byte) / 0xff;
+                    raster->poke(column, row, g, g, g, 1.0);
+                }
+            }
+            raster->flush();
+            comp = new RasterComp(new RasterRect(raster), filename);
         }
-        raster->flush();
-        comp = new RasterComp(new RasterRect(raster), filename);
     }
     fclose(file);
     return comp;
@@ -352,36 +358,41 @@ GraphicComp* ImportCmd::PPM_Image (const char* filename) {
 
     if (file != nil) {
         char line[1000];
-        do {
-            fgets(line, 1000, file);
-        } while (strcmp(line, "gsave\n") != 0);
-
-        fgets(line, 1000, file);                    // translate
-        fgets(line, 1000, file);                    // scale
-        fgets(line, 1000, file);                    // scale
-        fgets(line, 1000, file);                    // sizes
         int w, h, d;
-        sscanf(line, "%d %d %d", &w, &h, &d);
-        fgets(line, 1000, file);                    // [ ... ]
-        fgets(line, 1000, file);                    // { ... }
-        fgets(line, 1000, file);                    // false 3
-        fgets(line, 1000, file);                    // colorimage
-
-        Raster* raster = new Raster(w, h);
-
-        for (int row = h - 1; row >= 0; --row) {
-            for (int column = 0; column < w; ++column) {
-                int red = gethex(file);
-                int green = gethex(file);
-                int blue = gethex(file);
-                raster->poke(
-                    column, row,
-                    float(red)/0xff, float(green)/0xff, float(blue)/0xff, 1.0
-                );
+        boolean found = false;
+        while (fgets(line, 1000, file) != nil)      // seek the gsave marker;
+            if (strcmp(line, "gsave\n") == 0) {      // stop at EOF rather than
+                found = true; break;                 // spin on a stale line
             }
+        // Guarded like PGM_Image: a short read bails to the nil return instead
+        // of parsing garbage; none of these fire on a well-formed export.
+        if (found
+            && fgets(line, 1000, file)               // translate
+            && fgets(line, 1000, file)               // scale
+            && fgets(line, 1000, file)               // scale
+            && fgets(line, 1000, file)               // sizes
+            && sscanf(line, "%d %d %d", &w, &h, &d) == 3
+            && fgets(line, 1000, file)               // [ ... ]
+            && fgets(line, 1000, file)               // { ... }
+            && fgets(line, 1000, file)               // false 3
+            && fgets(line, 1000, file)) {            // colorimage
+
+            Raster* raster = new Raster(w, h);
+
+            for (int row = h - 1; row >= 0; --row) {
+                for (int column = 0; column < w; ++column) {
+                    int red = gethex(file);
+                    int green = gethex(file);
+                    int blue = gethex(file);
+                    raster->poke(
+                        column, row,
+                        float(red)/0xff, float(green)/0xff, float(blue)/0xff, 1.0
+                    );
+                }
+            }
+            raster->flush();
+            comp = new RasterComp(new RasterRect(raster), filename);
         }
-        raster->flush();
-        comp = new RasterComp(new RasterRect(raster), filename);
     }
     
     if (compressed) {

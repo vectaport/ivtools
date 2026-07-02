@@ -268,8 +268,8 @@ protected:
 //: helper class for reading PGM or PPM images.
 class PortableImageHelper {
 public:
-    PortableImageHelper(boolean is_ascii=false) 
-      { _is_ascii = is_ascii; _maxval = 255;}
+    PortableImageHelper(boolean is_ascii=false)
+      { _is_ascii = is_ascii; _maxval = 255; _truncated = false; }
     virtual boolean ppm() = 0;
     virtual int bytes_per_pixel() = 0;
     virtual void read_write_pixel( FILE* in, FILE* out ) = 0;
@@ -280,9 +280,16 @@ public:
     boolean is_ascii() { return _is_ascii; }
     void maxval(int maxv) { _maxval = maxv; }
     int maxval() { return _maxval; }
+
+    // Read one ASCII pixel component; on a truncated/malformed stream return
+    // black (0) rather than leave the value uninitialized, and warn ONCE per
+    // image (a per-pixel message would flood).  On a well-formed file the guard
+    // never fires and behavior is unchanged.
+    int read_ascii_component( FILE* file );
 protected:
     boolean _is_ascii;
     int _maxval;
+    boolean _truncated;   // has a black pixel already been substituted?
 };
 
 

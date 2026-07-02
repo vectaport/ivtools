@@ -249,8 +249,7 @@ int main(int argc, char *argv[]) {
       istream in(&ibuf);
       
       for (;;) {
-	fgets(buffer, BUFSIZ*BUFSIZ, inptr);
-	if (feof(inptr)) break;
+	if (!fgets(buffer, BUFSIZ*BUFSIZ, inptr)) break;  // EOF or read error
 	out << buffer;
 	out.flush();
 	char inbuf[BUFSIZ];

@@ -114,10 +114,10 @@ void TextFileComp::Init() {
 	int bufsiz = BUFSIZ;
 	int buflen = 0;
 
-	fgets( inbuf, BUFSIZ, fptr);
+	if (!fgets( inbuf, BUFSIZ, fptr)) inbuf[0] = '\0';  // empty on EOF/err; feof ends the loop
 	if (_begstr) 
 	    while (!feof(fptr) && strncmp(_begstr, inbuf, strlen(_begstr)) != 0) 
-		fgets( inbuf, BUFSIZ, fptr);
+		if (!fgets( inbuf, BUFSIZ, fptr)) inbuf[0] = '\0';  // empty on EOF/err; feof ends the loop
 
 	int len;
 	int nc = 0;
@@ -212,7 +212,7 @@ void TextFileComp::Init() {
                 strcpy(buffer+buflen, inbuf);
 	        buflen += strlen(inbuf);
             }
-	    fgets( inbuf, BUFSIZ, fptr);
+	    if (!fgets( inbuf, BUFSIZ, fptr)) inbuf[0] = '\0';  // empty on EOF/err; feof ends the loop
 	}
 	/* done looping until eof or endstr is found */
     }

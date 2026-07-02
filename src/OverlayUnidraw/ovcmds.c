@@ -1129,7 +1129,8 @@ void OvWindowDumpAsCmd::Execute () {
 		     name);
 	      ed->GetWindow()->cursor(hourglass);
 	      chooser_->twindow()->cursor(hourglass);
-	      system(cmdbuf);
+	      if (system(cmdbuf) != 0)
+		fprintf(stderr, "screen-capture command failed: %s\n", cmdbuf);
 	      ed->GetWindow()->cursor(arrow);
 	      chooser_->twindow()->cursor(arrow);
 	      break;
