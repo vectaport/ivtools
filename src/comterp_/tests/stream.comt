@@ -318,6 +318,21 @@ print("38a next(s1);next(s1); s2=$$s1; next(s2) pos preserved (expect 3): %v\n" 
 print("38b next(s1) original also at 3 (expect 3): %v\n" v2)
 prev_ok=check_fail(:ok ok)
 
+// --- test 39: scalar overdrive with a stream held in a VARIABLE.
+//     Bug: var*var and var*lit returned only the left operand's elements
+//     (the left stream-variable was left unresolved in the overdrive pack, so
+//     the per-element zip did not stream it).  A stream in a variable must
+//     overdrive exactly like a stream literal on the left. ---
+a1=(1 2 3)
+b1=(4 5 6)
+r1=list(a1*b1)
+ok=ok&&(r1==(4,10,18))
+c1=(4 5 6)
+r2=list(c1*(1 2 3))
+ok=ok&&(r2==(4,10,18))
+print("39 var*var and var*lit overdrive (expect {4,10,18} both): %v %v\n" r1 r2)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
