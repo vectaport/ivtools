@@ -179,6 +179,10 @@ public:
     void assign_symval(int id, ComValue*);
 
     virtual boolean post_eval() { return false; }
+    // true only for the ~~ spread operator, which intentionally pushes a
+    // runtime-variable number of positional values instead of exactly one --
+    // eval_expr_internals skips its single-value-pushed accounting check for it.
+    virtual boolean spreads() { return false; }
     virtual const char* docstring() { return "%s: no docstring method defined"; }
     const char* docstring2() { return _docstring2; }
     void docstring2(const char* str) { delete _docstring2; _docstring2 = strnew(str); }

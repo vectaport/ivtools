@@ -161,6 +161,7 @@ void ComTerp::init() {
     _brief = true;
     _just_reset = false;
     _defaults_added = false;
+    _pending_spread = 0;
     _handler = nil;
     _val_for_next_func = nil;
     _func_for_next_expr = nil;
@@ -333,7 +334,12 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     ComFunc* func = nil;
-    int nargs = sv.narg();
+    /* fold in any surplus positionals a ~~ (SpreadFunc) just pushed as a direct
+       arg of this command: the parser counted "~~x" as one arg, SpreadFunc
+       drained x to N values and recorded (N-1) via add_spread(). take_spread()
+       returns and clears it, so it applies only to this immediately-following
+       command. */
+    int nargs = sv.narg() + take_spread();
     int nkeys = sv.nkey();
     int func_for_next_expr_post_eval = 0;
     if (_func_for_next_expr) {
@@ -410,14 +416,18 @@ void ComTerp::eval_expr_internals(int pedepth) {
       _just_reset = false;
     }
 
-    if (stack_base+1 < _stack_top) {
-      fprintf(stderr, "func \"%s\" pushed more than a single value on stack (line %d)\n", symbol_pntr(func->funcid()), linenum);
-      fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
-      for(int i=stack_base+1; i<=_stack_top; i++)
-          std::cerr << i << ":  " << _stack[i] << "\n";
+    /* the ~~ spread operator deliberately pushes a runtime-variable number of
+       positionals (0..N), so exempt it from the single-value-pushed check */
+    if (!func->spreads()) {
+      if (stack_base+1 < _stack_top) {
+        fprintf(stderr, "func \"%s\" pushed more than a single value on stack (line %d)\n", symbol_pntr(func->funcid()), linenum);
+        fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
+        for(int i=stack_base+1; i<=_stack_top; i++)
+            std::cerr << i << ":  " << _stack[i] << "\n";
+      }
+      else if (stack_base+1 > _stack_top)
+        fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
     }
-    else if (stack_base+1 > _stack_top)
-      fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
 
     return;
     
@@ -1429,6 +1439,7 @@ void ComTerp::add_defaults() {
     add_command("false", new FalseFunc(this));
 
     add_command("stream", new StreamFunc(this));
+    add_command("spread", new SpreadFunc(this));
     add_command("concat", new ConcatFunc(this));
     add_command("repeat", new RepeatFunc(this));
     add_command("iterate", new IterateFunc(this));

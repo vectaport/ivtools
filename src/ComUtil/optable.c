@@ -109,6 +109,7 @@ struct _opr_tbl_default_entry {
   {"--",         "decr",               110,        TRUE,       OPTYPE_UNARY_PREFIX },
   {"--",         "decr_after",         110,        TRUE,       OPTYPE_UNARY_POSTFIX },
   {"$$",         "stream",             100,         TRUE,       OPTYPE_UNARY_PREFIX },
+  {"~~",         "spread",             100,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },

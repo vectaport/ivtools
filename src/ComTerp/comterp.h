@@ -131,9 +131,17 @@ public:
 
     ComValue pop_stack(boolean lookupsym=true);
     // return a reference (on the stack) to what was the top of the stack,
-    // if 'lookupsym' is false, don't look up ComValue objects in 
+    // if 'lookupsym' is false, don't look up ComValue objects in
     // the local or global symbol table to replace a symbol, just
     // return the symbol itself.
+
+    // ~~ spread support: the SpreadFunc pushes N positional values where the
+    // parser counted its "~~x" expression as one arg, and records the surplus
+    // (N-1) here; eval_expr_internals folds it into the very next command's
+    // nargs and clears it (take_spread).  So it only reaches the command ~~x
+    // is a direct positional arg of.
+    void add_spread(int n) { _pending_spread += n; }
+    int take_spread() { int s = _pending_spread; _pending_spread = 0; return s; }
     ComValue& lookup_symval(ComValue&);
     // look up a ComValue associated with a symbol (specified in the
     // input ComValue) in the local or global symbol tables.
@@ -382,7 +390,9 @@ protected:
     int _pfoff; // current offset in _pfbuf
     boolean _brief; // when used to produce ComValue output
     boolean _just_reset; // flag that gets set after call to ::reset_stack()
-    boolean _defaults_added; // flag for base set of commands added 
+    boolean _defaults_added; // flag for base set of commands added
+    int _pending_spread; // surplus positionals a ~~ (SpreadFunc) pushed, folded
+                         // into the next command's nargs (see add_spread)
 
     ComValueTable* _localtable; // per interpreter symbol table
     static ComValueTable* _globaltable; // interpreter shared symbol table

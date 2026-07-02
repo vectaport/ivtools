@@ -61,6 +61,27 @@ public:
 
 };
 
+//: ~~ spread operator -- drain a stream (or list/val) and push its elements
+//: as separate positional arguments of the enclosing command, so one command
+//: runs once over all of them (var-arg expansion), rather than a list-in-one-
+//: arg ($/list) or a per-element command replay (overdrive).  Post-eval so its
+//: own stream operand is never overdriven; spreads() so it may push a runtime-
+//: variable count.  Reuses the operand stack's normal 2x growth -- an infinite
+//: stream runs away like any non-terminating program (no special cap).
+class SpreadFunc : public StrmFunc {
+public:
+    SpreadFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual boolean spreads() { return true; }
+    virtual const char* docstring() {
+      return "~~ spread operator -- expand a stream (or list) into the positional args of the enclosing command"; }
+
+    CLASS_SYMID("SpreadFunc");
+
+};
+
 //: info command for stream objects.
 // attrlst=info(streamobj)      -- AttributeList describing a literal stream's
 //                                 directory: func, ntoks, nremaining,

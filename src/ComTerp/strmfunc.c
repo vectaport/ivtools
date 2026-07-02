@@ -260,6 +260,58 @@ void StreamFunc::execute_literal() {
 
 /*****************************************************************************/
 
+SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void SpreadFunc::execute() {
+  ComValue operand1(stack_arg_post_eval(0));
+
+  /* Normalize a bare list/attrlist/scalar into an internal stream exactly the
+     way $$ (StreamFunc) does, so the drain loop below is uniform.  A stream
+     operand is driven as-is. */
+  if (!operand1.is_stream()) {
+    static StreamNextFunc* snfunc = nil;
+    if (!snfunc) {
+      snfunc = new StreamNextFunc(comterp());
+      snfunc->funcid(symbol_add("streamnext"));
+    }
+    AttributeValueList* avl;
+    if (operand1.is_array())
+      avl = new AttributeValueList(operand1.array_val());
+    else {
+      avl = new AttributeValueList();
+      avl->Append(new AttributeValue(operand1));
+    }
+    ComValue stream(snfunc, avl);
+    stream.stream_mode(STREAM_INTERNAL);
+    operand1 = stream;
+  }
+
+  reset_stack();
+
+  /* Drain the stream, LEAVING every element on the operand stack as a
+     positional argument of the enclosing command (EachFunc pops each to count;
+     we keep them).  count them so eval_expr_internals can grow the enclosing
+     command's nargs -- the parser counted "~~x" as a single arg, so the delta
+     is count-1.  The stack self-doubles as always; an infinite stream runs away
+     like any non-terminating loop (no cap by design), and push_stack's realloc
+     failure raises the usual comterp error if memory is exhausted. */
+  int count = 0;
+  boolean done = false;
+  while (!done) {
+    NextFunc::execute_impl(comterp(), operand1, false);
+    if (comterp()->stack_top().is_unknown()) {
+      comterp()->pop_stack();   /* drop the terminal end-of-stream marker */
+      done = true;
+    } else
+      count++;                  /* keep this element on the stack */
+  }
+
+  comterp()->add_spread(count - 1);
+}
+
+/*****************************************************************************/
+
 int StreamNextFunc::_symid;
 
 StreamNextFunc::StreamNextFunc(ComTerp* comterp) : StrmFunc(comterp) {

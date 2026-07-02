@@ -1,0 +1,41 @@
+// spread.comt -- the ~~ spread operator expands a stream (or list) into the
+// positional (var-arg) slots of the enclosing command, so ONE command runs
+// once over all the elements (batch), rather than $/list (elements in one list
+// arg) or a bare stream (per-element overdrive replay).
+//
+// Probe: print() is an eager var-arg command -- it reads nargsfixed() values
+// via stack_arg(curr) and cycles its format string over them -- so the
+// returned string (:str) reveals exactly how many positional args it received.
+//
+// coverage: ~~ spread operator (stream/list -> var-args), one enclosing call
+// funcs: spread stream print
+// missing:
+ok=1
+
+// baseline -- literal var-args, print cycles "%d," over three values
+b=print("%d," 1 2 3 :str)
+ok=ok&&(b=="1,2,3,")
+print("print(fmt 1 2 3) var-arg baseline -> %s (ok=%d)\n" b ok)
+
+// spread a LIST literal into print's var-args: ~~(1,2,3) == 1 2 3
+r1=print("%d," ~~(1,2,3) :str)
+ok=ok&&(r1=="1,2,3,")
+print("print(fmt ~~(1,2,3)) -> %s (ok=%d)\n" r1 ok)
+
+// spread a $$ STREAM into print's var-args
+r2=print("%d," ~~$$(4,5,6,7) :str)
+ok=ok&&(r2=="4,5,6,7,")
+print("print(fmt ~~$$(4,5,6,7)) -> %s (ok=%d)\n" r2 ok)
+
+// a leading literal positional, then a spread tail (delta applies to print)
+r3=print("%d," 9 ~~(1,2,3) :str)
+ok=ok&&(r3=="9,1,2,3,")
+print("print(fmt 9 ~~(1,2,3)) -> %s (ok=%d)\n" r3 ok)
+
+// single-element spread collapses to one positional
+r4=print("%d," ~~(8) :str)
+ok=ok&&(r4=="8,")
+print("print(fmt ~~(8)) -> %s (ok=%d)\n" r4 ok)
+
+print("spread: %v\n" ok)
+ok
