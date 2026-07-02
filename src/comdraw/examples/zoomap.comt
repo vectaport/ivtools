@@ -159,6 +159,17 @@ dance=func(
   select(:clear);
   update())
 
+// oops() -- ask the map to explain the last error message.
+// errmsg(:last) hands back the interpreter's saved error (it survives
+// any good commands typed in between, and reading it clears it), so
+// even a raw parser error is reachable from up here in the applet.
+oops=func(
+  m=errmsg(:last);
+  if(m==nil :then print("No mistakes waiting! The map is happy. Try zoohelp()\n"));
+  if(m!=nil :then print("The map got confused. It said:\n    %v\n" m));
+  if(m!=nil :then print("Check for: quotes around words -- who(\"swims\") -- and matching ( ) pairs.\n"));
+  nil)
+
 // zoohelp() -- remind me of the magic words
 zoohelp=func(
   print("*** MAGIC WORDS FOR YOUR ZOO MAP ***\n");
@@ -168,6 +179,7 @@ zoohelp=func(
   print("  haslegs(4)       -- who has 4 legs? (try 0 and 2 too!)\n");
   print("  countlegs()      -- count every leg in the zoo\n");
   print("  dance()          -- everybody wiggle!\n");
+  print("  oops()           -- the map explains your last error\n");
   print("YOUR TURN: add your own animal, then find it --\n");
   print("  pig=ellipse(200,220, 25,15)\n");
   print("  setattr(pig :name \"Penny\" :kind \"animal\" :legs 4 :eats \"corn\" :moves \"trots\")\n");

@@ -110,16 +110,37 @@ if(target==nil :then print("Oops! Put quotes around your word, like this:  who(\
 if(target==nil :then return(0));
 ```
 
-Three tiers of miss, in decreasing order of the applet's control:
+Four tiers of miss, in decreasing order of the applet's control:
 
 - **Guarded miss** — nil/malformed args caught by the func, answered
   with a corrected example to retype.
 - **Honest miss** — well-formed query, no matches (`who("Swims")`,
   case-sensitive): a friendly "nobody matches, try zoohelp()".
-- **Syntax miss** — a missing paren falls through to the interpreter's
-  own parser and errsys messages; the applet cannot catch these.  This
-  boundary is real: below it, kid-friendliness is a `comterp.err`
-  wording question, not a script question.
+- **Syntax miss** — a stray operator or unbalanced paren falls through
+  to the interpreter's parser, which prints its raw errsys message.
+  The applet cannot intercept that moment, but it can reach the error
+  *after the fact*: `errmsg(:last)` returns the saved message — it
+  survives any good commands typed in between, and reading it clears
+  it.  zoomap wraps this in a recovery word:
+
+  ```
+  (comt) 1+*2
+  comterp:  (1) Unexpected operator (*)
+  (comt) oops()
+  The map got confused. It said:
+      "comterp:  (1) Unexpected operator (*)"
+  Check for: quotes around words -- who("swims") -- and matching ( ) pairs.
+  ```
+
+  The interpreter's words are replayed, then followed with a
+  kid-readable checklist.  Only the raw wording itself remains an
+  errsys (`comterp.err`) question.
+
+- **Silent miss** — a misspelled word (`zoohlep()`) is an unknown
+  symbol: it returns nil with *no error saved*, by the same design
+  that silently ignores unknown keywords.  This is the one tier no
+  recovery word can see; the applet's defense is magic words short
+  and pronounceable enough not to misspell.
 
 ### The distribution path
 
@@ -154,6 +175,9 @@ by re-running the file.
 7. Append to match-lists with bare `lst,x` — parenthesized `(lst,x)`
    silently drops appends.  Creation coordinates are comma-tuples
    (`rect(0,0, 50,50)`), not space-separated.
+8. Give the app a recovery word.  `errmsg(:last)` makes even parser
+   errors part of the applet's pedagogy — an `oops()` that replays
+   the saved message with a checklist costs six lines.
 
 The same skeleton re-skins freely: a treasure map (`dig("palm tree")`),
 a neighborhood map (`who("sells ice cream")`), a solar system
