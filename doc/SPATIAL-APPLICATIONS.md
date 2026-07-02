@@ -228,6 +228,46 @@ commands zoomap already uses:
   drag-and-drop events to interpreter funcs the way `errmsg(:last)`
   hands over parser errors.
 
+### The representation ladder
+
+A second axis of extension: how much graphic each animal *is*.  The
+askable-map anatomy makes this a free variable — facts attach to the
+top-level comp whatever its class, the query walk and the marker rings
+run on `frame()`/`mbr()`/`center()`, which every comp answers — so the
+data and question layers never change while the drawing layer climbs
+four rungs of fidelity:
+
+1. **Simple shape** — one primitive per animal (zoomap today: Ellie
+   is an ellipse).
+
+2. **Vector drawing** — a real multi-graphic drawing of the animal,
+   collapsed to one comp with `group()`, or a finished idraw drawing
+   brought in with `import()`.  `setattr` the group and nothing else
+   changes: the ring circles the group's mbr, `dance()` rotates it
+   whole.
+
+3. **Trimmed photo** — `import()` a ppm/pgm raster, trace the animal's
+   outline with the polygon tool, and `pclip(photo outline)` trims the
+   raster to the traced boundary (`pclip` accepts a drawn compview as
+   the clip polygon); `alpha()` settles it into the scene.  Note the
+   trace *is* direct manipulation — the mouse half of the dialogue,
+   put to work building the datastore.
+
+4. **View-blended 3D** — the animal reconstructed from photographs:
+   perspective-warp each 2D image and blend between them as the
+   camera angle changes.  This is a C++ excursion in the ipl
+   tradition — the affine transformer (2x3) tops out below projective
+   warp, so a homography resample is new machinery, as is
+   angle-weighted compositing.  But the *organization* of the rung is
+   the genre again, one level down: the source photos are themselves
+   an askable collection, each carrying its camera facts
+   (`setattr(shot :az 40 :el 10)`), and the blender is the `who()`
+   skeleton pointed at imagery — walk the shots, compare angle facts,
+   weight, composite.
+
+Rungs 1–3 need only commands already registered in comdraw; rung 4 is
+where the drawing server rejoins the image pipeline it was born on.
+
 ---
 
 ## Future categories
