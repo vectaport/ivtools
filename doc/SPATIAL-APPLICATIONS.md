@@ -155,6 +155,25 @@ Four tiers of miss, in decreasing order of the applet's control:
   recovery word can see; the applet's defense is magic words short
   and pronounceable enough not to misspell.
 
+There is a reason the applet can treat failure this casually, and it
+has a lineage: the Lisp machines worked the same way — an error
+dropped you into a conversation with the still-running system, not
+out of a dead one.  An interpreter converts crashes into
+conversations.  The worst a zoomap bug can do is disturb session
+state — a stray ring, handles left off — and every such state is
+repaired by typing another command at a prompt that is still
+standing.  The same defect class one layer down, in the C++, is a
+use-after-free.
+
+The safety lives in the vocabulary, though, not in the interpreter.
+comterp itself carries real effectors — `import(:popen)` runs shell
+commands, `save`/`export` write the filesystem, `socket()`/`remote()`
+reach the network.  zoomap feels inherently safe because its magic
+words only touch canvas state: the applet is a curated subset of the
+language, an informal capability boundary.  The genre's safety comes
+from the same place its teachability does — the app speaks only words
+whose consequences fit on the canvas.
+
 ### The distribution path
 
 Because the REPL is the wire protocol, the askable map is already a
