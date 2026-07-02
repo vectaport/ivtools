@@ -451,6 +451,87 @@ void RepeatFunc::execute() {
 
 /*****************************************************************************/
 
+ReplayFunc::ReplayFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void ReplayFunc::execute() {
+    /* post_eval: take the WHOLE stream operand (like ConcatFunc), not a
+       per-element broadcast.  A %% N -- build the internal replay stream. */
+    ComValue operand1(stack_arg_post_eval(0));
+    ComValue operand2(stack_arg_post_eval(1));
+    reset_stack();
+
+    if (operand1.is_nil() || operand2.is_nil()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    int n = operand2.int_val();
+
+    static ReplayNextFunc* rnfunc = nil;
+    if (!rnfunc) {
+      rnfunc = new ReplayNextFunc(comterp());
+      rnfunc->funcid(symbol_add("replaynext"));
+    }
+    AttributeValueList* avl = new AttributeValueList();
+    avl->Append(new AttributeValue(operand1));                    // [0] source stream (template, never consumed)
+    avl->Append(new AttributeValue(n, AttributeValue::IntType));  // [1] passes remaining
+    avl->Append(new AttributeValue(ComValue::nullval()));         // [2] current pass copy (a stream, or nil)
+    ComValue stream(rnfunc, avl);
+    stream.stream_mode(STREAM_INTERNAL); // driven by ReplayNextFunc
+    push_stack(stream);
+}
+
+/*****************************************************************************/
+
+ReplayNextFunc::ReplayNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void ReplayNextFunc::execute() {
+    ComValue operand1(stack_arg(0));   // our internal replay stream
+
+    /* invoked by the next mechanism */
+    reset_stack();
+    AttributeValueList* avl = operand1.stream_list();
+    if (avl) {
+      Iterator i;
+      avl->First(i);
+      AttributeValue* srcval = avl->GetAttrVal(i);   // [0] source stream (template, never consumed)
+      avl->Next(i);
+      AttributeValue* cntval = avl->GetAttrVal(i);   // [1] passes remaining
+      avl->Next(i);
+      AttributeValue* curval = avl->GetAttrVal(i);   // [2] current pass copy (a stream, or nil)
+
+      for (;;) {
+	/* start of a pass: need a fresh $$-copy of the source */
+	if (!curval->is_stream()) {
+	  if (cntval->int_val() <= 0 || !srcval->is_stream()) {
+	    push_stack(ComValue::nullval());           // all passes done (or non-stream source)
+	    return;
+	  }
+	  /* $$ copy semantics: new AVL (independent cursor), same stream func,
+	     sharing the source's immutable elements -- the source is untouched */
+	  AttributeValueList* newavl = new AttributeValueList(srcval->stream_list());
+	  ComValue copyv(srcval->stream_func(), newavl);
+	  copyv.stream_mode(srcval->stream_mode());
+	  *curval = copyv;
+	  cntval->int_ref()--;
+	}
+	/* pull the next element from the current copy */
+	ComValue curcopy(*curval);
+	NextFunc::execute_impl(comterp(), curcopy, false);
+	if (comterp()->stack_top().is_unknown()) {
+	  comterp()->pop_stack();                      // this pass exhausted
+	  *curval = ComValue::nullval();               // force a fresh copy next time
+	  continue;                                    // ...and start the next pass
+	}
+	return;   // the value from execute_impl is already on the stack
+      }
+    } else
+      push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
 IterateFunc::IterateFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 

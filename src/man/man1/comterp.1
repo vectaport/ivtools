@@ -306,7 +306,11 @@ both until exit.
 
  help(cmdname [cmdname ...] :all :posteval) -- help for commands
 
- optable(:bypri :byopr :bycom) -- print contents of operator table
+ optable(:bypri :byopr :bycom :table) -- print contents of operator table (or return as list of attrlists with :table)
+
+ optable(opstr command :insert [:pri n] [:rtol] [:prefix|:postfix]) -- add an operator to the table at runtime, mapping operator string opstr to command (e.g. optable("%%" "replay" :insert :pri 80)); reprograms the parser for the NEXT expression
+
+ optable(opstr :delete [:prefix|:postfix]) -- remove an operator added with :insert
 
 .SH DEBUG COMMANDS
 

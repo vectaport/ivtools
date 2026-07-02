@@ -289,7 +289,57 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
   static int table_symid = symbol_add("table");
   ComValue tableflag(stack_key(table_symid));
 
+  /* live operator-table editing (reprogram the parser at runtime): the change
+     takes effect for the NEXT parsed expression, like a func definition. */
+  static int insert_symid = symbol_add("insert");
+  ComValue insertflag(stack_key(insert_symid));
+  static int delete_symid = symbol_add("delete");
+  ComValue deleteflag(stack_key(delete_symid));
+  static int pri_symid = symbol_add("pri");
+  ComValue default_pri(80);
+  ComValue prival(stack_key(pri_symid, false, default_pri, true));
+  static int rtol_symid = symbol_add("rtol");
+  ComValue rtolflag(stack_key(rtol_symid));
+  static int prefix_symid = symbol_add("prefix");
+  ComValue prefixflag(stack_key(prefix_symid));
+  static int postfix_symid = symbol_add("postfix");
+  ComValue postfixflag(stack_key(postfix_symid));
+  ComValue opstrv(stack_arg(0));    // operator string (e.g. "%%")
+  ComValue commandv(stack_arg(1));  // command it maps to (e.g. "replay"), for :insert
+
   reset_stack();
+
+  /* optable("%%" "replay" :insert [:pri N] [:rtol] [:prefix|:postfix])
+     optable("%%" :delete [:prefix|:postfix])
+     -- returns 1 on success, 0 on failure.  Effective next expression. */
+  if (insertflag.is_true() || deleteflag.is_true()) {
+    if (!opstrv.is_string()) {
+      fprintf(stderr, "optable: :insert/:delete needs an operator string\n");
+      ComValue zero(0);
+      push_stack(zero);
+      return;
+    }
+    unsigned optype = prefixflag.is_true()  ? OPTYPE_UNARY_PREFIX
+                    : postfixflag.is_true() ? OPTYPE_UNARY_POSTFIX
+                    : OPTYPE_BINARY;
+    int rc;
+    if (deleteflag.is_true()) {
+      rc = opr_tbl_remove(opstrv.string_ptr(), optype);
+    } else {
+      if (!commandv.is_string()) {
+        fprintf(stderr, "optable: :insert needs a command name\n");
+        ComValue zero(0);
+        push_stack(zero);
+        return;
+      }
+      rc = opr_tbl_insert(opstrv.string_ptr(), commandv.string_ptr(),
+                          (unsigned)prival.int_val(),
+                          (BOOLEAN)rtolflag.is_true(), optype);
+    }
+    ComValue result(rc == 0 ? 1 : 0);
+    push_stack(result);
+    return;
+  }
 
   if (tableflag.is_true()) {
     // return list of attrlists, one per operator entry
