@@ -31,7 +31,7 @@ brush(5)      // Thick
 // shared center (160,160).
 select(:all)
 group()
-handles()
+handles(false)
 
 // spin the group a couple degrees per frame, paced by update(usec).
 // rotate(degflt) rotates the current selection; the group stays selected.
@@ -43,4 +43,4 @@ for(f=0 f<frames f++
   update(20000))    // 20 ms / frame
 
 select(:clear)
-handles()
+handles(true)
