@@ -283,20 +283,18 @@ void ComTerp::eval_expr_internals(int pedepth) {
     /* create another StreamType ComValue to hold all its */
     /* arguments, along with a pointer to the func. */
     boolean has_streams = false;
-    int streamid = -1;
     if (!((ComFunc*)sv.obj_val())->post_eval())
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
 	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
 	  has_streams = stack_top(-i).is_stream();
 	else {
-	  AttributeValue* testval = 
+	  AttributeValue* testval =
 	    lookup_symval(&stack_top(-i));
 	  has_streams = testval ? testval->is_stream() : false;
 	}
-	if (has_streams) {
-	  streamid = i;
-	  break;
-	}
+	if (has_streams)
+	  break;   // any stream arg triggers the overdrive; the pack loop
+		   // below re-detects stream-ness per arg (no streamid needed)
       }
     if (has_streams) {
       AttributeValueList* avl = new AttributeValueList();
@@ -308,7 +306,22 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
 
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
-	ComValue topval(pop_stack(i==streamid));
+	/* Resolve EVERY stream-valued arg, not just the first one found.
+	   A stream held in a variable arrives here as a symbol; left unresolved
+	   (as the old pop_stack(i==streamid) did for all but the first) it is not is_stream()
+	   in the AVL, so the per-element zip treats it as a whole non-stream
+	   argument -- which is why stream-var*stream-var (and var*literal)
+	   returned only the left operand's elements.  Resolving it makes it a
+	   stream value that zips per-element like a stream literal.  Scalar args
+	   stay unresolved (symbols) for per-element re-evaluation (broadcast). */
+	boolean argstream;
+	if (!stack_top().is_symbol() && !stack_top().is_attribute())
+	  argstream = stack_top().is_stream();
+	else {
+	  AttributeValue* tv = lookup_symval(&stack_top());
+	  argstream = tv ? tv->is_stream() : false;
+	}
+	ComValue topval(pop_stack(argstream));
 	avl->Prepend(new AttributeValue(topval));
       }
 
