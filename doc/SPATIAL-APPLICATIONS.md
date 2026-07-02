@@ -260,14 +260,23 @@ four rungs of fidelity:
    warp, so a homography resample is new machinery, as is
    angle-weighted compositing.  The warp core has a designated
    ancestor: Karl Fant's nonaliasing real-time spatial transform
-   (*IEEE Computer Graphics & Applications*, Jan 1986) — the
-   separable two-pass technique whose per-scanline accumulator
-   resamples a continuous input interval onto a continuous output
-   interval in one incremental pass, antialiasing under minification
-   by coverage rather than prefiltering.  It was designed for the
+   (*IEEE Computer Graphics & Applications*, Jan 1986).  Its 1-D
+   engine is a per-scanline accumulator that resamples a continuous
+   input interval onto a continuous output interval in a single
+   incremental sweep, antialiasing under minification by coverage
+   rather than prefiltering; the 2-D warp then requires two passes of
+   that engine — a horizontal pass over every row into an
+   intermediate raster, then a vertical pass over its columns.  It was designed for the
    video-rate hardware pipelines comterp originally fronted; a
    from-scratch implementation of that scanline engine is the heart
-   of this rung.  But the *organization* of the rung is the genre
+   of this rung.  For what the technique can do, see PixelCoaster
+   (vectaport.com/pixelcoaster) — real-time perspective image
+   transformation built on it, outperforming bicubic filtering in
+   both speed and quality.  Note the provenance constraint, though:
+   PixelCoaster rests on an engine copyrighted by Karl Fant (Theseus
+   Research), so the ivtools implementation must be derived from the
+   published paper alone, not ported from existing code.  But the
+   *organization* of the rung is the genre
    again, one level down: the source photos are themselves an askable
    collection, each carrying its camera facts
    (`setattr(shot :az 40 :el 10)`), and the blender is the `who()`
