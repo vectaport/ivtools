@@ -203,8 +203,13 @@ by re-running the file.
 5. Guard every argument; prefer a corrected example to an error
    message.  Remember the nil==nil trap.
 6. Style commands (`colorsrgb`, `pattern`, `brush`) paint the current
-   selection — `select(:clear)` before restyling for a new batch, or
-   the last-created graphic silently changes color.
+   selection *and* set the editor's current style — they ride the same
+   Unidraw command path as the menus, so the bare form is Logo-like
+   pen state: ambient, and dirty until reset.  `select(:clear)` before
+   restyling for a new batch, and put the pen back when a func borrows
+   it.  (Planned: these commands will accept a comp argument after the
+   graphic-state literal — `brush(65535,2 ring)` — as a pure targeted
+   restyle that leaves the global pen state untouched.)
 7. Append to match-lists with bare `lst,x` — parenthesized `(lst,x)`
    silently drops appends.  Creation coordinates are comma-tuples
    (`rect(0,0, 50,50)`), not space-separated.  `delete()` takes
