@@ -199,17 +199,18 @@ a neighborhood map (`who("sells ice cream")`), a solar system
 (`hasmoons(2)`), a garden planner (`blooms("May")`).  Swap the facts
 and the questions; the three layers and the rules stay.
 
-### Future work: the mouse half of the dialogue
+### Extensions to try: the mouse half of the dialogue
 
 So far the conversation runs one way — words in, canvas out.  But the
-MacDraw half of the graft is an *input* device too, and the genre's
-next moves put the mouse into the dialogue:
+MacDraw half of the graft is an *input* device too.  These are left as
+extensions for the reader; the first two need nothing beyond the
+commands zoomap already uses:
 
 - **Select-then-ask.**  `select()` with no arguments returns the
-  current selection — including one made by clicking.  A `tellme()`
-  that walks the selection and speaks each graphic's facts turns any
-  mouse click into a query: point at the thing instead of naming it.
-  Scriptable today.
+  current selection — including one made by clicking.  Write a
+  `tellme()` that walks the selection and speaks each graphic's
+  facts, and any mouse click becomes a query: point at the thing
+  instead of naming it.
 
 - **Pens and misplacement.**  Draw enclosures that carry facts of
   their own (`setattr(cage :kind "pen" :holds "flies")`).  Now the kid
@@ -219,14 +220,13 @@ next moves put the mouse into the dialogue:
   genre's deepest question shape: a mismatch between where things
   *are* (geometry) and where their facts say they *belong*
   (attributes).  The mouse creates the puzzle; the words find it.
-  Scriptable today.
 
 - **The map that notices.**  True direct manipulation closes the loop
   without typing: the drop itself makes the map speak — "Zig doesn't
-  fly!"  That needs an editor-side hook, a manipulator/Command
-  callback that hands drag-and-drop events to interpreter funcs the
-  way `errmsg(:last)` hands over parser errors.  The natural C++ next
-  step for the genre.
+  fly!"  That one is a C++ excursion rather than a script: it wants an
+  editor-side hook, a manipulator/Command callback that hands
+  drag-and-drop events to interpreter funcs the way `errmsg(:last)`
+  hands over parser errors.
 
 ---
 
