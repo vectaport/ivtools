@@ -207,10 +207,14 @@ boolean OvExportCmd::Export (const char* pathname) {
     if (ovpsv != nil) {
       
       filebuf fbuf;
-      char* tmpfilename;
-      
+      // One outer array (6 X's for mkstemp), also referenced by the print
+      // command below.  Previously this was an uninitialized `char*` shadowed
+      // by an inner array in the to_printer() branch, so the print command read
+      // the uninitialized outer pointer -- latent while mkstemp always failed,
+      // now live.  Single scope like ovprint.c/graphexport.c.
+      char tmpfilename[] = "/tmp/exinXXXXXX";
+
       if (chooser_->to_printer()) {
-	char tmpfilename[] = "/tmp/exinXXXXXX";  // 6 X's for mkstemp
         int fd = mkstemp(tmpfilename);
 	if (fd < 0)
 	  ok = false;
