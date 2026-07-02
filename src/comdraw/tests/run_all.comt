@@ -23,5 +23,9 @@ if(run("./gsexim.comt")
   :then print("pass: gsexim\n")
   :else print("FAIL: gsexim\n");ok=false)
 
+if(run("./group.comt")
+  :then print("pass: group\n")
+  :else print("FAIL: group\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

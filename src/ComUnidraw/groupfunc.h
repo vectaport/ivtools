@@ -42,8 +42,28 @@ class TrimGroupFunc : public UnidrawFunc {
 public:
     TrimGroupFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
 	return "newgroup=%s(groupview compview) -- remove graphic from existing group graphic"; }
+};
+
+//: command to group the current selection into a single group graphic
+// group=group() -- group the current selection into one group graphic
+class GroupFunc : public UnidrawFunc {
+public:
+    GroupFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "group=%s() -- group the current selection into a single group graphic"; }
+};
+
+//: command to ungroup a group graphic back into its members
+// ungroup([compview]) -- dissolve the selected group (or the given group) into its members
+class UngroupFunc : public UnidrawFunc {
+public:
+    UngroupFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "%s([compview]) -- ungroup the selected group (or given group) into its members"; }
 };
 
 //: command to move selection or graphic to the front
