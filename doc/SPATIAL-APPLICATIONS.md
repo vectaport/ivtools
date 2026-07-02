@@ -258,9 +258,18 @@ four rungs of fidelity:
    camera angle changes.  This is a C++ excursion in the ipl
    tradition — the affine transformer (2x3) tops out below projective
    warp, so a homography resample is new machinery, as is
-   angle-weighted compositing.  But the *organization* of the rung is
-   the genre again, one level down: the source photos are themselves
-   an askable collection, each carrying its camera facts
+   angle-weighted compositing.  The warp core has a designated
+   ancestor: Karl Fant's nonaliasing real-time spatial transform
+   (*IEEE Computer Graphics & Applications*, Jan 1986) — the
+   separable two-pass technique whose per-scanline accumulator
+   resamples a continuous input interval onto a continuous output
+   interval in one incremental pass, antialiasing under minification
+   by coverage rather than prefiltering.  It was designed for the
+   video-rate hardware pipelines comterp originally fronted; a
+   from-scratch implementation of that scanline engine is the heart
+   of this rung.  But the *organization* of the rung is the genre
+   again, one level down: the source photos are themselves an askable
+   collection, each carrying its camera facts
    (`setattr(shot :az 40 :el 10)`), and the blender is the `who()`
    skeleton pointed at imagery — walk the shots, compare angle facts,
    weight, composite.
