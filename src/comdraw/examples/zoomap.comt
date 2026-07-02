@@ -133,6 +133,14 @@ flash=func(
     update(350000));
   // delete() wants graphics one at a time, not a list variable
   for(rj=0 rj<size(rings) rj++ delete(at(rings rj)));
+  // styling the rings also set the editor's CURRENT style -- put it
+  // back to the startup default (black on white, hairline, unfilled)
+  // so the next shape anyone draws isn't born looking like a ring.
+  // (select(:clear) first: with nothing selected these only set state.)
+  select(:clear);
+  colorsrgb("#000000" "#FFFFFF");
+  brush(65535,0);
+  pattern(1);
   update())
 
 // who("swims") who("bugs") who("Ellie") -- find by name, motion, or food
