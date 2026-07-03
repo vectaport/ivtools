@@ -352,16 +352,19 @@ void EchoFunc::execute() {
 	poslist->Append(new AttributeValue(AttributeList::class_symid(), (void*)singleton));
       }
     }
+    delete keys;  /* copied into the singletons above (or unused); we own it */
     ComValue retval(poslist);
     push_stack(retval);
 
   } else if (has_kw) {
-    /* no positionals -> return the multi-attribute attrlist bare */
+    /* no positionals -> return the multi-attribute attrlist bare (adopts keys) */
     ComValue retval(AttributeList::class_symid(), keys);
     push_stack(retval);
 
-  } else
+  } else {
+    delete keys;  /* empty and unused */
     push_stack(ComValue::nullval());
+  }
 }
 
 /*****************************************************************************/
