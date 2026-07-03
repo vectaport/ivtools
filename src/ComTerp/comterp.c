@@ -302,22 +302,43 @@ void ComTerp::eval_expr_internals(int pedepth) {
       ComValue* saved = new ComValue[nall];
       for (int i = 0; i < nall; i++)
         saved[nall-1-i] = pop_stack(false);   /* saved[0] = bottom-most arg */
-      int added = 0;
+      int addpos = 0, addkey = 0;
       for (int j = 0; j < nall; j++) {
         ComValue v(saved[j]);
         if (v.is_stream() && (v.stream_mode() & STREAM_SPREAD)) {
-          int before = _stack_top;
+          int npos = 0, nkey = 0;
           boolean done = false;
           while (!done) {
             NextFunc::execute_impl(this, v, false);
             if (stack_top().is_unknown()) { pop_stack(); done = true; }
+            else if (stack_top().is_object(Attribute::class_symid())) {
+              /* an Attribute element (from an attrlist) becomes a real
+                 ":key value" keyword: push the value, then the keyword on top --
+                 the order stack_key / the funcobj decode expect.  pop_stack(false)
+                 is required: the default (lookupsym=true) tries to resolve the
+                 object as a symbol and crashes.  SpreadFunc hands us owned
+                 Attribute copies, so attr is valid across the deferred drain. */
+              ComValue av(pop_stack(false));
+              Attribute* attr = (Attribute*)av.obj_val();
+              ComValue valv(*attr->Value());
+              push_stack(valv);
+              ComValue keyv((unsigned int)attr->SymbolId(), 1, ComValue::KeywordType);
+              push_stack(keyv);
+              nkey++;
+            } else
+              npos++;                    /* a plain positional stays on the stack */
           }
-          added += (_stack_top - before) - 1;  /* N elements for 1 slot */
+          /* narg counts non-keyword args INCLUDING the values that follow
+             keywords, so each emitted keyword's value counts too; the tagged
+             ~~ slot was itself 1 narg, hence the -1. */
+          addpos += (npos + nkey - 1);
+          addkey += nkey;
         } else
           push_stack(v);
       }
       delete [] saved;
-      sv.narg(sv.narg() + added);
+      sv.narg(sv.narg() + addpos);
+      sv.nkey(sv.nkey() + addkey);
     }
   }
 

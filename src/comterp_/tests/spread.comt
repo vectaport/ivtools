@@ -41,5 +41,16 @@ addup=func(arg(0)+arg(1)+arg(2))
 ok=ok&&(addup(~~lst)==6)
 print("addup(~~lst) funcobj call -> 6 (ok=%d)\n" ok)
 
+// spread an ATTRLIST into KEYWORDS: each attribute becomes a real :key value.
+// probe: print's :str keyword makes it RETURN the string instead of printing it,
+// so ~~attrlist(:str) turning into a live :str is observable in the return value.
+kw=attrlist(:str)
+ok=ok&&(print("[%d]" 5 ~~kw)=="[5]")
+print("~~attrlist(:str) -> live :str keyword, print returns the string (ok=%d)\n" ok)
+
+// the round-trip form: positionals (list) AND keywords (attrlist) in one call
+ok=ok&&(print("[%d %d %d]" ~~lst ~~kw)=="[1 2 3]")
+print("~~lst ~~kw  positionals + keyword in one call -> [1 2 3] (ok=%d)\n" ok)
+
 print("spread: %v\n" ok)
 ok

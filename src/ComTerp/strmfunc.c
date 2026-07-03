@@ -280,6 +280,23 @@ void SpreadFunc::execute() {
     AttributeValueList* avl;
     if (operand1.is_array())
       avl = new AttributeValueList(operand1.array_val());
+    else if (operand1.is_attributelist()) {
+      /* an attrlist spreads into KEYWORDS: stream its attributes, and the
+         expansion turns each back into a real ":key value" keyword.  Store an
+         OWNED COPY of each Attribute -- new Attribute(*attr) deep-copies the
+         value it owns -- NOT a raw pointer into the source attrlist.  A ~~ stream
+         is drained later (at the enclosing call), by which point the source
+         attrlist could be freed (unlike $$, which drains immediately), so the
+         stream must carry its own copies -- same reason the is_array path
+         copies the list. */
+      avl = new AttributeValueList();
+      AttributeList* al = (AttributeList*)operand1.obj_val();
+      Iterator i;
+      for(al->First(i); !al->Done(i); al->Next(i)) {
+	Attribute* attrcopy = new Attribute(*al->GetAttr(i));
+	avl->Append(new AttributeValue(Attribute::class_symid(), (void*)attrcopy));
+      }
+    }
     else {
       avl = new AttributeValueList();
       avl->Append(new AttributeValue(operand1));
