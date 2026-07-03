@@ -291,25 +291,15 @@ void SpreadFunc::execute() {
 
   reset_stack();
 
-  /* Drain the stream, LEAVING every element on the operand stack as a
-     positional argument of the enclosing command (EachFunc pops each to count;
-     we keep them).  count them so eval_expr_internals can grow the enclosing
-     command's nargs -- the parser counted "~~x" as a single arg, so the delta
-     is count-1.  The stack self-doubles as always; an infinite stream runs away
-     like any non-terminating loop (no cap by design), and push_stack's realloc
-     failure raises the usual comterp error if memory is exhausted. */
-  int count = 0;
-  boolean done = false;
-  while (!done) {
-    NextFunc::execute_impl(comterp(), operand1, false);
-    if (comterp()->stack_top().is_unknown()) {
-      comterp()->pop_stack();   /* drop the terminal end-of-stream marker */
-      done = true;
-    } else
-      count++;                  /* keep this element on the stack */
-  }
-
-  comterp()->add_spread(count - 1);
+  /* Tag for spread and leave exactly ONE value on the stack.  The expansion
+     happens in eval_expr_internals, upstream of the command/funcobj dispatch,
+     which drains this tagged stream into the enclosing call's positionals.  So
+     ~~ obeys the one-value-per-func rule -- it never leaves the stack
+     unbalanced -- and works for any consumer (eager command OR funcobj), not
+     just the one dispatch branch push-N happened to patch.  The stream isn't
+     drained here at all; it's just flagged and handed on. */
+  operand1.stream_mode(operand1.stream_mode() | STREAM_SPREAD);
+  push_stack(operand1);
 }
 
 /*****************************************************************************/

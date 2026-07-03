@@ -37,6 +37,7 @@ class ComValue;
 #define STREAM_EXTERNAL 1
 #define STREAM_INTERNAL 2
 #define STREAM_NESTED   4
+#define STREAM_SPREAD   8  // ~~ tag: drain into the enclosing call's positionals
 
 //: base class for ComTerp stream commands.
 class StrmFunc : public ComFunc {
@@ -74,7 +75,6 @@ public:
 
     virtual void execute();
     virtual boolean post_eval() { return true; }
-    virtual boolean spreads() { return true; }
     virtual const char* docstring() {
       return "~~ spread operator -- expand a stream (or list) into the positional args of the enclosing command"; }
 

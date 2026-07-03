@@ -77,5 +77,9 @@ if(run("./funcarg.comt")
   :then print("pass: funcarg\n")
   :else print("FAIL: funcarg\n");topok=false)
 
+if(run("./spread.comt")
+  :then print("pass: spread\n")
+  :else print("FAIL: spread\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

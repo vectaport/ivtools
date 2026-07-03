@@ -161,7 +161,6 @@ void ComTerp::init() {
     _brief = true;
     _just_reset = false;
     _defaults_added = false;
-    _pending_spread = 0;
     _handler = nil;
     _val_for_next_func = nil;
     _func_for_next_expr = nil;
@@ -277,7 +276,51 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
 void ComTerp::eval_expr_internals(int pedepth) {
   static int step_symid = symbol_add("step");
   ComValue sv = pop_stack(false);
-  
+
+  /* ~~ spread expansion, upstream of the command/funcobj dispatch: if any of
+     this call's args on the stack is a STREAM_SPREAD-tagged stream (left there
+     by SpreadFunc), drain it in place so its elements become separate
+     positionals for whatever consumes them -- an eager command via stack_arg,
+     or a funcobj via its captured actuals.  Runs before the CommandType
+     overdrive scan, so a tagged stream spreads rather than overdrives.  Skipped
+     for post_eval commands, whose args are token-spans, not stack values. */
+  if ((sv.type() == ComValue::CommandType &&
+       !((ComFunc*)sv.obj_val())->post_eval()) ||
+      sv.type() == ComValue::SymbolType) {
+    int nall = sv.narg() + sv.nkey();
+    boolean has_spread = false;
+    for (int i = 0; i < nall && !has_spread; i++)
+      has_spread = stack_top(-i).is_stream() &&
+                   (stack_top(-i).stream_mode() & STREAM_SPREAD);
+    if (has_spread) {
+      /* pop the whole arg run off (top-down) preserving order, then rebuild it,
+         draining each tagged stream in place -- mirrors overdrive's pop/rebuild.
+         A tagged stream's N elements replace its single slot (added += N-1),
+         so sv.narg() grows to the real positional count for both dispatch
+         branches (CommandType reads sv.narg(); the funcobj branch reads it via
+         lookup_symval carrying narg onto the looked-up value). */
+      ComValue* saved = new ComValue[nall];
+      for (int i = 0; i < nall; i++)
+        saved[nall-1-i] = pop_stack(false);   /* saved[0] = bottom-most arg */
+      int added = 0;
+      for (int j = 0; j < nall; j++) {
+        ComValue v(saved[j]);
+        if (v.is_stream() && (v.stream_mode() & STREAM_SPREAD)) {
+          int before = _stack_top;
+          boolean done = false;
+          while (!done) {
+            NextFunc::execute_impl(this, v, false);
+            if (stack_top().is_unknown()) { pop_stack(); done = true; }
+          }
+          added += (_stack_top - before) - 1;  /* N elements for 1 slot */
+        } else
+          push_stack(v);
+      }
+      delete [] saved;
+      sv.narg(sv.narg() + added);
+    }
+  }
+
   if (sv.type() == ComValue::CommandType) {
 
     /* if func has StreamType ComValue's for arguments */
@@ -334,12 +377,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
 
     ComFunc* func = nil;
-    /* fold in any surplus positionals a ~~ (SpreadFunc) just pushed as a direct
-       arg of this command: the parser counted "~~x" as one arg, SpreadFunc
-       drained x to N values and recorded (N-1) via add_spread(). take_spread()
-       returns and clears it, so it applies only to this immediately-following
-       command. */
-    int nargs = sv.narg() + take_spread();
+    int nargs = sv.narg();
     int nkeys = sv.nkey();
     int func_for_next_expr_post_eval = 0;
     if (_func_for_next_expr) {
@@ -416,18 +454,14 @@ void ComTerp::eval_expr_internals(int pedepth) {
       _just_reset = false;
     }
 
-    /* the ~~ spread operator deliberately pushes a runtime-variable number of
-       positionals (0..N), so exempt it from the single-value-pushed check */
-    if (!func->spreads()) {
-      if (stack_base+1 < _stack_top) {
-        fprintf(stderr, "func \"%s\" pushed more than a single value on stack (line %d)\n", symbol_pntr(func->funcid()), linenum);
-        fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
-        for(int i=stack_base+1; i<=_stack_top; i++)
-            std::cerr << i << ":  " << _stack[i] << "\n";
-      }
-      else if (stack_base+1 > _stack_top)
-        fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
+    if (stack_base+1 < _stack_top) {
+      fprintf(stderr, "func \"%s\" pushed more than a single value on stack (line %d)\n", symbol_pntr(func->funcid()), linenum);
+      fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
+      for(int i=stack_base+1; i<=_stack_top; i++)
+          std::cerr << i << ":  " << _stack[i] << "\n";
     }
+    else if (stack_base+1 > _stack_top)
+      fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
 
     return;
     

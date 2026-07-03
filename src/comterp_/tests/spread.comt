@@ -34,5 +34,12 @@ print("9 ~~lst  leading + spread -> [9 1 2 3] (ok=%d)\n" ok)
 ok=ok&&(print("[%d %d %d]" ~~7,8,9 :str)=="[7 8 9]")
 print("~~7,8,9 bare literal (works, not the point) -> [7 8 9] (ok=%d)\n" ok)
 
+// spread into a FUNCOBJ call -- a funcobj reads its args as captured actuals
+// (arg(0)..arg(n)), not off the operand stack, so this only works because the
+// expansion happens upstream of the command/funcobj dispatch
+addup=func(arg(0)+arg(1)+arg(2))
+ok=ok&&(addup(~~lst)==6)
+print("addup(~~lst) funcobj call -> 6 (ok=%d)\n" ok)
+
 print("spread: %v\n" ok)
 ok
