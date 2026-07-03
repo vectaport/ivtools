@@ -466,6 +466,10 @@ void ReplayFunc::execute() {
       return;
     }
     int n = operand2.int_val();
+    if (n <= 0) {           // no passes -> empty stream; don't allocate one (cf. RepeatFunc)
+      push_stack(ComValue::nullval());
+      return;
+    }
 
     static ReplayNextFunc* rnfunc = nil;
     if (!rnfunc) {

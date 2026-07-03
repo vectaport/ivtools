@@ -1112,9 +1112,9 @@ $          stream             125        Y      UNARY PREFIX
 {
   int table_size = sizeof( DefaultOperatorTable ) /
     sizeof( struct _opr_tbl_default_entry );
-  /* Headroom beyond the built-in operators so new operators can be added at
-     runtime -- e.g. optable(:insert "%%" "replay" 80) defining an operator on
-     the fly -- without immediately maxing the table (ERR_OPRTBLMAXED).  The
+  /* Headroom beyond the built-in operators so a new operator can be added at
+     runtime -- e.g. optable("<+>" "mycmd" :insert :pri 50) defining an operator
+     on the fly -- without immediately maxing the table (ERR_OPRTBLMAXED).  The
      table is created exactly full otherwise, leaving no room for a live insert. */
   const int slack = 16;
   int index;
