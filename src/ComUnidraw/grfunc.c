@@ -1075,7 +1075,7 @@ void BrushFunc::execute() {
     if (nargs()==0 && nkeys()==0) {
         /* brush() -- return the current editor brush as a linepat,width
            literal (valid input to brush(linepat,width)), or the attrlist
-           singleton (:none 1) for the none brush.  A keyword-flag literal
+           singleton (:none true) for the none brush.  A keyword-flag literal
            travels as an attrlist, never as a raw KeywordType value --
            eager stack_key() scans frames by type, so a stored keyword
            would become a live keyword in any frame it entered. */
@@ -1107,7 +1107,7 @@ void BrushFunc::execute() {
 
     PSBrush* brush = nil;
 
-    /* the attrlist singleton (:none 1) returned by bare brush() is accepted
+    /* the attrlist singleton (:none true) returned by bare brush() is accepted
        back positionally, so saved=brush(); ...; brush(saved) round-trips
        the none brush */
     boolean none_by_value = false;

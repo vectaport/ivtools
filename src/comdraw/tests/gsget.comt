@@ -50,12 +50,12 @@ brush(saved)
 ok=ok&&(brush()==(65535,3))
 print("8 saved=brush(); brush(65535,7); brush(saved) restores (expect {65535,3}): %v\n" brush())
 
-// the none brush returns the attrlist singleton (:none 1) -- a keyword
+// the none brush returns the attrlist singleton (:none true) -- a keyword
 // literal travels as an attrlist, never as a raw keyword value
 brush(:none)
 bn=brush()
 ok=ok&&(bn.none==true)
-print("9 brush(:none); brush().none (expect (:none 1), .none true): %v %v\n" bn bn.none)
+print("9 brush(:none); brush().none (expect (:none true), .none true): %v %v\n" bn bn.none)
 
 // and the attrlist round-trips BY VALUE: brush(saved) restores none
 brush(65535,4)

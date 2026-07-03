@@ -57,7 +57,7 @@ graphical object assigned to an interpreter variable.
  brush([brushnum|:none|linepat,width]) -- set current brush from menu order,
     none brush, or linepat,width;
     return current brush as linepat,width if no args,
-    or as the attrlist singleton (:none 1) for the none brush;
+    or as the attrlist singleton (:none true) for the none brush;
     that attrlist is accepted back positionally, so
     saved=brush(); ...; brush(saved) round-trips the none brush too
  pattern([patternnum]) --  set current pattern from menu;
