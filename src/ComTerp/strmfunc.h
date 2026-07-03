@@ -37,6 +37,7 @@ class ComValue;
 #define STREAM_EXTERNAL 1
 #define STREAM_INTERNAL 2
 #define STREAM_NESTED   4
+#define STREAM_SPREAD   8  // ~~ tag: drain into the enclosing call's positionals
 
 //: base class for ComTerp stream commands.
 class StrmFunc : public ComFunc {
@@ -59,6 +60,43 @@ public:
 
     CLASS_SYMID("StreamFunc");
 
+};
+
+//: ~~ spread operator -- expand a stream/list/attrlist held by variable into the
+//: arguments of the enclosing call (list/stream elements -> positionals, attrlist
+//: -> keywords), so one command runs once over all of them, rather than a
+//: list-in-one-arg ($/list) or a per-element command replay (overdrive).
+//: SpreadFunc itself only TAGS its operand (STREAM_SPREAD) and pushes exactly ONE
+//: value -- the multi-value expansion happens later in eval_expr_internals,
+//: upstream of the command/funcobj dispatch, which drains the tagged stream in
+//: place.  Post-eval so its own stream operand is never overdriven.  No cap: an
+//: infinite stream runs away like any non-terminating program.
+class SpreadFunc : public StrmFunc {
+public:
+    SpreadFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "~~ spread operator -- expand a stream (or list) into the positional args of the enclosing command"; }
+
+    CLASS_SYMID("SpreadFunc");
+
+};
+
+//: echo -- the inverse of ~~.  Returns its evaluated args in ~~-passable form:
+//: positionals in a list, keywords as one single-attribute attrlist per keyword
+//: at the TAIL of that list (list order thus preserves keyword order), or -- when
+//: there are no positionals -- a bare multi-attribute attrlist.  So the round-trip
+//: identity echo(~~echo(x)) == echo(x) holds for positional-only, keyword-only,
+//: and mixed calls.
+class EchoFunc : public ComFunc {
+public:
+    EchoFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=%s(arg[,arg...] [:key val...]) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)"; }
 };
 
 //: info command for stream objects.

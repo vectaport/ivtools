@@ -355,6 +355,7 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 40       | `\|\|`   | or            | LtoR  | BINARY          |
 | 35       | `,`      | tuple         | LtoR  | BINARY          |
 | 32       | `$`      | list          | RtoL  | UNARY PREFIX    |
+| 32       | `~~`     | spread        | RtoL  | UNARY PREFIX    |
 | 30       | `=`      | assign        | RtoL  | BINARY          |
 | 30       | `/=`     | div_assign    | RtoL  | BINARY          |
 | 30       | `-=`     | sub_assign    | RtoL  | BINARY          |
@@ -382,6 +383,7 @@ A few things worth noting:
 | `,,` | stream concatenation |
 | `..` | iterate / range |
 | `**` | repeat |
+| `~~` | spread a collection into a call's arguments (see *The spread operator*) |
 
 ### Dot operator
 
@@ -893,6 +895,109 @@ command is not exempt from streams entirely:
 In short: streams overdrive *into* non-post-eval commands through their
 arguments, and *around* post-eval commands through external combination
 or return values -- never *through* a post-eval command's own arguments.
+
+### The spread operator `~~`: apply instead of map
+
+A bare stream argument overdrives a command -- the command is lifted
+into a lazy stream and runs once per element (map).  A `~~`-tagged
+stream does the opposite: the collection expands into the arguments of
+ONE call (apply):
+
+```
+list(print("A %v B\n" (10 20 30)))   // overdrive: A 10 B / A 20 B / A 30 B
+print("%v %v %v\n" ~~(10 20 30))     // spread: 10 20 30 -- one call
+```
+
+`~~` is unary prefix RtoL at priority 32 -- below the comma at 35,
+beside `$` -- so `~~lst` spreads a comma-built list without parens: a
+whole-collection transformer binds looser than the operator that builds
+the collection.  (`$$` sits at 100 because its operand is usually a
+single source.)
+
+What spreads, and what each element becomes:
+
+- a **list**: plain elements become positionals in order; an
+  attrlist-singleton element (below) becomes a real `:key value` keyword
+- a **stream**: same dispatch per element; a stream literal can carry
+  raw keywords directly -- `("%v %v\n" 10 20 :str)`
+- an **attrlist**: every attribute becomes a keyword
+
+Keywords delivered by `~~` are *live* -- indistinguishable from keywords
+typed at the call site.  print's `:str` (return the formatted string
+instead of writing it) makes that observable:
+
+```
+strm=("[%d %d %d]" 10 20 30 :str)
+print(~~strm)                        // "[10 20 30]" -- the whole call,
+                                     // format and mode included, traveled
+                                     // in one variable
+lstv="[%d %d %d]",10,20,30,(:str)
+print(~~lstv)                        // identical: the carriers are
+                                     // interchangeable
+```
+
+#### Carrying keywords: the attrlist singleton
+
+A keyword cannot circulate as a bare value (the evaluator's frame scan
+treats any KeywordType value as a live keyword marker), so a keyword
+*carried as data* travels as a one-entry attrlist.  Keyword-first parens
+are reader syntax for exactly this:
+
+```
+(:str)              // the singleton (:str true) -- a bare flag defaults true
+(:key 7)            // (:key 7)
+al=(:a 7); al.a     // 7 -- dot-accessible like any attrlist
+```
+
+Value-first parens remain stream literals -- the first token decides.
+`list()` reifies a stream literal's raw keywords into singletons, so the
+two carrier forms interconvert:
+
+```
+list((10 20 30 :key 55))    // {10,20,30,(:key 55)}
+```
+
+The distinction to hold onto is *carrying vs spending*: a singleton is a
+keyword carried -- printable, storable, inert in any argument frame --
+and `~~` spends it, at which point it stops being a value and becomes
+behavior.  A spent keyword leaves no printable residue: spreading
+`(:key)` into print leaves an unmatched `%v`, because print ignores
+unknown keywords like every other command.
+
+#### echo and the round-trip law
+
+`echo` is the inverse of `~~`: it returns its evaluated arguments in
+`~~`-passable form -- positionals in a list with keywords as trailing
+attrlist singletons, or bare when there is only one piece.  Together
+they form a fixed point:
+
+```
+echo(~~echo(10 20 30 :key 55))   // {10,20,30,(:key 55)} -- and stacking
+                                 // more rounds changes nothing: emit and
+                                 // apply are inverses
+```
+
+That is the governing round-trip rule: anything a command emits as its
+representation must be passable back through `~~` to reconstruct the
+same call.  The fine print is "the same call, not a better one" -- `~~`
+faithfully reproduces whatever the direct call would have done,
+including its surprises.
+
+#### Limits
+
+- Put `~~` before any parse-time keywords in the call; a spread in
+  post-keyword position lands in the keyword-counting zone and
+  misbehaves.
+- Streams are single-drain, so a spread consumes its stream; lists are
+  copied and reusable.
+- Post-eval commands (`if`, `while`, `func`, ...) read token-spans, not
+  stack values, so `~~` does not reach their arguments -- the same
+  boundary as overdrive, from the other side.
+
+Python needs two operators (`*args`, `**kwargs`) and Tcl's `{*}` splats
+untyped words; `~~` is one operator over one container because the
+element type carries the binding mode -- a plain value is a positional,
+an attrlist singleton is a keyword, and one list holds both.
 
 ### Stream-scalar broadcast via replay
 

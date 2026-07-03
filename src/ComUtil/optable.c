@@ -133,6 +133,7 @@ struct _opr_tbl_default_entry {
   {"||",         "or",                 40,         FALSE,      OPTYPE_BINARY },
   {",",          "tuple",              35,         FALSE,      OPTYPE_BINARY },
   {"$",          "list",               32,         TRUE,       OPTYPE_UNARY_PREFIX },
+  {"~~",         "spread",             32,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"%=",         "mod_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"*=",         "mpy_assign",         30,         TRUE,       OPTYPE_BINARY },
   {"+=",         "add_assign",         30,         TRUE,       OPTYPE_BINARY },

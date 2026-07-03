@@ -1,0 +1,122 @@
+// spread.comt -- the ~~ spread operator expands a stream (or list) into the
+// positional (var-arg) slots of the enclosing command, so ONE command runs
+// once over all the elements.  The point of ~~ is a collection held BY VARIABLE
+// (a stream or list) turned into an arg list; literals aren't the use case (you
+// would just type the args), so the tests spread variables.
+//
+// Probe: print() is an eager command that consumes its format left-to-right
+// across its positional values in one pass, so a format with N specs and N
+// values renders each -- revealing that ~~ delivered N separate positionals.
+// (Only an EAGER enclosing command; post_eval commands read token-spans, not
+// the operand stack, so ~~ does not reach them.)
+//
+// coverage: ~~ spread operator (stream/list by variable -> var-args;
+//           keyword-bearing carriers: stream literals with raw keywords,
+//           lists with attrlist-singleton elements; funcobj keyword binding)
+// funcs: spread stream print echo attrlist func narg list
+// missing:
+ok=1
+
+// a LIST held in a variable, spread into three positionals
+lst=1,2,3
+ok=ok&&(print("[%d %d %d]" ~~lst :str)=="[1 2 3]")
+print("~~lst   (lst=1,2,3) -> [1 2 3] (ok=%d)\n" ok)
+
+// a STREAM held in a variable, spread
+s=$$(4,5,6)
+ok=ok&&(print("[%d %d %d]" ~~s :str)=="[4 5 6]")
+print("~~s     (s=$$(4,5,6)) -> [4 5 6] (ok=%d)\n" ok)
+
+// a leading literal positional, then a spread of a variable -- order preserved
+ok=ok&&(print("[%d %d %d %d]" 9 ~~lst :str)=="[9 1 2 3]")
+print("9 ~~lst  leading + spread -> [9 1 2 3] (ok=%d)\n" ok)
+
+// bare literal spreads too (~~ ranks below the comma at 32) -- works, not the
+// point, kept only to pin the precedence
+ok=ok&&(print("[%d %d %d]" ~~7,8,9 :str)=="[7 8 9]")
+print("~~7,8,9 bare literal (works, not the point) -> [7 8 9] (ok=%d)\n" ok)
+
+// empty spread -- ~~list() drains to zero elements, contributing no positionals,
+// so a leading arg is delivered alone (the tagged slot nets out: added = -1)
+ok=ok&&(print("[%d]" 9 ~~list() :str)=="[9]")
+print("9 ~~list() empty spread -> [9] (ok=%d)\n" ok)
+
+// spread into a FUNCOBJ call -- a funcobj reads its args as captured actuals
+// (arg(0)..arg(n)), not off the operand stack, so this only works because the
+// expansion happens upstream of the command/funcobj dispatch
+addup=func(arg(0)+arg(1)+arg(2))
+ok=ok&&(addup(~~lst)==6)
+print("addup(~~lst) funcobj call -> 6 (ok=%d)\n" ok)
+
+// spread an ATTRLIST into KEYWORDS: each attribute becomes a real :key value.
+// probe: print's :str keyword makes it RETURN the string instead of printing it,
+// so ~~attrlist(:str) turning into a live :str is observable in the return value.
+kw=attrlist(:str)
+ok=ok&&(print("[%d]" 5 ~~kw)=="[5]")
+print("~~attrlist(:str) -> live :str keyword, print returns the string (ok=%d)\n" ok)
+
+// the round-trip form: positionals (list) AND keywords (attrlist) in one call
+ok=ok&&(print("[%d %d %d]" ~~lst ~~kw)=="[1 2 3]")
+print("~~lst ~~kw  positionals + keyword in one call -> [1 2 3] (ok=%d)\n" ok)
+
+// echo is the inverse of ~~: it returns its evaluated args in ~~-passable form
+// (positionals in a list, keywords as tail attrlist singletons, or a bare
+// attrlist), so echo(~~echo(x)) == echo(x) -- the round-trip identity.  Compare
+// the %v renderings; single keyword to dodge the multi-attr order issue.
+ok=ok&&(print("%v" echo(~~echo(1 2 3)) :str)==print("%v" echo(1 2 3) :str))
+print("echo(~~echo(1 2 3)) identity, positionals (ok=%d)\n" ok)
+ok=ok&&(print("%v" echo(~~echo(:a 3)) :str)==print("%v" echo(:a 3) :str))
+print("echo(~~echo(:a 3)) identity, keyword (ok=%d)\n" ok)
+ok=ok&&(print("%v" echo(~~echo(1 2 :a 3)) :str)==print("%v" echo(1 2 :a 3) :str))
+print("echo(~~echo(1 2 :a 3)) identity, mixed (ok=%d)\n" ok)
+
+// --- keyword-bearing carriers: the argument vector travels whole ---
+
+// a STREAM LITERAL carrying its own keyword: format string, values, and the
+// :str mode all in one variable -- print(~~strm) is the entire call
+strm=("[%d %d %d]" 10 20 30 :str)
+ok=ok&&(print(~~strm)=="[10 20 30]")
+print("print(~~strm) stream-literal carrier w/ fmt + :str inside (ok=%d)\n" ok)
+
+// the same vector as a LIST whose keyword rides as an attrlist-singleton
+// ELEMENT -- (:str) is reader syntax for a keyword carried as data
+lstv="[%d %d %d]",10,20,30,(:str)
+ok=ok&&(print(~~lstv)=="[10 20 30]")
+print("print(~~lstv) list carrier w/ (:str) singleton element (ok=%d)\n" ok)
+
+// carrier equivalence: stream literal and singleton-bearing list make the
+// SAME call (streams are single-drain, so a fresh one for the comparison)
+strm2=("[%d %d %d]" 10 20 30 :str)
+ok=ok&&(print(~~strm2)==print(~~lstv))
+print("stream-literal and list carriers agree (ok=%d)\n" ok)
+
+// keyword-first parens are an ATTRLIST LITERAL -- the singleton has reader
+// syntax; dot-access reads it back, bare flag defaults true
+al=(:a 7)
+ok=ok&&(al.a==7)
+print("al=(:a 7); al.a attrlist-literal reader syntax -> 7 (ok=%d)\n" ok)
+fl=(:flag)
+ok=ok&&(fl.flag==true)
+print("fl=(:flag); fl.flag bare-flag literal defaults true (ok=%d)\n" ok)
+
+// list() reifies a stream literal's raw keyword into a singleton -- the two
+// carriers are interconvertible
+ok=ok&&(print("%v" list((10 :a 5)) :str)==print("%v" 10,(:a 5) :str))
+print("list((10 :a 5)) reifies keyword to singleton (ok=%d)\n" ok)
+
+// spread keywords BIND in funcobjs exactly like parse-time keywords
+kf=func(key)
+ok=ok&&(kf(~~(:key))==true)
+print("kf=func(key); kf(~~(:key)) bare flag binds true (ok=%d)\n" ok)
+ok=ok&&(kf(~~(:key 7))==7)
+print("kf(~~(:key 7)) keyword value binds (ok=%d)\n" ok)
+ok=ok&&(kf(~~(10 :key 7))==7)
+print("kf(~~(10 :key 7)) mixed vector still binds the keyword (ok=%d)\n" ok)
+
+// accounting: a spread singleton binds as a KEYWORD, not an extra positional
+nf=func(narg())
+ok=ok&&(nf(~~lstv)==4)
+print("nf(~~lstv)==4 singleton not counted as a positional (ok=%d)\n" ok)
+
+print("spread: %v\n" ok)
+ok

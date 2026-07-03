@@ -131,7 +131,7 @@ public:
 
     ComValue pop_stack(boolean lookupsym=true);
     // return a reference (on the stack) to what was the top of the stack,
-    // if 'lookupsym' is false, don't look up ComValue objects in 
+    // if 'lookupsym' is false, don't look up ComValue objects in
     // the local or global symbol table to replace a symbol, just
     // return the symbol itself.
     ComValue& lookup_symval(ComValue&);
@@ -382,7 +382,7 @@ protected:
     int _pfoff; // current offset in _pfbuf
     boolean _brief; // when used to produce ComValue output
     boolean _just_reset; // flag that gets set after call to ::reset_stack()
-    boolean _defaults_added; // flag for base set of commands added 
+    boolean _defaults_added; // flag for base set of commands added
 
     ComValueTable* _localtable; // per interpreter symbol table
     static ComValueTable* _globaltable; // interpreter shared symbol table
