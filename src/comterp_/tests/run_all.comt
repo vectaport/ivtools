@@ -77,5 +77,9 @@ if(run("./funcarg.comt")
   :then print("pass: funcarg\n")
   :else print("FAIL: funcarg\n");topok=false)
 
+if(run("./replay.comt")
+  :then print("pass: replay\n")
+  :else print("FAIL: replay\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok
