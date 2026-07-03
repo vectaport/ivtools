@@ -62,13 +62,15 @@ public:
 
 };
 
-//: ~~ spread operator -- drain a stream (or list/val) and push its elements
-//: as separate positional arguments of the enclosing command, so one command
-//: runs once over all of them (var-arg expansion), rather than a list-in-one-
-//: arg ($/list) or a per-element command replay (overdrive).  Post-eval so its
-//: own stream operand is never overdriven; spreads() so it may push a runtime-
-//: variable count.  Reuses the operand stack's normal 2x growth -- an infinite
-//: stream runs away like any non-terminating program (no special cap).
+//: ~~ spread operator -- expand a stream/list/attrlist held by variable into the
+//: arguments of the enclosing call (list/stream elements -> positionals, attrlist
+//: -> keywords), so one command runs once over all of them, rather than a
+//: list-in-one-arg ($/list) or a per-element command replay (overdrive).
+//: SpreadFunc itself only TAGS its operand (STREAM_SPREAD) and pushes exactly ONE
+//: value -- the multi-value expansion happens later in eval_expr_internals,
+//: upstream of the command/funcobj dispatch, which drains the tagged stream in
+//: place.  Post-eval so its own stream operand is never overdriven.  No cap: an
+//: infinite stream runs away like any non-terminating program.
 class SpreadFunc : public StrmFunc {
 public:
     SpreadFunc(ComTerp*);
