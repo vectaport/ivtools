@@ -1072,6 +1072,8 @@ BrushFunc::BrushFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void BrushFunc::execute() {
+    static int none_sym = symbol_add("none");
+
     if (nargs()==0 && nkeys()==0) {
         /* brush() -- return the current editor brush as a linepat,width
            literal (valid input to brush(linepat,width)), or the attrlist
@@ -1085,7 +1087,6 @@ void BrushFunc::execute() {
         if (!br) {
             push_stack(ComValue::nullval());
         } else if (br->None()) {
-            static int none_sym = symbol_add("none");
             AttributeList* al = new AttributeList();
             al->add_attr(none_sym, new AttributeValue(1, AttributeValue::BooleanType));
             ComValue retval(AttributeList::class_symid(), al);
@@ -1101,7 +1102,6 @@ void BrushFunc::execute() {
     }
 
     ComValue bnum(stack_arg(0));
-    static int none_sym = symbol_add("none");
     ComValue nonev(stack_key(none_sym));
     reset_stack();
 
