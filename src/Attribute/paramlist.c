@@ -926,11 +926,16 @@ int ParamList::bintest(const char* command) {
   char combuf[BUFSIZ];
   snprintf(combuf, sizeof(combuf), "sh -c \"wr=`which %s 2> /dev/null`; echo $wr\"", command );
   FILE* fptr = popen(combuf, "r");
-  char testbuf[BUFSIZ];	
-  fgets(testbuf, BUFSIZ, fptr);  
+  if (fptr == 0) return -1;                       // popen failed -> not found
+  char testbuf[BUFSIZ];
+  if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
-	      command, strlen(command)) != 0) {
+  // guard the tail comparison so an empty/short `which' result (here the shell
+  // echoes a bare newline when nothing is found) can't index before testbuf.
+  size_t tlen = strlen(testbuf);
+  size_t clen = strlen(command);
+  if (tlen < clen + 1 ||
+      strncmp(testbuf + tlen - clen - 1, command, clen) != 0) {
     return -1;
   }
   return 0;
@@ -961,8 +966,23 @@ char ParamList::octal(const char* p) {
     return c;
 }
 
-// filter escapes embedded special characters
-
+// filter escapes a raw byte string so it can be embedded inside a double-quoted
+// ComTerp string literal and survive being re-parsed by the scanner.  It is the
+// escaping behind ComValue string output (operator<< StringType -> output_text
+// -> filter), so any value serialized through ComValue is safe to write to a
+// file or send over a comterp connection; text that is hand-assembled into a
+// command (snprintf/ostream) without passing through here is NOT escaped.
+//
+// Each non-ASCII or control byte becomes an octal escape "\NNN" (so a raw
+// newline -- which also delimits commands on a socket -- can't break the frame
+// or the parse), and a literal backslash or double-quote is backslash-escaped
+// (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
+// all of these when it reads the string back.
+//
+// Caveat: it builds into a fixed-size static buffer and clamps rather than
+// grows, so an input whose escaped form exceeds BUFSIZE is silently truncated
+// (see issue #183 for the growable-buffer rewrite).
+//
 const char* ParamList::filter (const char* string, int len) {
     TextBuffer text(textbuf, 0, BUFSIZE);
     int dot;

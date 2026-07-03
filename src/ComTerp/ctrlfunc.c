@@ -160,7 +160,10 @@ void RunFunc::execute() {
         *newptr = '\0';
         prev_basepath = curr_basepath;
         curr_basepath = new char[BUFSIZ];
-        realpath(runpath, curr_basepath);
+        if (realpath(runpath, curr_basepath) == 0) {   // unresolved (missing
+            strncpy(curr_basepath, runpath, BUFSIZ-1);  // file, perms): fall
+            curr_basepath[BUFSIZ-1] = '\0';             // back to the raw path
+        }
         char* ptr = curr_basepath+strlen(curr_basepath)-1;
         while(ptr > curr_basepath && *ptr != '/') *ptr--='\0';
         
@@ -254,9 +257,10 @@ void RemoteFunc::execute() {
     char buf[BUFSIZ];
     int i=0;
     do {
-      read(socket->get_handle(), buf+i++, 1);
+      if (read(socket->get_handle(), buf+i, 1) <= 0) break;  // peer closed/error:
+      i++;                                                    // stop, don't spin
     } while (i<BUFSIZ-1 && buf[i-1]!='\n');
-    if (buf[i-1]=='\n') buf[i]=0;
+    buf[i]=0;   // NUL-terminate whatever arrived (a partial reply on early EOF)
     // fprintf(stderr, "buf read back from remote %s", buf);
     if (strv.is_false()) {
       ComValue retval(comterpserv()->run(buf, true));

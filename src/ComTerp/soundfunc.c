@@ -44,7 +44,9 @@ void BeepFunc::execute() {
   }
   static boolean afplay = bincheck("afplay");
   if (afplay)
-    system("afplay /System/Library/Sounds/Pop.aiff &");
+    // best-effort sound: consume system()'s result (a (void) cast doesn't
+    // suppress -Wunused-result for it) -- a failed beep must not disturb anyone
+    { if (system("afplay /System/Library/Sounds/Pop.aiff &") != 0) { } }
   else {
     FILE* tty = fopen("/dev/tty", "w");
     if (tty) {
@@ -73,7 +75,9 @@ void DingFunc::execute() {
   }
   static boolean afplay = bincheck("afplay");
   if (afplay)
-      system("afplay /System/Library/Sounds/Funk.aiff &");
+      // best-effort sound (see BellFunc above); consume the result so
+      // -Wunused-result is satisfied, but ignore a failed beep
+      { if (system("afplay /System/Library/Sounds/Funk.aiff &") != 0) { } }
   else {
     FILE* tty = fopen("/dev/tty", "w");
     if (tty) {

@@ -60,9 +60,11 @@
    XQuartz's lib dir unless it travels with them. */
 #define FontCCLdLibs -L$(XLIBDIR) -lfreetype -lfontconfig
 
-/* link libraries for the above */
+/* link libraries for the above.  No explicit -lstdc++: the g++ driver is clang
+   on macOS and links libc++ automatically, so listing it just produced
+   "ld: warning: ignoring duplicate libraries: '-lc++'" on every link. */
 #undef ExtraCCLdLibs
-#define ExtraCCLdLibs -lstdc++ -lm
+#define ExtraCCLdLibs -lm
 
 #undef ExtraCCLdFlags
 #define ExtraCCLdFlags

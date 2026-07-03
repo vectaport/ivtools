@@ -260,6 +260,115 @@ void StreamFunc::execute_literal() {
 
 /*****************************************************************************/
 
+int SpreadFunc::_symid;
+
+SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void SpreadFunc::execute() {
+  ComValue operand1(stack_arg_post_eval(0));
+
+  /* Normalize a bare list/attrlist/scalar into an internal stream exactly the
+     way $$ (StreamFunc) does, so the drain loop below is uniform.  A stream
+     operand is driven as-is. */
+  if (!operand1.is_stream()) {
+    static StreamNextFunc* snfunc = nil;
+    if (!snfunc) {
+      snfunc = new StreamNextFunc(comterp());
+      snfunc->funcid(symbol_add("streamnext"));
+    }
+    AttributeValueList* avl;
+    if (operand1.is_array())
+      avl = new AttributeValueList(operand1.array_val());
+    else if (operand1.is_attributelist()) {
+      /* an attrlist spreads into KEYWORDS: stream its attributes, and the
+         expansion turns each back into a real ":key value" keyword.  Store an
+         OWNED COPY of each Attribute -- new Attribute(*attr) deep-copies the
+         value it owns -- NOT a raw pointer into the source attrlist.  A ~~ stream
+         is drained later (at the enclosing call), by which point the source
+         attrlist could be freed (unlike $$, which drains immediately), so the
+         stream must carry its own copies -- same reason the is_array path
+         copies the list. */
+      avl = new AttributeValueList();
+      AttributeList* al = (AttributeList*)operand1.obj_val();
+      Iterator i;
+      for(al->First(i); !al->Done(i); al->Next(i)) {
+	Attribute* attrcopy = new Attribute(*al->GetAttr(i));
+	avl->Append(new AttributeValue(Attribute::class_symid(), (void*)attrcopy));
+      }
+    }
+    else {
+      avl = new AttributeValueList();
+      avl->Append(new AttributeValue(operand1));
+    }
+    ComValue stream(snfunc, avl);
+    stream.stream_mode(STREAM_INTERNAL);
+    operand1 = stream;
+  }
+
+  reset_stack();
+
+  /* Tag for spread and leave exactly ONE value on the stack.  The expansion
+     happens in eval_expr_internals, upstream of the command/funcobj dispatch,
+     which drains this tagged stream into the enclosing call's positionals.  So
+     ~~ obeys the one-value-per-func rule -- it never leaves the stack
+     unbalanced -- and works for any consumer (eager command OR funcobj), not
+     just the one dispatch branch push-N happened to patch.  The stream isn't
+     drained here at all; it's just flagged and handed on. */
+  operand1.stream_mode(operand1.stream_mode() | STREAM_SPREAD);
+  push_stack(operand1);
+}
+
+/*****************************************************************************/
+
+EchoFunc::EchoFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void EchoFunc::execute() {
+  int npos = nargsfixed();
+
+  /* capture the evaluated positional values into a list */
+  AttributeValueList* poslist = npos > 0 ? new AttributeValueList() : nil;
+  for (int i = 0; i < npos; i++)
+    poslist->Append(new AttributeValue(stack_arg(i)));
+
+  /* capture the keywords as an attrlist (each add_attr copies the value) */
+  AttributeList* keys = stack_keys();
+  boolean has_kw = keys && keys->Number() > 0;
+
+  reset_stack();
+
+  if (npos > 0) {
+    /* positionals present -> a list; keywords, if any, become one
+       single-attribute attrlist per keyword at the TAIL of the list, so the
+       list's order preserves keyword order (works around the multi-attribute
+       attrlist not preserving insert order). */
+    if (has_kw) {
+      Iterator it;
+      for (keys->First(it); !keys->Done(it); keys->Next(it)) {
+	Attribute* a = keys->GetAttr(it);
+	AttributeList* singleton = new AttributeList();
+	singleton->add_attr(a->SymbolId(), *a->Value());
+	poslist->Append(new AttributeValue(AttributeList::class_symid(), (void*)singleton));
+      }
+    }
+    delete keys;  /* copied into the singletons above (or unused); we own it */
+    ComValue retval(poslist);
+    push_stack(retval);
+
+  } else if (has_kw) {
+    /* no positionals -> return the multi-attribute attrlist bare (adopts keys) */
+    ComValue retval(AttributeList::class_symid(), keys);
+    push_stack(retval);
+
+  } else {
+    delete keys;  /* empty and unused */
+    push_stack(ComValue::nullval());
+  }
+}
+
+/*****************************************************************************/
+
 int StreamNextFunc::_symid;
 
 StreamNextFunc::StreamNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
@@ -447,6 +556,91 @@ void RepeatFunc::execute() {
     ComValue stream(this, avl);
     stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
     push_stack(stream);
+}
+
+/*****************************************************************************/
+
+ReplayFunc::ReplayFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void ReplayFunc::execute() {
+    /* post_eval: take the WHOLE stream operand (like ConcatFunc), not a
+       per-element broadcast.  A %% N -- build the internal replay stream. */
+    ComValue operand1(stack_arg_post_eval(0));
+    ComValue operand2(stack_arg_post_eval(1));
+    reset_stack();
+
+    if (operand1.is_nil() || operand2.is_nil()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    int n = operand2.int_val();
+    if (n <= 0) {           // no passes -> empty stream; don't allocate one (cf. RepeatFunc)
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    static ReplayNextFunc* rnfunc = nil;
+    if (!rnfunc) {
+      rnfunc = new ReplayNextFunc(comterp());
+      rnfunc->funcid(symbol_add("replaynext"));
+    }
+    AttributeValueList* avl = new AttributeValueList();
+    avl->Append(new AttributeValue(operand1));                    // [0] source stream (template, never consumed)
+    avl->Append(new AttributeValue(n, AttributeValue::IntType));  // [1] passes remaining
+    avl->Append(new AttributeValue(ComValue::nullval()));         // [2] current pass copy (a stream, or nil)
+    ComValue stream(rnfunc, avl);
+    stream.stream_mode(STREAM_INTERNAL); // driven by ReplayNextFunc
+    push_stack(stream);
+}
+
+/*****************************************************************************/
+
+ReplayNextFunc::ReplayNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void ReplayNextFunc::execute() {
+    ComValue operand1(stack_arg(0));   // our internal replay stream
+
+    /* invoked by the next mechanism */
+    reset_stack();
+    AttributeValueList* avl = operand1.stream_list();
+    if (avl) {
+      Iterator i;
+      avl->First(i);
+      AttributeValue* srcval = avl->GetAttrVal(i);   // [0] source stream (template, never consumed)
+      avl->Next(i);
+      AttributeValue* cntval = avl->GetAttrVal(i);   // [1] passes remaining
+      avl->Next(i);
+      AttributeValue* curval = avl->GetAttrVal(i);   // [2] current pass copy (a stream, or nil)
+
+      for (;;) {
+	/* start of a pass: need a fresh $$-copy of the source */
+	if (!curval->is_stream()) {
+	  if (cntval->int_val() <= 0 || !srcval->is_stream()) {
+	    push_stack(ComValue::nullval());           // all passes done (or non-stream source)
+	    return;
+	  }
+	  /* $$ copy semantics: new AVL (independent cursor), same stream func,
+	     sharing the source's immutable elements -- the source is untouched */
+	  AttributeValueList* newavl = new AttributeValueList(srcval->stream_list());
+	  ComValue copyv(srcval->stream_func(), newavl);
+	  copyv.stream_mode(srcval->stream_mode());
+	  *curval = copyv;
+	  cntval->int_ref()--;
+	}
+	/* pull the next element from the current copy */
+	ComValue curcopy(*curval);
+	NextFunc::execute_impl(comterp(), curcopy, false);
+	if (comterp()->stack_top().is_unknown()) {
+	  comterp()->pop_stack();                      // this pass exhausted
+	  *curval = ComValue::nullval();               // force a fresh copy next time
+	  continue;                                    // ...and start the next pass
+	}
+	return;   // the value from execute_impl is already on the stack
+      }
+    } else
+      push_stack(ComValue::nullval());
 }
 
 /*****************************************************************************/

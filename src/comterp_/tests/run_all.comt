@@ -41,6 +41,10 @@ if(run("./symbol.comt")
   :then print("pass: symbol\n")
   :else print("FAIL: symbol\n");topok=false)
 
+if(run("./char.comt")
+  :then print("pass: char\n")
+  :else print("FAIL: char\n");topok=false)
+
 if(run("./help.comt")
   :then print("pass: help\n")
   :else print("FAIL: help\n");topok=false)
@@ -72,6 +76,14 @@ if(run("./bigbuf.comt")
 if(run("./funcarg.comt")
   :then print("pass: funcarg\n")
   :else print("FAIL: funcarg\n");topok=false)
+
+if(run("./spread.comt")
+  :then print("pass: spread\n")
+  :else print("FAIL: spread\n");topok=false)
+  
+if(run("./replay.comt")
+  :then print("pass: replay\n")
+  :else print("FAIL: replay\n");topok=false)
 
 print("\nrun_all: %v\n" topok)
 topok

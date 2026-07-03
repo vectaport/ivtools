@@ -276,27 +276,110 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
 void ComTerp::eval_expr_internals(int pedepth) {
   static int step_symid = symbol_add("step");
   ComValue sv = pop_stack(false);
-  
+
+  /* ~~ spread expansion, upstream of the command/funcobj dispatch: if any of
+     this call's args on the stack is a STREAM_SPREAD-tagged stream (left there
+     by SpreadFunc), drain it in place so its elements become separate
+     positionals for whatever consumes them -- an eager command via stack_arg,
+     or a funcobj via its captured actuals.  Runs before the CommandType
+     overdrive scan, so a tagged stream spreads rather than overdrives.  Skipped
+     for post_eval commands, whose args are token-spans, not stack values. */
+  if ((sv.type() == ComValue::CommandType &&
+       !((ComFunc*)sv.obj_val())->post_eval()) ||
+      sv.type() == ComValue::SymbolType) {
+    int nall = sv.narg() + sv.nkey();
+    boolean has_spread = false;
+    for (int i = 0; i < nall && !has_spread; i++)
+      has_spread = stack_top(-i).is_stream() &&
+                   (stack_top(-i).stream_mode() & STREAM_SPREAD);
+    if (has_spread) {
+      /* pop the whole arg run off (top-down) preserving order, then rebuild it,
+         draining each tagged stream in place -- mirrors overdrive's pop/rebuild.
+         A tagged stream's N elements replace its single slot (added += N-1),
+         so sv.narg() grows to the real positional count for both dispatch
+         branches (CommandType reads sv.narg(); the funcobj branch reads it via
+         lookup_symval carrying narg onto the looked-up value). */
+      ComValue* saved = new ComValue[nall];
+      for (int i = 0; i < nall; i++)
+        saved[nall-1-i] = pop_stack(false);   /* saved[0] = bottom-most arg */
+      int addpos = 0, addkey = 0;
+      for (int j = 0; j < nall; j++) {
+        ComValue v(saved[j]);
+        if (v.is_stream() && (v.stream_mode() & STREAM_SPREAD)) {
+          int npos = 0, nkey = 0;
+          boolean done = false;
+          while (!done) {
+            NextFunc::execute_impl(this, v, false);
+            if (stack_top().is_unknown()) { pop_stack(); done = true; }
+            else if (stack_top().is_object(Attribute::class_symid())) {
+              /* an Attribute element (from an attrlist) becomes a real
+                 ":key value" keyword: push the value, then the keyword on top --
+                 the order stack_key / the funcobj decode expect.  pop_stack(false)
+                 is required: the default (lookupsym=true) tries to resolve the
+                 object as a symbol and crashes.  SpreadFunc hands us owned
+                 Attribute copies, so attr is valid across the deferred drain. */
+              ComValue av(pop_stack(false));
+              Attribute* attr = (Attribute*)av.obj_val();
+              ComValue valv(*attr->Value());
+              push_stack(valv);
+              ComValue keyv((unsigned int)attr->SymbolId(), 1, ComValue::KeywordType);
+              push_stack(keyv);
+              nkey++;
+            }
+            else if (stack_top().is_attributelist()) {
+              /* an attrlist element -- e.g. a tail singleton from echo's
+                 (positionals..., attrlist-singletons) form -- spreads ALL its
+                 attributes as keywords (same emit as a single Attribute,
+                 iterated).  This inverts echo's mixed representation; a
+                 singleton yields one keyword, a multi-attribute attrlist yields
+                 several. */
+              ComValue alv(pop_stack(false));
+              AttributeList* al = (AttributeList*)alv.obj_val();
+              Iterator it;
+              for (al->First(it); !al->Done(it); al->Next(it)) {
+                Attribute* attr = al->GetAttr(it);
+                ComValue valv(*attr->Value());
+                push_stack(valv);
+                ComValue keyv((unsigned int)attr->SymbolId(), 1, ComValue::KeywordType);
+                push_stack(keyv);
+                nkey++;
+              }
+            }
+            else
+              npos++;                    /* a plain positional stays on the stack */
+          }
+          /* narg counts non-keyword args INCLUDING the values that follow
+             keywords, so each emitted keyword's value counts too; the tagged
+             ~~ slot was itself 1 narg, hence the -1. */
+          addpos += (npos + nkey - 1);
+          addkey += nkey;
+        } else
+          push_stack(v);
+      }
+      delete [] saved;
+      sv.narg(sv.narg() + addpos);
+      sv.nkey(sv.nkey() + addkey);
+    }
+  }
+
   if (sv.type() == ComValue::CommandType) {
 
     /* if func has StreamType ComValue's for arguments */
     /* create another StreamType ComValue to hold all its */
     /* arguments, along with a pointer to the func. */
     boolean has_streams = false;
-    int streamid = -1;
     if (!((ComFunc*)sv.obj_val())->post_eval())
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
 	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
 	  has_streams = stack_top(-i).is_stream();
 	else {
-	  AttributeValue* testval = 
+	  AttributeValue* testval =
 	    lookup_symval(&stack_top(-i));
 	  has_streams = testval ? testval->is_stream() : false;
 	}
-	if (has_streams) {
-	  streamid = i;
-	  break;
-	}
+	if (has_streams)
+	  break;   // any stream arg triggers the overdrive; the pack loop
+		   // below re-detects stream-ness per arg (no streamid needed)
       }
     if (has_streams) {
       AttributeValueList* avl = new AttributeValueList();
@@ -308,7 +391,22 @@ void ComTerp::eval_expr_internals(int pedepth) {
       }
 
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
-	ComValue topval(pop_stack(i==streamid));
+	/* Resolve EVERY stream-valued arg, not just the first one found.
+	   A stream held in a variable arrives here as a symbol; left unresolved
+	   (as the old pop_stack(i==streamid) did for all but the first) it is not is_stream()
+	   in the AVL, so the per-element zip treats it as a whole non-stream
+	   argument -- which is why stream-var*stream-var (and var*literal)
+	   returned only the left operand's elements.  Resolving it makes it a
+	   stream value that zips per-element like a stream literal.  Scalar args
+	   stay unresolved (symbols) for per-element re-evaluation (broadcast). */
+	boolean argstream;
+	if (!stack_top().is_symbol() && !stack_top().is_attribute())
+	  argstream = stack_top().is_stream();
+	else {
+	  AttributeValue* tv = lookup_symval(&stack_top());
+	  argstream = tv ? tv->is_stream() : false;
+	}
+	ComValue topval(pop_stack(argstream));
 	avl->Prepend(new AttributeValue(topval));
       }
 
@@ -1201,6 +1299,16 @@ void ComTerp::quit(boolean quitflag) {
 }
 
 void ComTerp::exit(int status) {
+  /* Use _exit(), not exit(): exiting from inside a reactor callback must not run
+     atexit handlers / C++ static destructors over a still-live interpreter (the
+     same use-after-free class fixed elsewhere in this layer).  But _exit() also
+     skips the stdio flush, so a final print() before exit could be lost from a
+     block-buffered stdout (e.g. when piped) -- flush it (and stderr) first.
+     Deliberately NOT fflush(NULL): a server interpreter can hold FILE* streams
+     wrapping live client sockets, and flushing one whose peer has stalled could
+     block the exit -- stdout/stderr are all a final print() needs. */
+  fflush(stdout);
+  fflush(stderr);
   _exit( status );
 }
 
@@ -1406,8 +1514,11 @@ void ComTerp::add_defaults() {
     add_command("false", new FalseFunc(this));
 
     add_command("stream", new StreamFunc(this));
+    add_command("spread", new SpreadFunc(this));
+    add_command("echo", new EchoFunc(this));
     add_command("concat", new ConcatFunc(this));
     add_command("repeat", new RepeatFunc(this));
+    add_command("replay", new ReplayFunc(this));
     add_command("iterate", new IterateFunc(this));
     add_command("next", new NextFunc(this));
     add_command("info", new InfoFunc(this));

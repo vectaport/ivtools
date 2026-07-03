@@ -63,6 +63,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <fstream.h>
+#include <unistd.h>    // mkstemp, close
 
 /*****************************************************************************/
 
@@ -199,12 +200,17 @@ boolean GraphExportCmd::Export (const char* pathname) {
     if (ovpsv != nil) {
       
       filebuf fbuf;
-      char tmpfilename[] = "/tmp/grivXXXX";
-      
+      char tmpfilename[] = "/tmp/grivXXXXXX";  // 6 X's for mkstemp
+
       if (chooser_->to_printer()) {
-	mkstemp(tmpfilename);
-	false_top->SetPathName(tmpfilename);
-	ok = fbuf.open(tmpfilename, output) != 0;
+	int fd = mkstemp(tmpfilename);
+	if (fd < 0)
+	  ok = false;
+	else {
+	  close(fd);                             // reopened by name below
+	  false_top->SetPathName(tmpfilename);
+	  ok = fbuf.open(tmpfilename, output) != 0;
+	}
       } else {
 	ok = fbuf.open(pathname, output) != 0;
       }

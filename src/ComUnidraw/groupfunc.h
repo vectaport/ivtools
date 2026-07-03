@@ -27,23 +27,43 @@
 #include <ComUnidraw/unifunc.h>
 
 //: command to add graphic to existing group graphic
-// newgroup=growgroup(groupview compview) -- add graphic to existing group graphic
+// newgrp=growgroup(groupview compview) -- add graphic to existing group graphic
 class GrowGroupFunc : public UnidrawFunc {
 public:
     GrowGroupFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "newgroup=%s(groupview compview) -- add graphic to existing group graphic"; }
+	return "newgrp=%s(groupview compview) -- add graphic to existing group graphic"; }
 };
 
 //: command to remove graphic from existing group graphic
-// newgroup=trimgroup(groupview compview) -- remove graphic from existing group graphic
+// newgrp=trimgroup(groupview compview) -- remove graphic from existing group graphic
 class TrimGroupFunc : public UnidrawFunc {
 public:
     TrimGroupFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "newgroup=%s(groupview compview) -- remove graphic from existing group graphic"; }
+    virtual const char* docstring() {
+	return "newgrp=%s(groupview compview) -- remove graphic from existing group graphic"; }
+};
+
+//: command to group the current selection into a single group graphic
+// newgrp=group() -- group the current selection into one group graphic
+class GroupFunc : public UnidrawFunc {
+public:
+    GroupFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "newgrp=%s() -- group the current selection into a single group graphic"; }
+};
+
+//: command to ungroup a group graphic back into its members
+// ungroup([compview]) -- dissolve the selected group (or the given group) into its members
+class UngroupFunc : public UnidrawFunc {
+public:
+    UngroupFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+	return "%s([compview]) -- ungroup the selected group (or given group) into its members"; }
 };
 
 //: command to move selection or graphic to the front

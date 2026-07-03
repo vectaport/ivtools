@@ -74,7 +74,7 @@ static char newline;
    only this key changes -- read the latest key off the banner to confirm the
    newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
    refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
-#define PATCH_KEY "fac4fd14"
+#define PATCH_KEY "7b1e9c2a"
 
 using std::cout;
 using std::cerr;
@@ -201,6 +201,12 @@ int main(int argc, char *argv[]) {
 	        else break;
 	    }
 	    terp->set_args(argc-3-endcnt, argv+3);
+	    /* anchor relative run() paths in the script to the script's own
+	       directory (realpath of rfile), as the `run' launch path does --
+	       otherwise a shebang script found via $PATH and launched from an
+	       unrelated CWD resolves its run("./...") loaders against that CWD
+	       and fails.  See RunFunc::set_basepath / execute(). */
+	    RunFunc::set_basepath(rfile);
 	    fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
 	    if (terp->runfile(rfile) < 0)
 	        cerr << "comterp: error running script file: " << rfile << "\n";
@@ -243,8 +249,7 @@ int main(int argc, char *argv[]) {
       istream in(&ibuf);
       
       for (;;) {
-	fgets(buffer, BUFSIZ*BUFSIZ, inptr);
-	if (feof(inptr)) break;
+	if (!fgets(buffer, BUFSIZ*BUFSIZ, inptr)) break;  // EOF or read error
 	out << buffer;
 	out.flush();
 	char inbuf[BUFSIZ];

@@ -17,6 +17,7 @@ int scanner(void *infile,char *(*infunc)(),int (*eoffunc)(),int (*errfunc)(),
 int opr_tbl_create(unsigned maxop);
 int opr_tbl_insert(const char *opstr,const char *command,unsigned priority,BOOLEAN rtol,
 		   unsigned optype);
+int opr_tbl_remove(const char *opstr,unsigned optype);
 int opr_tbl_print(FILE *outfile,unsigned by);
 int opr_tbl_entries(char *opstr,int *op_ids,unsigned nop_ids,unsigned *nchars);
 int opr_tbl_operid(unsigned opnum);

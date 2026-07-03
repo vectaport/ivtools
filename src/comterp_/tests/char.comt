@@ -1,0 +1,29 @@
+// src/comterp_/tests/char.comt -- char-value serialization (backquote-octal)
+//
+// A char value's brief output is `\NNN` (backtick, backslash, the byte as a
+// 3-digit octal, backtick).  Regression: a high-bit (signed) char was widened to
+// int with sign extension and serialized as `\37777777640` instead of `\240`, so
+// the byte value was corrupted.  ASCII chars (no high bit) were unaffected, so
+// 'A'/'\x7f' below pass either way and isolate the bug to the >=0x80 cases.
+//
+// (The `\NNN` form is asserted directly via print(:str) rather than round-tripped
+// through eval -- eval of that form currently returns nil, a separate matter.)
+//
+// funcs: char-constant ('x', '\xNN')  print(:str)  ==
+
+ok=true
+
+ok=ok&&(print('A' :str)=="`\\101`")
+print("1 print('A' :str)==`\\101` (expect true): %v\n" print('A' :str)=="`\\101`")
+
+ok=ok&&(print('\x7f' :str)=="`\\177`")
+print("2 print('\\x7f' :str)==`\\177` (expect true): %v\n" print('\x7f' :str)=="`\\177`")
+
+ok=ok&&(print('\xa0' :str)=="`\\240`")
+print("3 print('\\xa0' :str)==`\\240` (expect true): %v\n" print('\xa0' :str)=="`\\240`")
+
+ok=ok&&(print('\xff' :str)=="`\\377`")
+print("4 print('\\xff' :str)==`\\377` (expect true): %v\n" print('\xff' :str)=="`\\377`")
+
+print("char: %v\n" ok)
+ok

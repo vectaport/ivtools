@@ -58,3 +58,8 @@ while true; do
         port=$((port + 10000))
     done
 done
+# Propagate the interpreter's exit status.  Without this the script returns the
+# exit code of the last command run (the `[ $status -ne 75 ]` test, i.e. 0), so a
+# script that exits non-zero -- e.g. drawmo signalling a test failure -- would
+# look successful to callers (CI, `./drawmo; echo $?`).
+exit $status

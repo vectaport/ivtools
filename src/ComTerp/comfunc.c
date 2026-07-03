@@ -245,6 +245,20 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
 
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+  /* No keyword tokens for this command -> the sought keyword is definitively
+     absent, and an absent keyword is a normal, silent result in comterp -- not
+     an error.  Return the not-found default WITHOUT reading the operand stack.
+     This also disarms the offtop guard below for the benign case it kept
+     tripping on: when remote() re-enters the interpreter to de-serialize a
+     returned list literal, the argoff anchor on the shared operand stack still
+     belongs to the outer in-flight command (the whole reply evaluates inside
+     it), so the anchor read here is bogus -- but with nkeys()==0 there is
+     nothing to find anyway, so skip the read and stay quiet.  The guard's
+     warning is preserved only for nkeys()>0, where a bad anchor is a genuine
+     anomaly and not just proof that a keyword is missing. */
+  if (nkeys() == 0)
+    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
   /* guard the anchor-recovered offtop: a bad/missing argoff anchor (e.g. left by
@@ -302,6 +316,13 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
 
 ComValue& ComFunc::stack_key_post
 (int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+  /* nkeys()==0 -> keyword definitively absent; return the not-found default
+     without touching the operand stack (an absent keyword is silent by design,
+     and the offtop guard below would otherwise warn on the benign re-entrant
+     de-serialization case).  See the fuller note in stack_key_post_eval. */
+  if (nkeys() == 0)
+    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
   /* same anchor-recovered-offtop guard as stack_key_post_eval; see note there. */
@@ -424,11 +445,17 @@ int ComFunc::bintest(const char* command) {
   snprintf(combuf, sizeof(combuf), "which %s 2> /dev/null", command );
 #endif
   FILE* fptr = popen(combuf, "r");
-  char testbuf[BUFSIZ];	
-  fgets(testbuf, BUFSIZ, fptr);  
+  if (fptr == 0) return -1;                       // popen failed -> not found
+  char testbuf[BUFSIZ];
+  if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
-	      command, strlen(command)) != 0) {
+  // `which' echoes the resolved path; if it printed nothing (or less than the
+  // command name), the command is not on PATH.  Guard the tail comparison so an
+  // empty/short result can't index before testbuf.
+  size_t tlen = strlen(testbuf);
+  size_t clen = strlen(command);
+  if (tlen < clen + 1 ||
+      strncmp(testbuf + tlen - clen - 1, command, clen) != 0) {
     return -1;
   }
   return 0;

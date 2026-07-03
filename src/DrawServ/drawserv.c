@@ -122,7 +122,9 @@ void DrawServ::Init() {
   create_unique_sessionid();
   char hostbuf[HOST_NAME_MAX];
   gethostname(hostbuf, HOST_NAME_MAX);
-  char* username = getlogin();
+  hostbuf[HOST_NAME_MAX-1] = '\0';  // gethostname needn't NUL-terminate on truncation
+  const char* username = getlogin();
+  if (!username) username = "";  // getlogin() is NULL with no login session (e.g. a CI runner)
   int pid = getpid();
   int hostid = gethostid();
   SessionId* sid = new SessionId(_sessionid, pid, username, hostbuf, hostid);
@@ -728,6 +730,7 @@ boolean DrawServ::selftest(const char* host, unsigned int portnum)
     else {
       char hostbuf[HOST_NAME_MAX];
       gethostname(hostbuf, HOST_NAME_MAX);
+      hostbuf[HOST_NAME_MAX-1] = '\0';  // gethostname needn't NUL-terminate on truncation
       if (strcmp(host, hostbuf)==0)
 	return 1;
     }

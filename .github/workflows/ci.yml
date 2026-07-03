@@ -14,13 +14,20 @@
 name: CI
 
 on:
+  # Only master on push; feature branches get CI via the pull_request event.
+  # Running push on every branch *and* pull_request would fire two runs on the
+  # same PR commit -- and cancelling one (below) would leave a cancelled check on
+  # the PR head that branch protection counts against the merge.  pull_request
+  # also covers fork PRs (push events don't fire for forks), so nothing is lost.
   push:
-    branches: ['**']
+    branches: [master]
   pull_request:
   workflow_dispatch:   # allow manual runs from the Actions tab
 
-# A new push to the same ref cancels the previous in-flight run instead of
-# letting it grind to completion (the build alone is several minutes).
+# A new commit to the same PR (or to master) cancels the previous in-flight run
+# instead of letting it grind to completion (the build alone is several minutes).
+# Because push and pull_request no longer overlap on one commit, this only ever
+# supersedes an older commit's run -- never a live sibling of the head commit.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -40,6 +47,35 @@ jobs:
             uuid-dev libace-dev \
             libfreetype-dev libfontconfig1-dev \
             xvfb lsof groff gdb
+            xvfb lsof groff gdb netcat-openbsd \
+            xfonts-75dpi xfonts-100dpi xfonts-scalable
+          # The Unidraw editors (idraw/comdraw/drawserv) load X11 core fonts by
+          # XLFD -- e.g. "-*-courier-medium-r-normal-*-8-..." (main.c), pinned to
+          # exact pixel sizes 8/10/12/14, which are the 75dpi adobe bitmaps. A
+          # bare Debian/CI image ships none of these (ivtools-bin itself declares
+          # no font dependency -- it relied on the desktop pulling them in), so
+          # Catalog::FindFont's "substituting fixed font" fallback fired for every
+          # font and the editors ran with only "fixed". xfonts-75dpi provides the
+          # sizes idraw asks for; -100dpi and -scalable round out the set. They
+          # register under /etc/X11/fontpath.d, which the xvfb-run'd server (started
+          # after this step) picks up via its default catalogue -- no -fp needed.
+
+      # ACE-lite (issue #147) standalone unit tests: self-contained g++ builds of
+      # the in-tree ACE subset (value/socket types, the select reactor, and the
+      # acceptor/svc_handler accept-and-spawn + EOF lifecycle), independent of the
+      # imake tree build and of libACE. A fast gate that runs before the heavy
+      # build; each test program exits nonzero on failure, so `set -e` fails here.
+      - name: Test - ACE-lite standalone units
+        run: |
+          set -e
+          for t in sock_loopback reactor_loop acceptor_spawn log_fmt; do
+            echo "=== ACE-lite: $t ==="
+            g++ -std=c++14 -Wall -I src -I src/include \
+              src/ACE-lite/reactor.c src/ACE-lite/event_handler.c \
+              src/ACE-lite/sock.c src/ACE-lite/log_msg.c \
+              "src/ACE-lite/tests/$t.cc" -o "$RUNNER_TEMP/acelite_$t"
+            "$RUNNER_TEMP/acelite_$t"
+          done
 
       - name: Generate ./configure
         run: autoreconf -i
@@ -99,25 +135,33 @@ jobs:
           set -o pipefail
           cd src/comterp_/tests
           # `comterp run <file>` seeds the relative-path base and exits cleanly.
-          # (The piped REPL form `echo ... | comterp` segfaults on Linux at
-          # stdin-EOF teardown -- a separate glibc-specific bug, tracked apart.)
+          # (An earlier stdin-EOF teardown segfault in the piped REPL form
+          # `echo ... | comterp` no longer reproduces on x86_64 -- verified bare
+          # and under a core dump -- but `run` stays as the deterministic form.)
           comterp run run_all.comt 2>&1 | tee run.log
           # the suite prints "FAIL: <name>" per failure and "run_all: true" on full pass
           if grep -q '^FAIL' run.log || ! grep -q 'run_all: true' run.log; then
             echo "comterp suite FAILED"; exit 1
           fi
 
-      # comdraw and drawserv hit a pre-existing memory-corruption bug on Linux:
-      # comdraw's startup seed `update(1000000)` pumps the event loop and the
-      # ComTerp object's vtable is clobbered, so the next virtual call segfaults
-      # (gdb: garbage, unaligned vtable ptr -- a use-after-free, needs an ASan
-      # build per config/SANITIZE.md to pin the culprit). Unrelated to the warning
-      # cleanup; reached before any changed code runs. Until it's fixed these two
-      # suites are non-blocking (continue-on-error) -- they still run and report,
-      # but don't fail CI. Flip back to blocking once the update() UAF is fixed.
+      # Wire-protocol test: ivtools' defining idea is that the command language IS
+      # the wire protocol, so this exercises a `comterp server` over a real
+      # loopback TCP socket -- no X, no drawserv, fully deterministic. A fast,
+      # focused check of the protocol on its own, ahead of the heavier full drawmo
+      # distributed suite below.
+      - name: Test - comterp networking (wire protocol over TCP)
+        timeout-minutes: 2
+        run: sh src/comterp_/tests/remote_loopback.sh
+
+      # The comdraw/drawserv startup seed `update(1000000)` use-after-free is
+      # FIXED: the inline-eval ComTerpServ::run() overloads now hold the
+      # running() bracket, so a reactor close (e.g. stdin EOF) firing inside
+      # update()'s handle_events() makes ComterpHandler::destroy() defer via
+      # delete_later() instead of freeing the live interpreter out from under the
+      # eval loop (see src/ComTerp/comterpserv.c). comdraw runs the full suite and
+      # blocks CI again.
       - name: Test - comdraw graphical-scripting suite
         if: always()
-        continue-on-error: true   # pre-existing update() UAF -- see note above
         timeout-minutes: 4
         run: |
           set -o pipefail   # don't let `| tee` mask a missing/crashing comdraw
@@ -126,20 +170,83 @@ jobs:
           # never return; -runexpr "...;exit" runs the suite then exits cleanly.
           xvfb-run -a comdraw -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run.log
           if grep -q '^FAIL' run.log; then echo "comdraw suite FAILED"; exit 1; fi
+          # Fonts must actually resolve now that xfonts-75dpi et al. are installed:
+          # comdraw builds its font menu at editor startup, and a missing core font
+          # makes Catalog::FindFont fall back to "fixed" with this exact warning.
+          # Its presence means the xfonts packages aren't on the X server's font
+          # path -- fail loudly rather than silently run on "fixed" again.
+          if grep -q 'substituting fixed font' run.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run.log
+            exit 1
+          fi
 
-      # Smoke test only (one drawmo case) while the update() UAF is unfixed: each
-      # drawmo test waits 60s for a drawserv callback that never comes, so the
-      # full `all` suite (11 tests) would grind ~11 min every run for no signal.
-      # `--tests updown` fails in ~60s but still exercises launch -> callback.
-      # Restore the full `./drawmo` and flip to blocking once the UAF is fixed.
-      - name: Test - drawserv smoke (drawmo updown)
+      # drawserv startup smoke: with the UAF fixed, drawserv must build, map under
+      # X, and run an expression without the seed-update crash. This is a single
+      # process with no cross-process callback, so it's deterministic under xvfb
+      # and BLOCKS CI.
+      - name: Test - drawserv startup smoke
         if: always()
-        continue-on-error: true   # same pre-existing update() UAF -- see note above
         timeout-minutes: 2
         run: |
+          set -o pipefail
+          xvfb-run -a drawserv -stdin_off -runexpr 'print("DRAWSERV-ALIVE\n");exit' 2>&1 | tee ds.log
+          grep -q 'DRAWSERV-ALIVE' ds.log || { echo "drawserv failed to start"; exit 1; }
+          # Same core-font regression guard as the comdraw step: drawserv builds
+          # the same font menus at startup, so a missing core font surfaces here
+          # too -- don't let it slip past just because comdraw happened to pass.
+          if grep -q 'substituting fixed font' ds.log; then
+            echo "FAIL: drawserv fell back to the fixed font -- xfonts missing from the X font path"
+            grep 'substituting fixed font' ds.log
+            exit 1
+          fi
+
+      # Full drawmo distributed suite -- now runs headless under xvfb and BLOCKS.
+      # It was thought to need real X, but the real blocker was networking, not the
+      # GUI: drawmo dialed "localhost", which on this runner resolves to IPv6 ::1
+      # first, while the comterp/drawserv acceptors bind IPv4 only -- so every
+      # callback hit ECONNREFUSED and the child appeared to "never call back."
+      # drawmo now uses 127.0.0.1 literals (no resolver in the path), so the child
+      # drawserv it spawns under xvfb maps its window and calls back over IPv4
+      # loopback exactly as it does on a real display. (The deeper fix -- accept
+      # IPv6 on the listener side -- is ACE-build-dependent and rides with the
+      # in-tree ACE-lite, issue #147.)
+      - name: Test - drawserv drawmo full suite
+        if: always()
+        timeout-minutes: 6
+        run: |
+          set -o pipefail
           cd src/drawserv_/tests
-          # drawmo exits 0 on full pass, 1 on any failure -- that IS the signal
-          xvfb-run -a ./drawmo --tests updown < /dev/null
+          # drawmo exits 0 on full pass, 1 on any failure (the comterp_listen
+          # wrapper now propagates that status).  Belt-and-suspenders: also grep
+          # the log for ': FAIL' like the comdraw suite, so a regression anywhere
+          # in the xvfb-run -> wrapper -> comterp exit-code chain can't fake green.
+          xvfb-run -a ./drawmo < /dev/null 2>&1 | tee drawmo.log
+          rc=${PIPESTATUS[0]}
+          if [ "$rc" -ne 0 ] || grep -q ': FAIL' drawmo.log; then
+            echo "drawmo suite FAILED (rc=$rc)"; exit 1
+          fi
+          # Core-font regression guard (see the comdraw step): the drawserv
+          # instances drawmo spawns tee their stderr into drawmo.log, so a font
+          # fallback shows up here as well -- fail rather than run on "fixed".
+          if grep -q 'substituting fixed font' drawmo.log; then
+            echo "drawmo suite FAILED: a core font fell back to fixed -- xfonts missing from the X font path"
+            grep 'substituting fixed font' drawmo.log
+            exit 1
+          fi
+          # "The command language is the wire protocol": remote() de-serializes a
+          # reply by re-entering the interpreter, and a returned LIST literal (the
+          # (:table) introspection commands -- drawlink/sid -- return lists) used to
+          # trip the argoff-anchor range guard in stack_key_post_eval, printing
+          # "offtop out of range ... argoff anchor missing or corrupt" once per
+          # keyword probe.  Benign in updown1 (its empty table still read as size 0,
+          # a false green) but noise that would mask a genuine anchor corruption.
+          # Fixed in comfunc.c (nkeys()==0 short-circuit); fail if it ever returns.
+          if grep -qE 'offtop out of range|argoff anchor' drawmo.log; then
+            echo "drawmo suite FAILED: comterp argoff/anchor warning during remote() de-serialization"
+            grep -nE 'offtop out of range|argoff anchor' drawmo.log | head
+            exit 1
+          fi
 
       - name: Upload build log
         if: always()
