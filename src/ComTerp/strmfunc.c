@@ -260,6 +260,8 @@ void StreamFunc::execute_literal() {
 
 /*****************************************************************************/
 
+int SpreadFunc::_symid;
+
 SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 

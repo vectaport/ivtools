@@ -3,39 +3,36 @@
 // once over all the elements (batch), rather than $/list (elements in one list
 // arg) or a bare stream (per-element overdrive replay).
 //
-// Probe: print() is an eager var-arg command -- it reads nargsfixed() values
-// via stack_arg(curr) and cycles its format string over them -- so the
-// returned string (:str) reveals exactly how many positional args it received.
+// Probe: print() is an eager command that consumes its format left-to-right
+// across its positional values in one pass, so a format with N specs and N
+// values renders each -- revealing that ~~ delivered N separate positionals.
+// (Only an EAGER enclosing command; post_eval commands like posteval read
+// token-spans, not the operand stack, so ~~ does not reach them.)
 //
 // coverage: ~~ spread operator (stream/list -> var-args), one enclosing call
 // funcs: spread stream print
 // missing:
 ok=1
 
-// baseline -- literal var-args, print cycles "%d," over three values
-b=print("%d," 1 2 3 :str)
-ok=ok&&(b=="1,2,3,")
-print("print(fmt 1 2 3) var-arg baseline -> %s (ok=%d)\n" b ok)
+// baseline -- three literal positionals fill three format specs
+ok=ok&&(print("[%d %d %d]" 1 2 3 :str)=="[1 2 3]")
+print("literal 1 2 3 -> [1 2 3] baseline (ok=%d)\n" ok)
 
-// spread a LIST literal into print's var-args: ~~(1,2,3) == 1 2 3
-r1=print("%d," ~~(1,2,3) :str)
-ok=ok&&(r1=="1,2,3,")
-print("print(fmt ~~(1,2,3)) -> %s (ok=%d)\n" r1 ok)
+// spread a LIST literal into three positionals: ~~(1,2,3) == 1 2 3
+ok=ok&&(print("[%d %d %d]" ~~(1,2,3) :str)=="[1 2 3]")
+print("~~(1,2,3) list spread -> [1 2 3] (ok=%d)\n" ok)
 
-// spread a $$ STREAM into print's var-args
-r2=print("%d," ~~$$(4,5,6,7) :str)
-ok=ok&&(r2=="4,5,6,7,")
-print("print(fmt ~~$$(4,5,6,7)) -> %s (ok=%d)\n" r2 ok)
+// spread a $$ STREAM into three positionals
+ok=ok&&(print("[%d %d %d]" ~~$$(4,5,6) :str)=="[4 5 6]")
+print("~~$$(4,5,6) stream spread -> [4 5 6] (ok=%d)\n" ok)
 
-// a leading literal positional, then a spread tail (delta applies to print)
-r3=print("%d," 9 ~~(1,2,3) :str)
-ok=ok&&(r3=="9,1,2,3,")
-print("print(fmt 9 ~~(1,2,3)) -> %s (ok=%d)\n" r3 ok)
+// a leading literal positional, then a spread tail -- order preserved
+ok=ok&&(print("[%d %d %d %d]" 9 ~~(1,2,3) :str)=="[9 1 2 3]")
+print("9 ~~(1,2,3) leading literal + spread -> [9 1 2 3] (ok=%d)\n" ok)
 
-// single-element spread collapses to one positional
-r4=print("%d," ~~(8) :str)
-ok=ok&&(r4=="8,")
-print("print(fmt ~~(8)) -> %s (ok=%d)\n" r4 ok)
+// scalar spreads to a single positional (~~ delegates to $$'s scalar->singleton)
+ok=ok&&(print("[%d]" ~~(8) :str)=="[8]")
+print("~~(8) scalar spread -> [8] (ok=%d)\n" ok)
 
 print("spread: %v\n" ok)
 ok
