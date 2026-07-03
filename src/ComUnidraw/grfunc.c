@@ -861,6 +861,21 @@ FontFunc::FontFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void FontFunc::execute() {
+    if (nargs()==0 && nkeys()==0) {
+        /* font() -- return the current editor font by X name
+           (valid input to fontbyname(fontname)) */
+        reset_stack();
+        FontVar* fntVar = (FontVar*) _ed->GetState("FontVar");
+        PSFont* fnt = fntVar ? fntVar->GetFont() : nil;
+        if (!fnt) {
+            push_stack(ComValue::nullval());
+        } else {
+            ComValue retval(fnt->GetName());
+            push_stack(retval);
+        }
+        return;
+    }
+
     ComValue fnum(stack_arg(0));
     int fn = fnum.int_val();
     reset_stack();
@@ -945,6 +960,21 @@ static char  *psfonttoxfont(char* f)
 }
  /*****************************************************************************/
 void FontByNameFunc::execute() {
+  if (nargs()==0 && nkeys()==0) {
+      /* fontbyname() -- return the current editor font by X name,
+         same getter as bare font() */
+      reset_stack();
+      FontVar* fntVar = (FontVar*) _ed->GetState("FontVar");
+      PSFont* fnt = fntVar ? fntVar->GetFont() : nil;
+      if (!fnt) {
+          push_stack(ComValue::nullval());
+      } else {
+          ComValue retval(fnt->GetName());
+          push_stack(retval);
+      }
+      return;
+  }
+
   ComValue& fontarg = stack_arg(0);
   const char*  fontval = fontarg.string_ptr();
   reset_stack();
@@ -995,6 +1025,25 @@ ColorRgbFunc::ColorRgbFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, 
  }
 
 void ColorRgbFunc::execute() {
+  if (nargs()==0 && nkeys()==0) {
+      /* colorsrgb() -- return the current editor colors as a fgname,bgname
+         literal, same getter as bare colors() */
+      reset_stack();
+      ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
+      PSColor* fgcolor = colVar ? colVar->GetFgColor() : nil;
+      PSColor* bgcolor = colVar ? colVar->GetBgColor() : nil;
+      if (!fgcolor || !bgcolor) {
+          push_stack(ComValue::nullval());
+      } else {
+          AttributeValueList* avl = new AttributeValueList();
+          avl->Append(new ComValue(fgcolor->GetName()));
+          avl->Append(new ComValue(bgcolor->GetName()));
+          ComValue retval(avl);
+          push_stack(retval);
+      }
+      return;
+  }
+
   ComValue& fgarg = stack_arg(0);
   ComValue& bgarg = stack_arg(1);
   const char* fgname = fgarg.string_ptr();
@@ -1022,6 +1071,24 @@ BrushFunc::BrushFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void BrushFunc::execute() {
+    if (nargs()==0 && nkeys()==0) {
+        /* brush() -- return the current editor brush as a linepat,width
+           literal (valid input to brush(linepat,width)); nil if none brush */
+        reset_stack();
+        BrushVar* brVar = (BrushVar*) _ed->GetState("BrushVar");
+        PSBrush* br = brVar ? brVar->GetBrush() : nil;
+        if (!br || br->None()) {
+            push_stack(ComValue::nullval());
+        } else {
+            AttributeValueList* avl = new AttributeValueList();
+            avl->Append(new ComValue(br->GetLinePattern()));
+            avl->Append(new ComValue(br->Width()));
+            ComValue retval(avl);
+            push_stack(retval);
+        }
+        return;
+    }
+
     ComValue bnum(stack_arg(0));
     static int none_sym = symbol_add("none");
     ComValue nonev(stack_key(none_sym));
@@ -1068,6 +1135,31 @@ PatternFunc::PatternFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 }
 
 void PatternFunc::execute() {
+    if (nargs()==0 && nkeys()==0) {
+        /* pattern() -- return the current editor pattern as its menu number
+           (valid input to pattern(patternnum)); the catalog caches pattern
+           reads, so the state var's pointer matches its menu entry.  nil if
+           the current pattern is not a menu pattern (e.g. patternmask). */
+        reset_stack();
+        PatternVar* patVar = (PatternVar*) _ed->GetState("PatternVar");
+        PSPattern* pat = patVar ? patVar->GetPattern() : nil;
+        Catalog* catalog = unidraw->GetCatalog();
+        int pn = 0;
+        if (pat) {
+            int i = 1;
+            while (catalog->GetAttribute(catalog->Name("pattern", i))) {
+                if (catalog->ReadPattern("pattern", i) == pat) { pn = i; break; }
+                i++;
+            }
+        }
+        if (pn) {
+            ComValue retval(pn);
+            push_stack(retval);
+        } else
+            push_stack(ComValue::nullval());
+        return;
+    }
+
     ComValue pnum(stack_arg(0));
     int pn = pnum.int_val();
     reset_stack();
@@ -1132,6 +1224,25 @@ ColorFunc::ColorFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void ColorFunc::execute() {
+    if (nargs()==0 && nkeys()==0) {
+        /* colors() -- return the current editor colors as a fgname,bgname
+           literal (valid input to colors(fgname bgname)) */
+        reset_stack();
+        ColorVar* colVar = (ColorVar*) _ed->GetState("ColorVar");
+        PSColor* fgcolor = colVar ? colVar->GetFgColor() : nil;
+        PSColor* bgcolor = colVar ? colVar->GetBgColor() : nil;
+        if (!fgcolor || !bgcolor) {
+            push_stack(ComValue::nullval());
+        } else {
+            AttributeValueList* avl = new AttributeValueList();
+            avl->Append(new ComValue(fgcolor->GetName()));
+            avl->Append(new ComValue(bgcolor->GetName()));
+            ComValue retval(avl);
+            push_stack(retval);
+        }
+        return;
+    }
+
     ComValue& fgv = stack_arg(0, true);
     if (fgv.is_string()) {
         if (_color_rgb_func == NULL) {

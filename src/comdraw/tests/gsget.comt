@@ -1,0 +1,59 @@
+// src/comdraw/tests/gsget.comt -- bare graphic-state getters
+//
+// The bare (no-arg) form of each style command returns the literal that
+// reproduces the editor's current default: brush() as linepat,width,
+// colors()/colorsrgb() as fgname,bgname, pattern() as its menu number
+// (nil if not a menu pattern), font()/fontbyname() as the X font name.
+// Each test is a set-then-get round trip.
+//
+// funcs: brush() pattern() patternmask() colors() colorsrgb() font() fontbyname()
+ok=true
+
+brush(65535,3)
+b=brush()
+ok=ok&&(b==(65535,3))
+print("1 brush(65535,3); brush() (expect {65535,3}): %v\n" b)
+
+pattern(2)
+p=pattern()
+ok=ok&&(p==2)
+print("2 pattern(2); pattern() (expect 2): %v\n" p)
+
+patternmask(255)
+pn=pattern()
+ok=ok&&(pn==nil)
+print("3 patternmask(255); pattern() non-menu pattern (expect nil): %v\n" pn)
+
+colorsrgb("#FF0000" "#00FF00")
+c=colors()
+ok=ok&&(at(c 0)=="#FF0000")&&(at(c 1)=="#00FF00")
+print("4 colorsrgb(\"#FF0000\" \"#00FF00\"); colors() (expect {\"#FF0000\",\"#00FF00\"}): %v\n" c)
+
+colors(1 10)
+c2=colorsrgb()
+ok=ok&&(at(c2 0)=="Black")&&(at(c2 1)=="White")
+print("5 colors(1 10); colorsrgb() (expect {\"Black\",\"White\"}): %v\n" c2)
+
+f=font()
+ok=ok&&(f!=nil)
+print("6 font() (expect an X font name): %v\n" f)
+
+fontbyname(f)
+f2=fontbyname()
+ok=ok&&(f==f2)
+print("7 fontbyname(font()); fontbyname() round trip (expect true): %v\n" f==f2)
+
+// save/restore idiom the getters enable: borrow the pen, put it back
+saved=brush()
+brush(65535,7)
+brush(saved)
+ok=ok&&(brush()==(65535,3))
+print("8 saved=brush(); brush(65535,7); brush(saved) restores (expect {65535,3}): %v\n" brush())
+
+// put the editor back to startup-ish defaults for any tests that follow
+brush(65535,0)
+pattern(1)
+colors(1 10)
+
+print("gsget: %v\n" ok)
+ok
