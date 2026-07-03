@@ -111,6 +111,7 @@ struct _opr_tbl_default_entry {
   {"$$",         "stream",             100,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
+  {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },

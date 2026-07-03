@@ -1,0 +1,57 @@
+// src/comterp_/tests/replay.comt -- the %% stream-replay operator (#140) and
+// the live optable(:insert/:delete) parser reprogramming that can remove and
+// re-add it.
+//
+// funcs: %% replay optable(:insert) optable(:delete) postfix errmsg
+// coverage: %% (cycle a whole stream N times), (A**3,B%%3) cross product,
+//           optable(:delete)/optable(:insert) round-trip
+//
+// %% is baked into the default operator table, so it works out of the box.
+// The round-trip deletes it (the parser then rejects %%), then re-inserts it --
+// demonstrating that optable() reprograms the parser live, effective on the
+// NEXT parsed expression (like a func definition).
+
+ok=true
+
+// --- test 1: %% cycles a WHOLE stream N times (baked-in operator) ---
+C=("a" "b" "c")
+r=list(C%%3)
+ok=ok&&(r==("a","b","c","a","b","c","a","b","c"))
+print("1 list(C%%3) cycles the stream 3x (expect 9 elements): %v\n" r)
+
+// --- test 2: cross product (A**3, B%%3) -- ** holds each element (outer),
+//     %% cycles the whole stream (inner); , zips them into pairs ---
+A=("a" "b" "c")
+B=("x" "y" "z")
+z=A**3,B%%3
+first=next(z)
+ok=ok&&(first==("a","x"))
+cnt=1
+v=next(z)
+while(v!=nil cnt=cnt+1;v=next(z))
+ok=ok&&(cnt==9)
+print("2 (A**3,B%%3) cross product first pair (expect {a,x}) and count (expect 9): %v %v\n" first cnt)
+
+// --- test 3: %% is present -- the parser compiles A%%3 to the replay command ---
+p=postfix(A%%3)
+ok=ok&&(index(p "replay")!=nil)
+print("3 postfix(A%%3) contains 'replay' (baked in): %v\n" p)
+
+// --- test 4: optable(:delete) removes %% -- the parser no longer knows it,
+//     so A%%3 is now a parse error (Unexpected operator %) ---
+optable("%%" :delete)
+errmsg(:clear)
+postfix(A%%3)
+e=errmsg()
+ok=ok&&(index(e "Unexpected")!=nil)
+print("4 after optable(\"%%\" :delete), A%%3 is a parse error (expect 'Unexpected'): %v\n" e)
+
+// --- test 5: optable(:insert) re-adds %% -- the parser knows it again ---
+optable("%%" "replay" :insert :pri 79)
+errmsg(:clear)
+p2=postfix(A%%3)
+ok=ok&&(index(p2 "replay")!=nil)
+print("5 after optable(:insert), postfix(A%%3) contains 'replay' again: %v\n" p2)
+
+print("replay: %v\n" ok)
+ok
