@@ -10,8 +10,10 @@
 // (Only an EAGER enclosing command; post_eval commands read token-spans, not
 // the operand stack, so ~~ does not reach them.)
 //
-// coverage: ~~ spread operator (stream/list by variable -> var-args)
-// funcs: spread stream print
+// coverage: ~~ spread operator (stream/list by variable -> var-args;
+//           keyword-bearing carriers: stream literals with raw keywords,
+//           lists with attrlist-singleton elements; funcobj keyword binding)
+// funcs: spread stream print echo attrlist func narg list
 // missing:
 ok=1
 
@@ -67,6 +69,54 @@ ok=ok&&(print("%v" echo(~~echo(:a 3)) :str)==print("%v" echo(:a 3) :str))
 print("echo(~~echo(:a 3)) identity, keyword (ok=%d)\n" ok)
 ok=ok&&(print("%v" echo(~~echo(1 2 :a 3)) :str)==print("%v" echo(1 2 :a 3) :str))
 print("echo(~~echo(1 2 :a 3)) identity, mixed (ok=%d)\n" ok)
+
+// --- keyword-bearing carriers: the argument vector travels whole ---
+
+// a STREAM LITERAL carrying its own keyword: format string, values, and the
+// :str mode all in one variable -- print(~~strm) is the entire call
+strm=("[%d %d %d]" 10 20 30 :str)
+ok=ok&&(print(~~strm)=="[10 20 30]")
+print("print(~~strm) stream-literal carrier w/ fmt + :str inside (ok=%d)\n" ok)
+
+// the same vector as a LIST whose keyword rides as an attrlist-singleton
+// ELEMENT -- (:str) is reader syntax for a keyword carried as data
+lstv="[%d %d %d]",10,20,30,(:str)
+ok=ok&&(print(~~lstv)=="[10 20 30]")
+print("print(~~lstv) list carrier w/ (:str) singleton element (ok=%d)\n" ok)
+
+// carrier equivalence: stream literal and singleton-bearing list make the
+// SAME call (streams are single-drain, so a fresh one for the comparison)
+strm2=("[%d %d %d]" 10 20 30 :str)
+ok=ok&&(print(~~strm2)==print(~~lstv))
+print("stream-literal and list carriers agree (ok=%d)\n" ok)
+
+// keyword-first parens are an ATTRLIST LITERAL -- the singleton has reader
+// syntax; dot-access reads it back, bare flag defaults true
+al=(:a 7)
+ok=ok&&(al.a==7)
+print("al=(:a 7); al.a attrlist-literal reader syntax -> 7 (ok=%d)\n" ok)
+fl=(:flag)
+ok=ok&&(fl.flag==true)
+print("fl=(:flag); fl.flag bare-flag literal defaults true (ok=%d)\n" ok)
+
+// list() reifies a stream literal's raw keyword into a singleton -- the two
+// carriers are interconvertible
+ok=ok&&(print("%v" list((10 :a 5)) :str)==print("%v" 10,(:a 5) :str))
+print("list((10 :a 5)) reifies keyword to singleton (ok=%d)\n" ok)
+
+// spread keywords BIND in funcobjs exactly like parse-time keywords
+kf=func(key)
+ok=ok&&(kf(~~(:key))==true)
+print("kf=func(key); kf(~~(:key)) bare flag binds true (ok=%d)\n" ok)
+ok=ok&&(kf(~~(:key 7))==7)
+print("kf(~~(:key 7)) keyword value binds (ok=%d)\n" ok)
+ok=ok&&(kf(~~(10 :key 7))==7)
+print("kf(~~(10 :key 7)) mixed vector still binds the keyword (ok=%d)\n" ok)
+
+// accounting: a spread singleton binds as a KEYWORD, not an extra positional
+nf=func(narg())
+ok=ok&&(nf(~~lstv)==4)
+print("nf(~~lstv)==4 singleton not counted as a positional (ok=%d)\n" ok)
 
 print("spread: %v\n" ok)
 ok
