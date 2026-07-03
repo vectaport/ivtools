@@ -80,6 +80,10 @@ if(run("./funcarg.comt")
 if(run("./spread.comt")
   :then print("pass: spread\n")
   :else print("FAIL: spread\n");topok=false)
+  
+if(run("./replay.comt")
+  :then print("pass: replay\n")
+  :else print("FAIL: replay\n");topok=false)
 
 print("\nrun_all: %v\n" topok)
 topok

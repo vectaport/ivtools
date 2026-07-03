@@ -175,6 +175,36 @@ public:
 
 };
 
+//: %% (replay) operator.
+// The streaming counterpart to ** (repeat).  %% cycles a WHOLE stream through N
+// full passes: A%%3 -> A's elements, three times over.  It must be post_eval so
+// it receives the whole stream operand rather than being broadcast per-element
+// (a non-post-eval binary op with one stream operand is vectorized element-wise
+// -- that broadcast is exactly how ** repeats each element).  Like ConcatFunc,
+// setup builds a stream driven by a separate next-func (ReplayNextFunc).  Runs a
+// $$-copy of the source to exhaustion, then a fresh copy for the next pass, N
+// times -- each pass an independent cursor, the source itself never consumed.
+// Together with ** this yields cross-product streams: (A**3, B%%3).
+class ReplayFunc : public StrmFunc {
+public:
+    ReplayFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "%% is the stream-replay operator (cycle a stream N times)"; }
+};
+
+//: hidden func used by next command for %% (replay) operator.
+class ReplayNextFunc : public StrmFunc {
+public:
+    ReplayNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for %% (stream replay) operator."; }
+};
+
 //: .. (iterate) operator.
 class IterateFunc : public StrmFunc {
 public:

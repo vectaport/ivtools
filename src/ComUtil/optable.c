@@ -111,6 +111,7 @@ struct _opr_tbl_default_entry {
   {"$$",         "stream",             100,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
+  {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },
@@ -505,6 +506,73 @@ static int gt_com(int a, int b) {
   return 0;
 }
 
+
+/*!
+
+opr_tbl_remove   Remove a single operator entry from the operator table
+
+
+Summary:
+
+#include <ComUtil/comterp.h>
+*/
+
+int opr_tbl_remove(const char * opstr, unsigned optype)
+
+
+/*!
+Return Value:  0 if OK, -1 if not found or error
+
+
+Description:
+
+`opr_tbl_remove` removes the single operator entry matching `opstr` and `optype`
+-- the inverse of `opr_tbl_insert`.  Unlike `opr_tbl_delete`, which frees the
+whole table, every other operator is left in place.  Returns FUNCBAD if no such
+entry exists.  MaxPriority is left as-is (a harmless upper bound).
+!*/
+
+{
+unsigned table_off = 0;         /* Offset into operator table */
+
+/* Check if table exists */
+   if( OperatorTable == NULL ) {
+      COMERR_SET( ERR_NO_OPTABLE );
+      return FUNCBAD;
+      }
+
+/* Find the run of entries for opstr (table is sorted by operator string) */
+   while( table_off < NumOperators &&
+	  strcmp( OPSTR( table_off ), opstr ) < 0 )
+      table_off++;
+
+/* Scan that run for the requested optype */
+   while( table_off < NumOperators &&
+	  strcmp( OPSTR( table_off ), opstr ) == 0 ) {
+      if( OperatorTable[ table_off ].optype == optype ) {
+	 if( symbol_del( OperatorTable[ table_off ].operid ) ||
+	     symbol_del( OperatorTable[ table_off ].commid ))
+	    KAPUT( "Error in deleting symbols" );
+	 /* Slide the remaining entries down by one to close the gap */
+	 if( table_off < NumOperators - 1 )
+#ifndef DMM_OFF
+	    if( dmm_movrecs( (void **)&OperatorTable, (long)(table_off),
+			 (long)(table_off+1), (long)(NumOperators-table_off-1)))
+	       KAPUT( "Error in attempt to move operator table entries" );
+#else
+	    memmove((void*)(OperatorTable+table_off),
+		    (void*)(OperatorTable+table_off+1),
+		    (NumOperators-table_off-1)*sizeof( opr_tbl_entry ));
+#endif
+	 --NumOperators;
+	 return FUNCOK;
+	 }
+      table_off++;
+      }
+
+/* No matching entry */
+   return FUNCBAD;
+}
 
 /*!
 
@@ -1043,8 +1111,13 @@ $          stream             125        Y      UNARY PREFIX
 !*/
 
 {
-  int table_size = sizeof( DefaultOperatorTable ) / 
+  int table_size = sizeof( DefaultOperatorTable ) /
     sizeof( struct _opr_tbl_default_entry );
+  /* Headroom beyond the built-in operators so a new operator can be added at
+     runtime -- e.g. optable("<+>" "mycmd" :insert :pri 50) defining an operator
+     on the fly -- without immediately maxing the table (ERR_OPRTBLMAXED).  The
+     table is created exactly full otherwise, leaving no room for a live insert. */
+  const int slack = 16;
   int index;
 
   if (OperatorTable && opr_tbl_is_default)
@@ -1062,8 +1135,8 @@ $          stream             125        Y      UNARY PREFIX
 
   OperatorTable = NULL;
 
-  /* Initalize table to the right size */
-  if( opr_tbl_create( table_size ) != 0 )
+  /* Initalize table to the right size (plus runtime-insert headroom) */
+  if( opr_tbl_create( table_size + slack ) != 0 )
      KAPUT( "Unable to create default operator table" );
 
   /* Fill it up */

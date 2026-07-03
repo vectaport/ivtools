@@ -1,22 +1,17 @@
 # ComTerp Language Guide
 
 ComTerp is the embedded scripting layer of the ivtools toolkit — the
-scriptable nervous system of its vector-graphics and distributed-drawing
-tools (comdraw, drawtool, DrawServ, and the drawmo orchestrator). It is
-not a language built to be admired as a language; it exists to let those
-tools be driven, automated, and coordinated across the wire. Everything
-below — the expression model, the streams, the value union — is in
-service of a tool above it that moves pixels and coordinates drawing.
-Read it as a tool's mind, not as a language for its own sake.
-
-In character it is, roughly, a Lisp for C: it keeps the interpreted,
-expression-all-the-way-down, read-eval-print quality that makes an
-interpreter pleasant to drive a tool with, but it is built in C and
-stays in close, transparent contact with the machine — a powerful
-orchestrator of sequences of instructions, not a self-describing model.
-The aim throughout is precise yet elegant interaction with the
-instruction set: enough of the interpreter's allure to be scriptable,
-none of the apparatus a tool's scripting layer does not need.
+scriptable nervous system of its vector-graphics and
+distributed-drawing tools (comdraw, drawtool, DrawServ, and the drawmo
+orchestrator).  In character it is, roughly, a Lisp for C: it keeps
+the interpreted, expression-all-the-way-down, read-eval-print quality
+that makes an interpreter pleasant to drive a tool with, but it is
+built in C and stays in close, transparent contact with the machine —
+a powerful orchestrator of sequences of instructions, not a
+self-describing model.  The aim throughout is precise yet elegant
+interaction with the instruction set: enough of the interpreter's
+allure to be scriptable, none of the apparatus a tool's scripting
+layer does not need.
 
 ComTerp is a scripting language where the syntax is also the wire
 protocol. Every value — integer, string, list, attrlist, boolean —

@@ -1518,6 +1518,7 @@ void ComTerp::add_defaults() {
     add_command("echo", new EchoFunc(this));
     add_command("concat", new ConcatFunc(this));
     add_command("repeat", new RepeatFunc(this));
+    add_command("replay", new ReplayFunc(this));
     add_command("iterate", new IterateFunc(this));
     add_command("next", new NextFunc(this));
     add_command("info", new InfoFunc(this));
