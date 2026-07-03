@@ -50,6 +50,19 @@ brush(saved)
 ok=ok&&(brush()==(65535,3))
 print("8 saved=brush(); brush(65535,7); brush(saved) restores (expect {65535,3}): %v\n" brush())
 
+// the none brush returns the :none keyword literal
+brush(:none)
+bn=brush()
+ok=ok&&(print("%v" bn :string)==":none")
+print("9 brush(:none); brush() (expect :none): %v\n" bn)
+
+// and the keyword round-trips BY VALUE: brush(saved-:none) restores none
+brush(65535,4)
+brush(bn)
+bn2=brush()
+ok=ok&&(print("%v" bn2 :string)==":none")
+print("10 brush(65535,4); brush(bn) with bn==:none restores none brush (expect :none): %v\n" bn2)
+
 // put the editor back to startup-ish defaults for any tests that follow
 brush(65535,0)
 pattern(1)
