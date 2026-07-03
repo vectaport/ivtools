@@ -45,6 +45,7 @@ jobs:
             build-essential autoconf \
             xutils-dev libx11-dev libxext-dev \
             uuid-dev libace-dev \
+            libfreetype-dev libfontconfig1-dev \
             xvfb lsof groff gdb netcat-openbsd \
             xfonts-75dpi xfonts-100dpi xfonts-scalable
           # The Unidraw editors (idraw/comdraw/drawserv) load X11 core fonts by
