@@ -321,6 +321,51 @@ void SpreadFunc::execute() {
 
 /*****************************************************************************/
 
+EchoFunc::EchoFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void EchoFunc::execute() {
+  int npos = nargsfixed();
+
+  /* capture the evaluated positional values into a list */
+  AttributeValueList* poslist = npos > 0 ? new AttributeValueList() : nil;
+  for (int i = 0; i < npos; i++)
+    poslist->Append(new AttributeValue(stack_arg(i)));
+
+  /* capture the keywords as an attrlist (each add_attr copies the value) */
+  AttributeList* keys = stack_keys();
+  boolean has_kw = keys && keys->Number() > 0;
+
+  reset_stack();
+
+  if (npos > 0) {
+    /* positionals present -> a list; keywords, if any, become one
+       single-attribute attrlist per keyword at the TAIL of the list, so the
+       list's order preserves keyword order (works around the multi-attribute
+       attrlist not preserving insert order). */
+    if (has_kw) {
+      Iterator it;
+      for (keys->First(it); !keys->Done(it); keys->Next(it)) {
+	Attribute* a = keys->GetAttr(it);
+	AttributeList* singleton = new AttributeList();
+	singleton->add_attr(a->SymbolId(), *a->Value());
+	poslist->Append(new AttributeValue(AttributeList::class_symid(), (void*)singleton));
+      }
+    }
+    ComValue retval(poslist);
+    push_stack(retval);
+
+  } else if (has_kw) {
+    /* no positionals -> return the multi-attribute attrlist bare */
+    ComValue retval(AttributeList::class_symid(), keys);
+    push_stack(retval);
+
+  } else
+    push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
 int StreamNextFunc::_symid;
 
 StreamNextFunc::StreamNextFunc(ComTerp* comterp) : StrmFunc(comterp) {

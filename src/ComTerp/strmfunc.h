@@ -82,6 +82,21 @@ public:
 
 };
 
+//: echo -- the inverse of ~~.  Returns its evaluated args in ~~-passable form:
+//: positionals in a list, keywords as one single-attribute attrlist per keyword
+//: at the TAIL of that list (list order thus preserves keyword order), or -- when
+//: there are no positionals -- a bare multi-attribute attrlist.  So the round-trip
+//: identity echo(~~echo(x)) == echo(x) holds for positional-only, keyword-only,
+//: and mixed calls.
+class EchoFunc : public ComFunc {
+public:
+    EchoFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=%s(arg[,arg...] [:key val...]) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)"; }
+};
+
 //: info command for stream objects.
 // attrlst=info(streamobj)      -- AttributeList describing a literal stream's
 //                                 directory: func, ntoks, nremaining,

@@ -52,5 +52,16 @@ print("~~attrlist(:str) -> live :str keyword, print returns the string (ok=%d)\n
 ok=ok&&(print("[%d %d %d]" ~~lst ~~kw)=="[1 2 3]")
 print("~~lst ~~kw  positionals + keyword in one call -> [1 2 3] (ok=%d)\n" ok)
 
+// echo is the inverse of ~~: it returns its evaluated args in ~~-passable form
+// (positionals in a list, keywords as tail attrlist singletons, or a bare
+// attrlist), so echo(~~echo(x)) == echo(x) -- the round-trip identity.  Compare
+// the %v renderings; single keyword to dodge the multi-attr order issue.
+ok=ok&&(print("%v" echo(~~echo(1 2 3)) :str)==print("%v" echo(1 2 3) :str))
+print("echo(~~echo(1 2 3)) identity, positionals (ok=%d)\n" ok)
+ok=ok&&(print("%v" echo(~~echo(:a 3)) :str)==print("%v" echo(:a 3) :str))
+print("echo(~~echo(:a 3)) identity, keyword (ok=%d)\n" ok)
+ok=ok&&(print("%v" echo(~~echo(1 2 :a 3)) :str)==print("%v" echo(1 2 :a 3) :str))
+print("echo(~~echo(1 2 :a 3)) identity, mixed (ok=%d)\n" ok)
+
 print("spread: %v\n" ok)
 ok

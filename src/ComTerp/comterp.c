@@ -325,7 +325,27 @@ void ComTerp::eval_expr_internals(int pedepth) {
               ComValue keyv((unsigned int)attr->SymbolId(), 1, ComValue::KeywordType);
               push_stack(keyv);
               nkey++;
-            } else
+            }
+            else if (stack_top().is_attributelist()) {
+              /* an attrlist element -- e.g. a tail singleton from echo's
+                 (positionals..., attrlist-singletons) form -- spreads ALL its
+                 attributes as keywords (same emit as a single Attribute,
+                 iterated).  This inverts echo's mixed representation; a
+                 singleton yields one keyword, a multi-attribute attrlist yields
+                 several. */
+              ComValue alv(pop_stack(false));
+              AttributeList* al = (AttributeList*)alv.obj_val();
+              Iterator it;
+              for (al->First(it); !al->Done(it); al->Next(it)) {
+                Attribute* attr = al->GetAttr(it);
+                ComValue valv(*attr->Value());
+                push_stack(valv);
+                ComValue keyv((unsigned int)attr->SymbolId(), 1, ComValue::KeywordType);
+                push_stack(keyv);
+                nkey++;
+              }
+            }
+            else
               npos++;                    /* a plain positional stays on the stack */
           }
           /* narg counts non-keyword args INCLUDING the values that follow
@@ -1495,6 +1515,7 @@ void ComTerp::add_defaults() {
 
     add_command("stream", new StreamFunc(this));
     add_command("spread", new SpreadFunc(this));
+    add_command("echo", new EchoFunc(this));
     add_command("concat", new ConcatFunc(this));
     add_command("repeat", new RepeatFunc(this));
     add_command("iterate", new IterateFunc(this));
