@@ -56,8 +56,9 @@ graphical object assigned to an interpreter variable.
     return current font by X name if no args
  brush([brushnum|:none|linepat,width]) -- set current brush from menu order,
     none brush, or linepat,width;
-    return current brush as linepat,width (or :none) if no args;
-    the returned :none keyword is accepted back positionally, so
+    return current brush as linepat,width if no args,
+    or as the attrlist singleton (:none 1) for the none brush;
+    that attrlist is accepted back positionally, so
     saved=brush(); ...; brush(saved) round-trips the none brush too
  pattern([patternnum]) --  set current pattern from menu;
     return current patternnum if no args (nil if not a menu pattern)

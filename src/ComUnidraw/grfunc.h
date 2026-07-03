@@ -168,7 +168,7 @@ public:
     BrushFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([brushnum|:none|linepat,width]) -- set current brush from menu order, none brush, or by pattern/width; return current brush as linepat,width (or :none) if no args"; }
+	return "%s([brushnum|:none|linepat,width]) -- set current brush from menu order, none brush, or by pattern/width; return current brush as linepat,width (or attrlist (:none 1)) if no args"; }
 };
 
 //: command for setting pattern state variable in comdraw.

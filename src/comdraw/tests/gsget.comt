@@ -50,18 +50,19 @@ brush(saved)
 ok=ok&&(brush()==(65535,3))
 print("8 saved=brush(); brush(65535,7); brush(saved) restores (expect {65535,3}): %v\n" brush())
 
-// the none brush returns the :none keyword literal
+// the none brush returns the attrlist singleton (:none 1) -- a keyword
+// literal travels as an attrlist, never as a raw keyword value
 brush(:none)
 bn=brush()
-ok=ok&&(print("%v" bn :string)==":none")
-print("9 brush(:none); brush() (expect :none): %v\n" bn)
+ok=ok&&(bn.none==true)
+print("9 brush(:none); brush().none (expect (:none 1), .none true): %v %v\n" bn bn.none)
 
-// and the keyword round-trips BY VALUE: brush(saved-:none) restores none
+// and the attrlist round-trips BY VALUE: brush(saved) restores none
 brush(65535,4)
 brush(bn)
 bn2=brush()
-ok=ok&&(print("%v" bn2 :string)==":none")
-print("10 brush(65535,4); brush(bn) with bn==:none restores none brush (expect :none): %v\n" bn2)
+ok=ok&&(bn2.none==true)
+print("10 brush(65535,4); brush(bn) restores none brush (expect .none true): %v\n" bn2.none)
 
 // put the editor back to startup-ish defaults for any tests that follow
 brush(65535,0)

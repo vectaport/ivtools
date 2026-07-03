@@ -72,6 +72,7 @@
 #include <X11/Xatom.h>
 
 #include <Attribute/aliterator.h>
+#include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 
 #define TITLE "GrFunc"
@@ -1073,8 +1074,11 @@ BrushFunc::BrushFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 void BrushFunc::execute() {
     if (nargs()==0 && nkeys()==0) {
         /* brush() -- return the current editor brush as a linepat,width
-           literal (valid input to brush(linepat,width)), or the keyword
-           :none for the none brush (valid input by paste or by value) */
+           literal (valid input to brush(linepat,width)), or the attrlist
+           singleton (:none 1) for the none brush.  A keyword-flag literal
+           travels as an attrlist, never as a raw KeywordType value --
+           eager stack_key() scans frames by type, so a stored keyword
+           would become a live keyword in any frame it entered. */
         reset_stack();
         BrushVar* brVar = (BrushVar*) _ed->GetState("BrushVar");
         PSBrush* br = brVar ? brVar->GetBrush() : nil;
@@ -1082,7 +1086,9 @@ void BrushFunc::execute() {
             push_stack(ComValue::nullval());
         } else if (br->None()) {
             static int none_sym = symbol_add("none");
-            ComValue retval(none_sym, 0, ComValue::KeywordType);
+            AttributeList* al = new AttributeList();
+            al->add_attr(none_sym, new AttributeValue(1, AttributeValue::BooleanType));
+            ComValue retval(AttributeList::class_symid(), al);
             push_stack(retval);
         } else {
             AttributeValueList* avl = new AttributeValueList();
@@ -1101,10 +1107,18 @@ void BrushFunc::execute() {
 
     PSBrush* brush = nil;
 
-    if (nonev.is_true() || (bnum.is_key() && bnum.keyid_val()==none_sym)) {
-        /* brush(:none) -- none brush; also accepted positionally BY VALUE
-           (a variable holding the :none keyword returned by bare brush()),
-           so saved=brush(); ...; brush(saved) round-trips the none brush */
+    /* the attrlist singleton (:none 1) returned by bare brush() is accepted
+       back positionally, so saved=brush(); ...; brush(saved) round-trips
+       the none brush */
+    boolean none_by_value = false;
+    if (bnum.is_attributelist()) {
+        AttributeList* bal = (AttributeList*)bnum.geta(AttributeList::class_symid());
+        Attribute* battr = bal ? bal->GetAttr(none_sym) : nil;
+        none_by_value = battr && battr->Value() && battr->Value()->is_true();
+    }
+
+    if (nonev.is_true() || none_by_value) {
+        /* brush(:none) -- none brush */
         brush = new PSBrush();
 
     } else if (bnum.is_array()) {
