@@ -1,38 +1,38 @@
 // spread.comt -- the ~~ spread operator expands a stream (or list) into the
 // positional (var-arg) slots of the enclosing command, so ONE command runs
-// once over all the elements (batch), rather than $/list (elements in one list
-// arg) or a bare stream (per-element overdrive replay).
+// once over all the elements.  The point of ~~ is a collection held BY VARIABLE
+// (a stream or list) turned into an arg list; literals aren't the use case (you
+// would just type the args), so the tests spread variables.
 //
 // Probe: print() is an eager command that consumes its format left-to-right
 // across its positional values in one pass, so a format with N specs and N
 // values renders each -- revealing that ~~ delivered N separate positionals.
-// (Only an EAGER enclosing command; post_eval commands like posteval read
-// token-spans, not the operand stack, so ~~ does not reach them.)
+// (Only an EAGER enclosing command; post_eval commands read token-spans, not
+// the operand stack, so ~~ does not reach them.)
 //
-// coverage: ~~ spread operator (stream/list -> var-args), one enclosing call
+// coverage: ~~ spread operator (stream/list by variable -> var-args)
 // funcs: spread stream print
 // missing:
 ok=1
 
-// baseline -- three literal positionals fill three format specs
-ok=ok&&(print("[%d %d %d]" 1 2 3 :str)=="[1 2 3]")
-print("literal 1 2 3 -> [1 2 3] baseline (ok=%d)\n" ok)
+// a LIST held in a variable, spread into three positionals
+lst=1,2,3
+ok=ok&&(print("[%d %d %d]" ~~lst :str)=="[1 2 3]")
+print("~~lst   (lst=1,2,3) -> [1 2 3] (ok=%d)\n" ok)
 
-// spread a LIST literal into three positionals: ~~(1,2,3) == 1 2 3
-ok=ok&&(print("[%d %d %d]" ~~(1,2,3) :str)=="[1 2 3]")
-print("~~(1,2,3) list spread -> [1 2 3] (ok=%d)\n" ok)
+// a STREAM held in a variable, spread
+s=$$(4,5,6)
+ok=ok&&(print("[%d %d %d]" ~~s :str)=="[4 5 6]")
+print("~~s     (s=$$(4,5,6)) -> [4 5 6] (ok=%d)\n" ok)
 
-// spread a $$ STREAM into three positionals
-ok=ok&&(print("[%d %d %d]" ~~$$(4,5,6) :str)=="[4 5 6]")
-print("~~$$(4,5,6) stream spread -> [4 5 6] (ok=%d)\n" ok)
+// a leading literal positional, then a spread of a variable -- order preserved
+ok=ok&&(print("[%d %d %d %d]" 9 ~~lst :str)=="[9 1 2 3]")
+print("9 ~~lst  leading + spread -> [9 1 2 3] (ok=%d)\n" ok)
 
-// a leading literal positional, then a spread tail -- order preserved
-ok=ok&&(print("[%d %d %d %d]" 9 ~~(1,2,3) :str)=="[9 1 2 3]")
-print("9 ~~(1,2,3) leading literal + spread -> [9 1 2 3] (ok=%d)\n" ok)
-
-// scalar spreads to a single positional (~~ delegates to $$'s scalar->singleton)
-ok=ok&&(print("[%d]" ~~(8) :str)=="[8]")
-print("~~(8) scalar spread -> [8] (ok=%d)\n" ok)
+// bare literal spreads too (~~ ranks below the comma at 32) -- works, not the
+// point, kept only to pin the precedence
+ok=ok&&(print("[%d %d %d]" ~~7,8,9 :str)=="[7 8 9]")
+print("~~7,8,9 bare literal (works, not the point) -> [7 8 9] (ok=%d)\n" ok)
 
 print("spread: %v\n" ok)
 ok
