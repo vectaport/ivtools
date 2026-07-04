@@ -1,6 +1,6 @@
 // src/comterp_/tests/assignops.comt -- test compound assignment operators
 //
-// coverage: 24/44 (55%)
+// coverage: 33/53 (62%)
 // funcs: mod_assign mpy_assign add_assign sub_assign div_assign incr incr_after decr decr_after
 // missing: ~all(return-type) mpy_assign(unset-nil) add_assign(unset-nil)
 //          sub_assign(unset-nil) div_assign(unset-nil) incr(unset-nil)
@@ -14,6 +14,17 @@
 // ModAssignFunc::execute).  Tests 3, 5, and 6 stress the three storage
 // paths mutated in place: repeated local-table writes, the func-frame
 // attrlist, and the global table.
+//
+// tests 18-27 pin every compound-assign/incr/decr op against a
+// keyword-bound func formal (issue #216): those bindings are stored as
+// plain 40-byte AttributeValues in the frame attrlist, and every
+// assignfunc.c compound-assign body used to read and write them through
+// a ComValue* cast -- the write landed the ComValue-only fields past the
+// end of the allocation, corrupting the heap and crashing stock comterp
+// a statement or two later in the ~Attribute/~AttributeList teardown
+// cascade.  (Locals created inside the body, as in test 5, were never
+// affected -- AssignFunc stores a heap ComValue for those; only
+// keyword-bound formals hit the plain-AttributeValue path.)
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/assignops.comt")
@@ -149,6 +160,77 @@ while(i<5 (total+=i; i++))
 ok=ok&&(total==10)
 ok=ok&&(i==5)
 print("17 while(i<5 (total+=i; i++)) (expect total=10 i=5): %v %v\n" total i)
+prev_ok=check_fail(:ok ok)
+
+// --- test 18: += on a keyword-bound func formal (issue #216) ---
+f18=func(kk+=1; kk)
+r18=f18(:kk 5)
+ok=ok&&(r18==6)
+print("18 f18=func(kk+=1; kk); f18(:kk 5) (expect 6): %v\n" r18)
+prev_ok=check_fail(:ok ok)
+
+// --- test 19: -= on a keyword-bound func formal ---
+f19=func(kk-=2; kk)
+r19=f19(:kk 5)
+ok=ok&&(r19==3)
+print("19 f19=func(kk-=2; kk); f19(:kk 5) (expect 3): %v\n" r19)
+prev_ok=check_fail(:ok ok)
+
+// --- test 20: *= on a keyword-bound func formal ---
+f20=func(kk*=3; kk)
+r20=f20(:kk 5)
+ok=ok&&(r20==15)
+print("20 f20=func(kk*=3; kk); f20(:kk 5) (expect 15): %v\n" r20)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: /= on a keyword-bound func formal ---
+f21=func(kk/=4; kk)
+r21=f21(:kk 20)
+ok=ok&&(r21==5)
+print("21 f21=func(kk/=4; kk); f21(:kk 20) (expect 5): %v\n" r21)
+prev_ok=check_fail(:ok ok)
+
+// --- test 22: %= on a keyword-bound func formal ---
+f22=func(kk%=3; kk)
+r22=f22(:kk 10)
+ok=ok&&(r22==1)
+print("22 f22=func(kk%=3; kk); f22(:kk 10) (expect 1): %v\n" r22)
+prev_ok=check_fail(:ok ok)
+
+// --- test 23: prefix ++ on a keyword-bound func formal ---
+f23=func(pre=++kk; pre+kk)
+r23=f23(:kk 5)
+ok=ok&&(r23==12)
+print("23 f23=func(pre=++kk; pre+kk); f23(:kk 5) (expect 12): %v\n" r23)
+prev_ok=check_fail(:ok ok)
+
+// --- test 24: postfix ++ on a keyword-bound func formal ---
+f24=func(old=kk++; old+kk)
+r24=f24(:kk 5)
+ok=ok&&(r24==11)
+print("24 f24=func(old=kk++; old+kk); f24(:kk 5) (expect 11): %v\n" r24)
+prev_ok=check_fail(:ok ok)
+
+// --- test 25: prefix -- on a keyword-bound func formal ---
+f25=func(pre=--kk; pre+kk)
+r25=f25(:kk 5)
+ok=ok&&(r25==8)
+print("25 f25=func(pre=--kk; pre+kk); f25(:kk 5) (expect 8): %v\n" r25)
+prev_ok=check_fail(:ok ok)
+
+// --- test 26: postfix -- on a keyword-bound func formal ---
+f26=func(old=kk--; old+kk)
+r26=f26(:kk 5)
+ok=ok&&(r26==9)
+print("26 f26=func(old=kk--; old+kk); f26(:kk 5) (expect 9): %v\n" r26)
+prev_ok=check_fail(:ok ok)
+
+// --- test 27: repeated compound assigns on the same keyword formal ---
+// (each op rewrites the same frame AttributeValue in place)
+f27=func(kk+=1; kk+=2; kk%=4; kk)
+r27=f27(:kk 5)
+ok=ok&&(r27==0)
+print("27 f27=func(kk+=1; kk+=2; kk%=4; kk); f27(:kk 5) (expect 0): %v\n" r27)
 prev_ok=check_fail(:ok ok)
 
 print("\nassignops: %v\n" ok)

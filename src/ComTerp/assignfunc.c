@@ -139,12 +139,12 @@ void ModAssignFunc::execute() {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
-	push_stack(*(ComValue*)op1val);
+	push_stack(*op1val);
 	push_stack(operand2);
 	ModFunc modfunc(comterp());
 	modfunc.exec(2,0);
 	ComValue result(pop_stack());
-        *(ComValue*)op1val = result;
+        op1val->assignval(result);
 	push_stack(result);
     }
 
@@ -168,12 +168,12 @@ void MpyAssignFunc::execute() {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
-	push_stack(*(ComValue*)op1val);
+	push_stack(*op1val);
 	push_stack(operand2);
 	MpyFunc mpyfunc(comterp());
 	mpyfunc.exec(2,0);
 	ComValue result(pop_stack());
-        *(ComValue*)op1val = result;
+        op1val->assignval(result);
 	push_stack(result);
     }
 
@@ -196,12 +196,12 @@ void AddAssignFunc::execute() {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
-	push_stack(*(ComValue*)op1val);
+	push_stack(*op1val);
 	push_stack(operand2);
 	AddFunc addfunc(comterp());
 	addfunc.exec(2,0);
 	ComValue result(pop_stack());
-        *(ComValue*)op1val = result;
+        op1val->assignval(result);
 	push_stack(result);
     }
 
@@ -225,12 +225,12 @@ void SubAssignFunc::execute() {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
-	push_stack(*(ComValue*)op1val);
+	push_stack(*op1val);
 	push_stack(operand2);
 	SubFunc subfunc(comterp());
 	subfunc.exec(2,0);
 	ComValue result(pop_stack());
-        *(ComValue*)op1val = result;
+        op1val->assignval(result);
 	push_stack(result);
     }
 
@@ -254,12 +254,12 @@ void DivAssignFunc::execute() {
 	    push_stack(ComValue::nullval());
 	    return;
 	}
-	push_stack(*(ComValue*)op1val);
+	push_stack(*op1val);
 	push_stack(operand2);
 	DivFunc divfunc(comterp());
 	divfunc.exec(2,0);
 	ComValue result(pop_stack());
-        *(ComValue*)op1val = result;
+        op1val->assignval(result);
 	push_stack(result);
     }
 
@@ -279,7 +279,7 @@ void IncrFunc::execute() {
 	if (!op1val) 
 	    push_stack(ComValue::nullval());
 	else {
-	    push_stack(*(ComValue*)op1val);
+	    push_stack(*op1val);
 	    ComValue one;
 	    one.type(ComValue::IntType);
 	    one.int_ref() = 1;
@@ -287,7 +287,7 @@ void IncrFunc::execute() {
 	    AddFunc addfunc(comterp());
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
-            *(ComValue*)op1val = result;
+            op1val->assignval(result);
 	    push_stack(result);
 	}
     } else 
@@ -310,7 +310,7 @@ void IncrAfterFunc::execute() {
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
-	    push_stack(*(ComValue*)op1val);
+	    push_stack(*op1val);
 	    ComValue one;
 	    one.type(ComValue::IntType);
 	    one.int_ref() = 1;
@@ -318,8 +318,8 @@ void IncrAfterFunc::execute() {
 	    AddFunc addfunc(comterp());
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
-	    push_stack(*(ComValue*)op1val);
-            *(ComValue*)op1val = result;
+	    push_stack(*op1val);
+            op1val->assignval(result);
 	}
     } else 
         push_stack(ComValue::nullval());
@@ -339,7 +339,7 @@ void DecrFunc::execute() {
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
-	    push_stack(*(ComValue*)op1val);
+	    push_stack(*op1val);
 	    ComValue one;
 	    one.type(ComValue::IntType);
 	    one.int_ref() = 1;
@@ -347,7 +347,7 @@ void DecrFunc::execute() {
 	    SubFunc subfunc(comterp());
 	    subfunc.exec(2,0);
 	    ComValue result(pop_stack());
-            *(ComValue*)op1val = result;
+            op1val->assignval(result);
 	    push_stack(result);
 	}
     } else 
@@ -369,7 +369,7 @@ void DecrAfterFunc::execute() {
 	if (!op1val)
 	    push_stack(ComValue::nullval());
 	else {
-	    push_stack(*(ComValue*)op1val);
+	    push_stack(*op1val);
 	    ComValue one;
 	    one.type(ComValue::IntType);
 	    one.int_ref() = 1;
@@ -377,8 +377,8 @@ void DecrAfterFunc::execute() {
 	    SubFunc subfunc(comterp());
 	    subfunc.exec(2,0);
 	    ComValue result(pop_stack());
-	    push_stack(*(ComValue*)op1val);
-            *(ComValue*)op1val = result;
+	    push_stack(*op1val);
+            op1val->assignval(result);
 	}
     } else 
         push_stack(ComValue::nullval());
