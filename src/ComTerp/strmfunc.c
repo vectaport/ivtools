@@ -386,9 +386,13 @@ void StreamNextFunc::execute() {
     avl->First(i);
     AttributeValue* retval = avl->Done(i) ? nil : avl->GetAttrVal(i);
 
-    // if FileObj or PipeObj read next newline terminated string and return
-    if (((ComValue*)retval)->is_fileobj() || ((ComValue*)retval)->is_pipeobj()) {
-      ComValue fpobj((ComValue*)retval);
+    // if FileObj or PipeObj read next newline terminated string and return.
+    // retval is a base-class AttributeValue (the internal list is built by
+    // the AttributeValueList copy-ctor), so don't cast it to ComValue* --
+    // the ComValue-only fields lie past the end of the allocation
+    if (retval && (retval->is_object(FileObj::class_symid()) ||
+		   retval->is_object(PipeObj::class_symid()))) {
+      ComValue fpobj(*retval);
       comterp()->push_stack(fpobj);
       GetStringFunc func(comterp());
       func.exec(1,0);
