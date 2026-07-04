@@ -537,8 +537,10 @@ Variable lookup follows a three-level priority chain:
   created for the call and discarded at return — the same structure
   that carries keyword args and `setattr()` properties everywhere else
 - **local scope** — the interpreter's flat top-level symbol table,
-  where prompt and `run()` assignments live
-- **global scope** — symbols declared with `global()`
+  where prompt and `run()` assignments live; `local(x)` reads and
+  writes it explicitly (see *Escaping the func scope* below)
+- **global scope** — symbols declared with `global()`; `global(x)`
+  reads and writes it explicitly
 
 A variable can be **read** from any level — func scope wins over local,
 local wins over global. A variable **written** inside a func always goes

@@ -1,6 +1,6 @@
 // src/comterp_/tests/local.comt -- test local() command
 //
-// coverage: 12/13 (92%)
+// coverage: 14/15 (93%)
 // funcs: local
 // missing: ~local(lvalue-return-type) -- in local(sym)=val the return value belongs
 //          to the assign operator, not local(); untestable in isolation for local() alone
@@ -110,6 +110,26 @@ lcf=func(lchan+1)
 r12=lcf()
 ok=ok&&(r12==6)
 print("12 lpf=func(local(lchan)=5); lcf=func(lchan+1) cross-func via default table (expect 6): %v\n\n" r12)
+prev_ok=check_fail(:ok ok)
+
+// --- test 13: backquote-assign is NOT a scope escape ---
+// `x is the symbol-quote; assigning through it stays in the current
+// scope like any other write -- local()/global() are the escapes.
+// (Pins the correction of the FUNC-AND-ARGS-DESIGN.md folklore.)
+bqf=func(`bq13=5; 0)
+bqf()
+ok=ok&&(bq13==nil)
+ok=ok&&(local(bq13)==nil)
+print("13 bqf=func(`bq13=5); bqf(); bq13 local(bq13) backquote not an escape (expect nil nil): %v %v\n\n" bq13 local(bq13))
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: local() inside for/if bodies (post-eval, no func frame) ---
+// with no frame to skip, local(x)=v is bare assignment being explicit
+for(i14=0 i14<3 i14++ local(lv14)=i14*10)
+ok=ok&&(lv14==20)
+if(1 :then local(lv14)=99)
+ok=ok&&(local(lv14)==99)
+print("14 for/if bodies: local(lv14)=... == bare assignment there (expect 20 then 99): %v\n\n" local(lv14))
 prev_ok=check_fail(:ok ok)
 
 print("\nlocal: %v\n" ok)
