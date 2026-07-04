@@ -14,6 +14,7 @@
 // HOW IT WORKS (the three layers of every spatial app):
 //   1. the DRAWING  -- shapes on the canvas (rect, ellipse, spline)
 //   2. the DATA     -- setattr() sticks facts onto each shape
+//                      (or one at a time by dot: pig.legs=4)
 //   3. the QUESTIONS-- little funcs walk every shape on the map,
 //                      check its facts, and flash the ones that match
 
@@ -226,8 +227,14 @@ zoohelp=func(
   print("  oops()           -- the map explains your last error\n");
   print("YOUR TURN: add your own animal, then find it --\n");
   print("  pig=ellipse(200,220, 25,15)\n");
-  print("  setattr(pig :name \"Penny\" :kind \"animal\" :legs 4 :eats \"corn\" :moves \"trots\")\n");
-  print("  who(\"Penny\")\n"))
+  print("  pig.name=\"Penny\"\n");
+  print("  pig.kind=\"animal\"\n");
+  print("  pig.legs=4\n");
+  print("  pig.eats=\"corn\"\n");
+  print("  pig.moves=\"trots\"\n");
+  print("  who(\"Penny\")\n");
+  print("(each dot writes one fact on the pig -- setattr(pig :name \"Penny\" :legs 4 ...)\n");
+  print(" stamps them all at once, like the animals above)\n"))
 
 // ============================================================
 // welcome!
