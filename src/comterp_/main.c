@@ -74,7 +74,7 @@ static char newline;
    only this key changes -- read the latest key off the banner to confirm the
    newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
    refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
-#define PATCH_KEY "b082afc8"
+#define PATCH_KEY "176f8827"
 
 using std::cout;
 using std::cerr;
@@ -103,6 +103,9 @@ static void leakcheck_report() {
   if (AttributeValueList::_leakchecker)
     fprintf(stderr, "LEAKCHECK: AttributeValueList alive = %d\n",
 	    AttributeValueList::_leakchecker->alive());
+  if (AttributeList::_leakchecker)
+    fprintf(stderr, "LEAKCHECK: AttributeList alive = %d\n",
+	    AttributeList::_leakchecker->alive());
 }
 #endif
 

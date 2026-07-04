@@ -44,6 +44,7 @@
 
 #ifdef LEAKCHECK
 LeakChecker* AttributeValueList::_leakchecker = nil;
+LeakChecker* AttributeList::_leakchecker = nil;
 #endif
 
 
@@ -53,6 +54,10 @@ using std::cerr;
 int AttributeList::_symid = -1;
 
 AttributeList::AttributeList (AttributeList* s) {
+#ifdef LEAKCHECK
+    if(!_leakchecker) _leakchecker = new LeakChecker("AttributeList");
+    _leakchecker->create();
+#endif
     _alist = new AList;
     _count = 0;
     if (s != nil) {
@@ -65,6 +70,9 @@ AttributeList::AttributeList (AttributeList* s) {
 }
 
 AttributeList::~AttributeList () { 
+#ifdef LEAKCHECK
+    _leakchecker->destroy();
+#endif
     if (_alist) {
         ALIterator i;
 	for (First(i); !Done(i); Next(i)) {
