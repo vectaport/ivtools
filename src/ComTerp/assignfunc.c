@@ -152,7 +152,6 @@ void ModAssignFunc::execute() {
 	    return;
 	}
 	push_stack(*(ComValue*)op1val);
-	delete (ComValue*)op1val;
 	push_stack(operand2);
 	ModFunc modfunc(comterp());
 	modfunc.exec(2,0);

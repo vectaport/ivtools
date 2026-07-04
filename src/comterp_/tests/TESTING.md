@@ -177,7 +177,7 @@ print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
 ### Rules for LLM-assisted authoring
 
 When an LLM generates or edits a `.comt` test script, it must follow
-these four rules without exception. They are mechanical checklist items,
+these five rules without exception. They are mechanical checklist items,
 not stylistic suggestions — violating any one of them produces a broken
 or misleading test file:
 
@@ -202,6 +202,25 @@ or misleading test file:
    Followed by descriptive text if needed. This makes the test log
    self-documenting. See the **Test label convention** section above for
    examples.
+
+5. **Never edit deliberately malformed text into valid syntax.**
+   Some tests feed the parser DELIBERATELY MALFORMED expressions — the
+   malformed text is the test fixture, and the error it raises (retrieved
+   via `errmsg()`) is the behavior under test. A bare `(4 :x 7 8)` on its
+   own line is not a typo to clean up — it is illegal because the bare 8
+   is a second positional after the keyword's value (`:x` takes 7, and
+   nothing may follow it bare); "fixing" it silently disables the test.
+   These sites are marked with an
+   `// intentional error: ... -- do not remove or make valid`
+   comment naming the malformation and print an
+   `(next error is INTENTIONAL ...)` banner just before the error fires,
+   so the run log distinguishes them from real failures. If a language
+   change legalizes a malformed form (this has happened: `(4 :x 7)`,
+   value *before* a keyword, errored for years until stream literals made
+   it legal), do not delete the test — replace the fixture with a form
+   that still errors, or rewrite the test to pin the new behavior, and
+   say which in the comment. When triggering an intentional error in a
+   new test, add both the comment and the banner.
 
 ## Adding Coverage
 
@@ -228,6 +247,7 @@ To add a new test script:
 | stream.comt   | $$ $ ,, next each size .. **                                 | 1-10    |      46 |    50 | 92% |
 | string.comt   | index substr split join eq size print(+:str) +               | 1-10,11 |      78 |    97 | 80% |
 | global.comt   | global                                                       | 1-10,11 |      13 |    14 | 93% |
+| assignops.comt| mod_assign mpy_assign add_assign sub_assign div_assign incr incr_after decr decr_after | 1-9,11 | 24 | 44 | 55% |
 | attrlist.comt | dot list(:attr) attrlist at size attrname attrval + -        | 1-10    |      42 |    55 | 76% |
 | print.comt    | print                                                        | 1-9     |      22 |    35 | 63% |
 | parser.comt   | attrlist(:literal) errmsg postfix class type                 | 1-9     |      28 |    38 | 74% |

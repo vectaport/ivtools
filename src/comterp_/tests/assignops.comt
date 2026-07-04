@@ -1,0 +1,155 @@
+// src/comterp_/tests/assignops.comt -- test compound assignment operators
+//
+// coverage: 24/44 (55%)
+// funcs: mod_assign mpy_assign add_assign sub_assign div_assign incr incr_after decr decr_after
+// missing: ~all(return-type) mpy_assign(unset-nil) add_assign(unset-nil)
+//          sub_assign(unset-nil) div_assign(unset-nil) incr(unset-nil)
+//          incr_after(unset-nil) decr(unset-nil) decr_after(unset-nil)
+//          mpy_assign(float) sub_assign(float) div_assign(float)
+//
+// tests 1-6 pin %= (mod_assign): its execute() had a stray delete of the
+// symbol-table value before writing the result back through the same
+// pointer -- a use-after-free caught by AddressSanitizer (allocated
+// assignfunc.c AssignFunc::execute, freed and rewritten in
+// ModAssignFunc::execute).  Tests 3, 5, and 6 stress the three storage
+// paths mutated in place: repeated local-table writes, the func-frame
+// attrlist, and the global table.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/assignops.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: %= stores mod result back in the symbol ---
+a=17
+a%=5
+ok=ok&&(a==2)
+print("1 a=17; a%=5 (expect 2): %v\n" a)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: %= is an expression; its value composes ---
+m=7
+n=(m%=4)+10
+ok=ok&&(n==13)
+ok=ok&&(m==3)
+print("2 m=7; n=(m%=4)+10 (expect n=13 m=3): %v %v\n" n m)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: repeated %= on the same symbol mutates in place ---
+// (regression stress for the ModAssignFunc use-after-free: each %= after
+//  the first rewrites the same symbol-table ComValue)
+b=1000
+b%=700
+b%=190
+b%=7
+ok=ok&&(b==5)
+print("3 b=1000; b%=700; b%=190; b%=7 (expect 5): %v\n" b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: %= on an unset symbol returns nil ---
+r4=(zz_unset%=5)
+ok=ok&&(r4==nil)
+print("4 (zz_unset%=5) unset symbol (expect nil): %v\n" r4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: %= inside a func mutates the frame-attrlist value ---
+ff=func(x=10; x%=3; x)
+r5=ff()
+ok=ok&&(r5==1)
+print("5 ff=func(x=10; x%=3; x); ff() func-frame (expect 1): %v\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: %= on a global-table symbol mutates the global in place ---
+global(gmod)=17
+gmod%=5
+r6=global(gmod)
+ok=ok&&(r6==2)
+print("6 global(gmod)=17; gmod%=5; global(gmod) (expect 2): %v\n" r6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: *= stores product back in the symbol ---
+b2=3
+b2*=4
+ok=ok&&(b2==12)
+print("7 b2=3; b2*=4 (expect 12): %v\n" b2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: += stores sum back in the symbol ---
+c=10
+c+=5
+ok=ok&&(c==15)
+print("8 c=10; c+=5 (expect 15): %v\n" c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: += with float operands ---
+k=7.5
+k+=2.5
+ok=ok&&(k==10)
+print("9 k=7.5; k+=2.5 (expect 10): %v\n" k)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: += concatenates strings ---
+s="ab"
+s+="cd"
+ok=ok&&(s=="abcd")
+print("10 s=\"ab\"; s+=\"cd\" (expect \"abcd\"): %v\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: -= stores difference back in the symbol ---
+d=10
+d-=3
+ok=ok&&(d==7)
+print("11 d=10; d-=3 (expect 7): %v\n" d)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: /= stores quotient back in the symbol ---
+e=20
+e/=4
+ok=ok&&(e==5)
+print("12 e=20; e/=4 (expect 5): %v\n" e)
+prev_ok=check_fail(:ok ok)
+
+// --- test 13: prefix ++ increments and returns the new value ---
+f=5
+pre=++f
+ok=ok&&(pre==6)
+ok=ok&&(f==6)
+print("13 f=5; pre=++f (expect pre=6 f=6): %v %v\n" pre f)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: postfix ++ increments and returns the old value ---
+g=5
+post=g++
+ok=ok&&(post==5)
+ok=ok&&(g==6)
+print("14 g=5; post=g++ (expect post=5 g=6): %v %v\n" post g)
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: prefix -- decrements and returns the new value ---
+h=5
+hd=--h
+ok=ok&&(hd==4)
+ok=ok&&(h==4)
+print("15 h=5; hd=--h (expect hd=4 h=4): %v %v\n" hd h)
+prev_ok=check_fail(:ok ok)
+
+// --- test 16: postfix -- decrements and returns the old value ---
+i0=5
+pd=i0--
+ok=ok&&(pd==5)
+ok=ok&&(i0==4)
+print("16 i0=5; pd=i0-- (expect pd=5 i0=4): %v %v\n" pd i0)
+prev_ok=check_fail(:ok ok)
+
+// --- test 17: += and ++ drive a while() loop ---
+i=0
+total=0
+while(i<5 (total+=i; i++))
+ok=ok&&(total==10)
+ok=ok&&(i==5)
+print("17 while(i<5 (total+=i; i++)) (expect total=10 i=5): %v %v\n" total i)
+prev_ok=check_fail(:ok ok)
+
+print("\nassignops: %v\n" ok)
+ok
