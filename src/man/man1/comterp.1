@@ -255,6 +255,8 @@ both until exit.
 
  val=global(sym)|global(sym)=val|global(sym :clear)|global(:cnt) -- make symbol global 
   
+ val=local(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- read/write the default symbol table by name, skipping any func frame.  local() names the scope bare assignment already uses outside a func; inside a func it escapes the per-invocation frame the way global() escapes to the interpreter-shared table
+  
  int|lst=symid([sym [sym ...]] :max :cnt) -- return integer id(s) associated with symbol(s)
 
  sym|lst=symbol(symid [symid ...]) -- return symbol(s) associated with integer id(s)

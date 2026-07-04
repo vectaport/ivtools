@@ -550,6 +550,103 @@ void GlobalSymbolFunc::execute() {
 
 }
 
+/*****************************************************************************/
+
+LocalSymbolFunc::LocalSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void LocalSymbolFunc::execute() {
+  static int clear_symid = symbol_add("clear");
+  ComValue clearflagv(stack_key(clear_symid));
+  boolean clearflag = clearflagv.is_true();
+  static int cnt_symid = symbol_add("cnt");
+  ComValue cntflagv(stack_key(cnt_symid));
+  boolean cntflag = cntflagv.is_true();
+
+  if (cntflag) {
+    reset_stack();
+    TableIterator(ComValueTable) it(*comterp()->localtable());
+    int cnt=0;
+    while(it.more()) {
+      cnt++;
+      it.next();
+    }
+    ComValue retval(cnt);
+    push_stack(retval);
+    return;
+  }
+
+  /* local() names the scope bare assignment already uses OUTSIDE a func:
+     the interpreter's per-instance symbol table.  As an lvalue it returns
+     the symbol(s) with local_flag set so AssignFunc writes that table even
+     from inside a func frame; as an rvalue it reads that table and ONLY
+     that table -- no func-frame shadow, no globaltable fallback. */
+  int numargs = nargs();
+  if (!numargs) {
+    reset_stack();
+    return;
+  }
+  std::vector<int> symbol_ids(numargs);
+  for (int i=0; i<numargs; i++) {
+    ComValue& val = stack_arg(i, true);
+    if (val.is_symbol())
+      symbol_ids[i] = val.symbol_val();
+    else
+      symbol_ids[i] = -1;
+  }
+  boolean assign_next = comterp()->stack_top(nargs()+nkeys()).lhs_assign();
+
+  reset_stack();
+
+  if (numargs>1) {
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<numargs; i++) {
+      if (!clearflag) {
+	ComValue* av =
+	  new ComValue(symbol_ids[i], AttributeValue::SymbolType);
+	if (assign_next) {
+	  av->local_flag(true);
+	  av->bquote(1);
+	} else {
+	  ComValue* lval = comterp()->localvalue(symbol_ids[i]);
+	  if (lval && !lval->is_unknown())
+	    *av = *lval;
+	  else
+	    av->type(ComValue::UnknownType);
+	}
+	avl->Append(av);
+      } else {
+	void* oldval = nil;
+	comterp()->localtable()->find_and_remove(oldval, symbol_ids[i]);
+	if (oldval) delete (ComValue*)oldval;
+      }
+    }
+    push_stack(retval);
+  } else {
+
+    if (!clearflag) {
+      if (assign_next) {
+        ComValue retval(symbol_ids[0], AttributeValue::SymbolType);
+        retval.local_flag(true);
+        retval.bquote(1);
+        push_stack(retval);
+      } else {
+        ComValue* lval = comterp()->localvalue(symbol_ids[0]);
+        if (lval && !lval->is_unknown())
+          push_stack(*lval);
+        else
+          push_stack(ComValue::nullval());
+      }
+    } else {
+      void* oldval = nil;
+      comterp()->localtable()->find_and_remove(oldval, symbol_ids[0]);
+      if (oldval) delete (ComValue*)oldval;
+    }
+  }
+
+}
+
 
 /*****************************************************************************/
 

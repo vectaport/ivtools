@@ -44,7 +44,8 @@ class ComTerp;
 // necessary command and keyword state after code conversion and during 
 // interpretation.  
 #define COMVALUE_BQUOTE_FLAG     0x01  // backquote -- return symbol without lookup
-#define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() ComValue in lhs context
+#define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() or local() ComValue in lhs context
+#define COMVALUE_LOCAL_FLAG      0x04  // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
 
 class ComValue : public AttributeValue {
 public:
@@ -128,6 +129,11 @@ public:
     // return flag that indicates this CommandType is on left-hand side of an assignment.
     void lhs_assign(int flag) { if(flag) _flags |= COMVALUE_LHS_ASSIGN_FLAG; else _flags &= ~COMVALUE_LHS_ASSIGN_FLAG; }
     // set flag that indicates this CommandType is on the left-hand side of an assignment.
+    int local_flag() const;
+    // return flag that marks a local() lvalue symbol -- assignment writes the
+    // default symbol table, skipping any func frame.
+    void local_flag(int flag) { if(flag) _flags |= COMVALUE_LOCAL_FLAG; else _flags &= ~COMVALUE_LOCAL_FLAG; }
+    // set flag that marks a local() lvalue symbol.
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.

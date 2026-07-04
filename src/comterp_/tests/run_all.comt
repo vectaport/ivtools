@@ -25,6 +25,10 @@ if(run("./global.comt")
   :then print("pass: global\n")
   :else print("FAIL: global\n");topok=false)
 
+if(run("./local.comt")
+  :then print("pass: local\n")
+  :else print("FAIL: local\n");topok=false)
+  
 if(run("./assignops.comt")
   :then print("pass: assignops\n")
   :else print("FAIL: assignops\n");topok=false)
