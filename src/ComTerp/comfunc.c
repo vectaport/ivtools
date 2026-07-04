@@ -445,11 +445,17 @@ int ComFunc::bintest(const char* command) {
   snprintf(combuf, sizeof(combuf), "which %s 2> /dev/null", command );
 #endif
   FILE* fptr = popen(combuf, "r");
-  char testbuf[BUFSIZ];	
-  fgets(testbuf, BUFSIZ, fptr);  
+  if (fptr == 0) return -1;                       // popen failed -> not found
+  char testbuf[BUFSIZ];
+  if (!fgets(testbuf, BUFSIZ, fptr)) testbuf[0] = '\0';  // no output -> empty
   pclose(fptr);
-  if (strncmp(testbuf+strlen(testbuf)-strlen(command)-1, 
-	      command, strlen(command)) != 0) {
+  // `which' echoes the resolved path; if it printed nothing (or less than the
+  // command name), the command is not on PATH.  Guard the tail comparison so an
+  // empty/short result can't index before testbuf.
+  size_t tlen = strlen(testbuf);
+  size_t clen = strlen(command);
+  if (tlen < clen + 1 ||
+      strncmp(testbuf + tlen - clen - 1, command, clen) != 0) {
     return -1;
   }
   return 0;

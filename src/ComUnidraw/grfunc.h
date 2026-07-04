@@ -148,7 +148,7 @@ public:
     FontFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(fontnum) -- set current font from menu order"; }
+	return "%s([fontnum]) -- set current font from menu order; return current font by X name if no args"; }
 };
 
 //: command for setting font state variable by  font name in comdraw.
@@ -158,7 +158,7 @@ class FontByNameFunc : public UnidrawFunc {
   FontByNameFunc(ComTerp*,Editor*);
   virtual void execute();
   virtual const char* docstring() {
-    return "%s(fontname) -- set current font by X font name"; }
+    return "%s([fontname]) -- set current font by X font name; return current font by X name if no args"; }
 };
 
 //: command for setting brush state variable in comdraw.
@@ -168,7 +168,7 @@ public:
     BrushFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(brushnum|:none|linepat,width) -- set current brush from menu order, none brush, or by pattern/width"; }
+	return "%s([brushnum|:none|linepat,width]) -- set current brush from menu order, none brush, or by pattern/width; return current brush as linepat,width (or attrlist (:none true)) if no args"; }
 };
 
 //: command for setting pattern state variable in comdraw.
@@ -178,7 +178,7 @@ public:
     PatternFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(patternnum) -- set current pattern from menu order"; }
+	return "%s([patternnum]) -- set current pattern from menu order; return current patternnum if no args"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	"1  None",
@@ -218,7 +218,7 @@ public:
     ColorFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(fgcolornum bgcolornum | fgcolorname bgcolorname) -- set current colors from menu order or by RGB name"; }
+	return "%s([fgcolornum bgcolornum | fgcolorname bgcolorname]) -- set current colors from menu order or by RGB name; return current colors as fgname,bgname if no args"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	"1  Black",
@@ -246,7 +246,7 @@ class ColorRgbFunc : public UnidrawFunc {
   ColorRgbFunc(ComTerp*,Editor*);
   virtual void execute();
   virtual const char* docstring() {
-    return "%s(fgcolorname bgcolorname) -- set current colors by RGB name.\nThe colorname format is \"#RGB\" for 4 bits, \"#RRGGBB\" for 8 bits,\n\"#RRRGGGBBB\" for 12 bits,\"#RRRRGGGGBBBB\" for 16 bits"; }
+    return "%s([fgcolorname bgcolorname]) -- set current colors by RGB name; return current colors as fgname,bgname if no args.\nThe colorname format is \"#RGB\" for 4 bits, \"#RRGGBB\" for 8 bits,\n\"#RRRGGGBBB\" for 12 bits,\"#RRRRGGGGBBBB\" for 16 bits"; }
 };
 
 //: command to select graphics in comdraw.

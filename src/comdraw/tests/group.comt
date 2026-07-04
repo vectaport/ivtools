@@ -1,0 +1,27 @@
+// src/comdraw/tests/group.comt -- group()/ungroup() (#157)
+//
+// group() collapses the current selection into a single group graphic and
+// returns the group's compview; ungroup() dissolves a group back into its
+// members.  growgroup/trimgroup could only grow/trim an EXISTING group --
+// there was no way to bootstrap one from a selection until group().
+//
+// funcs: rect() select() group() ungroup() size()
+ok=true
+
+// two rects, grouped into one group of two members.
+// select them explicitly (not :all): run_all runs earlier scripts first, so
+// their leftover graphics are still on the canvas and :all would sweep them in.
+r1=rect(0,0, 50,50)
+r2=rect(60,60, 100,100)
+select(r1 r2)
+g=group()
+ok=ok&&(size(g)==2)
+print("group: size(group() of 2 rects)==2 -> %v (got %v)\n" size(g)==2 size(g))
+
+// ungroup the group -- returns non-nil on success
+r=ungroup(g)
+ok=ok&&(r!=nil)
+print("group: ungroup(g)!=nil -> %v\n" r!=nil)
+
+print("group: %v\n" ok)
+ok

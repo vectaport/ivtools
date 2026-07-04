@@ -4,7 +4,7 @@ This appendix is for programmers working inside the ivtools codebase —
 adding ComTerp commands, extending DrawServ, building new ComFunc
 subclasses, or navigating the C++ layer that underlies the scripting
 system. It assumes familiarity with INTRODUCTION.md and
-src/comterp_/LANGUAGE.md.
+LANGUAGE.md.
 
 ## The Two Hierarchies
 

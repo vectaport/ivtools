@@ -47,8 +47,10 @@ void BarPlotFunc::execute() {
 
   if (Component::use_unidraw()) {
     boolean ok;
-    char tmpfilename[] = "/tmp/plivXXXX";
-    mkstemp(tmpfilename);
+    char tmpfilename[] = "/tmp/plivXXXXXX";   // 6 X's: mkstemp needs exactly six
+    int tmpfd = mkstemp(tmpfilename);         // and creates a unique O_EXCL file
+    if (tmpfd < 0) { reset_stack(); return; }
+    close(tmpfd);                             // reopened by name via ofstream below
     ofstream out(tmpfilename);
 
     ComValue title(stack_key(title_symid));
@@ -90,18 +92,23 @@ void BarPlotFunc::execute() {
     out.close();
 
     char cmd[256];
-    char pstmp[] = "/tmp/psivXXXX";
-    mkstemp(pstmp);
+    char pstmp[] = "/tmp/psivXXXXXX";
+    int psfd = mkstemp(pstmp);
+    if (psfd < 0) { unlink(tmpfilename); reset_stack(); return; }
+    close(psfd);                              // plotmtv writes it by name
     snprintf(cmd, sizeof(cmd), "plotmtv -noxplot -color -o %s %s", pstmp, tmpfilename);
     FILE* plotp = popen(cmd, "w");
+    if (plotp == nil) { unlink(pstmp); unlink(tmpfilename); reset_stack(); return; }
     fprintf(plotp, "n\n");
     pclose(plotp);
 
-    char idtmp[] = "/tmp/idivXXXX";
-    mkstemp(idtmp);
+    char idtmp[] = "/tmp/idivXXXXXX";
+    int idfd = mkstemp(idtmp);
+    if (idfd < 0) { unlink(pstmp); unlink(tmpfilename); reset_stack(); return; }
+    close(idfd);                              // pstoedit writes it by name
     snprintf(cmd, sizeof(cmd), "pstoedit -f idraw < %s > %s", pstmp, idtmp);
-fprintf(stderr, "%s\n", cmd);
-    system(cmd);
+    if (system(cmd) != 0)
+      fprintf(stderr, "plot: pstoedit conversion failed: %s\n", cmd);
 
     ComEditor* ed = nil;
     if (newview_flag.is_true()) {
@@ -114,6 +121,7 @@ fprintf(stderr, "%s\n", cmd);
     imp->pathname(idtmp);
     imp->Execute();
 
+    unlink(idtmp);      // now that 6-X mkstemp actually creates it, clean it up too
     unlink(pstmp);
     unlink(tmpfilename);
   }

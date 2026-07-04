@@ -505,9 +505,10 @@ char buffer[BUFSIZ];
    if( ErrorLevel == PROG_LEVEL ) {
       for( index=TopError; index>=0; index-- ) {
 	 fseek( ErrorIOFile, (long)ErrorStructs[index].erroff, SEEK_SET );
-	 fgets( buffer,
+	 if( !fgets( buffer,
 		MIN( BUFSIZ, ErrorStructs[index].errlen+1),
-		ErrorIOFile );
+		ErrorIOFile ) )
+	    buffer[0] = '\0';   /* best-effort read-back; empty on failure */
 	 fprintf( outstream, "%s\n", buffer );
 	 }
       fprintf( outstream, "%s:  Error in execution\n", command );
@@ -517,8 +518,9 @@ char buffer[BUFSIZ];
 /* with command substituted for the function name              */
    else {
       fseek( ErrorIOFile, (long)ErrorStructs[TopError].erroff, SEEK_SET );
-      fgets( buffer, MIN( BUFSIZ, ErrorStructs[TopError].errlen+1),
-	     ErrorIOFile );
+      if( !fgets( buffer, MIN( BUFSIZ, ErrorStructs[TopError].errlen+1),
+	     ErrorIOFile ) )
+	 buffer[0] = '\0';   /* best-effort read-back; empty on failure */
       ptr = buffer;
       if( isident( *ptr ))
 	 ++ptr;
@@ -613,9 +615,10 @@ char buffer[bufsiz];
    if( ErrorLevel == PROG_LEVEL ) {
       for( index=TopError; index>=0; index-- ) {
 	 fseek( ErrorIOFile, (long)ErrorStructs[index].erroff, SEEK_SET );
-	 fgets( buffer,
+	 if( !fgets( buffer,
 		MIN( BUFSIZ, ErrorStructs[index].errlen+1),
-		ErrorIOFile );
+		ErrorIOFile ) )
+	    buffer[0] = '\0';   /* best-effort read-back; empty on failure */
 	 fprintf( outstream, "%s\n", buffer );
 	 }
       fprintf( outstream, "%s:  Error in execution\n", command );
@@ -626,8 +629,9 @@ char buffer[bufsiz];
    else {
 #endif
       fseek( ErrorIOFile, (long)ErrorStructs[TopError].erroff, SEEK_SET );
-      fgets( buffer, MIN( BUFSIZ, ErrorStructs[TopError].errlen+1),
-	     ErrorIOFile );
+      if( !fgets( buffer, MIN( BUFSIZ, ErrorStructs[TopError].errlen+1),
+	     ErrorIOFile ) )
+	 buffer[0] = '\0';   /* best-effort read-back; empty on failure */
       ptr = buffer;
       if( isident( *ptr ))
 	 ++ptr;

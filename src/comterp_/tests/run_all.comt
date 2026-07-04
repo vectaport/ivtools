@@ -25,6 +25,10 @@ if(run("./global.comt")
   :then print("pass: global\n")
   :else print("FAIL: global\n");topok=false)
 
+if(run("./assignops.comt")
+  :then print("pass: assignops\n")
+  :else print("FAIL: assignops\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)
@@ -82,6 +86,13 @@ if(run("./funcarg.comt")
 if(run("./updown.comt")
   :then print("pass: updown\n")
   :else print("FAIL: updown\n");topok=false)
+if(run("./spread.comt")
+  :then print("pass: spread\n")
+  :else print("FAIL: spread\n");topok=false)
+  
+if(run("./replay.comt")
+  :then print("pass: replay\n")
+  :else print("FAIL: replay\n");topok=false)
 
 print("\nrun_all: %v\n" topok)
 topok

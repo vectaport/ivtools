@@ -161,6 +161,77 @@ void TrimGroupFunc::execute() {
     push_stack(ComValue::nullval());
 }
 
+/*****************************************************************************/
+
+GroupFunc::GroupFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void GroupFunc::execute() {
+    reset_stack();
+
+    OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
+
+    /* gather the current selection to group -- the "regroup" half of
+       growgroup, but sourced from the selection instead of an existing
+       group's members (see #157: growgroup/trimgroup could grow/trim a group
+       but there was no way to bootstrap one). */
+    Clipboard* cb = new Clipboard();
+    cb->Init(viewer->GetSelection());
+
+    /* nothing selected -> nothing to group */
+    Iterator i;
+    cb->First(i);
+    if (cb->Done(i)) {
+	delete cb;
+	push_stack(ComValue::nullval());
+	return;
+    }
+
+    OvGroupCmd* gcmd = new OvGroupCmd(GetEditor());
+    OverlaysComp* grgroup = new OverlaysComp();
+    gcmd->SetGroup(grgroup);
+    gcmd->SetClipboard(cb);
+    execute_log(gcmd);
+
+    ComValue retval(new OverlayViewRef(grgroup), OverlaysComp::class_symid());
+    push_stack(retval);
+}
+
+/*****************************************************************************/
+
+UngroupFunc::UngroupFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void UngroupFunc::execute() {
+    ComValue grval(stack_arg(0));
+    reset_stack();
+
+    OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
+
+    /* ungroup the given group compview, else the current selection */
+    Clipboard* cb = new Clipboard();
+    if (grval.object_compview()) {
+	ComponentView* grview = (ComponentView*)grval.obj_val();
+	OverlayComp* grcomp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+	if (grcomp) cb->Append(grcomp);
+    } else
+	cb->Init(viewer->GetSelection());
+
+    Iterator i;
+    cb->First(i);
+    if (cb->Done(i)) {
+	delete cb;
+	push_stack(ComValue::nullval());
+	return;
+    }
+
+    UngroupCmd* ucmd = new UngroupCmd(GetEditor());
+    ucmd->SetClipboard(cb);
+    execute_log(ucmd);
+
+    push_stack(ComValue::oneval());
+}
+
 
 /*****************************************************************************/
 

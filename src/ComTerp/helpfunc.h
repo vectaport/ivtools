@@ -61,14 +61,20 @@ public:
     OptableFunc(ComTerp*);
     virtual void execute();
 
-    virtual const char* docstring() { 
-      return "%s(:bypri :byopr :bycom :table) -- print contents of operator table\n(or return as list of attrlists with :table)"; }
+    virtual const char* docstring() {
+      return "%s(:bypri :byopr :bycom :table | opstr [command] :insert|:delete [:pri n] [:rtol] [:prefix|:postfix]) -- print the operator table, or add/remove an operator live (effective next expression)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":bypri     sort by priority",
 	":byopr     sort by operator name",
 	":bycom     sort by command name",
 	":table     return as list of attrlists (:opr :cmd :pri :rtol :type)",
+	":insert    add operator opstr->command to the table (opstr command required)",
+	":delete    remove operator opstr from the table (opstr required)",
+	":pri n     operator priority for :insert (default 80)",
+	":rtol      operator associates right-to-left (default left-to-right)",
+	":prefix    unary prefix operator (default binary)",
+	":postfix   unary postfix operator (default binary)",
 	nil
       };
       return keys;

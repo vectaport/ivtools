@@ -50,13 +50,24 @@ graphical object assigned to an interpreter variable.
 
 .SH GRAPHIC STATE COMMANDS
 
- font(fontnum) -- set current font from menu
- brush(brushnum|linepath,width) -- set current brush from menu order or linepat,width
- pattern(patternnum) --  set current pattern from menu
+ font([fontnum]) -- set current font from menu;
+    return current font by X name if no args
+ fontbyname([fontname]) -- set current font by X font name;
+    return current font by X name if no args
+ brush([brushnum|:none|linepat,width]) -- set current brush from menu order,
+    none brush, or linepat,width;
+    return current brush as linepat,width if no args,
+    or as the attrlist singleton (:none true) for the none brush;
+    that attrlist is accepted back positionally, so
+    saved=brush(); ...; brush(saved) round-trips the none brush too
+ pattern([patternnum]) --  set current pattern from menu;
+    return current patternnum if no args (nil if not a menu pattern)
  patternmask(int|list) -- set current pattern from a 16 bit int (4x4)  or a list of 16 ints (16x16)
- colors(fgnum|fgstr bgnum|bgstr) -- set current colors from menu order or "#RRGGBB" (see colorsrgb)
- colorsrgb(fgstr bgstr)
-   -- set current colors by RGB name.
+ colors([fgnum|fgstr bgnum|bgstr]) -- set current colors from menu order or "#RRGGBB" (see colorsrgb);
+    return current colors as fgname,bgname if no args
+ colorsrgb([fgstr bgstr])
+   -- set current colors by RGB name;
+      return current colors as fgname,bgname if no args.
       The colorname format is "#RGB" for 4 bits, "#RRGGBB" for 8 bits,
       #RRRGGGBBB for 12 bits, #RRRRGGGGBBBB for 16 bits
  nfonts() -- return size of font menu
@@ -77,9 +88,11 @@ graphical object assigned to an interpreter variable.
 
 .SH GROUP/UNGROUP COMMANDS
 
- newgroup=growgroup(groupview compview)
+ newgrp=group() -- group the current selection into a single group graphic
+ ungroup([compview]) -- ungroup the selected group (or given group) into its members
+ newgrp=growgroup(groupview compview)
    -- add graphic to existing group graphic
- newgroup=trimgroup(groupview compview)
+ newgrp=trimgroup(groupview compview)
    -- remove graphic from existing group graphic
  front([compview]) -- move selection or graphic to front
  back([compview]) -- move selection or graphic to back

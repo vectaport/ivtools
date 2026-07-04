@@ -23,97 +23,116 @@
  */
 
 /*
- * iv_PSFont - use PostScript font metrics
+ * PSFont31 - PostScript font metrics via FreeType2 and Fontconfig
  */
 
 #include <InterViews/psfont.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <fontconfig/fontconfig.h>
+#include <ft2build.h>
+#include FT_FREETYPE_H
 #include <string.h>
-
-/*
- * Users can also override this by setting the PSFONTDIR environment variable.
- */
-#ifndef ps_metrics_dir
-#define ps_metrics_dir "/usr/lib/ps"
-#endif
+#include <stdlib.h>
 
 class PSFontImpl {
 private:
     friend class PSFont31;
 
-    char* name;
-    char* encoding;
-    Coord size;
-    Coord widths[256];
-
-    static char* psfile(const char* name);
+    char* name_;
+    const char* encoding_;
+    Coord size_;
+    Coord widths_[256];
 };
+
+static char* fc_find_font(const char* psname) {
+    FcInit();
+    FcPattern* pat = FcPatternCreate();
+    FcPatternAddString(pat, FC_POSTSCRIPT_NAME, (FcChar8*)psname);
+    FcConfigSubstitute(nullptr, pat, FcMatchPattern);
+    FcDefaultSubstitute(pat);
+    FcResult result;
+    FcPattern* match = FcFontMatch(nullptr, pat, &result);
+    FcPatternDestroy(pat);
+    if (!match)
+        return nullptr;
+    char* path = nullptr;
+    FcChar8* file;
+    if (FcPatternGetString(match, FC_FILE, 0, &file) == FcResultMatch)
+        path = strdup((char*)file);
+    FcPatternDestroy(match);
+    return path;
+}
+
+static const char* ft_encoding_name(FT_Encoding enc) {
+    switch (enc) {
+    case FT_ENCODING_ADOBE_STANDARD: return "AdobeStandardEncoding";
+    case FT_ENCODING_ADOBE_EXPERT:   return "AdobeExpertEncoding";
+    case FT_ENCODING_ADOBE_CUSTOM:   return "AdobeCustomEncoding";
+    case FT_ENCODING_UNICODE:        return "Unicode";
+    default:                         return "Unknown";
+    }
+}
 
 PSFont31::PSFont31(
     const char* psname, Coord size, const char* name, float scale
 ) : Font(name, scale) {
     PSFontImpl* p = new PSFontImpl;
     impl_ = p;
-    p->name = nil;
-    p->encoding = nil;
-    p->size = size;
-    char* metrics_file = PSFontImpl::psfile(psname);
-    FILE* file = fopen(metrics_file, "r");
-    if (file != nil) {
-	p->name = new char[256];
-	p->encoding = new char[256];
+    p->name_ = strdup(psname);   /* default; name() never returns null */
+    p->encoding_ = "Unknown";
+    p->size_ = size;
+    memset(p->widths_, 0, sizeof(p->widths_));
 
-	char line[256];
-	int c;
-	int w;
-	while (fgets(line, 255, file) != NULL) {
-	    if (sscanf(line, "FullName %[a-zA-Z ]", p->name) == 1) {
-		;
-	    } else if (sscanf(line, "EncodingScheme %s", p->encoding) == 1) {
-		;
-	    } else if (sscanf(line, "C %d ; WX %d ;", &c, &w) == 2) {
-		if (c != -1) {
-		    p->widths[c] = float(w) / 1000 * p->size;
-		}
-	    }
-	}
-	fclose(file);
+    char* filepath = fc_find_font(psname);
+    if (!filepath)
+        return;
+
+    FT_Library library;
+    if (FT_Init_FreeType(&library)) {
+        free(filepath);
+        return;
     }
-    delete metrics_file;
+
+    FT_Face face;
+    if (FT_New_Face(library, filepath, 0, &face) == 0) {
+        const char* psn = FT_Get_Postscript_Name(face);
+        if (psn) { free(p->name_); p->name_ = strdup(psn); }
+
+        /* idraw reencodes PostScript fonts to ISO-8859-1, whose byte values
+           0..255 coincide with Unicode U+0000..U+00FF -- so select the Unicode
+           charmap and index it by byte.  Symbol-class fonts have no Unicode cmap
+           (and idraw leaves those in their native encoding); fall back to the
+           font's own charmap so their byte codes still resolve. */
+        if (FT_Select_Charmap(face, FT_ENCODING_UNICODE) != 0 && face->num_charmaps > 0)
+            FT_Set_Charmap(face, face->charmaps[0]);
+        if (face->charmap)
+            p->encoding_ = ft_encoding_name(face->charmap->encoding);
+
+        for (int c = 0; c < 256; c++) {
+            FT_UInt gi = FT_Get_Char_Index(face, (FT_ULong)c);
+            if (gi && FT_Load_Glyph(face, gi, FT_LOAD_NO_SCALE) == 0)
+                p->widths_[c] = Coord(face->glyph->advance.x) / face->units_per_EM * size;
+        }
+        FT_Done_Face(face);
+    }
+    FT_Done_FreeType(library);
+    free(filepath);
 }
 
 PSFont31::~PSFont31() {
-    delete impl_->name;
-    delete impl_->encoding;
+    free(impl_->name_);
     delete impl_;
 }
 
-const char* PSFont31::name() const { return impl_->name; }
-const char* PSFont31::encoding() const { return impl_->encoding; }
-Coord PSFont31::size() const { return impl_->size; }
-Coord PSFont31::width(long c) const { return impl_->widths[c]; }
+const char* PSFont31::name() const { return impl_->name_; }
+const char* PSFont31::encoding() const { return impl_->encoding_; }
+Coord PSFont31::size() const { return impl_->size_; }
+Coord PSFont31::width(long c) const { return impl_->widths_[c & 0xff]; }
 Coord PSFont31::width(const char* s, int n) const { return Font::width(s, n); }
 
 boolean PSFont31::exists(const char* psname) {
-    char* metrics_file = PSFontImpl::psfile(psname);
-    FILE* f = fopen(metrics_file, "r");
-    delete metrics_file;
-    if (f == nil) {
-	return false;
-    }
-    fclose(f);
+    char* path = fc_find_font(psname);
+    if (!path)
+        return false;
+    free(path);
     return true;
-}
-
-char* PSFontImpl::psfile(const char* name) {
-    const char* dir = getenv("PSFONTDIR");
-    if (dir == nil) {
-	dir = ps_metrics_dir;
-    }
-    int metrics_file_size =
-	strlen(dir) + strlen("/") + strlen(name) + strlen(".afm") + 1;
-    char* metrics_file = new char[metrics_file_size];
-    snprintf(metrics_file, metrics_file_size, "%s/%s.afm", dir, name);
-    return metrics_file;
 }

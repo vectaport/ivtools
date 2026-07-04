@@ -579,6 +579,14 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 #endif
 
+/* freetype2 + fontconfig, for the PostScript font metrics in InterViews/psfont.c.
+   Default is the Linux layout (freetype2 in its own subdir, fontconfig under
+   /usr/include); site.def.$CPU overrides for non-standard prefixes (e.g. macOS
+   Homebrew). */
+#ifndef FontCCIncludes
+#define FontCCIncludes -I/usr/include/freetype2
+#endif
+
 #ifndef OtherCCIncludes
 #define OtherCCIncludes $(CLIPPOLY_CCINCLUDES) $(ACE_CCINCLUDES) $(QT_CCINCLUDES) $(TIFF_CCINCLUDES)
 #endif
@@ -597,6 +605,7 @@ CLIPPOLY_CCINCLUDES = ClipPolyCCIncludes
      ACE_CCINCLUDES = AceCCIncludes
       QT_CCINCLUDES = QtCCIncludes
     TIFF_CCINCLUDES = TiffCCIncludes
+    FONT_CCINCLUDES = FontCCIncludes
 #ifdef ClipPolyDir
         CLIPPOLYDIR = ClipPolyDir
 #endif
@@ -742,6 +751,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 		      $(LDLIBUNIDRAW)\					@@\
 		      $(LDLIBGRAPHIC)\					@@\
 		      $(LDLIBIV)\					@@\
+		      $(FONT_CCLDLIBS)\					@@\
 		      $(XLIBDIRPATH)\					@@\
 		      $(LDLIBXEXT)\					@@\
 		      $(LDLIBX11)\					@@\
@@ -872,6 +882,13 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #endif
 #endif
 
+/* link libraries for the freetype2 + fontconfig font metrics (psfont.c).
+   Default assumes they are on the standard library path; site.def.$CPU adds a
+   -L for non-standard prefixes (e.g. macOS Homebrew). */
+#ifndef FontCCLdLibs
+#define FontCCLdLibs -lfreetype -lfontconfig
+#endif
+
 #ifndef TiffLibDir
 #ifdef TiffDir
 #define TiffLibDir TiffDir/tiff
@@ -900,6 +917,7 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
         IV_CCLDLIBS = IvCCLdLibs
     SHARED_CCLDLIBS = SharedCCLdLibs
      EXTRA_CCLDLIBS = ExtraCCLdLibs
+      FONT_CCLDLIBS = FontCCLdLibs
 #if 0 /* moved to individual Imakefile's */
      OTHER_CCLDLIBS = OtherCCLdLibs
 #endif

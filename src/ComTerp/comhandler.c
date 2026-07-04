@@ -188,6 +188,38 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
     }
 
     if (!ComterpHandler::logger_mode() && !log_only()) {
+
+      /* Typed input can arrive while a script is already running on this same
+         interpreter -- e.g. a -runfile for-loop whose update() pumped the ACE
+         reactor and dispatched this line.  ComTerp::run(!nested) resets the
+         shared operand stack (eval_expr's `_stack_top = -1`, plus the trailing
+         `if (!nested) decr_stack(_stack_top+1)`), which wipes the suspended
+         script's in-progress stack -> it resumes on an empty stack and crashes
+         (ForFunc reads a garbage argoff via stack_top()).  When re-entrant,
+         isolate the eval so the running script sees no trace of it:
+           - push_servstate() protects the postfix buffer (_pfbuf/_pfnum/...)
+             that load_string()/read_expr() would otherwise clobber;
+           - run *nested* so the shared operand stack is not reset, then pop the
+             typed line's result(s) so the cursor is exactly where it was;
+           - save/restore _just_reset.  The script can be suspended right after
+             a reset_stack() (comfunc.c) with _just_reset==1 -- the signal for
+             eval_expr_internals to push the blankval that stands in for the
+             just-reset result.  The typed eval's own push_stack() clears the
+             flag to 0 (comterp.c), so without this the blankval is never pushed,
+             the script's stack comes up one short, and skip_arg walks off the
+             end (offlimit).  push_servstate() does NOT cover this flag (its save
+             is commented out, because the synchronous re-entrant callers -- run,
+             remote -- rely on _just_reset propagating across that boundary; an
+             async stdin interruption must instead be fully transparent). */
+      boolean reentrant = comterp_->running();
+      int stack_base = 0;
+      boolean old_just_reset = false;
+      if (reentrant) {
+	comterp_->push_servstate();
+	stack_base = comterp_->stack_height();
+	old_just_reset = comterp_->_just_reset;
+      }
+
       comterp_->load_string(inbuf);
 
       // this hides the logging of a ready command, interesting
@@ -195,12 +227,23 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	  struct timeval tv;
 	  log_command(inbuf, "<", (_alt_fd>-1 ? _alt_fd : fd));
       }
-      
+
       comterp_->_fd = fd;
       comterp_->_outfunc = (fd == 0) ? (outfuncptr)&stdout_puts : (outfuncptr)&ComTerpServ::fd_fputs;
-      int  status = comterp_->ComTerp::run(false /* !once */, comterp_->force_nested() /* !nested */);
-      if(comterp_->force_nested()) ComValue retval(comterp_->pop_stack(false));
-      if (comterp_->delete_later()) {
+      int  status = comterp_->ComTerp::run(false /* !once */,
+			   reentrant ? true : comterp_->force_nested() /* nested */);
+      if (reentrant) {
+	while (comterp_->stack_height() > stack_base) comterp_->pop_stack(false);
+	comterp_->_just_reset = old_just_reset;
+	comterp_->pop_servstate();
+      } else if (comterp_->force_nested())
+	ComValue retval(comterp_->pop_stack(false));
+      /* delete_later() is a request for the OUTERMOST active context to
+         delete the interpreter once it is truly idle.  When re-entrant, the
+         suspended outer script still holds this interpreter live -- deleting
+         here would be a use-after-free when it resumes.  Leave the flag set;
+         the outer frame's own check (or shutdown) performs the delete. */
+      if (!reentrant && comterp_->delete_later()) {
 	delete comterp_;
 	comterp_ = nil;
       }
