@@ -323,8 +323,12 @@ AttributeValue::~AttributeValue() {
 }
 
 void AttributeValue::clear() {
+    /* zero the WHOLE value union, not just sizeof(double): any union
+       member field past the first 8 bytes would otherwise be left as
+       construction-path garbage -- a trap discovered (and briefly hit)
+       when a field was added past that boundary. */
     unsigned char* buf = (unsigned char*)(void*)&_v;
-    for (int i=0; i<sizeof(double); i++) buf[i] = '\0';
+    for (int i=0; i<sizeof(_v); i++) buf[i] = '\0';
     _state = 0;
 }
 

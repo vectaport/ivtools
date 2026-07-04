@@ -87,7 +87,10 @@ relative to a fixed execution substrate.
 - `_flags` — bitfield for per-instance boolean flags:
   - `COMVALUE_BQUOTE_FLAG (0x01)` — return symbol without lookup
   - `COMVALUE_LHS_ASSIGN_FLAG (0x02)` — set by AssignFunc on a global()
-    command ComValue to indicate lhs assignment context
+    or local() command ComValue to indicate lhs assignment context
+  - `COMVALUE_LOCAL_FLAG (0x04)` — set by local() on its lvalue symbol:
+    AssignFunc writes the default (per-instance) symbol table, skipping
+    any func frame
 
 Since `_pfcomvals` is an immutable array of `ComValue` objects (one per
 postfix token), flags set on a specific `ComValue` in the array persist
@@ -182,38 +185,56 @@ will be.  The model for help within comterp is using the help() func,
 and :docstr could be added to the func command that inserts that help
 string into the help system.
 
-## Global Variable Lhs/Rhs Context
+## Scope-Command Lhs/Rhs Context (global() and local())
 
-`global(sym)=val` requires `global()` to behave differently depending on
-whether it is the lhs or rhs of an assignment:
+`global(sym)=val` and `local(sym)=val` require the scope command to behave
+differently depending on whether it is the lhs or rhs of an assignment:
 
-- **lhs**: push a bquoted, global-flagged symbol for `AssignFunc` to write to
-- **rhs**: look up and push the symbol's value from the global table
+- **lhs**: push a bquoted, scope-flagged symbol for `AssignFunc` to write to
+- **rhs**: look up and push the symbol's value from that command's table
+  (and only that table — no fall-through)
 
 `AssignFunc::execute()` uses `skip_arg_in_expr()` via the argoffval bookmark
 to locate the start of its arg 0 sub-expression in `_pfcomvals`. If that
-start token is a `global` command, it sets `COMVALUE_LHS_ASSIGN_FLAG` on
-that specific `ComValue`.
+start token is a `global` or `local` command, it sets
+`COMVALUE_LHS_ASSIGN_FLAG` on that specific `ComValue`.
 
 When `post_eval_expr()` later evaluates the lhs sub-expression and fires
-`GlobalSymbolFunc::execute()`, that command can peek at its own `ComValue`
+the scope command's `execute()`, that command can peek at its own `ComValue`
 on the eval stack via `stack_top(nargs()+nkeys())` and check
-`lhs_assign()`. Only the outermost `global()` explicitly flagged by
-`AssignFunc` sees the flag — inner `global()` calls in rvalue position
-within the same lhs expression are unaffected.
+`lhs_assign()`. Only the outermost scope command explicitly flagged by
+`AssignFunc` sees the flag — inner calls in rvalue position within the
+same lhs expression are unaffected.
 
-## Symbol and Global Tables
+The bquote on the returned lvalue symbol is the anti-resolution shield:
+`lookup_symval()` returns nil for bquoted symbols, so the flagged symbol
+survives evaluation unresolved and reaches `AssignFunc`, which routes the
+write by scope flag — `global_flag` to `globaltable()`, `local_flag` to
+`localtable()` — before the func-frame branch, so both escapes work from
+inside a func body (the frame branch used to preempt `global_flag`; fixed
+when `local()` was added).
 
-ComTerp maintains two variable tables per interpreter instance:
+## Symbol Tables and the Func Frame
 
-- `localtable()` — per-invocation local variables, scoped to the current
-  `func()` body or top-level expression
-- `globaltable()` — persistent across expressions, shared across all
-  interpreter instances on the same `ComTerp`
+Bare-symbol lookup walks three levels (verified empirically; see the
+Scoping rules in doc/LANGUAGE.md for the user-side view):
 
-`lookup_symval()` checks local first, then global. The `global_flag` on a
-`ComValue` forces writes and reads to bypass local and go directly to
-`globaltable()`.
+- the **func frame** (`_alist`) — a per-invocation `AttributeList`
+  created for each funcobj call and discarded at return; passed keywords
+  pre-populate it and every write inside the body lands on it.  There is
+  no caller chain: a nested call cannot see its calling func's frame
+- `localtable()` — the interpreter instance's flat top-level table,
+  where prompt and `run()` assignments live; one per `ComTerp`
+  (per server connection).  `local(x)` reads and writes it explicitly
+- `globaltable()` — a static shared by every `ComTerp` instance in the
+  process (all server connections).  `global(x)` reads and writes it
+  explicitly
+
+`lookup_symval()` checks frame, then local, then global — except for
+bquoted symbols (nil, see the shield above) and `global_flag`'d symbols
+(straight to `globaltable()`).  Assignment shadows and never writes
+through: a bare write inside a func lands on the frame even when an
+outer name exists.
 
 
 ## Symbol Registration Pattern

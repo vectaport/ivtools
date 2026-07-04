@@ -71,8 +71,11 @@ indexed out of the read-only postfix buffer) is the **`:posteval` future**
 - a plain `x=…` inside the body stays *local* — scratch, not output;
 - to get a value out you `return` it — and that return may be an **attrlist**,
   which is how you hand back several named results at once — or you deliberately
-  escape the scope: `` `x=… `` to write the outer symbol, or `global(x)=…` for
-  the global.
+  escape the scope: `local(x)=…` writes the interpreter's default symbol table
+  (the scope bare assignment uses outside a func), and `global(x)=…` writes the
+  interpreter-shared table (one per process, all server connections).  The
+  backquote is *not* an escape — `` `x `` is the symbol-quote, and assigning
+  through it stays in the current scope like any other write.
 
 Nice twisted symmetry: keywords arrive **spread** as separate locals, but
 multiple results leave **gathered** as one returned attrlist. In as names, out

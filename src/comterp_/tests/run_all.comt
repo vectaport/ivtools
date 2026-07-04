@@ -25,6 +25,14 @@ if(run("./global.comt")
   :then print("pass: global\n")
   :else print("FAIL: global\n");topok=false)
 
+if(run("./local.comt")
+  :then print("pass: local\n")
+  :else print("FAIL: local\n");topok=false)
+  
+if(run("./assignops.comt")
+  :then print("pass: assignops\n")
+  :else print("FAIL: assignops\n");topok=false)
+
 if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)
@@ -77,6 +85,11 @@ if(run("./funcarg.comt")
   :then print("pass: funcarg\n")
   :else print("FAIL: funcarg\n");topok=false)
 
+// networking: remote() round-trip over a real socket to a `comterp server`
+// child (launches/tears down its own servers; needs comterp on PATH)
+if(run("./updown.comt")
+  :then print("pass: updown\n")
+  :else print("FAIL: updown\n");topok=false)
 if(run("./spread.comt")
   :then print("pass: spread\n")
   :else print("FAIL: spread\n");topok=false)
