@@ -122,7 +122,7 @@ ComValue::ComValue(postfix_token* token) {
     case TOK_FLOAT:   type(FloatType); break;
     case TOK_DOUBLE:  type(DoubleType); break;
     case TOK_EOF:     type(EofType); break;
-    case TOK_COMMAND: type(SymbolType); _v.symval.globalflag=0; break;
+    case TOK_COMMAND: type(SymbolType); _v.symval.globalflag=0; _v.symval.localflag=0; break;
     case TOK_KEYWORD: type(KeywordType); break;
     case TOK_BLANK:   type(BlankType); break;
     default:          type(UnknownType); break;

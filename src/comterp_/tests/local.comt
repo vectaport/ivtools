@@ -1,0 +1,116 @@
+// src/comterp_/tests/local.comt -- test local() command
+//
+// coverage: 12/13 (92%)
+// funcs: local
+// missing: ~local(lvalue-return-type) -- in local(sym)=val the return value belongs
+//          to the assign operator, not local(); untestable in isolation for local() alone
+//
+// local() names the scope bare assignment already uses OUTSIDE a func: the
+// interpreter's default per-instance symbol table.  As an lvalue inside a
+// func it escapes the per-invocation frame (the way global() escapes to the
+// process-wide table); as an rvalue it reads the default table and ONLY that
+// table -- no func-frame shadow, no globaltable fallback.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/local.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: local lvalue assignment at top level == bare assignment ---
+local(lv1)=11
+ok=ok&&(local(lv1)==11)
+ok=ok&&(lv1==11)
+print("1 local(lv1)=11; local(lv1) lv1 top-level write names the default scope (expect 11 11): %v %v\n\n" local(lv1) lv1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: bare assignment readable through local() ---
+lv2=22
+ok=ok&&(local(lv2)==22)
+print("2 lv2=22; local(lv2) bare write visible to local() (expect 22): %v\n\n" local(lv2))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: local() read does NOT fall through to the global table ---
+global(lv3)=33
+r3=local(lv3)
+ok=ok&&(r3==nil)
+ok=ok&&(lv3==33)
+print("3 global(lv3)=33; local(lv3) vs bare lv3 no-globaltable-fallback (expect nil 33): %v %v\n\n" r3 lv3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: local lvalue assignment from INSIDE a func escapes the frame ---
+lwf=func(local(lv4)=44; 0)
+lwf()
+r4=local(lv4)
+ok=ok&&(r4==44)
+ok=ok&&(lv4==44)
+print("4 lwf=func(local(lv4)=44); lwf(); local(lv4) lv4 func-frame escape (expect 44 44): %v %v\n\n" r4 lv4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: frame local shadows for bare reads; local() reads past the shadow ---
+lv5=55
+lsf=func(lv5=1; lv5,local(lv5))
+r5=lsf()
+ok=ok&&(at(r5 0)==1)
+ok=ok&&(at(r5 1)==55)
+print("5 lv5=55; lsf=func(lv5=1; lv5,local(lv5)) shadow vs explicit (expect 1 55): %v %v\n\n" at(r5 0) at(r5 1))
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: local() write inside a func does not disturb the frame local ---
+lv6=66
+ldf=func(lv6=2; local(lv6)=7; lv6)
+r6=ldf()
+ok=ok&&(r6==2)
+ok=ok&&(lv6==7)
+print("6 ldf=func(lv6=2; local(lv6)=7; lv6) frame untouched, outer written (expect 2 7): %v %v\n\n" r6 lv6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: unset local returns nil ---
+r7=local(lnever_set)
+ok=ok&&(r7==nil)
+print("7 local(lnever_set) unset returns nil (expect nil): %v\n\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: local :cnt returns count of default-table entries ---
+n8=local(:cnt)
+ok=ok&&(n8>0)
+print("8 local(:cnt) count of default-table entries (expect >0): %v\n\n" n8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: local :clear removes entry from the default table ---
+local(ltmp)=99
+local(ltmp :clear)
+r9=local(ltmp)
+ok=ok&&(r9==nil)
+print("9 local(ltmp)=99; local(ltmp :clear); local(ltmp) (expect nil): %v\n\n" r9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: multi-arg local rvalue returns list of values ---
+local(la)=10
+local(lb)=20
+lst10=local(la lb)
+ok=ok&&(at(lst10 0)==10)
+ok=ok&&(at(lst10 1)==20)
+print("10 local(la lb) multi-arg rvalue (expect {10,20}): %v\n\n" lst10)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: local and global with the same name stay independent ---
+global(both)=1
+local(both)=2
+ok=ok&&(global(both)==1)
+ok=ok&&(local(both)==2)
+ok=ok&&(both==2)
+print("11 global(both)=1; local(both)=2 independent; bare read prefers local (expect 1 2 2): %v %v %v\n\n" global(both) local(both) both)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: func bare read falls through to a local() write from another func ---
+lpf=func(local(lchan)=5; 0)
+lpf()
+lcf=func(lchan+1)
+r12=lcf()
+ok=ok&&(r12==6)
+print("12 lpf=func(local(lchan)=5); lcf=func(lchan+1) cross-func via default table (expect 6): %v\n\n" r12)
+prev_ok=check_fail(:ok ok)
+
+print("\nlocal: %v\n" ok)
+ok

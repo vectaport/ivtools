@@ -48,11 +48,12 @@ class ComponentView;
 
 #include <iosfwd>
 
-//: struct for symbol value, symid + global flag for symbol value
+//: struct for symbol value, symid + global/local flags for symbol value
 // used in attr_value.
 typedef struct {
        unsigned int symid;
        boolean globalflag;
+       boolean localflag;
 } symval_struct;
 
 //: void* pointer plus object classid (see macro in OverlayUnidraw/ovcomps.h)
@@ -407,6 +408,12 @@ public:
     // return true if greater than argument
     boolean lesserthan(AttributeValue& av);
     // return true if less than argument
+
+    boolean local_flag();
+    // return true if a symbol and the local flag is set.
+    void local_flag(boolean flag);
+    // set local flag of a symbol -- marks an lvalue that writes the
+    // interpreter's default (local) symbol table, skipping any func frame.
 
 protected:
 

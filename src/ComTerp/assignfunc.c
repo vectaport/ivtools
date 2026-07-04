@@ -54,9 +54,10 @@ void AssignFunc::execute() {
     }
     
     if (operand1.type() != ComValue::SymbolType) {
-        // if lhs is a global() call, set lhs_assign flag on its ComValue
-        // so GlobalSymbolFunc can distinguish lhs from rhs context
+        // if lhs is a global() or local() call, set lhs_assign flag on its
+        // ComValue so the scope command can distinguish lhs from rhs context
         static int global_symid = symbol_add("global");
+        static int local_symid = symbol_add("local");
         ComValue argoff(comterp()->stack_top());
         int offtop = argoff.int_val() - comterp()->pfnum();
         int arg0top = offtop;
@@ -66,7 +67,7 @@ void AssignFunc::execute() {
         ComValue& startval = comterp()->pfcomvals()[startidx];
         if (startval.is_type(ComValue::CommandType)) {
             ComFunc* func = (ComFunc*)startval.obj_val();
-            if (func->funcid() == global_symid)
+            if (func->funcid() == global_symid || func->funcid() == local_symid)
                 startval.lhs_assign(1);
         }
         operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
@@ -92,6 +93,17 @@ void AssignFunc::execute() {
 	      delete (ComValue*)oldval;
 	    }
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
+	} else if (operand1.local_flag()) {
+	    /* local() lvalue: write the default (per-instance) symbol table,
+	       skipping any func frame -- outside a func this is what bare
+	       assignment does anyway; inside one it is the session-scope
+	       escape (global() being the process-scope escape). */
+	    ComValue* oldval = comterp()->localvalue(operand1.symbol_val());
+	    if (oldval) {
+	      comterp()->localtable()->remove(operand1.symbol_val());
+	      delete oldval;
+	    }
+	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
 	} else if (attrlist) {
 	    Resource::ref(attrlist);
 	    Attribute* attr = new Attribute(operand1.symbol_val(),

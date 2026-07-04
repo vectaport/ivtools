@@ -1211,15 +1211,19 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
 	   _alist must be checked first so that a func-local variable
 	   shadows a same-named variable in localtable() (outer scope).
 	   Without this, ++ inside a func body finds and mutates the outer
-	   variable instead of the func-local one, causing infinite loops. */
-	if (!comval->global_flag() && _alist) {
+	   variable instead of the func-local one, causing infinite loops.
+	   A global_flag'd symbol (global() lvalue) skips straight to the
+	   globaltable; a local_flag'd symbol (local() lvalue) skips the
+	   func frame AND the globaltable fallback -- it means the default
+	   per-instance table, exactly. */
+	if (!comval->global_flag() && !comval->local_flag() && _alist) {
 	  int id = comval->symbol_val();
 	  AttributeValue* aval = _alist->find(id);
 	  if (aval) return aval;
 	}
 	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
-	} else if (globaltable()->find(vptr, comval->symbol_val())) {
+	} else if (!comval->local_flag() && globaltable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
 	} else
 	  return nil;
@@ -1590,6 +1594,7 @@ void ComTerp::add_defaults() {
     add_command("symstr", new SymStrFunc(this));
     add_command("strref", new StrRefFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
+    add_command("local", new LocalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
     add_command("substr", new SubStrFunc(this));
