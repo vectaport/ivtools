@@ -99,7 +99,10 @@ void ListFunc::execute() {
     } else if (nargs())
       avl->Append(new AttributeValue(listv));
   }
-  Resource::ref(avl);
+  /* no manual Resource::ref(avl) here: the ComValue constructor refs the
+     list (AttributeValue(AttributeValueList*) does Resource::ref), and an
+     extra unmatched ref pinned every list() result in memory forever --
+     ~27 years of one leaked AttributeValueList per list() call. */
   ComValue retval(avl);
   push_stack(retval);
 }

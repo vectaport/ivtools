@@ -92,8 +92,25 @@ void stack_trace_handler(int sig) {
   exit(1);
 }
 
+#ifdef LEAKCHECK
+/* the per-class LeakCheckers are lazily new'ed statics (never deleted), so
+   their report-on-destruct never fires -- print alive counts at exit instead */
+#include <Attribute/attrlist.h>
+static void leakcheck_report() {
+  if (AttributeValue::_leakchecker)
+    fprintf(stderr, "LEAKCHECK: AttributeValue alive = %d\n",
+	    AttributeValue::_leakchecker->alive());
+  if (AttributeValueList::_leakchecker)
+    fprintf(stderr, "LEAKCHECK: AttributeValueList alive = %d\n",
+	    AttributeValueList::_leakchecker->alive());
+}
+#endif
+
 int main(int argc, char *argv[]) {
 
+#ifdef LEAKCHECK
+    atexit(leakcheck_report);
+#endif
     signal(SIGSEGV, stack_trace_handler);
     /* ignore SIGPIPE: a peer that closed its socket should make a write return
        EPIPE (which remote()/the socket path handles) instead of terminating the
