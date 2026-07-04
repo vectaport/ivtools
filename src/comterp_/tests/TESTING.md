@@ -228,6 +228,7 @@ To add a new test script:
 | stream.comt   | $$ $ ,, next each size .. **                                 | 1-10    |      46 |    50 | 92% |
 | string.comt   | index substr split join eq size print(+:str) +               | 1-10,11 |      78 |    97 | 80% |
 | global.comt   | global                                                       | 1-10,11 |      13 |    14 | 93% |
+| assignops.comt| mod_assign mpy_assign add_assign sub_assign div_assign incr incr_after decr decr_after | 1-9,11 | 24 | 44 | 55% |
 | attrlist.comt | dot list(:attr) attrlist at size attrname attrval + -        | 1-10    |      42 |    55 | 76% |
 | print.comt    | print                                                        | 1-9     |      22 |    35 | 63% |
 | parser.comt   | attrlist(:literal) errmsg postfix class type                 | 1-9     |      28 |    38 | 74% |
