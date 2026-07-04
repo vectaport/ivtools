@@ -537,8 +537,10 @@ Variable lookup follows a three-level priority chain:
   created for the call and discarded at return — the same structure
   that carries keyword args and `setattr()` properties everywhere else
 - **local scope** — the interpreter's flat top-level symbol table,
-  where prompt and `run()` assignments live
-- **global scope** — symbols declared with `global()`
+  where prompt and `run()` assignments live; `local(x)` reads and
+  writes it explicitly (see *Escaping the func scope* below)
+- **global scope** — symbols declared with `global()`; `global(x)`
+  reads and writes it explicitly
 
 A variable can be **read** from any level — func scope wins over local,
 local wins over global. A variable **written** inside a func always goes
@@ -622,6 +624,42 @@ Function body assignments are local — variables assigned inside a func
 do not escape to the caller's scope. This includes dot-notation
 attributes: a dot namespace rooted at a local symbol is local to the
 call.
+
+### Escaping the func scope: local() and global()
+
+When a func genuinely needs to write outside its own frame, two
+commands name the outer scopes explicitly, as both lvalue and rvalue:
+
+- **`local(x)`** — the interpreter's default symbol table: the scope
+  bare assignment already uses *outside* a func, named so it can be
+  reached from *inside* one.  As an lvalue, `local(x)=val` writes that
+  table, skipping the frame; as an rvalue, `local(x)` reads that table
+  and only that table — no func-frame shadow, no global fallback.
+- **`global(x)`** — the interpreter-shared table (one per process,
+  shared by every interpreter instance — every connection of a comterp
+  or drawserv server).  `global(x)=val` writes it from anywhere;
+  `global(x)` reads exactly it.
+
+```
+count=0
+bump=func(local(count)=count+1)   // reads outer count, writes it back
+bump(); bump()
+count                  // 2 -- the func published through local()
+
+f=func(count=99; count,local(count))
+f()                    // {99,2} -- frame shadow vs explicit outer read
+```
+
+In a single-interpreter session `local()` and `global()` differ only in
+which table they touch; in a multi-session server they are session
+scope versus process scope — publish per-connection state with
+`local()`, cross-connection state with `global()`.
+
+Note that the backquote is **not** a scope escape: `` `x `` is the
+symbol-quote (the symbol itself, lookup suppressed), and assigning
+through it stays in the current scope like any other write.  Use
+`local()`/`global()` to escape; use `return` (possibly of an attrlist)
+to hand results to the caller.
 
 ### Multi-value returns
 

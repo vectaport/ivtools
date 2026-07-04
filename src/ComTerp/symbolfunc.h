@@ -161,12 +161,35 @@ public:
     GlobalSymbolFunc(ComTerp*);
     virtual void execute();
 
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from global table",
 	":dump      dump global symbol table",
+	nil
+      };
+      return keys;
+    }
+};
+
+
+//: command to read/write the interpreter's default (local) symbol table
+// val=local(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- read/write
+// the default symbol table by name, skipping any func frame.  local() names
+// the scope that bare assignment already uses outside a func; inside a func
+// it escapes the per-invocation frame the way global() escapes everything.
+class LocalSymbolFunc : public ComFunc {
+public:
+    LocalSymbolFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "val=%s(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- read/write the default symbol table, skipping any func frame"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":clear     clear symbol from the default symbol table",
+	":cnt       return count of entries in the default symbol table",
 	nil
       };
       return keys;

@@ -466,11 +466,9 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 
 #ifndef AceCCDefines
-#ifdef AceDir
+/* ACE-lite (#147): HAVE_ACE is on for either backend -- the in-tree subset
+   (default) or external libACE (--with-ace).  Networking is always available. */
 #define AceCCDefines -DHAVE_ACE -std=c++14
-#else
-#define AceCCDefines /**/
-#endif
 #endif
 
 #ifndef QtCCDefines
@@ -558,7 +556,10 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #ifdef AceDir
 #define AceCCIncludes -I$(ACEDIR)
 #else
-#define AceCCIncludes /**/
+/* ACE-lite (#147): in-tree default -- put the bundled headers' nested ace/ shim
+   on the path so an unedited consumer #include <ace/Foo.h> resolves to
+   <ACE-lite/Foo.h>.  (External libACE adds -isystem $(ACEDIR) instead.) */
+#define AceCCIncludes -I$(IVTOOLSSRC)/include/ACE-lite
 #endif
 #endif
 
@@ -844,7 +845,8 @@ NONSHARED_CCLDFLAGS = NonSharedCCLdFlags
 #ifdef AceLibDir
 #define AceCCLdLibs -L$(ACELIBDIR) -lACE
 #else
-#define AceCCLdLibs /**/
+/* ACE-lite (#147): in-tree default links the bundled libACE-lite. */
+#define AceCCLdLibs $(LIBACE_LITE)
 #endif
 #endif
 

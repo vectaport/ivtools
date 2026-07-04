@@ -1211,7 +1211,10 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
 	   _alist must be checked first so that a func-local variable
 	   shadows a same-named variable in localtable() (outer scope).
 	   Without this, ++ inside a func body finds and mutates the outer
-	   variable instead of the func-local one, causing infinite loops. */
+	   variable instead of the func-local one, causing infinite loops.
+	   (local()/global() lvalue symbols never reach these branches:
+	   their bquote flag returns nil above, and AssignFunc routes them
+	   by their scope flags directly.) */
 	if (!comval->global_flag() && _alist) {
 	  int id = comval->symbol_val();
 	  AttributeValue* aval = _alist->find(id);
@@ -1590,6 +1593,7 @@ void ComTerp::add_defaults() {
     add_command("symstr", new SymStrFunc(this));
     add_command("strref", new StrRefFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
+    add_command("local", new LocalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
     add_command("join", new JoinStrFunc(this));
     add_command("substr", new SubStrFunc(this));

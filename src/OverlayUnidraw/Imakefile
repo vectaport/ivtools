@@ -95,10 +95,9 @@ Obj31(ovshowhide)
 Obj31(setattrbyexpr)
 Obj31(slctbyattr)
 
-#ifdef AceDir
+/* ACE-lite (#147): built for either backend now (was external-libACE-only). */
 #define ObjACE(file) MakeObjectFromSrcFlags(file,-Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES) -D__ACE_INLINE__)
 ObjACE(aceimport)
-#endif
 
 IncludeDependencies()
 
