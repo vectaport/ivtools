@@ -74,7 +74,7 @@ static char newline;
    only this key changes -- read the latest key off the banner to confirm the
    newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
    refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
-#define PATCH_KEY "7b1e9c2a"
+#define PATCH_KEY "f60c44dd"
 
 using std::cout;
 using std::cerr;
@@ -92,8 +92,25 @@ void stack_trace_handler(int sig) {
   exit(1);
 }
 
+#ifdef LEAKCHECK
+/* the per-class LeakCheckers are lazily new'ed statics (never deleted), so
+   their report-on-destruct never fires -- print alive counts at exit instead */
+#include <Attribute/attrlist.h>
+static void leakcheck_report() {
+  if (AttributeValue::_leakchecker)
+    fprintf(stderr, "LEAKCHECK: AttributeValue alive = %d\n",
+	    AttributeValue::_leakchecker->alive());
+  if (AttributeValueList::_leakchecker)
+    fprintf(stderr, "LEAKCHECK: AttributeValueList alive = %d\n",
+	    AttributeValueList::_leakchecker->alive());
+}
+#endif
+
 int main(int argc, char *argv[]) {
 
+#ifdef LEAKCHECK
+    atexit(leakcheck_report);
+#endif
     signal(SIGSEGV, stack_trace_handler);
     /* ignore SIGPIPE: a peer that closed its socket should make a write return
        EPIPE (which remote()/the socket path handles) instead of terminating the
