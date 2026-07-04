@@ -123,7 +123,7 @@ run("src/comterp_/tests/run_all.comt")   # runs every script, prints pass/FAIL
 
 Each script returns a boolean `ok`; `run_all.comt` aggregates them. The full
 coverage taxonomy, scoring methodology, header format (`// coverage:`,
-`// funcs:`, `// missing:`), and the **four mandatory rules for
+`// funcs:`, `// missing:`), and the **five mandatory rules for
 LLM-authored test scripts** are in **`src/comterp_/tests/TESTING.md`**. Read it
 before adding or editing any `.comt` test. Highlights:
 
@@ -133,6 +133,13 @@ before adding or editing any `.comt` test. Highlights:
   a prose description — the log doubles as documentation.
 - Keep the `print("scriptname: %v\n" ok)` / `ok` footer as the last two lines.
 - Register new scripts in `run_all.comt`.
+- Some tests feed the parser **deliberately malformed text** — the malformed
+  text is the fixture; the `errmsg()` it raises is the behavior under test
+  (e.g. `(4 :x 7 8)`: more than one positional after a keyword). Never edit it
+  into valid syntax. These sites carry an
+  `// intentional error: ... -- do not remove or make valid` comment naming
+  the malformation and print an INTENTIONAL banner into the log just before
+  the error fires (TESTING.md rule 5).
 
 ### DrawServ integration tests — `src/drawserv_/tests/`
 
