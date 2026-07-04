@@ -38,7 +38,7 @@
 // control points per lobe suffice.
 
 // ============================================================
-// LAYER 1: the machine
+// LAYER 1+2: the machine, which sticks the data on each curve it draws
 // ============================================================
 
 // gcd(a b) -- how many gear teeth the ring and wheel agree on.
@@ -63,6 +63,8 @@ spiro=func(
   if(R==nil||r==nil||d==nil :then return(nil));
   if(r<1 :then print("The wheel needs at least 1 tooth!\n"));
   if(r<1 :then return(nil));
+  if((epi==nil)&&(r>R) :then print("A %d-tooth wheel doesn't fit inside a %d-tooth ring -- try a smaller wheel, or roll outside with :epi!\n" r R));
+  if((epi==nil)&&(r>R) :then return(nil));
   s=1;
   if(epi!=nil :then s=-1);
   A=R-s*r;
@@ -103,6 +105,8 @@ spiro=func(
   pattern(1);
   eflag=0;
   if(epi!=nil :then eflag=1);
+  // LAYER 2: the DATA -- the curve remembers its own recipe,
+  // so recipes() can read back the exact command that drew it
   setattr(curve :name "spiro" :R R :r r :d d :epi eflag :color color :pts n);
   // styling the curve also set the editor's CURRENT style -- put it
   // back to the startup default so the next shape isn't born a spiro.
@@ -257,9 +261,10 @@ spirohelp=func(
   print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
   print("  clearpaper()     -- fresh sheet\n");
   print("  oops()           -- the machine explains your last error\n");
-  print("SECRETS: more teeth in common = fewer petals -- petals = R/gcd(R r)\n");
-  print("  rolling inside, (R+2r)/gcd(R r) rolling outside.  A tiny d hugs\n");
-  print("  the ring; d bigger than r pokes loops inward!\n"))
+  print("SECRETS: more teeth in common = fewer petals -- petals = R/gcd(R r),\n");
+  print("  rolling inside OR outside (the pen's distance from the center\n");
+  print("  swells and shrinks R/r times per trip around, r/gcd trips).\n");
+  print("  A tiny d hugs the ring; d bigger than r pokes loops!\n"))
 
 // ============================================================
 // welcome!  (one classic to start the show)
