@@ -40,7 +40,10 @@ the drawing (and any funcs the script defined) live in the session.
   spline lands exactly on the true curve at every knot, ~10 control
   points per harmonic cycle.  Every curve remembers its parameters via
   `setattr()`, and `recipes()` prints back the re-typeable `spiro()`
-  command for each.  *The prompt is the control panel.*
+  command for each.  `orbit()` then turns the curves into planets:
+  spring-gravity toward the shared center of gravity, short-range
+  repulsion when they bump, each spinning on its own axis.
+  *The prompt is the control panel.*
 
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,

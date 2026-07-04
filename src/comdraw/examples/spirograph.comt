@@ -161,6 +161,68 @@ spin=func(
   handles(true);
   update())
 
+// orbit([steps]) -- the spirographs become planets!  Every curve on
+// the paper feels a pull toward the shared center of gravity and a
+// shove away from any curve it bumps into, while spinning on its own
+// axis.  (:cx :cy pins the sun somewhere instead of the average.)
+//
+// The gravity is a SPRING (pull grows with distance, K=w*w) rather
+// than inverse-square: no singularity at the sun, nobody escapes to
+// infinity, and a sideways starting shove of exactly w*r puts each
+// body on a circular orbit -- which the bumping then perturbs.
+// Positions are re-read with center() every step, so integer
+// rounding in move() can never accumulate into drift.
+orbit=func(
+  steps=arg(0);
+  if(steps==nil :then steps=150);
+  bodies=list();
+  n=size(frame());
+  for(oi=0 oi<n oi++ g=at(frame() oi); if(g.R!=nil :then bodies,g));
+  nb=size(bodies);
+  if(nb<2 :then print("The cosmos needs at least two spirographs -- try gallery() first!\n"));
+  if(nb<2 :then return(nil));
+  // the sun: everyone's average center (the center of gravity)
+  sx=0.0; sy=0.0;
+  for(oi=0 oi<nb oi++ c=center(at(bodies oi)); sx=sx+at(c 0); sy=sy+at(c 1));
+  sx=sx/nb; sy=sy/nb;
+  if(cx!=nil :then sx=1.0*cx);
+  if(cy!=nil :then sy=1.0*cy);
+  w=0.03; K=w*w;
+  vxs=list(); vys=list(); rads=list(); spins=list();
+  for(oi=0 oi<nb oi++
+    g=at(bodies oi); c=center(g); box=mbr(g);
+    vxs,(0.0-w)*(at(c 1)-sy);
+    vys,w*(at(c 0)-sx);
+    rads,(at(box 2)-at(box 0)+at(box 3)-at(box 1))/4.0;
+    if(oi%2==0 :then spins,3 :else spins,-3));
+  handles(false);
+  for(st=0 st<steps st++
+    for(oi=0 oi<nb oi++
+      g=at(bodies oi); c=center(g);
+      px=at(c 0); py=at(c 1);
+      ax=K*(sx-px); ay=K*(sy-py);
+      for(oj=0 oj<nb oj++
+        if(oj!=oi :then
+          oc=center(at(bodies oj));
+          ddx=px-at(oc 0); ddy=py-at(oc 1);
+          d=sqrt(ddx*ddx+ddy*ddy);
+          reach=at(rads oi)+at(rads oj);
+          if((d>1)&&(d<reach) :then
+            push=0.4*(reach-d)/reach;
+            ax=ax+push*ddx/d;
+            ay=ay+push*ddy/d)));
+      at(vxs oi :set at(vxs oi)+ax);
+      at(vys oi :set at(vys oi)+ay);
+      select(g);
+      move(at(vxs oi) at(vys oi));
+      rotate(at(spins oi)));
+    select(:clear);
+    update(50000));
+  handles(true);
+  select(:clear);
+  update();
+  print("The cosmos settles down.  (orbit(300) runs longer; clearpaper() starts over.)\n"))
+
 // clearpaper() -- fresh sheet (collect first, THEN delete --
 // never delete out from under the list you are walking)
 clearpaper=func(
@@ -192,6 +254,7 @@ spirohelp=func(
   print("  surprise()       -- the machine invents one\n");
   print("  recipes()        -- every curve tells you its own command\n");
   print("  spin()           -- the whole drawing wiggle-dances\n");
+  print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
   print("  clearpaper()     -- fresh sheet\n");
   print("  oops()           -- the machine explains your last error\n");
   print("SECRETS: more teeth in common = fewer petals -- petals = R/gcd(R r)\n");
