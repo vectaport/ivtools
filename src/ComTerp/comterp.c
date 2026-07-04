@@ -1212,18 +1212,17 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
 	   shadows a same-named variable in localtable() (outer scope).
 	   Without this, ++ inside a func body finds and mutates the outer
 	   variable instead of the func-local one, causing infinite loops.
-	   A global_flag'd symbol (global() lvalue) skips straight to the
-	   globaltable; a local_flag'd symbol (local() lvalue) skips the
-	   func frame AND the globaltable fallback -- it means the default
-	   per-instance table, exactly. */
-	if (!comval->global_flag() && !comval->local_flag() && _alist) {
+	   (local()/global() lvalue symbols never reach these branches:
+	   their bquote flag returns nil above, and AssignFunc routes them
+	   by their scope flags directly.) */
+	if (!comval->global_flag() && _alist) {
 	  int id = comval->symbol_val();
 	  AttributeValue* aval = _alist->find(id);
 	  if (aval) return aval;
 	}
 	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
-	} else if (!comval->local_flag() && globaltable()->find(vptr, comval->symbol_val())) {
+	} else if (globaltable()->find(vptr, comval->symbol_val())) {
 	  return (AttributeValue*)vptr;
 	} else
 	  return nil;

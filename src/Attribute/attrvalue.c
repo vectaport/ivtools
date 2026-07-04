@@ -323,11 +323,10 @@ AttributeValue::~AttributeValue() {
 }
 
 void AttributeValue::clear() {
-    /* zero the WHOLE value union, not just sizeof(double): symval_struct
-       grew past 8 bytes when localflag joined globalflag, and any field
-       beyond the first 8 bytes (localflag sits at offset 8) was left as
-       construction-path garbage -- which randomly routed plain assigns
-       inside funcs to the wrong symbol table. */
+    /* zero the WHOLE value union, not just sizeof(double): any union
+       member field past the first 8 bytes would otherwise be left as
+       construction-path garbage -- a trap discovered (and briefly hit)
+       when a field was added past that boundary. */
     unsigned char* buf = (unsigned char*)(void*)&_v;
     for (int i=0; i<sizeof(_v); i++) buf[i] = '\0';
     _state = 0;
@@ -1596,10 +1595,4 @@ boolean AttributeValue::lesserthan(AttributeValue& av) {
     }
   }
   return result;
-}
-
-boolean AttributeValue::local_flag() { return is_symbol() && _v.symval.localflag; }
-void AttributeValue::local_flag(boolean flag)
-{
-  if (is_symbol()) _v.symval.localflag = flag;
 }
