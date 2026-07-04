@@ -394,6 +394,21 @@ foo.bar=42
 foo.bar          // returns 42
 ```
 
+The dot's lhs may also be a **comp** (a graphic component, in comdraw
+and above): the dot resolves into the comp's attribute list, so
+`comp.key=val` is `setattr(comp :key val)` spelled as plain assignment,
+and `comp.key` reads the fact back:
+
+```
+pig=ellipse(200,220, 25,15)
+pig.legs=4               // setattr(pig :legs 4)
+pig.legs                 // 4 -- and who()/frame() queries see it too
+```
+
+Use `setattr()` to stamp many facts in one call; the dot for one at a
+time.  The mutation rides the comp reference, so it works from inside a
+func even though the symbol binding is frame-local (see *Scoping rules*).
+
 The dot namespace rooted at a symbol is scoped with that symbol — see
 **Attribute Lists** below.
 

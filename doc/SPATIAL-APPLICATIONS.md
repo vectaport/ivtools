@@ -60,6 +60,10 @@ answers the question the other half can't ask.
    setattr(ellie :name "Ellie" :kind "animal" :legs 4 :eats "plants" :moves "stomps")
    ```
 
+   Facts also go on one at a time by dot-assignment — `ellie.mood="happy"`
+   is `setattr(ellie :mood "happy")` — and read back the same way
+   (`ellie.legs`), which is what the query funcs below are doing.
+
    This is the load-bearing move.  The spatial database lives *on* the
    graphics, not beside them — no parallel table, no glue on the canvas.
    Save the drawing and the database goes with it; select a graphic and

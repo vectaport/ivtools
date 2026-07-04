@@ -100,7 +100,8 @@ graphical object assigned to an interpreter variable.
 .SH COMPONENT AND ATTRIBUTE COMMANDS
 
  compview=setattr(compview [:keyword value [:keyword value [...]]])
-   -- set attributes of a graphic component
+   -- set attributes of a graphic component.  Equivalently one at a time
+   by dot-assignment: comp.key=val; comp.key reads it back
  attrlist(compview)
    -- return attribute list of component
  compview=frame([index])

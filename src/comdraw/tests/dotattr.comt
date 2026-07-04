@@ -1,0 +1,48 @@
+// src/comdraw/tests/dotattr.comt -- dot-assignment on comps
+//
+// comp.key=val is setattr(comp :key val) spelled as plain assignment:
+// the dot's lhs resolves into the comp's AttributeList and AssignFunc's
+// Attribute branch writes through it (attr->Value).  The symbol binding
+// may be func-frame local; the mutation rides the reference.
+//
+// funcs: dot-assign dot-read setattr frame
+ok=true
+
+r=rect(50,50,150,150)
+r.zap=42
+ok=ok&&(r.zap==42)
+print("1 r.zap=42; r.zap dot-assign creates the attribute (expect 42): %v\n" r.zap)
+
+setattr(r :via 7)
+ok=ok&&(r.via==7)&&(r.zap==42)
+print("2 setattr(r :via 7) coexists with dot-written zap (expect 7 42): %v %v\n" r.via r.zap)
+
+r.zap=43
+ok=ok&&(r.zap==43)
+print("3 r.zap=43 dot-assign overwrites (expect 43): %v\n" r.zap)
+
+r.tag="whirly"
+ok=ok&&(r.tag=="whirly")
+print("4 r.tag=\"whirly\" string fact (expect \"whirly\"): %v\n" r.tag)
+
+r.legs=4
+ok=ok&&(r.legs+1==5)
+print("5 r.legs=4; r.legs+1 numeric read-back arithmetic (expect 5): %v\n" r.legs+1)
+
+stampf=func(g=arg(0); g.stamped=99; 0)
+stampf(r)
+ok=ok&&(r.stamped==99)
+print("6 stampf=func(g=arg(0); g.stamped=99); stampf(r); r.stamped frame-ref write-through (expect 99): %v\n" r.stamped)
+
+ok=ok&&(r.absent==nil)
+print("7 r.absent unwritten attribute reads nil (expect nil): %v\n" r.absent)
+
+// the drawing-as-database read: find the tagged comp by scanning frame()
+found=0
+n=size(frame())
+for(qi=0 qi<n qi++ g=at(frame() qi); if(g.tag=="whirly" :then found++))
+ok=ok&&(found==1)
+print("8 frame() scan for g.tag==\"whirly\" (expect 1): %v\n" found)
+
+print("dotattr: %v\n" ok)
+ok

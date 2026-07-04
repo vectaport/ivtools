@@ -105,9 +105,13 @@ spiro=func(
   pattern(1);
   eflag=0;
   if(epi!=nil :then eflag=1);
-  // LAYER 2: the DATA -- the curve remembers its own recipe,
-  // so recipes() can read back the exact command that drew it
-  setattr(curve :name "spiro" :R R :r r :d d :epi eflag :color color :pts n);
+  // LAYER 2: the DATA -- the curve remembers its own recipe, stamped
+  // on with dot-assignment: comp.key=val is setattr(comp :key val)
+  // spelled as plain assignment, and recipes() reads it back the same
+  // way (curve.R).  Use setattr() when you want many facts in one call.
+  curve.name="spiro";
+  curve.R=R; curve.r=r; curve.d=d;
+  curve.epi=eflag; curve.color=color; curve.pts=n;
   // styling the curve also set the editor's CURRENT style -- put it
   // back to the startup default so the next shape isn't born a spiro.
   select(:clear);
@@ -267,6 +271,9 @@ spirohelp=func(
   print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
   print("  clearpaper()     -- fresh sheet\n");
   print("  oops()           -- the machine explains your last error\n");
+  print("SECRETS: every curve is YOURS -- grab one and decorate it:\n");
+  print("  c=surprise(); c.nickname=\"whirly\"; c.nickname\n");
+  print("  (a dot writes a fact on the curve; recipes() reads c.R the same way)\n");
   print("SECRETS: more teeth in common = fewer petals -- petals = R/gcd(R r),\n");
   print("  rolling inside OR outside (the pen's distance from the center\n");
   print("  swells and shrinks R/r times per trip around, r/gcd trips).\n");

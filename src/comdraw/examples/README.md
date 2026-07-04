@@ -22,7 +22,8 @@ the drawing (and any funcs the script defined) live in the session.
   *The script is the picture.*
 
 - **zoomap.comt** — a zoo map you can ask questions.  Every animal
-  carries facts attached with `setattr()` (`:name :legs :eats :moves`);
+  carries facts attached with `setattr()` (`:name :legs :eats :moves`)
+  or one at a time by dot-assignment (`pig.legs=4`);
   typed queries walk the component tree (`frame()`, `at()`, dot-access)
   and flash the matches (`select()` + `update()`).  Try `zoohelp()`,
   `who("swims")`, `haslegs(4)`, `countlegs()`, `dance()`.  Written to be
@@ -39,7 +40,8 @@ the drawing (and any funcs the script defined) live in the session.
   filter: divide each radius by its eigenvalue `(2+cos wh)/3` and the
   spline lands exactly on the true curve at every knot, ~10 control
   points per harmonic cycle.  Every curve remembers its parameters via
-  `setattr()`, and `recipes()` prints back the re-typeable `spiro()`
+  dot-assignment (`curve.R=96` — `setattr()` spelled as plain
+  assignment), and `recipes()` prints back the re-typeable `spiro()`
   command for each.  `orbit()` then turns the curves into planets:
   spring-gravity toward the shared center of gravity, short-range
   repulsion when they bump, each spinning on its own axis.
