@@ -31,5 +31,9 @@ if(run("./gsget.comt")
   :then print("pass: gsget\n")
   :else print("FAIL: gsget\n");ok=false)
 
+if(run("./dotattr.comt")
+  :then print("pass: dotattr\n")
+  :else print("FAIL: dotattr\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok
