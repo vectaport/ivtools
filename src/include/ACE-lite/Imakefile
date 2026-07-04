@@ -1,0 +1,11 @@
+XCOMM
+XCOMM include files for the ACE-lite package (in-tree ACE subset, issue #147)
+XCOMM Installs the ACE-lite headers and the nested ace/ compatibility shim.
+XCOMM
+
+PACKAGE = include_ace_lite
+
+IvmkcmTargets($(PACKAGE))
+
+InstallIncludes(ACE-lite)
+InstallIncludes(ACE-lite/ace)

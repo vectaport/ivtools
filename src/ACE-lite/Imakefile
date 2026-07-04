@@ -1,0 +1,32 @@
+XCOMM
+XCOMM source files for the ACE-lite library (in-tree ACE subset, issue #147).
+XCOMM Headers live in src/include/ACE-lite; this builds the implementation.
+XCOMM
+
+PACKAGE = ACE-lite
+
+#ifdef InObjectCodeDir
+
+LIB = ACE-lite
+
+/* Compile with the same flags as the consumers (ACE_CCDEFINES carries
+   -std=c++14): the library and its callers must agree on the C++ standard so
+   the std::map/std::set in ACE_Reactor have one ABI across the dylib boundary. */
+OTHER_CCDEFINES = $(ACE_CCDEFINES)
+
+MakeLibrary($(LIB),$(VERSION))
+
+#define Obj(file) MakeObjectFromSrcFlags(file,)
+
+Obj(sock)
+Obj(reactor)
+Obj(event_handler)
+Obj(log_msg)
+
+IncludeDependencies()
+
+#else
+
+MakeInObjectCodeDir()
+
+#endif
