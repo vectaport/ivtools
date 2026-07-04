@@ -168,7 +168,13 @@ spin=func(
 // orbit([steps]) -- the spirographs become planets!  Every curve on
 // the paper feels a pull toward the shared center of gravity and a
 // shove away from any curve it bumps into, while spinning on its own
-// axis.  (:cx :cy pins the sun somewhere instead of the average.)
+// axis.  (:sunx :suny pins the sun somewhere instead of the average.
+// NOT :cx :cy -- a comterp func reading an unpassed keyword falls
+// through to any same-named GLOBAL, and cx is exactly the kind of name
+// someone types at the prompt; a stray global would silently pin the
+// sun.  Funcobj assignments are true locals -- spiro()'s cx never
+// escapes its call -- but reads leak in, so the sun keyword gets a
+// name nobody will have lying around.)
 //
 // The gravity is a SPRING (pull grows with distance, K=w*w) rather
 // than inverse-square: no singularity at the sun, nobody escapes to
@@ -189,8 +195,8 @@ orbit=func(
   sx=0.0; sy=0.0;
   for(oi=0 oi<nb oi++ c=center(at(bodies oi)); sx=sx+at(c 0); sy=sy+at(c 1));
   sx=sx/nb; sy=sy/nb;
-  if(cx!=nil :then sx=1.0*cx);
-  if(cy!=nil :then sy=1.0*cy);
+  if(sunx!=nil :then sx=1.0*sunx);
+  if(suny!=nil :then sy=1.0*suny);
   w=0.03; K=w*w;
   vxs=list(); vys=list(); rads=list(); spins=list();
   for(oi=0 oi<nb oi++
