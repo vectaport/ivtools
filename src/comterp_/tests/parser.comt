@@ -10,6 +10,19 @@
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/parser.comt")
+//
+// NOTE TO ALL EDITORS, HUMAN OR AI: several tests below feed the parser
+// DELIBERATELY MALFORMED text -- the malformed text is the test fixture,
+// and errmsg() retrieval of the resulting error is the behavior under
+// test.  The malformation used here is MORE THAN ONE POSITIONAL AFTER A
+// KEYWORD -- in (4 :x 7 8) the keyword :x takes 7, and the bare 8 after
+// it is illegal.  Never edit a malformed expression into valid syntax;
+// that silently disables the test.  If a language change legalizes one
+// of these forms (it has happened: (4 :x 7), value BEFORE a keyword,
+// errored for years until the stream-literal syntax made it legal),
+// replace it with a form that still errors AND update the expectation --
+// see TESTING.md.  Each intentional error prints an INTENTIONAL banner
+// just before it fires, so the run log stays readable.
 
 // line 13 - preamble, reading prior error if any
 print("last: %s\n" s=errmsg(:last :keep);cond(s==nil "nil" s))
@@ -60,37 +73,47 @@ ok=ok&&(v==9)
 print("5 (1+2)*3 plain parens group (expect 9): %v\n" v)
 prev_ok=check_fail(:ok ok)
 
-// --- test 6: value before keyword in bare parens errors ---
-// (4 :x 7) should give: attribute literal must start with :key
-(4 :x 7)
+// --- test 6: value before keyword in bare parens -- once an error, now a stream literal ---
+// HISTORY: pre-stream-literal this errored ("attribute literal must start
+// with :key") and this test asserted the errmsg.  The stream-literal
+// syntax legalized value-before-keyword parens, so the test now pins the
+// NEW truth instead: no error, and the postfix shows a stream.
+errmsg(:clear)
+p6=postfix((4 :x 7))
 e=errmsg(:last)
-ok=ok&&(index(e "attribute literal")!=nil)
-print("6 (4 :x 7) value before keyword errors (expect error msg): %v\n" e)
+ok=ok&&(e==nil)
+ok=ok&&(index(p6 "stream")!=nil)
+print("6 (4 :x 7) value-before-keyword now a stream literal (expect stream postfix, nil errmsg): %v %v\n" p6 e)
 prev_ok=check_fail(:ok ok)
 
 // --- test 7: errmsg(:last) returns nil when no error ---
 (:a 1)
 e=errmsg(:last)
-ok=true
+ok=ok&&(e==nil)
 print("7 (:a 1); errmsg(:last) nil after success (expect nil): %v\n" e)
 prev_ok=check_fail(:ok ok)
 
 // --- test 8: errmsg(:last) clears after retrieval ---
-(4 :x 7 8)  // intentional parser error generation, do not remove
+// (4 :x 7 8) is illegal because 8 is a SECOND positional after the
+// keyword's value -- :x takes 7, and nothing may follow it bare.
+// (value BEFORE a keyword is legal now: that's a stream literal.)
+print("   (next error is INTENTIONAL -- more than one positional after a keyword, generated so errmsg(:last) has one to retrieve)\n")
+(4 :x 7 8)  // intentional error: >1 positional after a keyword -- do not remove or make valid
 e1=errmsg(:last)
 e2=errmsg(:last)
 ok=ok&&(e1!=nil)
 ok=ok&&(e2==nil)
-print("8 errmsg(:last) then errmsg(:last) clears after retrieval (expect non-nil nil): %v %v\n" e1 e2)
+print("8 (4 :x 7 8); errmsg(:last) then errmsg(:last) clears after retrieval (expect non-nil nil): %v %v\n" e1 e2)
 prev_ok=check_fail(:ok ok)
 
 // --- test 9: errmsg(:keep) does not clear ---
-(4 :x 7 8) // intentional parser error generation, do not remove
+print("   (next error is INTENTIONAL -- more than one positional after a keyword, generated so errmsg(:keep) has one to preserve)\n")
+(4 :x 7 8) // intentional error: >1 positional after a keyword -- do not remove or make valid
 e1=errmsg(:keep)
 e2=errmsg(:last)
 ok=ok&&(e1!=nil)
 ok=ok&&(e2!=nil)
-print("9 errmsg(:keep) then errmsg(:last) preserves (expect both non-nil): %v %v\n" (e1!=nil) (e2!=nil))
+print("9 (4 :x 7 8); errmsg(:keep) then errmsg(:last) preserves (expect both non-nil): %v %v\n" (e1!=nil) (e2!=nil))
 prev_ok=check_fail(:ok ok)
 
 // --- test 10: postfix returns attrlist literal token stream as string ---
