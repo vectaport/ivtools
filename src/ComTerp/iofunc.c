@@ -34,7 +34,7 @@
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
 #include <iostream.h>
-#include <strstream>
+#include <sstream>
 #if __GNUC__>=3
 #include <fstream.h>
 #endif
@@ -152,7 +152,7 @@ void PrintFunc::execute() {
     }
   } else {
 #endif   
-    strmbuf = new std::strstreambuf();
+    strmbuf = new std::stringbuf();
 #ifdef USE_FDSTREAMS    
   }
 #endif
@@ -304,20 +304,17 @@ void PrintFunc::execute() {
 
   reset_stack();
   if (stringflag.is_true() || strflag.is_true()) {
-    out << '\0';
-    ComValue retval(((std::strstreambuf*)strmbuf)->str());
+    ComValue retval(((std::stringbuf*)strmbuf)->str().c_str());
     push_stack(retval);
   } else if (symbolflag.is_true() || symflag.is_true()) {
-    out << '\0';
-    int symbol_id = symbol_add(((std::strstreambuf*)strmbuf)->str());
+    int symbol_id = symbol_add((char*)((std::stringbuf*)strmbuf)->str().c_str());
     ComValue retval(symbol_id, ComValue::SymbolType);
     push_stack(retval);
   } else {
-#ifdef USE_FDSTREAMS    
+#ifdef USE_FDSTREAMS
     out.flush();
 #else
-    out << '\0';
-    const char *str = ((std::strstreambuf*)strmbuf)->str();
+    std::string str = ((std::stringbuf*)strmbuf)->str();
     FILE* fp = NULL;
     if (comterp()->handler() && fileobjv.is_unknown() && errflag.is_false() && outflag.is_false()) {
       fp = comterp()->handler() && comterp()->handler()->wrfptr() ? comterp()->handler()->wrfptr() : stdout;
@@ -332,7 +329,7 @@ void PrintFunc::execute() {
     } else {
       fp = errflag.is_false() ? stdout : stderr;
     }
-    fputs(str, fp);
+    fputs(str.c_str(), fp);
     fflush(fp);
  #endif
     push_stack(ComValue::blankval());

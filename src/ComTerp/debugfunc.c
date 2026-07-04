@@ -30,7 +30,7 @@
 
 #include <ComTerp/debugfunc.h>
 #include <ComTerp/comterpserv.h>
-#include <strstream>
+#include <sstream>
 #include <iostream>
 #include <fstream>
 
@@ -91,16 +91,14 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
   ostream out(&fbufout);
 
  if (msgstrv.is_string()) {
-    std::ostrstream sbuf1_s;
-    sbuf1_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): " 
+    std::ostringstream sbuf1_s;
+    sbuf1_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): "
 	    << msgstrv.string_ptr() << "\n";
-    sbuf1_s.put('\0');
     out << sbuf1_s.str();
     out.flush();
  }
-  std::ostrstream sbuf2_s;
+  std::ostringstream sbuf2_s;
   sbuf2_s << (stepfunc() ? "step(" : "pause(") << comterp()->npause() << "): enter command or press C/R to continue\n";
-  sbuf2_s.put('\0');
   out << sbuf2_s.str();
   out.flush();
 
@@ -128,9 +126,8 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
     }
   } while (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n'));
   comterp()->pop_servstate();
-  std::ostrstream sbuf_e;
+  std::ostringstream sbuf_e;
   sbuf_e << (stepfunc() ? "end of step(" : "end of pause(") << comterp()->npause()-- << ")\n";
-  sbuf_e.put('\0');
   out << sbuf_e.str();
   out.flush();
   push_stack(retval);

@@ -62,7 +62,7 @@
 
 #include <Attribute/attrlist.h>
 
-#include <strstream>
+#include <sstream>
 #include <string.h>
 #include <fstream>
 #include <iostream>
@@ -110,7 +110,7 @@ void ComEditor::Init (OverlayComp* comp, const char* name) {
     ((OverlayUnidraw*)unidraw)->comterp(_terp);
     AddCommands(_terp);
     char buffer[BUFSIZ];
-    sprintf(buffer, "Comdraw%d", ncomterp());
+    snprintf(buffer, sizeof(buffer), "Comdraw%d", ncomterp());
     add_comterp(buffer, _terp);
     _overlay_kit->Init(comp, name);
     _whiteboard = -1;
@@ -285,7 +285,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
   else {
 
     /* indirect command execution, all by script */
-    std::ostrstream sbuf;
+    std::ostringstream sbuf;
     boolean oldflag = OverlayScript::ptlist_parens();
     OverlayScript::ptlist_parens(false);
     switch (cmd->GetClassId()) {
@@ -315,10 +315,9 @@ void ComEditor::AddCommands(ComTerp* comterp) {
       }
       if (!scripted)
 	sbuf << "print(\"Failed attempt to generate script for a PASTE_CMD\\n\" :err)";
-      sbuf.put('\0');
       cout << sbuf.str() << "\n";
       cout.flush();
-      GetComTerp()->run(sbuf.str());
+      GetComTerp()->run(sbuf.str().c_str());
       delete cmd;
       }
       break;
