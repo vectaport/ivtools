@@ -1,0 +1,290 @@
+// spirograph.comt -- THE SPIROGRAPH MACHINE
+//
+// A big gear-ring lies on the paper.  A little gear-wheel rolls
+// around inside it (or outside it!), and a pen pokes through a
+// hole in the wheel.  You type magic words at the (comt) prompt
+// and the machine draws what the pen draws.
+//
+// Start it like this:
+//
+//     comdraw -runfile src/comdraw/examples/spirograph.comt
+//
+// Then try:   spirohelp()
+//
+// HOW IT WORKS (the three layers, same as zoomap.comt):
+//   1. the MACHINE  -- funcs that compute where the pen goes
+//   2. the DATA     -- setattr() sticks each curve's recipe onto it,
+//                      so recipes() can read back re-typeable commands
+//   3. the QUESTIONS-- magic words at the prompt drive the machine
+//
+// THE CURVE, AND WHY closedspline() INSTEAD OF multiline():
+// A spirograph is the sum of two circular motions -- the wheel's
+// center circling the ring, plus the pen circling the wheel:
+//
+//     x(t) = A*cos(t) + s*d*cos(k*t)      A = R-r (inside, s=+1)
+//     y(t) = A*sin(t) -   d*sin(k*t)      A = R+r (outside, s=-1)
+//                                         k = A/r
+//
+// A multiline needs ~60 points per lobe to look smooth.  A closed
+// B-spline is smooth by construction -- but it doesn't pass THROUGH
+// its control points; at each knot it lands on the (1,4,1)/6 average
+// of three neighbors.  Normally you'd solve a system to make it
+// interpolate.  Here we don't have to: sine waves are EIGENVECTORS
+// of that averaging filter.  Smoothing a sampled circle just shrinks
+// it by lam = (2+cos(w*h))/3, where w is the harmonic's frequency and
+// h the sample step.  So divide each circle's radius by its own lam
+// before sampling, and the smoothing shrinks it back exactly onto the
+// true curve at every knot.  The "solve" is two divisions, and ~10
+// control points per lobe suffice.
+
+// ============================================================
+// LAYER 1+2: the machine, which sticks the data on each curve it draws
+// ============================================================
+
+// gcd(a b) -- how many gear teeth the ring and wheel agree on.
+// r/gcd = times around the ring before the pen meets its own trail.
+gcd=func(
+  a=arg(0); b=arg(1);
+  while(b!=0 t=b; b=a%b; a=t);
+  a)
+
+// the pen colors surprise() picks from
+spiropal="#CC2200","#0066CC","#118811","#AA00AA","#DD7700","#008888"
+
+// spiro(R r d) -- roll a wheel of r teeth inside a ring of R teeth,
+// pen d teeth from the wheel's center.  The numbers are the teeth
+// counts of the real toy (96 and 105 are the classic rings).
+//   :epi        -- roll around the OUTSIDE of the ring instead
+//   :color "#0066CC"  -- pen color
+//   :cx 300 :cy 300   -- where to park the ring on the paper
+spiro=func(
+  R=arg(0); r=arg(1); d=arg(2);
+  if(R==nil||r==nil||d==nil :then print("Try three numbers, like this:  spiro(96 36 60)\n"));
+  if(R==nil||r==nil||d==nil :then return(nil));
+  if(r<1 :then print("The wheel needs at least 1 tooth!\n"));
+  if(r<1 :then return(nil));
+  if((epi==nil)&&(r>R) :then print("A %d-tooth wheel doesn't fit inside a %d-tooth ring -- try a smaller wheel, or roll outside with :epi!\n" r R));
+  if((epi==nil)&&(r>R) :then return(nil));
+  s=1;
+  if(epi!=nil :then s=-1);
+  A=R-s*r;
+  if(A==0 :then print("A wheel the size of its ring just spins in place -- try a smaller wheel!\n"));
+  if(A==0 :then return(nil));
+  if(color==nil :then color="#CC2200");
+  if(cx==nil :then cx=300);
+  if(cy==nil :then cy=300);
+  // closure: the pen meets its trail after r/g trips around the ring,
+  // during which the wheel harmonic completes A/g cycles (both integers!)
+  g=gcd(R r);
+  turns=r/g;
+  k=1.0*A/r;
+  // ~10 control points per cycle of whichever harmonic is busier
+  busy=A/g;
+  if(turns>busy :then busy=turns);
+  n=10*busy;
+  if(n<24 :then n=24);
+  if(n>480 :then n=480);
+  h=2*pi()*turns/n;
+  // the eigenvalue trick: pre-divide each radius by its shrink factor
+  lam1=(2+cos(h))/3;
+  lam2=(2+cos(k*h))/3;
+  Ac=A/lam1;
+  Dc=d/lam2;
+  pts=list();
+  for(i=0 i<n i++
+    t=h*i;
+    pts,int(round(cx+Ac*cos(t)+s*Dc*cos(k*t)));
+    pts,int(round(cy+Ac*sin(t)-Dc*sin(k*t))));
+  // one closed spline from the whole point list.  the commas in
+  // closedspline(x0,y0,x1,y1,...) are the tuple operator, so the
+  // familiar syntax builds ONE list arg -- a list variable is the
+  // same call without the sugar.
+  curve=closedspline(pts);
+  colorsrgb(color "#FFFFFF");
+  brush(65535,2);
+  pattern(1);
+  eflag=0;
+  if(epi!=nil :then eflag=1);
+  // LAYER 2: the DATA -- the curve remembers its own recipe,
+  // so recipes() can read back the exact command that drew it
+  setattr(curve :name "spiro" :R R :r r :d d :epi eflag :color color :pts n);
+  // styling the curve also set the editor's CURRENT style -- put it
+  // back to the startup default so the next shape isn't born a spiro.
+  select(:clear);
+  colorsrgb("#000000" "#FFFFFF");
+  brush(65535,0);
+  pattern(1);
+  update();
+  curve)
+
+// ============================================================
+// LAYER 3: the magic words
+// ============================================================
+
+// gallery() -- four classics at the four corners of the paper
+gallery=func(
+  spiro(105 45 65 :cx 170 :cy 430 :color "#118811");
+  spiro(45 15 30 :epi :cx 430 :cy 430 :color "#AA00AA");
+  spiro(96 36 60 :cx 170 :cy 170 :color "#CC2200");
+  spiro(105 30 45 :cx 430 :cy 170 :color "#0066CC");
+  print("Four classics! Type recipes() to see how to draw each one yourself.\n"))
+
+// surprise() -- the machine invents a spirograph nobody has seen
+// (rand takes ONE arg, a comma-built min,max list -- rand(16,48))
+surprise=func(
+  r=int(round(rand(16,48)));
+  R=int(round(rand(1.8*r,3.4*r)));
+  d=int(round(rand(0.4*r,1.1*r)));
+  c=at(spiropal int(round(rand(0,size(spiropal)-1))));
+  print("How about...  spiro(%d %d %d :color %v)\n" R r d c);
+  spiro(R r d :color c))
+
+// recipes() -- every curve on the paper tells you the exact command
+// that draws it (copy one, change a number, see what happens!)
+recipes=func(
+  n=size(frame());
+  found=0;
+  for(qi=0 qi<n qi++
+    g=at(frame() qi);
+    if(g.R!=nil :then
+      found=found+1;
+      print("  spiro(%d %d %d" g.R g.r g.d);
+      if(g.epi==1 :then print(" :epi"));
+      print(" :color %v)   -- %d spline points\n" g.color g.pts)));
+  if(found==0 :then print("The paper is empty! Try spiro(96 36 60) or gallery()\n"));
+  found)
+
+// spin() -- the whole drawing does a wiggle-dance
+spin=func(
+  handles(false);
+  for(di=0 di<6 di++
+    select(:all); rotate(10); update(8000);
+    rotate(-20); update(8000);
+    rotate(10); update(8000));
+  select(:clear);
+  handles(true);
+  update())
+
+// orbit([steps]) -- the spirographs become planets!  Every curve on
+// the paper feels a pull toward the shared center of gravity and a
+// shove away from any curve it bumps into, while spinning on its own
+// axis.  (:sunx :suny pins the sun somewhere instead of the average.
+// NOT :cx :cy -- a comterp func reading an unpassed keyword falls
+// through to any same-named GLOBAL, and cx is exactly the kind of name
+// someone types at the prompt; a stray global would silently pin the
+// sun.  Funcobj assignments are true locals -- spiro()'s cx never
+// escapes its call -- but reads leak in, so the sun keyword gets a
+// name nobody will have lying around.)
+//
+// The gravity is a SPRING (pull grows with distance, K=w*w) rather
+// than inverse-square: no singularity at the sun, nobody escapes to
+// infinity, and a sideways starting shove of exactly w*r puts each
+// body on a circular orbit -- which the bumping then perturbs.
+// Positions are re-read with center() every step, so integer
+// rounding in move() can never accumulate into drift.
+orbit=func(
+  steps=arg(0);
+  if(steps==nil :then steps=150);
+  bodies=list();
+  n=size(frame());
+  for(oi=0 oi<n oi++ g=at(frame() oi); if(g.R!=nil :then bodies,g));
+  nb=size(bodies);
+  if(nb<2 :then print("The cosmos needs at least two spirographs -- try gallery() first!\n"));
+  if(nb<2 :then return(nil));
+  // the sun: everyone's average center (the center of gravity)
+  sx=0.0; sy=0.0;
+  for(oi=0 oi<nb oi++ c=center(at(bodies oi)); sx=sx+at(c 0); sy=sy+at(c 1));
+  sx=sx/nb; sy=sy/nb;
+  if(sunx!=nil :then sx=1.0*sunx);
+  if(suny!=nil :then sy=1.0*suny);
+  w=0.03; K=w*w;
+  vxs=list(); vys=list(); rads=list(); spins=list();
+  for(oi=0 oi<nb oi++
+    g=at(bodies oi); c=center(g); box=mbr(g);
+    vxs,(0.0-w)*(at(c 1)-sy);
+    vys,w*(at(c 0)-sx);
+    rads,(at(box 2)-at(box 0)+at(box 3)-at(box 1))/4.0;
+    if(oi%2==0 :then spins,3 :else spins,-3));
+  handles(false);
+  for(st=0 st<steps st++
+    for(oi=0 oi<nb oi++
+      g=at(bodies oi); c=center(g);
+      px=at(c 0); py=at(c 1);
+      ax=K*(sx-px); ay=K*(sy-py);
+      for(oj=0 oj<nb oj++
+        if(oj!=oi :then
+          oc=center(at(bodies oj));
+          ddx=px-at(oc 0); ddy=py-at(oc 1);
+          d=sqrt(ddx*ddx+ddy*ddy);
+          reach=at(rads oi)+at(rads oj);
+          if((d>1)&&(d<reach) :then
+            push=0.4*(reach-d)/reach;
+            ax=ax+push*ddx/d;
+            ay=ay+push*ddy/d)));
+      at(vxs oi :set at(vxs oi)+ax);
+      at(vys oi :set at(vys oi)+ay);
+      select(g);
+      move(at(vxs oi) at(vys oi));
+      rotate(at(spins oi)));
+    select(:clear);
+    update(5000));
+  handles(true);
+  select(:clear);
+  update();
+  print("The cosmos settles down.  (orbit(300) runs longer; clearpaper() starts over.)\n"))
+
+// clearpaper() -- fresh sheet (collect first, THEN delete --
+// never delete out from under the list you are walking)
+clearpaper=func(
+  doomed=list();
+  n=size(frame());
+  for(ci=0 ci<n ci++ doomed,at(frame() ci));
+  for(ci=0 ci<size(doomed) ci++ delete(at(doomed ci)));
+  select(:clear);
+  update();
+  print("Fresh paper!\n"))
+
+// oops() -- ask the machine to explain the last error message
+oops=func(
+  m=errmsg(:last);
+  if(m==nil :then print("No mistakes waiting! The machine is happy. Try spirohelp()\n"));
+  if(m!=nil :then print("The machine got confused. It said:\n    %v\n" m));
+  if(m!=nil :then print("Check for: three numbers -- spiro(96 36 60) -- and matching ( ) pairs.\n"));
+  nil)
+
+// spirohelp() -- remind me of the magic words
+spirohelp=func(
+  print("*** MAGIC WORDS FOR YOUR SPIROGRAPH MACHINE ***\n");
+  print("  spiro(96 36 60)  -- ring of 96 teeth, wheel of 36, pen 60 from center\n");
+  print("                      (R r d -- just like the real toy!)\n");
+  print("  spiro(45 15 30 :epi)        -- roll around the OUTSIDE\n");
+  print("  spiro(96 36 60 :color \"#0066CC\")     -- pick the pen\n");
+  print("  spiro(96 36 60 :cx 150 :cy 450)      -- park it elsewhere\n");
+  print("  gallery()        -- four classics, four corners\n");
+  print("  surprise()       -- the machine invents one\n");
+  print("  recipes()        -- every curve tells you its own command\n");
+  print("  spin()           -- the whole drawing wiggle-dances\n");
+  print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
+  print("  clearpaper()     -- fresh sheet\n");
+  print("  oops()           -- the machine explains your last error\n");
+  print("SECRETS: more teeth in common = fewer petals -- petals = R/gcd(R r),\n");
+  print("  rolling inside OR outside (the pen's distance from the center\n");
+  print("  swells and shrinks R/r times per trip around, r/gcd trips).\n");
+  print("  A tiny d hugs the ring; d bigger than r pokes loops!\n"))
+
+// ============================================================
+// welcome!  (one classic to start the show)
+// ============================================================
+srand(date())
+spiro(96 36 60 :color "#CC2200")
+print("\n=================================================\n")
+print("   WELCOME TO YOUR SPIROGRAPH MACHINE!\n")
+print("   That red flower is spiro(96 36 60) --\n")
+print("   a 36-tooth wheel rolling inside a 96-tooth\n")
+print("   ring, pen 60 teeth from the wheel's center.\n")
+print("   Try typing:\n")
+print("       spiro(105 30 45 :color \"#0066CC\")\n")
+print("       surprise()\n")
+print("       gallery()\n")
+print("       spirohelp()    <- shows all the magic words\n")
+print("=================================================\n")

@@ -533,14 +533,29 @@ v=f()              // x is nil, condition is false, returns nil (ivtools-2.2 or 
 Variable lookup follows a three-level priority chain:
 
 - **func scope** — variables local to this invocation, including any
-  `:key val` args set before the body runs
-- **local scope** — the caller's symbol table
+  `:key val` args set before the body runs.  The frame is an attrlist,
+  created for the call and discarded at return — the same structure
+  that carries keyword args and `setattr()` properties everywhere else
+- **local scope** — the interpreter's flat top-level symbol table,
+  where prompt and `run()` assignments live
 - **global scope** — symbols declared with `global()`
 
 A variable can be **read** from any level — func scope wins over local,
 local wins over global. A variable **written** inside a func always goes
 to func scope only, never propagating outward. The only exception is
 `global()` which explicitly reaches the global scope.
+
+Func scopes do **not** chain: a func called from inside another func
+reads its own frame and then the top-level table — never the calling
+func's frame:
+
+```
+inner=func(v)
+outer=func(v=5; inner())
+outer()            // nil -- inner cannot see outer's v
+v=99
+outer()            // 99  -- inner falls through to the top level
+```
 
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object

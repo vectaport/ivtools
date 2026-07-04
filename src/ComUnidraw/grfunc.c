@@ -1398,7 +1398,16 @@ void SelectFunc::execute() {
       sel->Clear();
       delete sel;
       _ed->SetSelection(newSel);
-      newSel->Update(viewer);   // Reserve() runs here, sees unlocked()==true
+      /* Reserve() (the DrawServ wire-protocol claim on these graphics --
+         a no-op below that layer) must fire at select time, but the
+         repaint that Selection::Update wrapped around it must NOT: it
+         repaired all pending damage per select() call, repainting
+         body-by-body in animation loops that select/move/rotate many
+         graphics between update() calls.  Nothing paints until update()
+         -- the deferred unidraw->Update() below repaints at the end of
+         the typed command line, so interactive select feedback (handles
+         at next repaint) is unchanged. */
+      newSel->Reserve();   // sees unlocked()==true
       if (lockv.is_string())
         newSel->lock_key(lockv.string_ptr());  // clear after Reserve()
       unidraw->Update();
