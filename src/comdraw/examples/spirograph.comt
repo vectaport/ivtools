@@ -154,9 +154,9 @@ recipes=func(
 spin=func(
   handles(false);
   for(di=0 di<6 di++
-    select(:all); rotate(10); update(80000);
-    rotate(-20); update(80000);
-    rotate(10); update(80000));
+    select(:all); rotate(10); update(8000);
+    rotate(-20); update(8000);
+    rotate(10); update(8000));
   select(:clear);
   handles(true);
   update())
@@ -217,7 +217,7 @@ orbit=func(
       move(at(vxs oi) at(vys oi));
       rotate(at(spins oi)));
     select(:clear);
-    update(50000));
+    update(5000));
   handles(true);
   select(:clear);
   update();
