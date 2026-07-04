@@ -79,19 +79,25 @@ void AssignFunc::execute() {
 #endif
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
-	if (attrlist) {
-	    Resource::ref(attrlist);
-	    Attribute* attr = new Attribute(operand1.symbol_val(), 
-					    operand2);
-	    attrlist->add_attribute(attr);
-	    Unref(attrlist);
-	} else if (operand1.global_flag()) {
+	/* global() lvalue must be tested BEFORE the func-frame branch:
+	   the whole point of global(x)=val is to escape the frame, and
+	   lookup_symval honors global_flag by skipping _alist and
+	   localtable, so the old-value cleanup stays consistent from
+	   inside a func.  (Until this reordering, global(x)=val inside
+	   a func silently wrote x to the frame attrlist instead.) */
+	if (operand1.global_flag()) {
 	    AttributeValue* oldval = comterp()->lookup_symval(&operand1);
 	    if (oldval) {
 	      comterp()->globaltable()->remove(operand1.symbol_val());
 	      delete (ComValue*)oldval;
 	    }
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
+	} else if (attrlist) {
+	    Resource::ref(attrlist);
+	    Attribute* attr = new Attribute(operand1.symbol_val(),
+					    operand2);
+	    attrlist->add_attribute(attr);
+	    Unref(attrlist);
 	}
 	else {
 	    AttributeValue* oldval = comterp()->lookup_symval(&operand1);

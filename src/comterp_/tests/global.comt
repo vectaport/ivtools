@@ -1,9 +1,13 @@
 // src/comterp_/tests/global.comt -- test global() command
 //
-// coverage: 13/14 (93%)
+// coverage: 16/17 (94%)
 // funcs: global
 // missing: ~global(lvalue-return-type) -- in global(sym)=val the return value belongs
 //          to the assign operator, not global(); untestable in isolation for global() alone
+//
+// tests 12-14 pin the func-frame interaction: global(x)=v inside a func
+// escapes the frame (regression for the AssignFunc branch-order fix),
+// bare reads fall through frame->local->global, frame locals shadow
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/global.comt")
@@ -91,6 +95,32 @@ global(p2)="BYE"
 global(symadd(global(p1)+global(p2)))="SHOULD WORK"
 ok=ok&&(HIBYE=="SHOULD WORK")
 print("11 global(symadd(global(p1)+global(p2)))=\"SHOULD WORK\" nested lhs (expect \"SHOULD WORK\"): %v\n\n" HIBYE)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: global lvalue assignment from INSIDE a func escapes the frame ---
+// (regression: the frame branch in AssignFunc used to preempt the
+//  global_flag check, so global(x)=v in a func wrote a frame local
+//  that evaporated at return)
+gwf=func(global(gfunc)=77; 0)
+gwf()
+r12=global(gfunc)
+ok=ok&&(r12==77)
+print("12 gwf=func(global(gfunc)=77); gwf(); global(gfunc) func-frame escape (expect 77): %v\n\n" r12)
+prev_ok=check_fail(:ok ok)
+
+// --- test 13: global written inside one func readable by bare fall-through in another ---
+grf=func(gfunc+1)
+r13=grf()
+ok=ok&&(r13==78)
+print("13 grf=func(gfunc+1) bare read falls through frame->local->global (expect 78): %v\n\n" r13)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: frame-local shadows the global for bare reads; global() still explicit ---
+gsf=func(gfunc=1; gfunc,global(gfunc))
+r14=gsf()
+ok=ok&&(at(r14 0)==1)
+ok=ok&&(at(r14 1)==77)
+print("14 gsf=func(gfunc=1; gfunc,global(gfunc)) shadow vs explicit (expect 1 77): %v %v\n\n" at(r14 0) at(r14 1))
 prev_ok=check_fail(:ok ok)
 
 print("\nglobal: %v\n" ok)
