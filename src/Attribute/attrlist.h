@@ -170,6 +170,11 @@ protected:
     unsigned int _count;
 
     CLASS_SYMID("AttributeList");
+
+#ifdef LEAKCHECK
+ public:
+    static LeakChecker* _leakchecker;
+#endif
 };
 
 //: list of AttributeValue objects.

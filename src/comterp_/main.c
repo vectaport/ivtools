@@ -103,6 +103,9 @@ static void leakcheck_report() {
   if (AttributeValueList::_leakchecker)
     fprintf(stderr, "LEAKCHECK: AttributeValueList alive = %d\n",
 	    AttributeValueList::_leakchecker->alive());
+  if (AttributeList::_leakchecker)
+    fprintf(stderr, "LEAKCHECK: AttributeList alive = %d\n",
+	    AttributeList::_leakchecker->alive());
 }
 #endif
 

@@ -1083,10 +1083,13 @@ void StreamLiteralNextFunc::execute() {
         keyval = comterpserv()->run(tokbuf + offset, cnt);
       }
 
-      /* construct singleton attrlist (:key val) */
+      /* construct singleton attrlist (:key val).  No manual
+         Resource::ref(al) here: the ComValue (classid, ptr) constructor
+         already refs AttributeList payloads, and an extra unmatched ref
+         pinned one singleton per keyword-element drain forever -- the
+         same born-ref bug fixed in ListFunc::execute (PR #208). */
       AttributeList* al = new AttributeList();
       al->add_attr(key_symid, keyval);
-      Resource::ref(al);
       ComValue result(AttributeList::class_symid(), (void*)al);
       nremval->int_ref()--;
       push_stack(result);
