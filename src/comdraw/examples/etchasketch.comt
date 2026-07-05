@@ -143,6 +143,28 @@ shake=func(
   update();
   print("All clean!  The pen is back in the middle.\n"))
 
+// follow([n]) -- draw with the MOUSE: the pen chases the pointer for n
+// polling frames (default 200), but only the way an Etch A Sketch can --
+// one knob click at a time, alternating axes, knobs visibly turning.
+// pointer() reports the drawing-coordinate location of the last pointer
+// motion, and it keeps updating while this loop runs, so just wiggle
+// the mouse over the glass.  Diagonal mouse strokes come out as tiny
+// staircases, which is not a bug, it is the toy.
+follow=func(n=arg(0);
+  if(n==nil :then n=200);
+  print("Wiggle the mouse over the glass -- following for %v frames...\n" n);
+  for(fi=0 fi<n fi++
+    p=pointer();
+    px=at(p 0); py=at(p 1);
+    if((px!=0)||(py!=0) :then
+      for(bi=0 bi<10 bi++
+        if(px-penx>=clicksz :then h(1));
+        if(penx-px>=clicksz :then h(-1));
+        if(py-peny>=clicksz :then v(1));
+        if(peny-py>=clicksz :then v(-1))));
+    update(50000));
+  print("Done following.  shake() to erase, follow() to draw again.\n"))
+
 // stair(n) -- a little demo autopilot: the classic staircase
 stair=func(n=arg(0);
   if(n==nil :then n=5);
@@ -155,6 +177,8 @@ etchhelp=func(
   print("  h(3)    -- left knob: pen goes right 3 clicks (h(-3) for left)\n");
   print("  v(2)    -- right knob: pen goes up 2 clicks (v(-2) for down)\n");
   print("  stair() -- watch a staircase draw itself\n");
+  print("  follow() -- draw with the mouse! the pen chases the pointer,\n");
+  print("              one knob click at a time (diagonals go staircase)\n");
   print("  shake() -- erase everything and start over\n");
   print("THE PEN NEVER LIFTS.  Diagonals need both knobs taking turns --\n");
   print("that's the whole game.\n");
