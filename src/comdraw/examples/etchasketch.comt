@@ -1,0 +1,180 @@
+// etchasketch.comt -- THE ETCH A SKETCH
+//
+// Two knobs, one pen, no lifting.  The left knob moves the pen
+// sideways, the right knob moves it up and down, and the pen NEVER
+// leaves the glass -- diagonals take two steady hands, curves take
+// practice, and mistakes take a good shake.
+//
+// Start it like this:
+//
+//     comdraw -runfile src/comdraw/examples/etchasketch.comt
+//
+// Then try:   etchhelp()
+//
+// HOW IT WORKS (the three layers, same as zoomap and spirograph):
+//   1. the MACHINE  -- h() and v() turn the knobs; each turn draws one
+//                      line segment from where the pen was to where it
+//                      is now, and spins the knob graphic to match
+//   2. the DATA     -- pen position lives in the session's own scope
+//                      (local(penx)= from inside the knob funcs -- the
+//                      func frame can't hold state that must outlive
+//                      the call), and every segment is tagged
+//                      seg.kind="etch" so shake() knows what to erase
+//                      and what is bezel
+//   3. the KNOBS ARE THE WIRE -- a knob turn is just the expression
+//                      h(3) or v(-2), so ANYTHING that can send an
+//                      expression can turn a knob:
+//
+//        two players, one axis each (drawserv or comterp remote):
+//            remote("host" 20002 "h(3)")     // horizontal player
+//            remote("host" 20002 "v(-2)")    // vertical player
+//        a trackball split into two knobs: a tiny daemon reads the
+//        device and pipes deltas as expressions --
+//            echo 'h(1)' | nc host 20002
+//
+//      No protocol to design: the command language IS the protocol.
+
+// ============================================================
+// LAYER 1+2: draw the toy, then wire up the knobs
+// ============================================================
+
+// --- the classic red bezel, the gray glass, two white knobs ---
+select(:clear)
+bezel=rect(60,60, 550,560)
+colorsrgb("#C22020" "#C22020")
+pattern(2)
+bezel.kind="bezel"
+glass=rect(100,150, 510,520)
+colorsrgb("#C8C8C4" "#C8C8C4")
+pattern(2)
+glass.kind="glass"
+// each knob is an ellipse GROUPED with its tick mark: rotating a
+// multi-selection spins each graphic about its OWN center, but a group
+// rotates about the shared center (the petals.comt trick), so the tick
+// orbits the knob axle like a real knob mark
+kh1=ellipse(120,105, 26,26)
+colorsrgb("#EEEEE8" "#FFFFFF")
+pattern(2)
+select(:clear)
+colorsrgb("#888880" "#FFFFFF")
+brush(65535,2)
+kh2=line(120,105, 120,127)
+select(kh1,kh2)
+knobh=group()
+knobh.kind="knob"
+select(:clear)
+kv1=ellipse(490,105, 26,26)
+colorsrgb("#EEEEE8" "#FFFFFF")
+pattern(2)
+select(:clear)
+colorsrgb("#888880" "#FFFFFF")
+brush(65535,2)
+kv2=line(490,105, 490,127)
+select(kv1,kv2)
+knobv=group()
+knobv.kind="knob"
+select(:clear)
+colorsrgb("#000000" "#FFFFFF")
+text(255,90 "Etch A Sketch")
+select(:clear)
+update()
+
+// the pen starts at the center of the glass; CLICKSZ px per knob click.
+// (the variable is NOT named "step" -- that's comterp's built-in stepper
+// command, and variables share the symbol namespace with commands)
+local(penx)=305
+local(peny)=335
+local(clicksz)=4
+
+// clamp(val lo hi) -- the pen stops at the glass edges, like the real toy
+clamp=func(val=arg(0); lo=arg(1); hi=arg(2);
+  if(val<lo :then return(lo));
+  if(val>hi :then return(hi));
+  val)
+
+// etch(nx ny) -- one segment of aluminum powder scraped off the glass.
+// Pen state must OUTLIVE this call, so writes escape the func frame
+// with local()= (see LANGUAGE.md "Escaping the func scope").
+etch=func(nx=arg(0); ny=arg(1);
+  if((nx==penx)&&(ny==peny) :then return(nil));
+  select(:clear);
+  colorsrgb("#3A3A38" "#FFFFFF");
+  brush(65535,2);
+  seg=line(penx,peny, nx,ny);
+  seg.kind="etch";
+  local(penx)=nx;
+  local(peny)=ny;
+  select(:clear);
+  colorsrgb("#000000" "#FFFFFF");
+  brush(65535,0);
+  update())
+
+// h(n) -- turn the LEFT knob n clicks (negative = left)
+h=func(n=arg(0);
+  if(n==nil :then print("Turn the knob a little, like this:  h(3) or h(-3)\n"));
+  if(n==nil :then return(nil));
+  select(knobh); rotate(0-n*9); select(:clear);
+  etch(clamp(penx+n*clicksz 104 506) peny))
+
+// v(n) -- turn the RIGHT knob n clicks (negative = down)
+v=func(n=arg(0);
+  if(n==nil :then print("Turn the knob a little, like this:  v(2) or v(-2)\n"));
+  if(n==nil :then return(nil));
+  select(knobv); rotate(0-n*9); select(:clear);
+  etch(penx clamp(peny+n*clicksz 154 516)))
+
+// shake() -- hold it upside down and shake!  (erases the etching,
+// never the toy: only graphics tagged kind=="etch" are deleted)
+shake=func(
+  handles(false);
+  for(si=0 si<4 si++
+    select(:all); rotate(2); update(30000);
+    rotate(-4); update(30000);
+    rotate(2); update(30000));
+  select(:clear);
+  doomed=list();
+  n=size(frame());
+  for(ci=0 ci<n ci++ g=at(frame() ci); if(g.kind=="etch" :then doomed,g));
+  for(ci=0 ci<size(doomed) ci++ delete(at(doomed ci)));
+  local(penx)=305;
+  local(peny)=335;
+  handles(true);
+  select(:clear);
+  update();
+  print("All clean!  The pen is back in the middle.\n"))
+
+// stair(n) -- a little demo autopilot: the classic staircase
+stair=func(n=arg(0);
+  if(n==nil :then n=5);
+  for(di=0 di<n di++ h(4); v(4));
+  print("Stairs!  Now try curves: alternate h(1) and v(1) quickly.\n"))
+
+// etchhelp() -- remind me how the knobs work
+etchhelp=func(
+  print("*** HOW TO WORK YOUR ETCH A SKETCH ***\n");
+  print("  h(3)    -- left knob: pen goes right 3 clicks (h(-3) for left)\n");
+  print("  v(2)    -- right knob: pen goes up 2 clicks (v(-2) for down)\n");
+  print("  stair() -- watch a staircase draw itself\n");
+  print("  shake() -- erase everything and start over\n");
+  print("THE PEN NEVER LIFTS.  Diagonals need both knobs taking turns --\n");
+  print("that's the whole game.\n");
+  print("TWO PLAYERS: run comdraw with a listening port and give each\n");
+  print("player one knob over the wire:\n");
+  print("  remote(\"host\" 20002 \"h(3)\")   -- the horizontal player\n");
+  print("  remote(\"host\" 20002 \"v(-2)\")  -- the vertical player\n");
+  print("(a knob turn is just an expression -- anything that can send\n");
+  print(" one can turn a knob, even a trackball daemon piping h(1)v(1))\n"))
+
+// ============================================================
+// welcome!
+// ============================================================
+print("\n=================================================\n")
+print("   YOUR ETCH A SKETCH IS READY.\n")
+print("   The pen is in the middle of the glass.\n")
+print("   Try typing:\n")
+print("       h(10)\n")
+print("       v(6)\n")
+print("       stair()\n")
+print("       shake()\n")
+print("       etchhelp()   <- the full knob manual\n")
+print("=================================================\n")
