@@ -1,6 +1,6 @@
 // src/comterp_/tests/global.comt -- test global() command
 //
-// coverage: 16/17 (94%)
+// coverage: 17/18 (94%)
 // funcs: global
 // missing: ~global(lvalue-return-type) -- in global(sym)=val the return value belongs
 //          to the assign operator, not global(); untestable in isolation for global() alone
@@ -121,6 +121,20 @@ r14=gsf()
 ok=ok&&(at(r14 0)==1)
 ok=ok&&(at(r14 1)==77)
 print("14 gsf=func(gfunc=1; gfunc,global(gfunc)) shadow vs explicit (expect 1 77): %v %v\n\n" at(r14 0) at(r14 1))
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: reassignment replaces the table entry, never stacks ---
+// (regression: the lvalue's old-value cleanup used lookup_symval, which
+//  returns nil for the bquoted lvalue symbol, so every global(x)=val
+//  orphaned the previous entry -- global(:cnt) grew by one per
+//  reassignment and each orphan leaked ~95 bytes)
+global(gstack)=0
+c0=global(:cnt)
+for(i=0 i<100 i++ global(gstack)=i)
+c1=global(:cnt)
+ok=ok&&(c1==c0)
+ok=ok&&(global(gstack)==99)
+print("15 100x global(gstack)=i; global(:cnt) delta (expect 0, value 99): %v %v\n\n" c1-c0 global(gstack))
 prev_ok=check_fail(:ok ok)
 
 print("\nglobal: %v\n" ok)

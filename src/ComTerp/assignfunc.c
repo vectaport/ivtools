@@ -81,16 +81,19 @@ void AssignFunc::execute() {
     if (operand1.type() == ComValue::SymbolType) {
         AttributeList* attrlist = comterp()->get_attributes();
 	/* global() lvalue must be tested BEFORE the func-frame branch:
-	   the whole point of global(x)=val is to escape the frame, and
-	   lookup_symval honors global_flag by skipping _alist and
-	   localtable, so the old-value cleanup stays consistent from
-	   inside a func.  (Until this reordering, global(x)=val inside
-	   a func silently wrote x to the frame attrlist instead.) */
+	   the whole point of global(x)=val is to escape the frame.
+	   The old-value cleanup must read the globaltable DIRECTLY
+	   (globalvalue()), not via lookup_symval: the lvalue symbol
+	   carries bquote (the anti-resolution shield), and lookup_symval
+	   returns nil for bquoted symbols -- so the old cleanup never
+	   fired and every reassignment stacked a fresh table entry over
+	   the orphaned old one (~95 bytes leaked per global(x)=val,
+	   observable as global(:cnt) growth). */
 	if (operand1.global_flag()) {
-	    AttributeValue* oldval = comterp()->lookup_symval(&operand1);
+	    ComValue* oldval = comterp()->globalvalue(operand1.symbol_val());
 	    if (oldval) {
 	      comterp()->globaltable()->remove(operand1.symbol_val());
-	      delete (ComValue*)oldval;
+	      delete oldval;
 	    }
 	    comterp()->globaltable()->insert(operand1.symbol_val(), operand2);
 	} else if (operand1.local_flag()) {
