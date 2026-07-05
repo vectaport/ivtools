@@ -1,5 +1,8 @@
 // etchasketch.comt -- THE ETCH A SKETCH
 //
+// Etch A Sketch is a trademark of Spin Master Ltd.  This example is an
+// affectionate homage in comterp script, not an affiliated product.
+//
 // Two knobs, one pen, no lifting.  The left knob moves the pen
 // sideways, the right knob moves it up and down, and the pen NEVER
 // leaves the glass -- diagonals take two steady hands, curves take
