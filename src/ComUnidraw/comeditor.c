@@ -56,6 +56,24 @@
 #include <Unidraw/kybd.h>
 #include <Unidraw/unidraw.h>
 
+#include <InterViews/event.h>
+#include <IV-X11/xdisplay.h>
+#include <IV-X11/xevent.h>
+/* XkbKeycodeToKeysym: bracket the XKB header with Xdefs/Xundefs so its
+   Display parameter resolves to X11's XDisplay (see Unidraw/editor.c). */
+#include <IV-X11/Xdefs.h>
+#include <X11/XKBlib.h>
+#include <IV-X11/Xundefs.h>
+#include <X11/keysym.h>       /* XK_Up/Down/Left/Right for shift-arrow capture */
+#include <sys/time.h>         /* gettimeofday for the shift-arrow watchdog */
+
+static double comeditor_now_seconds() {
+    struct timeval tv;
+    gettimeofday(&tv, 0);
+    return (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
+}
+static const double SHIFTARROW_TIMEOUT = 2.0;   // seconds without a poll -> disarm
+
 #include <Unidraw/Commands/command.h>
 
 #include <InterViews/frame.h>
@@ -98,13 +116,19 @@ ComEditor::ComEditor(const char* file, OverlayKit* kit)
     }
 }
 
-ComEditor::ComEditor(boolean initflag, OverlayKit* kit) 
+ComEditor::ComEditor(boolean initflag, OverlayKit* kit)
 : OverlayEditor(initflag, kit) {
   _terp = nil;
   _whiteboard = -1;
+  _keyq_head = _keyq_tail = 0;
+  _shiftarrow_on = false;
+  _shiftarrow_deadline = 0.0;
 }
 
 void ComEditor::Init (OverlayComp* comp, const char* name) {
+    _keyq_head = _keyq_tail = 0;
+    _shiftarrow_on = false;
+    _shiftarrow_deadline = 0.0;
     if (!comp) comp = new OverlayIdrawComp;
     _terp = new ComTerpServ();
     ((OverlayUnidraw*)unidraw)->comterp(_terp);
@@ -271,6 +295,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     #endif
 
     comterp->add_command("pointer", new PointerLocFunc(comterp, this));
+    comterp->add_command("lastkey", new LastKeyFunc(comterp, this));
 
     comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
     comterp->add_command("ding", new ComdrawDingFunc(comterp, this));
@@ -362,4 +387,106 @@ void ComEditor::stdio_prompt(UnidrawComterpHandler* handler) {
     (*handler->comterp()->outfunc()) (get_command_prompt(), nil);
   else
     fprintf(stdout, "%s", get_command_prompt());
+}
+
+/*****************************************************************************/
+// keyboard eavesdrop + shift-arrow capture for the comterp lastkey()
+// command (see comeditor.h).  The pointer() analog on the keyboard side:
+// keystroke() queues every keysym, and optionally routes Shift+arrow to
+// the queue while suppressing its viewer-pan.
+
+void ComEditor::keystroke(const Event& e) {
+    // shift-arrow capture (opt-in, default off): while on, a MODIFIED arrow
+    // or letter -- Shift held OR Caps Lock on -- is routed to the key queue
+    // with SHIFTARROW_FLAG and its normal action (arrow pan, letter tool
+    // shortcut) is suppressed, so a script owns the keyboard while it drives.
+    // Caps Lock is the hands-free enable (and the natural two-player enable:
+    // both players just tap their keys).  Bare (unmodified) arrows still pan
+    // and bare letters still fire their tool shortcuts.  Use the level-0
+    // keysym like the pan dispatch -- XLookupKeysym at the shifted index can
+    // be NoSymbol for arrows -- so the queued code is the UNSHIFTED keysym
+    // (e.g. Shift+D queues XK_d|FLAG); the script maps those.
+    if ((e.shift_is_down() || e.capslock_is_down())
+	&& e.rep()->xevent_.type == KeyPress
+	&& shiftarrow_capture()) {
+	KeySym base = XkbKeycodeToKeysym(e.rep()->display_->rep()->display_,
+					 e.rep()->xevent_.xkey.keycode, 0, 0);
+	if (base==XK_Up || base==XK_Down || base==XK_Left || base==XK_Right
+	    || (base>=XK_a && base<=XK_z)) {
+	    enqueue_key((unsigned long)base | SHIFTARROW_FLAG);
+	    return;                       // suppress the pan / tool-shortcut
+	}
+    }
+    // pure eavesdrop for lastkey(), then dispatch as usual.  e.keysym()
+    // folds in shift, so Shift+d arrives as XK_D.
+    enqueue_key(e.keysym());
+    OverlayEditor::keystroke(e);
+}
+
+// key-event ring buffer.  On overflow the oldest key is dropped -- a game
+// poll loop drains faster than a human types, so overflow means the script
+// stopped reading, in which case stale keys are the right thing to lose.
+void ComEditor::enqueue_key(unsigned long keysym) {
+    if (keysym == 0) return;
+    int next = (_keyq_tail + 1) % KEYQ_SIZE;
+    if (next == _keyq_head)               // full: drop oldest
+	_keyq_head = (_keyq_head + 1) % KEYQ_SIZE;
+    _keyq[_keyq_tail] = keysym;
+    _keyq_tail = next;
+}
+
+unsigned long ComEditor::dequeue_key() {
+    if (_keyq_head == _keyq_tail) return 0;   // empty
+    unsigned long k = _keyq[_keyq_head];
+    _keyq_head = (_keyq_head + 1) % KEYQ_SIZE;
+    return k;
+}
+
+// shift-arrow capture with a self-disarming watchdog (see comeditor.h).
+void ComEditor::shiftarrow_capture(boolean on) {
+    _shiftarrow_on = on;
+    if (on) _shiftarrow_deadline = comeditor_now_seconds() + SHIFTARROW_TIMEOUT;
+}
+
+boolean ComEditor::shiftarrow_capture() {
+    if (_shiftarrow_on && comeditor_now_seconds() > _shiftarrow_deadline)
+	_shiftarrow_on = false;           // watchdog lapsed -> auto-restore
+    return _shiftarrow_on;
+}
+
+void ComEditor::shiftarrow_poll() {
+    if (_shiftarrow_on)
+	_shiftarrow_deadline = comeditor_now_seconds() + SHIFTARROW_TIMEOUT;
+}
+
+// map a queued key code to a portable name (see comeditor.h).  The X keysym
+// stays inside this one function; the returned string is the lastkey()
+// surface, so a non-X backend reimplements only this mapping.
+const char* ComEditor::keyname(unsigned long code) {
+    boolean cap = (code & SHIFTARROW_FLAG) != 0;
+    unsigned long ks = code & ~(unsigned long)SHIFTARROW_FLAG;
+    const char* base;
+    char one[2];
+    switch (ks) {
+      case XK_Up:        base = "up";    break;
+      case XK_Down:      base = "down";  break;
+      case XK_Left:      base = "left";  break;
+      case XK_Right:     base = "right"; break;
+      case XK_Escape:    base = "esc";   break;
+      case XK_space:     base = "space"; break;
+      case XK_Return:    base = "enter"; break;
+      case XK_Tab:       base = "tab";   break;
+      case XK_BackSpace: base = "bs";    break;
+      case XK_Delete:    base = "del";   break;
+      default:
+	if ((ks>=XK_a && ks<=XK_z) || (ks>=XK_0 && ks<=XK_9)) {
+	    one[0] = (char)ks; one[1] = '\0'; base = one;
+	} else {
+	    // unmapped: decimal keysym so it's still usable (rarely hit)
+	    snprintf(_keyname_buf, sizeof(_keyname_buf), cap ? "S-%lu" : "%lu", ks);
+	    return _keyname_buf;
+	}
+    }
+    snprintf(_keyname_buf, sizeof(_keyname_buf), cap ? "S-%s" : "%s", base);
+    return _keyname_buf;
 }

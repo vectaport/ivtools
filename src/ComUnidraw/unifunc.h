@@ -328,8 +328,27 @@ class PointerLocFunc : public UnidrawFunc {
 public:
     PointerLocFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return "x,y=%s() -- x,y location of last pointer motion."; }
+
+};
+
+//: command to dequeue the next canvas keystroke
+// keysym=lastkey() -- pop the oldest unread key pressed over the canvas
+class LastKeyFunc : public UnidrawFunc {
+public:
+    LastKeyFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "name=%s([:shiftarrow flag] [:reset]) -- portable NAME of the next unread keystroke over the canvas (nil if none); each press returned once.  Names: \"up\" \"down\" \"left\" \"right\" \"esc\" \"space\" \"enter\" \"tab\" \"bs\" \"del\", a single char for letters/digits, else the decimal keysym.  A captured key (see :shiftarrow) gets an \"S-\" prefix, e.g. \"S-up\" \"S-d\".  :shiftarrow true captures modified arrows AND letters -- Shift held OR Caps Lock on -- suppressing their pan/tool-shortcut, until :shiftarrow false, :reset, or the poll watchdog lapses ~2s"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":shiftarrow flag  capture modified arrows+letters (Shift or Caps Lock; suppress pan/shortcut) while flag true",
+	":reset            restore default key handling now",
+	nil
+      };
+      return keys;
+    }
 
 };
 

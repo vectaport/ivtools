@@ -72,11 +72,48 @@ public:
     // called only once to add the prompt after initial startup
     // after that it happens in ComUtil/_lexscan.c
 
+    // -- keyboard eavesdrop for the comterp lastkey() command --
+    // keystroke() (overridden below) queues every keysym the canvas
+    // receives; lastkey() dequeues.  This is the keyboard analog of the
+    // pointer capture on OverlayViewer (read by pointer()) -- capture
+    // state lives here in the comdraw-layer editor, not in base Unidraw.
+    virtual void keystroke(const Event&);
+    void enqueue_key(unsigned long keysym);
+    unsigned long dequeue_key();          // 0 when the queue is empty
+
+    // optional shift-arrow capture (default OFF): while on, a modified arrow
+    // OR letter (Shift held OR Caps Lock on) is queued as (unshifted_keysym
+    // | SHIFTARROW_FLAG) and its normal action -- arrow pan, letter tool
+    // shortcut -- is suppressed, so a script owns the keyboard while it
+    // drives.  Bare (unmodified) arrows/letters are untouched.  Caps Lock is
+    // the hands-free enable (and the two-player enable).  A watchdog bumped
+    // by every lastkey() poll auto-restores the default if the driving
+    // script stops polling (exit, crash, ^C) -- so it can't stick.
+    enum { SHIFTARROW_FLAG = 0x10000 };
+    void shiftarrow_capture(boolean on);  // enable/disable + (re)arm
+    boolean shiftarrow_capture();         // live state (false once expired)
+    void shiftarrow_poll();               // heartbeat: bump the watchdog
+
+    // Portable name for a queued key code: "up"/"down"/"left"/"right",
+    // "esc"/"space"/"enter"/"tab"/"bs"/"del", a single char for letters and
+    // digits, else the decimal keysym.  A captured (shift/caps) key gets an
+    // "S-" prefix ("S-up", "S-d").  This is the lastkey() surface -- scripts
+    // compare names, never raw X keysyms, so a Qt (or other) backend need
+    // only map its key codes to the same names.
+    const char* keyname(unsigned long code);
+
 protected:
 
     ComTerpServ* _terp;
     ComTerpIOHandler* _terp_iohandler;
     int _whiteboard; // -1 == unitialized, 0 = false, 1 = true
+    enum { KEYQ_SIZE = 32 };
+    unsigned long _keyq[KEYQ_SIZE];
+    int _keyq_head;
+    int _keyq_tail;
+    boolean _shiftarrow_on;
+    double _shiftarrow_deadline;          // seconds; capture expires past this
+    char _keyname_buf[32];                // scratch for keyname()
 };
 
 #endif

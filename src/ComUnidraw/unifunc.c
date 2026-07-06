@@ -964,6 +964,53 @@ void PointerLocFunc::execute() {
   avl->Append(new AttributeValue(viewer->pointery(), AttributeValue::IntType));
   ComValue retval(avl);
   push_stack(retval);
-    
+
+}
+
+/*****************************************************************************/
+
+LastKeyFunc::LastKeyFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void LastKeyFunc::execute() {
+  // capture keyword args before reset_stack()
+  static int shiftarrow_sym = symbol_add("shiftarrow");
+  ComValue shiftarrowv(stack_key(shiftarrow_sym, false, ComValue::blankval(), true));
+  static int reset_sym = symbol_add("reset");
+  boolean resetflag = stack_key(reset_sym).is_true();
+  reset_stack();
+
+  // downcast to the comdraw-layer editor that owns the key queue (the
+  // PointerLocFunc precedent above downcasts GetEditor() the same way)
+  ComEditor* ed = (ComEditor*)GetEditor();
+  if (!ed) { push_stack(ComValue::nullval()); return; }
+
+  // lastkey(:reset) -- restore default arrow panning immediately
+  if (resetflag) {
+    ed->shiftarrow_capture(false);
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  // lastkey(:shiftarrow true|false) -- enable/disable shift-arrow capture;
+  // returns the resulting live state.  (Bare :shiftarrow enables.)
+  if (!shiftarrowv.is_blank()) {
+    ed->shiftarrow_capture(shiftarrowv.is_true());
+    ComValue rv(ed->shiftarrow_capture() ? 1 : 0, ComValue::BooleanType);
+    push_stack(rv);
+    return;
+  }
+
+  // plain poll: heartbeat the capture watchdog, then dequeue the next key
+  ed->shiftarrow_poll();
+  unsigned long code = ed->dequeue_key();
+  if (code == 0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  // return the portable name string (e.g. "up", "S-up", "d", "esc"), not the
+  // raw X keysym -- keeps the surface backend-neutral (see ComEditor::keyname)
+  ComValue retval(ed->keyname(code));
+  push_stack(retval);
 }
 
