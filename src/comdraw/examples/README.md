@@ -47,6 +47,18 @@ the drawing (and any funcs the script defined) live in the session.
   repulsion when they bump, each spinning on its own axis.
   *The prompt is the control panel.*
 
+- **etchasketch.comt** — two knobs, one pen, no lifting.  `h(n)` and
+  `v(n)` turn the knobs (the knob graphics visibly rotate — each is an
+  ellipse grouped with its tick mark so the tick orbits the axle, the
+  petals.comt trick), each turn etches one line segment, the pen clamps
+  at the glass edges, and `shake()` wiggles the toy and erases only the
+  graphics tagged `kind="etch"`.  Pen state escapes the knob funcs with
+  `local(penx)=` — the session-scope escape from LANGUAGE.md's scoping
+  rules — and a knob turn is just the expression `h(3)`, so anything
+  that can send an expression can turn a knob: a second player over
+  `remote()`, or a trackball daemon split into two axes piping deltas.
+  *The knobs are the wire.*
+
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,
 the drawserv distribution path) is `doc/SPATIAL-APPLICATIONS.md`.
