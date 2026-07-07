@@ -93,6 +93,11 @@ public:
     InputHandler* focusable();
     TE_View* textview();
 
+    // enter a command as if it had been typed here and Return pressed.
+    // A plain EivTextEditor has no interpreter to run it against, hence
+    // the no-op default; ComTextEditor (ComGlyph) does the real work.
+    virtual boolean runfile(const char* path);
+
 protected:
    TE_Adjustable* te_adjustable_;
    TE_View*   te_view_;

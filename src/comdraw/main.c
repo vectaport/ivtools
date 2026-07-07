@@ -29,6 +29,7 @@
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovcreator.h>
 #include <ComUnidraw/comeditor.h>
+#include <IVGlyph/textedit.h>
 
 #include <OverlayUnidraw/ovellipse.h>
 #include <OverlayUnidraw/ovunidraw.h>
@@ -69,8 +70,8 @@ static PropertyData properties[] = {
     { "*ComEditor*name", "comdraw" },
     { "*ComEditor*iconName", "comdraw" },
     { "*domain",  "drawing" },
-    { "*TextEditor*rows", "10" },
-    { "*TextEditor*columns", "40" },
+    { "*TextEditor*rows", "12" },
+    { "*TextEditor*columns", "80" },
     { "*TextEditor*FileChooser*rows", "10" },
     { "*initialbrush",  "2" },
     { "*initialfgcolor","1" },
@@ -215,6 +216,7 @@ static OptionDesc options[] = {
     { "-th", "*theight", OptionValueNext },
     { "-tw", "*twidth", OptionValueNext },
     { "-twidth", "*twidth", OptionValueNext },
+    { "-comt", "*comt", OptionValueImplicit, "true" },
     { "-zoff", "*zoomer_off", OptionValueImplicit, "true" },
     { "-zoomer_off", "*zoomer_off", OptionValueImplicit, "true" },
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
@@ -259,6 +261,8 @@ Usage:  comdraw [file] [options]\n\n\
 -toolbarloc | -tbl r|l      toolbar location left or right\n\
 -theight | -th n            tile height in pixels\n\
 -tile                       enable tiled page view\n\
+-comt [file]                inline comterp text-entry pane; if file is\n\
+                            given, enter run(file) into the pane at startup\n\
 -twidth | -tw n             tile width in pixels\n\
 -wbhost host                whiteboard host to connect to\n\
 -wbmaster                   run as whiteboard master\n\
@@ -288,6 +292,8 @@ Usage:  comdraw [file] [options]\n\n\
 -toolbarloc | -tbl r|l      toolbar location left or right\n\
 -theight | -th n            tile height in pixels\n\
 -tile                       enable tiled page view\n\
+-comt [file]                inline comterp text-entry pane; if file is\n\
+                            given, enter run(file) into the pane at startup\n\
 -twidth | -tw n             tile width in pixels\n\
 -zoomer_off | -zoff         disable zoomer\n\
 -runfile file               run script file after startup\n\
@@ -297,7 +303,27 @@ any idraw parameter is also accepted (see idraw man page)";
 
 /*****************************************************************************/
 
+/* -comt can optionally be followed by a filename to run in the inline
+   comterp pane (mirrors -runfile, but scoped to that pane).  The
+   InterViews OptionDesc table only knows exact-match flags, "consume the
+   next arg" options, and "attached after the name" options -- nothing
+   for "next arg if it looks like one" -- so pull the filename out of
+   argv by hand before the option table ever sees it, leaving a bare
+   "-comt" behind for its existing OptionValueImplicit entry to match. */
+static const char* extract_comtfile(int& argc, char** argv) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-comt") == 0 && i+1 < argc && argv[i+1][0] != '-') {
+            const char* file = argv[i+1];
+            for (int j = i+1; j+1 < argc; j++) argv[j] = argv[j+1];
+            argv[--argc] = nil;
+            return file;
+        }
+    }
+    return nil;
+}
+
 int main (int argc, char** argv) {
+    const char* comtfile = extract_comtfile(argc, argv);
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
@@ -423,6 +449,16 @@ int main (int argc, char** argv) {
 	        if (*terp->errmsg())
 	            cerr << "comdraw: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;
+	    }
+
+	    if (comtfile && *comtfile) {
+		/* enter run("comtfile") into the comt pane, same as if it had
+		   been typed there and Return pressed -- not a full dump of
+		   the file's lines, just the one command a person would use
+		   to load it (see ComTextEditor::runfile). */
+		EivTextEditor* cte = ed->TextEditor();
+		if (!cte || !cte->runfile(comtfile))
+		    cerr << "comdraw: error running -comt script file: " << comtfile << "\n";
 	    }
 	}
 	

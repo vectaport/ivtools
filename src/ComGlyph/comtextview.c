@@ -52,6 +52,9 @@
 #include <strstream>
 #include <string.h>
 #include <fstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 
 using std::cerr;
 using std::cout;
@@ -229,23 +232,56 @@ void ComTE_View::newline()
 
   /* load and interpret if expression closed */
   comterp()->load_string(bufptr);
+
+  /* print()/say() write to the real stdout, and ComTerp::run() itself
+     also echoes the top-of-stack result -- or an error -- to stdout
+     when the line completes (print_stack_top(), a non-popping peek;
+     see comterp.c).  comterp has no notion of "the requesting window",
+     so none of that reaches the pane on its own.  Capture stdout for
+     the duration of this one run(), then once restored replay the
+     captured bytes back to the real terminal (so it still sees exactly
+     what it always has -- command echoed, then its result/error) AND
+     paste the same bytes into the pane.  This single capture is now the
+     one source of pane content for this line: a print()-heavy func
+     (etchhelp(), a -comt-loaded script's banner) shows up here, and so
+     does the ordinary result/error text run() already echoes -- so
+     nothing below re-adds that text a second time. */
+  char tmpname[] = "/tmp/comdraw-pane-XXXXXX";
+  int tmpfd = mkstemp(tmpname);
+  int savedfd = -1;
+  if (tmpfd >= 0) {
+    fflush(stdout);
+    savedfd = dup(1);
+    dup2(tmpfd, 1);
+    close(tmpfd);
+  }
+
   int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);
+
+  if (savedfd >= 0) {
+    fflush(stdout);
+    dup2(savedfd, 1);
+    close(savedfd);
+    FILE* rf = fopen(tmpname, "r");
+    if (rf) {
+      char linebuf[2048];
+      while (fgets(linebuf, sizeof(linebuf), rf)) {
+        fputs(linebuf, stdout);                    /* terminal, as before */
+        insert_string(linebuf, strlen(linebuf));    /* and now the pane too */
+      }
+      fflush(stdout);
+      fclose(rf);
+    }
+    unlink(tmpname);
+  }
   // comterp()->linenum()--;
-#if 0
-  ComValue result(comterp()->stack_top(1));
-#else
-  // don't evaluate
-  ComValue result(comterp()->pop_stack(false));
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  ostream* out = new std::strstream();
-  if (*comterp()->errmsg()) {
-    *out << comterp()->errmsg() << "\n";
-  } else {
+
+  /* run() already echoed (and the above already replayed/inserted) the
+     result or error text -- this pop only discards the leftover value
+     print_stack_top() peeked but never popped; it is not displayed. */
+  comterp()->pop_stack(false);
+  if (!*comterp()->errmsg()) {
     if (status==0) {
-      result.comterp(comterp());
-      *out << result << "\n";
       _continuation = false;
       _parendepth=0;
     } else if (status==1) {
@@ -253,13 +289,7 @@ void ComTE_View::newline()
       _continuation = true;
     }
   }
-  out->put('\0');
-  out->flush();
-  std::strstream* sout = (std::strstream*)out;
-  insert_string(sout->str(), strlen(sout->str()));
-#pragma GCC diagnostic pop
   comterp()->brief(old_brief);
-  delete out; 
   delete[] buffer;
 }
 

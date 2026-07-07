@@ -371,8 +371,15 @@ void OverlayKit::InitLayout(OverlayKit* kit, const char* name) {
 
 
       ed->GetKeyMap()->Execute(CODE_SELECT);
-	
-      if (ed->comterp() && inlineTextEditor) {
+
+      // inline comterp (comt) text-entry pane: enabled by the global
+      // (compiled-in default off) OR the "comt" attribute, which comdraw's
+      // -comt command-line option sets.  Handy for TUI-style comterp
+      // sessions (etchasketch/spirograph) -- scroll back and hit Return on
+      // an old line to re-run it -- when the terminal REPL is less convenient.
+      const char* comt_string = catalog->GetAttribute("comt");
+      boolean comt_flag = comt_string ? strcmp(comt_string, "true")==0 : false;
+      if (ed->comterp() && (inlineTextEditor || comt_flag)) {
 	    boolean set_flag = kit->_set_button_flag;
 	    boolean clr_flag = kit->_clr_button_flag;
 	    EivTextEditor* texteditor = nil;
