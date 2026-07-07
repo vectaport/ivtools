@@ -65,12 +65,14 @@
 #include <X11/XKBlib.h>
 #include <IV-X11/Xundefs.h>
 #include <X11/keysym.h>       /* XK_Up/Down/Left/Right for shift-arrow capture */
-#include <sys/time.h>         /* gettimeofday for the shift-arrow watchdog */
+#include <time.h>              /* clock_gettime for the shift-arrow watchdog */
 
+/* CLOCK_MONOTONIC, not wall-clock time: an NTP correction or a manual clock
+   change must never fire (or extend) the watchdog early/late. */
 static double comeditor_now_seconds() {
-    struct timeval tv;
-    gettimeofday(&tv, 0);
-    return (double)tv.tv_sec + (double)tv.tv_usec * 1e-6;
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 }
 static const double SHIFTARROW_TIMEOUT = 2.0;   // seconds without a poll -> disarm
 
@@ -479,7 +481,11 @@ const char* ComEditor::keyname(unsigned long code) {
       case XK_BackSpace: base = "bs";    break;
       case XK_Delete:    base = "del";   break;
       default:
-	if ((ks>=XK_a && ks<=XK_z) || (ks>=XK_0 && ks<=XK_9)) {
+	/* letters can arrive either case: lowercase from the base keysym
+	   captured via XkbKeycodeToKeysym(...,level=0,...) in keystroke(),
+	   uppercase (XK_A-XK_Z) from a plain, non-captured Shift+letter --
+	   e.keysym() folds shift in for that path, so both ranges are real. */
+	if ((ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z) || (ks>=XK_0 && ks<=XK_9)) {
 	    one[0] = (char)ks; one[1] = '\0'; base = one;
 	} else {
 	    // unmapped: decimal keysym so it's still usable (rarely hit)
