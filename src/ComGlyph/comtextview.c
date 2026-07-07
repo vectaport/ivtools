@@ -174,7 +174,7 @@ void ComTE_View::newline()
   /* run this line through comterp */
   boolean old_brief = comterp()->brief();
   comterp()->brief(1);
-  cout << "\n" << comterp()->linenum()+1 << ": " << buffer << "\n";
+  cout << comterp()->linenum()+1 << ": " << buffer << "\n";
 
   /* strip # comments */
   /* and keep track of paren depth at the same time */
