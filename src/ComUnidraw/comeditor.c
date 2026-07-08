@@ -527,10 +527,18 @@ const char* ComEditor::keyname(unsigned long code) {
 	 case-varying like the arrows. */
       case XK_Insert:    base = "ins";   break;  // curses KEY_IC; "ins" reads better
       default:
-	/* keystroke() folds shift into ks itself for letters (Shift+d
-	   arrives as XK_D), so this already carries the right case --
-	   the uppercasing loop below is a harmless no-op for it. */
-	if ((ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z) || (ks>=XK_0 && ks<=XK_9)) {
+	/* X11's Latin-1 keysyms are numerically identical to their ASCII
+	   codepoint across the whole printable range (space 0x20 through
+	   tilde 0x7e) -- verified directly, not just for letters/digits:
+	   [ ] { } ( ) < > ` ' " : ; , . and every shifted-numeric symbol
+	   (! @ # $ % ^ & *) all match too.  So any printable-ASCII keysym
+	   just IS its own character.  keystroke() folds shift into ks
+	   itself for letters (Shift+d arrives as XK_D) and X11 already
+	   resolves shifted symbols to their own distinct keysym (Shift+[
+	   is XK_braceleft, not XK_bracketleft), so this already carries
+	   the right character either way -- the uppercasing loop below is
+	   a harmless no-op for anything that isn't a lowercase letter. */
+	if (ks>=0x20 && ks<=0x7e) {
 	    one[0] = (char)ks; one[1] = '\0'; base = one;
 	} else {
 	    // unmapped: decimal keysym so it's still usable (rarely hit)

@@ -60,10 +60,13 @@ the drawing (and any funcs the script defined) live in the session.
   *The knobs are the wire.*
 
 - **lastkey_keytest.comt** — not a toy, a diagnostic: an interactive,
-  manual test of `lastkey()`'s full key vocabulary (arrows, Home/End,
-  PgUp/PgDn, Insert, F1-F12, Esc/Tab/Backspace/Enter/Space as their own
-  C character literals, shift/caps-lock signaled by uppercasing the name
-  — `"UP"`, `"F1"` — rather than a prefix). Requires a human pressing
+  manual test of `lastkey()`'s full key vocabulary — Esc/Tab/Backspace/
+  Enter/Space/Delete as their own C character literals; every printable-
+  ASCII key (letters, digits, and all punctuation: brackets, braces,
+  parens, quotes, colon/semicolon, comma/period, every shifted-numeric
+  symbol) as itself; F1-F12/Home/End/PgUp/PgDn fixed, shift-blind; arrows
+  and Insert case-varying, shift/caps-lock signaled by uppercasing the
+  name — `"UP"`, `"INS"` — rather than a prefix. Requires a human pressing
   real keys — there's no way to script X11 keyboard events reliably
   enough to automate it — so it stays here rather than in
   `run_all.comt`/CI. Re-run it by hand whenever `ComEditor::keyname()`

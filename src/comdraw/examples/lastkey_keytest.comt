@@ -30,14 +30,22 @@
 //                        byte sent to a real terminal can be interpreted
 //                        as the start of its own escape sequence, which
 //                        would garble the display; the label is only for
-//                        this script's own output, not part of what
-//                        lastkey() actually returns to a caller.
+//                        this script's own output ("Esc", "Tab", "Del"
+//                        for backspace -- on current Mac keyboards the
+//                        key labeled delete IS backspace, "Del" matches
+//                        the keycap), not part of what lastkey() actually
+//                        returns to a caller.
 //   arrows/ins        -- "up" "down" "left" "right" "ins" -- case varies
 //                        with shift, see below
 //   fixed named keys  -- "F1".."F12" "Home" "End" "PgUp" "PgDn", always
 //                        that capitalization, shift or not -- see
 //                        "shift/caps lock" below for why these don't vary
-//   letters/digits    -- themselves, either case ("a" "D" "7")
+//   letters/digits/punctuation -- themselves, either case for letters
+//                        ("a" "D" "7") -- this also covers every bracket/
+//                        brace/paren/quote/colon/comma/etc. and every
+//                        shifted-numeric symbol (!@#$%^&*()), since X11's
+//                        printable-ASCII keysyms are numerically their
+//                        own character
 //   shift/caps lock   -- if held over an arrow or "ins", the name comes
 //                        back UPPERCASE ("UP", "INS") -- letters already
 //                        get this for free from their keysym, this just
@@ -61,11 +69,11 @@
 // describe(k) -- human-readable label for a lastkey() result, for THIS
 // script's printing only; not part of lastkey()'s actual contract
 describe=func(k=arg(0);
-  if(k=="\x1b" :then return("ESC"));
+  if(k=="\x1b" :then return("Esc"));
   if(k==" "    :then return("SPACE"));
   if(k=="\r"   :then return("ENTER"));
-  if(k=="\t"   :then return("TAB"));
-  if(k=="\b"   :then return("BACKSPACE"));
+  if(k=="\t"   :then return("Tab"));
+  if(k=="\b"   :then return("Del"));
   if(k=="\x7f" :then return("DELETE"));
   k)
 
