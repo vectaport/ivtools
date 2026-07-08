@@ -79,8 +79,9 @@ public:
     // state lives here in the comdraw-layer editor, not in base Unidraw.
     // A bare modifier keypress (Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper,
     // pressed on its own) is never queued at all -- it isn't a "key" a
-    // script would want reported; its effect is the shift/capslock state
-    // carried on whatever key comes next (see SHIFT_FLAG below).
+    // script would want reported; its effect is the shift/capslock/ctrl/
+    // alt/super state carried on whatever key comes next (see the _FLAG
+    // enum below).
     virtual void keystroke(const Event&);
     void enqueue_key(unsigned long keysym);
     unsigned long dequeue_key();          // 0 when the queue is empty
@@ -93,12 +94,27 @@ public:
     // hands-free enable (and the two-player enable).  A watchdog bumped by
     // every lastkey() poll auto-restores the default if the driving script
     // stops polling (exit, crash, ^C) -- so it can't stick.  SHIFT_FLAG
-    // itself is orthogonal to capture, though: keystroke() sets it on ANY
-    // key (captured or not) pressed while shift/capslock is down, so
-    // keyname() can uppercase keys that have no natural case of their own
-    // (see below) -- capture only additionally decides whether the normal
-    // pan/shortcut also gets suppressed.
-    enum { SHIFT_FLAG = 0x10000 };
+    // itself is orthogonal to capture, though: keystroke() sets it (and
+    // CTRL_FLAG/ALT_FLAG/SUPER_FLAG) on ANY key (captured or not) pressed
+    // while that modifier is down, so keyname() can name/uppercase keys
+    // that have no natural case of their own (see below) -- capture only
+    // additionally decides whether the normal pan/shortcut also gets
+    // suppressed, and only ever looks at Shift/Caps Lock, never Ctrl/Alt/
+    // Super.
+    //
+    // CTRL_FLAG/ALT_FLAG/SUPER_FLAG are the only three modifier "roles"
+    // kept out of the historical five (Symbolics/Sun keyboards also had
+    // Meta and Hyper) -- Meta's name is hopelessly overloaded across
+    // platforms (Emacs and X11 itself often alias it onto the same bit as
+    // Alt; Qt uses "Meta" to mean Super on Linux), and nothing built a
+    // dedicated Hyper key after the Lisp-machine era, so neither carries
+    // enough of a live, unambiguous convention to be worth naming.  Ctrl/
+    // Alt/Super were picked because each maps cleanly onto one physical
+    // key across Windows, Linux/X11, and Mac (via XQuartz): the Mac
+    // Command key and a PC's Windows-logo key both land on X11's Mod4,
+    // i.e. Super -- see keyname()'s docstring for how they combine with a
+    // key name.
+    enum { SHIFT_FLAG = 0x10000, CTRL_FLAG = 0x20000, ALT_FLAG = 0x40000, SUPER_FLAG = 0x80000 };
     void shiftarrow_capture(boolean on);  // enable/disable + (re)arm
     boolean shiftarrow_capture();         // live state (false once expired)
     void shiftarrow_poll();               // heartbeat: bump the watchdog
@@ -121,7 +137,20 @@ public:
     // punctuation this already falls out of the keysym itself (Shift+d
     // arrives as XK_D, Shift+[ arrives as XK_braceleft i.e. '{'), for
     // arrows/ins/esc/tab/backspace keyname() applies it explicitly,
-    // since they have no natural shifted form to fall back on.  This is
+    // since they have no natural shifted form to fall back on.
+    //
+    // If Ctrl, Alt, and/or Super was held, the name above is prefixed
+    // "Ctrl-"/"Alt-"/"Super-" (that fixed order, chained when more than
+    // one is held: "Ctrl-Alt-Delete"), and a single lowercase letter is
+    // forced capital after the prefix regardless of whether Shift was
+    // literally down -- every OS/toolkit's own documentation always
+    // writes "Ctrl-C", never "Ctrl-c", even for a bare Ctrl+c.  Since
+    // that spends the letter's own case, Shift held ALONGSIDE a chord is
+    // signaled by capitalizing the prefix word(s) instead: "Ctrl-C" is
+    // plain Ctrl+c, "CTRL-C" is Ctrl+Shift+c.  Enter/Space/true-Delete,
+    // normally shift-blind (raw "\r"/" "/"\x7f"), switch to their
+    // readable name ("ENTER"/"SPACE"/"DELETE") whenever chorded, so a
+    // chord string is never part text, part raw control byte.  This is
     // the lastkey() surface -- scripts compare names, never raw X
     // keysyms, so a Qt (or other) backend need only map its key codes
     // to the same names.

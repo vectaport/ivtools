@@ -406,6 +406,20 @@ void ComEditor::keystroke(const Event& e) {
 
     boolean shifted = e.shift_is_down() || e.capslock_is_down();
 
+    // Ctrl/Alt/Super ride along as informational bits on every key, just
+    // like SHIFT_FLAG -- orthogonal to :shiftarrow capture below, which
+    // only decides whether Shift's normal pan/tool-shortcut is ALSO
+    // suppressed.  meta_is_down() tests Mod1Mask, which on essentially
+    // every current keyboard IS Alt (Alt and Meta share the same bit; a
+    // keyboard with a dedicated Meta key hasn't shipped since the
+    // Lisp-machine era).  Event has no super_is_down() of its own, so
+    // Mod4 (the Windows-logo key on a PC, or Cmd under XQuartz on a Mac)
+    // is tested directly via keymask().
+    unsigned long flags = (shifted ? SHIFT_FLAG : 0)
+	| (e.control_is_down()      ? CTRL_FLAG  : 0)
+	| (e.meta_is_down()         ? ALT_FLAG   : 0)
+	| ((e.keymask() & Mod4Mask) ? SUPER_FLAG : 0);
+
     // shift-arrow capture (opt-in, default off): while on, a MODIFIED arrow
     // or letter -- Shift held OR Caps Lock on -- is routed to the key queue
     // with SHIFT_FLAG and its normal action (arrow pan, letter tool
@@ -419,12 +433,12 @@ void ComEditor::keystroke(const Event& e) {
     if (shifted && e.rep()->xevent_.type == KeyPress && shiftarrow_capture()) {
 	if (ks==XK_Up || ks==XK_Down || ks==XK_Left || ks==XK_Right
 	    || (ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z)) {
-	    enqueue_key((unsigned long)ks | SHIFT_FLAG);
+	    enqueue_key((unsigned long)ks | flags);
 	    return;                       // suppress the pan / tool-shortcut
 	}
     }
     // pure eavesdrop for lastkey(), then dispatch as usual.
-    enqueue_key(shifted ? ((unsigned long)ks | SHIFT_FLAG) : (unsigned long)ks);
+    enqueue_key((unsigned long)ks | flags);
     OverlayEditor::keystroke(e);
 }
 
@@ -467,31 +481,32 @@ void ComEditor::shiftarrow_poll() {
 // map a queued key code to a portable name (see comeditor.h).  The X keysym
 // stays inside this one function; the returned string is the lastkey()
 // surface, so a non-X backend reimplements only this mapping.
-const char* ComEditor::keyname(unsigned long code) {
-    boolean shifted = (code & SHIFT_FLAG) != 0;
-    unsigned long ks = code & ~(unsigned long)SHIFT_FLAG;
+/* core_keyname() is everything keyname() did before Ctrl/Alt/Super
+   existed -- the bare (possibly shift-varied) name for a keysym, with
+   all modifier flag bits already stripped off by the caller.  Split out
+   as a free function so keyname() can compute this into a scratch
+   buffer, then optionally wrap it with a "Ctrl-"/"Alt-"/"Super-" prefix,
+   without the two concerns tangled into one control flow.
 
-    /* keys with a standard C character-literal representation are
-       returned as that literal character when unmodified -- comterp's
-       own string/char escape syntax already covers exactly these
-       (\x1b, \t, \r, \b, \x7f, and plain space), so there's no need to
-       invent a name.  A raw control byte has no case of its own to
-       vary, but three of these have a real shifted identity worth
-       distinguishing -- Shift-Tab is an established convention
-       (reverse focus/indent), and for uniformity with the rest of the
-       shift-uppercasing scheme Shift-Esc/Shift-Backspace get the same
-       treatment -- so those three come back as the fixed uppercase
-       name ("ESC"/"TAB"/"DEL") instead of the raw byte when shifted.
-       Enter, Space, and true forward-delete (\x7f, distinct from
-       Backspace) stay shift-blind: no established Shift+Enter/
-       Shift+Space/Shift+Delete convention exists to distinguish. */
+   `chorded` is true when the caller is about to prefix the result with
+   Ctrl/Alt/Super.  It only changes anything for the six control-
+   character keys: Esc/Tab/Backspace already had a readable uppercase
+   name for real Shift; Enter/Space/true-Delete didn't (no established
+   Shift+Enter/Space/Delete convention -- see keyname()'s docstring).
+   But gluing a raw \r/space/\x7f byte onto a "Ctrl-" prefix would leave
+   an unprintable, hard-to-compare chord string, so `chorded` borrows the
+   same readable-name treatment for those three too, without changing
+   their BARE (unchorded, unshifted) behavior at all. */
+static const char* core_keyname(unsigned long ks, boolean shifted, boolean chorded,
+				 char* buf, size_t bufsz) {
+    boolean textual = shifted || chorded;
     switch (ks) {
-      case XK_Escape:    return shifted ? "ESC" : "\x1b";
-      case XK_space:     return " ";
-      case XK_Return:    return "\r";
-      case XK_Tab:       return shifted ? "TAB" : "\t";
-      case XK_BackSpace: return shifted ? "DEL" : "\b";
-      case XK_Delete:    return "\x7f";
+      case XK_Escape:    return textual ? "ESC"    : "\x1b";
+      case XK_space:     return chorded ? "SPACE"  : " ";
+      case XK_Return:    return chorded ? "ENTER"  : "\r";
+      case XK_Tab:       return textual ? "TAB"    : "\t";
+      case XK_BackSpace: return textual ? "DEL"    : "\b";
+      case XK_Delete:    return chorded ? "DELETE" : "\x7f";
     }
 
     /* function keys, and Home/End/PgUp/PgDn, use a fixed capitalized
@@ -550,8 +565,8 @@ const char* ComEditor::keyname(unsigned long code) {
 	    one[0] = (char)ks; one[1] = '\0'; base = one;
 	} else {
 	    // unmapped: decimal keysym so it's still usable (rarely hit)
-	    snprintf(_keyname_buf, sizeof(_keyname_buf), "%lu", ks);
-	    return _keyname_buf;
+	    snprintf(buf, bufsz, "%lu", ks);
+	    return buf;
 	}
     }
 
@@ -561,11 +576,50 @@ const char* ComEditor::keyname(unsigned long code) {
        keysym.  One vocabulary, no "S-" prefix. */
     if (shifted) {
 	int i = 0;
-	for (const char* p = base; *p && i < (int)sizeof(_keyname_buf)-1; p++, i++)
-	    _keyname_buf[i] = toupper((unsigned char)*p);
-	_keyname_buf[i] = '\0';
+	for (const char* p = base; *p && i < (int)bufsz-1; p++, i++)
+	    buf[i] = toupper((unsigned char)*p);
+	buf[i] = '\0';
     } else {
-	snprintf(_keyname_buf, sizeof(_keyname_buf), "%s", base);
+	snprintf(buf, bufsz, "%s", base);
     }
+    return buf;
+}
+
+const char* ComEditor::keyname(unsigned long code) {
+    boolean shifted = (code & SHIFT_FLAG) != 0;
+    boolean ctrl    = (code & CTRL_FLAG)  != 0;
+    boolean alt     = (code & ALT_FLAG)   != 0;
+    boolean super_  = (code & SUPER_FLAG) != 0;
+    unsigned long ks = code & ~(unsigned long)(SHIFT_FLAG|CTRL_FLAG|ALT_FLAG|SUPER_FLAG);
+    boolean chorded = ctrl || alt || super_;
+
+    char corebuf[16];
+    const char* core = core_keyname(ks, shifted, chorded, corebuf, sizeof(corebuf));
+    if (!chorded) return core;
+
+    /* Ctrl/Alt/Super chords: fixed "Ctrl-Alt-Super-<key>" order (Ctrl
+       first, matching Emacs/GNOME/Windows documentation convention),
+       each word capitalized when Shift is ALSO held -- that's the one
+       remaining channel to signal Shift on a chord, because a single
+       letter is ALWAYS shown capital right after a modifier prefix
+       regardless of whether Shift was literally down: nobody documents
+       "Ctrl-c", every OS/toolkit writes "Ctrl-C" even for a bare
+       Ctrl+c with no Shift -- which spends the letter's own case, so
+       Shift has to show up on the prefix word instead. */
+    char keypart[8];
+    if (core[0] && !core[1] && core[0]>='a' && core[0]<='z') {
+	keypart[0] = toupper((unsigned char)core[0]);
+	keypart[1] = '\0';
+	core = keypart;
+    }
+
+    _keyname_buf[0] = '\0';
+    if (ctrl)
+	strncat(_keyname_buf, shifted ? "CTRL-" : "Ctrl-", sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    if (alt)
+	strncat(_keyname_buf, shifted ? "ALT-" : "Alt-", sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    if (super_)
+	strncat(_keyname_buf, shifted ? "SUPER-" : "Super-", sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    strncat(_keyname_buf, core, sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
     return _keyname_buf;
 }

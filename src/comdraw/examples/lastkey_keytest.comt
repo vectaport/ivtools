@@ -72,12 +72,34 @@
 //   bare modifier keys-- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper pressed
 //                        ALONE (no other key) is never returned by
 //                        lastkey() at all -- it isn't a "key", its effect
-//                        is the uppercasing above, on whatever key comes
-//                        next.
+//                        is the uppercasing/prefix above, on whatever key
+//                        comes next.
+//   Ctrl-/Alt-/Super- -- hold Control, Option/Alt, or Command (Mac; the
+//                        Windows-logo key on a PC) together with another
+//                        key and the name gets that fixed-order prefix
+//                        (chainable: Ctrl-Alt-Delete really does come
+//                        back as "Ctrl-Alt-DELETE").  A single letter is
+//                        ALWAYS capital right after the prefix, Shift or
+//                        not ("Ctrl-C" for a bare Ctrl+c, matching every
+//                        OS's own docs, which never write "Ctrl-c") --
+//                        real Shift held at the same time shows up on the
+//                        PREFIX word instead ("CTRL-C" is Ctrl+Shift+c).
+//                        Enter/Space/Delete -- normally shift-blind raw
+//                        bytes -- switch to "ENTER"/"SPACE"/"DELETE" the
+//                        moment they're chorded, so nothing but plain
+//                        text ever comes back.  NOTE: keytest()'s Esc-
+//                        quits-early check only matches a bare, unchorded
+//                        Esc -- Ctrl-Esc/Alt-Esc/Super-Esc do not quit
+//                        either, same as Shift-Esc.
 //   :shiftarrow       -- (keytest_capture() only) additionally suppresses
 //                        the normal pan/tool-shortcut for a shifted arrow
 //                        or letter, so a driving script can own the
-//                        keyboard -- opt-in, off by default
+//                        keyboard -- opt-in, off by default.  Ctrl/Alt/
+//                        Super are never captured -- only Shift/CapsLock
+//                        are, and the ordinary keyboard shortcuts they'd
+//                        normally trigger (Ctrl-C for Copy, etc.) still
+//                        fire exactly as before; lastkey() is only
+//                        eavesdropping, not intercepting.
 //   anything unmapped -- the decimal keysym as a string (rarely hit)
 
 // describe(k) -- human-readable label for a lastkey() result, for THIS
@@ -92,15 +114,17 @@ describe=func(k=arg(0);
   k)
 
 // keytest([n]) -- plain (uncaptured) keys: arrows, Home/End, PgUp/PgDn,
-// Insert, F1-F12, Esc/Tab/Backspace/Enter/Space, letters, digits.  Runs
-// for n polls (default 2000, about a minute) or until you press Esc.
+// Insert, F1-F12, Esc/Tab/Backspace/Enter/Space, letters, digits, and
+// Ctrl-/Alt-/Super- chords of any of those.  Runs for n polls (default
+// 2000, about a minute) or until you press a bare (unchorded) Esc.
 keytest=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);
   print("=== lastkey() key test (plain keys) ===\n");
   print("Click the canvas NOW to give it keyboard focus, then press arrows,\n");
   print("Home, End, PgUp, PgDn, Insert, F1-F12, Esc, Tab, Backspace, Enter,\n");
-  print("Space, letters, digits.  Esc quits early.\n\n");
+  print("Space, letters, digits -- also try holding Ctrl, Alt/Option, or\n");
+  print("Super/Cmd/the Windows key while pressing one.  Bare Esc quits early.\n\n");
   done=0;
   for(fi=0 (fi<n)&&(done==0) fi++
     k=lastkey();
