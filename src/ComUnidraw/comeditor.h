@@ -77,29 +77,42 @@ public:
     // receives; lastkey() dequeues.  This is the keyboard analog of the
     // pointer capture on OverlayViewer (read by pointer()) -- capture
     // state lives here in the comdraw-layer editor, not in base Unidraw.
+    // A bare modifier keypress (Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper,
+    // pressed on its own) is never queued at all -- it isn't a "key" a
+    // script would want reported; its effect is the shift/capslock state
+    // carried on whatever key comes next (see SHIFT_FLAG below).
     virtual void keystroke(const Event&);
     void enqueue_key(unsigned long keysym);
     unsigned long dequeue_key();          // 0 when the queue is empty
 
     // optional shift-arrow capture (default OFF): while on, a modified arrow
-    // OR letter (Shift held OR Caps Lock on) is queued as (unshifted_keysym
-    // | SHIFTARROW_FLAG) and its normal action -- arrow pan, letter tool
-    // shortcut -- is suppressed, so a script owns the keyboard while it
-    // drives.  Bare (unmodified) arrows/letters are untouched.  Caps Lock is
-    // the hands-free enable (and the two-player enable).  A watchdog bumped
-    // by every lastkey() poll auto-restores the default if the driving
-    // script stops polling (exit, crash, ^C) -- so it can't stick.
-    enum { SHIFTARROW_FLAG = 0x10000 };
+    // OR letter (Shift held OR Caps Lock on) is queued with SHIFT_FLAG set
+    // and its normal action -- arrow pan, letter tool shortcut -- is
+    // suppressed, so a script owns the keyboard while it drives.  Bare
+    // (unmodified) arrows/letters are untouched.  Caps Lock is the
+    // hands-free enable (and the two-player enable).  A watchdog bumped by
+    // every lastkey() poll auto-restores the default if the driving script
+    // stops polling (exit, crash, ^C) -- so it can't stick.  SHIFT_FLAG
+    // itself is orthogonal to capture, though: keystroke() sets it on ANY
+    // key (captured or not) pressed while shift/capslock is down, so
+    // keyname() can uppercase keys that have no natural case of their own
+    // (see below) -- capture only additionally decides whether the normal
+    // pan/shortcut also gets suppressed.
+    enum { SHIFT_FLAG = 0x10000 };
     void shiftarrow_capture(boolean on);  // enable/disable + (re)arm
     boolean shiftarrow_capture();         // live state (false once expired)
     void shiftarrow_poll();               // heartbeat: bump the watchdog
 
     // Portable name for a queued key code: "up"/"down"/"left"/"right",
     // "esc"/"space"/"enter"/"tab"/"bs"/"del", a single char for letters and
-    // digits, else the decimal keysym.  A captured (shift/caps) key gets an
-    // "S-" prefix ("S-up", "S-d").  This is the lastkey() surface -- scripts
-    // compare names, never raw X keysyms, so a Qt (or other) backend need
-    // only map its key codes to the same names.
+    // digits, else the decimal keysym.  If shift or caps lock was down,
+    // the name comes back UPPERCASE ("UP", "F1", "HOME") -- for letters
+    // this already falls out of the keysym itself (Shift+d arrives as
+    // XK_D), for everything else (arrows, named keys) keyname() applies it
+    // explicitly, since those have no natural shifted form to fall back
+    // on.  This is the lastkey() surface -- scripts compare names, never
+    // raw X keysyms, so a Qt (or other) backend need only map its key
+    // codes to the same names.
     const char* keyname(unsigned long code);
 
 protected:

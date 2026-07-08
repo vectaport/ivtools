@@ -57,15 +57,10 @@
 #include <Unidraw/unidraw.h>
 
 #include <InterViews/event.h>
-#include <IV-X11/xdisplay.h>
 #include <IV-X11/xevent.h>
-/* XkbKeycodeToKeysym: bracket the XKB header with Xdefs/Xundefs so its
-   Display parameter resolves to X11's XDisplay (see Unidraw/editor.c). */
-#include <IV-X11/Xdefs.h>
-#include <X11/XKBlib.h>
-#include <IV-X11/Xundefs.h>
-#include <X11/keysym.h>       /* XK_Up/Down/Left/Right for shift-arrow capture */
+#include <X11/keysym.h>       /* XK_Up/Down/Left/Right, modifier keysyms, etc. */
 #include <time.h>              /* clock_gettime for the shift-arrow watchdog */
+#include <ctype.h>              /* toupper for keyname()'s shift signaling */
 
 /* CLOCK_MONOTONIC, not wall-clock time: an NTP correction or a manual clock
    change must never fire (or extend) the watchdog early/late. */
@@ -398,30 +393,38 @@ void ComEditor::stdio_prompt(UnidrawComterpHandler* handler) {
 // the queue while suppressing its viewer-pan.
 
 void ComEditor::keystroke(const Event& e) {
+    KeySym ks = e.keysym();
+
+    // a bare modifier keypress -- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper
+    // pressed on its own, XK_Shift_L..XK_Hyper_R is the whole contiguous
+    // block in keysymdef.h -- is never a "key" lastkey() should report; its
+    // effect is already carried as SHIFT_FLAG on whatever key comes next.
+    if (ks >= XK_Shift_L && ks <= XK_Hyper_R) {
+	OverlayEditor::keystroke(e);
+	return;
+    }
+
+    boolean shifted = e.shift_is_down() || e.capslock_is_down();
+
     // shift-arrow capture (opt-in, default off): while on, a MODIFIED arrow
     // or letter -- Shift held OR Caps Lock on -- is routed to the key queue
-    // with SHIFTARROW_FLAG and its normal action (arrow pan, letter tool
-    // shortcut) is suppressed, so a script owns the keyboard while it drives.
-    // Caps Lock is the hands-free enable (and the natural two-player enable:
-    // both players just tap their keys).  Bare (unmodified) arrows still pan
-    // and bare letters still fire their tool shortcuts.  Use the level-0
-    // keysym like the pan dispatch -- XLookupKeysym at the shifted index can
-    // be NoSymbol for arrows -- so the queued code is the UNSHIFTED keysym
-    // (e.g. Shift+D queues XK_d|FLAG); the script maps those.
-    if ((e.shift_is_down() || e.capslock_is_down())
-	&& e.rep()->xevent_.type == KeyPress
-	&& shiftarrow_capture()) {
-	KeySym base = XkbKeycodeToKeysym(e.rep()->display_->rep()->display_,
-					 e.rep()->xevent_.xkey.keycode, 0, 0);
-	if (base==XK_Up || base==XK_Down || base==XK_Left || base==XK_Right
-	    || (base>=XK_a && base<=XK_z)) {
-	    enqueue_key((unsigned long)base | SHIFTARROW_FLAG);
+    // with SHIFT_FLAG and its normal action (arrow pan, letter tool
+    // shortcut) is suppressed, so a script owns the keyboard while it
+    // drives.  Caps Lock is the hands-free enable (and the natural
+    // two-player enable: both players just tap their keys).  Bare
+    // (unmodified) arrows still pan and bare letters still fire their tool
+    // shortcuts.  e.keysym() already folds shift in (Shift+d arrives as
+    // XK_D), so the queued code carries its natural case; keyname() only
+    // has to invent an uppercase form for keys that don't have one already.
+    if (shifted && e.rep()->xevent_.type == KeyPress && shiftarrow_capture()) {
+	if (ks==XK_Up || ks==XK_Down || ks==XK_Left || ks==XK_Right
+	    || (ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z)) {
+	    enqueue_key((unsigned long)ks | SHIFT_FLAG);
 	    return;                       // suppress the pan / tool-shortcut
 	}
     }
-    // pure eavesdrop for lastkey(), then dispatch as usual.  e.keysym()
-    // folds in shift, so Shift+d arrives as XK_D.
-    enqueue_key(e.keysym());
+    // pure eavesdrop for lastkey(), then dispatch as usual.
+    enqueue_key(shifted ? ((unsigned long)ks | SHIFT_FLAG) : (unsigned long)ks);
     OverlayEditor::keystroke(e);
 }
 
@@ -465,8 +468,24 @@ void ComEditor::shiftarrow_poll() {
 // stays inside this one function; the returned string is the lastkey()
 // surface, so a non-X backend reimplements only this mapping.
 const char* ComEditor::keyname(unsigned long code) {
-    boolean cap = (code & SHIFTARROW_FLAG) != 0;
-    unsigned long ks = code & ~(unsigned long)SHIFTARROW_FLAG;
+    boolean shifted = (code & SHIFT_FLAG) != 0;
+    unsigned long ks = code & ~(unsigned long)SHIFT_FLAG;
+
+    /* keys with a standard C character-literal representation are
+       returned as that literal character -- comterp's own string/char
+       escape syntax already covers exactly these (\x1b, \t, \r, \b,
+       \x7f, and plain space), so there's no need to invent a name.
+       None of these have an uppercase form to apply, so shifted is
+       irrelevant here -- they return unconditionally. */
+    switch (ks) {
+      case XK_Escape:    return "\x1b";
+      case XK_space:     return " ";
+      case XK_Return:    return "\r";
+      case XK_Tab:       return "\t";
+      case XK_BackSpace: return "\b";
+      case XK_Delete:    return "\x7f";
+    }
+
     const char* base;
     char one[2];
     switch (ks) {
@@ -474,25 +493,55 @@ const char* ComEditor::keyname(unsigned long code) {
       case XK_Down:      base = "down";  break;
       case XK_Left:      base = "left";  break;
       case XK_Right:     base = "right"; break;
-      case XK_Escape:    base = "esc";   break;
-      case XK_space:     base = "space"; break;
-      case XK_Return:    base = "enter"; break;
-      case XK_Tab:       base = "tab";   break;
-      case XK_BackSpace: base = "bs";    break;
-      case XK_Delete:    base = "del";   break;
+      /* everything below has no character-literal form at all, so it
+	 needs a name -- clone Python's curses KEY_* constants (curses is
+	 terminal/termcap-based, not X11-specific, so this isn't tied to
+	 any one windowing backend either) for the subset that makes
+	 sense on a comdraw canvas.  Skip curses' long tail of legacy
+	 terminal-editing-application keys (KEY_DL, KEY_SRESET, the
+	 whole KEY_S* shifted-variant family, etc.) -- nothing on an X11
+	 keyboard event corresponds to them. */
+      case XK_Home:      base = "home";  break;
+      case XK_End:       base = "end";   break;
+      case XK_Prior:     base = "ppage"; break;  // curses KEY_PPAGE (Page Up)
+      case XK_Next:      base = "npage"; break;  // curses KEY_NPAGE (Page Down)
+      case XK_Insert:    base = "ins";   break;  // curses names this KEY_IC; "ins" reads better
+      case XK_F1:        base = "f1";   break;
+      case XK_F2:        base = "f2";   break;
+      case XK_F3:        base = "f3";   break;
+      case XK_F4:        base = "f4";   break;
+      case XK_F5:        base = "f5";   break;
+      case XK_F6:        base = "f6";   break;
+      case XK_F7:        base = "f7";   break;
+      case XK_F8:        base = "f8";   break;
+      case XK_F9:        base = "f9";   break;
+      case XK_F10:       base = "f10";  break;
+      case XK_F11:       base = "f11";  break;
+      case XK_F12:       base = "f12";  break;
       default:
-	/* letters can arrive either case: lowercase from the base keysym
-	   captured via XkbKeycodeToKeysym(...,level=0,...) in keystroke(),
-	   uppercase (XK_A-XK_Z) from a plain, non-captured Shift+letter --
-	   e.keysym() folds shift in for that path, so both ranges are real. */
+	/* keystroke() folds shift into ks itself for letters (Shift+d
+	   arrives as XK_D), so this already carries the right case --
+	   the uppercasing loop below is a harmless no-op for it. */
 	if ((ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z) || (ks>=XK_0 && ks<=XK_9)) {
 	    one[0] = (char)ks; one[1] = '\0'; base = one;
 	} else {
 	    // unmapped: decimal keysym so it's still usable (rarely hit)
-	    snprintf(_keyname_buf, sizeof(_keyname_buf), cap ? "S-%lu" : "%lu", ks);
+	    snprintf(_keyname_buf, sizeof(_keyname_buf), "%lu", ks);
 	    return _keyname_buf;
 	}
     }
-    snprintf(_keyname_buf, sizeof(_keyname_buf), cap ? "S-%s" : "%s", base);
+
+    /* arrows and the named keys above have no shifted form of their own,
+       so shift/caps-lock is signaled by uppercasing the whole name
+       instead ("up" -> "UP") -- the same convention letters already get
+       for free from their keysym.  One vocabulary, no "S-" prefix. */
+    if (shifted) {
+	int i = 0;
+	for (const char* p = base; *p && i < (int)sizeof(_keyname_buf)-1; p++, i++)
+	    _keyname_buf[i] = toupper((unsigned char)*p);
+	_keyname_buf[i] = '\0';
+    } else {
+	snprintf(_keyname_buf, sizeof(_keyname_buf), "%s", base);
+    }
     return _keyname_buf;
 }

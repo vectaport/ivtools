@@ -36,11 +36,21 @@
 //   named (no char)   -- "home" "end" "ppage" "npage" "ins" "f1".."f12"
 //                        (cloned from Python's curses KEY_* constants)
 //   letters/digits    -- themselves, either case ("a" "D" "7")
-//   :shiftarrow       -- Shift held or Caps Lock on, over an arrow or a
-//                        letter, gets an "S-" prefix ("S-up", "S-d") and
-//                        suppresses the normal pan/tool-shortcut -- but
-//                        only while keytest_capture() is running, since
-//                        :shiftarrow true has to be opted into
+//   shift/caps lock   -- if held over an arrow or a named key, the name
+//                        comes back UPPERCASE ("UP", "HOME", "F1") --
+//                        letters already get this for free from their
+//                        keysym, this just extends the same convention
+//                        to keys that have no case of their own.  No
+//                        prefix, no separate signal -- just case.
+//   bare modifier keys-- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper pressed
+//                        ALONE (no other key) is never returned by
+//                        lastkey() at all -- it isn't a "key", its effect
+//                        is the uppercasing above, on whatever key comes
+//                        next.
+//   :shiftarrow       -- (keytest_capture() only) additionally suppresses
+//                        the normal pan/tool-shortcut for a shifted arrow
+//                        or letter, so a driving script can own the
+//                        keyboard -- opt-in, off by default
 //   anything unmapped -- the decimal keysym as a string (rarely hit)
 
 // describe(k) -- human-readable label for a lastkey() result, for THIS
@@ -75,8 +85,9 @@ keytest=func(n=arg(0);
   print("keytest done.\n"))
 
 // keytest_capture([n]) -- :shiftarrow-captured keys: hold Shift or turn
-// on Caps Lock and press an arrow or a letter to see the "S-" prefix and
-// the pan/tool-shortcut suppressed.  Plain (unmodified) Esc quits early.
+// on Caps Lock and press an arrow or a letter to see the name come back
+// UPPERCASE and the pan/tool-shortcut suppressed.  Plain (unmodified)
+// Esc quits early.
 keytest_capture=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);

@@ -1008,7 +1008,7 @@ void LastKeyFunc::execute() {
     push_stack(ComValue::nullval());
     return;
   }
-  // return the portable name string (e.g. "up", "S-up", "d", "esc"), not the
+  // return the portable name string (e.g. "up", "UP", "d", "esc"), not the
   // raw X keysym -- keeps the surface backend-neutral (see ComEditor::keyname)
   ComValue retval(ed->keyname(code));
   push_stack(retval);

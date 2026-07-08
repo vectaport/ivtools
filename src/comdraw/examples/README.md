@@ -62,12 +62,13 @@ the drawing (and any funcs the script defined) live in the session.
 - **lastkey_keytest.comt** — not a toy, a diagnostic: an interactive,
   manual test of `lastkey()`'s full key vocabulary (arrows, Home/End,
   PgUp/PgDn, Insert, F1-F12, Esc/Tab/Backspace/Enter/Space as their own
-  C character literals, `:shiftarrow` capture's `"S-"` prefix). Requires
-  a human pressing real keys — there's no way to script X11 keyboard
-  events reliably enough to automate it — so it stays here rather than
-  in `run_all.comt`/CI. Re-run it by hand whenever
-  `ComEditor::keyname()` changes. `keytest()` for plain keys,
-  `keytest_capture()` for the `:shiftarrow`-captured versions.
+  C character literals, shift/caps-lock signaled by uppercasing the name
+  — `"UP"`, `"F1"` — rather than a prefix). Requires a human pressing
+  real keys — there's no way to script X11 keyboard events reliably
+  enough to automate it — so it stays here rather than in
+  `run_all.comt`/CI. Re-run it by hand whenever `ComEditor::keyname()`
+  changes. `keytest()` for plain keys, `keytest_capture()` for the
+  `:shiftarrow`-captured versions.
 
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,
