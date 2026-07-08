@@ -103,13 +103,17 @@ public:
     boolean shiftarrow_capture();         // live state (false once expired)
     void shiftarrow_poll();               // heartbeat: bump the watchdog
 
-    // Portable name for a queued key code: "up"/"down"/"left"/"right",
-    // "esc"/"space"/"enter"/"tab"/"bs"/"del", a single char for letters and
-    // digits, else the decimal keysym.  If shift or caps lock was down,
-    // the name comes back UPPERCASE ("UP", "F1", "HOME") -- for letters
-    // this already falls out of the keysym itself (Shift+d arrives as
-    // XK_D), for everything else (arrows, named keys) keyname() applies it
-    // explicitly, since those have no natural shifted form to fall back
+    // Portable name for a queued key code: a standard C character literal
+    // for keys that have one (letters/digits as themselves, "\x1b" esc,
+    // " " space, "\r" enter, "\t" tab, "\b" backspace, "\x7f" delete);
+    // "up"/"down"/"left"/"right"/"home"/"end"/"ppage"/"npage"/"ins" for
+    // named keys with a meaningful shifted form; "F1".."F12" for function
+    // keys, always fixed -- no established shifted-F-key convention
+    // exists; else the decimal keysym.  If shift or caps lock was down,
+    // arrows/home/end/ppage/npage/ins come back UPPERCASE ("UP", "HOME")
+    // -- for letters this already falls out of the keysym itself
+    // (Shift+d arrives as XK_D), for these keyname() applies it
+    // explicitly, since they have no natural shifted form to fall back
     // on.  This is the lastkey() surface -- scripts compare names, never
     // raw X keysyms, so a Qt (or other) backend need only map its key
     // codes to the same names.

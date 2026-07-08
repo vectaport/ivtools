@@ -33,15 +33,22 @@
 //                        this script's own output, not part of what
 //                        lastkey() actually returns to a caller.
 //   arrows            -- "up" "down" "left" "right"
-//   named (no char)   -- "home" "end" "ppage" "npage" "ins" "f1".."f12"
+//   named (no char)   -- "home" "end" "ppage" "npage" "ins"
 //                        (cloned from Python's curses KEY_* constants)
+//   function keys     -- "F1".."F12", always capitalized, fixed -- see
+//                        "shift/caps lock" below for why these don't vary
 //   letters/digits    -- themselves, either case ("a" "D" "7")
-//   shift/caps lock   -- if held over an arrow or a named key, the name
-//                        comes back UPPERCASE ("UP", "HOME", "F1") --
-//                        letters already get this for free from their
-//                        keysym, this just extends the same convention
-//                        to keys that have no case of their own.  No
-//                        prefix, no separate signal -- just case.
+//   shift/caps lock   -- if held over an arrow or a named key (not a
+//                        function key), the name comes back UPPERCASE
+//                        ("UP", "HOME") -- letters already get this for
+//                        free from their keysym, this just extends the
+//                        same convention to keys that have no case of
+//                        their own.  No prefix, no separate signal, just
+//                        case.  Function keys are the exception: there's
+//                        no established shifted-F-key convention (unlike
+//                        Shift+arrow or Shift+Home/End, both common
+//                        select-to conventions), so they're always
+//                        "F1".."F12" regardless -- try it and see.
 //   bare modifier keys-- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper pressed
 //                        ALONE (no other key) is never returned by
 //                        lastkey() at all -- it isn't a "key", its effect
