@@ -93,7 +93,10 @@ keytest_capture=func(n=arg(0);
   lastkey(:shiftarrow false);
   print("keytest_capture done.  (:shiftarrow restored to off.)\n"))
 
-print("Loaded.  Run one of these now (each will tell you when to click\n")
-print("the canvas -- do that AFTER you've started it, not before):\n")
-print("  keytest()          -- plain keys\n")
-print("  keytest_capture()  -- Shift/Caps-Lock-captured arrows and letters\n")
+print("Loaded.  Both lines below are real, runnable comterp -- the text\n")
+print("after // is just a trailing comment -- so in the comt pane you can\n")
+print("Ctrl-P (or the up arrow) to one of them and hit Return instead of\n")
+print("typing it out.  Each tells you when to click the canvas -- do that\n")
+print("AFTER it's running, not before:\n")
+print("keytest()          // plain keys\n")
+print("keytest_capture()  // Shift/Caps-Lock-captured arrows and letters\n")
