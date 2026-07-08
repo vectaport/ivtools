@@ -106,17 +106,16 @@ public:
     // Portable name for a queued key code: a standard C character literal
     // for keys that have one (letters/digits as themselves, "\x1b" esc,
     // " " space, "\r" enter, "\t" tab, "\b" backspace, "\x7f" delete);
-    // "up"/"down"/"left"/"right"/"home"/"end"/"ppage"/"npage"/"ins" for
-    // named keys with a meaningful shifted form; "F1".."F12" for function
-    // keys, always fixed -- no established shifted-F-key convention
-    // exists; else the decimal keysym.  If shift or caps lock was down,
-    // arrows/home/end/ppage/npage/ins come back UPPERCASE ("UP", "HOME")
-    // -- for letters this already falls out of the keysym itself
-    // (Shift+d arrives as XK_D), for these keyname() applies it
-    // explicitly, since they have no natural shifted form to fall back
-    // on.  This is the lastkey() surface -- scripts compare names, never
-    // raw X keysyms, so a Qt (or other) backend need only map its key
-    // codes to the same names.
+    // "up"/"down"/"left"/"right"/"ins" for keys with a meaningful shifted
+    // form; "F1".."F12"/"Home"/"End"/"PgUp"/"PgDn" fixed, always that
+    // capitalization -- no established shifted convention exists for any
+    // of these; else the decimal keysym.  If shift or caps lock was down,
+    // arrows/ins come back UPPERCASE ("UP", "INS") -- for letters this
+    // already falls out of the keysym itself (Shift+d arrives as XK_D),
+    // for these keyname() applies it explicitly, since they have no
+    // natural shifted form to fall back on.  This is the lastkey()
+    // surface -- scripts compare names, never raw X keysyms, so a Qt (or
+    // other) backend need only map its key codes to the same names.
     const char* keyname(unsigned long code);
 
 protected:

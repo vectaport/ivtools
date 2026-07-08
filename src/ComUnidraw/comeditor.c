@@ -486,29 +486,32 @@ const char* ComEditor::keyname(unsigned long code) {
       case XK_Delete:    return "\x7f";
     }
 
-    /* function keys use their conventional capitalized form ("F1")
-       always, ignoring shift/caps-lock -- unlike arrows or Home/End/
-       PageUp/PageDown, there's no established "shifted function key" UI
-       convention (Shift+Right extends a selection; Shift+F1 isn't a
-       thing), and on hardware where reaching an F-key at all requires
-       holding fn (current Mac keyboards: bare F1 is a brightness/volume
-       media key, intercepted before it's ever a KeyPress), Shift+fn+F1
-       is vanishingly rare to boot.  So these are grouped with the
-       char-literal keys above -- a fixed return, shifted unconsulted --
-       rather than with the case-varying named keys below. */
+    /* function keys, and Home/End/PgUp/PgDn, use a fixed capitalized
+       name always, ignoring shift/caps-lock -- ordinary keyboard-label
+       spelling ("F1", "Home", "PgUp"), not curses' abbreviations
+       (KEY_PPAGE/KEY_NPAGE -> "ppage"/"npage" seemed like a good idea
+       at the time, but nobody actually calls Page Up "previous page").
+       No established "shifted" convention exists for any of these the
+       way Shift+arrow or Shift+letter do, so there's no case to vary --
+       grouped with the char-literal keys above: a fixed return, shifted
+       unconsulted. */
     switch (ks) {
-      case XK_F1:  return "F1";
-      case XK_F2:  return "F2";
-      case XK_F3:  return "F3";
-      case XK_F4:  return "F4";
-      case XK_F5:  return "F5";
-      case XK_F6:  return "F6";
-      case XK_F7:  return "F7";
-      case XK_F8:  return "F8";
-      case XK_F9:  return "F9";
-      case XK_F10: return "F10";
-      case XK_F11: return "F11";
-      case XK_F12: return "F12";
+      case XK_F1:    return "F1";
+      case XK_F2:    return "F2";
+      case XK_F3:    return "F3";
+      case XK_F4:    return "F4";
+      case XK_F5:    return "F5";
+      case XK_F6:    return "F6";
+      case XK_F7:    return "F7";
+      case XK_F8:    return "F8";
+      case XK_F9:    return "F9";
+      case XK_F10:   return "F10";
+      case XK_F11:   return "F11";
+      case XK_F12:   return "F12";
+      case XK_Home:  return "Home";
+      case XK_End:   return "End";
+      case XK_Prior: return "PgUp";  // curses KEY_PPAGE
+      case XK_Next:  return "PgDn";  // curses KEY_NPAGE
     }
 
     const char* base;
@@ -518,22 +521,11 @@ const char* ComEditor::keyname(unsigned long code) {
       case XK_Down:      base = "down";  break;
       case XK_Left:      base = "left";  break;
       case XK_Right:     base = "right"; break;
-      /* everything below has no character-literal form at all, so it
-	 needs a name -- clone Python's curses KEY_* constants (curses is
-	 terminal/termcap-based, not X11-specific, so this isn't tied to
-	 any one windowing backend either) for the subset that makes
-	 sense on a comdraw canvas, and that has a meaningful shifted form
-	 (Shift+Home/End is a common select-to-line-start/end convention,
-	 same family as Shift+arrow) -- unlike the function keys above.
-	 Skip curses' long tail of legacy terminal-editing-application
-	 keys (KEY_DL, KEY_SRESET, the whole KEY_S* shifted-variant
-	 family, etc.) -- nothing on an X11 keyboard event corresponds to
-	 them. */
-      case XK_Home:      base = "home";  break;
-      case XK_End:       base = "end";   break;
-      case XK_Prior:     base = "ppage"; break;  // curses KEY_PPAGE (Page Up)
-      case XK_Next:      base = "npage"; break;  // curses KEY_NPAGE (Page Down)
-      case XK_Insert:    base = "ins";   break;  // curses names this KEY_IC; "ins" reads better
+      /* Insert has no character-literal form either, and Shift+Insert
+	 (paste, on Windows/Linux/many X11 apps) IS an established
+	 convention -- unlike the fixed keys above -- so it stays here,
+	 case-varying like the arrows. */
+      case XK_Insert:    base = "ins";   break;  // curses KEY_IC; "ins" reads better
       default:
 	/* keystroke() folds shift into ks itself for letters (Shift+d
 	   arrives as XK_D), so this already carries the right case --
@@ -547,10 +539,10 @@ const char* ComEditor::keyname(unsigned long code) {
 	}
     }
 
-    /* arrows and the named keys above have no shifted form of their own,
-       so shift/caps-lock is signaled by uppercasing the whole name
-       instead ("up" -> "UP") -- the same convention letters already get
-       for free from their keysym.  One vocabulary, no "S-" prefix. */
+    /* arrows and ins have no shifted form of their own, so shift/caps-lock
+       is signaled by uppercasing the whole name instead ("up" -> "UP") --
+       the same convention letters already get for free from their
+       keysym.  One vocabulary, no "S-" prefix. */
     if (shifted) {
 	int i = 0;
 	for (const char* p = base; *p && i < (int)sizeof(_keyname_buf)-1; p++, i++)
