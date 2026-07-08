@@ -472,17 +472,25 @@ const char* ComEditor::keyname(unsigned long code) {
     unsigned long ks = code & ~(unsigned long)SHIFT_FLAG;
 
     /* keys with a standard C character-literal representation are
-       returned as that literal character -- comterp's own string/char
-       escape syntax already covers exactly these (\x1b, \t, \r, \b,
-       \x7f, and plain space), so there's no need to invent a name.
-       None of these have an uppercase form to apply, so shifted is
-       irrelevant here -- they return unconditionally. */
+       returned as that literal character when unmodified -- comterp's
+       own string/char escape syntax already covers exactly these
+       (\x1b, \t, \r, \b, \x7f, and plain space), so there's no need to
+       invent a name.  A raw control byte has no case of its own to
+       vary, but three of these have a real shifted identity worth
+       distinguishing -- Shift-Tab is an established convention
+       (reverse focus/indent), and for uniformity with the rest of the
+       shift-uppercasing scheme Shift-Esc/Shift-Backspace get the same
+       treatment -- so those three come back as the fixed uppercase
+       name ("ESC"/"TAB"/"DEL") instead of the raw byte when shifted.
+       Enter, Space, and true forward-delete (\x7f, distinct from
+       Backspace) stay shift-blind: no established Shift+Enter/
+       Shift+Space/Shift+Delete convention exists to distinguish. */
     switch (ks) {
-      case XK_Escape:    return "\x1b";
+      case XK_Escape:    return shifted ? "ESC" : "\x1b";
       case XK_space:     return " ";
       case XK_Return:    return "\r";
-      case XK_Tab:       return "\t";
-      case XK_BackSpace: return "\b";
+      case XK_Tab:       return shifted ? "TAB" : "\t";
+      case XK_BackSpace: return shifted ? "DEL" : "\b";
       case XK_Delete:    return "\x7f";
     }
 

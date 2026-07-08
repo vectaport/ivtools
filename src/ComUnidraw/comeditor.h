@@ -107,19 +107,24 @@ public:
     // for keys that have one -- every printable-ASCII key (letters,
     // digits, and all punctuation: brackets, braces, parens, quotes,
     // colon/semicolon, comma/period, every shifted-numeric symbol, etc.)
-    // as itself, plus "\x1b" esc, " " space, "\r" enter, "\t" tab, "\b"
-    // backspace, "\x7f" delete; "up"/"down"/"left"/"right"/"ins" for keys
-    // with a meaningful shifted form; "F1".."F12"/"Home"/"End"/"PgUp"/
-    // "PgDn" fixed, always that capitalization -- no established shifted
-    // convention exists for any of these; else the decimal keysym.  If
-    // shift or caps lock was down, arrows/ins come back UPPERCASE ("UP",
-    // "INS") -- for letters and shifted-symbol punctuation this already
-    // falls out of the keysym itself (Shift+d arrives as XK_D, Shift+[
-    // arrives as XK_braceleft i.e. '{'), for arrows/ins keyname() applies
-    // it explicitly, since they have no natural shifted form to fall
-    // back on.  This is the lastkey() surface -- scripts compare names,
-    // never raw X keysyms, so a Qt (or other) backend need only map its
-    // key codes to the same names.
+    // as itself, plus " " space and "\r" enter (always); "\x1b" esc,
+    // "\t" tab, "\b" backspace when unshifted, else the fixed name
+    // uppercase ("ESC"/"TAB"/"DEL" -- Shift-Tab is an established
+    // reverse-focus/indent convention, Shift-Esc/Shift-Backspace get
+    // the same uppercasing for uniformity); "\x7f" delete (always --
+    // distinct from Backspace, no shifted form); "up"/"down"/"left"/
+    // "right"/"ins" for keys with a meaningful shifted form; "F1".."F12"/
+    // "Home"/"End"/"PgUp"/"PgDn" fixed, always that capitalization -- no
+    // established shifted convention exists for any of these; else the
+    // decimal keysym.  If shift or caps lock was down, arrows/ins come
+    // back UPPERCASE ("UP", "INS") -- for letters and shifted-symbol
+    // punctuation this already falls out of the keysym itself (Shift+d
+    // arrives as XK_D, Shift+[ arrives as XK_braceleft i.e. '{'), for
+    // arrows/ins/esc/tab/backspace keyname() applies it explicitly,
+    // since they have no natural shifted form to fall back on.  This is
+    // the lastkey() surface -- scripts compare names, never raw X
+    // keysyms, so a Qt (or other) backend need only map its key codes
+    // to the same names.
     const char* keyname(unsigned long code);
 
 protected:

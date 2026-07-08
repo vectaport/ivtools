@@ -23,18 +23,25 @@
 // to see anything.
 //
 // WHAT TO EXPECT (see keyname()'s docstring for the authoritative list):
-//   char-literal keys -- Esc Space Enter Tab Backspace Delete come back
-//                        AS themselves (comterp's own \x1b " " \r \t \b
-//                        \x7f).  This script prints a readable LABEL for
-//                        those instead of the raw byte -- an actual ESC
-//                        byte sent to a real terminal can be interpreted
-//                        as the start of its own escape sequence, which
-//                        would garble the display; the label is only for
-//                        this script's own output ("Esc", "Tab", "Del"
-//                        for backspace -- on current Mac keyboards the
-//                        key labeled delete IS backspace, "Del" matches
-//                        the keycap), not part of what lastkey() actually
-//                        returns to a caller.
+//   char-literal keys -- Space and Enter come back AS themselves
+//                        (comterp's own " " \r) no matter what; Esc, Tab,
+//                        Backspace do too when unmodified (\x1b \t \b),
+//                        but UPPERCASE NAME when shifted, see "shift/caps
+//                        lock" below; Delete (forward-delete, distinct
+//                        from Backspace) is always \x7f, no shifted form.
+//                        This script prints a readable LABEL for the raw
+//                        control bytes instead of the byte itself -- an
+//                        actual ESC byte sent to a real terminal can be
+//                        interpreted as the start of its own escape
+//                        sequence, which would garble the display; the
+//                        label is only for this script's own output
+//                        ("Esc", "Tab", "Del" for backspace -- on current
+//                        Mac keyboards the key labeled delete IS
+//                        backspace, "Del" matches the keycap), not part
+//                        of what lastkey() actually returns to a caller.
+//                        The shifted forms ("ESC" "TAB" "DEL") are
+//                        already plain text, so they print as-is with no
+//                        label needed.
 //   arrows/ins        -- "up" "down" "left" "right" "ins" -- case varies
 //                        with shift, see below
 //   fixed named keys  -- "F1".."F12" "Home" "End" "PgUp" "PgDn", always
@@ -46,15 +53,22 @@
 //                        shifted-numeric symbol (!@#$%^&*()), since X11's
 //                        printable-ASCII keysyms are numerically their
 //                        own character
-//   shift/caps lock   -- if held over an arrow or "ins", the name comes
-//                        back UPPERCASE ("UP", "INS") -- letters already
+//   shift/caps lock   -- if held over an arrow, "ins", Esc, Tab, or
+//                        Backspace, the name comes back UPPERCASE ("UP",
+//                        "INS", "ESC", "TAB", "DEL") -- letters already
 //                        get this for free from their keysym, this just
 //                        extends the same convention to keys that have no
 //                        case of their own.  No prefix, no separate
-//                        signal, just case.  The fixed named keys above
-//                        are the exception: Shift+Insert (paste) and
-//                        Shift+arrow are established conventions, but
-//                        Shift+F1 and Shift+Home aren't -- try it and see.
+//                        signal, just case.  Shift-Tab is an established
+//                        UI convention (reverse focus/indent); Shift-Esc
+//                        and Shift-Backspace aren't, but get the same
+//                        treatment for uniformity.  The fixed named keys
+//                        above are the real exception: Shift+Insert
+//                        (paste) and Shift+arrow are established
+//                        conventions, but Shift+F1 and Shift+Home aren't
+//                        -- try it and see.  NOTE: keytest()'s own Esc-
+//                        quits-early check only matches PLAIN (unshifted)
+//                        Esc ("\x1b") -- Shift-Esc ("ESC") does not quit.
 //   bare modifier keys-- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper pressed
 //                        ALONE (no other key) is never returned by
 //                        lastkey() at all -- it isn't a "key", its effect
