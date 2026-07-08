@@ -47,6 +47,7 @@
 #include <InterViews/event.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <Dispatch/dispatcher.h>
 #include <ctype.h>
 #include <iostream.h>
 #include <strstream>
@@ -55,6 +56,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 using std::cerr;
 using std::cout;
@@ -100,6 +102,44 @@ ComTE_View::ComTE_View(Style* s, EivTextBuffer* te_buffer, int rows, int cols,
 ComTE_View::~ComTE_View()
 {
 }
+
+/*****************************************************************************/
+
+ComTE_PaneCapture::ComTE_PaneCapture(ComTE_View* view, int readfd, int termfd)
+: _view(view), _readfd(readfd), _termfd(termfd)
+{
+    Dispatcher::instance().link(_readfd, Dispatcher::ReadMask, this);
+}
+
+ComTE_PaneCapture::~ComTE_PaneCapture()
+{
+    Dispatcher::instance().unlink(_readfd);
+}
+
+int ComTE_PaneCapture::inputReady(int)
+{
+    drain();
+    return 0;
+}
+
+void ComTE_PaneCapture::drain()
+{
+    char buf[4096];
+    int n;
+    /* the pipe's read end is O_NONBLOCK (see newline()), so this loop
+       stops as soon as nothing more is immediately available instead
+       of blocking for it -- fine both when the Dispatcher calls
+       inputReady() (there IS data, but maybe less than a full buf) and
+       when newline() calls this directly for the final post-run()
+       flush (there may be nothing left at all). */
+    while ((n = read(_readfd, buf, sizeof(buf)-1)) > 0) {
+        buf[n] = '\0';
+        write(_termfd, buf, n);
+        _view->insert_string(buf, n);
+    }
+}
+
+/*****************************************************************************/
 
 void ComTE_View::keystroke(const Event& e)
 {
@@ -237,42 +277,48 @@ void ComTE_View::newline()
      also echoes the top-of-stack result -- or an error -- to stdout
      when the line completes (print_stack_top(), a non-popping peek;
      see comterp.c).  comterp has no notion of "the requesting window",
-     so none of that reaches the pane on its own.  Capture stdout for
-     the duration of this one run(), then once restored replay the
-     captured bytes back to the real terminal (so it still sees exactly
-     what it always has -- command echoed, then its result/error) AND
-     paste the same bytes into the pane.  This single capture is now the
-     one source of pane content for this line: a print()-heavy func
-     (etchhelp(), a -comt-loaded script's banner) shows up here, and so
-     does the ordinary result/error text run() already echoes -- so
-     nothing below re-adds that text a second time. */
-  char tmpname[] = "/tmp/comdraw-pane-XXXXXX";
-  int tmpfd = mkstemp(tmpname);
+     so none of that reaches the pane on its own.
+
+     Route stdout through a pipe rather than a plain fd swap to a file,
+     and hand the read end to a ComTE_PaneCapture IOHandler (see above).
+     A script that calls update() in a loop -- keydrive(), an
+     interactive test loop -- hands control back to the Dispatcher on
+     every pass, which is exactly when the pipe gets drained: output
+     shows up in the pane WHILE the script runs, not only once after
+     run() finally returns (a plain one-shot command like h() still
+     works the same as before -- everything it wrote surfaces in the
+     final drain() below since it never yields to the Dispatcher at
+     all).  Each drained chunk goes to both the real terminal (same as
+     it always saw) and the pane, so nothing below re-adds that text a
+     second time.
+
+     The write end is left blocking: if a script wrote more than one
+     pipe buffer's worth (64K on most systems) between two Dispatcher
+     pumps, print() itself would stall until the next pump drains it --
+     not a concern for anything in this codebase today, but worth
+     knowing if that ever changes. */
+  int pfd[2];
+  boolean piped = (pipe(pfd) == 0);
+  ComTE_PaneCapture* capture = nil;
   int savedfd = -1;
-  if (tmpfd >= 0) {
+  if (piped) {
+    fcntl(pfd[0], F_SETFL, O_NONBLOCK);
     fflush(stdout);
     savedfd = dup(1);
-    dup2(tmpfd, 1);
-    close(tmpfd);
+    capture = new ComTE_PaneCapture(this, pfd[0], savedfd);
+    dup2(pfd[1], 1);
+    close(pfd[1]);
   }
 
   int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);
 
-  if (savedfd >= 0) {
+  if (piped) {
     fflush(stdout);
     dup2(savedfd, 1);
+    capture->drain();      /* whatever was written since the last Dispatcher pump */
+    delete capture;         /* unlinks from the Dispatcher */
     close(savedfd);
-    FILE* rf = fopen(tmpname, "r");
-    if (rf) {
-      char linebuf[2048];
-      while (fgets(linebuf, sizeof(linebuf), rf)) {
-        fputs(linebuf, stdout);                    /* terminal, as before */
-        insert_string(linebuf, strlen(linebuf));    /* and now the pane too */
-      }
-      fflush(stdout);
-      fclose(rf);
-    }
-    unlink(tmpname);
+    close(pfd[0]);
   }
   // comterp()->linenum()--;
 
