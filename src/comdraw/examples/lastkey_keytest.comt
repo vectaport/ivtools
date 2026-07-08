@@ -11,7 +11,13 @@
 //
 // Run it like:
 //     comdraw -runfile src/comdraw/examples/lastkey_keytest.comt
-// then click the canvas so it has keyboard focus, and follow the prompts.
+// then run keytest() or keytest_capture() (typed wherever you're already
+// interacting with the session -- the comt pane, or the terminal).  Type
+// the func call FIRST, THEN click the canvas: clicking the canvas moves
+// keyboard focus there, so clicking before you finish typing just steals
+// the keystrokes meant for the func call out from under it (this is the
+// same order keydrive() uses in etchasketch.comt -- start the func, THEN
+// click the canvas to hand it your keys).
 //
 // WHAT TO EXPECT (see keyname()'s docstring for the authoritative list):
 //   char-literal keys -- Esc Space Enter Tab Backspace Delete come back
@@ -52,8 +58,9 @@ keytest=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);
   print("=== lastkey() key test (plain keys) ===\n");
-  print("Press arrows, Home, End, PgUp, PgDn, Insert, F1-F12, Esc, Tab,\n");
-  print("Backspace, Enter, Space, letters, digits.  Esc quits early.\n\n");
+  print("Click the canvas NOW to give it keyboard focus, then press arrows,\n");
+  print("Home, End, PgUp, PgDn, Insert, F1-F12, Esc, Tab, Backspace, Enter,\n");
+  print("Space, letters, digits.  Esc quits early.\n\n");
   done=0;
   for(fi=0 (fi<n)&&(done==0) fi++
     k=lastkey();
@@ -71,8 +78,9 @@ keytest_capture=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);
   print("=== lastkey() key test (:shiftarrow capture) ===\n");
-  print("Hold Shift (or turn on Caps Lock) and press arrows or letters --\n");
-  print("compare to keytest()'s plain versions.  Plain Esc quits early.\n\n");
+  print("Click the canvas NOW to give it keyboard focus, then hold Shift\n");
+  print("(or turn on Caps Lock) and press arrows or letters -- compare to\n");
+  print("keytest()'s plain versions.  Plain (unmodified) Esc quits early.\n\n");
   lastkey(:shiftarrow true);
   done=0;
   for(fi=0 (fi<n)&&(done==0) fi++
@@ -85,6 +93,7 @@ keytest_capture=func(n=arg(0);
   lastkey(:shiftarrow false);
   print("keytest_capture done.  (:shiftarrow restored to off.)\n"))
 
-print("Loaded.  Click the canvas, then run:\n")
+print("Loaded.  Run one of these now (each will tell you when to click\n")
+print("the canvas -- do that AFTER you've started it, not before):\n")
 print("  keytest()          -- plain keys\n")
 print("  keytest_capture()  -- Shift/Caps-Lock-captured arrows and letters\n")
