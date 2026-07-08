@@ -1,0 +1,90 @@
+// lastkey_keytest.comt -- INTERACTIVE, MANUAL test of lastkey()'s key
+// vocabulary (see ComEditor::keyname(), src/ComUnidraw/comeditor.c, and
+// PR #226).  This is documentation you run and watch, not a pass/fail
+// test: it needs a human at a real keyboard.  There is no way to script
+// this -- the sandbox this was developed in has no XTest extension, and
+// synthetic XSendEvent key events are not honored by InterViews' event
+// dispatch, so live keystrokes are the only way to exercise
+// ComEditor::keystroke() end to end.  Deliberately NOT registered in
+// run_all.comt and not part of CI; keep it around and re-run it by hand
+// whenever keyname()'s mapping changes.
+//
+// Run it like:
+//     comdraw -runfile src/comdraw/examples/lastkey_keytest.comt
+// then click the canvas so it has keyboard focus, and follow the prompts.
+//
+// WHAT TO EXPECT (see keyname()'s docstring for the authoritative list):
+//   char-literal keys -- Esc Space Enter Tab Backspace Delete come back
+//                        AS themselves (comterp's own \x1b " " \r \t \b
+//                        \x7f).  This script prints a readable LABEL for
+//                        those instead of the raw byte -- an actual ESC
+//                        byte sent to a real terminal can be interpreted
+//                        as the start of its own escape sequence, which
+//                        would garble the display; the label is only for
+//                        this script's own output, not part of what
+//                        lastkey() actually returns to a caller.
+//   arrows            -- "up" "down" "left" "right"
+//   named (no char)   -- "home" "end" "ppage" "npage" "ins" "f1".."f12"
+//                        (cloned from Python's curses KEY_* constants)
+//   letters/digits    -- themselves, either case ("a" "D" "7")
+//   :shiftarrow       -- Shift held or Caps Lock on, over an arrow or a
+//                        letter, gets an "S-" prefix ("S-up", "S-d") and
+//                        suppresses the normal pan/tool-shortcut -- but
+//                        only while keytest_capture() (below) is running,
+//                        since :shiftarrow true has to be opted into
+//   anything unmapped -- the decimal keysym as a string (rarely hit)
+
+// describe(k) -- human-readable label for a lastkey() result, for THIS
+// script's printing only; not part of lastkey()'s actual contract
+describe=func(k=arg(0);
+  if(k=="\x1b" :then return("ESC"));
+  if(k==" "    :then return("SPACE"));
+  if(k=="\r"   :then return("ENTER"));
+  if(k=="\t"   :then return("TAB"));
+  if(k=="\b"   :then return("BACKSPACE"));
+  if(k=="\x7f" :then return("DELETE"));
+  k)
+
+// keytest([n]) -- plain (uncaptured) keys: arrows, Home/End, PgUp/PgDn,
+// Insert, F1-F12, Esc/Tab/Backspace/Enter/Space, letters, digits.  Runs
+// for n polls (default 2000, about a minute) or until you press Esc.
+keytest=func(n=arg(0);
+  if(n==nil :then n=2000);
+  lastkey(:reset);
+  print("=== lastkey() key test (plain keys) ===\n");
+  print("Press arrows, Home, End, PgUp, PgDn, Insert, F1-F12, Esc, Tab,\n");
+  print("Backspace, Enter, Space, letters, digits.  Esc quits early.\n\n");
+  done=0;
+  for(fi=0 (fi<n)&&(done==0) fi++
+    k=lastkey();
+    while((k!=nil)&&(done==0)
+      print("%v\n" describe(k));
+      if(k=="\x1b" :then done=1);
+      k=lastkey());
+    update(30000));
+  print("keytest done.\n"))
+
+// keytest_capture([n]) -- :shiftarrow-captured keys: hold Shift or turn
+// on Caps Lock and press an arrow or a letter to see the "S-" prefix and
+// the pan/tool-shortcut suppressed.  Plain (unmodified) Esc quits early.
+keytest_capture=func(n=arg(0);
+  if(n==nil :then n=2000);
+  lastkey(:reset);
+  print("=== lastkey() key test (:shiftarrow capture) ===\n");
+  print("Hold Shift (or turn on Caps Lock) and press arrows or letters --\n");
+  print("compare to keytest()'s plain versions.  Plain Esc quits early.\n\n");
+  lastkey(:shiftarrow true);
+  done=0;
+  for(fi=0 (fi<n)&&(done==0) fi++
+    k=lastkey();
+    while((k!=nil)&&(done==0)
+      print("%v\n" describe(k));
+      if(k=="\x1b" :then done=1);
+      k=lastkey());
+    update(30000));
+  lastkey(:shiftarrow false);
+  print("keytest_capture done.  (:shiftarrow restored to off.)\n"))
+
+print("Loaded.  Click the canvas, then run:\n")
+print("  keytest()          -- plain keys\n")
+print("  keytest_capture()  -- Shift/Caps-Lock-captured arrows and letters\n")
