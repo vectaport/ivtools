@@ -117,7 +117,17 @@ public:
     // Command key and a PC's Windows-logo key both land on X11's Mod4,
     // i.e. Super -- see keyname()'s docstring for how they combine with a
     // key name.
-    enum { SHIFT_FLAG = 0x10000, CTRL_FLAG = 0x20000, ALT_FLAG = 0x40000, SUPER_FLAG = 0x80000 };
+    // Bits 32-35, not 16-19: the X11 protocol caps every keysym at 32
+    // bits, but XF86's vendor-specific multimedia range (0x1008xxxx --
+    // volume/brightness/media keys) has bit 19 set as part of the
+    // keysym ITSELF, colliding with a flag bit placed there (a real
+    // keysym | flags bug, caught by review: pressing a media key with
+    // no modifier held wrongly got "Super-" prepended, and lost a real
+    // keysym bit besides).  unsigned long is 64-bit on every platform
+    // this builds for, so bits 32+ are safely above ANY valid keysym --
+    // including the 0x01000000-0x0110FFFF Unicode-mapped range, X11's
+    // widest defined keysym space -- with no risk of ever colliding.
+    enum { SHIFT_FLAG = 1UL<<32, CTRL_FLAG = 1UL<<33, ALT_FLAG = 1UL<<34, SUPER_FLAG = 1UL<<35 };
     void shiftcapture(boolean on);  // enable/disable + (re)arm
     boolean shiftcapture();         // live state (false once expired)
     void shiftcapture_poll();       // heartbeat: bump the watchdog
