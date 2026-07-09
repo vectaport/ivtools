@@ -19,6 +19,7 @@
 #define _GCC_SIZE_T /* workaround for _G_size_t conflict */
 #endif
 
+#include <limits.h>
 #include <stdio.h>
 #include <fcntl.h> 
 #include <sys/stat.h>
@@ -86,6 +87,10 @@ int EivTextBuffer::load(const char* path)
    if (fstat(fd, &info) < 0) {
       close(fd);
       return OpenError;		// can't access file
+   }
+   if (info.st_size > (INT_MAX / 2)) {
+      close(fd);
+      return MemoryError;   // file too large
    }
    int len = (int) info.st_size;
 
