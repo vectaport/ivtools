@@ -328,8 +328,19 @@ class PointerLocFunc : public UnidrawFunc {
 public:
     PointerLocFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return "x,y=%s() -- x,y location of last pointer motion."; }
+
+};
+
+//: command to tell a -comt pane session apart from the terminal REPL
+// flag=textpane() -- true if running inside the -comt embedded pane
+class TextPaneFunc : public UnidrawFunc {
+public:
+    TextPaneFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "flag=%s() -- true if the currently executing line was typed into (or scrolled back to and re-run in) comdraw's -comt embedded text-editor pane; false for the terminal REPL, -runfile, -runexpr, or a remote()/socket session.  Useful for adjusting instructions a script prints for a human -- e.g. whether to say \"click the canvas\" (a separate top-level window, from the terminal/-runfile) or \"move the mouse into the canvas\" (same top-level window as the pane, no click needed)."; }
 
 };
 

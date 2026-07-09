@@ -60,6 +60,9 @@ public:
    // output into the pane -- no echoed command, no result-value line.
    // What comdraw's "-comt file" option uses to load a script's banner.
 
+   virtual boolean driving();
+   // forwards to comtextview()'s driving() flag -- see comtextview.h.
+
 };
 
 #endif

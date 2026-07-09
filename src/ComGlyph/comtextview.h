@@ -56,11 +56,24 @@ public:
    void newline();
    ComTerpServ* comterp() { return _comterp; }
    void comterp(ComTerpServ* cterp) { _comterp = cterp; }
+
+   boolean driving() { return _driving; }
+   void driving(boolean flag) { _driving = flag; }
+   // true while THIS pane is the one feeding the currently executing
+   // line to comterp -- set around newline()'s own run() call, and
+   // around ComTextEditor::runfile()'s -comt bootstrap load.  Read via
+   // ComTextEditor::driving() (ComGlyph) and comdraw's textpane()
+   // command (src/ComUnidraw/unifunc.h) -- comterp() shares one
+   // interpreter with the terminal REPL/-runfile/remote() sessions, so
+   // this can't be inferred from the ComTerp object itself; it has to be
+   // a fact the pane records about its own current call.
+
 private:
 
    ComTerpServ* _comterp;
    boolean _continuation;
    int _parendepth;
+   boolean _driving;
 };
 
 declareSelectionCallback(ComTE_View);

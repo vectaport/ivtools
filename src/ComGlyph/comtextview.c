@@ -97,6 +97,7 @@ ComTE_View::ComTE_View(Style* s, EivTextBuffer* te_buffer, int rows, int cols,
 {
   _continuation = false;
   _parendepth = 0;
+  _driving = false;
 }
 
 ComTE_View::~ComTE_View()
@@ -214,6 +215,7 @@ void ComTE_View::newline()
   /* run this line through comterp */
   boolean old_brief = comterp()->brief();
   comterp()->brief(1);
+  _driving = true;   // see driving()/comdraw's textpane() command
   cout << comterp()->linenum()+1 << ": " << buffer << "\n";
 
   /* strip # comments */
@@ -336,6 +338,7 @@ void ComTE_View::newline()
     }
   }
   comterp()->brief(old_brief);
+  _driving = false;
   delete[] buffer;
 }
 

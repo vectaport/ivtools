@@ -271,6 +271,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     #endif
 
     comterp->add_command("pointer", new PointerLocFunc(comterp, this));
+    comterp->add_command("textpane", new TextPaneFunc(comterp, this));
 
     comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
     comterp->add_command("ding", new ComdrawDingFunc(comterp, this));

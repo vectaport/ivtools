@@ -337,3 +337,5 @@ InputHandler* EivTextEditor::focusable() {
 TE_View* EivTextEditor::textview() { return te_view_; }
 
 boolean EivTextEditor::runfile(const char*) { return false; }
+
+boolean EivTextEditor::driving() { return false; }

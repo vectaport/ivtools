@@ -127,7 +127,9 @@ boolean ComTextEditor::runfile(const char* path) {
   close(tmpfd);
 
   RunFunc::set_basepath(path);
+  ctv->driving(true);
   int status = terp->runfile(path);
+  ctv->driving(false);
 
   fflush(stdout);
   dup2(savedfd, 1);
@@ -143,6 +145,8 @@ boolean ComTextEditor::runfile(const char* path) {
   unlink(tmpname);
   return status >= 0;
 }
+
+boolean ComTextEditor::driving() { return comtextview()->driving(); }
 
 
 
