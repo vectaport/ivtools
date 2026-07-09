@@ -969,6 +969,23 @@ void PointerLocFunc::execute() {
 
 /*****************************************************************************/
 
+TextPaneFunc::TextPaneFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void TextPaneFunc::execute() {
+  reset_stack();
+  OverlayEditor* ed = (OverlayEditor*)GetEditor();
+  EivTextEditor* te = ed ? ed->TextEditor() : nil;
+  // driving() is a virtual no-op on a plain EivTextEditor (no
+  // interpreter to drive anything) and the real answer on a
+  // ComTextEditor -- see IVGlyph/textedit.h and ComGlyph/comtextedit.h.
+  boolean flag = te ? te->driving() : false;
+  ComValue retval(flag ? 1 : 0, ComValue::BooleanType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
 LastKeyFunc::LastKeyFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 

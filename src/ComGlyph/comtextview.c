@@ -47,11 +47,16 @@
 #include <InterViews/event.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
+#include <Dispatch/dispatcher.h>
 #include <ctype.h>
 #include <iostream.h>
 #include <strstream>
 #include <string.h>
 #include <fstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
 
 using std::cerr;
 using std::cout;
@@ -92,11 +97,50 @@ ComTE_View::ComTE_View(Style* s, EivTextBuffer* te_buffer, int rows, int cols,
 {
   _continuation = false;
   _parendepth = 0;
+  _driving = false;
 }
 
 ComTE_View::~ComTE_View()
 {
 }
+
+/*****************************************************************************/
+
+ComTE_PaneCapture::ComTE_PaneCapture(ComTE_View* view, int readfd, int termfd)
+: _view(view), _readfd(readfd), _termfd(termfd)
+{
+    Dispatcher::instance().link(_readfd, Dispatcher::ReadMask, this);
+}
+
+ComTE_PaneCapture::~ComTE_PaneCapture()
+{
+    Dispatcher::instance().unlink(_readfd);
+}
+
+int ComTE_PaneCapture::inputReady(int)
+{
+    drain();
+    return 0;
+}
+
+void ComTE_PaneCapture::drain()
+{
+    char buf[4096];
+    int n;
+    /* the pipe's read end is O_NONBLOCK (see newline()), so this loop
+       stops as soon as nothing more is immediately available instead
+       of blocking for it -- fine both when the Dispatcher calls
+       inputReady() (there IS data, but maybe less than a full buf) and
+       when newline() calls this directly for the final post-run()
+       flush (there may be nothing left at all). */
+    while ((n = read(_readfd, buf, sizeof(buf)-1)) > 0) {
+        buf[n] = '\0';
+        write(_termfd, buf, n);
+        _view->insert_string(buf, n);
+    }
+}
+
+/*****************************************************************************/
 
 void ComTE_View::keystroke(const Event& e)
 {
@@ -171,6 +215,10 @@ void ComTE_View::newline()
   /* run this line through comterp */
   boolean old_brief = comterp()->brief();
   comterp()->brief(1);
+  _driving = true;   // see driving()/comdraw's textpane() command
+  // leading "\n" restores the original (pre-pane-tee) terminal echo:
+  // a blank line separating each typed command's output on the
+  // terminal, same as before this file's stdout-capture rewrite.
   cout << "\n" << comterp()->linenum()+1 << ": " << buffer << "\n";
 
   /* strip # comments */
@@ -229,23 +277,75 @@ void ComTE_View::newline()
 
   /* load and interpret if expression closed */
   comterp()->load_string(bufptr);
+
+  /* print()/say() write to the real stdout, and ComTerp::run() itself
+     also echoes the top-of-stack result -- or an error -- to stdout
+     when the line completes (print_stack_top(), a non-popping peek;
+     see comterp.c).  comterp has no notion of "the requesting window",
+     so none of that reaches the pane on its own.
+
+     Route stdout through a pipe rather than a plain fd swap to a file,
+     and hand the read end to a ComTE_PaneCapture IOHandler (see above).
+     A script that calls update() in a loop -- keydrive(), an
+     interactive test loop -- hands control back to the Dispatcher on
+     every pass, which is exactly when the pipe gets drained: output
+     shows up in the pane WHILE the script runs, not only once after
+     run() finally returns (a plain one-shot command like h() still
+     works the same as before -- everything it wrote surfaces in the
+     final drain() below since it never yields to the Dispatcher at
+     all).  Each drained chunk goes to both the real terminal (same as
+     it always saw) and the pane, so nothing below re-adds that text a
+     second time.
+
+     The write end is left blocking: if a script wrote more than one
+     pipe buffer's worth (64K on most systems) between two Dispatcher
+     pumps, print() itself would stall until the next pump drains it --
+     not a concern for anything in this codebase today, but worth
+     knowing if that ever changes. */
+  int pfd[2];
+  boolean piped = (pipe(pfd) == 0);
+  ComTE_PaneCapture* capture = nil;
+  int savedfd = -1;
+  if (piped) {
+    fcntl(pfd[0], F_SETFL, O_NONBLOCK);
+    fflush(stdout);
+    savedfd = dup(1);
+    if (savedfd < 0) {
+      // fd table exhausted -- fall back to uncaptured (terminal-only,
+      // no pane tee) rather than construct a capture around a broken
+      // fd: ComTE_PaneCapture::drain() would write() to fd -1 (silent
+      // no-op, so the pane would just never see output) and the
+      // restore below (dup2(savedfd, 1)) would fail, leaving stdout
+      // stuck on the closed pipe write-end for the rest of the
+      // process's life.
+      close(pfd[0]);
+      close(pfd[1]);
+      piped = false;
+    } else {
+      capture = new ComTE_PaneCapture(this, pfd[0], savedfd);
+      dup2(pfd[1], 1);
+      close(pfd[1]);
+    }
+  }
+
   int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);
+
+  if (piped) {
+    fflush(stdout);
+    dup2(savedfd, 1);
+    capture->drain();      /* whatever was written since the last Dispatcher pump */
+    delete capture;         /* unlinks from the Dispatcher */
+    close(savedfd);
+    close(pfd[0]);
+  }
   // comterp()->linenum()--;
-#if 0
-  ComValue result(comterp()->stack_top(1));
-#else
-  // don't evaluate
-  ComValue result(comterp()->pop_stack(false));
-#endif
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-  ostream* out = new std::strstream();
-  if (*comterp()->errmsg()) {
-    *out << comterp()->errmsg() << "\n";
-  } else {
+
+  /* run() already echoed (and the above already replayed/inserted) the
+     result or error text -- this pop only discards the leftover value
+     print_stack_top() peeked but never popped; it is not displayed. */
+  comterp()->pop_stack(false);
+  if (!*comterp()->errmsg()) {
     if (status==0) {
-      result.comterp(comterp());
-      *out << result << "\n";
       _continuation = false;
       _parendepth=0;
     } else if (status==1) {
@@ -253,13 +353,8 @@ void ComTE_View::newline()
       _continuation = true;
     }
   }
-  out->put('\0');
-  out->flush();
-  std::strstream* sout = (std::strstream*)out;
-  insert_string(sout->str(), strlen(sout->str()));
-#pragma GCC diagnostic pop
   comterp()->brief(old_brief);
-  delete out; 
+  _driving = false;
   delete[] buffer;
 }
 

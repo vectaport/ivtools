@@ -43,6 +43,7 @@
 #define comtextview_h
 
 #include <IVGlyph/textview.h>
+#include <Dispatch/iohandler.h>
 
 class ComTerpServ;
 
@@ -55,14 +56,47 @@ public:
    void newline();
    ComTerpServ* comterp() { return _comterp; }
    void comterp(ComTerpServ* cterp) { _comterp = cterp; }
+
+   boolean driving() { return _driving; }
+   void driving(boolean flag) { _driving = flag; }
+   // true while THIS pane is the one feeding the currently executing
+   // line to comterp -- set around newline()'s own run() call, and
+   // around ComTextEditor::runfile()'s -comt bootstrap load.  Read via
+   // ComTextEditor::driving() (ComGlyph) and comdraw's textpane()
+   // command (src/ComUnidraw/unifunc.h) -- comterp() shares one
+   // interpreter with the terminal REPL/-runfile/remote() sessions, so
+   // this can't be inferred from the ComTerp object itself; it has to be
+   // a fact the pane records about its own current call.
+
 private:
 
    ComTerpServ* _comterp;
    boolean _continuation;
    int _parendepth;
+   boolean _driving;
 };
 
 declareSelectionCallback(ComTE_View);
 declareActionCallback(ComTE_View);
+
+// ComTE_PaneCapture -- drains a pipe into a ComTE_View's buffer AND a
+// saved real-stdout fd as soon as the Dispatcher notices data on it, so
+// print() output from a long-running script (something a func like
+// keydrive() or an interactive test loop, calling update() every pass,
+// is FULL of) shows up in the pane WHILE the script runs, not just once
+// after the whole synchronous line finally returns.  See
+// ComTE_View::newline() for how this gets wired up around one line's
+// evaluation.
+class ComTE_PaneCapture : public IOHandler {
+public:
+    ComTE_PaneCapture(ComTE_View* view, int readfd, int termfd);
+    virtual ~ComTE_PaneCapture();
+    virtual int inputReady(int fd);
+    void drain();     // one-shot, non-Dispatcher-triggered drain (final flush)
+protected:
+    ComTE_View* _view;
+    int _readfd;
+    int _termfd;
+};
 
 #endif

@@ -52,8 +52,16 @@ class Style;
 class ComTextEditor : public EivTextEditor {
 public:
    ComTextEditor(Style*, ComTerpServ* comterp=nil, boolean active=true);
-   virtual ~ComTextEditor();   
+   virtual ~ComTextEditor();
    ComTE_View* comtextview();
+
+   virtual boolean runfile(const char* path);
+   // silently run path through this pane's comterp and paste its print()
+   // output into the pane -- no echoed command, no result-value line.
+   // What comdraw's "-comt file" option uses to load a script's banner.
+
+   virtual boolean driving();
+   // forwards to comtextview()'s driving() flag -- see comtextview.h.
 
 };
 

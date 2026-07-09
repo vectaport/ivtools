@@ -93,6 +93,18 @@ public:
     InputHandler* focusable();
     TE_View* textview();
 
+    // enter a command as if it had been typed here and Return pressed.
+    // A plain EivTextEditor has no interpreter to run it against, hence
+    // the no-op default; ComTextEditor (ComGlyph) does the real work.
+    virtual boolean runfile(const char* path);
+
+    // true while this pane is the one currently feeding a line to an
+    // interpreter (only ever true for a ComTextEditor -- a plain
+    // EivTextEditor has no interpreter, hence the no-op default).  What
+    // comdraw's textpane() command (src/ComUnidraw/unifunc.h) reads to
+    // tell a -comt pane session apart from the terminal REPL/-runfile.
+    virtual boolean driving();
+
 protected:
    TE_Adjustable* te_adjustable_;
    TE_View*   te_view_;
