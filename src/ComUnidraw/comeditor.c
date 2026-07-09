@@ -595,7 +595,17 @@ const char* ComEditor::keyname(unsigned long code) {
 
     char corebuf[16];
     const char* core = core_keyname(ks, shifted, chorded, corebuf, sizeof(corebuf));
-    if (!chorded) return core;
+    if (!chorded) {
+	/* core may point into corebuf, a LOCAL array -- copy through
+	   _keyname_buf (a persistent member, outlives the call) before
+	   returning, same as every other return in this function.
+	   Returning `core` directly here was the bug: for the common
+	   case (any letter/digit/punctuation/arrow with no Ctrl/Alt/
+	   Super held), it silently handed the caller a dangling pointer
+	   into a stack frame that no longer existed. */
+	snprintf(_keyname_buf, sizeof(_keyname_buf), "%s", core);
+	return _keyname_buf;
+    }
 
     /* Ctrl/Alt/Super chords: fixed "Ctrl-Alt-Super-<key>" order (Ctrl
        first, matching Emacs/GNOME/Windows documentation convention),
