@@ -35,5 +35,9 @@ if(run("./dotattr.comt")
   :then print("pass: dotattr\n")
   :else print("FAIL: dotattr\n");ok=false)
 
+if(run("./lastkey.comt")
+  :then print("pass: lastkey\n")
+  :else print("FAIL: lastkey\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

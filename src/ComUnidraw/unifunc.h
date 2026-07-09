@@ -379,5 +379,38 @@ public:
 
 };
 
+//: TEST-ONLY: call ComEditor::keyname() directly, no keyboard required
+// name=keyname_test(code [:shift] [:ctrl] [:alt] [:super]) -- see docstring
+//
+// lastkey() itself can't be scripted end to end in CI: the name it
+// returns depends on a real X11 KeyPress reaching ComEditor::keystroke(),
+// and there's no XTest in a headless xvfb runner (see
+// lastkey_keytest.comt's own header for why that's a dead end here too).
+// But keyname() -- the actual naming logic, and where both bugs caught
+// in this PR's review lived -- takes a plain integer keysym and has no
+// dependency on the keyboard at all.  This command calls it directly,
+// bypassing ComEditor::keystroke()/the ring buffer entirely, so a CI
+// script can exercise the real production naming logic (not a
+// hand-copied stand-in) with synthetic keysym values.  Never meant for
+// a driving script -- see lastkey() for that.
+class KeynameTestFunc : public UnidrawFunc {
+public:
+    KeynameTestFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "name=%s(code [:shift] [:ctrl] [:alt] [:super]) -- TEST-ONLY: return ComEditor::keyname()'s name for the X11 keysym `code`, as if that keysym had just been pressed with the given modifiers held -- no keyboard involved, for exercising the real naming logic from a CI script.  Not for driving scripts; see lastkey()."; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":shift  as if Shift or Caps Lock were held",
+	":ctrl   as if Control were held",
+	":alt    as if Alt/Option were held",
+	":super  as if Super/Cmd/the Windows key were held",
+	nil
+      };
+      return keys;
+    }
+
+};
+
 #endif /* !defined(_unifunc_h) */
 

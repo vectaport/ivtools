@@ -1014,3 +1014,36 @@ void LastKeyFunc::execute() {
   push_stack(retval);
 }
 
+/*****************************************************************************/
+
+KeynameTestFunc::KeynameTestFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void KeynameTestFunc::execute() {
+  // capture keyword args and the positional keysym before reset_stack()
+  static int shift_sym = symbol_add("shift");
+  static int ctrl_sym  = symbol_add("ctrl");
+  static int alt_sym   = symbol_add("alt");
+  static int super_sym = symbol_add("super");
+  boolean shiftflag = stack_key(shift_sym).is_true();
+  boolean ctrlflag  = stack_key(ctrl_sym).is_true();
+  boolean altflag   = stack_key(alt_sym).is_true();
+  boolean superflag = stack_key(super_sym).is_true();
+  ComValue codev(stack_arg(0, false, ComValue::zeroval()));
+  unsigned long code = codev.ulong_val();
+  reset_stack();
+
+  ComEditor* ed = (ComEditor*)GetEditor();
+  if (!ed) { push_stack(ComValue::nullval()); return; }
+
+  // fold in modifier flags exactly as keystroke() does for a real
+  // KeyPress, then call the real, production keyname() directly --
+  // this is not a copy of the naming logic, it IS the naming logic.
+  code |= (shiftflag ? ComEditor::SHIFT_FLAG : 0)
+	| (ctrlflag  ? ComEditor::CTRL_FLAG  : 0)
+	| (altflag   ? ComEditor::ALT_FLAG   : 0)
+	| (superflag ? ComEditor::SUPER_FLAG : 0);
+  ComValue retval(ed->keyname(code));
+  push_stack(retval);
+}
+

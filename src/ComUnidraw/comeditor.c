@@ -293,6 +293,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("pointer", new PointerLocFunc(comterp, this));
     comterp->add_command("lastkey", new LastKeyFunc(comterp, this));
+    comterp->add_command("keyname_test", new KeynameTestFunc(comterp, this));
 
     comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
     comterp->add_command("ding", new ComdrawDingFunc(comterp, this));
