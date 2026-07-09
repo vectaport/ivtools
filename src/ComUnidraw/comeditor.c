@@ -468,6 +468,9 @@ void ComEditor::shiftcapture(boolean on) {
     if (on) _shiftcapture_deadline = comeditor_now_seconds() + SHIFTCAPTURE_TIMEOUT;
 }
 
+// impure by design (see comeditor.h): this is the one place the watchdog
+// actually gets checked, so the getter itself has to do the expiring --
+// there is no separate poll/tick callback that could do it instead.
 boolean ComEditor::shiftcapture() {
     if (_shiftcapture_on && comeditor_now_seconds() > _shiftcapture_deadline)
 	_shiftcapture_on = false;           // watchdog lapsed -> auto-restore
@@ -586,6 +589,13 @@ static const char* core_keyname(unsigned long ks, boolean shifted, boolean chord
     return buf;
 }
 
+// returns a pointer into _keyname_buf, a single persistent member -- see
+// the CONTRACT note on the declaration (comeditor.h): valid only until the
+// next keyname() call.  Both current callers (LastKeyFunc, KeynameTestFunc
+// in unifunc.c) are safe because they immediately hand the pointer to
+// ComValue's string constructor, which copies/interns it before any
+// second call could happen -- a future caller that holds onto the raw
+// pointer across two calls would silently read stale data.
 const char* ComEditor::keyname(unsigned long code) {
     boolean shifted = (code & SHIFT_FLAG) != 0;
     boolean ctrl    = (code & CTRL_FLAG)  != 0;
