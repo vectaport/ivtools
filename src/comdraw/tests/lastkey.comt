@@ -1,0 +1,91 @@
+// src/comdraw/tests/lastkey.comt -- lastkey()/keyname() coverage that CAN
+// run headless in CI, without a real X keyboard.
+//
+// lastkey() itself can't be scripted end to end: the name it returns
+// depends on a real X11 KeyPress reaching ComEditor::keystroke(), and
+// there's no XTest under the xvfb CI runs (see lastkey_keytest.comt's
+// own header for the long version of why -- that script is the manual,
+// human-at-a-keyboard complement to this one, deliberately excluded
+// from every automated suite for the same reason).  What CAN be
+// verified by script, and is here:
+//   1. lastkey() is actually registered (built in), not silently missing
+//   2. its state-management keywords (:reset, :shiftcapture) behave
+//      correctly and return the right value
+//   3. the empty-queue case returns nil
+//   4. keyname() itself -- the real naming logic, not a hand-copied
+//      stand-in, and where both bugs caught in this PR's review lived --
+//      via keyname_test(), which calls ComEditor::keyname() directly
+//      with a synthetic keysym+modifiers, bypassing the keyboard (and
+//      the ring buffer) entirely
+//   5. keyname_test() itself stays out of help()'s listing (it's marked
+//      hidden -- test-only, not for driving scripts) while remaining
+//      fully callable
+//
+// funcs: lastkey keyname_test help index
+ok=true
+
+// 1. built in: help()'s docstring lookup only succeeds for a real
+// registered command (src/ComTerp/helpfunc.c) -- an unrecognized name
+// falls through to an empty result instead (comterp's "unknown command"
+// convention), so this can't pass by accident.
+h=help(lastkey)
+ok=ok&&(index(h "name=lastkey(" :substr)!=nil)
+print("1 help(lastkey) finds the real docstring (expect a position, not nil): %v\n" index(h "name=lastkey(" :substr))
+
+// 2. empty queue -> nil
+lastkey(:reset)
+k=lastkey()
+ok=ok&&(k==nil)
+print("2 lastkey() on an empty queue (expect nil): %v\n" k)
+
+// 3. :reset returns nil
+r=lastkey(:reset)
+ok=ok&&(r==nil)
+print("3 lastkey(:reset) (expect nil): %v\n" r)
+
+// 4. :shiftcapture round-trips its own state
+on=lastkey(:shiftcapture true)
+ok=ok&&(on==true)
+print("4 lastkey(:shiftcapture true) (expect true): %v\n" on)
+
+off=lastkey(:shiftcapture false)
+ok=ok&&(off==false)
+print("5 lastkey(:shiftcapture false) (expect false): %v\n" off)
+
+// 5. keyname() naming logic via keyname_test() -- the exact regression
+// this PR's review caught: an XF86 multimedia keysym (0x1008xxxx --
+// volume/brightness/media keys) has bit19 set as part of the keysym
+// itself, and must not be misread as Super having been held.
+ok=ok&&(keyname_test(269025043)=="269025043")
+print("6 keyname_test(269025043) XF86 volume key, no modifier held (expect \"269025043\", unmangled): %v\n" keyname_test(269025043))
+
+ok=ok&&(keyname_test(269025043 :super)=="Super-269025043")
+print("7 keyname_test(269025043 :super) same key WITH real Super held (expect \"Super-269025043\"): %v\n" keyname_test(269025043 :super))
+
+// 6. a representative sample of keyname()'s ordinary vocabulary --
+// see ComEditor::keyname() (comeditor.c) for the authoritative list;
+// this is a smoke test, not a re-run of every case there.
+ok=ok&&(keyname_test(0xff52)=="up")
+print("8 keyname_test(0xff52) XK_Up plain (expect \"up\"): %v\n" keyname_test(0xff52))
+
+ok=ok&&(keyname_test(0xff52 :shift)=="UP")
+print("9 keyname_test(0xff52 :shift) XK_Up shifted (expect \"UP\"): %v\n" keyname_test(0xff52 :shift))
+
+ok=ok&&(keyname_test(0x78 :ctrl)=="Ctrl-X")
+print("10 keyname_test(0x78 :ctrl) Ctrl+x (expect \"Ctrl-X\"): %v\n" keyname_test(0x78 :ctrl))
+
+ok=ok&&(keyname_test(0xff1b)=="\x1b")
+print("11 keyname_test(0xff1b) XK_Escape plain (expect the raw ESC byte): %v\n" (keyname_test(0xff1b)=="\x1b"))
+
+ok=ok&&(keyname_test(0xff1b :shift)=="ESC")
+print("12 keyname_test(0xff1b :shift) XK_Escape shifted (expect \"ESC\"): %v\n" keyname_test(0xff1b :shift))
+
+// 7. keyname_test() is a TEST-ONLY command (ComFunc::hidden(), set via
+// add_command()'s 'hidden' arg in ComEditor::AddCommands()) -- it must stay
+// fully callable (proven above) but drop out of the general help() listing,
+// so ordinary driving-script authors don't trip over it while browsing.
+ok=ok&&(index(help() "keyname_test" :substr)==nil)
+print("13 keyname_test absent from help()'s listing (expect nil): %v\n" index(help() "keyname_test" :substr))
+
+print("lastkey: %v\n" ok)
+ok

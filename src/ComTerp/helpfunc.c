@@ -190,11 +190,15 @@ void HelpFunc::execute() {
 	  else
 	    *out << '\n';
 	  {
-	    char buffer[BUFSIZ];
+	    // BUFSIZ (<cstdio>) is only 1024 on this platform -- too small
+	    // for a verbose docstring, and silently truncates one mid-word
+	    // with no warning.  A dedicated, generously-sized buffer here
+	    // affects only help()'s own rendering, not print()/other paths.
+	    char buffer[8192];
 	    if (comfuncs[i]->docstring2()!=NULL) {
-	      strncpy(buffer, comfuncs[i]->docstring2(), BUFSIZ-1);
+	      strncpy(buffer, comfuncs[i]->docstring2(), sizeof(buffer)-1);
 	    } else {
-	      snprintf(buffer, BUFSIZ, 
+	      snprintf(buffer, sizeof(buffer),
 		       comfuncs[i]->docstring(), symbol_pntr(command_ids[i]));
 	    }
 	    *out << buffer;
@@ -231,11 +235,11 @@ void HelpFunc::execute() {
 		else
 		  out->put('\n');
 		{
-		  char buffer[BUFSIZ];
+		  char buffer[8192]; // see the sizing comment above for the sibling case
 		  if (comfunc->docstring2()!=NULL) {
-		    strncpy(buffer, comfunc->docstring2(), BUFSIZ-1);
+		    strncpy(buffer, comfunc->docstring2(), sizeof(buffer)-1);
 		  } else {
-  		    snprintf(buffer, BUFSIZ, 
+  		    snprintf(buffer, sizeof(buffer),
 			     comfunc->docstring(), symbol_pntr(value->command_symid()));
 		  }
 		  *out << buffer;

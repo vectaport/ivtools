@@ -964,6 +964,86 @@ void PointerLocFunc::execute() {
   avl->Append(new AttributeValue(viewer->pointery(), AttributeValue::IntType));
   ComValue retval(avl);
   push_stack(retval);
-    
+
+}
+
+/*****************************************************************************/
+
+LastKeyFunc::LastKeyFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void LastKeyFunc::execute() {
+  // capture keyword args before reset_stack()
+  static int shiftcapture_sym = symbol_add("shiftcapture");
+  ComValue shiftcapturev(stack_key(shiftcapture_sym, false, ComValue::blankval(), true));
+  static int reset_sym = symbol_add("reset");
+  boolean resetflag = stack_key(reset_sym).is_true();
+  reset_stack();
+
+  // downcast to the comdraw-layer editor that owns the key queue (the
+  // PointerLocFunc precedent above downcasts GetEditor() the same way)
+  ComEditor* ed = (ComEditor*)GetEditor();
+  if (!ed) { push_stack(ComValue::nullval()); return; }
+
+  // lastkey(:reset) -- restore default arrow panning immediately
+  if (resetflag) {
+    ed->shiftcapture(false);
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  // lastkey(:shiftcapture true|false) -- enable/disable shift-capture;
+  // returns the resulting live state.  (Bare :shiftcapture enables.)
+  if (!shiftcapturev.is_blank()) {
+    ed->shiftcapture(shiftcapturev.is_true());
+    ComValue rv(ed->shiftcapture() ? 1 : 0, ComValue::BooleanType);
+    push_stack(rv);
+    return;
+  }
+
+  // plain poll: heartbeat the capture watchdog, then dequeue the next key
+  ed->shiftcapture_poll();
+  unsigned long code = ed->dequeue_key();
+  if (code == 0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  // return the portable name string (e.g. "up", "UP", "d", "esc"), not the
+  // raw X keysym -- keeps the surface backend-neutral (see ComEditor::keyname)
+  ComValue retval(ed->keyname(code));
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+KeynameTestFunc::KeynameTestFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void KeynameTestFunc::execute() {
+  // capture keyword args and the positional keysym before reset_stack()
+  static int shift_sym = symbol_add("shift");
+  static int ctrl_sym  = symbol_add("ctrl");
+  static int alt_sym   = symbol_add("alt");
+  static int super_sym = symbol_add("super");
+  boolean shiftflag = stack_key(shift_sym).is_true();
+  boolean ctrlflag  = stack_key(ctrl_sym).is_true();
+  boolean altflag   = stack_key(alt_sym).is_true();
+  boolean superflag = stack_key(super_sym).is_true();
+  ComValue codev(stack_arg(0, false, ComValue::zeroval()));
+  unsigned long code = codev.ulong_val();
+  reset_stack();
+
+  ComEditor* ed = (ComEditor*)GetEditor();
+  if (!ed) { push_stack(ComValue::nullval()); return; }
+
+  // fold in modifier flags exactly as keystroke() does for a real
+  // KeyPress, then call the real, production keyname() directly --
+  // this is not a copy of the naming logic, it IS the naming logic.
+  code |= (shiftflag ? ComEditor::SHIFT_FLAG : 0)
+	| (ctrlflag  ? ComEditor::CTRL_FLAG  : 0)
+	| (altflag   ? ComEditor::ALT_FLAG   : 0)
+	| (superflag ? ComEditor::SUPER_FLAG : 0);
+  ComValue retval(ed->keyname(code));
+  push_stack(retval);
 }
 

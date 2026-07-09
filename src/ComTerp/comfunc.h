@@ -194,7 +194,14 @@ public:
 
     virtual const char** dockeys() { return nil; };
     // return nil-terminated array of keyword documentation strings
-    
+
+    boolean hidden() { return _hidden; }
+    void hidden(boolean flag) { _hidden = flag; }
+    // a hidden command stays fully callable by name (including
+    // help(name) for its own docstring) but is left out of the
+    // no-arg help() listing and help(:top) -- for test-only or
+    // other commands that would just be noise in the general list.
+
 protected:
 
     int& npops();
@@ -237,6 +244,7 @@ protected:
     int _funcid;
     Component* _context;
     const char* _docstring2;
+    boolean _hidden;
 
     CLASS_SYMID("ComFunc");
 };

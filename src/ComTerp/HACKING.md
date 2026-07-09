@@ -85,6 +85,24 @@ comterp->add_command("select", func, nil, docstring2);
 
 This replaces the dockeys in `help()` output without a layer violation.
 
+### Hiding a command from help()
+
+Test-only or otherwise non-driving-script commands can stay fully
+callable — including `help(name)` for their own docstring — while being
+left out of the general `help()`/`help(:top)` listing:
+
+```cpp
+comterp->add_command("keyname_test", new KeynameTestFunc(comterp, this),
+                      nil, nil, true /* hidden */);
+```
+
+This sets `ComFunc::hidden()`, which `ComTerp::get_commands()` (and so
+`list_commands()`, `help()`'s no-arg form, and `help(:top)`) skip over.
+It does not affect `help(name)` for a name you already know, or actually
+calling the command — only its visibility in the general listing. See
+`keyname_test()` (`src/ComUnidraw/unifunc.h`/`.c`,
+`src/ComUnidraw/comeditor.c`) for a worked example.
+
 ## Keyword Arguments
 
 Keywords are looked up by symbol id, cached as a `static int`:

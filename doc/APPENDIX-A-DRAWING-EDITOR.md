@@ -130,6 +130,7 @@ that human users interact with. There is no separate testing API.
 
 - `LANGUAGE.md` -- the comterp language
 - `src/comterp_/tests/TESTING.md` -- comterp self regression tests
+- `src/comdraw/tests/TESTING.md` -- comdraw self regression tests
 - `src/drawserv_/tests/TESTING.md` -- drawmo testing utility for drawserv
 - `src/DrawServ/HACKING.md` -- drawserv programming
 

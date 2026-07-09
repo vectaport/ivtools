@@ -59,6 +59,20 @@ the drawing (and any funcs the script defined) live in the session.
   `remote()`, or a trackball daemon split into two axes piping deltas.
   *The knobs are the wire.*
 
+- **lastkey_keytest.comt** — not a toy, a diagnostic: an interactive,
+  manual test of `lastkey()`'s full key vocabulary — Esc/Tab/Backspace/
+  Enter/Space/Delete as their own C character literals; every printable-
+  ASCII key (letters, digits, and all punctuation: brackets, braces,
+  parens, quotes, colon/semicolon, comma/period, every shifted-numeric
+  symbol) as itself; F1-F12/Home/End/PgUp/PgDn fixed, shift-blind; arrows
+  and Insert case-varying, shift/caps-lock signaled by uppercasing the
+  name — `"UP"`, `"INS"` — rather than a prefix. Requires a human pressing
+  real keys — there's no way to script X11 keyboard events reliably
+  enough to automate it — so it stays here rather than in
+  `run_all.comt`/CI. Re-run it by hand whenever `ComEditor::keyname()`
+  changes. `keytest()` for plain keys, `lastkey_shiftcapture()` for the
+  `:shiftcapture`-captured versions.
+
 zoomap.comt is the reference implementation of the "Askable Map"
 pattern; the genre write-up (anatomy, error pedagogy, design rules,
 the drawserv distribution path) is `doc/SPATIAL-APPLICATIONS.md`.

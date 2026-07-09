@@ -328,8 +328,87 @@ class PointerLocFunc : public UnidrawFunc {
 public:
     PointerLocFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return "x,y=%s() -- x,y location of last pointer motion."; }
+
+};
+
+//: command to dequeue the next canvas keystroke
+// keysym=lastkey() -- pop the oldest unread key pressed over the canvas
+//
+// The full naming vocabulary -- char-literal keys, arrows/ins, the fixed
+// F-key/Home/End/PgUp/PgDn names, the printable-ASCII default case, and
+// how Shift/Ctrl/Alt/Super combine into a name (case for Shift, a
+// "Ctrl-"/"Alt-"/"Super-" prefix for the others) -- is authoritatively
+// documented at ComEditor::keyname() (comeditor.h/.c), not here.  A bare
+// modifier keypress (Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper alone) is
+// never returned at all -- it isn't a "key", its effect is the
+// uppercasing/prefix on whatever key comes next.  docstring() below
+// stays short and points at keyname() rather than duplicating its
+// vocabulary in prose: keyname() is the actual source of truth, and
+// duplicated prose drifts out of sync with the code the first time
+// either one changes without the other.
+//
+// :shiftcapture (see ComEditor::shiftcapture(), comeditor.h) is a
+// separate, opt-in mechanism layered on top: while on, a Shift- or
+// CapsLock-modified arrow or letter is queued (as always) AND has its
+// normal action -- arrow pan, letter tool shortcut -- suppressed, so a
+// driving script can own the keyboard without fighting the editor's own
+// bindings.  Named "shift-capture", not the older "shift-arrow": it
+// captures letters too, and the name should describe the mechanism, not
+// one stale example of what it applies to.  A watchdog, bumped by every
+// lastkey() poll, auto-disarms it ~2s after the driving script stops
+// polling (exit, crash, ^C), so it can never stick on.  It's independent
+// of Ctrl/Alt/Super, which are never captured or suppressed -- only
+// eavesdropped, same as everything else -- so e.g. Ctrl-C still fires
+// idraw's own Copy binding exactly as if lastkey() didn't exist.
+class LastKeyFunc : public UnidrawFunc {
+public:
+    LastKeyFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "name=%s([:shiftcapture flag] [:reset]) -- portable NAME of the next unread key pressed over the canvas (nil if none); each press returned once.  Printable keys return themselves; unprintable keys get a name (\"up\", \"F1\", \"Home\", etc); Shift/Caps Lock is signaled by case, Ctrl/Alt/Super by a \"Ctrl-\"/\"Alt-\"/\"Super-\" prefix -- see ComEditor::keyname() for the full vocabulary.  :shiftcapture additionally captures Shift/CapsLock-modified arrows and letters, suppressing their normal pan/tool-shortcut."; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":shiftcapture flag  capture Shift/CapsLock-modified arrows+letters (suppress pan/shortcut) while flag true",
+	":reset              restore default key handling now",
+	nil
+      };
+      return keys;
+    }
+
+};
+
+//: TEST-ONLY: call ComEditor::keyname() directly, no keyboard required
+// name=keyname_test(code [:shift] [:ctrl] [:alt] [:super]) -- see docstring
+//
+// lastkey() itself can't be scripted end to end in CI: the name it
+// returns depends on a real X11 KeyPress reaching ComEditor::keystroke(),
+// and there's no XTest in a headless xvfb runner (see
+// lastkey_keytest.comt's own header for why that's a dead end here too).
+// But keyname() -- the actual naming logic, and where both bugs caught
+// in this PR's review lived -- takes a plain integer keysym and has no
+// dependency on the keyboard at all.  This command calls it directly,
+// bypassing ComEditor::keystroke()/the ring buffer entirely, so a CI
+// script can exercise the real production naming logic (not a
+// hand-copied stand-in) with synthetic keysym values.  Never meant for
+// a driving script -- see lastkey() for that.
+class KeynameTestFunc : public UnidrawFunc {
+public:
+    KeynameTestFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() {
+      return "name=%s(code [:shift] [:ctrl] [:alt] [:super]) -- TEST-ONLY: return ComEditor::keyname()'s name for the X11 keysym `code`, as if that keysym had just been pressed with the given modifiers held -- no keyboard involved, for exercising the real naming logic from a CI script.  Not for driving scripts; see lastkey()."; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":shift  as if Shift or Caps Lock were held",
+	":ctrl   as if Control were held",
+	":alt    as if Alt/Option were held",
+	":super  as if Super/Cmd/the Windows key were held",
+	nil
+      };
+      return keys;
+    }
 
 };
 
