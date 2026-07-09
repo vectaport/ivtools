@@ -412,7 +412,12 @@ int main (int argc, char** argv) {
 		   script resolves against the script's directory, not the cwd
 		   (mirrors comterp's `run` subcommand -- see comterp_/main.c). */
 		RunFunc::set_basepath(runfile);
-		terp->runfile(runfile);
+		/* runfile()'s own error path (ComTerp::runfile(), comterp.c)
+		   calls err_print(), which writes _errbuf2 and stderr but
+		   never touches _errbuf -- so errmsg() (== _errbuf) can't see
+		   a runfile() failure; its return value is the only reliable
+		   signal, same as before this echo was added. */
+		int runfile_status = terp->runfile(runfile);
 		/* echo the file's last expression, same as comterp's own
 		   `run <file>` subcommand does (see comterp_/main.c) --
 		   runfile() already pushes it onto the stack, it just never
@@ -421,7 +426,7 @@ int main (int argc, char** argv) {
 		ComValue::comterp(terp);
 		cout << terp->stack_top() << "\n";
 		cout.flush();
-		if (*terp->errmsg())
+		if (runfile_status < 0)
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
 	    }
 	    const char* runexpr = catalog->GetAttribute("runexpr");

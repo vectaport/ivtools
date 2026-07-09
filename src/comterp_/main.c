@@ -359,6 +359,7 @@ int main(int argc, char *argv[]) {
 	terp->brief(1);
 	ComValue::comterp(terp);
 	cout << terp->stack_top() << '\n';
+	cout.flush();
 	return 0;
       }
 
