@@ -13,14 +13,19 @@
 //     comdraw -runfile src/comdraw/examples/lastkey_keytest.comt
 // then run keytest() or keytest_capture() (typed wherever you're already
 // interacting with the session -- the comt pane, or the terminal).  Type
-// the func call FIRST, THEN click the canvas: clicking the canvas moves
-// keyboard focus there, so clicking before you finish typing just steals
-// the keystrokes meant for the func call out from under it (this is the
-// same order keydrive() uses in etchasketch.comt -- start the func, THEN
-// click the canvas to hand it your keys).  Instructions print immediately
-// and the loop's own output streams into the comt pane as it runs (see
-// ComTE_PaneCapture in comtextview.c) -- no need to wait for it to finish
-// to see anything.
+// the func call FIRST, THEN move keyboard focus to the canvas: moving
+// focus away before you finish typing just steals the keystrokes meant
+// for the func call out from under it (this is the same order keydrive()
+// uses in etchasketch.comt -- start the func, THEN hand it your keys).
+// The printed instructions tell you exactly how, and adjust themselves
+// depending on where you typed the call from (see focushint()/textpane()
+// below): a click, from the terminal REPL or -runfile, where the canvas
+// is a separate top-level window; just moving the mouse into the canvas,
+// from the -comt pane, where pane and canvas share one top-level window
+// so a click isn't needed.  Instructions print immediately and the
+// loop's own output streams into the comt pane as it runs (see
+// ComTE_PaneCapture in comtextview.c) -- no need to wait for it to
+// finish to see anything.
 //
 // WHAT TO EXPECT (see keyname()'s docstring for the authoritative list):
 //   char-literal keys -- Space and Enter come back AS themselves
@@ -102,6 +107,22 @@
 //                        eavesdropping, not intercepting.
 //   anything unmapped -- the decimal keysym as a string (rarely hit)
 
+// focushint() -- the right "give the canvas keyboard focus" instruction
+// for however this script is currently running, via the textpane()
+// command (src/ComUnidraw/unifunc.h, comt-inline-editor branch -- this
+// script depends on that branch also being present for textpane() to
+// exist; without it, textpane() is just an unrecognized command and
+// evaluates to nil, which is falsy, so focushint() falls back to the
+// "click the canvas" wording): a click is only needed from the
+// terminal REPL or -runfile, where the canvas is a separate top-level
+// window; from the -comt pane, canvas and pane share one top-level
+// window, so just moving the mouse into the canvas moves focus there
+// -- no click required.
+focushint=func(
+  if(textpane()
+     :then "Move the mouse into the canvas now to give it keyboard focus\n(from -comt, just moving the cursor there is enough -- no click needed),\nthen press "
+     :else "Click the canvas NOW to give it keyboard focus, then press "))
+
 // describe(k) -- human-readable label for a lastkey() result, for THIS
 // script's printing only; not part of lastkey()'s actual contract
 describe=func(k=arg(0);
@@ -121,7 +142,8 @@ keytest=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);
   print("=== lastkey() key test (plain keys) ===\n");
-  print("Click the canvas NOW to give it keyboard focus, then press arrows,\n");
+  print(focushint());
+  print("arrows,\n");
   print("Home, End, PgUp, PgDn, Insert, F1-F12, Esc, Tab, Backspace, Enter,\n");
   print("Space, letters, digits -- also try holding Ctrl, Alt/Option, or\n");
   print("Super/Cmd/the Windows key while pressing one.  Bare Esc quits early.\n\n");
@@ -143,7 +165,8 @@ keytest_capture=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);
   print("=== lastkey() key test (:shiftarrow capture) ===\n");
-  print("Click the canvas NOW to give it keyboard focus, then hold Shift\n");
+  print(focushint());
+  print("hold Shift\n");
   print("(or turn on Caps Lock) and press arrows or letters -- compare to\n");
   print("keytest()'s plain versions.  Plain (unmodified) Esc quits early.\n\n");
   lastkey(:shiftarrow true);
