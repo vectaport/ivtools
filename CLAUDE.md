@@ -155,14 +155,18 @@ comdraw -runexpr 'run("src/comdraw/tests/run_all.comt");exit'
 ```
 
 Same conventions as the ComTerp unit tests above (accumulate `ok`,
-register in `run_all.comt`, etc). `lastkey()`'s own return value can't
+register in `run_all.comt`, etc); what's different at this layer,
+the test inventory, and the GUI-vs-headless boundary are in
+**`src/comdraw/tests/TESTING.md`**. `lastkey()`'s own return value can't
 be scripted headlessly -- it depends on a real X11 KeyPress, and there's
 no XTest under CI's `xvfb` -- but `keyname_test()` calls the same
 production naming logic (`ComEditor::keyname()`) directly with a
-synthetic keysym, bypassing the keyboard entirely; see
-`src/comdraw/tests/lastkey.comt` and `src/comdraw/examples/lastkey_keytest.comt`
-(the manual, human-at-a-keyboard complement, deliberately excluded from
-every automated suite).
+synthetic keysym, bypassing the keyboard entirely, and is registered
+`hidden` (`ComFunc::hidden()`) so it stays out of `help()`'s listing;
+see `src/comdraw/tests/lastkey.comt` and
+`src/comdraw/examples/lastkey_keytest.comt` (the manual,
+human-at-a-keyboard complement, deliberately excluded from every
+automated suite).
 
 ### DrawServ integration tests — `src/drawserv_/tests/`
 

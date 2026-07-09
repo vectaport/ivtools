@@ -1265,14 +1265,18 @@ void ComTerp::clear_top_commands() {
     _top_commands = nil;
 }
 
-int ComTerp::add_command(const char* name, ComFunc* func, const char* alias, const char* docstring2) {
+int ComTerp::add_command(const char* name, ComFunc* func, const char* alias, const char* docstring2,
+                          boolean hidden) {
     int symid = symbol_add((char *)name);
 
     if(docstring2) func->docstring2(docstring2);
+    if (hidden) func->hidden(true);
 
-    if (!_top_commands)
-        _top_commands = new AttributeValueList();
-    _top_commands->Append(new AttributeValue(symid, AttributeValue::SymbolType));
+    if (!hidden) {
+      if (!_top_commands)
+          _top_commands = new AttributeValueList();
+      _top_commands->Append(new AttributeValue(symid, AttributeValue::SymbolType));
+    }
 
     func->funcid(symid);
     ComValue* comval = new ComValue();
@@ -1783,6 +1787,11 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
     int key = i.cur_key();
     ComValue* value = (ComValue*)i.cur_value();
     if (value->is_type(AttributeValue::CommandType)) {
+      ComFunc* commfunc = (ComFunc*)value->obj_val();
+      if (commfunc && commfunc->hidden()) {
+        i.next();
+        continue;
+      }
       const char* command_name = symbol_pntr(key);
       int opid = opr_tbl_opstr(key);
       const char* operator_name = symbol_pntr(opr_tbl_operid(opid));

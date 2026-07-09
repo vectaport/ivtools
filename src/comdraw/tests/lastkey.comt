@@ -17,6 +17,9 @@
 //      via keyname_test(), which calls ComEditor::keyname() directly
 //      with a synthetic keysym+modifiers, bypassing the keyboard (and
 //      the ring buffer) entirely
+//   5. keyname_test() itself stays out of help()'s listing (it's marked
+//      hidden -- test-only, not for driving scripts) while remaining
+//      fully callable
 //
 // funcs: lastkey keyname_test help index
 ok=true
@@ -76,6 +79,13 @@ print("11 keyname_test(0xff1b) XK_Escape plain (expect the raw ESC byte): %v\n" 
 
 ok=ok&&(keyname_test(0xff1b :shift)=="ESC")
 print("12 keyname_test(0xff1b :shift) XK_Escape shifted (expect \"ESC\"): %v\n" keyname_test(0xff1b :shift))
+
+// 7. keyname_test() is a TEST-ONLY command (ComFunc::hidden(), set via
+// add_command()'s 'hidden' arg in ComEditor::AddCommands()) -- it must stay
+// fully callable (proven above) but drop out of the general help() listing,
+// so ordinary driving-script authors don't trip over it while browsing.
+ok=ok&&(index(help() "keyname_test" :substr)==nil)
+print("13 keyname_test absent from help()'s listing (expect nil): %v\n" index(help() "keyname_test" :substr))
 
 print("lastkey: %v\n" ok)
 ok

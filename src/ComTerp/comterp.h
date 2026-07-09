@@ -122,8 +122,11 @@ public:
     void brief(boolean flag) { _brief = flag; }
     // set brief mode flag.
 
-    int add_command(const char* name, ComFunc*, const char* alias = nil, const char* docstring2 = nil);
-    // add a derived ComFunc to be known by 'name'.
+    int add_command(const char* name, ComFunc*, const char* alias = nil, const char* docstring2 = nil,
+                     boolean hidden = false);
+    // add a derived ComFunc to be known by 'name'.  'hidden' keeps it out of
+    // the no-arg help() listing and help(:top) while leaving it fully
+    // callable, including help(name) -- see ComFunc::hidden().
     void list_commands(ostream& out, boolean sorted = false);
     // print an optionally sorted list of commands to an ostream.
     int* get_commands(int &ncommands, boolean sorted = false);
