@@ -11,7 +11,7 @@
 //
 // Run it like:
 //     comdraw -runfile src/comdraw/examples/lastkey_keytest.comt
-// then run keytest() or lastkey_shiftcapture() (typed wherever you're already
+// then run keytest() or keytest(:shiftcapture) (typed wherever you're already
 // interacting with the session -- the comt pane, or the terminal).  Type
 // the func call FIRST, THEN move keyboard focus to the canvas: moving
 // focus away before you finish typing just steals the keystrokes meant
@@ -96,10 +96,11 @@
 //                        quits-early check only matches a bare, unchorded
 //                        Esc -- Ctrl-Esc/Alt-Esc/Super-Esc do not quit
 //                        either, same as Shift-Esc.
-//   :shiftcapture     -- (lastkey_shiftcapture() only) additionally
-//                        suppresses the normal pan/tool-shortcut for a
-//                        shifted arrow or letter, so a driving script can
-//                        own the keyboard -- opt-in, off by default.
+//   :shiftcapture     -- (keytest(:shiftcapture) or lastkey_shiftcapture()
+//                        only) additionally suppresses the normal
+//                        pan/tool-shortcut for a shifted arrow or
+//                        letter, so a driving script can own the
+//                        keyboard -- opt-in, off by default.
 //                        Named "shift-capture", not "shift-arrow": it
 //                        captures letters too, not just arrows.  Ctrl/
 //                        Alt/Super are never captured -- only Shift/
@@ -136,11 +137,15 @@ describe=func(k=arg(0);
   if(k=="\x7f" :then return("DELETE"));
   k)
 
-// keytest([n]) -- plain (uncaptured) keys: arrows, Home/End, PgUp/PgDn,
-// Insert, F1-F12, Esc/Tab/Backspace/Enter/Space, letters, digits, and
-// Ctrl-/Alt-/Super- chords of any of those.  Runs for n polls (default
-// 2000, about a minute) or until you press a bare (unchorded) Esc.
+// keytest([n] [:shiftcapture]) -- plain (uncaptured) keys: arrows,
+// Home/End, PgUp/PgDn, Insert, F1-F12, Esc/Tab/Backspace/Enter/Space,
+// letters, digits, and Ctrl-/Alt-/Super- chords of any of those.  Runs
+// for n polls (default 2000, about a minute) or until you press a bare
+// (unchorded) Esc.  :shiftcapture diverts to lastkey_shiftcapture(n)
+// instead -- one func, one keyword, two tests: exactly the kind of
+// thing comterp keyword args are for.
 keytest=func(n=arg(0);
+  if(shiftcapture!=nil :then return(lastkey_shiftcapture(n)));
   if(n==nil :then n=2000);
   lastkey(:reset);
   print("=== lastkey() key test (plain keys) ===\n");
@@ -186,4 +191,4 @@ lastkey_shiftcapture=func(n=arg(0);
 
 print("Test of interactive key capture\n")
 print("keytest()               # plain keys\n")
-print("lastkey_shiftcapture()  # Shift/Caps-Lock-captured arrows and letters\n")
+print("keytest(:shiftcapture)  # same test, Shift/Caps-Lock-captured\n")
