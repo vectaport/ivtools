@@ -129,7 +129,11 @@ public:
     // widest defined keysym space -- with no risk of ever colliding.
     enum { SHIFT_FLAG = 1UL<<32, CTRL_FLAG = 1UL<<33, ALT_FLAG = 1UL<<34, SUPER_FLAG = 1UL<<35 };
     void shiftcapture(boolean on);  // enable/disable + (re)arm
-    boolean shiftcapture();         // live state (false once expired)
+    boolean shiftcapture();         // live state -- NOT a pure query: lazily
+                                     // expires (and clears) the watchdog on
+                                     // read if the deadline has lapsed, so
+                                     // two calls back-to-back can observe
+                                     // true then false with no poll between
     void shiftcapture_poll();       // heartbeat: bump the watchdog
 
     // Portable name for a queued key code: a standard C character literal
@@ -167,6 +171,12 @@ public:
     // the lastkey() surface -- scripts compare names, never raw X
     // keysyms, so a Qt (or other) backend need only map its key codes
     // to the same names.
+    //
+    // CONTRACT: the returned pointer aliases a single persistent buffer
+    // owned by this object (_keyname_buf below) -- it is NOT a copy, and
+    // the NEXT call to keyname() overwrites it.  Consume the string (or
+    // copy it, e.g. via ComValue's own copy-on-construct) before calling
+    // keyname() again; never cache the returned pointer across two calls.
     const char* keyname(unsigned long code);
 
 protected:
