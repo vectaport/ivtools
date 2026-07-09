@@ -19,8 +19,9 @@
 #define _GCC_SIZE_T /* workaround for _G_size_t conflict */
 #endif
 
+#include <limits.h>
 #include <stdio.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 #include <sys/stat.h>
 extern "C" {
 #include <malloc.h>
@@ -50,8 +51,13 @@ extern "C" {
 #endif
 
 // allocate 25% extra space to prepare for expansion without
-// the need to expand buffer
-static const float allocate_extra = 0.25;
+// the need to expand buffer.  double, not float: float's ~24-bit
+// mantissa can't exactly represent a large int (e.g. a file size near
+// the 32-bit boundary), so `len * allocate_extra` below would silently
+// round to a slightly-too-large add_size for a big len, eating into the
+// safety margin load()'s size guard depends on; double has 52 mantissa
+// bits, exact for any 32-bit int.
+static const double allocate_extra = 0.25;
 
 EivTextBuffer::EivTextBuffer()
 : TextBuffer((char *)malloc(1024), 0, 1024) // we always allocate 1k buffer
@@ -86,6 +92,21 @@ int EivTextBuffer::load(const char* path)
    if (fstat(fd, &info) < 0) {
       close(fd);
       return OpenError;		// can't access file
+   }
+   // info.st_size is an off_t (64-bit on modern systems); len and
+   // add_size below are int, and add_size = len * allocate_extra, so
+   // len + add_size = len * (1 + allocate_extra).  A file whose size
+   // wraps or overflows through that arithmetic could either land on a
+   // huge realloc() request (fails safely, already handled below) or --
+   // worse -- wrap around to a small positive int, silently truncating
+   // a huge file down to whatever tiny window st_size happens to alias
+   // to mod 2^32, with no error at all.  Reject before either can
+   // happen; threshold is tied to allocate_extra so it stays exact if
+   // that constant ever changes, rather than a separately-maintained
+   // magic number.
+   if (info.st_size > (off_t)(INT_MAX / (1.0 + allocate_extra))) {
+      close(fd);
+      return SizeError;		// file too large to load safely
    }
    int len = (int) info.st_size;
 
