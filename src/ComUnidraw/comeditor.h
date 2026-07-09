@@ -140,21 +140,27 @@ public:
     // for keys that have one -- every printable-ASCII key (letters,
     // digits, and all punctuation: brackets, braces, parens, quotes,
     // colon/semicolon, comma/period, every shifted-numeric symbol, etc.)
-    // as itself, plus " " space and "\r" enter (always); "\x1b" esc,
-    // "\t" tab, "\b" backspace when unshifted, else the fixed name
-    // uppercase ("ESC"/"TAB"/"DEL" -- Shift-Tab is an established
-    // reverse-focus/indent convention, Shift-Esc/Shift-Backspace get
-    // the same uppercasing for uniformity); "\x7f" delete (always --
-    // distinct from Backspace, no shifted form); "up"/"down"/"left"/
-    // "right"/"ins" for keys with a meaningful shifted form; "F1".."F12"/
-    // "Home"/"End"/"PgUp"/"PgDn" fixed, always that capitalization -- no
-    // established shifted convention exists for any of these; else the
-    // decimal keysym.  If shift or caps lock was down, arrows/ins come
-    // back UPPERCASE ("UP", "INS") -- for letters and shifted-symbol
-    // punctuation this already falls out of the keysym itself (Shift+d
-    // arrives as XK_D, Shift+[ arrives as XK_braceleft i.e. '{'), for
-    // arrows/ins/esc/tab/backspace keyname() applies it explicitly,
-    // since they have no natural shifted form to fall back on.
+    // as itself, plus " " space and "\r" enter (always); "\t" tab, "\b"
+    // backspace when unshifted, else the fixed name uppercase
+    // ("TAB"/"DEL" -- Shift-Tab is an established reverse-focus/indent
+    // convention, Shift-Backspace gets the same uppercasing for
+    // uniformity); "\x7f" delete (always -- distinct from Backspace, no
+    // shifted form); "up"/"down"/"left"/"right"/"ins" for keys with a
+    // meaningful shifted form; "F1".."F12"/"Home"/"End"/"PgUp"/"PgDn"
+    // fixed, always that capitalization -- no established shifted
+    // convention exists for any of these; else the decimal keysym.
+    // Escape is always "Esc"/"ESC" (shift/caps-lock uppercases it same
+    // as Tab/Backspace) -- NOT the raw \x1b byte: unlike \t/\b/\r/' ',
+    // which are genuine C literals returned as themselves, standard
+    // C/C++ has no \e escape for Escape, so \x1b was never "Esc as
+    // itself" the way \t is "Tab as itself" -- it was just the generic
+    // numeric-byte escape, no more "Esc" than \x41 is 'A'.  If shift or
+    // caps lock was down, arrows/ins come back UPPERCASE ("UP", "INS")
+    // -- for letters and shifted-symbol punctuation this already falls
+    // out of the keysym itself (Shift+d arrives as XK_D, Shift+[
+    // arrives as XK_braceleft i.e. '{'), for arrows/ins/esc/tab/
+    // backspace keyname() applies it explicitly, since they have no
+    // natural shifted form to fall back on.
     //
     // If Ctrl, Alt, and/or Super was held, the name above is prefixed
     // "Ctrl-"/"Alt-"/"Super-" (that fixed order, chained when more than

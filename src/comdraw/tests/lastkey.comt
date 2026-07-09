@@ -74,8 +74,8 @@ print("9 keyname_test(0xff52 :shift) XK_Up shifted (expect \"UP\"): %v\n" keynam
 ok=ok&&(keyname_test(0x78 :ctrl)=="Ctrl-X")
 print("10 keyname_test(0x78 :ctrl) Ctrl+x (expect \"Ctrl-X\"): %v\n" keyname_test(0x78 :ctrl))
 
-ok=ok&&(keyname_test(0xff1b)=="\x1b")
-print("11 keyname_test(0xff1b) XK_Escape plain (expect the raw ESC byte): %v\n" (keyname_test(0xff1b)=="\x1b"))
+ok=ok&&(keyname_test(0xff1b)=="Esc")
+print("11 keyname_test(0xff1b) XK_Escape plain (expect \"Esc\"): %v\n" keyname_test(0xff1b))
 
 ok=ok&&(keyname_test(0xff1b :shift)=="ESC")
 print("12 keyname_test(0xff1b :shift) XK_Escape shifted (expect \"ESC\"): %v\n" keyname_test(0xff1b :shift))

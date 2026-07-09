@@ -494,19 +494,32 @@ void ComEditor::shiftcapture_poll() {
    without the two concerns tangled into one control flow.
 
    `chorded` is true when the caller is about to prefix the result with
-   Ctrl/Alt/Super.  It only changes anything for the six control-
-   character keys: Esc/Tab/Backspace already had a readable uppercase
-   name for real Shift; Enter/Space/true-Delete didn't (no established
-   Shift+Enter/Space/Delete convention -- see keyname()'s docstring).
-   But gluing a raw \r/space/\x7f byte onto a "Ctrl-" prefix would leave
-   an unprintable, hard-to-compare chord string, so `chorded` borrows the
-   same readable-name treatment for those three too, without changing
-   their BARE (unchorded, unshifted) behavior at all. */
+   Ctrl/Alt/Super.  It only changes anything for the five remaining
+   control-character keys: Tab/Backspace already had a readable
+   uppercase name for real Shift; Enter/Space/true-Delete didn't (no
+   established Shift+Enter/Space/Delete convention -- see keyname()'s
+   docstring).  But gluing a raw \r/space/\x7f byte onto a "Ctrl-"
+   prefix would leave an unprintable, hard-to-compare chord string, so
+   `chorded` borrows the same readable-name treatment for those three
+   too, without changing their BARE (unchorded, unshifted) behavior at
+   all.
+
+   Escape is always readable ("Esc"/"ESC"), never the raw \x1b byte:
+   unlike Tab/Backspace/Enter/Space, which return their genuine C
+   escape-sequence literal (\t, \b, \r) or a directly-typeable
+   printable char (' ') when bare -- a real, first-class representation
+   in the language -- Escape has no such literal in standard C/C++ (no
+   \e), so \x1b was never "Esc as itself" the way \t is "Tab as
+   itself"; it was just the generic numeric-byte escape doing double
+   duty, spelling out a byte value with no more claim to being "Esc"
+   than \x41 has to being 'A'. Scripts comparing against \x1b (matching
+   what a terminal would send) is what caused the original keydrive()
+   Esc-detection bug this PR's sibling caught -- see git log. */
 static const char* core_keyname(unsigned long ks, boolean shifted, boolean chorded,
 				 char* buf, size_t bufsz) {
     boolean textual = shifted || chorded;
     switch (ks) {
-      case XK_Escape:    return textual ? "ESC"    : "\x1b";
+      case XK_Escape:    return textual ? "ESC"    : "Esc";
       case XK_space:     return chorded ? "SPACE"  : " ";
       case XK_Return:    return chorded ? "ENTER"  : "\r";
       case XK_Tab:       return textual ? "TAB"    : "\t";
