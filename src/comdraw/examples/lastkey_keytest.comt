@@ -11,7 +11,7 @@
 //
 // Run it like:
 //     comdraw -runfile src/comdraw/examples/lastkey_keytest.comt
-// then run keytest() or keytest_capture() (typed wherever you're already
+// then run keytest() or lastkey_shiftcapture() (typed wherever you're already
 // interacting with the session -- the comt pane, or the terminal).  Type
 // the func call FIRST, THEN move keyboard focus to the canvas: moving
 // focus away before you finish typing just steals the keystrokes meant
@@ -96,15 +96,17 @@
 //                        quits-early check only matches a bare, unchorded
 //                        Esc -- Ctrl-Esc/Alt-Esc/Super-Esc do not quit
 //                        either, same as Shift-Esc.
-//   :shiftarrow       -- (keytest_capture() only) additionally suppresses
-//                        the normal pan/tool-shortcut for a shifted arrow
-//                        or letter, so a driving script can own the
-//                        keyboard -- opt-in, off by default.  Ctrl/Alt/
-//                        Super are never captured -- only Shift/CapsLock
-//                        are, and the ordinary keyboard shortcuts they'd
-//                        normally trigger (Ctrl-C for Copy, etc.) still
-//                        fire exactly as before; lastkey() is only
-//                        eavesdropping, not intercepting.
+//   :shiftcapture     -- (lastkey_shiftcapture() only) additionally
+//                        suppresses the normal pan/tool-shortcut for a
+//                        shifted arrow or letter, so a driving script can
+//                        own the keyboard -- opt-in, off by default.
+//                        Named "shift-capture", not "shift-arrow": it
+//                        captures letters too, not just arrows.  Ctrl/
+//                        Alt/Super are never captured -- only Shift/
+//                        CapsLock are, and the ordinary keyboard
+//                        shortcuts they'd normally trigger (Ctrl-C for
+//                        Copy, etc.) still fire exactly as before;
+//                        lastkey() is only eavesdropping, not intercepting.
 //   anything unmapped -- the decimal keysym as a string (rarely hit)
 
 // focushint() -- the right "give the canvas keyboard focus" instruction
@@ -157,19 +159,20 @@ keytest=func(n=arg(0);
     update(30000));
   print("keytest done.\n"))
 
-// keytest_capture([n]) -- :shiftarrow-captured keys: hold Shift or turn
-// on Caps Lock and press an arrow or a letter to see the name come back
-// UPPERCASE and the pan/tool-shortcut suppressed.  Plain (unmodified)
-// Esc quits early.
-keytest_capture=func(n=arg(0);
+// lastkey_shiftcapture([n]) -- :shiftcapture-captured keys: hold Shift or
+// turn on Caps Lock and press an arrow or a letter to see the name come
+// back UPPERCASE and the pan/tool-shortcut suppressed.  Plain
+// (unmodified) Esc quits early.  Named after the keyword it exercises --
+// rename this too if :shiftcapture is ever renamed again.
+lastkey_shiftcapture=func(n=arg(0);
   if(n==nil :then n=2000);
   lastkey(:reset);
-  print("=== lastkey() key test (:shiftarrow capture) ===\n");
+  print("=== lastkey() key test (:shiftcapture) ===\n");
   print(focushint());
-  print("hold Shift\n");
-  print("(or turn on Caps Lock) and press arrows or letters -- compare to\n");
-  print("keytest()'s plain versions.  Plain (unmodified) Esc quits early.\n\n");
-  lastkey(:shiftarrow true);
+  print("arrows or letters while holding Shift (or with Caps Lock on) --\n");
+  print("compare to keytest()'s plain versions.  Plain (unmodified) Esc\n");
+  print("quits early.\n\n");
+  lastkey(:shiftcapture true);
   done=0;
   for(fi=0 (fi<n)&&(done==0) fi++
     k=lastkey();
@@ -178,9 +181,9 @@ keytest_capture=func(n=arg(0);
       if(k=="\x1b" :then done=1);
       k=lastkey());
     update(30000));
-  lastkey(:shiftarrow false);
-  print("keytest_capture done.  (:shiftarrow restored to off.)\n"))
+  lastkey(:shiftcapture false);
+  print("lastkey_shiftcapture done.  (:shiftcapture restored to off.)\n"))
 
 print("Test of interactive key capture\n")
-print("keytest()          # plain keys\n")
-print("keytest_capture()  # Shift/Caps-Lock-captured arrows and letters\n")
+print("keytest()               # plain keys\n")
+print("lastkey_shiftcapture()  # Shift/Caps-Lock-captured arrows and letters\n")

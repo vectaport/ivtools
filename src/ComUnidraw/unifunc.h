@@ -335,16 +335,43 @@ public:
 
 //: command to dequeue the next canvas keystroke
 // keysym=lastkey() -- pop the oldest unread key pressed over the canvas
+//
+// The full naming vocabulary -- char-literal keys, arrows/ins, the fixed
+// F-key/Home/End/PgUp/PgDn names, the printable-ASCII default case, and
+// how Shift/Ctrl/Alt/Super combine into a name (case for Shift, a
+// "Ctrl-"/"Alt-"/"Super-" prefix for the others) -- is authoritatively
+// documented at ComEditor::keyname() (comeditor.h/.c), not here.  A bare
+// modifier keypress (Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper alone) is
+// never returned at all -- it isn't a "key", its effect is the
+// uppercasing/prefix on whatever key comes next.  docstring() below
+// stays short and points at keyname() rather than duplicating its
+// vocabulary in prose: keyname() is the actual source of truth, and
+// duplicated prose drifts out of sync with the code the first time
+// either one changes without the other.
+//
+// :shiftcapture (see ComEditor::shiftcapture(), comeditor.h) is a
+// separate, opt-in mechanism layered on top: while on, a Shift- or
+// CapsLock-modified arrow or letter is queued (as always) AND has its
+// normal action -- arrow pan, letter tool shortcut -- suppressed, so a
+// driving script can own the keyboard without fighting the editor's own
+// bindings.  Named "shift-capture", not the older "shift-arrow": it
+// captures letters too, and the name should describe the mechanism, not
+// one stale example of what it applies to.  A watchdog, bumped by every
+// lastkey() poll, auto-disarms it ~2s after the driving script stops
+// polling (exit, crash, ^C), so it can never stick on.  It's independent
+// of Ctrl/Alt/Super, which are never captured or suppressed -- only
+// eavesdropped, same as everything else -- so e.g. Ctrl-C still fires
+// idraw's own Copy binding exactly as if lastkey() didn't exist.
 class LastKeyFunc : public UnidrawFunc {
 public:
     LastKeyFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-      return "name=%s([:shiftarrow flag] [:reset]) -- portable NAME of the next unread keystroke over the canvas (nil if none); each press returned once.  A bare modifier keypress (Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper alone) is never returned -- its effect shows up as uppercasing or a Ctrl-/Alt-/Super- prefix on whatever key comes next instead.  Any key with a standard C character literal comes back as that literal -- every printable-ASCII key (letters, digits, brackets/braces/parens, quotes, colon/semicolon, comma/period, every shifted-numeric symbol, etc.) as itself, plus \" \" space and \"\\r\" enter (always, unless chorded -- see below), \"\\x1b\" esc/\"\\t\" tab/\"\\b\" backspace when unshifted and unchorded (else \"ESC\"/\"TAB\"/\"DEL\"), \"\\x7f\" delete (always, unless chorded -- distinct from backspace).  Keys with no character form get a name: \"up\" \"down\" \"left\" \"right\" \"ins\" (case varies with shift, see below), or a fixed keyboard-label spelling that never varies -- \"F1\"..\"F12\" \"Home\" \"End\" \"PgUp\" \"PgDn\" -- since none of those have an established shifted convention (Shift+F1 or Shift+Home don't mean anything special the way Shift+Insert=paste or Shift+arrow do); anything else unmapped falls back to the decimal keysym.  If shift was held or caps lock was on, arrows/ins/esc/tab/backspace come back UPPERCASE (\"UP\", \"INS\", \"ESC\", \"TAB\", \"DEL\") -- for letters and shifted-symbol punctuation this already falls out of the keysym itself (Shift+[ arrives as XK_braceleft i.e. '{'); there's no separate prefix, just case.  If Ctrl and/or Alt and/or Super was ALSO held, the name is prefixed \"Ctrl-\"/\"Alt-\"/\"Super-\" (that fixed order when more than one), a lone lowercase letter is forced capital after the prefix regardless of real Shift state (every OS writes \"Ctrl-C\", never \"Ctrl-c\"), and real Shift held alongside shows up by capitalizing the prefix word instead (\"Ctrl-C\" is plain Ctrl+c, \"CTRL-C\" is Ctrl+Shift+c); Enter/Space/Delete switch to their readable name (\"ENTER\"/\"SPACE\"/\"DELETE\") when chorded so the string stays all text.  :shiftarrow true additionally captures modified arrows AND letters -- Shift held OR Caps Lock on -- suppressing their pan/tool-shortcut, until :shiftarrow false, :reset, or the poll watchdog lapses ~2s"; }
+      return "name=%s([:shiftcapture flag] [:reset]) -- portable NAME of the next unread key pressed over the canvas (nil if none); each press returned once.  Printable keys return themselves; unprintable keys get a name (\"up\", \"F1\", \"Home\", etc); Shift/Caps Lock is signaled by case, Ctrl/Alt/Super by a \"Ctrl-\"/\"Alt-\"/\"Super-\" prefix -- see ComEditor::keyname() for the full vocabulary.  :shiftcapture additionally captures Shift/CapsLock-modified arrows and letters, suppressing their normal pan/tool-shortcut."; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":shiftarrow flag  capture modified arrows+letters (Shift or Caps Lock; suppress pan/shortcut) while flag true",
-	":reset            restore default key handling now",
+	":shiftcapture flag  capture Shift/CapsLock-modified arrows+letters (suppress pan/shortcut) while flag true",
+	":reset              restore default key handling now",
 	nil
       };
       return keys;

@@ -974,8 +974,8 @@ LastKeyFunc::LastKeyFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 
 void LastKeyFunc::execute() {
   // capture keyword args before reset_stack()
-  static int shiftarrow_sym = symbol_add("shiftarrow");
-  ComValue shiftarrowv(stack_key(shiftarrow_sym, false, ComValue::blankval(), true));
+  static int shiftcapture_sym = symbol_add("shiftcapture");
+  ComValue shiftcapturev(stack_key(shiftcapture_sym, false, ComValue::blankval(), true));
   static int reset_sym = symbol_add("reset");
   boolean resetflag = stack_key(reset_sym).is_true();
   reset_stack();
@@ -987,22 +987,22 @@ void LastKeyFunc::execute() {
 
   // lastkey(:reset) -- restore default arrow panning immediately
   if (resetflag) {
-    ed->shiftarrow_capture(false);
+    ed->shiftcapture(false);
     push_stack(ComValue::nullval());
     return;
   }
 
-  // lastkey(:shiftarrow true|false) -- enable/disable shift-arrow capture;
-  // returns the resulting live state.  (Bare :shiftarrow enables.)
-  if (!shiftarrowv.is_blank()) {
-    ed->shiftarrow_capture(shiftarrowv.is_true());
-    ComValue rv(ed->shiftarrow_capture() ? 1 : 0, ComValue::BooleanType);
+  // lastkey(:shiftcapture true|false) -- enable/disable shift-capture;
+  // returns the resulting live state.  (Bare :shiftcapture enables.)
+  if (!shiftcapturev.is_blank()) {
+    ed->shiftcapture(shiftcapturev.is_true());
+    ComValue rv(ed->shiftcapture() ? 1 : 0, ComValue::BooleanType);
     push_stack(rv);
     return;
   }
 
   // plain poll: heartbeat the capture watchdog, then dequeue the next key
-  ed->shiftarrow_poll();
+  ed->shiftcapture_poll();
   unsigned long code = ed->dequeue_key();
   if (code == 0) {
     push_stack(ComValue::nullval());

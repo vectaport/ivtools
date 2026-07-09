@@ -69,7 +69,7 @@ static double comeditor_now_seconds() {
     clock_gettime(CLOCK_MONOTONIC, &ts);
     return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
 }
-static const double SHIFTARROW_TIMEOUT = 2.0;   // seconds without a poll -> disarm
+static const double SHIFTCAPTURE_TIMEOUT = 2.0;   // seconds without a poll -> disarm
 
 #include <Unidraw/Commands/command.h>
 
@@ -118,14 +118,14 @@ ComEditor::ComEditor(boolean initflag, OverlayKit* kit)
   _terp = nil;
   _whiteboard = -1;
   _keyq_head = _keyq_tail = 0;
-  _shiftarrow_on = false;
-  _shiftarrow_deadline = 0.0;
+  _shiftcapture_on = false;
+  _shiftcapture_deadline = 0.0;
 }
 
 void ComEditor::Init (OverlayComp* comp, const char* name) {
     _keyq_head = _keyq_tail = 0;
-    _shiftarrow_on = false;
-    _shiftarrow_deadline = 0.0;
+    _shiftcapture_on = false;
+    _shiftcapture_deadline = 0.0;
     if (!comp) comp = new OverlayIdrawComp;
     _terp = new ComTerpServ();
     ((OverlayUnidraw*)unidraw)->comterp(_terp);
@@ -407,7 +407,7 @@ void ComEditor::keystroke(const Event& e) {
     boolean shifted = e.shift_is_down() || e.capslock_is_down();
 
     // Ctrl/Alt/Super ride along as informational bits on every key, just
-    // like SHIFT_FLAG -- orthogonal to :shiftarrow capture below, which
+    // like SHIFT_FLAG -- orthogonal to :shiftcapture below, which
     // only decides whether Shift's normal pan/tool-shortcut is ALSO
     // suppressed.  meta_is_down() tests Mod1Mask, which on essentially
     // every current keyboard IS Alt (Alt and Meta share the same bit; a
@@ -420,8 +420,8 @@ void ComEditor::keystroke(const Event& e) {
 	| (e.meta_is_down()         ? ALT_FLAG   : 0)
 	| ((e.keymask() & Mod4Mask) ? SUPER_FLAG : 0);
 
-    // shift-arrow capture (opt-in, default off): while on, a MODIFIED arrow
-    // or letter -- Shift held OR Caps Lock on -- is routed to the key queue
+    // shift-capture (opt-in, default off): while on, a MODIFIED arrow or
+    // letter -- Shift held OR Caps Lock on -- is routed to the key queue
     // with SHIFT_FLAG and its normal action (arrow pan, letter tool
     // shortcut) is suppressed, so a script owns the keyboard while it
     // drives.  Caps Lock is the hands-free enable (and the natural
@@ -430,7 +430,7 @@ void ComEditor::keystroke(const Event& e) {
     // shortcuts.  e.keysym() already folds shift in (Shift+d arrives as
     // XK_D), so the queued code carries its natural case; keyname() only
     // has to invent an uppercase form for keys that don't have one already.
-    if (shifted && e.rep()->xevent_.type == KeyPress && shiftarrow_capture()) {
+    if (shifted && e.rep()->xevent_.type == KeyPress && shiftcapture()) {
 	if (ks==XK_Up || ks==XK_Down || ks==XK_Left || ks==XK_Right
 	    || (ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z)) {
 	    enqueue_key((unsigned long)ks | flags);
@@ -461,21 +461,21 @@ unsigned long ComEditor::dequeue_key() {
     return k;
 }
 
-// shift-arrow capture with a self-disarming watchdog (see comeditor.h).
-void ComEditor::shiftarrow_capture(boolean on) {
-    _shiftarrow_on = on;
-    if (on) _shiftarrow_deadline = comeditor_now_seconds() + SHIFTARROW_TIMEOUT;
+// shift-capture with a self-disarming watchdog (see comeditor.h).
+void ComEditor::shiftcapture(boolean on) {
+    _shiftcapture_on = on;
+    if (on) _shiftcapture_deadline = comeditor_now_seconds() + SHIFTCAPTURE_TIMEOUT;
 }
 
-boolean ComEditor::shiftarrow_capture() {
-    if (_shiftarrow_on && comeditor_now_seconds() > _shiftarrow_deadline)
-	_shiftarrow_on = false;           // watchdog lapsed -> auto-restore
-    return _shiftarrow_on;
+boolean ComEditor::shiftcapture() {
+    if (_shiftcapture_on && comeditor_now_seconds() > _shiftcapture_deadline)
+	_shiftcapture_on = false;           // watchdog lapsed -> auto-restore
+    return _shiftcapture_on;
 }
 
-void ComEditor::shiftarrow_poll() {
-    if (_shiftarrow_on)
-	_shiftarrow_deadline = comeditor_now_seconds() + SHIFTARROW_TIMEOUT;
+void ComEditor::shiftcapture_poll() {
+    if (_shiftcapture_on)
+	_shiftcapture_deadline = comeditor_now_seconds() + SHIFTCAPTURE_TIMEOUT;
 }
 
 // map a queued key code to a portable name (see comeditor.h).  The X keysym

@@ -86,21 +86,24 @@ public:
     void enqueue_key(unsigned long keysym);
     unsigned long dequeue_key();          // 0 when the queue is empty
 
-    // optional shift-arrow capture (default OFF): while on, a modified arrow
-    // OR letter (Shift held OR Caps Lock on) is queued with SHIFT_FLAG set
+    // optional shift-capture (default OFF): while on, a modified arrow OR
+    // letter (Shift held OR Caps Lock on) is queued with SHIFT_FLAG set
     // and its normal action -- arrow pan, letter tool shortcut -- is
-    // suppressed, so a script owns the keyboard while it drives.  Bare
-    // (unmodified) arrows/letters are untouched.  Caps Lock is the
-    // hands-free enable (and the two-player enable).  A watchdog bumped by
-    // every lastkey() poll auto-restores the default if the driving script
-    // stops polling (exit, crash, ^C) -- so it can't stick.  SHIFT_FLAG
-    // itself is orthogonal to capture, though: keystroke() sets it (and
-    // CTRL_FLAG/ALT_FLAG/SUPER_FLAG) on ANY key (captured or not) pressed
-    // while that modifier is down, so keyname() can name/uppercase keys
-    // that have no natural case of their own (see below) -- capture only
-    // additionally decides whether the normal pan/shortcut also gets
-    // suppressed, and only ever looks at Shift/Caps Lock, never Ctrl/Alt/
-    // Super.
+    // suppressed, so a script owns the keyboard while it drives.  Named
+    // "shift-capture", not "shift-arrow": it was arrow-only early on, but
+    // now covers letters too, and the name should describe the mechanism
+    // (capturing a Shift-modified key), not one now-stale example of what
+    // it applies to.  Bare (unmodified) arrows/letters are untouched.
+    // Caps Lock is the hands-free enable (and the two-player enable).  A
+    // watchdog bumped by every lastkey() poll auto-restores the default
+    // if the driving script stops polling (exit, crash, ^C) -- so it
+    // can't stick.  SHIFT_FLAG itself is orthogonal to capture, though:
+    // keystroke() sets it (and CTRL_FLAG/ALT_FLAG/SUPER_FLAG) on ANY key
+    // (captured or not) pressed while that modifier is down, so
+    // keyname() can name/uppercase keys that have no natural case of
+    // their own (see below) -- capture only additionally decides whether
+    // the normal pan/shortcut also gets suppressed, and only ever looks
+    // at Shift/Caps Lock, never Ctrl/Alt/Super.
     //
     // CTRL_FLAG/ALT_FLAG/SUPER_FLAG are the only three modifier "roles"
     // kept out of the historical five (Symbolics/Sun keyboards also had
@@ -115,9 +118,9 @@ public:
     // i.e. Super -- see keyname()'s docstring for how they combine with a
     // key name.
     enum { SHIFT_FLAG = 0x10000, CTRL_FLAG = 0x20000, ALT_FLAG = 0x40000, SUPER_FLAG = 0x80000 };
-    void shiftarrow_capture(boolean on);  // enable/disable + (re)arm
-    boolean shiftarrow_capture();         // live state (false once expired)
-    void shiftarrow_poll();               // heartbeat: bump the watchdog
+    void shiftcapture(boolean on);  // enable/disable + (re)arm
+    boolean shiftcapture();         // live state (false once expired)
+    void shiftcapture_poll();       // heartbeat: bump the watchdog
 
     // Portable name for a queued key code: a standard C character literal
     // for keys that have one -- every printable-ASCII key (letters,
@@ -165,8 +168,8 @@ protected:
     unsigned long _keyq[KEYQ_SIZE];
     int _keyq_head;
     int _keyq_tail;
-    boolean _shiftarrow_on;
-    double _shiftarrow_deadline;          // seconds; capture expires past this
+    boolean _shiftcapture_on;
+    double _shiftcapture_deadline;        // seconds; capture expires past this
     char _keyname_buf[32];                // scratch for keyname()
 };
 
