@@ -110,7 +110,7 @@ capabilities (`comterp_listen`, DrawServ). See `INSTALL` §0.f.
 
 ## Testing
 
-There is no `make test`. ivtools has **two self-hosted test suites**, both
+There is no `make test`. ivtools has **three self-hosted test suites**, all
 written in ComTerp itself.
 
 ### ComTerp unit tests — `src/comterp_/tests/`
@@ -140,6 +140,33 @@ before adding or editing any `.comt` test. Highlights:
   `// intentional error: ... -- do not remove or make valid` comment naming
   the malformation and print an INTENTIONAL banner into the log just before
   the error fires (TESTING.md rule 5).
+
+### comdraw graphical-scripting tests — `src/comdraw/tests/`
+
+`.comt` scripts exercising comdraw-specific scripting (raster pixels,
+graphic create/select/export, dot-assignment on comps, `lastkey()`) --
+comdraw is comterp plus graphics in one process, so these need a mapped
+window; comdraw's startup seed `update()` (`main.c`) realizes the canvas
+before any script runs:
+
+```bash
+comdraw -stdin_off -runfile src/comdraw/tests/run_all.comt   # scripted/CI
+comdraw -runexpr 'run("src/comdraw/tests/run_all.comt");exit'
+```
+
+Same conventions as the ComTerp unit tests above (accumulate `ok`,
+register in `run_all.comt`, etc); what's different at this layer,
+the test inventory, and the GUI-vs-headless boundary are in
+**`src/comdraw/tests/TESTING.md`**. `lastkey()`'s own return value can't
+be scripted headlessly -- it depends on a real X11 KeyPress, and there's
+no XTest under CI's `xvfb` -- but `keyname_test()` calls the same
+production naming logic (`ComEditor::keyname()`) directly with a
+synthetic keysym, bypassing the keyboard entirely, and is registered
+`hidden` (`ComFunc::hidden()`) so it stays out of `help()`'s listing;
+see `src/comdraw/tests/lastkey.comt` and
+`src/comdraw/examples/lastkey_keytest.comt` (the manual,
+human-at-a-keyboard complement, deliberately excluded from every
+automated suite).
 
 ### DrawServ integration tests — `src/drawserv_/tests/`
 
@@ -241,9 +268,16 @@ C++ work. The essentials:
   permission. (A task that assigns you a specific branch overrides this — use
   the branch it names.)
 - Do **not** open a pull request unless explicitly asked.
-- CI is light: `.github/workflows/send-merge-summary.yml` emails a summary when
-  a PR is merged to `master` (using the PR body as the changelog). There is no
-  build/test CI gate — verify locally.
+- CI is a real gate: `.github/workflows/ci.yml` builds the whole tree with g++
+  on Ubuntu (a different compiler from the macOS dev builds, so g++-only
+  warnings surface there) on every push to `master` and every PR, then runs
+  all three self-hosted suites above (`comterp_`, `comdraw`, `drawserv_`'s
+  `drawmo`) headless under `xvfb`, plus a fast ACE-lite standalone-unit gate
+  ahead of the full build. A failing test fails the check. Still verify
+  locally first — the full run takes several minutes.
+  `.github/workflows/send-merge-summary.yml` separately emails a changelog
+  summary (from the PR body) when a PR merges to `master`; unrelated to the
+  test gate.
 
 ---
 

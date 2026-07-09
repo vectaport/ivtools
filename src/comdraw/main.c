@@ -81,6 +81,16 @@ static PropertyData properties[] = {
     { "*initialarrow", "none" },
     { "*pagewidth", "8.5" },
     { "*pageheight", "11" },
+    { "*geometry", "720x800" },   /* default window size; -geometry overrides.
+				      Width must clear the -comt pane's natural
+				      request (80-column TE_Editor + appicon +
+				      margins/scrollbar, ~716px measured via
+				      Glyph::request() on the assembled window)
+				      or its rightmost columns get clipped;
+				      720 leaves a few px of headroom.  Only
+				      matters when -comt is passed -- without
+				      it there's no pane to clip, so 700 vs
+				      720 would be harmless either way. */
     { "*gridxincr", "8" },
     { "*gridyincr", "8" },
     { "*font1", "-*-courier-medium-r-normal-*-8-*-*-*-*-*-*-* Courier 8" },

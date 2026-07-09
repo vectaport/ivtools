@@ -56,6 +56,21 @@
 #include <Unidraw/kybd.h>
 #include <Unidraw/unidraw.h>
 
+#include <InterViews/event.h>
+#include <IV-X11/xevent.h>
+#include <X11/keysym.h>       /* XK_Up/Down/Left/Right, modifier keysyms, etc. */
+#include <time.h>              /* clock_gettime for the shift-arrow watchdog */
+#include <ctype.h>              /* toupper for keyname()'s shift signaling */
+
+/* CLOCK_MONOTONIC, not wall-clock time: an NTP correction or a manual clock
+   change must never fire (or extend) the watchdog early/late. */
+static double comeditor_now_seconds() {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (double)ts.tv_sec + (double)ts.tv_nsec * 1e-9;
+}
+static const double SHIFTCAPTURE_TIMEOUT = 2.0;   // seconds without a poll -> disarm
+
 #include <Unidraw/Commands/command.h>
 
 #include <InterViews/frame.h>
@@ -98,13 +113,19 @@ ComEditor::ComEditor(const char* file, OverlayKit* kit)
     }
 }
 
-ComEditor::ComEditor(boolean initflag, OverlayKit* kit) 
+ComEditor::ComEditor(boolean initflag, OverlayKit* kit)
 : OverlayEditor(initflag, kit) {
   _terp = nil;
   _whiteboard = -1;
+  _keyq_head = _keyq_tail = 0;
+  _shiftcapture_on = false;
+  _shiftcapture_deadline = 0.0;
 }
 
 void ComEditor::Init (OverlayComp* comp, const char* name) {
+    _keyq_head = _keyq_tail = 0;
+    _shiftcapture_on = false;
+    _shiftcapture_deadline = 0.0;
     if (!comp) comp = new OverlayIdrawComp;
     _terp = new ComTerpServ();
     ((OverlayUnidraw*)unidraw)->comterp(_terp);
@@ -271,6 +292,8 @@ void ComEditor::AddCommands(ComTerp* comterp) {
     #endif
 
     comterp->add_command("pointer", new PointerLocFunc(comterp, this));
+    comterp->add_command("lastkey", new LastKeyFunc(comterp, this));
+    comterp->add_command("keyname_test", new KeynameTestFunc(comterp, this), nil, nil, true /* hidden: test-only, see keyname_test's docstring */);
     comterp->add_command("textpane", new TextPaneFunc(comterp, this));
 
     comterp->add_command("beep", new ComdrawBeepFunc(comterp, this));
@@ -363,4 +386,262 @@ void ComEditor::stdio_prompt(UnidrawComterpHandler* handler) {
     (*handler->comterp()->outfunc()) (get_command_prompt(), nil);
   else
     fprintf(stdout, "%s", get_command_prompt());
+}
+
+/*****************************************************************************/
+// keyboard eavesdrop + shift-arrow capture for the comterp lastkey()
+// command (see comeditor.h).  The pointer() analog on the keyboard side:
+// keystroke() queues every keysym, and optionally routes Shift+arrow to
+// the queue while suppressing its viewer-pan.
+
+void ComEditor::keystroke(const Event& e) {
+    KeySym ks = e.keysym();
+
+    // a bare modifier keypress -- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper
+    // pressed on its own, XK_Shift_L..XK_Hyper_R is the whole contiguous
+    // block in keysymdef.h -- is never a "key" lastkey() should report; its
+    // effect is already carried as SHIFT_FLAG on whatever key comes next.
+    if (ks >= XK_Shift_L && ks <= XK_Hyper_R) {
+	OverlayEditor::keystroke(e);
+	return;
+    }
+
+    boolean shifted = e.shift_is_down() || e.capslock_is_down();
+
+    // Ctrl/Alt/Super ride along as informational bits on every key, just
+    // like SHIFT_FLAG -- orthogonal to :shiftcapture below, which
+    // only decides whether Shift's normal pan/tool-shortcut is ALSO
+    // suppressed.  meta_is_down() tests Mod1Mask, which on essentially
+    // every current keyboard IS Alt (Alt and Meta share the same bit; a
+    // keyboard with a dedicated Meta key hasn't shipped since the
+    // Lisp-machine era).  Event has no super_is_down() of its own, so
+    // Mod4 (the Windows-logo key on a PC, or Cmd under XQuartz on a Mac)
+    // is tested directly via keymask().
+    unsigned long flags = (shifted ? SHIFT_FLAG : 0)
+	| (e.control_is_down()      ? CTRL_FLAG  : 0)
+	| (e.meta_is_down()         ? ALT_FLAG   : 0)
+	| ((e.keymask() & Mod4Mask) ? SUPER_FLAG : 0);
+
+    // shift-capture (opt-in, default off): while on, a MODIFIED arrow or
+    // letter -- Shift held OR Caps Lock on -- is routed to the key queue
+    // with SHIFT_FLAG and its normal action (arrow pan, letter tool
+    // shortcut) is suppressed, so a script owns the keyboard while it
+    // drives.  Caps Lock is the hands-free enable (and the natural
+    // two-player enable: both players just tap their keys).  Bare
+    // (unmodified) arrows still pan and bare letters still fire their tool
+    // shortcuts.  e.keysym() already folds shift in (Shift+d arrives as
+    // XK_D), so the queued code carries its natural case; keyname() only
+    // has to invent an uppercase form for keys that don't have one already.
+    if (shifted && e.rep()->xevent_.type == KeyPress && shiftcapture()) {
+	if (ks==XK_Up || ks==XK_Down || ks==XK_Left || ks==XK_Right
+	    || (ks>=XK_a && ks<=XK_z) || (ks>=XK_A && ks<=XK_Z)) {
+	    enqueue_key((unsigned long)ks | flags);
+	    return;                       // suppress the pan / tool-shortcut
+	}
+    }
+    // pure eavesdrop for lastkey(), then dispatch as usual.
+    enqueue_key((unsigned long)ks | flags);
+    OverlayEditor::keystroke(e);
+}
+
+// key-event ring buffer.  On overflow the oldest key is dropped -- a game
+// poll loop drains faster than a human types, so overflow means the script
+// stopped reading, in which case stale keys are the right thing to lose.
+void ComEditor::enqueue_key(unsigned long keysym) {
+    if (keysym == 0) return;
+    int next = (_keyq_tail + 1) % KEYQ_SIZE;
+    if (next == _keyq_head)               // full: drop oldest
+	_keyq_head = (_keyq_head + 1) % KEYQ_SIZE;
+    _keyq[_keyq_tail] = keysym;
+    _keyq_tail = next;
+}
+
+unsigned long ComEditor::dequeue_key() {
+    if (_keyq_head == _keyq_tail) return 0;   // empty
+    unsigned long k = _keyq[_keyq_head];
+    _keyq_head = (_keyq_head + 1) % KEYQ_SIZE;
+    return k;
+}
+
+// shift-capture with a self-disarming watchdog (see comeditor.h).
+void ComEditor::shiftcapture(boolean on) {
+    _shiftcapture_on = on;
+    if (on) _shiftcapture_deadline = comeditor_now_seconds() + SHIFTCAPTURE_TIMEOUT;
+}
+
+// impure by design (see comeditor.h): this is the one place the watchdog
+// actually gets checked, so the getter itself has to do the expiring --
+// there is no separate poll/tick callback that could do it instead.
+boolean ComEditor::shiftcapture() {
+    if (_shiftcapture_on && comeditor_now_seconds() > _shiftcapture_deadline)
+	_shiftcapture_on = false;           // watchdog lapsed -> auto-restore
+    return _shiftcapture_on;
+}
+
+void ComEditor::shiftcapture_poll() {
+    if (_shiftcapture_on)
+	_shiftcapture_deadline = comeditor_now_seconds() + SHIFTCAPTURE_TIMEOUT;
+}
+
+// map a queued key code to a portable name (see comeditor.h).  The X keysym
+// stays inside this one function; the returned string is the lastkey()
+// surface, so a non-X backend reimplements only this mapping.
+/* core_keyname() is everything keyname() did before Ctrl/Alt/Super
+   existed -- the bare (possibly shift-varied) name for a keysym, with
+   all modifier flag bits already stripped off by the caller.  Split out
+   as a free function so keyname() can compute this into a scratch
+   buffer, then optionally wrap it with a "Ctrl-"/"Alt-"/"Super-" prefix,
+   without the two concerns tangled into one control flow.
+
+   `chorded` is true when the caller is about to prefix the result with
+   Ctrl/Alt/Super.  It only changes anything for the six control-
+   character keys: Esc/Tab/Backspace already had a readable uppercase
+   name for real Shift; Enter/Space/true-Delete didn't (no established
+   Shift+Enter/Space/Delete convention -- see keyname()'s docstring).
+   But gluing a raw \r/space/\x7f byte onto a "Ctrl-" prefix would leave
+   an unprintable, hard-to-compare chord string, so `chorded` borrows the
+   same readable-name treatment for those three too, without changing
+   their BARE (unchorded, unshifted) behavior at all. */
+static const char* core_keyname(unsigned long ks, boolean shifted, boolean chorded,
+				 char* buf, size_t bufsz) {
+    boolean textual = shifted || chorded;
+    switch (ks) {
+      case XK_Escape:    return textual ? "ESC"    : "\x1b";
+      case XK_space:     return chorded ? "SPACE"  : " ";
+      case XK_Return:    return chorded ? "ENTER"  : "\r";
+      case XK_Tab:       return textual ? "TAB"    : "\t";
+      case XK_BackSpace: return textual ? "DEL"    : "\b";
+      case XK_Delete:    return chorded ? "DELETE" : "\x7f";
+    }
+
+    /* function keys, and Home/End/PgUp/PgDn, use a fixed capitalized
+       name always, ignoring shift/caps-lock -- ordinary keyboard-label
+       spelling ("F1", "Home", "PgUp"), not curses' abbreviations
+       (KEY_PPAGE/KEY_NPAGE -> "ppage"/"npage" seemed like a good idea
+       at the time, but nobody actually calls Page Up "previous page").
+       No established "shifted" convention exists for any of these the
+       way Shift+arrow or Shift+letter do, so there's no case to vary --
+       grouped with the char-literal keys above: a fixed return, shifted
+       unconsulted. */
+    switch (ks) {
+      case XK_F1:    return "F1";
+      case XK_F2:    return "F2";
+      case XK_F3:    return "F3";
+      case XK_F4:    return "F4";
+      case XK_F5:    return "F5";
+      case XK_F6:    return "F6";
+      case XK_F7:    return "F7";
+      case XK_F8:    return "F8";
+      case XK_F9:    return "F9";
+      case XK_F10:   return "F10";
+      case XK_F11:   return "F11";
+      case XK_F12:   return "F12";
+      case XK_Home:  return "Home";
+      case XK_End:   return "End";
+      case XK_Prior: return "PgUp";  // curses KEY_PPAGE
+      case XK_Next:  return "PgDn";  // curses KEY_NPAGE
+    }
+
+    const char* base;
+    char one[2];
+    switch (ks) {
+      case XK_Up:        base = "up";    break;
+      case XK_Down:      base = "down";  break;
+      case XK_Left:      base = "left";  break;
+      case XK_Right:     base = "right"; break;
+      /* Insert has no character-literal form either, and Shift+Insert
+	 (paste, on Windows/Linux/many X11 apps) IS an established
+	 convention -- unlike the fixed keys above -- so it stays here,
+	 case-varying like the arrows. */
+      case XK_Insert:    base = "ins";   break;  // curses KEY_IC; "ins" reads better
+      default:
+	/* X11's Latin-1 keysyms are numerically identical to their ASCII
+	   codepoint across the whole printable range (space 0x20 through
+	   tilde 0x7e) -- verified directly, not just for letters/digits:
+	   [ ] { } ( ) < > ` ' " : ; , . and every shifted-numeric symbol
+	   (! @ # $ % ^ & *) all match too.  So any printable-ASCII keysym
+	   just IS its own character.  keystroke() folds shift into ks
+	   itself for letters (Shift+d arrives as XK_D) and X11 already
+	   resolves shifted symbols to their own distinct keysym (Shift+[
+	   is XK_braceleft, not XK_bracketleft), so this already carries
+	   the right character either way -- the uppercasing loop below is
+	   a harmless no-op for anything that isn't a lowercase letter. */
+	if (ks>=0x20 && ks<=0x7e) {
+	    one[0] = (char)ks; one[1] = '\0'; base = one;
+	} else {
+	    // unmapped: decimal keysym so it's still usable (rarely hit)
+	    snprintf(buf, bufsz, "%lu", ks);
+	    return buf;
+	}
+    }
+
+    /* arrows and ins have no shifted form of their own, so shift/caps-lock
+       is signaled by uppercasing the whole name instead ("up" -> "UP") --
+       the same convention letters already get for free from their
+       keysym.  One vocabulary, no "S-" prefix. */
+    if (shifted) {
+	int i = 0;
+	for (const char* p = base; *p && i < (int)bufsz-1; p++, i++)
+	    buf[i] = toupper((unsigned char)*p);
+	buf[i] = '\0';
+    } else {
+	snprintf(buf, bufsz, "%s", base);
+    }
+    return buf;
+}
+
+// returns a pointer into _keyname_buf, a single persistent member -- see
+// the CONTRACT note on the declaration (comeditor.h): valid only until the
+// next keyname() call.  Both current callers (LastKeyFunc, KeynameTestFunc
+// in unifunc.c) are safe because they immediately hand the pointer to
+// ComValue's string constructor, which copies/interns it before any
+// second call could happen -- a future caller that holds onto the raw
+// pointer across two calls would silently read stale data.
+const char* ComEditor::keyname(unsigned long code) {
+    boolean shifted = (code & SHIFT_FLAG) != 0;
+    boolean ctrl    = (code & CTRL_FLAG)  != 0;
+    boolean alt     = (code & ALT_FLAG)   != 0;
+    boolean super_  = (code & SUPER_FLAG) != 0;
+    unsigned long ks = code & ~(unsigned long)(SHIFT_FLAG|CTRL_FLAG|ALT_FLAG|SUPER_FLAG);
+    boolean chorded = ctrl || alt || super_;
+
+    char corebuf[16];
+    const char* core = core_keyname(ks, shifted, chorded, corebuf, sizeof(corebuf));
+    if (!chorded) {
+	/* core may point into corebuf, a LOCAL array -- copy through
+	   _keyname_buf (a persistent member, outlives the call) before
+	   returning, same as every other return in this function.
+	   Returning `core` directly here was the bug: for the common
+	   case (any letter/digit/punctuation/arrow with no Ctrl/Alt/
+	   Super held), it silently handed the caller a dangling pointer
+	   into a stack frame that no longer existed. */
+	snprintf(_keyname_buf, sizeof(_keyname_buf), "%s", core);
+	return _keyname_buf;
+    }
+
+    /* Ctrl/Alt/Super chords: fixed "Ctrl-Alt-Super-<key>" order (Ctrl
+       first, matching Emacs/GNOME/Windows documentation convention),
+       each word capitalized when Shift is ALSO held -- that's the one
+       remaining channel to signal Shift on a chord, because a single
+       letter is ALWAYS shown capital right after a modifier prefix
+       regardless of whether Shift was literally down: nobody documents
+       "Ctrl-c", every OS/toolkit writes "Ctrl-C" even for a bare
+       Ctrl+c with no Shift -- which spends the letter's own case, so
+       Shift has to show up on the prefix word instead. */
+    char keypart[8];
+    if (core[0] && !core[1] && core[0]>='a' && core[0]<='z') {
+	keypart[0] = toupper((unsigned char)core[0]);
+	keypart[1] = '\0';
+	core = keypart;
+    }
+
+    _keyname_buf[0] = '\0';
+    if (ctrl)
+	strncat(_keyname_buf, shifted ? "CTRL-" : "Ctrl-", sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    if (alt)
+	strncat(_keyname_buf, shifted ? "ALT-" : "Alt-", sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    if (super_)
+	strncat(_keyname_buf, shifted ? "SUPER-" : "Super-", sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    strncat(_keyname_buf, core, sizeof(_keyname_buf)-strlen(_keyname_buf)-1);
+    return _keyname_buf;
 }

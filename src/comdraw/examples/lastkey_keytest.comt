@@ -1,0 +1,175 @@
+// lastkey_keytest.comt -- INTERACTIVE, MANUAL test of lastkey()'s key
+// vocabulary (see ComEditor::keyname(), src/ComUnidraw/comeditor.c, and
+// PR #226).  This is documentation you run and watch, not a pass/fail
+// test: it needs a human at a real keyboard.  There is no way to script
+// this -- the sandbox this was developed in has no XTest extension, and
+// synthetic XSendEvent key events are not honored by InterViews' event
+// dispatch, so live keystrokes are the only way to exercise
+// ComEditor::keystroke() end to end.  Deliberately NOT registered in
+// run_all.comt and not part of CI; keep it around and re-run it by hand
+// whenever keyname()'s mapping changes.
+//
+// Run it like:
+//     comdraw -runfile src/comdraw/examples/lastkey_keytest.comt
+// then run keytest() or keytest(:shiftcapture) (typed wherever you're
+// already interacting with the session -- the comt pane, or the
+// terminal).  Type the func call FIRST, THEN move keyboard focus to
+// the canvas -- same order keydrive() uses in etchasketch.comt.
+// Instructions print immediately and the loop's own output streams
+// into the comt pane as it runs (see ComTE_PaneCapture in
+// comtextview.c) -- no need to wait for it to finish to see anything.
+//
+// WHAT TO EXPECT (see keyname()'s docstring for the authoritative list):
+//   char-literal keys -- Space and Enter come back AS themselves
+//                        (comterp's own " " \r) no matter what; Esc, Tab,
+//                        Backspace do too when unmodified (\x1b \t \b),
+//                        but UPPERCASE NAME when shifted, see "shift/caps
+//                        lock" below; Delete (forward-delete, distinct
+//                        from Backspace) is always \x7f, no shifted form.
+//                        This script prints a readable LABEL for the raw
+//                        control bytes instead of the byte itself -- an
+//                        actual ESC byte sent to a real terminal can be
+//                        interpreted as the start of its own escape
+//                        sequence, which would garble the display; the
+//                        label is only for this script's own output
+//                        ("Esc", "Tab", "Del" for backspace -- on current
+//                        Mac keyboards the key labeled delete IS
+//                        backspace, "Del" matches the keycap), not part
+//                        of what lastkey() actually returns to a caller.
+//                        The shifted forms ("ESC" "TAB" "DEL") are
+//                        already plain text, so they print as-is with no
+//                        label needed.
+//   arrows/ins        -- "up" "down" "left" "right" "ins" -- case varies
+//                        with shift, see below
+//   fixed named keys  -- "F1".."F12" "Home" "End" "PgUp" "PgDn", always
+//                        that capitalization, shift or not -- see
+//                        "shift/caps lock" below for why these don't vary
+//   letters/digits/punctuation -- themselves, either case for letters
+//                        ("a" "D" "7") -- this also covers every bracket/
+//                        brace/paren/quote/colon/comma/etc. and every
+//                        shifted-numeric symbol (!@#$%^&*()), since X11's
+//                        printable-ASCII keysyms are numerically their
+//                        own character
+//   shift/caps lock   -- if held over an arrow, "ins", Esc, Tab, or
+//                        Backspace, the name comes back UPPERCASE ("UP",
+//                        "INS", "ESC", "TAB", "DEL") -- letters already
+//                        get this for free from their keysym, this just
+//                        extends the same convention to keys that have no
+//                        case of their own.  No prefix, no separate
+//                        signal, just case.  Shift-Tab is an established
+//                        UI convention (reverse focus/indent); Shift-Esc
+//                        and Shift-Backspace aren't, but get the same
+//                        treatment for uniformity.  The fixed named keys
+//                        above are the real exception: Shift+Insert
+//                        (paste) and Shift+arrow are established
+//                        conventions, but Shift+F1 and Shift+Home aren't
+//                        -- try it and see.  NOTE: keytest()'s own Esc-
+//                        quits-early check only matches PLAIN (unshifted)
+//                        Esc ("\x1b") -- Shift-Esc ("ESC") does not quit.
+//   bare modifier keys-- Shift/Ctrl/CapsLock/Alt/Meta/Super/Hyper pressed
+//                        ALONE (no other key) is never returned by
+//                        lastkey() at all -- it isn't a "key", its effect
+//                        is the uppercasing/prefix above, on whatever key
+//                        comes next.
+//   Ctrl-/Alt-/Super- -- hold Control, Option/Alt, or Command (Mac; the
+//                        Windows-logo key on a PC) together with another
+//                        key and the name gets that fixed-order prefix
+//                        (chainable: Ctrl-Alt-Delete really does come
+//                        back as "Ctrl-Alt-DELETE").  A single letter is
+//                        ALWAYS capital right after the prefix, Shift or
+//                        not ("Ctrl-C" for a bare Ctrl+c, matching every
+//                        OS's own docs, which never write "Ctrl-c") --
+//                        real Shift held at the same time shows up on the
+//                        PREFIX word instead ("CTRL-C" is Ctrl+Shift+c).
+//                        Enter/Space/Delete -- normally shift-blind raw
+//                        bytes -- switch to "ENTER"/"SPACE"/"DELETE" the
+//                        moment they're chorded, so nothing but plain
+//                        text ever comes back.  NOTE: keytest()'s Esc-
+//                        quits-early check only matches a bare, unchorded
+//                        Esc -- Ctrl-Esc/Alt-Esc/Super-Esc do not quit
+//                        either, same as Shift-Esc.
+//   :shiftcapture     -- (keytest(:shiftcapture) or lastkey_shiftcapture()
+//                        only) additionally suppresses the normal
+//                        pan/tool-shortcut for a shifted arrow or
+//                        letter, so a driving script can own the
+//                        keyboard -- opt-in, off by default.
+//                        Named "shift-capture", not "shift-arrow": it
+//                        captures letters too, not just arrows.  Ctrl/
+//                        Alt/Super are never captured -- only Shift/
+//                        CapsLock are, and the ordinary keyboard
+//                        shortcuts they'd normally trigger (Ctrl-C for
+//                        Copy, etc.) still fire exactly as before;
+//                        lastkey() is only eavesdropping, not intercepting.
+//   anything unmapped -- the decimal keysym as a string (rarely hit)
+
+// focushint() -- one phrase, works whether focus-shift means a click
+// (terminal/-runfile, separate window) or just moving the mouse in
+// (-comt pane, shared window) -- if that's not obvious, it's one
+// search away.
+focushint=func("Move focus to canvas. ")
+
+// describe(k) -- human-readable label for a lastkey() result, for THIS
+// script's printing only; not part of lastkey()'s actual contract
+describe=func(k=arg(0);
+  if(k=="\x1b" :then return("Esc"));
+  if(k==" "    :then return("SPACE"));
+  if(k=="\r"   :then return("ENTER"));
+  if(k=="\t"   :then return("Tab"));
+  if(k=="\b"   :then return("Del"));
+  if(k=="\x7f" :then return("DELETE"));
+  k)
+
+// keytest([n] [:shiftcapture]) -- plain (uncaptured) keys: arrows,
+// Home/End, PgUp/PgDn, Insert, F1-F12, Esc/Tab/Backspace/Enter/Space,
+// letters, digits, and Ctrl-/Alt-/Super- chords of any of those.  Runs
+// for n polls (default 2000, about a minute) or until you press a bare
+// (unchorded) Esc.  :shiftcapture diverts to lastkey_shiftcapture(n)
+// instead -- one func, one keyword, two tests: exactly the kind of
+// thing comterp keyword args are for.
+keytest=func(n=arg(0);
+  if(shiftcapture!=nil :then return(lastkey_shiftcapture(n)));
+  if(n==nil :then n=2000);
+  lastkey(:reset);
+  print("=== lastkey() key test (plain keys) ===\n");
+  print(focushint());
+  print("Press arrows, Home, End, PgUp, PgDn, Insert, F1-F12, Esc, Tab,\n");
+  print("Backspace, Enter, Space, letters, digits -- also try holding Ctrl,\n");
+  print("Alt/Option, or Super/Cmd/the Windows key.  Esc to quit.\n\n");
+  done=0;
+  for(fi=0 (fi<n)&&(done==0) fi++
+    k=lastkey();
+    while((k!=nil)&&(done==0)
+      print("%v\n" describe(k));
+      if(k=="\x1b" :then done=1);
+      k=lastkey());
+    update(30000));
+  print("keytest done.\n"))
+
+// lastkey_shiftcapture([n]) -- :shiftcapture-captured keys: hold Shift or
+// turn on Caps Lock and press an arrow or a letter to see the name come
+// back UPPERCASE and the pan/tool-shortcut suppressed.  Plain
+// (unmodified) Esc quits early.  Named after the keyword it exercises --
+// rename this too if :shiftcapture is ever renamed again.
+lastkey_shiftcapture=func(n=arg(0);
+  if(n==nil :then n=2000);
+  lastkey(:reset);
+  secs=n*30000/1000000;
+  print("=== lastkey() key test (:shiftcapture) ===\n");
+  print(focushint());
+  print("Press arrows or letters with Shift/Caps-Lock.  Esc to quit, times\n");
+  print("out in %v seconds.\n\n" secs);
+  lastkey(:shiftcapture true);
+  done=0;
+  for(fi=0 (fi<n)&&(done==0) fi++
+    k=lastkey();
+    while((k!=nil)&&(done==0)
+      print("%v\n" describe(k));
+      if(k=="\x1b" :then done=1);
+      k=lastkey());
+    update(30000));
+  lastkey(:shiftcapture false);
+  print("lastkey_shiftcapture done.  (:shiftcapture restored to off.)\n"))
+
+print("Test of interactive key capture\n")
+print("keytest()               # plain keys\n")
+print("keytest(:shiftcapture)  # same test, Shift/Caps-Lock-captured\n")
