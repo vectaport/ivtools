@@ -208,7 +208,10 @@ keydrive=func(n=arg(0);
   for(fi=0 (fi<n)&&(done==0) fi++
     k=lastkey();
     while((k!=nil)&&(done==0)
-      if(k=="esc" :then done=1);
+      // plain Escape comes back as the raw byte, not the word "esc" --
+      // see lastkey_keytest.comt lines 143/167, the same comparison
+      // every other lastkey()-polling script in the repo uses.
+      if(k=="\x1b" :then done=1);
       // up/down = right knob (both modes; Player 2 in two-player)
       if(k=="UP" :then v(1));
       if(k=="DOWN" :then v(-1));
