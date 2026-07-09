@@ -59,6 +59,7 @@
 #include <version.h>
 #include <iostream>
 
+using std::cout;
 using std::cerr;
 
 static int nmsg = 0;
@@ -411,25 +412,15 @@ int main (int argc, char** argv) {
 		   script resolves against the script's directory, not the cwd
 		   (mirrors comterp's `run` subcommand -- see comterp_/main.c). */
 		RunFunc::set_basepath(runfile);
-		/* Route through run("path"), fed to the same load_string() +
-		   explicit ComTerp::run(one_expr, ...) pair that a *typed*
-		   run("path") already uses successfully (see
-		   ComTE_View::newline(), src/ComGlyph/comtextview.c) --
-		   terp->runfile() directly is the silent, programmatic-
-		   embedding primitive that RunFunc itself calls internally;
-		   it just returns the file's last value in C++, with no
-		   assumption anyone's watching, so calling it directly here
-		   (as this used to) never echoed anything -- -runfile
-		   showed only a script's own print() output, unlike every
-		   other way to run the same file.  The explicit ComTerp::
-		   qualifier matters: terp is a ComTerpServ*, which overrides
-		   run(boolean,boolean) with a DIFFERENT method (its own
-		   _fptr/handler()-based reader) -- an unqualified call would
-		   silently pick that one instead. */
-		char runfile_expr[4096];
-		snprintf(runfile_expr, sizeof(runfile_expr), "run(\"%s\")\n", runfile);
-		terp->load_string(runfile_expr);
-		terp->ComTerp::run(true, false);
+		terp->runfile(runfile);
+		/* echo the file's last expression, same as comterp's own
+		   `run <file>` subcommand does (see comterp_/main.c) --
+		   runfile() already pushes it onto the stack, it just never
+		   prints it on its own. */
+		terp->brief(1);
+		ComValue::comterp(terp);
+		cout << terp->stack_top() << "\n";
+		cout.flush();
 		if (*terp->errmsg())
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
 	    }
@@ -438,14 +429,15 @@ int main (int argc, char** argv) {
 	        int bufsize;
 	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
 	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
-	        /* same reasoning as -runfile above: terp->run(const char*) is
-	           the silent ComTerpServ::run(const char*,boolean) overload
-	           (an exact-match overload beats a bool-conversion match, so
-	           a plain char* here never reached the echoing ComTerp::run
-	           at all) -- load_string() + explicit ComTerp::run(true,...)
-	           is what makes -runexpr behave like typing the expression. */
-	        terp->load_string(runexpr_nl);
-	        terp->ComTerp::run(true, false);
+	        /* same pattern as comterp's own bare-expression mode (see
+	           comterp_/main.c): terp->run(const char*) evaluates and
+	           hands the result back in C++ without printing it, so print
+	           it explicitly here. */
+	        terp->brief(1);
+	        ComValue::comterp(terp);
+	        ComValue comval(terp->run(runexpr_nl));
+	        cout << comval << "\n";
+	        cout.flush();
 	        if (*terp->errmsg())
 	            cerr << "comdraw: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;
