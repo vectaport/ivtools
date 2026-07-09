@@ -353,6 +353,13 @@ int main(int argc, char *argv[]) {
 	terp->set_args(argc-2-endcnt, argv+2);
 	RunFunc::set_basepath(rfile);
 	terp->runfile(rfile);
+	// echo the file's last expression, same as `expr` does for a single
+	// one -- runfile() already pushes it onto the stack (see
+	// ComTerp::runfile()), it just never prints it on its own.
+	terp->brief(1);
+	ComValue::comterp(terp);
+	cout << terp->stack_top() << '\n';
+	cout.flush();
 	return 0;
       }
 

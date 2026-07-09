@@ -64,6 +64,7 @@
 #include <ComTerp/comvalue.h>
 #include <ComUtil/util.h>
 
+using std::cout;
 using std::cerr;
 
 static int nmsg = 0;
@@ -462,7 +463,15 @@ int main (int argc, char** argv) {
 	        int bufsize;
 	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
 	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
-	        terp->run(runexpr_nl);
+	        /* same pattern as comterp's own bare-expression mode (see
+	           comterp_/main.c): terp->run(const char*) evaluates and
+	           hands the result back in C++ without printing it, so print
+	           it explicitly here. */
+	        terp->brief(1);
+	        ComValue::comterp(terp);
+	        ComValue comval(terp->run(runexpr_nl));
+	        cout << comval << "\n";
+	        cout.flush();
 	        if (*terp->errmsg())
 	            cerr << "drawserv: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;

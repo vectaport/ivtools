@@ -60,6 +60,7 @@
 #include <version.h>
 #include <iostream>
 
+using std::cout;
 using std::cerr;
 
 static int nmsg = 0;
@@ -447,7 +448,21 @@ int main (int argc, char** argv) {
 		   script resolves against the script's directory, not the cwd
 		   (mirrors comterp's `run` subcommand -- see comterp_/main.c). */
 		RunFunc::set_basepath(runfile);
-		if (terp->runfile(runfile) < 0)
+		/* runfile()'s own error path (ComTerp::runfile(), comterp.c)
+		   calls err_print(), which writes _errbuf2 and stderr but
+		   never touches _errbuf -- so errmsg() (== _errbuf) can't see
+		   a runfile() failure; its return value is the only reliable
+		   signal, same as before this echo was added. */
+		int runfile_status = terp->runfile(runfile);
+		/* echo the file's last expression, same as comterp's own
+		   `run <file>` subcommand does (see comterp_/main.c) --
+		   runfile() already pushes it onto the stack, it just never
+		   prints it on its own. */
+		terp->brief(1);
+		ComValue::comterp(terp);
+		cout << terp->stack_top() << "\n";
+		cout.flush();
+		if (runfile_status < 0)
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
 	    }
 	    const char* runexpr = catalog->GetAttribute("runexpr");
@@ -455,7 +470,15 @@ int main (int argc, char** argv) {
 	        int bufsize;
 	        char* runexpr_nl = restore_escapes(runexpr, bufsize);
 	        strncat(runexpr_nl, "\n", bufsize - strlen(runexpr_nl) - 1);
-	        terp->run(runexpr_nl);
+	        /* same pattern as comterp's own bare-expression mode (see
+	           comterp_/main.c): terp->run(const char*) evaluates and
+	           hands the result back in C++ without printing it, so print
+	           it explicitly here. */
+	        terp->brief(1);
+	        ComValue::comterp(terp);
+	        ComValue comval(terp->run(runexpr_nl));
+	        cout << comval << "\n";
+	        cout.flush();
 	        if (*terp->errmsg())
 	            cerr << "comdraw: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;
