@@ -216,7 +216,10 @@ void ComTE_View::newline()
   boolean old_brief = comterp()->brief();
   comterp()->brief(1);
   _driving = true;   // see driving()/comdraw's textpane() command
-  cout << comterp()->linenum()+1 << ": " << buffer << "\n";
+  // leading "\n" restores the original (pre-pane-tee) terminal echo:
+  // a blank line separating each typed command's output on the
+  // terminal, same as before this file's stdout-capture rewrite.
+  cout << "\n" << comterp()->linenum()+1 << ": " << buffer << "\n";
 
   /* strip # comments */
   /* and keep track of paren depth at the same time */
@@ -307,9 +310,22 @@ void ComTE_View::newline()
     fcntl(pfd[0], F_SETFL, O_NONBLOCK);
     fflush(stdout);
     savedfd = dup(1);
-    capture = new ComTE_PaneCapture(this, pfd[0], savedfd);
-    dup2(pfd[1], 1);
-    close(pfd[1]);
+    if (savedfd < 0) {
+      // fd table exhausted -- fall back to uncaptured (terminal-only,
+      // no pane tee) rather than construct a capture around a broken
+      // fd: ComTE_PaneCapture::drain() would write() to fd -1 (silent
+      // no-op, so the pane would just never see output) and the
+      // restore below (dup2(savedfd, 1)) would fail, leaving stdout
+      // stuck on the closed pipe write-end for the rest of the
+      // process's life.
+      close(pfd[0]);
+      close(pfd[1]);
+      piped = false;
+    } else {
+      capture = new ComTE_PaneCapture(this, pfd[0], savedfd);
+      dup2(pfd[1], 1);
+      close(pfd[1]);
+    }
   }
 
   int  status = comterp()->ComTerp::run(false /* !once */, true /* nested */);

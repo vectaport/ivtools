@@ -123,6 +123,15 @@ boolean ComTextEditor::runfile(const char* path) {
   if (tmpfd < 0) return false;
   fflush(stdout);
   int savedfd = dup(1);
+  if (savedfd < 0) {
+    // fd table exhausted -- bail before touching fd 1 at all, rather
+    // than redirect stdout to the temp file with no way to restore it
+    // (dup2(-1, 1) below would silently fail, leaving stdout stuck
+    // there for the rest of the process's life).
+    close(tmpfd);
+    unlink(tmpname);
+    return false;
+  }
   dup2(tmpfd, 1);
   close(tmpfd);
 
