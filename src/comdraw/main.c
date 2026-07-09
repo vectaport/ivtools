@@ -80,6 +80,18 @@ static PropertyData properties[] = {
     { "*initialarrow", "none" },
     { "*pagewidth", "8.5" },
     { "*pageheight", "11" },
+    { "*geometry", "720x800" },   /* default window size; -geometry overrides.
+				      Width must clear the comt pane's natural
+				      request (80-column TE_Editor + appicon +
+				      margins/scrollbar, ~716px measured via
+				      Glyph::request() on the assembled window)
+				      or its rightmost columns get clipped;
+				      720 leaves a few px of headroom.  Only
+				      matters once the comt-inline-editor
+				      branch's -comt flag and *TextEditor*columns
+				      bump (40 -> 80) are also present -- this
+				      branch alone has no -comt flag at all, so
+				      700 vs 720 is harmless here on its own. */
     { "*gridxincr", "8" },
     { "*gridyincr", "8" },
     { "*font1", "-*-courier-medium-r-normal-*-8-*-*-*-*-*-*-* Courier 8" },
