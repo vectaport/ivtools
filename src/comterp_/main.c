@@ -331,8 +331,10 @@ int main(int argc, char *argv[]) {
       int status = fstat(fileno(stdin), &buf);
       if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	terp->disable_prompt();
-      else
+      else {
+	tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
+      }
       return terp->run();
     } else {
 
@@ -385,6 +387,7 @@ int main(int argc, char *argv[]) {
         if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	  terp->disable_prompt();
 	else {
+	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	  fprintf(stdout, "ivtools-%s comterp:  type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
 	}
 	return terp->run();

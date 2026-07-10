@@ -430,6 +430,7 @@ int main (int argc, char** argv) {
 							  ACE_Event_Handler::READ_MASK)==-1)
 	      cerr << "drawserv: unable to open stdin with ACE\n";
 	    ed->stdio_setup(stdin_handler);
+	    tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	}
 	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
 	ed->stdio_prompt(stdin_handler);

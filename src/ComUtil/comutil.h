@@ -188,6 +188,15 @@ int get_continuation_prompt_disabled();
 void set_command_prompt(const char* prompt);
 const char* get_command_prompt();
 
+/* stdin echo control (from ttyecho.c) -- see that file's header comment.
+   tty_echo_off() no-ops unless stdin is a real tty; safe to call
+   unconditionally.  tty_echo_restore() is registered via atexit() by
+   tty_echo_off() itself, but is also public so a deliberate early-exit
+   path (one that bypasses atexit, e.g. _exit()) can call it directly. */
+void tty_echo_off(void);
+void tty_echo_restore(void);
+int tty_echo_is_off(void);
+
 /* stdout_puts: outfunc wrapper that always writes to stdout.
    Use as outfunc for interactive stdin mode -- its identity as a
    function pointer signals to lexscan that (comt) prompt should print. */

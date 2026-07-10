@@ -1313,9 +1313,17 @@ void ComTerp::exit(int status) {
      block-buffered stdout (e.g. when piped) -- flush it (and stderr) first.
      Deliberately NOT fflush(NULL): a server interpreter can hold FILE* streams
      wrapping live client sockets, and flushing one whose peer has stalled could
-     block the exit -- stdout/stderr are all a final print() needs. */
+     block the exit -- stdout/stderr are all a final print() needs.
+
+     tty_echo_restore() (ComUtil/ttyecho.c, issue #76) is registered via
+     atexit() when stdin echo was disabled, but atexit handlers are exactly
+     what _exit() skips -- call it explicitly here too, so a scripted
+     exit()/quit() doesn't leave the user's terminal echo off after this
+     process is gone.  Safe unlike arbitrary atexit handlers: it only
+     touches tty state, never the interpreter itself. */
   fflush(stdout);
   fflush(stderr);
+  tty_echo_restore();
   _exit( status );
 }
 

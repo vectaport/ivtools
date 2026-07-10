@@ -412,10 +412,11 @@ int main (int argc, char** argv) {
 	UnidrawComterpHandler* stdin_handler = nil;
 	if (!stdin_off_str || strcmp(stdin_off_str, "false")==0) {
 	    stdin_handler = new UnidrawComterpHandler();
-	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
+	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							  ACE_Event_Handler::READ_MASK)==-1)
 	      cerr << "comdraw: unable to open stdin with ACE\n";
 
+	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);

@@ -262,12 +262,22 @@ int bs_ident = 0;
 	 }
 	 _continuation_prompt = 0;
 	 if (linecmtchr || linecmtstr)
-	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL && 
+	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
 		  (buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
              (*linenum)++;  /* skip all script comments */
          }
 	 else
 	   infunc_retval = (*infunc)( buffer, bufsiz, infile );
+	 /* self-echo: with the OS's own tty echo suppressed (tty_echo_off(),
+	    ttyecho.c -- issue #76), nothing else shows what was just read,
+	    typed or pasted.  Echo it here, right where the line becomes
+	    known, so it stays correctly interleaved with each line's own
+	    result even for a multi-line paste that the OS would otherwise
+	    have dumped to the screen all at once, well before this point. */
+	 if (infunc_retval != NULL && outfunc
+	     && outfunc == (int(*)(const char*,void*))&stdout_puts
+	     && tty_echo_is_off())
+	   (*outfunc) ( buffer, outfile );
 	 if( infunc_retval == NULL ) {
 	    if( *toklen > 0 )
 	       goto token_return;
