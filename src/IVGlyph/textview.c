@@ -199,6 +199,10 @@ void TE_View::load_popup()
 	    style_->attribute("caption", "File not read, Out Of Memory!");
 	 error = true;
 	    break;
+	case EivTextBuffer::SizeError:
+	    style_->attribute("caption", "File too large to load, Retry!");
+	    error = true;
+	    break;
 	case EivTextBuffer::ReadError:
 	    style_->attribute("caption", "Can't read file.");
 	    error = true;
