@@ -30,7 +30,7 @@ class EivTextBuffer : public TextBuffer {
    ~EivTextBuffer();
 
    // load/save buffer from/into file
-   enum { OpenError, MemoryError, SizeError, ReadError, ReadOk, WriteError, WriteOk };
+  enum { OpenError, MemoryError, ReadError, ReadOk, WriteError, WriteOk, SizeError };
    int load(const char* path);
    int save();
    int save(const char* path);
