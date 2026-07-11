@@ -415,8 +415,11 @@ int main (int argc, char** argv) {
 	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							  ACE_Event_Handler::READ_MASK)==-1)
 	      cerr << "comdraw: unable to open stdin with ACE\n";
+	    else
+	      tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
+	                        // handler is actually live, or OS echo goes off
+	                        // with no self-echo ever registered to replace it
 
-	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);

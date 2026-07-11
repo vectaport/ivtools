@@ -60,8 +60,12 @@ static struct termios _tty_saved_state;
 
 void tty_echo_restore(void) {
     if (_tty_echo_off) {
-        tcsetattr(fileno(stdin), TCSANOW, &_tty_saved_state);
-        _tty_echo_off = 0;
+        /* only clear the flag on success -- if tcsetattr fails (e.g. the fd
+           is no longer valid at exit time), leave it set so a later retry
+           (atexit and the explicit call in ComTerp::exit() can both reach
+           here) doesn't see a false "already restored" and skip trying again */
+        if (tcsetattr(fileno(stdin), TCSANOW, &_tty_saved_state) == 0)
+            _tty_echo_off = 0;
     }
 }
 
