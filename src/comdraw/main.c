@@ -63,6 +63,11 @@
 using std::cout;
 using std::cerr;
 
+/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
+   banner so a running binary proves which patch built it -- see
+   comterp_/main.c's own PATCH_KEY comment for the full rationale. */
+#define PATCH_KEY "7d9c1c27"
+
 static int nmsg = 0;
 
 /*****************************************************************************/
@@ -420,13 +425,13 @@ int main (int argc, char** argv) {
 	                        // handler is actually live, or OS echo goes off
 	                        // with no self-echo ever registered to replace it
 
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);
 	}
 #endif
 	if (!starter_line) {
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	}
 
 #ifdef HAVE_ACE
