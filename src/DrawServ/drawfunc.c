@@ -61,14 +61,6 @@ DrawLinkFunc::DrawLinkFunc(ComTerp* comterp, DrawEditor* ed) : UnidrawFunc(comte
 }
 
 void DrawLinkFunc::execute() {
-#ifndef HAVE_ACE
-
-  reset_stack();
-  fprintf(stderr, "rebuild ivtools with ACE support to get full drawserv functionality\n");
-  push_stack(ComValue::nullval());
-
-#else
-
   ComValue hostv(stack_arg(0, true));
   ComValue linkv(stack_arg(0, false));
   static int port_sym = symbol_add("port");
@@ -250,26 +242,17 @@ void DrawLinkFunc::execute() {
     push_stack(ComValue::nullval());
   
   return;
-  
-#endif
-  
+
 }
 
 #endif
-  
+
 /*****************************************************************************/
 
 SessionIdFunc::SessionIdFunc(ComTerp* comterp, DrawEditor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void SessionIdFunc::execute() {
-#ifndef HAVE_ACE
-
-  reset_stack();
-  fprintf(stderr, "rebuild ivtools with ACE support to get full drawserv functionality\n");
-  push_stack(ComValue::nullval());
-
-#else
   static int all_sym = symbol_add("all");
   ComValue allv(stack_key(all_sym));
   static int pid_sym = symbol_add("pid");
@@ -339,7 +322,6 @@ void SessionIdFunc::execute() {
       push_stack(ComValue::nullval());
     }
   }
-#endif
 }
 
 

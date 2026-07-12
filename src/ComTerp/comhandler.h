@@ -28,8 +28,6 @@
  * ComterpHandler is an ACE handler that can be invoked by an ACE acceptor
  */
 
-#ifdef HAVE_ACE
-
 #ifdef __llvm__
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -166,37 +164,7 @@ protected:
 };
 
 //: Specialize a ComterpAcceptor.
-typedef ACE_Acceptor <ComterpHandler, ACE_SOCK_ACCEPTOR> 
+typedef ACE_Acceptor <ComterpHandler, ACE_SOCK_ACCEPTOR>
 	ComterpAcceptor;
-
-
-#else 
-
-#include <ComTerp/comterpserv.h>
-
-class ComTerpServ;
-
-//: version without ACE
-class ComterpHandler {
-public:
-    ComterpHandler(ComTerpServ* serv=nil) {comterp_ = serv ? serv : new ComTerpServ(); _handle = 0; comterp_->add_defaults();}
-    ComterpHandler(int id, ComTerpServ* serv = nil) { comterp_ = serv ? serv : new ComTerpServ(); _handle = id; comterp_->add_defaults();}
-    int get_handle() { return _handle;}
-    int wrfd() { return get_handle(); }   // mirror the ACE handler's interface so comterp.c compiles ACE-free
-
-    FILE* wrfptr() { return nil; }
-    // file pointer for writing to handle
-    
-    FILE* rdfptr() { return nil; }
-    // file pointer for reading from handle
-
-    ComTerp* comterp() { return comterp_; }
-
-protected:
-    int _handle;
-    ComTerpServ* comterp_;
-
-};
-#endif
 
 #endif /* _comterp_handler_ */

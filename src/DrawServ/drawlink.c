@@ -82,7 +82,6 @@ DrawLink::~DrawLink ()
 
 int DrawLink::open(uuid_t linkid) {
 
-#if defined(HAVE_ACE) && (__GNUC__>3 || __GNUC__==3 && __GNUC_MINOR__>0)
   _addr = new ACE_INET_Addr(_port, _host);
   _socket = new ACE_SOCK_Stream;
   _conn = new ACE_SOCK_Connector;
@@ -144,10 +143,6 @@ int DrawLink::open(uuid_t linkid) {
 
     return 0;
   }
-#else
-  fprintf(stderr, "drawserv requires ACE and >= gcc-3.1 for full functionality\n");
-  return -1;
-#endif
 }
 
 int DrawLink::close() {

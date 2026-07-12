@@ -214,7 +214,6 @@ static OptionDesc options[] = {
     { nil }
 };
 
-#ifdef HAVE_ACE
 static const char usage[] =
 "Usage: flipbook [any idraw parameter] [-bookgeom] [-comdraw port] [-color5]\n\
 [-color6] [-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
@@ -223,16 +222,6 @@ static const char usage[] =
 [-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff]\n\
 [-stdin_off] [-stripped] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
 [-twidth|-tw n] [-zoomer_off|-zoff] [file]";
-#else
-static char usage[] =
-"Usage: flipbook [any idraw parameter] [-bookgeom]\n\
-[-color5] [-color6] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
-[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
-[-scribble_pointer|-scrpt ] [-slideshow sec] [-slider_off|-soff]\n\
- [-stdin_off] [-toolbarloc|-tbl r|l ] [-theight|-th n] [-tile]\n\
-[-twidth|-tw n] [-zoomer_off|-zoff] [file]";
-#endif
 /*****************************************************************************/
 
 int main (int argc, char** argv) {

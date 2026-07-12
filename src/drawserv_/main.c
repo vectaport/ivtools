@@ -255,7 +255,6 @@ static OptionDesc options[] = {
 
 /*****************************************************************************/
 
-#ifdef HAVE_ACE
 static const char usage[] =
 "drawserv  distributed drawing editor with comterp scripting\n\
 Usage:  drawserv [file] [options]\n\n\
@@ -282,32 +281,6 @@ Usage:  drawserv [file] [options]\n\n\
 -runfile file               run script file after startup\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
-#else
-static const char usage[] =
-"drawserv  distributed drawing editor with comterp scripting\n\
-Usage:  drawserv [file] [options]\n\n\
--color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
--gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
--opaque_off | -opoff        disable opaque moving/reshaping\n\
--pagecols | -ncols n        number of page columns in tiled view\n\
--pagerows | -nrows n        number of page rows in tiled view\n\
--panner_off | -poff         disable panner\n\
--panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
-                            panner alignment\n\
--rampsize n                 size of color ramp\n\
--scribble_pointer | -scrpt  enable scribble pointer\n\
--slider_off | -soff         disable slider\n\
--stdin_off                  disable stdin command socket\n\
--stripped                   stripped-down tool palette\n\
--toolbarloc | -tbl r|l      toolbar location left or right\n\
--theight | -th n            tile height in pixels\n\
--tile                       enable tiled page view\n\
--twidth | -tw n             tile width in pixels\n\
--zoomer_off | -zoff         disable zoomer\n\
--runfile file               run script file after startup\n\
--runexpr cmdstr             run command string after startup\n\n\
-any idraw parameter is also accepted (see idraw man page)";
-#endif
 
 /*****************************************************************************/
 
@@ -415,7 +388,6 @@ int main (int argc, char** argv) {
 
 	unidraw->Open(ed);
 
-#ifdef HAVE_ACE
 	/*  Start up one on stdin, unless -stdin_off (mirror comdraw).  Registering
 	    a live fd-0 handler under -stdin_off means a closed/EOF stdin -- as when
 	    drawmo launches us detached -- fires DrawServHandler::handle_input, which
@@ -433,10 +405,6 @@ int main (int argc, char** argv) {
 	}
 	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
 	ed->stdio_prompt(stdin_handler);
-
-#else
-	fprintf(stderr, "ivtools-%s drawserv", VersionString);
-#endif
 
 	/* execute -runfile or -runexpr after editor is fully initialized */
 	ComTerpServ* terp = ed->GetComTerp();
