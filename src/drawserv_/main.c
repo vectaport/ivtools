@@ -27,12 +27,10 @@
  * drawserv main program.
  */
 
-#ifdef HAVE_ACE
 #include <DrawServ/drawserv-handler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 #include <ComTerp/comhandler.h>
-#endif
 
 #include <DrawServ/drawcatalog.h>
 #include <DrawServ/drawcreator.h>
@@ -203,10 +201,8 @@ static PropertyData properties[] = {
     { "*opaque_off",    "false"  },
     { "*stripped",      "false"  },
     { "*stdin_off",   "false"  },
-#ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",          "20002" },
-#endif
     { "*help",          "false"  },
     { "*runfile",       ""  },
     { "*runexpr",       ""  },
@@ -246,10 +242,8 @@ static OptionDesc options[] = {
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-stripped", "*stripped", OptionValueImplicit, "true" },
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
-#ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
-#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -260,7 +254,6 @@ static OptionDesc options[] = {
 
 /*****************************************************************************/
 
-#ifdef HAVE_ACE
 static const char usage[] =
 "drawserv  distributed drawing editor with comterp scripting\n\
 Usage:  drawserv [file] [options]\n\n\
@@ -287,32 +280,6 @@ Usage:  drawserv [file] [options]\n\n\
 -runfile file               run script file after startup\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
-#else
-static const char usage[] =
-"drawserv  distributed drawing editor with comterp scripting\n\
-Usage:  drawserv [file] [options]\n\n\
--color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
--gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
--opaque_off | -opoff        disable opaque moving/reshaping\n\
--pagecols | -ncols n        number of page columns in tiled view\n\
--pagerows | -nrows n        number of page rows in tiled view\n\
--panner_off | -poff         disable panner\n\
--panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
-                            panner alignment\n\
--rampsize n                 size of color ramp\n\
--scribble_pointer | -scrpt  enable scribble pointer\n\
--slider_off | -soff         disable slider\n\
--stdin_off                  disable stdin command socket\n\
--stripped                   stripped-down tool palette\n\
--toolbarloc | -tbl r|l      toolbar location left or right\n\
--theight | -th n            tile height in pixels\n\
--tile                       enable tiled page view\n\
--twidth | -tw n             tile width in pixels\n\
--zoomer_off | -zoff         disable zoomer\n\
--runfile file               run script file after startup\n\
--runexpr cmdstr             run command string after startup\n\n\
-any idraw parameter is also accepted (see idraw man page)";
-#endif
 
 /*****************************************************************************/
 
@@ -344,9 +311,7 @@ int main (int argc, char** argv) {
 #endif
 #endif
   
-#ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
-#endif
     DrawCreator creator;
     DrawCatalog* catalog = new DrawCatalog("ivtools drawserv", &creator);
     DrawServ* unidraw = new DrawServ(
@@ -357,8 +322,6 @@ int main (int argc, char** argv) {
       cerr << usage << "\n";
       return 0;
     }
-
-#ifdef HAVE_ACE
 
     UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
@@ -390,22 +353,9 @@ int main (int argc, char** argv) {
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 
-
-    // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
-    // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
-    // exit.
-#if 0
-    if (ComterpHandler::reactor_singleton()->register_handler 
-	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
-        cerr << "drawserv:  unable to register quit handler with ACE reactor\n";
-#endif
-
-#endif
-
     OverlayEditor::add_edlauncher("Comdraw", &launch_comdraw);
     OverlayEditor::add_edlauncher("Flipbook", &launch_flipbook);
     OverlayEditor::add_edlauncher("Graphdraw", &launch_graphdraw);
-
 
     int exit_status = 0;
 
@@ -423,7 +373,6 @@ int main (int argc, char** argv) {
 
 	unidraw->Open(ed);
 
-#ifdef HAVE_ACE
 	/*  Start up one on stdin, unless -stdin_off (mirror comdraw).  Registering
 	    a live fd-0 handler under -stdin_off means a closed/EOF stdin -- as when
 	    drawmo launches us detached -- fires DrawServHandler::handle_input, which
@@ -445,10 +394,6 @@ int main (int argc, char** argv) {
 	}
 	fprintf(stderr, "ivtools-%s drawserv: type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	ed->stdio_prompt(stdin_handler);
-
-#else
-	fprintf(stderr, "ivtools-%s drawserv", VersionString);
-#endif
 
 	/* execute -runfile or -runexpr after editor is fully initialized */
 	ComTerpServ* terp = ed->GetComTerp();

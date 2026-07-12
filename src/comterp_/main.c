@@ -134,14 +134,6 @@ int main(int argc, char *argv[]) {
     boolean expr_flag = argc>1 && !server_flag && !logger_flag &&
                         !remote_flag && !client_flag && !telcat_flag && !run_flag && !listen_flag;
 
-#ifndef HAVE_ACE
-    if (listen_flag) {
-        cerr << "comterp: listen mode requires ACE (rebuild with HAVE_ACE)\n";
-        return 1;
-    }
-#endif
-
-#ifdef HAVE_ACE
     if (server_flag || logger_flag) {
         ComterpAcceptor* peer_acceptor = 
 	    new ComterpAcceptor(ComterpHandler::reactor_singleton());
@@ -325,7 +317,6 @@ int main(int argc, char *argv[]) {
 
     return 0;
     }
-#endif /* defined(HAVE_ACE) */
 
     if (server_flag || remote_flag) {
       ComTerpServ* terp = new ComTerpServ(BUFSIZ*BUFSIZ);

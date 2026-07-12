@@ -43,11 +43,9 @@
 #include <InterViews/display.h>
 #include <IV-X11/xdisplay.h>
 
-#ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
@@ -191,14 +189,12 @@ static PropertyData properties[] = {
     { "*opaque_off",    "false"  },
     { "*stripped",      "false"  },
     { "*stdin_off",   "false"  },
-#ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",       "20002" },
     { "*wbmaster",      "false" },
     { "*wbslave",       "false" },
     { "*wbhost",        "localhost" },
     { "*wbport",        "20002" },
-#endif
     { "*help",          "false"  },
     { "*runfile",       ""  },
     { "*runexpr",       ""  },
@@ -239,14 +235,12 @@ static OptionDesc options[] = {
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-stripped", "*stripped", OptionValueImplicit, "true" },
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
-#ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
     { "-wbmaster", "*wbmaster", OptionValueImplicit, "true" },
     { "-wbslave", "*wbslave", OptionValueImplicit, "true" },
     { "-wbhost", "*wbhost", OptionValueNext },
     { "-wbport", "*wbport", OptionValueNext },
-#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -255,7 +249,6 @@ static OptionDesc options[] = {
     { nil }
 };
 
-#ifdef HAVE_ACE
 static const char usage[] =
 "comdraw  drawing editor with comterp scripting\n\
 Usage:  comdraw [file] [options]\n\n\
@@ -288,34 +281,6 @@ Usage:  comdraw [file] [options]\n\n\
 -runfile file               run script file after startup\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
-#else
-static const char usage[] =
-"comdraw  drawing editor with comterp scripting\n\
-Usage:  comdraw [file] [options]\n\n\
--color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
--gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
--opaque_off | -opoff        disable opaque moving/reshaping\n\
--pagecols | -ncols n        number of page columns in tiled view\n\
--pagerows | -nrows n        number of page rows in tiled view\n\
--panner_off | -poff         disable panner\n\
--panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
-                            panner alignment\n\
--rampsize n                 size of color ramp\n\
--scribble_pointer | -scrpt  enable scribble pointer\n\
--slider_off | -soff         disable slider\n\
--stdin_off                  disable stdin command socket\n\
--stripped                   stripped-down tool palette\n\
--toolbarloc | -tbl r|l      toolbar location left or right\n\
--theight | -th n            tile height in pixels\n\
--tile                       enable tiled page view\n\
--comt [file]                inline comterp text-entry pane; if file is\n\
-                            given, enter run(file) into the pane at startup\n\
--twidth | -tw n             tile width in pixels\n\
--zoomer_off | -zoff         disable zoomer\n\
--runfile file               run script file after startup\n\
--runexpr cmdstr             run command string after startup\n\n\
-any idraw parameter is also accepted (see idraw man page)";
-#endif
 
 /*****************************************************************************/
 
@@ -343,9 +308,7 @@ int main (int argc, char** argv) {
        restore tty echo first if tty_echo_off() ever ran, issue #76. */
     tty_echo_install_signal_handlers();
     const char* comtfile = extract_comtfile(argc, argv);
-#ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
-#endif
     OverlayCreator creator;
     OverlayCatalog* catalog = new OverlayCatalog("comdraw", &creator);
     OverlayUnidraw* unidraw = new OverlayUnidraw(
@@ -356,8 +319,6 @@ int main (int argc, char** argv) {
       cerr << usage << "\n";
       return 0;
     }
-
-#ifdef HAVE_ACE
 
     UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
@@ -389,17 +350,6 @@ int main (int argc, char** argv) {
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 
-
-    // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
-    // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
-    // exit.
-#if 0
-    if (ComterpHandler::reactor_singleton()->register_handler 
-	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
-        cerr << "comdraw:  unable to register quit handler with ACE reactor\n";
-#endif
-
-#endif
     int exit_status = 0;
     boolean starter_line = false;
 
@@ -413,8 +363,6 @@ int main (int argc, char** argv) {
 
 	unidraw->Open(ed);
 
-#ifdef HAVE_ACE
-	
 	/*  Start up one on stdin */
 	const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
 	UnidrawComterpHandler* stdin_handler = nil;
@@ -432,15 +380,12 @@ int main (int argc, char** argv) {
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);
 	}
-#endif
 	if (!starter_line) {
 	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	}
 
-#ifdef HAVE_ACE
 	ed->stdio_prompt(stdin_handler);
-#endif
-	
+
 	XSync(unidraw->GetWorld()->display()->rep()->display_,false);
 	
 	/* execute -runfile or -runexpr after editor is fully initialized */

@@ -404,12 +404,8 @@ ExportFunc::ExportFunc(ComTerp* comterp, Editor* editor,
 }
 
 const char* ExportFunc::docstring() { 
-  const char* df = 
-#ifdef HAVE_ACE
+  const char* df =
     "%s(compview[,compview[,...compview]] [path] :host str :port int :socket :string|:str :eps :idraw) -- export in %s format ";
-#else
-  "%s(compview[,compview[,...compview]] [path] :string|:str :eps :idraw) -- export in %s format ";
-#endif
   if (!_docstring) {
     _docstring = new char[strlen(df)+strlen(appname())+1];
     sprintf(_docstring, df, "%s", appname() );
