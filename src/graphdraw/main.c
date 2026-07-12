@@ -221,6 +221,9 @@ static char usage[] =
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
+    /* Ctrl-C (SIGINT) is the common way an interactive session ends --
+       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+    tty_echo_install_signal_handlers();
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
 #endif
@@ -287,9 +290,13 @@ int main (int argc, char** argv) {
 #ifdef HAVE_ACE
     /*  Start up one on stdin */
     UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
-    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
+    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							      ACE_Event_Handler::READ_MASK)==-1)
       cerr << "graphdraw: unable to open stdin with ACE\n";
+    else
+      tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
+                        // handler is actually live, or OS echo goes off
+                        // with no self-echo ever registered to replace it
     ed->stdio_setup(stdin_handler);
 #endif
     
