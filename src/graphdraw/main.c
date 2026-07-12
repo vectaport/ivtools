@@ -268,7 +268,7 @@ int main (int argc, char** argv) {
     int importnum = atoi(importstr);
     if (import_acceptor->open 
 	(ACE_INET_Addr (importnum)) == -1)
-        cerr << "flipbook:  unable to open import port " << importnum << "\n";
+        cerr << "graphdraw:  unable to open import port " << importnum << "\n";
 
     else if (ComterpHandler::reactor_singleton()->register_handler 
 	     (import_acceptor, ACE_Event_Handler::READ_MASK) == -1)
