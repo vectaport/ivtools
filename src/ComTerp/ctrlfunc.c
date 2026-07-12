@@ -214,9 +214,6 @@ void RemoteFunc::execute() {
   ComValue strv(stack_key(str_sym));
   reset_stack();
 
-
-#ifdef HAVE_ACE
-
   ACE_SOCK_STREAM *socket = nil;
   ACE_SOCK_Connector *conn = nil;
   SocketObj* socketobj = nil;
@@ -280,13 +277,6 @@ void RemoteFunc::execute() {
 
   return;
 
-#else
-
-  cerr << "for the remote command to work rebuild comterp with ACE\n";
-  return;
-
-#endif
-
 }
 
 /*****************************************************************************/
@@ -299,8 +289,6 @@ void SocketFunc::execute() {
   ComValue hostv(stack_arg(0));
   ComValue portv(stack_arg(1));
   reset_stack();
-
-#ifdef HAVE_ACE
 
   if (hostv.is_string() && portv.is_known()) {
 
@@ -319,12 +307,6 @@ void SocketFunc::execute() {
   }
 
   return;
-
-#else
-  cerr << "for the socket command to work rebuild comterp with ACE\n";
-  return;
-
-#endif
 
 }
 

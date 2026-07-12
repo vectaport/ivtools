@@ -255,7 +255,6 @@ static OptionDesc options[] = {
     { nil }
 };
 
-#ifdef HAVE_ACE
 static const char usage[] =
 "comdraw  drawing editor with comterp scripting\n\
 Usage:  comdraw [file] [options]\n\n\
@@ -288,34 +287,6 @@ Usage:  comdraw [file] [options]\n\n\
 -runfile file               run script file after startup\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
-#else
-static const char usage[] =
-"comdraw  drawing editor with comterp scripting\n\
-Usage:  comdraw [file] [options]\n\n\
--color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
--gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
--opaque_off | -opoff        disable opaque moving/reshaping\n\
--pagecols | -ncols n        number of page columns in tiled view\n\
--pagerows | -nrows n        number of page rows in tiled view\n\
--panner_off | -poff         disable panner\n\
--panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
-                            panner alignment\n\
--rampsize n                 size of color ramp\n\
--scribble_pointer | -scrpt  enable scribble pointer\n\
--slider_off | -soff         disable slider\n\
--stdin_off                  disable stdin command socket\n\
--stripped                   stripped-down tool palette\n\
--toolbarloc | -tbl r|l      toolbar location left or right\n\
--theight | -th n            tile height in pixels\n\
--tile                       enable tiled page view\n\
--comt [file]                inline comterp text-entry pane; if file is\n\
-                            given, enter run(file) into the pane at startup\n\
--twidth | -tw n             tile width in pixels\n\
--zoomer_off | -zoff         disable zoomer\n\
--runfile file               run script file after startup\n\
--runexpr cmdstr             run command string after startup\n\n\
-any idraw parameter is also accepted (see idraw man page)";
-#endif
 
 /*****************************************************************************/
 
