@@ -597,9 +597,9 @@ void print_stack_trace();
 const char* shell_string(const char* cmd);  // returns first line of output from shell command
 const char* local_hostname();               // returns fully qualified local hostname
 void log_with_timestamp(const char* msg);   // log timestamped message
-const char* build_stamp(const char* date, const char* time, const char* patch_key);
+const char* build_stamp(const char* date, const char* time, const char* commit_id);
                                              // format a build-identity attrlist literal from
-                                             // a main.c's __DATE__/__TIME__/PATCH_KEY
+                                             // a main.c's __DATE__/__TIME__/COMMIT_ID
 char* restore_escapes(const char* str, int& bufsize);  // restore escape sequences converted to ASCII by shell/option parser
 int stdout_puts(const char* s, void* ignored);
 

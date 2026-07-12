@@ -45,9 +45,23 @@ Use_libUnidraw()
 Use_2_6()
 ComplexProgramTarget(graphdraw)
 
-#define Obj(file) MakeObjectFromSrcFlags(file,)
+#define Obj(file) MakeObjectFromSrcFlags(file, -I.)
 
 Obj(main)
+
+XCOMM COMMIT_ID: gitcommitid.h is regenerated from the current git commit
+XCOMM (see config/gitcommitid.sh) on every build rather than a
+XCOMM manually-bumped literal -- main.c #includes it; see its own comment
+XCOMM for why.
+.PHONY: gci_force
+gci_force:
+
+gitcommitid.h: gci_force
+	@$(TOP)/config/gitcommitid.sh $(TOP) > gitcommitid.h.tmp
+	@cmp -s gitcommitid.h.tmp gitcommitid.h 2>/dev/null || mv -f gitcommitid.h.tmp gitcommitid.h
+	@rm -f gitcommitid.h.tmp
+
+main.o: gitcommitid.h
 
 IncludeDependencies()
 

@@ -69,12 +69,20 @@ FPointObj fp(0.,0.);
 static char newline;
 #endif
 
-/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the banner so
-   a running binary proves which patch built it.  The patch FILENAME is stable;
-   only this key changes -- read the latest key off the banner to confirm the
-   newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
-   refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
-#define PATCH_KEY "ff2604c8"
+/* COMMIT_ID: build_stamp() (ComUtil/util.c) identity shown on the banner so
+   a running binary proves which commit built it.  Computed at build time as
+   the current git commit's first 8 hex chars (config/gitcommitid.sh), not a
+   manually-bumped literal -- a file can't contain the hash of the commit
+   it's part of (the hash is computed from the tree including this file), so
+   it's regenerated into gitcommitid.h on every build instead of being
+   committed.  Verify a build by comparing against `git rev-parse --short=8
+   HEAD` yourself, no bookkeeping required.  "-dirty" is appended if the
+   working tree has uncommitted changes; "unknown" if built outside a git
+   checkout at all (e.g. a release tarball).  Regenerating it recompiles
+   this main.c whenever the commit actually changes, so its __DATE__/__TIME__
+   refresh too -- same as the old manually-bumped PATCH_KEY literal did,
+   just without the manual part. */
+#include "gitcommitid.h"
 
 using std::cout;
 using std::cerr;
@@ -230,7 +238,7 @@ int main(int argc, char *argv[]) {
 	       unrelated CWD resolves its run("./...") loaders against that CWD
 	       and fails.  See RunFunc::set_basepath / execute(). */
 	    RunFunc::set_basepath(rfile);
-	    fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
+	    fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID), get_command_prompt());
 	    if (terp->runfile(rfile) < 0)
 	        cerr << "comterp: error running script file: " << rfile << "\n";
 	}
@@ -336,7 +344,7 @@ int main(int argc, char *argv[]) {
 	terp->disable_prompt();
       else {
 	tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
-	fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
+	fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID), get_command_prompt());
       }
       return terp->run();
     } else {
@@ -344,7 +352,7 @@ int main(int argc, char *argv[]) {
       ComTerpServ* terp = new ComTerpServ();
       terp->add_defaults();
       if (run_flag && argc > 2 ) {
-	fprintf(stderr, "ivtools-%s comterp %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
+	fprintf(stderr, "ivtools-%s comterp %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
 	int endcnt=0;
 	for(int i=argc-1; i>2; i--) {
 	  if(*argv[i]=='\0') {
@@ -391,7 +399,7 @@ int main(int argc, char *argv[]) {
 	  terp->disable_prompt();
 	else {
 	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
-	  fprintf(stdout, "ivtools-%s comterp:  type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
+	  fprintf(stdout, "ivtools-%s comterp:  type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID), get_command_prompt());
 	}
 	return terp->run();
       }

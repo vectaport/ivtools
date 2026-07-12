@@ -47,11 +47,16 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <ComUtil/util.h>
 
 #include <iostream>
 #include <fstream>
 
 using std::cerr;
+
+/* COMMIT_ID: build-time git commit hash, computed fresh on every build --
+   see comterp_/main.c's own COMMIT_ID comment for the full rationale. */
+#include "gitcommitid.h"
 
 
 /*****************************************************************************/
@@ -326,7 +331,8 @@ int main (int argc, char** argv) {
 #endif
 
     cerr << "ivtools-" << VersionString
-	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
+	 << " graphdraw: see \"man graphdraw\" or type help here for command info "
+	 << build_stamp(__DATE__, __TIME__, COMMIT_ID) << "\n";
 
 #ifdef HAVE_ACE
     ed->stdio_prompt(stdin_handler);

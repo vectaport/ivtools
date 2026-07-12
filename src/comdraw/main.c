@@ -63,10 +63,9 @@
 using std::cout;
 using std::cerr;
 
-/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
-   banner so a running binary proves which patch built it -- see
-   comterp_/main.c's own PATCH_KEY comment for the full rationale. */
-#define PATCH_KEY "b2c1ddeb"
+/* COMMIT_ID: build-time git commit hash, computed fresh on every build --
+   see comterp_/main.c's own COMMIT_ID comment for the full rationale. */
+#include "gitcommitid.h"
 
 static int nmsg = 0;
 
@@ -428,13 +427,13 @@ int main (int argc, char** argv) {
 	                        // handler is actually live, or OS echo goes off
 	                        // with no self-echo ever registered to replace it
 
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);
 	}
 #endif
 	if (!starter_line) {
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
 	}
 
 #ifdef HAVE_ACE

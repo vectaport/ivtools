@@ -67,10 +67,9 @@
 using std::cout;
 using std::cerr;
 
-/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
-   banner so a running binary proves which patch built it -- see
-   comterp_/main.c's own PATCH_KEY comment for the full rationale. */
-#define PATCH_KEY "b8cdb2cf"
+/* COMMIT_ID: build-time git commit hash, computed fresh on every build --
+   see comterp_/main.c's own COMMIT_ID comment for the full rationale. */
+#include "gitcommitid.h"
 
 static int nmsg = 0;
 
@@ -443,7 +442,7 @@ int main (int argc, char** argv) {
 	                        // with no self-echo ever registered to replace it
 	    ed->stdio_setup(stdin_handler);
 	}
-	fprintf(stderr, "ivtools-%s drawserv: type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
+	fprintf(stderr, "ivtools-%s drawserv: type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
 	ed->stdio_prompt(stdin_handler);
 
 #else
