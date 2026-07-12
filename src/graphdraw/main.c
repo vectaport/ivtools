@@ -26,11 +26,9 @@
  * Graph editor main program.
  */
 
-#ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <GraphUnidraw/graphcatalog.h>
 #include <GraphUnidraw/graphcreator.h>
@@ -159,10 +157,8 @@ static PropertyData properties[] = {
     { "*zoomer_off",    "false"  },
     { "*opaque_off",    "false"  },
     { "*stdin_off",   "false"  },
-#ifdef HAVE_ACE
     { "*comdraw",       "20002" },
     { "*import",        "20003" },
-#endif
     { "*help",          "false"  },
     { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
@@ -191,10 +187,8 @@ static OptionDesc options[] = {
     { "-opaque_off", "*opaque_off", OptionValueImplicit, "true" },
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
-#ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
-#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
     { nil }
@@ -226,9 +220,7 @@ int main (int argc, char** argv) {
     /* Ctrl-C (SIGINT) is the common way an interactive session ends --
        restore tty echo first if tty_echo_off() ever ran, issue #76. */
     tty_echo_install_signal_handlers();
-#ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
-#endif
     int exit_status = 0;
     GraphCreator creator;
     GraphCatalog* catalog = new GraphCatalog("graphdraw", &creator);
@@ -240,8 +232,6 @@ int main (int argc, char** argv) {
       cerr << usage << "\n";
       return argc > 2 ? 1 : 0;
     }
-
-#ifdef HAVE_ACE
 
     UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
@@ -274,22 +264,11 @@ int main (int argc, char** argv) {
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 
 
-    // Register IMPORT_QUIT_HANDLER to receive SIGINT commands.  When received,
-    // IMPORT_QUIT_HANDLER becomes "set" and thus, the event loop below will
-    // exit.
-#if 0
-    if (ComterpHandler::reactor_singleton()->register_handler 
-	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
-        cerr << "graphdraw:  unable to register quit handler with ACE reactor\n";
-#endif
-#endif
-
     const char* initial_file = (argc == 2) ? argv[1] : nil;
     GraphEditor* ed = new GraphEditor(initial_file);
     
     unidraw->Open(ed);
     
-#ifdef HAVE_ACE
     /*  Start up one on stdin, unless -stdin_off (mirror comdraw). */
     const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
     UnidrawComterpHandler* stdin_handler = nil;
@@ -304,14 +283,11 @@ int main (int argc, char** argv) {
 	                    // with no self-echo ever registered to replace it
 	ed->stdio_setup(stdin_handler);
     }
-#endif
 
     cerr << "ivtools-" << VersionString
 	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
 
-#ifdef HAVE_ACE
     ed->stdio_prompt(stdin_handler);
-#endif
 
     /* Seed update: the mandatory first update() that wins the X11
        map/realize race (see comdraw/main.c).  It pumps the event loop so the

@@ -27,12 +27,10 @@
  * drawserv main program.
  */
 
-#ifdef HAVE_ACE
 #include <DrawServ/drawserv-handler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 #include <ComTerp/comhandler.h>
-#endif
 
 #include <DrawServ/drawcatalog.h>
 #include <DrawServ/drawcreator.h>
@@ -203,10 +201,8 @@ static PropertyData properties[] = {
     { "*opaque_off",    "false"  },
     { "*stripped",      "false"  },
     { "*stdin_off",   "false"  },
-#ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",          "20002" },
-#endif
     { "*help",          "false"  },
     { "*runfile",       ""  },
     { "*runexpr",       ""  },
@@ -246,10 +242,8 @@ static OptionDesc options[] = {
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-stripped", "*stripped", OptionValueImplicit, "true" },
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
-#ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
-#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -317,9 +311,7 @@ int main (int argc, char** argv) {
 #endif
 #endif
   
-#ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
-#endif
     DrawCreator creator;
     DrawCatalog* catalog = new DrawCatalog("ivtools drawserv", &creator);
     DrawServ* unidraw = new DrawServ(
@@ -330,8 +322,6 @@ int main (int argc, char** argv) {
       cerr << usage << "\n";
       return 0;
     }
-
-#ifdef HAVE_ACE
 
     UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
@@ -363,22 +353,9 @@ int main (int argc, char** argv) {
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 
-
-    // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
-    // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
-    // exit.
-#if 0
-    if (ComterpHandler::reactor_singleton()->register_handler 
-	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
-        cerr << "drawserv:  unable to register quit handler with ACE reactor\n";
-#endif
-
-#endif
-
     OverlayEditor::add_edlauncher("Comdraw", &launch_comdraw);
     OverlayEditor::add_edlauncher("Flipbook", &launch_flipbook);
     OverlayEditor::add_edlauncher("Graphdraw", &launch_graphdraw);
-
 
     int exit_status = 0;
 

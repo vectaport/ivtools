@@ -43,11 +43,9 @@
 #include <InterViews/display.h>
 #include <IV-X11/xdisplay.h>
 
-#ifdef HAVE_ACE
 #include <ComUnidraw/comterp-acehandler.h>
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
-#endif
 
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
@@ -191,14 +189,12 @@ static PropertyData properties[] = {
     { "*opaque_off",    "false"  },
     { "*stripped",      "false"  },
     { "*stdin_off",   "false"  },
-#ifdef HAVE_ACE
     { "*import",        "20001" },
     { "*comdraw",       "20002" },
     { "*wbmaster",      "false" },
     { "*wbslave",       "false" },
     { "*wbhost",        "localhost" },
     { "*wbport",        "20002" },
-#endif
     { "*help",          "false"  },
     { "*runfile",       ""  },
     { "*runexpr",       ""  },
@@ -239,14 +235,12 @@ static OptionDesc options[] = {
     { "-opoff", "*opaque_off", OptionValueImplicit, "true" },
     { "-stripped", "*stripped", OptionValueImplicit, "true" },
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
-#ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
     { "-wbmaster", "*wbmaster", OptionValueImplicit, "true" },
     { "-wbslave", "*wbslave", OptionValueImplicit, "true" },
     { "-wbhost", "*wbhost", OptionValueNext },
     { "-wbport", "*wbport", OptionValueNext },
-#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -314,9 +308,7 @@ int main (int argc, char** argv) {
        restore tty echo first if tty_echo_off() ever ran, issue #76. */
     tty_echo_install_signal_handlers();
     const char* comtfile = extract_comtfile(argc, argv);
-#ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
-#endif
     OverlayCreator creator;
     OverlayCatalog* catalog = new OverlayCatalog("comdraw", &creator);
     OverlayUnidraw* unidraw = new OverlayUnidraw(
@@ -327,8 +319,6 @@ int main (int argc, char** argv) {
       cerr << usage << "\n";
       return 0;
     }
-
-#ifdef HAVE_ACE
 
     UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
@@ -360,17 +350,6 @@ int main (int argc, char** argv) {
     else
         cerr << "accepting comdraw port (" << portnum << ") connections\n";
 
-
-    // Register COMTERP_QUIT_HANDLER to receive SIGINT commands.  When received,
-    // COMTERP_QUIT_HANDLER becomes "set" and thus, the event loop below will
-    // exit.
-#if 0
-    if (ComterpHandler::reactor_singleton()->register_handler 
-	     (SIGINT, COMTERP_QUIT_HANDLER::instance ()) == -1)
-        cerr << "comdraw:  unable to register quit handler with ACE reactor\n";
-#endif
-
-#endif
     int exit_status = 0;
     boolean starter_line = false;
 
@@ -384,8 +363,6 @@ int main (int argc, char** argv) {
 
 	unidraw->Open(ed);
 
-#ifdef HAVE_ACE
-	
 	/*  Start up one on stdin */
 	const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
 	UnidrawComterpHandler* stdin_handler = nil;
@@ -403,15 +380,12 @@ int main (int argc, char** argv) {
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);
 	}
-#endif
 	if (!starter_line) {
 	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	}
 
-#ifdef HAVE_ACE
 	ed->stdio_prompt(stdin_handler);
-#endif
-	
+
 	XSync(unidraw->GetWorld()->display()->rep()->display_,false);
 	
 	/* execute -runfile or -runexpr after editor is fully initialized */
