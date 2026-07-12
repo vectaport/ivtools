@@ -39,6 +39,7 @@
 #include <OverlayUnidraw/ovunidraw.h>
 
 #include <ComTerp/comterpserv.h>
+#include <ComTerp/comvalue.h>
 
 #include <InterViews/world.h>
 
@@ -202,20 +203,40 @@ static OptionDesc options[] = {
 
 #ifdef HAVE_ACE
 static const char usage[] =
-"Usage: graphdraw [any idraw parameter] [-color5] [-color6] [-comdraw port]\n\
-[-import port] [-gray5] [-gray6] [-gray7] [-opaque_off|-opoff]\n\
-[-pagecols|-ncols n] [-pagerows|-nrows n] [-panner_off|-poff]\n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ]\n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
-[-zoomer_off|-zoff] [file]";
+"graphdraw  graph editor with comterp scripting\n\
+Usage:  graphdraw [file] [options]\n\n\
+-comdraw port               port number for comdraw command socket\n\
+-import portnum             port number for import socket\n\
+-color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
+-gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
+-opaque_off | -opoff        disable opaque moving/reshaping\n\
+-pagecols | -ncols n        number of page columns in tiled view\n\
+-pagerows | -nrows n        number of page rows in tiled view\n\
+-panner_off | -poff         disable panner\n\
+-panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
+                            panner alignment\n\
+-scribble_pointer | -scrpt  enable scribble pointer\n\
+-slider_off | -soff         disable slider\n\
+-stdin_off                  disable stdin command socket\n\
+-zoomer_off | -zoff         disable zoomer\n\n\
+any idraw parameter is also accepted (see idraw man page)";
 #else
-static char usage[] =
-"Usage: graphdraw [any idraw parameter] [-color5] [-color6]\n\
-[-gray5] [-gray6] [-gray7] [-opaque_off|-opoff] [-pagecols|-ncols n]\n\
-[-pagerows|-nrows n] [-panner_off|-poff]\n\
-[-panner_align|-pal tl|tc|tr|cl|c|cr|cl|bl|br|l|r|t|b|hc|vc ] \n\
-[-scribble_pointer|-scrpt ] [-slider_off|-soff] [-stdin_off]\n\
-[-zoomer_off|-zoff] [file]";
+static const char usage[] =
+"graphdraw  graph editor with comterp scripting\n\
+Usage:  graphdraw [file] [options]\n\n\
+-color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
+-gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
+-opaque_off | -opoff        disable opaque moving/reshaping\n\
+-pagecols | -ncols n        number of page columns in tiled view\n\
+-pagerows | -nrows n        number of page rows in tiled view\n\
+-panner_off | -poff         disable panner\n\
+-panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
+                            panner alignment\n\
+-scribble_pointer | -scrpt  enable scribble pointer\n\
+-slider_off | -soff         disable slider\n\
+-stdin_off                  disable stdin command socket\n\
+-zoomer_off | -zoff         disable zoomer\n\n\
+any idraw parameter is also accepted (see idraw man page)";
 #endif
 
 /*****************************************************************************/
@@ -288,25 +309,48 @@ int main (int argc, char** argv) {
     unidraw->Open(ed);
     
 #ifdef HAVE_ACE
-    /*  Start up one on stdin */
-    UnidrawComterpHandler* stdin_handler = new UnidrawComterpHandler();
-    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
+    /*  Start up one on stdin, unless -stdin_off (mirror comdraw). */
+    const char* stdin_off_str = unidraw->GetCatalog()->GetAttribute("stdin_off");
+    UnidrawComterpHandler* stdin_handler = nil;
+    if (!stdin_off_str || strcmp(stdin_off_str, "false")==0) {
+	stdin_handler = new UnidrawComterpHandler();
+	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							      ACE_Event_Handler::READ_MASK)==-1)
-      cerr << "graphdraw: unable to open stdin with ACE\n";
-    else
-      tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
-                        // handler is actually live, or OS echo goes off
-                        // with no self-echo ever registered to replace it
-    ed->stdio_setup(stdin_handler);
+	  cerr << "graphdraw: unable to open stdin with ACE\n";
+	else
+	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
+	                    // handler is actually live, or OS echo goes off
+	                    // with no self-echo ever registered to replace it
+	ed->stdio_setup(stdin_handler);
+    }
 #endif
-    
-    cerr << "ivtools-" << VersionString 
+
+    cerr << "ivtools-" << VersionString
 	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
-    
+
 #ifdef HAVE_ACE
     ed->stdio_prompt(stdin_handler);
 #endif
-    
+
+    /* Seed update: the mandatory first update() that wins the X11
+       map/realize race (see comdraw/main.c).  It pumps the event loop so the
+       window maps and the viewer's canvas is bound before any GUI command
+       can run -- a client connecting to the import/comdraw command socket
+       can send a GUI command as the very first event processed inside
+       Run(), before the window's Configure/Expose has bound the canvas,
+       which would otherwise dereference a null canvas and crash.  Mapping
+       the window here, before Run() owns the loop, closes that window.
+       Not something the user typed -- one-shot suppress its self-echo
+       (issue #76, ttyecho.c; see comdraw/main.c's fuller comment for why
+       a one-shot flag, not a held-open disable_prompt(), is the
+       reentrancy-safe way to suppress a single internal eval like
+       this one). */
+    ComTerpServ* terp = ed->GetComTerp();
+    if (terp) {
+      tty_echo_suppress_next();
+      terp->run("update(1000000)\n");
+    }
+
     unidraw->Run();
     
     delete unidraw;
