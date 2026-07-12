@@ -448,7 +448,15 @@ int main (int argc, char** argv) {
 	       viewer's canvas is bound before any -runfile/-runexpr script can drive
 	       GUI commands (select(), etc.) that would otherwise dereference a null
 	       canvas and crash.  (Over the command socket the reactor is already
-	       pumping, so this only matters for the pre-Run() script path.) */
+	       pumping, so this only matters for the pre-Run() script path.)
+	       Not something the user typed -- one-shot suppress its self-echo
+	       (issue #76, ttyecho.c) rather than disable_prompt()/enable_prompt():
+	       update() itself pumps the reactor, and a held-open flag spanning
+	       that pump would wrongly suppress a genuinely reentrant paste's
+	       echo too; the one-shot flag is consumed by _lexscan.c during the
+	       synchronous parse of this one line, before update() ever starts
+	       pumping, so it can't overlap that window. */
+	    tty_echo_suppress_next();
 	    terp->run("update(1000000)\n");
 
 	    const char* runfile = catalog->GetAttribute("runfile");

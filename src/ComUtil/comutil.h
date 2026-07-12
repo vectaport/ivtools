@@ -197,6 +197,15 @@ void tty_echo_off(void);
 void tty_echo_restore(void);
 int tty_echo_is_off(void);
 
+/* one-shot suppression for a single internal, not-typed-by-the-user eval
+   (e.g. comdraw/drawserv's startup seed update()) -- see ttyecho.c's
+   comment above tty_echo_suppress_next() for why this is safe against
+   reentrancy where a held-open disable_prompt()/enable_prompt() pair
+   isn't.  Callers only ever need tty_echo_suppress_next(); the consume
+   function is _lexscan.c's half of the contract. */
+void tty_echo_suppress_next(void);
+int tty_echo_consume_suppress_next(void);
+
 /* stdout_puts: outfunc wrapper that always writes to stdout.
    Use as outfunc for interactive stdin mode -- its identity as a
    function pointer signals to lexscan that (comt) prompt should print. */

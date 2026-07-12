@@ -459,7 +459,13 @@ int main (int argc, char** argv) {
 	       as the very first event it processes inside Run(), before its window's
 	       Configure/Expose has bound the canvas -- OverlaySelection::Update()
 	       then repairs damage through a null canvas and segfaults.  Mapping the
-	       window here, before Run() owns the loop, closes that window. */
+	       window here, before Run() owns the loop, closes that window.
+	       Not something the user typed -- one-shot suppress its self-echo
+	       (issue #76, ttyecho.c; see comdraw/main.c's fuller comment for
+	       why a one-shot flag, not a held-open disable_prompt(), is the
+	       reentrancy-safe way to suppress a single internal eval like
+	       this one). */
+	    tty_echo_suppress_next();
 	    terp->run("update(1000000)\n");
 
 	    const char* runfile = catalog->GetAttribute("runfile");

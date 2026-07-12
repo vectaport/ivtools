@@ -83,3 +83,24 @@ void tty_echo_off(void) {
 }
 
 int tty_echo_is_off(void) { return _tty_echo_off; }
+
+/* One-shot self-echo suppression for a single internal, not-typed-by-the-
+   user eval -- e.g. comdraw/drawserv's startup seed update(1000000).  NOT
+   a general "disable prompt for the duration of a call" mechanism: unlike
+   disable_prompt()/enable_prompt() (_parser.c), which stay set for as long
+   as the caller holds them open, this flag is consumed and cleared the
+   instant _lexscan.c reads the very next line -- during read_expr(), which
+   runs to completion before eval_expr() (and whatever event-loop pumping
+   the evaluated command does) ever starts.  So it never overlaps the
+   window where a reentrant stdin event could observe it still set; a
+   held-open flag spanning the whole call does (see issue #76 history --
+   that's what broke comdraw's own reentrant-paste handling when tried). */
+static int _suppress_next_echo = 0;
+
+void tty_echo_suppress_next(void) { _suppress_next_echo = 1; }
+
+int tty_echo_consume_suppress_next(void) {
+    int flag = _suppress_next_echo;
+    _suppress_next_echo = 0;
+    return flag;
+}
