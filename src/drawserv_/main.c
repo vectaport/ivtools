@@ -70,7 +70,7 @@ using std::cerr;
 /* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
    banner so a running binary proves which patch built it -- see
    comterp_/main.c's own PATCH_KEY comment for the full rationale. */
-#define PATCH_KEY "45a76708"
+#define PATCH_KEY "e89799c4"
 
 static int nmsg = 0;
 
