@@ -188,6 +188,31 @@ int get_continuation_prompt_disabled();
 void set_command_prompt(const char* prompt);
 const char* get_command_prompt();
 
+/* stdin echo control (from ttyecho.c) -- see that file's header comment.
+   tty_echo_off() no-ops unless stdin is a real tty; safe to call
+   unconditionally.  tty_echo_restore() is registered via atexit() by
+   tty_echo_off() itself, but is also public so a deliberate early-exit
+   path (one that bypasses atexit, e.g. _exit()) can call it directly. */
+void tty_echo_off(void);
+void tty_echo_restore(void);
+int tty_echo_is_off(void);
+
+/* one-shot suppression for a single internal, not-typed-by-the-user eval
+   (e.g. comdraw/drawserv's startup seed update()) -- see ttyecho.c's
+   comment above tty_echo_suppress_next() for why this is safe against
+   reentrancy where a held-open disable_prompt()/enable_prompt() pair
+   isn't.  Callers only ever need tty_echo_suppress_next(); the consume
+   function is _lexscan.c's half of the contract. */
+void tty_echo_suppress_next(void);
+int tty_echo_consume_suppress_next(void);
+
+/* installs SIGINT/SIGTERM handlers that restore tty echo (if it was ever
+   disabled) before re-raising with the default disposition -- call once,
+   unconditionally, near the top of main() (a signal-death without
+   tty_echo_off() ever having run just restores a no-op).  See
+   tty_echo_signal_handler()'s comment in ttyecho.c for the full why. */
+void tty_echo_install_signal_handlers(void);
+
 /* stdout_puts: outfunc wrapper that always writes to stdout.
    Use as outfunc for interactive stdin mode -- its identity as a
    function pointer signals to lexscan that (comt) prompt should print. */

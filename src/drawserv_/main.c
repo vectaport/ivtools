@@ -67,6 +67,11 @@
 using std::cout;
 using std::cerr;
 
+/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
+   banner so a running binary proves which patch built it -- see
+   comterp_/main.c's own PATCH_KEY comment for the full rationale. */
+#define PATCH_KEY "b8cdb2cf"
+
 static int nmsg = 0;
 
 static OverlayEditor* launch_comdraw() {
@@ -317,6 +322,9 @@ void handle_badpipe(int i) {
 }
 
 int main (int argc, char** argv) {
+    /* Ctrl-C (SIGINT) is the common way an interactive session ends --
+       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+    tty_echo_install_signal_handlers();
 
 #if 0
     /* ignore broken pipe, so socket writes that are in error return EPIPE */
@@ -429,9 +437,13 @@ int main (int argc, char** argv) {
 	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							  ACE_Event_Handler::READ_MASK)==-1)
 	      cerr << "drawserv: unable to open stdin with ACE\n";
+	    else
+	      tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
+	                        // handler is actually live, or OS echo goes off
+	                        // with no self-echo ever registered to replace it
 	    ed->stdio_setup(stdin_handler);
 	}
-	fprintf(stderr, "ivtools-%s drawserv: type help here for command info\n", VersionString);
+	fprintf(stderr, "ivtools-%s drawserv: type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	ed->stdio_prompt(stdin_handler);
 
 #else
@@ -450,7 +462,13 @@ int main (int argc, char** argv) {
 	       as the very first event it processes inside Run(), before its window's
 	       Configure/Expose has bound the canvas -- OverlaySelection::Update()
 	       then repairs damage through a null canvas and segfaults.  Mapping the
-	       window here, before Run() owns the loop, closes that window. */
+	       window here, before Run() owns the loop, closes that window.
+	       Not something the user typed -- one-shot suppress its self-echo
+	       (issue #76, ttyecho.c; see comdraw/main.c's fuller comment for
+	       why a one-shot flag, not a held-open disable_prompt(), is the
+	       reentrancy-safe way to suppress a single internal eval like
+	       this one). */
+	    tty_echo_suppress_next();
 	    terp->run("update(1000000)\n");
 
 	    const char* runfile = catalog->GetAttribute("runfile");

@@ -63,6 +63,11 @@
 using std::cout;
 using std::cerr;
 
+/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
+   banner so a running binary proves which patch built it -- see
+   comterp_/main.c's own PATCH_KEY comment for the full rationale. */
+#define PATCH_KEY "b2c1ddeb"
+
 static int nmsg = 0;
 
 /*****************************************************************************/
@@ -334,6 +339,9 @@ static const char* extract_comtfile(int& argc, char** argv) {
 }
 
 int main (int argc, char** argv) {
+    /* Ctrl-C (SIGINT) is the common way an interactive session ends --
+       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+    tty_echo_install_signal_handlers();
     const char* comtfile = extract_comtfile(argc, argv);
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
@@ -412,17 +420,21 @@ int main (int argc, char** argv) {
 	UnidrawComterpHandler* stdin_handler = nil;
 	if (!stdin_off_str || strcmp(stdin_off_str, "false")==0) {
 	    stdin_handler = new UnidrawComterpHandler();
-	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler, 
+	    if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							  ACE_Event_Handler::READ_MASK)==-1)
 	      cerr << "comdraw: unable to open stdin with ACE\n";
+	    else
+	      tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
+	                        // handler is actually live, or OS echo goes off
+	                        // with no self-echo ever registered to replace it
 
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);
 	}
 #endif
 	if (!starter_line) {
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info\n", VersionString);
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	}
 
 #ifdef HAVE_ACE
@@ -439,7 +451,15 @@ int main (int argc, char** argv) {
 	       viewer's canvas is bound before any -runfile/-runexpr script can drive
 	       GUI commands (select(), etc.) that would otherwise dereference a null
 	       canvas and crash.  (Over the command socket the reactor is already
-	       pumping, so this only matters for the pre-Run() script path.) */
+	       pumping, so this only matters for the pre-Run() script path.)
+	       Not something the user typed -- one-shot suppress its self-echo
+	       (issue #76, ttyecho.c) rather than disable_prompt()/enable_prompt():
+	       update() itself pumps the reactor, and a held-open flag spanning
+	       that pump would wrongly suppress a genuinely reentrant paste's
+	       echo too; the one-shot flag is consumed by _lexscan.c during the
+	       synchronous parse of this one line, before update() ever starts
+	       pumping, so it can't overlap that window. */
+	    tty_echo_suppress_next();
 	    terp->run("update(1000000)\n");
 
 	    const char* runfile = catalog->GetAttribute("runfile");

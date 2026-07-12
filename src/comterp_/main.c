@@ -74,7 +74,7 @@ static char newline;
    only this key changes -- read the latest key off the banner to confirm the
    newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
    refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
-#define PATCH_KEY "57ce50ab"
+#define PATCH_KEY "ff2604c8"
 
 using std::cout;
 using std::cerr;
@@ -120,6 +120,9 @@ int main(int argc, char *argv[]) {
        interpreter.  matters for `comterp listen` driving multiple drawservs --
        e.g. drawmo's gsbrushB, where a far node's connection can drop mid-run. */
     signal(SIGPIPE, SIG_IGN);
+    /* Ctrl-C (SIGINT) is the common way an interactive session ends --
+       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+    tty_echo_install_signal_handlers();
 
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;
     boolean logger_flag = argc>1 && strcmp(argv[1], "logger") == 0;
@@ -331,8 +334,10 @@ int main(int argc, char *argv[]) {
       int status = fstat(fileno(stdin), &buf);
       if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	terp->disable_prompt();
-      else
+      else {
+	tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	fprintf(stdout, "ivtools-%s comterp: type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
+      }
       return terp->run();
     } else {
 
@@ -385,6 +390,7 @@ int main(int argc, char *argv[]) {
         if (S_ISREG(buf.st_mode) || S_ISFIFO(buf.st_mode))
 	  terp->disable_prompt();
 	else {
+	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c
 	  fprintf(stdout, "ivtools-%s comterp:  type help for more info %s\n%s", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), get_command_prompt());
 	}
 	return terp->run();

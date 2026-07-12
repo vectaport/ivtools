@@ -261,13 +261,40 @@ int bs_ident = 0;
 	     (*outfunc) ( get_command_prompt(), outfile);
 	 }
 	 _continuation_prompt = 0;
+	 /* self-echo: with the OS's own tty echo suppressed (tty_echo_off(),
+	    ttyecho.c -- issue #76), nothing else shows what was just read,
+	    typed or pasted.  Echo it here, right where each line becomes
+	    known, so it stays correctly interleaved with each line's own
+	    result even for a multi-line paste that the OS would otherwise
+	    have dumped to the screen all at once, well before this point.
+	    Gated on !_continuation_prompt_disabled, same as the prompt print
+	    above -- a caller that's already asking for no prompt (e.g. a
+	    piped/non-interactive script) wants no echo of its own either.
+	    Also gated on the one-shot suppress-next flag (ttyecho.c) -- see
+	    its comment for why that, and not a held-open disable_prompt(),
+	    is what's safe to use around a single internal eval like
+	    comdraw/drawserv's startup seed update(); consumed here exactly
+	    once regardless of whether this line turns out to be a comment
+	    or the real one, so it only ever swallows the next line read. */
+	 { int echo_suppressed = tty_echo_consume_suppress_next();
 	 if (linecmtchr || linecmtstr)
-	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL && 
+	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
 		  (buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
+	     if (outfunc && !_continuation_prompt_disabled && !echo_suppressed
+		 && outfunc == (int(*)(const char*,void*))&stdout_puts && tty_echo_is_off())
+	       (*outfunc) ( buffer, outfile );  /* echo the comment line too -- it's
+	                                            still being silently consumed
+	                                            here, just no longer shown by
+	                                            OS echo on its own */
              (*linenum)++;  /* skip all script comments */
          }
 	 else
 	   infunc_retval = (*infunc)( buffer, bufsiz, infile );
+	 if (infunc_retval != NULL && outfunc && !_continuation_prompt_disabled && !echo_suppressed
+	     && outfunc == (int(*)(const char*,void*))&stdout_puts
+	     && tty_echo_is_off())
+	   (*outfunc) ( buffer, outfile );
+	 }
 	 if( infunc_retval == NULL ) {
 	    if( *toklen > 0 )
 	       goto token_return;
