@@ -57,19 +57,16 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   uuid_clear(_linkid);
   _state = state;
 
-#ifdef HAVE_ACE
   _addr = nil;
   _socket = nil;
   _conn = nil;
-#endif
 
   _comhandler = nil;
   _ackhandler = nil;
 }
 
-DrawLink::~DrawLink () 
+DrawLink::~DrawLink ()
 {
-#ifdef HAVE_ACE
     if (_socket->close () == -1)
         ACE_ERROR ((LM_ERROR, "%p\n", "close"));
     delete _conn;
@@ -77,7 +74,6 @@ DrawLink::~DrawLink ()
     delete _addr;
     delete _host;
     delete _althost;
-#endif
 }
 
 int DrawLink::open(uuid_t linkid) {
@@ -146,8 +142,7 @@ int DrawLink::open(uuid_t linkid) {
 }
 
 int DrawLink::close() {
-#ifdef HAVE_ACE
-  fprintf(stderr, "Closing link to %s (%s) port # %d (lid=%.8s)\n", 
+  fprintf(stderr, "Closing link to %s (%s) port # %d (lid=%.8s)\n",
 	  hostname(), althostname(), portnum(), linkid_str());
   if (comhandler()) comhandler()->drawlink(nil);
   if (_socket) {
@@ -161,7 +156,6 @@ int DrawLink::close() {
     if (_socket->close () == -1)
       ACE_ERROR ((LM_ERROR, "%p\n", "close"));
   }
-#endif
   return 1;
 }
 
@@ -180,11 +174,9 @@ void DrawLink::althostname(const char* althost) {
 }
 
 int DrawLink::handle() {
-#ifdef HAVE_ACE
-  if (_socket) 
+  if (_socket)
     return _socket->get_handle();
-  else 
-#endif
+  else
     return -1;
 }
 

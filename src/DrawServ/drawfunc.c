@@ -327,7 +327,6 @@ void SessionIdFunc::execute() {
 
 /*****************************************************************************/
 
-#ifdef HAVE_ACE
 GraphicIdFunc::GraphicIdFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
@@ -459,8 +458,6 @@ void GraphicIdFunc::execute() {
   }
 
 }
-
-#endif /* defined(HAVE_ACE) */
 
 /*****************************************************************************/
 
