@@ -240,31 +240,6 @@ Usage:  flipbook [file] [options]\n\n\
 -twidth | -tw n             tile width in pixels\n\
 -zoomer_off | -zoff         disable zoomer\n\n\
 any idraw parameter is also accepted (see idraw man page)";
-#else
-static const char usage[] =
-"flipbook  frame/slideshow editor with comterp scripting\n\
-Usage:  flipbook [file] [options]\n\n\
--bookgeom                   book-style facing-page layout\n\
--color5 | -color6           use 5x5x5 or 6x6x6 color cube\n\
--gray5 | -gray6 | -gray7    use 5, 6, or 7 level grayscale ramp\n\
--opaque_off | -opoff        disable opaque moving/reshaping\n\
--pagecols | -ncols n        number of page columns in tiled view\n\
--pagerows | -nrows n        number of page rows in tiled view\n\
--panner_off | -poff         disable panner\n\
--panner_align | -pal tl|tc|tr|cl|c|cr|bl|bc|br|l|r|t|b|hc|vc\n\
-                            panner alignment\n\
--scribble_pointer | -scrpt  enable scribble pointer\n\
--slideshow sec              auto-advance pages every sec seconds\n\
--slider_off | -soff         disable slider\n\
--stdin_off                  disable stdin command socket\n\
--stripped                   stripped-down tool palette\n\
--toolbarloc | -tbl r|l      toolbar location left or right\n\
--theight | -th n            tile height in pixels\n\
--tile                       enable tiled page view\n\
--twidth | -tw n             tile width in pixels\n\
--zoomer_off | -zoff         disable zoomer\n\n\
-any idraw parameter is also accepted (see idraw man page)";
-#endif
 /*****************************************************************************/
 
 int main (int argc, char** argv) {

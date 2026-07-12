@@ -134,10 +134,6 @@ int main(int argc, char *argv[]) {
     boolean expr_flag = argc>1 && !server_flag && !logger_flag &&
                         !remote_flag && !client_flag && !telcat_flag && !run_flag && !listen_flag;
 
-<<<<<<< Updated upstream
-#ifdef HAVE_ACE
-=======
->>>>>>> Stashed changes
     if (server_flag || logger_flag) {
         ComterpAcceptor* peer_acceptor = 
 	    new ComterpAcceptor(ComterpHandler::reactor_singleton());
