@@ -67,7 +67,7 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
 
 DrawLink::~DrawLink ()
 {
-    if (_socket->close () == -1)
+    if (_socket && _socket->close () == -1)
         ACE_ERROR ((LM_ERROR, "%p\n", "close"));
     delete _conn;
     delete _socket;
