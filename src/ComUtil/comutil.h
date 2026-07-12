@@ -206,6 +206,13 @@ int tty_echo_is_off(void);
 void tty_echo_suppress_next(void);
 int tty_echo_consume_suppress_next(void);
 
+/* installs SIGINT/SIGTERM handlers that restore tty echo (if it was ever
+   disabled) before re-raising with the default disposition -- call once,
+   unconditionally, near the top of main() (a signal-death without
+   tty_echo_off() ever having run just restores a no-op).  See
+   tty_echo_signal_handler()'s comment in ttyecho.c for the full why. */
+void tty_echo_install_signal_handlers(void);
+
 /* stdout_puts: outfunc wrapper that always writes to stdout.
    Use as outfunc for interactive stdin mode -- its identity as a
    function pointer signals to lexscan that (comt) prompt should print. */

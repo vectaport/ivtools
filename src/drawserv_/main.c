@@ -70,7 +70,7 @@ using std::cerr;
 /* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
    banner so a running binary proves which patch built it -- see
    comterp_/main.c's own PATCH_KEY comment for the full rationale. */
-#define PATCH_KEY "e89799c4"
+#define PATCH_KEY "b8cdb2cf"
 
 static int nmsg = 0;
 
@@ -322,6 +322,9 @@ void handle_badpipe(int i) {
 }
 
 int main (int argc, char** argv) {
+    /* Ctrl-C (SIGINT) is the common way an interactive session ends --
+       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+    tty_echo_install_signal_handlers();
 
 #if 0
     /* ignore broken pipe, so socket writes that are in error return EPIPE */

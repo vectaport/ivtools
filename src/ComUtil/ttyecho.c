@@ -54,6 +54,7 @@ History:         Added for issue #76, July 2026
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
+#include <signal.h>
 
 static int _tty_echo_off = 0;
 static struct termios _tty_saved_state;
@@ -103,4 +104,25 @@ int tty_echo_consume_suppress_next(void) {
     int flag = _suppress_next_echo;
     _suppress_next_echo = 0;
     return flag;
+}
+
+/* atexit() (tty_echo_off()'s own registration) and the explicit call in
+   ComTerp::exit() (comterp.c, ahead of its deliberate _exit()) both cover
+   an orderly exit -- neither runs when the process dies by signal, which
+   for an interactive session is the COMMON case: Ctrl-C is SIGINT.  A
+   signal-terminated comterp/comdraw/drawserv would otherwise leave the
+   user's shell with ECHO still cleared, invisible typing until `stty
+   echo`/`reset`.  Restore, then re-raise with the default disposition --
+   so the process still actually dies of the signal (correct exit status,
+   core dump if applicable for SIGSEGV-like signals) -- we're only
+   cleaning up the tty first, not changing how the process exits. */
+static void tty_echo_signal_handler(int sig) {
+    tty_echo_restore();
+    signal(sig, SIG_DFL);
+    raise(sig);
+}
+
+void tty_echo_install_signal_handlers(void) {
+    signal(SIGINT, tty_echo_signal_handler);
+    signal(SIGTERM, tty_echo_signal_handler);
 }

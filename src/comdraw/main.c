@@ -66,7 +66,7 @@ using std::cerr;
 /* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
    banner so a running binary proves which patch built it -- see
    comterp_/main.c's own PATCH_KEY comment for the full rationale. */
-#define PATCH_KEY "12006598"
+#define PATCH_KEY "b2c1ddeb"
 
 static int nmsg = 0;
 
@@ -339,6 +339,9 @@ static const char* extract_comtfile(int& argc, char** argv) {
 }
 
 int main (int argc, char** argv) {
+    /* Ctrl-C (SIGINT) is the common way an interactive session ends --
+       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+    tty_echo_install_signal_handlers();
     const char* comtfile = extract_comtfile(argc, argv);
 #ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
