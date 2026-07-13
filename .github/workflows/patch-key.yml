@@ -1,0 +1,99 @@
+# PATCH_KEY enforcement + tagging.
+#
+# PATCH_KEY (src/include/ivstd/patch.h) is a plain committed literal shown on
+# every editor's startup banner, identifying which patch a running binary was
+# built from. It's deliberately NOT derived from git (a file can't contain the
+# hash of the commit it's part of), so its traceability back to an exact
+# commit instead comes from a matching git tag pushed at merge time.
+#
+# Two jobs:
+#   require-patch-key-bump  (pull_request) -- fails the PR if patch.h wasn't
+#     revised, so every merged patch has a fresh, taggable identifier.
+#   tag-patch-key  (push to master) -- once a bump lands on master, pushes a
+#     git tag named after the new PATCH_KEY value, pointing at that commit.
+#     Runs on push (not pull_request) specifically because a local
+#     post-commit hook would only fire on whoever's machine runs `git commit`
+#     -- it would miss anything landing via GitHub's own PR-merge button,
+#     which is how most commits actually reach master here.
+name: PATCH_KEY
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  require-patch-key-bump:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # actions/checkout defaults to the synthetic merge commit
+      # (refs/pull/N/merge) for pull_request events, so HEAD^1 is the PR's
+      # base and HEAD^2 is its own head -- diffing between them is exactly
+      # "what this PR itself changed", regardless of how far the real base
+      # branch has moved since this PR forked from it (a plain diff against
+      # the base branch's current tip would false-positive if some other,
+      # unrelated PR already bumped patch.h on master in the meantime).
+      - name: Require src/include/ivstd/patch.h to change
+        run: |
+          set -e
+          base=$(git rev-parse HEAD^1)
+          head=$(git rev-parse HEAD^2)
+          if git diff --name-only "$base" "$head" -- src/include/ivstd/patch.h | grep -q .; then
+            echo "src/include/ivstd/patch.h changed -- OK"
+          else
+            echo "::error::src/include/ivstd/patch.h was not revised in this PR."
+            echo "::error::Bump PATCH_KEY there (a fresh identifier -- see the file's own comment for why it's not a git hash) so this patch has its own identity on the startup banner."
+            echo "::error::After merging, the PATCH_KEY job on push to master will tag the merge commit with the new value automatically."
+            exit 1
+          fi
+
+  tag-patch-key:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Tag PATCH_KEY if it changed in this push
+        run: |
+          set -e
+          before="${{ github.event.before }}"
+          after="${{ github.sha }}"
+
+          # A branch's first-ever push (or a history-rewriting force-push with
+          # no common ancestor left in this shallow clone) reports `before` as
+          # all-zeros -- nothing to diff against, so there's nothing to do.
+          if [ "$before" = "0000000000000000000000000000000000000000" ]; then
+            echo "No previous commit to diff against (new branch or rewritten history) -- skipping"
+            exit 0
+          fi
+
+          if ! git diff --name-only "$before" "$after" -- src/include/ivstd/patch.h | grep -q .; then
+            echo "patch.h unchanged in this push -- nothing to tag"
+            exit 0
+          fi
+
+          key=$(grep -oP '(?<=#define PATCH_KEY ")[^"]+' src/include/ivstd/patch.h)
+          if [ -z "$key" ]; then
+            echo "::error::could not extract PATCH_KEY from src/include/ivstd/patch.h"
+            exit 1
+          fi
+
+          if git ls-remote --exit-code --tags origin "refs/tags/$key" >/dev/null 2>&1; then
+            echo "::warning::tag $key already exists -- not overwriting (collision, or this push was already tagged)"
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "$key" "$after"
+          git push origin "$key"
+          echo "Tagged $after as $key"
