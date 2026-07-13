@@ -58,14 +58,11 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <patch.h>
 #include <iostream>
 
 using std::cout;
 using std::cerr;
-
-/* COMMIT_ID: build-time git commit hash, computed fresh on every build --
-   see comterp_/main.c's own COMMIT_ID comment for the full rationale. */
-#include "gitcommitid.h"
 
 static int nmsg = 0;
 
@@ -427,13 +424,13 @@ int main (int argc, char** argv) {
 	                        // handler is actually live, or OS echo goes off
 	                        // with no self-echo ever registered to replace it
 
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	  starter_line = true;
 	  ed->stdio_setup(stdin_handler);
 	}
 #endif
 	if (!starter_line) {
-	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
+	  fprintf(stderr, "ivtools-%s comdraw: see \"man comdraw\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	}
 
 #ifdef HAVE_ACE

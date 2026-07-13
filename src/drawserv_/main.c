@@ -57,6 +57,7 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <patch.h>
 #include <fstream>
 #include <iostream>
 
@@ -66,10 +67,6 @@
 
 using std::cout;
 using std::cerr;
-
-/* COMMIT_ID: build-time git commit hash, computed fresh on every build --
-   see comterp_/main.c's own COMMIT_ID comment for the full rationale. */
-#include "gitcommitid.h"
 
 static int nmsg = 0;
 
@@ -442,7 +439,7 @@ int main (int argc, char** argv) {
 	                        // with no self-echo ever registered to replace it
 	    ed->stdio_setup(stdin_handler);
 	}
-	fprintf(stderr, "ivtools-%s drawserv: type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, COMMIT_ID));
+	fprintf(stderr, "ivtools-%s drawserv: type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 	ed->stdio_prompt(stdin_handler);
 
 #else
