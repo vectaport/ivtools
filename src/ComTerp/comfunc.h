@@ -125,14 +125,14 @@ public:
 			ComValue& dflt=ComValue::nullval());
     // return the nth argument on the stack for this ComFunc execute() call.
 
-    ComValue& stack_key(int id, boolean symbol=false, 
-			ComValue& dflt=ComValue::trueval(), 
-			boolean use_dflt_for_no_key=false
-			/* the antonym would be use_dflt_for_no_arg */);
-    // return the value of an argument that follows a keyword,
-    // optionally return the value of 'dflt' if no argument follows
-    // the keyword.  If 'use_dflt_for_no_key' is true, 'dflt' gets returned
-    // as the value when a keyword is not found.
+    ComValue& stack_key(int id, boolean symbol=false,
+			ComValue& dflt=ComValue::trueval(),
+			boolean use_dflt=false);
+    // return the value of an argument that follows a keyword.
+    // If the keyword is missing entirely, or present but bare (no value
+    // follows it), 'use_dflt' picks the fallback: true returns 'dflt' in
+    // both cases; false returns the natural per-case reading instead --
+    // nil if the keyword is absent, true if it's present but bare.
 
     ComValue& stack_dotname(int n);
     // unused method to get at a dotted list of names, i.e. a.b.c
@@ -147,13 +147,14 @@ public:
     postfix_token* copy_stack_arg_post_eval(int n, int& ntoks);
     // copy the expression for the nth argument for this post-evaluating ComFunc.
 
-    ComValue stack_key_post_eval(int id, boolean symbol=false, 
-				  ComValue& dflt=ComValue::trueval(), 
-				  boolean use_dflt_for_no_key=false);
-    // evaluate the argument following a keyword for this post-evaluating ComFunc.
-    // Optionally return the value of 'dflt' if no argument follows
-    // the keyword.  If 'use_dflt_for_no_key' is true, 'dflt' gets returned
-    // as the value when a keyword is not found.
+    ComValue stack_key_post_eval(int id, boolean symbol=false,
+				  ComValue& dflt=ComValue::trueval(),
+				  boolean use_dflt=false);
+    // evaluate the argument following a keyword for this post-evaluating
+    // ComFunc.  If the keyword is missing entirely, or present but bare (no
+    // value follows it), 'use_dflt' picks the fallback: true returns 'dflt'
+    // in both cases; false returns the natural per-case reading instead --
+    // nil if the keyword is absent, true if it's present but bare.
 
     AttributeList* stack_keys(boolean symbol = false, 
 			      AttributeValue& dflt=ComValue::trueval());
@@ -217,14 +218,16 @@ protected:
     // of a post-eval ComFunc that represents the start of the
     // code for the nth argument (prior to any keywords).
 
-    ComValue& stack_key_post(int id, boolean symbol=false, 
-			     ComValue& dflt=ComValue::trueval(), 
-			     boolean use_dflt_for_no_key=false);
-    // find the ComValue object in the unevaluated input arguments 
-    // of a post-eval ComFunc that represents the start of the
-    // code for the argument that follows a keyword.  If no argument
-    // follows keyword, 'dflt' is returned, unless 'use_dflt_for_no_key'
-    // is true, when 'dflt' gets returned when no matching keyword is found.
+    ComValue& stack_key_post(int id, boolean symbol=false,
+			     ComValue& dflt=ComValue::trueval(),
+			     boolean use_dflt=false);
+    // find the ComValue object in the unevaluated input arguments of a
+    // post-eval ComFunc that represents the start of the code for the
+    // argument that follows a keyword.  If the keyword is missing entirely,
+    // or present but bare (no value follows it), 'use_dflt' picks the
+    // fallback: true returns 'dflt' in both cases; false returns the
+    // natural per-case reading instead -- nil if the keyword is absent,
+    // true if it's present but bare.
 
     boolean skip_key_on_stack(int& stackptr, int& arglen);
     // skip a keyword going down the stack.

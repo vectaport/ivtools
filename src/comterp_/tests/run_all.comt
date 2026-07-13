@@ -37,6 +37,10 @@ if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)
 
+if(run("./stackkey.comt")
+  :then print("pass: stackkey\n")
+  :else print("FAIL: stackkey\n");topok=false)
+
 if(run("./print.comt")
   :then print("pass: print\n")
   :else print("FAIL: print\n");topok=false)
