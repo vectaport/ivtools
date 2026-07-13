@@ -133,10 +133,13 @@ void ListAtFunc::execute() {
   static int ins_symid = symbol_add("ins");
   ComValue insv(stack_key(ins_symid, false, ComValue::blankval(), true /* return blank if no :ins */));
   boolean insflag = !insv.is_blank();
+  static int del_symid = symbol_add("del");
+  ComValue delv(stack_key(del_symid));
+  boolean delflag = delv.is_true();
 
   reset_stack();
 
-  if (listv.is_type(ComValue::ArrayType) && 
+  if (listv.is_type(ComValue::ArrayType) &&
       (nv.is_nil() || nv.int_val()>=0 )) {
     AttributeValueList* avl = listv.array_val();
     int nvv = nv.is_nil() ? avl->Number()-1 : nv.int_val();
@@ -149,6 +152,17 @@ void ListAtFunc::execute() {
 	AttributeValue* oldv = avl->Set(nv.int_val(), new AttributeValue(setv));
 	delete oldv;
 	push_stack(setv);
+	return;
+      } else if (delflag) {
+	AttributeValue* oldv = avl->Get(nvv);
+	if (oldv) {
+	  ComValue rv = *oldv;
+	  if (rv.is_symbol()) rv.bquote(1);
+	  avl->Remove(oldv);
+	  delete oldv;
+	  push_stack(rv);
+	} else
+	  push_stack(ComValue::blankval());
 	return;
       } else {
 	AttributeValue* retv = avl->Get(nvv);
