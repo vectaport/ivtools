@@ -1,0 +1,58 @@
+// src/comterp_/tests/listat.comt -- comterp's at() list-member command:
+// plain get, :set, :ins, and :del (issue #10)
+//
+// funcs: at  list  size
+
+ok=true
+
+// --- test 1: plain get ---
+lst=list(10,20,30,40)
+ok=ok&&(at(lst 1)==20)
+print("1 at(list(10,20,30,40) 1) (expect 20): %v\n" at(lst 1))
+
+// --- test 2: :set replaces in place and returns the new value ---
+lst=list(10,20,30,40)
+r=at(lst 1 :set 99)
+ok=ok&&(r==99)&&(lst=={10,99,30,40})
+print("2 at(lst 1 :set 99); lst (expect {10,99,30,40}): %v\n" lst)
+
+// --- test 3: :ins inserts after index and returns the inserted value ---
+lst=list(10,20,30,40)
+r=at(lst 0 :ins 15)
+ok=ok&&(r==15)&&(lst=={10,15,20,30,40})
+print("3 at(lst 0 :ins 15); lst (expect {10,15,20,30,40}): %v\n" lst)
+
+// --- test 4: :del removes in place and returns the deleted value ---
+lst=list(10,20,30,40)
+r=at(lst 1 :del)
+ok=ok&&(r==20)&&(lst=={10,30,40})&&(size(lst)==3)
+print("4 at(lst 1 :del); lst (expect {10,30,40}): %v\n" lst)
+
+// --- test 5: :del on a string-valued list ---
+lst2=list("a","b","c")
+r=at(lst2 1 :del)
+ok=ok&&(r=="b")&&(lst2=={"a","c"})
+print("5 at(lst2 1 :del) on string list (expect \"b\"): %v\n" r)
+
+// --- test 6: :del on a symbol-valued list (bquote preserved on return) ---
+// (compare per-element via `at`, not lst3=={x,z} -- bare x/z in a list literal
+// on the rhs would be evaluated as variable lookups, not symbol constants)
+lst3=list(`x,`y,`z)
+r=at(lst3 1 :del)
+ok=ok&&(r==`y)&&(size(lst3)==2)&&(at(lst3 0)==`x)&&(at(lst3 1)==`z)
+print("6 at(lst3 1 :del) on symbol list (expect `y): %v\n" r)
+
+// --- test 7: :del at the last index shrinks the list to empty when singleton ---
+lst4=list(42)
+r=at(lst4 0 :del)
+ok=ok&&(r==42)&&(size(lst4)==0)
+print("7 at(lst4 0 :del) singleton list (expect 42, size 0 after): %v\n" r)
+
+// --- test 8: :del out of range returns blank, list unchanged ---
+lst5=list(1,2,3)
+r=at(lst5 5 :del)
+ok=ok&&(type(r)==`BlankType)&&(lst5=={1,2,3})&&(size(lst5)==3)
+print("8 at(lst5 5 :del) out of range (expect BlankType, list unchanged): %v\n" type(r))
+
+print("listat: %v\n" ok)
+ok

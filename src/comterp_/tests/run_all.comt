@@ -37,6 +37,10 @@ if(run("./attrlist.comt")
   :then print("pass: attrlist\n")
   :else print("FAIL: attrlist\n");topok=false)
 
+if(run("./listat.comt")
+  :then print("pass: listat\n")
+  :else print("FAIL: listat\n");topok=false)
+
 if(run("./print.comt")
   :then print("pass: print\n")
   :else print("FAIL: print\n");topok=false)
