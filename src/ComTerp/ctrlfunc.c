@@ -34,6 +34,8 @@
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
 #include <Attribute/attrlist.h>
+#include <ComUtil/util.h>
+#include <patch.h>
 
 #include <wordexp.h>
 
@@ -416,6 +418,45 @@ void ShellFunc::execute() {
     push_stack(retval);
 
     return;
+}
+
+/*****************************************************************************/
+
+PatchKeyFunc::PatchKeyFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void PatchKeyFunc::execute() {
+    static int commitid_sym = symbol_add("commitid");
+    ComValue commitidv(stack_key(commitid_sym));
+    reset_stack();
+
+    if (commitidv.is_true()) {
+	/* PATCH_KEY is a plain committed literal (patch.h), not derived from
+	   git, so resolving it to a commit means asking git to look up the
+	   matching tag pushed at merge time (.github/workflows/patch-key.yml).
+	   `rev-list -n 1` dereferences either tag kind to the commit it names.
+
+	   shell_string() (ComUtil/util.c) called directly, not through
+	   ShellFunc's stack/exec machinery -- same guard-the-empty-result
+	   discipline local_hostname() uses for a failed/empty scutil call:
+	   a nonexistent tag leaves stdout empty, so an empty result means
+	   "unresolved" (not-yet-tagged, or a stale/mistyped key), not an
+	   error to surface as a nonsense value.  Stderr routed to /dev/null
+	   so a failed lookup doesn't leak git's own diagnostic text. */
+	char cmdbuf[BUFSIZ];
+	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 %s 2>/dev/null", PATCH_KEY);
+	const char* commitid = shell_string(cmdbuf);
+	if (commitid && commitid[0] != '\0') {
+	    ComValue keyv(commitid);
+	    push_stack(keyv);
+	} else {
+	    push_stack(ComValue::nullval());
+	}
+	return;
+    }
+
+    ComValue keyv(PATCH_KEY);
+    push_stack(keyv);
 }
 
 /*****************************************************************************/

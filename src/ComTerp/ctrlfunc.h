@@ -162,6 +162,25 @@ public:
 
 };
 
+//: patch key command for ComTerp.
+// key=patchkey(:commitid) -- return PATCH_KEY, or the commit id its git tag names.
+class PatchKeyFunc : public ComFunc {
+public:
+    PatchKeyFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "key=%s(:commitid) -- return PATCH_KEY (src/include/ivstd/patch.h), or the commit id its matching git tag names"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":commitid  resolve PATCH_KEY's git tag to the commit id it points to",
+	nil
+      };
+      return keys;
+    }
+
+};
+
 //: usleep sleep microseconds
 // usleep(usec) -- sleep microseconds
 class USleepFunc : public ComFunc {
