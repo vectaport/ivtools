@@ -70,9 +70,18 @@ const char* local_hostname() {
     static const char* name = shell_string("scutil --get LocalHostName");
     static bool ready = false;
     if (!ready) {
-        strncpy(buffer, name, MAXHOSTNAMELEN);
-	buffer[MAXHOSTNAMELEN-1] = '\0'; // guarding against strncpy overwrite
-        strncat(buffer, ".local", MAXHOSTNAMELEN - strlen(buffer) - 1);
+        /* scutil returns an empty string when LocalHostName was never set
+           (never-configured Mac, sandboxed/headless environment, or scutil
+           itself missing/failing) -- appending ".local" to that would send
+           the bogus, unresolvable hostname ".local" to a peer.  Fall back to
+           plain gethostname() in that case, same as the non-Apple path. */
+        if (name && name[0] != '\0') {
+            strncpy(buffer, name, MAXHOSTNAMELEN);
+	    buffer[MAXHOSTNAMELEN-1] = '\0'; // guarding against strncpy overwrite
+            strncat(buffer, ".local", MAXHOSTNAMELEN - strlen(buffer) - 1);
+        } else {
+            gethostname(buffer, MAXHOSTNAMELEN);
+        }
 	ready = true;
     }
     if (ready) return buffer;
