@@ -45,7 +45,7 @@ jobs:
       # branch has moved since this PR forked from it (a plain diff against
       # the base branch's current tip would false-positive if some other,
       # unrelated PR already bumped patch.h on master in the meantime).
-      - name: Require src/include/ivstd/patch.h to change
+      - name: Require the PATCH_KEY value itself to change
         run: |
           set -e
           base=$(git rev-parse HEAD^1)
@@ -61,14 +61,33 @@ jobs:
             exit 0
           fi
 
-          if git diff --name-only "$base" "$head" -- src/include/ivstd/patch.h | grep -q .; then
-            echo "src/include/ivstd/patch.h changed -- OK"
-          else
-            echo "::error::src/include/ivstd/patch.h was not revised in this PR."
+          # Compare the KEY VALUE itself, not just whether the file appears in
+          # the diff -- a commit that only touches patch.h's comment block (or
+          # otherwise leaves #define PATCH_KEY unchanged) would satisfy a
+          # filename-presence check, but tag-patch-key would then extract the
+          # same key post-merge, hit its "tag already exists" branch, warn,
+          # and exit 0 -- leaving the new patch untagged and untraceable.
+          extract_key() {
+            git show "$1:src/include/ivstd/patch.h" 2>/dev/null \
+              | grep -oP '(?<=#define PATCH_KEY ")[^"]+' || true
+          }
+          base_key=$(extract_key "$base")
+          head_key=$(extract_key "$head")
+
+          if [ -z "$head_key" ]; then
+            echo "::error::src/include/ivstd/patch.h is missing, or has no #define PATCH_KEY \"...\" line, on this PR's head."
+            echo "::error::Bump PATCH_KEY there (a fresh identifier -- see the file's own comment for why it's not a git hash) so this patch has its own identity on the startup banner."
+            exit 1
+          fi
+
+          if [ "$base_key" = "$head_key" ]; then
+            echo "::error::PATCH_KEY is unchanged (still $head_key) -- src/include/ivstd/patch.h may have been touched, but the key value itself wasn't bumped."
             echo "::error::Bump PATCH_KEY there (a fresh identifier -- see the file's own comment for why it's not a git hash) so this patch has its own identity on the startup banner."
             echo "::error::After merging, the PATCH_KEY job on push to master will tag the merge commit with the new value automatically."
             exit 1
           fi
+
+          echo "PATCH_KEY changed: '${base_key:-<none>}' -> '$head_key' -- OK"
 
   tag-patch-key:
     if: github.event_name == 'push'
