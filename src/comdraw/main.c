@@ -56,15 +56,11 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <patch.h>
 #include <iostream>
 
 using std::cout;
 using std::cerr;
-
-/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the
-   banner so a running binary proves which patch built it -- see
-   comterp_/main.c's own PATCH_KEY comment for the full rationale. */
-#define PATCH_KEY "b2c1ddeb"
 
 static int nmsg = 0;
 
