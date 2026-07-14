@@ -430,11 +430,21 @@ void PatchKeyFunc::execute() {
     ComValue commitidv(stack_key(commitid_sym));
     reset_stack();
 
-    if (commitidv.is_true()) {
-	/* PATCH_KEY is a plain committed literal (patch.h), not derived from
-	   git, so resolving it to a commit means asking git to look up the
-	   matching tag pushed at merge time (.github/workflows/patch-key.yml).
-	   `rev-list -n 1` dereferences either tag kind to the commit it names.
+    /* :commitid resolves a key's git tag to its commit id (rev-list -n 1
+       dereferences either tag kind); a key value after :commitid picks which
+       one, a bare :commitid resolves this build's own PATCH_KEY.  Branch on
+       type rather than is_true(), since a StringType's truthiness isn't a
+       reliable stand-in for "was a key actually supplied". */
+    const char* key = nil;
+    if (commitidv.type() == ComValue::StringType || commitidv.type() == ComValue::SymbolType)
+	key = commitidv.string_ptr();
+    else if (commitidv.is_true())
+	key = PATCH_KEY;
+
+    if (key) {
+	/* PATCH_KEY (and any key passed in) is a plain literal, not derived
+	   from git, so resolving it to a commit means asking git to look up
+	   the matching tag pushed at merge time (patch-key.yml).
 
 	   shell_string() (ComUtil/util.c) called directly, not through
 	   ShellFunc's stack/exec machinery -- same guard-the-empty-result
@@ -444,7 +454,7 @@ void PatchKeyFunc::execute() {
 	   error to surface as a nonsense value.  Stderr routed to /dev/null
 	   so a failed lookup doesn't leak git's own diagnostic text. */
 	char cmdbuf[BUFSIZ];
-	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 %s 2>/dev/null", PATCH_KEY);
+	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 %s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
 	if (commitid && commitid[0] != '\0') {
 	    ComValue keyv(commitid);
