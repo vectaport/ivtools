@@ -48,6 +48,8 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <patch.h>
+#include <ComUtil/util.h>
 #include <iostream>
 
 using std::cerr;
@@ -356,7 +358,7 @@ int main (int argc, char** argv) {
 	}
 #endif
 
-	fprintf(stderr, "ivtools-%s flipbook: see \"man flipbook\" or type help here for command info\n", VersionString);
+	fprintf(stderr, "ivtools-%s flipbook: see \"man flipbook\" or type help here for command info %s\n", VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY));
 
 #ifdef HAVE_ACE
 	ed->stdio_prompt(stdin_handler);

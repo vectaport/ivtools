@@ -43,6 +43,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #include <sysexits.h>
 
 #include <version.h>
+#include <patch.h>
 
 #include <ComUtil/util.h>
 
@@ -68,13 +69,6 @@ FPointObj fp(0.,0.);
 #if __GNUC__>=3
 static char newline;
 #endif
-
-/* PATCH_KEY: first 8 of a uuid, bumped each applied patch, shown on the banner so
-   a running binary proves which patch built it.  The patch FILENAME is stable;
-   only this key changes -- read the latest key off the banner to confirm the
-   newest build took.  Bumping it recompiles this main.c, so its __DATE__/__TIME__
-   refresh too; build_stamp() (in ComUtil/util.c) just formats the three. */
-#define PATCH_KEY "ff2604c8"
 
 using std::cout;
 using std::cerr;

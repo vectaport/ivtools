@@ -47,6 +47,8 @@
 #include <string.h>
 #include <math.h>
 #include <version.h>
+#include <patch.h>
+#include <ComUtil/util.h>
 
 #include <iostream>
 #include <fstream>
@@ -326,7 +328,8 @@ int main (int argc, char** argv) {
 #endif
 
     cerr << "ivtools-" << VersionString
-	 << " graphdraw: see \"man graphdraw\" or type help here for command info\n";
+	 << " graphdraw: see \"man graphdraw\" or type help here for command info "
+	 << build_stamp(__DATE__, __TIME__, PATCH_KEY) << "\n";
 
 #ifdef HAVE_ACE
     ed->stdio_prompt(stdin_handler);
