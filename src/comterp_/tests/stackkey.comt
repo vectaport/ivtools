@@ -1,0 +1,42 @@
+// src/comterp_/tests/stackkey.comt -- ComFunc::stack_key's use_dflt handling
+// for a keyword present but bare (no value), in EAGER (non-post_eval)
+// commands specifically.
+//
+// Regression for a polarity bug: the eager stack_key()'s bare-keyword-present
+// branches had use_dflt's sense inverted relative to stack_key_post() and
+// stack_key_post_eval() (and relative to its own "keyword absent entirely"
+// tail case a few lines below it in the same function). A caller passing an
+// explicit dflt with use_dflt=true -- e.g. at()'s :set, which wants blank
+// back if no value follows :set -- instead got ComValue::trueval() out of
+// the buggy eager path. Concretely: at(lst n :set) called bare (:set with no
+// value following) resolved setv to boolean true, setflag became true, and
+// ListAtFunc wrote `true` into the list at index n -- a bare, no-op-looking
+// keyword silently corrupting list contents.
+//
+// funcs: at  list
+
+ok=true
+
+// --- test 1: at(lst n :set) called BARE does not corrupt the list ---
+// Under the bug, this call would set index 1 to `true`. Fixed, :set with no
+// value falls back to blank, at() falls through to a plain get, and the
+// list is untouched.
+lst=list(10,20,30)
+r=at(lst 1 :set)
+ok=ok&&(lst=={10,20,30})&&(r==20)
+print("1 at(lst 1 :set) bare -- list unchanged (expect {10,20,30}): %v\n" lst)
+
+// --- test 2: at(lst n :set val) with an explicit value still sets normally ---
+lst=list(10,20,30)
+r=at(lst 1 :set 99)
+ok=ok&&(r==99)&&(lst=={10,99,30})
+print("2 at(lst 1 :set 99) with value -- still sets (expect {10,99,30}): %v\n" lst)
+
+// --- test 3: at(lst n :ins) called BARE does not insert a stray `true` ---
+lst=list(10,20,30)
+r=at(lst 0 :ins)
+ok=ok&&(lst=={10,20,30})&&(size(lst)==3)
+print("3 at(lst 0 :ins) bare -- list unchanged (expect {10,20,30}): %v\n" lst)
+
+print("stackkey: %v\n" ok)
+ok

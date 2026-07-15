@@ -90,9 +90,9 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
     return dflt;
 }
 
-ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt, boolean use_dflt) {
   if (post_eval()) 
-    return stack_key_post(id, symbol, dflt, use_dflt_for_no_key);
+    return stack_key_post(id, symbol, dflt, use_dflt);
 
   int count = nargs() + nkeys() - npops();
   for (int i=0; i<count; i++) {
@@ -100,17 +100,17 @@ ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt, boolean use
     if( keyref.type() == ComValue::KeywordType) {
 	    if (keyref.symbol_val() == id) {
 	      if (i+1==count || keyref.keynarg_val() == 0) {
-		if (use_dflt_for_no_key) 
-		  return ComValue::trueval();
-		else
+		if (use_dflt)
 		  return dflt;
+		else
+		  return ComValue::trueval();
 	      } else {
 		ComValue& valref = _comterp->stack_top(-i-1);
 		if (valref.type() == ComValue::KeywordType) {
-		  if (use_dflt_for_no_key) 
-		    return ComValue::trueval();
-		  else
+		  if (use_dflt)
 		    return dflt;
+		  else
+		    return ComValue::trueval();
 		} else {
 		  if (!symbol)
 		    valref = _comterp->lookup_symval(valref);
@@ -120,7 +120,7 @@ ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt, boolean use
 	    }
     }
   }
-  return use_dflt_for_no_key ? dflt : ComValue::nullval();
+  return use_dflt ? dflt : ComValue::nullval();
 }
 
 ComValue& ComFunc::stack_dotname(int n) {
@@ -245,7 +245,7 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
 }
 
 ComValue ComFunc::stack_key_post_eval
-(int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+(int id, boolean symbol, ComValue& dflt, boolean use_dflt) {
   /* No keyword tokens for this command -> the sought keyword is definitively
      absent, and an absent keyword is a normal, silent result in comterp -- not
      an error.  Return the not-found default WITHOUT reading the operand stack.
@@ -258,7 +258,7 @@ ComValue ComFunc::stack_key_post_eval
      warning is preserved only for nkeys()>0, where a bad anchor is a genuine
      anomaly and not just proof that a keyword is missing. */
   if (nkeys() == 0)
-    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+    return use_dflt ? dflt : ComValue::nullval();
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
@@ -273,13 +273,13 @@ ComValue ComFunc::stack_key_post_eval
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
             "or corrupt; upstream command likely failed to push its bookmark\n",
             offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
-    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+    return use_dflt ? dflt : ComValue::nullval();
   }
   int count = 0;
   while (count < nkeys()) {
     ComValue& curr = comterp()->expr_top(offtop);
     if (!curr.is_type(ComValue::KeywordType))
-      return use_dflt_for_no_key ? dflt : ComValue::nullval();
+      return use_dflt ? dflt : ComValue::nullval();
     count++;
     int argcnt = 0;
     skip_key_in_expr(offtop, argcnt);
@@ -288,10 +288,10 @@ ComValue ComFunc::stack_key_post_eval
 	comterp()->post_eval_expr(argcnt, offtop, pedepth()+1);
 	return comterp()->pop_stack(!symbol);
       } else
-	return use_dflt_for_no_key ? dflt : ComValue::trueval();
+	return use_dflt ? dflt : ComValue::trueval();
     } 
   }
-  return use_dflt_for_no_key ? dflt : ComValue::nullval();
+  return use_dflt ? dflt : ComValue::nullval();
 }
 
 ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
@@ -316,13 +316,13 @@ ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
 }
 
 ComValue& ComFunc::stack_key_post
-(int id, boolean symbol, ComValue& dflt, boolean use_dflt_for_no_key) {
+(int id, boolean symbol, ComValue& dflt, boolean use_dflt) {
   /* nkeys()==0 -> keyword definitively absent; return the not-found default
      without touching the operand stack (an absent keyword is silent by design,
      and the offtop guard below would otherwise warn on the benign re-entrant
      de-serialization case).  See the fuller note in stack_key_post_eval. */
   if (nkeys() == 0)
-    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+    return use_dflt ? dflt : ComValue::nullval();
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
@@ -332,13 +332,13 @@ ComValue& ComFunc::stack_key_post
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
             "or corrupt; upstream command likely failed to push its bookmark\n",
             offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
-    return use_dflt_for_no_key ? dflt : ComValue::nullval();
+    return use_dflt ? dflt : ComValue::nullval();
   }
   int count = 0;
   while (count < nkeys()) {
     ComValue& curr = comterp()->expr_top(offtop);
     if (!curr.is_type(ComValue::KeywordType))
-      return use_dflt_for_no_key ? dflt : ComValue::nullval();
+      return use_dflt ? dflt : ComValue::nullval();
     count++;
     int argcnt = 0;
     skip_key_in_expr(offtop, argcnt);
@@ -347,10 +347,10 @@ ComValue& ComFunc::stack_key_post
 	int loc = comterp()->_pfnum + offtop + argcnt-1;
 	return comterp()->_pfcomvals[loc];
       } else
-	return use_dflt_for_no_key ? dflt : ComValue::trueval();
+	return use_dflt ? dflt : ComValue::trueval();
     } 
   }
-  return use_dflt_for_no_key ? dflt : ComValue::nullval();
+  return use_dflt ? dflt : ComValue::nullval();
 }
 
 boolean ComFunc::skip_key_on_stack(int& stackptr, int& argcnt) {
