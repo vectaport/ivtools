@@ -65,11 +65,15 @@ void DrawLinkFunc::execute() {
   ComValue linkv(stack_arg(0, false));
   static int port_sym = symbol_add("port");
   ComValue default_port(20002);
-  ComValue portfixed(stack_arg(1, true, default_port));
-  ComValue portv(stack_key(port_sym, false, portfixed, true));
+  ComValue portfixed(stack_arg(1, true, default_port));  // positional form, already defaults to 20002
+  ComValue portv(portfixed);
+  ComValue portkeyv(stack_key(port_sym));                 // :port val overrides; bare/absent leaves portv as portfixed
+  if (portkeyv.is_known()) portv = portkeyv;
   static int state_sym = symbol_add("state");
   ComValue default_state(0);
-  ComValue statev(stack_key(state_sym, false, default_state, true));
+  ComValue statev(default_state);
+  ComValue statekeyv(stack_key(state_sym));
+  if (statekeyv.is_known()) statev = statekeyv;
   static int linkid_sym = symbol_add("linkid");
   ComValue linkidv(stack_key(linkid_sym));
   static int close_sym = symbol_add("close");
@@ -84,7 +88,9 @@ void DrawLinkFunc::execute() {
   ComValue socketv(stack_key(socket_sym));
   static int timer_sym = symbol_add("timer");
   ComValue default_timer(5);
-  ComValue timerv(stack_key(timer_sym, false, default_timer, true));
+  ComValue timerv(default_timer);
+  ComValue timerkeyv(stack_key(timer_sym));
+  if (timerkeyv.is_known()) timerv = timerkeyv;
   static int table_sym = symbol_add("table");
   ComValue tablev(stack_key(table_sym));
   reset_stack();

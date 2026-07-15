@@ -178,7 +178,7 @@ void ForFunc::execute() {
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
-    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval(), true));
+    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
     if (keybody.is_unknown() && nargsfixed()>= 4) {
       bodyexpr = new ComValue(stack_arg_post_eval(3));
     } 
@@ -222,7 +222,7 @@ void WhileFunc::execute() {
       if (nilchkflag.is_false() ? doneexpr.is_false() : doneexpr.is_unknown()) break;
     }
     delete bodyexpr;
-    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval(), true));
+    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
     if (keybody.is_unknown() && nargsfixed()>= 2)
       bodyexpr = new ComValue(stack_arg_post_eval(1));
     else

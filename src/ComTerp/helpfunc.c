@@ -301,7 +301,9 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
   ComValue deleteflag(stack_key(delete_symid));
   static int pri_symid = symbol_add("pri");
   ComValue default_pri(80);
-  ComValue prival(stack_key(pri_symid, false, default_pri, true));
+  ComValue prival(default_pri);
+  ComValue prikeyv(stack_key(pri_symid));
+  if (prikeyv.is_known()) prival = prikeyv;
   static int rtol_symid = symbol_add("rtol");
   ComValue rtolflag(stack_key(rtol_symid));
   static int prefix_symid = symbol_add("prefix");
