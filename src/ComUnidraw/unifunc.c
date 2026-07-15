@@ -988,7 +988,7 @@ LastKeyFunc::LastKeyFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 void LastKeyFunc::execute() {
   // capture keyword args before reset_stack()
   static int shiftcapture_sym = symbol_add("shiftcapture");
-  ComValue shiftcapturev(stack_key(shiftcapture_sym, false, ComValue::blankval(), true));
+  ComValue shiftcapturev(stack_key(shiftcapture_sym, false, ComValue::blankval(), false));
   static int reset_sym = symbol_add("reset");
   boolean resetflag = stack_key(reset_sym).is_true();
   reset_stack();
