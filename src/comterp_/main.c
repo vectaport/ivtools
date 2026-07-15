@@ -125,8 +125,29 @@ int main(int argc, char *argv[]) {
     boolean telcat_flag = argc>1 && strcmp(argv[1], "telcat") == 0;
     boolean run_flag = argc>1 && strcmp(argv[1], "run") == 0;
     boolean listen_flag = argc>1 && strcmp(argv[1], "listen") == 0;
+    boolean help_flag = argc>1 && (strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "--help") == 0 ||
+                        strcmp(argv[1], "-?") == 0 || strcmp(argv[1], "--?") == 0 || strcmp(argv[1], "?") == 0);
     boolean expr_flag = argc>1 && !server_flag && !logger_flag &&
-                        !remote_flag && !client_flag && !telcat_flag && !run_flag && !listen_flag;
+                        !remote_flag && !client_flag && !telcat_flag && !run_flag && !listen_flag && !help_flag;
+
+    if (help_flag) {
+        fprintf(stdout,
+"ivtools-%s comterp %s\n"
+"Usage:\n"
+"  comterp                            interactive REPL, reading from stdin\n"
+"  comterp '<expr>'                   evaluate a single expression and print the result\n"
+"  comterp run <file> [args...]       run a ComTerp script file\n"
+"  comterp listen [port [file]]       accept ComTerp connections on port (default %s), optionally seeded by running a script\n"
+"  comterp server [port]              like listen, but also serves stdin as an interactive session\n"
+"  comterp logger [port]              like server, but suppresses the \"accepting connections\" banner\n"
+"  comterp remote [port]              large-buffer interactive/piped mode, for embedding via IPC\n"
+"  comterp client host [port [file]]  connect to a comterp/comterp_listen server and relay stdin/replies\n"
+"  comterp telcat host [port [file]]  like client, but with raw pass-through (no reply echoing)\n"
+"  comterp -help | --help | -? | --? | ?\n"
+"                                      print this message and exit\n",
+                VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), ACE_DEFAULT_SERVER_PORT_STR);
+        return 0;
+    }
 
     if (server_flag || logger_flag) {
         ComterpAcceptor* peer_acceptor = 
