@@ -126,13 +126,14 @@ public:
     // return the nth argument on the stack for this ComFunc execute() call.
 
     ComValue& stack_key(int id, boolean symbol=false,
-			ComValue& dflt=ComValue::trueval(),
-			boolean use_dflt=false);
-    // return the value of an argument that follows a keyword.
-    // If the keyword is missing entirely, or present but bare (no value
-    // follows it), 'use_dflt' picks the fallback: true returns 'dflt' in
-    // both cases; false returns the natural per-case reading instead --
-    // nil if the keyword is absent, true if it's present but bare.
+			ComValue& dflt=ComValue::trueval());
+    // return the value of an argument that follows a keyword: 'dflt' if
+    // the keyword is present but bare (no value follows it), or nil if
+    // the keyword is missing entirely.  These are deliberately different
+    // fallbacks -- a caller wanting the same fallback for both cases
+    // should set its own default before calling, then override it only
+    // when this returns something other than nil (see e.g. DrawLinkFunc's
+    // :port/:state/:timer for the pattern).
 
     ComValue& stack_dotname(int n);
     // unused method to get at a dotted list of names, i.e. a.b.c
@@ -148,13 +149,11 @@ public:
     // copy the expression for the nth argument for this post-evaluating ComFunc.
 
     ComValue stack_key_post_eval(int id, boolean symbol=false,
-				  ComValue& dflt=ComValue::trueval(),
-				  boolean use_dflt=false);
+				  ComValue& dflt=ComValue::trueval());
     // evaluate the argument following a keyword for this post-evaluating
-    // ComFunc.  If the keyword is missing entirely, or present but bare (no
-    // value follows it), 'use_dflt' picks the fallback: true returns 'dflt'
-    // in both cases; false returns the natural per-case reading instead --
-    // nil if the keyword is absent, true if it's present but bare.
+    // ComFunc: 'dflt' if the keyword is present but bare (no value follows
+    // it), or nil if the keyword is missing entirely.  These are
+    // deliberately different fallbacks -- see stack_key()'s comment.
 
     AttributeList* stack_keys(boolean symbol = false, 
 			      AttributeValue& dflt=ComValue::trueval());
@@ -219,15 +218,13 @@ protected:
     // code for the nth argument (prior to any keywords).
 
     ComValue& stack_key_post(int id, boolean symbol=false,
-			     ComValue& dflt=ComValue::trueval(),
-			     boolean use_dflt=false);
+			     ComValue& dflt=ComValue::trueval());
     // find the ComValue object in the unevaluated input arguments of a
     // post-eval ComFunc that represents the start of the code for the
-    // argument that follows a keyword.  If the keyword is missing entirely,
-    // or present but bare (no value follows it), 'use_dflt' picks the
-    // fallback: true returns 'dflt' in both cases; false returns the
-    // natural per-case reading instead -- nil if the keyword is absent,
-    // true if it's present but bare.
+    // argument that follows a keyword: 'dflt' if the keyword is present
+    // but bare (no value follows it), or nil if the keyword is missing
+    // entirely.  These are deliberately different fallbacks -- see
+    // stack_key()'s comment.
 
     boolean skip_key_on_stack(int& stackptr, int& arglen);
     // skip a keyword going down the stack.

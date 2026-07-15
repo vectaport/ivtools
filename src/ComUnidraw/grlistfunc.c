@@ -40,10 +40,12 @@ void GrListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1));
   static int set_symid = symbol_add("set");
-  ComValue setv(stack_key(set_symid, false, ComValue::blankval(), true /* return blank if no :set */));
+  ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
+  if (setv.is_unknown()) setv = ComValue::blankval();                 // absent :set -> also blank
   boolean setflag = !setv.is_blank();
   static int ins_symid = symbol_add("ins");
-  ComValue insv(stack_key(ins_symid, false, ComValue::blankval(), true /* return blank if no :ins */));
+  ComValue insv(stack_key(ins_symid, false, ComValue::blankval()));
+  if (insv.is_unknown()) insv = ComValue::blankval();
   boolean insflag = !insv.is_blank();
 
   if (listv.object_compview()) {
