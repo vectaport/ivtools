@@ -446,7 +446,20 @@ void PatchKeyFunc::execute() {
 	   from git, so resolving it to a commit means asking git to look up
 	   the matching tag pushed at merge time (patch-key.yml).
 
-	   shell_string() (ComUtil/util.c) called directly, not through
+	   A caller-supplied key is reachable over ComTerp's socket interface
+	   (server/listen modes), so it must be rejected -- not merely quoted
+	   -- before it reaches the shell below: reject anything outside the
+	   character set an actual PATCH_KEY tag can contain, closing the
+	   shell-injection path a value like `"; rm -rf ~ ;"` would otherwise
+	   open via snprintf/popen. */
+	static const char* key_charset =
+	    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
+	if (key[0] == '\0' || strspn(key, key_charset) != strlen(key)) {
+	    push_stack(ComValue::nullval());
+	    return;
+	}
+
+	/* shell_string() (ComUtil/util.c) called directly, not through
 	   ShellFunc's stack/exec machinery -- same guard-the-empty-result
 	   discipline local_hostname() uses for a failed/empty scutil call:
 	   a nonexistent tag leaves stdout empty, so an empty result means
