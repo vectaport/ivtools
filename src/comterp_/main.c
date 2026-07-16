@@ -140,7 +140,7 @@ int main(int argc, char *argv[]) {
 "  comterp listen [port [file]]       accept ComTerp connections on port (default %s), optionally seeded by running a script\n"
 "  comterp server [port]              like listen, but also serves stdin as an interactive session\n"
 "  comterp logger [port]              like server, but suppresses the \"accepting connections\" banner\n"
-"  comterp remote [port]              large-buffer interactive/piped mode, for embedding via IPC\n"
+"  comterp remote                     large-buffer interactive/piped mode, for embedding via IPC\n"
 "  comterp client host [port [file]]  connect to a comterp/comterp_listen server and relay stdin/replies\n"
 "  comterp telcat host [port [file]]  like client, but with raw pass-through (no reply echoing)\n"
 "  comterp -help | --help | -? | --? | ?\n"
