@@ -85,7 +85,9 @@ void TimeExprFunc::execute() {
 #ifdef HAVE_ACE
     ComValue timeoutstr(stack_arg(0));
     static int sec_symval = symbol_add("sec");
-    ComValue sec_val(stack_key(sec_symval, false, ComValue::oneval(), true));
+    ComValue sec_val(ComValue::oneval());
+    ComValue sec_keyv(stack_key(sec_symval));
+    if (sec_keyv.is_known()) sec_val = sec_keyv;
     reset_stack();
 
     ComterpHandler* handler = ((ComTerpServ*)_comterp)->handler();

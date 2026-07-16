@@ -58,18 +58,19 @@ public:
 };
 
 //: list member command for ComTerp.
-// val=at(lst|attrlst|str n :set val :ins val) -- return (or set or insert after) the nth item in a list or string.
+// val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list or string.
 class ListAtFunc : public ComFunc {
 public:
     ListAtFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "val=at(lst|attrlst n :set val :ins val) -- return (or set or insert after) the nth item in a list"; }
+    virtual const char* docstring() {
+      return "val=at(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",
 	":ins val   insert val in list",
+	":del       delete val from list, returning the deleted value",
 	nil
       };
       return keys;

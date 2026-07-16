@@ -64,7 +64,7 @@ public:
       return "%s(comstr :sec n) -- command string to execute at intervals"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":sec n     seconds between execution (default is 0?)",
+	":sec n     seconds between execution (default is 1)",
 	nil
       };
       return keys;
