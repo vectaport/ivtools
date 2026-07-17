@@ -7,10 +7,10 @@ what makes it approachable. This is the short version of how to land a change.
 
 ## Orient first
 
-Read **`CLAUDE.md`**. It is the fast orientation to the repository for humans and
+Read **`AGENTS.md`**. It is the fast orientation to the repository for humans and
 AI assistants alike: the layer hierarchy, where things live, how to build, how to
 test, and the coding and commit conventions. If you work with an AI assistant,
-point it at `CLAUDE.md` first — the per-layer `ARCHITECTURE.md` / `HACKING.md`
+point it at `AGENTS.md` first — the per-layer `ARCHITECTURE.md` / `HACKING.md`
 docs go deeper, and the tests are the spec.
 
 ## Build
@@ -45,7 +45,7 @@ are mandatory rules for LLM-authored test scripts.
 ## Open a pull request
 
 - Work on a **feature branch**, never directly on `master`.
-- Follow the commit convention in `CLAUDE.md`: a scannable one-line summary
+- Follow the commit convention in `AGENTS.md`: a scannable one-line summary
   calling out each significant change; the PR body carries the narrative.
 - Open the PR against `master`. **CI must be green to land** — the Linux build
   and the `comterp` suite gate every pull request. (The `comdraw` and `drawserv`

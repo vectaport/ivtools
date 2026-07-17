@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Guidance for AI assistants (and humans) working in the **ivtools** repository.
 This file orients you fast; the authoritative deep-dives live in the per-layer
