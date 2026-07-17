@@ -1637,6 +1637,7 @@ void ComTerp::add_defaults() {
 
     add_command("eval", new EvalFunc(this));
     add_command("shell", new ShellFunc(this));
+    add_command("patchkey", new PatchKeyFunc(this));
     add_command("quit", new QuitFunc(this));
     add_command("exit", new ExitFunc(this));
     add_command("mute", new MuteFunc(this));

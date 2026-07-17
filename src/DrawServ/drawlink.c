@@ -34,6 +34,7 @@
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/sid.h>
 #include <Unidraw/globals.h>
+#include <ComUtil/util.h>
 #include <fstream.h>
 #include <unistd.h>
 #include <iostream>
@@ -98,9 +99,17 @@ int DrawLink::open(uuid_t linkid) {
     ostream out(&obuf);
     std::ostringstream sbuf;
     sbuf << "drawlink(\"";
-    char buffer[HOST_NAME_MAX];
-    gethostname(buffer, HOST_NAME_MAX);
-    buffer[HOST_NAME_MAX-1] = '\0';  // gethostname needn't NUL-terminate on truncation
+    /* local_hostname() (ComUtil/util.c), not raw gethostname(): on macOS the
+       bare OS-level hostname is often whatever the router assigned over
+       DHCP (e.g. "Scotts-MBP.lan"), which isn't registered anywhere
+       resolvable via getaddrinfo() -- the peer's two-way connect-back to
+       this name then fails outright (ACE_INET_Addr construction error),
+       breaking the handshake.  local_hostname() uses the actual
+       Bonjour/mDNS-registered name (`scutil --get LocalHostName` +
+       ".local"), which every process on the LAN can resolve; it falls
+       back to plain gethostname() on non-Apple platforms, where this
+       distinction doesn't apply. */
+    const char* buffer = local_hostname();
 
     uuid_t& sid = ((DrawServ*)unidraw)->sessionid();
     uuid_string_t sid_str;
