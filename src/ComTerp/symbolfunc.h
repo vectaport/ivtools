@@ -162,7 +162,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global"; }
+      return "val=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from global table",
