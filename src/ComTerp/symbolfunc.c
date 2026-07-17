@@ -137,10 +137,13 @@ void SymAddFunc::execute() {
     push_stack(retval);
   }
 
+  // releases the temporary ref taken above; the returned SymbolType value's
+  // own ref (from ref_as_needed()) is permanent -- SymbolType is never
+  // auto-unref'd (see unref_as_needed()), so this bracket assumes that stays true
   for (int i=0; i<numargs; i++)
-    if(symbol_ids[i]!=-1) 
-      symbol_del(symbol_ids[i]);
-    
+    if(symbol_ids[i]!=-1)
+      symbol_unref(symbol_ids[i]);
+
 }
 
 /*****************************************************************************/

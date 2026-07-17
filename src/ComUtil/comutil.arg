@@ -10,7 +10,7 @@ int mblock_sizes(int id,unsigned *nel,unsigned *size,unsigned long *nbytes);
 /* SYMBOLS.C */
 int symbol_add(const char *string);
 int symbol_find(const char *string);
-int symbol_del (int id);
+int symbol_unref (int id);
 int symbol_reference (int id);
 int symbol_len (int id);
 const char *symbol_pntr(int id);

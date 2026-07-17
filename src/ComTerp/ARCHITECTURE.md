@@ -265,7 +265,7 @@ void ListFunc::execute() {
 Every keyword a command accepts is registered this way. The symid is then
 passed to `stack_key()` or `stack_key_post_eval()` to retrieve the keyword's
 value from the stack. Symids registered via the static pattern live for the
-process lifetime — `symbol_del()` is reference-counted but ComFunc code
+process lifetime — `symbol_unref()` is reference-counted but ComFunc code
 almost never calls it.
 
 ## Delimiter Semantics

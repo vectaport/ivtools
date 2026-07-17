@@ -38,7 +38,7 @@
 
 // extern "C" {
     int symbol_add(const char*);
-    int symbol_del(int);
+    int symbol_unref(int);
     int symbol_reference(int);
     int symbol_find(const char*);
     const char* symbol_pntr(int);

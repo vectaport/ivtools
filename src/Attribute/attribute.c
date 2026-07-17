@@ -50,7 +50,7 @@ Attribute::Attribute(const Attribute& attr) {
 
 Attribute::~Attribute() {
     if (0 && symbolid != -1)  // need to rewrite symbol table
-	symbol_del(symbolid);
+	symbol_unref(symbolid);
     delete valueptr;
 }
 
