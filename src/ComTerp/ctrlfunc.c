@@ -467,7 +467,7 @@ void PatchKeyFunc::execute() {
 	   error to surface as a nonsense value.  Stderr routed to /dev/null
 	   so a failed lookup doesn't leak git's own diagnostic text. */
 	char cmdbuf[BUFSIZ];
-	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 %s 2>/dev/null", key);
+	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 ref/tags/%s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
 	if (commitid && commitid[0] != '\0') {
 	    ComValue keyv(commitid);
