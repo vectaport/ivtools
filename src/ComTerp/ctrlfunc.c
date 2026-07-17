@@ -34,6 +34,8 @@
 #include <ComTerp/postfunc.h>
 #include <ComTerp/socket.h>
 #include <Attribute/attrlist.h>
+#include <ComUtil/util.h>
+#include <patch.h>
 
 #include <wordexp.h>
 
@@ -416,6 +418,68 @@ void ShellFunc::execute() {
     push_stack(retval);
 
     return;
+}
+
+/*****************************************************************************/
+
+PatchKeyFunc::PatchKeyFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void PatchKeyFunc::execute() {
+    static int commitid_sym = symbol_add("commitid");
+    ComValue commitidv(stack_key(commitid_sym));
+    reset_stack();
+
+    /* :commitid resolves a key's git tag to its commit id (rev-list -n 1
+       dereferences either tag kind); a key value after :commitid picks which
+       one, a bare :commitid resolves this build's own PATCH_KEY.  Branch on
+       type rather than is_true(), since a StringType's truthiness isn't a
+       reliable stand-in for "was a key actually supplied". */
+    const char* key = nil;
+    if (commitidv.type() == ComValue::StringType || commitidv.type() == ComValue::SymbolType)
+	key = commitidv.string_ptr();
+    else if (commitidv.is_true())
+	key = PATCH_KEY;
+
+    if (key) {
+	/* PATCH_KEY (and any key passed in) is a plain literal, not derived
+	   from git, so resolving it to a commit means asking git to look up
+	   the matching tag pushed at merge time (patch-key.yml).
+
+	   A caller-supplied key is reachable over ComTerp's socket interface
+	   (server/listen modes), so it must be rejected -- not merely quoted
+	   -- before it reaches the shell below: reject anything outside the
+	   character set an actual PATCH_KEY tag can contain, closing the
+	   shell-injection path a value like `"; rm -rf ~ ;"` would otherwise
+	   open via snprintf/popen. */
+	static const char* key_charset =
+	    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
+	if (key[0] == '\0' || strspn(key, key_charset) != strlen(key)) {
+	    push_stack(ComValue::nullval());
+	    return;
+	}
+
+	/* shell_string() (ComUtil/util.c) called directly, not through
+	   ShellFunc's stack/exec machinery -- same guard-the-empty-result
+	   discipline local_hostname() uses for a failed/empty scutil call:
+	   a nonexistent tag leaves stdout empty, so an empty result means
+	   "unresolved" (not-yet-tagged, or a stale/mistyped key), not an
+	   error to surface as a nonsense value.  Stderr routed to /dev/null
+	   so a failed lookup doesn't leak git's own diagnostic text. */
+	char cmdbuf[BUFSIZ];
+	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 refs/tags/%s 2>/dev/null", key);
+	const char* commitid = shell_string(cmdbuf);
+	if (commitid && commitid[0] != '\0') {
+	    ComValue keyv(commitid);
+	    push_stack(keyv);
+	} else {
+	    push_stack(ComValue::nullval());
+	}
+	return;
+    }
+
+    ComValue keyv(PATCH_KEY);
+    push_stack(keyv);
 }
 
 /*****************************************************************************/
