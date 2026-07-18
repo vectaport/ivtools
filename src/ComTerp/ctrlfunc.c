@@ -470,7 +470,15 @@ void PatchKeyFunc::execute() {
 	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 refs/tags/%s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
 	if (commitid && commitid[0] != '\0') {
-	    ComValue keyv(commitid);
+	    /* git rev-list's own --abbrev is a minimum length, not a fixed
+	       one (it silently grows past 8 if two commits ever share an
+	       8-char prefix), so truncate the full SHA in C instead, giving
+	       an id that's always exactly 8 characters -- plenty to
+	       disambiguate in this repo, and the same length as a PATCH_KEY
+	       tag, which is all this command's callers need. */
+	    char shortid[9];
+	    snprintf(shortid, sizeof(shortid), "%.8s", commitid);
+	    ComValue keyv(shortid);
 	    push_stack(keyv);
 	} else {
 	    push_stack(ComValue::nullval());

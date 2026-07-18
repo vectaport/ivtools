@@ -1,4 +1,4 @@
-# CLAUDE.md
+# AGENTS.md
 
 Guidance for AI assistants (and humans) working in the **ivtools** repository.
 This file orients you fast; the authoritative deep-dives live in the per-layer
@@ -247,6 +247,10 @@ C++ work. The essentials:
   `Fix <bug>; add <file/feature>; add <doc section> to <file>`. The *PR
   description* carries the full narrative; the commit line is the scannable
   `git log` summary.
+- **Code comments never reference GitHub issue/PR numbers** (`#223`, etc.).
+  That context belongs in the commit message and PR description — external,
+  mutable state has no business embedded in the source tree. Explain the
+  *why* directly in the comment instead of pointing at a ticket.
 - When bumping interpreter internals, the `PATCH_KEY` constant in the relevant
   `main.c` (e.g. `src/comterp_/main.c`) is bumped so the startup banner shows
   the change.
