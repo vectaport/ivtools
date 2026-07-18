@@ -465,17 +465,20 @@ void PatchKeyFunc::execute() {
 	   a nonexistent tag leaves stdout empty, so an empty result means
 	   "unresolved" (not-yet-tagged, or a stale/mistyped key), not an
 	   error to surface as a nonsense value.  Stderr routed to /dev/null
-	   so a failed lookup doesn't leak git's own diagnostic text.
-
-	   --abbrev-commit --abbrev=8 asks git itself for an 8-character
-	   short SHA -- plenty to disambiguate in this repo, and the same
-	   length as a PATCH_KEY tag, which is all this command's callers
-	   need to cross-reference a tag to its commit. */
+	   so a failed lookup doesn't leak git's own diagnostic text. */
 	char cmdbuf[BUFSIZ];
-	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 --abbrev-commit --abbrev=8 refs/tags/%s 2>/dev/null", key);
+	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 refs/tags/%s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
 	if (commitid && commitid[0] != '\0') {
-	    ComValue keyv(commitid);
+	    /* git rev-list's own --abbrev is a minimum length, not a fixed
+	       one (it silently grows past 8 if two commits ever share an
+	       8-char prefix), so truncate the full SHA in C instead, giving
+	       an id that's always exactly 8 characters -- plenty to
+	       disambiguate in this repo, and the same length as a PATCH_KEY
+	       tag, which is all this command's callers need. */
+	    char shortid[9];
+	    snprintf(shortid, sizeof(shortid), "%.8s", commitid);
+	    ComValue keyv(shortid);
 	    push_stack(keyv);
 	} else {
 	    push_stack(ComValue::nullval());
