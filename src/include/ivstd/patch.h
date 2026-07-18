@@ -19,10 +19,6 @@
    origin <key>`) -- GitHub (and git itself) resolve tags and commit SHAs
    through the same ref-lookup mechanism, so anyone can look up a
    PATCH_KEY value later and land on the exact commit it names. */
-<<<<<<< HEAD
-#define PATCH_KEY "dowhahdo"
-=======
-#define PATCH_KEY "feefafef"
->>>>>>> 1cdee337121c18a208cff6813f8902aa4959e094
+#define PATCH_KEY "xxxxyyyy"
 
 #endif /* _patch_h */
