@@ -173,7 +173,7 @@ public:
       return "key=%s(:commitid [key]) -- return PATCH_KEY (src/include/ivstd/patch.h), or the commit id a key's matching git tag names"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":commitid [key]  resolve a key's git tag to its commit id (this build's PATCH_KEY if key omitted)",
+	":commitid [key]  resolve a key's git tag to its 8-char abbreviated commit id (this build's PATCH_KEY if key omitted)",
 	nil
       };
       return keys;
