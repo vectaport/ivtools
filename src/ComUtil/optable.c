@@ -242,8 +242,8 @@ int index;
 /* Free table if one existed previously */
    if( OperatorTable != NULL ) {
       for (index=0; index<NumOperators; index++ ) 
-         if( symbol_del( OperatorTable[index].operid ) ||
-	     symbol_del( OperatorTable[index].commid ))
+         if( symbol_unref( OperatorTable[index].operid ) ||
+	     symbol_unref( OperatorTable[index].commid ))
             KAPUT( "Unable to delete symbol from table" );
       if( dmm_free( (void **)&OperatorTable ))
          KAPUT( "Error in freeing previously existing operator table" );
@@ -369,8 +369,8 @@ int commid;			/* Id of command in symbol table */
       if( table_off < NumOperators &&
 	  strcmp( OPSTR( table_off ), opstr ) == 0 &&
 	  OperatorTable[ table_off ].optype == optype ) {
-	 if( symbol_del( OperatorTable[ table_off ].operid ) ||
-	     symbol_del( OperatorTable[ table_off ].commid ))
+	 if( symbol_unref( OperatorTable[ table_off ].operid ) ||
+	     symbol_unref( OperatorTable[ table_off ].commid ))
 	    KAPUT( "Error in deleting symbols" );
 	 in_place = TRUE;
 	 }
@@ -550,8 +550,8 @@ unsigned table_off = 0;         /* Offset into operator table */
    while( table_off < NumOperators &&
 	  strcmp( OPSTR( table_off ), opstr ) == 0 ) {
       if( OperatorTable[ table_off ].optype == optype ) {
-	 if( symbol_del( OperatorTable[ table_off ].operid ) ||
-	     symbol_del( OperatorTable[ table_off ].commid ))
+	 if( symbol_unref( OperatorTable[ table_off ].operid ) ||
+	     symbol_unref( OperatorTable[ table_off ].commid ))
 	    KAPUT( "Error in deleting symbols" );
 	 /* Slide the remaining entries down by one to close the gap */
 	 if( table_off < NumOperators - 1 )

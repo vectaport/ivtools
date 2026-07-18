@@ -1275,8 +1275,8 @@ void AttributeValue::unref_as_needed() {
   }
   else if (_type == AttributeValue::StreamType)
       Resource::unref(_v.streamval.listptr);
-  else if (_type == AttributeValue::StringType)  // only StringType, never for SymbolType
-       symbol_del(string_val());
+  else if (_type == AttributeValue::StringType)  // only StringType, never for SymbolType --
+       symbol_unref(string_val());              // SymAddFunc's closing loop relies on this
 #ifdef RESOURCE_COMPVIEW
   else if (_type == AttributeValue::ObjectType) {
     if (object_compview()) 

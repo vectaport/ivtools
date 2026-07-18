@@ -52,7 +52,7 @@ struct _symid   {
 		  unsigned instances;   /* instances of this symbol */
 		};
 /* instances is incremented every symbol_add() and decremented every */
-/* symbol_del().  When it is zero after a symbol_del() the symbol is removed */
+/* symbol_unref().  When it is zero after a symbol_unref() the symbol is removed */
 
 /*=============*/
 
@@ -123,7 +123,7 @@ Description:
 Adds a symbol to the symbol table.  The symbol must be a NULL terminated
 string in the `string` parameter.  
 
-See Also:  symbol_del(), symbol_find()
+See Also:  symbol_unref(), symbol_find()
 
 Example:
 
@@ -144,17 +144,17 @@ main()
 	/* return a pointer to symbol4 and print it */
 	printf("Returned string for symbol4 is %s\n",symbol_pntr(id4));
 	/* now delete the second symbol */
-	symbol_del(id2);
+	symbol_unref(id2);
 	/* add symbol 4 again using symbol_id() */
 	symbol_id("symbol4");
 	/* delete symbol 4; it should not delete it since there are */
 	/* two instances */
-  	symbol_del(id4);
+  	symbol_unref(id4);
 	/* make sure you can find symbol 4 */
 	if (symbol_find("symbol4") < 0)
 	   printf("ERROR: Can't find symbol4\n");
         /* now delete symbol 4 id5 */
-	symbol_del(id5);
+	symbol_unref(id5);
 	/* now symbol 4 should be gone */
 	if (symbol_find("symbol4") < 0)
 	   printf("ERROR: Symbol 4 should have been deleted but was found\n");
@@ -232,14 +232,14 @@ error_return:		/* return an error code */
 
 /*!
 
-symbol_del	Delete a symbol in the symbol table.
+symbol_unref	Decrement a symbol's reference count in the symbol table.
 
 Summary:
 
 #include <ComUtil/comutil.h>
 */
 
-int symbol_del (int id)
+int symbol_unref (int id)
 
 /*!
 Return Value:  0 if OK, -1 if error.
@@ -255,10 +255,13 @@ int		id       ;/*   I   Identifier returned by symbol_add() */
 /*!
 Description:
 
-Deletes a symbol previously added with a `symbol_add()` function call.  You
-can delete a symbol by its string also by first using a `symbol_find()` call
-that returns the id.  The symbol will not be deleted until the `instances`
-element of the `symid` structure goes to zero.
+De-references a symbol previously added with a `symbol_add()` function
+call, deleting the symbol if the reference count get to zero.  You can
+unref a symbol by its string also by first using a `symbol_find()`
+call that returns the id.
+
+The symbol will not be deleted until the `instances` element of the
+`symid` structure goes to zero.
 
 See Also:  symbol_add(), symbol_find()
 
@@ -310,7 +313,7 @@ Description:
 Increments a reference counter for a symbol previously added with a `symbol_add()` 
 function call.
 
-See Also:  symbol_add(), symbol_del()
+See Also:  symbol_add(), symbol_unref()
 
 !*/
 {
@@ -408,7 +411,7 @@ Description:
 Finds a symbol already in the symbol table that matches `string`.  Will return
 the id of the symbol if found and -1 if not found.
 
-See Also:  symbol_add(), symbol_del()
+See Also:  symbol_add(), symbol_unref()
 
 !*/
 {
