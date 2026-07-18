@@ -135,6 +135,11 @@ public:
     // when this returns something other than nil (see e.g. DrawLinkFunc's
     // :port/:state/:timer for the pattern).
 
+    ComValue& stack_key(int, boolean, ComValue&, boolean) = delete;
+    // retired use_dflt parameter (formerly use_dflt_for_no_key) -- it
+    // conflated the bare-keyword and absent-keyword fallbacks into one
+    // flag; see the 3-arg overload's comment for the replacement pattern.
+
     ComValue& stack_dotname(int n);
     // unused method to get at a dotted list of names, i.e. a.b.c
 
@@ -154,6 +159,9 @@ public:
     // ComFunc: 'dflt' if the keyword is present but bare (no value follows
     // it), or nil if the keyword is missing entirely.  These are
     // deliberately different fallbacks -- see stack_key()'s comment.
+
+    ComValue stack_key_post_eval(int, boolean, ComValue&, boolean) = delete;
+    // retired use_dflt parameter -- see stack_key()'s deleted overload.
 
     AttributeList* stack_keys(boolean symbol = false, 
 			      AttributeValue& dflt=ComValue::trueval());
@@ -225,6 +233,9 @@ protected:
     // but bare (no value follows it), or nil if the keyword is missing
     // entirely.  These are deliberately different fallbacks -- see
     // stack_key()'s comment.
+
+    ComValue& stack_key_post(int, boolean, ComValue&, boolean) = delete;
+    // retired use_dflt parameter -- see stack_key()'s deleted overload.
 
     boolean skip_key_on_stack(int& stackptr, int& arglen);
     // skip a keyword going down the stack.
