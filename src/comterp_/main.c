@@ -125,8 +125,7 @@ int main(int argc, char *argv[]) {
     boolean telcat_flag = argc>1 && strcmp(argv[1], "telcat") == 0;
     boolean run_flag = argc>1 && strcmp(argv[1], "run") == 0;
     boolean listen_flag = argc>1 && strcmp(argv[1], "listen") == 0;
-    boolean help_flag = argc>1 && (strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "--help") == 0 ||
-                        strcmp(argv[1], "-?") == 0 || strcmp(argv[1], "--?") == 0);
+    boolean help_flag = argc>1 && (strcmp(argv[1], "-help") == 0 || strcmp(argv[1], "--help") == 0);
     boolean expr_flag = argc>1 && !server_flag && !logger_flag &&
                         !remote_flag && !client_flag && !telcat_flag && !run_flag && !listen_flag && !help_flag;
 
@@ -143,7 +142,7 @@ int main(int argc, char *argv[]) {
 "  comterp remote                     large-buffer interactive/piped mode, for embedding via IPC\n"
 "  comterp client host [port [file]]  connect to a comterp/comterp_listen server and relay stdin/replies\n"
 "  comterp telcat host [port [file]]  like client, but with raw pass-through (no reply echoing)\n"
-"  comterp -help | --help | -? | --?\n"
+"  comterp -help | --help\n"
 "                                      print this message and exit\n",
                 VersionString, build_stamp(__DATE__, __TIME__, PATCH_KEY), ACE_DEFAULT_SERVER_PORT_STR);
         return 0;
