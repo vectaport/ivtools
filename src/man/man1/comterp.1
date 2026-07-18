@@ -19,19 +19,23 @@ client "host" "portnum" ["file"]
 .B comterp 
 telcat "host" "portnum" ["file"]
 .br
-.B comterp 
-run "file"  
+.B comterp
+run "file"
 .br
-.B comterp 
+.B comterp
 "expr"
 .br
-.B comterp 
-listen "host" "portnum" ["file"]
+.B comterp
+listen "portnum" ["file"]
+.br
+.B comterp
+-help | --help | -? | --?
 .br
 .SH DESCRIPTION
 comterp demonstrates the command interpreter incorporated into
 ivtools. A user (or client program) can interact with comterp via
-stdin and stdout or telnet (when ACE is built in).  The command syntax
+stdin and stdout or telnet -- every plain comterp build has ACE built
+in.  The command syntax
 is a semi-colon separated list of commands with arbitrary number of
 parameters enclosed in parenthesis, with support for optional
 parameters and keyword arguments, i.e:
@@ -56,13 +60,18 @@ stdout.
 
 comterp remote
 
-Invoke a single command interpreter, like the default, and include a
-remote command for accessing other comterp's in server mode.
+Invoke a single command interpreter, like the default, but sized with
+a larger I/O buffer for embedding via IPC.  The remote() command for
+accessing other comterp's in server mode is available either way --
+plain comterp and comterp remote both build on ACE and both get
+remote(), socket(), and eval() from ComTerpServ's defaults.
 
 comterp server "portnum"
 
-Listens for and accept connections on portnum, then setup a command
+Listens for and accepts connections on portnum, then sets up a command
 interpreter to wait for and process commands from that connection.
+Also registers stdin as an interactive session in parallel, unless
+invoked as "logger" (below).
 
 comterp logger "portnum"
 
@@ -93,6 +102,10 @@ comterp listen "portnum" ["file" [arg1 [arg2 [...argn]]]]
 
 Listen on portnum then run contents of file then take commands from
 both until exit.
+
+comterp -help | --help | -? | --?
+
+Print a usage summary of all the invocation modes above and exit.
 
 .SH OPERATOR TABLE
 .nf
