@@ -38,6 +38,8 @@
 #include <ctype.h>
 #include <vector>
 
+using std::cout;
+
 #define TITLE "SymbolFunc"
 
 /*****************************************************************************/
@@ -497,8 +499,32 @@ void GlobalSymbolFunc::execute() {
     ComValue& val = stack_arg(i, true);
     if (val.is_symbol())
       symbol_ids[i] = val.symbol_val();
-    else 
-      symbol_ids[i] = -1;
+    else if (val.is_command()) {
+      /* only reachable via an explicit backquote (a bare command name
+	 self-invokes during ordinary eager argument evaluation, long before
+	 this loop ever sees it).  Backquote's role is safety, not override:
+	 it lets this is-it-a-command test succeed without the self-invoke
+	 side effect, same as the existing step=0 bare-assignment guard --
+	 it does not grant permission to use a command name as a variable. */
+      std::cout << "WARNING:  \"" << val.command_name() << "\" is a command"
+		   " -- global() can't use it as a variable name -- line "
+		<< funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    } else {
+      /* val resolved to neither a symbol nor a command -- most likely a
+	 bare command name self-invoked (e.g. a niladic constant command)
+	 and its return value landed here instead.  No usable identifier;
+	 fail loudly instead of silently keying off a shared, meaningless -1
+	 slot (which used to make unrelated collisions clobber each other). */
+      std::cout << "WARNING:  global() argument did not resolve to a symbol"
+		   " (if its name collides with a command, backquote it to"
+		   " confirm) -- line " << funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
   }
   boolean assign_next = comterp()->stack_top(nargs()+nkeys()).lhs_assign();
 
@@ -509,7 +535,7 @@ void GlobalSymbolFunc::execute() {
     ComValue retval(avl);
     for (int i=0; i<numargs; i++) {
       if (!clearflag) {
-	ComValue* av = 
+	ComValue* av =
 	  new ComValue(symbol_ids[i], AttributeValue::SymbolType);
 	if (assign_next) {
 	  av->global_flag(true);
@@ -594,8 +620,32 @@ void LocalSymbolFunc::execute() {
     ComValue& val = stack_arg(i, true);
     if (val.is_symbol())
       symbol_ids[i] = val.symbol_val();
-    else
-      symbol_ids[i] = -1;
+    else if (val.is_command()) {
+      /* only reachable via an explicit backquote (a bare command name
+	 self-invokes during ordinary eager argument evaluation, long before
+	 this loop ever sees it).  Backquote's role is safety, not override:
+	 it lets this is-it-a-command test succeed without the self-invoke
+	 side effect, same as the existing step=0 bare-assignment guard --
+	 it does not grant permission to use a command name as a variable. */
+      std::cout << "WARNING:  \"" << val.command_name() << "\" is a command"
+		   " -- local() can't use it as a variable name -- line "
+		<< funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    } else {
+      /* val resolved to neither a symbol nor a command -- most likely a
+	 bare command name self-invoked (e.g. a niladic constant command)
+	 and its return value landed here instead.  No usable identifier;
+	 fail loudly instead of silently keying off a shared, meaningless -1
+	 slot (which used to make unrelated collisions clobber each other). */
+      std::cout << "WARNING:  local() argument did not resolve to a symbol"
+		   " (if its name collides with a command, backquote it to"
+		   " confirm) -- line " << funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
   }
   boolean assign_next = comterp()->stack_top(nargs()+nkeys()).lhs_assign();
 
