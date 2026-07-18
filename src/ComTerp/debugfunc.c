@@ -116,6 +116,33 @@ void ComterpPauseFunc::execute_body(ComValue& msgstrv) {
       ch = in.get();
       cvect.push_back(ch);
     } while (in.good() && ch != '\n');
+    if (!in.good()) {
+      /* stdin exhausted (EOF) or a read error -- e.g. a script that
+	 triggers step()/pause() under -runfile or piped, non-interactive
+	 stdin.  A failed istream never recovers on its own, so without this
+	 check the code below would misread the EOF sentinel byte as a
+	 1-byte "command", and this whole do-while would spin forever
+	 re-reading the same permanently-failed stream.  Treat EOF the same
+	 as an explicit C/R: stop pausing instead of hanging. */
+      cerr << (stepfunc() ? "step(" : "pause(") << comterp()->npause()
+	   << "): stdin closed/exhausted -- continuing without further input\n";
+      if (stepfunc() && comterp()->stepflag()) {
+	/* step() (unlike one-shot pause()) leaves stepflag() on, so
+	   eval_expr_internals() re-enters this same pause machinery before
+	   EVERY subsequent statement -- each re-entry re-triggers the
+	   fdopen/dup/FILEBUF setup around the ">>> funcname(...)" trace
+	   line, which is fragile under rapid/repeated re-entry with no
+	   interactive stdin left to serve it (a separate, deeper bug of its
+	   own).  Since we can no longer read interactive step commands
+	   anyway once stdin is gone, fall out of step mode entirely rather
+	   than walking back into that machinery for every remaining
+	   statement. */
+	cerr << "step(" << comterp()->npause()
+	     << "): turning off step mode (no interactive input left to serve it)\n";
+	comterp()->stepflag() = false;
+      }
+      break;
+    }
     if (cvect[0] != '\n' && (cvect[0] != '\r' || cvect[1] != '\n')) {
       if (comterpserv()) {
 	retval.assignval(comterpserv()->run(&cvect[0]));
