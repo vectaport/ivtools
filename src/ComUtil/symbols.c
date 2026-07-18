@@ -255,10 +255,13 @@ int		id       ;/*   I   Identifier returned by symbol_add() */
 /*!
 Description:
 
-Deletes a symbol previously added with a `symbol_add()` function call.  You
-can delete a symbol by its string also by first using a `symbol_find()` call
-that returns the id.  The symbol will not be deleted until the `instances`
-element of the `symid` structure goes to zero.
+De-references a symbol previously added with a `symbol_add()` function
+call, deleting the symbol if the reference count get to zero.  You can
+delete a symbol by its string also by first using a `symbol_find()`
+call that returns the id.
+
+The symbol will not be deleted until the `instances` element of the
+`symid` structure goes to zero.
 
 See Also:  symbol_add(), symbol_find()
 
