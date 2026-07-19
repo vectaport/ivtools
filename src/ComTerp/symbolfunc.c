@@ -506,7 +506,7 @@ void GlobalSymbolFunc::execute() {
 	 it lets this is-it-a-command test succeed without the self-invoke
 	 side effect, same as the existing step=0 bare-assignment guard --
 	 it does not grant permission to use a command name as a variable. */
-      std::cout << "WARNING:  \"" << val.command_name() << "\" is a command"
+      cout << "WARNING:  \"" << val.command_name() << "\" is a command"
 		   " -- global() can't use it as a variable name -- line "
 		<< funcstate()->linenum() << "\n";
       reset_stack();
@@ -518,7 +518,7 @@ void GlobalSymbolFunc::execute() {
 	 and its return value landed here instead.  No usable identifier;
 	 fail loudly instead of silently keying off a shared, meaningless -1
 	 slot (which used to make unrelated collisions clobber each other). */
-      std::cout << "WARNING:  global() argument did not resolve to a symbol"
+      cout << "WARNING:  global() argument did not resolve to a symbol"
 		   " (if its name collides with a command, backquote it to"
 		   " confirm) -- line " << funcstate()->linenum() << "\n";
       reset_stack();
@@ -627,7 +627,7 @@ void LocalSymbolFunc::execute() {
 	 it lets this is-it-a-command test succeed without the self-invoke
 	 side effect, same as the existing step=0 bare-assignment guard --
 	 it does not grant permission to use a command name as a variable. */
-      std::cout << "WARNING:  \"" << val.command_name() << "\" is a command"
+      cout << "WARNING:  \"" << val.command_name() << "\" is a command"
 		   " -- local() can't use it as a variable name -- line "
 		<< funcstate()->linenum() << "\n";
       reset_stack();
@@ -639,7 +639,7 @@ void LocalSymbolFunc::execute() {
 	 and its return value landed here instead.  No usable identifier;
 	 fail loudly instead of silently keying off a shared, meaningless -1
 	 slot (which used to make unrelated collisions clobber each other). */
-      std::cout << "WARNING:  local() argument did not resolve to a symbol"
+      cout << "WARNING:  local() argument did not resolve to a symbol"
 		   " (if its name collides with a command, backquote it to"
 		   " confirm) -- line " << funcstate()->linenum() << "\n";
       reset_stack();
