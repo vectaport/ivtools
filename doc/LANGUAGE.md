@@ -676,6 +676,22 @@ through it stays in the current scope like any other write.  Use
 `local()`/`global()` to escape; use `return` (possibly of an attrlist)
 to hand results to the caller.
 
+`local(x)`/`global(x)`'s deeper job, as an lvalue, is to designate `x`
+as a symbol instance scoped specifically to that table — internally
+they hand back a raw, backquoted symbol reference, not a value:
+evaluation stops at the symbol rather than collapsing it, exactly so
+`x=val`'s assignment machinery has an identity to write through rather
+than a value to overwrite (a symbol is a symbol until something
+actually asks for its value). This only matters if `x`'s name collides
+with a registered command: a *bare* command reference self-invokes
+during ordinary argument evaluation before `local()`/`global()` ever
+see it — harmless for a niladic constant, not so for one with side
+effects — so both refuse outright, bare or backquoted, the same
+"assignment to command ... not allowed" way bare `x=val` already does.
+There is no way to shadow a command through `local()`/`global()`; a
+colliding name simply isn't usable as a variable there, matching the
+rule everywhere else in the language.
+
 ### Multi-value returns
 
 A func returns a single value — the result of its last expression. Two
