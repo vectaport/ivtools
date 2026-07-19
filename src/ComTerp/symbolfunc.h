@@ -155,14 +155,14 @@ public:
 
 
 //: command to make assign a global variable
-// val=global(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global
+// sym=global(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- designate a symbol instance as global
 class GlobalSymbolFunc : public ComFunc {
 public:
     GlobalSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() {
-      return "val=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- make symbol global"; }
+      return "sym=%s(sym)|global(sym)=val|global(sym :clear)|global(:dump) -- designate a symbol instance as global"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from global table",
@@ -175,17 +175,18 @@ public:
 
 
 //: command to read/write the interpreter's default (local) symbol table
-// val=local(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- read/write
-// the default symbol table by name, skipping any func frame.  local() names
-// the scope that bare assignment already uses outside a func; inside a func
-// it escapes the per-invocation frame the way global() escapes everything.
+// sym=local(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- designate a
+// symbol instance as local: the default symbol table by name, skipping any
+// func frame.  local() names the scope that bare assignment already uses
+// outside a func; inside a func it escapes the per-invocation frame the way
+// global() escapes everything.
 class LocalSymbolFunc : public ComFunc {
 public:
     LocalSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() {
-      return "val=%s(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- read/write the default symbol table, skipping any func frame"; }
+      return "sym=%s(sym)|local(sym)=val|local(sym :clear)|local(:cnt) -- designate a symbol instance as local, skipping any func frame"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":clear     clear symbol from the default symbol table",
