@@ -310,6 +310,17 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     int tokoff = _pfoff;
 
     int last_status = 0;
+    /* Tracks "the last thing we tried to parse was left incomplete" across
+       iterations.  *inbuf can't be used for this directly: when the file's
+       last real line ends with a newline, fgets succeeds without feof()
+       being set yet, so the loop runs one more iteration to detect true
+       EOF -- and that iteration clears inbuf (line "*inbuf='\0';" below)
+       before the post-loop check below can see what was pending.  Without
+       this flag, that clears the EOF diagnostic *and* skips the
+       parser_reset() cleanup below it, leaving the parser's own internal
+       incomplete-expression state dangling for whatever runs next to read
+       as if it were valid tokens. */
+    boolean pending_incomplete_expr = false;
     while( !feof(ifptr) ) {
 #if defined(TIMING_TEST)
         static struct timeval tvBefore, tvAfter, tvParse, tvConvert, tvDiff;
@@ -341,6 +352,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
         else
             increment_linenum();
        if (*inbuf && (last_status=read_expr())) {
+	    pending_incomplete_expr = false;  // this expression completed cleanly
 #if defined(TIMING_TEST)
 	    static int initialized=0;
 	    if (!initialized) {
@@ -412,11 +424,19 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	   FILE* ofptr = handler() ? handler()->wrfptr() : stdout;
 	   fputs(errbuf, ofptr);
 	   // if (ofptr != stdout) fclose(ofptr);
+	   pending_incomplete_expr = false;  // a real parser error, not accumulation
+	 } else {
+	   /* read_expr() wants more input -- either legitimately mid a
+	      multi-line expression, or (if the next iteration hits true EOF
+	      probing for more) genuinely incomplete.  Remember it here: the
+	      next iteration's leading "*inbuf='\0';" would otherwise erase
+	      the only signal the post-loop check below has to go on. */
+	   pending_incomplete_expr = true;
 	 }
 	}
     }
 
-    if(last_status==0 && *inbuf) {
+    if (pending_incomplete_expr) {
         COMERR_SET1( ERR_UNEXPECTED_EOF, _linenum );
         *inbuf = '\0';
         parser_reset();

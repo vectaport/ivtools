@@ -1,0 +1,34 @@
+// src/comterp_/tests/runfile.comt -- test run() on a file whose last
+// top-level expression is left incomplete at end-of-file
+//
+// A trailing ";" at true EOF with nothing after it is itself an
+// incomplete expression (";" separates expressions, it doesn't
+// terminate them), so run() should report the error and return nil
+// rather than crash or corrupt parser state for whatever runs next.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/runfile.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: incomplete expr, file ends with a newline after the ";" ---
+val=run("./runfile_sub_incomplete_eol.comt")
+ok=ok&&(val==nil)
+print("1 run() on \"1;\\n\" (trailing newline) returns nil (expect nil): %v\n\n" val)
+check_fail(:ok ok)
+
+// --- test 2: incomplete expr, file has no trailing newline at all ---
+val=run("./runfile_sub_incomplete_noeol.comt")
+ok=ok&&(val==nil)
+print("2 run() on \"1;\" (no trailing newline) returns nil (expect nil): %v\n\n" val)
+check_fail(:ok ok)
+
+// --- test 3: interpreter survives both failed runs uncorrupted ---
+v=1+1
+ok=ok&&(v==2)
+print("3 interpreter still functional after failed run()s (expect 2): %v\n\n" v)
+check_fail(:ok ok)
+
+print("\nrunfile: %v\n" ok)
+ok
