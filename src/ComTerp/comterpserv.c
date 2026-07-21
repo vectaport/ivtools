@@ -440,6 +440,26 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
         COMERR_SET1( ERR_UNEXPECTED_EOF, _linenum );
         *inbuf = '\0';
         parser_reset();
+
+        /* COMERR_SET1 pushes onto ComUtil's process-global error stack
+           (errsys.c), and nothing above drains it the way the *inbuf-error
+           branch above does via err_str().  Left unconsumed, it silently
+           outlives this runfile() call and gets misattributed to the next
+           unrelated err_str() call anywhere in the interpreter -- observed
+           as ComTerpServ::run(postfix_token*,int) (used to invoke a
+           user-defined func() body) mistaking it for a failure of that
+           unrelated call, which makes it substitute nullval() *without*
+           popping the value eval_expr() already pushed -- a stray value
+           left on the stack that later trips the "func ... pushed more
+           than a single value on stack" consistency check. */
+        char eofbuf[BUFSIZ];
+        char location[BUFSIZ];
+        snprintf(location, BUFSIZ, "error in %s:%d", filename, _linenum);
+        err_str(eofbuf, BUFSIZ, location);
+        if (*eofbuf) {
+            status = -1;
+            fprintf(stderr, "%s\n", eofbuf);
+        }
     }
 
     load_postfix(tokbuf, toklen, tokoff);
