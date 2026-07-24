@@ -58,7 +58,7 @@ static int filter_bufsize = BUFSIZE;
 
 static void filter_putc(int& dot, char c) {
     filter_buf[dot++] = c;
-    if (dot == filter_bufsize) {
+    if (dot >= filter_bufsize) {
 	filter_bufsize *= 2;
 	char* newbuf = new char[filter_bufsize];
 	memcpy(newbuf, filter_buf, dot);
