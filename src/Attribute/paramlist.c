@@ -60,10 +60,12 @@ static void filter_putc(int& dot, char c) {
     filter_buf[dot++] = c;
     if (dot >= filter_bufsize) {
 	filter_bufsize *= 2;
-	char* newbuf = new char[filter_bufsize];
-	memcpy(newbuf, filter_buf, dot);
-	delete [] filter_buf;
-	filter_buf = newbuf;
+	if (filter_bufsize > -1) { // didn't overflow
+	    char* newbuf = new char[filter_bufsize];
+	    memcpy(newbuf, filter_buf, dot);
+	    delete [] filter_buf;
+	    filter_buf = newbuf;
+	}
     }
 }
 
@@ -887,6 +889,7 @@ char* ParamList::parse_textbuf(istream& in) {
 }
 
 int ParamList::output_text(ostream& out, const char* text, int indent) {
+    boolean overflow = false;
     if (!text) {
       out << "(null)";
       return out.good() ? 0 : -1;
@@ -900,6 +903,10 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	for (beg = 0; beg < len; ) {
 	    Get_Line(text, len, beg, end, lineSize, nextBeg);
 	    const char* string = filter(&text[beg], end - beg + 1);
+	    if (string == NULL) {
+	      string = "(ParamList::filter -- length of input line >= INT_MAX>>4)";
+	      overflow = true;
+	    }
 	    out << "\"" << string << "\"";
 	    beg = nextBeg;
 	    if (beg < len) {
@@ -909,7 +916,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	    }
 	}
     }
-    return out.good() ? 0 : -1;
+    return overflow ? -1 : (out.good() ? 0 : -1);
 }
 
 int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* dir) {
@@ -997,6 +1004,10 @@ char ParamList::octal(const char* p) {
 // all of these when it reads the string back.
 //
 const char* ParamList::filter (const char* string, int len) {
+    // this ensures the size of internal buffer won't overflow and go negative
+    // if a worst case 4x expansion happens
+    if (len >= INT_MAX>>4) return nil;
+    
     int dot = 0;
     for (; len--; string++) {
 	char c = *string;
