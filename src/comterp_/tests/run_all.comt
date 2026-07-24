@@ -110,5 +110,9 @@ if(run("./runfile.comt")
   :then print("pass: runfile\n")
   :else print("FAIL: runfile\n");topok=false)
 
+if(run("./filter.comt")
+  :then print("pass: filter\n")
+  :else print("FAIL: filter\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

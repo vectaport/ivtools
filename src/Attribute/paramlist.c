@@ -48,7 +48,24 @@
 using std::cerr;
 
 static const int BUFSIZE = 10000;
-static char textbuf[BUFSIZE];
+
+/* filter()'s output buffer -- grows (doubles) as needed instead of clamping,
+   since escaping can quadruple the input (every control/non-ASCII byte
+   becomes "\NNN").  Kept around and reused across calls rather than
+   reallocated fresh each time, same as the fixed buffer it replaces. */
+static char* filter_buf = new char[BUFSIZE];
+static int filter_bufsize = BUFSIZE;
+
+static void filter_putc(int& dot, char c) {
+    filter_buf[dot++] = c;
+    if (dot == filter_bufsize) {
+	filter_bufsize *= 2;
+	char* newbuf = new char[filter_bufsize];
+	memcpy(newbuf, filter_buf, dot);
+	delete [] filter_buf;
+	filter_buf = newbuf;
+    }
+}
 
 static void Get_Line (
     const char* s, int size, int begin, int& end, int& lineSize, int& nextBegin
@@ -979,28 +996,24 @@ char ParamList::octal(const char* p) {
 // (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
 // all of these when it reads the string back.
 //
-// Caveat: it builds into a fixed-size static buffer and clamps rather than
-// grows, so an input whose escaped form exceeds BUFSIZE is silently truncated
-// (see issue #183 for the growable-buffer rewrite).
-//
 const char* ParamList::filter (const char* string, int len) {
-    TextBuffer text(textbuf, 0, BUFSIZE);
-    int dot;
-    for (dot = 0; len--; string++) {
+    int dot = 0;
+    for (; len--; string++) {
 	char c = *string;
 
 	if (!isascii(c) || iscntrl(c)) {
 	    char buf[5];
 	    octal(c, &buf[sizeof(buf) - 1]);
-	    dot += text.Insert(dot, buf, sizeof(buf) - 1);
+	    for (unsigned i = 0; i < sizeof(buf) - 1; i++)
+		filter_putc(dot, buf[i]);
 
 	} else {
-	    if (c == '\\' || c == '"') 
-	      dot += text.Insert(dot, "\\", 1);
-	    dot += text.Insert(dot, string, 1);
+	    if (c == '\\' || c == '"')
+		filter_putc(dot, '\\');
+	    filter_putc(dot, c);
 	}
     }
-    text.Insert(dot, "", 1);
+    filter_putc(dot, '\0');
 
-    return text.Text();
+    return filter_buf;
 }
