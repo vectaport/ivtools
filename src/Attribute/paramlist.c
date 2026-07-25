@@ -904,7 +904,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	    Get_Line(text, len, beg, end, lineSize, nextBeg);
 	    const char* string = filter(&text[beg], end - beg + 1);
 	    if (string == NULL) {
-	      string = "(ParamList::filter -- length of input line >= INT_MAX>>4)";
+	      string = "(ParamList::filter -- length of input line >= INT_MAX>>2)";
 	      overflow = true;
 	    }
 	    out << "\"" << string << "\"";
@@ -1006,7 +1006,7 @@ char ParamList::octal(const char* p) {
 const char* ParamList::filter (const char* string, int len) {
     // this ensures the size of internal buffer won't overflow and go negative
     // if a worst case 4x expansion happens
-    if (len >= INT_MAX>>4) return nil;
+    if (len >= INT_MAX>>2) return nil;
     
     int dot = 0;
     for (; len--; string++) {
