@@ -226,11 +226,19 @@ EqualFunc::EqualFunc(ComTerp* comterp) : NumFunc(comterp) {
 }
 
 void EqualFunc::execute() {
-    boolean symflag = stack_key(sym_symid).is_true(); 
-    ComValue& nval = stack_key(n_symid); 
+    boolean symflag = stack_key(sym_symid).is_true();
+    ComValue& nval = stack_key(n_symid);
 
-    ComValue& operand1 = stack_arg(0, symflag);
-    ComValue& operand2 = stack_arg(1, symflag);
+    /* symflag (:sym) is read for docstring compatibility but must NOT be
+       passed to stack_arg as its "symbol" parameter -- that suppresses
+       lookup_symval, which resolves a bare identifier (e.g. a variable
+       holding a SymbolType value) to its bound value.  A literal symbol
+       (`foo) doesn't need that suppression -- lookup_symval already
+       leaves bquoted values untouched -- so the only effect of wiring
+       symflag through was breaking comparisons where one operand was a
+       plain variable rather than a backquoted literal. */
+    ComValue& operand1 = stack_arg(0);
+    ComValue& operand2 = stack_arg(1);
     promote(operand1, operand2);
     ComValue result(operand1);
     result.type(ComValue::BooleanType);
