@@ -359,6 +359,11 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
     return;
   }
 
+  /* :table's own pre-existing contract (unlike the print form below) is
+     natural table order when no sort flag is given at all -- track that
+     explicitly rather than defaulting sort to OPBY_PRIORITY and treating
+     an unflagged call the same as :bypri. */
+  boolean sort_requested = bypriflag.is_true() || bycomflag.is_true() || byoprflag.is_true();
   int sort = OPBY_PRIORITY;
   if (bycomflag.is_true()) { sort = OPBY_COMMAND; }
   if (byoprflag.is_true()) { sort = OPBY_OPERATOR; }
@@ -383,7 +388,7 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
        opr_tbl_print does for the non-:table form below. */
     int* indirect = new int[n];
     for (unsigned i = 0; i < n; i++) indirect[i] = i;
-    if (sort != OPBY_OPERATOR) {
+    if (sort_requested && sort != OPBY_OPERATOR) {
       for (unsigned i = 1; i < n; i++) {
         int key = indirect[i];
         unsigned j = i;

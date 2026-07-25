@@ -58,5 +58,15 @@ ok=ok&&(size(t)==n && size(t2)==n && size(t3)==n)
 print("4 sorted tables all have the same entry count (expect true): %v\n\n" (size(t)==n && size(t2)==n && size(t3)==n))
 check_fail(:ok ok)
 
+// --- test 5: an unflagged :table call is unaffected -- still natural
+// (operator-alphabetical) order, same as :table :byopr, not silently
+// defaulted to :bypri order ---
+t4=optable(:table)
+same_as_byopr=true
+for(i=0 i<n i++ same_as_byopr=same_as_byopr&&(at(t4 i).opr==at(t3 i).opr))
+ok=ok&&same_as_byopr
+print("5 optable(:table) unflagged matches :byopr order (expect true): %v\n\n" same_as_byopr)
+check_fail(:ok ok)
+
 print("\noptable: %v\n" ok)
 ok
