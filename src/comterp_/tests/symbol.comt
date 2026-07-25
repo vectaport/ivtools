@@ -4,8 +4,7 @@
 // funcs: ` symadd symid symbol symstr symval symvar strref
 //        eq(:sym) lt(:sym) gt(:sym) not_eq(:sym) lt_or_eq(:sym) gt_or_eq(:sym)
 //        type class print(:sym) split(sym) eval(:symret) switch cond
-// missing: eq(:sym) bug (test 5c -- eq(:sym) diverges from == for symbol() return values)
-//          float() double() conversion commands
+// missing: float() double() conversion commands
 //          print(:sym) label format string interaction (test 14 cosmetic)
 //          symid(sym sym) multi-arg
 //          eval(:alist) keyword
@@ -47,8 +46,8 @@ s2=symbol(id)
 ok=ok&&(s2==`foo)
 print("5a symid(`foo) integer id (expect IntType): %v\n" type(id))
 print("5b symbol(symid(`foo))==`foo round-trip via == (expect true): %v\n" (s2==`foo))
-// NOTE: eq(s2 `foo :sym) returns false here -- bug in eq(:sym) vs ==
-print("5c eq(s2 `foo :sym) bug -- diverges from == (observe, expect false): %v\n" eq(s2 `foo :sym))
+ok=ok&&(eq(s2 `foo :sym))
+print("5c eq(s2 `foo :sym) agrees with == (expect true): %v\n" eq(s2 `foo :sym))
 prev_ok=check_fail(:ok ok)
 
 // --- test 6: symadd/symstr round-trip ---
