@@ -70,6 +70,62 @@ static void filter_putc(int& dot, char c) {
     }
 }
 
+// octal converts a character to the string \ddd where d is an octal digit.
+
+char* ParamList::octal(unsigned char c, char* p) {
+    *p-- = '\0';		// backwards from terminating null...
+    *p-- = (char)('0' + c%8);
+    *p-- = (char)('0' + (c >>= 3)%8);
+    *p-- = (char)('0' + (c >>= 3)%8);
+    *p = '\\';			// ...to beginning backslash
+    return p;
+}
+
+// octal converts a string of three octal digits to a character.
+
+char ParamList::octal(const char* p) {
+    char c = *p - '0';
+    c = c*8 + *++p - '0';
+    c = c*8 + *++p - '0';
+    return c;
+}
+
+// filter escapes a raw byte string so it can be embedded inside a double-quoted
+// ComTerp string literal and survive being re-parsed by the scanner.  It is the
+// escaping behind ComValue string output (operator<< StringType -> output_text
+// -> filter), so any value serialized through ComValue is safe to write to a
+// file or send over a comterp connection; text that is hand-assembled into a
+// command (snprintf/ostream) without passing through here is NOT escaped.
+//
+// Each non-ASCII or control byte becomes an octal escape "\NNN" (so a raw
+// newline -- which also delimits commands on a socket -- can't break the frame
+// or the parse), and a literal backslash or double-quote is backslash-escaped
+// (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
+// all of these when it reads the string back.
+
+const char* filter (const char* string, int len) {
+
+    int dot = 0;
+    for (; len--; string++) {
+	char c = *string;
+
+	if (!isascii(c) || iscntrl(c)) {
+	    char buf[5];
+	    ParamList::octal(c, &buf[sizeof(buf) - 1]);
+	    for (unsigned i = 0; i < sizeof(buf) - 1; i++)
+		filter_putc(dot, buf[i]);
+
+	} else {
+	    if (c == '\\' || c == '"')
+		filter_putc(dot, '\\');
+	    filter_putc(dot, c);
+	}
+    }
+    filter_putc(dot, '\0');
+
+    return filter_buf;
+}
+
 static void Get_Line (
     const char* s, int size, int begin, int& end, int& lineSize, int& nextBegin
 ) {
@@ -890,12 +946,12 @@ char* ParamList::parse_textbuf(istream& in) {
 }
 
 int ParamList::output_text(ostream& out, const char* text, int indent) {
-    boolean overflow = false;
     if (!text) {
       out << "(null)";
       return out.good() ? 0 : -1;
     }
 
+    boolean line_too_long = false;
     int len = strlen(text);
     int beg, end, lineSize, nextBeg, ypos = 0;
     if (len == 0) 
@@ -903,12 +959,14 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
     else {
 	for (beg = 0; beg < len; ) {
 	    Get_Line(text, len, beg, end, lineSize, nextBeg);
-	    const char* string = filter(&text[beg], end - beg + 1);
-	    if (string == NULL) {
-	      string = "(ParamList::filter -- length of input line >= INT_MAX>>2)";
-	      overflow = true;
+	    int line_len = end - beg + 1;
+	    if (line_len >= INT_MAX>>2) {
+	        out << "\"" << "(ParamList::output_text -- length of input line >= INT_MAX>>2)" << "\"";
+		line_too_long = true;
+	    } else {
+	        const char* string = filter(&text[beg], line_len);
+		out << "\"" << string << "\"";
 	    }
-	    out << "\"" << string << "\"";
 	    beg = nextBeg;
 	    if (beg < len) {
 		out << "," << "\n";
@@ -917,7 +975,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	    }
 	}
     }
-    return overflow ? -1 : (out.good() ? 0 : -1);
+    return line_too_long ? -1 : (out.good() ? 0 : -1);
 }
 
 int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* dir) {
@@ -971,61 +1029,4 @@ boolean ParamList::bincheck(const char* command) {
   return !status;
 }
 
-// octal converts a character to the string \ddd where d is an octal digit.
 
-char* ParamList::octal(unsigned char c, char* p) {
-    *p-- = '\0';		// backwards from terminating null...
-    *p-- = (char)('0' + c%8);
-    *p-- = (char)('0' + (c >>= 3)%8);
-    *p-- = (char)('0' + (c >>= 3)%8);
-    *p = '\\';			// ...to beginning backslash
-    return p;
-}
-
-// octal converts a string of three octal digits to a character.
-
-char ParamList::octal(const char* p) {
-    char c = *p - '0';
-    c = c*8 + *++p - '0';
-    c = c*8 + *++p - '0';
-    return c;
-}
-
-// filter escapes a raw byte string so it can be embedded inside a double-quoted
-// ComTerp string literal and survive being re-parsed by the scanner.  It is the
-// escaping behind ComValue string output (operator<< StringType -> output_text
-// -> filter), so any value serialized through ComValue is safe to write to a
-// file or send over a comterp connection; text that is hand-assembled into a
-// command (snprintf/ostream) without passing through here is NOT escaped.
-//
-// Each non-ASCII or control byte becomes an octal escape "\NNN" (so a raw
-// newline -- which also delimits commands on a socket -- can't break the frame
-// or the parse), and a literal backslash or double-quote is backslash-escaped
-// (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
-// all of these when it reads the string back.
-//
-const char* ParamList::filter (const char* string, int len) {
-    // this ensures the size of internal buffer won't overflow and go negative
-    // if a worst case 4x expansion happens
-    if (len >= INT_MAX>>2) return nil;
-    
-    int dot = 0;
-    for (; len--; string++) {
-	char c = *string;
-
-	if (!isascii(c) || iscntrl(c)) {
-	    char buf[5];
-	    octal(c, &buf[sizeof(buf) - 1]);
-	    for (unsigned i = 0; i < sizeof(buf) - 1; i++)
-		filter_putc(dot, buf[i]);
-
-	} else {
-	    if (c == '\\' || c == '"')
-		filter_putc(dot, '\\');
-	    filter_putc(dot, c);
-	}
-    }
-    filter_putc(dot, '\0');
-
-    return filter_buf;
-}
