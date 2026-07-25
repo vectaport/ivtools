@@ -1,0 +1,52 @@
+// src/comterp_/tests/filter.comt -- test ParamList::filter's string escaping
+// (exercised via print("%v" str), which routes a StringType ComValue through
+// ComValue's operator<< -> ParamList::output_text -> filter)
+//
+// Regression guard: filter() used to build into a fixed-size static buffer
+// that clamped rather than grew.  Escaping can quadruple the input (every
+// control/non-ASCII byte becomes "\NNN"), so a string whose escaped form
+// exceeded that fixed size was silently truncated -- sometimes mid-escape,
+// yielding a malformed literal.  filter() now grows (doubles) its buffer
+// instead of clamping.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/filter.comt")
+
+run("./testlib.comt")
+ok=true
+
+// helper: round-trip a string through print("%v" ...) and run() on the
+// resulting file, returning what comes back
+roundtrip=func(quoted=print("%v" s :str);
+  f=open("/tmp/comterp_filter_test_gen.comt" "w");
+  print("x=" :file f);
+  print(quoted :file f);
+  close(f);
+  run("/tmp/comterp_filter_test_gen.comt"))
+
+// --- test 1: short string with backslash and quote round-trips ---
+s="a\\b\"c"
+r=roundtrip(:s s)
+ok=ok&&(r==s)
+print("1 round-trip of backslash/quote string (expect true): %v\n\n" (r==s))
+check_fail(:ok ok)
+
+// --- test 2: large control-byte-dense string exceeds the old fixed
+// buffer size (10000 bytes) once escaped (4x expansion), and must not
+// truncate or corrupt mid-escape ---
+lst=list()
+for(i=0 i<3000 i++ lst=lst,char(1))
+s=join(lst)
+r=roundtrip(:s s)
+ok=ok&&(size(r)==size(s))
+print("2a large control-byte string: size preserved (expect true): %v\n\n" (size(r)==size(s)))
+check_fail(:ok ok)
+
+match=true
+for(i=0 i<size(s) i++ match=match&&(at(s i)==at(r i)))
+ok=ok&&match
+print("2b large control-byte string: bytes match (expect true): %v\n\n" match)
+check_fail(:ok ok)
+
+print("\nfilter: %v\n" ok)
+ok

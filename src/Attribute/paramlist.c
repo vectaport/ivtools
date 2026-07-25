@@ -25,6 +25,7 @@
  * Implementation of ParamList class.
  */
 
+#include <climits>
 #include <cstdio>
 #include <Attribute/alist.h>
 #include <Attribute/aliterator.h>
@@ -48,7 +49,26 @@
 using std::cerr;
 
 static const int BUFSIZE = 10000;
-static char textbuf[BUFSIZE];
+
+/* filter()'s output buffer -- grows (doubles) as needed instead of clamping,
+   since escaping can quadruple the input (every control/non-ASCII byte
+   becomes "\NNN").  Kept around and reused across calls rather than
+   reallocated fresh each time, same as the fixed buffer it replaces. */
+static char* filter_buf = new char[BUFSIZE];
+static int filter_bufsize = BUFSIZE;
+
+static void filter_putc(int& dot, char c) {
+    filter_buf[dot++] = c;
+    if (dot >= filter_bufsize) {
+	filter_bufsize *= 2;
+	if (filter_bufsize > -1) { // didn't overflow
+	    char* newbuf = new char[filter_bufsize];
+	    memcpy(newbuf, filter_buf, dot);
+	    delete [] filter_buf;
+	    filter_buf = newbuf;
+	}
+    }
+}
 
 static void Get_Line (
     const char* s, int size, int begin, int& end, int& lineSize, int& nextBegin
@@ -875,6 +895,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
       return out.good() ? 0 : -1;
     }
 
+    boolean line_too_long = false;
     int len = strlen(text);
     int beg, end, lineSize, nextBeg, ypos = 0;
     if (len == 0) 
@@ -882,8 +903,14 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
     else {
 	for (beg = 0; beg < len; ) {
 	    Get_Line(text, len, beg, end, lineSize, nextBeg);
-	    const char* string = filter(&text[beg], end - beg + 1);
-	    out << "\"" << string << "\"";
+	    int line_len = end - beg + 1;
+	    if (line_len >= INT_MAX>>2) {
+	        out << "\"" << "(ParamList::output_text -- length of input line >= INT_MAX>>2)" << "\"";
+		line_too_long = true;
+	    } else {
+	        const char* string = filter(&text[beg], line_len);
+		out << "\"" << string << "\"";
+	    }
 	    beg = nextBeg;
 	    if (beg < len) {
 		out << "," << "\n";
@@ -892,7 +919,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	    }
 	}
     }
-    return out.good() ? 0 : -1;
+    return line_too_long ? -1 : (out.good() ? 0 : -1);
 }
 
 int ParamList::parse_pathname (istream& in, char* buf, int buflen, const char* dir) {
@@ -946,6 +973,7 @@ boolean ParamList::bincheck(const char* command) {
   return !status;
 }
 
+
 // octal converts a character to the string \ddd where d is an octal digit.
 
 char* ParamList::octal(unsigned char c, char* p) {
@@ -978,29 +1006,29 @@ char ParamList::octal(const char* p) {
 // or the parse), and a literal backslash or double-quote is backslash-escaped
 // (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
 // all of these when it reads the string back.
-//
-// Caveat: it builds into a fixed-size static buffer and clamps rather than
-// grows, so an input whose escaped form exceeds BUFSIZE is silently truncated
-// (see issue #183 for the growable-buffer rewrite).
-//
+
 const char* ParamList::filter (const char* string, int len) {
-    TextBuffer text(textbuf, 0, BUFSIZE);
-    int dot;
-    for (dot = 0; len--; string++) {
+
+    if (len >= INT_MAX>>2) { return NULL; }
+
+    int dot = 0;
+    for (; len--; string++) {
 	char c = *string;
 
 	if (!isascii(c) || iscntrl(c)) {
 	    char buf[5];
-	    octal(c, &buf[sizeof(buf) - 1]);
-	    dot += text.Insert(dot, buf, sizeof(buf) - 1);
+	    ParamList::octal(c, &buf[sizeof(buf) - 1]);
+	    for (unsigned i = 0; i < sizeof(buf) - 1; i++)
+		filter_putc(dot, buf[i]);
 
 	} else {
-	    if (c == '\\' || c == '"') 
-	      dot += text.Insert(dot, "\\", 1);
-	    dot += text.Insert(dot, string, 1);
+	    if (c == '\\' || c == '"')
+		filter_putc(dot, '\\');
+	    filter_putc(dot, c);
 	}
     }
-    text.Insert(dot, "", 1);
+    filter_putc(dot, '\0');
 
-    return text.Text();
+    return filter_buf;
 }
+
