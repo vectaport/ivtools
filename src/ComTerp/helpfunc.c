@@ -279,6 +279,18 @@ void HelpFunc::execute() {
 
 /*****************************************************************************/
 
+// insertion-sort predicate for optable(:table)'s indirect index array:
+// true if operator table entry a belongs before entry b.  sort is one of
+// OPBY_PRIORITY or OPBY_COMMAND (OPBY_OPERATOR never reaches this -- see
+// the comment where it's called).  Matches opr_tbl_print's own two
+// directions -- priority highest-first, command name alphabetical --
+// which aren't the same direction as each other.
+static boolean optable_index_before(int a, int b, int sort) {
+  if (sort == OPBY_COMMAND)
+    return strcmp(symbol_pntr(opr_tbl_commid(a)), symbol_pntr(opr_tbl_commid(b))) < 0;
+  return opr_tbl_priority(a) > opr_tbl_priority(b);
+}
+
 OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -347,6 +359,16 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
     return;
   }
 
+  /* :table's own pre-existing contract (unlike the print form below) is
+     natural table order when no sort flag is given at all -- track that
+     explicitly rather than defaulting sort to OPBY_PRIORITY and treating
+     an unflagged call the same as :bypri. */
+  boolean sort_requested = bypriflag.is_true() || bycomflag.is_true() || byoprflag.is_true();
+  int sort = OPBY_PRIORITY;
+  if (bycomflag.is_true()) { sort = OPBY_COMMAND; }
+  if (byoprflag.is_true()) { sort = OPBY_OPERATOR; }
+  if (bypriflag.is_true()) { sort = OPBY_PRIORITY; }
+
   if (tableflag.is_true()) {
     // return list of attrlists, one per operator entry
     static int opr_symid = symbol_add("opr");
@@ -358,9 +380,29 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
     static int prefix_symid = symbol_add("UNARY PREFIX");
     static int postfix_symid = symbol_add("UNARY POSTFIX");
 
-    AttributeValueList* avl = new AttributeValueList();
     unsigned n = opr_tbl_numop_get();
-    for (unsigned i = 0; i < n; i++) {
+
+    /* opr_tbl_insert keeps the table itself sorted by operator string (for
+       parser lookup), so :byopr's order is just the table's natural order
+       -- only :bypri/:bycom need an explicit reorder here, same as
+       opr_tbl_print does for the non-:table form below. */
+    int* indirect = new int[n];
+    for (unsigned i = 0; i < n; i++) indirect[i] = i;
+    if (sort_requested && sort != OPBY_OPERATOR) {
+      for (unsigned i = 1; i < n; i++) {
+        int key = indirect[i];
+        unsigned j = i;
+        while (j > 0 && optable_index_before(key, indirect[j-1], sort)) {
+          indirect[j] = indirect[j-1];
+          j--;
+        }
+        indirect[j] = key;
+      }
+    }
+
+    AttributeValueList* avl = new AttributeValueList();
+    for (unsigned idx = 0; idx < n; idx++) {
+      unsigned i = indirect[idx];
       AttributeList* al = new AttributeList();
       AttributeValue opr_val((const char *)symbol_pntr(opr_tbl_operid(i)));
       AttributeValue cmd_val((const char *)symbol_pntr(opr_tbl_commid(i)));
@@ -379,15 +421,11 @@ OptableFunc::OptableFunc(ComTerp* comterp) : ComFunc(comterp) {
       AttributeValue* av = new AttributeValue(AttributeList::class_symid(), al);
       avl->Append(av);
     }
+    delete [] indirect;
     ComValue retval(avl);
     push_stack(retval);
     return;
   }
-
-  int sort = OPBY_PRIORITY;
-  if (bycomflag.is_true()) { sort = OPBY_COMMAND; }
-  if (byoprflag.is_true()) { sort = OPBY_OPERATOR; }
-  if (bypriflag.is_true()) { sort = OPBY_PRIORITY; }
 
   opr_tbl_print(stdout, sort);
   return;

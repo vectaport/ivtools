@@ -114,5 +114,9 @@ if(run("./filter.comt")
   :then print("pass: filter\n")
   :else print("FAIL: filter\n");topok=false)
 
+if(run("./optable.comt")
+  :then print("pass: optable\n")
+  :else print("FAIL: optable\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

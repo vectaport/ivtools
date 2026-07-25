@@ -1,0 +1,72 @@
+// src/comterp_/tests/optable.comt -- test optable(:table)'s sort flags
+//
+// Regression guard: optable(:bypri)/optable(:bycom)/optable(:byopr) sort
+// the printed operator table, but optable(:table :bypri) etc used to
+// ignore the sort flags entirely and always return entries in the table's
+// natural (operator-alphabetical) order.  optable(:table) now honors the
+// same sort key.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/optable.comt")
+
+run("./testlib.comt")
+ok=true
+
+// char-by-char string "<=" (ComTerp has no built-in string relational ops)
+strleq=func(
+  n1=size(s1);
+  n2=size(s2);
+  i=0;
+  result=nil;
+  while(result==nil && i<n1 && i<n2
+    c1=at(s1 i);
+    c2=at(s2 i);
+    if(c1<c2 :then result=true);
+    if(c1>c2 :then result=false);
+    i=i+1);
+  if(result==nil :then result=(n1<=n2));
+  result)
+
+// --- test 1: :table :bypri is non-increasing by priority ---
+t=optable(:table :bypri)
+n=size(t)
+sorted=true
+for(i=1 i<n i++ sorted=sorted&&(at(t i-1).pri>=at(t i).pri))
+ok=ok&&sorted
+print("1 optable(:table :bypri) non-increasing priority (expect true): %v\n\n" sorted)
+check_fail(:ok ok)
+
+// --- test 2: :table :bycom is non-decreasing alphabetically by command ---
+t2=optable(:table :bycom)
+sorted2=true
+for(i=1 i<n i++ sorted2=sorted2&&strleq(:s1 at(t2 i-1).cmd :s2 at(t2 i).cmd))
+ok=ok&&sorted2
+print("2 optable(:table :bycom) alphabetical by command (expect true): %v\n\n" sorted2)
+check_fail(:ok ok)
+
+// --- test 3: :table :byopr is non-decreasing alphabetically by operator
+// (the table's own natural order, since opr_tbl_insert keeps it that way) ---
+t3=optable(:table :byopr)
+sorted3=true
+for(i=1 i<n i++ sorted3=sorted3&&strleq(:s1 at(t3 i-1).opr :s2 at(t3 i).opr))
+ok=ok&&sorted3
+print("3 optable(:table :byopr) alphabetical by operator (expect true): %v\n\n" sorted3)
+check_fail(:ok ok)
+
+// --- test 4: no entries lost or duplicated by any sort flag ---
+ok=ok&&(size(t)==n && size(t2)==n && size(t3)==n)
+print("4 sorted tables all have the same entry count (expect true): %v\n\n" (size(t)==n && size(t2)==n && size(t3)==n))
+check_fail(:ok ok)
+
+// --- test 5: an unflagged :table call is unaffected -- still natural
+// (operator-alphabetical) order, same as :table :byopr, not silently
+// defaulted to :bypri order ---
+t4=optable(:table)
+same_as_byopr=true
+for(i=0 i<n i++ same_as_byopr=same_as_byopr&&(at(t4 i).opr==at(t3 i).opr))
+ok=ok&&same_as_byopr
+print("5 optable(:table) unflagged matches :byopr order (expect true): %v\n\n" same_as_byopr)
+check_fail(:ok ok)
+
+print("\noptable: %v\n" ok)
+ok
