@@ -128,20 +128,32 @@ ok=ok&&(v=="PREFIXhello\n")
 print("19 print(\"hello\" :prefix \"PREFIX\" :str) (expect PREFIXhello\\n): %v\n\n" v)
 prev_ok=check_fail(:ok ok)
 
-// --- test 20: %s with a mismatched int value falls back cleanly instead
-// of crashing -- %s expects a pointer, and handing out_form's snprintf a
-// raw int under a %s spec used to make it dereference the int's bit
-// pattern as a char*, reliably crashing the interpreter ---
-s=print("val: %s" 42 :str)
-ok=ok&&(s=="val: 42")
-print("20 print(\"val: \%s\" 42 :str) int under \%s, no crash (expect val: 42): %v\n\n" s)
+// --- test 20: %s with a non-string value falls back instead of crashing --
+// %s hands the raw value straight to snprintf as a char* to read through;
+// a non-pointer value like an int used to make it dereference garbage
+s=print("%s" 42 :str)
+ok=ok&&(s=="42")
+print("20 print(\"%s\" 42 :str) int mismatch falls back (expect 42): %v\n\n" s)
 prev_ok=check_fail(:ok ok)
 
-// --- test 21: %s with a mismatched bool value falls back the same way,
-// generalizing what used to be a Boolean-only special case ---
-s=print("val: %s" true :str)
-ok=ok&&(s=="val: true")
-print("21 print(\"val: \%s\" true :str) bool under \%s (expect val: true): %v\n\n" s)
+// --- test 21: %s with a boolean falls back to true/false ---
+s=print("%s" true :str)
+ok=ok&&(s=="true")
+print("21 print(\"%s\" true :str) bool mismatch falls back (expect true): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 22: %n is always refused, even for a value type that would
+// otherwise be exempt from the %s check -- %n writes an int back through
+// its argument, so a genuinely readable char* (from a string value) is
+// just as unsafe as a non-pointer value here
+s=print("%n" 42 :str)
+ok=ok&&(s=="42")
+print("22 print(\"%n\" 42 :str) %n refused, falls back (expect 42): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+s=print("%n" "hello" :str)
+ok=ok&&(s=="\"hello\"")
+print("23 print(\"%n\" \"hello\" :str) %n refused even for a string (expect quoted hello): %v\n\n" s)
 prev_ok=check_fail(:ok ok)
 
 print("print: %v\n" ok)

@@ -225,18 +225,27 @@ void PrintFunc::execute() {
 	continue;
       }
 
-      /* %s/%n expect a pointer argument.  Handing one of the raw numeric
-         accessors below to out_form's snprintf under a %s/%n spec makes
-         it dereference whatever bit pattern the number happens to be --
-         a reliable crash for most values.  Fall back to the value's
-         normal string representation instead, same as Boolean already
-         did for just this one case (generalized below). */
-      if ((specchar == 's' || specchar == 'n') &&
-          printval.type() != ComValue::StringType &&
-          printval.type() != ComValue::SymbolType &&
-          printval.type() != ComValue::ObjectType) {
-        fprintf(stderr, "print: %%%c given a non-string value -- "
-                "printing its default representation instead\n", specchar);
+      /* %s expects a readable char*, which String/Symbol/Object values
+         genuinely provide (via symbol_pntr) -- but handing one of the raw
+         numeric accessors below to out_form's snprintf under a %s spec
+         makes it dereference whatever bit pattern the number happens to
+         be, a reliable crash for most values.  %n is worse: it writes an
+         int back THROUGH its argument, so even the pointer String/Symbol/
+         Object hand it is unsafe -- that's someone's interned symbol-table
+         string, not a caller-owned int to write into.  No ComValue type
+         here has a legitimate use for %n, so it's refused unconditionally.
+         Both fall back to the value's normal string representation, same
+         as Boolean already did for just the %s case (generalized below). */
+      if (specchar == 'n' ||
+          (specchar == 's' &&
+           printval.type() != ComValue::StringType &&
+           printval.type() != ComValue::SymbolType &&
+           printval.type() != ComValue::ObjectType)) {
+        fprintf(stderr, specchar == 'n'
+                ? "print: %%n is never safe here -- "
+                  "printing the value's default representation instead\n"
+                : "print: %%s given a non-string value -- "
+                  "printing its default representation instead\n");
         fbuf[specstart] = '\0';
         out << fbuf << printval << (fbuf+specstart+speclen);
         continue;
