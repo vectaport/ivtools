@@ -206,12 +206,18 @@ void PrintFunc::execute() {
       } else {
         strncpy(fbuf, fstrptr, BUFSIZ-1);
         fbuf[BUFSIZ-1] = '\0';
-        const char* specptr = fstrptr;
+        /* scan the already-truncated, bounded fbuf itself, not the
+           unbounded fstrptr it came from -- specstart must stay within
+           fbuf's own extent, since it's used to index fbuf below.  A
+           spec straddling the truncation point just won't be recognized
+           here (falls back to the ordinary, already-safe dispatch)
+           rather than being read out of bounds. */
+        const char* specptr = fbuf;
         int flen;
         while (*specptr && !(flen=format_extent(specptr))) specptr++;
         if (*specptr && flen) {
           specchar = specptr[flen-1];
-          specstart = specptr - fstrptr;
+          specstart = specptr - fbuf;
           speclen = flen;
         }
       }
