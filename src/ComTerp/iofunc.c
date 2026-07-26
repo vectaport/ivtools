@@ -188,18 +188,33 @@ void PrintFunc::execute() {
 
       int i=0;
       boolean vflag = false;
+      char specchar = '\0';
+      int specstart = -1, speclen = 0;
       if(curr<narg) {
         int flen;
         while(*fstrptr && !(flen=format_extent(fstrptr)) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
         if(*fstrptr && flen+i<BUFSIZ-1) {
+          specchar = fstrptr[flen-1];
+          specstart = i;
+          speclen = flen;
           strncpy(fbuf+i, fstrptr, flen);
           i += flen;
           fstrptr += flen;
         }
         while(*fstrptr && !format_extent(fstrptr) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
         fbuf[i] = '\0';
-      } else
-        strncpy(fbuf, fstrptr, BUFSIZ);
+      } else {
+        strncpy(fbuf, fstrptr, BUFSIZ-1);
+        fbuf[BUFSIZ-1] = '\0';
+        const char* specptr = fstrptr;
+        int flen;
+        while (*specptr && !(flen=format_extent(specptr))) specptr++;
+        if (*specptr && flen) {
+          specchar = specptr[flen-1];
+          specstart = specptr - fstrptr;
+          speclen = flen;
+        }
+      }
 
       // implement Golang style %v
       char *vptr = strstr(fbuf, "%v");
@@ -210,19 +225,32 @@ void PrintFunc::execute() {
 	continue;
       }
 
+      /* %s/%n expect a pointer argument.  Handing one of the raw numeric
+         accessors below to out_form's snprintf under a %s/%n spec makes
+         it dereference whatever bit pattern the number happens to be --
+         a reliable crash for most values.  Fall back to the value's
+         normal string representation instead, same as Boolean already
+         did for just this one case (generalized below). */
+      if ((specchar == 's' || specchar == 'n') &&
+          printval.type() != ComValue::StringType &&
+          printval.type() != ComValue::SymbolType &&
+          printval.type() != ComValue::ObjectType) {
+        fprintf(stderr, "print: %%%c given a non-string value -- "
+                "printing its default representation instead\n", specchar);
+        fbuf[specstart] = '\0';
+        out << fbuf << printval << (fbuf+specstart+speclen);
+        continue;
+      }
+
       switch( printval.type() )
       {
       case ComValue::SymbolType:
       case ComValue::StringType:
 	out_form(out, fbuf, symbol_pntr( printval.symbol_ref()));
 	break;
-	
+
       case ComValue::BooleanType:
-	if (strstr(fbuf, "%s")) {
-	  out_form(out, fbuf, printval.boolean_ref() ? "true" : "false");
-	} else {
-	  out_form(out, fbuf, printval.boolean_ref());
-	}
+	out_form(out, fbuf, printval.boolean_ref());
 	break;
 	
       case ComValue::CharType:
