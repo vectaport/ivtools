@@ -225,6 +225,21 @@ void PrintFunc::execute() {
 	continue;
       }
 
+      /* The last argument's fbuf is whatever's left of the format string
+         verbatim (built above), which can contain more format specs than
+         there are values left to fill them -- only the first one
+         (specstart/speclen) has a real argument behind it.  Any further
+         spec in there, %n above all, would make out_form's snprintf read
+         a vararg that was never passed.  Count them so that case routes
+         through the same safe fallback as an outright %s/%n mismatch,
+         regardless of what the first spec's own character is. */
+      int speccount = 0;
+      for (const char* scanptr = fbuf; *scanptr; ) {
+        int flen = format_extent(scanptr);
+        if (flen) { speccount++; scanptr += flen; }
+        else scanptr++;
+      }
+
       /* %s expects a readable char*, which String/Symbol/Object values
          genuinely provide (via symbol_pntr) -- but handing one of the raw
          numeric accessors below to out_form's snprintf under a %s spec
@@ -236,13 +251,16 @@ void PrintFunc::execute() {
          here has a legitimate use for %n, so it's refused unconditionally.
          Both fall back to the value's normal string representation, same
          as Boolean already did for just the %s case (generalized below). */
-      if (specchar == 'n' ||
+      if (specchar == 'n' || speccount > 1 ||
           (specchar == 's' &&
            printval.type() != ComValue::StringType &&
            printval.type() != ComValue::SymbolType &&
            printval.type() != ComValue::ObjectType)) {
         fprintf(stderr, specchar == 'n'
                 ? "print: %%n is never safe here -- "
+                  "printing the value's default representation instead\n"
+                : speccount > 1
+                ? "print: more format specs than remaining values -- "
                   "printing the value's default representation instead\n"
                 : "print: %%s given a non-string value -- "
                   "printing its default representation instead\n");

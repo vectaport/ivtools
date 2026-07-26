@@ -156,5 +156,14 @@ ok=ok&&(s=="\"hello\"")
 print("23 print(\"%n\" \"hello\" :str) %n refused even for a string (expect quoted hello): %v\n\n" s)
 prev_ok=check_fail(:ok ok)
 
+// --- test 24: an extra, unmatched format spec after the last value's own
+// spec (e.g. a stray "%n" with no argument behind it) must never reach a
+// live printf-style call -- it has no vararg to read, %n above all --
+// so it prints as literal text instead
+s=print("%d %n" 42 :str)
+ok=ok&&(s=="42 %n")
+print("24 print(\"%d %n\" 42 :str) extra unmatched spec stays literal (expect 42 %n): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
 print("print: %v\n" ok)
 ok
