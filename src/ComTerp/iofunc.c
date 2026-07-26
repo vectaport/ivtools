@@ -188,18 +188,39 @@ void PrintFunc::execute() {
 
       int i=0;
       boolean vflag = false;
+      char specchar = '\0';
+      int specstart = -1, speclen = 0;
       if(curr<narg) {
         int flen;
         while(*fstrptr && !(flen=format_extent(fstrptr)) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
         if(*fstrptr && flen+i<BUFSIZ-1) {
+          specchar = fstrptr[flen-1];
+          specstart = i;
+          speclen = flen;
           strncpy(fbuf+i, fstrptr, flen);
           i += flen;
           fstrptr += flen;
         }
         while(*fstrptr && !format_extent(fstrptr) && i<BUFSIZ-1) fbuf[i++] = *fstrptr++;
         fbuf[i] = '\0';
-      } else
-        strncpy(fbuf, fstrptr, BUFSIZ);
+      } else {
+        strncpy(fbuf, fstrptr, BUFSIZ-1);
+        fbuf[BUFSIZ-1] = '\0';
+        /* scan the already-truncated, bounded fbuf itself, not the
+           unbounded fstrptr it came from -- specstart must stay within
+           fbuf's own extent, since it's used to index fbuf below.  A
+           spec straddling the truncation point just won't be recognized
+           here (falls back to the ordinary, already-safe dispatch)
+           rather than being read out of bounds. */
+        const char* specptr = fbuf;
+        int flen;
+        while (*specptr && !(flen=format_extent(specptr))) specptr++;
+        if (*specptr && flen) {
+          specchar = specptr[flen-1];
+          specstart = specptr - fbuf;
+          speclen = flen;
+        }
+      }
 
       // implement Golang style %v
       char *vptr = strstr(fbuf, "%v");
@@ -210,19 +231,59 @@ void PrintFunc::execute() {
 	continue;
       }
 
+      /* The last argument's fbuf is whatever's left of the format string
+         verbatim (built above), which can contain more format specs than
+         there are values left to fill them -- only the first one
+         (specstart/speclen) has a real argument behind it.  Any further
+         spec in there, %n above all, would make out_form's snprintf read
+         a vararg that was never passed.  Count them so that case routes
+         through the same safe fallback as an outright %s/%n mismatch,
+         regardless of what the first spec's own character is. */
+      int speccount = 0;
+      for (const char* scanptr = fbuf; *scanptr; ) {
+        int flen = format_extent(scanptr);
+        if (flen) { speccount++; scanptr += flen; }
+        else scanptr++;
+      }
+
+      /* %s expects a readable char*, which String/Symbol/Object values
+         genuinely provide (via symbol_pntr) -- but handing one of the raw
+         numeric accessors below to out_form's snprintf under a %s spec
+         makes it dereference whatever bit pattern the number happens to
+         be, a reliable crash for most values.  %n is worse: it writes an
+         int back THROUGH its argument, so even the pointer String/Symbol/
+         Object hand it is unsafe -- that's someone's interned symbol-table
+         string, not a caller-owned int to write into.  No ComValue type
+         here has a legitimate use for %n, so it's refused unconditionally.
+         Both fall back to the value's normal string representation, same
+         as Boolean already did for just the %s case (generalized below). */
+      if (specchar == 'n' || speccount > 1 ||
+          (specchar == 's' &&
+           printval.type() != ComValue::StringType &&
+           printval.type() != ComValue::SymbolType &&
+           printval.type() != ComValue::ObjectType)) {
+        fprintf(stderr, specchar == 'n'
+                ? "print: %%n is never safe here -- "
+                  "printing the value's default representation instead\n"
+                : speccount > 1
+                ? "print: more format specs than remaining values -- "
+                  "printing the value's default representation instead\n"
+                : "print: %%s given a non-string value -- "
+                  "printing its default representation instead\n");
+        fbuf[specstart] = '\0';
+        out << fbuf << printval << (fbuf+specstart+speclen);
+        continue;
+      }
+
       switch( printval.type() )
       {
       case ComValue::SymbolType:
       case ComValue::StringType:
 	out_form(out, fbuf, symbol_pntr( printval.symbol_ref()));
 	break;
-	
+
       case ComValue::BooleanType:
-	if (strstr(fbuf, "%s")) {
-	  out_form(out, fbuf, printval.boolean_ref() ? "true" : "false");
-	} else {
-	  out_form(out, fbuf, printval.boolean_ref());
-	}
+	out_form(out, fbuf, printval.boolean_ref());
 	break;
 	
       case ComValue::CharType:

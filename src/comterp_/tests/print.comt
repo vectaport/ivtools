@@ -1,9 +1,9 @@
 // src/comterp_/tests/print.comt -- test print() format verbs
 //
-// coverage: 22/35 (63%)
+// coverage: 24/35 (69%)
 // funcs: print
-// missing: print(:err) print(:file) print(:flush) print(:sym) print(%s-bool)
-//          print(%s-int) print(%v-attrlist) print(%v-list)
+// missing: print(:err) print(:file) print(:flush) print(:sym)
+//          print(%v-attrlist) print(%v-list)
 //
 // Verifies behavior of print() format verbs: %v %d %f %s %c %g %x %o
 // and keywords :str :err :out :file :prefix :flush
@@ -126,6 +126,43 @@ prev_ok=check_fail(:ok ok)
 v=print("hello" :prefix "PREFIX" :str)
 ok=ok&&(v=="PREFIXhello\n")
 print("19 print(\"hello\" :prefix \"PREFIX\" :str) (expect PREFIXhello\\n): %v\n\n" v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 20: %s with a non-string value falls back instead of crashing --
+// %s hands the raw value straight to snprintf as a char* to read through;
+// a non-pointer value like an int used to make it dereference garbage
+s=print("%s" 42 :str)
+ok=ok&&(s=="42")
+print("20 print(\"%s\" 42 :str) int mismatch falls back (expect 42): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: %s with a boolean falls back to true/false ---
+s=print("%s" true :str)
+ok=ok&&(s=="true")
+print("21 print(\"%s\" true :str) bool mismatch falls back (expect true): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 22: %n is always refused, even for a value type that would
+// otherwise be exempt from the %s check -- %n writes an int back through
+// its argument, so a genuinely readable char* (from a string value) is
+// just as unsafe as a non-pointer value here
+s=print("%n" 42 :str)
+ok=ok&&(s=="42")
+print("22 print(\"%n\" 42 :str) %n refused, falls back (expect 42): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+s=print("%n" "hello" :str)
+ok=ok&&(s=="\"hello\"")
+print("23 print(\"%n\" \"hello\" :str) %n refused even for a string (expect quoted hello): %v\n\n" s)
+prev_ok=check_fail(:ok ok)
+
+// --- test 24: an extra, unmatched format spec after the last value's own
+// spec (e.g. a stray "%n" with no argument behind it) must never reach a
+// live printf-style call -- it has no vararg to read, %n above all --
+// so it prints as literal text instead
+s=print("%d %n" 42 :str)
+ok=ok&&(s=="42 %n")
+print("24 print(\"%d %n\" 42 :str) extra unmatched spec stays literal (expect 42 %n): %v\n\n" s)
 prev_ok=check_fail(:ok ok)
 
 print("print: %v\n" ok)
