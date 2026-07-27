@@ -283,6 +283,83 @@ counter=0
 Global variables persist across script runs and are visible to all
 interpreters (e.g. UI and network interpreters in drawserv).
 
+### Symbol-then-parens is always a call attempt
+
+`SYMBOL (args)` on one line is always parsed as a call attempt on
+`SYMBOL` — whitespace never matters, only a newline between the symbol
+and the `(` escapes it:
+
+```
+undefinedsym (print("side effect\n"))   // nothing prints -- glued, drained unevaluated
+undefinedsym
+print("side effect\n")                  // "side effect" prints -- newline
+                                         //   makes these two unrelated statements
+```
+
+This is deliberate, minimal-verbiage syntax (`(args)` immediately after
+any identifier means "call it"), not something to work around. What
+happens next depends on what `SYMBOL` resolves to:
+
+- **A registered command** — dispatches normally.
+- **A variable holding a `FuncObj`** (`f=func(...)`) — invoked properly,
+  args and all. This is the *dynamic* case: the call actually runs code.
+- **Anything else — including an undefined symbol** — the arglist is
+  evaluated (for side effects) and discarded, and the call's result is
+  whatever `SYMBOL` itself resolves to. A variable holding a plain value
+  behaves like a *static* `FuncObj`: it "runs" (its arglist still gets
+  evaluated), but always returns the same thing regardless of what it
+  was given — the same idiom `true()`/`false()`/`pi()` already use
+  deliberately ("wrap any expression, override its result"), just
+  generalized to any bound value:
+
+  ```
+  x=5
+  x (print("side effect runs\n"))   // prints, then evaluates to 5
+  ```
+
+  An **undefined** symbol is the one case where the arglist is never
+  evaluated at all (not even for side effects) — internally it's
+  substituted with the built-in, argument-draining `nil` command before
+  anything runs. This is a genuinely useful idiom in its own right: a
+  `.comt` script can gate a whole feature on whether an optional
+  command or func happens to be defined before the script runs —
+  `hook (doWork())` silently no-ops if `hook` was never defined, and
+  calls it for real the moment it is:
+
+  ```
+  // script.comt -- runs doWork() only if the caller predefined `hook`
+  hook (doWork())
+  ```
+
+  ```
+  run("./script.comt")            // hook undefined -- silent no-op
+  hook=func(print("hooked\n"))
+  run("./script.comt")            // hook now defined -- runs for real
+  ```
+
+The same unconditional glue rule applies inside a **stream literal**,
+and it is decided once, at parse time, before anything is known about
+what the symbol will resolve to — so a stream's *length* can depend on
+it in a way that's worth knowing about rather than discovering by
+surprise:
+
+```
+x=5
+y=20
+(x (3) y)       // a 2-element stream: {x(3), y} -- always, regardless
+                //   of what x is, since the glue to (3) is decided
+                //   before x is ever looked up
+postfix(x (3) y)  // "3 x{1|0} y" -- confirms it: only one arg got
+                  //   attached, to x, and y is untouched
+```
+
+If `x` had been a real command or a `FuncObj`, this would be the
+*correct* reading (a call followed by a second stream element). Since
+`x` is a plain value here, the second element is "surprising" only
+until you know the rule: the parser can't see three elements, because
+it never considers *not* gluing an identifier to an immediately
+following same-line paren group.
+
 ## Arguments: Fixed Before Keywords — Always
 
 Every ComTerp command accepts fixed positional arguments followed by
