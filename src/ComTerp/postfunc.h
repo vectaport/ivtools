@@ -105,7 +105,7 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() { 
-      return "val=%s([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop"; }
+      return "val=%s(testexpr [bodyexpr] :nilchk :until :body expr ) -- while loop"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":nilchk    check testexpr for nil instead of false",
