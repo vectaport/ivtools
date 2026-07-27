@@ -592,12 +592,24 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	_funcobj_active = saved_active;
 	delete [] posvals;
       } else {
+	/* sv carried a pending arglist (same-line adjacency to a following
+	   paren group always means "this is a call attempt"), but val --
+	   what the symbol actually resolves to -- isn't a FuncObj.  Its
+	   narg()+nkey() worth of args were already eagerly evaluated (the
+	   same way they would be for a real command) and are sitting on
+	   the stack below where val is about to go; discard them here the
+	   same way a real command's own reset_stack() would, rather than
+	   stacking val on top of them.  This generalizes true()/false()/
+	   pi()'s existing "wrap any expression, override its result" idiom
+	   to any plain value: the wrapped expression still runs for its
+	   side effects, but the wrapper's own value always wins. */
+	decr_stack(sv.narg() + sv.nkey());
 	push_stack(val);
       }
     }
 
     return;
-    
+
   }
 
   if (sv.is_object(Attribute::class_symid())) {

@@ -1,0 +1,86 @@
+// src/comterp_/tests/symboldrain.comt -- test SYMBOL (args) when SYMBOL isn't
+// a command or FuncObj
+//
+// Same-line adjacency to a following paren group always means "this is a
+// call attempt" (whitespace doesn't matter, only a newline escapes it) --
+// see doc/LANGUAGE.md.  Three resolutions are possible for the symbol:
+//   - a real command -> dispatches normally
+//   - a variable holding a FuncObj -> invoked properly
+//   - anything else (including undefined) -> the arglist is drained
+// Regression guard: when the symbol was bound to a plain value (not
+// undefined, not a FuncObj), draining its arglist used to push the
+// symbol's value WITHOUT first discarding the already-evaluated arglist,
+// corrupting the interpreter's stack ("func ... pushed more than a single
+// value on stack").  An undefined symbol was never affected -- it's
+// substituted with the built-in NilFunc at compile time, which is
+// post_eval and never even evaluates its arglist, a deliberate idiom for
+// gating a script's behavior on whether an optional command/func was
+// defined before it ran.  This test locks in both: the bound-value case
+// now drains cleanly (generalizing true()/false()/pi()'s "wrap any
+// expression, override its result" idiom to any plain value), and the
+// undefined-symbol gate keeps its distinct never-evaluates property.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/symboldrain.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: symbol bound to a plain value drains its arglist and
+// returns the symbol's own value, evaluating the arglist for its side
+// effect along the way (like true()/false()/pi()) ---
+x=5
+cnt=0
+r=x (cnt=cnt+1)
+ok=ok&&(r==5)
+ok=ok&&(cnt==1)
+print("1 x=5; r=x (cnt=cnt+1) drains arg, returns x's value (expect r=5 cnt=1): %v %v\n\n" r cnt)
+check_fail(:ok ok)
+
+// --- test 2: an undefined symbol's arglist is never evaluated at all --
+// the gate idiom, unaffected by the fix above ---
+cnt2=0
+r2=_symboldrain_undefined_test_xyz (cnt2=cnt2+1)
+ok=ok&&(r2==nil)
+ok=ok&&(cnt2==0)
+print("2 undefined symbol gate never evaluates its arg (expect r2=nil cnt2=0): %v %v\n\n" r2 cnt2)
+check_fail(:ok ok)
+
+// --- test 3: interpreter remains functional afterward (no stack
+// corruption lingering from either case above) ---
+v=1+1
+ok=ok&&(v==2)
+print("3 interpreter still functional after both cases (expect 2): %v\n\n" v)
+check_fail(:ok ok)
+
+// --- test 4: repeated use of the same bound-value symbol in one session
+// drains cleanly every time, not just the first ---
+x2=7
+cnt3=0
+r3a=x2 (cnt3=cnt3+1)
+r3b=x2 (cnt3=cnt3+1)
+ok=ok&&(r3a==7 && r3b==7 && cnt3==2)
+print("4 repeated use of a bound symbol drains cleanly each time (expect r3a=7 r3b=7 cnt3=2): %v %v %v\n\n" r3a r3b cnt3)
+check_fail(:ok ok)
+
+// --- test 5: draining doesn't grow the interpreter's own value stack --
+// the actual regression this guards: each drain used to leave one extra
+// entry behind (visible as "func ... pushed more than a single value on
+// stack"), so repeated drains grew the stack in proportion to how many
+// happened, rather than staying flat. Compare a 3-drain and a 5-drain
+// run: if either leaks, the 5-drain height comes out higher relative to
+// its own baseline than the 3-drain one does. ---
+x3=9
+before3=stackheight()
+h3=(x3 (1); x3 (1); x3 (1); stackheight())
+before5=stackheight()
+h5=(x3 (1); x3 (1); x3 (1); x3 (1); x3 (1); stackheight())
+d3=h3-before3
+d5=h5-before5
+sameheight=(d3==d5)
+ok=ok&&sameheight
+print("5 stackheight() delta is the same for 3 vs 5 drains (expect true): %v %v\n\n" d3 d5)
+check_fail(:ok ok)
+
+print("\nsymboldrain: %v\n" ok)
+ok
