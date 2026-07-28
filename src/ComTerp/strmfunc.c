@@ -81,28 +81,38 @@ void StreamFunc::execute() {
     return;
   }
 
+  static StreamNextFunc* snfunc = nil;
+  if (!snfunc) {
+    snfunc = new StreamNextFunc(comterp());
+    snfunc->funcid(symbol_add("streamnext"));
+  }
+
+  if (nargs() == 0) {
+    /* empty stream literal: [] -- returns nil on first next() */
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue stream(snfunc, avl);
+    stream.stream_mode(STREAM_INTERNAL);
+    push_stack(stream);
+    return;
+  }
+
   ComValue operand1(stack_arg_post_eval(0));
-  
+
   reset_stack();
-  
+
   if (operand1.is_stream()) {
-    
+
     /* stream copy */
     AttributeValueList* old_avl = operand1.stream_list();
     AttributeValueList* new_avl = new AttributeValueList(old_avl);
     ComValue retval(operand1.stream_func(), new_avl);
     retval.stream_mode(operand1.stream_mode());
     push_stack(retval);
-    
-  } else {
-    
-    /* conversion operator */
 
-    static StreamNextFunc* snfunc = nil;
-    if (!snfunc) {
-      snfunc = new StreamNextFunc(comterp());
-      snfunc->funcid(symbol_add("streamnext"));
-    }
+  } else {
+
+    /* conversion operator */
 
     if (operand1.is_array()) {
       AttributeValueList* avl = new AttributeValueList(operand1.array_val());
