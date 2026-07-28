@@ -1,0 +1,71 @@
+// src/comterp_/tests/bracket-brace-parity.comt -- []/{} parse the same as
+// () for non-empty content
+//
+// Only the EMPTY form of each delimiter has special, fixed meaning: `()`
+// is an empty attrlist, `[]` an empty stream, `{}` an empty list. For
+// non-empty content, all three delimiters are meant to be otherwise
+// equivalent -- the content decides the "kind" (value-first is a stream
+// literal, keyword-first is an attrlist literal), never the bracket
+// character. `ComUtil/_parser.c`'s stream/attrlist-literal recognition
+// checked `paren_type == TOK_LPAREN` at five call sites, so only `()`
+// ever got that recognition; `[...]`/`{...}` hit a parse error
+// ("Unexpected identifier"/"Unexpected literal constant") the moment a
+// second element followed the first. Regression guard: the same content
+// now parses and evaluates identically regardless of which of the three
+// delimiters wraps it.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/bracket-brace-parity.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a compound expression followed by an identifier used to
+// error in brackets/braces ("Unexpected identifier") but always worked
+// in parens -- now all three produce the same 2-element stream ---
+y=20
+lp=list(((1+2)*3 y))
+lb=list([(1+2)*3 y])
+lc=list({(1+2)*3 y})
+ok=ok&&(lp==lb)
+ok=ok&&(lp==lc)
+print("1 [(1+2)*3 y] and {(1+2)*3 y} match ((1+2)*3 y) (expect true true): %v %v\n\n" (lp==lb) (lp==lc))
+check_fail(:ok ok)
+
+// --- test 2: keyword-first content is an attrlist literal regardless of
+// delimiter -- []/{} used to error ("Unexpected literal constant") the
+// moment a value followed the first keyword ---
+ap=(:x 1 :y 2)
+ab=[:x 1 :y 2]
+ac={:x 1 :y 2}
+ok=ok&&(class(ab)==`AttributeList)
+ok=ok&&(class(ac)==`AttributeList)
+ok=ok&&(ap.x==ab.x && ap.y==ab.y)
+ok=ok&&(ap.x==ac.x && ap.y==ac.y)
+print("2 [:x 1 :y 2] and {:x 1 :y 2} are attrlists matching (:x 1 :y 2) (expect true): %v\n\n" ok)
+check_fail(:ok ok)
+
+// --- test 3: a keyword appearing after positional values is still a
+// stream (not an attrlist) regardless of delimiter -- compared
+// structurally, since == on lists of AttributeList elements is object
+// identity, not value equality ---
+lp2=list(((0 :key 99)))
+lb2=list([0 :key 99])
+lc2=list({0 :key 99})
+same3=(size(lp2)==2 && size(lb2)==2 && size(lc2)==2 &&
+       at(lp2 0)==at(lb2 0) && at(lp2 0)==at(lc2 0) &&
+       at(lp2 1).key==at(lb2 1).key && at(lp2 1).key==at(lc2 1).key)
+ok=ok&&same3
+print("3 [0 :key 99] and {0 :key 99} match (0 :key 99) (expect true): %v\n\n" same3)
+check_fail(:ok ok)
+
+// --- test 4: empty forms keep their own distinct, unchanged meaning --
+// []=stream, {}=list, ()=attrlist -- delimiter choice only matters when
+// there's nothing inside to otherwise decide the kind ---
+ok=ok&&(size({})==0)
+ok=ok&&(class(())==`AttributeList)
+print("4 empty {} and () keep their own distinct meaning (expect true): %v\n\n" ok)
+check_fail(:ok ok)
+
+print("\nbracket-brace-parity: %v\n" ok)
+ok
