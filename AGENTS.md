@@ -229,6 +229,20 @@ C++ work. The essentials:
 - No `dynamic_cast` anywhere — use virtual dispatch.
 - New methods/members go at the **bottom** of the header and source file.
 
+### Code comments
+- Keep comments embedded in source code fairly terse declaratives that add
+  context the variable and function names don't already document. Code is
+  the SPOT for what it does and should be read as code.
+- Reserve paragraph-length explanation for the related `.md` file (this
+  one, a layer's `HACKING.md`/`ARCHITECTURE.md`, or `doc/`) — a short
+  in-code comment can point there instead of inlining the essay.
+- Exception: when a locale genuinely needs the long version to head off a
+  likely misreading by a future developer that would cause chaos, leave it
+  in place.
+- If you encounter an existing paragraph-length comment that doesn't meet
+  that bar, shorten it and move the substantive content to the relevant
+  `.md` file.
+
 ### Naming
 - `comterp` (lowercase) = the interpreter / binary / `.comt` scripts / REPL.
 - `ComTerp` (PascalCase) = the C++ library and its classes.

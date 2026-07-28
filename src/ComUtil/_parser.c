@@ -1390,6 +1390,9 @@ int status;
 	     } else if (toktype == TOK_RPAREN) {
 	       if(attrlist_symid==-1) attrlist_symid = symbol_add("attrlist");
 	       PFOUT( TOK_COMMAND, attrlist_symid, 0, 0, toktype );
+	     } else if (toktype == TOK_RBRACKET) {
+	       if(stream_symid==-1) stream_symid = symbol_add("stream");
+	       PFOUT( TOK_COMMAND, stream_symid, 0, 0, toktype );
 	     } else {
 	       PFOUT_LITERAL( TOK_BLANK, token );
 	     }
