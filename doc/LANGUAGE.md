@@ -628,7 +628,7 @@ Variable lookup follows a three-level priority chain:
   `:key val` args set before the body runs.  The frame is an attrlist,
   created for the call and discarded at return — the same structure
   that carries keyword args and `setattr()` properties everywhere else
-- **local scope** — the interpreter's flat top-level symbol table,
+- **local scope** — the interpreter's flat top-level variable table,
   where prompt and `run()` assignments live; `local(x)` reads and
   writes it explicitly (see *Escaping the func scope* below)
 - **global scope** — symbols declared with `global()`; `global(x)`
@@ -722,7 +722,7 @@ call.
 When a func genuinely needs to write outside its own frame, two
 commands name the outer scopes explicitly, as both lvalue and rvalue:
 
-- **`local(x)`** — the interpreter's default symbol table: the scope
+- **`local(x)`** — the interpreter's default variable table: the scope
   bare assignment already uses *outside* a func, named so it can be
   reached from *inside* one.  As an lvalue, `local(x)=val` writes that
   table, skipping the frame; as an rvalue, `local(x)` reads that table
@@ -1488,8 +1488,9 @@ Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
 ## Symbols
 
 A symbol is an interned string — a unique integer id associated with a
-name, stored once in a global symbol table. Symbols are the basis of
-variable names, command names, keywords, and type names in ComTerp.
+name, stored once in a global symbol table (not to be confused with the
+global variable table). Symbols are the basis of variable names, command
+names, keywords, and type names in ComTerp.
 
 ### Creating and converting symbols
 
@@ -1774,9 +1775,9 @@ language* — and that training reflects the real mechanism, not just convention
 build key never gets dispatched on; it is displayed and compared; it is
 string-nature. A color name gets dispatched on by id; it is symbol-nature.
 
-(Implementation: the symbol *is* the interned string; the intern table holds both
-forms. The split is one of rarity and use, recovered at the surface by which
-quote the author reaches for.)
+(Implementation: the symbol *is* the interned string; the intern table, aka symbol
+table, holds both forms. The split is one of rarity and use, recovered at the
+surface by which quote the author reaches for.)
 
 ## See Also
 
