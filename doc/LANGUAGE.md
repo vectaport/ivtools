@@ -303,7 +303,7 @@ happens next depends on what `SYMBOL` resolves to:
 - **A registered command** — dispatches normally.
 - **A variable holding a `FuncObj`** (`f=func(...)`) — invoked properly,
   args and all. This is the *dynamic* case: the call actually runs code.
-- **Anything else — including an undefined symbol** — the arglist is
+- **Anything else -- except for an undefined symbol** — the arglist is
   evaluated (for side effects) and discarded, and the call's result is
   whatever `SYMBOL` itself resolves to. A variable holding a plain value
   behaves like a *static* `FuncObj`: it "runs" (its arglist still gets
