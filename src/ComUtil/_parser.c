@@ -879,7 +879,7 @@ int status;
 		 on the second element with the first already on the stack. */
 
 	       if( TopOfParenStack >= 0 &&
-	           ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	           LEFT_PAREN( ParenStack[ TopOfParenStack ].paren_type ) &&
 	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
 	           ParenStack[ TopOfParenStack ].narg == 0 ) {
 	         if(stream_symid==-1) stream_symid = symbol_add("stream");
@@ -925,7 +925,7 @@ int status;
 		 OPERSTK_PUSH( 0, OPERATOR);
 		 whitespace_bound=1;
 	         } else if( TopOfParenStack >= 0 &&
-	             ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	             LEFT_PAREN( ParenStack[ TopOfParenStack ].paren_type ) &&
 	             ParenStack[ TopOfParenStack ].comm_id == -1 &&
 	             ParenStack[ TopOfParenStack ].narg == 0 ) {
 	           /* stream literal: bare LPAREN, first value seen */
@@ -1070,15 +1070,15 @@ int status;
       /* Must be inside parenthesis associated with a command */
       /* for a keyword to be legal                            */
 	 if( TopOfParenStack < 0 || ParenStack[ TopOfParenStack ].comm_id < 0 ) {
-	    /* Allow keyword as first token in bare parens -- implicit attrlist() literal */
+	    /* Allow keyword as first token in a bare group -- implicit attrlist() literal */
 	    if( TopOfParenStack >= 0 &&
-	        ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	        LEFT_PAREN( ParenStack[ TopOfParenStack ].paren_type ) &&
 	        ParenStack[ TopOfParenStack ].nkey == 0 &&
 	        expecting == OPTYPE_UNARY_PREFIX ) {
 	      if(attrlist_symid==-1) attrlist_symid = symbol_add("attrlist");
 	      ParenStack[ TopOfParenStack ].comm_id = attrlist_symid;
 	    } else if( TopOfParenStack >= 0 &&
-	        ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+	        LEFT_PAREN( ParenStack[ TopOfParenStack ].paren_type ) &&
 	        ParenStack[ TopOfParenStack ].comm_id == -1 &&
 	        expecting == OPTYPE_BINARY ) {
 	      /* keyword after value(s) -- stream literal (0 :key val) or (0 :flag) */
@@ -1149,10 +1149,11 @@ int status;
 	 if( expecting == OPTYPE_BINARY ) {
 	   if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
-		 /* stream literal: bare LPAREN, first element is also LPAREN */
-		 if( toktype == TOK_LPAREN &&
+		 /* stream literal: bare opening delimiter, first element is
+		    itself a bracketed group of any kind */
+		 if( LEFT_PAREN( toktype ) &&
 		     TopOfParenStack >= 0 &&
-		     ParenStack[ TopOfParenStack ].paren_type == TOK_LPAREN &&
+		     LEFT_PAREN( ParenStack[ TopOfParenStack ].paren_type ) &&
 		     ParenStack[ TopOfParenStack ].comm_id == -1 &&
 		     ParenStack[ TopOfParenStack ].narg == 0 ) {
 		   if(stream_symid==-1) stream_symid = symbol_add("stream");
