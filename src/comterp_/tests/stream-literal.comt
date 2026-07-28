@@ -1,13 +1,14 @@
-// stream-literal.comt version 4
-print("stream-literal.comt version 4\n")
+// stream-literal.comt version 5
+print("stream-literal.comt version 5\n")
 
 // src/comterp_/tests/stream-literal.comt -- stream literal syntax tests
 //
-// coverage: 18 tests of stream literal feature
+// coverage: 19 tests of stream literal feature
 // funcs: postfix() errmsg() index() next() list() each() size() class() trace()
 // tests 1-8:   parser tests (postfix inspection)
 // tests 9-14:  stream literal runtime behavior
 // tests 15-18: stream-of-streams construction, zip behavior, mixed elements
+// test 19:     empty bracket literal []
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream-literal.comt")
@@ -252,6 +253,28 @@ r18d=next(s18)
 ok18=ok18&&(r18d==nil)
 ok=ok&&ok18
 print("18 next((1 (2 3) :key 4)) -- mixed scalar+stream+keyword (expect 1 StreamType{2,3} (:key 4) nil): %v %v %v %v\n" r18a r18b r18c r18d)
+prev_ok=check_fail(:ok ok)
+
+// =========================================================
+// PART 4: Empty bracket literal
+// =========================================================
+
+// --- test 19: [] is an empty stream, nil on first next() ---
+// BEFORE fix: cascade of internal errors ("offlimit hit by
+// ComTerp::skip_arg" etc.) -- empty brackets fell through to a bare
+// blank token instead of constructing a stream, corrupting postfix
+// bookkeeping and confusing AssignFunc.
+// AFTER fix: [] parses like a zero-arg stream() call, matching how {}
+// and () construct an empty list/attrlist; next() returns nil right away.
+errmsg(:clear)
+s19=[]
+e19=errmsg(:last)
+ok19=(e19==nil)
+ok19=ok19&&(class(s19)==`StreamType)
+r19=next(s19)
+ok19=ok19&&(r19==nil)
+ok=ok&&ok19
+print("19 s=[]; next(s) -- empty stream literal (expect no error, StreamType, nil): %v %v\n" class(s19) r19)
 prev_ok=check_fail(:ok ok)
 
 print("stream-literal: %v\n" ok)
