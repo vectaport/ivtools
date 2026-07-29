@@ -156,6 +156,16 @@ jobs:
         timeout-minutes: 2
         run: sh src/comterp_/tests/remote_loopback.sh
 
+      # errsys.c's err_open() looks for an installed comterp.err via
+      # COMTERP_PATH/RELLIBALLDIR/ABSLIBALLDIR, falling back to a compiled-in
+      # message table if none is found. Exercises the COMTERP_PATH lookup
+      # (install-independent) end to end against a scratch copy with one
+      # message swapped for a marker, to guard against that lookup silently
+      # regressing back to always using the compiled fallback.
+      - name: Test - errsys.c external comterp.err lookup
+        timeout-minutes: 1
+        run: sh src/comterp_/tests/errsys-comterp-path.sh
+
       # The comdraw/drawserv startup seed `update(1000000)` use-after-free is
       # FIXED: the inline-eval ComTerpServ::run() overloads now hold the
       # running() bracket, so a reactor close (e.g. stdin EOF) firing inside

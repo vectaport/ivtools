@@ -213,23 +213,31 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
     }
 
     if (!fptr) {
-	strcpy( fullpath, "RELLIBALLDIR" );
+	/* RELLIBALLDIR/ABSLIBALLDIR are preprocessor macros supplied by
+	   -D flags in ComUtil/Imakefile, substituted with the real
+	   install paths at compile time -- bare here, not quoted, so the
+	   preprocessor actually expands them (a macro name inside a
+	   string literal is never macro-expanded, which is why this used
+	   to always look for a literal file named "RELLIBALLDIR"). */
+	strcpy( fullpath, RELLIBALLDIR );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");
     }
-    
+
     if (!fptr) {
-	strcpy( fullpath, "ABSLIBALLDIR" );
+	strcpy( fullpath, ABSLIBALLDIR );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
 	fptr = fopen(fullpath, "r");
     }
    
-#if 0
-   if(( ErrorStreams[findex] = fptr) == NULL )
-      KAPUT1( "Unable to open error file %s", fullpath );
-#endif
+   /* Register the opened stream (or nil, if comterp.err genuinely isn't
+      installed anywhere COMTERP_PATH/RELLIBALLDIR/ABSLIBALLDIR name) --
+      err_read() falls back to the compiled-in default_errmsgs whenever
+      this is nil, so a missing file is a graceful degradation, not a
+      fatal error. */
+   ErrorStreams[findex] = fptr;
 
    return findex;
 
