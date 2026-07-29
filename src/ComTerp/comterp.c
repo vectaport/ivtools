@@ -515,11 +515,18 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
     else if (stack_base+1 > _stack_top) {
       fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
-      /* symmetric recovery: restore the single value every post_eval
-         command's contract promises, so a later statement's argoff anchor
-         lookup finds a real (if null) value at the expected height instead
-         of silently drifting. */
-      push_stack(ComValue::nullval());
+      /* secondary backstop, not the primary handler: a command whose last
+         stack-affecting act was reset_stack() and nothing else is already
+         caught above by the _just_reset check (comfunc.c's reset_stack()
+         sets it, any push_stack() clears it) and backfilled with blankval()
+         there -- that's the common case, and by the time we get here it has
+         already restored stack_base+1.  This branch only still fires for a
+         command that shorts the stack some other way, bypassing
+         reset_stack() entirely.  Use the same blankval() sentinel as that
+         mechanism, not nullval()/nil -- they're not interchangeable
+         elsewhere (is_blank() vs is_nil() are checked separately, and a
+         stray nil reads differently than "no value here" placeholder). */
+      push_stack(ComValue::blankval());
     }
 
     return;
