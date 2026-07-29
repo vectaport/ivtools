@@ -500,9 +500,34 @@ void ComTerp::eval_expr_internals(int pedepth) {
       fprintf(stderr, "stack_base %d, stack_top %d\n", stack_base, _stack_top);
       for(int i=stack_base+1; i<=_stack_top; i++)
           std::cerr << i << ":  " << _stack[i] << "\n";
+      /* Trim the stray extra value(s) rather than leaving them behind: an
+         under-consumed post_eval command here (observed from deeply nested
+         stream/next() recursion) otherwise leaves residue on the shared
+         value stack that outlives this statement -- since eval_expr() only
+         resets _stack_top between top-level statements when !nested, a
+         run("file") session (nested=true, see runfile()'s eval_expr(true))
+         carries the stray value into every later statement, where an
+         unrelated post_eval command's stack_top()-based argoff anchor lookup
+         misreads it as its own bookmark (comfunc.c's stack_arg_post family),
+         cascading into "offlimit hit by ComTerp::skip_arg" and similar
+         postfix-bookkeeping errors far from the true cause. */
+      decr_stack(_stack_top - (stack_base+1));
     }
-    else if (stack_base+1 > _stack_top)
+    else if (stack_base+1 > _stack_top) {
       fprintf(stderr, "func \"%s\" failed to push a single value on stack\n", symbol_pntr(func->funcid()));
+      /* secondary backstop, not the primary handler: a command whose last
+         stack-affecting act was reset_stack() and nothing else is already
+         caught above by the _just_reset check (comfunc.c's reset_stack()
+         sets it, any push_stack() clears it) and backfilled with blankval()
+         there -- that's the common case, and by the time we get here it has
+         already restored stack_base+1.  This branch only still fires for a
+         command that shorts the stack some other way, bypassing
+         reset_stack() entirely.  Use the same blankval() sentinel as that
+         mechanism, not nullval()/nil -- they're not interchangeable
+         elsewhere (is_blank() vs is_nil() are checked separately, and a
+         stray nil reads differently than "no value here" placeholder). */
+      push_stack(ComValue::blankval());
+    }
 
     return;
     
