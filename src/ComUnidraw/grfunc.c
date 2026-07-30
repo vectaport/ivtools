@@ -858,6 +858,8 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
 
 /*****************************************************************************/
 
+static FontByNameFunc* _font_by_name_func = NULL;
+
 FontFunc::FontFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
@@ -874,6 +876,18 @@ void FontFunc::execute() {
             ComValue retval(fnt->GetName());
             push_stack(retval);
         }
+        return;
+    }
+
+    ComValue& fv = stack_arg(0, true);
+    if (fv.is_string()) {
+        if (_font_by_name_func == NULL) {
+            _font_by_name_func = new FontByNameFunc(comterp(), editor());
+        } else {
+            _font_by_name_func->comterp(comterp());
+            _font_by_name_func->editor(editor());
+        }
+        _font_by_name_func->execute();
         return;
     }
 

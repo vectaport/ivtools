@@ -43,6 +43,14 @@ f2=fontbyname()
 ok=ok&&(f==f2)
 print("7 fontbyname(font()); fontbyname() round trip (expect true): %v\n" f==f2)
 
+// font(fontname) delegates to fontbyname() via the same static-slipin
+// pattern colors(fgname bgname) already uses to reach colorsrgb() --
+// a string arg to font() should set by name, not be misread as a menu index
+font(f)
+f3=font()
+ok=ok&&(f==f3)
+print("7b font(fontname) delegates to fontbyname by string arg (expect true): %v\n" f==f3)
+
 // save/restore idiom the getters enable: borrow the pen, put it back
 saved=brush()
 brush(65535,7)

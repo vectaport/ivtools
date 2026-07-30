@@ -142,13 +142,13 @@ public:
 };
 
 //: command for setting font state variable in comdraw.
-// font(fontnum) -- set current font from menu order
+// font(fontnum|fontname) -- set current font from menu order or by X name
 class FontFunc : public UnidrawFunc {
 public:
     FontFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "%s([fontnum]) -- set current font from menu order; return current font by X name if no args"; }
+    virtual const char* docstring() {
+	return "%s([fontnum|fontname]) -- set current font from menu order or by X name; return current font by X name if no args"; }
 };
 
 //: command for setting font state variable by  font name in comdraw.
