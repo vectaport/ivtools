@@ -268,6 +268,9 @@ C++ work. The essentials:
 - When bumping interpreter internals, the `PATCH_KEY` constant in the relevant
   `main.c` (e.g. `src/comterp_/main.c`) is bumped so the startup banner shows
   the change.
+- **PR description must include a closing keyword** (`Closes #N`, `Fixes #N`,
+  etc.) when the PR resolves a tracked issue, so the issue auto-closes on
+  merge instead of being left open for manual cleanup.
 
 ### ComTerp scripting gotchas (bite C-trained authors)
 - **Everything is an expression**; there are no declarations. `func` is a
