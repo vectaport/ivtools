@@ -76,15 +76,8 @@ StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 void StreamFunc::execute() {
 
   /* stream literal: (val val ...) -- delegate to execute_literal().
-     nargs() alone undercounts a bare (valueless) keyword -- it counts
-     positionals plus any values that follow keywords, but a bare keyword
-     marker itself contributes nothing to nargs(), only to nkeys().  So
-     (0 :standalonekey) -- one positional, one bare keyword -- previously
-     read as nargs()==1 and fell through to the scalar path below, even
-     though it's a genuine two-element stream (confirmed by (0 :key 3),
-     a valued keyword in the same slot, which nargs()==2 already routed
-     correctly).  nargstotal() (nargs()+nkeys(), see doc/POSTFIX-INDEXING.md
-     section 1) is the "everything" count this check actually wants. */
+     nargstotal() (not nargs()) so a bare keyword element still counts;
+     see doc/POSTFIX-INDEXING.md section 1. */
   if (nargstotal() > 1) {
     execute_literal();
     return;
