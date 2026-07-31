@@ -39,5 +39,9 @@ if(run("./lastkey.comt")
   :then print("pass: lastkey\n")
   :else print("FAIL: lastkey\n");ok=false)
 
+if(run("./paste.comt")
+  :then print("pass: paste\n")
+  :else print("FAIL: paste\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

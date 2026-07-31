@@ -1,0 +1,50 @@
+// src/comdraw/tests/paste.comt -- paste() must refuse an already-parented graphic
+//
+// Every Create*Func (rect(), raster(), etc.) auto-inserts its graphic under
+// the default pastemode(0) -- paste()'ing that same return value used to
+// double-append it as a child of the document a second time, corrupting
+// the parent/child tree.  paste() now requires parent()==nil and refuses
+// otherwise.
+//
+// Run from inside comdraw:
+//   run("src/comdraw/tests/paste.comt")
+
+ok=true
+
+// --- test 1: paste() on an already-pasted graphic (default pastemode) -- refused ---
+p=paste(raster(0,0,64,64 :rgb 4,4,
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0)))
+ok=ok&&(p==nil)
+print("1 paste(raster(...)) refused, already parented (expect nil): %v\n" p)
+
+// --- test 2: pastemode(1) -- raster() no longer auto-inserts ---
+pastemode(1)
+r2=raster(0,0,32,32 :rgb 4,4,
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0),
+  (0,0,0),(0,0,0),(0,0,0),(0,0,0))
+ok=ok&&(parent(r2)==nil)
+print("2 parent(r2) before paste, pastemode(1) (expect nil): %v\n" parent(r2))
+
+// --- test 3: paste() on a never-inserted graphic -- succeeds ---
+p2=paste(r2)
+ok=ok&&(p2!=nil)
+print("3 paste(r2), first insertion (expect non-nil): %v\n" p2)
+
+// --- test 4: parent(r2) after paste -- no longer nil ---
+ok=ok&&(parent(r2)!=nil)
+print("4 parent(r2) after paste (expect non-nil): %v\n" parent(r2))
+
+// --- test 5: paste() on that now-parented graphic -- refused, same as test 1 ---
+p3=paste(r2)
+ok=ok&&(p3==nil)
+print("5 paste(r2) refused, now parented (expect nil): %v\n" p3)
+
+pastemode(0)
+
+print("paste: %v\n" ok)
+ok
