@@ -1,5 +1,5 @@
-// stream-argcnt.comt version 1
-print("stream-argcnt.comt version 1\n")
+// stream-argcnt.comt version 2
+print("stream-argcnt.comt version 2\n")
 
 // src/comterp_/tests/stream-argcnt.comt -- verify that the directory argcnt of
 // each stream-literal element is the postfix token count of that element's value
@@ -15,10 +15,10 @@ print("stream-argcnt.comt version 1\n")
 //
 // Tests 1-3 check keyword value argcnt (1, 3, 7).  Test 4 checks a bare keyword
 // in a non-deciding position (well-formed: lone marker, counted as an element).
-// Test 5 probes a bare keyword AS the deciding second element -- a KNOWN
-// construction bug that builds a malformed directory; it is print-only until
-// fixed.  Tests 6-7 check that a positional value span equals the equivalent
-// keyword value span.
+// Test 5 checks a bare keyword AS the deciding second element -- this used to
+// build a malformed directory (see StreamFunc::execute()'s nargstotal() fix)
+// and now matches test 4's shape.  Tests 6-7 check that a positional value span
+// equals the equivalent keyword value span.
 //
 // A stream literal needs positional content to BE a stream (a lone (:key val)
 // is an attrlist literal), so each keyword case carries a leading positional 0;
@@ -70,20 +70,23 @@ ok=ok&&ok4
 print("4 (0 1 :standalonekey) nelem==3 (expect true): %v\n" ok4)
 prev_ok=check_fail(:ok ok)
 
-// --- test 5: bare keyword AS the deciding second element -- KNOWN BUG, probe ---
+// --- test 5: bare keyword AS the deciding second element -- now well-formed ---
 // (0 :standalonekey): the keyword is the element that decides stream-ness.  This
-// currently builds a MALFORMED directory ({0,} -- no FuncObj header, no marker)
-// and info().nelem returns nil.  Contrast with test 4, where the same bare
-// keyword in a non-deciding slot is well-formed.  See issue:
-//   stream literal with a bare keyword as the deciding (second) element builds a
-//   malformed directory.
-// Left as a PRINT-ONLY probe (no assertion) until that construction bug is fixed;
-// once fixed, this should match test 4's shape and become a hard assertion.
-// Style note: the durable fix on the authoring side is to never put a keyword in
-// a deciding position -- keep to positionals-then-keywords even in stream literals.
+// used to build a MALFORMED directory ({0,} -- no FuncObj header, no marker) and
+// info().nelem returned nil, because StreamFunc::execute()'s dispatch check
+// undercounted a bare keyword (it contributes to nkeys() but not nargs()).
+// Fixed by dispatching on nargstotal() (nargs()+nkeys()) instead of nargs()
+// alone.  Directory: {FuncObj,2, 0,1, :standalonekey} -> nelem 2, size 5 --
+// same lone-marker shape test 4 shows for a non-deciding bare keyword.
+// Style note: the durable fix on the authoring side is still to prefer
+// positionals-then-keywords even in stream literals -- this just confirms
+// the deciding-position case is no longer silently broken.
 errmsg(:clear)
 s5=(0 :standalonekey)
-print("5 (0 :standalonekey) [known bug] nelem: %v   raw: %v\n" info(s5).nelem info(s5 :raw))
+ok5=(info(s5).nelem==2)&&(size(info(s5 :raw))==5)
+ok=ok&&ok5
+print("5 (0 :standalonekey) nelem==2, raw size==5 (expect true): %v\n" ok5)
+prev_ok=check_fail(:ok ok)
 
 // --- test 6: positional value uses the SAME span counting -- argcnt 7 ---
 // 1+2+3+5 as a positional element has the same postfix count as a keyword value.
