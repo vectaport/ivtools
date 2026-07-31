@@ -25,6 +25,13 @@ t=text(150 150 "hello")
 e=ellipse(200 200 80 40)
 ```
 
+**Paste and parenting** — every drawing primitive auto-inserts itself
+into the document by default (`pastemode(0)`); `pastemode(1)`
+suppresses that, so a graphic can be built and held off-screen before
+insertion. `paste(compview)` inserts an explicit graphic, but only if
+it isn't already parented — check with `parent(compview)`, which
+returns `nil` for anything not yet on the canvas.
+
 **Graphic state** — font, brush, pattern, color, all selectable from
 menus or set by command. Colors can be specified by menu index or by
 RGB name in standard hex notation (`#RRGGBB`). Pattern masks can be
