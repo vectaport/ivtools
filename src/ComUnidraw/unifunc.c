@@ -157,6 +157,11 @@ void PasteFunc::execute() {
     /* extract comp and scale/translate before pasting */
     ComponentView* view = (ComponentView*)viewv.obj_val();
     OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+    if (comp && comp->GetParent()) {
+      fprintf(stderr, "paste: graphic already has a parent, not pasting\n");
+      push_stack(ComValue::nullval());
+      return;
+    }
     Graphic* gr = comp ? comp->GetGraphic() : nil;
     if (gr) {
       if (xscalev.is_num() && yscalev.is_num()) {

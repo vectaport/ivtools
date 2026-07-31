@@ -77,8 +77,8 @@ class PasteFunc : public UnidrawFunc {
 public:
     PasteFunc(ComTerp*,Editor*,OverlayCatalog* = nil);
     virtual void execute();
-    virtual const char* docstring() { 
-	return "compview=%s(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer"; }
+    virtual const char* docstring() {
+	return "compview=%s(compview [xscale yscale xoff yoff | a00,a01,a10,a11,a20,a21]) -- paste graphic into the viewer, compview must have no parent (see parent())"; }
 
 protected:
     OverlayCatalog* _catalog;
