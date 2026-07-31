@@ -75,8 +75,10 @@ StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 
 void StreamFunc::execute() {
 
-  /* stream literal: (val val ...) -- delegate to execute_literal() */
-  if (nargs() > 1) {
+  /* stream literal: (val val ...) -- delegate to execute_literal().
+     nargstotal() (not nargs()) so a bare keyword element still counts;
+     see doc/POSTFIX-INDEXING.md section 1. */
+  if (nargstotal() > 1) {
     execute_literal();
     return;
   }
