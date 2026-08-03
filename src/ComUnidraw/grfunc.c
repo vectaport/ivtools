@@ -861,12 +861,13 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
             r = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
             g = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
             b = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+	    raster->poke(col, row, r, g, b, 1.0);
           } else {
             char colorname[8];
             snprintf(colorname, sizeof(colorname), "#%06x", elem->int_val());
-            Color::find(World::current()->display(), colorname, r, g, b);
+            if (Color::find(World::current()->display(), colorname, r, g, b)) 
+	      raster->poke(col, row, r, g, b, 1.0);
           }
-          raster->poke(col, row, r, g, b, 1.0);
         }
       }
     }
