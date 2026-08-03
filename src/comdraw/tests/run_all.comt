@@ -43,5 +43,9 @@ if(run("./paste.comt")
   :then print("pass: paste\n")
   :else print("FAIL: paste\n");ok=false)
 
+if(run("./rasterrgb.comt")
+  :then print("pass: rasterrgb\n")
+  :else print("FAIL: rasterrgb\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok
