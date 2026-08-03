@@ -830,21 +830,46 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
 
     int w = avl->GetAttrVal(i)->int_val(); avl->Next(i);
     int h = avl->GetAttrVal(i)->int_val(); avl->Next(i);
+    int npix = w*h;
+    int nval = avl->Number()-2;
 
     OverlayRaster* raster = new OverlayRaster(w, h, 0);
     OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
 
-    for (int row = 0; row < h && !avl->Done(i); row++) {
+    /* pixel data comes in one of three forms, told apart purely by count
+       against w*h: flat r,g,b (three scalars per pixel), nested (r,g,b)
+       triples (one array per pixel), or legacy packed 0xRRGGBB ints (one
+       scalar per pixel) -- see doc/APPENDIX-B-COMTERP-EXAMPLES.md */
+    if (nval == npix*3) {
+      for (int row = 0; row < h && !avl->Done(i); row++) {
         for (int col = 0; col < w && !avl->Done(i); col++) {
-            AttributeValue* triple = avl->GetAttrVal(i); avl->Next(i);
-            AttributeValueList* rgb = triple->array_val();
+          float r = avl->GetAttrVal(i)->int_val()/255.; avl->Next(i);
+          float g = avl->GetAttrVal(i)->int_val()/255.; avl->Next(i);
+          float b = avl->GetAttrVal(i)->int_val()/255.; avl->Next(i);
+          raster->poke(col, row, r, g, b, 1.0);
+        }
+      }
+    } else {
+      for (int row = 0; row < h && !avl->Done(i); row++) {
+        for (int col = 0; col < w && !avl->Done(i); col++) {
+          AttributeValue* elem = avl->GetAttrVal(i); avl->Next(i);
+          float r, g, b;
+          if (elem->is_array()) {
+            AttributeValueList* rgb = elem->array_val();
             ALIterator j;
             rgb->First(j);
-            float r = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
-            float g = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
-            float b = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
-            raster->poke(col, row, r, g, b, 1.0);
+            r = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+            g = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+            b = rgb->GetAttrVal(j)->int_val()/255.; rgb->Next(j);
+	    raster->poke(col, row, r, g, b, 1.0);
+          } else {
+            char colorname[8];
+            snprintf(colorname, sizeof(colorname), "#%06x", elem->int_val());
+            if (Color::find(World::current()->display(), colorname, r, g, b)) 
+	      raster->poke(col, row, r, g, b, 1.0);
+          }
         }
+      }
     }
     raster->flush();
 

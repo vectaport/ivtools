@@ -1,0 +1,71 @@
+// src/comdraw/tests/rasterrgb.comt -- raster()'s :rgb pixel-value forms
+//
+// raster(x0,y0,x1,y1 :rgb w,h,pixels) used to require pixels to be
+// pre-nested (r,g,b) triples; anything else (a flat list of scalars) hit
+// AttributeValue::array_val() on a plain int with no type check -- since
+// AttributeValue stores every type in one C union with no discriminant
+// guard, that's undefined behavior (typically a crash), not a graceful
+// error. pixels is now told apart purely by element count against w*h:
+// flat r,g,b (three scalars per pixel), nested (r,g,b) triples (unchanged,
+// still supported), or legacy packed 0xRRGGBB ints (one scalar per pixel,
+// matching poke()/pokeline()'s existing convention). Alpha is deliberately
+// not part of any of these forms -- OverlayRaster/Raster::poke() accepts
+// an alpha parameter but never stores it (X11 pixmaps have no alpha
+// plane, and Raster::peek() always reports 1.0), so accepting an alpha
+// value here would silently discard it, same landmine already visible
+// in pixelfunc.comt's own commented-out RGBA round-trip tests.
+//
+// Run from inside comdraw:
+//   run("src/comdraw/tests/rasterrgb.comt")
+
+ok=true
+pastemode(1)
+
+// --- test 1: nested (r,g,b) triples -- unchanged, still works ---
+r1=raster(0,0,64,64 :rgb 4,4,
+  (255,0,0),(255,0,0),(255,0,0),(255,0,0),
+  (255,0,0),(255,0,0),(255,0,0),(255,0,0),
+  (255,0,0),(255,0,0),(255,0,0),(255,0,0),
+  (255,0,0),(255,0,0),(255,0,0),(255,0,0))
+ok=ok&&(r1!=nil)
+v1=peek(r1 0 0)
+ok=ok&&(at(v1 0)>0.9&&at(v1 1)<0.1&&at(v1 2)<0.1)
+print("1 nested (r,g,b) triples (expect ~1,0,0,1): %v\n" v1)
+
+// --- test 2: flat r,g,b scalars -- the literal #41 repro, used to crash ---
+r2=raster(0,0,64,64 :rgb 4,4,
+  255,0,0, 255,0,0, 255,0,0, 255,0,0,
+  255,0,0, 255,0,0, 255,0,0, 255,0,0,
+  255,0,0, 255,0,0, 255,0,0, 255,0,0,
+  255,0,0, 255,0,0, 255,0,0, 255,0,0)
+ok=ok&&(r2!=nil)
+v2=peek(r2 0 0)
+ok=ok&&(at(v2 0)>0.9&&at(v2 1)<0.1&&at(v2 2)<0.1)
+print("2 flat r,g,b scalars (expect ~1,0,0,1): %v\n" v2)
+
+// --- test 3: legacy packed 0xRRGGBB int per pixel ---
+r3=raster(0,0,64,64 :rgb 4,4,
+  0xff0000,0xff0000,0xff0000,0xff0000,
+  0xff0000,0xff0000,0xff0000,0xff0000,
+  0xff0000,0xff0000,0xff0000,0xff0000,
+  0xff0000,0xff0000,0xff0000,0xff0000)
+ok=ok&&(r3!=nil)
+v3=peek(r3 0 0)
+ok=ok&&(at(v3 0)>0.9&&at(v3 1)<0.1&&at(v3 2)<0.1)
+print("3 packed 0xRRGGBB int (expect ~1,0,0,1): %v\n" v3)
+
+// --- test 4: literal issue repro -- all-zero flat values (used to segfault) ---
+r4=raster(0,0,64,64 :rgb 4,4,
+  0,0,0, 0,0,0, 0,0,0, 0,0,0,
+  0,0,0, 0,0,0, 0,0,0, 0,0,0,
+  0,0,0, 0,0,0, 0,0,0, 0,0,0,
+  0,0,0, 0,0,0, 0,0,0, 0,0,0)
+ok=ok&&(r4!=nil)
+v4=peek(r4 0 0)
+ok=ok&&(at(v4 0)<0.1&&at(v4 1)<0.1&&at(v4 2)<0.1)
+print("4 all-zero flat values, no crash (expect ~0,0,0,1): %v\n" v4)
+
+pastemode(0)
+
+print("rasterrgb: %v\n" ok)
+ok
