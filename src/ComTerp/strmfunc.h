@@ -290,4 +290,31 @@ public:
     CLASS_SYMID("StreamLiteralNextFunc");
 };
 
+//: command to build or append to a growable FIFO stream, the write-end
+//: complement to next().
+// fifo=feed([fifo] [val ...]) -- build or append to a growable FIFO stream
+class FeedFunc : public ComFunc {
+public:
+    FeedFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "fifo=%s([fifo] [val ...]) -- build or append to a growable FIFO stream"; }
+
+    CLASS_SYMID("FeedFunc");
+};
+
+//: hidden func used by next command for feed-built FIFO streams
+class FeedNextFunc : public StrmFunc {
+public:
+    FeedNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for feed-built FIFO streams"; }
+
+    CLASS_SYMID("FeedNextFunc");
+};
+
 #endif /* !defined(_strmfunc_h) */

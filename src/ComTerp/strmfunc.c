@@ -1275,3 +1275,73 @@ void InfoFunc::execute() {
   ComValue retval(AttributeList::class_symid(), (void*)al);
   push_stack(retval);
 }
+
+/*****************************************************************************/
+
+int FeedFunc::_symid;
+
+FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void FeedFunc::execute() {
+  static FeedNextFunc* fnfunc = nil;
+  if (!fnfunc) {
+    fnfunc = new FeedNextFunc(comterp());
+    fnfunc->funcid(symbol_add("feednext"));
+  }
+
+  int n = nargs();
+  ComValue* argv = n>0 ? new ComValue[n] : nil;
+  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i);
+  reset_stack();
+
+  boolean arg0_is_fifo = n>0 && argv[0].is_stream() &&
+    argv[0].stream_func() == (void*)fnfunc;
+
+  if (arg0_is_fifo) {
+    /* append the remaining args to the existing FIFO's back end */
+    AttributeValueList* avl = argv[0].stream_list();
+    for (int i=1; i<n; i++)
+      avl->Append(new AttributeValue(argv[i]));
+    ComValue retval(argv[0]);
+    delete [] argv;
+    push_stack(retval);
+    return;
+  }
+
+  /* build a brand-new FIFO from all given args (zero args -> empty FIFO) */
+  AttributeValueList* avl = new AttributeValueList();
+  for (int i=0; i<n; i++)
+    avl->Append(new AttributeValue(argv[i]));
+  delete [] argv;
+  ComValue stream(fnfunc, avl);
+  stream.stream_mode(STREAM_INTERNAL);
+  push_stack(stream);
+}
+
+/*****************************************************************************/
+
+int FeedNextFunc::_symid;
+
+FeedNextFunc::FeedNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void FeedNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+  reset_stack();
+
+  AttributeValueList* avl = operand1.stream_list();
+  if (avl) {
+    Iterator i;
+    avl->First(i);
+    AttributeValue* retval = avl->Done(i) ? nil : avl->GetAttrVal(i);
+    if (retval) {
+      push_stack(*retval);
+      avl->Remove(retval);
+      delete retval;
+    } else {
+      push_stack(ComValue::nullval());
+    }
+  } else
+    push_stack(ComValue::nullval());
+}
