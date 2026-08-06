@@ -66,6 +66,11 @@ void StrmFunc::print_stream(std::ostream& out, AttributeValue& streamv) {
   }
 }
 
+boolean StrmFunc::is_delimiter(ComValue& val) {
+  static int eos_symid = symbol_add("EOS");
+  return val.is_symbol() && val.bquote() && val.symbol_val()==eos_symid;
+}
+
 /*****************************************************************************/
 
 int StreamFunc::_symid;
@@ -913,7 +918,8 @@ void EachFunc::execute() {
     boolean done = false;
     while (!done) {
       NextFunc::execute_impl(comterp(), strmv, skimflag.is_true());
-      if (comterp()->pop_stack().is_unknown())
+      ComValue popval(comterp()->pop_stack());
+      if (popval.is_unknown() || StrmFunc::is_delimiter(popval))
 	done = true;
       else
 	cnt++;
@@ -1292,7 +1298,11 @@ void FeedFunc::execute() {
 
   int n = nargs();
   ComValue* argv = n>0 ? new ComValue[n] : nil;
-  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i);
+  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup so
+     a bquoted symbol (e.g. `EOS) survives into storage intact, matching how
+     StreamLiteralNextFunc's lazy comterpserv()->run() re-evaluation already
+     preserves it (that path never goes through stack_arg_post_eval at all). */
+  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
   reset_stack();
 
   boolean arg0_is_fifo = n>0 && argv[0].is_stream() &&

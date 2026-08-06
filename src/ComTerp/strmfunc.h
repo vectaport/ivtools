@@ -45,6 +45,11 @@ public:
     StrmFunc(ComTerp*);
 
     static void print_stream(std::ostream& out, AttributeValue& streamv);
+
+    /* true if val is the bquoted `EOS symbol -- the nested-stream delimiter
+       convention (see feed()); checked by identity, not by resolution, so
+       it works the same whether or not EOS happens to be bound to anything. */
+    static boolean is_delimiter(ComValue& val);
 };
 
 //: stream command
