@@ -75,12 +75,10 @@ void ListFunc::execute() {
 	while (!done) {
 	  NextFunc::execute_impl(comterp(), listv, false);
 	  ComValue topval(comterp()->pop_stack());
-	  AttributeValue* newval = new AttributeValue(topval);
-	  if (newval->is_unknown()) {
+	  if (topval.is_unknown() || StrmFunc::is_delimiter(topval)) {
 	    done = true;
-	    delete newval;
 	  } else
-	    avl->Append(newval);
+	    avl->Append(new AttributeValue(topval));
 	}
 
       } else {

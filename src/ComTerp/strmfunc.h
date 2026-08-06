@@ -45,6 +45,11 @@ public:
     StrmFunc(ComTerp*);
 
     static void print_stream(std::ostream& out, AttributeValue& streamv);
+
+    /* true if val is the bquoted `EOS symbol -- the nested-stream delimiter
+       convention (see feed()); checked by identity, not by resolution, so
+       it works the same whether or not EOS happens to be bound to anything. */
+    static boolean is_delimiter(ComValue& val);
 };
 
 //: stream command
@@ -288,6 +293,33 @@ public:
       return "hidden func used by next command for stream literal"; }
 
     CLASS_SYMID("StreamLiteralNextFunc");
+};
+
+//: command to build or append to a growable FIFO stream, the write-end
+//: complement to next().
+// fifo=feed([fifo] [val ...]) -- build or append to a growable FIFO stream
+class FeedFunc : public ComFunc {
+public:
+    FeedFunc(ComTerp*);
+
+    virtual void execute();
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "fifo=%s([fifo] [val ...]) -- build or append to a growable FIFO stream"; }
+
+    CLASS_SYMID("FeedFunc");
+};
+
+//: hidden func used by next command for feed-built FIFO streams
+class FeedNextFunc : public StrmFunc {
+public:
+    FeedNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for feed-built FIFO streams"; }
+
+    CLASS_SYMID("FeedNextFunc");
 };
 
 #endif /* !defined(_strmfunc_h) */

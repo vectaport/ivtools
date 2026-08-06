@@ -66,6 +66,11 @@ void StrmFunc::print_stream(std::ostream& out, AttributeValue& streamv) {
   }
 }
 
+boolean StrmFunc::is_delimiter(ComValue& val) {
+  static int eos_symid = symbol_add("EOS");
+  return val.is_symbol() && val.bquote() && val.symbol_val()==eos_symid;
+}
+
 /*****************************************************************************/
 
 int StreamFunc::_symid;
@@ -782,11 +787,6 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
       else if (comterp->stack_height()==outside_stackh)
 	comterp->push_stack(ComValue::blankval());
 
-      // fprintf(stderr, "NextFunc: after next on internal stack top of type %s\n", comterp->stack_top().type_name());
-      if (comterp->stack_top().is_stream()) {
-	fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, internal type\n");
-      }
-
     } else if (streamv.stream_mode()&STREAM_EXTERNAL) {
 
       /* external execution of stream mechanism -- handled by this func */
@@ -913,7 +913,8 @@ void EachFunc::execute() {
     boolean done = false;
     while (!done) {
       NextFunc::execute_impl(comterp(), strmv, skimflag.is_true());
-      if (comterp()->pop_stack().is_unknown())
+      ComValue popval(comterp()->pop_stack());
+      if (popval.is_unknown() || StrmFunc::is_delimiter(popval))
 	done = true;
       else
 	cnt++;
@@ -1274,4 +1275,78 @@ void InfoFunc::execute() {
 
   ComValue retval(AttributeList::class_symid(), (void*)al);
   push_stack(retval);
+}
+
+/*****************************************************************************/
+
+int FeedFunc::_symid;
+
+FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void FeedFunc::execute() {
+  static FeedNextFunc* fnfunc = nil;
+  if (!fnfunc) {
+    fnfunc = new FeedNextFunc(comterp());
+    fnfunc->funcid(symbol_add("feednext"));
+  }
+
+  int n = nargs();
+  ComValue* argv = n>0 ? new ComValue[n] : nil;
+  /* symbol=true -- suppress stack_arg_post_eval's default symbol lookup so
+     a bquoted symbol (e.g. `EOS) survives into storage intact, matching how
+     StreamLiteralNextFunc's lazy comterpserv()->run() re-evaluation already
+     preserves it (that path never goes through stack_arg_post_eval at all). */
+  for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
+  reset_stack();
+
+  boolean arg0_is_fifo = n>0 && argv[0].is_stream() &&
+    argv[0].stream_func() == (void*)fnfunc;
+
+  if (arg0_is_fifo) {
+    /* append the remaining args to the existing FIFO's back end */
+    AttributeValueList* avl = argv[0].stream_list();
+    for (int i=1; i<n; i++)
+      avl->Append(new AttributeValue(argv[i]));
+    ComValue retval(argv[0]);
+    delete [] argv;
+    push_stack(retval);
+    return;
+  }
+
+  /* build a brand-new FIFO from all given args (zero args -> empty FIFO) */
+  AttributeValueList* avl = new AttributeValueList();
+  for (int i=0; i<n; i++)
+    avl->Append(new AttributeValue(argv[i]));
+  delete [] argv;
+  ComValue stream(fnfunc, avl);
+  stream.stream_mode(STREAM_INTERNAL);
+  push_stack(stream);
+}
+
+/*****************************************************************************/
+
+int FeedNextFunc::_symid;
+
+FeedNextFunc::FeedNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void FeedNextFunc::execute() {
+  ComValue operand1(stack_arg(0));
+  reset_stack();
+
+  AttributeValueList* avl = operand1.stream_list();
+  if (avl) {
+    Iterator i;
+    avl->First(i);
+    AttributeValue* retval = avl->Done(i) ? nil : avl->GetAttrVal(i);
+    if (retval) {
+      push_stack(*retval);
+      avl->Remove(retval);
+      delete retval;
+    } else {
+      push_stack(ComValue::nullval());
+    }
+  } else
+    push_stack(ComValue::nullval());
 }
