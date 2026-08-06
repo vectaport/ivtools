@@ -787,11 +787,6 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
       else if (comterp->stack_height()==outside_stackh)
 	comterp->push_stack(ComValue::blankval());
 
-      // fprintf(stderr, "NextFunc: after next on internal stack top of type %s\n", comterp->stack_top().type_name());
-      if (comterp->stack_top().is_stream()) {
-	fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, internal type\n");
-      }
-
     } else if (streamv.stream_mode()&STREAM_EXTERNAL) {
 
       /* external execution of stream mechanism -- handled by this func */
