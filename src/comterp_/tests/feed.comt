@@ -1,5 +1,15 @@
 // src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
 //
+// coverage: 14/18 (78%)
+// funcs: feed
+// missing: feed(val-zero) feed(val-neg) feed(val-bool-t) feed(val-bool-f)
+//
+// feed() has no keywords, so slots 3-5 and 10 don't apply; the value-stress
+// slot (11) covers absent/pos/nil, leaving zero/neg/bool-t/bool-f uncovered
+// -- feed() doesn't discriminate on value type at all (it's a generic
+// opaque container), so these are low-information gaps, listed honestly
+// rather than padded out.
+//
 // feed() builds a new empty FIFO stream; feed(fifo, val...) appends values to
 // an existing FIFO's back end; next(fifo) drains it from the front, in the
 // order values were fed in.  A bquoted symbol (e.g. `EOS) fed into a FIFO acts
@@ -93,6 +103,26 @@ first=list(fifo4)
 second=list(fifo4)
 ok=ok&&(first==(1,2,3) && size(second)==0)
 print("8 nil-as-data is destructive -- list() then list() gives {1,2,3} then {} (expect true): %v\n\n" (first==(1,2,3) && size(second)==0))
+check_fail(:ok ok)
+
+// --- test 9: return type -- feed() returns a stream.  info() (not
+// class()/type()) is the reliable stream-vs-not check: it is post_eval and
+// does its own is_stream() check directly, so it never hits the
+// operator-overdrive wrap that class()/type() (non-post_eval) trigger on a
+// stream-valued argument -- see info()'s docstring. ---
+r9=(info(feed())!=nil)
+ok=ok&&r9
+print("9 info(feed())!=nil (expect true): %v\n\n" r9)
+check_fail(:ok ok)
+
+// --- test 10: feed->each compositional pairing -- each() batches a
+// feed()-built stream at `EOS the same way list() does (test 4) ---
+fifo5=feed(1 2 3 `EOS 4 5 6 `EOS)
+ecnt1=each(fifo5)
+ecnt2=each(fifo5)
+ecnt3=each(fifo5)
+ok=ok&&(ecnt1==3 && ecnt2==3 && ecnt3==0)
+print("10 each(feed(1 2 3 `EOS 4 5 6 `EOS)) batches by `EOS (expect 3 3 0): %v %v %v\n\n" ecnt1 ecnt2 ecnt3)
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)
