@@ -106,6 +106,10 @@ if(run("./replay.comt")
   :then print("pass: replay\n")
   :else print("FAIL: replay\n");topok=false)
 
+if(run("./feed.comt")
+  :then print("pass: feed\n")
+  :else print("FAIL: feed\n");topok=false)
+
 if(run("./runfile.comt")
   :then print("pass: runfile\n")
   :else print("FAIL: runfile\n");topok=false)

@@ -1,0 +1,99 @@
+// src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
+//
+// feed() builds a new empty FIFO stream; feed(fifo, val...) appends values to
+// an existing FIFO's back end; next(fifo) drains it from the front, in the
+// order values were fed in.  A bquoted symbol (e.g. `EOS) fed into a FIFO acts
+// as a nested-stream delimiter: each()/list() stop a single drain at it
+// (consuming the delimiter, not destroying the rest of the FIFO), while next()
+// itself walks straight through it to true exhaustion.  Feeding a literal nil
+// as data, by contrast, is destructive -- it clears the rest of the FIFO's
+// stored elements once nexted.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/feed.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: empty fifo -- next() on a freshly built FIFO returns nil ---
+fifo=feed()
+r=next(fifo)
+ok=ok&&(r==nil)
+print("1 next() on empty feed() returns nil (expect true): %v\n\n" (r==nil))
+check_fail(:ok ok)
+
+// --- test 2: single feed then next ---
+fifo=feed()
+feed(fifo 1)
+r=next(fifo)
+ok=ok&&(r==1)
+print("2 feed(fifo 1); next(fifo) returns 1 (expect true): %v\n\n" (r==1))
+check_fail(:ok ok)
+
+// --- test 3: build directly with values, and append more later ---
+fifo=feed(1 2 3)
+feed(fifo 4 5)
+a=next(fifo)
+b=next(fifo)
+c=next(fifo)
+d=next(fifo)
+e=next(fifo)
+f=next(fifo)
+ok=ok&&(a==1 && b==2 && c==3 && d==4 && e==5 && f==nil)
+print("3 feed(1 2 3); feed(fifo 4 5) drains in FIFO order 1,2,3,4,5,nil (expect true): %v\n\n" (a==1 && b==2 && c==3 && d==4 && e==5 && f==nil))
+check_fail(:ok ok)
+
+// --- test 4: each()/list() stop at a bquoted `EOS delimiter, consuming it,
+// without destroying the rest of the underlying FIFO ---
+fifo=feed(1 2 3 `EOS 4 5 6 `EOS)
+batch1=list(fifo)
+batch2=list(fifo)
+batch3=list(fifo)
+ok=ok&&(batch1==(1,2,3) && batch2==(4,5,6) && size(batch3)==0)
+print("4 list() batches a feed()-built stream at `EOS (expect true): %v\n\n" (batch1==(1,2,3) && batch2==(4,5,6) && size(batch3)==0))
+check_fail(:ok ok)
+
+// --- test 5: the same `EOS delimiter convention applies identically to a
+// plain stream literal -- feed() and stream literals are consistent ---
+s=(1 2 3 `EOS 4 5 6 `EOS)
+lbatch1=list(s)
+lbatch2=list(s)
+ok=ok&&(lbatch1==(1,2,3) && lbatch2==(4,5,6))
+print("5 list() batches a stream literal at `EOS the same way (expect true): %v\n\n" (lbatch1==(1,2,3) && lbatch2==(4,5,6)))
+check_fail(:ok ok)
+
+// --- test 6: next() itself does not honor the delimiter -- it walks
+// straight through `EOS as an ordinary element, to true exhaustion ---
+fifo2=feed(1 2 3 `EOS 4 5)
+v1=next(fifo2)
+v2=next(fifo2)
+v3=next(fifo2)
+v4=next(fifo2)
+v5=next(fifo2)
+v6=next(fifo2)
+v7=next(fifo2)
+ok=ok&&(v1==1 && v2==2 && v3==3 && v4!=nil && v5==4 && v6==5 && v7==nil)
+print("6 next() walks straight through `EOS to true exhaustion (expect true): %v\n\n" (v1==1 && v2==2 && v3==3 && v4!=nil && v5==4 && v6==5 && v7==nil))
+check_fail(:ok ok)
+
+// --- test 7: a captured `EOS value keeps acting as the delimiter once fed
+// back into a new FIFO -- its identity survives assignment ---
+x=v4
+fifo3=feed()
+feed(fifo3 9 8 7 x 6 5)
+kept=list(fifo3)
+ok=ok&&(kept==(9,8,7))
+print("7 a captured `EOS value still delimits once re-fed (expect true): %v\n\n" (kept==(9,8,7)))
+check_fail(:ok ok)
+
+// --- test 8: literal nil fed as data is destructive -- once next()ed, the
+// rest of the FIFO's stored elements are discarded (unlike `EOS) ---
+fifo4=feed(1 2 3 nil 4 5 6 nil)
+first=list(fifo4)
+second=list(fifo4)
+ok=ok&&(first==(1,2,3) && size(second)==0)
+print("8 nil-as-data is destructive -- list() then list() gives {1,2,3} then {} (expect true): %v\n\n" (first==(1,2,3) && size(second)==0))
+check_fail(:ok ok)
+
+print("\nfeed: %v\n" ok)
+ok
