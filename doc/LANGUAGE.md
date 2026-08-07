@@ -1378,6 +1378,33 @@ never for signal/image/video-style streams, where one level of
 unwrapping is exactly what's wanted and further levels are requested
 deliberately rather than happening automatically.
 
+#### `feed(f f)` — feeding a FIFO into itself
+
+Sharing storage (above) has one hazard: a FIFO cannot lazily ingest
+*itself* the way it ingests another FIFO. Doing so would make its own
+backing list hold an element that points back to that same list — a
+cycle that recurses without end the instant anything walks it (draining
+it, but just as easily an unrelated future copy or print), crashing the
+interpreter rather than looping in ComTerp. `feed()` detects a fed-in
+stream whose backing list *is* the destination FIFO's own list and, for
+that argument only, appends a snapshot of the FIFO's current contents
+instead of the live, shared list — the same copy `$$`/`stream()` makes
+(*Forking a FIFO*, below). Self-feeding therefore duplicates what is
+queued *right now*, rather than crashing or growing forever:
+
+```comterp
+f=feed(1 2 3)
+feed(f f)
+list(f)     // {1,2,3,1,2,3} -- a snapshot of {1,2,3}, appended once
+list(f)     // {} -- drained normally, no cycle left behind
+```
+
+This guard only catches the direct case — a FIFO fed into itself, in
+either argument position. A longer cycle built up across several `feed()`
+calls between two or more FIFOs (`feed(a b); feed(b a)`) is not
+detected and remains a hazard; only the immediate self-reference that a
+single `feed()` call can construct is guarded against.
+
 ### Forking a FIFO
 
 `$$fifo` / `stream(fifo)` produce an independent copy, as for any

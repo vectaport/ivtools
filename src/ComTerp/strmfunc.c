@@ -746,36 +746,36 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
       return;
     }
 
-    // handle nested stream
+    /* handle nested stream -- looped, not recursed.  A run of consecutive
+       exhausted nested elements is removed one at a time and the new front
+       re-checked in place within this same call frame; the earlier version
+       restarted by calling execute_impl(streamv) again, which re-entered
+       the C++ call stack once per element and could exhaust it given a
+       sufficiently long run (flagged in #288 review). */
     if (!skim) {
       AttributeValueList* avl = streamv.stream_list();
-      Iterator i;
-      avl->First(i);
-      if (!avl->Done(i)) {
+      for (;;) {
+	Iterator i;
+	avl->First(i);
+	if (avl->Done(i)) break;
 	AttributeValue* val =  avl->GetAttrVal(i);
 	/* stream_mode_raw(), not stream_mode() -- the latter reports 0 once
 	   this nested stream's own list is empty (see attrvalue.c), which is
 	   exactly the moment we need to recurse to confirm true exhaustion. */
-	if (val->is_stream() && val->stream_mode_raw()&STREAM_NESTED) {
-	  // fprintf(stderr, "NextFunc: Handling nested stream\n");
-	  ComValue cval(*val);
-	  NextFunc::execute_impl(comterp, cval, false);
-	  if (!comterp->stack_top().is_null()) {
-	    return;
-	  }
-	  avl->Remove(val);
-          delete val;
-	  comterp->pop_stack();
-	  /* the new front element (if any) may itself be STREAM_NESTED --
-	     falling through to the STREAM_INTERNAL/EXTERNAL dispatch below
-	     would hand it to the stream_func as ordinary data (which knows
-	     nothing about the tag) instead of unwrapping it.  Restart from
-	     the top so the nested-stream check runs again on whatever's now
-	     in front. */
-	  _next_depth--;
-	  execute_impl(comterp, streamv, skim);
+	if (!(val->is_stream() && val->stream_mode_raw()&STREAM_NESTED)) break;
+	// fprintf(stderr, "NextFunc: Handling nested stream\n");
+	ComValue cval(*val);
+	NextFunc::execute_impl(comterp, cval, false);
+	if (!comterp->stack_top().is_null()) {
 	  return;
 	}
+	avl->Remove(val);
+        delete val;
+	comterp->pop_stack();
+	/* loop back: the new front element may itself be STREAM_NESTED, and
+	   falling through to the STREAM_INTERNAL/EXTERNAL dispatch below
+	   would hand it to the stream_func as ordinary data (which knows
+	   nothing about the tag) instead of unwrapping it. */
       }
     }
 
@@ -1320,17 +1320,36 @@ void FeedFunc::execute() {
        stream-valued arg is tagged STREAM_NESTED so NextFunc::execute_impl's
        existing nested-stream unwrap (strmfunc.c ~750) drains it lazily, one
        value per next(), instead of handing back the raw undrained stream.
-       AttributeValue::assignval() (attrvalue.c) copies _v/_type/_command_symid
-       but not _stream_mode -- it's a separate field the base copy path
-       doesn't know about -- so the tag has to be set on the AttributeValue
-       actually stored in the AVL, after construction, not on argv[i] before
-       it (that mode is silently dropped by the copy into `new AttributeValue`). */
+       _stream_mode and _command_symid share the same union slot (attrvalue.h),
+       so AttributeValue::assignval()'s `_command_symid = av._command_symid`
+       already carries a stream's mode across a copy -- the OR-in of
+       STREAM_NESTED below is applied to `elt` (the stored copy) rather than
+       to argv[i] simply to avoid mutating the shared source value; either
+       order would copy correctly. */
     AttributeValueList* avl = argv[0].stream_list();
     for (int i=1; i<n; i++) {
       boolean tag_nested = argv[i].is_stream();
-      int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
-      AttributeValue* elt = new AttributeValue(argv[i]);
-      if (tag_nested) elt->stream_mode(mode);
+      AttributeValue* elt;
+      if (tag_nested && argv[i].stream_list() == avl) {
+        /* feed(f f): the fed-in stream's own backing list *is* this FIFO's
+           list.  Storing it directly would make avl contain an element
+           whose stream_list() is avl itself -- a self-referential list
+           structure that recurses without bound the moment anything walks
+           it (ref-counting on append, NextFunc::execute_impl's nested-stream
+           unwrap, a future print/copy), independent of whether the element
+           is tagged STREAM_NESTED. Snapshot the fed-in stream's current
+           contents instead -- the same copy StreamFunc's $$/stream() makes
+           (strmfunc.c's "stream copy" branch) -- so what's actually
+           appended has its own, independent backing list and the cycle
+           never exists. */
+        AttributeValueList* snapshot = new AttributeValueList(avl);
+        elt = new AttributeValue(argv[i].stream_func(), snapshot);
+        elt->stream_mode(argv[i].stream_mode_raw()|STREAM_NESTED);
+      } else {
+        int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
+        elt = new AttributeValue(argv[i]);
+        if (tag_nested) elt->stream_mode(mode);
+      }
       avl->Append(elt);
     }
     ComValue retval(argv[0]);

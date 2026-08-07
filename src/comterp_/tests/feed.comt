@@ -36,7 +36,13 @@
 // (e.g. an overdriven zip) underneath.  $$fifo (test 17) forks an
 // independent snapshot -- a copy of what's queued at that moment, not a
 // shared view; values fed to the original afterward are not visible
-// through the fork.
+// through the fork.  feed(f f) (test 18) -- feeding a FIFO into itself --
+// can't reuse this lazy-nesting mechanism directly: the fed-in stream's
+// backing list would then be the FIFO's own list, a cycle that crashes the
+// interpreter the moment anything walks it. feed() detects this specific
+// case and appends a snapshot (the same copy $$/stream() makes) instead of
+// the live, shared list, so self-feeding duplicates what's queued right
+// now rather than crashing.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/feed.comt")
@@ -214,6 +220,22 @@ forked_orig=list(fifoF)
 forked_copy=list(fifoG)
 ok=ok&&(forked_orig==(1,2,3,4) && forked_copy==(1,2,3))
 print("17 a=feed(1 2 3); b=$$a; feed(a 4); list(a); list(b) (expect {1,2,3,4} {1,2,3}): %v %v\n\n" forked_orig forked_copy)
+check_fail(:ok ok)
+
+// --- test 18: feed(f f) -- regression guard.  Feeding a FIFO into itself
+// would make its own backing list contain an element that points back to
+// that same list -- a self-referential structure that recurses without end
+// the moment anything walks it, crashing the interpreter.  feed() detects
+// this (the fed-in stream's backing list *is* the destination's) and
+// appends a snapshot of f's current contents instead of the live, shared
+// list -- the same copy $$/stream() makes (test 17) -- so self-feeding
+// duplicates what's queued right now rather than crashing or looping ---
+fifoH=feed(1 2 3)
+feed(fifoH fifoH)
+selffed1=list(fifoH)
+selffed2=list(fifoH)
+ok=ok&&(selffed1==(1,2,3,1,2,3) && size(selffed2)==0)
+print("18 f=feed(1 2 3); feed(f f); list(f); list(f) (expect {1,2,3,1,2,3} {}): %v\n\n" (selffed1==(1,2,3,1,2,3) && size(selffed2)==0))
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)
