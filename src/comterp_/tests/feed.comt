@@ -1,6 +1,6 @@
 // src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
 //
-// coverage: 17/21 (81%)
+// coverage: 18/22 (82%)
 // funcs: feed
 // missing: feed(val-zero) feed(val-neg) feed(val-bool-t) feed(val-bool-f)
 //
@@ -17,7 +17,10 @@
 // (consuming the delimiter, not destroying the rest of the FIFO), while next()
 // itself walks straight through it to true exhaustion.  Feeding a literal nil
 // as data, by contrast, is destructive -- it clears the rest of the FIFO's
-// stored elements once nexted.
+// stored elements once nexted.  A FIFO's own nil is not permanent, though
+// (test 16): next() on an empty FIFO returns nil, but feed() can still add
+// more afterward and the next next() returns real data again -- unlike
+// every other, nil-terminated stream in the language.
 //
 // A stream-valued argument to feed() (another feed()-built FIFO included) is
 // drained lazily, one value per next(), rather than stored as an opaque,
@@ -28,7 +31,10 @@
 // drain fully in turn (test 15) -- exhausting and removing one correctly
 // re-examines the new front element for the same tag, regardless of whether
 // the nested streams are STREAM_INTERNAL (e.g. a range) or STREAM_EXTERNAL
-// (e.g. an overdriven zip) underneath.
+// (e.g. an overdriven zip) underneath.  $$fifo (test 17) forks an
+// independent snapshot -- a copy of what's queued at that moment, not a
+// shared view; values fed to the original afterward are not visible
+// through the fork.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/feed.comt")
@@ -181,6 +187,29 @@ chain1=list(fifoD)
 chain2=list(fifoD)
 ok=ok&&(chain1==(0,1,2,5,6,7) && size(chain2)==0)
 print("15 feed(0..2 5..7) -- two back-to-back nested streams both drain (expect {0,1,2,5,6,7} then {}): %v\n\n" (chain1==(0,1,2,5,6,7) && size(chain2)==0))
+check_fail(:ok ok)
+
+// --- test 16: a FIFO's nil is not permanent -- next() on an empty FIFO
+// returns nil, but feed() can still add more afterward and next() then
+// returns real data again, unlike every other (nil-terminated) stream ---
+fifoE=feed()
+before=next(fifoE)
+feed(fifoE 42)
+after=next(fifoE)
+ok=ok&&(before==nil && after==42)
+print("16 fifo=feed(); next(fifo); feed(fifo 42); next(fifo) (expect nil 42): %v %v\n\n" before after)
+check_fail(:ok ok)
+
+// --- test 17: $$fifo forks an independent snapshot -- values fed to the
+// original after the fork are not visible through the fork, and the fork
+// is unaffected by further draining of the original ---
+fifoF=feed(1 2 3)
+fifoG=$$fifoF
+feed(fifoF 4)
+forked_orig=list(fifoF)
+forked_copy=list(fifoG)
+ok=ok&&(forked_orig==(1,2,3,4) && forked_copy==(1,2,3))
+print("17 a=feed(1 2 3); b=$$a; feed(a 4); list(a); list(b) (expect {1,2,3,4} {1,2,3}): %v %v\n\n" forked_orig forked_copy)
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)
