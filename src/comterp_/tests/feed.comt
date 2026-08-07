@@ -1,14 +1,14 @@
 // src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
 //
-// coverage: 14/18 (78%)
+// coverage: 16/20 (80%)
 // funcs: feed
 // missing: feed(val-zero) feed(val-neg) feed(val-bool-t) feed(val-bool-f)
 //
 // feed() has no keywords, so slots 3-5 and 10 don't apply; the value-stress
-// slot (11) covers absent/pos/nil, leaving zero/neg/bool-t/bool-f uncovered
-// -- feed() doesn't discriminate on value type at all (it's a generic
-// opaque container), so these are low-information gaps, listed honestly
-// rather than padded out.
+// slot (11) covers absent/pos/nil/stream/stream-fifo, leaving
+// zero/neg/bool-t/bool-f uncovered -- feed() doesn't discriminate on value
+// type at all (it's a generic opaque container), so these are
+// low-information gaps, listed honestly rather than padded out.
 //
 // feed() builds a new empty FIFO stream; feed(fifo, val...) appends values to
 // an existing FIFO's back end; next(fifo) drains it from the front, in the
@@ -18,6 +18,13 @@
 // itself walks straight through it to true exhaustion.  Feeding a literal nil
 // as data, by contrast, is destructive -- it clears the rest of the FIFO's
 // stored elements once nexted.
+//
+// A stream-valued argument to feed() (another feed()-built FIFO included) is
+// drained lazily, one value per next(), rather than stored as an opaque,
+// undrained StreamType element -- reusing NextFunc::execute_impl's existing
+// STREAM_NESTED unwrap mechanism (strmfunc.c). This is one level of
+// flattening only: a stream nested *inside* a fed-in stream is not also
+// unwrapped.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/feed.comt")
@@ -123,6 +130,42 @@ ecnt2=each(fifo5)
 ecnt3=each(fifo5)
 ok=ok&&(ecnt1==3 && ecnt2==3 && ecnt3==0)
 print("10 each(feed(1 2 3 `EOS 4 5 6 `EOS)) batches by `EOS (expect 3 3 0): %v %v %v\n\n" ecnt1 ecnt2 ecnt3)
+check_fail(:ok ok)
+
+// --- test 11: a stream-valued argument (0..2) is drained lazily, one
+// value per next(), not stored as a raw undrained stream ---
+fifo6=feed(0..2)
+lazy1=list(fifo6)
+lazy2=list(fifo6)
+ok=ok&&(lazy1==(0,1,2) && size(lazy2)==0)
+print("11 feed(0..2) drains lazily -- list() gives {0,1,2} then {} (expect true): %v\n\n" (lazy1==(0,1,2) && size(lazy2)==0))
+check_fail(:ok ok)
+
+// --- test 12: a plain value on either side of a nested stream drains in
+// FIFO order around it (one level of nesting, surrounded by scalars) ---
+fifo7=feed(10 0..2 20)
+mixed=list(fifo7)
+ok=ok&&(mixed==(10,0,1,2,20))
+print("12 feed(10 0..2 20) -- scalars around a nested stream (expect {10,0,1,2,20}): %v\n\n" mixed)
+check_fail(:ok ok)
+
+// --- test 13: feeding one FIFO into another concatenates them lazily --
+// draining the outer FIFO also drains the inner one (shared storage) ---
+fifoA=feed(1 2 3)
+fifoB=feed(7 8 9)
+feed(fifoA fifoB)
+concat1=list(fifoA)
+concat2=list(fifoA)
+ok=ok&&(concat1==(1,2,3,7,8,9) && size(concat2)==0)
+print("13 feed(fifoA fifoB) concatenates lazily (expect {1,2,3,7,8,9} then {}): %v\n\n" (concat1==(1,2,3,7,8,9) && size(concat2)==0))
+check_fail(:ok ok)
+
+// --- test 14: only one level of nesting is unwrapped -- a stream nested
+// inside a fed-in stream literal is left as a raw StreamType element ---
+fifoC=feed(((1 2)(3 4)))
+onelevel=list(fifoC)
+ok=ok&&(size(onelevel)==2 && info(at(onelevel 0))!=nil && info(at(onelevel 1))!=nil)
+print("14 feed(((1 2)(3 4))) unwraps one level only (expect 2 raw stream elements): %v\n\n" (size(onelevel)==2 && info(at(onelevel 0))!=nil && info(at(onelevel 1))!=nil))
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)

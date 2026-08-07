@@ -753,7 +753,10 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
       avl->First(i);
       if (!avl->Done(i)) {
 	AttributeValue* val =  avl->GetAttrVal(i);
-	if (val->is_stream() && val->stream_mode()&STREAM_NESTED) {
+	/* stream_mode_raw(), not stream_mode() -- the latter reports 0 once
+	   this nested stream's own list is empty (see attrvalue.c), which is
+	   exactly the moment we need to recurse to confirm true exhaustion. */
+	if (val->is_stream() && val->stream_mode_raw()&STREAM_NESTED) {
 	  // fprintf(stderr, "NextFunc: Handling nested stream\n");
 	  ComValue cval(*val);
 	  NextFunc::execute_impl(comterp, cval, false);
@@ -1304,20 +1307,40 @@ void FeedFunc::execute() {
     argv[0].stream_func() == (void*)fnfunc;
 
   if (arg0_is_fifo) {
-    /* append the remaining args to the existing FIFO's back end */
+    /* append the remaining args to the existing FIFO's back end -- a
+       stream-valued arg is tagged STREAM_NESTED so NextFunc::execute_impl's
+       existing nested-stream unwrap (strmfunc.c ~750) drains it lazily, one
+       value per next(), instead of handing back the raw undrained stream.
+       AttributeValue::assignval() (attrvalue.c) copies _v/_type/_command_symid
+       but not _stream_mode -- it's a separate field the base copy path
+       doesn't know about -- so the tag has to be set on the AttributeValue
+       actually stored in the AVL, after construction, not on argv[i] before
+       it (that mode is silently dropped by the copy into `new AttributeValue`). */
     AttributeValueList* avl = argv[0].stream_list();
-    for (int i=1; i<n; i++)
-      avl->Append(new AttributeValue(argv[i]));
+    for (int i=1; i<n; i++) {
+      boolean tag_nested = argv[i].is_stream();
+      int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
+      AttributeValue* elt = new AttributeValue(argv[i]);
+      if (tag_nested) elt->stream_mode(mode);
+      avl->Append(elt);
+    }
     ComValue retval(argv[0]);
     delete [] argv;
     push_stack(retval);
     return;
   }
 
-  /* build a brand-new FIFO from all given args (zero args -> empty FIFO) */
+  /* build a brand-new FIFO from all given args (zero args -> empty FIFO) --
+     same STREAM_NESTED tagging as the append case above, so feed(0..2) and
+     feed(fifo 0..2) behave identically. */
   AttributeValueList* avl = new AttributeValueList();
-  for (int i=0; i<n; i++)
-    avl->Append(new AttributeValue(argv[i]));
+  for (int i=0; i<n; i++) {
+    boolean tag_nested = argv[i].is_stream();
+    int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
+    AttributeValue* elt = new AttributeValue(argv[i]);
+    if (tag_nested) elt->stream_mode(mode);
+    avl->Append(elt);
+  }
   delete [] argv;
   ComValue stream(fnfunc, avl);
   stream.stream_mode(STREAM_INTERNAL);
