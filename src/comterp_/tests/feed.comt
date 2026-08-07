@@ -1,23 +1,48 @@
 // src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
 //
-// coverage: 14/18 (78%)
+// coverage: 18/22 (82%)
 // funcs: feed
 // missing: feed(val-zero) feed(val-neg) feed(val-bool-t) feed(val-bool-f)
 //
 // feed() has no keywords, so slots 3-5 and 10 don't apply; the value-stress
-// slot (11) covers absent/pos/nil, leaving zero/neg/bool-t/bool-f uncovered
-// -- feed() doesn't discriminate on value type at all (it's a generic
-// opaque container), so these are low-information gaps, listed honestly
-// rather than padded out.
+// slot (11) covers absent/pos/nil/stream/stream-fifo, leaving
+// zero/neg/bool-t/bool-f uncovered -- feed() doesn't discriminate on value
+// type at all (it's a generic opaque container), so these are
+// low-information gaps, listed honestly rather than padded out.
 //
 // feed() builds a new empty FIFO stream; feed(fifo, val...) appends values to
 // an existing FIFO's back end; next(fifo) drains it from the front, in the
 // order values were fed in.  A bquoted symbol (e.g. `EOS) fed into a FIFO acts
 // as a nested-stream delimiter: each()/list() stop a single drain at it
 // (consuming the delimiter, not destroying the rest of the FIFO), while next()
-// itself walks straight through it to true exhaustion.  Feeding a literal nil
-// as data, by contrast, is destructive -- it clears the rest of the FIFO's
-// stored elements once nexted.
+// itself walks straight through it to true exhaustion.  "nil" means two
+// different things below, and they behave oppositely: an *input* nil --
+// literal nil data fed in -- is destructive once nexted, clearing the rest of
+// the FIFO's stored elements (test 8).  An *output* nil -- what next() hands
+// back when nothing is queued, not stored data at all -- is not permanent
+// (test 16): next() on an empty FIFO returns an output nil, but feed() can
+// still add more afterward and the next next() returns real data again --
+// unlike every other, nil-terminated stream in the language.
+//
+// A stream-valued argument to feed() (another feed()-built FIFO included) is
+// drained lazily, one value per next(), rather than stored as an opaque,
+// undrained StreamType element -- reusing NextFunc::execute_impl's existing
+// STREAM_NESTED unwrap mechanism (strmfunc.c). This is one level of
+// flattening only: a stream nested *inside* a fed-in stream is not also
+// unwrapped.  Two or more nested-stream elements queued back to back each
+// drain fully in turn (test 15) -- exhausting and removing one correctly
+// re-examines the new front element for the same tag, regardless of whether
+// the nested streams are STREAM_INTERNAL (e.g. a range) or STREAM_EXTERNAL
+// (e.g. an overdriven zip) underneath.  $$fifo (test 17) forks an
+// independent snapshot -- a copy of what's queued at that moment, not a
+// shared view; values fed to the original afterward are not visible
+// through the fork.  feed(f f) (test 18) -- feeding a FIFO into itself --
+// can't reuse this lazy-nesting mechanism directly: the fed-in stream's
+// backing list would then be the FIFO's own list, a cycle that crashes the
+// interpreter the moment anything walks it. feed() detects this specific
+// case and appends a snapshot (the same copy $$/stream() makes) instead of
+// the live, shared list, so self-feeding duplicates what's queued right
+// now rather than crashing.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/feed.comt")
@@ -96,8 +121,9 @@ ok=ok&&(kept==(9,8,7))
 print("7 a captured `EOS value still delimits once re-fed (expect true): %v\n\n" (kept==(9,8,7)))
 check_fail(:ok ok)
 
-// --- test 8: literal nil fed as data is destructive -- once next()ed, the
-// rest of the FIFO's stored elements are discarded (unlike `EOS) ---
+// --- test 8: an input nil (literal nil fed as data) is destructive -- once
+// next()ed, the rest of the FIFO's stored elements are discarded (unlike
+// `EOS) ---
 fifo4=feed(1 2 3 nil 4 5 6 nil)
 first=list(fifo4)
 second=list(fifo4)
@@ -123,6 +149,93 @@ ecnt2=each(fifo5)
 ecnt3=each(fifo5)
 ok=ok&&(ecnt1==3 && ecnt2==3 && ecnt3==0)
 print("10 each(feed(1 2 3 `EOS 4 5 6 `EOS)) batches by `EOS (expect 3 3 0): %v %v %v\n\n" ecnt1 ecnt2 ecnt3)
+check_fail(:ok ok)
+
+// --- test 11: a stream-valued argument (0..2) is drained lazily, one
+// value per next(), not stored as a raw undrained stream ---
+fifo6=feed(0..2)
+lazy1=list(fifo6)
+lazy2=list(fifo6)
+ok=ok&&(lazy1==(0,1,2) && size(lazy2)==0)
+print("11 feed(0..2) drains lazily -- list() gives {0,1,2} then {} (expect true): %v\n\n" (lazy1==(0,1,2) && size(lazy2)==0))
+check_fail(:ok ok)
+
+// --- test 12: a plain value on either side of a nested stream drains in
+// FIFO order around it (one level of nesting, surrounded by scalars) ---
+fifo7=feed(10 0..2 20)
+mixed=list(fifo7)
+ok=ok&&(mixed==(10,0,1,2,20))
+print("12 feed(10 0..2 20) -- scalars around a nested stream (expect {10,0,1,2,20}): %v\n\n" mixed)
+check_fail(:ok ok)
+
+// --- test 13: feeding one FIFO into another concatenates them lazily --
+// draining the outer FIFO also drains the inner one (shared storage) ---
+fifoA=feed(1 2 3)
+fifoB=feed(7 8 9)
+feed(fifoA fifoB)
+concat1=list(fifoA)
+concat2=list(fifoA)
+ok=ok&&(concat1==(1,2,3,7,8,9) && size(concat2)==0)
+print("13 feed(fifoA fifoB) concatenates lazily (expect {1,2,3,7,8,9} then {}): %v\n\n" (concat1==(1,2,3,7,8,9) && size(concat2)==0))
+check_fail(:ok ok)
+
+// --- test 14: only one level of nesting is unwrapped -- a stream nested
+// inside a fed-in stream literal is left as a raw StreamType element ---
+fifoC=feed(((1 2)(3 4)))
+onelevel=list(fifoC)
+ok=ok&&(size(onelevel)==2 && info(at(onelevel 0))!=nil && info(at(onelevel 1))!=nil)
+print("14 feed(((1 2)(3 4))) unwraps one level only (expect 2 raw stream elements): %v\n\n" (size(onelevel)==2 && info(at(onelevel 0))!=nil && info(at(onelevel 1))!=nil))
+check_fail(:ok ok)
+
+// --- test 15: two consecutive nested-stream elements both drain fully --
+// regression guard.  When the first (0..2) is exhausted and removed, the
+// front of the FIFO becomes the second (5..7), which is *also* nested and
+// must not be handed to feed()'s own dispatch as raw, undrained data. ---
+fifoD=feed(0..2 5..7)
+chain1=list(fifoD)
+chain2=list(fifoD)
+ok=ok&&(chain1==(0,1,2,5,6,7) && size(chain2)==0)
+print("15 feed(0..2 5..7) -- two back-to-back nested streams both drain (expect {0,1,2,5,6,7} then {}): %v\n\n" (chain1==(0,1,2,5,6,7) && size(chain2)==0))
+check_fail(:ok ok)
+
+// --- test 16: a FIFO's output nil is not permanent -- next() on an empty
+// FIFO returns an output nil (nothing was fed in; nothing is queued), but
+// feed() can still add more afterward and next() then returns real data
+// again, unlike every other (nil-terminated) stream ---
+fifoE=feed()
+before=next(fifoE)
+feed(fifoE 42)
+after=next(fifoE)
+ok=ok&&(before==nil && after==42)
+print("16 fifo=feed(); next(fifo); feed(fifo 42); next(fifo) (expect nil 42): %v %v\n\n" before after)
+check_fail(:ok ok)
+
+// --- test 17: $$fifo forks an independent snapshot -- values fed to the
+// original after the fork are not visible through the fork, and the fork
+// is unaffected by further draining of the original ---
+fifoF=feed(1 2 3)
+fifoG=$$fifoF
+feed(fifoF 4)
+forked_orig=list(fifoF)
+forked_copy=list(fifoG)
+ok=ok&&(forked_orig==(1,2,3,4) && forked_copy==(1,2,3))
+print("17 a=feed(1 2 3); b=$$a; feed(a 4); list(a); list(b) (expect {1,2,3,4} {1,2,3}): %v %v\n\n" forked_orig forked_copy)
+check_fail(:ok ok)
+
+// --- test 18: feed(f f) -- regression guard.  Feeding a FIFO into itself
+// would make its own backing list contain an element that points back to
+// that same list -- a self-referential structure that recurses without end
+// the moment anything walks it, crashing the interpreter.  feed() detects
+// this (the fed-in stream's backing list *is* the destination's) and
+// appends a snapshot of f's current contents instead of the live, shared
+// list -- the same copy $$/stream() makes (test 17) -- so self-feeding
+// duplicates what's queued right now rather than crashing or looping ---
+fifoH=feed(1 2 3)
+feed(fifoH fifoH)
+selffed1=list(fifoH)
+selffed2=list(fifoH)
+ok=ok&&(selffed1==(1,2,3,1,2,3) && size(selffed2)==0)
+print("18 f=feed(1 2 3); feed(f f); list(f); list(f) (expect {1,2,3,1,2,3} {}): %v\n\n" (selffed1==(1,2,3,1,2,3) && size(selffed2)==0))
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)

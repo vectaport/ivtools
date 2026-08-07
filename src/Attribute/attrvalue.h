@@ -266,8 +266,14 @@ public:
 
     int stream_mode();
     // 0 = disabled, negative = internal, positive = external
+    // NOTE: reports 0 whenever stream_list() is empty, regardless of what
+    // mode is actually stored -- see stream_mode_raw() for the stored value.
     void stream_mode(int mode) { if (is_stream()) _stream_mode = mode; }
     // 0 = disabled, negative = internal, positive = external
+    int stream_mode_raw() { return is_stream() ? _stream_mode : 0; }
+    // the stored mode, without stream_mode()'s "empty list -> 0" override --
+    // for callers (e.g. the STREAM_NESTED tag check) that need to know what
+    // was actually set even after the underlying list has been drained.
     void* stream_func() { return is_stream() ? _v.streamval.funcptr : nil; }
     // return function pointer associated with stream object
     void stream_func(void* func) { if (is_stream()) _v.streamval.funcptr = func; }
