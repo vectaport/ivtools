@@ -1,6 +1,6 @@
 // src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
 //
-// coverage: 16/20 (80%)
+// coverage: 17/21 (81%)
 // funcs: feed
 // missing: feed(val-zero) feed(val-neg) feed(val-bool-t) feed(val-bool-f)
 //
@@ -24,7 +24,11 @@
 // undrained StreamType element -- reusing NextFunc::execute_impl's existing
 // STREAM_NESTED unwrap mechanism (strmfunc.c). This is one level of
 // flattening only: a stream nested *inside* a fed-in stream is not also
-// unwrapped.
+// unwrapped.  Two or more nested-stream elements queued back to back each
+// drain fully in turn (test 15) -- exhausting and removing one correctly
+// re-examines the new front element for the same tag, regardless of whether
+// the nested streams are STREAM_INTERNAL (e.g. a range) or STREAM_EXTERNAL
+// (e.g. an overdriven zip) underneath.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/feed.comt")
@@ -166,6 +170,17 @@ fifoC=feed(((1 2)(3 4)))
 onelevel=list(fifoC)
 ok=ok&&(size(onelevel)==2 && info(at(onelevel 0))!=nil && info(at(onelevel 1))!=nil)
 print("14 feed(((1 2)(3 4))) unwraps one level only (expect 2 raw stream elements): %v\n\n" (size(onelevel)==2 && info(at(onelevel 0))!=nil && info(at(onelevel 1))!=nil))
+check_fail(:ok ok)
+
+// --- test 15: two consecutive nested-stream elements both drain fully --
+// regression guard.  When the first (0..2) is exhausted and removed, the
+// front of the FIFO becomes the second (5..7), which is *also* nested and
+// must not be handed to feed()'s own dispatch as raw, undrained data. ---
+fifoD=feed(0..2 5..7)
+chain1=list(fifoD)
+chain2=list(fifoD)
+ok=ok&&(chain1==(0,1,2,5,6,7) && size(chain2)==0)
+print("15 feed(0..2 5..7) -- two back-to-back nested streams both drain (expect {0,1,2,5,6,7} then {}): %v\n\n" (chain1==(0,1,2,5,6,7) && size(chain2)==0))
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)

@@ -766,6 +766,15 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
 	  avl->Remove(val);
           delete val;
 	  comterp->pop_stack();
+	  /* the new front element (if any) may itself be STREAM_NESTED --
+	     falling through to the STREAM_INTERNAL/EXTERNAL dispatch below
+	     would hand it to the stream_func as ordinary data (which knows
+	     nothing about the tag) instead of unwrapping it.  Restart from
+	     the top so the nested-stream check runs again on whatever's now
+	     in front. */
+	  _next_depth--;
+	  execute_impl(comterp, streamv, skim);
+	  return;
 	}
       }
     }
