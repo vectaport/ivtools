@@ -76,6 +76,38 @@ v=next(s); v==empty()     // true -- nil terminates stream, next() returns Blank
 
 ---
 
+## Growable FIFOs: `feed()`
+
+Every stream above is built once and only ever drained. `feed()` is
+different — it keeps accepting new values after it exists:
+
+```
+// build, append, drain -- FIFO order
+f=feed(1 2 3)
+feed(f 4 5)
+list(f)                   // {1,2,3,4,5}
+
+// `EOS batches a FIFO into chunks without destroying the rest
+f=feed(1 2 3 `EOS 4 5 6 `EOS)
+list(f)                   // {1,2,3}
+list(f)                   // {4,5,6}
+
+// a stream fed in drains lazily, one value at a time
+list(feed(0..2))          // {0,1,2} -- not one opaque StreamType element
+
+// feeding one FIFO into another concatenates them, lazily, for free
+a=feed(1 2 3)
+b=feed(7 8 9)
+feed(a b)
+list(a)                   // {1,2,3,7,8,9} -- b is drained too, as a side effect
+```
+
+See *Growable FIFO streams: `feed()`* in `LANGUAGE.md` for the full
+contract, including why a FIFO's `nil` doesn't mean "done" the way it
+does for every other stream.
+
+---
+
 ## Functions and scope
 
 ```

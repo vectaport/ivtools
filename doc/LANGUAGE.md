@@ -1198,39 +1198,218 @@ iteration." Same mechanism (token-slice replay via the static postfix
 buffer -- see *Why the Pipeline Is So Clean: Fischer-LeBlanc and argoff*
 in APPENDIX-C), different trigger.
 
-### Writable (bidirectional) streams *(planned, ivtools-3.x)*
+### Growable FIFO streams: `feed()`
 
-The `[]` empty bracket form — currently reserved — is proposed as the
-syntax for an empty writable stream:
+`feed()` is the write-end complement to `next()` — where every other
+stream in ComTerp is built once (as a literal, a range, a file handle)
+and only ever drained, `feed()` builds a stream that can keep being
+written to after it exists.
 
 ```comterp
-s=[]          // empty writable stream (bidirectional channel)
-push(s 10)    // write a value
-push(s 20)
-push(s 30)
-next(s)       // 10
-next(s)       // 20
+fifo=feed()          // empty FIFO
+feed(fifo 1)          // append
+feed(fifo 2 3)         // append more, in one call
+next(fifo)             // 1
+next(fifo)             // 2
 ```
 
-`push(strm val)` / `next(strm)` form a producer/consumer pair
-analogous to `print` / `eval` on the wire protocol.  The stream
-accumulates values until `close(strm)` seals it, after which
-subsequent `next()` returns nil.
+`feed(val ...)` alone builds a fresh FIFO from its arguments (`feed(1 2
+3)` is equivalent to `feed(); feed(fifo 1 2 3)`); `feed(fifo val ...)`
+appends to an existing one, recognized by checking whether the first
+argument is already a `feed()`-built FIFO. Values drain in the order
+they were fed — first in, first out — regardless of how many separate
+`feed()` calls contributed them.
+
+A literal `nil` fed in as data is destructive: once `next()` reaches it,
+everything queued *after* it in that FIFO is discarded.
+
+```comterp
+f=feed(1 2 3 nil 4 5 6)
+list(f)      // {1,2,3} -- 4,5,6 are gone, not just skipped
+```
+
+This is inherited, not a bug specific to `feed()`: `nil` is ComTerp's one
+universal "stream exhausted" signal (see *The stream contract* above),
+and every stream-consuming command already treats it as authoritative.
+`feed()` cannot carve out an exception for its own data without breaking
+that uniformity for everything downstream of it.
+
+#### A FIFO's `nil` is not permanent
+
+The stream contract above says an exhausted stream "yields `nil` from
+`next()` and stays exhausted." A `feed()`-built FIFO does not honor that
+literally: `next()` on an empty FIFO returns `nil`, but the FIFO is not
+thereby *done* — `feed()` can add more to it afterward, and the next
+`next()` call returns real data again.
+
+```comterp
+f=feed()
+next(f)      // nil -- nothing queued yet
+feed(f 42)
+next(f)      // 42 -- the earlier nil was not the last word
+```
+
+This is deliberate. A FIFO's `nil` means "nothing available *right
+now*," not "nothing will ever be available again" — those are different
+facts, and a single `next()` call cannot distinguish them. The
+alternative — a "closed" flag that `next()` itself consults before
+deciding what a nil means — was considered and set aside: it would make
+`next()`'s meaning depend on which kind of stream it's called on, and
+every existing consumer (`each()`, `list()`, `for`) would need to know
+the difference. Leaving `nil` uniformly non-committal keeps the contract
+simple everywhere else; telling a FIFO's "empty for now" apart from
+"permanently done" is left to a still-open design question (see *Still
+planned* below), not folded into `next()`'s return value.
+
+#### `` `EOS `` — a delimiter *within* a FIFO
+
+Because a FIFO's `nil` isn't authoritative the way it is everywhere
+else, marking a boundary *inside* an ongoing FIFO — "this batch is over,
+more may follow" — can't reuse `nil` without also making it destructive
+(see above). `feed()` streams use a separate convention instead: a
+bquoted symbol, `` `EOS ``, checked by *identity*, not by resolving it as
+a variable.
+
+```comterp
+f=feed(1 2 3 `EOS 4 5 6 `EOS)
+list(f)     // {1,2,3}
+list(f)     // {4,5,6}
+```
+
+`each()` and `list()` recognize `` `EOS `` and stop a single drain there,
+consuming the delimiter but leaving the rest of the FIFO intact for the
+next drain — unlike `nil`-as-data, nothing after the delimiter is lost.
+`next()` itself does not honor the convention at all; it walks straight
+through `` `EOS `` as an ordinary queued value, all the way to genuine
+exhaustion. The delimiter has meaning to a *draining* command, not to
+the FIFO's own read primitive:
+
+```comterp
+f=feed(1 `EOS 2)
+next(f)          // 1
+v=next(f)         // the `EOS symbol itself -- next() does not stop here
+v!=nil            // true -- it survived intact, not resolved away
+next(f)           // 2
+```
+
+(`v` here genuinely holds the `` `EOS `` symbol, not `nil` — but printing
+it directly with `print("%v" v)` shows `nil` regardless, a display quirk
+in how a plain argument fetch resolves bquoted symbols, unrelated to
+`next()` or to FIFOs. The `!=nil` comparison above is unaffected and
+shows the real value.)
+
+The identity check matters: `` `EOS `` is recognized because it is a
+bquoted symbol whose symbol id matches a reserved name, not because
+resolving it as a variable happens to fail — an ordinary, unbquoted
+symbol that resolves to nothing would otherwise look like a stopping
+point too. The delimiter is deliberately independent of whatever `EOS`
+may or may not be bound to.
+
+### Lazy ingestion of nested streams
+
+A stream-valued argument to `feed()` is drained lazily, one value per
+`next()`, rather than stored as a single opaque, undrained element:
+
+```comterp
+fifo=feed(0..2)
+list(fifo)      // {0,1,2} -- not a single StreamType element
+```
+
+This reuses the nested-stream mechanism that already exists for results
+like `(1 2)*(3 4)`'s overdrive — a stream whose drained value is itself a
+stream gets driven down to flat values rather than handed back as-is.
+`feed()` tags a stream-valued argument with that same mechanism instead
+of storing it plain.
+
+Feeding one FIFO into another therefore concatenates them, lazily, with
+no special case needed:
+
+```comterp
+a=feed(1 2 3)
+b=feed(7 8 9)
+feed(a b)
+list(a)     // {1,2,3,7,8,9}
+```
+
+Because `feed()`-built FIFOs share their underlying storage the way any
+stream does, draining `a` after `feed(a b)` also drains `b` as a side
+effect — `b`'s contents are handed over to `a`, not copied. A separate
+reference to `b` held elsewhere would find it emptied out from under it.
+This matches how every other stream command already behaves (`next()`,
+`list()`, and `each()` are all destructive); feeding a stream's contents
+into a FIFO is not an exception.
+
+Nesting stops at one level: a stream nested *inside* a fed-in stream is
+left alone.
+
+```comterp
+fifo=feed(((1 2)(3 4)))
+list(fifo)      // two raw StreamType elements, not {1,2,3,4}
+```
+
+This matches an existing, general ComTerp preference: deep, arbitrary
+auto-flattening has only ever proven right for graphics data structures,
+never for signal/image/video-style streams, where one level of
+unwrapping is exactly what's wanted and further levels are requested
+deliberately rather than happening automatically.
+
+### Forking a FIFO
+
+`$$fifo` / `stream(fifo)` produce an independent copy, as for any
+stream — but the copy is a snapshot of the FIFO's contents *at the
+moment of the fork*, not a shared, position-tracked view of an ongoing
+buffer the way file and pipe streams are documented above. Values fed to
+the original after the fork are not visible through the fork, and values
+already in the fork are unaffected by further draining of the original.
+
+```comterp
+a=feed(1 2 3)
+b=$$a
+feed(a 4)
+list(a)     // {1,2,3,4}
+list(b)     // {1,2,3} -- the 4 fed after the fork isn't here
+```
+
+### Still planned
+
+A FIFO has no way today to be told "no more will ever be fed to me" —
+`next()`'s nil stays ambiguous between "empty for now" and "actually
+done" for the FIFO's whole lifetime (see above). The planned resolution
+is a `:state` field on every stream, not just FIFOs, living in a
+reserved slot rather than overloading `next()`'s return value:
+`` `Opening ``, `` `Open ``, `` `Closing ``, `` `Closed `` — the first and
+third are optional, for stream types with a genuine transitional phase
+to report (a socket mid-handshake, one draining a backlog after being
+told to stop); a plain `feed()`-built FIFO only ever needs `` `Open ``/
+`` `Closed ``. `info()` would surface it as a new field, the same way it
+already reports a stream's backing function and element count — no
+internal mechanism should ever need to construct an `info()` attrlist
+just to make its own decisions, so the field lives somewhere directly
+and cheaply readable in C++, and `info()` stays one way of looking at
+it, not the source of truth.
+
+The motivating use case is non-blocking socket I/O — a handler already
+does non-blocking, byte-at-a-time reads for other purposes; the plan is
+a mode that instead does `feed(targetfifo, line)`, letting a script
+consume socket data through the same `next()`/FIFO vocabulary it already
+uses for everything else, with `:state` distinguishing "no data yet"
+from "peer disconnected," which a bare nil cannot do. The `next(:nowait)`
+peek and `update()`-driven reactor-polling idiom below remain the
+intended consumption pattern once this lands.
 
 #### next(:nowait) — non-exhausting peek
 
-A plain `next()` on an empty-but-not-closed writable stream returns nil
-and marks the stream exhausted immediately -- no blocking anywhere.
-`next(:nowait)` is the "peek without exhausting" primitive using a
-three-way distinction:
+Plain `next()` already leaves a FIFO's nil non-committal (see above) --
+`next(:nowait)` is the planned way to make that explicit at the call
+site, using a three-way distinction:
 
 - value ready → returns the value
-- empty (not yet closed) → returns `blank`
-- closed and exhausted → returns `nil`
+- `` `Open ``/`` `Closing `` and empty → returns `blank`
+- `` `Closed `` and exhausted → returns `nil`
 
-This preserves `nil` as the exclusive exhaustion sentinel and avoids the
-race between "stream is done" and "value hasn't arrived yet."  The
-consumer pattern in reactor mode:
+This preserves `nil` as the exclusive *permanent* exhaustion sentinel and
+avoids the race between "stream is done" and "value hasn't arrived yet."
+The consumer pattern in reactor mode:
 
 ```comterp
 while(1
@@ -1240,13 +1419,13 @@ while(1
   update())     // yield to ACE reactor
 ```
 
-`update()` yields to the ACE event loop between polls, so `push()` from
-a callback or remote connection can arrive without blocking the REPL.
-This is the same pattern used by `remote(:nowait)` and the `drawmo`
-orchestrator.
+`update()` yields to the ACE event loop between polls, so `feed()` calls
+made from a callback or remote connection can arrive without blocking
+the REPL. This is the same pattern used by `remote(:nowait)` and the
+`drawmo` orchestrator.
 
-Bidirectional streams work naturally in `comterp listen` / ACE reactor
-mode.  In the plain REPL, `:nowait` with `update()` polling is the
+FIFOs fed from a socket handler work naturally in `comterp listen` / ACE
+reactor mode. In the plain REPL, `:nowait` with `update()` polling is the
 correct approach (same as `remote(:nowait)` already works).
 
 
