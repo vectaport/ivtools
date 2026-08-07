@@ -15,12 +15,14 @@
 // order values were fed in.  A bquoted symbol (e.g. `EOS) fed into a FIFO acts
 // as a nested-stream delimiter: each()/list() stop a single drain at it
 // (consuming the delimiter, not destroying the rest of the FIFO), while next()
-// itself walks straight through it to true exhaustion.  Feeding a literal nil
-// as data, by contrast, is destructive -- it clears the rest of the FIFO's
-// stored elements once nexted.  A FIFO's own nil is not permanent, though
-// (test 16): next() on an empty FIFO returns nil, but feed() can still add
-// more afterward and the next next() returns real data again -- unlike
-// every other, nil-terminated stream in the language.
+// itself walks straight through it to true exhaustion.  "nil" means two
+// different things below, and they behave oppositely: an *input* nil --
+// literal nil data fed in -- is destructive once nexted, clearing the rest of
+// the FIFO's stored elements (test 8).  An *output* nil -- what next() hands
+// back when nothing is queued, not stored data at all -- is not permanent
+// (test 16): next() on an empty FIFO returns an output nil, but feed() can
+// still add more afterward and the next next() returns real data again --
+// unlike every other, nil-terminated stream in the language.
 //
 // A stream-valued argument to feed() (another feed()-built FIFO included) is
 // drained lazily, one value per next(), rather than stored as an opaque,
@@ -113,8 +115,9 @@ ok=ok&&(kept==(9,8,7))
 print("7 a captured `EOS value still delimits once re-fed (expect true): %v\n\n" (kept==(9,8,7)))
 check_fail(:ok ok)
 
-// --- test 8: literal nil fed as data is destructive -- once next()ed, the
-// rest of the FIFO's stored elements are discarded (unlike `EOS) ---
+// --- test 8: an input nil (literal nil fed as data) is destructive -- once
+// next()ed, the rest of the FIFO's stored elements are discarded (unlike
+// `EOS) ---
 fifo4=feed(1 2 3 nil 4 5 6 nil)
 first=list(fifo4)
 second=list(fifo4)
@@ -189,9 +192,10 @@ ok=ok&&(chain1==(0,1,2,5,6,7) && size(chain2)==0)
 print("15 feed(0..2 5..7) -- two back-to-back nested streams both drain (expect {0,1,2,5,6,7} then {}): %v\n\n" (chain1==(0,1,2,5,6,7) && size(chain2)==0))
 check_fail(:ok ok)
 
-// --- test 16: a FIFO's nil is not permanent -- next() on an empty FIFO
-// returns nil, but feed() can still add more afterward and next() then
-// returns real data again, unlike every other (nil-terminated) stream ---
+// --- test 16: a FIFO's output nil is not permanent -- next() on an empty
+// FIFO returns an output nil (nothing was fed in; nothing is queued), but
+// feed() can still add more afterward and next() then returns real data
+// again, unlike every other (nil-terminated) stream ---
 fifoE=feed()
 before=next(fifoE)
 feed(fifoE 42)

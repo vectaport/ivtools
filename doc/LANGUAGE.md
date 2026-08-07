@@ -1220,6 +1220,22 @@ argument is already a `feed()`-built FIFO. Values drain in the order
 they were fed — first in, first out — regardless of how many separate
 `feed()` calls contributed them.
 
+`nil` comes up twice below, in two unrelated senses that behave
+oppositely — worth naming both up front so neither reads as a
+contradiction of the other:
+
+- an **input nil** — a literal `nil` given to `feed()` as one of the
+  values to store, sitting in the queue like any other element until
+  `next()` reaches it.
+- an **output nil** — what `next()` returns when there is nothing
+  queued to hand back. Nothing was stored; it's just the "empty right
+  now" answer.
+
+An input nil is destructive (next). An output nil is not (*A FIFO's
+output nil is not permanent*, further down).
+
+#### An input nil is destructive
+
 A literal `nil` fed in as data is destructive: once `next()` reaches it,
 everything queued *after* it in that FIFO is discarded.
 
@@ -1228,47 +1244,56 @@ f=feed(1 2 3 nil 4 5 6)
 list(f)      // {1,2,3} -- 4,5,6 are gone, not just skipped
 ```
 
-This is inherited, not a bug specific to `feed()`: `nil` is ComTerp's one
-universal "stream exhausted" signal (see *The stream contract* above),
-and every stream-consuming command already treats it as authoritative.
-`feed()` cannot carve out an exception for its own data without breaking
-that uniformity for everything downstream of it.
+This is inherited, not a bug specific to `feed()`: when `next()` reaches
+a stored input nil, it hands that nil back to the caller exactly like
+any other stored value — and an output nil is ComTerp's one universal
+"stream exhausted" signal (see *The stream contract* above), which every
+stream-consuming command already treats as authoritative. `feed()`
+cannot let an input nil surface as a non-authoritative output nil
+without breaking that uniformity for everything downstream of it — so it
+discards the rest of the queue instead of leaving it silently
+unreachable.
 
-#### A FIFO's `nil` is not permanent
+#### A FIFO's output nil is not permanent
 
-The stream contract above says an exhausted stream "yields `nil` from
-`next()` and stays exhausted." A `feed()`-built FIFO does not honor that
-literally: `next()` on an empty FIFO returns `nil`, but the FIFO is not
+This is the other nil: nothing was fed in here, `next()` is simply
+reporting that the FIFO is currently empty. The stream contract above
+says an exhausted stream "yields `nil` from `next()` and stays
+exhausted." A `feed()`-built FIFO does not honor that literally:
+`next()` on an empty FIFO returns an output nil, but the FIFO is not
 thereby *done* — `feed()` can add more to it afterward, and the next
 `next()` call returns real data again.
 
 ```comterp
 f=feed()
-next(f)      // nil -- nothing queued yet
+next(f)      // nil -- nothing queued yet (an output nil, not stored data)
 feed(f 42)
 next(f)      // 42 -- the earlier nil was not the last word
 ```
 
-This is deliberate. A FIFO's `nil` means "nothing available *right
+This is deliberate. A FIFO's output nil means "nothing available *right
 now*," not "nothing will ever be available again" — those are different
 facts, and a single `next()` call cannot distinguish them. The
 alternative — a "closed" flag that `next()` itself consults before
-deciding what a nil means — was considered and set aside: it would make
-`next()`'s meaning depend on which kind of stream it's called on, and
-every existing consumer (`each()`, `list()`, `for`) would need to know
-the difference. Leaving `nil` uniformly non-committal keeps the contract
-simple everywhere else; telling a FIFO's "empty for now" apart from
-"permanently done" is left to a still-open design question (see *Still
-planned* below), not folded into `next()`'s return value.
+deciding what an output nil means — was considered and set aside: it
+would make `next()`'s meaning depend on which kind of stream it's called
+on, and every existing consumer (`each()`, `list()`, `for`) would need
+to know the difference. Leaving the output nil uniformly non-committal
+keeps the contract simple everywhere else; telling a FIFO's "empty for
+now" apart from "permanently done" is left to a still-open design
+question (see *Still planned* below), not folded into `next()`'s return
+value.
 
 #### `` `EOS `` — a delimiter *within* a FIFO
 
-Because a FIFO's `nil` isn't authoritative the way it is everywhere
-else, marking a boundary *inside* an ongoing FIFO — "this batch is over,
-more may follow" — can't reuse `nil` without also making it destructive
-(see above). `feed()` streams use a separate convention instead: a
-bquoted symbol, `` `EOS ``, checked by *identity*, not by resolving it as
-a variable.
+Marking a boundary *inside* an ongoing FIFO — "this batch is over, more
+may follow" — can't be built from either nil above: an output nil isn't
+a stored value, so there's nothing to place at a specific spot in the
+queue; and deliberately storing an input nil as that marker would
+trigger the destructive behavior just described, discarding everything
+meant to follow it. `feed()` streams use a separate convention instead:
+a bquoted symbol, `` `EOS ``, checked by *identity*, not by resolving it
+as a variable.
 
 ```comterp
 f=feed(1 2 3 `EOS 4 5 6 `EOS)
@@ -1373,8 +1398,8 @@ list(b)     // {1,2,3} -- the 4 fed after the fork isn't here
 ### Still planned
 
 A FIFO has no way today to be told "no more will ever be fed to me" —
-`next()`'s nil stays ambiguous between "empty for now" and "actually
-done" for the FIFO's whole lifetime (see above). The planned resolution
+the output nil `next()` returns stays ambiguous between "empty for now"
+and "actually done" for the FIFO's whole lifetime (see above). The planned resolution
 is a `:state` field on every stream, not just FIFOs, living in a
 reserved slot rather than overloading `next()`'s return value:
 `` `Opening ``, `` `Open ``, `` `Closing ``, `` `Closed `` — the first and
@@ -1393,22 +1418,23 @@ does non-blocking, byte-at-a-time reads for other purposes; the plan is
 a mode that instead does `feed(targetfifo, line)`, letting a script
 consume socket data through the same `next()`/FIFO vocabulary it already
 uses for everything else, with `:state` distinguishing "no data yet"
-from "peer disconnected," which a bare nil cannot do. The `next(:nowait)`
-peek and `update()`-driven reactor-polling idiom below remain the
-intended consumption pattern once this lands.
+from "peer disconnected," which a bare output nil cannot do. The
+`next(:nowait)` peek and `update()`-driven reactor-polling idiom below
+remain the intended consumption pattern once this lands.
 
 #### next(:nowait) — non-exhausting peek
 
-Plain `next()` already leaves a FIFO's nil non-committal (see above) --
-`next(:nowait)` is the planned way to make that explicit at the call
-site, using a three-way distinction:
+Plain `next()` already leaves a FIFO's output nil non-committal (see
+above) -- `next(:nowait)` is the planned way to make that explicit at
+the call site, using a three-way distinction:
 
 - value ready → returns the value
 - `` `Open ``/`` `Closing `` and empty → returns `blank`
 - `` `Closed `` and exhausted → returns `nil`
 
-This preserves `nil` as the exclusive *permanent* exhaustion sentinel and
-avoids the race between "stream is done" and "value hasn't arrived yet."
+This preserves the output nil as the exclusive *permanent* exhaustion
+sentinel and avoids the race between "stream is done" and "value hasn't
+arrived yet."
 The consumer pattern in reactor mode:
 
 ```comterp
