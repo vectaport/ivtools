@@ -242,6 +242,8 @@ Print a usage summary of all the invocation modes above and exit.
 
  cnt=each(strm) -- traverse stream returning its length
 
+ fifo=feed([fifo] [val ...]) -- build or append to a growable FIFO stream
+
  comp=filter(comps classid) -- filter stream of comps for matching classid
 
  attrlst|lst=info(strm :raw) -- return internal list of a stream
@@ -393,6 +395,14 @@ Print a usage summary of all the invocation modes above and exit.
  sym|lst=type(val [val ...]) -- return type symbol(s) for value(s)
 
  sym|lst=class(val [val ...]) -- return class symbol(s) for value(s) of object type
+
+ flag=istype(var [typesym]) -- test var's type without evaluating it
+
+ flag=isclass(var [classsym]) -- test var's class without evaluating it
+
+ flag=iscomm(var) -- true if var names a command, without evaluating it
+
+ flag=isfunc(var) -- true if var holds a func(), without evaluating it
 
  int=ctoi(char) -- convert character to integer
 

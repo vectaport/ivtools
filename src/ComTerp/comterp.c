@@ -1650,6 +1650,10 @@ void ComTerp::add_defaults() {
 
     add_command("type", new TypeSymbolFunc(this));
     add_command("class", new ClassSymbolFunc(this));
+    add_command("istype", new IsTypeFunc(this));
+    add_command("isclass", new IsClassFunc(this));
+    add_command("iscomm", new IsCommFunc(this));
+    add_command("isfunc", new IsFuncFunc(this));
 
     add_command("bquote", new BackQuoteFunc(this));
 

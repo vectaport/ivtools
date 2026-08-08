@@ -1812,6 +1812,88 @@ float(3.14)            // explicit conversion to FloatType
 double(3)              // explicit conversion to DoubleType
 ```
 
+### istype()/isclass()/iscomm()/isfunc() — inspecting a variable without firing it
+
+`type()` and `class()`, above, both evaluate their argument the ordinary
+way before looking at it — which means they cannot answer *"what is this
+variable bound to"* for a command name or a `func()`-bound name, because
+referencing either one fires it first:
+
+```
+pi                 // 3.14159 -- bare reference fires the command
+myfunc=func(1+1)
+myfunc              // 2 -- bare reference fires the func too
+type(pi)            // DoubleType -- the type of the fired result, not of pi itself
+```
+
+This isn't just risky when the thing being checked has side effects — it's
+uninformative even when it doesn't:
+
+```
+f=5
+g=func(5)
+type(f)             // IntType
+type(g)             // IntType -- identical; g's func-ness is invisible here
+```
+
+`istype()`, `isclass()`, `iscomm()`, and `isfunc()` are `post_eval` — they
+read their first argument as a raw, unevaluated token (the same mechanism
+`help()` already uses to describe a command without running it) and peek
+at what it resolves to with a single non-invoking table lookup, rather
+than evaluating it:
+
+```
+iscomm(pi)                 // true  -- no firing
+istype(pi CommandType)     // true
+istype(pi `CommandType)    // true -- a redundant backquote on the type
+                            //         name is harmless either way
+```
+
+`isfunc(var)` and `iscomm(var)` are fixed single-argument shortcuts for
+`isclass(var FuncObj)` and `istype(var CommandType)` — the two questions
+this whole feature exists to answer. With one argument, `istype()`/
+`isclass()` partition every value into exactly one of two buckets:
+
+```
+x=99
+istype(x)          // true  -- a plain/regular value type
+isclass(x)          // false -- nothing to ask a class of
+
+f=func(1+1)
+istype(f)           // false -- f is an object (a FuncObj), not "plain"
+isclass(f)           // true  -- and an object has a class
+```
+
+The motivating case — a func that returns another func — is exactly what
+this makes checkable for the first time:
+
+```
+outer=func(y=42; inner=func(y); inner)
+escaped=outer()      // outer() already ran; escaped holds a live FuncObj
+isfunc(escaped)       // true -- confirmed without ever calling escaped
+```
+
+`escaped` genuinely holds `inner`, not a collapsed int — outer's own last
+statement (a bare reference to `inner`) hands the `FuncObj` back intact;
+firing only happens at each later, explicit reference to `escaped` itself.
+
+**Caveat: this is a syntactic-shape peek, not a "what would this evaluate
+to" test.** A compound expression's raw, unevaluated form is a command
+call like any other — `4*3` is a call to `mpy`, and `4..7` is a call to
+`iterate`, indistinguishable in kind at this level:
+
+```
+istype(4*3 CommandType)    // true
+istype(4..7 CommandType)   // true  -- also just a command call
+istype(4..7 StreamType)    // false -- the stream only exists in iterate's
+                            //          *result*, once it actually runs
+```
+
+For a bare name, the peek tells you exactly what you want — is this
+callable, without calling it. For a compound expression, it only tells
+you the outermost command being invoked, never what that command would
+produce.
+
 ### print(:sym) — materializing symbols from formatted strings
 
 `print(:sym)` returns its output as a symbol rather than printing it.

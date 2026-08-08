@@ -108,6 +108,34 @@ does for every other stream.
 
 ---
 
+## Checking what a variable holds, without firing it
+
+A bare command name or a `func()`-bound name fires on mere reference --
+even `type()`/`class()` evaluate their argument first, so they report the
+type of whatever got invoked, not of what was actually bound:
+
+```
+pi                          // 3.14159 -- fires
+myfunc=func(1+1)
+type(myfunc)                 // IntType -- the result's type, not myfunc's
+
+// istype()/isclass()/iscomm()/isfunc() are post_eval -- they never fire
+iscomm(pi)                    // true, no firing
+isfunc(myfunc)                 // true, no firing
+istype(pi CommandType)          // true -- neither argument needs backquoting
+
+// the case this exists for: a func that returns another func
+outer=func(y=42; inner=func(y); inner)
+escaped=outer()
+isfunc(escaped)               // true -- confirmed without ever calling escaped
+```
+
+See *istype()/isclass()/iscomm()/isfunc()* in `LANGUAGE.md` for the full
+contract, including why this is a syntactic-shape peek and not a
+"what would this evaluate to" test.
+
+---
+
 ## Functions and scope
 
 ```
