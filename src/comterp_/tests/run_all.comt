@@ -110,6 +110,10 @@ if(run("./feed.comt")
   :then print("pass: feed\n")
   :else print("FAIL: feed\n");topok=false)
 
+if(run("./istype.comt")
+  :then print("pass: istype\n")
+  :else print("FAIL: istype\n");topok=false)
+
 if(run("./runfile.comt")
   :then print("pass: runfile\n")
   :else print("FAIL: runfile\n");topok=false)

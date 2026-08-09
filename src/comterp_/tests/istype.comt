@@ -1,0 +1,178 @@
+// src/comterp_/tests/istype.comt -- test istype()/isclass()/iscomm()/isfunc(),
+// the post_eval type/class predicates that inspect a variable without ever
+// evaluating it (issue #289)
+//
+// coverage: 18/23 (78%)
+// funcs: istype isclass iscomm isfunc
+// missing: istype(val-neg) istype(val-bool-t) istype(val-bool-f) istype(val-nil)
+//          isclass(:nowait)-style keyword forms (none exist -- N/A, listed for completeness)
+//
+// ComTerp's niladic auto-firing (a bare symbol whose value is a FuncObj
+// invokes it on mere reference; a bare command name like pi fires the same
+// way) makes it impossible with any pre-existing tool to ask "what does this
+// variable currently hold" without running it -- type()/class() themselves
+// auto-fire their own argument before they ever see it, so they report the
+// type of whatever got invoked, not the type of what was bound.  istype()/
+// isclass()/iscomm()/isfunc() are post_eval: they read their subject as a
+// raw, unevaluated token and peek at what it resolves to via a single
+// non-invoking table lookup, the same primitive ComValue::is_funcobj()
+// already used internally (comvalue.c).  This is a pure syntactic-shape
+// peek, not a "what would this evaluate to" test -- a compound expression
+// like 4..7 reports as CommandType (a call to iterate), not StreamType,
+// since the stream-ness only exists in iterate's result once it actually
+// runs (test 15/16).  istype(var [typesym]) and isclass(var [classsym])
+// take the type/class name bare or bquoted interchangeably (test 8) --
+// neither argument ever needs backquoting.  iscomm(var) and isfunc(var) are
+// fixed single-argument shortcuts for istype(var CommandType) and
+// isclass(var FuncObj), the two comparisons this whole feature exists for.
+// With one argument, istype(var)/isclass(var) partition every value into
+// exactly one of two buckets: istype(var) true for a plain/regular value
+// type, isclass(var) true when there's a class to ask about at all (test
+// 11-14) -- FuncObj included, since func()'s return value is already an
+// ObjectType, class_symid()-bearing value like FileObj/Attribute.
+//
+// A standalone variable is a niladic call site everywhere, including inside
+// a func's own body -- there is no separate case to reason about for
+// "inside vs outside a func" (test 18).  The only way a func() call
+// reliably hands back a live FuncObj is for the construction itself to be
+// the last thing evaluated (test 17); naming the result first and
+// referencing that name fires it immediately, same as any other reference.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/istype.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: iscomm(pi) -- a real command name, without firing it ---
+r=iscomm(pi)
+ok=ok&&(r==true)
+print("1 iscomm(pi) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 2: iscomm(x) -- a plain variable is not a command ---
+x=99
+r=iscomm(x)
+ok=ok&&(r==false)
+print("2 x=99; iscomm(x) (expect false): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 3: isfunc(f) on a func-bound name, before any call -- no fire.
+// f's body would print if invoked; nothing prints here. ---
+f=func(print("SHOULD NOT PRINT\n"); 1+1)
+r=isfunc(f)
+ok=ok&&(r==true)
+print("3 f=func(print(...) 1+1); isfunc(f) (expect true, no print above): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 4: isfunc(x) -- a plain variable is not a func ---
+r=isfunc(x)
+ok=ok&&(r==false)
+print("4 isfunc(x) (expect false): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 5: istype(pi CommandType) -- two-arg form, bare type name ---
+r=istype(pi CommandType)
+ok=ok&&(r==true)
+print("5 istype(pi CommandType) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 6: istype(pi StringType) -- two-arg form, wrong type ---
+r=istype(pi StringType)
+ok=ok&&(r==false)
+print("6 istype(pi StringType) (expect false): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 7: istype(x IntType) -- two-arg form on a plain scalar ---
+r=istype(x IntType)
+ok=ok&&(r==true)
+print("7 x=99; istype(x IntType) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 8: istype(pi `CommandType) -- a redundant backquote on the
+// second argument is harmless, same result as the bare form (test 5) ---
+r=istype(pi `CommandType)
+ok=ok&&(r==true)
+print("8 istype(pi `CommandType) redundant backquote (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 9: isclass(f FuncObj) -- two-arg form on a func-bound name ---
+r=isclass(f FuncObj)
+ok=ok&&(r==true)
+print("9 isclass(f FuncObj) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 10: isclass(x FuncObj) -- two-arg form, wrong class ---
+r=isclass(x FuncObj)
+ok=ok&&(r==false)
+print("10 isclass(x FuncObj) (expect false): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 11: istype(x) one-arg -- true for a plain/regular value type ---
+r=istype(x)
+ok=ok&&(r==true)
+print("11 istype(x) one-arg (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 12: istype(f) one-arg -- false, f is an object (FuncObj), not a
+// plain/regular type; still no fire ---
+r=istype(f)
+ok=ok&&(r==false)
+print("12 istype(f) one-arg (expect false, no print above): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 13: isclass(x) one-arg -- false, a plain scalar has no class ---
+r=isclass(x)
+ok=ok&&(r==false)
+print("13 isclass(x) one-arg (expect false): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 14: isclass(f) one-arg -- true, f is an object (has a class) ---
+r=isclass(f)
+ok=ok&&(r==true)
+print("14 isclass(f) one-arg (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 15: istype(4*3 CommandType) -- a compound expression's raw form
+// is a call to mpy, a plain command -- confirmed via postfix(4*3) ---
+r=istype(4*3 CommandType)
+ok=ok&&(r==true)
+print("15 istype(4*3 CommandType) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 16: istype(4..7 StreamType) -- the syntactic-shape-not-result-type
+// caveat: a range's raw, unevaluated form is a call to iterate, not
+// anything stream-shaped -- the stream only exists in iterate's result,
+// once it actually runs.  istype(4..7 CommandType) is the one that's true. ---
+r16a=istype(4..7 StreamType)
+r16b=istype(4..7 CommandType)
+ok=ok&&(r16a==false && r16b==true)
+print("16 istype(4..7 StreamType) (expect false): %v\n" r16a)
+print("   istype(4..7 CommandType) (expect true):  %v\n\n" r16b)
+check_fail(:ok ok)
+
+// --- test 17: isfunc(escaped) -- the motivating case: a func that returns
+// another func.  A standalone variable is a niladic call site everywhere,
+// including inside a func body, so escaped only ends up holding a live
+// FuncObj because the inner func() construction is itself the last thing
+// evaluated -- naming it first (inner=func(y); inner) would fire it before
+// outer ever returns, same as any other func-local reference (test 18). ---
+outer=func(y=42; func(y))
+escaped=outer()
+r=isfunc(escaped)
+ok=ok&&(r==true)
+print("17 outer=func(y=42; func(y)); escaped=outer(); isfunc(escaped) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 18: a func-local FuncObj reference fires just like a top-level
+// one -- no special case for "inside a func body".  z=inner fires inner
+// immediately (its body is just y, so z ends up holding 42, not a FuncObj),
+// the same as if inner were referenced from outside outer entirely. ---
+outer2=func(y=42; inner=func(y); z=inner; isfunc(z))
+r2=outer2()
+ok=ok&&(r2==false)
+print("18 outer2=func(y=42; inner=func(y); z=inner; isfunc(z)); outer2() (expect false -- z already fired): %v\n\n" r2)
+check_fail(:ok ok)
+
+print("\nistype: %v\n" ok)
+ok

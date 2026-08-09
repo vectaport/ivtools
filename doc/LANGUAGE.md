@@ -651,6 +651,63 @@ v=99
 outer()            // 99  -- inner falls through to the top level
 ```
 
+### Not a closure — func() is closer to a macro
+
+A `func()` value does not capture the environment it was defined in.
+Define one while a particular binding is live, let it escape, mutate that
+binding, then call the escaped func — it sees the *current* value, not
+the one that existed at definition time:
+
+```
+y=1
+outer=func(y=42; func(y))   // construction itself must be the last thing
+                              // evaluated -- see "istype()/isclass()..." above
+escaped=outer()
+y=100
+escaped()                    // 100 -- not 42
+```
+
+That's the standard test for closures in any language (define under a
+binding, escape, mutate, call) and `func()` fails it. The reason traces
+directly to what a `FuncObj` actually is: a saved token buffer (`_toks`/
+`_ntoks`, nothing else) that gets *re-run fresh* against whatever's
+currently in `localtable()`/`globaltable()` on each call — not a
+reference to any specific, private, persisting environment. That's not
+closure semantics; it's macro semantics — specifically the *unhygienic*
+kind (C preprocessor, or Lisp before hygiene): a saved chunk of code that
+re-expands at each use site, with any free name resolving against
+whatever's ambient at that moment, not against whatever scope wrote it.
+`func()` gets the same classic failure mode as a result — a free variable
+inside a func body is hostage to whatever anything else in the program
+last set that name to, with no isolation at all.
+
+Where the analogy stops: a real macro isn't a runtime value — it's a
+pure compile-time transform with no existence once expansion is done.
+`FuncObj` doesn't have that limitation. It's a genuine first-class value —
+storable, passable as an argument, returnable from another func — just
+one whose free-variable resolution behaves like a macro's rather than a
+closure's.
+
+**Simulating closure capture, if you want it:** since the mechanism won't
+capture a *reference* for you, eliminate the reference and stage the
+*value* into the generated body text instead — `print(fmtstr val :str)`
+to format it, `run(cmdstr :str)` to parse and execute the result:
+
+```
+y=42
+bodystr=print("func(%v)" y :str)   // "func(42)" -- the value, not the name
+escaped=run(bodystr :str)           // constructs func(42): no free variable at all
+y=100
+escaped()                            // 42 -- immune to y's later mutation
+```
+
+`func()` itself never changes — there's simply nothing left for the
+ambient-environment resolution to override, since the body no longer
+names anything. This generalizes past plain numbers to anything ComTerp
+can print back out as valid, re-parseable syntax (the same "value
+serializes back into itself" property `feed()`'s contract relies on):
+strings, lists, attrlists, even another already-built `FuncObj`.
+
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object
 it points to lives outside the func and is mutated via that reference:
@@ -672,8 +729,9 @@ f(:x 5)            // 10
 ```
 
 But that nil is the func-scope **miss** falling through to local/global —
-the very close-over described next — so "reads as nil" holds **only when
-no outer variable of that name exists**. If the surrounding scope already
+the same fallback described above, not a captured reference to anything —
+so "reads as nil" holds **only when no outer variable of that name
+exists**. If the surrounding scope already
 holds an `x`, an unsupplied `x` reads *that value*, not nil. The slot is
 not zero-initialized; treat it as an uninitialized variable in the C/C++
 sense.
@@ -1811,6 +1869,100 @@ class(attrlist())==`AttributeList // true
 float(3.14)            // explicit conversion to FloatType
 double(3)              // explicit conversion to DoubleType
 ```
+
+### istype()/isclass()/iscomm()/isfunc() — inspecting a variable without firing it
+
+`type()` and `class()`, above, both evaluate their argument the ordinary
+way before looking at it — which means they cannot answer *"what is this
+variable bound to"* for a command name or a `func()`-bound name, because
+referencing either one fires it first:
+
+```
+pi                 // 3.14159 -- bare reference fires the command
+myfunc=func(1+1)
+myfunc              // 2 -- bare reference fires the func too
+type(pi)            // DoubleType -- the type of the fired result, not of pi itself
+```
+
+This isn't just risky when the thing being checked has side effects — it's
+uninformative even when it doesn't:
+
+```
+f=5
+g=func(5)
+type(f)             // IntType
+type(g)             // IntType -- identical; g's func-ness is invisible here
+```
+
+`istype()`, `isclass()`, `iscomm()`, and `isfunc()` are `post_eval` — they
+read their first argument as a raw, unevaluated token (the same mechanism
+`help()` already uses to describe a command without running it) and peek
+at what it resolves to with a single non-invoking table lookup, rather
+than evaluating it:
+
+```
+iscomm(pi)                 // true  -- no firing
+istype(pi CommandType)     // true
+istype(pi `CommandType)    // true -- a redundant backquote on the type
+                            //         name is harmless either way
+```
+
+`isfunc(var)` and `iscomm(var)` are fixed single-argument shortcuts for
+`isclass(var FuncObj)` and `istype(var CommandType)` — the two questions
+this whole feature exists to answer. With one argument, `istype()`/
+`isclass()` partition every value into exactly one of two buckets:
+
+```
+x=99
+istype(x)          // true  -- a plain/regular value type
+isclass(x)          // false -- nothing to ask a class of
+
+f=func(1+1)
+istype(f)           // false -- f is an object (a FuncObj), not "plain"
+isclass(f)           // true  -- and an object has a class
+```
+
+The motivating case — a func that returns another func — is exactly what
+this makes checkable for the first time:
+
+```
+outer=func(y=42; func(y))
+escaped=outer()      // outer() already ran; escaped holds a live FuncObj
+isfunc(escaped)       // true -- confirmed without ever calling escaped
+```
+
+A standalone variable is a niladic call site everywhere — including inside
+a func's own body. There is no separate case to reason about for "inside
+vs. outside a func": a func-local reference to a `FuncObj`-bound name fires
+exactly like a top-level one does. So the construction above only works
+because `func(y)` — the construction itself — is the last thing outer's
+body evaluates. Naming it first doesn't help:
+
+```
+outer=func(y=42; inner=func(y); inner)   // inner fires here, same as z=inner would
+outer()                                   // NOT a FuncObj -- it's inner's own result
+```
+
+The only way to hand a `FuncObj` back intact is for its construction to be
+the literal last expression evaluated — never a bare reference to a name
+already holding one, anywhere, including a func's own return position.
+
+**Caveat: this is a syntactic-shape peek, not a "what would this evaluate
+to" test.** A compound expression's raw, unevaluated form is a command
+call like any other — `4*3` is a call to `mpy`, and `4..7` is a call to
+`iterate`, indistinguishable in kind at this level:
+
+```
+istype(4*3 CommandType)    // true
+istype(4..7 CommandType)   // true  -- also just a command call
+istype(4..7 StreamType)    // false -- the stream only exists in iterate's
+                            //          *result*, once it actually runs
+```
+
+For a bare name, the peek tells you exactly what you want — is this
+callable, without calling it. For a compound expression, it only tells
+you the outermost command being invoked, never what that command would
+produce.
 
 ### print(:sym) — materializing symbols from formatted strings
 

@@ -108,6 +108,37 @@ does for every other stream.
 
 ---
 
+## Checking what a variable holds, without firing it
+
+A bare command name or a `func()`-bound name fires on mere reference --
+even `type()`/`class()` evaluate their argument first, so they report the
+type of whatever got invoked, not of what was actually bound:
+
+```
+pi                          // 3.14159 -- fires
+myfunc=func(1+1)
+type(myfunc)                 // IntType -- the result's type, not myfunc's
+
+// istype()/isclass()/iscomm()/isfunc() are post_eval -- they never fire
+iscomm(pi)                    // true, no firing
+isfunc(myfunc)                 // true, no firing
+istype(pi CommandType)          // true -- neither argument needs backquoting
+
+// the case this exists for: a func that returns another func --
+// the construction has to be the last thing evaluated; naming it first
+// (inner=func(y); inner) fires it immediately, same as any other reference
+outer=func(y=42; func(y))
+escaped=outer()
+isfunc(escaped)               // true -- confirmed without ever calling escaped
+```
+
+See *istype()/isclass()/iscomm()/isfunc()* in `LANGUAGE.md` for the full
+contract, including why this is a syntactic-shape peek and not a
+"what would this evaluate to" test, and why a standalone variable is a
+niladic call site everywhere, with no special case for inside a func body.
+
+---
+
 ## Functions and scope
 
 ```
@@ -138,6 +169,31 @@ fib=func(
   if(n<=1 :then n :else fib(:n n-1)+fib(:n n-2)))
 fib(:n 10)                // 55
 ```
+
+---
+
+## func() is not a closure -- how to fake one
+
+```
+// no capture -- escaped sees y's CURRENT value, not 42
+y=1
+outer=func(y=42; func(y))
+escaped=outer()
+y=100
+escaped()                 // 100, not 42
+
+// force capture by baking the value into generated source as a literal
+y2=42
+bodystr=print("func(%v)" y2 :str)   // "func(42)"
+escaped2=run(bodystr :str)           // no free variable left to re-resolve
+y2=100
+escaped2()                            // 42 -- immune to y2's later mutation
+```
+
+See *Not a closure -- func() is closer to a macro* in `LANGUAGE.md` for
+why (a `FuncObj` is just saved tokens, re-run fresh against whatever's
+currently in scope -- unhygienic-macro semantics, not closure semantics)
+and how far the bake-a-literal trick generalizes.
 
 ---
 
