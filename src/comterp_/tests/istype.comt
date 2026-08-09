@@ -2,7 +2,7 @@
 // the post_eval type/class predicates that inspect a variable without ever
 // evaluating it (issue #289)
 //
-// coverage: 18/23 (78%)
+// coverage: 27/32 (84%)
 // funcs: istype isclass iscomm isfunc
 // missing: istype(val-neg) istype(val-bool-t) istype(val-bool-f) istype(val-nil)
 //          isclass(:nowait)-style keyword forms (none exist -- N/A, listed for completeness)
@@ -37,6 +37,16 @@
 // reliably hands back a live FuncObj is for the construction itself to be
 // the last thing evaluated (test 17); naming the result first and
 // referencing that name fires it immediately, same as any other reference.
+//
+// All four also take a :sym keyword: instead of a flag, return the
+// resolved type/class symbol itself (nil if there isn't one) -- the
+// post_eval counterpart to what type()/class() return for the fired
+// value (test 19, 22).  On istype()/isclass(), :sym wins over a
+// two-arg comparison target if both are given (test 20).  On the
+// iscomm()/isfunc() shortcuts, which have no comparison target to
+// begin with, :sym gives `CommandType/`FuncObj on match and nil
+// otherwise (test 24-27) -- a symbol-or-nil form of the same flag,
+// not new information beyond what the boolean already said.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/istype.comt")
@@ -172,6 +182,64 @@ outer2=func(y=42; inner=func(y); z=inner; isfunc(z))
 r2=outer2()
 ok=ok&&(r2==false)
 print("18 outer2=func(y=42; inner=func(y); z=inner; isfunc(z)); outer2() (expect false -- z already fired): %v\n\n" r2)
+check_fail(:ok ok)
+
+// --- test 19: istype(x :sym) -- return x's own type symbol instead of
+// a flag, same symbol type() would give for the fired value ---
+r=istype(x :sym)
+ok=ok&&(r==`IntType)
+print("19 x=99; istype(x :sym) (expect IntType): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 20: istype(pi IntType :sym) -- :sym wins over a two-arg
+// comparison target, still reporting pi's own (unfired) type ---
+r=istype(pi IntType :sym)
+ok=ok&&(r==`CommandType)
+print("20 istype(pi IntType :sym) (expect CommandType, IntType ignored): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 21: istype(neverbound :sym) -- nil for an unbound variable,
+// same nil-for-unresolved rule the boolean form already has ---
+r=istype(neverbound :sym)
+ok=ok&&(r==nil)
+print("21 istype(neverbound :sym) (expect nil): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 22: isclass(f :sym) -- return f's own class symbol ---
+r=isclass(f :sym)
+ok=ok&&(r==`FuncObj)
+print("22 isclass(f :sym) (expect FuncObj): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 23: isclass(x :sym) -- nil, x isn't of ObjectType at all ---
+r=isclass(x :sym)
+ok=ok&&(r==nil)
+print("23 isclass(x :sym) (expect nil): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 24: iscomm(pi :sym) -- CommandType on match, the type tag
+// istype(pi :sym) would also give, not pi's own name ---
+r=iscomm(pi :sym)
+ok=ok&&(r==`CommandType)
+print("24 iscomm(pi :sym) (expect CommandType): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 25: iscomm(x :sym) -- nil, x doesn't name a command ---
+r=iscomm(x :sym)
+ok=ok&&(r==nil)
+print("25 iscomm(x :sym) (expect nil): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 26: isfunc(f :sym) -- FuncObj on match ---
+r=isfunc(f :sym)
+ok=ok&&(r==`FuncObj)
+print("26 isfunc(f :sym) (expect FuncObj): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 27: isfunc(x :sym) -- nil, x doesn't hold a func() ---
+r=isfunc(x :sym)
+ok=ok&&(r==nil)
+print("27 isfunc(x :sym) (expect nil): %v\n\n" r)
 check_fail(:ok ok)
 
 print("\nistype: %v\n" ok)
