@@ -553,14 +553,21 @@ void ComTerp::eval_expr_internals(int pedepth) {
       if (_alist) {
 	// cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
 	int id = sv.symbol_val();
-	AttributeValue* val = _alist->find(id);  
-	if (val) {
+	AttributeValue* val = _alist->find(id);
+	/* a func-local FuncObj falls through to the same fire-check below as
+	   every other symbol reference, instead of returning early -- a
+	   standalone variable is a niladic call site regardless of whether
+	   it's read from a func's own local frame or from local/global scope
+	   (comterp.c:566's lookup_symval(sv) rechecks _alist first anyway, so
+	   this isn't a second, different lookup -- just the same one, minus
+	   the early exit that previously skipped the FuncObj check). */
+	if (val && !val->is_object(FuncObj::class_symid())) {
 	  ComValue newval(*val);
 	  push_stack(newval);
 	  return;
 	}
       }
-      
+
       // cerr << "looking up " << sv.symbol_ptr() << "\n";
       const char* funcname = sv.symbol_ptr();
       ComValue val = lookup_symval(sv);

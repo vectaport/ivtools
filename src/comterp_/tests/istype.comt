@@ -2,7 +2,7 @@
 // the post_eval type/class predicates that inspect a variable without ever
 // evaluating it (issue #289)
 //
-// coverage: 17/22 (77%)
+// coverage: 18/23 (78%)
 // funcs: istype isclass iscomm isfunc
 // missing: istype(val-neg) istype(val-bool-t) istype(val-bool-f) istype(val-nil)
 //          isclass(:nowait)-style keyword forms (none exist -- N/A, listed for completeness)
@@ -30,6 +30,13 @@
 // type, isclass(var) true when there's a class to ask about at all (test
 // 11-14) -- FuncObj included, since func()'s return value is already an
 // ObjectType, class_symid()-bearing value like FileObj/Attribute.
+//
+// A standalone variable is a niladic call site everywhere, including inside
+// a func's own body -- there is no separate case to reason about for
+// "inside vs outside a func" (test 18).  The only way a func() call
+// reliably hands back a live FuncObj is for the construction itself to be
+// the last thing evaluated (test 17); naming the result first and
+// referencing that name fires it immediately, same as any other reference.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/istype.comt")
@@ -145,13 +152,26 @@ print("   istype(4..7 CommandType) (expect true):  %v\n\n" r16b)
 check_fail(:ok ok)
 
 // --- test 17: isfunc(escaped) -- the motivating case: a func that returns
-// another func.  escaped holds a live FuncObj (inner) the whole time;
-// isfunc() is the first tool that can confirm this without invoking it. ---
-outer=func(y=42; inner=func(y); inner)
+// another func.  A standalone variable is a niladic call site everywhere,
+// including inside a func body, so escaped only ends up holding a live
+// FuncObj because the inner func() construction is itself the last thing
+// evaluated -- naming it first (inner=func(y); inner) would fire it before
+// outer ever returns, same as any other func-local reference (test 18). ---
+outer=func(y=42; func(y))
 escaped=outer()
 r=isfunc(escaped)
 ok=ok&&(r==true)
-print("17 outer=func(y=42; inner=func(y); inner); escaped=outer(); isfunc(escaped) (expect true): %v\n\n" r)
+print("17 outer=func(y=42; func(y)); escaped=outer(); isfunc(escaped) (expect true): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 18: a func-local FuncObj reference fires just like a top-level
+// one -- no special case for "inside a func body".  z=inner fires inner
+// immediately (its body is just y, so z ends up holding 42, not a FuncObj),
+// the same as if inner were referenced from outside outer entirely. ---
+outer2=func(y=42; inner=func(y); z=inner; isfunc(z))
+r2=outer2()
+ok=ok&&(r2==false)
+print("18 outer2=func(y=42; inner=func(y); z=inner; isfunc(z)); outer2() (expect false -- z already fired): %v\n\n" r2)
 check_fail(:ok ok)
 
 print("\nistype: %v\n" ok)

@@ -1868,14 +1868,26 @@ The motivating case — a func that returns another func — is exactly what
 this makes checkable for the first time:
 
 ```
-outer=func(y=42; inner=func(y); inner)
+outer=func(y=42; func(y))
 escaped=outer()      // outer() already ran; escaped holds a live FuncObj
 isfunc(escaped)       // true -- confirmed without ever calling escaped
 ```
 
-`escaped` genuinely holds `inner`, not a collapsed int — outer's own last
-statement (a bare reference to `inner`) hands the `FuncObj` back intact;
-firing only happens at each later, explicit reference to `escaped` itself.
+A standalone variable is a niladic call site everywhere — including inside
+a func's own body. There is no separate case to reason about for "inside
+vs. outside a func": a func-local reference to a `FuncObj`-bound name fires
+exactly like a top-level one does. So the construction above only works
+because `func(y)` — the construction itself — is the last thing outer's
+body evaluates. Naming it first doesn't help:
+
+```
+outer=func(y=42; inner=func(y); inner)   // inner fires here, same as z=inner would
+outer()                                   // NOT a FuncObj -- it's inner's own result
+```
+
+The only way to hand a `FuncObj` back intact is for its construction to be
+the literal last expression evaluated — never a bare reference to a name
+already holding one, anywhere, including a func's own return position.
 
 **Caveat: this is a syntactic-shape peek, not a "what would this evaluate
 to" test.** A compound expression's raw, unevaluated form is a command

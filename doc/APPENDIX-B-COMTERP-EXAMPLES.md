@@ -124,15 +124,18 @@ iscomm(pi)                    // true, no firing
 isfunc(myfunc)                 // true, no firing
 istype(pi CommandType)          // true -- neither argument needs backquoting
 
-// the case this exists for: a func that returns another func
-outer=func(y=42; inner=func(y); inner)
+// the case this exists for: a func that returns another func --
+// the construction has to be the last thing evaluated; naming it first
+// (inner=func(y); inner) fires it immediately, same as any other reference
+outer=func(y=42; func(y))
 escaped=outer()
 isfunc(escaped)               // true -- confirmed without ever calling escaped
 ```
 
 See *istype()/isclass()/iscomm()/isfunc()* in `LANGUAGE.md` for the full
 contract, including why this is a syntactic-shape peek and not a
-"what would this evaluate to" test.
+"what would this evaluate to" test, and why a standalone variable is a
+niladic call site everywhere, with no special case for inside a func body.
 
 ---
 
