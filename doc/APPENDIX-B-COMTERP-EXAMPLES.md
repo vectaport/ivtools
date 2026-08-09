@@ -172,6 +172,31 @@ fib(:n 10)                // 55
 
 ---
 
+## func() is not a closure -- how to fake one
+
+```
+// no capture -- escaped sees y's CURRENT value, not 42
+y=1
+outer=func(y=42; func(y))
+escaped=outer()
+y=100
+escaped()                 // 100, not 42
+
+// force capture by baking the value into generated source as a literal
+y2=42
+bodystr=print("func(%v)" y2 :str)   // "func(42)"
+escaped2=run(bodystr :str)           // no free variable left to re-resolve
+y2=100
+escaped2()                            // 42 -- immune to y2's later mutation
+```
+
+See *Not a closure -- func() is closer to a macro* in `LANGUAGE.md` for
+why (a `FuncObj` is just saved tokens, re-run fresh against whatever's
+currently in scope -- unhygienic-macro semantics, not closure semantics)
+and how far the bake-a-literal trick generalizes.
+
+---
+
 ## Building data structures
 
 ```

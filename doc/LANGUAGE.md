@@ -651,6 +651,63 @@ v=99
 outer()            // 99  -- inner falls through to the top level
 ```
 
+### Not a closure — func() is closer to a macro
+
+A `func()` value does not capture the environment it was defined in.
+Define one while a particular binding is live, let it escape, mutate that
+binding, then call the escaped func — it sees the *current* value, not
+the one that existed at definition time:
+
+```
+y=1
+outer=func(y=42; func(y))   // construction itself must be the last thing
+                              // evaluated -- see "istype()/isclass()..." above
+escaped=outer()
+y=100
+escaped()                    // 100 -- not 42
+```
+
+That's the standard test for closures in any language (define under a
+binding, escape, mutate, call) and `func()` fails it. The reason traces
+directly to what a `FuncObj` actually is: a saved token buffer (`_toks`/
+`_ntoks`, nothing else) that gets *re-run fresh* against whatever's
+currently in `localtable()`/`globaltable()` on each call — not a
+reference to any specific, private, persisting environment. That's not
+closure semantics; it's macro semantics — specifically the *unhygienic*
+kind (C preprocessor, or Lisp before hygiene): a saved chunk of code that
+re-expands at each use site, with any free name resolving against
+whatever's ambient at that moment, not against whatever scope wrote it.
+`func()` gets the same classic failure mode as a result — a free variable
+inside a func body is hostage to whatever anything else in the program
+last set that name to, with no isolation at all.
+
+Where the analogy stops: a real macro isn't a runtime value — it's a
+pure compile-time transform with no existence once expansion is done.
+`FuncObj` doesn't have that limitation. It's a genuine first-class value —
+storable, passable as an argument, returnable from another func — just
+one whose free-variable resolution behaves like a macro's rather than a
+closure's.
+
+**Simulating closure capture, if you want it:** since the mechanism won't
+capture a *reference* for you, eliminate the reference and stage the
+*value* into the generated body text instead — `print(fmtstr val :str)`
+to format it, `run(cmdstr :str)` to parse and execute the result:
+
+```
+y=42
+bodystr=print("func(%v)" y :str)   // "func(42)" -- the value, not the name
+escaped=run(bodystr :str)           // constructs func(42): no free variable at all
+y=100
+escaped()                            // 42 -- immune to y's later mutation
+```
+
+`func()` itself never changes — there's simply nothing left for the
+ambient-environment resolution to override, since the body no longer
+names anything. This generalizes past plain numbers to anything ComTerp
+can print back out as valid, re-parseable syntax (the same "value
+serializes back into itself" property `feed()`'s contract relies on):
+strings, lists, attrlists, even another already-built `FuncObj`.
+
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object
 it points to lives outside the func and is mutated via that reference:
@@ -672,8 +729,9 @@ f(:x 5)            // 10
 ```
 
 But that nil is the func-scope **miss** falling through to local/global —
-the very close-over described next — so "reads as nil" holds **only when
-no outer variable of that name exists**. If the surrounding scope already
+the same fallback described above, not a captured reference to anything —
+so "reads as nil" holds **only when no outer variable of that name
+exists**. If the surrounding scope already
 holds an `x`, an unsupplied `x` reads *that value*, not nil. The slot is
 not zero-initialized; treat it as an uninitialized variable in the C/C++
 sense.
