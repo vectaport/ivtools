@@ -14,13 +14,46 @@
 // while writing this script (duck.speak() alone left a stray :i 3 behind
 // on duck). Not a bug, just self-binding doing exactly what it says.
 
-duck=(:times 3 :calls 0 :speak func(calls++; for(j=0 j<times j++ print("quack! ")); print("\n"); calls))
+dot(:dbg true)
+duck=(:times 3
+     :calls 0
+     :speak func(
+              call++;
+	      noise=cond(arg(0)!=nil arg(0) "quack");
+	      for(j=0 j<times j++
+	        print("%s! " noise));
+		print("\n");
+		calls))
 
-cow=(:times 2 :calls 0 :speak func(calls++; for(j=0 j<times j++ print("moo! ")); print("\n"); calls))
+cow=(:times 2 :calls 0
+     :speak func(
+              call++;
+	      noise=cond(arg(0)!=nil arg(0) "moo");
+	      for(j=0 j<times j++
+	        print("%s! " noise));
+		print("\n");
+		calls))
 
-robot=(:times 1 :calls 0 :speak func(calls++; for(j=0 j<times j++ print("BEEP BOOP. ")); print("\n"); calls))
+robot=(:times 1 :calls 0
+       :speak func(
+                call++;
+		noise=cond(arg(0)!=nil arg(0) cond(round(rand(0,1)) "BEEP" "BOP"));
+		for(j=0 j<times j++
+		  print("%s! " noise);
+		  print("\n");
+		  calls)))
 
-print("-- one at a time --\n")
+print("\n-- one at a time --\n")
+duck.speak()
+cow.speak()
+robot.speak()
+
+print("\n-- change what they speak --\n")
+duck.speak("ARFF")
+cow.speak("tweet")
+robot.speak("hello")
+
+print("\n-- back to normal speak --\n")
 duck.speak()
 cow.speak()
 robot.speak()
@@ -41,3 +74,4 @@ print("%v\n" list(($$barnyard).cnt))
 
 print("\n-- each object kept its own state, genuinely, not a copy --\n")
 print("duck.calls=%v cow.calls=%v robot.calls=%v\n" duck.calls cow.calls robot.calls)
+exit
