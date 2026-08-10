@@ -1,0 +1,37 @@
+// src/comterp_/examples/ducktyping.comt -- duck typing, comterp style: no
+// declared class, no interface, no base type any of these share.  Each
+// object just happens to have a :speak method.  That's the whole trick,
+// and it's the whole point.  Exercises obj.method(args) self-bound
+// dispatch (issue #295): real per-object mutation, positional args via
+// arg(n), and a keyword arg that reverts because nothing writes to it.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/ducktyping.comt
+//
+// Note the loop variable inside each :speak is named j, not i: a
+// self-bound method has no separate scratch frame, so a bare i=0 in here
+// would land on the object itself, same as any other write -- confirmed
+// while writing this script (duck.speak() alone left a stray :i 3 behind
+// on duck). Not a bug, just self-binding doing exactly what it says.
+
+duck=(:times 3 :calls 0 :speak func(calls=calls+1; for(j=0 j<times j++ print("quack! ")); print("\n"); calls))
+
+cow=(:times 2 :calls 0 :speak func(calls=calls+1; for(j=0 j<times j++ print("moo! ")); print("\n"); calls))
+
+robot=(:times 1 :calls 0 :speak func(calls=calls+1; for(j=0 j<times j++ print("BEEP BOOP. ")); print("\n"); calls))
+
+print("-- one at a time --\n")
+duck.speak()
+cow.speak()
+robot.speak()
+
+print("\n-- shout just this once; :times is ephemeral unless written --\n")
+duck.speak(:times 6)
+print("duck.times is still %v (never written, so it reverted)\n" duck.times)
+
+print("\n-- duck typing: same call, no shared class, whoever answers, answers --\n")
+barnyard=duck,cow,robot
+for(i=0 i<size(barnyard) i++ a=at(barnyard i); a.speak())
+
+print("\n-- each object kept its own state, genuinely, not a copy --\n")
+print("duck.calls=%v cow.calls=%v robot.calls=%v\n" duck.calls cow.calls robot.calls)
