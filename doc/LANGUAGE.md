@@ -708,6 +708,58 @@ can print back out as valid, re-parseable syntax (the same "value
 serializes back into itself" property `feed()`'s contract relies on):
 strings, lists, attrlists, even another already-built `FuncObj`.
 
+**A cleaner way, and real objects for free: `eval()`'s own `:alist`
+keyword.** `eval(cmdstr|funcobj :alist attrlist)` runs its argument with
+the func-local scope (`_alist`) set to the given attrlist first — the
+same lookup tier a func's own keyword args live in, just supplied
+explicitly instead of by the caller passing keywords. That's a first-class
+existing mechanism, not a workaround, and it beats the bake-a-literal
+trick in one real way: attrlists are mutable reference objects (`al.x=99`
+already mutates the same object a caller holds — see *Writing through a
+reference* above), so this supports genuine, *persisting, mutating* state
+across calls, not just a frozen snapshot:
+
+```
+y=42
+eval(func(y) :alist attrlist(:y y))   // 42 -- same capture as the bake-in-literal trick
+```
+
+The real payoff is combining it with dot access on an attrlist that holds
+both data *and* a method, using the attrlist itself as `:alist` — real,
+working `self`-bound method dispatch:
+
+```
+counter=(:n 0 :incr func(n=n+1; n))
+eval(counter.incr :alist counter)     // 1
+eval(counter.incr :alist counter)     // 2
+eval(counter.incr :alist counter)     // 3
+counter.n                              // 3 -- the object's own field, genuinely mutated
+```
+
+`counter` is a single attrlist holding one data field (`:n`) and one
+method (`:incr`, a `FuncObj`). Passing `counter` itself as `:alist` means
+`incr`'s free variable `n` resolves against `counter`'s own field — the
+same attrlist is simultaneously "the method" and "self." This is a real
+object system — data and behavior bundled together, with genuine identity
+and mutation — just without privacy: `counter.n` is directly readable and
+writable from outside (as above), and `incr` itself isn't bound to
+`counter` specifically — it's a plain `FuncObj` value, callable against
+any attrlist via `:alist`. No private/protected keywords, the same way
+plenty of dynamic languages (Python, JavaScript, Lua) leave access control
+to convention rather than enforcement. Built entirely from existing
+pieces — attrlist literals, `func()`, dot access, `eval()`'s `:alist` —
+no new mechanism required. A single-method object built this way is
+exactly a closure (the data field is the captured variable, the method is
+the function body), so this subsumes the bake-a-literal technique above
+as the general case, not just an alternative to it.
+
+One rule carried over from everywhere else in this doc: the method reference
+(`counter.incr`, or a plain `func(...)`) must be constructed or
+dot-accessed directly in the `eval()` call, never assigned to a plain
+variable and referenced bare first — a bare reference to a `FuncObj` fires
+immediately, same niladic-firing rule as always, with no exception for
+being an argument to `eval()`.
+
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object
 it points to lives outside the func and is mutated via that reference:
