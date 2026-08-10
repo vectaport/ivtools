@@ -46,8 +46,9 @@ int DotFunc::_symid = -1;
 /* off by default -- capturing the pre-fire source text of both args (see
    execute() below) costs a cout redirect + two print_stack_arg_post_eval
    calls on every dot-expression, even the overwhelmingly common case where
-   nothing goes wrong.  Flip to true (in a debugger, or edit+rebuild) only
-   while chasing a "expression before/after dot" warning. */
+   nothing goes wrong.  Toggle at runtime with dot(:dbg true)/dot(:dbg false)
+   -- see DotFunc::execute() -- only while chasing a "expression before/after
+   dot" warning. */
 static boolean dotfunc_debug_expr = false;
 
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -274,7 +275,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (dotfunc_debug_expr)
         cout << "expression before dot:  " << before_expr_text;
       else
-        cout << "(set dotfunc_debug_expr=true in dotfunc.c and rebuild to see the expression before the dot)\n";
+        cout << "(dot(:dbg true) to see the expression before the dot)\n";
       cout << "expression after dot:  " << after_raw << "\n";
       reset_stack();
 
@@ -295,7 +296,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (dotfunc_debug_expr)
         cout << "expression after dot:  " << after_expr_text;
       else
-        cout << "(set dotfunc_debug_expr=true in dotfunc.c and rebuild to see the expression after the dot)\n";
+        cout << "(dot(:dbg true) to see the expression after the dot)\n";
       reset_stack();
       return;
     }
@@ -363,6 +364,25 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 }
 
 void DotFunc::execute() {
+    /* dot(:dbg [true|false]) -- get/set dotfunc_debug_expr at runtime, so a
+       live session (a running drawserv, say) can turn on the "expression
+       before/after dot" detail in the malformed-expression warning without
+       an edit+rebuild.  Checked first and unconditionally: an ordinary
+       a.b expression never supplies a :dbg keyword, so this never touches
+       the normal dispatch path below. */
+    static int dbg_symid = symbol_add("dbg");
+    static int dbg_bare_symid = symbol_add("__dot_dbg_bare__");
+    ComValue dbg_bare_sentinel(dbg_bare_symid, ComValue::SymbolType);
+    ComValue dbgv(stack_key_post_eval(dbg_symid, false, dbg_bare_sentinel));
+    if (!dbgv.is_unknown()) {
+      reset_stack();
+      boolean is_bare = dbgv.is_type(ComValue::SymbolType) && dbgv.symbol_val()==dbg_bare_symid;
+      if (!is_bare) dotfunc_debug_expr = dbgv.is_true();
+      ComValue retval(dotfunc_debug_expr);
+      push_stack(retval);
+      return;
+    }
+
     ComValue before_part, after_raw;
     int after_nids;
     std::string before_expr_text, after_expr_text;

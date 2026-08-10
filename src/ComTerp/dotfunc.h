@@ -42,7 +42,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list"; }
+      return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list | dot(:dbg [true|false]) -- get/set whether the malformed-dot-expression warning prints expression detail"; }
 
     CLASS_SYMID("DotFunc");
 
