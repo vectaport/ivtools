@@ -839,6 +839,31 @@ overriding an existing field — it's added before the call and, if nothing
 writes to it, removed again afterward, not left behind as a stray
 attribute.
 
+**Making a keyword arg actually stick, on purpose.** `c.incr(:cnt 10)`
+sticks *because* `cnt++` writes `cnt` as a side effect of what it was
+already going to do, not because anyone asked for the keyword itself to be
+kept. A `cnt=cnt` re-assignment written specifically to try to keep it
+doesn't work, and can't be made to: after that line runs, `al` looks
+identical whether the assignment happened or not — the value's the
+same either way, so there is nothing left to distinguish "genuinely
+written" from "never touched" by inspecting the object afterward. Two
+ways to actually get a persisting set, both already just working today:
+
+- **Set it directly**, no method call needed: `al.cnt=10` is a plain
+  attribute write, no keyword-ephemerality involved at all.
+- **Use a differently-named setter.** Give the keyword parameter and the
+  field it sets different names, and the ambiguity disappears — the
+  parameter is genuinely read-only (reverts, correctly) and the field is a
+  genuine write to a *different* name (persists, correctly, the same
+  self-bound mutation that makes `cnt++` work):
+
+```
+c=(:cnt 0 :setcnt func(cnt=val))
+c.setcnt(:val 8)                       // 8
+c.cnt                                   // 8 -- a real write, to a name the keyword never used
+c.val                                   // nil -- the keyword's own name, untouched, reverts
+```
+
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object
 it points to lives outside the func and is mutated via that reference:
