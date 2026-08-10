@@ -396,13 +396,17 @@ Print a usage summary of all the invocation modes above and exit.
 
  sym|lst=class(val [val ...]) -- return class symbol(s) for value(s) of object type
 
- flag=istype(var [typesym]) -- test var's type without evaluating it
+ flag=istype(var [typesym] :sym) -- test var's type without evaluating it;
+ with :sym, return var's type symbol instead of a flag
 
- flag=isclass(var [classsym]) -- test var's class without evaluating it
+ flag=isclass(var [classsym] :sym) -- test var's class without evaluating it;
+ with :sym, return var's class symbol instead of a flag
 
- flag=iscomm(var) -- true if var names a command, without evaluating it
+ flag=iscomm(var :sym) -- true if var names a command, without evaluating it;
+ with :sym, return `CommandType (nil if false) instead of a flag
 
- flag=isfunc(var) -- true if var holds a func(), without evaluating it
+ flag=isfunc(var :sym) -- true if var holds a func(), without evaluating it;
+ with :sym, return `FuncObj (nil if false) instead of a flag
 
  int=ctoi(char) -- convert character to integer
 

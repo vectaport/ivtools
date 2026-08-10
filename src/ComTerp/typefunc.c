@@ -151,6 +151,19 @@ static int arg_symbol_id(ComFunc* func, ComValue& raw) {
   return evaluated.symbol_val();
 }
 
+/* shared by all four: push the quoted symbol for a resolved symid, or nil
+   if there isn't one -- the :sym-flag counterpart to the plain boolean
+   push these commands otherwise do. */
+static void push_symid_or_nil(ComFunc* func, int symid) {
+  if (symid<0) {
+    func->push_stack(ComValue::nullval());
+  } else {
+    ComValue retval(symid, AttributeValue::SymbolType);
+    retval.bquote(1);
+    func->push_stack(retval);
+  }
+}
+
 /*****************************************************************************/
 
 IsTypeFunc::IsTypeFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -159,10 +172,15 @@ IsTypeFunc::IsTypeFunc(ComTerp* comterp) : ComFunc(comterp) {
 void IsTypeFunc::execute() {
   ComValue arg0(stack_arg(0, true));
   boolean two_arg = nargsfixed()>1;
+  static int sym_symid = symbol_add("sym");
+  ComValue symflag(stack_key(sym_symid));
   AttributeValue* resolved = resolve_no_fire(comterp(), arg0);
   int subj_symid = resolved ? resolved->type_symid() : -1;
 
-  if (two_arg) {
+  if (symflag.is_true()) {
+    reset_stack();
+    push_symid_or_nil(this, subj_symid);
+  } else if (two_arg) {
     ComValue arg1(stack_arg(1, true));
     int type_symid = arg_symbol_id(this, arg1);
     reset_stack();
@@ -182,11 +200,16 @@ IsClassFunc::IsClassFunc(ComTerp* comterp) : ComFunc(comterp) {
 void IsClassFunc::execute() {
   ComValue arg0(stack_arg(0, true));
   boolean two_arg = nargsfixed()>1;
+  static int sym_symid = symbol_add("sym");
+  ComValue symflag(stack_key(sym_symid));
   AttributeValue* resolved = resolve_no_fire(comterp(), arg0);
   boolean is_obj = resolved && resolved->is_object();
   int subj_class_symid = is_obj ? resolved->class_symid() : -1;
 
-  if (two_arg) {
+  if (symflag.is_true()) {
+    reset_stack();
+    push_symid_or_nil(this, subj_class_symid);
+  } else if (two_arg) {
     ComValue arg1(stack_arg(1, true));
     int class_symid = arg_symbol_id(this, arg1);
     reset_stack();
@@ -204,9 +227,15 @@ IsCommFunc::IsCommFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void IsCommFunc::execute() {
   ComValue arg0(stack_arg(0, true));
+  static int sym_symid = symbol_add("sym");
+  ComValue symflag(stack_key(sym_symid));
   reset_stack();
   AttributeValue* resolved = resolve_no_fire(comterp(), arg0);
-  push_stack((resolved && resolved->is_type(AttributeValue::CommandType)) ? ComValue::trueval() : ComValue::falseval());
+  boolean match = resolved && resolved->is_type(AttributeValue::CommandType);
+  if (symflag.is_true())
+    push_symid_or_nil(this, match ? resolved->type_symid() : -1);
+  else
+    push_stack(match ? ComValue::trueval() : ComValue::falseval());
 }
 
 /*****************************************************************************/
@@ -216,7 +245,13 @@ IsFuncFunc::IsFuncFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void IsFuncFunc::execute() {
   ComValue arg0(stack_arg(0, true));
+  static int sym_symid = symbol_add("sym");
+  ComValue symflag(stack_key(sym_symid));
   reset_stack();
   AttributeValue* resolved = resolve_no_fire(comterp(), arg0);
-  push_stack((resolved && resolved->is_object(FuncObj::class_symid())) ? ComValue::trueval() : ComValue::falseval());
+  boolean match = resolved && resolved->is_object(FuncObj::class_symid());
+  if (symflag.is_true())
+    push_symid_or_nil(this, match ? resolved->class_symid() : -1);
+  else
+    push_stack(match ? ComValue::trueval() : ComValue::falseval());
 }

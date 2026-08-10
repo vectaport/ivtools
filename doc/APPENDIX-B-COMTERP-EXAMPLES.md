@@ -130,6 +130,9 @@ istype(pi CommandType)          // true -- neither argument needs backquoting
 outer=func(y=42; func(y))
 escaped=outer()
 isfunc(escaped)               // true -- confirmed without ever calling escaped
+
+// :sym -- same non-firing peek, but return the symbol instead of a flag
+istype(pi :sym)                // `CommandType -- same symbol type(pi) would give, no firing
 ```
 
 See *istype()/isclass()/iscomm()/isfunc()* in `LANGUAGE.md` for the full

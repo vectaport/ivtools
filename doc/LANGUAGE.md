@@ -2016,6 +2016,34 @@ callable, without calling it. For a compound expression, it only tells
 you the outermost command being invoked, never what that command would
 produce.
 
+**`:sym` — the symbol itself, not just a flag.** All four take a `:sym`
+keyword: instead of a boolean, return the resolved type/class symbol
+directly (`nil` if there isn't one) — the same non-firing peek, reported
+the way `type()`/`class()` report it for a value that's already been
+fired:
+
+```
+x=99
+istype(x :sym)      // `IntType -- same symbol type(x) would give
+isclass(x :sym)      // nil -- x isn't of ObjectType at all
+
+f=func(1+1)
+isfunc(f :sym)        // `FuncObj -- no firing, same guarantee as isfunc(f)
+```
+
+On `istype()`/`isclass()`, `:sym` wins over a two-arg comparison target
+if both are given — it always reports what the variable actually is,
+not whether it matches something else:
+
+```
+istype(pi IntType :sym)   // `CommandType -- pi's own type, IntType ignored
+```
+
+`iscomm()`/`isfunc()` have no comparison target to begin with (they're
+fixed shortcuts), so `:sym` there is a symbol-or-`nil` version of the
+same flag rather than new information — `` `CommandType``/`` `FuncObj``
+on a match, `nil` otherwise.
+
 ### print(:sym) — materializing symbols from formatted strings
 
 `print(:sym)` returns its output as a symbol rather than printing it.
