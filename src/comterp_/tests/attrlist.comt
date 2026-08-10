@@ -1,13 +1,22 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 42/55 (76%)
+// coverage: 55/68 (81%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          dot(func-local-scope-isolation) -(empty-rhs)
 //
 // Tests the dot (.) compound variable / attribute list access operator,
 // list(:attr) attribute list construction, and the attrlist() command
-// introduced in PR #85 (closes #82).
+// introduced in PR #85 (closes #82).  Also tests dot(al.method(args)) --
+// firing a FuncObj-valued attribute self-bound to its owning attrlist,
+// with positional args reaching arg(n) inside the body (tests 30-38), and
+// that self-binding covers plain reads of sibling fields too, not just
+// arg(n) and mutation (test 39).  Keyword args to a method call
+// (al.method(:key val)) write onto the object before the call and are
+// compared back after: unchanged means nothing wrote them, so they revert
+// (or are removed, if the name didn't exist before) -- different means
+// the method's own body wrote a new value there, self-bound, and that
+// write persists (tests 40-43).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -243,6 +252,111 @@ merged=al1+al2
 merged.x=99
 ok=ok&&(al1.x==10)
 print("29 merged=al1+al2; merged.x=99; al1.x unchanged (expect 10): %v\n\n" al1.x)
+prev_ok=check_fail(:ok ok)
+
+// --- test 30: al.method(args) -- self-bound call, real mutation (issue #295) ---
+obj=(:n 0 :addto func(n=n+arg(0); n))
+r30=obj.addto(2)
+ok=ok&&(r30==2 && obj.n==2)
+print("30 obj=(:n 0 :addto func(n=n+arg(0); n)); obj.addto(2) (expect 2, obj.n=2): %v %v\n\n" r30 obj.n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 31: a second call keeps mutating the same object, not a per-call copy ---
+r31=obj.addto(5)
+ok=ok&&(r31==7 && obj.n==7)
+print("31 obj.addto(5) again (expect 7, obj.n=7): %v %v\n\n" r31 obj.n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 32: zero-arg method call, empty parens fires (unlike bare access) ---
+ctr=(:n 0 :incr func(n=n+1; n))
+r32a=ctr.incr()
+r32b=ctr.incr()
+ok=ok&&(r32a==1 && r32b==2)
+print("32 ctr.incr(); ctr.incr() (expect 1, 2): %v %v\n\n" r32a r32b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 33: bare access (no parens) still returns the raw FuncObj, unfired --
+// regression guard: #295 must not change #293/#294's bare-access contract ---
+x33=obj.addto
+ok=ok&&(isfunc(x33) && obj.n==7)
+print("33 x=obj.addto; isfunc(x) (expect true, obj.n still 7 -- no fire): %v %v\n\n" isfunc(x33) obj.n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 34: multiple positional args reach arg(0)/arg(1)/arg(2) ---
+al3=(:sum3 func(arg(0)+arg(1)+arg(2)))
+r34=al3.sum3(1 2 3)
+ok=ok&&(r34==6)
+print("34 al3.sum3(1 2 3) (expect 6): %v\n\n" r34)
+prev_ok=check_fail(:ok ok)
+
+// --- test 35: calling a non-func attribute warns and returns nil, no crash ---
+al4=(:x 10)
+r35=al4.x(1)
+ok=ok&&(r35==nil)
+print("35 al4=(:x 10); al4.x(1) (expect nil, WARNING above): %v\n\n" r35)
+prev_ok=check_fail(:ok ok)
+
+// --- test 36: calling an undefined method warns and returns nil, no crash ---
+r36=al4.nosuchmethod(1)
+ok=ok&&(r36==nil)
+print("36 al4.nosuchmethod(1) (expect nil, WARNING above): %v\n\n" r36)
+prev_ok=check_fail(:ok ok)
+
+// --- test 37: nested attrlists self-bind independently -- outer.bump() and
+// outer.inner.bump() must not share or clobber each other's scope ---
+outer37=(:cnt 0 :bump func(cnt=cnt+1; cnt) :inner (:cnt 100 :bump func(cnt=cnt+1; cnt)))
+r37a=outer37.bump()
+r37b=outer37.inner.bump()
+ok=ok&&(r37a==1 && r37b==101 && outer37.cnt==1 && outer37.inner.cnt==101)
+print("37 outer.bump(); outer.inner.bump() (expect 1, 101, cnt=1, inner.cnt=101): %v %v %v %v\n\n" r37a r37b outer37.cnt outer37.inner.cnt)
+prev_ok=check_fail(:ok ok)
+
+// --- test 38: eval(obj.method :alist obj), the #294 mechanism .method(args)
+// is sugar for, still works unchanged ---
+c38=(:n 0 :incr func(n=n+1; n))
+r38=eval(c38.incr :alist c38)
+ok=ok&&(r38==1 && c38.n==1)
+print("38 eval(c38.incr :alist c38) (expect 1, c38.n=1): %v %v\n\n" r38 c38.n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 39: self-binding covers reads too, not just writes -- a method
+// can read a sibling field it was never passed as arg(n), purely via the
+// ambient scope self-binding puts it in ---
+duck=(:times 3 :quack func(times))
+r39=duck.quack()
+ok=ok&&(r39==3)
+print("39 duck=(:times 3 :quack func(times)); duck.quack() (expect 3 -- reads times, never passed as arg): %v\n\n" r39)
+prev_ok=check_fail(:ok ok)
+
+// --- test 40: a keyword arg to a method call that only gets read reverts
+// after the call -- ephemeral by default ---
+t40=(:tell func(cnt) :cnt 0)
+r40=t40.tell(:cnt 99)
+ok=ok&&(r40==99 && t40.cnt==0)
+print("40 t40=(:tell func(cnt) :cnt 0); t40.tell(:cnt 99) (expect 99, t40.cnt reverts to 0): %v %v\n\n" r40 t40.cnt)
+prev_ok=check_fail(:ok ok)
+
+// --- test 41: a keyword arg an existing field a method writes sticks --
+// the write's own result persists, not the keyword's raw value ---
+c41=(:incr func(cnt++) :cnt 0)
+r41=c41.incr(:cnt 10)
+ok=ok&&(r41==10 && c41.cnt==11)
+print("41 c41=(:incr func(cnt++) :cnt 0); c41.incr(:cnt 10) (expect 10, c41.cnt=11 -- the increment's result, not 10): %v %v\n\n" r41 c41.cnt)
+prev_ok=check_fail(:ok ok)
+
+// --- test 42: a keyword naming a field the object never had, read-only --
+// the injected field is removed afterward, not left dangling ---
+u42=(:show func(nope))
+r42=u42.show(:nope 5)
+ok=ok&&(r42==5 && u42.nope==nil)
+print("42 u42=(:show func(nope)); u42.show(:nope 5) (expect 5, u42.nope stays nil -- never existed, not left behind): %v %v\n\n" r42 u42.nope)
+prev_ok=check_fail(:ok ok)
+
+// --- test 43: same as 42 but the method writes the new field -- it sticks ---
+v43=(:setit func(nope=nope+1; nope))
+r43=v43.setit(:nope 5)
+ok=ok&&(r43==6 && v43.nope==6)
+print("43 v43=(:setit func(nope=nope+1; nope)); v43.setit(:nope 5) (expect 6, v43.nope=6 -- new field, written, sticks): %v %v\n\n" r43 v43.nope)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)

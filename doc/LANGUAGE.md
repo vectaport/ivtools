@@ -758,6 +758,110 @@ variable and referenced bare first — a bare reference to a `FuncObj` fires
 immediately, same niladic-firing rule as always, with no exception for
 being an argument to `eval()`.
 
+**`obj.method(args)` — sugar for the same thing.** Writing out
+`eval(obj.method :alist obj)` every time is more ceremony than the pattern
+needs, so a dot access with parentheses attached fires the method directly,
+self-bound the same way, with any arguments reaching `arg(n)` inside the
+body:
+
+```
+counter=(:n 0 :incr func(n=n+1; n))
+counter.incr()                        // 1
+counter.incr()                        // 2
+counter.n                              // 2 -- same real mutation as eval(:alist)
+
+al=(:addto func(n=n+arg(0); n) :n 0)
+al.addto(2)                            // 2
+al.addto(5)                            // 7 -- arg(0) is the call's own positional
+al.n                                    // 7
+```
+
+Bare access (`counter.incr`, no parens) is completely unaffected — it still
+returns the raw `FuncObj`, unfired, exactly as it always has (that's what
+lets `eval(counter.incr :alist counter)` work in the first place). Only a
+dot access with a trailing arglist — empty parens included — fires. A call
+on an attribute that isn't a `FuncObj`, or a method name the attrlist
+doesn't have, warns and returns `nil` rather than erroring:
+
+```
+al=(:x 10)
+al.x(1)                                // WARNING: "x" is not a func-valued attribute -- nil
+al.nosuchmethod(1)                      // WARNING: "nosuchmethod" is not a func-valued attribute -- nil
+```
+
+Arguments are evaluated in the *caller's* own scope, before `self` is
+switched in — so a variable reference in an argument resolves normally,
+not against the object being called:
+
+```
+src=(:val func(cnt) :cnt 7)
+dst=(:store func(cnt=arg(0)) :cnt 0)
+dst.store(src.val())                   // 7 -- src.val() runs in the caller's scope
+```
+
+Nested attrlists self-bind independently — a method on an inner attrlist
+sees only its own fields, never the outer one's:
+
+```
+outer=(:cnt 0 :bump func(cnt=cnt+1; cnt) :inner (:cnt 100 :bump func(cnt=cnt+1; cnt)))
+outer.bump()                           // 1
+outer.inner.bump()                      // 101 -- inner's own :cnt, untouched by outer's
+```
+
+**Keyword arguments to a method call are ephemeral, unless the method
+writes them.** `al.method(:key val)` writes `key` onto `al` before firing
+— exactly as if you'd written `al.key=val` first — then compares it back
+afterward: unchanged means nothing inside the call touched it, so it
+reverts (removed entirely if `al` never had that field before this call);
+different means the method's own body assigned a new value there,
+self-bound, and that assignment persists same as any other write would.
+Reading a keyword-supplied value never makes it stick — only writing to it
+does:
+
+```
+c=(:incr func(cnt++) :cnt 0)
+c.incr(:cnt 10)                        // 10 -- cnt++ reads 10, writes 11
+c.cnt                                   // 11 -- the write's own result persists
+
+t=(:tell func(cnt) :cnt 0)
+t.tell(:cnt 99)                        // 99 -- reads the keyword value
+t.cnt                                   // 0 -- never written, reverts to what it was
+
+u=(:show func(nope))
+u.show(:nope 5)                        // 5 -- nope never existed on u at all
+u.nope                                  // nil -- read-only, so never added for real
+```
+
+A keyword naming a field the object never had works the same way as one
+overriding an existing field — it's added before the call and, if nothing
+writes to it, removed again afterward, not left behind as a stray
+attribute.
+
+**Making a keyword arg actually stick, on purpose.** `c.incr(:cnt 10)`
+sticks *because* `cnt++` writes `cnt` as a side effect of what it was
+already going to do, not because anyone asked for the keyword itself to be
+kept. A `cnt=cnt` re-assignment written specifically to try to keep it
+doesn't work, and can't be made to: after that line runs, `al` looks
+identical whether the assignment happened or not — the value's the
+same either way, so there is nothing left to distinguish "genuinely
+written" from "never touched" by inspecting the object afterward. Two
+ways to actually get a persisting set, both already just working today:
+
+- **Set it directly**, no method call needed: `al.cnt=10` is a plain
+  attribute write, no keyword-ephemerality involved at all.
+- **Use a differently-named setter.** Give the keyword parameter and the
+  field it sets different names, and the ambiguity disappears — the
+  parameter is genuinely read-only (reverts, correctly) and the field is a
+  genuine write to a *different* name (persists, correctly, the same
+  self-bound mutation that makes `cnt++` work):
+
+```
+c=(:cnt 0 :setcnt func(cnt=val))
+c.setcnt(:val 8)                       // 8
+c.cnt                                   // 8 -- a real write, to a name the keyword never used
+c.val                                   // nil -- the keyword's own name, untouched, reverts
+```
+
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object
 it points to lives outside the func and is mutated via that reference:

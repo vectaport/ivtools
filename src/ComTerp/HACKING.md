@@ -283,15 +283,29 @@ command calls with explicit parens:
   with nids set to -1  used as a key lookup against the attrlist.
   Never dispatches as a command, even if the name is a registered
   zero-arg command.
-- **Command with parens** (`a.type()`, `a.print("k_%v" n :sym)`) —
-  emits `TOK_COMMAND`, dispatches normally, result used as key.
+- **Name with parens** (`a.type()`, `a.incr(1)`) — emits `TOK_COMMAND`
+  with nids != -1. `DotFunc` (`post_eval`, comterp.h/.c) looks the name
+  up as an attribute of `a` directly and, if it's a `FuncObj`, fires it
+  self-bound to `a` (`a`'s own `_alist` swapped in for the call, so
+  reads/writes of `a`'s fields inside the body are real mutation — see
+  *`obj.method(args)`* in `doc/LANGUAGE.md`). If the name isn't a
+  `FuncObj`-valued attribute of `a` — including when it happens to also
+  be a registered global command, like `type` or `print` — this warns
+  and returns nil rather than falling through to that global command.
+  That's a deliberate change from the pre-#295 behavior (parens used to
+  mean "evaluate this as an ordinary sub-expression first," which for a
+  registered name fired the *global* command, ignoring `a` entirely);
+  dot access is now consistently "look in the object" whether or not
+  parens follow.
 
 This is implemented in `_parser.c` at the bare identifier emission
 point (line ~1028): when the top of the operator stack is the `dot`
 operator and no left paren follows, emit `TOK_COMMAND` with nids
 set to -1 instead of `TOK_COMMAND`. A `dot_symid` static
 (initialized lazily) identifies the dot operator by its command
-symid via `opr_tbl_commid()`.
+symid via `opr_tbl_commid()`. `DotFunc` reads this `nids` value (via a
+non-evaluating peek, so it never risks firing the wrong thing) to
+choose between the two paths above.
 
 The chain form `a.type.class.exit` works automatically — each bare
 identifier after `.` hits the same emission point with dot on top of

@@ -45,44 +45,34 @@ GrDotFunc::GrDotFunc(ComTerp* comterp) : DotFunc(comterp) {
 
 void GrDotFunc::execute() {
 
-    ComValue& before_part(stack_arg(0, true));
-    ComValue& after_part(stack_arg(1, true));
-    if (!before_part.is_symbol() && 
-	!(before_part.is_attribute() && 
-          (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
-	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist() ||
-          ((Attribute*)before_part.obj_val())->Value()->object_compview())) &&
-        !(before_part.is_attributelist()) && 
-	!(before_part.object_compview())) {
-      cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
-	   << symbol_pntr(before_part.type_symid());
-      if (before_part.is_object())
-        cout << " of class " << symbol_pntr(before_part.class_symid());
-      cout << ") -- line " << funcstate()->linenum() << "\n";
-      cout << "expression after dot:  ";
-      cout << after_part << "\n";
-      reset_stack();
-      return;
-    }
-    if (!after_part.is_string()) {
-      cout << "WARNING: expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
-	   << symbol_pntr(after_part.type_symid());
-      if (before_part.is_object())
-        cout << " of class " << symbol_pntr(before_part.class_symid());
-      cout << ") -- line " << funcstate()->linenum() << "\n";
-      reset_stack();
-      return;
-    }
+    /* peek_and_fire (inherited from DotFunc) fires arg 0 exactly once if
+       it's an unfired nested command reference -- e.g. grid(:table) in
+       at(grid(:table)).grid -- leaving before_part a real value rather
+       than a raw CommandType token.  before_part is a local copy here
+       (unlike the pre-post_eval version of this method, which held a
+       reference onto the live stack slot and mutated it in place before
+       delegating to DotFunc::execute() to re-peek): arg 0 can only be
+       fired once, so there's no stack slot left to re-peek after firing,
+       and the resolved value has to be threaded through explicitly to
+       execute_core() below instead. */
+    ComValue before_part, after_part;
+    int after_nids;
+    std::string before_expr_text, after_expr_text;
+    peek_and_fire(before_part, after_part, after_nids, before_expr_text, after_expr_text);
 
-    /* handle ComponentView case */
-    if (before_part.is_symbol()) 
+    /* unwrap a ComponentView (or an Attribute wrapping one) to its
+       underlying attribute list -- execute_core()'s dot-dispatch only
+       understands symbols/attributes/attributelists, the same as it did
+       pre-post_eval; a raw compview value or attribute-wrapped compview
+       never reaches it unconverted. */
+    if (before_part.is_symbol())
       lookup_symval(before_part);
     if (before_part.is_object() && before_part.object_compview()) {
       ComponentView* compview = (ComponentView*)before_part.obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
       if (comp) {
 	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
-	before_part.assignval(stuffval);
+	before_part = stuffval;
       } else {
 	cerr << "nil subject on compview value\n";
 	reset_stack();
@@ -90,14 +80,14 @@ void GrDotFunc::execute() {
 	return;
       }
 
-    } else if (before_part.is_object() && before_part.is_attribute() && 
+    } else if (before_part.is_object() && before_part.is_attribute() &&
 	       ((Attribute*)before_part.obj_val())->Value()->object_compview()) {
       AttributeValue* av = ((Attribute*)before_part.obj_val())->Value();
       ComponentView* compview = (ComponentView*)av->obj_val();
       OverlayComp* comp = (OverlayComp*)compview->GetSubject();
       if (comp) {
 	ComValue stuffval(AttributeList::class_symid(), (void*)comp->GetAttributeList());
-	before_part.assignval(stuffval);
+	before_part = stuffval;
       } else {
 	cerr << "nil subject on compview value\n";
 	reset_stack();
@@ -106,8 +96,7 @@ void GrDotFunc::execute() {
       }
 
     }
-    DotFunc::execute();
-    
+    execute_core(before_part, after_part, after_nids, before_expr_text, after_expr_text);
 }
 
 /*****************************************************************************/
