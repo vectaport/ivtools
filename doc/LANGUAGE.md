@@ -212,7 +212,7 @@ ComTerp are:
 
 1. **Argument lists** — enclose arguments to a command: `f(a b c)`
 2. **Attrlist literals** — `(:key val)` when first token is a keyword
-3. **Stream literals** — `(val val ...)` when first token is a value *(ivtools-3.0)*
+3. **Stream literals** — `(val val ...)` when first token is a value
 4. **Precedence override** — `(a+b)*c` to override operator priority
 
 That's it. A body does not need parens. `(lst,i; total=total+i)` is
@@ -224,18 +224,16 @@ for(i=0 i<10 i++ (lst,i; total=total+i))  // works but parens unnecessary
 ```
 
 **Warning:** a space between two expressions inside parens — without a
-semicolon — is not a two-statement body. It is currently an error and
-will become a stream literal in ivtools-3.0:
+semicolon — is not a two-statement body. It is a stream literal:
 
 ```
-for(i=0 i<10 i++ (lst,i total=total+i))   // error now, stream literal in 3.0
-for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with two bodies
+for(i=0 i<10 i++ (lst,i total=total+i))   // body is a 2-element stream literal, not two statements -- loop no-ops
+for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with more than one body -- missing semicolon between statements
 ```
 
-**Warning (ivtools-3.0):** Once stream literals land, `(ding beep)`
-will be parsed as a stream literal of two values, not a grouped
-two-statement body. Any code using space-separated statements inside
-parens without semicolons must be fixed before 3.0. See issue #103.
+`(ding beep)` parses as a stream literal of two values, not a grouped
+two-statement body. Code relying on space-separated statements inside
+parens without a semicolon needs a semicolon added between them.
 
 ## Types
 
@@ -251,7 +249,7 @@ parens without semicolons must be fixed before 3.0. See issue #103.
 | nil | `nil` | no value |
 | blank | `BlankType` | return of `return()` with no arg |
 | list | `1,2,3` or `(1,2,3)` or $1,2,3| comma operator |
-| stream | `$$(1,2,3)` or `(1 2 3)` *(ivtools-3.0)* | sequence of values produced and consumed one at a time |
+| stream | `$$(1,2,3)` or `(1 2 3)` | sequence of values produced and consumed one at a time |
 | attrlist | `(:x 1)` or `attrlist(:x 1)` | key/value store |
 | compview | returned by drawing commands | graphic component handle |
 
@@ -1192,10 +1190,10 @@ remaining elements unevaluated in the token buffer.
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
 The streaming algebra is still being formalized. The stream literal
-syntax (ivtools-3.0) completes the source end of the algebra; ongoing
-work continues to clarify the composition laws, particularly around nil
-propagation through composed operations and zip semantics between lazy
-and materialized sources.
+syntax completes the source end of the algebra; ongoing work continues
+to clarify the composition laws, particularly around nil propagation
+through composed operations and zip semantics between lazy and
+materialized sources.
 
 ### Scalar overdrive
 
