@@ -32,6 +32,7 @@
 #include <Attribute/attribute.h>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #define TITLE "DotFunc"
 
@@ -41,6 +42,13 @@ using std::cerr;
 /*****************************************************************************/
 
 int DotFunc::_symid = -1;
+
+/* off by default -- capturing the pre-fire source text of both args (see
+   execute() below) costs a cout redirect + two print_stack_arg_post_eval
+   calls on every dot-expression, even the overwhelmingly common case where
+   nothing goes wrong.  Flip to true (in a debugger, or edit+rebuild) only
+   while chasing a "expression before/after dot" warning. */
+static boolean dotfunc_debug_expr = false;
 
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -216,32 +224,59 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   self->push_stack(result);
 }
 
-void DotFunc::execute() {
-    ComValue before_part(stack_arg(0, true));
+void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& after_nids,
+			     std::string& before_expr_text, std::string& after_expr_text) {
+    /* Grab the raw, unfired source text of both args for the warnings
+       below *before* either can be evaluated -- stack_arg_post_eval(0)
+       just below fires arg 0 when it's a nested dot (node.left.val),
+       which moves the stack bookmark print_stack_arg_post_eval relies
+       on; capturing after that point prints garbage (confirmed: showed
+       a stale offset int instead of the real argument). */
+    if (dotfunc_debug_expr) {
+      std::ostringstream before_expr_stream, after_expr_stream;
+      std::streambuf* saved_cout = cout.rdbuf(before_expr_stream.rdbuf());
+      print_stack_arg_post_eval(0);
+      cout.rdbuf(after_expr_stream.rdbuf());
+      print_stack_arg_post_eval(1);
+      cout.rdbuf(saved_cout);
+      before_expr_text = before_expr_stream.str();
+      after_expr_text = after_expr_stream.str();
+    }
+
+    before_part = stack_arg(0, true);
     if (before_part.type()==ComValue::CommandType) {
       /* a real command reference (e.g. the inner dot of node.left.val) --
 	 fire it to get its actual value.  A bare, unbound symbol (the
 	 compound-variable-on-first-use case just below) never gets promoted
 	 to CommandType by ComTerp::token_to_comvalue in the first place, so
-	 this never fires on a name DotFunc's own lookup below needs raw. */
-      before_part = stack_arg_post_eval(0, true);
+	 this never fires on a name DotFunc's own lookup below needs raw.
+	 symbol=false (the default) here, not true: this needs pop_stack's
+	 full finalization (resolve a symbol, unwrap an Attribute down to
+	 its own Value()), not the raw, unprocessed result. */
+      before_part = stack_arg_post_eval(0);
     }
-    ComValue after_raw(stack_arg(1, true));
-    int after_nids = after_raw.nids();
+    after_raw = stack_arg(1, true);
+    after_nids = after_raw.nids();
+}
 
+void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_nids,
+			    const std::string& before_expr_text, const std::string& after_expr_text) {
     if (!before_part.is_symbol() &&
 	!(before_part.is_attribute() &&
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
-      reset_stack();
       cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
-      cout << "expression after dot:  ";
-      cout << after_raw << "\n";
+      if (dotfunc_debug_expr)
+        cout << "expression before dot:  " << before_expr_text;
+      else
+        cout << "(set dotfunc_debug_expr=true in dotfunc.c and rebuild to see the expression before the dot)\n";
+      cout << "expression after dot:  " << after_raw << "\n";
+      reset_stack();
 
       return;
     }
@@ -252,12 +287,16 @@ void DotFunc::execute() {
        and not itself a malformed-expression signal.  Only the bare/string
        rhs path needs this check. */
     if (after_nids==-1 && nargsfixed()>1 && !after_raw.is_string() && !after_raw.is_symbol()) {
-      reset_stack();
       cout << "WARNING: expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
 	   << symbol_pntr(after_raw.type_symid());
       if (before_part.is_object())
 	cout << " for class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
+      if (dotfunc_debug_expr)
+        cout << "expression after dot:  " << after_expr_text;
+      else
+        cout << "(set dotfunc_debug_expr=true in dotfunc.c and rebuild to see the expression after the dot)\n";
+      reset_stack();
       return;
     }
 
@@ -321,6 +360,14 @@ void DotFunc::execute() {
       ComValue retval(AttributeList::class_symid(), al);
       push_stack(retval);
     }
+}
+
+void DotFunc::execute() {
+    ComValue before_part, after_raw;
+    int after_nids;
+    std::string before_expr_text, after_expr_text;
+    peek_and_fire(before_part, after_raw, after_nids, before_expr_text, after_expr_text);
+    execute_core(before_part, after_raw, after_nids, before_expr_text, after_expr_text);
 }
 
 /*****************************************************************************/

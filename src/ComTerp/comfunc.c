@@ -124,6 +124,21 @@ ComValue& ComFunc::stack_dotname(int n) {
 ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
+  /* same anchor-recovered-offtop guard as stack_key_post_eval (see note
+     there) -- this one was missed when that hardening landed, and it's the
+     path DotFunc/GrDotFunc use to fire arg 0 (e.g. at(grid(:table)) in
+     at(grid(:table)).grid), so a corrupt anchor here doesn't crash, it
+     just walks _pfcomvals from the wrong position and returns whatever
+     garbage token happens to sit there -- observed as a bogus CommandType
+     value routinely, not a crash, which is what made this so hard to
+     pin down. */
+  if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
+    fprintf(stderr, "comterp: stack_arg_post_eval: offtop out of range "
+            "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
+            "or corrupt; upstream command likely failed to push its bookmark\n",
+            offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
+    return dflt;
+  }
   int argcnt;
   for (int i=0; i<nkeys(); i++) {
     argcnt = 0;
