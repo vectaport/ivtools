@@ -332,6 +332,17 @@ public:
     // number of positional args of the current FuncObj invocation.
     ComValue& funcobj_arg(int n);
     // nth positional arg (eager value) of the current FuncObj invocation.
+    ComValue* funcobj_argvals() { return _funcobj_argvals; }
+    // return the current positional-argument array itself (nil if inactive),
+    // for a caller that needs to save it before installing its own.
+    void set_funcobj_args(ComValue* argvals, int nargs, boolean active) {
+      _funcobj_argvals = argvals; _funcobj_nargs = nargs; _funcobj_active = active; }
+    // install the per-invocation positional-argument channel that arg()/
+    // narg() read inside a func body -- caller saves funcobj_argvals()/
+    // funcobj_narg()/funcobj_active() first and restores them after, the
+    // same bracketing set_attributes()/get_attributes() use around an
+    // _alist swap (see DotFunc, which needs both at once to self-bind an
+    // attrlist method call and still serve its positional args).
 
     void set_args(int argc, char** argv);
     // set command line arguments

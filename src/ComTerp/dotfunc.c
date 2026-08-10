@@ -25,6 +25,8 @@
 #include <ComTerp/dotfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/comterpserv.h>
+#include <ComTerp/postfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <iostream>
@@ -42,37 +44,143 @@ int DotFunc::_symid = -1;
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
+/* obj.method(args) -- fire a FuncObj-valued attribute self-bound to obj.
+   Evaluates args in the caller's own scope (before any _alist swap, so a
+   variable reference in an arg resolves against the caller, not obj), then
+   temporarily swaps _alist to obj -- the same mechanism eval(fo :alist obj)
+   already uses (ctrlfunc.c's EvalFunc) -- and runs the method's own token
+   buffer directly, so self-bound reads/writes of obj's own fields mutate
+   the real object, not a per-call copy.  Positional args flow through the
+   funcobj_args channel (set_funcobj_args/funcobj_argvals, comterp.h) the
+   same way an ordinary FuncObj invocation's arg()/narg() are served.
+
+   Getting at args without evaluating "method" itself: a symbol with an
+   attached arglist that isn't a registered global command gets rebound to
+   the nil command by ComTerp::token_to_comvalue at expression-conversion
+   time, unconditionally, before any command (including this one) runs --
+   that check only ever consults the global command table, never _alist, so
+   there is no way to make "method(args)" resolve through obj by evaluating
+   it as an ordinary sub-expression.  Instead: look "method" up in obj
+   directly (the same GetAttr() the bare-access path below already uses),
+   and get the args evaluated by retargeting a copy of just the arg tokens
+   at the existing echo() command -- an ordinary (non-post_eval) command
+   that already packages positionals/keywords into an inspectable value for
+   the ~~ round-trip -- so ordinary dispatch does the evaluation, still
+   never touching "method" as a symbol at all. */
+static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
+				  AttributeList* al, postfix_token* argtoks,
+				  int nargtoks) {
+  postfix_token& method_tok = argtoks[nargtoks-1];
+  int method_symid = method_tok.v.symbolid;
+  int method_narg = method_tok.narg;
+  int method_nkey = method_tok.nkey;
+
+  Attribute* attr = al ? al->GetAttr(method_symid) : nil;
+  if (!attr || !attr->Value()->is_object(FuncObj::class_symid())) {
+    cout << "WARNING: \"" << symbol_pntr(method_symid)
+	 << "\" is not a func-valued attribute -- line "
+	 << self->funcstate()->linenum() << "\n";
+    delete [] argtoks;
+    self->push_stack(ComValue::nullval());
+    return;
+  }
+  FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
+
+  /* echoresult owns poslist's storage (a ComValue destructor unrefs its
+     list) -- keep it alive across both the extraction below and this whole
+     block, not just the narrower "did echo run" scope. */
+  ComValue echoresult;
+  AttributeValueList* poslist = nil;
+  int npos = 0;
+  if (method_narg>0 || method_nkey>0) {
+    static int echo_symid = symbol_add("echo");
+    method_tok.v.symbolid = echo_symid;
+    echoresult = self->comterpserv()->run(argtoks, nargtoks);
+    if (echoresult.is_list()) {
+      poslist = echoresult.list_val();
+      npos = poslist->Number() - method_nkey;
+      if (npos<0) npos = 0;
+    }
+    if (method_nkey>0)
+      cout << "WARNING: keyword arguments to \"" << symbol_pntr(method_symid)
+	   << "\" ignored -- attrlist methods only take positional args"
+	   << " (line " << self->funcstate()->linenum() << ")\n";
+  }
+  delete [] argtoks;
+
+  ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
+  if (npos>0) {
+    for (int i=0; i<npos; i++)
+      posvals[i] = *poslist->Get(i);
+  }
+
+  AttributeList* old_alist = comterp->get_attributes();
+  Resource::ref(old_alist);
+  comterp->set_attributes(al);
+
+  ComValue* saved_argvals = comterp->funcobj_argvals();
+  int saved_nargs = comterp->funcobj_narg();
+  boolean saved_active = comterp->funcobj_active();
+  comterp->set_funcobj_args(posvals, npos, true);
+
+  ComValue result(self->comterpserv()->run(fo->toks(), fo->ntoks()));
+
+  comterp->set_funcobj_args(saved_argvals, saved_nargs, saved_active);
+  delete [] posvals;
+
+  comterp->set_attributes(old_alist);
+  Unref(old_alist);
+
+  self->push_stack(result);
+}
+
 void DotFunc::execute() {
     ComValue before_part(stack_arg(0, true));
-    ComValue after_part(stack_arg(1, true));
-    reset_stack();
+    if (before_part.type()==ComValue::CommandType) {
+      /* a real command reference (e.g. the inner dot of node.left.val) --
+	 fire it to get its actual value.  A bare, unbound symbol (the
+	 compound-variable-on-first-use case just below) never gets promoted
+	 to CommandType by ComTerp::token_to_comvalue in the first place, so
+	 this never fires on a name DotFunc's own lookup below needs raw. */
+      before_part = stack_arg_post_eval(0, true);
+    }
+    ComValue after_raw(stack_arg(1, true));
+    int after_nids = after_raw.nids();
 
-    if (!before_part.is_symbol() && 
-	!(before_part.is_attribute() && 
-	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() || 
+    if (!before_part.is_symbol() &&
+	!(before_part.is_attribute() &&
+	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
+      reset_stack();
       cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
       cout << "expression after dot:  ";
-      cout << after_part << "\n";
+      cout << after_raw << "\n";
 
       return;
     }
-    if (nargs()>1 && !after_part.is_string()) {
+    /* An arglist-attached rhs (after_nids != -1, e.g. al.method(2)) is
+       validated later, in fire_attrlist_method -- by the time this token
+       reaches here it has already been converted to CommandType (rebound
+       to nil, see the note above fire_attrlist_method), which is expected
+       and not itself a malformed-expression signal.  Only the bare/string
+       rhs path needs this check. */
+    if (after_nids==-1 && nargsfixed()>1 && !after_raw.is_string() && !after_raw.is_symbol()) {
+      reset_stack();
       cout << "WARNING: expression after \".\" needs to be a symbol or evaluate to a symbol (instead of "
-	   << symbol_pntr(after_part.type_symid());
+	   << symbol_pntr(after_raw.type_symid());
       if (before_part.is_object())
-        cout << " for class " << symbol_pntr(before_part.class_symid());
+	cout << " for class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
       return;
     }
 
     /* lookup value of before variable */
-    void* vptr = nil; 
+    void* vptr = nil;
     AttributeList* al = nil;
     if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
@@ -94,7 +202,7 @@ void DotFunc::execute() {
 	  comterp()->globaltable()->insert(before_symid, comval);
       }
     } else if (!before_part.is_attributelist()) {
-      if (((Attribute*)before_part.obj_val())->Value()->is_attributelist()) 
+      if (((Attribute*)before_part.obj_val())->Value()->is_attributelist())
 	al = (AttributeList*) ((Attribute*) before_part.obj_val())->Value()->obj_val();
       else {
 	al = new AttributeList();
@@ -104,11 +212,21 @@ void DotFunc::execute() {
     } else
       al = (AttributeList*) before_part.obj_val();
 
-    if (nargs()>1) {
-      int after_symid = after_part.symbol_val();
-      if (after_part.type()==ComValue::StringType) {
-        symbol_reference(after_symid);	
+    if (after_nids!=-1) {
+      /* al.method(args) -- fire, self-bound, not a plain attribute fetch.
+	 copy_stack_arg_post_eval needs the argoff bookmark still on the
+	 stack, so it must run before reset_stack(), same as every other
+	 stack_arg* read here. */
+      int nargtoks;
+      postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
+      reset_stack();
+      fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
+    } else if (nargs()>1) {
+      int after_symid = after_raw.symbol_val();
+      if (after_raw.type()==ComValue::StringType) {
+        symbol_reference(after_symid);
       }
+      reset_stack();
       Attribute* attr = al ? al->GetAttr(after_symid) :  nil;
       if (!attr) {
 	attr = new Attribute(after_symid, new AttributeValue());
@@ -117,6 +235,7 @@ void DotFunc::execute() {
       ComValue retval(Attribute::class_symid(), attr);
       push_stack(retval);
     } else {
+      reset_stack();
       ComValue retval(AttributeList::class_symid(), al);
       push_stack(retval);
     }

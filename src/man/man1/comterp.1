@@ -145,6 +145,7 @@ Print a usage summary of all the invocation modes above and exit.
     ,          tuple          35          L-to-R      binary
     ,,         stream concat  33          L-to-R      binary
     $          list           32          R-to-L      unary-prefix
+    ~~         spread         32          R-to-L      unary-prefix
     %=         mod_assign     30          R-to-L      binary
     *=         mpy_assign     30          R-to-L      binary
     +=         add_assign     30          R-to-L      binary
@@ -362,9 +363,11 @@ Print a usage summary of all the invocation modes above and exit.
 
  val=remote(hoststr|sockobj [portnum] cmdstr :nowait :str) -- remotely evaluate command string then locally evaluate result string
 
- val=eval(cmdstr|funcobj [cmdstr|funcobj ...] :symret ) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil
+ val=eval(cmdstr|funcobj [cmdstr|funcobj ...] :symret :alist attrlist) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil, with the given attrlist as func-local scope
 
  funcobj=func(body :echo) -- encapsulate a body of commands into an executable object
+
+ val=echo(arg [arg [...]] :key val ...) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)
 
  status=shell(cmdstr) -- evaluate command in shell
 

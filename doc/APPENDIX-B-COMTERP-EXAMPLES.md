@@ -142,6 +142,40 @@ niladic call site everywhere, with no special case for inside a func body.
 
 ---
 
+## Objects: attrlists with methods, called directly
+
+An attrlist that bundles data fields with `FuncObj` methods is a real,
+mutating object -- `obj.method(args)` fires the method self-bound to
+`obj`, with `args` reaching `arg(n)` inside the body:
+
+```
+counter=(:n 0 :incr func(n=n+1; n))
+counter.incr()                        // 1
+counter.incr()                        // 2
+counter.n                              // 2 -- genuinely mutated, not a copy
+
+al=(:addto func(n=n+arg(0); n) :n 0)
+al.addto(2)                            // 2
+al.addto(5)                            // 7
+al.n                                    // 7
+```
+
+Bare access (no parens) still just returns the `FuncObj`, unfired -- only
+a trailing arglist, empty or not, fires it. Calling something that isn't a
+method warns and returns `nil` instead of erroring:
+
+```
+x=counter.incr; isfunc(x)              // true -- no fire
+al=(:x 10)
+al.x(1)                                // WARNING: "x" is not a func-valued attribute -- nil
+```
+
+See *`obj.method(args)` — sugar for the same thing* in `LANGUAGE.md` for
+the full contract -- what this desugars to (`eval(obj.method :alist obj)`),
+why arguments evaluate in the caller's own scope, and nested self-binding.
+
+---
+
 ## Functions and scope
 
 ```

@@ -760,6 +760,60 @@ variable and referenced bare first — a bare reference to a `FuncObj` fires
 immediately, same niladic-firing rule as always, with no exception for
 being an argument to `eval()`.
 
+**`obj.method(args)` — sugar for the same thing.** Writing out
+`eval(obj.method :alist obj)` every time is more ceremony than the pattern
+needs, so a dot access with parentheses attached fires the method directly,
+self-bound the same way, with any arguments reaching `arg(n)` inside the
+body:
+
+```
+counter=(:n 0 :incr func(n=n+1; n))
+counter.incr()                        // 1
+counter.incr()                        // 2
+counter.n                              // 2 -- same real mutation as eval(:alist)
+
+al=(:addto func(n=n+arg(0); n) :n 0)
+al.addto(2)                            // 2
+al.addto(5)                            // 7 -- arg(0) is the call's own positional
+al.n                                    // 7
+```
+
+Bare access (`counter.incr`, no parens) is completely unaffected — it still
+returns the raw `FuncObj`, unfired, exactly as it always has (that's what
+lets `eval(counter.incr :alist counter)` work in the first place). Only a
+dot access with a trailing arglist — empty parens included — fires. A call
+on an attribute that isn't a `FuncObj`, or a method name the attrlist
+doesn't have, warns and returns `nil` rather than erroring:
+
+```
+al=(:x 10)
+al.x(1)                                // WARNING: "x" is not a func-valued attribute -- nil
+al.nosuchmethod(1)                      // WARNING: "nosuchmethod" is not a func-valued attribute -- nil
+```
+
+Arguments are evaluated in the *caller's* own scope, before `self` is
+switched in — so a variable reference in an argument resolves normally,
+not against the object being called:
+
+```
+src=(:val func(cnt) :cnt 7)
+dst=(:store func(cnt=arg(0)) :cnt 0)
+dst.store(src.val())                   // 7 -- src.val() runs in the caller's scope
+```
+
+Nested attrlists self-bind independently — a method on an inner attrlist
+sees only its own fields, never the outer one's:
+
+```
+outer=(:cnt 0 :bump func(cnt=cnt+1; cnt) :inner (:cnt 100 :bump func(cnt=cnt+1; cnt)))
+outer.bump()                           // 1
+outer.inner.bump()                      // 101 -- inner's own :cnt, untouched by outer's
+```
+
+Only positional arguments are supported today — a keyword argument to a
+method call (`al.method(:key val)`) is accepted but ignored, with a
+warning, rather than silently doing something unexpected.
+
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object
 it points to lives outside the func and is mutated via that reference:
