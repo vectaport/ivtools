@@ -27,6 +27,7 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/boolfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <iostream>
@@ -42,6 +43,50 @@ using std::cerr;
 int DotFunc::_symid = -1;
 
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+/* true if a and b hold the same value -- reuses EqualFunc's own
+   type-promoting comparison (numeric promotion, nil/blank handling, etc.)
+   rather than re-deriving it, by pushing both values and invoking it
+   directly the way ComFunc::exec() lets any command be called out of
+   band. */
+static boolean values_equal(ComTerp* comterp, AttributeValue& a, AttributeValue& b) {
+  ComValue va(a), vb(b);
+  comterp->push_stack(va);
+  comterp->push_stack(vb);
+  EqualFunc eqf(comterp);
+  eqf.exec(2, 0);
+  ComValue result(comterp->pop_stack());
+  return result.is_true();
+}
+
+/* bookkeeping for one keyword arg to a method call -- see the comment on
+   the keyword-handling block in fire_attrlist_method for what "ephemeral
+   unless written" means here. */
+struct KwPending {
+  int symid;
+  boolean existed;
+  AttributeValue oldval;
+  AttributeValue injectedval;
+};
+
+static void apply_kw(AttributeList* al, int symid, AttributeValue& newval, KwPending& pending) {
+  pending.symid = symid;
+  Attribute* existing = al->GetAttr(symid);
+  pending.existed = existing!=nil;
+  if (pending.existed) pending.oldval = *existing->Value();
+  pending.injectedval = newval;
+  al->add_attr(symid, newval);
+}
+
+static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPending& pending) {
+  Attribute* now = al->GetAttr(pending.symid);
+  if (!now || !values_equal(comterp, *now->Value(), pending.injectedval))
+    return;   // written during the call (or vanished outright) -- leave it
+  if (pending.existed)
+    *now->Value() = pending.oldval;
+  else
+    al->Remove(now);
 }
 
 /* obj.method(args) -- fire a FuncObj-valued attribute self-bound to obj.
@@ -86,25 +131,30 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   }
   FuncObj* fo = (FuncObj*) attr->Value()->obj_val();
 
-  /* echoresult owns poslist's storage (a ComValue destructor unrefs its
-     list) -- keep it alive across both the extraction below and this whole
-     block, not just the narrower "did echo run" scope. */
+  /* echoresult owns poslist's/kwlist's storage (a ComValue destructor
+     unrefs its list/attrlist) -- keep it alive across both the extraction
+     below and this whole block, not just the narrower "did echo run"
+     scope. */
   ComValue echoresult;
   AttributeValueList* poslist = nil;
+  AttributeList* kwlist = nil;
   int npos = 0;
   if (method_narg>0 || method_nkey>0) {
     static int echo_symid = symbol_add("echo");
     method_tok.v.symbolid = echo_symid;
     echoresult = self->comterpserv()->run(argtoks, nargtoks);
     if (echoresult.is_list()) {
+      /* positionals present -- echo tails the list with one singleton
+	 attrlist per keyword (see echo()'s own docstring); trailing
+	 method_nkey entries are those singletons, not positionals. */
       poslist = echoresult.list_val();
       npos = poslist->Number() - method_nkey;
       if (npos<0) npos = 0;
+    } else if (echoresult.is_attributelist()) {
+      /* no positionals -- echo returns the keywords bare, as one
+	 multi-attribute attrlist. */
+      kwlist = (AttributeList*) echoresult.obj_val();
     }
-    if (method_nkey>0)
-      cout << "WARNING: keyword arguments to \"" << symbol_pntr(method_symid)
-	   << "\" ignored -- attrlist methods only take positional args"
-	   << " (line " << self->funcstate()->linenum() << ")\n";
   }
   delete [] argtoks;
 
@@ -112,6 +162,34 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   if (npos>0) {
     for (int i=0; i<npos; i++)
       posvals[i] = *poslist->Get(i);
+  }
+
+  /* keyword args are ephemeral unless the method's own body writes that
+     same name -- reading it (or ignoring it) leaves al exactly as it was;
+     only a write (self-bound, so it lands on al) makes it stick.  Apply
+     each keyword now (saving what it's replacing), fire below, then
+     compare-and-revert after: unchanged from what was just injected means
+     nothing wrote it, so put the old value back (or remove it entirely if
+     the name didn't exist on al before this call). */
+  int nkw = method_nkey;
+  KwPending* kwpending = nkw>0 ? new KwPending[nkw] : nil;
+  if (nkw>0) {
+    if (poslist) {
+      for (int i=0; i<nkw; i++) {
+	AttributeList* singleton = (AttributeList*) poslist->Get(npos+i)->obj_val();
+	ALIterator it;
+	singleton->First(it);
+	Attribute* a = singleton->GetAttr(it);
+	apply_kw(al, a->SymbolId(), *a->Value(), kwpending[i]);
+      }
+    } else if (kwlist) {
+      ALIterator it;
+      int i = 0;
+      for (kwlist->First(it); !kwlist->Done(it); kwlist->Next(it), i++) {
+	Attribute* a = kwlist->GetAttr(it);
+	apply_kw(al, a->SymbolId(), *a->Value(), kwpending[i]);
+      }
+    }
   }
 
   AttributeList* old_alist = comterp->get_attributes();
@@ -130,6 +208,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 
   comterp->set_attributes(old_alist);
   Unref(old_alist);
+
+  for (int i=0; i<nkw; i++)
+    restore_kw_if_unwritten(comterp, al, kwpending[i]);
+  delete [] kwpending;
 
   self->push_stack(result);
 }

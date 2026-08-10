@@ -170,6 +170,20 @@ al=(:x 10)
 al.x(1)                                // WARNING: "x" is not a func-valued attribute -- nil
 ```
 
+A keyword argument to a method call sticks only if the method itself
+writes to it -- merely reading it reverts after the call, like any
+ordinary func() keyword-local would:
+
+```
+c=(:incr func(cnt++) :cnt 0)
+c.incr(:cnt 10)                        // 10 -- cnt++ writes 11
+c.cnt                                   // 11 -- the write persists
+
+t=(:tell func(cnt) :cnt 0)
+t.tell(:cnt 99)                        // 99 -- reads the keyword value
+t.cnt                                   // 0 -- never written, reverts
+```
+
 See *`obj.method(args)` — sugar for the same thing* in `LANGUAGE.md` for
 the full contract -- what this desugars to (`eval(obj.method :alist obj)`),
 why arguments evaluate in the caller's own scope, and nested self-binding.

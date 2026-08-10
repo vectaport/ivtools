@@ -810,9 +810,34 @@ outer.bump()                           // 1
 outer.inner.bump()                      // 101 -- inner's own :cnt, untouched by outer's
 ```
 
-Only positional arguments are supported today — a keyword argument to a
-method call (`al.method(:key val)`) is accepted but ignored, with a
-warning, rather than silently doing something unexpected.
+**Keyword arguments to a method call are ephemeral, unless the method
+writes them.** `al.method(:key val)` writes `key` onto `al` before firing
+— exactly as if you'd written `al.key=val` first — then compares it back
+afterward: unchanged means nothing inside the call touched it, so it
+reverts (removed entirely if `al` never had that field before this call);
+different means the method's own body assigned a new value there,
+self-bound, and that assignment persists same as any other write would.
+Reading a keyword-supplied value never makes it stick — only writing to it
+does:
+
+```
+c=(:incr func(cnt++) :cnt 0)
+c.incr(:cnt 10)                        // 10 -- cnt++ reads 10, writes 11
+c.cnt                                   // 11 -- the write's own result persists
+
+t=(:tell func(cnt) :cnt 0)
+t.tell(:cnt 99)                        // 99 -- reads the keyword value
+t.cnt                                   // 0 -- never written, reverts to what it was
+
+u=(:show func(nope))
+u.show(:nope 5)                        // 5 -- nope never existed on u at all
+u.nope                                  // nil -- read-only, so never added for real
+```
+
+A keyword naming a field the object never had works the same way as one
+overriding an existing field — it's added before the call and, if nothing
+writes to it, removed again afterward, not left behind as a stray
+attribute.
 
 Writing through a reference passed in as a keyword arg is not an
 exception to this rule — the symbol is local, but the attrlist object

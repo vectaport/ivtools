@@ -1,9 +1,9 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 51/64 (80%)
+// coverage: 55/68 (81%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
-//          dot(func-local-scope-isolation) -(empty-rhs) dot-method(keyword-args)
+//          dot(func-local-scope-isolation) -(empty-rhs)
 //
 // Tests the dot (.) compound variable / attribute list access operator,
 // list(:attr) attribute list construction, and the attrlist() command
@@ -12,8 +12,11 @@
 // with positional args reaching arg(n) inside the body (tests 30-38), and
 // that self-binding covers plain reads of sibling fields too, not just
 // arg(n) and mutation (test 39).  Keyword args to a method call
-// (al.method(:key val)) are accepted but currently ignored with a
-// warning -- not yet covered here.
+// (al.method(:key val)) write onto the object before the call and are
+// compared back after: unchanged means nothing wrote them, so they revert
+// (or are removed, if the name didn't exist before) -- different means
+// the method's own body wrote a new value there, self-bound, and that
+// write persists (tests 40-43).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -323,6 +326,37 @@ duck=(:times 3 :quack func(times))
 r39=duck.quack()
 ok=ok&&(r39==3)
 print("39 duck=(:times 3 :quack func(times)); duck.quack() (expect 3 -- reads times, never passed as arg): %v\n\n" r39)
+prev_ok=check_fail(:ok ok)
+
+// --- test 40: a keyword arg to a method call that only gets read reverts
+// after the call -- ephemeral by default ---
+t40=(:tell func(cnt) :cnt 0)
+r40=t40.tell(:cnt 99)
+ok=ok&&(r40==99 && t40.cnt==0)
+print("40 t40=(:tell func(cnt) :cnt 0); t40.tell(:cnt 99) (expect 99, t40.cnt reverts to 0): %v %v\n\n" r40 t40.cnt)
+prev_ok=check_fail(:ok ok)
+
+// --- test 41: a keyword arg an existing field a method writes sticks --
+// the write's own result persists, not the keyword's raw value ---
+c41=(:incr func(cnt++) :cnt 0)
+r41=c41.incr(:cnt 10)
+ok=ok&&(r41==10 && c41.cnt==11)
+print("41 c41=(:incr func(cnt++) :cnt 0); c41.incr(:cnt 10) (expect 10, c41.cnt=11 -- the increment's result, not 10): %v %v\n\n" r41 c41.cnt)
+prev_ok=check_fail(:ok ok)
+
+// --- test 42: a keyword naming a field the object never had, read-only --
+// the injected field is removed afterward, not left dangling ---
+u42=(:show func(nope))
+r42=u42.show(:nope 5)
+ok=ok&&(r42==5 && u42.nope==nil)
+print("42 u42=(:show func(nope)); u42.show(:nope 5) (expect 5, u42.nope stays nil -- never existed, not left behind): %v %v\n\n" r42 u42.nope)
+prev_ok=check_fail(:ok ok)
+
+// --- test 43: same as 42 but the method writes the new field -- it sticks ---
+v43=(:setit func(nope=nope+1; nope))
+r43=v43.setit(:nope 5)
+ok=ok&&(r43==6 && v43.nope==6)
+print("43 v43=(:setit func(nope=nope+1; nope)); v43.setit(:nope 5) (expect 6, v43.nope=6 -- new field, written, sticks): %v %v\n\n" r43 v43.nope)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)
