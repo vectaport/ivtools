@@ -740,15 +740,20 @@ counter.n                              // 3 -- the object's own field, genuinely
 method (`:incr`, a `FuncObj`). Passing `counter` itself as `:alist` means
 `incr`'s free variable `n` resolves against `counter`'s own field — the
 same attrlist is simultaneously "the method" and "self." This is a real
-object system (data and behavior bundled together, private to the
-instance that owns them), built entirely from existing pieces — attrlist
-literals, `func()`, dot access, `eval()`'s `:alist` — no new mechanism
-required. A single-method object built this way is exactly a closure (the
-data field is the captured variable, the method is the function body), so
-this subsumes the bake-a-literal technique above as the general case, not
-just an alternative to it.
+object system — data and behavior bundled together, with genuine identity
+and mutation — just without privacy: `counter.n` is directly readable and
+writable from outside (as above), and `incr` itself isn't bound to
+`counter` specifically — it's a plain `FuncObj` value, callable against
+any attrlist via `:alist`. No private/protected keywords, the same way
+plenty of dynamic languages (Python, JavaScript, Lua) leave access control
+to convention rather than enforcement. Built entirely from existing
+pieces — attrlist literals, `func()`, dot access, `eval()`'s `:alist` —
+no new mechanism required. A single-method object built this way is
+exactly a closure (the data field is the captured variable, the method is
+the function body), so this subsumes the bake-a-literal technique above
+as the general case, not just an alternative to it.
 
-One rule carried over from everywhere else tonight: the method reference
+One rule carried over from everywhere else in this doc: the method reference
 (`counter.incr`, or a plain `func(...)`) must be constructed or
 dot-accessed directly in the `eval()` call, never assigned to a plain
 variable and referenced bare first — a bare reference to a `FuncObj` fires
