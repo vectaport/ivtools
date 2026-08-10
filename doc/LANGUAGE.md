@@ -224,18 +224,16 @@ for(i=0 i<10 i++ (lst,i; total=total+i))  // works but parens unnecessary
 ```
 
 **Warning:** a space between two expressions inside parens — without a
-semicolon — is not a two-statement body. It is currently an error and
-will become a stream literal in ivtools-3.0:
+semicolon — is not a two-statement body. It is a stream literal:
 
 ```
-for(i=0 i<10 i++ (lst,i total=total+i))   // error now, stream literal in 3.0
-for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with two bodies
+for(i=0 i<10 i++ (lst,i total=total+i))   // body is a 2-element stream literal, not two statements -- loop no-ops
+for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with more than one body -- missing semicolon between statements
 ```
 
-**Warning (ivtools-3.0):** Once stream literals land, `(ding beep)`
-will be parsed as a stream literal of two values, not a grouped
-two-statement body. Any code using space-separated statements inside
-parens without semicolons must be fixed before 3.0. See issue #103.
+`(ding beep)` parses as a stream literal of two values, not a grouped
+two-statement body. Code relying on space-separated statements inside
+parens without a semicolon needs a semicolon added between them.
 
 ## Types
 
