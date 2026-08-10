@@ -122,6 +122,15 @@ ComValue& ComFunc::stack_dotname(int n) {
 }
 
 ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
+  /* No keys to skip and no fixed arg at position n -> there is definitively
+     nothing to fire, so there is nothing that needs a valid anchor either.
+     Mirrors stack_key_post_eval's nkeys()==0 bail-out: an empty {}/[]
+     literal's internal construction calls this with nargsfixed()==0, and
+     that's a normal, silent no-op, not evidence of anything wrong -- check
+     it before reading the anchor so that case never reaches the guard
+     below and never warns. */
+  if (nkeys()==0 && n>=nargsfixed()) return dflt;
+
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
   /* same anchor-recovered-offtop guard as stack_key_post_eval (see note
