@@ -1,6 +1,6 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 50/63 (79%)
+// coverage: 51/64 (80%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          dot(func-local-scope-isolation) -(empty-rhs) dot-method(keyword-args)
@@ -9,9 +9,11 @@
 // list(:attr) attribute list construction, and the attrlist() command
 // introduced in PR #85 (closes #82).  Also tests dot(al.method(args)) --
 // firing a FuncObj-valued attribute self-bound to its owning attrlist,
-// with positional args reaching arg(n) inside the body (tests 30-38).
-// Keyword args to a method call (al.method(:key val)) are accepted but
-// currently ignored with a warning -- not yet covered here.
+// with positional args reaching arg(n) inside the body (tests 30-38), and
+// that self-binding covers plain reads of sibling fields too, not just
+// arg(n) and mutation (test 39).  Keyword args to a method call
+// (al.method(:key val)) are accepted but currently ignored with a
+// warning -- not yet covered here.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -312,6 +314,15 @@ c38=(:n 0 :incr func(n=n+1; n))
 r38=eval(c38.incr :alist c38)
 ok=ok&&(r38==1 && c38.n==1)
 print("38 eval(c38.incr :alist c38) (expect 1, c38.n=1): %v %v\n\n" r38 c38.n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 39: self-binding covers reads too, not just writes -- a method
+// can read a sibling field it was never passed as arg(n), purely via the
+// ambient scope self-binding puts it in ---
+duck=(:times 3 :quack func(times))
+r39=duck.quack()
+ok=ok&&(r39==3)
+print("39 duck=(:times 3 :quack func(times)); duck.quack() (expect 3 -- reads times, never passed as arg): %v\n\n" r39)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)
