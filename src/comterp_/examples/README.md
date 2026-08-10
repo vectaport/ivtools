@@ -24,4 +24,8 @@ comterp run src/comterp_/examples/<name>.comt
   self-bound dispatch from issue #295: real per-object mutation
   (a `:calls` counter that persists across calls), positional args via
   `arg(n)`, and a keyword arg (`:times`) that reverts after the call
-  because nothing inside the method writes to it.
+  because nothing inside the method writes to it. Also shows chaining
+  straight off a list index (`at(barnyard i).speak()`, no intermediate
+  variable) and previews the not-yet-built `(stream).field` lift over
+  `$$barnyard` (issue #304) -- that line still warns today, on purpose,
+  as a marker of where that feature will land.

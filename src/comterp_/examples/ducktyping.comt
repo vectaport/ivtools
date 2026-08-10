@@ -14,11 +14,11 @@
 // while writing this script (duck.speak() alone left a stray :i 3 behind
 // on duck). Not a bug, just self-binding doing exactly what it says.
 
-duck=(:times 3 :calls 0 :speak func(calls=calls+1; for(j=0 j<times j++ print("quack! ")); print("\n"); calls))
+duck=(:times 3 :calls 0 :speak func(calls++; for(j=0 j<times j++ print("quack! ")); print("\n"); calls))
 
-cow=(:times 2 :calls 0 :speak func(calls=calls+1; for(j=0 j<times j++ print("moo! ")); print("\n"); calls))
+cow=(:times 2 :calls 0 :speak func(calls++; for(j=0 j<times j++ print("moo! ")); print("\n"); calls))
 
-robot=(:times 1 :calls 0 :speak func(calls=calls+1; for(j=0 j<times j++ print("BEEP BOOP. ")); print("\n"); calls))
+robot=(:times 1 :calls 0 :speak func(calls++; for(j=0 j<times j++ print("BEEP BOOP. ")); print("\n"); calls))
 
 print("-- one at a time --\n")
 duck.speak()
@@ -32,6 +32,12 @@ print("duck.times is still %v (never written, so it reverted)\n" duck.times)
 print("\n-- duck typing: same call, no shared class, whoever answers, answers --\n")
 barnyard=duck,cow,robot
 for(i=0 i<size(barnyard) i++ a=at(barnyard i); a.speak())
+
+print("\n-- speaking directly from the list of animals -- at(barnyard i).speak --\n")
+for(i=0 i<size(barnyard) i++ at(barnyard i).speak())
+
+print("\n-- streaming over the barnyard -- will work after #304\n")
+print("%v\n" list(($$barnyard).cnt))
 
 print("\n-- each object kept its own state, genuinely, not a copy --\n")
 print("duck.calls=%v cow.calls=%v robot.calls=%v\n" duck.calls cow.calls robot.calls)
