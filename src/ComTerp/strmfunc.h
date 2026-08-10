@@ -101,7 +101,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(arg[,arg...] [:key val...]) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)"; }
+      return "val=%s(arg [arg [...]] [:key val...]) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)"; }
 };
 
 //: info command for stream objects.
