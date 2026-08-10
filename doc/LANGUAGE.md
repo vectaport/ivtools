@@ -212,7 +212,7 @@ ComTerp are:
 
 1. **Argument lists** — enclose arguments to a command: `f(a b c)`
 2. **Attrlist literals** — `(:key val)` when first token is a keyword
-3. **Stream literals** — `(val val ...)` when first token is a value *(ivtools-3.0)*
+3. **Stream literals** — `(val val ...)` when first token is a value
 4. **Precedence override** — `(a+b)*c` to override operator priority
 
 That's it. A body does not need parens. `(lst,i; total=total+i)` is
@@ -249,7 +249,7 @@ parens without a semicolon needs a semicolon added between them.
 | nil | `nil` | no value |
 | blank | `BlankType` | return of `return()` with no arg |
 | list | `1,2,3` or `(1,2,3)` or $1,2,3| comma operator |
-| stream | `$$(1,2,3)` or `(1 2 3)` *(ivtools-3.0)* | sequence of values produced and consumed one at a time |
+| stream | `$$(1,2,3)` or `(1 2 3)` | sequence of values produced and consumed one at a time |
 | attrlist | `(:x 1)` or `attrlist(:x 1)` | key/value store |
 | compview | returned by drawing commands | graphic component handle |
 
@@ -1086,10 +1086,10 @@ remaining elements unevaluated in the token buffer.
 Round-trip: `$($$(1,2,3))` returns `(1,2,3)`.
 
 The streaming algebra is still being formalized. The stream literal
-syntax (ivtools-3.0) completes the source end of the algebra; ongoing
-work continues to clarify the composition laws, particularly around nil
-propagation through composed operations and zip semantics between lazy
-and materialized sources.
+syntax completes the source end of the algebra; ongoing work continues
+to clarify the composition laws, particularly around nil propagation
+through composed operations and zip semantics between lazy and
+materialized sources.
 
 ### Scalar overdrive
 
