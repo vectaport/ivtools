@@ -22,6 +22,7 @@
 
 #include <ComTerp/parser.h>
 #include <ComTerp/scanner.h>
+#include <ComTerp/postfixspan.h>
 
 #include <iostream.h>
 #include <string.h>
@@ -67,10 +68,11 @@ const char* type_names[] = {
 int main(int argc, char *argv[]) {
 
     if (argc==1 || (strcmp(argv[1], "parser")!=0 &&
-		   strcmp(argv[1], "scanner")!=0 && 
-		   strcmp(argv[1], "lexscan")!=0 && 
-		   strcmp(argv[1], "cparse")!=0)) {
-	cerr << "comtest parser|scanner|lexscan|cparse\n";
+		   strcmp(argv[1], "scanner")!=0 &&
+		   strcmp(argv[1], "lexscan")!=0 &&
+		   strcmp(argv[1], "cparse")!=0 &&
+		   strcmp(argv[1], "spanwalk")!=0)) {
+	cerr << "comtest parser|scanner|lexscan|cparse|spanwalk\n";
 	return -1;
     }
 
@@ -111,7 +113,46 @@ int main(int argc, char *argv[]) {
 
 	while (parser.print_next_expr());
 
-    }   
+    } else if (strcmp(argv[1], "spanwalk")==0) {
+
+	/* Parses one expression at a time (printing the same raw postfix
+	   listing "parser" mode does, for side-by-side comparison), then
+	   runs PostfixSpanWalk over a detached copy of the same buffer --
+	   the way FuncObjFunc::execute() and stream-literal construction
+	   obtain their own copies -- and prints each command token's
+	   consumed operand spans, in source order, plus whatever spans
+	   are left over at the end (one per top-level ';' statement). */
+	Parser parser;
+
+	while (parser.print_next_expr()) {
+	    int ntoks = 0;
+	    postfix_token* toks = parser.copy_postfix_tokens(ntoks);
+	    if (!toks) continue;
+
+	    PostfixSpanWalk walk;
+	    for (int i = 0; i < ntoks; i++) {
+		walk.step(toks, i);
+		if (toks[i].type == TOK_COMMAND) {
+		    cout << "  spanwalk " << i << ": ("
+			 << symbol_pntr(toks[i].v.symbolid) << ") consumed:";
+		    for (int k = 0; k < walk.consumed_count(); k++) {
+			PostfixSpanWalk::Span s = walk.consumed(k);
+			cout << " [" << s.start << "," << s.count << ")";
+		    }
+		    cout << endl;
+		}
+	    }
+	    cout << "  spanwalk remaining:";
+	    for (int k = 0; k < walk.remaining_count(); k++) {
+		PostfixSpanWalk::Span s = walk.remaining(k);
+		cout << " [" << s.start << "," << s.count << ")";
+	    }
+	    cout << endl;
+
+	    delete [] toks;
+	}
+
+    }
     return 0;
 }
 
