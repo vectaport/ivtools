@@ -84,8 +84,29 @@ static void note_escape(EscapeRecord*& recs, int& n, int& cap, int symid, boolea
 static void note_event(VarRecord*& recs, int& n, int& cap, int symid, VarEvent ev) {
     boolean is_new;
     VarRecord* r = find_or_add_var(recs, n, cap, symid, &is_new);
-    if (is_new) r->first_event = ev;
+    if (is_new) {
+        r->first_event = ev;
+        r->ever_written = false;   /* new VarRecord[] leaves this uninitialized */
+    }
     if (ev == EvWrite || ev == EvReadThenWrite) r->ever_written = true;
+}
+
+static boolean symid_in_set(int* set, int n, int symid) {
+    for (int i = 0; i < n; i++) if (set[i] == symid) return true;
+    return false;
+}
+
+static void add_to_set(int*& set, int& n, int& cap, int symid) {
+    if (symid_in_set(set, n, symid)) return;
+    if (n == cap) {
+        int newcap = cap ? cap * 2 : 8;
+        int* newset = new int[newcap];
+        for (int i = 0; i < n; i++) newset[i] = set[i];
+        delete [] set;
+        set = newset;
+        cap = newcap;
+    }
+    set[n++] = symid;
 }
 
 /* True iff span is exactly one plain-var token -- the shape a symbol-level
@@ -100,6 +121,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int assign_symid = symbol_add("assign");
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
+    static int dot_symid = symbol_add("dot");
     /* First operand is read-then-written in one occurrence -- see #310's
        plan: distinct from plain assign, whose first operand is a pure
        write (the old value is never read). */
@@ -116,6 +138,18 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int nrecs = 0, recs_cap = 0;
     EscapeRecord* escapes = nil;
     int nescapes = 0, escapes_cap = 0;
+    /* Symbols used anywhere in the body as a dot-chain root (obj.field) --
+       DotFunc's own attribute-write path already has a deliberate
+       fall-through order (_alist -> local -> global, see the #292 commit)
+       to decide whether obj already exists or needs creating fresh in the
+       outer scope.  A #310 capture pre-seeding al[obj] with a stale
+       declaration-time snapshot would make that path see "already
+       present" and stop short of the outer scope, breaking the documented
+       "dot free symbol bleeds to outer scope" behavior (attrlist.comt
+       tests 14/16).  So: excluded from capture globally, not just at the
+       point of this one dot access -- collected here, filtered at output. */
+    int* dotroots = nil;
+    int ndotroots = 0, dotroots_cap = 0;
 
     PostfixSpanWalk walk;
     for (int i = 0; i < ntoks; i++) {
@@ -130,6 +164,14 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
             if (span_is_plain_var(arg, is_plain_var)) {
                 note_escape(escapes, nescapes, escapes_cap, toks[arg.start].v.symbolid,
                             symid == global_symid);
+            }
+            continue;
+        }
+
+        if (symid == dot_symid && nconsumed >= 1) {
+            PostfixSpanWalk::Span root = walk.consumed(0);
+            if (span_is_plain_var(root, is_plain_var)) {
+                add_to_set(dotroots, ndotroots, dotroots_cap, toks[root.start].v.symbolid);
             }
             continue;
         }
@@ -177,6 +219,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     AttributeList* result = new AttributeList();
 
     for (int i = 0; i < nrecs; i++) {
+        if (symid_in_set(dotroots, ndotroots, recs[i].symid)) continue;
         Kind kind;
         if (recs[i].first_event == EvWrite) {
             kind = WriteBeforeRead;
@@ -202,6 +245,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     delete [] recs;
     delete [] escapes;
+    delete [] dotroots;
 
     return result;
 }

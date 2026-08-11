@@ -379,7 +379,12 @@ void FuncObjFunc::execute() {
        reimplemented. */
     boolean* is_plain_var = new boolean[toklen];
     for (int i = 0; i < toklen; i++) {
-      if (tokbuf[i].type == TOK_COMMAND) {
+      /* nids<0 (HACKING.md's "Dot Operator Rhs" section) marks a bare
+	 identifier on the right of a dot -- an attribute-key literal like
+	 the "v" in "obj.v", never promoted to CommandType regardless of
+	 whether that name is also a registered command, but not an
+	 ordinary variable reference either; must not be capture-eligible. */
+      if (tokbuf[i].type == TOK_COMMAND && tokbuf[i].nids >= 0) {
 	ComValue sv;
 	comterp()->token_to_comvalue(&tokbuf[i], &sv);
 	is_plain_var[i] = sv.type() == ComValue::SymbolType;
