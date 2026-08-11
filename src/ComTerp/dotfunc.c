@@ -173,6 +173,39 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       posvals[i] = *poslist->Get(i);
   }
 
+  /* #310: this funcobj's own declaration-time captures (read-only/
+     read-before-write free variables, funcobjscan.h) are ephemeral
+     defaults layered onto al the same way keyword args are below --
+     apply_kw/restore_kw_if_unwritten already solve exactly this problem
+     for keywords (inject, fire, revert-if-unwritten), so captures reuse
+     the identical mechanism rather than mutating obj's real fields.
+     Applied *before* keywords (this block) so an explicit :x val keyword
+     still overrides a capture via the same apply_kw call landing on top;
+     reverted *after* keywords below (reverse order), preserving the
+     save/restore stack discipline when both layer the same name. */
+  int ncap = 0;
+  KwPending* cappending = nil;
+  if (fo->captures().is_object(AttributeList::class_symid())) {
+    AttributeList* caps = (AttributeList*) fo->captures().obj_val();
+    cappending = caps->Number()>0 ? new KwPending[caps->Number()] : nil;
+    ALIterator capit;
+    for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
+      Attribute* capattr = caps->GetAttr(capit);
+      /* A name obj already owns as its own attribute is a real object
+	 field, not the free variable this capture was taken for -- skip
+	 it so the field stays live (self-bound reads/writes of obj's own
+	 fields must see obj's current value, never a declaration-time
+	 snapshot; only a name obj does NOT already have is genuinely
+	 free here). Confirmed live: without this guard,
+	 obj.increment=func(count=count+1) on obj=(:count 5) overwrote
+	 obj's real count with an unrelated (Unknown) capture before the
+	 body ran, "Unknown add operand: UnknownType+IntType". */
+      if (al->GetAttr(capattr->SymbolId())) continue;
+      apply_kw(al, capattr->SymbolId(), *capattr->Value(), cappending[ncap]);
+      ncap++;
+    }
+  }
+
   /* keyword args are ephemeral unless the method's own body writes that
      same name -- reading it (or ignoring it) leaves al exactly as it was;
      only a write (self-bound, so it lands on al) makes it stick.  Apply
@@ -221,6 +254,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   for (int i=0; i<nkw; i++)
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   delete [] kwpending;
+
+  for (int i=0; i<ncap; i++)
+    restore_kw_if_unwritten(comterp, al, cappending[i]);
+  delete [] cappending;
 
   self->push_stack(result);
 }

@@ -1,0 +1,101 @@
+// src/comterp_/tests/funcclosure.comt -- test func() closures via
+// declaration-time capture (#310)
+//
+// funcs: func local global
+//
+// A func() body's free variables (read-only or read-before-write, per
+// #170's taxonomy) are captured once, at declaration time, instead of
+// resolved dynamically at call time -- turning func() into a real
+// closure.  Explicit keyword args still override a capture.  A body that
+// writes a name before ever reading it (even to nil) opts that name out
+// of capture entirely -- pure local scratch, untouched by any of this.
+// local()/global() stay fully dynamic, unaffected.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./funcclosure.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: read-before-write variable is captured at declaration time,
+// not resolved dynamically at call time ---
+c=10
+f=func(arg(0)+c)
+c=999
+r=f(1)
+ok=ok&&(r==11)
+print("1 c=10; f=func(arg(0)+c); c=999; f(1) uses captured c (expect 11): %v\n\n" r)
+check_fail(:ok ok)
+
+// --- test 2: read-only variable is also captured, and stays robust
+// against later, unrelated changes to the outer scope (the exact
+// fragility funcarg.comt test 9 documents for the pre-#310 dynamic
+// fallthrough behavior) ---
+x=nil
+ini=func(if(x==nil :then 99 :else x))
+x=5
+r1=ini()
+ok=ok&&(r1==99)
+print("2 x=nil; ini=func(if(x==nil :then 99 :else x)); x=5; ini() still sees captured nil (expect 99): %v\n\n" r1)
+check_fail(:ok ok)
+
+// --- test 3: an explicit keyword always overrides a capture, whether
+// the variable is captured or not ---
+c=10
+g=func(c)
+c=999
+r2=g()
+r3=g(:c 55)
+ok=ok&&(r2==10)&&(r3==55)
+print("3 c=10; g=func(c); c=999; g() vs g(:c 55) (expect 10 55): %v %v\n\n" r2 r3)
+check_fail(:ok ok)
+
+// --- test 4: write-before-read opts a name out of capture entirely --
+// assigning it first (even to nil) makes it pure local scratch ---
+y=42
+h=func(y=nil; y)
+r4=h()
+ok=ok&&(r4==nil)&&(y==42)
+print("4 y=42; h=func(y=nil; y); h() local scratch, outer y untouched (expect nil, y stays 42): %v %v\n\n" r4 y)
+check_fail(:ok ok)
+
+// --- test 5: local()/global() stay fully dynamic, unaffected by capture --
+// a body that only ever reads/writes a name through local()/global()
+// never captures it at all ---
+z=5
+k=func(local(z)=local(z)+1)
+r5=k()
+z=100
+r6=k()
+ok=ok&&(r5==6)&&(r6==101)
+print("5 z=5; k=func(local(z)=local(z)+1); k() then z=100; k() tracks live local(z) (expect 6 101): %v %v\n\n" r5 r6)
+check_fail(:ok ok)
+
+// --- test 6: a self-bound method's read-before-write of an object's own
+// field must stay live, never shadowed by a stale declaration-time
+// capture of an unrelated same-named outer variable (or lack thereof) --
+// this is the collision case: "count" is never a free variable in scope
+// when obj.increment is declared, but obj already owns a :count field ---
+obj=(:count 5)
+obj.increment = func(count=count+1)
+r7 = obj.increment()
+r8 = obj.increment()
+ok=ok&&(r7==6)&&(r8==7)
+print("6 obj=(:count 5); obj.increment=func(count=count+1) obj's own field stays live (expect 6 7): %v %v\n\n" r7 r8)
+check_fail(:ok ok)
+
+// --- test 7: a self-bound method can still close over a genuine outer
+// free variable at the same time its self-bound field access stays live
+// -- the two mechanisms coexist without interfering ---
+factor=10
+obj2=(:val 5)
+obj2.scale = func(val=val*factor)
+r9 = obj2.scale()
+factor=999
+r10 = obj2.scale()
+ok=ok&&(r9==50)&&(r10==500)
+print("7 factor=10; obj2.scale=func(val=val*factor); factor=999; obj2's val stays live, factor stays captured (expect 50 500): %v %v\n\n" r9 r10)
+check_fail(:ok ok)
+
+print("funcclosure: %v\n" ok)
+ok

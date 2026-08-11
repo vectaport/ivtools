@@ -27,9 +27,11 @@
 #include <ComTerp/postfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/funcobjscan.h>
 
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
+#include <Attribute/attribute.h>
 
 #include <OS/math.h>
 
@@ -366,6 +368,55 @@ void FuncObjFunc::execute() {
     if (echov.is_true())
       comterp()->postfix_echo(tokbuf, toklen);
     FuncObj* tokbufobj = new FuncObj(tokbuf, toklen);
+
+    /* #310: capture this body's free variables (read-only or
+       read-before-write, per #170's taxonomy -- see funcobjscan.h) at
+       declaration time, so a later fire sees the value that was live now,
+       not whatever's live at call time.  is_plain_var[i] tells the
+       classifier which tokens are ordinary variable references rather
+       than registered commands -- resolved here via the same
+       token_to_comvalue lookup an ordinary read already goes through, not
+       reimplemented. */
+    boolean* is_plain_var = new boolean[toklen];
+    for (int i = 0; i < toklen; i++) {
+      if (tokbuf[i].type == TOK_COMMAND) {
+	ComValue sv;
+	comterp()->token_to_comvalue(&tokbuf[i], &sv);
+	is_plain_var[i] = sv.type() == ComValue::SymbolType;
+      } else {
+	is_plain_var[i] = false;
+      }
+    }
+    AttributeList* classification = FuncObjVarScan::classify(tokbuf, toklen, is_plain_var);
+    /* RAII guard, not dead code: the AttributeValue ctor/dtor pair
+       ref/unrefs classification automatically (HACKING.md's "Resource
+       ref/unref and AttributeValue Constructors") so it's freed at scope
+       exit -- classification itself is only ever read through the raw
+       pointer below, never through this wrapper. */
+    ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
+    delete [] is_plain_var;
+
+    AttributeList* captures = nil;
+    ALIterator cit;
+    for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+      Attribute* attr = classification->GetAttr(cit);
+      int kind = attr->Value()->int_val();
+      if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+	if (!captures) captures = new AttributeList();
+	/* lookup_symval(int) only checks localtable() -- the full
+	   fallthrough an ordinary read actually uses (_alist, then
+	   localtable unless global_flag, then globaltable) is the
+	   ComValue& overload; anything narrower under-captures (e.g. a
+	   name set only via global()=, confirmed live via global.comt
+	   test 13's "Unknown add operand" failure before this fix). */
+	ComValue symval(attr->SymbolId(), ComValue::SymbolType);
+	ComValue curval(comterp()->lookup_symval(symval));
+	captures->add_attr(attr->SymbolId(), curval);
+      }
+    }
+    if (captures)
+      tokbufobj->captures() = ComValue(AttributeList::class_symid(), (void*)captures);
+
     ComValue retval(FuncObj::class_symid(), (void*)tokbufobj);
     retval.comterp(comterp());
     push_stack(retval);
