@@ -53,18 +53,22 @@ void PostfixSpanWalk::push(Span span, int bound_value_count) {
     _size++;
 }
 
+void PostfixSpanWalk::ensure_consumed_capacity(int n) {
+    if (n <= _consumed_capacity) return;
+    int newcap = _consumed_capacity;
+    while (newcap < n) newcap *= 2;
+    Span* newconsumed = new Span[newcap];
+    memcpy(newconsumed, _consumed, sizeof(Span) * _consumed_count);
+    delete [] _consumed;
+    _consumed = newconsumed;
+    _consumed_capacity = newcap;
+}
+
 /* Pops the top n stack entries into _consumed[0..n), oldest/deepest (i.e.
    earliest source position) first -- so _consumed reads in source order,
    the same order the tokens originally appeared in. */
 void PostfixSpanWalk::pop_into_consumed(int n) {
-    if (n > _consumed_capacity) {
-        int newcap = _consumed_capacity;
-        while (newcap < n) newcap *= 2;
-        Span* newconsumed = new Span[newcap];
-        delete [] _consumed;
-        _consumed = newconsumed;
-        _consumed_capacity = newcap;
-    }
+    ensure_consumed_capacity(n);
     for (int k = n - 1; k >= 0; k--) {
         _size--;
         _consumed[k] = _stack[_size].span;
@@ -110,9 +114,13 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
 
         /* Keywords are pushed last (positionals-first-then-keywords is a
            parser-enforced invariant, doc/POSTFIX-INDEXING.md's "Trailing
-           positionals" section), so they're popped first here. */
+           positionals" section), so they're popped first here. Each
+           sub-group is copied out to its own exactly-sized heap array
+           (not a fixed-size local one -- narg/nkey come straight from the
+           parser and are not bounded by any compile-time constant) before
+           the next pop_into_consumed call reuses _consumed's low indices. */
         int keyword_val_total = 0;
-        Span keygroups[64];
+        Span* keygroups = nkey > 0 ? new Span[nkey] : nil;
         int nkeygroups = 0;
         if (nkey > 0) {
             pop_into_consumed(nkey);
@@ -132,7 +140,7 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
 
         int plain = narg - keyword_val_total;
         if (plain < 0) plain = 0;
-        Span posgroups[256];
+        Span* posgroups = plain > 0 ? new Span[plain] : nil;
         int nposgroups = 0;
         if (plain > 0) {
             pop_into_consumed(plain);
@@ -142,7 +150,12 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
         }
 
         /* Public consumed() order: plain positionals first, then keyword
-           groups -- source order, per the same parser invariant above. */
+           groups -- source order, per the same parser invariant above.
+           Ensure room for BOTH groups combined before writing -- the two
+           pop_into_consumed calls above each only guaranteed capacity for
+           their own individual count, not the sum, so this call is not
+           redundant with those. */
+        ensure_consumed_capacity(nposgroups + nkeygroups);
         _consumed_count = 0;
         int start = i;
         for (int k = 0; k < nposgroups; k++) {
@@ -154,6 +167,9 @@ void PostfixSpanWalk::step(postfix_token* toks, int i) {
             _consumed[_consumed_count++] = keygroups[k];
         }
         if (nposgroups == 0 && nkeygroups == 0) start = i;
+
+        delete [] keygroups;
+        delete [] posgroups;
 
         push(Span{start, i - start + 1}, 0);
         return;

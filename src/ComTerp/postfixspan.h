@@ -61,6 +61,7 @@ public:
 
 protected:
     void push(Span span, int bound_value_count);
+    void ensure_consumed_capacity(int n);
     void pop_into_consumed(int n);
 
     struct Entry { Span span; int bound_value_count; };
