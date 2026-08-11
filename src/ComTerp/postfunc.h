@@ -191,11 +191,20 @@ class FuncObj {
   postfix_token* toks() { return _toks; }
   int ntoks() { return _ntoks; }
 
+  // Free variables captured at declaration time (#310) -- an AttributeList
+  // wrapped in a ComValue so its constructor/destructor manage the
+  // AttributeList refcount automatically (see HACKING.md's "Resource
+  // ref/unref and AttributeValue Constructors" -- do not add manual
+  // Resource::ref/Unref for this field).  UnknownType (the ComValue
+  // default) means no captures, the common case.
+  ComValue& captures() { return _captures; }
+
   CLASS_SYMID("FuncObj");
 
  protected:
   postfix_token* _toks;
   int _ntoks;
+  ComValue _captures;
 };
   
 //: create token buffer object

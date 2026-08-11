@@ -54,17 +54,25 @@ indexed out of the read-only postfix buffer) is the **`:posteval` future**
   a keyword inside a body — no `stack_key`. `f(:x 5)` simply means `x` is `5` as
   a local. The keyword **is** the variable.
 
-  *Read-side caveat (the slot is not zero-initialized).* The scope shadows on
-  **write**, and for any **passed** keyword — but it does **not** shield an
-  *unset, unwritten* name on **read**: reading such a name falls through
-  `_alist` → localtable → globaltable to whatever the outer scope holds. So
-  "an unsupplied keyword reads nil" — the basis of the
-  `if(x==nil :then default …)` optional-parameter idiom — holds **only when the
-  name isn't also a live outer variable**. It is an *uninitialized variable* in
-  the exact C/C++ sense: if code (or a test) branches on `x==nil`, **set `x=nil`
-  first** rather than assume the slot starts empty. (This is precisely what bit
-  `funcarg.comt` test 10 once it was spliced into the flat `run()` scope behind
-  a file that had left `x` set — see that test's nil-init and `run_all.comt`.)
+  *Read-side note, updated for closures (see `LANGUAGE.md`'s "Closures —
+  captured at declaration time").* The scope shadows on **write**, and for
+  any **passed** keyword. An *unset, unwritten* name on **read** used to
+  fall through `_alist` → localtable → globaltable dynamically, resolved
+  fresh on every call; now, if the body only ever reads that name (or
+  reads it before any local write, per the read-only/read-before-write
+  classes), it's captured *once*, when `func()` itself runs — so "an
+  unsupplied keyword reads nil" (the basis of the
+  `if(x==nil :then default …)` optional-parameter idiom) reflects whatever
+  the name resolved to **at declaration time**, not whatever the outer
+  scope holds by the time the func is actually called. This is *more*
+  robust than the old dynamic fallthrough, not less: a later, unrelated
+  `x=5` elsewhere in a flat scope no longer changes what an already-declared
+  func sees. The one thing that still matters is declaration order — if
+  code (or a test) branches on `x==nil` and wants that to mean "genuinely
+  unset," **set `x=nil` before declaring the func**, not before calling
+  it. (`funcarg.comt` test 10 primes `x=nil` immediately before
+  `ini=func(...)` for exactly this reason; see that test and
+  `run_all.comt`.)
 
 **Out — one channel by default, because the scope does not leak:**
 

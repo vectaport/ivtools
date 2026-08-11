@@ -583,6 +583,20 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	   minus the keyword values actually consumed -- not narg-nkey. */
 	int npos = val.narg();
 	AttributeList* al = new AttributeList();
+	/* #310: seed al from this funcobj's own declaration-time captures
+	   (read-only/read-before-write free variables, funcobjscan.h)
+	   before keyword args land on top -- add_attr's replace-by-symid
+	   below then makes an explicit :x val keyword override a capture
+	   for free, no special-case needed. */
+	FuncObj* callee_fo = (FuncObj*)val.obj_val();
+	if (callee_fo->captures().is_object(AttributeList::class_symid())) {
+	  AttributeList* caps = (AttributeList*)callee_fo->captures().obj_val();
+	  ALIterator capit;
+	  for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
+	    Attribute* capattr = caps->GetAttr(capit);
+	    al->add_attr(capattr->SymbolId(), *capattr->Value());
+	  }
+	}
 	for(int i=0; i<val.nkey(); i++) {
 	  ComValue keyv(pop_stack());
 	  int knarg = keyv.keynarg_val();

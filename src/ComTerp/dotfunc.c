@@ -98,6 +98,25 @@ static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPendi
     al->Remove(now);
 }
 
+/* Unconditional counterpart for captures (#310), not keywords -- a capture
+   was never something the caller passed at this call site (unlike a
+   keyword, where a resulting object mutation is visible and deliberate to
+   whoever wrote :x val), so it must always behave like the bare-call
+   case's fresh, disposable per-call seed: revert every time, whether the
+   body wrote it or not, never leave a new permanent field on obj.
+   Confirmed live: without this, obj.bump=func(c=c+1) on a never-before-
+   seen capture c leaked a permanent :c field onto obj and accumulated
+   across calls (11, 12, 13) instead of restarting from the frozen capture
+   every time (11, 11, 11). */
+static void restore_capture(AttributeList* al, KwPending& pending) {
+  Attribute* now = al->GetAttr(pending.symid);
+  if (!now) return;
+  if (pending.existed)
+    *now->Value() = pending.oldval;
+  else
+    al->Remove(now);
+}
+
 /* obj.method(args) -- fire a FuncObj-valued attribute self-bound to obj.
    Evaluates args in the caller's own scope (before any _alist swap, so a
    variable reference in an arg resolves against the caller, not obj), then
@@ -173,6 +192,74 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       posvals[i] = *poslist->Get(i);
   }
 
+  /* #310: this funcobj's own declaration-time captures (read-only/
+     read-before-write free variables, funcobjscan.h) are ephemeral
+     defaults layered onto al the same way keyword args are below --
+     apply_kw/restore_capture solve the same "inject, fire, revert"
+     problem for captures that apply_kw/restore_kw_if_unwritten already
+     solve for keywords, so captures reuse the same mechanism rather than
+     mutating obj's real fields. Applied *before* keywords (this block) so
+     an explicit :x val keyword still overrides a capture's *value* via
+     the same apply_kw call landing on top. */
+  int method_nkey_for_skip = method_nkey;
+  int* kwsymids = method_nkey_for_skip>0 ? new int[method_nkey_for_skip] : nil;
+  if (method_nkey_for_skip>0) {
+    if (poslist) {
+      for (int i=0; i<method_nkey_for_skip; i++) {
+	AttributeList* singleton = (AttributeList*) poslist->Get(npos+i)->obj_val();
+	ALIterator it;
+	singleton->First(it);
+	kwsymids[i] = singleton->GetAttr(it)->SymbolId();
+      }
+    } else if (kwlist) {
+      ALIterator it;
+      int i = 0;
+      for (kwlist->First(it); !kwlist->Done(it); kwlist->Next(it), i++)
+	kwsymids[i] = kwlist->GetAttr(it)->SymbolId();
+    }
+  }
+
+  int ncap = 0;
+  KwPending* cappending = nil;
+  if (fo->captures().is_object(AttributeList::class_symid())) {
+    AttributeList* caps = (AttributeList*) fo->captures().obj_val();
+    cappending = caps->Number()>0 ? new KwPending[caps->Number()] : nil;
+    ALIterator capit;
+    for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
+      Attribute* capattr = caps->GetAttr(capit);
+      int capsymid = capattr->SymbolId();
+      /* A name obj already owns as its own attribute is a real object
+	 field, not the free variable this capture was taken for -- skip
+	 it so the field stays live (self-bound reads/writes of obj's own
+	 fields must see obj's current value, never a declaration-time
+	 snapshot; only a name obj does NOT already have is genuinely
+	 free here). Confirmed live: without this guard,
+	 obj.increment=func(count=count+1) on obj=(:count 5) overwrote
+	 obj's real count with an unrelated (Unknown) capture before the
+	 body ran, "Unknown add operand: UnknownType+IntType". */
+      if (al->GetAttr(capsymid)) continue;
+      /* A name the caller also supplied as an explicit keyword this call
+	 is entirely the keyword mechanism's -- established, deliberate,
+	 tested behavior (62f557fb, LANGUAGE.md's "Keyword arguments to a
+	 method call are ephemeral unless the method writes them"): a
+	 self-bound write always persists, keyword-sourced or not. Skip
+	 applying the capture at all so apply_kw's own existed/oldval
+	 bookkeeping for the keyword below reflects the true pre-call
+	 state, not a value this capture injected first -- confirmed live:
+	 without this, a name that's both captured and keyword-supplied
+	 (nope=nope+1 declared free, then called as .setit(:nope 5)) had
+	 the capture's own unconditional revert wipe out the keyword
+	 write's result afterward, breaking attrlist.comt test 43. */
+      boolean also_keyword = false;
+      for (int k=0; k<method_nkey_for_skip; k++)
+	if (kwsymids[k]==capsymid) { also_keyword = true; break; }
+      if (also_keyword) continue;
+      apply_kw(al, capsymid, *capattr->Value(), cappending[ncap]);
+      ncap++;
+    }
+  }
+  delete [] kwsymids;
+
   /* keyword args are ephemeral unless the method's own body writes that
      same name -- reading it (or ignoring it) leaves al exactly as it was;
      only a write (self-bound, so it lands on al) makes it stick.  Apply
@@ -221,6 +308,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   for (int i=0; i<nkw; i++)
     restore_kw_if_unwritten(comterp, al, kwpending[i]);
   delete [] kwpending;
+
+  for (int i=0; i<ncap; i++)
+    restore_capture(al, cappending[i]);
+  delete [] cappending;
 
   self->push_stack(result);
 }

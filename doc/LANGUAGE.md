@@ -649,12 +649,13 @@ v=99
 outer()            // 99  -- inner falls through to the top level
 ```
 
-### Not a closure — func() is closer to a macro
+### Closures — captured at declaration time
 
-A `func()` value does not capture the environment it was defined in.
-Define one while a particular binding is live, let it escape, mutate that
-binding, then call the escaped func — it sees the *current* value, not
-the one that existed at definition time:
+A `func()` value captures its free variables when it's *declared*, not
+when it's called. Define one while a particular binding is live, let it
+escape, mutate that binding, then call the escaped func — it sees the
+value that existed at definition time, not whatever the binding has
+become since:
 
 ```
 y=1
@@ -662,57 +663,52 @@ outer=func(y=42; func(y))   // construction itself must be the last thing
                               // evaluated -- see "istype()/isclass()..." above
 escaped=outer()
 y=100
-escaped()                    // 100 -- not 42
+escaped()                    // 42 -- not 100
 ```
 
 That's the standard test for closures in any language (define under a
-binding, escape, mutate, call) and `func()` fails it. The reason traces
-directly to what a `FuncObj` actually is: a saved token buffer (`_toks`/
-`_ntoks`, nothing else) that gets *re-run fresh* against whatever's
-currently in `localtable()`/`globaltable()` on each call — not a
-reference to any specific, private, persisting environment. That's not
-closure semantics; it's macro semantics — specifically the *unhygienic*
-kind (C preprocessor, or Lisp before hygiene): a saved chunk of code that
-re-expands at each use site, with any free name resolving against
-whatever's ambient at that moment, not against whatever scope wrote it.
-`func()` gets the same classic failure mode as a result — a free variable
-inside a func body is hostage to whatever anything else in the program
-last set that name to, with no isolation at all.
+binding, escape, mutate, call), and `func()` passes it.
 
-Where the analogy stops: a real macro isn't a runtime value — it's a
-pure compile-time transform with no existence once expansion is done.
-`FuncObj` doesn't have that limitation. It's a genuine first-class value —
-storable, passable as an argument, returnable from another func — just
-one whose free-variable resolution behaves like a macro's rather than a
-closure's.
+**Which free variables get captured, and which don't.** A `FuncObj` is
+still just a saved token buffer (`_toks`/`_ntoks`) — nothing about *how*
+it runs changed, only *when* a free variable's value gets read:
 
-**Simulating closure capture, if you want it:** since the mechanism won't
-capture a *reference* for you, eliminate the reference and stage the
-*value* into the generated body text instead — `print(fmtstr val :str)`
-to format it, `run(cmdstr :str)` to parse and execute the result:
+- **Read-only or read-before-write** — a name the body reads without
+  ever writing it first (`func(y)`), or reads and only *then* locally
+  reassigns (`func(y=y+1)`) — is a genuine input, and is captured once,
+  at declaration time, exactly as above.
+- **Write-before-read** — a name the body assigns before it's ever read,
+  even to `nil` (`func(y=nil; y)`) — is pure local scratch. It never
+  touches the outer scope at all, capture or otherwise; this is the way
+  to deliberately opt a name out of capture.
+- **`local(y)`/`local(y)=...` and `global(y)`/`global(y)=...`** stay
+  exactly as dynamic as they've always been — the explicit escape to the
+  session-scope or process-scope table, unaffected by any of this (see
+  *Escaping the func scope* above).
+
+**An explicit keyword always overrides a capture.** Keywords still build
+the body's own locals the same way they always have; if the caller
+supplies one, it lands on top of whatever was captured, no different
+from any other keyword-shadows-outer-binding case:
 
 ```
 y=42
-bodystr=print("func(%v)" y :str)   // "func(42)" -- the value, not the name
-escaped=run(bodystr :str)           // constructs func(42): no free variable at all
-y=100
-escaped()                            // 42 -- immune to y's later mutation
+f=func(y)
+y=999
+f()                // 42 -- the capture
+f(:y 7)             // 7 -- an explicit keyword always wins
 ```
 
-`func()` itself never changes — there's simply nothing left for the
-ambient-environment resolution to override, since the body no longer
-names anything. This generalizes past plain numbers to anything ComTerp
-can print back out as valid, re-parseable syntax (the same "value
-serializes back into itself" property `feed()`'s contract relies on):
-strings, lists, attrlists, even another already-built `FuncObj`.
-
-**A cleaner way, and real objects for free: `eval()`'s own `:alist`
-keyword.** `eval(cmdstr|funcobj :alist attrlist)` runs its argument with
-the func-local scope (`_alist`) set to the given attrlist first — the
-same lookup tier a func's own keyword args live in, just supplied
-explicitly instead of by the caller passing keywords. That's a first-class
-existing mechanism, not a workaround, and it beats the bake-a-literal
-trick in one real way: attrlists are mutable reference objects (`al.x=99`
+**A different tool for a different job: `eval()`'s own `:alist` keyword.**
+Declaration-time capture above snapshots a *value* — good for an
+ordinary closure, but the snapshot is frozen the moment `func()` runs,
+same as any other language's captured-by-value locals. When what's
+wanted instead is a *live, shared, mutable* binding — several callers all
+seeing each other's writes — reach for `eval(cmdstr|funcobj :alist
+attrlist)`, which runs its argument with the func-local scope (`_alist`)
+set to the given attrlist first, the same lookup tier a func's own
+keyword args live in, just supplied explicitly instead of by the caller
+passing keywords. Attrlists are mutable reference objects (`al.x=99`
 already mutates the same object a caller holds — see *Writing through a
 reference* above), so this supports genuine, *persisting, mutating* state
 across calls, not just a frozen snapshot:
@@ -746,10 +742,11 @@ any attrlist via `:alist`. No private/protected keywords, the same way
 plenty of dynamic languages (Python, JavaScript, Lua) leave access control
 to convention rather than enforcement. Built entirely from existing
 pieces — attrlist literals, `func()`, dot access, `eval()`'s `:alist` —
-no new mechanism required. A single-method object built this way is
-exactly a closure (the data field is the captured variable, the method is
-the function body), so this subsumes the bake-a-literal technique above
-as the general case, not just an alternative to it.
+no new mechanism required. A single-method object built this way is a
+closure with the field-vs-snapshot tradeoff made explicit and visible:
+the data field is a real, shared binding every caller can see and mutate,
+where declaration-time capture above gives each `func()` its own private,
+frozen copy instead.
 
 One rule carried over from everywhere else in this doc: the method reference
 (`counter.incr`, or a plain `func(...)`) must be constructed or

@@ -75,10 +75,12 @@ print("8 pp=func(arg(0)); pp(7 :flag) flag leaves positional intact (expect 7): 
 check_fail(:ok ok)
 
 // --- test 9: an unsupplied keyword reads nil (basis of optional params) ---
-// In a flat run() scope variables are shared across test files, and an unset
-// func-local name falls through to the outer scope -- so a test that reads a
-// name "when absent" must initialize it to nil first (it's an uninitialized C
-// variable, in effect: if you test for nil, set it nil).
+// In a flat run() scope variables are shared across test files. A read-only
+// name like this one is captured once, at declaration time (see
+// LANGUAGE.md's "Closures -- captured at declaration time"), so a test that
+// reads a name "when absent" must initialize it to nil BEFORE declaring the
+// func, not before calling it -- the func()/#310 way of writing "if you test
+// for nil, set it nil first".
 flag=nil
 pf=func(flag)
 r=pf()

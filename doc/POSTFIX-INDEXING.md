@@ -68,6 +68,25 @@ the token's `narg`/`nkey`, steps `offset` backward, and recurses to consume each
 operand's whole subtree. Within one span it visits each token once: it is
 **linear, not quadratic**.
 
+### A forward-buffer counterpart: PostfixSpanWalk
+
+`skip_func`/`skip_key`/`skip_arg` above are tied to the *live* `_pfbuf`,
+walked backward from a stack-relative anchor -- they don't apply to a
+buffer that's already been copied out on its own (a `FuncObj` body via
+`copy_stack_arg_post_eval`, a stream-literal's token region via
+`copy_post_eval_expr`). `PostfixSpanWalk` (`postfixspan.h`/`.c`) is the
+forward-buffer analog: a single left-to-right pass, tracking operand
+spans purely from each token's own `narg()`/`nkey()`, no `ComTerp`
+instance or live stack required. Because `copy_post_eval_expr`'s output
+is in forward source order (confirmed in §6/§7 below), a plain forward
+walk with an explicit stack of spans recovers correct operand
+boundaries -- including the mixed-width case §6 documents -- without
+needing the reverse-accumulation pass the backward-discovery approach
+requires. Reach for this, not a hand-rolled walk, whenever the buffer in
+hand is already detached rather than live. `FuncObjVarScan`
+(`funcobjscan.h`/`.c`, the closure-capture and `:help`-contract free-
+variable classifier) is built on top of it.
+
 ### The `narg`-meaning correction lives inside skip_func
 
 `skip_func` (lines 702-712): `nargs = sv->narg()` (incl. post-keyword); the loop

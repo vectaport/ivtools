@@ -148,6 +148,15 @@ public:
     // look up a ComValue associated with a symbol (specified with a
     // symbol id) in the local or global symbol tables.
 
+    void token_to_comvalue(postfix_token*, ComValue*);
+    // resolve a raw postfix_token into its ComValue -- a symbol-shaped
+    // token is promoted from SymbolType to CommandType iff it names a
+    // currently-registered command.  Pure/side-effect-free (a table
+    // lookup, nothing executed); public so a static pre-pass over a
+    // detached token buffer (e.g. FuncObjVarScan, #310/#170) can classify
+    // symbol-vs-command the same way ordinary evaluation would, without
+    // duplicating the lookup.
+
     ComValue& stack_top(int n=0);
     // return reference to top of the stack, offset by 'n' (usually negative).
     ComValue& pop_symbol();
@@ -373,7 +382,6 @@ protected:
     boolean skip_arg(ComValue* topval, int& offset, int offlimit, int& argcnt);
 
     void push_stack(postfix_token*);
-    void token_to_comvalue(postfix_token*, ComValue*);
     const ComValue* stack(unsigned int &top) const;
     void load_sub_expr();
     void load_postfix(postfix_token*, int toklen, int tokoff);
