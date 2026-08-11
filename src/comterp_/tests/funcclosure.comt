@@ -97,5 +97,30 @@ ok=ok&&(r9==50)&&(r10==500)
 print("7 factor=10; obj2.scale=func(val=val*factor); factor=999; obj2's val stays live, factor stays captured (expect 50 500): %v %v\n\n" r9 r10)
 check_fail(:ok ok)
 
+// --- test 8: a self-bound method's own capture of a genuine free
+// variable (never on the object) must stay frozen every call, never
+// accumulate into a permanent field on the object -- Greptile P1 catch,
+// obj=(:x 1); obj.bump=func(c=c+1) once returned 11,12,13 and leaked a
+// :c field instead of 11,11,11 every time ---
+c=10
+obj3=(:y 1)
+obj3.bump = func(c=c+1)
+r11 = obj3.bump()
+r12 = obj3.bump()
+r13 = obj3.bump()
+ok=ok&&(r11==11)&&(r12==11)&&(r13==11)&&(obj3.y==1)
+print("8 c=10; obj3.bump=func(c=c+1) called 3x, c never on obj3 (expect 11 11 11, no leaked :c): %v %v %v\n\n" r11 r12 r13)
+check_fail(:ok ok)
+
+// --- test 9: a name that's both a genuine capture and an explicit
+// keyword at the same call defers entirely to the keyword mechanism --
+// the capture must not revert a write the keyword call legitimately
+// caused to stick (attrlist.comt test 43's exact shape) ---
+obj4=(:setit func(nope=nope+1; nope))
+r14 = obj4.setit(:nope 5)
+ok=ok&&(r14==6)&&(obj4.nope==6)
+print("9 obj4.setit(:nope 5) with nope both captured and keyword-supplied (expect 6, obj4.nope==6): %v %v\n\n" r14 obj4.nope)
+check_fail(:ok ok)
+
 print("funcclosure: %v\n" ok)
 ok
