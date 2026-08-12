@@ -214,6 +214,52 @@ jobs:
             exit 1
           fi
 
+      # #303: prove drawserv is a first-class comterp AND a first-class comdraw
+      # before trusting the much more complex distributed drawmo suite below --
+      # run both existing single-process suites directly under drawserv.
+      # drawserv registers the exact same GrDotFunc/GrAttrListFunc/GrStreamFunc
+      # as comdraw (DrawEditor -> FrameEditor -> ComEditor::AddCommands), so
+      # this is a real regression guard for #301-style dot-dispatch bugs that
+      # only manifest under the Gr* overrides -- the plain comterp suite above
+      # never touches them, since plain comterp registers the base DotFunc.
+      - name: Test - comterp_ suite under drawserv (smoke)
+        if: always()
+        timeout-minutes: 4
+        run: |
+          set -o pipefail
+          cd src/comterp_/tests
+          xvfb-run -a drawserv -stdin_off -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run-under-drawserv.log
+          if grep -q '^FAIL' run-under-drawserv.log; then echo "comterp_ suite under drawserv FAILED"; exit 1; fi
+          if ! grep -q 'run_all: true' run-under-drawserv.log; then echo "comterp_ suite under drawserv did not report success"; exit 1; fi
+          if grep -q 'substituting fixed font' run-under-drawserv.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run-under-drawserv.log
+            exit 1
+          fi
+
+      # comdraw's own suite under drawserv. KNOWN RED as of this writing:
+      # zoomap.comt fails here with spurious "<method> is not a func-valued
+      # attribute" warnings interleaved with what still look like successful
+      # self-bound calls -- a genuinely confusing, unexplained divergence from
+      # running the identical script directly under comdraw (where it's
+      # green). Left failing on purpose rather than skipped or excluded: this
+      # step existing and being red is the intended signal that something
+      # real needs investigating, not a gate to route around.
+      - name: Test - comdraw suite under drawserv (smoke)
+        if: always()
+        timeout-minutes: 4
+        run: |
+          set -o pipefail
+          cd src/comdraw/tests
+          xvfb-run -a drawserv -stdin_off -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run-under-drawserv.log
+          if grep -q '^FAIL' run-under-drawserv.log; then echo "comdraw suite under drawserv FAILED"; exit 1; fi
+          if ! grep -q 'run_all: true' run-under-drawserv.log; then echo "comdraw suite under drawserv did not report success"; exit 1; fi
+          if grep -q 'substituting fixed font' run-under-drawserv.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run-under-drawserv.log
+            exit 1
+          fi
+
       # Full drawmo distributed suite -- now runs headless under xvfb and BLOCKS.
       # It was thought to need real X, but the real blocker was networking, not the
       # GUI: drawmo dialed "localhost", which on this runner resolves to IPv6 ::1
