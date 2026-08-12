@@ -14,7 +14,6 @@
 // while writing this script (duck.speak() alone left a stray :i 3 behind
 // on duck). Not a bug, just self-binding doing exactly what it says.
 
-dot(:dbg true)
 duck=(:times 3
      :calls 0
      :speak func(

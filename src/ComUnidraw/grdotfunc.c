@@ -44,6 +44,13 @@ GrDotFunc::GrDotFunc(ComTerp* comterp) : DotFunc(comterp) {
 }
 
 void GrDotFunc::execute() {
+    /* This overrides DotFunc::execute() entirely rather than calling it
+       (peek_and_fire below needs before_part threaded through to the
+       compview-unwrapping step first), so dot(:dbg true) -- handled at
+       the top of DotFunc::execute() -- would otherwise never be reached
+       here and always misfire as a malformed dot expression instead of
+       toggling the flag. Check it explicitly first. */
+    if (check_dbg_keyword()) return;
 
     /* peek_and_fire (inherited from DotFunc) fires arg 0 exactly once if
        it's an unfired nested command reference -- e.g. grid(:table) in
@@ -106,8 +113,8 @@ GrAttrListFunc::GrAttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void GrAttrListFunc::execute() {
   ComValue compviewv(stack_arg(0));
-  reset_stack();
   if (compviewv.object_compview()) {
+    reset_stack();
     ComponentView* compview = (ComponentView*)compviewv.obj_val();
     OverlayComp* comp = compview ? (OverlayComp*)compview->GetSubject() : nil;
     if (comp) {
@@ -115,6 +122,17 @@ void GrAttrListFunc::execute() {
       push_stack(retval);
     } else
       push_stack(ComValue::nullval());
+  } else {
+    /* not a component view -- an ordinary bare attrlist literal, e.g.
+       zoo=(:a 1 :b 2), with no component argument at all. This command
+       is registered over plain AttrListFunc's "attrlist" name
+       (comeditor.c), so it has to cover that case too -- stack_keys()
+       must run before reset_stack() (it reads the live stack), same
+       ordering AttrListFunc::execute() (listfunc.c) already uses. */
+    AttributeList* al = stack_keys();
+    reset_stack();
+    ComValue retval(AttributeList::class_symid(), al);
+    push_stack(retval);
   }
 }
 

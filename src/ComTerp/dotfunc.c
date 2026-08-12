@@ -46,9 +46,13 @@ int DotFunc::_symid = -1;
 /* off by default -- capturing the pre-fire source text of both args (see
    execute() below) costs a cout redirect + two print_stack_arg_post_eval
    calls on every dot-expression, even the overwhelmingly common case where
-   nothing goes wrong.  Toggle at runtime with dot(:dbg true)/dot(:dbg false)
-   -- see DotFunc::execute() -- only while chasing a "expression before/after
-   dot" warning. */
+   nothing goes wrong.  A malformed-dot warning always shows the RESOLVED
+   value of both sides regardless of this flag (before_part/after_raw,
+   already on hand -- no capture needed) -- this only adds the raw postfix-
+   token dump on top of that, for tracking down something the resolved
+   value alone doesn't explain.  Intentionally undocumented/internal: set
+   it via check_dbg_keyword()'s :dbg keyword if ever needed again, but it's
+   not advertised in DotFunc's public docstring. */
 static boolean dotfunc_debug_expr = false;
 
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -358,17 +362,43 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
+
+      /* A list before "." is the common case in practice (e.g.
+	 zoo.who("Ellie").moves, dotting straight into a query result
+	 instead of unwrapping it with at() first) -- worth a specific,
+	 actionable message rather than the generic type-mismatch one
+	 below, and empty vs non-empty call for different advice. */
+      if (before_part.is_array()) {
+	AttributeValueList* avl = before_part.array_val();
+	int n = avl ? avl->Number() : 0;
+	if (n == 0)
+	  cout << "WARNING: nothing before \".\" to look up -- the list is empty";
+	else
+	  cout << "WARNING: expression before \".\" is a list of " << n
+	       << " item" << (n == 1 ? "" : "s")
+	       << " -- pick one with at(...) before dotting into it";
+	cout << " -- line " << funcstate()->linenum() << "\n";
+	cout << "expression before dot:  " << before_part << "\n";
+	if (dotfunc_debug_expr)
+	  cout << "raw expr before dot:  " << before_expr_text;
+	cout << "expression after dot:  " << after_raw << "\n";
+	reset_stack();
+	push_stack(ComValue::nullval());
+
+	return;
+      }
+
       cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
+      cout << "expression before dot:  " << before_part << "\n";
       if (dotfunc_debug_expr)
-        cout << "expression before dot:  " << before_expr_text;
-      else
-        cout << "(dot(:dbg true) to see the expression before the dot)\n";
+        cout << "raw expr before dot:  " << before_expr_text;
       cout << "expression after dot:  " << after_raw << "\n";
       reset_stack();
+      push_stack(ComValue::nullval());
 
       return;
     }
@@ -384,11 +414,11 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (before_part.is_object())
 	cout << " for class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
+      cout << "expression after dot:  " << after_raw << "\n";
       if (dotfunc_debug_expr)
-        cout << "expression after dot:  " << after_expr_text;
-      else
-        cout << "(dot(:dbg true) to see the expression after the dot)\n";
+        cout << "raw expr after dot:  " << after_expr_text;
       reset_stack();
+      push_stack(ComValue::nullval());
       return;
     }
 
@@ -471,13 +501,16 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     }
 }
 
-void DotFunc::execute() {
-    /* dot(:dbg [true|false]) -- get/set dotfunc_debug_expr at runtime, so a
-       live session (a running drawserv, say) can turn on the "expression
-       before/after dot" detail in the malformed-expression warning without
-       an edit+rebuild.  Checked first and unconditionally: an ordinary
-       a.b expression never supplies a :dbg keyword, so this never touches
-       the normal dispatch path below. */
+boolean DotFunc::check_dbg_keyword() {
+    /* Undocumented/internal: get/set dotfunc_debug_expr at runtime via a
+       :dbg keyword, so a live session (a running drawserv, say) can turn
+       on the raw postfix-token dump ON TOP OF the resolved-value detail
+       the malformed-dot warning already always shows, without an
+       edit+rebuild -- a fallback for a stranger case than the resolved
+       value alone explains, not something to advertise.  Checked first
+       and unconditionally: an ordinary a.b expression never supplies a
+       :dbg keyword, so this never touches the normal dispatch path
+       below. */
     static int dbg_symid = symbol_add("dbg");
     static int dbg_bare_symid = symbol_add("__dot_dbg_bare__");
     ComValue dbg_bare_sentinel(dbg_bare_symid, ComValue::SymbolType);
@@ -488,8 +521,13 @@ void DotFunc::execute() {
       if (!is_bare) dotfunc_debug_expr = dbgv.is_true();
       ComValue retval(dotfunc_debug_expr);
       push_stack(retval);
-      return;
+      return true;
     }
+    return false;
+}
+
+void DotFunc::execute() {
+    if (check_dbg_keyword()) return;
 
     ComValue before_part, after_raw;
     int after_nids;

@@ -47,5 +47,9 @@ if(run("./rasterrgb.comt")
   :then print("pass: rasterrgb\n")
   :else print("FAIL: rasterrgb\n");ok=false)
 
+if(run("./zoomap.comt")
+  :then print("pass: zoomap\n")
+  :else print("FAIL: zoomap\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok
