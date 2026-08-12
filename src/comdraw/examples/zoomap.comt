@@ -174,7 +174,7 @@ zoo=(
   :who func(
     asked=asked+1;
     target=arg(0);
-    // forgot the quotes?  who(swims) hands us an unbound symbol -- nil
+    // forgot the quotes?  zoo.who(swims) hands us an unbound symbol -- nil
     // -- and nil==nil would "match" every no-facts graphic (the tags!)
     if(target==nil :then print("Oops! Put quotes around your word, like this:  zoo.who(\"swims\")\n"));
     if(target==nil :then return(list()));
@@ -190,7 +190,7 @@ zoo=(
     if(size(matches)>0 :then zoo.flash(:things matches));
     matches)
 
-// zoo.haslegs(4) -- find every animal with that many legs
+  // zoo.haslegs(4) -- find every animal with that many legs
   :haslegs func(
     asked=asked+1;
     want=arg(0);

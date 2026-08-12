@@ -16,7 +16,14 @@
 // compared back after: unchanged means nothing wrote them, so they revert
 // (or are removed, if the name didn't exist before) -- different means
 // the method's own body wrote a new value there, self-bound, and that
-// write persists (tests 40-43).
+// write persists (tests 40-43).  Dot access on a keyword-bound attrlist
+// checks func scope (_alist) before local/global tables, so a param that
+// only lives there is still readable/writable, not shadowed by a
+// same-named outer variable (#292, tests 44-46).  There is no "self"
+// mechanism: a method reaches a sibling by using the enclosing attrlist's
+// own ordinary name and an explicit dot-call, which also means nothing
+// enforces that name still points at the same object across a call
+// (tests 47-48).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
