@@ -194,6 +194,26 @@ jobs:
             exit 1
           fi
 
+      # #303's other half: comdraw is also a first-class comterp. comdraw
+      # registers GrDotFunc/GrAttrListFunc/GrStreamFunc over the base
+      # ComTerp commands (ComEditor::AddCommands), so this covers the same
+      # regression class as the drawserv smoke tests below, one layer
+      # closer to plain comterp.
+      - name: Test - comterp_ suite under comdraw (smoke)
+        if: always()
+        timeout-minutes: 4
+        run: |
+          set -o pipefail
+          cd src/comterp_/tests
+          xvfb-run -a comdraw -stdin_off -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run-under-comdraw.log
+          if grep -q '^FAIL' run-under-comdraw.log; then echo "comterp_ suite under comdraw FAILED"; exit 1; fi
+          if ! grep -q 'run_all: true' run-under-comdraw.log; then echo "comterp_ suite under comdraw did not report success"; exit 1; fi
+          if grep -q 'substituting fixed font' run-under-comdraw.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run-under-comdraw.log
+            exit 1
+          fi
+
       # drawserv startup smoke: with the UAF fixed, drawserv must build, map under
       # X, and run an expression without the seed-update crash. This is a single
       # process with no cross-process callback, so it's deterministic under xvfb
@@ -211,6 +231,45 @@ jobs:
           if grep -q 'substituting fixed font' ds.log; then
             echo "FAIL: drawserv fell back to the fixed font -- xfonts missing from the X font path"
             grep 'substituting fixed font' ds.log
+            exit 1
+          fi
+
+      # #303: prove drawserv is a first-class comterp AND a first-class comdraw
+      # before trusting the much more complex distributed drawmo suite below --
+      # run both existing single-process suites directly under drawserv.
+      # drawserv registers the exact same GrDotFunc/GrAttrListFunc/GrStreamFunc
+      # as comdraw (DrawEditor -> FrameEditor -> ComEditor::AddCommands), so
+      # this is a real regression guard for #301-style dot-dispatch bugs that
+      # only manifest under the Gr* overrides -- the plain comterp suite above
+      # never touches them, since plain comterp registers the base DotFunc.
+      - name: Test - comterp_ suite under drawserv (smoke)
+        if: always()
+        timeout-minutes: 4
+        run: |
+          set -o pipefail
+          cd src/comterp_/tests
+          xvfb-run -a drawserv -stdin_off -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run-under-drawserv.log
+          if grep -q '^FAIL' run-under-drawserv.log; then echo "comterp_ suite under drawserv FAILED"; exit 1; fi
+          if ! grep -q 'run_all: true' run-under-drawserv.log; then echo "comterp_ suite under drawserv did not report success"; exit 1; fi
+          if grep -q 'substituting fixed font' run-under-drawserv.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run-under-drawserv.log
+            exit 1
+          fi
+
+      # comdraw's own suite under drawserv.
+      - name: Test - comdraw suite under drawserv (smoke)
+        if: always()
+        timeout-minutes: 4
+        run: |
+          set -o pipefail
+          cd src/comdraw/tests
+          xvfb-run -a drawserv -stdin_off -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run-under-drawserv.log
+          if grep -q '^FAIL' run-under-drawserv.log; then echo "comdraw suite under drawserv FAILED"; exit 1; fi
+          if ! grep -q 'run_all: true' run-under-drawserv.log; then echo "comdraw suite under drawserv did not report success"; exit 1; fi
+          if grep -q 'substituting fixed font' run-under-drawserv.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run-under-drawserv.log
             exit 1
           fi
 

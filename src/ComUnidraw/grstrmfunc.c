@@ -38,8 +38,22 @@ GrStreamFunc::GrStreamFunc(ComTerp* comterp) : StreamFunc(comterp) {
 }
 
 void GrStreamFunc::execute() {
+  /* Stream literals ((1 2 3), nargstotal()>1) and the empty-stream literal
+     ([], nargs()==0) are unconditionally delegated to the base class --
+     this override only has anything of its own to add for the single-
+     already-evaluated-value case below (peeking for a ComponentView to
+     unwrap). Without this check, stack_arg_post_eval(0) ran unconditionally
+     against zero or several args, silently producing nothing: confirmed
+     live under drawserv/comdraw, (1 2 3) and [] each printed empty instead
+     of the literal stream -- the same class of bug as #301/#303 (a Gr*
+     override outrunning what the base class actually handles). */
+  if (nargstotal() > 1 || nargs() == 0) {
+    StreamFunc::execute();
+    return;
+  }
+
   ComValue convertv(stack_arg_post_eval(0));
-  
+
   if (convertv.object_compview()) {
     reset_stack();
     
