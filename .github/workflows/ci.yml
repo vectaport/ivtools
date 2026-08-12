@@ -237,14 +237,7 @@ jobs:
             exit 1
           fi
 
-      # comdraw's own suite under drawserv. KNOWN RED as of this writing:
-      # zoomap.comt fails here with spurious "<method> is not a func-valued
-      # attribute" warnings interleaved with what still look like successful
-      # self-bound calls -- a genuinely confusing, unexplained divergence from
-      # running the identical script directly under comdraw (where it's
-      # green). Left failing on purpose rather than skipped or excluded: this
-      # step existing and being red is the intended signal that something
-      # real needs investigating, not a gate to route around.
+      # comdraw's own suite under drawserv.
       - name: Test - comdraw suite under drawserv (smoke)
         if: always()
         timeout-minutes: 4
