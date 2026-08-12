@@ -194,6 +194,26 @@ jobs:
             exit 1
           fi
 
+      # #303's other half: comdraw is also a first-class comterp. comdraw
+      # registers GrDotFunc/GrAttrListFunc/GrStreamFunc over the base
+      # ComTerp commands (ComEditor::AddCommands), so this covers the same
+      # regression class as the drawserv smoke tests below, one layer
+      # closer to plain comterp.
+      - name: Test - comterp_ suite under comdraw (smoke)
+        if: always()
+        timeout-minutes: 4
+        run: |
+          set -o pipefail
+          cd src/comterp_/tests
+          xvfb-run -a comdraw -stdin_off -runexpr 'run("./run_all.comt");exit' 2>&1 | tee run-under-comdraw.log
+          if grep -q '^FAIL' run-under-comdraw.log; then echo "comterp_ suite under comdraw FAILED"; exit 1; fi
+          if ! grep -q 'run_all: true' run-under-comdraw.log; then echo "comterp_ suite under comdraw did not report success"; exit 1; fi
+          if grep -q 'substituting fixed font' run-under-comdraw.log; then
+            echo "FAIL: a core font did not resolve -- xfonts missing from the X font path"
+            grep 'substituting fixed font' run-under-comdraw.log
+            exit 1
+          fi
+
       # drawserv startup smoke: with the UAF fixed, drawserv must build, map under
       # X, and run an expression without the seed-update crash. This is a single
       # process with no cross-process callback, so it's deterministic under xvfb
