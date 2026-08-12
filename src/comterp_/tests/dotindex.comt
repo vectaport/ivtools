@@ -1,11 +1,14 @@
 // src/comterp_/tests/dotindex.comt -- #318: dot access with a numeric rhs
-// on a list or attrlist is sugar for at(), read-only.
+// on a list or attrlist is sugar for at(); lst.N=val also writes through
+// to a plain list (AttributeList stays read-only -- reflection, not an
+// address, see test 3).
 //
 // funcs: at() list() class() next() errmsg()
 // coverage: lst.N on a plain list, al.N as a positional walk of an
 //           attrlist, out-of-range, nested chains, existing symbolic
-//           dot access unaffected, and non-numeric/negative rhs left to
-//           existing (unrelated, pre-#318) behavior.
+//           dot access unaffected, non-numeric rhs left to existing
+//           (unrelated, pre-#318) behavior, lst.N=val write support,
+//           and al.N=val confirmed to never mutate.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/dotindex.comt")
@@ -42,16 +45,20 @@ ok=ok&&ok2
 print("2 lst.9 out of range (expect no error): %v\n" e2)
 prev_ok=check_fail(:ok ok)
 
-// --- test 3: al.N is a positional walk of an attrlist, same shape
-// at() already returns for AttributeList -- an Attribute-wrapped
-// dotted pair, the identical shape al.name (existing, symbolic dot
-// access) already returns, so both print and compare the same way. ---
+// --- test 3: al.N is a positional walk of an attrlist -- reflection
+// only, per design discussion: "the indexed tour of an attrlist will
+// be by attrlist singletons".  Returns a fresh, detached one-entry
+// AttributeList copy (:b 2), NOT the live internal Attribute* al.b
+// (symbolic access) returns -- so it reads the same key/value but is
+// never a write address (see the write-support tests below: al.N=val
+// must not silently overwrite whatever attribute happens to sit at
+// position N today, purely by position). ---
 al=(:a 1 :b 2 :c 3)
-byname=al.b
 byindex=al.1
-ok3=(byname==byindex)
+ok3=(class(byindex)==`AttributeList)
+ok3=ok3&&(byindex.b==2)
 ok=ok&&ok3
-print("3 al.b == al.1 -- attrlist positional walk matches symbolic access (expect true): %v (byname=%v byindex=%v)\n" ok3 byname byindex)
+print("3 al.1 -- detached singleton (:b 2), same key/value as al.b (expect true): %v (byindex=%v)\n" ok3 byindex)
 prev_ok=check_fail(:ok ok)
 
 // --- test 4: existing symbolic dot access on an attrlist is completely
@@ -79,6 +86,43 @@ lst2=list(1,2,3)
 r7=lst2.foo
 e6=errmsg(:last)
 print("6 lst.foo (non-numeric rhs, pre-#318 behavior unaffected): %v\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: lst.N=val writes through to a plain list -- AssignFunc
+// (assignfunc.c), not DotFunc, performs the actual mutation: DotFunc
+// only resolves which list and index are in play (its existing
+// expertise, reused unchanged from the read path) and, seeing its own
+// lhs_assign() flag set, hands both back instead of reading; a plain
+// list has no per-element Attribute the way a named attrlist key does,
+// so there's nothing to write through the way al.b=val already does --
+// AssignFunc calls the same AttributeValueList::Set() at()'s own :set
+// keyword uses internally (listfunc.c), directly. ---
+lst3=list(10,20,30,40,50)
+r9=lst3.0=100
+ok7=(r9==100)
+ok7=ok7&&(lst3.0==100)
+ok7=ok7&&(lst3.3==40)
+ok=ok&&ok7
+print("7 lst.0=100 -- write support (expect 100, list[0]==100, list[3] untouched==40): %v %v %v\n" r9 lst3.0 lst3.3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: al.N=val is confirmed to never mutate -- position isn't
+// a stable write address for an attrlist (test 3's premise): writing
+// by position could silently clobber whichever key happens to sit
+// there today, which shifts as attributes are added/removed.  Checked
+// via a copy so a failure here doesn't corrupt state for later tests;
+// the attempt itself does print a warning (harmless, matches the
+// existing "not a symbol or attribute" path any other non-writable
+// dot rhs already hits) -- confirmed separately not to trip run()'s
+// nested pass/fail detection the way test 7's now-removed negative-rhs
+// probe did (that one hit a different, dot-parsing-level warning
+// before ever reaching AssignFunc; this one is the ordinary, already
+// print-safe assignment-target warning). ---
+al2=(:x 10 :y 20 :z 30)
+al2.1=999
+ok8=(al2.y==20)
+ok=ok&&ok8
+print("8 al.1=999 -- must not mutate (expect al.y still 20): %v\n" al2.y)
 prev_ok=check_fail(:ok ok)
 
 // Deliberately no runnable test for a literal negative rhs (lst.-1):

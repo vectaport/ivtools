@@ -426,12 +426,91 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  have_list = true;
 	}
       }
-      if (have_list) {
+      if (have_list && listv.is_array()) {
+	/* lhs_assign() is set by AssignFunc (assignfunc.c) on this dot
+	   command's own token whenever it starts a "something.something"
+	   assignment lhs -- checked the same way GlobalFunc/LocalFunc
+	   already do (symbolfunc.c) -- before this evaluation's own
+	   reset_stack().  For lst.N=val on a plain list, don't read at
+	   all: hand back the list plus the target index so AssignFunc can
+	   build and fire at(list idx :set val) itself -- a plain list has
+	   no per-element Attribute the way a named attrlist key does, so
+	   there's nothing here to return that the existing
+	   Attribute-write-through path could use directly (#318).
+
+	   Offset is nkeys()+1, not nargs()+nkeys() the way symbolfunc.c's
+	   GlobalFunc/LocalFunc check it -- confirmed live (dumping
+	   stack_top(0..5) for lst.N=val): that formula only coincidentally
+	   matches nkeys()+1 for a 1-positional-arg command; dot has 2
+	   (before, after), and its own flagged token sits at stack_top(1)
+	   regardless, not stack_top(nargs()+nkeys())=stack_top(2).
+
+	   The list+index pair travels as a tiny 2-element ArrayValueList
+	   [list, idx], not stashed in a spare ComValue field (nids() was
+	   tried first: confirmed live that it does NOT survive the round
+	   trip -- something along the push/copy path recomputes it for an
+	   ArrayType value, so AssignFunc saw a stale/unrelated number, not
+	   the index this pushed). Reusing AttributeValueList's own,
+	   already-safe element storage avoids that -- no custom field
+	   semantics to fight, and no ownership hazard either: aliasing the
+	   array's own internal AttributeValue* (e.g. via avl->Get(idx),
+	   wrapped in a throwaway Attribute for the existing write-through
+	   branch to use) was the other option considered and rejected --
+	   Attribute owns and deletes its Value() on destruction, and so
+	   does the array itself, a double-free waiting to happen. */
+	boolean assign_lhs = comterp()->stack_top(nkeys()+1).lhs_assign();
+	if (assign_lhs) {
+	  reset_stack();
+	  AttributeValueList* pair = new AttributeValueList();
+	  pair->Append(new AttributeValue(listv));
+	  pair->Append(new AttributeValue(after_raw.int_val(), AttributeValue::IntType));
+	  ComValue retval(pair);
+	  retval.lhs_assign(1);
+	  push_stack(retval);
+	  return;
+	}
 	reset_stack();
 	push_stack(listv);
 	push_stack(after_raw);
 	ListAtFunc atf(comterp());
 	atf.exec(2, 0);
+	return;
+      } else if (have_list) {
+	/* AttributeList: a numeric position is reflection/inspection only
+	   -- "the indexed tour of an attrlist will be by attrlist
+	   singletons" -- never a stable write address, so this always
+	   returns a fresh, detached one-entry AttributeList copy rather
+	   than ListAtFunc's own live Attribute* reference into the
+	   original (which -- confirmed live -- would otherwise let
+	   al.1=val silently overwrite whatever attribute happens to sit
+	   at position 1 today, e.g. :b, purely by position; positions
+	   shift as attributes are added/removed, so that's not an
+	   address worth honoring as an lvalue). Same outcome whether or
+	   not lhs_assign() is set: al.1=val falls through to the
+	   ordinary "not a symbol or attribute" warning, same as any
+	   other non-writable rhs. */
+	AttributeList* al = (AttributeList*) listv.obj_val();
+	int nvv = after_raw.int_val();
+	AttributeList* singleton = nil;
+	if (al && nvv < al->Number()) {
+	  int count = 0;
+	  Iterator it;
+	  for (al->First(it); !al->Done(it); al->Next(it)) {
+	    if (count==nvv) {
+	      Attribute* found = al->GetAttr(it);
+	      singleton = new AttributeList();
+	      singleton->add_attr(found->SymbolId(), *found->Value());
+	      break;
+	    }
+	    count++;
+	  }
+	}
+	reset_stack();
+	if (singleton) {
+	  ComValue retval(AttributeList::class_symid(), (void*) singleton);
+	  push_stack(retval);
+	} else
+	  push_stack(ComValue::blankval());
 	return;
       }
     }
