@@ -60,10 +60,20 @@ public:
     virtual void execute();
     void execute_literal();  // handle (val val ...) stream literal syntax
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
+    virtual const char* docstring() {
       return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $$)"; }
 
     CLASS_SYMID("StreamFunc");
+
+protected:
+    /* build+push a stream from an ALREADY-evaluated operand.  Factored out
+       of execute() so a subclass that must peek at its operand's value
+       before deciding how to handle it (GrStreamFunc::execute(), which
+       checks object_compview()) can hand that already-fired ComValue
+       straight in here instead of re-firing the original (post_eval)
+       argument expression a second time -- the same peek-once-then-thread-
+       the-value-through discipline GrDotFunc::execute() documents. */
+    void push_stream_from_value(ComValue& operand1);
 
 };
 

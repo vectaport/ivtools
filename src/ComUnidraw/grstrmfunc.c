@@ -68,13 +68,20 @@ void GrStreamFunc::execute() {
     push_stack(stream);
     
   } else {
-    
-    StreamFunc strmfunc(comterp());
-    strmfunc.exec(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
+
+    /* Not a compview -- e.g. a plain list, as from zoo.haslegs() above.
+       convertv above already fired the (post_eval) argument once to make
+       this check; re-firing it via a fresh StreamFunc::exec() would run
+       the source expression's side effects a second time (confirmed live:
+       a self-bound method returning a list of matches ran its whole body,
+       print()s and all, twice under $$). Hand the already-evaluated value
+       straight to the shared conversion logic instead. */
+    reset_stack();
+    push_stream_from_value(convertv);
     return;
-    
+
   }
-  
+
 }
 
 #if 0  

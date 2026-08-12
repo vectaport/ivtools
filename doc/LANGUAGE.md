@@ -805,6 +805,49 @@ outer.bump()                           // 1
 outer.inner.bump()                      // 101 -- inner's own :cnt, untouched by outer's
 ```
 
+**There is no `self` — just the enclosing attrlist's own name.** A method
+calling a sibling method *with arguments* by bare name always misfires: a
+symbol-with-arglist that isn't a registered global command never reaches
+through `_alist` to a sibling, and there's no "myself" keyword to write
+instead. But the object is nothing more than an ordinary attrlist bound to
+an ordinary variable, and that variable is fully readable from inside one
+of its own methods — nothing about entering a self-bound call hides outer
+scope, `_alist` is only consulted *first*. So a method reaches a sibling
+the same way any outside caller would, by writing the object's own name
+and an explicit dot-call:
+
+```
+zoo=(:flash func(things) :report func(zoo.flash(:things "hello")))
+zoo.report()                           // "hello" -- report reaches flash via zoo's own name
+```
+
+No special mechanism was added for this — `zoo` inside `report`'s body is
+the exact same ordinary global lookup it would be anywhere else. That's
+also the catch: nothing ties this lookup to *the object the method
+happens to be running against*. It's the current value of whatever name
+was written, resolved fresh at the point of use — so slipping a different
+attrlist under the same name mid-flight redirects it, even for a call
+still self-bound to the original object:
+
+```
+zoo=(:flash func("MINE") :report func(zoo.flash()))
+saved=zoo
+zoo=(:flash func("OTHER"))             // a different object, same global name
+saved.report()                         // "OTHER" -- report is self-bound to `saved`, but
+                                        // its body's "zoo" reads the CURRENT global, not saved
+zoo=saved                              // restore
+```
+
+`saved.report()` self-binds `_alist` to `saved` (the original object) for
+the call, exactly as always — but `report`'s own body never says `self`
+or `saved`, it says `zoo`, and `zoo` is just a name in scope like any
+other. This is the same tradeoff called out for `counter.n` above: no
+privacy, no enforcement, convention rather than a language guarantee —
+and it works as a "self" reference only for as long as nothing reassigns
+the name out from under it, which is ordinarily true (a `zoo=(...)`
+attrlist literal isn't usually reassigned mid-script) but never actually
+enforced.
+
 **Keyword arguments to a method call are ephemeral, unless the method
 writes them.** `al.method(:key val)` writes `key` onto `al` before firing
 — exactly as if you'd written `al.key=val` first — then compares it back

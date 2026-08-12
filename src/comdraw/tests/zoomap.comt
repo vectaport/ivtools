@@ -1,0 +1,103 @@
+// src/comdraw/tests/zoomap.comt -- regression coverage for the zoomap kid demo
+//
+// Loads src/comdraw/examples/zoomap.comt (draws the map, builds the zoo
+// object) and pokes at it the way a kid exploring after zoo.help() might:
+// find animals by name/motion/food, chain straight into a found animal's
+// facts, ask about legs, hit an empty result on purpose, check the
+// persisting :asked counter, and -- last, since it adds a real animal --
+// follow zoo.help()'s own "YOUR TURN" pig example verbatim. Exercises the
+// real fixes from this PR -- GrAttrListFunc's non-compview fallback,
+// GrStreamFunc's no-double-fire under $$, the dot-on-list warnings (and
+// their nil return), and zoo.flash() reaching a sibling method via its
+// own name (no self mechanism) -- through the actual demo script a kid
+// runs, not a synthetic stand-in.
+//
+// funcs: zoo.who zoo.haslegs zoo.countlegs zoo.dance zoo.oops zoo.help
+ok=true
+
+// zoo.who()/haslegs() scan the WHOLE canvas via frame(), and run_all.comt
+// runs every test in one shared comdraw process -- an earlier test's
+// leftover graphics are still there (confirmed live: dotattr.comt's own
+// test 5 sets r.legs=4 on its rect, which frame()-based haslegs(4) and
+// countlegs() then pick right up as a real zoo animal). Clear the canvas
+// first so this test's counts hold regardless of what ran before it.
+while(size(frame())>0 delete(at(frame() 0)))
+
+run("../examples/zoomap.comt")
+
+// --- 1: find by name, then chain straight into a fact -- no attrlist()
+// needed, GrDotFunc unwraps the ComponentView on its own ---
+r1=zoo.who("Ellie")
+ok=ok&&(size(r1)==1)
+legs1=at(zoo.who("Ellie")).legs
+ok=ok&&(legs1==4)
+print("1 zoo.who(\"Ellie\") finds 1, at(...).legs reads 4 directly (expect 1 4): %v %v\n" size(r1) legs1)
+
+// --- 2: find by motion -- Fin the fish swims ---
+r2=zoo.who("swims")
+ok=ok&&(size(r2)==1)
+print("2 zoo.who(\"swims\") finds Fin (expect 1): %v\n" size(r2))
+
+// --- 3: find by food, multiple matches -- Fin/Zig/Bella all eat bugs ---
+r3=zoo.who("bugs")
+ok=ok&&(size(r3)==3)
+print("3 zoo.who(\"bugs\") finds Fin/Zig/Bella (expect 3): %v\n" size(r3))
+
+// --- 4: find by leg count -- Ellie and Leo both have 4 ---
+r4=zoo.haslegs(4)
+ok=ok&&(size(r4)==2)
+print("4 zoo.haslegs(4) finds Ellie/Leo (expect 2): %v\n" size(r4))
+
+// --- 5: a kid asking about someone not in the zoo yet -- an empty list,
+// not an error ---
+r5=zoo.who("Penny")
+ok=ok&&(size(r5)==0)
+print("5 zoo.who(\"Penny\") before she's been added (expect empty): %v\n" size(r5))
+
+// --- 6: the natural next kid mistake -- dot straight onto that empty
+// result without at() first. Warns (list-is-empty message), but
+// shouldn't crash or wedge the interpreter -- just returns nil. ---
+r6=zoo.who("Penny").moves
+ok=ok&&(r6==nil)
+print("6 zoo.who(\"Penny\").moves misses at() on purpose, warns, returns nil (expect nil): %v\n" r6)
+
+// --- 7: countlegs adds up every leg in the zoo (4+2+0+0+2+4) ---
+r7=zoo.countlegs()
+ok=ok&&(r7==12)
+print("7 zoo.countlegs() (expect 12): %v\n" r7)
+
+// --- 8: :asked is a real persisting field on the zoo object, incremented
+// by each who()/haslegs() call above -- 7 of them: test 1 calls
+// zoo.who("Ellie") twice (r1, then again inline for legs1), tests 2-5
+// each call once, and test 6's zoo.who("Penny") still fires (and still
+// counts) before the dot ever fails -- the warning happens AFTER
+// evaluating the "before" part, not instead of it ---
+ok=ok&&(zoo.asked==7)
+print("8 zoo.asked counts the 7 who()/haslegs() calls above (expect 7): %v\n" zoo.asked)
+
+// --- 9: dance() and help() run cleanly -- pure smoke, no useful return
+// value to assert on ---
+zoo.dance()
+zoo.help()
+print("9 zoo.dance() and zoo.help() run without error (expect true): %v\n" ok)
+
+// --- 10: the "YOUR TURN" pig example zoo.help() itself teaches, verbatim
+// -- a plain graphic given facts one dot-write at a time (not setattr(),
+// not part of the zoo object) still shows up as a real zoo citizen,
+// because zoo.who()/haslegs() query frame() itself, not some private
+// zoo-only registry. Run last: it adds a real :legs 4 graphic, which
+// would otherwise skew tests 4/7/8 above. ---
+pig=ellipse(200,220, 25,15)
+pig.name="Penny"
+pig.kind="animal"
+pig.legs=4
+pig.eats="corn"
+pig.moves="trots"
+r10=zoo.who("Penny")
+ok=ok&&(size(r10)==1)
+moves10=at(zoo.who("Penny")).moves
+ok=ok&&(moves10=="trots")
+print("10 the pig example: zoo.who(\"Penny\") finds Penny, .moves reads \"trots\" (expect 1 trots): %v %v\n" size(r10) moves10)
+
+print("zoomap: %v\n" ok)
+ok
