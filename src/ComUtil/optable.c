@@ -115,6 +115,7 @@ struct _opr_tbl_default_entry {
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },
+  {"*",          "next",               70,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"/",          "div",                70,         FALSE,      OPTYPE_BINARY },
   {"+",          "add",                60,         FALSE,      OPTYPE_BINARY },
   {"-",          "sub",                60,         FALSE,      OPTYPE_BINARY },
