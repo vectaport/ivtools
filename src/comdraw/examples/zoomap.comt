@@ -267,7 +267,7 @@ zoo=(
     print("(each dot writes one fact on the pig -- setattr(pig :name \"Penny\" :legs 4 ...)\n");
     print(" stamps them all at once, like the animals above)\n");
     print("BONUS: zoo.who(...) hands back the animal itself, not just an answer --\n");
-    print("  attrlist(at(zoo.who(\"Penny\"))).moves   -- read a fact straight off what you found\n")))
+    print("  at(zoo.who(\"Penny\")).moves   -- dot straight into what you found, no attrlist() needed\n")))
 
 // ============================================================
 // welcome!
