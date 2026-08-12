@@ -1008,7 +1008,7 @@ void AbsFunc::execute() {
 CharFunc::CharFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void CharFunc::execute() {
-    ComValue operand(stack_arg(0));
+    ComValue operand(stack_arg(0, false, ComValue::acharval()));
     static int u_symid = symbol_add("u");
     int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
@@ -1050,7 +1050,7 @@ void ShortFunc::execute() {
 IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void IntFunc::execute() {
-    ComValue operand(stack_arg(0));
+    ComValue operand(stack_arg(0, false, ComValue::zeroval()));
     static int u_symid = symbol_add("u");
     int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
@@ -1092,7 +1092,8 @@ void LongFunc::execute() {
 FloatFunc::FloatFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void FloatFunc::execute() {
-    ComValue operand(stack_arg(0));
+    static ComValue float_zero = ComValue((float)0.0);
+    ComValue operand(stack_arg(0, false, float_zero));
     reset_stack();
     if (operand.is_string()) {
       const char* numstr = operand.symbol_ptr();
@@ -1109,7 +1110,8 @@ void FloatFunc::execute() {
 DoubleFunc::DoubleFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void DoubleFunc::execute() {
-    ComValue operand(stack_arg(0));
+    static ComValue double_zero = ComValue((double)0.0);
+    ComValue operand(stack_arg(0, false, double_zero));
     reset_stack();
     if (operand.is_string()) {
       const char* numstr = operand.symbol_ptr();

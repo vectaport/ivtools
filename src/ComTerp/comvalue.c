@@ -46,7 +46,7 @@
 #include <strstream>
 using namespace std;
 
-ComValue ComValue::_nullval;
+ComValue ComValue::_nullval(ComValue::UnknownType);
 ComValue ComValue::_trueval(1, ComValue::BooleanType);
 ComValue ComValue::_falseval(0, ComValue::BooleanType);
 ComValue ComValue::_blankval(ComValue::BlankType);
@@ -55,6 +55,7 @@ ComValue ComValue::_oneval(1, ComValue::IntType);
 ComValue ComValue::_zeroval(0, ComValue::IntType);
 ComValue ComValue::_minusoneval(-1, ComValue::IntType);
 ComValue ComValue::_twoval(2, ComValue::IntType);
+ComValue ComValue::_acharval('a', ComValue::CharType);
 
 /*****************************************************************************/
 
@@ -382,50 +383,54 @@ const char* ComValue::String() {
 }
 
 
-
 ComValue& ComValue::nullval() { 
-  *&_nullval = ComValue();
+  //*&_nullval = ComValue();
   return _nullval; 
 }
 
 ComValue& ComValue::trueval() { 
-  *&_trueval = ComValue(1, ComValue::BooleanType);
+  //*&_trueval = ComValue(1, ComValue::BooleanType);
   return _trueval; 
 }
 
 ComValue& ComValue::falseval() { 
-  *&_falseval = ComValue(0, ComValue::BooleanType);
+  //*&_falseval = ComValue(0, ComValue::BooleanType);
   return _falseval; 
 }
 
 ComValue& ComValue::blankval() { 
-  *&_blankval = ComValue(ComValue::BlankType);
+  //*&_blankval = ComValue(ComValue::BlankType);
   return _blankval;
 }
 
 ComValue& ComValue::unkval() { 
-  *&_unkval = ComValue(ComValue::UnknownType);
+  //*&_unkval = ComValue(ComValue::UnknownType);
   return _unkval;
 }
 
 ComValue& ComValue::oneval() { 
-  *&_oneval = ComValue(1, ComValue::IntType);
+  //*&_oneval = ComValue(1, ComValue::IntType);
   return _oneval;
 }
 
 ComValue& ComValue::zeroval() { 
-  *&_zeroval = ComValue(0, ComValue::IntType);
+  //*&_zeroval = ComValue(0, ComValue::IntType);
   return _zeroval;
 }
 
 ComValue& ComValue::minusoneval() { 
-  *&_minusoneval = ComValue(-1, ComValue::IntType);
+  //*&_minusoneval = ComValue(-1, ComValue::IntType);
   return _minusoneval;
 }
 
 ComValue& ComValue::twoval() { 
-  *&_twoval = ComValue(2, ComValue::IntType);
+  //*&_twoval = ComValue(2, ComValue::IntType);
   return _twoval;
+}
+
+ComValue& ComValue::acharval() { 
+  //*&_achar = ComValue('a', ComValue::CharType);
+  return _acharval;
 }
 
 boolean ComValue::is_comfunc(int func_classid) {
