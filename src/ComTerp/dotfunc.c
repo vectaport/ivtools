@@ -383,6 +383,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  cout << "raw expr before dot:  " << before_expr_text;
 	cout << "expression after dot:  " << after_raw << "\n";
 	reset_stack();
+	push_stack(ComValue::nullval());
 
 	return;
       }
@@ -397,6 +398,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
         cout << "raw expr before dot:  " << before_expr_text;
       cout << "expression after dot:  " << after_raw << "\n";
       reset_stack();
+      push_stack(ComValue::nullval());
 
       return;
     }
@@ -416,6 +418,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (dotfunc_debug_expr)
         cout << "raw expr after dot:  " << after_expr_text;
       reset_stack();
+      push_stack(ComValue::nullval());
       return;
     }
 
