@@ -359,34 +359,74 @@ ok=ok&&(r43==6 && v43.nope==6)
 print("43 v43=(:setit func(nope=nope+1; nope)); v43.setit(:nope 5) (expect 6, v43.nope=6 -- new field, written, sticks): %v %v\n\n" r43 v43.nope)
 prev_ok=check_fail(:ok ok)
 
-// --- test 44: there is no "self" mechanism -- a method reaches a sibling
+// --- test 44: dot read on a keyword-bound attrlist sourced from a
+// command-call return value, not a direct variable reference -- #292
+// regression.  Before the fix, DotFunc's before-variable lookup skipped
+// _alist (func scope) entirely and went straight to local/global tables;
+// a keyword-bound :al param lives only in _alist, so this always read
+// back nil. ---
+k44=func(al.n)
+v44=k44(:al attrlist(:n 5))
+ok=ok&&(v44==5)
+print("44 k44=func(al.n); k44(:al attrlist(:n 5)) reads keyword-bound attrlist (expect 5): %v\n\n" v44)
+prev_ok=check_fail(:ok ok)
+
+// --- test 45: func-local scope isolation -- a keyword-bound :al param
+// must resolve to the value actually passed in, not to a same-named
+// outer variable.  This is the masking gap that let #292 slip past test
+// 13 undetected: pre-fix, the buggy lookup auto-vivified a *new*
+// attrlist under the "al" name in local/global scope (since _alist was
+// never consulted), so a write immediately followed by a read of the
+// same name looked self-consistent even though neither one ever touched
+// the real keyword-bound object.  Giving the outer scope a *pre-existing*
+// same-named al with different content exposes that: pre-fix this read
+// the outer al's stale value instead of the one just passed in. ---
+al=attrlist(:n 999)
+k45=func(al.n)
+v45=k45(:al attrlist(:n 5))
+ok=ok&&(v45==5)
+print("45 outer al pre-existing with different value, keyword-bound al still wins (expect 5): %v\n\n" v45)
+prev_ok=check_fail(:ok ok)
+
+// --- test 46: write-isolation companion to test 45 -- a func-local :al
+// write must land on the object actually passed in, not on a same-named
+// outer variable. ---
+al=attrlist(:n 999)
+myal46=attrlist(:n 1)
+k46=func(al.n=5)
+k46(:al myal46)
+ok=ok&&(al.n==999 && myal46.n==5)
+print("46 func-local :al write hits the passed-in object, not outer al (expect al.n=999, myal46.n=5): %v %v\n\n" al.n myal46.n)
+prev_ok=check_fail(:ok ok)
+
+// --- test 47: there is no "self" mechanism -- a method reaches a sibling
 // method by using the enclosing attrlist's own (ordinary global) name and
 // an explicit dot-call, exactly like any outside caller would. A bare,
 // argument-taking reference to a sibling by name alone (flash(:things x))
-// would misfire to nil regardless of self-binding; only zoo44.flash(...)
+// would misfire to nil regardless of self-binding; only zoo47.flash(...)
 // reaches it ---
-zoo44=(:flash func(things) :report func(zoo44.flash(:things "hello")))
-r44=zoo44.report()
-ok=ok&&(r44=="hello")
-print("44 zoo44.report() reaches zoo44.flash(...) via zoo44's own global name, not a language self feature (expect hello): %v\n\n" r44)
+zoo47=(:flash func(things) :report func(zoo47.flash(:things "hello")))
+r47=zoo47.report()
+ok=ok&&(r47=="hello")
+print("47 zoo47.report() reaches zoo47.flash(...) via zoo47's own global name, not a language self feature (expect hello): %v\n\n" r47)
 prev_ok=check_fail(:ok ok)
 
-// --- test 45: since it's just an ordinary name lookup, nothing enforces
+// --- test 48: since it's just an ordinary name lookup, nothing enforces
 // that name still points to the object a method was defined on -- slip a
 // different attrlist under the same global name mid-flight and a method
 // still self-bound to the ORIGINAL object reaches the NEW one instead,
-// because its body's reference to "zoo45" resolves fresh, dynamically, at
+// because its body's reference to "zoo48" resolves fresh, dynamically, at
 // call time, same as any other free variable would. This is the flip side
-// of test 44 working at all: the convenience and the lack of enforcement
+// of test 47 working at all: the convenience and the lack of enforcement
 // are the same fact ---
-zoo45=(:flash func("MINE") :report func(zoo45.flash()))
-r45a=zoo45.report()
-saved45=zoo45
-zoo45=(:flash func("OTHER"))
-r45b=saved45.report()
-zoo45=saved45
-ok=ok&&(r45a=="MINE" && r45b=="OTHER")
-print("45 slipping a different attrlist under zoo45's name mid-flight redirects saved45.report() too (expect MINE OTHER): %v %v\n\n" r45a r45b)
+zoo48=(:flash func("MINE") :report func(zoo48.flash()))
+r48a=zoo48.report()
+saved48=zoo48
+zoo48=(:flash func("OTHER"))
+r48b=saved48.report()
+zoo48=saved48
+ok=ok&&(r48a=="MINE" && r48b=="OTHER")
+print("48 slipping a different attrlist under zoo48's name mid-flight redirects saved48.report() too (expect MINE OTHER): %v %v\n\n" r48a r48b)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)

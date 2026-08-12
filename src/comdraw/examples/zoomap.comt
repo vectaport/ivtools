@@ -9,7 +9,7 @@
 //
 //     comdraw -runfile src/comdraw/examples/zoomap.comt
 //
-// Then try:   zoo.zoohelp()
+// Then try:   zoo.help()
 //
 // HOW IT WORKS (the three layers of every spatial app):
 //   1. the DRAWING  -- shapes on the canvas (rect, ellipse, spline)
@@ -185,7 +185,7 @@ zoo=(
       g=at(frame() qi);
       if((g.name==target)||(g.moves==target)||(g.eats==target) :then matches,g));
     if(size(matches)==0
-      :then print("Hmm, nobody in this zoo matches that. Try zoo.zoohelp()\n")
+      :then print("Hmm, nobody in this zoo matches that. Try zoo.help()\n")
       :else print("Found %v! Look for the red circles!\n" size(matches)));
     if(size(matches)>0 :then zoo.flash(:things matches));
     matches)
@@ -237,15 +237,15 @@ zoo=(
   // clears it), so even a raw parser error is reachable from up here.
   :oops func(
     m=errmsg(:last);
-    if(m==nil :then print("No mistakes waiting! The map is happy. Try zoo.zoohelp()\n"));
+    if(m==nil :then print("No mistakes waiting! The map is happy. Try zoo.help()\n"));
     if(m!=nil :then print("The map got confused. It said:\n    %v\n" m));
     if(m!=nil :then print("Check for: quotes around words -- zoo.who(\"swims\") -- and matching ( ) pairs.\n"));
     nil)
 
-  // zoo.zoohelp() -- remind me of the magic words, and how many I've
+  // zoo.help() -- remind me of the magic words, and how many I've
   // already asked (:asked is the zoo's own persisting field -- see
   // the note above zoo=(...))
-  :zoohelp func(
+  :help func(
     print("*** MAGIC WORDS FOR YOUR ZOO MAP ***\n");
     print("  zoo.who(\"swims\")     -- who swims?  (also: flies, climbs, slides, stomps, prowls)\n");
     print("  zoo.who(\"bugs\")      -- who eats bugs?  (also: bananas, plants, meat)\n");
@@ -277,5 +277,5 @@ print("       zoo.who(\"swims\")\n")
 print("       zoo.haslegs(4)\n")
 print("       zoo.countlegs()\n")
 print("       zoo.dance()\n")
-print("       zoo.zoohelp()      <- shows all the magic words\n")
+print("       zoo.help()      <- shows all the magic words\n")
 print("=================================================\n")
