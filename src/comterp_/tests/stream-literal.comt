@@ -1,14 +1,15 @@
-// stream-literal.comt version 5
-print("stream-literal.comt version 5\n")
+// stream-literal.comt version 6
+print("stream-literal.comt version 6\n")
 
 // src/comterp_/tests/stream-literal.comt -- stream literal syntax tests
 //
-// coverage: 19 tests of stream literal feature
+// coverage: 22 tests of stream literal feature
 // funcs: postfix() errmsg() index() next() list() each() size() class() trace()
 // tests 1-8:   parser tests (postfix inspection)
 // tests 9-14:  stream literal runtime behavior
 // tests 15-18: stream-of-streams construction, zip behavior, mixed elements
 // test 19:     empty bracket literal []
+// tests 20-22: unary-prefix-operator-led elements (*x, -x, ...)
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/stream-literal.comt")
@@ -275,6 +276,85 @@ r19=next(s19)
 ok19=ok19&&(r19==nil)
 ok=ok&&ok19
 print("19 s=[]; next(s) -- empty stream literal (expect no error, StreamType, nil): %v %v\n" class(s19) r19)
+prev_ok=check_fail(:ok ok)
+
+// =========================================================
+// PART 5: unary-prefix-operator-led elements
+// =========================================================
+
+// --- test 20: unary-prefix operator (*) leading every element ---
+// (*s *s *s *s) -- BEFORE fix: "Unexpected operator (*)".  A bare paren
+// doesn't know it's a stream literal (as opposed to a plain grouping or
+// pending call) until the first element-boundary check fires, at which
+// point it "slips in" stream_symid as its comm_id.  That slip-in was
+// only implemented for literal- and identifier-led elements
+// (ComUtil/_parser.c's TOK_COMMAND/default cases), not for operator-led
+// ones (TOK_OPERATOR case) -- so whichever element is the first to need
+// that check, if it's operator-led, the paren never gets marked as a
+// stream literal, and the error fires right there.
+// AFTER fix: parses like any other stream literal; *s (next(s), see
+// starnext.comt) is evaluated once per element, in source order.
+errmsg(:clear)
+s20=(0 1 2 3 4 5 6 7)
+ss20=(*s20 *s20 *s20 *s20)
+e20=errmsg(:last)
+ok20=(e20==nil)
+r20a=next(ss20)
+ok20=ok20&&(r20a==0)
+r20b=next(ss20)
+ok20=ok20&&(r20b==1)
+r20c=next(ss20)
+ok20=ok20&&(r20c==2)
+r20d=next(ss20)
+ok20=ok20&&(r20d==3)
+r20e=next(ss20)
+ok20=ok20&&(r20e==nil)
+ok=ok&&ok20
+print("20 (*s *s *s *s) -- unary-prefix * leads every element (expect no error, 0 1 2 3 nil): %v %v %v %v %v\n" r20a r20b r20c r20d r20e)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21: unary minus (-) leading every element -- same fix, a
+// different, much older operator, confirming this isn't specific to *.
+errmsg(:clear)
+n21=42
+ss21=(-n21 -n21 -n21)
+e21=errmsg(:last)
+ok21=(e21==nil)
+r21a=next(ss21)
+ok21=ok21&&(r21a==-42)
+r21b=next(ss21)
+ok21=ok21&&(r21b==-42)
+r21c=next(ss21)
+ok21=ok21&&(r21c==-42)
+r21d=next(ss21)
+ok21=ok21&&(r21d==nil)
+ok=ok&&ok21
+print("21 (-n -n -n) -- unary minus leads every element (expect no error, -42 -42 -42 nil): %v %v %v %v\n" r21a r21b r21c r21d)
+prev_ok=check_fail(:ok ok)
+
+// --- test 22: mixed leading token kinds in one literal -- a plain
+// literal, a plain identifier, an operator-led element, and another
+// operator-led element (a different operator) all in source order,
+// confirming they interoperate regardless of which one happens to be
+// first to trip the stream-literal auto-detection.
+errmsg(:clear)
+m22=9
+s22b=(100 200)
+ss22=(1 m22 -m22 *s22b)
+e22=errmsg(:last)
+ok22=(e22==nil)
+r22a=next(ss22)
+ok22=ok22&&(r22a==1)
+r22b=next(ss22)
+ok22=ok22&&(r22b==9)
+r22c=next(ss22)
+ok22=ok22&&(r22c==-9)
+r22d=next(ss22)
+ok22=ok22&&(r22d==100)
+r22e=next(ss22)
+ok22=ok22&&(r22e==nil)
+ok=ok&&ok22
+print("22 (1 m -m *s2) -- literal, identifier, and two different operator-led elements in one literal (expect no error, 1 9 -9 100 nil): %v %v %v %v %v\n" r22a r22b r22c r22d r22e)
 prev_ok=check_fail(:ok ok)
 
 print("stream-literal: %v\n" ok)

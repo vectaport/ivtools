@@ -817,8 +817,26 @@ int status;
 	 if( expecting == OPTYPE_BINARY &&
 	     optype == OPTYPE_UNARY_PREFIX ) {
 	    if( UNEXPECTED_NEW_EXPRESSION ) {
-	       COMERR_SET2( ERR_UNEXPECTED_OPERATOR, *linenum, token );
-	       goto error_return;
+
+	      /* stream literal: slip in stream_symid when an operator-led
+		 expression (*s, -s, !x, etc.) arrives as the first element
+		 (narg==0, comm_id==-1).  Mirrors the scalar/identifier
+		 slip-in in the literal and identifier cases below -- a
+		 unary-prefix operator token is just as valid a way to lead
+		 a stream literal's element as a literal or identifier is,
+		 and without this a bare (*s *s) errors out the moment the
+		 *second* element is the one to first need the slip-in. */
+
+	       if( TopOfParenStack >= 0 &&
+	           LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
+	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
+	           ParenStack[ TopOfParenStack ].narg == 0 ) {
+	         if(stream_symid==-1) stream_symid = symbol_add("stream");
+	         ParenStack[ TopOfParenStack ].comm_id = stream_symid;
+	         } else {
+	         COMERR_SET2( ERR_UNEXPECTED_OPERATOR, *linenum, token );
+	         goto error_return;
+	         }
 	       }
 
 	 /* End of an argument                     */
