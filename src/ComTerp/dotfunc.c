@@ -46,9 +46,13 @@ int DotFunc::_symid = -1;
 /* off by default -- capturing the pre-fire source text of both args (see
    execute() below) costs a cout redirect + two print_stack_arg_post_eval
    calls on every dot-expression, even the overwhelmingly common case where
-   nothing goes wrong.  Toggle at runtime with dot(:dbg true)/dot(:dbg false)
-   -- see DotFunc::execute() -- only while chasing a "expression before/after
-   dot" warning. */
+   nothing goes wrong.  A malformed-dot warning always shows the RESOLVED
+   value of both sides regardless of this flag (before_part/after_raw,
+   already on hand -- no capture needed) -- this only adds the raw postfix-
+   token dump on top of that, for tracking down something the resolved
+   value alone doesn't explain.  Intentionally undocumented/internal: set
+   it via check_dbg_keyword()'s :dbg keyword if ever needed again, but it's
+   not advertised in DotFunc's public docstring. */
 static boolean dotfunc_debug_expr = false;
 
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -375,6 +379,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	       << " -- pick one with at(...) before dotting into it";
 	cout << " -- line " << funcstate()->linenum() << "\n";
 	cout << "expression before dot:  " << before_part << "\n";
+	if (dotfunc_debug_expr)
+	  cout << "raw expr before dot:  " << before_expr_text;
 	cout << "expression after dot:  " << after_raw << "\n";
 	reset_stack();
 
@@ -387,6 +393,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
       cout << "expression before dot:  " << before_part << "\n";
+      if (dotfunc_debug_expr)
+        cout << "raw expr before dot:  " << before_expr_text;
       cout << "expression after dot:  " << after_raw << "\n";
       reset_stack();
 
@@ -404,10 +412,9 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (before_part.is_object())
 	cout << " for class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
+      cout << "expression after dot:  " << after_raw << "\n";
       if (dotfunc_debug_expr)
-        cout << "expression after dot:  " << after_expr_text;
-      else
-        cout << "expression after dot:  use dot(:dbg true) to see it\n";
+        cout << "raw expr after dot:  " << after_expr_text;
       reset_stack();
       return;
     }
@@ -492,12 +499,15 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 }
 
 boolean DotFunc::check_dbg_keyword() {
-    /* dot(:dbg [true|false]) -- get/set dotfunc_debug_expr at runtime, so a
-       live session (a running drawserv, say) can turn on the "expression
-       before/after dot" detail in the malformed-expression warning without
-       an edit+rebuild.  Checked first and unconditionally: an ordinary
-       a.b expression never supplies a :dbg keyword, so this never touches
-       the normal dispatch path below. */
+    /* Undocumented/internal: get/set dotfunc_debug_expr at runtime via a
+       :dbg keyword, so a live session (a running drawserv, say) can turn
+       on the raw postfix-token dump ON TOP OF the resolved-value detail
+       the malformed-dot warning already always shows, without an
+       edit+rebuild -- a fallback for a stranger case than the resolved
+       value alone explains, not something to advertise.  Checked first
+       and unconditionally: an ordinary a.b expression never supplies a
+       :dbg keyword, so this never touches the normal dispatch path
+       below. */
     static int dbg_symid = symbol_add("dbg");
     static int dbg_bare_symid = symbol_add("__dot_dbg_bare__");
     ComValue dbg_bare_sentinel(dbg_bare_symid, ComValue::SymbolType);

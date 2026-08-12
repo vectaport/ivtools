@@ -42,7 +42,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list | dot(:dbg [true|false]) -- get/set whether the malformed-dot-expression warning prints expression detail"; }
+      return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list"; }
 
     CLASS_SYMID("DotFunc");
 
@@ -62,15 +62,21 @@ protected:
        fetch, or obj.method(args) self-bound firing). */
     void execute_core(ComValue before_part, ComValue after_raw, int after_nids,
 		       const std::string& before_expr_text, const std::string& after_expr_text);
-    /* dot(:dbg [true|false]) -- get/set the debug-expr flag at runtime.
-       Returns true if this call WAS a :dbg request (already handled --
-       result pushed, stack reset, caller should return immediately);
-       false for an ordinary dot expression, which the caller should
-       dispatch normally. A subclass that overrides execute() entirely
-       instead of calling DotFunc::execute() (GrDotFunc, which needs to
-       unwrap a ComponentView before the shared dispatch runs) must call
-       this itself at its own top, or dot(:dbg true) silently never
-       reaches it and always misfires as a malformed dot expression instead. */
+    /* Get/set the debug-expr flag at runtime via a :dbg keyword --
+       intentionally not in DotFunc's public docstring above: a malformed-
+       dot warning already shows both sides' resolved values unconditionally
+       (see execute_core), so this only adds a raw postfix-token dump on
+       top of that for tracking down something the resolved value alone
+       doesn't explain -- a fallback for a future maintainer chasing a
+       stranger case, not a supported end-user feature. Returns true if
+       this call WAS a :dbg request (already handled -- result pushed,
+       stack reset, caller should return immediately); false for an
+       ordinary dot expression, which the caller should dispatch normally.
+       A subclass that overrides execute() entirely instead of calling
+       DotFunc::execute() (GrDotFunc, which needs to unwrap a ComponentView
+       before the shared dispatch runs) must call this itself at its own
+       top, or dot(:dbg true) silently never reaches it and always
+       misfires as a malformed dot expression instead. */
     boolean check_dbg_keyword();
 };
 
