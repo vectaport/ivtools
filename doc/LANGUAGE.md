@@ -410,9 +410,9 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 90       | `..`     | iterate       | LtoR  | BINARY          |
 | 80       | `**`     | repeat        | LtoR  | BINARY          |
 | 75       | `,,`     | concat        | LtoR  | BINARY          |
+| 71       | `*`      | next          | RtoL  | UNARY PREFIX    |
 | 70       | `/`      | div           | LtoR  | BINARY          |
 | 70       | `*`      | mpy           | LtoR  | BINARY          |
-| 70       | `*`      | next          | RtoL  | UNARY PREFIX    |
 | 70       | `%`      | mod           | LtoR  | BINARY          |
 | 60       | `-`      | sub           | LtoR  | BINARY          |
 | 60       | `+`      | add           | LtoR  | BINARY          |
@@ -448,12 +448,18 @@ A few things worth noting:
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
 - `;` binds lowest of all — everything to its left and right is a complete expression
 - `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without parens
-- `*` plays two roles at once: binary `*` (`mpy`, LtoR) and unary prefix `*`
-  (`next`, RtoL) are two separate table entries sharing one operator string, at
-  the same priority — the same double-duty pattern `-` already uses for
-  `minus`/`sub`. `*s` means `next(s)`; parenthesize when mixing the two roles
-  (`2*(*s)`), and watch for `**` — already the stream-repeat operator at a
-  higher priority — swallowing an unspaced `2**s` before it ever reaches `*s`
+- `*` plays two roles at once: binary `*` (`mpy`, LtoR, 70) and unary prefix
+  `*` (`next`, RtoL, 71) are two separate table entries sharing one operator
+  string — the same double-duty pattern `-` already uses for `minus`/`sub`.
+  `*s` means `next(s)`, and it composes with binary `*` even without parens
+  (`2 * *s` doubles the next value pulled off `s`) — but the two roles need
+  a real priority gap, not just different associativity, to resolve cleanly:
+  at an exact tie the parser can't settle which role a bare `*` token plays
+  before both are on the stack, and silently mis-emits the binary op before
+  its right operand is even read. One point of separation (71 vs 70) is
+  enough. The one remaining caveat is lexical, not a priority matter: `**`
+  is already the stream-repeat operator, so an unspaced `2**s` reads as
+  `2 ** s` (repeat) before it ever reaches `*s` — a space or parens avoid it
 
 ### Streaming operators
 
@@ -478,20 +484,25 @@ s=$$(10 20 30)
 *s               // nil -- exhausted, same as next() always reports
 ```
 
-It composes with binary `*` (multiplication) as long as the two roles are
-kept unambiguous — `2*(*s)` doubles the next value pulled off `s`. Without
-parens, watch the lexer: `**` is already the stream-repeat operator at a
-higher priority (80 vs. 70), so an unspaced `2**s` reads as `2 ** s`
-(repeat), never as `2 * (*s)` — separate them with a space or parens.
+It composes with binary `*` (multiplication) even without parens — `2 * *s`
+doubles the next value pulled off `s`, same as `2*(*s)`. The one thing to
+watch is lexical, not grammatical: `**` is already the stream-repeat
+operator at a higher priority (80 vs. 71), so an *unspaced* `2**s` reads as
+`2 ** s` (repeat), never as `2 * (*s)` — a space or parens separate them.
 
-This operator adds no new C++ machinery: it is a single line in
+This operator adds almost no new C++ machinery: it is one line in
 `ComUtil/optable.c`'s `DefaultOperatorTable[]` mapping the string `*`,
-unary-prefix, RtoL, priority 70, to the existing `next` command — nothing
-`next()` didn't already do. `optable()` is a live view onto that same table
-at runtime, and `optable(:insert)`/`optable(:delete)` can add or remove
-operators exactly this way from a running script — see
-`src/comterp_/tests/starnext.comt`, which round-trips this very operator
-through `optable(:delete)`/`optable(:insert)` to prove it isn't special
+unary-prefix, RtoL, to the existing `next` command — nothing `next()`
+didn't already do. Its priority (71) sits one above binary `*`'s (70)
+rather than matching it exactly: at an exact tie the parser can't decide
+which role a bare `*` token plays before both are on the operator stack,
+and silently mis-emits the binary op before its right operand is even
+parsed. One point of separation is enough for the unary role to declare
+itself. `optable()` is a live view onto that same table at runtime, and
+`optable(:insert)`/`optable(:delete)` can add or remove operators exactly
+this way from a running script — see `src/comterp_/tests/starnext.comt`,
+which round-trips this very operator through `optable(:delete)`/
+`optable(:insert)` to prove it isn't special
 cased. Any script can bind its own symbol to any command this same way.
 
 ### Dot operator

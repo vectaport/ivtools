@@ -42,6 +42,17 @@ r2=2*(*s2)
 ok=ok&&(r2==10)
 print("3 2*(*s2) -- binary * around a unary *s (expect 10): %v\n" r2)
 
+// --- test 3b: they also compose WITHOUT parens, as long as the two *
+// characters aren't lexically adjacent (see test 5) -- this is the case
+// the unary role's priority (71, one above binary mpy's 70) exists for:
+// at an exact tie, the parser can't settle which role a bare "*" token
+// plays before both are on the stack, and mis-emits the binary op before
+// its right operand is read. One point of separation is enough. ---
+s2b=$$(5 6 7)
+r2b=2 * *s2b
+ok=ok&&(r2b==10)
+print("3b 2 * *s2b -- same as test 3 but unparenthesized (expect 10): %v\n" r2b)
+
 // --- test 4: optable(:table) shows both roles as genuinely separate
 // entries under the same operator string, not one overwriting the other ---
 t=optable(:table)
@@ -84,7 +95,7 @@ r4=5*6
 ok=ok&&(r4==30)
 print("6b binary * still works with the prefix role deleted (expect 30): %v\n" r4)
 
-optable("*" "next" :insert :prefix :rtol :pri 70)
+optable("*" "next" :insert :prefix :rtol :pri 71)
 errmsg(:clear)
 p=postfix(*s3)
 ok=ok&&(index(p "next")!=nil)
