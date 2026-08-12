@@ -374,6 +374,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	       << " item" << (n == 1 ? "" : "s")
 	       << " -- pick one with at(...) before dotting into it";
 	cout << " -- line " << funcstate()->linenum() << "\n";
+	if (dotfunc_debug_expr)
+	  cout << "expression before dot:  " << before_expr_text;
+	else
+	  cout << "(dot(:dbg true) to see the expression before the dot)\n";
 	cout << "expression after dot:  " << after_raw << "\n";
 	reset_stack();
 
