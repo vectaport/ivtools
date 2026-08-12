@@ -108,6 +108,17 @@ void StreamFunc::execute() {
 
   reset_stack();
 
+  push_stream_from_value(operand1);
+}
+
+void StreamFunc::push_stream_from_value(ComValue& operand1) {
+
+  static StreamNextFunc* snfunc = nil;
+  if (!snfunc) {
+    snfunc = new StreamNextFunc(comterp());
+    snfunc->funcid(symbol_add("streamnext"));
+  }
+
   if (operand1.is_stream()) {
 
     /* stream copy */
@@ -126,7 +137,7 @@ void StreamFunc::execute() {
       ComValue stream(snfunc, avl);
       stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
       push_stack(stream);
-    } 
+    }
 
     else if (operand1.is_attributelist()) {
       AttributeValueList* avl = new AttributeValueList();
@@ -134,7 +145,7 @@ void StreamFunc::execute() {
       Iterator i;
       for(al->First(i); !al->Done(i); al->Next(i)) {
 	Attribute* attr = al->GetAttr(i);
-	AttributeValue* av = 
+	AttributeValue* av =
 	  new AttributeValue(Attribute::class_symid(), (void*)attr);
 	avl->Append(av);
       }
@@ -150,7 +161,7 @@ void StreamFunc::execute() {
       stream.stream_mode(STREAM_INTERNAL); // for internal use (use by this func)
       push_stack(stream);
     }
-    
+
   }
 }
 
