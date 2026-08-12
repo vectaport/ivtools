@@ -9,14 +9,20 @@
 //
 //     comdraw -runfile src/comdraw/examples/zoomap.comt
 //
-// Then try:   zoohelp()
+// Then try:   zoo.zoohelp()
 //
 // HOW IT WORKS (the three layers of every spatial app):
 //   1. the DRAWING  -- shapes on the canvas (rect, ellipse, spline)
 //   2. the DATA     -- setattr() sticks facts onto each shape
 //                      (or one at a time by dot: pig.legs=4)
-//   3. the QUESTIONS-- little funcs walk every shape on the map,
-//                      check its facts, and flash the ones that match
+//   3. the QUESTIONS-- one zoo object with a magic word per method;
+//                      each walks every shape on the map, checks its
+//                      facts, and flashes the ones that match
+//
+// The magic words live together on one object (zoo.who(...), not a
+// bare who(...)) instead of as separate floating functions -- same
+// bundling-data-and-behavior idea as pig.legs=4 above, just with
+// funcs riding along as attributes too.  See zoo=(...) below.
 
 // ============================================================
 // LAYER 1+2: draw the zoo, and stick facts on everything
@@ -95,146 +101,171 @@ select(:clear)
 update()
 
 // ============================================================
-// LAYER 3: the magic words (each one walks the whole map,
-//          reads the facts, and flashes what matches)
+// LAYER 3: the magic words
 // ============================================================
 
-// flash(:things lst) -- circle each match in red marker.
-// For every match this draws a temporary unfilled thick-red ellipse
-// sized from its bounding box (mbr), blinks the rings with hide/show,
-// then erases them -- the animals underneath never change.
-// (center()/mbr() report drawing coordinates, which include the page
-// transform that creation coordinates will get ADDED to them -- so the
-// ring is created first, then move()d by the difference between where
-// it landed and where the animal is.)
-// No handles() suppression needed: the screen only redraws at update(),
-// and every update() here happens with the selection already cleared.
-flash=func(
-  rings=list();
-  nt=size(things);
-  for(ri=0 ri<nt ri++
-    g=at(things ri);
-    gc=center(g);
-    box=mbr(g);
-    rx=(at(box 2)-at(box 0))/2+10;
-    ry=(at(box 3)-at(box 1))/2+10;
-    ring=ellipse(at(gc 0),at(gc 1), rx,ry);
-    colorsrgb("#FF0000" "#FFFFFF");
-    brush(5);
+// the zoo itself -- one object, one method per magic word.  Bundling
+// them here (instead of separate floating funcs) is exactly the
+// pig.legs=4 idea one level up: data and the behavior that acts on it,
+// riding together on one attrlist.  :asked is a genuine object field
+// (not a func() closure capture) -- it's set to 0 right here, so every
+// who()/haslegs() call below finds it already on zoo and just
+// increments the live field, the same persisting-counter pattern as
+// counter=(:count 0 :bump func(count=count+1)) explored this session.
+//
+// A method calling a sibling method by BARE name (flash(:things m))
+// always misfires -- a symbol-with-arglist that isn't a registered
+// global command never reaches through _alist, so there's no "myself"
+// inside a method body to make that work. But zoo itself is just an
+// ordinary global variable, readable from anywhere including from
+// inside one of zoo's own methods -- so zoo.flash(:things m) below
+// works exactly the way any outside caller's zoo.method(args) does.
+// No special "self" needed; the same openness reaches from the inside.
+zoo=(
+  :asked 0
+
+  // zoo.flash(:things lst) -- circle each match in red marker.
+  // For every match this draws a temporary unfilled thick-red ellipse
+  // sized from its bounding box (mbr), blinks the rings with hide/show,
+  // then erases them -- the animals underneath never change.
+  // (center()/mbr() report drawing coordinates, which include the page
+  // transform that creation coordinates will get ADDED to them -- so the
+  // ring is created first, then move()d by the difference between where
+  // it landed and where the animal is.)
+  // No handles() suppression needed: the screen only redraws at update(),
+  // and every update() here happens with the selection already cleared.
+  :flash func(
+    rings=list();
+    nt=size(things);
+    for(ri=0 ri<nt ri++
+      g=at(things ri);
+      gc=center(g);
+      box=mbr(g);
+      rx=(at(box 2)-at(box 0))/2+10;
+      ry=(at(box 3)-at(box 1))/2+10;
+      ring=ellipse(at(gc 0),at(gc 1), rx,ry);
+      colorsrgb("#FF0000" "#FFFFFF");
+      brush(5);
+      pattern(1);
+      rc=center(ring);
+      move(at(gc 0)-at(rc 0) at(gc 1)-at(rc 1));
+      rings,ring);
+    select(:clear);
+    update();
+    for(bi=0 bi<3 bi++
+      for(rj=0 rj<size(rings) rj++ hide(at(rings rj)));
+      update(150000);
+      for(rj=0 rj<size(rings) rj++ show(at(rings rj)));
+      update(350000));
+    // delete() wants graphics one at a time, not a list variable
+    for(rj=0 rj<size(rings) rj++ delete(at(rings rj)));
+    // styling the rings also set the editor's CURRENT style -- put it
+    // back to the startup default (black on white, hairline, unfilled)
+    // so the next shape anyone draws isn't born looking like a ring.
+    // (select(:clear) first: with nothing selected these only set state.)
+    select(:clear);
+    colorsrgb("#000000" "#FFFFFF");
+    brush(65535,0);
     pattern(1);
-    rc=center(ring);
-    move(at(gc 0)-at(rc 0) at(gc 1)-at(rc 1));
-    rings,ring);
-  select(:clear);
-  update();
-  for(bi=0 bi<3 bi++
-    for(rj=0 rj<size(rings) rj++ hide(at(rings rj)));
-    update(150000);
-    for(rj=0 rj<size(rings) rj++ show(at(rings rj)));
-    update(350000));
-  // delete() wants graphics one at a time, not a list variable
-  for(rj=0 rj<size(rings) rj++ delete(at(rings rj)));
-  // styling the rings also set the editor's CURRENT style -- put it
-  // back to the startup default (black on white, hairline, unfilled)
-  // so the next shape anyone draws isn't born looking like a ring.
-  // (select(:clear) first: with nothing selected these only set state.)
-  select(:clear);
-  colorsrgb("#000000" "#FFFFFF");
-  brush(65535,0);
-  pattern(1);
-  update())
+    update())
 
-// who("swims") who("bugs") who("Ellie") -- find by name, motion, or food
-who=func(
-  target=arg(0);
-  // forgot the quotes?  who(swims) hands us an unbound symbol -- nil --
-  // and nil==nil would "match" every no-facts graphic (all the name tags!)
-  if(target==nil :then print("Oops! Put quotes around your word, like this:  who(\"swims\")\n"));
-  if(target==nil :then return(0));
-  select(:clear);
-  matches=list();
-  n=size(frame());
-  for(qi=0 qi<n qi++
-    g=at(frame() qi);
-    if((g.name==target)||(g.moves==target)||(g.eats==target) :then matches,g));
-  if(size(matches)==0
-    :then print("Hmm, nobody in this zoo matches that. Try zoohelp()\n")
-    :else print("Found %v! Look for the red circles!\n" size(matches)));
-  if(size(matches)>0 :then flash(:things matches));
-  size(matches))
+  // zoo.who("swims") zoo.who("bugs") zoo.who("Ellie") -- find by
+  // name, motion, or food
+  :who func(
+    asked=asked+1;
+    target=arg(0);
+    // forgot the quotes?  who(swims) hands us an unbound symbol -- nil
+    // -- and nil==nil would "match" every no-facts graphic (the tags!)
+    if(target==nil :then print("Oops! Put quotes around your word, like this:  zoo.who(\"swims\")\n"));
+    if(target==nil :then return(list()));
+    select(:clear);
+    matches=list();
+    n=size(frame());
+    for(qi=0 qi<n qi++
+      g=at(frame() qi);
+      if((g.name==target)||(g.moves==target)||(g.eats==target) :then matches,g));
+    if(size(matches)==0
+      :then print("Hmm, nobody in this zoo matches that. Try zoo.zoohelp()\n")
+      :else print("Found %v! Look for the red circles!\n" size(matches)));
+    if(size(matches)>0 :then zoo.flash(:things matches));
+    matches)
 
-// haslegs(4) -- find every animal with that many legs
-haslegs=func(
-  want=arg(0);
-  if(want==nil :then print("Oops! Give me a number, like this:  haslegs(4)\n"));
-  if(want==nil :then return(0));
-  select(:clear);
-  matches=list();
-  n=size(frame());
-  for(qi=0 qi<n qi++
-    g=at(frame() qi);
-    if((g.legs!=nil)&&(g.legs==want) :then matches,g));
-  if(size(matches)==0
-    :then print("No animal here has %v legs!\n" want)
-    :else print("Found %v! Look for the red circles!\n" size(matches)));
-  if(size(matches)>0 :then flash(:things matches));
-  size(matches))
+// zoo.haslegs(4) -- find every animal with that many legs
+  :haslegs func(
+    asked=asked+1;
+    want=arg(0);
+    if(want==nil :then print("Oops! Give me a number, like this:  zoo.haslegs(4)\n"));
+    if(want==nil :then return(list()));
+    select(:clear);
+    matches=list();
+    n=size(frame());
+    for(qi=0 qi<n qi++
+      g=at(frame() qi);
+      if((g.legs!=nil)&&(g.legs==want) :then matches,g));
+    if(size(matches)==0
+      :then print("No animal here has %v legs!\n" want)
+      :else print("Found %v! Look for the red circles!\n" size(matches)));
+    if(size(matches)>0 :then zoo.flash(:things matches));
+    matches)
 
-// countlegs() -- add up every leg in the whole zoo
-countlegs=func(
-  total=0;
-  n=size(frame());
-  for(ci=0 ci<n ci++
-    g=at(frame() ci);
-    if(g.legs!=nil :then total=total+g.legs));
-  print("All the legs in the zoo add up to: %v\n" total);
-  total)
+  // zoo.countlegs() -- add up every leg in the whole zoo
+  :countlegs func(
+    total=0;
+    n=size(frame());
+    for(ci=0 ci<n ci++
+      g=at(frame() ci);
+      if(g.legs!=nil :then total=total+g.legs));
+    print("All the legs in the zoo add up to: %v\n" total);
+    total)
 
-// dance() -- everybody wiggle!
-// handles(false) hides the selection tic marks while everybody is
-// selected and moving; handles(true) restores them at the end.
-dance=func(
-  handles(false);
-  for(di=0 di<6 di++
-    select(:all); rotate(6); update(80000);
-    rotate(-12); update(80000);
-    rotate(6); update(80000));
-  select(:clear);
-  handles(true);
-  update())
+  // zoo.dance() -- everybody wiggle!
+  // handles(false) hides the selection tic marks while everybody is
+  // selected and moving; handles(true) restores them at the end.
+  :dance func(
+    handles(false);
+    for(di=0 di<6 di++
+      select(:all); rotate(6); update(80000);
+      rotate(-12); update(80000);
+      rotate(6); update(80000));
+    select(:clear);
+    handles(true);
+    update())
 
-// oops() -- ask the map to explain the last error message.
-// errmsg(:last) hands back the interpreter's saved error (it survives
-// any good commands typed in between, and reading it clears it), so
-// even a raw parser error is reachable from up here in the applet.
-oops=func(
-  m=errmsg(:last);
-  if(m==nil :then print("No mistakes waiting! The map is happy. Try zoohelp()\n"));
-  if(m!=nil :then print("The map got confused. It said:\n    %v\n" m));
-  if(m!=nil :then print("Check for: quotes around words -- who(\"swims\") -- and matching ( ) pairs.\n"));
-  nil)
+  // zoo.oops() -- ask the map to explain the last error message.
+  // errmsg(:last) hands back the interpreter's saved error (it
+  // survives any good commands typed in between, and reading it
+  // clears it), so even a raw parser error is reachable from up here.
+  :oops func(
+    m=errmsg(:last);
+    if(m==nil :then print("No mistakes waiting! The map is happy. Try zoo.zoohelp()\n"));
+    if(m!=nil :then print("The map got confused. It said:\n    %v\n" m));
+    if(m!=nil :then print("Check for: quotes around words -- zoo.who(\"swims\") -- and matching ( ) pairs.\n"));
+    nil)
 
-// zoohelp() -- remind me of the magic words
-zoohelp=func(
-  print("*** MAGIC WORDS FOR YOUR ZOO MAP ***\n");
-  print("  who(\"swims\")     -- who swims?  (also: flies, climbs, slides, stomps, prowls)\n");
-  print("  who(\"bugs\")      -- who eats bugs?  (also: bananas, plants, meat)\n");
-  print("  who(\"Ellie\")     -- find an animal by name (Mo, Fin, Zig, Bella, Leo)\n");
-  print("  who(\"the pond\")  -- even the scenery answers! (the tree, the sun)\n");
-  print("  haslegs(4)       -- who has 4 legs? (try 0 and 2 too!)\n");
-  print("  countlegs()      -- count every leg in the zoo\n");
-  print("  dance()          -- everybody wiggle!\n");
-  print("  oops()           -- the map explains your last error\n");
-  print("YOUR TURN: add your own animal, then find it --\n");
-  print("  pig=ellipse(200,220, 25,15)\n");
-  print("  pig.name=\"Penny\"\n");
-  print("  pig.kind=\"animal\"\n");
-  print("  pig.legs=4\n");
-  print("  pig.eats=\"corn\"\n");
-  print("  pig.moves=\"trots\"\n");
-  print("  who(\"Penny\")\n");
-  print("(each dot writes one fact on the pig -- setattr(pig :name \"Penny\" :legs 4 ...)\n");
-  print(" stamps them all at once, like the animals above)\n"))
+  // zoo.zoohelp() -- remind me of the magic words, and how many I've
+  // already asked (:asked is the zoo's own persisting field -- see
+  // the note above zoo=(...))
+  :zoohelp func(
+    print("*** MAGIC WORDS FOR YOUR ZOO MAP ***\n");
+    print("  zoo.who(\"swims\")     -- who swims?  (also: flies, climbs, slides, stomps, prowls)\n");
+    print("  zoo.who(\"bugs\")      -- who eats bugs?  (also: bananas, plants, meat)\n");
+    print("  zoo.who(\"Ellie\")     -- find an animal by name (Mo, Fin, Zig, Bella, Leo)\n");
+    print("  zoo.who(\"the pond\")  -- even the scenery answers! (the tree, the sun)\n");
+    print("  zoo.haslegs(4)       -- who has 4 legs? (try 0 and 2 too!)\n");
+    print("  zoo.countlegs()      -- count every leg in the zoo\n");
+    print("  zoo.dance()          -- everybody wiggle!\n");
+    print("  zoo.oops()           -- the map explains your last error\n");
+    print("You've asked the zoo %v question(s) so far!\n" asked);
+    print("YOUR TURN: add your own animal, then find it --\n");
+    print("  pig=ellipse(200,220, 25,15)\n");
+    print("  pig.name=\"Penny\"\n");
+    print("  pig.kind=\"animal\"\n");
+    print("  pig.legs=4\n");
+    print("  pig.eats=\"corn\"\n");
+    print("  pig.moves=\"trots\"\n");
+    print("  zoo.who(\"Penny\")\n");
+    print("(each dot writes one fact on the pig -- setattr(pig :name \"Penny\" :legs 4 ...)\n");
+    print(" stamps them all at once, like the animals above)\n")))
 
 // ============================================================
 // welcome!
@@ -242,9 +273,9 @@ zoohelp=func(
 print("\n=================================================\n")
 print("   WELCOME TO YOUR MAGIC ZOO MAP!\n")
 print("   This map can answer questions. Try typing:\n")
-print("       who(\"swims\")\n")
-print("       haslegs(4)\n")
-print("       countlegs()\n")
-print("       dance()\n")
-print("       zoohelp()      <- shows all the magic words\n")
+print("       zoo.who(\"swims\")\n")
+print("       zoo.haslegs(4)\n")
+print("       zoo.countlegs()\n")
+print("       zoo.dance()\n")
+print("       zoo.zoohelp()      <- shows all the magic words\n")
 print("=================================================\n")
