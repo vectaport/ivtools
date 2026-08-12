@@ -176,6 +176,8 @@ public:
     // returns reference to IntType ComValue with value of -1.
     static ComValue& twoval();
     // returns reference to IntType ComValue with value of 2.
+    static ComValue& acharval();
+    // returns reference to CharType ComValue with value of 'a'.
 
     unsigned linenum() const { return _linenum; }
     // Get line number of command in script file.
@@ -213,6 +215,7 @@ protected:
     static ComValue _zeroval;
     static ComValue _minusoneval;
     static ComValue _twoval;
+    static ComValue _acharval;
 };
 
 #endif /* !defined(_comvalue_h) */
