@@ -44,6 +44,13 @@ GrDotFunc::GrDotFunc(ComTerp* comterp) : DotFunc(comterp) {
 }
 
 void GrDotFunc::execute() {
+    /* This overrides DotFunc::execute() entirely rather than calling it
+       (peek_and_fire below needs before_part threaded through to the
+       compview-unwrapping step first), so dot(:dbg true) -- handled at
+       the top of DotFunc::execute() -- would otherwise never be reached
+       here and always misfire as a malformed dot expression instead of
+       toggling the flag. Check it explicitly first. */
+    if (check_dbg_keyword()) return;
 
     /* peek_and_fire (inherited from DotFunc) fires arg 0 exactly once if
        it's an unfired nested command reference -- e.g. grid(:table) in

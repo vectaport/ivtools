@@ -378,7 +378,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  cout << "expression before dot:  " << before_expr_text;
 	else
 	  cout << "(dot(:dbg true) to see the expression before the dot)\n";
-	cout << "expression after dot:  " << after_raw << "\n";
+	if (dotfunc_debug_expr)
+	  cout << "expression after dot:  " << after_raw << "\n";
+	else
+	  cout << "expression after dot:  use dot(:dbg true) to see it\n";
 	reset_stack();
 
 	return;
@@ -393,7 +396,10 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
         cout << "expression before dot:  " << before_expr_text;
       else
         cout << "(dot(:dbg true) to see the expression before the dot)\n";
-      cout << "expression after dot:  " << after_raw << "\n";
+      if (dotfunc_debug_expr)
+        cout << "expression after dot:  " << after_raw << "\n";
+      else
+        cout << "expression after dot:  use dot(:dbg true) to see it\n";
       reset_stack();
 
       return;
@@ -413,7 +419,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (dotfunc_debug_expr)
         cout << "expression after dot:  " << after_expr_text;
       else
-        cout << "(dot(:dbg true) to see the expression after the dot)\n";
+        cout << "expression after dot:  use dot(:dbg true) to see it\n";
       reset_stack();
       return;
     }
@@ -497,7 +503,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     }
 }
 
-void DotFunc::execute() {
+boolean DotFunc::check_dbg_keyword() {
     /* dot(:dbg [true|false]) -- get/set dotfunc_debug_expr at runtime, so a
        live session (a running drawserv, say) can turn on the "expression
        before/after dot" detail in the malformed-expression warning without
@@ -514,8 +520,13 @@ void DotFunc::execute() {
       if (!is_bare) dotfunc_debug_expr = dbgv.is_true();
       ComValue retval(dotfunc_debug_expr);
       push_stack(retval);
-      return;
+      return true;
     }
+    return false;
+}
+
+void DotFunc::execute() {
+    if (check_dbg_keyword()) return;
 
     ComValue before_part, after_raw;
     int after_nids;
