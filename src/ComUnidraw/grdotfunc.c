@@ -106,8 +106,8 @@ GrAttrListFunc::GrAttrListFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void GrAttrListFunc::execute() {
   ComValue compviewv(stack_arg(0));
-  reset_stack();
   if (compviewv.object_compview()) {
+    reset_stack();
     ComponentView* compview = (ComponentView*)compviewv.obj_val();
     OverlayComp* comp = compview ? (OverlayComp*)compview->GetSubject() : nil;
     if (comp) {
@@ -115,6 +115,17 @@ void GrAttrListFunc::execute() {
       push_stack(retval);
     } else
       push_stack(ComValue::nullval());
+  } else {
+    /* not a component view -- an ordinary bare attrlist literal, e.g.
+       zoo=(:a 1 :b 2), with no component argument at all. This command
+       is registered over plain AttrListFunc's "attrlist" name
+       (comeditor.c), so it has to cover that case too -- stack_keys()
+       must run before reset_stack() (it reads the live stack), same
+       ordering AttrListFunc::execute() (listfunc.c) already uses. */
+    AttributeList* al = stack_keys();
+    reset_stack();
+    ComValue retval(AttributeList::class_symid(), al);
+    push_stack(retval);
   }
 }
 
