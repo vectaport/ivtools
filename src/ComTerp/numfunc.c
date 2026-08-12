@@ -1092,7 +1092,7 @@ void LongFunc::execute() {
 FloatFunc::FloatFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void FloatFunc::execute() {
-    static ComValue float_zero = ComValue(ComValue::FloatType, (float)0.0);
+    static ComValue float_zero = ComValue((float)0.0);
     ComValue operand(stack_arg(0, false, float_zero));
     reset_stack();
     if (operand.is_string()) {
@@ -1110,7 +1110,7 @@ void FloatFunc::execute() {
 DoubleFunc::DoubleFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
 void DoubleFunc::execute() {
-    static ComValue double_zero = ComValue(ComValue::DoubleType, (double)0.0);
+    static ComValue double_zero = ComValue((double)0.0);
     ComValue operand(stack_arg(0, false, double_zero));
     reset_stack();
     if (operand.is_string()) {
