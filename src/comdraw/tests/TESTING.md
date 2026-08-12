@@ -50,6 +50,9 @@ pass/FAIL summary line. There is no separate orchestrator here (unlike
 | gsget.comt      | brush() pattern() patternmask() colors() colorsrgb() font() fontbyname() | bare (no-arg) getters return the literal that reproduces the editor's current default; set-then-get round trips |
 | dotattr.comt    | dot-assign dot-read setattr() frame()                                 | `comp.key=val` as sugar for `setattr(comp :key val)`, coexisting with explicit setattr() calls |
 | lastkey.comt    | lastkey() keyname_test() help() index()                               | registration, `:reset`/`:shiftcapture` state, the XF86-keysym/SUPER_FLAG regression, a naming-vocabulary smoke test, and keyname_test()'s hidden-from-help() status; see its own header for why `lastkey()`'s actual keypress path can't be scripted headlessly |
+| paste.comt      | paste()                                                                | `paste()` requires `parent()==nil`, refusing to double-append an already-parented graphic |
+| rasterrgb.comt  | raster(:rgb ...)                                                       | flat/nested/packed pixel-value forms, told apart by element count against w*h |
+| zoomap.comt     | zoo.who() zoo.haslegs() zoo.countlegs() zoo.dance() zoo.help() dot-chaining | integration coverage for the `examples/zoomap.comt` kid demo -- find by name/motion/food, chain straight into a found graphic's facts with no `attrlist()` wrapper, an empty result and the natural next mistake of dotting into it unwrapped, and the persisting `:asked` field across self-bound method calls |
 
 `run_all.comt` runs these in the order above, each wrapped in
 `if(run("./script.comt") :then ... :else ...;ok=false)`.
