@@ -377,11 +377,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	if (dotfunc_debug_expr)
 	  cout << "expression before dot:  " << before_expr_text;
 	else
-	  cout << "(dot(:dbg true) to see the expression before the dot)\n";
-	if (dotfunc_debug_expr)
-	  cout << "expression after dot:  " << after_raw << "\n";
-	else
-	  cout << "expression after dot:  use dot(:dbg true) to see it\n";
+	  cout << "expression before dot:  use dot(:dbg true) to see it\n";
+	cout << "expression after dot:  " << after_raw << "\n";
 	reset_stack();
 
 	return;
@@ -395,11 +392,8 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (dotfunc_debug_expr)
         cout << "expression before dot:  " << before_expr_text;
       else
-        cout << "(dot(:dbg true) to see the expression before the dot)\n";
-      if (dotfunc_debug_expr)
-        cout << "expression after dot:  " << after_raw << "\n";
-      else
-        cout << "expression after dot:  use dot(:dbg true) to see it\n";
+        cout << "expression before dot:  use dot(:dbg true) to see it\n";
+      cout << "expression after dot:  " << after_raw << "\n";
       reset_stack();
 
       return;
