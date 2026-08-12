@@ -398,21 +398,38 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     if (!before_part.is_attribute() && !before_part.is_attributelist()) {
       int before_symid = before_part.symbol_val();
       boolean global = before_part.global_flag();
-      if (!global) {
-	comterp()->localtable()->find(vptr, before_symid);
-	if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
+      /* func scope (_alist) is checked before local/global, same order
+	 ComTerp::lookup_symval uses -- otherwise a func-local variable
+	 (e.g. a keyword-bound param whose value only lives in _alist, never
+	 in localtable()) is invisible to dot access from inside the func
+	 body (#292). */
+      AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
+      AttributeValue* fsval = funcscope ? funcscope->find(before_symid) : nil;
+      if (fsval) {
+	if (fsval->is_attributelist())
+	  al = (AttributeList*) fsval->obj_val();
+	else {
+	  al = new AttributeList();
+	  AttributeValue newval(AttributeList::class_symid(), (void*) al);
+	  *fsval = newval;
+	}
       } else {
-	comterp()->globaltable()->find(vptr, before_symid);
-      }
-      if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
-	al = (AttributeList*) ((ComValue*) vptr)->obj_val();
-      } else {
-	al = new AttributeList();
-	ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
-	if (!global)
-	  comterp()->localtable()->insert(before_symid, comval);
-	else
-	  comterp()->globaltable()->insert(before_symid, comval);
+	if (!global) {
+	  comterp()->localtable()->find(vptr, before_symid);
+	  if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
+	} else {
+	  comterp()->globaltable()->find(vptr, before_symid);
+	}
+	if (vptr &&((ComValue*) vptr)->class_symid() == AttributeList::class_symid()) {
+	  al = (AttributeList*) ((ComValue*) vptr)->obj_val();
+	} else {
+	  al = new AttributeList();
+	  ComValue* comval = new ComValue(AttributeList::class_symid(), (void*)al);
+	  if (!global)
+	    comterp()->localtable()->insert(before_symid, comval);
+	  else
+	    comterp()->globaltable()->insert(before_symid, comval);
+	}
       }
     } else if (!before_part.is_attributelist()) {
       if (((Attribute*)before_part.obj_val())->Value()->is_attributelist())
