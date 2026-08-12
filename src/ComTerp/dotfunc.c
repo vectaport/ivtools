@@ -358,6 +358,28 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
 	  ((Attribute*)before_part.obj_val())->Value()->is_attributelist())) &&
 	!before_part.is_attributelist()) {
+
+      /* A list before "." is the common case in practice (e.g.
+	 zoo.who("Ellie").moves, dotting straight into a query result
+	 instead of unwrapping it with at() first) -- worth a specific,
+	 actionable message rather than the generic type-mismatch one
+	 below, and empty vs non-empty call for different advice. */
+      if (before_part.is_array()) {
+	AttributeValueList* avl = before_part.array_val();
+	int n = avl ? avl->Number() : 0;
+	if (n == 0)
+	  cout << "WARNING: nothing before \".\" to look up -- the list is empty";
+	else
+	  cout << "WARNING: expression before \".\" is a list of " << n
+	       << " item" << (n == 1 ? "" : "s")
+	       << " -- pick one with at(...) before dotting into it";
+	cout << " -- line " << funcstate()->linenum() << "\n";
+	cout << "expression after dot:  " << after_raw << "\n";
+	reset_stack();
+
+	return;
+      }
+
       cout << "WARNING: expression before \".\" needs to evaluate to a symbol or <AttributeList> (instead of "
 	   << symbol_pntr(before_part.type_symid());
       if (before_part.is_object())
