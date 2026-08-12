@@ -797,10 +797,20 @@ token_return:
 /* Append null-byte to finish the token */
    TOKEN_ADD( '\0' );
 
-/* Check to make sure a constant is not butted up against another */
+/* Check to make sure a constant is not butted up against another.  The
+   dot case mirrors the start-of-token float-vs-operator check above
+   (~line 445-446): '.' immediately followed by a digit only reads as
+   the start of a float constant (".5") when it's NOT itself immediately
+   preceded by an identifier character -- when it is (lst.3), '.' is
+   unambiguously the dot operator, not glued to a second constant, so
+   flagging it here was overly conservative (#318: blocked lst.3/al.0 as
+   list-indexing sugar for at(lst 3), forcing a workaround space before
+   every numeric dot rhs even though the operator-vs-float scan just
+   above already resolves the identical ambiguity correctly). */
    if ( token_state != TOK_OPERATOR )
       if ( CURR_CHAR  == '"' ||  CURR_CHAR  == '\'' || isdigit( CURR_CHAR ) ||
-	 ( CURR_CHAR == '.' && isdigit( NEXT_CHAR )))
+	 ( CURR_CHAR == '.' && isdigit( NEXT_CHAR ) &&
+	   !isalpha( PREV_CHAR ) && !isdigit( PREV_CHAR )))
 	 return ERR_CONSTSEP;
 
    switch( token_state ) {   

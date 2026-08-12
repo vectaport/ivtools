@@ -1,0 +1,99 @@
+// src/comterp_/tests/dotindex.comt -- #318: dot access with a numeric rhs
+// on a list or attrlist is sugar for at(), read-only.
+//
+// funcs: at() list() class() next() errmsg()
+// coverage: lst.N on a plain list, al.N as a positional walk of an
+//           attrlist, out-of-range, nested chains, existing symbolic
+//           dot access unaffected, and non-numeric/negative rhs left to
+//           existing (unrelated, pre-#318) behavior.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/dotindex.comt")
+
+errmsg(:clear)
+run("./testlib.comt")
+ok=true
+
+// --- test 1: lst.N reads the Nth element of a plain list, 0-indexed,
+// same as at(lst N) -- and the tight form (no space before the digit)
+// parses at all, which needed a scanner fix (ComUtil/_lexscan.c): the
+// dot-immediately-followed-by-digit ambiguity check ("Insufficient
+// separation from trailing constant", meant to catch a bare float like
+// ".5" glued onto a preceding token) now also consults whether that
+// preceding token ends in an identifier character -- if it does (lst),
+// "." is unambiguously the dot operator, not the start of a float. ---
+lst=list(10,20,30,40,50)
+r1=lst.0
+ok=ok&&(r1==10)
+r2=lst.3
+ok=ok&&(r2==40)
+r3=lst.4
+ok=ok&&(r3==50)
+print("1 lst.0 lst.3 lst.4 on list(10,20,30,40,50) (expect 10 40 50): %v %v %v\n" r1 r2 r3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: out of range reads back blank, same as at()'s own
+// out-of-range behavior -- not an error. ---
+errmsg(:clear)
+r4=lst.9
+e2=errmsg(:last)
+ok2=(e2==nil)
+ok=ok&&ok2
+print("2 lst.9 out of range (expect no error): %v\n" e2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: al.N is a positional walk of an attrlist, same shape
+// at() already returns for AttributeList -- an Attribute-wrapped
+// dotted pair, the identical shape al.name (existing, symbolic dot
+// access) already returns, so both print and compare the same way. ---
+al=(:a 1 :b 2 :c 3)
+byname=al.b
+byindex=al.1
+ok3=(byname==byindex)
+ok=ok&&ok3
+print("3 al.b == al.1 -- attrlist positional walk matches symbolic access (expect true): %v (byname=%v byindex=%v)\n" ok3 byname byindex)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: existing symbolic dot access on an attrlist is completely
+// unaffected -- al.b still works exactly as before. ---
+r5=al.b
+ok=ok&&(r5==2)
+print("4 al.b unaffected by #318 (expect 2): %v\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: nested dot chains compose -- obj.mylist.2 reads mylist's
+// index 2, the same as (obj.mylist).2 with explicit parens. ---
+obj=(:mylist list(7,8,9))
+r6=obj.mylist.2
+ok=ok&&(r6==9)
+print("5 obj.mylist.2 -- nested dot-chain composition (expect 9): %v\n" r6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: a non-numeric rhs on a plain list is untouched by #318 --
+// still the pre-existing "expression before '.' is a list of N items"
+// warning path (is_num() is false for a bare symbol, so this new sugar
+// never engages; #318 only ever adds behavior for a numeric rhs, never
+// removes the existing warning for anything else). ---
+errmsg(:clear)
+lst2=list(1,2,3)
+r7=lst2.foo
+e6=errmsg(:last)
+print("6 lst.foo (non-numeric rhs, pre-#318 behavior unaffected): %v\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// Deliberately no runnable test for a literal negative rhs (lst.-1):
+// out of scope for #318, matching at()'s own limit (ListAtFunc::execute,
+// listfunc.c, requires a non-negative index for the ArrayType case) --
+// this sugar doesn't add negative indexing on top of at(), just what
+// at() already supports. Exercising it live prints "not a func-valued
+// attribute"/"assignment to something other than a symbol" warnings
+// (confirmed: lst.-1 never reaches this sugar's at() call at all --
+// "-1" is unary minus applied to 1, two tokens, not a single negative
+// literal, so after_raw arrives as an unevaluated CommandType
+// reference to "minus", not IntType) -- harmless standalone, but those
+// warnings trip run()'s own nested pass/fail detection when this file
+// runs under run_all.comt, so it stays undocumented-by-test rather than
+// asserted here.
+
+print("dotindex: %v\n" ok)
+ok

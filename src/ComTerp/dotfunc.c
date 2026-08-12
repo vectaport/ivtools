@@ -28,6 +28,7 @@
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/boolfunc.h>
+#include <ComTerp/listfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <iostream>
@@ -357,6 +358,84 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 
 void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_nids,
 			    const std::string& before_expr_text, const std::string& after_expr_text) {
+    /* #318: lst.N / al.N -- a numeric rhs on a list or attrlist is sugar
+       for at(lst N), read-only.  Checked first, ahead of both the ordinary
+       validation below (which would otherwise reject a numeric rhs
+       outright -- see the "needs to be a symbol" warning further down)
+       and the symbol/attribute lookup that follows it, which -- for a
+       bare symbol or attribute currently holding a plain list rather than
+       an AttributeList -- destructively replaces that value with a fresh
+       empty AttributeList (the existing auto-vivify behavior dot-
+       assignment relies on, e.g. `x.foo=1` on an unset `x`; wrong here,
+       since `lst.3` must read `lst`'s existing list, not blow it away).
+       Peeking at a symbol's or attribute's current value this way is
+       read-only (AttributeList::find, not insert), so nothing is created
+       or mutated when this doesn't match and falls through to the
+       existing logic below.
+
+       Deliberately not gated on after_nids==-1 the way the malformed-rhs
+       check further down is: nids defaults to 0 (zero_vals()) for a bare
+       numeric literal rather than the -1 a plain symbol token carries, so
+       that guard would silently exclude every numeric rhs and fall
+       through into the arglist-attached path below with a numeric token
+       standing in for a method name -- confirmed live, produced
+       nonsense "\"<garbage>\" is not a func-valued attribute" warnings.
+       A numeric literal can never have an arglist attached in valid
+       syntax regardless of what nids happens to hold, so is_num() alone
+       is the correct and sufficient guard here.
+
+       Positive/zero only, matching at()'s own limit (ListAtFunc::execute,
+       listfunc.c, requires nv.int_val()>=0 for the ArrayType case) --
+       negative indexing isn't a thing this sugar adds on top of at(),
+       just what at() itself already supports.  In practice a literal
+       negative rhs (lst.-1) never reaches here as a single numeric
+       token anyway (the lexer has no negative-literal token; "-1" is
+       always unary minus applied to 1, so after_raw arrives as an
+       unevaluated CommandType reference to "minus", not IntType) --
+       this check is belt-and-suspenders against that changing, not
+       covering a case observed in practice. */
+    if (after_raw.is_num() && after_raw.int_val()>=0) {
+      ComValue listv;
+      boolean have_list = false;
+      if (before_part.is_array() || before_part.is_attributelist()) {
+	listv = before_part;
+	have_list = true;
+      } else if (before_part.is_attribute()) {
+	AttributeValue* av = ((Attribute*)before_part.obj_val())->Value();
+	if (av->is_array() || av->is_attributelist()) {
+	  listv = *av;
+	  have_list = true;
+	}
+      } else if (before_part.is_symbol()) {
+	int before_symid = before_part.symbol_val();
+	boolean global = before_part.global_flag();
+	AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
+	AttributeValue* curval = funcscope ? funcscope->find(before_symid) : nil;
+	if (!curval) {
+	  void* vptr = nil;
+	  if (!global) {
+	    comterp()->localtable()->find(vptr, before_symid);
+	    if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
+	  } else {
+	    comterp()->globaltable()->find(vptr, before_symid);
+	  }
+	  if (vptr) curval = (ComValue*) vptr;
+	}
+	if (curval && (curval->is_array() || curval->is_attributelist())) {
+	  listv = *curval;
+	  have_list = true;
+	}
+      }
+      if (have_list) {
+	reset_stack();
+	push_stack(listv);
+	push_stack(after_raw);
+	ListAtFunc atf(comterp());
+	atf.exec(2, 0);
+	return;
+      }
+    }
+
     if (!before_part.is_symbol() &&
 	!(before_part.is_attribute() &&
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
