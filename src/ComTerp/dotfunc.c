@@ -374,7 +374,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	       << " item" << (n == 1 ? "" : "s")
 	       << " -- pick one with at(...) before dotting into it";
 	cout << " -- line " << funcstate()->linenum() << "\n";
-	cout << "expression before dot resolved to:  " << before_part << "\n";
+	cout << "expression before dot:  " << before_part << "\n";
 	cout << "expression after dot:  " << after_raw << "\n";
 	reset_stack();
 
@@ -386,7 +386,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       if (before_part.is_object())
         cout << " of class " << symbol_pntr(before_part.class_symid());
       cout << ") -- line " << funcstate()->linenum() << "\n";
-      cout << "expression before dot resolved to:  " << before_part << "\n";
+      cout << "expression before dot:  " << before_part << "\n";
       cout << "expression after dot:  " << after_raw << "\n";
       reset_stack();
 
