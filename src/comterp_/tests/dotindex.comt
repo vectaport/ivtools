@@ -8,7 +8,11 @@
 //           attrlist, out-of-range, nested chains, existing symbolic
 //           dot access unaffected, non-numeric rhs left to existing
 //           (unrelated, pre-#318) behavior, lst.N=val write support,
-//           and al.N=val confirmed to never mutate.  (lst.symbolname=
+//           al.N=val confirmed to never mutate, lst.0.1 / lst.0.1.2
+//           (a chained integer index merged into one DOUBLE token by
+//           the scanner) recovered as 2/3-deep chained indexing, and
+//           lst.1e0 / lst.1.0 (the same double once parsed -- 1.0)
+//           rejected outright, only positive integers.  (lst.symbolname=
 //           val's auto-vivify-to-AttributeList behavior was tried as
 //           a test here and reverted -- not portable across DotFunc
 //           vs GrDotFunc, see the comment near the end of this file
@@ -157,6 +161,70 @@ prev_ok=check_fail(:ok ok)
 // warnings trip run()'s own nested pass/fail detection when this file
 // runs under run_all.comt, so it stays undocumented-by-test rather than
 // asserted here.
+
+// --- test 9: lst.0.1.2 -- a chained integer index the scanner merges
+// into one DOUBLE token (ComUtil/_lexscan.c: a decimal point mid-scan
+// always continues the current token into a float -- "0.1" and "0"
+// DOT "1" are lexically identical, and postfix_token only ever stores
+// the parsed value, never the source text, so there's nothing to
+// recover from downstream either).  DotFunc's split_decimal_index()
+// recovers this: when the double's fixed-notation text round-trips as
+// int.frac with a nonzero fractional part, it's treated as those two
+// digit groups chained, same as if "lst.0.1" had tokenized as two
+// separate dots.  Built bottom-up with single-level (integer) writes,
+// since list() flattens a list-valued positional argument instead of
+// nesting it (list(list(1,2,3),4) is {1,2,3,4}, not {{1,2,3},4} --
+// unrelated to #318, a pre-existing list() quirk worked around here
+// rather than exercised as its own test) and the split-decimal path
+// is deliberately read-only (see test 10). ---
+level9b=list(999,999,777)
+level9a=list(999,999,999)
+level9a.1=level9b
+lst9=list(999,20,30)
+lst9.0=level9a
+r9a=lst9.0.1.2
+ok9=(r9a==777)
+r9b=lst9.0.1
+ok9=ok9&&(r9b==level9b)
+ok=ok&&ok9
+print("9 lst.0.1.2 / lst.0.1 -- decimal-merged chained index (expect 777, then level9b): %v %v\n" r9a r9b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: lst.1e0 and lst.1.0 -- both parse to the identical
+// double 1.0 (scientific notation is a source-text distinction lost
+// before DotFunc ever sees the value), so split_decimal_index()
+// requires a nonzero fractional part specifically so both are rejected
+// the same way, rather than accepting "1.0" as index-1-then-index-0
+// while (unable to) rejecting "1e0" -- see that function's own
+// comment for why this is the only workable rule. Only positive
+// integers, or decimal-merged chains of them, are valid -- everything
+// else is explicitly rejected (a real warning, not silently truncated
+// the way a plain is_num() gate would have truncated 1.0/1e0 to index
+// 1) and, confirmed live, does not leave stack residue behind for
+// later statements in the same script (test 11 immediately follows,
+// unaffected). ---
+errmsg(:clear)
+r10a=lst9.1e0
+ok10=(r10a==nil)
+r10b=lst9.1.0
+ok10=ok10&&(r10b==nil)
+ok=ok&&ok10
+print("10 lst.1e0 / lst.1.0 -- both reject (expect nil nil): %v %v\n" r10a r10b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: an ordinary single-level integer read immediately after
+// test 10's rejections is unaffected -- confirms test 10's explicit
+// rejection path (dotfunc.c) properly resets the stack on every exit,
+// rather than relying on falling through to the generic malformed-dot
+// checks further down execute_core(), which -- confirmed live during
+// development -- mishandle a bare numeric rhs (nids==0, not the -1
+// the malformed-rhs check is gated on) by reaching
+// fire_attrlist_method instead, corrupting the stack for every
+// statement after. ---
+r11=lst9.1
+ok=ok&&(r11==20)
+print("11 lst.1 right after test 10's rejections -- no residue (expect 20): %v\n" r11)
+prev_ok=check_fail(:ok ok)
 
 print("dotindex: %v\n" ok)
 ok

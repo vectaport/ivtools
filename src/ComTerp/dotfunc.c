@@ -34,6 +34,11 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <cmath>
+#include <cstdlib>
+#include <cstring>
+#include <cctype>
+#include <cstdio>
 
 #define TITLE "DotFunc"
 
@@ -321,6 +326,142 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   self->push_stack(result);
 }
 
+/* #318: resolve before_part (a symbol, Attribute, or already-resolved
+   value) to the array/attrlist it names, read-only -- the same lookup
+   the integer-index path and the split-decimal-index path below both
+   need, factored out so neither has to duplicate it.  Never vivifies:
+   a bare-symbol lookup here uses AttributeList::find()/table find(),
+   not the insert-a-fresh-attrlist path plain dot-assignment falls back
+   to for a non-list value (dotfunc.c's execute_core, further down). */
+static boolean resolve_dotted_list(ComTerp* comterp, ComValue& before_part, ComValue& listv) {
+  if (before_part.is_array() || before_part.is_attributelist()) {
+    listv = before_part;
+    return true;
+  } else if (before_part.is_attribute()) {
+    AttributeValue* av = ((Attribute*)before_part.obj_val())->Value();
+    if (av->is_array() || av->is_attributelist()) {
+      listv = *av;
+      return true;
+    }
+  } else if (before_part.is_symbol()) {
+    int before_symid = before_part.symbol_val();
+    boolean global = before_part.global_flag();
+    AttributeList* funcscope = !global ? comterp->get_attributes() : nil;
+    AttributeValue* curval = funcscope ? funcscope->find(before_symid) : nil;
+    if (!curval) {
+      void* vptr = nil;
+      if (!global) {
+	comterp->localtable()->find(vptr, before_symid);
+	if (!vptr) comterp->globaltable()->find(vptr, before_symid);
+      } else {
+	comterp->globaltable()->find(vptr, before_symid);
+      }
+      if (vptr) curval = (ComValue*) vptr;
+    }
+    if (curval && (curval->is_array() || curval->is_attributelist())) {
+      listv = *curval;
+      return true;
+    }
+  }
+  return false;
+}
+
+/* #318: one level of read-only lst.N / al.N indexing -- for a plain
+   list, the same at() call the ordinary integer-rhs path below makes;
+   for an attrlist, the same detached-singleton construction (never the
+   live internal Attribute*, see the ordinary path's own comment on why:
+   a numeric position is reflection, not a stable write address).
+   Shared so the split-decimal-index path below can apply it twice
+   without duplicating either case. */
+static ComValue read_list_index_once(ComTerp* comterp, ComValue& listv, int idx) {
+  if (listv.is_array()) {
+    ComValue listcopy(listv);
+    ComValue idxv(idx, ComValue::IntType);
+    comterp->push_stack(listcopy);
+    comterp->push_stack(idxv);
+    ListAtFunc atf(comterp);
+    atf.exec(2, 0);
+    return comterp->pop_stack();
+  } else if (listv.is_attributelist()) {
+    AttributeList* al = (AttributeList*) listv.obj_val();
+    if (al && idx < al->Number()) {
+      int count = 0;
+      Iterator it;
+      for (al->First(it); !al->Done(it); al->Next(it)) {
+	if (count==idx) {
+	  Attribute* found = al->GetAttr(it);
+	  AttributeList* singleton = new AttributeList();
+	  singleton->add_attr(found->SymbolId(), *found->Value());
+	  return ComValue(AttributeList::class_symid(), (void*) singleton);
+	}
+	count++;
+      }
+    }
+  }
+  return ComValue::blankval();
+}
+
+/* #318: lst.0.1 and lst.0.1.2 tokenize with "0.1" merged into a single
+   DOUBLE token (ComUtil/_lexscan.c: a decimal point encountered while
+   already scanning digits always continues the token into a float --
+   there is no way to tell "0.1" apart from "0" DOT "1" at the lexer,
+   and postfix_token only ever stores the parsed value, never the
+   source text, so there's nothing to recover downstream either).
+
+   Formats with %.9f (always fixed notation, never scientific, always
+   has a decimal point) rather than %g: %g's shortest-round-trip
+   behavior collapses a whole-valued double like 1.0 to the bare text
+   "1" -- no decimal point at all -- which would wrongly reject
+   lst.1.0.2 (a real 3-deep chain: index 1, then index 0, then index
+   2) as not looking like int.frac in the first place. Trailing zeros
+   are stripped back off (keeping at least one digit) after formatting
+   to recover "1" from "1.000000000", "34" from "0.340000000", etc.
+
+   Requires a nonzero fractional part. This is a real, deliberate
+   restriction, not just a simplification: 1e0 and 1.0 are the exact
+   same double once parsed (scientific notation is a source-text
+   distinction lost before this ever runs, same loss as the
+   digit-count one below), so there is no way to accept "lst.1.0" as
+   a legitimate 0-index chain step while also rejecting "lst.1e0" as
+   requested -- they are literally the same bits. Requiring frac!=0
+   resolves that the only way available: any whole-valued double,
+   however it was written, is rejected outright rather than guessed
+   at. lst.1.0.2 as a chain needs a different spelling (e.g. explicit
+   at() calls) as a result -- a known, accepted trade-off, not an
+   oversight.
+
+   Beyond that: a fractional part that isn't clearly two short digit
+   groups (scientific notation; negative; anything that doesn't
+   reconstruct to the original value) is rejected outright rather than
+   guessed at -- this recovers the common "chained single-digit
+   indices" case, not a general float-as-index feature, and it can't
+   be more than that: how many digits followed the decimal point is
+   information already lost by the time this runs (0.1 and 0.10 are
+   the identical double), so index 10 can never be reliably
+   distinguished from index 1 this way -- out of scope, same as at()'s
+   own integer-only contract. */
+static boolean split_decimal_index(double v, int& intpart, int& fracpart) {
+  if (v < 0) return false;
+  if (v >= 1e9) return false;
+  char buf[64];
+  snprintf(buf, sizeof(buf), "%.9f", v);
+  char* dot = strchr(buf, '.');
+  if (!dot) return false;
+  *dot = '\0';
+  const char* intstr = buf;
+  char* fracstr = dot + 1;
+  int fraclen = (int)strlen(fracstr);
+  while (fraclen > 1 && fracstr[fraclen-1] == '0') fracstr[--fraclen] = '\0';
+  if (!*intstr || !*fracstr) return false;
+  for (const char* p = intstr; *p; p++) if (!isdigit((unsigned char)*p)) return false;
+  for (const char* p = fracstr; *p; p++) if (!isdigit((unsigned char)*p)) return false;
+  intpart = atoi(intstr);
+  fracpart = atoi(fracstr);
+  if (fracpart == 0) return false;
+  double recon = intpart + fracpart / pow(10.0, (double)strlen(fracstr));
+  return fabs(recon - v) < 1e-6;
+}
+
 void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& after_nids,
 			     std::string& before_expr_text, std::string& after_expr_text) {
     /* Grab the raw, unfired source text of both args for the warnings
@@ -393,39 +534,18 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
        always unary minus applied to 1, so after_raw arrives as an
        unevaluated CommandType reference to "minus", not IntType) --
        this check is belt-and-suspenders against that changing, not
-       covering a case observed in practice. */
-    if (after_raw.is_num() && after_raw.int_val()>=0) {
+       covering a case observed in practice.
+
+       is_integer(), not is_num(): a floating-point rhs is never a
+       valid single index (only positive integers are) -- handled
+       separately below via split_decimal_index() instead, since
+       lst.0.1 tokenizes with "0.1" merged into one DOUBLE token (see
+       that function's own comment) and silently truncating it here
+       (int_val() on 0.1 would give 0) would be wrong, not just
+       imprecise. */
+    if (after_raw.is_integer() && after_raw.int_val()>=0) {
       ComValue listv;
-      boolean have_list = false;
-      if (before_part.is_array() || before_part.is_attributelist()) {
-	listv = before_part;
-	have_list = true;
-      } else if (before_part.is_attribute()) {
-	AttributeValue* av = ((Attribute*)before_part.obj_val())->Value();
-	if (av->is_array() || av->is_attributelist()) {
-	  listv = *av;
-	  have_list = true;
-	}
-      } else if (before_part.is_symbol()) {
-	int before_symid = before_part.symbol_val();
-	boolean global = before_part.global_flag();
-	AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
-	AttributeValue* curval = funcscope ? funcscope->find(before_symid) : nil;
-	if (!curval) {
-	  void* vptr = nil;
-	  if (!global) {
-	    comterp()->localtable()->find(vptr, before_symid);
-	    if (!vptr) comterp()->globaltable()->find(vptr, before_symid);
-	  } else {
-	    comterp()->globaltable()->find(vptr, before_symid);
-	  }
-	  if (vptr) curval = (ComValue*) vptr;
-	}
-	if (curval && (curval->is_array() || curval->is_attributelist())) {
-	  listv = *curval;
-	  have_list = true;
-	}
-      }
+      boolean have_list = resolve_dotted_list(comterp(), before_part, listv);
       if (have_list && listv.is_array()) {
 	/* lhs_assign() is set by AssignFunc (assignfunc.c) on this dot
 	   command's own token whenever it starts a "something.something"
@@ -513,6 +633,47 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	  push_stack(ComValue::blankval());
 	return;
       }
+    } else if (after_raw.is_floatingpoint()) {
+      /* lst.0.1 / lst.0.1.2 -- see split_decimal_index()'s own comment
+	 for why this is needed at all.  Read-only, like the plain
+	 AttributeList case above: no lhs_assign() handling here, so
+	 lst.0.1=val falls through to the ordinary "not a symbol or
+	 attribute" warning rather than attempting a chained write --
+	 out of scope for this recovery, which exists for indexing, not
+	 assignment.
+
+	 Rejection (1e0; a value that doesn't reconstruct cleanly) is
+	 handled explicitly here rather than by falling through to the
+	 generic checks further down -- confirmed live that falling
+	 through hits the exact same pre-existing trap the integer path
+	 above was already written to avoid (its own "is_integer(), not
+	 is_num()" comment): a bare numeric rhs has nids==0, not the -1
+	 the malformed-rhs check below is gated on, so it silently skips
+	 that check and reaches fire_attrlist_method instead, producing
+	 a nonsense "\"<garbage>\" is not a func-valued attribute"
+	 warning -- and, worse, left stack residue that corrupted every
+	 statement after it in the same script (confirmed live: a
+	 correctly-working lst.1 on the very next line printed blank
+	 until this was fixed). */
+      int intpart, fracpart;
+      ComValue listv;
+      if (split_decimal_index(after_raw.double_val(), intpart, fracpart) &&
+	  resolve_dotted_list(comterp(), before_part, listv)) {
+	ComValue mid = read_list_index_once(comterp(), listv, intpart);
+	ComValue result = (mid.is_array() || mid.is_attributelist())
+	  ? read_list_index_once(comterp(), mid, fracpart)
+	  : ComValue::blankval();
+	reset_stack();
+	push_stack(result);
+	return;
+      }
+      cout << "WARNING: expression after \".\" is not a valid list index ("
+	   << after_raw.double_val() << ") -- only positive integers, or "
+	      "chained ones merged by a decimal point (lst.0.1), are -- line "
+	   << funcstate()->linenum() << "\n";
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
     }
 
     if (!before_part.is_symbol() &&
