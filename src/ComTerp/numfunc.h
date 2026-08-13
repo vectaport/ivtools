@@ -88,8 +88,8 @@ public:
     MpyFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "* is the multiply operator for numerics and matrices"; }
+    virtual const char* docstring() {
+      return "* is the multiply operator for numerics and matrices, and the unary prefix operator for next"; }
 
     AttributeValueList* matrix_mpy(AttributeValueList*, AttributeValueList*);
 
