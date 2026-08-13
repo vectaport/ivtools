@@ -124,6 +124,7 @@ Print a usage summary of all the invocation modes above and exit.
     **         repeat         90          L-to-R      binary
     ..         iterate        80          L-to-R      binary
     %%         replay         79          L-to-R      binary
+    *          next           71          R-to-L      unary-prefix
     %          mod            70          L-to-R      binary
     *          mpy            70          L-to-R      binary
     /          div            70          L-to-R      binary
@@ -240,6 +241,7 @@ Print a usage summary of all the invocation modes above and exit.
  strm=stream(strm|lst|attrlst|val|fileobj|pipeobj) -- copy stream or convert list (unary $)
 
  val=next(stream :skim) -- return next value from stream, don't recurse if :skim
+   (unary prefix *: *strm is next(strm))
 
  cnt=each(strm) -- traverse stream returning its length
 
