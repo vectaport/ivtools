@@ -186,6 +186,9 @@ n=attrname(at(al 1))
 ok=ok&&(n==`bar)
 print("22 attrname(at(al 1)) (expect bar): %v\n\n" n)
 prev_ok=check_fail(:ok ok)
+// proto assert() shape (#322, not yet functional) -- a funcobj form
+// instead of an inline expression, per the design's other accepted shape:
+// (:assert func(attrname(at(al 1))==`bar) :msg "expected :bar at index 1")
 
 // --- test 23: attrval() returns value of dotted pair ---
 al=attrlist(:foo 42 :bar "hello")

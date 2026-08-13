@@ -26,6 +26,11 @@ lst=10,20,30,40,50
 ok=ok&&(lst@0==10)
 ok=ok&&(lst@3==40)
 print("1 lst@0, lst@3 (expect 10, 40): %v %v\n" lst@0 lst@3)
+// proto assert() shape (#322, not yet functional -- for scale, this is
+// what the two ok=ok&&(...) lines above plus the (expect 10, 40) in the
+// print() call might collapse into, once assert() exists):
+// (:assert lst@0==10 :msg "lst@0 should be 10, got %v")
+// (:assert lst@3==40 :msg "lst@3 should be 40, got %v")
 
 // --- test 2: lst@N=val writes through a plain list in place ---
 lst@2=999
