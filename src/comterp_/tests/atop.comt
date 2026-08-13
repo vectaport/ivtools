@@ -28,9 +28,13 @@ ok=ok&&(lst@3==40)
 print("1 lst@0, lst@3 (expect 10, 40): %v %v\n" lst@0 lst@3)
 // proto assert() shape (#322, not yet functional -- for scale, this is
 // what the two ok=ok&&(...) lines above plus the (expect 10, 40) in the
-// print() call might collapse into, once assert() exists):
+// print() call might collapse into, once assert() exists).  Simple form
+// -- the comma (first one not inside parens) is what ends the expression
+// and starts the trailing docstring, no quotes needed:
+// lst@0==10, lst@0 should be 10
+// lst@3==40, lst@3 should be 40
+// Doubleton form, for anything the simple form can't say plainly:
 // (:assert lst@0==10 :msg "lst@0 should be 10, got %v")
-// (:assert lst@3==40 :msg "lst@3 should be 40, got %v")
 
 // --- test 2: lst@N=val writes through a plain list in place ---
 lst@2=999
