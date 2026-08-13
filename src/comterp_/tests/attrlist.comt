@@ -178,25 +178,27 @@ ok=ok&&(attr!=nil)
 print("21 at(attrlist(:foo 42 :bar \"hello\") 0) dotted pair (expect non-nil): %v\n\n" attr)
 prev_ok=check_fail(:ok ok)
 
-// --- test 22: attrname() returns name of dotted pair ---
+// --- test 22: attrname() returns name of dotted pair -- attrlist()
+// builds in source (insertion) order, so :foo (written first) is index 0,
+// :bar (written second) is index 1 ---
 al=attrlist(:foo 42 :bar "hello")
 n=attrname(at(al 1))
-ok=ok&&(n==`foo)
-print("22 attrname(at(al 1)) (expect foo): %v\n\n" n)
+ok=ok&&(n==`bar)
+print("22 attrname(at(al 1)) (expect bar): %v\n\n" n)
 prev_ok=check_fail(:ok ok)
 
 // --- test 23: attrval() returns value of dotted pair ---
 al=attrlist(:foo 42 :bar "hello")
 v=attrval(at(al 1))
-ok=ok&&(v==42)
-print("23 attrval(at(al 1)) (expect 42): %v\n\n" v)
+ok=ok&&(v=="hello")
+print("23 attrval(at(al 1)) (expect hello): %v\n\n" v)
 prev_ok=check_fail(:ok ok)
 
-// --- test 24: at() second element name and value ---
+// --- test 24: at() first element name and value ---
 al=attrlist(:foo 42 :bar "hello")
-ok=ok&&(attrname(at(al 0))==`bar)
-ok=ok&&(attrval(at(al 0))=="hello")
-print("24 attrname/attrval(at(al 0)) (expect bar, hello): %v, %v\n\n" attrname(at(al 0)) attrval(at(al 0)))
+ok=ok&&(attrname(at(al 0))==`foo)
+ok=ok&&(attrval(at(al 0))==42)
+print("24 attrname/attrval(at(al 0)) (expect foo, 42): %v, %v\n\n" attrname(at(al 0)) attrval(at(al 0)))
 prev_ok=check_fail(:ok ok)
 
 // --- test 25: at(:set) modifies nth attribute value ---

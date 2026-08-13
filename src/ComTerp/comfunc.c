@@ -583,7 +583,17 @@ int& ComFunc::pedepth() {
 AttributeList* ComFunc::stack_keys(boolean symbol, AttributeValue& dflt) {
   AttributeList* al = new AttributeList();
   int count = nargs() + nkeys() - npops();
-  for (int i=0; i<count; i++) {
+  /* Walk the keyword run bottom-up (deepest/first-written slot first),
+     not top-down: the stack holds keywords in push order, so the
+     top-down direction visits the LAST-written keyword first, and
+     add_attr()'s append-at-tail (attrlist.c) then makes it the FIRST
+     entry of the result -- e.g. attrlist(:foo 42 :bar "hello") used to
+     come out (:bar "hello" :foo 42), reversed from how it reads.  This
+     is pure insertion-order choice (add_attr()'s own pairing/dedup logic
+     is unaffected either way, since each marker's value lookup below is
+     still a strictly local marker/value relationship regardless of scan
+     direction), so there's no reason to keep the surprising order. */
+  for (int i=count-1; i>=0; i--) {
     ComValue& keyref = _comterp->stack_top(-i);
     if( keyref.type() == ComValue::KeywordType) {
       int key_symid = keyref.symbol_val();
