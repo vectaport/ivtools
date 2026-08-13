@@ -22,7 +22,7 @@
 ok=true
 
 // --- test 1: lst@N reads, same as at(lst N) ---
-lst=list(10,20,30,40,50)
+lst=10,20,30,40,50
 ok=ok&&(lst@0==10)
 ok=ok&&(lst@3==40)
 print("1 lst@0, lst@3 (expect 10, 40): %v %v\n" lst@0 lst@3)
@@ -35,10 +35,10 @@ print("2 lst@2=999; lst (expect {10,20,999,40,50}): %v\n" lst)
 // --- test 3: chaining -- the case that broke "." (an intermediate whole-
 // number index reads as a decimal continuation under "."; "@" has no such
 // collision since '@' never appears inside a number literal) ---
-level2=list(999,999,777)
-level1=list(999,999,999)
+level2=999,999,777
+level1=999,999,999
 level1@1=level2
-outer=list(999,20,30)
+outer=999,20,30
 outer@0=level1
 ok=ok&&(outer@0@1@2==777)
 print("3 outer@0@1@2, 3 deep through two writes (expect 777): %v\n" outer@0@1@2)
@@ -63,7 +63,7 @@ print("5 al@1=999; attrval(al@1) (expect 999): %v\n" attrval(al@1))
 
 // --- test 6: the rhs can be any expression that resolves to an int, not
 // just a bare literal ---
-lst2=list(100,200,300,400)
+lst2=100,200,300,400
 i=2
 ok=ok&&(lst2@i==300)
 ok=ok&&(lst2@(i+1)==400)
@@ -74,7 +74,7 @@ print("6 lst2@i, lst2@(i+1) (expect 300, 400): %v %v\n" lst2@i lst2@(i+1))
 // scalar-overdrive mechanism list((2..4)*5) uses in stream.comt).  ".."
 // binds looser than "@" (90 vs 77 -- see test 9+ below), so lst3@0..2
 // already parses as lst3@(0..2) with no parens needed. ---
-lst3=list(10,20,30,40,50)
+lst3=10,20,30,40,50
 result=list(lst3@0..2)
 ok=ok&&(result==(10,20,30))
 print("7a list(lst3@0..2) -- no parens needed (expect {10,20,30}): %v\n" result)
@@ -87,7 +87,7 @@ print("7b list(lst3@s) via a stream variable (expect {20,40,50}): %v\n" result2)
 // --- test 8: out-of-range write pads with nil, same documented behavior
 // as at(lst n :set val) already has (AttributeValueList::Set()) -- @ is
 // not a second, independently-behaving implementation ---
-lst4=list(1,2,3)
+lst4=1,2,3
 lst4@5=42
 ok=ok&&(size(lst4)==6)
 ok=ok&&(lst4@5==42)
@@ -101,7 +101,7 @@ print("8 lst4@5=42 out-of-range pads with nil (expect size 6, [5]=42): %v %v\n" 
 
 // --- test 9: arithmetic still binds looser than "@" -- lst@i+1 reads as
 // (lst@i)+1, not lst@(i+1), the common "index, then compute" case ---
-lst5=list(10,20,30,40,50)
+lst5=10,20,30,40,50
 i=1
 ok=ok&&(lst5@i+1==21)
 ok=ok&&(lst5@i*2==40)
