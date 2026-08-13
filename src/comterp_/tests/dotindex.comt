@@ -3,16 +3,16 @@
 // to a plain list (AttributeList stays read-only -- reflection, not an
 // address, see test 3).
 //
-// funcs: at() list() class() type() next() errmsg()
+// funcs: at() list() class() next() errmsg()
 // coverage: lst.N on a plain list, al.N as a positional walk of an
 //           attrlist, out-of-range, nested chains, existing symbolic
 //           dot access unaffected, non-numeric rhs left to existing
 //           (unrelated, pre-#318) behavior, lst.N=val write support,
-//           al.N=val confirmed to never mutate, and lst.symbolname=val
-//           on a plain list confirmed to auto-vivify it into an
-//           AttributeList (pre-existing dot-assignment behavior,
-//           unrelated to #318, locked in by test rather than left
-//           undocumented -- see #304's comment thread).
+//           and al.N=val confirmed to never mutate.  (lst.symbolname=
+//           val's auto-vivify-to-AttributeList behavior was tried as
+//           a test here and reverted -- not portable across DotFunc
+//           vs GrDotFunc, see the comment near the end of this file
+//           and #320.)
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/dotindex.comt")
@@ -129,28 +129,20 @@ ok=ok&&ok8
 print("8 al.1=999 -- must not mutate (expect al.y still 20): %v\n" al2.y)
 prev_ok=check_fail(:ok ok)
 
-// --- test 9: lst.symbolname=val on a plain list auto-vivifies the list
-// into an AttributeList -- pre-existing dot-assignment behavior (the
-// same convenience x.foo=1 relies on to turn an unset x into an
-// attrlist), unrelated to and unfixed by #318/#319, but worth locking
-// in explicitly here: it's what a plain list falls through to whenever
-// the rhs isn't numeric, so it's the concrete, tested answer to "what
-// happens if I write lst.foo=val instead of lst.3=val" -- the list's
-// original contents are gone, replaced by a fresh one-attribute
-// AttributeList.  Also confirms the rhs symbol is used as a literal
-// key, never dereferenced as a variable, even when a same-named
-// variable happens to hold a value (b=2 here has no bearing on what
-// "b" means as .b's rhs) -- see #304's comment thread for the live
-// transcript (lst.n after lst=(10,11,12,13)) that surfaced this. ---
-lst4=0,1,2,3
-ok9=(type(lst4)==`ListType)
-b=2
-lst4.b=20
-ok9=ok9&&(type(lst4)==`ObjectType)
-ok9=ok9&&(class(lst4)==`AttributeList)
-ok=ok&&ok9
-print("9 lst.b=20 (b a var holding 2, list before) -- auto-vivifies to AttributeList, b used as literal key (expect ListType->ObjectType/AttributeList): %v\n" ok9)
-prev_ok=check_fail(:ok ok)
+// Deliberately no runnable test for lst.symbolname=val's auto-vivify
+// behavior on a plain list (converts it to an AttributeList,
+// discarding the original contents -- confirmed live, matching the
+// same pre-existing convenience x.foo=1 relies on for an unset x):
+// tried as test 9, reverted (#319) once CI showed it isn't a portable
+// guarantee -- it holds for plain DotFunc (dotfunc.c, ComTerp) but
+// not for GrDotFunc (grdotfunc.c, ComUnidraw, used by comdraw/
+// drawserv), which eagerly calls lookup_symval() on a symbol
+// before-part before execute_core() ever runs, so before_part is
+// already resolved to the array value by the time the auto-vivify
+// path would normally trigger, landing on the "list of N items"
+// warning instead. Pre-existing DotFunc/GrDotFunc divergence,
+// unrelated to and unfixed by #318/#319 -- see #320 (which already
+// proposes replacing this whole mechanism) for the write-up.
 
 // Deliberately no runnable test for a literal negative rhs (lst.-1):
 // out of scope for #318, matching at()'s own limit (ListAtFunc::execute,
