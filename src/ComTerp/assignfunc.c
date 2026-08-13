@@ -25,6 +25,7 @@
 #include <ComTerp/assignfunc.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/comterp.h>
+#include <ComTerp/listfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <InterViews/resource.h>
@@ -55,9 +56,18 @@ void AssignFunc::execute() {
     
     if (operand1.type() != ComValue::SymbolType) {
         // if lhs is a global() or local() call, set lhs_assign flag on its
-        // ComValue so the scope command can distinguish lhs from rhs context
+        // ComValue so the scope command can distinguish lhs from rhs context.
+        // Same for at() (including via the @ operator, lst@N=val, #318) --
+        // ListAtFunc checks its own lhs_assign() (symbolfunc.c's
+        // GlobalFunc/LocalFunc do the same) to tell "lst@0=val" apart from
+        // an ordinary read.  Only matters for the ArrayType (plain list)
+        // case -- an AttributeList read already hands back a live dotted-
+        // pair Attribute* regardless of this flag, and the Attribute-lvalue
+        // branch below already writes through that for free, so al@N=val
+        // needs no special-casing at all.
         static int global_symid = symbol_add("global");
         static int local_symid = symbol_add("local");
+        static int at_symid = symbol_add("at");
         ComValue argoff(comterp()->stack_top());
         int offtop = argoff.int_val() - comterp()->pfnum();
         int arg0top = offtop;
@@ -67,7 +77,8 @@ void AssignFunc::execute() {
         ComValue& startval = comterp()->pfcomvals()[startidx];
         if (startval.is_type(ComValue::CommandType)) {
             ComFunc* func = (ComFunc*)startval.obj_val();
-            if (func->funcid() == global_symid || func->funcid() == local_symid)
+            if (func->funcid() == global_symid || func->funcid() == local_symid ||
+                func->funcid() == at_symid)
                 startval.lhs_assign(1);
         }
         operand1 = stack_arg_post_eval(0, true /* no symbol or attribute lookup */);
@@ -125,6 +136,33 @@ void AssignFunc::execute() {
     } else if (operand1.is_object(Attribute::class_symid())) {
       Attribute* attr = (Attribute*)operand1.obj_val();
       attr->Value(operand2);
+    } else if (operand1.is_array() && operand1.lhs_assign()) {
+      /* #318 (@ operator): lst@N=val.  ListAtFunc (listfunc.c), seeing its
+	 own lhs_assign() flag set and an ArrayType before-part, handed back
+	 a [list, idx] pair instead of performing a read (lhs_assign() still
+	 set on the pair itself, so this branch can tell it apart from an
+	 ordinary array-valued read reaching here some other way).  Complete
+	 the write by re-driving at() itself with a real :set keyword --
+	 pushed the same way comterp.c's own EvalFunc call does (value, then
+	 a KeywordType marker carrying the keyword's symid+narg) -- so the
+	 mutation goes through at()'s single, already-tested :set code path
+	 instead of a second, hand-rolled one here. */
+      AttributeValueList* pair = operand1.array_val();
+      static int set_symid = symbol_add("set");
+      push_stack(*pair->Get(0));
+      push_stack(*pair->Get(1));
+      push_stack(*operand2);
+      ComValue setkey(set_symid, 1);
+      push_stack(setkey);
+      ListAtFunc atfunc(comterp());
+      /* narg counts non-keyword args INCLUDING the value that follows a
+	 keyword (see the ~~ spread-operator rebuild, comterp.c ~316) --
+	 4 physical pushes above (list, idx, :set's value, :set's marker)
+	 means narg=3 (list, idx, and the :set value it counts) and
+	 nkey=1 (just the marker), not narg=2. */
+      atfunc.exec(3, 1);
+      ComValue result(pop_stack());
+      *operand2 = result;
     } else {
         cout << "WARNING:  assignment to something other than a symbol or attribute (" <<
           symbol_pntr(operand1.type_symid()) << ") ignored -- line " << funcstate()->linenum() << "\n";

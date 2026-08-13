@@ -142,5 +142,9 @@ if(run("./bracket-brace-parity.comt")
   :then print("pass: bracket-brace-parity\n")
   :else print("FAIL: bracket-brace-parity\n");topok=false)
 
+if(run("./atop.comt")
+  :then print("pass: atop\n")
+  :else print("FAIL: atop\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

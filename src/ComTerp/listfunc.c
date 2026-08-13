@@ -125,6 +125,47 @@ ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1, false, ComValue::zeroval()));
+
+  /* #318 (@ operator): lst@N=val.  AssignFunc (assignfunc.c) flags this
+     call's own token with lhs_assign() when it's the before-part of an
+     assignment, before this execute() runs.  A plain list has no live
+     per-element handle the way an attrlist position does (an ArrayType
+     element is just a bare value, not an Attribute*) -- an ordinary read
+     here would hand AssignFunc a value with no way back to 'lst'/N, so
+     hand back a tiny [list, idx] pair instead (lhs_assign() still set, so
+     AssignFunc can tell it apart from an ordinary array-valued read
+     reaching here some other way).  AssignFunc completes the write by
+     re-driving this same command with a real :set keyword once it knows
+     the rhs value, reusing the tested :set logic below instead of
+     duplicating it.  AttributeList needs none of this: its read below
+     already hands back a live dotted-pair Attribute*, and AssignFunc's
+     pre-existing Attribute-lvalue branch already writes through that for
+     free, so al@N=val "just works" with no extra code here.
+     Guarded on a valid (non-negative) index, same as the plain-read
+     ArrayType branch below -- a negative index here is only ever the
+     unary-minus sub-expression "-N", not a literal, and that combination
+     (a compound rhs sub-expression + this lhs_assign peek/hand-back
+     machinery) has a real, reproducible stack-corruption bug (seen as a
+     nondeterministic crash) somewhere in the general dispatch/peek path,
+     not in this command -- falling through to the ordinary read below
+     for that case avoids it entirely (matches at()'s own existing
+     behavior for a negative read: nil, no mutation, no crash). */
+  if (listv.is_type(ComValue::ArrayType) &&
+      (nv.is_nil() || nv.int_val()>=0) &&
+      comterp()->stack_top(nkeys()+1).lhs_assign()) {
+    AttributeValueList* avl = listv.array_val();
+    int nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
+    reset_stack();
+    AttributeValueList* pair = new AttributeValueList();
+    pair->Append(new AttributeValue(listv));
+    ComValue nvvval(nvv);
+    pair->Append(new AttributeValue(nvvval));
+    ComValue retval(pair);
+    retval.lhs_assign(1);
+    push_stack(retval);
+    return;
+  }
+
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
   if (setv.is_unknown()) setv = ComValue::blankval();                 // absent :set -> also blank
