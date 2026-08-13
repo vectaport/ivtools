@@ -438,5 +438,34 @@ ok=ok&&(r48a=="MINE" && r48b=="OTHER")
 print("48 slipping a different attrlist under zoo48's name mid-flight redirects saved48.report() too (expect MINE OTHER): %v %v\n\n" r48a r48b)
 prev_ok=check_fail(:ok ok)
 
+// --- test 49: at(al n) (a bare read, no :set) hands back a detached,
+// single-entry attrlist -- type()/class() confirm it's a real attrlist
+// object, not the enclosed value's own type ---
+al49=attrlist(:foo 42)
+r49=at(al49 0)
+ok=ok&&(type(r49)==`ObjectType)
+ok=ok&&(class(r49)==`AttributeList)
+print("49 type/class(at(al49 0)) (expect ObjectType, AttributeList): %v %v\n\n" type(r49) class(r49))
+prev_ok=check_fail(:ok ok)
+
+// --- test 50: detachment in both directions -- a snapshot taken via
+// at(al n) doesn't see a later at(al n :set val) on the same position,
+// and mutating the snapshot itself never reaches back into al.
+// attrval(snap50) also covers attrname()/attrval() being handed a
+// STORED variable rather than an inline at()/. expression -- they used
+// to unconditionally skip symbol resolution (stack_arg(0, true), meant
+// to dodge lookup_symval()'s own dotted-pair-unwrapping side effect) and
+// fail on anything but an inline call; dotfunc.c now resolves a bound
+// variable first. ---
+al50=attrlist(:foo 42)
+snap50=at(al50 0)
+at(al50 0 :set 99)
+ok=ok&&(attrval(snap50)==42)
+ok=ok&&(attrval(at(al50 0))==99)
+snap50@0=7
+ok=ok&&(attrval(at(al50 0))==99)
+print("50 at()'s snapshot is detached both ways (expect snap50=42, al50=99, still 99 after snap50@0=7): %v %v %v\n\n" attrval(snap50) attrval(at(al50 0)) attrval(at(al50 0)))
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok

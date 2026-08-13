@@ -2374,37 +2374,65 @@ for(i=0 i<size(al) i++
 " attrname(at(al i)) attrval(at(al i))))
 ```
 
-`at(attrlist n)` is the escape mechanism into the raw `Attribute` layer.
-`attrname()` and `attrval()` are the only commands that receive it before
-auto-dereference — any other command gets the dereferenced value instead.
-Note that `type(at(al n))` returns the value's type, not an attribute type,
-and enumeration order may not match insertion order.
+`at(attrlist n)` (a bare read, no `:set`) returns the nth attribute as a
+**detached, single-entry attrlist** — e.g. `(:y 2)` for `at(al 1)` above
+— not a live handle into `al`. `attrname()` and `attrval()` accept this
+shape directly, reading its one entry (they also still accept the older
+"dotted pair" `Attribute` shape `.` produces for named lookup — see
+below — either works as their argument). `at(al n :set val)` still
+writes through unrestricted, exactly as before — only assigning directly
+to a bare read's result is blocked: `al@n=val` (the `@` operator is pure
+sugar for a bare `at()` call) can never write through to `al`, since
+there's no live handle in a detached copy to write through in the first
+place.
 
-`Attribute` objects can live on the stack and be passed to any command.
-Whether the key is preserved depends on whether the receiving command
-explicitly checks for `AttributeType` before dereferencing — `attrname()`
-and `attrval()` do this; all other current built-in commands dereference
-immediately via `stack_arg()`, losing the key. A custom `ComFunc` could
-preserve the key by inspecting the `ComValue` type before calling
-`stack_arg()`. In practice, for the built-in scripting layer, `attrname()`
-and `attrval()` are the only commands that see the key.
+`type(at(al n))` is `ObjectType` and `class(at(al n))` is `AttributeList`
+— not the enclosed value's own type/class, since what's returned is a
+whole (if tiny) attrlist, not the value itself. Enumeration order matches
+insertion order — the order keys were first written (in a literal) or
+first added (via `al.key=val`) — for both construction paths.
+
+A named lookup via `.` (`al.foo`) instead hands back the older "dotted
+pair" `Attribute` object — a lower-level, internal representation with no
+literal syntax of its own in the language (the same way a bare keyword
+has none; both only ever exist as part of an attrlist). `Attribute`
+objects can live on the stack and be passed to any command, but whether
+the key survives depends on whether the receiving command explicitly
+checks for it before dereferencing — `attrname()`/`attrval()` do; every
+other built-in command dereferences immediately via `stack_arg()`, losing
+the key. A custom `ComFunc` could preserve it by inspecting the `ComValue`
+type before calling `stack_arg()`.
+
+Assigning a dotted pair to a variable doesn't preserve its shape either —
+`x=a.foo` stores the bare, already-dereferenced value in `x` (`AssignFunc`
+unwraps any `Attribute`-shaped rhs at assignment time), so `attrname(x)`
+afterward fails; call it inline instead (`attrname(a.foo)`). The
+single-entry-attrlist shape `at()`/`@` return doesn't have this problem —
+assignment doesn't touch it, `attrname()`/`attrval()` resolve a bound
+variable before checking its shape, and it works either way:
+
+```
+x=al.foo        // x is 42 (bare value) -- attrname(x) fails
+z=al@0          // z is (:foo 42) (still a real attrlist) -- attrname(z) works
+```
 
 ### Stream enumeration of an attrlist
 
 `attrname()` and `attrval()` also accept a stream of attributes
 directly, returning a stream of keys or values respectively. An attrlist
-literal used as a stream source yields its entries as `Attribute` objects:
+used as a stream source yields its entries as `Attribute` objects — the
+older dotted-pair shape (see above), not the single-entry-attrlist shape
+`at()`/`@` return:
 
 ```
-$list(attrname($$(:a 4 :b 7)))   // {"b","a"}
-$list(attrval($$(:a 4 :b 7)))    // {7,4}
+$list(attrname($$(:a 4 :b 7)))   // {"a","b"}
+$list(attrval($$(:a 4 :b 7)))    // {4,7}
 ```
 
 The two streams are consistent with each other — the nth name corresponds
-to the nth value — so they can be zipped or processed in parallel.
-Note that the order is reverse insertion order (last key first), which
-reflects the underlying attrlist storage. If you need both key and value
-together, use the `for`/`at()`/`size()` loop form above instead.
+to the nth value — so they can be zipped or processed in parallel. Order
+matches insertion order, same as the `for`/`at()`/`size()` loop above. If
+you need both key and value together, use that loop form instead.
 
 ### Merging and subtracting attrlists
 
@@ -2422,7 +2450,10 @@ diff=al1-al2         // :a 1              (:b removed)
 ### Portable key/value pairs
 
 A single-element attrlist is the idiomatic portable key/value pair —
-it passes anywhere as a first-class value:
+it passes anywhere as a first-class value. It's also exactly what
+`at(al n)`/`al@n` hand back for a multi-key attrlist (above), so the two
+ideas are really the same shape at different scales: one built explicitly,
+one produced automatically by positional access.
 
 ```
 pair=attrlist(:foo 42)
