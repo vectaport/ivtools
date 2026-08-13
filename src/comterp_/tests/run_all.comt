@@ -130,6 +130,10 @@ if(run("./optable.comt")
   :then print("pass: optable\n")
   :else print("FAIL: optable\n");topok=false)
 
+if(run("./starnext.comt")
+  :then print("pass: starnext\n")
+  :else print("FAIL: starnext\n");topok=false)
+
 if(run("./symboldrain.comt")
   :then print("pass: symboldrain\n")
   :else print("FAIL: symboldrain\n");topok=false)

@@ -113,6 +113,14 @@ struct _opr_tbl_default_entry {
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
   {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
+  // "next" sits one above "mpy" (71 vs 70), not level with it: when the
+  // parser resolves "2 * *s" (no parens) it must settle each * token's role
+  // -- binary vs unary-prefix -- before either can be pushed, and an exact
+  // priority tie between the two roles of the same operator string makes it
+  // misparse (the binary mpy gets emitted before its right operand is even
+  // read).  One point of separation is enough for the unary role to declare
+  // itself distinctly; see starnext.comt test 3b.
+  {"*",          "next",               71,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },
   {"/",          "div",                70,         FALSE,      OPTYPE_BINARY },

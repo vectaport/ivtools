@@ -231,7 +231,7 @@ public:
 
 };
 
-//: next command from stream for ComTerp
+//: next command from stream for ComTerp; also * (unary prefix next) operator.
 class NextFunc : public StrmFunc {
 public:
     NextFunc(ComTerp*);
@@ -239,8 +239,14 @@ public:
     virtual void execute();
     static  void execute_impl(ComTerp*, ComValue& strmv, boolean skim);
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "val=%s(stream :skim) -- return next value from stream, don't recurse if :skim"; }
+    virtual const char* docstring() {
+      /* %1$s (not plain %s) reused twice: the caller (helpfunc.c) passes
+	 exactly one substitution argument (this command's own name), and a
+	 second bare %s here would read past it -- an uninitialized-argument
+	 format-string bug.  POSIX/BSD printf's positional specifier lets
+	 one supplied argument fill both slots safely. */
+      return "val=%1$s(stream :skim) -- return next value from stream, don't recurse if :skim.\n\
+*s is unary-prefix sugar for %1$s(s)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":skim      do not recurse into nested streams",

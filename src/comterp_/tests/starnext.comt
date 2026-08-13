@@ -1,0 +1,105 @@
+// src/comterp_/tests/starnext.comt -- the unary prefix * operator, shorthand
+// for next() -- and a demonstration of adding a whole new operator to the
+// language with nothing but one line in the operator table.
+//
+// funcs: * (unary next) * (binary mpy) optable(:table) optable(:delete)
+//        optable(:insert) postfix errmsg
+// coverage: *s as next(s) (baked in), binary * unaffected, dual-role
+//           coexistence in optable(:table), the ** lexical collision when
+//           chained without a separator, and the optable(:delete)/
+//           optable(:insert) round-trip that shows this is not special --
+//           any script could have defined its own *s this same way.
+//
+// *s reads as "the next thing in s", the same dereference-an-iterator
+// intuition C-family languages use * for -- distinct from bare `s`, which
+// stays pure reference/inspection (see istype()), never advancing anything.
+
+ok=true
+
+// --- test 1: *s advances the stream one element at a time, same as
+// next(s) -- exhausted reads nil, same as next() always has ---
+s=$$(10 20 30)
+x=*s
+ok=ok&&(x==10)
+y=*s
+ok=ok&&(y==20)
+z=*s
+ok=ok&&(z==30)
+w=*s
+ok=ok&&(w==nil)
+print("1 *s walks a stream (expect 10 20 30 nil): %v %v %v %v\n" x y z w)
+
+// --- test 2: binary * (multiplication) is completely unaffected -- the
+// two roles coexist under the same operator string ---
+r=3*4
+ok=ok&&(r==12)
+print("2 3*4 binary multiplication unaffected (expect 12): %v\n" r)
+
+// --- test 3: they compose -- a unary *s inside a larger binary expression,
+// parenthesized to keep the two roles unambiguous ---
+s2=$$(5 6 7)
+r2=2*(*s2)
+ok=ok&&(r2==10)
+print("3 2*(*s2) -- binary * around a unary *s (expect 10): %v\n" r2)
+
+// --- test 3b: they also compose WITHOUT parens, as long as the two *
+// characters aren't lexically adjacent (see test 5) -- this is the case
+// the unary role's priority (71, one above binary mpy's 70) exists for:
+// at an exact tie, the parser can't settle which role a bare "*" token
+// plays before both are on the stack, and mis-emits the binary op before
+// its right operand is read. One point of separation is enough. ---
+s2b=$$(5 6 7)
+r2b=2 * *s2b
+ok=ok&&(r2b==10)
+print("3b 2 * *s2b -- same as test 3 but unparenthesized (expect 10): %v\n" r2b)
+
+// --- test 4: optable(:table) shows both roles as genuinely separate
+// entries under the same operator string, not one overwriting the other ---
+t=optable(:table)
+n=size(t)
+found_binary=false
+found_prefix=false
+for(i=0 i<n i++
+  e=at(t i);
+  if((e.opr=="*")&&(e.cmd=="mpy") :then found_binary=true);
+  if((e.opr=="*")&&(e.cmd=="next") :then found_prefix=true))
+ok=ok&&(found_binary && found_prefix)
+print("4 optable(:table) lists both * roles separately (expect true): %v\n" (found_binary&&found_prefix))
+
+// --- test 5: the one real caveat -- ** is ALREADY the stream-repeat
+// operator (see matrixmult.comt/replay.comt), at a higher priority than
+// either * role, so two *s back to back with no separator lexes as **,
+// not as "binary * around a unary *s" -- parens or a space avoid it.
+// Checked via postfix(), not by evaluating and printing the result: **
+// expects an int count on its right, not a stream, so 2**s3 doesn't
+// evaluate to anything print()-safe to demonstrate directly. ---
+s3=$$(1 2 3)
+p5=postfix(2**s3)
+check5=(index(p5 "repeat")!=nil)&&(index(p5 "next")==nil)
+ok=ok&&check5
+print("5 postfix(2**s3) (no separator) compiles to ** (repeat), not next (expect true): %v\n" check5)
+
+// --- test 6: this is not special -- optable(:delete)/optable(:insert)
+// round-trip the unary role exactly like replay.comt does for %%, proving
+// any script could define its own *-as-next() (or any other symbol) the
+// same way. Only the unary-prefix role is touched; binary * (mpy) is a
+// separate table entry and is never affected by deleting the prefix one. ---
+optable("*" :delete :prefix)
+errmsg(:clear)
+postfix(*s3)
+e=errmsg()
+ok=ok&&(index(e "Unexpected")!=nil)
+print("6a optable(\"*\" :delete :prefix) -- *s3 is now a parse error (expect 'Unexpected'): %v\n" e)
+
+r4=5*6
+ok=ok&&(r4==30)
+print("6b binary * still works with the prefix role deleted (expect 30): %v\n" r4)
+
+optable("*" "next" :insert :prefix :rtol :pri 71)
+errmsg(:clear)
+p=postfix(*s3)
+ok=ok&&(index(p "next")!=nil)
+print("6c optable(:insert) re-adds it -- postfix(*s3) contains 'next' again: %v\n" p)
+
+print("starnext: %v\n" ok)
+ok
