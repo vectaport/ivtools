@@ -111,7 +111,7 @@ Print a usage summary of all the invocation modes above and exit.
 .nf
     Operators  Command Name   Priority    Order       Type
     ---------  ------------   --------    -----       ----
-    .          dot            130         R-to-L      binary
+    .          dot            130         L-to-R      binary
     `          bquote         125         R-to-L      unary-prefix
     !          negate         110         R-to-L      unary-prefix
     ~          bit_not        110         R-to-L      unary-prefix
@@ -121,9 +121,11 @@ Print a usage summary of all the invocation modes above and exit.
     --         decr           110         R-to-L      unary-prefix
     --         decr_after     110         R-to-L      unary-postfix
     $$         stream         100         R-to-L      unary-prefix
-    **         repeat         90          L-to-R      binary
-    ..         iterate        80          L-to-R      binary
+    ..         iterate        90          L-to-R      binary
+    **         repeat         80          L-to-R      binary
     %%         replay         79          L-to-R      binary
+    @          at             77          L-to-R      binary
+    ,,         concat         75          L-to-R      binary
     *          next           71          R-to-L      unary-prefix
     %          mod            70          L-to-R      binary
     *          mpy            70          L-to-R      binary
@@ -144,7 +146,6 @@ Print a usage summary of all the invocation modes above and exit.
     &&         and            41          L-to-R      binary
     ||         or             40          L-to-R      binary
     ,          tuple          35          L-to-R      binary
-    ,,         stream concat  33          L-to-R      binary
     $          list           32          R-to-L      unary-prefix
     ~~         spread         32          R-to-L      unary-prefix
     %=         mod_assign     30          R-to-L      binary
@@ -230,7 +231,8 @@ Print a usage summary of all the invocation modes above and exit.
  
  lst=list([lst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
 
- val=at(lst|attrlst|str n :set val :ins val) -- return (or set or insert after) nth item in a list or string
+ val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) nth item in a list or string
+   (binary @: lst@n is at(lst n); lst@n=val writes through to a plain list)
 
  num=size(lst|attrlst|str) -- return size of a list (or string)
 

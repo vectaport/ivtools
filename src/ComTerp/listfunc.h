@@ -57,7 +57,7 @@ public:
     }
 };
 
-//: list member command for ComTerp.
+//: list member command for ComTerp; also @ (binary at) operator.
 // val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list or string.
 class ListAtFunc : public ComFunc {
 public:
@@ -65,7 +65,10 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=at(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list"; }
+      /* %1$s reused, not a second %s -- see NextFunc::docstring() (strmfunc.h)
+	 for why: helpfunc.c passes exactly one substitution argument. */
+      return "val=%1$s(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list.\n\
+lst@n is binary sugar for %1$s(lst n); lst@n=val writes through to a plain list"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",

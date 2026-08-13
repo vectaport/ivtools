@@ -409,6 +409,8 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 100      | `$$`     | stream        | RtoL  | UNARY PREFIX    |
 | 90       | `..`     | iterate       | LtoR  | BINARY          |
 | 80       | `**`     | repeat        | LtoR  | BINARY          |
+| 79       | `%%`     | replay        | LtoR  | BINARY          |
+| 77       | `@`      | at            | LtoR  | BINARY          |
 | 75       | `,,`     | concat        | LtoR  | BINARY          |
 | 71       | `*`      | next          | RtoL  | UNARY PREFIX    |
 | 70       | `/`      | div           | LtoR  | BINARY          |
@@ -443,6 +445,11 @@ associativity. Run `optable()` inside comterp to see the live table.
 A few things worth noting:
 
 - `.` binds tightest — `f(:x 5).x` works without parens
+- `@` sits well below `.`, not tied to it — `lst@i+1` reads as `(lst@i)+1`
+  (arithmetic still binds looser than `@`), but `lst@0..2` and `lst@0**3`
+  read as `lst@(0..2)`/`lst@(0**3)` (the numeric stream operators `..`/`**`/
+  `%%` all bind looser than `@`, so a range/repeat/replay expression
+  indexes directly, no parens needed) — see *At operator* below
 - `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
 - `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
@@ -531,6 +538,63 @@ func even though the symbol binding is frame-local (see *Scoping rules*).
 
 The dot namespace rooted at a symbol is scoped with that symbol — see
 **Attribute Lists** below.
+
+### At operator
+
+`@` is binary sugar for `at()`: `lst@n` reads the nth item of a list, and
+`lst@n=val` writes it in place:
+
+```
+lst=10,20,30,40,50
+lst@0            // 10
+lst@2=999
+lst               // {10,20,999,40,50}
+```
+
+It chains left-to-right, the same as `.`:
+
+```
+outer=999,20,30
+outer@0=999,999,777
+outer@0@1@2      // 777
+```
+
+**Why a separate operator from `.`, not `lst.0`:** an earlier design tried
+exactly that — numeric indices after `.` — and ran into a lexer-level wall:
+once `0.1.2` is scanned, whether it started life as `0`, `.`, `1`, `.`, `2`
+(three chained indices) or `0.1`, `.`, `2` (a float followed by one index)
+is genuinely indistinguishable after the fact, since both parse to the
+identical token stream a decimal literal already produces. `@` is never
+part of any number's own syntax, so `lst@0@1@2` can't collide with a float
+literal no matter how it chains. `.` keeps its narrower, simpler job
+(attribute/comp access, see *Dot operator* above); `@` owns list/attrlist
+indexing exclusively.
+
+On an attrlist, `al@n` returns the same live dotted-pair `Attribute` that
+`at(al n)` always has — `attrname()`/`attrval()` work on it unchanged —
+and `al@n=val` writes through it, via the same general dotted-pair-lvalue
+mechanism `foo.bar=42` already uses (see *Dot operator* above): no
+`@`-specific write logic exists for attrlists at all, it falls straight
+out of a mechanism `.` already needed.
+
+`@`'s priority (77) is deliberately *not* tied to `.`'s (130) — see the
+Precedence Table note above for the tradeoff (`lst@i+1` vs. `lst@0..2`).
+Like any other binary operator, `@` overdrives when its rhs is a stream:
+`lst@(0..2)` or `lst@s` (for a stream variable `s`) both vectorize into a
+stream of results — nothing `@`-specific was needed for that either, it's
+the same scalar-overdrive mechanism described under *Scalar overdrive*
+below.
+
+Unlike unary prefix `*`, which is a single `optable.c` line mapping
+straight onto the existing `next()` command with no other change, `@`'s
+write side (`lst@n=val` on a plain list) needed one small, targeted
+addition: `at()` recognizes when it's being fired as an assignment's
+before-part and hands back a `[list, index]` pair instead of a value, so
+the assignment can complete the write through `at()`'s own tested `:set`
+path rather than a second, independent mutation implementation. Reads,
+chaining, attrlist access and writes, and stream overdrive all needed
+nothing beyond that — see `src/comterp_/tests/atop.comt` for the full
+behavior this section describes, exercised end to end.
 
 ### Backquote
 
