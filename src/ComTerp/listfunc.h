@@ -59,16 +59,18 @@ public:
 
 //: list member command for ComTerp; also @ (binary at) operator.
 // val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list or string.
+// An attrlst position read returns a detached, single-entry attrlist
+// (e.g. al@0 on (:x 10 :y 20) is (:y 20)) rather than a live handle into
+// al -- al@n=val therefore can never write through to al (falls through
+// to AssignFunc's generic non-writable-lvalue warning, no special-casing
+// needed).  attrname()/attrval() (dotfunc.c) accept this shape directly.
 class ListAtFunc : public ComFunc {
 public:
     ListAtFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      /* %1$s reused, not a second %s -- see NextFunc::docstring() (strmfunc.h)
-	 for why: helpfunc.c passes exactly one substitution argument. */
-      return "val=%1$s(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list.\n\
-lst@n is binary sugar for %1$s(lst n); lst@n=val writes through to a plain list"; }
+      return "val=%s(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",

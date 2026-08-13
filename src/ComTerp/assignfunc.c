@@ -61,10 +61,12 @@ void AssignFunc::execute() {
         // ListAtFunc checks its own lhs_assign() (symbolfunc.c's
         // GlobalFunc/LocalFunc do the same) to tell "lst@0=val" apart from
         // an ordinary read.  Only matters for the ArrayType (plain list)
-        // case -- an AttributeList read already hands back a live dotted-
-        // pair Attribute* regardless of this flag, and the Attribute-lvalue
-        // branch below already writes through that for free, so al@N=val
-        // needs no special-casing at all.
+        // case -- an AttributeList read always returns a detached, single-
+        // entry copy (never a live handle back into the source list, on
+        // purpose -- see ListAtFunc's own comment, listfunc.c), so
+        // al@N=val can't reach this far as a writable lvalue at all; it
+        // falls through to the WARNING branch below like any other
+        // non-writable assignment target.
         static int global_symid = symbol_add("global");
         static int local_symid = symbol_add("local");
         static int at_symid = symbol_add("at");

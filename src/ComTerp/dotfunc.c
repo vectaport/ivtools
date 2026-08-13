@@ -538,18 +538,41 @@ void DotFunc::execute() {
 
 /*****************************************************************************/
 
+/* attrname()/attrval() accept either shape a single attribute can take on
+   the stack: the internal dotted-pair Attribute* that at()/"." expose (no
+   attribute literal exists in the language itself, so this is how one
+   ever lands on the stack as a value in the first place), or a single-
+   entry AttributeList -- the literal, script-visible stand-in for "one
+   attribute" that elt()/"@" returns for an attrlist position (#318), on
+   the same principle a bare keyword has no literal either and is always
+   carried as part of an attrlist.  nil if neither shape matches, or the
+   AttributeList has other than exactly one entry. */
+static Attribute* dotted_pair_or_singleton_attr(ComValue& val) {
+    if (val.class_symid() == Attribute::class_symid())
+        return (Attribute*)val.obj_val();
+    if (val.is_object(AttributeList::class_symid())) {
+        AttributeList* al = (AttributeList*)val.obj_val();
+        if (al && al->Number()==1) {
+            ALIterator it;
+            al->First(it);
+            return al->GetAttr(it);
+        }
+    }
+    return nil;
+}
+
 DotNameFunc::DotNameFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void DotNameFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
     reset_stack();
-    if (dotted_pair.class_symid() != Attribute::class_symid()) {
-        fprintf(stderr, "attrname: argument is not a dotted pair attribute (line %d)\n", funcstate()->linenum());
+    Attribute* attr = dotted_pair_or_singleton_attr(dotted_pair);
+    if (!attr) {
+        fprintf(stderr, "attrname: argument is not a dotted pair attribute or single-entry attrlist (line %d)\n", funcstate()->linenum());
         push_stack(ComValue::nullval());
         return;
     }
-    Attribute *attr = (Attribute*)dotted_pair.obj_val();
     ComValue retval(attr->SymbolId(), ComValue::StringType);
     push_stack(retval);
 }
@@ -562,11 +585,11 @@ DotValFunc::DotValFunc(ComTerp* comterp) : ComFunc(comterp) {
 void DotValFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
     reset_stack();
-    if (dotted_pair.class_symid() != Attribute::class_symid()) {
-        fprintf(stderr, "attrval: argument is not a dotted pair attribute (line %d)\n", funcstate()->linenum());
+    Attribute* attr = dotted_pair_or_singleton_attr(dotted_pair);
+    if (!attr) {
+        fprintf(stderr, "attrval: argument is not a dotted pair attribute or single-entry attrlist (line %d)\n", funcstate()->linenum());
         push_stack(ComValue::nullval());
         return;
     }
-    Attribute *attr = (Attribute*)dotted_pair.obj_val();
     push_stack(*attr->Value());
 }

@@ -4,15 +4,15 @@
 //
 // funcs: @ (at) at() attrname attrval postfix
 // coverage: read/write on a plain list, read-only positional access on an
-//           attrlist (write-through comes for free via the pre-existing
-//           Attribute-lvalue assign path, not from any new @-specific
-//           code), chaining (the whole reason @ exists instead of reusing
-//           "." -- no float/decimal ambiguity, since '@' is never part of
-//           a number's own syntax), an arbitrary int-valued expression as
-//           the rhs, overdrive by a stream of ints (@ is dispatched like
-//           any other binary operator, so this needed no special casing
-//           either), and where "@" sits in the operator priority table
-//           (77) relative to arithmetic and the numeric stream operators.
+//           attrlist (a detached single-entry attrlist, not a live handle
+//           -- al@n=val can never write through to al), chaining (the
+//           whole reason @ exists instead of reusing "." -- no float/
+//           decimal ambiguity, since '@' is never part of a number's own
+//           syntax), an arbitrary int-valued expression as the rhs,
+//           overdrive by a stream of ints (@ is dispatched like any other
+//           binary operator, so this needed no special casing either),
+//           and where "@" sits in the operator priority table (77)
+//           relative to arithmetic and the numeric stream operators.
 //
 // #318/#319 (closed): this replaces an earlier "." (dot) based indexing
 // design that ran into an inherent float/decimal-literal ambiguity at the
@@ -43,23 +43,26 @@ outer@0=level1
 ok=ok&&(outer@0@1@2==777)
 print("3 outer@0@1@2, 3 deep through two writes (expect 777): %v\n" outer@0@1@2)
 
-// --- test 4: al@N reads the nth attribute as a live dotted pair, exactly
-// what at() already returns for an attrlist -- attrname/attrval work on it
-// unchanged, since @ is at() itself here, not a separate command ---
+// --- test 4: al@N reads the nth attribute as a detached, single-entry
+// attrlist -- e.g. (:y 20) -- not a live handle into al.  attrname()/
+// attrval() (dotfunc.c) accept this shape directly (in addition to the
+// dotted-pair Attribute* "." still produces), using its one entry. ---
 al=(:x 10 :y 20 :z 30)
-ok=ok&&(al@1==20)
+r=al@1
+ok=ok&&(class(r)==`AttributeList)
+ok=ok&&(size(r)==1)
 ok=ok&&(attrname(al@1)==`y)
 ok=ok&&(attrval(al@1)==20)
-print("4 al@1, attrname(al@1), attrval(al@1) (expect 20, y, 20): %v %v %v\n" al@1 attrname(al@1) attrval(al@1))
+print("4 al@1, class/size of al@1, attrname/attrval(al@1) (expect (:y 20), AttributeList, 1, y, 20): %v %v %v %v %v\n" r class(r) size(r) attrname(al@1) attrval(al@1))
 
-// --- test 5: al@N=val writes through too -- not because @ has any
-// attrlist-specific write logic, but because al@N returns the same live
-// Attribute* at(al N) always has, and AssignFunc's pre-existing
-// Attribute-lvalue branch (assignfunc.c) already writes through any live
-// dotted pair, @-derived or not. ---
+// --- test 5: al@N=val can never write through to al -- al@N is always a
+// detached copy, so there's no live handle for AssignFunc to write
+// through in the first place.  Falls to the generic non-writable-lvalue
+// warning, same as any other non-writable assignment target -- no
+// attrlist-specific rejection logic needed. ---
 al@1=999
-ok=ok&&(attrval(al@1)==999)
-print("5 al@1=999; attrval(al@1) (expect 999): %v\n" attrval(al@1))
+ok=ok&&(attrval(al@1)==20)
+print("5 al@1=999 has no effect; attrval(al@1) still 20: %v\n" attrval(al@1))
 
 // --- test 6: the rhs can be any expression that resolves to an int, not
 // just a bare literal ---

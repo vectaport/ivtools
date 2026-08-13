@@ -570,12 +570,27 @@ literal no matter how it chains. `.` keeps its narrower, simpler job
 (attribute/comp access, see *Dot operator* above); `@` owns list/attrlist
 indexing exclusively.
 
-On an attrlist, `al@n` returns the same live dotted-pair `Attribute` that
-`at(al n)` always has — `attrname()`/`attrval()` work on it unchanged —
-and `al@n=val` writes through it, via the same general dotted-pair-lvalue
-mechanism `foo.bar=42` already uses (see *Dot operator* above): no
-`@`-specific write logic exists for attrlists at all, it falls straight
-out of a mechanism `.` already needed.
+On an attrlist, `al@n` returns a **detached, single-entry attrlist** —
+not a live handle into `al`:
+
+```
+al=(:x 10 :y 20 :z 30)
+al@1             // (:y 20) -- a real, independent one-entry attrlist
+attrname(al@1)   // "y"
+attrval(al@1)    // 20
+al@1=99          // no effect -- al@1 has no live connection back to al
+```
+
+`attrname()`/`attrval()` accept this shape directly, using its one entry
+— the same functions also still accept the older dotted-pair `Attribute*`
+shape `.` produces (see *Dot operator* above), so either form works. A
+bare positional read handing back a live handle would make `al@n=val`
+unenforceable as a no-op (`.`'s own dotted-pair *does* write through, via
+`foo.bar=42`'s general lvalue mechanism) — returning a plain, detached
+attrlist sidesteps that automatically: a plain `AttributeList` isn't a
+recognized assignment target at all, so `al@n=val` just falls through to
+the same warning any other non-writable lvalue gets, with no
+attrlist-specific rejection code needed.
 
 `@`'s priority (77) is deliberately *not* tied to `.`'s (130) — see the
 Precedence Table note above for the tradeoff (`lst@i+1` vs. `lst@0..2`).
@@ -586,15 +601,18 @@ the same scalar-overdrive mechanism described under *Scalar overdrive*
 below.
 
 Unlike unary prefix `*`, which is a single `optable.c` line mapping
-straight onto the existing `next()` command with no other change, `@`'s
-write side (`lst@n=val` on a plain list) needed one small, targeted
-addition: `at()` recognizes when it's being fired as an assignment's
-before-part and hands back a `[list, index]` pair instead of a value, so
-the assignment can complete the write through `at()`'s own tested `:set`
-path rather than a second, independent mutation implementation. Reads,
-chaining, attrlist access and writes, and stream overdrive all needed
-nothing beyond that — see `src/comterp_/tests/atop.comt` for the full
-behavior this section describes, exercised end to end.
+straight onto the existing `next()` command with no other change, `@`
+needed two small, targeted additions to `at()` itself: on the write side
+(`lst@n=val` on a plain list), `at()` recognizes when it's being fired as
+an assignment's before-part and hands back a `[list, index]` pair instead
+of a value, so the assignment can complete the write through `at()`'s own
+tested `:set` path rather than a second, independent mutation
+implementation; on the read side for an attrlist, `at()`'s existing
+per-position loop builds a detached one-entry attrlist to return instead
+of the old live `Attribute*` (its `:set`/`:ins` mutation logic underneath
+is unchanged). Chaining and stream overdrive needed nothing beyond
+that — see `src/comterp_/tests/atop.comt` for the full behavior this
+section describes, exercised end to end.
 
 ### Backquote
 

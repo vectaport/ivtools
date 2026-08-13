@@ -87,8 +87,8 @@ public:
     DotNameFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "%s(attribute) returns name field of a dotted pair"; }
+    virtual const char* docstring() {
+      return "%s(attribute) returns name field of a dotted pair (also accepts a single-entry attrlist, e.g. al@n)"; }
 };
 
 //: value returns value field of a dotted pair
@@ -98,8 +98,8 @@ public:
     DotValFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "%s(attribute) returns value field of a dotted pair"; }
+    virtual const char* docstring() {
+      return "%s(attribute) returns value field of a dotted pair (also accepts a single-entry attrlist, e.g. al@n)"; }
 };
 #endif /* !defined(_dotfunc_h) */
 

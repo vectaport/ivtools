@@ -319,9 +319,9 @@ Print a usage summary of all the invocation modes above and exit.
 
  alst=attrlist([:<name> [val]] ...) -- create attribute list from keyword/value pairs; keyword-only sets attribute to true, missing attribute returns nil
 
- sym=attrname(attribute) -- return name field of dotted pair
+ sym=attrname(attribute) -- return name field of dotted pair (also accepts a single-entry attrlist, e.g. al@n)
 
- val=attrval(attribute) -- return value field of dotted pair
+ val=attrval(attribute) -- return value field of dotted pair (also accepts a single-entry attrlist, e.g. al@n)
 
  dotlst=dot(name) -- construct empty dotted pair list
 

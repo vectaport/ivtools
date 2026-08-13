@@ -128,28 +128,24 @@ void ListAtFunc::execute() {
 
   /* #318 (@ operator): lst@N=val.  AssignFunc (assignfunc.c) flags this
      call's own token with lhs_assign() when it's the before-part of an
-     assignment, before this execute() runs.  A plain list has no live
-     per-element handle the way an attrlist position does (an ArrayType
-     element is just a bare value, not an Attribute*) -- an ordinary read
-     here would hand AssignFunc a value with no way back to 'lst'/N, so
-     hand back a tiny [list, idx] pair instead (lhs_assign() still set, so
-     AssignFunc can tell it apart from an ordinary array-valued read
-     reaching here some other way).  AssignFunc completes the write by
-     re-driving this same command with a real :set keyword once it knows
-     the rhs value, reusing the tested :set logic below instead of
-     duplicating it.  AttributeList needs none of this: its read below
-     already hands back a live dotted-pair Attribute*, and AssignFunc's
-     pre-existing Attribute-lvalue branch already writes through that for
-     free, so al@N=val "just works" with no extra code here.
-     Guarded on a valid (non-negative) index, same as the plain-read
-     ArrayType branch below -- a negative index here is only ever the
-     unary-minus sub-expression "-N", not a literal, and that combination
-     (a compound rhs sub-expression + this lhs_assign peek/hand-back
-     machinery) has a real, reproducible stack-corruption bug (seen as a
-     nondeterministic crash) somewhere in the general dispatch/peek path,
-     not in this command -- falling through to the ordinary read below
-     for that case avoids it entirely (matches at()'s own existing
-     behavior for a negative read: nil, no mutation, no crash). */
+     assignment, before this execute() runs.  A plain list element is a
+     bare value, not a live handle the way an attrlist position's
+     Attribute* is -- an ordinary read here would hand AssignFunc a value
+     with no way back to 'lst'/N, so hand back a tiny [list, idx] pair
+     instead (lhs_assign() still set, so AssignFunc can tell it apart
+     from an ordinary array-valued read reaching here some other way).
+     AssignFunc completes the write by re-driving this same command with
+     a real :set keyword once it knows the rhs value, reusing the tested
+     :set logic below instead of duplicating it.  Guarded on a valid
+     (non-negative) index, same as the plain-read branch below -- a
+     negative index here is only ever the unary-minus sub-expression
+     "-N", not a literal, and that combination (a compound rhs sub-
+     expression + this lhs_assign peek/hand-back machinery) has a real,
+     reproducible stack-corruption bug somewhere in the general dispatch/
+     peek path, not in this command -- falling through to the ordinary
+     read below for that case avoids it entirely (matches this command's
+     own existing behavior for a negative read: nil, no mutation, no
+     crash). */
   if (listv.is_type(ComValue::ArrayType) &&
       (nv.is_nil() || nv.int_val()>=0) &&
       comterp()->stack_top(nkeys()+1).lhs_assign()) {
@@ -219,16 +215,31 @@ void ListAtFunc::execute() {
   } else if (listv.is_object(AttributeList::class_symid())) {
     AttributeList* al = (AttributeList*)listv.obj_val();
     int nvv = nv.is_nil() ? al->Number()-1 : nv.int_val();
-    if (al && nvv<al->Number()) {
+    if (al && nvv>=0 && nvv<al->Number()) {
       int count = 0;
       Iterator it;
       for (al->First(it); !al->Done(it); al->Next(it)) {
 	if (count==nvv) {
-	  ComValue retval(Attribute::class_symid(), (void*) al->GetAttr(it));
+	  Attribute* attr = al->GetAttr(it);
 	  if (insflag) {
 	    fprintf(stderr, "Insert not yet supported for AttributeList\n");
 	  } else if (setflag)
-	    *al->GetAttr(it)->Value() = setv;
+	    *attr->Value() = setv;
+	  /* Return a detached, single-entry attrlist -- e.g. (:y 20) --
+	     not a live handle into al: al@n=val (#318's @ operator, pure
+	     sugar for this command) must never write through to al, and
+	     a bare positional read handing back a live Attribute* would
+	     make that unenforceable (AssignFunc's Attribute-lvalue branch
+	     writes through any live dotted pair on sight).  A plain
+	     AttributeList carries none of that write-through machinery,
+	     so al@n=val falls straight through to AssignFunc's generic
+	     non-writable-lvalue warning with no special-casing needed.
+	     attrname()/attrval() (dotfunc.c) accept this shape directly,
+	     using its one entry -- same as they've always accepted the
+	     dotted-pair Attribute* shape "." still produces. */
+	  AttributeList* singleton = new AttributeList();
+	  singleton->add_attribute(new Attribute(attr->SymbolId(), new AttributeValue(*attr->Value())));
+	  ComValue retval(AttributeList::class_symid(), (void*)singleton);
 	  push_stack(retval);
 	  return;
 	}
