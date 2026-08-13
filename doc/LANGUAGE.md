@@ -409,6 +409,8 @@ associativity. Run `optable()` inside comterp to see the live table.
 | 100      | `$$`     | stream        | RtoL  | UNARY PREFIX    |
 | 90       | `..`     | iterate       | LtoR  | BINARY          |
 | 80       | `**`     | repeat        | LtoR  | BINARY          |
+| 79       | `%%`     | replay        | LtoR  | BINARY          |
+| 77       | `@`      | at            | LtoR  | BINARY          |
 | 75       | `,,`     | concat        | LtoR  | BINARY          |
 | 71       | `*`      | next          | RtoL  | UNARY PREFIX    |
 | 70       | `/`      | div           | LtoR  | BINARY          |
@@ -443,6 +445,11 @@ associativity. Run `optable()` inside comterp to see the live table.
 A few things worth noting:
 
 - `.` binds tightest — `f(:x 5).x` works without parens
+- `@` sits well below `.`, not tied to it — `lst@i+1` reads as `(lst@i)+1`
+  (arithmetic still binds looser than `@`), but `lst@0..2` and `lst@0**3`
+  read as `lst@(0..2)`/`lst@(0**3)` (the numeric stream operators `..`/`**`/
+  `%%` all bind looser than `@`, so a range/repeat/replay expression
+  indexes directly, no parens needed) — see *At operator* below
 - `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
 - `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
@@ -531,6 +538,81 @@ func even though the symbol binding is frame-local (see *Scoping rules*).
 
 The dot namespace rooted at a symbol is scoped with that symbol — see
 **Attribute Lists** below.
+
+### At operator
+
+`@` is binary sugar for `at()`: `lst@n` reads the nth item of a list, and
+`lst@n=val` writes it in place:
+
+```
+lst=10,20,30,40,50
+lst@0            // 10
+lst@2=999
+lst               // {10,20,999,40,50}
+```
+
+It chains left-to-right, the same as `.`:
+
+```
+outer=999,20,30
+outer@0=999,999,777
+outer@0@1@2      // 777
+```
+
+**Why a separate operator from `.`, not `lst.0`:** an earlier design tried
+exactly that — numeric indices after `.` — and ran into a lexer-level wall:
+once `0.1.2` is scanned, whether it started life as `0`, `.`, `1`, `.`, `2`
+(three chained indices) or `0.1`, `.`, `2` (a float followed by one index)
+is genuinely indistinguishable after the fact, since both parse to the
+identical token stream a decimal literal already produces. `@` is never
+part of any number's own syntax, so `lst@0@1@2` can't collide with a float
+literal no matter how it chains. `.` keeps its narrower, simpler job
+(attribute/comp access, see *Dot operator* above); `@` owns list/attrlist
+indexing exclusively.
+
+On an attrlist, `al@n` returns a **detached, single-entry attrlist** —
+not a live handle into `al`:
+
+```
+al=(:x 10 :y 20 :z 30)
+al@1             // (:y 20) -- a real, independent one-entry attrlist
+attrname(al@1)   // "y"
+attrval(al@1)    // 20
+al@1=99          // no effect -- al@1 has no live connection back to al
+```
+
+`attrname()`/`attrval()` accept this shape directly, using its one entry
+— the same functions also still accept the older dotted-pair `Attribute*`
+shape `.` produces (see *Dot operator* above), so either form works. A
+bare positional read handing back a live handle would make `al@n=val`
+unenforceable as a no-op (`.`'s own dotted-pair *does* write through, via
+`foo.bar=42`'s general lvalue mechanism) — returning a plain, detached
+attrlist sidesteps that automatically: a plain `AttributeList` isn't a
+recognized assignment target at all, so `al@n=val` just falls through to
+the same warning any other non-writable lvalue gets, with no
+attrlist-specific rejection code needed.
+
+`@`'s priority (77) is deliberately *not* tied to `.`'s (130) — see the
+Precedence Table note above for the tradeoff (`lst@i+1` vs. `lst@0..2`).
+Like any other binary operator, `@` overdrives when its rhs is a stream:
+`lst@(0..2)` or `lst@s` (for a stream variable `s`) both vectorize into a
+stream of results — nothing `@`-specific was needed for that either, it's
+the same scalar-overdrive mechanism described under *Scalar overdrive*
+below.
+
+Unlike unary prefix `*`, which is a single `optable.c` line mapping
+straight onto the existing `next()` command with no other change, `@`
+needed two small, targeted additions to `at()` itself: on the write side
+(`lst@n=val` on a plain list), `at()` recognizes when it's being fired as
+an assignment's before-part and hands back a `[list, index]` pair instead
+of a value, so the assignment can complete the write through `at()`'s own
+tested `:set` path rather than a second, independent mutation
+implementation; on the read side for an attrlist, `at()`'s existing
+per-position loop builds a detached one-entry attrlist to return instead
+of the old live `Attribute*` (its `:set`/`:ins` mutation logic underneath
+is unchanged). Chaining and stream overdrive needed nothing beyond
+that — see `src/comterp_/tests/atop.comt` for the full behavior this
+section describes, exercised end to end.
 
 ### Backquote
 
@@ -2292,37 +2374,65 @@ for(i=0 i<size(al) i++
 " attrname(at(al i)) attrval(at(al i))))
 ```
 
-`at(attrlist n)` is the escape mechanism into the raw `Attribute` layer.
-`attrname()` and `attrval()` are the only commands that receive it before
-auto-dereference — any other command gets the dereferenced value instead.
-Note that `type(at(al n))` returns the value's type, not an attribute type,
-and enumeration order may not match insertion order.
+`at(attrlist n)` (a bare read, no `:set`) returns the nth attribute as a
+**detached, single-entry attrlist** — e.g. `(:y 2)` for `at(al 1)` above
+— not a live handle into `al`. `attrname()` and `attrval()` accept this
+shape directly, reading its one entry (they also still accept the older
+"dotted pair" `Attribute` shape `.` produces for named lookup — see
+below — either works as their argument). `at(al n :set val)` still
+writes through unrestricted, exactly as before — only assigning directly
+to a bare read's result is blocked: `al@n=val` (the `@` operator is pure
+sugar for a bare `at()` call) can never write through to `al`, since
+there's no live handle in a detached copy to write through in the first
+place.
 
-`Attribute` objects can live on the stack and be passed to any command.
-Whether the key is preserved depends on whether the receiving command
-explicitly checks for `AttributeType` before dereferencing — `attrname()`
-and `attrval()` do this; all other current built-in commands dereference
-immediately via `stack_arg()`, losing the key. A custom `ComFunc` could
-preserve the key by inspecting the `ComValue` type before calling
-`stack_arg()`. In practice, for the built-in scripting layer, `attrname()`
-and `attrval()` are the only commands that see the key.
+`type(at(al n))` is `ObjectType` and `class(at(al n))` is `AttributeList`
+— not the enclosed value's own type/class, since what's returned is a
+whole (if tiny) attrlist, not the value itself. Enumeration order matches
+insertion order — the order keys were first written (in a literal) or
+first added (via `al.key=val`) — for both construction paths.
+
+A named lookup via `.` (`al.foo`) instead hands back the older "dotted
+pair" `Attribute` object — a lower-level, internal representation with no
+literal syntax of its own in the language (the same way a bare keyword
+has none; both only ever exist as part of an attrlist). `Attribute`
+objects can live on the stack and be passed to any command, but whether
+the key survives depends on whether the receiving command explicitly
+checks for it before dereferencing — `attrname()`/`attrval()` do; every
+other built-in command dereferences immediately via `stack_arg()`, losing
+the key. A custom `ComFunc` could preserve it by inspecting the `ComValue`
+type before calling `stack_arg()`.
+
+Assigning a dotted pair to a variable doesn't preserve its shape either —
+`x=a.foo` stores the bare, already-dereferenced value in `x` (`AssignFunc`
+unwraps any `Attribute`-shaped rhs at assignment time), so `attrname(x)`
+afterward fails; call it inline instead (`attrname(a.foo)`). The
+single-entry-attrlist shape `at()`/`@` return doesn't have this problem —
+assignment doesn't touch it, `attrname()`/`attrval()` resolve a bound
+variable before checking its shape, and it works either way:
+
+```
+x=al.foo        // x is 42 (bare value) -- attrname(x) fails
+z=al@0          // z is (:foo 42) (still a real attrlist) -- attrname(z) works
+```
 
 ### Stream enumeration of an attrlist
 
 `attrname()` and `attrval()` also accept a stream of attributes
 directly, returning a stream of keys or values respectively. An attrlist
-literal used as a stream source yields its entries as `Attribute` objects:
+used as a stream source yields its entries as `Attribute` objects — the
+older dotted-pair shape (see above), not the single-entry-attrlist shape
+`at()`/`@` return:
 
 ```
-$list(attrname($$(:a 4 :b 7)))   // {"b","a"}
-$list(attrval($$(:a 4 :b 7)))    // {7,4}
+$list(attrname($$(:a 4 :b 7)))   // {"a","b"}
+$list(attrval($$(:a 4 :b 7)))    // {4,7}
 ```
 
 The two streams are consistent with each other — the nth name corresponds
-to the nth value — so they can be zipped or processed in parallel.
-Note that the order is reverse insertion order (last key first), which
-reflects the underlying attrlist storage. If you need both key and value
-together, use the `for`/`at()`/`size()` loop form above instead.
+to the nth value — so they can be zipped or processed in parallel. Order
+matches insertion order, same as the `for`/`at()`/`size()` loop above. If
+you need both key and value together, use that loop form instead.
 
 ### Merging and subtracting attrlists
 
@@ -2340,7 +2450,10 @@ diff=al1-al2         // :a 1              (:b removed)
 ### Portable key/value pairs
 
 A single-element attrlist is the idiomatic portable key/value pair —
-it passes anywhere as a first-class value:
+it passes anywhere as a first-class value. It's also exactly what
+`at(al n)`/`al@n` hand back for a multi-key attrlist (above), so the two
+ideas are really the same shape at different scales: one built explicitly,
+one produced automatically by positional access.
 
 ```
 pair=attrlist(:foo 42)

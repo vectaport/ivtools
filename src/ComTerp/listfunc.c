@@ -125,6 +125,43 @@ ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1, false, ComValue::zeroval()));
+
+  /* #318 (@ operator): lst@N=val.  AssignFunc (assignfunc.c) flags this
+     call's own token with lhs_assign() when it's the before-part of an
+     assignment, before this execute() runs.  A plain list element is a
+     bare value, not a live handle the way an attrlist position's
+     Attribute* is -- an ordinary read here would hand AssignFunc a value
+     with no way back to 'lst'/N, so hand back a tiny [list, idx] pair
+     instead (lhs_assign() still set, so AssignFunc can tell it apart
+     from an ordinary array-valued read reaching here some other way).
+     AssignFunc completes the write by re-driving this same command with
+     a real :set keyword once it knows the rhs value, reusing the tested
+     :set logic below instead of duplicating it.  Guarded on a valid
+     (non-negative) index, same as the plain-read branch below -- a
+     negative index here is only ever the unary-minus sub-expression
+     "-N", not a literal, and that combination (a compound rhs sub-
+     expression + this lhs_assign peek/hand-back machinery) has a real,
+     reproducible stack-corruption bug somewhere in the general dispatch/
+     peek path, not in this command -- falling through to the ordinary
+     read below for that case avoids it entirely (matches this command's
+     own existing behavior for a negative read: nil, no mutation, no
+     crash). */
+  if (listv.is_type(ComValue::ArrayType) &&
+      (nv.is_nil() || nv.int_val()>=0) &&
+      comterp()->stack_top(nkeys()+1).lhs_assign()) {
+    AttributeValueList* avl = listv.array_val();
+    int nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
+    reset_stack();
+    AttributeValueList* pair = new AttributeValueList();
+    pair->Append(new AttributeValue(listv));
+    ComValue nvvval(nvv);
+    pair->Append(new AttributeValue(nvvval));
+    ComValue retval(pair);
+    retval.lhs_assign(1);
+    push_stack(retval);
+    return;
+  }
+
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
   if (setv.is_unknown()) setv = ComValue::blankval();                 // absent :set -> also blank
@@ -178,16 +215,31 @@ void ListAtFunc::execute() {
   } else if (listv.is_object(AttributeList::class_symid())) {
     AttributeList* al = (AttributeList*)listv.obj_val();
     int nvv = nv.is_nil() ? al->Number()-1 : nv.int_val();
-    if (al && nvv<al->Number()) {
+    if (al && nvv>=0 && nvv<al->Number()) {
       int count = 0;
       Iterator it;
       for (al->First(it); !al->Done(it); al->Next(it)) {
 	if (count==nvv) {
-	  ComValue retval(Attribute::class_symid(), (void*) al->GetAttr(it));
+	  Attribute* attr = al->GetAttr(it);
 	  if (insflag) {
 	    fprintf(stderr, "Insert not yet supported for AttributeList\n");
 	  } else if (setflag)
-	    *al->GetAttr(it)->Value() = setv;
+	    *attr->Value() = setv;
+	  /* Return a detached, single-entry attrlist -- e.g. (:y 20) --
+	     not a live handle into al: al@n=val (#318's @ operator, pure
+	     sugar for this command) must never write through to al, and
+	     a bare positional read handing back a live Attribute* would
+	     make that unenforceable (AssignFunc's Attribute-lvalue branch
+	     writes through any live dotted pair on sight).  A plain
+	     AttributeList carries none of that write-through machinery,
+	     so al@n=val falls straight through to AssignFunc's generic
+	     non-writable-lvalue warning with no special-casing needed.
+	     attrname()/attrval() (dotfunc.c) accept this shape directly,
+	     using its one entry -- same as they've always accepted the
+	     dotted-pair Attribute* shape "." still produces. */
+	  AttributeList* singleton = new AttributeList();
+	  singleton->add_attribute(new Attribute(attr->SymbolId(), new AttributeValue(*attr->Value())));
+	  ComValue retval(AttributeList::class_symid(), (void*)singleton);
 	  push_stack(retval);
 	  return;
 	}

@@ -112,6 +112,22 @@ struct _opr_tbl_default_entry {
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
   {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
+  // "@" as sugar for at(): lst@0 == at(lst 0), lst@0@1@2 chains (LtoR).
+  // Deliberately its own operator, not folded into ".": a numeric rhs on
+  // "." would need the same digit-continuation special-casing "." picked
+  // up trying this once already (see #318/#319, closed) -- "@" carries
+  // none of that baggage, since '@' is never part of any number's own
+  // syntax, so lst@0@1@2 can never collide with float literals the way
+  // lst.0.1.2 did.  Priority 77, NOT tied to "."(130): placed just below
+  // the numeric stream-producing operators (..=90, **=80, %%=79) so a
+  // range/repeat/replay expression indexes directly without parens --
+  // lst@0..10, lst@0**3, lst@s%%2 -- while staying above plain arithmetic
+  // (60-70) so lst@i+1 and lst@i*2 still read as (lst@i)+1/(lst@i)*2, the
+  // far more common case.  ","," (concat, 75) is stream-structural, not
+  // numeric, so it isn't part of this band either way; "@" ended up on the
+  // tight side of it (77 > 75) as a side effect of sitting under %%, not
+  // by any requirement of its own.
+  {"@",          "at",                 77,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
   // "next" sits one above "mpy" (71 vs 70), not level with it: when the
   // parser resolves "2 * *s" (no parens) it must settle each * token's role

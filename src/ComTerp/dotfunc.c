@@ -538,18 +538,56 @@ void DotFunc::execute() {
 
 /*****************************************************************************/
 
+/* attrname()/attrval() accept either shape a single attribute can take on
+   the stack: the internal dotted-pair Attribute* that "." exposes for a
+   named lookup (no attribute literal exists in the language itself, so
+   this is how one ever lands on the stack as a value in the first
+   place), or a single-entry AttributeList -- the literal, script-visible
+   stand-in for "one attribute" that at()/"@" return for an attrlist
+   position (a bare read, not :set), on the same principle a bare keyword
+   has no literal either and is always carried as part of an attrlist.
+   nil if neither shape matches, or the AttributeList has other than
+   exactly one entry. */
+static Attribute* dotted_pair_or_singleton_attr(ComValue& val) {
+    if (val.class_symid() == Attribute::class_symid())
+        return (Attribute*)val.obj_val();
+    if (val.is_object(AttributeList::class_symid())) {
+        AttributeList* al = (AttributeList*)val.obj_val();
+        if (al && al->Number()==1) {
+            ALIterator it;
+            al->First(it);
+            return al->GetAttr(it);
+        }
+    }
+    return nil;
+}
+
 DotNameFunc::DotNameFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void DotNameFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
+    /* stack_arg's symbol=true skips ordinary symbol resolution -- needed
+       so an inline at()/"." result isn't run back through
+       lookup_symval()'s own dotted-pair-unwrapping special case (below
+       this function). But that means a *bound variable* argument
+       (attrname(x), not attrname(at(al 0))) arrives as a raw, unresolved
+       SymbolType token instead of the value x is bound to, and fails the
+       shape check below unconditionally. Resolve it here instead, but
+       only when it's actually still a symbol -- lookup_symval() on a
+       SymbolType always returns the bound value as-is (its own
+       unwrapping branch is an "else if", only reached for a non-symbol
+       argument), so this can't reintroduce the very case symbol=true was
+       chosen to avoid. */
+    if (dotted_pair.type() == ComValue::SymbolType)
+        lookup_symval(dotted_pair);
     reset_stack();
-    if (dotted_pair.class_symid() != Attribute::class_symid()) {
-        fprintf(stderr, "attrname: argument is not a dotted pair attribute (line %d)\n", funcstate()->linenum());
+    Attribute* attr = dotted_pair_or_singleton_attr(dotted_pair);
+    if (!attr) {
+        fprintf(stderr, "attrname: argument is not a dotted pair attribute or single-entry attrlist (line %d)\n", funcstate()->linenum());
         push_stack(ComValue::nullval());
         return;
     }
-    Attribute *attr = (Attribute*)dotted_pair.obj_val();
     ComValue retval(attr->SymbolId(), ComValue::StringType);
     push_stack(retval);
 }
@@ -561,12 +599,16 @@ DotValFunc::DotValFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void DotValFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
+    /* see DotNameFunc::execute()'s identical resolve-if-still-a-symbol
+       comment above -- same fix, same reasoning. */
+    if (dotted_pair.type() == ComValue::SymbolType)
+        lookup_symval(dotted_pair);
     reset_stack();
-    if (dotted_pair.class_symid() != Attribute::class_symid()) {
-        fprintf(stderr, "attrval: argument is not a dotted pair attribute (line %d)\n", funcstate()->linenum());
+    Attribute* attr = dotted_pair_or_singleton_attr(dotted_pair);
+    if (!attr) {
+        fprintf(stderr, "attrval: argument is not a dotted pair attribute or single-entry attrlist (line %d)\n", funcstate()->linenum());
         push_stack(ComValue::nullval());
         return;
     }
-    Attribute *attr = (Attribute*)dotted_pair.obj_val();
     push_stack(*attr->Value());
 }

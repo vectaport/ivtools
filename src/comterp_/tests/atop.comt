@@ -1,0 +1,151 @@
+// src/comterp_/tests/atop.comt -- the "@" operator, binary sugar for at():
+// lst@N == at(lst N), lst@N=val writes through, and the pieces that fell
+// out for free from reusing at() rather than inventing a new command.
+//
+// funcs: @ (at) at() attrname attrval postfix
+// coverage: read/write on a plain list, read-only positional access on an
+//           attrlist (a detached single-entry attrlist, not a live handle
+//           -- al@n=val can never write through to al), chaining (the
+//           whole reason @ exists instead of reusing "." -- no float/
+//           decimal ambiguity, since '@' is never part of a number's own
+//           syntax), an arbitrary int-valued expression as the rhs,
+//           overdrive by a stream of ints (@ is dispatched like any other
+//           binary operator, so this needed no special casing either),
+//           and where "@" sits in the operator priority table (77)
+//           relative to arithmetic and the numeric stream operators.
+//
+// #318/#319 (closed): this replaces an earlier "." (dot) based indexing
+// design that ran into an inherent float/decimal-literal ambiguity at the
+// lexer level (lst.0.1.2 vs lst.0 followed by a 0.1.2 float chain -- see
+// the closed PR's history). "@" sidesteps that entirely.
+
+ok=true
+
+// --- test 1: lst@N reads, same as at(lst N) ---
+lst=10,20,30,40,50
+ok=ok&&(lst@0==10)
+ok=ok&&(lst@3==40)
+print("1 lst@0, lst@3 (expect 10, 40): %v %v\n" lst@0 lst@3)
+// proto assert() shape (#322, not yet functional -- for scale, this is
+// what the two ok=ok&&(...) lines above plus the (expect 10, 40) in the
+// print() call might collapse into, once assert() exists):
+// (:assert lst@0==10 :msg "lst@0 should be 10, got %v")
+// (:assert lst@3==40 :msg "lst@3 should be 40, got %v")
+
+// --- test 2: lst@N=val writes through a plain list in place ---
+lst@2=999
+ok=ok&&(lst==(10,20,999,40,50))
+print("2 lst@2=999; lst (expect {10,20,999,40,50}): %v\n" lst)
+
+// --- test 3: chaining -- the case that broke "." (an intermediate whole-
+// number index reads as a decimal continuation under "."; "@" has no such
+// collision since '@' never appears inside a number literal) ---
+level2=999,999,777
+level1=999,999,999
+level1@1=level2
+outer=999,20,30
+outer@0=level1
+ok=ok&&(outer@0@1@2==777)
+print("3 outer@0@1@2, 3 deep through two writes (expect 777): %v\n" outer@0@1@2)
+
+// --- test 4: al@N reads the nth attribute as a detached, single-entry
+// attrlist -- e.g. (:y 20) -- not a live handle into al.  attrname()/
+// attrval() (dotfunc.c) accept this shape directly (in addition to the
+// dotted-pair Attribute* "." still produces), using its one entry. ---
+al=(:x 10 :y 20 :z 30)
+r=al@1
+ok=ok&&(class(r)==`AttributeList)
+ok=ok&&(size(r)==1)
+ok=ok&&(attrname(al@1)==`y)
+ok=ok&&(attrval(al@1)==20)
+print("4 al@1, class/size of al@1, attrname/attrval(al@1) (expect (:y 20), AttributeList, 1, y, 20): %v %v %v %v %v\n" r class(r) size(r) attrname(al@1) attrval(al@1))
+
+// --- test 5: al@N=val can never write through to al -- al@N is always a
+// detached copy, so there's no live handle for AssignFunc to write
+// through in the first place.  Falls to the generic non-writable-lvalue
+// warning, same as any other non-writable assignment target -- no
+// attrlist-specific rejection logic needed. ---
+al@1=999
+ok=ok&&(attrval(al@1)==20)
+print("5 al@1=999 has no effect; attrval(al@1) still 20: %v\n" attrval(al@1))
+
+// --- test 6: the rhs can be any expression that resolves to an int, not
+// just a bare literal ---
+lst2=100,200,300,400
+i=2
+ok=ok&&(lst2@i==300)
+ok=ok&&(lst2@(i+1)==400)
+print("6 lst2@i, lst2@(i+1) (expect 300, 400): %v %v\n" lst2@i lst2@(i+1))
+
+// --- test 7: overdrive -- a stream-valued rhs vectorizes @ like any other
+// binary operator (no @-specific code needed: this is the same general
+// scalar-overdrive mechanism list((2..4)*5) uses in stream.comt).  ".."
+// binds looser than "@" (90 vs 77 -- see test 9+ below), so lst3@0..2
+// already parses as lst3@(0..2) with no parens needed. ---
+lst3=10,20,30,40,50
+result=list(lst3@0..2)
+ok=ok&&(result==(10,20,30))
+print("7a list(lst3@0..2) -- no parens needed (expect {10,20,30}): %v\n" result)
+
+s=$$(1,3,4)
+result2=list(lst3@s)
+ok=ok&&(result2==(20,40,50))
+print("7b list(lst3@s) via a stream variable (expect {20,40,50}): %v\n" result2)
+
+// --- test 8: out-of-range write pads with nil, same documented behavior
+// as at(lst n :set val) already has (AttributeValueList::Set()) -- @ is
+// not a second, independently-behaving implementation ---
+lst4=1,2,3
+lst4@5=42
+ok=ok&&(size(lst4)==6)
+ok=ok&&(lst4@5==42)
+print("8 lst4@5=42 out-of-range pads with nil (expect size 6, [5]=42): %v %v\n" size(lst4) lst4@5)
+
+// --- priority: "@" sits at 77 in the operator table -- above plain
+// arithmetic (%/*// at 70, +/- at 60) so an index expression doesn't need
+// defensive parens, but below the numeric stream-producing operators
+// (..=90, **=80, %%=79) so a range/repeat/replay expression on the rhs
+// indexes directly instead of binding to a single element first. ---
+
+// --- test 9: arithmetic still binds looser than "@" -- lst@i+1 reads as
+// (lst@i)+1, not lst@(i+1), the common "index, then compute" case ---
+lst5=10,20,30,40,50
+i=1
+ok=ok&&(lst5@i+1==21)
+ok=ok&&(lst5@i*2==40)
+print("9 lst5@i+1, lst5@i*2 (expect (lst5@i)+1=21, (lst5@i)*2=40): %v %v\n" lst5@i+1 lst5@i*2)
+
+// --- test 10: ".." binds looser than "@" -- lst@0..2 indexes by the
+// range directly (already exercised as the main case in test 7a; this
+// pins the actual compiled postfix order down as a structural check, the
+// same way starnext.comt test 5 locks down a priority-sensitive parse).
+// Postfix order is evaluation order: iterate() builds the range first,
+// then at() consumes it as its rhs -- so "iterate" comes first in the
+// postfix string, "at" (the outermost, last-applied op) comes after. ---
+p10=postfix(lst5@0..2)
+check10=(index(p10 "iterate")<index(p10 "at"))
+ok=ok&&check10
+print("10 postfix(lst5@0..2) compiles iterate() before at() (expect true): %v -- %v\n" check10 p10)
+
+// --- test 11: "**" and "%%" bind looser than "@" too -- 0**3 (repeat the
+// literal 0 three times) and s%%2 (cycle stream s twice) both become the
+// rhs of a single @, not the other way around ---
+result11a=list(lst5@0**3)
+ok=ok&&(result11a==(10,10,10))
+print("11a list(lst5@0**3) -- 3 reads of lst5@0 (expect {10,10,10}): %v\n" result11a)
+
+s=$$(0,0)
+result11b=list(lst5@s%%2)
+ok=ok&&(result11b==(10,10,10,10))
+print("11b list(lst5@s%%2) -- s cycled twice, 4 reads of lst5@0 (expect {10,10,10,10}): %v\n" result11b)
+
+// --- test 12: ",," (concat, 75) is stream-structural, not numeric, and
+// "@" ended up tighter than it (77 > 75) as a side effect of sitting
+// just under "%%" -- lst@0,,lst@1 reads as (lst@0),,(lst@1), which is the
+// only sensible reading since ",," doesn't take numeric operands ---
+result12=list(lst5@0,,lst5@1)
+ok=ok&&(result12==(10,20))
+print("12 list(lst5@0,,lst5@1) (expect {10,20}): %v\n" result12)
+
+print("atop: %v\n" ok)
+ok
