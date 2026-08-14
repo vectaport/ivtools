@@ -237,7 +237,7 @@ public:
     NextFunc(ComTerp*);
 
     virtual void execute();
-    static  void execute_impl(ComTerp*, ComValue& strmv, boolean skim);
+    static  void execute_impl(ComTerp*, ComValue& strmv);
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
       /* %1$s (not plain %s) reused twice: the caller (helpfunc.c) passes
@@ -245,15 +245,8 @@ public:
 	 second bare %s here would read past it -- an uninitialized-argument
 	 format-string bug.  POSIX/BSD printf's positional specifier lets
 	 one supplied argument fill both slots safely. */
-      return "val=%1$s(stream :skim) -- return next value from stream, don't recurse if :skim.\n\
+      return "val=%1$s(stream) -- return next value from stream\n\
 *s is unary-prefix sugar for %1$s(s)"; }
-    virtual const char** dockeys() {
-      static const char* keys[] = {
-	":skim      do not recurse into nested streams",
-	nil
-      };
-      return keys;
-    }
 
     static int next_depth() { return _next_depth; }
 protected:

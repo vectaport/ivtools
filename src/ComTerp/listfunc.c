@@ -73,7 +73,7 @@ void ListFunc::execute() {
 	/* stream to list conversion */
 	boolean done = false;
 	while (!done) {
-	  NextFunc::execute_impl(comterp(), listv, false);
+	  NextFunc::execute_impl(comterp(), listv);
 	  ComValue topval(comterp()->pop_stack());
 	  if (topval.is_unknown() || StrmFunc::is_delimiter(topval)) {
 	    done = true;
