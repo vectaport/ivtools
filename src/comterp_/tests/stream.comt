@@ -333,6 +333,35 @@ ok=ok&&(r2==(4,10,18))
 print("39 var*var and var*lit overdrive (expect {4,10,18} both): %v %v\n" r1 r2)
 prev_ok=check_fail(:ok ok)
 
+// --- test 40: a freestanding (orphaned) stream statement -- never
+// assigned, never streamed further -- gets auto-drained rather than
+// silently discarded unevaluated (ComTerpServ::runfile()/ComTerp::run(),
+// comterp.c/comterpserv.c; SeqFunc, postfunc.c, for an explicit ";"
+// sequence).  Not directly observable in-script (the drain doesn't print
+// or bind anything -- that's the point, an orphaned value has nowhere to
+// go); this just confirms it doesn't crash or hang the script around it,
+// and a following statement still runs normally. ---
+$$(1,2,3)
+ok=ok&&true
+print("40 freestanding $$(1,2,3) mid-script doesn't disrupt what follows: %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 41: the safety property that matters most -- a stream that IS
+// bound to a variable must stay fully intact even though a LATER
+// statement's own (unrelated) result gets discarded right after it, the
+// same discard point an orphaned stream would be drained at.  Only an
+// orphaned stream (nothing else referencing it) gets drained; a live
+// variable binding keeps the underlying stream's reference count above
+// the orphaned threshold, so it's left alone. ---
+s41=$$(1,2,3)
+unrelated41=42
+v41a=next(s41)
+v41b=next(s41)
+v41c=next(s41)
+ok=ok&&(v41a==1 && v41b==2 && v41c==3)
+print("41 s41=$$(1,2,3); unrelated41=42 (discards unrelated41's result at the same point); s41 still fully intact (expect 1,2,3): %v %v %v\n" v41a v41b v41c)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 

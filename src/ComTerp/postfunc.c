@@ -252,12 +252,31 @@ void SeqFunc::execute() {
     ComValue arg1(stack_arg_post_eval(0, true));
     if (SeqFunc::continueflag() || SeqFunc::breakflag() || comterp()->returnflag() || comterp()->quitflag()) {
       reset_stack();
-      push_stack(arg1);       
+      push_stack(arg1);
     }
     else {
       ComValue arg2(stack_arg_post_eval(1, true));
       reset_stack();
-      push_stack(arg2.is_blank() ? arg1 : arg2);
+      if (!arg2.is_blank()) {
+	/* arg1 (the statement before this ";") is being discarded in
+	   favor of arg2 -- if it's an orphaned stream (refcount_==1: no
+	   variable binding or anything else still holds it), drain it so
+	   its computation actually runs instead of being silently
+	   dropped unevaluated.  Doesn't print anything -- an intermediate
+	   statement's result was never shown to begin with; this is
+	   about not wasting the work, not about console output.  Mirrors
+	   ComTerp::orphan_stream_count()'s use at the top level for the
+	   very last statement (comterp.c) -- the two together cover every
+	   freestanding stream in a script, not just the final one. A
+	   non-final statement's fate (assigned or not) is already fully
+	   decided by the time it reaches here, unlike the last statement,
+	   whose fate isn't knowable until the top level asks whether
+	   anything still references it. */
+	if (arg1.is_stream() && arg1.stream_list() && arg1.stream_list()->refcount_==1)
+	  comterp()->orphan_stream_count(arg1);
+	push_stack(arg2);
+      } else
+	push_stack(arg1);
     }
 }
 

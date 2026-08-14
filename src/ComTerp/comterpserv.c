@@ -406,7 +406,17 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 		  } while (stack_top().is_known());
 		  pop_stack();
 		} else {
-		  /* save last thing on stack */  
+		  /* save last thing on stack -- if the PREVIOUS statement's
+		     retval is an orphaned stream (refcount_==1: nothing else
+		     holds it) about to be discarded here, drain it first so
+		     its computation doesn't go to waste (same treatment
+		     SeqFunc gives a discarded ";" operand, postfunc.c -- this
+		     loop is this class's own equivalent discard point for
+		     separate top-level statements/lines, which never go
+		     through SeqFunc/";" at all). */
+		  if (retval && retval->is_stream() && retval->stream_list() &&
+		      retval->stream_list()->refcount_==1)
+		    orphan_stream_count(*retval);
 		  if(retval) delete retval;
 		  retval = new ComValue(pop_stack());
 		}
