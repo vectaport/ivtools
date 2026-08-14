@@ -391,6 +391,16 @@ ok=ok&&(next(s44)==11 && next(s44)==12 && next(s44)==13)
 print("44 s44=$$(11,12,13); s44 (bare reference discarded, s44 unaffected, expect 11,12,13): %v\n" ok)
 prev_ok=check_fail(:ok ok)
 
+// --- test 45: $$s makes an independent copy -- unlike a bare reference
+// (test 44), the copy IS orphaned (nothing else points at it) and gets
+// auto-drained as its own freestanding statement, while s45 itself is
+// left completely untouched since $$ never consumed the original. ---
+s45=$$(21,22,23)
+$$s45
+ok=ok&&(next(s45)==21 && next(s45)==22 && next(s45)==23)
+print("45 s45=$$(21,22,23); $$s45 (copy auto-drains, s45 unaffected, expect 21,22,23): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
