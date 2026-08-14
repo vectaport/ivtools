@@ -362,6 +362,24 @@ ok=ok&&(v41a==1 && v41b==2 && v41c==3)
 print("41 s41=$$(1,2,3); unrelated41=42 (discards unrelated41's result at the same point); s41 still fully intact (expect 1,2,3): %v %v %v\n" v41a v41b v41c)
 prev_ok=check_fail(:ok ok)
 
+// --- test 42: same auto-drain, but on a lazy numeric-range/overdrive
+// stream (0..4, 0**2) rather than an already-realized $$(...) literal --
+// confirms the drain isn't specific to one stream-producing func. ---
+0..4
+2**2
+ok=ok&&true
+print("42 freestanding 0..4 and 2**2 mid-script don't disrupt what follows: %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 43: the same discard-and-drain also fires for an explicit
+// ";"-joined sequence (SeqFunc, not just one statement per script line)
+// -- s43 stays bound and intact even though the stream literal ahead of
+// the ";" is itself thrown away. ---
+s43=$$(7,8,9); 0..2
+ok=ok&&(next(s43)==7 && next(s43)==8 && next(s43)==9)
+print("43 s43=$$(7,8,9); 0..2 (\";\"-discards the range, s43 unaffected, expect 7,8,9): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
