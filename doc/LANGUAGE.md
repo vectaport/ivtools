@@ -1440,6 +1440,24 @@ prompt (or as a non-final script statement) leaves `x` fully intact for
 later use, whether or not the surrounding expression that produced it is
 itself discarded.
 
+The same guard covers a bare *reference* to an already-bound stream, not
+just the assignment that creates it -- typing the variable's name alone
+is exactly as much "at the top of the stack, about to be discarded" as a
+literal would be, so it has to be judged the same way:
+
+```
+s=run("some-script-with-a-freestanding-stream.comt")   // []
+s                                                        // []  -- not drained; s is still bound
+each(s)                                                  // 101 -- explicit consumption still works
+```
+
+`s` alone still prints `[]` rather than a count, because the value on top
+of the stack is the *same* stream object the variable is bound to, not an
+independent copy -- draining it here would silently exhaust `s` the
+moment you typed its name to look at it. Only `each()`/`next()`/an
+overdrive op (`s**2`, and so on) -- an explicit request to consume the
+stream -- actually pulls from it.
+
 **Why this took decades to build.** ivtools' streams have held one strict
 discipline since they were first designed: never let streaming happen
 prematurely, i.e. never mid-expression -- a stream stays lazy and

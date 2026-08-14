@@ -380,6 +380,17 @@ ok=ok&&(next(s43)==7 && next(s43)==8 && next(s43)==9)
 print("43 s43=$$(7,8,9); 0..2 (\";\"-discards the range, s43 unaffected, expect 7,8,9): %v\n" ok)
 prev_ok=check_fail(:ok ok)
 
+// --- test 44: a bare reference to an already-bound stream, as its own
+// freestanding statement, must NOT drain it -- the value on top of the
+// stack there is the same stream object the variable is bound to (not
+// an independent copy), so draining it would silently exhaust s44 the
+// moment its name was typed to look at it. ---
+s44=$$(11,12,13)
+s44
+ok=ok&&(next(s44)==11 && next(s44)==12 && next(s44)==13)
+print("44 s44=$$(11,12,13); s44 (bare reference discarded, s44 unaffected, expect 11,12,13): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
