@@ -255,28 +255,31 @@ void SeqFunc::execute() {
       push_stack(arg1);
     }
     else {
+      /* Drain arg1 (the statement before this ";") BEFORE evaluating
+	 arg2, not after -- if it's an orphaned stream (refcount_==1: no
+	 variable binding or anything else still holds it), draining it
+	 can have visible side effects of its own (e.g. a print()
+	 overdrive stream defers each repetition's actual print() call
+	 until that element is pulled -- draining fires all of them at
+	 once), and evaluating arg2 first would run arg2's own output
+	 before arg1's deferred output, out of script order.  Mirrors
+	 ComTerp::orphan_stream_count()'s use at the top level for the
+	 very last statement, and ComTerpServ::runfile()'s equivalent
+	 discard point for separate top-level lines (comterpserv.c) --
+	 together they cover every freestanding stream in a script, not
+	 just the final one.
+	 Assumes arg2 won't turn out blank -- the one case where arg1
+	 would have been kept as the ";" expression's own result rather
+	 than discarded, and draining it first would return it already
+	 exhausted.  Accepted: arg2 is blank only when there's no real
+	 second operand at all (a bare trailing ";"), vanishingly rare in
+	 combination with arg1 additionally being an undrained stream --
+	 getting the common case's output order right matters more. */
+      if (arg1.is_stream() && arg1.stream_list() && arg1.stream_list()->refcount_==1)
+	comterp()->orphan_stream_count(arg1);
       ComValue arg2(stack_arg_post_eval(1, true));
       reset_stack();
-      if (!arg2.is_blank()) {
-	/* arg1 (the statement before this ";") is being discarded in
-	   favor of arg2 -- if it's an orphaned stream (refcount_==1: no
-	   variable binding or anything else still holds it), drain it so
-	   its computation actually runs instead of being silently
-	   dropped unevaluated.  Doesn't print anything -- an intermediate
-	   statement's result was never shown to begin with; this is
-	   about not wasting the work, not about console output.  Mirrors
-	   ComTerp::orphan_stream_count()'s use at the top level for the
-	   very last statement (comterp.c) -- the two together cover every
-	   freestanding stream in a script, not just the final one. A
-	   non-final statement's fate (assigned or not) is already fully
-	   decided by the time it reaches here, unlike the last statement,
-	   whose fate isn't knowable until the top level asks whether
-	   anything still references it. */
-	if (arg1.is_stream() && arg1.stream_list() && arg1.stream_list()->refcount_==1)
-	  comterp()->orphan_stream_count(arg1);
-	push_stack(arg2);
-      } else
-	push_stack(arg1);
+      push_stack(arg2.is_blank() ? arg1 : arg2);
     }
 }
 

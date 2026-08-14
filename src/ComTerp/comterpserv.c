@@ -343,6 +343,28 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
  	if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
 	  break;
+        /* Drain a leftover orphaned stream from the PREVIOUS statement
+           now that a genuine next line/statement is confirmed to exist
+           (the loop's own while(!feof()) can be true here even though
+           this turns out to be the trailing EOF-probe pass above with
+           nothing left to read -- checking any earlier than this, e.g.
+           at the very top of the loop, would incorrectly drain the
+           truly last statement's retval too, since that probe pass
+           also enters the loop body).  Draining before this iteration's
+           own line runs, not after: it can have visible side effects of
+           its own (e.g. a print() overdrive stream defers each
+           repetition's actual print() call until that element is
+           pulled -- draining fires all of them at once), and checking
+           this any later (e.g. the matching spot below, which used to
+           have this check) would run it AFTER the next statement's own
+           eval_expr() already produced its output, interleaving the two
+           out of script order. */
+        if (retval && retval->is_stream() && retval->stream_list() &&
+            retval->stream_list()->refcount_==1) {
+          orphan_stream_count(*retval);
+          delete retval;
+          retval = nil;
+        }
         if (_linenum==0 && !*inbuf) { // run a dummy space in to initialize parser
             inbuf[0]=' ';
             inbuf[1]='\0';
@@ -406,17 +428,10 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 		  } while (stack_top().is_known());
 		  pop_stack();
 		} else {
-		  /* save last thing on stack -- if the PREVIOUS statement's
-		     retval is an orphaned stream (refcount_==1: nothing else
-		     holds it) about to be discarded here, drain it first so
-		     its computation doesn't go to waste (same treatment
-		     SeqFunc gives a discarded ";" operand, postfunc.c -- this
-		     loop is this class's own equivalent discard point for
-		     separate top-level statements/lines, which never go
-		     through SeqFunc/";" at all). */
-		  if (retval && retval->is_stream() && retval->stream_list() &&
-		      retval->stream_list()->refcount_==1)
-		    orphan_stream_count(*retval);
+		  /* save last thing on stack -- the PREVIOUS statement's
+		     orphaned-stream drain (if any) already happened at the
+		     top of this iteration, before this line even ran; see
+		     that check for why it can't happen here instead. */
 		  if(retval) delete retval;
 		  retval = new ComValue(pop_stack());
 		}

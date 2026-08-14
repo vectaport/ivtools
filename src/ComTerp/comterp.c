@@ -1809,6 +1809,30 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
     int status = 0;
     while( fptr && !feof(fptr)) {
 	if (read_expr()) {
+	    /* Drain a leftover orphaned stream from the PREVIOUS statement
+	       now that read_expr() confirms a genuine next statement
+	       exists (checking any earlier, e.g. unconditionally at the
+	       top of the loop, would incorrectly drain the truly LAST
+	       statement's retval too, on whatever trailing pass finds
+	       nothing left to read and the while() condition was
+	       nonetheless still true for). Before this iteration's own
+	       eval_expr() runs, not after: draining can have visible side
+	       effects of its own (e.g. a print() overdrive stream defers
+	       each repetition's actual print() call until that element is
+	       pulled -- draining fires all of them at once), and checking
+	       this any later (e.g. the "save last thing on stack" spot
+	       below, which used to have this check) would run it AFTER
+	       the next statement's own eval_expr() already produced its
+	       output, interleaving the two out of script order -- see the
+	       identical fix and full explanation in ComTerpServ::runfile(),
+	       comterpserv.c, the override actually exercised by
+	       `comterp run <file>`. */
+	    if (retval && retval->is_stream() && retval->stream_list() &&
+	        retval->stream_list()->refcount_==1) {
+	      orphan_stream_count(*retval);
+	      delete retval;
+	      retval = nil;
+	    }
 	    if (eval_expr(true)) {
 	        this->err_print( stderr, "comterp" );
 		FILEBUF(obuf, stdout, ios_base::out);
@@ -1823,17 +1847,7 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
 	        retval = new ComValue(pop_stack());
 	        break;
 	    } else {
-	        /* save last thing on stack -- if the PREVIOUS statement's
-	           retval is an orphaned stream (refcount_==1: nothing else
-	           holds it) about to be overwritten/discarded here, drain
-	           it first so its computation doesn't go to waste (same
-	           treatment SeqFunc gives a discarded ";" operand,
-	           postfunc.c -- this loop is runfile()'s own equivalent
-	           discard point for separate top-level statements/lines,
-	           which never go through SeqFunc/";" at all). */
-	        if (retval && retval->is_stream() && retval->stream_list() &&
-	            retval->stream_list()->refcount_==1)
-	          orphan_stream_count(*retval);
+	        /* save last thing on stack */
 	        retval = new ComValue(pop_stack());
 	    }
 	}
