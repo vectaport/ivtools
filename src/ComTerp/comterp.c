@@ -1393,6 +1393,21 @@ void ComTerp::quitflag(boolean flag) {
     _quitflag = flag;
 }
 
+ComValue ComTerp::orphan_stream_count(ComValue& streamv) {
+  ComValue sv(streamv);
+  int cnt = 0;
+  boolean done = false;
+  while (!done) {
+    NextFunc::execute_impl(this, sv, false);
+    ComValue popval(pop_stack());
+    if (popval.is_unknown() || StrmFunc::is_delimiter(popval))
+      done = true;
+    else
+      cnt++;
+  }
+  return ComValue(cnt, ComValue::IntType);
+}
+
 int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
@@ -1456,16 +1471,51 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 		#endif
 	      }
 	    } while (stack_top().is_known());
-	  } else {
+	  } else if (stack_top().is_stream() && stack_top().stream_list() &&
+		     stack_top().stream_list()->refcount_==1) {
+	    /* An orphaned stream -- the final result of a stand-alone
+	       expression, never assigned to anything, never streamed
+	       further -- would otherwise print as an uninformative "[]"
+	       (whatever's left of it once it falls out of scope
+	       unconsumed).  Drain it instead (orphan_stream_count(), same
+	       traversal EachFunc uses) and show the count: strictly more
+	       informative, and the stream was headed for the same fate
+	       either way.  Gated on refcount_==1 (nothing else holds a
+	       reference to the underlying AttributeValueList*, confirmed
+	       live: an orphaned `$$(1,2,3)` sits at 1, `x=$$(1,2,3)` sits
+	       at 2 -- one for the stack, one for x's binding) so this can
+	       never drain a stream a variable still needs: x=$$(1,2,3)
+	       at an interactive prompt must leave x fully intact for a
+	       later next(x), not silently exhaust it while "just printing
+	       the result". */
+	    ComValue streamv(stack_top());
+	    pop_stack();
+	    ComValue countv(orphan_stream_count(streamv));
+	    push_stack(countv);
 	    #ifdef USE_FDSTREAMS
 	    print_stack_top(out);
-	    out << "\n"; 
+	    out << "\n";
 	    out.flush();
 	    #else
 	    std::streambuf* strmbuf = new std::strstreambuf();
 	    ostream out(strmbuf);
 	    print_stack_top(out);
-	    out << "\n"; 
+	    out << "\n";
+	    out << '\0';
+	    const char *str = ((std::strstreambuf*)strmbuf)->str();
+	    fprintf(fp, "%s", str);
+	    fflush(fp);
+	    #endif
+	  } else {
+	    #ifdef USE_FDSTREAMS
+	    print_stack_top(out);
+	    out << "\n";
+	    out.flush();
+	    #else
+	    std::streambuf* strmbuf = new std::strstreambuf();
+	    ostream out(strmbuf);
+	    print_stack_top(out);
+	    out << "\n";
 	    out << '\0';
 	    const char *str = ((std::strstreambuf*)strmbuf)->str();
 	    fprintf(fp, "%s", str);
@@ -1759,6 +1809,30 @@ int ComTerp::runfile(const char* filename, boolean popen_flag) {
     int status = 0;
     while( fptr && !feof(fptr)) {
 	if (read_expr()) {
+	    /* Drain a leftover orphaned stream from the PREVIOUS statement
+	       now that read_expr() confirms a genuine next statement
+	       exists (checking any earlier, e.g. unconditionally at the
+	       top of the loop, would incorrectly drain the truly LAST
+	       statement's retval too, on whatever trailing pass finds
+	       nothing left to read and the while() condition was
+	       nonetheless still true for). Before this iteration's own
+	       eval_expr() runs, not after: draining can have visible side
+	       effects of its own (e.g. a print() overdrive stream defers
+	       each repetition's actual print() call until that element is
+	       pulled -- draining fires all of them at once), and checking
+	       this any later (e.g. the "save last thing on stack" spot
+	       below, which used to have this check) would run it AFTER
+	       the next statement's own eval_expr() already produced its
+	       output, interleaving the two out of script order -- see the
+	       identical fix and full explanation in ComTerpServ::runfile(),
+	       comterpserv.c, the override actually exercised by
+	       `comterp run <file>`. */
+	    if (retval && retval->is_stream() && retval->stream_list() &&
+	        retval->stream_list()->refcount_==1) {
+	      orphan_stream_count(*retval);
+	      delete retval;
+	      retval = nil;
+	    }
 	    if (eval_expr(true)) {
 	        this->err_print( stderr, "comterp" );
 		FILEBUF(obuf, stdout, ios_base::out);

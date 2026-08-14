@@ -29,3 +29,12 @@ comterp run src/comterp_/examples/<name>.comt
   variable) and previews the not-yet-built `(stream).field` lift over
   `$$barnyard` (issue #304) -- that line still warns today, on purpose,
   as a marker of where that feature will land.
+
+- **testpatterns.comt** -- classic signal/video test pattern generators
+  (ramp, sawtooth, square wave, staircase, triangle wave, sine wave),
+  each a single overdriven stream expression: `..` for the range, `%%`
+  to replay a whole sequence N times, `**` to repeat each element N
+  times, `,,` to concat an ascending and descending ramp into one
+  triangle cycle, `sin()`/`degtorad()` overdriving a range for the sine
+  wave. No loop written anywhere -- what used to be a hand-written
+  FORTRAN `setbuf` routine per pattern is one line each.

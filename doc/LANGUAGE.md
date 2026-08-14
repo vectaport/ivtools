@@ -1385,6 +1385,115 @@ ss=(a..b)+c            // lazy -- not yet consumed
 list(ss)               // {1000,1001,...,1010}
 ```
 
+**Overdrive results are themselves lazy** — the "producing a stream of
+results" above is the operative word: nothing about *any* of the N
+repeated calls happens at construction time, only when that result's
+position in the resulting stream is actually pulled. For a pure operator
+like `*`/`+` this is invisible (no side effect to notice either way), but
+it's directly observable for a command with a side effect, like `print()`:
+
+```
+r=print("%v " 0..2)   // nothing prints yet -- r is a lazy 3-element stream
+next(r)                // *now* "0 " prints -- the first call fires here
+next(r)                // "1 " prints
+next(r)                // "2 " prints
+```
+
+`print()` is itself non-post-eval (`postfix(help(print))` shows
+`print[0|0|1]`, no trailing `*` — see *Overdrive rules* below), so a
+stream argument overdrives it internally exactly like `*`/`+` do; the
+laziness is a property of overdrive in general, `print()` just happens to
+be the case where it's visible. This matters directly for *Auto-draining
+an orphaned result* below: draining such a stream isn't free of side
+effects the way draining a plain data stream is.
+
+### Auto-draining an orphaned result
+
+The final result of a stand-alone expression -- never assigned to
+anything, never streamed further -- used to just vanish if it happened to
+be a stream: printed as an uninformative `[]` (a lazy, unconsumed stream
+shown as if it were empty), or in a multi-line script, silently discarded
+without even that. Every one of those instances had already done real,
+possibly side-effecting work (*Overdrive results are themselves lazy*,
+above) that then went nowhere.
+
+```
+0..100                  // used to just disappear -- built and dropped
+$(1,2,3)                 // same
+```
+
+Now, whenever a stream is about to be discarded and nothing else
+references it, it's drained instead and its element count shown:
+
+```
+0..100                  // 101
+$(1,2,3)                 // 3
+```
+
+This applies everywhere a value can be discarded, not just the last line
+of a script: every freestanding statement in a multi-line `.comt` script
+(each line is its own read-eval step), every `;`-joined statement, and
+the interactive prompt. A stream still bound to a variable is never
+touched -- draining checks whether anything else still references the
+same underlying stream buffer before doing anything, so `x=$(1,2,3)` at a
+prompt (or as a non-final script statement) leaves `x` fully intact for
+later use, whether or not the surrounding expression that produced it is
+itself discarded.
+
+The same guard covers a bare *reference* to an already-bound stream, not
+just the assignment that creates it. This is deliberately unlike a bound
+`func`, where a bare reference always fires it -- looking up a
+func-valued symbol *is* how you invoke it in comterp, and it fires
+anywhere the symbol resolves, not just at the top level (`f=func(42);
+x=f+1` gives `43`). A stream can't work that way: resolving a symbol has
+to stay lazy everywhere -- including a bare top-level reference -- or the
+streaming discipline above (never mid-expression) would be violated by
+the plainest possible case, just naming the variable. (Dot-bound access
+is a third case again: `al.m` retrieves the `FuncObj` value without
+calling it -- only `al.m()`, with explicit call syntax, invokes a
+method.)
+
+```
+s=run("some-script-with-a-freestanding-stream.comt")   // []
+s                                                        // []  -- not drained; s is still bound
+each(s)                                                  // 101 -- explicit consumption still works
+```
+
+`s` alone still prints `[]` rather than a count -- the value on top of
+the stack there is the *same* stream object the variable is bound to, not
+an independent copy, so draining it would silently exhaust `s` the
+moment you typed its name to look at it. `each()`/`next()`/an overdrive
+op (`s**2`, and so on) still consume it explicitly, and `$$s` makes an
+independent copy to drain, leaving `s` itself untouched:
+
+```
+s=$$(1,2,3)
+$$s                     // 3  -- a fresh, orphaned copy: auto-drains
+next(s)                 // 1  -- s was never touched
+```
+
+**Why this took decades to build.** ivtools' streams have held one strict
+discipline since they were first designed: never let streaming happen
+prematurely, i.e. never mid-expression -- a stream stays lazy and
+uninitiated until something at the top genuinely needs it. That
+discipline is exactly why this feature waited: it only became safe once
+there was a place to drain a stream that is unambiguously *not*
+mid-expression -- the literal top of the stack, fully resolved, with
+nothing left to do but discard it or show it. Before that boundary
+existed, the only correct choice was to leave an orphaned stream alone
+and accept the waste; the alternative would have meant streaming
+somewhere inside evaluation, which the discipline never allowed.
+
+**Getting the order right mattered.** Because overdrive results are lazy
+(above), draining one isn't a side-effect-free operation the way draining
+a plain data stream is -- for a stream built by overdriving `print()`,
+draining fires the deferred `print()` calls right then. That makes the
+*order* auto-draining happens in observable, not just an implementation
+detail: each freestanding statement's leftover result has to be drained
+before the *next* statement runs, not after, or a deferred side effect
+from one statement shows up interleaved into the following statement's
+own output.
+
 ### Files and pipes as streams
 
 `open()` returns a `fileobj` or `pipeobj` (`help(open)`:

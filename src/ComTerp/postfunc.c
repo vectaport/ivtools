@@ -252,9 +252,31 @@ void SeqFunc::execute() {
     ComValue arg1(stack_arg_post_eval(0, true));
     if (SeqFunc::continueflag() || SeqFunc::breakflag() || comterp()->returnflag() || comterp()->quitflag()) {
       reset_stack();
-      push_stack(arg1);       
+      push_stack(arg1);
     }
     else {
+      /* Drain arg1 (the statement before this ";") BEFORE evaluating
+	 arg2, not after -- if it's an orphaned stream (refcount_==1: no
+	 variable binding or anything else still holds it), draining it
+	 can have visible side effects of its own (e.g. a print()
+	 overdrive stream defers each repetition's actual print() call
+	 until that element is pulled -- draining fires all of them at
+	 once), and evaluating arg2 first would run arg2's own output
+	 before arg1's deferred output, out of script order.  Mirrors
+	 ComTerp::orphan_stream_count()'s use at the top level for the
+	 very last statement, and ComTerpServ::runfile()'s equivalent
+	 discard point for separate top-level lines (comterpserv.c) --
+	 together they cover every freestanding stream in a script, not
+	 just the final one.
+	 Assumes arg2 won't turn out blank -- the one case where arg1
+	 would have been kept as the ";" expression's own result rather
+	 than discarded, and draining it first would return it already
+	 exhausted.  Accepted: arg2 is blank only when there's no real
+	 second operand at all (a bare trailing ";"), vanishingly rare in
+	 combination with arg1 additionally being an undrained stream --
+	 getting the common case's output order right matters more. */
+      if (arg1.is_stream() && arg1.stream_list() && arg1.stream_list()->refcount_==1)
+	comterp()->orphan_stream_count(arg1);
       ComValue arg2(stack_arg_post_eval(1, true));
       reset_stack();
       push_stack(arg2.is_blank() ? arg1 : arg2);

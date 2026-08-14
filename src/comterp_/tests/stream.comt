@@ -333,6 +333,74 @@ ok=ok&&(r2==(4,10,18))
 print("39 var*var and var*lit overdrive (expect {4,10,18} both): %v %v\n" r1 r2)
 prev_ok=check_fail(:ok ok)
 
+// --- test 40: a freestanding (orphaned) stream statement -- never
+// assigned, never streamed further -- gets auto-drained rather than
+// silently discarded unevaluated (ComTerpServ::runfile()/ComTerp::run(),
+// comterp.c/comterpserv.c; SeqFunc, postfunc.c, for an explicit ";"
+// sequence).  Not directly observable in-script (the drain doesn't print
+// or bind anything -- that's the point, an orphaned value has nowhere to
+// go); this just confirms it doesn't crash or hang the script around it,
+// and a following statement still runs normally. ---
+$$(1,2,3)
+ok=ok&&true
+print("40 freestanding $$(1,2,3) mid-script doesn't disrupt what follows: %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 41: the safety property that matters most -- a stream that IS
+// bound to a variable must stay fully intact even though a LATER
+// statement's own (unrelated) result gets discarded right after it, the
+// same discard point an orphaned stream would be drained at.  Only an
+// orphaned stream (nothing else referencing it) gets drained; a live
+// variable binding keeps the underlying stream's reference count above
+// the orphaned threshold, so it's left alone. ---
+s41=$$(1,2,3)
+unrelated41=42
+v41a=next(s41)
+v41b=next(s41)
+v41c=next(s41)
+ok=ok&&(v41a==1 && v41b==2 && v41c==3)
+print("41 s41=$$(1,2,3); unrelated41=42 (discards unrelated41's result at the same point); s41 still fully intact (expect 1,2,3): %v %v %v\n" v41a v41b v41c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 42: same auto-drain, but on a lazy numeric-range/overdrive
+// stream (0..4, 0**2) rather than an already-realized $$(...) literal --
+// confirms the drain isn't specific to one stream-producing func. ---
+0..4
+2**2
+ok=ok&&true
+print("42 freestanding 0..4 and 2**2 mid-script don't disrupt what follows: %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 43: the same discard-and-drain also fires for an explicit
+// ";"-joined sequence (SeqFunc, not just one statement per script line)
+// -- s43 stays bound and intact even though the stream literal ahead of
+// the ";" is itself thrown away. ---
+s43=$$(7,8,9); 0..2
+ok=ok&&(next(s43)==7 && next(s43)==8 && next(s43)==9)
+print("43 s43=$$(7,8,9); 0..2 (\";\"-discards the range, s43 unaffected, expect 7,8,9): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 44: a bare reference to an already-bound stream, as its own
+// freestanding statement, must NOT drain it -- the value on top of the
+// stack there is the same stream object the variable is bound to (not
+// an independent copy), so draining it would silently exhaust s44 the
+// moment its name was typed to look at it. ---
+s44=$$(11,12,13)
+s44
+ok=ok&&(next(s44)==11 && next(s44)==12 && next(s44)==13)
+print("44 s44=$$(11,12,13); s44 (bare reference discarded, s44 unaffected, expect 11,12,13): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 45: $$s makes an independent copy -- unlike a bare reference
+// (test 44), the copy IS orphaned (nothing else points at it) and gets
+// auto-drained as its own freestanding statement, while s45 itself is
+// left completely untouched since $$ never consumed the original. ---
+s45=$$(21,22,23)
+$$s45
+ok=ok&&(next(s45)==21 && next(s45)==22 && next(s45)==23)
+print("45 s45=$$(21,22,23); $$s45 (copy auto-drains, s45 unaffected, expect 21,22,23): %v\n" ok)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
