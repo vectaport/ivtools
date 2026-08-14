@@ -252,6 +252,103 @@ orbit=func(
   update();
   print("The cosmos settles down.  (orbit(300) runs longer; clearpaper() starts over.)\n"))
 
+// orb3d([steps]) -- like orbit(), but in three dimensions: every
+// spirograph orbits the shared center of gravity through real (x,y,z)
+// space, and the paper shows a perspective PROJECTION of that -- nearer
+// bodies grow (scale()) and get drawn on top (back(), painter's-algorithm
+// style: nearest processed first, farthest last, so each later back()
+// buries an object one level deeper and the nearest ends up on top),
+// farther bodies shrink and recede.  (:sunx :suny :sunz pin the sun
+// instead of the average -- same "not :cx :cy" name choice as orbit(),
+// same reason: an unpassed keyword falls through to any same-named
+// global, so the sun needs a name nobody has lying around.)
+//
+// orbit()'s own trick for avoiding drift -- re-reading center() every
+// step instead of accumulating position as state -- doesn't carry over
+// here: the SCREEN position is a projection of the true 3D position, not
+// the true position itself, so there's no screen value to read back
+// FROM.  Position genuinely has to be tracked as float state (txs/tys/
+// tzs) and integrated each step.  That turns out fine: the integer
+// rounding orbit() was guarding against happens only in move()'s own
+// pixel rounding, which never feeds back into this float state the way
+// it would if the state WERE the screen position.
+orb3d=func(
+  steps=arg(0);
+  if(steps==nil :then steps=150);
+  bodies=list();
+  fs=$$(frame());
+  while(g=*fs if(g.R!=nil :then bodies,g));
+  nb=size(bodies);
+  if(nb<2 :then print("The cosmos needs at least two spirographs -- try gallery() first!\n"));
+  if(nb<2 :then return(nil));
+  sx=0.0; sy=0.0;
+  for(oi=0 oi<nb oi++ c=center(bodies@oi); sx=sx+c@0; sy=sy+c@1);
+  sx=sx/nb; sy=sy/nb; sz=0.0;
+  if(sunx!=nil :then sx=1.0*sunx);
+  if(suny!=nil :then sy=1.0*suny);
+  if(sunz!=nil :then sz=1.0*sunz);
+  D=500.0;  // viewing distance for the perspective projection
+  w=0.03; K=w*w;
+  // true 3D state, seeded from each curve's current screen position for
+  // x,y and spread out along z (index-based, so nobody starts coincident)
+  txs=list(); tys=list(); tzs=list();
+  vxs=list(); vys=list(); vzs=list();
+  rads=list(); spins=list(); percs=list();
+  for(oi=0 oi<nb oi++
+    g=bodies@oi; c=center(g); box=mbr(g);
+    txs,c@0; tys,c@1; tzs,sz+(oi-(nb-1)/2.0)*100.0;
+    vxs,(0.0-w)*(tys@oi-sy); vys,w*(txs@oi-sx); vzs,0.0;
+    rads,(box@2-box@0+box@3-box@1)/4.0;
+    if(oi%2==0 :then spins,3 :else spins,-3);
+    percs,1.0);
+  handles(false);
+  for(st=0 st<steps st++
+    for(oi=0 oi<nb oi++
+      px=txs@oi; py=tys@oi; pz=tzs@oi;
+      ax=K*(sx-px); ay=K*(sy-py); az=K*(sz-pz);
+      for(oj=0 oj<nb oj++
+        if(oj!=oi :then
+          ox=txs@oj; oy=tys@oj; oz=tzs@oj;
+          ddx=px-ox; ddy=py-oy; ddz=pz-oz;
+          d=sqrt(ddx*ddx+ddy*ddy+ddz*ddz);
+          reach=rads@oi+rads@oj;
+          if((d>1)&&(d<reach) :then
+            push=0.4*(reach-d)/reach;
+            ax=ax+push*ddx/d;
+            ay=ay+push*ddy/d;
+            az=az+push*ddz/d)));
+      vxs@oi=vxs@oi+ax; vys@oi=vys@oi+ay; vzs@oi=vzs@oi+az;
+      txs@oi=txs@oi+vxs@oi; tys@oi=tys@oi+vys@oi; tzs@oi=tzs@oi+vzs@oi);
+    // painter's algorithm: sort by ascending z (nearest first), so
+    // calling back() in that order buries the farthest body deepest and
+    // leaves the nearest body implicitly on top
+    order=list(0..(nb-1));
+    for(oa=1 oa<nb oa++
+      key=order@oa; kz=tzs@key; ob=oa-1;
+      while(ob>=0 && tzs@(order@ob)>kz
+        order@(ob+1)=order@ob; ob=ob-1);
+      order@(ob+1)=key);
+    for(oi=0 oi<nb oi++
+      qi=order@oi;
+      g=bodies@qi;
+      perc=D/(D+tzs@qi-sz);
+      screenx=sx+(txs@qi-sx)*perc;
+      screeny=sy+(tys@qi-sy)*perc;
+      c=center(g);
+      select(g);
+      move(screenx-c@0 screeny-c@1);
+      rotate(spins@qi);
+      ratio=perc/percs@qi;
+      scale(ratio ratio);
+      percs@qi=perc;
+      back());
+    select(:clear);
+    update(5000));
+  handles(true);
+  select(:clear);
+  update();
+  print("The cosmos settles into three dimensions.  (orb3d(300) runs longer; clearpaper() starts over.)\n"))
+
 // clearpaper() -- fresh sheet.  $$(frame()) snapshots the paper's
 // components into an independent stream/copy (frame() itself is left
 // alone), so deleting each one as *doomed pulls it never mutates the
@@ -284,6 +381,8 @@ spirohelp=func(
   print("  recipes()        -- every curve tells you its own command\n");
   print("  spin()           -- the whole drawing wiggle-dances\n");
   print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
+  print("  orb3d()          -- orbit(), but in 3-D: nearer planets grow and\n");
+  print("                      come to the front, farther ones shrink back\n");
   print("  clearpaper()     -- fresh sheet\n");
   print("  oops()           -- the machine explains your last error\n");
   print("SECRETS: every curve is YOURS -- grab one and decorate it:\n");
