@@ -190,11 +190,19 @@ public:
     // call _exit().
 
     virtual int run(boolean one_expr=false, boolean nested=false);
-    // run interpreter until end-of-file or quit command, unless 
+    // run interpreter until end-of-file or quit command, unless
     // 'one_expr' is true.  Leave 'one_expr' false when using a ComTerpServ.
-    // Return Value:  -1 if eof, 0 if normal operation, 1 if 
-    // partial expression parsed, 2 if no result computed, 3 if error in parsing.  
+    // Return Value:  -1 if eof, 0 if normal operation, 1 if
+    // partial expression parsed, 2 if no result computed, 3 if error in parsing.
     // 'nested' indicates contents of stack should be preserved.
+
+    ComValue orphan_stream_count(ComValue& streamv);
+    // drain a stream (same traversal EachFunc uses) and return the count
+    // of elements pulled from it.  Used wherever a "final result of a
+    // stand-alone expression" gets shown to the user and that result is
+    // an orphaned stream -- never assigned to anything, never streamed
+    // further -- so the more informative element count gets shown
+    // instead of an uninformative, still-unconsumed-looking print.
 
     virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.

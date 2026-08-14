@@ -50,6 +50,7 @@ static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
+#include <Attribute/attrlist.h>
 
 #include <execinfo.h>
 
@@ -368,7 +369,27 @@ int main(int argc, char *argv[]) {
 	// ComTerp::runfile()), it just never prints it on its own.
 	terp->brief(1);
 	ComValue::comterp(terp);
-	cout << terp->stack_top() << '\n';
+	{
+	  ComValue topval(terp->stack_top());
+	  // an orphaned stream (never assigned, never streamed further)
+	  // prints as an uninformative, still-unconsumed "[]" -- drain it
+	  // and show the element count instead (same treatment the
+	  // interactive/nested run() loop gives this case, comterp.c).
+	  // Gated on refcount_ -- if anything else (a variable binding)
+	  // still holds this same stream, leave it alone; draining it here
+	  // would silently exhaust that binding too.  Threshold is <=2, not
+	  // ==1, specifically for this call site: runfile() (comterp.c)
+	  // pops each statement's result into its own `retval` ComValue and
+	  // re-pushes a copy of it at the end (see runfile()'s tail), which
+	  // adds one baseline ref beyond the plain interactive run() loop's
+	  // -- confirmed live: an orphaned stream sits at 2 here (vs. 1
+	  // there), an assigned one at 3 (vs. 2).
+	  if (topval.is_stream() && topval.stream_list() &&
+	      topval.stream_list()->refcount_<=2)
+	    cout << terp->orphan_stream_count(topval) << '\n';
+	  else
+	    cout << topval << '\n';
+	}
 	cout.flush();
 	return 0;
       }
@@ -377,7 +398,12 @@ int main(int argc, char *argv[]) {
 	terp->brief(1);
 	ComValue::comterp(terp);
         ComValue comval(terp->run(argv[1]));
-        cout << comval << '\n';
+        // see the runfile() branch above for the refcount_==1 gate's purpose
+        if (comval.is_stream() && comval.stream_list() &&
+            comval.stream_list()->refcount_==1)
+          cout << terp->orphan_stream_count(comval) << '\n';
+        else
+          cout << comval << '\n';
         return 0;
       } else {
 	

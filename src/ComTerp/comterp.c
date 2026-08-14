@@ -1393,6 +1393,21 @@ void ComTerp::quitflag(boolean flag) {
     _quitflag = flag;
 }
 
+ComValue ComTerp::orphan_stream_count(ComValue& streamv) {
+  ComValue sv(streamv);
+  int cnt = 0;
+  boolean done = false;
+  while (!done) {
+    NextFunc::execute_impl(this, sv, false);
+    ComValue popval(pop_stack());
+    if (popval.is_unknown() || StrmFunc::is_delimiter(popval))
+      done = true;
+    else
+      cnt++;
+  }
+  return ComValue(cnt, ComValue::IntType);
+}
+
 int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
@@ -1456,16 +1471,51 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 		#endif
 	      }
 	    } while (stack_top().is_known());
-	  } else {
+	  } else if (stack_top().is_stream() && stack_top().stream_list() &&
+		     stack_top().stream_list()->refcount_==1) {
+	    /* An orphaned stream -- the final result of a stand-alone
+	       expression, never assigned to anything, never streamed
+	       further -- would otherwise print as an uninformative "[]"
+	       (whatever's left of it once it falls out of scope
+	       unconsumed).  Drain it instead (orphan_stream_count(), same
+	       traversal EachFunc uses) and show the count: strictly more
+	       informative, and the stream was headed for the same fate
+	       either way.  Gated on refcount_==1 (nothing else holds a
+	       reference to the underlying AttributeValueList*, confirmed
+	       live: an orphaned `$$(1,2,3)` sits at 1, `x=$$(1,2,3)` sits
+	       at 2 -- one for the stack, one for x's binding) so this can
+	       never drain a stream a variable still needs: x=$$(1,2,3)
+	       at an interactive prompt must leave x fully intact for a
+	       later next(x), not silently exhaust it while "just printing
+	       the result". */
+	    ComValue streamv(stack_top());
+	    pop_stack();
+	    ComValue countv(orphan_stream_count(streamv));
+	    push_stack(countv);
 	    #ifdef USE_FDSTREAMS
 	    print_stack_top(out);
-	    out << "\n"; 
+	    out << "\n";
 	    out.flush();
 	    #else
 	    std::streambuf* strmbuf = new std::strstreambuf();
 	    ostream out(strmbuf);
 	    print_stack_top(out);
-	    out << "\n"; 
+	    out << "\n";
+	    out << '\0';
+	    const char *str = ((std::strstreambuf*)strmbuf)->str();
+	    fprintf(fp, "%s", str);
+	    fflush(fp);
+	    #endif
+	  } else {
+	    #ifdef USE_FDSTREAMS
+	    print_stack_top(out);
+	    out << "\n";
+	    out.flush();
+	    #else
+	    std::streambuf* strmbuf = new std::strstreambuf();
+	    ostream out(strmbuf);
+	    print_stack_top(out);
+	    out << "\n";
 	    out << '\0';
 	    const char *str = ((std::strstreambuf*)strmbuf)->str();
 	    fprintf(fp, "%s", str);
