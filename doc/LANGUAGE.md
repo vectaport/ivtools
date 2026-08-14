@@ -1441,11 +1441,17 @@ later use, whether or not the surrounding expression that produced it is
 itself discarded.
 
 The same guard covers a bare *reference* to an already-bound stream, not
-just the assignment that creates it -- typing a variable's name alone is
-how you find out what that variable *is*, not a request to run it. That
-holds even for something like a `func` you just finished defining, where
-you might plausibly mean to call it next -- better to always show what a
-name is bound to than to guess, and a stream is no exception:
+just the assignment that creates it. This is deliberately unlike a bound
+`func`, where a bare reference always fires it -- looking up a
+func-valued symbol *is* how you invoke it in comterp, and it fires
+anywhere the symbol resolves, not just at the top level (`f=func(42);
+x=f+1` gives `43`). A stream can't work that way: resolving a symbol has
+to stay lazy everywhere -- including a bare top-level reference -- or the
+streaming discipline above (never mid-expression) would be violated by
+the plainest possible case, just naming the variable. (Dot-bound access
+is a third case again: `al.m` retrieves the `FuncObj` value without
+calling it -- only `al.m()`, with explicit call syntax, invokes a
+method.)
 
 ```
 s=run("some-script-with-a-freestanding-stream.comt")   // []
@@ -1453,14 +1459,12 @@ s                                                        // []  -- not drained; 
 each(s)                                                  // 101 -- explicit consumption still works
 ```
 
-`s` alone still prints `[]` rather than a count. Mechanically this is the
-same refcount check as above -- the value on top of the stack is the
-*same* stream object the variable is bound to, not an independent copy,
-so draining it here would silently exhaust `s` the moment you typed its
-name to look at it -- but the governing reason is the inspection
-principle, not the mechanism. `each()`/`next()`/an overdrive op (`s**2`,
-and so on) still consume it explicitly, and `$$s` makes an independent
-copy to drain, leaving `s` itself untouched:
+`s` alone still prints `[]` rather than a count -- the value on top of
+the stack there is the *same* stream object the variable is bound to, not
+an independent copy, so draining it would silently exhaust `s` the
+moment you typed its name to look at it. `each()`/`next()`/an overdrive
+op (`s**2`, and so on) still consume it explicitly, and `$$s` makes an
+independent copy to drain, leaving `s` itself untouched:
 
 ```
 s=$$(1,2,3)
