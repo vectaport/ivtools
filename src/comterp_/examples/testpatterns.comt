@@ -1,0 +1,34 @@
+// src/comterp_/examples/testpatterns.comt -- classic signal/video test
+// pattern generators, comterp style: ramp, sawtooth, square wave,
+// staircase, triangle wave, sine wave.  Every one of these was, in 1980,
+// a Honeywell Image Research Lab FORTRAN `setbuf` routine written by
+// hand, one pattern at a time.  Here each is a single overdriven stream
+// expression -- .. (range) / %% (replay the whole sequence N times) /
+// ** (repeat each element N times) / ,, (concat) / sin()/degtorad()
+// overdriving a range -- no loop written anywhere.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/testpatterns.comt
+
+print("\n-- ramp: one climb, 0..15 --\n")
+print("%v\n" list(0..15))
+
+print("\n-- sawtooth: %% replays the whole ramp N times --\n")
+print("%v\n" list((0..15)%%16))
+
+print("\n-- square wave: ** holds each level, %% repeats the 2-level cycle --\n")
+print("%v\n" list((0..1*255)**8%%8))
+
+print("\n-- staircase / step wedge: ** alone, no replay needed -- it never cycles --\n")
+print("%v\n" list((0..15)**16))
+
+print("\n-- triangle wave: ,, concats an ascending and descending ramp; the\n")
+print("-- descending half is 14..1, not 15..0, so neither the peak nor the\n")
+print("-- trough doubles up where the two halves meet --\n")
+print("%v\n" list((0..15,,14..1)%%8))
+
+print("\n-- sine wave: sin() overdriving degtorad() overdriving a range,\n")
+print("-- one full period in 10-degree steps --\n")
+print("%v\n" list(sin(degtorad((0..36)*10))))
+
+exit
