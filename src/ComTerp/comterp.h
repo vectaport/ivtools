@@ -204,16 +204,26 @@ public:
     // further -- so the more informative element count gets shown
     // instead of an uninformative, still-unconsumed-looking print.
 
-    void fire_funcobj(ComValue& val);
-    // val must be a FuncObj-holding ComValue whose narg()/nkey() worth of
-    // already-evaluated arguments are sitting on the stack, ready to pop
-    // (the ordinary calling convention: keywords topmost, positionals
-    // below).  Builds the call's AttributeList (declaration-time captures
-    // seeded first, #310), sets up funcobj_arg()'s eager-positional view,
-    // and fires it via EvalFunc.  Factored out of eval_expr_internals'
-    // ordinary SymbolType/FuncObj dispatch so NilFunc can reuse it once it
-    // dynamically re-resolves to a real FuncObj (issue #328) instead of
-    // duplicating this stack-unpacking logic.
+    void fire_funcobj(ComValue& val, AttributeList* extra_keys=nil);
+    // val must be a FuncObj-holding ComValue whose val.narg() worth of
+    // already-evaluated positional arguments are sitting on the stack,
+    // ready to pop (topmost = last positional).  Builds the call's
+    // AttributeList (declaration-time captures seeded first, #310), sets
+    // up funcobj_arg()'s eager-positional view, and fires it via EvalFunc.
+    // Factored out of eval_expr_internals' ordinary SymbolType/FuncObj
+    // dispatch so NilFunc can reuse it once it dynamically re-resolves to
+    // a real FuncObj (issue #328) instead of duplicating this stack-
+    // unpacking logic.
+    //
+    // extra_keys nil (the ordinary-dispatch case): keyword marker+value
+    // pairs are popped off the SAME shared stack as the positionals,
+    // val.nkey() of them, topmost first -- the original calling
+    // convention, unchanged.
+    // extra_keys non-nil (NilFunc's dynamic re-check): the caller has
+    // already evaluated its keywords some other way (it can't leave them
+    // on the shared stack in the expected shape -- see
+    // ComFunc::stack_keys_post_eval) and hands them in pre-built instead;
+    // val.nkey() is not consulted and nothing extra is popped for them.
 
     virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.

@@ -273,7 +273,7 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   return FUNCOK;
 }
 
-void ComTerp::fire_funcobj(ComValue& val) {
+void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys) {
   EvalFunc ef(this);
   /* keywords still build the body's locals (the _alist); the fixed
      positionals become the func's eager actual args, captured here so
@@ -282,7 +282,10 @@ void ComTerp::fire_funcobj(ComValue& val) {
      after keywords), so pop them first.  narg() counts non-keyword args
      *including* values that follow keywords, and each keyword carries its
      own keynarg (0 for a bare flag), so the fixed-positional count is narg
-     minus the keyword values actually consumed -- not narg-nkey. */
+     minus the keyword values actually consumed -- not narg-nkey.  (When
+     extra_keys is supplied, narg() is already positional-only -- the
+     caller's keywords never touched the shared stack -- so no post-
+     keyword deduction applies there; see below.) */
   int npos = val.narg();
   AttributeList* al = new AttributeList();
   /* #310: seed al from this funcobj's own declaration-time captures
@@ -299,23 +302,38 @@ void ComTerp::fire_funcobj(ComValue& val) {
       al->add_attr(capattr->SymbolId(), *capattr->Value());
     }
   }
-  for(int i=0; i<val.nkey(); i++) {
-    ComValue keyv(pop_stack());
-    int knarg = keyv.keynarg_val();
-    if (knarg==0) {
-      al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
-    } else {
-      /* knarg is 0 or 1 by construction: the parser emits every keyword
-	 token with narg 0 (bare flag) or 1 (keyword+value) -- the
-	 TOK_KEYWORD PFOUT sites in ComUtil/_parser.c -- and keynarg is set
-	 from token->narg (comterp.c:927).  So knarg>1 is unreachable; this
-	 loop is written generally only.  Even if it ran, add_attr dedups by
-	 symid (replaces, never appends), binding a single value, and every
-	 value is popped so the positional count (npos) stays correct. */
-      for(int j=0; j<knarg; j++) {
-	ComValue valv(pop_stack());
-	al->add_attr(keyv.keyid_val(), valv);
-	npos--;   /* a post-keyword value, not a fixed positional */
+  if (extra_keys) {
+    /* caller already evaluated its own keywords (ComFunc::stack_keys_post_eval
+       -- it can't leave them on the shared stack in the ordinary popped
+       shape the branch below expects, so it hands them in pre-built
+       instead).  Same add_attr call as the ordinary loop below, just
+       sourced from extra_keys instead of the stack -- still lands after
+       captures, so an explicit :x val keyword still overrides a capture
+       for free. */
+    ALIterator ekit;
+    for (extra_keys->First(ekit); !extra_keys->Done(ekit); extra_keys->Next(ekit)) {
+      Attribute* ekattr = extra_keys->GetAttr(ekit);
+      al->add_attr(ekattr->SymbolId(), *ekattr->Value());
+    }
+  } else {
+    for(int i=0; i<val.nkey(); i++) {
+      ComValue keyv(pop_stack());
+      int knarg = keyv.keynarg_val();
+      if (knarg==0) {
+	al->add_attr(keyv.keyid_val(), ComValue::trueval());  /* :flag => flag true */
+      } else {
+	/* knarg is 0 or 1 by construction: the parser emits every keyword
+	   token with narg 0 (bare flag) or 1 (keyword+value) -- the
+	   TOK_KEYWORD PFOUT sites in ComUtil/_parser.c -- and keynarg is set
+	   from token->narg (comterp.c:927).  So knarg>1 is unreachable; this
+	   loop is written generally only.  Even if it ran, add_attr dedups by
+	   symid (replaces, never appends), binding a single value, and every
+	   value is popped so the positional count (npos) stays correct. */
+	for(int j=0; j<knarg; j++) {
+	  ComValue valv(pop_stack());
+	  al->add_attr(keyv.keyid_val(), valv);
+	  npos--;   /* a post-keyword value, not a fixed positional */
+	}
       }
     }
   }

@@ -262,6 +262,44 @@ ComValue** ComFunc::stack_arg_post_eval_nargsfixed(boolean symbol, ComValue& dfl
   return vals;
 }
 
+AttributeList* ComFunc::stack_keys_post_eval(boolean symbol, ComValue& dflt) {
+  AttributeList* al = new AttributeList();
+  /* same nkeys()==0 short-circuit as stack_key_post_eval -- nothing to
+     enumerate, and no reason to read a possibly-stale operand-stack
+     anchor for it (see that function's fuller comment). */
+  if (nkeys() == 0) return al;
+
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
+    fprintf(stderr, "comterp: stack_keys_post_eval: offtop out of range "
+            "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
+            "or corrupt; upstream command likely failed to push its bookmark\n",
+            offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
+    return al;
+  }
+  /* same walk as stack_key_post_eval's search loop, generalized: instead
+     of stopping at the first keyword matching a sought id, evaluate and
+     collect every one. */
+  int count = 0;
+  while (count < nkeys()) {
+    ComValue& curr = comterp()->expr_top(offtop);
+    if (!curr.is_type(ComValue::KeywordType)) break;
+    int key_symid = curr.symbol_val();
+    count++;
+    int argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+    if (argcnt) {
+      comterp()->post_eval_expr(argcnt, offtop, pedepth()+1);
+      ComValue val(comterp()->pop_stack(!symbol));
+      al->add_attr(key_symid, val);
+    } else {
+      al->add_attr(key_symid, dflt);
+    }
+  }
+  return al;
+}
+
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt) {
   /* No keyword tokens for this command -> the sought keyword is definitively

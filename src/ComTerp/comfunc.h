@@ -170,10 +170,21 @@ public:
     // to the invocation of this ComFunc.  'dflt' is used whenever a 
     // keyword has no matching argument.
 
-    ComValue** stack_arg_post_eval_nargsfixed(boolean symbol=false, 
+    ComValue** stack_arg_post_eval_nargsfixed(boolean symbol=false,
                                               ComValue& dflt=ComValue::nullval());
     // evaluate all nargsfixed arguments for this post-evaluating ComFunc,
     // and return in newly allocated array of newly allocated pointers.
+
+    AttributeList* stack_keys_post_eval(boolean symbol=false,
+                                         ComValue& dflt=ComValue::trueval());
+    // post-eval counterpart of stack_keys(): evaluate every keyword's
+    // value for this post-evaluating ComFunc (a bare keyword flag gets
+    // 'dflt') and return them all as a newly-constructed AttributeList
+    // (needs referencing), one pass over the keyword run rather than one
+    // stack_key_post_eval() call per known id -- the walk stack_key_post_eval
+    // already does internally to find ONE id, generalized to collect all
+    // of them, the same relationship stack_arg_post_eval_nargsfixed() has
+    // to a per-index stack_arg_post_eval() loop.
 
     void funcid(int id) { _funcid = id; }
     // set symbol id of name for func

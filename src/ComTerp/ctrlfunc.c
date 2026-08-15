@@ -542,34 +542,32 @@ void NilFunc::execute() {
        "name=func(...)" hasn't run yet when "name(args)"'s own token gets
        converted (issue #328).  Re-check dynamically, by name, right now --
        if the gate has since opened (the name really is a FuncObj by the
-       time this actually fires), evaluate the pending args for real and
-       dispatch to it, same as an ordinary call would.  If it's still
-       closed, fall through unchanged: never touch the args (the
-       deliberate plugin-hook gate idiom, symboldrain.comt) and return nil.
-
-       Scoped to positional-only calls (nkeys()==0): stack_arg_post_eval
-       only indexes fixed positionals, and there's no analogous "replay
-       this keyword's pending expression by id" enumerator to reconstruct
-       an arbitrary keyword set here -- a keyword call to a name still
-       undefined at conversion time keeps today's behavior, unchanged. */
+       time this actually fires), evaluate the pending args -- positional
+       and keyword alike -- for real and dispatch to it, same as an
+       ordinary call would.  If it's still closed, fall through unchanged:
+       never touch the args (the deliberate plugin-hook gate idiom,
+       symboldrain.comt) and return nil. */
     static int nil_symid = symbol_add("nil");
     int comm_symid = funcstate()->command_symid();
-    if (comm_symid && comm_symid != nil_symid && nkeys()==0) {
+    if (comm_symid && comm_symid != nil_symid) {
       ComValue namesym(comm_symid, ComValue::SymbolType);
       ComValue target(comterp()->lookup_symval(namesym));
       if (target.is_object(FuncObj::class_symid())) {
-	/* _nargsfixed (batch), not a per-i stack_arg_post_eval loop: each
-	   call re-reads stack_top() as its own anchor bookmark, which a
-	   push_stack() of a prior arg's result would have already
-	   clobbered.  This variant resolves every arg's token-span bookmark
-	   up front, before evaluating any of them. */
+	/* batch (stack_arg_post_eval_nargsfixed/stack_keys_post_eval), not
+	   per-i/per-id post-eval calls: each one re-reads stack_top() as its
+	   own anchor bookmark, which a push_stack() of a prior result would
+	   already have clobbered.  Both resolve their own token-span
+	   bookmarks up front, before evaluating anything, and neither
+	   disturbs the shared stack in a way the other depends on, so
+	   either order is safe -- positionals, then keywords, here. */
 	int n = nargsfixed();
 	ComValue** argvals = stack_arg_post_eval_nargsfixed();
+	AttributeList* keys = stack_keys_post_eval();
 	/* reset_stack() -- once, now that every arg is safely loaded into
-	   argvals[] (local copies) -- clears whatever pre-call stack state
-	   (the argoff anchor bookmark, etc.) is still sitting there; skipping
-	   it left a leftover entry behind (real regression, caught live: "nil
-	   pushed more than a single value on stack"). */
+	   argvals[]/keys (local copies) -- clears whatever pre-call stack
+	   state (the argoff anchor bookmark, etc.) is still sitting there;
+	   skipping it left a leftover entry behind (real regression, caught
+	   live: "nil pushed more than a single value on stack"). */
 	reset_stack();
 	for (int i=0; i<n; i++) {
 	  push_stack(*argvals[i]);
@@ -578,7 +576,8 @@ void NilFunc::execute() {
 	delete [] argvals;
 	target.narg(n);
 	target.nkey(0);
-	comterp()->fire_funcobj(target);
+	comterp()->fire_funcobj(target, keys);
+	delete keys;  /* copied into fire_funcobj's own AttributeList; we own it */
 	return;
       }
     }
