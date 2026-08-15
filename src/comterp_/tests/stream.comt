@@ -5,11 +5,11 @@
 // missing: str()->(stream) -- str() not stream-aware (test 33 deferred)
 //          $(attrlist) size(attrlist,compview)
 //          !,,(empty-stream -- bug #46)
-//          !next(:skim -- bug #45)
 //
 // slot 10 keyword compatibility groups:
-//   next(:skim) -- single keyword, no combinations; excluded due to bug #45
-//   all other funcs have no keywords
+//   all funcs have no keywords -- next()'s :skim was removed (issue #45):
+//   feed() now does the (deliberately 1-level-only, no 2-level expansion)
+//   nested-stream job :skim was a broken attempt at
 //
 // Tests: $$ $ ,, next() each() .. ** and their interactions.
 // Also tests streams overdriving scalar operators (implicit vectorization),
@@ -90,8 +90,7 @@ ok=ok&&(size(result)==3)
 print("8 size($($$(tuples))) (expect 3): %v\n" size(result))
 prev_ok=check_fail(:ok ok)
 
-// --- test 9: next(:skim) -- deferred ---
-print("9 ERROR: next(:skim) bug to investigate - ivtools issue #45\n")
+// (test 9's slot retired: it was next(:skim), removed entirely -- see #45)
 
 // --- test 10: total=0; while((v=next($$(1,2,3,4,5)))!=nil total=total+v) ---
 total=0

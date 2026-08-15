@@ -424,7 +424,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 		  ComValue streamv(stack_top());
 		  do {
 		    pop_stack();
-		    NextFunc::execute_impl(this, streamv, false);
+		    NextFunc::execute_impl(this, streamv);
 		  } while (stack_top().is_known());
 		  pop_stack();
 		} else {
