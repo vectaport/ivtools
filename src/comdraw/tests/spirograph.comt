@@ -22,8 +22,10 @@ ok=true
 
 // same reasoning as zoomap.comt: run_all.comt shares one comdraw process
 // across every test file, so clear the canvas first and this test's
-// counts hold regardless of what ran before it.
-while(size(frame())>0 delete(at(frame() 0)))
+// counts hold regardless of what ran before it.  delete($$frame) --
+// see deletestream.comt -- forks frame() into a stream and drains it
+// straight into delete(), no explicit while/at() loop needed.
+delete($$frame)
 
 run("../examples/spirograph.comt")
 
