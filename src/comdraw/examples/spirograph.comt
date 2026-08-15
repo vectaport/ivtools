@@ -96,15 +96,16 @@ spiro=func(
   // cos()/sin() -- no per-point loop for the math itself.  (Note the
   // parens around n-1: .. binds TIGHTER than -, so a bare 0..n-1 would
   // parse as (0..n)-1, one point too many -- ask the machine why with
-  // postfix(0..n-1) if you don't believe it.)  xs and ys still need a
-  // short loop to zip into ONE flat x0,y0,x1,y1,... list, the shape
-  // closedspline() wants -- comterp doesn't have a zip primitive yet,
-  // and @ is a plain, non-draining read, so this last step is honest,
-  // not a workaround.
+  // postfix(0..n-1) if you don't believe it.)
   xs=list(int(round(cx+Ac*cos(h*(0..(n-1)))+s*Dc*cos(k*h*(0..(n-1))))));
   ys=list(int(round(cy+Ac*sin(h*(0..(n-1)))-Dc*sin(k*h*(0..(n-1))))));
+  // zip xs and ys into ONE flat x0,y0,x1,y1,... list, the shape
+  // closedspline() wants: $$xs,$$ys chains two fresh streams through the
+  // comma-append idiom (pts,val appends val's elements) -- , zips
+  // co-iterating streams per-element rather than nesting them, so this
+  // one line drains both in lockstep instead of a per-point loop.
   pts=list();
-  for(i=0 i<n i++ pts,xs@i; pts,ys@i);
+  pts,$$xs,$$ys;
   // one closed spline from the whole point list.  the commas in
   // closedspline(x0,y0,x1,y1,...) are the tuple operator, so the
   // familiar syntax builds ONE list arg -- a list variable is the
