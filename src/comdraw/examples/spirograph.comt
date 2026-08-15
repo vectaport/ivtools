@@ -272,7 +272,13 @@ orbit=func(
 // tzs) and integrated each step.  That turns out fine: the integer
 // rounding orbit() was guarding against happens only in move()'s own
 // pixel rounding, which never feeds back into this float state the way
-// it would if the state WERE the screen position.
+// it would if the state WERE the screen position.  That also means the
+// true x/y, like z, must be stashed as curve.orb3d_x/orb3d_y and read
+// back from there on a continuing call -- re-seeding from center()
+// would read back last call's PROJECTED screen position instead of the
+// true one, and re-projecting an already-projected position is a second
+// projection: a visible seam even though z/velocity/spin carried over
+// cleanly.
 orb3d=func(
   steps=arg(0);
   if(steps==nil :then steps=150);
@@ -290,27 +296,28 @@ orb3d=func(
   if(sunz!=nil :then sz=1.0*sunz);
   D=500.0;  // viewing distance for the perspective projection
   w=0.03; K=w*w;
-  // true 3D state, seeded from each curve's current screen position for
-  // x,y.  z/velocity/spin/scale-baseline continue from wherever this
-  // body's LAST orb3d() call left them (stashed as curve.orb3d_* fields
-  // below, the same "every curve is yours" idiom as curve.recipe()) --
-  // only a curve going through orb3d() for the first time gets the
-  // fresh, evenly-spread starting spin.  Without this, orb3d();orb3d()
-  // would re-run the fresh-start formula every call: every body's depth
-  // snapping back to its initial spread and its velocity/spin snapping
-  // to the initial circular-orbit values, a visible jolt right at the
-  // seam between calls even though position itself stayed continuous
-  // (read fresh from center() either way).
+  // true 3D state.  A curve going through orb3d() for the first time
+  // seeds x,y from its current screen position (nothing's been projected
+  // yet, so screen position IS true position) and gets the fresh,
+  // evenly-spread starting depth/velocity/spin.  A continuing curve
+  // reads true x/y/z/velocity/spin/scale-baseline back from curve.orb3d_*
+  // fields (stashed below, the same "every curve is yours" idiom as
+  // curve.recipe()) instead -- x,y included, since center() would only
+  // hand back last call's PROJECTED screen position.  Without this,
+  // orb3d();orb3d() would either re-run the fresh-start formula every
+  // call (a jolt in depth/velocity/spin) or re-project an already-
+  // projected x,y (a jolt in position) right at the seam between calls.
   txs=list(); tys=list(); tzs=list();
   vxs=list(); vys=list(); vzs=list();
   rads=list(); spins=list(); percs=list();
   for(oi=0 oi<nb oi++
     g=bodies@oi; c=center(g); box=mbr(g);
-    txs,c@0; tys,c@1;
     if(g.orb3d_z!=nil :then
+      txs,g.orb3d_x; tys,g.orb3d_y;
       tzs,g.orb3d_z; vxs,g.orb3d_vx; vys,g.orb3d_vy; vzs,g.orb3d_vz;
       percs,g.orb3d_perc; spins,g.orb3d_spin
      :else
+      txs,c@0; tys,c@1;
       tzs,sz+(oi-(nb-1)/2.0)*100.0;
       vxs,(0.0-w)*(tys@oi-sy); vys,w*(txs@oi-sx); vzs,0.0;
       percs,1.0;
@@ -359,10 +366,12 @@ orb3d=func(
       back());
     select(:clear);
     update(5000));
-  // stash each body's final depth/velocity/spin/scale-baseline on the
-  // curve itself, for the next orb3d() call (if any) to continue from
+  // stash each body's final true position/depth/velocity/spin/scale-
+  // baseline on the curve itself, for the next orb3d() call (if any) to
+  // continue from
   for(oi=0 oi<nb oi++
     g=bodies@oi;
+    g.orb3d_x=txs@oi; g.orb3d_y=tys@oi;
     g.orb3d_z=tzs@oi; g.orb3d_vx=vxs@oi; g.orb3d_vy=vys@oi; g.orb3d_vz=vzs@oi;
     g.orb3d_perc=percs@oi; g.orb3d_spin=spins@oi);
   handles(true);

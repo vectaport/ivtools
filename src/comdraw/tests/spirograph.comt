@@ -211,6 +211,24 @@ orb3d(5)
 ok=ok&&(size(frame())==10 && sc4.epi==1 && sc5.color=="#0066CC")
 print("18 orb3d(5) with 10 bodies: paper still 10, sc4/sc5's fields intact (expect true): %v\n" (size(frame())==10&&sc4.epi==1&&sc5.color=="#0066CC"))
 
+// --- 18b: orb3d();orb3d() -- true x/y must carry over as TRUE position,
+// not get re-seeded from the previous call's perspective-PROJECTED
+// screen position (the bug Greptile caught: a curve.orb3d_x/orb3d_y
+// stash was missing, so continuing bodies read center() -- last call's
+// projected screen center -- back in as if it were the true position,
+// double-projecting and producing a seam).  Single-step (steps=1) calls
+// make position a nearly pure Euler step (new = old + old velocity,
+// plus a tiny restoring acceleration bounded by K=w*w against a span of
+// a few hundred pixels, well under this tolerance) -- so continuity
+// holds this tightly only because the true position was carried
+// forward, not reconstructed from an already-projected screen point. ---
+orb3d(1)
+ox1=sc4.orb3d_x; oy1=sc4.orb3d_y; vx1=sc4.orb3d_vx; vy1=sc4.orb3d_vy
+orb3d(1)
+ox2=sc4.orb3d_x; oy2=sc4.orb3d_y
+ok=ok&&(abs(ox2-(ox1+vx1))<5.0 && abs(oy2-(oy1+vy1))<5.0)
+print("18b orb3d();orb3d() true x/y continuous, not re-projected (expect true): %v\n" (abs(ox2-(ox1+vx1))<5.0 && abs(oy2-(oy1+vy1))<5.0))
+
 // --- 19: spin() -- pure smoke, no useful return value to assert on,
 // same as zoomap.comt's zoo.dance() ---
 spin()
