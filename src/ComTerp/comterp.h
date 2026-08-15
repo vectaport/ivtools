@@ -204,6 +204,17 @@ public:
     // further -- so the more informative element count gets shown
     // instead of an uninformative, still-unconsumed-looking print.
 
+    void fire_funcobj(ComValue& val);
+    // val must be a FuncObj-holding ComValue whose narg()/nkey() worth of
+    // already-evaluated arguments are sitting on the stack, ready to pop
+    // (the ordinary calling convention: keywords topmost, positionals
+    // below).  Builds the call's AttributeList (declaration-time captures
+    // seeded first, #310), sets up funcobj_arg()'s eager-positional view,
+    // and fires it via EvalFunc.  Factored out of eval_expr_internals'
+    // ordinary SymbolType/FuncObj dispatch so NilFunc can reuse it once it
+    // dynamically re-resolves to a real FuncObj (issue #328) instead of
+    // duplicating this stack-unpacking logic.
+
     virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.
     void add_defaults();

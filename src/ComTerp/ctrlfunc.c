@@ -534,12 +534,55 @@ NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void NilFunc::execute() {
-    reset_stack();
+    /* token_to_comvalue (comterp.c) routes any call-shaped symbol here
+       (parens/args, not [yet] a registered command) at CONVERSION time --
+       once, frozen forever into that token.  That's wrong when the name
+       is defined earlier in the same already-tokenized ";"-sequence: the
+       whole sequence converts before any of it executes, so the earlier
+       "name=func(...)" hasn't run yet when "name(args)"'s own token gets
+       converted (issue #328).  Re-check dynamically, by name, right now --
+       if the gate has since opened (the name really is a FuncObj by the
+       time this actually fires), evaluate the pending args for real and
+       dispatch to it, same as an ordinary call would.  If it's still
+       closed, fall through unchanged: never touch the args (the
+       deliberate plugin-hook gate idiom, symboldrain.comt) and return nil.
+
+       Scoped to positional-only calls (nkeys()==0): stack_arg_post_eval
+       only indexes fixed positionals, and there's no analogous "replay
+       this keyword's pending expression by id" enumerator to reconstruct
+       an arbitrary keyword set here -- a keyword call to a name still
+       undefined at conversion time keeps today's behavior, unchanged. */
     static int nil_symid = symbol_add("nil");
     int comm_symid = funcstate()->command_symid();
-    if (comm_symid && comm_symid!= nil_symid)
-      cerr << "unknown command \"" << symbol_pntr(comm_symid)
-	<< "\" returned nil\n";
+    if (comm_symid && comm_symid != nil_symid && nkeys()==0) {
+      ComValue namesym(comm_symid, ComValue::SymbolType);
+      ComValue target(comterp()->lookup_symval(namesym));
+      if (target.is_object(FuncObj::class_symid())) {
+	/* _nargsfixed (batch), not a per-i stack_arg_post_eval loop: each
+	   call re-reads stack_top() as its own anchor bookmark, which a
+	   push_stack() of a prior arg's result would have already
+	   clobbered.  This variant resolves every arg's token-span bookmark
+	   up front, before evaluating any of them. */
+	int n = nargsfixed();
+	ComValue** argvals = stack_arg_post_eval_nargsfixed();
+	/* reset_stack() -- once, now that every arg is safely loaded into
+	   argvals[] (local copies) -- clears whatever pre-call stack state
+	   (the argoff anchor bookmark, etc.) is still sitting there; skipping
+	   it left a leftover entry behind (real regression, caught live: "nil
+	   pushed more than a single value on stack"). */
+	reset_stack();
+	for (int i=0; i<n; i++) {
+	  push_stack(*argvals[i]);
+	  delete argvals[i];
+	}
+	delete [] argvals;
+	target.narg(n);
+	target.nkey(0);
+	comterp()->fire_funcobj(target);
+	return;
+      }
+    }
+    reset_stack();
     push_stack(ComValue::nullval());
 }
 
