@@ -242,7 +242,7 @@ Print a usage summary of all the invocation modes above and exit.
  
  strm=stream(strm|lst|attrlst|val|fileobj|pipeobj) -- copy stream or convert list (unary $)
 
- val=next(stream :skim) -- return next value from stream, don't recurse if :skim
+ val=next(stream) -- return next value from stream
    (unary prefix *: *strm is next(strm))
 
  cnt=each(strm) -- traverse stream returning its length

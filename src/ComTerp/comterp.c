@@ -309,7 +309,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
           int npos = 0, nkey = 0;
           boolean done = false;
           while (!done) {
-            NextFunc::execute_impl(this, v, false);
+            NextFunc::execute_impl(this, v);
             if (stack_top().is_unknown()) { pop_stack(); done = true; }
             else if (stack_top().is_object(Attribute::class_symid())) {
               /* an Attribute element (from an attrlist) becomes a real
@@ -1398,7 +1398,7 @@ ComValue ComTerp::orphan_stream_count(ComValue& streamv) {
   int cnt = 0;
   boolean done = false;
   while (!done) {
-    NextFunc::execute_impl(this, sv, false);
+    NextFunc::execute_impl(this, sv);
     ComValue popval(pop_stack());
     if (popval.is_unknown() || StrmFunc::is_delimiter(popval))
       done = true;
@@ -1454,7 +1454,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    ComValue streamv(stack_top());
 	    do {
 	      pop_stack();
-	      NextFunc::execute_impl(this, streamv, false);
+	      NextFunc::execute_impl(this, streamv);
 	      if (stack_top().is_known()) {
 		#ifdef USE_FDSTREAMS
 		print_stack_top(out);

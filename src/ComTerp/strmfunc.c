@@ -506,7 +506,7 @@ void ConcatNextFunc::execute() {
     if (oneval->is_known()) {
       if (oneval->is_stream()) {
 	ComValue valone(*oneval);
-	NextFunc::execute_impl(comterp(), valone, false);
+	NextFunc::execute_impl(comterp(), valone);
 	if (comterp()->stack_top().is_unknown()) {
 	  *oneval = ComValue::nullval();
 	  comterp()->pop_stack();
@@ -523,7 +523,7 @@ void ConcatNextFunc::execute() {
     if (twoval->is_known() && !done) {
       if (twoval->is_stream()) {
 	ComValue valtwo(*twoval);
-	NextFunc::execute_impl(comterp(), valtwo, false);
+	NextFunc::execute_impl(comterp(), valtwo);
 	if (comterp()->stack_top().is_unknown())
 	  *twoval = ComValue::nullval();
       } else {
@@ -663,7 +663,7 @@ void ReplayNextFunc::execute() {
 	}
 	/* pull the next element from the current copy */
 	ComValue curcopy(*curval);
-	NextFunc::execute_impl(comterp(), curcopy, false);
+	NextFunc::execute_impl(comterp(), curcopy);
 	if (comterp()->stack_top().is_unknown()) {
 	  comterp()->pop_stack();                      // this pass exhausted
 	  *curval = ComValue::nullval();               // force a fresh copy next time
@@ -741,14 +741,12 @@ NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 
 void NextFunc::execute() {
     ComValue streamv(stack_arg_post_eval(0));
-    static int skim_symid = symbol_add("skim");
-    ComValue skimflag(stack_key(skim_symid));
     reset_stack();
 
-    execute_impl(comterp(), streamv, skimflag.is_true());
+    execute_impl(comterp(), streamv);
 }
 
-void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
+void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
     _next_depth++;
 
@@ -763,7 +761,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
        restarted by calling execute_impl(streamv) again, which re-entered
        the C++ call stack once per element and could exhaust it given a
        sufficiently long run (flagged in #288 review). */
-    if (!skim) {
+    {
       AttributeValueList* avl = streamv.stream_list();
       for (;;) {
 	Iterator i;
@@ -776,7 +774,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
 	if (!(val->is_stream() && val->stream_mode_raw()&STREAM_NESTED)) break;
 	// fprintf(stderr, "NextFunc: Handling nested stream\n");
 	ComValue cval(*val);
-	NextFunc::execute_impl(comterp, cval, false);
+	NextFunc::execute_impl(comterp, cval);
 	if (!comterp->stack_top().is_null()) {
 	  return;
 	}
@@ -852,7 +850,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
               // fprintf(stdout, "Stack before NextFunc::execute_impl\n");
               // comterp->print_stack();
 
-	      NextFunc::execute_impl(comterp, cval, false);
+	      NextFunc::execute_impl(comterp, cval);
               // fprintf(stderr, "after:  strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
 
 	      if (comterp->stack_top().is_stream()) {
@@ -895,9 +893,9 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv, boolean skim) {
 	funcptr->exec(narg, nkey);
 
 	// recurse until not a stream
-	while (comterp->stack_top().is_stream() && !skim) {
+	while (comterp->stack_top().is_stream()) {
 	  ComValue *newstream = new ComValue(comterp->pop_stack());
-	  execute_impl(comterp, *newstream, false);
+	  execute_impl(comterp, *newstream);
 
   	  // insert this stream at the front of the parent stream, to be recognized and dealt with by NextFunc
 	  newstream->stream_mode(newstream->stream_mode()|STREAM_NESTED);
@@ -926,8 +924,6 @@ EachFunc::EachFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void EachFunc::execute() {
   ComValue strmv(stack_arg_post_eval(0));
-  static int skim_symid = symbol_add("skim");
-  ComValue skimflag(stack_key(skim_symid));
 
   if (strmv.is_stream()) {
     /* explicit stream argument -- traverse normally */
@@ -935,7 +931,7 @@ void EachFunc::execute() {
     int cnt = 0;
     boolean done = false;
     while (!done) {
-      NextFunc::execute_impl(comterp(), strmv, skimflag.is_true());
+      NextFunc::execute_impl(comterp(), strmv);
       ComValue popval(comterp()->pop_stack());
       if (popval.is_unknown() || StrmFunc::is_delimiter(popval))
 	done = true;
@@ -1030,7 +1026,7 @@ void FilterNextFunc::execute() {
 	boolean done = false;
 	while(!done) {
 	  ComValue strm2filt(*strmval);
-	  NextFunc::execute_impl(comterp(), strm2filt, false);
+	  NextFunc::execute_impl(comterp(), strm2filt);
 	  if (comterp()->stack_top().is_unknown()) {
 	    *strmval = ComValue::nullval();
 	    push_stack(*strmval);
