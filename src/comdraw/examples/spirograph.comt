@@ -291,17 +291,31 @@ orb3d=func(
   D=500.0;  // viewing distance for the perspective projection
   w=0.03; K=w*w;
   // true 3D state, seeded from each curve's current screen position for
-  // x,y and spread out along z (index-based, so nobody starts coincident)
+  // x,y.  z/velocity/spin/scale-baseline continue from wherever this
+  // body's LAST orb3d() call left them (stashed as curve.orb3d_* fields
+  // below, the same "every curve is yours" idiom as curve.recipe()) --
+  // only a curve going through orb3d() for the first time gets the
+  // fresh, evenly-spread starting spin.  Without this, orb3d();orb3d()
+  // would re-run the fresh-start formula every call: every body's depth
+  // snapping back to its initial spread and its velocity/spin snapping
+  // to the initial circular-orbit values, a visible jolt right at the
+  // seam between calls even though position itself stayed continuous
+  // (read fresh from center() either way).
   txs=list(); tys=list(); tzs=list();
   vxs=list(); vys=list(); vzs=list();
   rads=list(); spins=list(); percs=list();
   for(oi=0 oi<nb oi++
     g=bodies@oi; c=center(g); box=mbr(g);
-    txs,c@0; tys,c@1; tzs,sz+(oi-(nb-1)/2.0)*100.0;
-    vxs,(0.0-w)*(tys@oi-sy); vys,w*(txs@oi-sx); vzs,0.0;
-    rads,(box@2-box@0+box@3-box@1)/4.0;
-    if(oi%2==0 :then spins,3 :else spins,-3);
-    percs,1.0);
+    txs,c@0; tys,c@1;
+    if(g.orb3d_z!=nil :then
+      tzs,g.orb3d_z; vxs,g.orb3d_vx; vys,g.orb3d_vy; vzs,g.orb3d_vz;
+      percs,g.orb3d_perc; spins,g.orb3d_spin
+     :else
+      tzs,sz+(oi-(nb-1)/2.0)*100.0;
+      vxs,(0.0-w)*(tys@oi-sy); vys,w*(txs@oi-sx); vzs,0.0;
+      percs,1.0;
+      if(oi%2==0 :then spins,3 :else spins,-3));
+    rads,(box@2-box@0+box@3-box@1)/4.0);
   handles(false);
   for(st=0 st<steps st++
     for(oi=0 oi<nb oi++
@@ -345,6 +359,12 @@ orb3d=func(
       back());
     select(:clear);
     update(5000));
+  // stash each body's final depth/velocity/spin/scale-baseline on the
+  // curve itself, for the next orb3d() call (if any) to continue from
+  for(oi=0 oi<nb oi++
+    g=bodies@oi;
+    g.orb3d_z=tzs@oi; g.orb3d_vx=vxs@oi; g.orb3d_vy=vys@oi; g.orb3d_vz=vzs@oi;
+    g.orb3d_perc=percs@oi; g.orb3d_spin=spins@oi);
   handles(true);
   select(:clear);
   update();
@@ -384,6 +404,8 @@ spirohelp=func(
   print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
   print("  orb3d()          -- orbit(), but in 3-D: nearer planets grow and\n");
   print("                      come to the front, farther ones shrink back\n");
+  print("                      (orb3d();orb3d() picks up right where it left\n");
+  print("                      off -- no jump at the seam between calls)\n");
   print("  clearpaper()     -- fresh sheet\n");
   print("  oops()           -- the machine explains your last error\n");
   print("SECRETS: every curve is YOURS -- grab one and decorate it:\n");
