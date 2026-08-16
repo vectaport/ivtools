@@ -288,11 +288,7 @@ orb3d=func(
   nb=size(bodies);
   if(nb<2 :then print("The cosmos needs at least two spirographs -- try gallery() first!\n"));
   if(nb<2 :then return(nil));
-  sx=0.0; sy=0.0;
-  for(oi=0 oi<nb oi++ c=center(bodies@oi); sx=sx+c@0; sy=sy+c@1);
-  sx=sx/nb; sy=sy/nb; sz=0.0;
-  if(sunx!=nil :then sx=1.0*sunx);
-  if(suny!=nil :then sy=1.0*suny);
+  sz=0.0;
   if(sunz!=nil :then sz=1.0*sunz);
   D=500.0;  // viewing distance for the perspective projection
   w=0.03; K=w*w;
@@ -307,6 +303,18 @@ orb3d=func(
   // orb3d();orb3d() would either re-run the fresh-start formula every
   // call (a jolt in depth/velocity/spin) or re-project an already-
   // projected x,y (a jolt in position) right at the seam between calls.
+  //
+  // sx,sy (the shared center of gravity) have to be averaged from these
+  // same TRUE positions too, not from center() -- a continuing body's
+  // center() is last call's PROJECTED screen position, and projected
+  // positions don't average to the true sun (each body's own perc
+  // scales its offset from the sun differently).  A sun rebuilt from
+  // projected centers drifts off the true one every call, dragging both
+  // the spring physics and the projection origin along with it.  So
+  // this needs two passes: true positions first (independent of
+  // sx,sy), then sx,sy from those positions, then -- only for bodies
+  // starting fresh here -- the initial circular-orbit velocity, which
+  // DOES need the now-correct sx,sy to aim tangent to the sun.
   txs=list(); tys=list(); tzs=list();
   vxs=list(); vys=list(); vzs=list();
   rads=list(); spins=list(); percs=list();
@@ -319,10 +327,19 @@ orb3d=func(
      :else
       txs,c@0; tys,c@1;
       tzs,sz+(oi-(nb-1)/2.0)*100.0;
-      vxs,(0.0-w)*(tys@oi-sy); vys,w*(txs@oi-sx); vzs,0.0;
+      vxs,0.0; vys,0.0; vzs,0.0;
       percs,1.0;
       if(oi%2==0 :then spins,3 :else spins,-3));
     rads,(box@2-box@0+box@3-box@1)/4.0);
+  sx=0.0; sy=0.0;
+  for(oi=0 oi<nb oi++ sx=sx+txs@oi; sy=sy+tys@oi);
+  sx=sx/nb; sy=sy/nb;
+  if(sunx!=nil :then sx=1.0*sunx);
+  if(suny!=nil :then sy=1.0*suny);
+  for(oi=0 oi<nb oi++
+    g=bodies@oi;
+    if(g.orb3d_z==nil :then
+      vxs@oi=(0.0-w)*(tys@oi-sy); vys@oi=w*(txs@oi-sx)));
   handles(false);
   for(st=0 st<steps st++
     for(oi=0 oi<nb oi++
