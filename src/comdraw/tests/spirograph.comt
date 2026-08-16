@@ -231,6 +231,21 @@ ox2=sc4.orb3d_x; oy2=sc4.orb3d_y
 ok=ok&&(abs(ox2-(ox1+vx1))<5.0 && abs(oy2-(oy1+vy1))<5.0)
 print("18b orb3d();orb3d() true x/y continuous, not re-projected (expect true): %v\n" (abs(ox2-(ox1+vx1))<5.0 && abs(oy2-(oy1+vy1))<5.0))
 
+// --- 18c: orb3d();orb3d() -- collision radius must stay the canonical
+// value, not get re-derived from mbr() (the bug Greptile caught next:
+// a continuing body's on-screen bounds are already perspective-scaled
+// by the previous call's scale(ratio ratio), so re-measuring mbr() every
+// call would drift the collision reach with depth instead of holding it
+// constant).  curve.orb3d_rad is set once, from the one call where
+// mbr() is still canonical, and just carried forward after that -- so
+// it should come back bit-for-bit identical across two more calls. ---
+orb3d(1)
+rad1=sc4.orb3d_rad
+orb3d(1)
+rad2=sc4.orb3d_rad
+ok=ok&&(rad1==rad2)
+print("18c orb3d();orb3d() collision radius stays canonical (expect true): %v\n" (rad1==rad2))
+
 // --- 19: spin() -- pure smoke, no useful return value to assert on,
 // same as zoomap.comt's zoo.dance() ---
 spin()
