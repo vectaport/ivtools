@@ -1176,13 +1176,21 @@ commands name the outer scopes explicitly, as both lvalue and rvalue:
 
 ```
 count=0
-bump=func(local(count)=count+1)   // reads outer count, writes it back
+bump=func(local(count)=local(count)+1)   // reads outer count, writes it back
 bump(); bump()
 count                  // 2 -- the func published through local()
 
 f=func(count=99; count,local(count))
 f()                    // {99,2} -- frame shadow vs explicit outer read
 ```
+
+Note the RHS is `local(count)`, not bare `count` — `local()` on the lvalue
+side alone does not exempt a bare rvalue mention of the same name from
+declaration-time capture (see *Closures* above): a bare, never-locally-
+written `count` here would still count as a genuine free-variable read,
+captured once when `bump` is declared, so every call would recompute
+`0+1` instead of reading the live outer value. Wrapping both sides in
+`local()` keeps the read genuinely live on every call.
 
 In a single-interpreter session `local()` and `global()` differ only in
 which table they touch; in a multi-session server they are session
