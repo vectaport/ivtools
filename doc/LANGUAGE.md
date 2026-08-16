@@ -1096,6 +1096,69 @@ do not escape to the caller's scope. This includes dot-notation
 attributes: a dot namespace rooted at a local symbol is local to the
 call.
 
+### Lazy arguments: `:posteval`
+
+An ordinary `func()` call is eager: every positional and keyword argument
+is fully evaluated once, before the body runs, whether or not the body
+ever reads it (see `arg()`/`narg()` above). `func(body :posteval)` makes
+the call lazy instead: none of its arguments are evaluated at call time.
+They stay unevaluated — the same "wait until pulled" contract any
+post_eval command's own pending args already have — resolved only the
+moment something inside the body actually asks for them: `arg(n)` on its
+first read, a keyword on its own first read-before-write. An argument the
+body never reads is never evaluated at all, side effects included:
+
+```
+f=func(c=arg(0); if(c :then arg(1) :else -1) :posteval)
+f(false print("never runs\n"))   // -1 -- arg(1)'s expression is never touched
+f(true print("runs\n"))          // prints "runs", then true
+```
+
+Compare the same body without `:posteval` — the caller's argument is
+evaluated up front regardless of what the body's own `if` ever reads:
+
+```
+g=func(c=arg(0); if(c :then arg(1) :else -1))
+g(false print("runs anyway\n"))   // prints "runs anyway" first, then -1
+```
+
+**Pulled once, not once per read.** Whichever value gets pulled — by
+`arg(n)` or by a keyword — is memoized in place: the first read evaluates
+it, every later read of the same arg/keyword returns that same result
+without re-running it:
+
+```
+side=list()
+bump=func(side,1; size(side))
+h=func(a=arg(0); b=arg(0); a+b :posteval)
+h(bump())    // 2 -- a and b both get the SAME pulled value; bump() itself only ran once
+size(side)   // 1
+```
+
+Same for keywords: a keyword's *first* read-before-write pulls it;
+assigning to it before ever reading it, or never reading it at all, means
+its argument expression never runs — the same write-before-read rule
+captures already use above, applied to arguments instead of free
+variables.
+
+**Composes with any existing control command, no special-casing needed.**
+`if`/`while`/`switch` already selectively evaluate their own operands via
+the same on-demand mechanism (resolving one token-span bookmark at a
+time) that `arg()`/a keyword read now use to reach back into the
+*caller's* still-pending arguments. So a control command inside a
+`:posteval` body that skips a branch transparently skips whatever
+caller-side expression that branch's `arg(n)` would have pulled — the
+laziness of the control command and the laziness of the call compose for
+free, all the way back through a chain of `:posteval` calls, without
+either side needing to know the other exists.
+
+**The gate is dynamic, not frozen at parse time.** Whether a call is
+lazy depends on the *current* value of the name being called, checked at
+the moment it actually fires — the same discipline the dynamic
+NilFunc gate uses for forward references to a not-yet-defined name — so
+reassigning a name to a differently-flagged func between its definition
+and a later call is honored, not decided once and cached.
+
 ### Escaping the func scope: local() and global()
 
 When a func genuinely needs to write outside its own frame, two

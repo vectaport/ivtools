@@ -273,7 +273,7 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   return FUNCOK;
 }
 
-void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys) {
+void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* lazy_posvals) {
   EvalFunc ef(this);
   /* keywords still build the body's locals (the _alist); the fixed
      positionals become the func's eager actual args, captured here so
@@ -285,7 +285,9 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys) {
      minus the keyword values actually consumed -- not narg-nkey.  (When
      extra_keys is supplied, narg() is already positional-only -- the
      caller's keywords never touched the shared stack -- so no post-
-     keyword deduction applies there; see below.) */
+     keyword deduction applies there; see below.  When lazy_posvals is
+     supplied, val.narg() is exactly its length -- nothing to deduct,
+     nothing was pushed for the args at all.) */
   int npos = val.narg();
   AttributeList* al = new AttributeList();
   /* #310: seed al from this funcobj's own declaration-time captures
@@ -303,19 +305,21 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys) {
     }
   }
   if (extra_keys) {
-    /* caller already evaluated its own keywords (ComFunc::stack_keys_post_eval
-       -- it can't leave them on the shared stack in the ordinary popped
-       shape the branch below expects, so it hands them in pre-built
-       instead).  Same add_attr call as the ordinary loop below, just
-       sourced from extra_keys instead of the stack -- still lands after
-       captures, so an explicit :x val keyword still overrides a capture
-       for free. */
+    /* caller already built the call's keyword AttributeList some other way
+       instead of leaving marker+value pairs on the shared stack --
+       NilFunc's dynamic re-check (ComFunc::stack_keys_post_eval) for an
+       eager target, or (a :posteval target) FuncObjPendingArg markers
+       instead of real values.  Either way fire_funcobj just copies the
+       entries into al -- it doesn't care whether they're real or pending,
+       only funcobj_arg()/the bare-read fallthrough do.  Same add_attr call
+       as the ordinary loop below, still lands after captures, so an
+       explicit :x val keyword still overrides a capture for free. */
     ALIterator ekit;
     for (extra_keys->First(ekit); !extra_keys->Done(ekit); extra_keys->Next(ekit)) {
       Attribute* ekattr = extra_keys->GetAttr(ekit);
       al->add_attr(ekattr->SymbolId(), *ekattr->Value());
     }
-  } else {
+  } else if (!lazy_posvals) {
     for(int i=0; i<val.nkey(); i++) {
       ComValue keyv(pop_stack());
       int knarg = keyv.keynarg_val();
@@ -338,8 +342,16 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys) {
     }
   }
   if (npos<0) npos = 0;
-  ComValue* posvals = npos>0 ? new ComValue[npos] : nil;
-  for(int i=npos-1; i>=0; i--) posvals[i] = pop_stack();
+  ComValue* posvals;
+  if (lazy_posvals) {
+    /* nothing to pop -- lazy_posvals' entries are ordinarily
+       FuncObjPendingArg markers, pulled and memoized in place by
+       funcobj_arg() the first time (if ever) arg(n) actually reads one. */
+    posvals = lazy_posvals;
+  } else {
+    posvals = npos>0 ? new ComValue[npos] : nil;
+    for(int i=npos-1; i>=0; i--) posvals[i] = pop_stack();
+  }
   ComValue* saved_argvals = _funcobj_argvals;
   int saved_nargs = _funcobj_nargs;
   boolean saved_active = _funcobj_active;
@@ -646,7 +658,17 @@ void ComTerp::eval_expr_internals(int pedepth) {
       if (_alist) {
 	// cerr << "looking up " << sv.symbol_ptr() << " (" << _alist << ")\n";
 	int id = sv.symbol_val();
-	AttributeValue* val = _alist->find(id);
+	/* a :posteval keyword arg that hasn't been read yet sits here as a
+	   FuncObjPendingArg marker (postfunc.h) instead of a real value --
+	   pull_alist_pending() pulls it on this, its first read-before-write,
+	   and memoizes the real result back under the same id, so every later
+	   read (here or through lookup_symval(), the path an ordinary
+	   operand -- not a standalone reference -- resolves through) takes
+	   the ordinary fast path below.  A keyword the body only ever
+	   writes, or never reads at all, never reaches here with a write
+	   first (AssignFunc writes directly, it doesn't read through this
+	   path) -- true laziness, not just "resolved late". */
+	AttributeValue* val = pull_alist_pending(_alist, id, _alist->find(id));
 	/* a func-local FuncObj falls through to the same fire-check below as
 	   every other symbol reference, instead of returning early -- a
 	   standalone variable is a niladic call site regardless of whether
@@ -1146,8 +1168,22 @@ void ComTerp::token_to_comvalue(postfix_token* token, ComValue* sv) {
       command_symid = sv->symbol_val();
     }
 
-    /* handle case where symbol has arguments/keywords, but is not defined */
-    else if (!vptr && (sv->narg() || sv->nkey())) {
+    /* handle case where symbol has arguments/keywords, but is not defined --
+       or (posteval FuncObj) already resolves to one, at this point, whose
+       :posteval flag is set.  Either way, route through the same NilFunc
+       substitution: NilFunc is post_eval, so the pre-pass below marks this
+       call's whole operand span pedepth'd and the forward push loop never
+       eagerly evaluates it -- exactly the "sit in the postfix buffer until
+       pulled" contract a posteval func's args need.  A symbol that's simply
+       undefined still resolves to NilFunc's real "not found" behavior at
+       dispatch time (comterp.c's dynamic gate, #328); one that resolves to a
+       posteval FuncObj here is re-checked there too, so a later reassignment
+       within the same statement chain is never trusted from this static
+       snapshot -- only used to decide whether to defer at all. */
+    else if ((sv->narg() || sv->nkey()) &&
+	     (!vptr ||
+	      (((ComValue*)vptr)->is_object(FuncObj::class_symid()) &&
+	       ((FuncObj*)((ComValue*)vptr)->obj_val())->posteval()))) {
       static int nil_symid = symbol_add("nil");
       localtable()->find(vptr, nil_symid);
     }
@@ -1264,7 +1300,7 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 
 	if (_alist) {
 	  int id = comval.symbol_val();
-	  AttributeValue* aval = _alist->find(id);  
+	  AttributeValue* aval = pull_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
 	    ComValue newval(*aval);
 	    *&comval = newval;
@@ -1304,7 +1340,7 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
 	   by their scope flags directly.) */
 	if (!comval->global_flag() && _alist) {
 	  int id = comval->symbol_val();
-	  AttributeValue* aval = _alist->find(id);
+	  AttributeValue* aval = pull_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) return aval;
 	}
 	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
@@ -2248,7 +2284,54 @@ int ComTerp::narg_str() {
 ComValue& ComTerp::funcobj_arg(int n) {
   if (!_funcobj_argvals || n<0 || n>=_funcobj_nargs)
     return ComValue::nullval();
+  if (_funcobj_argvals[n].is_object(FuncObjPendingArg::class_symid())) {
+    FuncObjPendingArg* marker = (FuncObjPendingArg*)_funcobj_argvals[n].obj_val();
+    _funcobj_argvals[n] = pull_funcobj_pending(marker);  /* memoize in place */
+  }
   return _funcobj_argvals[n];
+}
+
+ComValue ComTerp::pull_funcobj_pending(FuncObjPendingArg* marker) {
+  /* reach back into the caller's still-parked buffer -- push_servstate()
+     already stashed it on _ctsstack the moment this invocation's body
+     started running, purely as ordinary nested-call bookkeeping, so there's
+     nothing new to allocate here: borrow its pfbuf/pfcomvals/pfoff for the
+     one post_eval_expr() call, then put this invocation's own buffer back. */
+  ComTerpState* caller = top_servstate();
+  if (!caller) return ComValue::nullval();
+
+  postfix_token* save_pfbuf = _pfbuf;
+  int save_pfsiz = _pfsiz;
+  int save_pfnum = _pfnum;
+  int save_pfoff = _pfoff;
+  ComValue* save_pfcomvals = _pfcomvals;
+
+  _pfbuf = caller->pfbuf();
+  _pfsiz = caller->pfsiz();
+  _pfnum = caller->pfnum();
+  _pfoff = caller->pfoff();
+  _pfcomvals = caller->pfcomvals();
+
+  post_eval_expr(marker->tokcnt(), marker->offtop(), marker->pedepth());
+  ComValue val(pop_stack());
+
+  _pfbuf = save_pfbuf;
+  _pfsiz = save_pfsiz;
+  _pfnum = save_pfnum;
+  _pfoff = save_pfoff;
+  _pfcomvals = save_pfcomvals;
+
+  return val;
+}
+
+AttributeValue* ComTerp::pull_alist_pending(AttributeList* al, int id, AttributeValue* found) {
+  if (!found || !found->is_object(FuncObjPendingArg::class_symid()))
+    return found;
+  FuncObjPendingArg* marker = (FuncObjPendingArg*)found->obj_val();
+  ComValue pulled(pull_funcobj_pending(marker));
+  al->add_attr(id, pulled);  /* replaces the marker -- every later lookup
+                                of this id finds the real value directly */
+  return al->find(id);
 }
 
 void ComTerp::set_args(int argc, char** argv) {

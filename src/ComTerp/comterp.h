@@ -204,7 +204,8 @@ public:
     // further -- so the more informative element count gets shown
     // instead of an uninformative, still-unconsumed-looking print.
 
-    void fire_funcobj(ComValue& val, AttributeList* extra_keys=nil);
+    void fire_funcobj(ComValue& val, AttributeList* extra_keys=nil,
+		       ComValue* lazy_posvals=nil);
     // val must be a FuncObj-holding ComValue whose val.narg() worth of
     // already-evaluated positional arguments are sitting on the stack,
     // ready to pop (topmost = last positional).  Builds the call's
@@ -219,11 +220,22 @@ public:
     // pairs are popped off the SAME shared stack as the positionals,
     // val.nkey() of them, topmost first -- the original calling
     // convention, unchanged.
-    // extra_keys non-nil (NilFunc's dynamic re-check): the caller has
-    // already evaluated its keywords some other way (it can't leave them
-    // on the shared stack in the expected shape -- see
-    // ComFunc::stack_keys_post_eval) and hands them in pre-built instead;
-    // val.nkey() is not consulted and nothing extra is popped for them.
+    // extra_keys non-nil: the caller has already built the call's keyword
+    // AttributeList some other way instead of leaving marker+value pairs on
+    // the shared stack (NilFunc's dynamic re-check, ComFunc::stack_keys_-
+    // post_eval; or a :posteval target, whose entries are
+    // FuncObjPendingArg markers instead of real values -- fire_funcobj
+    // doesn't care, it just copies them into al either way); val.nkey() is
+    // not consulted and nothing extra is popped for them.
+    //
+    // lazy_posvals non-nil (val's FuncObj is :posteval): used directly as
+    // this invocation's funcobj_argvals() array instead of popping val.-
+    // narg() values off the stack -- nothing was pushed for them in the
+    // first place (the pedepth pre-pass left their whole span un-evaluated
+    // in the caller's buffer).  Its entries are ordinarily FuncObjPendingArg
+    // markers (postfunc.h), pulled on demand and memoized in place by
+    // funcobj_arg() the same array slot every other invocation already uses
+    // -- no separate lazy-argument channel or save/restore needed.
 
     virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.
@@ -381,6 +393,31 @@ public:
     // same bracketing set_attributes()/get_attributes() use around an
     // _alist swap (see DotFunc, which needs both at once to self-bind an
     // attrlist method call and still serve its positional args).
+
+    ComValue pull_funcobj_pending(class FuncObjPendingArg* marker);
+    // resolve one :posteval arg/keyword's still-pending token span --
+    // reaches back into the caller's parked postfix buffer via
+    // top_servstate() (the same frame push_servstate() already stashed
+    // there for ordinary nested-call bookkeeping, nothing new to allocate)
+    // and runs post_eval_expr() against it.  Shared by funcobj_arg(), which
+    // pulls-and-memoizes a FuncObjPendingArg sitting in funcobj_argvals(),
+    // and (via pull_alist_pending() below) by every _alist lookup path.
+
+    AttributeValue* pull_alist_pending(AttributeList* al, int id, AttributeValue* found);
+    // if 'found' (already the result of al->find(id)) is a still-pending
+    // FuncObjPendingArg marker, pull it via pull_funcobj_pending(), memoize
+    // the real value back into al under the same id, and return a pointer
+    // to that now-real entry; otherwise return 'found' unchanged.  A
+    // keyword arg is only ever reached through _alist -- there's no
+    // separate funcobj_argvals()-style channel for it the way a positional
+    // has -- so every one of _alist's several lookup call sites (the
+    // bare-variable-read fallthrough in eval_expr_internals, and both
+    // lookup_symval() overloads, which ComFunc::stack_arg/stack_key and
+    // ordinary operand resolution all route through for a symbol used as
+    // an operand rather than read standalone) needs this same check --
+    // that's the case a plain "y+y" exercises: y is never dispatched
+    // through eval_expr_internals's own SymbolType branch at all, it's
+    // just an operand add() resolves via lookup_symval.
 
     void set_args(int argc, char** argv);
     // set command line arguments

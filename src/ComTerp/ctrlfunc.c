@@ -553,6 +553,24 @@ void NilFunc::execute() {
       ComValue namesym(comm_symid, ComValue::SymbolType);
       ComValue target(comterp()->lookup_symval(namesym));
       if (target.is_object(FuncObj::class_symid())) {
+	FuncObj* target_fo = (FuncObj*)target.obj_val();
+	int n = nargsfixed();
+	if (target_fo->posteval()) {
+	  /* :posteval target -- don't evaluate anything.  Bookmark each
+	     pending positional/keyword's still-unevaluated span instead
+	     (same walk as the eager branch below, just stops short of
+	     calling post_eval_expr on it) and hand fire_funcobj the marker
+	     arrays directly; arg()/a keyword's own first read pulls each
+	     one later, on demand, from inside the fired body. */
+	  ComValue* posvals = bookmark_stack_arg_post_eval_nargsfixed();
+	  AttributeList* keys = bookmark_stack_keys_post_eval();
+	  reset_stack();
+	  target.narg(n);
+	  target.nkey(0);
+	  comterp()->fire_funcobj(target, keys, posvals);
+	  delete keys;  /* copied into fire_funcobj's own AttributeList; we own it */
+	  return;
+	}
 	/* batch (stack_arg_post_eval_nargsfixed/stack_keys_post_eval), not
 	   per-i/per-id post-eval calls: each one re-reads stack_top() as its
 	   own anchor bookmark, which a push_stack() of a prior result would
@@ -560,7 +578,6 @@ void NilFunc::execute() {
 	   bookmarks up front, before evaluating anything, and neither
 	   disturbs the shared stack in a way the other depends on, so
 	   either order is safe -- positionals, then keywords, here. */
-	int n = nargsfixed();
 	ComValue** argvals = stack_arg_post_eval_nargsfixed();
 	AttributeList* keys = stack_keys_post_eval();
 	/* reset_stack() -- once, now that every arg is safely loaded into

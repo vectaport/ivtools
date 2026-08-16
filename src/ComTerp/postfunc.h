@@ -199,14 +199,54 @@ class FuncObj {
   // default) means no captures, the common case.
   ComValue& captures() { return _captures; }
 
+  // Lazy-argument flag (set by :posteval on the func() call that built this
+  // object).  An eager (default) call fully evaluates its positional and
+  // keyword arguments before the body ever runs -- arg()/keyword reads just
+  // index the already-materialized results.  A posteval call skips that
+  // step entirely: its arguments stay unevaluated, pedepth-marked tokens in
+  // the CALLING expression's own postfix buffer (the same "sit there until
+  // pulled" contract any other post_eval command's args already have), and
+  // are only resolved on demand -- arg(n) via stack_arg_post_eval, a
+  // keyword's first read-before-write via stack_key_post_eval -- reaching
+  // back into the caller's frame via top_servstate(), the same parked state
+  // every nested func call already leaves on the servstate stack for free.
+  boolean posteval() { return _posteval; }
+  void posteval(boolean p) { _posteval = p; }
+
   CLASS_SYMID("FuncObj");
 
  protected:
   postfix_token* _toks;
   int _ntoks;
   ComValue _captures;
+  boolean _posteval;
 };
-  
+
+//: marker for one still-unevaluated arg/keyword of a :posteval FuncObj call.
+// Sits directly in the SAME channel an eager call already uses for that
+// slot -- funcobj_argvals()[n] for a positional, _alist for a keyword --
+// so pulling and memoizing it in place (ComTerp::pull_funcobj_pending())
+// needs no separate storage or save/restore beyond what fire_funcobj()/
+// push_servstate() already do for those channels.  (offtop,tokcnt,pedepth)
+// locate the pending token span in the CALLING expression's own postfix
+// buffer, the same way any other post_eval command's own pending args do.
+class FuncObjPendingArg {
+ public:
+  FuncObjPendingArg(int offtop, int tokcnt, int pedepth)
+    : _offtop(offtop), _tokcnt(tokcnt), _pedepth(pedepth) {}
+
+  int offtop() { return _offtop; }
+  int tokcnt() { return _tokcnt; }
+  int pedepth() { return _pedepth; }
+
+  CLASS_SYMID("FuncObjPendingArg");
+
+ protected:
+  int _offtop;
+  int _tokcnt;
+  int _pedepth;
+};
+
 //: create token buffer object
 // funcobj=func(body) -- encapsulate a body of commands into an executable object
 class FuncObjFunc : public ComFunc {
@@ -215,11 +255,12 @@ public:
 
     virtual void execute();
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "funcobj=%s(body :echo) -- encapsulate a body of commands into an executable object"; }
+    virtual const char* docstring() {
+      return "funcobj=%s(body :echo :posteval) -- encapsulate a body of commands into an executable object"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":echo      echo the postfix version of parsed body",
+	":posteval  lazy call -- arguments stay unevaluated until arg()/a keyword is read",
 	nil
       };
       return keys;

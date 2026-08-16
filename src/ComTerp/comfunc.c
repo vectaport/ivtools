@@ -25,6 +25,7 @@
 #include <ComTerp/comfunc.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/postfunc.h>
 #include <ComUtil/comutil.h>
 #include <Attribute/attrlist.h>
 #include <string.h>
@@ -295,6 +296,58 @@ AttributeList* ComFunc::stack_keys_post_eval(boolean symbol, ComValue& dflt) {
       al->add_attr(key_symid, val);
     } else {
       al->add_attr(key_symid, dflt);
+    }
+  }
+  return al;
+}
+
+ComValue* ComFunc::bookmark_stack_arg_post_eval_nargsfixed() {
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  int argcnt;
+  for (int i=0; i<nkeys(); i++) {
+    argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+  }
+
+  int n = nargsfixed();
+  ComValue* markers = n>0 ? new ComValue[n] : nil;
+  for (int j=n; j>0; j--) {
+    argcnt = 0;
+    skip_arg_in_expr(offtop, argcnt);
+    FuncObjPendingArg* marker = new FuncObjPendingArg(offtop, argcnt, pedepth()+1);
+    markers[j-1] = ComValue(FuncObjPendingArg::class_symid(), (void*)marker);
+  }
+  return markers;
+}
+
+AttributeList* ComFunc::bookmark_stack_keys_post_eval() {
+  AttributeList* al = new AttributeList();
+  if (nkeys() == 0) return al;
+
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
+    fprintf(stderr, "comterp: bookmark_stack_keys_post_eval: offtop out of range "
+            "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
+            "or corrupt; upstream command likely failed to push its bookmark\n",
+            offtop, nkeys(), argoff.int_val(), (int)comterp()->_pfnum);
+    return al;
+  }
+  int count = 0;
+  while (count < nkeys()) {
+    ComValue& curr = comterp()->expr_top(offtop);
+    if (!curr.is_type(ComValue::KeywordType)) break;
+    int key_symid = curr.symbol_val();
+    count++;
+    int argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+    if (argcnt) {
+      FuncObjPendingArg* marker = new FuncObjPendingArg(offtop, argcnt, pedepth()+1);
+      ComValue markerval(FuncObjPendingArg::class_symid(), (void*)marker);
+      al->add_attr(key_symid, markerval);
+    } else {
+      al->add_attr(key_symid, ComValue::trueval());  /* bare :flag -- nothing to defer */
     }
   }
   return al;

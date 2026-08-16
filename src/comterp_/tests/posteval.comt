@@ -1,0 +1,98 @@
+// src/comterp_/tests/posteval.comt -- test :posteval lazy FuncObj arguments
+//
+// funcs: func arg if
+//
+// funcarg.comt documents that an ordinary FuncObj call is EAGER: its
+// positional/keyword arguments are fully evaluated before the body ever
+// runs, and a re-read of arg(n)/a keyword just returns the same
+// already-computed value ("the re-firing form awaits a future :posteval
+// keyword" -- this file exercises that keyword).
+//
+// A :posteval FuncObj call is lazy instead: none of its arguments are
+// evaluated at call time.  They stay as unevaluated tokens in the CALLING
+// expression's own postfix buffer -- the same "sit there until pulled"
+// contract any other post_eval command's args already have -- and are only
+// resolved on demand: arg(n) on its first read, a keyword on its first
+// read-before-write.  Once pulled, the result is memoized in place, so a
+// second read of the same arg/keyword does not re-evaluate it.
+//
+// Side effects are counted via a list append (hits,1) rather than a
+// captured/reassigned scalar counter: a bare scalar read before any local
+// write inside a func body gets captured by #310 at declaration time,
+// shadowing the outer variable -- a list is a reference type, so mutating
+// it through a func body's capture is visible outside (see funcarg.comt's
+// own note on test 9/10 for the read-before-write capture rule this
+// exploits deliberately here, not works around).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./posteval.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: an arg never read by the body is never evaluated at all ---
+hits=list()
+f1=func(c=arg(0); if(c :then arg(1) :else -1) :posteval)
+r1=f1(false hits,1)
+ok=ok&&(r1==-1)&&(size(hits)==0)
+print("1 f1(:posteval); f1(false <side-effecting arg1>) never touches arg1 (expect -1 0): %v %v\n\n" r1 size(hits))
+check_fail(:ok ok)
+
+// --- test 2: the same arg, actually read, IS evaluated ---
+r2=f1(true hits,1)
+ok=ok&&(size(hits)==1)
+print("2 f1(true <side-effecting arg1>) does touch arg1 (expect size 1): %v\n\n" size(hits))
+check_fail(:ok ok)
+
+// --- test 3: arg(n) memoizes -- two reads, one evaluation ---
+hits2=list()
+bump=func(hits2,1; size(hits2))
+f3=func(a=arg(0); b=arg(0); a+b :posteval)
+r3=f3(bump())
+ok=ok&&(r3==2)&&(size(hits2)==1)
+print("3 f3(a=arg(0);b=arg(0);a+b); f3(bump()) reads arg(0) twice, evals once (expect 2 1): %v %v\n\n" r3 size(hits2))
+check_fail(:ok ok)
+
+// --- test 4: keyword laziness -- unread keyword never evaluated ---
+hits3=list()
+g4=func(c=arg(0); if(c :then y :else -2) :posteval)
+r4=g4(false :y (hits3,1))
+ok=ok&&(r4==-2)&&(size(hits3)==0)
+print("4 g4(:posteval); g4(false :y <side-effecting>) never touches y (expect -2 0): %v %v\n\n" r4 size(hits3))
+check_fail(:ok ok)
+
+// --- test 5: the same keyword, actually read, IS evaluated ---
+r5=g4(true :y (hits3,1))
+ok=ok&&(size(hits3)==1)
+print("5 g4(true :y <side-effecting>) does touch y (expect size 1): %v\n\n" size(hits3))
+check_fail(:ok ok)
+
+// --- test 6: keyword memoization -- two reads, one evaluation ---
+hits4=list()
+bump2=func(hits4,1; size(hits4))
+h6=func(y+y :posteval)
+r6=h6(:y bump2())
+ok=ok&&(r6==2)&&(size(hits4)==1)
+print("6 h6(y+y); h6(:y bump2()) reads y twice, evals once (expect 2 1): %v %v\n\n" r6 size(hits4))
+check_fail(:ok ok)
+
+// --- test 7: same-chain forward reference -- NilFunc's dynamic gate (#328)
+// wraps a :posteval target's args as pending instead of eagerly resolving
+// them, same laziness as an already-defined call ---
+hits5=list()
+fwd=func(c=arg(0); if(c :then arg(1) :else -3) :posteval); r7=fwd(false hits5,1)
+ok=ok&&(r7==-3)&&(size(hits5)==0)
+print("7 fwd=func(:posteval)(same chain); fwd(false <side-effecting arg1>) still lazy (expect -3 0): %v %v\n\n" r7 size(hits5))
+check_fail(:ok ok)
+
+// --- test 8: an ordinary (non-posteval) func is unaffected -- still eager,
+// still fires a positional's side effect exactly once up front ---
+hits6=list()
+f8=func(arg(0))
+r8=f8(hits6,1)
+ok=ok&&(size(hits6)==1)
+print("8 f8=func(arg(0)) (no :posteval); f8(<side-effecting>) still eager (expect size 1): %v\n\n" size(hits6))
+check_fail(:ok ok)
+
+print("posteval: %v\n" ok)
+ok

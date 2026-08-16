@@ -362,10 +362,12 @@ void SwitchFunc::execute() {
 
 /*****************************************************************************/
 int FuncObj::_symid = -1;
+int FuncObjPendingArg::_symid = -1;
 
 FuncObj::FuncObj(postfix_token* toks, int ntoks) {
   _toks = toks;
   _ntoks = ntoks;
+  _posteval = false;
 }
 
 FuncObj::~FuncObj() { 
@@ -383,6 +385,8 @@ void FuncObjFunc::execute() {
   postfix_token* tokbuf = copy_stack_arg_post_eval(0, toklen);
   static int echo_symid = symbol_add("echo");
   ComValue echov(stack_key_post_eval(echo_symid));
+  static int posteval_symid = symbol_add("posteval");
+  ComValue postevalv(stack_key_post_eval(posteval_symid));
   reset_stack();
   if (!tokbuf)
     push_stack(ComValue::nullval());
@@ -390,6 +394,7 @@ void FuncObjFunc::execute() {
     if (echov.is_true())
       comterp()->postfix_echo(tokbuf, toklen);
     FuncObj* tokbufobj = new FuncObj(tokbuf, toklen);
+    tokbufobj->posteval(postevalv.is_true());
 
     /* #310: capture this body's free variables (read-only or
        read-before-write, per #170's taxonomy -- see funcobjscan.h) at

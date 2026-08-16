@@ -186,6 +186,20 @@ public:
     // of them, the same relationship stack_arg_post_eval_nargsfixed() has
     // to a per-index stack_arg_post_eval() loop.
 
+    ComValue* bookmark_stack_arg_post_eval_nargsfixed();
+    // same token-span walk as stack_arg_post_eval_nargsfixed(), but never
+    // evaluates anything -- each fixed positional's span becomes a
+    // FuncObjPendingArg marker (postfunc.h) in the returned array instead
+    // of a real value.  Used by NilFunc's dynamic gate (#328) when its
+    // resolved target is :posteval, so the args stay unevaluated exactly
+    // the way FuncObj::posteval() promises.
+
+    AttributeList* bookmark_stack_keys_post_eval();
+    // same, for keywords: each keyword with a value span becomes a
+    // FuncObjPendingArg marker; a bare :flag (no value token to defer)
+    // still gets ComValue::trueval() directly, same as the eager path,
+    // since there's nothing to defer.
+
     void funcid(int id) { _funcid = id; }
     // set symbol id of name for func
     int funcid() const { return _funcid; }
