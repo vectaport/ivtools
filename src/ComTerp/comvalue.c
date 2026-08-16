@@ -112,7 +112,17 @@ ComValue::ComValue(postfix_token* token) {
     clear();
     void* v1 = &_v;
     void* v2 = &token->v;
-    memcpy(v1, v2, sizeof(_v));
+    /* sizeof(token->v), not sizeof(_v): token->v is postfix_token's own
+       8-byte data_value union (ComUtil/comterp.h), narrower than
+       ComValue's 16-byte attr_value union (Attribute/attrvalue.h) -- a
+       stray sizeof(_v) here read 8 bytes past token->v into its own
+       adjacent type/narg fields, reinterpreted as the tail of whichever
+       multi-field union member (symval, objval, streamval, ...) this
+       token's type selects.  clear() already zeroed the full _v above,
+       so bounding the copy to the source's true size is always safe --
+       data_value's own widest member is 8 bytes, so no real payload is
+       ever lost by not reading further. */
+    memcpy(v1, v2, sizeof(token->v));
     switch (token->type) {
     case TOK_STRING:  type(StringType); break;
     case TOK_CHAR:    type(CharType); break;
