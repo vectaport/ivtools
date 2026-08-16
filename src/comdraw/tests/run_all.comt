@@ -51,5 +51,13 @@ if(run("./zoomap.comt")
   :then print("pass: zoomap\n")
   :else print("FAIL: zoomap\n");ok=false)
 
+if(run("./spirograph.comt")
+  :then print("pass: spirograph\n")
+  :else print("FAIL: spirograph\n");ok=false)
+
+if(run("./deletestream.comt")
+  :then print("pass: deletestream\n")
+  :else print("FAIL: deletestream\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

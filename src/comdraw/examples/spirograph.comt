@@ -13,8 +13,9 @@
 //
 // HOW IT WORKS (the three layers, same as zoomap.comt):
 //   1. the MACHINE  -- funcs that compute where the pen goes
-//   2. the DATA     -- setattr() sticks each curve's recipe onto it,
-//                      so recipes() can read back re-typeable commands
+//   2. the DATA     -- setattr() sticks each curve's recipe onto it
+//                      (and even a method, curve.recipe(), that reads
+//                      its own recipe back out loud -- see spiro() below)
 //   3. the QUESTIONS-- magic words at the prompt drive the machine
 //
 // THE CURVE, AND WHY closedspline() INSTEAD OF multiline():
@@ -90,11 +91,21 @@ spiro=func(
   lam2=(2+cos(k*h))/3;
   Ac=A/lam1;
   Dc=d/lam2;
+  // the whole trail, in one pass each: h*(0..(n-1)) is a fresh 0..n-1
+  // range stream every time it's written, overdriven straight through
+  // cos()/sin() -- no per-point loop for the math itself.  (Note the
+  // parens around n-1: .. binds TIGHTER than -, so a bare 0..n-1 would
+  // parse as (0..n)-1, one point too many -- ask the machine why with
+  // postfix(0..n-1) if you don't believe it.)
+  xs=list(int(round(cx+Ac*cos(h*(0..(n-1)))+s*Dc*cos(k*h*(0..(n-1))))));
+  ys=list(int(round(cy+Ac*sin(h*(0..(n-1)))-Dc*sin(k*h*(0..(n-1))))));
+  // zip xs and ys into ONE flat x0,y0,x1,y1,... list, the shape
+  // closedspline() wants: $$xs,$$ys chains two fresh streams through the
+  // comma-append idiom (pts,val appends val's elements) -- , zips
+  // co-iterating streams per-element rather than nesting them, so this
+  // one line drains both in lockstep instead of a per-point loop.
   pts=list();
-  for(i=0 i<n i++
-    t=h*i;
-    pts,int(round(cx+Ac*cos(t)+s*Dc*cos(k*t)));
-    pts,int(round(cy+Ac*sin(t)-Dc*sin(k*t))));
+  pts,$$xs,$$ys;
   // one closed spline from the whole point list.  the commas in
   // closedspline(x0,y0,x1,y1,...) are the tuple operator, so the
   // familiar syntax builds ONE list arg -- a list variable is the
@@ -112,6 +123,13 @@ spiro=func(
   curve.name="spiro";
   curve.R=R; curve.r=r; curve.d=d;
   curve.epi=eflag; curve.color=color; curve.pts=n;
+  // the curve can tell you its own recipe, self-bound: curve.recipe()
+  // reads R/r/d/epi/color/pts straight off the object it's called on,
+  // no arguments, same trick as ducktyping.comt's obj.method().
+  curve.recipe=func(
+    print("  spiro(%d %d %d" R r d);
+    if(epi==1 :then print(" :epi"));
+    print(" :color %v)   -- %d spline points\n" color pts));
   // styling the curve also set the editor's CURRENT style -- put it
   // back to the startup default so the next shape isn't born a spiro.
   select(:clear);
@@ -139,22 +157,19 @@ surprise=func(
   r=int(round(rand(16,48)));
   R=int(round(rand(1.8*r,3.4*r)));
   d=int(round(rand(0.4*r,1.1*r)));
-  c=at(spiropal int(round(rand(0,size(spiropal)-1))));
+  c=spiropal@int(round(rand(0,size(spiropal)-1)));
   print("How about...  spiro(%d %d %d :color %v)\n" R r d c);
   spiro(R r d :color c))
 
 // recipes() -- every curve on the paper tells you the exact command
-// that draws it (copy one, change a number, see what happens!)
+// that draws it (copy one, change a number, see what happens!).
+// $$(frame()) streams the paper's components one at a time; *cs pulls
+// the next one (star-next, sugar for next(cs)) until the stream ends.
 recipes=func(
-  n=size(frame());
+  cs=$$(frame());
   found=0;
-  for(qi=0 qi<n qi++
-    g=at(frame() qi);
-    if(g.R!=nil :then
-      found=found+1;
-      print("  spiro(%d %d %d" g.R g.r g.d);
-      if(g.epi==1 :then print(" :epi"));
-      print(" :color %v)   -- %d spline points\n" g.color g.pts)));
+  while(g=*cs
+    if(g.R!=nil :then found=found+1; g.recipe()));
   if(found==0 :then print("The paper is empty! Try spiro(96 36 60) or gallery()\n"));
   found)
 
@@ -189,47 +204,48 @@ spin=func(
 orbit=func(
   steps=arg(0);
   if(steps==nil :then steps=150);
+  // one pass over the paper, streamed, to find the spirographs
   bodies=list();
-  n=size(frame());
-  for(oi=0 oi<n oi++ g=at(frame() oi); if(g.R!=nil :then bodies,g));
+  fs=$$(frame());
+  while(g=*fs if(g.R!=nil :then bodies,g));
   nb=size(bodies);
   if(nb<2 :then print("The cosmos needs at least two spirographs -- try gallery() first!\n"));
   if(nb<2 :then return(nil));
   // the sun: everyone's average center (the center of gravity)
   sx=0.0; sy=0.0;
-  for(oi=0 oi<nb oi++ c=center(at(bodies oi)); sx=sx+at(c 0); sy=sy+at(c 1));
+  for(oi=0 oi<nb oi++ c=center(bodies@oi); sx=sx+c@0; sy=sy+c@1);
   sx=sx/nb; sy=sy/nb;
   if(sunx!=nil :then sx=1.0*sunx);
   if(suny!=nil :then sy=1.0*suny);
   w=0.03; K=w*w;
   vxs=list(); vys=list(); rads=list(); spins=list();
   for(oi=0 oi<nb oi++
-    g=at(bodies oi); c=center(g); box=mbr(g);
-    vxs,(0.0-w)*(at(c 1)-sy);
-    vys,w*(at(c 0)-sx);
-    rads,(at(box 2)-at(box 0)+at(box 3)-at(box 1))/4.0;
+    g=bodies@oi; c=center(g); box=mbr(g);
+    vxs,(0.0-w)*(c@1-sy);
+    vys,w*(c@0-sx);
+    rads,(box@2-box@0+box@3-box@1)/4.0;
     if(oi%2==0 :then spins,3 :else spins,-3));
   handles(false);
   for(st=0 st<steps st++
     for(oi=0 oi<nb oi++
-      g=at(bodies oi); c=center(g);
-      px=at(c 0); py=at(c 1);
+      g=bodies@oi; c=center(g);
+      px=c@0; py=c@1;
       ax=K*(sx-px); ay=K*(sy-py);
       for(oj=0 oj<nb oj++
         if(oj!=oi :then
-          oc=center(at(bodies oj));
-          ddx=px-at(oc 0); ddy=py-at(oc 1);
+          oc=center(bodies@oj);
+          ddx=px-oc@0; ddy=py-oc@1;
           d=sqrt(ddx*ddx+ddy*ddy);
-          reach=at(rads oi)+at(rads oj);
+          reach=rads@oi+rads@oj;
           if((d>1)&&(d<reach) :then
             push=0.4*(reach-d)/reach;
             ax=ax+push*ddx/d;
             ay=ay+push*ddy/d)));
-      at(vxs oi :set at(vxs oi)+ax);
-      at(vys oi :set at(vys oi)+ay);
+      vxs@oi=vxs@oi+ax;
+      vys@oi=vys@oi+ay;
       select(g);
-      move(at(vxs oi) at(vys oi));
-      rotate(at(spins oi)));
+      move(vxs@oi vys@oi);
+      rotate(spins@oi));
     select(:clear);
     update(5000));
   handles(true);
@@ -237,13 +253,166 @@ orbit=func(
   update();
   print("The cosmos settles down.  (orbit(300) runs longer; clearpaper() starts over.)\n"))
 
-// clearpaper() -- fresh sheet (collect first, THEN delete --
-// never delete out from under the list you are walking)
+// orb3d([steps]) -- like orbit(), but in three dimensions: every
+// spirograph orbits the shared center of gravity through real (x,y,z)
+// space, and the paper shows a perspective PROJECTION of that -- nearer
+// bodies grow (scale()) and get drawn on top (back(), painter's-algorithm
+// style: nearest processed first, farthest last, so each later back()
+// buries an object one level deeper and the nearest ends up on top),
+// farther bodies shrink and recede.  (:sunx :suny :sunz pin the sun
+// instead of the average -- same "not :cx :cy" name choice as orbit(),
+// same reason: an unpassed keyword falls through to any same-named
+// global, so the sun needs a name nobody has lying around.)
+//
+// orbit()'s own trick for avoiding drift -- re-reading center() every
+// step instead of accumulating position as state -- doesn't carry over
+// here: the SCREEN position is a projection of the true 3D position, not
+// the true position itself, so there's no screen value to read back
+// FROM.  Position genuinely has to be tracked as float state (txs/tys/
+// tzs) and integrated each step.  That turns out fine: the integer
+// rounding orbit() was guarding against happens only in move()'s own
+// pixel rounding, which never feeds back into this float state the way
+// it would if the state WERE the screen position.  That also means the
+// true x/y, like z, must be stashed as curve.orb3d_x/orb3d_y and read
+// back from there on a continuing call -- re-seeding from center()
+// would read back last call's PROJECTED screen position instead of the
+// true one, and re-projecting an already-projected position is a second
+// projection: a visible seam even though z/velocity/spin carried over
+// cleanly.
+orb3d=func(
+  steps=arg(0);
+  if(steps==nil :then steps=150);
+  bodies=list();
+  fs=$$(frame());
+  while(g=*fs if(g.R!=nil :then bodies,g));
+  nb=size(bodies);
+  if(nb<2 :then print("The cosmos needs at least two spirographs -- try gallery() first!\n"));
+  if(nb<2 :then return(nil));
+  sz=0.0;
+  if(sunz!=nil :then sz=1.0*sunz);
+  D=500.0;  // viewing distance for the perspective projection
+  w=0.03; K=w*w;
+  // true 3D state.  A curve going through orb3d() for the first time
+  // seeds x,y from its current screen position (nothing's been projected
+  // yet, so screen position IS true position) and gets the fresh,
+  // evenly-spread starting depth/velocity/spin.  A continuing curve
+  // reads true x/y/z/velocity/spin/scale-baseline back from curve.orb3d_*
+  // fields (stashed below, the same "every curve is yours" idiom as
+  // curve.recipe()) instead -- x,y included, since center() would only
+  // hand back last call's PROJECTED screen position.  Without this,
+  // orb3d();orb3d() would either re-run the fresh-start formula every
+  // call (a jolt in depth/velocity/spin) or re-project an already-
+  // projected x,y (a jolt in position) right at the seam between calls.
+  //
+  // sx,sy (the shared center of gravity) have to be averaged from these
+  // same TRUE positions too, not from center() -- a continuing body's
+  // center() is last call's PROJECTED screen position, and projected
+  // positions don't average to the true sun (each body's own perc
+  // scales its offset from the sun differently).  A sun rebuilt from
+  // projected centers drifts off the true one every call, dragging both
+  // the spring physics and the projection origin along with it.  So
+  // this needs two passes: true positions first (independent of
+  // sx,sy), then sx,sy from those positions, then -- only for bodies
+  // starting fresh here -- the initial circular-orbit velocity, which
+  // DOES need the now-correct sx,sy to aim tangent to the sun.
+  txs=list(); tys=list(); tzs=list();
+  vxs=list(); vys=list(); vzs=list();
+  rads=list(); spins=list(); percs=list();
+  for(oi=0 oi<nb oi++
+    g=bodies@oi; c=center(g);
+    if(g.orb3d_z!=nil :then
+      txs,g.orb3d_x; tys,g.orb3d_y;
+      tzs,g.orb3d_z; vxs,g.orb3d_vx; vys,g.orb3d_vy; vzs,g.orb3d_vz;
+      percs,g.orb3d_perc; spins,g.orb3d_spin;
+      // true radius too, for the same reason as x/y/z -- mbr(g) right
+      // now would read the graphic's PERSPECTIVE-SCALED bounds (this
+      // body was left mid-scale(ratio ratio) at whatever depth the last
+      // call ended on), not its canonical size.  A collision reach
+      // rebuilt from that every call would drift with depth instead of
+      // staying constant, the same class of bug as sx/sy above.
+      rads,g.orb3d_rad
+     :else
+      txs,c@0; tys,c@1;
+      tzs,sz+(oi-(nb-1)/2.0)*100.0;
+      vxs,0.0; vys,0.0; vzs,0.0;
+      percs,1.0;
+      if(oi%2==0 :then spins,3 :else spins,-3);
+      // nothing's scaled this graphic yet, so mbr() right now IS the
+      // canonical size -- the one and only time it's safe to read it.
+      box=mbr(g);
+      rads,(box@2-box@0+box@3-box@1)/4.0));
+  sx=0.0; sy=0.0;
+  for(oi=0 oi<nb oi++ sx=sx+txs@oi; sy=sy+tys@oi);
+  sx=sx/nb; sy=sy/nb;
+  if(sunx!=nil :then sx=1.0*sunx);
+  if(suny!=nil :then sy=1.0*suny);
+  for(oi=0 oi<nb oi++
+    g=bodies@oi;
+    if(g.orb3d_z==nil :then
+      vxs@oi=(0.0-w)*(tys@oi-sy); vys@oi=w*(txs@oi-sx)));
+  handles(false);
+  for(st=0 st<steps st++
+    for(oi=0 oi<nb oi++
+      px=txs@oi; py=tys@oi; pz=tzs@oi;
+      ax=K*(sx-px); ay=K*(sy-py); az=K*(sz-pz);
+      for(oj=0 oj<nb oj++
+        if(oj!=oi :then
+          ox=txs@oj; oy=tys@oj; oz=tzs@oj;
+          ddx=px-ox; ddy=py-oy; ddz=pz-oz;
+          d=sqrt(ddx*ddx+ddy*ddy+ddz*ddz);
+          reach=rads@oi+rads@oj;
+          if((d>1)&&(d<reach) :then
+            push=0.4*(reach-d)/reach;
+            ax=ax+push*ddx/d;
+            ay=ay+push*ddy/d;
+            az=az+push*ddz/d)));
+      vxs@oi=vxs@oi+ax; vys@oi=vys@oi+ay; vzs@oi=vzs@oi+az;
+      txs@oi=txs@oi+vxs@oi; tys@oi=tys@oi+vys@oi; tzs@oi=tzs@oi+vzs@oi);
+    // painter's algorithm: sort by ascending z (nearest first), so
+    // calling back() in that order buries the farthest body deepest and
+    // leaves the nearest body implicitly on top
+    order=list(0..(nb-1));
+    for(oa=1 oa<nb oa++
+      key=order@oa; kz=tzs@key; ob=oa-1;
+      while(ob>=0 && tzs@(order@ob)>kz
+        order@(ob+1)=order@ob; ob=ob-1);
+      order@(ob+1)=key);
+    for(oi=0 oi<nb oi++
+      qi=order@oi;
+      g=bodies@qi;
+      perc=D/(D+tzs@qi-sz);
+      screenx=sx+(txs@qi-sx)*perc;
+      screeny=sy+(tys@qi-sy)*perc;
+      c=center(g);
+      select(g);
+      move(screenx-c@0 screeny-c@1);
+      rotate(spins@qi);
+      ratio=perc/percs@qi;
+      scale(ratio ratio);
+      percs@qi=perc;
+      back());
+    select(:clear);
+    update(5000));
+  // stash each body's final true position/depth/velocity/spin/scale-
+  // baseline/radius on the curve itself, for the next orb3d() call (if
+  // any) to continue from
+  for(oi=0 oi<nb oi++
+    g=bodies@oi;
+    g.orb3d_x=txs@oi; g.orb3d_y=tys@oi;
+    g.orb3d_z=tzs@oi; g.orb3d_vx=vxs@oi; g.orb3d_vy=vys@oi; g.orb3d_vz=vzs@oi;
+    g.orb3d_perc=percs@oi; g.orb3d_spin=spins@oi; g.orb3d_rad=rads@oi);
+  handles(true);
+  select(:clear);
+  update();
+  print("The cosmos settles into three dimensions.  (orb3d(300) runs longer; clearpaper() starts over.)\n"))
+
+// clearpaper() -- fresh sheet.  $$(frame()) snapshots the paper's
+// components into an independent stream/copy (frame() itself is left
+// alone), so deleting each one as *doomed pulls it never mutates the
+// very list being walked.
 clearpaper=func(
-  doomed=list();
-  n=size(frame());
-  for(ci=0 ci<n ci++ doomed,at(frame() ci));
-  for(ci=0 ci<size(doomed) ci++ delete(at(doomed ci)));
+  doomed=$$(frame());
+  while(g=*doomed delete(g));
   select(:clear);
   update();
   print("Fresh paper!\n"))
@@ -269,11 +438,18 @@ spirohelp=func(
   print("  recipes()        -- every curve tells you its own command\n");
   print("  spin()           -- the whole drawing wiggle-dances\n");
   print("  orbit()          -- the spirographs become planets! (needs 2+)\n");
+  print("  orb3d()          -- orbit(), but in 3-D: nearer planets grow and\n");
+  print("                      come to the front, farther ones shrink back\n");
+  print("                      (orb3d();orb3d() picks up right where it left\n");
+  print("                      off -- no jump at the seam between calls)\n");
   print("  clearpaper()     -- fresh sheet\n");
   print("  oops()           -- the machine explains your last error\n");
   print("SECRETS: every curve is YOURS -- grab one and decorate it:\n");
   print("  c=surprise(); c.nickname=\"whirly\"; c.nickname\n");
-  print("  (a dot writes a fact on the curve; recipes() reads c.R the same way)\n");
+  print("  (a dot writes a fact on the curve; recipes() reads c.R the same way --\n");
+  print("  and c.recipe() alone says the exact spiro(...) that drew it)\n");
+  print("SECRETS: a lone stream at the prompt drains itself and shows its count\n");
+  print("  instead of just vanishing -- try:  $$(frame())\n");
   print("SECRETS: more teeth in common = fewer petals -- petals = R/gcd(R r),\n");
   print("  rolling inside OR outside (the pen's distance from the center\n");
   print("  swells and shrinks R/r times per trip around, r/gcd trips).\n");

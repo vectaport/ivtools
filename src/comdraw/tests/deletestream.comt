@@ -1,0 +1,42 @@
+// src/comdraw/tests/deletestream.comt -- regression coverage for the
+// delete($$frame) idiom: clearing the whole canvas by feeding delete()
+// a stream directly, instead of looping with at()/delete() by hand.
+//
+// $$frame forks frame() (bare, no parens needed) into an independent
+// stream -- a snapshot of what's on the paper right now -- and delete()
+// drains it itself, deleting each graphic in turn.  Because $$ snapshots
+// eagerly, this is safe even though delete() is shrinking the very list
+// frame() would report if called again: the stream isn't re-querying
+// frame() as it goes, so there's no self-mutation-during-iteration bug
+// to work around, and no explicit while/at() loop is needed either.
+//
+// funcs: delete
+ok=true
+
+// same reasoning as zoomap.comt/spirograph.comt: run_all.comt shares one
+// comdraw process across every test file, so start from a clean canvas
+// regardless of what ran before this test.
+delete($$frame)
+
+// --- 1: delete($$frame) on an empty canvas -- a stream of nothing is a
+// no-op, not an error. ---
+delete($$frame)
+ok=ok&&(size(frame())==0)
+print("1 delete($$frame) on an empty canvas (expect 0): %v\n" size(frame()))
+
+// --- 2: delete($$frame) clears every graphic on the paper in one call,
+// no explicit loop. ---
+rect(10,10, 30,30); ellipse(60,60, 20,10); rect(100,100, 140,140)
+ok=ok&&(size(frame())==3)
+delete($$frame)
+ok=ok&&(size(frame())==0)
+print("2 delete($$frame) clears a 3-graphic canvas in one call (expect 0): %v\n" size(frame()))
+
+// --- 3: delete($$frame) again right after, still on an empty canvas --
+// confirms test 1 wasn't a fluke of nothing having been drawn yet. ---
+delete($$frame)
+ok=ok&&(size(frame())==0)
+print("3 delete($$frame) on an already-empty canvas, no error (expect 0): %v\n" size(frame()))
+
+print("deletestream: %v\n" ok)
+ok

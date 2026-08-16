@@ -1,0 +1,270 @@
+// src/comdraw/tests/spirograph.comt -- regression coverage for the
+// spirograph kid demo
+//
+// Loads src/comdraw/examples/spirograph.comt (draws the welcome flower)
+// and works through spirohelp()'s own magic words in roughly the order
+// it lists them: basic spiro(), a real geometric check of that curve's
+// exported PostScript against an independent reference, :epi, :color,
+// :cx/:cy, the three friendly-error branches (missing args, wheel too
+// big, wheel==ring), gallery(), recipes(), surprise(), the two SECRETS
+// (c.nickname dot-write persistence, c.recipe() self-description), the
+// auto-drain trick ($$(frame()) via each()'s equivalent count),
+// orbit()/orb3d() both on purpose too-small (1 body) and for real (10
+// bodies), spin(), oops(), and clearpaper() last since it wipes the
+// paper.  Exercises the real idioms from this PR -- @ replacing every
+// at(), curve.recipe() as a self-bound dot-closure, $$(frame())/*stream
+// walks in recipes()/clearpaper()/the body-collection passes, and
+// orb3d()'s 3-D extension -- through the actual demo script, not a
+// synthetic stand-in.
+//
+// funcs: spiro gallery surprise recipes spin orbit orb3d clearpaper oops
+ok=true
+
+// same reasoning as zoomap.comt: run_all.comt shares one comdraw process
+// across every test file, so clear the canvas first and this test's
+// counts hold regardless of what ran before it.  delete($$frame) --
+// see deletestream.comt -- forks frame() into a stream and drains it
+// straight into delete(), no explicit while/at() loop needed.
+delete($$frame)
+
+run("../examples/spirograph.comt")
+
+// --- 1: the welcome curve -- spiro(96 36 60 :color "#CC2200") at the
+// default cx=300 cy=300, drawn by the example itself on load ---
+ok=ok&&(size(frame())==1)
+w=at(frame() 0)
+ok=ok&&(w.R==96 && w.r==36 && w.d==60 && w.epi==0 && w.color=="#CC2200")
+print("1 welcome curve: 1 shape, spiro(96 36 60 :color #CC2200) (expect true true): %v %v\n" (size(frame())==1) (w.R==96&&w.r==36&&w.d==60&&w.epi==0&&w.color=="#CC2200"))
+
+// --- 2: the welcome curve's actual drawn GEOMETRY, not just its fields.
+// export(w path :eps) writes a real EPS file; idraw's closed-B-spline
+// operator lists its raw control points as plain "x y" lines right
+// before "N CBSpl" -- the exact same flat list spiro() built. Recompute
+// that list from scratch here (not by calling spiro()'s own code -- a
+// genuine independent reference, not a tautology) and diff every point.
+//
+// split(line :tokval) would do this token-parsing "properly" but calls
+// back into the full interpreter (run()) per token and misbehaves when
+// called repeatedly in a loop (spams "pushed more than a single value on
+// stack" -- a real, separate bug, unrelated to this PR, filed as #329).
+// :tokstr sidesteps that -- plain string tokens, no interpreter re-entry
+// -- but then int() on a non-numeric token silently returns garbage
+// (int("SetCFg")==207) instead of failing, so isnum() below does its own
+// character-level check before any conversion is trusted. ---
+isnum=func(
+  s=arg(0); slen=size(s); i=0; sawdigit=false; numok=true;
+  if(slen==0 :then numok=false);
+  while(i<slen && numok
+    c=at(s i);
+    if(c=='-' && i==0 :then i=i+1
+     :else if(c=='.' :then i=i+1
+      :else if(c>='0' && c<='9' :then sawdigit=true; i=i+1
+       :else numok=false))));
+  numok && sawdigit)
+
+export(w "/tmp/comdraw_spirograph_test_welcome.eps" :eps)
+epslines=$$(open("/tmp/comdraw_spirograph_test_welcome.eps"))
+epspts=list()
+while(epsline=*epslines
+  toks=split(epsline :tokstr);
+  if(size(toks)==2 && isnum(toks@0) && isnum(toks@1) :then epspts,int(toks@0); epspts,int(toks@1)))
+
+// independent reference: the exact formula from spiro()'s own comments,
+// recomputed here rather than reused
+refR=96; refr=36; refd=60; refs=1; refcx=300; refcy=300
+refA=refR-refs*refr
+refgcd=func(a=arg(0); b=arg(1); while(b!=0 t=b; b=a%b; a=t); a)
+refg=refgcd(refR refr)
+refturns=refr/refg
+refk=1.0*refA/refr
+refbusy=refA/refg
+if(refturns>refbusy :then refbusy=refturns)
+refn=10*refbusy
+if(refn<24 :then refn=24)
+if(refn>480 :then refn=480)
+refh=2*pi()*refturns/refn
+reflam1=(2+cos(refh))/3
+reflam2=(2+cos(refk*refh))/3
+refAc=refA/reflam1
+refDc=refd/reflam2
+refxs=list(int(round(refcx+refAc*cos(refh*(0..(refn-1)))+refs*refDc*cos(refk*refh*(0..(refn-1))))))
+refys=list(int(round(refcy+refAc*sin(refh*(0..(refn-1)))-refDc*sin(refk*refh*(0..(refn-1))))))
+refpts=list()
+for(i=0 i<refn i++ refpts,refxs@i; refpts,refys@i)
+
+geommatch=(size(refpts)==size(epspts))
+for(i=0 i<size(refpts) i++ geommatch=geommatch&&(refpts@i==epspts@i))
+ok=ok&&geommatch
+print("2 welcome curve's exported EPS geometry matches an independent reference, all %v points (expect true): %v\n" refn geommatch)
+
+// --- 3: orbit()/orb3d() with only 1 spirograph -- an empty-cosmos edge
+// case hit on purpose, same spirit as zoomap.comt's empty zoo.who().
+// Both print a message and return nil without touching the paper. ---
+r2a=orbit()
+r2b=orb3d()
+ok=ok&&(r2a==nil && r2b==nil && size(frame())==1)
+print("3 orbit()/orb3d() with 1 body: both nil, paper untouched (expect true): %v\n" (r2a==nil&&r2b==nil&&size(frame())==1))
+
+// --- 4: spiro(96 36 60) -- plain defaults again, a second copy of the
+// welcome curve's recipe ---
+sc3=spiro(96 36 60)
+ok=ok&&(sc3.R==96 && sc3.r==36 && sc3.d==60 && size(frame())==2)
+print("4 spiro(96 36 60) defaults, paper now 2 (expect true): %v\n" (sc3.R==96&&sc3.r==36&&sc3.d==60&&size(frame())==2))
+
+// --- 5: spiro(45 15 30 :epi) -- roll around the outside ---
+sc4=spiro(45 15 30 :epi)
+ok=ok&&(sc4.epi==1 && size(frame())==3)
+print("5 spiro(45 15 30 :epi) sets epi=1, paper now 3 (expect true): %v\n" (sc4.epi==1&&size(frame())==3))
+
+// --- 6: spiro(96 36 60 :color "#0066CC") -- pick the pen ---
+sc5=spiro(96 36 60 :color "#0066CC")
+ok=ok&&(sc5.color=="#0066CC" && size(frame())==4)
+print("6 spiro(... :color \"#0066CC\") (expect true): %v\n" (sc5.color=="#0066CC"&&size(frame())==4))
+
+// --- 7: spiro(96 36 60 :cx 150 :cy 450) -- park it elsewhere.
+// center()'s coordinate system has its own fixed origin offset from
+// cx/cy (confirmed live: every curve's center() sits at a CONSTANT
+// (+89,+163) from its cx,cy, regardless of R/r/d) -- not something this
+// test should hardcode, since that constant is a property of the page
+// setup, not of spiro() itself.  Compare against sc3 (cx=300 cy=300)
+// instead: the two curves' centers should differ by exactly the same
+// (dx,dy) their cx/cy did, with the fixed offset canceling out. ---
+sc6=spiro(96 36 60 :cx 150 :cy 450)
+c6=center(sc6); c3chk=center(sc3)
+dx=c6@0-c3chk@0; dy=c6@1-c3chk@1
+ok=ok&&(abs(dx-(150-300))<5 && abs(dy-(450-300))<5 && size(frame())==5)
+print("7 spiro(... :cx 150 :cy 450) offset from sc3 matches (150-300,450-300) (expect true): %v\n" (abs(dx-(150-300))<5&&abs(dy-(450-300))<5&&size(frame())==5))
+
+// --- 8: spiro() with no args -- the friendly "try three numbers"
+// branch, returns nil, draws nothing ---
+r7=spiro()
+ok=ok&&(r7==nil && size(frame())==5)
+print("8 spiro() no args: nil, paper still 5 (expect true): %v\n" (r7==nil&&size(frame())==5))
+
+// --- 9: spiro(5 10 3) -- wheel (10 teeth) bigger than the ring (5
+// teeth), no :epi to roll outside instead -- the "doesn't fit" branch ---
+r8=spiro(5 10 3)
+ok=ok&&(r8==nil && size(frame())==5)
+print("9 spiro(5 10 3) wheel doesn't fit: nil, paper still 5 (expect true): %v\n" (r8==nil&&size(frame())==5))
+
+// --- 10: spiro(50 50 10) -- wheel the same size as its ring, A=R-r=0,
+// just spins in place -- the third friendly-error branch ---
+r9=spiro(50 50 10)
+ok=ok&&(r9==nil && size(frame())==5)
+print("10 spiro(50 50 10) wheel==ring: nil, paper still 5 (expect true): %v\n" (r9==nil&&size(frame())==5))
+
+// --- 11: gallery() -- four classics at the four corners ---
+gallery()
+ok=ok&&(size(frame())==9)
+print("11 gallery() adds 4, paper now 9 (expect true): %v\n" (size(frame())==9))
+
+// --- 12: recipes() -- every curve on the paper is a spiro, so found
+// matches the paper count exactly.  recipes() is the star-next walk
+// ($$(frame())/*cs) calling each curve's own curve.recipe() method. ---
+r11=recipes()
+ok=ok&&(r11==9)
+print("12 recipes() finds all 9 (expect 9): %v\n" r11)
+
+// --- 13: surprise() -- the machine invents one within its documented
+// ranges (r 16..48, R roughly 1.8x..3.4x r, d roughly 0.4x..1.1x r --
+// a little slack below/above for round()'s own rounding at the edges) ---
+sc12=surprise()
+ok=ok&&(sc12.name=="spiro" && size(frame())==10)
+ok=ok&&(sc12.r>=14 && sc12.r<=50)
+ok=ok&&(sc12.R>=int(round(1.8*sc12.r))-2 && sc12.R<=int(round(3.4*sc12.r))+2)
+ok=ok&&(sc12.d>=int(round(0.4*sc12.r))-2 && sc12.d<=int(round(1.1*sc12.r))+2)
+print("13 surprise() invents a spiro within range, paper now 10 (expect true): %v\n" (sc12.name=="spiro"&&size(frame())==10))
+
+// --- 14: SECRETS -- every curve is yours, grab one and decorate it.
+// A dot-write persists as a real fact on the curve, same as any other
+// field spiro() itself sets. ---
+sc12.nickname="whirly"
+ok=ok&&(sc12.nickname=="whirly")
+print("14 c.nickname=\"whirly\"; c.nickname (expect whirly): %v\n" sc12.nickname)
+
+// --- 15: SECRETS -- c.recipe() says the exact spiro(...) that drew it,
+// straight off the object, no argument.  Pure smoke test: it prints,
+// there's nothing to capture, just confirm it runs without disturbing
+// the paper or the curve's own fields. ---
+sc12.recipe()
+ok=ok&&(size(frame())==10 && sc12.R!=nil)
+print("15 c.recipe() runs cleanly, curve untouched (expect true): %v\n" (size(frame())==10&&sc12.R!=nil))
+
+// --- 16: SECRETS -- a lone stream at the prompt drains itself and shows
+// its count instead of vanishing.  each($$(frame())) is the same count
+// the auto-drain trick would print, just captured as a real value
+// instead of only shown at the interactive prompt. ---
+r15=each($$(frame()))
+ok=ok&&(r15==10 && r15==size(frame()))
+print("16 each($$(frame())) matches the paper count (expect 10): %v\n" r15)
+
+// --- 17: orbit(5) with 10 bodies -- a few real physics steps.  The
+// paper count never changes (nobody's created or destroyed, just moved/
+// rotated), and a curve's own fields survive select()/move()/rotate()
+// untouched -- spot-checked on sc3 from test 3. ---
+orbit(5)
+ok=ok&&(size(frame())==10 && sc3.R==96 && sc3.r==36 && sc3.d==60)
+print("17 orbit(5) with 10 bodies: paper still 10, sc3's fields intact (expect true): %v\n" (size(frame())==10&&sc3.R==96&&sc3.r==36&&sc3.d==60))
+
+// --- 18: orb3d(5) with the same 10 bodies -- same invariants, plus
+// scale()/back() (orb3d()'s own additions over orbit()) leave fields
+// alone too. ---
+orb3d(5)
+ok=ok&&(size(frame())==10 && sc4.epi==1 && sc5.color=="#0066CC")
+print("18 orb3d(5) with 10 bodies: paper still 10, sc4/sc5's fields intact (expect true): %v\n" (size(frame())==10&&sc4.epi==1&&sc5.color=="#0066CC"))
+
+// --- 18b: orb3d();orb3d() -- true x/y must carry over as TRUE position,
+// not get re-seeded from the previous call's perspective-PROJECTED
+// screen position (the bug Greptile caught: a curve.orb3d_x/orb3d_y
+// stash was missing, so continuing bodies read center() -- last call's
+// projected screen center -- back in as if it were the true position,
+// double-projecting and producing a seam).  Single-step (steps=1) calls
+// make position a nearly pure Euler step (new = old + old velocity,
+// plus a tiny restoring acceleration bounded by K=w*w against a span of
+// a few hundred pixels, well under this tolerance) -- so continuity
+// holds this tightly only because the true position was carried
+// forward, not reconstructed from an already-projected screen point. ---
+orb3d(1)
+ox1=sc4.orb3d_x; oy1=sc4.orb3d_y; vx1=sc4.orb3d_vx; vy1=sc4.orb3d_vy
+orb3d(1)
+ox2=sc4.orb3d_x; oy2=sc4.orb3d_y
+ok=ok&&(abs(ox2-(ox1+vx1))<5.0 && abs(oy2-(oy1+vy1))<5.0)
+print("18b orb3d();orb3d() true x/y continuous, not re-projected (expect true): %v\n" (abs(ox2-(ox1+vx1))<5.0 && abs(oy2-(oy1+vy1))<5.0))
+
+// --- 18c: orb3d();orb3d() -- collision radius must stay the canonical
+// value, not get re-derived from mbr() (the bug Greptile caught next:
+// a continuing body's on-screen bounds are already perspective-scaled
+// by the previous call's scale(ratio ratio), so re-measuring mbr() every
+// call would drift the collision reach with depth instead of holding it
+// constant).  curve.orb3d_rad is set once, from the one call where
+// mbr() is still canonical, and just carried forward after that -- so
+// it should come back bit-for-bit identical across two more calls. ---
+orb3d(1)
+rad1=sc4.orb3d_rad
+orb3d(1)
+rad2=sc4.orb3d_rad
+ok=ok&&(rad1==rad2)
+print("18c orb3d();orb3d() collision radius stays canonical (expect true): %v\n" (rad1==rad2))
+
+// --- 19: spin() -- pure smoke, no useful return value to assert on,
+// same as zoomap.comt's zoo.dance() ---
+spin()
+ok=ok&&(size(frame())==10)
+print("19 spin() runs without error, paper still 10 (expect true): %v\n" (size(frame())==10))
+
+// --- 20: oops() -- no mistake waiting yet (every spiro() call above
+// that failed did so through a friendly print(), not a real interpreter
+// error), so oops() takes its "machine is happy" branch and returns nil
+// either way ---
+r19=oops()
+ok=ok&&(r19==nil)
+print("20 oops() with no error waiting (expect nil): %v\n" r19)
+
+// --- 21: clearpaper() -- fresh sheet, run last since it wipes
+// everything the tests above built up ---
+clearpaper()
+ok=ok&&(size(frame())==0)
+print("21 clearpaper() empties the paper (expect 0): %v\n" size(frame()))
+
+print("spirograph: %v\n" ok)
+ok
