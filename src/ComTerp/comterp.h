@@ -380,8 +380,15 @@ public:
     // serve the func's positionals instead of the script argv.
     int funcobj_narg() { return _funcobj_nargs; }
     // number of positional args of the current FuncObj invocation.
-    ComValue& funcobj_arg(int n);
-    // nth positional arg (eager value) of the current FuncObj invocation.
+    ComValue funcobj_arg(int n);
+    // nth positional arg of the current FuncObj invocation -- an
+    // already-materialized eager value, or (:posteval) pulled fresh on
+    // *every* call, never memoized: arg(n) has no lvalue form (no
+    // "arg(0)=..."), so there's no write-before-read escape the way a
+    // keyword has, and no write-through caller ever needs a stable
+    // address for it either. The idiom for caching a repeatedly-read
+    // arg inside a loop is the same as for any post_eval command's own
+    // operand: assign it to a local once, then read that local.
     ComValue* funcobj_argvals() { return _funcobj_argvals; }
     // return the current positional-argument array itself (nil if inactive),
     // for a caller that needs to save it before installing its own.
@@ -399,25 +406,32 @@ public:
     // reaches back into the caller's parked postfix buffer via
     // top_servstate() (the same frame push_servstate() already stashed
     // there for ordinary nested-call bookkeeping, nothing new to allocate)
-    // and runs post_eval_expr() against it.  Shared by funcobj_arg(), which
-    // pulls-and-memoizes a FuncObjPendingArg sitting in funcobj_argvals(),
-    // and (via pull_alist_pending() below) by every _alist lookup path.
+    // and runs post_eval_expr() against it.  Doesn't memoize anything
+    // itself -- that's the caller's job (funcobj_arg() never does;
+    // pull_alist_pending() below always does), this just runs the
+    // pending expression once, fresh, whenever it's called.
 
     AttributeValue* pull_alist_pending(AttributeList* al, int id, AttributeValue* found);
     // if 'found' (already the result of al->find(id)) is a still-pending
-    // FuncObjPendingArg marker, pull it via pull_funcobj_pending(), memoize
-    // the real value back into al under the same id, and return a pointer
-    // to that now-real entry; otherwise return 'found' unchanged.  A
-    // keyword arg is only ever reached through _alist -- there's no
-    // separate funcobj_argvals()-style channel for it the way a positional
-    // has -- so every one of _alist's several lookup call sites (the
-    // bare-variable-read fallthrough in eval_expr_internals, and both
-    // lookup_symval() overloads, which ComFunc::stack_arg/stack_key and
-    // ordinary operand resolution all route through for a symbol used as
-    // an operand rather than read standalone) needs this same check --
-    // that's the case a plain "y+y" exercises: y is never dispatched
-    // through eval_expr_internals's own SymbolType branch at all, it's
-    // just an operand add() resolves via lookup_symval.
+    // FuncObjPendingArg marker, pull it via pull_funcobj_pending() and
+    // write the real value back into al under the same id, so this and
+    // every later lookup of the same keyword see the same, already-
+    // resolved value -- a :posteval keyword is lazy (never evaluated
+    // until the body's first genuine read of it) but otherwise timed
+    // exactly like an ordinary func()'s eager keyword: evaluated once,
+    // just deferred from call-time to first-access.  All three _alist
+    // lookup call sites share this -- the bare-variable-read fallthrough
+    // in eval_expr_internals, lookup_symval(ComValue&) (which
+    // ComFunc::stack_arg/stack_key and ordinary operand resolution route
+    // through for a symbol used as an operand rather than read
+    // standalone -- the case a plain "y+y" exercises, since y there is
+    // never dispatched through eval_expr_internals's own SymbolType
+    // branch at all), and lookup_symval(ComValue*) (compound-assign's
+    // path, "y+=1": read the old value, then write the new one through
+    // the same pointer, ModAssignFunc et al in assignfunc.c -- needs a
+    // real, addressable, already-memoized slot to mutate in place).
+    // arg(n) is the one exception to all this -- see funcobj_arg()'s own
+    // comment for why positionals re-fire on every access instead.
 
     void set_args(int argc, char** argv);
     // set command line arguments

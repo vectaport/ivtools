@@ -661,13 +661,15 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	/* a :posteval keyword arg that hasn't been read yet sits here as a
 	   FuncObjPendingArg marker (postfunc.h) instead of a real value --
 	   pull_alist_pending() pulls it on this, its first read-before-write,
-	   and memoizes the real result back under the same id, so every later
-	   read (here or through lookup_symval(), the path an ordinary
-	   operand -- not a standalone reference -- resolves through) takes
-	   the ordinary fast path below.  A keyword the body only ever
-	   writes, or never reads at all, never reaches here with a write
-	   first (AssignFunc writes directly, it doesn't read through this
-	   path) -- true laziness, not just "resolved late". */
+	   and memoizes the real result back under the same id (matching
+	   plain func()'s own eager-keyword timing, just deferred to first
+	   access instead of call time -- see comterp.h's own note on this),
+	   so every later read (here or through lookup_symval(), the path an
+	   ordinary operand -- not a standalone reference -- resolves
+	   through) takes the ordinary fast path below.  A keyword the body
+	   only ever writes, or never reads at all, never reaches here with a
+	   write first (AssignFunc writes directly, it doesn't read through
+	   this path) -- true laziness, not just "resolved late". */
 	AttributeValue* val = pull_alist_pending(_alist, id, _alist->find(id));
 	/* a func-local FuncObj falls through to the same fire-check below as
 	   every other symbol reference, instead of returning early -- a
@@ -2281,12 +2283,12 @@ int ComTerp::narg_str() {
   return _narg_strs;
 }
 
-ComValue& ComTerp::funcobj_arg(int n) {
+ComValue ComTerp::funcobj_arg(int n) {
   if (!_funcobj_argvals || n<0 || n>=_funcobj_nargs)
     return ComValue::nullval();
   if (_funcobj_argvals[n].is_object(FuncObjPendingArg::class_symid())) {
     FuncObjPendingArg* marker = (FuncObjPendingArg*)_funcobj_argvals[n].obj_val();
-    _funcobj_argvals[n] = pull_funcobj_pending(marker);  /* memoize in place */
+    return pull_funcobj_pending(marker);  /* re-fires every call, never memoized */
   }
   return _funcobj_argvals[n];
 }

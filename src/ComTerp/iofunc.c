@@ -609,8 +609,8 @@ void GetArgFunc::execute() {
   int n = numv.int_val();
   if (comterp()->funcobj_active()) {
     /* inside a FuncObj body: nth positional -- an already-materialized
-       eager value, or (:posteval) pulled on demand and memoized in place
-       by funcobj_arg() itself, transparently either way. */
+       eager value, or (:posteval) pulled fresh on every call, transparently
+       either way (see ComTerp::funcobj_arg()'s own comment). */
     ComValue retval(comterp()->funcobj_arg(n));
     push_stack(retval);
     return;

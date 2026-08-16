@@ -12,9 +12,21 @@
 // evaluated at call time.  They stay as unevaluated tokens in the CALLING
 // expression's own postfix buffer -- the same "sit there until pulled"
 // contract any other post_eval command's args already have -- and are only
-// resolved on demand: arg(n) on its first read, a keyword on its first
-// read-before-write.  Once pulled, the result is memoized in place, so a
-// second read of the same arg/keyword does not re-evaluate it.
+// resolved on demand.  arg(n) and keyword access differ in what happens
+// after that first pull, though:
+//   - arg(n) re-fires the pending expression on EVERY call, with no
+//     memoization at all -- there's no lvalue form ("arg(0)=...") the way a
+//     keyword has, so there's nothing to protect by caching it, and this is
+//     what makes arg(n) useful inside a :posteval body's own loop: each
+//     call reads the live, current value, the same way any post_eval
+//     command's own operand (e.g. while's condition) gets re-evaluated
+//     every iteration.  The idiom for caching a repeatedly-read arg is the
+//     same one non-func code already uses: assign it to a local once.
+//   - a keyword is lazy but otherwise timed like plain func()'s own eager
+//     keywords: evaluated once, on its first read-before-write, then
+//     memoized -- a later read (or a write) sees that same value, it does
+//     not re-fire.  (Read-vs-loop laziness for keywords is a further
+//     refinement still being worked out -- not implemented yet.)
 //
 // Side effects are counted via a list append (hits,1) rather than a
 // captured/reassigned scalar counter: a bare scalar read before any local
@@ -44,13 +56,14 @@ ok=ok&&(size(hits)==1)
 print("2 f1(true <side-effecting arg1>) does touch arg1 (expect size 1): %v\n\n" size(hits))
 check_fail(:ok ok)
 
-// --- test 3: arg(n) memoizes -- two reads, one evaluation ---
+// --- test 3: arg(n) re-fires on every call -- two reads, two evaluations,
+// unlike a keyword (test 6 below) or an ordinary eager arg (test 8) ---
 hits2=list()
 bump=func(hits2,1; size(hits2))
 f3=func(a=arg(0); b=arg(0); a+b :posteval)
 r3=f3(bump())
-ok=ok&&(r3==2)&&(size(hits2)==1)
-print("3 f3(a=arg(0);b=arg(0);a+b); f3(bump()) reads arg(0) twice, evals once (expect 2 1): %v %v\n\n" r3 size(hits2))
+ok=ok&&(r3==3)&&(size(hits2)==2)
+print("3 f3(a=arg(0);b=arg(0);a+b); f3(bump()) reads arg(0) twice, evals twice (expect 3 2): %v %v\n\n" r3 size(hits2))
 check_fail(:ok ok)
 
 // --- test 4: keyword laziness -- unread keyword never evaluated ---
@@ -67,7 +80,10 @@ ok=ok&&(size(hits3)==1)
 print("5 g4(true :y <side-effecting>) does touch y (expect size 1): %v\n\n" size(hits3))
 check_fail(:ok ok)
 
-// --- test 6: keyword memoization -- two reads, one evaluation ---
+// --- test 6: keyword memoization -- two reads, one evaluation.  Unlike
+// arg(n) (test 3/9 above), a keyword stays memoized after its first read,
+// even across further reads inside a loop -- timed like plain func()'s own
+// eager keywords, just deferred to first access instead of call time ---
 hits4=list()
 bump2=func(hits4,1; size(hits4))
 h6=func(y+y :posteval)
@@ -92,6 +108,18 @@ f8=func(arg(0))
 r8=f8(hits6,1)
 ok=ok&&(size(hits6)==1)
 print("8 f8=func(arg(0)) (no :posteval); f8(<side-effecting>) still eager (expect size 1): %v\n\n" size(hits6))
+check_fail(:ok ok)
+
+// --- test 9: the actual point of arg(n) re-firing -- a while loop inside
+// the body reads a live, changing value each iteration, not a snapshot
+// from its first read.  4 condition checks (hits7 reaches 1,2,3,4, the
+// last one failing the <4 test) but only 3 loop bodies (n stops at 3) ---
+hits7=list()
+counter=func(hits7,1; size(hits7))
+loopf=func(n=0; while(arg(0)<4 n=n+1) n :posteval)
+r9=loopf(counter())
+ok=ok&&(r9==3)&&(size(hits7)==4)
+print("9 loopf=func(while(arg(0)<4 n=n+1) n); loopf(counter()) sees a fresh arg(0) each check (expect 3 4): %v %v\n\n" r9 size(hits7))
 check_fail(:ok ok)
 
 print("posteval: %v\n" ok)
