@@ -1170,12 +1170,26 @@ laziness of the control command and the laziness of the call compose for
 free, all the way back through a chain of `:posteval` calls, without
 either side needing to know the other exists.
 
-**The gate is dynamic, not frozen at parse time.** Whether a call is
-lazy depends on the *current* value of the name being called, checked at
-the moment it actually fires — the same discipline the dynamic
-NilFunc gate uses for forward references to a not-yet-defined name — so
-reassigning a name to a differently-flagged func between its definition
-and a later call is honored, not decided once and cached.
+**The gate is dynamic within the limits of one static classification
+pass.** A whole `;`-joined statement chain is tokenized and classified
+once, before any of it runs — the same fact issue #328 is built around.
+Two cases correctly stay dynamic across that: an *undefined* name (the
+original #328 forward-reference shape) and a name that's *already*
+`:posteval` at that single classification pass — both get pedepth-marked
+so the real dispatch-time gate re-checks the *current* value right when
+the call fires, honoring a reassignment that happened earlier in the same
+chain (or on an earlier line entirely — the ordinary case: define on one
+line, call on a later one). What does *not* stay dynamic: a name that
+resolves to an already-*eager* `FuncObj` at that same classification
+pass never gets pedepth-marked at all, so its arguments are evaluated
+immediately by the ordinary eager path — before a same-chain reassignment
+to `:posteval` earlier in that chain has even run. By the time the
+reassignment takes effect, the arguments are already gone; there's no
+token span left for any dispatch-time recheck to defer. Closing this gap
+fully would mean pedepth-deferring every call-shaped symbol reference
+unconditionally, not just undefined or already-`:posteval` ones, so the
+dynamic gate is consulted for literally every func call in the language —
+a much larger change than this feature makes on its own.
 
 ### Escaping the func scope: local() and global()
 

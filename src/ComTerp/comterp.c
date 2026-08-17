@@ -368,6 +368,27 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
   _funcobj_argvals = saved_argvals;
   _funcobj_nargs = saved_nargs;
   _funcobj_active = saved_active;
+  /* free any FuncObjPendingArg markers still standing at invocation end --
+     AttributeValue::unref_as_needed() (Attribute/attrvalue.c) only knows
+     how to clean up ArrayType/StreamType/StringType and (for ObjectType)
+     AttributeList/Attribute specifically, nothing generic for an arbitrary
+     ObjectType payload, so a marker nobody explicitly deletes just leaks.
+     A positional's marker is always still here regardless of whether
+     arg(n) ever pulled it (arg(n) never overwrites its own slot, see
+     funcobj_arg()); a keyword's marker only survives to here if it was
+     never read at all -- one that was gets replaced by
+     pull_alist_pending()'s own add_attr call, which deletes the old
+     marker there instead, right as it's overwritten. */
+  for (int i=0; i<npos; i++) {
+    if (posvals[i].is_object(FuncObjPendingArg::class_symid()))
+      delete (FuncObjPendingArg*)posvals[i].obj_val();
+  }
+  ALIterator alit;
+  for (al->First(alit); !al->Done(alit); al->Next(alit)) {
+    AttributeValue* attrval = al->GetAttr(alit)->Value();
+    if (attrval->is_object(FuncObjPendingArg::class_symid()))
+      delete (FuncObjPendingArg*)attrval->obj_val();
+  }
   delete [] posvals;
 }
 
@@ -2333,6 +2354,10 @@ AttributeValue* ComTerp::pull_alist_pending(AttributeList* al, int id, Attribute
   ComValue pulled(pull_funcobj_pending(marker));
   al->add_attr(id, pulled);  /* replaces the marker -- every later lookup
                                 of this id finds the real value directly */
+  delete marker;  /* add_attr() overwrote the slot that held it above --
+                      nothing else knows this is a FuncObjPendingArg and
+                      would otherwise free it (see fire_funcobj()'s own
+                      cleanup pass for a marker that's never read at all) */
   return al->find(id);
 }
 
