@@ -122,5 +122,18 @@ ok=ok&&(r9==3)&&(size(hits7)==4)
 print("9 loopf=func(while(arg(0)<4 n=n+1) n); loopf(counter()) sees a fresh arg(0) each check (expect 3 4): %v %v\n\n" r9 size(hits7))
 check_fail(:ok ok)
 
+// --- test 10: two distinct pending keywords that each resolve to a bare
+// FuncObj, compared by one eager binary command -- regression test for a
+// scratch-slot aliasing bug (Greptile, PR #333): stack_arg()'s two calls
+// (operand1 then operand2) used to return references into the SAME
+// shared fire_if_funcobj() scratch, so firing operand2 silently
+// overwrote operand1's already-returned value, making 1==2 read as
+// true.  Each fire now gets its own pool slot ---
+h10=func(a==b :posteval)
+r10=h10(:a func(1) :b func(2))
+ok=ok&&(r10==false)
+print("10 h10=func(a==b); h10(:a func(1) :b func(2)) two distinct fires, not aliased (expect false): %v\n\n" r10)
+check_fail(:ok ok)
+
 print("posteval: %v\n" ok)
 ok

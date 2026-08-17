@@ -1122,10 +1122,11 @@ g=func(c=arg(0); if(c :then arg(1) :else -1))
 g(false print("runs anyway\n"))   // prints "runs anyway" first, then -1
 ```
 
-**`arg(n)` re-fires on every call; a keyword is pulled once.** These two
-are timed differently on purpose. `arg(n)` has no lvalue form — there's no
-`arg(0)=...` — so there's nothing to protect by caching it, and re-running
-the pending expression on every call is what lets a `while` loop inside
+**Every access re-fires — `arg(n)` and a keyword alike.** An unwritten
+`:posteval` argument is a live tap, not a constant memoized on first
+read: each access re-runs the caller's expression fresh. This is the
+behavior a user would expect if the argument expression were literally
+inlined at each point of use, and it's what lets a `while` loop inside
 the body see a live, current value each iteration, the same way any
 post_eval command's own operand (`while`'s condition, for instance) is
 genuinely re-evaluated every pass:
@@ -1136,28 +1137,28 @@ counter=func(hits,1; size(hits))
 loopf=func(n=0; while(arg(0)<4 n=n+1) n :posteval)
 loopf(counter())   // 3 -- 4 condition checks (hits reaches 1,2,3,4), 3 loop bodies
 size(hits)         // 4
-```
 
-A keyword, by contrast, is lazy but otherwise timed exactly like a plain
-`func()`'s own eager keyword: evaluated once, on its first
-read-before-write, then memoized — a later read (or write) sees that same
-value, it does not re-fire, even from inside a loop:
-
-```
 side=list()
 bump=func(side,1; size(side))
 h=func(y+y :posteval)
-h(:y bump())   // 2 -- y is read twice, but bump() only ran once
-size(side)     // 1
+h(:y bump())   // 3 -- y is read twice, evals twice: bump()=1, then bump()=2, 1+2=3
+size(side)     // 2
 ```
+
+`arg(n)` has no lvalue form — there's no `arg(0)=...` — so there's
+nothing to protect by caching it. A keyword *can* be written (`y=5`),
+and any write (plain or compound) freezes it into an ordinary owned
+local from that point on — the same write-freezes convention #310's
+capture classifier already uses for a free variable — but a keyword
+that's only ever read stays a live tap for as long as it's read.
 
 Assigning to a keyword before ever reading it, or never reading it at
 all, means its argument expression never runs at all — the same
-write-before-read rule captures already use above, applied to a keyword
-argument instead of a free variable. The idiom for caching a
-repeatedly-read `arg(n)` inside a loop is the same one non-func code
+write-before-read rule captured above, applied to a keyword argument
+instead of a free variable. The idiom for pinning one draw of a
+repeatedly-read `arg(n)` or keyword is the same one non-func code
 already uses for any post_eval command's operand: assign it to a local
-once, then read that local from then on.
+once (`ycopy=y`), then read that local from then on.
 
 **Composes with any existing control command, no special-casing needed.**
 `if`/`while`/`switch` already selectively evaluate their own operands via
