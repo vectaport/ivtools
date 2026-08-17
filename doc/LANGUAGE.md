@@ -1160,6 +1160,29 @@ repeatedly-read `arg(n)` or keyword is the same one non-func code
 already uses for any post_eval command's operand: assign it to a local
 once (`ycopy=y`), then read that local from then on.
 
+**A keyword that resolves to a bare `FuncObj` is a value, not fired by
+merely reading it.** This is a deliberate exception to the "a standalone
+variable is a niladic call site everywhere" rule (see
+*istype()/isclass()/iscomm()/isfunc()* above) — an *ordinary* local or
+global reference to a `FuncObj`-bound name still fires exactly as
+documented there. A keyword's own value is different: once pulled, it's
+returned as-is, unfired, the same contract dot access on an attribute
+already has (*obj.method(args)* above) — `al.f` is a value, `al.f()`
+fires it. `a`/`b` here work the same way `al.f` does:
+
+```
+h=func(a==b :posteval)
+h(:a func(1) :b func(2))          // false -- two distinct, un-fired FuncObj's
+h2=func(a1=a(); b1=b(); a1==b1 :posteval)
+h2(:a func(1) :b func(2))         // false -- explicit () fires each, 1 != 2
+h2(:a func(5) :b func(5))         // true -- 5 == 5
+```
+
+The explicit-call form (`a()`) works already, independent of any of
+this — it's the same #328 dynamic-dispatch machinery an ordinary
+undefined-name call goes through, since `a` isn't itself a registered
+command.
+
 **Composes with any existing control command, no special-casing needed.**
 `if`/`while`/`switch` already selectively evaluate their own operands via
 the same on-demand mechanism (resolving one token-span bookmark at a

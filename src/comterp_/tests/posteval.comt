@@ -122,17 +122,30 @@ ok=ok&&(r9==3)&&(size(hits7)==4)
 print("9 loopf=func(while(arg(0)<4 n=n+1) n); loopf(counter()) sees a fresh arg(0) each check (expect 3 4): %v %v\n\n" r9 size(hits7))
 check_fail(:ok ok)
 
-// --- test 10: two distinct pending keywords that each resolve to a bare
-// FuncObj, compared by one eager binary command -- regression test for a
-// scratch-slot aliasing bug (Greptile, PR #333): stack_arg()'s two calls
-// (operand1 then operand2) used to return references into the SAME
-// shared fire_if_funcobj() scratch, so firing operand2 silently
-// overwrote operand1's already-returned value, making 1==2 read as
-// true.  Each fire now gets its own pool slot ---
+// --- test 10: a keyword-bound FuncObj is a VALUE, same contract dot-
+// access on an attribute already has (al.f is a value, al.f() fires
+// it) -- a bare reference inside the body never auto-fires it, not
+// even once the marker is pulled.  Side-effect probes (never bump'd)
+// are the definitive proof, not just the comparison result, since two
+// never-fired FuncObj's compared bare would read `false` either way
+// (distinct identities) whether or not this is actually working ---
+hits10=list()
+mk10=func(hits10,1; size(hits10))
 h10=func(a==b :posteval)
-r10=h10(:a func(1) :b func(2))
-ok=ok&&(r10==false)
-print("10 h10=func(a==b); h10(:a func(1) :b func(2)) two distinct fires, not aliased (expect false): %v\n\n" r10)
+r10=h10(:a func(mk10()) :b func(mk10()))
+ok=ok&&(r10==false)&&(size(hits10)==0)
+print("10 h10=func(a==b); h10(:a func(mk10()) :b func(mk10())) bare never fires (expect false 0): %v %v\n\n" r10 size(hits10))
+check_fail(:ok ok)
+
+// --- test 11: explicit () still fires a keyword-bound FuncObj, same as
+// al.f() would -- the #328 dynamic-gate machinery handles this already,
+// independent of the value-by-default rule test 10 checks ---
+hits11=list()
+mk11=func(hits11,1; size(hits11))
+h11=func(a1=a(); b1=b(); a1==b1 :posteval)
+r11=h11(:a func(mk11()) :b func(mk11()))
+ok=ok&&(r11==false)&&(size(hits11)==2)
+print("11 h11=func(a1=a();b1=b();a1==b1); explicit () fires each once (expect false 2): %v %v\n\n" r11 size(hits11))
 check_fail(:ok ok)
 
 print("posteval: %v\n" ok)

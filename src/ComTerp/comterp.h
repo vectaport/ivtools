@@ -149,28 +149,6 @@ public:
     // from every other case without forcing the one-time evaluation a
     // real pull would cost.
 
-    ComValue& fire_if_funcobj(ComValue& val);
-    // if 'val' resolves to a bare FuncObj, fire it (niladic call, same as
-    // an ordinary unguarded funcobj reference already does elsewhere) and
-    // return a reference to the result -- via a fresh slot in
-    // _fire_scratch_pool, NOT by writing back through 'val' itself, since
-    // 'val' may be a reference into _stack[] and firing pushes/pops
-    // internally (through fire_funcobj/EvalFunc, running the func body),
-    // which can dmm_realloc _stack (push_stack, comterp.c) and invalidate
-    // any reference taken before the call.  A fresh pool slot per call
-    // (not one reused slot) matters too: a caller that resolves two
-    // operands before consuming either must not have the second fire
-    // silently overwrite the first result out from under it.  A
-    // non-funcobj 'val' is returned unchanged, by reference, as a plain
-    // pass-through.
-    //
-    // The only place this actually fires anything is the deferred-
-    // :posteval-keyword case ComValue::is_funcobj() now declines to
-    // check early (see its own comment in comvalue.c) -- an ordinary
-    // eager symbol bound to a funcobj is already fired earlier, at push
-    // time in load_sub_expr, by is_funcobj's own unchanged fast path.
-    // ComFunc::stack_arg()/stack_key() are the callers, right after their
-    // own real (non-pending) resolution.
     AttributeValue* lookup_symval(ComValue*, boolean freeze=true);
     // look up a pointer to an AttributeValue associated with a symbol
     // (specified in the input ComValue) in the local or global symbol
@@ -619,23 +597,6 @@ protected:
     // only until the next peek/pull, never persisted into any AttributeList.
     // A pointer (not a plain member) because ComValue is only forward-
     // declared this early in the header; allocated once in init().
-
-    ComValue* _fire_scratch_pool;
-    // fire_if_funcobj()'s fired results -- a GROWABLE pool, not a single
-    // reused slot like _peek_scratch: stack_arg()/stack_key() return a
-    // fired result by reference, and a caller that resolves two operands
-    // before consuming either (e.g. EqualFunc: operand1/operand2 both
-    // held live across both stack_arg() calls) needs each fire to land
-    // in its OWN storage -- a single shared slot means the second fire
-    // silently overwrites the first result out from under a caller still
-    // holding a reference to it. Entries are appended, never reused,
-    // until reset (see _fire_scratch_count below), so two fires within
-    // one statement's evaluation can never alias each other regardless
-    // of nesting depth.
-    int _fire_scratch_count;
-    // number of pool entries filled since the last reset
-    int _fire_scratch_cap;
-    // allocated pool capacity (grows by doubling)
 
     AttributeValueList* _top_commands;
     // list of top-most commands for this derived comterp
