@@ -80,16 +80,16 @@ ok=ok&&(size(hits3)==1)
 print("5 g4(true :y <side-effecting>) does touch y (expect size 1): %v\n\n" size(hits3))
 check_fail(:ok ok)
 
-// --- test 6: keyword memoization -- two reads, one evaluation.  Unlike
-// arg(n) (test 3/9 above), a keyword stays memoized after its first read,
-// even across further reads inside a loop -- timed like plain func()'s own
-// eager keywords, just deferred to first access instead of call time ---
+// --- test 6: keyword re-fires on every access, same as arg(n) (test 3/9)
+// -- an unwritten :posteval keyword is a live tap, not a constant: every
+// read re-evaluates the caller's expression.  y+y is 1+2, not 2*1 --
+// ycopy=y before ycopy+ycopy is the idiom for pinning one draw instead ---
 hits4=list()
 bump2=func(hits4,1; size(hits4))
 h6=func(y+y :posteval)
 r6=h6(:y bump2())
-ok=ok&&(r6==2)&&(size(hits4)==1)
-print("6 h6(y+y); h6(:y bump2()) reads y twice, evals once (expect 2 1): %v %v\n\n" r6 size(hits4))
+ok=ok&&(r6==3)&&(size(hits4)==2)
+print("6 h6(y+y); h6(:y bump2()) reads y twice, evals twice (expect 3 2): %v %v\n\n" r6 size(hits4))
 check_fail(:ok ok)
 
 // --- test 7: same-chain forward reference -- NilFunc's dynamic gate (#328)

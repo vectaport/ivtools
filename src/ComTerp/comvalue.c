@@ -478,8 +478,18 @@ boolean ComValue::isa(int id, int compid) {
 
 boolean ComValue::is_funcobj(ComTerp* comterp) {
   ComValue tv = *this;
-  if (is_symbol())
+  if (is_symbol()) {
+    /* a still-pending :posteval keyword can't honestly answer "am I a
+       funcobj" without being pulled -- and pulling here, just to answer a
+       query at push time, would fire it whether or not it's actually a
+       func.  Defer instead: say no for now (matches nothing left to break
+       the load_sub_expr loop over), and let stack_arg/stack_key's real,
+       one-time resolution (ComFunc, comfunc.c) fire it then if it turns
+       out to be one -- see ComTerp::fire_if_funcobj(). */
+    if (comterp->is_posteval_pending(symbol_val()))
+      return false;
     tv = comterp->lookup_symval(tv);
+  }
   return tv.is_object(FuncObj::class_symid());
 }
 

@@ -182,11 +182,15 @@ void ComTerp::init() {
     _funcobj_argvals = nil;
     _funcobj_nargs = 0;
     _funcobj_active = false;
+    _peek_scratch = new ComValue();
+    _fire_scratch = new ComValue();
     _top_commands = NULL;
 }
 
 
 ComTerp::~ComTerp() {
+    delete _peek_scratch;
+    delete _fire_scratch;
     /* Free stacks */
     if(dmm_free((void**)&_stack) != 0) 
 	KANRET ("error in call to dmm_free");
@@ -491,9 +495,22 @@ void ComTerp::eval_expr_internals(int pedepth) {
       for(int i=0; i<sv.narg()+sv.nkey(); i++) {
 	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
 	  has_streams = stack_top(-i).is_stream();
+	else if (stack_top(-i).is_symbol() &&
+		 is_posteval_pending(stack_top(-i).symbol_val())) {
+	  /* a still-pending :posteval operand can't answer "am I a stream"
+	     without being pulled, and overdrive is an upfront, whole-
+	     expression decision made once here -- not something a later,
+	     single-value resolution (stack_arg/stack_key) could retrofit
+	     per operand the way a bare-funcobj fire can (see is_funcobj's
+	     own comment).  So it never overdrives: leave it unpulled,
+	     treat as not-a-stream, and let it resolve to whatever it
+	     resolves to -- stream or not -- as an ordinary scalar operand
+	     when it's actually consumed. */
+	  has_streams = false;
+	}
 	else {
 	  AttributeValue* testval =
-	    lookup_symval(&stack_top(-i));
+	    lookup_symval(&stack_top(-i), false);
 	  has_streams = testval ? testval->is_stream() : false;
 	}
 	if (has_streams)
@@ -522,7 +539,7 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	if (!stack_top().is_symbol() && !stack_top().is_attribute())
 	  argstream = stack_top().is_stream();
 	else {
-	  AttributeValue* tv = lookup_symval(&stack_top());
+	  AttributeValue* tv = lookup_symval(&stack_top(), false);
 	  argstream = tv ? tv->is_stream() : false;
 	}
 	ComValue topval(pop_stack(argstream));
@@ -681,17 +698,14 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	int id = sv.symbol_val();
 	/* a :posteval keyword arg that hasn't been read yet sits here as a
 	   FuncObjPendingArg marker (postfunc.h) instead of a real value --
-	   pull_alist_pending() pulls it on this, its first read-before-write,
-	   and memoizes the real result back under the same id (matching
-	   plain func()'s own eager-keyword timing, just deferred to first
-	   access instead of call time -- see comterp.h's own note on this),
-	   so every later read (here or through lookup_symval(), the path an
-	   ordinary operand -- not a standalone reference -- resolves
-	   through) takes the ordinary fast path below.  A keyword the body
-	   only ever writes, or never reads at all, never reaches here with a
-	   write first (AssignFunc writes directly, it doesn't read through
-	   this path) -- true laziness, not just "resolved late". */
-	AttributeValue* val = pull_alist_pending(_alist, id, _alist->find(id));
+	   peek_alist_pending() pulls it fresh on every read, never memoizing
+	   (see its own comment in comterp.h): an unwritten :posteval keyword
+	   behaves like a live tap, re-evaluated on each access, same as
+	   arg(n) already does.  A keyword the body only ever writes, or
+	   never reads at all, never reaches here with a write first
+	   (AssignFunc writes directly, it doesn't read through this path)
+	   -- true laziness, not just "resolved late". */
+	AttributeValue* val = peek_alist_pending(_alist, id, _alist->find(id));
 	/* a func-local FuncObj falls through to the same fire-check below as
 	   every other symbol reference, instead of returning early -- a
 	   standalone variable is a niladic call site regardless of whether
@@ -801,9 +815,9 @@ void ComTerp::load_sub_expr() {
       if (stack_top(0).is_array()) {
 	stack_top(0).array_val()->nested_insert(true);
       } else if (stack_top(0).is_symbol()) {
-        AttributeValue* av = lookup_symval(&stack_top(0));
+        AttributeValue* av = lookup_symval(&stack_top(0), false);
 	if (av && av->is_array()) av->array_val()->nested_insert(true);
-      } 
+      }
     }
     _pfoff++;
     /* A bare funcobj that is the RHS of a dot is an attribute name, not a
@@ -897,7 +911,7 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	    if (stack_top(0).is_array()) {
 	      stack_top(0).array_val()->nested_insert(true);
 	    } else if (stack_top(0).is_symbol()) {
-	      AttributeValue* av = lookup_symval(&stack_top(0));
+	      AttributeValue* av = lookup_symval(&stack_top(0), false);
 	      if (av->is_array()) av->array_val()->nested_insert(true);
 	    }
 	  }
@@ -1313,6 +1327,23 @@ ComValue ComTerp::pop_stack(boolean lookupsym) {
   }
 }
 
+boolean ComTerp::is_posteval_pending(int id) {
+  if (!_alist) return false;
+  AttributeValue* found = _alist->find(id);
+  return found && found->is_object(FuncObjPendingArg::class_symid());
+}
+
+ComValue& ComTerp::fire_if_funcobj(ComValue& val) {
+  if (!val.is_object(FuncObj::class_symid()))
+    return val;
+  ComValue funcval(val);  /* copy out before firing -- 'val' may be a
+                              _stack[] reference, invalidated by any
+                              dmm_realloc a push during firing triggers */
+  fire_funcobj(funcval);
+  *_fire_scratch = pop_stack(false);
+  return *_fire_scratch;
+}
+
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.bquote()) {
         return comval;
@@ -1323,7 +1354,7 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 
 	if (_alist) {
 	  int id = comval.symbol_val();
-	  AttributeValue* aval = pull_alist_pending(_alist, id, _alist->find(id));
+	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
 	    ComValue newval(*aval);
 	    *&comval = newval;
@@ -1347,7 +1378,7 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
     return comval;
 }
 
-AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
+AttributeValue* ComTerp::lookup_symval(ComValue* comval, boolean freeze) {
     if (comval->bquote()) return nil;
 
     if (comval->type() == ComValue::SymbolType) {
@@ -1363,7 +1394,10 @@ AttributeValue* ComTerp::lookup_symval(ComValue* comval) {
 	   by their scope flags directly.) */
 	if (!comval->global_flag() && _alist) {
 	  int id = comval->symbol_val();
-	  AttributeValue* aval = pull_alist_pending(_alist, id, _alist->find(id));
+	  AttributeValue* found = _alist->find(id);
+	  AttributeValue* aval = freeze
+	    ? pull_alist_pending(_alist, id, found)
+	    : peek_alist_pending(_alist, id, found);
 	  if (aval) return aval;
 	}
 	if (!comval->global_flag() && localtable()->find(vptr, comval->symbol_val())) {
@@ -2359,6 +2393,17 @@ AttributeValue* ComTerp::pull_alist_pending(AttributeList* al, int id, Attribute
                       would otherwise free it (see fire_funcobj()'s own
                       cleanup pass for a marker that's never read at all) */
   return al->find(id);
+}
+
+AttributeValue* ComTerp::peek_alist_pending(AttributeList* al, int id, AttributeValue* found) {
+  if (!found || !found->is_object(FuncObjPendingArg::class_symid()))
+    return found;
+  FuncObjPendingArg* marker = (FuncObjPendingArg*)found->obj_val();
+  *_peek_scratch = pull_funcobj_pending(marker);  /* fresh every call --
+     never written to al, marker never deleted here (fire_funcobj()'s
+     cleanup pass frees it at invocation end if it's never frozen by a
+     write) */
+  return _peek_scratch;
 }
 
 void ComTerp::set_args(int argc, char** argv) {

@@ -83,8 +83,13 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 		  keyref.keynarg_val())
 		return dflt;
 	    }
-	    if (!symbol) 
+	    if (!symbol) {
+	        boolean was_pending = argref.is_symbol() &&
+		  _comterp->is_posteval_pending(argref.symbol_val());
 	        argref = _comterp->lookup_symval(argref);
+		if (was_pending && argref.is_object(FuncObj::class_symid()))
+		  return _comterp->fire_if_funcobj(argref);
+	    }
 	    return argref;
 	}
     }
@@ -107,8 +112,13 @@ ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt) {
 		if (valref.type() == ComValue::KeywordType) {
 		  return dflt;
 		} else {
-		  if (!symbol)
+		  if (!symbol) {
+		    boolean was_pending = valref.is_symbol() &&
+		      _comterp->is_posteval_pending(valref.symbol_val());
 		    valref = _comterp->lookup_symval(valref);
+		    if (was_pending && valref.is_object(FuncObj::class_symid()))
+		      return _comterp->fire_if_funcobj(valref);
+		  }
 		  return valref;
 		}
 	      }
