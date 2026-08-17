@@ -53,6 +53,8 @@ pass/FAIL summary line. There is no separate orchestrator here (unlike
 | paste.comt      | paste()                                                                | `paste()` requires `parent()==nil`, refusing to double-append an already-parented graphic |
 | rasterrgb.comt  | raster(:rgb ...)                                                       | flat/nested/packed pixel-value forms, told apart by element count against w*h |
 | zoomap.comt     | zoo.who() zoo.haslegs() zoo.countlegs() zoo.dance() zoo.help() dot-chaining | integration coverage for the `examples/zoomap.comt` kid demo -- find by name/motion/food, chain straight into a found graphic's facts with no `attrlist()` wrapper, an empty result and the natural next mistake of dotting into it unwrapped, and the persisting `:asked` field across self-bound method calls |
+| spirograph.comt | spiro() gallery() surprise() recipes() spin() orbit() orb3d() clearpaper() oops() | integration coverage for the `examples/spirograph.comt` kid demo -- basic/`:epi`/`:color`/`:cx`/`:cy` spiro() variants, the three friendly-error branches, gallery()/recipes()/surprise(), the two SECRETS (dot-write persistence, `curve.recipe()`), orbit()/orb3d() both too-small and for real, and orb3d();orb3d() true-position continuity across calls |
+| deletestream.comt | delete() rect() ellipse()                                            | `delete($$frame)` -- clearing the whole canvas by feeding delete() a stream directly instead of looping with at()/delete() by hand; empty-canvas no-op and a real multi-graphic clear |
 
 `run_all.comt` runs these in the order above, each wrapped in
 `if(run("./script.comt") :then ... :else ...;ok=false)`.
