@@ -1,0 +1,56 @@
+// src/comterp_/examples/postevalcombinators.comt -- control-flow combinators
+// written in plain comterp using func(:posteval).  An ordinary func() call
+// evaluates every argument up front, whether the body ends up using it or
+// not; :posteval defers that -- an argument's expression only runs if
+// something inside the body actually reads it, and reading it more than
+// once re-runs it rather than reusing a cached value.  That's enough to
+// write the kind of "should this code even run" combinator that most
+// languages need a macro or a lambda for.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./postevalcombinators.comt")
+
+// --- steer: try a primary, fall back only if it actually fails ---
+//
+// :primary and :fallback carry CODE, not values -- ordinary bare func
+// names, passed by keyword.  Because steer is :posteval, neither one is
+// touched until the body reads it.  primary() always runs; fallback()
+// runs only if primary() returned nil.  A fallback that's never needed
+// never executes its side effects at all, not even once.
+steer=func(
+  r=primary();
+  if(r==nil :then fallback() :else r)
+  :posteval)
+
+hits=list()
+cheap=func(hits,"cheap"; 42)
+expensive=func(hits,"expensive"; 99)
+r1=steer(:primary cheap :fallback expensive)
+print("1 steer(:primary cheap :fallback expensive) -- primary succeeds, fallback never runs (expect 42 {cheap}): %v %v\n" r1 hits)
+
+hits2=list()
+failing=func(hits2,"failing"; nil)
+backup=func(hits2,"backup"; 7)
+r2=steer(:primary failing :fallback backup)
+print("2 steer(:primary failing :fallback backup) -- primary fails, fallback runs (expect 7 {failing,backup}): %v %v\n" r2 hits2)
+
+// --- retry: keep re-trying a positional argument's OWN expression ---
+//
+// arg(n) is timed differently from a keyword: every read re-fires the
+// caller's expression, with no memoization at all.  That's what makes it
+// useful inside a loop -- each pass through the while sees a genuinely
+// fresh attempt, not a snapshot from the first call.  retry(flaky())
+// isn't "call flaky() once and retry a cached failure" -- it's "call
+// flaky() again, for real, up to 3 times."
+retry=func(
+  n=0; r=nil;
+  while(r==nil && n<3
+    n=n+1;
+    r=arg(0))
+  r
+  :posteval)
+
+attempts=list()
+flaky=func(attempts,1; if(size(attempts)>=3 :then "ok" :else nil))
+r3=retry(flaky())
+print("3 retry(flaky()) -- flaky() only succeeds on its 3rd real call (expect ok 3): %v %v\n" r3 size(attempts))

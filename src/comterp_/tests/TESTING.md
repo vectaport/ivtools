@@ -254,6 +254,9 @@ To add a new test script:
 | symbol.comt   | ` symadd symid symbol symstr symval symvar strref eq(:sym) lt gt switch cond | 1-9 |  36 |    42 | 86% |
 | help.comt     | help() help(:posteval) help(:top) help("op") optable(:table) optable(:bypri :byopr :bycom) | 1-14 | 14 | 14 |100% |
 | random.comt   | (slot 12 stress: all funcs from return/stream/string/global) | 12      |      24 |    24 |100% |
+| funcarg.comt  | func arg narg (positional args, keyword-as-variable, if incidental) | 1-11 | 18 | 26 | 69% |
+| funcclosure.comt | func local global (declaration-time capture, #310)         | 1-9,11  |      13 |    21 | 62% |
+| posteval.comt | func arg if (`:posteval` keyword)                            | 1-11    |      21 |    28 | 75% |
 
 ### Planned coverage (ivtools-2.2)
 

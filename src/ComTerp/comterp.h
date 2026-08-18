@@ -140,10 +140,52 @@ public:
     ComValue& lookup_symval(ComValue&);
     // look up a ComValue associated with a symbol (specified in the
     // input ComValue) in the local or global symbol tables.
-    AttributeValue* lookup_symval(ComValue*);
+
+    boolean is_posteval_pending(int id);
+    // true iff _alist holds a still-pending FuncObjPendingArg marker under
+    // 'id' -- a bare existence check, never pulls/evaluates anything.
+    // Lets a caller (ComValue::is_funcobj(), the has_streams pre-scan in
+    // eval_expr_internals) tell "still-pending :posteval keyword" apart
+    // from every other case without forcing the one-time evaluation a
+    // real pull would cost.
+
+    ComValue& fire_if_funcobj(ComValue& val);
+    // if 'val' resolves to a bare FuncObj, fire it (niladic call, same as
+    // an ordinary unguarded funcobj reference already does elsewhere) and
+    // return a reference to the result -- via a fresh slot in
+    // _fire_scratch_pool, NOT by writing back through 'val' itself, since
+    // 'val' may be a reference into _stack[] and firing pushes/pops
+    // internally (through fire_funcobj/EvalFunc, running the func body),
+    // which can dmm_realloc _stack (push_stack, comterp.c) and invalidate
+    // any reference taken before the call.  A fresh pool slot per call
+    // (not one reused slot) matters too: a caller that resolves two
+    // operands before consuming either must not have the second fire
+    // silently overwrite the first result out from under it.  A
+    // non-funcobj 'val' is returned unchanged, by reference, as a plain
+    // pass-through.
+    //
+    // The only place this actually fires anything is the deferred-
+    // :posteval-keyword case ComValue::is_funcobj() now declines to
+    // check early (see its own comment in comvalue.c) -- an ordinary
+    // eager symbol bound to a funcobj is already fired earlier, at push
+    // time in load_sub_expr, by is_funcobj's own unchanged fast path.
+    // ComFunc::stack_arg()/stack_key() are the callers, right after their
+    // own real (non-pending) resolution.
+    AttributeValue* lookup_symval(ComValue*, boolean freeze=true);
     // look up a pointer to an AttributeValue associated with a symbol
     // (specified in the input ComValue) in the local or global symbol
-    // tables.  Do not alter the input ComValue.
+    // tables.  Do not alter the input ComValue.  'freeze' governs a still-
+    // pending :posteval keyword found in _alist: true (the default, and
+    // what every existing caller gets unchanged) memoizes via
+    // pull_alist_pending() -- required by compound-assign (assignfunc.c),
+    // whose op1val->assignval(result) needs a real, addressable slot to
+    // mutate in place, and assignment freezing a lazy keyword into an
+    // ordinary owned local from then on is the intended behavior anyway.
+    // false peeks via peek_alist_pending() instead -- pulls fresh every
+    // call, writes nothing to _alist -- for a caller that only needs a
+    // momentary look at the value (has_streams/array detection below)
+    // and would otherwise force an unwanted freeze as a side effect of
+    // merely checking a type.
     ComValue& lookup_symval(int symid);
     // look up a ComValue associated with a symbol (specified with a
     // symbol id) in the local or global symbol tables.
@@ -203,6 +245,39 @@ public:
     // an orphaned stream -- never assigned to anything, never streamed
     // further -- so the more informative element count gets shown
     // instead of an uninformative, still-unconsumed-looking print.
+
+    void fire_funcobj(ComValue& val, AttributeList* extra_keys=nil,
+		       ComValue* lazy_posvals=nil);
+    // val must be a FuncObj-holding ComValue whose val.narg() worth of
+    // already-evaluated positional arguments are sitting on the stack,
+    // ready to pop (topmost = last positional).  Builds the call's
+    // AttributeList (declaration-time captures seeded first, #310), sets
+    // up funcobj_arg()'s eager-positional view, and fires it via EvalFunc.
+    // Factored out of eval_expr_internals' ordinary SymbolType/FuncObj
+    // dispatch so NilFunc can reuse it once it dynamically re-resolves to
+    // a real FuncObj (issue #328) instead of duplicating this stack-
+    // unpacking logic.
+    //
+    // extra_keys nil (the ordinary-dispatch case): keyword marker+value
+    // pairs are popped off the SAME shared stack as the positionals,
+    // val.nkey() of them, topmost first -- the original calling
+    // convention, unchanged.
+    // extra_keys non-nil: the caller has already built the call's keyword
+    // AttributeList some other way instead of leaving marker+value pairs on
+    // the shared stack (NilFunc's dynamic re-check, ComFunc::stack_keys_-
+    // post_eval; or a :posteval target, whose entries are
+    // FuncObjPendingArg markers instead of real values -- fire_funcobj
+    // doesn't care, it just copies them into al either way); val.nkey() is
+    // not consulted and nothing extra is popped for them.
+    //
+    // lazy_posvals non-nil (val's FuncObj is :posteval): used directly as
+    // this invocation's funcobj_argvals() array instead of popping val.-
+    // narg() values off the stack -- nothing was pushed for them in the
+    // first place (the pedepth pre-pass left their whole span un-evaluated
+    // in the caller's buffer).  Its entries are ordinarily FuncObjPendingArg
+    // markers (postfunc.h), pulled on demand and memoized in place by
+    // funcobj_arg() the same array slot every other invocation already uses
+    // -- no separate lazy-argument channel or save/restore needed.
 
     virtual int runfile(const char* filename, boolean popen_flag=0);
     // run interpreter on contents of 'filename'.
@@ -347,8 +422,15 @@ public:
     // serve the func's positionals instead of the script argv.
     int funcobj_narg() { return _funcobj_nargs; }
     // number of positional args of the current FuncObj invocation.
-    ComValue& funcobj_arg(int n);
-    // nth positional arg (eager value) of the current FuncObj invocation.
+    ComValue funcobj_arg(int n);
+    // nth positional arg of the current FuncObj invocation -- an
+    // already-materialized eager value, or (:posteval) pulled fresh on
+    // *every* call, never memoized: arg(n) has no lvalue form (no
+    // "arg(0)=..."), so there's no write-before-read escape the way a
+    // keyword has, and no write-through caller ever needs a stable
+    // address for it either. The idiom for caching a repeatedly-read
+    // arg inside a loop is the same as for any post_eval command's own
+    // operand: assign it to a local once, then read that local.
     ComValue* funcobj_argvals() { return _funcobj_argvals; }
     // return the current positional-argument array itself (nil if inactive),
     // for a caller that needs to save it before installing its own.
@@ -360,6 +442,51 @@ public:
     // same bracketing set_attributes()/get_attributes() use around an
     // _alist swap (see DotFunc, which needs both at once to self-bind an
     // attrlist method call and still serve its positional args).
+
+    ComValue pull_funcobj_pending(class FuncObjPendingArg* marker);
+    // resolve one :posteval arg/keyword's still-pending token span --
+    // reaches back into the caller's parked postfix buffer via
+    // top_servstate() (the same frame push_servstate() already stashed
+    // there for ordinary nested-call bookkeeping, nothing new to allocate)
+    // and runs post_eval_expr() against it.  Doesn't memoize anything
+    // itself -- that's the caller's job (funcobj_arg() never does;
+    // pull_alist_pending() below always does), this just runs the
+    // pending expression once, fresh, whenever it's called.
+
+    AttributeValue* pull_alist_pending(AttributeList* al, int id, AttributeValue* found);
+    // if 'found' (already the result of al->find(id)) is a still-pending
+    // FuncObjPendingArg marker, pull it via pull_funcobj_pending(), write
+    // the real value back into al under the same id, and delete the
+    // marker -- freezing this keyword into an ordinary owned local from
+    // here on.  The ONLY caller left is lookup_symval(ComValue*, true)
+    // (its default), compound-assign's path via ModAssignFunc et al in
+    // assignfunc.c: "y+=1" reads the old value then writes the new one
+    // through the same pointer, which requires a real, addressable slot
+    // to mutate in place -- and an assignment is exactly the moment a
+    // lazy keyword should stop being re-derived and become a plain local
+    // anyway (the same write-freezes convention #310's capture classifier
+    // already uses).  A plain read never reaches this -- see
+    // peek_alist_pending() below.
+
+    AttributeValue* peek_alist_pending(AttributeList* al, int id, AttributeValue* found);
+    // sibling of pull_alist_pending() for every OTHER _alist lookup --
+    // the bare-variable-read fallthrough in eval_expr_internals,
+    // lookup_symval(ComValue&) (which ComFunc::stack_arg/stack_key and
+    // ordinary operand resolution route through for a symbol used as an
+    // operand rather than read standalone -- the case a plain "y+y"
+    // exercises), and lookup_symval(ComValue*, false) (has_streams/array
+    // detection in eval_expr_internals, which only need a momentary type
+    // check).  If 'found' is a still-pending marker, pulls it fresh via
+    // pull_funcobj_pending() into a scratch slot (_peek_scratch) and
+    // returns a pointer to that -- valid only until the next peek/pull,
+    // which every caller here already respects (each copies out or
+    // finishes using the pointer before this could be called again).
+    // Never touches al, never memoizes: every plain read of a :posteval
+    // keyword re-fires, same as arg(n) already does (funcobj_arg()) --
+    // the deliberate choice over freezing on first read, since a keyword
+    // pulled straight from an unwritten :posteval arg is meant to behave
+    // like a live tap, not a constant; ycopy=y before ycopy*ycopy is the
+    // idiom for pinning one draw when that's what's wanted instead.
 
     void set_args(int argc, char** argv);
     // set command line arguments
@@ -486,6 +613,48 @@ protected:
     // number of positional args of the current FuncObj invocation
     boolean _funcobj_active;
     // true while executing inside a FuncObj invocation
+
+    ComValue* _peek_scratch;
+    // holds peek_alist_pending()'s freshly-pulled :posteval value -- valid
+    // only until the next peek/pull, never persisted into any AttributeList.
+    // A pointer (not a plain member) because ComValue is only forward-
+    // declared this early in the header; allocated once in init().
+
+    AttributeValueList* _fire_scratch_pool;
+    // fire_if_funcobj()'s fired results -- not a single reused slot like
+    // _peek_scratch: stack_arg()/stack_key() return a fired result by
+    // reference, and a caller that resolves two operands before
+    // consuming either (e.g. EqualFunc: operand1/operand2 both held live
+    // across both stack_arg() calls) needs each fire to land in its OWN
+    // storage -- a single shared slot means the second fire silently
+    // overwrites the first result out from under a caller still holding
+    // a reference to it. Each fire heap-allocates its own ComValue and
+    // Append()'s it -- unlike a contiguous growable array, appending to
+    // this list never relocates or invalidates a previously-returned
+    // entry's address, so a reference returned by an earlier fire in the
+    // same statement stays valid no matter how many more fires follow it
+    // (a flat array-with-doubling version of this pool had exactly that
+    // bug: growth deleted-and-copied into a new array, dangling any
+    // reference already handed out into the old one). Cleared (see
+    // eval_expr's !nested case), never resized.
+    //
+    // Growth is bounded by one top-level statement, not by process
+    // lifetime, even though runfile()'s own per-line loop drives every
+    // line of a script through eval_expr(true) (never clearing mid-file,
+    // same as _stack_top): the reset happens at the START of whichever
+    // top-level statement comes NEXT, because ComterpHandler::handle_input
+    // (comhandler.c) computes nested = reentrant ? true :
+    // force_nested() for every incoming command -- server request or
+    // interactively-typed line alike -- and force_nested defaults false.
+    // So the very next run(...), or the next line typed at a prompt,
+    // clears whatever the previous top-level statement accumulated
+    // before doing anything else. The one deliberate exception:
+    // comdraw's pause() (ComUnidraw/unifunc.c) sets force_nested(1) for
+    // the duration of an interactive breakpoint, so a script suspended
+    // mid-statement isn't corrupted by whatever gets typed while paused
+    // -- that extends the no-reset window to human-interaction
+    // timescale, not process lifetime, an accepted tradeoff for that
+    // one feature.
 
     AttributeValueList* _top_commands;
     // list of top-most commands for this derived comterp

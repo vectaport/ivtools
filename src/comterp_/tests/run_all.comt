@@ -97,6 +97,10 @@ if(run("./funcclosure.comt")
   :then print("pass: funcclosure\n")
   :else print("FAIL: funcclosure\n");topok=false)
 
+if(run("./posteval.comt")
+  :then print("pass: posteval\n")
+  :else print("FAIL: posteval\n");topok=false)
+
 // networking: remote() round-trip over a real socket to a `comterp server`
 // child (launches/tears down its own servers; needs comterp on PATH)
 if(run("./updown.comt")

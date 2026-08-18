@@ -38,3 +38,16 @@ comterp run src/comterp_/examples/<name>.comt
   triangle cycle, `sin()`/`degtorad()` overdriving a range for the sine
   wave. No loop written anywhere -- what used to be a hand-written
   FORTRAN `setbuf` routine per pattern is one line each.
+
+- **postevalcombinators.comt** -- control-flow combinators written in
+  plain comterp using `func(:posteval)`, the lazy-argument keyword: an
+  argument's expression only runs if the body actually reads it, and
+  reading it again re-runs it rather than reusing a cached value. `steer`
+  takes `:primary`/`:fallback` as keyword-carried *code*, not values, and
+  only fires `fallback` if `primary` actually returns `nil` -- a
+  retry/fallback combinator with no special syntax beyond the keyword
+  declaration. `retry` instead reads a positional `arg(0)` inside a
+  `while` loop, showing off the other half of `:posteval`: every read
+  re-fires the caller's expression for real, so `retry(flaky())` makes
+  up to three genuine calls to `flaky()`, not one call retried against a
+  cached failure.

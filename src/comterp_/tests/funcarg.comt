@@ -10,7 +10,10 @@
 //
 // Note: positionals are eager, so re-reading arg(0) returns the SAME
 // already-computed value -- a side-effecting positional fires once, not
-// per read.  The re-firing form awaits a future :posteval keyword.
+// per read.  The lazy form is :posteval (see posteval.comt): a
+// :posteval func's args stay unevaluated until arg(n)/a keyword's own
+// first read pulls it -- and unlike this eager case, arg(n) then
+// re-fires on every later call too (a keyword still memoizes).
 //
 // Run from inside comterp, comdraw, or drawserv (cd to this dir first):
 //   run("./funcarg.comt")

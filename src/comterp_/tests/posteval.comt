@@ -1,0 +1,140 @@
+// src/comterp_/tests/posteval.comt -- test :posteval lazy FuncObj arguments
+//
+// funcs: func arg if
+//
+// funcarg.comt documents that an ordinary FuncObj call is EAGER: its
+// positional/keyword arguments are fully evaluated before the body ever
+// runs, and a re-read of arg(n)/a keyword just returns the same
+// already-computed value ("the re-firing form awaits a future :posteval
+// keyword" -- this file exercises that keyword).
+//
+// A :posteval FuncObj call is lazy instead: none of its arguments are
+// evaluated at call time.  They stay as unevaluated tokens in the CALLING
+// expression's own postfix buffer -- the same "sit there until pulled"
+// contract any other post_eval command's args already have -- and are only
+// resolved on demand.  arg(n) and keyword access differ in what happens
+// after that first pull, though:
+//   - arg(n) re-fires the pending expression on EVERY call, with no
+//     memoization at all -- there's no lvalue form ("arg(0)=...") the way a
+//     keyword has, so there's nothing to protect by caching it, and this is
+//     what makes arg(n) useful inside a :posteval body's own loop: each
+//     call reads the live, current value, the same way any post_eval
+//     command's own operand (e.g. while's condition) gets re-evaluated
+//     every iteration.  The idiom for caching a repeatedly-read arg is the
+//     same one non-func code already uses: assign it to a local once.
+//   - a keyword re-fires on every read too, same as arg(n) -- an unwritten
+//     :posteval keyword is a live tap, not a constant memoized on first
+//     read (see test 6 below: y+y reads y twice and evaluates its
+//     expression twice, not once-and-reuse).  A write still wins as an
+//     ordinary local assignment would: once the body assigns the keyword's
+//     name, later reads see that plain value instead of re-pulling.
+//
+// Side effects are counted via a list append (hits,1) rather than a
+// captured/reassigned scalar counter: a bare scalar read before any local
+// write inside a func body gets captured by #310 at declaration time,
+// shadowing the outer variable -- a list is a reference type, so mutating
+// it through a func body's capture is visible outside (see funcarg.comt's
+// own note on test 9/10 for the read-before-write capture rule this
+// exploits deliberately here, not works around).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./posteval.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: an arg never read by the body is never evaluated at all ---
+hits=list()
+f1=func(c=arg(0); if(c :then arg(1) :else -1) :posteval)
+r1=f1(false hits,1)
+ok=ok&&(r1==-1)&&(size(hits)==0)
+print("1 f1(:posteval); f1(false <side-effecting arg1>) never touches arg1 (expect -1 0): %v %v\n\n" r1 size(hits))
+check_fail(:ok ok)
+
+// --- test 2: the same arg, actually read, IS evaluated ---
+r2=f1(true hits,1)
+ok=ok&&(size(hits)==1)
+print("2 f1(true <side-effecting arg1>) does touch arg1 (expect size 1): %v\n\n" size(hits))
+check_fail(:ok ok)
+
+// --- test 3: arg(n) re-fires on every call -- two reads, two evaluations,
+// unlike a keyword (test 6 below) or an ordinary eager arg (test 8) ---
+hits2=list()
+bump=func(hits2,1; size(hits2))
+f3=func(a=arg(0); b=arg(0); a+b :posteval)
+r3=f3(bump())
+ok=ok&&(r3==3)&&(size(hits2)==2)
+print("3 f3(a=arg(0);b=arg(0);a+b); f3(bump()) reads arg(0) twice, evals twice (expect 3 2): %v %v\n\n" r3 size(hits2))
+check_fail(:ok ok)
+
+// --- test 4: keyword laziness -- unread keyword never evaluated ---
+hits3=list()
+g4=func(c=arg(0); if(c :then y :else -2) :posteval)
+r4=g4(false :y (hits3,1))
+ok=ok&&(r4==-2)&&(size(hits3)==0)
+print("4 g4(:posteval); g4(false :y <side-effecting>) never touches y (expect -2 0): %v %v\n\n" r4 size(hits3))
+check_fail(:ok ok)
+
+// --- test 5: the same keyword, actually read, IS evaluated ---
+r5=g4(true :y (hits3,1))
+ok=ok&&(size(hits3)==1)
+print("5 g4(true :y <side-effecting>) does touch y (expect size 1): %v\n\n" size(hits3))
+check_fail(:ok ok)
+
+// --- test 6: keyword re-fires on every access, same as arg(n) (test 3/9)
+// -- an unwritten :posteval keyword is a live tap, not a constant: every
+// read re-evaluates the caller's expression.  y+y is 1+2, not 2*1 --
+// ycopy=y before ycopy+ycopy is the idiom for pinning one draw instead ---
+hits4=list()
+bump2=func(hits4,1; size(hits4))
+h6=func(y+y :posteval)
+r6=h6(:y bump2())
+ok=ok&&(r6==3)&&(size(hits4)==2)
+print("6 h6(y+y); h6(:y bump2()) reads y twice, evals twice (expect 3 2): %v %v\n\n" r6 size(hits4))
+check_fail(:ok ok)
+
+// --- test 7: same-chain forward reference -- NilFunc's dynamic gate (#328)
+// wraps a :posteval target's args as pending instead of eagerly resolving
+// them, same laziness as an already-defined call ---
+hits5=list()
+fwd=func(c=arg(0); if(c :then arg(1) :else -3) :posteval); r7=fwd(false hits5,1)
+ok=ok&&(r7==-3)&&(size(hits5)==0)
+print("7 fwd=func(:posteval)(same chain); fwd(false <side-effecting arg1>) still lazy (expect -3 0): %v %v\n\n" r7 size(hits5))
+check_fail(:ok ok)
+
+// --- test 8: an ordinary (non-posteval) func is unaffected -- still eager,
+// still fires a positional's side effect exactly once up front ---
+hits6=list()
+f8=func(arg(0))
+r8=f8(hits6,1)
+ok=ok&&(size(hits6)==1)
+print("8 f8=func(arg(0)) (no :posteval); f8(<side-effecting>) still eager (expect size 1): %v\n\n" size(hits6))
+check_fail(:ok ok)
+
+// --- test 9: the actual point of arg(n) re-firing -- a while loop inside
+// the body reads a live, changing value each iteration, not a snapshot
+// from its first read.  4 condition checks (hits7 reaches 1,2,3,4, the
+// last one failing the <4 test) but only 3 loop bodies (n stops at 3) ---
+hits7=list()
+counter=func(hits7,1; size(hits7))
+loopf=func(n=0; while(arg(0)<4 n=n+1) n :posteval)
+r9=loopf(counter())
+ok=ok&&(r9==3)&&(size(hits7)==4)
+print("9 loopf=func(while(arg(0)<4 n=n+1) n); loopf(counter()) sees a fresh arg(0) each check (expect 3 4): %v %v\n\n" r9 size(hits7))
+check_fail(:ok ok)
+
+// --- test 10: two distinct pending keywords that each resolve to a bare
+// FuncObj, compared by one eager binary command -- regression test for a
+// scratch-slot aliasing bug (Greptile, PR #333): stack_arg()'s two calls
+// (operand1 then operand2) used to return references into the SAME
+// shared fire_if_funcobj() scratch, so firing operand2 silently
+// overwrote operand1's already-returned value, making 1==2 read as
+// true.  Each fire now gets its own pool slot ---
+h10=func(a==b :posteval)
+r10=h10(:a func(1) :b func(2))
+ok=ok&&(r10==false)
+print("10 h10=func(a==b); h10(:a func(1) :b func(2)) two distinct fires, not aliased (expect false): %v\n\n" r10)
+check_fail(:ok ok)
+
+print("posteval: %v\n" ok)
+ok

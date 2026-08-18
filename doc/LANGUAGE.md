@@ -1096,6 +1096,192 @@ do not escape to the caller's scope. This includes dot-notation
 attributes: a dot namespace rooted at a local symbol is local to the
 call.
 
+### Lazy arguments: `:posteval`
+
+An ordinary `func()` call is eager: every positional and keyword argument
+is fully evaluated once, before the body runs, whether or not the body
+ever reads it (see `arg()`/`narg()` above). `func(body :posteval)` makes
+the call lazy instead: none of its arguments are evaluated at call time.
+They stay unevaluated — the same "wait until pulled" contract any
+post_eval command's own pending args already have — resolved only the
+moment something inside the body actually asks for them: `arg(n)` on its
+first read, a keyword on its own first read-before-write. An argument the
+body never reads is never evaluated at all, side effects included:
+
+```
+f=func(c=arg(0); if(c :then arg(1) :else -1) :posteval)
+f(false print("never runs\n"))   // -1 -- arg(1)'s expression is never touched
+f(true print("runs\n"))          // prints "runs", then true
+```
+
+Compare the same body without `:posteval` — the caller's argument is
+evaluated up front regardless of what the body's own `if` ever reads:
+
+```
+g=func(c=arg(0); if(c :then arg(1) :else -1))
+g(false print("runs anyway\n"))   // prints "runs anyway" first, then -1
+```
+
+**Every access re-fires — `arg(n)` and a keyword alike.** An unwritten
+`:posteval` argument is a live tap, not a constant memoized on first
+read: each access re-runs the caller's expression fresh. This is the
+behavior a user would expect if the argument expression were literally
+inlined at each point of use, and it's what lets a `while` loop inside
+the body see a live, current value each iteration, the same way any
+post_eval command's own operand (`while`'s condition, for instance) is
+genuinely re-evaluated every pass:
+
+```
+hits=list()
+counter=func(hits,1; size(hits))
+loopf=func(n=0; while(arg(0)<4 n=n+1) n :posteval)
+loopf(counter())   // 3 -- 4 condition checks (hits reaches 1,2,3,4), 3 loop bodies
+size(hits)         // 4
+
+side=list()
+bump=func(side,1; size(side))
+h=func(y+y :posteval)
+h(:y bump())   // 3 -- y is read twice, evals twice: bump()=1, then bump()=2, 1+2=3
+size(side)     // 2
+```
+
+`arg(n)` has no lvalue form — there's no `arg(0)=...` — so there's
+nothing to protect by caching it. A keyword *can* be written (`y=5`),
+and any write (plain or compound) freezes it into an ordinary owned
+local from that point on — the same write-freezes convention #310's
+capture classifier already uses for a free variable — but a keyword
+that's only ever read stays a live tap for as long as it's read.
+
+Assigning to a keyword before ever reading it, or never reading it at
+all, means its argument expression never runs at all — the same
+write-before-read rule captured above, applied to a keyword argument
+instead of a free variable. The idiom for pinning one draw of a
+repeatedly-read `arg(n)` or keyword is the same one non-func code
+already uses for any post_eval command's operand: assign it to a local
+once (`ycopy=y`), then read that local from then on.
+
+**Composes with any existing control command, no special-casing needed.**
+`if`/`while`/`switch` already selectively evaluate their own operands via
+the same on-demand mechanism (resolving one token-span bookmark at a
+time) that `arg()`/a keyword read now use to reach back into the
+*caller's* still-pending arguments. So a control command inside a
+`:posteval` body that skips a branch transparently skips whatever
+caller-side expression that branch's `arg(n)` would have pulled — the
+laziness of the control command and the laziness of the call compose for
+free, all the way back through a chain of `:posteval` calls, without
+either side needing to know the other exists.
+
+**Steering: a keyword's own defining code runs only if it's actually
+needed.** That composition isn't just an optimization — it's a
+higher-level control construct in its own right. `:posteval` lets a
+keyword carry *behavior to try*, not just a value, with the decision of
+whether to run it left entirely to the body:
+
+```
+steer=func(
+  r=primary();
+  if(r==nil :then fallback() :else r)
+  :posteval)
+
+hits=list()
+cheap=func(hits,"cheap"; 42)
+expensive=func(hits,"expensive"; 99)
+steer(:primary cheap :fallback expensive)   // 42 -- hits=["cheap"], fallback's own code never ran
+
+hits2=list()
+failing=func(hits2,"failing"; nil)
+backup=func(hits2,"backup"; 7)
+steer(:primary failing :fallback backup)    // 7 -- hits2=["failing","backup"], fallback ran only because primary did fail
+```
+
+`primary`/`fallback` are ordinary bare names — they fire when read, same
+as anywhere else in the language — but *when* they're read is entirely up
+to `steer`'s own control flow, deferred by `:posteval` until the `if`
+actually needs one. A retry/fallback/circuit-breaker combinator falls out
+for free, without `steer` needing any special "don't run this yet" syntax
+beyond the keyword declaration itself.
+
+**The gate is dynamic within the limits of one static classification
+pass.** A whole `;`-joined statement chain is tokenized and classified
+once, before any of it runs — the same fact issue #328 is built around.
+Two cases correctly stay dynamic across that: an *undefined* name (the
+original #328 forward-reference shape) and a name that's *already*
+`:posteval` at that single classification pass — both get pedepth-marked
+so the real dispatch-time gate re-checks the *current* value right when
+the call fires, honoring a reassignment that happened earlier in the same
+chain (or on an earlier line entirely — the ordinary case: define on one
+line, call on a later one). What does *not* stay dynamic: a name that
+resolves to an already-*eager* `FuncObj` at that same classification
+pass never gets pedepth-marked at all, so its arguments are evaluated
+immediately by the ordinary eager path — before a same-chain reassignment
+to `:posteval` earlier in that chain has even run. By the time the
+reassignment takes effect, the arguments are already gone; there's no
+token span left for any dispatch-time recheck to defer. Closing this gap
+fully would mean pedepth-deferring every call-shaped symbol reference
+unconditionally, not just undefined or already-`:posteval` ones, so the
+dynamic gate is consulted for literally every func call in the language —
+a much larger change than this feature makes on its own.
+
+**Observation: `:posteval` turns keywords into a redirection/distribution
+mechanism, not just a delay.** A few things fall out of the mechanics
+above that are worth noticing on their own, not just as consequences of
+how the pull works:
+
+- *Independent re-draws, not a cached square.* `h=func(y*y :posteval)`
+  reading `y` twice does not compute a square — each read re-fires
+  whatever expression `y` was bound to. `h(:y int(rand(1,10)))` can
+  return the product of two *different* random draws, not one draw
+  squared:
+  ```
+  hits=list()
+  draw=func(v=int(rand(1,10)); hits,v; v)
+  h=func(y*y :posteval)
+  r=h(:y draw())
+  // y*y reads y twice, two independent draws: hits={1,2} -> r=2, not 1 or 4
+  ```
+  The idiom for pinning one draw instead — `ycopy=y before ycopy*ycopy`
+  — is the same "assign it to a local once" pattern any repeatedly-read
+  `:posteval` value uses (see `posteval.comt` test 6's comment).
+- *Sibling keywords.* Because a marker pull does not swap `_alist`, one
+  `:posteval` keyword's deferred expression can reference *another*
+  keyword of the same call by name — `f(:x y :y 5 :posteval)`'s `x`
+  resolves against `f`'s own `y`, not whatever `y` means in the caller's
+  scope. That reads like keywords renaming or redistributing each other
+  on the fly, entirely as a side effect of the pull mechanism, not
+  anything deliberately built for it.
+- *Testable before firing, via `isclass(:sym)`, not via parens.* Passing
+  a bare `func(...)` in by keyword hands the callee an actual `FuncObj`
+  value — behavior, not just a result — and `isclass(name :sym)` reads
+  its type without firing it, the same symbol-preserving convention used
+  anywhere else in the language:
+  ```
+  f=func(print("isclass a %v b %v\n" isclass(a :sym) isclass(b :sym));
+         a==b :posteval)
+  f(:a func(1) :b func(1))
+  // isclass a FuncObj b FuncObj
+  // true
+  ```
+  `a`/`b` report as `FuncObj` under `isclass(:sym)` — inspectable without
+  firing — and only fire when actually used bare, in `a==b`. So a
+  `:posteval` body gets exactly the "pass code in, test what it is,
+  decide whether to run it" pattern the `steer` example above leans on,
+  without needing any bare-vs-parens distinction at all: `:sym` is the
+  look-without-firing escape hatch, bare use is the fire.
+
+None of this was purpose-built — it's what falls out of "a keyword is a
+deferred pull against the callee's own in-progress scope, resolved as an
+ordinary read on demand."
+
+Follow the `isclass(:sym)` case one step further and a pattern falls
+out: a bare variable, or a `:posteval`-pulled keyword, both treat *any*
+read as a request to fire — the only place a `FuncObj` sits as pure,
+inert data, inspectable without an implicit fire, is an attrlist. Dot
+access into one still needs the explicit `()` to run it (same contract
+as everywhere else in the language). So passing a `FuncObj` around as an
+actual *object* — data now, behavior later, on request — routes through
+the same attrlist substrate comterp already uses for objects generally,
+not through some func-specific mechanism.
+
 ### Escaping the func scope: local() and global()
 
 When a func genuinely needs to write outside its own frame, two
@@ -1113,13 +1299,21 @@ commands name the outer scopes explicitly, as both lvalue and rvalue:
 
 ```
 count=0
-bump=func(local(count)=count+1)   // reads outer count, writes it back
+bump=func(local(count)=local(count)+1)   // reads outer count, writes it back
 bump(); bump()
 count                  // 2 -- the func published through local()
 
 f=func(count=99; count,local(count))
 f()                    // {99,2} -- frame shadow vs explicit outer read
 ```
+
+Note the RHS is `local(count)`, not bare `count` — `local()` on the lvalue
+side alone does not exempt a bare rvalue mention of the same name from
+declaration-time capture (see *Closures* above): a bare, never-locally-
+written `count` here would still count as a genuine free-variable read,
+captured once when `bump` is declared, so every call would recompute
+`0+1` instead of reading the live outer value. Wrapping both sides in
+`local()` keeps the read genuinely live on every call.
 
 In a single-interpreter session `local()` and `global()` differ only in
 which table they touch; in a multi-session server they are session
