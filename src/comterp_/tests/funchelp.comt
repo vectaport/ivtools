@@ -1,0 +1,126 @@
+// src/comterp_/tests/funchelp.comt -- test help(f) on a bare, unfired
+// FuncObj (#334, staged from #170 phase 1)
+//
+// funcs: func help arg narg local global
+//
+// help() already reads its arguments symbol-preserving (it's post_eval,
+// stack_arg(i, true)) so a FuncObj argument reaches help() completely
+// unfired -- the same non-firing read isclass(x :sym) relies on
+// elsewhere. When an argument resolves to a bare FuncObj, help() returns
+// its IO-contract signature instead of falling through to its usual
+// registered-command docstring lookup (which a FuncObj, never being a
+// registered command, would never match anyway).
+//
+// Signature shape: "(arg0 arg1 :key1 :key2)", derived from
+// FuncObjVarScan's read-only/read-before-write/write-before-read/escaping
+// classification (#310's classifier, reused here per its own comment) and
+// a new arg(n) positional scanner.  Escaping (local()/global()) variables
+// are reported in a trailing "  -- escapes: name->scope" annotation
+// instead of the parens, since they're not part of the func's own frame.
+// A positional count that can't be pinned down statically (narg() usage,
+// or a computed arg(i) index) renders as "(...)".
+//
+// Only read-only union read-before-write keywords appear -- write-before-
+// read is local scratch a caller's keyword would just be clobbering, not
+// a genuine input, so it's omitted (same framing #310's captures already
+// use for the identical classification).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./funchelp.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: no positionals, no keywords ---
+f1=func(42)
+r1=help(f1)
+ok=ok&&(r1=="()")
+print("1 f1=func(42); help(f1) (expect \"()\"): %v\n\n" r1)
+check_fail(:ok ok)
+
+// --- test 2: positionals via arg(n), literal indices ---
+f2=func(arg(0)+arg(1))
+r2=help(f2)
+ok=ok&&(r2=="(arg0 arg1)")
+print("2 f2=func(arg(0)+arg(1)); help(f2) (expect \"(arg0 arg1)\"): %v\n\n" r2)
+check_fail(:ok ok)
+
+// --- test 3: read-only keyword shown, write-before-read local excluded ---
+f3=func(y=x; z=1; z=z+1; y+z)
+r3=help(f3)
+ok=ok&&(r3=="(:x)")
+print("3 f3=func(y=x; z=1; z=z+1; y+z); help(f3) -- x is read-only, z is pure local scratch (expect \"(:x)\"): %v\n\n" r3)
+check_fail(:ok ok)
+
+// --- test 4: read-before-write keyword shown the same as read-only ---
+f4=func(y=y+1; y)
+r4=help(f4)
+ok=ok&&(r4=="(:y)")
+print("4 f4=func(y=y+1; y); help(f4) -- y read before its own write, still a genuine input (expect \"(:y)\"): %v\n\n" r4)
+check_fail(:ok ok)
+
+// --- test 5: escaping local() reported in the trailer, not the parens ---
+f5=func(local(w)=1)
+r5=help(f5)
+ok=ok&&(r5=="()  -- escapes: w->local")
+print("5 f5=func(local(w)=1); help(f5) (expect \"()  -- escapes: w->local\"): %v\n\n" r5)
+check_fail(:ok ok)
+
+// --- test 6: escaping global() reported the same way ---
+f6=func(global(g)=1)
+r6=help(f6)
+ok=ok&&(r6=="()  -- escapes: g->global")
+print("6 f6=func(global(g)=1); help(f6) (expect \"()  -- escapes: g->global\"): %v\n\n" r6)
+check_fail(:ok ok)
+
+// --- test 7: dynamic positional count via narg() ---
+f7=func(n=narg(); n)
+r7=help(f7)
+ok=ok&&(r7=="(...)")
+print("7 f7=func(n=narg(); n); help(f7) -- variadic, can't pin down a count (expect \"(...)\"): %v\n\n" r7)
+check_fail(:ok ok)
+
+// --- test 8: a computed (non-literal) arg(n) index also forces dynamic ---
+f8=func(i=0; arg(i))
+r8=help(f8)
+ok=ok&&(r8=="(...)")
+print("8 f8=func(i=0; arg(i)); help(f8) -- computed index, not a literal (expect \"(...)\"): %v\n\n" r8)
+check_fail(:ok ok)
+
+// --- test 9: mixed -- read-only, read-before-write, write-before-read
+// (excluded), and an escape, all in one body ---
+mix=func(a=x; b=y; b=b+1; z=5; z=z+1; local(w)=1; a+b+z)
+r9=help(mix)
+ok=ok&&(r9=="(:x :y)  -- escapes: w->local")
+print("9 mix(:help) -- x read-only, y read-before-write, z excluded, w escapes (expect \"(:x :y)  -- escapes: w->local\"): %v\n\n" r9)
+check_fail(:ok ok)
+
+// --- test 10: help(f) never runs the body -- no side effects at all ---
+hits=list()
+sideeffecting=func(hits,1; arg(0)+arg(1))
+r10=help(sideeffecting)
+ok=ok&&(size(hits)==0)
+print("10 help(sideeffecting) never fires the body (expect size(hits)==0): %v\n\n" size(hits))
+check_fail(:ok ok)
+
+// --- test 11: help(f) on a :posteval target classifies correctly, and an
+// ordinary fire of the same target afterward is completely unaffected ---
+pe=func(a==b :posteval)
+r11a=help(pe)
+ok=ok&&(r11a=="(:a :b)")
+r11b=pe(:a func(1) :b func(1))
+ok=ok&&(r11b==true)
+print("11 pe=func(a==b :posteval); help(pe) then pe(:a func(1) :b func(1)) (expect \"(:a :b)\" true): %v %v\n\n" r11a r11b)
+check_fail(:ok ok)
+
+// --- test 12: help() still works normally on a registered command, and
+// mixing a FuncObj arg with a registered-command arg in one call works ---
+r12=help(print)
+ok=ok&&(size(r12)>0)
+r13=help(f2 print)
+ok=ok&&(size(r13)>0)
+print("12 help(print) and help(f2 print) -- ordinary/mixed help() calls unaffected (expect both non-empty): %v %v\n\n" size(r12) size(r13))
+check_fail(:ok ok)
+
+print("funchelp: %v\n" ok)
+ok

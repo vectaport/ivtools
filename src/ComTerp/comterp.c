@@ -59,6 +59,7 @@
 #include <ComTerp/numfunc.h>
 #include <ComTerp/parsefunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/funcobjscan.h>
 #include <ComTerp/randfunc.h>
 #include <ComTerp/soundfunc.h>
 #include <ComTerp/statfunc.h>
@@ -290,6 +291,67 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   pop_servstate();
 
   return FUNCOK;
+}
+
+/* #334 (staged from #170 phase 1): the bare IO-contract signature for
+   help(f) where f is a bare, unfired FuncObj -- see the fuller comment on
+   ComTerp::describe_funcobj in comterp.h.  Positionals render as
+   arg0/arg1/... (the arg(n) indices themselves, since a positional has no
+   other name) or "..." when the count can't be pinned down statically (a
+   computed index, or narg() usage -- see FuncObjVarScan::scan_positionals).
+   Keywords are read-only union read-before-write only -- per #170's own
+   framing, write-before-read is local scratch a caller's keyword would
+   just be clobbering, not a real input, so it's omitted; escaping
+   (local()/global()) vars are reported in a trailing annotation instead
+   of the parens themselves, since they're not part of the func's own
+   frame at all. */
+ComValue ComTerp::describe_funcobj(FuncObj* fo) {
+  boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(this, fo->toks(), fo->ntoks());
+  AttributeList* classification = FuncObjVarScan::classify(fo->toks(), fo->ntoks(), is_plain_var);
+  ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
+  delete [] is_plain_var;
+
+  FuncObjVarScan::PositionalInfo posinfo = FuncObjVarScan::scan_positionals(fo->toks(), fo->ntoks());
+
+  char buf[2048];
+  int pos = snprintf(buf, sizeof(buf), "(");
+  boolean first = true;
+
+  if (posinfo.count < 0) {
+    pos += snprintf(buf+pos, sizeof(buf)-pos, "...");
+    first = false;
+  } else {
+    for (int i = 0; i < posinfo.count; i++) {
+      pos += snprintf(buf+pos, sizeof(buf)-pos, first ? "arg%d" : " arg%d", i);
+      first = false;
+    }
+  }
+
+  ALIterator cit;
+  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+    Attribute* attr = classification->GetAttr(cit);
+    int kind = attr->Value()->int_val();
+    if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+      pos += snprintf(buf+pos, sizeof(buf)-pos, first ? ":%s" : " :%s",
+                       symbol_pntr(attr->SymbolId()));
+      first = false;
+    }
+  }
+  pos += snprintf(buf+pos, sizeof(buf)-pos, ")");
+
+  boolean any_escape = false;
+  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+    Attribute* attr = classification->GetAttr(cit);
+    int kind = attr->Value()->int_val();
+    if (kind == FuncObjVarScan::EscapingLocal || kind == FuncObjVarScan::EscapingGlobal) {
+      pos += snprintf(buf+pos, sizeof(buf)-pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
+                       symbol_pntr(attr->SymbolId()),
+                       kind == FuncObjVarScan::EscapingGlobal ? "global" : "local");
+      any_escape = true;
+    }
+  }
+
+  return ComValue(buf);
 }
 
 void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* lazy_posvals) {

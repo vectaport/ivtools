@@ -27,6 +27,7 @@ vv * FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 #include <ComTerp/helpfunc.h>
 #include <ComTerp/comterp.h>
 #include <ComTerp/comvalue.h>
+#include <ComTerp/postfunc.h>
 
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
@@ -72,7 +73,15 @@ void HelpFunc::execute() {
   int* command_ids = nil;
   boolean* str_flags;
   int nfuncs = 0;
-  
+
+  /* #334 (staged from #170 phase 1): help(f) where f is a bare, unfired
+     FuncObj -- parallel to comfuncs[]/command_ids[] above, populated only
+     in the ordinary (non-:all/:top) branch below, since a user FuncObj is
+     never a registered command and so can never appear via :all/:top's
+     enumeration of those.  Left nil there; the print loop below guards on
+     that. */
+  ComValue* funcobj_help = nil;
+
   /* build up table of command ids and flags to indicate if its an operator encased in quotes */
   if (allflag.is_false() && postevalflag.is_false() && topflag.is_false()) {
 
@@ -80,8 +89,13 @@ void HelpFunc::execute() {
     comfuncs = new ComFunc*[nfuncs];
     command_ids = new int[nfuncs];
     str_flags = new boolean[nfuncs];
+    funcobj_help = new ComValue[nfuncs];
 
     for (int i=0; i<nfuncs; i++) {
+      /* stack_arg(i, true) already reads symbol-preserving -- val stays a
+	 raw SymbolType reference, never resolved/fired -- so a bare FuncObj
+	 argument reaches the SymbolType branch below completely unfired,
+	 the same guarantee isclass(x :sym) relies on elsewhere. */
       ComValue val = stack_arg(i, true);
       if (val.is_type(AttributeValue::CommandType)) {
 	comfuncs[i] = (ComFunc*)val.obj_val();
@@ -99,9 +113,17 @@ void HelpFunc::execute() {
 	str_flags[i] = true;
       } else {
 	comfuncs[i] = nil;
-	if (val.is_type(AttributeValue::SymbolType))
+	if (val.is_type(AttributeValue::SymbolType)) {
 	  command_ids[i] = val.symbol_val();
-	else 
+	  /* lookup_symval is a pure symbol-table read, no firing involved
+	     (firing only ever happens via fire_if_funcobj/fire_funcobj,
+	     neither called here) -- safe to check what val actually names
+	     without running it. */
+	  ComValue resolved(comterp()->lookup_symval(val));
+	  if (resolved.is_object(FuncObj::class_symid()))
+	    funcobj_help[i] = comterp()->describe_funcobj((FuncObj*)resolved.obj_val());
+	}
+	else
 	  command_ids[i] = -1;
 	str_flags[i] = false;
       }
@@ -181,7 +203,15 @@ void HelpFunc::execute() {
     boolean first=true;
     for (int i=0; i<nfuncs; i++) {
       boolean printed = false;
-      if (comfuncs[i]) {
+      if (funcobj_help && funcobj_help[i].is_type(AttributeValue::StringType)) {
+	if (first)
+	  first = false;
+	else
+	  *out << '\n';
+	*out << funcobj_help[i].string_ptr();
+	printed = true;
+      }
+      if (!printed && comfuncs[i]) {
 	void *vptr = nil;
 	comterp()->localtable()->find(vptr, command_ids[i]);
 	if (vptr && ((ComValue*)vptr)->type() == ComValue::CommandType) {
@@ -274,6 +304,7 @@ void HelpFunc::execute() {
   delete command_ids;
   delete comfuncs;
   delete str_flags;
+  delete [] funcobj_help;
 
 }
 

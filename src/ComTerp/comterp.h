@@ -46,6 +46,7 @@ class ComFunc;
 class ComFuncState;
 class ComTerpState;
 class ComValue;
+class FuncObj;
 #include <iosfwd>
 
 class ComterpHandler;
@@ -171,6 +172,20 @@ public:
     // time in load_sub_expr, by is_funcobj's own unchanged fast path.
     // ComFunc::stack_arg()/stack_key() are the callers, right after their
     // own real (non-pending) resolution.
+    ComValue describe_funcobj(FuncObj* fo);
+    // #334 (staged from #170 phase 1): the bare IO-contract signature for
+    // help(f) where f is a bare, unfired FuncObj -- help() reads its
+    // argument symbol-preserving (post_eval(), stack_arg(i, true)) so it
+    // never fires f itself; HelpFunc::execute() (helpfunc.c) resolves that
+    // symbol via lookup_symval, checks is_object(FuncObj::class_symid()),
+    // and calls this instead of falling through to its usual registered-
+    // command docstring lookup.  Returns a StringType ComValue rendering
+    // positionals (from FuncObjVarScan::scan_positionals) and read-only/
+    // read-before-write keywords (from FuncObjVarScan::classify) as
+    // "(arg0 arg1 :key1 :key2)", with any escaping (local()/global())
+    // variables reported in a trailing "  -- escapes: name->scope"
+    // annotation instead.  Never runs fo's body.
+
     AttributeValue* lookup_symval(ComValue*, boolean freeze=true);
     // look up a pointer to an AttributeValue associated with a symbol
     // (specified in the input ComValue) in the local or global symbol

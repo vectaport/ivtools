@@ -401,24 +401,10 @@ void FuncObjFunc::execute() {
        declaration time, so a later fire sees the value that was live now,
        not whatever's live at call time.  is_plain_var[i] tells the
        classifier which tokens are ordinary variable references rather
-       than registered commands -- resolved here via the same
-       token_to_comvalue lookup an ordinary read already goes through, not
-       reimplemented. */
-    boolean* is_plain_var = new boolean[toklen];
-    for (int i = 0; i < toklen; i++) {
-      /* nids<0 (HACKING.md's "Dot Operator Rhs" section) marks a bare
-	 identifier on the right of a dot -- an attribute-key literal like
-	 the "v" in "obj.v", never promoted to CommandType regardless of
-	 whether that name is also a registered command, but not an
-	 ordinary variable reference either; must not be capture-eligible. */
-      if (tokbuf[i].type == TOK_COMMAND && tokbuf[i].nids >= 0) {
-	ComValue sv;
-	comterp()->token_to_comvalue(&tokbuf[i], &sv);
-	is_plain_var[i] = sv.type() == ComValue::SymbolType;
-      } else {
-	is_plain_var[i] = false;
-      }
-    }
+       than registered commands -- built by the same shared helper #170's
+       :help fire-time analysis uses (FuncObjVarScan::build_is_plain_var),
+       not reimplemented here. */
+    boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(comterp(), tokbuf, toklen);
     AttributeList* classification = FuncObjVarScan::classify(tokbuf, toklen, is_plain_var);
     /* RAII guard, not dead code: the AttributeValue ctor/dtor pair
        ref/unrefs classification automatically (HACKING.md's "Resource

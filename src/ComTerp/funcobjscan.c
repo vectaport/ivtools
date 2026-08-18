@@ -23,6 +23,8 @@
 
 #include <ComTerp/funcobjscan.h>
 #include <ComTerp/postfixspan.h>
+#include <ComTerp/comvalue.h>
+#include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Attribute/attrvalue.h>
@@ -115,6 +117,83 @@ static void add_to_set(int*& set, int& n, int& cap, int symid) {
    and simply produces no event). */
 static boolean span_is_plain_var(PostfixSpanWalk::Span span, boolean* is_plain_var) {
     return span.count == 1 && is_plain_var[span.start];
+}
+
+boolean* FuncObjVarScan::build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks) {
+    boolean* is_plain_var = new boolean[ntoks];
+    for (int i = 0; i < ntoks; i++) {
+        /* nids<0 (HACKING.md's "Dot Operator Rhs" section) marks a bare
+           identifier on the right of a dot -- an attribute-key literal
+           like the "v" in "obj.v", never promoted to CommandType
+           regardless of whether that name is also a registered command,
+           but not an ordinary variable reference either. */
+        if (toks[i].type == TOK_COMMAND && toks[i].nids >= 0) {
+            ComValue sv;
+            comterp->token_to_comvalue(&toks[i], &sv);
+            is_plain_var[i] = sv.type() == ComValue::SymbolType;
+        } else {
+            is_plain_var[i] = false;
+        }
+    }
+    return is_plain_var;
+}
+
+FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* toks, int ntoks) {
+    static int arg_symid = symbol_add("arg");
+    static int narg_symid = symbol_add("narg");
+
+    PositionalInfo info;
+    info.count = -1;
+    info.uses_narg = false;
+
+    int maxidx = -1;            /* highest literal index seen: arg(0) -> 0 */
+    boolean saw_arg = false;
+    boolean saw_nonliteral = false;
+
+    PostfixSpanWalk walk;
+    for (int i = 0; i < ntoks; i++) {
+        walk.step(toks, i);
+        if (toks[i].type != TOK_COMMAND) continue;
+        int symid = toks[i].v.symbolid;
+
+        if (symid == narg_symid) {
+            /* narg() anywhere in the body reads as "this loops over a
+               run of positionals bounded at call time," i.e. variadic --
+               not resolvable to one fixed count regardless of any
+               literal arg(n) indices also present. */
+            info.uses_narg = true;
+            continue;
+        }
+
+        if (symid == arg_symid && walk.consumed_count() == 1) {
+            saw_arg = true;
+            PostfixSpanWalk::Span operand = walk.consumed(0);
+            if (operand.count == 1 &&
+                (toks[operand.start].type == TOK_DFINT ||
+                 toks[operand.start].type == TOK_LNINT)) {
+                int idx = toks[operand.start].type == TOK_DFINT
+                    ? toks[operand.start].v.dfintval
+                    : (int)toks[operand.start].v.lnintval;
+                if (idx > maxidx) maxidx = idx;
+            } else {
+                /* a computed index (arg(i), arg(i+1), ...) -- resolving
+                   simple cases statically is future work (#170 phase 1
+                   point 2's "attempt, fall back to dynamic" allowance);
+                   this first pass gives up gracefully instead of
+                   guessing. */
+                saw_nonliteral = true;
+            }
+        }
+    }
+
+    if (info.uses_narg || saw_nonliteral)
+        info.count = -1;
+    else if (saw_arg)
+        info.count = maxidx + 1;
+    else
+        info.count = 0;      /* no arg(n) calls at all -- a niladic body */
+
+    return info;
 }
 
 AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean* is_plain_var) {
