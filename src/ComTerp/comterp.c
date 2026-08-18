@@ -399,7 +399,7 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
           char capbuf[256];
           ComValue capv(*capval);
           render_comvalue(capv, capbuf, sizeof(capbuf));
-          append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s, captured %s]" : " :%s [%s, captured %s]",
+          append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s, %s]" : " :%s [%s, %s]",
                           symbol_pntr(attr->SymbolId()), defbuf, capbuf);
         } else {
           append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s]" : " :%s [%s]",
@@ -413,7 +413,7 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
         char capbuf[256];
         ComValue capv(*capval);
         render_comvalue(capv, capbuf, sizeof(capbuf));
-        append_bounded(buf, sizeof(buf), pos, first ? ":%s [captured %s]" : " :%s [captured %s]",
+        append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s]" : " :%s [%s]",
                         symbol_pntr(attr->SymbolId()), capbuf);
       } else {
         append_bounded(buf, sizeof(buf), pos, first ? ":%s" : " :%s",

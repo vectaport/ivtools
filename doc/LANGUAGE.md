@@ -1148,7 +1148,7 @@ dead code:
 ```
 x=7
 ini=func(if(x==nil :then 99 :else x))
-help(ini)             // "(:x [99, captured 7])"
+help(ini)             // "(:x [99, 7])"  -- coded default, then what got captured
 ini()                 // 7, not 99
 ```
 
@@ -1161,7 +1161,7 @@ captured; supply the keyword explicitly, get that instead:
 ```
 w=42
 f=func(w+1)
-help(f)               // "(:w [captured 42])"
+help(f)               // "(:w [42])"
 ```
 
 This isn't a bug or a special case worth working around — it's the same

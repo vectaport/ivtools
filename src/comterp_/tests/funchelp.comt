@@ -172,10 +172,10 @@ check_fail(:ok ok)
 x=7
 ini3=func(if(x==nil :then 99 :else x))
 r14b=help(ini3)
-ok=ok&&(r14b=="(:x [99, captured 7])")
+ok=ok&&(r14b=="(:x [99, 7])")
 r14c=ini3()
 ok=ok&&(r14c==7)
-print("14b x=7 at declaration -- coded default shadowed by capture (expect \"(:x [99, captured 7])\" 7): %v %v\n\n" r14b r14c)
+print("14b x=7 at declaration -- coded default shadowed by capture (expect \"(:x [99, 7])\" 7): %v %v\n\n" r14b r14c)
 check_fail(:ok ok)
 
 // --- test 15: a computed (non-literal) default is silently skipped, not
@@ -209,8 +209,8 @@ check_fail(:ok ok)
 w2=42
 plain2=func(w2+1)
 r16d=help(plain2)
-ok=ok&&(r16d=="(:w2 [captured 42])")
-print("16b plain2=func(w2+1), w2=42 at declaration -- no if-nil idiom, still worth showing the capture (expect \"(:w2 [captured 42])\"): %v\n\n" r16d)
+ok=ok&&(r16d=="(:w2 [42])")
+print("16b plain2=func(w2+1), w2=42 at declaration -- no if-nil idiom, still worth showing the capture (expect \"(:w2 [42])\"): %v\n\n" r16d)
 check_fail(:ok ok)
 
 // --- test 17: a non-numeric literal default (string) also renders ---
