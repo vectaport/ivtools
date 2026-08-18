@@ -183,16 +183,14 @@ void ComTerp::init() {
     _funcobj_nargs = 0;
     _funcobj_active = false;
     _peek_scratch = new ComValue();
-    _fire_scratch_cap = 4;
-    _fire_scratch_pool = new ComValue[_fire_scratch_cap];
-    _fire_scratch_count = 0;
+    _fire_scratch_pool = new AttributeValueList();
     _top_commands = NULL;
 }
 
 
 ComTerp::~ComTerp() {
     delete _peek_scratch;
-    delete [] _fire_scratch_pool;
+    delete _fire_scratch_pool;
     /* Free stacks */
     if(dmm_free((void**)&_stack) != 0) 
 	KANRET ("error in call to dmm_free");
@@ -251,12 +249,12 @@ int ComTerp::eval_expr(boolean nested) {
     _stack_top = -1;
     /* a genuinely new top-level statement -- nothing from here on can
        legitimately alias a fire_if_funcobj() result from a PRIOR
-       statement, so it's safe to reclaim the pool now.  Reusing pool
-       memory only ever happens across this boundary, never mid-
-       statement (nested==true keeps growing it instead), so two fires
-       within one statement's evaluation -- however deeply nested --
-       always land in distinct slots. */
-    _fire_scratch_count = 0;
+       statement, so it's safe to reclaim the pool now.  Reclaiming only
+       ever happens across this boundary, never mid-statement
+       (nested==true keeps appending to it instead), so two fires within
+       one statement's evaluation -- however deeply nested -- always
+       land in distinct, individually-allocated entries. */
+    _fire_scratch_pool->clear();
   }
   while (_pfoff < _pfnum) {
     load_sub_expr();
@@ -1351,17 +1349,13 @@ ComValue& ComTerp::fire_if_funcobj(ComValue& val) {
                               _stack[] reference, invalidated by any
                               dmm_realloc a push during firing triggers */
   fire_funcobj(funcval);
-  if (_fire_scratch_count == _fire_scratch_cap) {
-    int newcap = _fire_scratch_cap * 2;
-    ComValue* newpool = new ComValue[newcap];
-    for (int i = 0; i < _fire_scratch_count; i++) newpool[i] = _fire_scratch_pool[i];
-    delete [] _fire_scratch_pool;
-    _fire_scratch_pool = newpool;
-    _fire_scratch_cap = newcap;
-  }
-  ComValue& slot = _fire_scratch_pool[_fire_scratch_count++];
-  slot = pop_stack(false);
-  return slot;
+  /* heap-allocate this fire's own entry and Append() it -- unlike a
+     contiguous array, this never relocates an entry already returned to
+     an earlier caller in the same statement (see the _fire_scratch_pool
+     comment in comterp.h). */
+  ComValue* slot = new ComValue(pop_stack(false));
+  _fire_scratch_pool->Append(slot);
+  return *slot;
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {

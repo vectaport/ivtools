@@ -22,11 +22,12 @@
 //     command's own operand (e.g. while's condition) gets re-evaluated
 //     every iteration.  The idiom for caching a repeatedly-read arg is the
 //     same one non-func code already uses: assign it to a local once.
-//   - a keyword is lazy but otherwise timed like plain func()'s own eager
-//     keywords: evaluated once, on its first read-before-write, then
-//     memoized -- a later read (or a write) sees that same value, it does
-//     not re-fire.  (Read-vs-loop laziness for keywords is a further
-//     refinement still being worked out -- not implemented yet.)
+//   - a keyword re-fires on every read too, same as arg(n) -- an unwritten
+//     :posteval keyword is a live tap, not a constant memoized on first
+//     read (see test 6 below: y+y reads y twice and evaluates its
+//     expression twice, not once-and-reuse).  A write still wins as an
+//     ordinary local assignment would: once the body assigns the keyword's
+//     name, later reads see that plain value instead of re-pulling.
 //
 // Side effects are counted via a list append (hits,1) rather than a
 // captured/reassigned scalar counter: a bare scalar read before any local
