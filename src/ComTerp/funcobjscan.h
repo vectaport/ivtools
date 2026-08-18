@@ -87,6 +87,25 @@ public:
     // computed n, fall back to dynamic" allowance; this first pass only
     // resolves literal indices, computed-index resolution is future work.
     static PositionalInfo scan_positionals(postfix_token* toks, int ntoks);
+
+    // #336 (staged from #170's "Future" section, "Positional optionality"):
+    // recognizes the canonical "unsupplied keyword defaults to nil" idiom --
+    // if(x==nil :then DEFAULT :else x) -- and extracts DEFAULT where it's a
+    // single literal token. Only this one, well-known shape is matched
+    // (condition is exactly "x==nil"/"nil==x", the :else branch is exactly
+    // the bare keyword unchanged, the :then branch is exactly one literal
+    // token); anything more elaborate -- a computed default, extra
+    // keywords on the if(), a differently-shaped condition -- is silently
+    // skipped rather than guessed at, the same "attempt simple cases, give
+    // up gracefully" restraint scan_positionals uses for computed arg(n)
+    // indices. Needs ComTerp access (token_to_comvalue) to turn the
+    // literal token into a real ComValue, unlike classify()/
+    // scan_positionals() above.
+    //
+    // Returns an AttributeList mapping each keyword's symid (only those
+    // with a recognized default) to its default ComValue. Always non-nil,
+    // possibly empty. Caller owns the returned list.
+    static AttributeList* scan_defaults(ComTerp* comterp, postfix_token* toks, int ntoks, boolean* is_plain_var);
 };
 
 #endif /* !defined(_funcobjscan_h) */

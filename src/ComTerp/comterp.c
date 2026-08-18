@@ -315,6 +315,19 @@ static void append_bounded(char* buf, size_t bufsize, int& pos, const char* fmt,
   if ((size_t)pos > bufsize - 1) pos = (int)(bufsize - 1);  /* clamp for the next call */
 }
 
+/* renders a ComValue as text into a fixed buffer, for embedding into
+   append_bounded's printf-style calls above (which have no %v of their
+   own) -- same std::strstreambuf/ostream pattern already used elsewhere
+   in this file (e.g. the stack_top() print path). */
+static void render_comvalue(ComValue& v, char* out, size_t outsize) {
+  std::strstreambuf sbuf;
+  ostream os(&sbuf);
+  os << v;
+  os << '\0';
+  strncpy(out, sbuf.str(), outsize - 1);
+  out[outsize - 1] = '\0';
+}
+
 /* #334 (staged from #170 phase 1): the bare IO-contract signature for
    help(f) where f is a bare, unfired FuncObj -- see the fuller comment on
    ComTerp::describe_funcobj in comterp.h.  Positionals render as
@@ -331,6 +344,11 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(this, fo->toks(), fo->ntoks());
   AttributeList* classification = FuncObjVarScan::classify(fo->toks(), fo->ntoks(), is_plain_var);
   ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
+  /* #336 (staged from #170's "Future" section): recognizes only the
+     canonical if(x==nil :then DEFAULT :else x) idiom -- needs
+     is_plain_var too, so computed before it's freed below. */
+  AttributeList* defaults = FuncObjVarScan::scan_defaults(this, fo->toks(), fo->ntoks(), is_plain_var);
+  ComValue defaults_owner(AttributeList::class_symid(), (void*)defaults);
   delete [] is_plain_var;
 
   FuncObjVarScan::PositionalInfo posinfo = FuncObjVarScan::scan_positionals(fo->toks(), fo->ntoks());
@@ -355,8 +373,52 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
     Attribute* attr = classification->GetAttr(cit);
     int kind = attr->Value()->int_val();
     if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
-      append_bounded(buf, sizeof(buf), pos, first ? ":%s" : " :%s",
-                      symbol_pntr(attr->SymbolId()));
+      AttributeValue* defval = defaults->find(attr->SymbolId());
+      /* #310's declaration-time capture can make the coded default
+	 above unreachable: if this name already had a real value in
+	 scope when func() ran, ReadOnly capture grabbed THAT value, not
+	 nil -- the x==nil check inside the body will never be true for
+	 as long as that capture stands, so the :then literal is
+	 currently dead code.  Surface this rather than let :help claim
+	 a default that the func will actually never produce. */
+      AttributeValue* capval = nil;
+      if (fo->captures().is_object(AttributeList::class_symid())) {
+        capval = ((AttributeList*)fo->captures().obj_val())->find(attr->SymbolId());
+      }
+      boolean cap_shadows = capval && !ComValue(*capval).is_unknown();
+      if (defval) {
+        /* #336: render the detected default inline, :name [value] --
+           comterp contracts are textually communicated wherever
+           possible (postfix(help)'s trailing * for post-eval commands,
+           help()'s own docstring/dockeys rendering); this is the same
+           idea applied to a func's own IO contract. */
+        char defbuf[256];
+        ComValue defv(*defval);
+        render_comvalue(defv, defbuf, sizeof(defbuf));
+        if (cap_shadows) {
+          char capbuf[256];
+          ComValue capv(*capval);
+          render_comvalue(capv, capbuf, sizeof(capbuf));
+          append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s, captured %s]" : " :%s [%s, captured %s]",
+                          symbol_pntr(attr->SymbolId()), defbuf, capbuf);
+        } else {
+          append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s]" : " :%s [%s]",
+                          symbol_pntr(attr->SymbolId()), defbuf);
+        }
+      } else if (cap_shadows) {
+        /* no coded default idiom at all, but this read-only keyword was
+           still captured as a real value at declaration time -- worth
+           showing too, same reasoning as above, just without a coded
+           literal to contrast it against. */
+        char capbuf[256];
+        ComValue capv(*capval);
+        render_comvalue(capv, capbuf, sizeof(capbuf));
+        append_bounded(buf, sizeof(buf), pos, first ? ":%s [captured %s]" : " :%s [captured %s]",
+                        symbol_pntr(attr->SymbolId()), capbuf);
+      } else {
+        append_bounded(buf, sizeof(buf), pos, first ? ":%s" : " :%s",
+                        symbol_pntr(attr->SymbolId()));
+      }
       first = false;
     }
   }

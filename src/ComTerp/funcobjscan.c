@@ -328,3 +328,81 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
 
     return result;
 }
+
+AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* toks, int ntoks, boolean* is_plain_var) {
+    static int if_symid = symbol_add("if");
+    static int eq_symid = symbol_add("eq");
+    static int nil_symid = symbol_add("nil");
+    static int then_symid = symbol_add("then");
+    static int else_symid = symbol_add("else");
+
+    AttributeList* result = new AttributeList();
+
+    PostfixSpanWalk walk;
+    for (int i = 0; i < ntoks; i++) {
+        walk.step(toks, i);
+        if (toks[i].type != TOK_COMMAND || (unsigned)toks[i].v.symbolid != (unsigned)if_symid) continue;
+        /* only the plain 3-operand if(cond :then v :else v) shape --
+           :until/:nilchk or any other keyword on this if() means it
+           isn't this idiom at all */
+        if (walk.consumed_count() != 3) continue;
+
+        PostfixSpanWalk::Span condspan = walk.consumed(0);
+        PostfixSpanWalk::Span branch1 = walk.consumed(1);
+        PostfixSpanWalk::Span branch2 = walk.consumed(2);
+
+        /* condition must be exactly "K==nil" or "nil==K" -- 3 tokens,
+           last one eq, the other two bare single-token operands, one of
+           them the literal nil command and the other a plain variable
+           (the keyword this default belongs to) */
+        if (condspan.count != 3) continue;
+        int eqtok = condspan.start + 2;
+        if (toks[eqtok].type != TOK_COMMAND || (unsigned)toks[eqtok].v.symbolid != (unsigned)eq_symid) continue;
+        int t0 = condspan.start, t1 = condspan.start + 1;
+        boolean t0_nil = toks[t0].type == TOK_COMMAND && (unsigned)toks[t0].v.symbolid == (unsigned)nil_symid;
+        boolean t1_nil = toks[t1].type == TOK_COMMAND && (unsigned)toks[t1].v.symbolid == (unsigned)nil_symid;
+        int keysym;
+        if (t0_nil && is_plain_var[t1]) keysym = toks[t1].v.symbolid;
+        else if (t1_nil && is_plain_var[t0]) keysym = toks[t0].v.symbolid;
+        else continue;
+
+        /* branch1/branch2 (source order) must each end in a KEYWORD
+           token -- that's what identifies which is :then and which is
+           :else (see funcobjscan.h's spanwalk comment: a keyword-tagged
+           operand's span includes its trailing KEYWORD marker token) */
+        PostfixSpanWalk::Span then_span, else_span;
+        boolean have_then = false, have_else = false;
+        PostfixSpanWalk::Span branches[2];
+        branches[0] = branch1;
+        branches[1] = branch2;
+        for (int b = 0; b < 2; b++) {
+            PostfixSpanWalk::Span sp = branches[b];
+            if (sp.count < 1) continue;
+            int last = sp.start + sp.count - 1;
+            if (toks[last].type != TOK_KEYWORD) continue;
+            if ((unsigned)toks[last].v.symbolid == (unsigned)then_symid) { then_span = sp; have_then = true; }
+            else if ((unsigned)toks[last].v.symbolid == (unsigned)else_symid) { else_span = sp; have_else = true; }
+        }
+        if (!have_then || !have_else) continue;
+
+        /* :else's value portion (span minus its trailing keyword token)
+           must be exactly the bare keyword, unchanged -- confirms this
+           if() really is the "return x as-is" idiom for THIS keysym,
+           not some other, unrelated keyword-adjacent if() */
+        if (else_span.count != 2) continue;
+        if (!is_plain_var[else_span.start] || toks[else_span.start].v.symbolid != keysym) continue;
+
+        /* :then's value portion must be exactly one literal token --
+           give up gracefully (no default reported) on anything computed,
+           same restraint scan_positionals uses for a non-literal arg(n)
+           index */
+        if (then_span.count != 2) continue;
+        ComValue litval;
+        comterp->token_to_comvalue(&toks[then_span.start], &litval);
+        if (litval.is_type(AttributeValue::CommandType) || litval.is_type(AttributeValue::SymbolType)) continue;
+
+        result->add_attr(keysym, litval);
+    }
+
+    return result;
+}

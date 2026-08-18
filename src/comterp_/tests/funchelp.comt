@@ -20,6 +20,12 @@
 // A positional count that can't be pinned down statically (narg() usage,
 // or a computed arg(i) index) renders as "(...)".
 //
+// A keyword with a recognized default (the canonical "if(x==nil :then
+// DEFAULT :else x)" idiom, #336 -- staged from #170's "Future" section)
+// renders as ":name [DEFAULT]" instead of bare ":name", but only when
+// DEFAULT is exactly one literal token; anything computed is silently
+// skipped rather than guessed at (tests 14-16).
+//
 // Only read-only union read-before-write keywords appear -- write-before-
 // read is local scratch a caller's keyword would just be clobbering, not
 // a genuine input, so it's omitted (same framing #310's captures already
@@ -46,6 +52,11 @@ print("2 f2=func(arg(0)+arg(1)); help(f2) (expect \"(arg0 arg1)\"): %v\n\n" r2)
 check_fail(:ok ok)
 
 // --- test 3: read-only keyword shown, write-before-read local excluded ---
+x=nil   // prime -- #310 captures at declaration time; an exact-string
+        // assertion on help()'s output needs a clean, deterministic
+        // capture regardless of what earlier test files left behind in
+        // global scope (see the funcs :x/:y/:z/:a/:b primes throughout
+        // this file, and this session's own "6" out of "a+b+c" story)
 f3=func(y=x; z=1; z=z+1; y+z)
 r3=help(f3)
 ok=ok&&(r3=="(:x)")
@@ -53,6 +64,7 @@ print("3 f3=func(y=x; z=1; z=z+1; y+z); help(f3) -- x is read-only, z is pure lo
 check_fail(:ok ok)
 
 // --- test 4: read-before-write keyword shown the same as read-only ---
+y=nil   // prime -- see test 3's note
 f4=func(y=y+1; y)
 r4=help(f4)
 ok=ok&&(r4=="(:y)")
@@ -89,6 +101,7 @@ check_fail(:ok ok)
 
 // --- test 9: mixed -- read-only, read-before-write, write-before-read
 // (excluded), and an escape, all in one body ---
+x=nil;y=nil   // prime -- see test 3's note
 mix=func(a=x; b=y; b=b+1; z=5; z=z+1; local(w)=1; a+b+z)
 r9=help(mix)
 ok=ok&&(r9=="(:x :y)  -- escapes: w->local")
@@ -105,6 +118,10 @@ check_fail(:ok ok)
 
 // --- test 11: help(f) on a :posteval target classifies correctly, and an
 // ordinary fire of the same target afterward is completely unaffected ---
+a=nil;b=nil   // prime -- see test 3's note; the explicit :a/:b keywords
+              // below still override regardless (add_attr replaces a
+              // capture by symid either way), so this can't break the
+              // firing check, only stabilize the help() string
 pe=func(a==b :posteval)
 r11a=help(pe)
 ok=ok&&(r11a=="(:a :b)")
@@ -130,6 +147,78 @@ huge=func(arg(400))
 r13b=help(huge)
 ok=ok&&(size(r13b)==2047)
 print("13 huge=func(arg(400)); help(huge) truncates safely instead of overflowing (expect size 2047): %v\n\n" size(r13b))
+check_fail(:ok ok)
+
+// --- test 14: the canonical optional-keyword idiom renders its literal
+// default inline (#336) ---
+x=nil   // prime before declaring -- #310 captures a read-only free
+        // variable at declaration time; see FUNC-AND-ARGS-DESIGN.md's
+        // note and funcarg.comt test 10 for why this line is required,
+        // not decorative (this is also why "6" out of "a+b+c" earlier
+        // this session wasn't a :posteval quirk -- same mechanism)
+ini=func(if(x==nil :then 99 :else x))
+r14=help(ini)
+ok=ok&&(r14=="(:x [99])")
+print("14 ini=func(if(x==nil :then 99 :else x)); help(ini) (expect \"(:x [99])\"): %v\n\n" r14)
+check_fail(:ok ok)
+
+// --- test 14b: if x already had a real value when THIS func() ran, the
+// coded default above is currently dead code -- #310's capture grabbed
+// x's value, not nil, so the body's x==nil check will never be true for
+// as long as that capture stands.  help() surfaces the shadowing rather
+// than let the coded "[99]" claim a default the func won't actually
+// produce (verified against the actual fired result, not just the
+// help() string) ---
+x=7
+ini3=func(if(x==nil :then 99 :else x))
+r14b=help(ini3)
+ok=ok&&(r14b=="(:x [99, captured 7])")
+r14c=ini3()
+ok=ok&&(r14c==7)
+print("14b x=7 at declaration -- coded default shadowed by capture (expect \"(:x [99, captured 7])\" 7): %v %v\n\n" r14b r14c)
+check_fail(:ok ok)
+
+// --- test 15: a computed (non-literal) default is silently skipped, not
+// guessed at -- same restraint as scan_positionals' computed arg(n) ---
+y=nil
+ini2=func(if(y==nil :then int(rand(0,10)) :else y))
+r15=help(ini2)
+ok=ok&&(r15=="(:y)")
+print("15 ini2=func(if(y==nil :then int(rand(0,10)) :else y)); help(ini2) -- computed default not shown (expect \"(:y)\"): %v\n\n" r15)
+check_fail(:ok ok)
+
+// --- test 16: a keyword with no default idiom at all, and truly nothing
+// captured (z primed to nil), is unaffected; the default rendering also
+// doesn't change how a DIFFERENT func (ini) actually fires ---
+z=nil   // prime -- see test 3's note
+plain=func(z+1)
+r16=help(plain)
+ok=ok&&(r16=="(:z)")
+r16b=ini(:x 5)
+r16c=ini()
+ok=ok&&(r16b==5)&&(r16c==99)
+print("16 plain=func(z+1); help(plain)=%v (expect \"(:z)\"); ini(:x 5)=%v ini()=%v -- firing unaffected by default rendering (expect 5 99): %v %v %v\n\n" r16 r16b r16c r16 r16b r16c)
+check_fail(:ok ok)
+
+// --- test 16b: the flip side of test 16 -- no coded default idiom, but
+// this read-only keyword WAS captured as a real, non-nil value.  #310's
+// capture is simple/stable/constant once func() has run (Scott's own
+// framing) -- help() surfaces it the same way it surfaces a coded
+// default, since from the caller's side both are "what do I get if I
+// don't supply this keyword" ---
+w2=42
+plain2=func(w2+1)
+r16d=help(plain2)
+ok=ok&&(r16d=="(:w2 [captured 42])")
+print("16b plain2=func(w2+1), w2=42 at declaration -- no if-nil idiom, still worth showing the capture (expect \"(:w2 [captured 42])\"): %v\n\n" r16d)
+check_fail(:ok ok)
+
+// --- test 17: a non-numeric literal default (string) also renders ---
+name=nil
+greet=func(if(name==nil :then "world" :else name))
+r17=help(greet)
+ok=ok&&(r17=="(:name [\"world\"])")
+print("17 greet=func(if(name==nil :then \"world\" :else name)); help(greet) (expect \"(:name [\\\"world\\\"])\"): %v\n\n" r17)
 check_fail(:ok ok)
 
 print("funchelp: %v\n" ok)
