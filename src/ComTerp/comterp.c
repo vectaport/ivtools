@@ -392,12 +392,16 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      how to clean up ArrayType/StreamType/StringType and (for ObjectType)
      AttributeList/Attribute specifically, nothing generic for an arbitrary
      ObjectType payload, so a marker nobody explicitly deletes just leaks.
-     A positional's marker is always still here regardless of whether
-     arg(n) ever pulled it (arg(n) never overwrites its own slot, see
-     funcobj_arg()); a keyword's marker only survives to here if it was
-     never read at all -- one that was gets replaced by
-     pull_alist_pending()'s own add_attr call, which deletes the old
-     marker there instead, right as it's overwritten. */
+     A positional's marker is usually still here regardless of whether
+     arg(n) ever pulled it -- UNLESS the pulled result was a stream, in
+     which case funcobj_arg() already replaced the slot with the real
+     stream object and deleted the marker itself (pinning, not re-firing
+     -- see its own comment); is_object() below correctly skips those,
+     since they're no longer markers at all by the time we get here.  A
+     keyword's marker only survives to here if it was never read at all
+     -- one that was gets replaced by pull_alist_pending()'s (or, for a
+     stream result, peek_alist_pending()'s) own add_attr call, which
+     deletes the old marker there instead, right as it's overwritten. */
   for (int i=0; i<npos; i++) {
     if (posvals[i].is_object(FuncObjPendingArg::class_symid()))
       delete (FuncObjPendingArg*)posvals[i].obj_val();
