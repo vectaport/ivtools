@@ -621,22 +621,40 @@ protected:
     // declared this early in the header; allocated once in init().
 
     AttributeValueList* _fire_scratch_pool;
-    // fire_if_funcobj()'s fired results -- an unbounded pool, not a
-    // single reused slot like _peek_scratch: stack_arg()/stack_key()
-    // return a fired result by reference, and a caller that resolves two
-    // operands before consuming either (e.g. EqualFunc: operand1/
-    // operand2 both held live across both stack_arg() calls) needs each
-    // fire to land in its OWN storage -- a single shared slot means the
-    // second fire silently overwrites the first result out from under a
-    // caller still holding a reference to it. Each fire heap-allocates
-    // its own ComValue and Append()'s it -- unlike a contiguous growable
-    // array, appending to this list never relocates or invalidates a
-    // previously-returned entry's address, so a reference returned by an
-    // earlier fire in the same statement stays valid no matter how many
-    // more fires follow it (a flat array-with-doubling version of this
-    // pool had exactly that bug: growth deleted-and-copied into a new
-    // array, dangling any reference already handed out into the old
-    // one). Cleared (see eval_expr's !nested case), never resized.
+    // fire_if_funcobj()'s fired results -- not a single reused slot like
+    // _peek_scratch: stack_arg()/stack_key() return a fired result by
+    // reference, and a caller that resolves two operands before
+    // consuming either (e.g. EqualFunc: operand1/operand2 both held live
+    // across both stack_arg() calls) needs each fire to land in its OWN
+    // storage -- a single shared slot means the second fire silently
+    // overwrites the first result out from under a caller still holding
+    // a reference to it. Each fire heap-allocates its own ComValue and
+    // Append()'s it -- unlike a contiguous growable array, appending to
+    // this list never relocates or invalidates a previously-returned
+    // entry's address, so a reference returned by an earlier fire in the
+    // same statement stays valid no matter how many more fires follow it
+    // (a flat array-with-doubling version of this pool had exactly that
+    // bug: growth deleted-and-copied into a new array, dangling any
+    // reference already handed out into the old one). Cleared (see
+    // eval_expr's !nested case), never resized.
+    //
+    // Growth is bounded by one top-level statement, not by process
+    // lifetime, even though runfile()'s own per-line loop drives every
+    // line of a script through eval_expr(true) (never clearing mid-file,
+    // same as _stack_top): the reset happens at the START of whichever
+    // top-level statement comes NEXT, because ComterpHandler::handle_input
+    // (comhandler.c) computes nested = reentrant ? true :
+    // force_nested() for every incoming command -- server request or
+    // interactively-typed line alike -- and force_nested defaults false.
+    // So the very next run(...), or the next line typed at a prompt,
+    // clears whatever the previous top-level statement accumulated
+    // before doing anything else. The one deliberate exception:
+    // comdraw's pause() (ComUnidraw/unifunc.c) sets force_nested(1) for
+    // the duration of an interactive breakpoint, so a script suspended
+    // mid-statement isn't corrupted by whatever gets typed while paused
+    // -- that extends the no-reset window to human-interaction
+    // timescale, not process lifetime, an accepted tradeoff for that
+    // one feature.
 
     AttributeValueList* _top_commands;
     // list of top-most commands for this derived comterp

@@ -253,7 +253,13 @@ int ComTerp::eval_expr(boolean nested) {
        ever happens across this boundary, never mid-statement
        (nested==true keeps appending to it instead), so two fires within
        one statement's evaluation -- however deeply nested -- always
-       land in distinct, individually-allocated entries. */
+       land in distinct, individually-allocated entries.  This is also
+       the reset that bounds the pool's growth to one top-level
+       statement rather than the process lifetime, even across a whole
+       runfile() session -- see _fire_scratch_pool's own comment in
+       comterp.h for how the next top-level entry (ComterpHandler::
+       handle_input) always reaches this branch, with pause()'s
+       force_nested(1) as the one deliberate exception. */
     _fire_scratch_pool->clear();
   }
   while (_pfoff < _pfnum) {

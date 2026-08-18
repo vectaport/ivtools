@@ -87,6 +87,13 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 	        boolean was_pending = argref.is_symbol() &&
 		  _comterp->is_posteval_pending(argref.symbol_val());
 	        argref = _comterp->lookup_symval(argref);
+		/* fire_if_funcobj() returns a reference into its own
+		   per-fire pool entry, never a shared slot -- a caller
+		   (e.g. EqualFunc) resolving two pending FuncObj operands
+		   before consuming either gets two DISTINCT entries, so the
+		   second fire can't alias/overwrite the first (regression
+		   test: posteval.comt test 10, h(:a func(1) :b func(2))).
+		   See _fire_scratch_pool's own comment in comterp.h. */
 		if (was_pending && argref.is_object(FuncObj::class_symid()))
 		  return _comterp->fire_if_funcobj(argref);
 	    }
