@@ -1,8 +1,15 @@
 # FuncObj, `arg()`/`narg()`, and the func-as-verb model — design record
 
 Design notes from the func/arguments design session (S. Johnston + Claude).
-Some of this is implemented, some is the in-flight `arg()`/`narg()` patch, and
-the last section is a future direction. Written down so the reasoning survives.
+Written down so the reasoning survives — kept as a historical record, not a
+living spec, so it isn't rewritten to read as if planned this way from the
+start. Status as of this note: `arg()`/`narg()` landed (the section below
+marked "landed — eager"), and the `:posteval` keyword this document
+repeatedly points to as a future direction has *also* since landed — see
+`LANGUAGE.md`'s "Lazy arguments: `:posteval`" section for the real,
+current spec. Every "future"/"awaits `:posteval`" marker left below is
+intentionally left in place as-written, with a note pointing at what it
+became, not rewritten to sound already-decided.
 
 ## The one-line shape
 
@@ -31,8 +38,9 @@ it is *not* deferred**: a FuncObj invocation is an eager evaluation, so the
 positionals are computed up front and sit on the stack in postfix order, and
 `arg(n)` is simply `stack_arg(n)` reading the already-computed value. The
 deferred-span reading of the actual-param list (a proto-`FuncObj` post-eval-
-indexed out of the read-only postfix buffer) is the **`:posteval` future**
-(§ below), not today's behavior.
+indexed out of the read-only postfix buffer) was **`:posteval`, written here
+as a future direction — since landed; `func(body :posteval)` makes a call's
+positionals and keywords deferred exactly this way (see `LANGUAGE.md`).**
 
 ## The func IO contract
 
@@ -47,7 +55,10 @@ indexed out of the read-only postfix buffer) is the **`:posteval` future**
   with `arg(0),arg(1),arg(0),arg(1)` in the body yields the four computed values
   but **beeps/dings once**, not "beep ding beep ding". The true re-*firing* bell
   — re-running a positional's expression on each read — needs deferred
-  evaluation, which is the **`:posteval`** future keyword (§ below). A func
+  evaluation, which was the **`:posteval`** future keyword written here —
+  since landed, and true to the "bell" framing: under `:posteval`, `arg(n)`
+  re-fires its expression on *every* read, unconditionally (no memoization
+  at all — see `LANGUAGE.md`). A func
   positional is a real `ComValue` (the script-level `arg()` returns a string
   symbol; this one returns the value).
 - **keywords → func-scoped variables, auto-created.** There is *no querying* of
@@ -146,13 +157,19 @@ What landed (on `comterp-arg-narg-for-func`):
 
 > The "Three different things" table above imagined the actuals as a deferred
 > span post-eval-indexed out of the read-only `_pfbuf` (a captured-side-array-free
-> "bell"). That is **not** what landed — the landed form is eager capture. The
-> `_pfbuf` re-index / re-firing bell is the future `:posteval` keyword.
+> "bell"). That is **not** what landed here — the landed form in *this* patch is
+> eager capture. The `_pfbuf` re-index / re-firing bell was the future
+> `:posteval` keyword — since landed as its own, later feature (see
+> `LANGUAGE.md`'s "Lazy arguments: `:posteval`"), built on top of eager
+> `arg()`/`narg()` rather than replacing it: an ordinary call stays eager,
+> `:posteval` opts a call into exactly the deferred-span behavior imagined here.
 
 Tests it satisfies (`funcarg.comt`): `f=func(arg(0)+arg(1)) f(3 4)` → 7;
 re-readable `c=func(arg(0),arg(1),arg(0),arg(1)) c(5 6)` → `(5,6,5,6)` (and a
 side-effecting `c(beep ding)` beeps/dings **once**, not "beep ding beep ding" —
-that awaits `:posteval`); multi-body
+that awaited `:posteval`, which now gives you exactly this: `func(body
+:posteval)` re-fires `beep`/`ding` on each `arg(n)` read, see
+`posteval.comt`); multi-body
 `f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with `l==(1,2,3)`.
 (Note `==` (45) binds tighter than `,` (35), so the literal needs the parens.)
 

@@ -1171,6 +1171,36 @@ laziness of the control command and the laziness of the call compose for
 free, all the way back through a chain of `:posteval` calls, without
 either side needing to know the other exists.
 
+**Steering: a keyword's own defining code runs only if it's actually
+needed.** That composition isn't just an optimization — it's a
+higher-level control construct in its own right. `:posteval` lets a
+keyword carry *behavior to try*, not just a value, with the decision of
+whether to run it left entirely to the body:
+
+```
+steer=func(
+  r=primary();
+  if(r==nil :then fallback() :else r)
+  :posteval)
+
+hits=list()
+cheap=func(hits,"cheap"; 42)
+expensive=func(hits,"expensive"; 99)
+steer(:primary cheap :fallback expensive)   // 42 -- hits=["cheap"], fallback's own code never ran
+
+hits2=list()
+failing=func(hits2,"failing"; nil)
+backup=func(hits2,"backup"; 7)
+steer(:primary failing :fallback backup)    // 7 -- hits2=["failing","backup"], fallback ran only because primary did fail
+```
+
+`primary`/`fallback` are ordinary bare names — they fire when read, same
+as anywhere else in the language — but *when* they're read is entirely up
+to `steer`'s own control flow, deferred by `:posteval` until the `if`
+actually needs one. A retry/fallback/circuit-breaker combinator falls out
+for free, without `steer` needing any special "don't run this yet" syntax
+beyond the keyword declaration itself.
+
 **The gate is dynamic within the limits of one static classification
 pass.** A whole `;`-joined statement chain is tokenized and classified
 once, before any of it runs — the same fact issue #328 is built around.
@@ -1191,6 +1221,66 @@ fully would mean pedepth-deferring every call-shaped symbol reference
 unconditionally, not just undefined or already-`:posteval` ones, so the
 dynamic gate is consulted for literally every func call in the language —
 a much larger change than this feature makes on its own.
+
+**Observation: `:posteval` turns keywords into a redirection/distribution
+mechanism, not just a delay.** A few things fall out of the mechanics
+above that are worth noticing on their own, not just as consequences of
+how the pull works:
+
+- *Independent re-draws, not a cached square.* `h=func(y*y :posteval)`
+  reading `y` twice does not compute a square — each read re-fires
+  whatever expression `y` was bound to. `h(:y int(rand(1,10)))` can
+  return the product of two *different* random draws, not one draw
+  squared:
+  ```
+  hits=list()
+  draw=func(v=int(rand(1,10)); hits,v; v)
+  h=func(y*y :posteval)
+  r=h(:y draw())
+  // y*y reads y twice, two independent draws: hits={1,2} -> r=2, not 1 or 4
+  ```
+  The idiom for pinning one draw instead — `ycopy=y before ycopy*ycopy`
+  — is the same "assign it to a local once" pattern any repeatedly-read
+  `:posteval` value uses (see `posteval.comt` test 6's comment).
+- *Sibling keywords.* Because a marker pull does not swap `_alist`, one
+  `:posteval` keyword's deferred expression can reference *another*
+  keyword of the same call by name — `f(:x y :y 5 :posteval)`'s `x`
+  resolves against `f`'s own `y`, not whatever `y` means in the caller's
+  scope. That reads like keywords renaming or redistributing each other
+  on the fly, entirely as a side effect of the pull mechanism, not
+  anything deliberately built for it.
+- *Testable before firing, via `isclass(:sym)`, not via parens.* Passing
+  a bare `func(...)` in by keyword hands the callee an actual `FuncObj`
+  value — behavior, not just a result — and `isclass(name :sym)` reads
+  its type without firing it, the same symbol-preserving convention used
+  anywhere else in the language:
+  ```
+  f=func(print("isclass a %v b %v\n" isclass(a :sym) isclass(b :sym));
+         a==b :posteval)
+  f(:a func(1) :b func(1))
+  // isclass a FuncObj b FuncObj
+  // true
+  ```
+  `a`/`b` report as `FuncObj` under `isclass(:sym)` — inspectable without
+  firing — and only fire when actually used bare, in `a==b`. So a
+  `:posteval` body gets exactly the "pass code in, test what it is,
+  decide whether to run it" pattern the `steer` example above leans on,
+  without needing any bare-vs-parens distinction at all: `:sym` is the
+  look-without-firing escape hatch, bare use is the fire.
+
+None of this was purpose-built — it's what falls out of "a keyword is a
+deferred pull against the callee's own in-progress scope, resolved as an
+ordinary read on demand."
+
+Follow the `isclass(:sym)` case one step further and a pattern falls
+out: a bare variable, or a `:posteval`-pulled keyword, both treat *any*
+read as a request to fire — the only place a `FuncObj` sits as pure,
+inert data, inspectable without an implicit fire, is an attrlist. Dot
+access into one still needs the explicit `()` to run it (same contract
+as everywhere else in the language). So passing a `FuncObj` around as an
+actual *object* — data now, behavior later, on request — routes through
+the same attrlist substrate comterp already uses for objects generally,
+not through some func-specific mechanism.
 
 ### Escaping the func scope: local() and global()
 
