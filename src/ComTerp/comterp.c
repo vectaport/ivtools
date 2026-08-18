@@ -23,6 +23,7 @@
  * 
  */
 
+#include <cstdarg>
 #include <cstdio>
 #include <ctype.h>
 #include <iostream.h>
@@ -293,6 +294,27 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   return FUNCOK;
 }
 
+/* Bounds-safe snprintf accumulation into a fixed buffer -- plain
+   'pos += snprintf(buf+pos, sizeof(buf)-pos, ...)' is unsafe to repeat:
+   once the buffer is full, snprintf returns the length it WOULD have
+   written (not what it actually wrote), so pos can end up past the
+   buffer's end.  The next call then computes buf+pos as an out-of-bounds
+   pointer and sizeof(buf)-pos as a size_t underflow (huge, since
+   sizeof() is unsigned) -- snprintf believes it has nearly unlimited
+   room and writes past the real allocation (Greptile, PR #337).  This
+   clamps pos to stay valid after every call, so a signature long enough
+   to fill the buffer truncates safely instead of overflowing it. */
+static void append_bounded(char* buf, size_t bufsize, int& pos, const char* fmt, ...) {
+  if (pos < 0 || (size_t)pos >= bufsize - 1) return;  /* already full/invalid -- skip */
+  va_list ap;
+  va_start(ap, fmt);
+  int n = vsnprintf(buf + pos, bufsize - (size_t)pos, fmt, ap);
+  va_end(ap);
+  if (n < 0) return;  /* encoding error -- leave pos alone */
+  pos += n;
+  if ((size_t)pos > bufsize - 1) pos = (int)(bufsize - 1);  /* clamp for the next call */
+}
+
 /* #334 (staged from #170 phase 1): the bare IO-contract signature for
    help(f) where f is a bare, unfired FuncObj -- see the fuller comment on
    ComTerp::describe_funcobj in comterp.h.  Positionals render as
@@ -314,15 +336,16 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
   FuncObjVarScan::PositionalInfo posinfo = FuncObjVarScan::scan_positionals(fo->toks(), fo->ntoks());
 
   char buf[2048];
-  int pos = snprintf(buf, sizeof(buf), "(");
+  int pos = 0;
+  append_bounded(buf, sizeof(buf), pos, "(");
   boolean first = true;
 
   if (posinfo.count < 0) {
-    pos += snprintf(buf+pos, sizeof(buf)-pos, "...");
+    append_bounded(buf, sizeof(buf), pos, "...");
     first = false;
   } else {
     for (int i = 0; i < posinfo.count; i++) {
-      pos += snprintf(buf+pos, sizeof(buf)-pos, first ? "arg%d" : " arg%d", i);
+      append_bounded(buf, sizeof(buf), pos, first ? "arg%d" : " arg%d", i);
       first = false;
     }
   }
@@ -332,21 +355,21 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
     Attribute* attr = classification->GetAttr(cit);
     int kind = attr->Value()->int_val();
     if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
-      pos += snprintf(buf+pos, sizeof(buf)-pos, first ? ":%s" : " :%s",
-                       symbol_pntr(attr->SymbolId()));
+      append_bounded(buf, sizeof(buf), pos, first ? ":%s" : " :%s",
+                      symbol_pntr(attr->SymbolId()));
       first = false;
     }
   }
-  pos += snprintf(buf+pos, sizeof(buf)-pos, ")");
+  append_bounded(buf, sizeof(buf), pos, ")");
 
   boolean any_escape = false;
   for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
     Attribute* attr = classification->GetAttr(cit);
     int kind = attr->Value()->int_val();
     if (kind == FuncObjVarScan::EscapingLocal || kind == FuncObjVarScan::EscapingGlobal) {
-      pos += snprintf(buf+pos, sizeof(buf)-pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
-                       symbol_pntr(attr->SymbolId()),
-                       kind == FuncObjVarScan::EscapingGlobal ? "global" : "local");
+      append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
+                      symbol_pntr(attr->SymbolId()),
+                      kind == FuncObjVarScan::EscapingGlobal ? "global" : "local");
       any_escape = true;
     }
   }

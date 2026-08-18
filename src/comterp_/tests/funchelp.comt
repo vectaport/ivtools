@@ -122,5 +122,15 @@ ok=ok&&(size(r13)>0)
 print("12 help(print) and help(f2 print) -- ordinary/mixed help() calls unaffected (expect both non-empty): %v %v\n\n" size(r12) size(r13))
 check_fail(:ok ok)
 
+// --- test 13: a signature long enough to fill (and exceed) the formatter's
+// fixed 2048-byte buffer truncates safely instead of overflowing it
+// (Greptile, PR #337) -- arg(400) alone drives the rendered positional
+// list past the buffer; this must not crash or write out of bounds ---
+huge=func(arg(400))
+r13b=help(huge)
+ok=ok&&(size(r13b)==2047)
+print("13 huge=func(arg(400)); help(huge) truncates safely instead of overflowing (expect size 2047): %v\n\n" size(r13b))
+check_fail(:ok ok)
+
 print("funchelp: %v\n" ok)
 ok
