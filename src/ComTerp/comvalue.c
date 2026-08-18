@@ -483,11 +483,9 @@ boolean ComValue::is_funcobj(ComTerp* comterp) {
        funcobj" without being pulled -- and pulling here, just to answer a
        query at push time, would fire it whether or not it's actually a
        func.  Defer instead: say no for now (matches nothing left to break
-       the load_sub_expr loop over).  Unlike an ordinary eager symbol,
-       what this resolves to is never auto-fired at all once pulled --
-       ComFunc::stack_arg()/stack_key() (comfunc.c) return it as-is, same
-       contract dot-access on an attribute already has (al.f is a value,
-       al.f() fires it): a keyword-bound func is a value by default. */
+       the load_sub_expr loop over), and let stack_arg/stack_key's real,
+       one-time resolution (ComFunc, comfunc.c) fire it then if it turns
+       out to be one -- see ComTerp::fire_if_funcobj(). */
     if (comterp->is_posteval_pending(symbol_val()))
       return false;
     tv = comterp->lookup_symval(tv);

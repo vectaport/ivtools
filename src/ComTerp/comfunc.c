@@ -83,17 +83,13 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 		  keyref.keynarg_val())
 		return dflt;
 	    }
-	    /* A resolved-but-unfired FuncObj (e.g. a still-pending :posteval
-	       keyword whose expression turns out to be func(...)) is
-	       returned as-is here, not auto-fired -- same contract dot-
-	       access on an attribute already has (al.f gives the FuncObj,
-	       al.f() fires it): a keyword-bound func is a value by default,
-	       explicit () is what calls it.  An ordinary bare-symbol
-	       reference elsewhere in the language still auto-fires via
-	       is_funcobj() (unchanged) -- this narrower rule applies only
-	       to what a still-pending marker resolves to here. */
-	    if (!symbol)
+	    if (!symbol) {
+	        boolean was_pending = argref.is_symbol() &&
+		  _comterp->is_posteval_pending(argref.symbol_val());
 	        argref = _comterp->lookup_symval(argref);
+		if (was_pending && argref.is_object(FuncObj::class_symid()))
+		  return _comterp->fire_if_funcobj(argref);
+	    }
 	    return argref;
 	}
     }
@@ -116,11 +112,13 @@ ComValue& ComFunc::stack_key(int id, boolean symbol, ComValue& dflt) {
 		if (valref.type() == ComValue::KeywordType) {
 		  return dflt;
 		} else {
-		  /* see stack_arg()'s own comment: a resolved-but-unfired
-		     FuncObj is returned as-is, not auto-fired -- same
-		     contract dot-access on an attribute already has. */
-		  if (!symbol)
+		  if (!symbol) {
+		    boolean was_pending = valref.is_symbol() &&
+		      _comterp->is_posteval_pending(valref.symbol_val());
 		    valref = _comterp->lookup_symval(valref);
+		    if (was_pending && valref.is_object(FuncObj::class_symid()))
+		      return _comterp->fire_if_funcobj(valref);
+		  }
 		  return valref;
 		}
 	      }
