@@ -696,7 +696,7 @@ void IterateFunc::execute() {
 	avl->Next(i);
 	AttributeValue* nextval = avl->GetAttrVal(i);
 	push_stack(*nextval);
-	if (nextval->int_val()==stopval->int_val()) 
+	if (nextval->int_val()==stopval->int_val())
 	  *nextval = ComValue::nullval();
 	else {
 	  if (startval->int_val()<=stopval->int_val())
@@ -717,6 +717,21 @@ void IterateFunc::execute() {
     reset_stack();
 
     if (operand1.is_nil() || operand2.is_nil()) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+
+    /* a non-stream, non-numeric operand (e.g. a plain array/list passed
+       where a stream was expected -- (1,2,3) is an ArrayType literal, not
+       a stream, so it never triggers the caller's broadcast/overdrive
+       packing and arrives here whole) must not fall through to int_val()/
+       int_ref() below: those blindly reinterpret whatever's in the
+       operand's union as an int, and for an ArrayType/ObjectType value
+       that union slot is a real heap pointer -- int_ref()++ on the drive-
+       forward branch corrupts that pointer in place, crashing on the next
+       dereference (segfault repro, issue #344). Fail gracefully instead,
+       same as the already-nil case just above. */
+    if (!operand1.is_num() || !operand2.is_num()) {
       push_stack(ComValue::nullval());
       return;
     }
