@@ -1870,9 +1870,31 @@ command is not exempt from streams entirely:
 - it can **return a stream**, becoming the overdrive source for whatever
   it is combined with downstream
 
-In short: streams overdrive *into* non-post-eval commands through their
-arguments, and *around* post-eval commands through external combination
-or return values -- never *through* a post-eval command's own arguments.
+**FuncObj invocations** follow the non-post-eval rule. A func called with
+a stream argument is overdriven the same way a command is: the stream
+drives the *invocation*, firing the body once per element with `arg(n)`
+bound to a scalar. The body is then ordinary scalar code -- a `while` or
+`if` inside it sees scalars, never the stream -- so the same func serves
+both uses unchanged:
+
+```
+gcd=func(a=arg(0); b=arg(1); while(b!=0 t=b; b=a%b; a=t); a)
+
+gcd(48 18)                                   // 6
+list(gcd((48 1071 17 270) (18 462 5 192)))   // {6,21,1,6} -- one firing per pair
+```
+
+`func(:posteval)` is the exception, and deliberately so: its contract is
+the opposite one. Its arguments stay unevaluated, and the body itself is
+the drain, pulling elements with `*arg(n)`. A `:posteval` func is never
+overdriven -- it fires once, and sees the stream rather than an element
+of it.
+
+In short: streams overdrive *into* non-post-eval commands and ordinary
+func invocations through their arguments, and *around* post-eval commands
+through external combination or return values -- never *through* a
+post-eval command's own arguments, and never into a `:posteval` func,
+which drains its stream from the inside instead.
 
 ### The spread operator `~~`: apply instead of map
 

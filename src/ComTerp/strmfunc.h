@@ -38,6 +38,7 @@ class ComValue;
 #define STREAM_INTERNAL 2
 #define STREAM_NESTED   4
 #define STREAM_SPREAD   8  // ~~ tag: drain into the enclosing call's positionals
+#define STREAM_FUNCOBJ 16  // packed callee is a FuncObj, not a ComFunc
 
 //: base class for ComTerp stream commands.
 class StrmFunc : public ComFunc {

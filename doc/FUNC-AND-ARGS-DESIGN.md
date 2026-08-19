@@ -115,7 +115,16 @@ streaming, it's just running them; firing the func once isn't streaming either.
 
 Streaming returns one level up and **orthogonal**: you can *overdrive* the func
 across a stream — one finite invocation per element. That streams the
-*invocations*, not the body.
+*invocations*, not the body. Each invocation still sees scalars: `arg(n)` is
+bound to that element, so a `while` or `if` in the body is ordinary scalar
+control flow, and the same func works called with numbers or with streams.
+
+`func(:posteval)` inverts this, which is why it is never overdriven. Its
+arguments stay unevaluated, so there is no stream to drive anything from
+outside; the body fires once, sees the stream itself, and *is* the drain —
+pulling elements with `*arg(n)`. Overdrive puts the iteration outside the
+func and hands the body elements; `:posteval` puts it inside and hands the
+body the stream.
 
 ## `func()` the command
 

@@ -1,0 +1,64 @@
+// src/comterp_/examples/gcd.comt -- Euclid's algorithm two ways: one
+// scalar func overdriven by streams of (m n) pairs, and the same
+// algorithm rewritten branch-free so every pair reduces in lockstep.
+// The first is what you write; the second is what the first would look
+// like if you had to vectorize it by hand -- worth reading side by side,
+// because the branch-free form is also the shape that maps onto data-
+// parallel hardware, where per-lane control flow is the expensive part.
+//
+// Delimiter notation, in the code and in the printed labels:
+//   f(a b)     space -- positional args to a command
+//   (a b c)    space -- a stream literal
+//   x,y,z      comma -- a list
+// A stream literal is declared ONCE and used as many times as needed via
+// $$, which hands out a copy rather than consuming the original.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/gcd.comt
+
+print("\n-- the scalar gcd: ';' glues the body, args read once into locals --\n")
+
+gcd=func(a=arg(0); b=arg(1); while(b!=0 t=b; b=a%b; a=t); a)
+
+print("gcd(48 18)    = %v\n" gcd(48 18))
+print("gcd(1071 462) = %v\n" gcd(1071 462))
+print("gcd(17 5)     = %v\n" gcd(17 5))
+print("gcd(270 192)  = %v\n" gcd(270 192))
+
+print("\n-- the same func, overdriven by two streams --\n")
+// Nothing about gcd changes.  The streams drive the invocation: the body
+// fires once per (m n) pair with arg(0)/arg(1) bound to scalars, so the
+// while() inside runs exactly the scalar loop above, once per pair.
+// list() drains the resulting stream of gcds onto one line.
+
+m=(48 1071 17 270)
+n=(18 462 5 192)
+
+print("gcd(m n)      = %v\n" list(gcd($$m $$n)))
+print("again, same m n = %v\n" list(gcd($$m $$n)))
+
+print("\n-- branch-free: every pair reduced in lockstep, no per-lane loop --\n")
+// Euclid without any per-element control flow.  The loop is hoisted out
+// of the func entirely and each step becomes one overdriven expression
+// across the whole vector, so all four pairs advance on every pass and
+// the only loop left counts passes, not pairs.  Two tricks make the
+// branching disappear:
+//
+//   guard  b + (b==0)                 -- a%1 == 0, so a lane that has
+//                                        finished parks at b=0 instead of
+//                                        dividing by zero
+//   mask   a' = (b!=0)*b + (b==0)*a   -- a finished lane keeps its answer
+//                                        while the others keep reducing
+//
+// Watch lane 3 (17 5) finish on pass 3 and hold at 1 while the rest run on.
+
+a=(48 1071 17 270)
+b=(18 462 5 192)
+
+while(sum(list($$b))!=0
+      na=($$b!=0)*$$b + ($$b==0)*$$a;
+      nb=$$a % ($$b + ($$b==0));
+      a=na; b=nb;
+      print("  pass: a=%v  b=%v\n" list($$a) list($$b)))
+
+print("branch-free    = %v\n" list($$a))
