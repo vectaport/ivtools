@@ -72,7 +72,10 @@ public:
     // that's keyword-symbol classification only, with no notion of arg(n)
     // at all.
     struct PositionalInfo {
-        int count;         // -1 means "count could not be pinned down statically"
+        long count;        // -1 means "count could not be pinned down statically";
+                            // long (not int) so a literal index near INT_MAX
+                            // doesn't overflow computing count = maxidx + 1
+                            // (Greptile, PR #337)
         boolean uses_narg; // true if narg() appears anywhere in the body --
                             // treated as a signal the body is variadic
                             // (loops over an arg(n) run bounded by narg()),

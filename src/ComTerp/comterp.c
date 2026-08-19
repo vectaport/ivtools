@@ -375,7 +375,7 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
       first = false;
     }
     if (i < posinfo.count) {
-      append_bounded(buf, sizeof(buf), pos, first ? "... arg%d" : " ... arg%d", posinfo.count - 1);
+      append_bounded(buf, sizeof(buf), pos, first ? "... arg%ld" : " ... arg%ld", posinfo.count - 1);
       first = false;
     }
   }

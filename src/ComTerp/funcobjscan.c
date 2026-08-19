@@ -146,7 +146,10 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
     info.count = -1;
     info.uses_narg = false;
 
-    int maxidx = -1;            /* highest literal index seen: arg(0) -> 0 */
+    long maxidx = -1;           /* highest literal index seen: arg(0) -> 0 --
+                                    long (not int) so maxidx+1 below can't
+                                    overflow for a literal near INT_MAX
+                                    (Greptile, PR #337) */
     boolean saw_arg = false;
     boolean saw_nonliteral = false;
 
@@ -171,9 +174,9 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
             if (operand.count == 1 &&
                 (toks[operand.start].type == TOK_DFINT ||
                  toks[operand.start].type == TOK_LNINT)) {
-                int idx = toks[operand.start].type == TOK_DFINT
-                    ? toks[operand.start].v.dfintval
-                    : (int)toks[operand.start].v.lnintval;
+                long idx = toks[operand.start].type == TOK_DFINT
+                    ? (long)toks[operand.start].v.dfintval
+                    : toks[operand.start].v.lnintval;
                 if (idx > maxidx) maxidx = idx;
             } else {
                 /* a computed index (arg(i), arg(i+1), ...) -- resolving
