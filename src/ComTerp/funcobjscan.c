@@ -29,6 +29,8 @@
 #include <Attribute/attribute.h>
 #include <Attribute/attrvalue.h>
 
+#include <limits.h>
+
 /* Per-occurrence event, for the FIRST-mention/ever-written bookkeeping --
    distinct from the public Kind, which is the FINAL classification derived
    from these once the whole body has been walked. */
@@ -191,9 +193,21 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
 
     if (info.uses_narg || saw_nonliteral)
         info.count = -1;
-    else if (saw_arg)
-        info.count = maxidx + 1;
-    else
+    else if (saw_arg) {
+        /* maxidx+1 overflowing (maxidx == LONG_MAX) is signed-integer UB,
+           not just "unlikely" -- check before doing the addition rather
+           than let it wrap and rely on that wrapping to coincidentally
+           land back on the same -1 "can't be pinned down" sentinel
+           (Greptile, PR #337). This is unreachable through today's literal
+           parsing (values above INT_MAX don't currently survive intact --
+           a separate, pre-existing bug, #342), but the guard costs nothing
+           and removes the UB regardless of whether any path can trigger
+           it today. */
+        if (maxidx == LONG_MAX)
+            info.count = -1;
+        else
+            info.count = maxidx + 1;
+    } else
         info.count = 0;      /* no arg(n) calls at all -- a niladic body */
 
     return info;
