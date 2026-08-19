@@ -1,0 +1,118 @@
+// src/comterp_/tests/funcstream.comt -- a func invocation overdriven by stream args
+//
+// funcs: func arg narg if while list local print
+//
+// A func called with a stream argument and no :posteval is overdriven
+// EXTERNALLY: the stream drives the invocation, firing the body once per
+// element with arg(n) bound to a scalar.  Before issue #351 the body fired
+// exactly once with the whole stream sitting in arg(n), so only the scalar
+// operators that happened to appear in the body lifted it -- which made
+// pure-dataflow bodies look correct while any body with control flow got a
+// stream where it expected a scalar (while() spun forever on a
+// permanently-truthy stream object).
+//
+// :posteval keeps the opposite, INTERNAL contract: the body itself is the
+// drain, seeing the stream and pulling from it with *arg(n) (posteval.comt
+// tests 11/12).  Test 9 below guards that distinction.
+//
+// Firing counts use local() rather than a bare captured variable: #310
+// freezes a read-before-write free variable at declaration time, so a bare
+// counter re-seeds from that snapshot every firing and never accumulates.
+// local() writes through to the default table instead, escaping the func
+// frame (local.comt test 12).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./funcstream.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: the body fires once PER ELEMENT, not once for the stream ---
+local(n1)=0
+f1=func(local(n1)=local(n1)+1; arg(0)*10)
+r1=list(f1((1 2 3)))
+ok=ok&&(r1==(10,20,30))&&(local(n1)==3)
+print("1 f1=func(arg(0)*10); f1((1 2 3)) fires per element (expect {10,20,30} 3): %v %v\n" r1 local(n1))
+check_fail(:ok ok)
+
+// --- test 2: two stream args zip, one firing per pair ---
+f2=func(arg(0)*100+arg(1))
+r2=list(f2((1 2 3) (7 8 9)))
+ok=ok&&(r2==(107,208,309))
+print("2 f2=func(arg(0)*100+arg(1)); two streams zip (expect {107,208,309}): %v\n" r2)
+check_fail(:ok ok)
+
+// --- test 3: every arg(n) read within one firing sees that firing's scalar,
+// not a shared cursor -- three reads, three related values, per element ---
+h3=func(a=arg(0); b=arg(0)+1; c=arg(0)+2; a,b,c)
+r3=list(h3(1..3))
+ok=ok&&(size(r3)==3)&&(at(r3 0)==(1,2,3))&&(at(r3 1)==(2,3,4))&&(at(r3 2)==(3,4,5))
+print("3 h3=func(a=arg(0); b=arg(0)+1; c=arg(0)+2; a,b,c); h3(1..3) (expect {{1,2,3},{2,3,4},{3,4,5}}): %v\n" r3)
+check_fail(:ok ok)
+
+// --- test 4: a body with a LOOP overdrives -- the whole point of #351.
+// Euclid's algorithm, one scalar gcd per (m n) pair ---
+// Gated on test 1's per-element firing: if the lift ever regresses, arg(1)
+// is the whole stream again, b!=0 is a permanently-truthy stream object, and
+// this while() spins forever -- wedging the suite (and CI) for hours instead
+// of failing it.  Only run the overdriven call once test 1 has proved the
+// lift; otherwise report the failure and move on.
+gcd4=func(a=arg(0); b=arg(1); while(b!=0 t=b; b=a%b; a=t); a)
+s4=gcd4(48 18)
+lifted4=(local(n1)==3)
+if(lifted4 :then r4=list(gcd4((48 1071 17 270) (18 462 5 192))) :else r4=nil)
+ok=ok&&(s4==6)&&lifted4&&(r4==(6,21,1,6))
+print("4 gcd4 scalar then overdriven by two streams (expect 6 {6,21,1,6}): %v %v\n" s4 r4)
+check_fail(:ok ok)
+
+// --- test 5: a body that BRANCHES on its args picks per element ---
+b5=func(if(arg(1)==0 :then arg(0) :else arg(0)+arg(1)))
+r5=list(b5((1 2 3) (7 0 9)))
+ok=ok&&(r5==(8,2,12))
+print("5 b5=func(if(arg(1)==0 :then arg(0) :else arg(0)+arg(1))) per-element branch (expect {8,2,12}): %v\n" r5)
+check_fail(:ok ok)
+
+// --- test 6: a scalar arg broadcasts across the firings ---
+f6=func(arg(0)+arg(1))
+r6=list(f6((1 2 3) 100))
+ok=ok&&(r6==(101,102,103))
+print("6 f6((1 2 3) 100) scalar arg broadcasts (expect {101,102,103}): %v\n" r6)
+check_fail(:ok ok)
+
+// --- test 7: narg() is the per-firing arg count, once per element ---
+n7=func(narg())
+r7=list(n7((1 2 3) (7 8 9)))
+ok=ok&&(r7==(2,2,2))
+print("7 n7=func(narg()); n7 over two streams (expect {2,2,2}): %v\n" r7)
+check_fail(:ok ok)
+
+// --- test 8: a stream held in a VARIABLE overdrives like a literal
+// (the same parity scalar overdrive got in PR #196) ---
+s8=(1 2 3)
+f8=func(arg(0)*10)
+r8=list(f8(s8))
+ok=ok&&(r8==(10,20,30))
+print("8 f8(s8) stream-in-a-variable overdrives (expect {10,20,30}): %v\n" r8)
+check_fail(:ok ok)
+
+// --- test 9: :posteval is NOT overdriven -- its body keeps the internal
+// drain contract, seeing the stream itself and pulling with *arg(0).
+// One firing, three pulls off the one pinned stream (cf. posteval.comt 12) ---
+local(n9)=0
+p9=func(local(n9)=local(n9)+1; a=*arg(0); b=*arg(0); c=*arg(0); a,b,c :posteval)
+r9=p9(1..3)
+ok=ok&&(r9==(1,2,3))&&(local(n9)==1)
+print("9 p9(:posteval) drains internally, ONE firing (expect {1,2,3} 1): %v %v\n" r9 local(n9))
+check_fail(:ok ok)
+
+// --- test 10: no stream args means no overdrive -- an ordinary scalar call
+// still fires exactly once and returns a plain value ---
+local(n10)=0
+f10=func(local(n10)=local(n10)+1; arg(0)*10)
+r10=f10(7)
+ok=ok&&(r10==70)&&(local(n10)==1)
+print("10 f10(7) plain scalar call unaffected (expect 70 1): %v %v\n" r10 local(n10))
+check_fail(:ok ok)
+
+print("funcstream: %v\n" ok)
+ok

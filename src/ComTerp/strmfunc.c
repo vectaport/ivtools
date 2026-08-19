@@ -905,7 +905,18 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
         // fprintf(stdout, "Stack before streamed func %s\n", symbol_pntr(funcptr->funcid()));
         // comterp->print_stack();
 
-	funcptr->exec(narg, nkey);
+	if (streamv.stream_mode()&STREAM_FUNCOBJ) {
+	  /* the packed callee is a FuncObj, not a registered command -- fire
+	     the body for this element's args instead of exec'ing.
+	     fire_funcobj's contract is exactly what the arg loop above just
+	     set up: narg() worth of evaluated positionals sitting on the
+	     stack, topmost = last. */
+	  ComValue fobjv(FuncObj::class_symid(), (void*)funcptr);
+	  fobjv.narg(narg);
+	  fobjv.nkey(nkey);
+	  comterp->fire_funcobj(fobjv);
+	} else
+	  funcptr->exec(narg, nkey);
 
 	// recurse until not a stream
 	while (comterp->stack_top().is_stream()) {

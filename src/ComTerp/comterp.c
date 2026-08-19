@@ -663,6 +663,57 @@ void ComTerp::eval_expr_internals(int pedepth) {
     }
   }
 
+  /* a funcobj call with a stream arg and no :posteval overdrives like a
+     command call -- the stream drives the INVOCATION, firing the body once per
+     element with arg(n) bound to a scalar, so control flow inside the body is
+     ordinary scalar code.  :posteval is excluded: its contract is the opposite,
+     internal one, where the arguments stay unevaluated and the body itself
+     drains the pinned stream with *arg(n).  Only symbol-bound funcobjs reach
+     here; that is every named call site. */
+  if (sv.type() == ComValue::SymbolType && (sv.narg() || sv.nkey())) {
+    AttributeValue* funcval = lookup_symval(&sv, false);
+    if (funcval && funcval->is_object(FuncObj::class_symid()) &&
+	!((FuncObj*)funcval->obj_val())->posteval()) {
+      boolean has_streams = false;
+      for(int i=0; i<sv.narg()+sv.nkey(); i++) {
+	if (!stack_top(-i).is_symbol() && !stack_top(-i).is_attribute())
+	  has_streams = stack_top(-i).is_stream();
+	else if (stack_top(-i).is_symbol() &&
+		 is_posteval_pending(stack_top(-i).symbol_val()))
+	  has_streams = false;   /* same rule as the CommandType scan below */
+	else {
+	  AttributeValue* testval = lookup_symval(&stack_top(-i), false);
+	  has_streams = testval ? testval->is_stream() : false;
+	}
+	if (has_streams) break;
+      }
+      if (has_streams) {
+	AttributeValueList* avl = new AttributeValueList();
+	for(int i=0; i<sv.narg()+sv.nkey(); i++) {
+	  /* resolve every stream-valued arg, so a stream held in a variable
+	     zips per-element like a stream literal instead of arriving as an
+	     unresolved symbol; scalars stay unresolved for per-element
+	     broadcast -- identical to the CommandType pack below. */
+	  boolean argstream;
+	  if (!stack_top().is_symbol() && !stack_top().is_attribute())
+	    argstream = stack_top().is_stream();
+	  else {
+	    AttributeValue* tv = lookup_symval(&stack_top(), false);
+	    argstream = tv ? tv->is_stream() : false;
+	  }
+	  ComValue topval(pop_stack(argstream));
+	  avl->Prepend(new AttributeValue(topval));
+	}
+	/* the FuncObj rides in the same void* slot a ComFunc* normally uses;
+	   STREAM_FUNCOBJ tells NextFunc to fire it rather than exec() it. */
+	ComValue strmval((void*)funcval->obj_val(), avl);
+	strmval.stream_mode(STREAM_EXTERNAL|STREAM_FUNCOBJ);
+	push_stack(strmval);
+	return;
+      }
+    }
+  }
+
   if (sv.type() == ComValue::CommandType) {
 
     /* if func has StreamType ComValue's for arguments */
