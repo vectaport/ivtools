@@ -28,6 +28,7 @@
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/postfunc.h>
 #include <ComTerp/boolfunc.h>
+#include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <iostream>
@@ -42,6 +43,7 @@ using std::cerr;
 /*****************************************************************************/
 
 int DotFunc::_symid = -1;
+int DotStreamNextFunc::_symid = -1;
 
 /* off by default -- capturing the pre-fire source text of both args (see
    execute() below) costs a cout redirect + two print_stack_arg_post_eval
@@ -350,13 +352,64 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 	 full finalization (resolve a symbol, unwrap an Attribute down to
 	 its own Value()), not the raw, unprocessed result. */
       before_part = stack_arg_post_eval(0);
+    } else if (before_part.type()==ComValue::BlankType) {
+      /* a parenthesized sub-expression whose OWN result is a never-yet-
+	 pulled stream (e.g. ($$barnyard) inside ($$barnyard).calls) reads
+	 back as BlankType through the plain stack_arg(0,true) peek above
+	 -- comterp's own "streams don't self-evaluate mid-expression"
+	 discipline (see flowgraph-natural-computation-goal) leaves a Blank
+	 placeholder rather than surfacing the raw, unconsumed stream to an
+	 ordinary read.  stack_arg_post_eval(0) -- the SAME firing this
+	 function already uses for the CommandType case just above --
+	 correctly recovers the real StreamType value instead (confirmed
+	 live: probed both, Blank vs. a real is_stream()==true result).
+	 #304's LHS-stream support (execute_core() below) needs the real
+	 value, not the placeholder. */
+      before_part = stack_arg_post_eval(0);
     }
     after_raw = stack_arg(1, true);
     after_nids = after_raw.nids();
 }
 
 void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_nids,
-			    const std::string& before_expr_text, const std::string& after_expr_text) {
+			    const std::string& before_expr_text, const std::string& after_expr_text,
+			    boolean force_named_field) {
+    /* A named variable bound to a stream (sb=$$barnyard; sb.calls)
+       arrives here as a raw, unresolved SymbolType -- peek_and_fire()
+       never had reason to resolve it eagerly for the ordinary case,
+       since execute_core()'s own symbol-lookup logic below does that
+       itself. Resolve a copy just far enough to test is_stream() below;
+       before_part itself stays untouched so the ordinary (non-stream)
+       path further down still receives the ordinary bare symbol it
+       already knows how to resolve. */
+    ComValue before_resolved = before_part;
+    if (before_resolved.is_symbol()) {
+      AttributeValue* rv = comterp()->lookup_symval(&before_resolved, false);
+      if (rv) before_resolved = ComValue(*rv);
+    }
+    if (before_resolved.is_stream() && after_nids==-1) {
+      /* (stream).field -- lazy, pulling .field from each element on
+	 demand rather than erroring on a raw StreamType before_part
+	 (#304).  Method-call-with-streaming-LHS (stream.method(args))
+	 isn't handled here yet -- that falls through to the ordinary
+	 validity check below, which correctly warns rather than
+	 mishandling it silently. */
+      reset_stack();
+      int after_symid = after_raw.symbol_val();
+      if (after_raw.type()==ComValue::StringType) symbol_reference(after_symid);
+      static DotStreamNextFunc* dsnfunc = nil;
+      if (!dsnfunc) {
+	dsnfunc = new DotStreamNextFunc(comterp());
+	dsnfunc->funcid(symbol_add("dotstreamnext"));
+      }
+      AttributeValueList* avl = new AttributeValueList();
+      avl->Append(new AttributeValue(before_resolved));                      // [0] underlying before-stream (resolved)
+      avl->Append(new AttributeValue(after_symid, AttributeValue::SymbolType)); // [1] fixed field symbol
+      ComValue stream(dsnfunc, avl);
+      stream.stream_mode(STREAM_INTERNAL); // for internal use (use by DotStreamNextFunc)
+      push_stack(stream);
+      return;
+    }
     if (!before_part.is_symbol() &&
 	!(before_part.is_attribute() &&
 	  (((Attribute*)before_part.obj_val())->Value()->is_unknown() ||
@@ -481,7 +534,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();
       fire_attrlist_method(this, comterp(), al, argtoks, nargtoks);
-    } else if (nargs()>1) {
+    } else if (force_named_field || nargs()>1) {
       int after_symid = after_raw.symbol_val();
       if (after_raw.type()==ComValue::StringType) {
         symbol_reference(after_symid);
@@ -534,6 +587,84 @@ void DotFunc::execute() {
     std::string before_expr_text, after_expr_text;
     peek_and_fire(before_part, after_raw, after_nids, before_expr_text, after_expr_text);
     execute_core(before_part, after_raw, after_nids, before_expr_text, after_expr_text);
+}
+
+/*****************************************************************************/
+
+DotStreamNextFunc::DotStreamNextFunc(ComTerp* comterp) : DotFunc(comterp) {
+}
+
+void DotStreamNextFunc::execute() {
+    /* invoked by the next mechanism -- arg 0 is our own stream, carrying
+       [0] the underlying before-stream and [1] the fixed after-dot field
+       symbol in its stream_list() (see the STREAM_INTERNAL construction
+       in DotFunc::execute_core() above). */
+    /* Deliberately no reset_stack() here, unlike every other *NextFunc
+       sibling's execute() -- this one delegates its actual dispatch to
+       execute_core() below, which already does its own single
+       reset_stack() in whichever branch it takes (mirroring how
+       DotFunc::execute() itself never resets directly -- peek_and_fire()
+       only peeks, execute_core() is the one reset). A second reset_stack()
+       call here, now that post_eval() is false, would flat decr_stack(1)
+       a SECOND time and silently cancel out this function's own final
+       push_stack() below -- confirmed live: stack height netted to zero
+       across the whole call, so the caller (NextFunc::execute_impl) saw
+       no growth and substituted a blank instead of the real value. */
+    ComValue selfstream(stack_arg(0));
+
+    AttributeValueList* avl = selfstream.stream_list();
+    if (!avl) {
+      reset_stack();
+      push_stack(ComValue::nullval());
+      return;
+    }
+    Iterator i;
+    avl->First(i);
+    AttributeValue* beforeval = avl->GetAttrVal(i);   // [0] underlying before-stream
+    avl->Next(i);
+    AttributeValue* afterval = avl->GetAttrVal(i);    // [1] fixed field symbol
+
+    ComValue before_next;
+    if (beforeval->is_stream()) {
+      /* same temporary-copy-then-drive pattern ConcatNextFunc/
+	 ReplayNextFunc already use: the copy shares the same underlying
+	 (ref-counted) stream_list() as the original, so advancing it via
+	 NextFunc::execute_impl persists back through *beforeval on the
+	 next pull, without this function needing to mutate *beforeval
+	 itself. */
+      ComValue beforecopy(*beforeval);
+      NextFunc::execute_impl(comterp(), beforecopy);
+      if (comterp()->stack_top().is_unknown()) {
+	comterp()->pop_stack();
+	reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
+      before_next = comterp()->pop_stack();
+    } else {
+      /* not exercised by the LHS-only case this lands in (#304's first
+	 slice) -- kept generic so a future RHS/zip extension (a fixed,
+	 non-stream "before" reused every pull while args advance) can
+	 reuse this same next-func without a second implementation. */
+      before_next = ComValue(*beforeval);
+    }
+
+    ComValue after_raw(afterval->symbol_val(), ComValue::SymbolType);
+    execute_core(before_next, after_raw, -1, "", "", true);
+
+    /* execute_core()'s named-field branch pushes the raw internal
+       dotted-pair Attribute* wrapper (there's no attribute literal in
+       the language itself -- see its own comment), same as an ordinary
+       non-streamed .field access does. An ordinary read unwraps that
+       automatically further up the call chain (ComTerp::pop_stack's own
+       lookupsym=true branch, e.g. via assignment) before a caller ever
+       sees it; this synthetic per-pull call has no such caller, so do
+       the same unwrap explicitly here -- otherwise each pulled stream
+       element is the opaque wrapper, not its value (confirmed live:
+       list(sb.calls) rendered {,,}, three unwrapped Attribute objects,
+       instead of the actual :calls values). */
+    ComValue unwrapped(comterp()->pop_stack(true));
+    push_stack(unwrapped);
 }
 
 /*****************************************************************************/

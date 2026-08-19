@@ -68,8 +68,8 @@ for(i=0 i<size(barnyard) i++ a=at(barnyard i); a.speak())
 print("\n-- speaking directly from the list of animals -- at(barnyard i).speak --\n")
 for(i=0 i<size(barnyard) i++ at(barnyard i).speak())
 
-print("\n-- streaming over the barnyard -- will work after #304\n")
-print("%v\n" list(($$barnyard).cnt))
+print("\n-- streaming over the barnyard -- (stream).field, #304 --\n")
+print("%v\n" list(($$barnyard).calls))
 
 print("\n-- each object kept its own state, genuinely, not a copy --\n")
 print("duck.calls=%v cow.calls=%v robot.calls=%v\n" duck.calls cow.calls robot.calls)
