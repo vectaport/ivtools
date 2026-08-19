@@ -142,22 +142,33 @@ check_fail(:ok ok)
 // --- test 13: a signature long enough to fill (and exceed) the formatter's
 // fixed 2048-byte buffer truncates safely instead of overflowing it
 // (Greptile, PR #337) -- arg(400) alone drives the rendered positional
-// list past the buffer; this must not crash or write out of bounds ---
+// list past the buffer; this must not crash or write out of bounds. It
+// must also end with an explicit "... argMAX)" tail rather than just
+// stopping mid-list with no indication anything was cut off (Scott,
+// live in chat: "after arg307 it should have a ...)") ---
 huge=func(arg(400))
 r13b=help(huge)
-ok=ok&&(size(r13b)==2047)
-print("13 huge=func(arg(400)); help(huge) truncates safely instead of overflowing (expect size 2047): %v\n\n" size(r13b))
+tail13=" ... arg400)"
+idx13=index(r13b tail13)
+ok=ok&&(index(r13b "(arg0 arg1 arg2 arg3")==0)
+ok=ok&&(idx13!=nil)&&((idx13+size(tail13))==size(r13b))
+print("13 huge=func(arg(400)); help(huge) truncates safely and ends with an explicit tail (expect true true): %v %v\n\n" (index(r13b "(arg0 arg1 arg2 arg3")==0) ((idx13!=nil)&&((idx13+size(tail13))==size(r13b))))
 check_fail(:ok ok)
 
 // --- test 13c: a literal index large enough that the inferred positional
 // count itself (not just the rendered text) is huge must not turn into a
 // ~2 billion-iteration stall once the buffer is already full (Greptile,
-// PR #337) -- the render loop must stop as soon as the buffer fills,
-// not just stop writing while still counting up to posinfo.count ---
+// PR #337) -- the render loop must stop as soon as the buffer fills, not
+// just stop writing while still counting up to posinfo.count -- and the
+// truncation tail must still name the TRUE final index (arg2000000000),
+// not just a generic "..." ---
 huge2=func(arg(2000000000))
 r13c=help(huge2)
-ok=ok&&(size(r13c)==2047)
-print("13c huge2=func(arg(2000000000)); help(huge2) doesn't stall past a full buffer (expect size 2047): %v\n\n" size(r13c))
+tail13c=" ... arg2000000000)"
+idx13c=index(r13c tail13c)
+ok=ok&&(index(r13c "(arg0 arg1 arg2 arg3")==0)
+ok=ok&&(idx13c!=nil)&&((idx13c+size(tail13c))==size(r13c))
+print("13c huge2=func(arg(2000000000)); help(huge2) doesn't stall and names the true final index (expect true true): %v %v\n\n" (index(r13c "(arg0 arg1 arg2 arg3")==0) ((idx13c!=nil)&&((idx13c+size(tail13c))==size(r13c))))
 check_fail(:ok ok)
 
 // --- test 14: the canonical optional-keyword idiom renders its literal

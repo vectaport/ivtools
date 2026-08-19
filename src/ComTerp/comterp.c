@@ -362,8 +362,20 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
     append_bounded(buf, sizeof(buf), pos, "...");
     first = false;
   } else {
-    for (int i = 0; i < posinfo.count && pos < (int)sizeof(buf) - 1; i++) {
+    /* Reserve room for a " ... argMAX)" tail (worst case ~19 bytes for a
+       10-digit index) so a huge literal index like arg(2000000000) -- the
+       same repro as the DoS this loop's bound guards against, Greptile,
+       PR #337 -- renders as many arg%d entries as fit and then names the
+       true final index instead of just stopping mid-list with no
+       indication anything was cut off. */
+    const int tail_reserve = 32;
+    int i = 0;
+    for (; i < posinfo.count && pos < (int)sizeof(buf) - 1 - tail_reserve; i++) {
       append_bounded(buf, sizeof(buf), pos, first ? "arg%d" : " arg%d", i);
+      first = false;
+    }
+    if (i < posinfo.count) {
+      append_bounded(buf, sizeof(buf), pos, first ? "... arg%d" : " ... arg%d", posinfo.count - 1);
       first = false;
     }
   }
