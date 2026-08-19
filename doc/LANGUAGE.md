@@ -1351,10 +1351,61 @@ how the pull works:
   decide whether to run it" pattern the `steer` example above leans on,
   without needing any bare-vs-parens distinction at all: `:sym` is the
   look-without-firing escape hatch, bare use is the fire.
+- *Streams are pinned, not re-fired.* "Every access re-fires" (above) has
+  exactly one exception: if the pulled result is a **stream**, it's
+  pinned in place after that first resolution instead of being re-fired
+  on later reads. Without this, a caller expression that *constructs* a
+  stream (a range literal, `$$list`, ...) would hand back a brand-new,
+  never-exhausted stream on every single read — a `while` loop pulling
+  from it could never see it end:
+  ```
+  // BEFORE this pin existed: infinite loop. Every *s re-fires 1..10 from
+  // scratch, and a freshly-built range's first element is always non-nil.
+  f=func(while(*s print("%v\n" x)) :posteval)
+  f(:s 1..10 :x int(rand(0,10)))   // never terminates
+  ```
+  The fix: the first read that resolves to a stream writes that object
+  back in place of the pending marker — the same mechanism an explicit
+  write already uses to fix a keyword's value — so every later read, for
+  `arg(n)` and keywords alike, finds the one real, same-identity stream
+  object directly:
+  ```
+  g=func(a=*s; b=*s; c=*s; a,b,c :posteval)
+  g(:s 1..3)   // 1,2,3 -- correctly advances, not 1,1,1
+  ```
+  This costs nothing for the case that was already safe: re-firing a
+  caller expression that's just a bare reference to an already-built
+  stream variable (`g(:s mystream)`) was always harmless, since
+  re-resolving a symbol just re-fetches the same object — the pin is a
+  no-op there, not a rescue. It only changes behavior for the genuinely
+  dangerous case: a caller expression that mints a fresh stream on every
+  evaluation.
 
 None of this was purpose-built — it's what falls out of "a keyword is a
 deferred pull against the callee's own in-progress scope, resolved as an
 ordinary read on demand."
+
+**A stream's truthiness is not an exhaustion signal — watch for this even
+outside `:posteval`.** `while(arg(0) ...)` (bare, no `*`/`next()`) looks
+like it should loop until the stream runs out, but a raw stream's
+truthiness reflects a static mode flag, not remaining-element count — so
+that condition never goes false no matter how exhausted the stream gets,
+`:posteval` or not. The correct idiom always pulls explicitly and checks
+against `nil`: `while((v=next(arg(0)))!=nil ...)`. This matters even more
+once you're pulling elements out one at a time, because a *pulled*
+element is an ordinary value with its own, unrelated truthiness — `0`,
+`false`, or `""` are all perfectly valid stream contents, and confusing
+"the value I just pulled happens to be falsy" with "the stream is
+exhausted" silently ends a loop early on legitimate data:
+```
+f=func(while(v=*arg(0) print("%v\n" v)))
+f(0..1)   // prints nothing -- the first element, 0, is falsy, so the
+          // loop exits immediately; it never reaches "exhausted"
+f(1..2)   // 1  2  -- works, because neither element happens to be falsy
+```
+`nil` is the only signal `next()`/`*` actually use for exhaustion; nothing
+else pulled from a stream should ever be treated as one, no matter how
+falsy it looks.
 
 Follow the `isclass(:sym)` case one step further and a pattern falls
 out: a bare variable, or a `:posteval`-pulled keyword, both treat *any*
