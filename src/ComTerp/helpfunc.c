@@ -208,6 +208,14 @@ void HelpFunc::execute() {
 	  first = false;
 	else
 	  *out << '\n';
+	/* lead with the name the caller asked about, so a funcobj signature
+	   reads like a call site -- gcd(arg0 arg1), not a bare (arg0 arg1).
+	   A command's docstring already carries its own name via the %s the
+	   snprintf below fills in; a funcobj has no docstring to carry one,
+	   and the object itself is nameless (a value that may be bound to
+	   any number of symbols), so the name has to come from the symbol
+	   this call actually named. */
+	*out << symbol_pntr(command_ids[i]);
 	*out << funcobj_help[i].string_ptr();
 	printed = true;
       }
