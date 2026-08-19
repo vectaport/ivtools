@@ -415,6 +415,17 @@ ok=ok&&(r46==nil)
 print("46 (1,2,3)..5 -- non-numeric operand fails gracefully (expect nil): %v\n" r46)
 prev_ok=check_fail(:ok ok)
 
+// --- test 46b: the contrasting good case, right next to 46 above -- (1 2
+// 3) (space-separated) IS a stream, so it broadcasts normally: 1..5,
+// then 2..5, then 3..5, all fully expanded and concatenated. This is
+// the exact behavior test 46's guard must never interfere with -- only
+// a genuinely non-numeric operand should fail gracefully. ---
+goodop=(1 2 3)
+r46b=list(goodop..5)
+ok=ok&&(r46b==(1,2,3,4,5,2,3,4,5,3,4,5))
+print("46b (1 2 3)..5 -- a real stream still broadcasts normally (expect {1,2,3,4,5,2,3,4,5,3,4,5}): %v\n" r46b)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
