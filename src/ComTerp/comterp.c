@@ -714,13 +714,32 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	   stream value that zips per-element like a stream literal.  Scalar args
 	   stay unresolved (symbols) for per-element re-evaluation (broadcast). */
 	boolean argstream;
+	boolean alist_bound = false;
 	if (!stack_top().is_symbol() && !stack_top().is_attribute())
 	  argstream = stack_top().is_stream();
 	else {
+	  /* a symbol bound through _alist (a func-local keyword or #310
+	     capture) is fixed for the life of this call -- nothing
+	     legitimately mutates it mid-broadcast, so there's no "re-read
+	     fresh each iteration" benefit to leaving it as a deferred
+	     symbol the way a true outer-scope global's comment above
+	     intends.  Worse, leaving it deferred is actively wrong: the
+	     packed value returned here can propagate out past this call
+	     (e.g. as the func's own return value, driven forward later by
+	     whatever pulls it -- list(), an outer print(), etc.), and by
+	     then _alist no longer points at this call's AttributeList at
+	     all, so the deferred read silently falls through to global
+	     scope instead (#343).  Resolve now, same as a genuinely
+	     stream-valued operand already does, whenever the symbol
+	     resolves through the CURRENT _alist specifically; a true
+	     global stays deferred, unchanged. */
+	  if (!stack_top().global_flag() && _alist &&
+	      _alist->find(stack_top().symbol_val()))
+	    alist_bound = true;
 	  AttributeValue* tv = lookup_symval(&stack_top(), false);
 	  argstream = tv ? tv->is_stream() : false;
 	}
-	ComValue topval(pop_stack(argstream));
+	ComValue topval(pop_stack(argstream || alist_bound));
 	avl->Prepend(new AttributeValue(topval));
       }
 
