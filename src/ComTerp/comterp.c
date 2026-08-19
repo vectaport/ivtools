@@ -392,12 +392,16 @@ void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* l
      how to clean up ArrayType/StreamType/StringType and (for ObjectType)
      AttributeList/Attribute specifically, nothing generic for an arbitrary
      ObjectType payload, so a marker nobody explicitly deletes just leaks.
-     A positional's marker is always still here regardless of whether
-     arg(n) ever pulled it (arg(n) never overwrites its own slot, see
-     funcobj_arg()); a keyword's marker only survives to here if it was
-     never read at all -- one that was gets replaced by
-     pull_alist_pending()'s own add_attr call, which deletes the old
-     marker there instead, right as it's overwritten. */
+     A positional's marker is usually still here regardless of whether
+     arg(n) ever pulled it -- UNLESS the pulled result was a stream, in
+     which case funcobj_arg() already replaced the slot with the real
+     stream object and deleted the marker itself (pinning, not re-firing
+     -- see its own comment); is_object() below correctly skips those,
+     since they're no longer markers at all by the time we get here.  A
+     keyword's marker only survives to here if it was never read at all
+     -- one that was gets replaced by pull_alist_pending()'s (or, for a
+     stream result, peek_alist_pending()'s) own add_attr call, which
+     deletes the old marker there instead, right as it's overwritten. */
   for (int i=0; i<npos; i++) {
     if (posvals[i].is_object(FuncObjPendingArg::class_symid()))
       delete (FuncObjPendingArg*)posvals[i].obj_val();
@@ -2363,7 +2367,23 @@ ComValue ComTerp::funcobj_arg(int n) {
     return ComValue::nullval();
   if (_funcobj_argvals[n].is_object(FuncObjPendingArg::class_symid())) {
     FuncObjPendingArg* marker = (FuncObjPendingArg*)_funcobj_argvals[n].obj_val();
-    return pull_funcobj_pending(marker);  /* re-fires every call, never memoized */
+    ComValue pulled(pull_funcobj_pending(marker));
+    if (pulled.is_stream()) {
+      /* pin it, don't keep re-firing -- a stream is a stateful, single-
+	 pass cursor, not a value; re-running the caller's constructing
+	 expression on every read doesn't give a "fresh draw" the way it
+	 does for a scalar (see the :posteval LANGUAGE.md caveat), it hands
+	 back an eternally-unexhausted stream that silently discards
+	 whatever progress a prior read already made -- a while loop
+	 pulling from it can never see it end.  Same write-back-and-delete
+	 treatment an explicit write already gives a keyword marker (see
+	 pull_alist_pending): every later arg(n) read here finds the real,
+	 same-identity stream object directly, no second pull. */
+      _funcobj_argvals[n] = pulled;
+      delete marker;
+      return _funcobj_argvals[n];
+    }
+    return pulled;  /* re-fires every call, never memoized, for anything else */
   }
   return _funcobj_argvals[n];
 }
@@ -2419,7 +2439,21 @@ AttributeValue* ComTerp::peek_alist_pending(AttributeList* al, int id, Attribute
   if (!found || !found->is_object(FuncObjPendingArg::class_symid()))
     return found;
   FuncObjPendingArg* marker = (FuncObjPendingArg*)found->obj_val();
-  *_peek_scratch = pull_funcobj_pending(marker);  /* fresh every call --
+  ComValue pulled(pull_funcobj_pending(marker));
+  if (pulled.is_stream()) {
+    /* pin it instead of peeking -- same reasoning as funcobj_arg's
+       identical stream case: a stream is a stateful cursor, not a value,
+       so treating it like any other re-firable keyword would silently
+       reset it to "just constructed" on every read, never advancing (or
+       never exhausting, if something loops on it).  Write it back and
+       delete the marker exactly like an explicit write already does
+       (pull_alist_pending) -- every later read of this id, peek or pull,
+       finds the one real, same-identity stream object directly. */
+    al->add_attr(id, pulled);
+    delete marker;
+    return al->find(id);
+  }
+  *_peek_scratch = pulled;  /* fresh every call for anything else --
      never written to al, marker never deleted here (fire_funcobj()'s
      cleanup pass frees it at invocation end if it's never frozen by a
      write) */
