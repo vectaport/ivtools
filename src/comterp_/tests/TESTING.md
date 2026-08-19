@@ -257,6 +257,7 @@ To add a new test script:
 | funcarg.comt  | func arg narg (positional args, keyword-as-variable, if incidental) | 1-11 | 18 | 26 | 69% |
 | funcclosure.comt | func local global (declaration-time capture, #310)         | 1-9,11  |      13 |    21 | 62% |
 | posteval.comt | func arg if (`:posteval` keyword)                            | 1-11    |      21 |    28 | 75% |
+| funchelp.comt | help func arg narg local global (`help(f)` on a bare FuncObj, #334/#336) | 1,3,4,9,11 | 19 | 24 | 79% |
 
 ### Planned coverage (ivtools-2.2)
 

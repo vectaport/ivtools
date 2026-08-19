@@ -23,9 +23,13 @@
 
 #include <ComTerp/funcobjscan.h>
 #include <ComTerp/postfixspan.h>
+#include <ComTerp/comvalue.h>
+#include <ComTerp/comterp.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Attribute/attrvalue.h>
+
+#include <limits.h>
 
 /* Per-occurrence event, for the FIRST-mention/ever-written bookkeeping --
    distinct from the public Kind, which is the FINAL classification derived
@@ -115,6 +119,98 @@ static void add_to_set(int*& set, int& n, int& cap, int symid) {
    and simply produces no event). */
 static boolean span_is_plain_var(PostfixSpanWalk::Span span, boolean* is_plain_var) {
     return span.count == 1 && is_plain_var[span.start];
+}
+
+boolean* FuncObjVarScan::build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks) {
+    boolean* is_plain_var = new boolean[ntoks];
+    for (int i = 0; i < ntoks; i++) {
+        /* nids<0 (HACKING.md's "Dot Operator Rhs" section) marks a bare
+           identifier on the right of a dot -- an attribute-key literal
+           like the "v" in "obj.v", never promoted to CommandType
+           regardless of whether that name is also a registered command,
+           but not an ordinary variable reference either. */
+        if (toks[i].type == TOK_COMMAND && toks[i].nids >= 0) {
+            ComValue sv;
+            comterp->token_to_comvalue(&toks[i], &sv);
+            is_plain_var[i] = sv.type() == ComValue::SymbolType;
+        } else {
+            is_plain_var[i] = false;
+        }
+    }
+    return is_plain_var;
+}
+
+FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* toks, int ntoks) {
+    static int arg_symid = symbol_add("arg");
+    static int narg_symid = symbol_add("narg");
+
+    PositionalInfo info;
+    info.count = -1;
+    info.uses_narg = false;
+
+    long maxidx = -1;           /* highest literal index seen: arg(0) -> 0 --
+                                    long (not int) so maxidx+1 below can't
+                                    overflow for a literal near INT_MAX
+                                    (Greptile, PR #337) */
+    boolean saw_arg = false;
+    boolean saw_nonliteral = false;
+
+    PostfixSpanWalk walk;
+    for (int i = 0; i < ntoks; i++) {
+        walk.step(toks, i);
+        if (toks[i].type != TOK_COMMAND) continue;
+        int symid = toks[i].v.symbolid;
+
+        if (symid == narg_symid) {
+            /* narg() anywhere in the body reads as "this loops over a
+               run of positionals bounded at call time," i.e. variadic --
+               not resolvable to one fixed count regardless of any
+               literal arg(n) indices also present. */
+            info.uses_narg = true;
+            continue;
+        }
+
+        if (symid == arg_symid && walk.consumed_count() == 1) {
+            saw_arg = true;
+            PostfixSpanWalk::Span operand = walk.consumed(0);
+            if (operand.count == 1 &&
+                (toks[operand.start].type == TOK_DFINT ||
+                 toks[operand.start].type == TOK_LNINT)) {
+                long idx = toks[operand.start].type == TOK_DFINT
+                    ? (long)toks[operand.start].v.dfintval
+                    : toks[operand.start].v.lnintval;
+                if (idx > maxidx) maxidx = idx;
+            } else {
+                /* a computed index (arg(i), arg(i+1), ...) -- resolving
+                   simple cases statically is future work (#170 phase 1
+                   point 2's "attempt, fall back to dynamic" allowance);
+                   this first pass gives up gracefully instead of
+                   guessing. */
+                saw_nonliteral = true;
+            }
+        }
+    }
+
+    if (info.uses_narg || saw_nonliteral)
+        info.count = -1;
+    else if (saw_arg) {
+        /* maxidx+1 overflowing (maxidx == LONG_MAX) is signed-integer UB,
+           not just "unlikely" -- check before doing the addition rather
+           than let it wrap and rely on that wrapping to coincidentally
+           land back on the same -1 "can't be pinned down" sentinel
+           (Greptile, PR #337). This is unreachable through today's literal
+           parsing (values above INT_MAX don't currently survive intact --
+           a separate, pre-existing bug, #342), but the guard costs nothing
+           and removes the UB regardless of whether any path can trigger
+           it today. */
+        if (maxidx == LONG_MAX)
+            info.count = -1;
+        else
+            info.count = maxidx + 1;
+    } else
+        info.count = 0;      /* no arg(n) calls at all -- a niladic body */
+
+    return info;
 }
 
 AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean* is_plain_var) {
@@ -246,6 +342,84 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     delete [] recs;
     delete [] escapes;
     delete [] dotroots;
+
+    return result;
+}
+
+AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* toks, int ntoks, boolean* is_plain_var) {
+    static int if_symid = symbol_add("if");
+    static int eq_symid = symbol_add("eq");
+    static int nil_symid = symbol_add("nil");
+    static int then_symid = symbol_add("then");
+    static int else_symid = symbol_add("else");
+
+    AttributeList* result = new AttributeList();
+
+    PostfixSpanWalk walk;
+    for (int i = 0; i < ntoks; i++) {
+        walk.step(toks, i);
+        if (toks[i].type != TOK_COMMAND || (unsigned)toks[i].v.symbolid != (unsigned)if_symid) continue;
+        /* only the plain 3-operand if(cond :then v :else v) shape --
+           :until/:nilchk or any other keyword on this if() means it
+           isn't this idiom at all */
+        if (walk.consumed_count() != 3) continue;
+
+        PostfixSpanWalk::Span condspan = walk.consumed(0);
+        PostfixSpanWalk::Span branch1 = walk.consumed(1);
+        PostfixSpanWalk::Span branch2 = walk.consumed(2);
+
+        /* condition must be exactly "K==nil" or "nil==K" -- 3 tokens,
+           last one eq, the other two bare single-token operands, one of
+           them the literal nil command and the other a plain variable
+           (the keyword this default belongs to) */
+        if (condspan.count != 3) continue;
+        int eqtok = condspan.start + 2;
+        if (toks[eqtok].type != TOK_COMMAND || (unsigned)toks[eqtok].v.symbolid != (unsigned)eq_symid) continue;
+        int t0 = condspan.start, t1 = condspan.start + 1;
+        boolean t0_nil = toks[t0].type == TOK_COMMAND && (unsigned)toks[t0].v.symbolid == (unsigned)nil_symid;
+        boolean t1_nil = toks[t1].type == TOK_COMMAND && (unsigned)toks[t1].v.symbolid == (unsigned)nil_symid;
+        int keysym;
+        if (t0_nil && is_plain_var[t1]) keysym = toks[t1].v.symbolid;
+        else if (t1_nil && is_plain_var[t0]) keysym = toks[t0].v.symbolid;
+        else continue;
+
+        /* branch1/branch2 (source order) must each end in a KEYWORD
+           token -- that's what identifies which is :then and which is
+           :else (see funcobjscan.h's spanwalk comment: a keyword-tagged
+           operand's span includes its trailing KEYWORD marker token) */
+        PostfixSpanWalk::Span then_span, else_span;
+        boolean have_then = false, have_else = false;
+        PostfixSpanWalk::Span branches[2];
+        branches[0] = branch1;
+        branches[1] = branch2;
+        for (int b = 0; b < 2; b++) {
+            PostfixSpanWalk::Span sp = branches[b];
+            if (sp.count < 1) continue;
+            int last = sp.start + sp.count - 1;
+            if (toks[last].type != TOK_KEYWORD) continue;
+            if ((unsigned)toks[last].v.symbolid == (unsigned)then_symid) { then_span = sp; have_then = true; }
+            else if ((unsigned)toks[last].v.symbolid == (unsigned)else_symid) { else_span = sp; have_else = true; }
+        }
+        if (!have_then || !have_else) continue;
+
+        /* :else's value portion (span minus its trailing keyword token)
+           must be exactly the bare keyword, unchanged -- confirms this
+           if() really is the "return x as-is" idiom for THIS keysym,
+           not some other, unrelated keyword-adjacent if() */
+        if (else_span.count != 2) continue;
+        if (!is_plain_var[else_span.start] || toks[else_span.start].v.symbolid != keysym) continue;
+
+        /* :then's value portion must be exactly one literal token --
+           give up gracefully (no default reported) on anything computed,
+           same restraint scan_positionals uses for a non-literal arg(n)
+           index */
+        if (then_span.count != 2) continue;
+        ComValue litval;
+        comterp->token_to_comvalue(&toks[then_span.start], &litval);
+        if (litval.is_type(AttributeValue::CommandType) || litval.is_type(AttributeValue::SymbolType)) continue;
+
+        result->add_attr(keysym, litval);
+    }
 
     return result;
 }

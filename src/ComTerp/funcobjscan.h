@@ -27,6 +27,7 @@
 #include <ComUtil/comterp.h>
 
 class AttributeList;
+class ComTerp;
 
 // FuncObjVarScan: classifies every distinct symbol referenced in a FuncObj
 // body's token span into #170's taxonomy -- read-only, read-before-write,
@@ -56,6 +57,58 @@ public:
     // attribute name) to its Kind (stored as an IntType AttributeValue).
     // Caller owns the returned list.
     static AttributeList* classify(postfix_token* toks, int ntoks, boolean* is_plain_var);
+
+    // Builds a fresh is_plain_var[] array for classify() above, resolving
+    // each token the same way ordinary evaluation would (token_to_comvalue
+    // is public specifically for this, see its own comment in comterp.h).
+    // Shared by #310's declaration-time capture (postfunc.c) and #170's
+    // :help fire-time analysis (comterp.c) so both go through one
+    // implementation of the nids<0 dot-rhs exclusion (HACKING.md's "Dot
+    // Operator Rhs" section) rather than two copies drifting apart. Caller
+    // owns the returned array (delete []).
+    static boolean* build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks);
+
+    // Positional arg(n) usage, derived separately from classify() above --
+    // that's keyword-symbol classification only, with no notion of arg(n)
+    // at all.
+    struct PositionalInfo {
+        long count;        // -1 means "count could not be pinned down statically";
+                            // long (not int) so a literal index near INT_MAX
+                            // doesn't overflow computing count = maxidx + 1
+                            // (Greptile, PR #337)
+        boolean uses_narg; // true if narg() appears anywhere in the body --
+                            // treated as a signal the body is variadic
+                            // (loops over an arg(n) run bounded by narg()),
+                            // so count is forced to -1 regardless of any
+                            // literal arg(n) indices also found.
+    };
+
+    // Scans for arg(n) calls, deriving the positional count from the
+    // highest literal index referenced (max constant index + 1).  A
+    // non-literal index (e.g. arg(i)) makes the count unresolvable the same
+    // way narg() usage does -- see #170 phase 1 point 2's "attempt simple
+    // computed n, fall back to dynamic" allowance; this first pass only
+    // resolves literal indices, computed-index resolution is future work.
+    static PositionalInfo scan_positionals(postfix_token* toks, int ntoks);
+
+    // #336 (staged from #170's "Future" section, "Positional optionality"):
+    // recognizes the canonical "unsupplied keyword defaults to nil" idiom --
+    // if(x==nil :then DEFAULT :else x) -- and extracts DEFAULT where it's a
+    // single literal token. Only this one, well-known shape is matched
+    // (condition is exactly "x==nil"/"nil==x", the :else branch is exactly
+    // the bare keyword unchanged, the :then branch is exactly one literal
+    // token); anything more elaborate -- a computed default, extra
+    // keywords on the if(), a differently-shaped condition -- is silently
+    // skipped rather than guessed at, the same "attempt simple cases, give
+    // up gracefully" restraint scan_positionals uses for computed arg(n)
+    // indices. Needs ComTerp access (token_to_comvalue) to turn the
+    // literal token into a real ComValue, unlike classify()/
+    // scan_positionals() above.
+    //
+    // Returns an AttributeList mapping each keyword's symid (only those
+    // with a recognized default) to its default ComValue. Always non-nil,
+    // possibly empty. Caller owns the returned list.
+    static AttributeList* scan_defaults(ComTerp* comterp, postfix_token* toks, int ntoks, boolean* is_plain_var);
 };
 
 #endif /* !defined(_funcobjscan_h) */

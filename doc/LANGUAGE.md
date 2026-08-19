@@ -1096,6 +1096,90 @@ do not escape to the caller's scope. This includes dot-notation
 attributes: a dot namespace rooted at a local symbol is local to the
 call.
 
+### Introspecting a func's IO contract: `help(f)`
+
+Comterp already communicates several contracts textually rather than
+leaving them implicit: `postfix(help)` appends a trailing `*` to a
+post-eval command's name, and `help()` renders a registered command's
+docstring and keyword list on request. `help(f)`, where `f` is a bare,
+unfired FuncObj, extends the same idea to a func you wrote yourself —
+rendering its positional and keyword contract as one line of text,
+without running the body:
+
+```
+f=func(arg(0)+arg(1))
+help(f)              // "(arg0 arg1)"
+```
+
+`help()` already reads its arguments symbol-preserving (it's post_eval),
+so `f` reaches it completely unfired — the same non-firing read
+`isclass(x :sym)` relies on elsewhere. Positionals render as `arg0`,
+`arg1`, ... (from the highest literal `arg(n)` index referenced), or
+`...` when the count can't be pinned down statically (`narg()` usage, or
+a computed index). Keywords show only the ones a caller can meaningfully
+supply — read-only and read-before-write free variables — since
+write-before-read is local scratch a keyword would just be clobbering,
+not a genuine input. Escaping (`local()`/`global()`) variables are
+reported in a trailing annotation instead, since they're not part of the
+func's own frame:
+
+```
+f=func(local(w)=1)
+help(f)              // "()  -- escapes: w->local"
+```
+
+**Defaults are shown too, in both of the senses that turn out to
+matter.** A func using the `if(x==nil :then DEFAULT :else x)`
+optional-keyword idiom has its coded `DEFAULT` rendered inline, when
+`DEFAULT` is a single literal:
+
+```
+ini=func(if(x==nil :then 99 :else x))
+help(ini)             // "(:x [99])"
+```
+
+But the coded default is only the *written* fallback — closures
+(above) mean it isn't necessarily the *effective* one. If `x` already
+had a real value in scope the moment `func()` ran, declaration-time
+capture grabbed that value, not `nil` — the body's `x==nil` check will
+never be true for as long as that capture stands, so `99` is currently
+dead code:
+
+```
+x=7
+ini=func(if(x==nil :then 99 :else x))
+help(ini)             // "(:x [99, 7])"  -- coded default, then what got captured
+ini()                 // 7, not 99
+```
+
+The same capture applies even without a coded default idiom at all —
+declaration-time capture doesn't care whether the func author wrote
+optional-parameter logic for a variable or just read it plainly. From a
+caller's side, both look the same: call the func bare, get whatever was
+captured; supply the keyword explicitly, get that instead:
+
+```
+w=42
+f=func(w+1)
+help(f)               // "(:w [42])"
+```
+
+This isn't a bug or a special case worth working around — it's the same
+fact the earlier closures section already establishes (a func's
+free-variable reads resolve to whatever was true *when `func()` ran*,
+not whatever's true when it's called), surfaced in text instead of
+staying implicit. A captured value is simple, stable, and constant once
+the func exists, which is exactly what makes it worth `help()` showing
+rather than leaving to be discovered by firing the func and being
+surprised.
+
+None of this is fully perfected — return-kind isn't derived yet, output
+is one line rather than column-aligned, and there's no way yet to feed a
+`help(f)` string back in to reconstruct the func the way `~~` round-trips
+a stream's own emitted representation. But the direction is the same one
+the rest of the language already leans on: make a contract legible as
+text first, and let round-tripping follow once the shape earns it.
+
 ### Lazy arguments: `:posteval`
 
 An ordinary `func()` call is eager: every positional and keyword argument

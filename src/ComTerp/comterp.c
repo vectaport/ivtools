@@ -23,6 +23,7 @@
  * 
  */
 
+#include <cstdarg>
 #include <cstdio>
 #include <ctype.h>
 #include <iostream.h>
@@ -59,6 +60,7 @@
 #include <ComTerp/numfunc.h>
 #include <ComTerp/parsefunc.h>
 #include <ComTerp/postfunc.h>
+#include <ComTerp/funcobjscan.h>
 #include <ComTerp/randfunc.h>
 #include <ComTerp/soundfunc.h>
 #include <ComTerp/statfunc.h>
@@ -290,6 +292,163 @@ int ComTerp::eval_expr(ComValue* pfvals, int npfvals) {
   pop_servstate();
 
   return FUNCOK;
+}
+
+/* Bounds-safe snprintf accumulation into a fixed buffer -- plain
+   'pos += snprintf(buf+pos, sizeof(buf)-pos, ...)' is unsafe to repeat:
+   once the buffer is full, snprintf returns the length it WOULD have
+   written (not what it actually wrote), so pos can end up past the
+   buffer's end.  The next call then computes buf+pos as an out-of-bounds
+   pointer and sizeof(buf)-pos as a size_t underflow (huge, since
+   sizeof() is unsigned) -- snprintf believes it has nearly unlimited
+   room and writes past the real allocation (Greptile, PR #337).  This
+   clamps pos to stay valid after every call, so a signature long enough
+   to fill the buffer truncates safely instead of overflowing it. */
+static void append_bounded(char* buf, size_t bufsize, int& pos, const char* fmt, ...) {
+  if (pos < 0 || (size_t)pos >= bufsize - 1) return;  /* already full/invalid -- skip */
+  va_list ap;
+  va_start(ap, fmt);
+  int n = vsnprintf(buf + pos, bufsize - (size_t)pos, fmt, ap);
+  va_end(ap);
+  if (n < 0) return;  /* encoding error -- leave pos alone */
+  pos += n;
+  if ((size_t)pos > bufsize - 1) pos = (int)(bufsize - 1);  /* clamp for the next call */
+}
+
+/* renders a ComValue as text into a fixed buffer, for embedding into
+   append_bounded's printf-style calls above (which have no %v of their
+   own) -- same std::strstreambuf/ostream pattern already used elsewhere
+   in this file (e.g. the stack_top() print path). */
+static void render_comvalue(ComValue& v, char* out, size_t outsize) {
+  std::strstreambuf sbuf;
+  ostream os(&sbuf);
+  os << v;
+  os << '\0';
+  strncpy(out, sbuf.str(), outsize - 1);
+  out[outsize - 1] = '\0';
+}
+
+/* #334 (staged from #170 phase 1): the bare IO-contract signature for
+   help(f) where f is a bare, unfired FuncObj -- see the fuller comment on
+   ComTerp::describe_funcobj in comterp.h.  Positionals render as
+   arg0/arg1/... (the arg(n) indices themselves, since a positional has no
+   other name) or "..." when the count can't be pinned down statically (a
+   computed index, or narg() usage -- see FuncObjVarScan::scan_positionals).
+   Keywords are read-only union read-before-write only -- per #170's own
+   framing, write-before-read is local scratch a caller's keyword would
+   just be clobbering, not a real input, so it's omitted; escaping
+   (local()/global()) vars are reported in a trailing annotation instead
+   of the parens themselves, since they're not part of the func's own
+   frame at all. */
+ComValue ComTerp::describe_funcobj(FuncObj* fo) {
+  boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(this, fo->toks(), fo->ntoks());
+  AttributeList* classification = FuncObjVarScan::classify(fo->toks(), fo->ntoks(), is_plain_var);
+  ComValue classification_owner(AttributeList::class_symid(), (void*)classification);
+  /* #336 (staged from #170's "Future" section): recognizes only the
+     canonical if(x==nil :then DEFAULT :else x) idiom -- needs
+     is_plain_var too, so computed before it's freed below. */
+  AttributeList* defaults = FuncObjVarScan::scan_defaults(this, fo->toks(), fo->ntoks(), is_plain_var);
+  ComValue defaults_owner(AttributeList::class_symid(), (void*)defaults);
+  delete [] is_plain_var;
+
+  FuncObjVarScan::PositionalInfo posinfo = FuncObjVarScan::scan_positionals(fo->toks(), fo->ntoks());
+
+  char buf[2048];
+  int pos = 0;
+  append_bounded(buf, sizeof(buf), pos, "(");
+  boolean first = true;
+
+  if (posinfo.count < 0) {
+    append_bounded(buf, sizeof(buf), pos, "...");
+    first = false;
+  } else {
+    /* Reserve room for a " ... argMAX)" tail (worst case ~19 bytes for a
+       10-digit index) so a huge literal index like arg(2000000000) -- the
+       same repro as the DoS this loop's bound guards against, Greptile,
+       PR #337 -- renders as many arg%d entries as fit and then names the
+       true final index instead of just stopping mid-list with no
+       indication anything was cut off. */
+    const int tail_reserve = 32;
+    int i = 0;
+    for (; i < posinfo.count && pos < (int)sizeof(buf) - 1 - tail_reserve; i++) {
+      append_bounded(buf, sizeof(buf), pos, first ? "arg%d" : " arg%d", i);
+      first = false;
+    }
+    if (i < posinfo.count) {
+      append_bounded(buf, sizeof(buf), pos, first ? "... arg%ld" : " ... arg%ld", posinfo.count - 1);
+      first = false;
+    }
+  }
+
+  ALIterator cit;
+  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+    Attribute* attr = classification->GetAttr(cit);
+    int kind = attr->Value()->int_val();
+    if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
+      AttributeValue* defval = defaults->find(attr->SymbolId());
+      /* #310's declaration-time capture can make the coded default
+	 above unreachable: if this name already had a real value in
+	 scope when func() ran, ReadOnly capture grabbed THAT value, not
+	 nil -- the x==nil check inside the body will never be true for
+	 as long as that capture stands, so the :then literal is
+	 currently dead code.  Surface this rather than let :help claim
+	 a default that the func will actually never produce. */
+      AttributeValue* capval = nil;
+      if (fo->captures().is_object(AttributeList::class_symid())) {
+        capval = ((AttributeList*)fo->captures().obj_val())->find(attr->SymbolId());
+      }
+      boolean cap_shadows = capval && !ComValue(*capval).is_unknown();
+      if (defval) {
+        /* #336: render the detected default inline, :name [value] --
+           comterp contracts are textually communicated wherever
+           possible (postfix(help)'s trailing * for post-eval commands,
+           help()'s own docstring/dockeys rendering); this is the same
+           idea applied to a func's own IO contract. */
+        char defbuf[256];
+        ComValue defv(*defval);
+        render_comvalue(defv, defbuf, sizeof(defbuf));
+        if (cap_shadows) {
+          char capbuf[256];
+          ComValue capv(*capval);
+          render_comvalue(capv, capbuf, sizeof(capbuf));
+          append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s, %s]" : " :%s [%s, %s]",
+                          symbol_pntr(attr->SymbolId()), defbuf, capbuf);
+        } else {
+          append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s]" : " :%s [%s]",
+                          symbol_pntr(attr->SymbolId()), defbuf);
+        }
+      } else if (cap_shadows) {
+        /* no coded default idiom at all, but this read-only keyword was
+           still captured as a real value at declaration time -- worth
+           showing too, same reasoning as above, just without a coded
+           literal to contrast it against. */
+        char capbuf[256];
+        ComValue capv(*capval);
+        render_comvalue(capv, capbuf, sizeof(capbuf));
+        append_bounded(buf, sizeof(buf), pos, first ? ":%s [%s]" : " :%s [%s]",
+                        symbol_pntr(attr->SymbolId()), capbuf);
+      } else {
+        append_bounded(buf, sizeof(buf), pos, first ? ":%s" : " :%s",
+                        symbol_pntr(attr->SymbolId()));
+      }
+      first = false;
+    }
+  }
+  append_bounded(buf, sizeof(buf), pos, ")");
+
+  boolean any_escape = false;
+  for (classification->First(cit); !classification->Done(cit); classification->Next(cit)) {
+    Attribute* attr = classification->GetAttr(cit);
+    int kind = attr->Value()->int_val();
+    if (kind == FuncObjVarScan::EscapingLocal || kind == FuncObjVarScan::EscapingGlobal) {
+      append_bounded(buf, sizeof(buf), pos, any_escape ? ", %s->%s" : "  -- escapes: %s->%s",
+                      symbol_pntr(attr->SymbolId()),
+                      kind == FuncObjVarScan::EscapingGlobal ? "global" : "local");
+      any_escape = true;
+    }
+  }
+
+  return ComValue(buf);
 }
 
 void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* lazy_posvals) {

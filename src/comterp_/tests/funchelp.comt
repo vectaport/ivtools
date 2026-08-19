@@ -1,0 +1,261 @@
+// src/comterp_/tests/funchelp.comt -- test help(f) on a bare, unfired
+// FuncObj (#334, staged from #170 phase 1)
+//
+// funcs: func help arg narg local global
+//
+// help() already reads its arguments symbol-preserving (it's post_eval,
+// stack_arg(i, true)) so a FuncObj argument reaches help() completely
+// unfired -- the same non-firing read isclass(x :sym) relies on
+// elsewhere. When an argument resolves to a bare FuncObj, help() returns
+// its IO-contract signature instead of falling through to its usual
+// registered-command docstring lookup (which a FuncObj, never being a
+// registered command, would never match anyway).
+//
+// Signature shape: "(arg0 arg1 :key1 :key2)", derived from
+// FuncObjVarScan's read-only/read-before-write/write-before-read/escaping
+// classification (#310's classifier, reused here per its own comment) and
+// a new arg(n) positional scanner.  Escaping (local()/global()) variables
+// are reported in a trailing "  -- escapes: name->scope" annotation
+// instead of the parens, since they're not part of the func's own frame.
+// A positional count that can't be pinned down statically (narg() usage,
+// or a computed arg(i) index) renders as "(...)".
+//
+// A keyword with a recognized default (the canonical "if(x==nil :then
+// DEFAULT :else x)" idiom, #336 -- staged from #170's "Future" section)
+// renders as ":name [DEFAULT]" instead of bare ":name", but only when
+// DEFAULT is exactly one literal token; anything computed is silently
+// skipped rather than guessed at (tests 14-16).
+//
+// Only read-only union read-before-write keywords appear -- write-before-
+// read is local scratch a caller's keyword would just be clobbering, not
+// a genuine input, so it's omitted (same framing #310's captures already
+// use for the identical classification).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./funchelp.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: no positionals, no keywords ---
+f1=func(42)
+r1=help(f1)
+ok=ok&&(r1=="()")
+print("1 f1=func(42); help(f1) (expect \"()\"): %v\n\n" r1)
+check_fail(:ok ok)
+
+// --- test 2: positionals via arg(n), literal indices ---
+f2=func(arg(0)+arg(1))
+r2=help(f2)
+ok=ok&&(r2=="(arg0 arg1)")
+print("2 f2=func(arg(0)+arg(1)); help(f2) (expect \"(arg0 arg1)\"): %v\n\n" r2)
+check_fail(:ok ok)
+
+// --- test 3: read-only keyword shown, write-before-read local excluded ---
+x=nil   // prime -- #310 captures at declaration time; an exact-string
+        // assertion on help()'s output needs a clean, deterministic
+        // capture regardless of what earlier test files left behind in
+        // global scope (see the funcs :x/:y/:z/:a/:b primes throughout
+        // this file, and this session's own "6" out of "a+b+c" story)
+f3=func(y=x; z=1; z=z+1; y+z)
+r3=help(f3)
+ok=ok&&(r3=="(:x)")
+print("3 f3=func(y=x; z=1; z=z+1; y+z); help(f3) -- x is read-only, z is pure local scratch (expect \"(:x)\"): %v\n\n" r3)
+check_fail(:ok ok)
+
+// --- test 4: read-before-write keyword shown the same as read-only ---
+y=nil   // prime -- see test 3's note
+f4=func(y=y+1; y)
+r4=help(f4)
+ok=ok&&(r4=="(:y)")
+print("4 f4=func(y=y+1; y); help(f4) -- y read before its own write, still a genuine input (expect \"(:y)\"): %v\n\n" r4)
+check_fail(:ok ok)
+
+// --- test 5: escaping local() reported in the trailer, not the parens ---
+f5=func(local(w)=1)
+r5=help(f5)
+ok=ok&&(r5=="()  -- escapes: w->local")
+print("5 f5=func(local(w)=1); help(f5) (expect \"()  -- escapes: w->local\"): %v\n\n" r5)
+check_fail(:ok ok)
+
+// --- test 6: escaping global() reported the same way ---
+f6=func(global(g)=1)
+r6=help(f6)
+ok=ok&&(r6=="()  -- escapes: g->global")
+print("6 f6=func(global(g)=1); help(f6) (expect \"()  -- escapes: g->global\"): %v\n\n" r6)
+check_fail(:ok ok)
+
+// --- test 7: dynamic positional count via narg() ---
+f7=func(n=narg(); n)
+r7=help(f7)
+ok=ok&&(r7=="(...)")
+print("7 f7=func(n=narg(); n); help(f7) -- variadic, can't pin down a count (expect \"(...)\"): %v\n\n" r7)
+check_fail(:ok ok)
+
+// --- test 8: a computed (non-literal) arg(n) index also forces dynamic ---
+f8=func(i=0; arg(i))
+r8=help(f8)
+ok=ok&&(r8=="(...)")
+print("8 f8=func(i=0; arg(i)); help(f8) -- computed index, not a literal (expect \"(...)\"): %v\n\n" r8)
+check_fail(:ok ok)
+
+// --- test 9: mixed -- read-only, read-before-write, write-before-read
+// (excluded), and an escape, all in one body ---
+x=nil;y=nil   // prime -- see test 3's note
+mix=func(a=x; b=y; b=b+1; z=5; z=z+1; local(w)=1; a+b+z)
+r9=help(mix)
+ok=ok&&(r9=="(:x :y)  -- escapes: w->local")
+print("9 mix(:help) -- x read-only, y read-before-write, z excluded, w escapes (expect \"(:x :y)  -- escapes: w->local\"): %v\n\n" r9)
+check_fail(:ok ok)
+
+// --- test 10: help(f) never runs the body -- no side effects at all ---
+hits=list()
+sideeffecting=func(hits,1; arg(0)+arg(1))
+r10=help(sideeffecting)
+ok=ok&&(size(hits)==0)
+print("10 help(sideeffecting) never fires the body (expect size(hits)==0): %v\n\n" size(hits))
+check_fail(:ok ok)
+
+// --- test 11: help(f) on a :posteval target classifies correctly, and an
+// ordinary fire of the same target afterward is completely unaffected ---
+a=nil;b=nil   // prime -- see test 3's note; the explicit :a/:b keywords
+              // below still override regardless (add_attr replaces a
+              // capture by symid either way), so this can't break the
+              // firing check, only stabilize the help() string
+pe=func(a==b :posteval)
+r11a=help(pe)
+ok=ok&&(r11a=="(:a :b)")
+r11b=pe(:a func(1) :b func(1))
+ok=ok&&(r11b==true)
+print("11 pe=func(a==b :posteval); help(pe) then pe(:a func(1) :b func(1)) (expect \"(:a :b)\" true): %v %v\n\n" r11a r11b)
+check_fail(:ok ok)
+
+// --- test 12: help() still works normally on a registered command, and
+// mixing a FuncObj arg with a registered-command arg in one call works ---
+r12=help(print)
+ok=ok&&(size(r12)>0)
+r13=help(f2 print)
+ok=ok&&(size(r13)>0)
+print("12 help(print) and help(f2 print) -- ordinary/mixed help() calls unaffected (expect both non-empty): %v %v\n\n" size(r12) size(r13))
+check_fail(:ok ok)
+
+// --- test 13: a signature long enough to fill (and exceed) the formatter's
+// fixed 2048-byte buffer truncates safely instead of overflowing it
+// (Greptile, PR #337) -- arg(400) alone drives the rendered positional
+// list past the buffer; this must not crash or write out of bounds. It
+// must also end with an explicit "... argMAX)" tail rather than just
+// stopping mid-list with no indication anything was cut off (Scott,
+// live in chat: "after arg307 it should have a ...)") ---
+huge=func(arg(400))
+r13b=help(huge)
+tail13=" ... arg400)"
+idx13=index(r13b tail13)
+ok=ok&&(index(r13b "(arg0 arg1 arg2 arg3")==0)
+ok=ok&&(idx13!=nil)&&((idx13+size(tail13))==size(r13b))
+print("13 huge=func(arg(400)); help(huge) truncates safely and ends with an explicit tail (expect true true): %v %v\n\n" (index(r13b "(arg0 arg1 arg2 arg3")==0) ((idx13!=nil)&&((idx13+size(tail13))==size(r13b))))
+check_fail(:ok ok)
+
+// --- test 13c: a literal index large enough that the inferred positional
+// count itself (not just the rendered text) is huge must not turn into a
+// ~2 billion-iteration stall once the buffer is already full (Greptile,
+// PR #337) -- the render loop must stop as soon as the buffer fills, not
+// just stop writing while still counting up to posinfo.count -- and the
+// truncation tail must still name the TRUE final index (arg2000000000),
+// not just a generic "..." ---
+huge2=func(arg(2000000000))
+r13c=help(huge2)
+tail13c=" ... arg2000000000)"
+idx13c=index(r13c tail13c)
+ok=ok&&(index(r13c "(arg0 arg1 arg2 arg3")==0)
+ok=ok&&(idx13c!=nil)&&((idx13c+size(tail13c))==size(r13c))
+print("13c huge2=func(arg(2000000000)); help(huge2) doesn't stall and names the true final index (expect true true): %v %v\n\n" (index(r13c "(arg0 arg1 arg2 arg3")==0) ((idx13c!=nil)&&((idx13c+size(tail13c))==size(r13c))))
+check_fail(:ok ok)
+
+// --- test 13d: a literal index right at INT_MAX must not overflow
+// scan_positionals' maxidx+1 arithmetic (Greptile, PR #337) -- a naive
+// int count wraps negative there, which describe_funcobj conflates with
+// "count couldn't be pinned down," so help() would wrongly report "(...)"
+// (dynamic) for a positional count that's actually known, just huge ---
+huge3=func(arg(2147483647))
+r13d=help(huge3)
+tail13d=" ... arg2147483647)"
+idx13d=index(r13d tail13d)
+ok=ok&&(index(r13d "(arg0 arg1 arg2 arg3")==0)
+ok=ok&&(idx13d!=nil)&&((idx13d+size(tail13d))==size(r13d))
+print("13d huge3=func(arg(2147483647)); help(huge3) doesn't overflow to \"(...)\" (expect true true): %v %v\n\n" (index(r13d "(arg0 arg1 arg2 arg3")==0) ((idx13d!=nil)&&((idx13d+size(tail13d))==size(r13d))))
+check_fail(:ok ok)
+
+// --- test 14: the canonical optional-keyword idiom renders its literal
+// default inline (#336) ---
+x=nil   // prime before declaring -- #310 captures a read-only free
+        // variable at declaration time; see FUNC-AND-ARGS-DESIGN.md's
+        // note and funcarg.comt test 10 for why this line is required,
+        // not decorative (this is also why "6" out of "a+b+c" earlier
+        // this session wasn't a :posteval quirk -- same mechanism)
+ini=func(if(x==nil :then 99 :else x))
+r14=help(ini)
+ok=ok&&(r14=="(:x [99])")
+print("14 ini=func(if(x==nil :then 99 :else x)); help(ini) (expect \"(:x [99])\"): %v\n\n" r14)
+check_fail(:ok ok)
+
+// --- test 14b: if x already had a real value when THIS func() ran, the
+// coded default above is currently dead code -- #310's capture grabbed
+// x's value, not nil, so the body's x==nil check will never be true for
+// as long as that capture stands.  help() surfaces the shadowing rather
+// than let the coded "[99]" claim a default the func won't actually
+// produce (verified against the actual fired result, not just the
+// help() string) ---
+x=7
+ini3=func(if(x==nil :then 99 :else x))
+r14b=help(ini3)
+ok=ok&&(r14b=="(:x [99, 7])")
+r14c=ini3()
+ok=ok&&(r14c==7)
+print("14b x=7 at declaration -- coded default shadowed by capture (expect \"(:x [99, 7])\" 7): %v %v\n\n" r14b r14c)
+check_fail(:ok ok)
+
+// --- test 15: a computed (non-literal) default is silently skipped, not
+// guessed at -- same restraint as scan_positionals' computed arg(n) ---
+y=nil
+ini2=func(if(y==nil :then int(rand(0,10)) :else y))
+r15=help(ini2)
+ok=ok&&(r15=="(:y)")
+print("15 ini2=func(if(y==nil :then int(rand(0,10)) :else y)); help(ini2) -- computed default not shown (expect \"(:y)\"): %v\n\n" r15)
+check_fail(:ok ok)
+
+// --- test 16: a keyword with no default idiom at all, and truly nothing
+// captured (z primed to nil), is unaffected; the default rendering also
+// doesn't change how a DIFFERENT func (ini) actually fires ---
+z=nil   // prime -- see test 3's note
+plain=func(z+1)
+r16=help(plain)
+ok=ok&&(r16=="(:z)")
+r16b=ini(:x 5)
+r16c=ini()
+ok=ok&&(r16b==5)&&(r16c==99)
+print("16 plain=func(z+1); help(plain)=%v (expect \"(:z)\"); ini(:x 5)=%v ini()=%v -- firing unaffected by default rendering (expect 5 99): %v %v %v\n\n" r16 r16b r16c r16 r16b r16c)
+check_fail(:ok ok)
+
+// --- test 16b: the flip side of test 16 -- no coded default idiom, but
+// this read-only keyword WAS captured as a real, non-nil value.  #310's
+// capture is simple/stable/constant once func() has run (Scott's own
+// framing) -- help() surfaces it the same way it surfaces a coded
+// default, since from the caller's side both are "what do I get if I
+// don't supply this keyword" ---
+w2=42
+plain2=func(w2+1)
+r16d=help(plain2)
+ok=ok&&(r16d=="(:w2 [42])")
+print("16b plain2=func(w2+1), w2=42 at declaration -- no if-nil idiom, still worth showing the capture (expect \"(:w2 [42])\"): %v\n\n" r16d)
+check_fail(:ok ok)
+
+// --- test 17: a non-numeric literal default (string) also renders ---
+name=nil
+greet=func(if(name==nil :then "world" :else name))
+r17=help(greet)
+ok=ok&&(r17=="(:name [\"world\"])")
+print("17 greet=func(if(name==nil :then \"world\" :else name)); help(greet) (expect \"(:name [\\\"world\\\"])\"): %v\n\n" r17)
+check_fail(:ok ok)
+
+print("funchelp: %v\n" ok)
+ok
