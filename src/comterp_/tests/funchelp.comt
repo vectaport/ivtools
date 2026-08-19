@@ -149,6 +149,17 @@ ok=ok&&(size(r13b)==2047)
 print("13 huge=func(arg(400)); help(huge) truncates safely instead of overflowing (expect size 2047): %v\n\n" size(r13b))
 check_fail(:ok ok)
 
+// --- test 13c: a literal index large enough that the inferred positional
+// count itself (not just the rendered text) is huge must not turn into a
+// ~2 billion-iteration stall once the buffer is already full (Greptile,
+// PR #337) -- the render loop must stop as soon as the buffer fills,
+// not just stop writing while still counting up to posinfo.count ---
+huge2=func(arg(2000000000))
+r13c=help(huge2)
+ok=ok&&(size(r13c)==2047)
+print("13c huge2=func(arg(2000000000)); help(huge2) doesn't stall past a full buffer (expect size 2047): %v\n\n" size(r13c))
+check_fail(:ok ok)
+
 // --- test 14: the canonical optional-keyword idiom renders its literal
 // default inline (#336) ---
 x=nil   // prime before declaring -- #310 captures a read-only free
