@@ -62,3 +62,38 @@ while(sum(list($$b))!=0
       print("  pass: a=%v  b=%v\n" list($$a) list($$b)))
 
 print("branch-free    = %v\n" list($$a))
+
+print("\n-- redefinition: the same name, a simpler interface --\n")
+// Nothing about a func's name is part of the func.  gcd is just a variable
+// holding a FuncObj, so rebinding it swaps the interface out from under the
+// name -- and help() reports whatever it is bound to right now.  Here is the
+// positional definition from the top of this file, still in force:
+
+print("help(gcd) before = %v\n" help(gcd))
+
+// Now the same algorithm with no arg(n) at all: a and b are plain free
+// variables of the body, primed before the func is declared.  One line of
+// priming buys three things at once --
+//
+//   it makes a bare call work    -- with b nil, b!=0 is true and b=a%b
+//                                   regenerates nil, a loop that never ends
+//   it names the inputs          -- they are the func's declared interface
+//   it supplies their defaults   -- a free variable is captured at
+//                                   declaration time, and help() renders
+//                                   that captured value in [brackets]
+//
+// So initializing the inputs IS documenting them, and help() reads back as a
+// call you can copy, edit, and run.  Keywords override the captures per call
+// without disturbing them -- the bare call at the end still answers 1.
+//
+// (Keywords list in first-read order, not the order primed: the body reads
+// b first, in b!=0.)
+
+a=b=1
+gcd=func(while(b!=0 t=b; b=a%b; a=t); a)
+
+print("help(gcd) after  = %v\n" help(gcd))
+print("gcd bare         = %v\n" gcd)
+print("gcd(:a 22 :b 77) = %v\n" gcd(:a 22 :b 77))
+print("gcd(:a 7 :b 77)  = %v\n" gcd(:a 7 :b 77))
+print("gcd bare again   = %v\n" gcd)
