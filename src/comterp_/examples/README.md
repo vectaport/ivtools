@@ -51,3 +51,19 @@ comterp run src/comterp_/examples/<name>.comt
   re-fires the caller's expression for real, so `retry(flaky())` makes
   up to three genuine calls to `flaky()`, not one call retried against a
   cached failure.
+
+- **gcd.comt** -- Euclid's algorithm two ways. A single scalar
+  `gcd=func(a=arg(0); b=arg(1); while(...); a)` is called first with plain
+  numbers, then handed two streams of `(m n)` pairs: the streams drive the
+  invocation, so the body fires once per pair with `arg(0)`/`arg(1)` bound
+  to scalars and the `while` inside is the same scalar loop, run four
+  times -- the func itself is unchanged between the two uses, and `$$`
+  hands out copies so the same `m`/`n` can drive it again. The second half
+  rewrites the same algorithm branch-free, hoisting the loop out of the
+  func so every pair reduces in lockstep: `b + (b==0)` guards the modulo
+  so a finished lane parks at zero instead of dividing by it, and
+  `(b!=0)*b + (b==0)*a` masks the update so that lane keeps its answer
+  while the others keep going. Worth reading against the first version --
+  it is what vectorizing by hand costs, and it is also the shape that maps
+  onto data-parallel hardware, where per-lane control flow is the
+  expensive part.
