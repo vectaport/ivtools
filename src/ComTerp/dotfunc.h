@@ -59,9 +59,16 @@ protected:
 			std::string& before_expr_text, std::string& after_expr_text);
     /* Everything after peek_and_fire(): the before/after validity checks,
        attrlist lookup-or-create, and the actual dispatch (attribute
-       fetch, or obj.method(args) self-bound firing). */
+       fetch, or obj.method(args) self-bound firing). force_named_field,
+       default false, lets a caller that already knows after_raw is a
+       genuine field symbol (DotStreamNextFunc::execute(), #304) skip the
+       nargs()>1 gate that distinguishes "al.field" from the rare 1-arg
+       dot(name) form -- nargs() there reflects THIS invocation (always 1,
+       the driving stream itself), not the original dot-expression's own
+       arg count, so it can't be relied on for a synthetic per-pull call. */
     void execute_core(ComValue before_part, ComValue after_raw, int after_nids,
-		       const std::string& before_expr_text, const std::string& after_expr_text);
+		       const std::string& before_expr_text, const std::string& after_expr_text,
+		       boolean force_named_field = false);
     /* Get/set the debug-expr flag at runtime via a :dbg keyword --
        intentionally not in DotFunc's public docstring above: a malformed-
        dot warning already shows both sides' resolved values unconditionally
@@ -78,6 +85,37 @@ protected:
        top, or dot(:dbg true) silently never reaches it and always
        misfires as a malformed dot expression instead. */
     boolean check_dbg_keyword();
+};
+
+//: hidden func used by next() to drive a lazy (stream).field access (#304).
+// Holds, in its own stream's stream_list(): [0] the underlying before-
+// stream, [1] the fixed after-dot field symbol. Each pull advances the
+// before-stream one element and re-runs DotFunc's own dispatch
+// (execute_core) on that element, exactly reproducing what an ordinary,
+// non-streaming bare field access would do for it -- same Attribute
+// wrapping, same auto-vivify-if-missing behavior, no separate field-
+// lookup logic duplicated here. A DotFunc subclass (not StrmFunc, unlike
+// its next-func siblings) specifically so it can call the protected
+// execute_core() it inherits, the same way GrDotFunc already does.
+class DotStreamNextFunc : public DotFunc {
+public:
+    DotStreamNextFunc(ComTerp*);
+
+    virtual void execute();
+    /* Override DotFunc's post_eval()==true back to false: this is
+       invoked directly via exec(1,0) by the "next" stream-driving
+       mechanism (NextFunc::execute_impl and friends), the same ordinary
+       calling convention every other *NextFunc sibling uses -- not
+       through real post-eval dispatch, so there's no valid postfix-
+       buffer bookmark for stack_arg_post()'s offset arithmetic to read.
+       Left at DotFunc's inherited true, stack_arg(0) silently read
+       garbage memory instead (confirmed via lldb: a SIGBUS inside the
+       ComValue this constructed from that garbage). */
+    virtual boolean post_eval() { return false; }
+    virtual const char* docstring() {
+      return "hidden func used by next command for (stream).field dot access (#304)."; }
+
+    CLASS_SYMID("DotStreamNextFunc");
 };
 
 //: name returns name field of a dotted pair
