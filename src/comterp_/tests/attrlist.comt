@@ -470,5 +470,35 @@ ok=ok&&(attrval(at(al50 0))==99)
 print("50 at()'s snapshot is detached both ways (expect snap50=42, al50=99, still 99 after snap50@0=7): %v %v %v\n\n" attrval(snap50) attrval(at(al50 0)) attrval(at(al50 0)))
 prev_ok=check_fail(:ok ok)
 
+// --- test 51: (stream).field lazily maps a field access across a stream
+// of objects (#304) -- a named variable bound to a stream is resolved to
+// its actual value before checking is_stream() (it arrives as a raw,
+// unresolved symbol otherwise), and each pull re-runs the ordinary
+// dot-dispatch on that element, unwrapped to its bare value the same way
+// an ordinary non-streamed .field access is. ---
+duck51=(:calls 3)
+cow51=(:calls 5)
+robot51=(:calls 1)
+barnyard51=duck51,cow51,robot51
+sb51=$$barnyard51
+r51=list(sb51.calls)
+ok=ok&&(r51==(3,5,1))
+print("51 sb51=$$barnyard51; list(sb51.calls) (expect {3,5,1}): %v\n\n" r51)
+prev_ok=check_fail(:ok ok)
+
+// --- test 52: the inline form of #304, ($$barnyard).field -- deeper than
+// test 51's named-variable case. The parenthesized $$barnyard sub-
+// expression, evaluated normally (not through a bound variable), reads
+// back as BlankType through an ordinary peek: comterp's own "streams
+// don't self-evaluate mid-expression" discipline leaves a Blank
+// placeholder rather than surfacing the raw, unconsumed stream. Firing
+// it via stack_arg_post_eval() (the same mechanism peek_and_fire()
+// already uses to fire an unfired nested command reference) recovers
+// the real stream instead. ---
+r52=list(($$barnyard51).calls)
+ok=ok&&(r52==(3,5,1))
+print("52 list(($$barnyard51).calls) -- inline paren form (expect {3,5,1}): %v\n\n" r52)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok

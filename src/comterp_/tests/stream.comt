@@ -426,6 +426,25 @@ ok=ok&&(r46b==(1,2,3,4,5,2,3,4,5,3,4,5))
 print("46b (1 2 3)..5 -- a real stream still broadcasts normally (expect {1,2,3,4,5,2,3,4,5,3,4,5}): %v\n" r46b)
 prev_ok=check_fail(:ok ok)
 
+// --- test 47: a func-local keyword override must survive a broadcast
+// triggered by ANOTHER keyword bound to a stream (issue #343). f's body
+// (a..b) reads both a and b as free variables/keywords; when :a is
+// bound to a multi-element stream, the whole call broadcasts -- once
+// per element -- and each of those internal re-fires must still see
+// :b's explicit override (14), not silently fall back to b's
+// declaration-time capture (13, from the outer global b=13 in scope
+// when f was declared). Before the fix, every re-fire used the stale
+// captured 13 instead, because the scalar keyword symbol was left
+// unresolved for later re-evaluation, resolving outside f's own call
+// frame by the time anything actually pulled it. ---
+b=13
+f47=func(a..b)
+sa47=$$(1 2 3)
+r47=list(f47(:a sa47 :b 14))
+ok=ok&&(r47==(1,2,3,4,5,6,7,8,9,10,11,12,13,14,2,3,4,5,6,7,8,9,10,11,12,13,14,3,4,5,6,7,8,9,10,11,12,13,14))
+print("47 f47(:a stream(1,2,3) :b 14), b captured as 13 -- override must win on every re-fire (expect ends at 14, not 13): %v\n" r47)
+prev_ok=check_fail(:ok ok)
+
 print("stream: %v\n" ok)
 ok
 
