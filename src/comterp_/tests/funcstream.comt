@@ -114,5 +114,22 @@ ok=ok&&(r10==70)&&(local(n10)==1)
 print("10 f10(7) plain scalar call unaffected (expect 70 1): %v %v\n" r10 local(n10))
 check_fail(:ok ok)
 
+// --- test 11: issue #206's reproducer -- a post-eval command in the body.
+// Reported as "overdrive stops after the first element when the body
+// contains a post-eval command"; the actual cause was that the invocation
+// was never lifted at all, so cond() saw the whole stream as one truthy
+// object, took one branch once, and yielded a single element.  Its own
+// control case (an eager body) appeared to work only because * overdrove
+// internally.  Both shapes belong here as a pair ---
+k11=func(arg(0)*10)
+r11a=list(k11((1 0 1)))
+h11=func(cond(arg(0) 1 2))
+r11b=h11(1)
+r11c=h11(0)
+r11d=list(h11((1 0 1)))
+ok=ok&&(r11a==(10,0,10))&&(r11b==1)&&(r11c==2)&&(r11d==(1,2,1))
+print("11 #206: eager body, scalar cond calls, and cond body overdriven (expect {10,0,10} 1 2 {1,2,1}): %v %v %v %v\n" r11a r11b r11c r11d)
+check_fail(:ok ok)
+
 print("funcstream: %v\n" ok)
 ok

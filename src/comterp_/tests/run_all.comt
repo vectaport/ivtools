@@ -105,6 +105,10 @@ if(run("./funcstream.comt")
   :then print("pass: funcstream\n")
   :else print("FAIL: funcstream\n");topok=false)
 
+if(run("./nilcompare.comt")
+  :then print("pass: nilcompare\n")
+  :else print("FAIL: nilcompare\n");topok=false)
+
 if(run("./funchelp.comt")
   :then print("pass: funchelp\n")
   :else print("FAIL: funchelp\n");topok=false)
