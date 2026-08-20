@@ -1,0 +1,242 @@
+// src/comterp_/examples/txpose.comt -- four ways to transpose a stream of
+// streams, and what each one costs
+//
+// funcs: func arg while if istype feed xpose list open float print
+//
+// A matrix here is a stream of streams: ((1 2 3) (4 5 6)) is two columns of
+// three, and transposing it means emitting three rows of two.  Four versions
+// follow, each redefining txpose, each demonstrated as it is defined, with a
+// timing table measured live at the end.
+//
+// They differ on two axes, and both matter.  Speed, which turns out to follow
+// entirely from how much of the per-element work happens in C.  And result
+// type: two of them hand back a stream of LISTS and two a stream of STREAMS,
+// which are not interchangeable, since * and @ are different access operators
+// and knowing which you hold is part of the interface.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/txpose.comt
+
+// echo a stream of streams in the notation it was written in (drains it)
+dubstrm=func(
+  sofs=arg(0);
+  print("(");
+  while(tops=*sofs
+    print("(");
+    nospace=true;
+    while(s=*tops
+      if(nospace :then nospace=false :else print(" "));
+      print("%v" s));
+    print(")"));
+  print(")\n")
+  :posteval
+  )
+
+// seconds within the hour, to millisecond resolution.  comterp has no clock
+// of its own yet, so borrow one through a pipe.  Kept small deliberately:
+// FloatType cannot hold epoch seconds and milliseconds at once.
+now=func(float(*$$open("perl -MTime::HiRes -e '$t=Time::HiRes::time(); printf \"%.3f\", $t-int($t/3600)*3600'" :pipe)))
+
+// The benchmark matrix is written inline everywhere below rather than returned
+// from a helper: a stream literal defers evaluating its elements, so one built
+// inside a func drains empty once that func's locals are gone.  Ranges are lazy
+// and cost nothing to name.
+//
+//     (0..4999 100000..104999 200000..204999)     3 columns of 5000
+
+small=((1 2 3)(4 5 6))
+
+// --- 1: the obvious one -- drain to lists, xpose once -------------------
+// xpose() already transposes a list of lists, in C.  So drain each column into
+// a list and hand the whole matrix over.  The script does O(columns) work --
+// three drains, one xpose, one conversion -- and C does everything else.
+// This is the baseline every other version below should be judged against,
+// and it was available all along.
+
+txpose=func(
+  colmajor=arg(0);
+  cols=list(colmajor);
+  nc=size(cols);
+  i=0; while((i<nc) (cols@i=list(cols@i); i=i+1));
+  $$xpose(cols)
+  :posteval)
+
+print("\n1. drain to lists, xpose once\n")
+r=txpose($$small)
+print("   %v %v %v\n" *r *r *r)
+t0=now()
+r=txpose((0..4999 100000..104999 200000..204999))
+n=0
+it=*r
+while(istype(it ListType) n=n+1; it=*r)
+t_obvious=now()-t0
+print("   3x5000 -> %v rows in %v s   (rows are lists)\n" n t_obvious)
+
+// --- 2: the comma, overdriven ------------------------------------------
+// A comma with stream operands is overdriven into a zip, and a zip of the
+// columns IS the transpose: element i of the zip is (col0[i], col1[i], ...),
+// which is row i.  The whole walk is in C, and it is the only version here
+// that is lazy in production -- it yields its first tuple at once, however
+// long the columns are.
+//
+// What it will not do: the columns must be named where the expression is
+// written, so a stream of N columns is not spellable.  ~~ spreads into a
+// COMMAND's positionals, and a comma is an operator, so ~~cols does not reach
+// it.  Dynamic arity is the one thing separating this from a general answer.
+
+print("\n2. the comma, overdriven into a zip\n")
+a=(1 2 3)
+b=(4 5 6)
+print("   $$a,$$b -> %v\n" list($$a,$$b))
+t0=now()
+z=$$(0..4999),$$(100000..104999),$$(200000..204999)
+n=0
+it=*z
+while(istype(it ListType) n=n+1; it=*z)
+t_zip=now()-t0
+print("   3x5000 -> %v rows in %v s   (rows are lists, fixed arity)\n" n t_zip)
+
+// --- 3: a circulating FIFO of columns ----------------------------------
+// feed(fifo strm :raw) stores a stream as the OBJECT rather than draining it,
+// so a FIFO can hold columns -- and the object carries its own read position,
+// so pulling a column out, taking one value and putting it back leaves it one
+// shorter.  One pass round the ring is one row.  No index, no width, no row
+// count: a column that runs out stops being requeued, so the ring drains and
+// the loop ends by itself.
+//
+// Much the slowest, because every element costs about fourteen interpreted
+// operations.  Worth reading anyway: it is the only one whose control flow is
+// the shape of the problem rather than a call into C.
+
+txpose=func(
+  colmajor=arg(0);
+  colcirc=feed; rowmajor=feed;
+  while(col=*colmajor feed(colcirc col :raw));
+  feed(colcirc `EOS);
+  row=feed; live=0;
+  // the pulled value cannot drive this loop: a bquoted symbol is falsy, so
+  // receiving the marker would end it instead of closing a row
+  item=*colcirc;
+  while(istype(item StreamType)||istype(item SymbolType)
+    if(istype(item StreamType)
+       :then (v=*item;
+              if(v!=nil :then (feed(row v); live=live+1; feed(colcirc item :raw))))
+       :else (if(live>0 :then (feed(rowmajor row :raw); row=feed; live=0;
+                               feed(colcirc `EOS)))));
+    item=*colcirc);
+  rowmajor
+  :posteval)
+
+print("\n3. circulating FIFO of columns\n   ")
+dubstrm(txpose($$small))
+t0=now()
+r=txpose((0..4999 100000..104999 200000..204999))
+n=0
+it=*r
+while(istype(it StreamType) n=n+1; it=*r)
+t_ring=now()-t0
+print("   3x5000 -> %v rows in %v s   (rows are streams)\n" n t_ring)
+
+// --- 4: lists in the middle --------------------------------------------
+// Drain the columns into indexed lists and transpose by indexing, on the
+// theory that random access beats queueing.  It barely helps -- swapping the
+// intermediate container changes WHICH interpreted operations run, not HOW
+// MANY, and the count is what costs.  Kept because the theory is the obvious
+// one to try, and the measurement is the answer to it.
+
+txpose=func(
+  colmajor=arg(0);
+  cols=list(colmajor);
+  nc=size(cols);
+  i=0; while((i<nc) (cols@i=list(cols@i); i=i+1));
+  nr=size(cols@0);
+  rows=list(:size nr);
+  j=0; while((j<nr)
+    (row=list(:size nc);
+     i=0; while((i<nc) (row@i=at(cols@i j); i=i+1));
+     rows@j=$$row;
+     j=j+1));
+  $$rows
+  :posteval)
+
+print("\n4. lists in the middle\n   ")
+dubstrm(txpose($$small))
+t0=now()
+r=txpose((0..4999 100000..104999 200000..204999))
+n=0
+it=*r
+while(istype(it StreamType) n=n+1; it=*r)
+t_hybrid=now()-t0
+print("   3x5000 -> %v rows in %v s   (rows are streams)\n" n t_hybrid)
+
+print("\n---------------------------------------------------------------\n")
+print("  transposing 3 columns of 5000, measured just now\n")
+print("---------------------------------------------------------------\n")
+print("  1. drain to lists, xpose once  %v s   rows are lists\n" t_obvious)
+print("  2. comma zip                   %v s   rows are lists, fixed arity\n" t_zip)
+print("  3. circulating FIFO            %v s   rows are streams\n" t_ring)
+print("  4. lists in the middle         %v s   rows are streams\n" t_hybrid)
+print("---------------------------------------------------------------\n")
+
+// ------------------------------------------------------------------------
+// Afterword: what the timings say
+// ------------------------------------------------------------------------
+//
+// ONE INTERPRETED OPERATION COSTS ABOUT 5 MICROSECONDS.  Measured directly: a
+// bare loop of 60,000 iterations takes 0.33s, and adding one more assignment
+// to its body takes 0.62s -- so ~4.8us for the added operation.  Every number
+// in the table is that constant times a count of operations.  Draining 60,000
+// elements entirely inside C via list() is 0.06s, about 1us each.
+//
+// So the only lever is DOING MORE PER OPERATION, and the whole table is one
+// sentence: how much of the per-element work happens in C.
+//
+//   1 and 2 are fast because the script does O(columns) work and C does the
+//   rest -- three drains and one xpose(), or one overdriven comma.  The
+//   element count barely enters into it.
+//
+//   3 and 4 are ten to fourteen times slower because the script touches every
+//   element: the ring pulls a column, pulls a value, feeds the row, requeues
+//   both, and tests a type, about fourteen operations per element.
+//
+//   4 is barely better than 3, which is the useful negative result.  Swapping
+//   a FIFO for an indexed list changes WHICH operations run, not HOW MANY.
+//   The cost was never the container.  (Nor is indexing O(n), as one might
+//   fear: AttributeValueList::Get() caches its last position and walks from
+//   the nearest of {there, front, back}, so sequential scans are O(1)
+//   amortized.  Random access into the middle is not -- about 6x slower on a
+//   50,000-element list -- but scripts scan.)
+//
+// THE OBVIOUS ONE IS THE RIGHT ONE, and worth saying plainly because the
+// elaborate versions came first.  xpose() already transposes a list of lists
+// in C; draining the matrix and calling it once beats every hand-built
+// alternative here and always could have.  Re-graining the input with chunk()
+// and transposing tile by tile does not beat it either -- transpose must EMIT
+// as much as it reads, so the emission costs one interpreted operation per
+// row no matter how the reading was grained.  chunk() pays when a consumer
+// folds many values into few; see examples/chunking.comt.
+//
+// TWO RESULTS, NOT FOUR.  1 and 2 hand back a stream of LISTS; 3 and 4 a
+// stream of STREAMS.  Not interchangeable -- * and @ are different access
+// operators, so the fast pair is not simply a better spelling of the slow
+// pair.  If rows must be streams, the cheap route is 1 plus a per-row
+// conversion, which costs one interpreted operation per row.
+//
+// WHAT IS ACTUALLY MISSING is dynamic arity.  The zip is the ideal shape --
+// lazy, entirely in C -- and cannot be used on a matrix whose column count is
+// not known when the expression is written.  A variadic zip over a stream of
+// streams would be that shape with runtime arity, and is what xpose() ought
+// to be for streams, being already the name for this on lists.  Note that
+// xpose() today does not refuse a stream-of-streams, it silently returns
+// garbage.
+//
+// A NOTE ON LAZINESS.  Only the zip produces lazily; it yields row 0 after
+// pulling one element per column.  The others run to completion inside the
+// call, so an endless column hangs them rather than merely costing.  Half of
+// that is forced: every column must be seen before row 0 can be emitted,
+// since a column arriving later would owe a value to every row already sent.
+// Draining each column to exhaustion is not forced.
+//
+// A .comt file whose last line is a comment draws a spurious "Unexpected
+// end-of-file" from run() (issue #361), so end on a value.
+true
