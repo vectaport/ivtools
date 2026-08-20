@@ -1291,6 +1291,20 @@ int status;
 
       /* Take everything off of the operator stack until the matching */
       /* parenthesis is found.                                        */
+      /* A keyword is pushed onto the operator stack only when the     */
+      /* look-ahead at its own token said a value follows it.  That    */
+      /* look-ahead cannot see past the end of the input buffer, so    */
+      /* under a one-shot infunc -- the line-at-a-time path a run()    */
+      /* file takes -- a keyword ending a line is pushed even when the */
+      /* closing paren it is really followed by sits on the next line, */
+      /* unread.  Such a keyword reaches here having never received a  */
+      /* value, and emitting narg 1 for it fabricates an argument that */
+      /* was never supplied (which then swallows the paren and leaves  */
+      /* the whole expression unterminated).  Expecting a unary prefix */
+      /* at the closing paren is exactly the "no value arrived" state, */
+      /* and only the innermost pending keyword can be in it -- any    */
+      /* deeper one was completed by the value that followed it.       */
+	 { int kw_novalue = ( expecting == OPTYPE_UNARY_PREFIX );
 	 while ( (OperStack[TopOfOperStack].oper_type != LEFTPAREN) &&
                  (TopOfOperStack >= 0 ))
          {
@@ -1303,9 +1317,10 @@ int status;
              else
              {
                  OPERSTK_POP( temp_id );
-                 PFOUT( TOK_KEYWORD, temp_id, 1, 0, 0);
+                 PFOUT( TOK_KEYWORD, temp_id, kw_novalue ? 0 : 1, 0, 0);
+                 kw_novalue = 0;
              }
-	 }
+	 } }
          OPERSTK_POP( temp_id );
 
       /* If this parenthesis corresponds to a command, set up the */

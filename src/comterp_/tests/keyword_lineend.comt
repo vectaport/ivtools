@@ -1,0 +1,69 @@
+// src/comterp_/tests/keyword_lineend.comt -- a bare keyword as the last token
+// on a line, with its closing paren on the next line, under run()
+//
+// funcs: func arg run help print list
+//
+// A keyword does not know at parse time whether it is a bare flag (:posteval)
+// or takes a value (:prefix "P").  The parser decides by looking ahead one
+// token: a following keyword or closing paren means bare, anything else means
+// a value is coming.  That look-ahead cannot see past the end of the input
+// buffer, and run() feeds a file one line at a time -- so a keyword ending a
+// line is pushed as if a value follows even when the very next line is just
+// the closing paren.  Piping the same file to stdin does not hit this, since
+// there the parser reads the FILE directly and can look across lines.
+//
+// The pending keyword is resolved where the closing paren unwinds the
+// operator stack: a keyword still waiting for a value when its paren arrives
+// never got one, so it is a bare flag.  Before that, it was emitted as though
+// it had an argument, which swallowed the paren and left the whole expression
+// unterminated -- the definition was silently lost and its body ran as
+// top-level statements instead (test 3 below is the witness for that).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./keyword_lineend.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a bare keyword ending a line, closing paren on the next ---
+run("./keyword_lineend_sub.comt")
+r1=help(klsub)
+ok=ok&&(r1=="klsub(arg0)")
+print("1 run() a func whose :posteval ends a line, ) on the next (expect \"klsub(arg0)\"): %v\n\n" r1)
+check_fail(:ok ok)
+
+// --- test 2: and the definition actually works when called ---
+r2=klsub(4)
+ok=ok&&(r2==40)
+print("2 the func recovered from run() is callable (expect 40): %v\n\n" r2)
+check_fail(:ok ok)
+
+// --- test 3: the body must NOT have run while being defined.  If the
+// definition is cut at the keyword, "marks,1" executes as a top-level
+// statement and lengthens marks; a properly captured body leaves it alone ---
+marks=list()
+run("./keyword_lineend_body_sub.comt")
+n3=size(marks)
+ok=ok&&(n3==0)
+print("3 defining a func does not execute its body (expect 0): %v\n\n" n3)
+check_fail(:ok ok)
+
+// --- test 4: the other side of the same look-ahead -- a keyword whose VALUE
+// arrives on the following line still binds that value, rather than being
+// mistaken for a bare flag.  This is what a fix at the look-ahead itself
+// would have broken, and why the resolution happens at the closing paren ---
+run("./keyword_lineend_val_sub.comt")
+n4=size(klval)
+ok=ok&&(n4==4)
+print("4 a keyword whose value is on the next line still takes it (expect 4): %v\n\n" n4)
+check_fail(:ok ok)
+
+// --- test 5: the same-line form was never broken and still is not ---
+klsame=func(a=arg(0); a*10 :posteval)
+r5=help(klsame)
+ok=ok&&(r5=="klsame(arg0)")
+print("5 the same-line :posteval) form is unaffected (expect \"klsame(arg0)\"): %v\n\n" r5)
+check_fail(:ok ok)
+
+print("keyword_lineend: %v\n" ok)
+ok

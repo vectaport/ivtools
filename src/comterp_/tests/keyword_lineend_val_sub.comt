@@ -1,0 +1,5 @@
+// sub-script for keyword_lineend.comt -- the other side of the same
+// look-ahead: a keyword whose value legitimately arrives on the next line
+// must still bind that value rather than be taken for a bare flag.
+klval=list(:size
+  4)

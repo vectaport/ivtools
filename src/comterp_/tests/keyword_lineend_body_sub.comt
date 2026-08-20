@@ -1,0 +1,6 @@
+// sub-script for keyword-lineend.comt -- if the definition is cut short at
+// the keyword, the body runs as a top-level statement and appends to marks.
+klbody=func(marks,1;
+  0
+  :posteval
+)

@@ -1348,6 +1348,16 @@ void FeedFunc::execute() {
      StreamLiteralNextFunc's lazy comterpserv()->run() re-evaluation already
      preserves it (that path never goes through stack_arg_post_eval at all). */
   for (int i=0; i<n; i++) argv[i] = stack_arg_post_eval(i, true);
+  /* :raw -- store a stream argument as an opaque, undrained element instead
+     of tagging it STREAM_NESTED for the lazy per-next() unwrap below.  The
+     stored ComValue is the stream OBJECT, so its read position travels with
+     it: pulling the element back out later yields the same cursor, advanced
+     by whatever was taken from it in the meantime.  That is what lets a FIFO
+     hold a set of streams and rotate them (take one value from each, requeue
+     the ones still live) rather than flattening them on the way in. */
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key_post_eval(raw_symid));
+  boolean rawflag = rawv.is_true();
   reset_stack();
 
   boolean arg0_is_fifo = n>0 && argv[0].is_stream() &&
@@ -1366,9 +1376,9 @@ void FeedFunc::execute() {
        order would copy correctly. */
     AttributeValueList* avl = argv[0].stream_list();
     for (int i=1; i<n; i++) {
-      boolean tag_nested = argv[i].is_stream();
+      boolean tag_nested = argv[i].is_stream() && !rawflag;
       AttributeValue* elt;
-      if (tag_nested && argv[i].stream_list() == avl) {
+      if (argv[i].is_stream() && argv[i].stream_list() == avl) {
         /* feed(f f): the fed-in stream's own backing list *is* this FIFO's
            list.  Storing it directly would make avl contain an element
            whose stream_list() is avl itself -- a self-referential list
@@ -1382,7 +1392,8 @@ void FeedFunc::execute() {
            never exists. */
         AttributeValueList* snapshot = new AttributeValueList(avl);
         elt = new AttributeValue(argv[i].stream_func(), snapshot);
-        elt->stream_mode(argv[i].stream_mode_raw()|STREAM_NESTED);
+        elt->stream_mode(rawflag ? argv[i].stream_mode_raw()
+                                 : (argv[i].stream_mode_raw()|STREAM_NESTED));
       } else {
         int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
         elt = new AttributeValue(argv[i]);
@@ -1401,7 +1412,7 @@ void FeedFunc::execute() {
      feed(fifo 0..2) behave identically. */
   AttributeValueList* avl = new AttributeValueList();
   for (int i=0; i<n; i++) {
-    boolean tag_nested = argv[i].is_stream();
+    boolean tag_nested = argv[i].is_stream() && !rawflag;
     int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
     AttributeValue* elt = new AttributeValue(argv[i]);
     if (tag_nested) elt->stream_mode(mode);

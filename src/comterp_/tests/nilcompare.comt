@@ -1,0 +1,80 @@
+// src/comterp_/tests/nilcompare.comt -- how comparisons behave on nil, and
+// the loop-termination rule that follows from it
+//
+// funcs: func arg while list print
+//
+// The comparison operators split two ways on a nil operand: some answer with
+// a definite boolean, others propagate the nil.  That split decides whether a
+// loop written around them terminates, because while() runs its body only on
+// a true condition -- a propagated nil ends the loop, a manufactured "true"
+// does not.
+//
+//   nil != 0   ->  true     definite, and the wrong side -- the trap
+//   nil == 0   ->  false    definite, safe side
+//   nil > 0    ->  nil      propagates
+//   nil < 0    ->  nil      propagates
+//
+// This matters because an unsupplied arg(n) reads nil, so every arg-based
+// func has an implicit "called with too few arguments" path that lands
+// straight in the body.  A gcd written with while(b!=0 ...) hangs forever on
+// a bare call; the same gcd with while(b>0 ...) returns nil and stops.  The
+// rule, stated once: never use a termination test that goes true on nil.
+// See AGENTS.md's ComTerp scripting gotchas.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./nilcompare.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: != answers true on nil -- the trap ---
+n1=nil
+r1=(n1!=0)
+ok=ok&&(r1==true)
+print("1 nil!=0 answers a definite true (expect true): %v\n" r1)
+check_fail(:ok ok)
+
+// --- test 2: == answers false on nil -- definite, but the safe side ---
+r2=(n1==0)
+ok=ok&&(r2==false)
+print("2 nil==0 answers a definite false (expect false): %v\n" r2)
+check_fail(:ok ok)
+
+// --- test 3: the ordering operators propagate nil instead of answering ---
+r3a=(n1>0)
+r3b=(n1<0)
+ok=ok&&(r3a==nil)&&(r3b==nil)
+print("3 nil>0 and nil<0 propagate rather than answer (expect nil nil): %v %v\n" r3a r3b)
+check_fail(:ok ok)
+
+// --- test 4: a propagated nil ends a while loop.  Guarded by test 3 so a
+// regression there reports a failure instead of hanging the suite forever ---
+if(r3a==nil
+   :then i4=0; while(nil>0 i4=i4+1); r4=i4
+   :else r4=-1)
+ok=ok&&(r4==0)
+print("4 while(nil>0 ...) never enters the body (expect 0): %v\n" r4)
+check_fail(:ok ok)
+
+// --- test 5: the rule applied -- gcd with while(b>0) survives a bare call
+// with no arguments, where while(b!=0) would spin on nil forever.  The
+// nil-safe form is the one exercised here on purpose; the trap form is
+// deliberately NOT run, since running it would never return ---
+gcd5=func(a=arg(0); b=arg(1); while(b>0 t=b; b=a%b; a=t); a)
+r5a=gcd5(48 18)
+r5b=gcd5(1071 462)
+r5c=gcd5()
+ok=ok&&(r5a==6)&&(r5b==21)&&(r5c==nil)
+print("5 gcd5 with while(b>0): real args still correct, bare call returns instead of hanging (expect 6 21 nil): %v %v %v\n" r5a r5b r5c)
+check_fail(:ok ok)
+
+// --- test 6: b>0 is a semantic choice as well as a safety one -- it stops on
+// a negative operand rather than iterating through negatives ---
+r6a=gcd5(48 -18)
+r6b=gcd5(-48 18)
+ok=ok&&(r6a==48)&&(r6b==18)
+print("6 gcd5 with a negative operand stops rather than iterating (expect 48 18): %v %v\n" r6a r6b)
+check_fail(:ok ok)
+
+print("nilcompare: %v\n" ok)
+ok

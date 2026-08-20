@@ -1,0 +1,7 @@
+// sub-script for keyword-lineend.comt -- a bare keyword is the last token on
+// its line and the closing paren is on the next line.  Parsed by run(), which
+// feeds one line at a time, so the keyword's look-ahead cannot see the paren.
+klsub=func(a=arg(0);
+  a*10
+  :posteval
+)
