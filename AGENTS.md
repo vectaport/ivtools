@@ -278,6 +278,14 @@ C++ work. The essentials:
   `func name (...)`. A func that "returns nil" is usually this mistake.
 - **Append with `,` (the tuple operator), not `list()`.** `lst,x` appends in
   place; `list(lst x)` builds a nested list-of-lists.
+- **Never use a termination test that goes true on nil.** An unsupplied
+  `arg(n)` reads nil, so every arg-based func has a "called with too few
+  arguments" path landing straight in the body. `nil!=0` is `true`, so
+  `while(b!=0 ...)` spins forever on a bare call; `nil>0` is nil, so
+  `while(b>0 ...)` just ends. Prefer the comparison that propagates nil
+  (`>`, `<`) over the one that answers it (`!=` manufactures a `true`;
+  `==` at least lands on `false`). Priming the inputs before declaring the
+  func removes the nil at the source instead.
 
 ---
 
