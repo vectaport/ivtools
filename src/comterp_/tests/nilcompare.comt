@@ -107,5 +107,33 @@ ok=ok&&(a9==1)&&istype(b9 SymbolType)
 print("9 a fifo hands back the marker as a symbol (expect 1 true): %v %v\n" a9 istype(b9 SymbolType))
 check_fail(:ok ok)
 
+// --- test 10: the loop shape the rule prescribes, in both polarities.  The
+// predicate names what you CONTINUE on, so it follows what the fifo carries:
+// negated for ordinary data terminated by a marker, un-negated for a ring
+// carrying streams plus a marker the body also acts on.  Taking one verbatim
+// for the other case inverts the loop ---
+f10=feed()
+feed(f10 10)
+feed(f10 20)
+feed(f10 30)
+feed(f10 `EOS)
+tot10=0
+item10=*f10
+while(!istype(item10 SymbolType)
+  tot10=tot10+item10;
+  item10=*f10)
+g10=feed()
+strm10=(1 2)
+feed(g10 strm10 :raw)
+feed(g10 `EOS)
+n10=0
+item10=*g10
+while(istype(item10 StreamType)||istype(item10 SymbolType)
+  n10=n10+1;
+  item10=*g10)
+ok=ok&&(tot10==60)&&(n10==2)
+print("10 both loop polarities terminate correctly (expect 60 2): %v %v\n" tot10 n10)
+check_fail(:ok ok)
+
 print("nilcompare: %v\n" ok)
 ok
