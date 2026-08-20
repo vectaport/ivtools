@@ -86,7 +86,15 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 	    if (!symbol) {
 	        boolean was_pending = argref.is_symbol() &&
 		  _comterp->is_posteval_pending(argref.symbol_val());
+		/* the slot is transport, not a result: resolving it in place
+		   assigns over it, and an assignment drops the output wrapper
+		   by design.  Carry the annotation across the resolution so a
+		   command that means to relay it (print's %v) can still see
+		   what its argument arrived wearing. */
+		int slotwrapper = argref.wrapper();
 	        argref = _comterp->lookup_symval(argref);
+		if (slotwrapper != AttributeValue::NoWrapper)
+		  argref.wrapper(slotwrapper);
 		/* fire_if_funcobj() returns a reference into its own
 		   per-fire pool entry, never a shared slot -- a caller
 		   (e.g. EqualFunc) resolving two pending FuncObj operands

@@ -1867,6 +1867,9 @@ int ComTerp::run(boolean one_expr, boolean nested) {
 	    pop_stack();
 	    ComValue countv(orphan_stream_count(streamv));
 	    push_stack(countv);
+	    /* echo as [n]: a count of what went by, not a value.  Stamped on
+	       the pushed slot because the wrapper never survives a copy. */
+	    stack_top().wrapper(AttributeValue::BracketWrapper);
 	    #ifdef USE_FDSTREAMS
 	    print_stack_top(out);
 	    out << "\n";

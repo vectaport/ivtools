@@ -28,6 +28,12 @@
 
 #define RESOURCE_COMPVIEW
 
+// layout of AttributeValue's state word: ValueState in the low nibble,
+// WrapperState in the next two bits.
+#define ATTRVALUE_STATE_MASK    0x0f
+#define ATTRVALUE_WRAPPER_MASK  0x30
+#define ATTRVALUE_WRAPPER_SHIFT 4
+
 #include <leakchecker.h>
 
 #include <stdlib.h>
@@ -117,7 +123,13 @@ public:
     // enum for attribute value types.
 
     enum ValueState { UnknownState, OctState, HexState };
-    // enum for states
+    // enum for states -- occupies the low nibble of the state word
+
+    enum WrapperState { NoWrapper, ParenWrapper, BracketWrapper, BraceWrapper };
+    // enum for output wrappers -- a display-only annotation that surrounds
+    // the printed value with one matching set of delimiters.  Orthogonal to
+    // ValueState (a hex uint can also be bracketed) so it lives in its own
+    // field of the state word.
 
     AttributeValue(ValueType type);
     // construct with specified type and unitialized value.
@@ -283,10 +295,21 @@ public:
     void stream_list(AttributeValueList* list); 
     // set pointer to AttributeValueList associated with stream object
 
+    int state_word();
+    // raw state word with the -1 (_command_symid "no command") initializer read as 0
     int state();
     // get generic state value useful for any type other than CommandType, ObjectType, or StreamType
     void state(int val);
     // set generic state value useful for any type other than CommandType, ObjectType, or StreamType
+
+    int wrapper();
+    // get output wrapper (WrapperState), 0 (NoWrapper) for types without state
+    void wrapper(int val);
+    // set output wrapper (WrapperState) without disturbing the ValueState
+    static const char* wrapper_open(int wrapper);
+    // opening delimiter for a WrapperState, "" for NoWrapper
+    static const char* wrapper_close(int wrapper);
+    // closing delimiter for a WrapperState, "" for NoWrapper
 
     void negate();
     // negate numeric values.

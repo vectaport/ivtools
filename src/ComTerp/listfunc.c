@@ -281,6 +281,11 @@ void ListSizeFunc::execute() {
     if (avl) {
       ComValue retval(avl->Number());
       push_stack(retval);
+      /* echo the count wrapped in the delimiter of whatever was counted --
+	 {n} for a list, (n) for an attrlist, bare for a string -- so the
+	 four readings of size() are told apart on sight.  Stamped on the
+	 pushed slot because the wrapper never survives a copy. */
+      comterp()->stack_top().wrapper(AttributeValue::BraceWrapper);
       return;			  
     }
   } else if (listv.is_object(AttributeList::class_symid())) {
@@ -288,6 +293,7 @@ void ListSizeFunc::execute() {
     if (al) {
       ComValue retval(al->Number());
       push_stack(retval);
+      comterp()->stack_top().wrapper(AttributeValue::ParenWrapper);
       return;			  
     }
   } else if (listv.is_string() || listv.is_symbol()) {
