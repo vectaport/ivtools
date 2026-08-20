@@ -276,23 +276,34 @@ int bs_ident = 0;
 	    comdraw/drawserv's startup seed update(); consumed here exactly
 	    once regardless of whether this line turns out to be a comment
 	    or the real one, so it only ever swallows the next line read. */
+	 /* tty_echo_before_read() hands echo back to the OS when nothing is
+	    buffered, so typing is visible and line-edited normally; each read
+	    is followed by tty_echo_after_read(), which suppresses echo for the
+	    execution that follows and reports whether this line still needs
+	    echoing here or was already shown by the OS (ttyecho.c). */
 	 { int echo_suppressed = tty_echo_consume_suppress_next();
+	   int self_echo = 0;
 	 if (linecmtchr || linecmtstr)
-	   while( (infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
-		  (buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
+	   while( (tty_echo_before_read(),
+		   infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
+		  (self_echo = tty_echo_after_read(buffer),
+		   buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
 	     if (outfunc && !_continuation_prompt_disabled && !echo_suppressed
-		 && outfunc == (int(*)(const char*,void*))&stdout_puts && tty_echo_is_off())
+		 && outfunc == (int(*)(const char*,void*))&stdout_puts && self_echo)
 	       (*outfunc) ( buffer, outfile );  /* echo the comment line too -- it's
 	                                            still being silently consumed
 	                                            here, just no longer shown by
 	                                            OS echo on its own */
              (*linenum)++;  /* skip all script comments */
          }
-	 else
+	 else {
+	   tty_echo_before_read();
 	   infunc_retval = (*infunc)( buffer, bufsiz, infile );
+	   if (infunc_retval != NULL) self_echo = tty_echo_after_read(buffer);
+	 }
 	 if (infunc_retval != NULL && outfunc && !_continuation_prompt_disabled && !echo_suppressed
 	     && outfunc == (int(*)(const char*,void*))&stdout_puts
-	     && tty_echo_is_off())
+	     && self_echo)
 	   (*outfunc) ( buffer, outfile );
 	 }
 	 if( infunc_retval == NULL ) {
