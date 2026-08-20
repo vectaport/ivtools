@@ -251,6 +251,9 @@ ostream& AttributeList::serialize(ostream& out, boolean parens) const {
 	   out << nm[j];
 	}
 	out << " ";
+	/* a symbol here is data, not a variable reference -- backtick it so it
+	   reads back as the symbol itself, the way a string keeps its quotes */
+	if (attr->Value()->is_type(AttributeValue::SymbolType)) out << "`";
 	out << *attr->Value();
     }
     if (parens) out << ")";

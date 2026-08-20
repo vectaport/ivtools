@@ -500,5 +500,36 @@ ok=ok&&(r52==(3,5,1))
 print("52 list(($$barnyard51).calls) -- inline paren form (expect {3,5,1}): %v\n\n" r52)
 prev_ok=check_fail(:ok ok)
 
+// --- tests 53-56: a SymbolType attribute VALUE serializes backtick-protected.
+// An attrlist holds values, not variable references, so a bare symbol in the
+// emitted text would be looked up on read-back and come back as whatever it
+// happened to be bound to -- silently, and as a different value.  The backtick
+// is to a symbol value what the quotes are to a string value. ---
+r53=attrlist(:name `foo :label "bar" :count 3)
+s53=print("%v" r53 :str)
+ok=ok&&(index(s53 ":name `foo" :substr)!=nil)
+print("53 a symbol attribute value keeps its backtick (expect the text to contain :name `foo): %v\n\n" s53)
+prev_ok=check_fail(:ok ok)
+
+// a string value keeps its quotes in the same emission -- the symmetry the
+// backtick restores
+r54=index(s53 ":label \"bar\"" :substr)
+ok=ok&&(r54!=nil)
+print("54 a string attribute value still keeps its quotes (expect a position, not nil): %v\n\n" r54)
+prev_ok=check_fail(:ok ok)
+
+// the round trip that the backtick exists for: with it the value reads back
+// as the symbol, without it the reader looks the name up instead
+foo55=99
+r55=(:name `foo55)
+ok=ok&&(r55.name==`foo55)
+print("55 a backticked symbol value reads back as the symbol (expect foo55, not 99): %v\n\n" r55.name)
+prev_ok=check_fail(:ok ok)
+
+r56=(:name foo55)
+ok=ok&&(r56.name==99)
+print("56 an unprotected symbol is looked up on read-back instead -- what the backtick prevents (expect 99): %v\n\n" r56.name)
+prev_ok=check_fail(:ok ok)
+
 print("attrlist: %v\n" ok)
 ok
