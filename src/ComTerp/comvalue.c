@@ -175,6 +175,11 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
     const char* symbol;
     int counter;
     boolean brief = sv.comterp() ? sv.comterp()->brief() : false;
+    /* display-only wrapper: brief mode is the user-facing echo, so that's
+       where a value asks to be surrounded by its matching delimiters.  The
+       verbose form already parenthesizes by type (int( 3 ), symbol( x )). */
+    int wrapper = brief ? svp->wrapper() : AttributeValue::NoWrapper;
+    out << AttributeValue::wrapper_open(wrapper);
     switch( svp->type() )
 	{
 	case ComValue::KeywordType:
@@ -378,6 +383,7 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	default:
 	  break;
 	}
+    out << AttributeValue::wrapper_close(wrapper);
     return out;
 }
 

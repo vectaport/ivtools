@@ -340,6 +340,14 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
     _command_symid = sv._command_symid;
+    /* the output wrapper is an annotation on one particular value as it is
+       handed back, not part of what the value IS -- so it never rides along
+       on a copy.  Every consumer (arithmetic seeding a result from an
+       operand, an assignment, a stored list element) is therefore free of it
+       with no local clearing anywhere.  A producer stamps the stack slot it
+       just pushed; a command that means to pass the signal on relays it
+       consciously, as print() does from stack_arg(). */
+    wrapper(AttributeValue::NoWrapper);
     if (!preserve_flag) ref_as_needed();
     return *this;
 }
@@ -907,6 +915,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	    break;
 	}
 #else
+        out << AttributeValue::wrapper_open(svp->wrapper());
         switch(svp->type()) {
 	case AttributeValue::KeywordType:
 	  out << "Keyword (" << symbol_pntr( svp->symbol_ref() ) << 
@@ -1055,6 +1064,7 @@ ostream& operator<< (ostream& out, const AttributeValue& sv) {
 	  out << "nil";
 	  break;
 	}
+        out << AttributeValue::wrapper_close(svp->wrapper());
 #endif
     return out;
 }
@@ -1149,6 +1159,7 @@ void AttributeValue::assignval (const AttributeValue& av) {
     memcpy(v1, v2, sizeof(_v));
     _type = av._type;
     _command_symid = av._command_symid;
+    wrapper(AttributeValue::NoWrapper);   /* never copies -- see operator= */
     if (!preserve_flag) ref_as_needed();
 }
     
@@ -1326,16 +1337,55 @@ int AttributeValue::stream_mode() {
     return 0;
 }
 
+/* _state shares its union slot with _command_symid, which several ComValue
+   constructors preset to -1 on values that are not commands at all.  Read
+   that -1 as "nothing set here", not as a state word of all ones -- without
+   this every ordinary literal reports a wrapper of 3 (BraceWrapper). */
+int AttributeValue::state_word() {
+  return _state == -1 ? 0 : _state;
+}
+
 int AttributeValue::state() {
   if (!is_stream() && !is_object() && !is_command()) 
-    return _state;
+    return state_word() & ATTRVALUE_STATE_MASK;
   else
     return -1;
 }
 
 void AttributeValue::state(int val) {
   if (!is_stream() && !is_object() && !is_command()) 
-    _state = val;
+    _state = (state_word() & ~ATTRVALUE_STATE_MASK) | (val & ATTRVALUE_STATE_MASK);
+}
+
+int AttributeValue::wrapper() {
+  if (!is_stream() && !is_object() && !is_command()) 
+    return (state_word() & ATTRVALUE_WRAPPER_MASK) >> ATTRVALUE_WRAPPER_SHIFT;
+  else
+    return AttributeValue::NoWrapper;
+}
+
+void AttributeValue::wrapper(int val) {
+  if (!is_stream() && !is_object() && !is_command()) 
+    _state = (state_word() & ~ATTRVALUE_WRAPPER_MASK) |
+      ((val << ATTRVALUE_WRAPPER_SHIFT) & ATTRVALUE_WRAPPER_MASK);
+}
+
+const char* AttributeValue::wrapper_open(int wrapper) {
+  switch (wrapper) {
+  case AttributeValue::ParenWrapper:   return "(";
+  case AttributeValue::BracketWrapper: return "[";
+  case AttributeValue::BraceWrapper:   return "{";
+  default:                             return "";
+  }
+}
+
+const char* AttributeValue::wrapper_close(int wrapper) {
+  switch (wrapper) {
+  case AttributeValue::ParenWrapper:   return ")";
+  case AttributeValue::BracketWrapper: return "]";
+  case AttributeValue::BraceWrapper:   return "}";
+  default:                             return "";
+  }
 }
 
 boolean AttributeValue::is_object(int class_symid) { 
