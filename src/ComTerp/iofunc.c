@@ -178,6 +178,14 @@ void PrintFunc::execute() {
     }
 
   } else {
+    /* :prefix applies to a real format string too.  Only the narg==1 branch
+       above ever emitted it, so a prefix supplied alongside a format string
+       and its values was silently discarded, along with the trailing newline
+       the docstring promises ("insert str before and new-line after").
+       Emitted once around the whole formatted result rather than per
+       argument -- one prefix and one newline for the statement, matching
+       what the single-argument branch produces. */
+    if (prefixv.is_string()) out << prefixv.symbol_ptr();
     const char* fstrptr = fstr;
     int curr=1;
     while (curr<narg) {
@@ -370,6 +378,7 @@ void PrintFunc::execute() {
 	break;
       }
     }
+    if (prefixv.is_string()) out << "\n";
   }
 
   reset_stack();
