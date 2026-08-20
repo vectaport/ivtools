@@ -1,0 +1,72 @@
+// src/comterp_/tests/numstring.comt -- int()/long()/float()/double() applied
+// to a string argument
+//
+// funcs: int long float double print
+//
+// These four are comterp's atoi/strtol, and they begin the way atoi does:
+// skip leading whitespace, take an explicit sign, then hand the rest to the
+// lexical scanner.  The scanner counts neither the whitespace nor the sign as
+// part of a number, so both have to be dealt with before it sees the string.
+//
+// A string that does not scan as a number returns nil.  That matters more
+// than it looks: a non-numeric string lexes as a symbol, and a symbol's
+// int_val() is its interned symbol id -- so int("hello") used to answer 201,
+// a wrong number wearing the shape of a right one.  See issue #251.
+//
+// What the scanner's own C-literal rules decide is left to the scanner on
+// purpose: "017" is octal (15), and a partial parse like "42abc" is not a
+// number at all rather than a silent 42.
+
+ok=true
+
+// --- explicit sign: the scanner treats a bare sign as an operator, so both
+// signs have to be consumed before it is asked to scan ---
+ok=ok&&(int("+5")==5)
+print("1 int(\"+5\") (expect 5): %v\n" int("+5"))
+
+ok=ok&&(int("-42")==-42)
+print("2 int(\"-42\") (expect -42): %v\n" int("-42"))
+
+// --- leading whitespace, with and without a sign ---
+ok=ok&&(int("  -5")==-5)
+print("3 int(\"  -5\") (expect -5): %v\n" int("  -5"))
+
+ok=ok&&(int("   7")==7)
+print("4 int(\"   7\") (expect 7): %v\n" int("   7"))
+
+// --- a string that is not a number is nil, not a number-shaped answer ---
+ok=ok&&(int("hello")==nil)
+print("5 int(\"hello\") (expect nil, not a symbol id): %v\n" int("hello"))
+
+ok=ok&&(int("42abc")==nil)
+print("6 int(\"42abc\") partial parse is not a number (expect nil): %v\n" int("42abc"))
+
+ok=ok&&(int("")==nil)
+print("7 int(\"\") (expect nil): %v\n" int(""))
+
+// --- the scanner's own literal rules, unchanged on purpose ---
+ok=ok&&(int("0x1F")==31)
+print("8 int(\"0x1F\") hex still scans (expect 31): %v\n" int("0x1F"))
+
+ok=ok&&(int("017")==15)
+print("9 int(\"017\") leading zero is octal, by the scanner's rules (expect 15): %v\n" int("017"))
+
+// --- a non-string argument is untouched by any of this ---
+ok=ok&&(int(5)==5)
+print("10 int(5) non-string path (expect 5): %v\n" int(5))
+
+// --- the other three convert and reject the same way ---
+ok=ok&&(long("+7")==7)
+ok=ok&&(long("x")==nil)
+print("11 long(\"+7\") and long(\"x\") (expect 7 and nil): %v %v\n" long("+7") long("x"))
+
+ok=ok&&(float(" -2.5")==-2.5)
+ok=ok&&(float("x")==nil)
+print("12 float(\" -2.5\") and float(\"x\") (expect -2.5 and nil): %v %v\n" float(" -2.5") float("x"))
+
+ok=ok&&(double("+1.5")==1.5)
+ok=ok&&(double("x")==nil)
+print("13 double(\"+1.5\") and double(\"x\") (expect 1.5 and nil): %v %v\n" double("+1.5") double("x"))
+
+print("numstring: %v\n" ok)
+ok
