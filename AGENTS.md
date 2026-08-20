@@ -286,6 +286,15 @@ C++ work. The essentials:
   (`>`, `<`) over the one that answers it (`!=` manufactures a `true`;
   `==` at least lands on `false`). Priming the inputs before declaring the
   func removes the nil at the source instead.
+- **Don't let a value pulled from a stream be the loop condition — test its
+  type instead.** `while(item=*fifo ...)` reads naturally and mis-terminates
+  silently, because a pulled value's truthiness rarely matches the intent: a
+  stream object is *true* (so `while(b!=0 ...)` where `b` is a whole stream
+  never ends), a bquoted symbol is *false* (so a `` `EOS `` marker ends the
+  loop the moment it arrives, having been delivered correctly), and a string
+  is true where a `0` is false. Prime the variable before the loop, make the
+  condition an explicit type test (`istype(item StreamType)`,
+  `istype(item SymbolType)`), and re-read at the bottom of the body.
 
 ---
 
