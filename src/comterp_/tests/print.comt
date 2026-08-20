@@ -188,5 +188,35 @@ ok=ok&&(p27=="42")
 print("27 print(\"%d\" 42 :str) without :prefix is unchanged (expect 42, no newline): %v\n\n" p27)
 prev_ok=check_fail(:ok ok)
 
+// --- test 28: a format spec applied to a list is a type mismatch like the
+// others above -- the list prints as the value it is, into THIS call's own
+// stream, so :str captures it.  print used to hand-roll an overdrive here,
+// re-invoking itself per element through a stream of its own: the elements
+// bypassed :str and leaked to stdout, :str returned the format string, and
+// the stack was left unbalanced.  A warning on stderr names the mechanism
+// that does do per-element formatting (test 29) ---
+lst28=1,2,3
+p28=print("%d" lst28 :str)
+ok=ok&&(p28=="{1,2,3}")
+print("28 print(\"%d\" lst :str) captures the list as a value (expect {1,2,3}): %v\n\n" p28)
+prev_ok=check_fail(:ok ok)
+
+// --- test 29: per-element formatting is spelled with a stream, which
+// overdrives print at the language level -- the mechanism test 28's removed
+// loop was duplicating ---
+lst29=1,2,3
+p29=list(print("%d;" $$lst29 :str))
+ok=ok&&(p29==("1;","2;","3;"))
+print("29 print(\"%d;\" $$lst :str) overdrives per element (expect {\"1;\",\"2;\",\"3;\"}): %v\n\n" p29)
+prev_ok=check_fail(:ok ok)
+
+// --- test 30: the prefix wraps that formatted list value once, rather than
+// being stranded in a stream the values never reach ---
+lst30=1,2,3
+p30=print("%d" lst30 :str :prefix "P")
+ok=ok&&(p30=="P{1,2,3}\n")
+print("30 print(\"%d\" lst :str :prefix \"P\") wraps the value (expect P{1,2,3} and a newline): %v\n\n" p30)
+prev_ok=check_fail(:ok ok)
+
 print("print: %v\n" ok)
 ok
