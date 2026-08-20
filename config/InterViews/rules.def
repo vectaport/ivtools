@@ -165,14 +165,14 @@ Makefiles::								@@\
 #ifndef IntoSubdirs
 #define IntoSubdirs(name,dirs,verb)					@@\
 name::									@@\
-	-@for i in dirs; \						@@\
+	@for i in dirs; \						@@\
 	do \								@@\
 		if [ -d $$i ]; then ( \					@@\
 			echo verb \					@@\
 			"for $(ARCH) in $(CURRENT_DIR)/$$i"; \		@@\
-			cd $$i; \					@@\
+			cd $$i || exit $$?; \				@@\
 			$(MAKE) $(PASSARCH) name; \			@@\
-		) else continue; fi; \					@@\
+		) || exit $$?; else continue; fi; \			@@\
 	done
 #endif
 

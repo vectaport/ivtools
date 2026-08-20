@@ -34,6 +34,7 @@
 #include <OS/math.h>
 #include <math.h>
 #include <string.h>
+#include <ctype.h>
 #include <vector>
 
 #define TITLE "NumFunc"
@@ -1049,19 +1050,36 @@ void ShortFunc::execute() {
 
 IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
 
+/* Start a string-to-number conversion where atoi/strtol does: skip leading
+   whitespace and take an explicit sign, neither of which the lexical scanner
+   counts as part of a number.  Returns nil unless the scan really produced
+   one -- a non-numeric string lexes as a symbol, and its int_val() is the
+   interned symbol id, a wrong answer that reads like a valid parse. */
+static ComValue scan_number_string(const char* numstr) {
+    const char* str = numstr;
+    while (isspace((unsigned char)*str)) str++;
+    boolean negflag = *str=='-';
+    if (*str=='-' || *str=='+') str++;
+    AttributeValue* av =
+      ParamList::lexscan()->get_attrval((char*)str, strlen(str));
+    ComValue result;
+    if (av->is_num()) {
+      if (av->is_floatingpoint())
+	result = ComValue(negflag ? -av->double_val() : av->double_val());
+      else
+	result = ComValue(negflag ? -av->long_val() : av->long_val());
+    }
+    delete av;
+    return result;
+}
+
 void IntFunc::execute() {
     ComValue operand(stack_arg(0, false, ComValue::zeroval()));
     static int u_symid = symbol_add("u");
     int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
-    if (operand.is_string()) {
-      const char* numstr = operand.symbol_ptr();
-      int negflag = *numstr=='-';
-      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
-      operand = ComValue(av->int_val(), ComValue::IntType);
-      if (negflag) operand.int_ref() = - operand.int_val();
-      delete av;
-    }
+    if (operand.is_string())
+      operand = scan_number_string(operand.symbol_ptr());
     ComValue result(operand.int_val(),  
 		    operand.is_nil() ? ComValue::UnknownType :
                     (uval_flag ? ComValue::UIntType : ComValue::IntType));
@@ -1075,14 +1093,9 @@ void LongFunc::execute() {
     static int u_symid = symbol_add("u");
     int uval_flag = stack_key(u_symid).is_true(); 
     reset_stack();
-    if (operand.is_string()) {
-      const char* numstr = operand.symbol_ptr();
-      int negflag = *numstr=='-';
-      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
-      operand = ComValue(av->long_val());
-      if (negflag) operand.long_ref() = - operand.long_val();
-      delete av;
-    }
+    if (operand.is_string())
+      operand = scan_number_string(operand.symbol_ptr());
+    if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.long_val());
     if(uval_flag) result.type(ComValue::ULongType);
 
@@ -1095,14 +1108,9 @@ void FloatFunc::execute() {
     static ComValue float_zero = ComValue((float)0.0);
     ComValue operand(stack_arg(0, false, float_zero));
     reset_stack();
-    if (operand.is_string()) {
-      const char* numstr = operand.symbol_ptr();
-      int negflag = *numstr=='-';
-      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
-      operand = ComValue(av->float_val());
-      if (negflag) operand.float_ref() = - operand.float_val();
-      delete av;
-    }
+    if (operand.is_string())
+      operand = scan_number_string(operand.symbol_ptr());
+    if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.float_val());
     push_stack(result);
 }
@@ -1113,14 +1121,9 @@ void DoubleFunc::execute() {
     static ComValue double_zero = ComValue((double)0.0);
     ComValue operand(stack_arg(0, false, double_zero));
     reset_stack();
-    if (operand.is_string()) {
-      const char* numstr = operand.symbol_ptr();
-      int negflag = *numstr=='-';
-      AttributeValue* av = ParamList::lexscan()->get_attrval((char*)numstr+negflag, strlen(numstr+negflag));
-      operand = ComValue(av->double_val());
-      if (negflag) operand.double_ref() = - operand.double_val();
-      delete av;
-    }
+    if (operand.is_string())
+      operand = scan_number_string(operand.symbol_ptr());
+    if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.double_val());
     push_stack(result);
 }
