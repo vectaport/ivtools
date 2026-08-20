@@ -966,6 +966,10 @@ void EachFunc::execute() {
     }
     ComValue retval(cnt, ComValue::IntType);
     push_stack(retval);
+    /* stamp the pushed slot, not retval: the wrapper never survives a copy
+       (see AttributeValue::operator=), which is what keeps it from leaking
+       into anything computed from this count */
+    comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 
   } else if (nargs() > 1) {
     /* implicit stream literal -- evaluate remaining fixed-format args.
@@ -987,6 +991,7 @@ void EachFunc::execute() {
     reset_stack();
     ComValue retval(cnt, ComValue::IntType);
     push_stack(retval);
+    comterp()->stack_top().wrapper(AttributeValue::BracketWrapper);
 
   } else {
     /* single non-stream arg -- error */

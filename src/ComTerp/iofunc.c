@@ -183,7 +183,15 @@ void PrintFunc::execute() {
     while (curr<narg) {
 
       char fbuf[BUFSIZ];
-      ComValue printval(stack_arg(curr));
+      /* conscious relay of the output wrapper: the annotation never rides
+	 along on a copy, so read it off the stack slot before copying and
+	 put it back deliberately -- and only for %v, the verb that renders
+	 a value as it is.  That is what lets an overdriven size() print its
+	 per-element {n}.  A numeric verb like %d formats a number and stays
+	 bare. */
+      ComValue& argstackv = stack_arg(curr);
+      int argwrapper = argstackv.wrapper();
+      ComValue printval(argstackv);
       curr++;
 
       int i=0;
@@ -227,6 +235,7 @@ void PrintFunc::execute() {
       if(vptr!=NULL) {
 	*vptr = '\0';
 	vptr+=2;
+	printval.wrapper(argwrapper);
 	out << fbuf << printval << vptr;
 	continue;
       }

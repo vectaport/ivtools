@@ -158,5 +158,9 @@ if(run("./atop.comt")
   :then print("pass: atop\n")
   :else print("FAIL: atop\n");topok=false)
 
+if(run("./wrapper.comt")
+  :then print("pass: wrapper\n")
+  :else print("FAIL: wrapper\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok
