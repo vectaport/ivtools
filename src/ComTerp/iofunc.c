@@ -178,6 +178,14 @@ void PrintFunc::execute() {
     }
 
   } else {
+    /* :prefix applies to a real format string too.  Only the narg==1 branch
+       above ever emitted it, so a prefix supplied alongside a format string
+       and its values was silently discarded, along with the trailing newline
+       the docstring promises ("insert str before and new-line after").
+       Emitted once around the whole formatted result rather than per
+       argument -- one prefix and one newline for the statement, matching
+       what the single-argument branch produces. */
+    if (prefixv.is_string()) out << prefixv.symbol_ptr();
     const char* fstrptr = fstr;
     int curr=1;
     while (curr<narg) {
@@ -266,7 +274,18 @@ void PrintFunc::execute() {
          here has a legitimate use for %n, so it's refused unconditionally.
          Both fall back to the value's normal string representation, same
          as Boolean already did for just the %s case (generalized below). */
+      /* A list reaching a format spec is a type mismatch like the others
+         below, not an invitation for print to iterate it.  print used to
+         hand-roll an overdrive here -- re-invoking itself per element via
+         exec(2,0) -- which rendered the elements through a fresh stream of
+         their own instead of this call's, so they bypassed :str entirely
+         (leaking to stdout) and left the stack unbalanced.  Streams already
+         overdrive print at the language level, and correctly:
+         print("%d\n" $$lst) formats each element.  So the list prints as
+         the value it is, and per-element formatting is spelled the one way
+         the language already spells it. */
       if (specchar == 'n' || speccount > 1 ||
+          printval.type() == ComValue::ArrayType ||
           (specchar == 's' &&
            printval.type() != ComValue::StringType &&
            printval.type() != ComValue::SymbolType &&
@@ -277,6 +296,9 @@ void PrintFunc::execute() {
                 : speccount > 1
                 ? "print: more format specs than remaining values -- "
                   "printing the value's default representation instead\n"
+                : printval.type() == ComValue::ArrayType
+                ? "print: a format spec given a list -- printing it as a value "
+                  "instead (overdrive with a stream to format each element)\n"
                 : "print: %%s given a non-string value -- "
                   "printing its default representation instead\n");
         fbuf[specstart] = '\0';
@@ -335,24 +357,6 @@ void PrintFunc::execute() {
 	out_form(out, fbuf, printval.double_ref());
 	break;
 	
-      case ComValue::ArrayType: 
-      {
-	
-        ALIterator i;
-        AttributeValueList* avl = printval.array_val();
-        avl->First(i);
-        boolean first = true;
-        while (!avl->Done(i)) {
-          ComValue val(*avl->GetAttrVal(i));
-          push_stack(formatstr);
-          push_stack(val);
-          exec(2,0);
-          avl->Next(i);
-          if (!avl->Done(i)) out << "\n";
-        }
-      }
-      break;
-      
       case ComValue::BlankType:
 	out << "<blank>";
 	break;
@@ -370,6 +374,7 @@ void PrintFunc::execute() {
 	break;
       }
     }
+    if (prefixv.is_string()) out << "\n";
   }
 
   reset_stack();
