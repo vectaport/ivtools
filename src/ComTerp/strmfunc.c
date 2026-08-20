@@ -1426,7 +1426,7 @@ void FeedFunc::execute() {
 
 /*****************************************************************************/
 
-int ChunkFunc::_symid;
+int ChunkFunc::_symid = -1;
 
 ChunkFunc::ChunkFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -1475,7 +1475,7 @@ void ChunkFunc::execute() {
 
 /*****************************************************************************/
 
-int ChunkNextFunc::_symid;
+int ChunkNextFunc::_symid = -1;
 
 ChunkNextFunc::ChunkNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1514,6 +1514,13 @@ void ChunkNextFunc::execute() {
   }
 
   if (block->Number()==0) {
+    /* No elements this pull, so report exhaustion -- which for an ordinary
+       stream it is.  Over a growable feed() FIFO it is the known ambiguity of
+       an empty read: nil there means "nothing queued right now", not "done",
+       and chunk cannot tell the two apart any better than its caller can.
+       Ending here matches what every other stream consumer does with that
+       nil, and leaves the FIFO's own contents untouched for a fresh chunk()
+       to pick up. */
     delete block;
     push_stack(ComValue::nullval());
     return;
