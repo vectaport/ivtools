@@ -1426,6 +1426,111 @@ void FeedFunc::execute() {
 
 /*****************************************************************************/
 
+int ChunkFunc::_symid = -1;
+
+ChunkFunc::ChunkFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+/* chunk(strm n) -- re-grain a stream.  The cost a script pays per element is
+   not producing it (a computed range and a fully materialized list hand one
+   over at the same speed) but crossing into the interpreter to ask: the *
+   dispatch, the ComValue, the assignment, the loop test.  A buffer behind a
+   per-element * cannot touch any of that.  Handing back n elements at a time
+   can: the script loop then runs total/n times, and the per-element work
+   inside a block happens wherever the block is consumed.
+
+   The block is an ordinary indexed list, deliberately -- at()/@/size()/xpose()
+   already work on one, so chunk needs no companion commands to be useful, and
+   the two access operators stay honest about the two grains: * for the next
+   block, @ within it. */
+void ChunkFunc::execute() {
+  static ChunkNextFunc* cnfunc = nil;
+  if (!cnfunc) {
+    cnfunc = new ChunkNextFunc(comterp());
+    cnfunc->funcid(symbol_add("chunknext"));
+  }
+
+  ComValue srcv(stack_arg_post_eval(0));
+  ComValue nv(stack_arg_post_eval(1));
+  reset_stack();
+
+  if (!srcv.is_stream()) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  int n = nv.is_known() ? nv.int_val() : 1;
+  if (n < 1) n = 1;
+
+  /* the state this stream carries: its source, and the block size.  Kept in
+     the stream's own backing list, the same slot every other internal-mode
+     stream uses for its state. */
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(srcv));
+  avl->Append(new AttributeValue(n, AttributeValue::IntType));
+
+  ComValue stream(cnfunc, avl);
+  stream.stream_mode(STREAM_INTERNAL);
+  push_stack(stream);
+}
+
+/*****************************************************************************/
+
+int ChunkNextFunc::_symid = -1;
+
+ChunkNextFunc::ChunkNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+void ChunkNextFunc::execute() {
+  ComValue streamv(stack_arg(0));
+  reset_stack();
+
+  AttributeValueList* state = streamv.stream_list();
+  if (!state) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  Iterator i;
+  state->First(i);
+  if (state->Done(i)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  /* the source ComValue lives in the state list, so advancing through this
+     copy advances the one stored there -- a stream's read position travels
+     with the object, which is what lets successive next()s resume where the
+     last block stopped. */
+  ComValue srcv(*state->GetAttrVal(i));
+  state->Next(i);
+  int n = state->Done(i) ? 1 : state->GetAttrVal(i)->int_val();
+
+  AttributeValueList* block = new AttributeValueList();
+  for (int k=0; k<n; k++) {
+    int before = comterp()->stack_height();
+    NextFunc::execute_impl(comterp(), srcv);
+    if (comterp()->stack_height() <= before) break;
+    ComValue elt(comterp()->pop_stack());
+    if (elt.is_null() || elt.is_unknown() || elt.is_nil()) break;
+    block->Append(new AttributeValue(elt));
+  }
+
+  if (block->Number()==0) {
+    /* No elements this pull, so report exhaustion -- which for an ordinary
+       stream it is.  Over a growable feed() FIFO it is the known ambiguity of
+       an empty read: nil there means "nothing queued right now", not "done",
+       and chunk cannot tell the two apart any better than its caller can.
+       Ending here matches what every other stream consumer does with that
+       nil, and leaves the FIFO's own contents untouched for a fresh chunk()
+       to pick up. */
+    delete block;
+    push_stack(ComValue::nullval());
+    return;
+  }
+  ComValue retval(block);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
 int FeedNextFunc::_symid;
 
 FeedNextFunc::FeedNextFunc(ComTerp* comterp) : StrmFunc(comterp) {

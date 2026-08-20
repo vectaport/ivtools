@@ -1,0 +1,106 @@
+// src/comterp_/tests/chunk.comt -- chunk(), re-graining a stream into blocks
+//
+// funcs: chunk feed list sum xpose istype print
+//
+// chunk(strm n) hands back a stream of n-element lists instead of a stream of
+// elements, so a script loop runs total/n times instead of total times.  The
+// point is not buffering -- a fully materialized source is no faster to pull
+// from than a computed one, since the cost is crossing into the interpreter,
+// not producing the value.  The point is grain: one crossing per block instead
+// of one per element.
+//
+// That only pays when the per-block work is ALSO in C.  chunk() plus a script
+// loop indexing each block is slower than not chunking at all (the chunking is
+// pure overhead then), while chunk() plus sum()/xpose() over the whole block
+// is several times faster.  Test 9 pins that contract.
+//
+// The block is an ordinary indexed list on purpose, so at()/@/size()/sum()/
+// xpose() all work on it with no companion commands -- and the two access
+// operators stay honest about the two grains: * for the next block, @ within.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./chunk.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: successive blocks of the requested size ---
+c1=chunk(0..9 4)
+b1a=*c1
+b1b=*c1
+ok=ok&&(b1a==(0,1,2,3))&&(b1b==(4,5,6,7))
+print("1 chunk(0..9 4) first two blocks (expect {0,1,2,3} {4,5,6,7}): %v %v\n" b1a b1b)
+check_fail(:ok ok)
+
+// --- test 2: a short final block, then nil ---
+b1c=*c1
+b1d=*c1
+ok=ok&&(b1c==(8,9))&&(b1d==nil)
+print("2 short final block then exhaustion (expect {8,9} nil): %v %v\n" b1c b1d)
+check_fail(:ok ok)
+
+// --- test 3: the block is an ordinary indexed list ---
+c3=chunk(0..5 3)
+b3=*c3
+ok=ok&&istype(b3 ListType)&&(size(b3)==3)&&(b3@1==1)
+print("3 a block is a plain list, indexable (expect true 3 1): %v %v %v\n" istype(b3 ListType) size(b3) b3@1)
+check_fail(:ok ok)
+
+// --- test 4: n of 1 is the ungrained case, one element per block ---
+c4=chunk(0..2 1)
+b4a=*c4
+b4b=*c4
+ok=ok&&(b4a==(0,))&&(b4b==(1,))
+print("4 chunk(strm 1) yields one-element blocks (expect {0,} {1,}): %v %v\n" b4a b4b)
+check_fail(:ok ok)
+
+// --- test 5: a block size larger than the stream gives one short block ---
+c5=chunk(0..2 100)
+b5=*c5
+b5b=*c5
+ok=ok&&(b5==(0,1,2))&&(b5b==nil)
+print("5 block bigger than the stream (expect {0,1,2} nil): %v %v\n" b5 b5b)
+check_fail(:ok ok)
+
+// --- test 6: a block size below 1 clamps to 1 rather than spinning ---
+c6=chunk(0..1 0)
+b6=*c6
+ok=ok&&(b6==(0,))
+print("6 chunk(strm 0) clamps to 1 (expect {0,}): %v\n" b6)
+check_fail(:ok ok)
+
+// --- test 7: a non-stream argument returns nil instead of guessing ---
+r7=chunk(5 2)
+ok=ok&&(r7==nil)
+print("7 chunk on a non-stream (expect nil): %v\n" r7)
+check_fail(:ok ok)
+
+// --- test 8: it re-grains a feed()-built FIFO too, not just ranges ---
+f8=feed()
+feed(f8 10)
+feed(f8 20)
+feed(f8 30)
+c8=chunk(f8 2)
+b8a=*c8
+b8b=*c8
+ok=ok&&(b8a==(10,20))&&(b8b==(30,))
+print("8 chunk over a fifo (expect {10,20} {30,}): %v %v\n" b8a b8b)
+check_fail(:ok ok)
+
+// --- test 9: the contract -- a block is worth having when something C-level
+// consumes the whole block.  sum() reduces one in C; xpose() transposes a
+// tile of them.  Both are the shape chunk exists to enable ---
+c9=chunk(0..9 5)
+t9=0
+b9=*c9
+while(istype(b9 ListType) t9=t9+sum(b9); b9=*c9)
+tile9=list(:size 2)
+tile9@0=*chunk(0..2 3)
+tile9@1=*chunk(100..102 3)
+x9=xpose(tile9)
+ok=ok&&(t9==45)&&(size(x9)==3)&&(at(x9 0)==(0,100))
+print("9 blocks consumed in C -- sum over blocks, xpose over a tile (expect 45 3 {0,100}): %v %v %v\n" t9 size(x9) at(x9 0))
+check_fail(:ok ok)
+
+print("chunk: %v\n" ok)
+ok

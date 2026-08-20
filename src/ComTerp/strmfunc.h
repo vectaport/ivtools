@@ -327,6 +327,37 @@ public:
     CLASS_SYMID("FeedFunc");
 };
 
+//: command to re-grain a stream: pull up to n elements into an indexed list,
+//: one block per next(), so a script loop pays interpretation once per block
+//: instead of once per element.
+// lst=chunk(strm n) -- convert a stream into a stream of n-element lists
+class ChunkFunc : public ComFunc {
+public:
+    ChunkFunc(ComTerp*);
+
+    virtual void execute();
+    /* post_eval so a stream argument arrives whole: a non-post-eval command
+       with a stream arg is overdriven, which would lift chunk over the very
+       stream it is meant to re-grain. */
+    virtual boolean post_eval() { return true; }
+    virtual const char* docstring() {
+      return "strm=%s(strm n) -- re-grain a stream into a stream of n-element lists, so a script loop pays interpretation once per block instead of once per element"; }
+
+    CLASS_SYMID("ChunkFunc");
+};
+
+//: hidden func used by next command for chunk-built block streams
+class ChunkNextFunc : public StrmFunc {
+public:
+    ChunkNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "hidden func used by next command for chunk-built block streams"; }
+
+    CLASS_SYMID("ChunkNextFunc");
+};
+
 //: hidden func used by next command for feed-built FIFO streams
 class FeedNextFunc : public StrmFunc {
 public:

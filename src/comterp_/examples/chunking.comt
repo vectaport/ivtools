@@ -1,0 +1,96 @@
+// src/comterp_/examples/chunking.comt -- chunk(), and when re-graining a
+// stream is worth anything
+//
+// funcs: chunk sum size istype list open float print
+//
+// An interpreted operation in comterp costs about 5 microseconds.  Measured
+// directly: a bare loop of 60,000 iterations takes 0.33s, and adding one more
+// assignment to its body takes 0.62s.  Everything below follows from that one
+// number -- the only way to go faster is to do MORE PER OPERATION, which means
+// handing C a unit of work worth doing.
+//
+// chunk(strm n) hands back a stream of n-element indexed lists instead of a
+// stream of elements, so a script loop runs total/n times instead of total
+// times.  It is not a buffer: pulling from a fully materialized list is no
+// faster than pulling from a computed range, because the cost is crossing into
+// the interpreter, not producing the value.  What chunk changes is the NUMBER
+// of crossings.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/chunking.comt
+
+now=func(float(*$$open("perl -MTime::HiRes -e '$t=Time::HiRes::time(); printf \"%.3f\", $t-int($t/3600)*3600'" :pipe)))
+
+print("\nsumming 60,000 elements three ways\n\n")
+
+// --- 1: one element at a time, the ordinary way -------------------------
+t0=now()
+r=0..59999
+tot=0
+v=*r
+while(v!=nil tot=tot+v; v=*r)
+t_elem=now()-t0
+print("1. per-element script loop      total=%v  %v s\n" tot t_elem)
+
+// --- 2: chunked, and folded in C ---------------------------------------
+// sum() reduces a whole block in C, so the script crosses over 60 times
+// instead of 60,000 -- and each crossing carries 1000 elements of work.
+t0=now()
+r=0..59999
+ch=chunk(r 1000)
+tot=0
+b=*ch
+while(istype(b ListType) tot=tot+sum(b); b=*ch)
+t_fold=now()-t0
+print("2. chunked, sum() per block     total=%v  %v s\n" tot t_fold)
+
+// --- 3: chunked, but walked in script anyway ---------------------------
+// The trap.  Blocking the stream and then indexing each element from script
+// leaves the same 60,000 interpreted operations and adds the chunking on top,
+// so it is SLOWER than not chunking at all.  chunk creates the opportunity to
+// hand C a block; it does not take it for you.
+t0=now()
+r=0..59999
+ch=chunk(r 1000)
+tot=0
+b=*ch
+while(istype(b ListType)
+  i=0; nb=size(b);
+  while((i<nb) (tot=tot+b@i; i=i+1));
+  b=*ch)
+t_walk=now()-t0
+print("3. chunked, indexed in script   total=%v  %v s\n" tot t_walk)
+
+print("\n---------------------------------------------------------------\n")
+print("  1. per element                %v s\n" t_elem)
+print("  2. chunked, folded in C       %v s\n" t_fold)
+print("  3. chunked, walked in script  %v s   <- slower than 1\n" t_walk)
+print("---------------------------------------------------------------\n")
+
+// ------------------------------------------------------------------------
+// Afterword: what chunk is and is not for
+// ------------------------------------------------------------------------
+//
+// IT PAYS WHEN THE CONSUMER FOLDS.  Variant 2 wins because sum() consumes a
+// whole block and keeps almost nothing -- 60 crossings instead of 60,000, each
+// carrying real work.  Any consumer shaped like that benefits: totals, counts,
+// extrema, a histogram, anything that reduces many values to few.
+//
+// IT DOES NOTHING WHEN THE OUTPUT IS AS BIG AS THE INPUT.  If every element
+// read has to be emitted again, the emission costs one interpreted operation
+// per element no matter how the reading was grained, and that dominates.
+// Transposing a matrix is exactly that shape, which is why a blocked transpose
+// built on chunk() loses to simply draining the whole matrix into lists and
+// calling xpose() once -- the latter does O(columns) interpreted operations in
+// total, and no amount of input re-graining beats that.  See examples/txpose.comt.
+//
+// SO THE RULE IS ABOUT THE CONSUMER, NOT THE STREAM.  Ask what happens to a
+// block once you have it.  If C can swallow it whole, chunk helps by the block
+// size.  If the script has to walk it, chunk is overhead -- variant 3 is the
+// measured proof, and it is the natural thing to write if you think of chunk
+// as "buffering for speed".
+//
+// THE BLOCK IS AN ORDINARY LIST, deliberately, so at()/@/size()/sum()/xpose()
+// work on it with no companion commands.  That also keeps the two access
+// operators honest about the two grains: * for the next block, @ within it.
+true
