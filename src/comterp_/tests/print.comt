@@ -165,5 +165,58 @@ ok=ok&&(s=="42 %n")
 print("24 print(\"%d %n\" 42 :str) extra unmatched spec stays literal (expect 42 %n): %v\n\n" s)
 prev_ok=check_fail(:ok ok)
 
+// --- test 25: :prefix applies to a real format string too.  Only the
+// single-argument path used to emit it, so a prefix given alongside a
+// format string and its values was silently dropped, along with the
+// trailing newline the docstring promises ---
+p25=print("%d" 42 :prefix "P" :str)
+ok=ok&&(p25=="P42\n")
+print("25 print(\"%d\" 42 :prefix \"P\" :str) (expect P42 and a newline): %v\n\n" p25)
+prev_ok=check_fail(:ok ok)
+
+// --- test 26: one prefix and one newline for the whole statement, not one
+// per value, when several values fill the format string ---
+p26=print("%d-%d" 1 2 :prefix "P" :str)
+ok=ok&&(p26=="P1-2\n")
+print("26 print(\"%d-%d\" 1 2 :prefix \"P\" :str) wraps the whole result once (expect P1-2 and a newline): %v\n\n" p26)
+prev_ok=check_fail(:ok ok)
+
+// --- test 27: no prefix keyword, no added newline -- the format path is
+// otherwise untouched ---
+p27=print("%d" 42 :str)
+ok=ok&&(p27=="42")
+print("27 print(\"%d\" 42 :str) without :prefix is unchanged (expect 42, no newline): %v\n\n" p27)
+prev_ok=check_fail(:ok ok)
+
+// --- test 28: a format spec applied to a list is a type mismatch like the
+// others above -- the list prints as the value it is, into THIS call's own
+// stream, so :str captures it.  print used to hand-roll an overdrive here,
+// re-invoking itself per element through a stream of its own: the elements
+// bypassed :str and leaked to stdout, :str returned the format string, and
+// the stack was left unbalanced.  A warning on stderr names the mechanism
+// that does do per-element formatting (test 29) ---
+lst28=1,2,3
+p28=print("%d" lst28 :str)
+ok=ok&&(p28=="{1,2,3}")
+print("28 print(\"%d\" lst :str) captures the list as a value (expect {1,2,3}): %v\n\n" p28)
+prev_ok=check_fail(:ok ok)
+
+// --- test 29: per-element formatting is spelled with a stream, which
+// overdrives print at the language level -- the mechanism test 28's removed
+// loop was duplicating ---
+lst29=1,2,3
+p29=list(print("%d;" $$lst29 :str))
+ok=ok&&(p29==("1;","2;","3;"))
+print("29 print(\"%d;\" $$lst :str) overdrives per element (expect {\"1;\",\"2;\",\"3;\"}): %v\n\n" p29)
+prev_ok=check_fail(:ok ok)
+
+// --- test 30: the prefix wraps that formatted list value once, rather than
+// being stranded in a stream the values never reach ---
+lst30=1,2,3
+p30=print("%d" lst30 :str :prefix "P")
+ok=ok&&(p30=="P{1,2,3}\n")
+print("30 print(\"%d\" lst :str :prefix \"P\") wraps the value (expect P{1,2,3} and a newline): %v\n\n" p30)
+prev_ok=check_fail(:ok ok)
+
 print("print: %v\n" ok)
 ok

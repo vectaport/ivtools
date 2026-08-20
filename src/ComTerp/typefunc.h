@@ -68,7 +68,7 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "flag=%s(var [typesym] :sym) -- test var's type without evaluating it"; }
+      return "flag=%s(var [typesym] :sym) -- test var's type without evaluating it -- a compound expression reports CommandType, the unevaluated call at its head, not the type its result would have"; }
 };
 
 //: command to test a variable's class without ever evaluating it.
@@ -85,7 +85,7 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "flag=%s(var [classsym] :sym) -- test var's class without evaluating it"; }
+      return "flag=%s(var [classsym] :sym) -- test var's class without evaluating it -- a compound expression has no class to report, being an unevaluated call, not a value"; }
 };
 
 //: shortcut for istype(var CommandType), without evaluating var.
