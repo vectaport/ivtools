@@ -76,4 +76,17 @@ comterp run src/comterp_/examples/<name>.comt
   top). That third one is the trap, and it is what you write if you think of
   `chunk` as buffering for speed. The afterword states the rule: it is about
   the consumer, not the stream -- `chunk` pays when C can swallow a block
-  whole, and does nothing when every element read must be emitted again.
+  whole, and does nothing when every element read must be emitted again.   
+  
+- **txpose.comt** -- four ways to transpose a stream of streams, each
+  redefining `txpose`, each demonstrated as it is defined, with a timing table
+  measured live. Draining to lists and calling `xpose()` once (0.086s); the
+  comma overdriven into a zip (0.081s, and the only lazy one, but its columns
+  must be named where the expression is written); a circulating FIFO of
+  columns held with `feed(:raw)` (1.15s); and lists in the middle (0.80s --
+  barely better than the FIFO, which is the useful negative result). Includes
+  `dubstrm`, which echoes a stream of streams in the notation it was written
+  in. The afterword derives every timing from one measured constant -- an
+  interpreted operation costs ~5us -- and says plainly that the obvious
+  version wins: `xpose()` already transposes a list of lists in C, and no
+  hand-built alternative beats calling it once.
