@@ -238,5 +238,57 @@ ok=ok&&(selffed1==(1,2,3,1,2,3) && size(selffed2)==0)
 print("18 f=feed(1 2 3); feed(f f); list(f); list(f) (expect {1,2,3,1,2,3} {}): %v\n\n" (selffed1==(1,2,3,1,2,3) && size(selffed2)==0))
 check_fail(:ok ok)
 
+// --- test 19: :raw stores a stream argument whole instead of draining it.
+// Without :raw a stream arg is tagged STREAM_NESTED and flattens one value
+// per next() (test 13); with :raw the element that comes back out IS the
+// stream, undrained ---
+raws1=(6 7)
+fifoR=feed()
+feed(fifoR raws1 :raw)
+rawelt=next(fifoR)
+rawisstrm=istype(rawelt StreamType)
+rawdrain=list(rawelt)
+ok=ok&&rawisstrm&&(rawdrain==(6,7))
+print("19 feed(f strm :raw); next(f) hands back the stream itself (expect true {6,7}): %v %v\n\n" rawisstrm rawdrain)
+check_fail(:ok ok)
+
+// --- test 20: the stored stream carries its read position with it, which is
+// what lets a FIFO hold and rotate a set of streams.  Take one value, requeue
+// the same object, take another -- the cursor advances across the round trip ---
+raws2=(1 2 3)
+ring=feed()
+feed(ring raws2 :raw)
+c1=next(ring); v1=next(c1); feed(ring c1 :raw)
+c2=next(ring); v2=next(c2); feed(ring c2 :raw)
+c3=next(ring); v3=next(c3)
+ok=ok&&(v1==1)&&(v2==2)&&(v3==3)
+print("20 a :raw stream requeued keeps advancing (expect 1 2 3): %v %v %v\n\n" v1 v2 v3)
+check_fail(:ok ok)
+
+// --- test 21: :raw does not disturb the ordinary flattening path -- the same
+// fifo can hold a raw stream and a drained one side by side ---
+raws3=(8 9)
+raws4=(4 5)
+mixed=feed()
+feed(mixed raws3 :raw)
+feed(mixed raws4)
+m1=next(mixed)
+m2=next(mixed)
+m3=next(mixed)
+ok=ok&&istype(m1 StreamType)&&(m2==4)&&(m3==5)
+print("21 raw element then flattened element in one fifo (expect true 4 5): %v %v %v\n\n" istype(m1 StreamType) m2 m3)
+check_fail(:ok ok)
+
+// --- test 22: the self-feed cycle guard still fires under :raw -- feeding a
+// fifo into itself would otherwise store an element whose backing list is the
+// fifo's own, and :raw must not become a way around that (cf. test 18) ---
+fifoS=feed(1 2 3)
+feed(fifoS fifoS :raw)
+selfraw=list(fifoS)
+selfrawn=size(selfraw)
+ok=ok&&(selfrawn>0)
+print("22 feed(f f :raw) does not crash or cycle (expect non-empty): %v\n\n" selfrawn)
+check_fail(:ok ok)
+
 print("\nfeed: %v\n" ok)
 ok

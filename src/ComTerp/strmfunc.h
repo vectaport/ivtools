@@ -307,7 +307,7 @@ public:
 
 //: command to build or append to a growable FIFO stream, the write-end
 //: complement to next().
-// fifo=feed([fifo] [val ...]) -- build or append to a growable FIFO stream
+// fifo=feed([fifo] [val ...] :raw) -- build or append to a growable FIFO stream
 class FeedFunc : public ComFunc {
 public:
     FeedFunc(ComTerp*);
@@ -315,7 +315,14 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "fifo=%s([fifo] [val ...]) -- build or append to a growable FIFO stream"; }
+      return "fifo=%s([fifo] [val ...] :raw) -- build or append to a growable FIFO stream"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":raw       store a stream argument whole instead of draining it",
+	nil
+      };
+      return keys;
+    }
 
     CLASS_SYMID("FeedFunc");
 };
