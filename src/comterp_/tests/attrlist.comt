@@ -500,7 +500,7 @@ ok=ok&&(r52==(3,5,1))
 print("52 list(($$barnyard51).calls) -- inline paren form (expect {3,5,1}): %v\n\n" r52)
 prev_ok=check_fail(:ok ok)
 
-// --- tests 53-56: a SymbolType attribute VALUE serializes backtick-protected.
+// --- tests 53-57: a SymbolType attribute VALUE serializes backtick-protected.
 // An attrlist holds values, not variable references, so a bare symbol in the
 // emitted text would be looked up on read-back and come back as whatever it
 // happened to be bound to -- silently, and as a different value.  The backtick
@@ -518,17 +518,31 @@ ok=ok&&(r54!=nil)
 print("54 a string attribute value still keeps its quotes (expect a position, not nil): %v\n\n" r54)
 prev_ok=check_fail(:ok ok)
 
-// the round trip that the backtick exists for: with it the value reads back
-// as the symbol, without it the reader looks the name up instead
+// the round trip this exists for, run on the emitted text itself rather than
+// on a hand-written literal: serialize, read the result back, and check the
+// value survives.  foo55 is deliberately bound to something else, so a lost
+// backtick shows up as that binding instead of the symbol.
 foo55=99
-r55=(:name `foo55)
-ok=ok&&(r55.name==`foo55)
-print("55 a backticked symbol value reads back as the symbol (expect foo55, not 99): %v\n\n" r55.name)
+r55=(:name `foo55 :label "bar" :count 3)
+s55=print("%v" r55 :str)
+b55=eval(s55)
+ok=ok&&(b55.name==`foo55)
+ok=ok&&(b55.label=="bar")
+ok=ok&&(b55.count==3)
+print("55 eval() of the emitted text gives back the symbol (expect foo55, not 99): %v\n\n" b55.name)
 prev_ok=check_fail(:ok ok)
 
-r56=(:name foo55)
-ok=ok&&(r56.name==99)
-print("56 an unprotected symbol is looked up on read-back instead -- what the backtick prevents (expect 99): %v\n\n" r56.name)
+// and re-emitting the read-back value reproduces the same text -- emit/parse
+// is a fixed point, not merely close enough to survive one pass
+ok=ok&&(print("%v" b55 :str)==s55)
+print("56 re-emitting the reparsed attrlist reproduces the text exactly (expect the two to match): %v\n    %v\n\n" (print("%v" b55 :str)==s55) s55)
+prev_ok=check_fail(:ok ok)
+
+// the counter-case: without the backtick the reader looks the name up, which
+// is the silent substitution the protection prevents
+r57=(:name foo55)
+ok=ok&&(r57.name==99)
+print("57 an unprotected symbol is looked up on read-back instead (expect 99): %v\n\n" r57.name)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)
