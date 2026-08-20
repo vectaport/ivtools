@@ -66,3 +66,14 @@ comterp run src/comterp_/examples/<name>.comt
   it is what vectorizing by hand costs, and it is also the shape that maps
   onto data-parallel hardware, where per-lane control flow is the
   expensive part.
+
+- **chunking.comt** -- `chunk(strm n)` re-grains a stream into a stream of
+  n-element indexed lists, so a script loop runs `total/n` times instead of
+  `total` times. Sums 60,000 elements three ways and times each: per element
+  (0.73s), chunked with `sum()` folding each block in C (0.11s), and chunked
+  but indexed per element from script (0.89s -- *slower* than not chunking,
+  since the same interpreted operations remain and the chunking is added on
+  top). That third one is the trap, and it is what you write if you think of
+  `chunk` as buffering for speed. The afterword states the rule: it is about
+  the consumer, not the stream -- `chunk` pays when C can swallow a block
+  whole, and does nothing when every element read must be emitted again.

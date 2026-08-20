@@ -2026,6 +2026,7 @@ void ComTerp::add_defaults() {
     add_command("each", new EachFunc(this));
     add_command("filter", new FilterFunc(this));
     add_command("feed", new FeedFunc(this));
+    add_command("chunk", new ChunkFunc(this));
 
     add_command("dot", new DotFunc(this));
     add_command("attrname", new DotNameFunc(this));
