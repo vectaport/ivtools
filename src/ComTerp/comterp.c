@@ -2302,6 +2302,17 @@ void ComTerp::list_commands(ostream& out, boolean sorted) {
   }
 }
 
+/* double the buffer when the next write would not fit */
+static int* grow_if_full(int* buffer, int& bufsiz, int ncomm) {
+  if (ncomm < bufsiz) return buffer;
+  int* newbuf = new int[bufsiz*2];
+  for (int j=0; j<ncomm; j++)
+    newbuf[j] = buffer[j];
+  bufsiz *= 2;
+  delete [] buffer;
+  return newbuf;
+}
+
 int* ComTerp::get_commands(int& ncomm, boolean sort) {
   TableIterator(ComValueTable) i(*localtable());
   int bufsiz = 256;
@@ -2320,19 +2331,15 @@ int* ComTerp::get_commands(int& ncomm, boolean sort) {
       const char* command_name = symbol_pntr(key);
       int opid = opr_tbl_opstr(key);
       const char* operator_name = symbol_pntr(opr_tbl_operid(opid));
+      /* An operator-bearing command writes twice per iteration, so capacity
+         has to be checked before each write, not once between them. */
       if (operator_name) {
+        buffer = grow_if_full(buffer, bufsiz, ncomm);
         buffer[ncomm++] = key;
 	key = opr_tbl_operid(opid);
 	opercnt++;
       }
-      if (ncomm==bufsiz) {
-	int* newbuf = new int[bufsiz*2];
-	for (int j=0; j<bufsiz; j++) 
-	  newbuf[j] = buffer[j];
-	bufsiz *= 2;
-	delete [] buffer;
-	buffer = newbuf;
-      }
+      buffer = grow_if_full(buffer, bufsiz, ncomm);
       buffer[ncomm++] = key;
     }
     i.next();
