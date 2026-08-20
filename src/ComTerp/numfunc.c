@@ -1057,7 +1057,7 @@ IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
    interned symbol id, a wrong answer that reads like a valid parse. */
 static ComValue scan_number_string(const char* numstr) {
     const char* str = numstr;
-    while (isspace(*str)) str++;
+    while (isspace((unsigned char)*str)) str++;
     boolean negflag = *str=='-';
     if (*str=='-' || *str=='+') str++;
     AttributeValue* av =
