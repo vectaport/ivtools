@@ -25,6 +25,18 @@
 #include <Time/Date.h>
 #include <sstream>
 #include <time.h>
+#include <limits.h>
+
+/* Sub-second units need 64 bits: nanoseconds since the epoch is ~1.8e18,
+   microseconds ~1.8e15, milliseconds ~1.8e12, all past a 32-bit long.  Where
+   long is narrower there is no integer type here that can hold them, and the
+   choice would be between a wrapped number that looks like a time and a nil
+   that every caller then has to test for -- so say so at build time instead.
+   Nothing in this tree builds ILP32 today; if something ever does, this stops
+   it with a reason rather than letting it compute wrong timestamps. */
+#if LONG_MAX < 9223372036854775807LL
+#error "comterp time(): the :ms, :us and :ns keywords require a 64-bit long"
+#endif
 
 #define TITLE "TimeFunc"
 
@@ -148,16 +160,6 @@ void TimeFunc::execute() {
   clock_gettime(CLOCK_REALTIME, &ts);
   long sec = (long)ts.tv_sec;
   long nsec = (long)ts.tv_nsec;
-
-  /* Sub-second units need 64 bits -- nanoseconds since the epoch is ~1.8e18,
-     microseconds ~1.8e15, milliseconds ~1.8e12, all past a 32-bit long.  Where
-     long is 32 bits there is no integer type here that can hold them, so report
-     nil rather than a wrapped number that looks like a time.  The test folds
-     away on a 64-bit build. */
-  if (sizeof(long) < 8 && (nsv.is_true() || usv.is_true() || msv.is_true())) {
-    push_stack(ComValue::nullval());
-    return;
-  }
 
   long result;
   if (nsv.is_true())
