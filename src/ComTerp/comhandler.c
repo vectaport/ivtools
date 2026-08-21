@@ -254,12 +254,19 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	delete comterp_;
 	comterp_ = nil;
       }
-      /* Back to the reactor to wait.  This handler assembles its own line
-         with read(), so the lexer never reads the tty here and _lexscan.c's
-         before-read hook never runs -- without this, echo stays off from the
-         first command on and typing goes invisible (ttyecho.c). */
-      if (fd == 0) tty_echo_before_read();
-      return input_good&&(status==0||status==3||status==2) ? 0 : -1;
+      /* This handler assembles its own line with read(), so the lexer never
+         reads the tty here and _lexscan.c's before-read hook never runs --
+         without this, echo stays off from the first command on and typing
+         goes invisible (ttyecho.c).  Returning anything but 0 retires the
+         handler, and a retired handler gets no further read to restore from,
+         so give echo back unconditionally on that path rather than only when
+         nothing is queued. */
+      { int staying = input_good && (status==0||status==3||status==2);
+        if (fd == 0) {
+          if (staying) tty_echo_before_read();
+          else tty_echo_restore();
+        }
+        return staying ? 0 : -1; }
     } else {
       if (inbuf[0]!='\004')
 	cout << "from pipe(" << fd << "):  " << inbuf << "\n";
