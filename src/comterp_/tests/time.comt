@@ -37,16 +37,21 @@ ok=ok&&(t>1690000000)
 ok=ok&&(t/1000000000<10)
 print("2 time(:raw) is epoch seconds -- after Aug 2023, seconds magnitude (expect true): %v\n" (t>1690000000&&t/1000000000<10))
 
-// --- 3-5: each unit tracks seconds through its own scale factor.  Two calls
-// can straddle a tick, so allow a couple of seconds of slack ---
-ok=ok&&((time(:ms)/1000-time(:raw))<2)
-print("3 time(:ms)/1000 tracks time(:raw) (expect true): %v\n" ((time(:ms)/1000-time(:raw))<2))
+// --- 3-5: each unit tracks seconds through its own scale factor.  Read on
+// :mono rather than :raw deliberately.  The scaling is the same arithmetic for
+// both clocks -- one reading, divided down -- so this exercises the identical
+// code path, but a tight tolerance between two separate reads is only safe on
+// a clock that cannot be adjusted.  On :raw an NTP correction moving the wall
+// clock forward between the two reads would fail an assertion about a clock
+// that is behaving exactly as documented ---
+ok=ok&&((time(:mono :ms)/1000-time(:mono))<2)
+print("3 time(:mono :ms)/1000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ms)/1000-time(:mono))<2))
 
-ok=ok&&((time(:us)/1000000-time(:raw))<2)
-print("4 time(:us)/1000000 tracks time(:raw) (expect true): %v\n" ((time(:us)/1000000-time(:raw))<2))
+ok=ok&&((time(:mono :us)/1000000-time(:mono))<2)
+print("4 time(:mono :us)/1000000 tracks time(:mono) (expect true): %v\n" ((time(:mono :us)/1000000-time(:mono))<2))
 
-ok=ok&&((time(:ns)/1000000000-time(:raw))<2)
-print("5 time(:ns)/1000000000 tracks time(:raw) (expect true): %v\n" ((time(:ns)/1000000000-time(:raw))<2))
+ok=ok&&((time(:mono :ns)/1000000000-time(:mono))<2)
+print("5 time(:mono :ns)/1000000000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ns)/1000000000-time(:mono))<2))
 
 // --- 6: the units are ordered by magnitude.  This is what fails if a keyword
 // is wired to the wrong scale ---
@@ -79,9 +84,13 @@ ok=ok&&(time(:mono)<time(:raw))
 ok=ok&&(time(:mono)<1690000000)
 print("9 :mono has no epoch and is not a date (expect true): %v\n" (time(:mono)<1690000000))
 
-// --- 10: :mono takes the units too ---
-ok=ok&&((time(:mono :ms)/1000-time(:mono))<2)
-print("10 time(:mono :ms)/1000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ms)/1000-time(:mono))<2))
+// --- 10: the units scale :raw too.  The window is an hour rather than two
+// seconds, so that any correction a running clock might take passes while a
+// wrong scale factor -- which would be off by a thousandfold, not by hours --
+// still fails ---
+ok=ok&&((time(:ms)/1000-time(:raw))<3600)
+ok=ok&&((time(:us)/1000000-time(:raw))<3600)
+print("10 the units scale :raw as well, within a window wide enough for a clock correction (expect true): %v\n" ((time(:ms)/1000-time(:raw))<3600&&(time(:us)/1000000-time(:raw))<3600))
 
 // --- 11: the bare call is reserved for TimeObj and answers nil until then,
 // rather than entrenching a plain number that would later have to change ---
