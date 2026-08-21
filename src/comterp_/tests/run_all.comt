@@ -109,6 +109,10 @@ if(run("./nilcompare.comt")
   :then print("pass: nilcompare\n")
   :else print("FAIL: nilcompare\n");topok=false)
 
+if(run("./random.comt")
+  :then print("pass: random\n")
+  :else print("FAIL: random\n");topok=false)
+
 if(run("./time.comt")
   :then print("pass: time\n")
   :else print("FAIL: time\n");topok=false)
