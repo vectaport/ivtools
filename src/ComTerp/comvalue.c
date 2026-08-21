@@ -180,18 +180,23 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
        where a value asks to be surrounded by its matching delimiters.  The
        verbose form already parenthesizes by type (int( 3 ), symbol( x )). */
     int wrapper = brief ? svp->wrapper() : AttributeValue::NoWrapper;
-    /* A quote wrapper claims the value can be shown as the character it is.
-       isgraph, not isprint: the `\NNN` escape exists so that a char is always
-       six printable, non-whitespace characters, because brief output is the
-       postfix token stream and its tokens are space-separated -- a raw space
-       would read as the delimiter and a raw newline would end the line.  Space
-       is isprint but not isgraph, so it keeps the escape along with every
-       control and high byte, which also keeps a raw ESC out of the terminal.
-       Drop the wrapper rather than let it lie. */
+    /* A quote wrapper shows a char as itself: printable ones directly, control
+       ones in caret notation, so that a general print of a character never
+       puts a real control byte into the output.  Quoting resolves what makes
+       caret notation ambiguous elsewhere -- a char is one byte, so '^A' can
+       only be the control character, where a literal caret is '^'.
+
+       A byte that is neither printable nor control (the high bytes) keeps the
+       `\NNN` escape instead, since there is nothing readable to show and
+       isprint above 0x7f depends on the locale.  The postfix token stream is
+       unaffected either way: it renders tokens, which never carry a wrapper,
+       so a literal space there still shows as `\040`. */
     if (wrapper == AttributeValue::QuoteWrapper &&
 	!((svp->type() == ComValue::CharType ||
 	   svp->type() == ComValue::UCharType) &&
-	  isgraph((unsigned char)svp->char_ref())))
+	  (unsigned char)svp->char_ref() < 0x80 &&
+	  (isprint((unsigned char)svp->char_ref()) ||
+	   iscntrl((unsigned char)svp->char_ref()))))
       wrapper = AttributeValue::NoWrapper;
     out << AttributeValue::wrapper_open(wrapper);
     switch( svp->type() )
@@ -239,8 +244,13 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::CharType:
-	  if (brief && wrapper == AttributeValue::QuoteWrapper)
-	    out << svp->char_ref();   /* the wrapper supplies the quotes */
+	  if (brief && wrapper == AttributeValue::QuoteWrapper) {
+	    unsigned char cv = (unsigned char)svp->char_ref();
+	    if (iscntrl(cv))
+	      out << '^' << (char)(cv ^ 0x40);  /* ^A for 0x01, ^? for DEL */
+	    else
+	      out << svp->char_ref();   /* the wrapper supplies the quotes */
+	  }
 	  else if (brief)
             out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)(unsigned char)svp->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else
@@ -248,8 +258,13 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;	    
 
 	case ComValue::UCharType:
-	  if (brief && wrapper == AttributeValue::QuoteWrapper)
-	    out << svp->uchar_ref();  /* the wrapper supplies the quotes */
+	  if (brief && wrapper == AttributeValue::QuoteWrapper) {
+	    unsigned char cv = (unsigned char)svp->uchar_ref();
+	    if (iscntrl(cv))
+	      out << '^' << (char)(cv ^ 0x40);  /* ^A for 0x01, ^? for DEL */
+	    else
+	      out << svp->uchar_ref();   /* the wrapper supplies the quotes */
+	  }
 	  else if (brief)
             out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int) svp->uchar_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else

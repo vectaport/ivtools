@@ -30,37 +30,44 @@ print("4 print('\\xff' :str)==`\\377` (expect true): %v\n" print('\xff' :str)=="
 // wrapper alongside the paren/bracket/brace ones.  REPL sugar: it annotates a
 // single handback rather than describing the value, so operator= drops it on
 // any copy, and print() relays it only for %v -- the verb that renders a value
-// as it is.  Tests 1-4 above use the bare print() form, which is why literals
-// and the escape form are unaffected by any of this. ---
+// as it is.  Tests 1-4 above use the bare print() form, which does not relay,
+// which is why the escape form they assert is unaffected by any of this. ---
 ok=ok&&(print("%v" char(97) :str)=="'a'")
 ok=ok&&(print("%v" char(65) :str)=="'A'")
-print("5 char(97) and char(65) show as the characters they are (expect 'a' 'A'): %s %s\n" print("%v" char(97) :str) print("%v" char(65) :str))
+ok=ok&&(print("%v" char(32) :str)=="' '")
+print("5 printable chars show as themselves, space included (expect 'a' 'A' ' '): %s %s %s\n" print("%v" char(97) :str) print("%v" char(65) :str) print("%v" char(32) :str))
 
-// anything not isgraph keeps the escape -- control bytes, high bytes, and
-// whitespace.  Whitespace matters most: brief output is the postfix token
-// stream, whose tokens are space-separated, so a char rendered as a raw space
-// would read as the delimiter and a raw newline would end the line.  The
-// escape is always six printable non-whitespace characters whatever the byte,
-// which is why postfix(' ') shows `\040`.  It also keeps a raw ESC out of the
-// terminal.
-ok=ok&&(index(print("%v" char(7) :str) "007" :substr)!=nil)
+// --- 6: a control character is shown in caret notation, never emitted raw.
+// That is the point of the whole mechanism: a general print of a character
+// must not put a real control byte into the output, where debugging what it
+// did to a terminal or to a script reading that output is miserable.  ESC and
+// newline are the two that actually bite ---
+ok=ok&&(print("%v" char(1) :str)=="'^A'")
+ok=ok&&(print("%v" char(27) :str)=="'^['")
+ok=ok&&(print("%v" char(10) :str)=="'^J'")
+ok=ok&&(print("%v" char(127) :str)=="'^?'")
+print("6 control chars use caret notation (expect '^A' '^[' '^J' '^?'): %s %s %s %s\n" print("%v" char(1) :str) print("%v" char(27) :str) print("%v" char(10) :str) print("%v" char(127) :str))
+
+// --- 7: caret notation is ambiguous in general -- a real control byte and a
+// literal ^A render the same -- but not here.  A char is one byte, so a
+// literal caret is a single character between the quotes and a control
+// character is two, and the two cases cannot collide ---
+ok=ok&&(print("%v" char(94) :str)=="'^'")
+print("7 a literal caret stays one character, distinct from '^A' (expect '^'): %s\n" print("%v" char(94) :str))
+
+// --- 8: a byte that is neither printable nor control keeps the escape.  There
+// is nothing readable to show, and isprint above 0x7f depends on the locale,
+// which this must not ---
 ok=ok&&(index(print("%v" char(160) :str) "240" :substr)!=nil)
-ok=ok&&(index(print("%v" char(32) :str) "040" :substr)!=nil)
-ok=ok&&(index(print("%v" char(9) :str) "011" :substr)!=nil)
-print("6 control, high-bit and whitespace chars keep the escape (expect octal for all four): %s %s %s %s\n" print("%v" char(7) :str) print("%v" char(160) :str) print("%v" char(32) :str) print("%v" char(9) :str))
+ok=ok&&(index(print("%v" char(255) :str) "377" :substr)!=nil)
+print("8 high bytes keep the escape, locale or no locale (expect the octal form): %s %s\n" print("%v" char(160) :str) print("%v" char(255) :str))
 
-// a literal is untouched -- only the command asks for the sugar
+// --- 9: it is presentation only, and only for a bare handback ---
 ok=ok&&(index(print("%v" 'a' :str) "141" :substr)!=nil)
-print("7 a char literal is unchanged (expect the escape form): %s\n" print("%v" 'a' :str))
-
-// stored in a list it is no longer a bare handback, so the sugar is gone
 ok=ok&&(index(print("%v" (char(97),char(98)) :str) "141" :substr)!=nil)
-print("8 inside a list the wrapper drops away (expect the escape form): %s\n" print("%v" (char(97),char(98)) :str))
-
-// and it is presentation only -- the value itself is unchanged
 ok=ok&&(type(char(97))=="CharType")
 ok=ok&&(int(char(97))==97)
-print("9 the value itself is untouched (expect CharType 97): %s %v\n" type(char(97)) int(char(97)))
+print("9 a literal, a stored element, and the value itself are all untouched (expect escapes, CharType, 97): %s %s %s %v\n" print("%v" 'a' :str) print("%v" (char(97),char(98)) :str) type(char(97)) int(char(97)))
 
 print("char: %v\n" ok)
 ok

@@ -388,8 +388,10 @@ Print a usage summary of all the invocation modes above and exit.
  false([...]) -- accept any arguments and return false
 
  c=char(num :u) -- convert any numeric to a char; its result asks to be shown
- as the character itself ('a' rather than `\e141`) when displayed bare through
- %v, falling back to the escape for anything unprintable
+ as the character itself when displayed bare through %v -- 'a' for a printable
+ one and caret notation such as '^A' or '^[' for a control character, so a real
+ control byte never reaches the output; a byte that is neither keeps the
+ `\e141` escape
 
  s=short(num :u) -- convert any numeric to a short
 
