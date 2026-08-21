@@ -161,6 +161,31 @@ gsbrushA_test=func(
   if(!m3 :then print("gsbrushA: FAIL patternmask did not propagate to ds3 intact\n" :err));
   ok=ok && m2 && m3;
 
+  /* --- font.  Needs its own graphic: a rect emits MinGS, which carries no
+     font at all, so only a text graphic can show one propagating.  Created
+     second, so it is the second entry in the grid table.  font(3) is the
+     catalog's courier-bold; far nodes default to helvetica, so "courier-bold"
+     downstream is the FONT state having crossed. --- */
+  fontstr="courier-bold";
+  remote(sock1 "t=text(30,30 \"gs\")");
+  remote(sock1 "font(3)");
+  update(2000000);
+  /* pick the entry that is not the rect rather than trusting table order */
+  ida=remote(sock1 "at(grid(:table) 0).grid");
+  idb=remote(sock1 "at(grid(:table) 1).grid");
+  id2=idb;
+  if(ida!=id1 :then id2=ida);
+  if(type(id2)!=`StringType :then
+    print("gsbrushA: FAIL could not read the text graphic's grid id (got %v)\n" id2 :err);
+    ok=false);
+  if(type(id2)==`StringType :then
+    f2=gs_on_node(:bn_sock sock2 :bn_id id2 :bn_gs fontstr);
+    f3=gs_on_node(:bn_sock sock3 :bn_id id2 :bn_gs fontstr);
+    print("gsbrushA: font reached ds2=%v ds3=%v\n" f2 f3 :err);
+    if(!f2 :then print("gsbrushA: FAIL font did not reach ds2 intact\n" :err));
+    if(!f3 :then print("gsbrushA: FAIL font did not propagate to ds3 intact\n" :err));
+    ok=ok && f2 && f3);
+
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
   while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
