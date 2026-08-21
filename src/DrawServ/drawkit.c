@@ -606,6 +606,14 @@ BrushCmd* DrawKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new LinkBrushCmd(ed, br);
 }
 
+PatternCmd* DrawKit::make_pattern_cmd(ControlInfo* ctrlInfo, PSPattern* pat, int patnum, const char* maskargs) {
+    return new LinkPatternCmd(ctrlInfo, pat, patnum, maskargs);
+}
+
+PatternCmd* DrawKit::make_pattern_cmd(Editor* ed, PSPattern* pat, int patnum, const char* maskargs) {
+    return new LinkPatternCmd(ed, pat, patnum, maskargs);
+}
+
 ColorCmd* DrawKit::make_color_cmd(ControlInfo* ctrlInfo, PSColor* fg, PSColor* bg, int fgnum, int bgnum) {
     return new LinkColorCmd(ctrlInfo, fg, bg, fgnum, bgnum);
 }

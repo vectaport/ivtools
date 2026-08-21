@@ -1,17 +1,19 @@
 // Graphic-state propagation tests (gsexim round-trip, gsbrush A/B) plus the
-// brush_on_node helper, for the drawmo suite.  Loaded by drawmo via
+// gs_on_node helper, for the drawmo suite.  Loaded by drawmo via
 // run("./gstests.comt"); they call the shared helpers defined in drawmo.
 
-/* brush_on_node -- read the propagated graphic's serialized gs on a far node by
-   grid id and confirm its brush contains the expected ":brush p,w".  the far
-   node's editor defaults to a different brush, so a match proves the brush
-   graphic-state rode along with the graphic, not the far editor's state.
+/* gs_on_node -- read the propagated graphic's serialized gs on a far node by
+   grid id and confirm it contains the expected fragment, e.g. ":brush p,w" or
+   ":graypat 0.5".  the far node's editor defaults to different graphic state,
+   so a match proves that state rode along with the graphic rather than being
+   the far editor's own.
 
    grid(uuid) resolves the comp by id and hands it to export -- a read-only path,
    so unlike export(at(select(:all))) there is no distributive select() to collide
-   with the distribution locks; polling is safe even mid-distribution.  the brush
-   is a separate command from the create, so it can lag the grid-id arrival. */
-brush_on_node=func(
+   with the distribution locks; polling is safe even mid-distribution.  each gs
+   change is a separate command from the create, so it can lag the grid-id
+   arrival. */
+gs_on_node=func(
   found=false;
   poll_usec=2000000;
   timeout=20*1000000/poll_usec;
@@ -19,7 +21,7 @@ brush_on_node=func(
   expr=print("export(grid(%c%s%c) :string :percomp)" 34 bn_id 34 :str);
   while(!found && cnt<timeout
     e=remote(bn_sock expr);
-    if(type(e)==`StringType && index(e bn_brush)!=nil :then found=true);
+    if(type(e)==`StringType && index(e bn_gs)!=nil :then found=true);
     if(!found :then update(poll_usec);cnt++));
   found)
 
@@ -105,10 +107,16 @@ gsbrushA_test=func(
      width 2).  far nodes default to a solid brush, so a match downstream proves
      the BRUSH graphic-state propagated with the graphic. --- */
   brushstr=":brush 65520,2";
+  /* pattern(5) is the catalog's 0.5 gray; far nodes default to :nonepat, so a
+     :graypat 0.5 downstream proves the PATTERN state propagated too.  it rides
+     the same chain as the brush rather than standing up three more drawservs --
+     dedicated gspat topologies are their own tests. */
+  patstr=":graypat 0.5";
   remote(sock1 "r=rect(20,20,80,80)");
   remote(sock1 "brush(65520,2)");
+  remote(sock1 "pattern(5)");
   /* one reasoned settle (see updown3A): command distribution is fire-and-forget;
-     give the create+brush a head start before polling the far nodes. */
+     give the create+brush+pattern a head start before polling the far nodes. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("gsbrushA: created rect+brush on ds1, grid id=%v\n" id1 :err);
@@ -124,15 +132,19 @@ gsbrushA_test=func(
 
   /* --- verify arrival (by grid id) then the brush gs at each far node --- */
   on2=grid_has_id(:gh_sock sock2 :gh_id id1);
-  b2=on2 && brush_on_node(:bn_sock sock2 :bn_id id1 :bn_brush brushstr);
-  print("gsbrushA: ds2 (hop 1) has graphic=%v with brush=%v\n" on2 b2 :err);
+  b2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs brushstr);
+  p2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs patstr);
+  print("gsbrushA: ds2 (hop 1) has graphic=%v with brush=%v pattern=%v\n" on2 b2 p2 :err);
   on3=grid_has_id(:gh_sock sock3 :gh_id id1);
-  b3=on3 && brush_on_node(:bn_sock sock3 :bn_id id1 :bn_brush brushstr);
-  print("gsbrushA: ds3 (hop 2) has graphic=%v with brush=%v\n" on3 b3 :err);
-  ok=b2 && b3;
+  b3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs brushstr);
+  p3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs patstr);
+  print("gsbrushA: ds3 (hop 2) has graphic=%v with brush=%v pattern=%v\n" on3 b3 p3 :err);
+  ok=b2 && b3 && p2 && p3;
   if(!b2 :then print("gsbrushA: FAIL brush did not reach ds2 intact\n" :err));
   if(!b3 :then print("gsbrushA: FAIL brush did not propagate to ds3 intact\n" :err));
-  if(ok :then print("gsbrushA: brush propagated two hops along the chain\n" :err));
+  if(!p2 :then print("gsbrushA: FAIL pattern did not reach ds2 intact\n" :err));
+  if(!p3 :then print("gsbrushA: FAIL pattern did not propagate to ds3 intact\n" :err));
+  if(ok :then print("gsbrushA: brush and pattern propagated two hops along the chain\n" :err));
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
@@ -226,8 +238,10 @@ gsbrushB_test=func(
   /* --- create a rect on ds1 with a distinctive dashed brush (linepat 65520,
      width 2); it fans out to both branches. --- */
   brushstr=":brush 65520,2";
+  patstr=":graypat 0.5";
   remote(sock1 "r=rect(20,20,80,80)");
   remote(sock1 "brush(65520,2)");
+  remote(sock1 "pattern(5)");
   /* one reasoned settle (see updown3B): fire-and-forget distribution. */
   update(2000000);
   id1=remote(sock1 "at(grid(:table)).grid");
@@ -244,15 +258,19 @@ gsbrushB_test=func(
 
   /* --- verify arrival then the brush gs on BOTH branches --- */
   on2=grid_has_id(:gh_sock sock2 :gh_id id1);
-  b2=on2 && brush_on_node(:bn_sock sock2 :bn_id id1 :bn_brush brushstr);
-  print("gsbrushB: ds2 (branch 1) has graphic=%v with brush=%v\n" on2 b2 :err);
+  b2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs brushstr);
+  p2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs patstr);
+  print("gsbrushB: ds2 (branch 1) has graphic=%v with brush=%v pattern=%v\n" on2 b2 p2 :err);
   on3=grid_has_id(:gh_sock sock3 :gh_id id1);
-  b3=on3 && brush_on_node(:bn_sock sock3 :bn_id id1 :bn_brush brushstr);
-  print("gsbrushB: ds3 (branch 2) has graphic=%v with brush=%v\n" on3 b3 :err);
-  ok=b2 && b3;
+  b3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs brushstr);
+  p3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs patstr);
+  print("gsbrushB: ds3 (branch 2) has graphic=%v with brush=%v pattern=%v\n" on3 b3 p3 :err);
+  ok=b2 && b3 && p2 && p3;
   if(!b2 :then print("gsbrushB: FAIL brush did not reach ds2 intact\n" :err));
   if(!b3 :then print("gsbrushB: FAIL brush did not reach ds3 intact\n" :err));
-  if(ok :then print("gsbrushB: brush fanned out to both branches\n" :err));
+  if(!p2 :then print("gsbrushB: FAIL pattern did not reach ds2 intact\n" :err));
+  if(!p3 :then print("gsbrushB: FAIL pattern did not reach ds3 intact\n" :err));
+  if(ok :then print("gsbrushB: brush and pattern fanned out to both branches\n" :err));
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);

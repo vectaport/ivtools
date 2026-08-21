@@ -37,6 +37,7 @@
 
 class BrushCmd;
 class ColorCmd;
+class PatternCmd;
 class Command;
 class ControlInfo;
 class Deck;
@@ -214,6 +215,12 @@ public:
     // factory method for creating ColorCmd; fgnum/bgnum are menu indices from colors() command
     virtual ColorCmd* make_color_cmd(Editor*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
     // factory method for creating ColorCmd; fgnum/bgnum are menu indices from colors() command
+    virtual PatternCmd* make_pattern_cmd(ControlInfo*, PSPattern*, int patnum=0, const char* maskargs=nil);
+    // factory method for creating PatternCmd; patnum is the menu index from
+    // pattern(), maskargs the literal argument text from patternmask() -- one
+    // or the other reproduces the originating call, same idea as fgnum/bgnum
+    virtual PatternCmd* make_pattern_cmd(Editor*, PSPattern*, int patnum=0, const char* maskargs=nil);
+    // factory method for creating PatternCmd; see the ControlInfo form
   
 protected:
     Glyph* MenuLine(PSBrush*);
