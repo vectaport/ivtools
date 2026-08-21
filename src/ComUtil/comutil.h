@@ -196,6 +196,7 @@ const char* get_command_prompt();
 void tty_echo_off(void);
 void tty_echo_before_read(void);
 int tty_echo_after_read(const char* line);
+void tty_echo_hold(void);
 void tty_echo_restore(void);
 int tty_echo_is_off(void);
 

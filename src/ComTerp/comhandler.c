@@ -188,6 +188,12 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	return 0;
     }
 
+    /* This handler assembles its own line and evaluates it from a string, so
+       the lexer's terminal hooks do not apply here (_lexscan.c gates them on
+       reading stdin).  Hold echo across the evaluation, and hand it back on
+       the way out, below. */
+    if (fd == 0) tty_echo_hold();
+
     if (!ComterpHandler::logger_mode() && !log_only()) {
 
       /* Typed input can arrive while a script is already running on this same

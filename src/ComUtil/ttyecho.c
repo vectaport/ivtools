@@ -103,6 +103,7 @@ int tty_echo_is_off(void) { return _tty_echo_off; }
    already pending -- and therefore already echoed -- at the moment echo went
    off, and they are charged off line by line. */
 static long _pre_echoed = 0;
+void tty_echo_hold(void);
 
 static int tty_pending_bytes(void) {
     int navail = 0;
@@ -131,11 +132,17 @@ int tty_echo_after_read(const char* line) {
         if (_pre_echoed < 0) _pre_echoed = 0;
         self_echo = 0;
     }
+    tty_echo_hold();
+    return self_echo;
+}
+
+/* suppress echo for the execution about to start, remembering how much input
+   was already pending -- those bytes the OS has already shown */
+void tty_echo_hold(void) {
     if (!_tty_echo_off) {
-        _pre_echoed = tty_pending_bytes();  /* already echoed by the OS */
+        _pre_echoed = tty_pending_bytes();
         tty_echo_off();
     }
-    return self_echo;
 }
 
 

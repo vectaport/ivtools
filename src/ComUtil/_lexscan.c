@@ -283,10 +283,15 @@ int bs_ident = 0;
 	    echoing here or was already shown by the OS (ttyecho.c). */
 	 { int echo_suppressed = tty_echo_consume_suppress_next();
 	   int self_echo = 0;
+	   /* only when this lexer is reading the terminal itself.  A string
+	      source (ComTerpServ::s_fgets -- comdraw/drawserv, and every
+	      internal eval such as the startup update() seed) must leave the
+	      tty alone, or it turns echo off with nothing to turn it back on. */
+	   int on_tty = (infile == (void*)stdin);
 	 if (linecmtchr || linecmtstr)
-	   while( (tty_echo_before_read(),
+	   while( (on_tty ? tty_echo_before_read() : (void)0,
 		   infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
-		  (self_echo = tty_echo_after_read(buffer),
+		  (self_echo = on_tty ? tty_echo_after_read(buffer) : 0,
 		   buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
 	     if (outfunc && !_continuation_prompt_disabled && !echo_suppressed
 		 && outfunc == (int(*)(const char*,void*))&stdout_puts && self_echo)
@@ -297,9 +302,9 @@ int bs_ident = 0;
              (*linenum)++;  /* skip all script comments */
          }
 	 else {
-	   tty_echo_before_read();
+	   if (on_tty) tty_echo_before_read();
 	   infunc_retval = (*infunc)( buffer, bufsiz, infile );
-	   if (infunc_retval != NULL) self_echo = tty_echo_after_read(buffer);
+	   if (infunc_retval != NULL && on_tty) self_echo = tty_echo_after_read(buffer);
 	 }
 	 if (infunc_retval != NULL && outfunc && !_continuation_prompt_disabled && !echo_suppressed
 	     && outfunc == (int(*)(const char*,void*))&stdout_puts
