@@ -30,6 +30,7 @@ using namespace std;
 #include <vector>
 
 #include <ComTerp/comhandler.h>
+#include <ComUtil/comutil.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 
@@ -247,6 +248,11 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
 	delete comterp_;
 	comterp_ = nil;
       }
+      /* Back to the reactor to wait.  This handler assembles its own line
+         with read(), so the lexer never reads the tty here and _lexscan.c's
+         before-read hook never runs -- without this, echo stays off from the
+         first command on and typing goes invisible (ttyecho.c). */
+      if (fd == 0) tty_echo_before_read();
       return input_good&&(status==0||status==3||status==2) ? 0 : -1;
     } else {
       if (inbuf[0]!='\004')
