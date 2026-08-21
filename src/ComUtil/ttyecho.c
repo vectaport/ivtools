@@ -51,12 +51,15 @@ History:         Added for issue #76, July 2026
 */
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <termios.h>
 #include <signal.h>
+#include <sys/ioctl.h>
 
 static int _tty_echo_off = 0;
+static int _atexit_registered = 0;
 static struct termios _tty_saved_state;
 
 void tty_echo_restore(void) {
@@ -80,10 +83,68 @@ void tty_echo_off(void) {
     if (tcsetattr(fileno(stdin), TCSANOW, &raw) != 0)
         return;
     _tty_echo_off = 1;
-    atexit(tty_echo_restore);
+    if (!_atexit_registered) {
+        _atexit_registered = 1;
+        atexit(tty_echo_restore);
+    }
 }
 
 int tty_echo_is_off(void) { return _tty_echo_off; }
+
+/* Echo is held off only while a line is being executed, not for the whole
+   session (issue #76 did the latter, which left typing invisible in a raw
+   terminal -- ICANON gives the app nothing until Return, so with ECHO clear
+   nobody shows the keystrokes).  Waiting at the prompt runs with ECHO on, so
+   the OS shows typing and does its own line editing.
+
+   The cost is that a paste landing at an idle prompt is echoed by the OS as
+   one block.  Those bytes are already on screen, so self-echoing them as they
+   are consumed would show them twice; _pre_echoed records how many bytes were
+   already pending -- and therefore already echoed -- at the moment echo went
+   off, and they are charged off line by line. */
+static long _pre_echoed = 0;
+void tty_echo_hold(void);
+
+static int tty_pending_bytes(void) {
+    int navail = 0;
+    if (!isatty(fileno(stdin))) return 0;
+    if (ioctl(fileno(stdin), FIONREAD, &navail) != 0) return 0;
+    return navail;
+}
+
+/* about to block for input: with nothing buffered a person is about to type,
+   so give the OS its echo back.  Input already waiting is the rest of a burst
+   -- leave echo off so it stays interleaved with each line's own result. */
+void tty_echo_before_read(void) {
+    if (tty_pending_bytes() == 0)
+        tty_echo_restore();
+}
+
+/* a line has been read and execution is about to start: suppress echo so any
+   further input arriving meanwhile is not shown ahead of its result.  Returns
+   whether this line still needs echoing here -- false when the OS already did
+   it, either because echo was on when it arrived or because it was part of a
+   block counted in _pre_echoed. */
+int tty_echo_after_read(const char* line) {
+    int self_echo = _tty_echo_off;
+    if (self_echo && _pre_echoed > 0) {
+        _pre_echoed -= (long)strlen(line);
+        if (_pre_echoed < 0) _pre_echoed = 0;
+        self_echo = 0;
+    }
+    tty_echo_hold();
+    return self_echo;
+}
+
+/* suppress echo for the execution about to start, remembering how much input
+   was already pending -- those bytes the OS has already shown */
+void tty_echo_hold(void) {
+    if (!_tty_echo_off) {
+        _pre_echoed = tty_pending_bytes();
+        tty_echo_off();
+    }
+}
+
 
 /* One-shot self-echo suppression for a single internal, not-typed-by-the-
    user eval -- e.g. comdraw/drawserv's startup seed update(1000000).  NOT
