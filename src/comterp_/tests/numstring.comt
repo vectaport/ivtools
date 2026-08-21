@@ -95,9 +95,14 @@ ok=ok&&((int(date())*2)==nil)
 print("16 the nil propagates through arithmetic rather than becoming data (expect nil nil): %v %v\n" (int(date())+1) (int(date())*2))
 
 // a stream is untouched by this: it overdrives the command rather than being
-// converted whole, so it never reaches the guard
-ok=ok&&(list(int($$("1","2","3")))==(1,2,3))
-print("16b a stream still overdrives rather than converting whole (expect {1,2,3}): %v\n" list(int($$("1","2","3"))))
+// converted whole, so it never reaches the guard.  Spaces make a stream
+// literal, commas make a list -- the same parentheses, and the whole
+// difference in behavior between these two lines
+ok=ok&&(list(int(("1" "2" "3")))==(1,2,3))
+print("16b stream literal overdrives, one conversion per element (expect {1,2,3}): %v\n" list(int(("1" "2" "3"))))
+
+ok=ok&&(int(("1","2","3"))==nil)
+print("16c the comma form is a list, converted whole, and has no reading (expect nil): %v\n" int(("1","2","3")))
 
 // and nothing coercible was caught by this
 ok=ok&&(int(3.7)==3)

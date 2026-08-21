@@ -1066,7 +1066,8 @@ IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
    symbols.
 
    Streams are deliberately absent: a stream argument overdrives these
-   commands, so it is never converted whole -- int($$("1","2")) is {1,2}.
+   commands, so it is never converted whole -- int(("1" "2")) is {1,2}, while
+   the comma form int(("1","2")) is a list and lands here.
    Keywords likewise: :key in this position is read as a keyword to the
    command, not as a value to convert, so it never arrives here. */
 static boolean has_no_numeric_reading(ComValue& operand) {
