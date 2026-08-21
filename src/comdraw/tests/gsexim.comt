@@ -67,5 +67,29 @@ ok=ok&&(eq(s1 s3))
 print("4a s3 (imported while editor was gs B) = %s\n" s3)
 print("4b import stayed gs A despite editor B (expect equal): %v\n\n" eq(s1 s3))
 
+// --- test 5: the :font literal reaches the graphic.  Two texts differing only
+//             in their :font keyword must export differently -- if the literal
+//             were ignored both would carry the editor's FontVar font and the
+//             two exports would agree.  Both use the X name "fixed" so nothing
+//             here depends on which fonts the display happens to have. ---
+each(delete($$select(:all)))
+t1=text(0,0 "hello" :font "fixed","Courier",12)
+t2=text(0,40 "hello" :font "fixed","Times",10)
+f1=export(t1 :string :percomp)
+f2=export(t2 :string :percomp)
+ok=ok&&(index(f1 "Courier" :substr)!=nil)
+ok=ok&&(index(f2 "Times" :substr)!=nil)
+ok=ok&&(f1!=f2)
+print("5a text with :font Courier = %s\n" f1)
+print("5b text with :font Times   = %s\n" f2)
+print("5c each text kept its own literal font (expect true): %v\n\n" ok)
+
+// --- test 6: the keyword is consumed, not left behind.  An unread :font stays
+//             in the attribute list and re-serializes as a trailing attribute
+//             after the closing paren, so ")" followed by ":font" is the
+//             signature of the keyword never having been applied ---
+ok=ok&&(index(f1 "):font" :substr)==nil)
+print("6 :font consumed, no leftover attribute after the paren (expect nil): %v\n\n" index(f1 "):font" :substr))
+
 print("gsexim: %v\n" ok)
 ok

@@ -138,6 +138,48 @@ static PSColor* color_from_attrval(Catalog* catalog, AttributeValue* v) {
     return name ? catalog->FindColor(name, ir, ig, ib) : nil;
 }
 
+/* build a PSFont from the [name,printfont,printsize] triple OverlayScript::Font
+   writes.  The print size goes out unquoted, so it comes back as a number
+   rather than a string; FindFont wants text either way.  A bare name (no
+   commas) is accepted too -- FindFont defaults the other two. */
+static PSFont* font_from_attrval(Catalog* catalog, AttributeValue* v) {
+    if (!v) return nil;
+
+    if (v->is_string()) {
+	const char* name = v->string_ptr();
+	return name ? catalog->FindFont(name) : nil;
+    }
+    if (!v->is_array()) return nil;
+
+    AttributeValueList* avl = v->array_val();
+    if (!avl) return nil;
+    Iterator it; avl->First(it);
+    if (avl->Done(it)) return nil;
+    const char* name = avl->GetAttrVal(it)->string_ptr();
+    if (!name) return nil;
+
+    const char* pf = "";
+    const char* ps = "";
+    char sizebuf[32];
+    if (avl->Number() >= 2) {
+	avl->Next(it);
+	const char* p = avl->GetAttrVal(it)->string_ptr();
+	if (p) pf = p;
+    }
+    if (avl->Number() >= 3) {
+	avl->Next(it);
+	AttributeValue* sv = avl->GetAttrVal(it);
+	if (sv->is_string()) {
+	    const char* s = sv->string_ptr();
+	    if (s) ps = s;
+	} else {
+	    snprintf(sizebuf, sizeof(sizebuf), "%d", sv->int_val());
+	    ps = sizebuf;
+	}
+    }
+    return catalog->FindFont(name, pf, ps);
+}
+
 void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
     if (!al || !gr) return;
     Catalog* catalog = unidraw->GetCatalog();
@@ -150,6 +192,7 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
     static int pattern_sym = symbol_add("pattern");
     static int graypat_sym = symbol_add("graypat");
     static int nonepat_sym = symbol_add("nonepat");
+    static int font_sym     = symbol_add("font");
 
     AttributeValue* v;
 
@@ -182,6 +225,19 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
 	if (fg && bg) gr->SetColors(fg, bg);
 	remove_key(al, fgcolor_sym);
 	remove_key(al, bgcolor_sym);
+    }
+
+    /* font: :font "name","printfont",printsize -- keep the graphic's existing
+       font when the key is absent, or when the literal is malformed and
+       font_from_attrval hands back nil.  A well-formed literal always yields a
+       font: Catalog::FindFont substitutes "fixed" for a name this display does
+       not have, which is what the rest of Unidraw does.  Note that is not the
+       colors' behavior -- FindColor keeps the requested name and defaults only
+       the rgb, so a color survives the trip and a missing font does not. */
+    if ((v = al->find(font_sym))) {
+	PSFont* font = font_from_attrval(catalog, v);
+	if (font) gr->SetFont(font);
+	remove_key(al, font_sym);
     }
 
     /* :fillbg flag */
@@ -465,6 +521,11 @@ void CreateTextFunc::execute() {
 	text->Translate(args[x0], args[y0]);
 	text->GetTransformer()->postmultiply(rel);
 	Unref(rel);
+	/* command-supplied gs keywords win over editor state, and are stripped
+	   from al so they round-trip via the graphic, not as leftover attributes.
+	   Text is where :font actually appears -- TextGS is the only gs emitter
+	   that writes one for a graphic any create command builds. */
+	set_graphic_gs(al, text);
 	TextOvComp* comp = new TextOvComp(text);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
