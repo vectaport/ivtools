@@ -83,6 +83,7 @@ public:
 	":ms        milliseconds since the epoch",
 	":us        microseconds since the epoch",
 	":ns        nanoseconds since the epoch, at the clock's actual resolution",
+	"           (:ms :us :ns need a 64-bit long, and return nil without one)",
 	nil
       };
       return keys;

@@ -149,6 +149,16 @@ void TimeFunc::execute() {
   long sec = (long)ts.tv_sec;
   long nsec = (long)ts.tv_nsec;
 
+  /* Sub-second units need 64 bits -- nanoseconds since the epoch is ~1.8e18,
+     microseconds ~1.8e15, milliseconds ~1.8e12, all past a 32-bit long.  Where
+     long is 32 bits there is no integer type here that can hold them, so report
+     nil rather than a wrapped number that looks like a time.  The test folds
+     away on a 64-bit build. */
+  if (sizeof(long) < 8 && (nsv.is_true() || usv.is_true() || msv.is_true())) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   long result;
   if (nsv.is_true())
     result = sec * 1000000000L + nsec;

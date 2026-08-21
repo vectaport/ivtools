@@ -48,11 +48,17 @@ ok=ok&&(time(:us)>time(:ms))
 ok=ok&&(time(:ns)>time(:us))
 print("6 ns > us > ms > sec (expect true): %v\n" (time(:ms)>time()&&time(:us)>time(:ms)&&time(:ns)>time(:us)))
 
-// --- 7: the clock does not run backwards between two reads ---
+// --- 7: two successive reads are both usable.  Deliberately NOT asserting
+// that the second is later: this is CLOCK_REALTIME, chosen so it follows an
+// NTP correction, and a correction between these two lines can legitimately
+// move the clock backwards.  Asserting monotonicity here would contradict the
+// very property the command was designed to have, and would fail the whole
+// suite for a clock behaving correctly ---
 a=time(:us)
 b=time(:us)
-ok=ok&&(b>=a)
-print("7 a later read is not earlier (expect true): %v\n" (b>=a))
+ok=ok&&(a/1000000>1690000000)
+ok=ok&&(b/1000000>1690000000)
+print("7 two successive reads are both plausible epoch values (expect true): %v\n" (a/1000000>1690000000&&b/1000000>1690000000))
 
 // --- 8: the motivating use -- a per-run seed with finer granularity than
 // date(), which only changes daily ---
