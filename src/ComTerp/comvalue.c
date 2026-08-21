@@ -181,14 +181,17 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
        verbose form already parenthesizes by type (int( 3 ), symbol( x )). */
     int wrapper = brief ? svp->wrapper() : AttributeValue::NoWrapper;
     /* A quote wrapper claims the value can be shown as the character it is.
-       That only holds for a printable char: anything else keeps the `\NNN`
-       escape below, and quoting that would misrepresent it -- worse, a raw
-       control or high byte between quotes would go to the terminal intact.
+       isgraph, not isprint: the `\NNN` escape exists so that a char is always
+       six printable, non-whitespace characters, because brief output is the
+       postfix token stream and its tokens are space-separated -- a raw space
+       would read as the delimiter and a raw newline would end the line.  Space
+       is isprint but not isgraph, so it keeps the escape along with every
+       control and high byte, which also keeps a raw ESC out of the terminal.
        Drop the wrapper rather than let it lie. */
     if (wrapper == AttributeValue::QuoteWrapper &&
 	!((svp->type() == ComValue::CharType ||
 	   svp->type() == ComValue::UCharType) &&
-	  isprint((unsigned char)svp->char_ref())))
+	  isgraph((unsigned char)svp->char_ref())))
       wrapper = AttributeValue::NoWrapper;
     out << AttributeValue::wrapper_open(wrapper);
     switch( svp->type() )

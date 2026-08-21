@@ -36,11 +36,18 @@ ok=ok&&(print("%v" char(97) :str)=="'a'")
 ok=ok&&(print("%v" char(65) :str)=="'A'")
 print("5 char(97) and char(65) show as the characters they are (expect 'a' 'A'): %s %s\n" print("%v" char(97) :str) print("%v" char(65) :str))
 
-// an unprintable char keeps the escape.  The quotes would misrepresent it, and
-// a raw control or high byte between them would reach the terminal intact
+// anything not isgraph keeps the escape -- control bytes, high bytes, and
+// whitespace.  Whitespace matters most: brief output is the postfix token
+// stream, whose tokens are space-separated, so a char rendered as a raw space
+// would read as the delimiter and a raw newline would end the line.  The
+// escape is always six printable non-whitespace characters whatever the byte,
+// which is why postfix(' ') shows `\040`.  It also keeps a raw ESC out of the
+// terminal.
 ok=ok&&(index(print("%v" char(7) :str) "007" :substr)!=nil)
 ok=ok&&(index(print("%v" char(160) :str) "240" :substr)!=nil)
-print("6 unprintable and high-bit chars keep the escape (expect the octal form): %s %s\n" print("%v" char(7) :str) print("%v" char(160) :str))
+ok=ok&&(index(print("%v" char(32) :str) "040" :substr)!=nil)
+ok=ok&&(index(print("%v" char(9) :str) "011" :substr)!=nil)
+print("6 control, high-bit and whitespace chars keep the escape (expect octal for all four): %s %s %s %s\n" print("%v" char(7) :str) print("%v" char(160) :str) print("%v" char(32) :str) print("%v" char(9) :str))
 
 // a literal is untouched -- only the command asks for the sugar
 ok=ok&&(index(print("%v" 'a' :str) "141" :substr)!=nil)
