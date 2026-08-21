@@ -81,14 +81,15 @@ public:
       return "long = %s(:raw :mono :ms :us :ns) -- current time as a number, seconds by default; the bare call is reserved for TimeObj"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":ms        milliseconds since the epoch",
-	":us        microseconds since the epoch",
-	":ns        nanoseconds since the epoch, at the clock's actual resolution",
-	":raw       seconds since the epoch, as a plain number (the default",
-	"           clock, and what any unit keyword implies)",
-	":mono      read a monotonic clock instead: no epoch, so not a date and",
+	":raw       seconds since the epoch: an actual date, comparable with",
+	"           date() and with another machine.  The default clock, and",
+	"           what a unit keyword on its own implies",
+	":mono      a monotonic reading instead: no epoch, so not a date and",
 	"           not comparable with one, but safe for measuring how long",
 	"           something took -- it cannot step backwards",
+	":ms        milliseconds rather than seconds, of whichever clock",
+	":us        microseconds rather than seconds",
+	":ns        nanoseconds rather than seconds, at the clock's real resolution",
 	nil
       };
       return keys;
