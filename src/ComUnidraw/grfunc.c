@@ -227,8 +227,13 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
 	remove_key(al, bgcolor_sym);
     }
 
-    /* font: :font "name","printfont",printsize -- as with the colors, keep the
-       graphic's existing font when the key is absent or the lookup fails */
+    /* font: :font "name","printfont",printsize -- keep the graphic's existing
+       font when the key is absent, or when the literal is malformed and
+       font_from_attrval hands back nil.  A well-formed literal always yields a
+       font: Catalog::FindFont substitutes "fixed" for a name this display does
+       not have, which is what the rest of Unidraw does.  Note that is not the
+       colors' behavior -- FindColor keeps the requested name and defaults only
+       the rgb, so a color survives the trip and a missing font does not. */
     if ((v = al->find(font_sym))) {
 	PSFont* font = font_from_attrval(catalog, v);
 	if (font) gr->SetFont(font);
