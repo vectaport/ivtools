@@ -279,10 +279,7 @@ int main (int argc, char** argv) {
 	if (ComterpHandler::reactor_singleton()->register_handler(0, stdin_handler,
 							      ACE_Event_Handler::READ_MASK)==-1)
 	  cerr << "graphdraw: unable to open stdin with ACE\n";
-	else
-	  tty_echo_off();  // issue #76 -- see ComUtil/ttyecho.c; only if the
-	                    // handler is actually live, or OS echo goes off
-	                    // with no self-echo ever registered to replace it
+	// echo is held off only while a line executes now (ttyecho.c)
 	ed->stdio_setup(stdin_handler);
     }
 

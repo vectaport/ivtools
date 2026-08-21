@@ -194,6 +194,9 @@ const char* get_command_prompt();
    tty_echo_off() itself, but is also public so a deliberate early-exit
    path (one that bypasses atexit, e.g. _exit()) can call it directly. */
 void tty_echo_off(void);
+void tty_echo_before_read(void);
+int tty_echo_after_read(const char* line);
+void tty_echo_hold(void);
 void tty_echo_restore(void);
 int tty_echo_is_off(void);
 
