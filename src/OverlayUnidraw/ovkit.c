@@ -1117,6 +1117,14 @@ BrushCmd* OverlayKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new BrushCmd(ed, br);
 }
 
+PatternCmd* OverlayKit::make_pattern_cmd(ControlInfo* ctrlInfo, PSPattern* pat, int patnum, const char* maskargs) {
+    return new PatternCmd(ctrlInfo, pat);
+}
+
+PatternCmd* OverlayKit::make_pattern_cmd(Editor* ed, PSPattern* pat, int patnum, const char* maskargs) {
+    return new PatternCmd(ed, pat);
+}
+
 ColorCmd* OverlayKit::make_color_cmd(ControlInfo* ctrlInfo, PSColor* fg, PSColor* bg, int fgnum, int bgnum) {
     return new ColorCmd(ctrlInfo, fg, bg);
 }
@@ -1198,7 +1206,7 @@ MenuItem* OverlayKit::MakePatternMenu() {
 	    sfr->SetPattern(pat);
 	    ctrlInfo = new ControlInfo(new RectOvComp(sfr));
 	}
-	MakeMenu(mbi, new PatternCmd(ctrlInfo, pat), MenuPatRect(pat));
+	MakeMenu(mbi, make_pattern_cmd(ctrlInfo, pat, i), MenuPatRect(pat));
 	pat = catalog->ReadPattern(patAttrib, ++i);
     }
     return mbi;

@@ -30,6 +30,7 @@
 
 #include <Unidraw/Commands/brushcmd.h>
 #include <Unidraw/Commands/colorcmd.h>
+#include <Unidraw/Commands/patcmd.h>
 #include <string>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
@@ -73,6 +74,32 @@ public:
 
 protected:
     std::string _dist_script_buf;
+};
+
+//: PatternCmd with distributed script generation for DrawServ
+// Mixes PatternCmd with DrawServCmd to provide dist_script() that
+// serializes the pattern change for distribution to remote drawservs.
+// patnum is the menu index from pattern(), maskargs the literal argument
+// text from patternmask() -- whichever one made this command is what
+// dist_script() replays, so the far node runs the same call, same idea as
+// LinkColorCmd carrying fgnum/bgnum.
+class LinkPatternCmd : public PatternCmd, public DrawServCmd {
+public:
+    LinkPatternCmd(ControlInfo*, PSPattern* = nil, int patnum = 0, const char* maskargs = nil);
+    LinkPatternCmd(Editor* = nil, PSPattern* = nil, int patnum = 0, const char* maskargs = nil);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);pattern(patnum);select(s :lock key)"
+    // for all LocallySelected graphics, or empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+    int _patnum;
+    std::string _maskargs;
 };
 
 //: ColorCmd with distributed script generation for DrawServ

@@ -137,6 +137,93 @@ boolean LinkBrushCmd::IsA(ClassId id) { return id == LINK_BRUSH_CMD || BrushCmd:
 
 /*****************************************************************************/
 
+LinkPatternCmd::LinkPatternCmd(ControlInfo* ci, PSPattern* pat, int patnum, const char* maskargs)
+  : PatternCmd(ci, pat), _patnum(patnum), _maskargs(maskargs ? maskargs : "") {}
+LinkPatternCmd::LinkPatternCmd(Editor* ed, PSPattern* pat, int patnum, const char* maskargs)
+  : PatternCmd(ed, pat), _patnum(patnum), _maskargs(maskargs ? maskargs : "") {}
+
+const char* LinkPatternCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    /* the far node has to be told which call to make, and only the call that
+       built this command knows that -- a menu index or the patternmask bits.
+       With neither there is nothing to say, so say nothing rather than guess
+       a pattern the far node would resolve differently. */
+    if (_patnum <= 0 && _maskargs.empty()) return _dist_script_buf.c_str();
+
+    if (!GetPattern()) return _dist_script_buf.c_str();
+
+    Editor* ed = GetEditor();
+    if (!ed) return _dist_script_buf.c_str();
+
+    LinkSelection* sel = (LinkSelection*)ed->GetSelection();
+    if (!sel) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    std::ostringstream sbuf;
+    boolean any = false;
+    uint32_t owner_key = 0;
+    Iterator it;
+
+    /* same collection and relay rules as LinkBrushCmd -- see its comment for
+       why the owner's key is forwarded rather than re-derived, and for the
+       single-owner limitation this shares with it. */
+    for (sel->First(it); !sel->Done(it); sel->Next(it)) {
+        OverlayView* view = (OverlayView*)sel->GetView(it);
+        OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
+        void* ptr = nil;
+        if (comp) drawserv->compidtable()->find(ptr, comp);
+        GraphicId* grid = (GraphicId*)ptr;
+        if (grid && (grid->selected() == LinkSelection::LocallySelected ||
+                     grid->unlocked())) {
+            if (!any) {
+                sbuf << "s=select();select(grid(";
+                any = true;
+                if (grid->selected() == LinkSelection::LocallySelected) {
+                    owner_key = drawserv->sessionidkey();
+                    uuid_copy(_dist_owner_sid, drawserv->sessionid());
+                } else {
+                    owner_key = grid->selectorkey();
+                    uuid_copy(_dist_owner_sid, grid->selector());
+                }
+            } else {
+                sbuf << ",grid(";
+            }
+            sbuf << "\"" << grid->idstr() << "\")";
+        }
+    }
+
+    if (any) {
+        char keystr[9];
+        snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+	sbuf << " :unlock \"" << keystr << "\")";
+        if (_patnum > 0)
+            sbuf << ";pattern(" << _patnum << ")";
+        else
+            sbuf << ";patternmask(" << _maskargs << ")";
+        sbuf << ";select(s :lock \"" << keystr << "\")";
+        _dist_script_buf = sbuf.str();
+    }
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkPatternCmd::Copy() {
+    LinkPatternCmd* copy = new LinkPatternCmd(CopyControlInfo(), GetPattern(), _patnum,
+                                              _maskargs.empty() ? nil : _maskargs.c_str());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkPatternCmd::GetClassId() { return LINK_PATTERN_CMD; }
+boolean LinkPatternCmd::IsA(ClassId id) { return id == LINK_PATTERN_CMD || PatternCmd::IsA(id); }
+
+/*****************************************************************************/
+
 /* format a PSColor as "#RRGGBB".  Prefer the color's own name when it is
    already a clean "#" + 6 hex-digit string (the colors("#RRGGBB") path) so
    it round-trips exactly; otherwise derive from intensities (0..1 floats),

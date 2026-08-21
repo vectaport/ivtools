@@ -75,6 +75,9 @@
 #include <Attribute/attribute.h>
 #include <Attribute/attrlist.h>
 
+#include <sstream>
+#include <string>
+
 #define TITLE "GrFunc"
 
 /*****************************************************************************/
@@ -1291,7 +1294,8 @@ void PatternFunc::execute() {
     PatternCmd* cmd = nil;
 
     if (pattern) {
-	cmd = new PatternCmd(_ed, pattern);
+        OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	cmd = kit->make_pattern_cmd(_ed, pattern, pn);
 	execute_log(cmd);
     }
 
@@ -1307,9 +1311,13 @@ void PatternMaskFunc::execute() {
     reset_stack();
 
     PSPattern* pattern = nil;
+    std::string maskargs;
 
     if (bitsv.is_int()) {
       pattern = new PSPattern(bitsv.int_val(), -1);
+      char buf[32];
+      snprintf(buf, sizeof(buf), "%d", bitsv.int_val());
+      maskargs = buf;
     } else if (bitsv.is_array()) {
       AttributeValueList* avl = bitsv.array_val();
       if (avl->Number()!=16) {
@@ -1318,10 +1326,14 @@ void PatternMaskFunc::execute() {
 	return;
       }
       int mask[16];
+      std::ostringstream mbuf;
       for(int i=0; i<16; i++) {
 	mask[i] = avl->Get(i)->int_val();
+	if (i) mbuf << ",";
+	mbuf << mask[i];
       }
       pattern = new PSPattern(mask, 16);
+      maskargs = mbuf.str();
     } else {
       fprintf(stderr, "patternbits argument not int or list\n");
       push_stack(ComValue::nullval());
@@ -1331,7 +1343,8 @@ void PatternMaskFunc::execute() {
     PatternCmd* cmd = nil;
 
     if (pattern) {
-	cmd = new PatternCmd(_ed, pattern);
+        OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	cmd = kit->make_pattern_cmd(_ed, pattern, 0, maskargs.c_str());
 	execute_log(cmd);
     }
 
