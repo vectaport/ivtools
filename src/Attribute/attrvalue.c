@@ -1375,7 +1375,6 @@ const char* AttributeValue::wrapper_open(int wrapper) {
   case AttributeValue::ParenWrapper:   return "(";
   case AttributeValue::BracketWrapper: return "[";
   case AttributeValue::BraceWrapper:   return "{";
-  case AttributeValue::QuoteWrapper:   return "'";
   default:                             return "";
   }
 }
@@ -1385,7 +1384,6 @@ const char* AttributeValue::wrapper_close(int wrapper) {
   case AttributeValue::ParenWrapper:   return ")";
   case AttributeValue::BracketWrapper: return "]";
   case AttributeValue::BraceWrapper:   return "}";
-  case AttributeValue::QuoteWrapper:   return "'";
   default:                             return "";
   }
 }

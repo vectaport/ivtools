@@ -1,73 +1,76 @@
-// src/comterp_/tests/char.comt -- char-value serialization (backquote-octal),
-// and char()'s quote wrapper
+// src/comterp_/tests/char.comt -- how a char value is displayed
 //
-// A char value's brief output is `\NNN` (backtick, backslash, the byte as a
-// 3-digit octal, backtick).  Regression: a high-bit (signed) char was widened to
-// int with sign extension and serialized as `\37777777640` instead of `\240`, so
-// the byte value was corrupted.  ASCII chars (no high bit) were unaffected, so
-// 'A'/'\x7f' below pass either way and isolate the bug to the >=0x80 cases.
+// funcs: char print index type int
 //
-// (The `\NNN` form is asserted directly via print(:str) rather than round-tripped
-// through eval -- eval of that form currently returns nil, a separate matter.)
+// A char shows as itself where that is safe: 'a' for a printable byte, caret
+// notation for a control byte ('^A', '^['), and the older backquote-octal
+// escape `\NNN` for anything at or above 0x80.
 //
-// funcs: char-constant ('x', '\xNN')  print(:str)  ==
+// The escape is what the whole display used to be, and the reason was safety:
+// a general print of a character must never put a real control byte into the
+// output, where working out what it did to a terminal -- or to a script
+// reading that output -- is miserable.  Caret notation keeps that property
+// while being readable, so the escape is now needed only where there is
+// nothing readable to show.
+//
+// Regression: a high-bit (signed) char was widened to int with sign extension
+// and serialized as `\37777777640` instead of `\240`, corrupting the byte
+// value.  Those are the >=0x80 cases below, which still use the escape and so
+// still guard the original bug directly.
 
 ok=true
 
-ok=ok&&(print('A' :str)=="`\\101`")
-print("1 print('A' :str)==`\\101` (expect true): %v\n" print('A' :str)=="`\\101`")
+// --- 1-2: printable bytes show as themselves, space included ---
+ok=ok&&(print('A' :str)=="'A'")
+ok=ok&&(print('a' :str)=="'a'")
+ok=ok&&(print(char(32) :str)=="' '")
+print("1 printable chars show as themselves (expect 'A' 'a' ' '): %s %s %s\n" print('A' :str) print('a' :str) print(char(32) :str))
 
-ok=ok&&(print('\x7f' :str)=="`\\177`")
-print("2 print('\\x7f' :str)==`\\177` (expect true): %v\n" print('\x7f' :str)=="`\\177`")
+ok=ok&&(print(char(126) :str)=="'~'")
+print("2 the top of the printable range (expect '~'): %s\n" print(char(126) :str))
 
+// --- 3-4: the sign-extension regression, unchanged.  A byte at or above 0x80
+// keeps the escape, so these assert exactly what they always did: the byte is
+// not widened with sign extension ---
 ok=ok&&(print('\xa0' :str)=="`\\240`")
-print("3 print('\\xa0' :str)==`\\240` (expect true): %v\n" print('\xa0' :str)=="`\\240`")
+print("3 print('\\xa0' :str) is `\\240`, not sign-extended (expect true): %v\n" print('\xa0' :str)=="`\\240`")
 
 ok=ok&&(print('\xff' :str)=="`\\377`")
-print("4 print('\\xff' :str)==`\\377` (expect true): %v\n" print('\xff' :str)=="`\\377`")
+print("4 print('\\xff' :str) is `\\377`, not sign-extended (expect true): %v\n" print('\xff' :str)=="`\\377`")
 
-// --- 5-9: char() asks to be shown as the character it is, via a quote
-// wrapper alongside the paren/bracket/brace ones.  REPL sugar: it annotates a
-// single handback rather than describing the value, so operator= drops it on
-// any copy, and print() relays it only for %v -- the verb that renders a value
-// as it is.  Tests 1-4 above use the bare print() form, which does not relay,
-// which is why the escape form they assert is unaffected by any of this. ---
-ok=ok&&(print("%v" char(97) :str)=="'a'")
-ok=ok&&(print("%v" char(65) :str)=="'A'")
-ok=ok&&(print("%v" char(32) :str)=="' '")
-print("5 printable chars show as themselves, space included (expect 'a' 'A' ' '): %s %s %s\n" print("%v" char(97) :str) print("%v" char(65) :str) print("%v" char(32) :str))
+// --- 5: control bytes use caret notation and are never emitted raw.  ESC and
+// newline are the two that actually cost debugging time: '^[' never reaches a
+// terminal as an escape sequence, '^J' never breaks a line in whatever reads
+// the output ---
+ok=ok&&(print(char(1) :str)=="'^A'")
+ok=ok&&(print(char(27) :str)=="'^['")
+ok=ok&&(print(char(10) :str)=="'^J'")
+ok=ok&&(print(char(127) :str)=="'^?'")
+print("5 control chars use caret notation (expect '^A' '^[' '^J' '^?'): %s %s %s %s\n" print(char(1) :str) print(char(27) :str) print(char(10) :str) print(char(127) :str))
 
-// --- 6: a control character is shown in caret notation, never emitted raw.
-// That is the point of the whole mechanism: a general print of a character
-// must not put a real control byte into the output, where debugging what it
-// did to a terminal or to a script reading that output is miserable.  ESC and
-// newline are the two that actually bite ---
-ok=ok&&(print("%v" char(1) :str)=="'^A'")
-ok=ok&&(print("%v" char(27) :str)=="'^['")
-ok=ok&&(print("%v" char(10) :str)=="'^J'")
-ok=ok&&(print("%v" char(127) :str)=="'^?'")
-print("6 control chars use caret notation (expect '^A' '^[' '^J' '^?'): %s %s %s %s\n" print("%v" char(1) :str) print("%v" char(27) :str) print("%v" char(10) :str) print("%v" char(127) :str))
+// --- 6: caret notation is ambiguous in general -- a real control byte and a
+// literal ^A look alike -- but not here.  A char is one byte, so a literal
+// caret is one character between the quotes and a control byte is two ---
+ok=ok&&(print(char(94) :str)=="'^'")
+print("6 a literal caret stays one character, distinct from '^A' (expect '^'): %s\n" print(char(94) :str))
 
-// --- 7: caret notation is ambiguous in general -- a real control byte and a
-// literal ^A render the same -- but not here.  A char is one byte, so a
-// literal caret is a single character between the quotes and a control
-// character is two, and the two cases cannot collide ---
-ok=ok&&(print("%v" char(94) :str)=="'^'")
-print("7 a literal caret stays one character, distinct from '^A' (expect '^'): %s\n" print("%v" char(94) :str))
+// --- 7: the display is the same however the value arrives -- from the
+// command, from a literal, through a variable, or inside a list ---
+c=char(97)
+ok=ok&&(print(c :str)=="'a'")
+ok=ok&&(index(print((char(97),char(98)) :str) "'a'" :substr)!=nil)
+print("7 same display named and nested (expect 'a' and a list of quoted chars): %s %s\n" print(c :str) print((char(97),char(98)) :str))
 
-// --- 8: a byte that is neither printable nor control keeps the escape.  There
-// is nothing readable to show, and isprint above 0x7f depends on the locale,
-// which this must not ---
-ok=ok&&(index(print("%v" char(160) :str) "240" :substr)!=nil)
-ok=ok&&(index(print("%v" char(255) :str) "377" :substr)!=nil)
-print("8 high bytes keep the escape, locale or no locale (expect the octal form): %s %s\n" print("%v" char(160) :str) print("%v" char(255) :str))
-
-// --- 9: it is presentation only, and only for a bare handback ---
-ok=ok&&(index(print("%v" 'a' :str) "141" :substr)!=nil)
-ok=ok&&(index(print("%v" (char(97),char(98)) :str) "141" :substr)!=nil)
+// --- 8: presentation only, the value is untouched.  A plain char is signed,
+// so a high byte reads back negative -- 0xa0 as a signed char is -96 -- and
+// :u is what asks for the unsigned reading.  The display goes by the unsigned
+// byte either way, which is exactly the distinction the sign-extension bug
+// above got wrong: `\240` is the byte, -96 is the signed value of it ---
 ok=ok&&(type(char(97))=="CharType")
 ok=ok&&(int(char(97))==97)
-print("9 a literal, a stored element, and the value itself are all untouched (expect escapes, CharType, 97): %s %s %s %v\n" print("%v" 'a' :str) print("%v" (char(97),char(98)) :str) type(char(97)) int(char(97)))
+ok=ok&&(int(char(160))==-96)
+ok=ok&&(int(char(160 :u))==160)
+print("8 values untouched; a high byte is signed unless :u (expect CharType 97 -96 160): %s %v %v %v\n" type(char(97)) int(char(97)) int(char(160)) int(char(160 :u)))
 
 print("char: %v\n" ok)
 ok
