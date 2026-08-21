@@ -33,6 +33,7 @@
 #include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
+#include <ctype.h>
 #include <Attribute/attribute.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/paramlist.h>
@@ -179,6 +180,16 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
        where a value asks to be surrounded by its matching delimiters.  The
        verbose form already parenthesizes by type (int( 3 ), symbol( x )). */
     int wrapper = brief ? svp->wrapper() : AttributeValue::NoWrapper;
+    /* A quote wrapper claims the value can be shown as the character it is.
+       That only holds for a printable char: anything else keeps the `\NNN`
+       escape below, and quoting that would misrepresent it -- worse, a raw
+       control or high byte between quotes would go to the terminal intact.
+       Drop the wrapper rather than let it lie. */
+    if (wrapper == AttributeValue::QuoteWrapper &&
+	!((svp->type() == ComValue::CharType ||
+	   svp->type() == ComValue::UCharType) &&
+	  isprint((unsigned char)svp->char_ref())))
+      wrapper = AttributeValue::NoWrapper;
     out << AttributeValue::wrapper_open(wrapper);
     switch( svp->type() )
 	{
@@ -225,14 +236,18 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::CharType:
-	  if (brief)
+	  if (brief && wrapper == AttributeValue::QuoteWrapper)
+	    out << svp->char_ref();   /* the wrapper supplies the quotes */
+	  else if (brief)
             out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)(unsigned char)svp->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;	    
 
 	case ComValue::UCharType:
-	  if (brief)
+	  if (brief && wrapper == AttributeValue::QuoteWrapper)
+	    out << svp->uchar_ref();  /* the wrapper supplies the quotes */
+	  else if (brief)
             out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int) svp->uchar_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 	  else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";

@@ -29,9 +29,10 @@
 #define RESOURCE_COMPVIEW
 
 // layout of AttributeValue's state word: ValueState in the low nibble,
-// WrapperState in the next two bits.
+// WrapperState in the next three bits.  The word is an int and everything
+// above bit 6 is still unused, so the wrapper field has room to grow again.
 #define ATTRVALUE_STATE_MASK    0x0f
-#define ATTRVALUE_WRAPPER_MASK  0x30
+#define ATTRVALUE_WRAPPER_MASK  0x70
 #define ATTRVALUE_WRAPPER_SHIFT 4
 
 #include <leakchecker.h>
@@ -125,7 +126,8 @@ public:
     enum ValueState { UnknownState, OctState, HexState };
     // enum for states -- occupies the low nibble of the state word
 
-    enum WrapperState { NoWrapper, ParenWrapper, BracketWrapper, BraceWrapper };
+    enum WrapperState { NoWrapper, ParenWrapper, BracketWrapper, BraceWrapper,
+			QuoteWrapper };
     // enum for output wrappers -- a display-only annotation that surrounds
     // the printed value with one matching set of delimiters.  Orthogonal to
     // ValueState (a hex uint can also be bracketed) so it lives in its own

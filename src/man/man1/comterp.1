@@ -387,7 +387,9 @@ Print a usage summary of all the invocation modes above and exit.
 
  false([...]) -- accept any arguments and return false
 
- c=char(num :u) -- convert any numeric to a char
+ c=char(num :u) -- convert any numeric to a char; its result asks to be shown
+ as the character itself ('a' rather than `\141`) when displayed bare through
+ %v, falling back to the escape for anything unprintable
 
  s=short(num :u) -- convert any numeric to a short
 

@@ -1025,6 +1025,12 @@ void CharFunc::execute() {
 		    operand.is_nil() ? ComValue::UnknownType : 
                     (uval_flag ? ComValue::UCharType : ComValue::CharType));
     push_stack(result);
+    /* Ask to be shown as the character rather than as an octal escape.  Stamp
+       the pushed slot, not the local: operator= clears the wrapper on every
+       copy by design, since it annotates one handback rather than describing
+       the value.  Like the other wrappers it shows only in the bare display,
+       and it drops itself for a char that is not printable. */
+    comterp()->stack_top().wrapper(AttributeValue::QuoteWrapper);
 }
 
 ShortFunc::ShortFunc(ComTerp* comterp) : ComFunc(comterp) {}

@@ -1,4 +1,5 @@
-// src/comterp_/tests/char.comt -- char-value serialization (backquote-octal)
+// src/comterp_/tests/char.comt -- char-value serialization (backquote-octal),
+// and char()'s quote wrapper
 //
 // A char value's brief output is `\NNN` (backtick, backslash, the byte as a
 // 3-digit octal, backtick).  Regression: a high-bit (signed) char was widened to
@@ -24,6 +25,35 @@ print("3 print('\\xa0' :str)==`\\240` (expect true): %v\n" print('\xa0' :str)=="
 
 ok=ok&&(print('\xff' :str)=="`\\377`")
 print("4 print('\\xff' :str)==`\\377` (expect true): %v\n" print('\xff' :str)=="`\\377`")
+
+// --- 5-9: char() asks to be shown as the character it is, via a quote
+// wrapper alongside the paren/bracket/brace ones.  REPL sugar: it annotates a
+// single handback rather than describing the value, so operator= drops it on
+// any copy, and print() relays it only for %v -- the verb that renders a value
+// as it is.  Tests 1-4 above use the bare print() form, which is why literals
+// and the escape form are unaffected by any of this. ---
+ok=ok&&(print("%v" char(97) :str)=="'a'")
+ok=ok&&(print("%v" char(65) :str)=="'A'")
+print("5 char(97) and char(65) show as the characters they are (expect 'a' 'A'): %s %s\n" print("%v" char(97) :str) print("%v" char(65) :str))
+
+// an unprintable char keeps the escape.  The quotes would misrepresent it, and
+// a raw control or high byte between them would reach the terminal intact
+ok=ok&&(index(print("%v" char(7) :str) "007" :substr)!=nil)
+ok=ok&&(index(print("%v" char(160) :str) "240" :substr)!=nil)
+print("6 unprintable and high-bit chars keep the escape (expect the octal form): %s %s\n" print("%v" char(7) :str) print("%v" char(160) :str))
+
+// a literal is untouched -- only the command asks for the sugar
+ok=ok&&(index(print("%v" 'a' :str) "141" :substr)!=nil)
+print("7 a char literal is unchanged (expect the escape form): %s\n" print("%v" 'a' :str))
+
+// stored in a list it is no longer a bare handback, so the sugar is gone
+ok=ok&&(index(print("%v" (char(97),char(98)) :str) "141" :substr)!=nil)
+print("8 inside a list the wrapper drops away (expect the escape form): %s\n" print("%v" (char(97),char(98)) :str))
+
+// and it is presentation only -- the value itself is unchanged
+ok=ok&&(type(char(97))=="CharType")
+ok=ok&&(int(char(97))==97)
+print("9 the value itself is untouched (expect CharType 97): %s %v\n" type(char(97)) int(char(97)))
 
 print("char: %v\n" ok)
 ok
