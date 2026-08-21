@@ -435,7 +435,9 @@ Print a usage summary of all the invocation modes above and exit.
 
  dateobj|int = date([num|str|dateobj] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901 or string
 
- long = time(:ms :us :ns) -- current time since the epoch, seconds by default
+ long = time(:raw :mono :ms :us :ns) -- current time as a number, seconds by default;
+ :raw is the epoch reading and :mono a monotonic one with no epoch, safe for
+ measuring elapsed time; the bare call is reserved for a TimeObj return
 
  [cnt]=beep(:count) -- beep or alert sound
 

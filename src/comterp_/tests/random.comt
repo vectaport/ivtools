@@ -8,8 +8,9 @@
 // no crash, no unknown result, no silent wrong answer.
 // Uses a random seed printed at the start so failures are reproducible:
 // if a test fails, rerun with srand(seed) to reproduce.  The seed comes from
-// time(:ms), so it genuinely differs run to run -- date() only changed it
-// once a day, which meant a whole day's runs sampled the same values.
+// time(:raw :ms), so it genuinely differs run to run.  What it replaced was
+// not a daily seed but int() on the DateObj that date() returns -- a truncated
+// heap address, negative about half the time.
 //
 // Slot 12 value kinds exercised:
 //   absent    -- argument/keyword not supplied
@@ -26,7 +27,7 @@
 
 run("./testlib.comt")
 ok=true
-seed=int(time(:ms)%1000000)
+seed=int(time(:raw :ms)%1000000)
 srand(seed)
 print("random.comt seed: %v -- rerun with srand(%v) before this file to reproduce\n\n" seed seed)
 

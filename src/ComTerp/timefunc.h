@@ -67,7 +67,8 @@ public:
     }
 };
 
-//: time returns the current wall-clock time as a plain number.
+//: time returns the current time as a plain number -- wall clock by
+// default, or a monotonic reading with :mono.
 // Sub-second units need 64 bits -- milliseconds since the epoch already
 // exceed a 32-bit int -- so every unit is returned as a long, and seconds
 // too rather than changing type with the keyword.
@@ -77,12 +78,17 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "long = %s(:ms :us :ns) -- current time since the epoch, seconds by default"; }
+      return "long = %s(:raw :mono :ms :us :ns) -- current time as a number, seconds by default; the bare call is reserved for TimeObj"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":ms        milliseconds since the epoch",
 	":us        microseconds since the epoch",
 	":ns        nanoseconds since the epoch, at the clock's actual resolution",
+	":raw       seconds since the epoch, as a plain number (the default",
+	"           clock, and what any unit keyword implies)",
+	":mono      read a monotonic clock instead: no epoch, so not a date and",
+	"           not comparable with one, but safe for measuring how long",
+	"           something took -- it cannot step backwards",
 	nil
       };
       return keys;
