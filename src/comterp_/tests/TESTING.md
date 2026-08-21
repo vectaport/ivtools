@@ -300,10 +300,11 @@ not gaps in testing -- do not read `—` as untested.
 
 † recorded here but not declared by the script itself.
 
-`random.comt` is not in this table because `run_all.comt` does not run it --
-it is present in the directory, was previously listed here at 100%, and is
-invoked by nothing. Wiring it in would add a randomly-seeded script to CI, so
-that is a deliberate decision rather than an omission to quietly fix.
+`random.comt` is absent from this table because `run_all.comt` on this branch
+does not run it -- it sat in the directory, listed here at 100%, invoked by
+nothing, so its slot-12 sampling never executed in the suite or in CI. It is
+being wired in alongside the seeding fix it depends on, and gets a row here
+once that lands.
 
 ### Planned coverage (ivtools-2.2)
 
