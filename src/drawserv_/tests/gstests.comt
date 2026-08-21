@@ -146,6 +146,21 @@ gsbrushA_test=func(
   if(!p3 :then print("gsbrushA: FAIL pattern did not propagate to ds3 intact\n" :err));
   if(ok :then print("gsbrushA: brush and pattern propagated two hops along the chain\n" :err));
 
+  /* --- patternmask, 16-element form.  Sent as a SECOND state change to the
+     graphic the far nodes already hold, which is the case the create-time
+     checks above never reach: state arriving on its own, after the graphic.
+     The 16-element form serializes its bits, so this pins the exact pattern
+     rather than merely proving something arrived. --- */
+  maskstr=":pattern 0x0011,0x0022,0x0044,0x0088";
+  remote(sock1 "patternmask(0x11,0x22,0x44,0x88,0x11,0x22,0x44,0x88,0x11,0x22,0x44,0x88,0x11,0x22,0x44,0x88)");
+  update(2000000);
+  m2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs maskstr);
+  m3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs maskstr);
+  print("gsbrushA: patternmask 16-element form reached ds2=%v ds3=%v\n" m2 m3 :err);
+  if(!m2 :then print("gsbrushA: FAIL patternmask did not reach ds2 intact\n" :err));
+  if(!m3 :then print("gsbrushA: FAIL patternmask did not propagate to ds3 intact\n" :err));
+  ok=ok && m2 && m3;
+
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
   while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));
@@ -271,6 +286,23 @@ gsbrushB_test=func(
   if(!p2 :then print("gsbrushB: FAIL pattern did not reach ds2 intact\n" :err));
   if(!p3 :then print("gsbrushB: FAIL pattern did not reach ds3 intact\n" :err));
   if(ok :then print("gsbrushB: brush and pattern fanned out to both branches\n" :err));
+
+  /* --- patternmask, scalar form, again as a follow-on state change.  Note
+     what this can and cannot prove: PatternMaskFunc builds PSPattern(bits,-1),
+     which has GetSize()==0 and so exports through the graylevel branch as
+     ":graypat -1" whatever the scalar was.  So a match shows the patternmask
+     command crossed and took effect -- the far nodes default to :nonepat --
+     but not WHICH scalar arrived.  The 16-element form pins its bits exactly;
+     see gsbrushA. --- */
+  maskstr=":graypat -1";
+  remote(sock1 "patternmask(255)");
+  update(2000000);
+  m2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs maskstr);
+  m3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs maskstr);
+  print("gsbrushB: patternmask scalar form reached ds2=%v ds3=%v\n" m2 m3 :err);
+  if(!m2 :then print("gsbrushB: FAIL patternmask did not reach ds2 intact\n" :err));
+  if(!m3 :then print("gsbrushB: FAIL patternmask did not reach ds3 intact\n" :err));
+  ok=ok && m2 && m3;
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
