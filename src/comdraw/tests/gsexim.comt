@@ -126,5 +126,19 @@ r8d=rt("closedspline" closedspline(60,60,80,80,100,60))
 ok=ok&&r8a&&r8b&&r8c&&r8d
 print("8 multiline/polygon/openspline/closedspline round-trip (expect 4 true): %v %v %v %v\n\n" r8a r8b r8c r8d)
 
+// --- test 9: raster.  Its gs comes from the graphic's own defaults rather
+//             than the editor, so the round trip is what matters here: the
+//             re-created raster must export identically.  This caught a
+//             second leftover -- :rgb carries the pixels in, and once the gs
+//             stopped re-serializing it was the remaining keyword still being
+//             echoed back out alongside the raster's own pixel data. ---
+each(delete($$select(:all)))
+ra=raster(0,0,8,8)
+q1=export(ra :string :percomp)
+q2=export(run(q1 :str) :string :percomp)
+r9=eq(q1 q2)
+ok=ok&&r9
+print("9 raster export re-creates and re-exports identically (expect true): %v\n\n" r9)
+
 print("gsexim: %v\n" ok)
 ok
