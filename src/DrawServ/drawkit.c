@@ -606,6 +606,14 @@ BrushCmd* DrawKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new LinkBrushCmd(ed, br);
 }
 
+FontCmd* DrawKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
+    return new LinkFontCmd(ctrlInfo, font, fontnum, fontname);
+}
+
+FontCmd* DrawKit::make_font_cmd(Editor* ed, PSFont* font, int fontnum, const char* fontname) {
+    return new LinkFontCmd(ed, font, fontnum, fontname);
+}
+
 PatternCmd* DrawKit::make_pattern_cmd(ControlInfo* ctrlInfo, PSPattern* pat, int patnum, const char* maskargs) {
     return new LinkPatternCmd(ctrlInfo, pat, patnum, maskargs);
 }

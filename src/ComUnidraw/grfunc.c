@@ -990,7 +990,8 @@ void FontFunc::execute() {
     FontCmd* cmd = nil;
 
     if (font) {
-	cmd = new FontCmd(_ed, font);
+        OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	cmd = kit->make_font_cmd(_ed, font, fn);
 	execute_log(cmd);
     }
 
@@ -1091,7 +1092,13 @@ void FontByNameFunc::execute() {
   
   if (!xfs){
     char* xfontval=psfonttoxfont(fontvaldup);
-    fontvaldup = strdup(xfontval);
+    /* psfonttoxfont hands back its own argument for a name already in X form,
+       so only replace the buffer when it actually converted -- otherwise the
+       free would leave xfontval dangling for the strdup and the retry below */
+    if (xfontval != fontvaldup) {
+      free(fontvaldup);
+      fontvaldup = strdup(xfontval);
+    }
     xfs = XLoadQueryFont(dpy,xfontval);
     if (!xfs){
       fprintf(stderr, "Can not load font:  %s, \n", fontval);
@@ -1102,24 +1109,36 @@ void FontByNameFunc::execute() {
     unsigned long value;
     char fontname[CHARBUFSIZE];
     char fontsizeptr[CHARBUFSIZE];
-    char fontfullname[CHARBUFSIZE];
-    
-    XGetFontProperty(xfs, XA_FULL_NAME, &value);
-    strcpy(fontfullname, XGetAtomName(dpy, (Atom)value));
-    
-    XGetFontProperty(xfs, XA_FONT_NAME, &value);
-    strcpy(fontname, XGetAtomName(dpy, (Atom)value));
-    
-    XGetFontProperty(xfs,XA_POINT_SIZE, &value);
-    snprintf(fontsizeptr, sizeof(fontsizeptr),"%d",(unsigned int)(value/10));
-    
+
+    /* A wildcarded name -- the form font() hands back, and the form :font
+       exports -- loads fine but carries none of these properties.
+       XGetFontProperty then leaves value untouched, and XGetAtomName(0) is a
+       BadAtom that takes the whole editor down, so every lookup has to be
+       guarded and the atom freed.  FindFont defaults the print font and size
+       when they arrive empty, which is the right answer for a name that
+       simply does not carry them. */
+    fontname[0] = '\0';
+    if (XGetFontProperty(xfs, XA_FONT_NAME, &value) && value) {
+      char* atom = XGetAtomName(dpy, (Atom)value);
+      if (atom) {
+	strncpy(fontname, atom, sizeof(fontname)-1);
+	fontname[sizeof(fontname)-1] = '\0';
+	XFree(atom);
+      }
+    }
+
+    fontsizeptr[0] = '\0';
+    if (XGetFontProperty(xfs, XA_POINT_SIZE, &value) && value)
+      snprintf(fontsizeptr, sizeof(fontsizeptr),"%d",(unsigned int)(value/10));
+
     font = catalog->FindFont(fontvaldup,fontname,fontsizeptr);
-    delete fontvaldup;
   }
+  free(fontvaldup);
   FontCmd* cmd = nil;
   
   if (font) {
-    cmd = new FontCmd(_ed, font);
+    OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+    cmd = kit->make_font_cmd(_ed, font, 0, fontval);
     execute_log(cmd);
   }
   

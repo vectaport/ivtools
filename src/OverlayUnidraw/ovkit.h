@@ -37,6 +37,7 @@
 
 class BrushCmd;
 class ColorCmd;
+class FontCmd;
 class PatternCmd;
 class Command;
 class ControlInfo;
@@ -52,6 +53,7 @@ class OverlayEditor;
 class OverlaySelection;
 class PSBrush;
 class PSColor;
+class PSFont;
 class PSPattern;
 class Patch;
 class Selection;
@@ -221,6 +223,12 @@ public:
     // or the other reproduces the originating call, same idea as fgnum/bgnum
     virtual PatternCmd* make_pattern_cmd(Editor*, PSPattern*, int patnum=0, const char* maskargs=nil);
     // factory method for creating PatternCmd; see the ControlInfo form
+    virtual FontCmd* make_font_cmd(ControlInfo*, PSFont*, int fontnum=0, const char* fontname=nil);
+    // factory method for creating FontCmd; fontnum is the menu index from
+    // font(), fontname the name given to fontbyname() -- whichever made the
+    // command is what gets replayed, same as make_pattern_cmd
+    virtual FontCmd* make_font_cmd(Editor*, PSFont*, int fontnum=0, const char* fontname=nil);
+    // factory method for creating FontCmd; see the ControlInfo form
   
 protected:
     Glyph* MenuLine(PSBrush*);
