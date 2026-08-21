@@ -1092,8 +1092,13 @@ void FontByNameFunc::execute() {
   
   if (!xfs){
     char* xfontval=psfonttoxfont(fontvaldup);
-    free(fontvaldup);
-    fontvaldup = strdup(xfontval);
+    /* psfonttoxfont hands back its own argument for a name already in X form,
+       so only replace the buffer when it actually converted -- otherwise the
+       free would leave xfontval dangling for the strdup and the retry below */
+    if (xfontval != fontvaldup) {
+      free(fontvaldup);
+      fontvaldup = strdup(xfontval);
+    }
     xfs = XLoadQueryFont(dpy,xfontval);
     if (!xfs){
       fprintf(stderr, "Can not load font:  %s, \n", fontval);
@@ -1127,8 +1132,8 @@ void FontByNameFunc::execute() {
       snprintf(fontsizeptr, sizeof(fontsizeptr),"%d",(unsigned int)(value/10));
 
     font = catalog->FindFont(fontvaldup,fontname,fontsizeptr);
-    free(fontvaldup);
   }
+  free(fontvaldup);
   FontCmd* cmd = nil;
   
   if (font) {
