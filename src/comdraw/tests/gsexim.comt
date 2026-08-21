@@ -91,5 +91,54 @@ print("5c each text kept its own literal font (expect true): %v\n\n" ok)
 ok=ok&&(index(f1 "):font" :substr)==nil)
 print("6 :font consumed, no leftover attribute after the paren (expect nil): %v\n\n" index(f1 "):font" :substr))
 
+// --- test 7: every create command honors literal graphic state, not just
+//             rect.  rt() exports a graphic, changes the editor gs out from
+//             under it, re-creates from that very string and exports again --
+//             equal means the gs rode in on the command.  Same shape as tests
+//             3 and 4, run across each kind of graphic. ---
+rt=func(nm=arg(0); g=arg(1);
+  s1=export(g :string :percomp);
+  brush(0,0); colors(`Blue `Yellow);
+  s2=export(run(s1 :str) :string :percomp);
+  same=eq(s1 s2);
+  if(!same :then (print("   %s s1=%s\n" nm s1); print("   %s s2=%s\n" nm s2)));
+  brush(65535,0); colors(`Red `White);
+  same
+  :posteval)
+
+each(delete($$select(:all)))
+brush(65535,0); colors(`Red `White)
+r7a=rt("line        " line(0,0,50,50))
+r7b=rt("ellipse     " ellipse(60,60,20,10))
+ok=ok&&r7a&&r7b
+print("7 line and ellipse round-trip under a changed editor gs (expect true true): %v %v\n\n" r7a r7b)
+
+// --- test 8: the point-list graphics.  These also need :percomp to emit the
+//             flat coordinate run the create commands accept -- with the
+//             parenthesized pairs of the file format, re-creation reads only
+//             the first point and the geometry collapses. ---
+each(delete($$select(:all)))
+brush(65535,0); colors(`Red `White)
+r8a=rt("multiline   " multiline(0,0,20,20,40,0))
+r8b=rt("polygon     " polygon(60,0,80,20,100,0))
+r8c=rt("openspline  " openspline(0,60,20,80,40,60))
+r8d=rt("closedspline" closedspline(60,60,80,80,100,60))
+ok=ok&&r8a&&r8b&&r8c&&r8d
+print("8 multiline/polygon/openspline/closedspline round-trip (expect 4 true): %v %v %v %v\n\n" r8a r8b r8c r8d)
+
+// --- test 9: raster.  Its gs comes from the graphic's own defaults rather
+//             than the editor, so the round trip is what matters here: the
+//             re-created raster must export identically.  This caught a
+//             second leftover -- :rgb carries the pixels in, and once the gs
+//             stopped re-serializing it was the remaining keyword still being
+//             echoed back out alongside the raster's own pixel data. ---
+each(delete($$select(:all)))
+ra=raster(0,0,8,8)
+q1=export(ra :string :percomp)
+q2=export(run(q1 :str) :string :percomp)
+r9=eq(q1 q2)
+ok=ok&&r9
+print("9 raster export re-creates and re-exports identically (expect true): %v\n\n" r9)
+
 print("gsexim: %v\n" ok)
 ok
