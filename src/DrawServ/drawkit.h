@@ -56,6 +56,8 @@ public:
     virtual ColorCmd* make_color_cmd(ControlInfo*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
     // override to create LinkColorCmd for distributed color changes
     virtual ColorCmd* make_color_cmd(Editor*, PSColor* fg, PSColor* bg, int fgnum=0, int bgnum=0);
+    virtual PatternCmd* make_pattern_cmd(ControlInfo*, PSPattern*, int patnum=0, const char* maskargs=nil);
+    virtual PatternCmd* make_pattern_cmd(Editor*, PSPattern*, int patnum=0, const char* maskargs=nil);
     // override to create LinkColorCmd for distributed color changes
 
     static DrawKit* Instance();

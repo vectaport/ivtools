@@ -39,5 +39,6 @@
 #define COPYMOVEGRAPHFRAME_CMD 9805
 #define LINK_BRUSH_CMD      9806
 #define LINK_COLOR_CMD      9807
+#define LINK_PATTERN_CMD    9808
 
 #endif
