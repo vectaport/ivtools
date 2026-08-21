@@ -386,6 +386,7 @@ void CreateLineFunc::execute() {
             }
 	line->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, line);
 	ArrowLineOvComp* comp = new ArrowLineOvComp(line);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -450,6 +451,7 @@ void CreateEllipseFunc::execute() {
             }
 	ellipse->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, ellipse);
 	EllipseOvComp* comp = new EllipseOvComp(ellipse);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -587,6 +589,7 @@ void CreateMultiLineFunc::execute() {
             }
 	multiline->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, multiline);
 	ArrowMultiLineOvComp* comp = new ArrowMultiLineOvComp(multiline);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -653,6 +656,7 @@ void CreateOpenSplineFunc::execute() {
             }
 	openspline->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, openspline);
 	ArrowSplineOvComp* comp = new ArrowSplineOvComp(openspline);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -717,6 +721,7 @@ void CreatePolygonFunc::execute() {
             }
 	polygon->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, polygon);
 	PolygonOvComp* comp = new PolygonOvComp(polygon);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -782,6 +787,7 @@ void CreateClosedSplineFunc::execute() {
             }
 	closedspline->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, closedspline);
 	ClosedSplineOvComp* comp = new ClosedSplineOvComp(closedspline);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
