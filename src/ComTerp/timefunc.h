@@ -67,5 +67,27 @@ public:
     }
 };
 
+//: time returns the current wall-clock time as a plain number.
+// Sub-second units need 64 bits -- milliseconds since the epoch already
+// exceed a 32-bit int -- so every unit is returned as a long, and seconds
+// too rather than changing type with the keyword.
+class TimeFunc : public ComFunc {
+public:
+    TimeFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "long = %s(:ms :us :ns) -- current time since the epoch, seconds by default"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":ms        milliseconds since the epoch",
+	":us        microseconds since the epoch",
+	":ns        nanoseconds since the epoch, at the clock's actual resolution",
+	nil
+      };
+      return keys;
+    }
+};
+
 #endif /* !defined(_datefunc_h) */
 

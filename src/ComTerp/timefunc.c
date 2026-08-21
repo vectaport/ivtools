@@ -24,6 +24,7 @@
 #include <ComTerp/timefunc.h>
 #include <Time/Date.h>
 #include <sstream>
+#include <time.h>
 
 #define TITLE "TimeFunc"
 
@@ -123,4 +124,41 @@ void DateFunc::execute() {
   ComValue retval(DateObj::class_symid(), (void*)dateobj);
   push_stack(retval);
 
+}
+
+/*****************************************************************************/
+
+TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void TimeFunc::execute() {
+  static int ms_sym = symbol_add("ms");
+  static int us_sym = symbol_add("us");
+  static int ns_sym = symbol_add("ns");
+  ComValue msv(stack_key(ms_sym));
+  ComValue usv(stack_key(us_sym));
+  ComValue nsv(stack_key(ns_sym));
+  reset_stack();
+
+  /* CLOCK_REALTIME, not the CLOCK_MONOTONIC used for comeditor.c's watchdog:
+     this is a wall-clock reading meant to be compared with dates and other
+     machines' clocks, so it must follow an NTP correction rather than ignore
+     one.  A single reading serves every unit, so the keywords cannot disagree
+     about which instant they describe. */
+  struct timespec ts;
+  clock_gettime(CLOCK_REALTIME, &ts);
+  long sec = (long)ts.tv_sec;
+  long nsec = (long)ts.tv_nsec;
+
+  long result;
+  if (nsv.is_true())
+    result = sec * 1000000000L + nsec;
+  else if (usv.is_true())
+    result = sec * 1000000L + nsec / 1000L;
+  else if (msv.is_true())
+    result = sec * 1000L + nsec / 1000000L;
+  else
+    result = sec;
+
+  ComValue retval(result);
+  push_stack(retval);
 }
