@@ -30,6 +30,7 @@
 
 #include <Unidraw/Commands/brushcmd.h>
 #include <Unidraw/Commands/colorcmd.h>
+#include <Unidraw/Commands/font.h>
 #include <Unidraw/Commands/patcmd.h>
 #include <string>
 #include <uuid/uuid.h>
@@ -74,6 +75,40 @@ public:
 
 protected:
     std::string _dist_script_buf;
+};
+
+//: FontCmd with distributed script generation for DrawServ
+// Mixes FontCmd with DrawServCmd to provide dist_script() that serializes
+// the font change for distribution to remote drawservs.
+//
+// fontnum is the menu index from font(), fontname the name given to
+// fontbyname() -- whichever one made this command is what dist_script()
+// replays, same as LinkPatternCmd and LinkColorCmd.
+//
+// Sending the font's own X name instead, for both paths, looks tempting: it is
+// self-describing where a menu index depends on both nodes enumerating the
+// same font resources.  It is also lossy.  A wildcarded X name carries no
+// FONT_NAME or POINT_SIZE property, so FindFont defaults the print font and
+// size, and the far node ends up with the right screen font but a blank
+// PostScript name and a different line height -- text that lays out
+// differently.  Replaying the original call keeps all three.
+class LinkFontCmd : public FontCmd, public DrawServCmd {
+public:
+    LinkFontCmd(ControlInfo*, PSFont* = nil, int fontnum = 0, const char* fontname = nil);
+    LinkFontCmd(Editor* = nil, PSFont* = nil, int fontnum = 0, const char* fontname = nil);
+
+    virtual const char* dist_script();
+    // return "s=select();select(grid(uuid),... :unlock key);font(n);select(s :lock key)"
+    // for all LocallySelected graphics, or empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+    int _fontnum;
+    std::string _fontname;
 };
 
 //: PatternCmd with distributed script generation for DrawServ

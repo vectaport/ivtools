@@ -1096,7 +1096,7 @@ MenuItem* OverlayKit::MakeFontMenu() {
     while (font != nil) {
 	text = new TextGraphic(font->GetPrintFontAndSize(), stdgraphic);
 	text->SetFont(font);
-	MakeMenu(mbi, new FontCmd(new ControlInfo(new TextOvComp(text)), font),
+	MakeMenu(mbi, make_font_cmd(new ControlInfo(new TextOvComp(text)), font, i),
 		 lk.hbox(lk.hglue(),
 			 lk.hcenter(new Label(font->GetPrintFontAndSize(),
 					      font,
@@ -1115,6 +1115,14 @@ BrushCmd* OverlayKit::make_brush_cmd(ControlInfo* ctrlInfo, PSBrush* br) {
 
 BrushCmd* OverlayKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new BrushCmd(ed, br);
+}
+
+FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
+    return new FontCmd(ctrlInfo, font);
+}
+
+FontCmd* OverlayKit::make_font_cmd(Editor* ed, PSFont* font, int fontnum, const char* fontname) {
+    return new FontCmd(ed, font);
 }
 
 PatternCmd* OverlayKit::make_pattern_cmd(ControlInfo* ctrlInfo, PSPattern* pat, int patnum, const char* maskargs) {
