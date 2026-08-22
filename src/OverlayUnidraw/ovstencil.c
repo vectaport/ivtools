@@ -54,7 +54,7 @@ using std::cerr;
 /*****************************************************************************/
 
 ParamList* StencilOvComp::_ovstencil_params = nil;
-int StencilOvComp::_symid = -1;
+CLASS_SYMID_DEF(StencilOvComp);
 
 static const int no_mask = 0;
 static const int mask_equals_image = 1;

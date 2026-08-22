@@ -61,7 +61,7 @@
 
 /*****************************************************************************/
 
-int EllipseOvComp::_symid = -1;
+CLASS_SYMID_DEF(EllipseOvComp);
 
 ParamList* EllipseOvComp::_ovellipse_params = nil;
 

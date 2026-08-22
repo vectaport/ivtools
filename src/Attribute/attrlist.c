@@ -51,7 +51,7 @@ LeakChecker* AttributeList::_leakchecker = nil;
 /*****************************************************************************/
 using std::cerr;
 
-int AttributeList::_symid = -1;
+CLASS_SYMID_DEF(AttributeList);
 
 AttributeList::AttributeList (AttributeList* s) {
 #ifdef LEAKCHECK

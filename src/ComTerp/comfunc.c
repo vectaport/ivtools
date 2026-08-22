@@ -38,7 +38,7 @@ extern LeakChecker AttributeValuechecker;
 
 /*****************************************************************************/
 
-int ComFunc::_symid = -1;
+CLASS_SYMID_DEF(ComFunc);
 
 ComFunc::ComFunc(ComTerp* comterp) {
     _comterp = comterp;

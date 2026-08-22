@@ -361,8 +361,8 @@ void SwitchFunc::execute() {
 }
 
 /*****************************************************************************/
-int FuncObj::_symid = -1;
-int FuncObjPendingArg::_symid = -1;
+CLASS_SYMID_DEF(FuncObj);
+CLASS_SYMID_DEF(FuncObjPendingArg);
 
 FuncObj::FuncObj(postfix_token* toks, int ntoks) {
   _toks = toks;

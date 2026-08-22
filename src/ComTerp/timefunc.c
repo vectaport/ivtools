@@ -29,7 +29,7 @@
 
 /*****************************************************************************/
 
-int DateObj::_symid= -1;
+CLASS_SYMID_DEF(DateObj);
 
 DateObj::DateObj(const char* datestr) {
   std::istringstream in(datestr);

@@ -57,7 +57,7 @@ static void NullGS (Graphic* g) { FullGraphic null; *g = null; }
 /*****************************************************************************/
 
 ParamList* FrameOverlaysComp::_frame_ovcomps_params = nil;
-int FrameOverlaysComp::_symid = -1;
+CLASS_SYMID_DEF(FrameOverlaysComp);
 
 FrameOverlaysComp::FrameOverlaysComp(OverlayComp* parent) : OverlaysComp(parent) {}
 FrameOverlaysComp::FrameOverlaysComp(Graphic* g, OverlayComp* parent) : OverlaysComp(g, parent) {}
@@ -118,7 +118,7 @@ void FrameOverlaysComp::Uninterpret (Command* cmd) {
 /*****************************************************************************/
 
 ParamList* FrameComp::_frame_comp_params = nil;
-int FrameComp::_symid = -1;
+CLASS_SYMID_DEF(FrameComp);
 
 FrameComp::FrameComp(OverlayComp* parent) : OverlaysComp(parent) {}
 FrameComp::FrameComp(Graphic* g, OverlayComp* parent) : OverlaysComp(g, parent) {}
@@ -417,7 +417,7 @@ void FrameComp::Uninterpret (Command* cmd) {
 /*****************************************************************************/
 
 ParamList* FramesComp::_frame_comps_params = nil;
-int FramesComp::_symid = -1;
+CLASS_SYMID_DEF(FramesComp);
 
 FramesComp::FramesComp(OverlayComp* parent) : FrameComp(parent) {} 
 FramesComp::FramesComp(Graphic* g, OverlayComp* parent) : FrameComp(g, parent) {} 
@@ -480,7 +480,7 @@ void FramesComp::Uninterpret (Command* cmd) {
 /*****************************************************************************/
 
 ParamList* FrameIdrawComp::_frame_idraw_params = nil;
-int FrameIdrawComp::_symid = -1;
+CLASS_SYMID_DEF(FrameIdrawComp);
 
 FrameIdrawComp::FrameIdrawComp(boolean add_bg, const char* pathname, OverlayComp* parent) 
 : FramesComp(parent) {

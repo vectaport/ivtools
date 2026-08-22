@@ -45,7 +45,7 @@
 
 /****************************************************************************/
 
-int VerticesOvComp::_symid = -1;
+CLASS_SYMID_DEF(VerticesOvComp);
 
 ClassId VerticesOvComp::GetClassId () { return OVVERTICES_COMP; }
 

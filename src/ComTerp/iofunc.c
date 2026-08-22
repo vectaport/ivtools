@@ -46,7 +46,7 @@
 using std::streambuf;
 
 /*****************************************************************************/
-int FileObj::_symid = -1;
+CLASS_SYMID_DEF(FileObj);
 
 FileObj::FileObj(const char* filename, const char* mode, int pipeflag) {
   _filename = strnew(filename);
@@ -77,7 +77,7 @@ FileObj::~FileObj() {
 }
 
 /*****************************************************************************/
-int PipeObj::_symid = -1;
+CLASS_SYMID_DEF(PipeObj);
 
 PipeObj::PipeObj(const char* command) {
   _command = strnew(command);

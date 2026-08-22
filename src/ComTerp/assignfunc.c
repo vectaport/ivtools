@@ -39,7 +39,7 @@ using std::cerr;
 
 /*****************************************************************************/
 
-int AssignFunc::_symid = -1;
+CLASS_SYMID_DEF(AssignFunc);
 
 AssignFunc::AssignFunc(ComTerp* comterp) : ComFunc(comterp) {
 }

@@ -37,5 +37,13 @@ public: \
 protected: \
   static int _symid;
 
+//: define the class symbol id storage declared by CLASS_SYMID/CLASS_SYMID2.
+// One per class, at file scope in the source file that defines the class.
+// -1 means "not yet interned"; a hand-written `int Foo::_symid;` instead
+// zero-initializes, and symbol 0 is a real symbol, so class_symid() reports
+// it forever without ever calling symbol_add().
+#define CLASS_SYMID_DEF(class_name) \
+  int class_name::_symid = -1
+
 #endif /* !defined(__comutil.h) */
 

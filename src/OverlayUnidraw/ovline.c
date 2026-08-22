@@ -73,7 +73,7 @@ using std::cerr;
 
 ParamList* LineOvComp::_ovline_params = nil;
 ParamList* MultiLineOvComp::_ovmultiline_params = nil;
-int LineOvComp::_symid = -1;
+CLASS_SYMID_DEF(LineOvComp);
 
 ClassId LineOvComp::GetClassId () { return OVLINE_COMP; }
 
@@ -410,7 +410,7 @@ int LineScript::ReadOriginal (istream& in, void* addr1, void* addr2, void* addr3
 
 /****************************************************************************/
 
-int MultiLineOvComp::_symid = -1;
+CLASS_SYMID_DEF(MultiLineOvComp);
 
 ClassId MultiLineOvComp::GetClassId () { return OVMULTILINE_COMP; }
 

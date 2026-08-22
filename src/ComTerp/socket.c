@@ -34,7 +34,7 @@
 #include <ace/SOCK_Connector.h>
 #include <ace/SOCK_Stream.h>
 
-int SocketObj::_symid= -1;
+CLASS_SYMID_DEF(SocketObj);
 
 SocketObj::SocketObj() {
   _socket = nil; 

@@ -76,7 +76,7 @@ using std::cerr;
 ParamList* ArrowLineOvComp::_ovarrow_line_params = nil;
 ParamList* ArrowMultiLineOvComp::_ovarrow_multiline_params = nil;
 ParamList* ArrowSplineOvComp::_ovarrow_spline_params = nil;
-int ArrowLineOvComp::_symid = -1;
+CLASS_SYMID_DEF(ArrowLineOvComp);
 
 ArrowLineOvComp::ArrowLineOvComp (ArrowLine* graphic) : LineOvComp(graphic) { }
 
@@ -434,7 +434,7 @@ int ArrowLineScript::ReadTail (istream& in, void* addr1, void* addr2, void* addr
 
 /****************************************************************************/
 
-int ArrowMultiLineOvComp::_symid = -1;
+CLASS_SYMID_DEF(ArrowMultiLineOvComp);
 
 ArrowMultiLineOvComp::ArrowMultiLineOvComp (ArrowMultiLine* g) : MultiLineOvComp(g){}
 
@@ -871,7 +871,7 @@ int ArrowMultiLineScript::ReadTail (istream& in, void* addr1, void* addr2,
 
 /****************************************************************************/
 
-int ArrowSplineOvComp::_symid = -1;
+CLASS_SYMID_DEF(ArrowSplineOvComp);
 
 ArrowSplineOvComp::ArrowSplineOvComp (ArrowOpenBSpline* g) : SplineOvComp(g) {}
 

@@ -29,7 +29,7 @@
 /****************************************************************************/
 
 
-int DrawLinkComp::_symid = -1;
+CLASS_SYMID_DEF(DrawLinkComp);
 
 DrawLinkComp::DrawLinkComp(DrawLink* link) : OverlayComp() {
   _drawlink = link;

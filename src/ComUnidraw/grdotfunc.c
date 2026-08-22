@@ -38,7 +38,7 @@ using std::cerr;
 
 /*****************************************************************************/
 
-int GrDotFunc::_symid = -1;
+CLASS_SYMID_DEF(GrDotFunc);
 
 GrDotFunc::GrDotFunc(ComTerp* comterp) : DotFunc(comterp) {
 }

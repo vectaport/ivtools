@@ -26,7 +26,7 @@
 
 /*****************************************************************************/
 
-int Attribute::_symid = -1;
+CLASS_SYMID_DEF(Attribute);
 
 Attribute::Attribute(const char* name, AttributeValue* value) {
     if (name)

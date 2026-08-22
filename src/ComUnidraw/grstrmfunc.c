@@ -32,7 +32,7 @@
 
 /*****************************************************************************/
 
-int GrStreamFunc::_symid;
+CLASS_SYMID_DEF(GrStreamFunc);
 
 GrStreamFunc::GrStreamFunc(ComTerp* comterp) : StreamFunc(comterp) {
 }
@@ -144,7 +144,7 @@ void GrStreamFunc::execute() {
 
 /*****************************************************************************/
 
-int GrDepthFunc::_symid;
+CLASS_SYMID_DEF(GrDepthFunc);
 
 GrDepthFunc::GrDepthFunc(ComTerp* comterp) : StreamFunc(comterp) {
 }
@@ -187,7 +187,7 @@ void GrDepthFunc::execute() {
 
 /*****************************************************************************/
 
-int GrDepthNextFunc::_symid;
+CLASS_SYMID_DEF(GrDepthNextFunc);
 
 GrDepthNextFunc::GrDepthNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }

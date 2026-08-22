@@ -62,7 +62,7 @@ using std::cerr;
 /****************************************************************************/
 
 ParamList* PolygonOvComp::_ovpolygon_params = nil;
-int PolygonOvComp::_symid = -1;
+CLASS_SYMID_DEF(PolygonOvComp);
 
 ClassId PolygonOvComp::GetClassId () { return OVPOLYGON_COMP; }
 

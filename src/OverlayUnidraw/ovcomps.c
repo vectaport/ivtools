@@ -100,7 +100,7 @@ static void NullGS (Graphic* g) { FullGraphic null; *g = null; }
 
 /*****************************************************************************/
 
-int OverlayComp::_symid = -1;
+CLASS_SYMID_DEF(OverlayComp);
 
 ParamList* OverlayComp::_overlay_comp_params = nil;
 
@@ -462,7 +462,7 @@ OverlayComp* OverlayComp::DepthNext(OverlayComp*) {
 /*****************************************************************************/
 
 ParamList* OverlaysComp::_overlay_comps_params = nil;
-int OverlaysComp::_symid = -1;
+CLASS_SYMID_DEF(OverlaysComp);
 
 OverlaysComp::OverlaysComp (OverlayComp* parent) : OverlayComp(new Picture, parent) { 
     _comps = new UList;
@@ -1371,7 +1371,7 @@ void OverlaysComp::ClearVisit() {
 /*****************************************************************************/
 
 ParamList* OverlayIdrawComp::_overlay_idraw_params = nil;
-int OverlayIdrawComp::_symid = -1;
+CLASS_SYMID_DEF(OverlayIdrawComp);
 
 OverlayIdrawComp::OverlayIdrawComp (const char* pathname, OverlayComp* parent)
 : OverlaysComp(parent) {

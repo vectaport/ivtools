@@ -60,7 +60,7 @@ using std::cerr;
 
 ParamList* SplineOvComp::_ovspline_params = nil;
 ParamList* ClosedSplineOvComp::_ovclosed_spline_params = nil;
-int SplineOvComp::_symid = -1;
+CLASS_SYMID_DEF(SplineOvComp);
 
 ClassId SplineOvComp::GetClassId () { return OVSPLINE_COMP; }
 
@@ -283,7 +283,7 @@ int SplineScript::ReadPoints (istream& in, void* addr1,
 
 /*****************************************************************************/
 
-int ClosedSplineOvComp::_symid = -1;
+CLASS_SYMID_DEF(ClosedSplineOvComp);
 
 ClassId ClosedSplineOvComp::GetClassId () { return OVCLOSEDSPLINE_COMP; }
 

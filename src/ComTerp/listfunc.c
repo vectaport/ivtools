@@ -315,7 +315,7 @@ void ListSizeFunc::execute() {
 
 /*****************************************************************************/
 
-int TupleFunc::_symid;
+CLASS_SYMID_DEF(TupleFunc);
 
 TupleFunc::TupleFunc(ComTerp* comterp) : ComFunc(comterp) {
 }

@@ -100,7 +100,7 @@ static char hexcharmap[] = {
 
 /*****************************************************************************/
 
-int RasterOvComp::_symid = -1;
+CLASS_SYMID_DEF(RasterOvComp);
 
 static ostream& operator<<(ostream& out, const CopyStringList& sl) {
     for (ListItr(CopyStringList) i(sl); i.more(); i.next()) {
