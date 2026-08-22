@@ -395,6 +395,7 @@ void CreateLineFunc::execute() {
             }
 	line->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, line);
 	ArrowLineOvComp* comp = new ArrowLineOvComp(line);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -459,6 +460,7 @@ void CreateEllipseFunc::execute() {
             }
 	ellipse->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, ellipse);
 	EllipseOvComp* comp = new EllipseOvComp(ellipse);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -645,6 +647,7 @@ void CreateMultiLineFunc::execute() {
             }
 	multiline->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, multiline);
 	ArrowMultiLineOvComp* comp = new ArrowMultiLineOvComp(multiline);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -711,6 +714,7 @@ void CreateOpenSplineFunc::execute() {
             }
 	openspline->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, openspline);
 	ArrowSplineOvComp* comp = new ArrowSplineOvComp(openspline);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -775,6 +779,7 @@ void CreatePolygonFunc::execute() {
             }
 	polygon->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, polygon);
 	PolygonOvComp* comp = new PolygonOvComp(polygon);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -840,6 +845,7 @@ void CreateClosedSplineFunc::execute() {
             }
 	closedspline->SetTransformer(rel);
 	Unref(rel);
+	set_graphic_gs(al, closedspline);
 	ClosedSplineOvComp* comp = new ClosedSplineOvComp(closedspline);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -915,14 +921,19 @@ void CreateRasterFunc::execute() {
       
       OverlayRasterRect* rasterrect = new OverlayRasterRect(raster, stdgraphic);
       
-#if 1
       Transformer* t = new Transformer();
       t->Translate(dcoords[x0], dcoords[y0]);
       rasterrect->SetTransformer(t);
       Unref(t);
-#else
-      Transformer* rel = get_transformer(al);
-#endif
+      /* the screen coords imply the translate above, so the viewer-relative
+         transformer the other create commands start from would double it --
+         but an explicit :transform off a re-created command still has to win */
+      if (al && al->find(symbol_add("transform"))) {
+	Transformer* rel = get_transformer(al);
+	rasterrect->SetTransformer(rel);
+	Unref(rel);
+      }
+      set_graphic_gs(al, rasterrect);
       
       RasterOvComp* comp = new RasterOvComp(rasterrect);
       comp->SetAttributeList(al);
@@ -989,6 +1000,12 @@ RasterOvComp* CreateRasterFunc::create_from_rgb(ComValue& rgbv, AttributeList* a
 
     Transformer* rel = get_transformer(al);
     if (rel) rasterrect->SetTransformer(rel);
+    Unref(rel);
+    set_graphic_gs(al, rasterrect);
+    /* the pixels now live in the raster, so drop the keyword that carried them
+       -- left in the list it re-serializes as a trailing attribute alongside
+       the raster's own emitted pixel data */
+    remove_key(al, symbol_add("rgb"));
 
     RasterOvComp* comp = new RasterOvComp(rasterrect);
     comp->SetAttributeList(al);
