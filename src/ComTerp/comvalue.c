@@ -33,6 +33,7 @@
 #include <ComTerp/socket.h>
 #include <ComTerp/timefunc.h>
 #include <Attribute/attrlist.h>
+#include <ctype.h>
 #include <Attribute/attribute.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/paramlist.h>
@@ -226,14 +227,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::CharType:
 	  if (brief)
-            out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (int)(unsigned char)svp->char_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;	    
 
 	case ComValue::UCharType:
 	  if (brief)
-            out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int) svp->uchar_ref() << std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
 	  else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;

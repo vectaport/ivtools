@@ -466,14 +466,23 @@ void ExportFunc::execute() {
        to run, vs the drawtool() document the default/socket export sends to
        another editor's import port. */
     boolean percomp_mode = percomp.is_true();
-    if (percomp_mode) OverlayScript::percomp_format(true);
+    /* the create commands take a flat coordinate run, not parenthesized pairs,
+       so a runnable emission has to drop the parens -- the same reason DrawServ
+       drops them before serializing a command for another editor to execute */
+    boolean old_ptlist_parens = OverlayScript::ptlist_parens();
+    if (percomp_mode) {
+      OverlayScript::percomp_format(true);
+      OverlayScript::ptlist_parens(false);
+    }
     ostream* out = new std::strstream();
 
     if (!compviewv.is_array()) {
 
       ComponentView* view = (ComponentView*)compviewv.obj_val();
       OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
-      if (!comp) { if (percomp_mode) OverlayScript::percomp_format(false); delete out; return; }
+      if (!comp) { if (percomp_mode) { OverlayScript::percomp_format(false);
+	                               OverlayScript::ptlist_parens(old_ptlist_parens); }
+	           delete out; return; }
       if (!eps_flag.is_true() && !idraw_flag.is_true()) {
 	if (!percomp_mode) *out << appname() << "(\n";
 	compout(comp, out);
@@ -522,7 +531,10 @@ void ExportFunc::execute() {
 
     }
     
-    if (percomp_mode) OverlayScript::percomp_format(false);
+    if (percomp_mode) {
+      OverlayScript::percomp_format(false);
+      OverlayScript::ptlist_parens(old_ptlist_parens);
+    }
     *out << '\0'; out->flush();
     const char* result = ((std::strstream*)out)->str();
 
