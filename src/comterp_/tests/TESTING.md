@@ -252,62 +252,64 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-13 of 43 scripts are scored. The rest are real tests with no coverage number,
+13 of 45 scripts are scored. The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
 | script | funcs | covered | total |  %  |
 |--------|-------|---------|-------|-----|
-| assignops.comt            | mod_assign mpy_assign add_assign sub_assign div_assi… |      33 |    53 |  62% |
-| atop.comt                 | @ (at) at() attrname attrval postfix                  |       — |     — |    — |
-| attrlist.comt             | dot list(:attr) attrlist at size attrname attrval + - |      56 |    68 |  82% |
-| bigbuf.comt               | + sum                                                 |       — |     — |    — |
-| bracket-brace-parity.comt | —                                                     |       — |     — |    — |
-| char.comt                 | char-constant ('x', '\xNN')  print(:str)  ==          |       — |     — |    — |
-| chunk.comt                | chunk feed list sum xpose istype print                |       — |     — |    — |
-| deeptest.comt             | list attrlist at size attrname attrval + - . for whi… |       — |     — |    — |
-| feed.comt                 | feed                                                  |      18 |    22 |  82% |
-| filter.comt               | —                                                     |       — |     — |    — |
-| funcarg.comt †              | func arg narg (positional args, keyword-as-variable,… |      18 |    26 |  69% |
-| funcclosure.comt †          | func local global (declaration-time capture, #310)    |      13 |    21 |  62% |
-| funchelp.comt †             | help func arg narg local global (`help(f)` on a bare… |      19 |    24 |  79% |
-| funcstream.comt           | func arg narg if while list local print               |       — |     — |    — |
-| global.comt               | global                                                |      17 |    18 |  94% |
 | hello.comt                | —                                                     |       — |     — |    — |
-| help.comt                 | help() help(:posteval) help(:top) help("op")          |      13 |    13 | 100% |
-| istype.comt               | istype isclass iscomm isfunc                          |      27 |    32 |  84% |
-| keyword_lineend.comt      | func arg run help print list                          |       — |     — |    — |
-| listat.comt               | at  list  size                                        |       — |     — |    — |
-| local.comt                | local                                                 |      14 |    15 |  93% |
-| matrixmult.comt           | sum() list() at() func() for() print() check_fail()   |       — |     — |    — |
-| nilcompare.comt           | func arg while list print                             |       — |     — |    — |
-| numstring.comt            | int long float double print                           |       — |     — |    — |
-| optable.comt              | —                                                     |       — |     — |    — |
-| parser.comt               | attrlist(:literal) errmsg postfix class type          |      29 |    39 |  74% |
-| posteval.comt †             | func arg if (`:posteval` keyword)                     |      21 |    28 |  75% |
-| print.comt                | print                                                 |      24 |    35 |  69% |
-| replay.comt               | %% replay optable(:insert) optable(:delete) postfix … |       — |     — |    — |
 | return.comt               | return func if for while run                          |      34 |    50 |  68% |
-| runfile.comt              | —                                                     |       — |     — |    — |
-| spread.comt               | spread stream print echo attrlist func narg list      |       — |     — |    — |
-| stackkey.comt             | at  list                                              |       — |     — |    — |
-| starnext.comt             | * (unary next) * (binary mpy) optable(:table) optabl… |       — |     — |    — |
-| stream-argcnt.comt        | —                                                     |       — |     — |    — |
-| stream-info.comt          | —                                                     |       — |     — |    — |
-| stream-literal.comt       | postfix() errmsg() index() next() list() each() size… |       — |     — |    — |
 | stream.comt               | $$ $ ,, next each size .. **                          |      46 |    50 |  92% |
 | string.comt               | index substr split join eq size print(+:str) +        |      78 |    97 |  80% |
+| global.comt               | global                                                |      17 |    18 |  94% |
+| local.comt                | local                                                 |      14 |    15 |  93% |
+| assignops.comt            | mod_assign mpy_assign add_assign sub_assign div_assi… |      33 |    53 |  62% |
+| attrlist.comt             | dot list(:attr) attrlist at size attrname attrval + - |      56 |    68 |  82% |
+| listat.comt               | at  list  size                                        |       — |     — |    — |
+| stackkey.comt             | at  list                                              |       — |     — |    — |
+| print.comt                | print                                                 |      24 |    35 |  69% |
+| parser.comt               | attrlist(:literal) errmsg postfix class type          |      29 |    39 |  74% |
 | symbol.comt               | ` symadd symid symbol symstr symval symvar strref     |      36 |    42 |  86% |
-| symboldrain.comt          | —                                                     |       — |     — |    — |
+| char.comt                 | char-constant ('x', '\xNN')  print(:str)  ==          |       — |     — |    — |
+| help.comt                 | help() help(:posteval) help(:top) help("op")          |      13 |    13 | 100% |
+| stream-literal.comt       | postfix() errmsg() index() next() list() each() size… |       — |     — |    — |
+| stream-info.comt          | —                                                     |       — |     — |    — |
+| stream-argcnt.comt        | —                                                     |       — |     — |    — |
+| matrixmult.comt           | sum() list() at() func() for() print() check_fail()   |       — |     — |    — |
+| deeptest.comt             | list attrlist at size attrname attrval + - . for whi… |       — |     — |    — |
+| bigbuf.comt               | + sum                                                 |       — |     — |    — |
+| funcarg.comt †              | func arg narg (positional args, keyword-as-variable,… |      18 |    26 |  69% |
+| funcclosure.comt †          | func local global (declaration-time capture, #310)    |      13 |    21 |  62% |
+| posteval.comt †             | func arg if (`:posteval` keyword)                     |      21 |    28 |  75% |
+| funcstream.comt           | func arg narg if while list local print               |       — |     — |    — |
+| nilcompare.comt           | func arg while list print                             |       — |     — |    — |
+| random.comt               | split index substr join eq size print + global while… |       — |     — |    — |
+| time.comt                 | time int srand help index                             |       — |     — |    — |
+| numstring.comt            | int long float double print                           |       — |     — |    — |
+| keyword_lineend.comt      | func arg run help print list                          |       — |     — |    — |
+| funchelp.comt †             | help func arg narg local global (`help(f)` on a bare… |      19 |    24 |  79% |
 | updown.comt               | shell()  socket()  remote()  remote(:nowait)  close(… |       — |     — |    — |
+| spread.comt               | spread stream print echo attrlist func narg list      |       — |     — |    — |
+| replay.comt               | %% replay optable(:insert) optable(:delete) postfix … |       — |     — |    — |
+| feed.comt                 | feed                                                  |      18 |    22 |  82% |
+| chunk.comt                | chunk feed list sum xpose istype print                |       — |     — |    — |
+| istype.comt               | istype isclass iscomm isfunc                          |      27 |    32 |  84% |
+| runfile.comt              | —                                                     |       — |     — |    — |
+| filter.comt               | —                                                     |       — |     — |    — |
+| optable.comt              | —                                                     |       — |     — |    — |
+| starnext.comt             | * (unary next) * (binary mpy) optable(:table) optabl… |       — |     — |    — |
+| symboldrain.comt          | —                                                     |       — |     — |    — |
+| bracket-brace-parity.comt | —                                                     |       — |     — |    — |
+| atop.comt                 | @ (at) at() attrname attrval postfix                  |       — |     — |    — |
 | wrapper.comt              | —                                                     |       — |     — |    — |
 
 † recorded here but not declared by the script itself.
 
-`random.comt` is absent from this table because `run_all.comt` on this branch
-does not run it -- it sat in the directory, listed here at 100%, invoked by
-nothing, so its slot-12 sampling never executed in the suite or in CI. It is
-being wired in alongside the seeding fix it depends on, and gets a row here
-once that lands.
+`random.comt` and `time.comt` are the two most recent additions to the runner.
+`random.comt` spent a long stretch in the directory listed at 100% and invoked
+by nothing, so its slot-12 sampling never executed in the suite or in CI; it is
+wired in now, alongside the seeding fix it depended on. Neither declares a
+coverage number yet, so both read `—` here.
 
 ### Planned coverage (ivtools-2.2)
 
