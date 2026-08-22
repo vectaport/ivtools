@@ -2651,6 +2651,33 @@ float(3.14)            // explicit conversion to FloatType
 double(3)              // explicit conversion to DoubleType
 ```
 
+`type(:all)` returns the whole set of type symbols, in enum order:
+
+```
+type(:all)             // UnknownType,CharType,UCharType,ShortType,UShortType,
+                       // IntType,UIntType,LongType,ULongType,FloatType,
+                       // DoubleType,StringType,SymbolType,ListType,StreamType,
+                       // CommandType,KeywordType,ObjectType,EofType,
+                       // BooleanType,OperatorType,BlankType
+size(type(:all))       // 22
+at(type(:all) 5)==type(1)  // true -- the listing and the per-value answer agree
+```
+
+That list is complete: every value in the language carries one of those 22
+types, and `ArrayType` is absent because it and `ListType` are one type under
+two names, registered as `ListType`.
+
+Asked with no value at all, both commands answer `blank` rather than `nil` --
+`nil` is the answer *about* a value, so it needs a value to be about:
+
+```
+class(3)               // nil   -- a value was named; it has no class
+class()                // blank -- no value was named at all
+type()                 // blank -- likewise
+type()==nil            // false -- the two stay distinguishable
+type()==blank()        // true
+```
+
 ### istype()/isclass()/iscomm()/isfunc() — inspecting a variable without firing it
 
 `type()` and `class()`, above, both evaluate their argument the ordinary
