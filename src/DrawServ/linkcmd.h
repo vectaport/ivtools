@@ -32,6 +32,7 @@
 #include <Unidraw/Commands/colorcmd.h>
 #include <Unidraw/Commands/font.h>
 #include <Unidraw/Commands/patcmd.h>
+#include <OverlayUnidraw/ovcmds.h>
 #include <string>
 #include <uuid/uuid.h>
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
@@ -68,6 +69,35 @@ public:
     virtual const char* dist_script();
     // return "s=select();select(grid(uuid),...);brush(linepat,width);select(s)"
     // for all LocallySelected graphics, or empty string if none.
+
+    virtual Command* Copy();
+    virtual ClassId GetClassId();
+    virtual boolean IsA(ClassId);
+
+protected:
+    std::string _dist_script_buf;
+};
+
+//: SetTransformCmd with distributed script generation for DrawServ
+// The odd one of the relays, in a way that makes it simpler rather than
+// harder.  Brush, colour, pattern and font all apply to whatever is selected,
+// so their scripts have to carry a select(grid(...) :unlock key) bracket to
+// tell the far node what to apply them to.  trans() names its target, and the
+// command carries it in its clipboard, so the script is just the call.
+//
+// What goes on the wire is the ABSOLUTE resulting matrix, not the delta this
+// command holds.  A delta accumulates -- deliver it twice and the graphic has
+// moved twice -- while an absolute transform is idempotent, so a repeat or an
+// out-of-order arrival is harmless.  That is the same reasoning that put
+// absolute perspectives on the wire for subscribed viewers, and it is why
+// trans() was worth relaying before move/scale/rotate.
+class LinkTransformCmd : public SetTransformCmd, public DrawServCmd {
+public:
+    LinkTransformCmd(Editor* = nil, Transformer* = nil);
+
+    virtual const char* dist_script();
+    // return "trans(grid(uuid) a00,a01,a10,a11,a20,a21)" for the graphic this
+    // command targets, or empty string if it has no distributed identity yet.
 
     virtual Command* Copy();
     virtual ClassId GetClassId();

@@ -161,6 +161,23 @@ gsbrushA_test=func(
   if(!m3 :then print("gsbrushA: FAIL patternmask did not propagate to ds3 intact\n" :err));
   ok=ok && m2 && m3;
 
+  /* --- transform.  Unlike the graphic state above, trans() names its own
+     target, so what crosses the link is just the call -- no select(grid(...)
+     :unlock) bracket.  What is sent is the absolute resulting matrix rather
+     than the delta the command carries, so arriving twice or out of order
+     lands the graphic in the same place either way.  The far nodes hold the
+     transform the graphic was created with, so a distinctive one downstream
+     is the transform having propagated. --- */
+  transtr=":transform 2,0,0,2,30,40";
+  remote(sock1 print("trans(grid(%c%s%c) 2,0,0,2,30,40)" 34 id1 34 :str));
+  update(2000000);
+  x2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs transtr);
+  x3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs transtr);
+  print("gsbrushA: transform reached ds2=%v ds3=%v\n" x2 x3 :err);
+  if(!x2 :then print("gsbrushA: FAIL transform did not reach ds2 intact\n" :err));
+  if(!x3 :then print("gsbrushA: FAIL transform did not propagate to ds3 intact\n" :err));
+  ok=ok && x2 && x3;
+
   /* --- font.  Needs its own graphic: a rect emits MinGS, which carries no
      font at all, so only a text graphic can show one propagating.  Created
      second, so it is the second entry in the grid table.  font(3) is the

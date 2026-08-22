@@ -29,7 +29,6 @@
 #include <leakchecker.h>
 
 #include <ComUnidraw/unifunc.h>
-#include <Unidraw/Commands/transforms.h>
 
 class Graphic;
 class RasterOvComp;
@@ -457,25 +456,6 @@ public:
     }
 };
 
-//: TransformCmd that restores the exact prior transform on undo.
-// Forward it behaves as a TransformCmd does -- GraphicComp::Interpret
-// postmultiplies whatever delta it was handed, which is what keeps the
-// operation a transform, and so uniform with :apply and with distribution.
-// Backward it snaps rather than transforms: composing the inverted delta
-// gets close but drifts, and undo is the one direction where landing exactly
-// where you were is the whole point.  Records one transform because trans()
-// targets one graphic; a wider clipboard falls back to the composing undo.
-class SetTransformCmd : public TransformCmd {
-public:
-    SetTransformCmd(Editor* = nil, Transformer* = nil);
-    virtual ~SetTransformCmd();
-
-    virtual void Execute();
-    virtual void Unexecute();
-protected:
-    Transformer* _prev;
-    boolean _snapped;
-};
 
 //: command to access a graphic's parent
 class GrParentFunc : public ComFunc {

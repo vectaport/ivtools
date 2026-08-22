@@ -24,6 +24,7 @@
  */
 
 #include <ComUnidraw/grfunc.h>
+#include <OverlayUnidraw/ovcmds.h>
 #include <vector>
 
 #include <ComTerp/comvalue.h>
@@ -1847,66 +1848,6 @@ void TileFileFunc::execute() {
 
 /*****************************************************************************/
 
-SetTransformCmd::SetTransformCmd (Editor* ed, Transformer* t)
-  : TransformCmd(ed, t) { _prev = nil; _snapped = false; }
-
-SetTransformCmd::~SetTransformCmd () { Unref(_prev); }
-
-void SetTransformCmd::Execute () {
-    /* remember where the graphic was before the delta goes on, so undo can
-       put it back exactly rather than composing its way back approximately */
-    Unref(_prev);
-    _prev = nil;
-    _snapped = false;
-
-    Clipboard* cb = GetClipboard();
-    if (cb) {
-	Iterator i;
-	cb->First(i);
-	if (!cb->Done(i)) {
-	    GraphicComp* comp = (GraphicComp*)cb->GetComp(i);
-	    cb->Next(i);
-	    if (cb->Done(i)) {          /* exactly one, as trans() sends */
-		Graphic* gr = comp ? comp->GetGraphic() : nil;
-		if (gr) {
-		    /* having no transformer is a state to restore, not the
-		       absence of one -- undo must put the graphic back to nil
-		       rather than leave an identity behind, which would show
-		       up as a :transform keyword that was never there */
-		    Transformer* cur = gr->GetTransformer();
-		    _prev = cur ? new Transformer(*cur) : nil;
-		    Resource::ref(_prev);
-		    _snapped = true;
-		}
-	    }
-	}
-    }
-    TransformCmd::Execute();
-}
-
-void SetTransformCmd::Unexecute () {
-    if (!_snapped) {            /* nothing recorded -- compose back as usual */
-	TransformCmd::Unexecute();
-	return;
-    }
-    Clipboard* cb = GetClipboard();
-    if (cb) {
-	Iterator i;
-	cb->First(i);
-	if (!cb->Done(i)) {
-	    GraphicComp* comp = (GraphicComp*)cb->GetComp(i);
-	    Graphic* gr = comp ? comp->GetGraphic() : nil;
-	    if (gr) {
-		gr->SetTransformer(_prev);
-		comp->Notify();
-	    }
-	}
-    }
-    unidraw->Update();
-}
-
-/*****************************************************************************/
-
 TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
@@ -2007,7 +1948,8 @@ void TransformerFunc::execute() {
 	      Unref(want);
 	    }
 
-	    TransformCmd* cmd = new SetTransformCmd(_ed, delta);
+	    OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	    TransformCmd* cmd = kit->make_transform_cmd(_ed, delta);
 	    cmd->SetClipboard(new Clipboard(comp));
 	    Unref(delta);
 	    execute_log(cmd);
