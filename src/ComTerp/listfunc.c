@@ -196,7 +196,10 @@ void ListAtFunc::execute() {
 	push_stack(insv);
 	return;
       } else if (setflag) {
-	AttributeValue* oldv = avl->Set(nv.int_val(), new AttributeValue(setv));
+	/* nvv, not nv.int_val(): a nil index means the last item, and every
+	   other branch here already reads it that way -- this one wrote the
+	   first item instead. */
+	AttributeValue* oldv = avl->Set(nvv, new AttributeValue(setv));
 	delete oldv;
 	push_stack(setv);
 	return;

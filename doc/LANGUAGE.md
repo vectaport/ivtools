@@ -551,6 +551,38 @@ lst@2=999
 lst               // {10,20,999,40,50}
 ```
 
+A **nil index means the last item**, reading or writing, on a list, an
+attrlist or a string alike — so `lst@nil` is the end of the list without
+having to say `lst@(size(lst)-1)`:
+
+```
+lst=10,20,30
+lst@nil          // 30
+lst@nil=99
+lst              // {10,20,99}
+
+s="abc"
+s@nil            // 'c'
+s@nil='C'
+s                // "abC"
+```
+
+That has been `at()`'s behavior since 2015 and was simply never written
+down; the list `:set` path was the one place that read a nil index as 0
+instead of the last, which is now consistent with the rest.
+
+A string index writes through the same way a list index does:
+
+```
+s="teststring"
+s@0='x'
+s                // "xeststring"
+```
+
+A **symbol** is not writable this way — its text is its identity, shared
+by everything holding that symid — so `sym@n=c` is declined and leaves the
+symbol as it was, the same refusal `at(sym n :set c)` gives.
+
 It chains left-to-right, the same as `.`:
 
 ```

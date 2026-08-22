@@ -96,5 +96,22 @@ r=sym14@0='x'
 ok=ok&&(print(sym14 :str)=="at393sym2")
 print("14 sym14@0='x' leaves the symbol alone (expect at393sym2): %s\n" print(sym14 :str))
 
+// --- 15: a nil index is the last item, on every type and in both
+// directions.  Undocumented since 2015 (f8a57ffa) and only ever half true:
+// the list :set path resolved nil to 0 and wrote the first item, where the
+// list read and both attrlist and string paths already meant the last ---
+lst15=10,20,30
+al15=(:x 1 :y 2 :z 3)
+str15="abc"
+ok=ok&&(lst15@nil==30)&&(attrval(al15@nil)==3)&&(str15@nil=='c')
+print("15 nil reads the last item (expect 30 3 'c'): %v %v %v\n" lst15@nil attrval(al15@nil) str15@nil)
+
+// --- 16: and writes it ---
+r=at(lst15 nil :set 99)
+ok=ok&&(r==99)&&(lst15=={10,20,99})
+r=str15@nil='C'
+ok=ok&&(r=='C')&&(print(str15 :str)=="abC")
+print("16 nil writes the last item (expect {10,20,99} abC): %v %s\n" lst15 print(str15 :str))
+
 print("listat: %v\n" ok)
 ok
