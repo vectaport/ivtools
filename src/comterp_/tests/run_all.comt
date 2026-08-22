@@ -113,6 +113,10 @@ if(run("./random.comt")
   :then print("pass: random\n")
   :else print("FAIL: random\n");topok=false)
 
+if(run("./stringstream.comt")
+  :then print("pass: stringstream\n")
+  :else print("FAIL: stringstream\n");topok=false)
+
 if(run("./time.comt")
   :then print("pass: time\n")
   :else print("FAIL: time\n");topok=false)
