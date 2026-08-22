@@ -213,6 +213,43 @@ gsbrushA_test=func(
     if(!c3 :then print("gsbrushA: FAIL text content did not propagate to ds3\n" :err));
     ok=ok && f2 && f3 && c2 && c3);
 
+  /* --- every shape, not just the rect and the text above.  comdraw's
+     shapes.comt proves each one re-creates from the form DrawServ sends; this
+     is the same nine actually making the trip.  Which row of the far node's
+     table each landed in is not knowable in advance, so scan for the component
+     class rather than assume an order -- the grid table carries it already. --- */
+  shapecmds=("rect(200,200,240,240)","line(200,250,240,290)","ellipse(300,200,20,10)",
+             "text(300,250 \"x\")","multiline(350,200,370,220,390,200)",
+             "polygon(350,250,370,270,390,250)","openspline(400,200,420,220,440,200)",
+             "closedspline(400,250,420,270,440,250)","raster(450,200,458,208)");
+  shapeclasses=("RectComp","ArrowLineComp","EllipseComp","TextComp","ArrowMultiLineComp",
+                "PolygonComp","ArrowSplineComp","ClosedSplineComp","RasterComp");
+
+  k=0;
+  while(k<9 remote(sock1 at(shapecmds k)); k=k+1);
+  update(3000000);
+
+  n1=remote(sock1 "size(grid(:table))");
+  n2=remote(sock2 "size(grid(:table))");
+  print("gsbrushA: ds1 holds %v graphics, ds2 holds %v\n" n1 n2 :err);
+  shapesok=(type(n1)==`IntType && type(n2)==`IntType && n1==n2);
+  if(!shapesok :then print("gsbrushA: FAIL not every graphic reached ds2\n" :err));
+
+  if(type(n2)==`IntType :then
+    k=0;
+    while(k<9
+      want=at(shapeclasses k);
+      found=false;
+      j=0;
+      while(!found && j<n2
+        cls=remote(sock2 print("at(grid(:table) %d).comptype" j :str));
+        if(type(cls)==`StringType && index(cls want :substr)!=nil :then found=true);
+        j=j+1);
+      if(!found :then (print("gsbrushA: FAIL %s did not reach ds2\n" want :err); shapesok=false));
+      k=k+1));
+  print("gsbrushA: all nine shapes reached ds2 = %v\n" shapesok :err);
+  ok=ok && shapesok;
+
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
   while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds1_port :str))==0 usleep(200000));

@@ -507,6 +507,9 @@ void CreateTextFunc::execute() {
        not survive being exported and re-created, nor reach a far node intact.
 
        They are told apart by whether a text argument was supplied at all. */
+    /* the serialized form supplies no text argument, so nothing string-like
+       is sitting in argument 1.  (nargs() does not distinguish the two: it
+       reports 2 either way.) */
     boolean serialized_form = !txtv.is_string();
 
     const char* txt = nil;
