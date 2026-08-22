@@ -565,11 +565,16 @@ void RepeatFunc::execute() {
       } else
 	push_stack(ComValue::nullval());
       return;
-    } else if (operand1.is_stream()) {
-      fprintf(stderr, "no more than doubly nested streams supported as of yet\n");
-      push_stack(ComValue::nullval());
-      return;
     }
+
+    /* no bail-out for a stream operand here.  It read as a depth limit, but
+       overdrive has already unwrapped a level by the time this sees a stream,
+       so it fired on every stream operand and returned nullval from a
+       construction context -- which left the stack wrong ("func list pushed
+       more than a single value on stack"), not a clean nil.  Building the
+       repeat stream instead yields the operand's values; what a repeated
+       cursor still lacks is re-arm, so passes after the first come back
+       exhausted.  That is replay's business, not nesting's. */
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -707,11 +712,11 @@ void IterateFunc::execute() {
       } else
 	push_stack(ComValue::nullval());
       return;
-    } else if (operand1.is_stream()) {
-      fprintf(stderr, "no more than doubly nested streams supported as of yet\n");
-      push_stack(ComValue::nullval());
-      return;
     }
+
+    /* no bail-out for a stream operand -- same reasoning as RepeatFunc's
+       above: it fired once overdrive had already unwrapped a level, and
+       returned nullval from a construction context, leaving the stack wrong. */
 
     ComValue operand2(stack_arg(1));
     reset_stack();

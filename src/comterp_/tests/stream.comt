@@ -443,6 +443,36 @@ sa47=$$(1 2 3)
 r47=list(f47(:a sa47 :b 14))
 ok=ok&&(r47==(1,2,3,4,5,6,7,8,9,10,11,12,13,14,2,3,4,5,6,7,8,9,10,11,12,13,14,3,4,5,6,7,8,9,10,11,12,13,14))
 print("47 f47(:a stream(1,2,3) :b 14), b captured as 13 -- override must win on every re-fire (expect ends at 14, not 13): %v\n" r47)
+// ** with a stream operand used to bail with "no more than doubly nested
+// streams supported as of yet" and push nullval from a construction context,
+// which left the stack wrong rather than returning a clean nil.  It builds the
+// repeat stream now: every value of the operand comes through.  A stream shown
+// inside a list prints as [] and is a value, not a failure -- these particular
+// ones are the second, un-re-armed pass of each repeated cursor, which is
+// replay's business, not nesting's -- see #282.
+N48=((1 2 3) (4 5 6))
+r48=list(N48**2)
+ok=ok&&(at(r48 0)==1)&&(at(r48 1)==2)&&(at(r48 2)==3)
+ok=ok&&(at(r48 4)==4)&&(at(r48 5)==5)&&(at(r48 6)==6)
+print("48 list(((1 2 3) (4 5 6))**2) keeps every value, no stack error (expect {1,2,3,[],4,5,6,[]}): %v\n" r48)
+
+// a repeated cursor is handed back as-is, so the pass after the first is
+// exhausted -- drains empty, and is the re-arm gap #282 covers
+N49=((1 2 3) (4 5 6))
+r49=list(N49**2)
+s49=at(r49 3)
+ok=ok&&(size(list(s49))==0)
+print("49 the repeated pass is an exhausted cursor (expect {}): %v\n" list(s49))
+
+// .. carried the same bail-out as ** and it went the same way.  A range wants
+// an int to count from, so a stream start has no reading and declines -- but
+// it declines with an empty result now, instead of a wrong stack
+N50=((1 2 3) (4 5 6))
+r50=list(N50..9)
+ok=ok&&(size(r50)==0)
+print("50 a stream start for .. declines cleanly (expect {}): %v\n" r50)
+prev_ok=check_fail(:ok ok)
+
 prev_ok=check_fail(:ok ok)
 
 print("stream: %v\n" ok)
