@@ -1055,6 +1055,25 @@ IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
    counts as part of a number.  Returns nil unless the scan really produced
    one -- a non-numeric string lexes as a symbol, and its int_val() is the
    interned symbol id, a wrong answer that reads like a valid parse. */
+/* Kinds with no numeric reading at all.  int_val() answered them anyway: an
+   object gave something derived from its address, so int(date()) returned a
+   different number every call, and a list or a keyword gave 0 -- wrong answers
+   wearing the shape of right ones, the same fault as a symbol's interned id.
+
+   Report nil, and let it propagate: nil+1 is nil, where a 0 or -1 marker would
+   flow on through arithmetic as ordinary data.  An identity, if one is ever
+   wanted, belongs in a command that says so -- symid() already does that for
+   symbols.
+
+   Streams are deliberately absent: a stream argument overdrives these
+   commands, so it is never converted whole -- int(("1" "2")) is {1,2}, while
+   the comma form int(("1","2")) is a list and lands here.
+   Keywords likewise: :key in this position is read as a keyword to the
+   command, not as a value to convert, so it never arrives here. */
+static boolean has_no_numeric_reading(ComValue& operand) {
+    return operand.is_object() || operand.is_array();
+}
+
 static ComValue scan_number_string(const char* numstr) {
     const char* str = numstr;
     while (isspace((unsigned char)*str)) str++;
@@ -1080,6 +1099,7 @@ void IntFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     ComValue result(operand.int_val(),  
 		    operand.is_nil() ? ComValue::UnknownType :
                     (uval_flag ? ComValue::UIntType : ComValue::IntType));
@@ -1095,6 +1115,7 @@ void LongFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.long_val());
     if(uval_flag) result.type(ComValue::ULongType);
@@ -1110,6 +1131,7 @@ void FloatFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.float_val());
     push_stack(result);
@@ -1123,6 +1145,7 @@ void DoubleFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.double_val());
     push_stack(result);
