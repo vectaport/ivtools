@@ -201,7 +201,17 @@ gsbrushA_test=func(
     print("gsbrushA: font reached ds2=%v ds3=%v\n" f2 f3 :err);
     if(!f2 :then print("gsbrushA: FAIL font did not reach ds2 intact\n" :err));
     if(!f3 :then print("gsbrushA: FAIL font did not propagate to ds3 intact\n" :err));
-    ok=ok && f2 && f3);
+    /* the font check alone passed even while the text arrived with its
+       content replaced -- the graphic state crossed and the string did not --
+       so assert the content as well */
+    qt=print("%c" 34 :str);
+    txtstr=print("%sgs%s" qt qt :str);
+    c2=gs_on_node(:bn_sock sock2 :bn_id id2 :bn_gs txtstr);
+    c3=gs_on_node(:bn_sock sock3 :bn_id id2 :bn_gs txtstr);
+    print("gsbrushA: text content reached ds2=%v ds3=%v\n" c2 c3 :err);
+    if(!c2 :then print("gsbrushA: FAIL text content did not reach ds2\n" :err));
+    if(!c3 :then print("gsbrushA: FAIL text content did not propagate to ds3\n" :err));
+    ok=ok && f2 && f3 && c2 && c3);
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
