@@ -444,9 +444,18 @@ class TransformerFunc : public UnidrawFunc {
 public:
     TransformerFunc(ComTerp*,Editor*);
     virtual void execute();
-    virtual const char* docstring() { 
-      return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21]) -- set/get transformer associated with a graphic"; }
+    virtual const char* docstring() {
+      return "[compview|a00,a01,a10,a11,a20,a21]=trans(compview [a00,a01,a10,a11,a20,a21] :set :apply) -- set/get transformer associated with a graphic"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+        ":set      impose the matrix, backing out the current transform (default)",
+        ":apply    compose the matrix on top of the current transform",
+        nil
+      };
+      return keys;
+    }
 };
+
 
 //: command to access a graphic's parent
 class GrParentFunc : public ComFunc {

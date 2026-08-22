@@ -24,6 +24,7 @@
  */
 
 #include <ComUnidraw/grfunc.h>
+#include <OverlayUnidraw/ovcmds.h>
 #include <vector>
 
 #include <ComTerp/comvalue.h>
@@ -495,13 +496,38 @@ void CreateTextFunc::execute() {
 
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
-    avl->First(i);
-    for (int j=0; j<n && !avl->Done(i); j++) {
-        args[j] = avl->GetAttrVal(i)->int_val();
-	avl->Next(i);
-    }
 
-    const char* txt = symbol_pntr( txtv.symbol_ref() );
+    /* Two shapes arrive here.  The command form is text(x0,y0 "str"), which is
+       what a person writes.  The serialized form is text(lineheight,"str") --
+       what export() emits, what a saved drawing holds, and what DrawServ sends
+       across a link -- where the position rides in :transform rather than in
+       coordinates, and the string is folded into the first array so nothing is
+       left in argument 1.  Read as the command form it was, that string landed
+       in the y coordinate and the text came out empty, so a text graphic did
+       not survive being exported and re-created, nor reach a far node intact.
+
+       They are told apart by whether a text argument was supplied at all. */
+    boolean serialized_form = !txtv.is_string();
+
+    const char* txt = nil;
+    args[x0] = args[y0] = 0;
+
+    if (serialized_form) {
+	avl->First(i);
+	if (!avl->Done(i)) avl->Next(i);      /* step over the line height */
+	if (!avl->Done(i)) {
+	    AttributeValue* sv = avl->GetAttrVal(i);
+	    txt = sv->is_string() ? symbol_pntr(sv->symbol_val()) : nil;
+	}
+
+    } else {
+	avl->First(i);
+	for (int j=0; j<n && !avl->Done(i); j++) {
+	    args[j] = avl->GetAttrVal(i)->int_val();
+	    avl->Next(i);
+	}
+	txt = symbol_pntr( txtv.symbol_ref() );
+    }
 
     AttributeList* al = stack_keys();
     Resource::ref(al);
@@ -531,6 +557,30 @@ void CreateTextFunc::execute() {
 	   Text is where :font actually appears -- TextGS is the only gs emitter
 	   that writes one for a graphic any create command builds. */
 	set_graphic_gs(al, text);
+
+	/* TextScript::Definition writes a transform corrected by lineHeight-1,
+	   to account for the vertical shift between where a text graphic sits
+	   and where its baseline is.  TextOvComp's reading constructor takes
+	   that correction back out when a saved drawing is loaded; reaching the
+	   same serialized form through this command has to do the same, or the
+	   text creeps down the canvas by a line every time it is exported and
+	   re-created -- and once per hop when it crosses a link. */
+	if (serialized_form) {
+	    /* the emitter corrects by the GRAPHIC's line height, not the
+	       font's, so the inverse has to use the same one */
+	    float sep = 1 - text->GetLineHeight();
+	    Transformer* tt = text->GetTransformer();
+	    float dx = 0., dy = sep;
+	    if (tt != nil) {
+		float xa, ya, xb, yb;
+		tt->Transform(0., 0., xa, ya);
+		tt->Transform(0., sep, xb, yb);
+		dx = xb - xa;
+		dy = yb - ya;
+	    }
+	    text->Translate(dx, dy);
+	}
+
 	TextOvComp* comp = new TextOvComp(text);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
@@ -1869,8 +1919,13 @@ TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(com
 
 void TransformerFunc::execute() {
     
+    static int apply_sym = symbol_add("apply");
+    static int set_sym    = symbol_add("set");
+
     ComValue objv(stack_arg(0));
     ComValue transv(stack_arg(1));
+    ComValue applyv(stack_key(apply_sym));
+    ComValue setv(stack_key(set_sym));
     reset_stack();
     if (objv.object_compview()) {
       ComponentView* compview = (ComponentView*)objv.obj_val();
@@ -1920,9 +1975,50 @@ void TransformerFunc::execute() {
 	    av = avl->GetAttrVal(it);
 	    a21 = av->float_val();
 
-	    Transformer* t = new Transformer(a00, a01, a10, a11, a20, a21);
-	    gr->SetTransformer(t);
-	    comp->Notify();
+	    Transformer* want = new Transformer(a00, a01, a10, a11, a20, a21);
+
+	    /* TransformCmd applies what it is given on top of what the graphic
+	       already has (GraphicComp::Interpret postmultiplies), so :apply
+	       hands it the matrix directly.  The default -- and :set -- impose
+	       the matrix instead, which is the same operation once the current
+	       transform is backed out first: postmultiply is C*t with C applied
+	       first, so the delta that carries C to the wanted D is inverse(C)*D.
+	       Interpret then lands on D, and Uninterpret inverts the same delta
+	       to restore C, so undo comes free either way. */
+	    Transformer* delta = nil;
+	    if (applyv.is_true() && !setv.is_true()) {
+	      delta = want;
+	      Resource::ref(delta);
+
+	    } else if (!gr->GetTransformer()) {
+	      /* nothing to back out -- imposing and applying agree */
+	      delta = want;
+	      Resource::ref(delta);
+
+	    } else {
+	      Transformer* cur = gr->GetTransformer();
+	      float c00, c01, c10, c11, c20, c21;
+	      cur->matrix(c00, c01, c10, c11, c20, c21);
+	      if (c00*c11 - c01*c10 == 0.0) {
+		/* a degenerate current transform cannot be backed out; say so
+		   rather than hand invert() a matrix it has no answer for */
+		fprintf(stderr, "trans: current transform is not invertible, cannot impose a new one (try :apply)\n");
+		Unref(want);
+		push_stack(ComValue::nullval());
+		return;
+	      }
+	      delta = new Transformer(*cur);
+	      Resource::ref(delta);
+	      delta->invert();
+	      delta->postmultiply(*want);
+	      Unref(want);
+	    }
+
+	    OverlayKit* kit = ((OverlayEditor*)_ed)->overlay_kit();
+	    TransformCmd* cmd = kit->make_transform_cmd(_ed, delta);
+	    cmd->SetClipboard(new Clipboard(comp));
+	    Unref(delta);
+	    execute_log(cmd);
 
 	    ComValue compval(new OverlayViewRef(comp), comp->class_symid());
 	    push_stack(compval);
