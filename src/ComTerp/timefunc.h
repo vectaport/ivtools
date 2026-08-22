@@ -67,5 +67,34 @@ public:
     }
 };
 
+//: time returns the current time as a plain number -- wall clock by
+// default, or a monotonic reading with :mono.
+// Sub-second units need 64 bits -- milliseconds since the epoch already
+// exceed a 32-bit int -- so every unit is returned as a long, and seconds
+// too rather than changing type with the keyword.
+class TimeFunc : public ComFunc {
+public:
+    TimeFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "long = %s(:raw :mono :ms :us :ns) -- current time as a number, seconds by default; the bare call is reserved for TimeObj"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":raw       seconds since the epoch: an actual date, comparable with",
+	"           date() and with another machine.  The default clock, and",
+	"           what a unit keyword on its own implies",
+	":mono      a monotonic reading instead: no epoch, so not a date and",
+	"           not comparable with one, but safe for measuring how long",
+	"           something took -- it cannot step backwards",
+	":ms        milliseconds rather than seconds, of whichever clock",
+	":us        microseconds rather than seconds",
+	":ns        nanoseconds rather than seconds, at the clock's real resolution",
+	nil
+      };
+      return keys;
+    }
+};
+
 #endif /* !defined(_datefunc_h) */
 
