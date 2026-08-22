@@ -452,9 +452,31 @@ A few things worth noting:
   indexes directly, no parens needed) — see *At operator* below
 - `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
 - `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
+- **the space binds looser than `,`** — and looser than everything else, which
+  is *why* it separates arguments: every operator has finished binding before
+  the argument boundaries are decided. The whole ladder, loosest first, is
+
+      space   <   ,   <   comparison/arithmetic   <   unary `$$`, `$`, `*`
+
+  Three consequences that otherwise look like unrelated quirks:
+
+  - a comma-built list needs no parens to be one argument — `list(1,2,3)` is
+    `{1,2,3}` (one argument), while `list(1 2 3)` is three arguments and
+    `list()` takes the first, giving `{1,}`
+  - a *space*-form literal does need its own parens, because bare spaces read
+    as argument separation instead: `list((1 2 3))` is the stream literal,
+    and `f((:a 1 :b 2))` passes an attrlist where `f(:a 1 :b 2)` would pass
+    keywords to `f` itself
+  - so `((1,2,3))` has one pair too many — the comma already finished the job —
+    while `((1 2 3))` does not. What is inside decides it: spaces or keywords
+    make a literal and need the parens, commas do not
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
 - `;` binds lowest of all — everything to its left and right is a complete expression
-- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without parens
+- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without
+  parens — but only over a *single* operand. Being unary they bind tighter
+  than `,`, so `$$1,2,3` is `stream(1)` with `2` and `3` glued on after, not a
+  stream over the list; that one wants `$$(1,2,3)`, or a variable holding the
+  list. `postfix($$1,2,3)` shows it directly, as `1 stream[1|0|1]* 2 tuple 3 tuple`
 - `*` plays two roles at once: binary `*` (`mpy`, LtoR, 70) and unary prefix
   `*` (`next`, RtoL, 71) are two separate table entries sharing one operator
   string — the same double-duty pattern `-` already uses for `minus`/`sub`.
