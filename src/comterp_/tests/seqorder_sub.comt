@@ -1,0 +1,7 @@
+// src/comterp_/tests/seqorder_sub.comt -- helper file for seqorder.comt
+//
+// Loaded with run() to test that a definition streamed in from a file is
+// live for the code that calls it, whether or not the run() is fused to
+// that code with ';'.  Defines one func and nothing else.
+
+so_helper=func(41+1)
