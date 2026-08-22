@@ -311,6 +311,13 @@ termination rule below comes from. And because it carries, a nil seen late may
 have been decided much earlier -- walk it back to the first operation that
 declined, rather than studying where it surfaced.
 
+Staying calm about a nil costs exactly one thing: the willingness to climb back
+into the code you just ran and find by trial and error where it started. That
+is cheap here in a way it is not in a compiled language -- paste the fragment
+back at the prompt, cut it in half, `print()` the halves, `postfix()` the parse.
+The answer is usually two or three bisections away, and the nil told you it was
+worth looking.
+
 - **Everything is an expression**; there are no declarations. `func` is a
   *command* that returns a `FuncObj` — write `name=func(...)`, never
   `func name (...)`. A func that "returns nil" is usually this mistake.
