@@ -287,8 +287,9 @@ precedence or evaluation order will not settle at all:
 Every entry below was found that way, most of them after confidently
 believing the opposite.
 
-**A nil is an answer, not a failure.** It is the interpreter's out-of-band
-reply for "no meaningful value here", and reading *which* nil you got is
+**A nil is an answer, not a failure.** Something somewhere decided not to do
+something, and that decision was propagated to you intact rather than being
+converted into a plausible-looking value. Reading *which* nil you got is
 usually the whole diagnosis. Don't chase it as breakage until you have asked
 which of these it is:
 
@@ -303,10 +304,12 @@ which of these it is:
   exists usually means you are running against something older than you think.
   `help(cmd)` answers immediately: an unknown name has no docstring.
 
-And it propagates: `nil+1` and `nil>0` are nil, `nil==0` is false, `nil!=0` is
-true. So a nil observed late may have originated much earlier -- walk it back
-to the first operation that could not answer, rather than examining where it
-surfaced.
+That it propagates is the point, not a hazard to route around: `nil+1` and
+`nil>0` are nil, so an abstention survives the arithmetic instead of being
+laundered into data. `nil==0` is false and `nil!=0` is true, which is where the
+termination rule below comes from. And because it carries, a nil seen late may
+have been decided much earlier -- walk it back to the first operation that
+declined, rather than studying where it surfaced.
 
 - **Everything is an expression**; there are no declarations. `func` is a
   *command* that returns a `FuncObj` — write `name=func(...)`, never
