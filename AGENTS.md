@@ -287,6 +287,27 @@ precedence or evaluation order will not settle at all:
 Every entry below was found that way, most of them after confidently
 believing the opposite.
 
+**A nil is an answer, not a failure.** It is the interpreter's out-of-band
+reply for "no meaningful value here", and reading *which* nil you got is
+usually the whole diagnosis. Don't chase it as breakage until you have asked
+which of these it is:
+
+- **exhausted or out of range** -- `*strm` past the end, `s@99` past a
+  string's length. Normal termination, bounds-checked rather than faulted.
+- **no meaningful reading** -- `int(obj)`, `int("hello")`, `join(str)`. The
+  value exists, the question does not apply to it, and that is deliberate:
+  a plausible-looking number would be worse.
+- **an argument you never supplied** -- an unsupplied `arg(n)` reads nil and
+  runs the body anyway, which is what the termination rule below is about.
+- **the command is not in this binary** -- a nil from a command you are sure
+  exists usually means you are running against something older than you think.
+  `help(cmd)` answers immediately: an unknown name has no docstring.
+
+And it propagates: `nil+1` and `nil>0` are nil, `nil==0` is false, `nil!=0` is
+true. So a nil observed late may have originated much earlier -- walk it back
+to the first operation that could not answer, rather than examining where it
+surfaced.
+
 - **Everything is an expression**; there are no declarations. `func` is a
   *command* that returns a `FuncObj` — write `name=func(...)`, never
   `func name (...)`. A func that "returns nil" is usually this mistake.
