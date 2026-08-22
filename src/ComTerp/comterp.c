@@ -88,6 +88,11 @@
 
 #define TITLE "ComTerp"
 
+/* a symbol that carried an arglist -- "SYMBOL (args)", a call attempt on
+   something that wasn't a registered command when the token was converted */
+#define PENDING_CALL(v) \
+  ((v).is_type(ComValue::SymbolType) && ((v).narg() || (v).nkey()))
+
 extern int _detail_matched_delims;
 extern int _no_bracesplus;
 
@@ -963,6 +968,10 @@ void ComTerp::eval_expr_internals(int pedepth) {
 	   the early exit that previously skipped the FuncObj check). */
 	if (val && !val->is_object(FuncObj::class_symid())) {
 	  ComValue newval(*val);
+	  /* a func-local plain value drains a pending arglist the same way
+	     the local/global case below does -- otherwise the args stay
+	     stranded under the result */
+	  decr_stack(sv.narg() + sv.nkey());
 	  push_stack(newval);
 	  return;
 	}
@@ -1073,13 +1082,22 @@ void ComTerp::load_sub_expr() {
        command (the next token) to read.  The RHS of a dot attribute should
        not look up a zero-arg funcobj. */
     boolean funcobj_top = stack_top().is_funcobj(this);
-    if (funcobj_top && _pfoff < _pfnum &&
+    /* Same break for a symbol carrying a pending arglist: "SYMBOL (args)"
+       is always a call attempt (LANGUAGE.md), so it has to be dispatched
+       here like a command -- eval_expr_internals is what fires a FuncObj
+       or drains a plain value's arglist.  Without the break the symbol
+       sits on the stack with its already-evaluated args stranded under
+       it, so the next operator reads those as its operands and one entry
+       leaks per evaluation. */
+    boolean pending_call_top = PENDING_CALL(stack_top());
+    if ((funcobj_top || pending_call_top) && _pfoff < _pfnum &&
 	_pfcomvals[_pfoff].is_type(ComValue::CommandType)) {
       static int dot_symid = symbol_add("dot");
-      if (_pfcomvals[_pfoff].command_symid() == dot_symid) funcobj_top = false;
+      if (_pfcomvals[_pfoff].command_symid() == dot_symid)
+	funcobj_top = pending_call_top = false;
     }
-    if ((stack_top().type() == ComValue::CommandType || funcobj_top) &&
-	!_pfcomvals[_pfoff-1].pedepth()) break;
+    if ((stack_top().type() == ComValue::CommandType || funcobj_top ||
+	 pending_call_top) && !_pfcomvals[_pfoff-1].pedepth()) break;
   }
   
 #if 0
@@ -1172,13 +1190,16 @@ int ComTerp::post_eval_expr(int tokcnt, int offtop, int pedepth
 	   that is the RHS of a dot is an attribute name, not a call (here in the
 	   post-eval path, e.g. inside && / if). */
 	boolean pe_funcobj_top = stack_top().is_funcobj(this);
-	if (pe_funcobj_top && offset < _pfnum &&
+	/* and the same pending-arglist break as the main push loop */
+	boolean pe_pending_call_top = PENDING_CALL(stack_top());
+	if ((pe_funcobj_top || pe_pending_call_top) && offset < _pfnum &&
 	    _pfcomvals[offset].is_type(ComValue::CommandType)) {
 	  static int dot_symid = symbol_add("dot");
-	  if (_pfcomvals[offset].command_symid() == dot_symid) pe_funcobj_top = false;
+	  if (_pfcomvals[offset].command_symid() == dot_symid)
+	    pe_funcobj_top = pe_pending_call_top = false;
 	}
-	if ((stack_top().is_type(ComValue::CommandType) || pe_funcobj_top)
-	    && stack_top().pedepth() == pedepth) break;
+	if ((stack_top().is_type(ComValue::CommandType) || pe_funcobj_top ||
+	     pe_pending_call_top) && stack_top().pedepth() == pedepth) break;
       }
 #ifdef POSTEVAL_EXPERIMENT 
       if (!(stack_top().is_symbol()&&numtok==1&&nolookup))
@@ -2125,6 +2146,7 @@ void ComTerp::add_defaults() {
 #ifdef HAVE_ACE
     add_command("update", new UpdateFunc(this));
     add_command("timeexpr", new TimeExprFunc(this));
+    add_command("time", new TimeFunc(this));
 #endif
 
     add_command("eval", new EvalFunc(this));

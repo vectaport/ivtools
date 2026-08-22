@@ -24,6 +24,19 @@
 #include <ComTerp/timefunc.h>
 #include <Time/Date.h>
 #include <sstream>
+#include <time.h>
+#include <limits.h>
+
+/* Sub-second units need 64 bits: nanoseconds since the epoch is ~1.8e18,
+   microseconds ~1.8e15, milliseconds ~1.8e12, all past a 32-bit long.  Where
+   long is narrower there is no integer type here that can hold them, and the
+   choice would be between a wrapped number that looks like a time and a nil
+   that every caller then has to test for -- so say so at build time instead.
+   Nothing in this tree builds ILP32 today; if something ever does, this stops
+   it with a reason rather than letting it compute wrong timestamps. */
+#if LONG_MAX < 9223372036854775807LL
+#error "comterp time(): the :ms, :us and :ns keywords require a 64-bit long"
+#endif
 
 #define TITLE "TimeFunc"
 
@@ -123,4 +136,69 @@ void DateFunc::execute() {
   ComValue retval(DateObj::class_symid(), (void*)dateobj);
   push_stack(retval);
 
+}
+
+/*****************************************************************************/
+
+TimeFunc::TimeFunc(ComTerp* comterp) : ComFunc(comterp) {}
+
+void TimeFunc::execute() {
+  static int ms_sym = symbol_add("ms");
+  static int us_sym = symbol_add("us");
+  static int ns_sym = symbol_add("ns");
+  static int mono_sym = symbol_add("mono");
+  static int raw_sym = symbol_add("raw");
+  ComValue msv(stack_key(ms_sym));
+  ComValue usv(stack_key(us_sym));
+  ComValue nsv(stack_key(ns_sym));
+  ComValue monov(stack_key(mono_sym));
+  ComValue rawv(stack_key(raw_sym));
+  boolean anykey = msv.is_true() || usv.is_true() || nsv.is_true()
+                   || monov.is_true() || rawv.is_true();
+  int linenum = funcstate() ? funcstate()->linenum() : 0;
+  reset_stack();
+
+  /* The bare call is reserved.  A time is properly an instant -- a value that
+     knows both its wall reading and a monotonic one, so that formatting uses
+     the first and subtraction the second and the two can never be mixed up.
+     That is a TimeObj, and it arrives with the binary : work.  Answering a
+     plain number here in the meantime would entrench the wrong return and make
+     that a breaking change, so say what is coming instead. */
+  if (!anykey) {
+    std::cout << "WARNING:  time() without a keyword is reserved for a TimeObj return, not yet implemented -- use time(:raw) for the epoch reading or time(:mono) for a monotonic one -- line " << linenum << "\n";
+    push_stack(ComValue::nullval());
+    return;
+  }
+
+  /* Two clocks, for the two jobs, because neither can do the other's.
+
+     CLOCK_REALTIME is a wall-clock reading: it is an actual date, comparable
+     with date() and with another machine, and it must follow an NTP correction
+     rather than ignore one -- which also means it can step backwards.
+
+     CLOCK_MONOTONIC (:mono) has no epoch at all; its zero is unspecified,
+     roughly boot, so it is meaningless as a date.  What it is good for is the
+     thing the wall clock does badly: measuring how long something took, since
+     a clock adjustment mid-measurement cannot corrupt the interval or make it
+     negative.  comeditor.c's shift-arrow watchdog uses it for exactly that.
+
+     A single reading serves every unit, so the keywords cannot disagree about
+     which instant they describe. */
+  struct timespec ts;
+  clock_gettime(monov.is_true() ? CLOCK_MONOTONIC : CLOCK_REALTIME, &ts);
+  long sec = (long)ts.tv_sec;
+  long nsec = (long)ts.tv_nsec;
+
+  long result;
+  if (nsv.is_true())
+    result = sec * 1000000000L + nsec;
+  else if (usv.is_true())
+    result = sec * 1000000L + nsec / 1000L;
+  else if (msv.is_true())
+    result = sec * 1000L + nsec / 1000000L;
+  else
+    result = sec;
+
+  ComValue retval(result);
+  push_stack(retval);
 }
