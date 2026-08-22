@@ -1,4 +1,4 @@
-/*
+t/*
  * Copyright (c) 2001-2009 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
@@ -2146,7 +2146,6 @@ void ComTerp::add_defaults() {
     add_command("update", new UpdateFunc(this));
     add_command("timeexpr", new TimeExprFunc(this));
     add_command("time", new TimeFunc(this));
-#endif
 
     add_command("eval", new EvalFunc(this));
     add_command("shell", new ShellFunc(this));
