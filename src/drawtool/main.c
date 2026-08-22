@@ -29,14 +29,12 @@
  */
 
 
-#ifdef HAVE_ACE
 #ifdef __llvm__
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 #include <ComTerp/comhandler.h>
-#endif
 
 #include <OverlayUnidraw/ovcatalog.h>
 #include <OverlayUnidraw/ovcreator.h>
@@ -168,9 +166,7 @@ static PropertyData properties[] = {
     { "*ptrloc",        "false"  },
     { "*dithermap",     "false"  },
     { "*svgexport",     "false"  },
-#ifdef HAVE_ACE
     { "*import",        "20001" },
-#endif
     { "*help",          "false"  },
     { "*font",          "-adobe-helvetica-medium-r-normal--14-140-75-75-p-77-iso8859-1"  },
     { nil }
@@ -204,9 +200,7 @@ static OptionDesc options[] = {
     { "-ptrloc", "*ptrloc", OptionValueImplicit, "true" },
     { "-dithermap", "*dithermap", OptionValueImplicit, "true" },
     { "-svgexport", "*svgexport", OptionValueImplicit, "true" },
-#ifdef HAVE_ACE
     { "-import", "*import", OptionValueNext },
-#endif
     { "-help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
     { nil }
@@ -222,9 +216,7 @@ static const char usage[] =
 /*****************************************************************************/
 
 int main (int argc, char** argv) {
-#ifdef HAVE_ACE
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
-#endif
     int exit_status = 0;
     OverlayCreator creator;
     OverlayCatalog* catalog = new OverlayCatalog("drawtool", &creator);
@@ -237,7 +229,6 @@ int main (int argc, char** argv) {
       return 0;
     }
     
-#ifdef HAVE_ACE
 
     UnidrawImportAcceptor* import_acceptor = new UnidrawImportAcceptor();
 
@@ -261,7 +252,6 @@ int main (int argc, char** argv) {
     if (ComterpHandler::reactor_singleton()->register_handler 
 	     (SIGINT, IMPORT_QUIT_HANDLER::instance ()) == -1)
         cerr << "drawtool:  unable to register quit handler with ACE reactor\n";
-#endif
 #endif
 
     if (argc > 2) {

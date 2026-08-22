@@ -511,7 +511,6 @@ void OpenFileFunc::execute() {
     ComValue retval(PipeObj::class_symid(), (void*)pipeobj);
     fprintf(stderr, "ready to push retval of type %s and class %s\n", retval.type_name(), retval.class_name());
     push_stack(retval);
-#ifdef HAVE_ACE
     if (Component::use_unidraw()) {
       ComterpHandler* pipe_handler = new ComterpHandler(comterpserv());
       if (ComterpHandler::reactor_singleton()->register_handler(pipeobj->rdfd(), pipe_handler, 
@@ -521,7 +520,6 @@ void OpenFileFunc::execute() {
       }
       pipe_handler->log_only(1);
     }
-#endif
   } else {
     FileObj* fileobj = new FileObj(filenamev.string_ptr(), modev.is_string() ? modev.string_ptr() : "r", pipeflagv.is_true());
     if (fileobj->fptr())  {
@@ -553,13 +551,11 @@ void CloseFileFunc::execute() {
     pipeobj->close();
     return;
   }
-#ifdef HAVE_ACE  
   if (objv.is_socketobj()) {
     SocketObj *sockobj = (SocketObj*)objv.geta(SocketObj::class_symid());
     sockobj->close();
     return;
   }
-#endif
 }
 
 /*****************************************************************************/
@@ -590,7 +586,6 @@ void GetStringFunc::execute() {
     return;
   }
 
-#ifdef HAVE_ACE  
   if (fileobjv.is_socketobj()) {
     char buf[BUFSIZ];
     int i=0;
@@ -607,7 +602,6 @@ void GetStringFunc::execute() {
     push_stack(retval);
     return;
   }
-#endif
 
   push_stack(ComValue::nullval());
 }

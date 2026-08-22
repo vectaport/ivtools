@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawserv.h>
@@ -100,4 +99,3 @@ int DrawServHandler::handle_signal(int signum, siginfo_t* s, ucontext_t* u) {
     fprintf(stderr, "unknown signal handled %d\n", signum);
   return 0;
 }
-#endif /* HAVE_ACE */

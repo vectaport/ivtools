@@ -26,11 +26,8 @@
 
 #include <ComTerp/socket.h>
 
-#ifdef HAVE_ACE
-#endif
 
 
-#ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
 #include <ace/SOCK_Stream.h>
 
@@ -72,5 +69,4 @@ int SocketObj::close() {
 int SocketObj::get_handle() { 
   return _socket->get_handle(); 
 }
-#endif
 

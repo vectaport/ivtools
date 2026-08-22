@@ -427,11 +427,7 @@ site.def.LINUX site.def.SGI site.def.HP800 site.def.ALPHA WishList *.defaults *.
 #endif
 
 #ifndef AceCCDefines
-#ifdef AceDir
-#define AceCCDefines -DHAVE_ACE
-#else
 #define AceCCDefines /**/
-#endif
 #endif
 
 #ifndef OtherCCDefines

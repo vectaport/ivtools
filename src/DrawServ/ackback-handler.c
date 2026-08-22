@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #include <iosfwd>
 using namespace std;
@@ -185,4 +184,3 @@ int  AckBackHandler::handle_close (ACE_HANDLE handle, ACE_Reactor_Mask mask)
   return 0;
 }
 
-#endif /* HAVE_ACE */
