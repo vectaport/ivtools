@@ -72,5 +72,29 @@ r=at(str10 0 :set 'X')
 ok=ok&&(r=='X')&&(at(str10 0)=='X')&&(size(str10)==8)
 print("10 at(\"at393str\" 0 :set 'X') writes (expect X, size 8): %v %v\n" at(str10 0) size(str10))
 
+// --- 12: s@N=c writes through the @ lvalue, the same route lst@N=val takes
+// (#318): at() hands AssignFunc a [base, idx] pair and AssignFunc re-drives
+// at() with a real :set, so the one tested write path does the work.  The
+// text is compared through print(:str), not str12=="xeststring" -- a mutated
+// string keeps its original symid while the literal interns a new one, so
+// the two are unequal as values though their bytes match (#394) ---
+str12="teststring"
+r=str12@0='x'
+ok=ok&&(r=='x')&&(print(str12 :str)=="xeststring")
+print("12 str12@0='x' (expect 'x' xeststring): %v %s\n" r print(str12 :str))
+
+// --- 13: a nil index is the last character, matching the read ---
+r=str12@nil='Z'
+ok=ok&&(r=='Z')&&(print(str12 :str)=="xeststrinZ")
+print("13 str12@nil='Z' (expect 'Z' xeststrinZ): %v %s\n" r print(str12 :str))
+
+// --- 14: and the @ form refuses a symbol just as :set does, since it is the
+// same command underneath -- the read falls through and AssignFunc declines
+// the resulting char, leaving the symbol as it was ---
+sym14=`at393sym2
+r=sym14@0='x'
+ok=ok&&(print(sym14 :str)=="at393sym2")
+print("14 sym14@0='x' leaves the symbol alone (expect at393sym2): %s\n" print(sym14 :str))
+
 print("listat: %v\n" ok)
 ok

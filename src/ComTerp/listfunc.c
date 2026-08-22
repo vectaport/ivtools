@@ -146,11 +146,21 @@ void ListAtFunc::execute() {
      read below for that case avoids it entirely (matches this command's
      own existing behavior for a negative read: nil, no mutation, no
      crash). */
-  if (listv.is_type(ComValue::ArrayType) &&
+  if ((listv.is_type(ComValue::ArrayType) || listv.is_only_string()) &&
       (nv.is_nil() || nv.int_val()>=0) &&
       comterp()->stack_top(nkeys()+1).lhs_assign()) {
-    AttributeValueList* avl = listv.array_val();
-    int nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
+    /* a string takes the same route: its characters are writable in place
+       (#393), so s@N='c' has somewhere to write, and the pair carries the
+       resolved index just as the list case does.  is_only_string(), not
+       is_string(), keeps a symbol out -- its text is its identity. */
+    int nvv;
+    if (listv.is_only_string()) {
+      const char* str = listv.string_ptr();
+      nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
+    } else {
+      AttributeValueList* avl = listv.array_val();
+      nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
+    }
     reset_stack();
     AttributeValueList* pair = new AttributeValueList();
     pair->Append(new AttributeValue(listv));
