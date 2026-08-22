@@ -57,7 +57,13 @@ print("8 at(lst5 5 :del) out of range (expect BlankType, list unchanged): %v\n" 
 // --- test 9: :set on a symbol is refused -- a symbol's text is its identity (#393) ---
 sym9=`at393sym
 r=at(sym9 0 :set 88)
-ok=ok&&(r==nil)&&(sym9==`at393sym)&&(at(sym9 0)=='a')
+// (the text is checked through print(:str), not at(sym9 0): reading a char
+// out of a symbol *variable* answers nil under comdraw/drawserv, where at()
+// and size() are wrapped by GrListAtFunc/GrListSizeFunc -- issue #400, not
+// something this changes.  sym9==`at393sym is the load-bearing clause anyway,
+// since a write that landed would have re-spelled the table entry and the
+// literal would then intern a different id)
+ok=ok&&(r==nil)&&(sym9==`at393sym)&&(print(sym9 :str)=="at393sym")
 print("9 at(`at393sym 0 :set 88) refused (expect nil, symbol intact): %v %v\n" r sym9)
 
 // --- test 10: :set on a string still writes in place ---
