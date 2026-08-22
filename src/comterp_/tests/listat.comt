@@ -54,5 +54,17 @@ r=at(lst5 5 :del)
 ok=ok&&(type(r)==`BlankType)&&(lst5=={1,2,3})&&(size(lst5)==3)
 print("8 at(lst5 5 :del) out of range (expect BlankType, list unchanged): %v\n" type(r))
 
+// --- test 9: :set on a symbol is refused -- a symbol's text is its identity (#393) ---
+sym9=`at393sym
+r=at(sym9 0 :set 88)
+ok=ok&&(r==nil)&&(sym9==`at393sym)&&(at(sym9 0)=='a')
+print("9 at(`at393sym 0 :set 88) refused (expect nil, symbol intact): %v %v\n" r sym9)
+
+// --- test 10: :set on a string still writes in place ---
+str10="at393str"
+r=at(str10 0 :set 'X')
+ok=ok&&(r=='X')&&(at(str10 0)=='X')&&(size(str10)==8)
+print("10 at(\"at393str\" 0 :set 'X') writes (expect X, size 8): %v %v\n" at(str10 0) size(str10))
+
 print("listat: %v\n" ok)
 ok

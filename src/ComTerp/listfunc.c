@@ -255,7 +255,11 @@ void ListAtFunc::execute() {
         push_stack(retval);
         return;
       }
-    } else {
+    } else if (listv.is_only_string()) {
+      /* is_string() is StringType||SymbolType, and a symbol's characters are
+	 its identity: every value holding that symid names the same text, so
+	 a write here would edit the symbol out from under all of them (#393).
+	 Reads above stay open to both. */
       if(nvv<strlen(str) && nvv>=0) {
 	*((char *)str+nvv) = setv.char_val();
 	ComValue retval(setv);
