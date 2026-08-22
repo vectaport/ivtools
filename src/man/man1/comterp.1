@@ -389,6 +389,11 @@ Print a usage summary of all the invocation modes above and exit.
 
  c=char(num :u) -- convert any numeric to a char
 
+ A char displays as itself where that is safe: 'a' for a printable byte, caret
+ notation such as '^A' or '^[' for a control byte so that a real control
+ character never reaches the output, and the backquote-octal escape `\e240` at
+ or above 0x80, where there is nothing readable to show
+
  s=short(num :u) -- convert any numeric to a short
 
  i=int(num :u) -- convert any numeric to an int
