@@ -273,11 +273,42 @@ C++ work. The essentials:
   merge instead of being left open for manual cleanup.
 
 ### ComTerp scripting gotchas (bite C-trained authors)
+
+Ask the interpreter rather than reasoning about it -- it answers questions
+about itself, and a two-line probe settles in seconds what an argument about
+precedence or evaluation order will not settle at all:
+
+    postfix(expr)          how it actually parsed
+    help(cmd)              the signature and its keywords
+    istype(v :sym)         what you are holding, without consuming it
+    info(strm).func        which stream implementation this is
+    print(v :str)          the rendering, as a string you can compare
+
+Every entry below was found that way, most of them after confidently
+believing the opposite.
+
 - **Everything is an expression**; there are no declarations. `func` is a
   *command* that returns a `FuncObj` — write `name=func(...)`, never
   `func name (...)`. A func that "returns nil" is usually this mistake.
 - **Append with `,` (the tuple operator), not `list()`.** `lst,x` appends in
   place; `list(lst x)` builds a nested list-of-lists.
+- **A one-element list needs the trailing comma** -- `('x',)` is a one-element
+  list, `('x')` is just a parenthesized value. Comparing a one-element result
+  against the second form silently fails.
+- **There is no `%%` escape in `print()`.** A literal percent is just `%`.
+  Writing `%%` before a verb letter leaves a stray `%` and a *live* verb --
+  `"%%v"` prints `%` and then consumes an argument.
+- **`symid()` takes its argument unevaluated; `symstr()` evaluates.** With
+  ``f=`abc``, `symid(f)` answers about the name `f`, not about `abc`, while
+  `symstr(f)` gives `"abc"`. To read a symbol *value* out of an attrlist field
+  use `symstr(al.field)`, or compare it directly against a bquoted symbol.
+- **Measuring a stream can consume it.** A stream argument overdrives an
+  ordinary command, so `type(s)` reports once *per element* and leaves the
+  stream exhausted. Use `istype(s StreamType)`, which inspects rather than
+  being overdriven. The same overdrive is why a `%v` of a stream drains it.
+- **A char is signed.** `int(char(160))` is `-96`; `:u` asks for the unsigned
+  reading, `int(char(160 :u))` is `160`. The display goes by the unsigned byte
+  either way, so what you see and what arithmetic sees can differ.
 - **The space binds looser than `,`, and looser than everything else** -- which
   is why it separates arguments. Loosest first:
   `space < , < comparison/arithmetic < unary $$ $ *`. So `list(1,2,3)` is one
