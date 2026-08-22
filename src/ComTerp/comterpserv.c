@@ -101,9 +101,7 @@ ComTerpServ::ComTerpServ(int linesize, int fd)
       _fptr = fdopen(_fd, "rw");
     else
       _fptr = stdin;
-#ifdef HAVE_ACE
     _handler = nil;
-#endif
 
     /* inform the parser which infunc is the oneshot infunc */
     _oneshot_infunc = (infuncptr)&s_fgets;

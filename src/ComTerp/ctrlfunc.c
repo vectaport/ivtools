@@ -39,9 +39,7 @@
 
 #include <wordexp.h>
 
-#ifdef HAVE_ACE
 #include <ace/SOCK_Connector.h>
-#endif
 
 
 #define TITLE "CtrlFunc"
@@ -84,7 +82,6 @@ TimeExprFunc::TimeExprFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void TimeExprFunc::execute() {
-#ifdef HAVE_ACE
     ComValue timeoutstr(stack_arg(0));
     static int sec_symval = symbol_add("sec");
     ComValue sec_val(ComValue::oneval());
@@ -108,7 +105,6 @@ void TimeExprFunc::execute() {
 	    
 	    
     }
-#endif
 }
 
 /*****************************************************************************/
@@ -515,7 +511,6 @@ void UpdateFunc::execute() {
     ComValue usecv(stack_arg(0, false, longzero));
     long usec = usecv.long_val();
     reset_stack();
-#ifdef HAVE_ACE
     if (usec > 0) {
         ACE_Time_Value timeout(usec/1000000, usec%1000000);
         ComterpHandler::reactor_singleton()->handle_events(timeout);
@@ -523,7 +518,6 @@ void UpdateFunc::execute() {
         ACE_Time_Value timeout(ACE_Time_Value::zero);
         ComterpHandler::reactor_singleton()->handle_events(timeout);
     }
-#endif
     push_stack(ComValue::zeroval());
     return;
 }

@@ -28,7 +28,6 @@
 #include <Attribute/classid.h>
 #include <stdlib.h>
 
- #ifdef HAVE_ACE
 class ACE_SOCK_Stream;
 class ACE_SOCK_Connector;
 
@@ -52,6 +51,5 @@ class SocketObj {
 
   CLASS_SYMID("SocketObj");
 };
-#endif
    
 #endif /* !defined(_socket_h) */

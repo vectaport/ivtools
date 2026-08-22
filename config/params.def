@@ -466,9 +466,11 @@ config.guess config.sub configure configure.in MANIFEST.perceps MANIFEST.comterp
 #endif
 
 #ifndef AceCCDefines
-/* ACE-lite (#147): HAVE_ACE is on for either backend -- the in-tree subset
-   (default) or external libACE (--with-ace).  Networking is always available. */
-#define AceCCDefines -DHAVE_ACE -std=c++14
+/* ACE-lite (#147): networking is available for either backend -- the in-tree
+   subset (default) or external libACE (--with-ace).  There is no longer a
+   HAVE_ACE to define: the sources it used to gate compiled either way, so the
+   guards are gone and only the standard level ACE's headers need remains. */
+#define AceCCDefines -std=c++14
 #endif
 
 #ifndef QtCCDefines

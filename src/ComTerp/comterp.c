@@ -2122,10 +2122,8 @@ void ComTerp::add_defaults() {
     add_command("gets", new GetStringFunc(this));
 
     add_command("usleep", new USleepFunc(this));
-#ifdef HAVE_ACE
     add_command("update", new UpdateFunc(this));
     add_command("timeexpr", new TimeExprFunc(this));
-#endif
 
     add_command("eval", new EvalFunc(this));
     add_command("shell", new ShellFunc(this));
