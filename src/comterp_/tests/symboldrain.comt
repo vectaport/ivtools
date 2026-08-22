@@ -82,5 +82,90 @@ ok=ok&&sameheight
 print("5 stackheight() delta is the same for 3 vs 5 drains (expect true): %v %v\n\n" d3 d5)
 check_fail(:ok ok)
 
+// --- tests 6-10: the drain has to happen where the symbol sits, mid
+// expression, not just when it lands at the top of a finished statement.
+// A drain inside a loop condition is where getting that wrong shows:
+// "while(i<lim (i=i+1))" glues the paren group onto lim (adjacency, above),
+// so while sees ONE argument -- the condition -- and no body at all, with
+// the increment riding inside the condition.  That is a legal, terminating
+// loop; whether a body-less while should say so is #398.  It used to run
+// exactly one iteration and print stack diagnostics: the symbol was left
+// on the stack unresolved with its already-evaluated arglist stranded
+// underneath, so "<" compared the arglist's value against the bare symbol,
+// and the leftover entry wrecked while's post-eval anchor on the next
+// pass.  It only ever looked right at the end of a statement, where the
+// enclosing command's reset_stack() swept the leftover away. ---
+
+// --- test 6: the glued forms -- one per comparison shape, since which
+// operand the paren lands against is what decides who gets drained ---
+lim=5
+i=0
+while(i<lim (i=i+1))
+a6=i
+i=0
+while(lim>i (i=i+1))
+b6=i
+i=0
+while(i!=lim (i=i+1))
+c6=i
+ok=ok&&(a6==5 && b6==5 && c6==5)
+print("6 glued cond runs to completion, i<lim / lim>i / i!=lim (expect 5 5 5): %v %v %v\n\n" a6 b6 c6)
+check_fail(:ok ok)
+
+// --- test 7: the contrasting forms that never glued, so the test fails if
+// the parse itself ever shifts.  A literal can't be called, so the parens
+// stay a body; a closing paren before them does the same; and a bare or
+// ";"-terminated body was never ambiguous ---
+i=0
+while(i<5 (i=i+1))
+a7=i
+i=0
+while((i<lim) (i=i+1))
+b7=i
+i=0
+while(i<lim i=i+1)
+c7=i
+i=0
+while(i<lim i=i+1;)
+d7=i
+ok=ok&&(a7==5 && b7==5 && c7==5 && d7==5)
+print("7 unglued forms unchanged, i<5 / (i<lim) / bare / semicolon (expect 5 5 5 5): %v %v %v %v\n\n" a7 b7 c7 d7)
+check_fail(:ok ok)
+
+// --- test 8: the leak signature, measured the way test 5 measures it --
+// a glued loop drains once per iteration, so a leak here compounds ---
+before2=stackheight()
+h2=(i=0; while(i<lim (i=i+1)); i=0; while(i<lim (i=i+1)); stackheight())
+before4=stackheight()
+h4=(i=0; while(i<lim (i=i+1)); i=0; while(i<lim (i=i+1)); i=0; while(i<lim (i=i+1)); i=0; while(i<lim (i=i+1)); stackheight())
+e2=h2-before2
+e4=h4-before4
+ok=ok&&(e2==e4)
+print("8 stackheight() delta is the same for 2 vs 4 glued loops (expect true): %v %v\n\n" e2 e4)
+check_fail(:ok ok)
+
+// --- test 9: the same drain as a plain mid-expression operand, away from
+// any loop -- the general case the loop symptom was a symptom of.  The
+// arglist runs once for its side effect and the symbol's own value is what
+// the operator gets ---
+x9=5
+cnt9=0
+r9=2+x9 (cnt9=cnt9+1)
+ok=ok&&(r9==7 && cnt9==1)
+print("9 2+x9 (side effect) drains mid-expression (expect r9=7 cnt9=1): %v %v\n\n" r9 cnt9)
+check_fail(:ok ok)
+
+// --- test 10: the same again for a symbol that resolves in func scope
+// rather than the local/global tables -- a keyword param is a plain value
+// too, so it drains the same way, in a loop condition inside a body.  lim
+// is deliberately the outer symbol from test 6: the keyword binding is
+// what each call reads, which is the func-scope path being covered ---
+g10=func(i=0; while(i<lim (i=i+1)); i)
+a10=g10(:lim 5)
+b10=g10(:lim 3)
+ok=ok&&(a10==5 && b10==3)
+print("10 glued cond on a func keyword param (expect 5 3): %v %v\n\n" a10 b10)
+check_fail(:ok ok)
+
 print("\nsymboldrain: %v\n" ok)
 ok
