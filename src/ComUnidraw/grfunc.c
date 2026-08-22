@@ -1868,9 +1868,13 @@ void SetTransformCmd::Execute () {
 	    cb->Next(i);
 	    if (cb->Done(i)) {          /* exactly one, as trans() sends */
 		Graphic* gr = comp ? comp->GetGraphic() : nil;
-		Transformer* cur = gr ? gr->GetTransformer() : nil;
-		if (cur) {
-		    _prev = new Transformer(*cur);
+		if (gr) {
+		    /* having no transformer is a state to restore, not the
+		       absence of one -- undo must put the graphic back to nil
+		       rather than leave an identity behind, which would show
+		       up as a :transform keyword that was never there */
+		    Transformer* cur = gr->GetTransformer();
+		    _prev = cur ? new Transformer(*cur) : nil;
 		    Resource::ref(_prev);
 		    _snapped = true;
 		}
