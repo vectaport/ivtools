@@ -1,5 +1,5 @@
 // src/comterp_/tests/numstring.comt -- int()/long()/float()/double() applied
-// to arguments that are not numbers: strings, and objects
+// to arguments that are not numbers: strings, objects, and lists
 //
 // funcs: int long float double date attrlist func print
 //
