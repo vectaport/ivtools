@@ -55,6 +55,10 @@ if(run("./spirograph.comt")
   :then print("pass: spirograph\n")
   :else print("FAIL: spirograph\n");ok=false)
 
+if(run("./trans.comt")
+  :then print("pass: trans\n")
+  :else print("FAIL: trans\n");ok=false)
+
 if(run("./deletestream.comt")
   :then print("pass: deletestream\n")
   :else print("FAIL: deletestream\n");ok=false)

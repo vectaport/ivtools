@@ -1847,13 +1847,74 @@ void TileFileFunc::execute() {
 
 /*****************************************************************************/
 
+SetTransformCmd::SetTransformCmd (Editor* ed, Transformer* t)
+  : TransformCmd(ed, t) { _prev = nil; _snapped = false; }
+
+SetTransformCmd::~SetTransformCmd () { Unref(_prev); }
+
+void SetTransformCmd::Execute () {
+    /* remember where the graphic was before the delta goes on, so undo can
+       put it back exactly rather than composing its way back approximately */
+    Unref(_prev);
+    _prev = nil;
+    _snapped = false;
+
+    Clipboard* cb = GetClipboard();
+    if (cb) {
+	Iterator i;
+	cb->First(i);
+	if (!cb->Done(i)) {
+	    GraphicComp* comp = (GraphicComp*)cb->GetComp(i);
+	    cb->Next(i);
+	    if (cb->Done(i)) {          /* exactly one, as trans() sends */
+		Graphic* gr = comp ? comp->GetGraphic() : nil;
+		Transformer* cur = gr ? gr->GetTransformer() : nil;
+		if (cur) {
+		    _prev = new Transformer(*cur);
+		    Resource::ref(_prev);
+		    _snapped = true;
+		}
+	    }
+	}
+    }
+    TransformCmd::Execute();
+}
+
+void SetTransformCmd::Unexecute () {
+    if (!_snapped) {            /* nothing recorded -- compose back as usual */
+	TransformCmd::Unexecute();
+	return;
+    }
+    Clipboard* cb = GetClipboard();
+    if (cb) {
+	Iterator i;
+	cb->First(i);
+	if (!cb->Done(i)) {
+	    GraphicComp* comp = (GraphicComp*)cb->GetComp(i);
+	    Graphic* gr = comp ? comp->GetGraphic() : nil;
+	    if (gr) {
+		gr->SetTransformer(_prev);
+		comp->Notify();
+	    }
+	}
+    }
+    unidraw->Update();
+}
+
+/*****************************************************************************/
+
 TransformerFunc::TransformerFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void TransformerFunc::execute() {
     
+    static int apply_sym = symbol_add("apply");
+    static int set_sym    = symbol_add("set");
+
     ComValue objv(stack_arg(0));
     ComValue transv(stack_arg(1));
+    ComValue applyv(stack_key(apply_sym));
+    ComValue setv(stack_key(set_sym));
     reset_stack();
     if (objv.object_compview()) {
       ComponentView* compview = (ComponentView*)objv.obj_val();
@@ -1903,9 +1964,49 @@ void TransformerFunc::execute() {
 	    av = avl->GetAttrVal(it);
 	    a21 = av->float_val();
 
-	    Transformer* t = new Transformer(a00, a01, a10, a11, a20, a21);
-	    gr->SetTransformer(t);
-	    comp->Notify();
+	    Transformer* want = new Transformer(a00, a01, a10, a11, a20, a21);
+
+	    /* TransformCmd applies what it is given on top of what the graphic
+	       already has (GraphicComp::Interpret postmultiplies), so :apply
+	       hands it the matrix directly.  The default -- and :set -- impose
+	       the matrix instead, which is the same operation once the current
+	       transform is backed out first: postmultiply is C*t with C applied
+	       first, so the delta that carries C to the wanted D is inverse(C)*D.
+	       Interpret then lands on D, and Uninterpret inverts the same delta
+	       to restore C, so undo comes free either way. */
+	    Transformer* delta = nil;
+	    if (applyv.is_true() && !setv.is_true()) {
+	      delta = want;
+	      Resource::ref(delta);
+
+	    } else if (!gr->GetTransformer()) {
+	      /* nothing to back out -- imposing and applying agree */
+	      delta = want;
+	      Resource::ref(delta);
+
+	    } else {
+	      Transformer* cur = gr->GetTransformer();
+	      float c00, c01, c10, c11, c20, c21;
+	      cur->matrix(c00, c01, c10, c11, c20, c21);
+	      if (c00*c11 - c01*c10 == 0.0) {
+		/* a degenerate current transform cannot be backed out; say so
+		   rather than hand invert() a matrix it has no answer for */
+		fprintf(stderr, "trans: current transform is not invertible, cannot impose a new one (try :apply)\n");
+		Unref(want);
+		push_stack(ComValue::nullval());
+		return;
+	      }
+	      delta = new Transformer(*cur);
+	      Resource::ref(delta);
+	      delta->invert();
+	      delta->postmultiply(*want);
+	      Unref(want);
+	    }
+
+	    TransformCmd* cmd = new SetTransformCmd(_ed, delta);
+	    cmd->SetClipboard(new Clipboard(comp));
+	    Unref(delta);
+	    execute_log(cmd);
 
 	    ComValue compval(new OverlayViewRef(comp), comp->class_symid());
 	    push_stack(compval);

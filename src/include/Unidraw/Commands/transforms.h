@@ -99,6 +99,7 @@ class TransformCmd : public Command {
 public:
     TransformCmd(ControlInfo*, Transformer* = nil);
     TransformCmd(Editor* = nil, Transformer* = nil);
+    virtual ~TransformCmd();
 
     Transformer* GetTransformer();
 
