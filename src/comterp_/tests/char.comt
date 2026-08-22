@@ -89,5 +89,16 @@ al10=eval("(:p 'a')")
 ok=ok&&(type(attrval(al10))=="CharType")
 print("10 (:p 'a') reads back as a char (expect CharType): %s\n" type(attrval(al10)))
 
+// --- 11: the two bytes that cannot sit bare between the quotes -- a backslash
+// would escape the closing quote, an apostrophe would be it -- take the escape
+// the lexer already reads, so they round-trip instead of breaking the parse of
+// everything after them.  Before, a char attribute holding 0x5c serialized as
+// '\' and the whole enclosing attrlist came back nil ---
+al11=(:b char(92) :q char(39) :next 42)
+ok=ok&&(print(al11 :str)=="(:b '\\\\' :q '\\'' :next 42)")
+r11=eval("(:b '\\\\' :q '\\'' :next 42)")
+ok=ok&&(int(attrval(r11@0))==92)&&(int(attrval(r11@1))==39)&&(attrval(r11@2)==42)
+print("11 backslash and apostrophe escape and round-trip (expect 92 39 42): %v %v %v\n" int(attrval(r11@0)) int(attrval(r11@1)) attrval(r11@2))
+
 print("char: %v\n" ok)
 ok

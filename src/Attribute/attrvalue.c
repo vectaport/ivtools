@@ -844,6 +844,11 @@ const char* AttributeValue::command_name() {
 void AttributeValue::out_char_brief(ostream& out, unsigned char cv) {
   if (cv < 0x80 && iscntrl(cv))
     out << "'" << '^' << (char)(cv ^ 0x40) << "'";
+  /* the two bytes that cannot appear bare between the quotes: a backslash
+     would escape the closing quote, and an apostrophe would be it.  Both
+     escapes are lexer forms, so these keep round-tripping. */
+  else if (cv == '\\' || cv == '\'')
+    out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
     out << "'" << (char)cv << "'";
   else
