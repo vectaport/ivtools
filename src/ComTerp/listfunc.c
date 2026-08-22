@@ -126,6 +126,17 @@ void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1, false, ComValue::zeroval()));
 
+  /* a list has no position in it, and int_val() answers 0 for one -- so a
+     list-valued index used to read as index 0 and hand back the first item,
+     a wrong answer wearing a right one's clothes.  A stream of indices does
+     fan out, through ordinary overdrive; whether the list spelling should
+     mean the same gather is #404.  Until then, say nil. */
+  if (nv.is_array()) {
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   /* #318 (@ operator): lst@N=val.  AssignFunc (assignfunc.c) flags this
      call's own token with lhs_assign() when it's the before-part of an
      assignment, before this execute() runs.  A plain list element is a

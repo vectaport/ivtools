@@ -630,7 +630,16 @@ Like any other binary operator, `@` overdrives when its rhs is a stream:
 `lst@(0..2)` or `lst@s` (for a stream variable `s`) both vectorize into a
 stream of results — nothing `@`-specific was needed for that either, it's
 the same scalar-overdrive mechanism described under *Scalar overdrive*
-below.
+below. A **list** of indices is not a stream and does not fan out: it has
+no position in it, so `lst@idx` answers nil rather than reading as some
+particular index.
+
+```
+lst=10,20,30,40
+idx=0,2
+lst@$$idx        // {10,30} -- a stream of indices fans out
+lst@idx          // nil     -- a list of them does not
+```
 
 Unlike unary prefix `*`, which is a single `optable.c` line mapping
 straight onto the existing `next()` command with no other change, `@`

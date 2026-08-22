@@ -113,5 +113,15 @@ r=str15@nil='C'
 ok=ok&&(r=='C')&&(print(str15 :str)=="abC")
 print("16 nil writes the last item (expect {10,20,99} abC): %v %s\n" lst15 print(str15 :str))
 
+// --- 17: a list has no position in it, so a list-valued index answers nil
+// rather than the first item.  int_val() on a list is 0, which used to make
+// lst@idx read as lst@0 -- a wrong answer wearing a right one's clothes.  A
+// STREAM of indices does fan out, by ordinary overdrive; whether the list
+// spelling should mean that same gather is #404 ---
+lst17=10,20,30,40
+idx17=0,2
+ok=ok&&(lst17@idx17==nil)&&(lst17@(0,2)==nil)&&(list(lst17@$$idx17)=={10,30})
+print("17 list index nil, stream index fans out (expect nil {10,30}): %v %v\n" lst17@idx17 list(lst17@$$idx17))
+
 print("listat: %v\n" ok)
 ok
