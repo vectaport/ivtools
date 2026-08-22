@@ -2125,6 +2125,7 @@ void ComTerp::add_defaults() {
 #ifdef HAVE_ACE
     add_command("update", new UpdateFunc(this));
     add_command("timeexpr", new TimeExprFunc(this));
+    add_command("time", new TimeFunc(this));
 #endif
 
     add_command("eval", new EvalFunc(this));
