@@ -115,6 +115,9 @@ wrong-type, fake-key. One slot per value class per argument position.
 Run the function with randomly sampled argument combinations. Uses a
 random seed printed at the start of the run so failures are
 reproducible — if a test fails, rerun with `srand(seed)` to reproduce.
+The seed comes from `time(:ms)`, so it genuinely differs from run to run;
+a seed of day granularity would have a whole day of runs sampling the
+same values, which defeats the point of sampling at all.
 Random tests assert no crash and known return type, not specific values.
 Random tests contribute to coverage when they exercise combinations not
 covered by slots 1-11.
