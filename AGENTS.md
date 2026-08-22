@@ -278,6 +278,16 @@ C++ work. The essentials:
   `func name (...)`. A func that "returns nil" is usually this mistake.
 - **Append with `,` (the tuple operator), not `list()`.** `lst,x` appends in
   place; `list(lst x)` builds a nested list-of-lists.
+- **The space binds looser than `,`, and looser than everything else** -- which
+  is why it separates arguments. Loosest first:
+  `space < , < comparison/arithmetic < unary $$ $ *`. So `list(1,2,3)` is one
+  argument and `list(1 2 3)` is three; a comma-built list needs no parens as an
+  argument, but a space-form literal does (`list((1 2 3))`), and `f((:a 1))`
+  passes an attrlist where `f(:a 1)` passes a keyword to `f`. Reaching for
+  parens defensively is the wrong instinct -- `((1,2,3))` has a pair too many,
+  `((1 2 3))` does not, and what is inside decides which. The trap this hides
+  is unary: `$$1,2,3` is `stream(1)` with `2` and `3` glued on, not a stream
+  over the list. `postfix(expr)` shows the parse when in doubt.
 - **Never use a termination test that goes true on nil.** An unsupplied
   `arg(n)` reads nil, so every arg-based func has a "called with too few
   arguments" path landing straight in the body. `nil!=0` is `true`, so
