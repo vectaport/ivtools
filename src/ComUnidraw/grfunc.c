@@ -494,13 +494,38 @@ void CreateTextFunc::execute() {
 
     ALIterator i;
     AttributeValueList* avl = vect.array_val();
-    avl->First(i);
-    for (int j=0; j<n && !avl->Done(i); j++) {
-        args[j] = avl->GetAttrVal(i)->int_val();
-	avl->Next(i);
-    }
 
-    const char* txt = symbol_pntr( txtv.symbol_ref() );
+    /* Two shapes arrive here.  The command form is text(x0,y0 "str"), which is
+       what a person writes.  The serialized form is text(lineheight,"str") --
+       what export() emits, what a saved drawing holds, and what DrawServ sends
+       across a link -- where the position rides in :transform rather than in
+       coordinates, and the string is folded into the first array so nothing is
+       left in argument 1.  Read as the command form it was, that string landed
+       in the y coordinate and the text came out empty, so a text graphic did
+       not survive being exported and re-created, nor reach a far node intact.
+
+       They are told apart by whether a text argument was supplied at all. */
+    boolean serialized_form = !txtv.is_string();
+
+    const char* txt = nil;
+    args[x0] = args[y0] = 0;
+
+    if (serialized_form) {
+	avl->First(i);
+	if (!avl->Done(i)) avl->Next(i);      /* step over the line height */
+	if (!avl->Done(i)) {
+	    AttributeValue* sv = avl->GetAttrVal(i);
+	    txt = sv->is_string() ? symbol_pntr(sv->symbol_val()) : nil;
+	}
+
+    } else {
+	avl->First(i);
+	for (int j=0; j<n && !avl->Done(i); j++) {
+	    args[j] = avl->GetAttrVal(i)->int_val();
+	    avl->Next(i);
+	}
+	txt = symbol_pntr( txtv.symbol_ref() );
+    }
 
     AttributeList* al = stack_keys();
     Resource::ref(al);
@@ -530,6 +555,30 @@ void CreateTextFunc::execute() {
 	   Text is where :font actually appears -- TextGS is the only gs emitter
 	   that writes one for a graphic any create command builds. */
 	set_graphic_gs(al, text);
+
+	/* TextScript::Definition writes a transform corrected by lineHeight-1,
+	   to account for the vertical shift between where a text graphic sits
+	   and where its baseline is.  TextOvComp's reading constructor takes
+	   that correction back out when a saved drawing is loaded; reaching the
+	   same serialized form through this command has to do the same, or the
+	   text creeps down the canvas by a line every time it is exported and
+	   re-created -- and once per hop when it crosses a link. */
+	if (serialized_form) {
+	    /* the emitter corrects by the GRAPHIC's line height, not the
+	       font's, so the inverse has to use the same one */
+	    float sep = 1 - text->GetLineHeight();
+	    Transformer* tt = text->GetTransformer();
+	    float dx = 0., dy = sep;
+	    if (tt != nil) {
+		float xa, ya, xb, yb;
+		tt->Transform(0., 0., xa, ya);
+		tt->Transform(0., sep, xb, yb);
+		dx = xb - xa;
+		dy = yb - ya;
+	    }
+	    text->Translate(dx, dy);
+	}
+
 	TextOvComp* comp = new TextOvComp(text);
 	comp->SetAttributeList(al);
 	if (PasteModeFunc::paste_mode()==0)
