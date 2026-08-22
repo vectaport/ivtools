@@ -186,5 +186,9 @@ if(run("./wrapper.comt")
   :then print("pass: wrapper\n")
   :else print("FAIL: wrapper\n");topok=false)
 
+if(run("./classblank.comt")
+  :then print("pass: classblank\n")
+  :else print("FAIL: classblank\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok

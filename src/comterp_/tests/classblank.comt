@@ -1,0 +1,106 @@
+// src/comterp_/tests/classblank.comt -- class() with no argument answers
+// blank, not nil: the two "no answer" values say different things
+//
+// coverage: 10/12 (83%)
+// funcs: class blank empty type
+// missing: blank(arg) empty(arg) over-arity forms
+//
+// class(val) has two ways to come back empty-handed, and they are not the
+// same question:
+//
+//   class(3)   ->  nil     a value was named; it has no class to report
+//   class()    ->  blank   no value was named at all
+//
+// nil is an answer about the argument, so it needs an argument to be about.
+// With nothing named there is nothing to answer for, and blank -- the
+// value ComTerp already uses for "no value here", the one empty() leaves
+// behind -- is what that costs.  Reserving nil for the named-but-classless
+// case keeps the answer readable: a caller feeding class() a value it did
+// not build itself can tell "you handed me something with no class" from
+// "you handed me nothing", which a single shared nil cannot express.
+//
+// The distinction survives comparison -- blank==nil is false (test 5, 6) --
+// so a caller can branch on which of the two it got.  Both are falsy in a
+// condition (test 8), so neither one silently takes a :then branch.
+//
+// class() takes no keywords, so a keyword-only call names no value either
+// and answers blank the same way (test 10).
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./classblank.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: class() with no argument answers blank ---
+r1=type(class())
+ok=ok&&(r1==`BlankType)
+print("1 type(class()) with no argument (expect BlankType): %v\n" r1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: and it is the same blank blank() hands out ---
+r2=(class()==blank())
+ok=ok&&(r2==true)
+print("2 class()==blank() (expect true): %v\n" r2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: empty() is the partner -- the empty statement leaves the same
+// value behind, so class() with nothing to look at reads the same way ---
+r3a=type(empty())
+r3b=(class()==empty())
+ok=ok&&(r3a==`BlankType)&&(r3b==true)
+print("3 empty() leaves the same blank (expect BlankType true): %v %v\n" r3a r3b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: a value that was named but has no class still answers nil ---
+r4=class(3)
+ok=ok&&(r4==nil)&&(type(r4)==`UnknownType)
+print("4 class(3) names a classless value (expect nil UnknownType): %v %v\n" r4 type(r4))
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: the two answers are distinguishable -- this is the whole point ---
+r5=(class()==class(3))
+ok=ok&&(r5==false)
+print("5 class()==class(3) blank is not nil (expect false): %v\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: stated the other way, against nil directly ---
+r6a=(class()==nil)
+r6b=(class(3)==nil)
+ok=ok&&(r6a==false)&&(r6b==true)
+print("6 blank==nil vs nil==nil (expect false true): %v %v\n" r6a r6b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: a real object still reports its class, unchanged ---
+al7=attrlist(:x 1)
+r7=class(al7)
+ok=ok&&(r7==`AttributeList)&&(type(r7)==`SymbolType)
+print("7 class(attrlist(:x 1)) (expect AttributeList SymbolType): %v %v\n" r7 type(r7))
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: both no-answer values are falsy, so neither takes a :then ---
+r8a=if(class() :then "true-branch" :else "false-branch")
+r8b=if(class(3) :then "true-branch" :else "false-branch")
+ok=ok&&(r8a=="false-branch")&&(r8b=="false-branch")
+print("8 blank and nil are both falsy (expect false-branch false-branch): %v %v\n" r8a r8b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: multi-argument class() is untouched -- with arguments to be
+// about, every classless one is still its own nil in the returned list ---
+lst9=class(1 2)
+n9=size(lst9)
+a9=at(lst9 0)
+b9=at(lst9 1)
+ok=ok&&(n9==2)&&(a9==nil)&&(b9==nil)
+print("9 class(1 2) one nil per argument (expect 2 nil nil): %v %v %v\n" n9 a9 b9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: class() takes no keywords, so a keyword-only call still names
+// no value -- blank, not the keyword's own value handed back ---
+r10=class(:foo)
+ok=ok&&(type(r10)==`BlankType)
+print("10 class(:foo) names no value either (expect BlankType): %v\n" type(r10))
+prev_ok=check_fail(:ok ok)
+
+print("classblank: %v\n" ok)
+ok
