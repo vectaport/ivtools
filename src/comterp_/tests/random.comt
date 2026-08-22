@@ -7,7 +7,10 @@
 // Tests that functions handle unexpected/random value classes gracefully —
 // no crash, no unknown result, no silent wrong answer.
 // Uses a random seed printed at the start so failures are reproducible:
-// if a test fails, rerun with srand(seed) to reproduce.
+// if a test fails, rerun with srand(seed) to reproduce.  The seed comes from
+// time(:raw :ms), so it genuinely differs run to run.  What it replaced was
+// not a daily seed but int() on the DateObj that date() returns -- a truncated
+// heap address, negative about half the time.
 //
 // Slot 12 value kinds exercised:
 //   absent    -- argument/keyword not supplied
@@ -24,9 +27,9 @@
 
 run("./testlib.comt")
 ok=true
-seed=int(date()*1000%1000000)
+seed=int(time(:raw :ms)%1000000)
 srand(seed)
-print("random.comt seed: %v (daily -- see issue: add time() command)\n\n" seed)
+print("random.comt seed: %v -- rerun with srand(%v) before this file to reproduce\n\n" seed seed)
 
 // --- test 1: size() with zero-length string (zero boundary) ---
 ok=ok&&(size("")==0)
