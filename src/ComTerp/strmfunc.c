@@ -843,17 +843,13 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	    /* stream argument, use stream func to get next one */
 	    if (val->stream_mode()&STREAM_INTERNAL && val->stream_func()) {
 	      // fprintf(stderr, "NextFunc: handling internal mode stream argument\n");
-	      /* internal use */
-	      comterp->push_stack(*val);
-
-              // fprintf(stdout, "Stack before stream_func exec\n");
-              // comterp->print_stack();
-
-	      ((ComFunc*)val->stream_func())->exec(1,0);
-
-      	      if (comterp->stack_top().is_stream()) {
-		fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, internal argument type\n");
-	      }
+	      /* internal use -- routed through execute_impl rather than
+		 straight to the stream func, so the nested loop at the top
+		 of execute_impl covers this path too and a feed() holding a
+		 stream yields one value per pull.  execute_impl dispatches
+		 right back here for a plain internal stream. */
+	      ComValue cval(*val);
+	      NextFunc::execute_impl(comterp, cval);
 
 	    } else {
 	      // fprintf(stderr, "NextFunc: handling external mode stream argument\n");
@@ -867,10 +863,6 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
 	      NextFunc::execute_impl(comterp, cval);
               // fprintf(stderr, "after:  strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
-
-	      if (comterp->stack_top().is_stream()) {
-		fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, external argument type\n");
-	      }
 
 	    }
 	    
