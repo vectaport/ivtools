@@ -1,0 +1,81 @@
+// src/comterp_/tests/stringstream.comt -- a string streams its characters
+//
+// funcs: stream $$ feed chunk next list size at print
+//
+// A string reaching stream() or feed() is taken apart into its characters
+// rather than carried whole.  The escape is bquote: ` already means "do not
+// take this apart", and it marks the value rather than the call, so one
+// argument can be protected while another beside it is ingested -- which
+// :raw, applying to a whole call, cannot express.  See issue #405.
+//
+// A symbol is deliberately not affected.  A symbol is a name rather than text,
+// and the `EOS delimiters that ride through feeds are symbols whose entire
+// purpose is to arrive intact.
+
+ok=true
+
+// --- 1-3: the cursor.  One value per pull, nil at the end, and nothing
+// materialized in advance ---
+ok=ok&&(list($$"hello")==('h','e','l','l','o'))
+print("1 list($$\"hello\") yields characters (expect {'h','e','l','l','o'}): %v\n" list($$"hello"))
+
+x=$$"abc"
+ok=ok&&(*x=='a')
+ok=ok&&(*x=='b')
+ok=ok&&(*x=='c')
+ok=ok&&(*x==nil)
+print("2 pulled one at a time, then nil (expect 'a' 'b' 'c' nil): %v\n" list($$"abc"))
+
+ok=ok&&(type(next($$"abc"))=="CharType")
+print("3 each pull is a CharType (expect CharType): %s\n" type(next($$"abc")))
+
+// --- 4-5: the edges ---
+ok=ok&&(size(list($$""))==0)
+print("4 an empty string yields nothing (expect {}): %v\n" list($$""))
+
+ok=ok&&(list($$"z")==('z',))   // trailing comma: a one-element list, not a parenthesized char
+print("5 a single character (expect {'z',}): %v\n" list($$"z"))
+
+// --- 6: the named form does the same as the operator ---
+ok=ok&&(list(stream("hi"))==('h','i'))
+print("6 stream(str) matches $$str (expect {'h','i'}): %v\n" list(stream("hi")))
+
+// --- 7: bquote carries a string whole, through both doors ---
+ok=ok&&(size(list($$`"hello"))==1)
+ok=ok&&(list(feed(10 `"ab" 20))==(10,"ab",20))
+print("7 a bquoted string stays whole (expect one element, and {10,\"ab\",20}): %v %v\n" list($$`"hello") list(feed(10 `"ab" 20)))
+
+// --- 8: feed ingests characters, lazily, the same way it drains a stream ---
+ok=ok&&(list(feed("hello"))==('h','e','l','l','o'))
+ok=ok&&(list(feed(10 "ab" 20))==(10,'a','b',20))
+print("8 feed takes a string apart (expect {10,'a','b',20}): %v\n" list(feed(10 "ab" 20)))
+
+// --- 9: the mark is on the value, so one argument can be protected while the
+// next is ingested.  This is what :raw cannot say, applying as it does to
+// every argument in the call ---
+ok=ok&&(list(feed(10 `"ab" 20 "cd"))==(10,"ab",20,'c','d'))
+print("9 per-argument choice (expect {10,\"ab\",20,'c','d'}): %v\n" list(feed(10 `"ab" 20 "cd")))
+
+ok=ok&&(list(feed(10 "ab" 20 :raw))==(10,"ab",20))
+print("10 :raw still protects the whole call (expect {10,\"ab\",20}): %v\n" list(feed(10 "ab" 20 :raw)))
+
+// --- 11: a symbol is untouched, delimiters included ---
+ok=ok&&(list(feed(1 `EOS 2))==(1,))
+print("11 `EOS still delimits rather than being spelled out (expect {1,}): %v\n" list(feed(1 `EOS 2)))
+
+// --- 12: chunk grips a string stream with no change of its own, which is the
+// point of giving feed() and chunk() something to hold ---
+ok=ok&&(size(list(chunk($$"abcdef" 2)))==3)
+print("12 chunk re-grains a string stream (expect three blocks of two): %v\n" list(chunk($$"abcdef" 2)))
+
+// --- 13: streaming reads, it does not consume or copy -- the string is
+// unchanged afterwards and still answers size() and @ ---
+s13="abc"
+d13=list($$s13)
+ok=ok&&(size(s13)==3)
+ok=ok&&(s13@0=='a')
+ok=ok&&(s13=="abc")
+print("13 the string is untouched by being streamed (expect 3 'a' \"abc\"): %v %v %v\n" size(s13) s13@0 s13)
+
+print("stringstream: %v\n" ok)
+ok
