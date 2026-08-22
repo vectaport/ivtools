@@ -426,7 +426,7 @@ Print a usage summary of all the invocation modes above and exit.
 
  flag=isdigit(char) -- return true if character is a numeric digit
 
- flag=isspace(char) -- return true if character is alphabetical
+ flag=isalpha(char) -- return true if character is alphabetical
 
  str=arg(n) -- return command line argument
 
@@ -439,6 +439,10 @@ Print a usage summary of all the invocation modes above and exit.
  num=xnor(a b) -- bitwise XNOR (negated XOR)
 
  dateobj|int = date([num|str|dateobj] :day :month :year :daymo :weekday) -- create date from days since 1/1/1901 or string
+
+ long = time(:raw :mono :ms :us :ns) -- current time as a number, seconds by default;
+ :raw is the epoch reading and :mono a monotonic one with no epoch, safe for
+ measuring elapsed time; the bare call is reserved for a TimeObj return
 
  [cnt]=beep(:count) -- beep or alert sound
 
