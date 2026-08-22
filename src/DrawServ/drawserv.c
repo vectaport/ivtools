@@ -340,6 +340,15 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	break;
       }
 
+      case LINK_FONT_CMD:
+      {
+	const char* script = ((LinkFontCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkFontCmd*)cmd)->dist_owner_sid());
+	cmd->Execute();
+	break;
+      }
+
       case LINK_PATTERN_CMD:
       {
 	const char* script = ((LinkPatternCmd*)cmd)->dist_script();

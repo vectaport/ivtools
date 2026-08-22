@@ -40,5 +40,6 @@
 #define LINK_BRUSH_CMD      9806
 #define LINK_COLOR_CMD      9807
 #define LINK_PATTERN_CMD    9808
+#define LINK_FONT_CMD       9809
 
 #endif

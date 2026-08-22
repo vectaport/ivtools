@@ -310,6 +310,8 @@ public:
     // opening delimiter for a WrapperState, "" for NoWrapper
     static const char* wrapper_close(int wrapper);
     // closing delimiter for a WrapperState, "" for NoWrapper
+    static void out_char_brief(ostream& out, unsigned char cv);
+    // render a char as itself where that is safe: 'a', '^A', or the `\NNN` escape
 
     void negate();
     // negate numeric values.
