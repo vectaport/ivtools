@@ -170,31 +170,6 @@ int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
 int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
 int ComValue::local_flag() const { return _flags & COMVALUE_LOCAL_FLAG; }
 
-/* Render a char as itself where that is safe to do, and never any other way.
-   A printable byte shows as 'a'; a control byte shows in caret notation, '^A'
-   or '^[', so that printing a character can never put a real control byte into
-   the output -- which is what the older `\NNN` form was protecting against,
-   and what is miserable to debug once it reaches a terminal or a script
-   reading that output.
-
-   Caret notation is ambiguous in general, since a real control byte and a
-   literal ^A look alike.  Here it is not: a char is one byte, so a literal
-   caret is one character between the quotes and a control character is two.
-
-   Above 0x7f the escape stays.  There is nothing readable to show, and isprint
-   past 0x7f depends on the locale -- comdraw links X11 and fontconfig, either
-   of which may call setlocale -- so the explicit test keeps the rendering from
-   shifting underfoot. */
-static void out_char_brief(ostream& out, unsigned char cv) {
-  if (cv < 0x80 && iscntrl(cv))
-    out << "'" << '^' << (char)(cv ^ 0x40) << "'";
-  else if (cv < 0x80 && isprint(cv))
-    out << "'" << (char)cv << "'";
-  else
-    out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
-	<< std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
-}
-
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;
     const char* title;
@@ -252,14 +227,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::CharType:
 	  if (brief)
-	    out_char_brief(out, (unsigned char)svp->char_ref());
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;	    
 
 	case ComValue::UCharType:
 	  if (brief)
-	    out_char_brief(out, (unsigned char)svp->uchar_ref());
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
 	  else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
