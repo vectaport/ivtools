@@ -836,21 +836,31 @@ const char* AttributeValue::command_name() {
    of which may call setlocale -- so the explicit test keeps the rendering from
    shifting underfoot.
 
+   The quotes are what makes a char readable back as one, so the export format
+   keeps them and the ordinary %v display does not: printing a run of
+   characters should read as the text it is, and print(feed("hello")) gives
+   hello rather than 'h''e''l''l''o'.  Unquoted, caret notation is ambiguous
+   again when characters are concatenated -- a literal caret followed by A
+   cannot be told from one control byte -- which is the price of text reading
+   as text, and is not paid on the export path.
+
    Lives here rather than in ComValue because the attribute-value output
    operator below is also the export format (AttributeList::serialize, reached
    from ExportFunc::compout and OverlayScript::Attributes), where an unquoted
    char could not be read back as one -- a bare `a` parses as a symbol -- and a
    raw control or high byte went into the file intact. */
-void AttributeValue::out_char_brief(ostream& out, unsigned char cv) {
+void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quoted) {
+  const char* q = quoted ? "'" : "";
   if (cv < 0x80 && iscntrl(cv))
-    out << "'" << '^' << (char)(cv ^ 0x40) << "'";
+    out << q << '^' << (char)(cv ^ 0x40) << q;
   /* the two bytes that cannot appear bare between the quotes: a backslash
      would escape the closing quote, and an apostrophe would be it.  Both
-     escapes are lexer forms, so these keep round-tripping. */
-  else if (cv == '\\' || cv == '\'')
+     escapes are lexer forms, so these keep round-tripping.  Unquoted there is
+     nothing to escape from, and escaping would corrupt the text. */
+  else if (quoted && (cv == '\\' || cv == '\''))
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
-    out << "'" << (char)cv << "'";
+    out << q << (char)cv << q;
   else
     out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
 	<< std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
