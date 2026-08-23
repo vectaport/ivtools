@@ -27,12 +27,15 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/postfunc.h>
 
+#include <Attribute/_comutil.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
 #include <Unidraw/iterator.h>
 
 #include <iostream.h>
+#include <string.h>
+#include <algorithm>
 #include <vector>
 
 #define TITLE "TypeFunc"
@@ -112,6 +115,37 @@ ClassSymbolFunc::ClassSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ClassSymbolFunc::execute() {
   // return class symbol for each argument
+  static int all_symid = symbol_add("all");
+  static int comps_symid = symbol_add("comps");
+  boolean all_flag = stack_key(all_symid).is_true();
+  boolean comps_flag = stack_key(comps_symid).is_true();
+
+  if (all_flag || comps_flag) {
+    /* every class that used CLASS_SYMID, enrolled before main() -- so this is
+       what the binary linked, not what it happens to have touched.  :comps
+       narrows to the CLASS_SYMID2 classes, the ones carrying a Unidraw
+       ClassId.  Sorted by name: the registry is in dynamic-initializer order,
+       which no standard pins down. */
+    std::vector<const char*> names;
+    for (ClassSymid* node = class_symid_list(); node; node = node->next)
+      if (!comps_flag || node->iscomp) names.push_back(node->classname);
+    std::sort(names.begin(), names.end(), [](const char* a, const char* b)
+	      { return strcmp(a, b) < 0; });
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<names.size(); i++) {
+      /* the registry holds names, so the ids are made here -- symbol_add() is
+	 idempotent, so this is the same id class_symid() hands back */
+      ComValue* av = new ComValue(symbol_add(names[i]), AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
+    push_stack(retval);
+    return;
+  }
+
+  boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
   if (!numargs) {
     /* no value named at all -- blank, the "nothing was asked" answer.  nil is

@@ -325,7 +325,12 @@ void OverlayEditor::add_edlauncher(const char* name, editor_launcher edlauncher)
   if (!edlauncher) return;
   if (!_edlauncherlist) 
     _edlauncherlist = new AttributeList();
-  AttributeValue* av = new AttributeValue(0, (void *)edlauncher);
+  /* a real class symbol rather than 0: symbol 0 is an ordinary symbol, and
+     AttributeValue's ObjectType constructor refs the pointer when the classid
+     matches Attribute or AttributeList -- which it would, given whichever
+     class the linker registers first. */
+  static int launcher_symid = symbol_add("editor_launcher");
+  AttributeValue* av = new AttributeValue(launcher_symid, (void *)edlauncher);
   _edlauncherlist->add_attr(name, av);
 }
 
@@ -351,7 +356,8 @@ void OverlayEditor::add_comterp(const char* name, ComTerpServ* comterp) {
   if (!comterp) return;
   if (!_comterplist) 
     _comterplist = new AttributeList();
-  AttributeValue* av = new AttributeValue(0, (void *)comterp);
+  static int comterp_symid = symbol_add("ComTerpServ");
+  AttributeValue* av = new AttributeValue(comterp_symid, (void *)comterp);
   _comterplist->add_attr(name, av);
 }
 
