@@ -74,7 +74,6 @@ public:
   
   void Init();
   
-#ifdef HAVE_ACE
   DrawLink* linkup(const char* hostname, int portnum, 
 		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil);
   // Create new link to remote drawserv, return -1 if error
@@ -211,7 +210,6 @@ protected:
   int _comdraw_port;
   // port used for comdraw command interpreter
   
-#endif /* HAVE_ACE */
 };
 
 #endif
