@@ -79,9 +79,15 @@ XCOMM from <local.def>:
  * Make variables for building local to these packages.
  * APP_CCLDLIBS is defined in the Imakefile.
  */
+/* ACE_CCINCLUDES is tree-wide, not per-directory: ComTerp's public headers
+   (comfunc.h -> comterpserv.h) include <ace/config.h> outright now that there
+   is no HAVE_ACE to gate them on, so every consumer of those headers has to be
+   able to resolve <ace/...> -- ComGlyph and the glyph tree included, none of
+   which link ACE.  It costs an -I; the headers themselves are in-tree by
+   default (ACE-lite, #147). */
     NORM_CCINCLUDES = -I$(CURRENT_DIR)/.. -I$(CURRENT_DIR)/../..  \
 -I$(IVTOOLSSRC) $(BACKWARD_CCINCLUDES) -I$(IVTOOLSSRC)/include \
--I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES)
+-I$(IVTOOLSSRC)/include/ivstd $(X_CCINCLUDES) $(ACE_CCINCLUDES)
     APP_CCINCLUDES = $(NORM_CCINCLUDES)
 #if !HasDynamicSharedLibraries
      APP_CCDEPLIBS = $(APP_CCLDLIBS)

@@ -24,7 +24,6 @@
 #ifndef _ace_iohandler_h
 #define _ace_iohandler_h
 
-#ifdef HAVE_ACE
 
 #include <stdio.h>
 #include <signal.h>
@@ -58,6 +57,5 @@ protected:
     IOHandler* _iohandler;
 };
 
-#endif
 
 #endif

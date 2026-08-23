@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #ifndef _unidraw_import_handler_
 #define _unidraw_import_handler_
@@ -89,4 +88,3 @@ typedef ACE_Acceptor <UnidrawImportHandler, ACE_SOCK_ACCEPTOR>
 
 #endif /* _unidraw_import_handler_ */
 
-#endif /* HAVE_ACE */
