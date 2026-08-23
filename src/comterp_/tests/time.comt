@@ -1,0 +1,117 @@
+// src/comterp_/tests/time.comt -- time(), the clock primitives
+//
+// funcs: time int srand help index
+//
+// Two clocks, because neither does the other's job:
+//
+//   time(:raw)   seconds since the epoch -- an actual date, comparable with
+//                date() and with another machine.  Follows an NTP correction,
+//                which also means it can step backwards.
+//   time(:mono)  a monotonic reading, no epoch at all, roughly since boot.
+//                Meaningless as a date; the right clock for measuring how long
+//                something took, since a correction cannot corrupt an interval.
+//
+// A unit keyword on its own implies :raw.  The bare call is reserved for a
+// TimeObj return and answers nil until that exists -- see #75 and #141.
+//
+// A clock cannot be asserted against a fixed value, so everything here is
+// either a relationship between the units that holds whatever the clock reads,
+// or a range wide enough to survive being run for years while still catching a
+// wrong unit or a wrong epoch.
+
+ok=true
+
+// --- 1: the type.  Sub-second units pass 32 bits (milliseconds since the
+// epoch is already ~1.7e12), so every unit is a long, seconds included rather
+// than changing type with the keyword ---
+t=time(:raw)
+ok=ok&&(type(t)=="LongType")
+print("1 time(:raw) returns LongType (expect LongType): %s\n" type(t))
+
+// --- 2: a plausible epoch, bounded at both ends.  Too small catches a clock
+// that is not epoch-based; the upper bound catches a unit mix-up, since
+// milliseconds would be a thousand times larger.  Expressed by magnitude
+// rather than as a literal ceiling: an integer literal above 2^31-1 silently
+// wraps, so a year-2100 constant would quietly compare as negative ---
+ok=ok&&(t>1690000000)
+ok=ok&&(t/1000000000<10)
+print("2 time(:raw) is epoch seconds -- after Aug 2023, seconds magnitude (expect true): %v\n" (t>1690000000&&t/1000000000<10))
+
+// --- 3-5: each unit tracks seconds through its own scale factor.  Read on
+// :mono rather than :raw deliberately.  The scaling is the same arithmetic for
+// both clocks -- one reading, divided down -- so this exercises the identical
+// code path, but a tight tolerance between two separate reads is only safe on
+// a clock that cannot be adjusted.  On :raw an NTP correction moving the wall
+// clock forward between the two reads would fail an assertion about a clock
+// that is behaving exactly as documented ---
+ok=ok&&((time(:mono :ms)/1000-time(:mono))<2)
+print("3 time(:mono :ms)/1000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ms)/1000-time(:mono))<2))
+
+ok=ok&&((time(:mono :us)/1000000-time(:mono))<2)
+print("4 time(:mono :us)/1000000 tracks time(:mono) (expect true): %v\n" ((time(:mono :us)/1000000-time(:mono))<2))
+
+ok=ok&&((time(:mono :ns)/1000000000-time(:mono))<2)
+print("5 time(:mono :ns)/1000000000 tracks time(:mono) (expect true): %v\n" ((time(:mono :ns)/1000000000-time(:mono))<2))
+
+// --- 6: the units are ordered by magnitude.  This is what fails if a keyword
+// is wired to the wrong scale ---
+ok=ok&&(time(:ms)>time(:raw))
+ok=ok&&(time(:us)>time(:ms))
+ok=ok&&(time(:ns)>time(:us))
+print("6 ns > us > ms > sec (expect true): %v\n" (time(:ms)>time(:raw)&&time(:us)>time(:ms)&&time(:ns)>time(:us)))
+
+// --- 7: two successive wall-clock reads are both usable.  Deliberately NOT
+// asserting that the second is later: :raw follows an NTP correction, and a
+// correction between these two lines can legitimately move it backwards.
+// Asserting monotonicity here would contradict the property the clock was
+// chosen for, and would fail the suite for a clock behaving correctly ---
+a=time(:us)
+b=time(:us)
+ok=ok&&(a/1000000>1690000000)
+ok=ok&&(b/1000000>1690000000)
+print("7 two successive :raw reads are both plausible (expect true): %v\n" (a/1000000>1690000000&&b/1000000>1690000000))
+
+// --- 8: :mono, on the other hand, CAN be asserted not to go backwards --
+// that is the whole reason it exists, and the assertion test 7 must not make ---
+m1=time(:mono :us)
+m2=time(:mono :us)
+ok=ok&&(m2>=m1)
+print("8 a later :mono read is never earlier (expect true): %v\n" (m2>=m1))
+
+// --- 9: :mono is not a date.  It has no epoch, so it must be far below an
+// epoch reading -- this is what fails if :mono silently returned wall time ---
+ok=ok&&(time(:mono)<time(:raw))
+ok=ok&&(time(:mono)<1690000000)
+print("9 :mono has no epoch and is not a date (expect true): %v\n" (time(:mono)<1690000000))
+
+// --- 10: the units scale :raw too.  The window is an hour rather than two
+// seconds, so that any correction a running clock might take passes while a
+// wrong scale factor -- which would be off by a thousandfold, not by hours --
+// still fails ---
+ok=ok&&((time(:ms)/1000-time(:raw))<3600)
+ok=ok&&((time(:us)/1000000-time(:raw))<3600)
+print("10 the units scale :raw as well, within a window wide enough for a clock correction (expect true): %v\n" ((time(:ms)/1000-time(:raw))<3600&&(time(:us)/1000000-time(:raw))<3600))
+
+// --- 11: the bare call is reserved for TimeObj and answers nil until then,
+// rather than entrenching a plain number that would later have to change ---
+bare=time()
+ok=ok&&(bare==nil)
+print("11 bare time() is reserved and answers nil (expect nil): %v\n" bare)
+
+// --- 12: the motivating use -- a per-run seed with finer granularity than
+// date(), which only changes daily ---
+seed=int(time(:raw :ms)%1000000)
+srand(seed)
+ok=ok&&(seed>=0)
+ok=ok&&(type(seed)=="IntType")
+print("12 a seed from time(:raw :ms) reduced mod 1000000, usable for srand (expect IntType >= 0): %v %s\n" seed type(seed))
+
+// --- 13: registered, with its keywords documented ---
+h=help(time)
+ok=ok&&(index(h "time(" :substr)!=nil)
+ok=ok&&(index(h ":mono" :substr)!=nil)
+ok=ok&&(index(h ":raw" :substr)!=nil)
+print("13 help(time) documents the command and both clocks (expect true): %v\n" (index(h ":mono" :substr)!=nil&&index(h ":raw" :substr)!=nil))
+
+print("time: %v\n" ok)
+ok
