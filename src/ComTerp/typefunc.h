@@ -51,7 +51,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym|lst=%s(val [ ...]) -- return class symbol(s) for value(s) of object type"; }
+      return "sym|lst=%s(val [ ...]) -- return class symbol(s) for value(s) of object type, nil for a value with no class, blank for no value at all"; }
 };
 
 //: command to test a variable's type without ever evaluating it.

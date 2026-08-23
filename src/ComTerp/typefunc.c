@@ -84,10 +84,15 @@ ClassSymbolFunc::ClassSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ClassSymbolFunc::execute() {
-  // return type symbol for each argumen
-  boolean noargs = !nargs() && !nkeys();
+  // return class symbol for each argument
   int numargs = nargs();
-  if (!numargs) return;
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer.  nil is
+       reserved for the value that was named but has no class to report. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> class_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue val = stack_arg(i);
