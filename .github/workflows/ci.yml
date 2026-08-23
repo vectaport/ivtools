@@ -70,7 +70,7 @@ jobs:
           set -e
           for t in sock_loopback reactor_loop acceptor_spawn log_fmt; do
             echo "=== ACE-lite: $t ==="
-            g++ -std=c++14 -Wall -I src -I src/include \
+            g++ -std=c++17 -Wall -I src -I src/include \
               src/ACE-lite/reactor.c src/ACE-lite/event_handler.c \
               src/ACE-lite/sock.c src/ACE-lite/log_msg.c \
               "src/ACE-lite/tests/$t.cc" -o "$RUNNER_TEMP/acelite_$t"
