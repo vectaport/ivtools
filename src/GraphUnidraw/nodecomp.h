@@ -188,7 +188,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _node_params;
 
-    CLASS_SYMID("NodeComp");
+    CLASS_SYMID2("NodeComp", NODE_COMP);
 };
 
 inline void NodeComp::SetGraph(GraphComp* comp) { if (_graph) delete _graph; _graph = comp; }

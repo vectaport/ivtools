@@ -2696,9 +2696,23 @@ double(3)              // explicit conversion to DoubleType
 `class(:comps)` narrows that to the component classes:
 
 ```
-class(:all)            // in comterp: AssignFunc,Attribute,AttributeList,...,TupleFunc
+class(:all)            // in comterp: Attribute,AttributeList,DateObj,...,SocketObj
 class(:comps)          // in comterp: empty -- it links no component classes
 ```
+
+What enrolls is a class whose instances are *values* -- things that can sit on
+the stack and be handed to a command.  A command is not one of those, so the
+command classes do not enroll; nor does the marker the `:posteval` machinery
+puts where an argument it has not evaluated yet will go, which is scaffolding
+the interpreter substitutes rather than anything a script is given.  Both still
+carry a class symbol where the C++ needs one to recognize them -- they simply
+plant no registrar.
+
+`Attribute` is listed even though `class(al.foo)` answers nil, and the two facts
+do not contradict: the dotted pair really is a value that can be passed along
+(`attrname(al.foo)` reads it), but `class()` is one of the many commands that
+dereference through `stack_arg()` before looking, so the key is gone by the time
+it answers.  See the dotted-pair discussion under attribute lists below.
 
 Under comdraw the same two calls answer differently, because a different set
 of classes got linked:

@@ -343,7 +343,6 @@ void ListSizeFunc::execute() {
 
 /*****************************************************************************/
 
-int TupleFunc::_symid = -1;
 
 TupleFunc::TupleFunc(ComTerp* comterp) : ComFunc(comterp) {
 }

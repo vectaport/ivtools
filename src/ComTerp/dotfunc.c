@@ -42,7 +42,6 @@ using std::cerr;
 
 /*****************************************************************************/
 
-int DotFunc::_symid = -1;
 
 /* off by default -- capturing the pre-fire source text of both args (see
    execute() below) costs a cout redirect + two print_stack_arg_post_eval
