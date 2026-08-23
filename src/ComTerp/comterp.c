@@ -1,4 +1,4 @@
-t/*
+/*
  * Copyright (c) 2001-2009 Scott E. Johnston
  * Copyright (c) 2000 IET Inc.
  * Copyright (c) 1994-1998 Vectaport Inc.
