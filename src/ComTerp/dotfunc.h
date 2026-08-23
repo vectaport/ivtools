@@ -115,7 +115,6 @@ public:
     virtual const char* docstring() {
       return "hidden func used by next command for (stream).field dot access (#304)."; }
 
-    CLASS_SYMID("DotStreamNextFunc");
 };
 
 //: name returns name field of a dotted pair

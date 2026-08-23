@@ -103,7 +103,10 @@ ComValue::ComValue(int classid, void* ptr) : AttributeValue(classid, ptr) {zero_
 ComValue::ComValue(AttributeValueList* avl) : AttributeValue(avl) {zero_vals();}
 ComValue::ComValue(void* funcptr, AttributeValueList* listptr) : AttributeValue(funcptr, listptr) {zero_vals();}
 ComValue::ComValue(const char* string) : AttributeValue(string) {zero_vals();}
-ComValue::ComValue(ComFunc* func) : AttributeValue(ComFunc::class_symid(), func) {zero_vals(); type(ComValue::CommandType); command_symid(func->funcid()); }
+/* -1, not a class symbol: the value is CommandType, and every reader of
+   class_symid() is guarded by ObjectType, so a class tag here would be
+   unreachable by construction.  A command's identity is its command_symid. */
+ComValue::ComValue(ComFunc* func) : AttributeValue(-1, func) {zero_vals(); type(ComValue::CommandType); command_symid(func->funcid()); }
 ComValue::ComValue(ComponentView* view, int compid) : AttributeValue(view, compid) {zero_vals();}
 
 ComValue::~ComValue() {
@@ -448,11 +451,6 @@ ComValue& ComValue::twoval() {
 ComValue& ComValue::acharval() { 
   //*&_achar = ComValue('a', ComValue::CharType);
   return _acharval;
-}
-
-boolean ComValue::is_comfunc(int func_classid) {
-  return is_type(CommandType) && 
-    func_classid==((ComFunc*)obj_val())->classid(); 
 }
 
 void* ComValue::geta(int id, int compid) {

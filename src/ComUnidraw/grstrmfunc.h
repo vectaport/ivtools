@@ -39,7 +39,6 @@ public:
     virtual const char* docstring() { 
       return "strm=%s(ostrm|list|attrlist|val|compview) -- copy stream or convert list (unary $)"; }
 
-    CLASS_SYMID("GrStreamFunc");
 
 };
 
@@ -54,7 +53,6 @@ public:
     virtual const char* docstring() { 
       return "strm=depth(compview) -- depth-first walk of comp tree using stream"; }
 
-    CLASS_SYMID("GrDepthFunc");
 
 };
 
@@ -67,7 +65,6 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for depth command"; }
 
-    CLASS_SYMID("GrDepthNextFunc");
 
 };
 #endif /* !defined(_grstrmfunc_h) */

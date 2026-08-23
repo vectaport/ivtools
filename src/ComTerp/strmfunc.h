@@ -64,7 +64,6 @@ public:
     virtual const char* docstring() {
       return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $$)"; }
 
-    CLASS_SYMID("StreamFunc");
 
 protected:
     /* build+push a stream from an ALREADY-evaluated operand.  Factored out
@@ -96,7 +95,6 @@ public:
     virtual const char* docstring() {
       return "~~ spread operator -- expand a stream (or list) into the positional args of the enclosing command"; }
 
-    CLASS_SYMID("SpreadFunc");
 
 };
 
@@ -136,7 +134,6 @@ public:
         nil };
       return keys; }
 
-    CLASS_SYMID("InfoFunc");
 
 };
 
@@ -149,7 +146,6 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for stream command."; }
 
-    CLASS_SYMID("StreamNextFunc");
 
 };
 
@@ -163,7 +159,6 @@ public:
     virtual const char* docstring() { 
       return ",, is the stream concat operator"; }
 
-    CLASS_SYMID("ConcatFunc");
 
 };
 
@@ -176,7 +171,6 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for ,, (stream concat) operator."; }
 
-    CLASS_SYMID("ConcatNextFunc");
 
 };
 
@@ -277,7 +271,6 @@ public:
     virtual const char* docstring() { 
       return "val=filter(strm classid) filter a stream for a given classid"; }
 
-    CLASS_SYMID("FilterFunc");
 
 };
 
@@ -290,7 +283,6 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for filter command"; }
 
-    CLASS_SYMID("FilterNextFunc");
 
 };
 //: hidden func used by next command for stream literal (val val ...) syntax
@@ -302,7 +294,6 @@ public:
     virtual const char* docstring() {
       return "hidden func used by next command for stream literal"; }
 
-    CLASS_SYMID("StreamLiteralNextFunc");
 };
 
 //: command to build or append to a growable FIFO stream, the write-end
@@ -324,7 +315,6 @@ public:
       return keys;
     }
 
-    CLASS_SYMID("FeedFunc");
 };
 
 //: command to re-grain a stream: pull up to n elements into an indexed list,
@@ -343,7 +333,6 @@ public:
     virtual const char* docstring() {
       return "strm=%s(strm n) -- re-grain a stream into a stream of n-element lists, so a script loop pays interpretation once per block instead of once per element"; }
 
-    CLASS_SYMID("ChunkFunc");
 };
 
 //: hidden func used by next command for chunk-built block streams
@@ -355,7 +344,6 @@ public:
     virtual const char* docstring() {
       return "hidden func used by next command for chunk-built block streams"; }
 
-    CLASS_SYMID("ChunkNextFunc");
 };
 
 //: hidden func used by next command for feed-built FIFO streams
@@ -367,7 +355,6 @@ public:
     virtual const char* docstring() {
       return "hidden func used by next command for feed-built FIFO streams"; }
 
-    CLASS_SYMID("FeedNextFunc");
 };
 
 #endif /* !defined(_strmfunc_h) */
