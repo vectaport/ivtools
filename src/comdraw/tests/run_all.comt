@@ -59,5 +59,9 @@ if(run("./deletestream.comt")
   :then print("pass: deletestream\n")
   :else print("FAIL: deletestream\n");ok=false)
 
+if(run("./classcomps.comt")
+  :then print("pass: classcomps\n")
+  :else print("FAIL: classcomps\n");ok=false)
+
 print("\nrun_all: %v\n" ok)
 ok

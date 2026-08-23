@@ -2692,6 +2692,36 @@ float(3.14)            // explicit conversion to FloatType
 double(3)              // explicit conversion to DoubleType
 ```
 
+`class(:all)` lists every class the running program linked, sorted by name;
+`class(:comps)` narrows that to the component classes:
+
+```
+class(:all)            // in comterp: AssignFunc,Attribute,AttributeList,...,TupleFunc
+class(:comps)          // in comterp: empty -- it links no component classes
+```
+
+Under comdraw the same two calls answer differently, because a different set
+of classes got linked:
+
+```
+class(:comps)          // ArrowLineComp,ArrowMultiLineComp,...,TextComp,VerticesComp
+size(class(:comps))    // 19
+```
+
+Nothing has to be drawn first. Each class enrolls itself before the program
+starts, so the list is what this binary *can* work with, not what the session
+has happened to touch -- which is what makes it usable for walking the
+component types:
+
+```
+for(i=0 i<size(class(:comps)) i=i+1 print("%v\n" at(class(:comps) i)))
+```
+
+That is a weaker guarantee than `type(:all)`, and deliberately so: the type
+symbols are a closed set the language defines, while a class only exists to be
+listed if something linked it. `class(:all)` in drawserv includes
+`DrawLinkComp`; in comterp it does not.
+
 ### istype()/isclass()/iscomm()/isfunc() — inspecting a variable without firing it
 
 `type()` and `class()`, above, both evaluate their argument the ordinary
