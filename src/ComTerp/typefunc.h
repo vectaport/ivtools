@@ -33,14 +33,22 @@
 class ComTerp;
 
 //: command to return type symbols for values
-// sym|lst=type(val [val ...]) -- return type symbol(s) for value(s)
+// sym|lst=type(val [val ...] :all) -- return type symbol(s) for value(s),
+// or with :all the complete list of type symbols this language has.
 class TypeSymbolFunc : public ComFunc {
 public:
     TypeSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() { 
-      return "sym|lst=%s(val [ ...]) -- return type symbol(s) for value(s)"; }
+      return "sym|lst=%s(val [ ...] :all) -- return type symbol(s) for value(s), blank for no value at all"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":all       return the complete list of type symbols, ignoring any value",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to return class symbols for values of object type
@@ -51,7 +59,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym|lst=%s(val [ ...]) -- return class symbol(s) for value(s) of object type"; }
+      return "sym|lst=%s(val [ ...]) -- return class symbol(s) for value(s) of object type, nil for a value with no class, blank for no value at all"; }
 };
 
 //: command to test a variable's type without ever evaluating it.

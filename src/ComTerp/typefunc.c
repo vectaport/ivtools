@@ -43,10 +43,37 @@ TypeSymbolFunc::TypeSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void TypeSymbolFunc::execute() {
-  // return type symbol for each argumen
-  boolean noargs = !nargs() && !nkeys();
+  // return type symbol for each argument
+  static int all_symid = symbol_add("all");
+  boolean all_flag = stack_key(all_symid).is_true();
   int numargs = nargs();
-  if (!numargs) return;
+
+  if (all_flag) {
+    /* the whole closed set, in enum order -- every value in the language has
+       one of these, so unlike class() this list is complete by construction.
+       ListType and ArrayType are one type under two names; the symbol is
+       ListType, so ArrayType never appears. */
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int t=AttributeValue::UnknownType; t<=AttributeValue::BlankType; t++) {
+      ComValue* av = new ComValue
+	(AttributeValue::type_symid((AttributeValue::ValueType)t),
+	 AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
+    push_stack(retval);
+    return;
+  }
+
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer, the same
+       distinction class() draws.  nil stays the answer about a named value. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> type_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
@@ -84,10 +111,15 @@ ClassSymbolFunc::ClassSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ClassSymbolFunc::execute() {
-  // return type symbol for each argumen
-  boolean noargs = !nargs() && !nkeys();
+  // return class symbol for each argument
   int numargs = nargs();
-  if (!numargs) return;
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer.  nil is
+       reserved for the value that was named but has no class to report. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> class_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue val = stack_arg(i);
