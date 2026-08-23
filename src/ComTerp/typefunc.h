@@ -52,14 +52,23 @@ public:
 };
 
 //: command to return class symbols for values of object type
-// sym|lst=type(val [val ...]) -- return type symbol(s) for value(s)
+// sym|lst=class(val [val ...] :all :comps) -- return class symbol(s) for
+// value(s), or the classes this binary linked.
 class ClassSymbolFunc : public ComFunc {
 public:
     ClassSymbolFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym|lst=%s(val [ ...]) -- return class symbol(s) for value(s) of object type, nil for a value with no class, blank for no value at all"; }
+      return "sym|lst=%s(val [ ...] :all :comps) -- return class symbol(s) for value(s) of object type"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":all       return every class symbol this binary linked, sorted by name",
+	":comps     narrow :all to the component classes",
+	nil
+      };
+      return keys;
+    }
 };
 
 //: command to test a variable's type without ever evaluating it.
