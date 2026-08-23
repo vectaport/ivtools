@@ -44,10 +44,15 @@ XCOMM from <local.def>:
  * Assume the use of gcc-2.3.3 or greater
  */ 
 #undef LanguageCCDefines
+/* gnu++17, not c++17: strict ISO defines __STRICT_ANSI__, under which glibc
+   hides the BSD/POSIX names -- gettimeofday() and struct timezone in Time.c
+   among them.  Most directories carried no -std at all before and so were
+   already getting the compiler's gnu++ default; this keeps that dialect and
+   only moves the standard forward. */
 #if LibStdCPlusPlusV3
-#define LanguageCCDefines -Dcplusplus_2_1 -std=c++17 -Wno-deprecated -DLEAKCHECK
+#define LanguageCCDefines -Dcplusplus_2_1 -std=gnu++17 -Wno-deprecated -DLEAKCHECK
 #else
-#define LanguageCCDefines -Dcplusplus_2_1 -std=c++17
+#define LanguageCCDefines -Dcplusplus_2_1 -std=gnu++17
 #endif
 #include <gcc.def>
 
