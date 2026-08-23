@@ -636,6 +636,7 @@ BOOLEAN ambiguous;      /* Used to indicate string of amb. ops. */
 int temp_id;            /* Temporary variables */
 int index;
 int status;
+int empty_supplied;     /* _empty_statement supplied a missing operand */
 
 /* Static initialization */
    if( *linenum == 0 ) {
@@ -1236,6 +1237,8 @@ int status;
       case TOK_RANGBRACK:
       case TOK_RANGBRACK2:
 
+	 empty_supplied = 0;
+
       /* Parenthesis integrity checking */
 	 if( TopOfParenStack < 0  ||
 
@@ -1269,6 +1272,7 @@ int status;
 	      }
               if(empty_symid==-1) empty_symid=symbol_add("empty");
               PFOUT( TOK_COMMAND, empty_symid, 0, 0, 0);
+	      empty_supplied = 1;
 	      }
 
 	    }
@@ -1286,6 +1290,7 @@ int status;
 	     }
              if(empty_symid==-1) empty_symid=symbol_add("empty");
              PFOUT( TOK_COMMAND, empty_symid, 0, 0, 0);
+	     empty_supplied = 1;
 	     }
 	 }
 
@@ -1304,7 +1309,10 @@ int status;
       /* at the closing paren is exactly the "no value arrived" state, */
       /* and only the innermost pending keyword can be in it -- any    */
       /* deeper one was completed by the value that followed it.       */
-	 { int kw_novalue = ( expecting == OPTYPE_UNARY_PREFIX );
+      /* But a trailing ";" before the paren leaves that same state     */
+      /* while _empty_statement supplies the operand, so the keyword    */
+      /* did get a value and narg 0 would misread it as a bare flag.    */
+	 { int kw_novalue = ( expecting == OPTYPE_UNARY_PREFIX ) && !empty_supplied;
 	 while ( (OperStack[TopOfOperStack].oper_type != LEFTPAREN) &&
                  (TopOfOperStack >= 0 ))
          {

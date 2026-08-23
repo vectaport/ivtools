@@ -125,6 +125,10 @@ if(run("./keyword_lineend.comt")
   :then print("pass: keyword_lineend\n")
   :else print("FAIL: keyword_lineend\n");topok=false)
 
+if(run("./keyword_trailing_semi.comt")
+  :then print("pass: keyword_trailing_semi\n")
+  :else print("FAIL: keyword_trailing_semi\n");topok=false)
+
 if(run("./funchelp.comt")
   :then print("pass: funchelp\n")
   :else print("FAIL: funchelp\n");topok=false)
