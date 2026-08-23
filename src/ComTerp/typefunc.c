@@ -126,16 +126,18 @@ void ClassSymbolFunc::execute() {
        narrows to the CLASS_SYMID2 classes, the ones carrying a Unidraw
        ClassId.  Sorted by name: the registry is in dynamic-initializer order,
        which no standard pins down. */
-    std::vector<int> syms;
+    std::vector<const char*> names;
     for (ClassSymid* node = class_symid_list(); node; node = node->next)
-      if (!comps_flag || node->iscomp) syms.push_back(node->symid);
-    std::sort(syms.begin(), syms.end(), [](int a, int b)
-	      { return strcmp(symbol_pntr(a), symbol_pntr(b)) < 0; });
+      if (!comps_flag || node->iscomp) names.push_back(node->classname);
+    std::sort(names.begin(), names.end(), [](const char* a, const char* b)
+	      { return strcmp(a, b) < 0; });
     reset_stack();
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    for (int i=0; i<syms.size(); i++) {
-      ComValue* av = new ComValue(syms[i], AttributeValue::SymbolType);
+    for (int i=0; i<names.size(); i++) {
+      /* the registry holds names, so the ids are made here -- symbol_add() is
+	 idempotent, so this is the same id class_symid() hands back */
+      ComValue* av = new ComValue(symbol_add(names[i]), AttributeValue::SymbolType);
       av->bquote(1);
       avl->Append(av);
     }

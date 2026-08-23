@@ -10,8 +10,15 @@
 // of.  'iscomp' marks the CLASS_SYMID2 classes, the ones carrying a Unidraw
 // ClassId.  List order is the order the dynamic initializers happened to run,
 // which is unspecified across translation units: sort before reporting.
+//
+// The node holds the class NAME, not its symbol id, so that linking a class
+// in costs nothing but pointer stores.  Interning here instead would put a
+// call to symbol_add() in every translation unit that includes one of these
+// headers -- including libraries that never link ComUtil (AttrGlyph is one),
+// which then fail to link.  Whoever reads the list interns the names; symbol
+// _add() is idempotent, so the ids match what class_symid() later returns.
 struct ClassSymid {
-  int symid;
+  const char* classname;   /* not 'name' -- that is the macro's own parameter */
   int iscomp;
   ClassSymid* next;
 };
@@ -40,7 +47,7 @@ protected: \
   static int _symid; \
   struct _symid_reg_t : ClassSymid { \
     _symid_reg_t(int comp) \
-      { symid = class_symid(); iscomp = comp; \
+      { classname = class_name(); iscomp = comp; \
         next = class_symid_list(); class_symid_list() = this; } }; \
   static inline _symid_reg_t _symid_reg{0};
 
@@ -62,7 +69,7 @@ protected: \
   static int _symid; \
   struct _symid_reg_t : ClassSymid { \
     _symid_reg_t(int comp) \
-      { symid = class_symid(); iscomp = comp; \
+      { classname = class_name(); iscomp = comp; \
         next = class_symid_list(); class_symid_list() = this; } }; \
   static inline _symid_reg_t _symid_reg{1};
 
