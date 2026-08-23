@@ -190,5 +190,9 @@ if(run("./classblank.comt")
   :then print("pass: classblank\n")
   :else print("FAIL: classblank\n");topok=false)
 
+if(run("./typeall.comt")
+  :then print("pass: typeall\n")
+  :else print("FAIL: typeall\n");topok=false)
+
 print("\nrun_all: %v\n" topok)
 topok
