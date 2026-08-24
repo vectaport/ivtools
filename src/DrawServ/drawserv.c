@@ -80,13 +80,11 @@ typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
 using std::cout;
 using std::cerr;
 
-#ifdef HAVE_ACE
 implementTable(GraphicIdTable,uint32_t,void*)
 implementTable(SessionIdTable,uint32_t,void*)
 implementTable(CompIdTable,void*,void*)
 
 static int seed=0;
-#endif /* HAVE_ACE */
 
 // utility function for grabbing key from uuid_t.
 // Only needed until tables can be keyed on all 64 bits of the UUID.
@@ -112,7 +110,6 @@ DrawServ::DrawServ (Catalog* c, World* w)
 }
 
 void DrawServ::Init() {
-#ifdef HAVE_ACE
   _linklist = new DrawLinkList;
 
   _gridtable = new GraphicIdTable(1024);
@@ -131,12 +128,10 @@ void DrawServ::Init() {
   _sessionidtable->insert(uuid_key(_sessionid), sid);
 
   _comdraw_port = atoi(unidraw->GetCatalog()->GetAttribute("comdraw"));
-#endif /* HAVE_ACE */
 }
 
 DrawServ::~DrawServ () 
 {
-#ifdef HAVE_ACE
   Iterator it;
   _linklist->First(it);
   while(_linklist->GetDrawLink(it) && !_linklist->Done(it)) {
@@ -148,7 +143,6 @@ DrawServ::~DrawServ ()
   delete _gridtable;
   delete _sessionidtable;
   delete _compidtable;
-#endif /* HAVE_ACE */
 }
 
 DrawLink* DrawServ::linkup(const char* hostname, int portnum, 

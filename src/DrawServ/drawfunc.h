@@ -47,7 +47,6 @@ public:
 	return "%s([sid osid :pid pid :user namestr :host hoststr :hostid hostid :remap] :all | :table) -- command to manage session id's"; }
 };
 
-#ifdef HAVE_ACE
 //: command to send message between remote selections
 // grid([id [selector]] :state selected :request newselector :grant oldselector) -- lookup compview by uuid or send message between remote selections
 class GraphicIdFunc : public UnidrawFunc {
@@ -57,7 +56,6 @@ public:
     virtual const char* docstring() { 
 	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
 };
-#endif /* defined(HAVE_ACE) */
 
 //: command to return point list associated with a graphic
 // ptlist=points(compview) -- return point list from compview graphic

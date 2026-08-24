@@ -27,7 +27,6 @@
  * RemoteConnectDialog related classes
  */
 
-#ifdef HAVE_ACE
 
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawlinklist.h>
@@ -393,4 +392,3 @@ void ConnectionsDialogImpl::update_text(boolean update) {
   ete_->text(vbuf.empty() ? "" : &vbuf[0], update);
 }
 
-#endif

@@ -73,7 +73,7 @@ boolean StrmFunc::is_delimiter(ComValue& val) {
 
 /*****************************************************************************/
 
-int StreamFunc::_symid;
+int StreamFunc::_symid = -1;
 
 StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -288,7 +288,7 @@ void StreamFunc::execute_literal() {
 
 /*****************************************************************************/
 
-int SpreadFunc::_symid;
+int SpreadFunc::_symid = -1;
 
 SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -397,7 +397,7 @@ void EchoFunc::execute() {
 
 /*****************************************************************************/
 
-int StreamNextFunc::_symid;
+int StreamNextFunc::_symid = -1;
 
 StreamNextFunc::StreamNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -456,7 +456,7 @@ void StreamNextFunc::execute() {
 
 /*****************************************************************************/
 
-int ConcatFunc::_symid;
+int ConcatFunc::_symid = -1;
 
 ConcatFunc::ConcatFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -483,7 +483,7 @@ void ConcatFunc::execute() {
 
 /*****************************************************************************/
 
-int ConcatNextFunc::_symid;
+int ConcatNextFunc::_symid = -1;
 
 ConcatNextFunc::ConcatNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1005,7 +1005,7 @@ void EachFunc::execute() {
 
 /*****************************************************************************/
 
-int FilterFunc::_symid;
+int FilterFunc::_symid = -1;
 
 FilterFunc::FilterFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1032,7 +1032,7 @@ void FilterFunc::execute() {
 
 /*****************************************************************************/
 
-int FilterNextFunc::_symid;
+int FilterNextFunc::_symid = -1;
 
 FilterNextFunc::FilterNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1329,7 +1329,7 @@ void InfoFunc::execute() {
 
 /*****************************************************************************/
 
-int FeedFunc::_symid;
+int FeedFunc::_symid = -1;
 
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -1531,7 +1531,7 @@ void ChunkNextFunc::execute() {
 
 /*****************************************************************************/
 
-int FeedNextFunc::_symid;
+int FeedNextFunc::_symid = -1;
 
 FeedNextFunc::FeedNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }

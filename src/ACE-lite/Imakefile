@@ -9,9 +9,10 @@ PACKAGE = ACE-lite
 
 LIB = ACE-lite
 
-/* Compile with the same flags as the consumers (ACE_CCDEFINES carries
-   -std=c++14): the library and its callers must agree on the C++ standard so
-   the std::map/std::set in ACE_Reactor have one ABI across the dylib boundary. */
+/* Compile with the same flags as the consumers: the library and its callers
+   must agree on the C++ standard (LanguageCCDefines carries -std=gnu++17 tree
+   wide) so the std::map/std::set in ACE_Reactor have one ABI across the dylib
+   boundary. */
 OTHER_CCDEFINES = $(ACE_CCDEFINES)
 
 MakeLibrary($(LIB),$(VERSION))
