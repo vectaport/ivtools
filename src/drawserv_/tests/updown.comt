@@ -1014,9 +1014,23 @@ ringtest_test=func(
 
   /* --- build the chain: ds1->ds2 (on ds1), then ds2->ds3 (on ds2) --- */
   print("ringtest: chaining ds1(%d)->ds2(%d)->ds3(%d)\n" ds1_port ds2_port ds3_port :err);
+  /* cycletest() compares the offered session id against the table the target
+     already holds, so ds1 can only recognize the cycle once ds3's session id
+     has reached it -- wait for each hop to reach ds1 before making the next,
+     rather than guessing at a settle.  update() is no help: it is
+     handle_events(), returning on the first event rather than after the
+     timeout, and a chain built with both links in flight at once has been seen
+     to leave ds1 permanently short of ds3's session id. */
   remote(sock1 print("drawlink(\"127.0.0.1\" %d)" ds2_port :str));
+  cnt=0;
+  while(remote(sock1 "size(sid(:table))")<2 && cnt<50 usleep(200000);cnt++);
   remote(sock2 print("drawlink(\"127.0.0.1\" %d)" ds3_port :str));
-  update(3000000);
+  cnt=0;
+  while(remote(sock1 "size(sid(:table))")<3 && cnt<50 usleep(200000);cnt++);
+  nsid=remote(sock1 "size(sid(:table))");
+  print("ringtest: ds1 knows %v of 3 sessions\n" nsid :err);
+  if(nsid!=3 :then
+    print("ringtest: FAIL session ids never propagated around the chain\n" :err));
 
   /* --- now try to close the ring.  cycletest() compares the offered session
      id, host, user and pid against the session table this node already knows,
@@ -1024,7 +1038,7 @@ ringtest_test=func(
      handshake answers ackback(cycle) and drops the connection. --- */
   print("ringtest: closing the ring, ds3(%d)->ds1(%d)\n" ds3_port ds1_port :err);
   remote(sock3 print("drawlink(\"127.0.0.1\" %d)" ds1_port :str));
-  update(5000000);
+  usleep(5000000);
 
   /* ds1 is where the ring would have closed, so its count is the decisive
      one: a ring gives it two links, a chain one.  ds3 is not asked -- remote()
@@ -1051,7 +1065,7 @@ ringtest_test=func(
     relay=grid_has_id(:gh_sock sock2 :gh_id id1);
     print("ringtest: graphic reached ds2 over the surviving link: %v\n" relay :err));
   if(!relay :then print("ringtest: FAIL the refusal took the good link with it\n" :err));
-  ok=chain && relay;
+  ok=chain && relay && (nsid==3);
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
