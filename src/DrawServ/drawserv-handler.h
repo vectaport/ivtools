@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #ifndef _drawserv_handler_
 #define _drawserv_handler_
@@ -69,4 +68,3 @@ typedef ACE_Acceptor <DrawServHandler, ACE_SOCK_ACCEPTOR>
 
 #endif /* _drawserv_handler_ */
 
-#endif /* HAVE_ACE */

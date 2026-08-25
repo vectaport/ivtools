@@ -59,6 +59,8 @@ public:
 
 //: list member command for ComTerp; also @ (binary at) operator.
 // val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list or string.
+// A nil n means the last item, on every type and in both directions:
+// at(lst nil), at(al nil), at(s nil), and the :set/:ins/:del forms of each.
 // An attrlst position read returns a detached, single-entry attrlist
 // (e.g. al@0 on (:x 10 :y 20) is (:y 20)) rather than a live handle into
 // al -- al@n=val therefore can never write through to al (falls through
@@ -70,7 +72,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list"; }
+      return "val=%s(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list, attribute list, or string; a nil n means the last item"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",

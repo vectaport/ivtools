@@ -126,6 +126,17 @@ void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1, false, ComValue::zeroval()));
 
+  /* a list has no position in it, and int_val() answers 0 for one -- so a
+     list-valued index used to read as index 0 and hand back the first item,
+     a wrong answer wearing a right one's clothes.  A stream of indices does
+     fan out, through ordinary overdrive; whether the list spelling should
+     mean the same gather is #404.  Until then, say nil. */
+  if (nv.is_array()) {
+    reset_stack();
+    push_stack(ComValue::nullval());
+    return;
+  }
+
   /* #318 (@ operator): lst@N=val.  AssignFunc (assignfunc.c) flags this
      call's own token with lhs_assign() when it's the before-part of an
      assignment, before this execute() runs.  A plain list element is a
@@ -146,11 +157,21 @@ void ListAtFunc::execute() {
      read below for that case avoids it entirely (matches this command's
      own existing behavior for a negative read: nil, no mutation, no
      crash). */
-  if (listv.is_type(ComValue::ArrayType) &&
+  if ((listv.is_type(ComValue::ArrayType) || listv.is_only_string()) &&
       (nv.is_nil() || nv.int_val()>=0) &&
       comterp()->stack_top(nkeys()+1).lhs_assign()) {
-    AttributeValueList* avl = listv.array_val();
-    int nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
+    /* a string takes the same route: its characters are writable in place
+       (#393), so s@N='c' has somewhere to write, and the pair carries the
+       resolved index just as the list case does.  is_only_string(), not
+       is_string(), keeps a symbol out -- its text is its identity. */
+    int nvv;
+    if (listv.is_only_string()) {
+      const char* str = listv.string_ptr();
+      nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
+    } else {
+      AttributeValueList* avl = listv.array_val();
+      nvv = nv.is_nil() ? (avl ? avl->Number()-1 : 0) : nv.int_val();
+    }
     reset_stack();
     AttributeValueList* pair = new AttributeValueList();
     pair->Append(new AttributeValue(listv));
@@ -186,7 +207,10 @@ void ListAtFunc::execute() {
 	push_stack(insv);
 	return;
       } else if (setflag) {
-	AttributeValue* oldv = avl->Set(nv.int_val(), new AttributeValue(setv));
+	/* nvv, not nv.int_val(): a nil index means the last item, and every
+	   other branch here already reads it that way -- this one wrote the
+	   first item instead. */
+	AttributeValue* oldv = avl->Set(nvv, new AttributeValue(setv));
 	delete oldv;
 	push_stack(setv);
 	return;
@@ -255,7 +279,11 @@ void ListAtFunc::execute() {
         push_stack(retval);
         return;
       }
-    } else {
+    } else if (listv.is_only_string()) {
+      /* is_string() is StringType||SymbolType, and a symbol's characters are
+	 its identity: every value holding that symid names the same text, so
+	 a write here would edit the symbol out from under all of them (#393).
+	 Reads above stay open to both. */
       if(nvv<strlen(str) && nvv>=0) {
 	*((char *)str+nvv) = setv.char_val();
 	ComValue retval(setv);
@@ -315,7 +343,7 @@ void ListSizeFunc::execute() {
 
 /*****************************************************************************/
 
-int TupleFunc::_symid;
+int TupleFunc::_symid = -1;
 
 TupleFunc::TupleFunc(ComTerp* comterp) : ComFunc(comterp) {
 }

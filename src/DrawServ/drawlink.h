@@ -37,7 +37,6 @@ class DrawServHandler;
 #include <OS/table.h>
 declareTable(IncomingSidTable,unsigned int,unsigned int)
 
-#ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
 #include <InterViews/resource.h>
 #include <ace/SOCK_Connector.h>
@@ -45,7 +44,6 @@ declareTable(IncomingSidTable,unsigned int,unsigned int)
 class ACE_INET_Addr;
 class ACE_SOCK_Stream;
 class ACE_SOCK_Stream;
-#endif
 #include <stdio.h>
 #include <uuid/uuid.h>   /* declares uuid_t / uuid_copy; pulled in transitively on macOS, not on Linux */
 #if !defined(__APPLE__) && !defined(IV_UUID_STRING_T_DEFINED)
@@ -120,10 +118,8 @@ public:
     int state() { return _state; }
     // get state of DrawLink
 
-#ifdef HAVE_ACE
     ACE_SOCK_Stream* socket() { return _socket; }
     // return pointer to connected socket.
-#endif
 
     void dump(FILE*);
     // dump complete information on this DrawLink
@@ -151,11 +147,9 @@ protected:
     uuid_string_t _linkid_str;
     int _state;
 
-#ifdef HAVE_ACE
     ACE_INET_Addr* _addr;
     ACE_SOCK_Connector* _conn;
     ACE_SOCK_Stream* _socket;
-#endif
 
     DrawServHandler* _comhandler;
     AckBackHandler* _ackhandler;

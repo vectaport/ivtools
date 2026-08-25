@@ -646,8 +646,8 @@ reliable way to isolate a parse error for assertion.
 ### CLASS_SYMID and _symid
 
 If the new command class uses `CLASS_SYMID("MyCmd")` in its header,
-add the static initializer in the `.c` file alongside the other `_symid`
-definitions:
+add the static initializer in the `.c` file (set to -1) alongside the
+other `_symid` definitions:
 
 ```cpp
 int LinkColorCmd::_symid = -1;

@@ -54,8 +54,8 @@ Obj(typefunc)
 Obj(xformfunc)
 
 /* ACE-lite (#147): comhandler (the socket service handler) is built for either
-   backend now -- networking is always on (HAVE_ACE), so it must not be gated on
-   AceDir (external libACE) any longer. */
+   backend now -- networking is always on, so it must not be gated on AceDir
+   (external libACE) any longer. */
 ObjA(comhandler)
 
 #define Obj31(file) MakeObjectFromSrcFlags(file, -Div2_6_incompatible -I$(TOP)/src/include $(TOP_CCINCLUDES))

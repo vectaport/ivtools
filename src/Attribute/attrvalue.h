@@ -196,6 +196,8 @@ public:
     // return sizeof of value of given type.
     int type_symid() const;
     // return symbol id corresponding to type
+    static int type_symid(ValueType);
+    // return symbol id corresponding to given type
     const char* type_name() { return symbol_pntr(type_symid()); }
     // type name of value.
 

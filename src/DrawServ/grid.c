@@ -41,7 +41,6 @@
 
 GraphicId::GraphicId (uuid_t sid) 
 {
-#ifdef HAVE_ACE
   _comp = nil;
   _unlocked = false;
   uuid_clear(_selector);
@@ -54,19 +53,15 @@ GraphicId::GraphicId (uuid_t sid)
     selector(sid);
   }
 
-#endif
 }
 
 GraphicId::~GraphicId () 
 {
-#ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
   table->remove(uuid_key(_id));
-#endif
 }
 
 void GraphicId::set_id(uuid_t id) {
-#ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
 
   if (!uuid_is_null(id)) {
@@ -84,11 +79,9 @@ void GraphicId::set_id(uuid_t id) {
   uuid_copy(_id, id);
   uuid_unparse(_id, _id_str);
   table->insert(uuid_key(id), this);
-#endif
 }
 
 uuid_t& GraphicId::generate_id() {
-#ifdef HAVE_ACE
   GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
 
   uuid_generate(_id);
@@ -102,7 +95,6 @@ uuid_t& GraphicId::generate_id() {
   }
   uuid_unparse(_id, _id_str);
   table->insert(uuid_key(_id), this);
-#endif
   return _id;
 }
 
@@ -116,7 +108,6 @@ uint32_t GraphicId::selectorkey() {
 }
 
 void GraphicId::grcomp(OverlayComp* comp) {
-#ifdef HAVE_ACE
   if (comp==_comp) return;
   CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
   if (_comp) {
@@ -125,7 +116,6 @@ void GraphicId::grcomp(OverlayComp* comp) {
   } 
   _comp = comp;
   table->insert((void*)comp, (void*)this);
-#endif
 }
 
 const char* GraphicId::compclass() {

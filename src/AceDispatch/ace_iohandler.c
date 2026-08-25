@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #ifdef __llvm__
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -50,5 +49,4 @@ int ACE_IO_Handler::handle_timeout (const ACE_Time_Value &tv, const void *arg) {
     return 0;
 }
 
-#endif
 

@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #ifdef __llvm__
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
@@ -137,4 +136,3 @@ UnidrawImportHandler::close (u_long)
   return 0;
 }
 
-#endif /* HAVE_ACE */

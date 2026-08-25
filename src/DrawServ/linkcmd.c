@@ -33,6 +33,8 @@
 #include <Unidraw/iterator.h>
 #include <Unidraw/selection.h>
 #include <Unidraw/unidraw.h>
+#include <Unidraw/clipboard.h>
+#include <InterViews/transformer.h>
 
 #include <sstream>
 #include <uuid/uuid.h>
@@ -134,6 +136,72 @@ Command* LinkBrushCmd::Copy() {
 
 ClassId LinkBrushCmd::GetClassId() { return LINK_BRUSH_CMD; }
 boolean LinkBrushCmd::IsA(ClassId id) { return id == LINK_BRUSH_CMD || BrushCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkTransformCmd::LinkTransformCmd(Editor* ed, Transformer* t) : SetTransformCmd(ed, t) {}
+
+const char* LinkTransformCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    Transformer* delta = GetTransformer();
+    if (!delta) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    /* the target rides in the clipboard, not the selection -- trans() named it */
+    Clipboard* cb = GetClipboard();
+    if (!cb) return _dist_script_buf.c_str();
+    Iterator i;
+    cb->First(i);
+    if (cb->Done(i)) return _dist_script_buf.c_str();
+    OverlayComp* comp = (OverlayComp*)cb->GetComp(i);
+    if (!comp) return _dist_script_buf.c_str();
+
+    void* ptr = nil;
+    drawserv->compidtable()->find(ptr, comp);
+    GraphicId* grid = (GraphicId*)ptr;
+    if (!grid) return _dist_script_buf.c_str();   /* not distributed yet */
+
+    /* dist_script runs before Execute, so the graphic still holds the
+       transform this command is about to compose the delta onto.  Work out
+       where it will land and send THAT, so the far node is told a position
+       rather than a nudge. */
+    Graphic* gr = comp->GetGraphic();
+    if (!gr) return _dist_script_buf.c_str();
+    Transformer result;
+    Transformer* cur = gr->GetTransformer();
+    if (cur) result = *cur;
+    result.postmultiply(*delta);
+
+    float a00, a01, a10, a11, a20, a21;
+    result.matrix(a00, a01, a10, a11, a20, a21);
+
+    /* stamp this session so ExecuteCmd excludes the link back toward us */
+    uuid_copy(_dist_owner_sid, drawserv->sessionid());
+
+    std::ostringstream sbuf;
+    sbuf << "trans(grid(\"" << grid->idstr() << "\") "
+	 << a00 << "," << a01 << "," << a10 << ","
+	 << a11 << "," << a20 << "," << a21 << ")";
+    _dist_script_buf = sbuf.str();
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkTransformCmd::Copy() {
+    LinkTransformCmd* copy = new LinkTransformCmd(GetEditor(), GetTransformer());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkTransformCmd::GetClassId() { return LINK_TRANSFORM_CMD; }
+boolean LinkTransformCmd::IsA(ClassId id) {
+    return id == LINK_TRANSFORM_CMD || SetTransformCmd::IsA(id);
+}
 
 /*****************************************************************************/
 

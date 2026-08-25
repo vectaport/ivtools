@@ -1,0 +1,123 @@
+// src/comterp_/tests/classreg.comt -- class(:all) reports every class this
+// binary linked, whether or not one was ever built
+//
+// coverage: 11/14 (79%)
+// funcs: class size at lt func for
+// missing: class(:all :comps together) class(stress-wrong-type) !class(:all value)
+//
+// Every class using the CLASS_SYMID macro plants a registrar in its own class
+// body -- a static inline member whose constructor runs before main() and
+// links the class into a list.  So the registry is a property of the LINK, not
+// of what the session has touched: comterp reports its own classes, comdraw
+// adds the component classes, drawserv adds DrawLinkComp.  Nothing has to be
+// constructed first, which test 8 is the point of -- PipeObj is listed in a
+// session that never opened a pipe.
+//
+// This is the weaker of the two listing guarantees.  type(:all) is complete
+// for the language (see typeall.comt); class(:all) can only ever be complete
+// for the binary, since a class the linker didn't pull in has no registrar to
+// run.  The docstring says "this binary linked" for that reason.
+//
+// Registration order is dynamic-initializer order, which no standard pins
+// down, so the command sorts by name before reporting (test 4).  Any test
+// asserting a fixed order without that sort would pass here and flake on
+// another compiler.
+//
+// Written to hold under every binary that runs the comterp suite -- comterp,
+// comdraw and drawserv all run this file -- so it asserts membership and
+// relationships, never a count.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./classreg.comt")
+
+run("./testlib.comt")
+ok=true
+
+// is symbol arg(1) somewhere in list arg(0)
+inlist=func(found=false;dummy=for(i=0 i<size(arg(0)) i=i+1 if(at(arg(0) i)==arg(1) :then found=true));found)
+
+lst=class(:all)
+
+// --- test 1: class(:all) returns a list ---
+r1=type(lst)
+ok=ok&&(r1==`ListType)
+print("1 type(class(:all)) (expect ListType): %v\n" r1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: with something in it -- every binary links some classes ---
+r2=size(lst)>0
+ok=ok&&(r2==true)
+print("2 size(class(:all))>0 (expect true): %v\n" r2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: the entries are symbols, same as class(val) hands back ---
+r3=type(at(lst 0))
+ok=ok&&(r3==`SymbolType)
+print("3 type(at(class(:all) 0)) (expect SymbolType): %v\n" r3)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: sorted by name -- registration order is unspecified, so the
+// command sorts rather than exposing whatever order the linker produced ---
+sorted=true
+dummy=for(i=0 i<size(lst)-1 i=i+1 if(!lt(at(lst i) at(lst i+1) :sym) :then sorted=false))
+ok=ok&&(sorted==true)
+print("4 class(:all) sorted by name (expect true): %v\n" sorted)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: AttributeList is there -- it is in every binary that has an
+// interpreter at all, so this holds under comterp, comdraw and drawserv ---
+r5=inlist(lst `AttributeList)
+ok=ok&&(r5==true)
+print("5 AttributeList in class(:all) (expect true): %v\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: a name that is not a class is not there ---
+r6=inlist(lst `NotAnyClassAtAll)
+ok=ok&&(r6==false)
+print("6 NotAnyClassAtAll in class(:all) (expect false): %v\n" r6)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: the listing agrees with the per-value answer -- one set of
+// symbols, not two parallel spellings ---
+r7=inlist(lst class(attrlist()))
+ok=ok&&(r7==true)
+print("7 class(attrlist()) is in class(:all) (expect true): %v\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: and no instance is needed -- this session never opened a pipe,
+// yet PipeObj registered itself before main() ---
+r8=inlist(lst `PipeObj)
+ok=ok&&(r8==true)
+print("8 PipeObj in class(:all) with no pipe ever opened (expect true): %v\n" r8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: :comps is a subset -- it narrows to the component classes, so
+// it can be empty (comterp) or not (comdraw), but never larger ---
+comps=class(:comps)
+r9=size(comps)<=size(lst)
+ok=ok&&(r9==true)
+print("9 size(class(:comps))<=size(class(:all)) (expect true): %v\n" r9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: and every entry of it really is in the full list ---
+subset=true
+dummy=for(i=0 i<size(comps) i=i+1 if(!inlist(lst at(comps i)) :then subset=false))
+ok=ok&&(subset==true)
+print("10 every class(:comps) entry is in class(:all) (expect true): %v\n" subset)
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: :all is a listing request, so a named value does not narrow it ---
+r11=(size(class(3 :all))==size(lst))
+ok=ok&&(r11==true)
+print("11 size(class(3 :all))==size(class(:all)) (expect true): %v\n" r11)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: the ordinary forms are untouched ---
+r12a=class(attrlist())
+r12b=class(3)
+ok=ok&&(r12a==`AttributeList)&&(r12b==nil)
+print("12 class(attrlist()) and class(3) unchanged (expect AttributeList nil): %v %v\n" r12a r12b)
+prev_ok=check_fail(:ok ok)
+
+print("classreg: %v\n" ok)
+ok

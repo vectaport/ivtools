@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #include <ComUnidraw/comterp-acehandler.h>
 
@@ -42,4 +41,3 @@ UnidrawComterpHandler::UnidrawComterpHandler (ComTerpServ* serv) : ComterpHandle
   if (!serv) ((ComEditor*)unidraw->GetEditor(i))->AddCommands(comterp_);
 }
 
-#endif /* HAVE_ACE */
