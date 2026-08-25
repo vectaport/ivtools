@@ -60,6 +60,7 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   _port = portnum;
   _ok = false;
   uuid_clear(_linkid);
+  memset(_linkid_str, 0, sizeof(_linkid_str));
   _state = state;
   _interactive = false;
 

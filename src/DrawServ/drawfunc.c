@@ -185,7 +185,8 @@ void DrawLinkFunc::execute() {
 	cyclink->report("Redundant connection rejected", buffer);
 	((DrawServ*)unidraw)->linkdown(cyclink);
       } else
-	fprintf(stderr, "Redundant connection rejected:  %s\n", buffer);
+	fprintf(stderr, "Redundant connection rejected:  %s (no link with linkid %s)\n",
+		buffer, linkidv.is_string() ? linkidv.string_ptr() : "");
       comterp()->quit();
       push_stack(ComValue::nullval());
       return;

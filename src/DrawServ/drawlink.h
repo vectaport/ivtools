@@ -92,7 +92,7 @@ public:
     int handle();
     // return file descriptor associated with link
 
-    void linkid(uuid_t id) { uuid_copy(_linkid, id); }
+    void linkid(uuid_t id) { uuid_copy(_linkid, id); _linkid_str[0] = '\0'; }
     // set local DrawLink id
     uuid_t& linkid() { return _linkid; }
     // get DrawLink id
