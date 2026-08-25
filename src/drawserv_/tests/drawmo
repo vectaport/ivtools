@@ -2,7 +2,7 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
+# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,9 +10,9 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|gsexim|gsbrushA|gsbrushB]\n");
+    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|gsexim|gsbrushA|gsbrushB]\n");
     print("\t\t\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
@@ -139,6 +139,13 @@ if(tests_flag :then
         print("updown4B: pass\n" :err)
       :else
         print("updown4B: FAIL\n" :err);
+        ok=false));
+    if(t==`ringtest || t==`all :then
+      print("running ringtest\n" :err);
+      if(ringtest_test(:dummy 0) :then
+        print("ringtest: pass\n" :err)
+      :else
+        print("ringtest: FAIL\n" :err);
         ok=false));
     if(t==`gsexim || t==`all :then
       print("running gsexim test\n" :err);
