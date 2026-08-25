@@ -679,7 +679,10 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 else if( isident( CURR_CHAR ))
+	 /* ':' only counts as isident() via _colon_ident, so a colon here is
+	    ending a number cleanly (e.g. a range operand), not a malformed
+	    numeric-identifier like "1abc". */
+	 else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	    return ERR_BADINT;
          else
    	    goto token_return;
@@ -709,7 +712,9 @@ int bs_ident = 0;
 	       }
 	    goto token_return;
 	    }
-	 else if( isdigit( CURR_CHAR ) || isident( CURR_CHAR ))
+	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
+	    so it should end an octal-looking number cleanly, not fail it. */
+	 else if( isdigit( CURR_CHAR ) || (CURR_CHAR != ':' && isident( CURR_CHAR )))
 	    return ERR_BADOCT;
 	 else if( *toklen == 0 ) {
 	    token_state = TOK_DFINT;
