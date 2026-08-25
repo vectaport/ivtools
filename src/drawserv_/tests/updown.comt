@@ -1027,10 +1027,10 @@ ringtest_test=func(
   update(5000000);
 
   /* ds1 is where the ring would have closed, so its count is the decisive
-     one: a ring gives it two links, a chain one.  ds3 is deliberately not
-     asked -- a node whose cycle-closing offer is refused has been seen to stop
-     answering its comdraw port, and remote() has no timeout to recover from
-     that, so this test neither queries ds3 nor waits on it to exit. */
+     one: a ring gives it two links, a chain one.  ds3 is not asked -- remote()
+     has no timeout, so a node that stopped serving its comdraw port would hang
+     the whole suite rather than fail it; its health is checked at teardown
+     instead, where the wait can be bounded. */
   n1=remote(sock1 "size(drawlink(:table))");
   n2=remote(sock2 "size(drawlink(:table))");
   print("ringtest: links held -- ds1=%v ds2=%v\n" n1 n2 :err);
@@ -1060,10 +1060,20 @@ ringtest_test=func(
   remote(sock2 "exit" :nowait);close(sock2);
   while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds2_port :str))==0 usleep(200000));
   print("ringtest: ds2 shut down\n" :err);
-  close(sock3);
-  kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import);
+
+  /* ds3 had a link cast off under it, so its shutdown doubles as the liveness
+     check: exit is sent :nowait and the wait is bounded, and a node that never
+     processes it is one that stopped serving its port -- which is what a modal
+     dialog on the refusal path does to a drawserv nobody is sitting at */
+  remote(sock3 "exit" :nowait);close(sock3);
   cnt=0;
   while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0 && cnt<50
     usleep(200000);cnt++);
-  print("ringtest: ds3 shut down\n" :err);
+  stuck=shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds3_port :str))==0;
+  if(stuck :then
+    print("ringtest: FAIL ds3 stopped serving its comdraw port after the refusal\n" :err);
+    kill_port(:kill_port_num ds3_port);kill_port(:kill_port_num ds3_import)
+  :else
+    print("ringtest: ds3 shut down\n" :err));
+  ok=ok && !stuck;
   ok)
