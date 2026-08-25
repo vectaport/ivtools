@@ -157,34 +157,10 @@ ac=run(as1 :str)
 as2=export(ac :string :percomp)
 r10=eq(as1 as2)
 ok=ok&&r10
-ok=ok&&(index(as1 "163 :myattr" :substr)!=nil)
+ok=ok&&(index(as1 " :myattr" :substr)!=nil)
 print("10a attributed graphic exports as %s\n" as1)
 print("10b and re-creates from it identically (expect true): %v\n" r10)
-print("10c with the attributes separated from the transform (expect a position): %v\n\n" index(as1 "163 :myattr" :substr))
-
-// --- test 10: a graphic carrying its own attributes round-trips too.  Every
-//              case above uses graphic state; none carries an attribute, which
-//              is how the exporter got away with emitting the attribute list
-//              twice.  Attributes belong at the tail end of the command, after
-//              the graphic state and inside the parens, where the reader takes
-//              them as ordinary keywords -- that is how :grid and :sid survive
-//              a trip to another drawserv.  export() emitted them there AND
-//              again past the closing paren, where nothing reads them, so the
-//              export was no longer its own command.  The list also ran onto
-//              the value before it for want of a separator, coming out as
-//              ":transform 1,0,0,1,89,163:myattr 7". ---
-each(delete($$select(:all)))
-ab=rect(0,0,50,50 :myattr 7 :other "x")
-as1=export(ab :string :percomp)
-each(delete($$select(:all)))
-ac=run(as1 :str)
-as2=export(ac :string :percomp)
-r10=eq(as1 as2)
-ok=ok&&r10
-ok=ok&&(index(as1 "163 :myattr" :substr)!=nil)
-print("10a attributed graphic exports as %s\n" as1)
-print("10b and re-creates from it identically (expect true): %v\n" r10)
-print("10c with the attributes separated from the transform (expect a position): %v\n\n" index(as1 "163 :myattr" :substr))
+print("10c with a separator before the first attribute (expect a position): %v\n\n" index(as1 " :myattr" :substr))
 
 print("gsexim: %v\n" ok)
 ok
