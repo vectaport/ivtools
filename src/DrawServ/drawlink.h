@@ -124,6 +124,10 @@ public:
     int interactive() { return _interactive; }
     // true if there is a user at the dialog to receive a popup about this link
 
+    void report(const char* title, const char* detail);
+    // tell the user what became of this link: a popup if a user asked for it at
+    // the connections dialog, otherwise stderr
+
     ACE_SOCK_Stream* socket() { return _socket; }
     // return pointer to connected socket.
 

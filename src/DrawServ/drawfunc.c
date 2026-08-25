@@ -155,6 +155,42 @@ void DrawLinkFunc::execute() {
 	uuid_parse(linkidv.string_ptr(),linkid);
     }
 	
+    /* The two_way leg names the far end to the node that opened the link, and
+       that node can already know it by another path even when the far end had
+       never heard of us -- which is exactly the ring cycletest() misses at the
+       one_way leg above, its table not yet holding the offering session.  Run
+       the same test here, so whichever end recognizes the ring first casts it
+       off; it takes both ends never having heard of each other to get one. */
+    if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string() &&
+	((DrawServ*)unidraw)->cycletest
+	(sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
+      DrawLink* cyclink = nil;
+      DrawLinkList* linklist = ((DrawServ*)unidraw)->linklist();
+      if (linklist) {
+	Iterator i;
+	for (linklist->First(i); !linklist->Done(i); linklist->Next(i)) {
+	  if (uuid_compare(linklist->GetDrawLink(i)->linkid(), linkid)==0) {
+	    cyclink = linklist->GetDrawLink(i);
+	    break;
+	  }
+	}
+      }
+      /* tell the far end before dropping our half, so it reports the refusal
+	 rather than an unexpected end-of-file */
+      fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+      fflush(comterp()->handler()->wrfptr());
+      char buffer[BUFSIZ];
+      snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
+      if (cyclink) {
+	cyclink->report("Redundant connection rejected", buffer);
+	((DrawServ*)unidraw)->linkdown(cyclink);
+      } else
+	fprintf(stderr, "Redundant connection rejected:  %s\n", buffer);
+      comterp()->quit();
+      push_stack(ComValue::nullval());
+      return;
+    }
+
     link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
     Resource::ref(link); // reference here if calling Run makes linkdown()
 

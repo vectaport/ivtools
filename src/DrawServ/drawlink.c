@@ -29,10 +29,14 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include <DrawServ/ackback-handler.h>
+#include <DrawServ/draweditor.h>
+#include <DrawServ/drawkit.h>
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/sid.h>
+#include <IVGlyph/gdialogs.h>
+#include <InterViews/window.h>
 #include <Unidraw/globals.h>
 #include <ComUtil/util.h>
 #include <fstream.h>
@@ -76,6 +80,19 @@ DrawLink::~DrawLink ()
     delete _addr;
     delete _host;
     delete _althost;
+}
+
+/* A popup only reaches somebody if a user asked for this link at the
+   connections dialog; on a scripted or wire-driven link there is nobody to
+   dismiss it, and a modal dialog stops the main loop from ever running again,
+   so that news goes to stderr instead. */
+
+void DrawLink::report(const char* title, const char* detail) {
+  if (interactive())
+    GAcknowledgeDialog::map(DrawKit::Instance()->GetEditor()->GetWindow(),
+			    title, detail, title);
+  else
+    fprintf(stderr, "%s:  %s\n", title, detail);
 }
 
 int DrawLink::open(uuid_t linkid) {

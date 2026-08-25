@@ -1065,7 +1065,31 @@ ringtest_test=func(
     relay=grid_has_id(:gh_sock sock2 :gh_id id1);
     print("ringtest: graphic reached ds2 over the surviving link: %v\n" relay :err));
   if(!relay :then print("ringtest: FAIL the refusal took the good link with it\n" :err));
-  ok=chain && relay && (nsid==3);
+
+  /* The one_way leg can only refuse a ring the receiver has already been told
+     about, so the same test runs on the two_way leg, where it is the node that
+     opened the link holding the far end's session id.  Hand ds1 a two_way leg
+     for its own live link, naming a session it already knows: that is what a
+     ring looks like arriving from the other direction, and it must cast the
+     link off rather than complete it.  Last, because it takes ds1's link with
+     it -- and aimed at ds1 rather than ds3 because this test only ever queries
+     the two nodes it can afford to wait on. */
+  row=at(remote(sock1 "sid(:table)") 0);
+  lid=at(remote(sock1 "drawlink(:table)") 0).lid;
+  legcmd=print("drawlink(%c%s%c :port %d :state 2 :sid %c%s%c :linkid %c%s%c :pid %d :user %c%s%c)"
+    34 row.host 34 ds2_port 34 row.sid 34 34 lid 34 row.pid 34 row.user 34 :str);
+  sockleg=socket("127.0.0.1" ds1_port);
+  remote(sockleg legcmd);
+  usleep(3000000);
+  close(sockleg);
+  n1b=remote(sock1 "size(drawlink(:table))");
+  legok=(n1b==0);
+  print("ringtest: ds1 links after a two_way leg naming a known session: %v\n" n1b :err);
+  if(!legok :then
+    print("ringtest: FAIL the two_way leg completed, expected the link cast off\n" :err));
+  if(legok :then print("ringtest: two_way leg refused too\n" :err));
+
+  ok=chain && relay && legok && (nsid==3);
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
