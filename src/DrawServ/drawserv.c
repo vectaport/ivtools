@@ -146,13 +146,15 @@ DrawServ::~DrawServ ()
 }
 
 DrawLink* DrawServ::linkup(const char* hostname, int portnum, 
-		     int state, uuid_t link_id,  ComTerp* comterp) {
+		     int state, uuid_t link_id,  ComTerp* comterp,
+		     int interactive) {
 
   if (comterp!=NULL) comterp->handler()->alt_fd(portnum);
   
   if (state == DrawLink::new_link || state == DrawLink::one_way) {
     
     DrawLink* link = new DrawLink(hostname, portnum, state);
+    link->interactive(interactive);
     if (state==DrawLink::one_way && comterp && comterp->handler()) {
       ((DrawServHandler*)comterp->handler())->drawlink(link);
       link->comhandler((DrawServHandler*)comterp->handler());

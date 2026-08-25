@@ -57,6 +57,7 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   _ok = false;
   uuid_clear(_linkid);
   _state = state;
+  _interactive = false;
 
   _addr = nil;
   _socket = nil;
