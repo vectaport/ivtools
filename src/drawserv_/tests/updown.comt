@@ -1066,22 +1066,18 @@ ringtest_test=func(
     print("ringtest: graphic reached ds2 over the surviving link: %v\n" relay :err));
   if(!relay :then print("ringtest: FAIL the refusal took the good link with it\n" :err));
 
-  /* The one_way leg can only refuse a ring the receiver has already been told
-     about, so the same test runs on the two_way leg, where it is the node that
-     opened the link holding the far end's session id.  Hand ds1 a two_way leg
-     for its own live link, naming a session it already knows: that is what a
-     ring looks like arriving from the other direction, and it must cast the
-     link off rather than complete it.  Last, because it takes ds1's link with
-     it -- and aimed at ds1 rather than ds3 because this test only ever queries
-     the two nodes it can afford to wait on. */
+  /* A two_way leg answers a link that was opened and is still being waited on.
+     One naming a link already up answers nothing, and must not be able to take
+     it down -- anything that can reach the comdraw port could otherwise drop
+     any link it can name.  Hand ds1 such a leg, naming its live link and a
+     session it knows: the link has to still be there afterwards. */
   row=at(remote(sock1 "sid(:table)") 0);
   lid=at(remote(sock1 "drawlink(:table)") 0).lid;
 
-  /* the leg below is only meaningful if it names a link that exists, so say so
-     when the lid is not a uuid rather than leaving a garbled one to look like a
-     leg that was let through -- linkid_str() caches into a buffer that has to
-     start empty, and a platform that hands back a dirty one silently served the
-     rubbish instead */
+  /* the leg is only meaningful if it names a link that exists, so say so when
+     the lid is not a uuid rather than leaving a garbled one to look like a leg
+     that was correctly ignored -- linkid_str() caches into a buffer that has to
+     start empty, and a platform that hands back a dirty one served the rubbish */
   lidok=(size(lid)==36) && (index(lid "-" :substr)==8);
   if(!lidok :then
     print("ringtest: FAIL drawlink(:table) lid is not a uuid: [%v]\n" lid :err));
@@ -1093,11 +1089,11 @@ ringtest_test=func(
   usleep(3000000);
   close(sockleg);
   n1b=remote(sock1 "size(drawlink(:table))");
-  legok=(n1b==0);
-  print("ringtest: ds1 links after a two_way leg naming a known session: %v\n" n1b :err);
+  legok=(n1b==1);
+  print("ringtest: ds1 links after a two_way leg naming a link already up: %v\n" n1b :err);
   if(!legok :then
-    print("ringtest: FAIL the two_way leg completed, expected the link cast off\n" :err));
-  if(legok :then print("ringtest: two_way leg refused too\n" :err));
+    print("ringtest: FAIL a leg naming an established link took it down\n" :err));
+  if(legok :then print("ringtest: a leg naming an established link left it alone\n" :err));
 
   ok=chain && relay && legok && lidok && (nsid==3);
 

@@ -161,35 +161,55 @@ void DrawLinkFunc::execute() {
        one_way leg above, its table not yet holding the offering session.  Run
        the same test here, so whichever end recognizes the ring first casts it
        off; it takes both ends never having heard of each other to get one. */
-    if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string() &&
-	((DrawServ*)unidraw)->cycletest
-	(sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
+    if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string()) {
+
+      /* the leg answers a link we opened and are still waiting on -- a link
+	 already up is not awaiting one, and must not be torn down by a leg
+	 that merely names it */
       DrawLink* cyclink = nil;
       DrawLinkList* linklist = ((DrawServ*)unidraw)->linklist();
       if (linklist) {
 	Iterator i;
 	for (linklist->First(i); !linklist->Done(i); linklist->Next(i)) {
-	  if (uuid_compare(linklist->GetDrawLink(i)->linkid(), linkid)==0) {
-	    cyclink = linklist->GetDrawLink(i);
+	  DrawLink* l = linklist->GetDrawLink(i);
+	  if (uuid_compare(l->linkid(), linkid)==0 &&
+	      l->state() == DrawLink::new_link) {
+	    cyclink = l;
 	    break;
 	  }
 	}
       }
-      /* tell the far end before dropping our half, so it reports the refusal
-	 rather than an unexpected end-of-file */
-      fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
-      fflush(comterp()->handler()->wrfptr());
-      char buffer[BUFSIZ];
-      snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
-      if (cyclink) {
+
+      /* and a ring means the session is reachable ANOTHER way: one we know
+	 through a link to the peer we are dialing is no ring but a duplicate,
+	 or a stale link to the very node reconnecting, and refusing that would
+	 leave it unable to come back until its session ages out */
+      boolean elsewhere = false;
+      if (cyclink &&
+	  ((DrawServ*)unidraw)->cycletest
+	  (sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
+	void* ptr = nil;
+	((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
+	SessionId* known = (SessionId*)ptr;
+	DrawLink* via = known ? known->drawlink() : nil;
+	elsewhere = !via || via->portnum() != cyclink->portnum() ||
+	  !via->hostname() || !cyclink->hostname() ||
+	  strcmp(via->hostname(), cyclink->hostname())!=0;
+      }
+
+      if (elsewhere) {
+	/* tell the far end before dropping our half, so it reports the refusal
+	   rather than an unexpected end-of-file */
+	fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+	fflush(comterp()->handler()->wrfptr());
+	char buffer[BUFSIZ];
+	snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
 	cyclink->report("Redundant connection rejected", buffer);
 	((DrawServ*)unidraw)->linkdown(cyclink);
-      } else
-	fprintf(stderr, "Redundant connection rejected:  %s (no link with linkid %s)\n",
-		buffer, linkidv.is_string() ? linkidv.string_ptr() : "");
-      comterp()->quit();
-      push_stack(ComValue::nullval());
-      return;
+	comterp()->quit();
+	push_stack(ComValue::nullval());
+	return;
+      }
     }
 
     link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
