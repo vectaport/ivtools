@@ -128,13 +128,9 @@ void ListAtFunc::execute() {
   static int raw_symid = symbol_add("raw");
   ComValue rawv(stack_key(raw_symid));
   boolean rawflag = rawv.is_true();
-  /* :raw is read (and accepted) here ahead of any code that acts on it.
-     Nothing branches on probeable() yet -- a probeable colon-list index
-     (#423) is still handled as an ordinary array-valued index below, same
-     as one built by ',' -- so :raw is currently a no-op; it exists so the
-     keyword is already in place, documented, and known not to collide with
-     anything, before a later PR gives probeable() something to bypass (a
-     string slice is the first planned case). */
+  /* :raw is accepted but currently a no-op -- nothing below dispatches on
+     probeable(), so a probeable index reads as an ordinary array index
+     either way. */
   (void)rawflag;
 
   /* a list has no position in it, and int_val() answers 0 for one -- so a

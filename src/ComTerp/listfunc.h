@@ -78,7 +78,7 @@ public:
 	":set val   set val in list",
 	":ins val   insert val in list",
 	":del       delete val from list, returning the deleted value",
-	":raw       reserved (#423): a probeable colon-list index is already treated as an ordinary array index today, so this is currently a no-op -- accepted now so a future dispatch on probeable() has a documented opt-out from the start",
+	":raw       currently a no-op -- reserved for opting a probeable colon-list index out of a future dispatch on probeable()",
 	nil
       };
       return keys;
@@ -109,15 +109,10 @@ public:
 
 };
 
-//: : (colonlist) operator -- pairs two operands into a probeable list
-// (#423).  Plain AttributeValueList, tagged via the ComValue-level
-// probeable() flag (comvalue.h) rather than wrapped in a new type or marked
-// on the list object itself, so it prints and behaves like any other list.
-// Deliberately generic: this is just the value-builder for ':', with
-// nothing yet reading probeable() to do something special with the result
-// (a string slice is the first planned consumer -- a separate PR, not this
-// one).  What the pair means is entirely up to whatever eventually reads
-// it; the operator itself stays uncommitted to any one interpretation.
+//: : (colonlist) operator -- pairs two operands into a probeable list.
+// Plain AttributeValueList, tagged via the ComValue-level probeable() flag
+// (comvalue.h), so it prints and behaves like any other list; nothing here
+// says what the pair means, that's up to whatever reads probeable().
 class ColonListFunc : public ComFunc {
 public:
     ColonListFunc(ComTerp*);

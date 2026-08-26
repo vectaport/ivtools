@@ -46,7 +46,7 @@ class ComTerp;
 #define COMVALUE_BQUOTE_FLAG     0x01  // backquote -- return symbol without lookup
 #define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() or local() ComValue in lhs context
 #define COMVALUE_LOCAL_FLAG      0x04  // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
-#define COMVALUE_PROBEABLE_FLAG  0x08  // set by ColonListFunc (#423) -- an ArrayType built by ':', not ','; @ dispatches on this instead of hitting the #404 list-valued-index guard
+#define COMVALUE_PROBEABLE_FLAG  0x08  // set by ColonListFunc -- an ArrayType built by ':', not ','
 
 class ComValue : public AttributeValue {
 public:
