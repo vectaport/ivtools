@@ -22,7 +22,7 @@ gs_on_node=func(
   while(!found && cnt<timeout
     e=remote(bn_sock expr);
     if(type(e)==`StringType && index(e bn_gs)!=nil :then found=true);
-    if(!found :then update(poll_usec);cnt++));
+    if(!found :then usleep(poll_usec);cnt++));
   found)
 
 /* gsbrushA test -- graphic-state BRUSH propagation, CHAIN topology ds1->ds2->ds3.
@@ -117,7 +117,8 @@ gsbrushA_test=func(
   remote(sock1 "pattern(5)");
   /* one reasoned settle (see updown3A): command distribution is fire-and-forget;
      give the create+brush+pattern a head start before polling the far nodes. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("gsbrushA: created rect+brush on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -153,7 +154,6 @@ gsbrushA_test=func(
      rather than merely proving something arrived. --- */
   maskstr=":pattern 0x0011,0x0022,0x0044,0x0088";
   remote(sock1 "patternmask(0x11,0x22,0x44,0x88,0x11,0x22,0x44,0x88,0x11,0x22,0x44,0x88,0x11,0x22,0x44,0x88)");
-  update(2000000);
   m2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs maskstr);
   m3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs maskstr);
   print("gsbrushA: patternmask 16-element form reached ds2=%v ds3=%v\n" m2 m3 :err);
@@ -170,7 +170,6 @@ gsbrushA_test=func(
      is the transform having propagated. --- */
   transtr=":transform 2,0,0,2,30,40";
   remote(sock1 print("trans(grid(%c%s%c) 2,0,0,2,30,40)" 34 id1 34 :str));
-  update(2000000);
   x2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs transtr);
   x3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs transtr);
   print("gsbrushA: transform reached ds2=%v ds3=%v\n" x2 x3 :err);
@@ -186,7 +185,8 @@ gsbrushA_test=func(
   fontstr="courier-bold";
   remote(sock1 "t=text(30,30 \"gs\")");
   remote(sock1 "font(3)");
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<2 && cnt<200 usleep(100000);cnt++);
   /* pick the entry that is not the rect rather than trusting table order */
   ida=remote(sock1 "at(grid(:table) 0).grid");
   idb=remote(sock1 "at(grid(:table) 1).grid");
@@ -227,9 +227,9 @@ gsbrushA_test=func(
 
   k=0;
   while(k<9 remote(sock1 at(shapecmds k)); k=k+1);
-  update(3000000);
-
   n1=remote(sock1 "size(grid(:table))");
+  cnt=0;
+  while(remote(sock2 "size(grid(:table))")<n1 && cnt<200 usleep(100000);cnt++);
   n2=remote(sock2 "size(grid(:table))");
   print("gsbrushA: ds1 holds %v graphics, ds2 holds %v\n" n1 n2 :err);
   shapesok=(type(n1)==`IntType && type(n2)==`IntType && n1==n2);
@@ -347,7 +347,8 @@ gsbrushB_test=func(
   remote(sock1 "brush(65520,2)");
   remote(sock1 "pattern(5)");
   /* one reasoned settle (see updown3B): fire-and-forget distribution. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("gsbrushB: created rect+brush on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -385,7 +386,6 @@ gsbrushB_test=func(
      see gsbrushA. --- */
   maskstr=":graypat -1";
   remote(sock1 "patternmask(255)");
-  update(2000000);
   m2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs maskstr);
   m3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs maskstr);
   print("gsbrushB: patternmask scalar form reached ds2=%v ds3=%v\n" m2 m3 :err);
@@ -400,7 +400,6 @@ gsbrushB_test=func(
      it back and forth until the suite times out. --- */
   xstr=":transform 2,0,0,2,30,40";
   remote(sock1 print("trans(grid(%c%s%c) 2,0,0,2,30,40)" 34 id1 34 :str));
-  update(2000000);
   t2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs xstr);
   t3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs xstr);
   print("gsbrushB: transform fanned out ds2=%v ds3=%v\n" t2 t3 :err);

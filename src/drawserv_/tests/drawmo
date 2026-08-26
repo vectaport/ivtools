@@ -71,7 +71,7 @@ grid_has_id=func(
     n=size(t);
     for(j=0 j<n j++
       if(at(t j).grid==gh_id :then found=true));
-    if(!found :then update(poll_usec);cnt++));
+    if(!found :then usleep(poll_usec);cnt++));
   found)
 
 /* The test functions live in two grouped files, loaded here.  Order matters: a

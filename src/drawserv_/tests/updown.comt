@@ -392,7 +392,8 @@ updown3A_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown3A: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -512,7 +513,8 @@ updown3B_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown3B: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -655,7 +657,8 @@ updown4A_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4A: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -811,7 +814,8 @@ updown4B_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4B: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -967,7 +971,8 @@ updown4C_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4C: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -1134,7 +1139,8 @@ ringtest_test=func(
      some reason of its own, so make the refusal prove itself: casting off the
      offending link must leave the good one relaying */
   remote(sock1 "ellipse(100,100,40,40)");
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   if(type(id1)!=`StringType :then
     print("ringtest: FAIL could not read grid id from ds1 (got %v)\n" id1 :err);
