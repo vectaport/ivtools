@@ -65,8 +65,11 @@ int _backslash_ids = 0;
 #define FLOAT_IS_STARTING( ch1, ch2 ) \
 (((ch1) == '.' && (ch2) != '.' ) || (ch1) == 'E' || (ch1) == 'e')
 
+/* ':' only counts as isident() via _colon_ident, so it shouldn't disqualify
+   a following 'L' from being a genuine long suffix (e.g. "1L:2"). */
 #define LOOKS_LIKE_LONG( ch1, ch2 ) \
-(((ch1) == 'l' || (ch1) == 'L') && !(isdigit(ch2) || isident(ch2)))
+(((ch1) == 'l' || (ch1) == 'L') && \
+ !(isdigit(ch2) || ((ch2) != ':' && isident(ch2))))
 
 #define ADVANCE_PAST_QUOTE \
 while( CURR_CHAR != '\n' && \
