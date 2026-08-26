@@ -23,7 +23,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 #include <iostream.h>
 #include <fstream.h>
 using namespace std;
@@ -337,4 +336,3 @@ void ComterpHandler::log_command(const char* cmdstring, const char* fd_or_port_p
   log_with_timestamp(buffer);
 }
 
-#endif /* HAVE_ACE */

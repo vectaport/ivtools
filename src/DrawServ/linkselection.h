@@ -28,7 +28,6 @@
 #ifndef link_selection_h
 #define link_selection_h
 
-#ifdef HAVE_ACE
 #include <OverlayUnidraw/ovselection.h>
 
 class DrawEditor;
@@ -112,5 +111,4 @@ protected:
   boolean _paste_in_progress_flag;
 
 };
-#endif /* HAVE_ACE */
 #endif
