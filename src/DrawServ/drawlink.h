@@ -124,6 +124,13 @@ public:
     int interactive() { return _interactive; }
     // true if there is a user at the dialog to receive a popup about this link
 
+    void debug_usec(int val) { _debug_usec = val; }
+    // slow what this link sends, so a script can open the timing windows the
+    // handshake normally closes too fast to enact
+
+    int debug_usec() { return _debug_usec; }
+    // microseconds the far end is asked to wait before each command sent here
+
     void report(const char* title, const char* detail);
     // tell the user what became of this link: a popup if a user asked for it at
     // the connections dialog, otherwise stderr
@@ -157,6 +164,7 @@ protected:
     uuid_string_t _linkid_str;
     int _state;
     int _interactive;
+    int _debug_usec;
 
     ACE_INET_Addr* _addr;
     ACE_SOCK_Connector* _conn;

@@ -425,6 +425,7 @@ void DrawServ::SendCmdString(DrawLink* link, const char* cmdstring) {
     if (fd>=0) {
       link->log_outgoing_command(cmdstring);
       FILE* fp=fdopen(dup(fd), "w");
+      if (link->debug_usec()>0) fprintf(fp, "usleep(%d);", link->debug_usec());
       fputs(cmdstring, fp);
       fputs("\n", fp);
       fclose(fp);
