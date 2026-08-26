@@ -155,6 +155,62 @@ void DrawLinkFunc::execute() {
 	uuid_parse(linkidv.string_ptr(),linkid);
     }
 	
+    /* The two_way leg names the far end to the node that opened the link, and
+       that node can already know it by another path even when the far end had
+       never heard of us -- which is exactly the ring cycletest() misses at the
+       one_way leg above, its table not yet holding the offering session.  Run
+       the same test here, so whichever end recognizes the ring first casts it
+       off; it takes both ends never having heard of each other to get one. */
+    if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string()) {
+
+      /* the leg answers a link we opened and are still waiting on -- a link
+	 already up is not awaiting one, and must not be torn down by a leg
+	 that merely names it */
+      DrawLink* cyclink = nil;
+      DrawLinkList* linklist = ((DrawServ*)unidraw)->linklist();
+      if (linklist) {
+	Iterator i;
+	for (linklist->First(i); !linklist->Done(i); linklist->Next(i)) {
+	  DrawLink* l = linklist->GetDrawLink(i);
+	  if (uuid_compare(l->linkid(), linkid)==0 &&
+	      l->state() == DrawLink::new_link &&
+	      l->portnum() == portnum) {
+	    cyclink = l;
+	    break;
+	  }
+	}
+      }
+
+      /* and a ring means the session is reachable ANOTHER way: one we know
+	 through a link to the peer we are dialing is no ring but a duplicate,
+	 or a stale link to the very node reconnecting, and refusing that would
+	 leave it unable to come back until its session ages out */
+      boolean elsewhere = false;
+      if (cyclink &&
+	  ((DrawServ*)unidraw)->cycletest
+	  (sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
+	void* ptr = nil;
+	((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
+	SessionId* known = (SessionId*)ptr;
+	DrawLink* via = known ? known->drawlink() : nil;
+	elsewhere = !via || !cyclink->same_peer(via);
+      }
+
+      if (elsewhere) {
+	/* tell the far end before dropping our half, so it reports the refusal
+	   rather than an unexpected end-of-file */
+	fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+	fflush(comterp()->handler()->wrfptr());
+	char buffer[BUFSIZ];
+	snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
+	cyclink->report("Redundant connection rejected", buffer);
+	((DrawServ*)unidraw)->linkdown(cyclink);
+	comterp()->quit();
+	push_stack(ComValue::nullval());
+	return;
+      }
+    }
+
     link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
     Resource::ref(link); // reference here if calling Run makes linkdown()
 

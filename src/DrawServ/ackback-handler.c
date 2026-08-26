@@ -44,19 +44,6 @@ using namespace std;
 
 /*****************************************************************************/
 
-/* Tell the user what became of a link.  A popup only reaches somebody if a
-   user asked for this link at the connections dialog; on a scripted or
-   wire-driven link there is nobody to dismiss it, and a modal dialog stops the
-   main loop from ever running again, so that news goes to stderr instead. */
-
-static void report_link(DrawLink* link, const char* title, const char* detail) {
-  if (link && link->interactive())
-    GAcknowledgeDialog::map(DrawKit::Instance()->GetEditor()->GetWindow(),
-			    title, detail, title);
-  else
-    fprintf(stderr, "%s:  %s\n", title, detail);
-}
-
 // Default constructor.
 
 AckBackHandler::AckBackHandler ()
@@ -96,7 +83,7 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
     if (strcmp((char*)&inv[0], "ackback(cycle)")==0) {
       char buffer[BUFSIZ];
       snprintf(buffer, BUFSIZ, "%s:%d", drawlink()->hostname(), drawlink()->portnum());
-      report_link(drawlink(), "Redundant connection rejected", buffer);
+      drawlink()->report("Redundant connection rejected", buffer);
       _eof_expected = true;
     }
     
@@ -104,7 +91,7 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
       if (!_eof_expected) {
 	char buffer[BUFSIZ];
 	snprintf(buffer, BUFSIZ, "%s:%d", drawlink()->hostname(), drawlink()->portnum());
-	report_link(drawlink(), "Unexpected end-of-file on connection", buffer);
+	drawlink()->report("Unexpected end-of-file on connection", buffer);
       } else
 	_eof_expected = false;
       cerr << "AckBack (end of file):  [" << (char*)&inv[0] << "]\n";
