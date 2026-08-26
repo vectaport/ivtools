@@ -199,6 +199,82 @@ parsetest_test=func(
   print("parsetest: drawserv shut down\n" :err);
   ok)
 
+/* optabletest test -- the operator table is the one piece of parse state that is
+   meant to be shared: every interpreter wants the same operators, and
+   optable(:insert) edits it while a drawserv is running (%% is defined that
+   way).  A command's execution is atomic unless it deliberately re-enters the
+   interpreter, as drawlink's handshake wait does with a nested Run, and
+   OptableFunc::execute does nothing of the sort -- so an insert cannot be
+   caught half-done by another connection.  Same two-connection shape as
+   parsetest: edit on one, parse on the other in the gap, then use the new
+   operator from both.  Unlike parsetest this is a property test, not a
+   regression test: it passes with or without the parse-state fix. */
+optabletest_test=func(
+
+  ds_port=find_open_port(:base_port 21002);
+  ds_import=ds_port-1;
+  global(drawserv_upoptable)=false;
+  print("optabletest: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upoptable)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("optabletest: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("optabletest: waiting for drawserv callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_upoptable) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("optabletest: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(!global(drawserv_upoptable) :then
+    print("optabletest: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  print("optabletest: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("127.0.0.1" ds_port);
+  if(type(sock)==`UnknownType :then
+    print("optabletest: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  sockb=socket("127.0.0.1" ds_port);
+  if(type(sockb)==`UnknownType :then
+    print("optabletest: FAIL could not open a second connection on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  /* both interpreters parse once, before the table is touched */
+  remote(sock "1+1");
+  remote(sockb "1+1");
+
+  ins=remote(sock "optable(\"@@\" \"size\" :insert :pri 100 :prefix)");
+  usleep(500000);
+  u1=remote(sock "@@ \"abcd\"");
+  b=remote(sockb "1+1");
+  usleep(500000);
+  u2=remote(sock "@@ \"abcd\"");
+  u3=remote(sockb "@@ \"abcd\"");
+  print("optabletest: insert=%v use before=%v after=%v other connection=%v\n" ins u1 u2 u3 :err);
+  ok=(u1==4) && (b==2) && (u2==4) && (u3==4);
+  if(!ok :then
+    print("optabletest: FAIL the operator did not survive (want 4, 2, 4, 4)\n" :err));
+  if(ok :then print("optabletest: operator survived a parse on the other connection\n" :err));
+  close(sockb);
+
+  remote(sock "exit" :nowait);
+  close(sock);
+  /* wait for the drawserv PROCESS to be gone (see updown_test) */
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+    usleep(200000));
+  print("optabletest: drawserv shut down\n" :err);
+  ok)
+
 /* updown2 test -- launch two drawservs, link ds1->ds2, verify the link is
    visible in the drawlink table on both ends, shut both down.
    reuses the canonical port pair (20002/30002); find_open_port only steps
