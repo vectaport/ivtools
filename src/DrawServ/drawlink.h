@@ -124,12 +124,19 @@ public:
     int interactive() { return _interactive; }
     // true if there is a user at the dialog to receive a popup about this link
 
+    boolean same_peer(DrawLink* other);
+    // whether another link goes to the same place as this one, compared by
+    // resolved address rather than by the name each happened to be dialled by
+
     void report(const char* title, const char* detail);
     // tell the user what became of this link: a popup if a user asked for it at
     // the connections dialog, otherwise stderr
 
     ACE_SOCK_Stream* socket() { return _socket; }
     // return pointer to connected socket.
+
+    ACE_INET_Addr* addr() { return _addr; }
+    // address open() resolved for this link's peer
 
     void dump(FILE*);
     // dump complete information on this DrawLink

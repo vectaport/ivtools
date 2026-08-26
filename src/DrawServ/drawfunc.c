@@ -173,7 +173,8 @@ void DrawLinkFunc::execute() {
 	for (linklist->First(i); !linklist->Done(i); linklist->Next(i)) {
 	  DrawLink* l = linklist->GetDrawLink(i);
 	  if (uuid_compare(l->linkid(), linkid)==0 &&
-	      l->state() == DrawLink::new_link) {
+	      l->state() == DrawLink::new_link &&
+	      l->portnum() == portnum) {
 	    cyclink = l;
 	    break;
 	  }
@@ -192,9 +193,7 @@ void DrawLinkFunc::execute() {
 	((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
 	SessionId* known = (SessionId*)ptr;
 	DrawLink* via = known ? known->drawlink() : nil;
-	elsewhere = !via || via->portnum() != cyclink->portnum() ||
-	  !via->hostname() || !cyclink->hostname() ||
-	  strcmp(via->hostname(), cyclink->hostname())!=0;
+	elsewhere = !via || !cyclink->same_peer(via);
       }
 
       if (elsewhere) {
