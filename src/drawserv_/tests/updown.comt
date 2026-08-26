@@ -121,6 +121,84 @@ updown1_test=func(
   print("updown1: drawserv shut down\n" :err);
   ok)
 
+/* parsetest test -- one drawserv, TWO connections to it.  Each connection is
+   served by an interpreter of its own, but the parser keeps the stack that
+   counts a call's arguments and keywords in a file static, so a client's saved
+   copy has to be installed when it takes the globals over.  Nothing initialized
+   those copies, so a parser's first parse ran on the previous client's and then
+   kept its ParenStack POINTER, and the two counted into one array from then on.
+   Start a list across two lines on one connection, parse something on the other
+   in the gap, and finish the list: it has to still be the list that was started.
+   A raster is what met this in the wild, its serialized form running to some
+   thirty lines with a line read per dispatch, but nothing about it needs a
+   raster or any timing at all. */
+parsetest_test=func(
+
+  ds_port=find_open_port(:base_port 21002);
+  ds_import=ds_port-1;
+  global(drawserv_upparse)=false;
+  print("parsetest: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upparse)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("parsetest: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("parsetest: waiting for drawserv callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_upparse) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("parsetest: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(!global(drawserv_upparse) :then
+    print("parsetest: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  print("parsetest: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("127.0.0.1" ds_port);
+  if(type(sock)==`UnknownType :then
+    print("parsetest: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  sockb=socket("127.0.0.1" ds_port);
+  if(type(sockb)==`UnknownType :then
+    print("parsetest: FAIL could not open a second connection on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  /* both interpreters parse once, so each has a saved copy to install */
+  remote(sock "1+1");
+  remote(sockb "1+1");
+
+  /* a leaves a list open across lines, b parses in the gap, a closes it */
+  remote(sock "x=(10,20,30," :nowait);
+  usleep(1000000);
+  b=remote(sockb "1+1");
+  usleep(500000);
+  remote(sock "40,50)");
+  usleep(500000);
+  n=remote(sock "size(x)");
+  print("parsetest: b answered %v in the gap; the interrupted list is size %v\n" b n :err);
+  ok=(b==2) && (n==5);
+  if(!ok :then
+    print("parsetest: FAIL the list did not survive a parse on the other connection (want 2 and 5)\n" :err));
+  if(ok :then print("parsetest: the interrupted list survived intact\n" :err));
+  close(sockb);
+
+  remote(sock "exit" :nowait);
+  close(sock);
+  /* wait for the drawserv PROCESS to be gone (see updown_test) */
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+    usleep(200000));
+  print("parsetest: drawserv shut down\n" :err);
+  ok)
+
 /* updown2 test -- launch two drawservs, link ds1->ds2, verify the link is
    visible in the drawlink table on both ends, shut both down.
    reuses the canonical port pair (20002/30002); find_open_port only steps
