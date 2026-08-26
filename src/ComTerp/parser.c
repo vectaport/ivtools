@@ -236,6 +236,14 @@ void Parser::check_parser_client(boolean restore) {
       NextLinenum = _NextLinenum;
       for (int i=0; i<OPTYPE_NUM; i++)
 	NextOp_ids[i] = _NextOp_ids[i];
+    }
+    /* The operator table is the one thing here that is legitimately shared --
+       every parser wants the same operators, and a saved copy is only ever a
+       copy of the one global.  Restoring a snapshot on a parser's FIRST parse
+       would undo an optable(:insert) made since that parser was constructed
+       (%% is defined that way at runtime), so this keeps the guard the parse
+       state above no longer needs. */
+    if (_linenum != 0) {
       opr_tbl_ptr_set(_opr_tbl_ptr);
       opr_tbl_numop_set(_opr_tbl_numop);
       opr_tbl_maxop_set(_opr_tbl_maxop);
