@@ -184,5 +184,25 @@ print("10 $$ fork at position: t yields remainder, s undisturbed (expect 10 / 20
 prev_ok=check_fail(:ok ok)
 
 
+// --- the funcid a stream reports is how a script tells one implementation
+// from another: every stream is StreamType, so info().func is the only thing
+// that distinguishes a literal from a concatenation from a filter.  The
+// hidden next-funcs are named with a "next" suffix so the name cannot be
+// mistaken for the command of the same job -- concat and filter are live
+// commands in their own right, and used to share their names with these. ---
+errmsg(:clear)
+ca=$$(1,2)
+cb=$$(3,4)
+okc=(info(ca,,cb).func==`concatnext)
+ok=ok&&okc
+print("N info(a,,b).func==`concatnext (expect true): %v\n" okc)
+prev_ok=check_fail(:ok ok)
+
+errmsg(:clear)
+okf=(info(filter($$(1,2,3,4) 2)).func==`filternext)
+ok=ok&&okf
+print("N+1 info(filter(...)).func==`filternext (expect true): %v\n" okf)
+prev_ok=check_fail(:ok ok)
+
 print("stream-info: %v\n" ok)
 ok
