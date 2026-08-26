@@ -456,7 +456,7 @@ A few things worth noting:
   is *why* it separates arguments: every operator has finished binding before
   the argument boundaries are decided. The whole ladder, loosest first, is
 
-      space   <   ,   <   comparison/arithmetic   <   unary `$$`, `$`, `*`
+      space   <   unary `$`, `~~`   <   ,   <   comparison/arithmetic   <   unary `$$`, `*`
 
   Three consequences that otherwise look like unrelated quirks:
 
@@ -473,10 +473,15 @@ A few things worth noting:
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
 - `;` binds lowest of all — everything to its left and right is a complete expression
 - `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without
-  parens — but only over a *single* operand. Being unary they bind tighter
-  than `,`, so `$$1,2,3` is `stream(1)` with `2` and `3` glued on after, not a
-  stream over the list; that one wants `$$(1,2,3)`, or a variable holding the
-  list. `postfix($$1,2,3)` shows it directly, as `1 stream[1|0|1]* 2 tuple 3 tuple`
+  parens, but they sit on opposite sides of `,`, not next to each other:
+  `$$` is priority 100, well above `,` (35), while `$` is 32, just below it.
+  So `$$1,2,3` is `stream(1)` with `2` and `3` glued on after, not a stream
+  over the list — `postfix($$1,2,3)` shows it directly, as
+  `1 stream[1|0|1]* 2 tuple 3 tuple`; that one wants `$$(1,2,3)`, or a
+  variable holding the list. `$1,2,3` goes the other way: the comma finishes
+  building the tuple first, and `$` then collects that whole tuple into
+  `{1,2,3}` — no parens needed. `postfix($1,2,3)` shows it as
+  `1 2 tuple[2|0|1] 3 tuple list[1|0|1]*`
 - `*` plays two roles at once: binary `*` (`mpy`, LtoR, 70) and unary prefix
   `*` (`next`, RtoL, 71) are two separate table entries sharing one operator
   string — the same double-duty pattern `-` already uses for `minus`/`sub`.
