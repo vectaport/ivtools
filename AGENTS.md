@@ -273,11 +273,87 @@ C++ work. The essentials:
   merge instead of being left open for manual cleanup.
 
 ### ComTerp scripting gotchas (bite C-trained authors)
+
+Ask the interpreter rather than reasoning about it -- it answers questions
+about itself, and a two-line probe settles in seconds what an argument about
+precedence or evaluation order will not settle at all:
+
+    postfix(expr)          how it actually parsed
+    help(cmd)              the signature and its keywords
+    istype(v :sym)         what you are holding, without consuming it
+    info(strm).func        which stream implementation this is
+    print(v :str)          the rendering, as a string you can compare
+
+Every entry below was found that way, most of them after confidently
+believing the opposite.
+
+**A nil is an answer, not a failure.** Something somewhere decided not to do
+something, and that decision was propagated to you intact rather than being
+converted into a plausible-looking value. Reading *which* nil you got is
+usually the whole diagnosis. Don't chase it as breakage until you have asked
+which of these it is:
+
+- **exhausted or out of range** -- `*strm` past the end, `s@99` past a
+  string's length. Normal termination, bounds-checked rather than faulted.
+- **no meaningful reading** -- `int(obj)`, `int("hello")`, `join(str)`. The
+  value exists, the question does not apply to it, and that is deliberate:
+  a plausible-looking number would be worse.
+- **an argument you never supplied** -- an unsupplied `arg(n)` reads nil and
+  runs the body anyway, which is what the termination rule below is about.
+- **the command is not in this binary** -- a nil from a command you are sure
+  exists usually means you are running against something older than you think.
+  `help(cmd)` answers immediately: an unknown name has no docstring.
+
+That it propagates is the point, not a hazard to route around: `nil+1` and
+`nil>0` are nil, so an abstention survives the arithmetic instead of being
+laundered into data. `nil==0` is false and `nil!=0` is true, which is where the
+termination rule below comes from. And because it carries, a nil seen late may
+have been decided much earlier -- walk it back to the first operation that
+declined, rather than studying where it surfaced.
+
+Staying calm about a nil costs exactly one thing: the willingness to climb back
+into the code you just ran and find by trial and error where it started. That
+is cheap here in a way it is not in a compiled language -- paste the fragment
+back at the prompt, cut it in half, `print()` the halves, `postfix()` the parse.
+The answer is usually two or three bisections away, and the nil told you it was
+worth looking.
+
 - **Everything is an expression**; there are no declarations. `func` is a
   *command* that returns a `FuncObj` — write `name=func(...)`, never
   `func name (...)`. A func that "returns nil" is usually this mistake.
 - **Append with `,` (the tuple operator), not `list()`.** `lst,x` appends in
   place; `list(lst x)` builds a nested list-of-lists.
+- **A one-element list needs the trailing comma** -- `('x',)` is a one-element
+  list, `('x')` is just a parenthesized value. Comparing a one-element result
+  against the second form silently fails.
+- **There is no `%%` escape in `print()`.** A literal percent is just `%`.
+  Writing `%%` before a verb letter leaves a stray `%` and a *live* verb --
+  `"%%v"` prints `%` and then consumes an argument.
+- **`symid()` takes its argument unevaluated; `symstr()` evaluates.** With
+  ``f=`abc``, `symid(f)` answers about the name `f`, not about `abc`, while
+  `symstr(f)` gives `"abc"`. To read a symbol *value* out of an attrlist field
+  use `symstr(al.field)`, or compare it directly against a bquoted symbol.
+- **Measuring a stream can consume it.** A stream argument overdrives an
+  ordinary command, so `type(s)` reports once *per element* and leaves the
+  stream exhausted. Use `istype(s StreamType)`, which inspects rather than
+  being overdriven. The same overdrive is why a `%v` of a stream drains it.
+- **A char is signed.** `int(char(160))` is `-96`; `:u` asks for the unsigned
+  reading, `int(char(160 :u))` is `160`. The display goes by the unsigned byte
+  either way, so what you see and what arithmetic sees can differ.
+- **The space binds looser than `,`, and looser than everything else** -- which
+  is why it separates arguments. Loosest first:
+  `space < unary $ ~~ < , < comparison/arithmetic < unary $$ *`. `$` and `$$`
+  are not next to each other -- `$` (32) sits just below `,` (35), `$$` (100)
+  well above it. So `list(1,2,3)` is one argument and `list(1 2 3)` is three;
+  a comma-built list needs no parens as an argument, but a space-form literal
+  does (`list((1 2 3))`), and `f((:a 1))` passes an attrlist where `f(:a 1)`
+  passes a keyword to `f`. Reaching for parens defensively is the wrong
+  instinct -- `((1,2,3))` has a pair too many, `((1 2 3))` does not, and what
+  is inside decides which. The trap this hides is unary, and it cuts both
+  ways: `$$1,2,3` is `stream(1)` with `2` and `3` glued on, not a stream over
+  the list, because `$$` binds tighter than `,` -- but `$1,2,3` *is* the
+  whole list, `{1,2,3}`, because `$` binds looser than `,` and only sees the
+  comma's finished tuple. `postfix(expr)` shows the parse when in doubt.
 - **Never use a termination test that goes true on nil.** An unsupplied
   `arg(n)` reads nil, so every arg-based func has a "called with too few
   arguments" path landing straight in the body. `nil!=0` is `true`, so
