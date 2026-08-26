@@ -546,7 +546,7 @@ void ConcatFunc::execute() {
   
   if (!cnfunc) {
     cnfunc = new ConcatNextFunc(comterp());
-    cnfunc->funcid(symbol_add("concat"));
+    cnfunc->funcid(symbol_add("concatnext"));
   }
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(operand1));
@@ -1095,7 +1095,7 @@ void FilterFunc::execute() {
   
   if (!flfunc) {
     flfunc = new FilterNextFunc(comterp());
-    flfunc->funcid(symbol_add("filter"));
+    flfunc->funcid(symbol_add("filternext"));
   }
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(streamv));
