@@ -736,7 +736,9 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 else if( isident( CURR_CHAR ) || *toklen == 0 )
+	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
+	    so it should end a hex number cleanly, not fail it. */
+	 else if( (CURR_CHAR != ':' && isident( CURR_CHAR )) || *toklen == 0 )
 	    return ERR_BADHEX;
 	 else
 	    goto token_return;
@@ -763,7 +765,9 @@ int bs_ident = 0;
 	       ADVANCE_CHAR;
 	       double_state = FLOAT_NEWEXPON;
 	       }
-	    else if( isident( CURR_CHAR ))
+	    /* see TOK_DFINT above: ':' only counts as isident() via
+	       _colon_ident, so it should end the fraction cleanly. */
+	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
 	       goto token_return;
@@ -785,7 +789,9 @@ int bs_ident = 0;
 	 if( double_state == FLOAT_EXPONENT ) {
 	    if( isdigit( CURR_CHAR ))
 	       TOKEN_ADD( CURR_CHAR )
-	    else if( isident( CURR_CHAR ))
+	    /* see TOK_DFINT above: ':' only counts as isident() via
+	       _colon_ident, so it should end the exponent cleanly. */
+	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
 	       goto token_return;
