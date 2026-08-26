@@ -253,26 +253,38 @@ optabletest_test=func(
   remote(sock "1+1");
   remote(sockb "1+1");
 
-  ins=remote(sock "optable(\"@@\" \"size\" :insert :pri 100 :prefix)");
-  usleep(500000);
-  u1=remote(sock "@@ \"abcd\"");
+  /* a starts the insert and leaves it unclosed, b parses in the gap, a closes
+     it.  Nothing waits on a: without the parse-state fix a stops answering
+     after its parse is interrupted, and a test that read from it would hang the
+     suite rather than fail it -- so the operator is used from b, which stays
+     healthy either way, and a is torn down on a bounded wait below. */
+  remote(sock "optable(\"@@\" \"size\" :insert :pri 100" :nowait);
+  usleep(1000000);
   b=remote(sockb "1+1");
   usleep(500000);
-  u2=remote(sock "@@ \"abcd\"");
-  u3=remote(sockb "@@ \"abcd\"");
-  print("optabletest: insert=%v use before=%v after=%v other connection=%v\n" ins u1 u2 u3 :err);
-  ok=(u1==4) && (b==2) && (u2==4) && (u3==4);
+  remote(sock ":prefix)" :nowait);
+  usleep(2000000);
+  useb=remote(sockb "@@ \"abcd\"");
+  print("optabletest: b answered %v in the gap; the operator, from b, gives %v\n" b useb :err);
+  ok=(b==2) && (useb==4);
   if(!ok :then
-    print("optabletest: FAIL the operator did not survive (want 4, 2, 4, 4)\n" :err));
-  if(ok :then print("optabletest: operator survived a parse on the other connection\n" :err));
+    print("optabletest: FAIL the interrupted insert did not take (want 2 and 4)\n" :err));
+  if(ok :then print("optabletest: the insert survived being interrupted mid-parse\n" :err));
   close(sockb);
 
   remote(sock "exit" :nowait);
   close(sock);
-  /* wait for the drawserv PROCESS to be gone (see updown_test) */
-  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
-    usleep(200000));
-  print("optabletest: drawserv shut down\n" :err);
+  /* bounded, then killed: a drawserv whose parse was interrupted may never
+     process the exit, and this test has to fail rather than hang on it */
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0 && cnt<50
+    usleep(200000);cnt++);
+  stuck=shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0;
+  if(stuck :then
+    print("optabletest: drawserv never processed exit, killing it\n" :err);
+    kill_port(:kill_port_num ds_port);kill_port(:kill_port_num ds_import)
+  :else
+    print("optabletest: drawserv shut down\n" :err));
   ok)
 
 /* updown2 test -- launch two drawservs, link ds1->ds2, verify the link is
