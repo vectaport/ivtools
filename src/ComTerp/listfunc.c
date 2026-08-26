@@ -125,6 +125,17 @@ ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1, false, ComValue::zeroval()));
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key(raw_symid));
+  boolean rawflag = rawv.is_true();
+  /* :raw is read (and accepted) here ahead of any code that acts on it.
+     Nothing branches on probeable() yet -- a probeable colon-list index
+     (#423) is still handled as an ordinary array-valued index below, same
+     as one built by ',' -- so :raw is currently a no-op; it exists so the
+     keyword is already in place, documented, and known not to collide with
+     anything, before a later PR gives probeable() something to bypass (a
+     string slice is the first planned case). */
+  (void)rawflag;
 
   /* a list has no position in it, and int_val() answers 0 for one -- so a
      list-valued index used to read as index 0 and hand back the first item,
@@ -333,10 +344,10 @@ void ListSizeFunc::execute() {
     if (tokbuf) {
       ComValue retval(tokbuf->ntoks());
       push_stack(retval);
-      return;			  
+      return;
     }
   }
-  
+
   push_stack(ComValue::nullval());
 }
 
@@ -381,6 +392,25 @@ void TupleFunc::execute() {
     
     if (operand2->is_array())
       operand2->array_val()->nested_insert(false);
+}
+
+/*****************************************************************************/
+
+int ColonListFunc::_symid = -1;
+
+ColonListFunc::ColonListFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ColonListFunc::execute() {
+  ComValue lo(stack_arg(0));
+  ComValue hi(stack_arg(1));
+  reset_stack();
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(lo));
+  avl->Append(new AttributeValue(hi));
+  ComValue retval(avl);
+  retval.probeable(1);
+  push_stack(retval);
 }
 
 /*****************************************************************************/

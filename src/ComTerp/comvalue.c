@@ -169,6 +169,7 @@ int ComValue::nids() const { return _nids; }
 int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
 int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
 int ComValue::local_flag() const { return _flags & COMVALUE_LOCAL_FLAG; }
+int ComValue::probeable() const { return _flags & COMVALUE_PROBEABLE_FLAG; }
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;

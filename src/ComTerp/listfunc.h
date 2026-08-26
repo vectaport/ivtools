@@ -72,12 +72,13 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list, attribute list, or string; a nil n means the last item"; }
+      return "val=%s(lst|attrlst|str n :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, attribute list, or string; a nil n means the last item"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",
 	":ins val   insert val in list",
 	":del       delete val from list, returning the deleted value",
+	":raw       reserved (#423): a probeable colon-list index is already treated as an ordinary array index today, so this is currently a no-op -- accepted now so a future dispatch on probeable() has a documented opt-out from the start",
 	nil
       };
       return keys;
@@ -106,6 +107,26 @@ public:
 
     CLASS_SYMID("TupleFunc");
 
+};
+
+//: : (colonlist) operator -- pairs two operands into a probeable list
+// (#423).  Plain AttributeValueList, tagged via the ComValue-level
+// probeable() flag (comvalue.h) rather than wrapped in a new type or marked
+// on the list object itself, so it prints and behaves like any other list.
+// Deliberately generic: this is just the value-builder for ':', with
+// nothing yet reading probeable() to do something special with the result
+// (a string slice is the first planned consumer -- a separate PR, not this
+// one).  What the pair means is entirely up to whatever eventually reads
+// it; the operator itself stays uncommitted to any one interpretation.
+class ColonListFunc : public ComFunc {
+public:
+    ColonListFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=%s(lo hi) -- pair two operands into a probeable list, for the ':' operator"; }
+
+    CLASS_SYMID("ColonListFunc");
 };
 
 

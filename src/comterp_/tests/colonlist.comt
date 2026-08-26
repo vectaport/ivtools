@@ -1,0 +1,55 @@
+// src/comterp_/tests/colonlist.comt -- ':' as a generic pairing operator (#423)
+//
+// funcs: colonlist at size
+//
+// #428 put ':' in the default operator table (priority 78, above '@'s 77);
+// this test is the runtime half -- colonlist is now a real registered
+// command, so ':' builds an actual value, not just a parse-time node.
+//
+// What ':' builds is deliberately generic: a plain probeable list, same
+// print/size/index behavior as one built by ','.  Nothing yet reads the
+// probeable() tag to do anything special with it -- a string slice is the
+// first planned consumer, and a separate PR (#423's own scope says so).
+// This file only covers the colon-list value itself.
+
+ok=true
+
+// --- 1: ':' builds a real value at runtime, not just a parse node ---
+r=0:3
+ok=ok&&(print(r :str)=="{0,3}")
+print("1 0:3 builds a list value (expect {0,3}): %s\n" print(r :str))
+
+// --- 2: it prints and sizes exactly like an ordinary list ---
+ok=ok&&(size(r)==2)
+print("2 size of a colon-list (expect 2): %s\n" size(r))
+
+// --- 3: @ indexes into it like any other list -- never gated on
+//        probeable(), since that flag only ever matters on the *index*
+//        operand, not on the thing being indexed into ---
+ok=ok&&(r@0==0)
+ok=ok&&(r@1==3)
+print("3 r@0, r@1 (expect 0 3): %s %s\n" r@0 r@1)
+
+// --- 4: :raw is accepted and is currently a no-op -- nothing branches on
+//        probeable() yet, so at(r n :raw) reads identically to at(r n) ---
+ok=ok&&(at(r 0 :raw)==0)
+ok=ok&&(at(r 1 :raw)==3)
+print("4 :raw is a no-op today (expect 0 3): %s %s\n" at(r 0 :raw) at(r 1 :raw))
+
+// --- 5: chained ':' left-folds rather than building one flat N-ary list --
+//        1:2:3 is (1:2):3, a 2-element list whose first element is itself
+//        a colon-list, not {1,2,3}.  This is #423's own "chained colons"
+//        open question, left unresolved on purpose: ColonListFunc always
+//        builds a fresh 2-element list from its two operands, with no
+//        TupleFunc-style "append if operand1 is already probeable" check,
+//        so hr:min:sec (#423's other planned use) does NOT arrive at that
+//        consumer as a flat 3-element list today -- pinning this now so a
+//        future change to fold instead of nest is a deliberate decision,
+//        not a silent behavior change this test would miss. ---
+t=1:2:3
+ok=ok&&(size(t)==2)
+ok=ok&&(print(t@0 :str)=="{1,2}" && t@1==3)
+print("5 chained ':' left-folds, (1:2):3 (expect {1,2} 3): %s %s\n" print(t@0 :str) t@1)
+
+print("colonlist: %v\n" ok)
+ok

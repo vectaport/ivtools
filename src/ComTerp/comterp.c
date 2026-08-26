@@ -2058,6 +2058,7 @@ void ComTerp::add_defaults() {
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
     add_command("tuple", new TupleFunc(this));
+    add_command("colonlist", new ColonListFunc(this));
     add_command("index", new ListIndexFunc(this));
 
     add_command("sum", new SumFunc(this));
