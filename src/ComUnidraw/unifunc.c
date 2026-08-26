@@ -598,10 +598,13 @@ void ExportFunc::compout(OverlayComp* comp, ostream* out) {
   OverlayScript* ovsv = (OverlayScript*) comp->Create(SCRIPT_VIEW);
   comp->Attach(ovsv);
   ovsv->Update();
+  /* Definition() already emitted this comp's attributes, inside the command's
+     own parens where the reader picks them up as ordinary keywords -- that is
+     how :grid and :sid survive a trip to another drawserv.  Appending them
+     again here put a second copy after the closing paren, so any graphic
+     carrying an attribute exported malformed and did not read back. */
   ovsv->Definition(*out);
   delete ovsv;
-  AttributeList* attrlist = comp->GetAttributeList();
-  *out << *attrlist;
   out->flush();
 }
 

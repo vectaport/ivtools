@@ -118,6 +118,12 @@ public:
     int state() { return _state; }
     // get state of DrawLink
 
+    void interactive(int val) { _interactive = val; }
+    // mark this link as one a user asked for at the connections dialog
+
+    int interactive() { return _interactive; }
+    // true if there is a user at the dialog to receive a popup about this link
+
     ACE_SOCK_Stream* socket() { return _socket; }
     // return pointer to connected socket.
 
@@ -146,6 +152,7 @@ protected:
     uuid_t _linkid;
     uuid_string_t _linkid_str;
     int _state;
+    int _interactive;
 
     ACE_INET_Addr* _addr;
     ACE_SOCK_Connector* _conn;

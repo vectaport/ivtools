@@ -152,7 +152,9 @@ const char* LinkTransformCmd::dist_script() {
     if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
         return _dist_script_buf.c_str();
 
-    /* the target rides in the clipboard, not the selection -- trans() named it */
+    /* trans() names its target, so the comp comes from the clipboard rather
+       than the selection -- but the OWNERSHIP still has to come from the grid,
+       for the same reason it does in the relays that read the selection. */
     Clipboard* cb = GetClipboard();
     if (!cb) return _dist_script_buf.c_str();
     Iterator i;
@@ -165,6 +167,27 @@ const char* LinkTransformCmd::dist_script() {
     drawserv->compidtable()->find(ptr, comp);
     GraphicId* grid = (GraphicId*)ptr;
     if (!grid) return _dist_script_buf.c_str();   /* not distributed yet */
+
+    /* Relay only what this node owns, or what a remote owner has unlocked
+       through it -- exactly the gate LinkBrushCmd applies.  Without it a node
+       that merely RECEIVED a transform re-emits it to every link including the
+       one it arrived on, and two drawservs bounce it forever: dist_script has
+       no idea it is looking at someone else's change.  A node that owns
+       nothing here now produces an empty script, which is what stops the echo. */
+    boolean locally_owned = (grid->selected() == LinkSelection::LocallySelected);
+    if (!locally_owned && !grid->unlocked())
+        return _dist_script_buf.c_str();
+
+    uint32_t owner_key = 0;
+    if (locally_owned) {
+        owner_key = drawserv->sessionidkey();
+        uuid_copy(_dist_owner_sid, drawserv->sessionid());
+    } else {
+        /* forward the owner's key rather than re-derive it, so the bracket
+           stays valid at the next hop -- see LinkBrushCmd for why */
+        owner_key = grid->selectorkey();
+        uuid_copy(_dist_owner_sid, grid->selector());
+    }
 
     /* dist_script runs before Execute, so the graphic still holds the
        transform this command is about to compose the delta onto.  Work out
@@ -180,13 +203,21 @@ const char* LinkTransformCmd::dist_script() {
     float a00, a01, a10, a11, a20, a21;
     result.matrix(a00, a01, a10, a11, a20, a21);
 
-    /* stamp this session so ExecuteCmd excludes the link back toward us */
-    uuid_copy(_dist_owner_sid, drawserv->sessionid());
+    char keystr[9];
+    snprintf(keystr, sizeof(keystr), "%08X", owner_key);
 
+    /* The select(:unlock)/select(:lock) bracket is not addressing -- trans()
+       already names its graphic.  It carries the OWNER to the far node, which
+       is what lets that node's own dist_script stamp the owner rather than
+       itself, and so exclude the link back toward here.  Leaving it out is
+       what let the transform echo between two nodes without end. */
     std::ostringstream sbuf;
-    sbuf << "trans(grid(\"" << grid->idstr() << "\") "
+    sbuf << "s=select();select(grid(\"" << grid->idstr() << "\")"
+	 << " :unlock \"" << keystr << "\")"
+	 << ";trans(grid(\"" << grid->idstr() << "\") "
 	 << a00 << "," << a01 << "," << a10 << ","
-	 << a11 << "," << a20 << "," << a21 << ")";
+	 << a11 << "," << a20 << "," << a21 << ")"
+	 << ";select(s :lock \"" << keystr << "\")";
     _dist_script_buf = sbuf.str();
 
     return _dist_script_buf.c_str();

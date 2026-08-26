@@ -75,7 +75,8 @@ public:
   void Init();
   
   DrawLink* linkup(const char* hostname, int portnum, 
-		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil);
+		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil,
+		   int interactive=false);
   // Create new link to remote drawserv, return -1 if error
   // state: 0==new_link, 1==one_way, 2==two_way.
   

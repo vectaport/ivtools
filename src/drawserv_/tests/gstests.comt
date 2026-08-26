@@ -354,6 +354,22 @@ gsbrushB_test=func(
   print("gsbrushB: patternmask scalar form reached ds2=%v ds3=%v\n" m2 m3 :err);
   if(!m2 :then print("gsbrushB: FAIL patternmask did not reach ds2 intact\n" :err));
   if(!m3 :then print("gsbrushB: FAIL patternmask did not reach ds3 intact\n" :err));
+
+  /* --- transform across the fork.  gsbrushA covers a transform down a chain;
+     this covers one fanning out from a hub, which is the other shape the relay
+     has to get right.  A relay that fails to exclude the link a command arrived
+     on does not show up as a wrong value here -- the transform is absolute, so
+     an echo re-applies the same matrix -- it shows up as the two nodes trading
+     it back and forth until the suite times out. --- */
+  xstr=":transform 2,0,0,2,30,40";
+  remote(sock1 print("trans(grid(%c%s%c) 2,0,0,2,30,40)" 34 id1 34 :str));
+  update(2000000);
+  t2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs xstr);
+  t3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs xstr);
+  print("gsbrushB: transform fanned out ds2=%v ds3=%v\n" t2 t3 :err);
+  if(!t2 :then print("gsbrushB: FAIL transform did not reach ds2 intact\n" :err));
+  if(!t3 :then print("gsbrushB: FAIL transform did not reach ds3 intact\n" :err));
+  ok=ok && t2 && t3;
   ok=ok && m2 && m3;
 
   /* --- tear all three down --- */

@@ -140,5 +140,27 @@ r9=eq(q1 q2)
 ok=ok&&r9
 print("9 raster export re-creates and re-exports identically (expect true): %v\n\n" r9)
 
+// --- test 10: a graphic carrying its own attributes round-trips too.  Every
+//              case above uses graphic state; none carries an attribute, which
+//              is how the exporter got away with emitting the attribute list
+//              twice -- once inside the command's parens where the reader takes
+//              it as ordinary keywords, and again after the closing paren.  The
+//              second copy is not a format, it is a bug: nothing reads a
+//              trailing attribute, and its presence made the export unparseable
+//              as its own command.  The list also ran onto the preceding value
+//              for want of a separator, ":transform 1,0,0,1,89,163:myattr 7". ---
+each(delete($$select(:all)))
+ab=rect(0,0,50,50 :myattr 7 :other "x")
+as1=export(ab :string :percomp)
+each(delete($$select(:all)))
+ac=run(as1 :str)
+as2=export(ac :string :percomp)
+r10=eq(as1 as2)
+ok=ok&&r10
+ok=ok&&(index(as1 " :myattr" :substr)!=nil)
+print("10a attributed graphic exports as %s\n" as1)
+print("10b and re-creates from it identically (expect true): %v\n" r10)
+print("10c with a separator before the first attribute (expect a position): %v\n\n" index(as1 " :myattr" :substr))
+
 print("gsexim: %v\n" ok)
 ok
