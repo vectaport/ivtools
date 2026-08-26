@@ -121,6 +121,172 @@ updown1_test=func(
   print("updown1: drawserv shut down\n" :err);
   ok)
 
+/* parsetest test -- one drawserv, TWO connections to it.  Each connection is
+   served by an interpreter of its own, but the parser keeps the stack that
+   counts a call's arguments and keywords in a file static, so a client's saved
+   copy has to be installed when it takes the globals over.  Nothing initialized
+   those copies, so a parser's first parse ran on the previous client's and then
+   kept its ParenStack POINTER, and the two counted into one array from then on.
+   Start a list across two lines on one connection, parse something on the other
+   in the gap, and finish the list: it has to still be the list that was started.
+   A raster is what met this in the wild, its serialized form running to some
+   thirty lines with a line read per dispatch, but nothing about it needs a
+   raster or any timing at all. */
+parsetest_test=func(
+
+  ds_port=find_open_port(:base_port 21002);
+  ds_import=ds_port-1;
+  global(drawserv_upparse)=false;
+  print("parsetest: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upparse)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("parsetest: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("parsetest: waiting for drawserv callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_upparse) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("parsetest: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(!global(drawserv_upparse) :then
+    print("parsetest: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  print("parsetest: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("127.0.0.1" ds_port);
+  if(type(sock)==`UnknownType :then
+    print("parsetest: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  sockb=socket("127.0.0.1" ds_port);
+  if(type(sockb)==`UnknownType :then
+    print("parsetest: FAIL could not open a second connection on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  /* both interpreters parse once, so each has a saved copy to install */
+  remote(sock "1+1");
+  remote(sockb "1+1");
+
+  /* a leaves a list open across lines, b parses in the gap, a closes it */
+  remote(sock "x=(10,20,30," :nowait);
+  usleep(1000000);
+  b=remote(sockb "1+1");
+  usleep(500000);
+  remote(sock "40,50)");
+  usleep(500000);
+  n=remote(sock "size(x)");
+  print("parsetest: b answered %v in the gap; the interrupted list is size %v\n" b n :err);
+  ok=(b==2) && (n==5);
+  if(!ok :then
+    print("parsetest: FAIL the list did not survive a parse on the other connection (want 2 and 5)\n" :err));
+  if(ok :then print("parsetest: the interrupted list survived intact\n" :err));
+  close(sockb);
+
+  remote(sock "exit" :nowait);
+  close(sock);
+  /* wait for the drawserv PROCESS to be gone (see updown_test) */
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0
+    usleep(200000));
+  print("parsetest: drawserv shut down\n" :err);
+  ok)
+
+/* optabletest test -- the operator table is the one piece of parse state that is
+   meant to be shared: every interpreter wants the same operators, and
+   optable(:insert) edits it while a drawserv is running (%% is defined that
+   way).  A command's execution is atomic unless it deliberately re-enters the
+   interpreter, as drawlink's handshake wait does with a nested Run, and
+   OptableFunc::execute does nothing of the sort -- so an insert cannot be
+   caught half-done by another connection.  Same two-connection shape as
+   parsetest: edit on one, parse on the other in the gap, then use the new
+   operator from both.  Unlike parsetest this is a property test, not a
+   regression test: it passes with or without the parse-state fix. */
+optabletest_test=func(
+
+  ds_port=find_open_port(:base_port 21002);
+  ds_import=ds_port-1;
+  global(drawserv_upoptable)=false;
+  print("optabletest: launching drawserv on port %d\n" ds_port :err);
+  cmdstr=print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(drawserv_upoptable)=true\\\")\" &" ds_port ds_import callback_port :str);
+  print("optabletest: cmdstr=[%s]\n" cmdstr :err);
+  shell(cmdstr);
+  print("optabletest: waiting for drawserv callback on port %d\n" callback_port :err);
+
+  poll_usec=2000000;
+  timeout_secs=60;
+  timeout=timeout_secs*1000000/poll_usec;
+  progress_interval=10*1000000/poll_usec;
+  cnt=0;
+  while(!global(drawserv_upoptable) && cnt<timeout
+    update(poll_usec);cnt++;if(cnt%progress_interval==0 :then print("optabletest: still waiting after %d secs (Waiting for X11 to launch?)\n" cnt*poll_usec/1000000 :err)));
+
+  if(!global(drawserv_upoptable) :then
+    print("optabletest: FAIL timeout waiting for drawserv callback\n" :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  print("optabletest: drawserv callback received after %d polls\n" cnt :err);
+  sock=socket("127.0.0.1" ds_port);
+  if(type(sock)==`UnknownType :then
+    print("optabletest: FAIL could not connect to drawserv on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  sockb=socket("127.0.0.1" ds_port);
+  if(type(sockb)==`UnknownType :then
+    print("optabletest: FAIL could not open a second connection on port %d\n" ds_port :err);
+    kill_port(:kill_port_num ds_port);
+    kill_port(:kill_port_num ds_import);
+    return(false));
+
+  /* both interpreters parse once, before the table is touched */
+  remote(sock "1+1");
+  remote(sockb "1+1");
+
+  /* a starts the insert and leaves it unclosed, b parses in the gap, a closes
+     it.  Nothing waits on a: without the parse-state fix a stops answering
+     after its parse is interrupted, and a test that read from it would hang the
+     suite rather than fail it -- so the operator is used from b, which stays
+     healthy either way, and a is torn down on a bounded wait below. */
+  remote(sock "optable(\"@@\" \"size\" :insert :pri 100" :nowait);
+  usleep(1000000);
+  b=remote(sockb "1+1");
+  usleep(500000);
+  remote(sock ":prefix)" :nowait);
+  usleep(2000000);
+  useb=remote(sockb "@@ \"abcd\"");
+  print("optabletest: b answered %v in the gap; the operator, from b, gives %v\n" b useb :err);
+  ok=(b==2) && (useb==4);
+  if(!ok :then
+    print("optabletest: FAIL the interrupted insert did not take (want 2 and 4)\n" :err));
+  if(ok :then print("optabletest: the insert survived being interrupted mid-parse\n" :err));
+  close(sockb);
+
+  remote(sock "exit" :nowait);
+  close(sock);
+  /* bounded, then killed: a drawserv whose parse was interrupted may never
+     process the exit, and this test has to fail rather than hang on it */
+  cnt=0;
+  while(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0 && cnt<50
+    usleep(200000);cnt++);
+  stuck=shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" ds_port :str))==0;
+  if(stuck :then
+    print("optabletest: drawserv never processed exit, killing it\n" :err);
+    kill_port(:kill_port_num ds_port);kill_port(:kill_port_num ds_import)
+  :else
+    print("optabletest: drawserv shut down\n" :err));
+  ok)
+
 /* updown2 test -- launch two drawservs, link ds1->ds2, verify the link is
    visible in the drawlink table on both ends, shut both down.
    reuses the canonical port pair (20002/30002); find_open_port only steps
@@ -314,7 +480,8 @@ updown3A_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown3A: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -434,7 +601,8 @@ updown3B_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown3B: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -577,7 +745,8 @@ updown4A_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4A: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -733,7 +902,8 @@ updown4B_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4B: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -889,7 +1059,8 @@ updown4C_test=func(
      installed (see history-count issue) -- then we poll the count
      instead of sleeping. drawlink settles were removed: drawlink
      already blocks until two_way via its own spin-loop. */
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   print("updown4C: created ellipse on ds1, grid id=%v\n" id1 :err);
   if(type(id1)!=`StringType :then
@@ -1056,7 +1227,8 @@ ringtest_test=func(
      some reason of its own, so make the refusal prove itself: casting off the
      offending link must leave the good one relaying */
   remote(sock1 "ellipse(100,100,40,40)");
-  update(2000000);
+  cnt=0;
+  while(remote(sock1 "size(grid(:table))")<1 && cnt<200 usleep(100000);cnt++);
   id1=remote(sock1 "at(grid(:table)).grid");
   if(type(id1)!=`StringType :then
     print("ringtest: FAIL could not read grid id from ds1 (got %v)\n" id1 :err);

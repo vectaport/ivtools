@@ -2,7 +2,7 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
+# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,9 +10,9 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|gsexim|gsbrushA|gsbrushB]\n");
+    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB]\n");
     print("\t\t\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
@@ -71,7 +71,7 @@ grid_has_id=func(
     n=size(t);
     for(j=0 j<n j++
       if(at(t j).grid==gh_id :then found=true));
-    if(!found :then update(poll_usec);cnt++));
+    if(!found :then usleep(poll_usec);cnt++));
   found)
 
 /* The test functions live in two grouped files, loaded here.  Order matters: a
@@ -146,6 +146,20 @@ if(tests_flag :then
         print("ringtest: pass\n" :err)
       :else
         print("ringtest: FAIL\n" :err);
+        ok=false));
+    if(t==`parsetest || t==`all :then
+      print("running parsetest\n" :err);
+      if(parsetest_test(:dummy 0) :then
+        print("parsetest: pass\n" :err)
+      :else
+        print("parsetest: FAIL\n" :err);
+        ok=false));
+    if(t==`optabletest || t==`all :then
+      print("running optabletest\n" :err);
+      if(optabletest_test(:dummy 0) :then
+        print("optabletest: pass\n" :err)
+      :else
+        print("optabletest: FAIL\n" :err);
         ok=false));
     if(t==`gsexim || t==`all :then
       print("running gsexim test\n" :err);
