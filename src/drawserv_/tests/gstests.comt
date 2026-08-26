@@ -161,6 +161,23 @@ gsbrushA_test=func(
   if(!m3 :then print("gsbrushA: FAIL patternmask did not propagate to ds3 intact\n" :err));
   ok=ok && m2 && m3;
 
+  /* --- transform.  Unlike the graphic state above, trans() names its own
+     target, so what crosses the link is just the call -- no select(grid(...)
+     :unlock) bracket.  What is sent is the absolute resulting matrix rather
+     than the delta the command carries, so arriving twice or out of order
+     lands the graphic in the same place either way.  The far nodes hold the
+     transform the graphic was created with, so a distinctive one downstream
+     is the transform having propagated. --- */
+  transtr=":transform 2,0,0,2,30,40";
+  remote(sock1 print("trans(grid(%c%s%c) 2,0,0,2,30,40)" 34 id1 34 :str));
+  update(2000000);
+  x2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs transtr);
+  x3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs transtr);
+  print("gsbrushA: transform reached ds2=%v ds3=%v\n" x2 x3 :err);
+  if(!x2 :then print("gsbrushA: FAIL transform did not reach ds2 intact\n" :err));
+  if(!x3 :then print("gsbrushA: FAIL transform did not propagate to ds3 intact\n" :err));
+  ok=ok && x2 && x3;
+
   /* --- font.  Needs its own graphic: a rect emits MinGS, which carries no
      font at all, so only a text graphic can show one propagating.  Created
      second, so it is the second entry in the grid table.  font(3) is the
@@ -184,7 +201,17 @@ gsbrushA_test=func(
     print("gsbrushA: font reached ds2=%v ds3=%v\n" f2 f3 :err);
     if(!f2 :then print("gsbrushA: FAIL font did not reach ds2 intact\n" :err));
     if(!f3 :then print("gsbrushA: FAIL font did not propagate to ds3 intact\n" :err));
-    ok=ok && f2 && f3);
+    /* the font check alone passed even while the text arrived with its
+       content replaced -- the graphic state crossed and the string did not --
+       so assert the content as well */
+    qt=print("%c" 34 :str);
+    txtstr=print("%sgs%s" qt qt :str);
+    c2=gs_on_node(:bn_sock sock2 :bn_id id2 :bn_gs txtstr);
+    c3=gs_on_node(:bn_sock sock3 :bn_id id2 :bn_gs txtstr);
+    print("gsbrushA: text content reached ds2=%v ds3=%v\n" c2 c3 :err);
+    if(!c2 :then print("gsbrushA: FAIL text content did not reach ds2\n" :err));
+    if(!c3 :then print("gsbrushA: FAIL text content did not propagate to ds3\n" :err));
+    ok=ok && f2 && f3 && c2 && c3);
 
   /* --- tear all three down --- */
   remote(sock1 "exit" :nowait);close(sock1);
@@ -327,6 +354,22 @@ gsbrushB_test=func(
   print("gsbrushB: patternmask scalar form reached ds2=%v ds3=%v\n" m2 m3 :err);
   if(!m2 :then print("gsbrushB: FAIL patternmask did not reach ds2 intact\n" :err));
   if(!m3 :then print("gsbrushB: FAIL patternmask did not reach ds3 intact\n" :err));
+
+  /* --- transform across the fork.  gsbrushA covers a transform down a chain;
+     this covers one fanning out from a hub, which is the other shape the relay
+     has to get right.  A relay that fails to exclude the link a command arrived
+     on does not show up as a wrong value here -- the transform is absolute, so
+     an echo re-applies the same matrix -- it shows up as the two nodes trading
+     it back and forth until the suite times out. --- */
+  xstr=":transform 2,0,0,2,30,40";
+  remote(sock1 print("trans(grid(%c%s%c) 2,0,0,2,30,40)" 34 id1 34 :str));
+  update(2000000);
+  t2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs xstr);
+  t3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs xstr);
+  print("gsbrushB: transform fanned out ds2=%v ds3=%v\n" t2 t3 :err);
+  if(!t2 :then print("gsbrushB: FAIL transform did not reach ds2 intact\n" :err));
+  if(!t3 :then print("gsbrushB: FAIL transform did not reach ds3 intact\n" :err));
+  ok=ok && t2 && t3;
   ok=ok && m2 && m3;
 
   /* --- tear all three down --- */

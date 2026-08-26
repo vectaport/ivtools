@@ -606,6 +606,10 @@ BrushCmd* DrawKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new LinkBrushCmd(ed, br);
 }
 
+TransformCmd* DrawKit::make_transform_cmd(Editor* ed, Transformer* t) {
+    return new LinkTransformCmd(ed, t);
+}
+
 FontCmd* DrawKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new LinkFontCmd(ctrlInfo, font, fontnum, fontname);
 }

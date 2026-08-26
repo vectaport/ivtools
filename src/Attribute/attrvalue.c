@@ -1224,6 +1224,10 @@ boolean AttributeValue::isa(int id) {
 }
 
 int AttributeValue::type_symid() const {
+  return type_symid(type());
+}
+
+int AttributeValue::type_symid(ValueType type) {
   if (!_type_syms) {
     int i = 0;
     _type_syms = new int[((int)BlankType)+1];
@@ -1250,8 +1254,8 @@ int AttributeValue::type_symid() const {
     _type_syms[i++] = symbol_add("OperatorType");
     _type_syms[i++] = symbol_add("BlankType");
   }
-  if (type()>=UnknownType && type()<=BlankType)
-    return _type_syms[(int)type()];
+  if (type>=UnknownType && type<=BlankType)
+    return _type_syms[(int)type];
   else
     return -1;
 }

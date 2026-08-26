@@ -33,6 +33,8 @@
 #include <Unidraw/iterator.h>
 #include <Unidraw/selection.h>
 #include <Unidraw/unidraw.h>
+#include <Unidraw/clipboard.h>
+#include <InterViews/transformer.h>
 
 #include <sstream>
 #include <uuid/uuid.h>
@@ -134,6 +136,103 @@ Command* LinkBrushCmd::Copy() {
 
 ClassId LinkBrushCmd::GetClassId() { return LINK_BRUSH_CMD; }
 boolean LinkBrushCmd::IsA(ClassId id) { return id == LINK_BRUSH_CMD || BrushCmd::IsA(id); }
+
+/*****************************************************************************/
+
+LinkTransformCmd::LinkTransformCmd(Editor* ed, Transformer* t) : SetTransformCmd(ed, t) {}
+
+const char* LinkTransformCmd::dist_script() {
+    _dist_script_buf = "";
+    uuid_clear(_dist_owner_sid);
+
+    Transformer* delta = GetTransformer();
+    if (!delta) return _dist_script_buf.c_str();
+
+    DrawServ* drawserv = (DrawServ*)unidraw;
+    if (!drawserv->linklist() || drawserv->linklist()->Number() == 0)
+        return _dist_script_buf.c_str();
+
+    /* trans() names its target, so the comp comes from the clipboard rather
+       than the selection -- but the OWNERSHIP still has to come from the grid,
+       for the same reason it does in the relays that read the selection. */
+    Clipboard* cb = GetClipboard();
+    if (!cb) return _dist_script_buf.c_str();
+    Iterator i;
+    cb->First(i);
+    if (cb->Done(i)) return _dist_script_buf.c_str();
+    OverlayComp* comp = (OverlayComp*)cb->GetComp(i);
+    if (!comp) return _dist_script_buf.c_str();
+
+    void* ptr = nil;
+    drawserv->compidtable()->find(ptr, comp);
+    GraphicId* grid = (GraphicId*)ptr;
+    if (!grid) return _dist_script_buf.c_str();   /* not distributed yet */
+
+    /* Relay only what this node owns, or what a remote owner has unlocked
+       through it -- exactly the gate LinkBrushCmd applies.  Without it a node
+       that merely RECEIVED a transform re-emits it to every link including the
+       one it arrived on, and two drawservs bounce it forever: dist_script has
+       no idea it is looking at someone else's change.  A node that owns
+       nothing here now produces an empty script, which is what stops the echo. */
+    boolean locally_owned = (grid->selected() == LinkSelection::LocallySelected);
+    if (!locally_owned && !grid->unlocked())
+        return _dist_script_buf.c_str();
+
+    uint32_t owner_key = 0;
+    if (locally_owned) {
+        owner_key = drawserv->sessionidkey();
+        uuid_copy(_dist_owner_sid, drawserv->sessionid());
+    } else {
+        /* forward the owner's key rather than re-derive it, so the bracket
+           stays valid at the next hop -- see LinkBrushCmd for why */
+        owner_key = grid->selectorkey();
+        uuid_copy(_dist_owner_sid, grid->selector());
+    }
+
+    /* dist_script runs before Execute, so the graphic still holds the
+       transform this command is about to compose the delta onto.  Work out
+       where it will land and send THAT, so the far node is told a position
+       rather than a nudge. */
+    Graphic* gr = comp->GetGraphic();
+    if (!gr) return _dist_script_buf.c_str();
+    Transformer result;
+    Transformer* cur = gr->GetTransformer();
+    if (cur) result = *cur;
+    result.postmultiply(*delta);
+
+    float a00, a01, a10, a11, a20, a21;
+    result.matrix(a00, a01, a10, a11, a20, a21);
+
+    char keystr[9];
+    snprintf(keystr, sizeof(keystr), "%08X", owner_key);
+
+    /* The select(:unlock)/select(:lock) bracket is not addressing -- trans()
+       already names its graphic.  It carries the OWNER to the far node, which
+       is what lets that node's own dist_script stamp the owner rather than
+       itself, and so exclude the link back toward here.  Leaving it out is
+       what let the transform echo between two nodes without end. */
+    std::ostringstream sbuf;
+    sbuf << "s=select();select(grid(\"" << grid->idstr() << "\")"
+	 << " :unlock \"" << keystr << "\")"
+	 << ";trans(grid(\"" << grid->idstr() << "\") "
+	 << a00 << "," << a01 << "," << a10 << ","
+	 << a11 << "," << a20 << "," << a21 << ")"
+	 << ";select(s :lock \"" << keystr << "\")";
+    _dist_script_buf = sbuf.str();
+
+    return _dist_script_buf.c_str();
+}
+
+Command* LinkTransformCmd::Copy() {
+    LinkTransformCmd* copy = new LinkTransformCmd(GetEditor(), GetTransformer());
+    InitCopy(copy);
+    return copy;
+}
+
+ClassId LinkTransformCmd::GetClassId() { return LINK_TRANSFORM_CMD; }
+boolean LinkTransformCmd::IsA(ClassId id) {
+    return id == LINK_TRANSFORM_CMD || SetTransformCmd::IsA(id);
+}
 
 /*****************************************************************************/
 

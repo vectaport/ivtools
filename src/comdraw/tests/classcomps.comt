@@ -1,0 +1,55 @@
+// src/comdraw/tests/classcomps.comt -- class(:comps) lists the component
+// classes comdraw linked, without one of them ever being built
+//
+// funcs: class() rect() size() at() lt()
+//
+// Every class using CLASS_SYMID2 -- the macro variant carrying a Unidraw
+// ClassId -- registers itself before main(), so the component classes are
+// listable at the prompt of an empty drawing.  That is the difference between
+// asking "what has this session touched" and "what can this program draw",
+// and only the second one answers "how do I iterate over the comp types".
+//
+// The generic half of this lives in ../../comterp_/tests/classreg.comt, which
+// comdraw also runs; this file covers what only a graphical binary can show.
+//
+// Nothing here asserts a count.  Adding a component class should not break a
+// test, and run_all leaves earlier scripts' graphics on the canvas anyway.
+ok=true
+
+// is symbol arg(1) somewhere in list arg(0)
+inlist=func(found=false;dummy=for(i=0 i<size(arg(0)) i=i+1 if(at(arg(0) i)==arg(1) :then found=true));found)
+
+comps=class(:comps)
+
+// comdraw links the component classes, so unlike comterp this is not empty
+ok=ok&&(size(comps)>0)
+print("classcomps: size(class(:comps))>0 -> %v (got %v)\n" size(comps)>0 size(comps))
+
+// TextFileComp is registered though no test in this suite ever creates one --
+// the registrar ran before main(), not on first use
+r=inlist(comps `TextFileComp)
+ok=ok&&(r==true)
+print("classcomps: TextFileComp listed with none ever built -> %v\n" r)
+
+// a drawn rect reports the class the listing already named: one set of
+// symbols, reached two ways
+rc=rect(0,0, 40,40)
+ok=ok&&(class(rc)==`RectComp)&&inlist(comps class(rc))
+print("classcomps: class(rect(...)) is RectComp and is in class(:comps) -> %v\n" class(rc)==`RectComp&&inlist(comps class(rc)))
+
+// sorted by name -- registration order is dynamic-initializer order and is
+// not something any standard pins down
+sorted=true
+dummy=for(i=0 i<size(comps)-1 i=i+1 if(!lt(at(comps i) at(comps i+1) :sym) :then sorted=false))
+ok=ok&&(sorted==true)
+print("classcomps: class(:comps) sorted by name -> %v\n" sorted)
+
+// the component classes are a subset of the full registry
+all=class(:all)
+subset=true
+dummy=for(i=0 i<size(comps) i=i+1 if(!inlist(all at(comps i)) :then subset=false))
+ok=ok&&(subset==true)&&(size(comps)<=size(all))
+print("classcomps: class(:comps) is a subset of class(:all) -> %v\n" subset)
+
+print("classcomps: %v\n" ok)
+ok

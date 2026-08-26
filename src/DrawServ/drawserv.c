@@ -80,13 +80,11 @@ typedef char uuid_string_t[37];  /* Apple-only type; Linux libuuid lacks it */
 using std::cout;
 using std::cerr;
 
-#ifdef HAVE_ACE
 implementTable(GraphicIdTable,uint32_t,void*)
 implementTable(SessionIdTable,uint32_t,void*)
 implementTable(CompIdTable,void*,void*)
 
 static int seed=0;
-#endif /* HAVE_ACE */
 
 // utility function for grabbing key from uuid_t.
 // Only needed until tables can be keyed on all 64 bits of the UUID.
@@ -112,7 +110,6 @@ DrawServ::DrawServ (Catalog* c, World* w)
 }
 
 void DrawServ::Init() {
-#ifdef HAVE_ACE
   _linklist = new DrawLinkList;
 
   _gridtable = new GraphicIdTable(1024);
@@ -131,12 +128,10 @@ void DrawServ::Init() {
   _sessionidtable->insert(uuid_key(_sessionid), sid);
 
   _comdraw_port = atoi(unidraw->GetCatalog()->GetAttribute("comdraw"));
-#endif /* HAVE_ACE */
 }
 
 DrawServ::~DrawServ () 
 {
-#ifdef HAVE_ACE
   Iterator it;
   _linklist->First(it);
   while(_linklist->GetDrawLink(it) && !_linklist->Done(it)) {
@@ -148,17 +143,18 @@ DrawServ::~DrawServ ()
   delete _gridtable;
   delete _sessionidtable;
   delete _compidtable;
-#endif /* HAVE_ACE */
 }
 
 DrawLink* DrawServ::linkup(const char* hostname, int portnum, 
-		     int state, uuid_t link_id,  ComTerp* comterp) {
+		     int state, uuid_t link_id,  ComTerp* comterp,
+		     int interactive) {
 
   if (comterp!=NULL) comterp->handler()->alt_fd(portnum);
   
   if (state == DrawLink::new_link || state == DrawLink::one_way) {
     
     DrawLink* link = new DrawLink(hostname, portnum, state);
+    link->interactive(interactive);
     if (state==DrawLink::one_way && comterp && comterp->handler()) {
       ((DrawServHandler*)comterp->handler())->drawlink(link);
       link->comhandler((DrawServHandler*)comterp->handler());
@@ -336,6 +332,15 @@ void DrawServ::ExecuteCmd(Command* cmd) {
 	   flows onward along a chain instead of echoing to its origin (on the
 	   originating node the owner is self -> linkget()==nil -> send to all). */
 	uuid_copy(sid, ((LinkBrushCmd*)cmd)->dist_owner_sid());
+	cmd->Execute();
+	break;
+      }
+
+      case LINK_TRANSFORM_CMD:
+      {
+	const char* script = ((LinkTransformCmd*)cmd)->dist_script();
+	if (script && *script) sbuf << script;
+	uuid_copy(sid, ((LinkTransformCmd*)cmd)->dist_owner_sid());
 	cmd->Execute();
 	break;
       }
