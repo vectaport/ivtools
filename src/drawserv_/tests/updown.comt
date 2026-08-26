@@ -1086,8 +1086,8 @@ ringtest_test=func(
     34 row.host 34 ds2_port 34 row.sid 34 34 lid 34 row.pid 34 row.user 34 :str);
   sockleg=socket("127.0.0.1" ds1_port);
   remote(sockleg legcmd);
-  usleep(3000000);
   close(sockleg);
+  usleep(3000000);
   n1b=remote(sock1 "size(drawlink(:table))");
   legok=(n1b==1);
   print("ringtest: ds1 links after a two_way leg naming a link already up: %v\n" n1b :err);

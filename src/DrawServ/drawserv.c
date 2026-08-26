@@ -173,10 +173,15 @@ DrawLink* DrawServ::linkup(const char* hostname, int portnum,
     }
   } else if (state == DrawLink::two_way) {
 
-    // search for existing link with matching local_id
+    // search for the link this leg answers: one we opened and are still
+    // waiting on.  A link already up is not awaiting a leg, and finalizing it
+    // a second time would hand its comhandler to whatever connection asked --
+    // after which that connection closing takes the link down with it.
     Iterator i;
     _linklist->First(i);
-    while(!_linklist->Done(i) && uuid_compare(_linklist->GetDrawLink(i)->linkid(), link_id)!=0)
+    while(!_linklist->Done(i) &&
+	  (uuid_compare(_linklist->GetDrawLink(i)->linkid(), link_id)!=0 ||
+	   _linklist->GetDrawLink(i)->state() != DrawLink::new_link))
       _linklist->Next(i);
 
     /* if found, finalize linkup */
