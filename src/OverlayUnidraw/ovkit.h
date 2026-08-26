@@ -38,6 +38,8 @@
 class BrushCmd;
 class ColorCmd;
 class FontCmd;
+class TransformCmd;
+class Transformer;
 class PatternCmd;
 class Command;
 class ControlInfo;
@@ -229,6 +231,11 @@ public:
     // command is what gets replayed, same as make_pattern_cmd
     virtual FontCmd* make_font_cmd(Editor*, PSFont*, int fontnum=0, const char* fontname=nil);
     // factory method for creating FontCmd; see the ControlInfo form
+    virtual TransformCmd* make_transform_cmd(Editor*, Transformer*);
+    // factory method for creating the command behind trans().  Unlike the
+    // graphic-state factories this one takes no extra arguments: the matrix
+    // is the whole of what a transform says, and the command names its own
+    // target through its clipboard rather than through the selection.
   
 protected:
     Glyph* MenuLine(PSBrush*);

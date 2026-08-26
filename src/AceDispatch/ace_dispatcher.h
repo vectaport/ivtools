@@ -24,7 +24,6 @@
 #ifndef _ace_dispatcher_h
 #define _ace_dispatcher_h
 
-#ifdef HAVE_ACE
 
 #include <stdio.h>
 #include <signal.h> 
@@ -66,6 +65,5 @@ protected:
     TimerTable* _table;
 };
 
-#endif
 
 #endif

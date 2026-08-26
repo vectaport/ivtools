@@ -1,0 +1,97 @@
+// src/comdraw/examples/affine.comt -- five commands, one operation
+//
+// comdraw has five commands that move a graphic around: move, scale, rotate,
+// fliph and flipv.  They are not five operations.  Every one of them is a
+// single affine transform composed onto the graphic, and this script proves
+// it by doing each one both ways and comparing the resulting matrix.
+//
+// The named command runs on one rect; trans(cv m :apply) runs the equivalent
+// matrix on an identical one.  When the two matrices agree, the named command
+// was that matrix all along.
+//
+//   comdraw -runfile src/comdraw/examples/affine.comt
+//   run("src/comdraw/examples/affine.comt")
+//
+// Why it matters beyond the arithmetic: a distributed drawing editor has to
+// send these across a link.  Five commands means five relays; one affine
+// means one.  What the compression costs is spelled out at the end.
+//
+// Note the comparisons are assigned before being printed.  Writing
+// print("..." ma mb (ma==mb)) instead would parse `mb (...)` as a CALL of mb
+// -- a symbol followed directly by a paren group is a function call, whatever
+// the symbol holds -- and print would silently receive one argument short.
+
+// a fresh rect, alone on the canvas, so every case starts from the same place
+fresh=func(each(delete($$select(:all))); rect(0,0,40,20) :posteval)
+
+// --- move -------------------------------------------------------------
+// pure translation: the one case that needs no pivot
+a=fresh(); select(a); move(10 20); ma=trans(a)
+b=fresh(); trans(b 1,0,0,1,10,20 :apply); mb=trans(b)
+same=(ma==mb)
+print("move(10 20)\n  named   %v\n  affine  %v\n  same    %v\n\n" ma mb same)
+
+// --- scale ------------------------------------------------------------
+// scaling happens about the graphic's centre, not the origin, so the affine
+// has to carry the pivot: c - c*s on each axis
+b=fresh(); c=center(b); cx=at(c 0); cy=at(c 1)
+a=fresh(); select(a); scale(2 3); ma=trans(a)
+b=fresh(); trans(b 2,0,0,3, cx*(1-2), cy*(1-3) :apply); mb=trans(b)
+same=(ma==mb)
+print("scale(2 3)\n  named   %v\n  affine  %v\n  same    %v\n\n" ma mb same)
+
+// --- fliph ------------------------------------------------------------
+// a horizontal flip is scale(-1,1) about that same centre
+a=fresh(); select(a); fliph(); ma=trans(a)
+b=fresh(); trans(b -1,0,0,1, 2*cx, 0 :apply); mb=trans(b)
+same=(ma==mb)
+print("fliph()\n  named   %v\n  affine  %v\n  same    %v\n\n" ma mb same)
+
+// --- flipv ------------------------------------------------------------
+a=fresh(); select(a); flipv(); ma=trans(a)
+b=fresh(); trans(b 1,0,0,-1, 0, 2*cy :apply); mb=trans(b)
+same=(ma==mb)
+print("flipv()\n  named   %v\n  affine  %v\n  same    %v\n\n" ma mb same)
+
+// --- rotate -----------------------------------------------------------
+// rotation about the centre: the usual cos/sin block, offset by c - c*R.
+//
+// This is the one case that does not compare equal, and the reason is worth
+// seeing rather than hiding.  Unidraw turns the angle into a matrix in single
+// precision, so its cos(90) is -4.37e-08; comterp's cos() is double, so the
+// same zero comes out as 6.12e-17.  Both are zero to their own precision and
+// the graphic lands in the same place -- the matrices agree everywhere the
+// arithmetic is exact and differ only where each was rounding its own zero.
+// So compare within a tolerance here, and print the actual gap.
+rad=degtorad(90); co=cos(rad); si=sin(rad)
+a=fresh(); select(a); rotate(90); ma=trans(a)
+b=fresh(); trans(b co,si,0-si,co, cx-cx*co+cy*si, cy-cx*si-cy*co :apply); mb=trans(b)
+gap=0; i=0
+while(i<6
+  e=at(ma i)-at(mb i);
+  if(e<0 :then e=0-e);
+  if(e>gap :then gap=e);
+  i=i+1)
+same=(gap<0.000001)
+print("rotate(90)\n  named   %v\n  affine  %v\n  same    %v (largest difference %v)\n\n" ma mb same gap)
+
+// ----------------------------------------------------------------------
+// What the five commands carry that the matrix does not:
+//
+//   move    nothing -- a translation is a translation
+//   scale   the centre to scale about
+//   fliph   that centre, with the factors fixed at -1,1
+//   flipv   that centre, with the factors fixed at 1,-1
+//   rotate  that centre, and the angle in degrees
+//
+// The pivot is the whole difference.  Each named command works it out from
+// the graphic's own bounds, which is why "flip this" is a shorter thing to
+// say than the matrix it turns into.  Compressing them to one affine is
+// lossless for the RESULT and lossy for the INTENT: the matrix cannot say it
+// was a rotation of 90 degrees, only where everything ended up.
+//
+// Which is the real question for a shared editing history -- a log reading
+// "rotate 90" is worth more to a person than one reading six floats, even
+// though both put the graphic in the same place.
+
+exit

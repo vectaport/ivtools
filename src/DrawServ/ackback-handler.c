@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #include <iosfwd>
 using namespace std;
@@ -81,10 +80,10 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
 	inv.push_back(ch);
     inv.push_back('\0');
     
-    if (strcmp((char*)&inv[0], "ackback(cycle)\n")==0) {
+    if (strcmp((char*)&inv[0], "ackback(cycle)")==0) {
       char buffer[BUFSIZ];
       snprintf(buffer, BUFSIZ, "%s:%d", drawlink()->hostname(), drawlink()->portnum());
-      GAcknowledgeDialog::map(DrawKit::Instance()->GetEditor()->GetWindow(), "Redundant connection rejected", buffer, "Redundant connection rejected");
+      drawlink()->report("Redundant connection rejected", buffer);
       _eof_expected = true;
     }
     
@@ -92,7 +91,7 @@ int AckBackHandler::handle_input (ACE_HANDLE fd)
       if (!_eof_expected) {
 	char buffer[BUFSIZ];
 	snprintf(buffer, BUFSIZ, "%s:%d", drawlink()->hostname(), drawlink()->portnum());
-	GAcknowledgeDialog::map(DrawKit::Instance()->GetEditor()->GetWindow(), "Unexpected end-of-file on connection", buffer, "Unexpected end-of-file on connection");
+	drawlink()->report("Unexpected end-of-file on connection", buffer);
       } else
 	_eof_expected = false;
       cerr << "AckBack (end of file):  [" << (char*)&inv[0] << "]\n";
@@ -185,4 +184,3 @@ int  AckBackHandler::handle_close (ACE_HANDLE handle, ACE_Reactor_Mask mask)
   return 0;
 }
 
-#endif /* HAVE_ACE */

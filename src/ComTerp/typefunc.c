@@ -27,12 +27,15 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/postfunc.h>
 
+#include <Attribute/_comutil.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
 #include <Unidraw/iterator.h>
 
 #include <iostream.h>
+#include <string.h>
+#include <algorithm>
 #include <vector>
 
 #define TITLE "TypeFunc"
@@ -43,10 +46,37 @@ TypeSymbolFunc::TypeSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void TypeSymbolFunc::execute() {
-  // return type symbol for each argumen
-  boolean noargs = !nargs() && !nkeys();
+  // return type symbol for each argument
+  static int all_symid = symbol_add("all");
+  boolean all_flag = stack_key(all_symid).is_true();
   int numargs = nargs();
-  if (!numargs) return;
+
+  if (all_flag) {
+    /* the whole closed set, in enum order -- every value in the language has
+       one of these, so unlike class() this list is complete by construction.
+       ListType and ArrayType are one type under two names; the symbol is
+       ListType, so ArrayType never appears. */
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int t=AttributeValue::UnknownType; t<=AttributeValue::BlankType; t++) {
+      ComValue* av = new ComValue
+	(AttributeValue::type_symid((AttributeValue::ValueType)t),
+	 AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
+    push_stack(retval);
+    return;
+  }
+
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer, the same
+       distinction class() draws.  nil stays the answer about a named value. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> type_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
@@ -84,10 +114,46 @@ ClassSymbolFunc::ClassSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ClassSymbolFunc::execute() {
-  // return type symbol for each argumen
+  // return class symbol for each argument
+  static int all_symid = symbol_add("all");
+  static int comps_symid = symbol_add("comps");
+  boolean all_flag = stack_key(all_symid).is_true();
+  boolean comps_flag = stack_key(comps_symid).is_true();
+
+  if (all_flag || comps_flag) {
+    /* every class that used CLASS_SYMID, enrolled before main() -- so this is
+       what the binary linked, not what it happens to have touched.  :comps
+       narrows to the CLASS_SYMID2 classes, the ones carrying a Unidraw
+       ClassId.  Sorted by name: the registry is in dynamic-initializer order,
+       which no standard pins down. */
+    std::vector<const char*> names;
+    for (ClassSymid* node = class_symid_list(); node; node = node->next)
+      if (!comps_flag || node->iscomp) names.push_back(node->classname);
+    std::sort(names.begin(), names.end(), [](const char* a, const char* b)
+	      { return strcmp(a, b) < 0; });
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<names.size(); i++) {
+      /* the registry holds names, so the ids are made here -- symbol_add() is
+	 idempotent, so this is the same id class_symid() hands back */
+      ComValue* av = new ComValue(symbol_add(names[i]), AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
+    push_stack(retval);
+    return;
+  }
+
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
-  if (!numargs) return;
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer.  nil is
+       reserved for the value that was named but has no class to report. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> class_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue val = stack_arg(i);
