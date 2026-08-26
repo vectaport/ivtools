@@ -241,7 +241,9 @@ Print a usage summary of all the invocation modes above and exit.
 
 .SH STREAM COMMANDS:
  
- strm=stream(strm|lst|attrlst|val|fileobj|pipeobj) -- copy stream or convert list (unary $)
+ strm=stream(strm|lst|attrlst|str|val|fileobj|pipeobj) -- copy stream or convert
+ list (unary $).  A string streams its characters; a bquoted string is carried
+ whole, as is a symbol
 
  val=next(stream) -- return next value from stream
    (unary prefix *: *strm is next(strm))
