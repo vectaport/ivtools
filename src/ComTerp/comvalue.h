@@ -175,43 +175,25 @@ public:
     void blocksz(int sz) { _nids = sz; }
     // set a slice's chunk size.
 
-    virtual const char* string_ptr();
-    // overrides AttributeValue::string_ptr() (attrvalue.h) -- when sliced()
-    // (#395), narrows the text to [sliceoff(), sliceoff()+slicelen())
-    // instead of the whole shared backing string, so every existing
-    // string_ptr() caller (comparisons, concatenation, split, print, ...)
-    // gets the right text with no change of its own.  Not sliced(): calls
-    // straight through to AttributeValue::string_ptr(), no copy.  The
-    // narrowed case does need a real copy -- a mid-buffer slice's own end
-    // isn't a real '\0' in the shared backing string, and writing one
-    // there would be exactly #394's original bug -- backed by a small
-    // static scratch-buffer pool (comvalue.c), not a ComValue member:
-    // _stack (comterp.c) grows via dmm_realloc, a raw realloc of the whole
-    // ComValue array, so ComValue itself must stay a plain, trivially-
-    // relocatable type -- no member with real construction/destruction
-    // (like std::string) survives that move (confirmed by an actual
-    // crash on the very first string assignment when tried).
-    //
-    // ONLY safe on a genuinely-constructed ComValue (e.g. a local copy via
-    // ComValue x(stack_arg(n)) -- the standard idiom throughout ComFunc::
-    // execute()), because it's virtual: dispatch depends on the object's
-    // own vtable pointer, and a raw element of _stack read directly
-    // (rather than copied first) doesn't reliably carry ComValue's own
-    // vtable -- confirmed live: print_stack_top(ostream&) below reads one
-    // whose vtable resolves to plain AttributeValue's, so calling this
-    // virtually on it silently ran the base class's method instead.  Use
-    // cstr() instead anywhere a value might still be a raw _stack
-    // reference.
     const char* cstr(std::string& scratch);
-    // non-virtual counterpart to string_ptr() -- reads the same
-    // sliced()/sliceoff()/slicelen() (plain field accessors, unaffected by
-    // vtable state) and calls AttributeValue::string_ptr() explicitly, so
-    // it's correct regardless of the object's own vtable pointer.  Use
-    // this instead of string_ptr() at any call site that isn't provably
-    // working from a genuinely-constructed local copy.  Named plainly,
-    // not slice_cstr() -- whether the value happens to be a slice is an
-    // implementation detail with no meaning to a caller that just wants
-    // its text.
+    // the slice-aware way to get a StringType value's text (#395) --
+    // narrows to [sliceoff(), sliceoff()+slicelen()) when sliced() instead
+    // of AttributeValue::string_ptr()'s whole shared backing string;
+    // string_ptr() itself was tried as the mechanism for this (made
+    // virtual, overridden here) and reverted -- see its own doc comment,
+    // attrvalue.h, for why.  Named plainly, not slice_cstr() -- whether
+    // the value happens to be a slice is an implementation detail with no
+    // meaning to a caller that just wants its text.  Takes a caller-owned
+    // std::string rather than storing the copy on the ComValue itself:
+    // _stack (comterp.c) grows via dmm_realloc, a raw realloc of the
+    // whole ComValue array, so ComValue itself must stay a plain,
+    // trivially-relocatable type -- no member with real construction/
+    // destruction (like std::string) survives that move (confirmed by an
+    // actual crash on the very first string assignment when tried).  A
+    // real copy is unavoidable in the sliced case regardless of mechanism
+    // -- a mid-buffer slice's own end isn't a real '\0' in the shared
+    // backing string, and writing one there would be exactly #394's
+    // original bug.
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.

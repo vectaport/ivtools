@@ -40,7 +40,7 @@
 // so identity happened to double as text equality there, but a slice
 // shares its PARENT's symid, unrelated to its own text).  print(x :str) is
 // still used in most tests below anyway, since that's testing print/
-// string_ptr()'s own correctness, a separate concern from equality's.
+// cstr()'s own correctness, a separate concern from equality's.
 
 ok=true
 

@@ -162,8 +162,9 @@ void PrintFunc::execute() {
   int narg = nargsfixed();
   if (narg==1) {
 
+    std::string scratch;
     if (formatstr.is_string() && !prefixv.is_string()) {
-      out << formatstr.string_ptr();
+      out << formatstr.cstr(scratch);
       out.flush();
     }
     else {
@@ -171,7 +172,7 @@ void PrintFunc::execute() {
       if (!formatstr.is_string())
 	out << formatstr;  // which could be arbitrary ComValue
       else
-	out << formatstr.string_ptr();
+	out << formatstr.cstr(scratch);
 
       if (prefixv.is_string()) out << "\n";
       out.flush();
@@ -309,9 +310,11 @@ void PrintFunc::execute() {
       switch( printval.type() )
       {
       case ComValue::SymbolType:
-      case ComValue::StringType:
-	out_form(out, fbuf, printval.string_ptr());
+      case ComValue::StringType: {
+	std::string scratch;
+	out_form(out, fbuf, printval.cstr(scratch));
 	break;
+      }
 
       case ComValue::BooleanType:
 	out_form(out, fbuf, printval.boolean_ref());
