@@ -175,5 +175,17 @@ ok=ok&&(b15=="hi there this is a much longer tail that will not fit in the remai
 ok=ok&&(a14=="hi there")
 print("15 grow-path append leaves the original untouched (expect true true): %v %v\n" b15=="hi there this is a much longer tail that will not fit in the remaining capacity" a14=="hi there")
 
+// --- 16: in-place append when operand2 shares operand1's own backing
+//         buffer and the source/destination ranges overlap (Greptile,
+//         #440) -- sl16=buf@0:5 ("hi th") appended with buf itself
+//         ("hi there") writes into buf's own trailing capacity while
+//         reading from buf's own front, an overlapping copy that needs
+//         memmove, not memcpy, to come out correct rather than
+//         corrupted ---
+sl16=buf@0:5
+r16=sl16+buf
+ok=ok&&(r16=="hi thhi there")
+print("16 overlapping append (sl16=buf@0:5, sl16+buf) (expect \"hi thhi there\"): %s\n" r16)
+
 print("colonslice: %v\n" ok)
 ok

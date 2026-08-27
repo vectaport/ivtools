@@ -293,7 +293,13 @@ void AddFunc::execute() {
             int len2 = operand2.sliced() ? operand2.slicelen() : (int)strlen(s2);
             if (growable && end1+len2 < cap1) {
               char* buf = (char*)symbol_pntr(operand1.symbol_val());
-              memcpy(buf+end1, s2, len2);
+              /* memmove, not memcpy (Greptile, #440): operand2 can share
+                 operand1's own backing symid -- e.g. appending an unsliced
+                 buf onto a nonzero-offset slice of that same buf -- in
+                 which case s2 (read via cstr() above) points into this
+                 very buffer and the [s2,s2+len2) source range can overlap
+                 [buf+end1,buf+end1+len2), which memcpy doesn't allow. */
+              memmove(buf+end1, s2, len2);
               buf[end1+len2] = '\0';
               result.string_ref() = operand1.symbol_val();
               result.ref_as_needed();
