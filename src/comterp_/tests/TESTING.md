@@ -267,6 +267,7 @@ not gaps in testing -- do not read `—` as untested.
 | attrlist.comt             | dot list(:attr) attrlist at size attrname attrval + - |      56 |    68 |  82% |
 | listat.comt               | at  list  size                                        |       — |     — |    — |
 | stackkey.comt             | at  list                                              |       — |     — |    — |
+| string_cap.comt           | string cap size at @                                  |       — |     — |    — |
 | print.comt                | print                                                 |      24 |    35 |  69% |
 | parser.comt               | attrlist(:literal) errmsg postfix class type          |      29 |    39 |  74% |
 | symbol.comt               | ` symadd symid symbol symstr symval symvar strref     |      36 |    42 |  86% |

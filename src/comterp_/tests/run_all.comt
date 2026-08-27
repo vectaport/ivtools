@@ -45,6 +45,10 @@ if(run("./stackkey.comt")
   :then print("pass: stackkey\n")
   :else print("FAIL: stackkey\n");topok=false)
 
+if(run("./string_cap.comt")
+  :then print("pass: string_cap\n")
+  :else print("FAIL: string_cap\n");topok=false)
+
 if(run("./print.comt")
   :then print("pass: print\n")
   :else print("FAIL: print\n");topok=false)

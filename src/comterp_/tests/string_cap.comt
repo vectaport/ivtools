@@ -1,0 +1,78 @@
+// src/comterp_/tests/string_cap.comt -- string(), cap(), and @ into a
+// capacity-bearing buffer (#394)
+//
+// funcs: string cap size at @
+//
+// string(cap) creates a blank, writable buffer -- cap bytes of NUL, plus
+// one guaranteed terminator, none of it shared or deduplicated with any
+// other symbol.  This is the runtime fix for #394's original bug: at()'s
+// bounds check used to be strlen()-based, so a NUL written mid-buffer
+// (deliberately, via string(), or accidentally, via at(s n :set 0) on an
+// ordinary string) made every later byte permanently unwritable even
+// though the real allocation still had the room.  It's now checked
+// against cap() (the allocation's own byte count) instead, for both reads
+// and writes, on every string -- not just ones built by string().
+
+ok=true
+
+// --- 1: string(cap) starts out empty but at full capacity ---
+s=string(10)
+ok=ok&&(print(s :str)=="")
+ok=ok&&(size(s)==0)
+ok=ok&&(cap(s)==10)
+print("1 string(10) starts empty at full capacity (expect  0 10): %s %s %s\n" print(s :str) size(s) cap(s))
+
+// --- 2: @ writes into it like any other string ---
+s@0=(char(72))
+s@1=(char(73))
+ok=ok&&(print(s :str)=="HI")
+print("2 s@0='H' s@1='I' (expect HI): %s\n" print(s :str))
+
+// --- 3: writing past a gap, then writing a NUL in the middle, still
+//        leaves the far bytes in place -- a NUL terminates size()/print()
+//        without erasing anything after it, because the bound that
+//        governs @ is cap(), not the position of the first NUL ---
+s@5=(char(87))
+s@6=(char(88))
+s@9=(char(90))
+ok=ok&&(print(s :str)=="HI")
+ok=ok&&(size(s)==2)
+ok=ok&&(cap(s)==10)
+print("3 far writes don't move size()/print(), still HI/2/10: %s %s %s\n" print(s :str) size(s) cap(s))
+
+// --- 4: ...but the far bytes are still really there, individually
+//        readable past the terminating NUL ---
+ok=ok&&(s@5=='W')
+ok=ok&&(s@6=='X')
+ok=ok&&(s@9=='Z')
+print("4 s@5, s@6, s@9 read through the gap (expect W X Z): %s %s %s\n" s@5 s@6 s@9)
+
+// --- 5: out of bounds -- the index at cap() itself (the guaranteed
+//        terminator slot) and anything past it both answer nil, same as
+//        an ordinary string's own out-of-range indices ---
+ok=ok&&(s@10==nil)
+ok=ok&&(s@20==nil)
+print("5 s@10, s@20 are out of bounds (expect nil nil): %v %v\n" s@10 s@20)
+
+// --- 6: an out-of-bounds @ assignment is refused, not silently
+//        truncated or grown -- the buffer is unchanged afterward ---
+s@20=(char(35))
+ok=ok&&(print(s :str)=="HI")
+ok=ok&&(cap(s)==10)
+print("6 s@20=val refused, buffer unchanged (expect HI 10): %s %s\n" print(s :str) cap(s))
+
+// --- 7: #394's own original repro -- a NUL written into the MIDDLE of an
+//        ordinary (not string()-built) string used to make everything
+//        after it permanently unwritable.  cap() covers ordinary strings
+//        too, not just string()-built ones, so writing back over that
+//        position now works and the original content comes back. ---
+t="ABCDEF"
+at(t 2 :set 0)
+ok=ok&&(size(t)==2)
+ok=ok&&(cap(t)==6)
+at(t 2 :set 67)
+ok=ok&&(print(t :str)=="ABCDEF")
+print("7 #394 repro: at(t 2 :set 0) then :set 67 restores ABCDEF: %s\n" print(t :str))
+
+print("string_cap: %v\n" ok)
+ok
