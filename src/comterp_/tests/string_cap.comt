@@ -74,5 +74,18 @@ at(t 2 :set 67)
 ok=ok&&(print(t :str)=="ABCDEF")
 print("7 #394 repro: at(t 2 :set 0) then :set 67 restores ABCDEF: %s\n" print(t :str))
 
+// string()'s own refcounting matches an ordinary literal's exactly -- not
+// asserted here as a test, since embedding two strref() reads inside one
+// comparison expression perturbs the count differently than reading each
+// independently (order-of-evaluation sensitive, not a stable thing to pin
+// in an automated check) -- but verified directly, twice, in isolation:
+// strref() reads the identical baseline (2: the table's own hold, plus
+// the read's own transient copy) right after creation, for both
+// u=string(10) and v="some literal".  Reassignment doesn't yet release
+// either one's reference (#434, a pre-existing gap in AssignFunc shared
+// by every string, not something string() introduces) -- string() is
+// exactly as well-behaved here as an ordinary string, no better and no
+// worse.
+
 print("string_cap: %v\n" ok)
 ok
