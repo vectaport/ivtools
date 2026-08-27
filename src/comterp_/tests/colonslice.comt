@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
 //
-// funcs: colonlist at size print
+// funcs: colonlist at size print eq
 //
 // str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
 // own symid (its memory stays exactly where it was allocated, reachable at
@@ -26,15 +26,21 @@
 //
 // Known gaps, not yet attempted: :set/:ins/:del through a slice (listfunc.c
 // falls back to nil for any coloned index in an lhs_assign context); slicing
-// a plain list/array (only listv.is_only_string() triggers slice logic);
-// slice==string / slice==slice (both fall back to a generic, symid-based
-// comparison today, which is wrong for a slice -- print(x :str) is used
-// below to get a real, comparable, unsliced string out first instead); a
+// a plain list/array (only listv.is_only_string() triggers slice logic); a
 // slice passed as a function keyword arg or captured free variable loses
 // its sliced()/sliceoff()/slicelen() the same way a colon-list's coloned()
 // does (Greptile, #437) -- AttributeList only ever stores a plain
 // AttributeValue (#438), which has no room for either.  Not independently
-// fixable here; test 7 pins it as a documented gap rather than a silent one.
+// fixable here; test 8 pins it as a documented gap rather than a silent one.
+//
+// slice==string DOES work (test 9) -- EqualFunc/NotEqualFunc (boolfunc.c)
+// were fixed to compare text via slice_cstr() for any StringType operand,
+// rather than symbol_val() identity, which only ever stood in correctly
+// for two genuine symbols (interning dedups an ordinary string by content,
+// so identity happened to double as text equality there, but a slice
+// shares its PARENT's symid, unrelated to its own text).  print(x :str) is
+// still used in most tests below anyway, since that's testing print/
+// string_ptr()'s own correctness, a separate concern from equality's.
 
 ok=true
 
@@ -95,6 +101,16 @@ print("7 nesting: sl3@0:1, sl3@1:3, sl3@0:10 (expect c de nil): %s %s %s\n" prin
 f8=func(print(x :str))
 ok=ok&&(f8(:x s3@2:5)=="abcdef")
 print("8 KNOWN GAP: a sliced :x arg reads as the whole parent (expect abcdef, not cde): %s\n" f8(:x s3@2:5))
+
+// --- 9: slice==string compares the slice's own text, not the parent's,
+//        and not by symid identity (which would always be false -- a
+//        slice's symid is its parent's, never a dedicated one of its own,
+//        even when the slice's text happens to match some other interned
+//        string) ---
+ok=ok&&(sl=="cde")
+ok=ok&&(sl!="abcdefg")
+ok=ok&&(!(sl=="abcdefg"))
+print("9 sl==\"cde\", sl!=\"abcdefg\" (expect true true): %v %v\n" sl=="cde" sl!="abcdefg")
 
 print("colonslice: %v\n" ok)
 ok

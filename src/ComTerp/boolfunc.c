@@ -284,16 +284,36 @@ void EqualFunc::execute() {
       case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() == operand2.double_val();
 	break;
-      case ComValue::StringType:
       case ComValue::SymbolType:
-	if (nval.is_unknown()) 
+	/* identity via symbol_val() is a valid AND fast stand-in for text
+	   equality only when both sides are genuinely symbols -- but only
+	   when operand2 is too; operand1's type alone picked this case. */
+	if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	  result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
 	else {
-	  const char* str1 = operand1.symbol_ptr();
-	  const char* str2 = operand2.symbol_ptr();
-	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())==0;
+	  std::string scratch1, scratch2;
+	  const char* str1 = operand1.slice_cstr(scratch1);
+	  const char* str2 = operand2.slice_cstr(scratch2);
+	  result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
+	                                            : strncmp(str1, str2, nval.int_val())==0;
 	}
 	break;
+      case ComValue::StringType: {
+	/* always a text comparison, never symbol_val() identity -- interning
+	   dedups an ordinary string by content, so identity happened to work
+	   there, but a slice (#395) shares its PARENT's symid, unrelated to
+	   its own effective text (sl=="cde" compared false this way even
+	   though sl prints as "cde", confirmed live).  slice_cstr(), not
+	   string_ptr() -- operand1/operand2 are ComValue& straight off
+	   stack_arg(), not locals, so string_ptr()'s virtual dispatch isn't
+	   reliable here (see its own doc comment, comvalue.h). */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.slice_cstr(scratch1);
+	const char* str2 = operand2.slice_cstr(scratch2);
+	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
+	                                          : strncmp(str1, str2, nval.int_val())==0;
+	break;
+      }
       case ComValue::ArrayType: 
 	result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
           (operand1.array_val() == operand2.array_val() ||
@@ -376,16 +396,32 @@ void NotEqualFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() != operand2.double_val();
 	break;
-    case ComValue::StringType:
     case ComValue::SymbolType:
-      if (nval.is_unknown()) 
+      /* identity via symbol_val() only when operand2 is also genuinely
+	 a symbol -- operand1's type alone picked this case. */
+      if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	result.boolean_ref() = operand1.symbol_val() != operand2.symbol_val();
       else {
-	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
-	result.boolean_ref() = strncmp(str1, str2, nval.int_val())!=0;
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.slice_cstr(scratch1);
+	const char* str2 = operand2.slice_cstr(scratch2);
+	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
+	                                          : strncmp(str1, str2, nval.int_val())!=0;
       }
       break;
+    case ComValue::StringType: {
+      /* always a text comparison, never symbol_val() identity -- a slice
+	 (#395) shares its parent's symid, unrelated to its own text.
+	 slice_cstr(), not string_ptr(): operand1/operand2 are raw
+	 stack_arg() references, not locals (see EqualFunc for the full
+	 reasoning, boolfunc.c above). */
+      std::string scratch1, scratch2;
+      const char* str1 = operand1.slice_cstr(scratch1);
+      const char* str2 = operand2.slice_cstr(scratch2);
+      result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
+	                                        : strncmp(str1, str2, nval.int_val())!=0;
+      break;
+    }
     case ComValue::ArrayType: 
       result.boolean_ref() = operand2.type() != ComValue::ArrayType || 
 	operand1.array_val() != operand2.array_val() &&
