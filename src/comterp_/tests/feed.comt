@@ -288,6 +288,31 @@ selfraw=list(fifoS)
 selfrawn=size(selfraw)
 ok=ok&&(selfrawn>0)
 print("22 feed(f f :raw) does not crash or cycle (expect non-empty): %v\n\n" selfrawn)
+// a FIFO element that is itself a stream expands on the overdrive path too,
+// not just when drained with list().  feed() stores a stream argument for lazy
+// expansion; an overdriven command used to receive that stream whole and run
+// once, where list() draining the same feed got each value in turn.
+odm=list(feed(1..3)*2)
+ok=ok&&(odm==(2,4,6))
+print("23 overdrive runs once per expanded element (expect {2,4,6}): %v\n" odm)
+
+odi=list(int(feed(1..3)))
+ok=ok&&(odi==(1,2,3))
+print("24 and the value reaches the command, not the stream (expect {1,2,3}): %v\n" odi)
+
+// expansion keys on the stream tag, not the element type -- a char range too
+odc=list(int(feed('a'..'c')))
+ok=ok&&(odc==(97,98,99))
+print("25 same for a char range (expect {97,98,99}): %v\n" odc)
+
+// :raw is the way to store a stream whole, and is untouched -- it omits the
+// tag the expansion keys on, so it drains to one element (the stream) where
+// the same feed without :raw drains to three
+rawlen=size(list(feed(1..3 :raw)))
+plainlen=size(list(feed(1..3)))
+ok=ok&&(rawlen==1)&&(plainlen==3)
+print("26 :raw drains to 1, plain feed to 3 (expect 1 3): %v %v\n\n" rawlen plainlen)
+
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)
