@@ -1630,25 +1630,52 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
+	    /* coloned() can't be recovered here at all, and must not be
+	       guessed at: _alist (a func's keyword-bound locals, fire_funcobj()
+	       comterp.c) is populated via AttributeList::add_attr(int,
+	       AttributeValue&) (attrlist.c), same as attrlist() itself, which
+	       constructs a plain `new AttributeValue(value)` -- a strictly
+	       smaller type with no _flags field, not a ComValue.  aval is
+	       therefore genuinely only ever an AttributeValue* here, never a
+	       ComValue* despite how it looks; ((ComValue*)aval)->coloned()
+	       would read _flags out of memory past the real object's own
+	       allocation -- undefined behavior, not a recovered flag (#438
+	       tracks the actual fix: AttributeList would need to store
+	       ComValue, not AttributeValue). */
 	    ComValue newval(*aval);
 	    *&comval = newval;
 	    return comval;
 	  }
 	}
 
+	/* assignval() takes an AttributeValue&, so it only ever copies the
+	   base class's fields -- ComValue's own coloned() (comvalue.h)
+	   isn't one of them, and comval keeps whatever it already had (the
+	   identifier token's own, not the stored value's) unless carried
+	   over explicitly here. */
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
 	  comval.assignval(*(ComValue*)vptr);
+	  comval.coloned(((ComValue*)vptr)->coloned());
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
 	  comval.assignval(*(ComValue*)vptr);
+	  comval.coloned(((ComValue*)vptr)->coloned());
 	  return comval;
 	} else
 	  return ComValue::nullval();
 
     } else if (comval.is_object(Attribute::class_symid())) {
-      ComValue attrval = *((Attribute*)comval.obj_val())->Value(); 
+      /* coloned() can't be recovered here, and reading it via a ComValue*
+	 cast on attrvalp would be undefined behavior, not a recovered flag --
+	 same reasoning as the _alist branch above.  Attribute::Value()
+	 returns whatever AttributeList::add_attr() (attrlist.c) stored, which
+	 is always a plain `new AttributeValue(value)`, never a ComValue --
+	 there's no _flags field to read past the end of.  #438 tracks the
+	 actual fix (AttributeList would need to store ComValue, not
+	 AttributeValue). */
+      ComValue attrval = *((Attribute*)comval.obj_val())->Value();
       comval.assignval(attrval);
-    }       
+    }
     return comval;
 }
 
@@ -2058,6 +2085,7 @@ void ComTerp::add_defaults() {
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
     add_command("tuple", new TupleFunc(this));
+    add_command("colonlist", new ColonListFunc(this));
     add_command("index", new ListIndexFunc(this));
 
     add_command("sum", new SumFunc(this));

@@ -125,6 +125,13 @@ ListAtFunc::ListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 void ListAtFunc::execute() {
   ComValue listv(stack_arg(0));
   ComValue nv(stack_arg(1, false, ComValue::zeroval()));
+  static int raw_symid = symbol_add("raw");
+  ComValue rawv(stack_key(raw_symid));
+  boolean rawflag = rawv.is_true();
+  /* :raw is accepted but currently a no-op -- nothing below dispatches on
+     coloned(), so a coloned index reads as an ordinary array index
+     either way. */
+  (void)rawflag;
 
   /* a list has no position in it, and int_val() answers 0 for one -- so a
      list-valued index used to read as index 0 and hand back the first item,
@@ -341,10 +348,10 @@ void ListSizeFunc::execute() {
     if (tokbuf) {
       ComValue retval(tokbuf->ntoks());
       push_stack(retval);
-      return;			  
+      return;
     }
   }
-  
+
   push_stack(ComValue::nullval());
 }
 
@@ -389,6 +396,31 @@ void TupleFunc::execute() {
     
     if (operand2->is_array())
       operand2->array_val()->nested_insert(false);
+}
+
+/*****************************************************************************/
+
+int ColonListFunc::_symid = -1;
+
+ColonListFunc::ColonListFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ColonListFunc::execute() {
+  /* symbol=true: eager like any other operator (no post_eval()), but a
+     bare identifier operand is captured as its own unresolved symbol
+     instead of being looked up -- see stack_arg()'s own "if (!symbol)"
+     branch, comfunc.c.  Anything else (a literal, a parenthesized
+     sub-expression, ...) still evaluates normally; there was never a
+     symbol table entry standing in its way to begin with. */
+  ComValue lo(stack_arg(0, true));
+  ComValue hi(stack_arg(1, true));
+  reset_stack();
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(lo));
+  avl->Append(new AttributeValue(hi));
+  ComValue retval(avl);
+  retval.coloned(1);
+  push_stack(retval);
 }
 
 /*****************************************************************************/
