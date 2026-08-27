@@ -290,10 +290,10 @@ void StringFunc::execute() {
 
 /*****************************************************************************/
 
-CapFunc::CapFunc(ComTerp* comterp) : ComFunc(comterp) {
+StrCapFunc::StrCapFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
-void CapFunc::execute() {
+void StrCapFunc::execute() {
   ComValue strv(stack_arg(0));
   reset_stack();
   if (strv.type()==ComValue::StringType) {

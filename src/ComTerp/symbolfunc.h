@@ -129,10 +129,10 @@ public:
 };
 
 //: return a string's usable capacity.
-// n=cap(str) -- capacity in bytes, not counting the guaranteed terminator.
-class CapFunc : public ComFunc {
+// n=strcap(str) -- capacity in bytes, not counting the guaranteed terminator.
+class StrCapFunc : public ComFunc {
 public:
-    CapFunc(ComTerp*);
+    StrCapFunc(ComTerp*);
     virtual void execute();
 
     virtual const char* docstring() {
