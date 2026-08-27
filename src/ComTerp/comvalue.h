@@ -200,15 +200,18 @@ public:
     // vtable -- confirmed live: print_stack_top(ostream&) below reads one
     // whose vtable resolves to plain AttributeValue's, so calling this
     // virtually on it silently ran the base class's method instead.  Use
-    // slice_cstr() instead anywhere a value might still be a raw _stack
+    // cstr() instead anywhere a value might still be a raw _stack
     // reference.
-    const char* slice_cstr(std::string& scratch);
+    const char* cstr(std::string& scratch);
     // non-virtual counterpart to string_ptr() -- reads the same
     // sliced()/sliceoff()/slicelen() (plain field accessors, unaffected by
     // vtable state) and calls AttributeValue::string_ptr() explicitly, so
     // it's correct regardless of the object's own vtable pointer.  Use
     // this instead of string_ptr() at any call site that isn't provably
-    // working from a genuinely-constructed local copy.
+    // working from a genuinely-constructed local copy.  Named plainly,
+    // not slice_cstr() -- whether the value happens to be a slice is an
+    // implementation detail with no meaning to a caller that just wants
+    // its text.
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.

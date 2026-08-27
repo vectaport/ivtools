@@ -34,7 +34,7 @@
 // fixable here; test 8 pins it as a documented gap rather than a silent one.
 //
 // slice==string DOES work (test 9) -- EqualFunc/NotEqualFunc (boolfunc.c)
-// were fixed to compare text via slice_cstr() for any StringType operand,
+// were fixed to compare text via cstr() for any StringType operand,
 // rather than symbol_val() identity, which only ever stood in correctly
 // for two genuine symbols (interning dedups an ordinary string by content,
 // so identity happened to double as text equality there, but a slice

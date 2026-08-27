@@ -197,7 +197,7 @@ const char* ComValue::string_ptr() {
   return scratch.c_str();
 }
 
-const char* ComValue::slice_cstr(std::string& scratch) {
+const char* ComValue::cstr(std::string& scratch) {
   /* non-virtual, and calls AttributeValue::string_ptr() explicitly rather
      than the virtual string_ptr() above -- safe to call on ANY ComValue&,
      including a raw element of _stack (comterp.c) read directly rather
@@ -253,12 +253,12 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::StringType: {
-	  /* slice_cstr(), not string_ptr() -- svp may be a raw _stack element
+	  /* cstr(), not string_ptr() -- svp may be a raw _stack element
 	     (print_stack_top(ostream&), comterp.c), and string_ptr()'s virtual
-	     dispatch isn't reliable on one of those (see slice_cstr()'s own
+	     dispatch isn't reliable on one of those (see cstr()'s own
 	     doc comment, comvalue.h). */
 	  std::string scratch;
-	  const char* strp = svp->slice_cstr(scratch);
+	  const char* strp = svp->cstr(scratch);
 	  if (brief)
 	    ParamList::output_text(out, strp);
 	  else {
