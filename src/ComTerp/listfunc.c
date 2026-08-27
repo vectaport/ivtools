@@ -156,7 +156,14 @@ void ListAtFunc::execute() {
       if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType) {
         int lo = loval.int_val();
         int hi = hival.int_val();
-        int cap = symbol_len(listv.string_val());
+        /* slicing a slice (nesting): bound against listv's own window, not
+           the full backing allocation, and compose the new offset onto
+           listv's own -- otherwise a re-slice both exposes whatever the
+           parent holds past listv's own end and reads from the wrong
+           place entirely (sl@0:1 read the parent's own index 0 instead of
+           listv's). */
+        int base = listv.sliced() ? listv.sliceoff() : 0;
+        int cap = listv.sliced() ? listv.slicelen() : symbol_len(listv.string_val());
         if (lo>=0 && hi>=lo && hi<=cap) {
           retval = ComValue(listv.string_val(), ComValue::StringType);
           /* the (unsigned int, ValueType) ctor doesn't ref -- unlike the
@@ -166,7 +173,7 @@ void ListAtFunc::execute() {
              ListAtFunc::execute() returns, and a later allocation can
              reuse that freed memory out from under the still-live slice. */
           retval.ref_as_needed();
-          retval.sliceoff(lo);
+          retval.sliceoff(base+lo);
           retval.slicelen(hi-lo);
           retval.sliced(1);
         }

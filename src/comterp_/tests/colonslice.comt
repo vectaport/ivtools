@@ -29,7 +29,12 @@
 // a plain list/array (only listv.is_only_string() triggers slice logic);
 // slice==string / slice==slice (both fall back to a generic, symid-based
 // comparison today, which is wrong for a slice -- print(x :str) is used
-// below to get a real, comparable, unsliced string out first instead).
+// below to get a real, comparable, unsliced string out first instead); a
+// slice passed as a function keyword arg or captured free variable loses
+// its sliced()/sliceoff()/slicelen() the same way a colon-list's coloned()
+// does (Greptile, #437) -- AttributeList only ever stores a plain
+// AttributeValue (#438), which has no room for either.  Not independently
+// fixable here; test 7 pins it as a documented gap rather than a silent one.
 
 ok=true
 
@@ -70,6 +75,26 @@ print("5 hi==cap is an empty slice, hi>cap is nil (expect 0 nil): %s %s\n" size(
 v=s@2:5
 ok=ok&&(size(v)==3 && print(v :str)=="cde")
 print("6 a sliced variable keeps its window (expect 3 cde): %s %s\n" size(v) print(v :str))
+
+// --- 7: nesting -- a colon range applied to an existing slice bounds
+//        against the slice's own window, not the full backing allocation,
+//        and composes onto the slice's own offset (Greptile, #437) --
+//        sl@0:1 used to read the parent's own index 0 ("a") instead of
+//        the slice's index 0 ("c") ---
+s3="abcdef"
+sl3=s3@2:5
+ok=ok&&(print(sl3@0:1 :str)=="c")
+ok=ok&&(print(sl3@1:3 :str)=="de")
+ok=ok&&((sl3@0:10)==nil)
+print("7 nesting: sl3@0:1, sl3@1:3, sl3@0:10 (expect c de nil): %s %s %s\n" print(sl3@0:1 :str) print(sl3@1:3 :str) sl3@0:10)
+
+// --- 8: KNOWN GAP, pinned so a future #438 fix is a deliberate change
+//        here too, not a silent one -- a slice passed as a function
+//        keyword arg loses its sliced()-ness (see the file header) and
+//        reads back as the whole parent string, not its own window ---
+f8=func(print(x :str))
+ok=ok&&(f8(:x s3@2:5)=="abcdef")
+print("8 KNOWN GAP: a sliced :x arg reads as the whole parent (expect abcdef, not cde): %s\n" f8(:x s3@2:5))
 
 print("colonslice: %v\n" ok)
 ok
