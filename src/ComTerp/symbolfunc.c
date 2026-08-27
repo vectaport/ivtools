@@ -268,6 +268,43 @@ void StrRefFunc::execute() {
 
 /*****************************************************************************/
 
+StringFunc::StringFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void StringFunc::execute() {
+  ComValue capv(stack_arg(0));
+  static int spaces_symid = symbol_add("spaces");
+  ComValue spacesv(stack_key(spaces_symid));
+  boolean spacesflag = spacesv.is_true();
+  reset_stack();
+
+  int cap = capv.int_val();
+  int newid = cap>=0 ? symbol_new((unsigned)cap, spacesflag) : -1;
+  if (newid<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  ComValue retval((unsigned int)newid, ComValue::StringType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+StrCapFunc::StrCapFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void StrCapFunc::execute() {
+  ComValue strv(stack_arg(0));
+  reset_stack();
+  if (strv.type()==ComValue::StringType) {
+    ComValue retval(symbol_len(strv.symbol_val()), ComValue::IntType);
+    push_stack(retval);
+  } else
+    push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 

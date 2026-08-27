@@ -272,9 +272,17 @@ void ListAtFunc::execute() {
     }
   } else if (listv.is_string()) {
     const char* str = listv.string_ptr();
-    int nvv = nv.is_nil() ? strlen(str)-1 : nv.int_val();
+    /* bounds-checked against capacity (symbol_len(), the allocation's own
+       byte count), not strlen() -- a strlen()-based bound made every byte
+       past the first NUL permanently unreachable the moment one landed
+       there (a fresh string(cap) buffer is all NUL, so index 0 was
+       "already past the end" before anything was ever written), even
+       though the underlying allocation still had the room.  nil still
+       means the last logical (strlen()-based) character, unchanged. */
+    int cap = symbol_len(listv.string_val());
+    int nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
     if(!setflag) {
-      if(strlen(str) > nv.int_val()) {
+      if(nvv>=0 && nvv<cap) {
         ComValue retval(*(str+nvv), ComValue::CharType);
         push_stack(retval);
         return;
@@ -284,7 +292,7 @@ void ListAtFunc::execute() {
 	 its identity: every value holding that symid names the same text, so
 	 a write here would edit the symbol out from under all of them (#393).
 	 Reads above stay open to both. */
-      if(nvv<strlen(str) && nvv>=0) {
+      if(nvv<cap && nvv>=0) {
 	*((char *)str+nvv) = setv.char_val();
 	ComValue retval(setv);
 	push_stack(retval);
