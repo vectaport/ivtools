@@ -291,8 +291,12 @@ void EqualFunc::execute() {
 	if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	  result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
 	else {
-	  std::string scratch1, scratch2;
-	  const char* str1 = operand1.slice_cstr(scratch1);
+	  /* operand1.symbol_ptr(), not slice_cstr() -- a symbol can't be
+	     sliced or modified, so there's nothing for slice_cstr() to
+	     narrow; operand2 isn't provably a symbol here (a mixed
+	     comparison, `abc==s@0:3, still needs the slice-aware read). */
+	  std::string scratch2;
+	  const char* str1 = operand1.symbol_ptr();
 	  const char* str2 = operand2.slice_cstr(scratch2);
 	  result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
 	                                            : strncmp(str1, str2, nval.int_val())==0;
@@ -402,8 +406,10 @@ void NotEqualFunc::execute() {
       if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	result.boolean_ref() = operand1.symbol_val() != operand2.symbol_val();
       else {
-	std::string scratch1, scratch2;
-	const char* str1 = operand1.slice_cstr(scratch1);
+	/* operand1.symbol_ptr(), not slice_cstr() -- a symbol can't be
+	   sliced or modified; operand2 isn't provably a symbol here. */
+	std::string scratch2;
+	const char* str1 = operand1.symbol_ptr();
 	const char* str2 = operand2.slice_cstr(scratch2);
 	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
 	                                          : strncmp(str1, str2, nval.int_val())!=0;
