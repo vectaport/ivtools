@@ -25,7 +25,6 @@
  * Implementation of LinkSelection class.
  */
 
-#ifdef HAVE_ACE
 
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawserv.h>
@@ -359,4 +358,3 @@ void LinkSelection::lock_key(const char* keystr) {
     }
   }
 }
-#endif

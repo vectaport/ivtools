@@ -65,8 +65,11 @@ int _backslash_ids = 0;
 #define FLOAT_IS_STARTING( ch1, ch2 ) \
 (((ch1) == '.' && (ch2) != '.' ) || (ch1) == 'E' || (ch1) == 'e')
 
+/* ':' only counts as isident() via _colon_ident, so it shouldn't disqualify
+   a following 'L' from being a genuine long suffix (e.g. "1L:2"). */
 #define LOOKS_LIKE_LONG( ch1, ch2 ) \
-(((ch1) == 'l' || (ch1) == 'L') && !(isdigit(ch2) || isident(ch2)))
+(((ch1) == 'l' || (ch1) == 'L') && \
+ !(isdigit(ch2) || ((ch2) != ':' && isident(ch2))))
 
 #define ADVANCE_PAST_QUOTE \
 while( CURR_CHAR != '\n' && \
@@ -679,7 +682,10 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 else if( isident( CURR_CHAR ))
+	 /* ':' only counts as isident() via _colon_ident, so a colon here is
+	    ending a number cleanly (e.g. a range operand), not a malformed
+	    numeric-identifier like "1abc". */
+	 else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	    return ERR_BADINT;
          else
    	    goto token_return;
@@ -709,7 +715,9 @@ int bs_ident = 0;
 	       }
 	    goto token_return;
 	    }
-	 else if( isdigit( CURR_CHAR ) || isident( CURR_CHAR ))
+	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
+	    so it should end an octal-looking number cleanly, not fail it. */
+	 else if( isdigit( CURR_CHAR ) || (CURR_CHAR != ':' && isident( CURR_CHAR )))
 	    return ERR_BADOCT;
 	 else if( *toklen == 0 ) {
 	    token_state = TOK_DFINT;
@@ -731,7 +739,9 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 else if( isident( CURR_CHAR ) || *toklen == 0 )
+	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
+	    so it should end a hex number cleanly, not fail it. */
+	 else if( (CURR_CHAR != ':' && isident( CURR_CHAR )) || *toklen == 0 )
 	    return ERR_BADHEX;
 	 else
 	    goto token_return;
@@ -758,7 +768,9 @@ int bs_ident = 0;
 	       ADVANCE_CHAR;
 	       double_state = FLOAT_NEWEXPON;
 	       }
-	    else if( isident( CURR_CHAR ))
+	    /* see TOK_DFINT above: ':' only counts as isident() via
+	       _colon_ident, so it should end the fraction cleanly. */
+	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
 	       goto token_return;
@@ -780,7 +792,9 @@ int bs_ident = 0;
 	 if( double_state == FLOAT_EXPONENT ) {
 	    if( isdigit( CURR_CHAR ))
 	       TOKEN_ADD( CURR_CHAR )
-	    else if( isident( CURR_CHAR ))
+	    /* see TOK_DFINT above: ':' only counts as isident() via
+	       _colon_ident, so it should end the exponent cleanly. */
+	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
 	       goto token_return;

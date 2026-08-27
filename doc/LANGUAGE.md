@@ -452,9 +452,36 @@ A few things worth noting:
   indexes directly, no parens needed) — see *At operator* below
 - `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
 - `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
+- **the space binds looser than `,`** — and looser than everything else, which
+  is *why* it separates arguments: every operator has finished binding before
+  the argument boundaries are decided. The whole ladder, loosest first, is
+
+      space   <   unary `$`, `~~`   <   ,   <   comparison/arithmetic   <   unary `$$`, `*`
+
+  Three consequences that otherwise look like unrelated quirks:
+
+  - a comma-built list needs no parens to be one argument — `list(1,2,3)` is
+    `{1,2,3}` (one argument), while `list(1 2 3)` is three arguments and
+    `list()` takes the first, giving `{1,}`
+  - a *space*-form literal does need its own parens, because bare spaces read
+    as argument separation instead: `list((1 2 3))` is the stream literal,
+    and `f((:a 1 :b 2))` passes an attrlist where `f(:a 1 :b 2)` would pass
+    keywords to `f` itself
+  - so `((1,2,3))` has one pair too many — the comma already finished the job —
+    while `((1 2 3))` does not. What is inside decides it: spaces or keywords
+    make a literal and need the parens, commas do not
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
 - `;` binds lowest of all — everything to its left and right is a complete expression
-- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without parens
+- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without
+  parens, but they sit on opposite sides of `,`, not next to each other:
+  `$$` is priority 100, well above `,` (35), while `$` is 32, just below it.
+  So `$$1,2,3` is `stream(1)` with `2` and `3` glued on after, not a stream
+  over the list — `postfix($$1,2,3)` shows it directly, as
+  `1 stream[1|0|1]* 2 tuple 3 tuple`; that one wants `$$(1,2,3)`, or a
+  variable holding the list. `$1,2,3` goes the other way: the comma finishes
+  building the tuple first, and `$` then collects that whole tuple into
+  `{1,2,3}` — no parens needed. `postfix($1,2,3)` shows it as
+  `1 2 tuple[2|0|1] 3 tuple list[1|0|1]*`
 - `*` plays two roles at once: binary `*` (`mpy`, LtoR, 70) and unary prefix
   `*` (`next`, RtoL, 71) are two separate table entries sharing one operator
   string — the same double-duty pattern `-` already uses for `minus`/`sub`.
@@ -551,6 +578,38 @@ lst@2=999
 lst               // {10,20,999,40,50}
 ```
 
+A **nil index means the last item**, reading or writing, on a list, an
+attrlist or a string alike — so `lst@nil` is the end of the list without
+having to say `lst@(size(lst)-1)`:
+
+```
+lst=10,20,30
+lst@nil          // 30
+lst@nil=99
+lst              // {10,20,99}
+
+s="abc"
+s@nil            // 'c'
+s@nil='C'
+s                // "abC"
+```
+
+That has been `at()`'s behavior since 2015 and was simply never written
+down; the list `:set` path was the one place that read a nil index as 0
+instead of the last, which is now consistent with the rest.
+
+A string index writes through the same way a list index does:
+
+```
+s="teststring"
+s@0='x'
+s                // "xeststring"
+```
+
+A **symbol** is not writable this way — its text is its identity, shared
+by everything holding that symid — so `sym@n=c` is declined and leaves the
+symbol as it was, the same refusal `at(sym n :set c)` gives.
+
 It chains left-to-right, the same as `.`:
 
 ```
@@ -598,7 +657,16 @@ Like any other binary operator, `@` overdrives when its rhs is a stream:
 `lst@(0..2)` or `lst@s` (for a stream variable `s`) both vectorize into a
 stream of results — nothing `@`-specific was needed for that either, it's
 the same scalar-overdrive mechanism described under *Scalar overdrive*
-below.
+below. A **list** of indices is not a stream and does not fan out: it has
+no position in it, so `lst@idx` answers nil rather than reading as some
+particular index.
+
+```
+lst=10,20,30,40
+idx=0,2
+lst@$$idx        // {10,30} -- a stream of indices fans out
+lst@idx          // nil     -- a list of them does not
+```
 
 Unlike unary prefix `*`, which is a single `optable.c` line mapping
 straight onto the existing `next()` command with no other change, `@`
@@ -2649,6 +2717,63 @@ class(attrlist())==`AttributeList // true
 
 float(3.14)            // explicit conversion to FloatType
 double(3)              // explicit conversion to DoubleType
+```
+
+`class(:all)` lists every class the running program linked, sorted by name;
+`class(:comps)` narrows that to the component classes:
+
+```
+class(:all)            // in comterp: AssignFunc,Attribute,AttributeList,...,TupleFunc
+class(:comps)          // in comterp: empty -- it links no component classes
+```
+
+Under comdraw the same two calls answer differently, because a different set
+of classes got linked:
+
+```
+class(:comps)          // ArrowLineComp,ArrowMultiLineComp,...,TextComp,VerticesComp
+size(class(:comps))    // 19
+```
+
+Nothing has to be drawn first. Each class enrolls itself before the program
+starts, so the list is what this binary *can* work with, not what the session
+has happened to touch -- which is what makes it usable for walking the
+component types:
+
+```
+for(i=0 i<size(class(:comps)) i=i+1 print("%v\n" at(class(:comps) i)))
+```
+
+That is a weaker guarantee than `type(:all)`, and deliberately so: the type
+symbols are a closed set the language defines, while a class only exists to be
+listed if something linked it. `class(:all)` in drawserv includes
+`DrawLinkComp`; in comterp it does not.
+
+`type(:all)` returns the whole set of type symbols, in enum order:
+
+```
+type(:all)             // UnknownType,CharType,UCharType,ShortType,UShortType,
+                       // IntType,UIntType,LongType,ULongType,FloatType,
+                       // DoubleType,StringType,SymbolType,ListType,StreamType,
+                       // CommandType,KeywordType,ObjectType,EofType,
+                       // BooleanType,OperatorType,BlankType
+size(type(:all))       // 22
+at(type(:all) 5)==type(1)  // true -- the listing and the per-value answer agree
+```
+
+That list is complete: every value in the language carries one of those 22
+types, and `ArrayType` is absent because it and `ListType` are one type under
+two names, registered as `ListType`.
+
+Asked with no value at all, both commands answer `blank` rather than `nil` --
+`nil` is the answer *about* a value, so it needs a value to be about:
+
+```
+class(3)               // nil   -- a value was named; it has no class
+class()                // blank -- no value was named at all
+type()                 // blank -- likewise
+type()==nil            // false -- the two stay distinguishable
+type()==blank()        // true
 ```
 
 ### istype()/isclass()/iscomm()/isfunc() — inspecting a variable without firing it

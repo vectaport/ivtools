@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 #ifdef __llvm__
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
@@ -149,4 +148,3 @@ boolean AceDispatcher::dispatch(long& sec, long& usec) {
     return nfound > 0;
 }
 
-#endif

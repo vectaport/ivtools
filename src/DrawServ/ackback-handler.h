@@ -21,7 +21,6 @@
  * 
  */
 
-#ifdef HAVE_ACE
 
 #ifndef _ackback_handler_
 #define _ackback_handler_
@@ -82,4 +81,3 @@ protected:
 
 #endif /* _ackback_handler_ */
 
-#endif /* HAVE_ACE */

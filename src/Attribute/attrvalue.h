@@ -196,6 +196,8 @@ public:
     // return sizeof of value of given type.
     int type_symid() const;
     // return symbol id corresponding to type
+    static int type_symid(ValueType);
+    // return symbol id corresponding to given type
     const char* type_name() { return symbol_pntr(type_symid()); }
     // type name of value.
 
@@ -310,7 +312,7 @@ public:
     // opening delimiter for a WrapperState, "" for NoWrapper
     static const char* wrapper_close(int wrapper);
     // closing delimiter for a WrapperState, "" for NoWrapper
-    static void out_char_brief(ostream& out, unsigned char cv);
+    static void out_char_brief(ostream& out, unsigned char cv, boolean quoted = true);
     // render a char as itself where that is safe: 'a', '^A', or the `\NNN` escape
 
     void negate();

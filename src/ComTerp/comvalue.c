@@ -227,14 +227,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::CharType:
 	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref());
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), false);
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
 	  break;	    
 
 	case ComValue::UCharType:
 	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref());
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), false);
 	  else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
