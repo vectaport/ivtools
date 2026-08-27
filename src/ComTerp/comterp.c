@@ -1629,6 +1629,7 @@ static void carry_slice(ComValue& dst, ComValue& src) {
   dst.sliced(src.sliced());
   dst.sliceoff(src.sliceoff());
   dst.slicelen(src.slicelen());
+  dst.blocksz(src.blocksz());
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {

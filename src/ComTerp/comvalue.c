@@ -166,7 +166,7 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     
 int ComValue::narg() const { return type()==ComValue::StringType ? 0 : _narg; }
 int ComValue::nkey() const { return type()==ComValue::StringType ? 0 : _nkey; }
-int ComValue::nids() const { return _nids; }
+int ComValue::nids() const { return type()==ComValue::StringType ? 0 : _nids; }
 int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
 int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
 int ComValue::local_flag() const { return _flags & COMVALUE_LOCAL_FLAG; }
@@ -174,6 +174,7 @@ int ComValue::coloned() const { return _flags & COMVALUE_COLONED_FLAG; }
 int ComValue::sliced() const { return _flags & COMVALUE_SLICED_FLAG; }
 int ComValue::sliceoff() const { return _narg; }
 int ComValue::slicelen() const { return _nkey; }
+int ComValue::blocksz() const { return _nids; }
 
 const char* ComValue::string_ptr() {
   if (!sliced()) return AttributeValue::string_ptr();

@@ -121,13 +121,19 @@ public:
     // StringType, whose storage doubles as a slice's length (#395) -- use
     // slicelen() to read that.
     int nids() const;
-    // number of subordinate identifiers associated with this identifier (not used).
+    // for a SymbolType, -1 for a bare identifier or the matched-paren-
+    // delimiter kind following it otherwise (TOK_RPAREN/TOK_RBRACKET/...,
+    // comterp.c -- also how DotFunc, dotfunc.c, tells a bare field
+    // reference apart from an empty-parenthesized method call); when a
+    // language needs separate input/output arglists it counts those too.
+    // Always 0 for a StringType, whose storage doubles as a slice's chunk
+    // size (#395) -- use blocksz() to read that.
     void narg(int n) {_narg = n; }
     // set number of arguments associated with this command or keyword.
     void nkey(int n) {_nkey = n; }
     // set number of keywords associated with this command.
     void nids(int n) {_nids = n; }
-    // set number of subordinate identifiers associated with this identifier (not used).
+    // set the matched-paren-delimiter kind following a SymbolType.
     int bquote() const;
     // get flag that says this SymbolType has been backquoted
     void bquote(int flag) { if(flag) _flags |= COMVALUE_BQUOTE_FLAG; else _flags &= ~COMVALUE_BQUOTE_FLAG; }
@@ -159,6 +165,15 @@ public:
     // length of a slice's window into its symid string; valid only when sliced().
     void slicelen(int len) { _nkey = len; }
     // set a slice's window length.
+    int blocksz() const;
+    // chunk size of a slice, in bytes -- 0 (the default) means an ordinary
+    // byte-granular slice, same as today; a future consumer reading a
+    // nonzero value would treat sliceoff()/slicelen() as counts of
+    // blocksz()-byte chunks rather than raw bytes, so a string slice can
+    // describe more than chars, Go-style (#395).  Not consumed anywhere
+    // yet -- this is the storage, not the feature.
+    void blocksz(int sz) { _nids = sz; }
+    // set a slice's chunk size.
 
     virtual const char* string_ptr();
     // overrides AttributeValue::string_ptr() (attrvalue.h) -- when sliced()
