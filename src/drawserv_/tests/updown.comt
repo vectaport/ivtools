@@ -176,7 +176,10 @@ parsetest_test=func(
   remote(sock "1+1");
   remote(sockb "1+1");
 
-  /* a leaves a list open across lines, b parses in the gap, a closes it */
+  /* a leaves a list open across lines, b parses in the gap, a closes it.  Note
+     what makes it safe to keep reading sock after a :nowait: an incomplete
+     expression sends nothing back, so there is no undrained reply to put every
+     later read one answer behind. */
   remote(sock "x=(10,20,30," :nowait);
   usleep(1000000);
   b=remote(sockb "1+1");
