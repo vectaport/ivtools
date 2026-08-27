@@ -78,7 +78,7 @@ public:
 	":set val   set val in list",
 	":ins val   insert val in list",
 	":del       delete val from list, returning the deleted value",
-	":raw       currently a no-op -- reserved for opting a probeable colon-list index out of a future dispatch on probeable()",
+	":raw       currently a no-op -- reserved for opting a coloned colon-list index out of a future dispatch on coloned()",
 	nil
       };
       return keys;
@@ -109,17 +109,23 @@ public:
 
 };
 
-//: : (colonlist) operator -- pairs two operands into a probeable list.
-// Plain AttributeValueList, tagged via the ComValue-level probeable() flag
+//: : (colonlist) operator -- pairs two operands into a coloned list.
+// Plain AttributeValueList, tagged via the ComValue-level coloned() flag
 // (comvalue.h), so it prints and behaves like any other list; nothing here
-// says what the pair means, that's up to whatever reads probeable().
+// says what the pair means, that's up to whatever reads coloned().  Each
+// operand that's a bare identifier is captured as its own unevaluated
+// symbol (no lookup) rather than resolved -- lst:foo never fails just
+// because foo isn't bound to anything, and a reader can either resolve it
+// (symval()) or match it directly against another symbol (e.g. `Dec).
+// Anything else (a literal, a parenthesized expression, ...) evaluates
+// normally, same as any other operator's operand.
 class ColonListFunc : public ComFunc {
 public:
     ColonListFunc(ComTerp*);
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(lo hi) -- pair two operands into a probeable list, for the ':' operator"; }
+      return "val=%s(lo hi) -- pair two operands into a coloned list, for the ':' operator; a bare identifier operand is captured as an unevaluated symbol"; }
 
     CLASS_SYMID("ColonListFunc");
 };

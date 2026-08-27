@@ -129,7 +129,7 @@ void ListAtFunc::execute() {
   ComValue rawv(stack_key(raw_symid));
   boolean rawflag = rawv.is_true();
   /* :raw is accepted but currently a no-op -- nothing below dispatches on
-     probeable(), so a probeable index reads as an ordinary array index
+     coloned(), so a coloned index reads as an ordinary array index
      either way. */
   (void)rawflag;
 
@@ -398,14 +398,20 @@ ColonListFunc::ColonListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ColonListFunc::execute() {
-  ComValue lo(stack_arg(0));
-  ComValue hi(stack_arg(1));
+  /* symbol=true: eager like any other operator (no post_eval()), but a
+     bare identifier operand is captured as its own unresolved symbol
+     instead of being looked up -- see stack_arg()'s own "if (!symbol)"
+     branch, comfunc.c.  Anything else (a literal, a parenthesized
+     sub-expression, ...) still evaluates normally; there was never a
+     symbol table entry standing in its way to begin with. */
+  ComValue lo(stack_arg(0, true));
+  ComValue hi(stack_arg(1, true));
   reset_stack();
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(lo));
   avl->Append(new AttributeValue(hi));
   ComValue retval(avl);
-  retval.probeable(1);
+  retval.coloned(1);
   push_stack(retval);
 }
 

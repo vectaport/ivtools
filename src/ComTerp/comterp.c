@@ -1636,11 +1636,18 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  }
 	}
 
+	/* assignval() takes an AttributeValue&, so it only ever copies the
+	   base class's fields -- ComValue's own coloned() (comvalue.h)
+	   isn't one of them, and comval keeps whatever it already had (the
+	   identifier token's own, not the stored value's) unless carried
+	   over explicitly here. */
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
 	  comval.assignval(*(ComValue*)vptr);
+	  comval.coloned(((ComValue*)vptr)->coloned());
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
 	  comval.assignval(*(ComValue*)vptr);
+	  comval.coloned(((ComValue*)vptr)->coloned());
 	  return comval;
 	} else
 	  return ComValue::nullval();
