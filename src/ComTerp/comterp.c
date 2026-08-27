@@ -1630,11 +1630,19 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
-	    /* ComValue(AttributeValue&) (comvalue.c) does *(AttributeValue*)this
-	       = sv; zero_vals() -- the zero_vals() call zeroes _flags outright,
-	       so coloned() is lost here even before the operator= below runs. */
+	    /* coloned() can't be recovered here at all, and must not be
+	       guessed at: _alist (a func's keyword-bound locals, fire_funcobj()
+	       comterp.c) is populated via AttributeList::add_attr(int,
+	       AttributeValue&) (attrlist.c), same as attrlist() itself, which
+	       constructs a plain `new AttributeValue(value)` -- a strictly
+	       smaller type with no _flags field, not a ComValue.  aval is
+	       therefore genuinely only ever an AttributeValue* here, never a
+	       ComValue* despite how it looks; ((ComValue*)aval)->coloned()
+	       would read _flags out of memory past the real object's own
+	       allocation -- undefined behavior, not a recovered flag (#438
+	       tracks the actual fix: AttributeList would need to store
+	       ComValue, not AttributeValue). */
 	    ComValue newval(*aval);
-	    newval.coloned(((ComValue*)aval)->coloned());
 	    *&comval = newval;
 	    return comval;
 	  }
@@ -1657,21 +1665,16 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  return ComValue::nullval();
 
     } else if (comval.is_object(Attribute::class_symid())) {
-      AttributeValue* attrvalp = ((Attribute*)comval.obj_val())->Value();
-      /* carries coloned() the same way as the _alist branch above, but it
-	 can only carry what's actually there -- AttributeList::add_attr()
-	 (attrlist.c) stores a keyword's value via `new AttributeValue(value)`,
-	 AttributeValue's own copy constructor, which has no _flags field to
-	 begin with (that's a ComValue-only extension).  So attrvalp->coloned()
-	 already reads false here for anything that went through an attrlist
-	 (attrlist(:r 0:3), a func's own :keyword args once inside stack_keys())
-	 -- confirmed via lldb, not something this propagation can fix.  #438
-	 tracks the actual fix (AttributeList would need to store ComValue,
-	 not AttributeValue). */
-      ComValue attrval = *attrvalp;
-      attrval.coloned(((ComValue*)attrvalp)->coloned());
+      /* coloned() can't be recovered here, and reading it via a ComValue*
+	 cast on attrvalp would be undefined behavior, not a recovered flag --
+	 same reasoning as the _alist branch above.  Attribute::Value()
+	 returns whatever AttributeList::add_attr() (attrlist.c) stored, which
+	 is always a plain `new AttributeValue(value)`, never a ComValue --
+	 there's no _flags field to read past the end of.  #438 tracks the
+	 actual fix (AttributeList would need to store ComValue, not
+	 AttributeValue). */
+      ComValue attrval = *((Attribute*)comval.obj_val())->Value();
       comval.assignval(attrval);
-      comval.coloned(attrval.coloned());
     }
     return comval;
 }
