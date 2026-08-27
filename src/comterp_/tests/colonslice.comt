@@ -122,5 +122,20 @@ r10=split(sl4 :tokstr)
 ok=ok&&(size(r10)==2 && r10@0=="bar" && r10@1=="baz")
 print("10 split(sl4 :tokstr), sl4=s4@4:11 (expect {bar,baz}): %v\n" r10)
 
+// --- 11: print()'s multi-value format path reads the format string
+//         itself through the slice-aware fstr (Greptile, #440) -- fstr
+//         used to come from string_ptr() (never slice-aware), so a
+//         sliced format string leaked whatever text followed the slice's
+//         own end in the shared parent buffer.  fmt's full text is
+//         "%s!EXTRA" -- fmtsl@0:2 is just "%s", so a correct read of
+//         fmtsl produces "hi" with nothing appended; the pre-fix bug
+//         would have read the parent's full text and appended "!EXTRA"
+//         after substituting %s, giving "hi!EXTRA" instead ---
+fmt="%s!EXTRA"
+fmtsl=fmt@0:2
+r11=print(fmtsl "hi" :str)
+ok=ok&&(r11=="hi")
+print("11 sliced format string, fmtsl=fmt@0:2 (expect hi, not hi!EXTRA): %s\n" print(fmtsl "hi" :str))
+
 print("colonslice: %v\n" ok)
 ok

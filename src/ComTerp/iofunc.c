@@ -125,7 +125,12 @@ void PrintFunc::execute() {
   static int prefix_symid = symbol_add("prefix");
   ComValue prefixv(stack_key(prefix_symid));
 
-  const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
+  /* cstr(), not string_ptr() -- formatstr can itself be a sliced string
+     (#395), and fstr backs fstrptr's scan through the whole multi-value
+     format string below (narg>1 branch); string_ptr() would read the
+     shared parent's full text instead of just the slice's own window. */
+  std::string fscratch;
+  const char* fstr = formatstr.is_string() ? formatstr.cstr(fscratch) : "nil";
   ComValue::comterp(comterp());
 
   streambuf* strmbuf = nil;
