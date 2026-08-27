@@ -9,6 +9,7 @@ void *mblock_pntr(int id);
 int mblock_sizes(int id,unsigned *nel,unsigned *size,unsigned long *nbytes);
 /* SYMBOLS.C */
 int symbol_add(const char *string);
+int symbol_new(unsigned cap, BOOLEAN blanks=false);
 int symbol_find(const char *string);
 int symbol_unref (int id);
 int symbol_reference (int id);

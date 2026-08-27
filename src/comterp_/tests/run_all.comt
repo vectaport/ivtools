@@ -48,6 +48,10 @@ if(run("./stackkey.comt")
 if(run("./colonlist.comt")
   :then print("pass: colonlist\n")
   :else print("FAIL: colonlist\n");topok=false)
+  
+if(run("./string_cap.comt")
+  :then print("pass: string_cap\n")
+  :else print("FAIL: string_cap\n");topok=false)
 
 if(run("./print.comt")
   :then print("pass: print\n")

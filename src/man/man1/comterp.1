@@ -310,6 +310,10 @@ Print a usage summary of all the invocation modes above and exit.
 
 .SH STRING COMMANDS
 
+ str=string(cap :spaces) -- cap bytes, NUL-filled (or space-filled with :spaces)
+
+ n=strcap(str) -- capacity in bytes, not counting the guaranteed terminator
+
  lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 
  str=join(lst :sym) -- join list of characters into string
