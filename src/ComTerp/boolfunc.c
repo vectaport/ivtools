@@ -308,9 +308,9 @@ void EqualFunc::execute() {
 	   there, but a slice (#395) shares its PARENT's symid, unrelated to
 	   its own effective text (sl=="cde" compared false this way even
 	   though sl prints as "cde", confirmed live).  cstr(), not
-	   string_ptr() -- operand1/operand2 are ComValue& straight off
-	   stack_arg(), not locals, so string_ptr()'s virtual dispatch isn't
-	   reliable here (see its own doc comment, comvalue.h). */
+	   string_ptr() -- string_ptr() isn't slice-aware at all (comvalue.h,
+	   attrvalue.h), so it would just read the whole shared parent
+	   string here regardless. */
 	std::string scratch1, scratch2;
 	const char* str1 = operand1.cstr(scratch1);
 	const char* str2 = operand2.cstr(scratch2);
@@ -418,9 +418,8 @@ void NotEqualFunc::execute() {
     case ComValue::StringType: {
       /* always a text comparison, never symbol_val() identity -- a slice
 	 (#395) shares its parent's symid, unrelated to its own text.
-	 cstr(), not string_ptr(): operand1/operand2 are raw
-	 stack_arg() references, not locals (see EqualFunc for the full
-	 reasoning, boolfunc.c above). */
+	 cstr(), not string_ptr(): string_ptr() isn't slice-aware at all
+	 (see EqualFunc above for the full reasoning). */
       std::string scratch1, scratch2;
       const char* str1 = operand1.cstr(scratch1);
       const char* str2 = operand2.cstr(scratch2);
