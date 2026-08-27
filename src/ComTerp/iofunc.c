@@ -39,6 +39,7 @@
 #include <fstream.h>
 #endif
 #include <streambuf>
+#include <string>
 #include <unistd.h>
 
 #define TITLE "IoFunc"
@@ -162,8 +163,9 @@ void PrintFunc::execute() {
   int narg = nargsfixed();
   if (narg==1) {
 
+    std::string scratch;
     if (formatstr.is_string() && !prefixv.is_string()) {
-      out << formatstr.symbol_ptr();
+      out << formatstr.slice_cstr(scratch);
       out.flush();
     }
     else {
@@ -171,8 +173,8 @@ void PrintFunc::execute() {
       if (!formatstr.is_string())
 	out << formatstr;  // which could be arbitrary ComValue
       else
-	out << formatstr.string_ptr();
-	    
+	out << formatstr.slice_cstr(scratch);
+
       if (prefixv.is_string()) out << "\n";
       out.flush();
     }
@@ -309,9 +311,11 @@ void PrintFunc::execute() {
       switch( printval.type() )
       {
       case ComValue::SymbolType:
-      case ComValue::StringType:
-	out_form(out, fbuf, symbol_pntr( printval.symbol_ref()));
+      case ComValue::StringType: {
+	std::string scratch;
+	out_form(out, fbuf, printval.slice_cstr(scratch));
 	break;
+      }
 
       case ComValue::BooleanType:
 	out_form(out, fbuf, printval.boolean_ref());

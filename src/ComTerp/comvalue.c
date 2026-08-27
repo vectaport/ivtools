@@ -45,6 +45,7 @@
 #include <string.h>
 #include <iostream.h>
 #include <strstream>
+#include <string>
 using namespace std;
 
 ComValue ComValue::_nullval(ComValue::UnknownType);
@@ -163,13 +164,23 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     return *this;
 }
     
-int ComValue::narg() const { return _narg; }
-int ComValue::nkey() const { return _nkey; }
+int ComValue::narg() const { return type()==ComValue::StringType ? 0 : _narg; }
+int ComValue::nkey() const { return type()==ComValue::StringType ? 0 : _nkey; }
 int ComValue::nids() const { return _nids; }
 int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
 int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
 int ComValue::local_flag() const { return _flags & COMVALUE_LOCAL_FLAG; }
 int ComValue::coloned() const { return _flags & COMVALUE_COLONED_FLAG; }
+int ComValue::sliced() const { return _flags & COMVALUE_SLICED_FLAG; }
+int ComValue::sliceoff() const { return _narg; }
+int ComValue::slicelen() const { return _nkey; }
+
+const char* ComValue::slice_cstr(std::string& scratch) {
+  const char* full = string_ptr();
+  if (!sliced()) return full;
+  scratch.assign(full + sliceoff(), slicelen());
+  return scratch.c_str();
+}
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;
@@ -209,15 +220,18 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  }
 	  break;
 	    
-	case ComValue::StringType:
+	case ComValue::StringType: {
+	  std::string scratch;
+	  const char* strp = svp->slice_cstr(scratch);
 	  if (brief)
-	    ParamList::output_text(out, svp->string_ptr());
+	    ParamList::output_text(out, strp);
 	  else {
 	    out << "string(";
-	    ParamList::output_text(out, svp->string_ptr());
+	    ParamList::output_text(out, strp);
 	    out << ")";
 	  }
 	  break;
+	}
 	    
 	case ComValue::BooleanType:
 	  if (brief)

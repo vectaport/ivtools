@@ -33,6 +33,7 @@
 #include <ComTerp/_comterp.h>
 #include <Attribute/attrvalue.h>
 #include <Unidraw/Components/compview.h>
+#include <string>
 
 class ComFunc;
 class ComTerp;
@@ -47,6 +48,7 @@ class ComTerp;
 #define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() or local() ComValue in lhs context
 #define COMVALUE_LOCAL_FLAG      0x04  // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
 #define COMVALUE_COLONED_FLAG    0x08  // set by ColonListFunc -- an ArrayType built by ':', not ','
+#define COMVALUE_SLICED_FLAG     0x10  // set on a StringType sliced from another string (#395) -- sliceoff()/slicelen() hold the window, narg()/nkey() read 0
 
 class ComValue : public AttributeValue {
 public:
@@ -111,9 +113,13 @@ public:
     // return true if ObjectType matches or compid is superclass
 
     int narg() const;
-    // number of arguments associated with this command or keyword.
+    // number of arguments associated with this command or keyword; always 0
+    // for a StringType, whose storage doubles as a slice's offset (#395) --
+    // use sliceoff() to read that.
     int nkey() const;
-    // number of keywords associated with this command.
+    // number of keywords associated with this command; always 0 for a
+    // StringType, whose storage doubles as a slice's length (#395) -- use
+    // slicelen() to read that.
     int nids() const;
     // number of subordinate identifiers associated with this identifier (not used).
     void narg(int n) {_narg = n; }
@@ -139,6 +145,28 @@ public:
     // return flag that marks an ArrayType as built by ':' rather than ','.
     void coloned(int flag) { if(flag) _flags |= COMVALUE_COLONED_FLAG; else _flags &= ~COMVALUE_COLONED_FLAG; }
     // set flag that marks an ArrayType as built by ':' rather than ','.
+
+    int sliced() const;
+    // return flag that marks a StringType value as a slice of another
+    // string, sharing its symid rather than owning a copy (#395).
+    void sliced(int flag) { if(flag) _flags |= COMVALUE_SLICED_FLAG; else _flags &= ~COMVALUE_SLICED_FLAG; }
+    // set flag that marks a StringType value as a slice.
+    int sliceoff() const;
+    // offset of a slice's window into its symid string; valid only when sliced().
+    void sliceoff(int off) { _narg = off; }
+    // set a slice's window offset.
+    int slicelen() const;
+    // length of a slice's window into its symid string; valid only when sliced().
+    void slicelen(int len) { _nkey = len; }
+    // set a slice's window length.
+
+    const char* slice_cstr(std::string& scratch);
+    // NUL-terminated text of a StringType value -- string_ptr() narrowed to
+    // [sliceoff(), sliceoff()+slicelen()) when sliced() (#395), otherwise
+    // string_ptr() itself.  Takes a caller-owned std::string rather than a
+    // ComValue member: _stack (comterp.c) grows via dmm_realloc, a raw
+    // realloc of the whole ComValue array, so ComValue must stay a plain,
+    // trivially-relocatable union -- no non-POD member survives that move.
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.

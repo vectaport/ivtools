@@ -53,6 +53,10 @@ if(run("./string_cap.comt")
   :then print("pass: string_cap\n")
   :else print("FAIL: string_cap\n");topok=false)
 
+if(run("./colonslice.comt")
+  :then print("pass: colonslice\n")
+  :else print("FAIL: colonslice\n");topok=false)
+
 if(run("./print.comt")
   :then print("pass: print\n")
   :else print("FAIL: print\n");topok=false)

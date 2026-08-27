@@ -1,0 +1,100 @@
+// src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
+//
+// funcs: colonlist at size print
+//
+// str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
+// own symid (its memory stays exactly where it was allocated, reachable at
+// that symid -- no copy, no new storage) with an offset/length window
+// recorded on the ComValue itself via sliceoff()/slicelen() (comvalue.h),
+// borrowing the narg/nkey storage a StringType never otherwise needs (see
+// comvalue.h's narg()/nkey() doc -- both read 0 for a StringType, guarding
+// sliced code that repurposes the same fields for offset/length). hi is
+// exclusive, Go-style -- length is hi-lo, and hi==cap is in bounds (an
+// empty slice at the far end, same as Go's s[len(s):len(s)]).
+//
+// Only literal-bound ranges are covered here (s@0:3, not s@lo:hi) -- a bare
+// identifier as the ':' operator's own right-hand operand is always
+// tokenized as a keyword lexeme by the lexer (":hi" reads as a stray
+// keyword, "Unexpected keyword" from the parser) regardless of spacing,
+// the same underlying scanner ambiguity #423 already flagged for a
+// leading colon ("Dec:25"), just showing up on the trailing side too.
+// colonlist(lo hi) -- a plain command call, not the ':' lexeme -- sidesteps
+// it and still captures lo/hi unevaluated the same way (see colonlist.comt
+// test 6/7), so s@colonlist(lo hi) works today for variable bounds; that's
+// left as a documented workaround here rather than a test, since fixing
+// the lexer itself is out of scope for this file.
+//
+// Known gaps, not yet attempted: :set/:ins/:del through a slice (listfunc.c
+// falls back to nil for any coloned index in an lhs_assign context); slicing
+// a plain list/array (only listv.is_only_string() triggers slice logic);
+// slice==string / slice==slice (both fall back to a generic, symid-based
+// comparison today, which is wrong for a slice -- print(x :str) is used
+// below to get a real, comparable, unsliced string out first instead); a
+// slice passed as a function keyword arg or captured free variable loses
+// its sliced()/sliceoff()/slicelen() the same way a colon-list's coloned()
+// does (Greptile, #437) -- AttributeList only ever stores a plain
+// AttributeValue (#438), which has no room for either.  Not independently
+// fixable here; test 7 pins it as a documented gap rather than a silent one.
+
+ok=true
+
+// --- 1: hi is exclusive, Go-style -- length is hi-lo ---
+ok=ok&&(print("abcdefg"@0:3 :str)=="abc")
+print("1 lo:hi is exclusive of hi (expect abc): %s\n" print("abcdefg"@0:3 :str))
+
+// --- 2: unparenthesized binds tighter than @, no parens needed ---
+s="abcdefg"
+sl=s@2:5
+ok=ok&&(print(sl :str)=="cde")
+print("2 unparenthesized s@2:5 (expect cde): %s\n" print(sl :str))
+
+// --- 3: size() reports the slice's own length, not the parent's ---
+ok=ok&&(size(sl)==3)
+print("3 size of the slice (expect 3): %s\n" size(sl))
+
+// --- 4: the slice shares the parent's backing -- a write through the
+//        parent is visible through a slice taken before the write ---
+s2="wxyzabc"
+sl2=s2@0:3
+at(s2 1 :set 90)
+ok=ok&&(print(sl2 :str)=="wZy")
+print("4 slice sees a write through its parent (expect wZy): %s\n" print(sl2 :str))
+
+// --- 5: hi==cap (the string's own capacity) is in bounds -- an empty
+//        slice at the far end, same as Go's s[len(s):len(s)]; hi>cap
+//        answers nil, same as at()'s own bounds checks ---
+ok=ok&&(size("abc"@3:3)==0)
+ok=ok&&(("abc"@0:5)==nil)
+print("5 hi==cap is an empty slice, hi>cap is nil (expect 0 nil): %s %s\n" size("abc"@3:3) "abc"@0:5)
+
+// --- 6: a slice assigned to a variable keeps its sliced-ness across the
+//        symbol-table round trip -- lookup_symval() (comterp.c) has to
+//        carry sliced()/sliceoff()/slicelen() over explicitly, the same
+//        way it already does for coloned() (#429/Greptile), since
+//        assignval() only ever copies AttributeValue's base fields ---
+v=s@2:5
+ok=ok&&(size(v)==3 && print(v :str)=="cde")
+print("6 a sliced variable keeps its window (expect 3 cde): %s %s\n" size(v) print(v :str))
+
+// --- 7: nesting -- a colon range applied to an existing slice bounds
+//        against the slice's own window, not the full backing allocation,
+//        and composes onto the slice's own offset (Greptile, #437) --
+//        sl@0:1 used to read the parent's own index 0 ("a") instead of
+//        the slice's index 0 ("c") ---
+s3="abcdef"
+sl3=s3@2:5
+ok=ok&&(print(sl3@0:1 :str)=="c")
+ok=ok&&(print(sl3@1:3 :str)=="de")
+ok=ok&&((sl3@0:10)==nil)
+print("7 nesting: sl3@0:1, sl3@1:3, sl3@0:10 (expect c de nil): %s %s %s\n" print(sl3@0:1 :str) print(sl3@1:3 :str) sl3@0:10)
+
+// --- 8: KNOWN GAP, pinned so a future #438 fix is a deliberate change
+//        here too, not a silent one -- a slice passed as a function
+//        keyword arg loses its sliced()-ness (see the file header) and
+//        reads back as the whole parent string, not its own window ---
+f8=func(print(x :str))
+ok=ok&&(f8(:x s3@2:5)=="abcdef")
+print("8 KNOWN GAP: a sliced :x arg reads as the whole parent (expect abcdef, not cde): %s\n" f8(:x s3@2:5))
+
+print("colonslice: %v\n" ok)
+ok

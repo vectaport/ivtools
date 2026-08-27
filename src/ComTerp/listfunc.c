@@ -133,6 +133,57 @@ void ListAtFunc::execute() {
      either way. */
   (void)rawflag;
 
+  /* str@lo:hi (#395): a coloned 2-element index into a string builds a
+     slice -- a StringType ComValue sharing str's own symid (so its memory
+     stays exactly as allocated, reachable at that symid) with an offset/
+     length window recorded via sliceoff()/slicelen() (comvalue.h) instead
+     of a copy.  lo/hi may have arrived as unresolved symbols (ColonListFunc
+     captures bare identifiers rather than looking them up), so each is run
+     through lookup_symval() here.  hi is exclusive, Go-style -- length is
+     hi-lo, and hi==cap is in bounds (an empty slice at the far end, same
+     as Go's s[len(s):len(s)]).  Not yet supported: writing through a slice
+     (:set/:ins/:del, or the #318 lhs_assign peek below) or slicing a plain
+     list/array -- both fall through to nil for now. */
+  if (listv.is_only_string() && nv.is_type(ComValue::ArrayType) && nv.coloned()) {
+    AttributeValueList* range = nv.array_val();
+    boolean forwrite = comterp()->stack_top(nkeys()+1).lhs_assign();
+    ComValue retval(ComValue::nullval());
+    if (!forwrite && range && range->Number()==2) {
+      ComValue loval(*range->Get(0));
+      ComValue hival(*range->Get(1));
+      loval = comterp()->lookup_symval(loval);
+      hival = comterp()->lookup_symval(hival);
+      if (loval.type()==ComValue::IntType && hival.type()==ComValue::IntType) {
+        int lo = loval.int_val();
+        int hi = hival.int_val();
+        /* slicing a slice (nesting): bound against listv's own window, not
+           the full backing allocation, and compose the new offset onto
+           listv's own -- otherwise a re-slice both exposes whatever the
+           parent holds past listv's own end and reads from the wrong
+           place entirely (sl@0:1 read the parent's own index 0 instead of
+           listv's). */
+        int base = listv.sliced() ? listv.sliceoff() : 0;
+        int cap = listv.sliced() ? listv.slicelen() : symbol_len(listv.string_val());
+        if (lo>=0 && hi>=lo && hi<=cap) {
+          retval = ComValue(listv.string_val(), ComValue::StringType);
+          /* the (unsigned int, ValueType) ctor doesn't ref -- unlike the
+             (int, ValueType) one, it has no "used as a StringType
+             constructor" case (attrvalue.c).  Without this, listv's own
+             destructor unrefs the symid this slice still points at when
+             ListAtFunc::execute() returns, and a later allocation can
+             reuse that freed memory out from under the still-live slice. */
+          retval.ref_as_needed();
+          retval.sliceoff(base+lo);
+          retval.slicelen(hi-lo);
+          retval.sliced(1);
+        }
+      }
+    }
+    reset_stack();
+    push_stack(retval);
+    return;
+  }
+
   /* a list has no position in it, and int_val() answers 0 for one -- so a
      list-valued index used to read as index 0 and hand back the first item,
      a wrong answer wearing a right one's clothes.  A stream of indices does
@@ -279,18 +330,31 @@ void ListAtFunc::execute() {
     }
   } else if (listv.is_string()) {
     const char* str = listv.string_ptr();
-    /* bounds-checked against capacity (symbol_len(), the allocation's own
-       byte count), not strlen() -- a strlen()-based bound made every byte
-       past the first NUL permanently unreachable the moment one landed
-       there (a fresh string(cap) buffer is all NUL, so index 0 was
-       "already past the end" before anything was ever written), even
-       though the underlying allocation still had the room.  nil still
-       means the last logical (strlen()-based) character, unchanged. */
-    int cap = symbol_len(listv.string_val());
-    int nvv = nv.is_nil() ? (int)strlen(str)-1 : nv.int_val();
+    /* a sliced listv (#395) indexes relative to its own window into the
+       shared parent buffer -- base offsets every read/write into it, and
+       cap is the slice's own length rather than the parent's capacity, so
+       indexing a slice can't read or write past its own bound into the
+       parent's neighboring bytes.  Reading or writing still goes through
+       the same shared storage as the parent (str+base), so a write here
+       stays visible through any other slice or the parent itself, same as
+       test 4 (colonslice.comt).  For an ordinary, unsliced string, this is
+       exactly the pre-#395 behavior: bounds-checked against capacity
+       (symbol_len(), the allocation's own byte count), not strlen() -- a
+       strlen()-based bound made every byte past the first NUL permanently
+       unreachable the moment one landed there (a fresh string(cap) buffer
+       is all NUL, so index 0 was "already past the end" before anything
+       was ever written), even though the underlying allocation still had
+       the room. */
+    boolean isslice = listv.sliced();
+    int base = isslice ? listv.sliceoff() : 0;
+    int cap = isslice ? listv.slicelen() : symbol_len(listv.string_val());
+    /* nil means the last logical character -- the slice's own last index
+       when sliced (its length is exact, not NUL-delimited), otherwise the
+       parent's strlen()-based last character, unchanged. */
+    int nvv = nv.is_nil() ? (isslice ? cap-1 : (int)strlen(str)-1) : nv.int_val();
     if(!setflag) {
       if(nvv>=0 && nvv<cap) {
-        ComValue retval(*(str+nvv), ComValue::CharType);
+        ComValue retval(*(str+base+nvv), ComValue::CharType);
         push_stack(retval);
         return;
       }
@@ -300,7 +364,7 @@ void ListAtFunc::execute() {
 	 a write here would edit the symbol out from under all of them (#393).
 	 Reads above stay open to both. */
       if(nvv<cap && nvv>=0) {
-	*((char *)str+nvv) = setv.char_val();
+	*((char *)str+base+nvv) = setv.char_val();
 	ComValue retval(setv);
 	push_stack(retval);
 	return;
@@ -340,7 +404,11 @@ void ListSizeFunc::execute() {
       return;			  
     }
   } else if (listv.is_string() || listv.is_symbol()) {
-    ComValue retval((int)strlen(listv.symbol_ptr()), ComValue::IntType);
+    /* a slice's own length (#395), not its shared parent's -- strlen()
+       would run past the slice's window into whatever the parent holds
+       beyond it. */
+    int len = listv.sliced() ? listv.slicelen() : (int)strlen(listv.symbol_ptr());
+    ComValue retval(len, ComValue::IntType);
     push_stack(retval);
     return;
   } else if (listv.is_object(FuncObj::class_symid())) {
