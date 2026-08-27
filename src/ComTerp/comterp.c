@@ -1630,7 +1630,11 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
+	    /* ComValue(AttributeValue&) (comvalue.c) does *(AttributeValue*)this
+	       = sv; zero_vals() -- the zero_vals() call zeroes _flags outright,
+	       so coloned() is lost here even before the operator= below runs. */
 	    ComValue newval(*aval);
+	    newval.coloned(((ComValue*)aval)->coloned());
 	    *&comval = newval;
 	    return comval;
 	  }
@@ -1653,9 +1657,22 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  return ComValue::nullval();
 
     } else if (comval.is_object(Attribute::class_symid())) {
-      ComValue attrval = *((Attribute*)comval.obj_val())->Value(); 
+      AttributeValue* attrvalp = ((Attribute*)comval.obj_val())->Value();
+      /* carries coloned() the same way as the _alist branch above, but it
+	 can only carry what's actually there -- AttributeList::add_attr()
+	 (attrlist.c) stores a keyword's value via `new AttributeValue(value)`,
+	 AttributeValue's own copy constructor, which has no _flags field to
+	 begin with (that's a ComValue-only extension).  So attrvalp->coloned()
+	 already reads false here for anything that went through an attrlist
+	 (attrlist(:r 0:3), a func's own :keyword args once inside stack_keys())
+	 -- confirmed via lldb, not something this propagation can fix.  #438
+	 tracks the actual fix (AttributeList would need to store ComValue,
+	 not AttributeValue). */
+      ComValue attrval = *attrvalp;
+      attrval.coloned(((ComValue*)attrvalp)->coloned());
       comval.assignval(attrval);
-    }       
+      comval.coloned(attrval.coloned());
+    }
     return comval;
 }
 
