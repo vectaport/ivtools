@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
 //
-// funcs: colonlist at size print eq
+// funcs: colonlist at size print eq split
 //
 // str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
 // own symid (its memory stays exactly where it was allocated, reachable at
@@ -111,6 +111,16 @@ ok=ok&&(sl=="cde")
 ok=ok&&(sl!="abcdefg")
 ok=ok&&(!(sl=="abcdefg"))
 print("9 sl==\"cde\", sl!=\"abcdefg\" (expect true true): %v %v\n" sl=="cde" sl!="abcdefg")
+
+// --- 10: split() reads only the slice's own text, not the parent's --
+//         split(sl) (char mode) and split(:tokstr) (whitespace mode)
+//         both walk the input through a single cstr()-backed pointer,
+//         so one fix (SplitStrFunc, symbolfunc.c) covers both ---
+s4="foo bar baz"
+sl4=s4@4:11
+r10=split(sl4 :tokstr)
+ok=ok&&(size(r10)==2 && r10@0=="bar" && r10@1=="baz")
+print("10 split(sl4 :tokstr), sl4=s4@4:11 (expect {bar,baz}): %v\n" r10)
 
 print("colonslice: %v\n" ok)
 ok
