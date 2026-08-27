@@ -252,8 +252,11 @@ public:
     const char* class_name();         // class name of object.
 
 
-    const char* string_ptr();
-    // lookup and return pointer to string associated with string.
+    virtual const char* string_ptr();
+    // lookup and return pointer to string associated with string.  Virtual
+    // so ComValue (comvalue.h) can override it to narrow a sliced
+    // StringType's window (#395) -- every existing caller keeps calling
+    // string_ptr() exactly as before and gets the right text for free.
     const char* symbol_ptr();
     boolean global_flag();
     // return true if a symbol and the global flag is set.

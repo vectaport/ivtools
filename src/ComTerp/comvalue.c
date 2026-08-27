@@ -175,8 +175,39 @@ int ComValue::sliced() const { return _flags & COMVALUE_SLICED_FLAG; }
 int ComValue::sliceoff() const { return _narg; }
 int ComValue::slicelen() const { return _nkey; }
 
+const char* ComValue::string_ptr() {
+  if (!sliced()) return AttributeValue::string_ptr();
+  /* a small rotating pool, not a ComValue member -- see the comvalue.h
+     doc comment for why a member can't survive _stack's dmm_realloc.
+     Rotating (rather than one shared buffer) covers the ordinary case of
+     two sliced operands read in the same expression before either is
+     consumed (e.g. a string comparison or concatenation of two slices) --
+     each gets its own slot instead of the second overwriting the first's
+     still-needed text.  Still not safe across more simultaneous live
+     reads than the pool has slots, or across anything that holds onto the
+     pointer past the next few string_ptr() calls -- copy the text out
+     (or use %v/print's own :str, which does) if it needs to outlive that. */
+  static std::string pool[8];
+  static int next = 0;
+  std::string& scratch = pool[next];
+  next = (next + 1) % 8;
+  const char* full = AttributeValue::string_ptr();
+  scratch.assign(full + sliceoff(), slicelen());
+  return scratch.c_str();
+}
+
 const char* ComValue::slice_cstr(std::string& scratch) {
-  const char* full = string_ptr();
+  /* non-virtual, and calls AttributeValue::string_ptr() explicitly rather
+     than the virtual string_ptr() above -- safe to call on ANY ComValue&,
+     including a raw element of _stack (comterp.c) read directly rather
+     than copied to a genuine local first.  Such an element's own vtable
+     pointer isn't reliably ComValue's own (confirmed: print_stack_top(
+     ostream&) below reads one whose vtable resolves to plain
+     AttributeValue, so a virtual call on it silently runs the base
+     class's method instead of this override -- wrong, not a crash), but
+     sliced()/sliceoff()/slicelen() are plain field reads, unaffected
+     either way. */
+  const char* full = AttributeValue::string_ptr();
   if (!sliced()) return full;
   scratch.assign(full + sliceoff(), slicelen());
   return scratch.c_str();
@@ -221,6 +252,10 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::StringType: {
+	  /* slice_cstr(), not string_ptr() -- svp may be a raw _stack element
+	     (print_stack_top(ostream&), comterp.c), and string_ptr()'s virtual
+	     dispatch isn't reliable on one of those (see slice_cstr()'s own
+	     doc comment, comvalue.h). */
 	  std::string scratch;
 	  const char* strp = svp->slice_cstr(scratch);
 	  if (brief)
