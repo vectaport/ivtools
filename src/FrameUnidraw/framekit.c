@@ -195,7 +195,14 @@ void FrameKit::InitLayout(OverlayKit* kit, const char* name) {
 	  ed->body(menus);
 	  ed->GetKeyMap()->Execute(CODE_SELECT);
 	  topbox->append(ed);
-	  if (!bookgeom && inlineTextEditor) {
+	  /* the "comt" attribute as well as the compiled-in default, the way
+	     OverlayKit::InitLayout does it.  This override predates that
+	     attribute, so -comt set it and nothing down the FrameKit path --
+	     drawserv and flipbook both -- ever read it: the option was accepted,
+	     listed in -help, and silently did nothing. */
+	  const char* comt_string = unidraw->GetCatalog()->GetAttribute("comt");
+	  boolean comt_flag = comt_string ? strcmp(comt_string, "true")==0 : false;
+	  if (!bookgeom && (inlineTextEditor || comt_flag)) {
 	    boolean set_flag = kit->set_button_flag();
 	    boolean clr_flag = kit->clr_button_flag();
 	    EivTextEditor* texteditor = nil;
