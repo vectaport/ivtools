@@ -239,5 +239,19 @@ ok=ok&&(("abc"<sl21)==true)
 ok=ok&&((sl21>s21)==false)
 print("21 sliced-string ordering comparisons (expect true true false): %v %v %v\n" sl21>"abc" "abc"<sl21 sl21>s21)
 
+// --- 22: a string compared against a non-string operand answers nil,
+//         same as it always did (Greptile, #445) -- test 20 added a
+//         real StringType case to these four functions, but that case
+//         must not assume operand2 is also string-like just because
+//         operand1 is; comparing against a Float would otherwise read
+//         its union storage through cstr()/symbol_ptr() as if it were
+//         a symid, either a bogus interned-symbol comparison or a
+//         null pointer into strcmp(). ---
+ok=ok&&(("abc">3.14)==nil)
+ok=ok&&(("abc"<3.14)==nil)
+ok=ok&&(("abc">=3.14)==nil)
+ok=ok&&(("abc"<=3.14)==nil)
+print("22 string vs non-string ordering comparison (expect nil x4): %v %v %v %v\n" "abc">3.14 "abc"<3.14 "abc">=3.14 "abc"<=3.14)
+
 print("colonslice: %v\n" ok)
 ok
