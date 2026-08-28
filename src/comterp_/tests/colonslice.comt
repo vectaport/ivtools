@@ -26,12 +26,15 @@
 //
 // Known gaps, not yet attempted: :set/:ins/:del through a slice (listfunc.c
 // falls back to nil for any coloned index in an lhs_assign context); slicing
-// a plain list/array (only listv.is_only_string() triggers slice logic); a
-// slice passed as a function keyword arg or captured free variable loses
-// its sliced()/sliceoff()/slicelen() the same way a colon-list's coloned()
-// does (Greptile, #437) -- AttributeList only ever stores a plain
-// AttributeValue (#438), which has no room for either.  Not independently
-// fixable here; test 8 pins it as a documented gap rather than a silent one.
+// a plain list/array (only listv.is_only_string() triggers slice logic).
+//
+// A slice passed as a function keyword arg or captured free variable used
+// to lose its sliced()/sliceoff()/slicelen() the same way a colon-list's
+// coloned() did (Greptile, #437) -- AttributeList only ever stores a plain
+// AttributeValue, which had no room for either (#438).  Fixed by widening
+// AttributeValue itself to carry that block (attrvalue.h) instead of
+// ComValue alone, so a plain `new AttributeValue(value)` (attrlist.c's
+// add_attr) now copies it too -- test 8.
 //
 // slice==string DOES work (test 9) -- EqualFunc/NotEqualFunc (boolfunc.c)
 // were fixed to compare text via cstr() for any StringType operand,
@@ -74,10 +77,14 @@ ok=ok&&(("abc"@0:5)==nil)
 print("5 hi==cap is an empty slice, hi>cap is nil (expect 0 nil): %s %s\n" size("abc"@3:3) "abc"@0:5)
 
 // --- 6: a slice assigned to a variable keeps its sliced-ness across the
-//        symbol-table round trip -- lookup_symval() (comterp.c) has to
-//        carry sliced()/sliceoff()/slicelen() over explicitly, the same
-//        way it already does for coloned() (#429/Greptile), since
-//        assignval() only ever copies AttributeValue's base fields ---
+//        symbol-table round trip -- AttributeValue's own narg/nkey/nids/
+//        flags block (attrvalue.h) makes assignval() carry sliceoff()/
+//        slicelen()/sliced() (and coloned(), #429/Greptile) automatically;
+//        lookup_symval() (comterp.c) only has to undo the same copy's
+//        narg/nkey/nids and bquote() for a non-StringType resolution,
+//        where those fields mean something else entirely (arity, or a
+//        stored value's own "don't resolve me" marker that must not
+//        outlive the read) ---
 v=s@2:5
 ok=ok&&(size(v)==3 && print(v :str)=="cde")
 print("6 a sliced variable keeps its window (expect 3 cde): %s %s\n" size(v) print(v :str))
@@ -94,13 +101,13 @@ ok=ok&&(print(sl3@1:3 :str)=="de")
 ok=ok&&((sl3@0:10)==nil)
 print("7 nesting: sl3@0:1, sl3@1:3, sl3@0:10 (expect c de nil): %s %s %s\n" print(sl3@0:1 :str) print(sl3@1:3 :str) sl3@0:10)
 
-// --- 8: KNOWN GAP, pinned so a future #438 fix is a deliberate change
-//        here too, not a silent one -- a slice passed as a function
-//        keyword arg loses its sliced()-ness (see the file header) and
-//        reads back as the whole parent string, not its own window ---
+// --- 8: a slice passed as a function keyword arg keeps its window --
+//        used to read back as the whole parent string (#438, see the
+//        file header); fixed the same way test 6 already covers for a
+//        plain symbol-table read ---
 f8=func(print(x :str))
-ok=ok&&(f8(:x s3@2:5)=="abcdef")
-print("8 KNOWN GAP: a sliced :x arg reads as the whole parent (expect abcdef, not cde): %s\n" f8(:x s3@2:5))
+ok=ok&&(f8(:x s3@2:5)=="cde")
+print("8 a sliced :x arg keeps its own window (expect cde): %s\n" f8(:x s3@2:5))
 
 // --- 9: slice==string compares the slice's own text, not the parent's,
 //        and not by symid identity (which would always be false -- a

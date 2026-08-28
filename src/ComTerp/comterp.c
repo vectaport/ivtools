@@ -1618,18 +1618,43 @@ ComValue& ComTerp::fire_if_funcobj(ComValue& val) {
   return *slot;
 }
 
-/* sliceoff()/slicelen() (comvalue.h) write straight through to _narg/_nkey
-   -- fine on a StringType, which never needs them for anything else, but
-   catastrophic on any other type, where those same fields carry a command
-   call's own argument/keyword counts.  Restricted to StringType so a
-   lookup_symval() carry-over (below) can't clobber that bookkeeping for
-   every other symbol resolution in the interpreter. */
-static void carry_slice(ComValue& dst, ComValue& src) {
-  if (src.type() != ComValue::StringType) return;
-  dst.sliced(src.sliced());
-  dst.sliceoff(src.sliceoff());
-  dst.slicelen(src.slicelen());
-  dst.blocksz(src.blocksz());
+/* comval's own narg()/nkey()/nids() (comvalue.h) encode THIS identifier's
+   call-site shape, not the value it resolves to -- check_fail(:ok ok)
+   needs nkey()==1 to survive resolution so fire_funcobj() (below) knows
+   to pop a keyword marker+value for it.  assignval() (AttributeValue)
+   now copies a resolved value's own narg/nkey/nids over comval's
+   unconditionally, because that same storage doubles as a StringType's
+   slice window (#395) and a sliced variable's window must win here.  For
+   every other resolved type those fields are either unused (0) or, for a
+   FuncObj, irrelevant to this call, so restore comval's pre-lookup
+   values instead of letting a stale 0 clobber real call-site arity --
+   the inverse of the StringType case.  (Before AttributeValue grew this
+   storage, assignval() couldn't reach these ComValue-only fields at
+   all, and a StringType's window needed its own explicit carry instead;
+   now the same widening that lets a slice survive assignval() is what
+   needs undoing here for every non-StringType resolution.)
+
+   bquote() gets the opposite treatment, and unconditionally: it must
+   NEVER survive a resolution, in every type, StringType included.  A
+   stored value's bquote() records that *it* was written as a literal
+   backquoted expression (`EOS) -- it says nothing about how a *later*
+   read of the variable holding it should behave.  Carrying it through
+   is actively wrong: lookup_symval()'s own entry check
+   (`if (comval.bquote()) return comval;`) would then short-circuit a
+   second resolution attempt that's supposed to run and legitimately
+   fail -- e.g. a variable holding `EOS is itself an ordinary (non-
+   bquoted) SymbolType read, and resolving *that* symbol ("EOS") as if
+   it were a variable name correctly finds nothing and degrades to
+   nullval() (UnknownType, falsy) -- the actual mechanism nilcompare.comt
+   depends on for "a bquoted symbol is falsy" (test 7), broken by
+   assignval() carrying bquote() through until this reset. */
+static void restore_call_arity(ComValue& comval, ComValue& resolved,
+                                int saved_narg, int saved_nkey, int saved_nids) {
+  comval.bquote(0);
+  if (resolved.type() == ComValue::StringType) return;
+  comval.narg(saved_narg);
+  comval.nkey(saved_nkey);
+  comval.nids(saved_nids);
 }
 
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
@@ -1644,53 +1669,52 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
-	    /* coloned() can't be recovered here at all, and must not be
-	       guessed at: _alist (a func's keyword-bound locals, fire_funcobj()
-	       comterp.c) is populated via AttributeList::add_attr(int,
-	       AttributeValue&) (attrlist.c), same as attrlist() itself, which
-	       constructs a plain `new AttributeValue(value)` -- a strictly
-	       smaller type with no _flags field, not a ComValue.  aval is
-	       therefore genuinely only ever an AttributeValue* here, never a
-	       ComValue* despite how it looks; ((ComValue*)aval)->coloned()
-	       would read _flags out of memory past the real object's own
-	       allocation -- undefined behavior, not a recovered flag (#438
-	       tracks the actual fix: AttributeList would need to store
-	       ComValue, not AttributeValue). */
+	    /* _alist (a func's keyword-bound locals, fire_funcobj() comterp.c)
+	       is populated via AttributeList::add_attr(int, AttributeValue&)
+	       (attrlist.c), same as attrlist() itself, which constructs a
+	       plain `new AttributeValue(value)` -- still not a ComValue, but
+	       AttributeValue itself now carries the narg/nkey/nids/flags block
+	       (attrvalue.h), so coloned()/sliced()/etc. DO survive into aval
+	       when the original value had them set (#438) -- reading them via
+	       ((ComValue*)aval)->coloned() is exactly the intended, now-real
+	       recovery, not undefined behavior.  bquote() is the one flag that
+	       must NOT survive regardless: see restore_call_arity()'s comment
+	       for why carrying it through breaks a stored bquoted value's
+	       falsiness on read. */
 	    ComValue newval(*aval);
 	    *&comval = newval;
+	    comval.bquote(0);
 	    return comval;
 	  }
 	}
 
-	/* assignval() takes an AttributeValue&, so it only ever copies the
-	   base class's fields -- ComValue's own coloned() (comvalue.h)
-	   isn't one of them, and comval keeps whatever it already had (the
-	   identifier token's own, not the stored value's) unless carried
-	   over explicitly here. */
+	/* assignval() (AttributeValue) copies coloned() and every other flag
+	   bit packed into the shared _ext3 word along with narg/nkey/nids --
+	   see restore_call_arity()'s comment for why the latter need undoing
+	   again right after for a non-StringType resolution. */
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
+	  int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
 	  comval.assignval(*(ComValue*)vptr);
-	  comval.coloned(((ComValue*)vptr)->coloned());
-	  carry_slice(comval, *(ComValue*)vptr);
+	  restore_call_arity(comval, *(ComValue*)vptr, saved_narg, saved_nkey, saved_nids);
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
+	  int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
 	  comval.assignval(*(ComValue*)vptr);
-	  comval.coloned(((ComValue*)vptr)->coloned());
-	  carry_slice(comval, *(ComValue*)vptr);
+	  restore_call_arity(comval, *(ComValue*)vptr, saved_narg, saved_nkey, saved_nids);
 	  return comval;
 	} else
 	  return ComValue::nullval();
 
     } else if (comval.is_object(Attribute::class_symid())) {
-      /* coloned() can't be recovered here, and reading it via a ComValue*
-	 cast on attrvalp would be undefined behavior, not a recovered flag --
-	 same reasoning as the _alist branch above.  Attribute::Value()
-	 returns whatever AttributeList::add_attr() (attrlist.c) stored, which
-	 is always a plain `new AttributeValue(value)`, never a ComValue --
-	 there's no _flags field to read past the end of.  #438 tracks the
-	 actual fix (AttributeList would need to store ComValue, not
-	 AttributeValue). */
+      /* Attribute::Value() returns whatever AttributeList::add_attr()
+	 (attrlist.c) stored -- a plain `new AttributeValue(value)`, never a
+	 ComValue, but AttributeValue's own narg/nkey/nids/flags block
+	 (attrvalue.h) now survives into it regardless (#438), same as the
+	 _alist branch above.  bquote() must not survive this read either,
+	 same reasoning as restore_call_arity()'s comment. */
       ComValue attrval = *((Attribute*)comval.obj_val())->Value();
       comval.assignval(attrval);
+      comval.bquote(0);
     }
     return comval;
 }

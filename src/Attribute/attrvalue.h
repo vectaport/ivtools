@@ -310,7 +310,7 @@ public:
     void stream_list(AttributeValueList* list); 
     // set pointer to AttributeValueList associated with stream object
 
-    int state_word();
+    int state_word() const;
     // raw state word with the -1 (_command_symid "no command") initializer read as 0
     int state();
     // get generic state value useful for any type other than CommandType, ObjectType, or StreamType
@@ -458,12 +458,25 @@ protected:
 
     ValueType _type;
     attr_value _v;
-    union { 
+    union {
       int _command_symid; // used for CommandType.
       boolean _object_compview; // used for ObjectType.
       int _stream_mode; // used for StreamType
-      int _state; // useful for any type other than CommandType, ObjectType, or StreamType
+      int _state; // useful for any type other than CommandType, ObjectType, or
+                  // StreamType
     };
+    /* Three more ints, widening the block above to a full 128 bits -- give
+       every AttributeValue the storage weight of a ComValue's command arity
+       (narg/nkey/nids) or a StringType slice window (sliceoff/slicelen),
+       without AttributeValue itself knowing which. ComValue (comvalue.h) is
+       the only class that interprets them; here they are just bytes that
+       get stored and copied.  ComValue's bquote/lhs_assign/local/coloned/
+       sliced flag bits live in _ext3 too, above nids()'s own low byte --
+       NOT in _state/_command_symid above: a real command_symid is an
+       unbounded symbol-table index (comvalue.h has the story of the
+       collision that ruled that out), so nothing sharing its word can use
+       small fixed bits safely, unlike _ext3's bounded low byte. */
+    int _ext1, _ext2, _ext3;
     static int* _type_syms;
 
 #ifdef LEAKCHECK
