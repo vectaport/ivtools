@@ -52,6 +52,9 @@ void ListFunc::execute() {
   boolean attrflag = attrv.is_true();
   static int size_symid = symbol_add("size");
   ComValue sizev(stack_key_post_eval(size_symid));
+  static int colon_symid = symbol_add("colon");
+  ComValue colonv(stack_key_post_eval(colon_symid));
+  boolean colonflag = colonv.is_true();
   reset_stack();
 
   if (attrflag) {
@@ -102,6 +105,14 @@ void ListFunc::execute() {
      extra unmatched ref pinned every list() result in memory forever --
      ~27 years of one leaked AttributeValueList per list() call. */
   ComValue retval(avl);
+  /* list(:colon) -- an empty coloned() list, the same tag ':' itself
+     stamps on what it builds (ColonListFunc, coloned(1)).  Useful as a
+     genuine "empty" starting point for a colon-chain built up
+     elsewhere (e.g. programmatically, one at() :ins at a time) that
+     still wants to read as coloned() once populated, not just an
+     ordinary list that happens to hold the same elements. */
+  if (colonflag)
+    retval.coloned(1);
   push_stack(retval);
 }
 
@@ -491,11 +502,21 @@ void ColonListFunc::execute() {
      into one flat N-element list ({1,2,3}) rather than a nest
      ({{1,2},3}) -- hr:min:sec (#423's other planned use) needs the
      flat form to arrive at a future TimeObj consumer as 3 elements,
-     not 2-plus-1.  No TupleFunc-style nested_insert() check needed
-     here (unlike ',', ':' has no literal-list syntax of its own that
-     would ever want to stay deliberately nested inside a further
-     chain -- every coloned() list only ever comes from ':' itself). */
-  if (lo.is_array() && lo.coloned()) {
+     not 2-plus-1.
+
+     Same nested_insert() guard TupleFunc (',') already uses, and for
+     the same reason (Greptile, #443): flattening in place is only
+     safe within ONE direct chain, evaluated as it's being built --
+     not onto a list some OTHER variable still points at.  x=1:2;
+     y=(x):3 would otherwise silently turn x into {1,2,3} too, since
+     lo and x share the same underlying AttributeValueList.  Nothing
+     ':'-specific needed to defend against that: eval_expr_internals
+     (comterp.c) already marks nested_insert(true) on any array pulled
+     back off a symbol table read, immediately before it's used as an
+     operator's first operand -- exactly the "this came from storage,
+     don't extend it in place" signal both operators need, and ':'
+     gets it for free by checking the same flag. */
+  if (lo.is_array() && lo.coloned() && !lo.array_val()->nested_insert()) {
     AttributeValueList* avl = lo.array_val();
     avl->Append(new AttributeValue(hi));
     push_stack(lo);
@@ -506,6 +527,8 @@ void ColonListFunc::execute() {
     ComValue retval(avl);
     retval.coloned(1);
     push_stack(retval);
+    if (lo.is_array())
+      lo.array_val()->nested_insert(false);
   }
 }
 
