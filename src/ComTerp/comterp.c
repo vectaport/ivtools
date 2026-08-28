@@ -1677,13 +1677,17 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	       (attrvalue.h), so coloned()/sliced()/etc. DO survive into aval
 	       when the original value had them set (#438) -- reading them via
 	       ((ComValue*)aval)->coloned() is exactly the intended, now-real
-	       recovery, not undefined behavior.  bquote() is the one flag that
-	       must NOT survive regardless: see restore_call_arity()'s comment
-	       for why carrying it through breaks a stored bquoted value's
-	       falsiness on read. */
+	       recovery, not undefined behavior.  narg()/nkey()/nids() and
+	       bquote() need the same restore_call_arity() treatment as the
+	       localtable/globaltable branches below, for the same reason: a
+	       func-local variable read (e.g. invoking a FuncObj received
+	       through a keyword arg or captured free variable) must keep its
+	       own call-site arity, not inherit the stored value's -- Greptile,
+	       #450. */
+	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
 	    ComValue newval(*aval);
 	    *&comval = newval;
-	    comval.bquote(0);
+	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
 	    return comval;
 	  }
 	}
