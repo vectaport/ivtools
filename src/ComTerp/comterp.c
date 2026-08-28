@@ -2199,6 +2199,8 @@ void ComTerp::add_defaults() {
     add_command("isclass", new IsClassFunc(this));
     add_command("iscomm", new IsCommFunc(this));
     add_command("isfunc", new IsFuncFunc(this));
+    add_command("isslice", new IsSliceFunc(this));
+    add_command("islist", new IsListFunc(this));
 
     add_command("bquote", new BackQuoteFunc(this));
 

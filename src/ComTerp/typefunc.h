@@ -133,6 +133,33 @@ public:
       return "flag=%s(var :sym) -- true if var holds a func(), without evaluating it"; }
 };
 
+//: true if var is a StringType sliced from another string (#395).
+// flag=isslice(var) -- unlike istype()/isclass()/iscomm()/isfunc(), var
+// is evaluated normally: this tests the shape of a value, not a bare
+// symbol's own binding, so isslice(s@2:5) works on the slice expression's
+// result, not on "s".
+class IsSliceFunc : public ComFunc {
+public:
+    IsSliceFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "flag=%s(var) -- true if var is a string sliced from another string (#395)"; }
+};
+
+//: true if var is list-shaped -- an ArrayType (comma- or colon-built) or
+// an attribute list, keyword-selected which.  Evaluated normally, same
+// as isslice() above, not istype()'s family.
+// flag=islist(var [:list] [:attr] [:colon] [:any])
+class IsListFunc : public ComFunc {
+public:
+    IsListFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "flag=%s(var [:list] [:attr] [:colon] [:any]) -- true if var is list-shaped; bare (no keyword) matches any ArrayType, comma- or colon-built; :list or :colon alone narrows to just that one; :attr matches an attribute list (`.` dot targets, list(:attr)) instead; :any matches any of the three"; }
+};
+
 #endif /* !defined(_typefunc_h) */
 
 

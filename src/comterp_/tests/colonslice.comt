@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
 //
-// funcs: colonlist at size print eq split string strcap + index gt lt ge le
+// funcs: colonlist at size print eq split string strcap + index gt lt ge le isslice islist
 //
 // str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
 // own symid (its memory stays exactly where it was allocated, reachable at
@@ -259,6 +259,35 @@ ok=ok&&(("abc"<3.14)==nil)
 ok=ok&&(("abc">=3.14)==nil)
 ok=ok&&(("abc"<=3.14)==nil)
 print("22 string vs non-string ordering comparison (expect nil x4): %v %v %v %v\n" "abc">3.14 "abc"<3.14 "abc">=3.14 "abc"<=3.14)
+
+// --- 23: isslice() -- the only script-level way to ask "is this a slice"
+//         other than printing (there wasn't one before) ---
+s23="abcdef"
+sl23=s23@2:5
+ok=ok&&(isslice(sl23)==true)
+ok=ok&&(isslice(s23)==false)
+ok=ok&&(isslice(5)==false)
+print("23 isslice(sl23), isslice(s23), isslice(5) (expect true false false): %v %v %v\n" isslice(sl23) isslice(s23) isslice(5))
+
+// --- 24: islist() -- keyword-selected: bare matches an ArrayType either
+//         way it was built (comma or colon); :list/:colon narrow to just
+//         one; :attr matches an attribute list instead; :any matches any
+//         of the three.  Deliberately not post_eval, unlike istype.comt's
+//         whole family -- these test a value's shape, not a bare symbol's
+//         binding, so islist(c24) has to evaluate c24 first. ---
+c24=1:2
+l24=1,2,3
+al24=(:x 1)
+ok=ok&&(islist(c24)==true && islist(l24)==true)
+ok=ok&&(islist(c24 :colon)==true && islist(l24 :colon)==false)
+ok=ok&&(islist(c24 :list)==false && islist(l24 :list)==true)
+ok=ok&&(islist(al24)==false && islist(al24 :attr)==true)
+ok=ok&&(islist(al24 :any)==true && islist(c24 :any)==true)
+print("24 islist(c24), islist(l24) bare (expect true true): %v %v\n" islist(c24) islist(l24))
+print("   islist(c24 :colon), islist(l24 :colon) (expect true false): %v %v\n" islist(c24 :colon) islist(l24 :colon))
+print("   islist(c24 :list), islist(l24 :list) (expect false true): %v %v\n" islist(c24 :list) islist(l24 :list))
+print("   islist(al24), islist(al24 :attr) (expect false true): %v %v\n" islist(al24) islist(al24 :attr))
+print("   islist(al24 :any), islist(c24 :any) (expect true true): %v %v\n\n" islist(al24 :any) islist(c24 :any))
 
 print("colonslice: %v\n" ok)
 ok
