@@ -852,17 +852,18 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 void DrawServ::print_gridtable() {
   GraphicIdTable* table = gridtable();
   GraphicIdTable_Iterator it(*table);
-  printf("grid     comptype              selector  selected\n");
-  printf("-------- --------------------  --------  --------\n");
+  printf("grid     comptype              selector  selected             unlocked\n");
+  printf("-------- --------------------  --------  -------------------  --------\n");
   while(it.more()) {
     GraphicId* grid = (GraphicId*)it.cur_value();
     OverlayComp* comp = (OverlayComp*)grid->grcomp();
     const char* comptype = comp ? comp->GetClassName() : "nil";
     uuid_string_t idstr;
     uuid_unparse(grid->id(), idstr);
-    printf("%.8s %-20s  %.8s  %s\n",
+    printf("%.8s %-20s  %.8s  %-19s  %s\n",
  	   idstr, comptype,
- 	   grid->selectorstr(), LinkSelection::selected_string(grid->selected()));
+ 	   grid->selectorstr(), LinkSelection::selected_string(grid->selected()),
+ 	   grid->unlocked() ? "unlocked" : "locked");
     it.next();
   }
 }
