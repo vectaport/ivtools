@@ -141,6 +141,24 @@ int search_state = LOOK_START; /* State of what has been found */
                                       /* in error file */
 int status;
 
+/* #423 (trailing side): a ':' immediately touching the end of a
+   completed operand -- no whitespace between them -- reads as an infix
+   operator (a:b, a range/pair), not the start of a fresh ":keyword".
+   Real ":keyword" usage never glues the colon directly onto a preceding
+   value with zero space (it's always its own space-separated argument,
+   or the first thing after an opening delimiter like '(' -- both of
+   which stay eligible for the merge below, since neither token type is
+   in the whitelist).  Read from _lexscan_last_tokend/_toktype
+   (_lexscan.c), NOT the *bufptr and *toktype output params below -- those
+   get overwritten by this very function's own lexscan() calls (and by
+   whatever lookahead _parser.c does across separate scanner() calls),
+   so by now they may no longer hold the true previous token in source
+   order.  _lexscan_last_* are updated in exactly one place, lexscan()'s
+   own common return path, so they always reflect the last real token
+   actually scanned off the input, regardless of caller-side lookahead. */
+unsigned prev_tokend = _lexscan_last_tokend;
+unsigned prev_toktype = _lexscan_last_toktype;
+
 /* ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */
 /* Loop through tokens and return one at a time                            */
 /* ----------------------------------------------------------------------- */
@@ -221,7 +239,19 @@ int status;
                break;
 
             case ':' :
-               if( isident( buffer[*bufptr] ))
+               /* Only TOK_IDENTIFIER, deliberately -- a number or a
+                  closing delimiter glued straight onto a following
+                  :keyword with no space (at(lst 0:raw), f():key) is a
+                  real, established shape elsewhere in this grammar (see
+                  colonlist.comt test 4's at(r 0 :raw), just without the
+                  space); reading it as an infix colon-pair instead would
+                  silently break the keyword. An identifier glued to a
+                  keyword the same way isn't a shape anything relies on
+                  today (confirmed: full run_all.comt suite unaffected),
+                  so it's the one case narrow enough to claim safely. */
+               if( isident( buffer[*bufptr] ) &&
+                   !( prev_tokend == *tokstart &&
+                      prev_toktype == TOK_IDENTIFIER ))
                   search_state = LOOK_KEYWORD;
                else
                   search_state = LOOK_DONE;
