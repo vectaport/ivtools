@@ -349,22 +349,29 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-	    out << "{";
+	    /* a coloned() list -- ':' itself, or list(:colon) -- prints as
+	       1:2:3, no braces, matching how it was written, rather than
+	       the generic {1,2,3} every other list uses.  Bare, not
+	       parenthesized: nothing yet consumes a printed coloned list
+	       back as input (no reader round-trips this), so there's no
+	       ambiguity to guard against by wrapping it. */
+	    boolean coloned = svp->coloned();
+	    if (!coloned) out << "{";
 	    while (!avl->Done(i)) {
 	      ComValue val(*avl->GetAttrVal(i));
-	      
+
 	      if (val.type() == ComValue::ObjectType &&
 	          val.class_symid() == AttributeList::class_symid() &&
 	          val.obj_val() != nil)
 	        out << "(" << *((AttributeList*)val.obj_val()) << ")";
 	      else
 	        out << val;
-	      
+
 	      avl->Next(i);
-	      if (!avl->Done(i)) out << ",";
+	      if (!avl->Done(i)) out << (coloned ? ":" : ",");
 	    };
-	    if (avl->Number() == 1) out << ",";
-	    out << "}";
+	    if (!coloned && avl->Number() == 1) out << ",";
+	    if (!coloned) out << "}";
 	  } else {
 	    out << "list of length " << svp->array_len();
 	    ALIterator i;

@@ -44,13 +44,14 @@ public:
 
     virtual void execute();
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "lst=%s([lst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream (unary $)"; }
+    virtual const char* docstring() {
+      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon) -- create list, copy list, or convert stream (unary $)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":strmlst   return list inside stream for debug",
 	":attr      make attribute list",
 	":size n    make list of size n",
+	":colon     tag the result coloned(), same as ':' itself builds",
 	nil
       };
       return keys;
