@@ -14,6 +14,14 @@
 // rather than looked up, so an undefined name doesn't fail just because
 // it's paired with ':' -- see test 6.  This file only covers the
 // colon-list value itself.
+//
+// Known gap, left unsupported on purpose: an identifier glued to ':'
+// with a space BEFORE but not after ("lo :hi") still merges into a
+// keyword lexeme ("Unexpected keyword") -- see test 8 for the shapes
+// that DO work.  That one spacing is genuinely indistinguishable, at
+// the scanner's level, from real ":key val" syntax following a
+// positional argument (the same shape, same lack of whitespace on the
+// keyword's own left side), so it's left alone rather than guessed at.
 
 ok=true
 
@@ -58,12 +66,13 @@ print("5 chained ':' left-folds, (1:2):3 (expect {1,2} 3): %s %s\n" print(t@0 :s
 //        symbol, not looked up -- an undefined name doesn't fail just
 //        because it's paired with ':' (Dec was never assigned anything),
 //        and a bound one is captured as its symbol too, not its value --
-//        ':' never resolves an identifier operand, consistently.  Needs a
-//        space before the ':' here (Dec :25, not Dec:25) -- the no-space
-//        form still hits _colon_ident swallowing it into one identifier
-//        token ("Dec:25"), the harder, separately-tracked half of #423
-//        ("identifier-adjacent colon needs scanner surgery"); this test
-//        is about symbol capture, not that. ---
+//        ':' never resolves an identifier operand, consistently.  This
+//        was originally written needing a space before the ':' here
+//        (the no-space form used to hit _colon_ident swallowing it into
+//        one identifier token, "Dec:25") -- that's the scanner surgery
+//        done in test 8 below, so the space here is no longer load-
+//        bearing, just left as-is since this test is about symbol
+//        capture, not spacing. ---
 u=Dec :25
 ok=ok&&(type(u@0)==`SymbolType)
 ok=ok&&(u@0==`Dec)
@@ -75,6 +84,44 @@ w=y :1
 ok=ok&&(type(w@0)==`SymbolType)
 ok=ok&&(w@0==`y)
 print("7 y :1 captures y as a symbol even though y is bound to 99 (expect y): %v\n" w@0)
+
+// --- 8: identifier-adjacent colon, the harder half of #423 -- an
+//        identifier immediately touching ':' on either side (no
+//        whitespace) now builds a real colon-pair instead of being
+//        swallowed into one bogus identifier token ("lo:hi") or merged
+//        into a keyword lexeme ("Unexpected keyword").  Fixed with
+//        three changes: _colon_ident defaulted off (nothing in the
+//        tree relied on ':' continuing an identifier -- confirmed by
+//        the full suite passing unchanged); a new pair of globals
+//        (_lexscan_last_tokend/_toktype, _lexscan.c) tracking the
+//        previous token in true document-scan order, since _parser.c's
+//        lookahead makes the scanner's own output params unreliable for
+//        that; and _scanner.c's keyword-merge now skips only when ':'
+//        is glued directly onto a preceding TOK_IDENTIFIER, since real
+//        ":key" usage is never glued to a preceding positional arg with
+//        zero space.  Numbers/closing-delimiters were deliberately left
+//        out of that last check -- at(r 0:raw) (test 4's :raw, just
+//        without the space) needs to keep reading as index 0 + keyword
+//        :raw, not a colon-pair; a number glued to a keyword is real,
+//        established usage, unlike an identifier glued to one. ---
+lo=2
+hi=5
+v8=lo:hi
+ok=ok&&(type(v8@0)==`SymbolType && type(v8@1)==`SymbolType)
+ok=ok&&(v8@0==`lo && v8@1==`hi)
+print("8 lo:hi with no space either side (expect lo hi): %v %v\n" v8@0 v8@1)
+
+// --- 9: a space after ':' also works now (a side effect of turning off
+//        _colon_ident -- "lo:" no longer swallows into one token) ---
+v9=lo: hi
+ok=ok&&(v9@0==`lo && v9@1==`hi)
+print("9 lo: hi, space after only (expect lo hi): %v %v\n" v9@0 v9@1)
+
+// --- 10: the leading side (#428) also benefits for free -- Dec:25 with
+//        no space at all now works too, not just Dec :25 (test 6) ---
+v10=Dec:25
+ok=ok&&(v10@0==`Dec && v10@1==25)
+print("10 Dec:25 with no space at all (expect Dec 25): %v %v\n" v10@0 v10@1)
 
 print("colonlist: %v\n" ok)
 ok

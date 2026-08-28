@@ -85,6 +85,8 @@ protected:
     int __ignore_numerics;
     int __angle_brackets;
     unsigned __token_state_save;
+    unsigned __lexscan_last_tokend;
+    unsigned __lexscan_last_toktype;
 
     unsigned _expecting;             /* Type of operator expected next */
 
@@ -121,6 +123,8 @@ extern int _detail_matched_delims;
 extern int _ignore_numerics;
 extern int _angle_brackets;
 extern unsigned _token_state_save;
+extern unsigned _lexscan_last_tokend;
+extern unsigned _lexscan_last_toktype;
 
 extern void* parser_client;             /* pointer to current client */
 extern unsigned expecting;              /* Type of operator expected next */

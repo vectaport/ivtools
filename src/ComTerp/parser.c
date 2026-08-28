@@ -77,6 +77,8 @@ void Parser::init() {
     __angle_brackets = 0;
     __token_state_save = TOK_WHITESPACE;
     __ignore_numerics = 0;
+    __lexscan_last_tokend = 0;
+    __lexscan_last_toktype = TOK_NONE;
 
     /* And the backup copies of the parse state proper, which nothing set
        before: check_parser_client() installs these when this parser takes the
@@ -220,6 +222,8 @@ void Parser::check_parser_client(boolean restore) {
     _ignore_numerics = __ignore_numerics;
     _angle_brackets = __angle_brackets ;
     _token_state_save = __token_state_save;
+    _lexscan_last_tokend = __lexscan_last_tokend;
+    _lexscan_last_toktype = __lexscan_last_toktype;
     {
       expecting = _expecting;
       ParenStack = _ParenStack;
@@ -262,6 +266,8 @@ void Parser::save_parser_client() {
   __ignore_numerics = _ignore_numerics;
   __angle_brackets  = _angle_brackets ;
   __token_state_save = _token_state_save;
+  __lexscan_last_tokend = _lexscan_last_tokend;
+  __lexscan_last_toktype = _lexscan_last_toktype;
   _expecting = expecting;
   _ParenStack = ParenStack;
   _TopOfParenStack = TopOfParenStack;

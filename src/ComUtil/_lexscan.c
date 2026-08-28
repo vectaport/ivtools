@@ -49,10 +49,12 @@ unsigned _token_state_save = TOK_WHITESPACE;
 				/* variable to save token state between calls */
 int _ignore_numerics = 0;
 int _token_eol = 0;
-int _colon_ident = 1;
+int _colon_ident = 0;
 int _percent_ident = 0;
 int _ignore_chars = 0;
 int _backslash_ids = 0;
+unsigned _lexscan_last_tokend = 0;
+unsigned _lexscan_last_toktype = TOK_NONE;
 
 /* MACROS */
 
@@ -1012,6 +1014,15 @@ token_return:
 /* ----------------------------------------------------------------------- */
 
    *toktype = token_state;
+   /* recorded in true document-scan order, unlike the *toktype and
+      *bufptr output params themselves -- _parser.c's lookahead can call
+      scanner() (and so lexscan()) more than once per token it hands the
+      caller, so by the time a caller reads those params back they may
+      reflect whichever call happened to run last, not "the token
+      immediately before this one" in source order (#423, trailing-side
+      colon scanner surgery -- see _scanner.c's use of these). */
+   _lexscan_last_tokend = *bufptr;
+   _lexscan_last_toktype = token_state;
    return FUNCOK;
 
 }

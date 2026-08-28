@@ -226,5 +226,32 @@ ok=ok&&(size(lst)==2)
 print("30 symbol(symid(`foo) symid(`bar)) size (expect 2): %v\n" size(lst))
 prev_ok=check_fail(:ok ok)
 
+// --- test 31: symadd() on a slice interns the slice's own text, not
+//        its parent's -- symadd() used to reuse a StringType's own
+//        symid directly (val.string_val()), which for a slice is the
+//        PARENT's symid, not slice-aware; fixed to call symbol_add()
+//        on cstr()'s slice-aware text instead ---
+s31="abcdefg"
+sl31=s31@2:5
+sym31=symadd(sl31)
+ok=ok&&(sym31==`cde)
+print("31 symadd(sl31) where sl31=s31@2:5=\"cde\" (expect cde): %v\n" sym31)
+prev_ok=check_fail(:ok ok)
+
+// --- test 32: symadd() still dedupes by content, even across two
+//        string values with unrelated backing storage -- a plain
+//        literal and a separately built string() buffer holding the
+//        same text must still collapse to the same symbol, confirming
+//        the fix (reading text via cstr()+symbol_add()) didn't turn
+//        symadd() into an always-fresh, non-deduping command ---
+a32="dup"
+b32=string(3)
+at(b32 0 :set 'd')
+at(b32 1 :set 'u')
+at(b32 2 :set 'p')
+ok=ok&&(symadd(a32)==symadd(b32))
+print("32 symadd(\"dup\")==symadd(string(3)-built \"dup\") (expect true): %v\n" symadd(a32)==symadd(b32))
+prev_ok=check_fail(:ok ok)
+
 print("symbol: %v\n" ok)
 ok
