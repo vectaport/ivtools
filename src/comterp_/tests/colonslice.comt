@@ -1,6 +1,6 @@
 // src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
 //
-// funcs: colonlist at size print eq split string strcap +
+// funcs: colonlist at size print eq split string strcap + index gt lt ge le
 //
 // str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
 // own symid (its memory stays exactly where it was allocated, reachable at
@@ -186,6 +186,58 @@ sl16=buf@0:5
 r16=sl16+buf
 ok=ok&&(r16=="hi thhi there")
 print("16 overlapping append (sl16=buf@0:5, sl16+buf) (expect \"hi thhi there\"): %s\n" r16)
+
+// --- 17: index() char search on a sliced string reads only the
+//         slice's own window, and the returned position is relative
+//         to that window (0 = the slice's own start), not the parent's
+//         -- the same convention split()/at() already use.  s17@3:6 is
+//         "cde"; 'x' only appears outside the slice's window. ---
+s17="xxxcdexxx"
+sl17=s17@3:6
+ok=ok&&(index(sl17 'd')==1)
+ok=ok&&(index(sl17 'x')==nil)
+print("17 index() char search on a slice (expect 1 nil): %v %v\n" index(sl17 'd') index(sl17 'x'))
+
+// --- 18: index() substring search on a sliced string, same window
+//         convention, and the search value (needle) can independently
+//         be a slice too ---
+s18="xxxhelloworldxxx"
+sl18=s18@3:13
+ok=ok&&(index(sl18 "world")==5)
+ok=ok&&(index(sl18 "xxx")==nil)
+needle18=("__world__"@2:7)
+ok=ok&&(index(sl18 needle18)==5)
+print("18 index() substring search, sliced haystack and needle (expect 5 nil 5): %v %v %v\n" index(sl18 "world") index(sl18 "xxx") index(sl18 needle18))
+
+// --- 19: index(:all) on a sliced string -- every match position,
+//         still relative to the slice's own window ---
+s19="ababab"
+sl19=s19@0:6
+ok=ok&&(print(index(sl19 'a' :all) :str)=="{0,2,4}")
+print("19 index(:all) on a slice (expect {0,2,4}): %s\n" print(index(sl19 'a' :all) :str))
+
+// --- 20: ordering comparisons (>/</>=/<=, boolfunc.c) never handled
+//         StringType at all before -- a separate, pre-existing gap,
+//         not something #395 broke ("abc">"abd" always answered nil.
+//         Added a StringType case to all four, modeled directly on
+//         EqualFunc's own (cstr() for both operands, slice-aware). ---
+ok=ok&&(("abc">"abd")==false)
+ok=ok&&(("abd">"abc")==true)
+ok=ok&&(("abc"<"abd")==true)
+ok=ok&&(("abc">="abc")==true)
+ok=ok&&(("abc"<="abc")==true)
+print("20 plain-string ordering comparisons, previously always nil (expect false true true true true): %v %v %v %v %v\n" "abc">"abd" "abd">"abc" "abc"<"abd" "abc">="abc" "abc"<="abc")
+
+// --- 21: ordering comparisons read each operand's own slice window,
+//         not the parent's -- s21@3:6 is "abd", compared against the
+//         full parent string it came from would give a different
+//         (wrong) answer than comparing against just "abd" ---
+s21="xxxabdxxx"
+sl21=s21@3:6
+ok=ok&&((sl21>"abc")==true)
+ok=ok&&(("abc"<sl21)==true)
+ok=ok&&((sl21>s21)==false)
+print("21 sliced-string ordering comparisons (expect true true false): %v %v %v\n" sl21>"abc" "abc"<sl21 sl21>s21)
 
 print("colonslice: %v\n" ok)
 ok
