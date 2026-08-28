@@ -2640,9 +2640,11 @@ Because a slice shares storage with whatever it was cut from, a write
 through either side is visible through the other. That is a deliberate
 tradeoff for cheap slicing, not a bug — the same one Go itself makes.
 
-Every string command already understands slices: `size(sl)`, `index(sl
-...)`, `split(sl ...)`, `sl==...`, `sl<...`, `print(sl)` all read (or
-compare against) just `sl`'s own window, never the whole parent.
+The core string-reading commands understand slices: `size(sl)`, `index(sl
+...)`, `split(sl ...)`, `sl==...`, `sl<...`, and `print(sl)` all read (or
+compare against) just `sl`'s own window, never the whole parent. Some
+operations and value-passing paths remain unsupported — see the known
+gaps in `doc/SLICES.md`.
 
 Slices compose: slicing a slice bounds against *its* window, not the
 original string's:
