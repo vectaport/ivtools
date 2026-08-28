@@ -435,6 +435,27 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
     return out;
 }
 
+/* AttributeValue::install_render_hook() (attrvalue.h) lets a value stored
+   as a plain AttributeValue* -- e.g. an Attribute's own value, attrlist.c,
+   which can never be a ComValue* since Attribute lives in a lower library
+   that can't see ComTerp -- still print with ComTerp's own interpretation
+   of the shared narg/nkey/nids/flags block (a coloned() list's ':' form, a
+   sliced string's own window via cstr()) instead of AttributeValue's
+   generic fallback.  Installed once, here, at library-load time (the same
+   self-registering-static-local idiom this file already uses for one-time
+   symbol setup, e.g. ComValue::is_funcobj()'s posteval check) rather than
+   at any particular print call site: the hook itself is stateless (brief
+   mode etc. still comes from the existing ComValue::comterp() pointer, set
+   independently at each print call site), so it never needs re-arming, and
+   -- since nothing ever clears it mid-traversal -- it's already in effect
+   at any nesting depth a list's own recursive printing reaches. */
+static ostream& comvalue_render_hook(ostream& out, const AttributeValue& av) {
+  ComValue cv((AttributeValue&)av);
+  return out << cv;
+}
+static boolean _comvalue_render_hook_installed =
+  (AttributeValue::install_render_hook(comvalue_render_hook), true);
+
 const char* ComValue::String() {
     streambuf* strmbuf = nil;
 #pragma GCC diagnostic push

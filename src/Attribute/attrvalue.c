@@ -57,6 +57,7 @@ LeakChecker* AttributeValue::_leakchecker = nil;
 /*****************************************************************************/
 
 int* AttributeValue::_type_syms = nil;
+AttributeValue::RenderHook AttributeValue::_render_hook = nil;
 
 AttributeValue::AttributeValue(ValueType valtype) {
 #ifdef LEAKCHECK
@@ -871,6 +872,17 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
+    /* Only these two types ever have ComTerp-specific meaning layered on
+       the shared narg/nkey/nids/flags block this class merely stores
+       (attrvalue.h) -- a coloned() list's ':' form, a sliced string's own
+       window via cstr().  Every other type's printing is already correct
+       here; routing it through the hook too would swap in ComValue's own
+       "brief" REPL-echo conventions (e.g. an unquoted char) in a context
+       -- an attribute's embedded value -- that wants this class's own,
+       different-on-purpose formatting instead. */
+    if (AttributeValue::_render_hook &&
+        (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType))
+      return AttributeValue::_render_hook(out, sv);
     AttributeValue* svp = (AttributeValue*)&sv;
     const char* title;
     const char* symbol;
