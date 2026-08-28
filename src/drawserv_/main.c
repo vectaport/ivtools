@@ -38,6 +38,7 @@
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawkit.h>
 #include <DrawServ/drawserv.h>
+#include <IVGlyph/textedit.h>
 
 #include <GraphUnidraw/grapheditor.h>
 
@@ -278,7 +279,8 @@ Usage:  drawserv [file] [options]\n\n\
 -tile                       enable tiled page view\n\
 -twidth | -tw n             tile width in pixels\n\
 -zoomer_off | -zoff         disable zoomer\n\
--comt                       inline comterp text-entry pane\n\
+-comt [file]                inline comterp text-entry pane; if file is\n\
+                            given, enter run(file) into the pane at startup\n\
 -runfile file               run script file after startup\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
@@ -290,7 +292,26 @@ void handle_badpipe(int i) {
   return;
 }
 
+/* -comt can optionally be followed by a filename to run in the inline comterp
+   pane, the same as comdraw's.  The InterViews OptionDesc table knows exact
+   flags, "consume the next arg", and "attached after the name" -- nothing for
+   "next arg if it looks like one" -- so lift the filename out of argv by hand,
+   leaving a bare "-comt" for the OptionValueImplicit entry to match.  Verbatim
+   from comdraw/main.c, which needed it first. */
+static const char* extract_comtfile(int& argc, char** argv) {
+    for (int i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-comt") == 0 && i+1 < argc && argv[i+1][0] != '-') {
+            const char* file = argv[i+1];
+            for (int j = i+1; j+1 < argc; j++) argv[j] = argv[j+1];
+            argv[--argc] = nil;
+            return file;
+        }
+    }
+    return nil;
+}
+
 int main (int argc, char** argv) {
+    const char* comtfile = extract_comtfile(argc, argv);
     /* Ctrl-C (SIGINT) is the common way an interactive session ends --
        restore tty echo first if tty_echo_off() ever ran, issue #76. */
     tty_echo_install_signal_handlers();
@@ -439,6 +460,16 @@ int main (int argc, char** argv) {
 	        if (*terp->errmsg())
 	            cerr << "drawserv: error running expression: " << runexpr << "\n";
 	        delete [] runexpr_nl;
+	    }
+
+	    if (comtfile && *comtfile) {
+		/* enter run("comtfile") into the comt pane, as if it had been
+		   typed there and Return pressed -- so the script's own
+		   greeting and verbs land in the pane a person is looking at,
+		   rather than on whatever connection loaded it. */
+		EivTextEditor* cte = ed->TextEditor();
+		if (!cte || !cte->runfile(comtfile))
+		    cerr << "drawserv: error running -comt script file: " << comtfile << "\n";
 	    }
 	}
 
