@@ -483,12 +483,30 @@ void ColonListFunc::execute() {
   ComValue lo(stack_arg(0, true));
   ComValue hi(stack_arg(1, true));
   reset_stack();
-  AttributeValueList* avl = new AttributeValueList();
-  avl->Append(new AttributeValue(lo));
-  avl->Append(new AttributeValue(hi));
-  ComValue retval(avl);
-  retval.coloned(1);
-  push_stack(retval);
+  /* chained ':' flattens rather than nests -- 1:2:3 parses left-
+     associatively as (1:2):3, so by the time THIS call runs, lo is
+     already the coloned() 2-element list (1:2) built by the inner
+     call.  Appending hi onto that existing list, instead of always
+     wrapping lo in a fresh 2-element list, is what turns the chain
+     into one flat N-element list ({1,2,3}) rather than a nest
+     ({{1,2},3}) -- hr:min:sec (#423's other planned use) needs the
+     flat form to arrive at a future TimeObj consumer as 3 elements,
+     not 2-plus-1.  No TupleFunc-style nested_insert() check needed
+     here (unlike ',', ':' has no literal-list syntax of its own that
+     would ever want to stay deliberately nested inside a further
+     chain -- every coloned() list only ever comes from ':' itself). */
+  if (lo.is_array() && lo.coloned()) {
+    AttributeValueList* avl = lo.array_val();
+    avl->Append(new AttributeValue(hi));
+    push_stack(lo);
+  } else {
+    AttributeValueList* avl = new AttributeValueList();
+    avl->Append(new AttributeValue(lo));
+    avl->Append(new AttributeValue(hi));
+    ComValue retval(avl);
+    retval.coloned(1);
+    push_stack(retval);
+  }
 }
 
 /*****************************************************************************/
