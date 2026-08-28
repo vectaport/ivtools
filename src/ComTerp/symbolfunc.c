@@ -109,10 +109,23 @@ void SymAddFunc::execute() {
   std::vector<int> symbol_ids(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
+    std::string scratch;
     if (val.is_type(AttributeValue::CommandType))
       symbol_ids[i] = val.command_symid();
     else if (val.is_type(AttributeValue::StringType))
-      symbol_ids[i] = val.string_val();
+      /* symbol_add(), not val.string_val() (#396 fallout) -- a StringType's
+	 own symid is no longer guaranteed to already be a proper, findable
+	 symbol the way it always was pre-string()/strcap(): a writable
+	 buffer's symid is deliberately private, absent from symbol_find()'s
+	 reverse index (symbol_new()'s own doc comment).  symadd()'s whole
+	 point is to hand back an idempotent symbol for the given text, so
+	 it has to actually look that text up/register it -- reusing
+	 val.string_val() directly skipped that, working only by accident
+	 while every string happened to already be one.  cstr() reads the
+	 text slice-aware, so this is also the fix for symadd() on a sliced
+	 string reading the parent's whole text instead of the slice's own
+	 window, a latent bug independent of #396. */
+      symbol_ids[i] = symbol_add(val.cstr(scratch));
     else if (val.is_type(AttributeValue::SymbolType))
       symbol_ids[i] = val.symbol_val();
     else 
