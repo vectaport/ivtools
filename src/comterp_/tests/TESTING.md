@@ -269,6 +269,7 @@ not gaps in testing -- do not read `—` as untested.
 | stackkey.comt             | at  list                                              |       — |     — |    — |
 | colonlist.comt            | colonlist at size                                     |       — |     — |    — |
 | string_cap.comt           | string strcap size at @                               |       — |     — |    — |
+| colonslice.comt           | colonlist at size print eq split                      |       — |     — |    — |
 | print.comt                | print                                                 |      24 |    35 |  69% |
 | parser.comt               | attrlist(:literal) errmsg postfix class type          |      29 |    39 |  74% |
 | symbol.comt               | ` symadd symid symbol symstr symval symvar strref     |      36 |    42 |  86% |

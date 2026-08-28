@@ -1,0 +1,191 @@
+// src/comterp_/tests/colonslice.comt -- ':' as a string-slice operator (#395)
+//
+// funcs: colonlist at size print eq split string strcap +
+//
+// str@lo:hi builds a slice: an ordinary StringType ComValue sharing str's
+// own symid (its memory stays exactly where it was allocated, reachable at
+// that symid -- no copy, no new storage) with an offset/length window
+// recorded on the ComValue itself via sliceoff()/slicelen() (comvalue.h),
+// borrowing the narg/nkey storage a StringType never otherwise needs (see
+// comvalue.h's narg()/nkey() doc -- both read 0 for a StringType, guarding
+// sliced code that repurposes the same fields for offset/length). hi is
+// exclusive, Go-style -- length is hi-lo, and hi==cap is in bounds (an
+// empty slice at the far end, same as Go's s[len(s):len(s)]).
+//
+// Only literal-bound ranges are covered here (s@0:3, not s@lo:hi) -- a bare
+// identifier as the ':' operator's own right-hand operand is always
+// tokenized as a keyword lexeme by the lexer (":hi" reads as a stray
+// keyword, "Unexpected keyword" from the parser) regardless of spacing,
+// the same underlying scanner ambiguity #423 already flagged for a
+// leading colon ("Dec:25"), just showing up on the trailing side too.
+// colonlist(lo hi) -- a plain command call, not the ':' lexeme -- sidesteps
+// it and still captures lo/hi unevaluated the same way (see colonlist.comt
+// test 6/7), so s@colonlist(lo hi) works today for variable bounds; that's
+// left as a documented workaround here rather than a test, since fixing
+// the lexer itself is out of scope for this file.
+//
+// Known gaps, not yet attempted: :set/:ins/:del through a slice (listfunc.c
+// falls back to nil for any coloned index in an lhs_assign context); slicing
+// a plain list/array (only listv.is_only_string() triggers slice logic); a
+// slice passed as a function keyword arg or captured free variable loses
+// its sliced()/sliceoff()/slicelen() the same way a colon-list's coloned()
+// does (Greptile, #437) -- AttributeList only ever stores a plain
+// AttributeValue (#438), which has no room for either.  Not independently
+// fixable here; test 8 pins it as a documented gap rather than a silent one.
+//
+// slice==string DOES work (test 9) -- EqualFunc/NotEqualFunc (boolfunc.c)
+// were fixed to compare text via cstr() for any StringType operand,
+// rather than symbol_val() identity, which only ever stood in correctly
+// for two genuine symbols (interning dedups an ordinary string by content,
+// so identity happened to double as text equality there, but a slice
+// shares its PARENT's symid, unrelated to its own text).  print(x :str) is
+// still used in most tests below anyway, since that's testing print/
+// cstr()'s own correctness, a separate concern from equality's.
+
+ok=true
+
+// --- 1: hi is exclusive, Go-style -- length is hi-lo ---
+ok=ok&&(print("abcdefg"@0:3 :str)=="abc")
+print("1 lo:hi is exclusive of hi (expect abc): %s\n" print("abcdefg"@0:3 :str))
+
+// --- 2: unparenthesized binds tighter than @, no parens needed ---
+s="abcdefg"
+sl=s@2:5
+ok=ok&&(print(sl :str)=="cde")
+print("2 unparenthesized s@2:5 (expect cde): %s\n" print(sl :str))
+
+// --- 3: size() reports the slice's own length, not the parent's ---
+ok=ok&&(size(sl)==3)
+print("3 size of the slice (expect 3): %s\n" size(sl))
+
+// --- 4: the slice shares the parent's backing -- a write through the
+//        parent is visible through a slice taken before the write ---
+s2="wxyzabc"
+sl2=s2@0:3
+at(s2 1 :set 90)
+ok=ok&&(print(sl2 :str)=="wZy")
+print("4 slice sees a write through its parent (expect wZy): %s\n" print(sl2 :str))
+
+// --- 5: hi==cap (the string's own capacity) is in bounds -- an empty
+//        slice at the far end, same as Go's s[len(s):len(s)]; hi>cap
+//        answers nil, same as at()'s own bounds checks ---
+ok=ok&&(size("abc"@3:3)==0)
+ok=ok&&(("abc"@0:5)==nil)
+print("5 hi==cap is an empty slice, hi>cap is nil (expect 0 nil): %s %s\n" size("abc"@3:3) "abc"@0:5)
+
+// --- 6: a slice assigned to a variable keeps its sliced-ness across the
+//        symbol-table round trip -- lookup_symval() (comterp.c) has to
+//        carry sliced()/sliceoff()/slicelen() over explicitly, the same
+//        way it already does for coloned() (#429/Greptile), since
+//        assignval() only ever copies AttributeValue's base fields ---
+v=s@2:5
+ok=ok&&(size(v)==3 && print(v :str)=="cde")
+print("6 a sliced variable keeps its window (expect 3 cde): %s %s\n" size(v) print(v :str))
+
+// --- 7: nesting -- a colon range applied to an existing slice bounds
+//        against the slice's own window, not the full backing allocation,
+//        and composes onto the slice's own offset (Greptile, #437) --
+//        sl@0:1 used to read the parent's own index 0 ("a") instead of
+//        the slice's index 0 ("c") ---
+s3="abcdef"
+sl3=s3@2:5
+ok=ok&&(print(sl3@0:1 :str)=="c")
+ok=ok&&(print(sl3@1:3 :str)=="de")
+ok=ok&&((sl3@0:10)==nil)
+print("7 nesting: sl3@0:1, sl3@1:3, sl3@0:10 (expect c de nil): %s %s %s\n" print(sl3@0:1 :str) print(sl3@1:3 :str) sl3@0:10)
+
+// --- 8: KNOWN GAP, pinned so a future #438 fix is a deliberate change
+//        here too, not a silent one -- a slice passed as a function
+//        keyword arg loses its sliced()-ness (see the file header) and
+//        reads back as the whole parent string, not its own window ---
+f8=func(print(x :str))
+ok=ok&&(f8(:x s3@2:5)=="abcdef")
+print("8 KNOWN GAP: a sliced :x arg reads as the whole parent (expect abcdef, not cde): %s\n" f8(:x s3@2:5))
+
+// --- 9: slice==string compares the slice's own text, not the parent's,
+//        and not by symid identity (which would always be false -- a
+//        slice's symid is its parent's, never a dedicated one of its own,
+//        even when the slice's text happens to match some other interned
+//        string) ---
+ok=ok&&(sl=="cde")
+ok=ok&&(sl!="abcdefg")
+ok=ok&&(!(sl=="abcdefg"))
+print("9 sl==\"cde\", sl!=\"abcdefg\" (expect true true): %v %v\n" sl=="cde" sl!="abcdefg")
+
+// --- 10: split() reads only the slice's own text, not the parent's --
+//         split(sl) (char mode) and split(:tokstr) (whitespace mode)
+//         both walk the input through a single cstr()-backed pointer,
+//         so one fix (SplitStrFunc, symbolfunc.c) covers both ---
+s4="foo bar baz"
+sl4=s4@4:11
+r10=split(sl4 :tokstr)
+ok=ok&&(size(r10)==2 && r10@0=="bar" && r10@1=="baz")
+print("10 split(sl4 :tokstr), sl4=s4@4:11 (expect {bar,baz}): %v\n" r10)
+
+// --- 11: print()'s multi-value format path reads the format string
+//         itself through the slice-aware fstr (Greptile, #440) -- fstr
+//         used to come from string_ptr() (never slice-aware), so a
+//         sliced format string leaked whatever text followed the slice's
+//         own end in the shared parent buffer.  fmt's full text is
+//         "%s!EXTRA" -- fmtsl@0:2 is just "%s", so a correct read of
+//         fmtsl produces "hi" with nothing appended; the pre-fix bug
+//         would have read the parent's full text and appended "!EXTRA"
+//         after substituting %s, giving "hi!EXTRA" instead ---
+fmt="%s!EXTRA"
+fmtsl=fmt@0:2
+r11=print(fmtsl "hi" :str)
+ok=ok&&(r11=="hi")
+print("11 sliced format string, fmtsl=fmt@0:2 (expect hi, not hi!EXTRA): %s\n" print(fmtsl "hi" :str))
+
+// --- 12: '+' concatenates a slice's own text, not its parent's, on
+//         either side, and slice+slice too (#396, AddFunc/numfunc.c) --
+//         cstr() reads each operand's own window, so sl+"XYZ" and
+//         "XYZ"+sl only ever see "cde", never "abcdefg" ---
+ok=ok&&(sl+"XYZ"=="cdeXYZ")
+ok=ok&&("XYZ"+sl=="XYZcde")
+ok=ok&&(sl+sl=="cdecde")
+print("12 sl+\"XYZ\", \"XYZ\"+sl, sl+sl (expect cdeXYZ XYZcde cdecde): %s %s %s\n" sl+"XYZ" "XYZ"+sl sl+sl)
+
+// --- 13: '+' with a CharType right operand appends one character,
+//         still reading operand1 through its own slice window ---
+ok=ok&&(sl+'!'=="cde!")
+print("13 sl+'!' char append (expect cde!): %s\n" sl+'!')
+
+// --- 14: appending into a string()/strcap() buffer with spare trailing
+//         capacity writes in place, no copy at all (#396) -- strcap()
+//         stays unchanged (same backing allocation, just more of it
+//         used), and the growth is visible through the ORIGINAL
+//         variable too, since it's the same shared memory -- the same
+//         aliasing tradeoff Go's own append() has when two slices share
+//         a backing array (accepted by design, not a bug) ---
+buf=string(20)
+at(buf 0 :set 'h')
+at(buf 1 :set 'i')
+a14=buf+" there"
+ok=ok&&(a14=="hi there" && strcap(a14)==20 && buf=="hi there")
+print("14 in-place append into string(20) (expect \"hi there\" 20 \"hi there\"): %s %s %s\n" a14 strcap(a14) buf)
+
+// --- 15: once the buffer's spare capacity can't hold the addition,
+//         '+' falls back to copy-and-grow instead of writing past the
+//         end -- the result is correct, and (unlike test 14) the
+//         original is left untouched, since nothing was written
+//         through it ---
+b15=a14+" this is a much longer tail that will not fit in the remaining capacity"
+ok=ok&&(b15=="hi there this is a much longer tail that will not fit in the remaining capacity")
+ok=ok&&(a14=="hi there")
+print("15 grow-path append leaves the original untouched (expect true true): %v %v\n" b15=="hi there this is a much longer tail that will not fit in the remaining capacity" a14=="hi there")
+
+// --- 16: in-place append when operand2 shares operand1's own backing
+//         buffer and the source/destination ranges overlap (Greptile,
+//         #440) -- sl16=buf@0:5 ("hi th") appended with buf itself
+//         ("hi there") writes into buf's own trailing capacity while
+//         reading from buf's own front, an overlapping copy that needs
+//         memmove, not memcpy, to come out correct rather than
+//         corrupted ---
+sl16=buf@0:5
+r16=sl16+buf
+ok=ok&&(r16=="hi thhi there")
+print("16 overlapping append (sl16=buf@0:5, sl16+buf) (expect \"hi thhi there\"): %s\n" r16)
+
+print("colonslice: %v\n" ok)
+ok

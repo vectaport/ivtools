@@ -1618,6 +1618,20 @@ ComValue& ComTerp::fire_if_funcobj(ComValue& val) {
   return *slot;
 }
 
+/* sliceoff()/slicelen() (comvalue.h) write straight through to _narg/_nkey
+   -- fine on a StringType, which never needs them for anything else, but
+   catastrophic on any other type, where those same fields carry a command
+   call's own argument/keyword counts.  Restricted to StringType so a
+   lookup_symval() carry-over (below) can't clobber that bookkeeping for
+   every other symbol resolution in the interpreter. */
+static void carry_slice(ComValue& dst, ComValue& src) {
+  if (src.type() != ComValue::StringType) return;
+  dst.sliced(src.sliced());
+  dst.sliceoff(src.sliceoff());
+  dst.slicelen(src.slicelen());
+  dst.blocksz(src.blocksz());
+}
+
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.bquote()) {
         return comval;
@@ -1656,10 +1670,12 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
 	  comval.assignval(*(ComValue*)vptr);
 	  comval.coloned(((ComValue*)vptr)->coloned());
+	  carry_slice(comval, *(ComValue*)vptr);
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
 	  comval.assignval(*(ComValue*)vptr);
 	  comval.coloned(((ComValue*)vptr)->coloned());
+	  carry_slice(comval, *(ComValue*)vptr);
 	  return comval;
 	} else
 	  return ComValue::nullval();

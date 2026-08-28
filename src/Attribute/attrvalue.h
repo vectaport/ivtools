@@ -253,7 +253,20 @@ public:
 
 
     const char* string_ptr();
-    // lookup and return pointer to string associated with string.
+    // lookup and return pointer to string associated with string.  Not
+    // slice-aware -- a sliced StringType (#395, ComValue::cstr(),
+    // comvalue.h) returns its whole shared backing string here, not just
+    // its own window.  Tried making this virtual so ComValue could
+    // override it and every existing caller would get slice-correct text
+    // automatically; reverted (#440 review) once it turned out the more
+    // common pattern in this codebase -- ComValue& x = stack_arg(n), a
+    // raw reference rather than a genuinely-constructed local copy --
+    // isn't safe to call a virtual method on at all (comterp.c's _stack
+    // grows via raw dmm_realloc, so a raw element's vtable pointer isn't
+    // reliably ComValue's own; confirmed live, wrong answer, no crash).
+    // One always-correct mechanism (cstr(), explicit at every call site)
+    // beats two mechanisms with a subtle, easy-to-miss safety line
+    // between them.
     const char* symbol_ptr();
     boolean global_flag();
     // return true if a symbol and the global flag is set.

@@ -284,16 +284,40 @@ void EqualFunc::execute() {
       case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() == operand2.double_val();
 	break;
-      case ComValue::StringType:
       case ComValue::SymbolType:
-	if (nval.is_unknown()) 
+	/* identity via symbol_val() is a valid AND fast stand-in for text
+	   equality only when both sides are genuinely symbols -- but only
+	   when operand2 is too; operand1's type alone picked this case. */
+	if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	  result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
 	else {
+	  /* operand1.symbol_ptr(), not cstr() -- a symbol can't be
+	     sliced or modified, so there's nothing for cstr() to
+	     narrow; operand2 isn't provably a symbol here (a mixed
+	     comparison, `abc==s@0:3, still needs the slice-aware read). */
+	  std::string scratch2;
 	  const char* str1 = operand1.symbol_ptr();
-	  const char* str2 = operand2.symbol_ptr();
-	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())==0;
+	  const char* str2 = operand2.cstr(scratch2);
+	  result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
+	                                            : strncmp(str1, str2, nval.int_val())==0;
 	}
 	break;
+      case ComValue::StringType: {
+	/* always a text comparison, never symbol_val() identity -- interning
+	   dedups an ordinary string by content, so identity happened to work
+	   there, but a slice (#395) shares its PARENT's symid, unrelated to
+	   its own effective text (sl=="cde" compared false this way even
+	   though sl prints as "cde", confirmed live).  cstr(), not
+	   string_ptr() -- string_ptr() isn't slice-aware at all (comvalue.h,
+	   attrvalue.h), so it would just read the whole shared parent
+	   string here regardless. */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.cstr(scratch1);
+	const char* str2 = operand2.cstr(scratch2);
+	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
+	                                          : strncmp(str1, str2, nval.int_val())==0;
+	break;
+      }
       case ComValue::ArrayType: 
 	result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
           (operand1.array_val() == operand2.array_val() ||
@@ -376,16 +400,33 @@ void NotEqualFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() != operand2.double_val();
 	break;
-    case ComValue::StringType:
     case ComValue::SymbolType:
-      if (nval.is_unknown()) 
+      /* identity via symbol_val() only when operand2 is also genuinely
+	 a symbol -- operand1's type alone picked this case. */
+      if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	result.boolean_ref() = operand1.symbol_val() != operand2.symbol_val();
       else {
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be
+	   sliced or modified; operand2 isn't provably a symbol here. */
+	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
-	result.boolean_ref() = strncmp(str1, str2, nval.int_val())!=0;
+	const char* str2 = operand2.cstr(scratch2);
+	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
+	                                          : strncmp(str1, str2, nval.int_val())!=0;
       }
       break;
+    case ComValue::StringType: {
+      /* always a text comparison, never symbol_val() identity -- a slice
+	 (#395) shares its parent's symid, unrelated to its own text.
+	 cstr(), not string_ptr(): string_ptr() isn't slice-aware at all
+	 (see EqualFunc above for the full reasoning). */
+      std::string scratch1, scratch2;
+      const char* str1 = operand1.cstr(scratch1);
+      const char* str2 = operand2.cstr(scratch2);
+      result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
+	                                        : strncmp(str1, str2, nval.int_val())!=0;
+      break;
+    }
     case ComValue::ArrayType: 
       result.boolean_ref() = operand2.type() != ComValue::ArrayType || 
 	operand1.array_val() != operand2.array_val() &&

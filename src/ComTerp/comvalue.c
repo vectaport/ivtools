@@ -45,6 +45,7 @@
 #include <string.h>
 #include <iostream.h>
 #include <strstream>
+#include <string>
 using namespace std;
 
 ComValue ComValue::_nullval(ComValue::UnknownType);
@@ -163,13 +164,34 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     return *this;
 }
     
-int ComValue::narg() const { return _narg; }
-int ComValue::nkey() const { return _nkey; }
-int ComValue::nids() const { return _nids; }
+int ComValue::narg() const { return type()==ComValue::StringType ? 0 : _narg; }
+int ComValue::nkey() const { return type()==ComValue::StringType ? 0 : _nkey; }
+int ComValue::nids() const { return type()==ComValue::StringType ? 0 : _nids; }
 int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
 int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
 int ComValue::local_flag() const { return _flags & COMVALUE_LOCAL_FLAG; }
 int ComValue::coloned() const { return _flags & COMVALUE_COLONED_FLAG; }
+int ComValue::sliced() const { return _flags & COMVALUE_SLICED_FLAG; }
+int ComValue::sliceoff() const { return _narg; }
+int ComValue::slicelen() const { return _nkey; }
+int ComValue::blocksz() const { return _nids; }
+
+const char* ComValue::cstr(std::string& scratch) {
+  /* string_ptr() itself was tried as this mechanism (made virtual,
+     overridden here) and reverted -- see its own doc comment,
+     attrvalue.h.  Calling AttributeValue::string_ptr() explicitly (base-
+     qualified, never virtual) is what makes this safe to call on ANY
+     ComValue&, including a raw element of _stack (comterp.c) read
+     directly rather than copied to a genuine local first -- such an
+     element's own vtable pointer isn't reliably ComValue's own
+     (confirmed live: one resolved to plain AttributeValue's), but
+     sliced()/sliceoff()/slicelen() are plain field reads, unaffected
+     either way. */
+  const char* full = AttributeValue::string_ptr();
+  if (!sliced()) return full;
+  scratch.assign(full + sliceoff(), slicelen());
+  return scratch.c_str();
+}
 
 ostream& operator<< (ostream& out, const ComValue& sv) {
     ComValue* svp = (ComValue*)&sv;
@@ -209,15 +231,22 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  }
 	  break;
 	    
-	case ComValue::StringType:
+	case ComValue::StringType: {
+	  /* cstr(), not string_ptr() -- svp may be a raw _stack element
+	     (print_stack_top(ostream&), comterp.c), and string_ptr()'s virtual
+	     dispatch isn't reliable on one of those (see cstr()'s own
+	     doc comment, comvalue.h). */
+	  std::string scratch;
+	  const char* strp = svp->cstr(scratch);
 	  if (brief)
-	    ParamList::output_text(out, svp->string_ptr());
+	    ParamList::output_text(out, strp);
 	  else {
 	    out << "string(";
-	    ParamList::output_text(out, svp->string_ptr());
+	    ParamList::output_text(out, strp);
 	    out << ")";
 	  }
 	  break;
+	}
 	    
 	case ComValue::BooleanType:
 	  if (brief)

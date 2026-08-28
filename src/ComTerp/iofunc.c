@@ -125,7 +125,12 @@ void PrintFunc::execute() {
   static int prefix_symid = symbol_add("prefix");
   ComValue prefixv(stack_key(prefix_symid));
 
-  const char* fstr = formatstr.is_string() ? formatstr.string_ptr() : "nil";
+  /* cstr(), not string_ptr() -- formatstr can itself be a sliced string
+     (#395), and fstr backs fstrptr's scan through the whole multi-value
+     format string below (narg>1 branch); string_ptr() would read the
+     shared parent's full text instead of just the slice's own window. */
+  std::string fscratch;
+  const char* fstr = formatstr.is_string() ? formatstr.cstr(fscratch) : "nil";
   ComValue::comterp(comterp());
 
   streambuf* strmbuf = nil;
@@ -162,8 +167,9 @@ void PrintFunc::execute() {
   int narg = nargsfixed();
   if (narg==1) {
 
+    std::string scratch;
     if (formatstr.is_string() && !prefixv.is_string()) {
-      out << formatstr.symbol_ptr();
+      out << formatstr.cstr(scratch);
       out.flush();
     }
     else {
@@ -171,8 +177,8 @@ void PrintFunc::execute() {
       if (!formatstr.is_string())
 	out << formatstr;  // which could be arbitrary ComValue
       else
-	out << formatstr.string_ptr();
-	    
+	out << formatstr.cstr(scratch);
+
       if (prefixv.is_string()) out << "\n";
       out.flush();
     }
@@ -309,9 +315,11 @@ void PrintFunc::execute() {
       switch( printval.type() )
       {
       case ComValue::SymbolType:
-      case ComValue::StringType:
-	out_form(out, fbuf, symbol_pntr( printval.symbol_ref()));
+      case ComValue::StringType: {
+	std::string scratch;
+	out_form(out, fbuf, printval.cstr(scratch));
 	break;
+      }
 
       case ComValue::BooleanType:
 	out_form(out, fbuf, printval.boolean_ref());

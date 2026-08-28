@@ -33,6 +33,7 @@
 #include <ComTerp/_comterp.h>
 #include <Attribute/attrvalue.h>
 #include <Unidraw/Components/compview.h>
+#include <string>
 
 class ComFunc;
 class ComTerp;
@@ -47,6 +48,7 @@ class ComTerp;
 #define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() or local() ComValue in lhs context
 #define COMVALUE_LOCAL_FLAG      0x04  // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
 #define COMVALUE_COLONED_FLAG    0x08  // set by ColonListFunc -- an ArrayType built by ':', not ','
+#define COMVALUE_SLICED_FLAG     0x10  // set on a StringType sliced from another string (#395) -- sliceoff()/slicelen() hold the window, narg()/nkey() read 0
 
 class ComValue : public AttributeValue {
 public:
@@ -111,17 +113,27 @@ public:
     // return true if ObjectType matches or compid is superclass
 
     int narg() const;
-    // number of arguments associated with this command or keyword.
+    // number of arguments associated with this command or keyword; always 0
+    // for a StringType, whose storage doubles as a slice's offset (#395) --
+    // use sliceoff() to read that.
     int nkey() const;
-    // number of keywords associated with this command.
+    // number of keywords associated with this command; always 0 for a
+    // StringType, whose storage doubles as a slice's length (#395) -- use
+    // slicelen() to read that.
     int nids() const;
-    // number of subordinate identifiers associated with this identifier (not used).
+    // for a SymbolType, -1 for a bare identifier or the matched-paren-
+    // delimiter kind following it otherwise (TOK_RPAREN/TOK_RBRACKET/...,
+    // comterp.c -- also how DotFunc, dotfunc.c, tells a bare field
+    // reference apart from an empty-parenthesized method call); when a
+    // language needs separate input/output arglists it counts those too.
+    // Always 0 for a StringType, whose storage doubles as a slice's chunk
+    // size (#395) -- use blocksz() to read that.
     void narg(int n) {_narg = n; }
     // set number of arguments associated with this command or keyword.
     void nkey(int n) {_nkey = n; }
     // set number of keywords associated with this command.
     void nids(int n) {_nids = n; }
-    // set number of subordinate identifiers associated with this identifier (not used).
+    // set the matched-paren-delimiter kind following a SymbolType.
     int bquote() const;
     // get flag that says this SymbolType has been backquoted
     void bquote(int flag) { if(flag) _flags |= COMVALUE_BQUOTE_FLAG; else _flags &= ~COMVALUE_BQUOTE_FLAG; }
@@ -139,6 +151,49 @@ public:
     // return flag that marks an ArrayType as built by ':' rather than ','.
     void coloned(int flag) { if(flag) _flags |= COMVALUE_COLONED_FLAG; else _flags &= ~COMVALUE_COLONED_FLAG; }
     // set flag that marks an ArrayType as built by ':' rather than ','.
+
+    int sliced() const;
+    // return flag that marks a StringType value as a slice of another
+    // string, sharing its symid rather than owning a copy (#395).
+    void sliced(int flag) { if(flag) _flags |= COMVALUE_SLICED_FLAG; else _flags &= ~COMVALUE_SLICED_FLAG; }
+    // set flag that marks a StringType value as a slice.
+    int sliceoff() const;
+    // offset of a slice's window into its symid string; valid only when sliced().
+    void sliceoff(int off) { _narg = off; }
+    // set a slice's window offset.
+    int slicelen() const;
+    // length of a slice's window into its symid string; valid only when sliced().
+    void slicelen(int len) { _nkey = len; }
+    // set a slice's window length.
+    int blocksz() const;
+    // chunk size of a slice, in bytes -- 0 (the default) means an ordinary
+    // byte-granular slice, same as today; a future consumer reading a
+    // nonzero value would treat sliceoff()/slicelen() as counts of
+    // blocksz()-byte chunks rather than raw bytes, so a string slice can
+    // describe more than chars, Go-style (#395).  Not consumed anywhere
+    // yet -- this is the storage, not the feature.
+    void blocksz(int sz) { _nids = sz; }
+    // set a slice's chunk size.
+
+    const char* cstr(std::string& scratch);
+    // the slice-aware way to get a StringType value's text (#395) --
+    // narrows to [sliceoff(), sliceoff()+slicelen()) when sliced() instead
+    // of AttributeValue::string_ptr()'s whole shared backing string;
+    // string_ptr() itself was tried as the mechanism for this (made
+    // virtual, overridden here) and reverted -- see its own doc comment,
+    // attrvalue.h, for why.  Named plainly, not slice_cstr() -- whether
+    // the value happens to be a slice is an implementation detail with no
+    // meaning to a caller that just wants its text.  Takes a caller-owned
+    // std::string rather than storing the copy on the ComValue itself:
+    // _stack (comterp.c) grows via dmm_realloc, a raw realloc of the
+    // whole ComValue array, so ComValue itself must stay a plain,
+    // trivially-relocatable type -- no member with real construction/
+    // destruction (like std::string) survives that move (confirmed by an
+    // actual crash on the very first string assignment when tried).  A
+    // real copy is unavoidable in the sliced case regardless of mechanism
+    // -- a mid-buffer slice's own end isn't a real '\0' in the shared
+    // backing string, and writing one there would be exactly #394's
+    // original bug.
 
     int& pedepth() { return _pedepth; }
     // set/get depth of nesting in post-evaluated blocks of control commands.

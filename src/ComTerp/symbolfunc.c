@@ -334,7 +334,13 @@ void SplitStrFunc::execute() {
   if (symvalv.is_string()) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    const char* str = symvalv.symbol_ptr();
+    /* cstr(), not symbol_ptr() -- symvalv can be a slice (#395), and
+       everything below reads the input purely through this one str
+       pointer, walked forward, so this is the only place that needs to
+       change for the whole function to split just the slice's own text
+       instead of its parent's. */
+    std::string scratch;
+    const char* str = symvalv.cstr(scratch);
     const char* strbase = str;
     int len = strlen(str);
     char delim = tokstrv.char_val();
