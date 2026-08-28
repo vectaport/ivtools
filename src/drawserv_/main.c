@@ -240,6 +240,11 @@ static OptionDesc options[] = {
     { "-stdin_off", "*stdin_off", OptionValueImplicit, "true" },
     { "-import", "*import", OptionValueNext },
     { "-comdraw", "*comdraw", OptionValueNext },
+    /* the inline comterp pane OverlayKit builds off the "comt" attribute,
+       same as comdraw's -comt.  A drawserv run with -stdin_off has no
+       terminal REPL at all, which is exactly when a pane in the window is
+       the only way in. */
+    { "-comt", "*comt", OptionValueImplicit, "true" },
     { "-help", "*help", OptionValueImplicit, "true" },
     { "--help", "*help", OptionValueImplicit, "true" },
     { "-font", "*font", OptionValueNext },
@@ -273,6 +278,7 @@ Usage:  drawserv [file] [options]\n\n\
 -tile                       enable tiled page view\n\
 -twidth | -tw n             tile width in pixels\n\
 -zoomer_off | -zoff         disable zoomer\n\
+-comt                       inline comterp text-entry pane\n\
 -runfile file               run script file after startup\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
