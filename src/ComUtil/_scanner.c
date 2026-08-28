@@ -239,16 +239,25 @@ unsigned prev_toktype = _lexscan_last_toktype;
                break;
 
             case ':' :
-               /* Only TOK_IDENTIFIER, deliberately -- a number or a
-                  closing delimiter glued straight onto a following
-                  :keyword with no space (at(lst 0:raw), f():key) is a
-                  real, established shape elsewhere in this grammar (see
-                  colonlist.comt test 4's at(r 0 :raw), just without the
-                  space); reading it as an infix colon-pair instead would
-                  silently break the keyword. An identifier glued to a
-                  keyword the same way isn't a shape anything relies on
-                  today (confirmed: full run_all.comt suite unaffected),
-                  so it's the one case narrow enough to claim safely. */
+               /* Only TOK_IDENTIFIER, deliberately -- real ":keyword"
+                  usage always has a space before it (at(r 0 :raw),
+                  colonlist.comt test 4), so that spacing was never at
+                  risk from this check either way, whatever the
+                  preceding token's type.  The question is only what a
+                  number or closing delimiter glued straight onto a
+                  keyword with NO space (at(lst 0:raw), f():key) ought
+                  to mean, since nothing establishes that today one way
+                  or the other; tried including them in this whitelist
+                  and it read that hypothetical shape as a colon-pair
+                  instead of a keyword, on the reasoning that a keyword
+                  glued to a preceding value with zero space isn't
+                  something anyone currently writes -- backed off rather
+                  than take on an ambiguity nothing forces a call on. An
+                  identifier glued to a colon the same way IS the shape
+                  #423 needs (confirmed via the full run_all.comt suite:
+                  nothing relies on one being glued to a keyword
+                  either), so it's the one case narrow enough to claim
+                  outright. */
                if( isident( buffer[*bufptr] ) &&
                    !( prev_tokend == *tokstart &&
                       prev_toktype == TOK_IDENTIFIER ))
