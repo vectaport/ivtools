@@ -570,7 +570,13 @@ void ListIndexFunc::execute() {
 	  eqfunc.exec(2,0);
 	  match =  comterp()->pop_stack().is_true();
 	} else {
-	  match = strstr(testv->string_ptr(), valv.string_ptr()) != NULL;
+	  /* cstr(), not string_ptr() -- testv (a list element) or valv (the
+	     search value) can each independently be a slice (#395); a raw
+	     string_ptr() would search the whole shared parent instead of
+	     just testv's/valv's own window. */
+	  std::string tscratch, vscratch;
+	  ComValue testcv(*testv);
+	  match = strstr(testcv.cstr(tscratch), valv.cstr(vscratch)) != NULL;
 	}
 	if(match) {
 	  if (allflag)
@@ -590,9 +596,14 @@ void ListIndexFunc::execute() {
       };
       
   } else if (listorstrv.is_string()) {
+      /* cstr(), not string_ptr() -- listorstrv can be a slice (#395);
+	 the returned index stays relative to the slice's own window
+	 (position 0 of cstr()'s text), same convention split()/at()
+	 already use, not the shared parent's. */
+      std::string sscratch;
+      const char* string = listorstrv.cstr(sscratch);
 
       if (valv.is_char()) {
-          const char* string = listorstrv.string_ptr();
           int sz=strlen(string);
           int i= lastflag ? sz : 0;
           while(lastflag ? i>=0 : i<sz) {
@@ -608,13 +619,14 @@ void ListIndexFunc::execute() {
               i = i + (lastflag?-1:1);
           }
       } else if (valv.is_string()) {
-          const char* string = listorstrv.string_ptr();          
-          const char* foundstr = strstr(string, valv.symbol_ptr());
+          std::string nscratch;
+          const char* needle = valv.cstr(nscratch);
+          const char* foundstr = strstr(string, needle);
 	  const char* newfoundstr = foundstr;
           if((lastflag||allflag) && foundstr!=NULL) {
 	    do {
 	      foundstr = newfoundstr;
-	      newfoundstr = strstr(foundstr+strlen(valv.symbol_ptr()), valv.symbol_ptr());
+	      newfoundstr = strstr(foundstr+strlen(needle), needle);
               if(allflag) {
                 if(lastflag)
 		  nvl->Prepend(new AttributeValue((int)(foundstr-string), AttributeValue::IntType));
