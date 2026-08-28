@@ -93,6 +93,38 @@ char *strdup(const char *s) {
 
 /*=============*/
 
+/* find (or grow the table to make) an empty symid slot, shared by
+   symbol_add() and symbol_new(); returns its index, or -1 on OOM. */
+static int symbol_alloc_slot()
+{
+  int id, found;
+  symid* pntr;
+
+  if (symid_beg == NULL) {
+    symid_alloc_num = SYMID_ALLOC_NUM_HIGH;
+    if (dmm_calloc((void**)&symid_beg, (long) symid_alloc_num, sizeof(symid)) != 0)
+      return -1;
+    for (int i=0; i<symid_alloc_num; i++)
+      symid_beg[i].symstr = NULL;
+    symid_nrecs = symid_alloc_num;
+  }
+
+  for (id=found=0, pntr=symid_beg; id<symid_nrecs; id++,pntr++) {
+    if (pntr->symstr == NULL) { found = 1; break; }
+  }
+  if (!found) {
+    symid* symid_beg_after;
+    if (!(symid_beg_after = (symid*)realloc(symid_beg, (long) (symid_nrecs + symid_alloc_num) * sizeof(symid))))
+      return -1;
+    symid_beg = symid_beg_after;
+    id = symid_nrecs;
+    symid_nrecs += symid_alloc_num;
+    for (int i=id; i < symid_nrecs; i++)
+      symid_beg[i].symstr = NULL;
+  }
+  return id;
+}
+
 /*!
 
 symbol_add	Add a new symbol to the symbol table.
@@ -182,39 +214,11 @@ main()
   }
   else 	/* you have to add the symbol */
   {
-    int found;
     symbol_count++;
 
-    if (symid_beg == NULL)	/* if NULL, allocate some space for symbol table */
-    {
-      symid_alloc_num = SYMID_ALLOC_NUM_HIGH;
-      if ( dmm_calloc((void**)&symid_beg,(long) symid_alloc_num,sizeof(symid)) != 0)
-         goto error_return;	/* goto error return; INSUFFICIENT MEMORY */
-      for (int i=0; i<symid_alloc_num; i++) 
-        symid_beg[i].symstr = NULL;;  /* set unused */
-      symid_nrecs = symid_alloc_num;
-    }
+    if ((id = symbol_alloc_slot()) < 0)
+      goto error_return;
 
-    /* hunt for empty cell in symid array */
-    for (id=found=0, pntr=symid_beg; id<symid_nrecs; id++,pntr++)
-    {
-      if (pntr->symstr == NULL)	/* found one, break */
-      {
-	 found = 1;
-         break;
-      }
-    }
-    if (!found)		/* have to realloc some more symid table space */
-    {	/* realloc some more */
-      symid* symid_beg_after;
-      if(!(symid_beg_after = (symid*)realloc(symid_beg, (long) (symid_nrecs + symid_alloc_num) * sizeof(symid))))
-          goto error_return;
-      symid_beg = symid_beg_after;
-      id = symid_nrecs;	/* first new one allocated */
-      symid_nrecs += symid_alloc_num;
-      for (int i=id; i < symid_nrecs; i++)
-        symid_beg[i].symstr = NULL;  /* set unused */
-    }
     pntr = symid_beg + id;	/* index into entry of interest */
     pntr->nchars = n;		/* number of non-NULL characters */
     pntr->symstr = strdup(string);	/* make copy of string */
@@ -228,6 +232,72 @@ main()
   return id;
 error_return:		/* return an error code */
   return -1;
+}
+
+/*!
+
+symbol_new	Add a fresh, writable, non-deduplicating symbol.
+
+Summary:
+
+#include <ComUtil/comutil.h>
+*/
+
+int symbol_new (unsigned cap, BOOLEAN blanks)
+
+/*!
+Return Value:  >= 0 unique identifier for this symbol,
+               -1 if insufficient memory.
+
+Parameters:
+
+Type            Name          IO  Description
+------------    -----------   --  -----------                  */
+#ifdef DOC
+unsigned        cap        ;/*  I    usable byte capacity, not counting the
+                                      guaranteed terminator */
+BOOLEAN         blanks     ;/*  I    fill with spaces instead of NUL bytes */
+#endif
+
+#ifdef DOC
+/*!
+Description:
+
+Adds a `cap+1`-byte symbol -- `cap` bytes, all NUL (or all space if
+`blanks`), followed by one guaranteed terminating NUL -- and returns its
+id.  Unlike symbol_add(), never deduplicates by content and never looks
+existing entries up: every call allocates a genuinely fresh entry, on
+purpose, since this is a writable buffer's own storage, not a shared
+literal's.  For the same reason it is never added to the reverse index
+symbol_find() searches -- registering it there would let some unrelated
+later symbol_add() of matching text resolve onto (and corrupt) a buffer
+meant to be written through.
+
+See Also:  symbol_add(), symbol_unref()
+
+!*/
+#endif /* DOC */
+/*
+!*/
+
+{
+  int id;
+  symid* pntr;
+
+  if ((id = symbol_alloc_slot()) < 0)
+    return -1;
+
+  pntr = symid_beg + id;
+  pntr->symstr = (char*)malloc(cap + 1);
+  if (!pntr->symstr)
+    return -1;
+  memset(pntr->symstr, blanks ? ' ' : '\0', cap);
+  pntr->symstr[cap] = '\0';
+  pntr->nchars = cap;
+  pntr->instances = 1;
+  symbol_count++;
+
+  return id;
 }
 
 /*!

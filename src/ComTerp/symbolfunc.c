@@ -109,10 +109,23 @@ void SymAddFunc::execute() {
   std::vector<int> symbol_ids(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
+    std::string scratch;
     if (val.is_type(AttributeValue::CommandType))
       symbol_ids[i] = val.command_symid();
     else if (val.is_type(AttributeValue::StringType))
-      symbol_ids[i] = val.string_val();
+      /* symbol_add(), not val.string_val() (#396 fallout) -- a StringType's
+	 own symid is no longer guaranteed to already be a proper, findable
+	 symbol the way it always was pre-string()/strcap(): a writable
+	 buffer's symid is deliberately private, absent from symbol_find()'s
+	 reverse index (symbol_new()'s own doc comment).  symadd()'s whole
+	 point is to hand back an idempotent symbol for the given text, so
+	 it has to actually look that text up/register it -- reusing
+	 val.string_val() directly skipped that, working only by accident
+	 while every string happened to already be one.  cstr() reads the
+	 text slice-aware, so this is also the fix for symadd() on a sliced
+	 string reading the parent's whole text instead of the slice's own
+	 window, a latent bug independent of #396. */
+      symbol_ids[i] = symbol_add(val.cstr(scratch));
     else if (val.is_type(AttributeValue::SymbolType))
       symbol_ids[i] = val.symbol_val();
     else 
@@ -268,6 +281,43 @@ void StrRefFunc::execute() {
 
 /*****************************************************************************/
 
+StringFunc::StringFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void StringFunc::execute() {
+  ComValue capv(stack_arg(0));
+  static int spaces_symid = symbol_add("spaces");
+  ComValue spacesv(stack_key(spaces_symid));
+  boolean spacesflag = spacesv.is_true();
+  reset_stack();
+
+  int cap = capv.int_val();
+  int newid = cap>=0 ? symbol_new((unsigned)cap, spacesflag) : -1;
+  if (newid<0) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  ComValue retval((unsigned int)newid, ComValue::StringType);
+  push_stack(retval);
+}
+
+/*****************************************************************************/
+
+StrCapFunc::StrCapFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void StrCapFunc::execute() {
+  ComValue strv(stack_arg(0));
+  reset_stack();
+  if (strv.type()==ComValue::StringType) {
+    ComValue retval(symbol_len(strv.symbol_val()), ComValue::IntType);
+    push_stack(retval);
+  } else
+    push_stack(ComValue::nullval());
+}
+
+/*****************************************************************************/
+
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -297,7 +347,13 @@ void SplitStrFunc::execute() {
   if (symvalv.is_string()) {
     AttributeValueList* avl = new AttributeValueList();
     ComValue retval(avl);
-    const char* str = symvalv.symbol_ptr();
+    /* cstr(), not symbol_ptr() -- symvalv can be a slice (#395), and
+       everything below reads the input purely through this one str
+       pointer, walked forward, so this is the only place that needs to
+       change for the whole function to split just the slice's own text
+       instead of its parent's. */
+    std::string scratch;
+    const char* str = symvalv.cstr(scratch);
     const char* strbase = str;
     int len = strlen(str);
     char delim = tokstrv.char_val();

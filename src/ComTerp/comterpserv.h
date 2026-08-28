@@ -33,9 +33,7 @@
  * Server-oriented interpreter deals with strings
  */
 
-#ifdef HAVE_ACE
 #include <ace/config.h>
-#endif
 
 #include <ComTerp/comterp.h>
 

@@ -1,0 +1,111 @@
+// src/comterp_/tests/typeall.comt -- type(:all) hands back the complete list
+// of type symbols, and bare type() answers blank like class() does
+//
+// coverage: 12/15 (80%)
+// funcs: type size at blank
+// missing: type(stress-wrong-type) type(stress-nil) index(type-list) !type(:all value)
+//
+// The type symbols are a closed set: every value in the language carries one
+// of them, and the table that names them (AttributeValue::_type_syms) is built
+// in one shot, so :all can report the whole set with nothing left to discover.
+// class(:all) can never promise that -- a class symbol only exists once some
+// class asks for one, so the classes a binary can report are whatever it
+// linked.  Same keyword, different guarantee, and this test pins the strong
+// half.
+//
+// The list is in enum order, which makes at(lst n) positional and stable.
+// ListType and ArrayType are two names for one enum slot; the registered
+// symbol is ListType, so ArrayType never appears (test 6) -- that is the
+// same name type(1,2,3) already reports, not an omission.
+//
+// type() with no value now answers blank rather than falling through to
+// comterp's stack-shortfall backstop, matching class().  See classblank.comt
+// for why blank and nil have to stay distinguishable.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./typeall.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: type(:all) returns a list ---
+lst=type(:all)
+r1=type(lst)
+ok=ok&&(r1==`ListType)
+print("1 type(type(:all)) (expect ListType): %v\n" r1)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: and the list is the whole closed set, one entry per type ---
+r2=size(lst)
+ok=ok&&(r2==22)
+print("2 size(type(:all)) the closed set (expect 22): %v\n" r2)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: in enum order, so position is meaningful at both ends ---
+r3a=at(lst 0)
+r3b=at(lst 21)
+ok=ok&&(r3a==`UnknownType)&&(r3b==`BlankType)
+print("3 at(lst 0) at(lst 21) enum order (expect UnknownType BlankType): %v %v\n" r3a r3b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: every entry is a symbol, the same thing type(val) hands back ---
+r4=type(at(lst 5))
+ok=ok&&(r4==`SymbolType)
+print("4 type(at(lst 5)) entries are symbols (expect SymbolType): %v\n" r4)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: a real value's type is in the list -- the listing and the
+// per-value answer are the same symbols, not two parallel spellings ---
+r5=(type(1)==at(lst 5))
+ok=ok&&(r5==true)
+print("5 type(1)==at(lst 5) the listing agrees with the value (expect true): %v\n" r5)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: ListType and ArrayType share one slot, named ListType ---
+r6a=at(lst 13)
+r6b=type(1,2,3)
+ok=ok&&(r6a==`ListType)&&(r6b==`ListType)
+print("6 at(lst 13) and type(1,2,3) one slot one name (expect ListType ListType): %v %v\n" r6a r6b)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: :all is a listing request, so a named value does not narrow it ---
+r7=size(type(3 :all))
+ok=ok&&(r7==22)
+print("7 size(type(3 :all)) :all ignores the value (expect 22): %v\n" r7)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: bare type() names no value, so it answers blank ---
+r8=type(type())
+ok=ok&&(r8==`BlankType)
+print("8 type(type()) with no argument (expect BlankType): %v\n" r8)
+prev_ok=check_fail(:ok ok)
+
+// --- test 9: and it is the same blank blank() hands out ---
+r9=(type()==blank())
+ok=ok&&(r9==true)
+print("9 type()==blank() (expect true): %v\n" r9)
+prev_ok=check_fail(:ok ok)
+
+// --- test 10: an unrecognized keyword is ignored by design, so it names no
+// value either and answers blank rather than handing the keyword back ---
+r10=type(:foo)
+ok=ok&&(type(r10)==`BlankType)
+print("10 type(:foo) names no value either (expect BlankType): %v\n" type(r10))
+prev_ok=check_fail(:ok ok)
+
+// --- test 11: blank is not nil, so a caller can tell the two apart ---
+r11=(type()==nil)
+ok=ok&&(r11==false)
+print("11 type()==nil blank is not nil (expect false): %v\n" r11)
+prev_ok=check_fail(:ok ok)
+
+// --- test 12: the ordinary forms are untouched by any of this ---
+r12a=type(3)
+lst12=type(3 "a")
+r12b=size(lst12)
+ok=ok&&(r12a==`IntType)&&(r12b==2)
+print("12 type(3) and size(type(3 \"a\")) unchanged (expect IntType 2): %v %v\n" r12a r12b)
+prev_ok=check_fail(:ok ok)
+
+print("typeall: %v\n" ok)
+ok

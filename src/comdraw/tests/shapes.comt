@@ -1,0 +1,80 @@
+// src/comdraw/tests/shapes.comt -- every shape survives the form it emits
+//
+// This is the distribution test that can run without a network.  DrawServ
+// distributes a new graphic by re-serializing it through its OverlayScript and
+// sending that string, which the far node executes as comterp.  So a shape
+// crosses a link intact exactly when its own exported form re-creates it --
+// export, re-run, export again, and the two strings agree.
+//
+// Every shape here failed this at some point.  The gs keywords went unread and
+// re-serialized as trailing attributes; the point-list shapes collapsed to
+// their first point because the file format's parenthesized pairs are not what
+// the create commands accept; text lost its content entirely, because the
+// serialized form text(lineheight,"str") was read as the command form
+// text(x0,y0 "str") and the string landed in the y coordinate; and once that
+// was fixed the text still crept down the canvas by a line each time, because
+// the emitter corrects the transform by lineHeight-1 and only the file reader
+// took that correction back out.
+//
+//   comdraw -stdin_off -runfile src/comdraw/tests/shapes.comt
+//   run("src/comdraw/tests/shapes.comt")
+//
+// funcs: rect line ellipse text multiline polygon openspline closedspline raster
+ok=true
+
+// send a shape through its own serialized form and back
+trip=func(nm=arg(0);
+  each(delete($$select(:all)));
+  g=arg(1);
+  e1=export(g :string :percomp);
+  each(delete($$select(:all)));
+  h=run(e1 :str);
+  e2=export(h :string :percomp);
+  same=eq(e1 e2);
+  if(!same :then (print("   %s sent %s\n" nm e1); print("   %s got  %s\n" nm e2)));
+  same
+  :posteval)
+
+r1=trip("rect        " rect(0,0,50,50))
+r2=trip("line        " line(0,0,50,50))
+r3=trip("ellipse     " ellipse(60,60,20,10))
+r4=trip("text        " text(30,40 "hello"))
+r5=trip("multiline   " multiline(0,0,20,20,40,0))
+r6=trip("polygon     " polygon(60,0,80,20,100,0))
+r7=trip("openspline  " openspline(0,60,20,80,40,60))
+r8=trip("closedspline" closedspline(60,60,80,80,100,60))
+r9=trip("raster      " raster(0,0,8,8))
+
+ok=ok&&r1&&r2&&r3&&r4&&r5&&r6&&r7&&r8&&r9
+print("1 rect %v  line %v  ellipse %v  text %v\n" r1 r2 r3 r4)
+print("2 multiline %v  polygon %v  openspline %v  closedspline %v\n" r5 r6 r7 r8)
+print("3 raster %v\n" r9)
+print("4 every shape re-creates from its own exported form (expect true): %v\n\n" ok)
+
+// --- the text content specifically, since losing it still left a graphic
+//     that carried the right graphic state and would pass a gs-only check ---
+each(delete($$select(:all)))
+t=text(30,40 "roundtrip")
+s1=export(t :string :percomp)
+each(delete($$select(:all)))
+u=run(s1 :str)
+s2=export(u :string :percomp)
+q=print("%c" 34 :str)
+found=index(s2 print("%sroundtrip%s" q q :str) :substr)
+ok=ok&&(found!=nil)
+print("5 the text content survives, not just its graphic state (expect a position): %v\n" found)
+
+// --- and the position, which crept a line per round trip while the vertical
+//     correction went unapplied ---
+each(delete($$select(:all)))
+t=text(30,40 "creep")
+p1=trans(t)
+s6=export(t :string :percomp)
+each(delete($$select(:all)))
+u=run(s6 :str)
+p2=trans(u)
+ok=ok&&(p1==p2)
+print("6 and its position, unchanged by the trip (expect equal): %v %v\n" p1 p2)
+
+print("shapes: %v\n" ok)
+ok

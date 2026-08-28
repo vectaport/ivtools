@@ -44,13 +44,14 @@ public:
 
     virtual void execute();
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "lst=%s([lst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream (unary $)"; }
+    virtual const char* docstring() {
+      return "lst=%s([lst|strm|val] :strmlst :attr :size n :colon) -- create list, copy list, or convert stream (unary $)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":strmlst   return list inside stream for debug",
 	":attr      make attribute list",
 	":size n    make list of size n",
+	":colon     tag the result coloned(), same as ':' itself builds",
 	nil
       };
       return keys;
@@ -59,6 +60,8 @@ public:
 
 //: list member command for ComTerp; also @ (binary at) operator.
 // val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list or string.
+// A nil n means the last item, on every type and in both directions:
+// at(lst nil), at(al nil), at(s nil), and the :set/:ins/:del forms of each.
 // An attrlst position read returns a detached, single-entry attrlist
 // (e.g. al@0 on (:x 10 :y 20) is (:y 20)) rather than a live handle into
 // al -- al@n=val therefore can never write through to al (falls through
@@ -70,12 +73,13 @@ public:
 
     virtual void execute();
     virtual const char* docstring() {
-      return "val=%s(lst|attrlst n :set val :ins val :del) -- return (or set, insert after, or delete) the nth item in a list"; }
+      return "val=%s(lst|attrlst|str n :set val :ins val :del :raw) -- return (or set, insert after, or delete) the nth item in a list, attribute list, or string; a nil n means the last item"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",
 	":ins val   insert val in list",
 	":del       delete val from list, returning the deleted value",
+	":raw       currently a no-op -- reserved for opting a coloned colon-list index out of a future dispatch on coloned()",
 	nil
       };
       return keys;
@@ -104,6 +108,27 @@ public:
 
     CLASS_SYMID("TupleFunc");
 
+};
+
+//: : (colonlist) operator -- pairs two operands into a coloned list.
+// Plain AttributeValueList, tagged via the ComValue-level coloned() flag
+// (comvalue.h), so it prints and behaves like any other list; nothing here
+// says what the pair means, that's up to whatever reads coloned().  Each
+// operand that's a bare identifier is captured as its own unevaluated
+// symbol (no lookup) rather than resolved -- lst:foo never fails just
+// because foo isn't bound to anything, and a reader can either resolve it
+// (symval()) or match it directly against another symbol (e.g. `Dec).
+// Anything else (a literal, a parenthesized expression, ...) evaluates
+// normally, same as any other operator's operand.
+class ColonListFunc : public ComFunc {
+public:
+    ColonListFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=%s(lo hi) -- pair two operands into a coloned list, for the ':' operator; a bare identifier operand is captured as an unevaluated symbol"; }
+
+    CLASS_SYMID("ColonListFunc");
 };
 
 

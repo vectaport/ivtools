@@ -29,10 +29,14 @@
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 #endif
 #include <DrawServ/ackback-handler.h>
+#include <DrawServ/draweditor.h>
+#include <DrawServ/drawkit.h>
 #include <DrawServ/drawlink.h>
 #include <DrawServ/drawserv.h>
 #include <DrawServ/drawserv-handler.h>
 #include <DrawServ/sid.h>
+#include <IVGlyph/gdialogs.h>
+#include <InterViews/window.h>
 #include <Unidraw/globals.h>
 #include <ComUtil/util.h>
 #include <fstream.h>
@@ -56,7 +60,9 @@ DrawLink::DrawLink (const char* hostname, int portnum, int state)
   _port = portnum;
   _ok = false;
   uuid_clear(_linkid);
+  memset(_linkid_str, 0, sizeof(_linkid_str));
   _state = state;
+  _interactive = false;
 
   _addr = nil;
   _socket = nil;
@@ -75,6 +81,36 @@ DrawLink::~DrawLink ()
     delete _addr;
     delete _host;
     delete _althost;
+}
+
+/* "localhost" and "127.0.0.1" are the same place dialled by different names, and
+   a link reconnecting under either must not read as a route through somewhere
+   else; compare what open() resolved, and fall back to the name only when there
+   is no address to compare. */
+
+boolean DrawLink::same_peer(DrawLink* other) {
+  if (!other || _port != other->portnum()) return false;
+  ACE_INET_Addr* mine = _addr;
+  ACE_INET_Addr* theirs = other->addr();
+  if (mine && theirs) {
+    sockaddr_in* a = (sockaddr_in*)mine->get_addr();
+    sockaddr_in* b = (sockaddr_in*)theirs->get_addr();
+    if (a && b) return a->sin_addr.s_addr == b->sin_addr.s_addr;
+  }
+  return _host && other->hostname() && strcmp(_host, other->hostname())==0;
+}
+
+/* A popup only reaches somebody if a user asked for this link at the
+   connections dialog; on a scripted or wire-driven link there is nobody to
+   dismiss it, and a modal dialog stops the main loop from ever running again,
+   so that news goes to stderr instead. */
+
+void DrawLink::report(const char* title, const char* detail) {
+  if (interactive())
+    GAcknowledgeDialog::map(DrawKit::Instance()->GetEditor()->GetWindow(),
+			    title, detail, title);
+  else
+    fprintf(stderr, "%s:  %s\n", title, detail);
 }
 
 int DrawLink::open(uuid_t linkid) {

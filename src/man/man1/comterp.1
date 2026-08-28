@@ -124,6 +124,7 @@ Print a usage summary of all the invocation modes above and exit.
     ..         iterate        90          L-to-R      binary
     **         repeat         80          L-to-R      binary
     %%         replay         79          L-to-R      binary
+    :          colonlist      78          L-to-R      binary
     @          at             77          L-to-R      binary
     ,,         concat         75          L-to-R      binary
     *          next           71          R-to-L      unary-prefix
@@ -231,16 +232,21 @@ Print a usage summary of all the invocation modes above and exit.
  
  lst=list([lst|strm|val|fileobj|pipeobj) :strmlst :attr :size n) -- create list, copy list, or convert stream
 
- val=at(lst|attrlst|str n :set val :ins val :del) -- return (or set, insert after, or delete) nth item in a list or string
-   (binary @: lst@n is at(lst n); lst@n=val writes through to a plain list)
+ val=at(lst|attrlst|str n|lo:hi :set val :ins val :del :raw) -- return (or set, insert after, or delete) nth item in a list or string
+   (a nil n means the last item, reading or writing)
+   (binary @: lst@n is at(lst n); lst@n=val writes through to a plain list or a string)
+   (str@lo:hi is a string slice: shares str's own storage, hi exclusive, writable through the parent; :set/:ins/:del not yet supported through a slice)
+   (:raw currently a no-op, reserved for a coloned lo:hi index)
 
- num=size(lst|attrlst|str) -- return size of a list (or string)
+ num=size(lst|attrlst|str) -- return size of a list (or string, or a slice's own length)
 
  val=index(lst|str val|char|str :last :all :substr) -- return index of value (or char or string) in list (or string), nil if not found.
 
 .SH STREAM COMMANDS:
  
- strm=stream(strm|lst|attrlst|val|fileobj|pipeobj) -- copy stream or convert list (unary $)
+ strm=stream(strm|lst|attrlst|str|val|fileobj|pipeobj) -- copy stream or convert
+ list (unary $).  A string streams its characters; a bquoted string is carried
+ whole, as is a symbol
 
  val=next(stream) -- return next value from stream
    (unary prefix *: *strm is next(strm))
@@ -306,6 +312,10 @@ Print a usage summary of all the invocation modes above and exit.
  str=gets(fileobj|pipeobj|sockobj) -- gets a new-line terminated string from a file
 
 .SH STRING COMMANDS
+
+ str=string(cap :spaces) -- cap bytes, NUL-filled (or space-filled with :spaces)
+
+ n=strcap(str) -- capacity in bytes, not counting the guaranteed terminator
 
  lst=split(sym|str :tokstr [delim] :tokval [delim] :keep :reverse) -- split symbol or string into list of characters (or tokens).
 
@@ -419,6 +429,13 @@ Print a usage summary of all the invocation modes above and exit.
 
  flag=isfunc(var :sym) -- true if var holds a func(), without evaluating it;
  with :sym, return `FuncObj (nil if false) instead of a flag
+
+ flag=isslice(var) -- true if var is a string sliced from another string
+
+ flag=islist(var [:list] [:attr] [:colon] [:any]) -- true if var is
+ list-shaped; bare (no keyword) matches any array, comma- or colon-built;
+ :list or :colon alone narrows to just that one; :attr matches an
+ attribute list instead; :any matches any of the three
 
  int=ctoi(char) -- convert character to integer
 

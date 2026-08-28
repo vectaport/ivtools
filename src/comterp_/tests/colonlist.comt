@@ -1,0 +1,161 @@
+// src/comterp_/tests/colonlist.comt -- ':' as a generic pairing operator (#423)
+//
+// funcs: colonlist at size
+//
+// #428 put ':' in the default operator table (priority 78, above '@'s 77);
+// this test is the runtime half -- colonlist is now a real registered
+// command, so ':' builds an actual value, not just a parse-time node.
+//
+// What ':' builds is deliberately generic: a plain coloned list, same
+// size/index behavior as one built by ','.  Printing is the one thing
+// that DOES read the coloned() tag: a coloned list prints as 1:2:3, no
+// braces, rather than the generic {1,2,3} every other list uses (see
+// test 1) -- comvalue.c's operator<<, ArrayType case.
+// A bare-identifier operand is captured as its own unresolved symbol
+// rather than looked up, so an undefined name doesn't fail just because
+// it's paired with ':' -- see test 6.  This file only covers the
+// colon-list value itself.
+//
+// Known gap, left unsupported on purpose: an identifier glued to ':'
+// with a space BEFORE but not after ("lo :hi") still merges into a
+// keyword lexeme ("Unexpected keyword") -- see test 8 for the shapes
+// that DO work.  That one spacing is genuinely indistinguishable, at
+// the scanner's level, from real ":key val" syntax following a
+// positional argument (the same shape, same lack of whitespace on the
+// keyword's own left side), so it's left alone rather than guessed at.
+
+ok=true
+
+// --- 1: ':' builds a real value at runtime, not just a parse node --
+//        prints as 0:3, no braces -- the one place coloned() changes
+//        behavior instead of just tagging the value inertly ---
+r=0:3
+ok=ok&&(print(r :str)=="0:3")
+print("1 0:3 builds a list value, prints without braces (expect 0:3): %s\n" print(r :str))
+
+// --- 2: it prints and sizes exactly like an ordinary list ---
+ok=ok&&(size(r)==2)
+print("2 size of a colon-list (expect 2): %s\n" size(r))
+
+// --- 3: @ indexes into it like any other list -- never gated on
+//        coloned(), since that flag only ever matters on the *index*
+//        operand, not on the thing being indexed into ---
+ok=ok&&(r@0==0)
+ok=ok&&(r@1==3)
+print("3 r@0, r@1 (expect 0 3): %s %s\n" r@0 r@1)
+
+// --- 4: :raw is accepted and is currently a no-op -- nothing branches on
+//        coloned() yet, so at(r n :raw) reads identically to at(r n) ---
+ok=ok&&(at(r 0 :raw)==0)
+ok=ok&&(at(r 1 :raw)==3)
+print("4 :raw is a no-op today (expect 0 3): %s %s\n" at(r 0 :raw) at(r 1 :raw))
+
+// --- 5: chained ':' flattens into one N-ary list rather than nesting --
+//        1:2:3 parses left-associatively as (1:2):3, but ColonListFunc
+//        now appends onto operand1 when it's already a coloned() list
+//        (the same shape TupleFunc, ',', already uses to flatten a
+//        comma-chain), so the result is the flat {1,2,3}, not the
+//        nested {{1,2},3} this test used to pin.  Needed for #423's
+//        other planned use, hr:min:sec arriving at a future TimeObj
+//        consumer as 3 elements, not 2-plus-1.  No nested_insert()-
+//        style "stay nested on purpose" escape hatch exists for ':'
+//        the way it does for ',' -- unlike a {1,2} brace literal, a
+//        coloned() list only ever comes from ':' itself, so there's
+//        no input shape that would ever want to resist flattening. ---
+t=1:2:3
+ok=ok&&(size(t)==3)
+ok=ok&&(t@0==1 && t@1==2 && t@2==3)
+print("5 chained ':' flattens, 1:2:3 (expect 1:2:3): %v\n" t)
+
+// --- 5b: flattening keeps going past 3 -- confirms it's genuine
+//        N-ary append, not a special-cased 2-then-3 fold ---
+t5b=1:2:3:4
+ok=ok&&(size(t5b)==4)
+ok=ok&&(t5b@0==1 && t5b@1==2 && t5b@2==3 && t5b@3==4)
+print("5b chained ':' keeps flattening, 1:2:3:4 (expect 1:2:3:4): %v\n" t5b)
+
+// --- 6: a bare-identifier operand is captured as its own unresolved
+//        symbol, not looked up -- an undefined name doesn't fail just
+//        because it's paired with ':' (Dec was never assigned anything),
+//        and a bound one is captured as its symbol too, not its value --
+//        ':' never resolves an identifier operand, consistently.  This
+//        was originally written needing a space before the ':' here
+//        (the no-space form used to hit _colon_ident swallowing it into
+//        one identifier token, "Dec:25") -- that's the scanner surgery
+//        done in test 8 below, so the space here is no longer load-
+//        bearing, just left as-is since this test is about symbol
+//        capture, not spacing. ---
+u=Dec :25
+ok=ok&&(type(u@0)==`SymbolType)
+ok=ok&&(u@0==`Dec)
+ok=ok&&(u@1==25)
+print("6 Dec :25 captures Dec as a symbol, 25 stays a literal (expect Dec 25): %v %v\n" u@0 u@1)
+
+y=99
+w=y :1
+ok=ok&&(type(w@0)==`SymbolType)
+ok=ok&&(w@0==`y)
+print("7 y :1 captures y as a symbol even though y is bound to 99 (expect y): %v\n" w@0)
+
+// --- 8: identifier-adjacent colon, the harder half of #423 -- an
+//        identifier immediately touching ':' on either side (no
+//        whitespace) now builds a real colon-pair instead of being
+//        swallowed into one bogus identifier token ("lo:hi") or merged
+//        into a keyword lexeme ("Unexpected keyword").  Fixed with
+//        three changes: _colon_ident defaulted off (nothing in the
+//        tree relied on ':' continuing an identifier -- confirmed by
+//        the full suite passing unchanged); a new pair of globals
+//        (_lexscan_last_tokend/_toktype, _lexscan.c) tracking the
+//        previous token in true document-scan order, since _parser.c's
+//        lookahead makes the scanner's own output params unreliable for
+//        that; and _scanner.c's keyword-merge now skips only when ':'
+//        is glued directly onto a preceding TOK_IDENTIFIER, since real
+//        ":key" usage is never glued to a preceding positional arg with
+//        zero space.  Numbers/closing-delimiters were deliberately left
+//        out of that last check -- at(r 0:raw) (test 4's :raw, just
+//        without the space) needs to keep reading as index 0 + keyword
+//        :raw, not a colon-pair; a number glued to a keyword is real,
+//        established usage, unlike an identifier glued to one. ---
+lo=2
+hi=5
+v8=lo:hi
+ok=ok&&(type(v8@0)==`SymbolType && type(v8@1)==`SymbolType)
+ok=ok&&(v8@0==`lo && v8@1==`hi)
+print("8 lo:hi with no space either side (expect lo hi): %v %v\n" v8@0 v8@1)
+
+// --- 9: a space after ':' also works now (a side effect of turning off
+//        _colon_ident -- "lo:" no longer swallows into one token) ---
+v9=lo: hi
+ok=ok&&(v9@0==`lo && v9@1==`hi)
+print("9 lo: hi, space after only (expect lo hi): %v %v\n" v9@0 v9@1)
+
+// --- 10: the leading side (#428) also benefits for free -- Dec:25 with
+//        no space at all now works too, not just Dec :25 (test 6) ---
+v10=Dec:25
+ok=ok&&(v10@0==`Dec && v10@1==25)
+print("10 Dec:25 with no space at all (expect Dec 25): %v %v\n" v10@0 v10@1)
+
+// --- 11: chained ':' only flattens in place within ONE direct chain,
+//        never onto a list some OTHER variable still points at
+//        (Greptile, #443) -- x11:2 and (x11):3 share the same
+//        underlying AttributeValueList once x11 is read back, so
+//        flattening onto it in place would silently grow x11 itself
+//        too.  Same nested_insert() guard TupleFunc (',') already
+//        relies on for exactly this (comterp.c: any array pulled off
+//        a symbol table read gets nested_insert(true) stamped on it
+//        immediately before becoming an operator's first operand),
+//        which ':' now checks the same way. ---
+x11=1:2
+y11=(x11):3
+ok=ok&&(size(x11)==2 && x11@0==1 && x11@1==2)
+print("11 x11 unmutated after (x11):3 (expect size 2, 1:2): %s %v\n" size(x11) x11)
+
+// --- 12: list(:colon) makes an empty coloned() list -- a genuine
+//        empty starting point that still reads as coloned() once
+//        populated, distinct from an ordinary empty list ---
+e12=list(:colon)
+ok=ok&&(size(e12)==0)
+print("12 list(:colon) is empty (expect 0): %s\n" size(e12))
+
+print("colonlist: %v\n" ok)
+ok

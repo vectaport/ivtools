@@ -49,10 +49,12 @@ unsigned _token_state_save = TOK_WHITESPACE;
 				/* variable to save token state between calls */
 int _ignore_numerics = 0;
 int _token_eol = 0;
-int _colon_ident = 1;
+int _colon_ident = 0;
 int _percent_ident = 0;
 int _ignore_chars = 0;
 int _backslash_ids = 0;
+unsigned _lexscan_last_tokend = 0;
+unsigned _lexscan_last_toktype = TOK_NONE;
 
 /* MACROS */
 
@@ -65,8 +67,11 @@ int _backslash_ids = 0;
 #define FLOAT_IS_STARTING( ch1, ch2 ) \
 (((ch1) == '.' && (ch2) != '.' ) || (ch1) == 'E' || (ch1) == 'e')
 
+/* ':' only counts as isident() via _colon_ident, so it shouldn't disqualify
+   a following 'L' from being a genuine long suffix (e.g. "1L:2"). */
 #define LOOKS_LIKE_LONG( ch1, ch2 ) \
-(((ch1) == 'l' || (ch1) == 'L') && !(isdigit(ch2) || isident(ch2)))
+(((ch1) == 'l' || (ch1) == 'L') && \
+ !(isdigit(ch2) || ((ch2) != ':' && isident(ch2))))
 
 #define ADVANCE_PAST_QUOTE \
 while( CURR_CHAR != '\n' && \
@@ -679,7 +684,10 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 else if( isident( CURR_CHAR ))
+	 /* ':' only counts as isident() via _colon_ident, so a colon here is
+	    ending a number cleanly (e.g. a range operand), not a malformed
+	    numeric-identifier like "1abc". */
+	 else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	    return ERR_BADINT;
          else
    	    goto token_return;
@@ -709,7 +717,9 @@ int bs_ident = 0;
 	       }
 	    goto token_return;
 	    }
-	 else if( isdigit( CURR_CHAR ) || isident( CURR_CHAR ))
+	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
+	    so it should end an octal-looking number cleanly, not fail it. */
+	 else if( isdigit( CURR_CHAR ) || (CURR_CHAR != ':' && isident( CURR_CHAR )))
 	    return ERR_BADOCT;
 	 else if( *toklen == 0 ) {
 	    token_state = TOK_DFINT;
@@ -731,7 +741,9 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 else if( isident( CURR_CHAR ) || *toklen == 0 )
+	 /* see TOK_DFINT above: ':' only counts as isident() via _colon_ident,
+	    so it should end a hex number cleanly, not fail it. */
+	 else if( (CURR_CHAR != ':' && isident( CURR_CHAR )) || *toklen == 0 )
 	    return ERR_BADHEX;
 	 else
 	    goto token_return;
@@ -758,7 +770,9 @@ int bs_ident = 0;
 	       ADVANCE_CHAR;
 	       double_state = FLOAT_NEWEXPON;
 	       }
-	    else if( isident( CURR_CHAR ))
+	    /* see TOK_DFINT above: ':' only counts as isident() via
+	       _colon_ident, so it should end the fraction cleanly. */
+	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
 	       goto token_return;
@@ -780,7 +794,9 @@ int bs_ident = 0;
 	 if( double_state == FLOAT_EXPONENT ) {
 	    if( isdigit( CURR_CHAR ))
 	       TOKEN_ADD( CURR_CHAR )
-	    else if( isident( CURR_CHAR ))
+	    /* see TOK_DFINT above: ':' only counts as isident() via
+	       _colon_ident, so it should end the exponent cleanly. */
+	    else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	       return ERR_BADFLOAT;
 	    else
 	       goto token_return;
@@ -998,6 +1014,15 @@ token_return:
 /* ----------------------------------------------------------------------- */
 
    *toktype = token_state;
+   /* recorded in true document-scan order, unlike the *toktype and
+      *bufptr output params themselves -- _parser.c's lookahead can call
+      scanner() (and so lexscan()) more than once per token it hands the
+      caller, so by the time a caller reads those params back they may
+      reflect whichever call happened to run last, not "the token
+      immediately before this one" in source order (#423, trailing-side
+      colon scanner surgery -- see _scanner.c's use of these). */
+   _lexscan_last_tokend = *bufptr;
+   _lexscan_last_toktype = token_state;
    return FUNCOK;
 
 }

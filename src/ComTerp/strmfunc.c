@@ -73,7 +73,7 @@ boolean StrmFunc::is_delimiter(ComValue& val) {
 
 /*****************************************************************************/
 
-int StreamFunc::_symid;
+int StreamFunc::_symid = -1;
 
 StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -109,6 +109,33 @@ void StreamFunc::execute() {
   reset_stack();
 
   push_stream_from_value(operand1);
+}
+
+/* Build a character cursor over a string (see StringNextFunc for the layout).
+   Shared by stream()'s conversion and by feed()'s ingestion so the two cannot
+   drift about what streaming a string means. */
+static ComValue string_stream_value(ComTerp* comterp, ComValue& strv) {
+  static StringNextFunc* strnfunc = nil;
+  if (!strnfunc) {
+    strnfunc = new StringNextFunc(comterp);
+    strnfunc->funcid(symbol_add("stringnext"));
+  }
+  AttributeValueList* avl = new AttributeValueList();
+  avl->Append(new AttributeValue(strv));
+  avl->Append(new AttributeValue(0, AttributeValue::IntType));
+  ComValue stream(strnfunc, avl);
+  stream.stream_mode(STREAM_INTERNAL);
+  return stream;
+}
+
+/* is this an argument a string should be taken apart for?  StringType only,
+   though is_string() would also admit a symbol: a symbol is a name rather than
+   text, and the `EOS delimiters that ride through feeds are symbols whose
+   whole purpose is to arrive intact.  Bquote is the per-value escape -- it
+   already means "do not take this apart" -- and marks the value rather than
+   the call, so one argument can be protected while another is ingested. */
+static boolean streams_as_characters(ComValue& v) {
+  return v.is_type(ComValue::StringType) && !v.bquote();
 }
 
 void StreamFunc::push_stream_from_value(ComValue& operand1) {
@@ -154,6 +181,11 @@ void StreamFunc::push_stream_from_value(ComValue& operand1) {
       push_stack(stream);
     }
 
+    else if (streams_as_characters(operand1)) {
+      ComValue stream(string_stream_value(comterp(), operand1));
+      push_stack(stream);
+    }
+
     else {
       AttributeValueList* avl = new AttributeValueList();
       avl->Append(new AttributeValue(operand1));
@@ -163,6 +195,49 @@ void StreamFunc::push_stream_from_value(ComValue& operand1) {
     }
 
   }
+}
+
+
+/*****************************************************************************/
+
+int StringNextFunc::_symid = -1;
+
+StringNextFunc::StringNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
+}
+
+/* Cursor over a string's own bytes.  The stream list carries two slots:
+     [0]  the string itself, which keeps the bytes reachable
+     [1]  the index of the next character
+   Nothing is copied to streamify: the read side does not write, so the cursor
+   holds the value rather than duplicating its characters, and boxes one
+   ComValue per pull instead of the whole string up front the way split() does.
+   at() indexes the same bytes the same way (listfunc.c's is_string branch). */
+void StringNextFunc::execute() {
+  ComValue streamv(stack_arg(0));
+  reset_stack();
+
+  AttributeValueList* avl = streamv.stream_list();
+  if (!avl) { push_stack(ComValue::nullval()); return; }
+
+  Iterator it;
+  avl->First(it);
+  AttributeValue* strval = avl->GetAttrVal(it);
+  if (!strval || !strval->is_type(AttributeValue::StringType)) {
+    push_stack(ComValue::nullval()); return;
+  }
+  avl->Next(it);
+  AttributeValue* posval = avl->GetAttrVal(it);
+  if (!posval) { push_stack(ComValue::nullval()); return; }
+
+  const char* str = strval->string_ptr();
+  int pos = posval->int_val();
+  if (!str || pos < 0 || pos >= (int)strlen(str)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  posval->int_ref()++;
+  ComValue retval(*(str+pos), ComValue::CharType);
+  push_stack(retval);
 }
 
 /*****************************************************************************/
@@ -288,7 +363,7 @@ void StreamFunc::execute_literal() {
 
 /*****************************************************************************/
 
-int SpreadFunc::_symid;
+int SpreadFunc::_symid = -1;
 
 SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -397,7 +472,7 @@ void EchoFunc::execute() {
 
 /*****************************************************************************/
 
-int StreamNextFunc::_symid;
+int StreamNextFunc::_symid = -1;
 
 StreamNextFunc::StreamNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -456,7 +531,7 @@ void StreamNextFunc::execute() {
 
 /*****************************************************************************/
 
-int ConcatFunc::_symid;
+int ConcatFunc::_symid = -1;
 
 ConcatFunc::ConcatFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -471,7 +546,7 @@ void ConcatFunc::execute() {
   
   if (!cnfunc) {
     cnfunc = new ConcatNextFunc(comterp());
-    cnfunc->funcid(symbol_add("concat"));
+    cnfunc->funcid(symbol_add("concatnext"));
   }
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(operand1));
@@ -483,7 +558,7 @@ void ConcatFunc::execute() {
 
 /*****************************************************************************/
 
-int ConcatNextFunc::_symid;
+int ConcatNextFunc::_symid = -1;
 
 ConcatNextFunc::ConcatNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -565,11 +640,16 @@ void RepeatFunc::execute() {
       } else
 	push_stack(ComValue::nullval());
       return;
-    } else if (operand1.is_stream()) {
-      fprintf(stderr, "no more than doubly nested streams supported as of yet\n");
-      push_stack(ComValue::nullval());
-      return;
     }
+
+    /* no bail-out for a stream operand here.  It read as a depth limit, but
+       overdrive has already unwrapped a level by the time this sees a stream,
+       so it fired on every stream operand and returned nullval from a
+       construction context -- which left the stack wrong ("func list pushed
+       more than a single value on stack"), not a clean nil.  Building the
+       repeat stream instead yields the operand's values; what a repeated
+       cursor still lacks is re-arm, so passes after the first come back
+       exhausted.  That is replay's business, not nesting's. */
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -707,11 +787,11 @@ void IterateFunc::execute() {
       } else
 	push_stack(ComValue::nullval());
       return;
-    } else if (operand1.is_stream()) {
-      fprintf(stderr, "no more than doubly nested streams supported as of yet\n");
-      push_stack(ComValue::nullval());
-      return;
     }
+
+    /* no bail-out for a stream operand -- same reasoning as RepeatFunc's
+       above: it fired once overdrive had already unwrapped a level, and
+       returned nullval from a construction context, leaving the stack wrong. */
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -843,17 +923,13 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 	    /* stream argument, use stream func to get next one */
 	    if (val->stream_mode()&STREAM_INTERNAL && val->stream_func()) {
 	      // fprintf(stderr, "NextFunc: handling internal mode stream argument\n");
-	      /* internal use */
-	      comterp->push_stack(*val);
-
-              // fprintf(stdout, "Stack before stream_func exec\n");
-              // comterp->print_stack();
-
-	      ((ComFunc*)val->stream_func())->exec(1,0);
-
-      	      if (comterp->stack_top().is_stream()) {
-		fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, internal argument type\n");
-	      }
+	      /* internal use -- routed through execute_impl rather than
+		 straight to the stream func, so the nested loop at the top
+		 of execute_impl covers this path too and a feed() holding a
+		 stream yields one value per pull.  execute_impl dispatches
+		 right back here for a plain internal stream. */
+	      ComValue cval(*val);
+	      NextFunc::execute_impl(comterp, cval);
 
 	    } else {
 	      // fprintf(stderr, "NextFunc: handling external mode stream argument\n");
@@ -867,10 +943,6 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
 
 	      NextFunc::execute_impl(comterp, cval);
               // fprintf(stderr, "after:  strm arg 0x%lx, stack_top %d\n", val, comterp->stack_height());
-
-	      if (comterp->stack_top().is_stream()) {
-		fprintf(stderr, "NextFunc:  Nested stream that could be further expanded, external argument type\n");
-	      }
 
 	    }
 	    
@@ -1005,7 +1077,7 @@ void EachFunc::execute() {
 
 /*****************************************************************************/
 
-int FilterFunc::_symid;
+int FilterFunc::_symid = -1;
 
 FilterFunc::FilterFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1020,7 +1092,7 @@ void FilterFunc::execute() {
   
   if (!flfunc) {
     flfunc = new FilterNextFunc(comterp());
-    flfunc->funcid(symbol_add("filter"));
+    flfunc->funcid(symbol_add("filternext"));
   }
   AttributeValueList* avl = new AttributeValueList();
   avl->Append(new AttributeValue(streamv));
@@ -1032,7 +1104,7 @@ void FilterFunc::execute() {
 
 /*****************************************************************************/
 
-int FilterNextFunc::_symid;
+int FilterNextFunc::_symid = -1;
 
 FilterNextFunc::FilterNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1329,7 +1401,7 @@ void InfoFunc::execute() {
 
 /*****************************************************************************/
 
-int FeedFunc::_symid;
+int FeedFunc::_symid = -1;
 
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -1376,6 +1448,11 @@ void FeedFunc::execute() {
        order would copy correctly. */
     AttributeValueList* avl = argv[0].stream_list();
     for (int i=1; i<n; i++) {
+      /* a string is ingested as its characters, by becoming the same cursor
+         stream() would make and then taking the lazy nested-stream path below
+         -- so one value is drained per next(), not the whole string up front */
+      if (!rawflag && streams_as_characters(argv[i]))
+	argv[i] = string_stream_value(comterp(), argv[i]);
       boolean tag_nested = argv[i].is_stream() && !rawflag;
       AttributeValue* elt;
       if (argv[i].is_stream() && argv[i].stream_list() == avl) {
@@ -1412,6 +1489,8 @@ void FeedFunc::execute() {
      feed(fifo 0..2) behave identically. */
   AttributeValueList* avl = new AttributeValueList();
   for (int i=0; i<n; i++) {
+    if (!rawflag && streams_as_characters(argv[i]))
+      argv[i] = string_stream_value(comterp(), argv[i]);
     boolean tag_nested = argv[i].is_stream() && !rawflag;
     int mode = tag_nested ? (argv[i].stream_mode_raw()|STREAM_NESTED) : 0;
     AttributeValue* elt = new AttributeValue(argv[i]);
@@ -1531,7 +1610,7 @@ void ChunkNextFunc::execute() {
 
 /*****************************************************************************/
 
-int FeedNextFunc::_symid;
+int FeedNextFunc::_symid = -1;
 
 FeedNextFunc::FeedNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }

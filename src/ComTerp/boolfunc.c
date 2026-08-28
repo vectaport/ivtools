@@ -284,16 +284,40 @@ void EqualFunc::execute() {
       case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() == operand2.double_val();
 	break;
-      case ComValue::StringType:
       case ComValue::SymbolType:
-	if (nval.is_unknown()) 
+	/* identity via symbol_val() is a valid AND fast stand-in for text
+	   equality only when both sides are genuinely symbols -- but only
+	   when operand2 is too; operand1's type alone picked this case. */
+	if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	  result.boolean_ref() = operand1.symbol_val() == operand2.symbol_val();
 	else {
+	  /* operand1.symbol_ptr(), not cstr() -- a symbol can't be
+	     sliced or modified, so there's nothing for cstr() to
+	     narrow; operand2 isn't provably a symbol here (a mixed
+	     comparison, `abc==s@0:3, still needs the slice-aware read). */
+	  std::string scratch2;
 	  const char* str1 = operand1.symbol_ptr();
-	  const char* str2 = operand2.symbol_ptr();
-	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())==0;
+	  const char* str2 = operand2.cstr(scratch2);
+	  result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
+	                                            : strncmp(str1, str2, nval.int_val())==0;
 	}
 	break;
+      case ComValue::StringType: {
+	/* always a text comparison, never symbol_val() identity -- interning
+	   dedups an ordinary string by content, so identity happened to work
+	   there, but a slice (#395) shares its PARENT's symid, unrelated to
+	   its own effective text (sl=="cde" compared false this way even
+	   though sl prints as "cde", confirmed live).  cstr(), not
+	   string_ptr() -- string_ptr() isn't slice-aware at all (comvalue.h,
+	   attrvalue.h), so it would just read the whole shared parent
+	   string here regardless. */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.cstr(scratch1);
+	const char* str2 = operand2.cstr(scratch2);
+	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)==0
+	                                          : strncmp(str1, str2, nval.int_val())==0;
+	break;
+      }
       case ComValue::ArrayType: 
 	result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
           (operand1.array_val() == operand2.array_val() ||
@@ -376,16 +400,33 @@ void NotEqualFunc::execute() {
     case ComValue::DoubleType:
 	result.boolean_ref() = operand1.double_val() != operand2.double_val();
 	break;
-    case ComValue::StringType:
     case ComValue::SymbolType:
-      if (nval.is_unknown()) 
+      /* identity via symbol_val() only when operand2 is also genuinely
+	 a symbol -- operand1's type alone picked this case. */
+      if (nval.is_unknown() && operand2.type()==ComValue::SymbolType)
 	result.boolean_ref() = operand1.symbol_val() != operand2.symbol_val();
       else {
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be
+	   sliced or modified; operand2 isn't provably a symbol here. */
+	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
-	result.boolean_ref() = strncmp(str1, str2, nval.int_val())!=0;
+	const char* str2 = operand2.cstr(scratch2);
+	result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
+	                                          : strncmp(str1, str2, nval.int_val())!=0;
       }
       break;
+    case ComValue::StringType: {
+      /* always a text comparison, never symbol_val() identity -- a slice
+	 (#395) shares its parent's symid, unrelated to its own text.
+	 cstr(), not string_ptr(): string_ptr() isn't slice-aware at all
+	 (see EqualFunc above for the full reasoning). */
+      std::string scratch1, scratch2;
+      const char* str1 = operand1.cstr(scratch1);
+      const char* str2 = operand2.cstr(scratch2);
+      result.boolean_ref() = nval.is_unknown() ? strcmp(str1, str2)!=0
+	                                        : strncmp(str1, str2, nval.int_val())!=0;
+      break;
+    }
     case ComValue::ArrayType: 
       result.boolean_ref() = operand2.type() != ComValue::ArrayType || 
 	operand1.array_val() != operand2.array_val() &&
@@ -463,8 +504,38 @@ void GreaterThanFunc::execute() {
 	result.boolean_ref() = operand1.double_val() > operand2.double_val();
 	break;
     case ComValue::SymbolType: {
+	/* Greptile, #445: operand1 matching this case says nothing about
+	   operand2 -- a mismatched operand2 (anything not string-like)
+	   would otherwise get read through cstr()/symbol_ptr() as if its
+	   raw union storage were a symid, either comparing against an
+	   unrelated interned symbol or handing strcmp() a null pointer.
+	   Bail to nil the same way the pre-#445 default case always did
+	   for a mismatch, rather than pass unrelated bits through. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified, so there's nothing for cstr() to narrow; operand2
+	   isn't provably a symbol here (a mixed comparison, `abc>s@0:3,
+	   still needs the slice-aware read, #395). */
+	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
+	const char* str2 = operand2.cstr(scratch2);
+	if (nval.is_unknown())
+	  result.boolean_ref() = strcmp(str1, str2)>0;
+	else
+	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())>0;
+	break;
+    }
+    case ComValue::StringType: {
+	/* same operand2 type guard as the SymbolType case above -- see
+	   its comment. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* StringType never handled here at all before -- a pre-existing
+	   gap, not something #395 broke, but the same cstr() migration
+	   applies once it's added: slice-aware for both operands, same
+	   pattern as EqualFunc's own StringType case. */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.cstr(scratch1);
+	const char* str2 = operand2.cstr(scratch2);
 	if (nval.is_unknown())
 	  result.boolean_ref() = strcmp(str1, str2)>0;
 	else
@@ -474,8 +545,8 @@ void GreaterThanFunc::execute() {
     case ComValue::BooleanType:
 	result.boolean_ref() = operand1.boolean_val() > operand2.boolean_val();
 	break;
-    case ComValue::ArrayType: 
-      result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
+    case ComValue::ArrayType:
+      result.boolean_ref() = operand2.type() == ComValue::ArrayType &&
 	operand1.array_val() != operand2.array_val() &&
         operand1.array_val()->GreaterThan(operand2.array_val());
       break;
@@ -532,8 +603,35 @@ void GreaterThanOrEqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() >= operand2.double_val();
 	break;
     case ComValue::SymbolType: {
+	/* Greptile, #445: see GreaterThanFunc's identical guard -- operand1
+	   matching this case says nothing about operand2, and a mismatched
+	   operand2 read through cstr()/symbol_ptr() would compare against
+	   unrelated union bits or crash strcmp() on a null pointer. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified, so there's nothing for cstr() to narrow; operand2
+	   isn't provably a symbol here (a mixed comparison, `abc>=s@0:3,
+	   still needs the slice-aware read, #395). */
+	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
+	const char* str2 = operand2.cstr(scratch2);
+	if (nval.is_unknown())
+	  result.boolean_ref() = strcmp(str1, str2)>=0;
+	else
+	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())>=0;
+	break;
+    }
+    case ComValue::StringType: {
+	/* same operand2 type guard as the SymbolType case above -- see
+	   its comment. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* StringType never handled here at all before -- a pre-existing
+	   gap, not something #395 broke, but the same cstr() migration
+	   applies once it's added: slice-aware for both operands, same
+	   pattern as EqualFunc's own StringType case. */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.cstr(scratch1);
+	const char* str2 = operand2.cstr(scratch2);
 	if (nval.is_unknown())
 	  result.boolean_ref() = strcmp(str1, str2)>=0;
 	else
@@ -596,8 +694,35 @@ void LessThanFunc::execute() {
 	result.boolean_ref() = operand1.double_val() < operand2.double_val();
 	break;
     case ComValue::SymbolType: {
+	/* Greptile, #445: see GreaterThanFunc's identical guard -- operand1
+	   matching this case says nothing about operand2, and a mismatched
+	   operand2 read through cstr()/symbol_ptr() would compare against
+	   unrelated union bits or crash strcmp() on a null pointer. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified, so there's nothing for cstr() to narrow; operand2
+	   isn't provably a symbol here (a mixed comparison, `abc<s@0:3,
+	   still needs the slice-aware read, #395). */
+	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
+	const char* str2 = operand2.cstr(scratch2);
+	if (nval.is_unknown())
+	  result.boolean_ref() = strcmp(str1, str2)<0;
+	else
+	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())<0;
+	break;
+    }
+    case ComValue::StringType: {
+	/* same operand2 type guard as the SymbolType case above -- see
+	   its comment. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* StringType never handled here at all before -- a pre-existing
+	   gap, not something #395 broke, but the same cstr() migration
+	   applies once it's added: slice-aware for both operands, same
+	   pattern as EqualFunc's own StringType case. */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.cstr(scratch1);
+	const char* str2 = operand2.cstr(scratch2);
 	if (nval.is_unknown())
 	  result.boolean_ref() = strcmp(str1, str2)<0;
 	else
@@ -607,8 +732,8 @@ void LessThanFunc::execute() {
     case ComValue::BooleanType:
 	result.boolean_ref() = operand1.boolean_val() < operand2.boolean_val();
 	break;
-    case ComValue::ArrayType: 
-      result.boolean_ref() = operand2.type() == ComValue::ArrayType && 
+    case ComValue::ArrayType:
+      result.boolean_ref() = operand2.type() == ComValue::ArrayType &&
 	operand1.array_val() != operand2.array_val() &&
         operand1.array_val()->LesserThan(operand2.array_val());
       break;
@@ -665,8 +790,35 @@ void LessThanOrEqualFunc::execute() {
 	result.boolean_ref() = operand1.double_val() <= operand2.double_val();
 	break;
     case ComValue::SymbolType: {
+	/* Greptile, #445: see GreaterThanFunc's identical guard -- operand1
+	   matching this case says nothing about operand2, and a mismatched
+	   operand2 read through cstr()/symbol_ptr() would compare against
+	   unrelated union bits or crash strcmp() on a null pointer. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* operand1.symbol_ptr(), not cstr() -- a symbol can't be sliced or
+	   modified, so there's nothing for cstr() to narrow; operand2
+	   isn't provably a symbol here (a mixed comparison, `abc<=s@0:3,
+	   still needs the slice-aware read, #395). */
+	std::string scratch2;
 	const char* str1 = operand1.symbol_ptr();
-	const char* str2 = operand2.symbol_ptr();
+	const char* str2 = operand2.cstr(scratch2);
+	if (nval.is_unknown())
+	  result.boolean_ref() = strcmp(str1, str2)<=0;
+	else
+	  result.boolean_ref() = strncmp(str1, str2, nval.int_val())<=0;
+	break;
+    }
+    case ComValue::StringType: {
+	/* same operand2 type guard as the SymbolType case above -- see
+	   its comment. */
+	if (!operand2.is_string()) { result = ComValue::nullval(); break; }
+	/* StringType never handled here at all before -- a pre-existing
+	   gap, not something #395 broke, but the same cstr() migration
+	   applies once it's added: slice-aware for both operands, same
+	   pattern as EqualFunc's own StringType case. */
+	std::string scratch1, scratch2;
+	const char* str1 = operand1.cstr(scratch1);
+	const char* str2 = operand2.cstr(scratch2);
 	if (nval.is_unknown())
 	  result.boolean_ref() = strcmp(str1, str2)<=0;
 	else
