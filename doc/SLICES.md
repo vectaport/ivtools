@@ -306,16 +306,17 @@ re-derive from the text instead of trusting the symid.
 
 ## 8. Known gaps
 
-- **`#438`, broader than first scoped.** A slice passed as a function
-  keyword argument, a captured free variable, *or* stored as an
-  element of a plain comma-list, loses its `sliced()`/`coloned()`/etc.
-  — `AttributeList` and `AttributeValueList` alike only ever store a
-  plain `AttributeValue`, which has no room for any `ComValue`-only
-  field. Confirmed live: `index(:substr)` on a list built from sliced
-  elements via `,` can't see their slice-ness, the same failure mode
-  keyword-arg passing already had. Not fixable without widening
-  `AttributeList`/`AttributeValue` itself — a much bigger change
-  touching all of ivtools, not scoped here.
+- **`#437`/`#438` — RESOLVED, PRs #450/#451.** A slice/colon-list used
+  to lose its `sliced()`/`coloned()` tag (and even `narg`/`nkey`/`nids`)
+  whenever a `ComValue` was boxed into a plain `AttributeValue`-based
+  container — a function keyword argument, a captured free variable,
+  or any `AttributeList`/`AttributeValueList` entry. Fixed by widening
+  `AttributeValue` itself to carry that block (128 bits: the existing
+  `_command_symid`/`_state` union slot plus three new ints), so a
+  plain `new AttributeValue(value)` now copies it too, and by giving
+  `AttributeValue` a generic render-hook slot so `AttributeList`'s own
+  top-level print can go through `ComValue::operator<<` for the two
+  types (`ArrayType`/`StringType`) that need it.
 - `:set`/`:ins`/`:del` through a slice — not yet supported; falls
   through to `nil`.
 - Slicing a plain list/array — only `is_only_string()` triggers slice
@@ -326,5 +327,38 @@ re-derive from the text instead of trusting the symid.
 - No `symid()` resolve flag — `symid()` deliberately uses
   `stack_arg(i, true)` (unresolved), so `symid(buf)` on a bare variable
   returns the id of the *name* `"buf"`, not `buf`'s own storage symid.
-  `symid(buf+"")` (forcing resolution first, cheaply, via the in-place
-  append fast path) is the workaround today.
+
+  The reliable way to get a slice or plain string's real symid today
+  is `symid(symvar(buf))`, not a self-append trick — `symvar(v)`
+  (symbolfunc.c) is `ComValue symv(stack_arg(0)); push_stack(symv);`:
+  an ordinary eager command that resolves its own argument once via
+  a real `stack_arg(0)` lookup, then hands the result back as the
+  output of a *command call*, not a bare postfix token. `symid()`'s
+  own rule is "grab a bare symbol as-is, otherwise take the
+  already-evaluated input" — so wrapping with `symvar()` first means
+  there's no longer a bare token for `symid()` to grab; it receives
+  `buf`'s already-resolved string content instead, same symid `buf`
+  and any slice of it share:
+
+  ```
+  s = "hello world"
+  greeting = s@0:5
+  symid(symvar(s)) == symid(symvar(greeting))   -- true, same backing symid
+  ```
+
+  `symvar()`'s own primary job is the opposite-looking case — the
+  left-hand side of an assignment, when the target name itself is
+  computed rather than written literally (`sym=symadd(name);
+  symvar(sym)=val` assigns to the variable *named by* `sym`'s content,
+  not to a variable literally called `sym`). Both uses are the same
+  single mechanism (resolve once, hand back a command result instead
+  of a bare token) meeting two consumers with opposite defaults:
+  `symid()` defaults to grabbing a bare symbol as-is (right for a
+  literal symbol-table query, wrong for a value-holding variable);
+  assign's own LHS read defaults to *never* looking up its target
+  (right for an ordinary literal `x=5`, wrong when the name is
+  composed). `symvar()` doesn't know or care which — it just always
+  resolves once — so the same wrapper reads as "stops the grab" from
+  `symid()`'s side and "stops assign's own no-lookup default from
+  targeting the wrong name" from assign's, depending purely on which
+  consumer's default you needed to override.
