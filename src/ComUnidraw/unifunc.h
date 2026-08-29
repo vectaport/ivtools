@@ -62,13 +62,15 @@ public:
 };
 
 //: command to turn on or off the selection tic marks in comdraw.
-// handles(flag) -- enable/disable current selection tic marks and/or highlighting
+// flag=handles([flag] :get) -- enable/disable current selection tic marks and/or
+// highlighting.  :get reads, no argument toggles, an argument sets, and each
+// returns the value now in force, as pastemode() does
 class HandlesFunc : public UnidrawFunc {
 public:
     HandlesFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s([flag]) -- disable/enable current selection tic marks and/or highlighting"; }
+	return "flag=%s([flag] :get) -- disable/enable current selection tic marks and/or highlighting, toggle if no argument, returns the value in force"; }
 };
 
 //: command to paste a graphic in comdraw.

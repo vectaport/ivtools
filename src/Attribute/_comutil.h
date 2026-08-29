@@ -73,5 +73,22 @@ protected: \
         next = class_symid_list(); class_symid_list() = this; } }; \
   static inline _symid_reg_t _symid_reg{1};
 
+//: define class name and class symbol id WITHOUT enrolling in the registry.
+// For a class whose symbol is machinery -- read by is_object() to recognize an
+// internal marker value -- rather than something a script can be handed.  It
+// gets class_symid()/classid() like any other, but plants no registrar, so
+// class(:all) does not offer the reader a name they can never hold a value of.
+#define CLASS_SYMID_HIDDEN(name)  \
+public: \
+  static const char* class_name() {return name;}\
+  static int class_symid()\
+    { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
+  virtual int classid()\
+    { if (_symid<0) _symid=symbol_add((char*)class_name()); return _symid;} \
+  virtual const char* GetClassName()\
+  { return symbol_pntr(classid()); }	\
+protected: \
+  static int _symid;
+
 #endif /* !defined(__comutil.h) */
 

@@ -606,6 +606,7 @@ AttributeValueList* MpyFunc::matrix_mpy(AttributeValueList* list1,
 					AttributeValueList* list2) {
 
   static AddFunc addfunc(comterp());
+  addfunc.funcid(symbol_add("add"));
   Iterator it1, it2;
   list1->First(it1);
   list2->First(it2);

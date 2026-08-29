@@ -119,5 +119,36 @@ ok=ok&&(r12a==`AttributeList)&&(r12b==nil)
 print("12 class(attrlist()) and class(3) unchanged (expect AttributeList nil): %v %v\n" r12a r12b)
 prev_ok=check_fail(:ok ok)
 
+// --- test 13: a command is not a value, so no command class enrolls.  The
+// listing is meant to be names a value can carry, and a command has no value
+// to be the class of -- nothing class(val) could ever answer with ---
+r13a=inlist(lst `AssignFunc)
+r13b=inlist(lst `DotFunc)
+r13c=inlist(lst `TupleFunc)
+ok=ok&&(r13a==false)&&(r13b==false)&&(r13c==false)
+print("13 AssignFunc, DotFunc, TupleFunc in class(:all) (expect false false false): %v %v %v\n" r13a r13b r13c)
+prev_ok=check_fail(:ok ok)
+
+// --- test 14: nor does interpreter scaffolding -- the marker :posteval
+// leaves where an unevaluated argument will go carries a class symbol so the
+// C++ can recognize it, but a script is never handed one ---
+r14=inlist(lst `FuncObjPendingArg)
+ok=ok&&(r14==false)
+print("14 FuncObjPendingArg in class(:all) (expect false): %v\n" r14)
+prev_ok=check_fail(:ok ok)
+
+// --- test 15: every component class in :all is also in :comps.  A component
+// registered with the one-argument macro lands in :all but never in :comps,
+// which is invisible from either listing alone -- this is what catches it.
+// Vacuously true under comterp, which links no component classes ---
+compsok=true
+dummy=for(i=0 i<size(lst) i=i+1
+  nm=print("%v" at(lst i) :str);
+  if(substr(nm size(nm)-4 :after)=="Comp" :then
+    if(!inlist(comps at(lst i)) :then compsok=false)))
+ok=ok&&(compsok==true)
+print("15 every *Comp in class(:all) is in class(:comps) (expect true): %v\n" compsok)
+prev_ok=check_fail(:ok ok)
+
 print("classreg: %v\n" ok)
 ok

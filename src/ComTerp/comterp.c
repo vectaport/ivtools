@@ -458,6 +458,7 @@ ComValue ComTerp::describe_funcobj(FuncObj* fo) {
 
 void ComTerp::fire_funcobj(ComValue& val, AttributeList* extra_keys, ComValue* lazy_posvals) {
   EvalFunc ef(this);
+  ef.funcid(symbol_add("eval"));
   /* keywords still build the body's locals (the _alist); the fixed
      positionals become the func's eager actual args, captured here so
      arg(n)/narg() can serve them inside the body (see funcobj_arg).

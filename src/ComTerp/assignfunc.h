@@ -39,7 +39,6 @@ public:
     virtual const char* docstring() { 
       return "= is the assignment operator"; }
 
-    CLASS_SYMID("AssignFunc");
 };
 
 //: %= (mod assign) operator .

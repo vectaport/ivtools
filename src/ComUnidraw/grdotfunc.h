@@ -47,7 +47,6 @@ public:
     virtual const char* docstring() {
       return "%s(.) makes compound variables, and gives access to ComponentView AttributeList's."; }
 
-    CLASS_SYMID("GrDotFunc");
 };
 
 //: attrlist command, for returning the attribute list of a component.

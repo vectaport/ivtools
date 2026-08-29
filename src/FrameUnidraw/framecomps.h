@@ -51,7 +51,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _frame_ovcomps_params;
 
-    CLASS_SYMID("FrameOverlaysComp");
+    CLASS_SYMID2("FrameOverlaysComp", FRAME_OVERLAYS_COMP);
 };
 
 //: single frame component.
@@ -73,7 +73,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _frame_comp_params;
 
-    CLASS_SYMID("FrameComp");
+    CLASS_SYMID2("FrameComp", FRAME_COMP);
 };
 
 //: composite frame component.
@@ -95,7 +95,7 @@ protected:
     void GrowParamList(ParamList*);
     static ParamList* _frame_comps_params;
     
-    CLASS_SYMID("FramesComp");
+    CLASS_SYMID2("FramesComp", FRAMES_COMP);
 };
 
 //: top-level component for flipbook document.
@@ -143,7 +143,7 @@ protected:
     char* _pathname;
     char* _basedir;
 
-    CLASS_SYMID("FrameIdrawComp");
+    CLASS_SYMID2("FrameIdrawComp", FRAME_IDRAW_COMP);
 };
 
 #endif

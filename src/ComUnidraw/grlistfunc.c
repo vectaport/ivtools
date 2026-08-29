@@ -77,6 +77,7 @@ void GrListAtFunc::execute() {
     }
   } else {
     ListAtFunc atfunc(comterp());
+    atfunc.funcid(symbol_add("at"));
     atfunc.exec(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
     return;
   }
@@ -110,6 +111,7 @@ void GrListSizeFunc::execute() {
     }
   } else {
     ListSizeFunc atfunc(comterp());
+    atfunc.funcid(symbol_add("size"));
     atfunc.exec(funcstate()->nargs(), funcstate()->nkeys(), pedepth());
     return;
   }

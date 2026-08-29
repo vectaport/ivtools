@@ -106,7 +106,6 @@ public:
     virtual const char* docstring() { 
       return ", is the tuple operator"; }
 
-    CLASS_SYMID("TupleFunc");
 
 };
 

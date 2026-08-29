@@ -315,6 +315,7 @@ void PixelClipFunc::execute() {
     
     push_stack(ptsv);
     PointsFunc ptsfunc(comterp(), editor());
+    ptsfunc.funcid(symbol_add("points"));
     ptsfunc.exec(1,0);
     ComValue newptsv = comterp()->pop_stack();
 

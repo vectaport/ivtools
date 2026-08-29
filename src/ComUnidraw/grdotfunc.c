@@ -38,7 +38,6 @@ using std::cerr;
 
 /*****************************************************************************/
 
-int GrDotFunc::_symid = -1;
 
 GrDotFunc::GrDotFunc(ComTerp* comterp) : DotFunc(comterp) {
 }

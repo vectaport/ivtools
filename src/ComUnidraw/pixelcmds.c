@@ -100,6 +100,7 @@ void PolyClipRasterCmd::Execute() {
     comterp->push_stack(rastval);
     comterp->push_stack(vertval);
     PixelClipFunc clipfunc(comterp, ed);
+    clipfunc.funcid(symbol_add("pclip"));
     fprintf(stderr, "PolyClipRasterCmd::Execute ready clipfunc.exec\n");
     clipfunc.exec(2, 0);
   }

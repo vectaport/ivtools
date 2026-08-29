@@ -437,7 +437,6 @@ void ListSizeFunc::execute() {
 
 /*****************************************************************************/
 
-int TupleFunc::_symid = -1;
 
 TupleFunc::TupleFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -567,6 +566,7 @@ void ListIndexFunc::execute() {
 	  comterp()->push_stack(*testv);
 	  comterp()->push_stack(valv);
 	  EqualFunc eqfunc(comterp());
+	  eqfunc.funcid(symbol_add("eq"));
 	  eqfunc.exec(2,0);
 	  match =  comterp()->pop_stack().is_true();
 	} else {

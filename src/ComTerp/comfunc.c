@@ -38,7 +38,6 @@ extern LeakChecker AttributeValuechecker;
 
 /*****************************************************************************/
 
-int ComFunc::_symid = -1;
 
 ComFunc::ComFunc(ComTerp* comterp) {
     _comterp = comterp;
@@ -607,8 +606,11 @@ ComFuncState* ComFunc::funcstate() {
 
 void ComFunc::push_funcstate(int nargs, int nkeys, int pedepth,
 			     int command_symid, unsigned linenum) {
+  /* funcid() is the command's own symbol -- set by ComTerp::add_command, and
+     by hand for the internally-constructed next-funcs -- so it names what was
+     actually called ("streamnext") where classid() named a C++ class. */
   ComFuncState cfs(nargs, nkeys, pedepth, 
-		   command_symid==0 ? classid() : command_symid, linenum );
+		   command_symid==0 ? funcid() : command_symid, linenum );
   _comterp->push_funcstate(cfs);
 }
 

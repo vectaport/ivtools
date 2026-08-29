@@ -42,8 +42,6 @@ using std::cerr;
 
 /*****************************************************************************/
 
-int DotFunc::_symid = -1;
-int DotStreamNextFunc::_symid = -1;
 
 /* off by default -- capturing the pre-fire source text of both args (see
    execute() below) costs a cout redirect + two print_stack_arg_post_eval
@@ -70,6 +68,7 @@ static boolean values_equal(ComTerp* comterp, AttributeValue& a, AttributeValue&
   comterp->push_stack(va);
   comterp->push_stack(vb);
   EqualFunc eqf(comterp);
+  eqf.funcid(symbol_add("eq"));
   eqf.exec(2, 0);
   ComValue result(comterp->pop_stack());
   return result.is_true();

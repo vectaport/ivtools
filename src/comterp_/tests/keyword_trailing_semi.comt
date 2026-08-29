@@ -1,0 +1,104 @@
+// src/comterp_/tests/keyword_trailing_semi.comt -- a keyword whose value ends
+// in a trailing ";" before the closing paren still carries that value
+//
+// funcs: if postfix index max errmsg print
+//
+// A ";" just inside a closing paren is legal: the paren closes the sequence,
+// so the missing right-hand side costs nothing and _empty_statement supplies
+// the operand as an "empty".  The sequence value is unaffected -- (42; ) is
+// 42 -- because empty is not what the sequence answers with.
+//
+// The keyword channel is where it used to go wrong.  A pending keyword is
+// resolved when the closing paren unwinds the operator stack, and it was read
+// as "no value arrived" from expecting == OPTYPE_UNARY_PREFIX alone.  A
+// trailing ";" leaves exactly that state while _empty_statement is busy
+// supplying the operand, so the keyword was emitted with narg 0 -- which
+// ARG-LEVELS.md defines as a BARE FLAG.  Both halves of the call then moved:
+// if(true :then 42; ) answered true, because :then had become a flag whose
+// value is true, and nargsfixed rose by one because the seq stopped counting
+// as the keyword's value and became a fixed positional instead.
+//
+// Only the innermost pending keyword can be in that state -- any deeper one
+// was completed by the value that followed it -- which test 5 pins.
+//
+// This is legal but poor form: write the block in its own parens (test 6).
+// The paren-less spelling collapses as soon as a second keyword follows the
+// ";", which is refused outright (test 10) rather than silently misread.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./keyword_trailing_semi.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: the keyword's value survives the trailing semicolon ---
+r1=if(true :then 42; )
+ok=ok&&(r1==42)
+print("1 if(true :then 42; ) (expect 42): %v\n" r1)
+check_fail(:ok ok)
+
+// --- test 2: and the postfix says why -- narg 1, not a bare flag ---
+r2=index(postfix(if(true :then 42; )) ":then(1)")
+ok=ok&&(r2!=nil)
+print("2 postfix(if(true :then 42; )) carries :then(1) (expect non-nil): %v\n" r2!=nil)
+check_fail(:ok ok)
+
+// --- test 3: the :else value takes the same route ---
+r3=if(false :then 42 :else 88; )
+ok=ok&&(r3==88)
+print("3 if(false :then 42 :else 88; ) (expect 88): %v\n" r3)
+check_fail(:ok ok)
+
+// --- test 4: and the :then branch of that same two-keyword form ---
+r4=if(true :then 42 :else 88; )
+ok=ok&&(r4==42)
+print("4 if(true :then 42 :else 88; ) (expect 42): %v\n" r4)
+check_fail(:ok ok)
+
+// --- test 5: only the innermost pending keyword was ever at risk -- :then
+// was completed by the value that followed it, so both read narg 1 ---
+s5=postfix(if(true :then 42 :else 88; ))
+r5a=index(s5 ":then(1)")
+r5b=index(s5 ":else(1)")
+ok=ok&&(r5a!=nil)&&(r5b!=nil)
+print("5 both keywords carry narg 1 (expect non-nil non-nil): %v %v\n" r5a!=nil r5b!=nil)
+check_fail(:ok ok)
+
+// --- test 6: the good form -- the block in its own parens -- is unchanged ---
+r6=if(true :then (42; ))
+ok=ok&&(r6==42)
+print("6 if(true :then (42; )) (expect 42): %v\n" r6)
+check_fail(:ok ok)
+
+// --- test 7: a non-empty right-hand side never had the problem, since the
+// sequence is completed by a real operand rather than by empty ---
+r7=if(true :then 42; 99)
+ok=ok&&(r7==99)
+print("7 if(true :then 42; 99) (expect 99): %v\n" r7)
+check_fail(:ok ok)
+
+// --- test 8: the sequence value itself is untouched by the trailing empty ---
+r8=(42; )
+ok=ok&&(r8==42)
+print("8 (42; ) (expect 42): %v\n" r8)
+check_fail(:ok ok)
+
+// --- test 9: a command with no keywords never walks the keyword channel,
+// so it was never affected either way ---
+r9=max(3 5; )
+ok=ok&&(r9==5)
+print("9 max(3 5; ) (expect 5): %v\n" r9)
+check_fail(:ok ok)
+
+// --- test 10: a bare flag cannot reach this path at all -- ";" straight
+// after a keyword is refused, so supplying the empty can never turn a
+// genuine bare flag into a keyword carrying a value ---
+print("   (next error is INTENTIONAL -- \";\" directly after a bare keyword, generated to pin that a bare flag never reaches the empty-supplied path)\n")
+type(3 :all; )  // intentional error: ";" directly after a bare keyword -- do not remove or make valid
+e10=errmsg(:last)
+ok=ok&&(e10!=nil)
+print("10 type(3 :all; ) is refused (expect non-nil): %v\n" e10!=nil)
+check_fail(:ok ok)
+
+print("keyword_trailing_semi: %v\n" ok)
+ok

@@ -44,7 +44,6 @@ public:
     virtual const char* docstring() {
       return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list"; }
 
-    CLASS_SYMID("DotFunc");
 
 protected:
     /* Peek both raw args, firing arg 0 if it's an unfired nested command
@@ -115,7 +114,6 @@ public:
     virtual const char* docstring() {
       return "hidden func used by next command for (stream).field dot access (#304)."; }
 
-    CLASS_SYMID("DotStreamNextFunc");
 };
 
 //: name returns name field of a dotted pair
