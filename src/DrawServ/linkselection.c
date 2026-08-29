@@ -70,6 +70,7 @@ void LinkSelection::Init(DrawEditor* editor) {
     _waiting_to_be_selected = new GraphicIdList;
   }
   waiting_count() = granted_count() = 0;
+  silent() = false;
   wtbs_flag() = remote_flag() = paste_in_progress_flag() = false;
 }
 
@@ -147,6 +148,8 @@ void LinkSelection::Reserve() {
 	if (grid->unlocked()) {
 	  /* was temporarily unlocked for distributed cmd -- silent drop */
 	} else {
+	  if (grid->selected()==WaitingToBeSelected)
+	    request_withdrawn();
 	  grid->selected(NotSelected);
 	  ((DrawServ*)unidraw)->grid_message(grid);
 	}
@@ -303,10 +306,27 @@ int LinkSelection::all_requests_resolved(boolean granted) {
   return 0;  // still waiting for more responses
 }
 
+/* a request of ours that died without an answer because we let the graphic go.
+   the count has to come down either way -- it gates the beep and the ding, and
+   a select() that waits on it -- but there is nothing to tell the user: they
+   moved on, which is what withdrew the request. */
+void LinkSelection::request_withdrawn() {
+  if (waiting_count() > 0)
+    waiting_count()--;
+  if (waiting_count() == 0) {
+    wtbs_flag() = false;
+    remote_flag() = false;
+    granted_count() = 0;
+  }
+}
+
 boolean LinkSelection::request_resolved_check(boolean granted, const char* fileline) {
   if (waiting_count() > 0) {
     int status = all_requests_resolved(granted);
-    if (status==-1)
+    if (silent()) {
+      /* a scripted select() is waiting on this and reports it as its return
+	 value -- the answer does not also need to be audible */
+    } else if (status==-1)
       Beep(fileline);
     else if (status==1)
       Ding(fileline);

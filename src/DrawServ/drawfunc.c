@@ -22,6 +22,7 @@
  */
 
 #include <DrawServ/ackback-handler.h>
+#include <ComTerp/comhandler.h>
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawclasses.h>
 #include <DrawServ/drawfunc.h>
@@ -386,6 +387,37 @@ void SessionIdFunc::execute() {
   }
 }
 
+
+/*****************************************************************************/
+
+LinkSelectFunc::LinkSelectFunc(ComTerp* comterp, Editor* ed)
+: SelectFunc(comterp, ed) {
+}
+
+void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
+  LinkSelection* lsel = (LinkSelection*)sel;
+  if (!lsel || lsel->waiting_count()==0) return;
+
+  /* a request answered by another session comes back asynchronously -- the same
+     resolution that beeps or dings for an interactive select.  wait for it, so
+     the list returned is the answer rather than the question, and keep it quiet
+     while waiting: the caller is being told by the return value.  bounded, a
+     node that never replies not being allowed to stall the one that asked, and
+     the selection re-read each time round because running the event loop lets
+     anything arrive, including a select that puts a different one in place. */
+  const int slice_usec = 10000;
+  const int spin_limit = 200;   /* two seconds */
+  int spins = 0;
+  while (spins++ < spin_limit) {
+    LinkSelection* cur = (LinkSelection*)_ed->GetSelection();
+    if (!cur || cur->waiting_count()==0) break;
+    cur->silent() = true;
+    ACE_Time_Value timeout(0, slice_usec);
+    ComterpHandler::reactor_singleton()->handle_events(timeout);
+  }
+  LinkSelection* done = (LinkSelection*)_ed->GetSelection();
+  if (done) done->silent() = false;
+}
 
 /*****************************************************************************/
 

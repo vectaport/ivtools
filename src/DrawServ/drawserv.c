@@ -623,6 +623,15 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	      state==LinkSelection::NotSelected &&
 	      selector != NULL &&
 	      uuid_compare(grid->selector(), selector)==0)) {
+	  if (grid->selected()==LinkSelection::WaitingToBeSelected) {
+	    /* ownership moved while we were asking.  nobody refused us, but we
+	       are not getting it either, so resolve it the way a denial
+	       resolves -- the count has to come down, and from where the asker
+	       sits this is the same disappointment. */
+	    LinkSelection* lsel =
+	      (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
+	    if (lsel) lsel->request_resolved_check(false, FILELINE);
+	  }
 	  grid->selector(selector);
 	  grid->selected(state);
 	}

@@ -1634,16 +1634,23 @@ void SelectFunc::execute() {
       if (lockv.is_string())
         newSel->lock_key(lockv.string_ptr());  // clear after Reserve()
 
+      resolve_requests(newSel);
+
       /* report what was acquired rather than what was asked for: Reserve()
          removes the graphics another session is holding, so a list built while
          appending describes the request, and a select() that was refused reads
-         back as one that succeeded. */
-      Iterator si;
-      for (newSel->First(si); !newSel->Done(si); newSel->Next(si)) {
-        GraphicView* grview = newSel->GetView(si);
-        OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
-        if (comp)
-          avl->Append(new ComValue(new OverlayViewRef(comp), comp->classid()));
+         back as one that succeeded.  read the editor's selection rather than
+         newSel: resolve_requests() may have run the event loop, and anything
+         that arrived during it could have put a different selection in place. */
+      OverlaySelection* cursel = (OverlaySelection*)_ed->GetSelection();
+      if (cursel) {
+        Iterator si;
+        for (cursel->First(si); !cursel->Done(si); cursel->Next(si)) {
+          GraphicView* grview = cursel->GetView(si);
+          OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+          if (comp)
+            avl->Append(new ComValue(new OverlayViewRef(comp), comp->classid()));
+        }
       }
 
       unidraw->Update();

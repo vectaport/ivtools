@@ -30,6 +30,7 @@
 
 #include <ComUnidraw/unifunc.h>
 
+class OverlaySelection;
 class Graphic;
 class RasterOvComp;
 class Transformer;
@@ -272,6 +273,9 @@ class SelectFunc : public UnidrawFunc {
 public:
     SelectFunc(ComTerp*,Editor*);
     virtual void execute();
+    virtual void resolve_requests(OverlaySelection* sel) {}
+    // wait for an answer that arrives asynchronously, before the returned list
+    // is built -- nothing to wait for below DrawServ
     virtual const char* docstring() { 
 	return "%s([compview ... | compview,compview[,... compview]] :all :clear) -- make these graphics the current selection (dflt is current)"; }
     virtual const char** dockeys() {
