@@ -1536,9 +1536,6 @@ void SelectFunc::execute() {
       for (gv->First(i); !gv->Done(i); gv->Next(i)) {
 	GraphicView* subgv = gv->GetView(i);
 	newSel->Append(subgv);
-	OverlayComp* comp = (OverlayComp*)subgv->GetGraphicComp();
-	ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-	avl->Append(compval);
       }
 
     } else if (nargs()==0) {
@@ -1565,11 +1562,8 @@ void SelectFunc::execute() {
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
 	    GraphicView* view = comp->FindView(viewer);
-	    if (view) {
+	    if (view)
 	      newSel->Append(view);
-	      ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-	      avl->Append(compval);
-	    }
 	  }
 	} else if (obj.is_array()) {
 	  Iterator it;
@@ -1581,11 +1575,8 @@ void SelectFunc::execute() {
 	      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	      if (comp) {
 		GraphicView* view = comp->FindView(viewer);
-		if (view) {
+		if (view)
 		  newSel->Append(view);
-		  ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-		  avl->Append(compval);
-		}
 	      }
 	    }
 	    al->Next(it);
@@ -1612,6 +1603,19 @@ void SelectFunc::execute() {
       newSel->Reserve();   // sees unlocked()==true
       if (lockv.is_string())
         newSel->lock_key(lockv.string_ptr());  // clear after Reserve()
+
+      /* report what was acquired rather than what was asked for: Reserve()
+         removes the graphics another session is holding, so a list built while
+         appending describes the request, and a select() that was refused reads
+         back as one that succeeded. */
+      Iterator si;
+      for (newSel->First(si); !newSel->Done(si); newSel->Next(si)) {
+        GraphicView* grview = newSel->GetView(si);
+        OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+        if (comp)
+          avl->Append(new ComValue(new OverlayViewRef(comp), comp->classid()));
+      }
+
       unidraw->Update();
     }
     reset_stack();
