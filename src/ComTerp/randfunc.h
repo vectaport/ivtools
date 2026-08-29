@@ -40,7 +40,7 @@ public:
 
     virtual void execute();
     virtual const char* docstring() { 
-      return "val=%s([minval,maxval]) -- return random number between 0 and 1 or minval,maxval"; }
+      return "val=%s([minval,maxval]) -- return random number between [0,1) or [minval,maxval)"; }
 
     static double drand(double minval, double maxval);
 
