@@ -1657,7 +1657,22 @@ void SelectFunc::execute() {
         }
       }
 
+      /* Clear() above hid the outgoing selection's tic marks and highlighting,
+	 and nothing here put them back: repairing damage repaints graphics and
+	 never draws a handle.  A grant arriving does redraw them, AddComp
+	 ending in Selection::Update, which is why they are only missing when a
+	 select resolves without one -- everything either already ours or
+	 refused outright.  Restore them in the order Selection::Update uses,
+	 with the repaint below standing in for its Repair, and read the
+	 editor's selection since a wait may have replaced ours. */
+      OverlaySelection* shown = (OverlaySelection*)_ed->GetSelection();
+      if (shown)
+	shown->ShowHighlights(viewer);
+
       unidraw->Update();
+
+      if (shown && shown->HandlesEnabled())
+	shown->ShowHandles(viewer);
     }
     reset_stack();
     ComValue retval(avl);
