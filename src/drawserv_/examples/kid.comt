@@ -78,7 +78,7 @@ kid=(
 /* only when there is nothing here yet: with -comt kid.comt the pane loads this
    at startup, and kidmo loads it again over its own connection to drive from --
    two loads, and without this, two welcome creatures */
-if(size(grid(:table))==0 :then kid.animal(:x 300 :y 220 :c kid.colour))
+if(size(children())==0 :then kid.animal(:x 300 :y 220 :c kid.colour))
 
 if(quiet!=true :then
   print("\n===============================================\n");
