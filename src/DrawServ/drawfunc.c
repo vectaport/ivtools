@@ -399,6 +399,8 @@ void GraphicIdFunc::execute() {
   ComValue grantv(stack_key(grant_sym));
   static int state_sym = symbol_add("state");
   ComValue statev(stack_key(state_sym));
+  static int notaken_sym = symbol_add("notaken");
+  ComValue notakenv(stack_key(notaken_sym));
   static int deny_sym = symbol_add("deny");
   ComValue denyv(stack_key(deny_sym));
   static int table_sym = symbol_add("table");
@@ -452,8 +454,11 @@ void GraphicIdFunc::execute() {
       uuid_t gid;
       uuid_parse(grantv.string_ptr(), gid);
       
-      ((DrawServ*)unidraw)->grid_message_callback
-	(link, id, selector, statev.int_val(), gid);
+      if (notakenv.is_true())
+	((DrawServ*)unidraw)->grid_notaken(link, id, selector, gid);
+      else
+	((DrawServ*)unidraw)->grid_message_callback
+	  (link, id, selector, statev.int_val(), gid);
     }
     
   } else if (idv.is_known() && selectorv.is_unknown()) {

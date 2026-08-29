@@ -44,11 +44,24 @@ class ComTerp;
 // as four integers (narg(), nkey(), nids(), pedepth()) used for storing
 // necessary command and keyword state after code conversion and during 
 // interpretation.  
-#define COMVALUE_BQUOTE_FLAG     0x01  // backquote -- return symbol without lookup
-#define COMVALUE_LHS_ASSIGN_FLAG 0x02  // set by AssignFunc on global() or local() ComValue in lhs context
-#define COMVALUE_LOCAL_FLAG      0x04  // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
-#define COMVALUE_COLONED_FLAG    0x08  // set by ColonListFunc -- an ArrayType built by ':', not ','
-#define COMVALUE_SLICED_FLAG     0x10  // set on a StringType sliced from another string (#395) -- sliceoff()/slicelen() hold the window, narg()/nkey() read 0
+// Packed into the high bits of the shared _ext3 word (AttributeValue's
+// widened block, attrvalue.h) -- NOT the _state/_command_symid word: a real
+// command_symid is an unbounded symbol-table index (e.g. "global" itself
+// landed on 225 == 0xE1, colliding with an early flag bit tried there), so
+// nothing that shares space with it can use small fixed bits safely.  _ext3
+// has no such problem: its low byte is nids() (bounded by the scanner's own
+// TOK_* range, comterp.h, comfortably under 0x80) and every flag bit here
+// starts at 0x100, clear of it.  nids()'s own accessor (comvalue.c) reads/
+// writes only that low byte, sign-extended, so -1 (nids()'s own "bare
+// identifier" sentinel) never bleeds into these bits the way _command_symid's
+// -1 sentinel did into the old _state-packed flags.  blocksz() (StringType's
+// still-unconsumed chunk-size field, #395) gives up its dedicated storage
+// here in favor of sliced() -- nothing sets a nonzero blocksz today.
+#define COMVALUE_BQUOTE_FLAG     0x0100 // backquote -- return symbol without lookup
+#define COMVALUE_LHS_ASSIGN_FLAG 0x0200 // set by AssignFunc on global()/local()/at() ComValue in lhs context (also ListAtFunc's ArrayType result, #318)
+#define COMVALUE_LOCAL_FLAG      0x0400 // set by local() on its lvalue symbol -- write the default symbol table, skipping any func frame
+#define COMVALUE_COLONED_FLAG    0x0800 // set by ColonListFunc -- an ArrayType built by ':', not ','
+#define COMVALUE_SLICED_FLAG     0x1000 // set on a StringType sliced from another string (#395) -- sliceoff()/slicelen() hold the window, narg()/nkey() read 0
 
 class ComValue : public AttributeValue {
 public:
@@ -128,52 +141,54 @@ public:
     // language needs separate input/output arglists it counts those too.
     // Always 0 for a StringType, whose storage doubles as a slice's chunk
     // size (#395) -- use blocksz() to read that.
-    void narg(int n) {_narg = n; }
+    void narg(int n) {_ext1 = n; }
     // set number of arguments associated with this command or keyword.
-    void nkey(int n) {_nkey = n; }
+    void nkey(int n) {_ext2 = n; }
     // set number of keywords associated with this command.
-    void nids(int n) {_nids = n; }
-    // set the matched-paren-delimiter kind following a SymbolType.
+    void nids(int n) { _ext3 = (_ext3 & ~0xff) | (n & 0xff); }
+    // set the matched-paren-delimiter kind following a SymbolType -- packed
+    // into _ext3's low byte, sign-extended by nids() (comvalue.c); the flag
+    // bits below share this same word, starting at 0x100.
     int bquote() const;
     // get flag that says this SymbolType has been backquoted
-    void bquote(int flag) { if(flag) _flags |= COMVALUE_BQUOTE_FLAG; else _flags &= ~COMVALUE_BQUOTE_FLAG; }
+    void bquote(int flag) { if (flag) _ext3 |= COMVALUE_BQUOTE_FLAG; else _ext3 &= ~COMVALUE_BQUOTE_FLAG; }
     // set flag that says this SymbolType has been backquoted
     int lhs_assign() const;
     // return flag that indicates this CommandType is on left-hand side of an assignment.
-    void lhs_assign(int flag) { if(flag) _flags |= COMVALUE_LHS_ASSIGN_FLAG; else _flags &= ~COMVALUE_LHS_ASSIGN_FLAG; }
+    void lhs_assign(int flag) { if (flag) _ext3 |= COMVALUE_LHS_ASSIGN_FLAG; else _ext3 &= ~COMVALUE_LHS_ASSIGN_FLAG; }
     // set flag that indicates this CommandType is on the left-hand side of an assignment.
     int local_flag() const;
     // return flag that marks a local() lvalue symbol -- assignment writes the
     // default symbol table, skipping any func frame.
-    void local_flag(int flag) { if(flag) _flags |= COMVALUE_LOCAL_FLAG; else _flags &= ~COMVALUE_LOCAL_FLAG; }
+    void local_flag(int flag) { if (flag) _ext3 |= COMVALUE_LOCAL_FLAG; else _ext3 &= ~COMVALUE_LOCAL_FLAG; }
     // set flag that marks a local() lvalue symbol.
     int coloned() const;
     // return flag that marks an ArrayType as built by ':' rather than ','.
-    void coloned(int flag) { if(flag) _flags |= COMVALUE_COLONED_FLAG; else _flags &= ~COMVALUE_COLONED_FLAG; }
+    void coloned(int flag) { if (flag) _ext3 |= COMVALUE_COLONED_FLAG; else _ext3 &= ~COMVALUE_COLONED_FLAG; }
     // set flag that marks an ArrayType as built by ':' rather than ','.
 
     int sliced() const;
     // return flag that marks a StringType value as a slice of another
     // string, sharing its symid rather than owning a copy (#395).
-    void sliced(int flag) { if(flag) _flags |= COMVALUE_SLICED_FLAG; else _flags &= ~COMVALUE_SLICED_FLAG; }
+    void sliced(int flag) { if (flag) _ext3 |= COMVALUE_SLICED_FLAG; else _ext3 &= ~COMVALUE_SLICED_FLAG; }
     // set flag that marks a StringType value as a slice.
     int sliceoff() const;
     // offset of a slice's window into its symid string; valid only when sliced().
-    void sliceoff(int off) { _narg = off; }
+    void sliceoff(int off) { _ext1 = off; }
     // set a slice's window offset.
     int slicelen() const;
     // length of a slice's window into its symid string; valid only when sliced().
-    void slicelen(int len) { _nkey = len; }
+    void slicelen(int len) { _ext2 = len; }
     // set a slice's window length.
-    int blocksz() const;
-    // chunk size of a slice, in bytes -- 0 (the default) means an ordinary
-    // byte-granular slice, same as today; a future consumer reading a
-    // nonzero value would treat sliceoff()/slicelen() as counts of
-    // blocksz()-byte chunks rather than raw bytes, so a string slice can
-    // describe more than chars, Go-style (#395).  Not consumed anywhere
-    // yet -- this is the storage, not the feature.
-    void blocksz(int sz) { _nids = sz; }
-    // set a slice's chunk size.
+    int blocksz() const { return 0; }
+    // chunk size of a slice, in bytes -- always 0 (an ordinary byte-granular
+    // slice) for now.  Was its own field in _ext3 (#395); gave up that
+    // storage to sliced() and the rest of the flag bits above, since nothing
+    // sets a nonzero blocksz yet -- this was documented as reserved storage,
+    // not a shipped feature, before the giveback.  A real implementation
+    // needs its own field again, found some other way.
+    void blocksz(int sz) { }
+    // no-op -- see blocksz() above.
 
     const char* cstr(std::string& scratch);
     // the slice-aware way to get a StringType value's text (#395) --
@@ -256,13 +271,12 @@ public:
     // return true if ObjectType of DateObj
 
 protected:
-    void zero_vals() { _narg = _nkey = _nids = _pedepth = _flags = 0; }
+    // narg/nkey/nids (_ext1/_ext2/_ext3) and the flag bits packed into
+    // _state are all inherited storage -- see AttributeValue's comment on
+    // its own union (attrvalue.h) for why they live there instead of here.
+    void zero_vals() { _ext1 = _ext2 = _ext3 = _pedepth = 0; }
 
-    int _narg;
-    int _nkey;
-    int _nids;
     int _pedepth;
-    int _flags;  // bitfield: COMVALUE_BQUOTE_FLAG, COMVALUE_LHS_ASSIGN_FLAG, ...
     unsigned _linenum;
 
     static const ComTerp* _comterp;

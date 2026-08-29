@@ -310,7 +310,7 @@ public:
     void stream_list(AttributeValueList* list); 
     // set pointer to AttributeValueList associated with stream object
 
-    int state_word();
+    int state_word() const;
     // raw state word with the -1 (_command_symid "no command") initializer read as 0
     int state();
     // get generic state value useful for any type other than CommandType, ObjectType, or StreamType
@@ -429,9 +429,34 @@ public:
     // return true if ObjectType matches or is a parent class
 
     friend ostream& operator << (ostream& s, const AttributeValue&);
-    // output AttributeValue to ostream.
+    // output AttributeValue to ostream -- consults render_hook() first
+    // (below) for ArrayType/StringType if one is installed, since those are
+    // the only two types with ComTerp-specific meaning layered on the
+    // shared block (see install_render_hook()'s own comment); every other
+    // type always uses this class's own generic printing.
     virtual const char* String();
     // generate string using << operator
+
+    typedef ostream& (*RenderHook)(ostream&, const AttributeValue&);
+    static void install_render_hook(RenderHook hook) { _render_hook = hook; }
+    // let a caller from outside this library render an ArrayType/StringType
+    // value its own way -- e.g. ComTerp (comvalue.c) installs one at
+    // library-load time so an AttributeList's own top-level print of an
+    // attribute's value (its stored type is always a plain AttributeValue*,
+    // attrlist.c) goes through ComValue::operator<< instead of this
+    // class's own generic printing, and so gets ComTerp-specific
+    // interpretation of the shared narg/nkey/nids/flags block (a
+    // coloned() list's ':' form, a sliced string's own window via
+    // cstr()) that this class only stores, never interprets (see the
+    // block's own comment below).  Every other type keeps this class's own
+    // formatting regardless of whether a hook is installed -- it's already
+    // correct, and ComValue's own printing follows different, brief-REPL-
+    // echo conventions for some of them (e.g. an unquoted char) that would
+    // be wrong in an attribute's embedded-value context.  Passing nil
+    // clears the hook, reverting to this class's own rendering for
+    // ArrayType/StringType too -- handy for seeing exactly what the raw
+    // bytes look like without any hook's interpretation layered on.
+    static RenderHook _render_hook;
 
     void* value_ptr() { return &_v; }
     // returns void* pointer to value struct.
@@ -458,12 +483,25 @@ protected:
 
     ValueType _type;
     attr_value _v;
-    union { 
+    union {
       int _command_symid; // used for CommandType.
       boolean _object_compview; // used for ObjectType.
       int _stream_mode; // used for StreamType
-      int _state; // useful for any type other than CommandType, ObjectType, or StreamType
+      int _state; // useful for any type other than CommandType, ObjectType, or
+                  // StreamType
     };
+    /* Three more ints, widening the block above to a full 128 bits -- give
+       every AttributeValue the storage weight of a ComValue's command arity
+       (narg/nkey/nids) or a StringType slice window (sliceoff/slicelen),
+       without AttributeValue itself knowing which. ComValue (comvalue.h) is
+       the only class that interprets them; here they are just bytes that
+       get stored and copied.  ComValue's bquote/lhs_assign/local/coloned/
+       sliced flag bits live in _ext3 too, above nids()'s own low byte --
+       NOT in _state/_command_symid above: a real command_symid is an
+       unbounded symbol-table index (comvalue.h has the story of the
+       collision that ruled that out), so nothing sharing its word can use
+       small fixed bits safely, unlike _ext3's bounded low byte. */
+    int _ext1, _ext2, _ext3;
     static int* _type_syms;
 
 #ifdef LEAKCHECK

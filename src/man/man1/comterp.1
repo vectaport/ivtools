@@ -430,6 +430,13 @@ Print a usage summary of all the invocation modes above and exit.
  flag=isfunc(var :sym) -- true if var holds a func(), without evaluating it;
  with :sym, return `FuncObj (nil if false) instead of a flag
 
+ flag=isslice(var) -- true if var is a string sliced from another string
+
+ flag=islist(var [:list] [:attr] [:colon] [:any]) -- true if var is
+ list-shaped; bare (no keyword) matches any array, comma- or colon-built;
+ :list or :colon alone narrows to just that one; :attr matches an
+ attribute list instead; :any matches any of the three
+
  int=ctoi(char) -- convert character to integer
 
  flag=isspace(char) -- return true if character is whitespace

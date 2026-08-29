@@ -73,8 +73,14 @@ ComValue::ComValue(ComValue* sv) {
 }
 
 ComValue::ComValue(AttributeValue& sv) {
+    /* narg/nkey/nids and the flag bits (sliced() among them, #395) now live
+       in AttributeValue's own storage, so the assignment above already
+       carries them over when sv was itself a boxed ComValue -- zero_vals()
+       must not stomp them back to 0 here, unlike before this storage moved
+       up from ComValue.  _pedepth has no AttributeValue-level counterpart
+       to inherit, so it alone still needs an explicit reset. */
     *(AttributeValue*)this = sv;
-    zero_vals();
+    _pedepth = 0;
 }
 
 ComValue::ComValue() {
@@ -140,23 +146,21 @@ ComValue::ComValue(postfix_token* token) {
     case TOK_BLANK:   type(BlankType); break;
     default:          type(UnknownType); break;
     }
-    _narg = token->narg;
-    _nkey = token->nkey;
-    _nids = token->nids;  // nids not always used for number-of-ids
+    _ext1 = token->narg;
+    _ext2 = token->nkey;
+    _ext3 = token->nids & 0xff;  // nids not always used for number-of-ids;
+                                  // low byte only -- see nids(int) (comvalue.h)
     _linenum = token->ln;
 
     _command_symid = -1;
     _pedepth = 0;
-    _flags = 0;
 }
 
 ComValue& ComValue::operator= (const ComValue& sv) {
+    // narg/nkey/nids and the flag bits are inherited storage --
+    // assignval() (AttributeValue) already copies them.
     assignval(sv);
-    _narg = sv._narg;
-    _nkey = sv._nkey;
-    _nids = sv._nids;
     _pedepth = sv._pedepth;
-    _flags = sv._flags;
     _linenum = sv._linenum;
     #if 0  // duplicated ref_as_needed call in assignval()
     ref_as_needed();
@@ -164,17 +168,23 @@ ComValue& ComValue::operator= (const ComValue& sv) {
     return *this;
 }
     
-int ComValue::narg() const { return type()==ComValue::StringType ? 0 : _narg; }
-int ComValue::nkey() const { return type()==ComValue::StringType ? 0 : _nkey; }
-int ComValue::nids() const { return type()==ComValue::StringType ? 0 : _nids; }
-int ComValue::bquote() const { return _flags & COMVALUE_BQUOTE_FLAG; }
-int ComValue::lhs_assign() const { return _flags & COMVALUE_LHS_ASSIGN_FLAG; }
-int ComValue::local_flag() const { return _flags & COMVALUE_LOCAL_FLAG; }
-int ComValue::coloned() const { return _flags & COMVALUE_COLONED_FLAG; }
-int ComValue::sliced() const { return _flags & COMVALUE_SLICED_FLAG; }
-int ComValue::sliceoff() const { return _narg; }
-int ComValue::slicelen() const { return _nkey; }
-int ComValue::blocksz() const { return _nids; }
+int ComValue::narg() const { return type()==ComValue::StringType ? 0 : _ext1; }
+int ComValue::nkey() const { return type()==ComValue::StringType ? 0 : _ext2; }
+int ComValue::nids() const {
+  if (type()==ComValue::StringType) return 0;
+  /* sign-extend the low byte -- nids()'s own "bare identifier" sentinel is
+     -1, stored as 0xff there so it never sets any of the flag bits sharing
+     this word (comvalue.h, COMVALUE_*_FLAG start at 0x100). */
+  int lo = _ext3 & 0xff;
+  return (lo & 0x80) ? (lo | ~0xff) : lo;
+}
+int ComValue::bquote() const { return _ext3 & COMVALUE_BQUOTE_FLAG; }
+int ComValue::lhs_assign() const { return _ext3 & COMVALUE_LHS_ASSIGN_FLAG; }
+int ComValue::local_flag() const { return _ext3 & COMVALUE_LOCAL_FLAG; }
+int ComValue::coloned() const { return _ext3 & COMVALUE_COLONED_FLAG; }
+int ComValue::sliced() const { return _ext3 & COMVALUE_SLICED_FLAG; }
+int ComValue::sliceoff() const { return _ext1; }
+int ComValue::slicelen() const { return _ext2; }
 
 const char* ComValue::cstr(std::string& scratch) {
   /* string_ptr() itself was tried as this mechanism (made virtual,
@@ -424,6 +434,27 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
     out << AttributeValue::wrapper_close(wrapper);
     return out;
 }
+
+/* AttributeValue::install_render_hook() (attrvalue.h) lets a value stored
+   as a plain AttributeValue* -- e.g. an Attribute's own value, attrlist.c,
+   which can never be a ComValue* since Attribute lives in a lower library
+   that can't see ComTerp -- still print with ComTerp's own interpretation
+   of the shared narg/nkey/nids/flags block (a coloned() list's ':' form, a
+   sliced string's own window via cstr()) instead of AttributeValue's
+   generic fallback.  Installed once, here, at library-load time (the same
+   self-registering-static-local idiom this file already uses for one-time
+   symbol setup, e.g. ComValue::is_funcobj()'s posteval check) rather than
+   at any particular print call site: the hook itself is stateless (brief
+   mode etc. still comes from the existing ComValue::comterp() pointer, set
+   independently at each print call site), so it never needs re-arming, and
+   -- since nothing ever clears it mid-traversal -- it's already in effect
+   at any nesting depth a list's own recursive printing reaches. */
+static ostream& comvalue_render_hook(ostream& out, const AttributeValue& av) {
+  ComValue cv((AttributeValue&)av);
+  return out << cv;
+}
+static boolean _comvalue_render_hook_installed =
+  (AttributeValue::install_render_hook(comvalue_render_hook), true);
 
 const char* ComValue::String() {
     streambuf* strmbuf = nil;
