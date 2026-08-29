@@ -1500,6 +1500,36 @@ void ColorFunc::execute() {
 SelectFunc::SelectFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
+ChildrenFunc::ChildrenFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void ChildrenFunc::execute() {
+    ComValue parentv(stack_arg(0));
+    reset_stack();
+
+    Viewer* viewer = _ed->GetViewer();
+    GraphicView* gv = nil;
+    if (parentv.object_compview()) {
+      ComponentView* comview = (ComponentView*)parentv.obj_val();
+      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+      if (comp) gv = comp->FindView(viewer);
+    } else
+      gv = ((OverlayEditor*)_ed)->GetFrame();
+
+    AttributeValueList* avl = new AttributeValueList();
+    if (gv) {
+      Iterator i;
+      for (gv->First(i); !gv->Done(i); gv->Next(i)) {
+	GraphicView* subgv = gv->GetView(i);
+	OverlayComp* comp = subgv ? (OverlayComp*)subgv->GetGraphicComp() : nil;
+	if (comp)
+	  avl->Append(new ComValue(new OverlayViewRef(comp), comp->classid()));
+      }
+    }
+    ComValue retval(avl);
+    push_stack(retval);
+}
+
 void SelectFunc::execute() {
     static int all_symid = symbol_add("all");
     ComValue all_flagv(stack_key(all_symid));
@@ -1536,9 +1566,6 @@ void SelectFunc::execute() {
       for (gv->First(i); !gv->Done(i); gv->Next(i)) {
 	GraphicView* subgv = gv->GetView(i);
 	newSel->Append(subgv);
-	OverlayComp* comp = (OverlayComp*)subgv->GetGraphicComp();
-	ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-	avl->Append(compval);
       }
 
     } else if (nargs()==0) {
@@ -1552,9 +1579,13 @@ void SelectFunc::execute() {
 	if (compval) {
 	  avl->Append(compval);
 	}
-	delete newSel;
-        newSel = nil;
       }
+      /* the query form installs no selection at all.  inside the loop this ran
+	 only when there was something to report, so querying an empty selection
+	 fell through to the block below and cleared the editor's selection --
+	 and, once select() waits, blocked on the pending count as well. */
+      delete newSel;
+      newSel = nil;
 
     } else {
 
@@ -1565,11 +1596,8 @@ void SelectFunc::execute() {
 	  OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	  if (comp) {
 	    GraphicView* view = comp->FindView(viewer);
-	    if (view) {
+	    if (view)
 	      newSel->Append(view);
-	      ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-	      avl->Append(compval);
-	    }
 	  }
 	} else if (obj.is_array()) {
 	  Iterator it;
@@ -1581,11 +1609,8 @@ void SelectFunc::execute() {
 	      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
 	      if (comp) {
 		GraphicView* view = comp->FindView(viewer);
-		if (view) {
+		if (view)
 		  newSel->Append(view);
-		  ComValue* compval = new ComValue(new OverlayViewRef(comp), comp->classid());
-		  avl->Append(compval);
-		}
 	      }
 	    }
 	    al->Next(it);
@@ -1612,6 +1637,26 @@ void SelectFunc::execute() {
       newSel->Reserve();   // sees unlocked()==true
       if (lockv.is_string())
         newSel->lock_key(lockv.string_ptr());  // clear after Reserve()
+
+      resolve_requests(newSel);
+
+      /* report what was acquired rather than what was asked for: Reserve()
+         removes the graphics another session is holding, so a list built while
+         appending describes the request, and a select() that was refused reads
+         back as one that succeeded.  read the editor's selection rather than
+         newSel: resolve_requests() may have run the event loop, and anything
+         that arrived during it could have put a different selection in place. */
+      OverlaySelection* cursel = (OverlaySelection*)_ed->GetSelection();
+      if (cursel) {
+        Iterator si;
+        for (cursel->First(si); !cursel->Done(si); cursel->Next(si)) {
+          GraphicView* grview = cursel->GetView(si);
+          OverlayComp* comp = grview ? (OverlayComp*)grview->GetSubject() : nil;
+          if (comp)
+            avl->Append(new ComValue(new OverlayViewRef(comp), comp->classid()));
+        }
+      }
+
       unidraw->Update();
     }
     reset_stack();
