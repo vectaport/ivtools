@@ -1,0 +1,81 @@
+// src/comterp_/examples/slicebubblesort.comt -- in-place recursive bubble
+// sort of a randomized alphabet, using comterp's string slices (#395) as
+// the in-place window
+//
+// funcs: func arg if while string char size rand srand int time print
+//
+// Slicing only understands strings today -- colonslice.comt's own header
+// documents the gap ("slicing a plain list/array" is not yet attempted,
+// since only listv.is_only_string() triggers slice logic).  So the
+// "array" of 26 letters here IS a string: a mutable, fixed-size buffer
+// that @i/@i=c can read and write character by character.  That's also
+// why bubble, not merge: a merge step needs somewhere to merge INTO, and
+// the whole point of a slice is that it shares its parent's backing
+// memory rather than allocating a new one.  Bubble sort's recursive step
+// -- one adjacent-swap pass, then recurse on everything but the last
+// slot -- needs nothing but a shrinking window onto the same buffer, so
+// slices fit it exactly: win@0:(n-1) is not a copy of the front n-1
+// characters, it's the same characters, still writable at their original
+// addresses.
+//
+// One lexer gotcha met along the way, the trailing-side twin of the one
+// colonslice.comt already flags: a colon slice's hi bound must be a
+// literal or a parenthesized expression -- s@0:size(s) reads size's own
+// leading "s" as a stray keyword lexeme ("Unexpected keyword"), where
+// s@0:(size(s)) does not, because the parenthesis breaks the ambiguity
+// before the scanner ever gets to guess.
+//
+// Run from the repo root:
+//   comterp run src/comterp_/examples/slicebubblesort.comt
+
+// --- build the alphabet, a-z, into a mutable 26-character string ---
+alpha=string(26)
+i=0
+while(i<26 alpha@i=char(97+i); i=i+1)
+
+// --- Fisher-Yates shuffle, in place, one @-read/@-write pair per swap ---
+// (seed printed so a run can be reproduced with srand(seed) beforehand)
+seed=int(time(:raw :ms)%1000000)
+srand(seed)
+print("seed: %v -- rerun with srand(%v) above to reproduce this shuffle\n\n" seed seed)
+
+i=25
+while(i>0
+  j=int(rand(0,i+1));
+  ci=alpha@i;
+  cj=alpha@j;
+  alpha@i=cj;
+  alpha@j=ci;
+  i=i-1)
+
+print("shuffled: %s\n\n" print(alpha :str))
+
+// --- recursive in-place bubble sort ---
+// win is the live window for this recursion level (a slice sharing
+// alpha's own backing buffer); full is alpha itself, kept alongside just
+// so each swap can be shown against the whole 26 characters rather than
+// whatever's left of the shrinking window.  One pass bubbles the largest
+// remaining character to the end of win; the recursive call then drops
+// that settled slot by taking win@0:(n-1), one character narrower, still
+// the same memory.
+bubblesort=func(
+  win=arg(0);
+  full=arg(1);
+  n=size(win);
+  if(n<=1
+    :then nil
+    :else (
+      i=0;
+      while(i<n-1
+        if(win@i>win@(i+1)
+          :then (
+            t=win@i;
+            win@i=win@(i+1);
+            win@(i+1)=t;
+            print("swap: %s\n" print(full :str))));
+        i=i+1);
+      bubblesort(win@0:(n-1) full))))
+
+bubblesort(alpha alpha)
+
+print("\nsorted:   %s\n" print(alpha :str))
