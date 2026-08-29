@@ -156,6 +156,7 @@ void AssignFunc::execute() {
       ComValue setkey(set_symid, 1);
       push_stack(setkey);
       ListAtFunc atfunc(comterp());
+      atfunc.funcid(symbol_add("at"));
       /* narg counts non-keyword args INCLUDING the value that follows a
 	 keyword (see the ~~ spread-operator rebuild, comterp.c ~316) --
 	 4 physical pushes above (list, idx, :set's value, :set's marker)
@@ -196,6 +197,7 @@ void ModAssignFunc::execute() {
 	push_stack(*op1val);
 	push_stack(operand2);
 	ModFunc modfunc(comterp());
+	modfunc.funcid(symbol_add("mod"));
 	modfunc.exec(2,0);
 	ComValue result(pop_stack());
         op1val->assignval(result);
@@ -225,6 +227,7 @@ void MpyAssignFunc::execute() {
 	push_stack(*op1val);
 	push_stack(operand2);
 	MpyFunc mpyfunc(comterp());
+	mpyfunc.funcid(symbol_add("mpy"));
 	mpyfunc.exec(2,0);
 	ComValue result(pop_stack());
         op1val->assignval(result);
@@ -253,6 +256,7 @@ void AddAssignFunc::execute() {
 	push_stack(*op1val);
 	push_stack(operand2);
 	AddFunc addfunc(comterp());
+	addfunc.funcid(symbol_add("add"));
 	addfunc.exec(2,0);
 	ComValue result(pop_stack());
         op1val->assignval(result);
@@ -282,6 +286,7 @@ void SubAssignFunc::execute() {
 	push_stack(*op1val);
 	push_stack(operand2);
 	SubFunc subfunc(comterp());
+	subfunc.funcid(symbol_add("sub"));
 	subfunc.exec(2,0);
 	ComValue result(pop_stack());
         op1val->assignval(result);
@@ -311,6 +316,7 @@ void DivAssignFunc::execute() {
 	push_stack(*op1val);
 	push_stack(operand2);
 	DivFunc divfunc(comterp());
+	divfunc.funcid(symbol_add("div"));
 	divfunc.exec(2,0);
 	ComValue result(pop_stack());
         op1val->assignval(result);
@@ -339,6 +345,7 @@ void IncrFunc::execute() {
 	    one.int_ref() = 1;
 	    push_stack(one);
 	    AddFunc addfunc(comterp());
+	    addfunc.funcid(symbol_add("add"));
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
             op1val->assignval(result);
@@ -370,6 +377,7 @@ void IncrAfterFunc::execute() {
 	    one.int_ref() = 1;
 	    push_stack(one);
 	    AddFunc addfunc(comterp());
+	    addfunc.funcid(symbol_add("add"));
 	    addfunc.exec(2,0);
 	    ComValue result(pop_stack());
 	    push_stack(*op1val);
@@ -399,6 +407,7 @@ void DecrFunc::execute() {
 	    one.int_ref() = 1;
 	    push_stack(one);
 	    SubFunc subfunc(comterp());
+	    subfunc.funcid(symbol_add("sub"));
 	    subfunc.exec(2,0);
 	    ComValue result(pop_stack());
             op1val->assignval(result);
@@ -429,6 +438,7 @@ void DecrAfterFunc::execute() {
 	    one.int_ref() = 1;
 	    push_stack(one);
 	    SubFunc subfunc(comterp());
+	    subfunc.funcid(symbol_add("sub"));
 	    subfunc.exec(2,0);
 	    ComValue result(pop_stack());
 	    push_stack(*op1val);
