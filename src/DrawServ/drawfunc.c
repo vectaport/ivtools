@@ -398,6 +398,17 @@ void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
   LinkSelection* lsel = (LinkSelection*)sel;
   if (!lsel || lsel->waiting_count()==0) return;
 
+  /* a select that arrived over a link is part of somebody else's distributed
+     command -- the :unlock/:lock bracket around a graphic state change runs
+     three of them.  Nothing else in such a command yields, unidraw->Update()
+     deferring rather than repainting, so a grant cannot arrive in the middle of
+     one and be taken for an answer to it.  Waiting here would be the one thing
+     that opened that door, and would stall a node for two seconds over a colour
+     it was only relaying.  Fire and forget, the way the interactive select
+     does. */
+  DrawServHandler* wire = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
+  if (wire && wire->drawlink()) return;
+
   /* a request answered by another session comes back asynchronously -- the same
      resolution that beeps or dings for an interactive select.  wait for it, so
      the list returned is the answer rather than the question, and keep it quiet

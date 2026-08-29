@@ -1665,14 +1665,19 @@ void SelectFunc::execute() {
 	 refused outright.  Restore them in the order Selection::Update uses,
 	 with the repaint below standing in for its Repair, and read the
 	 editor's selection since a wait may have replaced ours. */
-      OverlaySelection* shown = (OverlaySelection*)_ed->GetSelection();
-      if (shown)
-	shown->ShowHighlights(viewer);
-
       unidraw->Update();
 
+      /* Clear() above hid the outgoing selection's tic marks and highlighting
+	 and nothing put them back.  unidraw->Update() cannot: it defers, and
+	 the repaint it schedules repairs the damage that hiding them made --
+	 over anything drawn here beforehand.  Selection::Update repairs and
+	 then draws, which is the order that survives, and it is what #210 took
+	 out of here for the cost of its Repair; keep that saving where it was
+	 aimed, at animation loops, which run with handles disabled.  Read the
+	 editor's selection since a wait may have replaced ours. */
+      OverlaySelection* shown = (OverlaySelection*)_ed->GetSelection();
       if (shown && shown->HandlesEnabled())
-	shown->ShowHandles(viewer);
+	shown->Update(viewer);
     }
     reset_stack();
     ComValue retval(avl);
