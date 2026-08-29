@@ -2624,6 +2624,77 @@ When both args are strings, substring search is the default behavior.
 
 Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
 
+### Slices
+
+`str@lo:hi` is a **slice**: a view into `str`'s own storage from `lo` up
+to (but not including) `hi` — Go-style, `hi` exclusive — not a copy:
+
+```
+s="hello world"
+sl=s@0:5          // "hello" -- same storage as s, no copy
+sl@0='H'
+s                  // "Hello world" -- the write shows through the parent
+```
+
+Because a slice shares storage with whatever it was cut from, a write
+through either side is visible through the other. That is a deliberate
+tradeoff for cheap slicing, not a bug — the same one Go itself makes.
+
+The core string-reading commands understand slices: `size(sl)`, `index(sl
+...)`, `split(sl ...)`, `sl==...`, `sl<...`, and `print(sl)` all read (or
+compare against) just `sl`'s own window, never the whole parent. Some
+operations and value-passing paths remain unsupported — see the known
+gaps in `doc/SLICES.md`.
+
+Slices compose: slicing a slice bounds against *its* window, not the
+original string's:
+
+```
+s="abcdefg"
+sl=s@2:5          // "cde"
+sl@0:1             // "c" -- position 0 of sl, not of s
+```
+
+**Growable strings**, for building a string up over time instead of
+always concatenating fresh copies:
+
+```
+buf=string(20)             // 20-byte buffer, empty content, capacity 20
+at(buf 0 :set 'h')
+at(buf 1 :set 'i')
+a=buf+" there"               // written in place -- buf had room
+strcap(a)                     // 20 -- same buffer, not reallocated
+buf                             // "hi there" -- visible through buf too
+```
+
+`+` writes into a string's own spare capacity when there's room, the
+same amortized-growth model Go's `append()` uses — no copy, and (same
+tradeoff as above) the growth is visible through every reference to
+that buffer. Once capacity runs out, `+` falls back to allocating a
+fresh, larger string and copying, leaving the original untouched.
+Concatenating two ordinary strings (no spare capacity to reuse) always
+takes this copying path — the fast path is specifically for a
+`string()` buffer with room left in it.
+
+`:` is comterp's colon-pair operator, not slice-specific — `str@lo:hi`
+is just `at()` fed a two-element `:`-built list as its index. `lo:hi`
+on its own is a real, generic value:
+
+```
+r=0:3
+size(r)           // 2
+r@0                // 0
+r                   // 0:3 -- prints without braces, unlike an ordinary list
+```
+
+It chains and flattens rather than nesting: `1:2:3` builds `{1,2,3}`,
+not `{{1,2},3}`. A bare identifier operand is captured as its own
+symbol, never looked up — `Dec:25` is fine even if `Dec` was never
+assigned anything.
+
+See `doc/SLICES.md` for the fuller design story — the aliasing model,
+the growth/append mechanics, and the gaps not yet closed.
+
 ## Symbols
 
 A symbol is an interned string — a unique integer id associated with a

@@ -26,6 +26,7 @@
 
 #include <DrawServ/draweditor.h>
 #include <ComUnidraw/unifunc.h>
+#include <ComUnidraw/grfunc.h>
 
 //: command to connect to another drawserv
 // drawlink([hoststr] :port portnum :state num :lid nu :rid num :close :dump) -- connect to remote drawserv
@@ -54,7 +55,19 @@ public:
     GraphicIdFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
+	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny :notaken) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
+};
+
+//: select() that waits for the distributed answer, in drawserv.
+// select([compview ...] :all :clear :unlock key :lock key) -- as comdraw's
+// select(), but a request that has to be answered by another session is waited
+// on before returning, so the returned list is what was granted rather than
+// what was asked for.  the wait is silent: an interactive select beeps or dings
+// when its answer lands, a scripted one is told in the return value.
+class LinkSelectFunc : public SelectFunc {
+public:
+    LinkSelectFunc(ComTerp*,Editor*);
+    virtual void resolve_requests(OverlaySelection* sel);
 };
 
 //: command to return point list associated with a graphic

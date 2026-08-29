@@ -854,8 +854,14 @@ int status;
 	 else
 	   expecting = OPTYPE_BINARY;
 
-      /* Take all operators off the stack of higher priority than this one */
+      /* Take all operators off the stack of higher priority than this one.
+	 A unary prefix operator pops nothing: its operand is entirely to
+	 its right, so nothing already stacked can be completed by it, and
+	 popping would emit that operator before its own operand ($$ $x,
+	 1 + $x, 2 ** *s).  Priority orders what the prefix operator binds
+	 to on its right, not what it closes off on its left. */
 	 while ( TopOfOperStack >= 0 &&
+		 optype != OPTYPE_UNARY_PREFIX &&
 		 INSTACK_PRIORITY_HIGHER(opr_tbl_priority(op_ids[optype]))) 
          {
              if (OperStack[TopOfOperStack].oper_type == OPERATOR)

@@ -98,6 +98,18 @@ instructions are in **`INSTALL`**.
   `*.o`, `a.out`, …) are git-ignored.
 - `ARCHBUILD.sh` is the canonical full-from-scratch build recipe (it runs
   `configure` + `make` + `make Makefiles` + `make` to settle imake deps).
+- `doc/TROUBLESHOOTING.md` indexes recurring symptoms (a crash unrelated to your
+  change, `update()` not waiting, a loop that never ends) by what you see, with
+  the first move for each.
+- Header dependencies live in `Makefile.depend`, which `make depend` writes as a
+  snapshot rather than maintaining automatically. Add an `#include` and that
+  dependency stays invisible until `make depend` is rerun, so later edits to the
+  header rebuild nothing that needs it. Objects built against an old copy of a
+  header then link beside new ones, and when the header changed the layout of a
+  class the crash surfaces far from the edit that caused it, usually inside a
+  copy or an assignment. Rerun `make depend` after adding includes; when a
+  segfault doesn't correspond to what you changed, `make clean` and rebuild
+  before digging further.
 - To build with AddressSanitizer for memory debugging, follow
   **`config/SANITIZE.md`** — note the imake-specific gotcha: use the `OTHER_*`
   flag hooks in Imakefiles, **not `EXTRA_*`** (which `config/params.def`

@@ -1,0 +1,98 @@
+// src/comterp_/tests/seqorder.comt -- test that a definition is live for the
+// code that uses it, including within a single ';'-fused top-level expression
+//
+// funcs: func run
+//
+// Top-level expressions are consumed one at a time, and ';' (seq) fuses
+// several into a single parse unit.  The guarantee under test is that a
+// name defined earlier in a fused chain resolves for a call later in that
+// same chain -- "x=func(...);x(...)" yields the func's value, not nil.
+//
+// Regression guard: a name(...) call used to bind against parser state
+// captured before the fused definition had executed, so the call resolved
+// to an unbound symbol and silently returned nil.  The failure was quiet
+// -- no error, just nil -- and it bit hardest when a script loaded its
+// helpers with run(): a trailing ';' after the load reverted every helper
+// call to nil, which is why loaders once had to write the run() on its own
+// line.  Tests 3 and 4 pin both spellings so neither form can regress back
+// into that.
+//
+// Tests 5 and 6 cover the companion case, rebinding a name that already
+// holds a FuncObj.  Test 7 pins the rule that did NOT change and must not
+// be "fixed" away: a bare reference to a FuncObj still fires it.
+//
+// Run from inside comterp, comdraw, or drawserv (cd to this dir first):
+//   run("./seqorder.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: a definition is live for a call fused to it by ';' ---
+so1=func(10+2);so1r=so1(:dummy 0)
+ok=ok&&(so1r==12)
+print("1 so1=func(10+2);so1(:dummy 0) fused define+call (expect 12): %v\n\n" so1r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 2: the same across two top-level expressions, the form that
+// always worked -- the test fails if the unfused path ever shifts ---
+so2=func(10+2)
+so2r=so2(:dummy 0)
+ok=ok&&(so2r==12)
+print("2 so2=func(10+2) then so2(:dummy 0) unfused define+call (expect 12): %v\n\n" so2r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 3: a run() load fused by ';' to the dispatch that calls what it
+// loaded -- the loader spelling that used to silently yield nil ---
+run("./seqorder_sub.comt");so3r=so_helper(:dummy 0)
+ok=ok&&(so3r==42)
+print("3 run(sub);so_helper(:dummy 0) fused load+dispatch (expect 42): %v\n\n" so3r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 4: the same load on its own line, the spelling loaders were
+// once required to use ---
+run("./seqorder_sub.comt")
+so4r=so_helper(:dummy 0)
+ok=ok&&(so4r==42)
+print("4 run(sub) then so_helper(:dummy 0) unfused load+dispatch (expect 42): %v\n\n" so4r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 5: assigning over a name that already holds a FuncObj rebinds
+// it -- the left-hand side names the symbol, it does not fire the old
+// func first ---
+so5=func(10*2)
+so5=func(10*3)
+so5r=so5(:dummy 0)
+ok=ok&&(so5r==30)
+print("5 so5=func(10*2) then so5=func(10*3) bare rebind (expect 30): %v\n\n" so5r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 6: backquote on the left-hand side rebinds the same way, so the
+// explicit spelling stays available to anyone who writes it ---
+`so6=func(10*2)
+`so6=func(10*4)
+so6r=so6(:dummy 0)
+ok=ok&&(so6r==40)
+print("6 `so6=func(10*2) then `so6=func(10*4) backquote rebind (expect 40): %v\n\n" so6r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 7: the rule that did not change -- a BARE reference to a
+// func-valued symbol still fires it with no args.  Looking up a
+// func-valued symbol is how you invoke it; only the assignment target in
+// tests 5 and 6 is exempt ---
+so7=func(10*7)
+so7r=so7
+ok=ok&&(so7r==70)
+print("7 so7=func(10*7); so7r=so7 bare reference fires (expect 70): %v\n\n" so7r)
+prev_ok=check_fail(:ok ok)
+
+// --- test 8: rebind and use fused into one chain -- tests 1 and 5
+// together, the combination a dispatcher hits when it reloads a helper
+// file and calls into it in the same expression ---
+so8=func(1)
+so8=func(2+3);so8r=so8(:dummy 0)
+ok=ok&&(so8r==5)
+print("8 so8=func(2+3);so8(:dummy 0) fused rebind+call (expect 5): %v\n\n" so8r)
+prev_ok=check_fail(:ok ok)
+
+print("seqorder: %v\n" ok)
+ok

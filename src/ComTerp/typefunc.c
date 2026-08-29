@@ -321,3 +321,53 @@ void IsFuncFunc::execute() {
   else
     push_stack(match ? ComValue::trueval() : ComValue::falseval());
 }
+
+/*****************************************************************************/
+
+IsSliceFunc::IsSliceFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void IsSliceFunc::execute() {
+  ComValue arg0(stack_arg(0));
+  reset_stack();
+  boolean match = arg0.is_type(ComValue::StringType) && arg0.sliced();
+  push_stack(match ? ComValue::trueval() : ComValue::falseval());
+}
+
+/*****************************************************************************/
+
+IsListFunc::IsListFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void IsListFunc::execute() {
+  ComValue arg0(stack_arg(0));
+  static int list_symid = symbol_add("list");
+  static int attr_symid = symbol_add("attr");
+  static int colon_symid = symbol_add("colon");
+  static int any_symid = symbol_add("any");
+  ComValue listflag(stack_key(list_symid));
+  ComValue attrflag(stack_key(attr_symid));
+  ComValue colonflag(stack_key(colon_symid));
+  ComValue anyflag(stack_key(any_symid));
+  reset_stack();
+  boolean is_array = arg0.is_type(ComValue::ArrayType);
+  boolean is_colon = is_array && arg0.coloned();
+  boolean is_attr = arg0.is_object(AttributeList::class_symid());
+  boolean match;
+  if (anyflag.is_true())
+    match = is_array || is_attr;
+  else if (colonflag.is_true())
+    match = is_colon;
+  else if (listflag.is_true())
+    match = is_array && !is_colon;
+  else if (attrflag.is_true())
+    match = is_attr;
+  else
+    /* bare, no keyword: any ArrayType, comma- or colon-built together --
+       "can this be indexed/iterated like a list", not "how was it built"
+       (list()'s own constructor keeps the opposite default -- bare
+       list(...) builds only a comma-list -- since a constructor has to
+       commit to exactly one shape, where a predicate doesn't). */
+    match = is_array;
+  push_stack(match ? ComValue::trueval() : ComValue::falseval());
+}
