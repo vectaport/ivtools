@@ -230,6 +230,15 @@ If you have any trouble at this stage take a look at:
 ** that suppress the make stateges, make.makefile, make.makefiles,
 ** make.depend, and make.make.
 
+** Header dependencies are a snapshot: "make depend" records them, it does
+** not maintain them.  A new #include stays unknown to the build until
+** "make depend" is rerun, so later edits to that header rebuild nothing
+** that needs it, and objects built against an old copy of a header end up
+** linked alongside newer ones.  If the header altered the layout of a class
+** the crash then appears far from the edit that caused it.  Rerun "make
+** depend" after adding includes; a "make clean" and rebuild is the cheap
+** first move when a segfault does not match your change.
+
 3. Testing:
 
 Each directory under ivtools/src that begins in lower case (except
