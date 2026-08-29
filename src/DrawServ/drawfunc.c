@@ -408,15 +408,48 @@ void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
   const int slice_usec = 10000;
   const int spin_limit = 200;   /* two seconds */
   int spins = 0;
-  while (spins++ < spin_limit) {
-    LinkSelection* cur = (LinkSelection*)_ed->GetSelection();
-    if (!cur || cur->waiting_count()==0) break;
-    cur->silent() = true;
+  boolean timed_out = false;
+  while (1) {
+    /* compare, never dereference: another connection's select() deletes this
+       selection when it installs its own, and then the requests we were
+       waiting on are that select's business, not ours. */
+    if ((OverlaySelection*)_ed->GetSelection() != sel) return;
+    if (lsel->waiting_count()==0) break;
+    if (spins++ >= spin_limit) { timed_out = true; break; }
+    lsel->silent() = true;
     ACE_Time_Value timeout(0, slice_usec);
     ComterpHandler::reactor_singleton()->handle_events(timeout);
   }
-  LinkSelection* done = (LinkSelection*)_ed->GetSelection();
-  if (done) done->silent() = false;
+  lsel->silent() = false;
+  if (!timed_out) return;
+
+  /* nobody answered.  take the requests back rather than leaving them
+     outstanding: the count would be inherited by the next select through
+     CopyFlags and waited on again, and a graphic left WaitingToBeSelected is
+     one a late grant would still be accepted into -- so select() would have
+     reported nothing acquired and then quietly acquired it.  A grant that
+     arrives after this finds NotSelected, is refused, and the :notaken answer
+     puts the granter's record back, so the two orderings agree.
+
+     Reserve() removed these from the selection when it asked, so the grid
+     table is where they are found; safe because we are still the installed
+     selection, and CopyFlags carries the count forward, so there is only ever
+     the one asker. */
+  GraphicIdTable* table = ((DrawServ*)unidraw)->gridtable();
+  TableIterator(GraphicIdTable) it(*table);
+  int withdrawn = 0;
+  for (; it.more(); it.next()) {
+    GraphicId* grid = (GraphicId*)it.cur_value();
+    if (grid && grid->selected()==LinkSelection::WaitingToBeSelected) {
+      grid->selected(LinkSelection::NotSelected);
+      lsel->request_withdrawn();
+      withdrawn++;
+    }
+  }
+  /* any residue would be inherited and waited on again */
+  while (lsel->waiting_count() > 0)
+    lsel->request_withdrawn();
+  fprintf(stderr, "select: gave up waiting, %d request(s) withdrawn\n", withdrawn);
 }
 
 /*****************************************************************************/
