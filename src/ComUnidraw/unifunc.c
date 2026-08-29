@@ -129,13 +129,33 @@ HandlesFunc::HandlesFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed
 }
 
 void HandlesFunc::execute() {
-  ComValue dflt(0);
-  ComValue flag(stack_arg(0, false, dflt));
+    static int get_symid = symbol_add("get");
+    boolean get_flag = stack_key(get_symid).is_true();
+    ComValue flag(stack_arg(0));
     reset_stack();
-    if (flag.int_val()) 
-	((OverlaySelection*)_ed->GetSelection())->EnableHandles();
-    else
-	((OverlaySelection*)_ed->GetSelection())->DisableHandles();
+
+    OverlaySelection* sel = (OverlaySelection*)_ed->GetSelection();
+    if (!sel) {
+	push_stack(ComValue::falseval());
+	return;
+    }
+
+    /* same shape as pastemode(): :get reads, no argument toggles, an argument
+       sets, and every one of them says what the value now is */
+    boolean enable;
+    if (get_flag)
+	enable = sel->HandlesEnabled();
+    else {
+	enable = flag.is_known()
+	    ? (boolean)flag.int_val()
+	    : !sel->HandlesEnabled();
+	if (enable)
+	    sel->EnableHandles();
+	else
+	    sel->DisableHandles();
+    }
+
+    push_stack(enable ? ComValue::trueval() : ComValue::falseval());
 }
 
 /*****************************************************************************/
