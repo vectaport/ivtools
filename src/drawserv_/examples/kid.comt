@@ -1,0 +1,93 @@
+// One fourth grader at the table.  Whatever drawserv runs this can draw
+// animals, adventurers and trees wherever the dice land -- and every other
+// drawserv at the table gets them over the links.
+//
+// The magic words ride on one object rather than as floating functions, the
+// way zoomap's zoo=(...) does -- and they have to be defined INLINE here:
+// naming a func fires it niladically, so kid=(:animal kid_animal) would store
+// the nil that calling it returned.  Arguments arrive as keywords.
+//
+// Loaded with -runfile this lands in the node's main interpreter, and every
+// connection made later is seeded from it -- so the kid is taught once, at
+// startup, and any socket may ask.  (Connections do not see each OTHER: a kid
+// taught down one socket after startup is invisible to the next.)
+
+kid=(
+  :colour "#888888"
+
+  :animal func(
+    ellipse(x,y, 26,16);            // body
+    colorsrgb(c "#FFFFFF");
+    ellipse(x+24,y-8, 11,10);       // head
+    colorsrgb(c "#FFFFFF");
+    ellipse(x-22,y+2, 7,5);         // tail
+    colorsrgb(c "#FFFFFF")
+  )
+
+  :adventurer func(
+    rect(x-7,y, x+7,y+30);          // body
+    colorsrgb(c "#FFFFFF");
+    ellipse(x,y+40, 10,10);         // head
+    colorsrgb("#FFDDAA" "#FFFFFF");
+    line(x+7,y+22, x+22,y+34);      // sword arm
+    colorsrgb(c "#FFFFFF")
+  )
+
+  :tree func(
+    rect(x-4,y, x+4,y+22);          // trunk
+    colorsrgb("#8B5A2B" "#FFFFFF");
+    ellipse(x,y+34, 20,16);         // leaves
+    colorsrgb("#33AA33" "#FFFFFF")
+  )
+
+  // kid.play(:n 6) -- draw n things, pausing between them.  The pause is the
+  // point: a fourth grader draws at mouse speed, not at socket speed.
+  :play func(
+    i=0;
+    while(i<n
+      xx=60+int(rand(0,520));
+      yy=50+int(rand(0,300));
+      pick=int(rand(0,2.99));
+      if(pick==0 :then kid.animal(:x xx :y yy :c kid.colour) :else
+        if(pick==1 :then kid.adventurer(:x xx :y yy :c kid.colour)
+          :else kid.tree(:x xx :y yy)));
+      update(1);
+      usleep(400000);
+      i=i+1);
+    /* put it down when finished.  Creating a graphic selects it, and a
+       selection is a claim the other tables have to ask for: everything a kid
+       still holds is refused to everyone else, and their requests sit in
+       WaitingToBeSelected until it lets go.  A fourth grader who has finished a
+       dragon is not still holding it. */
+    select(:clear);
+    i)
+)
+
+// Like spirograph.comt, this leaves you somewhere to stand rather than just
+// falling silent: one creature so you can see the script took, and the magic
+// words.  Load it into a drawserv's -comt pane and you are a fourth grader,
+// with or without kidmo and the rest of the table.
+//
+// The greeting is printed plainly, so it lands in the -comt pane a person is
+// looking at.  A bare print() goes to whatever is listening, which over a
+// socket is the reply stream -- the banner would arrive where an answer was
+// expected and put every later question on that connection one behind -- so a
+// caller loading this to drive from, rather than to read, sets quiet=true
+// first.  kidmo does exactly that on its own connection.
+
+/* only when there is nothing here yet: with -comt kid.comt the pane loads this
+   at startup, and kidmo loads it again over its own connection to drive from --
+   two loads, and without this, two welcome creatures */
+if(size(grid(:table))==0 :then kid.animal(:x 300 :y 220 :c kid.colour))
+
+if(quiet!=true :then
+  print("\n===============================================\n");
+  print("   YOU ARE A FOURTH GRADER WITH A DRAWSERV\n");
+  print("   That grey creature is kid.animal() -- and\n");
+  print("   anything you draw goes to everyone you are\n");
+  print("   linked to.  Try typing:\n");
+  print("       kid.play(:n 3)\n");
+  print("       kid.colour=\"#DD3333\"\n");
+  print("       kid.adventurer(:x 200 :y 120 :c kid.colour)\n");
+  print("       kid.tree(:x 420 :y 120)\n");
+  print("===============================================\n"))
