@@ -613,11 +613,24 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       if (((const char *)newselector)==NULL || uuid_is_null(newselector)) {
 	if (linklist()->Number()>1)
 	  fprintf(stderr, "grid: state change passed along to everyone else\n");
-	grid->selector(selector);
-	grid->selected(state);
+
+	/* an announcement of "free, and still held by the node we asked" is the
+	   condition our request is waiting on, not news that voids it -- the
+	   grant is already on its way, and grid_message_callback recognises it
+	   only while the state reads WaitingToBeSelected.  every other change
+	   does void the request and resets it as before. */
+	if (!(grid->selected()==LinkSelection::WaitingToBeSelected &&
+	      state==LinkSelection::NotSelected &&
+	      selector != NULL &&
+	      uuid_compare(grid->selector(), selector)==0)) {
+	  grid->selector(selector);
+	  grid->selected(state);
+	}
+
+	/* relay what was announced, not what we hold */
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d :class \"%s\")%c",
-		 grid->idstr(), grid->selectorstr(), grid->selected(),
+		 grid->idstr(), selector_str, state,
 		 grid->compclass(), '\0');
 	DistributeCmdString(buf, link);
       } 
@@ -633,6 +646,49 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       }
     }
   }
+}
+
+/* a grant of ours that the responder could not take.  the grant is identified,
+   so a response that has been overtaken -- we have since handed the graphic to
+   someone else -- is recognisable and ignored. */
+void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
+			    uuid_t granter)
+{
+  void* ptr = nil;
+  gridtable()->find(ptr, uuid_key(id));
+  if (!ptr) return;
+  GraphicId* grid = (GraphicId*)ptr;
+
+  if (granter==NULL || uuid_is_null(granter)) return;
+
+  /* not our grant: a grant reaches its recipient through linkget(selector),
+     so the response has to travel back the same way rather than stopping at
+     the relay it happens to arrive on. */
+  if (uuid_compare(granter, sessionid())) {
+    DrawLink* glink = linkget(granter);
+    if (glink && glink != link) {
+      uuid_string_t responder_str;
+      responder_str[0] = '\0';
+      if (responder != NULL && !uuid_is_null(responder))
+	uuid_unparse(responder, responder_str);
+      uuid_string_t granter_str;
+      uuid_unparse(granter, granter_str);
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :notaken :class \"%s\")%c",
+	       grid->idstr(), responder_str, granter_str,
+	       grid->compclass(), '\0');
+      SendCmdString(glink, buf);
+      fprintf(stderr, "grid: grant-not-taken passed along to granter\n");
+    } else
+      fprintf(stderr, "grid: grant-not-taken undeliverable, dropped\n");
+    return;
+  }
+
+  if (responder != NULL && uuid_compare(grid->selector(), responder)==0) {
+    grid->selector(sessionid());
+    fprintf(stderr, "grid: grant not taken, ownership restored here\n");
+  } else
+    fprintf(stderr, "grid: grant-not-taken overtaken, ignored\n");
 }
 
 // handle callback from remote DrawLink.
@@ -667,6 +723,25 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 	sel->AddComp(comp);
 	grid_message(grid);
       }
+    }
+
+    /* a grant addressed to us that we could not take: say so rather than
+       sending it back out.  linkget(selector) is our own link when the
+       selector is this session, so forwarding it returns it to the node that
+       granted it, which forwards it here again -- 313k messages in half a
+       minute, for eight graphics. */
+    else if (selector != NULL && uuid_compare(selector, sessionid())==0) {
+      fprintf(stderr, "grid:  grant for us arrived on a graphic in %s, dropped\n",
+	      LinkSelection::selected_string(grid->selected()));
+      /* the granter commits the handoff when it sends the grant, so it has to
+	 be told this one did not land.  answer the grant itself rather than
+	 announcing state: a state message is an unconditional assertion and a
+	 stale one would undo a later handoff. */
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :notaken :class \"%s\")%c",
+	       grid->idstr(), sessionidstr(), oldselector_str,
+	       grid->compclass(), '\0');
+      SendCmdString(link, buf);
     }
 
     /* otherwise, pass the granting message along */

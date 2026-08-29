@@ -54,7 +54,7 @@ public:
     GraphicIdFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() { 
-	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
+	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny :notaken) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
 };
 
 //: command to return point list associated with a graphic
