@@ -1579,9 +1579,13 @@ void SelectFunc::execute() {
 	if (compval) {
 	  avl->Append(compval);
 	}
-	delete newSel;
-        newSel = nil;
       }
+      /* the query form installs no selection at all.  inside the loop this ran
+	 only when there was something to report, so querying an empty selection
+	 fell through to the block below and cleared the editor's selection --
+	 and, once select() waits, blocked on the pending count as well. */
+      delete newSel;
+      newSel = nil;
 
     } else {
 
