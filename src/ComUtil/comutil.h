@@ -85,6 +85,8 @@
 /* Character type checking */
 extern int _colon_ident;
 extern int _percent_ident;
+extern unsigned _lexscan_last_tokend;
+extern unsigned _lexscan_last_toktype;
 #define isident( ch )   ( isalpha( ch ) || (ch) == '_' || \
 (_colon_ident && (ch) == ':') || (_percent_ident && (ch) == '%'))
 #define isodigit( ch )  ( (ch) >= '0' && (ch) <= '7' )

@@ -22,6 +22,7 @@
  */
 
 #include <DrawServ/ackback-handler.h>
+#include <ComTerp/comhandler.h>
 #include <DrawServ/draweditor.h>
 #include <DrawServ/drawclasses.h>
 #include <DrawServ/drawfunc.h>
@@ -155,6 +156,62 @@ void DrawLinkFunc::execute() {
 	uuid_parse(linkidv.string_ptr(),linkid);
     }
 	
+    /* The two_way leg names the far end to the node that opened the link, and
+       that node can already know it by another path even when the far end had
+       never heard of us -- which is exactly the ring cycletest() misses at the
+       one_way leg above, its table not yet holding the offering session.  Run
+       the same test here, so whichever end recognizes the ring first casts it
+       off; it takes both ends never having heard of each other to get one. */
+    if (statenum == DrawLink::two_way && sidv.is_string() && userv.is_string()) {
+
+      /* the leg answers a link we opened and are still waiting on -- a link
+	 already up is not awaiting one, and must not be torn down by a leg
+	 that merely names it */
+      DrawLink* cyclink = nil;
+      DrawLinkList* linklist = ((DrawServ*)unidraw)->linklist();
+      if (linklist) {
+	Iterator i;
+	for (linklist->First(i); !linklist->Done(i); linklist->Next(i)) {
+	  DrawLink* l = linklist->GetDrawLink(i);
+	  if (uuid_compare(l->linkid(), linkid)==0 &&
+	      l->state() == DrawLink::new_link &&
+	      l->portnum() == portnum) {
+	    cyclink = l;
+	    break;
+	  }
+	}
+      }
+
+      /* and a ring means the session is reachable ANOTHER way: one we know
+	 through a link to the peer we are dialing is no ring but a duplicate,
+	 or a stale link to the very node reconnecting, and refusing that would
+	 leave it unable to come back until its session ages out */
+      boolean elsewhere = false;
+      if (cyclink &&
+	  ((DrawServ*)unidraw)->cycletest
+	  (sid, hostv.string_ptr(), userv.string_ptr(), pidv.int_val())) {
+	void* ptr = nil;
+	((DrawServ*)unidraw)->sessionidtable()->find(ptr, uuid_key(sid));
+	SessionId* known = (SessionId*)ptr;
+	DrawLink* via = known ? known->drawlink() : nil;
+	elsewhere = !via || !cyclink->same_peer(via);
+      }
+
+      if (elsewhere) {
+	/* tell the far end before dropping our half, so it reports the refusal
+	   rather than an unexpected end-of-file */
+	fputs("ackback(cycle)\n", comterp()->handler()->wrfptr());
+	fflush(comterp()->handler()->wrfptr());
+	char buffer[BUFSIZ];
+	snprintf(buffer, BUFSIZ, "%s:%d", hoststr, portnum);
+	cyclink->report("Redundant connection rejected", buffer);
+	((DrawServ*)unidraw)->linkdown(cyclink);
+	comterp()->quit();
+	push_stack(ComValue::nullval());
+	return;
+      }
+    }
+
     link = ((DrawServ*)unidraw)->linkup(hoststr, portnum, statenum, linkid, this->comterp());
     Resource::ref(link); // reference here if calling Run makes linkdown()
 
@@ -333,6 +390,37 @@ void SessionIdFunc::execute() {
 
 /*****************************************************************************/
 
+LinkSelectFunc::LinkSelectFunc(ComTerp* comterp, Editor* ed)
+: SelectFunc(comterp, ed) {
+}
+
+void LinkSelectFunc::resolve_requests(OverlaySelection* sel) {
+  LinkSelection* lsel = (LinkSelection*)sel;
+  if (!lsel || lsel->waiting_count()==0) return;
+
+  /* a request answered by another session comes back asynchronously -- the same
+     resolution that beeps or dings for an interactive select.  wait for it, so
+     the list returned is the answer rather than the question, and keep it quiet
+     while waiting: the caller is being told by the return value.  bounded, a
+     node that never replies not being allowed to stall the one that asked, and
+     the selection re-read each time round because running the event loop lets
+     anything arrive, including a select that puts a different one in place. */
+  const int slice_usec = 10000;
+  const int spin_limit = 200;   /* two seconds */
+  int spins = 0;
+  while (spins++ < spin_limit) {
+    LinkSelection* cur = (LinkSelection*)_ed->GetSelection();
+    if (!cur || cur->waiting_count()==0) break;
+    cur->silent() = true;
+    ACE_Time_Value timeout(0, slice_usec);
+    ComterpHandler::reactor_singleton()->handle_events(timeout);
+  }
+  LinkSelection* done = (LinkSelection*)_ed->GetSelection();
+  if (done) done->silent() = false;
+}
+
+/*****************************************************************************/
+
 GraphicIdFunc::GraphicIdFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
@@ -343,6 +431,8 @@ void GraphicIdFunc::execute() {
   ComValue grantv(stack_key(grant_sym));
   static int state_sym = symbol_add("state");
   ComValue statev(stack_key(state_sym));
+  static int notaken_sym = symbol_add("notaken");
+  ComValue notakenv(stack_key(notaken_sym));
   static int deny_sym = symbol_add("deny");
   ComValue denyv(stack_key(deny_sym));
   static int table_sym = symbol_add("table");
@@ -396,8 +486,11 @@ void GraphicIdFunc::execute() {
       uuid_t gid;
       uuid_parse(grantv.string_ptr(), gid);
       
-      ((DrawServ*)unidraw)->grid_message_callback
-	(link, id, selector, statev.int_val(), gid);
+      if (notakenv.is_true())
+	((DrawServ*)unidraw)->grid_notaken(link, id, selector, gid);
+      else
+	((DrawServ*)unidraw)->grid_message_callback
+	  (link, id, selector, statev.int_val(), gid);
     }
     
   } else if (idv.is_known() && selectorv.is_unknown()) {

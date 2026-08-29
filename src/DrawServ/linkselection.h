@@ -90,6 +90,14 @@ public:
   // -1 = all resolved, all denied (beep)
   
   boolean request_resolved_check(boolean granted, const char* fileline);
+
+  boolean& silent() { return _silent; }
+  // when set, a resolved request unwinds the count without the beep or ding:
+  // a scripted select() waits for the answer and returns it instead.
+
+  void request_withdrawn();
+  // unwind one outstanding request that will never be answered because we
+  // stopped asking.  silent: nobody refused us, we withdrew the question.
   // make beep/ding sound when request resolved and response is known
 
   virtual void unlock_key(const char* keystr);
@@ -105,6 +113,7 @@ protected:
   static const char* _selected_strings[];
 
   int _waiting_count;
+  boolean _silent;
   int _granted_count;
   boolean _wtbs_flag;
   boolean _remote_flag;

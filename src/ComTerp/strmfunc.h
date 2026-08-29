@@ -62,7 +62,7 @@ public:
     void execute_literal();  // handle (val val ...) stream literal syntax
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "strm=%s(strm|list|attrlist|val|fileobj|pipeobj) -- copy stream or convert list (unary $$)"; }
+      return "strm=%s(strm|list|attrlist|str|val|fileobj|pipeobj) -- copy stream or convert list (unary $$); a string streams its characters, a bquoted one is carried whole"; }
 
 
 protected:
@@ -146,6 +146,19 @@ public:
     virtual const char* docstring() { 
       return "hidden func used by next command for stream command."; }
 
+
+};
+
+//: cursor over a string's characters, used by next() for a string-backed stream.
+class StringNextFunc : public StrmFunc {
+public:
+    StringNextFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() { 
+      return "hidden func used by next command for a string-backed stream."; }
+
+    CLASS_SYMID("StringNextFunc");
 
 };
 
@@ -306,10 +319,12 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "fifo=%s([fifo] [val ...] :raw) -- build or append to a growable FIFO stream"; }
+      return "fifo=%s([fifo] [val ...] :raw) -- build or append to a growable FIFO stream; a string argument is ingested as its characters, a bquoted one whole"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
-	":raw       store a stream argument whole instead of draining it",
+	":raw       store a stream or string argument whole instead of taking",
+	"           it apart -- applies to every argument in the call, where a",
+	"           bquoted value protects just itself",
 	nil
       };
       return keys;

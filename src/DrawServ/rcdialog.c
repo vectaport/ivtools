@@ -88,7 +88,7 @@ RemoteConnectAction::RemoteConnectAction(StrEditDialog* dialog) : Action() {
 void RemoteConnectAction::execute() {
 
   if (_dialog && _dialog->text()) 
-    ((DrawServ*)unidraw)->linkup(_dialog->text(), 99999/*20002*/, 0);
+    ((DrawServ*)unidraw)->linkup(_dialog->text(), 99999/*20002*/, 0, NULL, nil, true);
 
 }
 
@@ -252,7 +252,7 @@ void ConnectionsDialogImpl::connect() {
       return;
     }
 
-    if(((DrawServ*)unidraw)->linkup(hostbuf, portnum, 0)==nil) {
+    if(((DrawServ*)unidraw)->linkup(hostbuf, portnum, 0, NULL, nil, true)==nil) {
       char buffer[BUFSIZ];
       snprintf(buffer, BUFSIZ, "%s:%d", hostbuf, portnum);
       GAcknowledgeDialog::map(dialog_->GetEditor()->GetWindow(), "Connection refused", buffer, "Connection refused");

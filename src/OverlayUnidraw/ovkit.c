@@ -1117,6 +1117,10 @@ BrushCmd* OverlayKit::make_brush_cmd(Editor* ed, PSBrush* br) {
     return new BrushCmd(ed, br);
 }
 
+TransformCmd* OverlayKit::make_transform_cmd(Editor* ed, Transformer* t) {
+    return new SetTransformCmd(ed, t);
+}
+
 FontCmd* OverlayKit::make_font_cmd(ControlInfo* ctrlInfo, PSFont* font, int fontnum, const char* fontname) {
     return new FontCmd(ctrlInfo, font);
 }

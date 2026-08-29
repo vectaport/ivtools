@@ -21,13 +21,13 @@
 ok=true
 
 // --- 1-2: printable bytes show as themselves, space included ---
-ok=ok&&(print('A' :str)=="'A'")
-ok=ok&&(print('a' :str)=="'a'")
-ok=ok&&(print(char(32) :str)=="' '")
-print("1 printable chars show as themselves (expect 'A' 'a' ' '): %s %s %s\n" print('A' :str) print('a' :str) print(char(32) :str))
+ok=ok&&(print('A' :str)=="A")
+ok=ok&&(print('a' :str)=="a")
+ok=ok&&(print(char(32) :str)==" ")
+print("1 printable chars show as themselves, bare (expect A a and a space): %s %s %s\n" print('A' :str) print('a' :str) print(char(32) :str))
 
-ok=ok&&(print(char(126) :str)=="'~'")
-print("2 the top of the printable range (expect '~'): %s\n" print(char(126) :str))
+ok=ok&&(print(char(126) :str)=="~")
+print("2 the top of the printable range (expect ~): %s\n" print(char(126) :str))
 
 // --- 3-4: the sign-extension regression, unchanged.  A byte at or above 0x80
 // keeps the escape, so these assert exactly what they always did: the byte is
@@ -38,28 +38,35 @@ print("3 print('\\xa0' :str) is `\\240`, not sign-extended (expect true): %v\n" 
 ok=ok&&(print('\xff' :str)=="`\\377`")
 print("4 print('\\xff' :str) is `\\377`, not sign-extended (expect true): %v\n" print('\xff' :str)=="`\\377`")
 
+// The display is bare, with no quotes: printing a run of characters should
+// read as the text it is.  The export path keeps its quotes -- test 9 -- since
+// there a bare a would read back as a symbol rather than a char.  The cost of
+// bare display is that caret notation is ambiguous once characters are
+// concatenated, a literal caret then an A being indistinguishable from one
+// control byte; that is the price of text reading as text.
+
 // --- 5: control bytes use caret notation and are never emitted raw.  ESC and
 // newline are the two that actually cost debugging time: '^[' never reaches a
 // terminal as an escape sequence, '^J' never breaks a line in whatever reads
 // the output ---
-ok=ok&&(print(char(1) :str)=="'^A'")
-ok=ok&&(print(char(27) :str)=="'^['")
-ok=ok&&(print(char(10) :str)=="'^J'")
-ok=ok&&(print(char(127) :str)=="'^?'")
-print("5 control chars use caret notation (expect '^A' '^[' '^J' '^?'): %s %s %s %s\n" print(char(1) :str) print(char(27) :str) print(char(10) :str) print(char(127) :str))
+ok=ok&&(print(char(1) :str)=="^A")
+ok=ok&&(print(char(27) :str)=="^[")
+ok=ok&&(print(char(10) :str)=="^J")
+ok=ok&&(print(char(127) :str)=="^?")
+print("5 control chars use caret notation (expect ^A ^[ ^J ^?): %s %s %s %s\n" print(char(1) :str) print(char(27) :str) print(char(10) :str) print(char(127) :str))
 
 // --- 6: caret notation is ambiguous in general -- a real control byte and a
 // literal ^A look alike -- but not here.  A char is one byte, so a literal
 // caret is one character between the quotes and a control byte is two ---
-ok=ok&&(print(char(94) :str)=="'^'")
-print("6 a literal caret stays one character, distinct from '^A' (expect '^'): %s\n" print(char(94) :str))
+ok=ok&&(print(char(94) :str)=="^")
+print("6 a literal caret is one character where a control byte is two (expect ^): %s\n" print(char(94) :str))
 
 // --- 7: the display is the same however the value arrives -- from the
 // command, from a literal, through a variable, or inside a list ---
 c=char(97)
-ok=ok&&(print(c :str)=="'a'")
-ok=ok&&(index(print((char(97),char(98)) :str) "'a'" :substr)!=nil)
-print("7 same display named and nested (expect 'a' and a list of quoted chars): %s %s\n" print(c :str) print((char(97),char(98)) :str))
+ok=ok&&(print(c :str)=="a")
+ok=ok&&(index(print((char(97),char(98)) :str) "a" :substr)!=nil)
+print("7 same display named and nested (expect a and a bare list): %s %s\n" print(c :str) print((char(97),char(98)) :str))
 
 // --- 8: presentation only, the value is untouched.  A plain char is signed,
 // so a high byte reads back negative -- 0xa0 as a signed char is -96 -- and

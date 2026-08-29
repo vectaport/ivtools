@@ -77,6 +77,39 @@ void Parser::init() {
     __angle_brackets = 0;
     __token_state_save = TOK_WHITESPACE;
     __ignore_numerics = 0;
+    __lexscan_last_tokend = 0;
+    __lexscan_last_toktype = TOK_NONE;
+
+    /* And the backup copies of the parse state proper, which nothing set
+       before: check_parser_client() installs these when this parser takes the
+       globals over, so leaving them indeterminate meant the first parse ran on
+       whatever the previous client had left there -- and save_parser_client()
+       then copied that client's ParenStack POINTER in here, aliasing two
+       interpreters onto one stack of argument and keyword counts.  A NULL stack
+       makes parser() allocate one belonging to this parser alone. */
+    _expecting = 0;
+    _ParenStack = NULL;
+    _TopOfParenStack = -1;
+    _SizeOfParenStack = 0;
+    _OperStack = NULL;
+    _TopOfOperStack = -1;
+    _SizeOfOperStack = 0;
+    _NextBufptr = 0;
+    _NextToken = NULL;
+    _NextToklen = 0;
+    _NextToktype = 0;
+    _NextTokstart = 0;
+    _NextLinenum = 0;
+    for (int i=0; i<OPTYPE_NUM; i++)
+      _NextOp_ids[i] = 0;
+
+    /* the operator table is legitimately shared -- every parser wants the same
+       operators -- so take the current values rather than emptying them */
+    _opr_tbl_ptr = opr_tbl_ptr_get();
+    _opr_tbl_numop = opr_tbl_numop_get();
+    _opr_tbl_maxop = opr_tbl_maxop_get();
+    _opr_tbl_maxpri = opr_tbl_maxpri_get();
+    _opr_tbl_lastop = opr_tbl_lastop_get();
 }
 
 
@@ -189,7 +222,9 @@ void Parser::check_parser_client(boolean restore) {
     _ignore_numerics = __ignore_numerics;
     _angle_brackets = __angle_brackets ;
     _token_state_save = __token_state_save;
-    if (_linenum != 0) {
+    _lexscan_last_tokend = __lexscan_last_tokend;
+    _lexscan_last_toktype = __lexscan_last_toktype;
+    {
       expecting = _expecting;
       ParenStack = _ParenStack;
       TopOfParenStack = _TopOfParenStack;
@@ -205,6 +240,14 @@ void Parser::check_parser_client(boolean restore) {
       NextLinenum = _NextLinenum;
       for (int i=0; i<OPTYPE_NUM; i++)
 	NextOp_ids[i] = _NextOp_ids[i];
+    }
+    /* The operator table is the one thing here that is legitimately shared --
+       every parser wants the same operators, and a saved copy is only ever a
+       copy of the one global.  Restoring a snapshot on a parser's FIRST parse
+       would undo an optable(:insert) made since that parser was constructed
+       (%% is defined that way at runtime), so this keeps the guard the parse
+       state above no longer needs. */
+    if (_linenum != 0) {
       opr_tbl_ptr_set(_opr_tbl_ptr);
       opr_tbl_numop_set(_opr_tbl_numop);
       opr_tbl_maxop_set(_opr_tbl_maxop);
@@ -223,6 +266,8 @@ void Parser::save_parser_client() {
   __ignore_numerics = _ignore_numerics;
   __angle_brackets  = _angle_brackets ;
   __token_state_save = _token_state_save;
+  __lexscan_last_tokend = _lexscan_last_tokend;
+  __lexscan_last_toktype = _lexscan_last_toktype;
   _expecting = expecting;
   _ParenStack = ParenStack;
   _TopOfParenStack = TopOfParenStack;

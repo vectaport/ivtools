@@ -75,7 +75,8 @@ public:
   void Init();
   
   DrawLink* linkup(const char* hostname, int portnum, 
-		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil);
+		   int state, uuid_t link_id=NULL, ComTerp* comterp=nil,
+		   int interactive=false);
   // Create new link to remote drawserv, return -1 if error
   // state: 0==new_link, 1==one_way, 2==two_way.
   
@@ -148,6 +149,9 @@ public:
   void grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
 			   int state, uuid_t newselector=NULL);
   // handle graphic id selection message
+
+  void grid_notaken(DrawLink* link, uuid_t id, uuid_t responder, uuid_t granter);
+  // handle a grant of ours that the responder could not take
 
   void grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
 			     int state, uuid_t oldselector);

@@ -62,7 +62,7 @@ double RandFunc::drand(double minval, double maxval) {
 #define RAND_MAX INT_MAX
 #endif
 
-  double gain = (maxval-minval)/RAND_MAX;
+  double gain = (maxval-minval)/(RAND_MAX+1.0);
   double bias = minval;
 
   int rnum = rand();

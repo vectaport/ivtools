@@ -57,6 +57,7 @@ LeakChecker* AttributeValue::_leakchecker = nil;
 /*****************************************************************************/
 
 int* AttributeValue::_type_syms = nil;
+AttributeValue::RenderHook AttributeValue::_render_hook = nil;
 
 AttributeValue::AttributeValue(ValueType valtype) {
 #ifdef LEAKCHECK
@@ -332,6 +333,7 @@ void AttributeValue::clear() {
     unsigned char* buf = (unsigned char*)(void*)&_v;
     for (int i=0; i<sizeof(_v); i++) buf[i] = '\0';
     _state = 0;
+    _ext1 = _ext2 = _ext3 = 0;
 }
 
 AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
@@ -342,6 +344,9 @@ AttributeValue& AttributeValue::operator= (const AttributeValue& sv) {
     memcpy(v1, v2, sizeof(_v));
     _type = sv._type;
     _command_symid = sv._command_symid;
+    _ext1 = sv._ext1;
+    _ext2 = sv._ext2;
+    _ext3 = sv._ext3;
     /* the output wrapper is an annotation on one particular value as it is
        handed back, not part of what the value IS -- so it never rides along
        on a copy.  Every consumer (arithmetic seeding a result from an
@@ -836,27 +841,48 @@ const char* AttributeValue::command_name() {
    of which may call setlocale -- so the explicit test keeps the rendering from
    shifting underfoot.
 
+   The quotes are what makes a char readable back as one, so the export format
+   keeps them and the ordinary %v display does not: printing a run of
+   characters should read as the text it is, and print(feed("hello")) gives
+   hello rather than 'h''e''l''l''o'.  Unquoted, caret notation is ambiguous
+   again when characters are concatenated -- a literal caret followed by A
+   cannot be told from one control byte -- which is the price of text reading
+   as text, and is not paid on the export path.
+
    Lives here rather than in ComValue because the attribute-value output
    operator below is also the export format (AttributeList::serialize, reached
    from ExportFunc::compout and OverlayScript::Attributes), where an unquoted
    char could not be read back as one -- a bare `a` parses as a symbol -- and a
    raw control or high byte went into the file intact. */
-void AttributeValue::out_char_brief(ostream& out, unsigned char cv) {
+void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quoted) {
+  const char* q = quoted ? "'" : "";
   if (cv < 0x80 && iscntrl(cv))
-    out << "'" << '^' << (char)(cv ^ 0x40) << "'";
+    out << q << '^' << (char)(cv ^ 0x40) << q;
   /* the two bytes that cannot appear bare between the quotes: a backslash
      would escape the closing quote, and an apostrophe would be it.  Both
-     escapes are lexer forms, so these keep round-tripping. */
-  else if (cv == '\\' || cv == '\'')
+     escapes are lexer forms, so these keep round-tripping.  Unquoted there is
+     nothing to escape from, and escaping would corrupt the text. */
+  else if (quoted && (cv == '\\' || cv == '\''))
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
-    out << "'" << (char)cv << "'";
+    out << q << (char)cv << q;
   else
     out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
 	<< std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {
+    /* Only these two types ever have ComTerp-specific meaning layered on
+       the shared narg/nkey/nids/flags block this class merely stores
+       (attrvalue.h) -- a coloned() list's ':' form, a sliced string's own
+       window via cstr().  Every other type's printing is already correct
+       here; routing it through the hook too would swap in ComValue's own
+       "brief" REPL-echo conventions (e.g. an unquoted char) in a context
+       -- an attribute's embedded value -- that wants this class's own,
+       different-on-purpose formatting instead. */
+    if (AttributeValue::_render_hook &&
+        (sv.type() == AttributeValue::ArrayType || sv.type() == AttributeValue::StringType))
+      return AttributeValue::_render_hook(out, sv);
     AttributeValue* svp = (AttributeValue*)&sv;
     const char* title;
     const char* symbol;
@@ -1197,6 +1223,9 @@ void AttributeValue::assignval (const AttributeValue& av) {
     memcpy(v1, v2, sizeof(_v));
     _type = av._type;
     _command_symid = av._command_symid;
+    _ext1 = av._ext1;
+    _ext2 = av._ext2;
+    _ext3 = av._ext3;
     wrapper(AttributeValue::NoWrapper);   /* never copies -- see operator= */
     if (!preserve_flag) ref_as_needed();
 }
@@ -1383,7 +1412,7 @@ int AttributeValue::stream_mode() {
    constructors preset to -1 on values that are not commands at all.  Read
    that -1 as "nothing set here", not as a state word of all ones -- without
    this every ordinary literal reports a wrapper of 3 (BraceWrapper). */
-int AttributeValue::state_word() {
+int AttributeValue::state_word() const {
   return _state == -1 ? 0 : _state;
 }
 

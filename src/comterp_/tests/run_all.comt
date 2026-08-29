@@ -45,6 +45,18 @@ if(run("./stackkey.comt")
   :then print("pass: stackkey\n")
   :else print("FAIL: stackkey\n");topok=false)
 
+if(run("./colonlist.comt")
+  :then print("pass: colonlist\n")
+  :else print("FAIL: colonlist\n");topok=false)
+  
+if(run("./string_cap.comt")
+  :then print("pass: string_cap\n")
+  :else print("FAIL: string_cap\n");topok=false)
+
+if(run("./colonslice.comt")
+  :then print("pass: colonslice\n")
+  :else print("FAIL: colonslice\n");topok=false)
+
 if(run("./print.comt")
   :then print("pass: print\n")
   :else print("FAIL: print\n");topok=false)
@@ -113,6 +125,10 @@ if(run("./random.comt")
   :then print("pass: random\n")
   :else print("FAIL: random\n");topok=false)
 
+if(run("./stringstream.comt")
+  :then print("pass: stringstream\n")
+  :else print("FAIL: stringstream\n");topok=false)
+
 if(run("./time.comt")
   :then print("pass: time\n")
   :else print("FAIL: time\n");topok=false)
@@ -177,6 +193,10 @@ if(run("./starnext.comt")
 if(run("./symboldrain.comt")
   :then print("pass: symboldrain\n")
   :else print("FAIL: symboldrain\n");topok=false)
+
+if(run("./seqorder.comt")
+  :then print("pass: seqorder\n")
+  :else print("FAIL: seqorder\n");topok=false)
 
 if(run("./bracket-brace-parity.comt")
   :then print("pass: bracket-brace-parity\n")

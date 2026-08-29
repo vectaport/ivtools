@@ -452,9 +452,36 @@ A few things worth noting:
   indexes directly, no parens needed) — see *At operator* below
 - `..` and `**` bind above arithmetic — `(2..4)*5` needs parens around the range
 - `,` binds below all arithmetic and comparison — `1+2,3+4` is `(1+2),(3+4)`
+- **the space binds looser than `,`** — and looser than everything else, which
+  is *why* it separates arguments: every operator has finished binding before
+  the argument boundaries are decided. The whole ladder, loosest first, is
+
+      space   <   unary `$`, `~~`   <   ,   <   comparison/arithmetic   <   unary `$$`, `*`
+
+  Three consequences that otherwise look like unrelated quirks:
+
+  - a comma-built list needs no parens to be one argument — `list(1,2,3)` is
+    `{1,2,3}` (one argument), while `list(1 2 3)` is three arguments and
+    `list()` takes the first, giving `{1,}`
+  - a *space*-form literal does need its own parens, because bare spaces read
+    as argument separation instead: `list((1 2 3))` is the stream literal,
+    and `f((:a 1 :b 2))` passes an attrlist where `f(:a 1 :b 2)` would pass
+    keywords to `f` itself
+  - so `((1,2,3))` has one pair too many — the comma already finished the job —
+    while `((1 2 3))` does not. What is inside decides it: spaces or keywords
+    make a literal and need the parens, commas do not
 - `=` is right-associative and below `,` — `a=b=1` chains correctly
 - `;` binds lowest of all — everything to its left and right is a complete expression
-- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without parens
+- `$$` and `$` are unary prefix RtoL so `$$lst` and `$strm` parse without
+  parens, but they sit on opposite sides of `,`, not next to each other:
+  `$$` is priority 100, well above `,` (35), while `$` is 32, just below it.
+  So `$$1,2,3` is `stream(1)` with `2` and `3` glued on after, not a stream
+  over the list — `postfix($$1,2,3)` shows it directly, as
+  `1 stream[1|0|1]* 2 tuple 3 tuple`; that one wants `$$(1,2,3)`, or a
+  variable holding the list. `$1,2,3` goes the other way: the comma finishes
+  building the tuple first, and `$` then collects that whole tuple into
+  `{1,2,3}` — no parens needed. `postfix($1,2,3)` shows it as
+  `1 2 tuple[2|0|1] 3 tuple list[1|0|1]*`
 - `*` plays two roles at once: binary `*` (`mpy`, LtoR, 70) and unary prefix
   `*` (`next`, RtoL, 71) are two separate table entries sharing one operator
   string — the same double-duty pattern `-` already uses for `minus`/`sub`.
@@ -2596,6 +2623,77 @@ Note: `:substr` is only needed when the first arg to `index` is a list.
 When both args are strings, substring search is the default behavior.
 
 Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
+
+### Slices
+
+`str@lo:hi` is a **slice**: a view into `str`'s own storage from `lo` up
+to (but not including) `hi` — Go-style, `hi` exclusive — not a copy:
+
+```
+s="hello world"
+sl=s@0:5          // "hello" -- same storage as s, no copy
+sl@0='H'
+s                  // "Hello world" -- the write shows through the parent
+```
+
+Because a slice shares storage with whatever it was cut from, a write
+through either side is visible through the other. That is a deliberate
+tradeoff for cheap slicing, not a bug — the same one Go itself makes.
+
+The core string-reading commands understand slices: `size(sl)`, `index(sl
+...)`, `split(sl ...)`, `sl==...`, `sl<...`, and `print(sl)` all read (or
+compare against) just `sl`'s own window, never the whole parent. Some
+operations and value-passing paths remain unsupported — see the known
+gaps in `doc/SLICES.md`.
+
+Slices compose: slicing a slice bounds against *its* window, not the
+original string's:
+
+```
+s="abcdefg"
+sl=s@2:5          // "cde"
+sl@0:1             // "c" -- position 0 of sl, not of s
+```
+
+**Growable strings**, for building a string up over time instead of
+always concatenating fresh copies:
+
+```
+buf=string(20)             // 20-byte buffer, empty content, capacity 20
+at(buf 0 :set 'h')
+at(buf 1 :set 'i')
+a=buf+" there"               // written in place -- buf had room
+strcap(a)                     // 20 -- same buffer, not reallocated
+buf                             // "hi there" -- visible through buf too
+```
+
+`+` writes into a string's own spare capacity when there's room, the
+same amortized-growth model Go's `append()` uses — no copy, and (same
+tradeoff as above) the growth is visible through every reference to
+that buffer. Once capacity runs out, `+` falls back to allocating a
+fresh, larger string and copying, leaving the original untouched.
+Concatenating two ordinary strings (no spare capacity to reuse) always
+takes this copying path — the fast path is specifically for a
+`string()` buffer with room left in it.
+
+`:` is comterp's colon-pair operator, not slice-specific — `str@lo:hi`
+is just `at()` fed a two-element `:`-built list as its index. `lo:hi`
+on its own is a real, generic value:
+
+```
+r=0:3
+size(r)           // 2
+r@0                // 0
+r                   // 0:3 -- prints without braces, unlike an ordinary list
+```
+
+It chains and flattens rather than nesting: `1:2:3` builds `{1,2,3}`,
+not `{{1,2},3}`. A bare identifier operand is captured as its own
+symbol, never looked up — `Dec:25` is fine even if `Dec` was never
+assigned anything.
+
+See `doc/SLICES.md` for the fuller design story — the aliasing model,
+the growth/append mechanics, and the gaps not yet closed.
 
 ## Symbols
 
