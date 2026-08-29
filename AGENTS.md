@@ -98,6 +98,9 @@ instructions are in **`INSTALL`**.
   `*.o`, `a.out`, …) are git-ignored.
 - `ARCHBUILD.sh` is the canonical full-from-scratch build recipe (it runs
   `configure` + `make` + `make Makefiles` + `make` to settle imake deps).
+- `doc/TROUBLESHOOTING.md` indexes recurring symptoms (a crash unrelated to your
+  change, `update()` not waiting, a loop that never ends) by what you see, with
+  the first move for each.
 - Header dependencies live in `Makefile.depend`, which `make depend` writes as a
   snapshot rather than maintaining automatically. Add an `#include` and that
   dependency stays invisible until `make depend` is rerun, so later edits to the
