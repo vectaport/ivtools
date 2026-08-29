@@ -190,6 +190,10 @@ if(run("./symboldrain.comt")
   :then print("pass: symboldrain\n")
   :else print("FAIL: symboldrain\n");topok=false)
 
+if(run("./seqorder.comt")
+  :then print("pass: seqorder\n")
+  :else print("FAIL: seqorder\n");topok=false)
+
 if(run("./bracket-brace-parity.comt")
   :then print("pass: bracket-brace-parity\n")
   :else print("FAIL: bracket-brace-parity\n");topok=false)
