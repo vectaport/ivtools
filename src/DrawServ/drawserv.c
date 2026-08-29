@@ -659,8 +659,32 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
   if (!ptr) return;
   GraphicId* grid = (GraphicId*)ptr;
 
-  if (granter != NULL && uuid_compare(granter, sessionid())==0 &&
-      responder != NULL && uuid_compare(grid->selector(), responder)==0) {
+  if (granter==NULL || uuid_is_null(granter)) return;
+
+  /* not our grant: a grant reaches its recipient through linkget(selector),
+     so the response has to travel back the same way rather than stopping at
+     the relay it happens to arrive on. */
+  if (uuid_compare(granter, sessionid())) {
+    DrawLink* glink = linkget(granter);
+    if (glink && glink != link) {
+      uuid_string_t responder_str;
+      responder_str[0] = '\0';
+      if (responder != NULL && !uuid_is_null(responder))
+	uuid_unparse(responder, responder_str);
+      uuid_string_t granter_str;
+      uuid_unparse(granter, granter_str);
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :notaken :class \"%s\")%c",
+	       grid->idstr(), responder_str, granter_str,
+	       grid->compclass(), '\0');
+      SendCmdString(glink, buf);
+      fprintf(stderr, "grid: grant-not-taken passed along to granter\n");
+    } else
+      fprintf(stderr, "grid: grant-not-taken undeliverable, dropped\n");
+    return;
+  }
+
+  if (responder != NULL && uuid_compare(grid->selector(), responder)==0) {
     grid->selector(sessionid());
     fprintf(stderr, "grid: grant not taken, ownership restored here\n");
   } else
