@@ -239,7 +239,7 @@ class FuncObjPendingArg {
   int tokcnt() { return _tokcnt; }
   int pedepth() { return _pedepth; }
 
-  CLASS_SYMID("FuncObjPendingArg");
+  CLASS_SYMID_HIDDEN("FuncObjPendingArg");
 
  protected:
   int _offtop;

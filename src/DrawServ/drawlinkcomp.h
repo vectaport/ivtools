@@ -41,7 +41,7 @@ public:
     void drawlink(DrawLink* link) { _drawlink = link; }
 
 protected:
-    CLASS_SYMID("DrawLinkComp");
+    CLASS_SYMID2("DrawLinkComp", DRAWLINK_COMP);
 
     DrawLink* _drawlink;
 

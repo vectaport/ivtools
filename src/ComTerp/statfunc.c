@@ -45,6 +45,7 @@ void SumFunc::execute() {
   if (vallist.is_type(ComValue::ArrayType)) {
     AttributeValueList* avl = vallist.array_val();
     AddFunc addfunc(comterp());
+    addfunc.funcid(symbol_add("add"));
     push_stack(ComValue::zeroval());
     Iterator it;
     int count = 0;
@@ -55,6 +56,7 @@ void SumFunc::execute() {
     }
     if (_meanfunc) {
       DivFunc divfunc(comterp());
+      divfunc.funcid(symbol_add("div"));
       ComValue divisor(count, ComValue::IntType);
       push_stack(divisor);
       divfunc.exec(2,0);
@@ -83,7 +85,9 @@ void VarFunc::execute() {
   if (vallist.is_type(ComValue::ArrayType)) {
     AttributeValueList* avl = vallist.array_val();
     AddFunc addfunc(comterp());
+    addfunc.funcid(symbol_add("add"));
     MpyFunc mpyfunc(comterp());
+    mpyfunc.funcid(symbol_add("mpy"));
     ComValue sqrsumval(ComValue::zeroval());
     ComValue sumval(ComValue::zeroval());
     ComValue mnsquaresval;
@@ -109,6 +113,7 @@ void VarFunc::execute() {
 
     /* compute mean of squares */
     DivFunc divfunc(comterp());
+    divfunc.funcid(symbol_add("div"));
     push_stack(sqrsumval);
     ComValue countval((float)count);
     push_stack(countval);
@@ -127,6 +132,7 @@ void VarFunc::execute() {
 
     /* subract mean squared from sum of squares to get variance */
     SubFunc subfunc(comterp());
+    subfunc.funcid(symbol_add("sub"));
     push_stack(mnsquaresval);
     push_stack(mnsquaredval);
     subfunc.exec(2,0);
@@ -134,6 +140,7 @@ void VarFunc::execute() {
     /* compute standard deviation if StdDevFunc */
     if (_stddevfunc) {
       SqrtFunc sqrtfunc(comterp());
+      sqrtfunc.funcid(symbol_add("sqrt"));
       sqrtfunc.exec(1,0);
     }
 

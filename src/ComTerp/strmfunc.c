@@ -73,7 +73,6 @@ boolean StrmFunc::is_delimiter(ComValue& val) {
 
 /*****************************************************************************/
 
-int StreamFunc::_symid = -1;
 
 StreamFunc::StreamFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -363,7 +362,6 @@ void StreamFunc::execute_literal() {
 
 /*****************************************************************************/
 
-int SpreadFunc::_symid = -1;
 
 SpreadFunc::SpreadFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -472,7 +470,6 @@ void EchoFunc::execute() {
 
 /*****************************************************************************/
 
-int StreamNextFunc::_symid = -1;
 
 StreamNextFunc::StreamNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -498,6 +495,7 @@ void StreamNextFunc::execute() {
       ComValue fpobj(*retval);
       comterp()->push_stack(fpobj);
       GetStringFunc func(comterp());
+      func.funcid(symbol_add("getstringnext"));
       func.exec(1,0);
       if (comterp()->stack_top().is_null()) {
 	if (fpobj.is_fileobj()) {
@@ -531,7 +529,6 @@ void StreamNextFunc::execute() {
 
 /*****************************************************************************/
 
-int ConcatFunc::_symid = -1;
 
 ConcatFunc::ConcatFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -558,7 +555,6 @@ void ConcatFunc::execute() {
 
 /*****************************************************************************/
 
-int ConcatNextFunc::_symid = -1;
 
 ConcatNextFunc::ConcatNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1077,7 +1073,6 @@ void EachFunc::execute() {
 
 /*****************************************************************************/
 
-int FilterFunc::_symid = -1;
 
 FilterFunc::FilterFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1104,7 +1099,6 @@ void FilterFunc::execute() {
 
 /*****************************************************************************/
 
-int FilterNextFunc::_symid = -1;
 
 FilterNextFunc::FilterNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1159,7 +1153,6 @@ void FilterNextFunc::execute() {
 
 /*****************************************************************************/
 
-int StreamLiteralNextFunc::_symid = -1;
 
 StreamLiteralNextFunc::StreamLiteralNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1261,7 +1254,6 @@ void StreamLiteralNextFunc::execute() {
 
 /*****************************************************************************/
 
-int InfoFunc::_symid = -1;
 
 InfoFunc::InfoFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1401,7 +1393,6 @@ void InfoFunc::execute() {
 
 /*****************************************************************************/
 
-int FeedFunc::_symid = -1;
 
 FeedFunc::FeedFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -1505,7 +1496,6 @@ void FeedFunc::execute() {
 
 /*****************************************************************************/
 
-int ChunkFunc::_symid = -1;
 
 ChunkFunc::ChunkFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -1554,7 +1544,6 @@ void ChunkFunc::execute() {
 
 /*****************************************************************************/
 
-int ChunkNextFunc::_symid = -1;
 
 ChunkNextFunc::ChunkNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
@@ -1610,7 +1599,6 @@ void ChunkNextFunc::execute() {
 
 /*****************************************************************************/
 
-int FeedNextFunc::_symid = -1;
 
 FeedNextFunc::FeedNextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }

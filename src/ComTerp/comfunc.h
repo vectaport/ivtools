@@ -282,7 +282,6 @@ protected:
     const char* _docstring2;
     boolean _hidden;
 
-    CLASS_SYMID("ComFunc");
 };
 
 //: state object for holding invocation specific data about a ComFunc.

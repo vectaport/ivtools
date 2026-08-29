@@ -218,8 +218,6 @@ public:
     // return true if UnknownType.
     boolean null() { return unknown(); }
     // return true if UnknownType.
-    boolean is_comfunc(int func_classid);
-    // returns true if CommandType with ComFunc
 
     friend ostream& operator << (ostream& s, const ComValue&);
     // print contents to ostream, brief or not depending on

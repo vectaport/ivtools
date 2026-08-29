@@ -129,7 +129,7 @@ protected:
     int _start_node;
     int _end_node;
 
-    CLASS_SYMID("EdgeComp");
+    CLASS_SYMID2("EdgeComp", EDGE_COMP);
 };
 
 //: graphical view of EdgeComp
