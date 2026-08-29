@@ -1657,7 +1657,27 @@ void SelectFunc::execute() {
         }
       }
 
+      /* Clear() above hid the outgoing selection's tic marks and highlighting,
+	 and nothing here put them back: repairing damage repaints graphics and
+	 never draws a handle.  A grant arriving does redraw them, AddComp
+	 ending in Selection::Update, which is why they are only missing when a
+	 select resolves without one -- everything either already ours or
+	 refused outright.  Restore them in the order Selection::Update uses,
+	 with the repaint below standing in for its Repair, and read the
+	 editor's selection since a wait may have replaced ours. */
       unidraw->Update();
+
+      /* Clear() above hid the outgoing selection's tic marks and highlighting
+	 and nothing put them back.  unidraw->Update() cannot: it defers, and
+	 the repaint it schedules repairs the damage that hiding them made --
+	 over anything drawn here beforehand.  Selection::Update repairs and
+	 then draws, which is the order that survives, and it is what #210 took
+	 out of here for the cost of its Repair; keep that saving where it was
+	 aimed, at animation loops, which run with handles disabled.  Read the
+	 editor's selection since a wait may have replaced ours. */
+      OverlaySelection* shown = (OverlaySelection*)_ed->GetSelection();
+      if (shown && shown->HandlesEnabled())
+	shown->Update(viewer);
     }
     reset_stack();
     ComValue retval(avl);

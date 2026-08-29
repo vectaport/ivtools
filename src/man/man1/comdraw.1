@@ -141,9 +141,12 @@ graphical object assigned to an interpreter variable.
  sx,sy=ssize() -- size of screen
  dx,dy=dsize() -- size of drawing
 
- handles([flag]) --     
-   -- disable/enable current selection tic marks 
-      and/or highlighting
+ flag=handles([flag] :get)
+   -- disable/enable current selection tic marks
+      and/or highlighting.  :get reads without
+      changing, no argument toggles, an argument
+      sets, and each returns the value now in
+      force, as pastemode() does
  highlight(compview compviewgs)
    -- set the highlight graphic state for a graphic
 
