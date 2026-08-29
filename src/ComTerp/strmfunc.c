@@ -495,6 +495,7 @@ void StreamNextFunc::execute() {
       ComValue fpobj(*retval);
       comterp()->push_stack(fpobj);
       GetStringFunc func(comterp());
+      func.funcid(symbol_add("getstringnext"));
       func.exec(1,0);
       if (comterp()->stack_top().is_null()) {
 	if (fpobj.is_fileobj()) {
