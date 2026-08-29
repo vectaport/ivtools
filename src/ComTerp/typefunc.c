@@ -27,12 +27,15 @@
 #include <ComTerp/comterp.h>
 #include <ComTerp/postfunc.h>
 
+#include <Attribute/_comutil.h>
 #include <Attribute/attrlist.h>
 #include <Attribute/attrvalue.h>
 
 #include <Unidraw/iterator.h>
 
 #include <iostream.h>
+#include <string.h>
+#include <algorithm>
 #include <vector>
 
 #define TITLE "TypeFunc"
@@ -43,10 +46,37 @@ TypeSymbolFunc::TypeSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void TypeSymbolFunc::execute() {
-  // return type symbol for each argumen
-  boolean noargs = !nargs() && !nkeys();
+  // return type symbol for each argument
+  static int all_symid = symbol_add("all");
+  boolean all_flag = stack_key(all_symid).is_true();
   int numargs = nargs();
-  if (!numargs) return;
+
+  if (all_flag) {
+    /* the whole closed set, in enum order -- every value in the language has
+       one of these, so unlike class() this list is complete by construction.
+       ListType and ArrayType are one type under two names; the symbol is
+       ListType, so ArrayType never appears. */
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int t=AttributeValue::UnknownType; t<=AttributeValue::BlankType; t++) {
+      ComValue* av = new ComValue
+	(AttributeValue::type_symid((AttributeValue::ValueType)t),
+	 AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
+    push_stack(retval);
+    return;
+  }
+
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer, the same
+       distinction class() draws.  nil stays the answer about a named value. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> type_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue& val = stack_arg(i);
@@ -84,10 +114,46 @@ ClassSymbolFunc::ClassSymbolFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void ClassSymbolFunc::execute() {
-  // return type symbol for each argumen
+  // return class symbol for each argument
+  static int all_symid = symbol_add("all");
+  static int comps_symid = symbol_add("comps");
+  boolean all_flag = stack_key(all_symid).is_true();
+  boolean comps_flag = stack_key(comps_symid).is_true();
+
+  if (all_flag || comps_flag) {
+    /* every class that used CLASS_SYMID, enrolled before main() -- so this is
+       what the binary linked, not what it happens to have touched.  :comps
+       narrows to the CLASS_SYMID2 classes, the ones carrying a Unidraw
+       ClassId.  Sorted by name: the registry is in dynamic-initializer order,
+       which no standard pins down. */
+    std::vector<const char*> names;
+    for (ClassSymid* node = class_symid_list(); node; node = node->next)
+      if (!comps_flag || node->iscomp) names.push_back(node->classname);
+    std::sort(names.begin(), names.end(), [](const char* a, const char* b)
+	      { return strcmp(a, b) < 0; });
+    reset_stack();
+    AttributeValueList* avl = new AttributeValueList();
+    ComValue retval(avl);
+    for (int i=0; i<names.size(); i++) {
+      /* the registry holds names, so the ids are made here -- symbol_add() is
+	 idempotent, so this is the same id class_symid() hands back */
+      ComValue* av = new ComValue(symbol_add(names[i]), AttributeValue::SymbolType);
+      av->bquote(1);
+      avl->Append(av);
+    }
+    push_stack(retval);
+    return;
+  }
+
   boolean noargs = !nargs() && !nkeys();
   int numargs = nargs();
-  if (!numargs) return;
+  if (!numargs) {
+    /* no value named at all -- blank, the "nothing was asked" answer.  nil is
+       reserved for the value that was named but has no class to report. */
+    reset_stack();
+    push_stack(ComValue::blankval());
+    return;
+  }
   std::vector<int> class_syms(numargs);
   for (int i=0; i<numargs; i++) {
     ComValue val = stack_arg(i);
@@ -254,4 +320,54 @@ void IsFuncFunc::execute() {
     push_symid_or_nil(this, match ? resolved->class_symid() : -1);
   else
     push_stack(match ? ComValue::trueval() : ComValue::falseval());
+}
+
+/*****************************************************************************/
+
+IsSliceFunc::IsSliceFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void IsSliceFunc::execute() {
+  ComValue arg0(stack_arg(0));
+  reset_stack();
+  boolean match = arg0.is_type(ComValue::StringType) && arg0.sliced();
+  push_stack(match ? ComValue::trueval() : ComValue::falseval());
+}
+
+/*****************************************************************************/
+
+IsListFunc::IsListFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void IsListFunc::execute() {
+  ComValue arg0(stack_arg(0));
+  static int list_symid = symbol_add("list");
+  static int attr_symid = symbol_add("attr");
+  static int colon_symid = symbol_add("colon");
+  static int any_symid = symbol_add("any");
+  ComValue listflag(stack_key(list_symid));
+  ComValue attrflag(stack_key(attr_symid));
+  ComValue colonflag(stack_key(colon_symid));
+  ComValue anyflag(stack_key(any_symid));
+  reset_stack();
+  boolean is_array = arg0.is_type(ComValue::ArrayType);
+  boolean is_colon = is_array && arg0.coloned();
+  boolean is_attr = arg0.is_object(AttributeList::class_symid());
+  boolean match;
+  if (anyflag.is_true())
+    match = is_array || is_attr;
+  else if (colonflag.is_true())
+    match = is_colon;
+  else if (listflag.is_true())
+    match = is_array && !is_colon;
+  else if (attrflag.is_true())
+    match = is_attr;
+  else
+    /* bare, no keyword: any ArrayType, comma- or colon-built together --
+       "can this be indexed/iterated like a list", not "how was it built"
+       (list()'s own constructor keeps the opposite default -- bare
+       list(...) builds only a comma-list -- since a constructor has to
+       commit to exactly one shape, where a predicate doesn't). */
+    match = is_array;
+  push_stack(match ? ComValue::trueval() : ComValue::falseval());
 }

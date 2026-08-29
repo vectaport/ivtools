@@ -27,6 +27,8 @@
 #include <Unidraw/catalog.h>
 #include <Unidraw/classes.h>
 #include <Unidraw/Commands/transforms.h>
+#include <InterViews/resource.h>
+#include <InterViews/transformer.h>
 
 #include <stream.h>
 
@@ -146,12 +148,22 @@ void RotateCmd::Write (ostream& out) {
 ClassId TransformCmd::GetClassId () { return TRANSFORM_CMD; }
 boolean TransformCmd::IsA (ClassId id) { return TRANSFORM_CMD == id || Command::IsA(id);}
 
+/* the transformer outlives the caller -- a logged command holds it until the
+   history drops it -- so reference it here and release it in the destructor.
+   Copy() hands the same pointer to a new command, which references it again,
+   so the count stays balanced across copies. */
 TransformCmd::TransformCmd (ControlInfo* c, Transformer* t) : Command(c) {
     _t = t;
+    Resource::ref(_t);
 }
 
 TransformCmd::TransformCmd (Editor* ed, Transformer* t) : Command(ed) {
     _t = t;
+    Resource::ref(_t);
+}
+
+TransformCmd::~TransformCmd () {
+    Resource::unref(_t);
 }
 
 Command* TransformCmd::Copy () {

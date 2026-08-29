@@ -86,23 +86,19 @@ void DrawEditor::InitCommands() {
 void DrawEditor::AddCommands(ComTerp* comterp) {
   FrameEditor::AddCommands(comterp);
 
-#ifdef HAVE_ACE
   comterp->add_command("drawlink", new DrawLinkFunc(comterp, this));
   comterp->add_command("sid", new SessionIdFunc(comterp, this));
   comterp->add_command("grid", new GraphicIdFunc(comterp, this));
-#endif
 
   comterp->add_command("points", new DrawPointsFunc(comterp, this));
 
-#ifdef HAVE_ACE
   /* re-register select() with DrawServ-specific :unlock/:lock keywords in docstring */
-  comterp->add_command("select", new SelectFunc(comterp, this), nil,
+  comterp->add_command("select", new LinkSelectFunc(comterp, this), nil,
     "%s([compview ... | compview,compview[,... compview]] :all :clear :unlock key :lock key)"
     " -- make these graphics the current selection\n"
     "        :all         select all graphics\n"
     "        :clear       clear current selection\n"
     "        :unlock key  temporarily suspend remote ownership checks (DrawServ only)\n"
     "        :lock key    restore remote ownership after distributed cmd (DrawServ only)");
-#endif
 }
 

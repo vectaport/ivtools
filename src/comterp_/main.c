@@ -23,14 +23,12 @@
 
 #include <cstdio>
 
-#ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
 #include <ace/SOCK_Connector.h>
 #include <ace/Synch.h>
 
 static u_short SERVER_PORT = 20000;
 static const char *const SERVER_HOST = ACE_DEFAULT_SERVER_HOST;
-#endif
 
 #include <fstream.h>
 

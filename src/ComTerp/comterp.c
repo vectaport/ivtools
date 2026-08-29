@@ -1618,6 +1618,45 @@ ComValue& ComTerp::fire_if_funcobj(ComValue& val) {
   return *slot;
 }
 
+/* comval's own narg()/nkey()/nids() (comvalue.h) encode THIS identifier's
+   call-site shape, not the value it resolves to -- check_fail(:ok ok)
+   needs nkey()==1 to survive resolution so fire_funcobj() (below) knows
+   to pop a keyword marker+value for it.  assignval() (AttributeValue)
+   now copies a resolved value's own narg/nkey/nids over comval's
+   unconditionally, because that same storage doubles as a StringType's
+   slice window (#395) and a sliced variable's window must win here.  For
+   every other resolved type those fields are either unused (0) or, for a
+   FuncObj, irrelevant to this call, so restore comval's pre-lookup
+   values instead of letting a stale 0 clobber real call-site arity --
+   the inverse of the StringType case.  (Before AttributeValue grew this
+   storage, assignval() couldn't reach these ComValue-only fields at
+   all, and a StringType's window needed its own explicit carry instead;
+   now the same widening that lets a slice survive assignval() is what
+   needs undoing here for every non-StringType resolution.)
+
+   bquote() gets the opposite treatment, and unconditionally: it must
+   NEVER survive a resolution, in every type, StringType included.  A
+   stored value's bquote() records that *it* was written as a literal
+   backquoted expression (`EOS) -- it says nothing about how a *later*
+   read of the variable holding it should behave.  Carrying it through
+   is actively wrong: lookup_symval()'s own entry check
+   (`if (comval.bquote()) return comval;`) would then short-circuit a
+   second resolution attempt that's supposed to run and legitimately
+   fail -- e.g. a variable holding `EOS is itself an ordinary (non-
+   bquoted) SymbolType read, and resolving *that* symbol ("EOS") as if
+   it were a variable name correctly finds nothing and degrades to
+   nullval() (UnknownType, falsy) -- the actual mechanism nilcompare.comt
+   depends on for "a bquoted symbol is falsy" (test 7), broken by
+   assignval() carrying bquote() through until this reset. */
+static void restore_call_arity(ComValue& comval, ComValue& resolved,
+                                int saved_narg, int saved_nkey, int saved_nids) {
+  comval.bquote(0);
+  if (resolved.type() == ComValue::StringType) return;
+  comval.narg(saved_narg);
+  comval.nkey(saved_nkey);
+  comval.nids(saved_nids);
+}
+
 ComValue& ComTerp::lookup_symval(ComValue& comval) {
     if (comval.bquote()) {
         return comval;
@@ -1630,25 +1669,57 @@ ComValue& ComTerp::lookup_symval(ComValue& comval) {
 	  int id = comval.symbol_val();
 	  AttributeValue* aval = peek_alist_pending(_alist, id, _alist->find(id));
 	  if (aval) {
+	    /* _alist (a func's keyword-bound locals, fire_funcobj() comterp.c)
+	       is populated via AttributeList::add_attr(int, AttributeValue&)
+	       (attrlist.c), same as attrlist() itself, which constructs a
+	       plain `new AttributeValue(value)` -- still not a ComValue, but
+	       AttributeValue itself now carries the narg/nkey/nids/flags block
+	       (attrvalue.h), so coloned()/sliced()/etc. DO survive into aval
+	       when the original value had them set (#438) -- reading them via
+	       ((ComValue*)aval)->coloned() is exactly the intended, now-real
+	       recovery, not undefined behavior.  narg()/nkey()/nids() and
+	       bquote() need the same restore_call_arity() treatment as the
+	       localtable/globaltable branches below, for the same reason: a
+	       func-local variable read (e.g. invoking a FuncObj received
+	       through a keyword arg or captured free variable) must keep its
+	       own call-site arity, not inherit the stored value's -- Greptile,
+	       #450. */
+	    int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
 	    ComValue newval(*aval);
 	    *&comval = newval;
+	    restore_call_arity(comval, newval, saved_narg, saved_nkey, saved_nids);
 	    return comval;
 	  }
 	}
 
+	/* assignval() (AttributeValue) copies coloned() and every other flag
+	   bit packed into the shared _ext3 word along with narg/nkey/nids --
+	   see restore_call_arity()'s comment for why the latter need undoing
+	   again right after for a non-StringType resolution. */
 	if (!comval.global_flag() && localtable()->find(vptr, comval.symbol_val()) ) {
+	  int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
 	  comval.assignval(*(ComValue*)vptr);
+	  restore_call_arity(comval, *(ComValue*)vptr, saved_narg, saved_nkey, saved_nids);
 	  return comval;
 	} else if (globaltable()->find(vptr, comval.symbol_val())) {
+	  int saved_narg = comval.narg(), saved_nkey = comval.nkey(), saved_nids = comval.nids();
 	  comval.assignval(*(ComValue*)vptr);
+	  restore_call_arity(comval, *(ComValue*)vptr, saved_narg, saved_nkey, saved_nids);
 	  return comval;
 	} else
 	  return ComValue::nullval();
 
     } else if (comval.is_object(Attribute::class_symid())) {
-      ComValue attrval = *((Attribute*)comval.obj_val())->Value(); 
+      /* Attribute::Value() returns whatever AttributeList::add_attr()
+	 (attrlist.c) stored -- a plain `new AttributeValue(value)`, never a
+	 ComValue, but AttributeValue's own narg/nkey/nids/flags block
+	 (attrvalue.h) now survives into it regardless (#438), same as the
+	 _alist branch above.  bquote() must not survive this read either,
+	 same reasoning as restore_call_arity()'s comment. */
+      ComValue attrval = *((Attribute*)comval.obj_val())->Value();
       comval.assignval(attrval);
-    }       
+      comval.bquote(0);
+    }
     return comval;
 }
 
@@ -2058,6 +2129,7 @@ void ComTerp::add_defaults() {
     add_command("at", new ListAtFunc(this));
     add_command("size", new ListSizeFunc(this));
     add_command("tuple", new TupleFunc(this));
+    add_command("colonlist", new ColonListFunc(this));
     add_command("index", new ListIndexFunc(this));
 
     add_command("sum", new SumFunc(this));
@@ -2113,6 +2185,8 @@ void ComTerp::add_defaults() {
     add_command("symvar", new SymVarFunc(this));
     add_command("symstr", new SymStrFunc(this));
     add_command("strref", new StrRefFunc(this));
+    add_command("string", new StringFunc(this));
+    add_command("strcap", new StrCapFunc(this));
     add_command("global", new GlobalSymbolFunc(this));
     add_command("local", new LocalSymbolFunc(this));
     add_command("split", new SplitStrFunc(this));
@@ -2125,6 +2199,8 @@ void ComTerp::add_defaults() {
     add_command("isclass", new IsClassFunc(this));
     add_command("iscomm", new IsCommFunc(this));
     add_command("isfunc", new IsFuncFunc(this));
+    add_command("isslice", new IsSliceFunc(this));
+    add_command("islist", new IsListFunc(this));
 
     add_command("bquote", new BackQuoteFunc(this));
 
@@ -2143,11 +2219,9 @@ void ComTerp::add_defaults() {
     add_command("gets", new GetStringFunc(this));
 
     add_command("usleep", new USleepFunc(this));
-#ifdef HAVE_ACE
     add_command("update", new UpdateFunc(this));
     add_command("timeexpr", new TimeExprFunc(this));
     add_command("time", new TimeFunc(this));
-#endif
 
     add_command("eval", new EvalFunc(this));
     add_command("shell", new ShellFunc(this));

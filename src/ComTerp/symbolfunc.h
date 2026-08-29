@@ -109,6 +109,36 @@ public:
       return "n=%s(str|symid) -- return string reference count"; }
 };
 
+//: create a fresh, writable, capacity-bearing string.
+// str=string(cap :spaces) -- cap bytes, NUL-filled (or space-filled with
+// :spaces), never deduplicated against an existing symbol.
+class StringFunc : public ComFunc {
+public:
+    StringFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "str=%s(cap :spaces) -- cap bytes, NUL-filled (or space-filled with :spaces)"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":spaces    fill with spaces instead of NUL bytes",
+	nil
+      };
+      return keys;
+    }
+};
+
+//: return a string's usable capacity.
+// n=strcap(str) -- capacity in bytes, not counting the guaranteed terminator.
+class StrCapFunc : public ComFunc {
+public:
+    StrCapFunc(ComTerp*);
+    virtual void execute();
+
+    virtual const char* docstring() {
+      return "n=%s(str) -- capacity in bytes, not counting the guaranteed terminator"; }
+};
+
 //: create symbol command for ComTerp.
 // symv|lst=symadd(sym|str [sym|str ...]) -- create symbol(s) and return without lookup
 class SymAddFunc : public ComFunc {

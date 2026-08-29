@@ -232,5 +232,35 @@ print("20a (:brush 65535,0).brush as array (expect 65535 0): %v %v\n" at(gs.brus
 print("20b (:fgcolor \"Red\",1,0,0).fgcolor as array (expect Red 1): %v %v\n" at(gs.fgcolor 0) at(gs.fgcolor 1))
 prev_ok=check_fail(:ok ok)
 
+// --- test 21: a unary prefix operator pops nothing off the operator stack ---
+// its operand is entirely to its right, so nothing already stacked can be
+// completed by it.  priority orders what a prefix operator binds to on its
+// right, never what it closes off on its left -- so $$(100) outside $(32)
+// must nest the same way $(32) outside $$(100) does, just reversed, and a
+// stacked binary must still be waiting for its right operand when the prefix
+// operator that starts it arrives.  before the fix the higher-priority
+// operator was popped and emitted with its operand missing, which showed up
+// as "offlimit hit by ComTerp::skip_arg" at eval time.
+s_hi_lo=postfix($$ $1)
+s_lo_hi=postfix($ $$1)
+ok=ok&&(s_hi_lo=="1 list[1|0|1]* stream[1|0|1]*")
+ok=ok&&(s_lo_hi=="1 stream[1|0|1]* list[1|0|1]*")
+ok=ok&&(s_hi_lo!=s_lo_hi)
+print("21a postfix($$ $1) (expect 1 list stream): %v\n" s_hi_lo)
+print("21b postfix($ $$1) (expect 1 stream list): %v\n" s_lo_hi)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21c: stacked binary survives an incoming prefix operator ---
+// add(60) is on the stack with only its left operand read when $(32) arrives
+s_bin=postfix(1+$2)
+ok=ok&&(s_bin=="1 2 list[1|0|1]* add[2|0|1]")
+print("21c postfix(1+$2) (expect 1 2 list add): %v\n" s_bin)
+prev_ok=check_fail(:ok ok)
+
+// --- test 21d: the same nesting evaluates ---
+ok=ok&&(*($$ $1)==1)
+print("21d *($$ $1) (expect 1): %v\n" *($$ $1))
+prev_ok=check_fail(:ok ok)
+
 print("parser: %v\n" ok)
 ok

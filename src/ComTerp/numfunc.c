@@ -249,24 +249,93 @@ void AddFunc::execute() {
     case ComValue::StringType:
     case ComValue::SymbolType:
         { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
+          /* Go-style append (#396): b's bytes go straight into operand1's
+             own backing symid, in place, when there's room -- no copy at
+             all.  operand1 must be_only_string() (StringType, never
+             SymbolType): a symbol's characters are its identity, shared by
+             every value holding that symid (#393), so writing through one
+             would corrupt everyone else's view.  An ordinary interned
+             string literal is excluded too, with no extra check needed --
+             its symid was sized to hold exactly its own text
+             (symbol_len()==strlen()), zero spare capacity, so the in-place
+             branch below never finds room and falls through to copy on its
+             own.  The in-place result is handed back as a slice
+             (sliceoff()/slicelen(), #395) over operand1's own symid, so a
+             caller holding operand1 at a nonzero sliceoff() doesn't have
+             its result misread from the front of the shared buffer.
+
+             The fallback copy path intentionally still goes through
+             symbol_add() (dedup/intern by content), exactly like the
+             pre-#396 concatenation it replaces -- NOT symbol_new()'s
+             fresh, non-deduping, unfindable-by-text buffer.  Tried
+             symbol_new() with amortized (2x) headroom first, matching
+             #396's memory design note; it broke symadd()/global()'s
+             existing assumption that a StringType's own symid already
+             names a searchable symbol (symadd(global(p1)+global(p2)) --
+             global.comt test 11), since a symbol_new() id is deliberately
+             absent from symbol_find()'s reverse index (see symbol_new()'s
+             own doc comment, symbols.c).  So a plain concat -- not
+             starting from an already-over-allocated string()/strcap()
+             buffer -- gets no free growth headroom and must copy again on
+             its own next append, same as it always did; only appending
+             onto a deliberately over-provisioned string() buffer gets the
+             true zero-copy path above. */
+          std::string scratch1, scratch2;
+          const char* s1 = operand1.cstr(scratch1);
+          int len1 = operand1.sliced() ? operand1.slicelen() : (int)strlen(s1);
+          int base1 = operand1.sliced() ? operand1.sliceoff() : 0;
+          int end1 = base1 + len1;
+          boolean growable = operand1.is_only_string();
+          int cap1 = growable ? symbol_len(operand1.symbol_val()) : 0;
+
           if (operand2.is_string()) {
-            int len1 = strlen(operand1.string_ptr()); 
-            int len2 = strlen(operand2.string_ptr()); 
-            std::vector<char> buffer(len1+len2+1);
-            strcpy(&buffer[0], operand1.string_ptr());
-            strcpy(&buffer[0]+len1, operand2.string_ptr());
-            result.string_ref()  = symbol_add(&buffer[0]);
-	    result.ref_as_needed();
-            // symbol_reference(result.string_val());
+            const char* s2 = operand2.cstr(scratch2);
+            int len2 = operand2.sliced() ? operand2.slicelen() : (int)strlen(s2);
+            if (growable && end1+len2 < cap1) {
+              char* buf = (char*)symbol_pntr(operand1.symbol_val());
+              /* memmove, not memcpy (Greptile, #440): operand2 can share
+                 operand1's own backing symid -- e.g. appending an unsliced
+                 buf onto a nonzero-offset slice of that same buf -- in
+                 which case s2 (read via cstr() above) points into this
+                 very buffer and the [s2,s2+len2) source range can overlap
+                 [buf+end1,buf+end1+len2), which memcpy doesn't allow. */
+              memmove(buf+end1, s2, len2);
+              buf[end1+len2] = '\0';
+              result.string_ref() = operand1.symbol_val();
+              result.ref_as_needed();
+              result.sliceoff(base1);
+              result.slicelen(len1+len2);
+              result.sliced(1);
+            } else {
+              int newlen = len1+len2;
+              std::vector<char> vbuf(newlen+1);
+              memcpy(&vbuf[0], s1, len1);
+              memcpy(&vbuf[0]+len1, s2, len2);
+              vbuf[newlen] = '\0';
+              result.string_ref() = symbol_add(&vbuf[0]);
+              result.ref_as_needed();
+              result.sliced(0);
+            }
           } else {
-            int len1 = strlen(operand1.string_ptr()); 
-            std::vector<char> buffer(len1+2);
-            strcpy(&buffer[0], operand1.string_ptr());
-            buffer[len1] = operand2.char_val();
-            buffer[len1+1] = '\0';
-            result.string_ref()  = symbol_add(&buffer[0]);
-	    result.ref_as_needed();
-            // symbol_reference(result.string_val());
+            if (growable && end1+1 < cap1) {
+              char* buf = (char*)symbol_pntr(operand1.symbol_val());
+              buf[end1] = operand2.char_val();
+              buf[end1+1] = '\0';
+              result.string_ref() = operand1.symbol_val();
+              result.ref_as_needed();
+              result.sliceoff(base1);
+              result.slicelen(len1+1);
+              result.sliced(1);
+            } else {
+              int newlen = len1+1;
+              std::vector<char> vbuf(newlen+1);
+              memcpy(&vbuf[0], s1, len1);
+              vbuf[len1] = operand2.char_val();
+              vbuf[newlen] = '\0';
+              result.string_ref() = symbol_add(&vbuf[0]);
+              result.ref_as_needed();
+              result.sliced(0);
+            }
           }
 	}
 	break;
@@ -1055,6 +1124,25 @@ IntFunc::IntFunc(ComTerp* comterp) : ComFunc(comterp) {}
    counts as part of a number.  Returns nil unless the scan really produced
    one -- a non-numeric string lexes as a symbol, and its int_val() is the
    interned symbol id, a wrong answer that reads like a valid parse. */
+/* Kinds with no numeric reading at all.  int_val() answered them anyway: an
+   object gave something derived from its address, so int(date()) returned a
+   different number every call, and a list or a keyword gave 0 -- wrong answers
+   wearing the shape of right ones, the same fault as a symbol's interned id.
+
+   Report nil, and let it propagate: nil+1 is nil, where a 0 or -1 marker would
+   flow on through arithmetic as ordinary data.  An identity, if one is ever
+   wanted, belongs in a command that says so -- symid() already does that for
+   symbols.
+
+   Streams are deliberately absent: a stream argument overdrives these
+   commands, so it is never converted whole -- int(("1" "2")) is {1,2}, while
+   the comma form int(("1","2")) is a list and lands here.
+   Keywords likewise: :key in this position is read as a keyword to the
+   command, not as a value to convert, so it never arrives here. */
+static boolean has_no_numeric_reading(ComValue& operand) {
+    return operand.is_object() || operand.is_array();
+}
+
 static ComValue scan_number_string(const char* numstr) {
     const char* str = numstr;
     while (isspace((unsigned char)*str)) str++;
@@ -1080,6 +1168,7 @@ void IntFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     ComValue result(operand.int_val(),  
 		    operand.is_nil() ? ComValue::UnknownType :
                     (uval_flag ? ComValue::UIntType : ComValue::IntType));
@@ -1095,6 +1184,7 @@ void LongFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.long_val());
     if(uval_flag) result.type(ComValue::ULongType);
@@ -1110,6 +1200,7 @@ void FloatFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.float_val());
     push_stack(result);
@@ -1123,6 +1214,7 @@ void DoubleFunc::execute() {
     reset_stack();
     if (operand.is_string())
       operand = scan_number_string(operand.symbol_ptr());
+    if (has_no_numeric_reading(operand)) operand = ComValue();
     if (operand.is_nil()) { push_stack(ComValue::nullval()); return; }
     ComValue result(operand.double_val());
     push_stack(result);

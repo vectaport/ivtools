@@ -1,7 +1,7 @@
 // src/comterp_/tests/numstring.comt -- int()/long()/float()/double() applied
-// to a string argument
+// to arguments that are not numbers: strings, objects, and lists
 //
-// funcs: int long float double print
+// funcs: int long float double date attrlist func print
 //
 // These four are comterp's atoi/strtol, and they begin the way atoi does:
 // skip leading whitespace, take an explicit sign, then hand the rest to the
@@ -67,6 +67,48 @@ print("12 float(\" -2.5\") and float(\"x\") (expect -2.5 and nil): %v %v\n" floa
 ok=ok&&(double("+1.5")==1.5)
 ok=ok&&(double("x")==nil)
 print("13 double(\"+1.5\") and double(\"x\") (expect 1.5 and nil): %v %v\n" double("+1.5") double("x"))
+
+// --- 14-17: an object has no numeric reading.  int_val() on one returns
+// something derived from its address, so int(date()) used to answer a
+// different number on every call -- the same fault as a symbol's interned id,
+// a wrong answer wearing the shape of a right one. ---
+ok=ok&&(int(date())==nil)
+print("14 int(date()) on a DateObj (expect nil, not an address): %v\n" int(date()))
+
+// a list has none either -- it used to answer 0, which is a real number and
+// so indistinguishable from a successful conversion
+ok=ok&&(int(1,2,3)==nil)
+print("14b int(1,2,3) on a list (expect nil, not 0): %v\n" int(1,2,3))
+
+// every kind of object, and all four commands, agree
+ok=ok&&(int(attrlist(:a 1))==nil)
+ok=ok&&(int(func(arg(0)))==nil)
+ok=ok&&(long(date())==nil)
+ok=ok&&(float(date())==nil)
+ok=ok&&(double(date())==nil)
+print("15 attrlist, funcobj, and all four commands agree (expect nil): %v %v %v %v %v\n" int(attrlist(:a 1)) int(func(arg(0))) long(date()) float(date()) double(date()))
+
+// nil is out of band and stays that way -- this is why nil rather than 0 or
+// -1: an in-band marker would flow on through arithmetic as ordinary data
+ok=ok&&((int(date())+1)==nil)
+ok=ok&&((int(date())*2)==nil)
+print("16 the nil propagates through arithmetic rather than becoming data (expect nil nil): %v %v\n" (int(date())+1) (int(date())*2))
+
+// a stream is untouched by this: it overdrives the command rather than being
+// converted whole, so it never reaches the guard.  Spaces make a stream
+// literal, commas make a list -- the same parentheses, and the whole
+// difference in behavior between these two lines
+ok=ok&&(list(int(("1" "2" "3")))==(1,2,3))
+print("16b stream literal overdrives, one conversion per element (expect {1,2,3}): %v\n" list(int(("1" "2" "3"))))
+
+ok=ok&&(int(("1","2","3"))==nil)
+print("16c the comma form is a list, converted whole, and has no reading (expect nil): %v\n" int(("1","2","3")))
+
+// and nothing coercible was caught by this
+ok=ok&&(int(3.7)==3)
+ok=ok&&(int('a')==97)
+ok=ok&&(int(true)==1)
+print("17 real coercions unaffected (expect 3 97 1): %v %v %v\n" int(3.7) int('a') int(true))
 
 print("numstring: %v\n" ok)
 ok

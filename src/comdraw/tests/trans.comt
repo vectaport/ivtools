@@ -1,0 +1,73 @@
+// src/comdraw/tests/trans.comt -- trans() as a real command: :set imposes,
+// :apply composes, and both go through a TransformCmd so they are logged and
+// undoable rather than mutating the graphic behind the editor's back.
+//
+// trans() used to call Graphic::SetTransformer directly, which meant a scripted
+// transform could not be undone and never reached the distribution switch.  It
+// now builds a SetTransformCmd carrying a delta: TransformCmd's Interpret
+// postmultiplies what it is handed, so imposing D over a current C is the same
+// operation once C is backed out first -- the delta is inverse(C)*D.
+//
+// Matrices here are integer-valued on purpose.  The delta composition is exact
+// for those, so the tests can assert equality; with irrational entries it drifts
+// by around 1e-8, which is below the printed precision but real.
+//
+// funcs: trans rect
+ok=true
+
+each(delete($$select(:all)))
+r=rect(0,0,50,50)
+
+// --- test 1: the getter returns six elements ---
+t1=trans(r)
+ok=ok&&(size(t1)==6)
+print("1 trans(r) returns a 6-element matrix (expect 6): %v\n" size(t1))
+
+// --- test 2: the default form imposes, replacing whatever was there.  the
+//             initial transform is the viewer-relative one, so a successful
+//             impose is visible as the matrix simply becoming what was asked ---
+trans(r 2,0,0,2,10,20)
+ok=ok&&(trans(r)==(2,0,0,2,10,20))
+print("2 trans(r 2,0,0,2,10,20) imposes exactly (expect that matrix): %v\n" trans(r))
+
+// --- test 3: :apply composes on top instead.  postmultiply is C*t with C
+//             applied first, so translating by 5,5 over a doubling lands the
+//             offset at 10+5,20+5 and leaves the scale alone ---
+trans(r 1,0,0,1,5,5 :apply)
+ok=ok&&(trans(r)==(2,0,0,2,15,25))
+print("3 trans(r 1,0,0,1,5,5 :apply) composes (expect 2,0,0,2,15,25): %v\n" trans(r))
+
+// --- test 4: :set is the default spelled out ---
+trans(r 1,0,0,1,0,0 :set)
+ok=ok&&(trans(r)==(1,0,0,1,0,0))
+print("4 :set is the default made explicit (expect the identity): %v\n" trans(r))
+
+// --- test 5: imposing is idempotent for these matrices -- re-imposing the
+//             same thing twice more does not walk it anywhere ---
+trans(r 3,0,0,3,1,2)
+trans(r 3,0,0,3,1,2)
+trans(r 3,0,0,3,1,2)
+ok=ok&&(trans(r)==(3,0,0,3,1,2))
+print("5 three imposes of the same matrix stay put (expect 3,0,0,3,1,2): %v\n" trans(r))
+
+// --- test 6: a degenerate current transform cannot be backed out, so :set
+//             refuses rather than handing invert() a matrix with no inverse.
+//             it returns nil and leaves the graphic alone; :apply still works,
+//             since composing needs no inverse ---
+s=rect(60,60,90,90)
+trans(s 0,0,0,0,0,0 :apply)
+v=trans(s 1,0,0,1,0,0)
+ok=ok&&(v==nil)
+ok=ok&&(trans(s)==(0,0,0,0,0,0))
+print("6 :set over a singular transform returns nil (expect nil): %v\n" v)
+print("6b and leaves it untouched (expect 0,0,0,0,0,0): %v\n" trans(s))
+
+// --- test 7: the transform reaches the export, so it round-trips like any
+//             other graphic state ---
+trans(r 4,0,0,4,7,8)
+e=export(r :string :percomp)
+ok=ok&&(index(e "4,0,0,4,7,8" :substr)!=nil)
+print("7 the imposed transform reaches export (expect a position): %v\n" index(e "4,0,0,4,7,8" :substr))
+
+print("trans: %v\n" ok)
+ok

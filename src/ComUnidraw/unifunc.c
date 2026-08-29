@@ -22,10 +22,8 @@
  * 
  */
 
-#ifdef HAVE_ACE
 #include <ComTerp/comhandler.h>
 #include <ace/SOCK_Connector.h>
-#endif
 
 #include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/unifunc.h>
@@ -420,11 +418,9 @@ const char* ExportFunc::docstring() {
 
 const char** ExportFunc::dockeys() {
   static const char* keys[] = {
-#ifdef HAVE_ACE
     ":host str              hostname for remote export\n",
     ":port int              port number on remote host\n",
     ":socket                use existing socket connection\n",
-#endif
     ":string|str            export to string\n",
     ":eps                   export in EPS format\n",
     ":idraw                 export in idraw format\n",
@@ -551,15 +547,12 @@ void ExportFunc::execute() {
 	 never stdout or a live handler/peer fd. */
       FILE* fp = nil;
       boolean close_fp = false;
-#ifdef HAVE_ACE
       ACE_SOCK_Stream* socket = nil;
-#endif
       if (file.is_type(ComValue::StringType)) {
 	fp = fopen(file.string_ptr(), "w");
 	close_fp = (fp != nil);
       }
       else if (sock.is_true()) {
-#ifdef HAVE_ACE
 	ComTerpServ* terp = (ComTerpServ*)comterp();
 	ComterpHandler* handler = (ComterpHandler*)terp->handler();
 	if (handler)
@@ -567,11 +560,9 @@ void ExportFunc::execute() {
 				       fresh fdopen() per export -- the FILE* leaked,
 				       accumulating in a long-running server.) */
 	else
-#endif
 	  fp = stdout;
       }
       else {
-#ifdef HAVE_ACE
 	const char* hoststr = host.type()==ComValue::StringType ? host.string_ptr() : nil;
 	const char* portstr = port.type()==ComValue::StringType ? port.string_ptr() : nil;
 	u_short portnum = portstr ? atoi(portstr) : port.ushort_val();
@@ -588,19 +579,16 @@ void ExportFunc::execute() {
 	} else if (comterp()->handler() && comterp()->handler()->get_handle()>-1) {
 	  fp = comterp()->handler()->wrfptr();              /* live handler: do not close */
 	} else
-#endif
 	  fp = stdout;
       }
 
       if (fp) { fputs(result, fp); fflush(fp); }
       if (close_fp) fclose(fp);
-#ifdef HAVE_ACE
       if (socket) {
 	if (socket->close () == -1)
 	  ACE_ERROR ((LM_ERROR, "%p\n", "close"));
 	delete socket;
       }
-#endif
     }
 
     delete out;
@@ -610,10 +598,13 @@ void ExportFunc::compout(OverlayComp* comp, ostream* out) {
   OverlayScript* ovsv = (OverlayScript*) comp->Create(SCRIPT_VIEW);
   comp->Attach(ovsv);
   ovsv->Update();
+  /* Definition() already emitted this comp's attributes, inside the command's
+     own parens where the reader picks them up as ordinary keywords -- that is
+     how :grid and :sid survive a trip to another drawserv.  Appending them
+     again here put a second copy after the closing paren, so any graphic
+     carrying an attribute exported malformed and did not read back. */
   ovsv->Definition(*out);
   delete ovsv;
-  AttributeList* attrlist = comp->GetAttributeList();
-  *out << *attrlist;
   out->flush();
 }
 

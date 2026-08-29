@@ -112,6 +112,10 @@ struct _opr_tbl_default_entry {
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
   {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
+  // ":" pairs two operands into a colon-list.  Priority 78, one above
+  // "@"(77), so lo:hi groups before @ applies (str@0:3 reads as str@(0:3),
+  // not (str@0):3).  "colonlist" is registered as a command separately.
+  {":",          "colonlist",          78,         FALSE,      OPTYPE_BINARY },
   // "@" as sugar for at(): lst@0 == at(lst 0), lst@0@1@2 chains (LtoR).
   // Deliberately its own operator, not folded into ".": a numeric rhs on
   // "." would need the same digit-continuation special-casing "." picked
