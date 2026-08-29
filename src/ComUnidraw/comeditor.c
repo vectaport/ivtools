@@ -152,6 +152,7 @@ void ComEditor::AddCommands(ComTerp* comterp) {
 
     comterp->add_command("depth", new GrDepthFunc(comterp));
     comterp->add_command("parent", new GrParentFunc(comterp));
+    comterp->add_command("children", new ChildrenFunc(comterp, this));
     comterp->add_command("rect", new CreateRectFunc(comterp, this));
     comterp->add_command("rectangle", new CreateRectFunc(comterp, this));
     comterp->add_command("line", new CreateLineFunc(comterp, this));

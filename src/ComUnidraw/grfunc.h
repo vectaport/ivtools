@@ -249,6 +249,22 @@ class ColorRgbFunc : public UnidrawFunc {
     return "%s([fgcolorname bgcolorname]) -- set current colors by RGB name; return current colors as fgname,bgname if no args.\nThe colorname format is \"#RGB\" for 4 bits, \"#RRGGBB\" for 8 bits,\n\"#RRRGGGBBB\" for 12 bits,\"#RRRRGGGGBBBB\" for 16 bits"; }
 };
 
+//: command to list the graphics inside a composite in comdraw.
+// children([parent]) -- component views inside a composite, default what
+// frame() returns for the current frame.  the counterpart of parent(): that
+// climbs, this descends.  read-only -- it walks the view tree without
+// selecting anything, so it neither claims a graphic nor needs a link to be
+// up, and it reports every graphic present whatever state that graphic is in.
+// there is no compview for the document as a whole, so a frame is as wide as
+// this reaches.
+class ChildrenFunc : public UnidrawFunc {
+public:
+    ChildrenFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "list=%s([parent]) -- component views inside a composite (dflt current frame), without selecting them"; }
+};
+
 //: command to select graphics in comdraw.
 // select([compview ...] :all :clear) -- make these graphics the current selection, 
 // default returns current selection.

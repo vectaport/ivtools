@@ -1500,6 +1500,36 @@ void ColorFunc::execute() {
 SelectFunc::SelectFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
+ChildrenFunc::ChildrenFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void ChildrenFunc::execute() {
+    ComValue parentv(stack_arg(0));
+    reset_stack();
+
+    Viewer* viewer = _ed->GetViewer();
+    GraphicView* gv = nil;
+    if (parentv.object_compview()) {
+      ComponentView* comview = (ComponentView*)parentv.obj_val();
+      OverlayComp* comp = (OverlayComp*)comview->GetSubject();
+      if (comp) gv = comp->FindView(viewer);
+    } else
+      gv = ((OverlayEditor*)_ed)->GetFrame();
+
+    AttributeValueList* avl = new AttributeValueList();
+    if (gv) {
+      Iterator i;
+      for (gv->First(i); !gv->Done(i); gv->Next(i)) {
+	GraphicView* subgv = gv->GetView(i);
+	OverlayComp* comp = subgv ? (OverlayComp*)subgv->GetGraphicComp() : nil;
+	if (comp)
+	  avl->Append(new ComValue(new OverlayViewRef(comp), comp->classid()));
+      }
+    }
+    ComValue retval(avl);
+    push_stack(retval);
+}
+
 void SelectFunc::execute() {
     static int all_symid = symbol_add("all");
     ComValue all_flagv(stack_key(all_symid));
