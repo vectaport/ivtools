@@ -968,6 +968,10 @@ void GraphicComps::Write (ostream& out) {
 
 void GraphicComps::SelectViewsOf (GraphicComp* comp, Editor* ed) {
     Selection* s = ed->GetSelection();
+
+    /* a graphic not selected on arrival is a graphic not asked for */
+    if (!s->select_arrivals()) return;
+
     s->Clear();
     Viewer* viewer;
 
@@ -981,6 +985,10 @@ void GraphicComps::SelectViewsOf (GraphicComp* comp, Editor* ed) {
 
 void GraphicComps::SelectClipboard (Clipboard* cb, Editor* ed) {
     Selection* s = ed->GetSelection();
+
+    /* a graphic not selected on arrival is a graphic not asked for */
+    if (!s->select_arrivals()) return;
+
     s->Clear();
     Viewer* viewer;
     Iterator i;

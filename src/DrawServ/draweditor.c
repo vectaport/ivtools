@@ -89,6 +89,7 @@ void DrawEditor::AddCommands(ComTerp* comterp) {
   comterp->add_command("drawlink", new DrawLinkFunc(comterp, this));
   comterp->add_command("sid", new SessionIdFunc(comterp, this));
   comterp->add_command("grid", new GraphicIdFunc(comterp, this));
+  comterp->add_command("grabnew", new GrabNewFunc(comterp, this));
 
   comterp->add_command("points", new DrawPointsFunc(comterp, this));
 

@@ -111,6 +111,20 @@ void LinkSelection::Clear(Viewer* viewer) {
   Reserve();
 }
 
+boolean LinkSelection::_grabnew = true;
+
+/* Selecting an arrival is what makes this node ask to own it, so a table where
+   everybody selects everything is a table where every drawing changes hands the
+   moment it lands.  With grabnew off, only what is drawn here is selected, and
+   what arrives is left where it is -- still there, still distributed, still
+   selectable by hand, just not reached for. */
+boolean LinkSelection::select_arrivals() {
+  if (grabnew()) return true;
+  DrawServHandler* handler =
+    (DrawServHandler*)((DrawEditor*)_editor)->GetComTerp()->handler();
+  return !(handler && handler->drawlink());
+}
+
 void LinkSelection::Reserve() {
 #if 0
   fprintf(stderr, "LinkSelection::Reserve\n");

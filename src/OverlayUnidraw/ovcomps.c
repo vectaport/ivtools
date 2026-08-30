@@ -1101,6 +1101,10 @@ void OverlaysComp::SetMobility (Mobility m) {
 
 void OverlaysComp::SelectViewsOf (OverlayComp* comp, Editor* ed) {
     Selection* s = ed->GetSelection();
+
+    /* as in SelectClipboard: an arrival that is not selected is not asked for */
+    if (!((OverlaySelection*)s)->select_arrivals()) return;
+
     s->Clear();
     Viewer* viewer;
 
@@ -1114,6 +1118,11 @@ void OverlaysComp::SelectViewsOf (OverlayComp* comp, Editor* ed) {
 
 void OverlaysComp::SelectClipboard (Clipboard* cb, Editor* ed) {
     Selection* s = ed->GetSelection();
+
+    /* leaving the selection alone is how a node stops reaching for what other
+       people draw: selecting an arrival is what sends the request. */
+    if (!((OverlaySelection*)s)->select_arrivals()) return;
+
     s->Clear();
     Viewer* viewer;
     Iterator i;

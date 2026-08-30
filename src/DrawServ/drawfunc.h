@@ -58,6 +58,20 @@ public:
 	return "%s(id) -- lookup compview by uuid\n\tgrid(id selector :state selected :request newselector :grant oldselector :deny :notaken) -- command to send message between remote selections\n\tgrid(:table) -- return the gridtable as a list of (:grid :comptype :selector :selected) rows, uuids as 8-char prefixes"; }
 };
 
+//: command to stop reaching for what other sessions draw, in drawserv.
+// flag=grabnew([flag] :get) -- whether a graphic arriving from another session
+// is selected here.  Selecting one is what asks its owner to hand it over, so
+// with this off a node keeps what it drew and leaves everyone else's alone.
+// :get reads, no argument toggles, an argument sets, each returning the value
+// now in force, as pastemode() does.
+class GrabNewFunc : public UnidrawFunc {
+public:
+    GrabNewFunc(ComTerp*,Editor*);
+    virtual void execute();
+    virtual const char* docstring() { 
+	return "flag=%s([flag] :get) -- whether graphics arriving from other sessions are selected here, toggle if no argument, returns the value in force"; }
+};
+
 //: select() that waits for the distributed answer, in drawserv.
 // select([compview ...] :all :clear :unlock key :lock key) -- as comdraw's
 // select(), but a request that has to be answered by another session is waited
