@@ -625,9 +625,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       else {
 	fprintf(stderr, "grid: request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
 		 grid->idstr(), newselector_str, sessionidstr(),
-		 grid->compclass(), '\0');
+		 gen, grid->compclass(), '\0');
 	SendCmdString(link, buf);
       }
     }
@@ -683,9 +683,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       else {
 	fprintf(stderr, "grid:  request would go back where it came from, refused\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
 	  grid->idstr(), newselector_str, sessionidstr(),
-	  grid->compclass(), '\0');
+	  gen, grid->compclass(), '\0');
 	SendCmdString(link, buf);
       }
     }

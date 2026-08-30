@@ -43,11 +43,15 @@ echo "agreetest: $runs runs of $kids drawservs, one graphic each" >&2
 passed=0
 
 for r in $(seq 1 "$runs"); do
-  pkill -f "$drawserv -comdraw 2[2-5]002" 2>/dev/null
+  # Only ever kill what this run started.  An unanchored pkill on a fixed port
+  # takes down a drawserv somebody else is using -- another test, or a window
+  # open on the desk -- and the tally then measures that instead.
+  mypids=()
   sleep 2
   for k in $(seq 0 $((kids-1))); do
     p=${ports[$k]}
     $drawserv -comdraw "$p" -import $((p-1)) -stdin_off > /dev/null 2>&1 &
+    mypids+=($!)
     disown 2>/dev/null
   done
   sleep 5
@@ -84,9 +88,9 @@ for r in $(seq 1 "$runs"); do
   else
     echo "  run $r/$runs: DISAGREE   $(tr '\n' ' ' < /tmp/agreetest.$$)" >&2
   fi
+  for pid in "${mypids[@]}"; do kill "$pid" 2>/dev/null; done
   rm -f /tmp/agreetest.$$
 done
 
-pkill -f "$drawserv -comdraw 2[2-5]002" 2>/dev/null
 echo "agreetest: $passed of $runs runs consistent" >&2
 [ "$passed" = "$runs" ]
