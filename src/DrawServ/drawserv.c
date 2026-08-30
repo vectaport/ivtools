@@ -716,7 +716,7 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
      leaves the state reading WaitingToBeSelected either way, so without the
      generation a delayed refusal for the first would be applied to the second,
      and the grant that answers the second then refused. */
-  if (gen != 0 && gen != grid->reqgen()) {
+  if (gen != grid->reqgen()) {
     fprintf(stderr, "grid: refusal for asking %d, we are on %d now, ignored\n",
 	    gen, grid->reqgen());
     return;
@@ -772,7 +772,7 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
      responder is not enough to tell one grant from the next: a not-taken for
      the first would otherwise roll back the second. */
   if (responder != NULL && uuid_compare(grid->selector(), responder)==0 &&
-      (gen==0 || gen==grid->grantgen())) {
+      gen==grid->grantgen()) {
     grid->selector(sessionid());
     fprintf(stderr, "grid: grant not taken, ownership restored here\n");
   } else
@@ -800,7 +800,7 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     /* if request is granted, add to selection */
     if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL &&
 	uuid_compare(selector, sessionid())==0 &&
-	(gen==0 || gen==grid->reqgen())) {
+	gen==grid->reqgen()) {
       grid->selector(selector);
       grid->selected(LinkSelection::LocallySelected);
 

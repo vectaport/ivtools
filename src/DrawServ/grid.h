@@ -101,7 +101,13 @@ public:
   // answer to the request actually in flight, which the states alone cannot do:
   // both read WaitingToBeSelected.
   int next_reqgen() { return ++_reqgen; }
-  // start a new one, when a fresh request goes out
+  // start a new one, when a fresh request goes out.  Pre-incremented, so every
+  // request we make is numbered 1 or more, and an answer bearing zero cannot be
+  // the answer to anything we asked -- which is why zero is not read as
+  // matching.  Letting it match was there to tolerate a peer that sends no
+  // generation, and it reopened the hole it was meant to close: an answer
+  // without one, delayed past a withdrawal, resolved the request that had
+  // replaced it.
 
   int grantgen() { return _grantgen; }
   void grantgen(int gen) { _grantgen = gen; }
