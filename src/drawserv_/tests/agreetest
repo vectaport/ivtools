@@ -1,0 +1,92 @@
+#!/bin/bash
+#
+# agreetest  do the drawservs agree about who holds what?
+#
+# Usage:  agreetest [--runs n] [--kids n] [--help]
+#
+# The same scenario, over and over, counted.  Drawservs round a hub, each
+# drawing one graphic of its own, and then the only two questions that have a
+# right answer: does every node hold exactly the one it drew, and does every
+# node see all of them.  One run proves nothing -- identical runs give different
+# answers, which is the whole reason this exists -- so it is the tally across n
+# runs that means something, and a change claiming to fix something distributed
+# should move the tally rather than produce one good run.
+#
+# Shell rather than comterp, unlike drawmo and kidmo beside it: the harness has
+# to drive several drawservs and read answers back from each, and doing that
+# down comterp sockets means minding which connection may be asked a question
+# and which may only be written to.  That is a thing worth getting right in a
+# demo; in a test whose whole job is to be trusted, it is one more thing that
+# can be wrong about the test rather than about drawserv.
+
+runs=5
+kids=4
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --runs) shift; runs=$1 ;;
+    --kids) shift; kids=$1 ;;
+    --help|-h|-\?)
+      sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'
+      exit 0 ;;
+    *) echo "agreetest: unknown argument $1" >&2 ;;
+  esac
+  shift
+done
+[ "$kids" -lt 2 ] && kids=2
+[ "$kids" -gt 4 ] && kids=4
+
+comterp=${COMTERP:-comterp}
+drawserv=${DRAWSERV:-drawserv}
+ports=(22002 23002 24002 25002)
+
+echo "agreetest: $runs runs of $kids drawservs, one graphic each" >&2
+passed=0
+
+for r in $(seq 1 "$runs"); do
+  pkill -f "$drawserv -comdraw 2[2-5]002" 2>/dev/null
+  sleep 2
+  for k in $(seq 0 $((kids-1))); do
+    p=${ports[$k]}
+    $drawserv -comdraw "$p" -import $((p-1)) -stdin_off > /dev/null 2>&1 &
+    disown 2>/dev/null
+  done
+  sleep 15
+
+  {
+    for k in $(seq 0 $((kids-1))); do
+      echo "s$k=socket(\"127.0.0.1\" ${ports[$k]})"
+    done
+    for k in $(seq 1 $((kids-1))); do
+      echo "remote(s$k \"drawlink(\\\"127.0.0.1\\\" ${ports[0]})\")"
+      echo "usleep(2500000)"
+    done
+    for k in $(seq 0 $((kids-1))); do
+      echo "remote(s$k \"text($((60+k*150)),20 \\\"kid$((k+1))\\\")\")"
+      echo "usleep(700000)"
+    done
+    echo "usleep(4000000)"
+    for k in $(seq 0 $((kids-1))); do
+      echo "print(\"ANSWER $k %v %v\\n\" remote(s$k \"size(select())\") remote(s$k \"size(children())\"))"
+    done
+    echo "exit"
+  } | $comterp 2>/dev/null | grep "^ANSWER" > /tmp/agreetest.$$
+
+  ok=yes
+  while read -r _ node held seen; do
+    [ "$held" = "1" ] || ok=no
+    [ "$seen" = "$kids" ] || ok=no
+  done < /tmp/agreetest.$$
+  [ "$(grep -c . /tmp/agreetest.$$)" = "$kids" ] || ok=no
+
+  if [ "$ok" = yes ]; then
+    passed=$((passed+1))
+    echo "  run $r/$runs: agree" >&2
+  else
+    echo "  run $r/$runs: DISAGREE   $(tr '\n' ' ' < /tmp/agreetest.$$)" >&2
+  fi
+  rm -f /tmp/agreetest.$$
+done
+
+pkill -f "$drawserv -comdraw 2[2-5]002" 2>/dev/null
+echo "agreetest: $passed of $runs runs consistent" >&2
+[ "$passed" = "$runs" ]
