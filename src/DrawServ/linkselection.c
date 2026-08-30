@@ -121,11 +121,14 @@ boolean LinkSelection::_grabnew = false;
    moment it lands.  With grabnew off, only what is drawn here is selected, and
    what arrives is left where it is -- still there, still distributed, still
    selectable by hand, just not reached for. */
+boolean LinkSelection::over_a_link() {
+  DrawServHandler* handler = DrawServHandler::current();
+  return handler && handler->drawlink();
+}
+
 boolean LinkSelection::select_arrivals() {
   if (grabnew()) return true;
-  DrawServHandler* handler =
-    (DrawServHandler*)((DrawEditor*)_editor)->GetComTerp()->handler();
-  return !(handler && handler->drawlink());
+  return !over_a_link();
 }
 
 void LinkSelection::Reserve() {

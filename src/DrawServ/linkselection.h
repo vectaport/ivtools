@@ -91,6 +91,12 @@ public:
   
   boolean request_resolved_check(boolean granted, const char* fileline);
 
+  boolean over_a_link();
+  // whether the command being executed arrived from another session.  Asked of
+  // the handler dispatching right now rather than of the editor's own
+  // interpreter: drawserv runs a ComTerpServ per connection, so the editor's is
+  // a different object from the one executing a command off a link.
+
   virtual boolean select_arrivals();
   // a graphic that arrived over a link is selected only while grabnew is on;
   // one drawn here always is

@@ -60,9 +60,13 @@ int DrawServHandler::open (void * ptr)
   return 0;
 }
 
+DrawServHandler* DrawServHandler::_current = nil;
+
 int
 DrawServHandler::handle_input (ACE_HANDLE fd) {
   int save_alt_fd = _alt_fd;
+  DrawServHandler* save_current = _current;
+  _current = this;
   if (_drawlink != NULL) {
     _alt_fd = _drawlink->portnum();
   } else {
@@ -71,6 +75,7 @@ DrawServHandler::handle_input (ACE_HANDLE fd) {
     
   int status = UnidrawComterpHandler::handle_input(fd);
   
+  _current = save_current;
   _alt_fd = save_alt_fd;
   return status;
 }
