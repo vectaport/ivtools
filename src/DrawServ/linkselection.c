@@ -111,7 +111,10 @@ void LinkSelection::Clear(Viewer* viewer) {
   Reserve();
 }
 
-boolean LinkSelection::_grabnew = true;
+/* off by default: reaching for what other people draw is the unusual want, and
+   having to turn it off on every node before drawing anything is worse than
+   having to turn it on when you want it. */
+boolean LinkSelection::_grabnew = false;
 
 /* Selecting an arrival is what makes this node ask to own it, so a table where
    everybody selects everything is a table where every drawing changes hands the
