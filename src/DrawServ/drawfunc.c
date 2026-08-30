@@ -494,21 +494,22 @@ void GraphicIdFunc::execute() {
 
   LinkSelection* sel = (LinkSelection*)_ed->GetSelection();
   
- if (denyv.is_true()) {
-    void* ptr = nil;
-    ((DrawServ*)unidraw)->gridtable()->find(ptr, uuid_key(id));
-    if (ptr) {
-      GraphicId* grid = (GraphicId*)ptr;
-      grid->selected(LinkSelection::RemotelySelected);
-      grid->selector(selector);
-      fprintf(stderr, "grid: request denied\n");
-      if (sel) sel->request_resolved_check(false, FILELINE);
-    }
-    return;
-  }
-
   DrawServHandler* handler = comterp() ? (DrawServHandler*)comterp()->handler() : nil;
   DrawLink* link = handler ? (DrawLink*)handler->drawlink() : nil;
+
+  if (denyv.is_true() || denyv.is_string()) {
+    if (denyv.is_string()) {
+      /* the selector field is the asker, the value the node that refused */
+      uuid_t denier;
+      uuid_parse(denyv.string_ptr(), denier);
+      ((DrawServ*)unidraw)->grid_deny(link, id, selector, denier);
+    } else
+      /* the older bare form names no asker, so it can only be meant for us,
+	 and the selector field is the node that refused */
+      ((DrawServ*)unidraw)->grid_deny(link, id,
+				      ((DrawServ*)unidraw)->sessionid(), selector);
+    return;
+  }
 
   if (idv.is_known() && selectorv.is_known()) {
     

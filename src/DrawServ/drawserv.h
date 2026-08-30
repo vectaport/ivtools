@@ -150,6 +150,9 @@ public:
 			   int state, uuid_t newselector=NULL);
   // handle graphic id selection message
 
+  void grid_deny(DrawLink* link, uuid_t id, uuid_t requester, uuid_t denier);
+  // handle a refusal, relaying it on when we are not the one who asked
+
   void grid_notaken(DrawLink* link, uuid_t id, uuid_t responder, uuid_t granter);
   // handle a grant of ours that the responder could not take
 

@@ -589,8 +589,13 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  /* else deny it, because it is selected */
 	else {
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny :class \"%s\")%c",
-		   grid->idstr(), sessionidstr(), grid->compclass(), '\0');
+	  /* the asker in the selector field and ourselves as the value, the
+	     shape a grant already has, so a refusal can be relayed the way a
+	     grant is: naming only the refuser left it with nowhere to go once
+	     it reached a node that had merely passed the request along. */
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+		   grid->idstr(), newselector_str, sessionidstr(),
+		   grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
 	}	
@@ -655,6 +660,50 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       }
     }
   }
+}
+
+/* a refusal on its way back to whoever asked.  A request carries the asker and
+   so does a grant, so both can be relayed; a refusal used to carry only the node
+   that refused, which in a hub-and-spoke table is not where it has to go -- it
+   was applied at the hub and dropped, and the spoke that asked waited for ever
+   in WaitingToBeSelected. */
+void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
+			 uuid_t denier)
+{
+  void* ptr = nil;
+  gridtable()->find(ptr, uuid_key(id));
+  if (!ptr) return;
+  GraphicId* grid = (GraphicId*)ptr;
+
+  if (requester != NULL && !uuid_is_null(requester) &&
+      uuid_compare(requester, sessionid())) {
+    DrawLink* rlink = linkget(requester);
+    if (rlink && rlink != link) {
+      uuid_string_t requester_str;
+      uuid_unparse(requester, requester_str);
+      uuid_string_t denier_str;
+      denier_str[0] = '\0';
+      if (denier != NULL && !uuid_is_null(denier))
+	uuid_unparse(denier, denier_str);
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+	       grid->idstr(), requester_str, denier_str,
+	       grid->compclass(), '\0');
+      SendCmdString(rlink, buf);
+      fprintf(stderr, "grid: denial passed along to the node that asked\n");
+    } else
+      fprintf(stderr, "grid: denial undeliverable, dropped\n");
+    return;
+  }
+
+  if (denier != NULL && !uuid_is_null(denier)) {
+    grid->selected(LinkSelection::RemotelySelected);
+    grid->selector(denier);
+  }
+  fprintf(stderr, "grid: request denied\n");
+  LinkSelection* lsel =
+    (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
+  if (lsel) lsel->request_resolved_check(false, FILELINE);
 }
 
 /* a grant of ours that the responder could not take.  the grant is identified,
