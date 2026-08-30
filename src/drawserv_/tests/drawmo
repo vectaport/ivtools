@@ -4,7 +4,7 @@
 #
 # Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]
 #   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
-#          updown4C ringtest seltest parsetest optabletest gsexim gsbrushA
+#          updown4C ring sel parsetest optabletest gsexim gsbrushA
 #          gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #
@@ -22,8 +22,8 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("      updown3A updown3B   three, chained and forked\n");
     print("      updown4A updown4B updown4C\n");
     print("                          four, to the second level\n");
-    print("      ringtest            a ring cannot be formed\n");
-    print("      seltest             an answer that has to cross a relay\n");
+    print("      ring                a ring cannot be formed\n");
+    print("      sel                 an answer that has to cross a relay\n");
     print("      parsetest optabletest\n");
     print("                          parser and operator table\n");
     print("      gsexim gsbrushA gsbrushB\n");
@@ -98,8 +98,12 @@ grid_has_id=func(
    reason -- the test funcs call them. */
 run("./updown.comt")
 run("./gstests.comt")
-run("./seltest.comt")
+run("./sel.comt")
 
+/* Run selected tests.  A test name must not be the name of a comterp command:
+   the dispatch below compares against a bare symbol, and a bare symbol naming a
+   command fires it -- `optable with no arguments segfaults.  parsetest and
+   optabletest keep their suffix for that reason and not for tidiness. */
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -113,12 +117,12 @@ if(tests_flag :then
       :else
         print("updown: FAIL\n" :err);
         ok=false));
-    if(t==`seltest || t==`all :then
-      print("running seltest test\n" :err);
-      if(seltest_test(:dummy 0) :then
-        print("seltest: pass\n" :err)
+    if(t==`sel || t==`all :then
+      print("running sel test\n" :err);
+      if(sel_test(:dummy 0) :then
+        print("sel: pass\n" :err)
       :else
-        print("seltest: FAIL\n" :err);
+        print("sel: FAIL\n" :err);
         ok=false));
     if(t==`updown1 || t==`all :then
       print("running updown1 test\n" :err);
@@ -162,12 +166,12 @@ if(tests_flag :then
       :else
         print("updown4B: FAIL\n" :err);
         ok=false));
-    if(t==`ringtest || t==`all :then
-      print("running ringtest\n" :err);
-      if(ringtest_test(:dummy 0) :then
-        print("ringtest: pass\n" :err)
+    if(t==`ring || t==`all :then
+      print("running ring test\n" :err);
+      if(ring_test(:dummy 0) :then
+        print("ring: pass\n" :err)
       :else
-        print("ringtest: FAIL\n" :err);
+        print("ring: FAIL\n" :err);
         ok=false));
     if(t==`parsetest || t==`all :then
       print("running parsetest\n" :err);

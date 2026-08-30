@@ -146,7 +146,7 @@ assertion is `size(sidtable)==1`.
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.
 
-### seltest
+### sel
 
 Two spokes on a hub, which is the arrangement where an answer between spokes is
 not delivered by the node that produced it. Spoke 1 draws and holds a graphic;

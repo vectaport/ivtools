@@ -1,4 +1,4 @@
-/* seltest -- can a graphic be asked for, refused, and then granted, when the
+/* sel -- can a graphic be asked for, refused, and then granted, when the
    answer has to cross a relay?
 
    Two spokes on a hub, which is the arrangement where an answer between spokes
@@ -9,7 +9,7 @@
    across the hub: refused while the owner holds the graphic, granted once the
    owner lets go. */
 
-seltest_test=func(
+sel_test=func(
   poll_usec=2000000;
   timeout=60*1000000/poll_usec;
 
@@ -17,18 +17,18 @@ seltest_test=func(
   sp1_port=find_open_port(:base_port 30002);
   sp2_port=find_open_port(:base_port 40002);
 
-  global(seltest_up)=0;
-  print("seltest: launching hub %d, spokes %d and %d\n" hub_port sp1_port sp2_port :err);
+  global(sel_up)=0;
+  print("sel: launching hub %d, spokes %d and %d\n" hub_port sp1_port sp2_port :err);
   j=0;
   while(j<3
     p=if(j==0 :then hub_port :else if(j==1 :then sp1_port :else sp2_port));
-    shell(print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(seltest_up)=global(seltest_up)+1\\\")\" &" p p-1 callback_port :str));
+    shell(print("drawserv -comdraw %d -import %d -stdin_off -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(sel_up)=global(sel_up)+1\\\")\" &" p p-1 callback_port :str));
     j=j+1);
 
   cnt=0;
-  while(global(seltest_up)<3 && cnt<timeout update(poll_usec);cnt++);
-  if(global(seltest_up)<3 :then
-    print("seltest: FAIL only %d of 3 drawservs came up\n" global(seltest_up) :err);
+  while(global(sel_up)<3 && cnt<timeout update(poll_usec);cnt++);
+  if(global(sel_up)<3 :then
+    print("sel: FAIL only %d of 3 drawservs came up\n" global(sel_up) :err);
     kill_port(:kill_port_num hub_port);kill_port(:kill_port_num hub_port-1);
     kill_port(:kill_port_num sp1_port);kill_port(:kill_port_num sp1_port-1);
     kill_port(:kill_port_num sp2_port);kill_port(:kill_port_num sp2_port-1);
@@ -38,52 +38,52 @@ seltest_test=func(
   sp1=socket("127.0.0.1" sp1_port);
   sp2=socket("127.0.0.1" sp2_port);
 
-  print("seltest: linking spoke1\n" :err);
+  print("sel: linking spoke1\n" :err);
   remote(sp1 print("drawlink(%c127.0.0.1%c %d)" 34 34 hub_port :str));
   usleep(3000000);
-  print("seltest: linking spoke2\n" :err);
+  print("sel: linking spoke2\n" :err);
   remote(sp2 print("drawlink(%c127.0.0.1%c %d)" 34 34 hub_port :str));
   usleep(4000000);
 
   ok=true;
 
-  print("seltest: spoke1 draws\n" :err);
+  print("sel: spoke1 draws\n" :err);
   remote(sp1 "rect(10,10,60,60)");
   usleep(4000000);
   held=remote(sp1 "size(select())");
-  print("seltest: spoke1 holds %v\n" held :err);
+  print("sel: spoke1 holds %v\n" held :err);
   if(held!=1 :then
-    print("seltest: FAIL spoke1 drew a rect and holds %v of it\n" held :err);
+    print("sel: FAIL spoke1 drew a rect and holds %v of it\n" held :err);
     ok=false);
 
   /* refused, and the refusal has to come back across the hub; without that the
      select never resolves and the graphic sticks for good */
   if(ok :then
-    print("seltest: spoke2 reaches for it while held\n" :err);
+    print("sel: spoke2 reaches for it while held\n" :err);
     remote(sp2 "select(:all)");
     usleep(5000000);
     got=remote(sp2 "size(select())");
     still=remote(sp1 "size(select())");
-    print("seltest: spoke2 got %v, spoke1 still holds %v\n" got still :err);
+    print("sel: spoke2 got %v, spoke1 still holds %v\n" got still :err);
     if(got!=0 :then
-      print("seltest: FAIL spoke2 was refused but came away with %v\n" got :err);
+      print("sel: FAIL spoke2 was refused but came away with %v\n" got :err);
       ok=false);
     if(still!=1 :then
-      print("seltest: FAIL spoke1 was holding it and now holds %v\n" still :err);
+      print("sel: FAIL spoke1 was holding it and now holds %v\n" still :err);
       ok=false));
 
   /* and the grant crosses the hub the same way once the owner lets go */
   if(ok :then
-    print("seltest: spoke1 lets go\n" :err);
+    print("sel: spoke1 lets go\n" :err);
     remote(sp1 "select(:clear)");
     usleep(3000000);
-    print("seltest: spoke2 reaches again\n" :err);
+    print("sel: spoke2 reaches again\n" :err);
     remote(sp2 "select(:all)");
     usleep(5000000);
     got=remote(sp2 "size(select())");
-    print("seltest: spoke2 got %v\n" got :err);
+    print("sel: spoke2 got %v\n" got :err);
     if(got!=1 :then
-      print("seltest: FAIL spoke1 let go and spoke2 still came away with %v\n" got :err);
+      print("sel: FAIL spoke1 let go and spoke2 still came away with %v\n" got :err);
       ok=false));
 
   /* Shut down by asking, not by killing.  exit sends no reply, so it goes
@@ -92,7 +92,7 @@ seltest_test=func(
      the port.  Only a drawserv that would not go is killed, and it says so --
      kill_port kills by port, and lsof -ti lists everyone holding it, this end
      included, so killing one still connected to would kill the test itself. */
-  print("seltest: asking the three to go\n" :err);
+  print("sel: asking the three to go\n" :err);
   remote(hub "exit" :nowait);close(hub);
   remote(sp1 "exit" :nowait);close(sp1);
   remote(sp2 "exit" :nowait);close(sp2);
@@ -101,7 +101,7 @@ seltest_test=func(
   while(j<3
     p=if(j==0 :then hub_port :else if(j==1 :then sp1_port :else sp2_port));
     if(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" p :str))==0 :then
-      print("seltest: drawserv on %d would not go, sending it\n" p :err);
+      print("sel: drawserv on %d would not go, sending it\n" p :err);
       kill_port(:kill_port_num p);kill_port(:kill_port_num p-1));
     j=j+1);
 
