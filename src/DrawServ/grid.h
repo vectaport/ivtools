@@ -103,6 +103,12 @@ public:
   int next_reqgen() { return ++_reqgen; }
   // start a new one, when a fresh request goes out
 
+  int grantgen() { return _grantgen; }
+  void grantgen(int gen) { _grantgen = gen; }
+  // which asking we last granted this graphic for.  The generation is the
+  // asker's, so a granter has nothing of its own to compare a response
+  // against unless it remembers the one it answered.
+
   void unlocked(boolean flag) { _unlocked = flag; }
   // set flag indicating remote lock temporarily suspended for local modification
   boolean unlocked() { return _unlocked; }
@@ -120,6 +126,7 @@ protected:
   OverlayComp* _comp;
   boolean _unlocked;
   int _reqgen;
+  int _grantgen;
   // true when remote lock temporarily suspended for local modification
 
 };

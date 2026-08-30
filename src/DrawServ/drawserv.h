@@ -154,7 +154,8 @@ public:
 		 int gen = 0);
   // handle a refusal, relaying it on when we are not the one who asked
 
-  void grid_notaken(DrawLink* link, uuid_t id, uuid_t responder, uuid_t granter);
+  void grid_notaken(DrawLink* link, uuid_t id, uuid_t responder, uuid_t granter,
+		    int gen = 0);
   // handle a grant of ours that the responder could not take
 
   void grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 

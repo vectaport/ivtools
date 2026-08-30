@@ -535,7 +535,7 @@ void GraphicIdFunc::execute() {
       uuid_parse(grantv.string_ptr(), gid);
       
       if (notakenv.is_true())
-	((DrawServ*)unidraw)->grid_notaken(link, id, selector, gid);
+	((DrawServ*)unidraw)->grid_notaken(link, id, selector, gid, genv.int_val());
       else
 	((DrawServ*)unidraw)->grid_message_callback
 	  (link, id, selector, statev.int_val(), gid, genv.int_val());
