@@ -2,7 +2,7 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
+# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|seltest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,9 +10,9 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|seltest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB]\n");
+    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|seltest|gsexim|gsbrushA|gsbrushB]\n");
     print("\t\t\ttests to run (comma-separated), returns -1 on error\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
@@ -84,6 +84,7 @@ grid_has_id=func(
    reason -- the test funcs call them. */
 run("./updown.comt")
 run("./gstests.comt")
+run("./seltest.comt")
 
 /* run selected tests */
 ok=true;
@@ -97,6 +98,13 @@ if(tests_flag :then
         print("updown: pass\n" :err)
       :else
         print("updown: FAIL\n" :err);
+        ok=false));
+    if(t==`seltest || t==`all :then
+      print("running seltest test\n" :err);
+      if(seltest_test(:dummy 0) :then
+        print("seltest: pass\n" :err)
+      :else
+        print("seltest: FAIL\n" :err);
         ok=false));
     if(t==`updown1 || t==`all :then
       print("running updown1 test\n" :err);
