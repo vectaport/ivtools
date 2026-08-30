@@ -608,13 +608,27 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       } 
       
       /* else reformulate this request and pass it along */
-      else {
+      else if (linkget(grid->selector()) != link) {
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 		 grid->idstr(), grid->selectorstr(), newselector_str,
 		 gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
+      }
+
+      /* our record points back where the request came from, so passing it on
+	 returns it to the node that sent it.  Refuse instead: the asker gets an
+	 answer, which is more than a request bounced between two nodes will
+	 ever give it -- and on a spoke, whose only link is the hub, an answer
+	 coming back for somebody else cannot be delivered at all. */
+      else {
+	fprintf(stderr, "grid: request would go back where it came from, refused\n");
+	char buf[BUFSIZ];
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+		 grid->idstr(), newselector_str, sessionidstr(),
+		 grid->compclass(), '\0');
+	SendCmdString(link, buf);
       }
     }
 
@@ -656,13 +670,23 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       } 
 
       /* else pass the request on to the target selector */
-      else {
+      else if (linkget(grid->selector()) != link) {
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
 	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 	  grid->idstr(), selector_str, newselector_str,
 	  gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
+      }
+
+      /* as above: back the way it came is not onward */
+      else {
+	fprintf(stderr, "grid:  request would go back where it came from, refused\n");
+	char buf[BUFSIZ];
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+	  grid->idstr(), newselector_str, sessionidstr(),
+	  grid->compclass(), '\0');
+	SendCmdString(link, buf);
       }
     }
   }
