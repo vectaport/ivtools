@@ -696,6 +696,16 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
     return;
   }
 
+  /* only while the question is still outstanding.  A refusal can arrive after
+     its request was withdrawn, or after an ownership change voided it -- and
+     applying it then overwrites newer state, while unwinding the count resolves
+     whatever question is outstanding now instead of the one this answers.  The
+     grant is accepted only into WaitingToBeSelected for the same reason. */
+  if (grid->selected() != LinkSelection::WaitingToBeSelected) {
+    fprintf(stderr, "grid: refusal for a request no longer outstanding, ignored\n");
+    return;
+  }
+
   if (denier != NULL && !uuid_is_null(denier)) {
     grid->selected(LinkSelection::RemotelySelected);
     grid->selector(denier);
