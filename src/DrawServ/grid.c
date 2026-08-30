@@ -43,6 +43,7 @@ GraphicId::GraphicId (uuid_t sid)
 {
   _comp = nil;
   _unlocked = false;
+  _reqgen = 0;
   uuid_clear(_selector);
   memset(_selector_str, 0, sizeof(_selector_str));
   _selected = 0;

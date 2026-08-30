@@ -94,6 +94,15 @@ public:
   const char* compclass();
   // return name of comp's class
 
+  int reqgen() { return _reqgen; }
+  // which request of ours is outstanding on this graphic.  An answer names the
+  // generation it answers, so one arriving for a request already withdrawn --
+  // and replaced by another for the same graphic -- can be told apart from an
+  // answer to the request actually in flight, which the states alone cannot do:
+  // both read WaitingToBeSelected.
+  int next_reqgen() { return ++_reqgen; }
+  // start a new one, when a fresh request goes out
+
   void unlocked(boolean flag) { _unlocked = flag; }
   // set flag indicating remote lock temporarily suspended for local modification
   boolean unlocked() { return _unlocked; }
@@ -110,6 +119,7 @@ protected:
   
   OverlayComp* _comp;
   boolean _unlocked;
+  int _reqgen;
   // true when remote lock temporarily suspended for local modification
 
 };

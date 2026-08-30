@@ -477,6 +477,8 @@ void GraphicIdFunc::execute() {
   ComValue statev(stack_key(state_sym));
   static int notaken_sym = symbol_add("notaken");
   ComValue notakenv(stack_key(notaken_sym));
+  static int gen_sym = symbol_add("gen");
+  ComValue genv(stack_key(gen_sym));
   static int deny_sym = symbol_add("deny");
   ComValue denyv(stack_key(deny_sym));
   static int table_sym = symbol_add("table");
@@ -502,12 +504,13 @@ void GraphicIdFunc::execute() {
       /* the selector field is the asker, the value the node that refused */
       uuid_t denier;
       uuid_parse(denyv.string_ptr(), denier);
-      ((DrawServ*)unidraw)->grid_deny(link, id, selector, denier);
+      ((DrawServ*)unidraw)->grid_deny(link, id, selector, denier, genv.int_val());
     } else
       /* the older bare form names no asker, so it can only be meant for us,
 	 and the selector field is the node that refused */
       ((DrawServ*)unidraw)->grid_deny(link, id,
-				      ((DrawServ*)unidraw)->sessionid(), selector);
+				      ((DrawServ*)unidraw)->sessionid(), selector,
+				      genv.int_val());
     return;
   }
 
@@ -524,7 +527,7 @@ void GraphicIdFunc::execute() {
 	uuid_t rid;
 	uuid_parse(requestv.string_ptr(), rid);
 	((DrawServ*)unidraw)->grid_message_handle
-	  (link, id, selector, statev.int_val(), rid);
+	  (link, id, selector, statev.int_val(), rid, genv.int_val());
       }
       
     } else {
@@ -535,7 +538,7 @@ void GraphicIdFunc::execute() {
 	((DrawServ*)unidraw)->grid_notaken(link, id, selector, gid);
       else
 	((DrawServ*)unidraw)->grid_message_callback
-	  (link, id, selector, statev.int_val(), gid);
+	  (link, id, selector, statev.int_val(), gid, genv.int_val());
     }
     
   } else if (idv.is_known() && selectorv.is_unknown()) {

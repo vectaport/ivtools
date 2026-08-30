@@ -541,8 +541,13 @@ void DrawServ::grid_message(GraphicId* grid) {
     DrawLink* link = _linklist->find_drawlink(grid);
     
     if (link) {
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c", grid->idstr(), 
-	       grid->selectorstr(), sessionidstr(), grid->compclass(), '\0');
+      /* a fresh generation each time we ask, so an answer can say which asking
+	 it answers: a refusal delayed past a withdrawal would otherwise be
+	 applied to the request that replaced it, both reading
+	 WaitingToBeSelected and the states alone not telling them apart. */
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
+	       grid->idstr(), grid->selectorstr(), sessionidstr(),
+	       grid->next_reqgen(), grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
   }
@@ -550,7 +555,7 @@ void DrawServ::grid_message(GraphicId* grid) {
   
 // handle reserve request from remote DrawLink.
 void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
-				   int state, uuid_t newselector)
+				   int state, uuid_t newselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
@@ -579,9 +584,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  grid->selected(LinkSelection::NotSelected);
 	  grid->selector(newselector);
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :class \"%s\")%c",
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
 		   grid->idstr(), newselector_str, sessionidstr(),
-		   grid->compclass(), '\0');
+		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request granted\n");
 	} 
@@ -593,9 +598,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	     shape a grant already has, so a refusal can be relayed the way a
 	     grant is: naming only the refuser left it with nowhere to go once
 	     it reached a node that had merely passed the request along. */
-	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
 		   grid->idstr(), newselector_str, sessionidstr(),
-		   grid->compclass(), '\0');
+		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
 	}	
@@ -605,9 +610,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       else {
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 		 grid->idstr(), grid->selectorstr(), newselector_str,
-		 grid->compclass(), '\0');
+		 gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -653,9 +658,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       else {
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 	  grid->idstr(), selector_str, newselector_str,
-	  grid->compclass(), '\0');
+	  gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -668,7 +673,7 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
    was applied at the hub and dropped, and the spoke that asked waited for ever
    in WaitingToBeSelected. */
 void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
-			 uuid_t denier)
+			 uuid_t denier, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
@@ -686,9 +691,9 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
       if (denier != NULL && !uuid_is_null(denier))
 	uuid_unparse(denier, denier_str);
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :class \"%s\")%c",
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
 	       grid->idstr(), requester_str, denier_str,
-	       grid->compclass(), '\0');
+	       gen, grid->compclass(), '\0');
       SendCmdString(rlink, buf);
       fprintf(stderr, "grid: denial passed along to the node that asked\n");
     } else
@@ -703,6 +708,16 @@ void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
      grant is accepted only into WaitingToBeSelected for the same reason. */
   if (grid->selected() != LinkSelection::WaitingToBeSelected) {
     fprintf(stderr, "grid: refusal for a request no longer outstanding, ignored\n");
+    return;
+  }
+
+  /* and only for the asking it answers: a request withdrawn and made again
+     leaves the state reading WaitingToBeSelected either way, so without the
+     generation a delayed refusal for the first would be applied to the second,
+     and the grant that answers the second then refused. */
+  if (gen != 0 && gen != grid->reqgen()) {
+    fprintf(stderr, "grid: refusal for asking %d, we are on %d now, ignored\n",
+	    gen, grid->reqgen());
     return;
   }
 
@@ -761,7 +776,7 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
 
 // handle callback from remote DrawLink.
 void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
-				     int state, uuid_t oldselector)
+				     int state, uuid_t oldselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
@@ -778,7 +793,9 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     GraphicId* grid = (GraphicId*)ptr;
 
     /* if request is granted, add to selection */
-    if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL && uuid_compare(selector, sessionid())==0) {
+    if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL &&
+	uuid_compare(selector, sessionid())==0 &&
+	(gen==0 || gen==grid->reqgen())) {
       grid->selector(selector);
       grid->selected(LinkSelection::LocallySelected);
 
