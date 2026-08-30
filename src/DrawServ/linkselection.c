@@ -86,27 +86,6 @@ void LinkSelection::Clear(Viewer* viewer) {
 #if 0
   fprintf(stderr, "LinkSelection::Clear\n");
 #endif
-#if 0
-  CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
-  Iterator it;
-  First(it);
-  while(!Done(it)) {
-    OverlayView* view = GetView(it);
-    OverlayComp* comp = view ? view->GetOverlayComp() : nil;
-    void* ptr = nil;
-    table->find(ptr, (void*)comp);
-    if (ptr) {
-      GraphicId* grid = (GraphicId*)ptr;
-      if (grid->selected()==LocallySelected || grid->selected()==WaitingToBeSelected) 
-	grid->selected(NotSelected);
-      char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d)%c",
-	       grid->idstr(), grid->selectorstr(), grid->selected(), '\0');
-      ((DrawServ*)unidraw)->DistributeCmdString(buf);
-    }
-    Next(it);
-  }
-#endif
   OverlaySelection::Clear(viewer);
   Reserve();
 }
