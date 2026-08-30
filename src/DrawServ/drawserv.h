@@ -147,14 +147,19 @@ public:
   // generate graphic id selection message
 
   void grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
-			   int state, uuid_t newselector=NULL);
+			   int state, uuid_t newselector=NULL, int gen = 0);
   // handle graphic id selection message
 
-  void grid_notaken(DrawLink* link, uuid_t id, uuid_t responder, uuid_t granter);
+  void grid_deny(DrawLink* link, uuid_t id, uuid_t requester, uuid_t denier,
+		 int gen = 0);
+  // handle a refusal, relaying it on when we are not the one who asked
+
+  void grid_notaken(DrawLink* link, uuid_t id, uuid_t responder, uuid_t granter,
+		    int gen = 0);
   // handle a grant of ours that the responder could not take
 
   void grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
-			     int state, uuid_t oldselector);
+			     int state, uuid_t oldselector, int gen = 0);
   // callback for graphic id selection message 
 
   void unique_grid(uuid_t grid);

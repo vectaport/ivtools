@@ -541,8 +541,13 @@ void DrawServ::grid_message(GraphicId* grid) {
     DrawLink* link = _linklist->find_drawlink(grid);
     
     if (link) {
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c", grid->idstr(), 
-	       grid->selectorstr(), sessionidstr(), grid->compclass(), '\0');
+      /* a fresh generation each time we ask, so an answer can say which asking
+	 it answers: a refusal delayed past a withdrawal would otherwise be
+	 applied to the request that replaced it, both reading
+	 WaitingToBeSelected and the states alone not telling them apart. */
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
+	       grid->idstr(), grid->selectorstr(), sessionidstr(),
+	       grid->next_reqgen(), grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
   }
@@ -550,7 +555,7 @@ void DrawServ::grid_message(GraphicId* grid) {
   
 // handle reserve request from remote DrawLink.
 void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector, 
-				   int state, uuid_t newselector)
+				   int state, uuid_t newselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
@@ -578,10 +583,11 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	     grid->selected()==LinkSelection::WaitingToBeSelected)) {
 	  grid->selected(LinkSelection::NotSelected);
 	  grid->selector(newselector);
+	  grid->grantgen(gen);
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :class \"%s\")%c",
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
 		   grid->idstr(), newselector_str, sessionidstr(),
-		   grid->compclass(), '\0');
+		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request granted\n");
 	} 
@@ -589,8 +595,13 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
 	  /* else deny it, because it is selected */
 	else {
 	  char buf[BUFSIZ];
-	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny :class \"%s\")%c",
-		   grid->idstr(), sessionidstr(), grid->compclass(), '\0');
+	  /* the asker in the selector field and ourselves as the value, the
+	     shape a grant already has, so a refusal can be relayed the way a
+	     grant is: naming only the refuser left it with nowhere to go once
+	     it reached a node that had merely passed the request along. */
+	  snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
+		   grid->idstr(), newselector_str, sessionidstr(),
+		   gen, grid->compclass(), '\0');
 	  SendCmdString(link, buf);
 	  fprintf(stderr, "grid: request denied, graphic locally selected\n");
 	}	
@@ -600,9 +611,9 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       else {
 	fprintf(stderr, "grid: request passed along to current selector\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 		 grid->idstr(), grid->selectorstr(), newselector_str,
-		 grid->compclass(), '\0');
+		 gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
@@ -648,20 +659,84 @@ void DrawServ::grid_message_handle(DrawLink* link, uuid_t id, uuid_t selector,
       else {
 	fprintf(stderr, "grid:  request passed along to targeted selector\n");
 	char buf[BUFSIZ];
-	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :class \"%s\")%c",
+	snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :request \"%s\" :gen %d :class \"%s\")%c",
 	  grid->idstr(), selector_str, newselector_str,
-	  grid->compclass(), '\0');
+	  gen, grid->compclass(), '\0');
 	SendCmdString(linkget(grid->selector()), buf);
       }
     }
   }
 }
 
+/* a refusal on its way back to whoever asked.  A request carries the asker and
+   so does a grant, so both can be relayed; a refusal used to carry only the node
+   that refused, which in a hub-and-spoke table is not where it has to go -- it
+   was applied at the hub and dropped, and the spoke that asked waited for ever
+   in WaitingToBeSelected. */
+void DrawServ::grid_deny(DrawLink* link, uuid_t id, uuid_t requester,
+			 uuid_t denier, int gen)
+{
+  void* ptr = nil;
+  gridtable()->find(ptr, uuid_key(id));
+  if (!ptr) return;
+  GraphicId* grid = (GraphicId*)ptr;
+
+  if (requester != NULL && !uuid_is_null(requester) &&
+      uuid_compare(requester, sessionid())) {
+    DrawLink* rlink = linkget(requester);
+    if (rlink && rlink != link) {
+      uuid_string_t requester_str;
+      uuid_unparse(requester, requester_str);
+      uuid_string_t denier_str;
+      denier_str[0] = '\0';
+      if (denier != NULL && !uuid_is_null(denier))
+	uuid_unparse(denier, denier_str);
+      char buf[BUFSIZ];
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :deny \"%s\" :gen %d :class \"%s\")%c",
+	       grid->idstr(), requester_str, denier_str,
+	       gen, grid->compclass(), '\0');
+      SendCmdString(rlink, buf);
+      fprintf(stderr, "grid: denial passed along to the node that asked\n");
+    } else
+      fprintf(stderr, "grid: denial undeliverable, dropped\n");
+    return;
+  }
+
+  /* only while the question is still outstanding.  A refusal can arrive after
+     its request was withdrawn, or after an ownership change voided it -- and
+     applying it then overwrites newer state, while unwinding the count resolves
+     whatever question is outstanding now instead of the one this answers.  The
+     grant is accepted only into WaitingToBeSelected for the same reason. */
+  if (grid->selected() != LinkSelection::WaitingToBeSelected) {
+    fprintf(stderr, "grid: refusal for a request no longer outstanding, ignored\n");
+    return;
+  }
+
+  /* and only for the asking it answers: a request withdrawn and made again
+     leaves the state reading WaitingToBeSelected either way, so without the
+     generation a delayed refusal for the first would be applied to the second,
+     and the grant that answers the second then refused. */
+  if (gen != grid->reqgen()) {
+    fprintf(stderr, "grid: refusal for asking %d, we are on %d now, ignored\n",
+	    gen, grid->reqgen());
+    return;
+  }
+
+  if (denier != NULL && !uuid_is_null(denier)) {
+    grid->selected(LinkSelection::RemotelySelected);
+    grid->selector(denier);
+  }
+  fprintf(stderr, "grid: request denied\n");
+  LinkSelection* lsel =
+    (LinkSelection*)DrawKit::Instance()->GetEditor()->GetSelection();
+  if (lsel) lsel->request_resolved_check(false, FILELINE);
+}
+
 /* a grant of ours that the responder could not take.  the grant is identified,
    so a response that has been overtaken -- we have since handed the graphic to
    someone else -- is recognisable and ignored. */
 void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
-			    uuid_t granter)
+			    uuid_t granter, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
@@ -683,9 +758,9 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
       uuid_string_t granter_str;
       uuid_unparse(granter, granter_str);
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :notaken :class \"%s\")%c",
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
 	       grid->idstr(), responder_str, granter_str,
-	       grid->compclass(), '\0');
+	       gen, grid->compclass(), '\0');
       SendCmdString(glink, buf);
       fprintf(stderr, "grid: grant-not-taken passed along to granter\n");
     } else
@@ -693,7 +768,11 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
     return;
   }
 
-  if (responder != NULL && uuid_compare(grid->selector(), responder)==0) {
+  /* the same asker can be granted the same graphic twice, so naming the
+     responder is not enough to tell one grant from the next: a not-taken for
+     the first would otherwise roll back the second. */
+  if (responder != NULL && uuid_compare(grid->selector(), responder)==0 &&
+      gen==grid->grantgen()) {
     grid->selector(sessionid());
     fprintf(stderr, "grid: grant not taken, ownership restored here\n");
   } else
@@ -702,7 +781,7 @@ void DrawServ::grid_notaken(DrawLink* link, uuid_t id, uuid_t responder,
 
 // handle callback from remote DrawLink.
 void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector, 
-				     int state, uuid_t oldselector)
+				     int state, uuid_t oldselector, int gen)
 {
   void* ptr = nil;
   gridtable()->find(ptr, uuid_key(id));
@@ -719,7 +798,9 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     GraphicId* grid = (GraphicId*)ptr;
 
     /* if request is granted, add to selection */
-    if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL && uuid_compare(selector, sessionid())==0) {
+    if (grid->selected()==LinkSelection::WaitingToBeSelected && selector != NULL &&
+	uuid_compare(selector, sessionid())==0 &&
+	gen==grid->reqgen()) {
       grid->selector(selector);
       grid->selected(LinkSelection::LocallySelected);
 
@@ -747,9 +828,9 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
 	 announcing state: a state message is an unconditional assertion and a
 	 stale one would undo a later handoff. */
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :notaken :class \"%s\")%c",
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :notaken :class \"%s\")%c",
 	       grid->idstr(), sessionidstr(), oldselector_str,
-	       grid->compclass(), '\0');
+	       gen, grid->compclass(), '\0');
       SendCmdString(link, buf);
     }
 
@@ -757,9 +838,12 @@ void DrawServ::grid_message_callback(DrawLink* link, uuid_t id, uuid_t selector,
     else {
       fprintf(stderr, "grid:  pass grant request along\n");
       char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :class \"%s\")%c",
+      /* a grant passed along kept none of its generation, so a requester two
+	 hops away was handed one reading zero and matched anything -- which in
+	 hub-and-spoke is every grant between spokes. */
+      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :grant \"%s\" :gen %d :class \"%s\")%c",
 	       grid->idstr(), selector_str, oldselector_str,
-	       grid->compclass(), '\0');
+	       gen, grid->compclass(), '\0');
       SendCmdString(linkget(selector), buf);
     }
   }

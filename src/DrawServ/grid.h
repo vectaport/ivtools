@@ -94,6 +94,27 @@ public:
   const char* compclass();
   // return name of comp's class
 
+  int reqgen() { return _reqgen; }
+  // which request of ours is outstanding on this graphic.  An answer names the
+  // generation it answers, so one arriving for a request already withdrawn --
+  // and replaced by another for the same graphic -- can be told apart from an
+  // answer to the request actually in flight, which the states alone cannot do:
+  // both read WaitingToBeSelected.
+  int next_reqgen() { return ++_reqgen; }
+  // start a new one, when a fresh request goes out.  Pre-incremented, so every
+  // request we make is numbered 1 or more, and an answer bearing zero cannot be
+  // the answer to anything we asked -- which is why zero is not read as
+  // matching.  Letting it match was there to tolerate a peer that sends no
+  // generation, and it reopened the hole it was meant to close: an answer
+  // without one, delayed past a withdrawal, resolved the request that had
+  // replaced it.
+
+  int grantgen() { return _grantgen; }
+  void grantgen(int gen) { _grantgen = gen; }
+  // which asking we last granted this graphic for.  The generation is the
+  // asker's, so a granter has nothing of its own to compare a response
+  // against unless it remembers the one it answered.
+
   void unlocked(boolean flag) { _unlocked = flag; }
   // set flag indicating remote lock temporarily suspended for local modification
   boolean unlocked() { return _unlocked; }
@@ -110,6 +131,8 @@ protected:
   
   OverlayComp* _comp;
   boolean _unlocked;
+  int _reqgen;
+  int _grantgen;
   // true when remote lock temporarily suspended for local modification
 
 };
