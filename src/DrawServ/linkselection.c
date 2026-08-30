@@ -360,6 +360,15 @@ void LinkSelection::unlock_key(const char* keystr) {
     GraphicId* grid = (GraphicId*)ptr;
     if (grid && grid->selectorkey() == key)
       grid->unlocked(true);
+    else if (grid)
+      /* The node originating a distributed graphic state change holds its
+	 graphics link-selected until every other node has finished applying it,
+	 so the key names whoever this node believes holds the graphic and a
+	 mismatch means the records disagree.  Say so: silently unlocking
+	 nothing leaves the select to negotiate for a graphic it was told it
+	 could simply have. */
+      fprintf(stderr, "unlock_key: %.8s is held by %.8s here, not %s\n",
+	      grid->idstr(), grid->selectorstr(), keystr);
     Next(it);
   }
 }
