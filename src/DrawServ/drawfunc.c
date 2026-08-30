@@ -390,6 +390,30 @@ void SessionIdFunc::execute() {
 
 /*****************************************************************************/
 
+GrabNewFunc::GrabNewFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void GrabNewFunc::execute() {
+    static int get_symid = symbol_add("get");
+    boolean get_flag = stack_key(get_symid).is_true();
+    ComValue flag(stack_arg(0));
+    reset_stack();
+
+    boolean on;
+    if (get_flag)
+	on = LinkSelection::grabnew();
+    else {
+	on = flag.is_known()
+	    ? (boolean)flag.int_val()
+	    : !LinkSelection::grabnew();
+	LinkSelection::grabnew() = on;
+    }
+
+    push_stack(on ? ComValue::trueval() : ComValue::falseval());
+}
+
+/*****************************************************************************/
+
 LinkSelectFunc::LinkSelectFunc(ComTerp* comterp, Editor* ed)
 : SelectFunc(comterp, ed) {
 }

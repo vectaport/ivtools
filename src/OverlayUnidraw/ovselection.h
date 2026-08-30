@@ -70,6 +70,7 @@ public:
     OverlaySelection* ViewsWithin(IntCoord l, IntCoord b, IntCoord r, IntCoord t);
 
     virtual void Reserve() { return; }
+
     // for use of derived classes
 
     virtual void CopyFlags(OverlaySelection* from) {}  // no-op base
