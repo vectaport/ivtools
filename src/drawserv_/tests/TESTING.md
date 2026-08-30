@@ -84,6 +84,32 @@ using `lsof` if available, falling back to `fuser`.
 The spin loop uses `update()` rather than `usleep()` so drawmo's own
 ComTerp event loop keeps processing incoming connections during the wait.
 
+## What `remote()` Does, and Why Shutdown Has Three Steps
+
+`remote(sock cmd)` writes the command plus a newline, then reads **one
+newline-terminated line** back, one byte at a time, and — unless you pass
+`:str` — runs that line through the *local* interpreter and returns its value.
+One line per call, no more, no less.
+
+So a command that answers with exactly one line can be asked on any socket.
+`size(select())` and `grid(:table)` are such commands. `:nowait` skips the read
+entirely, which is right only when nothing is coming back, or when something
+else is reading that socket.
+
+The shutdown sequence in step 6 is three things and needs all three:
+
+1. `remote(sock "exit" :nowait)` — `exit` sends **no reply**, so a blocking
+   `remote()` on it waits for a line that never comes.
+2. `close(sock)` — after the peer exits, this end sits in `CLOSE_WAIT` still
+   holding the port.
+3. `kill_port()` only for one that did not go. It kills **by port**, and
+   `lsof -ti` lists every process holding that port, this end included — so
+   killing a port you are still connected to kills the test itself.
+
+Shut down by asking, not by killing; check with `pgrep -f '[d]rawserv -comdraw
+<port>'` and kill only what stayed. Killing by port while connected is silent:
+the test dies with SIGTERM and reports nothing, which reads exactly like a hang.
+
 ## Test Inventory
 
 ### updown
@@ -119,6 +145,38 @@ assertion is `size(sidtable)==1`.
 **Purpose:** Verifies that a freshly-launched drawserv has a clean
 drawlink table and exactly one sid entry. This is the baseline against
 which connected-peer tests will diff.
+
+### seltest
+
+Two spokes on a hub, which is the arrangement where an answer between spokes is
+not delivered by the node that produced it. Spoke 1 draws and holds a graphic;
+spoke 2 reaches for it and must be **refused**, with the refusal routed home
+across the hub; spoke 1 lets go and spoke 2 reaches again and must be
+**granted**, likewise across the hub. Before the refusal named its asker it went
+back one hop and stopped, leaving the spoke that asked stuck in
+`WaitingToBeSelected` with no retry to rescue it — a request is only made from
+`NotSelected`.
+
+## agreetest — counting runs rather than trusting one
+
+`agreetest` is not a drawmo test and is run on its own:
+
+```
+./agreetest --runs 10 --kids 4
+```
+
+It runs the same scenario n times and tallies how many came out consistent:
+every node holding the one graphic it drew, every node seeing all of them. The
+four-node case answers differently to identical input, so a single run of it will
+tell you a change fixed something or broke something when it did neither — a
+claim about anything distributed should move the tally rather than produce one
+good run. It went 0 of 4 to 8 of 8 across one fix, and that number is what
+located the bug.
+
+It is shell rather than comterp, unlike everything else here. Driving several
+drawservs and reading answers back from each is worth getting right in a demo,
+but in a test whose whole job is to be trusted it is one more thing that can be
+wrong about the test rather than about drawserv.
 
 ## What Belongs Here vs comterp_/tests
 
