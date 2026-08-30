@@ -50,7 +50,7 @@ for r in $(seq 1 "$runs"); do
     $drawserv -comdraw "$p" -import $((p-1)) -stdin_off > /dev/null 2>&1 &
     disown 2>/dev/null
   done
-  sleep 15
+  sleep 5
 
   {
     for k in $(seq 0 $((kids-1))); do
