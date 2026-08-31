@@ -230,6 +230,15 @@ public:
     static const ComTerp* comterp() { return _comterp; }
     // return static pointer to ComTerp used to provide brief flag.
 
+    static void echo(boolean flag) { _echo = flag; }
+    // set static flag, true only while ComTerp::print_stack_top(ostream&)
+    // is echoing a bare top-level result back at the REPL prompt -- as
+    // opposed to a value being written out by the print() command.  Lets
+    // operator<< requote a standalone char there ('a') without requoting
+    // one that print() sends through unquoted.
+    static boolean echo() { return _echo; }
+    // return static REPL-echo flag.
+
     static ComValue& nullval();
     // returns reference to UnknownType ComValue.
     static ComValue& trueval();
@@ -278,6 +287,7 @@ protected:
     unsigned _linenum;
 
     static const ComTerp* _comterp;
+    static boolean _echo;
     static ComValue _nullval;
     static ComValue _trueval;
     static ComValue _falseval;

@@ -1396,15 +1396,19 @@ int ComTerp::print_stack(std::ostream& out) const {
 int ComTerp::print_stack_top() const {
     if (_stack_top < 0) return true;
     ComValue::comterp(this);
+    ComValue::echo(true);
     ComValue cv(_stack[_stack_top]);
     fprintf(stdout, "%s\n", cv.String());
+    ComValue::echo(false);
     return true;
 }
 
 int ComTerp::print_stack_top(ostream& out) const {
     if (_stack_top < 0) return true;
     ComValue::comterp(this);
+    ComValue::echo(true);
     out << _stack[_stack_top];
+    ComValue::echo(false);
     return true;
 }
 
