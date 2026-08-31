@@ -866,9 +866,16 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
     out << q << (char)cv << q;
-  else
-    out << "`\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
-	<< std::dec << "`" << std::resetiosflags(std::ios_base::basefield);
+  else {
+    /* the octal escape carries its own delimiters when quoted, because `\240`
+       has to be readable back; printed bare it sheds them like the other two
+       forms do, and takes the same ambiguity caret notation already takes --
+       run characters together and a literal backslash is indistinguishable
+       from the start of an escape.  Printing is for reading, not re-reading */
+    const char* bq = quoted ? "`" : "";
+    out << bq << "\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
+	<< std::dec << bq << std::resetiosflags(std::ios_base::basefield);
+  }
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {

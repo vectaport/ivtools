@@ -3,8 +3,15 @@
 // funcs: char print index type int
 //
 // A char shows as itself where that is safe: 'a' for a printable byte, caret
-// notation for a control byte ('^A', '^['), and the older backquote-octal
-// escape `\NNN` for anything at or above 0x80.
+// notation for a control byte ('^A', '^['), and the older octal escape \NNN
+// for anything at or above 0x80, where there is nothing readable to show.
+//
+// Printed, all three come bare.  Quoted -- which is the export path, test 9 --
+// each takes its delimiters back, the escape as `\NNN`, so the value can be
+// read again.  Bare display costs the same ambiguity throughout: run
+// characters together and a literal caret is indistinguishable from a control
+// byte, a literal backslash from the start of an escape.  That is the price of
+// text reading as text, and it is only paid where nothing has to read it back.
 //
 // The escape is what the whole display used to be, and the reason was safety:
 // a general print of a character must never put a real control byte into the
@@ -29,14 +36,14 @@ print("1 printable chars show as themselves, bare (expect A a and a space): %s %
 ok=ok&&(print(char(126) :str)=="~")
 print("2 the top of the printable range (expect ~): %s\n" print(char(126) :str))
 
-// --- 3-4: the sign-extension regression, unchanged.  A byte at or above 0x80
-// keeps the escape, so these assert exactly what they always did: the byte is
-// not widened with sign extension ---
-ok=ok&&(print('\xa0' :str)=="`\\240`")
-print("3 print('\\xa0' :str) is `\\240`, not sign-extended (expect true): %v\n" print('\xa0' :str)=="`\\240`")
+// --- 3-4: the sign-extension regression.  A byte at or above 0x80 keeps the
+// escape -- bare here, delimited in test 9 -- so these still assert what they
+// always did: the byte is not widened with sign extension ---
+ok=ok&&(print('\xa0' :str)=="\\240")
+print("3 print('\\xa0' :str) is \\240 bare, not sign-extended (expect true): %v\n" print('\xa0' :str)=="\\240")
 
-ok=ok&&(print('\xff' :str)=="`\\377`")
-print("4 print('\\xff' :str) is `\\377`, not sign-extended (expect true): %v\n" print('\xff' :str)=="`\\377`")
+ok=ok&&(print('\xff' :str)=="\\377")
+print("4 print('\\xff' :str) is \\377 bare, not sign-extended (expect true): %v\n" print('\xff' :str)=="\\377")
 
 // The display is bare, with no quotes: printing a run of characters should
 // read as the text it is.  The export path keeps its quotes -- test 9 -- since
