@@ -180,10 +180,16 @@ have_comtfile=shell("drawserv -help 2>&1 | grep -q '^-comt .file.'")==0
    not ours, and a kid that died before binding holds no port to be found by at
    all.  The pid came from $! at launch.  Check it is still a drawserv before
    killing it, in case the number has been recycled, and report whether there
-   was anything there to kill. */
+   was anything there to kill.
+
+   The check is the command line rather than the command name, because the name
+   is not identity: this desk runs drawservs constantly -- kidmo, drawmo,
+   agreetest, a second kidmo -- so "it is a drawserv" is exactly the thing a
+   recycled pid is most likely to still be true of.  A drawserv holding our
+   -comdraw port is ours, because two of them cannot hold the same one. */
 reap=func(
-  shell(print("pid=$(cat %s/kidmo-%d.pid 2>/dev/null); rc=1; if [ -n \"$pid\" ] && ps -p $pid -o comm= 2>/dev/null | grep -q drawserv; then kill $pid > /dev/null 2>&1; rc=0; fi; rm -f %s/kidmo-%d.pid; exit $rc"
-    log_dir pnum log_dir pnum :str))==0)
+  shell(print("pid=$(cat %s/kidmo-%d.pid 2>/dev/null); rc=1; if [ -n \"$pid\" ] && ps -p $pid -o args= 2>/dev/null | grep -q -- \"-comdraw %d\"; then kill $pid > /dev/null 2>&1; rc=0; fi; rm -f %s/kidmo-%d.pid; exit $rc"
+    log_dir pnum pnum log_dir pnum :str))==0)
 
 comt_flag=if(have_comtfile :then print("-comt '%s'" kid_file :str)
          :else if(have_comt :then "-comt" :else ""))
