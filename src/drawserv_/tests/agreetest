@@ -37,7 +37,19 @@ done
 
 comterp=${COMTERP:-comterp}
 drawserv=${DRAWSERV:-drawserv}
-ports=(22002 23002 24002 25002)
+
+# Find a free pair the way drawmo and kidmo do, stepping up by ten until both
+# the comdraw port and the import port below it are unused.  Fixed ports are not
+# safe: a drawserv already on one keeps listening, the child that failed to bind
+# keeps running, and the harness then sends drawlink and text into somebody
+# else's session and reports its state as the tally.
+find_open_port() {
+  local port=$1
+  while lsof -i ":$port" >/dev/null 2>&1 || lsof -i ":$((port-1))" >/dev/null 2>&1; do
+    port=$((port+10))
+  done
+  echo "$port"
+}
 
 echo "agreetest: $runs runs of $kids drawservs, one graphic each" >&2
 passed=0
@@ -47,14 +59,30 @@ for r in $(seq 1 "$runs"); do
   # takes down a drawserv somebody else is using -- another test, or a window
   # open on the desk -- and the tally then measures that instead.
   mypids=()
-  sleep 2
+  ports=()
+  base=22002
   for k in $(seq 0 $((kids-1))); do
-    p=${ports[$k]}
+    p=$(find_open_port $base)
+    ports+=("$p")
+    base=$((p+10))
     $drawserv -comdraw "$p" -import $((p-1)) -stdin_off > /dev/null 2>&1 &
     mypids+=($!)
     disown 2>/dev/null
   done
-  sleep 5
+  sleep 15
+
+  # and whoever is listening has to be who we started, or we are about to draw
+  # on a stranger's canvas
+  mine=yes
+  for k in $(seq 0 $((kids-1))); do
+    owner=$(lsof -ti ":${ports[$k]}" 2>/dev/null | head -1)
+    [ "$owner" = "${mypids[$k]}" ] || mine=no
+  done
+  if [ "$mine" != yes ]; then
+    echo "  run $r/$runs: SKIPPED, ports ${ports[*]} not held by our own drawservs" >&2
+    for pid in "${mypids[@]}"; do kill "$pid" 2>/dev/null; done
+    continue
+  fi
 
   {
     for k in $(seq 0 $((kids-1))); do
