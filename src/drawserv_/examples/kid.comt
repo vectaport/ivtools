@@ -41,10 +41,13 @@ kid=(
   )
 
   // kid.play(:n 6) -- draw n things, pausing between them.  The pause is the
-  // point: a fourth grader draws at mouse speed, not at socket speed.
+  // point: a fourth grader draws at mouse speed, not at socket speed.  Bare
+  // kid.play() draws one: an omitted keyword formal is nil, and i<nil is nil
+  // rather than true, so the loop would not run a single pass.
   :play func(
+    cnt=if(n==nil :then 1 :else n);
     i=0;
-    while(i<n
+    while(i<cnt
       xx=60+int(rand(0,520));
       yy=50+int(rand(0,300));
       pick=int(rand(0,2.99));

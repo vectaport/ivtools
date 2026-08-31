@@ -28,7 +28,13 @@
 /* kid.comt sits beside this script, so find it from arg(0) rather than from
    wherever you happened to be standing when you typed kidmo.  The kids need
    this too, and more than kidmo does: they are handed the path over a socket
-   and resolve it against their own working directory. */
+   and resolve it against their own working directory.
+
+   The shell resolves PATH before execve, so even a bare "kidmo" reaches us as
+   an absolute path.  substr() keeps everything up to but not including the
+   last slash, and the "%s/kid.comt" below supplies the separator:
+     /opt/ivtools/src/drawserv_/examples/kidmo -> /opt/.../examples/kid.comt
+     ./kidmo                                   -> ./kid.comt */
 kidmo_slash=index(arg(0) "/" :last)
 kidmo_dir=if(kidmo_slash!=nil :then substr(arg(0) kidmo_slash) :else ".")
 kid_file=print("%s/kid.comt" kidmo_dir :str)
@@ -242,7 +248,8 @@ print("kidmo: hub holds %v links, everyone knows %v sessions\n" remote(e1 "size(
 kid1=(
   :name "Todd" :colour "#DD3333" :socket k1
   :draw func( global(kid1_done)=false;
-    remote(kid1.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid1_done)=true%c)" n 34 34 callback_port 34 34 :str)); n)
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid1.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid1_done)=true%c)" cnt 34 34 callback_port 34 34 :str)); cnt)
   :one func( global(nrect)=global(nrect)+1;
     remote(kid1.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
@@ -250,7 +257,8 @@ kid1=(
 kid2=(
   :name "Mia" :colour "#3366DD" :socket k2
   :draw func( global(kid2_done)=false;
-    remote(kid2.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid2_done)=true%c)" n 34 34 callback_port 34 34 :str)); n)
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid2.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid2_done)=true%c)" cnt 34 34 callback_port 34 34 :str)); cnt)
   :one func( global(nrect)=global(nrect)+1;
     remote(kid2.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
@@ -258,7 +266,8 @@ kid2=(
 kid3=(
   :name "Sam" :colour "#22AA55" :socket k3
   :draw func( global(kid3_done)=false;
-    remote(kid3.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid3_done)=true%c)" n 34 34 callback_port 34 34 :str)); n)
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid3.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid3_done)=true%c)" cnt 34 34 callback_port 34 34 :str)); cnt)
   :one func( global(nrect)=global(nrect)+1;
     remote(kid3.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
@@ -266,7 +275,8 @@ kid3=(
 kid4=(
   :name "Ana" :colour "#CC7722" :socket k4
   :draw func( global(kid4_done)=false;
-    remote(kid4.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid4_done)=true%c)" n 34 34 callback_port 34 34 :str)); n)
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid4.socket print("kid.play(:n %d);remote(%c127.0.0.1%c %d %cglobal(kid4_done)=true%c)" cnt 34 34 callback_port 34 34 :str)); cnt)
   :one func( global(nrect)=global(nrect)+1;
     remote(kid4.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
     global(nrect))
@@ -284,11 +294,12 @@ mia=kid2
 sam=kid3
 ana=kid4
 
-all=func( kid1.draw(:n n);
-  if(nkids>1 :then kid2.draw(:n n));
-  if(nkids>2 :then kid3.draw(:n n));
-  if(nkids>3 :then kid4.draw(:n n));
-  n)
+all=func( cnt=if(n==nil :then 1 :else n);
+  kid1.draw(:n cnt);
+  if(nkids>1 :then kid2.draw(:n cnt));
+  if(nkids>2 :then kid3.draw(:n cnt));
+  if(nkids>3 :then kid4.draw(:n cnt));
+  cnt)
 
 wait_all=func(
   cnt=0;
