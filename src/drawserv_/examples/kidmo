@@ -140,10 +140,10 @@ have_comtfile=shell("drawserv -help 2>&1 | grep -q '^-comt .file.'")==0
 pane_file=kid_file
 if(ndraw==0 :then
   pane_file=print("%s/kidmo-nowelcome.comt" log_dir :str);
-  shell(print("echo 'nowelcome=true' > %s" pane_file :str));
-  shell(print("echo 'run(%c%s%c)' >> %s" 34 kid_file 34 pane_file :str)))
+  shell(print("echo 'nowelcome=true' > '%s'" pane_file :str));
+  shell(print("echo 'run(%c%s%c)' >> '%s'" 34 kid_file 34 pane_file :str)))
 
-comt_flag=if(have_comtfile :then print("-comt %s" pane_file :str)
+comt_flag=if(have_comtfile :then print("-comt '%s'" pane_file :str)
          :else if(have_comt :then "-comt" :else ""))
 if(!have_comt :then
   print("kidmo: this drawserv has no -comt, so the kids get no pane\n" :err)
@@ -178,6 +178,14 @@ if(!global(kid1_up) || !global(kid2_up) || !global(kid3_up) || !global(kid4_up) 
   print("kidmo: FAILED -- not every kid came up.  Is drawserv on PATH, and does\n" :err);
   print("       it accept the options above?  An option it does not know makes\n" :err);
   print("       it exit at startup.\n" :err);
+  /* and take down the ones that did: leaving them holding ports means the next
+     attempt steps past those ports and the desk fills with drawservs nobody
+     asked for */
+  j=0;
+  while(j<nkids
+    kill_port(:kill_port_num at(kid_ports j));
+    kill_port(:kill_port_num at(kid_ports j)-1);
+    j=j+1);
   exit(1))
 print("kidmo: all %d answered\n" nkids :err)
 
