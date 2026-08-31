@@ -1,0 +1,336 @@
+#! /usr/bin/env comterp_listen
+#
+# kidmo -- a table of linked drawservs, brought up, wired together, taught the
+# kid script, and left at the prompt for you to drive.
+#
+//   kidmo                     // then, at the (comt) prompt it leaves you at:
+//   remote(k1 "kid.play(:n 2)")   // ask the kid at the head to draw two things
+//   look()                    // what each table holds
+//   bye()                     // send them home
+//   kidmo --tests             // bring a table up, check it, take it down
+//
+// This is the table and the wiring: finding ports, starting a drawserv on each,
+// waiting to hear from them, linking them to the one at the head, teaching each
+// of them kid.comt, and taking them all down again.  What sits at the table --
+// a model per kid, with a name and a crayon and things you can ask it to draw
+// -- goes on top of this and is not here.
+//
+// Two sockets per kid, both opened once and kept.  The kids were written to
+// with :nowait once, so that all four acted at once rather than taking turns.
+// That was wrong: :nowait skips reading the answer, which is only safe when
+// something else is reading that socket, and nothing was -- a comterp socket()
+// is a bare stream with no handler, so every reply piled up unread.  They are
+// asked for their answers now, which costs the simultaneity and is the honest
+// version until there is a handler to give it back.  :nowait is left only on
+// exit, which sends no reply for anyone to read.
+//
+// The kids report back the way drawserv's own AckBackHandler does -- over a
+// separate path -- which here is the listen port comterp_listen gives us, so a
+// kid that is up sets a global we can wait on.  Questions that are about the
+// node rather than the connection (the canvas) go down a throwaway socket.
+
+/* kid.comt sits beside this script, so find it from arg(0) rather than from
+   wherever you happened to be standing when you typed kidmo.  The kids need
+   this too, and more than kidmo does: they are handed the path over a socket
+   and resolve it against their own working directory.
+
+   The shell resolves PATH before execve, so even a bare "kidmo" reaches us as
+   an absolute path.  substr() keeps everything up to but not including the
+   last slash, and the "%s/kid.comt" below supplies the separator:
+     /opt/ivtools/src/drawserv_/examples/kidmo -> /opt/.../examples/kid.comt
+     ./kidmo                                   -> ./kid.comt */
+kidmo_slash=index(arg(0) "/" :last)
+kidmo_dir=if(kidmo_slash!=nil :then substr(arg(0) kidmo_slash) :else ".")
+kid_file=print("%s/kid.comt" kidmo_dir :str)
+
+/* That path crosses two parsers on its way to a kid: a shell command line, and
+   a comterp string literal inside the run() we send down the socket.  A quote
+   or a backslash survives neither -- and a single quote pasted into a shell
+   command is an injection rather than merely a breakage, running as whoever
+   started kidmo.  Escaping cleanly through both parsers is more machinery than
+   an example wants to carry, so refuse the path and say which character.  It is
+   a func so that --tests can hand it paths we would never want to launch. */
+badpathchar=func(
+  if(index(pth print("%c" 39 :str))!=nil :then "a single quote" :else
+  if(index(pth print("%c" 34 :str))!=nil :then "a double quote" :else
+  if(index(pth print("%c" 92 :str))!=nil :then "a backslash" :else nil))))
+badchar=badpathchar(:pth kid_file)
+if(badchar!=nil :then
+  print("kidmo: the path to this script contains %s:\n" badchar :err);
+  print("         %s\n" kid_file :err);
+  print("       it reaches the kids through a shell command and a comterp\n" :err);
+  print("       string literal, and survives neither.  Put the examples\n" :err);
+  print("       somewhere without quotes in the name.\n" :err);
+  exit(1))
+
+if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
+  arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
+    print("kidmo  a table of linked drawservs\n\n");
+    print("Usage:  kidmo [--kids n] [--tests] [--help]\n");
+    print("  Run it from anywhere -- it reads the kid.comt beside it.  It finds\n");
+    print("  ports, brings a drawserv up on each, pulls the other chairs up to\n");
+    print("  the one at the head of the table, teaches each of them the kid\n");
+    print("  script, and leaves you at the comterp prompt holding the sockets:\n\n");
+    print("    k1 k2 k3 k4          the connection to each kid, k1 at the head\n");
+    print("      (a chair nobody sat in is nil)\n");
+    print("    e1 e2 e3 e4          a second connection apiece, for asking\n");
+    print("                         about the canvas rather than driving it\n");
+    print("    remote(k1 \"kid.play(:n 2)\")   ask a kid to draw\n");
+    print("    look()               what each table is holding\n");
+    print("    bye()                send them home\n\n");
+    print("--kids [n]\t\thow many sit down (1-4, default 4)\n");
+    print("--tests\t\t\tbring a table up, check it, take it down, and\n");
+    print("\t\t\treport -- no prompt, and non-zero if anything failed\n");
+    print("--help\t\t\tprint this help message\n\n");
+    print("  What a kid can draw is the kid's own business, in kid.comt on their\n");
+    print("  machine -- this end only ever asks.\n");
+    exit(0))
+
+callback_port=int(arg(1))
+
+/* --kids dials the table down to a case small enough to reason about and then
+   back up: two kids is one link, where the default is four kids and three. */
+nkids=4
+tests=false
+for(i=2 i<narg() i++
+  switch(substr(arg(i) 2 :after)
+    :kids if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;nkids=int(arg(i))
+    :tests tests=true
+    :default print("kidmo:  Unknown argument %s\n" arg(i) :err)))
+if(nkids<1 :then nkids=1)
+if(nkids>4 :then nkids=4)
+
+/* Ports the way drawmo finds them -- probe, and step up by ten until both the
+   comdraw port and the import port below it are free -- so a second kidmo, a
+   drawmo run, or yesterday's drawserv that never quite died cannot wedge the
+   demo before it starts.  The ones actually chosen get printed below, since a
+   demo you want to poke at from another window has to say where the kids are. */
+have_lsof=shell("which lsof > /dev/null 2>&1")==0;
+have_nc=shell("which nc > /dev/null 2>&1")==0;
+port_probe=if(have_lsof :then
+  "lsof -i :%d > /dev/null 2>&1"
+:else if(have_nc :then
+  "nc -z 127.0.0.1 %d > /dev/null 2>&1"
+:else
+  "false"));
+
+find_open_port=func(
+  port=base_port;
+  while(shell(print(port_probe port :str))==0 ||
+        shell(print(port_probe port-1 :str))==0
+    port=port+10);
+  port)
+
+kill_port=func(
+  if(have_lsof :then
+    shell(print("kill $(lsof -ti :%d) > /dev/null 2>&1" kill_port_num :str))
+  :else
+    shell(print("fuser -k %d/tcp > /dev/null 2>&1" kill_port_num :str))))
+
+p1=find_open_port(:base_port 21002)
+p2=find_open_port(:base_port 31002)
+p3=find_open_port(:base_port 41002)
+p4=find_open_port(:base_port 51002)
+kid_ports=(p1,p2,p3,p4)
+kid_cols=("#DD3333","#3366DD","#22AA55","#CC7722")
+
+/* Launch, each kid calling back when it is up -- no guessing at a settle.
+   -comt gives every kid an inline comterp pane in their own window: with
+   -stdin_off there is no terminal REPL, so that pane is the only way to ask a
+   kid something at the kid, rather than over a socket from here.  Type
+   grid(:table) or select(:all) straight into the window of whichever one is
+   behaving oddly.
+
+   Asked for only if this drawserv has it: an older one does not merely ignore
+   the option, it comes up and then exits, and four kids that die at birth look
+   exactly like four kids taking their time. */
+have_comt=shell("drawserv -help 2>&1 | grep -q '^-comt'")==0
+/* dots rather than \[file\]: a backslash does not survive comterp's string
+   parser into the shell, and the bracket then reads as a character class that
+   matches nothing here -- which quietly reported no file support at all */
+/* each kid's drawserv used to go to /dev/null, which is a poor place to keep
+   the grant traffic when the question is why a graphic will not select.  One
+   file per kid, named by the port so two kidmos do not write to the same one. */
+log_dir="/tmp"
+
+have_comtfile=shell("drawserv -help 2>&1 | grep -q '^-comt .file.'")==0
+
+/* Taking a kid down means the process we started, not whoever holds its port:
+   a port probed free a moment ago may since have been taken by somebody who is
+   not ours, and a kid that died before binding holds no port to be found by at
+   all.  The pid came from $! at launch.  Check it is still a drawserv before
+   killing it, in case the number has been recycled, and report whether there
+   was anything there to kill. */
+reap=func(
+  shell(print("pid=$(cat %s/kidmo-%d.pid 2>/dev/null); rc=1; if [ -n \"$pid\" ] && ps -p $pid -o comm= 2>/dev/null | grep -q drawserv; then kill $pid > /dev/null 2>&1; rc=0; fi; rm -f %s/kidmo-%d.pid; exit $rc"
+    log_dir pnum log_dir pnum :str))==0)
+
+comt_flag=if(have_comtfile :then print("-comt '%s'" kid_file :str)
+         :else if(have_comt :then "-comt" :else ""))
+if(!have_comt :then
+  print("kidmo: this drawserv has no -comt, so the kids get no pane\n" :err)
+:else if(!have_comtfile :then
+  print("kidmo: this drawserv takes -comt but not a file after it, so the pane\n" :err);
+  print("       comes up empty -- type run(\"kid.comt\") in it yourself\n" :err)))
+/* one by one rather than in the loop: global() wants a symbol, and
+   global(print("kid%d_up" ...)) assigns to nothing at all -- silently, bar a
+   warning, so the four of these were never being cleared */
+global(kid1_up)=false
+global(kid2_up)=false
+global(kid3_up)=false
+global(kid4_up)=false
+
+/* a chair nobody sat in is already up, so the four-way wait below reads
+   correctly without knowing how many kids there are */
+if(nkids<4 :then global(kid4_up)=true)
+if(nkids<3 :then global(kid3_up)=true)
+if(nkids<2 :then global(kid2_up)=true)
+j=0
+while(j<nkids
+  p=at(kid_ports j);
+  shell(print("drawserv -comdraw %d -import %d -stdin_off %s -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(kid%d_up)=true\\\")\" > %s/kidmo-%d.log 2>&1 & echo $! > %s/kidmo-%d.pid" p p-1 comt_flag callback_port j+1 log_dir p log_dir p :str));
+  j=j+1)
+print("kidmo: %d drawserv(s) starting, logs in %s/kidmo-<port>.log\n" nkids log_dir :err)
+
+cnt=0
+while((!global(kid1_up) || !global(kid2_up) || !global(kid3_up) || !global(kid4_up)) && cnt<120
+  update(500000);cnt++)
+if(!global(kid1_up) || !global(kid2_up) || !global(kid3_up) || !global(kid4_up) :then
+  print("kidmo: FAILED -- not every kid came up.  Is drawserv on PATH, and does\n" :err);
+  print("       it accept the options above?  An option it does not know makes\n" :err);
+  print("       it exit at startup.\n" :err);
+  /* and take down the ones that did: leaving them holding ports means the next
+     attempt steps past those ports and the desk fills with drawservs nobody
+     asked for */
+  j=0;
+  while(j<nkids
+    reap(:pnum at(kid_ports j));
+    j=j+1);
+  exit(1))
+print("kidmo: all %d answered\n" nkids :err)
+
+/* Two connections per kid, both opened once and kept.  The kids are written to
+   and asked for their answer, so nothing accumulates on either.  The eyes never
+   learn the kid -- one connection cannot see another's definitions -- but they
+   do not need to: they
+   only ask about the canvas, which belongs to the node rather than to any
+   connection.  look() is a snapshot, so a kid's shapes may still be in flight
+   to the others when it is called. */
+k1=socket("127.0.0.1" at(kid_ports 0))
+k2=if(nkids>1 :then socket("127.0.0.1" at(kid_ports 1)) :else nil)
+k3=if(nkids>2 :then socket("127.0.0.1" at(kid_ports 2)) :else nil)
+k4=if(nkids>3 :then socket("127.0.0.1" at(kid_ports 3)) :else nil)
+kids=(k1,k2,k3,k4)
+e1=socket("127.0.0.1" at(kid_ports 0))
+e2=if(nkids>1 :then socket("127.0.0.1" at(kid_ports 1)) :else nil)
+e3=if(nkids>2 :then socket("127.0.0.1" at(kid_ports 2)) :else nil)
+e4=if(nkids>3 :then socket("127.0.0.1" at(kid_ports 3)) :else nil)
+eyes=(e1,e2,e3,e4)
+
+/* the other chairs pull up to the one at the head of the table */
+j=1
+while(j<nkids
+  remote(at(eyes j) print("drawlink(%c127.0.0.1%c %d)" 34 34 at(kid_ports 0) :str));
+  usleep(3000000);
+  j=j+1)
+
+/* Each kid is taught down the connection that will later be told to play, and
+   that connection is then kept for good.  -runfile looks like it should do this
+   at startup and does not: the names load, but funcs defined in the startup
+   interpreter draw nothing when called from a connection.  Connections cannot
+   see each other's definitions either, so the eyes know nothing of kid -- which
+   is fine, they only ever ask about the canvas, which belongs to the node. */
+j=0
+while(j<nkids
+  /* quiet: this connection loads the kid to drive it, not to read it.  The
+     greeting is printed plainly so it reaches the pane, and plain output over a
+     socket lands in the reply stream, putting every later question one behind */
+  remote(at(kids j) "quiet=true");
+  remote(at(kids j) print("run(%c%s%c)" 34 kid_file 34 :str));
+  remote(at(kids j) print("kid.colour=%c%s%c" 34 at(kid_cols j) 34 :str));
+  remote(at(kids j) print("srand(%d)" 11+j*7 :str));
+  j=j+1)
+print("kidmo: hub holds %v links, everyone knows %v sessions\n" remote(e1 "size(drawlink(:table))") remote(e1 "size(sid(:table))") :err)
+
+look=func(
+  j=0;
+  while(j<nkids
+    print("  %v canvas=%v held=%v\n" at(kid_cols j)
+      remote(at(eyes j) "size(children())") remote(at(eyes j) "size(select())") :err);
+    j=j+1);
+  0)
+
+
+/* ask them to go home, then insist: a kid mid-something may never get to it */
+bye=func(
+  remote(k1 "exit" :nowait);
+  if(nkids>1 :then remote(k2 "exit" :nowait));
+  if(nkids>2 :then remote(k3 "exit" :nowait));
+  if(nkids>3 :then remote(k4 "exit" :nowait));
+  usleep(2000000);
+  j=0;
+  while(j<nkids
+    if(reap(:pnum at(kid_ports j)) :then
+      print("kidmo: kid %d would not go home, sending them\n" j+1 :err));
+    j=j+1);
+  0)
+
+
+/* --tests: the table is up and wired, so check what that was supposed to mean,
+   take it down, and check that too.  The path guard is checked first because it
+   needs nothing running -- and because it is the one piece here that refuses
+   rather than does, which is easy to break without noticing. */
+if(tests :then
+  /* global: check() sets it from inside a func, where a plain ok would be a
+     local and the verdict below would read nil however the checks went */
+  global(ok)=true;
+  /* :got rather than :got -- cond is a registered comterp command, so a
+     keyword formal by that name never binds and every check reads false */
+  check=func(
+    if(got :then print("%s: pass\n" nm :err) :else print("%s: FAIL\n" nm :err));
+    if(!got :then global(ok)=false);
+    got);
+  sq=print("/opt/it%cs/kid.comt" 39 :str);
+  dq=print("/opt/it%cs/kid.comt" 34 :str);
+  bs=print("/opt/it%cs/kid.comt" 92 :str);
+  check(:nm "guard-accepts-plain" :got badpathchar(:pth "/opt/ivtools/kid.comt")==nil);
+  check(:nm "guard-refuses-quote" :got badpathchar(:pth sq)!=nil);
+  check(:nm "guard-refuses-dquote" :got badpathchar(:pth dq)!=nil);
+  check(:nm "guard-refuses-bslash" :got badpathchar(:pth bs)!=nil);
+  /* the wiring: every chair but the head holds a link to the head, and every
+     node has heard of every session -- that is what linking them was for */
+  check(:nm "links" :got remote(e1 "size(drawlink(:table))")==nkids-1);
+  check(:nm "sessions" :got remote(e1 "size(sid(:table))")==nkids);
+  /* each kid answers about its own canvas on its own second connection */
+  j=0;
+  every=true;
+  while(j<nkids
+    if(remote(at(eyes j) "size(children())")==nil :then every=false);
+    j=j+1);
+  check(:nm "canvases" :got every);
+  /* and the kid script reached them: kid.play is a func on every node */
+  j=0;
+  taught=true;
+  while(j<nkids
+    if(remote(at(kids j) "kid.play!=nil")!=true :then taught=false);
+    j=j+1);
+  check(:nm "taught" :got taught);
+  /* down again -- nobody left on a port, and no pid files left behind */
+  bye();
+  usleep(1000000);
+  j=0;
+  gone=true;
+  files=true;
+  while(j<nkids
+    p=at(kid_ports j);
+    if(shell(print("pgrep -f '[d]rawserv -comdraw %d' > /dev/null 2>&1" p :str))==0 :then gone=false);
+    if(shell(print("test -f %s/kidmo-%d.pid" log_dir p :str))==0 :then files=false);
+    j=j+1);
+  check(:nm "shutdown" :got gone);
+  check(:nm "pidfiles" :got files);
+  print("kidmo: %s\n" if(global(ok) :then "all tests passed" :else "TESTS FAILED") :err);
+  exit(if(global(ok) :then 0 :else 1)))
+
+
+print("kidmo: ports %v %v %v %v\n" p1 p2 p3 p4 :err)
+print("kidmo: ready -- remote(k1 \"kid.play(:n 2)\")  look()  bye()\n" :err)
