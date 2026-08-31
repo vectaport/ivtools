@@ -62,6 +62,7 @@ ComValue ComValue::_acharval('a', ComValue::CharType);
 /*****************************************************************************/
 
 const ComTerp* ComValue::_comterp = nil;
+boolean ComValue::_echo = false;
 
 ComValue::ComValue(const ComValue& sv) {
     *this = sv;
@@ -270,14 +271,14 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    
 	case ComValue::CharType:
 	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), false);
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->char_ref(), ComValue::echo());
 	  else
 	    out << "char( " << svp->char_ref() << ":" << (int)svp->char_ref() << " )";
-	  break;	    
+	  break;
 
 	case ComValue::UCharType:
 	  if (brief)
-	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), false);
+	    AttributeValue::out_char_brief(out, (unsigned char)svp->uchar_ref(), ComValue::echo());
 	  else
 	    out << "uchar( " << svp->uchar_ref() << ":" << (int)svp->uchar_ref() << " )";
 	  break;
