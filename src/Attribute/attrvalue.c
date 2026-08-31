@@ -866,16 +866,17 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
     out << q << (char)cv << q;
-  else {
-    /* the octal escape carries its own delimiters when quoted, because `\240`
-       has to be readable back; printed bare it sheds them like the other two
-       forms do, and takes the same ambiguity caret notation already takes --
-       run characters together and a literal backslash is indistinguishable
+  else
+    /* q, the same delimiter the other two forms take.  It used to be a pair of
+       backquotes, which read back as nothing: `\240` in a serialized attrlist
+       is an illegal character to the lexer, so the export path was writing a
+       form its own reader rejects.  '\240' is what the lexer already reads,
+       and it round-trips to the byte it came from.  Bare, when printing, the
+       delimiters go and the escape takes the same ambiguity caret notation
+       takes -- run characters together and a literal backslash cannot be told
        from the start of an escape.  Printing is for reading, not re-reading */
-    const char* bq = quoted ? "`" : "";
-    out << bq << "\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
-	<< std::dec << bq << std::resetiosflags(std::ios_base::basefield);
-  }
+    out << q << "\\" << std::setw(3) << std::setfill('0') << std::oct << (unsigned int)cv
+	<< std::dec << q << std::resetiosflags(std::ios_base::basefield);
 }
 
 ostream& operator<< (ostream& out, const AttributeValue& sv) {

@@ -7,8 +7,10 @@
 // for anything at or above 0x80, where there is nothing readable to show.
 //
 // Printed, all three come bare.  Quoted -- which is the export path, test 9 --
-// each takes its delimiters back, the escape as `\NNN`, so the value can be
-// read again.  Bare display costs the same ambiguity throughout: run
+// each takes the same single quotes back, so the value can be read again.  The
+// escape used to take backquotes there instead, and `\240` is an illegal
+// character to the lexer: the export path was writing a form its own reader
+// rejects, and an attrlist holding a high byte came back nil.  Bare display costs the same ambiguity throughout: run
 // characters together and a literal caret is indistinguishable from a control
 // byte, a literal backslash from the start of an escape.  That is the price of
 // text reading as text, and it is only paid where nothing has to read it back.
@@ -92,16 +94,21 @@ print("8 values untouched; a high byte is signed unless :u (expect CharType 97 -
 // be read back as one, since `a` parses as a symbol, and a control or high
 // byte went into the file raw ---
 al9=(:p char(97) :c char(7) :h char(160))
-ok=ok&&(print(al9 :str)=="(:p 'a' :c '^G' :h `\\240`)")
-print("9 a char attribute value is quoted (expect (:p 'a' :c '^G' :h `\\240`)): %s\n" print(al9 :str))
+ok=ok&&(print(al9 :str)=="(:p 'a' :c '^G' :h '\\240')")
+print("9 a char attribute value is quoted (expect (:p 'a' :c '^G' :h '\\240')): %s\n" print(al9 :str))
 
 // --- 10: so a printable char attribute round-trips now, which it could not
-// when it serialized bare.  The caret and escape forms still do not: they are
-// display forms the lexer does not read, the same trade the value display
-// makes, and the reason is the same -- safety first ---
+// when it serialized bare -- and so does a high byte, which could not while it
+// serialized between backquotes.  The caret form still does not: '^G' is a
+// display form the lexer does not read, and reads back as UnknownType.  That
+// is the one remaining place where what is written out cannot be read in ---
 al10=eval("(:p 'a')")
 ok=ok&&(type(attrval(al10))=="CharType")
-print("10 (:p 'a') reads back as a char (expect CharType): %s\n" type(attrval(al10)))
+al10b=eval("(:h '\\240')")
+ok=ok&&(type(attrval(al10b))=="CharType")&&(attrval(al10b)==char(160))
+al10c=eval("(:c '^G')")
+ok=ok&&(type(attrval(al10c))=="UnknownType")
+print("10 'a' and '\\240' read back as chars, '^G' does not (expect CharType CharType UnknownType): %s %s %s\n" type(attrval(al10)) type(attrval(al10b)) type(attrval(al10c)))
 
 // --- 11: the two bytes that cannot sit bare between the quotes -- a backslash
 // would escape the closing quote, an apostrophe would be it -- take the escape
