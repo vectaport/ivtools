@@ -182,14 +182,21 @@ have_comtfile=shell("drawserv -help 2>&1 | grep -q '^-comt .file.'")==0
    killing it, in case the number has been recycled, and report whether there
    was anything there to kill.
 
-   The check is the command line rather than the command name, because the name
-   is not identity: this desk runs drawservs constantly -- kidmo, drawmo,
-   agreetest, a second kidmo -- so "it is a drawserv" is exactly the thing a
-   recycled pid is most likely to still be true of.  A drawserv holding our
-   -comdraw port is ours, because two of them cannot hold the same one. */
+   A pid on its own is not identity, and neither is a pid that looks like a
+   drawserv: this desk runs them constantly -- kidmo, drawmo, agreetest, a
+   second kidmo -- so "it is a drawserv" is exactly the thing a recycled number
+   is most likely to still be true of.  Nor is the -comdraw port enough on its
+   own, since a kid that died released both its pid and its port for the next
+   drawserv to pick up together.
+
+   What settles it is when the process started, recorded beside the pid at
+   launch.  A different process wearing a recycled pid has a different start
+   time, and pids do not come round again inside the same second.  The port is
+   still matched as well, so a pid file that has been mangled rather than
+   recycled fails for a legible reason. */
 reap=func(
-  shell(print("pid=$(cat %s/kidmo-%d.pid 2>/dev/null); rc=1; if [ -n \"$pid\" ] && ps -p $pid -o args= 2>/dev/null | grep -q -- \"-comdraw %d\"; then kill $pid > /dev/null 2>&1; rc=0; fi; rm -f %s/kidmo-%d.pid; exit $rc"
-    log_dir pnum pnum log_dir pnum :str))==0)
+  shell(print("pid=$(sed -n 1p %s/kidmo-%d.pid 2>/dev/null); born=$(sed -n 2p %s/kidmo-%d.pid 2>/dev/null); rc=1; if [ -n \"$pid\" ] && [ \"$(ps -p $pid -o lstart= 2>/dev/null)\" = \"$born\" ] && ps -p $pid -o args= 2>/dev/null | grep -q -- \"-comdraw %d\"; then kill $pid > /dev/null 2>&1; rc=0; fi; rm -f %s/kidmo-%d.pid; exit $rc"
+    log_dir pnum log_dir pnum pnum log_dir pnum :str))==0)
 
 comt_flag=if(have_comtfile :then print("-comt '%s'" kid_file :str)
          :else if(have_comt :then "-comt" :else ""))
@@ -214,7 +221,7 @@ if(nkids<2 :then global(kid2_up)=true)
 j=0
 while(j<nkids
   p=at(kid_ports j);
-  shell(print("drawserv -comdraw %d -import %d -stdin_off %s -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(kid%d_up)=true\\\")\" > %s/kidmo-%d.log 2>&1 & echo $! > %s/kidmo-%d.pid" p p-1 comt_flag callback_port j+1 log_dir p log_dir p :str));
+  shell(print("drawserv -comdraw %d -import %d -stdin_off %s -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(kid%d_up)=true\\\")\" > %s/kidmo-%d.log 2>&1 & kidpid=$!; { echo $kidpid; ps -p $kidpid -o lstart=; } > %s/kidmo-%d.pid" p p-1 comt_flag callback_port j+1 log_dir p log_dir p :str));
   j=j+1)
 print("kidmo: %d drawserv(s) starting, logs in %s/kidmo-<port>.log\n" nkids log_dir :err)
 
