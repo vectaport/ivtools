@@ -150,8 +150,28 @@ have_comt=shell("drawserv -help 2>&1 | grep -q '^-comt'")==0
    matches nothing here -- which quietly reported no file support at all */
 /* each kid's drawserv used to go to /dev/null, which is a poor place to keep
    the grant traffic when the question is why a graphic will not select.  One
-   file per kid, named by the port so two kidmos do not write to the same one. */
-log_dir="/tmp"
+   file per kid, in a directory of our own.
+
+   Of our own, and not /tmp itself, for two reasons that turn out to be the same
+   reason.  A path under /tmp named by something guessable is a file anybody on
+   the machine can put a symlink at first, and the shell redirection that writes
+   the log or the pid then follows it and truncates whatever it points at, as
+   whoever is running kidmo.  And two kidmos that had both probed the same port
+   as free would write each other's pid files, so one would reap the other's
+   drawserv or lose its own and leave it running.
+
+   mkdir without -p is the primitive that fixes both: it is atomic, and it fails
+   rather than succeeds if anything is already at the path -- symlink included.
+   The name comes from the callback port, which comterp_listen has already bound
+   for us, so it is ours for as long as we are running and no second kidmo can
+   have the same one.  Mode 700 so what the kids log is ours to read. */
+log_dir=print("/tmp/kidmo-%d.d" callback_port :str)
+if(shell(print("mkdir -m 700 '%s'" log_dir :str))!=0 :then
+  print("kidmo: cannot make a private directory for the logs at\n" :err);
+  print("         %s\n" log_dir :err);
+  print("       something is there already.  If it is a leftover of yours from\n" :err);
+  print("       a kidmo that did not shut down cleanly, remove it and try again.\n" :err);
+  exit(1))
 
 have_comtfile=shell("drawserv -help 2>&1 | grep -q '^-comt .file.'")==0
 
@@ -206,6 +226,7 @@ if(!global(kid1_up) || !global(kid2_up) || !global(kid3_up) || !global(kid4_up) 
   while(j<nkids
     reap(:pnum at(kid_ports j));
     j=j+1);
+  shell(print("rm -rf '%s'" log_dir :str));
   exit(1))
 print("kidmo: all %d answered\n" nkids :err)
 
@@ -273,6 +294,9 @@ bye=func(
     if(reap(:pnum at(kid_ports j)) :then
       print("kidmo: kid %d would not go home, sending them\n" j+1 :err));
     j=j+1);
+  /* and the directory with them -- it is named for a port we are about to stop
+     holding, so leaving it behind is what makes the next run refuse to start */
+  shell(print("rm -rf '%s'" log_dir :str));
   0)
 
 
@@ -284,8 +308,12 @@ if(tests :then
   /* global: check() sets it from inside a func, where a plain ok would be a
      local and the verdict below would read nil however the checks went */
   global(ok)=true;
-  /* :got rather than :got -- cond is a registered comterp command, so a
-     keyword formal by that name never binds and every check reads false */
+  /* :got rather than the :cond this wanted to be called -- a func's keyword
+     formal cannot shadow a command symbol, and cond is one, so it never bound
+     and every check read false.  The limit is the comterp-level func: a
+     primitive written in C takes a keyword overlapping a command name quite
+     happily.  #347's self() is what resolves it in general, the way self.echo
+     still reaches the keyword with echo a command. */
   check=func(
     if(got :then print("%s: pass\n" nm :err) :else print("%s: FAIL\n" nm :err));
     if(!got :then global(ok)=false);
@@ -299,6 +327,10 @@ if(tests :then
   check(:nm "guard-refuses-bslash" :got badpathchar(:pth bs)!=nil);
   /* the wiring: every chair but the head holds a link to the head, and every
      node has heard of every session -- that is what linking them was for */
+  /* ours: a real directory rather than a symlink somebody left, and readable
+     by nobody else -- find -perm rather than stat, whose flags differ by OS */
+  check(:nm "logdir-private"
+    :got shell(print("test -d '%s' && test ! -L '%s' && test -n \"$(find '%s' -maxdepth 0 -perm 700)\"" log_dir log_dir log_dir :str))==0);
   check(:nm "links" :got remote(e1 "size(drawlink(:table))")==nkids-1);
   check(:nm "sessions" :got remote(e1 "size(sid(:table))")==nkids);
   /* each kid answers about its own canvas on its own second connection */
@@ -328,6 +360,7 @@ if(tests :then
     j=j+1);
   check(:nm "shutdown" :got gone);
   check(:nm "pidfiles" :got files);
+  check(:nm "logdir-gone" :got shell(print("test -e '%s'" log_dir :str))!=0);
   print("kidmo: %s\n" if(global(ok) :then "all tests passed" :else "TESTS FAILED") :err);
   exit(if(global(ok) :then 0 :else 1)))
 
