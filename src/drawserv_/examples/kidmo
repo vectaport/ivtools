@@ -38,6 +38,24 @@
 kidmo_slash=index(arg(0) "/" :last)
 kidmo_dir=if(kidmo_slash!=nil :then substr(arg(0) kidmo_slash) :else ".")
 kid_file=print("%s/kid.comt" kidmo_dir :str)
+
+/* That path crosses two parsers on its way to a kid: a shell command line, and
+   a comterp string literal inside the run() we send down the socket.  A quote
+   or a backslash survives neither -- and a single quote pasted into a shell
+   command is an injection rather than merely a breakage, running as whoever
+   started kidmo.  Escaping cleanly through both parsers is more machinery than
+   an example wants to carry, so refuse the path and say which character. */
+badchar=nil
+if(index(kid_file print("%c" 39 :str))!=nil :then badchar="a single quote")
+if(index(kid_file print("%c" 34 :str))!=nil :then badchar="a double quote")
+if(index(kid_file print("%c" 92 :str))!=nil :then badchar="a backslash")
+if(badchar!=nil :then
+  print("kidmo: the path to this script contains %s:\n" badchar :err);
+  print("         %s\n" kid_file :err);
+  print("       it reaches the kids through a shell command and a comterp\n" :err);
+  print("       string literal, and survives neither.  Put the examples\n" :err);
+  print("       somewhere without quotes in the name.\n" :err);
+  exit(1))
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("kidmo  four fourth graders at a table, each with a drawserv\n\n");
@@ -173,7 +191,7 @@ if(nkids<2 :then global(kid2_up)=true;global(kid2_done)=true)
 j=0
 while(j<nkids
   p=at(kid_ports j);
-  shell(print("drawserv -comdraw %d -import %d -stdin_off %s -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(kid%d_up)=true\\\")\" > %s/kidmo-%d.log 2>&1 &" p p-1 comt_flag callback_port j+1 log_dir p :str));
+  shell(print("drawserv -comdraw %d -import %d -stdin_off %s -runexpr \"remote(\\\"127.0.0.1\\\" %d \\\"global(kid%d_up)=true\\\")\" > %s/kidmo-%d.log 2>&1 & echo $! > %s/kidmo-%d.pid" p p-1 comt_flag callback_port j+1 log_dir p log_dir p :str));
   j=j+1)
 print("kidmo: %d drawserv(s) starting, logs in %s/kidmo-<port>.log\n" nkids log_dir :err)
 
@@ -186,11 +204,15 @@ if(!global(kid1_up) || !global(kid2_up) || !global(kid3_up) || !global(kid4_up) 
   print("       it exit at startup.\n" :err);
   /* and take down the ones that did: leaving them holding ports means the next
      attempt steps past those ports and the desk fills with drawservs nobody
-     asked for */
+     asked for.  By pid rather than by port -- a kid that died before binding
+     holds no port to find it by, and a port we probed as free a moment ago may
+     since have been taken by somebody who is not ours.  The pid came from $!
+     at launch; check it is still a drawserv before killing it, in case the
+     number has been recycled. */
   j=0;
   while(j<nkids
-    kill_port(:kill_port_num at(kid_ports j));
-    kill_port(:kill_port_num at(kid_ports j)-1);
+    shell(print("pid=$(cat %s/kidmo-%d.pid 2>/dev/null); [ -n \"$pid\" ] && ps -p $pid -o comm= 2>/dev/null | grep -q drawserv && kill $pid > /dev/null 2>&1; rm -f %s/kidmo-%d.pid"
+      log_dir at(kid_ports j) log_dir at(kid_ports j) :str));
     j=j+1);
   exit(1))
 print("kidmo: all %d answered\n" nkids :err)
