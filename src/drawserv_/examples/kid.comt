@@ -78,14 +78,14 @@ kid=(
 /* only when there is nothing here yet: with -comt kid.comt the pane loads this
    at startup, and kidmo loads it again over its own connection to drive from --
    two loads, and without this, two welcome creatures */
-if(size(children())==0 :then kid.animal(:x 300 :y 220 :c kid.colour))
+if(size(children())==0 && nowelcome!=true :then kid.animal(:x 300 :y 220 :c kid.colour))
 
 if(quiet!=true :then
   print("\n===============================================\n");
   print("   YOU ARE A FOURTH GRADER WITH A DRAWSERV\n");
-  print("   That grey creature is kid.animal() -- and\n");
-  print("   anything you draw goes to everyone you are\n");
-  print("   linked to.  Try typing:\n");
+  print("   That grey creature was created by kid.animal()\n");
+  print("   -- and anything you draw goes to everyone you\n");
+  print("   are linked to.  Try typing:\n");
   print("       kid.play(:n 3)\n");
   print("       kid.colour=\"#DD3333\"\n");
   print("       kid.adventurer(:x 200 :y 120 :c kid.colour)\n");
