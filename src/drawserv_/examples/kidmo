@@ -1,19 +1,20 @@
 #! /usr/bin/env comterp_listen
 #
-# kidmo -- a table of linked drawservs, brought up, wired together, taught the
-# kid script, and left at the prompt for you to drive.
+# kidmo -- sit four fourth graders round a table, each with a drawserv of their
+# own, all linked, and leave you at the prompt to play with them.
 #
 //   kidmo                     // then, at the (comt) prompt it leaves you at:
-//   remote(k1 "kid.play(:n 2)")   // ask the kid at the head to draw two things
+//   todd.draw()               // Todd draws something he likes
+//   mia.draw(:n 3)            // Mia draws three things she likes
+//   all(:n 2)                 // everyone draws two
+//   wait_all()                // block until they have all reported done
 //   look()                    // what each table holds
 //   bye()                     // send them home
 //   kidmo --tests             // bring a table up, check it, take it down
 //
-// This is the table and the wiring: finding ports, starting a drawserv on each,
-// waiting to hear from them, linking them to the one at the head, teaching each
-// of them kid.comt, and taking them all down again.  What sits at the table --
-// a model per kid, with a name and a crayon and things you can ask it to draw
-// -- goes on top of this and is not here.
+// The table under all this -- ports, launching, linking, teaching, reaping --
+// is the layer below, and the kids here are a model apiece sitting on top of
+// the sockets it leaves us holding.
 //
 // Two sockets per kid, both opened once and kept.  The kids were written to
 // with :nowait once, so that all four acted at once rather than taking turns.
@@ -66,7 +67,7 @@ if(badchar!=nil :then
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("kidmo  a table of linked drawservs\n\n");
-    print("Usage:  kidmo [--kids n] [--tests] [--help]\n");
+    print("Usage:  kidmo [--kids n] [--draw n] [--tests] [--help]\n");
     print("  Run it from anywhere -- it reads the kid.comt beside it.  It finds\n");
     print("  ports, brings a drawserv up on each, pulls the other chairs up to\n");
     print("  the one at the head of the table, teaches each of them the kid\n");
@@ -79,6 +80,8 @@ if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
     print("    look()               what each table is holding\n");
     print("    bye()                send them home\n\n");
     print("--kids [n]\t\thow many sit down (1-4, default 4)\n");
+    print("--draw [n]\t\thow many things each draws before the prompt\n");
+    print("\t\t\t(default 3; 0 for an empty canvas, welcome and all)\n");
     print("--tests\t\t\tbring a table up, check it, take it down, and\n");
     print("\t\t\treport -- no prompt, and non-zero if anything failed\n");
     print("--help\t\t\tprint this help message\n\n");
@@ -91,10 +94,13 @@ callback_port=int(arg(1))
 /* --kids dials the table down to a case small enough to reason about and then
    back up: two kids is one link, where the default is four kids and three. */
 nkids=4
+ndraw=-1
 tests=false
+global(nrect)=0
 for(i=2 i<narg() i++
   switch(substr(arg(i) 2 :after)
     :kids if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;nkids=int(arg(i))
+    :draw if(i+1>=narg() || substr(arg(i+1) 2)=="--" :then continue);i++;ndraw=int(arg(i))
     :tests tests=true
     :default print("kidmo:  Unknown argument %s\n" arg(i) :err)))
 if(nkids<1 :then nkids=1)
@@ -198,7 +204,21 @@ reap=func(
   shell(print("pid=$(sed -n 1p %s/kidmo-%d.pid 2>/dev/null); born=$(sed -n 2p %s/kidmo-%d.pid 2>/dev/null); rc=1; if [ -n \"$pid\" ] && [ \"$(ps -p $pid -o lstart= 2>/dev/null)\" = \"$born\" ] && ps -p $pid -o args= 2>/dev/null | grep -q -- \"-comdraw %d\"; then kill $pid > /dev/null 2>&1; rc=0; fi; rm -f %s/kidmo-%d.pid; exit $rc"
     log_dir pnum log_dir pnum pnum log_dir pnum :str))==0)
 
-comt_flag=if(have_comtfile :then print("-comt '%s'" kid_file :str)
+/* --draw 0 wants an empty canvas, and the welcome creature cannot be talked out
+   of it from this end: the pane loads kid.comt in its own interpreter, which
+   never sees a nowelcome set on the driving connection, one connection not
+   being able to see another's variables.  Nor can it be cleared afterwards --
+   each kid holds its own creature and a select() from one node is refused the
+   rest.  So the pane loads a two-line wrapper instead, which sets the flag and
+   then runs kid.comt: the greeting still prints and kid.play is still there to
+   call, only the creature is missing, which is what was asked for. */
+pane_file=kid_file
+if(ndraw==0 :then
+  pane_file=print("%s/kidmo-nowelcome.comt" log_dir :str);
+  shell(print("echo 'nowelcome=true' > '%s'" pane_file :str));
+  shell(print("echo 'run(%c%s%c)' >> '%s'" 34 kid_file 34 pane_file :str)))
+
+comt_flag=if(have_comtfile :then print("-comt '%s'" pane_file :str)
          :else if(have_comt :then "-comt" :else ""))
 if(!have_comt :then
   print("kidmo: this drawserv has no -comt, so the kids get no pane\n" :err)
@@ -218,6 +238,15 @@ global(kid4_up)=false
 if(nkids<4 :then global(kid4_up)=true)
 if(nkids<3 :then global(kid3_up)=true)
 if(nkids<2 :then global(kid2_up)=true)
+
+/* done means "not in the middle of a play", so everyone starts done and draw()
+   clears it for the one kid it asks.  Leaving them unset instead makes wait_all
+   test !nil, which is true, and it waits out its full count on kids that were
+   never asked to do anything -- or on kids who are not at the table at all */
+global(kid1_done)=true
+global(kid2_done)=true
+global(kid3_done)=true
+global(kid4_done)=true
 j=0
 while(j<nkids
   p=at(kid_ports j);
@@ -280,6 +309,7 @@ while(j<nkids
      greeting is printed plainly so it reaches the pane, and plain output over a
      socket lands in the reply stream, putting every later question one behind */
   remote(at(kids j) "quiet=true");
+  if(ndraw>=0 :then remote(at(kids j) "nowelcome=true"));
   remote(at(kids j) print("run(%c%s%c)" 34 kid_file 34 :str));
   remote(at(kids j) print("kid.colour=%c%s%c" 34 at(kid_cols j) 34 :str));
   remote(at(kids j) print("srand(%d)" 11+j*7 :str));
@@ -312,6 +342,92 @@ bye=func(
   shell(print("rm -rf '%s'" log_dir :str));
   0)
 
+
+/* The reply is the completion.  Each kid used to call back on the listen port
+   to say it had finished, which made sense while the kids were written to with
+   :nowait and nobody read the reply.  Now that the reply is read, it already
+   means the play is over -- remote() gets its line only after the command it
+   sent has run -- and the callback was worse than redundant: it could not
+   complete at all from script context.  We block reading the reply, the kid
+   blocks writing the callback, and the reactor that would accept it does not
+   run until the next prompt.  kidmo --draw hung there, before any of this was
+   under test.
+
+   A model of each kid: name, crayon, the socket he is on, and the things we
+   can ask of him.  The funcs are defined inline because naming a func fires
+   it niladically -- (:draw todd_draw) would store the nil that calling it
+   returned -- and each refers to its own object by name, the way zoomap's
+   zoo.flash() does from inside zoo. */
+
+kid1=(
+  :name "Todd" :colour "#DD3333" :socket k1
+  :draw func( global(kid1_done)=false;
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid1.socket print("kid.play(:n %d)" cnt :str));
+    global(kid1_done)=true;
+    cnt)
+  :one func( global(nrect)=global(nrect)+1;
+    remote(kid1.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
+    global(nrect))
+)
+kid2=(
+  :name "Mia" :colour "#3366DD" :socket k2
+  :draw func( global(kid2_done)=false;
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid2.socket print("kid.play(:n %d)" cnt :str));
+    global(kid2_done)=true;
+    cnt)
+  :one func( global(nrect)=global(nrect)+1;
+    remote(kid2.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
+    global(nrect))
+)
+kid3=(
+  :name "Sam" :colour "#22AA55" :socket k3
+  :draw func( global(kid3_done)=false;
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid3.socket print("kid.play(:n %d)" cnt :str));
+    global(kid3_done)=true;
+    cnt)
+  :one func( global(nrect)=global(nrect)+1;
+    remote(kid3.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
+    global(nrect))
+)
+kid4=(
+  :name "Ana" :colour "#CC7722" :socket k4
+  :draw func( global(kid4_done)=false;
+    cnt=if(n==nil :then 1 :else n);
+    remote(kid4.socket print("kid.play(:n %d)" cnt :str));
+    global(kid4_done)=true;
+    cnt)
+  :one func( global(nrect)=global(nrect)+1;
+    remote(kid4.socket print("rect(%d,380,%d,410)" 40+global(nrect)*34 70+global(nrect)*34 :str));
+    global(nrect))
+)
+
+/* The kids are numbered kid1..kid<n>; the names are what you call them by.  A
+   chair nobody sat in is nil rather than a model with a dead socket in it, so
+   asking after a kid who is not at the table says so rather than hanging on a
+   connection that was never made. */
+if(nkids<2 :then kid2=nil)
+if(nkids<3 :then kid3=nil)
+if(nkids<4 :then kid4=nil)
+todd=kid1
+mia=kid2
+sam=kid3
+ana=kid4
+
+all=func( cnt=if(n==nil :then 1 :else n);
+  kid1.draw(:n cnt);
+  if(nkids>1 :then kid2.draw(:n cnt));
+  if(nkids>2 :then kid3.draw(:n cnt));
+  if(nkids>3 :then kid4.draw(:n cnt));
+  cnt)
+
+wait_all=func(
+  cnt=0;
+  while((!global(kid1_done) || !global(kid2_done) || !global(kid3_done) || !global(kid4_done)) && cnt<120
+    update(500000);cnt++);
+  cnt)
 
 /* --tests: the table is up and wired, so check what that was supposed to mean,
    take it down, and check that too.  The path guard is checked first because it
@@ -360,6 +476,18 @@ if(tests :then
     if(remote(at(kids j) "kid.play!=nil")!=true :then taught=false);
     j=j+1);
   check(:nm "taught" :got taught);
+  /* and the kids on top of it: one() puts a plain rect on the head kid's
+     canvas, draw() sends a whole play through and reports back done */
+  was=remote(e1 "size(children())");
+  kid1.one();
+  usleep(1000000);
+  check(:nm "one" :got remote(e1 "size(children())")==was+1);
+  was=remote(e1 "size(children())");
+  kid1.draw(:n 2);
+  wait_all();
+  check(:nm "draw" :got remote(e1 "size(children())")>was);
+  check(:nm "draw-default" :got kid1.draw(:n nil)==1);
+  wait_all();
   /* down again -- nobody left on a port, and no pid files left behind */
   bye();
   usleep(1000000);
@@ -378,5 +506,21 @@ if(tests :then
   exit(if(global(ok) :then 0 :else 1)))
 
 
-print("kidmo: ports %v %v %v %v\n" p1 p2 p3 p4 :err)
-print("kidmo: ready -- remote(k1 \"kid.play(:n 2)\")  look()  bye()\n" :err)
+/* a nametag apiece, so you can tell whose window is whose -- and since
+   everything distributes, every table ends up showing the whole class */
+nametag=func(
+  remote(at(kids who) print("text(%d,20 %c%s%c)" 60+who*150 34 nm 34 :str));
+  remote(at(kids who) print("colorsrgb(%c%s%c %c#FFFFFF%c)" 34 at(kid_cols who) 34 34 34 :str));
+  nm)
+nametag(:who 0 :nm "Todd")
+if(nkids>1 :then nametag(:who 1 :nm "Mia"))
+if(nkids>2 :then nametag(:who 2 :nm "Sam"))
+if(nkids>3 :then nametag(:who 3 :nm "Ana"))
+
+print("kidmo: Todd %v, Mia %v, Sam %v, Ana %v\n" p1 p2 p3 p4 :err)
+print("kidmo: ready -- todd.draw()  mia.draw(:n 3)  all(:n 2)  wait_all()  look()  bye()\n" :err)
+
+/* what they draw before you get the prompt.  --draw 0 leaves the canvas empty
+   -- with the welcome creature already off, that is a table of kids who have
+   drawn nothing, which is where to start when something is going wrong. */
+if(ndraw<0 :then all(:n 3) :else if(ndraw>0 :then all(:n ndraw)))
