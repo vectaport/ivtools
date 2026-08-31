@@ -2,7 +2,10 @@
 #
 # drawmo  drawserv orchestrator and test suite
 #
-# Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help
+# Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]
+#   names: all updown updown1 updown2 updown3A updown3B updown4A updown4B
+#          updown4C ring sel parsetest optabletest gsexim gsbrushA
+#          gsbrushB
 #   no args runs all tests, portnum defaults to 10002
 #
 
@@ -10,10 +13,21 @@
 if(arg(2)=="help" || arg(2)=="-h" || arg(2)=="?" ||
   arg(2)=="-help" || arg(2)=="--help" || arg(2)=="-?" :then
     print("drawmo  drawserv orchestrator and test suite\n");
-    print("Usage:  drawmo [--tests all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB] --port [portnum] --help\n\n");
+    print("Usage:  drawmo [--tests <name>[,<name>...]] [--port n] [--help]\n\n");
     print("  (no args)             run all tests\n");
-    print("--tests [all|updown|updown1|updown2|updown3A|updown3B|updown4A|updown4B|updown4C|ringtest|parsetest|optabletest|gsexim|gsbrushA|gsbrushB]\n");
-    print("\t\t\ttests to run (comma-separated), returns -1 on error\n");
+    print("--tests [name,...]  tests to run, comma-separated; -1 on error\n");
+    print("      all                 everything below\n");
+    print("      updown              one drawserv up and down again\n");
+    print("      updown1 updown2     one linked, then two\n");
+    print("      updown3A updown3B   three, chained and forked\n");
+    print("      updown4A updown4B updown4C\n");
+    print("                          four, to the second level\n");
+    print("      ring                a ring cannot be formed\n");
+    print("      sel                 an answer that has to cross a relay\n");
+    print("      parsetest optabletest\n");
+    print("                          parser and operator table\n");
+    print("      gsexim gsbrushA gsbrushB\n");
+    print("                          graphic state over a link\n");
     print("--port [portnum]\tport drawmo listens on for callbacks (default 10002)\n");
     print("--help\t\t\tprint this help message\n");
     exit)
@@ -84,7 +98,12 @@ grid_has_id=func(
    reason -- the test funcs call them. */
 run("./updown.comt")
 run("./gstests.comt")
+run("./sel.comt")
 
+/* Run selected tests.  A test name must not be the name of a comterp command:
+   the dispatch below compares against a bare symbol, and a bare symbol naming a
+   command fires it -- `optable with no arguments segfaults.  parsetest and
+   optabletest keep their suffix for that reason and not for tidiness. */
 /* run selected tests */
 ok=true;
 if(tests_flag :then
@@ -97,6 +116,13 @@ if(tests_flag :then
         print("updown: pass\n" :err)
       :else
         print("updown: FAIL\n" :err);
+        ok=false));
+    if(t==`sel || t==`all :then
+      print("running sel test\n" :err);
+      if(sel_test(:dummy 0) :then
+        print("sel: pass\n" :err)
+      :else
+        print("sel: FAIL\n" :err);
         ok=false));
     if(t==`updown1 || t==`all :then
       print("running updown1 test\n" :err);
@@ -140,12 +166,12 @@ if(tests_flag :then
       :else
         print("updown4B: FAIL\n" :err);
         ok=false));
-    if(t==`ringtest || t==`all :then
-      print("running ringtest\n" :err);
-      if(ringtest_test(:dummy 0) :then
-        print("ringtest: pass\n" :err)
+    if(t==`ring || t==`all :then
+      print("running ring test\n" :err);
+      if(ring_test(:dummy 0) :then
+        print("ring: pass\n" :err)
       :else
-        print("ringtest: FAIL\n" :err);
+        print("ring: FAIL\n" :err);
         ok=false));
     if(t==`parsetest || t==`all :then
       print("running parsetest\n" :err);

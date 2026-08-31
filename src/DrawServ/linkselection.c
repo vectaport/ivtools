@@ -86,29 +86,28 @@ void LinkSelection::Clear(Viewer* viewer) {
 #if 0
   fprintf(stderr, "LinkSelection::Clear\n");
 #endif
-#if 0
-  CompIdTable* table = ((DrawServ*)unidraw)->compidtable();
-  Iterator it;
-  First(it);
-  while(!Done(it)) {
-    OverlayView* view = GetView(it);
-    OverlayComp* comp = view ? view->GetOverlayComp() : nil;
-    void* ptr = nil;
-    table->find(ptr, (void*)comp);
-    if (ptr) {
-      GraphicId* grid = (GraphicId*)ptr;
-      if (grid->selected()==LocallySelected || grid->selected()==WaitingToBeSelected) 
-	grid->selected(NotSelected);
-      char buf[BUFSIZ];
-      snprintf(buf, BUFSIZ, "grid(\"%s\" \"%s\" :state %d)%c",
-	       grid->idstr(), grid->selectorstr(), grid->selected(), '\0');
-      ((DrawServ*)unidraw)->DistributeCmdString(buf);
-    }
-    Next(it);
-  }
-#endif
   OverlaySelection::Clear(viewer);
   Reserve();
+}
+
+/* off by default: reaching for what other people draw is the unusual want, and
+   having to turn it off on every node before drawing anything is worse than
+   having to turn it on when you want it. */
+boolean LinkSelection::_grabnew = false;
+
+/* Selecting an arrival is what makes this node ask to own it, so a table where
+   everybody selects everything is a table where every drawing changes hands the
+   moment it lands.  With grabnew off, only what is drawn here is selected, and
+   what arrives is left where it is -- still there, still distributed, still
+   selectable by hand, just not reached for. */
+boolean LinkSelection::over_a_link() {
+  DrawServHandler* handler = DrawServHandler::current();
+  return handler && handler->drawlink();
+}
+
+boolean LinkSelection::select_arrivals() {
+  if (grabnew()) return true;
+  return !over_a_link();
 }
 
 void LinkSelection::Reserve() {

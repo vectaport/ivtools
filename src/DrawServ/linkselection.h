@@ -91,6 +91,19 @@ public:
   
   boolean request_resolved_check(boolean granted, const char* fileline);
 
+  boolean over_a_link();
+  // whether the command being executed arrived from another session.  Asked of
+  // the handler dispatching right now rather than of the editor's own
+  // interpreter: drawserv runs a ComTerpServ per connection, so the editor's is
+  // a different object from the one executing a command off a link.
+
+  virtual boolean select_arrivals();
+  // a graphic that arrived over a link is selected only while grabnew is on;
+  // one drawn here always is
+
+  static boolean& grabnew() { return _grabnew; }
+  // whether graphics arriving from other sessions are selected on arrival
+
   boolean& silent() { return _silent; }
   // when set, a resolved request unwinds the count without the beep or ding:
   // a scripted select() waits for the answer and returns it instead.
@@ -114,6 +127,7 @@ protected:
 
   int _waiting_count;
   boolean _silent;
+  static boolean _grabnew;
   int _granted_count;
   boolean _wtbs_flag;
   boolean _remote_flag;

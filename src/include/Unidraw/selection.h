@@ -51,6 +51,11 @@ public:
     virtual void Init(Viewer* = nil);   /* explicitly init handles */
     virtual void Clear(Viewer* = nil);	/* removes & clears all views */
 
+    virtual boolean select_arrivals() { return true; }
+    /* whether a graphic appearing in the editor should become the selection.
+       Always, until a selection that is shared with other sessions, where
+       selecting one is what asks its owner to hand it over. */
+
     void Append(GraphicView*);
     void Prepend(GraphicView*);
     void InsertAfter(Iterator, GraphicView*);

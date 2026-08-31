@@ -390,6 +390,30 @@ void SessionIdFunc::execute() {
 
 /*****************************************************************************/
 
+GrabNewFunc::GrabNewFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
+}
+
+void GrabNewFunc::execute() {
+    static int get_symid = symbol_add("get");
+    boolean get_flag = stack_key(get_symid).is_true();
+    ComValue flag(stack_arg(0));
+    reset_stack();
+
+    boolean on;
+    if (get_flag)
+	on = LinkSelection::grabnew();
+    else {
+	on = flag.is_known()
+	    ? (boolean)flag.int_val()
+	    : !LinkSelection::grabnew();
+	LinkSelection::grabnew() = on;
+    }
+
+    push_stack(on ? ComValue::trueval() : ComValue::falseval());
+}
+
+/*****************************************************************************/
+
 LinkSelectFunc::LinkSelectFunc(ComTerp* comterp, Editor* ed)
 : SelectFunc(comterp, ed) {
 }
@@ -566,11 +590,19 @@ void GraphicIdFunc::execute() {
     if (tablev.is_true()) {
       /* return the gridtable as a list of rows, mirroring the columns of
          print_gridtable(): grid (8-char uuid prefix), comptype, selector,
-         selected.  same idiom as sid(:table). */
+         selected, unlocked.  same idiom as sid(:table).
+
+         unlocked is the bypass LinkSelection::Reserve() consults: a graphic
+         owned by another session is dropped from a selection unless it is set,
+         and the relay bracket -- select(grid :unlock KEY) around a distributed
+         command, select(s :lock KEY) after -- is what sets and clears it.  A
+         graphic left unlocked by a bracket that never closed is selectable by
+         anyone, quietly, so it is worth being able to look. */
       static int grid_row_sym     = symbol_add("grid");
       static int comptype_row_sym = symbol_add("comptype");
       static int selector_row_sym = symbol_add("selector");
       static int selected_row_sym = symbol_add("selected");
+      static int unlocked_row_sym = symbol_add("unlocked");
       DrawServ* drawserv = (DrawServ*)unidraw;
       AttributeValueList* avl = new AttributeValueList();
       GraphicIdTable* table = drawserv->gridtable();
@@ -594,6 +626,7 @@ void GraphicIdFunc::execute() {
         row->add_attr(comptype_row_sym, new AttributeValue(comptype));
         row->add_attr(selector_row_sym, new AttributeValue(sel8));
         row->add_attr(selected_row_sym, new AttributeValue(LinkSelection::selected_string(grid->selected())));
+        row->add_attr(unlocked_row_sym, new AttributeValue(grid->unlocked() ? "unlocked" : "locked"));
         avl->Append(new AttributeValue(AttributeList::class_symid(), (void*)row));
         it.next();
       }
