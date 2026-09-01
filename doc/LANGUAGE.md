@@ -1300,8 +1300,8 @@ size(side)     // 2
 `arg(n)` has no lvalue form — there's no `arg(0)=...` — so there's
 nothing to protect by caching it. A keyword *can* be written (`y=5`),
 and any write (plain or compound) freezes it into an ordinary owned
-local from that point on — the same write-freezes convention #310's
-capture classifier already uses for a free variable — but a keyword
+local from that point on — the same write-freezes convention the capture
+classifier already uses for a free variable — but a keyword
 that's only ever read stays a live tap for as long as it's read.
 
 Assigning to a keyword before ever reading it, or never reading it at
@@ -1355,9 +1355,9 @@ beyond the keyword declaration itself.
 
 **The gate is dynamic within the limits of one static classification
 pass.** A whole `;`-joined statement chain is tokenized and classified
-once, before any of it runs — the same fact issue #328 is built around.
-Two cases correctly stay dynamic across that: an *undefined* name (the
-original #328 forward-reference shape) and a name that's *already*
+once, before any of it runs.  Two cases correctly stay dynamic across
+that: an *undefined* name, the forward-reference shape, and a name
+that's *already*
 `:posteval` at that single classification pass — both get pedepth-marked
 so the real dispatch-time gate re-checks the *current* value right when
 the call fires, honoring a reassignment that happened earlier in the same

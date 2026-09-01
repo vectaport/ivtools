@@ -282,7 +282,7 @@ not gaps in testing -- do not read `—` as untested.
 | deeptest.comt             | list attrlist at size attrname attrval + - . for whi… |       — |     — |    — |
 | bigbuf.comt               | + sum                                                 |       — |     — |    — |
 | funcarg.comt †              | func arg narg (positional args, keyword-as-variable,… |      18 |    26 |  69% |
-| funcclosure.comt †          | func local global (declaration-time capture, #310)    |      13 |    21 |  62% |
+| funcclosure.comt †          | func local global (declaration-time capture)          |      13 |    21 |  62% |
 | posteval.comt †             | func arg if (`:posteval` keyword)                     |      21 |    28 |  75% |
 | funcstream.comt           | func arg narg if while list local print               |       — |     — |    — |
 | nilcompare.comt           | func arg while list print                             |       — |     — |    — |
@@ -319,13 +319,13 @@ coverage number yet, so both read `—` here.
 | script        | funcs                                                                         | notes                                                      |
 |---------------|-------------------------------------------------------------------------------|------------------------------------------------------------|
 | parser.comt   | attrlist(:literal) parse error lock-in via errmsg()                           | add errmsg() assertions for bare-value-after-keyword cases |
-| return.comt   | func() empty parens, func() positional varargs, arg(`sym) keyword lookup      | see issue #94                                              |
+| return.comt   | func() empty parens, func() positional varargs, arg(`sym) keyword lookup      | unscored — needs assertions, not just output               |
 
 ### Planned coverage (ivtools-3.0)
 
 | script      | funcs                                                                                                          | notes         |
 |-------------|----------------------------------------------------------------------------------------------------------------|---------------|
-| stream.comt | stream literal `(0 1 2 3)`, mixed `(0 :flag 1 :color red)`, keyword element detection via class()/attrname()/attrval() | see issue #94 |
+| stream.comt | stream literal `(0 1 2 3)`, mixed `(0 :flag 1 :color red)`, keyword element detection via class()/attrname()/attrval() | unscored      |
 
 ## The Self-Hosted Test Suite
 
