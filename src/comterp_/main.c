@@ -114,7 +114,7 @@ int main(int argc, char *argv[]) {
        e.g. drawmo's gsbrushB, where a far node's connection can drop mid-run. */
     signal(SIGPIPE, SIG_IGN);
     /* Ctrl-C (SIGINT) is the common way an interactive session ends --
-       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+       restore tty echo first if tty_echo_off() ever ran. */
     tty_echo_install_signal_handlers();
 
     boolean server_flag = argc>1 && strcmp(argv[1], "server") == 0;

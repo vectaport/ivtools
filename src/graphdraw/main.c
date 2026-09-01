@@ -220,7 +220,7 @@ any idraw parameter is also accepted (see idraw man page)";
 
 int main (int argc, char** argv) {
     /* Ctrl-C (SIGINT) is the common way an interactive session ends --
-       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+       restore tty echo first if tty_echo_off() ever ran. */
     tty_echo_install_signal_handlers();
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
     int exit_status = 0;
@@ -297,11 +297,9 @@ int main (int argc, char** argv) {
        Run(), before the window's Configure/Expose has bound the canvas,
        which would otherwise dereference a null canvas and crash.  Mapping
        the window here, before Run() owns the loop, closes that window.
-       Not something the user typed -- one-shot suppress its self-echo
-       (issue #76, ttyecho.c; see comdraw/main.c's fuller comment for why
-       a one-shot flag, not a held-open disable_prompt(), is the
-       reentrancy-safe way to suppress a single internal eval like
-       this one). */
+       Not something the user typed, so suppress its self-echo with the
+       one-shot flag rather than a held-open disable_prompt() -- the
+       reentrancy-safe way to quiet a single internal eval. */
     ComTerpServ* terp = ed->GetComTerp();
     if (terp) {
       tty_echo_suppress_next();

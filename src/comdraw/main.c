@@ -301,7 +301,7 @@ static const char* extract_comtfile(int& argc, char** argv) {
 
 int main (int argc, char** argv) {
     /* Ctrl-C (SIGINT) is the common way an interactive session ends --
-       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+       restore tty echo first if tty_echo_off() ever ran. */
     tty_echo_install_signal_handlers();
     const char* comtfile = extract_comtfile(argc, argv);
     Dispatcher::instance(new AceDispatcher(ComterpHandler::reactor_singleton()));
@@ -392,13 +392,11 @@ int main (int argc, char** argv) {
 	       GUI commands (select(), etc.) that would otherwise dereference a null
 	       canvas and crash.  (Over the command socket the reactor is already
 	       pumping, so this only matters for the pre-Run() script path.)
-	       Not something the user typed -- one-shot suppress its self-echo
-	       (issue #76, ttyecho.c) rather than disable_prompt()/enable_prompt():
-	       update() itself pumps the reactor, and a held-open flag spanning
-	       that pump would wrongly suppress a genuinely reentrant paste's
-	       echo too; the one-shot flag is consumed by _lexscan.c during the
-	       synchronous parse of this one line, before update() ever starts
-	       pumping, so it can't overlap that window. */
+	       Not something the user typed, so suppress its self-echo with the
+	       one-shot flag rather than a held-open disable_prompt(): update()
+	       pumps the reactor, and a flag spanning that pump would suppress a
+	       genuinely reentrant paste's echo too.  The one-shot is consumed
+	       during the parse of this one line, before the pumping starts. */
 	    tty_echo_suppress_next();
 	    terp->run("update(1000000)\n");
 

@@ -313,7 +313,7 @@ static const char* extract_comtfile(int& argc, char** argv) {
 int main (int argc, char** argv) {
     const char* comtfile = extract_comtfile(argc, argv);
     /* Ctrl-C (SIGINT) is the common way an interactive session ends --
-       restore tty echo first if tty_echo_off() ever ran, issue #76. */
+       restore tty echo first if tty_echo_off() ever ran. */
     tty_echo_install_signal_handlers();
 
 #if 0
@@ -430,11 +430,9 @@ int main (int argc, char** argv) {
 	       Configure/Expose has bound the canvas -- OverlaySelection::Update()
 	       then repairs damage through a null canvas and segfaults.  Mapping the
 	       window here, before Run() owns the loop, closes that window.
-	       Not something the user typed -- one-shot suppress its self-echo
-	       (issue #76, ttyecho.c; see comdraw/main.c's fuller comment for
-	       why a one-shot flag, not a held-open disable_prompt(), is the
-	       reentrancy-safe way to suppress a single internal eval like
-	       this one). */
+	       Not something the user typed, so suppress its self-echo with the
+	       one-shot flag rather than a held-open disable_prompt() -- the
+	       reentrancy-safe way to quiet a single internal eval. */
 	    tty_echo_suppress_next();
 	    terp->run("update(1000000)\n");
 
