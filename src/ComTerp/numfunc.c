@@ -249,37 +249,23 @@ void AddFunc::execute() {
     case ComValue::StringType:
     case ComValue::SymbolType:
         { // braces are work-around for gcc-2.8.1 bug in stack mgmt.
-          /* Go-style append (#396): b's bytes go straight into operand1's
-             own backing symid, in place, when there's room -- no copy at
-             all.  operand1 must be_only_string() (StringType, never
-             SymbolType): a symbol's characters are its identity, shared by
-             every value holding that symid (#393), so writing through one
-             would corrupt everyone else's view.  An ordinary interned
-             string literal is excluded too, with no extra check needed --
-             its symid was sized to hold exactly its own text
-             (symbol_len()==strlen()), zero spare capacity, so the in-place
-             branch below never finds room and falls through to copy on its
-             own.  The in-place result is handed back as a slice
-             (sliceoff()/slicelen(), #395) over operand1's own symid, so a
-             caller holding operand1 at a nonzero sliceoff() doesn't have
-             its result misread from the front of the shared buffer.
+          /* Go-style append: b's bytes go into operand1's own backing symid
+             in place when there is room, with no copy.  operand1 must be
+             be_only_string(), never SymbolType -- a symbol's characters are
+             its identity, shared by every value holding that symid.  An
+             interned literal is excluded without an extra check, its symid
+             having been sized to exactly its own text, so the in-place branch
+             finds no room and falls through.  The result is handed back as a
+             slice over operand1's symid, so a caller holding it at a nonzero
+             sliceoff() does not read from the front of the shared buffer.
 
-             The fallback copy path intentionally still goes through
-             symbol_add() (dedup/intern by content), exactly like the
-             pre-#396 concatenation it replaces -- NOT symbol_new()'s
-             fresh, non-deduping, unfindable-by-text buffer.  Tried
-             symbol_new() with amortized (2x) headroom first, matching
-             #396's memory design note; it broke symadd()/global()'s
-             existing assumption that a StringType's own symid already
-             names a searchable symbol (symadd(global(p1)+global(p2)) --
-             global.comt test 11), since a symbol_new() id is deliberately
-             absent from symbol_find()'s reverse index (see symbol_new()'s
-             own doc comment, symbols.c).  So a plain concat -- not
-             starting from an already-over-allocated string()/strcap()
-             buffer -- gets no free growth headroom and must copy again on
-             its own next append, same as it always did; only appending
-             onto a deliberately over-provisioned string() buffer gets the
-             true zero-copy path above. */
+             The fallback copy goes through symbol_add(), which interns by
+             content, rather than symbol_new(), whose ids are deliberately
+             absent from symbol_find()'s reverse index -- symadd() and global()
+             rely on a StringType's symid naming a searchable symbol.  So a
+             plain concat gets no growth headroom and copies again on its next
+             append; only appending onto an over-provisioned string() buffer
+             takes the zero-copy path. */
           std::string scratch1, scratch2;
           const char* s1 = operand1.cstr(scratch1);
           int len1 = operand1.sliced() ? operand1.slicelen() : (int)strlen(s1);
@@ -293,7 +279,7 @@ void AddFunc::execute() {
             int len2 = operand2.sliced() ? operand2.slicelen() : (int)strlen(s2);
             if (growable && end1+len2 < cap1) {
               char* buf = (char*)symbol_pntr(operand1.symbol_val());
-              /* memmove, not memcpy (Greptile, #440): operand2 can share
+              /* memmove, not memcpy: operand2 can share
                  operand1's own backing symid -- e.g. appending an unsliced
                  buf onto a nonzero-offset slice of that same buf -- in
                  which case s2 (read via cstr() above) points into this

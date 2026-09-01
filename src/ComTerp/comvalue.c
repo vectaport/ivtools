@@ -74,7 +74,7 @@ ComValue::ComValue(ComValue* sv) {
 }
 
 ComValue::ComValue(AttributeValue& sv) {
-    /* narg/nkey/nids and the flag bits (sliced() among them, #395) now live
+    /* narg/nkey/nids and the flag bits (sliced() among them) now live
        in AttributeValue's own storage, so the assignment above already
        carries them over when sv was itself a boxed ComValue -- zero_vals()
        must not stomp them back to 0 here, unlike before this storage moved
@@ -124,16 +124,11 @@ ComValue::ComValue(postfix_token* token) {
     clear();
     void* v1 = &_v;
     void* v2 = &token->v;
-    /* sizeof(token->v), not sizeof(_v): token->v is postfix_token's own
-       8-byte data_value union (ComUtil/comterp.h), narrower than
-       ComValue's 16-byte attr_value union (Attribute/attrvalue.h) -- a
-       stray sizeof(_v) here read 8 bytes past token->v into its own
-       adjacent type/narg fields, reinterpreted as the tail of whichever
-       multi-field union member (symval, objval, streamval, ...) this
-       token's type selects.  clear() already zeroed the full _v above,
-       so bounding the copy to the source's true size is always safe --
-       data_value's own widest member is 8 bytes, so no real payload is
-       ever lost by not reading further. */
+    /* sizeof(token->v), not sizeof(_v): token->v is postfix_token's 8-byte
+       data_value union, narrower than ComValue's 16-byte attr_value, so
+       sizeof(_v) would read past it into the adjacent type/narg fields.
+       clear() has already zeroed _v, and data_value's widest member is 8
+       bytes, so bounding the copy to the source loses nothing. */
     memcpy(v1, v2, sizeof(token->v));
     switch (token->type) {
     case TOK_STRING:  type(StringType); break;
@@ -191,16 +186,10 @@ int ComValue::sliceoff() const { return _ext1; }
 int ComValue::slicelen() const { return _ext2; }
 
 const char* ComValue::cstr(std::string& scratch) {
-  /* string_ptr() itself was tried as this mechanism (made virtual,
-     overridden here) and reverted -- see its own doc comment,
-     attrvalue.h.  Calling AttributeValue::string_ptr() explicitly (base-
-     qualified, never virtual) is what makes this safe to call on ANY
-     ComValue&, including a raw element of _stack (comterp.c) read
-     directly rather than copied to a genuine local first -- such an
-     element's own vtable pointer isn't reliably ComValue's own
-     (confirmed live: one resolved to plain AttributeValue's), but
-     sliced()/sliceoff()/slicelen() are plain field reads, unaffected
-     either way. */
+  /* AttributeValue::string_ptr() is called base-qualified, never virtually,
+     which is what makes this safe on any ComValue& -- including a raw _stack
+     element read in place, whose vtable pointer is not reliably ComValue's.
+     sliced()/sliceoff()/slicelen() are plain field reads, unaffected. */
   const char* full = AttributeValue::string_ptr();
   if (!sliced()) return full;
   scratch.assign(full + sliceoff(), slicelen());
@@ -439,20 +428,13 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
     return out;
 }
 
-/* AttributeValue::install_render_hook() (attrvalue.h) lets a value stored
-   as a plain AttributeValue* -- e.g. an Attribute's own value, attrlist.c,
-   which can never be a ComValue* since Attribute lives in a lower library
-   that can't see ComTerp -- still print with ComTerp's own interpretation
-   of the shared narg/nkey/nids/flags block (a coloned() list's ':' form, a
-   sliced string's own window via cstr()) instead of AttributeValue's
-   generic fallback.  Installed once, here, at library-load time (the same
-   self-registering-static-local idiom this file already uses for one-time
-   symbol setup, e.g. ComValue::is_funcobj()'s posteval check) rather than
-   at any particular print call site: the hook itself is stateless (brief
-   mode etc. still comes from the existing ComValue::comterp() pointer, set
-   independently at each print call site), so it never needs re-arming, and
-   -- since nothing ever clears it mid-traversal -- it's already in effect
-   at any nesting depth a list's own recursive printing reaches. */
+/* install_render_hook() lets a value stored as a plain AttributeValue* -- an
+   Attribute's own value, which can never be a ComValue* since Attribute lives
+   in a lower library -- still print with ComTerp's reading of the shared
+   narg/nkey/nids/flags block: a coloned list's ':' form, a sliced string's own
+   window.  Installed once at library-load time rather than per print call
+   site, since the hook is stateless and so never needs re-arming, and is in
+   effect at any depth a list's recursive printing reaches. */
 static ostream& comvalue_render_hook(ostream& out, const AttributeValue& av) {
   ComValue cv((AttributeValue&)av);
   return out << cv;

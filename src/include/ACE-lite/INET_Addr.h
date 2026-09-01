@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/INET_Addr.h
+ * ACE-lite.  src/include/ACE-lite/INET_Addr.h
  * ACE_INET_Addr -- an IPv4 host/port address wrapping sockaddr_in, the subset
  * of ACE's class the socket classes and consumer code use.
  */

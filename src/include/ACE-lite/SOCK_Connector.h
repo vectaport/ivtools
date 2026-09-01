@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/SOCK_Connector.h
+ * ACE-lite.  src/include/ACE-lite/SOCK_Connector.h
  * ACE_SOCK_Connector -- actively opens a TCP connection (socket()+connect())
  * and hands the connected fd to an ACE_SOCK_Stream.
  */

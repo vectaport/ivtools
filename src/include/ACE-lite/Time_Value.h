@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Time_Value.h
+ * ACE-lite.  src/include/ACE-lite/Time_Value.h
  * ACE_Time_Value -- a normalized (sec, usec) duration/instant, the subset of
  * ACE's class the consumer code and AceDispatcher use.
  */

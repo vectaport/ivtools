@@ -299,19 +299,13 @@ void StreamFunc::execute_literal() {
     skip_key_in_expr(rescan, argcnt);
   }
 
-  /* fixed-format (positional) args first.
-     skip_arg_in_expr walks the postfix buffer BACKWARD from the command,
-     so pi=0 discovers the LAST source positional, pi=1 the second-to-last,
-     etc -- discovery order is the reverse of source order.  tokbuf (from
-     copy_post_eval_expr) is in FORWARD source order, so a naive running
-     elem_offset assigns (offset,count) pairs as if discovery order matched
-     tokbuf order -- correct only when all positionals are the same width
-     (e.g. (10 20 30), or ((1 2 3)(4 5 6)) where both elements are width 3),
-     and silently wrong for mixed-width elements like (1 (2 3)).
-
-     Fix: collect each pi's size, then compute true forward offsets via a
-     reverse-accumulation pass, and append to the AVL in reverse-pi order
-     so AVL element 0 corresponds to source positional 0. */
+  /* fixed-format (positional) args first.  skip_arg_in_expr walks the postfix
+     buffer backward from the command, so discovery order is the reverse of
+     source order, while tokbuf is in forward source order.  A running offset
+     would therefore be right only when every positional is the same width,
+     and silently wrong for a mixed-width case like (1 (2 3)).  So collect each
+     size, compute forward offsets by reverse accumulation, and append in
+     reverse-pi order, leaving AVL element 0 as source positional 0. */
   int* possizes = npositionals>0 ? new int[npositionals] : nil;
   for (int pi = 0; pi < npositionals; pi++) {
     argcnt = 0;
@@ -382,14 +376,11 @@ void SpreadFunc::execute() {
     if (operand1.is_array())
       avl = new AttributeValueList(operand1.array_val());
     else if (operand1.is_attributelist()) {
-      /* an attrlist spreads into KEYWORDS: stream its attributes, and the
-         expansion turns each back into a real ":key value" keyword.  Store an
-         OWNED COPY of each Attribute -- new Attribute(*attr) deep-copies the
-         value it owns -- NOT a raw pointer into the source attrlist.  A ~~ stream
-         is drained later (at the enclosing call), by which point the source
-         attrlist could be freed (unlike $$, which drains immediately), so the
-         stream must carry its own copies -- same reason the is_array path
-         copies the list. */
+      /* an attrlist spreads into keywords: stream its attributes, and the
+         expansion turns each back into a real ":key value".  Store an owned
+         copy of each Attribute rather than a pointer into the source list: a
+         ~~ stream drains later, at the enclosing call, by which point the
+         source attrlist may be gone. */
       avl = new AttributeValueList();
       AttributeList* al = (AttributeList*)operand1.obj_val();
       Iterator i;
@@ -409,13 +400,11 @@ void SpreadFunc::execute() {
 
   reset_stack();
 
-  /* Tag for spread and leave exactly ONE value on the stack.  The expansion
-     happens in eval_expr_internals, upstream of the command/funcobj dispatch,
-     which drains this tagged stream into the enclosing call's positionals.  So
-     ~~ obeys the one-value-per-func rule -- it never leaves the stack
-     unbalanced -- and works for any consumer (eager command OR funcobj), not
-     just the one dispatch branch push-N happened to patch.  The stream isn't
-     drained here at all; it's just flagged and handed on. */
+  /* tag for spread and leave exactly one value on the stack.  The expansion
+     happens in eval_expr_internals, upstream of dispatch, which drains the
+     tagged stream into the enclosing call's positionals -- so ~~ obeys the
+     one-value-per-func rule and works for any consumer, eager command or
+     funcobj alike.  Nothing is drained here; the stream is only flagged. */
   operand1.stream_mode(operand1.stream_mode() | STREAM_SPREAD);
   push_stack(operand1);
 }
@@ -638,14 +627,12 @@ void RepeatFunc::execute() {
       return;
     }
 
-    /* no bail-out for a stream operand here.  It read as a depth limit, but
-       overdrive has already unwrapped a level by the time this sees a stream,
-       so it fired on every stream operand and returned nullval from a
-       construction context -- which left the stack wrong ("func list pushed
-       more than a single value on stack"), not a clean nil.  Building the
-       repeat stream instead yields the operand's values; what a repeated
-       cursor still lacks is re-arm, so passes after the first come back
-       exhausted.  That is replay's business, not nesting's. */
+    /* no bail-out for a stream operand.  Overdrive has already unwrapped a
+       level by the time this sees a stream, so bailing fires on every stream
+       operand and returns nullval from a construction context, leaving the
+       stack unbalanced rather than a clean nil.  Build the repeat stream
+       instead; a repeated cursor still lacks re-arm, so passes after the
+       first come back exhausted -- that is replay's business. */
 
     ComValue operand2(stack_arg(1));
     reset_stack();
@@ -797,16 +784,11 @@ void IterateFunc::execute() {
       return;
     }
 
-    /* a non-stream, non-numeric operand (e.g. a plain array/list passed
-       where a stream was expected -- (1,2,3) is an ArrayType literal, not
-       a stream, so it never triggers the caller's broadcast/overdrive
-       packing and arrives here whole) must not fall through to int_val()/
-       int_ref() below: those blindly reinterpret whatever's in the
-       operand's union as an int, and for an ArrayType/ObjectType value
-       that union slot is a real heap pointer -- int_ref()++ on the drive-
-       forward branch corrupts that pointer in place, crashing on the next
-       dereference (segfault repro, issue #344). Fail gracefully instead,
-       same as the already-nil case just above. */
+    /* a non-stream, non-numeric operand -- (1,2,3) is an ArrayType literal
+       rather than a stream, so it arrives whole -- must not fall through to
+       int_val()/int_ref() below.  Those reinterpret the operand's union as an
+       int, and for an ArrayType or ObjectType that slot holds a heap pointer,
+       which int_ref()++ would corrupt in place.  Fail gracefully instead. */
     if (!operand1.is_num() || !operand2.is_num()) {
       push_stack(ComValue::nullval());
       return;
@@ -851,7 +833,7 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
        re-checked in place within this same call frame; the earlier version
        restarted by calling execute_impl(streamv) again, which re-entered
        the C++ call stack once per element and could exhaust it given a
-       sufficiently long run (flagged in #288 review). */
+       sufficiently long run. */
     {
       AttributeValueList* avl = streamv.stream_list();
       for (;;) {
@@ -1219,7 +1201,7 @@ void StreamLiteralNextFunc::execute() {
          Resource::ref(al) here: the ComValue (classid, ptr) constructor
          already refs AttributeList payloads, and an extra unmatched ref
          pinned one singleton per keyword-element drain forever -- the
-         same born-ref bug fixed in ListFunc::execute (PR #208). */
+         same born-ref bug fixed in ListFunc::execute. */
       AttributeList* al = new AttributeList();
       al->add_attr(key_symid, keyval);
       ComValue result(AttributeList::class_symid(), (void*)al);
@@ -1268,11 +1250,11 @@ void InfoFunc::execute() {
        [2..]  element entries: positional = (offset,count) = 2 slots;
               keyword = KeywordType marker [+ (offset,count) if it has a value]
 
-     :raw returns the raw internal list directly -- layout-agnostic, so it works
-     unchanged as the directory evolves and is the probe used by regression
-     tests.  Without :raw, a named-field AttributeList is returned describing the
-     directory in the layout above.  Non-literal streams report (:mode "external"
-     :func `funcname) since their list layouts differ. */
+     :raw returns the raw internal list directly, which is layout-agnostic and
+     so keeps working as the directory evolves.  Without :raw, a named-field
+     AttributeList describes the directory in the layout above.  Non-literal
+     streams report (:mode "external" :func `funcname), their list layouts
+     being different. */
 
   /* fetch :raw from the post-eval region BEFORE reset_stack() clears it.
      InfoFunc is post_eval, so the keyword lives in the post-eval buffer. */
@@ -1427,16 +1409,12 @@ void FeedFunc::execute() {
     argv[0].stream_func() == (void*)fnfunc;
 
   if (arg0_is_fifo) {
-    /* append the remaining args to the existing FIFO's back end -- a
-       stream-valued arg is tagged STREAM_NESTED so NextFunc::execute_impl's
-       existing nested-stream unwrap (strmfunc.c ~750) drains it lazily, one
-       value per next(), instead of handing back the raw undrained stream.
-       _stream_mode and _command_symid share the same union slot (attrvalue.h),
-       so AttributeValue::assignval()'s `_command_symid = av._command_symid`
-       already carries a stream's mode across a copy -- the OR-in of
-       STREAM_NESTED below is applied to `elt` (the stored copy) rather than
-       to argv[i] simply to avoid mutating the shared source value; either
-       order would copy correctly. */
+    /* append the remaining args to the existing FIFO's back end.  A stream-
+       valued arg is tagged STREAM_NESTED so the nested-stream unwrap in
+       NextFunc::execute_impl drains it lazily, one value per next(), rather
+       than handing back the raw stream.  _stream_mode shares a union slot with
+       _command_symid, so assignval() already carries the mode across a copy;
+       the tag goes on the stored copy only to leave the source untouched. */
     AttributeValueList* avl = argv[0].stream_list();
     for (int i=1; i<n; i++) {
       /* a string is ingested as its characters, by becoming the same cursor

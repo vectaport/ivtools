@@ -396,12 +396,12 @@ void FuncObjFunc::execute() {
     FuncObj* tokbufobj = new FuncObj(tokbuf, toklen);
     tokbufobj->posteval(postevalv.is_true());
 
-    /* #310: capture this body's free variables (read-only or
-       read-before-write, per #170's taxonomy -- see funcobjscan.h) at
+    /* capture this body's free variables (read-only or
+       read-before-write -- see funcobjscan.h) at
        declaration time, so a later fire sees the value that was live now,
        not whatever's live at call time.  is_plain_var[i] tells the
        classifier which tokens are ordinary variable references rather
-       than registered commands -- built by the same shared helper #170's
+       than registered commands -- built by the same shared helper the help path's
        :help fire-time analysis uses (FuncObjVarScan::build_is_plain_var),
        not reimplemented here. */
     boolean* is_plain_var = FuncObjVarScan::build_is_plain_var(comterp(), tokbuf, toklen);
@@ -421,12 +421,10 @@ void FuncObjFunc::execute() {
       int kind = attr->Value()->int_val();
       if (kind == FuncObjVarScan::ReadOnly || kind == FuncObjVarScan::ReadBeforeWrite) {
 	if (!captures) captures = new AttributeList();
-	/* lookup_symval(int) only checks localtable() -- the full
-	   fallthrough an ordinary read actually uses (_alist, then
-	   localtable unless global_flag, then globaltable) is the
-	   ComValue& overload; anything narrower under-captures (e.g. a
-	   name set only via global()=, confirmed live via global.comt
-	   test 13's "Unknown add operand" failure before this fix). */
+	/* lookup_symval(int) checks localtable() only; the full fallthrough an
+	   ordinary read uses -- _alist, then localtable unless global_flag,
+	   then globaltable -- is the ComValue& overload.  Anything narrower
+	   under-captures a name set only through global()=. */
 	ComValue symval(attr->SymbolId(), ComValue::SymbolType);
 	ComValue curval(comterp()->lookup_symval(symval));
 	captures->add_attr(attr->SymbolId(), curval);

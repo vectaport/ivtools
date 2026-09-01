@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Singleton.h
+ * ACE-lite.  src/include/ACE-lite/Singleton.h
  * ACE_Singleton<TYPE, LOCK> -- one shared instance of TYPE, reached via
  * instance().  The LOCK parameter is accepted for signature compatibility and
  * ignored (single-threaded build).

@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/ACE-lite/reactor.c
+ * ACE-lite.  src/ACE-lite/reactor.c
  * (ACE-lite reimplements a subset of the ACE interface; ACE is (c) the DOC
  * group -- see src/ACE-lite/NOTICE.)
  *
@@ -241,11 +241,9 @@ int ACE_Reactor::handle_events(ACE_Time_Value* max_wait_time) {
     FD_ZERO(&eset);
 
     // FD_SET/FD_ISSET on a descriptor >= FD_SETSIZE indexes past the fixed-size
-    // fd_set -- undefined behavior (stack corruption).  Guard every use: a fd
-    // that large is skipped rather than corrupting memory.  ivtools' workloads
-    // keep fd numbers well under FD_SETSIZE; lifting the limit entirely means
-    // moving this select() loop to poll() (no FD_SETSIZE bound), noted as future
-    // work in issue #147.
+    // fd_set, which is undefined behavior.  Guard every use: a fd that large is
+    // skipped rather than corrupting memory.  Lifting the limit means moving
+    // this select() loop to poll(), which has no FD_SETSIZE bound.
     int maxfd = -1;
     for (std::map<ACE_HANDLE, ACE_Event_Handler*>::iterator it = read_.begin();
          it != read_.end(); ++it) {
