@@ -150,8 +150,7 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
 
     long maxidx = -1;           /* highest literal index seen: arg(0) -> 0 --
                                     long (not int) so maxidx+1 below can't
-                                    overflow for a literal near INT_MAX
-                                    (Greptile, PR #337) */
+                                    overflow for a literal near INT_MAX */
     boolean saw_arg = false;
     boolean saw_nonliteral = false;
 
@@ -182,7 +181,7 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
                 if (idx > maxidx) maxidx = idx;
             } else {
                 /* a computed index (arg(i), arg(i+1), ...) -- resolving
-                   simple cases statically is future work (#170 phase 1
+                   simple cases statically is future work (
                    point 2's "attempt, fall back to dynamic" allowance);
                    this first pass gives up gracefully instead of
                    guessing. */
@@ -197,10 +196,9 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
         /* maxidx+1 overflowing (maxidx == LONG_MAX) is signed-integer UB,
            not just "unlikely" -- check before doing the addition rather
            than let it wrap and rely on that wrapping to coincidentally
-           land back on the same -1 "can't be pinned down" sentinel
-           (Greptile, PR #337). This is unreachable through today's literal
+           land back on the same -1 "can't be pinned down" sentinel. This is unreachable through today's literal
            parsing (values above INT_MAX don't currently survive intact --
-           a separate, pre-existing bug, #342), but the guard costs nothing
+           a separate, pre-existing bug), but the guard costs nothing
            and removes the UB regardless of whether any path can trigger
            it today. */
         if (maxidx == LONG_MAX)
@@ -218,7 +216,7 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
     static int dot_symid = symbol_add("dot");
-    /* First operand is read-then-written in one occurrence -- see #310's
+    /* First operand is read-then-written in one occurrence -- see the capture classifier's
        plan: distinct from plain assign, whose first operand is a pure
        write (the old value is never read). */
     static int compound_assign_symids[] = {
@@ -234,16 +232,13 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int nrecs = 0, recs_cap = 0;
     EscapeRecord* escapes = nil;
     int nescapes = 0, escapes_cap = 0;
-    /* Symbols used anywhere in the body as a dot-chain root (obj.field) --
-       DotFunc's own attribute-write path already has a deliberate
-       fall-through order (_alist -> local -> global, see the #292 commit)
-       to decide whether obj already exists or needs creating fresh in the
-       outer scope.  A #310 capture pre-seeding al[obj] with a stale
-       declaration-time snapshot would make that path see "already
-       present" and stop short of the outer scope, breaking the documented
-       "dot free symbol bleeds to outer scope" behavior (attrlist.comt
-       tests 14/16).  So: excluded from capture globally, not just at the
-       point of this one dot access -- collected here, filtered at output. */
+    /* symbols used anywhere in the body as a dot-chain root (obj.field).
+       DotFunc's attribute-write path falls through _alist, then local, then
+       global to decide whether obj already exists or needs creating in the
+       outer scope.  A capture pre-seeding al[obj] with a declaration-time
+       snapshot would make that path see it as already present and stop short,
+       breaking the documented bleed to outer scope.  So they are excluded from
+       capture globally -- collected here, filtered at output. */
     int* dotroots = nil;
     int ndotroots = 0, dotroots_cap = 0;
 
