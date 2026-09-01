@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/ACE-lite/log_msg.c
+ * ACE-lite.  src/ACE-lite/log_msg.c
  * (ACE-lite reimplements a subset of the ACE interface; ACE is (c) the DOC
  * group -- see src/ACE-lite/NOTICE.)
  *

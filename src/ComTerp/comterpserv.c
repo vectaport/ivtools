@@ -308,16 +308,12 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     int tokoff = _pfoff;
 
     int last_status = 0;
-    /* Tracks "the last thing we tried to parse was left incomplete" across
-       iterations.  *inbuf can't be used for this directly: when the file's
-       last real line ends with a newline, fgets succeeds without feof()
-       being set yet, so the loop runs one more iteration to detect true
-       EOF -- and that iteration clears inbuf (line "*inbuf='\0';" below)
-       before the post-loop check below can see what was pending.  Without
-       this flag, that clears the EOF diagnostic *and* skips the
-       parser_reset() cleanup below it, leaving the parser's own internal
-       incomplete-expression state dangling for whatever runs next to read
-       as if it were valid tokens. */
+    /* tracks "the last thing parsed was left incomplete" across iterations.
+       inbuf cannot serve: when the last real line ends in a newline, fgets
+       succeeds before feof() is set, so the loop runs once more to detect
+       true EOF -- and that pass clears inbuf before the post-loop check can
+       see what was pending, losing both the diagnostic and the parser_reset()
+       that follows it. */
     boolean pending_incomplete_expr = false;
     while( !feof(ifptr) ) {
 #if defined(TIMING_TEST)
@@ -341,22 +337,14 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 
  	if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
 	  break;
-        /* Drain a leftover orphaned stream from the PREVIOUS statement
-           now that a genuine next line/statement is confirmed to exist
-           (the loop's own while(!feof()) can be true here even though
-           this turns out to be the trailing EOF-probe pass above with
-           nothing left to read -- checking any earlier than this, e.g.
-           at the very top of the loop, would incorrectly drain the
-           truly last statement's retval too, since that probe pass
-           also enters the loop body).  Draining before this iteration's
-           own line runs, not after: it can have visible side effects of
-           its own (e.g. a print() overdrive stream defers each
-           repetition's actual print() call until that element is
-           pulled -- draining fires all of them at once), and checking
-           this any later (e.g. the matching spot below, which used to
-           have this check) would run it AFTER the next statement's own
-           eval_expr() already produced its output, interleaving the two
-           out of script order. */
+        /* drain a leftover orphaned stream from the previous statement, now
+           that a genuine next statement is confirmed to exist.  Checking any
+           earlier would also drain the last statement's own result, since the
+           trailing EOF-probe pass enters the loop body too.  Draining happens
+           before this line runs rather than after, because it has visible side
+           effects of its own -- a print() overdrive stream fires every
+           deferred repetition at once -- which would otherwise interleave with
+           the next statement's output. */
         if (retval && retval->is_stream() && retval->stream_list() &&
             retval->stream_list()->refcount_==1) {
           orphan_stream_count(*retval);
@@ -464,17 +452,13 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
         *inbuf = '\0';
         parser_reset();
 
-        /* COMERR_SET1 pushes onto ComUtil's process-global error stack
-           (errsys.c), and nothing above drains it the way the *inbuf-error
-           branch above does via err_str().  Left unconsumed, it silently
-           outlives this runfile() call and gets misattributed to the next
-           unrelated err_str() call anywhere in the interpreter -- observed
-           as ComTerpServ::run(postfix_token*,int) (used to invoke a
-           user-defined func() body) mistaking it for a failure of that
-           unrelated call, which makes it substitute nullval() *without*
-           popping the value eval_expr() already pushed -- a stray value
-           left on the stack that later trips the "func ... pushed more
-           than a single value on stack" consistency check. */
+        /* COMERR_SET1 pushes onto ComUtil's process-global error stack, and
+           nothing above drains it the way the inbuf-error branch does through
+           err_str().  Left unconsumed it outlives this runfile() call and is
+           misattributed to the next unrelated err_str() anywhere in the
+           interpreter, which then substitutes nullval() without popping what
+           eval_expr() pushed -- a stray stack value that trips the
+           single-value consistency check later. */
         char eofbuf[BUFSIZ];
         char location[BUFSIZ];
         snprintf(location, BUFSIZ, "error in %s:%d", filename, _linenum);
@@ -513,13 +497,11 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     push_servstate();
     _pfcomvals = nil;
 
-    /* mark the interpreter running for the duration -- mirrors the base
-       ComTerp::run / ComTerpServ::runfile bracket, which this inline-eval
-       override otherwise drops.  Without it, a reactor event (e.g. stdin EOF)
-       firing inside a nested handle_events() -- comdraw's startup seed
-       update(1000000) is the classic trigger -- makes ComterpHandler::destroy()
-       see running()==false and free this live interpreter out from under the
-       eval loop, a use-after-free that clobbers the ComTerp vtable. */
+    /* mark the interpreter running for the duration, mirroring the
+       ComTerp::run / ComTerpServ::runfile bracket this inline-eval override
+       otherwise drops.  Without it a reactor event firing inside a nested
+       handle_events() lets ComterpHandler::destroy() see running()==false and
+       free the live interpreter under the eval loop. */
     int old_runflag = running();
     running(true);
 

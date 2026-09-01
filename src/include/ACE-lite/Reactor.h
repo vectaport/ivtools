@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Reactor.h
+ * ACE-lite.  src/include/ACE-lite/Reactor.h
  * ACE_Reactor -- a self-contained select()-based event demultiplexer, the
  * drop-in for libACE's reactor.  It sits in the exact same slot: AceDispatcher
  * forwards the InterViews Dispatcher's attach/dispatch into it, and socket

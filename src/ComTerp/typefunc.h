@@ -133,7 +133,7 @@ public:
       return "flag=%s(var :sym) -- true if var holds a func(), without evaluating it"; }
 };
 
-//: true if var is a StringType sliced from another string (#395).
+//: true if var is a StringType sliced from another string.
 // flag=isslice(var) -- unlike istype()/isclass()/iscomm()/isfunc(), var
 // is evaluated normally: this tests the shape of a value, not a bare
 // symbol's own binding, so isslice(s@2:5) works on the slice expression's
@@ -144,7 +144,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "flag=%s(var) -- true if var is a string sliced from another string (#395)"; }
+      return "flag=%s(var) -- true if var is a string sliced from another string"; }
 };
 
 //: true if var is list-shaped -- an ArrayType (comma- or colon-built) or

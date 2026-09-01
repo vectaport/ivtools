@@ -117,15 +117,14 @@ static const char* ca_tz(const char* mon) {
   return "PST";
 }
 
-/* build_stamp: build identity as a string in comterp attrlist-literal notation --
-   (:built YYYY:Mon:DD:HH:MM:SS:TZ :patch "key").  The colon-chain is the readable
-   date/time/zone literal the post-eval ":" operator consumes (TZ a trailing
-   timezone symbol, like the month, closing the timestamp); nothing here evaluates
-   it -- the banner just prints a string comterp *could* parse once ":" knows the
-   timezone vocabulary.  date/time are a caller's __DATE__/__TIME__ ("Mon DD YYYY"
-   day space-padded, "HH:MM:SS") and patch_key its PATCH_KEY -- those stay in each
-   main.c so bumping PATCH_KEY there recompiles that main.c and refreshes its
-   __DATE__/__TIME__; only this formatter lives here. */
+/* build_stamp: build identity as a string in comterp attrlist-literal notation,
+   (:built YYYY:Mon:DD:HH:MM:SS:TZ :patch "key").  The colon-chain is the
+   date/time/zone literal the ":" operator consumes; nothing here evaluates it,
+   the banner only prints a string comterp could parse once ":" knows the
+   timezone vocabulary.  date and time come from a caller's __DATE__/__TIME__
+   and patch_key from its PATCH_KEY, all of which stay in each main.c so that
+   bumping PATCH_KEY recompiles it and refreshes the timestamp; only the
+   formatter lives here. */
 const char* build_stamp(const char* date, const char* time, const char* patch_key) {
   static char buf[160];
   char mon[4]; mon[0]=date[0]; mon[1]=date[1]; mon[2]=date[2]; mon[3]=0;

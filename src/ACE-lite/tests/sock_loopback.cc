@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/ACE-lite/tests/sock_loopback.cc
+ * ACE-lite.  src/ACE-lite/tests/sock_loopback.cc
  * Standalone Phase-1 unit test for the ACE-lite address/socket layer -- no
  * reactor.  Binds a loopback acceptor on an OS-chosen port, connects to it,
  * round-trips a message both directions, and checks get_remote_addr /

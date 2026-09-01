@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Svc_Handler.h
+ * ACE-lite.  src/include/ACE-lite/Svc_Handler.h
  * ACE_Svc_Handler<PEER_STREAM, SYNCH> -- the per-connection handler base that
  * ivtools' ComterpHandler and UnidrawImportHandler derive from.  It is an
  * ACE_Event_Handler holding a connected peer stream; the reactor dispatches its

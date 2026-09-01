@@ -75,12 +75,11 @@ const char* LinkBrushCmd::dist_script() {
        temporarily unlocked through us (grid->unlocked()) via the incoming
        select(:unlock) -- forward those onward so a chain ds1->ds2->ds3 carries
        the change past the first hop.  Stamp the OWNER's key, not ours, so the
-       forwarded :unlock/:lock bracket stays valid at the next hop; today that
-       key is derivable (selectorkey), but once it becomes a per-owner signature
-       (issue #163, the atomic select(:body :sign) follow-on) only the owner
-       could mint it, so the relay must forward, never re-derive.  Record the
-       owner sid so
-       ExecuteCmd can exclude the link back toward the origin. */
+       forwarded :unlock/:lock bracket stays valid at the next hop.  Today that
+       key is derivable through selectorkey(), but once it becomes a per-owner
+       signature only the owner can mint it, so the relay must forward it rather
+       than re-derive.  Record the owner sid too, so ExecuteCmd can exclude the
+       link back toward the origin. */
     for (sel->First(it); !sel->Done(it); sel->Next(it)) {
         OverlayView* view = (OverlayView*)sel->GetView(it);
         OverlayComp* comp = view ? (OverlayComp*)view->GetSubject() : nil;
@@ -92,13 +91,12 @@ const char* LinkBrushCmd::dist_script() {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
-                /* INTERIM LIMITATION: the owner key+sid are captured from the
-                   FIRST matching comp only, so the whole dance relays under one
+                /* interim limitation: the owner key and sid come from the
+                   first matching comp only, so the whole dance relays under one
                    owner's :unlock/:lock key and ExecuteCmd excludes one back-
-                   link.  Correct today, when a selection's comps share an owner;
-                   a mixed-ownership selection would mis-stamp the rest.  Revisit
-                   when per-owner signatures land (issue #163) -- the dance would
-                   then have to group comps by owner and emit one bracket each. */
+                   link.  Correct while a selection's comps share an owner; a
+                   mixed-ownership selection would mis-stamp the rest, and would
+                   need grouping by owner with one bracket each. */
                 if (grid->selected() == LinkSelection::LocallySelected) {
                     owner_key = drawserv->sessionidkey();
                     uuid_copy(_dist_owner_sid, drawserv->sessionid());
@@ -479,13 +477,12 @@ const char* LinkColorCmd::dist_script() {
             if (!any) {
                 sbuf << "s=select();select(grid(";
                 any = true;
-                /* INTERIM LIMITATION: the owner key+sid are captured from the
-                   FIRST matching comp only, so the whole dance relays under one
+                /* interim limitation: the owner key and sid come from the
+                   first matching comp only, so the whole dance relays under one
                    owner's :unlock/:lock key and ExecuteCmd excludes one back-
-                   link.  Correct today, when a selection's comps share an owner;
-                   a mixed-ownership selection would mis-stamp the rest.  Revisit
-                   when per-owner signatures land (issue #163) -- the dance would
-                   then have to group comps by owner and emit one bracket each. */
+                   link.  Correct while a selection's comps share an owner; a
+                   mixed-ownership selection would mis-stamp the rest, and would
+                   need grouping by owner with one bracket each. */
                 if (grid->selected() == LinkSelection::LocallySelected) {
                     owner_key = drawserv->sessionidkey();
                     uuid_copy(_dist_owner_sid, drawserv->sessionid());

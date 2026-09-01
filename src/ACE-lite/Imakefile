@@ -1,5 +1,5 @@
 XCOMM
-XCOMM source files for the ACE-lite library (in-tree ACE subset, issue #147).
+XCOMM source files for the ACE-lite library (in-tree ACE subset).
 XCOMM Headers live in src/include/ACE-lite; this builds the implementation.
 XCOMM
 

@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/SOCK_Acceptor.h
+ * ACE-lite.  src/include/ACE-lite/SOCK_Acceptor.h
  * ACE_SOCK_Acceptor -- the low-level passive socket: socket()/bind()/listen()
  * and accept() of a new connection into an ACE_SOCK_Stream.  (The higher-level
  * ACE_Acceptor<Handler> accept-and-spawn template is built on this later.)
