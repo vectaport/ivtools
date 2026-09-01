@@ -319,7 +319,7 @@ coverage number yet, so both read `—` here.
 | script        | funcs                                                                         | notes                                                      |
 |---------------|-------------------------------------------------------------------------------|------------------------------------------------------------|
 | parser.comt   | attrlist(:literal) parse error lock-in via errmsg()                           | add errmsg() assertions for bare-value-after-keyword cases |
-| return.comt   | func() empty parens, func() positional varargs, arg(`sym) keyword lookup      | unscored — needs assertions, not just output               |
+| return.comt   | func() empty parens, func() positional varargs, arg(`sym) keyword lookup      |
 
 ### Planned coverage (ivtools-3.0)
 
