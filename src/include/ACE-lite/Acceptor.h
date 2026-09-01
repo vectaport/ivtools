@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Acceptor.h
+ * ACE-lite.  src/include/ACE-lite/Acceptor.h
  * ACE_Acceptor<HANDLER, PEER_ACCEPTOR> -- the accept-and-spawn template.  It is
  * itself an ACE_Event_Handler registered on the listen fd; when the fd is
  * readable it accept()s a connection, makes a HANDLER, hands it the new peer

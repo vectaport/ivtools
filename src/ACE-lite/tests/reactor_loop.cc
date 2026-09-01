@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/ACE-lite/tests/reactor_loop.cc
+ * ACE-lite.  src/ACE-lite/tests/reactor_loop.cc
  * Standalone Phase-2 unit test for ACE_Reactor / ACE_Event_Handler.  Exercises
  * exactly the reactor API AceDispatcher and comhandler use:
  *   register_handler(fd, eh, READ_MASK), remove_handler(fd, RWE_MASK),

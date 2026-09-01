@@ -116,30 +116,20 @@ struct _opr_tbl_default_entry {
   // "@"(77), so lo:hi groups before @ applies (str@0:3 reads as str@(0:3),
   // not (str@0):3).  "colonlist" is registered as a command separately.
   {":",          "colonlist",          78,         FALSE,      OPTYPE_BINARY },
-  // "@" as sugar for at(): lst@0 == at(lst 0), lst@0@1@2 chains (LtoR).
-  // Deliberately its own operator, not folded into ".": a numeric rhs on
-  // "." would need the same digit-continuation special-casing "." picked
-  // up trying this once already (see #318/#319, closed) -- "@" carries
-  // none of that baggage, since '@' is never part of any number's own
-  // syntax, so lst@0@1@2 can never collide with float literals the way
-  // lst.0.1.2 did.  Priority 77, NOT tied to "."(130): placed just below
-  // the numeric stream-producing operators (..=90, **=80, %%=79) so a
-  // range/repeat/replay expression indexes directly without parens --
-  // lst@0..10, lst@0**3, lst@s%%2 -- while staying above plain arithmetic
-  // (60-70) so lst@i+1 and lst@i*2 still read as (lst@i)+1/(lst@i)*2, the
-  // far more common case.  ","," (concat, 75) is stream-structural, not
-  // numeric, so it isn't part of this band either way; "@" ended up on the
-  // tight side of it (77 > 75) as a side effect of sitting under %%, not
-  // by any requirement of its own.
+  // "@" as sugar for at(): lst@0 == at(lst 0), and lst@0@1@2 chains left to
+  // right.  Its own operator rather than a numeric rhs on ".", since '@' is
+  // never part of a number's syntax and so cannot collide with float literals
+  // the way lst.0.1.2 does.  Priority 77 sits just below the stream-producing
+  // operators (..=90, **=80, %%=79), so lst@0..10 and lst@0**3 index without
+  // parens, and above arithmetic (60-70), so lst@i+1 still reads as
+  // (lst@i)+1 -- much the commoner case.
   {"@",          "at",                 77,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
-  // "next" sits one above "mpy" (71 vs 70), not level with it: when the
-  // parser resolves "2 * *s" (no parens) it must settle each * token's role
-  // -- binary vs unary-prefix -- before either can be pushed, and an exact
-  // priority tie between the two roles of the same operator string makes it
-  // misparse (the binary mpy gets emitted before its right operand is even
-  // read).  One point of separation is enough for the unary role to declare
-  // itself distinctly; see starnext.comt test 3b.
+  // "next" sits one above "mpy" (71 vs 70) rather than level with it: parsing
+  // "2 * *s" means settling each * token's role, binary or unary-prefix,
+  // before either can be pushed, and an exact tie between the two roles of the
+  // same operator string misparses -- the binary mpy is emitted before its
+  // right operand is read.  One point of separation is enough.
   {"*",          "next",               71,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },
