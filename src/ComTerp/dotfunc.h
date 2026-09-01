@@ -60,7 +60,7 @@ protected:
        attrlist lookup-or-create, and the actual dispatch (attribute
        fetch, or obj.method(args) self-bound firing). force_named_field,
        default false, lets a caller that already knows after_raw is a
-       genuine field symbol (DotStreamNextFunc::execute(), #304) skip the
+       genuine field symbol (DotStreamNextFunc::execute()) skip the
        nargs()>1 gate that distinguishes "al.field" from the rare 1-arg
        dot(name) form -- nargs() there reflects THIS invocation (always 1,
        the driving stream itself), not the original dot-expression's own
@@ -86,7 +86,7 @@ protected:
     boolean check_dbg_keyword();
 };
 
-//: hidden func used by next() to drive a lazy (stream).field access (#304).
+//: hidden func used by next() to drive a lazy (stream).field access.
 // Holds, in its own stream's stream_list(): [0] the underlying before-
 // stream, [1] the fixed after-dot field symbol. Each pull advances the
 // before-stream one element and re-runs DotFunc's own dispatch
@@ -112,7 +112,7 @@ public:
        ComValue this constructed from that garbage). */
     virtual boolean post_eval() { return false; }
     virtual const char* docstring() {
-      return "hidden func used by next command for (stream).field dot access (#304)."; }
+      return "hidden func used by next command for (stream).field dot access."; }
 
 };
 

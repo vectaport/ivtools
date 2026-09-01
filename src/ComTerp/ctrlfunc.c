@@ -438,16 +438,14 @@ void PatchKeyFunc::execute() {
 	key = PATCH_KEY;
 
     if (key) {
-	/* PATCH_KEY (and any key passed in) is a plain literal, not derived
-	   from git, so resolving it to a commit means asking git to look up
-	   the matching tag pushed at merge time (patch-key.yml).
+	/* PATCH_KEY, and any key passed in, is a plain literal rather than
+	   something derived from git, so resolving it to a commit means asking
+	   git for the matching tag pushed at merge time.
 
-	   A caller-supplied key is reachable over ComTerp's socket interface
-	   (server/listen modes), so it must be rejected -- not merely quoted
-	   -- before it reaches the shell below: reject anything outside the
-	   character set an actual PATCH_KEY tag can contain, closing the
-	   shell-injection path a value like `"; rm -rf ~ ;"` would otherwise
-	   open via snprintf/popen. */
+	   A caller-supplied key is reachable over the socket interface, so it
+	   is rejected outright -- not merely quoted -- if it holds anything
+	   outside the character set a real PATCH_KEY tag can contain, closing
+	   the shell-injection path through snprintf/popen below. */
 	static const char* key_charset =
 	    "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ-_";
 	if (key[0] == '\0' || strspn(key, key_charset) != strlen(key)) {
@@ -455,13 +453,11 @@ void PatchKeyFunc::execute() {
 	    return;
 	}
 
-	/* shell_string() (ComUtil/util.c) called directly, not through
-	   ShellFunc's stack/exec machinery -- same guard-the-empty-result
-	   discipline local_hostname() uses for a failed/empty scutil call:
-	   a nonexistent tag leaves stdout empty, so an empty result means
-	   "unresolved" (not-yet-tagged, or a stale/mistyped key), not an
-	   error to surface as a nonsense value.  Stderr routed to /dev/null
-	   so a failed lookup doesn't leak git's own diagnostic text. */
+	/* shell_string() called directly rather than through ShellFunc's
+	   stack machinery.  A nonexistent tag leaves stdout empty, so an empty
+	   result means unresolved -- not yet tagged, or a stale key -- rather
+	   than an error worth surfacing.  Stderr goes to /dev/null so a failed
+	   lookup does not leak git's diagnostics. */
 	char cmdbuf[BUFSIZ];
 	snprintf(cmdbuf, sizeof(cmdbuf), "git rev-list -n 1 refs/tags/%s 2>/dev/null", key);
 	const char* commitid = shell_string(cmdbuf);
@@ -528,19 +524,14 @@ NilFunc::NilFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void NilFunc::execute() {
-    /* token_to_comvalue (comterp.c) routes any call-shaped symbol here
-       (parens/args, not [yet] a registered command) at CONVERSION time --
-       once, frozen forever into that token.  That's wrong when the name
-       is defined earlier in the same already-tokenized ";"-sequence: the
-       whole sequence converts before any of it executes, so the earlier
-       "name=func(...)" hasn't run yet when "name(args)"'s own token gets
-       converted (issue #328).  Re-check dynamically, by name, right now --
-       if the gate has since opened (the name really is a FuncObj by the
-       time this actually fires), evaluate the pending args -- positional
-       and keyword alike -- for real and dispatch to it, same as an
-       ordinary call would.  If it's still closed, fall through unchanged:
-       never touch the args (the deliberate plugin-hook gate idiom,
-       symboldrain.comt) and return nil. */
+    /* token_to_comvalue routes any call-shaped symbol here at conversion
+       time, once, frozen into the token -- which is wrong when the name is
+       defined earlier in the same ";"-sequence, since the whole sequence
+       converts before any of it runs.  So re-check by name here: if the name
+       is a FuncObj by the time this fires, evaluate the pending args and
+       dispatch to it as an ordinary call would.  If not, fall through without
+       touching the args and return nil, which is the plugin-hook gate
+       idiom. */
     static int nil_symid = symbol_add("nil");
     int comm_symid = funcstate()->command_symid();
     if (comm_symid && comm_symid != nil_symid) {
