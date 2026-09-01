@@ -190,7 +190,7 @@ public:
     // same token-span walk as stack_arg_post_eval_nargsfixed(), but never
     // evaluates anything -- each fixed positional's span becomes a
     // FuncObjPendingArg marker (postfunc.h) in the returned array instead
-    // of a real value.  Used by NilFunc's dynamic gate (#328) when its
+    // of a real value.  Used by NilFunc's dynamic gate when its
     // resolved target is :posteval, so the args stay unevaluated exactly
     // the way FuncObj::posteval() promises.
 

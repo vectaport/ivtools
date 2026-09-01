@@ -56,7 +56,7 @@ void AssignFunc::execute() {
     if (operand1.type() != ComValue::SymbolType) {
         // if lhs is a global() or local() call, set lhs_assign flag on its
         // ComValue so the scope command can distinguish lhs from rhs context.
-        // Same for at() (including via the @ operator, lst@N=val, #318) --
+        // Same for at() (including via the @ operator, lst@N=val) --
         // ListAtFunc checks its own lhs_assign() (symbolfunc.c's
         // GlobalFunc/LocalFunc do the same) to tell "lst@0=val" apart from
         // an ordinary read.  Only matters for the ArrayType (plain list)
@@ -138,7 +138,7 @@ void AssignFunc::execute() {
       Attribute* attr = (Attribute*)operand1.obj_val();
       attr->Value(operand2);
     } else if (operand1.is_array() && operand1.lhs_assign()) {
-      /* #318 (@ operator): lst@N=val.  ListAtFunc (listfunc.c), seeing its
+      /* the @ operator: lst@N=val.  ListAtFunc (listfunc.c), seeing its
 	 own lhs_assign() flag set and an ArrayType before-part, handed back
 	 a [list, idx] pair instead of performing a read (lhs_assign() still
 	 set on the pair itself, so this branch can tell it apart from an

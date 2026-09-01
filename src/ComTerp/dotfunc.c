@@ -43,16 +43,11 @@ using std::cerr;
 /*****************************************************************************/
 
 
-/* off by default -- capturing the pre-fire source text of both args (see
-   execute() below) costs a cout redirect + two print_stack_arg_post_eval
-   calls on every dot-expression, even the overwhelmingly common case where
-   nothing goes wrong.  A malformed-dot warning always shows the RESOLVED
-   value of both sides regardless of this flag (before_part/after_raw,
-   already on hand -- no capture needed) -- this only adds the raw postfix-
-   token dump on top of that, for tracking down something the resolved
-   value alone doesn't explain.  Intentionally undocumented/internal: set
-   it via check_dbg_keyword()'s :dbg keyword if ever needed again, but it's
-   not advertised in DotFunc's public docstring. */
+/* off by default: capturing the pre-fire source text of both args costs a
+   cout redirect and two print_stack_arg_post_eval calls on every dot
+   expression.  A malformed-dot warning shows the resolved value of both sides
+   regardless; this only adds the raw postfix-token dump on top.  Internal --
+   set it through check_dbg_keyword()'s :dbg keyword if needed. */
 static boolean dotfunc_debug_expr = false;
 
 DotFunc::DotFunc(ComTerp* comterp) : ComFunc(comterp) {
@@ -103,16 +98,11 @@ static void restore_kw_if_unwritten(ComTerp* comterp, AttributeList* al, KwPendi
     al->Remove(now);
 }
 
-/* Unconditional counterpart for captures (#310), not keywords -- a capture
-   was never something the caller passed at this call site (unlike a
-   keyword, where a resulting object mutation is visible and deliberate to
-   whoever wrote :x val), so it must always behave like the bare-call
-   case's fresh, disposable per-call seed: revert every time, whether the
-   body wrote it or not, never leave a new permanent field on obj.
-   Confirmed live: without this, obj.bump=func(c=c+1) on a never-before-
-   seen capture c leaked a permanent :c field onto obj and accumulated
-   across calls (11, 12, 13) instead of restarting from the frozen capture
-   every time (11, 11, 11). */
+/* the unconditional counterpart for captures rather than keywords: a capture
+   was never something the caller passed at this call site, so it reverts every
+   time, written or not, and never leaves a permanent field on obj.  Otherwise
+   obj.bump=func(c=c+1) on a never-before-seen c leaves a :c field behind that
+   accumulates across calls instead of restarting from the capture. */
 static void restore_capture(AttributeList* al, KwPending& pending) {
   Attribute* now = al->GetAttr(pending.symid);
   if (!now) return;
@@ -122,29 +112,19 @@ static void restore_capture(AttributeList* al, KwPending& pending) {
     al->Remove(now);
 }
 
-/* obj.method(args) -- fire a FuncObj-valued attribute self-bound to obj.
-   Evaluates args in the caller's own scope (before any _alist swap, so a
-   variable reference in an arg resolves against the caller, not obj), then
-   temporarily swaps _alist to obj -- the same mechanism eval(fo :alist obj)
-   already uses (ctrlfunc.c's EvalFunc) -- and runs the method's own token
-   buffer directly, so self-bound reads/writes of obj's own fields mutate
-   the real object, not a per-call copy.  Positional args flow through the
-   funcobj_args channel (set_funcobj_args/funcobj_argvals, comterp.h) the
-   same way an ordinary FuncObj invocation's arg()/narg() are served.
+/* obj.method(args) -- fire a FuncObj-valued attribute self-bound to obj.  Args
+   are evaluated in the caller's own scope, before any _alist swap, so a
+   variable in an arg resolves against the caller rather than obj.  _alist is
+   then swapped to obj -- the mechanism eval(fo :alist obj) already uses -- and
+   the method's token buffer run directly, so self-bound reads and writes
+   mutate the real object.  Positionals flow through the funcobj_args channel,
+   as for any FuncObj call.
 
-   Getting at args without evaluating "method" itself: a symbol with an
-   attached arglist that isn't a registered global command gets rebound to
-   the nil command by ComTerp::token_to_comvalue at expression-conversion
-   time, unconditionally, before any command (including this one) runs --
-   that check only ever consults the global command table, never _alist, so
-   there is no way to make "method(args)" resolve through obj by evaluating
-   it as an ordinary sub-expression.  Instead: look "method" up in obj
-   directly (the same GetAttr() the bare-access path below already uses),
-   and get the args evaluated by retargeting a copy of just the arg tokens
-   at the existing echo() command -- an ordinary (non-post_eval) command
-   that already packages positionals/keywords into an inspectable value for
-   the ~~ round-trip -- so ordinary dispatch does the evaluation, still
-   never touching "method" as a symbol at all. */
+   "method" itself is never evaluated as a symbol: a symbol with an arglist
+   that is not a registered global command is rebound to nil at conversion
+   time, and that check consults the global command table only, never _alist.
+   So look "method" up in obj directly, and get the args evaluated by
+   retargeting a copy of just the arg tokens at echo(). */
 static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
 				  AttributeList* al, postfix_token* argtoks,
 				  int nargtoks) {
@@ -197,15 +177,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
       posvals[i] = *poslist->Get(i);
   }
 
-  /* #310: this funcobj's own declaration-time captures (read-only/
-     read-before-write free variables, funcobjscan.h) are ephemeral
-     defaults layered onto al the same way keyword args are below --
-     apply_kw/restore_capture solve the same "inject, fire, revert"
-     problem for captures that apply_kw/restore_kw_if_unwritten already
-     solve for keywords, so captures reuse the same mechanism rather than
-     mutating obj's real fields. Applied *before* keywords (this block) so
-     an explicit :x val keyword still overrides a capture's *value* via
-     the same apply_kw call landing on top. */
+  /* this funcobj's declaration-time captures are ephemeral defaults layered
+     onto al the way keyword args are below, so they reuse the same inject-
+     fire-revert mechanism rather than mutating obj's real fields.  Applied
+     before keywords, so an explicit :x val still overrides a capture. */
   int method_nkey_for_skip = method_nkey;
   int* kwsymids = method_nkey_for_skip>0 ? new int[method_nkey_for_skip] : nil;
   if (method_nkey_for_skip>0) {
@@ -233,28 +208,18 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
     for (caps->First(capit); !caps->Done(capit); caps->Next(capit)) {
       Attribute* capattr = caps->GetAttr(capit);
       int capsymid = capattr->SymbolId();
-      /* A name obj already owns as its own attribute is a real object
-	 field, not the free variable this capture was taken for -- skip
-	 it so the field stays live (self-bound reads/writes of obj's own
-	 fields must see obj's current value, never a declaration-time
-	 snapshot; only a name obj does NOT already have is genuinely
-	 free here). Confirmed live: without this guard,
-	 obj.increment=func(count=count+1) on obj=(:count 5) overwrote
-	 obj's real count with an unrelated (Unknown) capture before the
-	 body ran, "Unknown add operand: UnknownType+IntType". */
+      /* a name obj already owns is a real object field, not the free variable
+	 this capture was taken for -- skip it, so self-bound reads and writes
+	 see obj's current value rather than a declaration-time snapshot.
+	 Without the guard, obj.increment=func(count=count+1) on obj=(:count 5)
+	 overwrites the real count with an Unknown capture. */
       if (al->GetAttr(capsymid)) continue;
-      /* A name the caller also supplied as an explicit keyword this call
-	 is entirely the keyword mechanism's -- established, deliberate,
-	 tested behavior (62f557fb, LANGUAGE.md's "Keyword arguments to a
-	 method call are ephemeral unless the method writes them"): a
-	 self-bound write always persists, keyword-sourced or not. Skip
-	 applying the capture at all so apply_kw's own existed/oldval
-	 bookkeeping for the keyword below reflects the true pre-call
-	 state, not a value this capture injected first -- confirmed live:
-	 without this, a name that's both captured and keyword-supplied
-	 (nope=nope+1 declared free, then called as .setit(:nope 5)) had
-	 the capture's own unconditional revert wipe out the keyword
-	 write's result afterward, breaking attrlist.comt test 43. */
+      /* a name the caller also supplied as an explicit keyword belongs to the
+	 keyword mechanism entirely -- a self-bound write persists whether it
+	 came from a keyword or not.  Skip the capture, so apply_kw's own
+	 existed/oldval bookkeeping reflects the true pre-call state; applied
+	 first, the capture's unconditional revert would wipe out the keyword
+	 write afterward. */
       boolean also_keyword = false;
       for (int k=0; k<method_nkey_for_skip; k++)
 	if (kwsymids[k]==capsymid) { also_keyword = true; break; }
@@ -265,13 +230,10 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   }
   delete [] kwsymids;
 
-  /* keyword args are ephemeral unless the method's own body writes that
-     same name -- reading it (or ignoring it) leaves al exactly as it was;
-     only a write (self-bound, so it lands on al) makes it stick.  Apply
-     each keyword now (saving what it's replacing), fire below, then
-     compare-and-revert after: unchanged from what was just injected means
-     nothing wrote it, so put the old value back (or remove it entirely if
-     the name didn't exist on al before this call). */
+  /* keyword args are ephemeral unless the method's body writes that name:
+     reading or ignoring it leaves al as it was, and only a self-bound write
+     makes it stick.  Apply each keyword now, saving what it replaces, fire,
+     then compare and revert -- unchanged means nothing wrote it. */
   int nkw = method_nkey;
   KwPending* kwpending = nkw>0 ? new KwPending[nkw] : nil;
   if (nkw>0) {
@@ -342,28 +304,19 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 
     before_part = stack_arg(0, true);
     if (before_part.type()==ComValue::CommandType) {
-      /* a real command reference (e.g. the inner dot of node.left.val) --
-	 fire it to get its actual value.  A bare, unbound symbol (the
-	 compound-variable-on-first-use case just below) never gets promoted
-	 to CommandType by ComTerp::token_to_comvalue in the first place, so
-	 this never fires on a name DotFunc's own lookup below needs raw.
-	 symbol=false (the default) here, not true: this needs pop_stack's
-	 full finalization (resolve a symbol, unwrap an Attribute down to
-	 its own Value()), not the raw, unprocessed result. */
+      /* a real command reference, such as the inner dot of node.left.val --
+	 fire it for its value.  A bare unbound symbol is never promoted to
+	 CommandType, so this never fires on a name the lookup below needs raw.
+	 symbol=false, since this needs pop_stack's full finalization rather
+	 than the raw result. */
       before_part = stack_arg_post_eval(0);
     } else if (before_part.type()==ComValue::BlankType) {
-      /* a parenthesized sub-expression whose OWN result is a never-yet-
-	 pulled stream (e.g. ($$barnyard) inside ($$barnyard).calls) reads
-	 back as BlankType through the plain stack_arg(0,true) peek above
-	 -- comterp's own "streams don't self-evaluate mid-expression"
-	 discipline (see flowgraph-natural-computation-goal) leaves a Blank
-	 placeholder rather than surfacing the raw, unconsumed stream to an
-	 ordinary read.  stack_arg_post_eval(0) -- the SAME firing this
-	 function already uses for the CommandType case just above --
-	 correctly recovers the real StreamType value instead (confirmed
-	 live: probed both, Blank vs. a real is_stream()==true result).
-	 #304's LHS-stream support (execute_core() below) needs the real
-	 value, not the placeholder. */
+      /* a parenthesized sub-expression whose own result is a never-yet-pulled
+	 stream reads back as BlankType through the stack_arg(0,true) peek
+	 above: streams do not self-evaluate mid-expression, so a Blank
+	 placeholder stands in.  stack_arg_post_eval(0) -- the same firing used
+	 for the CommandType case above -- recovers the real StreamType value,
+	 which the LHS-stream support below needs. */
       before_part = stack_arg_post_eval(0);
     }
     after_raw = stack_arg(1, true);
@@ -373,14 +326,11 @@ void DotFunc::peek_and_fire(ComValue& before_part, ComValue& after_raw, int& aft
 void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_nids,
 			    const std::string& before_expr_text, const std::string& after_expr_text,
 			    boolean force_named_field) {
-    /* A named variable bound to a stream (sb=$$barnyard; sb.calls)
-       arrives here as a raw, unresolved SymbolType -- peek_and_fire()
-       never had reason to resolve it eagerly for the ordinary case,
-       since execute_core()'s own symbol-lookup logic below does that
-       itself. Resolve a copy just far enough to test is_stream() below;
-       before_part itself stays untouched so the ordinary (non-stream)
-       path further down still receives the ordinary bare symbol it
-       already knows how to resolve. */
+    /* a named variable bound to a stream (sb=$$barnyard; sb.calls) arrives
+       as a raw SymbolType, since execute_core() below does its own symbol
+       lookup.  Resolve a copy far enough to test is_stream(); before_part
+       stays untouched, so the ordinary path below still gets the bare
+       symbol it knows how to resolve. */
     ComValue before_resolved = before_part;
     if (before_resolved.is_symbol()) {
       AttributeValue* rv = comterp()->lookup_symval(&before_resolved, false);
@@ -388,8 +338,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     }
     if (before_resolved.is_stream() && after_nids==-1) {
       /* (stream).field -- lazy, pulling .field from each element on
-	 demand rather than erroring on a raw StreamType before_part
-	 (#304).  Method-call-with-streaming-LHS (stream.method(args))
+	 demand rather than erroring on a raw StreamType before_part.  Method-call-with-streaming-LHS (stream.method(args))
 	 isn't handled here yet -- that falls through to the ordinary
 	 validity check below, which correctly warns rather than
 	 mishandling it silently. */
@@ -484,7 +433,7 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 	 ComTerp::lookup_symval uses -- otherwise a func-local variable
 	 (e.g. a keyword-bound param whose value only lives in _alist, never
 	 in localtable()) is invisible to dot access from inside the func
-	 body (#292). */
+	 body. */
       AttributeList* funcscope = !global ? comterp()->get_attributes() : nil;
       AttributeValue* fsval = funcscope ? funcscope->find(before_symid) : nil;
       if (fsval) {
@@ -554,15 +503,11 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
 }
 
 boolean DotFunc::check_dbg_keyword() {
-    /* Undocumented/internal: get/set dotfunc_debug_expr at runtime via a
-       :dbg keyword, so a live session (a running drawserv, say) can turn
-       on the raw postfix-token dump ON TOP OF the resolved-value detail
-       the malformed-dot warning already always shows, without an
-       edit+rebuild -- a fallback for a stranger case than the resolved
-       value alone explains, not something to advertise.  Checked first
-       and unconditionally: an ordinary a.b expression never supplies a
-       :dbg keyword, so this never touches the normal dispatch path
-       below. */
+    /* internal: get or set dotfunc_debug_expr at runtime through a :dbg
+       keyword, so a live session can turn on the raw postfix-token dump
+       without a rebuild.  Checked first and unconditionally -- an ordinary
+       a.b expression never supplies :dbg, so this never touches the normal
+       dispatch below. */
     static int dbg_symid = symbol_add("dbg");
     static int dbg_bare_symid = symbol_add("__dot_dbg_bare__");
     ComValue dbg_bare_sentinel(dbg_bare_symid, ComValue::SymbolType);
@@ -598,17 +543,11 @@ void DotStreamNextFunc::execute() {
        [0] the underlying before-stream and [1] the fixed after-dot field
        symbol in its stream_list() (see the STREAM_INTERNAL construction
        in DotFunc::execute_core() above). */
-    /* Deliberately no reset_stack() here, unlike every other *NextFunc
-       sibling's execute() -- this one delegates its actual dispatch to
-       execute_core() below, which already does its own single
-       reset_stack() in whichever branch it takes (mirroring how
-       DotFunc::execute() itself never resets directly -- peek_and_fire()
-       only peeks, execute_core() is the one reset). A second reset_stack()
-       call here, now that post_eval() is false, would flat decr_stack(1)
-       a SECOND time and silently cancel out this function's own final
-       push_stack() below -- confirmed live: stack height netted to zero
-       across the whole call, so the caller (NextFunc::execute_impl) saw
-       no growth and substituted a blank instead of the real value. */
+    /* deliberately no reset_stack() here, unlike the other *NextFunc
+       siblings: this one delegates to execute_core() below, which does its
+       own single reset in whichever branch it takes.  A second reset would
+       decr_stack(1) again and cancel out the push_stack() below, netting the
+       call to zero growth so the caller substitutes a blank. */
     ComValue selfstream(stack_arg(0));
 
     AttributeValueList* avl = selfstream.stream_list();
@@ -641,7 +580,7 @@ void DotStreamNextFunc::execute() {
       }
       before_next = comterp()->pop_stack();
     } else {
-      /* not exercised by the LHS-only case this lands in (#304's first
+      /* not exercised by the LHS-only case this lands in (the first
 	 slice) -- kept generic so a future RHS/zip extension (a fixed,
 	 non-stream "before" reused every pull while args advance) can
 	 reuse this same next-func without a second implementation. */
@@ -651,33 +590,23 @@ void DotStreamNextFunc::execute() {
     ComValue after_raw(afterval->symbol_val(), ComValue::SymbolType);
     execute_core(before_next, after_raw, -1, "", "", true);
 
-    /* execute_core()'s named-field branch pushes the raw internal
-       dotted-pair Attribute* wrapper (there's no attribute literal in
-       the language itself -- see its own comment), same as an ordinary
-       non-streamed .field access does. An ordinary read unwraps that
-       automatically further up the call chain (ComTerp::pop_stack's own
-       lookupsym=true branch, e.g. via assignment) before a caller ever
-       sees it; this synthetic per-pull call has no such caller, so do
-       the same unwrap explicitly here -- otherwise each pulled stream
-       element is the opaque wrapper, not its value (confirmed live:
-       list(sb.calls) rendered {,,}, three unwrapped Attribute objects,
-       instead of the actual :calls values). */
+    /* execute_core()'s named-field branch pushes the raw dotted-pair
+       Attribute* wrapper, as an ordinary .field access does.  A normal read
+       unwraps that further up the call chain, but this synthetic per-pull
+       call has no such caller, so unwrap explicitly -- otherwise each pulled
+       element is the wrapper rather than its value. */
     ComValue unwrapped(comterp()->pop_stack(true));
     push_stack(unwrapped);
 }
 
 /*****************************************************************************/
 
-/* attrname()/attrval() accept either shape a single attribute can take on
-   the stack: the internal dotted-pair Attribute* that "." exposes for a
-   named lookup (no attribute literal exists in the language itself, so
-   this is how one ever lands on the stack as a value in the first
-   place), or a single-entry AttributeList -- the literal, script-visible
-   stand-in for "one attribute" that at()/"@" return for an attrlist
-   position (a bare read, not :set), on the same principle a bare keyword
-   has no literal either and is always carried as part of an attrlist.
-   nil if neither shape matches, or the AttributeList has other than
-   exactly one entry. */
+/* attrname()/attrval() accept either shape a single attribute takes on the
+   stack: the internal dotted-pair Attribute* that "." exposes for a named
+   lookup -- the language has no attribute literal, so this is how one lands
+   on the stack at all -- or a single-entry AttributeList, which is what at()
+   and "@" return for an attrlist position.  nil if neither shape matches, or
+   the list holds other than one entry. */
 static Attribute* dotted_pair_or_singleton_attr(ComValue& val) {
     if (val.class_symid() == Attribute::class_symid())
         return (Attribute*)val.obj_val();
@@ -697,18 +626,12 @@ DotNameFunc::DotNameFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void DotNameFunc::execute() {
     ComValue dotted_pair(stack_arg(0, true));
-    /* stack_arg's symbol=true skips ordinary symbol resolution -- needed
-       so an inline at()/"." result isn't run back through
-       lookup_symval()'s own dotted-pair-unwrapping special case (below
-       this function). But that means a *bound variable* argument
-       (attrname(x), not attrname(at(al 0))) arrives as a raw, unresolved
-       SymbolType token instead of the value x is bound to, and fails the
-       shape check below unconditionally. Resolve it here instead, but
-       only when it's actually still a symbol -- lookup_symval() on a
-       SymbolType always returns the bound value as-is (its own
-       unwrapping branch is an "else if", only reached for a non-symbol
-       argument), so this can't reintroduce the very case symbol=true was
-       chosen to avoid. */
+    /* stack_arg's symbol=true skips ordinary resolution, so an inline at()
+       or "." result is not run back through lookup_symval()'s dotted-pair
+       unwrapping.  The cost is that a bound variable argument -- attrname(x)
+       rather than attrname(at(al 0)) -- arrives as a raw SymbolType and fails
+       the shape check below.  Resolve it here, but only while it is still a
+       symbol, which cannot reintroduce the case symbol=true avoids. */
     if (dotted_pair.type() == ComValue::SymbolType)
         lookup_symval(dotted_pair);
     reset_stack();
