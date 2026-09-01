@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/ACE-lite/tests/log_fmt.cc
+ * ACE-lite.  src/ACE-lite/tests/log_fmt.cc
  * Standalone regression test for ace_lite_log's format handling.  The point is
  * the length modifiers: a %ld/%lu argument must be read as a long, not an int,
  * or on LP64 the va_list desyncs and every following argument is garbled.  We

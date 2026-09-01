@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Synch.h
+ * ACE-lite.  src/include/ACE-lite/Synch.h
  * ACE_Null_Mutex / ACE_NULL_SYNCH -- the no-op synchronization used as template
  * parameters in ivtools' single-threaded reactor world.
  */

@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Test_and_Set.h
+ * ACE-lite.  src/include/ACE-lite/Test_and_Set.h
  * ACE_Test_and_Set<LOCK, TYPE> -- holds a flag toggled by a signal and tested
  * by the event loop.  ivtools uses it (via ACE_Singleton) as the SIGINT quit
  * flag: COMTERP_QUIT_HANDLER::instance()->is_set().

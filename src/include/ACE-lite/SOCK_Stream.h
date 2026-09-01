@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/SOCK_Stream.h
+ * ACE-lite.  src/include/ACE-lite/SOCK_Stream.h
  * ACE_SOCK_Stream -- a connected-TCP file-descriptor wrapper.  The consumer
  * code mostly reads/writes the raw get_handle(), but recv/send/close/enable/
  * get_remote_addr are provided to match ACE.
