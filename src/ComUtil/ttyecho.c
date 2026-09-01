@@ -23,31 +23,20 @@
 /*
 ttyecho.c        stdin echo control for interactive comterp/comdraw/drawserv
 
-Summary:         The OS's own cooked-mode tty echo displays every pasted
-                  character the instant it lands in the kernel input
-                  buffer -- before the application ever calls read(), and
-                  well before it's ready to interleave that text with each
-                  line's own result.  For a multi-line paste, this dumps
-                  the whole block to the screen at once, then the
-                  interpreter works through it one line at a time
-                  afterward, leaving the (comt) prompts and results out of
-                  sync with the echoed text (issue #76).
+Summary:         The OS's cooked-mode tty echo displays every pasted character
+                  the instant it lands in the kernel input buffer, before the
+                  application calls read().  For a multi-line paste that puts
+                  the whole block on screen at once, while the interpreter
+                  works through it a line at a time afterward, leaving the
+                  prompts and results out of sync with the echoed text.
 
-                  tty_echo_off() disables only the OS's ECHO bit (ICANON
-                  stays set -- line editing, backspace, Ctrl-U etc. still
-                  work exactly as before); the caller is then responsible
-                  for echoing each line itself at the moment it becomes
-                  known, which is exactly what _lexscan.c does immediately
-                  after each successful infunc() read (see tty_echo_is_off()).
-                  This keeps echo and execution correctly interleaved
-                  regardless of whether the line arrived by typing or by
-                  paste, and whether it's read via a blocking fgets loop
-                  (plain comterp) or one byte at a time from a reactor
-                  callback (comdraw/drawserv's ComterpHandler) -- the OS
-                  echo suppression and the self-echo both operate on
-                  whole lines either way.
-
-History:         Added for issue #76, July 2026
+                  tty_echo_off() clears only the ECHO bit -- ICANON stays set,
+                  so line editing still works -- and the caller then echoes
+                  each line itself as it becomes known, which is what
+                  _lexscan.c does after each successful read.  That keeps echo
+                  and execution interleaved whether the line was typed or
+                  pasted, and whether it is read by a blocking fgets loop or a
+                  byte at a time from a reactor callback.
 */
 
 #include <stdio.h>
@@ -91,17 +80,15 @@ void tty_echo_off(void) {
 
 int tty_echo_is_off(void) { return _tty_echo_off; }
 
-/* Echo is held off only while a line is being executed, not for the whole
-   session (issue #76 did the latter, which left typing invisible in a raw
-   terminal -- ICANON gives the app nothing until Return, so with ECHO clear
-   nobody shows the keystrokes).  Waiting at the prompt runs with ECHO on, so
-   the OS shows typing and does its own line editing.
+/* echo is held off only while a line is executing, not for the whole session:
+   ICANON gives the application nothing until Return, so clearing ECHO for the
+   duration leaves typing invisible.  Waiting at the prompt runs with ECHO on,
+   so the OS shows typing and does its own line editing.
 
-   The cost is that a paste landing at an idle prompt is echoed by the OS as
-   one block.  Those bytes are already on screen, so self-echoing them as they
-   are consumed would show them twice; _pre_echoed records how many bytes were
-   already pending -- and therefore already echoed -- at the moment echo went
-   off, and they are charged off line by line. */
+   The cost is that a paste landing at an idle prompt is echoed by the OS as one
+   block, and self-echoing those bytes as they are consumed would show them
+   twice.  _pre_echoed records how many were already pending, and therefore
+   already echoed, when echo went off; they are charged off line by line. */
 static long _pre_echoed = 0;
 void tty_echo_hold(void);
 
@@ -146,17 +133,13 @@ void tty_echo_hold(void) {
 }
 
 
-/* One-shot self-echo suppression for a single internal, not-typed-by-the-
-   user eval -- e.g. comdraw/drawserv's startup seed update(1000000).  NOT
-   a general "disable prompt for the duration of a call" mechanism: unlike
-   disable_prompt()/enable_prompt() (_parser.c), which stay set for as long
-   as the caller holds them open, this flag is consumed and cleared the
-   instant _lexscan.c reads the very next line -- during read_expr(), which
-   runs to completion before eval_expr() (and whatever event-loop pumping
-   the evaluated command does) ever starts.  So it never overlaps the
-   window where a reentrant stdin event could observe it still set; a
-   held-open flag spanning the whole call does (see issue #76 history --
-   that's what broke comdraw's own reentrant-paste handling when tried). */
+/* one-shot self-echo suppression for a single internal eval the user did not
+   type.  Not a general "disable prompt for the duration of a call": unlike
+   disable_prompt(), which stays set as long as the caller holds it open, this
+   flag is consumed the instant the next line is read, during read_expr(),
+   which completes before eval_expr() and any event-loop pumping begins.  So it
+   never overlaps the window where a reentrant stdin event could observe it
+   still set, which a held-open flag would. */
 static int _suppress_next_echo = 0;
 
 void tty_echo_suppress_next(void) { _suppress_next_echo = 1; }
@@ -167,16 +150,13 @@ int tty_echo_consume_suppress_next(void) {
     return flag;
 }
 
-/* atexit() (tty_echo_off()'s own registration) and the explicit call in
-   ComTerp::exit() (comterp.c, ahead of its deliberate _exit()) both cover
-   an orderly exit -- neither runs when the process dies by signal, which
-   for an interactive session is the COMMON case: Ctrl-C is SIGINT.  A
-   signal-terminated comterp/comdraw/drawserv would otherwise leave the
-   user's shell with ECHO still cleared, invisible typing until `stty
-   echo`/`reset`.  Restore, then re-raise with the default disposition --
-   so the process still actually dies of the signal (correct exit status,
-   core dump if applicable for SIGSEGV-like signals) -- we're only
-   cleaning up the tty first, not changing how the process exits. */
+/* atexit() and the explicit call in ComTerp::exit() cover an orderly exit;
+   neither runs when the process dies by signal, which for an interactive
+   session is the common case -- Ctrl-C is SIGINT.  Otherwise a signal-killed
+   session leaves the user's shell with ECHO cleared and typing invisible until
+   `stty echo`.  Restore, then re-raise with the default disposition, so the
+   process still dies of the signal with the right status; only the tty is
+   cleaned up first. */
 static void tty_echo_signal_handler(int sig) {
     tty_echo_restore();
     signal(sig, SIG_DFL);

@@ -94,13 +94,11 @@ ComValue& ComFunc::stack_arg(int n, boolean symbol, ComValue& dflt) {
 	        argref = _comterp->lookup_symval(argref);
 		if (slotwrapper != AttributeValue::NoWrapper)
 		  argref.wrapper(slotwrapper);
-		/* fire_if_funcobj() returns a reference into its own
-		   per-fire pool entry, never a shared slot -- a caller
-		   (e.g. EqualFunc) resolving two pending FuncObj operands
-		   before consuming either gets two DISTINCT entries, so the
-		   second fire can't alias/overwrite the first (regression
-		   test: posteval.comt test 10, h(:a func(1) :b func(2))).
-		   See _fire_scratch_pool's own comment in comterp.h. */
+		/* fire_if_funcobj() returns a reference into its own per-fire
+		   pool entry rather than a shared slot, so a caller resolving
+		   two pending FuncObj operands before consuming either gets
+		   two distinct entries and the second fire cannot overwrite
+		   the first. */
 		if (was_pending && argref.is_object(FuncObj::class_symid()))
 		  return _comterp->fire_if_funcobj(argref);
 	    }
@@ -147,25 +145,18 @@ ComValue& ComFunc::stack_dotname(int n) {
 }
 
 ComValue ComFunc::stack_arg_post_eval(int n, boolean symbol, ComValue& dflt) {
-  /* No keys to skip and no fixed arg at position n -> there is definitively
-     nothing to fire, so there is nothing that needs a valid anchor either.
-     Mirrors stack_key_post_eval's nkeys()==0 bail-out: an empty {}/[]
-     literal's internal construction calls this with nargsfixed()==0, and
-     that's a normal, silent no-op, not evidence of anything wrong -- check
-     it before reading the anchor so that case never reaches the guard
-     below and never warns. */
+  /* no keys to skip and no fixed arg at position n means nothing to fire, so
+     nothing needs a valid anchor either.  An empty {} or [] literal's own
+     construction calls this with nargsfixed()==0, which is a silent no-op --
+     checked before the anchor is read, so it never reaches the guard below. */
   if (nkeys()==0 && n>=nargsfixed()) return dflt;
 
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;
-  /* same anchor-recovered-offtop guard as stack_key_post_eval (see note
-     there) -- this one was missed when that hardening landed, and it's the
-     path DotFunc/GrDotFunc use to fire arg 0 (e.g. at(grid(:table)) in
-     at(grid(:table)).grid), so a corrupt anchor here doesn't crash, it
-     just walks _pfcomvals from the wrong position and returns whatever
-     garbage token happens to sit there -- observed as a bogus CommandType
-     value routinely, not a crash, which is what made this so hard to
-     pin down. */
+  /* the same anchor-recovered-offtop guard stack_key_post_eval uses.  This is
+     the path DotFunc and GrDotFunc take to fire arg 0, where a corrupt anchor
+     does not crash: it walks _pfcomvals from the wrong position and returns
+     whatever token sits there, typically a bogus CommandType. */
   if (offtop > 0 || comterp()->_pfnum + offtop < 1) {
     fprintf(stderr, "comterp: stack_arg_post_eval: offtop out of range "
             "(offtop=%d nkeys=%d argoff=%d _pfnum=%d) -- argoff anchor missing "
@@ -379,17 +370,13 @@ AttributeList* ComFunc::bookmark_stack_keys_post_eval() {
 
 ComValue ComFunc::stack_key_post_eval
 (int id, boolean symbol, ComValue& dflt) {
-  /* No keyword tokens for this command -> the sought keyword is definitively
-     absent, and an absent keyword is a normal, silent result in comterp -- not
-     an error.  Return nil WITHOUT reading the operand stack.  This also
-     disarms the offtop guard below for the benign case it kept tripping on:
-     when remote() re-enters the interpreter to de-serialize a returned list
-     literal, the argoff anchor on the shared operand stack still belongs to
-     the outer in-flight command (the whole reply evaluates inside it), so
-     the anchor read here is bogus -- but with nkeys()==0 there is nothing to
-     find anyway, so skip the read and stay quiet.  The guard's warning is
-     preserved only for nkeys()>0, where a bad anchor is a genuine anomaly
-     and not just proof that a keyword is missing. */
+  /* no keyword tokens for this command means the sought keyword is absent,
+     which is a normal silent result -- return nil without reading the operand
+     stack.  That also disarms the offtop guard below for a benign case: when
+     remote() re-enters the interpreter to de-serialize a returned list, the
+     argoff anchor still belongs to the outer in-flight command, so the anchor
+     read here would be bogus.  The warning stays for nkeys()>0, where a bad
+     anchor is a genuine anomaly. */
   if (nkeys() == 0)
     return ComValue::nullval();
 

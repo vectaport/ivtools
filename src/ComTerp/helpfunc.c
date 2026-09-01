@@ -74,7 +74,7 @@ void HelpFunc::execute() {
   boolean* str_flags;
   int nfuncs = 0;
 
-  /* #334 (staged from #170 phase 1): help(f) where f is a bare, unfired
+  /* help(f) where f is a bare, unfired
      FuncObj -- parallel to comfuncs[]/command_ids[] above, populated only
      in the ordinary (non-:all/:top) branch below, since a user FuncObj is
      never a registered command and so can never appear via :all/:top's

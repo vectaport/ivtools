@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/ACE-lite/tests/acceptor_spawn.cc
+ * ACE-lite.  src/ACE-lite/tests/acceptor_spawn.cc
  * Standalone Phase-3 unit test for ACE_Acceptor + ACE_Svc_Handler, exercising
  * the accept-and-spawn path and the EOF retirement lifecycle
  * (handle_input -1 => reactor retire => handle_close => close => destroy)

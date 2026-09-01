@@ -1,5 +1,5 @@
 /*
- * ACE-lite -- a small, name-compatible in-tree subset of ACE (issue #147).
+ * ACE-lite -- a small, name-compatible in-tree subset of ACE.
  * src/include/ACE-lite/OS.h -- base types and OS-handle definitions shared by
  * the ACE-lite headers.  Declares the same ACE_* names the consumer code uses,
  * so source compiles unchanged against either backend (selected by EXTERN_ACE).

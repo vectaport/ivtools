@@ -213,12 +213,10 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
     }
 
     if (!fptr) {
-	/* RELLIBALLDIR/ABSLIBALLDIR are preprocessor macros supplied by
-	   -D flags in ComUtil/Imakefile, substituted with the real
-	   install paths at compile time -- bare here, not quoted, so the
-	   preprocessor actually expands them (a macro name inside a
-	   string literal is never macro-expanded, which is why this used
-	   to always look for a literal file named "RELLIBALLDIR"). */
+	/* RELLIBALLDIR/ABSLIBALLDIR are preprocessor macros supplied by -D
+	   flags in the Imakefile, carrying the real install paths.  Bare here
+	   rather than quoted, so the preprocessor expands them: a macro name
+	   inside a string literal is never expanded. */
 	strcpy( fullpath, RELLIBALLDIR );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );

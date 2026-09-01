@@ -118,8 +118,8 @@ public:
 //                                 directory: func, ntoks, nremaining,
 //                                 elemN_off/elemN_cnt..., nelem.  Non-literal
 //                                 streams report (:mode :func).
-// lst=info(streamobj :raw) -- the raw internal directory list, layout-
-//                                 agnostic; the probe used by regression tests.
+// lst=info(streamobj :raw) -- the raw internal directory list, which is
+//                                 layout-agnostic.
 class InfoFunc : public StrmFunc {
 public:
     InfoFunc(ComTerp*);
