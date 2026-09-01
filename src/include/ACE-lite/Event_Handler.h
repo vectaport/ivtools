@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Event_Handler.h
+ * ACE-lite.  src/include/ACE-lite/Event_Handler.h
  * ACE_Event_Handler -- the base class registered with ACE_Reactor.  ivtools'
  * ACE_IO_Handler (the InterViews IOHandler adapter) and, later, ACE_Svc_Handler
  * derive from it.  Only the slice ivtools uses is declared.

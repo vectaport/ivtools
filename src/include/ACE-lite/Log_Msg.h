@@ -1,5 +1,5 @@
 /*
- * ACE-lite (issue #147).  src/include/ACE-lite/Log_Msg.h
+ * ACE-lite.  src/include/ACE-lite/Log_Msg.h
  * The ACE_DEBUG / ACE_ERROR / ACE_ERROR_RETURN / ACE_ASSERT logging macros the
  * consumer code uses, routed to a small stderr logger that understands the few
  * ACE format directives ivtools actually passes (%P pid, %t thread, %p errno).
