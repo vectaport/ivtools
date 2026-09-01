@@ -181,8 +181,7 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
                 if (idx > maxidx) maxidx = idx;
             } else {
                 /* a computed index (arg(i), arg(i+1), ...) -- resolving
-                   simple cases statically is future work (
-                   point 2's "attempt, fall back to dynamic" allowance);
+                   simple cases statically is future work;
                    this first pass gives up gracefully instead of
                    guessing. */
                 saw_nonliteral = true;
