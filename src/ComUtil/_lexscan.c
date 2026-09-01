@@ -266,21 +266,14 @@ int bs_ident = 0;
 	     (*outfunc) ( get_command_prompt(), outfile);
 	 }
 	 _continuation_prompt = 0;
-	 /* self-echo: with the OS's own tty echo suppressed (tty_echo_off(),
-	    ttyecho.c -- issue #76), nothing else shows what was just read,
-	    typed or pasted.  Echo it here, right where each line becomes
-	    known, so it stays correctly interleaved with each line's own
-	    result even for a multi-line paste that the OS would otherwise
-	    have dumped to the screen all at once, well before this point.
-	    Gated on !_continuation_prompt_disabled, same as the prompt print
-	    above -- a caller that's already asking for no prompt (e.g. a
-	    piped/non-interactive script) wants no echo of its own either.
-	    Also gated on the one-shot suppress-next flag (ttyecho.c) -- see
-	    its comment for why that, and not a held-open disable_prompt(),
-	    is what's safe to use around a single internal eval like
-	    comdraw/drawserv's startup seed update(); consumed here exactly
-	    once regardless of whether this line turns out to be a comment
-	    or the real one, so it only ever swallows the next line read. */
+	 /* self-echo: with the OS's tty echo suppressed, nothing else shows
+	    what was just read.  Echoing here, where each line becomes known,
+	    keeps it interleaved with that line's own result even for a
+	    multi-line paste the OS would have dumped all at once.  Gated on
+	    !_continuation_prompt_disabled, as the prompt print above is -- a
+	    caller wanting no prompt wants no echo either -- and on the one-shot
+	    suppress-next flag, which is consumed here exactly once, so it only
+	    ever swallows the next line read. */
 	 /* tty_echo_before_read() hands echo back to the OS when nothing is
 	    buffered, so typing is visible and line-edited normally; each read
 	    is followed by tty_echo_after_read(), which suppresses echo for the
@@ -289,9 +282,8 @@ int bs_ident = 0;
 	 { int echo_suppressed = tty_echo_consume_suppress_next();
 	   int self_echo = 0;
 	   /* only when this lexer is reading the terminal itself.  A string
-	      source (ComTerpServ::s_fgets -- comdraw/drawserv, and every
-	      internal eval such as the startup update() seed) must leave the
-	      tty alone, or it turns echo off with nothing to turn it back on. */
+	      source must leave the tty alone, or it turns echo off with
+	      nothing to turn it back on. */
 	   int on_tty = (infile == (void*)stdin);
 	 if (linecmtchr || linecmtstr)
 	   while( (on_tty ? tty_echo_before_read() : (void)0,
@@ -1014,13 +1006,11 @@ token_return:
 /* ----------------------------------------------------------------------- */
 
    *toktype = token_state;
-   /* recorded in true document-scan order, unlike the *toktype and
-      *bufptr output params themselves -- _parser.c's lookahead can call
-      scanner() (and so lexscan()) more than once per token it hands the
-      caller, so by the time a caller reads those params back they may
-      reflect whichever call happened to run last, not "the token
-      immediately before this one" in source order (#423, trailing-side
-      colon scanner surgery -- see _scanner.c's use of these). */
+   /* recorded in true document-scan order, unlike the *toktype and *bufptr
+      output params: lookahead can call scanner(), and so lexscan(), more than
+      once per token handed to the caller, so those params may reflect
+      whichever call ran last rather than the token immediately before this
+      one in source order. */
    _lexscan_last_tokend = *bufptr;
    _lexscan_last_toktype = token_state;
    return FUNCOK;

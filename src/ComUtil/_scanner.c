@@ -141,21 +141,17 @@ int search_state = LOOK_START; /* State of what has been found */
                                       /* in error file */
 int status;
 
-/* #423 (trailing side): a ':' immediately touching the end of a
-   completed operand -- no whitespace between them -- reads as an infix
-   operator (a:b, a range/pair), not the start of a fresh ":keyword".
-   Real ":keyword" usage never glues the colon directly onto a preceding
-   value with zero space (it's always its own space-separated argument,
-   or the first thing after an opening delimiter like '(' -- both of
-   which stay eligible for the merge below, since neither token type is
-   in the whitelist).  Read from _lexscan_last_tokend/_toktype
-   (_lexscan.c), NOT the *bufptr and *toktype output params below -- those
-   get overwritten by this very function's own lexscan() calls (and by
-   whatever lookahead _parser.c does across separate scanner() calls),
-   so by now they may no longer hold the true previous token in source
-   order.  _lexscan_last_* are updated in exactly one place, lexscan()'s
-   own common return path, so they always reflect the last real token
-   actually scanned off the input, regardless of caller-side lookahead. */
+/* a ':' touching the end of a completed operand, with no whitespace between,
+   reads as an infix operator -- a:b, a range or pair -- rather than the start
+   of a fresh ":keyword".  Real keyword usage never glues the colon onto a
+   preceding value: it is always space-separated, or the first thing after an
+   opening delimiter, and both stay eligible for the merge below.
+
+   Read from _lexscan_last_tokend/_toktype, not the *bufptr and *toktype output
+   params, which this function's own lexscan() calls overwrite -- and which
+   caller-side lookahead can overwrite too, so they may no longer hold the
+   previous token in source order.  _lexscan_last_* is updated in exactly one
+   place, lexscan()'s common return path. */
 unsigned prev_tokend = _lexscan_last_tokend;
 unsigned prev_toktype = _lexscan_last_toktype;
 
@@ -239,25 +235,13 @@ unsigned prev_toktype = _lexscan_last_toktype;
                break;
 
             case ':' :
-               /* Only TOK_IDENTIFIER, deliberately -- real ":keyword"
-                  usage always has a space before it (at(r 0 :raw),
-                  colonlist.comt test 4), so that spacing was never at
-                  risk from this check either way, whatever the
-                  preceding token's type.  The question is only what a
-                  number or closing delimiter glued straight onto a
-                  keyword with NO space (at(lst 0:raw), f():key) ought
-                  to mean, since nothing establishes that today one way
-                  or the other; tried including them in this whitelist
-                  and it read that hypothetical shape as a colon-pair
-                  instead of a keyword, on the reasoning that a keyword
-                  glued to a preceding value with zero space isn't
-                  something anyone currently writes -- backed off rather
-                  than take on an ambiguity nothing forces a call on. An
-                  identifier glued to a colon the same way IS the shape
-                  #423 needs (confirmed via the full run_all.comt suite:
-                  nothing relies on one being glued to a keyword
-                  either), so it's the one case narrow enough to claim
-                  outright. */
+               /* TOK_IDENTIFIER only, deliberately.  Real ":keyword" usage
+                  always has a space before it, so that spacing is not at risk
+                  here whatever the preceding token.  What a number or closing
+                  delimiter glued straight onto a keyword should mean --
+                  at(lst 0:raw), f():key -- is undecided, and nothing forces
+                  the call, so those stay out of the whitelist.  An identifier
+                  glued to a colon is the one shape narrow enough to claim. */
                if( isident( buffer[*bufptr] ) &&
                    !( prev_tokend == *tokstart &&
                       prev_toktype == TOK_IDENTIFIER ))
