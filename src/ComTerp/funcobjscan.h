@@ -30,42 +30,33 @@ class AttributeList;
 class ComTerp;
 
 // FuncObjVarScan: classifies every distinct symbol referenced in a FuncObj
-// body's token span into #170's taxonomy -- read-only, read-before-write,
-// write-before-read, or escaping (local()/global()).  Used by #310 (func()
-// closures via declaration-time capture) and #170 (:help contract
-// derivation) -- one classifier, two consumers.
+// body's token span as read-only, read-before-write, write-before-read, or
+// escaping (local()/global()).  One classifier, two consumers: declaration-
+// time capture for func() closures, and help-contract derivation.
 //
-// Built on PostfixSpanWalk (postfixspan.h) for the underlying traversal.
-// Does no symbol-table lookup itself and needs no ComTerp access -- the
-// caller (a ComFunc, a friend of ComTerp, e.g. FuncObjFunc::execute) has
-// already resolved each token's symbol-vs-command status once via the
-// existing ComTerp::token_to_comvalue and passes the result in as
-// is_plain_var[], so this stays a pure structural pass with no
-// side effects and no dependency on live interpreter state.
+// Built on PostfixSpanWalk for the traversal.  It does no symbol-table lookup
+// and needs no ComTerp access: the caller has already resolved each token's
+// symbol-vs-command status via ComTerp::token_to_comvalue and passes the
+// result in as is_plain_var[], so this stays a pure structural pass.
 class FuncObjVarScan {
 public:
     enum Kind { ReadOnly, ReadBeforeWrite, WriteBeforeRead, EscapingLocal, EscapingGlobal };
 
     // is_plain_var[i] must be true iff toks[i] is a bare, zero-arg symbol
-    // reference (TOK_COMMAND, narg==0, nkey==0) that resolves to an
-    // ordinary variable rather than a registered command -- i.e. what
-    // ComTerp::token_to_comvalue leaves as ComValue::SymbolType instead of
-    // promoting to CommandType.  Every other token (real commands,
-    // literals, keywords) must be false here.
+    // reference (TOK_COMMAND, narg==0, nkey==0) resolving to an ordinary
+    // variable rather than a registered command -- what token_to_comvalue
+    // leaves as SymbolType instead of promoting to CommandType.  Every other
+    // token must be false.
     //
-    // Returns an AttributeList mapping each referenced variable's symid (as
-    // attribute name) to its Kind (stored as an IntType AttributeValue).
-    // Caller owns the returned list.
+    // Returns an AttributeList mapping each variable's symid to its Kind, as
+    // an IntType value.  Caller owns the list.
     static AttributeList* classify(postfix_token* toks, int ntoks, boolean* is_plain_var);
 
-    // Builds a fresh is_plain_var[] array for classify() above, resolving
-    // each token the same way ordinary evaluation would (token_to_comvalue
-    // is public specifically for this, see its own comment in comterp.h).
-    // Shared by #310's declaration-time capture (postfunc.c) and #170's
-    // :help fire-time analysis (comterp.c) so both go through one
-    // implementation of the nids<0 dot-rhs exclusion (HACKING.md's "Dot
-    // Operator Rhs" section) rather than two copies drifting apart. Caller
-    // owns the returned array (delete []).
+    // builds a fresh is_plain_var[] for classify(), resolving each token the
+    // way ordinary evaluation would.  Shared by declaration-time capture and
+    // help-contract analysis so both use one implementation of the nids<0
+    // dot-rhs exclusion rather than two that can drift.  Caller owns the
+    // returned array (delete []).
     static boolean* build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks);
 
     // Positional arg(n) usage, derived separately from classify() above --
@@ -73,9 +64,8 @@ public:
     // at all.
     struct PositionalInfo {
         long count;        // -1 means "count could not be pinned down statically";
-                            // long (not int) so a literal index near INT_MAX
-                            // doesn't overflow computing count = maxidx + 1
-                            // (Greptile, PR #337)
+                            // long, not int, so a literal index near INT_MAX
+                            // does not overflow computing maxidx + 1
         boolean uses_narg; // true if narg() appears anywhere in the body --
                             // treated as a signal the body is variadic
                             // (loops over an arg(n) run bounded by narg()),
@@ -83,31 +73,22 @@ public:
                             // literal arg(n) indices also found.
     };
 
-    // Scans for arg(n) calls, deriving the positional count from the
-    // highest literal index referenced (max constant index + 1).  A
-    // non-literal index (e.g. arg(i)) makes the count unresolvable the same
-    // way narg() usage does -- see #170 phase 1 point 2's "attempt simple
-    // computed n, fall back to dynamic" allowance; this first pass only
-    // resolves literal indices, computed-index resolution is future work.
+    // scans for arg(n) calls, deriving the positional count from the highest
+    // literal index referenced.  A non-literal index (arg(i)) makes the count
+    // unresolvable, the same as narg() usage does; only literal indices are
+    // resolved here.
     static PositionalInfo scan_positionals(postfix_token* toks, int ntoks);
 
-    // #336 (staged from #170's "Future" section, "Positional optionality"):
-    // recognizes the canonical "unsupplied keyword defaults to nil" idiom --
-    // if(x==nil :then DEFAULT :else x) -- and extracts DEFAULT where it's a
-    // single literal token. Only this one, well-known shape is matched
-    // (condition is exactly "x==nil"/"nil==x", the :else branch is exactly
-    // the bare keyword unchanged, the :then branch is exactly one literal
-    // token); anything more elaborate -- a computed default, extra
-    // keywords on the if(), a differently-shaped condition -- is silently
-    // skipped rather than guessed at, the same "attempt simple cases, give
-    // up gracefully" restraint scan_positionals uses for computed arg(n)
-    // indices. Needs ComTerp access (token_to_comvalue) to turn the
-    // literal token into a real ComValue, unlike classify()/
-    // scan_positionals() above.
+    // recognizes the canonical "unsupplied keyword defaults to nil" idiom,
+    // if(x==nil :then DEFAULT :else x), and extracts DEFAULT where it is a
+    // single literal token.  Only that exact shape is matched -- a computed
+    // default, extra keywords on the if(), a differently shaped condition are
+    // skipped rather than guessed at.  Needs ComTerp access to turn the
+    // literal token into a ComValue, unlike the two above.
     //
-    // Returns an AttributeList mapping each keyword's symid (only those
-    // with a recognized default) to its default ComValue. Always non-nil,
-    // possibly empty. Caller owns the returned list.
+    // Returns an AttributeList mapping each keyword's symid to its default,
+    // for those with a recognized one.  Always non-nil, possibly empty.
+    // Caller owns the list.
     static AttributeList* scan_defaults(ComTerp* comterp, postfix_token* toks, int ntoks, boolean* is_plain_var);
 };
 
