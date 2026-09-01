@@ -172,9 +172,8 @@ void GroupFunc::execute() {
     OverlayViewer* viewer = (OverlayViewer*)GetEditor()->GetViewer();
 
     /* gather the current selection to group -- the "regroup" half of
-       growgroup, but sourced from the selection instead of an existing
-       group's members (see #157: growgroup/trimgroup could grow/trim a group
-       but there was no way to bootstrap one). */
+       growgroup, sourced from the selection rather than an existing group's
+       members, so a group can be bootstrapped and not only grown or trimmed. */
     Clipboard* cb = new Clipboard();
     cb->Init(viewer->GetSelection());
 

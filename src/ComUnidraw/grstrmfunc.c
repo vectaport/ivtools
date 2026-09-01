@@ -37,15 +37,12 @@ GrStreamFunc::GrStreamFunc(ComTerp* comterp) : StreamFunc(comterp) {
 }
 
 void GrStreamFunc::execute() {
-  /* Stream literals ((1 2 3), nargstotal()>1) and the empty-stream literal
-     ([], nargs()==0) are unconditionally delegated to the base class --
-     this override only has anything of its own to add for the single-
-     already-evaluated-value case below (peeking for a ComponentView to
-     unwrap). Without this check, stack_arg_post_eval(0) ran unconditionally
-     against zero or several args, silently producing nothing: confirmed
-     live under drawserv/comdraw, (1 2 3) and [] each printed empty instead
-     of the literal stream -- the same class of bug as #301/#303 (a Gr*
-     override outrunning what the base class actually handles). */
+  /* stream literals -- (1 2 3), nargstotal()>1 -- and the empty literal [],
+     nargs()==0, go straight to the base class.  This override only adds
+     something for the single already-evaluated value below, where it peeks for
+     a ComponentView to unwrap.  Without the check, stack_arg_post_eval(0) runs
+     against zero or several args and silently produces nothing, so a literal
+     prints empty. */
   if (nargstotal() > 1 || nargs() == 0) {
     StreamFunc::execute();
     return;
@@ -82,13 +79,11 @@ void GrStreamFunc::execute() {
     
   } else {
 
-    /* Not a compview -- e.g. a plain list, as from zoo.haslegs() above.
-       convertv above already fired the (post_eval) argument once to make
-       this check; re-firing it via a fresh StreamFunc::exec() would run
-       the source expression's side effects a second time (confirmed live:
-       a self-bound method returning a list of matches ran its whole body,
-       print()s and all, twice under $$). Hand the already-evaluated value
-       straight to the shared conversion logic instead. */
+    /* not a compview -- a plain list, say.  convertv above already fired the
+       post_eval argument once to make this check, and re-firing it through a
+       fresh StreamFunc::exec() would run the source expression's side effects
+       a second time.  Hand the already-evaluated value to the shared
+       conversion logic instead. */
     reset_stack();
     push_stream_from_value(convertv);
     return;

@@ -36,13 +36,10 @@ public:
     GrDotFunc(ComTerp*);
 
     virtual void execute();
-    /* Explicit, not just inherited: GrDotFunc predates DotFunc becoming
-       post_eval (issue #295/#301) and originally relied on its args
-       already being fired eagerly by the framework -- silently inheriting
-       post_eval()==true from DotFunc broke that (arg 0 arrived as a raw,
-       unfired CommandType token instead of a real value) without anyone
-       updating execute() to match, until this override made the mismatch
-       obvious and execute() was rewritten below to be post_eval-aware. */
+    /* declared explicitly rather than left to inheritance: this class
+       predates DotFunc becoming post_eval, and inheriting that silently makes
+       arg 0 arrive as an unfired CommandType token rather than a value.
+       Naming it here keeps execute() and post_eval() visibly in step. */
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
       return "%s(.) makes compound variables, and gives access to ComponentView AttributeList's."; }

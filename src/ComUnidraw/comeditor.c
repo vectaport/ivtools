@@ -406,9 +406,8 @@ void ComEditor::keystroke(const Event& e) {
     // like SHIFT_FLAG -- orthogonal to :shiftcapture below, which
     // only decides whether Shift's normal pan/tool-shortcut is ALSO
     // suppressed.  meta_is_down() tests Mod1Mask, which on essentially
-    // every current keyboard IS Alt (Alt and Meta share the same bit; a
-    // keyboard with a dedicated Meta key hasn't shipped since the
-    // Lisp-machine era).  Event has no super_is_down() of its own, so
+    // every current keyboard IS Alt, the two sharing a bit.  Event has no
+    // super_is_down() of its own, so
     // Mod4 (the Windows-logo key on a PC, or Cmd under XQuartz on a Mac)
     // is tested directly via keymask().
     unsigned long flags = (shifted ? SHIFT_FLAG : 0)
@@ -498,17 +497,11 @@ void ComEditor::shiftcapture_poll() {
    too, without changing their BARE (unchorded, unshifted) behavior at
    all.
 
-   Escape is always readable ("Esc"/"ESC"), never the raw \x1b byte:
-   unlike Tab/Backspace/Enter/Space, which return their genuine C
-   escape-sequence literal (\t, \b, \r) or a directly-typeable
-   printable char (' ') when bare -- a real, first-class representation
-   in the language -- Escape has no such literal in standard C/C++ (no
-   \e), so \x1b was never "Esc as itself" the way \t is "Tab as
-   itself"; it was just the generic numeric-byte escape doing double
-   duty, spelling out a byte value with no more claim to being "Esc"
-   than \x41 has to being 'A'. Scripts comparing against \x1b (matching
-   what a terminal would send) is what caused the original keydrive()
-   Esc-detection bug this PR's sibling caught -- see git log. */
+   Escape is always readable ("Esc"/"ESC"), never the raw \x1b byte.
+   Tab/Backspace/Enter/Space each have a genuine C escape literal (\t, \b,
+   \r) or are directly typeable (' '), so bare they return themselves;
+   standard C++ has no \e, so \x1b was never "Esc as itself" the way \t is
+   Tab -- only the generic numeric-byte escape spelling out a value. */
 static const char* core_keyname(unsigned long ks, boolean shifted, boolean chorded,
 				 char* buf, size_t bufsz) {
     boolean textual = shifted || chorded;
@@ -563,16 +556,13 @@ static const char* core_keyname(unsigned long ks, boolean shifted, boolean chord
       case XK_Insert:    base = "ins";   break;  // curses KEY_IC; "ins" reads better
       default:
 	/* X11's Latin-1 keysyms are numerically identical to their ASCII
-	   codepoint across the whole printable range (space 0x20 through
-	   tilde 0x7e) -- verified directly, not just for letters/digits:
-	   [ ] { } ( ) < > ` ' " : ; , . and every shifted-numeric symbol
-	   (! @ # $ % ^ & *) all match too.  So any printable-ASCII keysym
-	   just IS its own character.  keystroke() folds shift into ks
-	   itself for letters (Shift+d arrives as XK_D) and X11 already
-	   resolves shifted symbols to their own distinct keysym (Shift+[
-	   is XK_braceleft, not XK_bracketleft), so this already carries
-	   the right character either way -- the uppercasing loop below is
-	   a harmless no-op for anything that isn't a lowercase letter. */
+	   codepoint across the whole printable range, space 0x20 through
+	   tilde 0x7e, punctuation and shifted symbols included -- so any
+	   printable-ASCII keysym is its own character.  keystroke() folds
+	   shift into ks for letters, and X11 resolves shifted symbols to
+	   their own keysym (Shift+[ is XK_braceleft), so the right character
+	   arrives either way and the uppercasing loop below is a no-op for
+	   anything that is not a lowercase letter. */
 	if (ks>=0x20 && ks<=0x7e) {
 	    one[0] = (char)ks; one[1] = '\0'; base = one;
 	} else {
