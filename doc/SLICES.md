@@ -111,7 +111,7 @@ via `symbol_len()`.
 (`numfunc.c:249-`) is where `+` decides in-place vs. copy. Operand `a`
 must be `is_only_string()` (`StringType`, never `SymbolType` — a
 symbol's characters are its identity, shared by every value holding
-that symid, #393; writing through one would corrupt everyone else's
+that symid; writing through one would corrupt everyone else's
 view). Given that, the in-place condition is:
 
 ```
@@ -304,19 +304,20 @@ being "the same" object, so any command that used to lean on "a
 string's symid is already a proper registered symbol" needs to
 re-derive from the text instead of trusting the symid.
 
-## 8. Known gaps
+## 8. Surviving a boxed copy
 
-- **`#437`/`#438` — RESOLVED, PRs #450/#451.** A slice/colon-list used
-  to lose its `sliced()`/`coloned()` tag (and even `narg`/`nkey`/`nids`)
-  whenever a `ComValue` was boxed into a plain `AttributeValue`-based
-  container — a function keyword argument, a captured free variable,
-  or any `AttributeList`/`AttributeValueList` entry. Fixed by widening
-  `AttributeValue` itself to carry that block (128 bits: the existing
-  `_command_symid`/`_state` union slot plus three new ints), so a
-  plain `new AttributeValue(value)` now copies it too, and by giving
-  `AttributeValue` a generic render-hook slot so `AttributeList`'s own
-  top-level print can go through `ComValue::operator<<` for the two
-  types (`ArrayType`/`StringType`) that need it.
+A slice keeps its `sliced()` tag — and a colon-list its `coloned()` tag,
+along with `narg`/`nkey`/`nids` — when the `ComValue` is boxed into a
+plain `AttributeValue`-based container: a function keyword argument, a
+captured free variable, or any `AttributeList`/`AttributeValueList`
+entry.  `AttributeValue` carries that block itself, so a plain
+`new AttributeValue(value)` copies it, and a generic render-hook slot
+lets `AttributeList`'s own top-level print go through
+`ComValue::operator<<` for the two types (`ArrayType`/`StringType`)
+that need it.
+
+## 9. Known gaps
+
 - `:set`/`:ins`/`:del` through a slice — not yet supported; falls
   through to `nil`.
 - Slicing a plain list/array — only `is_only_string()` triggers slice

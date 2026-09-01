@@ -52,7 +52,7 @@ loopback exactly as on a real display.
 
 The deeper fix -- have the listener accept IPv6 too (dual-stack), so `"localhost"`
 works regardless of resolver order -- is ACE-build-dependent (`ACE_HAS_IPV6`) and
-is left to the in-tree ACE-lite work (issue #147). Until then, distributed
+is left to the in-tree ACE-lite work. Until then, distributed
 ivtools across IPv6-preferring hosts should use IPv4 literals.
 
 ## Port Convention

@@ -292,11 +292,10 @@ command calls with explicit parens:
   `FuncObj`-valued attribute of `a` — including when it happens to also
   be a registered global command, like `type` or `print` — this warns
   and returns nil rather than falling through to that global command.
-  That's a deliberate change from the pre-#295 behavior (parens used to
-  mean "evaluate this as an ordinary sub-expression first," which for a
-  registered name fired the *global* command, ignoring `a` entirely);
-  dot access is now consistently "look in the object" whether or not
-  parens follow.
+  That's a deliberate change: parens used to mean "evaluate this as an
+  ordinary sub-expression first," which for a registered name fired the
+  *global* command, ignoring `a` entirely.  Dot access is now
+  consistently "look in the object" whether or not parens follow.
 
 This is implemented in `_parser.c` at the bare identifier emission
 point (line ~1028): when the top of the operator stack is the `dot`
