@@ -117,6 +117,10 @@ if(run("./funcstream.comt")
   :then print("pass: funcstream\n")
   :else print("FAIL: funcstream\n");topok=false)
 
+if(run("./multibody.comt")
+  :then print("pass: multibody\n")
+  :else print("FAIL: multibody\n");topok=false)
+
 if(run("./nilcompare.comt")
   :then print("pass: nilcompare\n")
   :else print("FAIL: nilcompare\n");topok=false)
