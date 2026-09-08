@@ -221,12 +221,6 @@ void WhileFunc::execute() {
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
   ComValue* bodyexpr = nil;
-  if (nargsfixed()>2) {
-    fprintf(stderr, "Error: while loop with more than one body -- missing semicolon between statements (line %d)\n", funcstate()->linenum());
-    reset_stack();
-    push_stack(ComValue::nullval());
-    return;
-  }
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
     if (untilflag.is_false()) {
@@ -235,10 +229,28 @@ void WhileFunc::execute() {
     }
     delete bodyexpr;
     ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
-    if (keybody.is_unknown() && nargsfixed()>= 2)
-      bodyexpr = new ComValue(stack_arg_post_eval(1));
-    else
+    if (keybody.is_unknown() && nargsfixed()>= 2) {
+      /* positions 1..N-1 are one or more space-separated bodies.  All but
+	 the last run for side effects only; an orphaned stream among them
+	 gets drained instead of silently dropped.  The last body's value
+	 is kept.  A control transfer (break/continue/return/quit) raised by
+	 an earlier body stops the remaining ones from running, same as
+	 SeqFunc::execute does for ';'. */
+      for (int i=1; i<nargsfixed(); i++) {
+	ComValue v(stack_arg_post_eval(i));
+	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
+	  comterp()->returnflag() || comterp()->quitflag();
+	if (i==nargsfixed()-1 || control) {
+	  bodyexpr = new ComValue(v);
+	  if (control) break;
+	} else if (v.is_stream() && v.stream_list() && v.stream_list()->refcount_==1) {
+	  comterp()->orphan_stream_count(v);
+	}
+      }
+    }
+    else {
       bodyexpr = new ComValue(keybody);
+    }
     if (untilflag.is_true()) {
       ComValue doneexpr(stack_arg_post_eval(0));
       if (nilchkflag.is_false() ? doneexpr.is_true() : doneexpr.is_unknown()) break;
