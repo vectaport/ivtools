@@ -105,12 +105,11 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "val=%s(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until :body expr ) -- while loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
+      return "val=%s(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until ) -- while loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":nilchk    check testexpr for nil instead of false",
 	":until     evaluate testexpr after bodyexpr",
-	":body expr explicit keyword for body of for loop",
 	nil
       };
       return keys;

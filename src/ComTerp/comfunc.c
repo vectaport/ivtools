@@ -414,6 +414,39 @@ ComValue ComFunc::stack_key_post_eval
   return ComValue::nullval();
 }
 
+boolean ComFunc::stack_key_present(int id, boolean* has_value) {
+  if (has_value) *has_value = false;
+
+  /* same nkeys()==0 short-circuit as stack_key_post_eval -- see the fuller
+     note there. */
+  if (nkeys() == 0)
+    return false;
+
+  ComValue argoff(comterp()->stack_top());
+  int offtop = argoff.int_val()-comterp()->_pfnum;
+  /* same anchor-recovered-offtop guard as stack_key_post_eval; a corrupt
+     anchor here would already have been reported by whichever keyword this
+     command looks up first (:nilchk/:until for while()'s callers, etc.),
+     so stay silent rather than double-warn. */
+  if (offtop > 0 || comterp()->_pfnum + offtop < 1)
+    return false;
+
+  int count = 0;
+  while (count < nkeys()) {
+    ComValue& curr = comterp()->expr_top(offtop);
+    if (!curr.is_type(ComValue::KeywordType))
+      return false;
+    count++;
+    int argcnt = 0;
+    skip_key_in_expr(offtop, argcnt);
+    if (curr.symbol_val() == id) {
+      if (has_value) *has_value = argcnt != 0;
+      return true;
+    }
+  }
+  return false;
+}
+
 ComValue& ComFunc::stack_arg_post(int n, boolean symbol, ComValue& dflt) {
   ComValue argoff(comterp()->stack_top());
   int offtop = argoff.int_val()-comterp()->_pfnum;

@@ -220,6 +220,17 @@ void WhileFunc::execute() {
   static int nilchk_symid = symbol_add("nilchk");
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
+  /* :body predates today's positional multi-body support and never composed
+     with it (a :body value alongside positional bodies used to silently
+     discard the positionals).  It's retired -- deliberately left out of
+     docstring()/dockeys() so it no longer shows up in help() or the man
+     page -- and its value is never used as the body.  stack_key_present()
+     only walks the keyword's token span to detect it, the same skip
+     stack_key_post_eval's own search loop does before evaluating a match;
+     unlike that walk, it never calls post_eval_expr, so a :body expression
+     is never fired even once, bare or not. */
+  if (stack_key_present(body_symid))
+    fprintf(stderr, "Warning: while()'s :body keyword no longer has any effect -- use positional bodies instead (line %d)\n", funcstate()->linenum());
   ComValue* bodyexpr = nil;
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
@@ -228,8 +239,7 @@ void WhileFunc::execute() {
       if (nilchkflag.is_false() ? doneexpr.is_false() : doneexpr.is_unknown()) break;
     }
     delete bodyexpr;
-    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
-    if (keybody.is_unknown() && nargsfixed()>= 2) {
+    if (nargsfixed()>= 2) {
       /* positions 1..N-1 are one or more space-separated bodies.  All but
 	 the last run for side effects only; an orphaned stream among them
 	 gets drained instead of silently dropped.  The last body's value
@@ -249,7 +259,7 @@ void WhileFunc::execute() {
       }
     }
     else {
-      bodyexpr = new ComValue(keybody);
+      bodyexpr = new ComValue(ComValue::unkval());
     }
     if (untilflag.is_true()) {
       ComValue doneexpr(stack_arg_post_eval(0));

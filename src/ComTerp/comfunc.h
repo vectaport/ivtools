@@ -163,7 +163,16 @@ public:
     ComValue stack_key_post_eval(int, boolean, ComValue&, boolean) = delete;
     // retired use_dflt parameter -- see stack_key()'s deleted overload.
 
-    AttributeList* stack_keys(boolean symbol = false, 
+    boolean stack_key_present(int id, boolean* has_value=nil);
+    // same keyword-run walk as stack_key_post_eval(), but never evaluates
+    // anything: returns whether keyword 'id' appears at all among this
+    // post-evaluating ComFunc's keywords, and (via 'has_value', if
+    // non-nil) whether it carries a value expression rather than sitting
+    // bare.  For a caller that just wants to know a keyword was used --
+    // e.g. to warn about a deprecated one -- without ever firing (and so
+    // side-effecting) whatever expression follows it.
+
+    AttributeList* stack_keys(boolean symbol = false,
 			      AttributeValue& dflt=ComValue::trueval());
     // return newly-constructed AttributeList (which needs referencing)
     // that contains a copy of each keyword/value pair in the arguments
