@@ -1,0 +1,76 @@
+// src/comterp_/tests/multibody.comt -- pins today's for()/while()/func()
+// single-body limitation: a non-final body's stream side effects aren't
+// merely "lost" today -- they never run at all, because the multi-body
+// form itself is rejected (for/while) or never becomes part of the body
+// (func) before any execution happens.
+//
+// This is the counter-evidence for a review concern raised on #483
+// (postfunc.c, removing SeqFunc's lhs-orphan-stream force-drain): that
+// concern assumes for()/while()/func() already run multiple
+// space-separated bodies today, sequenced through SeqFunc, and that #483
+// regresses a non-final body's deferred stream work (e.g. an overdriven
+// print()). They don't -- #481 (multiple space-separated bodies for
+// for()/while()/func()) is not implemented yet, so there is no existing
+// multi-body execution path for #483 to affect. Every test below proves
+// the would-be-non-final body never runs even once, via a hit counter,
+// not just that the overall call errors or returns the wrong value.
+//
+// Once #481 lands, INVERT every assertion below (grep "INVERT ON #481"):
+// a hard error becomes a successful multi-body run, "hits==0" becomes
+// "hits==1", and the orphan stream a would-be-non-final body produces
+// should drain via #481's own dedicated step (per #482), not silently
+// vanish and not get force-drained by SeqFunc either.
+//
+// funcs: for while func run
+//
+// Run from inside comterp (cd to this dir first):
+//   run("./multibody.comt")
+
+run("./testlib.comt")
+ok=true
+
+// --- test 1: for() with 2 space-separated bodies -- today a hard error
+// fires BEFORE the loop ever starts (ForFunc::execute checks
+// nargsfixed()>4 immediately after evaluating initexpr), so the first
+// body -- which would itself produce an orphaned stream if it ran --
+// never executes even once. hits==0 proves that directly, not just
+// r==nil. ---
+hits=0
+r=for(i=0 i<3 i=i+1  hits=hits+1;print(0..2) i*i)
+ok=ok&&(r==nil && hits==0)
+print("1 for() with 2 bodies: hard error, first body never runs (expect true): %v\n\n" (r==nil&&hits==0))
+prev_ok=check_fail(:ok ok)
+// INVERT ON #481: r should be the last iteration's i*i (4), hits==3 (once
+// per iteration), and print(0..2)'s orphan stream should drain via #481's
+// own dedicated step instead of vanishing.
+
+// --- test 2: while() with 2 space-separated bodies -- same hard error,
+// same "never even started" guarantee. ---
+hits=0
+i=0
+r=while(i<3  hits=hits+1;print(0..2) i=i+1)
+ok=ok&&(r==nil && hits==0)
+print("2 while() with 2 bodies: hard error, first body never runs (expect true): %v\n\n" (r==nil&&hits==0))
+prev_ok=check_fail(:ok ok)
+// INVERT ON #481: r should be the final i (3), hits==3, and print(0..2)'s
+// orphan stream should drain via #481's own dedicated step.
+
+// --- test 3: func() with 2 positionals -- today only positional 0 ever
+// becomes part of the function body; positional 1 is not "lost" at call
+// time, it was never incorporated into the FuncObj at definition time
+// (FuncObjFunc::execute only copies positional 0's postfix span, #350).
+// So a stream sitting in the second position never gets a chance to
+// become an orphan -- it never runs, no matter how many times f is
+// called. ---
+hits=0
+f=func(x=1  hits=hits+1;print(0..2))
+r=f()
+ok=ok&&(r==1 && hits==0)
+print("3 func() with 2 bodies: only position 0 runs, position 1 never does (expect true): %v\n\n" (r==1&&hits==0))
+prev_ok=check_fail(:ok ok)
+// INVERT ON #481: r should be whatever the LAST body evaluates to,
+// hits==1 (position 1 now runs), and print(0..2)'s orphan stream should
+// drain via #481's own dedicated step, not silently vanish.
+
+print("multibody: %v\n" ok)
+ok
