@@ -102,10 +102,14 @@ spiro=func(
   // zip xs and ys into ONE flat x0,y0,x1,y1,... list, the shape
   // closedspline() wants: $$xs,$$ys chains two fresh streams through the
   // comma-append idiom (pts,val appends val's elements) -- , zips
-  // co-iterating streams per-element rather than nesting them, so this
-  // one line drains both in lockstep instead of a per-point loop.
+  // co-iterating streams per-element rather than nesting them.  each()
+  // is what actually drains it in lockstep instead of a per-point loop --
+  // this used to be an undeclared side effect of the expression sitting as
+  // a bare, discarded lhs of ';' (SeqFunc used to force-drain an orphaned
+  // stream there); #482/#483 removed that special case from ';' itself,
+  // so the drain has to be requested explicitly here instead.
   pts=list();
-  pts,$$xs,$$ys;
+  each(pts,$$xs,$$ys);
   // one closed spline from the whole point list.  the commas in
   // closedspline(x0,y0,x1,y1,...) are the tuple operator, so the
   // familiar syntax builds ONE list arg -- a list variable is the
