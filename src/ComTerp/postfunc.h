@@ -85,8 +85,8 @@ public:
     virtual void execute();
 
     virtual boolean post_eval() { return true; }
-    virtual const char* docstring() { 
-      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop"; }
+    virtual const char* docstring() {
+      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]] :body expr) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":body expr explicit keyword for body of for loop",
