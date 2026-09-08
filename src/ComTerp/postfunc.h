@@ -78,7 +78,7 @@ public:
 };
 
 //: for-loop command for ComTerp.
-// val=for(initexpr whileexpr [nextexpr [bodyexpr]] :body expr) -- for loop.
+// val=for(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]]) -- for loop.
 class ForFunc : public ComFunc {
 public:
     ForFunc(ComTerp*);
@@ -86,18 +86,11 @@ public:
 
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]] :body expr) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
-    virtual const char** dockeys() {
-      static const char* keys[] = {
-	":body expr explicit keyword for body of for loop",
-	nil
-      };
-      return keys;
-    }
+      return "val=%s(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]]) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
 };
 
 //: while-loop command for ComTerp.
-// val=while([testexpr [bodyexpr]] :nilchk :until :body expr ) -- while loop.
+// val=while(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until) -- while loop.
 class WhileFunc : public ComFunc {
 public:
     WhileFunc(ComTerp*);

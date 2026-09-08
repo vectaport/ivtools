@@ -58,6 +58,32 @@ ok=ok&&(r==99)
 print("1e for() return() in a non-final body unwinds out of the enclosing func() (expect true): %v\n\n" (r==99))
 prev_ok=check_fail(:ok ok)
 
+// --- test 1f: :body predates today's positional bodies and never composed
+// with them -- it's now retired (dropped from docstring()/dockeys(), so it
+// no longer shows up in help() or the man page) and does nothing at all,
+// not even evaluate its own expression: legacy stays 0 below.  Positional
+// bodies run exactly as if :body were never there (same shape as test 1,
+// with :body tacked on -- r and hits match test 1's expectations). ---
+legacy=0
+hits=0
+r=for(i=0 i<3 i=i+1 hits=hits+1 i*i :body legacy=legacy+1)
+ok=ok&&(legacy==0 && hits==3 && r==4)
+print("1f for() :body is inert -- never fires, positional bodies unaffected (expect true): %v\n\n" (legacy==0&&hits==3&&r==4))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1g: for()'s retired :body warns on stderr just like while()'s
+// (see 2g for the fuller rationale and why a subprocess is needed here).
+// The inner comterp prints i (3) automatically since it's the script's
+// last expression -- proof a for() relying solely on :body for its "body"
+// still runs to completion off its own whileexpr/nextexpr, never firing
+// the deprecated keyword's expression. ---
+out=*$$open("comterp \"r=for(i=0 i<3 i=i+1 :body 1);i\" 2>&1 | tr \"\\n\" \" \"" :pipe)
+warned=index(out "no longer has any effect" :substr)
+ran=index(out " 3 " :substr)
+ok=ok&&(warned!=nil && ran!=nil)
+print("1g for() :body warns on stderr, and a :body-only for() still runs to completion (expect true): %v\n\n" (warned!=nil&&ran!=nil))
+prev_ok=check_fail(:ok ok)
+
 // --- test 2: while() with 2 space-separated bodies -- both run every
 // iteration, the first purely for side effects, the last kept. ---
 hits=0

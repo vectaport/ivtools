@@ -166,6 +166,16 @@ ForFunc::ForFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ForFunc::execute() {
   static int body_symid = symbol_add("body");
+  /* :body predates today's positional multi-body support and never composed
+     with it (a :body value alongside positional bodies used to silently
+     discard the positionals).  It's retired -- dropped from
+     docstring()/dockeys() so it no longer shows up in help() or the man
+     page -- and its value is never used as the body.  stack_key_present()
+     only walks the keyword's token span (never evaluates a match), so a
+     :body expression is never fired even once, bare or not; see
+     WhileFunc::execute() for the fuller rationale. */
+  if (stack_key_present(body_symid))
+    fprintf(stderr, "Warning: for()'s :body keyword no longer has any effect -- use positional bodies instead (line %d)\n", funcstate()->linenum());
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
@@ -174,8 +184,7 @@ void ForFunc::execute() {
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
-    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
-    if (keybody.is_unknown() && nargsfixed()>= 4) {
+    if (nargsfixed()>= 4) {
       /* positions 3..N-1 are one or more space-separated bodies.  All but
 	 the last run for side effects only; an orphaned stream among them
 	 gets drained instead of silently dropped.  The last body's value
@@ -195,7 +204,7 @@ void ForFunc::execute() {
       }
     }
     else {
-      bodyexpr = new ComValue(keybody);
+      bodyexpr = new ComValue(ComValue::unkval());
     }
     ComValue nextexpr(stack_arg_post_eval(2));
   }
