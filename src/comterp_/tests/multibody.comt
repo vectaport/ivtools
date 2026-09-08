@@ -1,7 +1,8 @@
 // src/comterp_/tests/multibody.comt -- for(): multiple space-separated
 // bodies, all but the last run for side effects with orphan streams
-// drained (#481, for() only). while()/func() still single-body only,
-// pinned below for #481's follow-on PRs.
+// drained (#481, for() only). break()/continue()/return() in a non-final
+// body work exactly as they would in a single-body for(). while()/func()
+// still single-body only, pinned below for #481's follow-on PRs.
 //
 // funcs: for while func run
 //
@@ -30,6 +31,31 @@ drained=list()
 r=for(i=0 i<2 i=i+1  drained,$$xs i)
 ok=ok&&(size(drained)==6 && r==1)
 print("1b for() non-final orphan stream body autostreams (expect true): %v\n\n" (size(drained)==6&&r==1))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1c: break() in a non-final body stops the remaining bodies for
+// that iteration and exits the loop, same as a single-body for() would. ---
+hits=0
+r=for(i=0 i<5 i=i+1  if(i==2 :then break()) hits=hits+1 i)
+ok=ok&&(hits==2 && r==true)
+print("1c for() break() in a non-final body skips later bodies, exits loop (expect true): %v\n\n" (hits==2&&r==true))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1d: continue() in a non-final body stops the remaining bodies
+// for that iteration but the loop keeps going -- unlike break(), it falls
+// through to the next() clause instead of exiting. ---
+hits=0
+r=for(i=0 i<4 i=i+1  if(i==1 :then continue()) hits=hits+1 i)
+ok=ok&&(hits==3 && r==3)
+print("1d for() continue() in a non-final body skips later bodies, loop continues (expect true): %v\n\n" (hits==3&&r==3))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1e: return() in a non-final body unwinds through the for() and
+// the enclosing func() body, same as it would from a single-body for(). ---
+f=func(hits=0; for(i=0 i<5 i=i+1  if(i==2 :then return(99)) hits=hits+1 i); hits)
+r=f()
+ok=ok&&(r==99)
+print("1e for() return() in a non-final body unwinds out of the enclosing func() (expect true): %v\n\n" (r==99))
 prev_ok=check_fail(:ok ok)
 
 // --- test 2: while() with 2 space-separated bodies -- still a hard

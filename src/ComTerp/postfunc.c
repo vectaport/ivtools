@@ -179,14 +179,18 @@ void ForFunc::execute() {
       /* positions 3..N-1 are one or more space-separated bodies.  All but
 	 the last run for side effects only; an orphaned stream among them
 	 gets drained instead of silently dropped.  The last body's value
-	 is kept. */
+	 is kept.  A control transfer (break/continue/return/quit) raised by
+	 an earlier body stops the remaining ones from running, same as
+	 SeqFunc::execute does for ';'. */
       for (int i=3; i<nargsfixed(); i++) {
 	ComValue v(stack_arg_post_eval(i));
-	if (i<nargsfixed()-1) {
-	  if (v.is_stream() && v.stream_list() && v.stream_list()->refcount_==1)
-	    comterp()->orphan_stream_count(v);
-	} else {
+	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
+	  comterp()->returnflag() || comterp()->quitflag();
+	if (i==nargsfixed()-1 || control) {
 	  bodyexpr = new ComValue(v);
+	  if (control) break;
+	} else if (v.is_stream() && v.stream_list() && v.stream_list()->refcount_==1) {
+	  comterp()->orphan_stream_count(v);
 	}
       }
     }
