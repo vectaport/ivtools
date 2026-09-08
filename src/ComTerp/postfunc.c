@@ -168,22 +168,28 @@ void ForFunc::execute() {
   static int body_symid = symbol_add("body");
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
-  if (nargsfixed()>4) {
-    fprintf(stderr, "Error: for loop with more than one body -- missing semicolon between statements (line %d)\n", funcstate()->linenum());
-    reset_stack();
-    push_stack(ComValue::nullval());
-    return;
-  }
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
-    
+
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
     ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
     if (keybody.is_unknown() && nargsfixed()>= 4) {
-      bodyexpr = new ComValue(stack_arg_post_eval(3));
-    } 
+      /* positions 3..N-1 are one or more space-separated bodies.  All but
+	 the last run for side effects only; an orphaned stream among them
+	 gets drained instead of silently dropped.  The last body's value
+	 is kept. */
+      for (int i=3; i<nargsfixed(); i++) {
+	ComValue v(stack_arg_post_eval(i));
+	if (i<nargsfixed()-1) {
+	  if (v.is_stream() && v.stream_list() && v.stream_list()->refcount_==1)
+	    comterp()->orphan_stream_count(v);
+	} else {
+	  bodyexpr = new ComValue(v);
+	}
+      }
+    }
     else {
       bodyexpr = new ComValue(keybody);
     }
