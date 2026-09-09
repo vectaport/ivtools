@@ -263,5 +263,26 @@ ok=ok&&(r1==11 && r2==22 && obj.n==22)
 print("3f obj.bump() with 2 bodies via dot-call (expect true): %v\n\n" (r1==11&&r2==22&&obj.n==22))
 prev_ok=check_fail(:ok ok)
 
+// --- test 3g: a non-final body that flags a runtime error (COMERR_SET,
+// e.g. divide-by-zero) doesn't stop the remaining bodies from running --
+// same "soft" error philosophy as runfile()'s own top-level statement
+// loop and for()/while()'s body evaluation, neither of which unwinds on
+// an error either.  What matters is that the error doesn't get lost: it
+// stays retrievable via errmsg(:last) after the call, same as it would
+// for any other statement.  This also pins a stack-balance regression:
+// ComTerpServ::run_one_span() used to skip popping the failed span's
+// result specifically because it errored, even though a COMERR_SET
+// command still pushes one the normal way (DivFunc's divide-by-zero
+// returns its numerator) -- silently leaving the value stack one entry
+// deeper than it should be, corrupting whatever ran next ('sane' below
+// catches that: a plain, unrelated expression evaluated right after). ---
+f=func(3/0  99)
+r=f()
+last=errmsg(:last)
+sane=(1+1==2)
+ok=ok&&(r==99 && index(last "Divide by zero" :substr)!=nil && sane)
+print("3g func() non-final body erroring (COMERR_SET) doesn't stop or corrupt, error stays in errmsg(:last) (expect true): %v\n\n" (r==99&&index(last "Divide by zero" :substr)!=nil&&sane))
+prev_ok=check_fail(:ok ok)
+
 print("multibody: %v\n" ok)
 ok

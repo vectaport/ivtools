@@ -555,7 +555,15 @@ ComValue ComTerpServ::run_one_span(postfix_token* tokens, int ntokens) {
     running(old_runflag);
     err_str(_errbuf, BUFSIZ, "comterp");
 
-    ComValue retval(*_errbuf ? ComValue::nullval() : pop_stack());
+    /* pop unconditionally -- a command that flags an error (COMERR_SET)
+       still pushes a result the normal way (e.g. DivFunc's divide-by-zero
+       returns its numerator), so skipping the pop specifically on error
+       desyncs _stack_top from here on: the un-popped value sits there for
+       whatever runs next to trip over ("func \"X\" pushed more than a
+       single value on stack").  Always consume it; only the RETURNED
+       value depends on whether there was an error. */
+    ComValue popped(pop_stack());
+    ComValue retval(*_errbuf ? ComValue::nullval() : popped);
     delete _pfbuf;
     _pfbuf = nil;
     _pfnum = 0;
