@@ -199,6 +199,32 @@ ok=ok&&(size(drained)==3 && r==42)
 print("3b func() non-final orphan stream body autostreams (expect true): %v\n\n" (size(drained)==3&&r==42))
 prev_ok=check_fail(:ok ok)
 
+// --- test 3b2: the SAME orphan-stream autostreaming, but one level down
+// -- the stream sits in a for() loop's own non-final body (test 1b's
+// exact idiom), and that whole for() is itself func()'s non-final body.
+// Exercises ForFunc's own per-iteration autostreaming (unchanged) firing
+// correctly from inside run_funcobj_body()'s freshly-pushed servstate --
+// 2 iterations x 3 elements each. ---
+xs=list(7,8,9)
+drained=list()
+f=func(for(i=0 i<2 i=i+1  drained,$$xs i) 99)
+r=f()
+ok=ok&&(size(drained)==6 && r==99)
+print("3b2 func() body containing a for() with its own autostreaming (expect true): %v\n\n" (size(drained)==6&&r==99))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3b3: a func() with its own multi-body autostreaming, called
+// from a non-final body of an OUTER func() -- nesting doesn't disturb
+// run_funcobj_body()'s per-call push_servstate()/pop_servstate() framing. ---
+xs=list(7,8,9)
+drained=list()
+inner=func(drained,$$xs 1)
+outer=func(inner()  99)
+r=outer()
+ok=ok&&(size(drained)==3 && r==99)
+print("3b3 func() calling a nested func() with its own autostreaming (expect true): %v\n\n" (size(drained)==3&&r==99))
+prev_ok=check_fail(:ok ok)
+
 // --- test 3c: break() properly contained inside a for() in a non-final
 // body doesn't leak past the for() -- the remaining func() bodies run
 // normally, same as it would outside any func() at all. ---
