@@ -323,7 +323,9 @@ void SeqFunc::execute() {
     else {
       /* arg1 (the statement before this ";") is simply discarded, same as
 	 any other discarded value -- no forced draining of an orphaned
-	 stream here (see #482: that was never the intended semantics). */
+	 stream here.  for()/while()/func() bodies drain explicitly instead
+	 (each one's own body-sequencing loop calls orphan_stream_count()
+	 on a non-final result); ';' stays a plain discard on purpose. */
       ComValue arg2(stack_arg_post_eval(1, true));
       reset_stack();
       push_stack(arg2.is_blank() ? arg1 : arg2);
