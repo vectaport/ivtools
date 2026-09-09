@@ -411,14 +411,23 @@ void SwitchFunc::execute() {
 int FuncObj::_symid = -1;
 int FuncObjPendingArg::_symid = -1;
 
-FuncObj::FuncObj(postfix_token* toks, int ntoks) {
+FuncObj::FuncObj(postfix_token* toks, int ntoks, int* spanlens, int nspans) {
   _toks = toks;
   _ntoks = ntoks;
+  if (spanlens) {
+    _spanlens = spanlens;
+    _nspans = nspans;
+  } else {
+    _spanlens = new int[1];
+    _spanlens[0] = ntoks;
+    _nspans = 1;
+  }
   _posteval = false;
 }
 
-FuncObj::~FuncObj() { 
+FuncObj::~FuncObj() {
   delete [] _toks;
+  delete [] _spanlens;
 }
 
 /*****************************************************************************/
@@ -428,19 +437,45 @@ FuncObjFunc::FuncObjFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 
 void FuncObjFunc::execute() {
-  int toklen;
-  postfix_token* tokbuf = copy_stack_arg_post_eval(0, toklen);
+  /* one or more space-separated bodies, same shape as for()/while()'s
+     positional bodies -- each copied span is a complete,
+     independently-parsed expression, so concatenating them back to back
+     (no separator token needed) gives ComTerpServ::run_funcobj_body() a
+     buffer it can walk one span at a time at fire time, autostreaming all
+     but the last exactly as for()/while() already do for their own bodies. */
+  int nspans = nargsfixed();
+  postfix_token** spanbufs = nspans>0 ? new postfix_token*[nspans] : nil;
+  int* spanlens = nspans>0 ? new int[nspans] : nil;
+  int total = 0;
+  for (int i=0; i<nspans; i++) {
+    spanbufs[i] = copy_stack_arg_post_eval(i, spanlens[i]);
+    if (spanbufs[i]) total += spanlens[i];
+  }
   static int echo_symid = symbol_add("echo");
   ComValue echov(stack_key_post_eval(echo_symid));
   static int posteval_symid = symbol_add("posteval");
   ComValue postevalv(stack_key_post_eval(posteval_symid));
   reset_stack();
-  if (!tokbuf)
+  if (nspans==0 || !spanbufs[0]) {
     push_stack(ComValue::nullval());
+    for (int i=0; i<nspans; i++) delete [] spanbufs[i];
+    delete [] spanbufs;
+    delete [] spanlens;
+  }
   else {
+    postfix_token* tokbuf = new postfix_token[total];
+    int toklen = total;
+    int offset = 0;
+    for (int i=0; i<nspans; i++) {
+      for (int j=0; j<spanlens[i]; j++) tokbuf[offset+j] = spanbufs[i][j];
+      offset += spanlens[i];
+      delete [] spanbufs[i];
+    }
+    delete [] spanbufs;
+
     if (echov.is_true())
       comterp()->postfix_echo(tokbuf, toklen);
-    FuncObj* tokbufobj = new FuncObj(tokbuf, toklen);
+    FuncObj* tokbufobj = new FuncObj(tokbuf, toklen, spanlens, nspans);
     tokbufobj->posteval(postevalv.is_true());
 
     /* capture this body's free variables (read-only or

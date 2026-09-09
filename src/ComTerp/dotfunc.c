@@ -264,7 +264,7 @@ static void fire_attrlist_method(ComFunc* self, ComTerp* comterp,
   boolean saved_active = comterp->funcobj_active();
   comterp->set_funcobj_args(posvals, npos, true);
 
-  ComValue result(self->comterpserv()->run(fo->toks(), fo->ntoks()));
+  ComValue result(self->comterpserv()->run_funcobj_body(fo));
 
   comterp->set_funcobj_args(saved_argvals, saved_nargs, saved_active);
   delete [] posvals;

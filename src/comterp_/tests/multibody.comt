@@ -1,8 +1,8 @@
-// src/comterp_/tests/multibody.comt -- for()/while(): multiple
+// src/comterp_/tests/multibody.comt -- for()/while()/func(): multiple
 // space-separated bodies, all but the last run for side effects with
 // orphan streams drained (#481). break()/continue()/return() in a
-// non-final body work exactly as they would in a single-body loop.
-// func() still single-body only, pinned below for a follow-on PR.
+// non-final body work exactly as they would in a single-body
+// loop/function call.
 //
 // funcs: for while func run
 //
@@ -172,22 +172,133 @@ ok=ok&&(warned!=nil && ran!=nil)
 print("2g while() :body alone still fires every iteration (deprecated, not broken) (expect true): %v\n\n" (warned!=nil&&ran!=nil))
 prev_ok=check_fail(:ok ok)
 
-// --- test 3: func() with 2 positionals -- today only positional 0 ever
-// becomes part of the function body; positional 1 is not "lost" at call
-// time, it was never incorporated into the FuncObj at definition time
-// (FuncObjFunc::execute only copies positional 0's postfix span, #350).
-// So a stream sitting in the second position never gets a chance to
-// become an orphan -- it never runs, no matter how many times f is
-// called. ---
-hits=0
-f=func(x=1  hits=hits+1;print(0..2))
+// --- test 3: func() with 2 space-separated bodies -- both run every
+// call, the first purely for side effects, the last kept as the
+// funcobj's result -- same treatment for()/while() got (#481).  A
+// non-final position (positional 0 was the only one ever incorporated
+// into the FuncObj before this, #350) now gets its chance to run.  hits
+// is a list, not a plain var, mutated by reference: a plain var would get
+// captured by value at func() DEFINITION time (read-before-write, see
+// FuncObjFunc::execute's capture comment) and so read/write a snapshot
+// private to this call, invisible from outside -- exactly why 1b/2b's
+// drained=list() idiom is used for side effects here too. ---
+hits=list()
+f=func(hits,1  hits,2;99)
 r=f()
-ok=ok&&(r==1 && hits==0)
-print("3 func() with 2 bodies: only position 0 runs, position 1 never does (expect true): %v\n\n" (r==1&&hits==0))
+ok=ok&&(r==99 && size(hits)==2)
+print("3 func() with 2 bodies: both run every call, last kept (expect true): %v\n\n" (r==99&&size(hits)==2))
 prev_ok=check_fail(:ok ok)
-// INVERT once func() gets the same treatment as for(): r should be
-// whatever the LAST body evaluates to, hits==1 (position 1 now runs),
-// and print(0..2)'s orphan stream should drain.
+
+// --- test 3b: a non-final body producing an orphan stream gets drained
+// instead of silently dropped (same idiom as test 1b/2b). ---
+xs=list(7,8,9)
+drained=list()
+f=func(drained,$$xs 42)
+r=f()
+ok=ok&&(size(drained)==3 && r==42)
+print("3b func() non-final orphan stream body autostreams (expect true): %v\n\n" (size(drained)==3&&r==42))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3b2: the SAME orphan-stream autostreaming, but one level down
+// -- the stream sits in a for() loop's own non-final body (test 1b's
+// exact idiom), and that whole for() is itself func()'s non-final body.
+// Exercises ForFunc's own per-iteration autostreaming (unchanged) firing
+// correctly from inside run_funcobj_body()'s freshly-pushed servstate --
+// 2 iterations x 3 elements each. ---
+xs=list(7,8,9)
+drained=list()
+f=func(for(i=0 i<2 i=i+1  drained,$$xs i) 99)
+r=f()
+ok=ok&&(size(drained)==6 && r==99)
+print("3b2 func() body containing a for() with its own autostreaming (expect true): %v\n\n" (size(drained)==6&&r==99))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3b3: a func() with its own multi-body autostreaming, called
+// from a non-final body of an OUTER func() -- nesting doesn't disturb
+// run_funcobj_body()'s per-call push_servstate()/pop_servstate() framing. ---
+xs=list(7,8,9)
+drained=list()
+inner=func(drained,$$xs 1)
+outer=func(inner()  99)
+r=outer()
+ok=ok&&(size(drained)==3 && r==99)
+print("3b3 func() calling a nested func() with its own autostreaming (expect true): %v\n\n" (size(drained)==3&&r==99))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3c: break() properly contained inside a for() in a non-final
+// body doesn't leak past the for() -- the remaining func() bodies run
+// normally, same as it would outside any func() at all. ---
+hits=list()
+f=func(for(i=0 i<5 i=i+1 if(i==2 :then break()) hits,i) 99)
+r=f()
+ok=ok&&(size(hits)==2 && r==99)
+print("3c func() break() inside a nested for() in a non-final body doesn't leak (expect true): %v\n\n" (size(hits)==2&&r==99))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3d: continue() properly contained inside a for() in a
+// non-final body doesn't leak either. ---
+hits=list()
+f=func(for(i=0 i<4 i=i+1 if(i==1 :then continue()) hits,i) 99)
+r=f()
+ok=ok&&(size(hits)==3 && r==99)
+print("3d func() continue() inside a nested for() in a non-final body doesn't leak (expect true): %v\n\n" (size(hits)==3&&r==99))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3e: return() in a non-final body (via a nested for()) stops
+// the remaining func() bodies from running -- the call returns the
+// return()ed value, same as ';' already does with a stray return(). ---
+f=func(for(i=0 i<5 i=i+1 if(i==2 :then return(77)) i) 5)
+r=f()
+ok=ok&&(r==77)
+print("3e func() return() in a non-final body (via nested for()) stops remaining bodies (expect true): %v\n\n" (r==77))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3f: multi-body works through obj.method() dot-calls too, not
+// just plain f() -- ComTerpServ::run_funcobj_body() is the one place all
+// FuncObj firing goes through, self-bound methods included. ---
+obj=(:n 0 :bump func(n=n+1  n=n+10; n))
+r1=obj.bump()
+r2=obj.bump()
+ok=ok&&(r1==11 && r2==22 && obj.n==22)
+print("3f obj.bump() with 2 bodies via dot-call (expect true): %v\n\n" (r1==11&&r2==22&&obj.n==22))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3g: direct answer to a PR #490 review concern ("Later Bodies
+// Hide Errors" -- a later successful body can erase the original error
+// and replace the failure with its own result).  It DOES replace the
+// RESULT -- that's the intended "soft" error philosophy runfile()'s own
+// top-level statement loop and for()/while()'s body evaluation already
+// use, neither of which unwinds on a plain runtime error (COMERR_SET)
+// either, only on break()/continue()/return()/quit().  What it must NOT
+// do is erase the error: errmsg(:last) has to still report it after the
+// call, exactly as it would after any other statement that errored. ---
+f=func(3/0  99)
+r=f()
+last=errmsg(:last)
+ok=ok&&(r==99 && index(last "Divide by zero" :substr)!=nil)
+print("3g func() error in a non-final body is not erased by a later successful body -- still in errmsg(:last) (expect true): %v\n\n" (r==99&&index(last "Divide by zero" :substr)!=nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 3h: chasing down 3g's concern surfaced a real bug, distinct
+// from what the review comment described: ComTerpServ::run_one_span()
+// used to skip pop_stack() specifically when a span errored, on the
+// wrong assumption that a COMERR_SET command pushes nothing -- DivFunc's
+// divide-by-zero still pushes its numerator the normal way.  That left
+// the shared value stack one entry too deep, so the interpreter printed
+// 'func "assign" pushed more than a single value on stack' and returned
+// garbage for whatever ran next.  A THIRD body (100) after the failing
+// one, plus an autostreamed non-final body in between, makes any
+// leftover stack entry impossible to hide behind a coincidentally-right
+// 2-body result -- r, drained, and a plain sanity check all have to
+// survive intact. ---
+xs=list(7,8,9)
+drained=list()
+f=func(3/0  drained,$$xs  100)
+r=f()
+sane=(1+1==2)
+ok=ok&&(r==100 && size(drained)==3 && sane)
+print("3h func() stays stack-balanced after a failing non-final body -- later bodies still run correctly (expect true): %v\n\n" (r==100&&size(drained)==3&&sane))
+prev_ok=check_fail(:ok ok)
 
 print("multibody: %v\n" ok)
 ok

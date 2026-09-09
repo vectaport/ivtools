@@ -62,6 +62,15 @@ public:
     virtual ComValue run(postfix_token*, int);
     // execute a buffer of postfix tokens and return the value.
 
+    ComValue run_funcobj_body(class FuncObj*);
+    // fire a FuncObj's one or more space-separated bodies: each span runs
+    // via run_one_span() in turn, all but the last autostreaming an
+    // orphaned-stream result instead of losing it (same treatment
+    // for()/while() give their own bodies), the last kept as the overall
+    // result.  A control transfer raised by a non-final span
+    // (break()/continue()/return()/quit()) stops the remaining spans,
+    // same as SeqFunc::execute already does for ';'.
+
     AttributeValueList* parse_next_expr(FILE*);
     // parse the next expression from a file.
     
@@ -78,6 +87,14 @@ public:
     boolean delete_later() { return _delete_later; }
 
 protected:
+
+    ComValue run_one_span(postfix_token*, int);
+    // shared body of run(postfix_token*, int), minus the final
+    // returnflag(false) -- run_funcobj_body() needs to see whether a span
+    // set returnflag() (a return() call) before it's cleared, to know
+    // whether to run the spans that follow; run(postfix_token*, int)
+    // itself is just this plus that one clear, unchanged for every other
+    // caller.
 
     static char* s_fgets(char* s, int n, void* serv);
     // signature like fgets used to copy input from a buffer.
