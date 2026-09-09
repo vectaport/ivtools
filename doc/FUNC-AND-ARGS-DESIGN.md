@@ -193,8 +193,11 @@ that awaited `:posteval`, which now gives you exactly this: `func(body
 `f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with `l==(1,2,3)`
 (Note `==` (45) binds tighter than `,` (35), so the literal needs the
 parens) -- not actually true when this was written (`func()` only ever
-ran its first body), so not in `funcarg.comt` either; it is true now, and
-the regression coverage for it lives in `multibody.comt` instead.
+ran its first body), so not in `funcarg.comt` either; verified true now
+(`l` does come back `{1,2,3}`), though this exact arg(0)/arg(1)/arg(2)
+shape isn't itself one of `multibody.comt`'s tests -- that file covers
+`func()`'s general multi-body sequencing (autostreaming, control
+transfer, nesting, dot-calls, error handling) with different examples.
 
 ## Corrected: `assign` blocks clobbering a registered command — *not* rebinding a funcobj
 

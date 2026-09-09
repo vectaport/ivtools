@@ -235,9 +235,22 @@ difference between the two lines below is entirely the parens, not the
 space:
 
 ```
-for(i=0 i<10 i++ (lst,i total=total+i))   // ONE body: a 2-element stream literal, not two statements -- loop no-ops
+for(i=0 i<10 i++ (lst,i total=total+i))   // ONE body: a fresh 2-element stream literal every iteration
 for(i=0 i<10 i++ lst,i total=total+i)     // TWO bodies (no parens): both run, same as the ';' form above
 ```
+
+The first line never gives per-iteration sequencing the way the second
+does. Nine of its ten stream literals are simply discarded, unexecuted,
+the moment the next iteration builds a new one — a stream literal isn't
+autostreamed the way a non-final *body* is, because it's one positional,
+not several. Only the last iteration's literal survives as `for()`'s own
+result, and it stays exactly as lazy as any other stream from there:
+left as a bare top-level statement, the auto-drain below runs it once;
+assigned to a variable, it sits inert (same as any bound stream) until
+something later drains *that* — `each()`, a further reference, and so
+on; discarded via `;` instead, nothing ever holds a reference to it
+again, so it never runs at all. None of these give `lst`/`total` the ten
+updates the second line actually produces.
 
 `(ding beep)` on its own is a stream literal of two values, never a
 grouped two-statement body — with or without an enclosing

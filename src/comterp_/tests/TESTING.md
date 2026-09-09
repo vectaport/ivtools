@@ -317,7 +317,8 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-17 of 55 scripts are scored. The rest are real tests with no coverage number,
+17 of 55 scripts declare coverage (four more are scored table-only, marked
+with a dagger). The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
 | script | funcs | covered | total |  %  |
