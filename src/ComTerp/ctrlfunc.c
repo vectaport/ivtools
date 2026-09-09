@@ -350,7 +350,7 @@ void EvalFunc::execute() {
 	val = new ComValue(comterpserv()->run(argv.symbol_ptr(), true /* nested */));
       } else if (argv.is_object(FuncObj::class_symid())) {
         FuncObj* tokbuf = (FuncObj*)argv.obj_val();
-        val = new ComValue(comterpserv()->run(tokbuf->toks(), tokbuf->ntoks()));
+        val = new ComValue(comterpserv()->run_funcobj_body(tokbuf));
       }
       if (!val || val->is_nil() && symretv.is_true()) {
 	delete val;
@@ -382,7 +382,7 @@ void EvalFunc::execute() {
       
     } else if (argv.is_object(FuncObj::class_symid())) {
       FuncObj* tokbuf = (FuncObj*)argv.obj_val();
-      ComValue val(comterpserv()->run(tokbuf->toks(), tokbuf->ntoks()));
+      ComValue val(comterpserv()->run_funcobj_body(tokbuf));
       if (val.is_nil() && symretv.is_true()) {
 	val.assignval(ComValue(argv.symbol_val(), AttributeValue::SymbolType));
       }

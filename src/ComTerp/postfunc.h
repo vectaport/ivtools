@@ -177,11 +177,22 @@ public:
 
 class FuncObj {
  public:
-  FuncObj(postfix_token* toks, int ntoks); 
+  // toks/ntoks is the concatenation of one or more body spans, back to
+  // back with no separator token between them -- spanlens[i] (nspans
+  // entries) gives each one's length, so nspans==1 (the default,
+  // spanlens==nil) is just the single-body case with the whole buffer as
+  // its one span.  toks()/ntoks() keep returning the WHOLE buffer, so
+  // callers that only care about the totality of tokens (free-variable
+  // scanning, help()'s signature introspection, echo, ntoks() reporting)
+  // are unaffected by multi-body support -- only firing (ComTerpServ::
+  // run_funcobj_body()) needs the span boundaries, via nspans()/spanlen().
+  FuncObj(postfix_token* toks, int ntoks, int* spanlens=nil, int nspans=1);
   virtual ~FuncObj();
 
   postfix_token* toks() { return _toks; }
   int ntoks() { return _ntoks; }
+  int nspans() { return _nspans; }
+  int spanlen(int i) { return _spanlens[i]; }
 
   // Free variables captured at declaration time -- an AttributeList
   // wrapped in a ComValue so its constructor/destructor manage the
@@ -210,6 +221,8 @@ class FuncObj {
  protected:
   postfix_token* _toks;
   int _ntoks;
+  int* _spanlens;
+  int _nspans;
   ComValue _captures;
   boolean _posteval;
 };
@@ -240,7 +253,7 @@ class FuncObjPendingArg {
 };
 
 //: create token buffer object
-// funcobj=func(body) -- encapsulate a body of commands into an executable object
+// funcobj=func(body [body ...]) -- encapsulate a body of commands into an executable object
 class FuncObjFunc : public ComFunc {
 public:
     FuncObjFunc(ComTerp*);
@@ -248,7 +261,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "funcobj=%s(body :echo :posteval) -- encapsulate a body of commands into an executable object"; }
+      return "funcobj=%s(body [body ...] :echo :posteval) -- encapsulate one or more bodies into an executable object; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":echo      echo the postfix version of parsed body",

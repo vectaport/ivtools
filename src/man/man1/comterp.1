@@ -379,7 +379,7 @@ Print a usage summary of all the invocation modes above and exit.
 
  val=eval(cmdstr|funcobj [cmdstr|funcobj ...] :symret :alist attrlist) -- evaluate string (or funcobj) as commands, optionally return symbol instead of nil, with the given attrlist as func-local scope
 
- funcobj=func(body :echo) -- encapsulate a body of commands into an executable object
+ funcobj=func(body [body ...] :echo) -- encapsulate one or more bodies into an executable object; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)
 
  val=echo(arg [arg [...]] :key val ...) -- return evaluated args in ~~-passable form (positional list with tail attrlist singletons, or a bare attrlist)
 

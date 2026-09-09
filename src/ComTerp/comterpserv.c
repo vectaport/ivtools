@@ -28,6 +28,7 @@
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
+#include <ComTerp/postfunc.h>
 #include <ComTerp/strmfunc.h>
 #include <Attribute/attrlist.h>
 #include <OS/math.h>
@@ -530,6 +531,12 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
 // #include "/usr/include/malloc.h"
 
 ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
+    ComValue retval(run_one_span(tokens, ntokens));
+    returnflag(false);
+    return retval;
+}
+
+ComValue ComTerpServ::run_one_span(postfix_token* tokens, int ntokens) {
     _errbuf[0] = '\0';
 
     push_servstate();
@@ -555,8 +562,35 @@ ComValue ComTerpServ::run(postfix_token* tokens, int ntokens) {
     _pfoff = 0;
     pop_servstate();
 
-    returnflag(false);
+    /* returnflag() is deliberately left as eval_expr() left it -- unlike
+       run(postfix_token*, int), which clears it right after this because a
+       single span IS the whole call.  run_funcobj_body() needs to see it
+       still set (a return() inside this span) to know a FuncObj's later
+       spans must not run, and clears it itself only once the whole
+       multi-body sequence is done. */
     return retval;
+}
+
+ComValue ComTerpServ::run_funcobj_body(FuncObj* fo) {
+    postfix_token* toks = fo->toks();
+    int nspans = fo->nspans();
+    ComValue result;
+    int offset = 0;
+    for (int i=0; i<nspans; i++) {
+        int len = fo->spanlen(i);
+        ComValue v(run_one_span(toks+offset, len));
+        offset += len;
+        boolean control = returnflag() || quitflag() ||
+            SeqFunc::breakflag() || SeqFunc::continueflag();
+        if (i==nspans-1 || control) {
+            result = v;
+            if (control) break;
+        } else if (v.is_stream() && v.stream_list() && v.stream_list()->refcount_==1) {
+            orphan_stream_count(v);
+        }
+    }
+    returnflag(false);
+    return result;
 }
 
 postfix_token* ComTerpServ::gen_code(const char* script, int& ntoken) {
