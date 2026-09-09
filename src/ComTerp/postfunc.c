@@ -166,6 +166,22 @@ ForFunc::ForFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ForFunc::execute() {
   static int body_symid = symbol_add("body");
+  /* :body predates today's positional multi-body support; see
+     WhileFunc::execute() for the fuller rationale -- mixed with positional
+     bodies it's flatly ignored (with a warning), but used alone it's the
+     legacy sole-body idiom and must keep firing every iteration, or a
+     for() whose only side effect lived in :body would silently stop having
+     any (Greptile's "legacy for bodies are skipped").  Dropped from
+     docstring()/dockeys() either way, so it no longer shows up in help()
+     or the man page.  stack_key_present() only decides which warning (if
+     any) to print without itself ever firing the keyword's expression. */
+  boolean body_present = stack_key_present(body_symid);
+  if (body_present) {
+    if (nargsfixed()>= 4)
+      fprintf(stderr, "Warning: for()'s :body keyword has no effect when a positional body is also given -- use positional bodies instead (line %d)\n", funcstate()->linenum());
+    else
+      fprintf(stderr, "Warning: for()'s :body keyword is deprecated -- use a positional body instead (line %d)\n", funcstate()->linenum());
+  }
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
@@ -174,8 +190,7 @@ void ForFunc::execute() {
     ComValue whileexpr(stack_arg_post_eval(1));
     if (whileexpr.is_false()) break;
     delete bodyexpr;
-    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
-    if (keybody.is_unknown() && nargsfixed()>= 4) {
+    if (nargsfixed()>= 4) {
       /* positions 3..N-1 are one or more space-separated bodies.  All but
 	 the last run for side effects only; an orphaned stream among them
 	 gets drained instead of silently dropped.  The last body's value
@@ -195,6 +210,10 @@ void ForFunc::execute() {
       }
     }
     else {
+      /* no positional body -- :body (if present) is the legacy sole body
+	 and must keep running every iteration for backward compatibility;
+	 absent, this is just a bodyless for(). */
+      ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
       bodyexpr = new ComValue(keybody);
     }
     ComValue nextexpr(stack_arg_post_eval(2));
@@ -220,13 +239,29 @@ void WhileFunc::execute() {
   static int nilchk_symid = symbol_add("nilchk");
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
-  ComValue* bodyexpr = nil;
-  if (nargsfixed()>2) {
-    fprintf(stderr, "Error: while loop with more than one body -- missing semicolon between statements (line %d)\n", funcstate()->linenum());
-    reset_stack();
-    push_stack(ComValue::nullval());
-    return;
+  /* :body predates today's positional multi-body support.  Mixed with
+     positional bodies it never composed with them (a :body value alongside
+     positional bodies used to silently discard the positionals) -- that
+     combination is now flatly ignored (with a warning) rather than
+     evaluated, since nothing could have been relying on behavior that was
+     already broken.  Used ALONE, though, :body is the pre-multibody idiom
+     for the entire loop body (e.g. "while(i :body i=i-1)") and has to keep
+     firing every iteration exactly as before -- Greptile correctly flagged
+     that a from-now-on-inert :body hangs a legacy loop whose condition only
+     changes inside it.  Either way it's dropped from docstring()/dockeys()
+     (so it no longer shows up in help() or the man page) in favor of
+     positional bodies.  stack_key_present() only walks the keyword's token
+     span to decide which warning (if any) to print -- unlike
+     stack_key_post_eval, it never calls post_eval_expr, so this presence
+     check alone never fires the keyword's expression. */
+  boolean body_present = stack_key_present(body_symid);
+  if (body_present) {
+    if (nargsfixed()>= 2)
+      fprintf(stderr, "Warning: while()'s :body keyword has no effect when a positional body is also given -- use positional bodies instead (line %d)\n", funcstate()->linenum());
+    else
+      fprintf(stderr, "Warning: while()'s :body keyword is deprecated -- use a positional body instead (line %d)\n", funcstate()->linenum());
   }
+  ComValue* bodyexpr = nil;
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
     if (untilflag.is_false()) {
@@ -234,11 +269,32 @@ void WhileFunc::execute() {
       if (nilchkflag.is_false() ? doneexpr.is_false() : doneexpr.is_unknown()) break;
     }
     delete bodyexpr;
-    ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
-    if (keybody.is_unknown() && nargsfixed()>= 2)
-      bodyexpr = new ComValue(stack_arg_post_eval(1));
-    else
+    if (nargsfixed()>= 2) {
+      /* positions 1..N-1 are one or more space-separated bodies.  All but
+	 the last run for side effects only; an orphaned stream among them
+	 gets drained instead of silently dropped.  The last body's value
+	 is kept.  A control transfer (break/continue/return/quit) raised by
+	 an earlier body stops the remaining ones from running, same as
+	 SeqFunc::execute does for ';'. */
+      for (int i=1; i<nargsfixed(); i++) {
+	ComValue v(stack_arg_post_eval(i));
+	boolean control = SeqFunc::continueflag() || SeqFunc::breakflag() ||
+	  comterp()->returnflag() || comterp()->quitflag();
+	if (i==nargsfixed()-1 || control) {
+	  bodyexpr = new ComValue(v);
+	  if (control) break;
+	} else if (v.is_stream() && v.stream_list() && v.stream_list()->refcount_==1) {
+	  comterp()->orphan_stream_count(v);
+	}
+      }
+    }
+    else {
+      /* no positional body -- :body (if present) is the legacy sole body
+	 and must keep running every iteration for backward compatibility;
+	 absent, this is just a bodyless while() (e.g. "while(v=next(s))"). */
+      ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
       bodyexpr = new ComValue(keybody);
+    }
     if (untilflag.is_true()) {
       ComValue doneexpr(stack_arg_post_eval(0));
       if (nilchkflag.is_false() ? doneexpr.is_true() : doneexpr.is_unknown()) break;

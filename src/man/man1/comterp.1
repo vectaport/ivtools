@@ -265,9 +265,9 @@ Print a usage summary of all the invocation modes above and exit.
 
  val=if(testexpr :then expr :else expr) -- evaluate testexpr and execute the :then expression if true, the :else expression if false.
 
- val=for(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]] :body expr) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)
+ val=for(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]]) -- for loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)
 
- val=while(testexpr [bodyexpr] :nilchk :until :body expr ) -- while loop
+ val=while(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until ) -- while loop; multiple bodies run in sequence, all but the last for side effects (with any orphan stream drained)
 
  val=switch(val key-body-pairs) -- switch statement (:casen for pos., :case_n for neg., otherwise :symbol)
 
