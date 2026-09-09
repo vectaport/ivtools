@@ -51,6 +51,29 @@ public:
     }
 };
 
+//: command for toggling or setting whether a control byte displays as
+//: caret notation ('^A') or backslash-octal ('\001'), in both chars and
+//: strings -- a global feature flag, not a per-ComTerp setting like
+//: trace_mode, for interactively comparing against how output used to
+//: look.  Reading always accepts either spelling regardless of this
+//: setting; it only controls which one gets written.
+// val=caretctrl([flag] :get) -- toggle or set caret-notation output, default true
+class ComterpCaretCtrlFunc : public ComFunc {
+public:
+    ComterpCaretCtrlFunc(ComTerp*);
+
+    virtual void execute();
+    virtual const char* docstring() {
+      return "val=%s([flag] :get) -- toggle or set caret-notation output, default true"; }
+    virtual const char** dockeys() {
+      static const char* keys[] = {
+	":get       get caret-notation mode without changing it",
+	nil
+      };
+      return keys;
+    }
+};
+
 //: command to pause script execution until C/R
 // pause -- pause script execution until C/R
 class ComterpPauseFunc : public ComFunc {

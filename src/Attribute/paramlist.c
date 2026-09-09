@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <Attribute/alist.h>
 #include <Attribute/aliterator.h>
+#include <Attribute/attrvalue.h>
 #include <Attribute/paramlist.h>
 #include <Attribute/lexscan.h>
 
@@ -1001,11 +1002,17 @@ char ParamList::octal(const char* p) {
 // file or send over a comterp connection; text that is hand-assembled into a
 // command (snprintf/ostream) without passing through here is NOT escaped.
 //
-// Each non-ASCII or control byte becomes an octal escape "\NNN" (so a raw
-// newline -- which also delimits commands on a socket -- can't break the frame
-// or the parse), and a literal backslash or double-quote is backslash-escaped
-// (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
-// all of these when it reads the string back.
+// Each non-ASCII byte, and a control byte when AttributeValue::caret_ctrl()
+// is off, becomes an octal escape "\NNN" (so a raw newline -- which also
+// delimits commands on a socket -- can't break the frame or the parse).  A
+// control byte in the 0x00-0x1F/0x7F range becomes caret notation instead
+// when caret_ctrl() is on (the default, matching how a lone char displays
+// -- AttributeValue::out_char_brief), and a literal backslash, double-quote,
+// or caret is backslash-escaped (so a '"' can't prematurely close the
+// string, and a literal '^' can't be misread as the start of caret
+// notation).  The ComTerp scanner reverses all of these when it reads the
+// string back, regardless of caret_ctrl()'s current setting -- it only
+// controls which form gets written.
 
 const char* ParamList::filter (const char* string, int len) {
 
@@ -1014,15 +1021,20 @@ const char* ParamList::filter (const char* string, int len) {
     int dot = 0;
     for (; len--; string++) {
 	char c = *string;
+	unsigned char uc = (unsigned char)c;
 
-	if (!isascii(c) || iscntrl(c)) {
+	if (AttributeValue::caret_ctrl() && isascii(c) && iscntrl(c)) {
+	    filter_putc(dot, '^');
+	    filter_putc(dot, (char)(uc ^ 0x40));
+
+	} else if (!isascii(c) || iscntrl(c)) {
 	    char buf[5];
 	    ParamList::octal(c, &buf[sizeof(buf) - 1]);
 	    for (unsigned i = 0; i < sizeof(buf) - 1; i++)
 		filter_putc(dot, buf[i]);
 
 	} else {
-	    if (c == '\\' || c == '"')
+	    if (c == '\\' || c == '"' || c == '^')
 		filter_putc(dot, '\\');
 	    filter_putc(dot, c);
 	}

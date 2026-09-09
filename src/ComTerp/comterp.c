@@ -2083,6 +2083,7 @@ void ComTerp::add_defaults() {
     add_command("help", new HelpFunc(this));
     add_command("optable", new OptableFunc(this));
     add_command("trace", new ComterpTraceFunc(this));
+    add_command("caretctrl", new ComterpCaretCtrlFunc(this));
     add_command("errmsg", new ErrMsgFunc(this));
     add_command("pause", new ComterpPauseFunc(this));
     add_command("step", new ComterpStepFunc(this));

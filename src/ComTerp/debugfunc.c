@@ -26,6 +26,7 @@
 #include <vector>
 #include <fstream.h>
 
+#include <Attribute/attrvalue.h>
 #include <ComTerp/comhandler.h>
 
 #include <ComTerp/debugfunc.h>
@@ -68,6 +69,34 @@ void ComterpTraceFunc::execute() {
       ComValue retval(stack_arg(0));
       reset_stack();
       comterp()->trace_mode(retval.int_val());
+      push_stack(retval);
+    }
+  }
+}
+
+/*****************************************************************************/
+
+ComterpCaretCtrlFunc::ComterpCaretCtrlFunc(ComTerp* comterp) : ComFunc(comterp) {
+}
+
+void ComterpCaretCtrlFunc::execute() {
+  static int get_symid = symbol_add("get");
+  boolean get_flag = stack_key(get_symid).is_true();
+  if (get_flag) {
+    reset_stack();
+    ComValue retval(AttributeValue::caret_ctrl(), ComValue::BooleanType);
+    push_stack(retval);
+  } else {
+    if (nargs()==0) {
+      reset_stack();
+      boolean flag = !AttributeValue::caret_ctrl();
+      AttributeValue::caret_ctrl(flag);
+      ComValue retval(flag, ComValue::BooleanType);
+      push_stack(retval);
+    } else {
+      ComValue retval(stack_arg(0));
+      reset_stack();
+      AttributeValue::caret_ctrl(retval.is_true());
       push_stack(retval);
     }
   }

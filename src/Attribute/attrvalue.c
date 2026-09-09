@@ -59,6 +59,14 @@ LeakChecker* AttributeValue::_leakchecker = nil;
 int* AttributeValue::_type_syms = nil;
 AttributeValue::RenderHook AttributeValue::_render_hook = nil;
 
+/* a plain global, not a per-instance flag like ComTerp::trace_mode() --
+   ParamList::filter (paramlist.c) has no ComTerp instance in scope, and
+   this is a feature flag for interactive debugging (comterp's
+   caretctrl() command), not a value meant to vary per-thread or per-call. */
+static boolean _caret_ctrl = true;
+boolean AttributeValue::caret_ctrl() { return _caret_ctrl; }
+void AttributeValue::caret_ctrl(boolean flag) { _caret_ctrl = flag; }
+
 AttributeValue::AttributeValue(ValueType valtype) {
 #ifdef LEAKCHECK
     if(!_leakchecker) _leakchecker = new LeakChecker("AttributeValue");
@@ -856,7 +864,7 @@ const char* AttributeValue::command_name() {
    raw control or high byte went into the file intact. */
 void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quoted) {
   const char* q = quoted ? "'" : "";
-  if (cv < 0x80 && iscntrl(cv))
+  if (AttributeValue::caret_ctrl() && cv < 0x80 && iscntrl(cv))
     out << q << '^' << (char)(cv ^ 0x40) << q;
   /* the three bytes that cannot appear bare between the quotes: a backslash
      would escape the closing quote, an apostrophe would be it, and a caret

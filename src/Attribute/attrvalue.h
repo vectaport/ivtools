@@ -321,6 +321,19 @@ public:
     static void out_char_brief(ostream& out, unsigned char cv, boolean quoted = true);
     // render a char as itself where that is safe: 'a', '^A', or the `\NNN` escape
 
+    static boolean caret_ctrl();
+    static void caret_ctrl(boolean flag);
+    // get/set whether a control byte (0x00-0x1F, 0x7F) displays as caret
+    // notation ('^A') or backslash-octal ('\001') -- consulted by both
+    // out_char_brief (chars) and ParamList::filter (strings), default
+    // true.  A plain global rather than a per-ComTerp setting like
+    // trace_mode(), since ParamList::filter has no ComTerp instance in
+    // scope; a feature flag for interactive debugging (see comterp's
+    // caretctrl() command), not a value meant to vary per-thread or
+    // per-call.  Reading a control byte's caret-notation or backslash-
+    // octal spelling always works regardless of this setting -- it only
+    // controls which form gets written.
+
     void negate();
     // negate numeric values.
 

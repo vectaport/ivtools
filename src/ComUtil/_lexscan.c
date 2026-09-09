@@ -543,18 +543,25 @@ int bs_ident = 0;
 	       return ERR_NLINCHAR;
 
 
-      /* Caret notation for a control byte, char literals only: '^X' is
-	 X^0x40 -- the read side of the caret notation
-	 AttributeValue::out_char_brief already writes, so what's echoed
-	 at the prompt can be pasted back in.  '?' through '_' (0x3F-0x5F)
-	 is the whole standard range: '^@'.'^_' land on 0x00-0x1F, '^?' on
-	 0x7F (DEL).  Gated on *toklen==0 so this only fires as the sole
-	 character of the literal -- a bare '^' with nothing matching
-	 after it (including a lone '^' right before the closing quote)
-	 falls through to the plain TOKEN_ADD below and reads as the
-	 caret byte itself, same as '\^' does. */
-	 else if( token_state == TOK_CHAR && CURR_CHAR == '^' && *toklen == 0 &&
-		  NEXT_CHAR >= 0x3F && NEXT_CHAR <= 0x5F ) {
+      /* Caret notation for a control byte: '^X' is X^0x40 -- the read side
+	 of the caret notation AttributeValue::out_char_brief and
+	 ParamList::filter can both write (gated on caret_ctrl() there;
+	 reading always accepts either spelling regardless of that
+	 setting), so what's echoed at the prompt can be pasted back in.
+	 '?' through '_' (0x3F-0x5F) is the whole standard range: '^@'-'^_'
+	 land on 0x00-0x1F, '^?' on 0x7F (DEL).
+
+	 In a char literal this only fires as the sole character (toklen
+	 ==0) -- a bare '^' with nothing matching after it (including a
+	 lone '^' right before the closing quote) falls through to the
+	 plain TOKEN_ADD below and reads as the caret byte itself, same as
+	 '\^' does.  In a string it can fire anywhere, consuming one control
+	 byte per '^X' pair and leaving the rest of the string alone --
+	 same fallback for a '^' that isn't followed by a valid second
+	 character, including one right before the closing quote. */
+	 else if( CURR_CHAR == '^' && NEXT_CHAR >= 0x3F && NEXT_CHAR <= 0x5F &&
+		  (token_state == TOK_STRING ||
+		   (token_state == TOK_CHAR && *toklen == 0)) ) {
 	    unsigned char ctrlval = NEXT_CHAR ^ 0x40;
 	    ADVANCE_CHAR;
 	    TOKEN_ADD( ctrlval );
