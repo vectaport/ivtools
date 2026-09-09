@@ -293,6 +293,19 @@ ok=ok&&(at(lst 2)=="c")
 print("31 split(\"a;b;c\" :tokstr \";\") one-char string delim (expect {a,b,c}): %v\n\n" lst)
 prev_ok=check_fail(:ok ok)
 
+// --- test 31b: the coerced string form has to behave exactly like the
+// CharType form it's equivalent to, not just split in the same places
+// -- tokstr_charflag (whether embedded whitespace is preserved inside
+// a token, or also treated as a delimiter) must agree between them too
+// (Greptile, PR #493: it didn't, until tokstr_charflag was recomputed
+// after the coercion instead of read from the pre-coercion type). ---
+lst_char=split("a b;c" :tokstr ';')
+lst_str=split("a b;c" :tokstr ";")
+ok=ok&&(lst_char==lst_str)
+ok=ok&&(size(lst_str)==2 && at(lst_str 0)=="a b")
+print("31b :tokstr char vs one-char string delim tokenize identically (expect true): %v\n\n" (lst_char==lst_str&&size(lst_str)==2&&at(lst_str 0)=="a b"))
+prev_ok=check_fail(:ok ok)
+
 // --- test 32: same rejection as test 30, via :tokstr's delimiter. ---
 out=*$$open("comterp \"split(\\\"axxbxxc\\\" :tokstr \\\"xx\\\")\" 2>&1 | tr \"\\n\" \" \"" :pipe)
 warned=index(out "is not a single character" :substr)

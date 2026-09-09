@@ -368,10 +368,21 @@ void SplitStrFunc::execute() {
   if(tokstrv.is_type(ComValue::IntType)) tokstrv = commav;
   if(tokvalv.is_type(ComValue::IntType)) tokvalv = commav;
 
-  if (tokstrflag && tokstrv.is_string() &&
-      !coerce_split_string_delim(tokstrv, "tokstr", this)) {
-    push_stack(ComValue::nullval());
-    return;
+  if (tokstrflag && tokstrv.is_string()) {
+    if (!coerce_split_string_delim(tokstrv, "tokstr", this)) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    /* a one-character string delimiter is supposed to behave exactly
+       like the CharType form it was just coerced into -- tokstr_charflag
+       was captured above, before this coercion, so it's still false
+       here and the scan would (wrongly) also stop tokens at whitespace,
+       something an explicit ':tokstr \';\'' doesn't do (Greptile,
+       PR #493). It stays false for the *default* comma (no :tokstr
+       value at all, coerced from the IntType zerov above, not from a
+       real string argument), which is deliberately not treated as an
+       explicit char delimiter either. */
+    tokstr_charflag = true;
   }
   if (tokvalflag && tokvalv.is_string() &&
       !coerce_split_string_delim(tokvalv, "tokval", this)) {
