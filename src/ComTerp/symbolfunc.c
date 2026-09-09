@@ -321,6 +321,31 @@ void StrCapFunc::execute() {
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
+/* A bare string delimiter falls through char_val()'s default case
+   (attrvalue.c) as '\0', so a StringType :tokstr/:tokval used to
+   silently match nothing and split() never split at all.  A
+   one-character string is accepted as the obvious equivalent of the
+   CharType form.  A real multi-character (substring) delimiter isn't
+   supported -- the scan in SplitStrFunc::execute() compares one
+   character at a time throughout (the delimiter test, :keep's
+   reinserted delimiter value, and the isspace-as-alternate-delimiter
+   rule all assume a single char), so matching a whole substring would
+   mean rewriting that scan, not just this coercion -- reported and
+   refused outright (nil) rather than silently treated as a harmless
+   one-token split. */
+static boolean coerce_split_string_delim(ComValue& delimv, const char* keyword,
+                                          ComFunc* func) {
+  std::string scratch;
+  const char* str = delimv.cstr(scratch);
+  if (strlen(str) == 1) {
+    delimv = ComValue(str[0]);
+    return true;
+  }
+  fprintf(stderr, "Error: split() :%s \"%s\" is not a single character (line %d)\n",
+          keyword, str, func->funcstate()->linenum());
+  return false;
+}
+
 void SplitStrFunc::execute() {
   ComValue zerov(0, ComValue::IntType);
   ComValue commav(',');
@@ -342,7 +367,28 @@ void SplitStrFunc::execute() {
   boolean tokstr_charflag = tokstrv.is_type(ComValue::CharType);
   if(tokstrv.is_type(ComValue::IntType)) tokstrv = commav;
   if(tokvalv.is_type(ComValue::IntType)) tokvalv = commav;
-  
+
+  if (tokstrflag && tokstrv.is_string()) {
+    if (!coerce_split_string_delim(tokstrv, "tokstr", this)) {
+      push_stack(ComValue::nullval());
+      return;
+    }
+    /* a one-character string delimiter is supposed to behave exactly
+       like the CharType form it was just coerced into -- tokstr_charflag
+       was captured above, before this coercion, so it's still false
+       here and the scan would (wrongly) also stop tokens at whitespace,
+       something an explicit ':tokstr \';\'' doesn't do (Greptile,
+       PR #493). It stays false for the *default* comma (no :tokstr
+       value at all, coerced from the IntType zerov above, not from a
+       real string argument), which is deliberately not treated as an
+       explicit char delimiter either. */
+    tokstr_charflag = true;
+  }
+  if (tokvalflag && tokvalv.is_string() &&
+      !coerce_split_string_delim(tokvalv, "tokval", this)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
 
   if (symvalv.is_string()) {
     AttributeValueList* avl = new AttributeValueList();
