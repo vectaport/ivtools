@@ -271,18 +271,16 @@ prev_ok=check_fail(:ok ok)
 // --- test 30: a real multi-character (substring) :tokval delimiter
 // isn't supported -- the scan is a one-character-at-a-time comparison
 // throughout, so matching a whole substring would mean rewriting it,
-// not just coercing the argument the way test 29 does.  Rather than
-// guess at a substring split or hard-error, it's treated as a known
-// no-op: warn on stderr (spawn a subprocess, see 1g above, since
-// comterp can't inspect its own stderr) and return the input as a
-// single unsplit token, same as a real delimiter that just never
-// appears in the string.  Same outcome for an empty string. ---
+// not just coercing the argument the way test 29 does.  Reported and
+// refused outright (nil), not silently treated as a harmless one-token
+// split -- spawn a subprocess (see 1g above) since comterp can't
+// inspect its own stderr.  Same outcome for an empty string. ---
 out=*$$open("comterp \"split(\\\"axxbxxc\\\" :tokval \\\"xx\\\")\" 2>&1 | tr \"\\n\" \" \"" :pipe)
-warned=index(out "not a single character" :substr)
+warned=index(out "is not a single character" :substr)
 lst2=split("axxbxxc" :tokval "xx")
 lst3=split("abc" :tokval "")
-ok=ok&&(warned!=nil && size(lst2)==1 && size(lst3)==1)
-print("30 split(:tokval \"xx\"|\"\") multi-char/empty string delim: warn, return unsplit (expect true): %v\n\n" (warned!=nil&&size(lst2)==1&&size(lst3)==1))
+ok=ok&&(warned!=nil && lst2==nil && lst3==nil)
+print("30 split(:tokval \"xx\"|\"\") multi-char/empty string delim: error, return nil (expect true): %v\n\n" (warned!=nil&&lst2==nil&&lst3==nil))
 prev_ok=check_fail(:ok ok)
 
 print("\nstring: %v\n" ok)

@@ -358,14 +358,14 @@ void SplitStrFunc::execute() {
 	 (the delimiter test, :keep's reinserted delimiter value, and
 	 the isspace-as-alternate-delimiter rule all assume a single
 	 char), so matching a whole substring would mean rewriting that
-	 scan, not just this coercion.  Warn and let tokvalv fall through
-	 char_val()'s own default of '\0' unchanged: no character of the
-	 input can ever equal '\0', so the string comes back as a single
-	 token, same as if a real one-character delimiter simply never
-	 appeared -- a known no-op, not a silent one. */
-      fprintf(stderr, "Warning: split() :tokval \"%s\" is not a single character -- "
-	      "no delimiter recognized, input returned unsplit (line %d)\n",
+	 scan, not just this coercion.  Reported and refused outright
+	 (nil) rather than silently returning the input as if it were a
+	 harmless one-token split -- the caller asked for a specific
+	 delimiter and none of it was honored. */
+      fprintf(stderr, "Error: split() :tokval \"%s\" is not a single character (line %d)\n",
               tokvalstr, funcstate()->linenum());
+      push_stack(ComValue::nullval());
+      return;
     }
   }
 
