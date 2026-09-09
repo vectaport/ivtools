@@ -543,6 +543,23 @@ int bs_ident = 0;
 	       return ERR_NLINCHAR;
 
 
+      /* Caret notation for a control byte, char literals only: '^X' is
+	 X^0x40 -- the read side of the caret notation
+	 AttributeValue::out_char_brief already writes, so what's echoed
+	 at the prompt can be pasted back in.  '?' through '_' (0x3F-0x5F)
+	 is the whole standard range: '^@'.'^_' land on 0x00-0x1F, '^?' on
+	 0x7F (DEL).  Gated on *toklen==0 so this only fires as the sole
+	 character of the literal -- a bare '^' with nothing matching
+	 after it (including a lone '^' right before the closing quote)
+	 falls through to the plain TOKEN_ADD below and reads as the
+	 caret byte itself, same as '\^' does. */
+	 else if( token_state == TOK_CHAR && CURR_CHAR == '^' && *toklen == 0 &&
+		  NEXT_CHAR >= 0x3F && NEXT_CHAR <= 0x5F ) {
+	    unsigned char ctrlval = NEXT_CHAR ^ 0x40;
+	    ADVANCE_CHAR;
+	    TOKEN_ADD( ctrlval );
+	    }
+
       /* Normal character added to string or character constant */
 	 else if( CURR_CHAR != '\\' )
 	    TOKEN_ADD( CURR_CHAR )
