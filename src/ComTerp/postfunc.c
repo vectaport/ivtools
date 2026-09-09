@@ -438,7 +438,7 @@ FuncObjFunc::FuncObjFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void FuncObjFunc::execute() {
   /* one or more space-separated bodies, same shape as for()/while()'s
-     positional bodies (#481) -- each copied span is a complete,
+     positional bodies -- each copied span is a complete,
      independently-parsed expression, so concatenating them back to back
      (no separator token needed) gives ComTerpServ::run_funcobj_body() a
      buffer it can walk one span at a time at fire time, autostreaming all

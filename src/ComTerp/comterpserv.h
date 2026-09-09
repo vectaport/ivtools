@@ -63,13 +63,13 @@ public:
     // execute a buffer of postfix tokens and return the value.
 
     ComValue run_funcobj_body(class FuncObj*);
-    // fire a FuncObj's one or more space-separated bodies (#481's
-    // func() support): each span runs via run_one_span() in turn, all but
-    // the last autostreaming an orphaned-stream result instead of losing
-    // it (same treatment for()/while() give their own bodies), the last
-    // kept as the overall result.  A control transfer raised by a
-    // non-final span (break()/continue()/return()/quit()) stops the
-    // remaining spans, same as SeqFunc::execute already does for ';'.
+    // fire a FuncObj's one or more space-separated bodies: each span runs
+    // via run_one_span() in turn, all but the last autostreaming an
+    // orphaned-stream result instead of losing it (same treatment
+    // for()/while() give their own bodies), the last kept as the overall
+    // result.  A control transfer raised by a non-final span
+    // (break()/continue()/return()/quit()) stops the remaining spans,
+    // same as SeqFunc::execute already does for ';'.
 
     AttributeValueList* parse_next_expr(FILE*);
     // parse the next expression from a file.
