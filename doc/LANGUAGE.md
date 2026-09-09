@@ -1879,11 +1879,14 @@ $(1,2,3)                 // same
 ```
 
 Now, whenever a stream is about to be discarded and nothing else
-references it, it's drained instead and its element count shown:
+references it, it's drained instead and its element count shown,
+bracketed to mark it as a count rather than a value (the same
+`[n]`/`{n}`/`(n)` wrapper convention `each()` and `size()` use elsewhere
+to tell a count from an ordinary integer on sight):
 
 ```
-0..100                  // 101
-$(1,2,3)                 // 3
+0..100                  // [101]
+$$(1,2,3)                // [3]
 ```
 
 This applies everywhere a value can be discarded, not just the last line
@@ -1905,7 +1908,7 @@ rather than the way `;` treats its own left side.
 
 A stream still bound to a variable is never
 touched -- draining checks whether anything else still references the
-same underlying stream buffer before doing anything, so `x=$(1,2,3)` at a
+same underlying stream buffer before doing anything, so `x=$$(1,2,3)` at a
 prompt (or as a non-final script statement) leaves `x` fully intact for
 later use, whether or not the surrounding expression that produced it is
 itself discarded.
@@ -1926,7 +1929,7 @@ method.)
 ```
 s=run("some-script-with-a-freestanding-stream.comt")   // []
 s                                                        // []  -- not drained; s is still bound
-each(s)                                                  // 101 -- explicit consumption still works
+each(s)                                                  // [101] -- explicit consumption still works
 ```
 
 `s` alone still prints `[]` rather than a count -- the value on top of
@@ -1938,8 +1941,33 @@ independent copy to drain, leaving `s` itself untouched:
 
 ```
 s=$$(1,2,3)
-$$s                     // 3  -- a fresh, orphaned copy: auto-drains
+$$s                     // [3]  -- a fresh, orphaned copy: auto-drains
 next(s)                 // 1  -- s was never touched
+```
+
+The guard is on the *object*, not on `s`'s name specifically -- any
+second live reference blocks the drain, not just the variable that
+first created it:
+
+```
+s=$$(1,2,3)
+L=(s)                   // grouping, not a list literal -- L names the same stream as s
+L                        // []  -- refcount 2 (s and L both point at it): not an orphan, not drained
+s=nil;                  // s's own binding is gone, but L still references the stream
+next(L)                 // 1   -- untouched the whole time
+```
+
+**A drained count can itself come from overdrive.** `type()` is an
+ordinary, non-post-eval command (`postfix(type)` shows no trailing `*`),
+so a stream argument overdrives it internally (*Overdrive rules* below):
+it doesn't run once on the stream, it runs once per element and the
+results are assembled into a brand-new stream. That result stream is
+freshly built and nothing holds a reference to it, so the moment it lands
+on top of the stack it's an orphan and gets auto-drained immediately, same
+as any other orphaned stream:
+
+```
+type($$(1,2,3))         // [3] -- three elementwise type() calls, overdriven and then auto-drained
 ```
 
 **Why this took decades to build.** ivtools' streams have held one strict
