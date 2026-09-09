@@ -257,5 +257,33 @@ ok=ok&&(at(lst 1)=="baz qux")
 print("28 split(\"foo bar,baz qux\" :tokstr ',') multi-word (expect {foo bar,baz qux}): %v\n\n" lst)
 prev_ok=check_fail(:ok ok)
 
+// --- test 29: :tokval accepts a one-character string the same as a
+// CharType delimiter -- char_val() on a bare StringType used to fall
+// through to '\0' (attrvalue.c's default case), so a string delimiter
+// silently matched nothing and split() never split at all. ---
+lst=split("1;2;3" :tokval ";")
+ok=ok&&(size(lst)==3)
+ok=ok&&(at(lst 0)==1)
+ok=ok&&(at(lst 2)==3)
+print("29 split(\"1;2;3\" :tokval \";\") one-char string delim (expect {1,2,3}): %v\n\n" lst)
+prev_ok=check_fail(:ok ok)
+
+// --- test 30: a real multi-character (substring) :tokval delimiter
+// isn't supported -- the scan is a one-character-at-a-time comparison
+// throughout, so matching a whole substring would mean rewriting it,
+// not just coercing the argument the way test 29 does.  Rather than
+// guess at a substring split or hard-error, it's treated as a known
+// no-op: warn on stderr (spawn a subprocess, see 1g above, since
+// comterp can't inspect its own stderr) and return the input as a
+// single unsplit token, same as a real delimiter that just never
+// appears in the string.  Same outcome for an empty string. ---
+out=*$$open("comterp \"split(\\\"axxbxxc\\\" :tokval \\\"xx\\\")\" 2>&1 | tr \"\\n\" \" \"" :pipe)
+warned=index(out "not a single character" :substr)
+lst2=split("axxbxxc" :tokval "xx")
+lst3=split("abc" :tokval "")
+ok=ok&&(warned!=nil && size(lst2)==1 && size(lst3)==1)
+print("30 split(:tokval \"xx\"|\"\") multi-char/empty string delim: warn, return unsplit (expect true): %v\n\n" (warned!=nil&&size(lst2)==1&&size(lst3)==1))
+prev_ok=check_fail(:ok ok)
+
 print("\nstring: %v\n" ok)
 ok

@@ -342,7 +342,32 @@ void SplitStrFunc::execute() {
   boolean tokstr_charflag = tokstrv.is_type(ComValue::CharType);
   if(tokstrv.is_type(ComValue::IntType)) tokstrv = commav;
   if(tokvalv.is_type(ComValue::IntType)) tokvalv = commav;
-  
+
+  if (tokvalflag && tokvalv.is_string()) {
+    /* a bare string delimiter falls through char_val()'s default case
+       (attrvalue.c) as '\0', so ":tokval \";\"" used to silently never
+       match anything instead of splitting -- accept exactly one
+       character as the obvious equivalent of the CharType form. */
+    std::string tokvalscratch;
+    const char* tokvalstr = tokvalv.cstr(tokvalscratch);
+    if (strlen(tokvalstr) == 1) {
+      tokvalv = ComValue(tokvalstr[0]);
+    } else {
+      /* A real multi-character (substring) delimiter isn't supported --
+	 the scan below compares one character at a time throughout
+	 (the delimiter test, :keep's reinserted delimiter value, and
+	 the isspace-as-alternate-delimiter rule all assume a single
+	 char), so matching a whole substring would mean rewriting that
+	 scan, not just this coercion.  Warn and let tokvalv fall through
+	 char_val()'s own default of '\0' unchanged: no character of the
+	 input can ever equal '\0', so the string comes back as a single
+	 token, same as if a real one-character delimiter simply never
+	 appeared -- a known no-op, not a silent one. */
+      fprintf(stderr, "Warning: split() :tokval \"%s\" is not a single character -- "
+	      "no delimiter recognized, input returned unsplit (line %d)\n",
+              tokvalstr, funcstate()->linenum());
+    }
+  }
 
   if (symvalv.is_string()) {
     AttributeValueList* avl = new AttributeValueList();
