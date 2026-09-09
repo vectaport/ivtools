@@ -166,16 +166,22 @@ ForFunc::ForFunc(ComTerp* comterp) : ComFunc(comterp) {
 
 void ForFunc::execute() {
   static int body_symid = symbol_add("body");
-  /* :body predates today's positional multi-body support and never composed
-     with it (a :body value alongside positional bodies used to silently
-     discard the positionals).  It's retired -- dropped from
-     docstring()/dockeys() so it no longer shows up in help() or the man
-     page -- and its value is never used as the body.  stack_key_present()
-     only walks the keyword's token span (never evaluates a match), so a
-     :body expression is never fired even once, bare or not; see
-     WhileFunc::execute() for the fuller rationale. */
-  if (stack_key_present(body_symid))
-    fprintf(stderr, "Warning: for()'s :body keyword no longer has any effect -- use positional bodies instead (line %d)\n", funcstate()->linenum());
+  /* :body predates today's positional multi-body support; see
+     WhileFunc::execute() for the fuller rationale -- mixed with positional
+     bodies it's flatly ignored (with a warning), but used alone it's the
+     legacy sole-body idiom and must keep firing every iteration, or a
+     for() whose only side effect lived in :body would silently stop having
+     any (Greptile's "legacy for bodies are skipped").  Dropped from
+     docstring()/dockeys() either way, so it no longer shows up in help()
+     or the man page.  stack_key_present() only decides which warning (if
+     any) to print without itself ever firing the keyword's expression. */
+  boolean body_present = stack_key_present(body_symid);
+  if (body_present) {
+    if (nargsfixed()>= 4)
+      fprintf(stderr, "Warning: for()'s :body keyword has no effect when a positional body is also given -- use positional bodies instead (line %d)\n", funcstate()->linenum());
+    else
+      fprintf(stderr, "Warning: for()'s :body keyword is deprecated -- use a positional body instead (line %d)\n", funcstate()->linenum());
+  }
   ComValue initexpr(stack_arg_post_eval(0));
   ComValue* bodyexpr = nil;
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
@@ -204,7 +210,11 @@ void ForFunc::execute() {
       }
     }
     else {
-      bodyexpr = new ComValue(ComValue::unkval());
+      /* no positional body -- :body (if present) is the legacy sole body
+	 and must keep running every iteration for backward compatibility;
+	 absent, this is just a bodyless for(). */
+      ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
+      bodyexpr = new ComValue(keybody);
     }
     ComValue nextexpr(stack_arg_post_eval(2));
   }
@@ -229,17 +239,28 @@ void WhileFunc::execute() {
   static int nilchk_symid = symbol_add("nilchk");
   ComValue untilflag(stack_key_post_eval(until_symid));
   ComValue nilchkflag(stack_key_post_eval(nilchk_symid));
-  /* :body predates today's positional multi-body support and never composed
-     with it (a :body value alongside positional bodies used to silently
-     discard the positionals).  It's retired -- deliberately left out of
-     docstring()/dockeys() so it no longer shows up in help() or the man
-     page -- and its value is never used as the body.  stack_key_present()
-     only walks the keyword's token span to detect it, the same skip
-     stack_key_post_eval's own search loop does before evaluating a match;
-     unlike that walk, it never calls post_eval_expr, so a :body expression
-     is never fired even once, bare or not. */
-  if (stack_key_present(body_symid))
-    fprintf(stderr, "Warning: while()'s :body keyword no longer has any effect -- use positional bodies instead (line %d)\n", funcstate()->linenum());
+  /* :body predates today's positional multi-body support.  Mixed with
+     positional bodies it never composed with them (a :body value alongside
+     positional bodies used to silently discard the positionals) -- that
+     combination is now flatly ignored (with a warning) rather than
+     evaluated, since nothing could have been relying on behavior that was
+     already broken.  Used ALONE, though, :body is the pre-multibody idiom
+     for the entire loop body (e.g. "while(i :body i=i-1)") and has to keep
+     firing every iteration exactly as before -- Greptile correctly flagged
+     that a from-now-on-inert :body hangs a legacy loop whose condition only
+     changes inside it.  Either way it's dropped from docstring()/dockeys()
+     (so it no longer shows up in help() or the man page) in favor of
+     positional bodies.  stack_key_present() only walks the keyword's token
+     span to decide which warning (if any) to print -- unlike
+     stack_key_post_eval, it never calls post_eval_expr, so this presence
+     check alone never fires the keyword's expression. */
+  boolean body_present = stack_key_present(body_symid);
+  if (body_present) {
+    if (nargsfixed()>= 2)
+      fprintf(stderr, "Warning: while()'s :body keyword has no effect when a positional body is also given -- use positional bodies instead (line %d)\n", funcstate()->linenum());
+    else
+      fprintf(stderr, "Warning: while()'s :body keyword is deprecated -- use a positional body instead (line %d)\n", funcstate()->linenum());
+  }
   ComValue* bodyexpr = nil;
   while (!SeqFunc::breakflag() && !comterp()->returnflag() && !comterp()->quitflag()) {
     SeqFunc::continueflag(0);
@@ -268,7 +289,11 @@ void WhileFunc::execute() {
       }
     }
     else {
-      bodyexpr = new ComValue(ComValue::unkval());
+      /* no positional body -- :body (if present) is the legacy sole body
+	 and must keep running every iteration for backward compatibility;
+	 absent, this is just a bodyless while() (e.g. "while(v=next(s))"). */
+      ComValue keybody(stack_key_post_eval(body_symid, false, ComValue::unkval()));
+      bodyexpr = new ComValue(keybody);
     }
     if (untilflag.is_true()) {
       ComValue doneexpr(stack_arg_post_eval(0));
