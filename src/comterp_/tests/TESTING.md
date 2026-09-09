@@ -317,7 +317,7 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-16 of 55 scripts are scored. The rest are real tests with no coverage number,
+17 of 55 scripts are scored. The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
 | script | funcs | covered | total |  %  |
@@ -350,7 +350,7 @@ not gaps in testing -- do not read `—` as untested.
 | funcclosure.comt †          | func local global (declaration-time capture)          |      13 |    21 |  62% |
 | posteval.comt †             | func arg if (`:posteval` keyword)                     |      21 |    28 |  75% |
 | funcstream.comt           | func arg narg if while list local print               |       — |     — |    — |
-| multibody.comt            | for while func run                                    |       — |     — |    — |
+| multibody.comt            | for while func                                        |      30 |    33 |  91% |
 | nilcompare.comt           | func arg while list print                             |       — |     — |    — |
 | random.comt               | split index substr join eq size print + global while… |       — |     — |    — |
 | stringstream.comt         | stream $$ feed chunk next list size at print          |       — |     — |    — |

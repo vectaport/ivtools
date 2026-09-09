@@ -4,7 +4,9 @@
 // non-final body work exactly as they would in a single-body
 // loop/function call.
 //
-// funcs: for while func run
+// coverage: 30/33 (91%)
+// funcs: for while func
+// missing: func(nested-in-while) for(zero-iterations) while(zero-iterations)
 //
 // Run from inside comterp (cd to this dir first):
 //   run("./multibody.comt")
@@ -86,6 +88,40 @@ warned=index(out "is deprecated" :substr)
 ran=index(out " 3 " :substr)
 ok=ok&&(warned!=nil && ran!=nil)
 print("1g for() :body alone still fires every iteration (deprecated, not broken) (expect true): %v\n\n" (warned!=nil&&ran!=nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1h: a non-final body that flags a runtime error (COMERR_SET,
+// e.g. divide-by-zero) doesn't stop the remaining bodies or corrupt
+// anything -- same soft-error philosophy as func()'s 3g/3h, checked here
+// for for() itself since for()/while() use a different evaluation path
+// (stack_arg_post_eval(), not ComTerpServ::run_one_span()) that never had
+// 3h's stack-balance bug in the first place; this pins that it stays that
+// way. ---
+r=for(i=0 i<2 i=i+1 3/0 99)
+sane=(1+1==2)
+ok=ok&&(r==99 && sane)
+print("1h for() non-final body erroring (COMERR_SET) doesn't stop or corrupt (expect true): %v\n\n" (r==99&&sane))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1i: three space-separated bodies, not just two -- the first
+// two run for side effects every iteration, the third is kept. ---
+a=list()
+r=for(i=0 i<2 i=i+1  a,1 a,2 i*10)
+ok=ok&&(r==10 && size(a)==4)
+print("1i for() with 3 bodies: first two run for effect, third kept (expect true): %v\n\n" (r==10&&size(a)==4))
+prev_ok=check_fail(:ok ok)
+
+// --- test 1j: bare :body (no value at all) used alone still warns --
+// stack_key_present() detects presence regardless of whether there's a
+// value to fire, so a bare flag isn't a silent way to dodge the warning.
+// The loop still runs to completion off its own whileexpr/nextexpr (i
+// reaches 3), since bare :body never had anything to act as a body
+// anyway. ---
+out=*$$open("comterp \"i=0;for(i=0 i<3 i=i+1 :body);i\" 2>&1 | tr \"\\n\" \" \"" :pipe)
+warned=index(out "is deprecated" :substr)
+ran=index(out " 3 " :substr)
+ok=ok&&(warned!=nil && ran!=nil)
+print("1j for() bare :body (no value) still warns, loop still completes (expect true): %v\n\n" (warned!=nil&&ran!=nil))
 prev_ok=check_fail(:ok ok)
 
 // --- test 2: while() with 2 space-separated bodies -- both run every
@@ -170,6 +206,41 @@ warned=index(out "is deprecated" :substr)
 ran=index(out " 3 " :substr)
 ok=ok&&(warned!=nil && ran!=nil)
 print("2g while() :body alone still fires every iteration (deprecated, not broken) (expect true): %v\n\n" (warned!=nil&&ran!=nil))
+prev_ok=check_fail(:ok ok)
+
+// --- test 2h: a non-final body that flags a runtime error (COMERR_SET,
+// e.g. divide-by-zero) doesn't stop the remaining bodies or corrupt
+// anything -- same soft-error philosophy as func()'s 3g/3h, checked here
+// for while() itself since for()/while() use a different evaluation path
+// (stack_arg_post_eval(), not ComTerpServ::run_one_span()) that never had
+// 3h's stack-balance bug in the first place; this pins that it stays that
+// way. ---
+i=0
+r=while(i<2 3/0 i=i+1)
+sane=(1+1==2)
+ok=ok&&(r==2 && sane)
+print("2h while() non-final body erroring (COMERR_SET) doesn't stop or corrupt (expect true): %v\n\n" (r==2&&sane))
+prev_ok=check_fail(:ok ok)
+
+// --- test 2i: three space-separated bodies, not just two -- the first
+// two run for side effects every iteration, the third is kept. ---
+a=list()
+i=0
+r=while(i<2  a,1 a,2 i=i+1)
+ok=ok&&(r==2 && size(a)==4)
+print("2i while() with 3 bodies: first two run for effect, third kept (expect true): %v\n\n" (r==2&&size(a)==4))
+prev_ok=check_fail(:ok ok)
+
+// --- test 2j: bare :body (no value at all) used alone still warns --
+// same as 1j, for while() -- stack_key_present() detects presence
+// regardless of whether there's a value to fire.  The loop still runs to
+// completion off its own testexpr (i reaches 3), since bare :body never
+// had anything to act as a body anyway. ---
+out=*$$open("comterp \"i=0;while((i=i+1)<3 :body);i\" 2>&1 | tr \"\\n\" \" \"" :pipe)
+warned=index(out "is deprecated" :substr)
+ran=index(out " 3 " :substr)
+ok=ok&&(warned!=nil && ran!=nil)
+print("2j while() bare :body (no value) still warns, loop still completes (expect true): %v\n\n" (warned!=nil&&ran!=nil))
 prev_ok=check_fail(:ok ok)
 
 // --- test 3: func() with 2 space-separated bodies -- both run every
