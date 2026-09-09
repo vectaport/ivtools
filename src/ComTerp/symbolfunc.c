@@ -321,6 +321,31 @@ void StrCapFunc::execute() {
 SplitStrFunc::SplitStrFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
+/* A bare string delimiter falls through char_val()'s default case
+   (attrvalue.c) as '\0', so a StringType :tokstr/:tokval used to
+   silently match nothing and split() never split at all.  A
+   one-character string is accepted as the obvious equivalent of the
+   CharType form.  A real multi-character (substring) delimiter isn't
+   supported -- the scan in SplitStrFunc::execute() compares one
+   character at a time throughout (the delimiter test, :keep's
+   reinserted delimiter value, and the isspace-as-alternate-delimiter
+   rule all assume a single char), so matching a whole substring would
+   mean rewriting that scan, not just this coercion -- reported and
+   refused outright (nil) rather than silently treated as a harmless
+   one-token split. */
+static boolean coerce_split_string_delim(ComValue& delimv, const char* keyword,
+                                          ComFunc* func) {
+  std::string scratch;
+  const char* str = delimv.cstr(scratch);
+  if (strlen(str) == 1) {
+    delimv = ComValue(str[0]);
+    return true;
+  }
+  fprintf(stderr, "Error: split() :%s \"%s\" is not a single character (line %d)\n",
+          keyword, str, func->funcstate()->linenum());
+  return false;
+}
+
 void SplitStrFunc::execute() {
   ComValue zerov(0, ComValue::IntType);
   ComValue commav(',');
@@ -343,30 +368,15 @@ void SplitStrFunc::execute() {
   if(tokstrv.is_type(ComValue::IntType)) tokstrv = commav;
   if(tokvalv.is_type(ComValue::IntType)) tokvalv = commav;
 
-  if (tokvalflag && tokvalv.is_string()) {
-    /* a bare string delimiter falls through char_val()'s default case
-       (attrvalue.c) as '\0', so ":tokval \";\"" used to silently never
-       match anything instead of splitting -- accept exactly one
-       character as the obvious equivalent of the CharType form. */
-    std::string tokvalscratch;
-    const char* tokvalstr = tokvalv.cstr(tokvalscratch);
-    if (strlen(tokvalstr) == 1) {
-      tokvalv = ComValue(tokvalstr[0]);
-    } else {
-      /* A real multi-character (substring) delimiter isn't supported --
-	 the scan below compares one character at a time throughout
-	 (the delimiter test, :keep's reinserted delimiter value, and
-	 the isspace-as-alternate-delimiter rule all assume a single
-	 char), so matching a whole substring would mean rewriting that
-	 scan, not just this coercion.  Reported and refused outright
-	 (nil) rather than silently returning the input as if it were a
-	 harmless one-token split -- the caller asked for a specific
-	 delimiter and none of it was honored. */
-      fprintf(stderr, "Error: split() :tokval \"%s\" is not a single character (line %d)\n",
-              tokvalstr, funcstate()->linenum());
-      push_stack(ComValue::nullval());
-      return;
-    }
+  if (tokstrflag && tokstrv.is_string() &&
+      !coerce_split_string_delim(tokstrv, "tokstr", this)) {
+    push_stack(ComValue::nullval());
+    return;
+  }
+  if (tokvalflag && tokvalv.is_string() &&
+      !coerce_split_string_delim(tokvalv, "tokval", this)) {
+    push_stack(ComValue::nullval());
+    return;
   }
 
   if (symvalv.is_string()) {

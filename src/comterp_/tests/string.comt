@@ -283,5 +283,24 @@ ok=ok&&(warned!=nil && lst2==nil && lst3==nil)
 print("30 split(:tokval \"xx\"|\"\") multi-char/empty string delim: error, return nil (expect true): %v\n\n" (warned!=nil&&lst2==nil&&lst3==nil))
 prev_ok=check_fail(:ok ok)
 
+// --- test 31: :tokstr accepts a one-character string the same as a
+// CharType delimiter -- the exact same char_val()-default-'\0' bug as
+// test 29's, just via :tokstr's own separate delimiter argument. ---
+lst=split("a;b;c" :tokstr ";")
+ok=ok&&(size(lst)==3)
+ok=ok&&(at(lst 0)=="a")
+ok=ok&&(at(lst 2)=="c")
+print("31 split(\"a;b;c\" :tokstr \";\") one-char string delim (expect {a,b,c}): %v\n\n" lst)
+prev_ok=check_fail(:ok ok)
+
+// --- test 32: same rejection as test 30, via :tokstr's delimiter. ---
+out=*$$open("comterp \"split(\\\"axxbxxc\\\" :tokstr \\\"xx\\\")\" 2>&1 | tr \"\\n\" \" \"" :pipe)
+warned=index(out "is not a single character" :substr)
+lst2=split("axxbxxc" :tokstr "xx")
+lst3=split("abc" :tokstr "")
+ok=ok&&(warned!=nil && lst2==nil && lst3==nil)
+print("32 split(:tokstr \"xx\"|\"\") multi-char/empty string delim: error, return nil (expect true): %v\n\n" (warned!=nil&&lst2==nil&&lst3==nil))
+prev_ok=check_fail(:ok ok)
+
 print("\nstring: %v\n" ok)
 ok
