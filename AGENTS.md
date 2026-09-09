@@ -333,6 +333,13 @@ worth looking.
 - **Everything is an expression**; there are no declarations. `func` is a
   *command* that returns a `FuncObj` — write `name=func(...)`, never
   `func name (...)`. A func that "returns nil" is usually this mistake.
+- **`for()`/`while()`/`func()` take one or more space-separated bodies.**
+  All but the last run for side effects (a non-final orphan stream gets
+  drained instead of dropped); the last is kept as the result. A space
+  used to either error (`for`/`while`) or silently drop everything past
+  the first body (`func`) — old habits that inserted a stray space where
+  a `;` was meant now change behavior instead of erroring or no-opping.
+  `postfix(expr)` shows whether something parsed as one body or several.
 - **Append with `,` (the tuple operator), not `list()`.** `lst,x` appends in
   place; `list(lst x)` builds a nested list-of-lists.
 - **A one-element list needs the trailing comma** -- `('x',)` is a one-element

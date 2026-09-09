@@ -197,14 +197,18 @@ A script file (`.comt`) is a sequence of top-level expressions consumed
 one at a time. The return value of the script is the value of the last
 expression evaluated. By convention test scripts return `ok` (a boolean).
 
-The body argument to a control command (`for`, `while`, `if`, `switch`, `func`)
-is a **single expression**. The canonical way to express a
-multi-statement body is semicolons with no enclosing delimiters —
-the least punctuation needed:
+The body argument to `for`, `while`, and `func` can be **one or more**
+space-separated expressions — all but the last run for side effects
+(with any orphan stream result drained, same discipline as *Auto-draining
+an orphaned result* below), and the last is kept as the result. `if` and
+`switch` still take a single expression per branch. Semicolons still
+work too, and remain the way to fuse statements *inside* one of those
+positions — the two forms below are equivalent:
 
 ```
-for(i=0 i<10 i++ lst,i; total=total+i)   // canonical two-statement body
-for(i=0 i<10 i++ lst,i)                  // one statement, no ; needed
+for(i=0 i<10 i++ lst,i total=total+i)    // two bodies: lst,i for effect, total=total+i kept
+for(i=0 i<10 i++ lst,i; total=total+i)   // same result, one ';'-fused body instead
+for(i=0 i<10 i++ lst,i)                  // one body, no ; needed
 ```
 
 **Parens have no special body-grouping role.** Their purposes in
@@ -215,25 +219,52 @@ ComTerp are:
 3. **Stream literals** — `(val val ...)` when first token is a value
 4. **Precedence override** — `(a+b)*c` to override operator priority
 
-That's it. A body does not need parens. `(lst,i; total=total+i)` is
-a single `;`-sequence expression that happens to be wrapped in parens,
-but the parens add nothing — the semicolons do all the work:
+That's it. Wrapping a single body in parens does nothing —
+`(lst,i; total=total+i)` is just a `;`-sequence expression that happens
+to sit in parens:
 
 ```
 for(i=0 i<10 i++ (lst,i; total=total+i))  // works but parens unnecessary
 ```
 
-**Warning:** a space between two expressions inside parens — without a
-semicolon — is not a two-statement body. It is a stream literal:
+**Warning:** a space between two expressions *inside one set of parens*
+is not a second body — it's a stream literal (rule 3 above), one level
+down from the command call, regardless of how many space-separated
+bodies the surrounding `for()`/`while()`/`func()` call itself has. The
+difference between the two lines below is entirely the parens, not the
+space:
 
 ```
-for(i=0 i<10 i++ (lst,i total=total+i))   // body is a 2-element stream literal, not two statements -- loop no-ops
-for(i=0 i<10 i++ lst,i total=total+i)     // error: for loop with more than one body -- missing semicolon between statements
+for(i=0 i<10 i++ (lst,i total=total+i))   // ONE body: a 2-element stream literal, not two statements -- loop no-ops
+for(i=0 i<10 i++ lst,i total=total+i)     // TWO bodies (no parens): both run, same as the ';' form above
 ```
 
-`(ding beep)` parses as a stream literal of two values, not a grouped
-two-statement body. Code relying on space-separated statements inside
-parens without a semicolon needs a semicolon added between them.
+`(ding beep)` on its own is a stream literal of two values, never a
+grouped two-statement body — with or without an enclosing
+`for()`/`while()`/`func()`.
+
+**The same trap exists in any single-value slot, not just a
+`for()`/`while()`/`func()` body** — `if()`'s `:then`/`:else`, or any
+keyword value generally. `for()`/`while()`/`func()`'s real multi-body
+sequencing (bodies kept space-separated *at the command-call level*,
+last one kept, non-final ones autostreamed) is easy to mistake for "wrap
+several statements in parens and the last value comes back" — that
+mental model is wrong everywhere else, because parens-with-bare-spaces
+is *always* a stream literal, full stop, regardless of which slot it
+sits in. `if()` just receives that one `StreamType` value unexamined —
+there is no "last one kept," every element fires and none is special:
+
+```
+if(true :then (1 2 3))                        // 3 -- the ONE value is a stream; a bare top-level result auto-drains, showing its count
+if(true :then (print(1) print(2) print(3)))   // 123 then 3 -- all three print() calls fire, none is "the last body"
+x=if(true :then (1 2 3)); x                    // []  -- bound, so never drained; x still holds the raw, unconsumed stream
+```
+
+Two mechanisms that share surface appearance (parens, spaces, a value
+coming back) and do opposite things: `for()`/`while()`/`func()`'s
+multi-body keeps one value and runs the rest for effect; a stream
+literal handed to anything else is drained uniformly or not at all, with
+no body ever singled out as "the result."
 
 ## Types
 
@@ -719,22 +750,31 @@ if(testexpr :then trueexpr :else falseexpr)
 ### for
 
 ```
+for(initexpr whileexpr [nextexpr [bodyexpr [bodyexpr ...]]])
+
 for(i=0 i<10 i++
   print("%v\n" i))
+
+for(i=0 i<10 i++
+  lst,i total=total+i)   // two bodies: lst,i for effect, total kept
 ```
 
-Positional args: init, while-test, next, body. `:body expr` is an
-explicit keyword form for the body.
+Positional args: init, while-test, next, one or more space-separated
+bodies — see *for/while/func: autostreaming non-final bodies* below.
+`:body expr` is a deprecated legacy keyword — see the note there.
 
 ### while
 
 ```
+while(testexpr [bodyexpr [bodyexpr ...]] :nilchk :until)
+
 while(i<10
   print("%v\n" i); i++)
 ```
 
 Keywords: `:nilchk` (test for nil instead of false), `:until` (test
-after body), `:body expr` (explicit body keyword).
+after body). `:body expr` is a deprecated legacy keyword — see
+*for/while/func: autostreaming non-final bodies* below.
 
 ### return, break, continue
 
@@ -799,12 +839,16 @@ Square brackets indicate optional fixed args.
 Define a function with `func()`:
 
 ```
-f=func(body)
+f=func(body [body ...])
 ```
 
-The body is the first positional argument. There is no formal parameter
-list — any symbol used in the body is a local variable. Call with
-keyword args to initialize locals before the body runs:
+The body is one or more space-separated expressions — all but the last
+run for side effects (with any orphan stream result drained), and the
+last is kept as the call's result, same treatment `for()`/`while()`
+bodies get; see *for/while/func: autostreaming non-final bodies* below.
+There is no formal parameter list — any symbol used in the body is a
+local variable. Call with keyword args to initialize locals before the
+body runs:
 
 ```
 f=func(if(x>5 :then return(x*2)))
@@ -865,7 +909,9 @@ That's the standard test for closures in any language (define under a
 binding, escape, mutate, call), and `func()` passes it.
 
 **Which free variables get captured, and which don't.** A `FuncObj` is
-still just a saved token buffer (`_toks`/`_ntoks`) — nothing about *how*
+still just a saved token buffer — one span per body, concatenated, if
+there's more than one (`_toks`/`_ntoks` for the whole buffer,
+`_spanlens`/`_nspans` marking where each body ends) — nothing about *how*
 it runs changed, only *when* a free variable's value gets read:
 
 - **Read-only or read-before-write** — a name the body reads without
@@ -1829,8 +1875,22 @@ $(1,2,3)                 // 3
 
 This applies everywhere a value can be discarded, not just the last line
 of a script: every freestanding statement in a multi-line `.comt` script
-(each line is its own read-eval step), every `;`-joined statement, and
-the interactive prompt. A stream still bound to a variable is never
+(each line is its own read-eval step) and the interactive prompt.
+
+`;` is the one deliberate exception: its discarded left side is a plain
+discard, never drained, so a stream built purely for a side effect and
+thrown away via `;` still just vanishes, same as it always has:
+
+```
+0..3; 99                 // 99 -- the range is silently dropped, not drained
+```
+
+*for/while/func: autostreaming non-final bodies* below closes that gap
+for those three constructs specifically, by treating a non-final body's
+result the way a freestanding top-level statement is treated here,
+rather than the way `;` treats its own left side.
+
+A stream still bound to a variable is never
 touched -- draining checks whether anything else still references the
 same underlying stream buffer before doing anything, so `x=$(1,2,3)` at a
 prompt (or as a non-final script statement) leaves `x` fully intact for
@@ -1890,6 +1950,49 @@ detail: each freestanding statement's leftover result has to be drained
 before the *next* statement runs, not after, or a deferred side effect
 from one statement shows up interleaved into the following statement's
 own output.
+
+### for/while/func: autostreaming non-final bodies
+
+`for()`, `while()`, and `func()` all accept one or more space-separated
+bodies. All but the last run purely for side effects; the last is kept
+as the result:
+
+```
+hits=0
+r=for(i=0 i<3 i=i+1  hits=hits+1 i*i)   // r=4, hits=3
+```
+
+A non-final body that evaluates to an orphaned stream (nothing else
+holding a reference) is drained instead of silently discarded, the same
+principle as *Auto-draining an orphaned result* above, just applied to a
+construct's own interior rather than a top-level statement boundary:
+
+```
+xs=list(7,8,9)
+drained=list()
+for(i=0 i<2 i=i+1  drained,$$xs i)   // drained ends up {7,8,9,7,8,9}
+```
+
+A control transfer raised by a non-final body -- `break()`, `continue()`,
+`return()`, `quit()` -- stops the remaining bodies from running, exactly
+as `;` already does when its own left side raises one:
+
+```
+r=for(i=0 i<5 i=i+1  if(i==2 :then break()) i)   // stops at i==2, r is break()'s value
+```
+
+`func()`'s bodies are captured once at declaration time (see *Closures*
+above) and re-run at every call; a `for()`/`while()` inside one of them
+that autostreams or drains does so exactly as it would outside a `func()`
+-- nesting doesn't change any of this.
+
+**A retired keyword: `:body`.** `for()` and `while()` briefly had a
+`:body expr` keyword predating positional multi-body support, since
+retired and dropped from `help()` -- it never composed with positional
+bodies (given both, the positionals run and `:body`'s value is ignored,
+with a stderr warning) and used alone is the same warning plus the
+legacy single-body behavior, kept working for scripts still using it
+rather than broken outright.
 
 ### Files and pipes as streams
 

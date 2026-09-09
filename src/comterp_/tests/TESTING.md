@@ -177,6 +177,71 @@ setup in the comment above:
 print("10 sum via while/next($$(1..5)) (expect 15): %v\n" total)
 ```
 
+### Side effects across calls: use a list, not a captured scalar
+
+A `func()` body's free variables are captured *by value* at declaration
+time (see `LANGUAGE.md`'s *Closures* section) — a read-before-write name
+like the `hits` in `func(hits=hits+1  hits+10)` resolves to a private,
+per-call local, not the outer `hits`. Asserting on the outer variable
+after calling the func silently checks the wrong thing — it never
+changes, call the func as many times as you like:
+
+```
+// wrong -- hits is captured by value, this outer copy never moves
+hits=0
+f=func(hits=hits+1  99)
+r=f()
+ok=ok&&(hits==1)             // always fails: outer hits is still 0
+```
+
+A list sidesteps this: its *binding* is captured the same way, but a
+list is a reference type, so appending to it inside the body mutates the
+same underlying object the outer variable points at:
+
+```
+// right -- hits is a list; the append is visible outside the call
+hits=list()
+f=func(hits,1  99)
+r=f()
+ok=ok&&(size(hits)==1)       // passes
+```
+
+This is the same idiom `multibody.comt`'s orphan-stream tests use
+(`drained,$$xs` as one of a `for()`/`while()`/`func()` body's own
+*non-final* positions, where it autostreams) for an unrelated reason —
+it turns out to double as the fix for capture-by-value hiding a func()
+test's own side effects. It has to be a non-final body or the very last
+statement of the script, though — `;` never autostreams its own
+discarded left side (see `LANGUAGE.md`'s *Auto-draining an orphaned
+result*), so `drained,$$xs; size(drained)` still reads back `0`: nothing
+ever pulled `$$xs`.
+
+### Asserting on stderr output: capture a subprocess
+
+A `.comt` script can't inspect its own process's stderr — a warning
+written via `fprintf(stderr, ...)` inside a C++ command has nowhere to
+land that `errmsg()` (which reads the *interpreter's* error state, not
+raw stderr text) can see. To assert on it, spawn a real subprocess and
+read its combined output back as a stream:
+
+```
+out=*$$open("comterp \"<script that prints on stderr>\" 2>&1 | tr \"\\n\" \" \"" :pipe)
+warned=index(out "expected substring" :substr)
+```
+
+`2>&1` merges stderr into stdout inside the subprocess so both are
+visible on the pipe; `tr "\n" " "` squashes the output to one line so
+`*$$open(:pipe)`'s single read captures everything at once. (The more
+obvious-looking `next()`-in-a-`while()`-loop idiom for reading a
+multi-line pipe misbehaves on stream-tagged strings once concatenated
+across iterations, unrelated to this fix; `*$$open(:pipe)`'s single
+already-flattened read is the idiom that reliably works.) The inner
+`comterp` script's own double quotes need escaping as `\"` since the
+whole thing is itself a ComTerp string literal.
+
+See `multibody.comt`'s tests for `for()`/`while()`'s retired `:body`
+keyword for a complete example asserting a deprecation warning this way.
+
 ### Rules for LLM-assisted authoring
 
 When an LLM generates or edits a `.comt` test script, it must follow
@@ -252,7 +317,7 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-13 of 45 scripts are scored. The rest are real tests with no coverage number,
+16 of 55 scripts are scored. The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
 | script | funcs | covered | total |  %  |
@@ -285,11 +350,14 @@ not gaps in testing -- do not read `—` as untested.
 | funcclosure.comt †          | func local global (declaration-time capture)          |      13 |    21 |  62% |
 | posteval.comt †             | func arg if (`:posteval` keyword)                     |      21 |    28 |  75% |
 | funcstream.comt           | func arg narg if while list local print               |       — |     — |    — |
+| multibody.comt            | for while func run                                    |       — |     — |    — |
 | nilcompare.comt           | func arg while list print                             |       — |     — |    — |
 | random.comt               | split index substr join eq size print + global while… |       — |     — |    — |
+| stringstream.comt         | stream $$ feed chunk next list size at print          |       — |     — |    — |
 | time.comt                 | time int srand help index                             |       — |     — |    — |
 | numstring.comt            | int long float double print                           |       — |     — |    — |
 | keyword_lineend.comt      | func arg run help print list                          |       — |     — |    — |
+| keyword_trailing_semi.comt| if postfix index max errmsg print                     |       — |     — |    — |
 | funchelp.comt †             | help func arg narg local global (`help(f)` on a bare… |      19 |    24 |  79% |
 | updown.comt               | shell()  socket()  remote()  remote(:nowait)  close(… |       — |     — |    — |
 | spread.comt               | spread stream print echo attrlist func narg list      |       — |     — |    — |
@@ -302,9 +370,13 @@ not gaps in testing -- do not read `—` as untested.
 | optable.comt              | —                                                     |       — |     — |    — |
 | starnext.comt             | * (unary next) * (binary mpy) optable(:table) optabl… |       — |     — |    — |
 | symboldrain.comt          | —                                                     |       — |     — |    — |
+| seqorder.comt             | func run                                              |       — |     — |    — |
 | bracket-brace-parity.comt | —                                                     |       — |     — |    — |
 | atop.comt                 | @ (at) at() attrname attrval postfix                  |       — |     — |    — |
 | wrapper.comt              | —                                                     |       — |     — |    — |
+| classreg.comt             | class size at lt func for                             |      11 |    14 |  79% |
+| classblank.comt           | class blank empty type                                |      10 |    12 |  83% |
+| typeall.comt              | type size at blank                                    |      12 |    15 |  80% |
 
 † recorded here but not declared by the script itself.
 

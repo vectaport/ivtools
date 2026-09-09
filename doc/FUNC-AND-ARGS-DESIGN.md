@@ -11,6 +11,15 @@ current spec. Every "future"/"awaits `:posteval`" marker left below is
 intentionally left in place as-written, with a note pointing at what it
 became, not rewritten to sound already-decided.
 
+The "one body, or many space-separated expressions run in sequence,
+last value out" shape below was written as this document's premise from
+the start, but wasn't actually true until much later: for years `func()`
+only ever incorporated its first positional into the `FuncObj`, silently
+dropping the rest. It now works exactly as described here — see
+`LANGUAGE.md`'s "for/while/func: autostreaming non-final bodies" section
+for the real, current spec (all but the last body run for side effects,
+with orphan-stream draining `for()`/`while()` also gained).
+
 ## The one-line shape
 
 > **A func is a verb with a stream of expressions that works on objects.**
@@ -129,9 +138,11 @@ body the stream.
 ## `func()` the command
 
 - Takes its **body span** (one body, or many space-separated expressions run in
-  sequence, last value out) plus exactly **one predefined keyword, `:echo`**
-  (`help(func)`: "echo the postfix version of parsed body"). `:echo` rides last
-  and is *thinned* by `func()` — consumed so it never leaks into the body.
+  sequence, last value out — see the note at the top of this document for
+  when that became true) plus two predefined keywords, `:echo`
+  (`help(func)`: "echo the postfix version of parsed body") and
+  `:posteval` (the future direction above, since landed). Both ride last
+  and are *thinned* by `func()` — consumed so neither leaks into the body.
 - **No formal positions.** The bodies are NOT positional args. (Don't conflate
   `func()`'s bodies with the funcobj's *call-time* positionals — different list,
   different end, different name.)
@@ -179,8 +190,11 @@ side-effecting `c(beep ding)` beeps/dings **once**, not "beep ding beep ding" �
 that awaited `:posteval`, which now gives you exactly this: `func(body
 :posteval)` re-fires `beep`/`ding` on each `arg(n)` read, see
 `posteval.comt`); multi-body
-`f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with `l==(1,2,3)`.
-(Note `==` (45) binds tighter than `,` (35), so the literal needs the parens.)
+`f=func(a0=arg(0) a1=arg(1) a2=arg(2) a0,a1,a2) l=f(1 2 3)` with `l==(1,2,3)`
+(Note `==` (45) binds tighter than `,` (35), so the literal needs the
+parens) -- not actually true when this was written (`func()` only ever
+ran its first body), so not in `funcarg.comt` either; it is true now, and
+the regression coverage for it lives in `multibody.comt` instead.
 
 ## Corrected: `assign` blocks clobbering a registered command — *not* rebinding a funcobj
 
