@@ -97,48 +97,29 @@ al9=(:p char(97) :c char(7) :h char(160))
 ok=ok&&(print(al9 :str)=="(:p 'a' :c '^G' :h '\\240')")
 print("9 a char attribute value is quoted (expect (:p 'a' :c '^G' :h '\\240')): %s\n" print(al9 :str))
 
-// --- 10: a printable char attribute round-trips -- and so does a high byte,
-// which could not while it serialized between backquotes -- and so, now,
-// does the caret form: '^X' reads as X^0x40, the same control byte
-// out_char_brief wrote it from (issue #467).  '^?' is the one special case,
-// reading as 0x7f (DEL) rather than following the '?'^0x40 formula literally
-// -- 0x3f^0x40 happens to already equal 0x7f, so one range check covers both ---
+// --- 10: so a printable char attribute round-trips now, which it could not
+// when it serialized bare -- and so does a high byte, which could not while it
+// serialized between backquotes.  The caret form still does not: '^G' is a
+// display form the lexer does not read, and reads back as UnknownType.  That
+// is the one remaining place where what is written out cannot be read in ---
 al10=eval("(:p 'a')")
 ok=ok&&(type(attrval(al10))=="CharType")
 al10b=eval("(:h '\\240')")
 ok=ok&&(type(attrval(al10b))=="CharType")&&(attrval(al10b)==char(160))
 al10c=eval("(:c '^G')")
-ok=ok&&(type(attrval(al10c))=="CharType")&&(attrval(al10c)==char(7))
-al10d=eval("(:c '^?')")
-ok=ok&&(type(attrval(al10d))=="CharType")&&(attrval(al10d)==char(127))
-print("10 'a', '\\240', '^G', '^?' all read back as the char they display (expect CharType CharType CharType CharType): %s %s %s %s\n" type(attrval(al10)) type(attrval(al10b)) type(attrval(al10c)) type(attrval(al10d)))
+ok=ok&&(type(attrval(al10c))=="UnknownType")
+print("10 'a' and '\\240' read back as chars, '^G' does not (expect CharType CharType UnknownType): %s %s %s\n" type(attrval(al10)) type(attrval(al10b)) type(attrval(al10c)))
 
-// --- 11: the three bytes that cannot sit bare between the quotes -- a
-// backslash would escape the closing quote, an apostrophe would be it, and a
-// caret would read back as the start of caret notation instead of itself --
-// take the escape the lexer already reads, so they round-trip instead of
-// breaking the parse of everything after them (or, for the caret, silently
-// reading as some other control byte).  Before, a char attribute holding
-// 0x5c serialized as '\' and the whole enclosing attrlist came back nil ---
-al11=(:b char(92) :q char(39) :hat char(94) :next 42)
-ok=ok&&(print(al11 :str)=="(:b '\\\\' :q '\\'' :hat '\\^' :next 42)")
-r11=eval("(:b '\\\\' :q '\\'' :hat '\\^' :next 42)")
-ok=ok&&(int(attrval(r11@0))==92)&&(int(attrval(r11@1))==39)&&(int(attrval(r11@2))==94)&&(attrval(r11@3)==42)
-print("11 backslash, apostrophe and caret escape and round-trip (expect 92 39 94 42): %v %v %v %v\n" int(attrval(r11@0)) int(attrval(r11@1)) int(attrval(r11@2)) attrval(r11@3))
-
-// --- 12: the copy/paste principle at the top of #467, stated as an
-// assertion over the whole byte range -- for every byte 0-255, wrap
-// char(n) in a one-member attrlist (so its quotes actually get emitted;
-// print()'s own display is bare, per tests 1-8 above), print that quoted
-// form, and eval() it back.  Every byte should come back exactly what it
-// started as, whichever of the three display forms (bare, caret, octal)
-// wrote it. ---
-allok=true
-r12=for(n=0 n<256 n=n+1
-  qform=print((:v char(n)) :str)
-  allok=allok&&(attrval(eval(qform))==char(n)))
-print("12 every byte's quoted char(n) round-trips through eval() (expect true): %v\n" allok)
-ok=ok&&allok
+// --- 11: the two bytes that cannot sit bare between the quotes -- a backslash
+// would escape the closing quote, an apostrophe would be it -- take the escape
+// the lexer already reads, so they round-trip instead of breaking the parse of
+// everything after them.  Before, a char attribute holding 0x5c serialized as
+// '\' and the whole enclosing attrlist came back nil ---
+al11=(:b char(92) :q char(39) :next 42)
+ok=ok&&(print(al11 :str)=="(:b '\\\\' :q '\\'' :next 42)")
+r11=eval("(:b '\\\\' :q '\\'' :next 42)")
+ok=ok&&(int(attrval(r11@0))==92)&&(int(attrval(r11@1))==39)&&(attrval(r11@2)==42)
+print("11 backslash and apostrophe escape and round-trip (expect 92 39 42): %v %v %v\n" int(attrval(r11@0)) int(attrval(r11@1)) attrval(r11@2))
 
 print("char: %v\n" ok)
 ok

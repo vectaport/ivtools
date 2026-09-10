@@ -2742,8 +2742,7 @@ coordinate as expected.
 
 String literals use double-quotes. Escape sequences: `\"` for a literal
 double-quote, `\n` for newline, `\t` for tab, `\\` for a literal
-backslash before `n`, `r`, or `t`, plus octal (`\007`) and hex (`\x1b`)
-escapes for an arbitrary byte, same as chars below.
+backslash before `n`, `r`, or `t`.
 
 Key string commands:
 
@@ -2768,66 +2767,6 @@ Note: `:substr` is only needed when the first arg to `index` is a list.
 When both args are strings, substring search is the default behavior.
 
 Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
-
-### Chars: display forms, and reading them back
-
-A char is one byte, and how it displays depends on what that byte is.
-Bare -- `print(x :str)`'s own return value, or any `%s`/`%c` slot --
-shows just the byte, no delimiters:
-
-```
-print('a' :str)         // "a"      -- printable: shown as itself
-print(char(7) :str)     // "^G"     -- control byte (0x00-0x1F, 0x7F): caret notation
-print(char(160) :str)   // "\240"   -- 0x80 and up: octal escape, same form strings use
-```
-
-Quoted -- which is what a bare char shows as at the REPL prompt, and
-the only form `AttributeList` serialization ever writes, since a bare
-`a` would parse back as a symbol -- all three take the same single
-quotes, and all three now read back as the byte that produced them:
-
-```
-char(7)          // '^G'    -- bare echo at the prompt is quoted
-eval("'^G'")      // 7 -- same byte back, caret notation included
-eval("'\007'")    // 7 -- the general escape reads it too, same byte
-```
-
-Caret notation is unambiguous only because a char is a single byte with
-its own pair of quotes -- concatenated bytes (a string, or a printed
-run of chars with no quotes at all) would make a literal `^` indistinguishable
-from the start of a control form. That is why caret notation is
-**char-only**: a string never uses it, even to display a control byte
-it holds, and a literal `^` typed inside a string is never read
-specially -- it is just the ordinary character 0x5E, same as inside
-any other pair of double quotes.
-
-```
-"a\007b"     // "a\007b"   -- a string's own control byte: backslash escape, always
-"^G"          // "^G"       -- two ordinary characters, not a control byte
-```
-
-Two bytes need an escape to sit between a char's own quotes at all,
-because they would otherwise be misread: a backslash would start an
-escape sequence, and an apostrophe would close the literal early. A
-literal caret needs one for the same reason caret notation exists in
-the first place -- unescaped, it reads as the start of a control byte,
-not itself:
-
-```
-char(92)    // '\\'   -- backslash
-char(39)    // '\''   -- apostrophe
-char(94)    // '\^'   -- caret
-```
-
-All three read back through the same general escape mechanism
-(`'\\'`, `'\''`, `'\^'` all reach the lexer's default case, which just
-takes whatever follows the backslash literally), so nothing about
-reading them back is caret-specific — only *writing* a caret needed a
-new case, since before it a literal `^` printed bare and read back as
-itself, an ordinary printable byte, correctly. What changed is that
-`'^X'` now also reads as `X^0x40` for `X` in `?`..`_`, matching the
-control-byte form the REPL already prints, so the value on screen and
-the value you can paste back are finally always the same thing.
 
 ### Slices
 
