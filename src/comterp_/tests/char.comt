@@ -11,12 +11,13 @@
 //
 // Printed, all four come bare.  Quoted -- which is the export path, test 9
 // -- each takes the same single quotes back, so the value can be read
-// again.  Unlike caret notation (used here briefly, see below), none of
-// these need a lookahead to stay unambiguous: '\n', '\c', and '\NNN' are
-// all dedicated triggers with no meaning of their own to collide with, in
-// a char literal or concatenated inside a string alike -- '\c' was never a
-// meaningful escape before this, the same way '\x' and a leading octal
-// digit never were.
+// again.  None of these need a lookahead to stay unambiguous: '\n', '\c',
+// and '\NNN' are all dedicated triggers with no meaning of their own to
+// collide with, in a char literal or concatenated inside a string alike
+// -- '\c' was never a meaningful escape before this, the same way '\x'
+// and a leading octal digit never were, so the identical formula works
+// unchanged whether the byte sits in a char's own quotes or inside a
+// string.
 //
 // The escape is what the whole display used to be, and the reason was
 // safety: a general print of a character must never put a real control
@@ -24,15 +25,6 @@
 // to a script reading that output -- is miserable.  Named escapes and \c
 // keep that property while being readable, so the octal escape is now
 // needed only where there is nothing readable to show.
-//
-// History: caret notation ('^A') briefly served this role (issue #467),
-// then was reverted (#494) once extending it to strings (#495) turned up
-// a real backward-compatibility break -- unconditional caret-notation
-// *reading* inside string literals silently reinterprets any existing
-// string with a literal '^' next to a letter, which is common in plain
-// prose ('^C', '^D', '^J' are standard ways to describe control keys).
-// '\cX' has no bare form to collide with, so the identical idea works for
-// chars and strings alike with no such hazard.
 //
 // Regression: a high-bit (signed) char was widened to int with sign extension
 // and serialized as `\37777777640` instead of `\240`, corrupting the byte
@@ -74,9 +66,8 @@ ok=ok&&(print(char(10) :str)=="\\n")
 ok=ok&&(print(char(127) :str)=="\\c?")
 print("5 control chars use named escapes or \\c (expect \\cA \\c[ \\n \\c?): %s %s %s %s\n" print(char(1) :str) print(char(27) :str) print(char(10) :str) print(char(127) :str))
 
-// --- 6: a literal caret is just an ordinary printable byte now -- it was
-// never actually part of the notation itself, only the trigger '^' briefly
-// was, which \c's own dedicated 'c' trigger has no need to protect ---
+// --- 6: a literal caret is just an ordinary printable byte -- '\c's
+// dedicated 'c' trigger has no reason to treat it specially ---
 ok=ok&&(print(char(94) :str)=="^")
 print("6 a literal caret is an ordinary printable byte (expect ^): %s\n" print(char(94) :str))
 
@@ -110,9 +101,9 @@ ok=ok&&(print(al9 :str)=="(:p 'a' :c '\\a' :h '\\240')")
 print("9 a char attribute value is quoted (expect (:p 'a' :c '\\a' :h '\\240')): %s\n" print(al9 :str))
 
 // --- 10: a printable char attribute round-trips -- and so does a high byte,
-// which could not while it serialized between backquotes -- and so, now,
-// does a \c-escaped control byte and a named-escaped one: '\cG' and '\n' are
-// both spellings the lexer reads, unlike caret notation's brief detour ---
+// which could not while it serialized between backquotes -- and so does a
+// \c-escaped control byte and a named-escaped one: '\cG' and '\n' are both
+// spellings the lexer reads ---
 al10=eval("(:p 'a')")
 ok=ok&&(type(attrval(al10))=="CharType")
 al10b=eval("(:h '\\240')")
@@ -128,7 +119,7 @@ print("10 'a', '\\240', '\\cG', '\\n' all read back as the char they display (ex
 // the lexer already reads, so they round-trip instead of breaking the parse of
 // everything after them.  Before, a char attribute holding 0x5c serialized as
 // '\' and the whole enclosing attrlist came back nil.  A literal caret needs
-// no such escape any more -- see test 6 ---
+// no such escape at all -- see test 6 ---
 al11=(:b char(92) :q char(39) :next 42)
 ok=ok&&(print(al11 :str)=="(:b '\\\\' :q '\\'' :next 42)")
 r11=eval("(:b '\\\\' :q '\\'' :next 42)")

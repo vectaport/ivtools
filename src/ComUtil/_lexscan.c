@@ -616,13 +616,9 @@ int bs_ident = 0;
 
 	 /* 'c' indicates a control-character escape, Perl/PCRE-style
 	    (Larry Wall's \cX, not an invented notation): \cX is X^0x40,
-	    for X in '?'..'_' (0x3F-0x5F) -- the same formula and range
-	    caret notation used, just spelled with a dedicated trigger
-	    letter instead of a punctuation character that already had
-	    an unrelated meaning of its own.  Valid in both char literals
-	    and strings alike -- unlike caret notation, there is no bare,
-	    unescaped form to collide with, so this needs no per-context
-	    handling. */
+	    for X in '?'..'_' (0x3F-0x5F).  Valid in both char literals and
+	    strings alike -- there is no bare, unescaped form to collide
+	    with, so this needs no per-context handling. */
 	    else if( NEXT_CHAR == 'c' ) {
 	       ADVANCE_CHAR;
 	       if( NEXT_CHAR < 0x3f || NEXT_CHAR > 0x5f ) {

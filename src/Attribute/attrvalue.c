@@ -836,14 +836,9 @@ const char* AttributeValue::command_name() {
    protecting against, and what is miserable to debug once it reaches a
    terminal or a script reading that output.
 
-   This replaced caret notation ('^A'), used here briefly until issue
-   #495's revert of #494: caret notation is ambiguous once bytes are
-   concatenated (a literal caret followed by A cannot be told from one
-   control byte), which is fine for a char's own quotes but breaks down
-   the moment the same notation is wanted for strings too.  '\c' has
-   nothing to be ambiguous with -- it was never a meaningful escape
-   before -- so the identical formula works unchanged in a char literal
-   or concatenated inside a string alike.
+   '\c' has nothing to be ambiguous with -- it was never a meaningful
+   escape before -- so the identical formula works unchanged in a char
+   literal or concatenated inside a string alike.
 
    Above 0x7f the escape stays octal.  There is nothing readable to show,
    and isprint past 0x7f depends on the locale -- comdraw links X11 and

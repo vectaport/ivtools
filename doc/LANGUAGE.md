@@ -2798,12 +2798,11 @@ eval("'\cA'")      // 1 -- same byte back
 eval("'\n'")       // 10 -- the named-escape form reads too
 ```
 
-Unlike caret notation (used here briefly, then reverted once extending
-it to strings turned out to be genuinely unsafe), `\cX` and the named
-escapes have no bare, unescaped form to collide with -- `c` after a
-backslash was never a meaningful escape before this, the same way `x`
-and a leading octal digit never were. That means the identical formula
-works unchanged inside a string, not just a char's own quotes:
+`\cX` and the named escapes have no bare, unescaped form to collide
+with -- `c` after a backslash was never a meaningful escape before
+this, the same way `x` and a leading octal digit never were. That
+means the identical formula works unchanged inside a string, not just
+a char's own quotes:
 
 ```
 s="a"+char(1)+"b"
