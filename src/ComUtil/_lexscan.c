@@ -614,6 +614,21 @@ int bs_ident = 0;
 	       TOKEN_ADD( hexval );
                }
 
+	 /* 'c' indicates a control-character escape, Perl/PCRE-style
+	    (Larry Wall's \cX, not an invented notation): \cX is X^0x40,
+	    for X in '?'..'_' (0x3F-0x5F).  Valid in both char literals and
+	    strings alike -- there is no bare, unescaped form to collide
+	    with, so this needs no per-context handling. */
+	    else if( NEXT_CHAR == 'c' ) {
+	       ADVANCE_CHAR;
+	       if( NEXT_CHAR < 0x3f || NEXT_CHAR > 0x5f ) {
+                  ADVANCE_PAST_QUOTE;
+		  return ERR_BADCHAR;
+	          }
+	       TOKEN_ADD( (unsigned char)(NEXT_CHAR ^ 0x40) );
+	       ADVANCE_CHAR;
+	       }
+
 	 /* The rest of the valid escape sequences.           */
          /* '\n' and '\r' are left to the compiler to resolve */
          /* in order to be system independent.                */

@@ -32,6 +32,7 @@
 #include <ComTerp/socket.h>
 #include <Attribute/aliterator.h>
 #include <Attribute/attrlist.h>
+#include <Attribute/attrvalue.h>
 #include <OS/math.h>
 #include <iostream.h>
 #include <strstream>
@@ -103,6 +104,44 @@ PipeObj::~PipeObj() {
 
 /*****************************************************************************/
 
+/* Sits between print()'s ostream and whatever it's actually writing to
+   (a strstreambuf for :str/:string/:sym capture, or a real file/pipe/tty
+   under USE_FDSTREAMS), substituting "\cX" for the 25 control bytes with
+   no C mnemonic and passing every other byte through untouched -- same
+   substitution and priority order (named escape, then \c, nothing above
+   0x7f) as out_char_brief/ParamList::filter use for a single char or a
+   whole string value, just applied here to whatever a whole print() call
+   writes.  A real tab or newline still functions, on the terminal or
+   inside a :str capture alike, since it passes through unchanged; an
+   exotic control byte becomes visible instead of silently vanishing
+   (terminal) or sitting uninspectable (:str).
+
+   Filters inline, in the one pass print() is already doing to write its
+   result, rather than assembling the whole thing first and rescanning it
+   after -- setting no put-buffer of its own (no setp()) means every
+   sputc() misses and calls overflow(), so each byte is seen exactly
+   once, here, on its way to wherever it was headed anyway. */
+class CtrlCharFilterBuf : public std::streambuf {
+public:
+  CtrlCharFilterBuf(std::streambuf* dest) : _dest(dest) { }
+protected:
+  virtual int overflow(int ch) {
+    if (ch == traits_type::eof())
+      return _dest->pubsync()==0 ? ch : traits_type::eof();
+    unsigned char uc = (unsigned char)ch;
+    if (!AttributeValue::named_ctrl_escape(uc) && uc < 0x80 && iscntrl(uc)) {
+      if (_dest->sputc('\\') == traits_type::eof()) return traits_type::eof();
+      if (_dest->sputc('c') == traits_type::eof()) return traits_type::eof();
+      if (_dest->sputc((char)(uc ^ 0x40)) == traits_type::eof()) return traits_type::eof();
+      return ch;
+    }
+    return _dest->sputc(ch);
+  }
+  virtual int sync() { return _dest->pubsync(); }
+private:
+  std::streambuf* _dest;
+};
+
 PrintFunc::PrintFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
@@ -161,7 +200,8 @@ void PrintFunc::execute() {
   }
 #endif
   
-  ostream out(strmbuf);
+  CtrlCharFilterBuf ctrlfilterbuf(strmbuf);
+  ostream out(&ctrlfilterbuf);
 
   int narg = nargsfixed();
   if (narg==1) {
@@ -386,19 +426,23 @@ void PrintFunc::execute() {
 
   reset_stack();
   if (stringflag.is_true() || strflag.is_true()) {
-    out << '\0';
+    /* the terminator sputc()'d straight to strmbuf, bypassing
+       ctrlfilterbuf -- it marks the end of the buffer for str() below,
+       it is not print() output, and NUL is one of the bytes the filter
+       would otherwise rewrite to "\c@". */
+    strmbuf->sputc('\0');
     ComValue retval(((std::strstreambuf*)strmbuf)->str());
     push_stack(retval);
   } else if (symbolflag.is_true() || symflag.is_true()) {
-    out << '\0';
+    strmbuf->sputc('\0');
     int symbol_id = symbol_add(((std::strstreambuf*)strmbuf)->str());
     ComValue retval(symbol_id, ComValue::SymbolType);
     push_stack(retval);
   } else {
-#ifdef USE_FDSTREAMS    
+#ifdef USE_FDSTREAMS
     out.flush();
 #else
-    out << '\0';
+    strmbuf->sputc('\0');
     const char *str = ((std::strstreambuf*)strmbuf)->str();
     FILE* fp = NULL;
     if (comterp()->handler() && fileobjv.is_unknown() && errflag.is_false() && outflag.is_false()) {

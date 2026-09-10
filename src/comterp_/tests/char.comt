@@ -2,25 +2,29 @@
 //
 // funcs: char print index type int
 //
-// A char shows as itself where that is safe: 'a' for a printable byte, caret
-// notation for a control byte ('^A', '^['), and the older octal escape \NNN
-// for anything at or above 0x80, where there is nothing readable to show.
+// A char shows as itself where that is safe: 'a' for a printable byte, its
+// C mnemonic for one of the 7 control bytes that has one ('\n', '\t', ...),
+// '\cX' (Perl/PCRE's control-character escape, X^0x40) for any other
+// control byte, and the older octal escape \NNN for anything at or above
+// 0x80, where there is nothing readable to show.  Priority is exactly that
+// order: named escape first, then \c, octal only as the final fallback.
 //
-// Printed, all three come bare.  Quoted -- which is the export path, test 9 --
-// each takes the same single quotes back, so the value can be read again.  The
-// escape used to take backquotes there instead, and `\240` is an illegal
-// character to the lexer: the export path was writing a form its own reader
-// rejects, and an attrlist holding a high byte came back nil.  Bare display costs the same ambiguity throughout: run
-// characters together and a literal caret is indistinguishable from a control
-// byte, a literal backslash from the start of an escape.  That is the price of
-// text reading as text, and it is only paid where nothing has to read it back.
+// Printed, all four come bare.  Quoted -- which is the export path, test 9
+// -- each takes the same single quotes back, so the value can be read
+// again.  None of these need a lookahead to stay unambiguous: '\n', '\c',
+// and '\NNN' are all dedicated triggers with no meaning of their own to
+// collide with, in a char literal or concatenated inside a string alike
+// -- '\c' was never a meaningful escape before this, the same way '\x'
+// and a leading octal digit never were, so the identical formula works
+// unchanged whether the byte sits in a char's own quotes or inside a
+// string.
 //
-// The escape is what the whole display used to be, and the reason was safety:
-// a general print of a character must never put a real control byte into the
-// output, where working out what it did to a terminal -- or to a script
-// reading that output -- is miserable.  Caret notation keeps that property
-// while being readable, so the escape is now needed only where there is
-// nothing readable to show.
+// The escape is what the whole display used to be, and the reason was
+// safety: a general print of a character must never put a real control
+// byte into the output, where working out what it did to a terminal -- or
+// to a script reading that output -- is miserable.  Named escapes and \c
+// keep that property while being readable, so the octal escape is now
+// needed only where there is nothing readable to show.
 //
 // Regression: a high-bit (signed) char was widened to int with sign extension
 // and serialized as `\37777777640` instead of `\240`, corrupting the byte
@@ -48,27 +52,24 @@ ok=ok&&(print('\xff' :str)=="\\377")
 print("4 print('\\xff' :str) is \\377 bare, not sign-extended (expect true): %v\n" print('\xff' :str)=="\\377")
 
 // The display is bare, with no quotes: printing a run of characters should
-// read as the text it is.  The export path keeps its quotes -- test 9 -- since
-// there a bare a would read back as a symbol rather than a char.  The cost of
-// bare display is that caret notation is ambiguous once characters are
-// concatenated, a literal caret then an A being indistinguishable from one
-// control byte; that is the price of text reading as text.
+// read as the text it is.  The export path keeps its quotes -- test 9 --
+// since there a bare a would read back as a symbol rather than a char.
 
-// --- 5: control bytes use caret notation and are never emitted raw.  ESC and
-// newline are the two that actually cost debugging time: '^[' never reaches a
-// terminal as an escape sequence, '^J' never breaks a line in whatever reads
-// the output ---
-ok=ok&&(print(char(1) :str)=="^A")
-ok=ok&&(print(char(27) :str)=="^[")
-ok=ok&&(print(char(10) :str)=="^J")
-ok=ok&&(print(char(127) :str)=="^?")
-print("5 control chars use caret notation (expect ^A ^[ ^J ^?): %s %s %s %s\n" print(char(1) :str) print(char(27) :str) print(char(10) :str) print(char(127) :str))
+// --- 5: control bytes are never emitted raw.  ESC and newline are the two
+// that actually cost debugging time: a raw '\x1b' never reaches a terminal
+// as an escape sequence, a raw '\n' never breaks a line in whatever reads
+// the output.  Newline has a C mnemonic so it uses that; ESC and DEL don't,
+// so they use \c ---
+ok=ok&&(print(char(1) :str)=="\\cA")
+ok=ok&&(print(char(27) :str)=="\\c[")
+ok=ok&&(print(char(10) :str)=="\\n")
+ok=ok&&(print(char(127) :str)=="\\c?")
+print("5 control chars use named escapes or \\c (expect \\cA \\c[ \\n \\c?): %s %s %s %s\n" print(char(1) :str) print(char(27) :str) print(char(10) :str) print(char(127) :str))
 
-// --- 6: caret notation is ambiguous in general -- a real control byte and a
-// literal ^A look alike -- but not here.  A char is one byte, so a literal
-// caret is one character between the quotes and a control byte is two ---
+// --- 6: a literal caret is just an ordinary printable byte -- '\c's
+// dedicated 'c' trigger has no reason to treat it specially ---
 ok=ok&&(print(char(94) :str)=="^")
-print("6 a literal caret is one character where a control byte is two (expect ^): %s\n" print(char(94) :str))
+print("6 a literal caret is an ordinary printable byte (expect ^): %s\n" print(char(94) :str))
 
 // --- 7: the display is the same however the value arrives -- from the
 // command, from a literal, through a variable, or inside a list ---
@@ -92,34 +93,51 @@ print("8 values untouched; a high byte is signed unless :u (expect CharType 97 -
 // renderer.  That output is also the export format -- AttributeList::serialize
 // is what export() and the script writer emit -- where a bare char could not
 // be read back as one, since `a` parses as a symbol, and a control or high
-// byte went into the file raw ---
+// byte went into the file raw.  char(7) has a C mnemonic (BEL), so it shows
+// as '\a', not '\cG' -- named escape still wins priority inside an attrlist
+// too ---
 al9=(:p char(97) :c char(7) :h char(160))
-ok=ok&&(print(al9 :str)=="(:p 'a' :c '^G' :h '\\240')")
-print("9 a char attribute value is quoted (expect (:p 'a' :c '^G' :h '\\240')): %s\n" print(al9 :str))
+ok=ok&&(print(al9 :str)=="(:p 'a' :c '\\a' :h '\\240')")
+print("9 a char attribute value is quoted (expect (:p 'a' :c '\\a' :h '\\240')): %s\n" print(al9 :str))
 
-// --- 10: so a printable char attribute round-trips now, which it could not
-// when it serialized bare -- and so does a high byte, which could not while it
-// serialized between backquotes.  The caret form still does not: '^G' is a
-// display form the lexer does not read, and reads back as UnknownType.  That
-// is the one remaining place where what is written out cannot be read in ---
+// --- 10: a printable char attribute round-trips -- and so does a high byte,
+// which could not while it serialized between backquotes -- and so does a
+// \c-escaped control byte and a named-escaped one: '\cG' and '\n' are both
+// spellings the lexer reads ---
 al10=eval("(:p 'a')")
 ok=ok&&(type(attrval(al10))=="CharType")
 al10b=eval("(:h '\\240')")
 ok=ok&&(type(attrval(al10b))=="CharType")&&(attrval(al10b)==char(160))
-al10c=eval("(:c '^G')")
-ok=ok&&(type(attrval(al10c))=="UnknownType")
-print("10 'a' and '\\240' read back as chars, '^G' does not (expect CharType CharType UnknownType): %s %s %s\n" type(attrval(al10)) type(attrval(al10b)) type(attrval(al10c)))
+al10c=eval("(:c '\\cG')")
+ok=ok&&(type(attrval(al10c))=="CharType")&&(attrval(al10c)==char(7))
+al10d=eval("(:c '\\n')")
+ok=ok&&(type(attrval(al10d))=="CharType")&&(attrval(al10d)==char(10))
+print("10 'a', '\\240', '\\cG', '\\n' all read back as the char they display (expect CharType CharType CharType CharType): %s %s %s %s\n" type(attrval(al10)) type(attrval(al10b)) type(attrval(al10c)) type(attrval(al10d)))
 
 // --- 11: the two bytes that cannot sit bare between the quotes -- a backslash
 // would escape the closing quote, an apostrophe would be it -- take the escape
 // the lexer already reads, so they round-trip instead of breaking the parse of
 // everything after them.  Before, a char attribute holding 0x5c serialized as
-// '\' and the whole enclosing attrlist came back nil ---
+// '\' and the whole enclosing attrlist came back nil.  A literal caret needs
+// no such escape at all -- see test 6 ---
 al11=(:b char(92) :q char(39) :next 42)
 ok=ok&&(print(al11 :str)=="(:b '\\\\' :q '\\'' :next 42)")
 r11=eval("(:b '\\\\' :q '\\'' :next 42)")
 ok=ok&&(int(attrval(r11@0))==92)&&(int(attrval(r11@1))==39)&&(attrval(r11@2)==42)
 print("11 backslash and apostrophe escape and round-trip (expect 92 39 42): %v %v %v\n" int(attrval(r11@0)) int(attrval(r11@1)) attrval(r11@2))
+
+// --- 12: the copy/paste principle stated as an assertion over the whole
+// byte range -- for every byte 0-255, wrap char(n) in a one-member
+// attrlist (so its quotes actually get emitted; print()'s own display is
+// bare, per tests 1-8 above), print that quoted form, and eval() it back.
+// Every byte should come back exactly what it started as, whichever of the
+// four display forms (bare, named escape, \c, octal) wrote it. ---
+allok=true
+r12=for(n=0 n<256 n=n+1
+  qform=print((:v char(n)) :str)
+  allok=allok&&(attrval(eval(qform))==char(n)))
+print("12 every byte's quoted char(n) round-trips through eval() (expect true): %v\n" allok)
+ok=ok&&allok
 
 print("char: %v\n" ok)
 ok

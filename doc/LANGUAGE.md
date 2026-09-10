@@ -2742,7 +2742,8 @@ coordinate as expected.
 
 String literals use double-quotes. Escape sequences: `\"` for a literal
 double-quote, `\n` for newline, `\t` for tab, `\\` for a literal
-backslash before `n`, `r`, or `t`.
+backslash before `n`, `r`, or `t`, plus octal (`\007`), hex (`\x1b`), and
+`\cX` (control-byte, see Chars below) escapes for an arbitrary byte.
 
 Key string commands:
 
@@ -2767,6 +2768,60 @@ Note: `:substr` is only needed when the first arg to `index` is a list.
 When both args are strings, substring search is the default behavior.
 
 Single-quoted literals are chars, not strings: `'a'`, printed with `%c`.
+
+### Chars and control bytes: display forms, and reading them back
+
+A char is one byte, and how it displays depends on what that byte is.
+Bare -- `print(x :str)`'s own return value, or any `%s`/`%c` slot --
+shows just the byte, no delimiters:
+
+```
+print('a' :str)         // "a"     -- printable: shown as itself
+print(char(7) :str)     // "\a"    -- one of 7 control bytes with a C
+                         //           mnemonic (\a \b \t \n \v \f \r):
+                         //           shown as that named escape
+print(char(1) :str)     // "\cA"   -- any other control byte (0x00-0x06,
+                         //           0x0E-0x1A, 0x1C-0x1F, 0x7F): X^0x40,
+                         //           Perl/PCRE's \cX control escape
+print(char(160) :str)   // "\240"  -- 0x80 and up: octal, same form
+                         //           strings use for the same range
+```
+
+Quoted -- which is what a bare char shows as at the REPL prompt, and the
+only form `AttributeList` serialization ever writes, since a bare `a`
+would parse back as a symbol -- all four take the same single quotes,
+and all four read back as the byte that produced them:
+
+```
+char(1)           // '\cA'   -- bare echo at the prompt is quoted
+eval("'\cA'")      // 1 -- same byte back
+eval("'\n'")       // 10 -- the named-escape form reads too
+```
+
+`\cX` and the named escapes have no bare, unescaped form to collide
+with -- `c` after a backslash was never a meaningful escape before
+this, the same way `x` and a leading octal digit never were. That
+means the identical formula works unchanged inside a string, not just
+a char's own quotes:
+
+```
+s="a"+char(1)+"b"
+s              // "a\cAb" -- the control byte inside a string escapes
+               //            exactly like a lone char does
+size(s)        // 3 -- still the 3 real bytes it always was; \cA is
+               //      display only
+```
+
+`print()` -- with or without `:str` -- draws the same line between a
+named-escape byte and every other control byte, one level further down:
+writing a whole string (not a single char argument), the 7 named bytes
+pass through as themselves (a real tab still tabs, a real newline still
+moves the line, whether that's onto your terminal or into a `:str`
+capture) while the other 25 become `\cX` text instead of an invisible or
+disruptive raw byte. A lone char argument to `print()` always shows its
+full escaped form regardless, the same safety property display already
+had: a general print must never put a real control byte into the
+output.
 
 ### Slices
 

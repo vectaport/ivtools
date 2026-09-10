@@ -29,6 +29,7 @@
 #include <cstdio>
 #include <Attribute/alist.h>
 #include <Attribute/aliterator.h>
+#include <Attribute/attrvalue.h>
 #include <Attribute/paramlist.h>
 #include <Attribute/lexscan.h>
 
@@ -1001,11 +1002,16 @@ char ParamList::octal(const char* p) {
 // file or send over a comterp connection; text that is hand-assembled into a
 // command (snprintf/ostream) without passing through here is NOT escaped.
 //
-// Each non-ASCII or control byte becomes an octal escape "\NNN" (so a raw
-// newline -- which also delimits commands on a socket -- can't break the frame
-// or the parse), and a literal backslash or double-quote is backslash-escaped
-// (so a '"' can't prematurely close the string).  The ComTerp scanner reverses
-// all of these when it reads the string back.
+// One of the 7 control bytes with a C mnemonic (BEL/BS/HT/LF/VT/FF/CR)
+// becomes its named escape ("\n", "\t", ...) -- the same lookup
+// AttributeValue::out_char_brief uses for a lone char, so a byte gets the
+// same spelling whichever way it's rendered.  Any other control byte
+// becomes "\cX" (Perl/PCRE's control-character escape).  A non-ASCII byte
+// (0x80 and up) becomes an octal escape "\NNN" (so a raw high bit can't
+// break the frame on a socket connection either), and a literal backslash
+// or double-quote is backslash-escaped (so a '"' can't prematurely close
+// the string).  The ComTerp scanner reverses all of these when it reads
+// the string back.
 
 const char* ParamList::filter (const char* string, int len) {
 
@@ -1014,12 +1020,24 @@ const char* ParamList::filter (const char* string, int len) {
     int dot = 0;
     for (; len--; string++) {
 	char c = *string;
+	const char* named = AttributeValue::named_ctrl_escape(c);
 
-	if (!isascii(c) || iscntrl(c)) {
-	    char buf[5];
-	    ParamList::octal(c, &buf[sizeof(buf) - 1]);
-	    for (unsigned i = 0; i < sizeof(buf) - 1; i++)
-		filter_putc(dot, buf[i]);
+	if (named) {
+	    filter_putc(dot, '\\');
+	    for (const char* p = named; *p; p++)
+		filter_putc(dot, *p);
+
+	} else if (!isascii(c) || iscntrl(c)) {
+	    if (isascii(c)) {
+		filter_putc(dot, '\\');
+		filter_putc(dot, 'c');
+		filter_putc(dot, (char)((unsigned char)c ^ 0x40));
+	    } else {
+		char buf[5];
+		ParamList::octal(c, &buf[sizeof(buf) - 1]);
+		for (unsigned i = 0; i < sizeof(buf) - 1; i++)
+		    filter_putc(dot, buf[i]);
+	    }
 
 	} else {
 	    if (c == '\\' || c == '"')

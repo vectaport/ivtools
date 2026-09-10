@@ -315,5 +315,22 @@ ok=ok&&(warned!=nil && lst2==nil && lst3==nil)
 print("32 split(:tokstr \"xx\"|\"\") multi-char/empty string delim: error, return nil (expect true): %v\n\n" (warned!=nil&&lst2==nil&&lst3==nil))
 prev_ok=check_fail(:ok ok)
 
+// --- test 33: print()/print(:str) substitute "\cX" for a control byte with
+// no C mnemonic, but pass a named one (here, newline) through as the real,
+// functioning byte -- same substitution CtrlCharFilterBuf (iofunc.c)
+// applies inline while assembling a print() result, whether it lands on
+// the terminal or is captured into a string.  Verified byte-exact: the
+// captured string is 7 bytes, not the 5 it started as, because the one
+// non-active control byte became 3 literal characters while the active
+// one (and everything else) passed straight through. ---
+s="a"+char(1)+"b"+char(10)+"c"
+captured=print(s :str)
+ok=ok&&(size(captured)==7)
+ok=ok&&(int(at(captured 0))==97)&&(int(at(captured 1))==92)&&(int(at(captured 2))==99)
+ok=ok&&(int(at(captured 3))==65)&&(int(at(captured 4))==98)
+ok=ok&&(int(at(captured 5))==10)&&(int(at(captured 6))==99)
+print("33 print(:str) turns one non-active control byte into 3-char \\cA, passes the active newline through raw (expect true): %v\n\n" (size(captured)==7&&int(at(captured 0))==97&&int(at(captured 1))==92&&int(at(captured 2))==99&&int(at(captured 3))==65&&int(at(captured 4))==98&&int(at(captured 5))==10&&int(at(captured 6))==99))
+prev_ok=check_fail(:ok ok)
+
 print("\nstring: %v\n" ok)
 ok
