@@ -82,5 +82,14 @@ ok=ok&&(joined_c==1)&&(joined_d==2)&&(joined_e==3)
 print("7 a joined line plus a following statement all run (expect 1 2 3): %v %v %v\n\n" joined_c joined_d joined_e)
 check_fail(:ok ok)
 
+// --- test 8: a file's last statement can be a stream, trailing
+// newline and all -- istype() checks the shape without draining it,
+// the way at()/print() would ---
+val8=run("./runfile_sub_trailing_stream.comt")
+isstrm8=istype(val8 StreamType)
+ok=ok&&isstrm8
+print("8 run() preserves a trailing bare stream (expect true): %v\n\n" isstrm8)
+check_fail(:ok ok)
+
 print("\nrunfile: %v\n" ok)
 ok

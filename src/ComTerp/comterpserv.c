@@ -464,7 +464,11 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	 /* else: a comment-only or blank line -- nothing was parsed, so there
 	    is nothing pending; leave pending_incomplete_expr as it was. */
 	}
-    reuse_buffer = (_buffer[_bufptr] != '\0');
+    {
+	unsigned p = _bufptr;
+	while (_buffer[p] && isspace((unsigned char)_buffer[p])) p++;
+	reuse_buffer = (_buffer[p] != '\0');
+    }
     }
 
     if (pending_incomplete_expr) {
