@@ -55,5 +55,41 @@ ok=ok&&(val5==1)&&(warned5==nil)
 print("5 run() on \"x=1\\n\\n\" returns 1 with no stderr diagnostic (expect 1 nil): %v %v\n\n" val5 warned5)
 check_fail(:ok ok)
 
+// --- test 6: two top-level statements joined by a bare space on the
+// file's last line used to silently drop the second one -- runfile()
+// read one physical line per read_expr() call and always fetched a new
+// line next time, even when the parser's own buffer still held an
+// unconsumed second statement.  Both assignments have to take, not just
+// the file's return value, since the return value alone (whatever the
+// last statement evaluates to) can't distinguish "ran" from "never ran"
+// the way a fresh variable can ---
+joined_a=99
+joined_b=99
+run("./runfile_sub_joined_last.comt")
+ok=ok&&(joined_a==1)&&(joined_b==2)
+print("6 \"x=1 y=2\" as a file's last line runs both (expect 1 2): %v %v\n\n" joined_a joined_b)
+check_fail(:ok ok)
+
+// --- test 7: the same bug's other shape -- when something follows the
+// joined line, the joined pair both ran, but the *next* statement was
+// the one silently dropped (the parser was still consuming the joined
+// line's leftover instead of the following line's freshly-loaded text) ---
+joined_c=99
+joined_d=99
+joined_e=99
+run("./runfile_sub_joined_mid.comt")
+ok=ok&&(joined_c==1)&&(joined_d==2)&&(joined_e==3)
+print("7 a joined line plus a following statement all run (expect 1 2 3): %v %v %v\n\n" joined_c joined_d joined_e)
+check_fail(:ok ok)
+
+// --- test 8: a file's last statement can be a stream, trailing
+// newline and all -- istype() checks the shape without draining it,
+// the way at()/print() would ---
+val8=run("./runfile_sub_trailing_stream.comt")
+isstrm8=istype(val8 StreamType)
+ok=ok&&isstrm8
+print("8 run() preserves a trailing bare stream (expect true): %v\n\n" isstrm8)
+check_fail(:ok ok)
+
 print("\nrunfile: %v\n" ok)
 ok

@@ -5,6 +5,21 @@ This file orients you fast; the authoritative deep-dives live in the per-layer
 docs linked throughout. When this file and a linked doc disagree, the linked
 doc wins — and when a doc and the tests disagree, **the tests win** (they run).
 
+**Two rules on comments that keep getting relearned the hard way — read
+before writing or editing any `.c`/`.h` comment:**
+
+1. **Never put a GitHub issue/PR number in a `.c`/`.h` comment** (`#223`,
+   "Fixes #94", etc.). That context belongs in the commit message and PR
+   description, not the source tree. (`.comt` test files are exempt — see
+   "Code comments" below.)
+2. **A comment describes the code as it is, not how it got that way.**
+   Once a bug is fixed, write the comment as if the bug had never
+   existed: state the invariant or the mechanism a future reader needs,
+   not the story of what used to be broken, how you found it, or how the
+   fix was discovered. That narrative belongs in the commit message and
+   PR description — a future reader of working code does not care how it
+   came to work, only how it works now.
+
 ---
 
 ## What ivtools is
@@ -245,6 +260,10 @@ C++ work. The essentials:
 - Keep comments embedded in source code fairly terse declaratives that add
   context the variable and function names don't already document. Code is
   the SPOT for what it does and should be read as code.
+- Describe the code as it is, never the bug it used to have. A comment on
+  a fix should read exactly like a comment on code that was written
+  correctly the first time — the invariant, the *why*, the trade-off.
+  Not: what used to go wrong, how it was diagnosed, or how it got fixed.
 - Reserve paragraph-length explanation for the related `.md` file (this
   one, a layer's `HACKING.md`/`ARCHITECTURE.md`, or `doc/`) — a short
   in-code comment can point there instead of inlining the essay.
