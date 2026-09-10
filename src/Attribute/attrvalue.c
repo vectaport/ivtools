@@ -858,14 +858,11 @@ void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quot
   const char* q = quoted ? "'" : "";
   if (cv < 0x80 && iscntrl(cv))
     out << q << '^' << (char)(cv ^ 0x40) << q;
-  /* the three bytes that cannot appear bare between the quotes: a backslash
-     would escape the closing quote, an apostrophe would be it, and a caret
-     would read back as the start of the control-byte notation just above
-     instead of itself.  All three escapes are lexer forms
-     ('\^' reads as 94 same as '\136' or a bare unquoted '^'), so these keep
-     round-tripping.  Unquoted there is nothing to escape from, and escaping
-     would corrupt the text. */
-  else if (quoted && (cv == '\\' || cv == '\'' || cv == '^'))
+  /* the two bytes that cannot appear bare between the quotes: a backslash
+     would escape the closing quote, and an apostrophe would be it.  Both
+     escapes are lexer forms, so these keep round-tripping.  Unquoted there is
+     nothing to escape from, and escaping would corrupt the text. */
+  else if (quoted && (cv == '\\' || cv == '\''))
     out << "'" << '\\' << (char)cv << "'";
   else if (cv < 0x80 && isprint(cv))
     out << q << (char)cv << q;
