@@ -437,14 +437,22 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	   fputs(errbuf, ofptr);
 	   // if (ofptr != stdout) fclose(ofptr);
 	   pending_incomplete_expr = false;  // a real parser error, not accumulation
-	 } else {
+	 } else if (_pfnum > 0) {
 	   /* read_expr() wants more input -- either legitimately mid a
 	      multi-line expression, or (if the next iteration hits true EOF
 	      probing for more) genuinely incomplete.  Remember it here: the
 	      next iteration's leading "*inbuf='\0';" would otherwise erase
-	      the only signal the post-loop check below has to go on. */
+	      the only signal the post-loop check below has to go on.
+
+	      _pfnum>0 is what distinguishes this from a comment-only or blank
+	      line: those parse to nothing at all (parser() resets _pfnum to 0
+	      whenever both its internal stacks are empty, which they are
+	      whenever the prior statement finished cleanly), so they must not
+	      be mistaken for a real expression left dangling at EOF. */
 	   pending_incomplete_expr = true;
 	 }
+	 /* else: a comment-only or blank line -- nothing was parsed, so there
+	    is nothing pending; leave pending_incomplete_expr as it was. */
 	}
     }
 
