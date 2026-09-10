@@ -826,38 +826,60 @@ const char* AttributeValue::command_name() {
 }
 
 /* Render a char as itself where that is safe to do, and never any other way.
-   A printable byte shows as 'a'; a control byte shows in caret notation, '^A'
-   or '^[', so that printing a character can never put a real control byte into
-   the output -- which is what the older `\NNN` form was protecting against,
-   and what is miserable to debug once it reaches a terminal or a script
-   reading that output.
+   A printable byte shows as 'a'.  The seven control bytes with a C mnemonic
+   (BEL/BS/HT/LF/VT/FF/CR, 0x07-0x0D) show as their named escape, '\a'
+   through '\r' -- the same spelling C source already uses for them.  Every
+   other control byte (0x00-0x06, 0x0E-0x1A, 0x1C-0x1F, 0x7F) shows as
+   '\cX' (X^0x40) -- Perl/PCRE's control-character escape, not an invented
+   notation -- so that printing a character can never put a real control
+   byte into the output, which is what the older `\NNN` form was
+   protecting against, and what is miserable to debug once it reaches a
+   terminal or a script reading that output.
 
-   Caret notation is ambiguous in general, since a real control byte and a
-   literal ^A look alike.  Here it is not: a char is one byte, so a literal
-   caret is one character between the quotes and a control character is two.
+   This replaced caret notation ('^A'), used here briefly until issue
+   #495's revert of #494: caret notation is ambiguous once bytes are
+   concatenated (a literal caret followed by A cannot be told from one
+   control byte), which is fine for a char's own quotes but breaks down
+   the moment the same notation is wanted for strings too.  '\c' has
+   nothing to be ambiguous with -- it was never a meaningful escape
+   before -- so the identical formula works unchanged in a char literal
+   or concatenated inside a string alike.
 
-   Above 0x7f the escape stays.  There is nothing readable to show, and isprint
-   past 0x7f depends on the locale -- comdraw links X11 and fontconfig, either
-   of which may call setlocale -- so the explicit test keeps the rendering from
-   shifting underfoot.
+   Above 0x7f the escape stays octal.  There is nothing readable to show,
+   and isprint past 0x7f depends on the locale -- comdraw links X11 and
+   fontconfig, either of which may call setlocale -- so the explicit test
+   keeps the rendering from shifting underfoot.
 
    The quotes are what makes a char readable back as one, so the export format
    keeps them and the ordinary %v display does not: printing a run of
    characters should read as the text it is, and print(feed("hello")) gives
-   hello rather than 'h''e''l''l''o'.  Unquoted, caret notation is ambiguous
-   again when characters are concatenated -- a literal caret followed by A
-   cannot be told from one control byte -- which is the price of text reading
-   as text, and is not paid on the export path.
+   hello rather than 'h''e''l''l''o'.
 
    Lives here rather than in ComValue because the attribute-value output
    operator below is also the export format (AttributeList::serialize, reached
    from ExportFunc::compout and OverlayScript::Attributes), where an unquoted
    char could not be read back as one -- a bare `a` parses as a symbol -- and a
    raw control or high byte went into the file intact. */
+const char* AttributeValue::named_ctrl_escape(unsigned char cv) {
+  switch (cv) {
+  case '\007': return "a";
+  case '\010': return "b";
+  case '\011': return "t";
+  case '\n':   return "n";
+  case '\013': return "v";
+  case '\014': return "f";
+  case '\r':   return "r";
+  default:     return nil;
+  }
+}
+
 void AttributeValue::out_char_brief(ostream& out, unsigned char cv, boolean quoted) {
   const char* q = quoted ? "'" : "";
-  if (cv < 0x80 && iscntrl(cv))
-    out << q << '^' << (char)(cv ^ 0x40) << q;
+  const char* named = named_ctrl_escape(cv);
+  if (named)
+    out << q << '\\' << named << q;
+  else if (cv < 0x80 && iscntrl(cv))
+    out << q << "\\c" << (char)(cv ^ 0x40) << q;
   /* the two bytes that cannot appear bare between the quotes: a backslash
      would escape the closing quote, and an apostrophe would be it.  Both
      escapes are lexer forms, so these keep round-tripping.  Unquoted there is

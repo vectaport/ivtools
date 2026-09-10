@@ -319,7 +319,12 @@ public:
     static const char* wrapper_close(int wrapper);
     // closing delimiter for a WrapperState, "" for NoWrapper
     static void out_char_brief(ostream& out, unsigned char cv, boolean quoted = true);
-    // render a char as itself where that is safe: 'a', '^A', or the `\NNN` escape
+    // render a char as itself where that is safe: 'a', '\n', '\cA', or the `\NNN` escape
+    static const char* named_ctrl_escape(unsigned char cv);
+    // the C mnemonic ("n", "t", ...) for one of the 7 named control bytes,
+    // nil for anything else -- shared with ParamList::filter so a control
+    // byte gets the same escape whether it's rendered as a char or found
+    // inside a string.
 
     void negate();
     // negate numeric values.
