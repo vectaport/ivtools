@@ -316,28 +316,36 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
        see what was pending, losing both the diagnostic and the parser_reset()
        that follows it. */
     boolean pending_incomplete_expr = false;
-    while( !feof(ifptr) ) {
+    /* true when the parser's own buffer (_buffer/_bufptr) still holds a
+       second, unconsumed statement from the current physical line --
+       read_expr() returns after one top-level statement.  While true,
+       the next iteration parses straight from that buffer instead of
+       fetching a new physical line. */
+    boolean reuse_buffer = false;
+    while( reuse_buffer || !feof(ifptr) ) {
 #if defined(TIMING_TEST)
         static struct timeval tvBefore, tvAfter, tvParse, tvConvert, tvDiff;
 #endif
-        /* read a complete line, doubling inbuf for long lines so a single long
-           expression isn't split at the buffer boundary */
-        *inbuf='\0';
-        int rlen=0;
-        for (;;) {
-            if (rlen >= inbufsiz-1) {
-                inbufsiz *= 2;
-                char* nb = new char[inbufsiz];
-                memcpy(nb, inbuf, rlen+1);
-                delete [] inbuf; inbuf = nb;
+        if (!reuse_buffer) {
+            /* read a complete line, doubling inbuf for long lines so a single long
+               expression isn't split at the buffer boundary */
+            *inbuf='\0';
+            int rlen=0;
+            for (;;) {
+                if (rlen >= inbufsiz-1) {
+                    inbufsiz *= 2;
+                    char* nb = new char[inbufsiz];
+                    memcpy(nb, inbuf, rlen+1);
+                    delete [] inbuf; inbuf = nb;
+                }
+                if (!fgets(inbuf+rlen, inbufsiz-rlen, ifptr)) break;
+                rlen += strlen(inbuf+rlen);
+                if ((rlen>0 && inbuf[rlen-1]=='\n') || feof(ifptr)) break;
             }
-            if (!fgets(inbuf+rlen, inbufsiz-rlen, ifptr)) break;
-            rlen += strlen(inbuf+rlen);
-            if ((rlen>0 && inbuf[rlen-1]=='\n') || feof(ifptr)) break;
-        }
 
- 	if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
-	  break;
+	    if (feof(ifptr) && !*inbuf)  // deal with last line without new-line
+	      break;
+        }
         /* drain a leftover orphaned stream from the previous statement, now
            that a genuine next statement is confirmed to exist.  Checking any
            earlier would also drain the last statement's own result, since the
@@ -352,14 +360,16 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
           delete retval;
           retval = nil;
         }
-        if (_linenum==0 && !*inbuf) { // run a dummy space in to initialize parser
-            inbuf[0]=' ';
-            inbuf[1]='\0';
+        if (!reuse_buffer) {
+            if (_linenum==0 && !*inbuf) { // run a dummy space in to initialize parser
+                inbuf[0]=' ';
+                inbuf[1]='\0';
+            }
+            if (*inbuf)
+                load_string(inbuf);
+            else
+                increment_linenum();
         }
-	if (*inbuf)
-            load_string(inbuf);
-        else
-            increment_linenum();
        if (*inbuf && (last_status=read_expr())) {
 	    pending_incomplete_expr = false;  // this expression completed cleanly
 #if defined(TIMING_TEST)
@@ -454,6 +464,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
 	 /* else: a comment-only or blank line -- nothing was parsed, so there
 	    is nothing pending; leave pending_incomplete_expr as it was. */
 	}
+    reuse_buffer = (_buffer[_bufptr] != '\0');
     }
 
     if (pending_incomplete_expr) {
