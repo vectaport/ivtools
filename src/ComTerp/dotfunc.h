@@ -32,7 +32,7 @@
 #include <ComTerp/numfunc.h>
 #include <string>
 
-//: . (dot) operator, for compound variables | dotlst=dot(name) -- construct empty dottted pair list.
+//: . (dot) operator, for compound variables | dotlst=dot(name) -- get name's attribute list, creating an empty one if name isn't bound to one yet.
 // obj.method(args) also fires a FuncObj-valued attribute self-bound to
 // obj, evaluating args in the caller's own scope first -- see execute().
 class DotFunc : public ComFunc {
@@ -42,7 +42,7 @@ public:
     virtual void execute();
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      return "%s (.) makes compound variables | dotlst=dot(name) -- construct empty dotted pair list"; }
+      return "%s (.) makes compound variables | dotlst=dot(name) -- get name's attribute list, creating an empty one if needed"; }
 
 
 protected:
