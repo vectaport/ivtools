@@ -454,7 +454,18 @@ int main (int argc, char** argv) {
 	        terp->brief(1);
 	        ComValue::comterp(terp);
 	        ComValue comval(terp->run(runexpr_nl));
-	        cout << comval << "\n";
+	        // an orphaned stream prints as an uninformative, still-unconsumed
+	        // "[]" via plain operator<< -- drain it and show the element
+	        // count instead, bracketed the same way the interactive loop and
+	        // comterp's own one-shot '<expr>' form display this case
+	        // (comterp.c, comterp_/main.c's expr_flag branch).
+	        if (comval.is_stream() && comval.stream_list() &&
+	            comval.stream_list()->refcount_==1) {
+	          ComValue countv(terp->orphan_stream_count(comval));
+	          countv.wrapper(AttributeValue::BracketWrapper);
+	          cout << countv << "\n";
+	        } else
+	          cout << comval << "\n";
 	        cout.flush();
 	        if (*terp->errmsg())
 	            cerr << "comdraw: error running expression: " << runexpr << "\n";
