@@ -415,11 +415,9 @@ int main (int argc, char** argv) {
 		   reliable signal, same as before this echo was added. */
 		int runfile_status = terp->runfile(runfile);
 		if (runfile_status < 0) {
-		    // ComTerpServ::runfile() returns here before ever touching
-		    // the stack when the file can't be opened, so stack_top()
-		    // below would be whatever the interpreter held before this
-		    // call, not a result of this run -- printing it would pass
-		    // off unrelated state as the script's output.
+		    // ComTerpServ::runfile() (comterpserv.c) returns before
+		    // ever touching the stack when the file can't be opened,
+		    // so stack_top() below is only meaningful after success.
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
 		} else {
 		  /* echo the file's last expression, same as comterp's own
@@ -430,15 +428,14 @@ int main (int argc, char** argv) {
 		  ComValue::comterp(terp);
 		  {
 		    ComValue topval(terp->stack_top());
-		    // an orphaned stream prints as an uninformative,
-		    // still-unconsumed "[]" via plain operator<< -- drain it and
-		    // show the element count instead, bracketed the same way the
-		    // interactive loop and comterp's own `run <file>` subcommand
-		    // display this case (comterp.c, comterp_/main.c).  refcount_<=2,
-		    // not ==1: runfile() re-pushes a copy of the last statement's
-		    // result at its own tail, which adds one baseline ref beyond
-		    // the plain interactive run() loop's (see comterp_/main.c's
-		    // run_flag branch for the same gate and its rationale).
+		    // Drain an unconsumed stream and print its bracketed
+		    // element count, matching the interactive loop and
+		    // comterp's own `run <file>` subcommand (comterp.c,
+		    // comterp_/main.c).  refcount_<=2, not ==1: runfile()
+		    // re-pushes a copy of the last statement's result at its
+		    // own tail, one baseline ref beyond the plain interactive
+		    // run() loop's (see comterp_/main.c's run_flag branch for
+		    // the same gate).
 		    if (topval.is_stream() && topval.stream_list() &&
 		        topval.stream_list()->refcount_<=2) {
 		      ComValue countv(terp->orphan_stream_count(topval));
@@ -462,11 +459,10 @@ int main (int argc, char** argv) {
 	        terp->brief(1);
 	        ComValue::comterp(terp);
 	        ComValue comval(terp->run(runexpr_nl));
-	        // an orphaned stream prints as an uninformative, still-unconsumed
-	        // "[]" via plain operator<< -- drain it and show the element
-	        // count instead, bracketed the same way the interactive loop and
-	        // comterp's own one-shot '<expr>' form display this case
-	        // (comterp.c, comterp_/main.c's expr_flag branch).
+	        // Drain an unconsumed stream and print its bracketed element
+	        // count, matching the interactive loop and comterp's own
+	        // one-shot '<expr>' form (comterp.c, comterp_/main.c's
+	        // expr_flag branch).
 	        if (comval.is_stream() && comval.stream_list() &&
 	            comval.stream_list()->refcount_==1) {
 	          ComValue countv(terp->orphan_stream_count(comval));
