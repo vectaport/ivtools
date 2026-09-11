@@ -812,11 +812,10 @@ void IterateFunc::execute() {
 int NextFunc::_next_depth = 0;
 
 /* backing lists of the streams a live chain of execute_impl calls is
-   currently unwinding, innermost last -- a stream can nest another stream
-   however deep, and two or more of them can reference each other's backing
-   list (however that arose: feed(f f) directly, or two feed() calls that
-   cross-reference each other's FIFO indirectly), so membership is checked
-   across the whole chain, not just the immediate caller. */
+   currently unwinding, innermost last.  Nesting can run arbitrarily deep,
+   and any two backing lists in the chain can be the same object, so
+   membership is checked across the whole chain, not just the immediate
+   caller. */
 static std::vector<AttributeValueList*> _draining_avls;
 
 struct DrainingAVLGuard {
