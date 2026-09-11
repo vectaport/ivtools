@@ -15,6 +15,10 @@ inherently fuzzy, so it is reported as a non-blocking warning for a human
 (or the next review pass) to judge -- AGENTS.md itself carves out an
 exception for comments that genuinely need the long version.
 
+Fails closed: a base ref that can't be resolved, or a changed file that
+can't be read for any reason other than having been deleted/renamed away,
+also exits 1 -- an unverified diff is not a passing one.
+
 Usage: check_comment_rules.py [BASE] [HEAD]
   BASE defaults to origin/master, HEAD defaults to HEAD.
 """
@@ -65,6 +69,16 @@ def extract_comment_lines(text):
 
     state = 'CODE'
     while i < n:
+        # Backslash-newline line splicing (translation phase 2) applies
+        # uniformly, inside comments, strings, and code alike, and doesn't
+        # end whatever's currently open -- a line-comment spliced onto the
+        # next physical line is still one comment. Handled once here,
+        # ahead of the per-state dispatch below, rather than duplicated in
+        # each state's own escape handling.
+        if text[i] == '\\' and i + 1 < n and text[i + 1] == '\n':
+            i += 2
+            line_no += 1
+            continue
         c = text[i]
         nxt = text[i + 1] if i + 1 < n else ''
         if state == 'CODE':
@@ -165,19 +179,31 @@ def main():
     try:
         files = added_lines_by_file(base, head)
     except subprocess.CalledProcessError as e:
-        print(f"check_comment_rules: couldn't diff {base}..{head}, skipping "
-              f"(not blocking on tooling failure): {e.stderr.strip()}")
-        return 0
+        # Fail the gate rather than fail open: a base ref that can't be
+        # resolved (a too-shallow checkout, a rewritten branch) means no
+        # comment was actually checked, and a silently green lint step is a
+        # worse outcome than a CI failure someone has to look at. The
+        # caller (ci.yml) is responsible for handing this script refs that
+        # do resolve -- e.g. falling back to origin/master instead of a
+        # zero-SHA "before" on a branch's first push.
+        print(f"check_comment_rules: couldn't diff {base}..{head}: "
+              f"{e.stderr.strip()}")
+        return 1
 
     failures = []
     warnings = []
+    errors = []
     for path, lines in files.items():
         if not lines:
             continue
         try:
             content = sh('git', 'show', f'{head}:{path}')
-        except subprocess.CalledProcessError:
-            continue  # file deleted or renamed away in this diff
+        except subprocess.CalledProcessError as e:
+            stderr = e.stderr.strip()
+            if 'does not exist' in stderr:
+                continue  # file deleted or renamed away in this diff
+            errors.append(f"{path}: couldn't read {head}:{path}: {stderr}")
+            continue
         comments = extract_comment_lines(content)
         for ln in sorted(lines):
             text = comments.get(ln, '')
@@ -204,6 +230,13 @@ def main():
             print(f"  {w}")
         print()
 
+    if errors:
+        print("### Files this check couldn't read (blocking -- an unverified "
+              "file is not a passing one)")
+        for e in errors:
+            print(f"  {e}")
+        print()
+
     if failures:
         print("### Issue/PR numbers in comments (AGENTS.md rule 1, blocking)")
         for f in failures:
@@ -212,6 +245,8 @@ def main():
         print(f"{len(failures)} comment(s) violate AGENTS.md's no-issue-number "
               "rule. Move that context to the commit message or PR "
               "description and describe the code itself in the comment.")
+
+    if failures or errors:
         return 1
 
     print("check_comment_rules: no issue-number violations in added "
