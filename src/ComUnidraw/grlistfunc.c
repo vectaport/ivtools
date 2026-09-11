@@ -37,7 +37,19 @@ GrListAtFunc::GrListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListAtFunc::execute() {
-  ComValue listv(stack_arg(0));
+  /* Classification (composite graphic or not) reads the argument
+     without mutating its stack slot, since the base ListAtFunc below
+     reads that same slot when this delegates to it. stack_arg(0, true)
+     supplies the raw value unmutated; ComTerp::lookup_symval(ComValue*,
+     false) classifies what a symbol argument would resolve to, also
+     without mutating, so a composite graphic held in a variable is
+     recognized correctly. The one real, mutating resolution happens
+     only once the compview branch below commits to consuming the
+     value itself. */
+  ComValue listpeek(stack_arg(0, true));
+  AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
+  boolean list_is_compview = listclass
+    ? listclass->object_compview() : listpeek.object_compview();
   ComValue nv(stack_arg(1));
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
@@ -48,7 +60,8 @@ void GrListAtFunc::execute() {
   if (insv.is_unknown()) insv = ComValue::blankval();
   boolean insflag = !insv.is_blank();
 
-  if (listv.object_compview()) {
+  if (list_is_compview) {
+    ComValue listv(stack_arg(0));
     reset_stack();
     if (setflag || insflag) {
       fprintf(stderr, ":set and :insert not yet supported for composite graphics\n");
@@ -90,9 +103,15 @@ GrListSizeFunc::GrListSizeFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListSizeFunc::execute() {
-  ComValue listv(stack_arg(0));
+  // see GrListAtFunc::execute() above for why this classifies the
+  // argument via a non-mutating resolve rather than stack_arg(0) itself
+  ComValue listpeek(stack_arg(0, true));
+  AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
+  boolean list_is_compview = listclass
+    ? listclass->object_compview() : listpeek.object_compview();
 
-  if (listv.object_compview()) {
+  if (list_is_compview) {
+    ComValue listv(stack_arg(0));
     reset_stack();
     ComponentView* compview = (ComponentView*)listv.obj_val();
     OverlayComp* comp = (OverlayComp*)compview->GetSubject();
