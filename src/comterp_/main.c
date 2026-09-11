@@ -383,13 +383,11 @@ int main(int argc, char *argv[]) {
 	  // there), an assigned one at 3 (vs. 2).
 	  if (topval.is_stream() && topval.stream_list() &&
 	      topval.stream_list()->refcount_<=2) {
-	    // Stamp the wrapper directly on this local rather than through a
-	    // helper returning ComValue by value: the wrapper only survives
-	    // in place -- any copy (an unelided return included, since NRVO
-	    // is not guaranteed) silently strips it back off
-	    // (AttributeValue::assignval() never copies it; see comterp.c's
-	    // interactive loop, which stamps its own pushed stack slot for
-	    // the same reason).
+	    // countv's wrapper is stamped on this exact object and read by
+	    // reference: AttributeValue::assignval() never copies the wrapper
+	    // annotation, so any copy of countv reverts to an unwrapped
+	    // display. See comterp.c's interactive loop, which stamps its own
+	    // pushed stack slot for the same reason.
 	    ComValue countv(terp->orphan_stream_count(topval));
 	    countv.wrapper(AttributeValue::BracketWrapper);
 	    cout << countv << '\n';
@@ -407,8 +405,8 @@ int main(int argc, char *argv[]) {
         // see the runfile() branch above for the refcount_==1 gate's purpose
         if (comval.is_stream() && comval.stream_list() &&
             comval.stream_list()->refcount_==1) {
-          // See the runfile() branch above: stamp in place, don't route
-          // through a helper that returns the wrapped value by copy.
+          // See the runfile() branch above: same in-place wrapper stamp,
+          // same reason.
           ComValue countv(terp->orphan_stream_count(comval));
           countv.wrapper(AttributeValue::BracketWrapper);
           cout << countv << '\n';
