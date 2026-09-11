@@ -38,6 +38,32 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history, not the default shallow clone: the comment-rules
+          # lint step below diffs against the PR base / previous push to
+          # find added lines, which a depth-1 checkout can't resolve.
+          fetch-depth: 0
+
+      # Pure git + python3, no build deps -- the cheapest possible gate, so
+      # it runs before anything else. Checks added .c/.h comments against
+      # AGENTS.md's two comment rules (no issue/PR numbers; describe the
+      # code as it is, not its fix history). See the script's own docstring
+      # for what's a hard failure vs. a non-blocking warning.
+      - name: Lint - code comment rules (AGENTS.md)
+        run: |
+          if [ -n "${{ github.event.pull_request.base.sha }}" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          elif [ "${{ github.event_name }}" = "push" ] && \
+               [ "${{ github.event.before }}" != "0000000000000000000000000000000000000000" ]; then
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          else
+            BASE_SHA="origin/master"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+          echo "Diffing $BASE_SHA..$HEAD_SHA"
+          python3 .github/scripts/check_comment_rules.py "$BASE_SHA" "$HEAD_SHA"
 
       - name: Install build & test dependencies
         run: |
