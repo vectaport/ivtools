@@ -1,6 +1,6 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 62/74 (84%)
+// coverage: 63/75 (84%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          -(empty-rhs)
@@ -27,11 +27,12 @@
 // the ordinary infix a.b tested throughout -- returns the named variable's
 // attrlist, creating and binding an empty one if it wasn't already one,
 // aliased rather than copied either way (#348, tests 58-60).  Writing a
-// value into an attrlist -- dot-assign (al.field=val) or the explicit
-// at(al n :set val) form -- is refused, nil, with a warning to stderr,
-// if the value being written already reaches the attrlist itself,
-// directly or nested arbitrarily deep through other lists/attrlists
-// (#341, tests 61-64).
+// value into an attrlist -- dot-assign (al.field=val), the explicit
+// at(al n :set val) form, or a bare-symbol write inside a method body
+// self-bound on al -- is refused, nil, with a warning to stderr, if the
+// value being written already reaches the attrlist itself, directly or
+// nested arbitrarily deep through other lists/attrlists (#341, tests
+// 61-65).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -618,6 +619,19 @@ al64=attrlist(:w 1)
 r64=(al64.w=attrlist(:v 2))
 ok=ok&&(r64.v==2)&&(al64.w.v==2)
 print("64 al64.w=attrlist(:v 2) unrelated attrlist still writes (expect 2 2): %v %v\n\n" r64.v al64.w.v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 65: the same refusal applies to a bare-symbol write inside a
+// self-bound method body (al.method=func(newfield=al)) -- a third,
+// distinct write path into an attrlist besides dot-assign and explicit
+// at(:set), since a bare symbol assigned while self-bound on al writes
+// straight into al's own attribute list (AssignFunc's func-scope
+// _alist branch), not through a live Attribute* handle ---
+al65=attrlist(:x 1)
+al65.setself=func(newfield=al65)
+al65.setself()
+ok=ok&&(al65.newfield==nil)
+print("65 self-bound bare-symbol write of al65 into itself refused (expect al65.newfield nil): %v\n\n" al65.newfield)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)

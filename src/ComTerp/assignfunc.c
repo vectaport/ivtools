@@ -120,6 +120,14 @@ void AssignFunc::execute() {
 	    }
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
 	} else if (attrlist) {
+	    if (value_contains_container(*operand2, (void*)attrlist, true)) {
+	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		      funcstate()->linenum());
+	      delete operand2;
+	      reset_stack();
+	      push_stack(ComValue::nullval());
+	      return;
+	    }
 	    Resource::ref(attrlist);
 	    Attribute* attr = new Attribute(operand1.symbol_val(),
 					    operand2);

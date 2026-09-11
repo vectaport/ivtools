@@ -35,21 +35,32 @@
 #include <Attribute/attribute.h>
 #include <iostream.h>
 #include <string.h>
+#include <algorithm>
+#include <vector>
 
 #define TITLE "ListFunc"
 
 /*****************************************************************************/
 
-boolean value_contains_container(AttributeValue& val, void* target,
-				  boolean target_is_attrlist) {
+/* visited tracks every AttributeValueList/AttributeList already walked in
+   this search, by pointer, so a container reachable through more than one
+   path in 'val' -- or one that is itself part of a cycle unrelated to
+   target -- is walked at most once, rather than driving the recursion as
+   deep as the structure lets it go. */
+static boolean value_contains_container_rec(AttributeValue& val, void* target,
+					     boolean target_is_attrlist,
+					     std::vector<void*>& visited) {
   if (val.is_type(ComValue::ArrayType)) {
     AttributeValueList* avl = val.array_val();
     if (!target_is_attrlist && (void*)avl == target) return true;
     if (avl) {
+      if (std::find(visited.begin(), visited.end(), (void*)avl) != visited.end())
+	return false;
+      visited.push_back((void*)avl);
       ALIterator it;
       for (avl->First(it); !avl->Done(it); avl->Next(it)) {
 	AttributeValue* elt = avl->GetAttrVal(it);
-	if (elt && value_contains_container(*elt, target, target_is_attrlist))
+	if (elt && value_contains_container_rec(*elt, target, target_is_attrlist, visited))
 	  return true;
       }
     }
@@ -57,16 +68,25 @@ boolean value_contains_container(AttributeValue& val, void* target,
     AttributeList* al = (AttributeList*)val.obj_val();
     if (target_is_attrlist && (void*)al == target) return true;
     if (al) {
+      if (std::find(visited.begin(), visited.end(), (void*)al) != visited.end())
+	return false;
+      visited.push_back((void*)al);
       Iterator it;
       for (al->First(it); !al->Done(it); al->Next(it)) {
 	Attribute* attr = al->GetAttr(it);
 	if (attr && attr->Value() &&
-	    value_contains_container(*attr->Value(), target, target_is_attrlist))
+	    value_contains_container_rec(*attr->Value(), target, target_is_attrlist, visited))
 	  return true;
       }
     }
   }
   return false;
+}
+
+boolean value_contains_container(AttributeValue& val, void* target,
+				  boolean target_is_attrlist) {
+  std::vector<void*> visited;
+  return value_contains_container_rec(val, target, target_is_attrlist, visited);
 }
 
 ListFunc::ListFunc(ComTerp* comterp) : ComFunc(comterp) {
