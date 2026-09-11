@@ -1,0 +1,90 @@
+// src/comterp_/tests/intliteral.comt -- integer literal parsing picks the
+// right storage type by magnitude, decimal/octal/hex alike
+//
+// funcs: print type errmsg
+//
+// A bare integer literal's type (IntType vs LongType) is decided by its
+// magnitude alone: it fits in a 32-bit `int` or it doesn't, regardless of
+// how many digits that takes to write in decimal, octal (0...), or hex
+// (0x...).  DFINT_MAX_DIGITS/DFINT_MAX_STRING and their octal/hex
+// counterparts (comutil.ci) are where that boundary lives, and they must
+// reflect `int`'s own 32-bit width, not `long`'s -- `long`'s own width
+// varies by platform (32 or 64 bits), so deriving them from the long
+// bounds understates how many literals need to promote to LongType on a
+// platform where long is wider than int, and a literal that should have
+// promoted gets written into a real 32-bit `int` instead, silently
+// truncating its value.
+//
+// Test 1 (the INT_MAX boundary itself) holds on every platform: `int` is
+// 32 bits everywhere this builds. Tests 2-6 use magnitudes that need a
+// 64-bit long to represent at all, so this platform's long width is
+// established once, up front, from whether the smallest of them
+// (INT_MAX+1) parses -- not re-checked per test. That distinction
+// matters: on a narrower-long platform the whole block is skipped, one
+// message, since nothing past INT_MAX has a representation to test
+// against there; but once this platform is established to support them,
+// a literal that unexpectedly fails to parse is a real regression and
+// must fail its assertion, not be swallowed as an assumed platform
+// limit the way a per-test error check would.
+//
+// Each assertion compares print()'s %v display against a literal string
+// written independently of the value under test, not against a second
+// copy of the same literal -- a truncated value compared to itself would
+// still read as "equal" and miss the bug entirely.
+//
+// Run from inside comterp, comdraw, or drawserv:
+//   run("src/comterp_/tests/intliteral.comt")
+
+ok=true
+
+// --- test 1: the last literal that still fits in a plain int (2^31-1) --
+// int is 32 bits on every platform this builds, so this one always holds
+s1=print("%v" 2147483647 :str)
+ok=ok&&(s1=="2147483647")&&(type(2147483647)==`IntType)
+print("1 2147483647 (expect 2147483647 IntType): %v %s\n" s1 type(2147483647))
+
+// --- platform capability, established once: can this build's `long`
+// hold INT_MAX+1 at all?  If the smallest over-int magnitude here has no
+// representation, none of the larger ones tests 3-6 use do either. ---
+errmsg(:clear)
+v2=2147483648
+e2=errmsg(:last)
+has_long64=(e2==nil)
+
+if (has_long64
+  :then (
+    // --- test 2: one past INT_MAX must promote to LongType with its
+    // value intact, not wrap to a negative 32-bit truncation ---
+    s2=print("%v" v2 :str);
+    ok=ok&&(s2=="2147483648L")&&(type(v2)==`LongType);
+    print("2 2147483648 (expect 2147483648L LongType): %v %s\n" s2 type(v2));
+
+    // --- test 3: well past INT_MAX, still nowhere near LONG_MAX ---
+    v3=3000000000;
+    s3=print("%v" v3 :str);
+    ok=ok&&(s3=="3000000000L")&&(type(v3)==`LongType);
+    print("3 3000000000 (expect 3000000000L LongType): %v %s\n" s3 type(v3));
+
+    // --- test 4: LONG_MAX itself, the far boundary ---
+    v4=9223372036854775807;
+    s4=print("%v" v4 :str);
+    ok=ok&&(s4=="9223372036854775807L")&&(type(v4)==`LongType);
+    print("4 9223372036854775807 (expect itself, L-suffixed, LongType): %v %s\n" s4 type(v4));
+
+    // --- test 5-6: the same magnitude boundary in octal and hex, not
+    // just decimal -- all three share the same DFOCTS/DFOCTU/DFHEXS/
+    // DFHEXU bounds ---
+    v5=0x100000000;
+    s5=print("%v" v5 :str);
+    ok=ok&&(s5=="4294967296L")&&(type(v5)==`LongType);
+    print("5 0x100000000 (expect 4294967296L LongType): %v %s\n" s5 type(v5));
+
+    v6=040000000000;
+    s6=print("%v" v6 :str);
+    ok=ok&&(s6=="4294967296L")&&(type(v6)==`LongType);
+    print("6 040000000000 (expect 4294967296L LongType): %v %s\n" s6 type(v6))
+    )
+  :else print("2-6 skipped: this platform's long can't represent INT_MAX+1 (%v)\n" e2))
+
+print("intliteral: %v\n" ok)
+ok

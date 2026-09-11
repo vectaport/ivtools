@@ -141,6 +141,10 @@ if(run("./numstring.comt")
   :then print("pass: numstring\n")
   :else print("FAIL: numstring\n");topok=false)
 
+if(run("./intliteral.comt")
+  :then print("pass: intliteral\n")
+  :else print("FAIL: intliteral\n");topok=false)
+
 if(run("./keyword_lineend.comt")
   :then print("pass: keyword_lineend\n")
   :else print("FAIL: keyword_lineend\n");topok=false)
