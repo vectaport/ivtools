@@ -1785,12 +1785,6 @@ ComValue ComTerp::orphan_stream_count(ComValue& streamv) {
   return ComValue(cnt, ComValue::IntType);
 }
 
-ComValue ComTerp::bracketed_orphan_count(ComValue& streamv) {
-  ComValue countv(orphan_stream_count(streamv));
-  countv.wrapper(AttributeValue::BracketWrapper);
-  return countv;
-}
-
 int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
