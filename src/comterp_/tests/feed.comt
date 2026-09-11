@@ -340,10 +340,11 @@ ok=ok&&(indirect==nil)
 print("27 an indirect two-FIFO cycle returns nil instead of crashing (expect nil): %v\n\n" indirect)
 check_fail(:ok ok)
 
-// --- test 28: a three-FIFO ring -- A nests B, B nests C, C nests A --
-// exercises the same cycle one hop further out than test 27.  The active
-// chain at the point of re-entry is [A, B, C], and the repeated backing
-// list (A's) is two frames back, not the immediate caller -- proving the
+// --- test 28: a three-FIFO ring -- R2 nests R1, R3 nests R2, R1 nests R3
+// -- exercises the same cycle one hop further out than test 27.  Pulling
+// from R1 walks its nested chain in nesting order (R1, R3, R2), and the
+// repeated backing list (R1's own, reached again through R2) is two
+// frames back at that point, not the immediate caller -- proving the
 // guard checks membership across the whole chain rather than just
 // comparing against the frame directly above it ---
 fifoR1=feed()
