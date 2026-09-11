@@ -31,6 +31,8 @@
 #include <Attribute/attrlist.h>
 #include <Attribute/attribute.h>
 #include <Unidraw/iterator.h>
+#include <algorithm>
+#include <vector>
 
 #define TITLE "StrmFunc"
 
@@ -809,6 +811,19 @@ void IterateFunc::execute() {
 
 int NextFunc::_next_depth = 0;
 
+/* backing lists of the streams a live chain of execute_impl calls is
+   currently unwinding, innermost last -- a stream can nest another stream
+   however deep, and two or more of them can reference each other's backing
+   list (however that arose: feed(f f) directly, or two feed() calls that
+   cross-reference each other's FIFO indirectly), so membership is checked
+   across the whole chain, not just the immediate caller. */
+static std::vector<AttributeValueList*> _draining_avls;
+
+struct DrainingAVLGuard {
+  DrainingAVLGuard(AttributeValueList* avl) { _draining_avls.push_back(avl); }
+  ~DrainingAVLGuard() { _draining_avls.pop_back(); }
+};
+
 NextFunc::NextFunc(ComTerp* comterp) : StrmFunc(comterp) {
 }
 
@@ -827,6 +842,16 @@ void NextFunc::execute_impl(ComTerp* comterp, ComValue& streamv) {
       _next_depth--;
       return;
     }
+
+    AttributeValueList* self_avl = streamv.stream_list();
+    if (std::find(_draining_avls.begin(), _draining_avls.end(), self_avl)
+        != _draining_avls.end()) {
+      fprintf(stderr, "WARNING: recursive stream -- next() returning nil instead of pulling forever\n");
+      comterp->push_stack(ComValue::nullval());
+      _next_depth--;
+      return;
+    }
+    DrainingAVLGuard draining_guard(self_avl);
 
     /* handle nested stream -- looped, not recursed.  A run of consecutive
        exhausted nested elements is removed one at a time and the new front

@@ -1,6 +1,6 @@
 // src/comterp_/tests/feed.comt -- test feed(), the write-end complement to next()
 //
-// coverage: 18/22 (82%)
+// coverage: 19/23 (83%)
 // funcs: feed
 // missing: feed(val-zero) feed(val-neg) feed(val-bool-t) feed(val-bool-f)
 //
@@ -42,7 +42,16 @@
 // interpreter the moment anything walks it. feed() detects this specific
 // case and appends a snapshot (the same copy $$/stream() makes) instead of
 // the live, shared list, so self-feeding duplicates what's queued right
-// now rather than crashing.
+// now rather than crashing.  That check only compares a fed-in stream's
+// backing list against the *immediate* destination's, one hop -- two FIFOs
+// that reference each other indirectly (one nests the other, then the
+// nester is fed back into the nested one) build the same kind of cycle
+// one hop removed, undetected by feed() itself.  NextFunc::execute_impl's
+// nested-stream unwrap guards against this more generally: it tracks every
+// backing list currently being drained across the whole recursive chain,
+// not just the immediate caller, so re-entering any of them mid-drain
+// returns nil (with a warning to stderr) instead of recursing without end
+// (test 27).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/feed.comt")
@@ -312,7 +321,23 @@ rawlen=size(list(feed(1..3 :raw)))
 plainlen=size(list(feed(1..3)))
 ok=ok&&(rawlen==1)&&(plainlen==3)
 print("26 :raw drains to 1, plain feed to 3 (expect 1 3): %v %v\n\n" rawlen plainlen)
+check_fail(:ok ok)
 
+// --- test 27: an indirect two-FIFO cycle -- one FIFO nests the other,
+// then the nester is fed back into the nested one -- builds the same kind
+// of self-reference test 18 guards against, just one hop removed.  feed()'s
+// own same-backing-list check compares only the fed-in stream against the
+// immediate destination, so neither of these two feed() calls looks like a
+// self-feed on its own; NextFunc::execute_impl's nested-stream unwrap is
+// what actually catches the resulting cycle, once something tries to
+// drain it ---
+fifoI1=feed()
+fifoI2=feed()
+feed(fifoI2 fifoI1)
+feed(fifoI1 fifoI2)
+indirect=next(fifoI1)
+ok=ok&&(indirect==nil)
+print("27 an indirect two-FIFO cycle returns nil instead of crashing (expect nil): %v\n\n" indirect)
 check_fail(:ok ok)
 
 print("\nfeed: %v\n" ok)
