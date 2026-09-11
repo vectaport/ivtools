@@ -59,9 +59,16 @@ public:
     int SymbolId();
     // return the id of the symbol in the symbol table.
 
+    AttributeList* Owner() const { return _owner; }
+    // the AttributeList this Attribute is stored in, or nil for one not
+    // (or not yet) added to any list -- set by AttributeList::add_attr,
+    // the sole gateway by which an Attribute becomes part of a list's
+    // storage.
+
 protected:
     int symbolid;
     AttributeValue* valueptr;
+    AttributeList* _owner;
 
 friend class AttributeList;
 

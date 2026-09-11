@@ -124,6 +124,7 @@ int AttributeList::add_attr(Attribute* attr) {
     }
     InsertBefore(i, attr);
     Resource::ref(attr);
+    attr->_owner = this;
     return 0;
 }
 

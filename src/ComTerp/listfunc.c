@@ -35,10 +35,59 @@
 #include <Attribute/attribute.h>
 #include <iostream.h>
 #include <string.h>
+#include <algorithm>
+#include <vector>
 
 #define TITLE "ListFunc"
 
 /*****************************************************************************/
+
+/* visited tracks every AttributeValueList/AttributeList already walked in
+   this search, by pointer, so a container reachable through more than one
+   path in 'val' -- or one that is itself part of a cycle unrelated to
+   target -- is walked at most once, rather than driving the recursion as
+   deep as the structure lets it go. */
+static boolean value_contains_container_rec(AttributeValue& val, void* target,
+					     boolean target_is_attrlist,
+					     std::vector<void*>& visited) {
+  if (val.is_type(ComValue::ArrayType)) {
+    AttributeValueList* avl = val.array_val();
+    if (!target_is_attrlist && (void*)avl == target) return true;
+    if (avl) {
+      if (std::find(visited.begin(), visited.end(), (void*)avl) != visited.end())
+	return false;
+      visited.push_back((void*)avl);
+      ALIterator it;
+      for (avl->First(it); !avl->Done(it); avl->Next(it)) {
+	AttributeValue* elt = avl->GetAttrVal(it);
+	if (elt && value_contains_container_rec(*elt, target, target_is_attrlist, visited))
+	  return true;
+      }
+    }
+  } else if (val.is_object(AttributeList::class_symid())) {
+    AttributeList* al = (AttributeList*)val.obj_val();
+    if (target_is_attrlist && (void*)al == target) return true;
+    if (al) {
+      if (std::find(visited.begin(), visited.end(), (void*)al) != visited.end())
+	return false;
+      visited.push_back((void*)al);
+      Iterator it;
+      for (al->First(it); !al->Done(it); al->Next(it)) {
+	Attribute* attr = al->GetAttr(it);
+	if (attr && attr->Value() &&
+	    value_contains_container_rec(*attr->Value(), target, target_is_attrlist, visited))
+	  return true;
+      }
+    }
+  }
+  return false;
+}
+
+boolean value_contains_container(AttributeValue& val, void* target,
+				  boolean target_is_attrlist) {
+  std::vector<void*> visited;
+  return value_contains_container_rec(val, target, target_is_attrlist, visited);
+}
 
 ListFunc::ListFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
@@ -257,6 +306,12 @@ void ListAtFunc::execute() {
     int nvv = nv.is_nil() ? avl->Number()-1 : nv.int_val();
     if (avl) {
       if (insflag) {
+	if (value_contains_container(insv, (void*)avl, false)) {
+	  fprintf(stderr, "WARNING: refusing to insert a list into itself -- line %d\n",
+		  funcstate()->linenum());
+	  push_stack(ComValue::nullval());
+	  return;
+	}
 	avl->Insert(nvv, new AttributeValue(insv));
 	push_stack(insv);
 	return;
@@ -264,6 +319,12 @@ void ListAtFunc::execute() {
 	/* nvv, not nv.int_val(): a nil index means the last item, and every
 	   other branch here already reads it that way -- this one wrote the
 	   first item instead. */
+	if (value_contains_container(setv, (void*)avl, false)) {
+	  fprintf(stderr, "WARNING: refusing to insert a list into itself -- line %d\n",
+		  funcstate()->linenum());
+	  push_stack(ComValue::nullval());
+	  return;
+	}
 	AttributeValue* oldv = avl->Set(nvv, new AttributeValue(setv));
 	delete oldv;
 	push_stack(setv);
@@ -301,8 +362,15 @@ void ListAtFunc::execute() {
 	  Attribute* attr = al->GetAttr(it);
 	  if (insflag) {
 	    fprintf(stderr, "Insert not yet supported for AttributeList\n");
-	  } else if (setflag)
+	  } else if (setflag) {
+	    if (value_contains_container(setv, (void*)al, true)) {
+	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		      funcstate()->linenum());
+	      push_stack(ComValue::nullval());
+	      return;
+	    }
 	    *attr->Value() = setv;
+	  }
 	  /* return a detached single-entry attrlist, e.g. (:y 20), not a live
 	     handle into al: al@n=val must never write through, and handing back
 	     a live Attribute* would make that unenforceable, since AssignFunc

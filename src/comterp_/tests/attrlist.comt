@@ -1,6 +1,6 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 59/71 (83%)
+// coverage: 63/75 (84%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          -(empty-rhs)
@@ -26,7 +26,13 @@
 // (tests 47-48).  dot(name) -- the 1-arg explicit-call form, as opposed to
 // the ordinary infix a.b tested throughout -- returns the named variable's
 // attrlist, creating and binding an empty one if it wasn't already one,
-// aliased rather than copied either way (#348, tests 58-60).
+// aliased rather than copied either way (#348, tests 58-60).  Writing a
+// value into an attrlist -- dot-assign (al.field=val), the explicit
+// at(al n :set val) form, or a bare-symbol write inside a method body
+// self-bound on al -- is refused, nil, with a warning to stderr, if the
+// value being written already reaches the attrlist itself, directly or
+// nested arbitrarily deep through other lists/attrlists (#341, tests
+// 61-65).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -575,6 +581,57 @@ prev_ok=check_fail(:ok ok)
 al58.q=2
 ok=ok&&(r58.q==2)
 print("60 al58.q=2 after dot(al58); r58.q sees it too, same object (expect 2): %v\n\n" r58.q)
+prev_ok=check_fail(:ok ok)
+
+// --- test 61: dot-assign refuses to write an attrlist into one of its
+// own fields -- al61.x=al61 is refused, nil, rather than building a
+// self-referential structure that would recurse without end the moment
+// anything walks it (print, in particular) ---
+al61=attrlist(:x 1)
+r61=(al61.x=al61)
+ok=ok&&(r61==nil)&&(al61.x==1)
+print("61 al61.x=al61 refused (expect nil, al61.x unchanged 1): %v %v\n\n" r61 al61.x)
+prev_ok=check_fail(:ok ok)
+
+// --- test 62: the same refusal through the explicit at(al n :set val)
+// form, the other writable path into an attrlist besides dot-assign ---
+al62=attrlist(:y 1)
+r62=at(al62 0 :set al62)
+ok=ok&&(r62==nil)&&(al62.y==1)
+print("62 at(al62 0 :set al62) refused (expect nil, al62.y unchanged 1): %v %v\n\n" r62 al62.y)
+prev_ok=check_fail(:ok ok)
+
+// --- test 63: an indirect cycle -- a list holding a reference to al63 is
+// itself dot-assigned into al63, reaching back to al63 one level down
+// rather than directly.  The guard searches the value being written
+// recursively, through nested lists and attrlists alike, not just its
+// own top-level identity ---
+al63=attrlist(:z 1)
+inner63=list(al63)
+r63=(al63.z=inner63)
+ok=ok&&(r63==nil)&&(al63.z==1)
+print("63 al63.z=inner63 refused, inner63 nests al63 (expect nil, unchanged 1): %v %v\n\n" r63 al63.z)
+prev_ok=check_fail(:ok ok)
+
+// --- test 64: an ordinary, non-self-referential value is unaffected --
+// the guard only refuses a genuine cycle ---
+al64=attrlist(:w 1)
+r64=(al64.w=attrlist(:v 2))
+ok=ok&&(r64.v==2)&&(al64.w.v==2)
+print("64 al64.w=attrlist(:v 2) unrelated attrlist still writes (expect 2 2): %v %v\n\n" r64.v al64.w.v)
+prev_ok=check_fail(:ok ok)
+
+// --- test 65: the same refusal applies to a bare-symbol write inside a
+// self-bound method body (al.method=func(newfield=al)) -- a third,
+// distinct write path into an attrlist besides dot-assign and explicit
+// at(:set), since a bare symbol assigned while self-bound on al writes
+// straight into al's own attribute list (AssignFunc's func-scope
+// _alist branch), not through a live Attribute* handle ---
+al65=attrlist(:x 1)
+al65.setself=func(newfield=al65)
+al65.setself()
+ok=ok&&(al65.newfield==nil)
+print("65 self-bound bare-symbol write of al65 into itself refused (expect al65.newfield nil): %v\n\n" al65.newfield)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)

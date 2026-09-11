@@ -35,6 +35,18 @@
 
 class ComTerp;
 class ComValue;
+class AttributeValue;
+
+// true if 'val' -- searched recursively through any nested ArrayType
+// element or AttributeList attribute value, including 'val' itself --
+// reaches the list or attrlist identity named by 'target'.
+// target_is_attrlist selects which kind of container 'target' names (an
+// AttributeValueList* for a plain list, an AttributeList* for an
+// attrlist), since the two are unrelated pointer types.  Shared by
+// ListAtFunc (listfunc.c) and AssignFunc (assignfunc.c), the two places a
+// list or attrlist gains a new element or attribute value.
+boolean value_contains_container(AttributeValue& val, void* target,
+				  boolean target_is_attrlist);
 
 //: create list command for ComTerp.
 // lst=list([lst|strm|val] :strmlst :attr :size n) -- create list, copy list, or convert stream

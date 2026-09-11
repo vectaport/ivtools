@@ -120,6 +120,14 @@ void AssignFunc::execute() {
 	    }
 	    comterp()->localtable()->insert(operand1.symbol_val(), operand2);
 	} else if (attrlist) {
+	    if (value_contains_container(*operand2, (void*)attrlist, true)) {
+	      fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		      funcstate()->linenum());
+	      delete operand2;
+	      reset_stack();
+	      push_stack(ComValue::nullval());
+	      return;
+	    }
 	    Resource::ref(attrlist);
 	    Attribute* attr = new Attribute(operand1.symbol_val(),
 					    operand2);
@@ -136,6 +144,15 @@ void AssignFunc::execute() {
 	}
     } else if (operand1.is_object(Attribute::class_symid())) {
       Attribute* attr = (Attribute*)operand1.obj_val();
+      AttributeList* owner = attr->Owner();
+      if (owner && value_contains_container(*operand2, (void*)owner, true)) {
+	fprintf(stderr, "WARNING: refusing to insert an attrlist into itself -- line %d\n",
+		funcstate()->linenum());
+	delete operand2;
+	reset_stack();
+	push_stack(ComValue::nullval());
+	return;
+      }
       attr->Value(operand2);
     } else if (operand1.is_array() && operand1.lhs_assign()) {
       /* the @ operator: lst@N=val.  ListAtFunc (listfunc.c), seeing its
