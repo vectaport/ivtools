@@ -51,96 +51,113 @@ def sh(*args):
     return subprocess.run(args, capture_output=True, text=True, check=True).stdout
 
 
-def extract_comment_lines(text):
-    """Map 1-based line number -> comment-only text on that line.
+def splice_lines(text):
+    """Resolve backslash-newline line splicing (translation phase 2).
 
-    A small state-machine C/C++ lexer: tracks // and /* */ comments,
-    "string" and 'char' literals (with backslash escapes) so a `#123`
-    inside a string, or a `//` inside a URL string, is never mistaken for
-    comment content.
+    Real compilers do this as a raw character-stream pass *before* any
+    tokenizing -- including before recognizing a `//`/`/*` delimiter, so a
+    `/` and `/` separated only by a spliced line ending do combine into a
+    line comment (confirmed against g++: it even warns -Wcomment on this
+    exact shape). Splicing has to happen first and separately for the same
+    reason: peeking one character ahead to recognize a two-character
+    delimiter only sees the right character if the splice already ran.
+
+    Returns (logical_text, line_of) where line_of[k] is the 1-based
+    original physical line number of logical_text[k], so a match found
+    after splicing can still be attributed to the physical line a diff
+    would report as added.
     """
     n = len(text)
-    i = 0
+    logical_chars = []
+    line_of = []
     line_no = 1
+    i = 0
+    while i < n:
+        if text[i] == '\\' and i + 1 < n and text[i + 1] == '\n':
+            i += 2
+            line_no += 1
+            continue
+        logical_chars.append(text[i])
+        line_of.append(line_no)
+        if text[i] == '\n':
+            line_no += 1
+        i += 1
+    return logical_chars, line_of
+
+
+def extract_comment_lines(text):
+    """Map 1-based (original, pre-splice) line number -> comment-only text
+    contributed by that line.
+
+    A small state-machine C/C++ lexer over the spliced character stream:
+    tracks // and /* */ comments, "string" and 'char' literals (with
+    backslash escapes) so a `#123` inside a string, or a `//` inside a URL
+    string, is never mistaken for comment content.
+    """
+    chars, line_of = splice_lines(text)
+    m = len(chars)
     buf = {}
 
     def emit(ln, ch):
         buf.setdefault(ln, []).append(ch)
 
     state = 'CODE'
-    while i < n:
-        # Backslash-newline line splicing (translation phase 2) applies
-        # uniformly, inside comments, strings, and code alike, and doesn't
-        # end whatever's currently open -- a line-comment spliced onto the
-        # next physical line is still one comment. Handled once here,
-        # ahead of the per-state dispatch below, rather than duplicated in
-        # each state's own escape handling.
-        if text[i] == '\\' and i + 1 < n and text[i + 1] == '\n':
-            i += 2
-            line_no += 1
-            continue
-        c = text[i]
-        nxt = text[i + 1] if i + 1 < n else ''
+    k = 0
+    while k < m:
+        c = chars[k]
+        nxt = chars[k + 1] if k + 1 < m else ''
+        ln = line_of[k]
         if state == 'CODE':
             if c == '/' and nxt == '/':
                 state = 'LINE_COMMENT'
-                i += 2
+                k += 2
             elif c == '/' and nxt == '*':
                 state = 'BLOCK_COMMENT'
-                i += 2
+                k += 2
             elif c == '"':
                 state = 'STRING'
-                i += 1
+                k += 1
             elif c == "'":
                 state = 'CHAR'
-                i += 1
-            elif c == '\n':
-                line_no += 1
-                i += 1
+                k += 1
             else:
-                i += 1
+                k += 1
         elif state == 'LINE_COMMENT':
             if c == '\n':
                 state = 'CODE'
-                line_no += 1
-                i += 1
+                k += 1
             else:
-                emit(line_no, c)
-                i += 1
+                emit(ln, c)
+                k += 1
         elif state == 'BLOCK_COMMENT':
             if c == '*' and nxt == '/':
                 state = 'CODE'
-                i += 2
-            elif c == '\n':
-                line_no += 1
-                i += 1
+                k += 2
             else:
-                emit(line_no, c)
-                i += 1
+                emit(ln, c)
+                k += 1
         elif state == 'STRING':
-            if c == '\\' and i + 1 < n:
-                i += 2
+            if c == '\\' and k + 1 < m:
+                k += 2
             elif c == '"':
                 state = 'CODE'
-                i += 1
+                k += 1
             elif c == '\n':
                 state = 'CODE'  # malformed, but don't hang the lexer
-                line_no += 1
-                i += 1
+                k += 1
             else:
-                i += 1
+                k += 1
         elif state == 'CHAR':
-            if c == '\\' and i + 1 < n:
-                i += 2
+            if c == '\\' and k + 1 < m:
+                k += 2
             elif c == "'":
                 state = 'CODE'
-                i += 1
+                k += 1
             elif c == '\n':
                 state = 'CODE'
-                line_no += 1
-                i += 1
+                k += 1
             else:
-                i += 1
+                k += 1
     return {ln: ''.join(chars) for ln, chars in buf.items()}
 
 
