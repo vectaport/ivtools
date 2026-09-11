@@ -34,11 +34,13 @@ Attribute::Attribute(const char* name, AttributeValue* value) {
     else
 	symbolid = -1;
     valueptr = value;
+    _owner = nil;
 }
 
 Attribute::Attribute(int symid, AttributeValue* value) {
   symbolid = symid;
   valueptr = value;
+  _owner = nil;
 }
 
 Attribute::Attribute(const Attribute& attr) {
@@ -46,6 +48,7 @@ Attribute::Attribute(const Attribute& attr) {
     if (symbolid != -1) // for reference count
 	symbol_add(symbol_pntr(symbolid));
     valueptr = new AttributeValue(*attr.valueptr);
+    _owner = nil;
 }
 
 Attribute::~Attribute() {

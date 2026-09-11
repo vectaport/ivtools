@@ -130,5 +130,45 @@ idx17=0,2
 ok=ok&&(lst17@idx17==nil)&&(lst17@(0,2)==nil)&&(list(lst17@$$idx17)=={10,30})
 print("17 list index nil, stream index fans out (expect nil {10,30}): %v %v\n" lst17@idx17 list(lst17@$$idx17))
 
+// --- 18: at(lst n :set lst) -- inserting a list into itself is refused,
+// not a crash.  Before this guard, splicing a list into its own slot
+// built a self-referential structure that recursed without end the
+// moment anything walked it (print, in particular) ---
+lst18=list(10,20,30)
+r18=at(lst18 0 :set lst18)
+ok=ok&&(r18==nil)&&(lst18=={10,20,30})
+print("18 at(lst18 0 :set lst18) refused (expect nil, lst18 unchanged): %v %v\n" r18 lst18)
+
+// --- 19: the same refusal through the @ operator -- lst@0=lst is the
+// original repro (#341): print(lst) afterward must not crash either,
+// since the write never went through ---
+lst19=list(10,20,30)
+r19=(lst19@0=lst19)
+ok=ok&&(r19==nil)&&(lst19=={10,20,30})
+print("19 lst19@0=lst19 refused (expect nil, lst19 unchanged): %v %v\n" r19 lst19)
+
+// --- 20: an indirect cycle -- a list holding a reference to lst20 is
+// itself inserted into lst20, which would reach back to lst20 one level
+// down rather than directly.  The guard searches the value being
+// inserted recursively, not just its own top-level identity.  inner20 is
+// built via at(:set), not list(lst20) -- list() given a single list
+// argument copies its contents (a documented conversion, not a wrap), so
+// that spelling would never actually nest lst20 inside inner20 ---
+lst20=list(10,20,30)
+inner20=list(:size 1)
+at(inner20 0 :set lst20)
+r20=at(lst20 0 :set inner20)
+ok=ok&&(r20==nil)&&(lst20=={10,20,30})
+print("20 at(lst20 0 :set inner20) refused, inner20 nests lst20 (expect nil, unchanged): %v %v\n" r20 lst20)
+
+// --- 21: an ordinary, non-self-referential list value at the same slot
+// is unaffected -- the guard only refuses a genuine cycle.  list(99), a
+// genuine 1-element list, prints with a trailing comma ({99,}) to stay
+// unambiguous with the bare scalar {99} would otherwise parse as ---
+lst21=list(10,20,30)
+r21=at(lst21 0 :set list(99))
+ok=ok&&(r21=={99,})&&(lst21=={{99,},20,30})
+print("21 at(lst21 0 :set list(99)) unrelated list still writes (expect {99,} {{99,},20,30}): %v %v\n" r21 lst21)
+
 print("listat: %v\n" ok)
 ok
