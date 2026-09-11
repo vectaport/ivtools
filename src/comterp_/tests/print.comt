@@ -218,5 +218,16 @@ ok=ok&&(p30=="P{1,2,3}\n")
 print("30 print(\"%d\" lst :str :prefix \"P\") wraps the value (expect P{1,2,3} and a newline): %v\n\n" p30)
 prev_ok=check_fail(:ok ok)
 
+// --- test 31: a trailing '\n' shows up in %v's quoted display, the same
+// way an embedded (non-trailing) '\n' already splits the display into two
+// quoted segments joined by a comma -- previously the trailing case showed
+// nothing at all, no different from a string with no newline ---
+v31=print("hello" :prefix "PREFIX" :str)
+disp31=print("%v" v31 :str)
+match31=(disp31=="\"PREFIXhello\",\n\"\"")
+ok=ok&&match31
+print("31 quoted display of print(\"hello\" :prefix \"PREFIX\" :str)'s trailing newline as a second, empty segment (expect true): %v\n\n" match31)
+prev_ok=check_fail(:ok ok)
+
 print("print: %v\n" ok)
 ok

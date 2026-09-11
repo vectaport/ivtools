@@ -902,7 +902,7 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
     if (len == 0) 
 	out << "\"\"";
     else {
-	for (beg = 0; beg < len; ) {
+	for (beg = 0; ; ) {
 	    Get_Line(text, len, beg, end, lineSize, nextBeg);
 	    int line_len = end - beg + 1;
 	    if (line_len >= INT_MAX>>2) {
@@ -912,12 +912,16 @@ int ParamList::output_text(ostream& out, const char* text, int indent) {
 	        const char* string = filter(&text[beg], line_len);
 		out << "\"" << string << "\"";
 	    }
+	    /* nextBeg>len (not just ==len) is what "no more segments" means: a
+	       line ending on the text's own last '\n' has nextBeg==len exactly,
+	       and that trailing newline still needs its own (empty) segment, or
+	       the display loses it entirely with no way to tell it was ever
+	       there. */
+	    if (nextBeg > len) break;
+	    out << "," << "\n";
+	    for (int i = 0; i < indent; i++)
+		out << "    ";
 	    beg = nextBeg;
-	    if (beg < len) {
-		out << "," << "\n";
-		for (int i = 0; i < indent; i++)
-		    out << "    ";
-	    }
 	}
     }
     return line_too_long ? -1 : (out.good() ? 0 : -1);
