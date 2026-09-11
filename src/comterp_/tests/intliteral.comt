@@ -1,59 +1,96 @@
 // src/comterp_/tests/intliteral.comt -- integer literal parsing picks the
 // right storage type by magnitude, decimal/octal/hex alike
 //
-// funcs: print type
+// funcs: print type errmsg
 //
 // A bare integer literal's type (IntType vs LongType) is decided by its
 // magnitude alone: it fits in a 32-bit `int` or it doesn't, regardless of
 // how many digits that takes to write in decimal, octal (0...), or hex
 // (0x...).  DFINT_MAX_DIGITS/DFINT_MAX_STRING and their octal/hex
 // counterparts (comutil.ci) are where that boundary lives, and they must
-// reflect `int`'s own 32-bit width, not `long`'s: `long` is 64 bits on
-// this platform, so deriving them from the long bounds understates how
-// many literals need to promote to LongType, and a literal that should
-// have promoted gets written into a real 32-bit `int` instead, silently
+// reflect `int`'s own 32-bit width, not `long`'s -- `long`'s own width
+// varies by platform (32 or 64 bits), so deriving them from the long
+// bounds understates how many literals need to promote to LongType on a
+// platform where long is wider than int, and a literal that should have
+// promoted gets written into a real 32-bit `int` instead, silently
 // truncating its value.
 //
-// Each check below compares print()'s %v display against a literal
-// string written independently of the value under test, not against a
-// second copy of the same literal -- a truncated value compared to
-// itself would still read as "equal" and miss the bug entirely.
+// Test 1 (the INT_MAX boundary itself) holds on every platform: `int` is
+// 32 bits everywhere this builds. Tests 2-6 use magnitudes that need a
+// 64-bit long to represent at all, so each is gated on errmsg(:last)
+// after evaluating its literal: on a platform where long is narrower,
+// the lexer's own ERR_TOOBIGINT (not a bug -- there is genuinely no
+// integer type here big enough to hold the value) is caught and the
+// check is skipped rather than failed, the same way parser.comt gates
+// its deliberately-malformed-input tests.
+//
+// Each assertion compares print()'s %v display against a literal string
+// written independently of the value under test, not against a second
+// copy of the same literal -- a truncated value compared to itself would
+// still read as "equal" and miss the bug entirely.
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/intliteral.comt")
 
 ok=true
 
-// --- test 1: the last literal that still fits in a plain int (2^31-1) ---
+// --- test 1: the last literal that still fits in a plain int (2^31-1) --
+// int is 32 bits on every platform this builds, so this one always holds
 s1=print("%v" 2147483647 :str)
 ok=ok&&(s1=="2147483647")&&(type(2147483647)==`IntType)
 print("1 2147483647 (expect 2147483647 IntType): %v %s\n" s1 type(2147483647))
 
 // --- test 2: one past INT_MAX must promote to LongType with its value
 // intact, not wrap to a negative 32-bit truncation ---
-s2=print("%v" 2147483648 :str)
-ok=ok&&(s2=="2147483648L")&&(type(2147483648)==`LongType)
-print("2 2147483648 (expect 2147483648L LongType): %v %s\n" s2 type(2147483648))
+errmsg(:clear)
+v2=2147483648
+e2=errmsg(:last)
+if (e2==nil
+  :then (s2=print("%v" v2 :str);
+         ok=ok&&(s2=="2147483648L")&&(type(v2)==`LongType);
+         print("2 2147483648 (expect 2147483648L LongType): %v %s\n" s2 type(v2)))
+  :else print("2 2147483648 -- skipped, exceeds this platform's long range (%v)\n" e2))
 
 // --- test 3: well past INT_MAX, still nowhere near LONG_MAX ---
-s3=print("%v" 3000000000 :str)
-ok=ok&&(s3=="3000000000L")&&(type(3000000000)==`LongType)
-print("3 3000000000 (expect 3000000000L LongType): %v %s\n" s3 type(3000000000))
+errmsg(:clear)
+v3=3000000000
+e3=errmsg(:last)
+if (e3==nil
+  :then (s3=print("%v" v3 :str);
+         ok=ok&&(s3=="3000000000L")&&(type(v3)==`LongType);
+         print("3 3000000000 (expect 3000000000L LongType): %v %s\n" s3 type(v3)))
+  :else print("3 3000000000 -- skipped, exceeds this platform's long range (%v)\n" e3))
 
-// --- test 4: LONG_MAX itself, the far boundary ---
-s4=print("%v" 9223372036854775807 :str)
-ok=ok&&(s4=="9223372036854775807L")&&(type(9223372036854775807)==`LongType)
-print("4 9223372036854775807 (expect itself, L-suffixed, LongType): %v %s\n" s4 type(9223372036854775807))
+// --- test 4: LONG_MAX itself, the far boundary -- only representable
+// where long is 64 bits ---
+errmsg(:clear)
+v4=9223372036854775807
+e4=errmsg(:last)
+if (e4==nil
+  :then (s4=print("%v" v4 :str);
+         ok=ok&&(s4=="9223372036854775807L")&&(type(v4)==`LongType);
+         print("4 9223372036854775807 (expect itself, L-suffixed, LongType): %v %s\n" s4 type(v4)))
+  :else print("4 9223372036854775807 -- skipped, exceeds this platform's long range (%v)\n" e4))
 
 // --- test 5-6: the same magnitude boundary in octal and hex, not just
 // decimal -- all three share the same DFOCTS/DFOCTU/DFHEXS/DFHEXU bounds ---
-s5=print("%v" 0x100000000 :str)
-ok=ok&&(s5=="4294967296L")&&(type(0x100000000)==`LongType)
-print("5 0x100000000 (expect 4294967296L LongType): %v %s\n" s5 type(0x100000000))
+errmsg(:clear)
+v5=0x100000000
+e5=errmsg(:last)
+if (e5==nil
+  :then (s5=print("%v" v5 :str);
+         ok=ok&&(s5=="4294967296L")&&(type(v5)==`LongType);
+         print("5 0x100000000 (expect 4294967296L LongType): %v %s\n" s5 type(v5)))
+  :else print("5 0x100000000 -- skipped, exceeds this platform's long range (%v)\n" e5))
 
-s6=print("%v" 040000000000 :str)
-ok=ok&&(s6=="4294967296L")&&(type(040000000000)==`LongType)
-print("6 040000000000 (expect 4294967296L LongType): %v %s\n" s6 type(040000000000))
+errmsg(:clear)
+v6=040000000000
+e6=errmsg(:last)
+if (e6==nil
+  :then (s6=print("%v" v6 :str);
+         ok=ok&&(s6=="4294967296L")&&(type(v6)==`LongType);
+         print("6 040000000000 (expect 4294967296L LongType): %v %s\n" s6 type(v6)))
+  :else print("6 040000000000 -- skipped, exceeds this platform's long range (%v)\n" e6))
 
 print("intliteral: %v\n" ok)
 ok
