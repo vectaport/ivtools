@@ -407,40 +407,48 @@ int main (int argc, char** argv) {
 		   script resolves against the script's directory, not the cwd
 		   (mirrors comterp's `run` subcommand -- see comterp_/main.c). */
 		RunFunc::set_basepath(runfile);
-		/* runfile()'s own error path (ComTerp::runfile(), comterp.c)
-		   calls err_print(), which writes _errbuf2 and stderr but
-		   never touches _errbuf -- so errmsg() (== _errbuf) can't see
-		   a runfile() failure; its return value is the only reliable
-		   signal, same as before this echo was added. */
+		/* runfile()'s own error path (ComTerpServ::runfile(),
+		   comterpserv.c -- the override this virtual call actually
+		   resolves to) calls err_print(), which writes _errbuf2 and
+		   stderr but never touches _errbuf -- so errmsg() (== _errbuf)
+		   can't see a runfile() failure; its return value is the only
+		   reliable signal, same as before this echo was added. */
 		int runfile_status = terp->runfile(runfile);
-		/* echo the file's last expression, same as comterp's own
-		   `run <file>` subcommand does (see comterp_/main.c) --
-		   runfile() already pushes it onto the stack, it just never
-		   prints it on its own. */
-		terp->brief(1);
-		ComValue::comterp(terp);
-		{
-		  ComValue topval(terp->stack_top());
-		  // an orphaned stream prints as an uninformative,
-		  // still-unconsumed "[]" via plain operator<< -- drain it and
-		  // show the element count instead, bracketed the same way the
-		  // interactive loop and comterp's own `run <file>` subcommand
-		  // display this case (comterp.c, comterp_/main.c).  refcount_<=2,
-		  // not ==1: runfile() re-pushes a copy of the last statement's
-		  // result at its own tail, which adds one baseline ref beyond
-		  // the plain interactive run() loop's (see comterp_/main.c's
-		  // run_flag branch for the same gate and its rationale).
-		  if (topval.is_stream() && topval.stream_list() &&
-		      topval.stream_list()->refcount_<=2) {
-		    ComValue countv(terp->orphan_stream_count(topval));
-		    countv.wrapper(AttributeValue::BracketWrapper);
-		    cout << countv << "\n";
-		  } else
-		    cout << topval << "\n";
-		}
-		cout.flush();
-		if (runfile_status < 0)
+		if (runfile_status < 0) {
+		    // ComTerpServ::runfile() returns here before ever touching
+		    // the stack when the file can't be opened, so stack_top()
+		    // below would be whatever the interpreter held before this
+		    // call, not a result of this run -- printing it would pass
+		    // off unrelated state as the script's output.
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
+		} else {
+		  /* echo the file's last expression, same as comterp's own
+		     `run <file>` subcommand does (see comterp_/main.c) --
+		     runfile() already pushes it onto the stack, it just never
+		     prints it on its own. */
+		  terp->brief(1);
+		  ComValue::comterp(terp);
+		  {
+		    ComValue topval(terp->stack_top());
+		    // an orphaned stream prints as an uninformative,
+		    // still-unconsumed "[]" via plain operator<< -- drain it and
+		    // show the element count instead, bracketed the same way the
+		    // interactive loop and comterp's own `run <file>` subcommand
+		    // display this case (comterp.c, comterp_/main.c).  refcount_<=2,
+		    // not ==1: runfile() re-pushes a copy of the last statement's
+		    // result at its own tail, which adds one baseline ref beyond
+		    // the plain interactive run() loop's (see comterp_/main.c's
+		    // run_flag branch for the same gate and its rationale).
+		    if (topval.is_stream() && topval.stream_list() &&
+		        topval.stream_list()->refcount_<=2) {
+		      ComValue countv(terp->orphan_stream_count(topval));
+		      countv.wrapper(AttributeValue::BracketWrapper);
+		      cout << countv << "\n";
+		    } else
+		      cout << topval << "\n";
+		  }
+		  cout.flush();
+		}
 	    }
 	    const char* runexpr = catalog->GetAttribute("runexpr");
 	    if (runexpr && *runexpr) {
