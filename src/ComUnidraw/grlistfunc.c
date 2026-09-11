@@ -37,7 +37,14 @@ GrListAtFunc::GrListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListAtFunc::execute() {
-  ComValue listv(stack_arg(0));
+  /* Peeked unresolved (symbol=true): stack_arg()'s default resolution
+     mutates the stack slot it reads (a symbol resolves via
+     lookup_symval() and overwrites the slot with the result), and the
+     base ListAtFunc below reads that same slot itself when delegated
+     to. Full resolution happens only in the compview branch, which
+     consumes the value directly rather than handing the slot to
+     another command. */
+  ComValue listpeek(stack_arg(0, true));
   ComValue nv(stack_arg(1));
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
@@ -48,7 +55,8 @@ void GrListAtFunc::execute() {
   if (insv.is_unknown()) insv = ComValue::blankval();
   boolean insflag = !insv.is_blank();
 
-  if (listv.object_compview()) {
+  if (listpeek.object_compview()) {
+    ComValue listv(stack_arg(0));
     reset_stack();
     if (setflag || insflag) {
       fprintf(stderr, ":set and :insert not yet supported for composite graphics\n");
@@ -90,9 +98,11 @@ GrListSizeFunc::GrListSizeFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListSizeFunc::execute() {
-  ComValue listv(stack_arg(0));
+  // see GrListAtFunc::execute() above for why this peeks unresolved
+  ComValue listpeek(stack_arg(0, true));
 
-  if (listv.object_compview()) {
+  if (listpeek.object_compview()) {
+    ComValue listv(stack_arg(0));
     reset_stack();
     ComponentView* compview = (ComponentView*)listv.obj_val();
     OverlayComp* comp = (OverlayComp*)compview->GetSubject();
