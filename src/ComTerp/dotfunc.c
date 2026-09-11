@@ -473,11 +473,15 @@ void DotFunc::execute_core(ComValue before_part, ComValue after_raw, int after_n
     } else
       al = (AttributeList*) before_part.obj_val();
 
-    if (after_nids!=-1) {
+    if (after_nids!=-1 && nargs()>1) {
       /* al.method(args) -- fire, self-bound, not a plain attribute fetch.
 	 copy_stack_arg_post_eval needs the argoff bookmark still on the
 	 stack, so it must run before reset_stack(), same as every other
-	 stack_arg* read here. */
+	 stack_arg* read here.  nargs()>1 is required alongside after_nids!=-1:
+	 a missing 2nd arg (the 1-arg dot(a) form) reads back from
+	 peek_and_fire()'s stack_arg(1,true) as a default-constructed
+	 ComValue whose nids() is 0, indistinguishable from a real
+	 name-with-parens rhs by after_nids alone. */
       int nargtoks;
       postfix_token* argtoks = copy_stack_arg_post_eval(1, nargtoks);
       reset_stack();

@@ -1,6 +1,6 @@
 // src/comterp_/tests/attrlist.comt -- test dot, list(:attr), and attrlist()
 //
-// coverage: 56/68 (82%)
+// coverage: 59/71 (83%)
 // funcs: dot list(:attr) attrlist at size attrname attrval + -
 // missing: at(:ins) at(stress-boundary) size(empty) attrname(stream) attrval(stream)
 //          -(empty-rhs)
@@ -23,7 +23,10 @@
 // mechanism: a method reaches a sibling by using the enclosing attrlist's
 // own ordinary name and an explicit dot-call, which also means nothing
 // enforces that name still points at the same object across a call
-// (tests 47-48).
+// (tests 47-48).  dot(name) -- the 1-arg explicit-call form, as opposed to
+// the ordinary infix a.b tested throughout -- returns the named variable's
+// attrlist, creating and binding an empty one if it wasn't already one,
+// aliased rather than copied either way (#348, tests 58-60).
 //
 // Run from inside comterp, comdraw, or drawserv:
 //   run("src/comterp_/tests/attrlist.comt")
@@ -543,6 +546,35 @@ prev_ok=check_fail(:ok ok)
 r57=(:name foo55)
 ok=ok&&(r57.name==99)
 print("57 an unprotected symbol is looked up on read-back instead (expect 99): %v\n\n" r57.name)
+prev_ok=check_fail(:ok ok)
+
+// --- test 58: dot(name) -- the 1-arg explicit-call form -- on a variable
+// already bound to an attrlist returns that same attrlist, aliased rather
+// than a fresh copy (#348 regression: this used to segfault, since the
+// missing 2nd arg read back from the same default-constructed ComValue a
+// real name-with-parens rhs uses, misrouting into method dispatch) ---
+al58=attrlist(:p 1)
+r58=dot(al58)
+ok=ok&&(r58==al58)
+print("58 dot(al58) on a bound attrlist returns it, aliased (expect r58==al58): %v\n\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 59: dot(name) on a not-yet-bound variable lazily creates and
+// binds an empty attrlist under that name, the same get-or-create
+// semantics the infix operator already uses (dot's own before-variable
+// lookup in execute_core, shared by both call forms) ---
+r59=dot(dotarity59)
+ok=ok&&(type(r59)==`ObjectType)&&(type(dotarity59)==`ObjectType)&&(dotarity59==r59)
+print("59 dot(dotarity59) on an unbound name creates+binds an empty attrlist (expect true): %v\n\n" ok)
+prev_ok=check_fail(:ok ok)
+
+// --- test 60: the aliasing from test 58 is live, not a snapshot -- a
+// field written through the ordinary infix operator afterward is visible
+// through the earlier dot(name) result too, since both name the same
+// underlying AttributeList ---
+al58.q=2
+ok=ok&&(r58.q==2)
+print("60 al58.q=2 after dot(al58); r58.q sees it too, same object (expect 2): %v\n\n" r58.q)
 prev_ok=check_fail(:ok ok)
 
 print("attrlist: %v\n" ok)
