@@ -47,6 +47,7 @@
 #include <OverlayUnidraw/aceimport.h>
 #include <AceDispatch/ace_dispatcher.h>
 
+#include <Attribute/attrlist.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComTerp/ctrlfunc.h>
@@ -418,7 +419,25 @@ int main (int argc, char** argv) {
 		   prints it on its own. */
 		terp->brief(1);
 		ComValue::comterp(terp);
-		cout << terp->stack_top() << "\n";
+		{
+		  ComValue topval(terp->stack_top());
+		  // an orphaned stream prints as an uninformative,
+		  // still-unconsumed "[]" via plain operator<< -- drain it and
+		  // show the element count instead, bracketed the same way the
+		  // interactive loop and comterp's own `run <file>` subcommand
+		  // display this case (comterp.c, comterp_/main.c).  refcount_<=2,
+		  // not ==1: runfile() re-pushes a copy of the last statement's
+		  // result at its own tail, which adds one baseline ref beyond
+		  // the plain interactive run() loop's (see comterp_/main.c's
+		  // run_flag branch for the same gate and its rationale).
+		  if (topval.is_stream() && topval.stream_list() &&
+		      topval.stream_list()->refcount_<=2) {
+		    ComValue countv(terp->orphan_stream_count(topval));
+		    countv.wrapper(AttributeValue::BracketWrapper);
+		    cout << countv << "\n";
+		  } else
+		    cout << topval << "\n";
+		}
 		cout.flush();
 		if (runfile_status < 0)
 		    cerr << "comdraw: error running script file: " << runfile << "\n";
