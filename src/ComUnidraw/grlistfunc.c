@@ -37,19 +37,15 @@ GrListAtFunc::GrListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListAtFunc::execute() {
-  /* Classifying the argument (composite graphic or not) must not
-     resolve it in place: stack_arg(0)'s default resolution mutates the
-     stack slot it reads (a symbol argument -- typically a variable
-     reference -- resolves via lookup_symval() and overwrites the slot
-     with the result), and the base ListAtFunc below reads that same
-     slot itself when delegated to.  stack_arg(0, true) gets the raw,
-     unresolved argument; ComTerp::lookup_symval(ComValue*, false) (the
-     non-mutating overload) then classifies what it WOULD resolve to,
-     without writing back into the slot -- so a composite graphic held
-     in a variable is still recognized as one. Only once the compview
-     branch below is committed to does it perform the one real,
-     mutating resolution, consuming the value itself rather than
-     handing the slot to another command. */
+  /* Classification (composite graphic or not) reads the argument
+     without mutating its stack slot, since the base ListAtFunc below
+     reads that same slot when this delegates to it. stack_arg(0, true)
+     supplies the raw value unmutated; ComTerp::lookup_symval(ComValue*,
+     false) classifies what a symbol argument would resolve to, also
+     without mutating, so a composite graphic held in a variable is
+     recognized correctly. The one real, mutating resolution happens
+     only once the compview branch below commits to consuming the
+     value itself. */
   ComValue listpeek(stack_arg(0, true));
   AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
   boolean list_is_compview = listclass
