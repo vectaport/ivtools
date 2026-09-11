@@ -60,6 +60,7 @@
 #include <fstream>
 #include <iostream>
 
+#include <Attribute/attrlist.h>
 #include <ComTerp/comterpserv.h>
 #include <ComTerp/comvalue.h>
 #include <ComUtil/util.h>
@@ -438,8 +439,36 @@ int main (int argc, char** argv) {
 
 	    const char* runfile = catalog->GetAttribute("runfile");
 	    if (runfile && *runfile) {
-	        if (terp->runfile(runfile) < 0)
+	        int runfile_status = terp->runfile(runfile);
+	        if (runfile_status < 0) {
+	            // ComTerpServ::runfile() (comterpserv.c) returns before
+	            // ever touching the stack when the file can't be opened,
+	            // so stack_top() below is only meaningful after success.
 	            cerr << "drawserv: error running script file: " << runfile << "\n";
+	        } else {
+	          // echo the file's last expression, same as comdraw's own
+	          // -runfile does (see comdraw/main.c) -- runfile() already
+	          // pushes it onto the stack, it just never prints it on its own.
+	          terp->brief(1);
+	          ComValue::comterp(terp);
+	          {
+	            ComValue topval(terp->stack_top());
+	            // Drain an unconsumed stream and print its bracketed
+	            // element count, matching the interactive loop and
+	            // comdraw's own -runfile (comterp.c, comdraw/main.c).
+	            // refcount_<=2, not ==1: runfile() re-pushes a copy of
+	            // the last statement's result at its own tail, one
+	            // baseline ref beyond the plain interactive run() loop's.
+	            if (topval.is_stream() && topval.stream_list() &&
+	                topval.stream_list()->refcount_<=2) {
+	              ComValue countv(terp->orphan_stream_count(topval));
+	              countv.wrapper(AttributeValue::BracketWrapper);
+	              cout << countv << "\n";
+	            } else
+	              cout << topval << "\n";
+	          }
+	          cout.flush();
+	        }
 	    }
 	    const char* runexpr = catalog->GetAttribute("runexpr");
 	    if (runexpr && *runexpr) {
@@ -453,7 +482,17 @@ int main (int argc, char** argv) {
 	        terp->brief(1);
 	        ComValue::comterp(terp);
 	        ComValue comval(terp->run(runexpr_nl));
-	        cout << comval << "\n";
+	        // Drain an unconsumed stream and print its bracketed element
+	        // count, matching the interactive loop and comterp's own
+	        // one-shot '<expr>' form (comterp.c, comterp_/main.c's
+	        // expr_flag branch).
+	        if (comval.is_stream() && comval.stream_list() &&
+	            comval.stream_list()->refcount_==1) {
+	          ComValue countv(terp->orphan_stream_count(comval));
+	          countv.wrapper(AttributeValue::BracketWrapper);
+	          cout << countv << "\n";
+	        } else
+	          cout << comval << "\n";
 	        cout.flush();
 	        if (*terp->errmsg())
 	            cerr << "drawserv: error running expression: " << runexpr << "\n";
