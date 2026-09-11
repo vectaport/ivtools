@@ -37,14 +37,23 @@ GrListAtFunc::GrListAtFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListAtFunc::execute() {
-  /* Peeked unresolved (symbol=true): stack_arg()'s default resolution
-     mutates the stack slot it reads (a symbol resolves via
-     lookup_symval() and overwrites the slot with the result), and the
-     base ListAtFunc below reads that same slot itself when delegated
-     to. Full resolution happens only in the compview branch, which
-     consumes the value directly rather than handing the slot to
-     another command. */
+  /* Classifying the argument (composite graphic or not) must not
+     resolve it in place: stack_arg(0)'s default resolution mutates the
+     stack slot it reads (a symbol argument -- typically a variable
+     reference -- resolves via lookup_symval() and overwrites the slot
+     with the result), and the base ListAtFunc below reads that same
+     slot itself when delegated to.  stack_arg(0, true) gets the raw,
+     unresolved argument; ComTerp::lookup_symval(ComValue*, false) (the
+     non-mutating overload) then classifies what it WOULD resolve to,
+     without writing back into the slot -- so a composite graphic held
+     in a variable is still recognized as one. Only once the compview
+     branch below is committed to does it perform the one real,
+     mutating resolution, consuming the value itself rather than
+     handing the slot to another command. */
   ComValue listpeek(stack_arg(0, true));
+  AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
+  boolean list_is_compview = listclass
+    ? listclass->object_compview() : listpeek.object_compview();
   ComValue nv(stack_arg(1));
   static int set_symid = symbol_add("set");
   ComValue setv(stack_key(set_symid, false, ComValue::blankval()));  // bare :set -> blank (nothing to set)
@@ -55,7 +64,7 @@ void GrListAtFunc::execute() {
   if (insv.is_unknown()) insv = ComValue::blankval();
   boolean insflag = !insv.is_blank();
 
-  if (listpeek.object_compview()) {
+  if (list_is_compview) {
     ComValue listv(stack_arg(0));
     reset_stack();
     if (setflag || insflag) {
@@ -98,10 +107,14 @@ GrListSizeFunc::GrListSizeFunc(ComTerp* comterp) : ComFunc(comterp) {
 }
 
 void GrListSizeFunc::execute() {
-  // see GrListAtFunc::execute() above for why this peeks unresolved
+  // see GrListAtFunc::execute() above for why this classifies the
+  // argument via a non-mutating resolve rather than stack_arg(0) itself
   ComValue listpeek(stack_arg(0, true));
+  AttributeValue* listclass = comterp()->lookup_symval(&listpeek, false);
+  boolean list_is_compview = listclass
+    ? listclass->object_compview() : listpeek.object_compview();
 
-  if (listpeek.object_compview()) {
+  if (list_is_compview) {
     ComValue listv(stack_arg(0));
     reset_stack();
     ComponentView* compview = (ComponentView*)listv.obj_val();
