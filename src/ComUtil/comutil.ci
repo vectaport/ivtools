@@ -106,7 +106,17 @@ typedef unsigned long  ABSPNTR;
 #define SHHEXU_MAX_DIGITS	4
 #define SHHEXU_MAX_STRING	"FFFF"
 
-#if __WORDSIZE == 64 
+/* LNINT_MAX_* (and its octal/hex counterparts) are the bounds of a
+   LongType value -- storage-format-agnostic to comterp script authors,
+   who see LongType simply as "twice IntType's width" and nothing about
+   the host C ABI underneath. That guarantee is free here only because
+   this target's C `long` genuinely is 64 bits (__WORDSIZE==64 below); a
+   target where C's `long` stays narrower than that (Windows' LLP64 model,
+   notably) would need to back LongType with an explicit 64-bit type there
+   instead of deriving these bounds from `long`'s own width -- the same
+   principle DFINT_MAX_* below already follows by pinning itself to
+   `int`'s own width rather than borrowing `long`'s. */
+#if __WORDSIZE == 64
 #define LNINT_MAX_DIGITS	19
 #define LNINT_MAX_STRING	"9223372036854775807"
 #define LNOCTS_MAX_DIGITS	21
