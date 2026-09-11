@@ -251,8 +251,8 @@ void PanCmd::Execute() {
 void PanCmd::Unexecute() {
     OverlayViewer* v = (OverlayViewer*) GetEditor()->GetViewer();
     Perspective basep = *v->GetPerspective();
-    basep.cury -= _px;
-    basep.curx -= _py;
+    basep.curx -= _px;
+    basep.cury -= _py;
     v->Adjust(basep);
 }
 
