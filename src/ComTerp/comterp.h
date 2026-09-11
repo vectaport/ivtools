@@ -219,6 +219,15 @@ public:
     // stand-alone expression ending in an orphaned stream reports its element
     // count instead of printing as though still unconsumed.
 
+    ComValue bracketed_orphan_count(ComValue& streamv);
+    // orphan_stream_count(), stamped for display as "[n]" -- a count of
+    // what went by, not an ordinary integer.  For a caller that prints the
+    // result directly (main.c's CLI dispatch) rather than pushing it back
+    // onto this interpreter's own stack: pushing would immediately strip
+    // the wrapper again (AttributeValue::operator= always clears it), so
+    // the interactive loop stamps its own pushed slot instead of using
+    // this method.
+
     void fire_funcobj(ComValue& val, AttributeList* extra_keys=nil,
 		       ComValue* lazy_posvals=nil);
     // fire the FuncObj in 'val', whose val.narg() already-evaluated

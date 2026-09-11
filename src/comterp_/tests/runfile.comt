@@ -91,5 +91,22 @@ ok=ok&&isstrm8
 print("8 run() preserves a trailing bare stream (expect true): %v\n\n" isstrm8)
 check_fail(:ok ok)
 
+// --- test 9: `comterp run <file>` on an orphaned stream shows its
+// drained count in brackets ("[5]"), the same wrapper the interactive
+// prompt already used -- spawn a subprocess since the CLI dispatch in
+// main.c isn't reachable from inside a running interpreter.  tr folds
+// the trailing newline to a space, per the same convention used above ---
+out9=*$$open("comterp run ./runfile_sub_bare_stream.comt 2>/dev/null | tr \"\\n\" \" \"" :pipe)
+ok=ok&&(out9=="[5] ")
+print("9 \"comterp run <file>\" on an orphaned stream brackets its count (expect [5]): %v\n\n" out9)
+check_fail(:ok ok)
+
+// --- test 10: the one-shot `comterp '<expr>'` CLI form gets the same
+// bracketed count ---
+out10=*$$open("comterp '0..4' 2>/dev/null | tr \"\\n\" \" \"" :pipe)
+ok=ok&&(out10=="[5] ")
+print("10 \"comterp '<expr>'\" on an orphaned stream brackets its count (expect [5]): %v\n\n" out10)
+check_fail(:ok ok)
+
 print("\nrunfile: %v\n" ok)
 ok

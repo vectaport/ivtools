@@ -383,7 +383,7 @@ int main(int argc, char *argv[]) {
 	  // there), an assigned one at 3 (vs. 2).
 	  if (topval.is_stream() && topval.stream_list() &&
 	      topval.stream_list()->refcount_<=2)
-	    cout << terp->orphan_stream_count(topval) << '\n';
+	    cout << terp->bracketed_orphan_count(topval) << '\n';
 	  else
 	    cout << topval << '\n';
 	}
@@ -398,7 +398,7 @@ int main(int argc, char *argv[]) {
         // see the runfile() branch above for the refcount_==1 gate's purpose
         if (comval.is_stream() && comval.stream_list() &&
             comval.stream_list()->refcount_==1)
-          cout << terp->orphan_stream_count(comval) << '\n';
+          cout << terp->bracketed_orphan_count(comval) << '\n';
         else
           cout << comval << '\n';
         return 0;
