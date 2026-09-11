@@ -317,7 +317,7 @@ Every script `run_all.comt` runs, in the order it runs them. Three states:
 - **untracked** (`—`) -- no coverage header anywhere. The script runs and asserts,
   it has simply never been scored against the slot taxonomy.
 
-17 of 55 scripts declare coverage (four more are scored table-only, marked
+17 of 56 scripts declare coverage (four more are scored table-only, marked
 with a dagger). The rest are real tests with no coverage number,
 not gaps in testing -- do not read `—` as untested.
 
@@ -357,6 +357,7 @@ not gaps in testing -- do not read `—` as untested.
 | stringstream.comt         | stream $$ feed chunk next list size at print          |       — |     — |    — |
 | time.comt                 | time int srand help index                             |       — |     — |    — |
 | numstring.comt            | int long float double print                           |       — |     — |    — |
+| intliteral.comt           | print type                                            |       — |     — |    — |
 | keyword_lineend.comt      | func arg run help print list                          |       — |     — |    — |
 | keyword_trailing_semi.comt| if postfix index max errmsg print                     |       — |     — |    — |
 | funchelp.comt †             | help func arg narg local global (`help(f)` on a bare… |      19 |    24 |  79% |

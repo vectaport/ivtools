@@ -143,17 +143,25 @@ typedef unsigned long  ABSPNTR;
 #define DFHEXU_MAX_STRING	SHHEXU_MAX_STRING
 #endif
 
+/* "Default int" means C's `int` specifically -- 32 bits on every non-MSDOS
+   target this builds for, independent of `long`'s own width (LNINT_MAX_*
+   above, 32 or 64 bits per __WORDSIZE). These bounds must reflect `int`
+   itself, never `long`: the lexer below stores an in-range "default int"
+   token into a real 32-bit `int` (`*(int*)token = value`), so on an LP64
+   target -- `long` wider than `int` -- deriving them from LNINT_MAX_* lets
+   a magnitude past INT_MAX/UINT_MAX through as "default int", and that
+   store silently truncates it. */
 #if !defined(MSDOS)
-#define DFINT_MAX_DIGITS	LNINT_MAX_DIGITS
-#define DFINT_MAX_STRING	LNINT_MAX_STRING
-#define DFOCTS_MAX_DIGITS	LNOCTS_MAX_DIGITS
-#define DFOCTS_MAX_STRING	LNOCTS_MAX_STRING
-#define DFOCTU_MAX_DIGITS	LNOCTU_MAX_DIGITS
-#define DFOCTU_MAX_STRING	LNOCTU_MAX_STRING
-#define DFHEXS_MAX_DIGITS	LNHEXS_MAX_DIGITS
-#define DFHEXS_MAX_STRING	LNHEXS_MAX_STRING
-#define DFHEXU_MAX_DIGITS	LNHEXU_MAX_DIGITS
-#define DFHEXU_MAX_STRING	LNHEXU_MAX_STRING
+#define DFINT_MAX_DIGITS	10
+#define DFINT_MAX_STRING	"2147483647"
+#define DFOCTS_MAX_DIGITS	11
+#define DFOCTS_MAX_STRING	"17777777777"
+#define DFOCTU_MAX_DIGITS	11
+#define DFOCTU_MAX_STRING	"37777777777"
+#define DFHEXS_MAX_DIGITS	8
+#define DFHEXS_MAX_STRING	"7FFFFFFF"
+#define DFHEXU_MAX_DIGITS	8
+#define DFHEXU_MAX_STRING	"FFFFFFFF"
 #endif
 
 #define SHORT_INT_MACHINE (DFINT_MAX_DIGITS != LNINT_MAX_DIGITS)
