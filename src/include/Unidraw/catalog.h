@@ -176,6 +176,10 @@ public:
     PSPattern* FindNonePattern();
     PSPattern* FindGrayLevel(float);
     PSPattern* FindPattern(int[], int);
+    // expands a 1-, 8-, or patternHeight-int seed to a full patternHeight-int
+    // pattern; returns a pointer to a static buffer, valid only until the
+    // next call -- copy it out before calling again.
+    static const int* ExpandToFullSize(const int*, int);
     void Register(EditorInfo*, const char*);
     void Register(Component*, const char*);
     void Register(Command*, const char*);

@@ -1446,7 +1446,7 @@ static int CalcBitmap (float graylevel) {
     return shades[Math::round(graylevel * (SHADES - 1))];
 }
 
-static const int* ExpandToFullSize (const int* orig_data, int size) {
+const int* Catalog::ExpandToFullSize (const int* orig_data, int size) {
     static int data[patternHeight];
     Memory::copy(orig_data, data, patternHeight*sizeof(int));
 
