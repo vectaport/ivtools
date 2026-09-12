@@ -162,5 +162,25 @@ print("10a attributed graphic exports as %s\n" as1)
 print("10b and re-creates from it identically (expect true): %v\n" r10)
 print("10c with a separator before the first attribute (expect a position): %v\n\n" index(as1 " :myattr" :substr))
 
+// --- test 11: patternmask()'s scalar form (#382) -- a dither-seed int must
+//              export as an explicit, self-describing :pattern bitmask, not
+//              collapse to ":graypat -1".  -1 is a reserved sentinel meaning
+//              "bits follow" (see catalog.c's Catalog::FindPattern/
+//              ExpandToFullSize and psview.c's SetP proc), never a real gray
+//              fraction, so a genuine gray level can never legitimately be
+//              -1 -- colliding with it silently drops the actual bits.
+//              Round-trip it through re-import too: the reader has its own
+//              copy of the same bug for any non-16-element :pattern list. ---
+each(delete($$select(:all)))
+brush(65535,0); colors(`Red `White)
+rp=rect(0,0,40,40); patternmask(255)
+sp1=export(rp :string :percomp)
+ok=ok&&(index(sp1 ":graypat" :substr)==nil)
+ok=ok&&(index(sp1 ":pattern 0x00,0x00,0xff,0xff,0x00,0x00,0xff,0xff" :substr)!=nil)
+sp2=export(run(sp1 :str) :string :percomp)
+ok=ok&&(eq(sp1 sp2))
+print("11a patternmask(255) exports its bits, not :graypat -1: %s\n" sp1)
+print("11b re-imported and re-exported identically (expect true): %v\n\n" eq(sp1 sp2))
+
 print("gsexim: %v\n" ok)
 ok

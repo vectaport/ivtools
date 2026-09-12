@@ -377,14 +377,12 @@ gsbrushB_test=func(
   if(!p3 :then print("gsbrushB: FAIL pattern did not reach ds3 intact\n" :err));
   if(ok :then print("gsbrushB: brush and pattern fanned out to both branches\n" :err));
 
-  /* --- patternmask, scalar form, again as a follow-on state change.  Note
-     what this can and cannot prove: PatternMaskFunc builds PSPattern(bits,-1),
-     which has GetSize()==0 and so exports through the graylevel branch as
-     ":graypat -1" whatever the scalar was.  So a match shows the patternmask
-     command crossed and took effect -- the far nodes default to :nonepat --
-     but not WHICH scalar arrived.  The 16-element form pins its bits exactly;
-     see gsbrushA. --- */
-  maskstr=":graypat -1";
+  /* --- patternmask, scalar form, again as a follow-on state change.
+     PatternMaskFunc resolves the dither-seed int through
+     catalog->FindPattern(seed, 1), a real sized-bits pattern, so like the
+     16-element form in gsbrushA this pins the exact bits that crossed --
+     not just that some patternmask command took effect. --- */
+  maskstr=":pattern 0x00,0x00,0xff,0xff,0x00,0x00,0xff,0xff";
   remote(sock1 "patternmask(255)");
   m2=on2 && gs_on_node(:bn_sock sock2 :bn_id id1 :bn_gs maskstr);
   m3=on3 && gs_on_node(:bn_sock sock3 :bn_id id1 :bn_gs maskstr);

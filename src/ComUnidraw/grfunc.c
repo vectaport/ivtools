@@ -67,6 +67,8 @@
 
 #include <InterViews/transformer.h>
 #include <IV-2_6/InterViews/world.h>
+
+#include <OS/memory.h>
 #include <IV-X11/Xlib.h>
 #include <IV-X11/xdisplay.h>
 #include <IV-X11/xfont.h>
@@ -263,14 +265,16 @@ void CreateGraphicFunc::set_graphic_gs(AttributeList* al, Graphic* gr) {
 	remove_key(al, graypat_sym);
     } else if ((v = al->find(pattern_sym)) && v->is_array()) {
 	AttributeValueList* avl = v->array_val();
-	if (avl && avl->Number()==16) {
-	    int mask[16]; int i=0; Iterator it;
-	    for (avl->First(it); !avl->Done(it) && i<16; avl->Next(it))
+	int n = avl ? avl->Number() : 0;
+	if (n==1 || n==8 || n==16) {
+	    int mask[patternHeight];
+	    Memory::zero(mask, sizeof(mask));
+	    int i=0; Iterator it;
+	    for (avl->First(it); !avl->Done(it) && i<n; avl->Next(it))
 		mask[i++] = avl->GetAttrVal(it)->int_val();
-	    gr->SetPattern(new PSPattern(mask, 16));
-	} else if (avl && avl->Number()>=1) {
-	    Iterator it; avl->First(it);
-	    gr->SetPattern(new PSPattern(avl->GetAttrVal(it)->int_val(), -1));
+	    gr->SetPattern(catalog->FindPattern(mask, n));
+	} else {
+	    fprintf(stderr, "invalid :pattern list size %d\n", n);
 	}
 	remove_key(al, pattern_sym);
     }
@@ -1401,9 +1405,13 @@ void PatternMaskFunc::execute() {
 
     PSPattern* pattern = nil;
     std::string maskargs;
+    Catalog* catalog = unidraw->GetCatalog();
 
     if (bitsv.is_int()) {
-      pattern = new PSPattern(bitsv.int_val(), -1);
+      int seed[patternHeight];
+      Memory::zero(seed, sizeof(seed));
+      seed[0] = bitsv.int_val();
+      pattern = catalog->FindPattern(seed, 1);
       char buf[32];
       snprintf(buf, sizeof(buf), "%d", bitsv.int_val());
       maskargs = buf;
