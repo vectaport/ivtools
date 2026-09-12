@@ -1429,7 +1429,7 @@ void PatternMaskFunc::execute() {
 	if (i) mbuf << ",";
 	mbuf << mask[i];
       }
-      pattern = new PSPattern(mask, 16);
+      pattern = catalog->FindPattern(mask, 16);
       maskargs = mbuf.str();
     } else {
       fprintf(stderr, "patternbits argument not int or list\n");
