@@ -1,15 +1,51 @@
-#! /usr/bin/env comterp_run
+#!/bin/bash
 #
 # comlint  lint a .comt script's command calls against each command's own
 #          help()/dockeys() signature
 #
+# Usage: comlint [--interp=comterp|comdraw|drawserv|...] script.comt
+#        comlint --help
+#
+# The linting logic itself is a comterp script (below), always run via
+# `comterp run`, which is the only member of the comterp/comdraw/drawserv
+# family that passes a runfile's own extra argv through to arg(n) --
+# comdraw/drawserv's -runfile has no equivalent mechanism. So for any
+# --interp other than the comterp default, the target path is instead
+# baked into a patched copy of the logic as a literal string constant
+# (replacing every "arg(1)") and run via "$INTERP -stdin_off -runfile".
+#
+# A comdraw-only script (raster/poke/alpha/etc.) needs --interp=comdraw
+# (or drawserv) so those commands' own signatures are visible to help() --
+# under plain comterp they're simply unregistered and skipped, which
+# silently checks nothing for a comdraw-specific call.
 
+INTERP=comterp
+TARGET=""
+HELP=0
+for a in "$@"; do
+  case "$a" in
+    --interp=*) INTERP="${a#--interp=}" ;;
+    -h|-help|--help|-\?|help|\?) HELP=1 ;;
+    *) if [ -z "$TARGET" ]; then TARGET="$a"; fi ;;
+  esac
+done
+
+LOGIC=$(mktemp "${TMPDIR:-/tmp}/comlint.XXXXXX.comt")
+trap 'rm -f "$LOGIC" "$PATCHED"' EXIT
+
+cat > "$LOGIC" <<'COMLINT_COMT_EOF'
 /* command line help */
 if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil || arg(1)=="?" ||
   arg(1)=="-help" || arg(1)=="--help" || arg(1)=="-?" :then
 
     print("comlint  lint a .comt script against each command's own signature\n");
-    print("Usage:  comlint script.comt\n\n");
+    print("Usage:  comlint [--interp=comterp|comdraw|drawserv|...] script.comt\n\n");
+    print("--interp picks which family member's registered commands and\n");
+    print("docstrings to check against; defaults to comterp. A comdraw-\n");
+    print("only script (raster/poke/alpha/etc.) needs --interp=comdraw or\n");
+    print("--interp=drawserv, or those commands are simply unregistered\n");
+    print("under comterp and silently skipped -- checking nothing for\n");
+    print("them, not confirming them clean.\n\n");
     print("For each single-statement line in script.comt that calls a\n");
     print("registered command, compares the call's real, post-glue\n");
     print("positional-argument count (from postfix()) against that\n");
@@ -25,12 +61,6 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil || arg(1)=="?" ||
     print("(top-level sequencing isn't glue-protected the same way) or\n");
     print("if it doesn't parse as one complete, self-contained statement\n");
     print("(e.g. one physical line of a construct that spans several).\n\n");
-    print("Run against a comdraw-only script (raster/poke/alpha/etc.) via\n");
-    print("comdraw, not plain comterp, so those commands' own signatures\n");
-    print("are visible to help() -- a mismatch shows up as false noise on\n");
-    print("names that just happen to be undeclared local variables under\n");
-    print("the wrong interpreter (and is skipped here whenever the name\n");
-    print("isn't a registered command).\n\n");
     print("Skips calls that pass any keyword argument, since a keyword\n");
     print("commonly signals an alternate calling convention this single-\n");
     print("signature-line check can't validate. Also skips dot-attribute\n");
@@ -160,6 +190,10 @@ while((srcline=gets(fp))!=nil
       if(substr(at2 1)=="[" :then
         if(index(at2 "]")==nil :then inbracket=1);
         continue);
+      /* a bare "..." means "the preceding bracketed group repeats" --
+         e.g. attrlist([:<name> [val]] ...) -- not an argument of its
+         own, so it must not fall through to the required-count below */
+      if(at2=="..." :then continue);
       required=required+1);
 
     if(obsnarg<required :then
@@ -173,3 +207,29 @@ print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v issue(s) flagged\n"
   nchecked nskipped nflagged)
 if(nflagged>0 :then exit(1))
 exit(0)
+COMLINT_COMT_EOF
+
+if [ "$HELP" = 1 ] || [ -z "$TARGET" ]; then
+  exec comterp run "$LOGIC"
+fi
+
+if [ "$INTERP" = "comterp" ]; then
+  exec comterp run "$LOGIC" "$TARGET"
+fi
+
+if ! command -v "$INTERP" >/dev/null 2>&1; then
+  echo "comlint: interpreter '$INTERP' not found on PATH" >&2
+  exit 1
+fi
+
+# $INTERP's -runfile (unlike `comterp run`) has no way to pass a script's
+# own argv through to arg(n), so bake the target path in as a literal
+# comterp string constant instead of relying on arg(1) -- escape \ and "
+# the same way comterp's own string literals do.
+ESCAPED=${TARGET//\\/\\\\}
+ESCAPED=${ESCAPED//\"/\\\"}
+PATCHED=$(mktemp "${TMPDIR:-/tmp}/comlint_patched.XXXXXX.comt")
+BASE_CONTENT=$(cat "$LOGIC")
+printf '%s\n' "${BASE_CONTENT//arg(1)/\"$ESCAPED\"}" > "$PATCHED"
+
+exec "$INTERP" -stdin_off -runfile "$PATCHED"
