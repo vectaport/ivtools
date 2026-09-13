@@ -29,8 +29,8 @@
 ok=true
 each(delete($$select(:all)))
 
-// bare relative filename, not "src/comdraw/tests/..." -- see rastereps.comt
-epspath="rasterepsbig-tmp.eps"
+// /tmp, not a repo-relative path -- see rastereps.comt
+epspath="/tmp/ivtools-rasterepsbig-test.eps"
 
 // --- test 1: a real, non-square, normal-image-size raster ---
 ra=raster(0,0,640,480)

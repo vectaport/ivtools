@@ -31,11 +31,14 @@
 ok=true
 each(delete($$select(:all)))
 
-// bare relative filename, not "src/comdraw/tests/..." -- CI's comdraw
-// suite step cd's into src/comdraw/tests before running run_all.comt
-// (.github/workflows/ci.yml), so a repo-root-relative path here would
-// resolve to a nonexistent nested src/comdraw/tests/src/comdraw/tests/...
-epspath="rastereps-tmp.eps"
+// /tmp, not a path relative to the repo -- this file is documented to run
+// both via run_all.comt (cwd is src/comdraw/tests, per CI) and directly as
+// run("src/comdraw/tests/rastereps.comt") from the repo root (cwd stays at
+// the root; run()'s own basepath tracking only helps its own nested run()
+// calls, not open()). A repo-relative path is only ever correct under one
+// of those two cwds. /tmp sidesteps cwd and script location entirely, and
+// -- being outside the repo -- needs no .gitignore entry either.
+epspath="/tmp/ivtools-rastereps-test.eps"
 
 // --- test 1: a 2x2 raster with four distinct, non-gray colors ---
 ra=raster(0,0,64,64 :rgb 2,2,
