@@ -1,8 +1,13 @@
 // src/comdraw/tests/pixelfunc.comt -- test peek/poke/pokeline tuple support
+// and peek()/poke() bounds checking.
 //
 // Tests backward-compatible packed-int form and new r,g,b and r,g,b,a tuple
 // forms for poke() and pokeline().  peek() already returns a tuple and is
 // used here to verify round-trip correctness.
+//
+// Tests 9-10 cover #520/#525: peek()/poke() must return nil, not crash or
+// read/write past the raster's real extent, for a negative coordinate or
+// one at (or past) the raster's own reported width/height on either axis.
 //
 // Run from inside comdraw or drawserv:
 //   run("src/comdraw/tests/pixelfunc.comt")
@@ -101,6 +106,46 @@ v=peek(p 2 0)
 ok=ok&&(at(v 0)<0.1&&at(v 1)<0.1&&at(v 2)<0.1)
 print("8c short tuple skipped, px2 black (expect 0,0,0,1):  %v\n\n" v)
 */
+
+// --- test 9: peek()/poke() bounds checking on both axes ---
+// p is a real 4x4 raster (indices 0..3 valid on each axis), so 4 and -1
+// are both out of range on either axis.
+v=peek(p 4 0)
+ok=ok&&(v==nil)
+print("9a peek x==pcols (expect nil): %v\n" v)
+
+v=peek(p 0 4)
+ok=ok&&(v==nil)
+print("9b peek y==prows (expect nil): %v\n" v)
+
+v=peek(p -1 0)
+ok=ok&&(v==nil)
+print("9c peek negative x (expect nil): %v\n" v)
+
+v=peek(p 0 -1)
+ok=ok&&(v==nil)
+print("9d peek negative y (expect nil): %v\n" v)
+
+result=poke(p 4 0 0xffffff)
+ok=ok&&(result==nil)
+print("9e poke x==pcols (expect nil): %v\n" result)
+
+result=poke(p 0 4 0xffffff)
+ok=ok&&(result==nil)
+print("9f poke y==prows (expect nil): %v\n" result)
+
+result=poke(p -1 0 0xffffff)
+ok=ok&&(result==nil)
+print("9g poke negative x (expect nil): %v\n\n" result)
+
+// --- test 10: a rejected out-of-range poke must not touch the raster --
+poke(p 2 3 0x123456)
+before=peek(p 2 3)
+poke(p 100 100 0xabcdef)
+after=peek(p 2 3)
+neighborunchanged=(at(before 0)==at(after 0)&&at(before 1)==at(after 1)&&at(before 2)==at(after 2))
+ok=ok&&neighborunchanged
+print("10 rejected poke leaves neighbor pixel untouched (expect true): %v\n\n" neighborunchanged)
 
 // --- flush and display ---
 pflush(p)

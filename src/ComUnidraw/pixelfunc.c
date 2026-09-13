@@ -116,10 +116,17 @@ void PixelPokeFunc::execute() {
   ComValue yv(stack_arg(2));
   ComValue valv(stack_arg(3));
   reset_stack();
-  
+
   RasterOvComp* rastcomp = (RasterOvComp*) rastcompv.geta(RasterOvComp::class_symid());
   OverlayRasterRect* rastrect = rastcomp ? rastcomp->GetOverlayRasterRect() : nil;
   OverlayRaster* raster = rastrect ? rastrect->GetOriginal() : nil;
+
+  int xval = xv.int_val();
+  int yval = yv.int_val();
+  if (raster && (xval < 0 || yval < 0 ||
+		 (unsigned long)xval >= raster->pwidth() ||
+		 (unsigned long)yval >= raster->pheight()))
+    raster = nil;
 
   if (raster) {
     ColorIntensity r, g, b;
@@ -148,9 +155,9 @@ void PixelPokeFunc::execute() {
       Color::find(World::current()->display(),colorname, r, g, b);
     }
 
-    raster->poke(xv.int_val(), yv.int_val(), r, g, b, alpha);
+    raster->poke(xval, yval, r, g, b, alpha);
     push_stack(rastcompv);
-  } else 
+  } else
     push_stack(ComValue::nullval());
 }
 
@@ -166,22 +173,29 @@ void PixelPeekFunc::execute() {
   ComValue xv(stack_arg(1));
   ComValue yv(stack_arg(2));
   reset_stack();
-  
+
   RasterOvComp* rastcomp = (RasterOvComp*) rastcompv.geta(RasterOvComp::class_symid());
   OverlayRasterRect* rastrect = rastcomp ? rastcomp->GetOverlayRasterRect() : nil;
   OverlayRaster* raster = rastrect ? rastrect->GetOriginal() : nil;
 
+  int xval = xv.int_val();
+  int yval = yv.int_val();
+  if (raster && (xval < 0 || yval < 0 ||
+		 (unsigned long)xval >= raster->pwidth() ||
+		 (unsigned long)yval >= raster->pheight()))
+    raster = nil;
+
   if (raster) {
     ComValue retval;
     if (raster->gray_flag()) {
-      raster->graypeek(xv.int_val(), yv.int_val(), retval);
+      raster->graypeek(xval, yval, retval);
       push_stack(retval);
     }
     else {
       ColorIntensity r, g, b;
       float alpha;
-      raster->peek(xv.int_val(), yv.int_val(), r, g, b, alpha);
-      
+      raster->peek(xval, yval, r, g, b, alpha);
+
       // put r,g,b,alpha in a list return
       AttributeValueList* al = new AttributeValueList();
       al->Append(new AttributeValue((float)r));
@@ -189,11 +203,11 @@ void PixelPeekFunc::execute() {
       al->Append(new AttributeValue((float)b));
       al->Append(new AttributeValue(alpha));
 
-      ComValue retval(al);		   
+      ComValue retval(al);
       push_stack(retval);
     }
-      
-  } else 
+
+  } else
     push_stack(ComValue::nullval());
 
 
