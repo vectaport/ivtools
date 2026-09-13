@@ -27,6 +27,10 @@ if(run("./rastereps.comt")
   :then print("pass: rastereps\n")
   :else print("FAIL: rastereps\n");ok=false)
 
+if(run("./rasterepsbig.comt")
+  :then print("pass: rasterepsbig\n")
+  :else print("FAIL: rasterepsbig\n");ok=false)
+
 if(run("./group.comt")
   :then print("pass: group\n")
   :else print("FAIL: group\n");ok=false)
