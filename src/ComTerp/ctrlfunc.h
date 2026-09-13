@@ -48,8 +48,8 @@ public:
     ExitFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "exit(status) -- exit entire application"; }
+    virtual const char* docstring() {
+      return "exit([status]) -- exit entire application"; }
 
 };
 

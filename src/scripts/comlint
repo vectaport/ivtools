@@ -1,0 +1,167 @@
+#! /usr/bin/env comterp_run
+#
+# comlint  lint a .comt script's command calls against each command's own
+#          help()/dockeys() signature
+#
+
+/* command line help */
+if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil || arg(1)=="?" ||
+  arg(1)=="-help" || arg(1)=="--help" || arg(1)=="-?" :then
+
+    print("comlint  lint a .comt script against each command's own signature\n");
+    print("Usage:  comlint script.comt\n\n");
+    print("For each single-statement line in script.comt that calls a\n");
+    print("registered command, compares the call's real, post-glue\n");
+    print("positional-argument count (from postfix()) against that\n");
+    print("command's declared required-positional count (from help()).\n");
+    print("Flags a call with fewer than the required count -- the\n");
+    print("signature of a bare symbol glued to an unrelated trailing\n");
+    print("paren group silently collapsing the call's real argument\n");
+    print("count (see #521/#265 -- 'Symbol-then-parens is always a call\n");
+    print("attempt' in doc/LANGUAGE.md).\n\n");
+    print("Does not execute the target script: postfix() and help() are\n");
+    print("both post_eval and never fire what they're handed. A line is\n");
+    print("skipped rather than risk running it if it contains a ';'\n");
+    print("(top-level sequencing isn't glue-protected the same way) or\n");
+    print("if it doesn't parse as one complete, self-contained statement\n");
+    print("(e.g. one physical line of a construct that spans several).\n\n");
+    print("Run against a comdraw-only script (raster/poke/alpha/etc.) via\n");
+    print("comdraw, not plain comterp, so those commands' own signatures\n");
+    print("are visible to help() -- a mismatch shows up as false noise on\n");
+    print("names that just happen to be undeclared local variables under\n");
+    print("the wrong interpreter (and is skipped here whenever the name\n");
+    print("isn't a registered command).\n\n");
+    print("Skips calls that pass any keyword argument, since a keyword\n");
+    print("commonly signals an alternate calling convention this single-\n");
+    print("signature-line check can't validate. Also skips dot-attribute\n");
+    print("calls (a.name(...)): postfix() still labels these with the\n");
+    print("same-named global command's arity even when a.name is a local\n");
+    print("override, so a real mismatch there can slip through unflagged.\n\n");
+    print("Not yet implemented (see #524): unknown-keyword flag,\n");
+    print("excess-positional flag, and the close-but-no-cigar near-miss\n");
+    print("symbol check.\n");
+    exit)
+
+fp=open(arg(1) "r")
+if(fp==nil :then
+  print("comlint: unable to open %s\n" arg(1) :err);
+  exit(1))
+
+nflagged=0
+nchecked=0
+nskipped=0
+lineno=0
+mlbal=0
+incomm=0
+
+while((srcline=gets(fp))!=nil
+  lineno=lineno+1;
+
+  if(size(srcline)==0 :then continue);
+  if(substr(srcline 2)=="//" :then continue);
+
+  hasopen=index(srcline "/*");
+  hasclose=index(srcline "*/");
+  if(incomm>0 :then
+    if(hasclose!=nil :then incomm=0);
+    nskipped=nskipped+1;continue);
+  if(hasopen!=nil :then
+    if(hasclose==nil :then incomm=1);
+    nskipped=nskipped+1;continue);
+
+  popens=0;pcloses=0;pidx=0;pchars=split(srcline);
+  while(pidx<size(pchars)
+    pc=at(pchars pidx);
+    pidx=pidx+1;
+    if(pc=='(' :then popens=popens+1);
+    if(pc==')' :then pcloses=pcloses+1));
+
+  /* still inside a statement opened by an earlier line (#521-safe:
+     never eval a mid-statement fragment) -- track its running mlbal
+     and skip until it closes back to zero */
+  if(mlbal>0 :then mlbal=mlbal+popens-pcloses;nskipped=nskipped+1;continue);
+
+  if(index(srcline ";")!=nil :then nskipped=nskipped+1;continue);
+
+  if(popens!=pcloses :then mlbal=popens-pcloses;nskipped=nskipped+1;continue);
+
+  pfcmd=print("postfix(%s)" srcline :str);
+  pftext=eval(pfcmd);
+  if(!istype(pftext StringType) :then nskipped=nskipped+1;continue);
+
+  toks=split(pftext :tokstr ' ');
+  ti=0;
+  while(ti<size(toks)
+    tok=at(toks ti);
+    ti=ti+1;
+
+    lb=index(tok "[");
+    if(lb==nil :then continue);
+    rb=index(tok "]" :last);
+    if(rb==nil :then continue);
+
+    isundef=(substr(tok size(tok)-1 :after)=="*");
+    if(isundef :then continue);
+
+    name=substr(tok "[");
+    counts=substr(substr(tok lb+1 :after) "]");
+    ctoks=split(counts :tokstr '|');
+    if(size(ctoks)<2 :then continue);
+    obsnarg=int(at(ctoks 0));
+    obsnkey=int(at(ctoks 1));
+
+    /* a call that supplies any keyword commonly uses an alternate
+       calling convention (e.g. class(:comps), global(:dump)) that our
+       single-signature-line parse below can't validate -- skip rather
+       than risk a false positive */
+    if(obsnkey>0 :then continue);
+
+    /* dot-attribute access (a.name(...)) resolves to whatever a.name
+       is bound to, not the same-named global command -- postfix still
+       labels it with the global command's arity, so skip rather than
+       misreport a local override as a glue collapse */
+    dotpat=print(".%s(" name :str);
+    if(index(srcline dotpat)!=nil :then continue);
+
+    nchecked=nchecked+1;
+
+    helpcmd=print("help(%s)" name :str);
+    helptext=eval(helpcmd);
+    if(!istype(helptext StringType) :then continue);
+    helplines=split(helptext :tokstr '\n');
+    sig=at(helplines 0);
+
+    op=index(sig "(");
+    dd=index(sig " -- ");
+    if(op==nil || dd==nil :then continue);
+    arglist=substr(substr(substr(sig op+1 :after) " -- ") ")");
+    if(arglist==nil :then arglist="");
+
+    argtoks=split(arglist :tokstr ' ');
+    required=0;
+    inbracket=0;
+    ai=0;
+    while(ai<size(argtoks)
+      at2=at(argtoks ai);
+      ai=ai+1;
+      if(size(at2)==0 :then continue);
+      if(inbracket>0 :then
+        if(index(at2 "]")!=nil :then inbracket=0);
+        continue);
+      if(substr(at2 1)==":" :then break);
+      if(substr(at2 1)=="[" :then
+        if(index(at2 "]")==nil :then inbracket=1);
+        continue);
+      required=required+1);
+
+    if(obsnarg<required :then
+      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse (#521/#265-class); check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
+        arg(1) lineno name obsnarg name required);
+      nflagged=nflagged+1)))
+
+close(fp)
+
+print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v issue(s) flagged\n"
+  nchecked nskipped nflagged)
+if(nflagged>0 :then exit(1))
+exit(0)

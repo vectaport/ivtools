@@ -47,14 +47,14 @@ public:
 };
 
 //: attrlist command, for returning the attribute list of a component.
-// attrlist(compview) -- return attribute list of component.
+// attrlist([compview]) -- return attribute list of component.
 class GrAttrListFunc : public ComFunc {
 public:
     GrAttrListFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "%s(compview) -- return attribute list of component."; }
+    virtual const char* docstring() {
+      return "%s([compview]) -- return attribute list of component, or a bare attrlist built from keyword args if compview is omitted."; }
 
 };
 
