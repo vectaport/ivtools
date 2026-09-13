@@ -1,0 +1,79 @@
+// src/comdraw/tests/rastereps.comt -- round-trips a color raster through a
+// real PostScript .eps file, for #515.
+//
+// #515: RasterPS::Definition()'s idraw-format branch (ovraster.c) writes a
+// real, executable grayscale `image` call as the raster's actual paint
+// operation, and writes the true color data afterward only inside an
+// `%I colorimage`-prefixed comment -- inert to any normal PostScript
+// tokenizer.  This test pins down TWO separate facts about today's actual
+// behavior, so neither gets confused with the other:
+//
+//   1. comdraw's own reader is NOT fooled -- OverlayCatalog::ReadRaster
+//      deliberately token-scans past the lossy `image` bytes looking for
+//      the literal token "colorimage", then reads the real color data that
+//      follows it.  So exporting a raster to .eps and reading it straight
+//      back into comdraw recovers the exact original color (test 3 below).
+//   2. The bytes on disk are still not valid color PostScript for anyone
+//      else -- the only *executable* raster operator in the file is the
+//      lossy `image` call; a real, unprefixed `colorimage` call never
+//      appears (test 2 below).
+//
+// This test intentionally documents TODAY's bytes, bug included.  Once
+// #518's unification lands (always emit the real, executable colorimage
+// code), test 2's expectations invert -- a real `colorimage` line should
+// exist and the hidden `%I colorimage` comment should not -- and this test
+// needs updating to match, not deleting: it becomes the regression test
+// proving the fix.
+//
+// Run from inside comdraw:
+//   run("src/comdraw/tests/rastereps.comt")
+
+ok=true
+each(delete($$select(:all)))
+
+epspath="src/comdraw/tests/rastereps-tmp.eps"
+
+// --- test 1: a 2x2 raster with four distinct, non-gray colors ---
+ra=raster(0,0,64,64 :rgb 2,2,
+  0xff0000,0x00ff00,
+  0x0000ff,0xffffff)
+ok=ok&&(ra!=nil)
+print("1 raster() created (expect true): %v\n" (ra!=nil))
+
+// --- test 2: exported bytes carry #515's signature -- color hidden in a
+//             comment, the only executable raster op is lossy grayscale ---
+export(ra epspath :idraw)
+fp=open(epspath "r")
+sawHiddenColorimage=false
+sawRealColorimage=false
+sawRealImage=false
+while((ln=gets(fp))!=nil
+  ci=index(ln "colorimage" :substr);
+  if(ci==0 :then sawRealColorimage=true);
+  if(ci!=nil&&ci>0 :then sawHiddenColorimage=true);
+  if(index(ln "image" :substr)==0 :then sawRealImage=true))
+close(fp)
+ok=ok&&sawHiddenColorimage&&!sawRealColorimage&&sawRealImage
+print("2 true color only in a comment, real code is lossy grayscale (expect true): %v\n" (sawHiddenColorimage&&!sawRealColorimage&&sawRealImage))
+
+// --- test 3: comdraw's own reader is not fooled -- re-import and compare
+//             every pixel against the original, exactly (not the lossy
+//             grayscale fallback a generic renderer would show) ---
+// import() of a whole .eps page returns the page as a group (OverlaysComp)
+// with the raster as its one child, not the raster compview directly.
+rb=import(epspath)
+ok=ok&&(rb!=nil)
+rc=at(children(rb) 0)
+ok=ok&&(rc!=nil)
+pixelsmatch=true
+for(y=0 y<2 y=y+1
+  for(x=0 x<2 x=x+1
+    va=peek(ra x y);
+    vb=peek(rc x y);
+    if(!(abs(at(va 0)-at(vb 0))<0.05&&abs(at(va 1)-at(vb 1))<0.05&&abs(at(va 2)-at(vb 2))<0.05)
+      :then pixelsmatch=false)))
+ok=ok&&pixelsmatch
+print("3 re-imported raster matches original pixel-for-pixel (expect true): %v\n" pixelsmatch)
+
+print("rastereps: %v\n" ok)
+ok

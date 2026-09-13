@@ -23,6 +23,10 @@ if(run("./gsexim.comt")
   :then print("pass: gsexim\n")
   :else print("FAIL: gsexim\n");ok=false)
 
+if(run("./rastereps.comt")
+  :then print("pass: rastereps\n")
+  :else print("FAIL: rastereps\n");ok=false)
+
 if(run("./group.comt")
   :then print("pass: group\n")
   :else print("FAIL: group\n");ok=false)
