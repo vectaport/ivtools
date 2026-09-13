@@ -69,10 +69,18 @@ while((srcline=gets(fp))!=nil
     if(hasclose==nil :then incomm=1);
     nskipped=nskipped+1;continue);
 
-  popens=0;pcloses=0;pidx=0;pchars=split(srcline);
+  /* parens inside a "..." string literal (or after an escaping
+     backslash) aren't structural -- e.g. print("(expect true)" ...)
+     -- so track quote state (escape-aware) while counting rather
+     than treating every raw '(' / ')' character as real syntax */
+  popens=0;pcloses=0;pidx=0;pchars=split(srcline);instr=0;pescape=0;
   while(pidx<size(pchars)
     pc=at(pchars pidx);
     pidx=pidx+1;
+    if(pescape>0 :then pescape=0;continue);
+    if(pc=='\\' :then pescape=1;continue);
+    if(pc=='"' :then instr=1-instr;continue);
+    if(instr>0 :then continue);
     if(pc=='(' :then popens=popens+1);
     if(pc==')' :then pcloses=pcloses+1));
 
