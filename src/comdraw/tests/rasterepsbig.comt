@@ -1,0 +1,104 @@
+// src/comdraw/tests/rasterepsbig.comt -- same #515 round-trip as
+// rastereps.comt, but at a normal, non-square image size (640x480,
+// deliberately width!=height so a transposed w/h or row/column bug can't
+// hide behind a square raster) instead of a tiny 2x2 fixture.  This
+// exercises the multi-line-wrapped hex data rastereps.comt's tiny raster
+// is too small to ever reach -- both the lossy grayscale bytes and the
+// hidden %I colorimage comment wrap across many lines at this size, not
+// just one.
+//
+// See rastereps.comt for the full explanation of what #515 is and what
+// each check below means; this file only comments on what's different.
+//
+// This test does NOT use ncols()/nrows()'s readback for landmark
+// coordinates, even though that looks like the obvious way to do it --
+// building it that way is exactly what surfaced a real, separate crash:
+// nrows() reports 730 for this raster, but the real usable extent tops
+// out at y=480 (poking y=481 segfaults).  Filed separately; worked around
+// here by using the literal 640/480 requested below directly.  A second,
+// independent crash also turned up this way: poke()'s x argument
+// segfaults when it's a parenthesized expression (any value, e.g.
+// poke(ra (321) 0 color)), even though the same value unparenthesized or
+// via a plain variable is fine -- also filed separately, and also why
+// every coordinate below is a bare literal or a plain variable, never an
+// inline parenthesized expression.
+//
+// Run from inside comdraw:
+//   run("src/comdraw/tests/rasterepsbig.comt")
+
+ok=true
+each(delete($$select(:all)))
+
+// /tmp, not a repo-relative path -- see rastereps.comt. Time-seeded random
+// suffix so concurrent invocations on the same host can't collide.
+srand(int(time(:raw)))
+epssuffix=int(rand(0,999999))
+epspath=print("/tmp/ivtools-rasterepsbig-test-%d.eps" epssuffix :str)
+
+// --- test 1: a real, non-square, normal-image-size raster ---
+ra=raster(0,0,640,480)
+ok=ok&&(ra!=nil)
+print("1 raster() created, 640x480 requested (expect true): %v (reported ncols=%v nrows=%v)\n" (ra!=nil) ncols(ra) nrows(ra))
+
+// --- paint five distinct, non-gray landmark pixels: the four corners and
+//     the center of the requested 640x480 extent. everything else stays
+//     at the raster's default fill.
+//     CreateRasterFunc sizes each axis as span+1 (inclusive endpoints) --
+//     confirmed exactly for height (480-0+1=481, matching the real
+//     boundary #520 found: y=480 is safe, y=481 segfaults). Same formula
+//     for width puts the true final column at x=640 (640-0+1=641 columns,
+//     indices 0..640), not 639 -- ncols() itself underreports by one,
+//     unlike nrows()'s much larger, differently-shaped mismatch. ---
+wm1=640
+hm1=480
+wh=320
+hh=240
+poke(ra 0 0 0xff0000)
+poke(ra wm1 0 0x00ff00)
+poke(ra 0 hm1 0x0000ff)
+poke(ra wm1 hm1 0xffff00)
+poke(ra wh hh 0xff00ff)
+pflush(ra)
+
+// --- test 2: same #515 byte-signature check as rastereps.comt, now
+//             against a file whose hex data spans many wrapped lines
+//             instead of fitting on one ---
+export(ra epspath :idraw)
+fp=open(epspath "r")
+sawHiddenColorimage=false
+sawRealColorimage=false
+sawRealImage=false
+while((ln=gets(fp))!=nil
+  ci=index(ln "colorimage" :substr);
+  if(ci==0 :then sawRealColorimage=true);
+  if(ci!=nil&&ci>0 :then sawHiddenColorimage=true);
+  if(index(ln "image" :substr)==0 :then sawRealImage=true))
+close(fp)
+ok=ok&&sawHiddenColorimage&&!sawRealColorimage&&sawRealImage
+print("2 true color only in a comment, real code is lossy grayscale (expect true): %v\n" (sawHiddenColorimage&&!sawRealColorimage&&sawRealImage))
+
+// --- test 3: re-import and check the five landmark pixels survive exactly,
+//             at a size where a transposed x/y would show up as a
+//             mismatch at the corners rather than accidentally matching ---
+rb=import(epspath)
+ok=ok&&(rb!=nil)
+rc=at(children(rb) 0)
+ok=ok&&(rc!=nil)
+
+landmarksmatch=true
+lx=[0,wm1,0,wm1,wh]
+ly=[0,0,hm1,hm1,hh]
+i=0
+while(i<5
+  px=at(lx i);
+  py=at(ly i);
+  va=peek(ra px py);
+  vb=peek(rc px py);
+  if(!(abs(at(va 0)-at(vb 0))<0.05&&abs(at(va 1)-at(vb 1))<0.05&&abs(at(va 2)-at(vb 2))<0.05)
+    :then landmarksmatch=false);
+  i=i+1)
+ok=ok&&landmarksmatch
+print("3 all five landmark pixels survive the round trip exactly (expect true): %v\n" landmarksmatch)
+
+print("rasterepsbig: %v\n" ok)
+ok
