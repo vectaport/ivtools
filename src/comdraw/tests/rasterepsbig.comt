@@ -39,8 +39,14 @@ print("1 raster() created, 640x480 requested (expect true): %v (reported ncols=%
 
 // --- paint five distinct, non-gray landmark pixels: the four corners and
 //     the center of the requested 640x480 extent. everything else stays
-//     at the raster's default fill. ---
-wm1=639
+//     at the raster's default fill.
+//     CreateRasterFunc sizes each axis as span+1 (inclusive endpoints) --
+//     confirmed exactly for height (480-0+1=481, matching the real
+//     boundary #520 found: y=480 is safe, y=481 segfaults). Same formula
+//     for width puts the true final column at x=640 (640-0+1=641 columns,
+//     indices 0..640), not 639 -- ncols() itself underreports by one,
+//     unlike nrows()'s much larger, differently-shaped mismatch. ---
+wm1=640
 hm1=480
 wh=320
 hh=240
