@@ -23,6 +23,7 @@
 
 #include <ComUnidraw/comeditor.h>
 #include <ComUnidraw/nfunc.h>
+#include <OverlayUnidraw/ovraster.h>
 #include <Unidraw/viewer.h>
 #include <InterViews/canvas.h>
 
@@ -34,7 +35,20 @@ NColsFunc::NColsFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void NColsFunc::execute() {
+  boolean raster_arg = false;
+  if (nargs()) {
+    ComValue argv(stack_arg(0));
+    raster_arg = argv.geta(RasterOvComp::class_symid()) != nil;
+  }
   reset_stack();
+  if (raster_arg) {
+    fprintf(stderr, "WARNING:  ncols() takes no argument -- it reports the "
+	    "onscreen window's pixel width, not a raster's column count; "
+	    "use pcols(compview) for that -- line %d -- returning nil\n",
+	    funcstate()->linenum());
+    push_stack(ComValue::nullval());
+    return;
+  }
   Canvas* canvas = GetEditor()->GetViewer()->GetCanvas();
   if (canvas) {
     ComValue retval(canvas->pwidth());
@@ -48,7 +62,20 @@ NRowsFunc::NRowsFunc(ComTerp* comterp, Editor* ed) : UnidrawFunc(comterp, ed) {
 }
 
 void NRowsFunc::execute() {
+  boolean raster_arg = false;
+  if (nargs()) {
+    ComValue argv(stack_arg(0));
+    raster_arg = argv.geta(RasterOvComp::class_symid()) != nil;
+  }
   reset_stack();
+  if (raster_arg) {
+    fprintf(stderr, "WARNING:  nrows() takes no argument -- it reports the "
+	    "onscreen window's pixel height, not a raster's row count; "
+	    "use prows(compview) for that -- line %d -- returning nil\n",
+	    funcstate()->linenum());
+    push_stack(ComValue::nullval());
+    return;
+  }
   Canvas* canvas = GetEditor()->GetViewer()->GetCanvas();
   if (canvas) {
     ComValue retval(canvas->pheight());
