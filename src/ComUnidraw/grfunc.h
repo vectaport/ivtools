@@ -138,7 +138,7 @@ public:
     CreateRasterFunc(ComTerp*,Editor*);
     virtual void execute();
     virtual const char* docstring() {
-	return "compview=%s([x0,y0,x1,y1] :rgb w,h,pixels) -- create a raster addressing pixel corners x0,y0 to x1,y1 inclusive (size is x1-x0+1 by y1-y0+1 pixels, unlike rect()/ellipse()/line()'s continuous x1-x0 span); pixels is w*h flat r,g,b values, w*h nested (r,g,b) triples, or w*h packed 0xRRGGBB ints"; }
+	return "compview=%s([xbeg,ybeg,xend,yend] :rgb w,h,pixels) -- create a raster spanning inclusive pixel corners xbeg,ybeg to xend,yend; pixels is w*h flat r,g,b values, w*h nested (r,g,b) triples, or w*h packed 0xRRGGBB ints"; }
     RasterOvComp* create_from_rgb(ComValue& rgbv, AttributeList* al);
 };
 
