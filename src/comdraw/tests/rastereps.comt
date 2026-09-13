@@ -38,7 +38,12 @@ each(delete($$select(:all)))
 // calls, not open()). A repo-relative path is only ever correct under one
 // of those two cwds. /tmp sidesteps cwd and script location entirely, and
 // -- being outside the repo -- needs no .gitignore entry either.
-epspath="/tmp/ivtools-rastereps-test.eps"
+// A time-seeded random suffix keeps concurrent invocations on the same
+// host from colliding on the same fixed filename. rand() takes its
+// min,max as one comma-built pair, not two space-separated args.
+srand(int(time(:raw)))
+epssuffix=int(rand(0,999999))
+epspath=print("/tmp/ivtools-rastereps-test-%d.eps" epssuffix :str)
 
 // --- test 1: a 2x2 raster with four distinct, non-gray colors ---
 ra=raster(0,0,64,64 :rgb 2,2,

@@ -29,8 +29,11 @@
 ok=true
 each(delete($$select(:all)))
 
-// /tmp, not a repo-relative path -- see rastereps.comt
-epspath="/tmp/ivtools-rasterepsbig-test.eps"
+// /tmp, not a repo-relative path -- see rastereps.comt. Time-seeded random
+// suffix so concurrent invocations on the same host can't collide.
+srand(int(time(:raw)))
+epssuffix=int(rand(0,999999))
+epspath=print("/tmp/ivtools-rasterepsbig-test-%d.eps" epssuffix :str)
 
 // --- test 1: a real, non-square, normal-image-size raster ---
 ra=raster(0,0,640,480)
