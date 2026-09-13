@@ -402,6 +402,31 @@ until you know the rule: the parser can't see three elements, because
 it never considers *not* gluing an identifier to an immediately
 following same-line paren group.
 
+### Dot-attribute access is the one exception
+
+Everything above is about a *bare symbol* — `SYMBOL (args)`, or `SYMBOL`
+alone. A dot-attribute reference (`obj.field`) does not follow the same
+niladic-firing rule: `obj.field` with no trailing parens always returns
+whatever is stored there raw — a `FuncObj` included, unfired — no matter
+whether it is referenced bare, passed as an ordinary argument, or copied
+into another attribute (`other.g=obj.field` copies the `FuncObj` itself,
+still unfired). Only an explicit trailing arglist fires it — `obj.field()`,
+empty parens included — the self-bound-method mechanism described in full
+under "`obj.method(args)` — sugar for the same thing" below.
+
+The one place this exception's firing sneaks back in: copying a
+dot-accessed `FuncObj` into a *plain* variable, then referencing that
+variable bare. The plain symbol follows the ordinary rule above once it
+holds the value — the dot access itself never fired anything:
+
+```
+a.f=func(99)
+type(a.f)        // ObjectType -- a.f itself never fires, ever
+v=a.f            // v now holds that same raw FuncObj, still unfired
+v                // 99 -- referencing v bare fires it, because v is a
+                 //   plain symbol now, not because the copy did anything
+```
+
 ## Arguments: Fixed Before Keywords — Always
 
 Every ComTerp command accepts fixed positional arguments followed by
