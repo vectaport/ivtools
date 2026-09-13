@@ -31,7 +31,11 @@
 ok=true
 each(delete($$select(:all)))
 
-epspath="src/comdraw/tests/rastereps-tmp.eps"
+// bare relative filename, not "src/comdraw/tests/..." -- CI's comdraw
+// suite step cd's into src/comdraw/tests before running run_all.comt
+// (.github/workflows/ci.yml), so a repo-root-relative path here would
+// resolve to a nonexistent nested src/comdraw/tests/src/comdraw/tests/...
+epspath="rastereps-tmp.eps"
 
 // --- test 1: a 2x2 raster with four distinct, non-gray colors ---
 ra=raster(0,0,64,64 :rgb 2,2,
