@@ -9,9 +9,16 @@ using std::ostream;
 #define out_form(ostr,format,value) \
 { \
 char buffer[1024]; \
-snprintf(buffer, 1024, format, value); \
-ostr << buffer; \
-}	
+int _out_form_n = snprintf(buffer, 1024, format, value); \
+if (_out_form_n < (int)sizeof(buffer)) { \
+  ostr << buffer; \
+} else { \
+  char* _out_form_big = new char[_out_form_n+1]; \
+  snprintf(_out_form_big, _out_form_n+1, format, value); \
+  ostr << _out_form_big; \
+  delete[] _out_form_big; \
+} \
+}
 #else
 class istream;
 class ostream;
