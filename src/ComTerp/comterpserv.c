@@ -536,25 +536,22 @@ static boolean expression_balanced(const char* expr) {
   int depth = 0;
   boolean instr = false;   /* inside a "..." string literal */
   boolean inchar = false;  /* inside a '...' char literal -- e.g. '(' or
-                               ')' is a one-byte value, not real syntax
-                               (confirmed the hard way: an earlier version
-                               of this check didn't know about char
-                               literals and miscounted '(' 's on any byte
-                               whose char() literal is a paren/bracket/
-                               brace, breaking every other eval() call in
-                               char.comt's byte round-trip test) */
+                               ')' is a one-byte value there, not real
+                               syntax */
   for (const char* p = expr; *p; ) {
     char c = *p;
-    if (c == '\\' && p[1] != '\0') {
-      /* \cX -- Perl/PCRE-style control-char escape, valid in both string
-         and char literals (_lexscan.c) -- is a fixed 3-byte unit; X is a
-         raw literal byte that's never itself re-interpreted, even when X
-         happens to be '\', '[' or ']' (control byte 28's own spelling,
-         '\c\', is exactly that case, and broke this same round-trip test
-         the same way before this was added).  Every other backslash
-         escape (\n, \xNN, octal, \\, \', \") only ever escapes a single
-         following character that's never itself paren/bracket/brace/
-         quote-like, so a plain one-byte skip covers those. */
+    /* Backslash escapes (_lexscan.c) are only meaningful inside a
+       string/char literal -- outside one, a bare '\' is not a lexer
+       escape at all, so it's left to fall through to the plain
+       delimiter/other-character handling below. */
+    if ((instr || inchar) && c == '\\' && p[1] != '\0') {
+      /* \cX -- Perl/PCRE-style control-char escape -- is a fixed 3-byte
+         unit; X is a raw literal byte that's never itself
+         re-interpreted, even when X happens to be '\', '[' or ']'.
+         Every other backslash escape (\n, \xNN, octal, \\, \', \") only
+         ever escapes a single following character that's never itself
+         paren/bracket/brace/quote-like, so a plain one-byte skip covers
+         those. */
       if (p[1] == 'c' && p[2] != '\0') { p += 3; continue; }
       p += 2; continue;
     }
