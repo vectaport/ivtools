@@ -383,12 +383,21 @@ int main (int argc, char** argv) {
 
     int exit_status = 0;
 
-    if (argc > 2) {
+    /* -runfile's own value is consumed by the X toolkit's option table
+       before this point (OptionValueNext), so it never shows up in argv
+       here -- any argc left beyond the program name once -runfile was
+       given is trailing args meant for the script (forwarded to it below
+       via set_args(), same as comdraw/main.c and comterp's `run`
+       subcommand), not a second positional filename -- #530. */
+    const char* runfile_opt = catalog->GetAttribute("runfile");
+    boolean has_runfile = runfile_opt && *runfile_opt;
+
+    if (argc > 2 && !has_runfile) {
 	cerr << usage << "\n";
 	exit_status = 1;
 
     } else {
-	const char* initial_file = (argc == 2) ? argv[1] : nil;
+	const char* initial_file = (argc == 2 && !has_runfile) ? argv[1] : nil;
 	DrawEditor* ed = nil;
 	if (initial_file) 
 	  ed = new DrawEditor(initial_file, DrawKit::Instance());
@@ -439,6 +448,17 @@ int main (int argc, char** argv) {
 
 	    const char* runfile = catalog->GetAttribute("runfile");
 	    if (runfile && *runfile) {
+		/* forward -runfile's own trailing argv to the script's arg(n)
+		   (see comdraw/main.c's identical block, and comterp_/main.c's
+		   `run <file> <args...>`) -- arg(0) is the script path itself,
+		   arg(1).. the args after it -- #530. */
+		{
+		  char** sargv = new char*[argc];
+		  sargv[0] = (char*)runfile;
+		  for (int i = 1; i < argc; i++) sargv[i] = argv[i];
+		  terp->set_args(argc, sargv);
+		  delete [] sargv;
+		}
 	        int runfile_status = terp->runfile(runfile);
 	        if (runfile_status < 0) {
 	            // ComTerpServ::runfile() (comterpserv.c) returns before

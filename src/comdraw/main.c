@@ -350,12 +350,21 @@ int main (int argc, char** argv) {
     int exit_status = 0;
     boolean starter_line = false;
 
-    if (argc > 2) {
+    /* -runfile's own value is consumed by the X toolkit's option table
+       (OptionValueNext) before this point, so it never shows up in argv
+       here -- any argc left beyond the program name once -runfile was
+       given is trailing args meant for the script (forwarded to it below
+       via set_args(), the same way comterp's `run` subcommand does), not
+       a second positional filename -- #530. */
+    const char* runfile_opt = catalog->GetAttribute("runfile");
+    boolean has_runfile = runfile_opt && *runfile_opt;
+
+    if (argc > 2 && !has_runfile) {
 	cerr << usage << "\n";
 	exit_status = 1;
 
     } else {
-	const char* initial_file = (argc == 2) ? argv[1] : nil;
+	const char* initial_file = (argc == 2 && !has_runfile) ? argv[1] : nil;
 	ComEditor* ed = new ComEditor(initial_file);
 
 	unidraw->Open(ed);
@@ -407,6 +416,20 @@ int main (int argc, char** argv) {
 		   script resolves against the script's directory, not the cwd
 		   (mirrors comterp's `run` subcommand -- see comterp_/main.c). */
 		RunFunc::set_basepath(runfile);
+		/* forward -runfile's own trailing argv to the script's arg(n),
+		   mirroring comterp_/main.c's `run <file> <args...>` -- arg(0)
+		   is the script path itself, arg(1).. the args after it (#530).
+		   Whatever's left in argv here (beyond the program name) is
+		   exactly those trailing args: -runfile's own value was already
+		   consumed into the "runfile" catalog attribute above, by the X
+		   toolkit's option table, well before argv reaches this point. */
+		{
+		  char** sargv = new char*[argc];
+		  sargv[0] = (char*)runfile;
+		  for (int i = 1; i < argc; i++) sargv[i] = argv[i];
+		  terp->set_args(argc, sargv);
+		  delete [] sargv;
+		}
 		/* runfile()'s own error path (ComTerpServ::runfile(),
 		   comterpserv.c -- the override this virtual call actually
 		   resolves to) calls err_print(), which writes _errbuf2 and
