@@ -67,8 +67,30 @@ if(program!="comterp" && arg(3)!="direct" :then
      The replaced pattern strings below are built by concatenation
      (not written as one contiguous literal) so this substitution
      pass can't find and corrupt its own source when it runs. */
-  if(index(target "\"")!=nil :then
-    print("comlint: target path contains a double-quote, not supported: %s\n" target :err);
+
+  /* program ends up interpolated into shell() command strings below
+     (shell() is system(), no argv-array form to bypass a shell), so
+     it must be restricted to a safe character set first -- otherwise
+     a program value containing shell metacharacters is a straight
+     command injection (confirmed exploitable: `; touch /tmp/x ;`
+     as the program argument ran touch). */
+  safechars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./-";
+  pvchars=split(program);pvi=0;badprogram=false;
+  while(pvi<size(pvchars)
+    if(index(safechars at(pvchars pvi))==nil :then badprogram=true);
+    pvi=pvi+1);
+  if(badprogram :then
+    print("comlint: program name has characters outside [A-Za-z0-9_./-]: %s\n" program :err);
+    exit(1));
+
+  /* target never reaches a shell command (it's only ever embedded as
+     a ComTerp string literal in the generated file below), but it
+     must not contain a '"' or '\' -- both are significant inside a
+     "..." literal (\ starts an escape, unescaped " ends the string)
+     and there's no ComTerp string-escaping primitive to lean on, so
+     reject rather than risk mis-escaping into the wrong path. */
+  if(index(target "\"")!=nil || index(target "\\")!=nil :then
+    print("comlint: target path contains a '\"' or '\\', not supported: %s\n" target :err);
     exit(1));
 
   foundcmd=print("command -v %s >/dev/null 2>&1" program :str);
@@ -85,9 +107,14 @@ if(program!="comterp" && arg(3)!="direct" :then
   pat2="arg"+"("+"2"+")";rep2="\""+program+"\"";
   pat3="arg"+"("+"3"+")";rep3="\"direct\"";
 
+  /* tmppath is only somewhat unpredictable (time + a random suffix)
+     in shared /tmp, with no atomic-create primitive available from
+     ComTerp (open() has no :excl/O_EXCL equivalent -- see #533), so
+     this is a best-effort mitigation against guessing, not a real
+     fix for the underlying TOCTOU/symlink race */
   selfpath=arg(0);
   sf=open(selfpath "r");
-  tmppath=print("/tmp/comlint_%v.comt" time(:raw :ms) :str);
+  tmppath=print("/tmp/comlint_%v_%v.comt" time(:raw :ms) rand(0,999999) :str);
   tf=open(tmppath "w");
 
   sline=gets(sf);
