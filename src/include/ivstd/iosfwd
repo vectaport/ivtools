@@ -6,18 +6,27 @@ using std::ios_base;
 using std::filebuf;
 using std::istream;
 using std::ostream;
+/* _out_form_buf is a static local, so each out_form call SITE (not each
+   call) gets its own persistent, process-lifetime scratch buffer, grown
+   exactly once per size it's ever needed to reach and reused as-is from
+   then on -- no repeated malloc/free for a call site that keeps
+   formatting values around the same size, e.g. PrintFunc's %s case
+   printing many long strings in a row.  Never explicitly freed: like any
+   other static, it lives until process exit, which is the point. ComTerp
+   is single-threaded (ACE reactor dispatch, no threads), so a plain
+   static -- not thread_local -- is safe here. */
 #define out_form(ostr,format,value) \
 { \
-char buffer[1024]; \
-int _out_form_n = snprintf(buffer, 1024, format, value); \
-if (_out_form_n < (int)sizeof(buffer)) { \
-  ostr << buffer; \
-} else { \
-  char* _out_form_big = new char[_out_form_n+1]; \
-  snprintf(_out_form_big, _out_form_n+1, format, value); \
-  ostr << _out_form_big; \
-  delete[] _out_form_big; \
+static char* _out_form_buf = new char[1024]; \
+static size_t _out_form_cap = 1024; \
+int _out_form_n = snprintf(_out_form_buf, _out_form_cap, format, value); \
+if (_out_form_n >= (int)_out_form_cap) { \
+  delete [] _out_form_buf; \
+  _out_form_cap = (size_t)_out_form_n + 1; \
+  _out_form_buf = new char[_out_form_cap]; \
+  snprintf(_out_form_buf, _out_form_cap, format, value); \
 } \
+ostr << _out_form_buf; \
 }
 #else
 class istream;
