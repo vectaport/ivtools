@@ -538,8 +538,6 @@ void OpenFileFunc::execute() {
   ComValue outflagv(stack_key(out_symid));
   static int err_symid = symbol_add("err");
   ComValue errflagv(stack_key(err_symid));
-  static int excl_symid = symbol_add("excl");
-  ComValue exclflagv(stack_key(excl_symid));
   reset_stack();
   
   if (inflagv.is_true()) {
@@ -579,18 +577,13 @@ void OpenFileFunc::execute() {
       pipe_handler->log_only(1);
     }
   } else {
-    /* :excl requests atomic create-only-if-absent semantics via glibc's
-       "x" fopen mode extension (fopen(path, "wx") maps to
-       O_CREAT|O_EXCL, failing rather than following a pre-existing path
-       -- including a symlink planted by another local process -- the
-       way a plain "w" truncating open does) -- #533 */
-    std::string modebuf;
+    /* modestr is passed straight through to fopen()/popen() below with no
+       validation, so it already accepts glibc's fopen(3) mode-string
+       extensions unmodified -- "wx" (O_CREAT|O_EXCL: fail rather than
+       follow/truncate a pre-existing path, including a symlink planted
+       by another local process) chief among them for a script that
+       needs to atomically create a unique file -- #533 */
     const char* modestr = modev.is_string() ? modev.string_ptr() : "r";
-    if (exclflagv.is_true()) {
-      modebuf = modestr;
-      modebuf += "x";
-      modestr = modebuf.c_str();
-    }
     FileObj* fileobj = new FileObj(filenamev.string_ptr(), modestr, pipeflagv.is_true());
     if (fileobj->fptr())  {
       ComValue retval(FileObj::class_symid(), (void*)fileobj);
