@@ -282,7 +282,8 @@ Usage:  drawserv [file] [options]\n\n\
 -zoomer_off | -zoff         disable zoomer\n\
 -comt [file]                inline comterp text-entry pane; if file is\n\
                             given, enter run(file) into the pane at startup\n\
--runfile file               run script file after startup\n\
+-runfile file [args...]     run script file after startup, forwarding any\n\
+                            trailing args to the script's arg(n)/narg()\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
 

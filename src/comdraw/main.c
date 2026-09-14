@@ -275,7 +275,8 @@ Usage:  comdraw [file] [options]\n\n\
 -wbslave                    run as whiteboard slave\n\
 -wbport port                whiteboard port number\n\
 -zoomer_off | -zoff         disable zoomer\n\
--runfile file               run script file after startup\n\
+-runfile file [args...]     run script file after startup, forwarding any\n\
+                            trailing args to the script's arg(n)/narg()\n\
 -runexpr cmdstr             run command string after startup\n\n\
 any idraw parameter is also accepted (see idraw man page)";
 
