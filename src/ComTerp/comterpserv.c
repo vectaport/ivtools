@@ -523,16 +523,15 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
    same imbalance does when read from a file: the top-level file/REPL
    parser's own EOF handling (_parser.c's TOK_EOF case) can correctly
    detect and reject it, but a wrapping call like "postfix(" left
-   permanently unclosed by a stray inner ")" has been observed to make
-   this path silently lose track of that outer call and fall through to
-   evaluating -- actually firing -- whatever incomplete expression was
-   left inside it, rather than erroring or leaving it unfired the way
-   postfix()'s own post-eval, never-executes-its-argument contract
-   promises (#529).  Rather than chase that state-machine gap through
-   the shared token-stream parser (used by every other entry point, and
-   already established elsewhere as too deep/risky to safely touch --
-   see #524/#265's writeup), refuse unbalanced input here, at the one
-   entry point where the gap was found, before any of it is parsed. */
+   permanently unclosed by a stray inner ")" can leave this path silently
+   losing track of that outer call and falling through to evaluating --
+   actually firing -- whatever incomplete expression was left inside it,
+   rather than erroring or leaving it unfired the way postfix()'s own
+   post-eval, never-executes-its-argument contract promises.  Rather than
+   chase that state-machine gap through the shared token-stream parser
+   (used by every other entry point, and too deep/risky to safely touch
+   for this), refuse unbalanced input here, at the one entry point where
+   the gap was found, before any of it is parsed. */
 static boolean expression_balanced(const char* expr) {
   int depth = 0;
   boolean instr = false;   /* inside a "..." string literal */

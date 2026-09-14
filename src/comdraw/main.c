@@ -356,7 +356,7 @@ int main (int argc, char** argv) {
        here -- any argc left beyond the program name once -runfile was
        given is trailing args meant for the script (forwarded to it below
        via set_args(), the same way comterp's `run` subcommand does), not
-       a second positional filename -- #530. */
+       a second positional filename. */
     const char* runfile_opt = catalog->GetAttribute("runfile");
     boolean has_runfile = runfile_opt && *runfile_opt;
 
@@ -419,7 +419,7 @@ int main (int argc, char** argv) {
 		RunFunc::set_basepath(runfile);
 		/* forward -runfile's own trailing argv to the script's arg(n),
 		   mirroring comterp_/main.c's `run <file> <args...>` -- arg(0)
-		   is the script path itself, arg(1).. the args after it (#530).
+		   is the script path itself, arg(1).. the args after it.
 		   Whatever's left in argv here (beyond the program name) is
 		   exactly those trailing args: -runfile's own value was already
 		   consumed into the "runfile" catalog attribute above, by the X

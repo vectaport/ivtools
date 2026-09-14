@@ -389,7 +389,7 @@ int main (int argc, char** argv) {
        here -- any argc left beyond the program name once -runfile was
        given is trailing args meant for the script (forwarded to it below
        via set_args(), same as comdraw/main.c and comterp's `run`
-       subcommand), not a second positional filename -- #530. */
+       subcommand), not a second positional filename. */
     const char* runfile_opt = catalog->GetAttribute("runfile");
     boolean has_runfile = runfile_opt && *runfile_opt;
 
@@ -452,7 +452,7 @@ int main (int argc, char** argv) {
 		/* forward -runfile's own trailing argv to the script's arg(n)
 		   (see comdraw/main.c's identical block, and comterp_/main.c's
 		   `run <file> <args...>`) -- arg(0) is the script path itself,
-		   arg(1).. the args after it -- #530. */
+		   arg(1).. the args after it. */
 		{
 		  char** sargv = new char*[argc];
 		  sargv[0] = (char*)runfile;

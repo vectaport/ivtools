@@ -582,7 +582,7 @@ void OpenFileFunc::execute() {
        extensions unmodified -- "wx" (O_CREAT|O_EXCL: fail rather than
        follow/truncate a pre-existing path, including a symlink planted
        by another local process) chief among them for a script that
-       needs to atomically create a unique file -- #533 */
+       needs to atomically create a unique file. */
     const char* modestr = modev.is_string() ? modev.string_ptr() : "r";
     FileObj* fileobj = new FileObj(filenamev.string_ptr(), modestr, pipeflagv.is_true());
     if (fileobj->fptr())  {
