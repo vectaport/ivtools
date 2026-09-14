@@ -515,6 +515,62 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     return status;
 }
 
+/* Quote-and-escape-aware ()/[]/{}-balance check on raw source text, run
+   before it ever reaches the parser/evaluator below.  Needed because an
+   unbalanced string handed to this entry point (e.g. eval() on a
+   postfix()-wrapped fragment of a multi-line statement, one physical
+   line at a time) doesn't reliably surface as a parse error the way the
+   same imbalance does when read from a file: the top-level file/REPL
+   parser's own EOF handling (_parser.c's TOK_EOF case) can correctly
+   detect and reject it, but a wrapping call like "postfix(" left
+   permanently unclosed by a stray inner ")" has been observed to make
+   this path silently lose track of that outer call and fall through to
+   evaluating -- actually firing -- whatever incomplete expression was
+   left inside it, rather than erroring or leaving it unfired the way
+   postfix()'s own post-eval, never-executes-its-argument contract
+   promises (#529).  Rather than chase that state-machine gap through
+   the shared token-stream parser (used by every other entry point, and
+   already established elsewhere as too deep/risky to safely touch --
+   see #524/#265's writeup), refuse unbalanced input here, at the one
+   entry point where the gap was found, before any of it is parsed. */
+static boolean expression_balanced(const char* expr) {
+  int depth = 0;
+  boolean instr = false;   /* inside a "..." string literal */
+  boolean inchar = false;  /* inside a '...' char literal -- e.g. '(' or
+                               ')' is a one-byte value, not real syntax
+                               (confirmed the hard way: an earlier version
+                               of this check didn't know about char
+                               literals and miscounted '(' 's on any byte
+                               whose char() literal is a paren/bracket/
+                               brace, breaking every other eval() call in
+                               char.comt's byte round-trip test) */
+  for (const char* p = expr; *p; ) {
+    char c = *p;
+    if (c == '\\' && p[1] != '\0') {
+      /* \cX -- Perl/PCRE-style control-char escape, valid in both string
+         and char literals (_lexscan.c) -- is a fixed 3-byte unit; X is a
+         raw literal byte that's never itself re-interpreted, even when X
+         happens to be '\', '[' or ']' (control byte 28's own spelling,
+         '\c\', is exactly that case, and broke this same round-trip test
+         the same way before this was added).  Every other backslash
+         escape (\n, \xNN, octal, \\, \', \") only ever escapes a single
+         following character that's never itself paren/bracket/brace/
+         quote-like, so a plain one-byte skip covers those. */
+      if (p[1] == 'c' && p[2] != '\0') { p += 3; continue; }
+      p += 2; continue;
+    }
+    if (!inchar && c == '"') { instr = !instr; p++; continue; }
+    if (!instr && c == '\'') { inchar = !inchar; p++; continue; }
+    if (instr || inchar) { p++; continue; }
+    if (c == '(' || c == '[' || c == '{') depth++;
+    else if (c == ')' || c == ']' || c == '}') {
+      if (--depth < 0) return false;  /* unmatched close */
+    }
+    p++;
+  }
+  return depth == 0 && !instr && !inchar;
+}
+
 ComValue ComTerpServ::run(const char* expression, boolean nested) {
     _errbuf[0] = '\0';
 
@@ -530,6 +586,11 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     running(true);
 
     if (expression) {
+      if (!expression_balanced(expression)) {
+        snprintf(_errbuf, BUFSIZ,
+                 "comterp: unbalanced or incomplete expression, not evaluated: %s",
+                 expression);
+      } else {
         load_string(expression);
 	_infunc = (infuncptr)&ComTerpServ::s_fgets;
 	_eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -537,6 +598,7 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
 	_inptr = this;
         read_expr();
         err_str(_errbuf, BUFSIZ, "comterp");
+      }
     }
     int status;
     if (!*_errbuf) {
