@@ -31,14 +31,14 @@
 #include <ComTerp/listfunc.h>
 
 //: list member command for ComUnidraw
-// val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list.
+// val=at(list|attrlist|compview [n] :set val :ins val) -- return (or set or insert after) the nth item in a list.
 class GrListAtFunc : public ComFunc {
 public:
     GrListAtFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "val=at(list|attrlist|compview n :set val :ins val) -- return (or set or insert after) the nth item in a list"; }
+    virtual const char* docstring() {
+      return "val=at(list|attrlist|compview [n] :set val :ins val) -- return (or set or insert after) the nth item in a list, or the first selected thing if n is omitted"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":set val   set val in list",

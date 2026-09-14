@@ -18,5 +18,6 @@ InstallScriptAs(ivtiftopnm.bash,$(BINDIR),ivtiftopnm)
 InstallScriptAs(comterp_run.bash,$(BINDIR),comterp_run)
 InstallScriptAs(comterp_listen.bash,$(BINDIR),comterp_listen)
 InstallScriptAs(csvfilt,$(BINDIR),csvfilt)
+InstallScriptAs(comlint,$(BINDIR),comlint)
 
 InstallScriptAs(pnmtopgm.sh,$(BINDIR),pnmtopgm)

@@ -1,0 +1,271 @@
+#! /usr/bin/env comterp_run
+#
+# comlint  lint a .comt script's command calls against each command's own
+#          help()/dockeys() signature
+#
+# Usage:  comlint script.comt [program]
+#
+# program selects which family member's registered commands and
+# docstrings to check against (comterp, comdraw, drawserv, ...);
+# defaults to comterp.
+
+if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
+  arg(1)=="-help" || arg(1)=="--help" :then
+
+    print("comlint  lint a .comt script against each command's own signature\n");
+    print("Usage:  comlint script.comt [program]\n\n");
+    print("program picks which family member's commands to check against\n");
+    print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
+    print("Flags a call passing fewer positional arguments than the\n");
+    print("command requires. Never executes the target script.\n\n");
+    print("Some calls aren't checked (keyword args, dot-attribute calls,\n");
+    print("multi-line or ';'-joined statements). See doc/LANGUAGE.md.\n");
+    exit)
+
+target=arg(1)
+program=arg(2)
+if(program==nil :then program="comterp")
+
+if(program!="comterp" && arg(3)!="direct" :then
+  /* comdraw/drawserv's -runfile has no argv-forwarding to arg(n) the
+     way comterp's `run` subcommand does (#530), so this same script
+     can't just be invoked under $program directly and see its own
+     positional arguments the normal way. Instead, shell out
+     (shell()/open(:pipe) both exist in ComTerp) to $program with a
+     patched copy of this script's own source (read via its own
+     arg(0) path) that has every reference to positional arguments 1,
+     2 and 3 textually replaced with a literal string constant --
+     target, program, and "direct" (a guard so the patched copy
+     doesn't try to delegate again) -- built with nothing but ComTerp
+     primitives (open/gets/index/substr/print), no external tooling
+     beyond shell() itself to invoke $program.
+
+     The replaced pattern strings below are built by concatenation
+     (not written as one contiguous literal) so this substitution
+     pass can't find and corrupt its own source when it runs. */
+
+  /* program ends up interpolated into shell() command strings below
+     (shell() is system(), no argv-array form to bypass a shell), so
+     it must be restricted to a safe character set first -- otherwise
+     a program value containing shell metacharacters is a straight
+     command injection (confirmed exploitable: `; touch /tmp/x ;`
+     as the program argument ran touch). */
+  safechars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_./-";
+  pvchars=split(program);pvi=0;badprogram=false;
+  while(pvi<size(pvchars)
+    if(index(safechars at(pvchars pvi))==nil :then badprogram=true);
+    pvi=pvi+1);
+  if(badprogram :then
+    print("comlint: program name has characters outside [A-Za-z0-9_./-]: %s\n" program :err);
+    exit(1));
+
+  /* target never reaches a shell command (it's only ever embedded as
+     a ComTerp string literal in the generated file below), but it
+     must not contain a '"' or '\' -- both are significant inside a
+     "..." literal (\ starts an escape, unescaped " ends the string)
+     and there's no ComTerp string-escaping primitive to lean on, so
+     reject rather than risk mis-escaping into the wrong path. */
+  if(index(target "\"")!=nil || index(target "\\")!=nil :then
+    print("comlint: target path contains a '\"' or '\\', not supported: %s\n" target :err);
+    exit(1));
+
+  foundcmd=print("command -v %s >/dev/null 2>&1" program :str);
+  if(shell(foundcmd)!=0 :then
+    print("comlint: program '%s' not found on PATH\n" program :err);
+    exit(1));
+
+  /* processed and written one line at a time -- print(:file)'s %s
+     formatting truncates a very long single string (confirmed a real
+     ComTerp bug: a >1KB string written via print("%s" str :file f)
+     silently truncates to ~1KB), so this script's own source is
+     never held or written as one giant string at once */
+  pat1="arg"+"("+"1"+")";rep1="\""+target+"\"";
+  pat2="arg"+"("+"2"+")";rep2="\""+program+"\"";
+  pat3="arg"+"("+"3"+")";rep3="\"direct\"";
+
+  /* tmppath is only somewhat unpredictable (time + a random suffix)
+     in shared /tmp, with no atomic-create primitive available from
+     ComTerp (open() has no :excl/O_EXCL equivalent -- see #533), so
+     this is a best-effort mitigation against guessing, not a real
+     fix for the underlying TOCTOU/symlink race */
+  selfpath=arg(0);
+  sf=open(selfpath "r");
+  tmppath=print("/tmp/comlint_%v_%v.comt" time(:raw :ms) rand(0,999999) :str);
+  tf=open(tmppath "w");
+
+  sline=gets(sf);
+  while(sline!=nil
+    pattern=pat1;replacement=rep1;
+    result="";remaining=sline;loopdone=false;
+    while(!loopdone
+      pos=index(remaining pattern);
+      if(pos==nil :then result=result+remaining;loopdone=true;continue);
+      result=result+substr(remaining pos)+replacement;
+      remaining=substr(remaining pos+size(pattern) :after));
+    sline=result;
+
+    pattern=pat2;replacement=rep2;
+    result="";remaining=sline;loopdone=false;
+    while(!loopdone
+      pos=index(remaining pattern);
+      if(pos==nil :then result=result+remaining;loopdone=true;continue);
+      result=result+substr(remaining pos)+replacement;
+      remaining=substr(remaining pos+size(pattern) :after));
+    sline=result;
+
+    pattern=pat3;replacement=rep3;
+    result="";remaining=sline;loopdone=false;
+    while(!loopdone
+      pos=index(remaining pattern);
+      if(pos==nil :then result=result+remaining;loopdone=true;continue);
+      result=result+substr(remaining pos)+replacement;
+      remaining=substr(remaining pos+size(pattern) :after));
+    sline=result;
+
+    print("%s" sline :file tf);
+    sline=gets(sf));
+  close(sf);
+  close(tf);
+
+  cmd=print("%s -stdin_off -runfile %s" program tmppath :str);
+  status=shell(cmd);
+  shell(print("rm -f %s" tmppath :str));
+  exit(status/256))
+
+fp=open(target "r")
+if(fp==nil :then
+  print("comlint: unable to open %s\n" target :err);
+  exit(1))
+
+print("comlint: checking %s against %s's command set\n" target program)
+
+nflagged=0
+nchecked=0
+nskipped=0
+lineno=0
+mlbal=0
+incomm=0
+
+while((srcline=gets(fp))!=nil
+  lineno=lineno+1;
+
+  if(size(srcline)==0 :then continue);
+  if(substr(srcline 2)=="//" :then continue);
+
+  hasopen=index(srcline "/*");
+  hasclose=index(srcline "*/");
+  if(incomm>0 :then
+    if(hasclose!=nil :then incomm=0);
+    nskipped=nskipped+1;continue);
+  if(hasopen!=nil :then
+    if(hasclose==nil :then incomm=1);
+    nskipped=nskipped+1;continue);
+
+  /* parens inside a "..." string literal (or after an escaping
+     backslash) aren't structural -- e.g. print("(expect true)" ...)
+     -- so track quote state (escape-aware) while counting rather
+     than treating every raw '(' / ')' character as real syntax */
+  popens=0;pcloses=0;pidx=0;pchars=split(srcline);instr=0;pescape=0;
+  while(pidx<size(pchars)
+    pc=at(pchars pidx);
+    pidx=pidx+1;
+    if(pescape>0 :then pescape=0;continue);
+    if(pc=='\\' :then pescape=1;continue);
+    if(pc=='"' :then instr=1-instr;continue);
+    if(instr>0 :then continue);
+    if(pc=='(' :then popens=popens+1);
+    if(pc==')' :then pcloses=pcloses+1));
+
+  /* still inside a statement opened by an earlier line (#521-safe:
+     never eval a mid-statement fragment) -- track its running mlbal
+     and skip until it closes back to zero */
+  if(mlbal>0 :then mlbal=mlbal+popens-pcloses;nskipped=nskipped+1;continue);
+
+  if(index(srcline ";")!=nil :then nskipped=nskipped+1;continue);
+
+  if(popens!=pcloses :then mlbal=popens-pcloses;nskipped=nskipped+1;continue);
+
+  pfcmd=print("postfix(%s)" srcline :str);
+  pftext=eval(pfcmd);
+  if(!istype(pftext StringType) :then nskipped=nskipped+1;continue);
+
+  toks=split(pftext :tokstr ' ');
+  ti=0;
+  while(ti<size(toks)
+    tok=at(toks ti);
+    ti=ti+1;
+
+    lb=index(tok "[");
+    if(lb==nil :then continue);
+    rb=index(tok "]" :last);
+    if(rb==nil :then continue);
+
+    isundef=(substr(tok size(tok)-1 :after)=="*");
+    if(isundef :then continue);
+
+    name=substr(tok "[");
+    counts=substr(substr(tok lb+1 :after) "]");
+    ctoks=split(counts :tokstr '|');
+    if(size(ctoks)<2 :then continue);
+    obsnarg=int(at(ctoks 0));
+    obsnkey=int(at(ctoks 1));
+
+    /* a call that supplies any keyword commonly uses an alternate
+       calling convention (e.g. class(:comps), global(:dump)) that our
+       single-signature-line parse below can't validate -- skip rather
+       than risk a false positive */
+    if(obsnkey>0 :then continue);
+
+    /* dot-attribute access (a.name(...)) resolves to whatever a.name
+       is bound to, not the same-named global command -- postfix still
+       labels it with the global command's arity, so skip rather than
+       misreport a local override as a glue collapse */
+    dotpat=print(".%s(" name :str);
+    if(index(srcline dotpat)!=nil :then continue);
+
+    nchecked=nchecked+1;
+
+    helpcmd=print("help(%s)" name :str);
+    helptext=eval(helpcmd);
+    if(!istype(helptext StringType) :then continue);
+    helplines=split(helptext :tokstr '\n');
+    sig=at(helplines 0);
+
+    op=index(sig "(");
+    dd=index(sig " -- ");
+    if(op==nil || dd==nil :then continue);
+    arglist=substr(substr(substr(sig op+1 :after) " -- ") ")");
+    if(arglist==nil :then arglist="");
+
+    argtoks=split(arglist :tokstr ' ');
+    required=0;
+    inbracket=0;
+    ai=0;
+    while(ai<size(argtoks)
+      at2=at(argtoks ai);
+      ai=ai+1;
+      if(size(at2)==0 :then continue);
+      if(inbracket>0 :then
+        if(index(at2 "]")!=nil :then inbracket=0);
+        continue);
+      if(substr(at2 1)==":" :then break);
+      if(substr(at2 1)=="[" :then
+        if(index(at2 "]")==nil :then inbracket=1);
+        continue);
+      /* a bare "..." means "the preceding bracketed group repeats" --
+         e.g. attrlist([:<name> [val]] ...) -- not an argument of its
+         own, so it must not fall through to the required-count below */
+      if(at2=="..." :then continue);
+      required=required+1);
+
+    if(obsnarg<required :then
+      print("%s:%v: %s(): called with %v positional argument(s), but %s requires %v -- likely call-glue collapse (#521/#265-class); check for a bare symbol immediately followed by an unrelated parenthesized argument\n"
+        target lineno name obsnarg name required);
+      nflagged=nflagged+1)))
+
+close(fp)
+
+print("\ncomlint: %v call(s) checked, %v line(s) skipped, %v issue(s) flagged\n"
+  nchecked nskipped nflagged)
+if(nflagged>0 :then exit(1))
+exit(0)

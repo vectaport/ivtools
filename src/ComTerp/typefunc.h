@@ -40,8 +40,8 @@ public:
     TypeSymbolFunc(ComTerp*);
     virtual void execute();
 
-    virtual const char* docstring() { 
-      return "sym|lst=%s(val [ ...] :all) -- return type symbol(s) for value(s), blank for no value at all"; }
+    virtual const char* docstring() {
+      return "sym|lst=%s([val] [ ...] :all) -- return type symbol(s) for value(s), blank for no value at all"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":all       return the complete list of type symbols, ignoring any value",
@@ -60,7 +60,7 @@ public:
     virtual void execute();
 
     virtual const char* docstring() {
-      return "sym|lst=%s(val [ ...] :all :comps) -- return class symbol(s) for value(s) of object type"; }
+      return "sym|lst=%s([val] [ ...] :all :comps) -- return class symbol(s) for value(s) of object type, blank for no value at all"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":all       return every class symbol this binary linked, sorted by name",
