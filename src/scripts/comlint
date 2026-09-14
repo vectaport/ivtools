@@ -14,36 +14,13 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
 
     print("comlint  lint a .comt script against each command's own signature\n");
     print("Usage:  comlint script.comt [program]\n\n");
-    print("program selects which family member's registered commands and\n");
-    print("docstrings to check against (comterp, comdraw, drawserv, ...);\n");
-    print("defaults to comterp. A comdraw-only script (raster/poke/alpha/\n");
-    print("etc.) needs program=comdraw or drawserv, or those commands are\n");
-    print("simply unregistered under comterp and silently skipped --\n");
-    print("checking nothing for them, not confirming them clean.\n\n");
-    print("For each single-statement line in script.comt that calls a\n");
-    print("registered command, compares the call's real, post-glue\n");
-    print("positional-argument count (from postfix()) against that\n");
-    print("command's declared required-positional count (from help()).\n");
-    print("Flags a call with fewer than the required count -- the\n");
-    print("signature of a bare symbol glued to an unrelated trailing\n");
-    print("paren group silently collapsing the call's real argument\n");
-    print("count (see #521/#265 -- 'Symbol-then-parens is always a call\n");
-    print("attempt' in doc/LANGUAGE.md).\n\n");
-    print("Does not execute the target script: postfix() and help() are\n");
-    print("both post_eval and never fire what they're handed. A line is\n");
-    print("skipped rather than risk running it if it contains a ';'\n");
-    print("(top-level sequencing isn't glue-protected the same way) or\n");
-    print("if it doesn't parse as one complete, self-contained statement\n");
-    print("(e.g. one physical line of a construct that spans several).\n\n");
-    print("Skips calls that pass any keyword argument, since a keyword\n");
-    print("commonly signals an alternate calling convention this single-\n");
-    print("signature-line check can't validate. Also skips dot-attribute\n");
-    print("calls (a.name(...)): postfix() still labels these with the\n");
-    print("same-named global command's arity even when a.name is a local\n");
-    print("override, so a real mismatch there can slip through unflagged.\n\n");
-    print("Not yet implemented (see #524): unknown-keyword flag,\n");
-    print("excess-positional flag, and the close-but-no-cigar near-miss\n");
-    print("symbol check.\n");
+    print("program picks which family member's commands to check against\n");
+    print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
+    print("Flags a call whose real, post-glue positional-argument count\n");
+    print("falls short of what the command declares as required. Never\n");
+    print("executes the target script.\n\n");
+    print("Not checked: calls that pass a keyword argument, and\n");
+    print("dot-attribute calls (a.name(...)). See doc/LANGUAGE.md.\n");
     exit)
 
 target=arg(1)

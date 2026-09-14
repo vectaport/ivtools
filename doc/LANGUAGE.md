@@ -427,6 +427,32 @@ v                // 99 -- referencing v bare fires it, because v is a
                  //   plain symbol now, not because the copy did anything
 ```
 
+### Catching glue collapse with `comlint`
+
+`comlint` (`src/scripts/comlint`) statically flags a call whose real,
+post-glue positional-argument count falls short of what the command
+declares as required — the failure mode above, where a bare symbol's
+glued-on arglist silently absorbs part of what a neighboring call was
+supposed to receive:
+
+```
+comlint script.comt [program]
+```
+
+`program` picks which family member's registered commands to check
+against (`comterp`, `comdraw`, `drawserv`, ...; defaults to `comterp`)
+— a script that only calls commands belonging to a different family
+member needs that member named explicitly, or those commands are
+simply unregistered and silently unchecked.
+
+It works from `postfix()`'s and `help()`'s output alone and never
+executes the target script. Two things it does not check: a call that
+supplies any keyword argument (a keyword often signals an alternate
+calling form a single signature line can't validate), and
+dot-attribute calls (`a.name(...)`) — `postfix()` labels `name` with
+the *global* command's arity even when `a.name` is a local override,
+exactly the exception the previous section describes.
+
 ## Arguments: Fixed Before Keywords — Always
 
 Every ComTerp command accepts fixed positional arguments followed by
