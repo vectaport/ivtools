@@ -19,8 +19,8 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("Flags a call whose real, post-glue positional-argument count\n");
     print("falls short of what the command declares as required. Never\n");
     print("executes the target script.\n\n");
-    print("Not checked: calls that pass a keyword argument, and\n");
-    print("dot-attribute calls (a.name(...)). See doc/LANGUAGE.md.\n");
+    print("Some calls aren't checked (keyword args, dot-attribute calls,\n");
+    print("multi-line or ';'-joined statements). See doc/LANGUAGE.md.\n");
     exit)
 
 target=arg(1)

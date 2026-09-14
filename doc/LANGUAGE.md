@@ -446,12 +446,16 @@ member needs that member named explicitly, or those commands are
 simply unregistered and silently unchecked.
 
 It works from `postfix()`'s and `help()`'s output alone and never
-executes the target script. Two things it does not check: a call that
-supplies any keyword argument (a keyword often signals an alternate
-calling form a single signature line can't validate), and
-dot-attribute calls (`a.name(...)`) — `postfix()` labels `name` with
-the *global* command's arity even when `a.name` is a local override,
-exactly the exception the previous section describes.
+executes the target script. It only analyzes a line that parses as one
+complete, self-contained statement — a line containing `;`, or one
+physical line of a construct spanning several, is skipped entirely,
+not just left unflagged. Within what it does look at, two call shapes
+are deliberately not checked: a call that supplies any keyword
+argument (a keyword often signals an alternate calling form a single
+signature line can't validate), and dot-attribute calls
+(`a.name(...)`) — `postfix()` labels `name` with the *global*
+command's arity even when `a.name` is a local override, exactly the
+exception the previous section describes.
 
 ## Arguments: Fixed Before Keywords — Always
 
