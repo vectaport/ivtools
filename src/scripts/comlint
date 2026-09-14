@@ -16,9 +16,8 @@ if(arg(1)=="help" || arg(1)=="-h" || arg(1)==nil ||
     print("Usage:  comlint script.comt [program]\n\n");
     print("program picks which family member's commands to check against\n");
     print("(comterp, comdraw, drawserv, ...); defaults to comterp.\n\n");
-    print("Flags a call whose real, post-glue positional-argument count\n");
-    print("falls short of what the command declares as required. Never\n");
-    print("executes the target script.\n\n");
+    print("Flags a call passing fewer positional arguments than the\n");
+    print("command requires. Never executes the target script.\n\n");
     print("Some calls aren't checked (keyword args, dot-attribute calls,\n");
     print("multi-line or ';'-joined statements). See doc/LANGUAGE.md.\n");
     exit)
