@@ -175,12 +175,11 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
 	   running dry doesn't mean input is over the way it does for every
 	   other caller -- real fgets(3) has no such notion (a real stream
 	   either blocks for more or is genuinely done), so there's nothing
-	   for this to mimic here.  Answer the way this same buffer did
-	   before _instr_eof/_instr_final existed: an empty line, not NULL --
-	   that keeps this a plain "nothing new on this call" the shared
-	   lexer already knows how to wait out (_lexscan.c's TOK_NONE path,
-	   taken because infunc==_oneshot_infunc), instead of the NULL+eoffunc
-	   combination that path reads as truly final. */
+	   for this to mimic here.  An empty line, not NULL, keeps this a
+	   plain "nothing new on this call" -- the shared lexer's own
+	   TOK_NONE path (_lexscan.c, taken because infunc==_oneshot_infunc)
+	   already waits that out, where the NULL+eoffunc combination above
+	   instead reads as truly final. */
 	outstr[0] = '\0';
 	return s;
     }
