@@ -113,6 +113,8 @@ protected:
     int _linesize;
     char* _instr;
     int _inpos;
+    boolean _instr_eof;
+    boolean _instr_final;
     char* _outstr;
     int _outpos;
     FILE* _fptr;

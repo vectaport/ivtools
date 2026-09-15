@@ -90,6 +90,9 @@ ComTerpServ::ComTerpServ(int linesize, int fd)
     _linesize = linesize;
     _instr = new char[_linesize];
     _outstr = new char[_linesize];
+    _inpos = 0;
+    _instr_eof = false;
+    _instr_final = true;
     _inptr = this;
     _infunc = (infuncptr)&ComTerpServ::s_fgets;
     _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -123,6 +126,13 @@ ComTerpServ::~ComTerpServ() {
 
 void ComTerpServ::load_string(const char* expr) {
     _inpos = 0;
+    _instr_eof = false;
+    /* every load_string() caller except runfile() hands this the entire
+       remaining input in one call -- true EOF for real; runfile() reloads
+       one physical line at a time and knows better, so it overrides this
+       right after calling in, based on whether its own real file still has
+       more lines behind the one just loaded. */
+    _instr_final = true;
 
     /* grow _instr/_outstr (doubling) so the string plus a trailing newline and
        null always fit.  the buffers are sized to _linesize, so keep _linesize in
@@ -150,6 +160,31 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
     int& inpos = server->_inpos;
     int& linesize = server->_linesize;
 
+    /* fgets(3) returns NULL, copying nothing, when called with no input
+       left; the shared lexer's refill loop (_lexscan.c) tells "read
+       something" from "read nothing" apart by this return value, not by
+       a separate query, and only latches eoffunc's answer once a call
+       actually comes back empty this way -- the same lag real feof(3)
+       has, true only after a read finds nothing left, never pre-empting
+       the read that lands exactly on the last byte. */
+    if (instr[inpos] == '\0') {
+	server->_instr_eof = true;
+	if (server->_instr_final) return nil;
+
+	/* runfile() reloads one physical line at a time, so this buffer
+	   running dry doesn't mean input is over the way it does for every
+	   other caller -- real fgets(3) has no such notion (a real stream
+	   either blocks for more or is genuinely done), so there's nothing
+	   for this to mimic here.  Answer the way this same buffer did
+	   before _instr_eof/_instr_final existed: an empty line, not NULL --
+	   that keeps this a plain "nothing new on this call" the shared
+	   lexer already knows how to wait out (_lexscan.c's TOK_NONE path,
+	   taken because infunc==_oneshot_infunc), instead of the NULL+eoffunc
+	   combination that path reads as truly final. */
+	outstr[0] = '\0';
+	return s;
+    }
+
     int outpos;
 
     /* copy characters until n-1 characters are transferred, */
@@ -169,9 +204,16 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
 
 int ComTerpServ::s_feof(void* serv) {
     ComTerpServ* server = (ComTerpServ*)serv;
-    int& inpos = server->_inpos;
 
-    return inpos == -1;
+    /* set only by s_fgets's own NULL-return branch above -- never a live
+       position check, so this lags an exhausting read by one call, same
+       as real feof(3), instead of firing on the very read that consumes
+       the last byte.  Gated on _instr_final too: runfile() reloads one
+       physical line at a time, so its buffer runs out between every
+       line, real end of input or not -- reporting that as EOF here would
+       tell the parser an expression split across lines ran out of input
+       for good, instead of just this chunk of it. */
+    return server->_instr_eof && server->_instr_final;
 }
 
 int ComTerpServ::s_ferror(void* serv) {
@@ -365,9 +407,17 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
                 inbuf[0]=' ';
                 inbuf[1]='\0';
             }
-            if (*inbuf)
+            if (*inbuf) {
                 load_string(inbuf);
-            else
+                /* this physical line's buffer running out is not
+                   necessarily true EOF -- more lines follow whenever the
+                   real file has them, and a statement split across two
+                   lines (e.g. "1+\n2\n") needs the lenient, defer-to-the-
+                   next-load_string() behavior _instr_final=false selects,
+                   same as before every load_string() caller got the same
+                   (correctly stricter, for them) always-true default. */
+                _instr_final = feof(ifptr) != 0;
+            } else
                 increment_linenum();
         }
        if (*inbuf && (last_status=read_expr())) {
@@ -515,58 +565,6 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
     return status;
 }
 
-/* Quote-and-escape-aware ()/[]/{}-balance check on raw source text, run
-   before it ever reaches the parser/evaluator below.  Needed because an
-   unbalanced string handed to this entry point (e.g. eval() on a
-   postfix()-wrapped fragment of a multi-line statement, one physical
-   line at a time) doesn't reliably surface as a parse error the way the
-   same imbalance does when read from a file: the top-level file/REPL
-   parser's own EOF handling (_parser.c's TOK_EOF case) can correctly
-   detect and reject it, but a wrapping call like "postfix(" left
-   permanently unclosed by a stray inner ")" can leave this path silently
-   losing track of that outer call and falling through to evaluating --
-   actually firing -- whatever incomplete expression was left inside it,
-   rather than erroring or leaving it unfired the way postfix()'s own
-   post-eval, never-executes-its-argument contract promises.  Rather than
-   chase that state-machine gap through the shared token-stream parser
-   (used by every other entry point, and too deep/risky to safely touch
-   for this), refuse unbalanced input here, at the one entry point where
-   the gap was found, before any of it is parsed. */
-static boolean expression_balanced(const char* expr) {
-  int depth = 0;
-  boolean instr = false;   /* inside a "..." string literal */
-  boolean inchar = false;  /* inside a '...' char literal -- e.g. '(' or
-                               ')' is a one-byte value there, not real
-                               syntax */
-  for (const char* p = expr; *p; ) {
-    char c = *p;
-    /* Backslash escapes (_lexscan.c) are only meaningful inside a
-       string/char literal -- outside one, a bare '\' is not a lexer
-       escape at all, so it's left to fall through to the plain
-       delimiter/other-character handling below. */
-    if ((instr || inchar) && c == '\\' && p[1] != '\0') {
-      /* \cX -- Perl/PCRE-style control-char escape -- is a fixed 3-byte
-         unit; X is a raw literal byte that's never itself
-         re-interpreted, even when X happens to be '\', '[' or ']'.
-         Every other backslash escape (\n, \xNN, octal, \\, \', \") only
-         ever escapes a single following character that's never itself
-         paren/bracket/brace/quote-like, so a plain one-byte skip covers
-         those. */
-      if (p[1] == 'c' && p[2] != '\0') { p += 3; continue; }
-      p += 2; continue;
-    }
-    if (!inchar && c == '"') { instr = !instr; p++; continue; }
-    if (!instr && c == '\'') { inchar = !inchar; p++; continue; }
-    if (instr || inchar) { p++; continue; }
-    if (c == '(' || c == '[' || c == '{') depth++;
-    else if (c == ')' || c == ']' || c == '}') {
-      if (--depth < 0) return false;  /* unmatched close */
-    }
-    p++;
-  }
-  return depth == 0 && !instr && !inchar;
-}
-
 ComValue ComTerpServ::run(const char* expression, boolean nested) {
     _errbuf[0] = '\0';
 
@@ -582,11 +580,6 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
     running(true);
 
     if (expression) {
-      if (!expression_balanced(expression)) {
-        snprintf(_errbuf, BUFSIZ,
-                 "comterp: unbalanced or incomplete expression, not evaluated: %s",
-                 expression);
-      } else {
         load_string(expression);
 	_infunc = (infuncptr)&ComTerpServ::s_fgets;
 	_eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -594,7 +587,6 @@ ComValue ComTerpServ::run(const char* expression, boolean nested) {
 	_inptr = this;
         read_expr();
         err_str(_errbuf, BUFSIZ, "comterp");
-      }
     }
     int status;
     if (!*_errbuf) {

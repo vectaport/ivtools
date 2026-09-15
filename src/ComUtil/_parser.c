@@ -1458,7 +1458,14 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 
       case TOK_EOF:
 	 PFOUT( TOK_EOF, 0, 0, 0, 0);
-	 if( TopOfParenStack >= 0 ) {
+	 /* TopOfOperStack >= 0 means an operator (";" included -- it's just
+	    another binary operator here) is still waiting on an operand that
+	    this EOF just failed to supply -- as much a real incompleteness
+	    as an unclosed paren.  Without this check EMPTY_OPER_STACK below
+	    (on the done=TRUE path this skips) synthesizes that operator's
+	    command token from whatever the EOF token just emitted as its
+	    missing operand, instead of catching the incompleteness here. */
+	 if( TopOfParenStack >= 0 || TopOfOperStack >= 0 ) {
 	    COMERR_SET1( ERR_UNEXPECTED_EOF, *linenum );
 	    goto error_return;
 	    }

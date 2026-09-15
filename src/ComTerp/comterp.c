@@ -223,11 +223,11 @@ boolean ComTerp::read_expr() {
 			 &_pfbuf, &_pfsiz, &_pfnum);
 
     _pfoff = 0;
-    save_parser_client();    
+    save_parser_client();
     postfix_echo();
 
-    return status==0 
-      && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF) 
+    return status==0
+      && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF)
       && _buffer[0] != '\0';
 }
 
@@ -1788,6 +1788,19 @@ ComValue ComTerp::orphan_stream_count(ComValue& streamv) {
 int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
+
+  /* _pfnum/_pfbuf are this instance's own state, not this call's -- they
+     outlive a single run() the way _stack does, so a caller invoking run()
+     once per already-delimited chunk of input (ComterpHandler::handle_input(),
+     one call per socket line) leaves whatever the PRIOR call's postfix
+     buffer last held sitting here at entry.  eof() below reads that buffer's
+     last token before this call has parsed anything of its own; a plain
+     trailing TOK_EOF there is this same probe's own doing on every clean
+     exit (case TOK_EOF in _parser.c always emits one), never a sign that
+     THIS call's input is already exhausted, so strip it rather than let
+     eof() mistake it for that and skip this call's loop -- and this call's
+     expression -- entirely. */
+  if (_pfnum && _pfbuf[_pfnum-1].type == TOK_EOF) _pfnum = 0;
 
   int status = 1;
   _errbuf[0] = '\0';
