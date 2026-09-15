@@ -360,7 +360,7 @@ void SplitStrFunc::execute() {
       push_stack(ComValue::nullval());
       return;
     }
-    /* a one-char string delimiter must behave like its coerced CharType form, so set tokstr_charflag now (PR #493) */
+    /* a one-char string delimiter must behave like its coerced CharType form, so set tokstr_charflag now */
     tokstr_charflag = true;
   }
   if (tokvalflag && tokvalv.is_string() &&
