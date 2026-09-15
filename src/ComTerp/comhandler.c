@@ -227,6 +227,10 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       }
 
       comterp_->load_string(inbuf);
+      /* this handler dispatches one line at a time off a connection that
+         may still have more of the same statement coming on a later
+         dispatch, so this call's chunk is never provably the last one. */
+      comterp_->_instr_final = false;
 
       // this hides the logging of a ready command, interesting
       if (fd>0 && !comterp_->muted() ) {
