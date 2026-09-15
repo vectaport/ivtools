@@ -148,6 +148,53 @@ void ComTerpServ::load_string(const char* expr) {
     _instr[len] = '\0';
 }
 
+void ComTerpServ::push_servstate() {
+    ComTerp::push_servstate();
+    ComTerpState* cts_state = top_servstate();
+    cts_state->instr() = _instr;
+    cts_state->inpos() = _inpos;
+    cts_state->instr_eof() = _instr_eof;
+    cts_state->instr_final() = _instr_final;
+    cts_state->outstr() = _outstr;
+    cts_state->outpos() = _outpos;
+    cts_state->linesize() = _linesize;
+
+    /* fresh buffers at the current size, so a nested load_string()
+       can't touch the caller's -- same swap-in _buffer already gets */
+    _instr = new char[_linesize];
+    _outstr = new char[_linesize];
+    _inpos = 0;
+    _outpos = 0;
+    _instr_eof = false;
+    _instr_final = true;
+}
+
+void ComTerpServ::pop_servstate() {
+    ComTerpState* cts_state = top_servstate();
+    if (!cts_state) return;
+
+    char* saved_instr = cts_state->instr();
+    int saved_inpos = cts_state->inpos();
+    boolean saved_instr_eof = cts_state->instr_eof();
+    boolean saved_instr_final = cts_state->instr_final();
+    char* saved_outstr = cts_state->outstr();
+    int saved_outpos = cts_state->outpos();
+    int saved_linesize = cts_state->linesize();
+
+    delete [] _instr;
+    delete [] _outstr;
+
+    ComTerp::pop_servstate();
+
+    _instr = saved_instr;
+    _inpos = saved_inpos;
+    _instr_eof = saved_instr_eof;
+    _instr_final = saved_instr_final;
+    _outstr = saved_outstr;
+    _outpos = saved_outpos;
+    _linesize = saved_linesize;
+}
+
 char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
     ComTerpServ* server = (ComTerpServ*)serv;
     char* instr = server->_instr;
