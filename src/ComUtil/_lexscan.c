@@ -100,7 +100,7 @@ int lexscan(void * infile,char * (*infunc)(char*, int, void*),int (*eoffunc)(voi
 
 /*!
 Return Value:  0 if OK, -1 if Error
-
+
 
 Parameters:
 
@@ -997,7 +997,7 @@ token_return:
 /* ----------------------------------------------------------------------- */
 
    *toktype = token_state;
-   /* unlike *toktype/*bufptr, stays in true scan order even when lookahead calls scanner() extra times */
+   /* unlike *toktype and *bufptr, stays in true scan order even when lookahead calls scanner() extra times */
    _lexscan_last_tokend = *bufptr;
    _lexscan_last_toktype = token_state;
    return FUNCOK;
