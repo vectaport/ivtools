@@ -1789,12 +1789,7 @@ int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
 
-  /* eof() below must answer for this call alone, but the postfix buffer
-     it reads (_pfnum/_pfbuf) is this instance's state, outliving any one
-     run() call.  A trailing TOK_EOF token there is only ever _parser.c's
-     normal mark of where an earlier parse ended, not a report on this
-     call's input, so clear it before eof() can mistake the two. */
-  if (_pfnum && _pfbuf[_pfnum-1].type == TOK_EOF) _pfnum = 0;
+  if (_pfnum && _pfbuf[_pfnum-1].type == TOK_EOF) _pfnum = 0; // drop a leftover marker from a prior run() call, not this one
 
   int status = 1;
   _errbuf[0] = '\0';

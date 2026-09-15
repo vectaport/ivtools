@@ -127,12 +127,7 @@ ComTerpServ::~ComTerpServ() {
 void ComTerpServ::load_string(const char* expr) {
     _inpos = 0;
     _instr_eof = false;
-    /* every load_string() caller except runfile() hands this the entire
-       remaining input in one call -- true EOF for real; runfile() reloads
-       one physical line at a time and knows better, so it overrides this
-       right after calling in, based on whether its own real file still has
-       more lines behind the one just loaded. */
-    _instr_final = true;
+    _instr_final = true; // runfile() overrides this after calling in, since it reloads one line at a time
 
     /* grow _instr/_outstr (doubling) so the string plus a trailing newline and
        null always fit.  the buffers are sized to _linesize, so keep _linesize in
@@ -160,27 +155,12 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
     int& inpos = server->_inpos;
     int& linesize = server->_linesize;
 
-    /* fgets(3) returns NULL, copying nothing, when called with no input
-       left; the shared lexer's refill loop (_lexscan.c) tells "read
-       something" from "read nothing" apart by this return value, not by
-       a separate query, and only latches eoffunc's answer once a call
-       actually comes back empty this way -- the same lag real feof(3)
-       has, true only after a read finds nothing left, never pre-empting
-       the read that lands exactly on the last byte. */
+    // like real fgets(3): return nil only once nothing is left, not on the read that lands on the last byte
     if (instr[inpos] == '\0') {
 	server->_instr_eof = true;
 	if (server->_instr_final) return nil;
 
-	/* runfile() reloads one physical line at a time, so this buffer
-	   running dry doesn't mean input is over the way it does for every
-	   other caller -- real fgets(3) has no such notion (a real stream
-	   either blocks for more or is genuinely done), so there's nothing
-	   for this to mimic here.  An empty line, not NULL, keeps this a
-	   plain "nothing new on this call" -- the shared lexer's own
-	   TOK_NONE path (_lexscan.c, taken because infunc==_oneshot_infunc)
-	   already waits that out, where the NULL+eoffunc combination above
-	   instead reads as truly final. */
-	outstr[0] = '\0';
+	outstr[0] = '\0'; // runfile()'s per-line reload isn't really at EOF yet; an empty line lets the lexer's TOK_NONE path wait for more
 	return s;
     }
 
@@ -204,14 +184,7 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
 int ComTerpServ::s_feof(void* serv) {
     ComTerpServ* server = (ComTerpServ*)serv;
 
-    /* set only by s_fgets's own NULL-return branch above -- never a live
-       position check, so this lags an exhausting read by one call, same
-       as real feof(3), instead of firing on the very read that consumes
-       the last byte.  Gated on _instr_final too: runfile() reloads one
-       physical line at a time, so its buffer runs out between every
-       line, real end of input or not -- reporting that as EOF here would
-       tell the parser an expression split across lines ran out of input
-       for good, instead of just this chunk of it. */
+    // _instr_final gates this: runfile() doesn't want its buffer running out mistaken for real end of input
     return server->_instr_eof && server->_instr_final;
 }
 
@@ -408,14 +381,7 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
             }
             if (*inbuf) {
                 load_string(inbuf);
-                /* this physical line's buffer running out is not
-                   necessarily true EOF -- more lines follow whenever the
-                   real file has them, and a statement split across two
-                   lines (e.g. "1+\n2\n") needs the lenient, defer-to-the-
-                   next-load_string() behavior _instr_final=false selects,
-                   same as before every load_string() caller got the same
-                   (correctly stricter, for them) always-true default. */
-                _instr_final = feof(ifptr) != 0;
+                _instr_final = feof(ifptr) != 0; // more lines may follow, e.g. "1+\n2\n" needs the next line
             } else
                 increment_linenum();
         }

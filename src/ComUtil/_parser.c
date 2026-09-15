@@ -1458,11 +1458,7 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 
       case TOK_EOF:
 	 PFOUT( TOK_EOF, 0, 0, 0, 0);
-	 /* TopOfOperStack >= 0 means an operator (";" included -- it's just
-	    another binary operator here) still expects an operand this EOF
-	    didn't supply, exactly like an unclosed paren: neither is a
-	    complete expression for EMPTY_OPER_STACK's flush, on the
-	    done=TRUE path below, to treat as finished. */
+	 // TopOfOperStack >= 0: an operator (";" included) is still waiting on an operand, same as an unclosed paren
 	 if( TopOfParenStack >= 0 || TopOfOperStack >= 0 ) {
 	    COMERR_SET1( ERR_UNEXPECTED_EOF, *linenum );
 	    goto error_return;

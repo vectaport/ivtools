@@ -318,13 +318,7 @@ int bs_ident = 0;
 		     return ERR_EOFCOMMENT;
 		  if( token_state == TOK_STRING || token_state == TOK_CHAR )
 		     return ERR_EOFSTRING;
-		  /* every other true-EOF exit from this function clears
-		     bufptr/buffer before returning (the two below, and the
-		     comment-skip loop's own successful-read case further
-		     down) -- this one skipped straight past that, leaving a
-		     caller that inspects buffer/bufptr after a failed
-		     read_expr() (runfile()'s reuse_buffer check) looking at
-		     a still-populated line it already consumed here. */
+		  // clear bufptr/buffer like every other true-EOF exit does, so a stale line doesn't look unconsumed
 		  *bufptr = 0;
 		  buffer[0] = '\0';
 		  return FUNCOK;
