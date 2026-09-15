@@ -141,17 +141,8 @@ int search_state = LOOK_START; /* State of what has been found */
                                       /* in error file */
 int status;
 
-/* a ':' touching the end of a completed operand, with no whitespace between,
-   reads as an infix operator -- a:b, a range or pair -- rather than the start
-   of a fresh ":keyword".  Real keyword usage never glues the colon onto a
-   preceding value: it is always space-separated, or the first thing after an
-   opening delimiter, and both stay eligible for the merge below.
-
-   Read from _lexscan_last_tokend/_toktype, not the *bufptr and *toktype output
-   params, which this function's own lexscan() calls overwrite -- and which
-   caller-side lookahead can overwrite too, so they may no longer hold the
-   previous token in source order.  _lexscan_last_* is updated in exactly one
-   place, lexscan()'s common return path. */
+// ':' after an operand is infix (a:b), not a keyword start; read
+// _lexscan_last_*, not *bufptr/*toktype -- lookahead can overwrite those
 unsigned prev_tokend = _lexscan_last_tokend;
 unsigned prev_toktype = _lexscan_last_toktype;
 
@@ -235,13 +226,8 @@ unsigned prev_toktype = _lexscan_last_toktype;
                break;
 
             case ':' :
-               /* TOK_IDENTIFIER only, deliberately.  Real ":keyword" usage
-                  always has a space before it, so that spacing is not at risk
-                  here whatever the preceding token.  What a number or closing
-                  delimiter glued straight onto a keyword should mean --
-                  at(lst 0:raw), f():key -- is undecided, and nothing forces
-                  the call, so those stay out of the whitelist.  An identifier
-                  glued to a colon is the one shape narrow enough to claim. */
+               // TOK_IDENTIFIER only, deliberately: what a glued
+               // number or delimiter means (0:raw, f():key) stays undecided
                if( isident( buffer[*bufptr] ) &&
                    !( prev_tokend == *tokstart &&
                       prev_toktype == TOK_IDENTIFIER ))

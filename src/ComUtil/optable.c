@@ -112,24 +112,15 @@ struct _opr_tbl_default_entry {
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
   {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
-  // ":" pairs two operands into a colon-list.  Priority 78, one above
-  // "@"(77), so lo:hi groups before @ applies (str@0:3 reads as str@(0:3),
-  // not (str@0):3).  "colonlist" is registered as a command separately.
+  // ":" pairs into a colon-list at priority 78, one above "@"(77),
+  // so str@0:3 reads as str@(0:3)
   {":",          "colonlist",          78,         FALSE,      OPTYPE_BINARY },
-  // "@" as sugar for at(): lst@0 == at(lst 0), and lst@0@1@2 chains left to
-  // right.  Its own operator rather than a numeric rhs on ".", since '@' is
-  // never part of a number's syntax and so cannot collide with float literals
-  // the way lst.0.1.2 does.  Priority 77 sits just below the stream-producing
-  // operators (..=90, **=80, %%=79), so lst@0..10 and lst@0**3 index without
-  // parens, and above arithmetic (60-70), so lst@i+1 still reads as
-  // (lst@i)+1 -- much the commoner case.
+  // "@" is sugar for at(): priority 77 sits below the stream
+  // operators (..=90 **=80 %%=79) and above arithmetic
   {"@",          "at",                 77,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
-  // "next" sits one above "mpy" (71 vs 70) rather than level with it: parsing
-  // "2 * *s" means settling each * token's role, binary or unary-prefix,
-  // before either can be pushed, and an exact tie between the two roles of the
-  // same operator string misparses -- the binary mpy is emitted before its
-  // right operand is read.  One point of separation is enough.
+  // "next" sits one above "mpy" (71 vs 70) so "2 * *s" settles each
+  // *'s role before either token is pushed
   {"*",          "next",               71,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },
@@ -1131,10 +1122,8 @@ $          stream             125        Y      UNARY PREFIX
 {
   int table_size = sizeof( DefaultOperatorTable ) /
     sizeof( struct _opr_tbl_default_entry );
-  /* Headroom beyond the built-in operators so a new operator can be added at
-     runtime -- e.g. optable("<+>" "mycmd" :insert :pri 50) defining an operator
-     on the fly -- without immediately maxing the table (ERR_OPRTBLMAXED).  The
-     table is created exactly full otherwise, leaving no room for a live insert. */
+  // headroom so optable(:insert) can add an operator at runtime
+  // without maxing the table
   const int slack = 16;
   int index;
 
