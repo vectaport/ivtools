@@ -213,10 +213,8 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
     }
 
     if (!fptr) {
-	/* RELLIBALLDIR/ABSLIBALLDIR are preprocessor macros supplied by -D
-	   flags in the Imakefile, carrying the real install paths.  Bare here
-	   rather than quoted, so the preprocessor expands them: a macro name
-	   inside a string literal is never expanded. */
+	// RELLIBALLDIR is an Imakefile -D macro; bare here, not quoted,
+	// so the preprocessor expands it
 	strcpy( fullpath, RELLIBALLDIR );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
@@ -230,11 +228,8 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
 	fptr = fopen(fullpath, "r");
     }
    
-   /* Register the opened stream (or nil, if comterp.err genuinely isn't
-      installed anywhere COMTERP_PATH/RELLIBALLDIR/ABSLIBALLDIR name) --
-      err_read() falls back to the compiled-in default_errmsgs whenever
-      this is nil, so a missing file is a graceful degradation, not a
-      fatal error. */
+   // fptr may be nil here; err_read() falls back to default_errmsgs,
+   // so a missing file is not fatal
    ErrorStreams[findex] = fptr;
 
    return findex;
@@ -703,10 +698,8 @@ See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
    TopError = -1;
    NextErrOff = 0;
    TooManyErrors = FALSE;
-/* ErrorIOFile is opened lazily and is NULL until the first error is stored.
-   Guard the close: glibc's fclose(NULL) dereferences the null FILE* and
-   crashes (macOS libc happens to tolerate it).  Mirrors the NULL checks the
-   other err_* routines already do. */
+   // guard the close: glibc's fclose(NULL) crashes, since ErrorIOFile
+   // stays NULL until the first error
    if( ErrorIOFile != NULL ) {
       fclose( ErrorIOFile );
       ErrorIOFile = NULL;
