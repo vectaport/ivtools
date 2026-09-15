@@ -112,12 +112,15 @@ struct _opr_tbl_default_entry {
   {"..",         "iterate",            90,         FALSE,      OPTYPE_BINARY },
   {"**",         "repeat",             80,         FALSE,      OPTYPE_BINARY },
   {"%%",         "replay",             79,         FALSE,      OPTYPE_BINARY },
-  // ":" pairs into a colon-list at priority 78, one above "@"(77), so str@0:3 reads as str@(0:3)
+  // ":" pairs into a colon-list at priority 78, one above "@"(77),
+  // so str@0:3 reads as str@(0:3)
   {":",          "colonlist",          78,         FALSE,      OPTYPE_BINARY },
-  // "@" is sugar for at(): priority 77 sits below the stream operators (..=90 **=80 %%=79) and above arithmetic
+  // "@" is sugar for at(): priority 77 sits below the stream
+  // operators (..=90 **=80 %%=79) and above arithmetic
   {"@",          "at",                 77,         FALSE,      OPTYPE_BINARY },
   {",,",         "concat",             75,         FALSE,      OPTYPE_BINARY },
-  // "next" sits one above "mpy" (71 vs 70) so "2 * *s" settles each *'s role before either token is pushed
+  // "next" sits one above "mpy" (71 vs 70) so "2 * *s" settles each
+  // *'s role before either token is pushed
   {"*",          "next",               71,         TRUE,       OPTYPE_UNARY_PREFIX },
   {"%",          "mod",                70,         FALSE,      OPTYPE_BINARY },
   {"*",          "mpy",                70,         FALSE,      OPTYPE_BINARY },
@@ -1119,7 +1122,9 @@ $          stream             125        Y      UNARY PREFIX
 {
   int table_size = sizeof( DefaultOperatorTable ) /
     sizeof( struct _opr_tbl_default_entry );
-  const int slack = 16; // headroom so optable(:insert) can add an operator at runtime without maxing the table
+  // headroom so optable(:insert) can add an operator at runtime
+  // without maxing the table
+  const int slack = 16;
   int index;
 
   if (OperatorTable && opr_tbl_is_default)

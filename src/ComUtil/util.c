@@ -70,7 +70,8 @@ const char* local_hostname() {
     static const char* name = shell_string("scutil --get LocalHostName");
     static bool ready = false;
     if (!ready) {
-        // fall back to gethostname() if scutil returned nothing, rather than send the bare ".local" it'd otherwise produce
+        // fall back to gethostname() if scutil returned nothing,
+        // rather than send the bare ".local" it'd otherwise produce
         if (name && name[0] != '\0') {
             strncpy(buffer, name, MAXHOSTNAMELEN);
 	    buffer[MAXHOSTNAMELEN-1] = '\0'; // guarding against strncpy overwrite

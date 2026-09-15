@@ -53,7 +53,8 @@ static struct termios _tty_saved_state;
 
 void tty_echo_restore(void) {
     if (_tty_echo_off) {
-        // only clear the flag on success, so a later retry doesn't see a false "already restored"
+        // only clear the flag on success, so a later retry doesn't
+        // see a false "already restored"
         if (tcsetattr(fileno(stdin), TCSANOW, &_tty_saved_state) == 0)
             _tty_echo_off = 0;
     }

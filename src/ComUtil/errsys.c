@@ -213,7 +213,8 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
     }
 
     if (!fptr) {
-	// RELLIBALLDIR is an Imakefile -D macro; bare here, not quoted, so the preprocessor expands it
+	// RELLIBALLDIR is an Imakefile -D macro; bare here, not quoted,
+	// so the preprocessor expands it
 	strcpy( fullpath, RELLIBALLDIR );
 	if (fullpath[strlen(fullpath)-1] != '/') strcat( fullpath, "/" );
 	strcat( fullpath, errfile );
@@ -227,7 +228,8 @@ See Also:  err_read, err_set, err_get, err_print, err_str, err_clear,
 	fptr = fopen(fullpath, "r");
     }
    
-   // fptr may be nil here; err_read() falls back to default_errmsgs, so a missing file is not fatal
+   // fptr may be nil here; err_read() falls back to default_errmsgs,
+   // so a missing file is not fatal
    ErrorStreams[findex] = fptr;
 
    return findex;
@@ -696,7 +698,8 @@ See Also:  err_open, err_read, err_set, err_get, err_print, err_str,
    TopError = -1;
    NextErrOff = 0;
    TooManyErrors = FALSE;
-   // guard the close: glibc's fclose(NULL) crashes, since ErrorIOFile stays NULL until the first error
+   // guard the close: glibc's fclose(NULL) crashes, since ErrorIOFile
+   // stays NULL until the first error
    if( ErrorIOFile != NULL ) {
       fclose( ErrorIOFile );
       ErrorIOFile = NULL;

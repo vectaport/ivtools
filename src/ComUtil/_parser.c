@@ -819,7 +819,8 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	     optype == OPTYPE_UNARY_PREFIX ) {
 	    if( UNEXPECTED_NEW_EXPRESSION ) {
 
-	      /* stream literal: slip in stream_symid when an operator-led expression (*s, -s, !x) leads it */
+	      /* stream literal: slip in stream_symid when an operator-led
+	         expression (*s, -s, !x) leads it */
 	       if( TopOfParenStack >= 0 &&
 	           LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
 	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
@@ -847,7 +848,8 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	 else
 	   expecting = OPTYPE_BINARY;
 
-      /* Take all operators off the stack of higher priority than this one, except a unary prefix, which pops nothing */
+      /* Take all operators off the stack of higher priority than
+         this one, except a unary prefix, which pops nothing */
 	 while ( TopOfOperStack >= 0 &&
 		 optype != OPTYPE_UNARY_PREFIX &&
 		 INSTACK_PRIORITY_HIGHER(opr_tbl_priority(op_ids[optype]))) 
@@ -888,7 +890,8 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	    if( !PROCEEDING_WHITESPACE( tokstart ) ||
                 UNEXPECTED_NEW_EXPRESSION ) {
 	      
-              /* stream literal: slip in stream_symid when a nested LPAREN leads it, enabling (a b)(c d) and 1 (2 3) */
+              /* stream literal: slip in stream_symid when a nested
+                 LPAREN leads it, enabling (a b)(c d) and 1 (2 3) */
 	       if( TopOfParenStack >= 0 &&
 	           LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
 	           ParenStack[ TopOfParenStack ].comm_id == -1 &&
@@ -1160,7 +1163,8 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 	 if( expecting == OPTYPE_BINARY ) {
 	   if( (!PROCEEDING_WHITESPACE( tokstart ) && !_detail_matched_delims) ||
 		 UNEXPECTED_NEW_EXPRESSION ) {
-		 /* stream literal: bare opening delimiter, first element is itself a (), [], or {} group */
+		 /* stream literal: bare opening delimiter, first element is
+		    itself a (), [], or {} group */
 		 if( LITERAL_DELIM( toktype ) &&
 		     TopOfParenStack >= 0 &&
 		     LITERAL_DELIM( ParenStack[ TopOfParenStack ].paren_type ) &&
@@ -1282,7 +1286,8 @@ int empty_supplied;     /* _empty_statement supplied a missing operand */
 
       /* Take everything off of the operator stack until the matching */
       /* parenthesis is found.                                        */
-      // a pending keyword with no value yet (unary-prefix expected, not empty_supplied) gets narg 0, not a fabricated 1
+      // a pending keyword with no value yet (unary-prefix expected,
+      // not empty_supplied) gets narg 0, not a fabricated 1
 	 { int kw_novalue = ( expecting == OPTYPE_UNARY_PREFIX ) && !empty_supplied;
 	 while ( (OperStack[TopOfOperStack].oper_type != LEFTPAREN) &&
                  (TopOfOperStack >= 0 ))

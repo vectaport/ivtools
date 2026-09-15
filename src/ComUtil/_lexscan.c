@@ -266,11 +266,14 @@ int bs_ident = 0;
 	     (*outfunc) ( get_command_prompt(), outfile);
 	 }
 	 _continuation_prompt = 0;
-	 /* self-echo since OS tty echo is suppressed; gated on !_continuation_prompt_disabled and the one-shot suppress flag */
-	 /* tty_echo_before_read()/tty_echo_after_read() bracket each read, restoring and re-suppressing OS echo (ttyecho.c) */
+	 /* self-echo since OS tty echo is suppressed; gated on
+	    !_continuation_prompt_disabled and the one-shot suppress flag */
+	 /* tty_echo_before_read()/tty_echo_after_read() bracket each read,
+	    restoring and re-suppressing OS echo (ttyecho.c) */
 	 { int echo_suppressed = tty_echo_consume_suppress_next();
 	   int self_echo = 0;
-	   int on_tty = (infile == (void*)stdin); /* a string source must leave the tty alone */
+	   /* a string source must leave the tty alone */
+	   int on_tty = (infile == (void*)stdin);
 	 if (linecmtchr || linecmtstr)
 	   while( (on_tty ? tty_echo_before_read() : (void)0,
 		   infunc_retval = (*infunc)( buffer, bufsiz, infile )) != NULL &&
@@ -278,7 +281,9 @@ int bs_ident = 0;
 		   buffer[0] == linecmtchr || strncmp(buffer, linecmtstr, strlen(linecmtstr))==0)) {
 	     if (outfunc && !_continuation_prompt_disabled && !echo_suppressed
 		 && outfunc == (int(*)(const char*,void*))&stdout_puts && self_echo)
-	       (*outfunc) ( buffer, outfile );  /* echo the comment line too, still consumed but no longer shown by OS echo */
+	       /* echo the comment line too, still consumed but no longer
+	          shown by OS echo */
+	       (*outfunc) ( buffer, outfile );
              (*linenum)++;  /* skip all script comments */
          }
 	 else {
@@ -600,7 +605,8 @@ int bs_ident = 0;
 	       TOKEN_ADD( hexval );
                }
 
-	 /* 'c' is a Perl/PCRE control-char escape: \cX is X^0x40, X in '?'..'_' (0x3F-0x5F) */
+	 /* 'c' is a Perl/PCRE control-char escape: \cX is X^0x40,
+	    X in '?'..'_' (0x3F-0x5F) */
 	    else if( NEXT_CHAR == 'c' ) {
 	       ADVANCE_CHAR;
 	       if( NEXT_CHAR < 0x3f || NEXT_CHAR > 0x5f ) {
@@ -673,7 +679,8 @@ int bs_ident = 0;
 	    ADVANCE_CHAR;
 	    goto token_return;
 	    }
-	 /* ':' only counts as isident() via _colon_ident, so a colon ends a number cleanly, not "1abc" */
+	 /* ':' only counts as isident() via _colon_ident, so a colon
+	    ends a number cleanly, not "1abc" */
 	 else if( CURR_CHAR != ':' && isident( CURR_CHAR ))
 	    return ERR_BADINT;
          else
@@ -997,7 +1004,8 @@ token_return:
 /* ----------------------------------------------------------------------- */
 
    *toktype = token_state;
-   /* unlike *toktype and *bufptr, stays in true scan order even when lookahead calls scanner() extra times */
+   /* unlike *toktype and *bufptr, stays in true scan order even
+      when lookahead calls scanner() extra times */
    _lexscan_last_tokend = *bufptr;
    _lexscan_last_toktype = token_state;
    return FUNCOK;

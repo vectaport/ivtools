@@ -141,7 +141,8 @@ int search_state = LOOK_START; /* State of what has been found */
                                       /* in error file */
 int status;
 
-// a ':' glued to a completed operand is an infix operator (a:b), not a keyword start; read _lexscan_last_*, not *bufptr/*toktype, since lookahead can overwrite those
+// ':' after an operand is infix (a:b), not a keyword start; read
+// _lexscan_last_*, not *bufptr/*toktype -- lookahead can overwrite those
 unsigned prev_tokend = _lexscan_last_tokend;
 unsigned prev_toktype = _lexscan_last_toktype;
 
@@ -225,7 +226,8 @@ unsigned prev_toktype = _lexscan_last_toktype;
                break;
 
             case ':' :
-               // TOK_IDENTIFIER only, deliberately: what a glued number or delimiter should mean (0:raw, f():key) stays undecided
+               // TOK_IDENTIFIER only, deliberately: what a glued
+               // number or delimiter means (0:raw, f():key) stays undecided
                if( isident( buffer[*bufptr] ) &&
                    !( prev_tokend == *tokstart &&
                       prev_toktype == TOK_IDENTIFIER ))
