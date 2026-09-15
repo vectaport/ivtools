@@ -205,8 +205,17 @@ graphical object assigned to an interpreter variable.
 
 .SH OPTIONS
 
-.B \-runfile filename  
-file of comdraw commands to run at startup.
+.B \-runfile filename [args...]
+file of comdraw commands to run at startup.  Any arguments trailing
+filename are forwarded to the script, readable there as arg(1),
+arg(2), ... via arg(n)/narg() (arg(0) is filename itself) -- the same
+convention as comterp's own "run <file> [args...]" subcommand.  Order
+relative to comdraw's other options doesn't matter, since the X
+toolkit strips its own recognized options out from wherever they fall
+and leaves the true positional leftovers in place; the one thing to
+avoid is a trailing argument spelled exactly like one of comdraw's own
+options (e.g. \-tile) -- that gets consumed as the option itself
+instead of reaching the script.
 
 .B \-runexpr expression
 string of comdraw commands to run at startup, e.g. -runexpr "print(\"hello\n\")"

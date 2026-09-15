@@ -20,6 +20,21 @@ before writing or editing any `.c`/`.h` comment:**
    PR description — a future reader of working code does not care how it
    came to work, only how it works now.
 
+**Fix the mechanism, not the symptom's call site.** Trace a bug to its
+real cause and fix it there, not with a narrower check layered on top
+of wherever you happened to notice it. This codebase's full source is
+available and modifiable; most dependencies aren't, which is when a
+caller-side workaround is the only option anyone has. Here it usually
+isn't, so reach for one only when the real fix is genuinely out of
+reach, never because it's less work to write. *Exception:* the layers
+borrowed whole from Stanford's original InterViews 3.1/Unidraw release
+(`IV`, `IV-2_6`, `IV-X11`, `IV-common`, `InterViews`, `OS`, `Dispatch`,
+`TIFF`, see the layout table below) get only surgical changes, whatever
+keeps them compiling and correct on a modern toolchain, never a
+reshaping of their original behavior. They exist to keep the original
+toolkit available as Stanford published it. Root-cause fixing applies
+everywhere else this project owns, ComUtil on up.
+
 ---
 
 ## What ivtools is

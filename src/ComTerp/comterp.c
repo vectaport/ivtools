@@ -223,11 +223,11 @@ boolean ComTerp::read_expr() {
 			 &_pfbuf, &_pfsiz, &_pfnum);
 
     _pfoff = 0;
-    save_parser_client();    
+    save_parser_client();
     postfix_echo();
 
-    return status==0 
-      && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF) 
+    return status==0
+      && (_pfnum==0 || _pfbuf[_pfnum-1].type != TOK_EOF)
       && _buffer[0] != '\0';
 }
 
@@ -1788,6 +1788,8 @@ ComValue ComTerp::orphan_stream_count(ComValue& streamv) {
 int ComTerp::run(boolean one_expr, boolean nested) {
   int old_runflag = running();
   running(true);
+
+  if (_pfnum && _pfbuf[_pfnum-1].type == TOK_EOF) _pfnum = 0; // drop a leftover marker from a prior run() call, not this one
 
   int status = 1;
   _errbuf[0] = '\0';

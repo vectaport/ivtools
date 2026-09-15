@@ -90,6 +90,9 @@ ComTerpServ::ComTerpServ(int linesize, int fd)
     _linesize = linesize;
     _instr = new char[_linesize];
     _outstr = new char[_linesize];
+    _inpos = 0;
+    _instr_eof = false;
+    _instr_final = true;
     _inptr = this;
     _infunc = (infuncptr)&ComTerpServ::s_fgets;
     _eoffunc = (eoffuncptr)&ComTerpServ::s_feof;
@@ -123,6 +126,8 @@ ComTerpServ::~ComTerpServ() {
 
 void ComTerpServ::load_string(const char* expr) {
     _inpos = 0;
+    _instr_eof = false;
+    _instr_final = true; // runfile() overrides this after calling in, since it reloads one line at a time
 
     /* grow _instr/_outstr (doubling) so the string plus a trailing newline and
        null always fit.  the buffers are sized to _linesize, so keep _linesize in
@@ -150,6 +155,15 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
     int& inpos = server->_inpos;
     int& linesize = server->_linesize;
 
+    // like real fgets(3): return nil only once nothing is left, not on the read that lands on the last byte
+    if (instr[inpos] == '\0') {
+	server->_instr_eof = true;
+	if (server->_instr_final) return nil;
+
+	outstr[0] = '\0'; // runfile()'s per-line reload isn't really at EOF yet; an empty line lets the lexer's TOK_NONE path wait for more
+	return s;
+    }
+
     int outpos;
 
     /* copy characters until n-1 characters are transferred, */
@@ -169,9 +183,9 @@ char* ComTerpServ::s_fgets(char* s, int n, void* serv) {
 
 int ComTerpServ::s_feof(void* serv) {
     ComTerpServ* server = (ComTerpServ*)serv;
-    int& inpos = server->_inpos;
 
-    return inpos == -1;
+    // _instr_final gates this: runfile() doesn't want its buffer running out mistaken for real end of input
+    return server->_instr_eof && server->_instr_final;
 }
 
 int ComTerpServ::s_ferror(void* serv) {
@@ -365,9 +379,10 @@ int ComTerpServ::runfile(const char* filename, boolean popen_flag) {
                 inbuf[0]=' ';
                 inbuf[1]='\0';
             }
-            if (*inbuf)
+            if (*inbuf) {
                 load_string(inbuf);
-            else
+                _instr_final = feof(ifptr) != 0; // more lines may follow, e.g. "1+\n2\n" needs the next line
+            } else
                 increment_linenum();
         }
        if (*inbuf && (last_status=read_expr())) {

@@ -227,6 +227,7 @@ ComterpHandler::handle_input (ACE_HANDLE fd)
       }
 
       comterp_->load_string(inbuf);
+      comterp_->_instr_final = false; // more of this statement may follow on a later dispatch
 
       // this hides the logging of a ready command, interesting
       if (fd>0 && !comterp_->muted() ) {

@@ -67,8 +67,13 @@ FileObj::FileObj(FILE* fptr) {
   _fptr = fptr;
 }
 
-void FileObj::close() {
-  if( _fptr && _fptr!=stdin && _filename) _pipe ? pclose(_fptr) : fclose(_fptr);
+int FileObj::close() {
+  int status = 0;
+  if( _fptr && _fptr!=stdin && _filename) {
+    status = _pipe ? pclose(_fptr) : fclose(_fptr);
+    _fptr = NULL;
+  }
+  return status;
 }
 
 FileObj::~FileObj() { 
@@ -572,7 +577,14 @@ void OpenFileFunc::execute() {
       pipe_handler->log_only(1);
     }
   } else {
-    FileObj* fileobj = new FileObj(filenamev.string_ptr(), modev.is_string() ? modev.string_ptr() : "r", pipeflagv.is_true());
+    /* modestr is passed straight through to fopen()/popen() below with no
+       validation, so it already accepts glibc's fopen(3) mode-string
+       extensions unmodified -- "wx" (O_CREAT|O_EXCL: fail rather than
+       follow/truncate a pre-existing path, including a symlink planted
+       by another local process) chief among them for a script that
+       needs to atomically create a unique file. */
+    const char* modestr = modev.is_string() ? modev.string_ptr() : "r";
+    FileObj* fileobj = new FileObj(filenamev.string_ptr(), modestr, pipeflagv.is_true());
     if (fileobj->fptr())  {
       ComValue retval(FileObj::class_symid(), (void*)fileobj);
       push_stack(retval);
@@ -593,8 +605,10 @@ void CloseFileFunc::execute() {
   reset_stack();
   if (objv.is_fileobj()) {
     FileObj *fileobj = (FileObj*)objv.geta(FileObj::class_symid());
-    if (fileobj->fptr())
-      fclose(fileobj->fptr());
+    ComValue retval;
+    retval.int_ref() = fileobj->close();
+    retval.type(ComValue::IntType);
+    push_stack(retval);
     return;
   }
   if (objv.is_pipeobj()) {

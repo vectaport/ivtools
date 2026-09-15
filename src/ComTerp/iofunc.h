@@ -67,8 +67,9 @@ public:
     OpenFileFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- open file command"; }
+    virtual const char* docstring() {
+      return "fileobj|pipeobj=open([filename [modestr]] :pipe :in :out :err) -- "
+        "open file command; modestr r w a r+ w+ a+, plus b suffix or x (fail if exists, w/w+ only)"; }
     virtual const char** dockeys() {
       static const char* keys[] = {
 	":pipe      open pipe command",
@@ -82,14 +83,14 @@ public:
 };
 
 //: close file command
-// close(fileobj|pipeobj|sockobj) -- close file command
+// [status]=close(fileobj|pipeobj|sockobj) -- close file command
 class CloseFileFunc : public ComFunc {
 public:
     CloseFileFunc(ComTerp*);
 
     virtual void execute();
-    virtual const char* docstring() { 
-      return "close(fileobj|pipeobj|sockobj) -- close file command"; }
+    virtual const char* docstring() {
+      return "[status]=%s(fileobj|pipeobj|sockobj) -- close file command, returning fclose()/pclose()'s raw status for a fileobj"; }
 };
 
 class FileObj {
@@ -100,7 +101,7 @@ class FileObj {
   const char* filename() { return _filename; }
   const char* mode() { return _mode; }
   FILE* fptr() { return _fptr; }
-  void close();
+  int close();
 
  protected:
   char* _filename;

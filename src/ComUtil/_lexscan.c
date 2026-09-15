@@ -318,6 +318,9 @@ int bs_ident = 0;
 		     return ERR_EOFCOMMENT;
 		  if( token_state == TOK_STRING || token_state == TOK_CHAR )
 		     return ERR_EOFSTRING;
+		  // clear bufptr/buffer like every other true-EOF exit does, so a stale line doesn't look unconsumed
+		  *bufptr = 0;
+		  buffer[0] = '\0';
 		  return FUNCOK;
 		  }
 
