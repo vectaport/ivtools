@@ -91,8 +91,8 @@ public:
   // return associated ComTerpServ pointer.
 
   static void logger_mode(int flag) { _logger_mode = flag; }
-  // set flag to put comterp in logging mode, where commands are echoed
-  // to stdout without executing
+  // set flag to put comterp in logging mode,
+  // where commands are echoed to stdout without executing
   
   static int logger_mode() { return _logger_mode; }
   // return flag that indicates comterp is in logging-only mode

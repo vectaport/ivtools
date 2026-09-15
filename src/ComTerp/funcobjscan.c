@@ -124,11 +124,8 @@ static boolean span_is_plain_var(PostfixSpanWalk::Span span, boolean* is_plain_v
 boolean* FuncObjVarScan::build_is_plain_var(ComTerp* comterp, postfix_token* toks, int ntoks) {
     boolean* is_plain_var = new boolean[ntoks];
     for (int i = 0; i < ntoks; i++) {
-        /* nids<0 (HACKING.md's "Dot Operator Rhs" section) marks a bare
-           identifier on the right of a dot -- an attribute-key literal
-           like the "v" in "obj.v", never promoted to CommandType
-           regardless of whether that name is also a registered command,
-           but not an ordinary variable reference either. */
+        /* nids<0 marks a bare dot-rhs identifier, never a command --
+           see HACKING.md's "Dot Operator Rhs" */
         if (toks[i].type == TOK_COMMAND && toks[i].nids >= 0) {
             ComValue sv;
             comterp->token_to_comvalue(&toks[i], &sv);
@@ -148,9 +145,9 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
     info.count = -1;
     info.uses_narg = false;
 
-    long maxidx = -1;           /* highest literal index seen: arg(0) -> 0 --
-                                    long (not int) so maxidx+1 below can't
-                                    overflow for a literal near INT_MAX */
+    /* highest literal arg(n) index seen; long so maxidx+1 can't
+       overflow near INT_MAX */
+    long maxidx = -1;
     boolean saw_arg = false;
     boolean saw_nonliteral = false;
 
@@ -161,10 +158,8 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
         int symid = toks[i].v.symbolid;
 
         if (symid == narg_symid) {
-            /* narg() anywhere in the body reads as "this loops over a
-               run of positionals bounded at call time," i.e. variadic --
-               not resolvable to one fixed count regardless of any
-               literal arg(n) indices also present. */
+            /* narg() anywhere marks the body variadic, overriding any
+               literal arg(n) indices found */
             info.uses_narg = true;
             continue;
         }
@@ -180,10 +175,8 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
                     : toks[operand.start].v.lnintval;
                 if (idx > maxidx) maxidx = idx;
             } else {
-                /* a computed index (arg(i), arg(i+1), ...) -- resolving
-                   simple cases statically is future work;
-                   this first pass gives up gracefully instead of
-                   guessing. */
+                /* computed index (arg(i), ...) -- give up gracefully
+                   instead of guessing */
                 saw_nonliteral = true;
             }
         }
@@ -192,14 +185,8 @@ FuncObjVarScan::PositionalInfo FuncObjVarScan::scan_positionals(postfix_token* t
     if (info.uses_narg || saw_nonliteral)
         info.count = -1;
     else if (saw_arg) {
-        /* maxidx+1 overflowing (maxidx == LONG_MAX) is signed-integer UB,
-           not just "unlikely" -- check before doing the addition rather
-           than let it wrap and rely on that wrapping to coincidentally
-           land back on the same -1 "can't be pinned down" sentinel. This is unreachable through today's literal
-           parsing (values above INT_MAX don't currently survive intact --
-           a separate, pre-existing bug), but the guard costs nothing
-           and removes the UB regardless of whether any path can trigger
-           it today. */
+        /* guard against maxidx+1 overflowing (maxidx == LONG_MAX is
+           signed-integer UB) */
         if (maxidx == LONG_MAX)
             info.count = -1;
         else
@@ -215,9 +202,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     static int local_symid = symbol_add("local");
     static int global_symid = symbol_add("global");
     static int dot_symid = symbol_add("dot");
-    /* First operand is read-then-written in one occurrence -- see the capture classifier's
-       plan: distinct from plain assign, whose first operand is a pure
-       write (the old value is never read). */
+    /* compound-assign symids: first operand is read-then-written,
+       unlike plain assign's pure write */
     static int compound_assign_symids[] = {
         symbol_add("mod_assign"), symbol_add("mpy_assign"),
         symbol_add("add_assign"), symbol_add("sub_assign"),
@@ -231,13 +217,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
     int nrecs = 0, recs_cap = 0;
     EscapeRecord* escapes = nil;
     int nescapes = 0, escapes_cap = 0;
-    /* symbols used anywhere in the body as a dot-chain root (obj.field).
-       DotFunc's attribute-write path falls through _alist, then local, then
-       global to decide whether obj already exists or needs creating in the
-       outer scope.  A capture pre-seeding al[obj] with a declaration-time
-       snapshot would make that path see it as already present and stop short,
-       breaking the documented bleed to outer scope.  So they are excluded from
-       capture globally -- collected here, filtered at output. */
+    /* dot-chain roots (obj.field) are excluded from capture --
+       pre-seeding al[obj] would break DotFunc's outer-scope bleed */
     int* dotroots = nil;
     int ndotroots = 0, dotroots_cap = 0;
 
@@ -286,14 +267,8 @@ AttributeList* FuncObjVarScan::classify(postfix_token* toks, int ntoks, boolean*
         }
     }
 
-    /* A plain-var token that never got consumed by anything -- e.g. a body
-       that's just "x" -- is still an ordinary read: the body's own return
-       value.  Only the walker's own final remaining() spans were truly
-       never consumed by anything -- NOT every is_plain_var token, since a
-       token consumed into an escape (local()/global(), handled above via
-       `continue`, so it never reaches note_event) was consumed, just not
-       into an ordinary read/write event.  Scanning all is_plain_var
-       tokens here would wrongly re-count those as leftover reads. */
+    /* only walk.remaining() spans are unconsumed reads; not every
+       is_plain_var token -- local()/global() consume theirs via `continue` */
     for (int k = 0; k < walk.remaining_count(); k++) {
         PostfixSpanWalk::Span span = walk.remaining(k);
         if (!span_is_plain_var(span, is_plain_var)) continue;
@@ -353,19 +328,16 @@ AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* to
     for (int i = 0; i < ntoks; i++) {
         walk.step(toks, i);
         if (toks[i].type != TOK_COMMAND || (unsigned)toks[i].v.symbolid != (unsigned)if_symid) continue;
-        /* only the plain 3-operand if(cond :then v :else v) shape --
-           :until/:nilchk or any other keyword on this if() means it
-           isn't this idiom at all */
+        /* only the plain 3-operand if(cond :then v :else v) shape
+           counts as this idiom */
         if (walk.consumed_count() != 3) continue;
 
         PostfixSpanWalk::Span condspan = walk.consumed(0);
         PostfixSpanWalk::Span branch1 = walk.consumed(1);
         PostfixSpanWalk::Span branch2 = walk.consumed(2);
 
-        /* condition must be exactly "K==nil" or "nil==K" -- 3 tokens,
-           last one eq, the other two bare single-token operands, one of
-           them the literal nil command and the other a plain variable
-           (the keyword this default belongs to) */
+        /* condition must be exactly "K==nil" or "nil==K": eq of
+           nil and a plain variable */
         if (condspan.count != 3) continue;
         int eqtok = condspan.start + 2;
         if (toks[eqtok].type != TOK_COMMAND || (unsigned)toks[eqtok].v.symbolid != (unsigned)eq_symid) continue;
@@ -377,10 +349,8 @@ AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* to
         else if (t1_nil && is_plain_var[t0]) keysym = toks[t0].v.symbolid;
         else continue;
 
-        /* branch1/branch2 (source order) must each end in a KEYWORD
-           token -- that's what identifies which is :then and which is
-           :else (see funcobjscan.h's spanwalk comment: a keyword-tagged
-           operand's span includes its trailing KEYWORD marker token) */
+        /* branch1/branch2 must each end in a KEYWORD token
+           identifying :then vs :else */
         PostfixSpanWalk::Span then_span, else_span;
         boolean have_then = false, have_else = false;
         PostfixSpanWalk::Span branches[2];
@@ -396,17 +366,13 @@ AttributeList* FuncObjVarScan::scan_defaults(ComTerp* comterp, postfix_token* to
         }
         if (!have_then || !have_else) continue;
 
-        /* :else's value portion (span minus its trailing keyword token)
-           must be exactly the bare keyword, unchanged -- confirms this
-           if() really is the "return x as-is" idiom for THIS keysym,
-           not some other, unrelated keyword-adjacent if() */
+        /* :else's value must be exactly the bare keyword unchanged,
+           confirming this is THIS keysym's idiom */
         if (else_span.count != 2) continue;
         if (!is_plain_var[else_span.start] || toks[else_span.start].v.symbolid != keysym) continue;
 
-        /* :then's value portion must be exactly one literal token --
-           give up gracefully (no default reported) on anything computed,
-           same restraint scan_positionals uses for a non-literal arg(n)
-           index */
+        /* :then's value must be exactly one literal token; give up
+           gracefully on anything computed */
         if (then_span.count != 2) continue;
         ComValue litval;
         comterp->token_to_comvalue(&toks[then_span.start], &litval);

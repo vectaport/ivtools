@@ -248,11 +248,8 @@ public:
     static  void execute_impl(ComTerp*, ComValue& strmv);
     virtual boolean post_eval() { return true; }
     virtual const char* docstring() {
-      /* %1$s (not plain %s) reused twice: the caller (helpfunc.c) passes
-	 exactly one substitution argument (this command's own name), and a
-	 second bare %s here would read past it -- an uninitialized-argument
-	 format-string bug.  POSIX/BSD printf's positional specifier lets
-	 one supplied argument fill both slots safely. */
+      /* %1$s (not plain %s) reused twice: helpfunc.c passes only one
+         substitution argument, and a second bare %s would read past it */
       return "val=%1$s(stream) -- return next value from stream\n\
 *s is unary-prefix sugar for %1$s(s)"; }
 

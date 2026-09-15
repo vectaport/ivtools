@@ -74,12 +74,8 @@ ComValue::ComValue(ComValue* sv) {
 }
 
 ComValue::ComValue(AttributeValue& sv) {
-    /* narg/nkey/nids and the flag bits (sliced() among them) now live
-       in AttributeValue's own storage, so the assignment above already
-       carries them over when sv was itself a boxed ComValue -- zero_vals()
-       must not stomp them back to 0 here, unlike before this storage moved
-       up from ComValue.  _pedepth has no AttributeValue-level counterpart
-       to inherit, so it alone still needs an explicit reset. */
+    /* narg/nkey/nids and the flag bits live in AttributeValue's storage
+       now, so only _pedepth needs an explicit reset here */
     *(AttributeValue*)this = sv;
     _pedepth = 0;
 }
@@ -124,11 +120,8 @@ ComValue::ComValue(postfix_token* token) {
     clear();
     void* v1 = &_v;
     void* v2 = &token->v;
-    /* sizeof(token->v), not sizeof(_v): token->v is postfix_token's 8-byte
-       data_value union, narrower than ComValue's 16-byte attr_value, so
-       sizeof(_v) would read past it into the adjacent type/narg fields.
-       clear() has already zeroed _v, and data_value's widest member is 8
-       bytes, so bounding the copy to the source loses nothing. */
+    /* copy sizeof(token->v), not sizeof(_v): token->v's data_value union is
+       narrower than attr_value, so sizeof(_v) would overrun adjacent fields */
     memcpy(v1, v2, sizeof(token->v));
     switch (token->type) {
     case TOK_STRING:  type(StringType); break;
@@ -147,8 +140,9 @@ ComValue::ComValue(postfix_token* token) {
     }
     _ext1 = token->narg;
     _ext2 = token->nkey;
-    _ext3 = token->nids & 0xff;  // nids not always used for number-of-ids;
-                                  // low byte only -- see nids(int) (comvalue.h)
+    // nids not always used for number-of-ids; low byte only --
+    // see nids(int) (comvalue.h)
+    _ext3 = token->nids & 0xff;
     _linenum = token->ln;
 
     _command_symid = -1;
@@ -171,9 +165,8 @@ int ComValue::narg() const { return type()==ComValue::StringType ? 0 : _ext1; }
 int ComValue::nkey() const { return type()==ComValue::StringType ? 0 : _ext2; }
 int ComValue::nids() const {
   if (type()==ComValue::StringType) return 0;
-  /* sign-extend the low byte -- nids()'s own "bare identifier" sentinel is
-     -1, stored as 0xff there so it never sets any of the flag bits sharing
-     this word (comvalue.h, COMVALUE_*_FLAG start at 0x100). */
+  /* sign-extend the low byte -- nids()'s -1 sentinel is stored as 0xff, which
+     never collides with this word's flag bits (COMVALUE_*_FLAG >= 0x100) */
   int lo = _ext3 & 0xff;
   return (lo & 0x80) ? (lo | ~0xff) : lo;
 }
@@ -186,10 +179,8 @@ int ComValue::sliceoff() const { return _ext1; }
 int ComValue::slicelen() const { return _ext2; }
 
 const char* ComValue::cstr(std::string& scratch) {
-  /* AttributeValue::string_ptr() is called base-qualified, never virtually,
-     which is what makes this safe on any ComValue& -- including a raw _stack
-     element read in place, whose vtable pointer is not reliably ComValue's.
-     sliced()/sliceoff()/slicelen() are plain field reads, unaffected. */
+  /* string_ptr() is called base-qualified, never virtually, which is safe
+     on a raw _stack element whose vtable pointer isn't reliably ComValue's */
   const char* full = AttributeValue::string_ptr();
   if (!sliced()) return full;
   scratch.assign(full + sliceoff(), slicelen());
@@ -202,9 +193,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
     const char* symbol;
     int counter;
     boolean brief = sv.comterp() ? sv.comterp()->brief() : false;
-    /* display-only wrapper: brief mode is the user-facing echo, so that's
-       where a value asks to be surrounded by its matching delimiters.  The
-       verbose form already parenthesizes by type (int( 3 ), symbol( x )). */
+    /* display-only wrapper: only brief mode wraps a value in its matching
+       delimiters, since verbose already parenthesizes each value by type */
     int wrapper = brief ? svp->wrapper() : AttributeValue::NoWrapper;
     out << AttributeValue::wrapper_open(wrapper);
     switch( svp->type() )
@@ -235,10 +225,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	  break;
 	    
 	case ComValue::StringType: {
-	  /* cstr(), not string_ptr() -- svp may be a raw _stack element
-	     (print_stack_top(ostream&), comterp.c), and string_ptr()'s virtual
-	     dispatch isn't reliable on one of those (see cstr()'s own
-	     doc comment, comvalue.h). */
+	  /* cstr(), not string_ptr() -- svp may be a raw _stack element, and
+	     string_ptr()'s virtual dispatch isn't reliable there (see comvalue.h) */
 	  std::string scratch;
 	  const char* strp = svp->cstr(scratch);
 	  if (brief)
@@ -352,12 +340,8 @@ ostream& operator<< (ostream& out, const ComValue& sv) {
 	    ALIterator i;
 	    AttributeValueList* avl = svp->array_val();
 	    avl->First(i);
-	    /* a coloned() list -- ':' itself, or list(:colon) -- prints as
-	       1:2:3, no braces, matching how it was written, rather than
-	       the generic {1,2,3} every other list uses.  Bare, not
-	       parenthesized: nothing yet consumes a printed coloned list
-	       back as input (no reader round-trips this), so there's no
-	       ambiguity to guard against by wrapping it. */
+	    /* a coloned() list prints bare as 1:2:3 (no braces) -- nothing
+	       round-trips it back as input, so no ambiguity to guard against */
 	    boolean coloned = svp->coloned();
 	    if (!coloned) out << "{";
 	    while (!avl->Done(i)) {
@@ -535,13 +519,8 @@ boolean ComValue::isa(int id, int compid) {
 boolean ComValue::is_funcobj(ComTerp* comterp) {
   ComValue tv = *this;
   if (is_symbol()) {
-    /* a still-pending :posteval keyword can't honestly answer "am I a
-       funcobj" without being pulled -- and pulling here, just to answer a
-       query at push time, would fire it whether or not it's actually a
-       func.  Defer instead: say no for now (matches nothing left to break
-       the load_sub_expr loop over), and let stack_arg/stack_key's real,
-       one-time resolution (ComFunc, comfunc.c) fire it then if it turns
-       out to be one -- see ComTerp::fire_if_funcobj(). */
+    /* a still-pending :posteval keyword can't say if it's a funcobj without
+       firing it -- stack_arg/stack_key's real resolution handles that later */
     if (comterp->is_posteval_pending(symbol_val()))
       return false;
     tv = comterp->lookup_symval(tv);

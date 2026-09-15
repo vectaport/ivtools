@@ -158,32 +158,16 @@ void TimeFunc::execute() {
   int linenum = funcstate() ? funcstate()->linenum() : 0;
   reset_stack();
 
-  /* The bare call is reserved.  A time is properly an instant -- a value that
-     knows both its wall reading and a monotonic one, so that formatting uses
-     the first and subtraction the second and the two can never be mixed up.
-     That is a TimeObj, and it arrives with the binary : work.  Answering a
-     plain number here in the meantime would entrench the wrong return and make
-     that a breaking change, so say what is coming instead. */
+  /* the bare call is reserved for a future TimeObj return;
+     answering a plain number now would entrench the wrong type */
   if (!anykey) {
     std::cout << "WARNING:  time() without a keyword is reserved for a TimeObj return, not yet implemented -- use time(:raw) for the epoch reading or time(:mono) for a monotonic one -- line " << linenum << "\n";
     push_stack(ComValue::nullval());
     return;
   }
 
-  /* Two clocks, for the two jobs, because neither can do the other's.
-
-     CLOCK_REALTIME is a wall-clock reading: it is an actual date, comparable
-     with date() and with another machine, and it must follow an NTP correction
-     rather than ignore one -- which also means it can step backwards.
-
-     CLOCK_MONOTONIC (:mono) has no epoch at all; its zero is unspecified,
-     roughly boot, so it is meaningless as a date.  What it is good for is the
-     thing the wall clock does badly: measuring how long something took, since
-     a clock adjustment mid-measurement cannot corrupt the interval or make it
-     negative.  comeditor.c's shift-arrow watchdog uses it for exactly that.
-
-     A single reading serves every unit, so the keywords cannot disagree about
-     which instant they describe. */
+  /* CLOCK_REALTIME is a comparable wall-clock date but can step backwards;
+     CLOCK_MONOTONIC (:mono) is epoch-less but safe for measuring intervals */
   struct timespec ts;
   clock_gettime(monov.is_true() ? CLOCK_MONOTONIC : CLOCK_REALTIME, &ts);
   long sec = (long)ts.tv_sec;
